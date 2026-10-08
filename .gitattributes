@@ -9,3 +9,7 @@
 /tools/godot/source_handoff.py -text
 /tools/godot/qa_isolated.py -text
 /outputs/source_handoff_validation_20261008/*.json -text
+
+# Preserve byte pins of the tested standalone minimap and its launcher.
+/godot/minimap_demo/** -text
+/tools/godot/launch_minimap_demo.ps1 -text

@@ -1,0 +1,18 @@
+; Standalone module demonstration. No production city scene is loaded.
+config_version=5
+
+[application]
+config/name="Мафиози — миникарта (автономный модуль)"
+run/main_scene="res://scenes/demo.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+
+[display]
+window/size/viewport_width=1100
+window/size/viewport_height=720
+window/size/window_width_override=1100
+window/size/window_height_override=720
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+environment/defaults/default_clear_color=Color(0.045, 0.095, 0.1, 1)

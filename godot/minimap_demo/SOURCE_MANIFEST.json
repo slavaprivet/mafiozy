@@ -1,0 +1,92 @@
+{
+  "schema": "mafiozi.minimap.source-manifest/v1",
+  "revision": "minimap_stage01",
+  "project_subdir": "godot/minimap_demo",
+  "source_pins": [
+    {
+      "path": "assets/maps/city_rebuild_v1/exploration_minimap.mjs",
+      "bytes": 43345,
+      "sha256": "776239788f63ebf3aabe6cb1edb15ab1caa31880adf57ea33a75c8db62b27606"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/test_exploration_minimap.mjs",
+      "bytes": 11358,
+      "sha256": "7322a6ec444d4e6dddc83954c5c2cf347b3f49c8bf74bfa2dacd60d83dbc847a"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/walk_preview.mjs",
+      "bytes": 252219,
+      "sha256": "e80ebf4be2d0404ad5b51d4bf28b756a9cba2b486c43c0797de748c37364dd47"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/exploration_waypoint_visual.mjs",
+      "bytes": 2309,
+      "sha256": "65c8addefec425e384878992d5035e160a7a103a7a1567577d0ffc90749ab27e"
+    },
+    {
+      "path": "tools/godot/test_scheduler.py",
+      "bytes": 26135,
+      "sha256": "adcb834390e476edd118f62d8e3e5b391c6ebc97925391e66beeb80430ba8373"
+    },
+    {
+      "path": "docs/godot/ENGINE_LOCK.json",
+      "bytes": 2591,
+      "sha256": "9ba68019898613d923476e3db4f184bf6372558e2f3fecb07207a8f9d125246a"
+    },
+    {
+      "path": "AGENTS.md",
+      "bytes": 44109,
+      "sha256": "e2d11241fa2643a4e700b4ebff56ebe3ad358f652d50c010e2df832b46018c8f"
+    }
+  ],
+  "files": [
+    {
+      "path": ".gitignore",
+      "bytes": 8,
+      "sha256": "531d0d253cec1addb97b2cb2d144b6589ff934513eb9c9b8cf882cb49e4c0c32"
+    },
+    {
+      "path": "addons/walk_minimap/map_projection.gd",
+      "bytes": 3844,
+      "sha256": "4dd5259f393831de134e48bf29156e7061ebc23591ac84b5bdfe79bc15e45605"
+    },
+    {
+      "path": "addons/walk_minimap/minimap_control.gd",
+      "bytes": 20259,
+      "sha256": "9fbbafbdc258e04b7a57dedf9c4b9d87b15b94a8a92ee4e948cc7e49777eefd7"
+    },
+    {
+      "path": "addons/walk_minimap/waypoint_state.gd",
+      "bytes": 4747,
+      "sha256": "bb7497dcea52286a70d51d393cca03525e193cfd8dac191a1fe3ebdfa68f424b"
+    },
+    {
+      "path": "project.godot",
+      "bytes": 624,
+      "sha256": "555627d1c34891c2803fdab3de5e448e18869da26feebaef1a7fa6c9a87404c5"
+    },
+    {
+      "path": "README.md",
+      "bytes": 7615,
+      "sha256": "d044c019eab1d513a834765a3cc6f1c26bb30998363e7821eef009f342135144"
+    },
+    {
+      "path": "scenes/demo.tscn",
+      "bytes": 166,
+      "sha256": "6863f38b887ca8721591933778879d693141476949d925b502df1338d91c6e12"
+    },
+    {
+      "path": "scripts/demo.gd",
+      "bytes": 5441,
+      "sha256": "bd314d9b64f9c12fcd9aae6e903cd44f8e6cb121f30730fab87c9abdd7a5df67"
+    },
+    {
+      "path": "tests/smoke_minimap.gd",
+      "bytes": 7423,
+      "sha256": "b893498ffe78e6ec7f683af0540640a8396392ebe7b52bbb487b5b05a943d2ad"
+    }
+  ],
+  "current286": "NOT_RECEIVED",
+  "source_ui_full_parity": "PARTIAL",
+  "full_city_performance": "NOT_RUN"
+}
