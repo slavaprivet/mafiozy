@@ -1,0 +1,492 @@
+{
+  "schema_version": 1,
+  "source_repo": "https://github.com/slavaprivet/mafiozy.git",
+  "source_sha": "dcfb5e3d1421d9554b061d77e65f4ccf66f72d0c",
+  "target_scene": "outputs/dsh_living_city_01/game/scenes/main_city.tscn",
+  "target_population": 286,
+  "scope": "Acceptance map, not a runner or claim of gameplay PASS. Source parameter differences require current package evidence before promotion.",
+  "required_run_fields": [
+    "source_sha",
+    "assembly_manifest_sha256",
+    "godot_version",
+    "renderer",
+    "scene",
+    "population",
+    "scenario_id",
+    "status",
+    "evidence"
+  ],
+  "scenarios": [
+    {
+      "id": "gang.hire",
+      "group": "gang",
+      "trigger": "Естественный наём доступного существующего жителя через диалог; назначить допустимую профессию.",
+      "expected": [
+        "Ровно одна запись состава с исходным ID; ежедневный контроллер передаёт владение без дублирования тела.",
+        "Недоступный/уже нанятый житель и переполненный состав отклоняются."
+      ],
+      "source_refs": [
+        {
+          "path": "assets/maps/city_rebuild_v1/mercenary_core.mjs",
+          "anchor": "function recruit(",
+          "sha256": "53e0ad0e3e53ef62d2856c48e527db412adc7630541ea01c9c903f573da0a95c",
+          "line": 64
+        },
+        {
+          "path": "assets/maps/city_rebuild_v1/mercenary_world.js",
+          "anchor": "function recruitableResident(",
+          "sha256": "c211e7f39b678d939337e5df40e7f0df4f369943ed72f029feddc702cfe575c4",
+          "line": 98
+        }
+      ],
+      "evidence_fields": [
+        "actor_id",
+        "body_id_before",
+        "body_id_after",
+        "roster_before",
+        "roster_after",
+        "profession",
+        "daily_owner_before",
+        "daily_owner_after"
+      ],
+      "state": "current286_native_not_run",
+      "godot_status": "NOT_RUN"
+    },
+    {
+      "id": "gang.move",
+      "group": "gang",
+      "trigger": "Игрок идёт обычным input; нанятый боец следует по доступному маршруту.",
+      "expected": [
+        "Тот же body/session/life реально перемещается; блокировка маршрута не выдаётся за успех.",
+        "Пара244/252 из истории требует фактического подхода: исходные25.93м вне15м UI."
+      ],
+      "source_refs": [
+        {
+          "path": "assets/maps/city_rebuild_v1/mercenary_world.js",
+          "anchor": "function advanceMember(",
+          "sha256": "c211e7f39b678d939337e5df40e7f0df4f369943ed72f029feddc702cfe575c4",
+          "line": 40
+        },
+        {
+          "path": "assets/maps/city_rebuild_v1/mercenary_world.js",
+          "anchor": "function follow(",
+          "sha256": "c211e7f39b678d939337e5df40e7f0df4f369943ed72f029feddc702cfe575c4",
+          "line": 420
+        }
+      ],
+      "evidence_fields": [
+        "actor_id",
+        "body_id_before",
+        "body_id_after",
+        "position_trace",
+        "input_trace",
+        "route_result"
+      ],
+      "state": "current286_native_not_run",
+      "godot_status": "NOT_RUN"
+    },
+    {
+      "id": "gang.effect",
+      "group": "gang",
+      "trigger": "Выдать один приказ intimidate допустимой цели и дождаться реального сближения и завершения работы.",
+      "expected": [
+        "Работа требует полного3D расстояния<=2м, base duration2.5с с поправкой навыка; один effect через owner.",
+        "Смерть/недоступность/защищённая цель не дают эффект. Страх Walk длится60с; v2 history подтверждает60с+8с паники. QA40s policy не является длительностью страха.",
+        "Walk approachTimeout40с и blockedTimeout10с; path_timeout проверяется при нахождении вне work range. Работа/страх/таймаут подхода — разные часы; проба не должна смешивать их."
+      ],
+      "source_refs": [
+        {
+          "path": "assets/maps/city_rebuild_v1/mercenary_core.mjs",
+          "anchor": "intimidate:{profession:",
+          "sha256": "53e0ad0e3e53ef62d2856c48e527db412adc7630541ea01c9c903f573da0a95c",
+          "line": 17
+        },
+        {
+          "path": "assets/maps/city_rebuild_v1/mercenary_core.mjs",
+          "anchor": "const ok=apply(a,t)",
+          "sha256": "53e0ad0e3e53ef62d2856c48e527db412adc7630541ea01c9c903f573da0a95c",
+          "line": 184
+        },
+        {
+          "path": "world.html",
+          "anchor": "function _npcApplyIntimidation(",
+          "sha256": "9f5cc5a1a80db37dbf3136ecab66c4cdba2bd679dbea03aa10800ac16d8a95b5",
+          "line": 17849
+        },
+        {
+          "path": "assets/maps/city_rebuild_v1/mercenary_core.mjs",
+          "anchor": "approachTimeout:40,blockedTimeout:10",
+          "sha256": "53e0ad0e3e53ef62d2856c48e527db412adc7630541ea01c9c903f573da0a95c",
+          "line": 45
+        },
+        {
+          "path": "assets/maps/city_rebuild_v1/mercenary_core.mjs",
+          "anchor": "finish(a,'path_timeout')",
+          "sha256": "53e0ad0e3e53ef62d2856c48e527db412adc7630541ea01c9c903f573da0a95c",
+          "line": 201
+        }
+      ],
+      "evidence_fields": [
+        "action_id",
+        "target_id",
+        "distance_trace",
+        "skill_level",
+        "effect_receipt",
+        "effect_count",
+        "fear_expiry",
+        "negative_results",
+        "approach_elapsed",
+        "blocked_elapsed",
+        "cancel_reason"
+      ],
+      "state": "current286_native_not_run",
+      "godot_status": "NOT_RUN"
+    },
+    {
+      "id": "gang.release",
+      "group": "gang",
+      "trigger": "Уволить бойца после завершения приказа и наблюдать возврат ежедневной деятельности.",
+      "expected": [
+        "Роль/команды освобождены, выданное оружие возвращено; исходный житель снова управляется daily owner.",
+        "Освобождение не дублирует жителя и не отменяет уже вооружённое/ожидающее подтверждения действие небезопасно."
+      ],
+      "source_refs": [
+        {
+          "path": "assets/maps/city_rebuild_v1/mercenary_world.js",
+          "anchor": "function releaseAsResident(",
+          "sha256": "c211e7f39b678d939337e5df40e7f0df4f369943ed72f029feddc702cfe575c4",
+          "line": 128
+        },
+        {
+          "path": "assets/maps/city_rebuild_v1/mercenary_world.js",
+          "anchor": "function dismiss(id)",
+          "sha256": "c211e7f39b678d939337e5df40e7f0df4f369943ed72f029feddc702cfe575c4",
+          "line": 578
+        },
+        {
+          "path": "assets/maps/city_rebuild_v1/mercenary_core.mjs",
+          "anchor": "function dismiss(id)",
+          "sha256": "53e0ad0e3e53ef62d2856c48e527db412adc7630541ea01c9c903f573da0a95c",
+          "line": 241
+        }
+      ],
+      "evidence_fields": [
+        "actor_id",
+        "body_id_before",
+        "body_id_after",
+        "roster_after",
+        "inventory_after",
+        "daily_recovery_trace"
+      ],
+      "state": "current286_native_not_run",
+      "godot_status": "NOT_RUN"
+    },
+    {
+      "id": "c4.place",
+      "group": "c4",
+      "trigger": "По текущему утверждённому Godot управлению установить C4 у реальной разрешённой поверхности; отдельно отмена/невалидная поверхность.",
+      "expected": [
+        "Заряд имеет подтверждённую surface/provider identity и расходуется однократно; отмена не наносит урон.",
+        "Walk local имеет3с fuse/max3; Godot release48 hold+remote и позднее усиление — согласованное отличие, не переносить старый fuse обратно."
+      ],
+      "source_refs": [
+        {
+          "path": "world.html",
+          "anchor": "function placeWorldC4(",
+          "sha256": "9f5cc5a1a80db37dbf3136ecab66c4cdba2bd679dbea03aa10800ac16d8a95b5",
+          "line": 37816
+        },
+        {
+          "path": "docs/ai/MIGRATION_CONTINUOUS_BACKLOG_20261003.md",
+          "anchor": "настоящий Q→3с ЛКМ",
+          "sha256": "08816b1b103a038f0661389dd25227a9baa1552eb8099a5ea2eaee0593482643",
+          "line": 87
+        }
+      ],
+      "evidence_fields": [
+        "charge_id",
+        "surface_id",
+        "provider_id",
+        "inventory_before",
+        "inventory_after",
+        "input_trace",
+        "cancel_results"
+      ],
+      "state": "current286_source_missing",
+      "godot_status": "NOT_RUN"
+    },
+    {
+      "id": "c4.damage",
+      "group": "c4",
+      "trigger": "Отойти и взорвать поставленный заряд настоящим игровым управлением; повторить событие.",
+      "expected": [
+        "Реальный урон/обломки/проходимый пролом соответствуют утверждённому усиленному C4.",
+        "Повтор не повторяет урон; чужая сцена/authority отклоняется."
+      ],
+      "source_refs": [
+        {
+          "path": "world.html",
+          "anchor": "function _detonateWalkLocalC4Charge19(",
+          "sha256": "9f5cc5a1a80db37dbf3136ecab66c4cdba2bd679dbea03aa10800ac16d8a95b5",
+          "line": 37806
+        },
+        {
+          "path": "docs/ai/CONTINUOUS_MIGRATION_MANDATE_20261003.md",
+          "anchor": "физические обломки",
+          "sha256": "6a45c3572d713ad3ddafe20af1d420424f8b85076f2b039a6816d0c213a4e129",
+          "line": 44
+        }
+      ],
+      "evidence_fields": [
+        "charge_id",
+        "event_id",
+        "owner_receipts",
+        "damage_before",
+        "damage_after",
+        "replay_result",
+        "passage_trace",
+        "debris_counts"
+      ],
+      "state": "current286_source_missing",
+      "godot_status": "NOT_RUN"
+    },
+    {
+      "id": "c4.navigation_reset",
+      "group": "c4",
+      "trigger": "Пройти разрушенный участок NPC/игроком; выполнить поддерживаемый reset и повторить цикл.",
+      "expected": [
+        "Нет невидимых прежних преград и потерянной опоры; reset восстанавливает текущую геометрию и новую generation.",
+        "Старые surface/event handles не применяются к новой generation. Current boundary/safe-meta пройти до городского теста."
+      ],
+      "source_refs": [
+        {
+          "path": "docs/ai/MIGRATION_CONTINUOUS_BACKLOG_20261003.md",
+          "anchor": "J generation",
+          "sha256": "08816b1b103a038f0661389dd25227a9baa1552eb8099a5ea2eaee0593482643",
+          "line": 92
+        },
+        {
+          "path": "docs/ai/CONTINUOUS_MIGRATION_MANDATE_20261003.md",
+          "anchor": "состояние, ID и правила владения",
+          "sha256": "6a45c3572d713ad3ddafe20af1d420424f8b85076f2b039a6816d0c213a4e129",
+          "line": 11
+        }
+      ],
+      "evidence_fields": [
+        "geometry_generation_before",
+        "geometry_generation_after",
+        "collision_trace",
+        "route_trace",
+        "reset_trace",
+        "stale_handle_result"
+      ],
+      "state": "current286_source_missing",
+      "godot_status": "NOT_RUN"
+    },
+    {
+      "id": "vehicle.explosion",
+      "group": "vehicle",
+      "trigger": "Настоящая стрельба/урон вызывает подтверждённый взрыв текущей машины с пассажирами.",
+      "expected": [
+        "Snapshot физических occupants фиксируется до owner callbacks; один receipt на actor/life.",
+        "Повтор взрыва duplicate без повторного урона; неверная car identity/authority отклоняется; reset создаёт новую generation."
+      ],
+      "source_refs": [
+        {
+          "path": "assets/maps/city_rebuild_v1/walk_vehicle_explosion_local_authority.mjs",
+          "anchor": "function handle(event={}",
+          "sha256": "15eb2426b47c8c22fa7ebda3604061db3f1135eb5a64b81e461ce0bf3434b592",
+          "line": 34
+        },
+        {
+          "path": "assets/maps/city_rebuild_v1/walk_vehicle_explosion_local_authority.mjs",
+          "anchor": "function noteReset(",
+          "sha256": "15eb2426b47c8c22fa7ebda3604061db3f1135eb5a64b81e461ce0bf3434b592",
+          "line": 33
+        }
+      ],
+      "evidence_fields": [
+        "vehicle_id",
+        "body_id",
+        "shot_id",
+        "ammo_before",
+        "ammo_after",
+        "event_id",
+        "occupant_snapshot",
+        "owner_receipts",
+        "replay_result"
+      ],
+      "state": "v4_integration_receipt_required",
+      "godot_status": "NOT_RUN"
+    },
+    {
+      "id": "vehicle.lifecycle",
+      "group": "vehicle",
+      "trigger": "Дождаться завершения fire/debris; повторить reset и create/delete циклы с отслеживанием ресурсов.",
+      "expected": [
+        "Fire после wreckAge>=5 скрыт, повторные idle обновления не меняют меши; активация снова корректна.",
+        "Settled+grounded debris не двигаются каждый тик; thermal/active объекты продолжают работу.",
+        "Cap10 и pool reuse являются контрактом current v4 из истории, требуют actual source; WeakRef/node IDs подтверждают освобождение."
+      ],
+      "source_refs": [
+        {
+          "path": "assets/maps/city_rebuild_v1/vehicle_fire_fx.mjs",
+          "anchor": "if(!active){",
+          "sha256": "4d63f72c7975d13149a7c92dddddb092cd3a950a0d435f4a84ef4860be4ed57d",
+          "line": 82
+        },
+        {
+          "path": "assets/maps/city_rebuild_v1/vehicle_crash.mjs",
+          "anchor": "function isIdle()",
+          "sha256": "2aa70fad5fb2b4fb486c57da395a0abb3346ada4c3cdec65b1f0db4a1c7251b2",
+          "line": 141
+        },
+        {
+          "path": "assets/maps/city_rebuild_v1/vehicle_crash.mjs",
+          "anchor": "function clearDebris()",
+          "sha256": "2aa70fad5fb2b4fb486c57da395a0abb3346ada4c3cdec65b1f0db4a1c7251b2",
+          "line": 149
+        }
+      ],
+      "evidence_fields": [
+        "vehicle_id",
+        "idle_update_counters",
+        "resource_ids_per_cycle",
+        "weakref_after_free",
+        "reset_trace",
+        "active_reactivation_trace",
+        "pool_counts",
+        "thermal_state"
+      ],
+      "state": "v4_source_missing",
+      "godot_status": "NOT_RUN"
+    },
+    {
+      "id": "service.shop",
+      "group": "services",
+      "trigger": "Житель естественно получает потребность, идёт в действующий магазин, входит и покупает.",
+      "expected": [
+        "enter/browse/pay/complete/exit идут физически; оплата только на checkout владельца.",
+        "Newspaper3, used_watch24, cleaning_kit12; один receipt и +1 item, balance уменьшается ровно наprice.",
+        "Прерывание/нехватка денег/недоступный provider не дают покупку; проход мимо не покупка."
+      ],
+      "source_refs": [
+        {
+          "path": "assets/maps/city_rebuild_v1/npc_resident_commerce_source.js",
+          "anchor": "function _residentCommerceArrive(",
+          "sha256": "561ca0122caf39caca7cd15999dfbebdd2257473a1bdcb6e288b18fd2e526cbe",
+          "line": 105
+        },
+        {
+          "path": "assets/maps/city_rebuild_v1/npc_resident_commerce_source.js",
+          "anchor": "function _residentCommerceTick(",
+          "sha256": "561ca0122caf39caca7cd15999dfbebdd2257473a1bdcb6e288b18fd2e526cbe",
+          "line": 117
+        },
+        {
+          "path": "assets/maps/city_rebuild_v1/test_npc_actual_shop_visit.mjs",
+          "anchor": "first payment is within the actual model interior",
+          "sha256": "4cd6bf7f5181ae81bce1a949e4351db3cc4da655e9ee64f7bc5c8ec7a49cc493",
+          "line": 29
+        }
+      ],
+      "evidence_fields": [
+        "actor_id",
+        "body_id",
+        "agenda_trace",
+        "route_trace",
+        "visit_phase_trace",
+        "wallet_before",
+        "wallet_after",
+        "inventory_before",
+        "inventory_after",
+        "receipt",
+        "negative_results"
+      ],
+      "state": "current286_natural_run_required",
+      "godot_status": "NOT_RUN"
+    },
+    {
+      "id": "service.bank",
+      "group": "services",
+      "trigger": "Житель естественно выбирает банковское дело, физически посещает текущий разрешённый банк и выходит.",
+      "expected": [
+        "Сохранены ID жителя/банка, последовательность визита и следующее дело.",
+        "Доступный commerce source классифицирует банк отдельно и не выполняет shop checkout. Денежный банковский эффект не считать определённым без current bank owner/receipt."
+      ],
+      "source_refs": [
+        {
+          "path": "assets/maps/city_rebuild_v1/npc_resident_commerce_source.js",
+          "anchor": "if(door?.sourceKind==='bank'",
+          "sha256": "561ca0122caf39caca7cd15999dfbebdd2257473a1bdcb6e288b18fd2e526cbe",
+          "line": 37
+        },
+        {
+          "path": "world.html",
+          "anchor": "function _residentNativeVisitTick(",
+          "sha256": "9f5cc5a1a80db37dbf3136ecab66c4cdba2bd679dbea03aa10800ac16d8a95b5",
+          "line": 10834
+        }
+      ],
+      "evidence_fields": [
+        "actor_id",
+        "bank_id",
+        "agenda_trace",
+        "route_trace",
+        "visit_phase_trace",
+        "next_activity",
+        "bank_owner_receipt_or_unresolved"
+      ],
+      "state": "bank_transaction_contract_unresolved",
+      "godot_status": "NOT_RUN"
+    },
+    {
+      "id": "service.hospital",
+      "group": "services",
+      "trigger": "Проверить естественное медицинское назначение и физическую доставку к действующей больнице; отдельно перекрытый путь.",
+      "expected": [
+        "Депо/прибытие машины не означают лечение; заблокированный пеший путь не завершается таймером.",
+        "В source ambulance fixture patient HP1→35 только после доставки к двери; умерший остаётся dead/HP0; смерть водителя прерывает доставку.",
+        "Это ambulance source, не доказательство полного daily hospital service current286; оба пути требуют явного различения."
+      ],
+      "source_refs": [
+        {
+          "path": "assets/maps/city_rebuild_v1/test_npc_hospital_actual.mjs",
+          "anchor": "blocked hospital path cannot complete by timer",
+          "sha256": "80d5a9ea54cb2679bcd721cfeede52b45f47ea11a35ba58a4645fcb186072731",
+          "line": 100
+        },
+        {
+          "path": "assets/maps/city_rebuild_v1/test_npc_hospital_actual.mjs",
+          "anchor": "assert.equal(patient.hp,35)",
+          "sha256": "80d5a9ea54cb2679bcd721cfeede52b45f47ea11a35ba58a4645fcb186072731",
+          "line": 105
+        },
+        {
+          "path": "world.html",
+          "anchor": "function _completeAmbulanceHospitalDelivery(",
+          "sha256": "9f5cc5a1a80db37dbf3136ecab66c4cdba2bd679dbea03aa10800ac16d8a95b5",
+          "line": 14513
+        }
+      ],
+      "evidence_fields": [
+        "actor_id",
+        "hospital_id",
+        "service_kind",
+        "route_trace",
+        "hp_before",
+        "hp_after",
+        "blocked_path_result",
+        "driver_death_result",
+        "dead_patient_result",
+        "daily_recovery_trace"
+      ],
+      "state": "daily_hospital_source_required",
+      "godot_status": "NOT_RUN"
+    }
+  ],
+  "revision": 2,
+  "notes": [
+    "Timing correction: earlier fear60-vs40 conflict was an interpretation error; 40s policy is distinct from 60s fear. Current Godot source/native still required."
+  ]
+}

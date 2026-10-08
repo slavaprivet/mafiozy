@@ -1,0 +1,40 @@
+Scenario contract revision 2 — Walk source dcfb5e3d1421d9554b061d77e65f4ccf66f72d0c.
+
+Files: scenario_contract.json (machine contract), scenario_contract.csv (review),
+run_manifest_template.json (all NOT_RUN), check_contract.py (Python standard library).
+
+Run from any directory:
+python /absolute/path/check_contract.py /absolute/path/scenario_contract.json --source-root /checkout --manifest /absolute/path/run_manifest.json
+
+Source-root is the pinned Walk baseline used as oracle, not the current286 target.
+Target run source SHA and assembly manifest SHA belong to the actual tested assembly.
+Current286 scene and accepted new package bytes are still unavailable here.
+
+PASS entries must provide all per-scenario evidence fields and runtime_receipt:
+{"path":"receipts/scenario.json","sha256":"<64 lowercase hexadecimal characters>"}
+Receipt path is relative to the run manifest directory and must remain inside it.
+Receipt JSON must repeat the run metadata, status and evidence, plus started_at,
+completed_at and exit_code=0. Empty objects/arrays, unresolved placeholders, wrong
+scene/population, hash drift, missing evidence and missing receipts are rejected.
+NOT_RUN/FAIL/BLOCKED entries instead require an explicit reason. The template is
+structurally valid and explicitly reports no runtime acceptance.
+
+Passing this checker establishes only completeness and consistency. It does not
+prove that a receipt is authentic, that Godot ran, that a visual result is correct,
+or that the whole game is accepted. QA must inspect real runtime evidence.
+
+Correction: 40 seconds refers to approach timeout, not fear. Walk has 60 seconds
+fear, 8 seconds panic, work range2m/base work2.5s, approach40s/blocked10s. Current
+Godot package/config must still match the approved contract. Earlier apparent
+40-vs60 conflict was a reading error, now removed.
+
+Owner split: gameplay owns gang/C4/vehicle and this contract; service owner
+01a11c3b-9f31-7641-8a10-e9112d598f16 owns shop/bank/hospital implementations.
+Current286 production is not reconstructed by overlaying release48. Root integrator
+01a11c32-730e-7901-8c97-fb8b76281d3c controls integration and main pushes.
+
+Service owner supplied a separate detailed service_acceptance.json (12 scenarios)
+in mafiozi-astra-services/outputs. It extends the three overview service.* rows;
+do not treat the overview as a replacement for those detailed service checks.
+Owner finding: baseline exit calls agendaComplete('shop','finished') regardless
+of purpose. A generic completion counter does not prove bank/hospital service.

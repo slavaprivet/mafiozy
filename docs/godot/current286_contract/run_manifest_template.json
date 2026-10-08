@@ -1,0 +1,148 @@
+{
+  "runs": [
+    {
+      "source_sha": "UNRESOLVED",
+      "assembly_manifest_sha256": "UNRESOLVED",
+      "godot_version": "UNRESOLVED",
+      "renderer": "UNRESOLVED",
+      "scene": "outputs/dsh_living_city_01/game/scenes/main_city.tscn",
+      "population": 286,
+      "scenario_id": "gang.hire",
+      "status": "NOT_RUN",
+      "evidence": {},
+      "reason": "Current286 source and native run unavailable."
+    },
+    {
+      "source_sha": "UNRESOLVED",
+      "assembly_manifest_sha256": "UNRESOLVED",
+      "godot_version": "UNRESOLVED",
+      "renderer": "UNRESOLVED",
+      "scene": "outputs/dsh_living_city_01/game/scenes/main_city.tscn",
+      "population": 286,
+      "scenario_id": "gang.move",
+      "status": "NOT_RUN",
+      "evidence": {},
+      "reason": "Current286 source and native run unavailable."
+    },
+    {
+      "source_sha": "UNRESOLVED",
+      "assembly_manifest_sha256": "UNRESOLVED",
+      "godot_version": "UNRESOLVED",
+      "renderer": "UNRESOLVED",
+      "scene": "outputs/dsh_living_city_01/game/scenes/main_city.tscn",
+      "population": 286,
+      "scenario_id": "gang.effect",
+      "status": "NOT_RUN",
+      "evidence": {},
+      "reason": "Current286 source and native run unavailable."
+    },
+    {
+      "source_sha": "UNRESOLVED",
+      "assembly_manifest_sha256": "UNRESOLVED",
+      "godot_version": "UNRESOLVED",
+      "renderer": "UNRESOLVED",
+      "scene": "outputs/dsh_living_city_01/game/scenes/main_city.tscn",
+      "population": 286,
+      "scenario_id": "gang.release",
+      "status": "NOT_RUN",
+      "evidence": {},
+      "reason": "Current286 source and native run unavailable."
+    },
+    {
+      "source_sha": "UNRESOLVED",
+      "assembly_manifest_sha256": "UNRESOLVED",
+      "godot_version": "UNRESOLVED",
+      "renderer": "UNRESOLVED",
+      "scene": "outputs/dsh_living_city_01/game/scenes/main_city.tscn",
+      "population": 286,
+      "scenario_id": "c4.place",
+      "status": "NOT_RUN",
+      "evidence": {},
+      "reason": "Current286 source and native run unavailable."
+    },
+    {
+      "source_sha": "UNRESOLVED",
+      "assembly_manifest_sha256": "UNRESOLVED",
+      "godot_version": "UNRESOLVED",
+      "renderer": "UNRESOLVED",
+      "scene": "outputs/dsh_living_city_01/game/scenes/main_city.tscn",
+      "population": 286,
+      "scenario_id": "c4.damage",
+      "status": "NOT_RUN",
+      "evidence": {},
+      "reason": "Current286 source and native run unavailable."
+    },
+    {
+      "source_sha": "UNRESOLVED",
+      "assembly_manifest_sha256": "UNRESOLVED",
+      "godot_version": "UNRESOLVED",
+      "renderer": "UNRESOLVED",
+      "scene": "outputs/dsh_living_city_01/game/scenes/main_city.tscn",
+      "population": 286,
+      "scenario_id": "c4.navigation_reset",
+      "status": "NOT_RUN",
+      "evidence": {},
+      "reason": "Current286 source and native run unavailable."
+    },
+    {
+      "source_sha": "UNRESOLVED",
+      "assembly_manifest_sha256": "UNRESOLVED",
+      "godot_version": "UNRESOLVED",
+      "renderer": "UNRESOLVED",
+      "scene": "outputs/dsh_living_city_01/game/scenes/main_city.tscn",
+      "population": 286,
+      "scenario_id": "vehicle.explosion",
+      "status": "NOT_RUN",
+      "evidence": {},
+      "reason": "Current286 source and native run unavailable."
+    },
+    {
+      "source_sha": "UNRESOLVED",
+      "assembly_manifest_sha256": "UNRESOLVED",
+      "godot_version": "UNRESOLVED",
+      "renderer": "UNRESOLVED",
+      "scene": "outputs/dsh_living_city_01/game/scenes/main_city.tscn",
+      "population": 286,
+      "scenario_id": "vehicle.lifecycle",
+      "status": "NOT_RUN",
+      "evidence": {},
+      "reason": "Current286 source and native run unavailable."
+    },
+    {
+      "source_sha": "UNRESOLVED",
+      "assembly_manifest_sha256": "UNRESOLVED",
+      "godot_version": "UNRESOLVED",
+      "renderer": "UNRESOLVED",
+      "scene": "outputs/dsh_living_city_01/game/scenes/main_city.tscn",
+      "population": 286,
+      "scenario_id": "service.shop",
+      "status": "NOT_RUN",
+      "evidence": {},
+      "reason": "Current286 source and native run unavailable."
+    },
+    {
+      "source_sha": "UNRESOLVED",
+      "assembly_manifest_sha256": "UNRESOLVED",
+      "godot_version": "UNRESOLVED",
+      "renderer": "UNRESOLVED",
+      "scene": "outputs/dsh_living_city_01/game/scenes/main_city.tscn",
+      "population": 286,
+      "scenario_id": "service.bank",
+      "status": "NOT_RUN",
+      "evidence": {},
+      "reason": "Current286 source and native run unavailable."
+    },
+    {
+      "source_sha": "UNRESOLVED",
+      "assembly_manifest_sha256": "UNRESOLVED",
+      "godot_version": "UNRESOLVED",
+      "renderer": "UNRESOLVED",
+      "scene": "outputs/dsh_living_city_01/game/scenes/main_city.tscn",
+      "population": 286,
+      "scenario_id": "service.hospital",
+      "status": "NOT_RUN",
+      "evidence": {},
+      "reason": "Current286 source and native run unavailable."
+    }
+  ]
+}

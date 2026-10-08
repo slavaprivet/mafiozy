@@ -5,3 +5,7 @@
 /godot/mafiozi_walk/assets/**/*.json -text
 /godot/mafiozi_walk/data/**/*.json -text
 /godot/mafiozi_walk/scripts/**/*.gd -text
+# Transfer tools and review receipts carry exact byte hashes across Windows clones.
+/tools/godot/source_handoff.py -text
+/tools/godot/qa_isolated.py -text
+/outputs/source_handoff_validation_20261008/*.json -text
