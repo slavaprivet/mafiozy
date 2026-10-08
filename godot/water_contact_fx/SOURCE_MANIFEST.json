@@ -1,0 +1,101 @@
+{
+  "schema": "mafiozy.water-component.source-manifest/v1",
+  "revision": "water_contact_fx_stage1_R2",
+  "project_subdir": "godot/water_contact_fx",
+  "source_manifest_sha256": "37bfb644affdeff2b4fd45dd80d47f703abd0fed879871feecc93e828daeb681",
+  "fx_source_manifest_sha256": "37bfb644affdeff2b4fd45dd80d47f703abd0fed879871feecc93e828daeb681",
+  "source_pins": [
+    {
+      "path": "assets/maps/city_rebuild_v1/water_interaction_fx.mjs",
+      "sha256": "23278803485238975612d4e993d72094146d2228f0baddce444a92d916b55f1d"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/test_water_interaction_fx.mjs",
+      "sha256": "e40bda883f597e6ce38ce13145ed306d81dbc858f99057f1a4259c11722269f8"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/environment_surface_materials.mjs",
+      "sha256": "72e20309a9c597af41249f064ae86541952e33903941fe30d7de80496378df2e"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/preview_water_material.gd",
+      "sha256": "05b99692520d2b2cea39639ef380e7cdee77db8a57a73972d8c50ae0d5793e09",
+      "role": "existing byte-copy demo shader support, not modified"
+    }
+  ],
+  "files": [
+    {
+      "path": "demo.gd",
+      "bytes": 5016,
+      "sha256": "b2b73df19cdfb636905757d1a86161776f72e1940cab1eed416685a2323de202"
+    },
+    {
+      "path": "demo.tscn",
+      "bytes": 160,
+      "sha256": "d1f3b27b1348b85b382bba27b6471b9c17b136634e1c5cf0c4b8e4103be48f36"
+    },
+    {
+      "path": "demo_support/preview_water_material.gd",
+      "bytes": 15152,
+      "sha256": "05b99692520d2b2cea39639ef380e7cdee77db8a57a73972d8c50ae0d5793e09"
+    },
+    {
+      "path": "project.godot",
+      "bytes": 379,
+      "sha256": "36aaa231e10d286727cd4d8cf9537b0110a0906ca5167b02c6aeaa919a6d1d6a"
+    },
+    {
+      "path": "README.txt",
+      "bytes": 5438,
+      "sha256": "2122f65e2c58e4b19df5a8277d97d441004e29f74819811b7e3b667da8964c8d"
+    },
+    {
+      "path": "tests/cost_fixture.gd",
+      "bytes": 3547,
+      "sha256": "346fbe9801de97e5b4a193bd3c914d2939f04b2588a104a1750020b0d7ed746e"
+    },
+    {
+      "path": "tests/cost_fixture.tscn",
+      "bytes": 180,
+      "sha256": "9649b2c281d9e95bdaf366f23c753337e0e2d81079ee7b3b616fc363bea8c32a"
+    },
+    {
+      "path": "tests/native_fixture.gd",
+      "bytes": 8952,
+      "sha256": "5f9463aa0a2b6532ae28917076b81f6aa857fceb0aef001e6af4961e3c97db6b"
+    },
+    {
+      "path": "tests/native_fixture.tscn",
+      "bytes": 179,
+      "sha256": "8a820e5be5a2ac3fe84407ccb8f0bea4cba88998811fbc78bdbdb591a5bee9fe"
+    },
+    {
+      "path": "tests/oracle.json",
+      "bytes": 19667882,
+      "sha256": "c3ddeb11db748dd5869268228e88092c233e74b3fa817eb3ac46138bcbbe0b00"
+    },
+    {
+      "path": "tests/source_oracle.mjs",
+      "bytes": 5177,
+      "sha256": "8eee5e74ecf3b3228baec7ed50c2799d0839d077f0963b4becff6956c031619e"
+    },
+    {
+      "path": "water_contact_fx.gd",
+      "bytes": 9284,
+      "sha256": "d0e30497a19fee839d7f2aecc1b274743058a8786aaf7ec03552a5884f24dd84"
+    },
+    {
+      "path": "water_contact_simulator.gd",
+      "bytes": 11270,
+      "sha256": "767bbc15fcb951b9154aa1c4936ae4e1838bad0d04af1bd15c4daee776cf909d"
+    }
+  ],
+  "independent_qa": "INDEPENDENT_STAGE1_PASS: native29cases/278frames/99514checks; graphical80checks; source unchanged",
+  "current286": "NOT_RECEIVED",
+  "host_material_binding": "NOT_RUN",
+  "full_city_performance": "NOT_RUN",
+  "gpu_timing": "NOT_RUN",
+  "native_qa_result_sha256": "2b6edeb5b00c0ad98b292fabcaa717e25bb19060a545b731f09f6c9835e4b566",
+  "native_qa_archive_sha256": "a5fec0f42f176467576af0004c87d420500f51e7bf47b1b2dcc0d3305ae2c38d",
+  "joint_sampler": "NOT_RUN; linkedR2 separate gate"
+}

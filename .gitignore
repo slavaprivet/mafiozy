@@ -71,3 +71,6 @@ outputs/rooms-slide-qa/
 
 # Generated import cache for the standalone hero input fixture.
 /godot/water_hero_inputs/.godot/
+
+# Generated import cache of the standalone water contact FX project.
+/godot/water_contact_fx/.godot/

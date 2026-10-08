@@ -16,3 +16,6 @@
 
 # Preserve native and oracle pins of the standalone water input component.
 /godot/water_hero_inputs/** -text
+
+# Preserve byte pins of the native water contact FX and linked consumer.
+/godot/water_contact_fx/** -text
