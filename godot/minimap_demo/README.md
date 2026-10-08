@@ -29,6 +29,10 @@ cursor-anchored wheel zoom, +/−, player recenter, world fit and Enter to mark 
 center. Demo movement polling is gated while expanded and its held input is
 cleared on mode changes.
 
+Tab and Shift+Tab cycle only through visible, enabled map controls while the map
+is expanded. Invalid train positions do not consume an ID belonging to another
+valid train marker in the supplied actor snapshot.
+
 ## Component contract
 
 Instantiate `addons/walk_minimap/minimap_control.gd` under a CanvasLayer/Control.

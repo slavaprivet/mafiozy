@@ -322,7 +322,11 @@ func handle_key_event(event: InputEventKey) -> bool:
 		return expanded or event.pressed
 	if not expanded:
 		return false
-	if code == KEY_TAB or (focus is Button and code in [KEY_ENTER, KEY_SPACE]):
+	if code == KEY_TAB:
+		if event.pressed:
+			_cycle_map_focus(event.shift_pressed)
+		return true
+	if focus is Button and is_ancestor_of(focus) and code in [KEY_ENTER, KEY_SPACE]:
 		return false
 	if event.pressed:
 		if code in [KEY_EQUAL, KEY_PLUS, KEY_KP_ADD]:
@@ -337,6 +341,31 @@ func handle_key_event(event: InputEventKey) -> bool:
 			_dirty = true
 			_request_draw(true)
 	return true
+
+func _cycle_map_focus(backwards: bool) -> void:
+	var controls: Array[Control] = []
+	_collect_map_focus(self, controls)
+	# Match Walk DOM order: header toggle, canvas, tools, then status clear.
+	if controls.has(_toggle):
+		controls.erase(_toggle)
+		controls.push_front(_toggle)
+	if controls.has(_clear):
+		controls.erase(_clear)
+		controls.append(_clear)
+	if controls.is_empty():
+		return
+	var current := controls.find(get_viewport().gui_get_focus_owner())
+	var next := (current + (-1 if backwards else 1) + controls.size()) % controls.size()
+	if current < 0:
+		next = controls.size() - 1 if backwards else 0
+	controls[next].grab_focus()
+
+func _collect_map_focus(parent: Node, controls: Array[Control]) -> void:
+	for child in parent.get_children():
+		if child is Control and child.is_visible_in_tree() and child.focus_mode != Control.FOCUS_NONE:
+			if not child is BaseButton or not child.disabled:
+				controls.append(child)
+		_collect_map_focus(child, controls)
 
 func draw_stats() -> Dictionary:
 	return {"requests": _draw_requests, "frames": _draw_frames, "last_ms": _last_draw_at, "interval_ms": DRAW_INTERVAL_MS, "route_normalizations": _waypoints.normalizations, "route_distance_scans": _waypoints.distance_scans, "route_path_builds": _route_path_builds}
@@ -450,6 +479,9 @@ func draw_map(canvas: Control) -> void:
 		_draw_vehicle(canvas, projection, vehicle, false)
 	var seen: Dictionary = {}
 	for train in _train_markers:
+		var location: Variant = train.get("position", train)
+		if not MapProjection.valid_point(location):
+			continue
 		if train.get("hidden", false) or train.get("active", true) == false or (train.get("id") and seen.has(train.id)):
 			continue
 		if train.get("id"):

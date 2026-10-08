@@ -1,6 +1,6 @@
 {
   "schema": "mafiozi.minimap.source-manifest/v1",
-  "revision": "minimap_stage01",
+  "revision": "minimap_stage01_reviewfix03",
   "project_subdir": "godot/minimap_demo",
   "source_pins": [
     {
@@ -52,8 +52,8 @@
     },
     {
       "path": "addons/walk_minimap/minimap_control.gd",
-      "bytes": 20259,
-      "sha256": "9fbbafbdc258e04b7a57dedf9c4b9d87b15b94a8a92ee4e948cc7e49777eefd7"
+      "bytes": 21437,
+      "sha256": "9d0388fc28594926a9c88ffbd51227292c6fd72b710ffbbc4d6a868bc69e0f1f"
     },
     {
       "path": "addons/walk_minimap/waypoint_state.gd",
@@ -67,8 +67,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 7615,
-      "sha256": "d044c019eab1d513a834765a3cc6f1c26bb30998363e7821eef009f342135144"
+      "bytes": 7827,
+      "sha256": "748a7612af6fd4513d5ce710acc338c3e65dbf97a5ac8283b2130f971b7ea13f"
     },
     {
       "path": "scenes/demo.tscn",
@@ -88,5 +88,10 @@
   ],
   "current286": "NOT_RECEIVED",
   "source_ui_full_parity": "PARTIAL",
-  "full_city_performance": "NOT_RUN"
+  "full_city_performance": "NOT_RUN",
+  "parent_source_manifest_sha256": "e7e37b66ea565b0a59fb8fdbf938fc49832bb439169e6897d97caefea58ac1b7",
+  "review_fixes": [
+    "Expanded map focus containment for Tab/Shift+Tab and external button activation",
+    "Validate train point before consuming shared marker ID"
+  ]
 }
