@@ -1,8 +1,8 @@
 {
   "schema": "mafiozy.water-component.source-manifest/v1",
-  "revision": "water_contact_fx_stage1_R2",
+  "revision": "water_contact_fx_R2_linked_R2",
   "project_subdir": "godot/water_contact_fx",
-  "source_manifest_sha256": "37bfb644affdeff2b4fd45dd80d47f703abd0fed879871feecc93e828daeb681",
+  "source_manifest_sha256": "28ea302c12cd64f90d6e967b2a50f177aaafb3b9ac4c86152d71437db8eb6172",
   "fx_source_manifest_sha256": "37bfb644affdeff2b4fd45dd80d47f703abd0fed879871feecc93e828daeb681",
   "source_pins": [
     {
@@ -38,6 +38,26 @@
       "path": "demo_support/preview_water_material.gd",
       "bytes": 15152,
       "sha256": "05b99692520d2b2cea39639ef380e7cdee77db8a57a73972d8c50ae0d5793e09"
+    },
+    {
+      "path": "hero_water_input_sampler.gd",
+      "bytes": 3741,
+      "sha256": "750bf11a20b7a144fb37b8f50015cf86c2c90054391c9381d2aa280d7cabbb07"
+    },
+    {
+      "path": "integration/consumer.gd",
+      "bytes": 1633,
+      "sha256": "58e1ad39018ea896c319480499ea7834e7eb6583ee21b0ed93b74d1c1b7b3a52"
+    },
+    {
+      "path": "integration/native_linked_fixture.gd",
+      "bytes": 6179,
+      "sha256": "e855a2a98167e5299d04c06ca68b91997fd945f10f221723454d2dea6792b743"
+    },
+    {
+      "path": "integration/native_linked_fixture.tscn",
+      "bytes": 191,
+      "sha256": "5b2937771eca288d8f3df445704293fd3c09564e64fb7536e1084e31af51e77f"
     },
     {
       "path": "project.godot",
@@ -90,12 +110,19 @@
       "sha256": "767bbc15fcb951b9154aa1c4936ae4e1838bad0d04af1bd15c4daee776cf909d"
     }
   ],
-  "independent_qa": "INDEPENDENT_STAGE1_PASS: native29cases/278frames/99514checks; graphical80checks; source unchanged",
+  "independent_qa": "INDEPENDENT_LINKED_GATE_PASS: 44 genuine JS rows,667native assertions,328shader slots; source unchanged",
   "current286": "NOT_RECEIVED",
   "host_material_binding": "NOT_RUN",
   "full_city_performance": "NOT_RUN",
   "gpu_timing": "NOT_RUN",
-  "native_qa_result_sha256": "2b6edeb5b00c0ad98b292fabcaa717e25bb19060a545b731f09f6c9835e4b566",
-  "native_qa_archive_sha256": "a5fec0f42f176467576af0004c87d420500f51e7bf47b1b2dcc0d3305ae2c38d",
-  "joint_sampler": "NOT_RUN; linkedR2 separate gate"
+  "sampler_dependency": {
+    "canonical_path": "godot/water_hero_inputs/hero_water_input_sampler.gd",
+    "commit": "0bfe793767d46e7c255d7e647cfa04b05312ec24",
+    "sha256": "750bf11a20b7a144fb37b8f50015cf86c2c90054391c9381d2aa280d7cabbb07",
+    "role": "Exact dependency copy for root res:// fixture; canonical module unchanged"
+  },
+  "native_qa_result_sha256": "5fb5bd7d068a1bb1b5c1a4c28876afb5189d9f9e0b5ea2b3cc616091e290e0b7",
+  "native_qa_archive_sha256": "57bbe838eab7870dca7ec0abceef54a212552b77effd8cb39d83d82c33391261",
+  "fx_dependency_commit": "359bd3468c66263db7cda14a01b154fa56116d76",
+  "fx_dependency_independent_qa": "native29/278/99514 plusgraphical80 PASS; unchanged13files"
 }
