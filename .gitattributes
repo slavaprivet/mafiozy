@@ -13,3 +13,6 @@
 # Preserve byte pins of the tested standalone minimap and its launcher.
 /godot/minimap_demo/** -text
 /tools/godot/launch_minimap_demo.ps1 -text
+
+# Preserve native and oracle pins of the standalone water input component.
+/godot/water_hero_inputs/** -text
