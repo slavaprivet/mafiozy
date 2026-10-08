@@ -737,10 +737,25 @@ const DSH_STATUS_BLOCKED_OR_NO_PATH := ["BLOCKED", "NO_PATH"]
 const DSH_STATUS_READY_OR_ARRIVED := ["READY", "ARRIVED"]
 
 
+# RESIDENT_DETAIL_BEGIN
+# ONE/WALK diagnostics only. Parsed on the first measured resident step.
+# QA can retain legacy reports independently of --city-timing=0/1.
+var _resident_detail_flag := -1
+
+func _resident_detail_enabled() -> bool:
+	if _resident_detail_flag < 0:
+		_resident_detail_flag = 0
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-resident-detail="):
+				_resident_detail_flag = 1 if argument == "--city-resident-detail=1" else 0
+	return _resident_detail_flag == 1
+# RESIDENT_DETAIL_END
+
 func step(delta: float) -> void:
 	# DSH_ROUND2: per-resident cost ranking, once per wall second.
-	var dsh_now := Time.get_ticks_msec()
-	if dsh_now - _dsh_report_ms >= 1000:
+	var dsh_detail := _resident_detail_enabled()
+	var dsh_now := Time.get_ticks_msec() if dsh_detail else 0
+	if dsh_detail and dsh_now - _dsh_report_ms >= 1000:
 		_dsh_report_ms = dsh_now
 		var dsh_rows: Array = []
 		var dsh_sum := 0
@@ -906,9 +921,9 @@ func step(delta: float) -> void:
 		if not is_instance_valid(body): continue
 		if not body.is_on_floor() or record.status in DSH_STATUS_BLOCKED_OR_NO_PATH:  # DSH_RESID4
 			dsh_recover += 1  # DSH_QUERY_PROBE: intersect_shape per call inside
-			var dsh_r0 := Time.get_ticks_usec() if dsh_timing else 0  # DSH_ROUND2
+			var dsh_r0 := Time.get_ticks_usec() if dsh_detail and dsh_timing else 0  # DSH_ROUND2
 			_recover_floor_contact(record)
-			if dsh_timing: record["dsh_rec_us"] = int(record.get("dsh_rec_us", 0)) + (Time.get_ticks_usec() - dsh_r0)  # DSH_ROUND2
+			if dsh_detail and dsh_timing: record["dsh_rec_us"] = int(record.get("dsh_rec_us", 0)) + (Time.get_ticks_usec() - dsh_r0)  # DSH_ROUND2
 			# Recovery admission invokes source code; it may retire this actor.
 			if not _living(record) or not is_instance_valid(body) or body.is_queued_for_deletion() or record.body != body: continue
 			if record.get("physical_failed",false) or rag_mode in ["ACTIVE","RECOVERING","RECOVERY_HOLD"] or body.collision_layer != 1 or body.collision_mask != 1: continue
@@ -1095,10 +1110,10 @@ func step(delta: float) -> void:
 				record["sim_carry"] = 0.0
 			dsh_walk += 1  # DSH_QUERY_PROBE
 			if sim_due:
-				var dsh_n0 := Time.get_ticks_usec() if dsh_timing else 0  # DSH_RESIDBK
+				var dsh_n0 := Time.get_ticks_usec() if dsh_detail and dsh_timing else 0  # DSH_RESIDBK
 				var result: Dictionary = _navigation.step(record.request, sim_delta, record.speed, 9.8)
-				if dsh_timing: record["dsh_nav_us"] = int(record.get("dsh_nav_us", 0)) + (Time.get_ticks_usec() - dsh_n0)  # DSH_ROUND2
-				record["dsh_nav_calls"] = int(record.get("dsh_nav_calls", 0)) + 1  # DSH_ROUND2
+				if dsh_detail and dsh_timing: record["dsh_nav_us"] = int(record.get("dsh_nav_us", 0)) + (Time.get_ticks_usec() - dsh_n0)  # DSH_ROUND2
+				if dsh_detail: record["dsh_nav_calls"] = int(record.get("dsh_nav_calls", 0)) + 1  # DSH_ROUND2
 				record.status = result.status
 				if result.status not in DSH_STATUS_READY_OR_ARRIVED: body.velocity = Vector3.ZERO  # DSH_RESID4
 		var displacement := Vector3.ZERO if dsh_nav_skipped else (body.global_position - before)  # DSH_RESIDBK
@@ -1189,8 +1204,8 @@ func step(delta: float) -> void:
 				record.gait.update_pose(delta, horizontal / delta, body.is_on_floor() or record.status in ["IDLE", "ARRIVED"])
 				if dsh_timing: dsh_pose_us += Time.get_ticks_usec() - dsh_t0
 				dsh_posed += 1
-				_dsh_walk_near += 1  # DSH_WALKPOSE
-				_dsh_walk_note(record)  # DSH_WALKPOSE: measured support-foot slide of this commit
+				if dsh_detail: _dsh_walk_near += 1  # DSH_WALKPOSE
+				if dsh_detail: _dsh_walk_note(record)  # DSH_WALKPOSE: measured support-foot slide of this commit
 			else:
 				dsh_lod_skip += 1
 				if bool(record.get("shadow_on", true)): _set_resident_shadows(record, false)  # DSH_RESID4
@@ -1207,7 +1222,7 @@ func step(delta: float) -> void:
 						# the due step arrives with that step.
 						record.gait.advance_distance(0.0, dsh_far_grounded, record.speed)
 						record["walk_far_on"] = true
-						_dsh_walk_advance += 1
+						if dsh_detail: _dsh_walk_advance += 1
 					else:
 						var dsh_far_travel: float = horizontal.length()
 						if dsh_far_travel <= 0.0001 and not bool(record.get("walk_far_on", false)):
@@ -1217,8 +1232,9 @@ func step(delta: float) -> void:
 							# for this record until it moves again.
 							if dsh_walk_far_builds < dsh_pose_build_cap:
 								record.gait.update_pose(delta, Vector3.ZERO, dsh_far_grounded)
-								_dsh_walk_far += 1; dsh_walk_far_builds += 1
-								_dsh_walk_note(record)
+								if dsh_detail: _dsh_walk_far += 1
+								dsh_walk_far_builds += 1
+								if dsh_detail: _dsh_walk_note(record)
 							if record.gait.settled():
 								record["walk_far_on"] = false
 								record["walk_far_m"] = 0.0
@@ -1230,20 +1246,21 @@ func step(delta: float) -> void:
 							var dsh_far_age: int = int(record.get("walk_far_age", 0)) + 1
 							record["walk_far_age"] = dsh_far_age
 							if (dsh_far_m >= dsh_pose_budget_m or dsh_far_age >= WALK_POSE_MAX_AGE) and dsh_walk_far_builds < dsh_pose_build_cap:
-								var dsh_far_t0 := Time.get_ticks_usec() if dsh_timing else 0
+								var dsh_far_t0 := Time.get_ticks_usec() if dsh_detail and dsh_timing else 0
 								record.gait.update_pose(delta, horizontal / delta, dsh_far_grounded)
-								if dsh_timing: _dsh_walk_far_us += Time.get_ticks_usec() - dsh_far_t0
-								_dsh_walk_note(record)
+								if dsh_detail and dsh_timing: _dsh_walk_far_us += Time.get_ticks_usec() - dsh_far_t0
+								if dsh_detail: _dsh_walk_note(record)
 								record["walk_far_m"] = 0.0
 								record["walk_far_age"] = 0
-								_dsh_walk_far += 1; dsh_walk_far_builds += 1
+								if dsh_detail: _dsh_walk_far += 1
+								dsh_walk_far_builds += 1
 							else:
 								# No rebuild this step: advance the phase by the metres the body
 								# really travelled, so no distance is lost and none is counted twice.
 								record.gait.advance_distance(dsh_far_travel, dsh_far_grounded, dsh_far_travel / delta)
-								_dsh_walk_advance += 1
+								if dsh_detail: _dsh_walk_advance += 1
 			if _walk_preview_enabled and record.activity != null: record.activity.step(delta, horizontal.length() / delta)
-	_dsh_walk_report()  # DSH_WALKPOSE: one DSH_WALK line per wall second
+	if dsh_detail: _dsh_walk_report()  # DSH_WALKPOSE: one DSH_WALK line per wall second
 	var dsh_frame := Engine.get_physics_frames()
 	if dsh_frame % 60 == 0:
 		var dsh_recover_skip := _dsh_recover_skips
