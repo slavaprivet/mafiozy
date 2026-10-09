@@ -19,3 +19,6 @@
 
 # Preserve byte pins of the native water contact FX and linked consumer.
 /godot/water_contact_fx/** -text
+
+# Preserve the exact bytes of the independently tested common hiring project.
+/godot/mercenary_demo/** -text

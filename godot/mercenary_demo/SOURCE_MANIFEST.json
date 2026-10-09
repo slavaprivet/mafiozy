@@ -1,0 +1,211 @@
+{
+  "source_files": [
+    {
+      "sha256": "9f5cc5a1a80db37dbf3136ecab66c4cdba2bd679dbea03aa10800ac16d8a95b5",
+      "path": "world.html"
+    },
+    {
+      "sha256": "e80ebf4be2d0404ad5b51d4bf28b756a9cba2b486c43c0797de748c37364dd47",
+      "path": "assets/maps/city_rebuild_v1/walk_preview.mjs"
+    },
+    {
+      "sha256": "53e0ad0e3e53ef62d2856c48e527db412adc7630541ea01c9c903f573da0a95c",
+      "path": "assets/maps/city_rebuild_v1/mercenary_core.mjs"
+    },
+    {
+      "sha256": "c211e7f39b678d939337e5df40e7f0df4f369943ed72f029feddc702cfe575c4",
+      "path": "assets/maps/city_rebuild_v1/mercenary_world.js"
+    },
+    {
+      "sha256": "c70581287f32e358db133206458eb81d7b12415edbbe7039ab6cb16d37c7b5bf",
+      "path": "assets/maps/city_rebuild_v1/mercenary_walk.mjs"
+    },
+    {
+      "sha256": "131126381dac052b70caa584d110dc26b10df142e36ac10ca480d7945bedb86b",
+      "path": "assets/maps/city_rebuild_v1/mercenary_badges.mjs"
+    },
+    {
+      "sha256": "93bdacd6d2153688e49ee7ac3caae69edd7adba0a24bac58cce1b81fb4058c57",
+      "path": "assets/maps/city_rebuild_v1/mercenary_recruit_dialog.mjs"
+    },
+    {
+      "sha256": "858a7eed74bc941b8de6dea0875d81f70aa4f7f04ac3cd487898df60a1f2fc65",
+      "path": "assets/maps/city_rebuild_v1/mercenary_targets.mjs"
+    }
+  ],
+  "schema": "mafiozy.common-gang-stage01/v1",
+  "qualifications": [
+    "Two terminal-half UTF16 core-name normalization differences; full host name exact required",
+    "All-or-none malformed input hardening; do not claim malformed source partial-drop parity",
+    "Two-rename file backup handles errors; crash recovery unproven",
+    "Controlled six-resident fixture and body pause/resume; authentic original286 daily owner not received",
+    "Eight actions/follow/rally/shared boarding/vehicle defensive fire/later overhead consumers/full-city GPU remain pending"
+  ],
+  "entry_scene": "res://scenes/gang_recruitment.tscn",
+  "target": "godot/mercenary_demo",
+  "author_packets": {
+    "core": {
+      "bytes": 219253,
+      "runtime": "d8d2d3029ce3cee09190b08e0ba0cbf94c2b1b723b3b51cda23651d4b36cc5c1",
+      "sha256": "80d2da74dd25f88e4f9b1f80e24dfa5403ee5136a617108c3d38e8c46a1893cf"
+    },
+    "persistence_r2": {
+      "preserved_r1_archive": "e22122d668d3651290f1a4d5a78ef051c0a00858a0f680cf752e90a9084b894c",
+      "native_before_combined": "NOT_RUN",
+      "runtime": "b595afcaf77a4c0418b0a17565689d94e71881b01a869274b9361acd8e9d0dac",
+      "revision_path": "PORTABILITY/outputs/gang-persistence-r2/REVISION.json",
+      "targeted_checks": "68e4289946989bb8c24c892c16b41aac3a3e5671850acaf68b30fa36e0381c32",
+      "supersedes_runtime": "75cdeb5314321c9541b8590a1e076c94169498164960c813a7ff103384721e45"
+    },
+    "ui": {
+      "sha256": "6f42e4aed5d1927026bb13d80381ff2c607f47ac43519eebd2047bb680025b2c",
+      "revision": "gang_ui_stage01_r4",
+      "manifest": "b695b818a451b38f4ca06a2682ae1de22a43205df49716210180fa669dbb76ec",
+      "bytes": 349423
+    },
+    "host": {
+      "unchanged_target_effects": "68e8505adbee0ba33b453dfc61a5e8784a101cd3de40d1ef65f79ab262568d70",
+      "bytes": 16582,
+      "sha256": "ae6a9efda313bd232380b827a94a5da4a68cdc6f43c3a86d57b27ac80e169873",
+      "runtime": "7031c9d3c9258f3e266f82da641aa23cec75ac7c753a96ce945307537e5ec5c5",
+      "revision": "conversation_r2",
+      "manifest": "5d7c6c68d817ccce8e1b0d40ec3655e5857bb7f2b927d36c7dff38a84060ceea",
+      "preserved_r1_runtime": "ea2499978b744f153444cc3906aa63c804b5e9a5e3caf6d071fd082bd0f0ff23"
+    }
+  },
+  "files": [
+    {
+      "path": "addons/walk_mercenary_host/mercenary_host.gd",
+      "bytes": 26617,
+      "sha256": "7031c9d3c9258f3e266f82da641aa23cec75ac7c753a96ce945307537e5ec5c5"
+    },
+    {
+      "path": "addons/walk_mercenary_host/mercenary_target_effects.gd",
+      "bytes": 5271,
+      "sha256": "68e8505adbee0ba33b453dfc61a5e8784a101cd3de40d1ef65f79ab262568d70"
+    },
+    {
+      "path": "addons/walk_mercenary/mercenary_persistence.gd",
+      "bytes": 13302,
+      "sha256": "b595afcaf77a4c0418b0a17565689d94e71881b01a869274b9361acd8e9d0dac"
+    },
+    {
+      "path": "addons/walk_mercenary/mercenary_squad.gd",
+      "bytes": 41811,
+      "sha256": "d8d2d3029ce3cee09190b08e0ba0cbf94c2b1b723b3b51cda23651d4b36cc5c1"
+    },
+    {
+      "path": "assets/hero.glb",
+      "bytes": 652732,
+      "sha256": "8130dfb1f7eb91bff31e932feef1717672070a6767ccc726d7cb1ee23133fd00"
+    },
+    {
+      "path": "project.godot",
+      "bytes": 585,
+      "sha256": "30ca76bbbe5c6203797451eba2f435177112a9ade632af8c1e4c6ff0cff2d23d"
+    },
+    {
+      "path": "README.md",
+      "bytes": 9736,
+      "sha256": "d3710ad1e650ded3dffe05238e63771d92e92d577f5af462d4709b8ae2ffcbf3"
+    },
+    {
+      "path": "scenes/gang_recruitment.tscn",
+      "bytes": 181,
+      "sha256": "77d3b61046d049c414c0a952509d0f5570eef9c888b8fbc58c9ebe1f73ebf09c"
+    },
+    {
+      "path": "scripts/gang/fixture_world.gd",
+      "bytes": 30983,
+      "sha256": "dd99dc4bfd74b8d68c439e6fec75a7ad72067cbd98afe151bf75e99da56efbd6"
+    },
+    {
+      "path": "scripts/gang/interaction_context.gd",
+      "bytes": 2395,
+      "sha256": "fa9436b5d5fb440ce9423c33f00150c207e7ace6f2898a451c8f77de43ca3556"
+    },
+    {
+      "path": "scripts/gang/main_scene.gd",
+      "bytes": 13640,
+      "sha256": "54c27b0df0fbda89c6e78c60033a89abe7c17b33c4a1e2ba32a8630c60948119"
+    },
+    {
+      "path": "scripts/gang/persistence_owner.gd",
+      "bytes": 23093,
+      "sha256": "66b88af8c05a4d5133a251b3fe783585ab0e3040c8853fe346ed01f708780675"
+    },
+    {
+      "path": "scripts/gang/recruitment_host_view.gd",
+      "bytes": 1314,
+      "sha256": "d53bb3aefa70860264ee64930c181e84b6e3f48fc20afd90ba4be3a43e6f4c2c"
+    },
+    {
+      "path": "scripts/gang/ui/data/presentation.json",
+      "bytes": 3957,
+      "sha256": "7fac5a5cf3b6c52142f267b8b7988a71676a7ea91c26a1f0afe563236b931643"
+    },
+    {
+      "path": "scripts/gang/ui/icons/bruiser.svg",
+      "bytes": 243,
+      "sha256": "18a47979d9163550314f9c86f9415e37f46ee2e9d21ee85be6d6a074d5615289"
+    },
+    {
+      "path": "scripts/gang/ui/icons/demolitions.svg",
+      "bytes": 240,
+      "sha256": "d02042e0b730a7bc46e0a775ec2cda2fc3fc136808930aca141b0781a72f401c"
+    },
+    {
+      "path": "scripts/gang/ui/icons/engineer.svg",
+      "bytes": 271,
+      "sha256": "4f8db230e97191781d000ae3282a216da5452af10cb9871b03ceb2086d405836"
+    },
+    {
+      "path": "scripts/gang/ui/icons/medic.svg",
+      "bytes": 224,
+      "sha256": "91f2dad20c38b589fbd93bf382e5ca16d61a3796196819d64e5f272b5e78a2af"
+    },
+    {
+      "path": "scripts/gang/ui/icons/safecracker.svg",
+      "bytes": 240,
+      "sha256": "3187553af2d2b38b72e221f0be3030e24280de6040902f3ca2a7eb5a2472c276"
+    },
+    {
+      "path": "scripts/gang/ui/mercenary_badges.gd",
+      "bytes": 19605,
+      "sha256": "cf717a68bb921a689c79ea68d53a4a61286b3ea3640d7a9f5b82250f943d31eb"
+    },
+    {
+      "path": "scripts/gang/ui/mercenary_recruit_ui.gd",
+      "bytes": 20864,
+      "sha256": "0cd2b8b1ac009322811d15df17f35064800dda9b594c1cbce3a0941825dc0ff5"
+    },
+    {
+      "path": "scripts/gang/ui/render_occlusion.gd",
+      "bytes": 3878,
+      "sha256": "13ded4ec2d5ecb1812a00b0d6f472fe360f3397242ac02aed411ecb65f48b193"
+    }
+  ],
+  "acceptance_required": [
+    "simultaneous five professions via actual UI/host",
+    "capacity and duplicate handling",
+    "same actual body hire/equip/dismiss/rehire",
+    "net-gross conservation load/reconcile/equip/dismiss/reload",
+    "physical identity/positions/host names restore",
+    "startup corrupt bytes preserved and autosave blocked",
+    "raw original JS escaped-surrogate import qualified against core but strict full host names",
+    "source badges and UI over actual source mesh",
+    "source talk hint above own card with gap/style and HUD/visibility masks",
+    "dead/hospital dismissal without resident resurrection",
+    "actual resident begin/end owner callbacks: controlled moving samebody holds and resumes on close/dispose/transport; owned conversation flag set and cleared",
+    "same-ID refresh/switch/denied switch/unavailable target and successful restore oldUI end before oldHost disposal; failed restore retains hold",
+    "shared E provider priority/pass-through/gesture reservation/release/focus reset; actual vehicle and water remain unproven",
+    "source vehicle-context owned badge hiding and same-actor return; actual boarding remains unproven",
+    "lifecycle teardown and source resource pins"
+  ],
+  "root_engine_runs": 0,
+  "previous_archive_sha256": "5533bcd4539a86a5a6b05fd1ff9192ddeb7e4a56dca1c6fe91146441241fe4dc",
+  "revision": "gang_recruitment_stage04",
+  "created_utc": "2026-10-09T03:15:11.4637434Z",
+  "status": "FROZEN_COMBINED_QA_PENDING",
+  "baseline_main": "8b211d1805921d6a971d8a8a9a5e8652eca4a6a2"
+}
