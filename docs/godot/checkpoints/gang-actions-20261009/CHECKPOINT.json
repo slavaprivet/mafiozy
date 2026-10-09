@@ -1,0 +1,63 @@
+{
+  "schema": "mafiozy.gang-actions.author-checkpoint.v1",
+  "created_utc": "2026-10-09T04:17:24.730824+00:00",
+  "status": "ARCHIVED_FROZEN_AUTHOR_PACKETS; NEW_RUNTIME_NATIVE_NOT_RUN",
+  "accepted_runtime_parent": "f506451775d58c5aa0c592d7dca4dfb553df153a",
+  "runtime_paths_modified": false,
+  "archive_checks": "SHA256, ZIP CRC, member/path uniqueness, exact closure, payload pins, source pins, credential-shaped content scan",
+  "packets": [
+    {
+      "label": "movement-stage03",
+      "path": "mercenary_movement_stage03_candidate.zip",
+      "bytes": 142116,
+      "sha256": "81601c3938709c38366aa56c20f5db033e07508f11b7f06607ec04a6b1a32d54",
+      "manifest_sha256": "65621ef7ecb564bc249388eb64262ae511cab7733e6370e53ff5b8ad9b5b2c96",
+      "verified_payload_files": 22,
+      "verified_original_source_pins": 12,
+      "native": "NOT_RUN"
+    },
+    {
+      "label": "host-r5",
+      "path": "gang_actions_host_r5.zip",
+      "bytes": 18401,
+      "sha256": "d5a9c756a39470e73e8e015df3ce72bf3bd30c1cdfbd3736d92a6fb433a441b2",
+      "manifest_sha256": "0d3084250b409e6fd52c615fe38762675a4c5aaebaba894d5a7616a9cb91c00b",
+      "verified_payload_files": 6,
+      "verified_original_source_pins": 0,
+      "native": "NOT_RUN"
+    },
+    {
+      "label": "commands-ui-r4",
+      "path": "gang_command_ui_stage01_r4.zip",
+      "bytes": 36146,
+      "sha256": "d9b24394feeb7e11ffb409733212b63fa4f5c43e10090279378dd73b5da1a91e",
+      "manifest_sha256": "b26a8e25ed3e1f46fd7d0cb9809af9e6a060c8797ac709cda84618dcd5580a94",
+      "verified_payload_files": 8,
+      "verified_original_source_pins": 8,
+      "native": "NOT_RUN"
+    },
+    {
+      "label": "pose-stage01",
+      "path": "gang_pose_stage01.zip",
+      "bytes": 291656,
+      "sha256": "f02b2bc20835b69163b47f183295c55ffaf3a42e7023867239220611e9c7d21c",
+      "manifest_sha256": "d999feed44699e2b534b78e34b73db787ba6639fbd41ecd82987df21a7c71bed",
+      "verified_payload_files": 29,
+      "verified_original_dependencies": 16,
+      "native": "NOT_RUN"
+    }
+  ],
+  "dependency_override": {
+    "movement_stage03_host_R4": "6ba294718214cc4216412e95c63192a28391b018ddd0dc25371323df6da9e23e",
+    "approved_host_R5": "7bf3c8d8edafb38913a32168ff6bdfc9f0644c81c3c2e5679fc3e82799095b3e",
+    "reason": "Owner-approved exact get_queue source alias normalization; original frozen manifests unchanged"
+  },
+  "pending": [
+    "Same actual five actors follow/rally and all eight physical profession actions native acceptance",
+    "Actual down/recovery/fear/hospital and shared vehicle lifecycle integration",
+    "GUI/input, persistence and performance acceptance on common scene",
+    "Authentic current286/original variants source archive restoration and one actual city",
+    "First-PC delivery with actual path/size/hash receipt"
+  ],
+  "full_goal": "ACTIVE_NOT_COMPLETE"
+}
