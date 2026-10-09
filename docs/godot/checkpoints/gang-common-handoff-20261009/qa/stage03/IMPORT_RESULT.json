@@ -1,0 +1,108 @@
+{
+  "schema": "mafiozi.combined-handoff-import/v1",
+  "status": "PASS_COMBINED_COLD_IMPORT_ONLY",
+  "manifest_sha256": "5c4263187ba865022e5ba495c5a7a1dc196ae0791f18f5049d54f0101974f284",
+  "archive_sha256": "31defa910ca883cd43fa0d7d751f8d82ab9576528c013e5e4b77e7a886b02c5a",
+  "outer_manifest_sha256": "ac5075b6a1ba93e64573415c810cf9e7c7171d494a2f9711f3d16e97cfb39053",
+  "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "version_required": "4.7.2.stable.official.ed1daf0bf",
+  "mode": "headless_cold_import",
+  "renderer_requested": "gl_compatibility",
+  "renderer_observed": null,
+  "gpu_rendering": "NOT_RUN",
+  "functional": "NOT_RUN",
+  "all_eight_physical_actions": "NOT_RUN",
+  "current286": "NOT_RECEIVED/NOT_RUN",
+  "scope": "Exact source closure plus one editor cold import; no actual gameplay assertions",
+  "existing_harness_sha256": "cdd329fddc68848cc43aeb3c32e0e5ce1fe6754f441f5b1c51fdb3587ac3caba",
+  "wrapper_sha256": "9bdc5bc2f2821d815b8a67c65dd6dbe66463694f9a850244e2d425f74abc3804",
+  "goal": "ACTIVE_NOT_COMPLETE",
+  "scene": "res://scenes/gang_recruitment.tscn",
+  "scene_sha256": "77d3b61046d049c414c0a952509d0f5570eef9c888b8fbc58c9ebe1f73ebf09c",
+  "staged_source_count": 66,
+  "receipt": {
+    "mode": "headless",
+    "performance_accepted": false,
+    "command": [
+      "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--path",
+      "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\outputs\\gang_qa\\handoff_stage03_import\\project",
+      "--rendering-method",
+      "gl_compatibility",
+      "--headless",
+      "--editor",
+      "--import"
+    ],
+    "passed": true,
+    "timed_out": false,
+    "cleanup_verified": true,
+    "errors": [],
+    "stderr_bytes": 0,
+    "perf_environment_clean": false,
+    "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required",
+    "lease": {
+      "id": "b2951068f3f14a83ba64b348e9ce3235",
+      "owner": {
+        "pid": 12552,
+        "creation_filetime": "134359938065837360"
+      },
+      "mode": "headless",
+      "project": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\outputs\\gang_qa\\handoff_stage03_import\\project",
+      "access": "write",
+      "children": [
+        {
+          "pid": 7744,
+          "creation_filetime": "134359938093488574",
+          "command_line": "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --path C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\outputs\\gang_qa\\handoff_stage03_import\\project --rendering-method gl_compatibility --headless --editor --import",
+          "command": [
+            "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+            "--path",
+            "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\outputs\\gang_qa\\handoff_stage03_import\\project",
+            "--rendering-method",
+            "gl_compatibility",
+            "--headless",
+            "--editor",
+            "--import"
+          ],
+          "executable": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+          "executable_path": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+          "mode": "headless",
+          "project": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\outputs\\gang_qa\\handoff_stage03_import\\project",
+          "affinity_mask": 3,
+          "logical_cpu_limit": 2
+        }
+      ],
+      "deadline": 341058.4929228,
+      "queued_at": 341043.4929228,
+      "ticket": 198,
+      "inventory_before": [],
+      "editor_identities": [],
+      "queue_wait_seconds": 0.5972802999895066
+    },
+    "child": {
+      "pid": 7744,
+      "creation_filetime": "134359938093488574",
+      "command_line": "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --path C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\outputs\\gang_qa\\handoff_stage03_import\\project --rendering-method gl_compatibility --headless --editor --import",
+      "command": [
+        "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "--path",
+        "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\outputs\\gang_qa\\handoff_stage03_import\\project",
+        "--rendering-method",
+        "gl_compatibility",
+        "--headless",
+        "--editor",
+        "--import"
+      ],
+      "executable": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+      "executable_path": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+      "mode": "headless",
+      "project": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\outputs\\gang_qa\\handoff_stage03_import\\project",
+      "affinity_mask": 3,
+      "logical_cpu_limit": 2
+    },
+    "exit_code": 0,
+    "elapsed_seconds": 4.849913400015794
+  },
+  "engine_banner": "Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org",
+  "source_and_staged_owner_bytes_unchanged": true
+}

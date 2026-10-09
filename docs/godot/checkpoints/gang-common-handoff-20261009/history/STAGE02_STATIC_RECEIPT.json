@@ -1,0 +1,198 @@
+{
+  "status": "42_OF_44_GDTOOLKIT_GRAMMAR_PASS; TWO_EXACT_ACCEPTED_UI_PARSER_LIMITATIONS",
+  "native": "NOT_RUN; separate QA smoke",
+  "gdscript_files": 44,
+  "pins": [
+    {
+      "path": "addons/walk_mercenary/mercenary_catchup.gd",
+      "sha256": "7f9d53e24d9a3f547349c229c07f5152efd9b4631739eb48b2c786be8d7ca328"
+    },
+    {
+      "path": "addons/walk_mercenary/mercenary_movement.gd",
+      "sha256": "b4fa8efefaaf4774da294d52f1c5f83789a190d1e9f5deda7fd6ff81f656740f"
+    },
+    {
+      "path": "addons/walk_mercenary/mercenary_persistence.gd",
+      "sha256": "b595afcaf77a4c0418b0a17565689d94e71881b01a869274b9361acd8e9d0dac"
+    },
+    {
+      "path": "addons/walk_mercenary/mercenary_route.gd",
+      "sha256": "efd78536ede8574226633f2bb3670ddb4427826ec26ae51b2b89b5b4c458b0c9"
+    },
+    {
+      "path": "addons/walk_mercenary/mercenary_squad.gd",
+      "sha256": "d8d2d3029ce3cee09190b08e0ba0cbf94c2b1b723b3b51cda23651d4b36cc5c1"
+    },
+    {
+      "path": "addons/walk_mercenary_host/mercenary_host.gd",
+      "sha256": "7bf3c8d8edafb38913a32168ff6bdfc9f0644c81c3c2e5679fc3e82799095b3e"
+    },
+    {
+      "path": "addons/walk_mercenary_host/mercenary_target_effects.gd",
+      "sha256": "68e8505adbee0ba33b453dfc61a5e8784a101cd3de40d1ef65f79ab262568d70"
+    },
+    {
+      "path": "scripts/character_physics/character_physics_pose.gd",
+      "sha256": "1118f21a76b1d74e5e0cd303d3cc66c05338479f01a00b19008383adb8e0b6b9"
+    },
+    {
+      "path": "scripts/character_physics/exit_ragdoll_body.gd",
+      "sha256": "822966ac0b03bbb0dbb37085fccf915fdbc11d07d8c6d05bd9035c66f26f58f8"
+    },
+    {
+      "path": "scripts/character_physics/recovery_clearance.gd",
+      "sha256": "d5ff65db2e804dcab31756559dbb3170640962ccdc376a5013b8eb974893ede2"
+    },
+    {
+      "path": "scripts/character_physics/recovery_surface_bounds.gd",
+      "sha256": "23b78c72bdca0a2da64dcd7d4e8e54163299414feb66ae9c9cb489ed6f247c1e"
+    },
+    {
+      "path": "scripts/gang/commitment_checkpoint.gd",
+      "sha256": "c6728d3dc7135a14cb7f55d063ba17ddfd4b7a7435656729a77bf64986a314b6"
+    },
+    {
+      "path": "scripts/gang/fixture_world.gd",
+      "sha256": "ae79138dbae518416911c3c03bd598d97e040628aa4e585885910822e4f9231a"
+    },
+    {
+      "path": "scripts/gang/gang_actor_admission.gd",
+      "sha256": "b03bb520b7c8cfeaa8e01c2db6b81ef5a19035849d132580ba7af36372961b3b"
+    },
+    {
+      "path": "scripts/gang/gang_pose_manager.gd",
+      "sha256": "2be79744d0fe9a71eea85091cd6ab138df86ea83c392c46aea0a93abee1f1e50"
+    },
+    {
+      "path": "scripts/gang/interaction_context.gd",
+      "sha256": "fa9436b5d5fb440ce9423c33f00150c207e7ace6f2898a451c8f77de43ca3556"
+    },
+    {
+      "path": "scripts/gang/main_scene.gd",
+      "sha256": "530ad75b762a6b0139214fb520ffd35809e52349a305d5b7ad70782dc9551013"
+    },
+    {
+      "path": "scripts/gang/persistence_owner.gd",
+      "sha256": "9b665f4e588502026e7773ca0e88dae573394d839260d2ec053bc07a96f298b9"
+    },
+    {
+      "path": "scripts/gang/physical_life_owner.gd",
+      "sha256": "5c2a8e31e74c131d79397e28a1f5148d9b97f889baa21ebbcb251664becbe8f0"
+    },
+    {
+      "path": "scripts/gang/physical_movement_owner.gd",
+      "sha256": "bf1a8e23ac04892824cb423acbd2783dd47f4acb2e33cc0e43b8555e18de1437"
+    },
+    {
+      "path": "scripts/gang/physical_targets_owner.gd",
+      "sha256": "801781cab5ae5ddc3ca3de0c93c45673c39bf00dffb3b032f435d9fae954240f"
+    },
+    {
+      "path": "scripts/gang/physical_writer_bridge.gd",
+      "sha256": "24e94d97d74cf9c86b9c0ff479a2ebac18e0592791d56dd72f1236331c61b241"
+    },
+    {
+      "path": "scripts/gang/recruitment_host_view.gd",
+      "sha256": "d53bb3aefa70860264ee64930c181e84b6e3f48fc20afd90ba4be3a43e6f4c2c"
+    },
+    {
+      "path": "scripts/gang/source_breach_door.gd",
+      "sha256": "7e1dfc9e125b297fbc75728c1d8d29a18648a0d303a65bca3ea7a49bf1e896f7"
+    },
+    {
+      "path": "scripts/gang/source_civilian_panic_owner.gd",
+      "sha256": "eb03ddf0ad714a76b1896663397789237bcd56dd1f2ef720a534097acfb7670d"
+    },
+    {
+      "path": "scripts/gang/source_fence.gd",
+      "sha256": "deabf8864b3ffc65a1d550dd42f82dcbbdf2a1130c6709fec660b621ec0ca511"
+    },
+    {
+      "path": "scripts/gang/source_grounded_pose_owner.gd",
+      "sha256": "57bf0e2ecc95c2ff988ae84861b7eecde12070fe5a724daec354900d37a26507"
+    },
+    {
+      "path": "scripts/gang/source_parked_vehicle.gd",
+      "sha256": "612b4703508ec840eedae8ed1db10142e6b04bab5b20c31282c6db8f44f476c1"
+    },
+    {
+      "path": "scripts/gang/source_power_panel.gd",
+      "sha256": "a8220a42dd083dfcbd0cfdd999ad202a634cbfe6a35244861a1856148123b1e2"
+    },
+    {
+      "path": "scripts/gang/source_safe.gd",
+      "sha256": "b779f09adbaee929b7f91866700a60954ef273754e9961f909b416ccc1ebd1bf"
+    },
+    {
+      "path": "scripts/gang/ui/mercenary_action_menu.gd",
+      "sha256": "d4058027a8e272060cb8e53fedf7aa9ad775346ce1c6d63d76b296c166150b3c"
+    },
+    {
+      "path": "scripts/gang/ui/mercenary_action_timers.gd",
+      "sha256": "7234617bd3880474b479b7bd05a8b43a8752fff466a23397ddd6bab749bedfb9"
+    },
+    {
+      "path": "scripts/gang/ui/mercenary_badges.gd",
+      "sha256": "cf717a68bb921a689c79ea68d53a4a61286b3ea3640d7a9f5b82250f943d31eb"
+    },
+    {
+      "path": "scripts/gang/ui/mercenary_command_ui.gd",
+      "sha256": "542f9b735485ee2cd0dbd2213cc0e4e9d794298c75e011eddd5970165ad6b154"
+    },
+    {
+      "path": "scripts/gang/ui/mercenary_recruit_ui.gd",
+      "sha256": "0cd2b8b1ac009322811d15df17f35064800dda9b594c1cbce3a0941825dc0ff5"
+    },
+    {
+      "path": "scripts/gang/ui/mercenary_selection_view.gd",
+      "sha256": "3f39f10cd19fcad6320fc2fa2025c703ebc1a72a696c56f9f6f7a18447be3c87"
+    },
+    {
+      "path": "scripts/gang/ui/mercenary_task_markers.gd",
+      "sha256": "84d76ee0fa7b2f41f4ac7bdbe7d8c21701b9a06fed55aef27f36c93f6b66a4bf"
+    },
+    {
+      "path": "scripts/gang/ui/render_occlusion.gd",
+      "sha256": "13ded4ec2d5ecb1812a00b0d6f472fe360f3397242ac02aed411ecb65f48b193"
+    },
+    {
+      "path": "scripts/npc_visual/npc_body.gd",
+      "sha256": "1947938608f8ddb50cbfb7ee68d86d780c5e041eeb4c257bed99fc953e327162"
+    },
+    {
+      "path": "scripts/npc_visual/npc_death_eyes.gd",
+      "sha256": "67971321ba296ba6e70a76a6f4a95ca55df3de34c2848e54b4a7e0ba552b978c"
+    },
+    {
+      "path": "scripts/npc_visual/npc_ragdoll_host.gd",
+      "sha256": "59573587d7eac3c6e4911ff1279e0c683f2646be61bc2346be0c82e314850bb2"
+    },
+    {
+      "path": "scripts/vehicle_visual/vehicle_exit_pose.gd",
+      "sha256": "1afafedfa6c1544e47cabb19e76fa438aff6a29ef2f495fdb73d6b2bef725a89"
+    },
+    {
+      "path": "scripts/vehicle_visual/vehicle_exit_pose_blend.gd",
+      "sha256": "8e1350680b10511e88c75df70be887b9ac3bc40041575a7578362d07589ecad3"
+    },
+    {
+      "path": "scripts/vehicle_visual/vehicle_visual.gd",
+      "sha256": "d586952de302b7ec0467b89b91ba117e3350e8a5c217f48c303f06ff88494e34"
+    }
+  ],
+  "failures": [
+    {
+      "path": "scripts/gang/ui/mercenary_badges.gd",
+      "error": "Unexpected token Token('IF', 'if') at line 191, column 116.\nExpected one of: \n\t* _DEDENT\n\t* _NL\n",
+      "exact_accepted_native_baseline": true
+    },
+    {
+      "path": "scripts/gang/ui/mercenary_recruit_ui.gd",
+      "error": "Unexpected token Token('IF', 'if') at line 289, column 40.\nExpected one of: \n\t* _DEDENT\n\t* _NL\n",
+      "exact_accepted_native_baseline": true
+    }
+  ],
+  "missing_literal_preloads": [],
+  "all8": "NOT_ACCEPTED",
+  "qualification": "Two parser errors occur on exact previously native-accepted hiring UI bytes, not new runtime or panic; real Godot smoke is authoritative."
+}

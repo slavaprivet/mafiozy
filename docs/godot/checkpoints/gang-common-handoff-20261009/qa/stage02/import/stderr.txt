@@ -1,0 +1,12 @@
+SCRIPT ERROR: Parse Error: Cannot infer the type of "allowed" variable because the value doesn't have a set type.
+   at: GDScript::reload (res://scripts/gang/source_parked_vehicle.gd:151)
+SCRIPT ERROR: Parse Error: Cannot infer the type of "known" variable because the value doesn't have a set type.
+   at: GDScript::reload (res://scripts/gang/source_parked_vehicle.gd:253)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+   at: GDScript::reload (res://scripts/gang/physical_targets_owner.gd:0)
+SCRIPT ERROR: Parse Error: Expression is of type "Control" so it can't be of type "PopupMenu".
+   at: GDScript::reload (res://scripts/gang/ui/mercenary_command_ui.gd:484)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+   at: GDScript::reload (res://scripts/gang/main_scene.gd:0)
+ERROR: Failed to load script "res://scripts/gang/main_scene.gd" with error "Parse error".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)
