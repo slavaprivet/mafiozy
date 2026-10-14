@@ -427,12 +427,35 @@ func _source_admit_scoped(point: Vector3, id: String, generation: int, radius: f
 			if dsh_pin is Dictionary: _dsh_proof.erase(id)
 	return dsh_proven
 
+# DSH_HANDOFFPROBE: temporary diagnostic (--city-handoff-probe=1). Off by default: the
+# gate is one int compare after the first call and every probe read re-runs exactly the
+# same tests the refusal already ran, so no decision, order or stored state changes.
+var _dsh_hp := -1
+
+func _handoff_probe_on() -> int:  # DSH_HANDOFFPROBE
+	if _dsh_hp < 0:
+		_dsh_hp = 0
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-handoff-probe="):
+				_dsh_hp = maxi(0, int(argument.trim_prefix("--city-handoff-probe=")))
+	return _dsh_hp
+
+func _handoff_probe(point: Vector3, id: String, index: int, height: float, admit: int, hit: int, hit_y: float, dy: float, reason: String) -> void:  # DSH_HANDOFFPROBE
+	print("DSH_HANDOFF_PROBE id=", id, " point=(", "%.3f" % point.x, ",", "%.3f" % point.y, ",", "%.3f" % point.z,
+		") index=", index, " height=", "%.4f" % height, " admit=", admit, " hit=", hit,
+		" hit_y=", "%.4f" % hit_y, " dy=", "%.4f" % dy, " reason=", reason)
+
 func support_height(point: Vector3, id: String, generation: int) -> float:
 	if not Thread.is_main_thread() or _busy or not _owner_allowed(id, generation) or not point.is_finite(): return NAN
+	var probe: bool = _handoff_probe_on() == 1  # DSH_HANDOFFPROBE
 	var index := _index(point)
-	if index < 0: return NAN
+	if index < 0:
+		if probe: _handoff_probe(point, id, index, NAN, -1, 0, NAN, NAN, "index")  # DSH_HANDOFFPROBE
+		return NAN
 	var reference := Vector3(point.x, _heights[index], point.z)
-	if not source_admit(reference, id, generation, RADIUS, "placement"): return NAN
+	if not source_admit(reference, id, generation, RADIUS, "placement"):
+		if probe: _handoff_probe(point, id, index, reference.y, 0, 0, NAN, NAN, "admit")  # DSH_HANDOFFPROBE
+		return NAN
 	_busy = true
 	_ray.from = reference + Vector3.UP * .30; _ray.to = reference - Vector3.UP * .30
 	var scene: Node3D = _scene.get_ref()
@@ -443,6 +466,16 @@ func support_height(point: Vector3, id: String, generation: int) -> float:
 		var body: StaticBody3D = floor_record.body.get_ref()
 		var shape: CollisionShape3D = floor_record.shape.get_ref()
 		if is_instance_valid(body) and is_instance_valid(shape) and body.get_parent() == scene and body.global_transform.is_equal_approx(floor_record.frame) and body.collision_layer == 1 and not shape.disabled and shape.transform.is_equal_approx(Transform3D.IDENTITY) and shape.shape is BoxShape3D and shape.shape.size.is_equal_approx(floor_record.size): result = hit.position.y
+	if probe and not is_finite(result):  # DSH_HANDOFFPROBE
+		var dsh_hit_y: float = float(hit.position.y) if not hit.is_empty() else NAN
+		var dsh_dy: float = dsh_hit_y - reference.y if not hit.is_empty() else NAN
+		var dsh_reason := "none"
+		if not hit.is_empty():
+			if not _floors.has(hit.rid): dsh_reason = "none"
+			elif hit.normal.y < .70: dsh_reason = "normal"
+			elif not absf(hit.position.y - reference.y) < .0001: dsh_reason = "floor"
+			else: dsh_reason = "floor"
+		_handoff_probe(point, id, index, reference.y, 1, -1 if hit.is_empty() else 1, dsh_hit_y, dsh_dy, dsh_reason)
 	_busy = false
 	return result
 

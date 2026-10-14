@@ -44,8 +44,12 @@ const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8a
 ## exact previous path. Enabled by `--city-town=1` or this export.
 @export var city_town_mode: bool = false
 ## Comma-separated assetIds kept in town mode. Empty = CITY_TOWN_DEFAULT_KEEP.
+## The default keeps ONLY the buildings residents actually visit (each has an
+## admitted entry or an authored approach); the plain non-destructible houses are
+## left out, which is the user-requested "town of destructible buildings" plus the
+## service buildings the daily life needs. --city-town-keep=... overrides it.
 @export var city_town_keep: String = ""
-const CITY_TOWN_DEFAULT_KEEP := "hospital,bank_small_shell_v1,gun_shop,print_shop,old_town_narrow_townhouse_v1"
+const CITY_TOWN_DEFAULT_KEEP := "hospital,bank_small_shell_v1,gun_shop,print_shop"
 var city_town_built := 0
 var city_town_skipped := 0
 @export_file("*.json") var printshop_data_path: String = "res://data/printshop_interior.json"
