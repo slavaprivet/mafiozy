@@ -437,6 +437,7 @@ func _source_admit_scoped(point: Vector3, id: String, generation: int, radius: f
 var _dsh_hp := -1
 static var _dsh_hp_seen := {}  # DSH_HANDOFFPROBE: one scan per distinct tentative point
 static var _dsh_ss := ""  # DSH_HANDOFFPROBE: the sub-check that decided the last _source_segment
+static var _dsh_cell_n := 0  # DSH_HANDOFFPROBE: bound the per-square cell dump
 
 func _handoff_probe_on() -> int:  # DSH_HANDOFFPROBE
 	if _dsh_hp < 0:
@@ -761,6 +762,9 @@ func _native_segment(token: Dictionary, from: Vector3, to: Vector3, dynamic_only
 			if broad_hits.size()>=128: _last_reason="dynamic_broadphase_overflow";return false
 			for hit: Dictionary in broad_hits:
 				if hit.collider is StaticBody3D: exclusions.append(hit.rid)
+		# DSH_DOORFREE: exclusions[0] is token.body.get_rid() (line 726), so the
+		# requesting actor never blocks itself. The capsule keeps the square's
+		# vertical convention: centre at feet + height*0.5 + 0.025 (npc_city_door_open).
 		var capsule_result: Dictionary=DoorOpen.capsule_query(space,square_from,square_to,_capsule_radius(token),_capsule_height(token),1|256,exclusions)
 		if not bool(capsule_result.get("ok",false)):
 			_last_reason="current_capsule:"+str(capsule_result.get("reason",""));return false
@@ -811,14 +815,14 @@ func _native_floor_square(token: Dictionary, point: Vector3, static_excludes: Ar
 	for offset: Vector2 in OFFSETS:
 		var at:=point+Vector3(offset.x,0,offset.y)
 		var y:=_terrain_height(float(at.x)+395.65,float(at.z)+45.099999999999994)
-		if _handoff_probe_on() == 1 and not is_finite(y):  # DSH_HANDOFFPROBE
+		if _handoff_probe_on() == 1 and _dsh_cell_n < 300:  # DSH_HANDOFFPROBE
+			_dsh_cell_n += 1
 			var dsh_di: int = _world_index(float(at.x)+395.65,float(at.z)+45.099999999999994)
 			print("DSH_HANDOFF_CELL point=(", "%.3f" % at.x, ",", "%.3f" % at.z, ") index=", dsh_di,
+				" terrain_y=", "%.4f" % y,
 				" land=", int(_land[dsh_di]) if dsh_di >= 0 else -1,
 				" ordinary=", int(_ordinary[dsh_di]) if dsh_di >= 0 else -1,
-				" height=", "%.4f" % _heights[dsh_di] if dsh_di >= 0 else "na",
-				" restricted=", _restricted((float(at.z)+45.099999999999994)/4.1,(float(at.x)+395.65)/4.1,int(_surface.grid[dsh_di/_cols][dsh_di%_cols])) if dsh_di >= 0 else "na",
-				" tile=", int(_surface.grid[dsh_di/_cols][dsh_di%_cols]) if dsh_di >= 0 else -1)
+				" palette_h=", "%.4f" % _heights[dsh_di] if dsh_di >= 0 else "na")
 		if not is_finite(y): return false
 		# Select original support through the audited coplanar duplicate only at
 		# its exact source height. Other floors, steps, ramps and all obstacles
@@ -833,6 +837,16 @@ func _native_floor_square(token: Dictionary, point: Vector3, static_excludes: Ar
 			_ray.exclude=floor_excludes
 		_ray.from=Vector3(at.x,y+.3,at.z);_ray.to=Vector3(at.x,y-.3,at.z)
 		var hit: Dictionary=space.intersect_ray(_ray);_counts.floor_rays+=1
+		if _handoff_probe_on() == 1 and _dsh_cell_n < 600:  # DSH_HANDOFFPROBE
+			_dsh_cell_n += 1
+			var dsh_registered: bool = not hit.is_empty() and _floors.has(hit.rid)
+			var dsh_collider: String = str(hit.collider.name) if not hit.is_empty() else "-"
+			var dsh_cparent: String = str(hit.collider.get_parent().name) if not hit.is_empty() and hit.collider.get_parent() != null else "-"
+			print("DSH_HANDOFF_RAY point=(", "%.3f" % at.x, ",", "%.3f" % at.z, ") y=", "%.4f" % y,
+				" empty=", hit.is_empty(), " registered=", dsh_registered,
+				" hit_y=", "%.4f" % hit.position.y if not hit.is_empty() else "nan",
+				" normal_y=", "%.3f" % hit.normal.y if not hit.is_empty() else "nan",
+				" collider=", dsh_collider, " parent=", dsh_cparent)
 		if hit.is_empty() or not _floors.has(hit.rid) or hit.normal.y<.7 or absf(hit.position.y-y)>.0001: _last_reason="current_source_floor_missing";return false
 		var pin: Dictionary=_floors[hit.rid];var body: Variant=pin.body.get_ref();var shape: Variant=pin.shape.get_ref()
 		if not is_instance_valid(body) or not is_instance_valid(shape) or body.get_parent()!=scene or body.global_transform!=pin.frame or body.collision_layer!=1 or shape.disabled or shape.transform!=Transform3D.IDENTITY or not shape.shape is BoxShape3D or shape.shape.size!=pin.size: _last_reason="source_floor_changed";return false

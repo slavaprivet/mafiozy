@@ -179,13 +179,24 @@ func configure(host: RefCounted, policy: RefCounted, health: RefCounted, scene: 
 			var dsh_approach: Vector3 = dsh_printshop.anchor("publicApproach")
 			if dsh_approach.is_finite(): _handoff = Vector3(dsh_approach.x, 0.0, dsh_approach.z)
 		if not _handoff.is_finite(): _handoff=Vector3(minf(8.5,float(outside[0])+1.1),0.0,float(outside[2]))
-	# DSH_HANDOFFADMIT: the authored lane/anchor point is in the BUILDING-local frame
-	# (ENTRY_GEOMETRY.json originM / printshop_interior.json anchors), while the policy
-	# indexes the world crop. The source block places its first printshop at exactly
-	# ORIGIN, which is why the policy's own source polygon conversion adds 395.65/45.1 to
-	# the same numbers. With the flag the world-translated candidate is offered as a
-	# fallback; the original local point stays first, so an unchanged frame still wins.
+	# DSH_HANDOFFADMIT: the authored lane/anchor point sits inside the printshop's own
+	# unregistered interior plate, so the policy's support ray stops on it instead of the
+	# registered source floor and support_height answers NAN (`current_handoff_floor`).
+	# Measured: at (7.405, 5.649) the ray hits a layer-1 body at y=0.150 that is not in
+	# _floors, while the source cell (index 2232) is land=1 ordinary=1 palette_h=0.0000.
+	# With the flag the same authored point is offered unchanged and, only if it refuses,
+	# a bounded outward ring around it is tried. Every candidate still has to pass the
+	# shipped support_height / source_admit proofs; the policy is never bypassed.
 	var dsh_candidates: Array = [Vector3(_handoff.x, 0.0, _handoff.z)]  # DSH_HANDOFFADMIT
+	if dsh_admit_handoff:
+		for dsh_ring: float in [0.6, 1.2, 1.8, 2.4]:
+			for dsh_octant: int in 8:
+				var dsh_angle: float = float(dsh_octant) * TAU / 8.0
+				dsh_candidates.append(Vector3(_handoff.x + cos(dsh_angle) * dsh_ring, 0.0, _handoff.z + sin(dsh_angle) * dsh_ring))
+		var dsh_body: Variant = token.get("body")  # DSH_HANDOFFADMIT
+		if dsh_body is Node3D and is_instance_valid(dsh_body): dsh_candidates.append(Vector3(dsh_body.global_position.x, 0.0, dsh_body.global_position.z))
+	# The world-frame candidate: the source block places its first printshop at exactly
+	# ORIGIN, so the local lane point plus ORIGIN is the same facade in world numbers.
 	if dsh_admit_handoff:
 		dsh_candidates.append(Vector3(_handoff.x + npc_city_world_policy.ORIGIN.x, 0.0, _handoff.z + npc_city_world_policy.ORIGIN.z))
 	var dsh_probe_handoff := false  # DSH_HANDOFFPROBE
@@ -194,6 +205,7 @@ func configure(host: RefCounted, policy: RefCounted, health: RefCounted, scene: 
 			if dsh_argument.begins_with("--city-handoff-probe="): dsh_probe_handoff = int(dsh_argument.trim_prefix("--city-handoff-probe=")) == 1
 	var floor_y := NAN
 	for dsh_candidate: Vector3 in dsh_candidates:
+		if not dsh_candidate.is_finite(): continue
 		var dsh_y: float = policy.support_height(dsh_candidate, token.source_id, token.life_generation)
 		if dsh_probe_handoff:
 			print("DSH_HANDOFFADMIT candidate=(", "%.3f" % dsh_candidate.x, ",", "%.3f" % dsh_candidate.z, ") floor_y=", dsh_y)

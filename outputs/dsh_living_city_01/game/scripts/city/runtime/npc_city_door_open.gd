@@ -75,6 +75,37 @@ static func park_leaf(body: Node, parked: bool) -> int:
 		_leaf_unparks += 1
 	return changed
 
+## DSH_DOORFREE fix: the square branch centres its 1.9 m box at
+## `feet + UP*.975`, i.e. half height + 2.5 cm. A capsule centred at `feet +
+## height*0.5` only TOUCHES the floor collider, and `intersect_shape` reports that
+## touch as an overlap, so every detour neighbour was refused with
+## `capsule_overlap` (the DSH_DETOUR_NEIGH log: 8/8). The capsule now uses the
+## same vertical convention as the square it replaced.
+const CAPSULE_FLOOR_CLEARANCE_M := 0.025
+static var _capsule_debug := -1
+static var _overlap_reports := 0
+
+static func capsule_debug() -> bool:
+	if _capsule_debug < 0:
+		_capsule_debug = _flag("--city-capsule-debug=")
+	return _capsule_debug == 1
+
+static func _report_overlap(space: PhysicsDirectSpaceState3D, query: PhysicsShapeQueryParameters3D, from: Vector3, lift: float) -> void:
+	if _overlap_reports >= 20:
+		return
+	_overlap_reports += 1
+	var described: Array = []
+	for hit: Dictionary in space.intersect_shape(query, 8):
+		var collider: Variant = hit.get("collider")
+		var path := str(collider)
+		var layer := 0
+		if collider is Node:
+			path = str((collider as Node).get_path())
+			if collider is CollisionObject3D:
+				layer = (collider as CollisionObject3D).collision_layer
+		described.append("%s|layer=%d|rid=%s|pos=%s" % [path, layer, str(hit.get("rid", RID())), str(hit.get("position", Vector3.ZERO))])
+	print("DSH_CAPSULE_DEBUG overlap#", _overlap_reports, " from=", from, " lift=", lift, " body_y=", query.transform.origin.y, " hits=", described)
+
 ## Real capsule sweep, used where the source quarter-metre square is too coarse a
 ## proxy for "an actor is standing in the doorway".
 ## Main thread only and not reentrant: the shape/query pair is cached between
@@ -92,7 +123,7 @@ static func _capsule_for(radius: float, height: float) -> CapsuleShape3D:
 		_capsule_key = key
 	return _capsule
 
-static func capsule_query(space: PhysicsDirectSpaceState3D, from: Vector3, to: Vector3, radius: float, height: float, mask: int, exclude: Array) -> Dictionary:
+static func capsule_query(space: PhysicsDirectSpaceState3D, from: Vector3, to: Vector3, radius: float, height: float, mask: int, exclude: Array, extra_lift: float = 0.0) -> Dictionary:
 	if space == null or not from.is_finite() or not to.is_finite():
 		return {"ok": false, "reason": "capsule_input"}
 	if not is_finite(radius) or not is_finite(height) or radius <= 0.0 or height <= 0.0:
@@ -105,9 +136,12 @@ static func capsule_query(space: PhysicsDirectSpaceState3D, from: Vector3, to: V
 	query.collision_mask = mask
 	query.margin = 0.001
 	query.exclude = exclude
-	query.transform = Transform3D(Basis.IDENTITY, from + Vector3.UP * (capsule.height * 0.5))
+	var lift: float = capsule.height * 0.5 + CAPSULE_FLOOR_CLEARANCE_M + maxf(0.0, extra_lift)
+	query.transform = Transform3D(Basis.IDENTITY, from + Vector3.UP * lift)
 	query.motion = Vector3.ZERO
 	if not space.intersect_shape(query, 1).is_empty():
+		if capsule_debug():
+			_report_overlap(space, query, from, lift)
 		return {"ok": false, "reason": "capsule_overlap"}
 	query.motion = to - from
 	var cast: PackedFloat32Array = space.cast_motion(query)
