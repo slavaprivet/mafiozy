@@ -19,6 +19,23 @@ const LOG_INTERVAL_MS := 2000
 static var _diag_flag: int = -1
 static var _hp_flag: int = -1
 static var _seen: Dictionary = {}       # source_id -> {frame, log_ms, travel_from, reasons, last_reason}
+static var _lives: Dictionary = {}      # source_id -> WeakRef(the resident's life scheduler)
+
+## DSH_MEDPRIORITY: the life scheduler of one resident, registered by the life itself at
+## configuration time. The hit owner uses it to run the medical threshold check in the same
+## frame as the hit (see npc_daily_life.dsh_notice_damage) instead of waiting for the daily
+## poll slice. A miss simply means the immediate check does not run; the slice still does.
+static func register_life(id: String, life: RefCounted) -> void:
+	if id.is_empty() or not is_instance_valid(life): return
+	_lives[id] = weakref(life)
+
+static func life_of(id: String) -> RefCounted:
+	if not _lives.has(id): return null
+	var held: Variant = _lives[id]
+	var current: Variant = (held as WeakRef).get_ref() if held is WeakRef else null
+	if is_instance_valid(current): return current
+	_lives.erase(id)
+	return null
 static var _labels: Dictionary = {}     # source_id -> WeakRef(Label3D)
 static var _stages: Dictionary = {}     # source_id -> {stage, goal_id, hp_pct_at_damage}
 
@@ -42,6 +59,29 @@ static func hp_label_on() -> bool:
 	return _hp_flag == 1
 
 ## One compact 5-line label. Missing values are shown as "-", never invented.
+## DSH_RESDIAG: the caption belongs to the resident the owner named, exactly like the name
+## label: without --city-resident-name there is no caption at all, and no resident the owner
+## did not pick gets one.
+static func caption_allowed(body: Node3D) -> bool:
+	if not is_instance_valid(body): return false
+	if body.has_meta("dsh_test_resident_name"): return true
+	var parent: Node = body.get_parent()
+	return parent != null and parent is Node3D and (parent as Node3D).has_meta("dsh_test_resident_name")
+
+## DSH_RESDIAG: refresh the caption of one resident from the values it already published.
+## The hit owner calls this the moment a shot changes `hp`, so the label does not wait for
+## that resident's turn in the daily poll slice (measured poll period ~1.6 s).
+static func refresh_after_hit(body: Node3D, name: String, row: Dictionary) -> void:
+	if not hp_label_on() and not diag_on(): return
+	if not is_instance_valid(body) or not caption_allowed(body): return
+	var label := _label_for(body, true)
+	if label == null: return
+	var maximum := float(row.get("max_hp", 0))
+	var pct := 0.0
+	if maximum > 0.0: pct = clampf(float(row.get("hp", 0)) / maximum * 100.0, 0.0, 100.0)
+	label.text = "%s\nHP %.0f%%" % [name, pct]
+	print("DSH_LABEL id=", str(row.get("source_id", "?")), " node=", label.name, " text=\"", label.text.replace("\n", " | "), "\" reason=hit")
+
 ## DSH_RESDIAG: `name` on its own line and `HP NN%  ⚡ NN%` under it, exactly as the owner
 ## asked. `⚡` becomes `EN` when the font may not carry the emoji: --city-energy-glyph=EN.
 static func _vitals_line(row: Dictionary, life_state: Dictionary) -> String:
@@ -50,11 +90,13 @@ static func _vitals_line(row: Dictionary, life_state: Dictionary) -> String:
 	if maximum > 0.0: pct = clampf(float(row.get("hp", 0)) / maximum * 100.0, 0.0, 100.0)
 	var text := "HP %.0f%%" % pct
 	if life_state.get("energy_on", false):
-		var glyph := "⚡"
-		for argument: String in OS.get_cmdline_user_args():
-			if argument.begins_with("--city-energy-glyph="): glyph = argument.trim_prefix("--city-energy-glyph=")
-		text += "  %s %.0f%%" % [glyph, clampf(float(life_state.get("energy", 0.0)), 0.0, 100.0)]
+		text += "  %s %.0f%%" % [_energy_glyph(), clampf(float(life_state.get("energy", 0.0)), 0.0, 100.0)]
 	return text
+
+static func _energy_glyph() -> String:
+	for argument: String in OS.get_cmdline_user_args():
+		if argument.begins_with("--city-energy-glyph="): return argument.trim_prefix("--city-energy-glyph=")
+	return "⚡"
 
 static func label_text(name: String, row: Dictionary, life_state: Dictionary, walk: Dictionary, reasons: String, stopped: String, travelled: float) -> String:
 	var maximum := float(row.get("max_hp", 0))
@@ -133,7 +175,13 @@ static func update(id: String, body: Variant, row: Dictionary, life_state: Dicti
 		var start: Variant = record.get("start_pos")
 		if start is Vector3: travelled = Vector2(here.x - (start as Vector3).x, here.z - (start as Vector3).z).length()
 	var label := _label_for(body as Node3D, true)
-	if label != null:
+	if label != null and not caption_allowed(body as Node3D):
+		# DSH_RESDIAG: before the owner's own name label exists (or for a resident he did not
+		# name), this module keeps its label out of the way instead of putting a second,
+		# floating caption over every resident.
+		label.visible = false
+	var shown_label := label != null and label.visible
+	if shown_label:
 		# DSH_RESDIAG: the name label and this one are the SAME text node. `_label_for`
 		# prefers the Label3D named DshResidentName that preview_resident_host.gd already
 		# attaches to the visual motion node, so there is exactly one head-up caption and

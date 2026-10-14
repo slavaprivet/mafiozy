@@ -13,6 +13,8 @@ static var _dsh_med_flag: int = -1  # DSH_MEDPRIORITY: -1 unknown, 0 absent, 1 p
 static var _dsh_med_threshold: float = MEDICAL_THRESHOLD  # DSH_MEDPRIORITY
 static var _dsh_hp_flag: int = -2  # DSH_MEDPRIORITY: -2 unknown, -1 absent, 0..100 override
 static var _dsh_med_rings: Array = []  # DSH_MEDPRIORITY: read-only, bounded to 48 rows
+var _dsh_moved_m := 0.0  # DSH_MEDPRIORITY: metres actually walked since the first medical goal
+var _dsh_moved_last := Vector3.ZERO  # DSH_MEDPRIORITY
 ## DSH_NEEDS: "little money -> go to the bank and top up" thresholds. Cash below
 ## NEEDS_LOW_CASH counts as low; a withdrawal never takes less than
 ## NEEDS_WITHDRAW_MIN, and a deposit keeps NEEDS_CASH_RESERVE in hand so the
@@ -127,6 +129,7 @@ func configure(host: RefCounted, token: Dictionary, health: RefCounted, account:
 	if not is_instance_valid(health) or health.get("_host")!=host or health.get("_token")!=token or not is_instance_valid(account) or account.get("_host")!=host or account.get("_token")!=token: return _fail("same_actor_health_and_account_required")
 	if not is_instance_valid(policy) or not policy.has_method("source_admit") or not policy.has_method("support_height") or not factory.is_valid(): return _fail("world_and_activity_factory_required")
 	_host=host; _token=token.duplicate(); _health=health; _account=account; _policy=policy; _factory=factory
+	ResDiag.register_life(str(token.source_id), self)  # DSH_MEDPRIORITY: the hit-time check
 	_walk=Walk.new()
 	var configured: Dictionary=_walk.configure(host,token,self)
 	if not configured.get("ok",false): _host=null; return configured
@@ -321,9 +324,17 @@ func dsh_energy() -> float:  # DSH_ENERGY
 ## DSH_ENERGY: the metres this resident really covered since the previous poll, read from
 ## the body the shipped host moves. It never moves anything itself.
 func _dsh_energy_drain() -> void:
-	if not dsh_energy_on(): return
 	var body: Variant = _token.get("body")
 	if not is_instance_valid(body) or not body is Node3D: return
+	if not dsh_energy_on():
+		# DSH_MEDPRIORITY: the medical line still reports how far the resident actually
+		# walked, even when the energy mechanic is off.
+		var where: Vector3 = (body as Node3D).global_position
+		if _dsh_moved_last.is_finite():
+			var travelled: float = Vector2(where.x - _dsh_moved_last.x, where.z - _dsh_moved_last.z).length()
+			if travelled > 0.0 and travelled <= 3.0: _dsh_moved_m += travelled
+		_dsh_moved_last = where
+		return
 	var here: Vector3 = (body as Node3D).global_position
 	if not _dsh_energy_last.is_finite():
 		_dsh_energy_last = here
@@ -348,6 +359,7 @@ func _dsh_energy_drain() -> void:
 	var before: float = _energy
 	_energy = clampf(_energy - step_m * _dsh_energy_drain_per_m(), 0.0, 100.0)
 	_dsh_energy_walked_m += step_m
+	_dsh_moved_m += step_m  # DSH_MEDPRIORITY: the same travelled metres, for the medical line
 	_dsh_energy_last_delta = step_m
 	if int(before) != int(_energy):
 		_dsh_energy_emit("drained", "%.1f" % step_m)
@@ -493,7 +505,8 @@ func _dsh_med_emit(result: String, row: Dictionary, reason: String = "") -> void
 		+ " hp_pct=%.1f" % _dsh_hp_pct(row) + " threshold=%.3f" % _dsh_threshold() \
 		+ " threshold_pct=%.1f" % (_dsh_threshold() * 100.0) + " strict_lt=true" \
 		+ " goal=" + goal_kind + " marker=" + marker_text \
-		+ " dist_m=%.1f" % distance + " hp_applied_to_row=" + ("true" if _dsh_hp_override() >= 0.0 else "false") \
+		+ " dist_m=%.1f" % distance + " moved_m=%.1f" % _dsh_moved_m \
+		+ " hp_applied_to_row=" + ("true" if _dsh_hp_override() >= 0.0 else "false") \
 		+ " result=" + result
 	if not reason.is_empty(): line += " reason=" + reason
 	print(line)
@@ -753,6 +766,26 @@ func _needs_hospital(row: Dictionary) -> bool:
 func _new_goal(kind: String) -> Dictionary:
 	_sequence+=1
 	return {"goal_id":str(_token.source_id)+":daily:"+str(_sequence),"kind":kind}
+
+## DSH_MEDPRIORITY: the owner's "damage must land immediately" seam. The hit owner calls
+## this from the very call that applied the damage, so the medical priority is decided in
+## the same frame instead of waiting for this resident's turn in the daily poll slice
+## (measured period ~1.6 s). It decides exactly what `_choose` decides and never reads a
+## clock, invents damage or moves anything.
+func dsh_notice_damage() -> Dictionary:
+	if _disposed or _busy or not Thread.is_main_thread(): return {"ok":false,"reason":"life_busy_or_disposed"}
+	if not _dsh_med_on() or not _host.target_current(_token): return {"ok":false,"reason":"not_current"}
+	var row: Dictionary = _life()
+	if row.is_empty() or row.get("dead", false) or float(row.get("hp", 0)) <= 0: return {"ok":false,"reason":"life_not_living"}
+	if str(_goal.get("kind", "")) == "hospital" or _visit != null: return {"ok":true,"reason":"already_serving_health"}
+	if not _needs_hospital(row): return {"ok":true,"reason":"threshold_not_crossed"}
+	_dsh_marker_ready()
+	_dsh_med_chain("damaged", row, "hp_strictly_below_threshold_from_hit")
+	_dsh_queue_push("hospital")
+	var task: String = _dsh_queue_pop_front()
+	_mark_served(task)
+	_start(_new_goal(task), task == "hospital")
+	return {"ok":true,"reason":"medical_priority_from_hit","goal":task}
 
 func _choose(row: Dictionary) -> void:
 	_dsh_decisions+=1  # DSH_LIFETRACE

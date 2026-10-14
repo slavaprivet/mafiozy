@@ -291,8 +291,29 @@ func configure(host: RefCounted, token: Dictionary, packet: PackedByteArray, tru
 	_bind_report()  # DSH_BINDFAST
 	return {"ok":true,"scope":"new_local_session_hp","source_callbacks_complete":false,"pellet_receipts_bound":_effects.has_signal("projectile_resolved"),"gaps":["social_execution","blood_pending_rendered_acceptance","medical_crawl_ambulance","murder_authority","resident_respawn","additional_penetrating_targets","nagan_fire_cadence_owner"]}
 
+const ResDiag = preload("res://scripts/npc_visual/npc_resident_diag.gd")  # DSH_RESDIAG
+
 func _now() -> float:
 	return float(Time.get_ticks_usec()-_start_us)/1000.0+1.0
+
+## DSH_RESDIAG: one read-only repaint of this resident's head-up caption. It writes a
+## Label3D text and one log line and nothing else - the label refresh is not a simulation
+## decision, and without --city-resident-name there is no caption to paint.
+func _dsh_refresh_caption(body: Node3D) -> void:
+	if not ResDiag.hp_label_on() and not ResDiag.diag_on(): return
+	var name: String = str(body.get_meta("dsh_test_resident_name", ""))
+	if name.is_empty(): return
+	ResDiag.refresh_after_hit(body, name, _row)
+
+## DSH_MEDPRIORITY: hand the hit to this resident's own life scheduler, which decides the
+## medical priority in this same call. Read-only seam: a miss (no life registered yet, or a
+## life that is busy/not current) leaves today's behaviour untouched.
+func _dsh_notice_damage() -> void:
+	var life: RefCounted = ResDiag.life_of(str(_token.source_id))
+	if life == null or not life.has_method("dsh_notice_damage"): return
+	var noted: Variant = life.call("dsh_notice_damage")
+	if noted is Dictionary and noted.get("reason", "") == "medical_priority_from_hit":
+		print("DSH_DAMAGE id=", str(_token.source_id), " medical_notice=", str(noted))
 
 # DSH_HEALTH: the per-tick step() path only needs the boolean answer, and building
 # the four-entry Dictionary once per resident per physics tick was pure overhead.
@@ -440,8 +461,26 @@ func _apply_hit(shot_id: String,shot: Dictionary,damage: int,direction: Vector3,
 		_admitting.hit["head_policy"]="user_requested_headshot_final_v1"
 		last_head_zone=zone.duplicate(true)
 	var contact_actor_transform: Transform3D=body.global_transform
+	var hp_before: float=float(_row.get("hp",0))
 	last_result=_adapter.hit(id,_admitting.hit)
 	_admitting={}
+	# DSH_DAMAGE: one line per actual hit, printed in the same call that applied it, with
+	# the same `_row.hp` the medical decision reads. `hp_before`/`hp_after` are clamped to
+	# the owner's 0..100 range, so a negative hit point value can never be reported.
+	if ResDiag.hp_label_on() or ResDiag.diag_on():
+		print("DSH_DAMAGE id=", str(_token.source_id), " hp_before=", "%.0f" % clampf(hp_before,0.0,100.0),
+			" damage=", damage, " hp_after=", "%.0f" % clampf(float(_row.get("hp",0)),0.0,100.0),
+			" weapon=", str(shot.get("weapon_id","-")), " zone=", str(zone.get("zone","body")),
+			" applied=", str(last_result.ok and last_result.get("applied",false)),
+			" frame=", Engine.get_physics_frames())
+	# DSH_RESDIAG: the caption over the head is repainted from this very hit, with the same
+	# `_row.hp` the medical decision reads, so the owner sees the drop immediately instead of
+	# waiting for this resident's turn in the daily poll slice (measured period ~1.6 s).
+	_dsh_refresh_caption(body)
+	# DSH_MEDPRIORITY: the medical threshold is re-checked in this same call. Without it the
+	# resident's decision waited for its next slice turn, which is why an owner's shot at
+	# 25 % hp could sit unseen for a whole poll period.
+	_dsh_notice_damage()
 	if not last_result.ok or not last_result.get("applied",false): return
 	last_contact={"event_id":id,"incoming_direction":(direction if physical_direction==Vector3.ZERO else physical_direction).normalized(),"actor_transform_at_impact":contact_actor_transform,"point":point,"normal":normal,"shot_id":shot_id,"weapon_id":shot.weapon_id,"source_id":_token.source_id,"life_generation":_token.life_generation}
 	if not zone.is_empty(): last_contact["projectile_index"]=zone.get("projectile_index",0)

@@ -109,6 +109,8 @@ func _done(event_id: String, applied: bool, reason: String, hit: Dictionary = {}
 	_busy=false
 	return record
 
+## DSH_RESDIAG: the caption repaint is done by the hit owner, which owns the body node
+## (npc_local_preview_hit_owner.gd `_dsh_refresh_caption`). This cycle only owns the row.
 func hit(event_id: String, proposed: Dictionary) -> Dictionary:
 	if _busy: _epoch+=1; return {"ok":false,"reason":"reentrant"}
 	if _retired or event_id.is_empty() or _seen.has(event_id) or _seen.size()>=4096: return {"ok":false,"reason":"retired_or_duplicate"}
