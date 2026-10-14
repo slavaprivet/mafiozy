@@ -122,6 +122,22 @@ static func _dsh_join(counters: Dictionary) -> String:
 	parts.sort()
 	return ",".join(parts) if not parts.is_empty() else "-"
 
+# DSH_REJOINOFF: a rejoin goal is a route point, and the project already has exactly one
+# tolerance for a route point the native map does not carry: `--city-errand-off-map-m`
+# (default .12), the bound `authorize_errand_path` uses on the very next step. The goal
+# window reads the same argument with the same clamp, so a point the following admission
+# would accept can no longer be dropped here as a goal one millimetre past the hard bound.
+# With the argument absent the value is .12 and the shipped comparison is unchanged; an
+# accepted goal is still projected to NavigationServer3D.map_get_closest_point, so the
+# movement that follows stays on the native map.
+const REJOIN_OFF_MAP_M := 0.12
+static var _dsh_rejoin_off := -1.0
+
+static func _dsh_rejoin_off_bound() -> float:
+	if _dsh_rejoin_off < 0.0:
+		_dsh_rejoin_off = clampf(_dsh_arg_float("--city-errand-off-map-m=", REJOIN_OFF_MAP_M), REJOIN_OFF_MAP_M, 8.0)
+	return _dsh_rejoin_off
+
 ## One line per ended search, and a summary every 32 of them. Read-only observation:
 ## the search has already written its own status/reason by the time this runs.
 static func _dsh_emit(snapshot: Dictionary, budget_now: Dictionary, frame: int) -> void:
@@ -155,6 +171,31 @@ static func _dsh_emit_neigh(snapshot: Dictionary, rejected: Dictionary, start_ce
 		" policy_state=", policy_state,
 		" frame=", frame)
 
+## DSH_DETOURREJOIN: one line per goal window that lost at least one candidate, or lost
+## all of them. "no_bounded_native_rejoin_goal" is one boolean; this names the filter,
+## the metres and the exact route indices behind it. Read-only.
+func _dsh_emit_rejoin(rejected: Dictionary, detail: Array[String], window_end: int,
+		off_max: float, dist_min: float, range_m: float, route_size: int, leg_index: int,
+		relaxed: int) -> void:
+	var accepted: Array[String] = []
+	for goal: Dictionary in _goals: accepted.append(str(goal.index))
+	var accepted_text: String = ",".join(accepted) if not accepted.is_empty() else "-"
+	var detail_text: String = ",".join(detail) if not detail.is_empty() else "-"
+	var dist_text: String = ("%.3f" % dist_min) if dist_min>=0.0 else "-1.000"
+	var off_text: String = ("%.3f" % off_max) if off_max>=0.0 else "-1.000"
+	print("DSH_DETOUR_REJOIN leg_index=", leg_index, " route_size=", route_size,
+		" window_end=", window_end, " window_points=", detail.size(),
+		" goals_total=", _goals.size(), " goals_rejected_by=", _dsh_join(rejected),
+		" accepted_index=", accepted_text,
+		" rejoin_distance_m=", dist_text,
+		" goal_off_map_max_m=", off_text,
+		" rejoin_range_m=", range_m,
+		" rejoin_off_map_bound_m=", "%.4f" % _dsh_rejoin_off_bound(),
+		" goals_by_raised_bound=", relaxed,
+		" window=", detail_text,
+		" verdict=", ("no_bounded_native_rejoin_goal" if _goals.is_empty() else "goal_found"),
+		" frame=", Engine.get_physics_frames())
+
 func begin(host: RefCounted, policy: RefCounted, activity_owner: RefCounted, token: Dictionary, map: RID, iteration: int, route: PackedVector3Array, first_index: int) -> Dictionary:
 	if _status!="UNBOUND" or not is_instance_valid(host) or not is_instance_valid(policy) or not is_instance_valid(activity_owner) or first_index<0 or first_index>=route.size(): return {"ok":false,"reason":"detour_arguments"}
 	for method: String in ["native_clear_segment","_ordinary_navigation"]:
@@ -169,12 +210,40 @@ func begin(host: RefCounted, policy: RefCounted, activity_owner: RefCounted, tok
 	# Rejoin only a short prefix of the still-desired path. A blocked next goal
 	# may be inside the car; later real goals let us get around its far end.
 	var rejoin_range:=_range()
-	for index in range(first_index,mini(route.size(),first_index+4)):
+	# DSH_DETOURREJOIN: classify every candidate of the goal window before the range
+	# and projection filters drop it, so an empty goal set names the exact conjunct
+	# and the measured metres instead of only the verdict. Off unless
+	# --city-detour-budget=1; with the flag absent the same checks run in the same
+	# order and the same points are appended.
+	var dsh_probe: bool = _dsh_flag == 1
+	var dsh_rejected := {}
+	var dsh_detail: Array[String] = []
+	var dsh_window: int = mini(route.size(),first_index+4)
+	var dsh_off_max := -1.0
+	var dsh_dist_min := -1.0
+	var dsh_relaxed := 0
+	for index in range(first_index,dsh_window):
 		var point: Vector3=route[index]
-		if not point.is_finite() or Vector2(point.x-_origin.x,point.z-_origin.z).length()>rejoin_range+.01: continue
+		if not point.is_finite():
+			if dsh_probe: _dsh_tally(dsh_rejected,"nonfinite");dsh_detail.append("%d:nonfinite" % index)
+			continue
+		var flat:=Vector2(point.x-_origin.x,point.z-_origin.z).length()
+		if dsh_probe and (dsh_dist_min<0.0 or flat<dsh_dist_min): dsh_dist_min=flat
+		if flat>rejoin_range+.01:
+			if dsh_probe: _dsh_tally(dsh_rejected,"outside_range");dsh_detail.append("%d:range(%.2f)" % [index,flat])
+			continue
 		var projected:=NavigationServer3D.map_get_closest_point(_map,point)
-		if projected.distance_to(point)>.12: continue
+		var off:=projected.distance_to(point)
+		if dsh_probe and off>dsh_off_max: dsh_off_max=off
+		if off>_dsh_rejoin_off_bound():
+			if dsh_probe: _dsh_tally(dsh_rejected,"off_native_map");dsh_detail.append("%d:off(%.3f)" % [index,off])
+			continue
 		_goals.append({"point":projected,"index":index})
+		if dsh_probe:
+			dsh_detail.append("%d:ok(%.3f)" % [index,off])
+			if off>REJOIN_OFF_MAP_M: dsh_relaxed+=1
+	if dsh_probe and (_goals.is_empty() or not dsh_rejected.is_empty() or dsh_relaxed>0):
+		_dsh_emit_rejoin(dsh_rejected,dsh_detail,dsh_window,dsh_off_max,dsh_dist_min,rejoin_range,route.size(),first_index,dsh_relaxed)
 	if _goals.is_empty(): return _fail("no_bounded_native_rejoin_goal")
 	_nodes.append({"point":_origin,"key":Vector2i.ZERO,"g":0.0,"parent":-1,"closed":false})
 	_by_key[Vector2i.ZERO]=0;_open.append(0);_status="SEARCHING"
