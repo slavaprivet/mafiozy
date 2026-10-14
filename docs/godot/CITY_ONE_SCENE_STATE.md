@@ -45,6 +45,17 @@
 
 ## Открытые задачи (по приоритету)
 
+0. **Живой прогон 14.10 (городок + extras + все флаги ниже), точные причины незакрытия дел:**
+   - магазин: `retry … kind=shop reason=current_handoff_floor` — пол в точке передачи не
+     вычисляется (`scripts/shop/npc_daily_shop.gd:164`, `if not is_finite(floor_y)`);
+   - поездки: `retry … kind=drive reason=bounded_native_detour_exhausted`
+     (`scripts/city/runtime/npc_native_obstacle_detour.gd:84`);
+   - `walking=0, activity=234, idle=47, path_pending=4, path_blocked=29`, `spent=0`,
+     `completed` весь нулевой; ошибок 0. То есть жители доходят и встают в активности.
+   - Флаги прогона: `--city-town=1 --city-town-extras=1 --city-door-free-entry=1
+     --city-site-door-physics=1 --city-treatment-frame-adjacent=0 --city-treatment-max-gap-ms=5000
+     --city-resident-detail=1`.
+
 1. **Закрытие визита**: почему активность не освобождается (`npc_daily_life.gd` ACTIVITY,
    `npc_city_daily.gd` `_visit.step()` / `_finish_activity`) и `bank/hospital/shop` не растут.
    Ранее зафиксировано («вечный APPROACH»): `VISIT_HANG_FINDINGS.md` в рабочей папке сессии.
