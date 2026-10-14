@@ -493,6 +493,7 @@ func _handoff_probe_scan(point: Vector3, id: String, generation: int, tag: Strin
 # are untouched, and with the flag off nothing is parsed or excluded.
 var _dsh_hs := -1
 var _dsh_hs_rids: Array[RID] = []
+static var _dsh_hs_reported := false  # DSH_HANDOFFPROBE
 
 func _handoff_support_on() -> bool:  # DSH_HANDOFFSUPPORT
 	if _dsh_hs < 0:
@@ -506,14 +507,20 @@ func _handoff_support_rids(scene: Node3D) -> Array[RID]:  # DSH_HANDOFFSUPPORT
 	if not _handoff_support_on() or not is_instance_valid(scene): return []
 	if not _dsh_hs_rids.is_empty(): return _dsh_hs_rids
 	var interior: Variant = scene.get("_printshop")
-	if not is_instance_valid(interior): return []
-	var stack: Array[Node] = []
-	stack.append(interior)
-	while not stack.is_empty():
-		var node: Node = stack.pop_back()
-		for child: Node in node.get_children(): stack.append(child)
-		if node is StaticBody3D and node.get_meta("source_id", "") == "REBUILD-VISUAL-print_shop-001":
-			_dsh_hs_rids.append((node as StaticBody3D).get_rid())
+	if is_instance_valid(interior):
+		var stack: Array[Node] = []
+		stack.append(interior)
+		# The interior can hand its bodies to the building visual instead of itself.
+		var visual: Node = interior.get_parent()
+		if visual != null and visual != scene: stack.append(visual)
+		while not stack.is_empty():
+			var node: Node = stack.pop_back()
+			if node is StaticBody3D and str(node.get_meta("source_id", "")) == "REBUILD-VISUAL-print_shop-001":
+				_dsh_hs_rids.append((node as StaticBody3D).get_rid())
+			for child: Node in node.get_children(): stack.append(child)
+	if _handoff_probe_on() == 1 and not _dsh_hs_reported:  # DSH_HANDOFFPROBE
+		_dsh_hs_reported = true
+		print("DSH_HANDOFFSUPPORT interior_valid=", is_instance_valid(interior), " plate_rids=", _dsh_hs_rids.size())
 	return _dsh_hs_rids
 
 func support_height(point: Vector3, id: String, generation: int) -> float:
@@ -890,7 +897,7 @@ func _native_floor_square(token: Dictionary, point: Vector3, static_excludes: Ar
 			_ray.exclude=floor_excludes
 		_ray.from=Vector3(at.x,y+.3,at.z);_ray.to=Vector3(at.x,y-.3,at.z)
 		var hit: Dictionary=space.intersect_ray(_ray);_counts.floor_rays+=1
-		if _handoff_probe_on() == 1 and _dsh_cell_n < 600:  # DSH_HANDOFFPROBE
+		if _handoff_probe_on() == 1 and ((_dsh_cell_n < 600) or (at.x > -1.0 and at.x < 13.0 and at.z > 1.0 and at.z < 11.0)):  # DSH_HANDOFFPROBE
 			_dsh_cell_n += 1
 			var dsh_registered: bool = not hit.is_empty() and _floors.has(hit.rid)
 			var dsh_collider: String = str(hit.collider.name) if not hit.is_empty() else "-"
