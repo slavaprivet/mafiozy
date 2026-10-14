@@ -69,6 +69,31 @@ var _floors := {}
 const DUPLICATE_SUPPORT_SIZE := Vector3(16.4, .16, 127.1)
 const DUPLICATE_SUPPORT_FRAME := Transform3D(Basis.IDENTITY, Vector3(51.25, -.08, 18.45))
 var _duplicate_support := {}
+# DSH_PLAZASUPPORT: --city-plaza-support-plate=1 (default 0 = every accepted path is
+# untouched). The SECOND audited coplanar support plate of this scene: the Palazzo
+# showcase's own plaza slab (`PalazzoShowcaseSite/OriginalPlaza`), whose top face sits
+# PLAZA_PLATE_TOP_M above the source palette height. Measured with --city-handoff-probe=1
+# at the test resident's own cell, where the palette height is 0.0000:
+#   DSH_HANDOFF_CELL point=(42.200,-2.500) index=1884 terrain_y=0.0000 land=1 ordinary=1 palette_h=0.0000
+#   DSH_HANDOFF_RAY  point=(42.200,-2.500) y=0.0000 empty=false registered=false
+#                    hit_y=0.0900 normal_y=1.000 collider=OriginalPlaza parent=PalazzoShowcaseSite
+# That unregistered slab shadowed the registered source floor, so `_native_floor_square`
+# answered `current_source_floor_missing` for the resident's own cell AND all 9..11
+# neighbour cells, `native_clear_segment` refused every one of them, and the resident
+# never took a single step (measured: moved_m=0.0 for 217 s, 52/52 detours
+# `bounded_native_detour_exhausted`, `dist_m` to the hospital room marker frozen at 29.9 m).
+# With the flag ON exactly this slab is skipped by the support ray - one retry, the same
+# shape of fix DSH_HANDOFFSUPPORT already applies to the printshop's floor slab - and the
+# shipped post-condition is NOT relaxed: the retried hit must still be a registered
+# `_floors` body at the palette height (`support_height` line 592, `_native_floor_square`
+# line 968). With the flag absent nothing is parsed, printed or excluded.
+const PLAZA_PLATE_TOP_M := .09
+const PLAZA_PLATE_TOP_TOL_M := .02
+const PLAZA_PLATE_COPLANAR_MAX_M := .30
+const PLAZA_PLATE_SOURCE := &"PalazzoShowcaseSite"
+const PLAZA_PLATE_BODY := &"OriginalPlaza"
+var _dsh_ps := -1
+var _dsh_ps_seen := false
 var _ray := PhysicsRayQueryParameters3D.new()
 var _disposed := false
 var _busy := false
@@ -308,6 +333,51 @@ func _current_duplicate_support(scene: Node3D) -> RID:
 	if not _duplicate_support_geometry(scene,root,body,shape): return RID()
 	if shape.shape!=_duplicate_support.resource.get_ref() or body.get_rid()!=_duplicate_support.rid: return RID()
 	return _duplicate_support.rid
+
+# --------------------------------------------------------------------------- #
+# DSH_PLAZASUPPORT: the audited list entry for the Palazzo showcase's plaza slab.
+# Read-only: it decides whether ONE measured body may be skipped by the support ray,
+# it never registers a floor, grants no land and moves nothing.
+# --------------------------------------------------------------------------- #
+func _plaza_support_on() -> bool:  # DSH_PLAZASUPPORT
+	if _dsh_ps < 0:
+		_dsh_ps = 0
+		for argument: String in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-plaza-support-plate="):
+				_dsh_ps = maxi(0, mini(1, int(argument.trim_prefix("--city-plaza-support-plate="))))
+	return _dsh_ps == 1
+
+## DSH_PLAZASUPPORT: the strict, current identity of the one shadowing slab. Every
+## conjunct is a measured property of the body the ray just hit, so no other body can
+## travel through this door: the exact node name, the exact audited parent, the collision
+## layer the ray already requires, a live non-disabled BoxShape3D at identity transform,
+## and coplanarity - the top face must sit ABOVE the source palette height of this very
+## cell by more than zero and by no more than the .30 m the source segment proof already
+## allows, and must be the measured PLAZA_PLATE_TOP_M within PLAZA_PLATE_TOP_TOL_M.
+func _plaza_support_plate(hit: Dictionary, palette_y: float) -> bool:
+	if _dsh_ps != 1 or hit.is_empty(): return false
+	if _floors.has(hit.rid): return false
+	var body: Variant = hit.get("collider")
+	if not is_instance_valid(body) or not body is StaticBody3D: return false
+	if body.is_queued_for_deletion() or body.name != PLAZA_PLATE_BODY or body.collision_layer != 1: return false
+	var source: Node = body.get_parent()
+	if source == null or source.name != PLAZA_PLATE_SOURCE: return false
+	var top: float = float(hit.position.y)
+	if not (top > palette_y and top - palette_y <= PLAZA_PLATE_COPLANAR_MAX_M): return false
+	if absf(top - (palette_y + PLAZA_PLATE_TOP_M)) > PLAZA_PLATE_TOP_TOL_M: return false
+	var shape: CollisionShape3D = null
+	for child: Node in body.get_children():
+		if child is CollisionShape3D and not (child as CollisionShape3D).disabled and (child as CollisionShape3D).shape is BoxShape3D:
+			shape = child
+			break
+	if shape == null or not shape.transform.is_equal_approx(Transform3D.IDENTITY): return false
+	if not _dsh_ps_seen:
+		_dsh_ps_seen = true
+		print("DSH_PLAZASUPPORT plate=", str(body.name), " parent=", str(source.name), " rid=", hit.rid,
+			" top=%.4f" % top, " palette=%.4f" % palette_y, " coplanar_m=%.4f" % (top - palette_y),
+			" box=", str((shape.shape as BoxShape3D).size), " layer=", body.collision_layer,
+			" excluded=1 retry_postcondition=registered_source_floor_at_palette_height")
+	return true
 
 func _valid_states(states: Variant, owners: Dictionary) -> bool:
 	if not states is Dictionary or states.size() > owners.size(): return false
@@ -587,6 +657,15 @@ func support_height(point: Vector3, id: String, generation: int) -> float:
 		for dsh_hs_rid: RID in _ray.exclude: dsh_retry.append(dsh_hs_rid)
 		if not hit.rid in dsh_retry: dsh_retry.append(hit.rid)
 		_ray.exclude = dsh_retry
+		hit = scene.get_world_3d().direct_space_state.intersect_ray(_ray)
+	# DSH_PLAZASUPPORT: the same one bounded retry through the Palazzo showcase's plaza
+	# slab. Only the audited coplanar plate may be skipped, and the shipped checks below
+	# still have to see a registered `_floors` body at the palette height.
+	if _plaza_support_on() and _plaza_support_plate(hit, reference.y):
+		var dsh_plaza_retry: Array[RID] = []
+		for dsh_ps_rid: RID in _ray.exclude: dsh_plaza_retry.append(dsh_ps_rid)
+		if not hit.rid in dsh_plaza_retry: dsh_plaza_retry.append(hit.rid)
+		_ray.exclude = dsh_plaza_retry
 		hit = scene.get_world_3d().direct_space_state.intersect_ray(_ray)
 	var result := NAN
 	if not hit.is_empty() and _floors.has(hit.rid) and hit.normal.y >= .70 and absf(hit.position.y - reference.y) < .0001:
@@ -954,6 +1033,18 @@ func _native_floor_square(token: Dictionary, point: Vector3, static_excludes: Ar
 			for dsh_hs_rid: RID in _ray.exclude: dsh_retry.append(dsh_hs_rid)
 			if not hit.rid in dsh_retry: dsh_retry.append(hit.rid)
 			_ray.exclude = dsh_retry
+			hit = space.intersect_ray(_ray); _counts.floor_rays += 1
+		# DSH_PLAZASUPPORT: the measured shadow at the resident's own cell is the Palazzo
+		# showcase's plaza slab (`PalazzoShowcaseSite/OriginalPlaza`, top y=0.0900, palette
+		# height 0.0000), which is not a registered `_floors` body and is not the Palazzo
+		# dry plate either. Exactly one retry, only for that audited coplanar plate; the
+		# unchanged check below must still find the registered source floor at the palette
+		# height, so an exclusion that removed the real floor cannot pass.
+		if _plaza_support_on() and _plaza_support_plate(hit, y):
+			var dsh_plaza_ex: Array[RID] = []
+			for dsh_ps_rid: RID in _ray.exclude: dsh_plaza_ex.append(dsh_ps_rid)
+			if not hit.rid in dsh_plaza_ex: dsh_plaza_ex.append(hit.rid)
+			_ray.exclude = dsh_plaza_ex
 			hit = space.intersect_ray(_ray); _counts.floor_rays += 1
 		if _handoff_probe_on() == 1 and ((_dsh_cell_n < 600) or (at.x > -1.0 and at.x < 13.0 and at.z > 1.0 and at.z < 11.0)):  # DSH_HANDOFFPROBE
 			_dsh_cell_n += 1
