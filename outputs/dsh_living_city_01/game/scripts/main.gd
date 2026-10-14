@@ -207,6 +207,7 @@ func _ready() -> void:
 			city_town_built += 1
 		if city_town_active():
 			print("CITY_TOWN built=", city_town_built, " skipped=", city_town_skipped, " keep=", city_town_keep_raw())
+			if OS.get_cmdline_user_args().has("--city-town-extras=1"): _install_town_extras()
 	else:
 		# Removed buildings are never instantiated, including their interior/colliders.
 		printshop_status = "removed_by_user"
@@ -1000,6 +1001,42 @@ func city_town_keep_set() -> Dictionary:
 func city_town_skip(record: Dictionary) -> bool:
 	if not city_town_active(): return false
 	return not city_town_keep_set().has(str(record.get("assetId", "")))
+
+## DSH_CITYTOWN: the three destructible shells ported from the buildings4 packages,
+## placed next to the Palazzo frame (origins from
+## scripts/destruction/modular_buildings/PLACEMENT_HINTS.json). Off by default and
+## only reachable in town mode with --city-town-extras=1; the accepted city layout
+## and every existing benchmark keep their exact previous path.
+const TownRestaurantSite = preload("res://scripts/destruction/restaurant/restaurant_site.gd")
+const TownHospitalSite = preload("res://scripts/destruction/hospital_site/hospital_site.gd")
+const TownBankSite = preload("res://scripts/destruction/bank_site/bank_site.gd")
+var town_extras: Array = []
+
+func _install_town_extras() -> bool:
+	if not city_town_active() or not town_extras.is_empty(): return false
+	var dsh_plan: Array = [
+		["restaurant_pizza", TownRestaurantSite, Vector3(0.0, 0.0, 0.0), 0.0],
+		["hospital_structural01", TownHospitalSite, Vector3(40.0, 0.0, 0.0), 0.0],
+		["bank_small", TownBankSite, Vector3(80.0, 0.0, 0.0), 0.0],
+	]
+	for dsh_entry: Array in dsh_plan:
+		# The ported instantiator is a RefCounted that adds its own site AND its own
+		# soil body to the given parent, so it must NOT be parented here. Everything
+		# it adds is marked so the city navigation capture skips the whole subtree.
+		var dsh_before: int = get_child_count()
+		var dsh_site: RefCounted = dsh_entry[1].new()
+		var dsh_result: Dictionary = dsh_site.call("prepare", self, dsh_entry[2], float(dsh_entry[3]))
+		for dsh_index in range(dsh_before, get_child_count()):
+			var dsh_added: Node = get_child(dsh_index)
+			if dsh_added != null: dsh_added.set_meta("dsh_town_extra", true)
+		town_extras.append(dsh_site)
+		print("CITY_TOWN_EXTRA ", str(dsh_entry[0]), " ", JSON.stringify({
+			"ok": bool(dsh_result.get("ok", false)),
+			"status": str(dsh_result.get("status", "")),
+			"reason": str(dsh_result.get("reason", "")),
+			"prepare_ms": dsh_result.get("prepare_ms", 0.0),
+			"origin": [dsh_entry[2].x, dsh_entry[2].y, dsh_entry[2].z]}))
+	return true
 
 func _add_asset(record: Dictionary) -> void:
 	# Every scene passed preflight before any world/physics node was created.

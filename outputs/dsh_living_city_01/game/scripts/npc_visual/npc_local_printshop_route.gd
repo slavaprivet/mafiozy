@@ -6,6 +6,7 @@ const SourceFloor = preload("res://scripts/npc_visual/npc_local_printshop_source
 const ENTRY_SHA := "3bda89bb0017b2d1ee5f5fca9c066d28a8e0f11a09670be43c771a027ce3518c"
 const GEOMETRY_SHA := "e1bcf7b5ba88008b17362aaedb1d0c094dd7cefd756ec0e7afec0923a2aad618"
 const BUILDING := "REBUILD-VISUAL-print_shop-001"
+const DoorOpen = preload("res://scripts/city/runtime/npc_city_door_open.gd")  # DSH_DOORFREE
 const HALF := .738
 const OFFSETS := [Vector2.ZERO,Vector2(-HALF,-HALF),Vector2(-HALF,HALF),Vector2(HALF,-HALF),Vector2(HALF,HALF)]
 var host: RefCounted
@@ -268,7 +269,10 @@ func _validated_terrain_world(x: float,z: float) -> float:
 func _floor_preview(x: float,z: float) -> float:
 	var key:=str(x)+":"+str(z)
 	if _floors.has(key):return _floors[key]
-	if x<3.25 or x>9.65 or z<4.35 or z>6.9:return NAN
+	# DSH_DOORFREE: the free-entry runtime widening also widens the exported floor
+	# domain, so the widened corridor is not rejected by the source rectangle.
+	var widen: float = maxf(0.0, DoorOpen.half_width_m()-DoorOpen.SOURCE_HALF_WIDTH_M) if DoorOpen.free_entry() else 0.0
+	if x<3.25-widen or x>9.65+widen or z<4.35-widen or z>6.9+widen:return NAN
 	var point:=Vector3(x,0,z);var index: int=policy._index(point)
 	if index<0 or policy._land[index]==0:return NAN
 	_ray.from=Vector3(x,.75,z);_ray.to=Vector3(x,-.25,z)
@@ -286,15 +290,22 @@ func _source_segment(from: Vector3,to: Vector3,full_geometry:bool=true) -> bool:
 	if from.distance_to(to)>5.1:return false
 	var fraction: float=interior.door_fraction("public")
 	if fraction!=0.0 and fraction!=1.0:diagnostics.last_reason="door_moving";return false
+	# DSH_DOORFREE: with free entry and the leaf fully open the authored open-leaf
+	# polygons stop being a barrier and the lateral corridor allowance grows by the
+	# runtime widening. Walls (_static_solids) and the closed-leaf polygons stay.
+	var free_open: bool = DoorOpen.free_entry() and fraction==1.0
+	var widen: float = DoorOpen.half_width_m()-DoorOpen.SOURCE_HALF_WIDTH_M if free_open else 0.0
+	var lateral: float = 0.20+widen
+	var open_solids: Array = [] if free_open else (_open_solids if fraction==1.0 else _closed_solids)
 	var sample_count:=maxi(1,ceili(Vector2(to.x-from.x,to.z-from.z).length()/(.14*4.1)))
 	for i in sample_count+1:
 		var centre:=from.lerp(to,float(i)/sample_count)
-		if centre.x<inside.x-.035 or centre.x>9.0 or absf(centre.z-outside.z)>.20:diagnostics.last_reason="outside_lease_corridor";return false
+		if centre.x<inside.x-.035-widen or centre.x>9.0+widen or absf(centre.z-outside.z)>lateral:diagnostics.last_reason="outside_lease_corridor";return false
 		for offset: Vector2 in OFFSETS:
 			if not is_finite(_floor_preview(centre.x+offset.x,centre.z+offset.y)):diagnostics.last_reason="corner_floor_or_land";return false
 		if not host._owned_clear(centre,token.source_id):diagnostics.last_reason="occupant";return false
 	if not _sweep.begin_segment([float(from.x)+395.65,float(from.z)+45.1],[float(to.x)+395.65,float(to.z)+45.1],.18*4.1):return false
-	for solid: Dictionary in (_open_solids if fraction==1.0 else _closed_solids)+_static_solids:
+	for solid: Dictionary in open_solids+_static_solids:
 		diagnostics.source_sweeps+=1
 		if _sweep.blocks_polygon(solid.polygonCR,_floor_world,float(solid.get("minYM",NAN)),float(solid.get("maxYM",NAN))):
 			diagnostics.last_reason="source_square_solid";diagnostics.last_polygon=solid;return false

@@ -10,6 +10,7 @@ const PACKET_SHA := "e9262db60404e538636274565b9a1d6d79de487804af9c7ee99646209b5
 const BLOCK_SHA := "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e"
 const SESSION := "godot-preview-new-session-20260927-01"
 const RADIUS := .738
+const DoorOpen = preload("res://scripts/city/runtime/npc_city_door_open.gd")  # DSH_DOORFREE
 const ORIGIN := Vector3(395.65, 0, 45.1)
 const OFFSETS := [Vector2.ZERO, Vector2(-RADIUS, -RADIUS), Vector2(-RADIUS, RADIUS), Vector2(RADIUS, -RADIUS), Vector2(RADIUS, RADIUS)]
 # DSH_NAVSTEP2: the exact same five double-precision offset pairs the proof already
@@ -38,6 +39,7 @@ var _detour_suffix_points := 0
 var _cookie := 0
 var _contact := Contact.new()
 var _box := BoxShape3D.new()
+var _free_capsule_calls := 0  # DSH_DOORFREE
 var _query := PhysicsShapeQueryParameters3D.new()
 var _last_reason := ""
 var _counts := {"source_calls":0,"native_calls":0,"floor_rays":0,"polygon_contacts":0}
@@ -671,6 +673,28 @@ func _native_segment(token: Dictionary, from: Vector3, to: Vector3, dynamic_only
 			var b:=_terrain_height(float(to.x)+395.65+offset.x,float(to.z)+45.099999999999994+offset.y)
 			if not is_finite(b): _last_reason="square_support_unknown";return false
 			square_from.y=maxf(square_from.y,a); square_to.y=maxf(square_to.y,b)
+	# DSH_DOORFREE: with --city-door-free-entry=1 the movement proof uses the real
+	# actor capsule instead of the .738 m clearance square. The .738 m footprint
+	# above (support/land) and the source square in _source_segment (walls and
+	# occupants) are deliberately unchanged.
+	if DoorOpen.free_entry():
+		if _free_capsule_calls == 0:
+			print("DSH_DOORFREE world_policy capsule_proof radius=", _capsule_radius(token), " height=", _capsule_height(token), " half_width=", DoorOpen.half_width_m())
+		_free_capsule_calls += 1
+		if dynamic_only:
+			var capsule_broad:=BoxShape3D.new()
+			capsule_broad.size=(to-from).abs()+Vector3(_capsule_radius(token)*2.0,_capsule_height(token),_capsule_radius(token)*2.0)+Vector3.ONE*.01
+			var broad_query:=PhysicsShapeQueryParameters3D.new()
+			broad_query.shape=capsule_broad;broad_query.collision_mask=1|256;broad_query.margin=.001
+			broad_query.transform=Transform3D(Basis.IDENTITY,(from+to)*.5+Vector3.UP*.975)
+			var broad_hits: Array=space.intersect_shape(broad_query,128)
+			if broad_hits.size()>=128: _last_reason="dynamic_broadphase_overflow";return false
+			for hit: Dictionary in broad_hits:
+				if hit.collider is StaticBody3D: exclusions.append(hit.rid)
+		var capsule_result: Dictionary=DoorOpen.capsule_query(space,square_from,square_to,_capsule_radius(token),_capsule_height(token),1|256,exclusions)
+		if not bool(capsule_result.get("ok",false)):
+			_last_reason="current_capsule:"+str(capsule_result.get("reason",""));return false
+		_last_reason="";return _token_current(token, null, memo)
 	_query.exclude=exclusions;_query.shape=_box;_query.motion=Vector3.ZERO
 	if dynamic_only:
 		# Enumerate local statics in the swept AABB, then sweep the real square
@@ -693,6 +717,22 @@ func _native_segment(token: Dictionary, from: Vector3, to: Vector3, dynamic_only
 	var cast: PackedFloat32Array=space.cast_motion(_query)
 	if cast.size()!=2 or cast[0]<.999999: _last_reason="current_square_sweep";return false
 	_last_reason="";return _token_current(token, null, memo)
+
+## DSH_DOORFREE: the actor's real capsule, read from the live body so the free
+## entry proof can never be wider than the shape the engine actually moves.
+func _capsule_radius(token: Dictionary) -> float:
+	var body: Variant=token.get("body")
+	if body is Node and (body as Node).get_child_count()>0:
+		var shape: Variant=(body as Node).get_child(0).shape
+		if shape is CapsuleShape3D: return maxf(0.01,(shape as CapsuleShape3D).radius)
+	return 0.3
+
+func _capsule_height(token: Dictionary) -> float:
+	var body: Variant=token.get("body")
+	if body is Node and (body as Node).get_child_count()>0:
+		var shape: Variant=(body as Node).get_child(0).shape
+		if shape is CapsuleShape3D: return maxf(0.10,(shape as CapsuleShape3D).height)
+	return 1.9
 
 func _native_floor_square(token: Dictionary, point: Vector3, static_excludes: Array[RID]=[]) -> bool:
 	var body_rid: RID=token.body.get_rid()

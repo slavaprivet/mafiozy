@@ -10,12 +10,16 @@ var _finish_factory: RefCounted
 
 const SOURCE_ID := "REBUILD-VISUAL-hospital-001"
 const ASSET_SHA := "542b901c3bd0abebf4ac8a3590cbf30047eb748abb7ab3216fa18ec6ecd780a8"
+const DoorOpen = preload("res://scripts/city/runtime/npc_city_door_open.gd")  # DSH_DOORFREE
 var ready_for_use: bool = false
 var errors: PackedStringArray = []
 var _data: Dictionary = {}
 var _mesh_cache: Dictionary = {}
 var _material_cache: Dictionary = {}
 var _doors: Dictionary = {}
+# DSH_DOORFREE: leaf collision bodies so a fully open leaf stops being a barrier.
+var _door_leaf_bodies: Dictionary = {}
+var _door_parked: Dictionary = {}
 var _restores: Array[Dictionary] = []
 var _visual: Node3D
 
@@ -88,7 +92,12 @@ func _attach_data(visual: Node3D, building: Dictionary, data: Dictionary) -> boo
 			for point: Vector3 in vertices:
 				bounds = bounds.expand(point)
 			_doors[key].bounds.append(bounds)
-			_add_convex(vertices, pivot, "door:" + key)
+			# DSH_DOORFREE: keep the leaf body so free entry can park it when open.
+			var leaf_body: StaticBody3D = _add_convex(vertices, pivot, "door:" + key)
+			if leaf_body != null:
+				if not _door_leaf_bodies.has(key):
+					_door_leaf_bodies[key] = []
+				_door_leaf_bodies[key].append(leaf_body)
 	for spec: Dictionary in data.meshes:
 		var mesh: ArrayMesh = _mesh(spec)
 		if mesh.get_surface_count() == 0:
@@ -167,9 +176,10 @@ func _request_leaf(key: String, open: bool, actor_position: Vector3, occupants: 
 	if key.begins_with("public_") and actor_position.distance_to(_v3(d.spec.anchor)) > float(d.spec.proximity):
 		return {"accepted": false, "reason": "out-of-range"}
 	var target: float = 1.0 if open else 0.0
-	if not _sweep_clear(d, float(d.fraction), target, occupants):
+	if not _sweep_clear(d, float(d.fraction), target, occupants, actor_position):
 		return {"accepted": false, "reason": "door-sweep-occupied"}
 	d.target = target
+	_apply_leaf_parking()  # DSH_DOORFREE
 	return {"accepted": true, "open": open}
 
 
@@ -186,6 +196,7 @@ func advance(delta: float, occupants: Array) -> void:
 		d.fraction = next
 		var angle: float = float(d.spec.angle) * next * next * (3.0 - 2.0 * next)
 		d.node.transform = d.base * Transform3D(Basis(Vector3.UP, angle), Vector3.ZERO)
+	_apply_leaf_parking()  # DSH_DOORFREE
 
 
 func _leaf_fraction(key: String) -> float:
@@ -207,6 +218,8 @@ func restore_original() -> void:
 	for child: Node in get_children():
 		child.free()
 	_doors.clear()
+	_door_leaf_bodies.clear()  # DSH_DOORFREE
+	_door_parked.clear()
 	_mesh_cache.clear()
 	_material_cache.clear()
 	_release_finish_factory()
@@ -218,20 +231,49 @@ func _release_finish_factory() -> void:
 	_finish_factory = null
 
 
-func _sweep_clear(door: Dictionary, from: float, to: float, occupants: Array) -> bool:
-	if occupants.size() > 512:
+## DSH_DOORFREE: a fully open leaf stops being a barrier. The authored package and
+## the leaf geometry are untouched; only the leaf's own CollisionShape3D disabled
+## flag flips, and it is restored as soon as the leaf stops being fully open.
+func _apply_leaf_parking() -> void:
+	if not DoorOpen.free_entry():
+		return
+	for key: String in _door_leaf_bodies:
+		var d: Dictionary = _doors.get(key, {})
+		if d.is_empty():
+			continue
+		var parked: bool = float(d.fraction) >= 1.0 - DoorOpen.OPEN_EPSILON
+		if bool(_door_parked.get(key, false)) == parked:
+			continue
+		var changed := 0
+		for body: Variant in _door_leaf_bodies[key]:
+			changed += DoorOpen.park_leaf(body, parked)
+		_door_parked[key] = parked
+		print("DSH_DOORFREE leaf hospital key=", key, " parked=", parked, " shapes=", changed, " half_width=", DoorOpen.half_width_m())
+
+
+func _sweep_clear(door: Dictionary, from: float, to: float, occupants: Array, ignore: Vector3 = Vector3.INF) -> bool:
+	var free_entry: bool = DoorOpen.free_entry()  # DSH_DOORFREE
+	if occupants.size() > 512 and not free_entry:
 		return false
 	var a: float = float(door.spec.angle) * smoothstep(0.0, 1.0, from)
 	var b: float = float(door.spec.angle) * smoothstep(0.0, 1.0, to)
 	var steps: int = maxi(1, ceili(absf(b - a) / 0.035))
+	var nearby := 0
 	for occupant: Variant in occupants:
 		if not occupant is Dictionary or not occupant.get("position") is Vector3:
+			if free_entry: continue
 			return false
 		var p: Vector3 = occupant.position
 		var radius: float = float(occupant.get("radius", 0.0))
 		var height: float = float(occupant.get("height", 0.0))
 		if not p.is_finite() or not is_finite(radius) or not is_finite(height) or radius <= 0.0 or height <= 0.0:
+			# main.gd publishes a zeroed player row while the capsule is invalid;
+			# free entry skips the malformed row instead of freezing the leaf.
+			if free_entry: continue
 			return false
+		if free_entry and ignore.is_finite() and p.distance_to(ignore) < 0.001: continue
+		nearby += 1
+		if nearby > 64 and free_entry: continue
 		for step: int in range(steps + 1):
 			var angle: float = lerpf(a, b, float(step) / float(steps))
 			var frame: Transform3D = door.base * Transform3D(Basis(Vector3.UP, angle), Vector3.ZERO)
@@ -464,13 +506,13 @@ func _add_floor_faces(mesh: ArrayMesh, spec: Dictionary) -> void:
 	_add_shape(shape, self, "source-floor-ceiling")
 
 
-func _add_convex(points: PackedVector3Array, parent: Node3D, kind: String) -> void:
+func _add_convex(points: PackedVector3Array, parent: Node3D, kind: String) -> StaticBody3D:
 	var shape := ConvexPolygonShape3D.new()
 	shape.points = points
-	_add_shape(shape, parent, kind)
+	return _add_shape(shape, parent, kind)
 
 
-func _add_shape(shape: Shape3D, parent: Node3D, kind: String) -> void:
+func _add_shape(shape: Shape3D, parent: Node3D, kind: String) -> StaticBody3D:
 	var body := StaticBody3D.new()
 	body.set_meta("source_id", SOURCE_ID)
 	body.set_meta("interior_kind", kind)
@@ -478,6 +520,7 @@ func _add_shape(shape: Shape3D, parent: Node3D, kind: String) -> void:
 	collision.shape = shape
 	body.add_child(collision)
 	parent.add_child(body)
+	return body
 
 
 func _linear_color(value: Array) -> Color:

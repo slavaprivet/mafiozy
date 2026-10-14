@@ -77,25 +77,46 @@ static func park_leaf(body: Node, parked: bool) -> int:
 
 ## Real capsule sweep, used where the source quarter-metre square is too coarse a
 ## proxy for "an actor is standing in the doorway".
-static func capsule_sweep(space: PhysicsDirectSpaceState3D, from: Vector3, to: Vector3, radius: float, height: float, mask: int, exclude: Array) -> bool:
+## Main thread only and not reentrant: the shape/query pair is cached between
+## calls, so the opt-in free-entry path adds no per-call allocation.
+static var _capsule: CapsuleShape3D
+static var _capsule_key := ""
+static var _capsule_query: PhysicsShapeQueryParameters3D
+
+static func _capsule_for(radius: float, height: float) -> CapsuleShape3D:
+	var key := str(radius) + ":" + str(height)
+	if _capsule == null or _capsule_key != key:
+		_capsule = CapsuleShape3D.new()
+		_capsule.radius = radius
+		_capsule.height = maxf(height, radius * 2.0 + 0.001)
+		_capsule_key = key
+	return _capsule
+
+static func capsule_query(space: PhysicsDirectSpaceState3D, from: Vector3, to: Vector3, radius: float, height: float, mask: int, exclude: Array) -> Dictionary:
 	if space == null or not from.is_finite() or not to.is_finite():
-		return false
+		return {"ok": false, "reason": "capsule_input"}
 	if not is_finite(radius) or not is_finite(height) or radius <= 0.0 or height <= 0.0:
-		return false
-	var capsule := CapsuleShape3D.new()
-	capsule.radius = radius
-	capsule.height = maxf(height, radius * 2.0 + 0.001)
-	var query := PhysicsShapeQueryParameters3D.new()
+		return {"ok": false, "reason": "capsule_input"}
+	var capsule := _capsule_for(radius, height)
+	if _capsule_query == null:
+		_capsule_query = PhysicsShapeQueryParameters3D.new()
+	var query := _capsule_query
 	query.shape = capsule
 	query.collision_mask = mask
 	query.margin = 0.001
 	query.exclude = exclude
 	query.transform = Transform3D(Basis.IDENTITY, from + Vector3.UP * (capsule.height * 0.5))
+	query.motion = Vector3.ZERO
 	if not space.intersect_shape(query, 1).is_empty():
-		return false
+		return {"ok": false, "reason": "capsule_overlap"}
 	query.motion = to - from
 	var cast: PackedFloat32Array = space.cast_motion(query)
-	return cast.size() == 2 and cast[0] >= 0.99999
+	if cast.size() != 2 or cast[0] < 0.99999:
+		return {"ok": false, "reason": "capsule_sweep"}
+	return {"ok": true, "reason": ""}
+
+static func capsule_sweep(space: PhysicsDirectSpaceState3D, from: Vector3, to: Vector3, radius: float, height: float, mask: int, exclude: Array) -> bool:
+	return bool(capsule_query(space, from, to, radius, height, mask, exclude).get("ok", false))
 
 static func stats() -> Dictionary:
 	return {

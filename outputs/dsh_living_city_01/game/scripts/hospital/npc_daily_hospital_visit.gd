@@ -4,6 +4,7 @@ extends RefCounted
 const DailyWalk = preload("../npc_daily_walk.gd")
 const EntryRoute = preload("npc_daily_entry_route.gd")
 const Treatment = preload("npc_hospital_treatment_port.gd")
+const DoorOpen = preload("res://scripts/city/runtime/npc_city_door_open.gd")  # DSH_SITEPHYS
 var _host: RefCounted
 var _policy: RefCounted
 var _health: RefCounted
@@ -28,6 +29,7 @@ var _request := -1
 var _treatment_id := -1
 var _revision := -1
 var _door_time := 0.0
+var _door_ticks := 0  # DSH_SITEPHYS
 var _door_claimed := false
 var _bound := false
 var _disposed := false
@@ -289,6 +291,8 @@ func _step_impl(delta:float) -> void:
 	elif _phase in ["OPENING","CANCEL_OPENING","CLOSING"]:
 		var opening:=_phase!="CLOSING";var fraction:float=_site.door_fraction("public")
 		if fraction==(1.0 if opening else 0.0):
+			if opening and DoorOpen.site_door_physics():
+				print("DSH_SITEPHYS visit door_opened ticks=",_door_ticks," fraction=",fraction)
 			var goal_key:="outside" if _cancelling and opening else ("threshold" if opening else "street")
 			var next_phase:="EXITING_TO_DOOR" if _cancelling and opening else ("WALKING_TO_THRESHOLD" if opening else "RETURNING_TO_STREET")
 			if not _request_target(goal_key,next_phase):_stop(_reason);return
@@ -302,8 +306,19 @@ func _step_impl(delta:float) -> void:
 				# exclusive controller holds the daily_entry_visit_owner claim.
 				_site.advance(delta,people)
 			_record_timing("door_update",door_started,frame,_phase)
-			_door_time+=(_dsh_elapsed if _dsh_elapsed>=0.0 else delta)
-			if _door_time>12.0:_stop("door_sweep_or_action_timeout");return
+			# DSH_SITEPHYS: with --city-site-door-physics=1 the leaf is advanced on
+			# every walker step, so the budget is spent in physics ticks instead of
+			# the sparse wall gap between daily polls. Without the flag the original
+			# real-time accounting is preserved byte for byte.
+			if DoorOpen.site_door_physics():
+				_door_ticks+=1
+				_door_time+=delta
+			else:
+				_door_time+=(_dsh_elapsed if _dsh_elapsed>=0.0 else delta)
+			if _door_time>12.0:
+				if DoorOpen.site_door_physics():
+					print("DSH_SITEPHYS visit door_timeout ticks=",_door_ticks," door_time=",snappedf(_door_time,0.001)," fraction=",_site.door_fraction("public"))
+				_stop("door_sweep_or_action_timeout");return
 	elif _phase=="TREATING":
 		var treatment_started:=Time.get_ticks_usec()
 		var result:Dictionary=_treatment.poll(_treatment_id)

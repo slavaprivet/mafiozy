@@ -179,6 +179,10 @@ func attach_existing(scene: Node3D, interior: Node3D, block: Dictionary, data: D
 	var candidates: Array[Node] = []
 	# No traversal of render assets, actors, sensors or arbitrary descendants.
 	for child: Node in scene.get_children():
+		# DSH_CITYTOWN: a ported destructible site is not part of the pinned source
+		# envelope set - its own recipe validates its collision frames - so it is
+		# skipped here. Without the marker this is the same walk as before.
+		if child.has_meta("dsh_town_extra"): continue
 		if child is StaticBody3D: candidates.append(child)
 	for child: Node in interior.get_children():
 		if child is StaticBody3D: candidates.append(child)
