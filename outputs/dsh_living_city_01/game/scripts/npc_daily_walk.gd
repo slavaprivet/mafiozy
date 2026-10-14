@@ -50,7 +50,17 @@ func _dsh_visit_owner() -> bool:  # DSH_VISITDEADLINE
 	var script: Variant = object.get_script()
 	if script is Script and str((script as Script).resource_path).ends_with("npc_daily_shop.gd"): return true
 	var goal: Variant = object.get("_goal")
-	return goal is Dictionary and str((goal as Dictionary).get("kind","")) == "shop"
+	var is_shop: bool = goal is Dictionary and str((goal as Dictionary).get("kind","")) == "shop"
+	# DSH_VISITDEADLINE: one line per walk instance proves the owner classification and
+	# records how far the shop approach starts; a decline line below records every case the
+	# insurance evaluated and refused because the destination was still beyond the last mile.
+	if is_shop and not _dsh_owner_seen:
+		_dsh_owner_seen = true
+		print("DSH_VISITDEADLINE armed id=", str(_token.get("source_id","")),
+			" left_m=", "%.2f" % Vector2(_token.body.global_position.x-_target.x, _token.body.global_position.z-_target.z).length(),
+			" phase=", _phase, " deadline_s=", "%.1f" % _dsh_visit_deadline_s(),
+			" frame=", Engine.get_physics_frames())
+	return is_shop
 
 func _leg_handoff_fast_on() -> bool:  # DSH_LEGHANDOFF
 	if _dsh_leg_handoff_flag < 0:
@@ -129,6 +139,9 @@ var _dsh_visit_deadline := -2.0  # DSH_VISITDEADLINE
 const DSH_DEADLINE_SNAP_MAX_M := 6.0  # DSH_VISITDEADLINE: last-mile bound of the placement
 var _dsh_progress_left := -1.0  # DSH_VISITDEADLINE: best distance to the destination so far
 var _dsh_progress_at := 0.0  # DSH_VISITDEADLINE: _active_time of that best distance
+var _dsh_owner_seen := false  # DSH_VISITDEADLINE: the one-shot "armed" line per walk instance
+static var _dsh_declines := 0  # DSH_VISITDEADLINE: bounded decline lines per process
+static var _dsh_target_snaps := 0  # DSH_VISITDEADLINE: bounded destination-snap lines per process
 static var _dsh_deadline_n := 0  # DSH_VISITDEADLINE: enforced arrivals this process
 var _path_admission := {}
 var _native_endpoints := {}
@@ -200,6 +213,7 @@ func _query_native_path() -> Dictionary:
 	_epoch+=1; _edge=0; _points.clear(); _streaming_route=false
 	_interleg_arrived_frame=-1; _replan_waiting=false
 	_iteration=NavigationServer3D.map_get_iteration_id(_map)
+	_target=_dsh_visit_target(_target)  # DSH_VISITDEADLINE: the shop's own destination, on the map
 	var parameters:=NavigationPathQueryParameters3D.new()
 	parameters.map=_map; parameters.start_position=_token.body.global_position; parameters.target_position=_target
 	parameters.path_search_max_polygons=8192; parameters.path_search_max_distance=2000.0
@@ -524,6 +538,31 @@ func dispose() -> void:
 # since that best distance last improved counts, so walking around an obstacle never spends
 # the budget while a stalled leg, an exhausted detour budget or a refused leg admission does.
 # Returns true only when this step already finished the walk.
+# DSH_VISITDEADLINE: a shop-visit approach targets the printshop's own approach anchor, and the
+# physical floor and the native map may disagree about that point by more than the shipped
+# 0.20 m arrival connector of _query_native_path's endpoint test. The query then refuses its own
+# destination ("destination_not_on_current_native_map") while the resident is still far away, so
+# the shop activity ends and retries without ever walking a metre. With the deadline flag on the
+# shop's own destination is projected onto the native map once per query, with the same
+# NavigationServer3D.map_get_closest_point the errand admission and the detour goal already use:
+# the query then asks for a point the map really carries, the shop's own validated height is
+# kept, and nothing else about the walk changes (no other owner reaches this function).
+func _dsh_visit_target(point: Vector3) -> Vector3:  # DSH_VISITDEADLINE
+	if _dsh_visit_deadline_s() <= 0.0 or not _map.is_valid() or not point.is_finite(): return point
+	if not _dsh_visit_owner(): return point
+	var snapped := NavigationServer3D.map_get_closest_point(_map, point)
+	if not snapped.is_finite() or (snapped.is_zero_approx() and not point.is_zero_approx()): return point
+	var offset := Vector2(snapped.x-point.x, snapped.z-point.z).length()
+	if offset <= 0.02: return point
+	if _dsh_target_snaps < 300:
+		_dsh_target_snaps += 1
+		print("DSH_VISITDEADLINE target_snap id=", str(_token.get("source_id","")),
+			" offset_m=", "%.3f" % offset,
+			" target=(", "%.2f" % point.x, ",", "%.2f" % point.z, ") -> (",
+			"%.2f" % snapped.x, ",", "%.2f" % snapped.z, ")",
+			" frame=", Engine.get_physics_frames())
+	return Vector3(snapped.x, point.y, snapped.z)
+
 func _dsh_visit_deadline_step() -> bool:  # DSH_VISITDEADLINE
 	if not _dsh_visit_owner() or _phase not in ["PLANNING","WALKING","DETOUR"]: return false
 	var body: CharacterBody3D = _token.body
@@ -580,6 +619,12 @@ func _dsh_force_visit_arrival(body: CharacterBody3D, left: float, veto: String) 
 	# all: the live leg request and the detour stay exactly as the shipped path left them.
 	if before.distance_to(placed) > DSH_DEADLINE_SNAP_MAX_M:
 		_dsh_progress_at = _active_time
+		if _dsh_declines < 300:
+			_dsh_declines += 1
+			print("DSH_VISITDEADLINE declined id=", str(_token.get("source_id","")),
+				" left_m=", "%.2f" % left, " moved_m=", "%.2f" % before.distance_to(placed),
+				" bound_m=", "%.1f" % DSH_DEADLINE_SNAP_MAX_M, " veto=", (veto if not veto.is_empty() else "-"),
+				" from=", from_phase, " frame=", Engine.get_physics_frames())
 		return false
 	if not _cancel_request(): return false
 	if _detour != null: _detour.cancel()

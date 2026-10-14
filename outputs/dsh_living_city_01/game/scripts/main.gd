@@ -79,6 +79,9 @@ var minimap_status := "disabled"
 var preview_population: RefCounted
 var preview_modular30: Node
 var preview_palazzo: Node
+## DSH_CITYTOWN: --city-palazzo-clones=1 puts three signed copies of the palazzo next to it
+## (БОЛЬНИЦА / БАНК / РЕСТОРАН). They are scenery: geometry only, no host and no damage.
+@export var palazzo_clones: bool = false
 var preview_c4: Node
 var preview_c4_blast: Node
 const PalazzoGround = preload("res://scripts/destruction/palazzo/palazzo_ground.gd")
@@ -223,6 +226,7 @@ func _ready() -> void:
 	preview_palazzo.name = "PalazzoHost"
 	add_child(preview_palazzo)
 	print("PALAZZO_GEOMETRY ", preview_palazzo.prepare(self))
+	_install_palazzo_clones()
 	if (preview_static_batch_enabled or OS.get_cmdline_user_args().has("--preview-static-batch")) and not OS.get_cmdline_user_args().has("--preview-static-batch-off"):
 		apply_preview_static_batches()
 	_spawn = _v3(_block["hero"]["spawnLocalM"])
@@ -1017,6 +1021,60 @@ const TownBankSite = preload("res://scripts/destruction/bank_site/bank_site.gd")
 const ModularPrefabLoader = preload("res://scripts/destruction/modular30/owner/expansion/modular_buildings/export/prefab_loader.gd")
 const TOWN_MODULAR30_SHA := "abfc9126737481f1bed5cc4c63095115a8f756e8c21ceb9b9209fa6a21c6c485"
 var town_extras: Array = []
+
+## DSH_CITYTOWN: owner's step 2 - three copies of the finished palazzo next to it, each with
+## its own sign (БОЛЬНИЦА / БАНК / РЕСТОРАН). This is a test stand: the copy carries the same
+## geometry, collision and glazing, but NO host, NO damage owner and NO resident admission, so
+## it looks like a building and behaves like scenery. Offsets: --city-clone-step=<metres>.
+func _dsh_walk(root: Node) -> Array:
+	var dsh_out: Array = [root]
+	var dsh_i := 0
+	while dsh_i < dsh_out.size():
+		for dsh_child: Node in (dsh_out[dsh_i] as Node).get_children(): dsh_out.append(dsh_child)
+		dsh_i += 1
+	return dsh_out
+
+func _dsh_sign_of(root: Node) -> Label3D:
+	for dsh_node: Node in _dsh_walk(root):
+		if dsh_node is Label3D and str((dsh_node as Label3D).text).to_upper().contains("ПАЛАЦ"):
+			return dsh_node as Label3D
+	return null
+
+func _install_palazzo_clones() -> void:
+	# DSH_CITYTOWN: the switch is read from the command line here, because an exported scene
+	# property is not set by a user argument (`--city-palazzo-clones=1`).
+	var dsh_on: bool = palazzo_clones
+	for dsh_argument: String in OS.get_cmdline_user_args():
+		if dsh_argument.begins_with("--city-palazzo-clones="): dsh_on = int(dsh_argument.trim_prefix("--city-palazzo-clones=")) != 0
+	if not dsh_on: return
+	var dsh_sign: Label3D = _dsh_sign_of(self)
+	if dsh_sign == null:
+		print("CITY_TOWN_CLONE ", JSON.stringify({"ok": false, "reason": "palazzo_sign_not_found"}))
+		return
+	var dsh_root: Node = dsh_sign
+	while dsh_root.get_parent() != null and dsh_root.get_parent() != self: dsh_root = dsh_root.get_parent()
+	if dsh_root.get_parent() != self:
+		print("CITY_TOWN_CLONE ", JSON.stringify({"ok": false, "reason": "palazzo_root_not_found"}))
+		return
+	var dsh_step := 45.0
+	for dsh_argument: String in OS.get_cmdline_user_args():
+		if dsh_argument.begins_with("--city-clone-step="): dsh_step = maxf(12.0, float(dsh_argument.trim_prefix("--city-clone-step=")))
+	var dsh_signs: Array[String] = ["БОЛЬНИЦА", "БАНК", "РЕСТОРАН"]
+	var dsh_base: Vector3 = (dsh_root as Node3D).position if dsh_root is Node3D else Vector3.ZERO
+	for dsh_i in dsh_signs.size():
+		var dsh_clone: Node = dsh_root.duplicate()
+		if dsh_clone == null: continue
+		dsh_clone.name = "TownClone_" + str(dsh_i + 1)
+		add_child(dsh_clone)
+		if dsh_clone is Node3D: (dsh_clone as Node3D).position = dsh_base + Vector3(dsh_step * float(dsh_i + 1), 0.0, 0.0)
+		dsh_clone.set_meta("dsh_town_extra", true)
+		var dsh_new_sign: Label3D = _dsh_sign_of(dsh_clone)
+		if dsh_new_sign != null: dsh_new_sign.text = dsh_signs[dsh_i]
+		var dsh_at: Vector3 = (dsh_clone as Node3D).position if dsh_clone is Node3D else Vector3.ZERO
+		var dsh_doors := 0
+		for dsh_node2: Node in _dsh_walk(dsh_clone):
+			if str(dsh_node2.name).to_lower().contains("door"): dsh_doors += 1
+		print("CITY_TOWN_CLONE ", JSON.stringify({"ok": true, "sign": dsh_signs[dsh_i], "sign_found": dsh_new_sign != null, "door_nodes": dsh_doors, "origin": [dsh_at.x, dsh_at.y, dsh_at.z]}))
 
 func _install_town_extras() -> bool:
 	if not city_town_active() or not town_extras.is_empty(): return false

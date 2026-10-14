@@ -289,7 +289,7 @@ func _dsh_test_seat() -> String:
 ## "which resident is the test resident", so it is consulted here as well: a bare
 ## --city-resident-name without the near-player flag claims the seat at this call.
 func _dsh_label_for(identity: String) -> bool:
-	return _dsh_tr_label and (not _dsh_tr_near or identity == _dsh_test_seat())
+	return _dsh_tr_label
 
 # DSH_TESTRESIDENT: the player, or null. main.gd owns it as the scene's own _player and
 # positions it before the city population attaches, so the authored hero spawn is readable
@@ -430,7 +430,11 @@ func _dsh_near_player_override(record: Dictionary) -> void:
 	var identity: String = str(record.row.source_id)
 	if _dsh_test_seat() != identity or identity.is_empty(): return
 	_dsh_tr_near_done = true
-	var found: Dictionary = _dsh_near_player_point(record)
+	# DSH_TESTRESIDENT: skip the expensive candidate ring. It proved nothing here (192 tried,
+	# all refused) and it stalled city bootstrap on the main thread, so the owner saw
+	# "запуск не завершён" instead of his test resident. Go straight to the player-spot point,
+	# which is derived from the player's own walkable cell and costs no search at all.
+	var found: Dictionary = {"ok": false, "reason": "grid_search_skipped", "tried": 0}
 	if found.get("ok", false) and float(found.distance_m) <= TR_NEAR_CLOSE_M:
 		_dsh_tr_applied = true
 		_dsh_tr_override_r = float(found.r)
@@ -463,7 +467,7 @@ func _dsh_apply_resident_name(body: Node3D, motion: Node3D, record: Dictionary) 
 	label.double_sided = true
 	label.no_depth_test = true
 	label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	label.pixel_size = .0025
+	label.pixel_size = .0045
 	label.font_size = 64
 	label.modulate = Color(1, .93, .72, 1)
 	label.outline_modulate = Color(0, 0, 0, 1)
@@ -476,6 +480,26 @@ func _dsh_apply_resident_name(body: Node3D, motion: Node3D, record: Dictionary) 
 	motion.add_child(label)
 	label.position = Vector3(0, top, 0)
 	body.set_meta("dsh_test_resident_name", _dsh_tr_name)
+	# DSH_TESTRESIDENT: direct placement next to the player, AFTER admission. No candidate
+	# ring and no policy round trip: that search ran on the main thread during admission and
+	# left the owner with "Жители: запуск не завершён" instead of his test resident.
+	var dsh_player: Node3D = _dsh_player_node()
+	if dsh_player != null:
+		var dsh_at: Vector3 = dsh_player.global_position
+		if dsh_at.is_finite():
+			# Owner's call: further from the entrance (3.5 m ahead of the player, not beside
+			# him) and turned to FACE the player, so he is easy to watch.
+			var dsh_fwd: Vector3 = -dsh_player.global_transform.basis.z
+			dsh_fwd.y = 0.0
+			if dsh_fwd.length() < .01: dsh_fwd = Vector3(0.0, 0.0, -1.0)
+			dsh_fwd = dsh_fwd.normalized()
+			var dsh_pos: Vector3 = dsh_at + dsh_fwd * 3.5
+			dsh_pos.y = dsh_at.y
+			body.global_position = dsh_pos
+			var dsh_back: Vector3 = dsh_at - dsh_pos
+			dsh_back.y = 0.0
+			if dsh_back.length() > .01: body.rotation.y = atan2(dsh_back.x, dsh_back.z)
+			print("DSH_TESTRESIDENT_NEAR id=", str(record.row.source_id), " placed=", body.global_position, " player=", dsh_at, " facing_player=true")
 
 # DSH_TESTRESIDENT: exactly one telemetry line per created test resident.
 # DSH_TESTRESIDENT id=… name="…" label=true/false spawn=(x,y,z) mode=authored|near_player reason=… frame=…
