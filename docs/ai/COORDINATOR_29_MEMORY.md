@@ -135,3 +135,56 @@ ambient53_01 graphicalfixture16standingactions captured, общийFAILbench_arr
 и ERROR absentmetawindowindex (root исправил). Benchdriver arrive.30 противgate.18
 ещё чинит ambient29. ambient29_slotsSOURCEготов отдельно, пока неинтегрирован.
 sites/longroute/pose продолжаются в отдельныхproposalпапках, root запускаетnative.
+
+## 15 октября, 02:44 — текущая игровая версия53a и новые поручения
+
+Пользователь прямо попросил подключить наработки к своей сцене/F5 и загрузить
+текущую версию в GitHub. Подготовлен неизменяемый снимок
+`outputs/coordinator29_release53a`:1098 source files, отдельные ASSEMBLY/ACCEPTANCE,
+bootstrap и proof receipts. `godot/current_version.json` переведён на53a;
+предыдущий pointer48 сохранён в PREVIOUS_CURRENT_VERSION.json. Старые48/52 сохранены.
+Это текущая рабочая игровая версия, не полная приёмка переноса/286NPC/perf.
+Launcher теперь читает pinned city launch_arguments, переносимый game_relative,
+ограниченный timeout40–120с; старые manifests сохраняют старое поведение.
+CheckOnly подтвердил и старую48, и новую53a. Новая обычная игра запускается root;
+смотреть свежий `outputs/current_game/OPENED.json`, не исторический PID.
+
+В53a включены общий canvas gang-style HP, настоящие красные расходы, shared queue
+physical1800us и native query1submit/frame/2inflight, новые roam budgets,
+физические slots и8 compactowned sites с нормальным порогом и закрытием при
+утрате двери. Один resident_1, разрешения включать286 всё ещё нет.
+
+Взгляд: Attention29 сохраняет активную цель/leg, плавно поворачивает к игроку;
+после отвода готовый путь идёт в следующий physicsframe без нового поиска.
+CityDaily срочно опрашивает только current/previous focus, максимум2жизни,
+общий1ray/frame, поэтому не ждёт rotating slice. Тревога/health/retaliation старше.
+Исправлен старый incident seam: обычный physical roam теперь отменяется при startle.
+Service pause сохраняет slot/heartbeat и сбрасывает dwell, не оплачивает/лечит в паузе.
+
+Фактические проверки:
+- cycle53_02 PASS14: hospital→bank→restaurant12→988cash→roam/ambient, всеslotsreleased.
+- focus53_02 PASS7: чёткая canvas-карточка, HP/full-half-low, wall/far/lookaway/death.
+- money53_02 PASS6: реальная покупка12, один красныйpopup, подъём/затухание/удаление;
+  screenshot spend_red.png просмотрен.
+- navigation29_long/runs/long02 PASS3fixtures,286queryrequests, не286NPC.
+- navigation29_integration/runs/integration05 PASS17physical+10dailychecks;
+  готовый путь0.0300002м на первом кадре после resume,0новогоplannerus.
+- attention53_01 FAIL QA: слишком резкие последовательные cameraaim corrections
+  теряли цель. Вторая проверка плавным viewportinput: attention53_02 PASS7,
+  drift0, turninput1159→release1160→motion1161, та же цель.
+- attention_alarm53_01 PASS12 в actualcity+8sites: настоящий TT input→shot→alarm,
+  взгляд во время тревоги не держит жителя; HPнеизменено, после тревоги снова держит.
+- sitesrepair native sites08 PASS87/batch01 PASS48/world02 PASS24:8реальныхмест,
+  C4nativeinput19chunks, RPG1shot/1blast, closeddoor/emergencyexit честные.
+- play53_01 ordinarybootstrap53 graphicalPASS: populationready1,8sites,revision53a,
+  stderr0/source_drift[]. Скрыта временная стараяHP- подпись при bootstrap.
+
+Открытые прямые поручения (продолжаются в candidate53, НЕ менять frozenrelease53a):
+1. ambient29: руки collar/pocket сквозь пиджак, телефон18, bench dock/slots. Автор
+   долго не отвечал, root interrupt/followup в02:39, ждём конкретный новый пакет.
+2. venues29_staff: кассир с терминалом, медик с меднабором, canonrig, один активный
+   serviceклиент/FIFO; capacity slots остальных — ожидание. Dwell только у стойки.
+3. navigation29_avoidance: spatialgrid, boundedneighbors, rightside/yield иdoorFIFO;
+   первый worst-dense286proxy component median16.6ms/p9518.8ms НЕ принят, оптимизирует.
+4. После объединения финальные циклы/death/визуальный/perf. Совместный FPS и286proxy
+   проверки не выдавать за полную286NPCperformanceприёмку.

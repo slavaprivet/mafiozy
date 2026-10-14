@@ -78,7 +78,21 @@ try {
     Assert-CurrentHash $currentManifestPath $currentRelease.assembly_sha256
     $currentManifest = Get-Content -LiteralPath $currentManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($currentManifest.revision -ne $currentRelease.revision) { throw 'Current release revision mismatch.' }
-    $currentGameDir = [IO.Path]::GetFullPath($currentManifest.game)
+    # A pinned city assembly can specify its ordinary scene options. Older
+    # assemblies retain the exact previous launch arguments and ready timeout.
+    $currentSceneArguments = @()
+    if ($currentManifest.PSObject.Properties.Name -contains 'launch_arguments') {
+        foreach ($currentSceneArgument in $currentManifest.launch_arguments) {
+            if ($currentSceneArgument -isnot [string] -or $currentSceneArgument -notmatch '^--city-[a-z0-9-]+(?:=[^\s"'';]+)?$') { throw 'Invalid pinned city launch argument.' }
+            $currentSceneArguments += $currentSceneArgument
+        }
+    }
+    $currentReadySeconds = 40
+    if ($currentManifest.PSObject.Properties.Name -contains 'ready_timeout_seconds') {
+        $currentReadySeconds = [int]$currentManifest.ready_timeout_seconds
+        if ($currentReadySeconds -lt 40 -or $currentReadySeconds -gt 120) { throw 'Invalid city startup deadline.' }
+    }
+    $currentGameDir = if ($currentManifest.PSObject.Properties.Name -contains 'game_relative') { [IO.Path]::GetFullPath((Join-Path $currentRepo $currentManifest.game_relative)) } else { [IO.Path]::GetFullPath($currentManifest.game) }
     if (-not $currentGameDir.StartsWith($currentRepo + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Unexpected game directory.' }
     $currentBootstrap = Resolve-CurrentFile $currentRelease.bootstrap
     Assert-CurrentHash $currentBootstrap $currentRelease.bootstrap_sha256
@@ -107,11 +121,12 @@ try {
     $currentLog = Join-Path $currentRun 'play.log'
     $currentErr = Join-Path $currentRun 'play.err'
     $currentArgs = @('--path', ('"' + $currentGameDir + '"'), '--script', ('"' + $currentBootstrap + '"'), '--', ('"--receipt-dir=' + $currentRun + '"'), ('"--release-title=' + $currentRelease.title + '"'), ('"--release-revision=' + $currentRelease.revision + '"'))
+    $currentArgs += $currentSceneArguments
     # A visible game is the explicit purpose of this user launcher.
     $currentProcess = Start-Process -FilePath $currentEngine -ArgumentList $currentArgs -WorkingDirectory $currentGameDir -WindowStyle Normal -PassThru -RedirectStandardOutput $currentLog -RedirectStandardError $currentErr
     $currentReceipt = [ordered]@{ pid=$currentProcess.Id; revision=$currentRelease.revision; title=$currentRelease.title; source='stable_user_launcher'; run_directory=$currentRun; started_at=$currentProcess.StartTime.ToString('o'); assembly_sha256=$currentRelease.assembly_sha256 }
     $currentReceipt | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $currentRun 'STARTED.json') -Encoding UTF8
-    $currentReadyUntil = [DateTime]::UtcNow.AddSeconds(40)
+    $currentReadyUntil = [DateTime]::UtcNow.AddSeconds($currentReadySeconds)
     $currentReadyPath = Join-Path $currentRun 'CURRENT_READY.json'
     $currentReady = $null
     while ([DateTime]::UtcNow -lt $currentReadyUntil) {

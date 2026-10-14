@@ -1,0 +1,281 @@
+{
+	"dead_baseline": {
+		"daily": 47,
+		"health": 47,
+		"native_queries": 0,
+		"navigation": 0,
+		"routes": []
+	},
+	"dead_frames": 121,
+	"failures": [],
+	"final": {
+		"birth": {
+			"account_id": -9223369364277728637,
+			"body_id": 2670043687469,
+			"cash": 1000,
+			"continuation_empty": true,
+			"energy": 100.0,
+			"generation": 2,
+			"health_id": -9223369366441989451,
+			"hp": 60.0,
+			"life_id": -9223369359311672453,
+			"max_hp": 60.0,
+			"pending": [],
+			"position": "(42.2, 0.090107, -2.5)",
+			"queue_owner_id": -9223369369260561438,
+			"search_pending": false
+		},
+		"corpse_seconds": 2.0,
+		"death_count": 1,
+		"death_frame": 1118,
+		"event": "resident_1:1:sniper:1",
+		"generation": 2,
+		"id": "resident_1",
+		"per_frame_callback": false,
+		"phase": "alive",
+		"reason": "",
+		"respawn_count": 1,
+		"respawn_frame": 1239,
+		"spawn_attempts": 1
+	},
+	"npc_relocated": false,
+	"old_life": {
+		"account_id": -9223369466283201961,
+		"body_id": 1943372130670,
+		"death_receipt": {
+			"applied": true,
+			"binding": {
+				"life_generation": 1,
+				"owner_instance_id": -9223369479151326411,
+				"render_id": "npc_resident_1",
+				"scope": "local_walk_ordinary",
+				"session_id": "godot-preview-new-session-20260927-01",
+				"source_id": "resident_1"
+			},
+			"event_id": "resident_1:1:sniper:1",
+			"hit": {
+				"damage": 132,
+				"dir_c": 0.0640865564346313,
+				"dir_r": -0.989948868751526,
+				"head_policy": "user_requested_headshot_final_v1",
+				"hit_zone": "head",
+				"player_c": 106.792683112912,
+				"player_r": 11.2439023663358,
+				"source": {
+					"kind": "player",
+					"uid": "local"
+				},
+				"weapon_id": "sniper"
+			},
+			"ok": true,
+			"reason": "final_death",
+			"revision": 1,
+			"row": {
+				"_aggression": 0.0309544931980781,
+				"_allowBeach": false,
+				"_arc": {
+					"fearDist": 7.0,
+					"hours": [
+						8.0,
+						21.0
+					],
+					"idleMult": 2.8,
+					"look": {
+						"hat": 2.0
+					},
+					"panicMult": 1.7,
+					"phrases": [
+						"Эх, молодёжь…",
+						"А раньше тут было тихо",
+						"Куда спешите-то",
+						"Помогите пожилому",
+						"Ноги болят",
+						"Пенсию опять задержали"
+					],
+					"speedRange": [
+						0.42,
+						0.62
+					],
+					"weight": 12.0
+				},
+				"_arcKey": "pensioner",
+				"_beach": false,
+				"_bleedSeverity": 1.6,
+				"_bleedUntil": 9924.239,
+				"_bloodDirC": 0.0640865564346313,
+				"_bloodDirR": -0.989948868751526,
+				"_deathFromDowned": false,
+				"_emLastAt": 0.0,
+				"_fatigue": 0.0674179614521563,
+				"_fear": 0.117217603570316,
+				"_forcedCrawl": false,
+				"_knockedUntil": 0,
+				"_lastHitAt": 1180.239,
+				"_lastViolentAt": 1180.104,
+				"_lastViolentSource": {
+					"kind": "player",
+					"uid": "local"
+				},
+				"_medicalBleedoutAt": 0,
+				"_medicalDowned": false,
+				"_medicalDownedAt": 0,
+				"_npcInitialPlacementPending": true,
+				"_relUpdAt": 1180.435,
+				"_relation": 1.0,
+				"_threeHitAngle": -1.50614929713118,
+				"_threeHitPower": 1.6,
+				"_threeHitWeapon": "sniper",
+				"ang": 0.0,
+				"c": 106.792683112912,
+				"dead": true,
+				"deadAt": 1180.636,
+				"hp": 0,
+				"id": "resident_1",
+				"idleUntil": 1430.377,
+				"life_generation": 1,
+				"look": {
+					"body": 2.0,
+					"face": 1.0,
+					"gender": 1.0,
+					"hair": 0.0,
+					"hat": 2.0,
+					"skin": 3.0
+				},
+				"max_hp": 60.0,
+				"r": 10.3902438442882,
+				"source_id": "resident_1",
+				"speed": 0.49289876206778,
+				"tc": 75.5,
+				"tr": 44.5,
+				"walkPhase": 0.0,
+				"walking": false
+			},
+			"server_authority": false,
+			"source_now_ms": 1180.636
+		},
+		"generation": 1,
+		"health_id": -9223369479151326411,
+		"initial_energy": 19.0,
+		"initial_hp": 29.4,
+		"last_contact": {
+			"actor_transform_at_impact": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (42.2, 0.137278, -2.5)]",
+			"event_id": "resident_1:1:sniper:1",
+			"incoming_direction": "(0.064087, 0.126072, -0.989949)",
+			"life_generation": 1,
+			"normal": "(0.032893, -0.264178, 0.963913)",
+			"point": "(42.21365, 1.644681, -2.304228)",
+			"projectile_index": 0,
+			"shot_id": "sniper:1",
+			"source_id": "resident_1",
+			"weapon_id": "sniper"
+		},
+		"life_id": -9223369461317145707,
+		"position": "(42.2, 0.137278, -2.5)",
+		"queue_owner_id": -9223370318196687790
+	},
+	"passed": true,
+	"reason": "complete",
+	"samples": [
+		{
+			"active_health": 1,
+			"daily_calls": 2,
+			"frame": 1073,
+			"health_calls": 2,
+			"lifecycle": {
+				"birth": {},
+				"corpse_seconds": 2.0,
+				"death_count": 0,
+				"death_frame": -1,
+				"event": "",
+				"generation": 1,
+				"id": "resident_1",
+				"per_frame_callback": false,
+				"phase": "alive",
+				"reason": "",
+				"respawn_count": 0,
+				"respawn_frame": -1,
+				"spawn_attempts": 0
+			},
+			"lives": 1,
+			"ms": 31312,
+			"qa_phase": "aim_and_fire",
+			"route_counts": [],
+			"shots": 0,
+			"terminals": 0
+		},
+		{
+			"active_health": 0,
+			"daily_calls": 47,
+			"frame": 1138,
+			"health_calls": 47,
+			"lifecycle": {
+				"birth": {},
+				"corpse_seconds": 2.0,
+				"death_count": 1,
+				"death_frame": 1118,
+				"event": "resident_1:1:sniper:1",
+				"generation": 1,
+				"id": "resident_1",
+				"per_frame_callback": false,
+				"phase": "corpse",
+				"reason": "",
+				"respawn_count": 0,
+				"respawn_frame": -1,
+				"spawn_attempts": 0
+			},
+			"lives": 0,
+			"ms": 32315,
+			"qa_phase": "dead_wait",
+			"route_counts": [],
+			"shots": 1,
+			"terminals": 1
+		},
+		{
+			"active_health": 0,
+			"daily_calls": 47,
+			"frame": 1199,
+			"health_calls": 47,
+			"lifecycle": {
+				"birth": {},
+				"corpse_seconds": 2.0,
+				"death_count": 1,
+				"death_frame": 1118,
+				"event": "resident_1:1:sniper:1",
+				"generation": 1,
+				"id": "resident_1",
+				"per_frame_callback": false,
+				"phase": "corpse",
+				"reason": "",
+				"respawn_count": 0,
+				"respawn_frame": -1,
+				"spawn_attempts": 0
+			},
+			"lives": 0,
+			"ms": 33334,
+			"qa_phase": "dead_wait",
+			"route_counts": [],
+			"shots": 1,
+			"terminals": 1
+		}
+	],
+	"shots": [
+		{
+			"frame": 1117,
+			"muzzle": "(42.05876, 1.339985, 0.088327)",
+			"shot_id": "sniper:1",
+			"weapon": "sniper"
+		}
+	],
+	"synthetic_damage": false,
+	"terminals": [
+		{
+			"collider_id": 1943372130670,
+			"frame": 1118,
+			"owned": true,
+			"point": "(42.20302, 1.623768, -2.140013)",
+			"shot_id": "sniper:1",
+			"status": "hit",
+			"weapon": "sniper"
+		}
+	]
+}
