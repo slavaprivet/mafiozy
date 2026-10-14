@@ -142,6 +142,8 @@ var _incident_role_scope := ""
 var _adapter: RefCounted
 var _rng:=RandomNumberGenerator.new()
 var _marksman:=0.0
+var _dsh_shot_frame := -1  # DSH_ROWPROBE: frame of the last shot event this owner heard
+var _dsh_probe_fired := false  # DSH_ROWPROBE: --city-damage-probe=1 fires exactly once
 var _ready:=false
 var _start_us:=0
 var _shots: Dictionary={}
@@ -305,6 +307,20 @@ func _dsh_refresh_caption(body: Node3D) -> void:
 	if name.is_empty(): return
 	ResDiag.refresh_after_hit(body, name, _row)
 
+## DSH_RESDIAG: the every-frame repaint of this resident's caption. The hit owner is stepped
+## once per physics frame by the city population, so this is the one hook that can paint the
+## owner's display without waiting for the resident's daily poll turn. It writes a Label3D
+## text and nothing else; only the owner's named resident has a caption at all.
+func _dsh_repaint_caption() -> void:
+	if not _ready: return
+	if not ResDiag.hp_label_on() and not ResDiag.diag_on(): return
+	var body: Variant = _token.get("body")
+	if not is_instance_valid(body) or not body is Node3D: return
+	if str((body as Node3D).get_meta("dsh_test_resident_name", "")).is_empty(): return
+	var life: RefCounted = ResDiag.life_of(str(_token.source_id))
+	if life == null or not life.has_method("dsh_repaint_caption"): return
+	life.call("dsh_repaint_caption")
+
 ## DSH_MEDPRIORITY: hand the hit to this resident's own life scheduler, which decides the
 ## medical priority in this same call. Read-only seam: a miss (no life registered yet, or a
 ## life that is busy/not current) leaves today's behaviour untouched.
@@ -314,6 +330,33 @@ func _dsh_notice_damage() -> void:
 	var noted: Variant = life.call("dsh_notice_damage")
 	if noted is Dictionary and noted.get("reason", "") == "medical_priority_from_hit":
 		print("DSH_DAMAGE id=", str(_token.source_id), " medical_notice=", str(noted))
+
+## DSH_ROWPROBE: --city-damage-probe=1 makes this resident take ONE hit through the project's
+## own damage pipeline (`_apply_hit` -> adapter.hit -> npc_ordinary_hit_lifecycle), so the row
+## identity, the hp write and the label repaint can be measured headlessly, where no player
+## can shoot. The damage number is the project's own (`Rules.damage_at`), never a new balance.
+func _dsh_damage_probe() -> void:
+	if _dsh_probe_fired or not _ready: return
+	var wanted := false
+	for argument: String in OS.get_cmdline_user_args():
+		if argument == "--city-damage-probe=1": wanted = true
+	if not wanted: return
+	var body: Variant = _token.get("body")
+	if not is_instance_valid(body) or not body is Node3D: return
+	if str(body.get_meta("dsh_test_resident_name", "")).is_empty(): return
+	var life: RefCounted = ResDiag.life_of(str(_token.source_id))
+	if life == null: return
+	if Engine.get_physics_frames() < 900: return
+	_dsh_probe_fired = true
+	var point: Vector3 = (body as Node3D).global_position + Vector3(0.0, 1.2, 0.0)
+	var muzzle: Vector3 = point + Vector3(0.6, 0.0, 0.6)
+	var direction := Vector3(-0.7, 0.0, -0.7)
+	var damage: int = maxi(1, Rules.damage_at("nagan", 1.0))
+	var shot := {"weapon_id": "nagan", "muzzle": muzzle, "at_ms": _now(), "used": false,
+		"pellets": false, "modifiers": {"critical": false, "critical_multiplier": 1.0}}
+	print("DSH_ROWPROBE site=probe id=", str(_token.source_id), " damage=", damage,
+		" frame=", Engine.get_physics_frames(), " note=real_pipeline_hit")
+	_apply_hit("dsh-probe:" + str(_serial + 1), shot, damage, direction, point, Vector3.UP)
 
 # DSH_HEALTH: the per-tick step() path only needs the boolean answer, and building
 # the four-entry Dictionary once per resident per physics tick was pure overhead.
@@ -368,6 +411,7 @@ func incident_witness_snapshot() -> Dictionary:
 	return {"eligible":true,"role_scope":_incident_role_scope,"position":position,"forward":forward,"source_id":str(_token.get("source_id","")),"session_id":str(_token.get("session_id","")),"life_generation":int(_token.get("life_generation",-1)),"owner_instance_id":get_instance_id(),"body_instance_id":body.get_instance_id(),"body":body,"token":_token.duplicate()}
 
 func _on_shot(shot: Dictionary,muzzle: Dictionary,_camera_origin: Vector3,camera_direction: Vector3) -> void:
+	_dsh_shot_frame = Engine.get_physics_frames()  # DSH_ROWPROBE: the shot that may become a hit
 	if not _is_current(_binding) or not muzzle.get("origin") is Vector3 or not muzzle.origin.is_finite(): return
 	var pellets: bool=shot.get("weaponId") in PELLET_HIT
 	if shot.get("weaponId") not in SINGLE_HIT and not pellets and shot.get("weaponId")!="rpg": return
@@ -468,6 +512,16 @@ func _apply_hit(shot_id: String,shot: Dictionary,damage: int,direction: Vector3,
 	# the same `_row.hp` the medical decision reads. `hp_before`/`hp_after` are clamped to
 	# the owner's 0..100 range, so a negative hit point value can never be reported.
 	if ResDiag.hp_label_on() or ResDiag.diag_on():
+		# DSH_ROWPROBE: the identity of the ROW this hit wrote to, stamped so the life side
+		# can prove it reads the same object, plus the shot->apply frame gap.
+		_row["_dsh_hit_frame"] = Engine.get_physics_frames()
+		_row["_dsh_hit_hp"] = float(_row.get("hp", 0))
+		_row["_dsh_hit_owner"] = get_instance_id()
+		print("DSH_ROWPROBE site=hit id=", str(_token.source_id), " row_hash=", _row.hash(),
+			" owner_id=", get_instance_id(), " body_id=", body.get_instance_id(),
+			" hp_before=", "%.0f" % clampf(hp_before,0.0,100.0),
+			" hp_after=", "%.0f" % clampf(float(_row.get("hp",0)),0.0,100.0),
+			" frame_hit=", _dsh_shot_frame, " frame_apply=", Engine.get_physics_frames())
 		print("DSH_DAMAGE id=", str(_token.source_id), " hp_before=", "%.0f" % clampf(hp_before,0.0,100.0),
 			" damage=", damage, " hp_after=", "%.0f" % clampf(float(_row.get("hp",0)),0.0,100.0),
 			" weapon=", str(shot.get("weapon_id","-")), " zone=", str(zone.get("zone","body")),
@@ -617,6 +671,8 @@ func physical_event(request: Dictionary) -> Dictionary:
 func step() -> void:
 	var frame:=Engine.get_physics_frames()
 	publish_pause_gate(frame)  # DSH_PAUSEPUSH: the host reads this instead of the Callable
+	_dsh_repaint_caption()  # DSH_RESDIAG: every frame, no throttle - the owner's display
+	_dsh_damage_probe()  # DSH_ROWPROBE: optional one real-pipeline hit for a headless measurement
 	var idle_row: bool = not _row.get("dead",false) and not _row.get("_medicalDowned",false)
 	if _dsh2_lease_enabled and _ready and _dsh2_lease_ok and frame<_dsh2_lease_until and idle_row and (bullet_reaction==null or bullet_reaction.step_idle(self,frame)):
 		_native_terminal_batch=_effects._resolutions

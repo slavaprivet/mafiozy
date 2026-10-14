@@ -13,7 +13,6 @@ extends RefCounted
 ##   hp < 50 % -> hospital goal -> walking -> door requested -> door open -> arrived.
 const WALK_RADIUS := .738
 const LABEL_HEIGHT := 2.35
-const UPDATE_FRAMES := 6
 const LOG_INTERVAL_MS := 2000
 
 static var _diag_flag: int = -1
@@ -164,7 +163,11 @@ static func update(id: String, body: Variant, row: Dictionary, life_state: Dicti
 	if not is_instance_valid(body) or not body is Node3D: return
 	var now_frame := Engine.get_physics_frames()
 	var record: Dictionary = _seen.get(id, {})
-	if not record.is_empty() and now_frame - int(record.get("frame", -1)) < UPDATE_FRAMES: return
+	# DSH_RESDIAG (owner's rule): the caption is repainted on EVERY call - no frame gate, no
+	# throttle, no cache. Writing a Label3D text is cheap, and any gate here shows up as a
+	# visible lag between the shot and the number over the head. The only thing still
+	# rate-limited is the log line below (a log must not cost frames), while the on-hit
+	# repaint in refresh_after_hit() prints its own DSH_LABEL in the very hit frame.
 	var now_ms := Time.get_ticks_msec()
 	var travelled := 0.0
 	var here: Vector3 = (body as Node3D).global_position

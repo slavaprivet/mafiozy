@@ -20,6 +20,9 @@ const PreviewBoundary = preload("res://scripts/preview_boundary.gd")
 const PreviewPopulation = preload("res://scripts/preview_population.gd")
 const PreviewMelee = preload("res://scripts/npc_visual/npc_contact_melee_host.gd")
 const CityMinimapHost = preload("res://scripts/city/runtime/npc_city_minimap_host.gd")
+## DSH_SIMPLEHOSP: --city-simple-hospital=1 - the owner's "the hospital is the palazzo copy"
+## stand. The flag itself is read by scripts/hospital/npc_simple_hospital.gd.
+const SimpleHospital = preload("res://scripts/hospital/npc_simple_hospital.gd")
 const STATIC_RENDER_OWNER_IDS := [
 	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-013", "REBUILD-VISUAL-old_town_narrow_townhouse_v1-005",
 	"REBUILD-VISUAL-gun_shop-001", "REBUILD-VISUAL-pawnshop-001",
@@ -214,6 +217,14 @@ func _ready() -> void:
 			city_town_built += 1
 		if city_town_active():
 			print("CITY_TOWN built=", city_town_built, " skipped=", city_town_skipped, " keep=", city_town_keep_raw())
+			# DSH_SIMPLEHOSP: with --city-simple-hospital=1 the "hospital" row is NOT
+			# dropped from the keep set on purpose - npc_city_bootstrap._attach_site and
+			# npc_city_daily.configure refuse to build the city without the real hospital
+			# site, so the row stays in the scene and is switched off there instead
+			# (hidden + never addressed). See npc_simple_hospital.disable_standing_hospital.
+			if SimpleHospital.enabled():
+				print("DSH_SIMPLEHOSP town_keep=", city_town_keep_raw(),
+					" standing_hospital=kept_for_bootstrap geometry_kept=true")
 			if OS.get_cmdline_user_args().has("--city-town-extras=1"): _install_town_extras()
 	else:
 		# Removed buildings are never instantiated, including their interior/colliders.

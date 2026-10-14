@@ -3,6 +3,7 @@ extends RefCounted
 ## this scheduler never changes HP, cash, transforms, seats or source rows.
 const Walk = preload("npc_daily_walk.gd")
 const MedMarker = preload("res://scripts/hospital/npc_hospital_marker.gd")
+const SimpleHospital = preload("res://scripts/hospital/npc_simple_hospital.gd")  # DSH_SIMPLEHOSP
 const ResDiag = preload("res://scripts/npc_visual/npc_resident_diag.gd")
 const MEDICAL_THRESHOLD := .75
 ## DSH_MEDPRIORITY: --city-medical-threshold=<0..1> overrides MEDICAL_THRESHOLD. The flag's
@@ -61,6 +62,14 @@ var _dsh_med_state := ""  # DSH_MEDPRIORITY: the last emitted result for the act
 var _dsh_med_reported := false  # DSH_MEDPRIORITY: one report per resident process
 var _dsh_med_goal_id := ""  # DSH_MEDPRIORITY: the goal_id the last line described
 var _dsh_hp_apply_pending := true  # DSH_MEDPRIORITY: --city-hp writes the row once per life
+## DSH_SIMPLEHOSP: --city-simple-hospital=1. The owner's test stand - the hospital IS the
+## palazzo copy and the resident walks straight to its measured centre, with no
+## source_admit and no support_height proof. One owner per life, created on the first
+## hospital goal; the walk itself lives in scripts/hospital/npc_simple_hospital.gd.
+var _dsh_simple: RefCounted = null  # DSH_SIMPLEHOSP
+## DSH_SIMPLEHOSP: the rest after one copy errand (arrival or exhausted attempts) before
+## the still-low HP re-arms it. The task is never marked "served".
+const DSH_SIMPLE_REARM_MS := 8000.0  # DSH_SIMPLEHOSP
 var _energy := 100.0  # DSH_ENERGY: the owner's second bar, set once in _init
 var _energy_ready := false  # DSH_ENERGY
 var _dsh_energy_last := Vector3.ZERO  # DSH_ENERGY: the body sample of the previous poll
@@ -176,6 +185,17 @@ func _dsh_med_chain(stage: String, row: Dictionary, detail: String = "") -> void
 		var at: Vector3 = marker
 		if Vector2(here.x - at.x, here.z - at.z).length() > 2.0: return
 	ResDiag.chain(str(_token.get("source_id", "")), stage, row, marker, _token.get("body"), detail, _dsh_hp_pct(row))
+
+## DSH_RESDIAG: the per-frame repaint of one resident's caption. The city steps the hit
+## owner every physics frame, while this life is only polled on its turn in the daily slice
+## (measured period ~1.6 s), so the owner's display is painted from that every-frame hook -
+## with no throttle of any kind in between - as well as from the hit itself.
+func dsh_repaint_caption() -> void:
+	if _disposed or _walk == null: return
+	if not ResDiag.hp_label_on() and not ResDiag.diag_on(): return
+	var row: Dictionary = _life()
+	if row.is_empty(): return
+	_dsh_resdiag_step(row)
 
 ## DSH_RESDIAG: one read-only head-up display per resident, from the existing snapshots.
 func _dsh_resdiag_step(row: Dictionary) -> void:
@@ -424,7 +444,9 @@ func _release_served(task: String) -> void:  # DSH_TASKQUEUE
 ## what `_release_served` records.
 func _dsh_rearm_energy_queue(row: Dictionary) -> void:  # DSH_ENERGY
 	if _energy < _dsh_energy_threshold() * 100.0 and not _dsh_queued_restaurant: _dsh_queue_push("restaurant")
-	if _needs_hospital(row) and not _dsh_queued_hospital: _dsh_queue_push("hospital")
+	# DSH_SIMPLEHOSP: with the direct copy errand the hospital task never enters the
+	# queue, so the queue must not re-arm it here either.
+	if _needs_hospital(row) and not _dsh_queued_hospital and not _dsh_simple_on(): _dsh_queue_push("hospital")
 
 
 func _dsh_energy_queue() -> void:  # DSH_ENERGY
@@ -481,6 +503,16 @@ func _dsh_hp_pct(row: Dictionary) -> float:  # DSH_MEDPRIORITY
 ## the errand ended without arrival, no_goal when the strict threshold was not crossed.
 func _dsh_med_emit(result: String, row: Dictionary, reason: String = "") -> void:  # DSH_MEDPRIORITY
 	if not _dsh_med_on(): return
+	# DSH_ROWPROBE: the identity of the ROW this decision reads, next to the one the hit
+	# stamped. Equal row_hash + a visible _dsh_hit_hp proves both sides share one Dictionary;
+	# a different hash or a missing stamp is the split the owner is looking for.
+	print("DSH_ROWPROBE site=life id=", str(_token.get("source_id", "")), " row_hash=", row.hash(),
+		" health_id=", (_health.get_instance_id() if is_instance_valid(_health) else -1),
+		" hp=", "%.0f" % clampf(float(row.get("hp", 0)), 0.0, 100.0),
+		" stamp_frame=", str(row.get("_dsh_hit_frame", "none")),
+		" stamp_hp=", str(row.get("_dsh_hit_hp", "none")),
+		" stamp_owner=", str(row.get("_dsh_hit_owner", "none")),
+		" frame=", Engine.get_physics_frames())
 	# DSH_MEDPRIORITY: one line per state, and `goal_set`/`no_goal` are keyed by the goal
 	# they describe. Without the key a repeated `_start` of the same goal (measured: 40
 	# `goal_set` lines for 8 residents in 70 s, because the hospital lease frees the task
@@ -689,6 +721,18 @@ func step(delta: float) -> void:
 	if row.is_empty() or row.get("dead",false) or float(row.get("hp",0))<=0:
 		_end_life(); _busy=false; return
 	_now=_health._now()
+	if _dsh_simple_goal_active():  # DSH_SIMPLEHOSP: the direct copy errand owns this tick
+		# The shipped pause owners (health/combat/hit reaction) keep priority: a paused
+		# test resident is not moved by the drive either.
+		if _health.should_pause_walk() or not _host.target_current(_token):
+			_busy=false; return
+		var dsh_simple_result: String = _dsh_simple.step(delta)
+		_dsh_energy_drain()  # DSH_ENERGY: the direct drive is charged like any other walking
+		_dsh_resdiag_step(row)
+		_dsh_quit_after()
+		if dsh_simple_result == "arrived" or dsh_simple_result == "blocked":
+			_dsh_simple_finish(row, dsh_simple_result == "arrived")
+		_busy=false; return
 	if _visit!=null:
 		# Let boarding/exit/interior owners unwind physically before another task.
 		if not _interrupting and _goal.get("kind")!="hospital" and _needs_hospital(row):
@@ -779,6 +823,10 @@ func dsh_notice_damage() -> Dictionary:
 	if row.is_empty() or row.get("dead", false) or float(row.get("hp", 0)) <= 0: return {"ok":false,"reason":"life_not_living"}
 	if str(_goal.get("kind", "")) == "hospital" or _visit != null: return {"ok":true,"reason":"already_serving_health"}
 	if not _needs_hospital(row): return {"ok":true,"reason":"threshold_not_crossed"}
+	if _dsh_simple_on():  # DSH_SIMPLEHOSP: the copy errand is taken directly, never queued
+		_dsh_med_chain("damaged", row, "hp_strictly_below_threshold_from_hit")
+		var simple_started: bool = _dsh_simple_begin(row)
+		return {"ok":simple_started, "reason":"simple_hospital_from_hit" if simple_started else "simple_hospital_pending", "goal":"hospital"}
 	_dsh_marker_ready()
 	_dsh_med_chain("damaged", row, "hp_strictly_below_threshold_from_hit")
 	_dsh_queue_push("hospital")
@@ -787,8 +835,110 @@ func dsh_notice_damage() -> Dictionary:
 	_start(_new_goal(task), task == "hospital")
 	return {"ok":true,"reason":"medical_priority_from_hit","goal":task}
 
+# --------------------------------------------------------------------------- #
+# DSH_SIMPLEHOSP: --city-simple-hospital=1. The owner's rule for this test stand: the
+# standing hospital is off, the hospital IS the palazzo copy (TownClone_1, sign
+# "БОЛЬНИЦА"), and the resident walks to the measured centre of that copy directly -
+# no source_admit, no support_height, no admission band. That point is outside the
+# pinned source crop, so the shipped proof chain can never admit it (measured:
+# support_height_nan -> medical_priority_admission_refused -> the errand ends 25-30 m
+# short of the copy). The walk itself lives in npc_simple_hospital.gd and moves this
+# resident's own body; this life only decides when the errand starts, ends and repeats.
+#
+# The task is never marked served here: while HP is still below the threshold the goal
+# re-arms itself, and a failed run of bounded attempts is repeated after a short rest -
+# the owner's "не помечать served после одной неудачи".
+# --------------------------------------------------------------------------- #
+func _dsh_simple_on() -> bool:  # DSH_SIMPLEHOSP
+	return SimpleHospital.enabled()
+
+func _dsh_simple_goal_active() -> bool:  # DSH_SIMPLEHOSP
+	return _dsh_simple != null and _dsh_simple_on() and str(_goal.get("kind", "")) == "hospital" and _visit == null
+
+## DSH_SIMPLEHOSP: the map the city navigation really walks on. Reached exactly the way
+## npc_daily_walk.gd reaches it: the host's navigation owner, then its backend.
+func _dsh_simple_map() -> RID:  # DSH_SIMPLEHOSP
+	if not is_instance_valid(_host): return RID()
+	var navigation: Variant = _host.get("_navigation")
+	if navigation == null: return RID()
+	if navigation.has_method("map_rid"):
+		var direct: RID = navigation.map_rid()
+		if direct.is_valid(): return direct
+	var backend: Variant = navigation.get("_backend")
+	if backend != null and backend.has_method("map_rid"): return backend.map_rid()
+	return RID()
+
+## DSH_SIMPLEHOSP: the stand's own line for the cases the walk owner cannot report (a
+## target that could not be resolved has no point to print).
+func _dsh_simple_report(result: String, reason: String) -> void:  # DSH_SIMPLEHOSP
+	print("DSH_SIMPLEHOSP id=", str(_token.get("source_id", "")), " target=none dist_m=-1.0",
+		" phase=none result=", result, " reason=", reason,
+		" frame=", Engine.get_physics_frames())
+
+## DSH_SIMPLEHOSP: take the owner's copy errand. The ordinary walk is cancelled first (the
+## same bounded cancellation `_start` uses), because the resident host moves a body only
+## while a navigation request owns it.
+func _dsh_simple_begin(row: Dictionary) -> bool:  # DSH_SIMPLEHOSP
+	if _visit != null: return false
+	var cancelled: Dictionary = _walk.cancel()
+	if not cancelled.get("ok", false):
+		_reason = "simple_hospital_previous_walk_pending"
+		_phase = "IDLE"
+		_next_decision = _now + 500.0
+		return false
+	var target: Dictionary = SimpleHospital.target_of(_dsh_life_scene())
+	var body: Variant = _token.get("body")
+	if not bool(target.get("ok", false)) or not is_instance_valid(body) or not body is CharacterBody3D:
+		_dsh_simple_report("blocked", "target_unresolved:" + str(target.get("reason", "no_body")))
+		_next_medical = _now + 5000.0
+		_next_decision = _now + 5000.0
+		return false
+	if _dsh_simple == null: _dsh_simple = SimpleHospital.new()
+	var started: bool = _dsh_simple.begin(Vector3(target.point), body as CharacterBody3D,
+		_dsh_simple_map(), str(_token.get("source_id", "")), str(target.get("source", "clone_room_centre")))
+	if not started:
+		_dsh_simple_report("blocked", "walk_owner_refused")
+		_next_medical = _now + 5000.0
+		_next_decision = _now + 5000.0
+		return false
+	_goal = _new_goal("hospital")
+	_phase = "WALKING"
+	_reason = ""
+	_dsh_queued_hospital = false  # DSH_TASKQUEUE: the copy errand is never "served"
+	_dsh_med_goal_id = str(_goal.get("goal_id", ""))
+	_dsh_med_reported = true
+	_dsh_med_emit("goal_set", row, "simple_hospital=direct target_source=" + str(target.get("source", "-")))
+	return true
+
+## DSH_SIMPLEHOSP: the end of one copy errand. `arrived` is only ever passed from the walk
+## owner, which measured this body inside the copy's centre; anything else is a block that
+## will be retried while the HP condition holds.
+func _dsh_simple_finish(row: Dictionary, arrived: bool) -> void:  # DSH_SIMPLEHOSP
+	var detail: String = _dsh_simple.last_reason() if _dsh_simple != null else ""
+	# The terminal line is emitted while the hospital goal is still owned, so the
+	# existing per-goal keying of `_dsh_med_emit` keeps working.
+	if arrived:
+		_completed["hospital"] = int(_completed.get("hospital", 0)) + 1
+		_dsh_med_arrival_check()
+	else:
+		_dsh_med_emit("blocked", row, "simple_hospital_blocked:" + detail)
+		_dsh_med_chain("blocked:simple_hospital", row, detail)
+	_goal = {}
+	_phase = "IDLE"
+	_reason = "" if arrived else detail
+	_dsh_queued_hospital = false
+	_next_decision = _now + 1000.0
+	_next_medical = _now + DSH_SIMPLE_REARM_MS
+
 func _choose(row: Dictionary) -> void:
 	_dsh_decisions+=1  # DSH_LIFETRACE
+	# DSH_SIMPLEHOSP: the owner's direct copy errand is decided BEFORE the queue and
+	# before the marker admission, so nothing below can mark the task served or hand this
+	# resident to the standing hospital's controller.
+	if _needs_hospital(row) and _dsh_simple_on():
+		if _dsh_med_on(): _dsh_med_chain("damaged", row, "hp_strictly_below_threshold_simple")
+		_dsh_simple_begin(row)
+		return
 	# DSH_ENERGY / DSH_TASKQUEUE: the owner's ordering. Health outranks energy: a resident
 	# below both thresholds gets hospital first and restaurant next, and neither goal
 	# overwrites the other - they wait in the queue. A resident in neither condition keeps
@@ -1005,6 +1155,7 @@ func _roam() -> void:
 func _end_life() -> void:
 	if _visit!=null:
 		_visit.cancel("actor_life_ended"); _visit.dispose(); _visit=null
+	if _dsh_simple!=null: _dsh_simple.cancel(); _dsh_simple=null  # DSH_SIMPLEHOSP
 	if _walk!=null: _walk.dispose()
 	_phase="RETIRED"; _disposed=true; _factory=Callable()
 	_incident_waiting_release=false; _clear_incident_hold(); _incident_seen.clear(); _incident_seen_ring.clear()
@@ -1020,5 +1171,6 @@ func dispose() -> void:
 		# The host/scene owner keeps stepping until the physical owner releases.
 		if not _visit.snapshot().get("released",false): _interrupting=true; return
 		_visit.dispose(); _visit=null
+	if _dsh_simple!=null: _dsh_simple.cancel(); _dsh_simple=null  # DSH_SIMPLEHOSP
 	if _walk!=null: _walk.dispose()
 	_disposed=true; _phase="DISPOSED"; _factory=Callable()

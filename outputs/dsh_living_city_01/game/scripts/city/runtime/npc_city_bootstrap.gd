@@ -3,6 +3,9 @@ extends Node
 const CityPopulation = preload("res://scripts/npc_city_population.gd")
 const Hospital = preload("res://scripts/hospital/npc_hospital_geometry.gd")
 const Bank = preload("res://scripts/bank_geometry/npc_bank_geometry.gd")
+## DSH_SIMPLEHOSP: --city-simple-hospital=1. The hospital is the palazzo copy; the real
+## site stays attached (the daily cycle refuses to build without it) but is switched off.
+const SimpleHospital = preload("res://scripts/hospital/npc_simple_hospital.gd")
 const OWNER_META := &"native_city_bootstrap_owner"
 const WAIT_FRAMES := 1200
 
@@ -88,6 +91,8 @@ func _attach() -> void:
 		print("CITY_STAGE hospital_null"); return
 	sites.append(hospital)
 	print("CITY_STAGE hospital_ok")
+	if SimpleHospital.enabled():  # DSH_SIMPLEHOSP: the hospital is the palazzo copy now
+		SimpleHospital.disable_standing_hospital(_scene, hospital, Hospital.SOURCE_ID)
 	var bank:=_attach_site(Bank,"res://data/bank_interior.json")
 	if bank==null:
 		print("CITY_STAGE bank_null"); return
