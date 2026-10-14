@@ -244,7 +244,10 @@ func _dsh_test_resident_flags() -> void:
 			continue
 		if not argument.begins_with(TR_NAME_FLAG): continue
 		var raw: String = argument.trim_prefix(TR_NAME_FLAG)
-		while index < arguments.size() and not arguments[index].begins_with("--"):
+		# Continuation pieces end at the next option. `--city-resident-name=тест 1` arrives as
+		# "--city-resident-name=тест" plus "1", and the following "--city-resident-near-player=1"
+		# must stay a flag of its own.
+		while index < arguments.size() and not arguments[index].begins_with("-"):
 			raw += " " + arguments[index]
 			index += 1
 		var separator: int = raw.find(":")
@@ -253,6 +256,9 @@ func _dsh_test_resident_flags() -> void:
 			raw = raw.substr(separator + 1)
 		if not raw.is_empty() and raw.length() > TR_NAME_MAX: raw = raw.substr(0, TR_NAME_MAX)
 		_dsh_tr_name = raw
+	# DSH_TESTRESIDENT diagnostic: the arguments exactly as this process received them, so a
+	# shell that splits or rewrites the name can be told apart from a parser bug.
+	print("DSH_TESTRESIDENT_ARGS ", JSON.stringify(arguments))
 	_dsh_tr_label = not _dsh_tr_name.is_empty()
 
 func _dsh_tr_feature_on() -> bool:
@@ -360,7 +366,6 @@ func _dsh_near_player_point(record: Dictionary) -> Dictionary:
 			var c_cell: float = floor(c) + .5
 			if r_cell < r_min or r >= float(crop.get("r_max", 0.0)) or c_cell < c_min or c >= float(crop.get("c_max", 0.0)): continue
 			var proposed: Vector3 = Vector3(c_cell * TR_CELL_M - TR_ORIGIN.x, at.y, r_cell * TR_CELL_M - TR_ORIGIN.z)
-			if at.distance_to(proposed) > TR_NEAR_REACH_M: continue
 			tried += 1
 			if tried > TR_NEAR_MAX_TRIED: break
 			var height: Variant = _support.call(proposed, identity, record.generation)
@@ -377,7 +382,7 @@ func _dsh_near_player_point(record: Dictionary) -> Dictionary:
 			return {"ok": true, "r": r_cell, "c": c_cell, "distance_m": at.distance_to(proposed), "anchor": at.distance_to(anchor) > .01}
 		if tried > TR_NEAR_MAX_TRIED: break
 	if tried == 0: return {"ok": false, "reason": "no_candidate_inside_city_crop", "tried": tried}
-	return {"ok": false, "reason": "no_admitted_point_near_player(reach_m=%.1f,last=%s)" % [TR_NEAR_REACH_M, last_reason], "tried": tried}
+	return {"ok": false, "reason": "no_admitted_point_near_player(last=%s)" % last_reason, "tried": tried}
 
 # DSH_TESTRESIDENT: the last resort of --city-resident-near-player. The player occupies a
 # spot that is walkable by construction, so the 2.5 m axis neighbours of that spot are valid
