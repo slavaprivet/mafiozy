@@ -510,18 +510,44 @@ func _handoff_support_rids(scene: Node3D) -> Array[RID]:  # DSH_HANDOFFSUPPORT
 	if is_instance_valid(interior):
 		var stack: Array[Node] = []
 		stack.append(interior)
-		# The interior can hand its bodies to the building visual instead of itself.
 		var visual: Node = interior.get_parent()
 		if visual != null and visual != scene: stack.append(visual)
-		while not stack.is_empty():
+		# The interior can hand its bodies to the building visual instead of itself, and
+		# the measured shadow is the building's own modular floor slab (`FloorSlab130`
+		# under `ModularDestructible`, top y=0.150), which carries no source_id meta.
+		# The whole printshop subtree is excluded, bounded.
+		while not stack.is_empty() and _dsh_hs_rids.size() < 256:
 			var node: Node = stack.pop_back()
-			if node is StaticBody3D and str(node.get_meta("source_id", "")) == "REBUILD-VISUAL-print_shop-001":
-				_dsh_hs_rids.append((node as StaticBody3D).get_rid())
+			if node is StaticBody3D: _dsh_hs_rids.append((node as StaticBody3D).get_rid())
 			for child: Node in node.get_children(): stack.append(child)
 	if _handoff_probe_on() == 1 and not _dsh_hs_reported:  # DSH_HANDOFFPROBE
 		_dsh_hs_reported = true
 		print("DSH_HANDOFFSUPPORT interior_valid=", is_instance_valid(interior), " plate_rids=", _dsh_hs_rids.size())
 	return _dsh_hs_rids
+
+# DSH_ERRANDSNAP: --city-errand-off-map-m=<metres> (default 0.12 = today's hard bound in
+# authorize_errand_path and _initial_projection). The value is clamped to be never stricter
+# than the shipped 0.12, so with the default absolutely nothing changes. When it is raised,
+# a route point that the physical floor and the native map disagree about by more than
+# 0.12 m may still be admitted through the EXISTING connector conditions, and the admitted
+# point is snapped onto map_get_closest_point so the movement follows the map instead of
+# empty space. The connector identity (is_actual_start, the 2.0 m gap bound, the
+# native_clear_segment connector) is unchanged.
+var _dsh_errand_off_map := -1.0
+static var _dsh_errand_snap_n := 0
+
+func _errand_off_map_bound() -> float:  # DSH_ERRANDSNAP
+	if _dsh_errand_off_map < 0.0:
+		_dsh_errand_off_map = .12
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-errand-off-map-m="):
+				_dsh_errand_off_map = clampf(float(argument.trim_prefix("--city-errand-off-map-m=")), .12, 8.0)
+	return _dsh_errand_off_map
+
+func _errand_snap_report(index: int, off_map: float, accepted: bool, connector: String) -> void:  # DSH_ERRANDSNAP
+	if _errand_off_map_bound() <= .1200001 or _dsh_errand_snap_n >= 400: return
+	_dsh_errand_snap_n += 1
+	print("DSH_ERRANDSNAP index=", index, " off_map=", "%.4f" % off_map, " accepted=", accepted, " connector=", connector)
 
 func support_height(point: Vector3, id: String, generation: int) -> float:
 	if not Thread.is_main_thread() or _busy or not _owner_allowed(id, generation) or not point.is_finite(): return NAN
@@ -550,6 +576,18 @@ func support_height(point: Vector3, id: String, generation: int) -> float:
 			for dsh_hs_rid: RID in dsh_plate: dsh_ex.append(dsh_hs_rid)
 			_ray.exclude = dsh_ex
 	var hit: Dictionary = scene.get_world_3d().direct_space_state.intersect_ray(_ray)
+	# DSH_HANDOFFSUPPORT: measured shadow is the printshop's own modular floor slab
+	# (`FloorSlab130`, a RigidBody3D of the building's `ModularDestructible` module, top
+	# y=0.150), which is not part of the interior subtree and carries no source_id meta.
+	# The shadowing body is therefore skipped directly: exactly one retry, and only when
+	# the first hit is NOT a registered floor. The retried surface must still pass every
+	# shipped check below (registered _floors identity, normal, palette height).
+	if _handoff_support_on() and not hit.is_empty() and not _floors.has(hit.rid):
+		var dsh_retry: Array[RID] = []
+		for dsh_hs_rid: RID in _ray.exclude: dsh_retry.append(dsh_hs_rid)
+		if not hit.rid in dsh_retry: dsh_retry.append(hit.rid)
+		_ray.exclude = dsh_retry
+		hit = scene.get_world_3d().direct_space_state.intersect_ray(_ray)
 	var result := NAN
 	if not hit.is_empty() and _floors.has(hit.rid) and hit.normal.y >= .70 and absf(hit.position.y - reference.y) < .0001:
 		var floor_record: Dictionary = _floors[hit.rid]
@@ -655,24 +693,38 @@ func authorize_errand_path(activity_owner: RefCounted, token: Dictionary, map: R
 			return {"ok":false,"reason":"detour_suffix_identity"}
 		for offset in path.size() - reused_suffix_from:
 			if path[reused_suffix_from + offset] != vertices[old_suffix_from + offset]: return {"ok":false,"reason":"detour_suffix_changed"}
+	# DSH_ERRANDSNAP: opt-in tolerance for route points the native map does not
+	# cover exactly. The default .12 m is today's exact value (and the helper never
+	# returns less), so with no flag nothing changes; with a larger value an admitted
+	# point is snapped onto the map so movement still follows it.
+	var dsh_off_limit := _errand_off_map_bound()  # DSH_ERRANDSNAP
 	var buckets: Dictionary={};var distance:=0.0
+	var dsh_snapped: PackedVector3Array = path  # DSH_ERRANDSNAP: equals path unless a point is snapped
 	for index in path.size():
 		var point: Vector3=path[index]
 		if not point.is_finite(): return {"ok":false,"reason":"path_point_off_native_map","point_index":index,"point":point,"nonfinite":true}
 		if not reuse_suffix or index < reused_suffix_from:
 			var closest:=NavigationServer3D.map_get_closest_point(map,point)
 			var off_map:=closest.distance_to(point)
-			if off_map>.12:
+			if off_map>dsh_off_limit:  # DSH_ERRANDSNAP
 				# The physical floor and voxel surface can differ at kerbs. Admit
 				# only the actual initial body through its bounded physical connector.
 				# Every subsequent proposal must still lie on the current native map.
 				var actual_start:=index==0 and point.distance_to(token.body.global_position)<=.000001
 				if not actual_start or off_map>2.0:
+					_errand_snap_report(index, off_map, false, "actual_start_or_gap_bound")  # DSH_ERRANDSNAP
 					return {"ok":false,"reason":"path_point_off_native_map","point_index":index,"point":point,"closest":closest,"distance_m":off_map,"is_actual_start":actual_start,"connector_reason":"actual_start_or_gap_bound"}
 				if not native_clear_segment(token,point,closest):
+					_errand_snap_report(index, off_map, false, str(_last_reason))  # DSH_ERRANDSNAP
 					return {"ok":false,"reason":"path_point_off_native_map","point_index":index,"point":point,"closest":closest,"distance_m":off_map,"is_actual_start":actual_start,"connector_reason":_last_reason}
+			elif off_map>.12:
+				# DSH_ERRANDSNAP: the raised tolerance admitted a point that the native
+				# map does not cover exactly; snap the accepted route onto the map so
+				# every later leg, bucket and movement proof works on real map points.
+				point=closest; dsh_snapped[index]=closest
+				_errand_snap_report(index, off_map, true, "snapped_to_closest")
 		if index==0: continue
-		var a: Vector3=path[index-1]
+		var a: Vector3=dsh_snapped[index-1]  # DSH_ERRANDSNAP: equals path[index-1] unless snapped
 		if a.distance_to(point)>_dsh_leg_bound(): return {"ok":false,"reason":"path_leg_exceeds_bound"}  # DSH_POLICYLEG
 		distance+=a.distance_to(point)
 		if distance>2000.0: return {"ok":false,"reason":"path_distance_bound"}
@@ -685,7 +737,7 @@ func authorize_errand_path(activity_owner: RefCounted, token: Dictionary, map: R
 				buckets[key].append([Vector2(a.x,a.z),Vector2(point.x,point.z)])
 	if not _token_current(token,activity_owner) or NavigationServer3D.map_get_iteration_id(map)!=iteration: return {"ok":false,"reason":"owner_or_map_changed"}
 	_cookie+=1
-	_paths[token.source_id]={"owner":weakref(activity_owner),"token":token.duplicate(),"cookie":_cookie,"map":map,"iteration":iteration,"buckets":buckets,"vertices":path.duplicate(),"version":_version,"navigation":weakref(navigation),"backend":weakref(backend)}
+	_paths[token.source_id]={"owner":weakref(activity_owner),"token":token.duplicate(),"cookie":_cookie,"map":map,"iteration":iteration,"buckets":buckets,"vertices":dsh_snapped,"version":_version,"navigation":weakref(navigation),"backend":weakref(backend)}
 	if reuse_suffix:
 		_detour_suffix_reuses += 1
 		_detour_suffix_points += path.size() - reused_suffix_from
@@ -897,6 +949,12 @@ func _native_floor_square(token: Dictionary, point: Vector3, static_excludes: Ar
 			_ray.exclude=floor_excludes
 		_ray.from=Vector3(at.x,y+.3,at.z);_ray.to=Vector3(at.x,y-.3,at.z)
 		var hit: Dictionary=space.intersect_ray(_ray);_counts.floor_rays+=1
+		if _handoff_support_on() and not hit.is_empty() and not _floors.has(hit.rid):  # DSH_HANDOFFSUPPORT
+			var dsh_retry: Array[RID] = []
+			for dsh_hs_rid: RID in _ray.exclude: dsh_retry.append(dsh_hs_rid)
+			if not hit.rid in dsh_retry: dsh_retry.append(hit.rid)
+			_ray.exclude = dsh_retry
+			hit = space.intersect_ray(_ray); _counts.floor_rays += 1
 		if _handoff_probe_on() == 1 and ((_dsh_cell_n < 600) or (at.x > -1.0 and at.x < 13.0 and at.z > 1.0 and at.z < 11.0)):  # DSH_HANDOFFPROBE
 			_dsh_cell_n += 1
 			var dsh_registered: bool = not hit.is_empty() and _floors.has(hit.rid)
@@ -1155,12 +1213,18 @@ func _initial_projection(job: Dictionary, index: int) -> Dictionary:
 			return {"ok":true}
 	var closest:=NavigationServer3D.map_get_closest_point(job.map,point)
 	var off_map:=closest.distance_to(point)
-	if off_map>.12:
+	if off_map>_errand_off_map_bound():  # DSH_ERRANDSNAP: default .12 is today's value
 		var actual_start: bool=index==0 and point.distance_to(job.token.body.global_position)<=.000001
 		if not actual_start or off_map>2.0:
+			_errand_snap_report(index, off_map, false, "actual_start_or_gap_bound")  # DSH_ERRANDSNAP
 			return {"ok":false,"reason":"path_point_off_native_map","point_index":index,"point":point,"closest":closest,"distance_m":off_map,"is_actual_start":actual_start,"connector_reason":"actual_start_or_gap_bound"}
 		if not native_clear_segment(job.token,point,closest):
+			_errand_snap_report(index, off_map, false, str(_last_reason))  # DSH_ERRANDSNAP
 			return {"ok":false,"reason":"path_point_off_native_map","point_index":index,"point":point,"closest":closest,"distance_m":off_map,"is_actual_start":actual_start,"connector_reason":_last_reason}
+		if off_map>.12:  # DSH_ERRANDSNAP: beyond the shipped bound -> move on the map
+			var dsh_path: PackedVector3Array = job.path
+			dsh_path[index]=closest; job.path=dsh_path
+			_errand_snap_report(index, off_map, true, "snapped_to_closest")
 	return {"ok":true}
 
 func _initial_advance(job: Dictionary, deadline: int) -> int:
