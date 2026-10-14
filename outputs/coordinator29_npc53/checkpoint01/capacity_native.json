@@ -1,0 +1,8 @@
+{
+  "checks": 71,
+  "failures": [],
+  "requests": 286,
+  "residents_spawned": 0,
+  "scope": "native admission ledger only, no physical or performance acceptance",
+  "status": "PASS"
+}

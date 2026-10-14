@@ -1,0 +1,50 @@
+{
+	"cases": [
+		{
+			"286_checks_extra_rays": 0,
+			"case": "full_health",
+			"display_ratio": 1.0,
+			"hp_ratio": 1.0,
+			"passed": true,
+			"text": "Здоровье  60 / 60",
+			"visible": true
+		},
+		{
+			"286_checks_extra_rays": 0,
+			"case": "half_health",
+			"display_ratio": 0.5,
+			"hp_ratio": 0.5,
+			"passed": true,
+			"text": "Здоровье  30 / 60",
+			"visible": true
+		},
+		{
+			"286_checks_extra_rays": 0,
+			"case": "low_health",
+			"display_ratio": 0.1,
+			"hp_ratio": 0.1,
+			"passed": true,
+			"text": "Здоровье  6 / 60",
+			"visible": true
+		},
+		{
+			"case": "far_hidden",
+			"passed": true
+		},
+		{
+			"case": "look_away_hidden",
+			"passed": true
+		},
+		{
+			"case": "wall_hidden",
+			"passed": true
+		},
+		{
+			"case": "dead_hidden",
+			"passed": true
+		}
+	],
+	"native_rays": true,
+	"passed": true,
+	"presentation_fixture_only": true
+}

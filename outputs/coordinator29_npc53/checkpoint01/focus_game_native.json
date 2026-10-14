@@ -1,0 +1,14 @@
+{
+	"body_id": 1945754495363,
+	"card_display_ratio": 1.0,
+	"health_modified": false,
+	"health_owner_hp": 60.0,
+	"health_owner_max_hp": 60.0,
+	"native_viewport_aim": true,
+	"npc_relocated": false,
+	"passed": true,
+	"population": [
+		"resident_1"
+	],
+	"text": "Здоровье  60 / 60"
+}

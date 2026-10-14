@@ -1,0 +1,21 @@
+{
+  "scope": "verified partial source checkpoint, not an ordinary-launch assembly",
+  "source_pins": {
+    "scripts/npc_visual/npc_resident_diag.gd": "ec2a4f6fe3c2ec70538359702169b8b97e72ffee154488fde931bfc8f9db1ab4",
+    "scripts/npc_visual/npc_resident_focus29.gd": "dae797ccfc27647b65c86cf239bc85df04f3eb3b965e2c9037c221592acd5601",
+    "scripts/npc_visual/resident_card29.gdshader": "c580804e8aad2cba3a40beba20d1cba54d663bc67abf696780bddef85a61ae2d",
+    "scripts/hospital/npc_physical_route51.gd": "72749a97bc5675e50f97eed03507fcab96dff2641f18a2ef2306f33307df4178",
+    "scripts/hospital/npc_route_budget29.gd": "69d59b1bb4b8d66b7afc116c035f6eecbdc60422c5e1eb48c7dde96caf04a6ce",
+    "scripts/hospital/npc_walk_surface28.gd": "fe28870674944d9b9fc45f338a40f4ced0dfd9e312a7e44fcb3ffc6e416192b1"
+  },
+  "accepted_pointer_changed": false,
+  "population": 1,
+  "remaining": [
+    "canvas text readability",
+    "ambient hand clipping and bench",
+    "phone action",
+    "additional venues",
+    "long route budget",
+    "combined native and perf acceptance"
+  ]
+}
