@@ -409,9 +409,11 @@ func _source_admit_scoped(point: Vector3, id: String, generation: int, radius: f
 		return _token_current(token, null, dsh_memo)
 	if _dsh_split_on: dsh_t = Time.get_ticks_usec()  # DSH_NAVSTEP3
 	var dsh_seg: bool = _source_segment(from,point,true)  # DSH_NAVSTEP3
+	if _handoff_probe_on() == 1 and dsh_seg: _dsh_ss = "floor_square"  # DSH_HANDOFFPROBE
 	if _dsh_split_on: _dsh_add("seg_us", dsh_t)  # DSH_NAVSTEP3
 	if _dsh_split_on: dsh_t = Time.get_ticks_usec()  # DSH_NAVSTEP3
 	var dsh_floor: bool = dsh_seg and _native_floor_square(token,point)  # DSH_NAVSTEP3
+	if _handoff_probe_on() == 1 and dsh_floor: _dsh_ss = "native_segment"  # DSH_HANDOFFPROBE
 	if _dsh_split_on: _dsh_add("floor_us", dsh_t)  # DSH_NAVSTEP3
 	if _dsh_split_on: dsh_t = Time.get_ticks_usec()  # DSH_NAVSTEP3
 	var dsh_proven: bool = dsh_floor and _native_segment(token,from,point,false,dsh_memo)  # DSH_NAVSTEP3
@@ -446,7 +448,7 @@ func _handoff_probe_on() -> int:  # DSH_HANDOFFPROBE
 
 func _handoff_probe(point: Vector3, id: String, index: int, height: float, admit: int, hit: int, hit_y: float, dy: float, reason: String) -> void:  # DSH_HANDOFFPROBE
 	print("DSH_HANDOFF_PROBE id=", id, " point=(", "%.3f" % point.x, ",", "%.3f" % point.y, ",", "%.3f" % point.z,
-		") index=", index, " height=", "%.4f" % height, " admit=", admit, " hit=", hit,
+		") index=", index, " height=", "%.4f" % height, " admit=", admit, " probe_reason=", _dsh_ss, " last_reason=", _last_reason, " hit=", hit,
 		" hit_y=", "%.4f" % hit_y, " dy=", "%.4f" % dy, " reason=", reason)
 
 # DSH_HANDOFFPROBE: temporary read-only scan of the source crop around one tentative
@@ -809,6 +811,14 @@ func _native_floor_square(token: Dictionary, point: Vector3, static_excludes: Ar
 	for offset: Vector2 in OFFSETS:
 		var at:=point+Vector3(offset.x,0,offset.y)
 		var y:=_terrain_height(float(at.x)+395.65,float(at.z)+45.099999999999994)
+		if _handoff_probe_on() == 1 and not is_finite(y):  # DSH_HANDOFFPROBE
+			var dsh_di: int = _world_index(float(at.x)+395.65,float(at.z)+45.099999999999994)
+			print("DSH_HANDOFF_CELL point=(", "%.3f" % at.x, ",", "%.3f" % at.z, ") index=", dsh_di,
+				" land=", int(_land[dsh_di]) if dsh_di >= 0 else -1,
+				" ordinary=", int(_ordinary[dsh_di]) if dsh_di >= 0 else -1,
+				" height=", "%.4f" % _heights[dsh_di] if dsh_di >= 0 else "na",
+				" restricted=", _restricted((float(at.z)+45.099999999999994)/4.1,(float(at.x)+395.65)/4.1,int(_surface.grid[dsh_di/_cols][dsh_di%_cols])) if dsh_di >= 0 else "na",
+				" tile=", int(_surface.grid[dsh_di/_cols][dsh_di%_cols]) if dsh_di >= 0 else -1)
 		if not is_finite(y): return false
 		# Select original support through the audited coplanar duplicate only at
 		# its exact source height. Other floors, steps, ramps and all obstacles
