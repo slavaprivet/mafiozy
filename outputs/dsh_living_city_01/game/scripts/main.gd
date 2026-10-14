@@ -1020,10 +1020,15 @@ var town_extras: Array = []
 
 func _install_town_extras() -> bool:
 	if not city_town_active() or not town_extras.is_empty(): return false
-	# DSH_CITYTOWN: the row is anchored to the AUTHORED SPAWN, 60 m to the north, so the
-	# player never spawns inside a ported shell. The first placement used absolute
-	# origins (0/40/80) and the restaurant landed exactly on the printshop spawn.
-	var dsh_base: Vector3 = _v3(_block["hero"]["spawnLocalM"]) + Vector3(0.0, 0.0, -60.0)
+	# DSH_CITYTOWN: the row is anchored to the AUTHORED SPAWN and placed INSIDE the city
+	# (+45 m along z), clear of the spawn itself and of the surface edge at z ~ -63.
+	# Origins are still overridable with --city-town-row-offset=x,y,z.
+	var dsh_row := Vector3(0.0, 0.0, 45.0)
+	for dsh_argument: String in OS.get_cmdline_user_args():
+		if dsh_argument.begins_with("--city-town-row-offset="):
+			var dsh_parts: PackedStringArray = dsh_argument.trim_prefix("--city-town-row-offset=").split(",")
+			if dsh_parts.size() == 3: dsh_row = Vector3(float(dsh_parts[0]), float(dsh_parts[1]), float(dsh_parts[2]))
+	var dsh_base: Vector3 = _v3(_block["hero"]["spawnLocalM"]) + dsh_row
 	var dsh_plan: Array = [
 		["restaurant_pizza", TownRestaurantSite, dsh_base + Vector3(0.0, 0.0, 0.0), 0.0],
 		["hospital_structural01", TownHospitalSite, dsh_base + Vector3(40.0, 0.0, 0.0), 0.0],
@@ -1069,7 +1074,7 @@ func _install_town_modular30() -> void:
 	var dsh_payload: Variant = dsh_loaded.get("payload")
 	var dsh_source := ""
 	if dsh_payload is Dictionary: dsh_source = str(dsh_payload.get("source_id", ""))
-	print("CITY_TOWN_EXTRA modular30_townhouse013 ", JSON.stringify({"ok": true, "status": "mesh_only_no_damage_owner", "source_id": dsh_source, "origin": [120.0, 0.0, 0.0]}))
+	print("CITY_TOWN_EXTRA modular30_townhouse013 ", JSON.stringify({"ok": true, "status": "mesh_only_no_damage_owner", "source_id": dsh_source, "origin": [dsh_instance.position.x, dsh_instance.position.y, dsh_instance.position.z]}))
 
 func _add_asset(record: Dictionary) -> void:
 	# Every scene passed preflight before any world/physics node was created.
