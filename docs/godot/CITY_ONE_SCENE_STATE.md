@@ -43,6 +43,25 @@
   `completed bank/hospital/shop = 0`. Это следующая цель.
 - Миникарта: `objects=234` = 75 зданий + 159 декора, сцена доходит до `city_ready=true`.
 
+## Состав городка (проверено 14.10, `--city-town=1 --city-town-extras=1`)
+
+`CITY_TOWN built=10 skipped=65 keep=hospital,bank_small_shell_v1,gun_shop,print_shop` — обычные
+неразрушаемые дома из сцены убраны, остаются только здания, куда жители ходят.
+Рядом с палаццо (x 0/40/80/120) стоят перенесённые разрушаемые коробки:
+
+| здание | статус в прогоне |
+|---|---|
+| палаццо (штатный хост) | установлен, C4/стекло |
+| ресторан pizza | `intact`, ~84 мс |
+| больница structural01 | `intact`, ~107 мс |
+| малый банк | `awaiting_native_basement_clearance`, ~108 мс |
+| modular30 townhouse013 | `mesh_only_no_damage_owner` — поставлен через свой pinned-загрузчик, потому что `modular30_host.gd` требует SHA блока палаццо `1523f52e…`; владельца урона и compound-runtime у него ещё НЕТ |
+
+Проверка: `CITY_BOOTSTRAP_READY {"admitted":23,"city_ready":true}`, `DSH_MINIMAP ready=true objects=169`,
+ошибок 0. Полный прогон: `--headless --path <game> res://scenes/main_city.tscn -- --city-town=1
+--city-town-extras=1 --city-door-free-entry=1 --city-site-door-physics=1 --city-needs=1
+--city-bank-visit-release=1 --city-shop-handoff-anchor=1 --city-detour-budget=1 --city-resident-detail=1`.
+
 ## Открытые задачи (по приоритету)
 
 0. **Живой прогон 14.10 (городок + extras + все флаги ниже), точные причины незакрытия дел:**
