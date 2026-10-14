@@ -6,6 +6,10 @@ const HOSPITAL_ID := "REBUILD-VISUAL-hospital-001"
 const HOSPITAL_DATA_SHA := "7b15906501f07624159f1d00ecd86944ea875ec2eb9e4cbb2b00ee0cc7143935"
 const TREATMENT_MS := 4000.0
 const MAX_SAMPLE_GAP_MS := 100.0
+# DSH_TREATWINDOW: opt-in widening of the sampling window only. With no flags the
+# accepted contract (adjacent physics frames, <=100 ms) is byte-for-byte the same.
+var _dsh_window_resolved := -1
+static var _dsh_window_cancels := 0
 var _owner: WeakRef
 var _hospital: WeakRef
 var _host: RefCounted
@@ -125,7 +129,25 @@ func poll(treatment_id: int) -> Dictionary:
 	if frame==_last_frame: _busy=false; return {"status":"PENDING","treatment_id":_active,"elapsed_ms":_elapsed_ms}
 	var now: float=_owner.get_ref()._now()
 	var elapsed := now-_last_now
-	if not is_finite(now) or elapsed<0 or elapsed>MAX_SAMPLE_GAP_MS or frame!=_last_frame+1: return _cancel_active("continuous_physics_presence_required")
+	# DSH_TREATWINDOW: the accepted contract demanded adjacent physics frames and a
+	# gap of at most 100 ms, while the city polls one life per daily slice (~1.5 s
+	# at 286 residents), so treatment could never commit. The two opt-in flags
+	# widen ONLY this sampling window; every arrival, health and commit lease below
+	# is untouched, and without the flags the exact previous condition is used.
+	var dsh_gap_cap: float = MAX_SAMPLE_GAP_MS
+	var dsh_adjacent := true
+	if _dsh_window_resolved < 0:
+		_dsh_window_resolved = 1
+		for dsh_argument: String in OS.get_cmdline_user_args():
+			if dsh_argument.begins_with("--city-treatment-max-gap-ms="):
+				dsh_gap_cap = maxf(0.0, float(dsh_argument.trim_prefix("--city-treatment-max-gap-ms=")))
+			elif dsh_argument.begins_with("--city-treatment-frame-adjacent="):
+				dsh_adjacent = int(dsh_argument.trim_prefix("--city-treatment-frame-adjacent=")) != 0
+	if not is_finite(now) or elapsed<0 or elapsed>dsh_gap_cap or (dsh_adjacent and frame!=_last_frame+1):
+		_dsh_window_cancels += 1
+		if not dsh_adjacent or dsh_gap_cap != MAX_SAMPLE_GAP_MS:
+			print("DSH_TREATWINDOW cancelled=", _dsh_window_cancels, " elapsed_ms=", "%.1f" % elapsed, " gap_cap_ms=", dsh_gap_cap, " adjacent=", dsh_adjacent)
+		return _cancel_active("continuous_physics_presence_required")
 	_elapsed_ms+=elapsed; _last_now=now; _last_frame=frame
 	if _elapsed_ms<TREATMENT_MS: _busy=false; return {"status":"PENDING","treatment_id":_active,"elapsed_ms":_elapsed_ms}
 	return _commit()
