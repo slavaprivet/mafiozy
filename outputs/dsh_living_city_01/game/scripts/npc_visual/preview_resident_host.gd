@@ -483,6 +483,7 @@ func _dsh_apply_resident_name(body: Node3D, motion: Node3D, record: Dictionary) 
 	var dsh_bar: Script = load("res://scripts/npc_visual/npc_test_resident_bar.gd")
 	if dsh_bar != null:
 		label.set_script(dsh_bar)
+		label.set_process(true)
 		label.call("setup", self, str(record.row.source_id), _dsh_tr_name)
 	label.position = Vector3(0, top, 0)
 	body.set_meta("dsh_test_resident_name", _dsh_tr_name)
