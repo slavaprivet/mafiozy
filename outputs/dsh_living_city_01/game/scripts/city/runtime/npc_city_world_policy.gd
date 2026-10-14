@@ -145,7 +145,13 @@ func configure(scene: Node3D, packet_rows: Array, owners: Dictionary, trust: Dic
 	# authored public-approach gaps. Opening an interior door does not grant new
 	# visitation permission. A later interior source provider needs a new scope.
 	var solid_id:=0
+	# DSH_CITYTOWN: a building that the scene left out must not keep its exterior
+	# envelope in _cells, or its freed footprint stays blocked for every resident
+	# probe. With the flag off the callable is absent and this is the same walk.
+	var dsh_town_skip: Callable = Callable()
+	if scene.has_method("city_town_skip"): dsh_town_skip = Callable(scene, "city_town_skip")
 	for building: Dictionary in block.buildings:
+		if dsh_town_skip.is_valid() and bool(dsh_town_skip.call(building)): continue
 		for body: Dictionary in building.collisionBodiesM:
 			var polygon := PackedVector2Array()
 			var bounds := Rect2()

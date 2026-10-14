@@ -139,6 +139,9 @@ const DSH_VISIT_CACHE_KEY := "dsh_visit_scene_cache"  # DSH_VISITCACHE
 var _dsh_slice := 0  # DSH_NAVDAILY: 0 = unresolved
 var _dsh_ids: Array = []  # DSH_NAVDAILY: cached _lives key order
 var _dsh_per_frame := 0  # DSH_NAVDAILY: cached ceil(count/slice)
+# DSH_DAILYMIN: --city-daily-min-per-frame=N is an opt-in FLOOR on how many lives
+# one city step polls. 0 (default) keeps exactly the cached ceil(count/slice).
+var _dsh_min_per_frame := -1  # DSH_DAILYMIN
 const DSH_POLL_RING:=64  # DSH_DAILYFX: per-poll window behind the DSH_DAILY distribution
 var _dsh_poll_ring:=PackedInt32Array()  # DSH_DAILYFX
 var _dsh_poll_cursor:=0  # DSH_DAILYFX
@@ -159,6 +162,14 @@ func _dsh_daily_slice() -> int:  # DSH_NAVDAILY
 			if argument.begins_with("--city-daily-slice="):
 				_dsh_slice = maxi(1, int(argument.trim_prefix("--city-daily-slice=")))
 	return _dsh_slice
+
+func _dsh_daily_min_per_frame() -> int:  # DSH_DAILYMIN
+	if _dsh_min_per_frame < 0:
+		_dsh_min_per_frame = 0
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-daily-min-per-frame="):
+				_dsh_min_per_frame = maxi(0, int(argument.trim_prefix("--city-daily-min-per-frame=")))
+	return _dsh_min_per_frame
 
 # DSH_DAILYFX: --city-daily-budget-us=N stops the rotating slice of ONE city step
 # once N microseconds of it are spent, and the cursor below now advances by the
@@ -347,6 +358,10 @@ func step(delta: float) -> void:
 		_dsh_per_frame=maxi(1,int(ceil(float(count)/float(_dsh_daily_slice()))))
 	var ids: Array=_dsh_ids
 	var per_frame:=_dsh_per_frame
+	# DSH_DAILYMIN: an opt-in floor only. count==0 keeps per_frame untouched and
+	# the loop below breaks immediately, exactly as before.
+	var dsh_min_polls:=_dsh_daily_min_per_frame()
+	if dsh_min_polls>per_frame and count>0: per_frame=mini(count, dsh_min_polls)
 	var stepped:=0
 	var life_total:=0
 	var dsh_budget:=_dsh_daily_budget()  # DSH_DAILYFX

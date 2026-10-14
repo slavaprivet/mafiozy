@@ -1,0 +1,32 @@
+{
+  "schema": "mafiozi.scoped-backup/v1",
+  "baseline_manifest": "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city-integration-preapply.json",
+  "backup_root": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\dsh_living_city_01\\patches\\incident_handoff_20261007_01",
+  "files": {
+    "game\\scripts\\npc_daily_walk.gd": {
+      "sha256": "fb0dd4e97865833c282189cf6ebc1c5d3bcac35848b17e93712af0a26032edf2",
+      "bytes": 16146
+    },
+    "game\\scripts\\npc_daily_life.gd": {
+      "sha256": "3fad28dc6a58d922d070e25e08b97f31f19f99df97af5865c03e178a9c5de00c",
+      "bytes": 17617
+    },
+    "game\\scripts\\npc_city_daily.gd": {
+      "sha256": "867903c544f8b70bceb46723e3d738641f7d864ebba744fc6f7e83a1a35fb6c6",
+      "bytes": 29836
+    },
+    "game\\scripts\\npc_visual\\npc_local_preview_hit_owner.gd": {
+      "sha256": "3b89975e9ebc6479b0b72fdbe4e9bc2e277c3cd30e818e0210c34eaad3f3636b",
+      "bytes": 56898
+    },
+    "game\\scripts\\npc_city_population.gd": {
+      "sha256": "1b1e335e9730d63a85aa052821901d552dab1f4b2c07c529d5e8ff0757b5db24",
+      "bytes": 72754
+    },
+    "Играть_город.cmd": {
+      "sha256": "97afce221951dc87fbac2af47298757182a6944b4f4ec28d8f244ccf2e88e485",
+      "bytes": 623
+    }
+  },
+  "dispatcher_was_absent": true
+}

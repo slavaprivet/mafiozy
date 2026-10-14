@@ -36,6 +36,18 @@ const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8a
 ## "REBUILD-bank:*" source IDs instead of the curated palazzo-only reduction.
 ## Default false, so the accepted preview and every existing benchmark are untouched.
 @export var city_block_mode: bool = false
+## DSH_CITYTOWN: mini-town composition of the living city. When ON, only the
+## buildings whose assetId is in city_town_keep are instantiated; every other
+## source building is skipped in the SCENE while the pinned block data stays
+## byte-identical (SHA and all 75 rows are untouched, so every pin still proves
+## the same source). Default OFF: with the flag absent the loop below is the
+## exact previous path. Enabled by `--city-town=1` or this export.
+@export var city_town_mode: bool = false
+## Comma-separated assetIds kept in town mode. Empty = CITY_TOWN_DEFAULT_KEEP.
+@export var city_town_keep: String = ""
+const CITY_TOWN_DEFAULT_KEEP := "hospital,bank_small_shell_v1,gun_shop,print_shop,old_town_narrow_townhouse_v1"
+var city_town_built := 0
+var city_town_skipped := 0
 @export_file("*.json") var printshop_data_path: String = "res://data/printshop_interior.json"
 @export_file("*.json") var water_data_path: String = "res://data/preview_water.json"
 @export var preview_perf_enabled: bool = false
@@ -186,7 +198,15 @@ func _ready() -> void:
 		# interiors and envelopes are what the city navigation attaches to.
 		_load_printshop_data()
 		for record: Dictionary in _block["buildings"]:
+			# DSH_CITYTOWN: in town mode every non-kept building is skipped in the
+			# scene only. The pinned block data, its SHA and all 75 rows are intact.
+			if city_town_skip(record):
+				city_town_skipped += 1
+				continue
 			_add_asset(record)
+			city_town_built += 1
+		if city_town_active():
+			print("CITY_TOWN built=", city_town_built, " skipped=", city_town_skipped, " keep=", city_town_keep_raw())
 	else:
 		# Removed buildings are never instantiated, including their interior/colliders.
 		printshop_status = "removed_by_user"
@@ -952,6 +972,34 @@ func _build_surface() -> void:
 			body.position = Vector3((int(surface["startCol"]) + (first + col) * 0.5) * cell - _origin.x, float(palette[key]["heightM"]) - 0.08, (int(surface["startRow"]) + row + 0.5) * cell - _origin.z)
 			body.add_child(collision)
 			add_child(body)
+
+## DSH_CITYTOWN: resolved town mode and keep-set. The CLI form wins over the
+## scene export so one run can be changed without editing the scene.
+func city_town_active() -> bool:
+	if city_town_mode: return true
+	for argument: String in OS.get_cmdline_user_args():
+		if argument == "--city-town=1": return true
+	return false
+
+func city_town_keep_raw() -> String:
+	var raw: String = city_town_keep
+	for argument: String in OS.get_cmdline_user_args():
+		if argument.begins_with("--city-town-keep="): raw = argument.trim_prefix("--city-town-keep=")
+	if raw.strip_edges().is_empty(): raw = CITY_TOWN_DEFAULT_KEEP
+	return raw
+
+func city_town_keep_set() -> Dictionary:
+	var keep: Dictionary = {}
+	for item: String in city_town_keep_raw().split(",", false):
+		var key: String = item.strip_edges()
+		if not key.is_empty(): keep[key] = true
+	return keep
+
+## DSH_CITYTOWN: true when this source building stays OUT of the scene. Public
+## because the city world policy reuses the same rule to free its footprints.
+func city_town_skip(record: Dictionary) -> bool:
+	if not city_town_active(): return false
+	return not city_town_keep_set().has(str(record.get("assetId", "")))
 
 func _add_asset(record: Dictionary) -> void:
 	# Every scene passed preflight before any world/physics node was created.

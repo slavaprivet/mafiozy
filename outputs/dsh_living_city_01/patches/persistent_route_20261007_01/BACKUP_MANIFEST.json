@@ -1,0 +1,27 @@
+{
+  "schema": "mafiozi.persistent-route-preapply/v1",
+  "created_utc": "2026-10-07T10:45:02.721572+00:00",
+  "repo_head": "97fab0a5c6050d305182a7bad8c7aa901097525b",
+  "files": {
+    "npc_daily_walk.gd": {
+      "sha256": "694b55cdee7c59e365e563fe199073e359a32fefa8a62cac210050a9bbfcdf83",
+      "bytes": 20528
+    },
+    "npc_visual/preview_resident_host.gd": {
+      "sha256": "4bd44019c3cca3b3816de231970e8c6d14467f700ed4ff3b3f1edf5f412093a4",
+      "bytes": 129834
+    },
+    "city/runtime/npc_city_navigation_host.gd": {
+      "sha256": "f8f5b1c552ef48d9870e16f099fb36eb162456505524013a6018c9a7bd5d330a",
+      "bytes": 53544
+    },
+    "city/runtime/npc_city_engine_navigation.gd": {
+      "sha256": "767cbffc35ea5aba374442eb181bb71eafbf1442b99d20028405a41b0303060d",
+      "bytes": 54108
+    },
+    "city/runtime/npc_city_world_policy.gd": {
+      "sha256": "af757b748de26d8b63e3315dd49d7c0da6f962ba82eff43f2beaf15d9c5a8688",
+      "bytes": 41820
+    }
+  }
+}

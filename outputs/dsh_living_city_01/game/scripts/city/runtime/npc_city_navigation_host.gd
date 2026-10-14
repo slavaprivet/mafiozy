@@ -90,10 +90,23 @@ func _same_floor(a: PackedVector3Array, b: PackedVector3Array) -> bool:
 		if not a[i].is_finite() or a[i].distance_to(b[i]) > 0.00001: return false
 	return true
 
-func _expected(block: Dictionary, data: Dictionary) -> Dictionary:
+func _expected(block: Dictionary, data: Dictionary, scene: Node3D = null) -> Dictionary:
 	var result: Dictionary = {}
+	# DSH_CITYTOWN: a building the scene left out must not be demanded here either,
+	# or the capture fails on shapes that are deliberately absent. Without the
+	# predicate (default) this is the same walk over buildings + decor.
+	var dsh_town_skip: Callable = Callable()
+	if scene != null and scene.has_method("city_town_skip"): dsh_town_skip = Callable(scene, "city_town_skip")
+	# DSH_CITYTOWN: only BUILDINGS can be left out of the scene; decor is always
+	# instantiated, so it must always stay in the expectation set. Resolving the
+	# skipped ids first keeps this the same single walk over buildings + decor.
+	var dsh_skipped: Dictionary = {}
+	if dsh_town_skip.is_valid():
+		for record: Dictionary in block.buildings:
+			if bool(dsh_town_skip.call(record)): dsh_skipped[str(record.id)] = true
 	for record: Dictionary in block.buildings + block.decor:
 		if record.id == Interior.SOURCE_ID: continue
+		if dsh_skipped.has(str(record.id)): continue
 		for body: Dictionary in record.collisionBodiesM:
 			var points := PackedVector3Array()
 			for p: Array in body.polygonXZ:
@@ -160,7 +173,7 @@ func attach_existing(scene: Node3D, interior: Node3D, block: Dictionary, data: D
 	if not queue is Queue or authority.is_empty() or generation < 1 or access_version < 0: return _fail("invalid-authority-or-queue")
 	if block != scene.get("_block") or data != interior.get("_data"): return _fail("data-not-current-built-world")
 	var started := Time.get_ticks_usec()
-	var expected := _expected(block, data)
+	var expected := _expected(block, data, scene)
 	if not _errors.is_empty() or expected.is_empty(): return false
 	var seen: Dictionary = {}
 	var candidates: Array[Node] = []

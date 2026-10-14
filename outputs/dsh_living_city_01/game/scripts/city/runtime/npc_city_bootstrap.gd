@@ -75,7 +75,11 @@ func _attach() -> void:
 		_fail("existing_population"); return
 	if _scene.preview_residents_enabled or _scene.preview_final_dead_contact_enabled:
 		_fail("legacy_startup_enabled"); return
-	if FileAccess.get_sha256(_scene.block_data_path)!=CityPopulation.CITY_BLOCK or _scene._block.get("buildings",[]).size()!=75:
+	# DSH_CITYTOWN: the pinned SHA is still required byte-for-byte. In town mode
+	# the scene deliberately leaves some of the 75 rows out, so only the data pin
+	# is demanded there; the default path keeps the exact 75-row check.
+	var dsh_town: bool = _scene.has_method("city_town_active") and bool(_scene.call("city_town_active"))
+	if FileAccess.get_sha256(_scene.block_data_path)!=CityPopulation.CITY_BLOCK or (not dsh_town and _scene._block.get("buildings",[]).size()!=75):
 		_fail("current_city_block_pin"); return
 	_set_status("loading_city", "Жители: подготовка города")
 	print("CITY_STAGE attaching hospital")

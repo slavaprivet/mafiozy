@@ -931,7 +931,19 @@ func setup_city(scene: Node3D, sites: Array[Node3D], staged_three: bool=false, q
 	policy=CityPolicy.new()
 	var approved: Dictionary=policy.configure(scene,parsed.rows,owners,trust,{"version":1,"states":states})
 	if not approved.get("ok",false): return _fail("city_policy:"+str(approved))
-	_queue=Queue.new(); navigation=CityNavigation.new()
+	_queue=Queue.new()
+	# DSH_NAVPUMP: opt-in per-step budget of the path queue. Without these flags
+	# the queue keeps its exact defaults (8 admits / 4000 us) and this block does
+	# nothing at all. Measured reason: 137 waiting residents at ~2 ready routes/s.
+	var dsh_pump_budget := 4000
+	var dsh_pump_admits := 8
+	for dsh_argument: String in OS.get_cmdline_user_args():
+		if dsh_argument.begins_with("--city-nav-pump-budget-us="): dsh_pump_budget = maxi(0, int(dsh_argument.trim_prefix("--city-nav-pump-budget-us=")))
+		elif dsh_argument.begins_with("--city-nav-pump-admits="): dsh_pump_admits = maxi(1, int(dsh_argument.trim_prefix("--city-nav-pump-admits=")))
+	if dsh_pump_budget != 4000 or dsh_pump_admits != 8:
+		_queue.configure_budget(dsh_pump_budget, dsh_pump_admits)
+		print("DSH_NAVPUMP budget_us=", dsh_pump_budget, " admits=", dsh_pump_admits)
+	navigation=CityNavigation.new()
 	if not navigation.attach_city_existing(scene,scene._printshop,scene._block,scene._printshop_data,_queue,SESSION,1,1,sites): return _fail("city_navigation:"+str(navigation.diagnostics()))
 	residents=Residents.new()
 	var configured: Dictionary=residents.configure(scene,navigation,packet,trust,FileAccess.get_file_as_bytes(CITY_DIRECTORY+"prepared/manifest.json"),CITY_DIRECTORY+"prepared",owners,Callable(policy,"source_admit"),Callable(policy,"support_height"))

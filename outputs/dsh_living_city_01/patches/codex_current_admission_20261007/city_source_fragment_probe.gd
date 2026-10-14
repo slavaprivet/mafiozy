@@ -1,0 +1,117 @@
+extends SceneTree
+const Policy = preload("res://scripts/city/runtime/npc_city_world_policy.gd")
+const Queue = preload("res://scripts/navigation/path_job_queue.gd")
+class SourceScene:
+	extends Node3D
+	var _block := {}
+	var _origin := Vector3(395.65,0,45.1)
+	var block_data_path := "res://data/city_block.json"
+class Host:
+	extends RefCounted
+	var _admit := Callable()
+	var token := {}
+	var owner: RefCounted
+	func _local_walker_current(value: Dictionary) -> bool: return value==token and is_instance_valid(token.body)
+	func physical_life_current(value: Dictionary) -> bool: return _local_walker_current(value)
+	func daily_activity_status(_id: String) -> Dictionary: return {"current":true,"life_generation":1,"owner":owner}
+
+var _scene: Node3D
+var _static_count := 0
+func _initialize() -> void: call_deferred("_run")
+func _floor(size: Vector3, position: Vector3) -> void:
+	var body:=StaticBody3D.new(); body.collision_layer=1
+	var shape:=CollisionShape3D.new(); var box:=BoxShape3D.new(); box.size=size; shape.shape=box
+	body.add_child(shape); body.position=position; _scene.add_child(body)
+func _solid(data: Dictionary) -> void:
+	var points:=PackedVector3Array()
+	for pair: Array in data.polygonXZ:
+		points.append(Vector3(pair[0],data.minY,pair[1])); points.append(Vector3(pair[0],data.maxY,pair[1]))
+	var body:=StaticBody3D.new(); body.collision_layer=1
+	var shape:=CollisionShape3D.new(); var convex:=ConvexPolygonShape3D.new(); convex.points=points; shape.shape=convex
+	body.add_child(shape); _scene.add_child(body); _static_count+=1
+func _run() -> void:
+	_scene=SourceScene.new(); root.add_child(_scene)
+	var block: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://data/city_block.json"))
+	_scene._block=block
+	var surface: Dictionary=block.surface
+	var floor_count:=0
+	for r in int(surface.rows):
+		var c:=0
+		while c<int(surface.cols):
+			var tile:=str(int(surface.grid[r][c])); var palette: Dictionary=surface.palette[tile]
+			if not palette.solid: c+=1; continue
+			var first:=c
+			while c<int(surface.cols) and str(int(surface.grid[r][c]))==tile: c+=1
+			_floor(Vector3((c-first)*4.1,.16,4.1),Vector3((int(surface.startCol)+(first+c)*.5)*4.1-Policy.ORIGIN.x,float(palette.heightM)-.08,(int(surface.startRow)+r+.5)*4.1-Policy.ORIGIN.z))
+			floor_count+=1
+	# Exact authored collision recipe from main.gd; only solids intersecting the
+	# source fragment bounding rectangle are instantiated. No render assets.
+	var fragment:=Rect2(Vector2(53,52),Vector2(64,43))
+	for record: Dictionary in block.buildings+block.decor:
+		for data: Dictionary in record.get("collisionBodiesM",[]):
+			var bounds:=Rect2(); var first:=true
+			for pair: Array in data.polygonXZ:
+				var point:=Vector2(pair[0],pair[1]); bounds=Rect2(point,Vector2.ZERO) if first else bounds.expand(point); first=false
+			if bounds.intersects(fragment): _solid(data)
+	var packet: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://assets/npc_city/session_packet.json"))
+	var owners: Dictionary={}
+	for row: Dictionary in packet.rows: owners[row.source_id]=Queue.Owner.new(row.source_id,1)
+	var policy:=Policy.new()
+	var config: Dictionary=policy.configure(_scene,packet.rows,owners,{"accepted":true,"packet_sha256":Policy.CITY_PACKET_SHA,"block_sha256":Policy.CITY_BLOCK_SHA,"session_id":Policy.SESSION,"packet_path":"res://assets/npc_city/session_packet.json"},{"version":1,"states":{"resident_253":"ordinary_outdoor"}})
+	var body:=CharacterBody3D.new(); body.collision_layer=2; body.collision_mask=1; _scene.add_child(body)
+	var host:=Host.new(); host.owner=RefCounted.new(); host._admit=policy.source_admit
+	host.token={"source_id":"resident_253","life_generation":1,"body":body}
+	var bound:=policy.bind_host(host)
+	for i in range(4): await physics_frame
+	var samples: Array[Dictionary]=[
+		{"request":558,"name":"initial_a","point":Vector3(114.8,0,92.25)},
+		{"request":558,"name":"initial_b","point":Vector3(114.8,.1,92.24999)},
+		{"request":1085,"name":"sample1_a","point":Vector3(60.422593,.1,59.24272)},
+		{"request":1085,"name":"sample1_b","point":Vector3(60.099886,.1,58.90931)},
+		{"request":2801,"name":"sample0_a","point":Vector3(55.46417,.1,54.11986)},
+		{"request":2801,"name":"sample0_b","point":Vector3(55.36105,.1,54.01332)},
+	]
+	var results: Array[Dictionary]=[]
+	var negatives: Array[Dictionary]=[]
+	if config.get("ok",false) and bound:
+		for sample: Dictionary in samples:
+			var point: Vector3=sample.point
+			var static_ok: bool=policy._source_segment(point,point,true)
+			var static_reason: String=policy._last_reason
+			var floor_ok: bool=policy._native_floor_square(host.token,point)
+			var floor_reason: String=policy._last_reason
+			var square_ok: bool=policy._native_segment(host.token,point,point,false)
+			results.append({"request":sample.request,"name":sample.name,"point":point,"source_static_ok":static_ok,"source_reason":static_reason,"floor_ok":floor_ok,"floor_reason":floor_reason,"native_square_ok":square_ok,"native_reason":policy._last_reason})
+		var probe: Vector3=samples[2].point
+		var pinned_shape: CollisionShape3D
+		for floor_record: Dictionary in policy._floors.values():
+			var position: Vector3=floor_record.frame.origin; var size: Vector3=floor_record.size
+			if absf(probe.x-position.x)<size.x*.5 and absf(probe.z-position.z)<size.z*.5:
+				pinned_shape=floor_record.shape.get_ref(); break
+		if pinned_shape!=null:
+			pinned_shape.disabled=true; await physics_frame
+			var lost: bool=policy._native_floor_square(host.token,probe)
+			negatives.append({"name":"lost_actual_source_floor_rejected","ok":not lost,"reason":policy._last_reason})
+			pinned_shape.disabled=false; await physics_frame
+			negatives.append({"name":"restored_source_floor_admitted","ok":policy._native_floor_square(host.token,probe)})
+		var blocker:=StaticBody3D.new(); blocker.collision_layer=256
+		var blocker_shape:=CollisionShape3D.new(); var blocker_box:=BoxShape3D.new(); blocker_box.size=Vector3(.2,1.5,.2)
+		blocker_shape.shape=blocker_box; blocker.add_child(blocker_shape); blocker.position=probe+Vector3(.1,.8,0); _scene.add_child(blocker)
+		await physics_frame
+		var occupied: bool=policy._native_segment(host.token,probe,probe,false)
+		negatives.append({"name":"current_dynamic_square_overlap_rejected","ok":not occupied,"reason":policy._last_reason})
+		blocker.queue_free(); await process_frame; await physics_frame
+		negatives.append({"name":"cleared_current_square_admitted","ok":policy._native_segment(host.token,probe,probe,false)})
+		policy.update_access(2,{"resident_253":"deny"})
+		negatives.append({"name":"actual_policy_access_revoked","ok":not policy.source_admit(probe,"resident_253",1,.738,"placement")})
+	var negative_ok:=negatives.size()==5
+	for negative: Dictionary in negatives: negative_ok=negative_ok and bool(negative.ok)
+	var result:={"configured":config,"host_bound":bound,"floor_count":floor_count,"static_fragment_count":_static_count,"samples":results,"negative_checks":negatives,"negative_ok":negative_ok,"scope":"exact pinned source floor/static recipes with fixture current owner; excludes past live vehicles/NPCs and does not recreate past authority state or rejection frame"}
+	for arg: String in OS.get_cmdline_user_args():
+		if arg.begins_with("--qa-out="):
+			var out:=arg.trim_prefix("--qa-out="); DirAccess.make_dir_recursive_absolute(out)
+			var file:=FileAccess.open(out.path_join("RESULT.json"),FileAccess.WRITE); file.store_string(JSON.stringify(result,"\t")); file.close()
+	print("SOURCE_FRAGMENT ",JSON.stringify(result))
+	policy.dispose(); _scene.queue_free()
+	await create_timer(2.0).timeout
+	quit(0 if config.get("ok",false) and bound and negative_ok else 1)

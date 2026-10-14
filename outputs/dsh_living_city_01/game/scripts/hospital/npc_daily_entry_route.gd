@@ -2,6 +2,7 @@ extends RefCounted
 ## Opt-in LOCAL entry proxy. Host.step is the only caller allowed to move.
 ## Pinned source polygons retain the .738m square; actual native shapes remain.
 const Sweep = preload("npc_contact_sweep.gd")
+const DoorOpen = preload("res://scripts/city/runtime/npc_city_door_open.gd")  # DSH_DOORFREE
 const ACCEPTED := {
 	"REBUILD-VISUAL-hospital-001":"38fd812d2619fe9ba705ff042bfdcb9b6488747902daba3be94f7b1d744983c1",
 	"REBUILD-bank:small":"f391543571b8eafef6aef2feccd14ce3e28dd00a5c46d4ed93b66c8ee7d520ba"}
@@ -41,6 +42,11 @@ var _sweep := Sweep.new()
 var _ray := PhysicsRayQueryParameters3D.new()
 var _capsule := PhysicsShapeQueryParameters3D.new()
 var _square := PhysicsShapeQueryParameters3D.new()
+# DSH_DOORFREE / DSH_SITEPHYS counters. Nothing here runs unless a flag is set.
+var _door_open_requests := 0
+var _door_open_failures := 0
+var _door_physics_ticks := 0
+var _door_goal_reached := 0
 var diagnostics := {"steps":0,"travel_m":0.0,"step_us_total":0,"step_us_max":0,"floor_queries":0,"source_sweeps":0,"reason":"","current_us_peaks":[]}
 
 static func _v(value: Array) -> Vector3: return Vector3(value[0],value[1],value[2])
@@ -232,6 +238,8 @@ func configure(owner: RefCounted, outdoor: RefCounted, navigation: RefCounted, r
 	_index_floors();_phase="READY"
 	host._records[token.source_id]["local_route_owner"]=weakref(self)
 	if not _current(): dispose();return {"ok":false,"reason":"geometry_or_actor_lease"}
+	if DoorOpen.free_entry() or DoorOpen.site_door_physics():
+		print("DSH_DOORFREE entry_route source_id=",id," free_entry=",DoorOpen.free_entry()," site_door_physics=",DoorOpen.site_door_physics()," half_width_m=",DoorOpen.half_width_m())
 	return {"ok":true,"source_id":id,"host_sole_mover":true}
 
 func _watch_resource(resource: Resource) -> void:
@@ -363,16 +371,24 @@ func _source_segment(from:Vector3,to:Vector3) -> bool:
 	if not _current(false) or from.distance_to(to)>5.1:return false
 	var fraction:float=interior.door_fraction("public")
 	if fraction!=0.0 and fraction!=1.0:diagnostics.reason="door_moving";return false
+	# DSH_DOORFREE: with free entry and the leaf fully open, the authored open-leaf
+	# polygons stop being a barrier and the .738m corner-floor square collapses to
+	# the centre point. Walls stay in _solids, and the real capsule/sweep proof in
+	# _native_clear still runs for every leg; the .738m footprint is preserved for
+	# the wall/occupant sweep below.
+	var free_open:bool = DoorOpen.free_entry() and fraction==1.0
+	var floor_offsets:Array = [Vector2.ZERO] if free_open else OFFSETS
+	var door_solids:Array = [] if free_open else (_data.openDoors if fraction==1.0 else _data.closedDoors)
 	var bounds:Array=_data.bounds
 	var count:=maxi(1,ceili(Vector2(to.x-from.x,to.z-from.z).length()/.35))
 	for i:int in range(count+1):
 		var p:=from.lerp(to,float(i)/count)
 		if p.x<bounds[0] or p.x>bounds[2] or p.z<bounds[1] or p.z>bounds[3]:diagnostics.reason="outside_entry_scope";return false
-		for offset:Vector2 in OFFSETS:
+		for offset:Vector2 in floor_offsets:
 			if not is_finite(_floor_preview(p.x+offset.x,p.z+offset.y)):diagnostics.reason="source_native_corner_floor";return false
 		if not host._owned_clear(p,token.source_id):diagnostics.reason="other_actor";return false
 	if not _sweep.begin_segment([from.x+_origin.x,from.z+_origin.z],[to.x+_origin.x,to.z+_origin.z],HALF):return false
-	for solid:Dictionary in _solids+(_data.openDoors if fraction==1.0 else _data.closedDoors):
+	for solid:Dictionary in _solids+door_solids:
 		diagnostics.source_sweeps+=1
 		if _sweep.blocks_polygon(solid.polygonCR,_floor_world,float(solid.minYM),float(solid.maxYM)):diagnostics.reason="source_square_solid";return false
 	return _current(false)
@@ -411,7 +427,8 @@ func _native_clear(from:Vector3,to:Vector3) -> bool:
 func request_target(key:String) -> Dictionary:
 	if _busy or not _current() or not _data.goals.has(key):return {"ok":false,"reason":"current_entry_goal"}
 	if _requests.size()>=64:return {"ok":false,"reason":"bounded_entry_requests"}
-	if key in ["threshold","inside","service"] and interior.door_fraction("public")!=1.0:return {"ok":false,"reason":"public_door_not_open"}
+	if key in ["threshold","inside","service"] and interior.door_fraction("public")!=1.0:
+		if not _open_public_door():return {"ok":false,"reason":"public_door_not_open"}
 	var target:Vector3=_handoff if key=="handoff" else _v(_data.goals[key])
 	var points:PackedVector3Array=[];var previous:=body.global_position
 	var count:=maxi(1,ceili(Vector2(target.x-previous.x,target.z-previous.z).length()/1.0))
@@ -426,6 +443,55 @@ func request_target(key:String) -> Dictionary:
 	_requests[_active]={"status":"READY","reason":"","points":points,"edge":0,"key":key}
 	host._records[token.source_id].request=_active
 	return {"ok":true,"request_id":_active,"goal_key":key}
+
+## DSH_DOORFREE: the resident opens the public door itself.
+## With --city-door-free-entry=1 the door is requested with an empty occupant
+## list (the user rule is "no barrier at the entrance") and advanced in bounded
+## steps inside this same call. Without the flag this returns false and every
+## caller keeps the original refusal path.
+func _open_public_door() -> bool:
+	if not DoorOpen.free_entry():
+		return false
+	if not is_instance_valid(interior) or not interior.has_method("request_door") or not interior.has_method("advance") or not interior.has_method("door_fraction"):
+		return false
+	_door_open_requests+=1
+	var requested:Dictionary=interior.request_door("public",true,body.global_position,[])
+	if not bool(requested.get("accepted",false)):
+		_door_open_failures+=1
+		print("DSH_DOORFREE public_door request_rejected reason=",str(requested.get("reason",""))," requests=",_door_open_requests," failures=",_door_open_failures)
+		return false
+	for advance_count:int in range(60):
+		if interior.door_fraction("public")>=1.0-DoorOpen.OPEN_EPSILON:
+			_door_goal_reached+=1
+			print("DSH_DOORFREE public_door opened advances=",advance_count," fraction=",interior.door_fraction("public")," requests=",_door_open_requests," reached=",_door_goal_reached)
+			return true
+		interior.advance(0.05,[])
+	_door_open_failures+=1
+	print("DSH_DOORFREE public_door stuck fraction=",interior.door_fraction("public")," requests=",_door_open_requests," failures=",_door_open_failures)
+	return false
+
+## DSH_SITEPHYS: one bounded leaf advance per walker step. With free entry the
+## occupant list is empty (explicitly requested); otherwise the host rows are used
+## with the requesting walker removed, so an actor never freezes its own leaf.
+func _advance_site_door_physics(delta:float) -> void:
+	if not DoorOpen.site_door_physics() or not is_instance_valid(interior) or not interior.has_method("advance"):
+		return
+	if not is_finite(delta) or delta<=0.0 or delta>.05:
+		return
+	var people:Array=[]
+	if not DoorOpen.free_entry() and host!=null and host.has_method("occupants"):
+		var rows:Variant=host.occupants()
+		if rows is Array:
+			for row:Variant in rows:
+				if not row is Dictionary: continue
+				var at:Variant=row.get("position")
+				if at is Vector3 and is_finite((at as Vector3).x) and (at as Vector3).distance_to(body.global_position)<0.40: continue
+				people.append(row)
+	interior.advance(delta,people)
+	_door_physics_ticks+=1
+	if _door_physics_ticks%120==1:
+		var fraction: float = float(interior.door_fraction("public")) if interior.has_method("door_fraction") else -1.0
+		print("DSH_SITEPHYS ticks=",_door_physics_ticks," fraction=",fraction," occupants=",people.size())
 
 func poll(id:int) -> Dictionary:
 	if id<LOCAL_ID_BASE:return base_nav.poll(id)
@@ -454,6 +520,7 @@ func purposeful_handoff_current() -> bool:
 func step(id:int,delta:float,speed:float,gravity:float) -> Dictionary:
 	if id<LOCAL_ID_BASE:return base_nav.step(id,delta,speed,gravity)
 	var result:=poll(id)
+	_advance_site_door_physics(delta)  # DSH_SITEPHYS
 	if _busy or not host._busy or host._navigation!=self or result.status!="READY" or id!=_active or delta<=0 or delta>.05 or not is_finite(delta) or not is_finite(speed) or speed<=0 or speed>5:return result
 	_busy=true;var start_us:=Time.get_ticks_usec();_floors.clear()
 	var request:Dictionary=_requests[id];var before:=body.global_position;var target:Vector3=request.points[request.edge]

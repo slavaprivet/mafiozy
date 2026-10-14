@@ -1,0 +1,19 @@
+{
+  "backend_before_sha256": "2d893ee2c3b02a64fb7a44a60c71977d34f28bd4733786303749a3e639a370fb",
+  "backend_candidate_sha256": "d4056050cada835c814587a3b41ca17b8e67acbe3907a5346fd3a002dff02567",
+  "host_before_sha256": "229ec4c0fb119b47e92ae8bc66348181fa3a8a2f301329683e453900664f8418",
+  "host_candidate_sha256": "ae4f3f47f17b863d874f46a06e05ff39e581437e598dc842d2f90a401a91b738",
+  "scope": "Target-only experimental bounded path-distance lookahead, default0; actual validation sampling/budgets/permissions/collision unchanged; additive gate diagnostics",
+  "publication": "DEFERRED_BY_USER",
+  "frontier-lookahead-canary03": {
+    "checks": 20,
+    "result_sha256": "be53f3156e5ef650b6f27b85dd62c8c7c552276b2b392fdc1ad1e870be78bea7"
+  },
+  "frontier-backend-guards01": {
+    "checks": 20,
+    "result_sha256": "190cb284ba854cbe105af1f45f80ce6a190b4f67955c42b89f421bfcfc974c43"
+  },
+  "applied_utc": "2026-10-07T17:53:37.440345+00:00",
+  "backup": "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\dsh_living_city_01\\patches\\codex_frontier_lookahead_20261007",
+  "full_city_after_patch": "NOT_RUN"
+}

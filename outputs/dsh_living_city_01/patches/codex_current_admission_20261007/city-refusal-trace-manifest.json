@@ -1,0 +1,6 @@
+{
+  "source": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\dsh_living_city_01\\game\\scripts\\city\\runtime\\npc_city_engine_navigation.gd",
+  "before_sha256": "f078f28b32667e3cc8eb06f41b5c474d13f804f309b05bbbeb8f338b46f6a2a7",
+  "candidate_sha256": "2d893ee2c3b02a64fb7a44a60c71977d34f28bd4733786303749a3e639a370fb",
+  "scope": "Bounded 16 refusal records; exact source_a/source_b/capsule_sweep operands before path cleanup; no admission/physics/movement change; policy reason labelled observation."
+}

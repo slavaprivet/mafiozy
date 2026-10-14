@@ -1,0 +1,377 @@
+{
+  "schema": "mafiozy.local-ground-checkout-checkpoint/v1",
+  "captured_utc": "2026-10-07T15:46:44.130058+00:00",
+  "launch_path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\dsh_living_city_01\\Играть_город.cmd",
+  "scene": "res://scenes/main_city.tscn",
+  "source_files_sha256": {
+    "scripts/shop/npc_daily_shop.gd": "0e22ea589129772cb6d2b15c9f41a015f5d78cc8bbcf569b1cf46655fd0011b7",
+    "scripts/shop/npc_local_shop_visit.gd": "32528e3d30177d5c3ed7668316403397b28d76132874adbd9702db66ef9adf21",
+    "scripts/shop/npc_local_account.gd": "9acdba29c8315871636b4c8b9a722d2fd54fdf6e256ac8d2d4c9fd082a60d50d",
+    "scripts/city/runtime/npc_city_engine_navigation.gd": "2d893ee2c3b02a64fb7a44a60c71977d34f28bd4733786303749a3e639a370fb",
+    "scripts/city/runtime/npc_city_world_policy.gd": "9c46025e19f52c8b2c97b61e380b83be37745a0c085f9e1e7fd70108ae9be3f8",
+    "scripts/npc_daily_walk.gd": "311d2e84500b8e39e88682fc8d2b034d4f4b2b8a2d6ad3200102e82b189b6ef0",
+    "scripts/npc_visual/preview_resident_host.gd": "5d75b7a82aac6389d1deb3d6b4a9a77a2717de66a082e21ca4fcef2cfa084687",
+    "scripts/destruction/palazzo/palazzo_ground.gd": "6f2bc8493e5cfa75e4f7f47df6fd6609672e3196b9a0fa642912ea0d69aacec3",
+    "scripts/preview_printshop_interior.gd": "8ca46fcaa295090070bd12a4046ba31450ad6c07ce8e6341c4849fd5a64d6371",
+    "scenes/main_city.tscn": "9a252531ceda19074bc2a9ac9a674d4b26f3c2a1331821490901cadeb09d9be5",
+    "project.godot": "5e45528ade62ce0cb89aa53aa7f7d3e5f18aa1574c2555ae37cd5a972ae8bedf"
+  },
+  "patches": [
+    "Previously accepted: Visit180 begins only after Visit.begin; cumulative Walk900/stall/detour/release guards retained.",
+    "Previously accepted: motion callback current every step; source/access TTL disabled; bounded validation refusal contexts retained.",
+    "Exact current Palazzo duplicate support identity/geometry audited; its RID excluded only in source_y0 support rays. Original pinned source floor still required. Capsule/square/sweep geometry and masks unchanged.",
+    "Account.poll_service settles existing BROWSING service before parent can advance to EXITING on sparse tick. Current account/life/physical/pause/clock guards retain all authority. Original return/release unchanged."
+  ],
+  "actual_checks": {
+    "duplicate_support": {
+      "result": "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city-duplicate-support-canary02\\capture\\RESULT.json",
+      "sha256": "32f05198a6eca1c4ac55e3ab0d56e66567ababf82a10e8c52c1ca6d5e6d8752b",
+      "passed": 27,
+      "failed": 0,
+      "scope": "Production policy/source floors/Ground.install, with fixture current owner; exact endpoints and mutation guards; backend map/life/mover guards are a separate canary"
+    },
+    "backend_guards": {
+      "result": "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city-backend-negative-guards06\\capture\\RESULT.json",
+      "sha256": "190cb284ba854cbe105af1f45f80ce6a190b4f67955c42b89f421bfcfc974c43",
+      "passed": 20,
+      "failed": 0,
+      "scope": "actual backend and physics with fixture source callback; no live host/policy or city performance claim"
+    },
+    "checkout_scratch": {
+      "result": "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\shop-completion-candidate03\\RESULT.json",
+      "sha256": "492bdff4e81e195d48e24a18c3530e5ab0f1890478c66c81348253728c1138aa",
+      "passed": 43,
+      "failed": 0,
+      "scope": "actual_commerce_controllers_after_entry_fixture; not city physical acceptance"
+    },
+    "checkout_local_applied": {
+      "result": "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\shop-completion-local-applied01\\RESULT.json",
+      "sha256": "c155224950dfbd28f47701820ae5e1449d9c273f1d131134b79b8eaf9172775d",
+      "passed": 43,
+      "failed": 0,
+      "scope": "actual_commerce_controllers_after_entry_fixture; not city physical acceptance"
+    }
+  },
+  "proof_before_fix": {
+    "result": "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city-ground-shadow-proof01\\capture\\RESULT.json",
+    "source_b": "PalazzoGroundExtension/DryGround intercepts (-.738,+/-.738) rays at actual source_b; y=-1.49e-8 normal(0,1,0), unknown floor RID; source_a pinned; old55.36 endpoint likewise fails"
+  },
+  "checkout_baseline": {
+    "result": "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\shop-completion-baseline02\\RESULT.json",
+    "checks": 43,
+    "expected_failed_assertions": 3,
+    "observation": "Delayed tick4000 switches EXITING first, account cancels; no receipt. Correct candidate commits one local receipt; fixture after-entry, not real city arrival."
+  },
+  "actual_gui": {
+    "result": "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city-duplicate-support-live500s01\\capture\\RESULT.json",
+    "sha256": "69d40ea0f3e4e7bcc360615154e620ff465b599571311de4bf2c4c4c9f3d2244",
+    "capture_ms": 500001,
+    "requested_capture_ms": 500000,
+    "scheduler": {
+      "mode": "graphical",
+      "performance_accepted": false,
+      "command": [
+        "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "--path",
+        "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\dsh_living_city_01\\game",
+        "--script",
+        "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city_exact_refusal_live_probe.gd",
+        "--",
+        "--qa-out=C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city-duplicate-support-live500s01\\capture",
+        "--qa-warmup-ms=5000",
+        "--qa-capture-ms=500000",
+        "--city-sim-lod=1",
+        "--city-admit-ttl=8",
+        "--city-sim-stride=3",
+        "--city-recover-ttl=3",
+        "--city-clear-cache=1",
+        "--city-nav-pump-every=2",
+        "--city-daily-slice=96",
+        "--city-motion-retry=8",
+        "--city-navstep-slim=1",
+        "--city-policy-slim=1",
+        "--city-timing=0",
+        "--city-health-lease",
+        "--city-audit-cache=1",
+        "--city-audit-probe-defer=1",
+        "--city-load-reuse-probe=1",
+        "--city-persistent-route-id=resident_253"
+      ],
+      "passed": true,
+      "lease": {
+        "id": "3eb80fdbba9547648c6faec4dd73d35a",
+        "owner": {
+          "pid": 16848,
+          "creation_filetime": "134358599873221920"
+        },
+        "mode": "graphical",
+        "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\dsh_living_city_01\\game",
+        "access": "write",
+        "children": [
+          {
+            "pid": 19544,
+            "creation_filetime": "134358599883377658",
+            "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\dsh_living_city_01\\game --script C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city_exact_refusal_live_probe.gd -- --qa-out=C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city-duplicate-support-live500s01\\capture --qa-warmup-ms=5000 --qa-capture-ms=500000 --city-sim-lod=1 --city-admit-ttl=8 --city-sim-stride=3 --city-recover-ttl=3 --city-clear-cache=1 --city-nav-pump-every=2 --city-daily-slice=96 --city-motion-retry=8 --city-navstep-slim=1 --city-policy-slim=1 --city-timing=0 --city-health-lease --city-audit-cache=1 --city-audit-probe-defer=1 --city-load-reuse-probe=1 --city-persistent-route-id=resident_253",
+            "command": [
+              "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+              "--path",
+              "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\dsh_living_city_01\\game",
+              "--script",
+              "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city_exact_refusal_live_probe.gd",
+              "--",
+              "--qa-out=C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city-duplicate-support-live500s01\\capture",
+              "--qa-warmup-ms=5000",
+              "--qa-capture-ms=500000",
+              "--city-sim-lod=1",
+              "--city-admit-ttl=8",
+              "--city-sim-stride=3",
+              "--city-recover-ttl=3",
+              "--city-clear-cache=1",
+              "--city-nav-pump-every=2",
+              "--city-daily-slice=96",
+              "--city-motion-retry=8",
+              "--city-navstep-slim=1",
+              "--city-policy-slim=1",
+              "--city-timing=0",
+              "--city-health-lease",
+              "--city-audit-cache=1",
+              "--city-audit-probe-defer=1",
+              "--city-load-reuse-probe=1",
+              "--city-persistent-route-id=resident_253"
+            ],
+            "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+            "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+            "mode": "graphical",
+            "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\dsh_living_city_01\\game"
+          }
+        ],
+        "deadline": 328206.2129708,
+        "queued_at": 328086.2129708,
+        "ticket": 637,
+        "inventory_before": [],
+        "editor_identities": [],
+        "queue_wait_seconds": 0.5112077000085264
+      },
+      "child": {
+        "pid": 19544,
+        "creation_filetime": "134358599883377658",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\dsh_living_city_01\\game --script C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city_exact_refusal_live_probe.gd -- --qa-out=C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city-duplicate-support-live500s01\\capture --qa-warmup-ms=5000 --qa-capture-ms=500000 --city-sim-lod=1 --city-admit-ttl=8 --city-sim-stride=3 --city-recover-ttl=3 --city-clear-cache=1 --city-nav-pump-every=2 --city-daily-slice=96 --city-motion-retry=8 --city-navstep-slim=1 --city-policy-slim=1 --city-timing=0 --city-health-lease --city-audit-cache=1 --city-audit-probe-defer=1 --city-load-reuse-probe=1 --city-persistent-route-id=resident_253",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--path",
+          "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\dsh_living_city_01\\game",
+          "--script",
+          "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city_exact_refusal_live_probe.gd",
+          "--",
+          "--qa-out=C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city-duplicate-support-live500s01\\capture",
+          "--qa-warmup-ms=5000",
+          "--qa-capture-ms=500000",
+          "--city-sim-lod=1",
+          "--city-admit-ttl=8",
+          "--city-sim-stride=3",
+          "--city-recover-ttl=3",
+          "--city-clear-cache=1",
+          "--city-nav-pump-every=2",
+          "--city-daily-slice=96",
+          "--city-motion-retry=8",
+          "--city-navstep-slim=1",
+          "--city-policy-slim=1",
+          "--city-timing=0",
+          "--city-health-lease",
+          "--city-audit-cache=1",
+          "--city-audit-probe-defer=1",
+          "--city-load-reuse-probe=1",
+          "--city-persistent-route-id=resident_253"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "graphical",
+        "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\dsh_living_city_01\\game"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 564.754356999998,
+      "errors": [],
+      "stderr_bytes": 0,
+      "perf_environment_clean": false,
+      "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+    },
+    "admitted": 284,
+    "source_hashes_changed_during_run": false,
+    "stop_reason": "capture_limit",
+    "target_validation_refusal": {},
+    "target": {
+      "body": "(9.388154, 0.000784, 6.515806)",
+      "distance_to_handoff_m": 1.2770369052887,
+      "completed_shop": 0,
+      "life_phase": "ACTIVITY",
+      "activity_phase": "APPROACH",
+      "activity_released": false,
+      "host": {
+        "body_id": null,
+        "owner_id": null,
+        "request": 1792,
+        "status": "READY",
+        "target": null
+      },
+      "nav": {
+        "backend_id": 1792,
+        "body_id": 1814019776815,
+        "body_identity_current": true,
+        "edge": 41,
+        "owner_id": -9223371007807405733,
+        "path_next": "(9.288435, 0.1, 6.412779)",
+        "path_points": 42,
+        "status": "READY",
+        "target": "(8.5, 0.1, 5.598197)"
+      },
+      "job": {
+        "edge": 42,
+        "epoch": 1,
+        "id": 1792,
+        "iteration": 2,
+        "life_generation": 1,
+        "owner_instance": -9223371007807405733,
+        "path_next": "(9.120001, 0.1, 6.238759)",
+        "path_points": 47,
+        "phase": "VALIDATING",
+        "reason": "",
+        "sample": 0,
+        "source_id": "resident_253",
+        "start": "(80.18231, 0.000835, 79.65774)",
+        "status": "READY",
+        "target": "(8.5, 0.1, 5.598197)",
+        "validation_refusal": {}
+      },
+      "account": {
+        "account": {
+          "bank": 0,
+          "cash": 40,
+          "deposit_seen": false,
+          "initial_total": 40,
+          "inventory": {},
+          "life_generation": 1,
+          "order_serial": 0,
+          "pending_purchase": {
+            "building_id": "REBUILD-VISUAL-print_shop-001",
+            "goal_id": "resident_253:daily:1",
+            "item": "newspaper",
+            "price": 3
+          },
+          "receipts": [],
+          "sequence": 0,
+          "session_id": "godot-preview-new-session-20260927-01",
+          "settled_visits": {},
+          "source_id": "resident_253",
+          "spent": 0
+        },
+        "bank_bound": true,
+        "conserved": true,
+        "order": {},
+        "scope": "new_local_session_account",
+        "server_authority": false
+      }
+    },
+    "completion_totals": {
+      "bank": 0,
+      "drive": 0,
+      "hospital": 0,
+      "shop": 0,
+      "walk": 232
+    },
+    "daily_phases": {
+      "ACTIVITY": 263,
+      "WALKING": 18,
+      "IDLE": 2,
+      "RESTING": 1
+    },
+    "resident_statuses": {
+      "PENDING": 217,
+      "ARRIVED": 15,
+      "READY": 21,
+      "PENDING_PLACEMENT": 3,
+      "IDLE": 28,
+      "BLOCKED": 2,
+      "NO_PATH": 1
+    },
+    "render_intervals": {
+      "count": 33818,
+      "max_ms": 230.005,
+      "p50_ms": 7.618,
+      "p95_ms": 34.203,
+      "p99_ms": 93.971
+    },
+    "raw_render_intervals_in_result": true,
+    "memory_godot": {
+      "nodes": 50879,
+      "objects": 117511,
+      "peak_static_bytes": 1137482516,
+      "resources": 4136,
+      "static_bytes": 1127662240,
+      "video_bytes": 607015408
+    },
+    "process_memory_samples": [
+      {
+        "utc": "2026-10-07T15:24:18.4913354Z",
+        "pid": 19544,
+        "creation_filetime": "134358599883377658",
+        "working_set_bytes": 2768801792,
+        "peak_working_set_bytes": 2768805888,
+        "private_bytes": 3468824576,
+        "virtual_bytes": 8670896128,
+        "cpu_seconds": 315.015625
+      },
+      {
+        "utc": "2026-10-07T15:25:46.7091728Z",
+        "pid": 19544,
+        "creation_filetime": "134358599883377658",
+        "working_set_bytes": 2782916608,
+        "peak_working_set_bytes": 2782920704,
+        "private_bytes": 3483508736,
+        "virtual_bytes": 8695865344,
+        "cpu_seconds": 418.640625
+      },
+      {
+        "utc": "2026-10-07T15:28:22.3773241Z",
+        "pid": 19544,
+        "creation_filetime": "134358599883377658",
+        "working_set_bytes": 2795376640,
+        "peak_working_set_bytes": 2795380736,
+        "private_bytes": 3496235008,
+        "virtual_bytes": 8704253952,
+        "cpu_seconds": 602.578125
+      }
+    ],
+    "process_working_set_peak_observed_bytes": 2795376640,
+    "process_private_peak_observed_bytes": 3496235008,
+    "logic_peak_frame": {
+      "daily_us": 151440,
+      "effects_us": 1138,
+      "frame": 10275,
+      "health_us": 2014,
+      "logic_including_profiler_us": 163635,
+      "navigation_us": 93,
+      "profiler_write_us": 20,
+      "residents_us": 8929,
+      "total_us": 163615,
+      "unattributed_us": 1
+    },
+    "performance_qualification": "Nonexclusive graphical characterization, not paired benchmark acceptance. Only resident253 persistent route enabled; all284 bodies remain loaded. This run predates checkout-order fix."
+  },
+  "handoff_static_diagnosis": {
+    "result": "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city-shop-handoff-fragment01\\capture\\RESULT.json",
+    "observation": "Actual one-building GLB+PrintshopInterior.attach_existing with exact source5595 floors: all5 final-body/step/path-next/handoff candidates pass source/floor/native-square. No past other NPC/vehicle states; this does not diagnose the live frontier wait cause."
+  },
+  "remaining": [
+    "Full city: no shop/bank/hospital/drive completion. resident253 still1.277m before handoff at500s; READY/VALIDATING edge42. Prefix readiness/queue vs live motion failure not yet isolated.",
+    "Late observed READY wait rolling p50~20.7s/p95~21.6s; moving_unique22-28. No performance optimization accepted; persistent remains defaultOFF/target-only experiment.",
+    "Original authenticated286 roster unproven; packet287 is offline NEW_SESSION_BOOTSTRAP. Do not invent or duplicate residents.",
+    "Robbery live reaction NOT_RUN; previous shots evidence is separate earlier run.",
+    "Full city after checkout-order patch NOT_RUN; fixture success is not city success.",
+    "No paired same-hardware/scene/camera/population/flags baseline vs final benchmark accepted."
+  ],
+  "publication": "DEFERRED_BY_USER_20261007_NO_PUSH",
+  "clean_commit_unchanged": "620b4f0ff6f477f25205458d730097050a2da1fe",
+  "current_version_release48": "UNCHANGED",
+  "production_nav_optimization_accepted": false,
+  "overall_user_goal_complete": false
+}

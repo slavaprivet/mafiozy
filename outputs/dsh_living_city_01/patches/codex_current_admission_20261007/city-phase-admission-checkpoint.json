@@ -1,0 +1,58 @@
+{
+  "captured_utc": "2026-10-07T14:46:56.019330+00:00",
+  "source_files_sha256": {
+    "scripts/shop/npc_daily_shop.gd": "0e22ea589129772cb6d2b15c9f41a015f5d78cc8bbcf569b1cf46655fd0011b7",
+    "scripts/city/runtime/npc_city_engine_navigation.gd": "2d893ee2c3b02a64fb7a44a60c71977d34f28bd4733786303749a3e639a370fb",
+    "scripts/npc_daily_walk.gd": "311d2e84500b8e39e88682fc8d2b034d4f4b2b8a2d6ad3200102e82b189b6ef0",
+    "scripts/npc_visual/preview_resident_host.gd": "5d75b7a82aac6389d1deb3d6b4a9a77a2717de66a082e21ca4fcef2cfa084687",
+    "scripts/city/runtime/npc_city_world_policy.gd": "27c9949859fabf95be2f92e45ea4b9f14f2d95ae8ca612050a061e0cf3f4cc7e"
+  },
+  "patches": [
+    "Shop Visit180 starts after successful Visit.begin; unchanged cumulative Walk900/detour/stall/pause/cancel guards.",
+    "Motion source/access TTL reuse disabled for all jobs; current source callback on every step. Existing physical intersect/cast logic unchanged.",
+    "Bounded last16 validation refusal contexts saved before cleanup; exact operands/frame/owner/body; policy last_reason is labelled observation."
+  ],
+  "actual_checks": {
+    "phase_timer": "city-shop-phase-timer-canary02:19/19 PASS, scheduler exit0/stderr0; fixture owners",
+    "targeted_gui": {
+      "result": "city-shop-phase-timer-live500s01/capture/RESULT.json",
+      "duration_ms": 326140,
+      "requested_ms": 500000,
+      "stop_reason": "first_shop_aborted_before_completion",
+      "admitted": 284,
+      "completions": {
+        "bank": 0,
+        "drive": 0,
+        "hospital": 0,
+        "shop": 0,
+        "walk": 199
+      },
+      "end_reason": "native_route:NO_PATH:detour_unavailable_or_budget",
+      "host_exact_request": -1,
+      "commerce_cash": 40,
+      "commerce_spent": 0,
+      "render_intervals": {
+        "count": 23566,
+        "max_ms": 237.389,
+        "p50_ms": 7.911,
+        "p95_ms": 31.38,
+        "p99_ms": 91.05
+      },
+      "performance_qualification": "Nonexclusive graphical, not accepted benchmark. This run predates the admission fix."
+    },
+    "negative_backend": "city-backend-negative-guards01:revocation failed (source_calls4→4, next motion true). After fix guards03:14/14, guards04:18/18, guards05:20/20 PASS, actual mover positive and revoked callback stops body; map/death/cancel; source_a/b/capsule and bounded16; new dynamic start overlap rejected.",
+    "source_fragment": "city-source-fragment-probe03: config accepted5595 source floors/287 registry owners and3 static solids;6 endpoint candidates all source/floor/native square pass.5/5 negative actual-policy checks PASS: floor loss/restoration, dynamic256 overlap/removal, current access revoked."
+  },
+  "not_run": [
+    "Full-city performance after current-admission fix (cost may increase).",
+    "Fresh full-city refusal trace using newly added diagnostics.",
+    "Completed real shop service/exit/next task (targeted GUI failed before visit).",
+    "Original286 authenticated registry proof.",
+    "Robbery live reaction."
+  ],
+  "remaining_blocker": "Past traces omitted rejection reason and cleared path before capture, so exact historical source-vs-capsule/live condition cannot be recovered. Static/floor micro-proof did not reproduce a geometry defect. Do not relax guards or broaden persistent until fresh failure evidence and performance work.",
+  "clean_commit_unchanged": "620b4f0ff6f477f25205458d730097050a2da1fe",
+  "publication": "NOT_PUSHED; prior auto-review rejection unchanged",
+  "production_nav_optimization_accepted": false,
+  "correctness_patches_local_only": true
+}

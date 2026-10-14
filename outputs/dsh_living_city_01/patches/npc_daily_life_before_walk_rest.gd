@@ -1,0 +1,285 @@
+extends RefCounted
+## One resident's local needs. Concrete visits own arrival and transactions;
+## this scheduler never changes HP, cash, transforms, seats or source rows.
+const Walk = preload("npc_daily_walk.gd")
+const MEDICAL_THRESHOLD := .75
+const SHOP_INTERVAL_MS := 300000.0
+var _host: RefCounted
+var _health: RefCounted
+var _account: RefCounted
+var _policy: RefCounted
+var _token := {}
+var _factory: Callable
+var _walk: RefCounted
+var _visit: RefCounted
+var _goal := {}
+var _phase := "UNBOUND"
+var _reason := ""
+var _now := 0.0
+var _next_decision := 0.0
+var _next_shop := 0.0
+var _next_drive := 0.0
+var _next_medical := 0.0
+var _next_bank := 0.0
+var _sequence := 0
+var _roam_serial := 0
+var _frame := -1
+var _busy := false
+var _disposed := false
+var _bank_established := false
+var _interrupting := false
+var _journal: Array[Dictionary] = []
+var _completed := {"hospital":0,"bank":0,"shop":0,"drive":0,"walk":0}
+var _profile_peaks: Array[Dictionary] = []
+var _controller_peaks: Array[Dictionary] = []
+var _visit_controller_timing: Dictionary = {}
+var _visit_timing := {
+	"bank":{"step":{"samples":0,"total_us":0,"max_us":0,"max_frame":-1,"max_phase":""},"snapshot":{"samples":0,"total_us":0,"max_us":0,"max_frame":-1,"max_phase":""}},
+	"shop":{"step":{"samples":0,"total_us":0,"max_us":0,"max_frame":-1,"max_phase":""},"snapshot":{"samples":0,"total_us":0,"max_us":0,"max_frame":-1,"max_phase":""}},
+	"hospital":{"step":{"samples":0,"total_us":0,"max_us":0,"max_frame":-1,"max_phase":""},"snapshot":{"samples":0,"total_us":0,"max_us":0,"max_frame":-1,"max_phase":""}},
+	"drive":{"step":{"samples":0,"total_us":0,"max_us":0,"max_frame":-1,"max_phase":""},"snapshot":{"samples":0,"total_us":0,"max_us":0,"max_frame":-1,"max_phase":""}}
+}
+
+func _init() -> void:
+	for _index in 12:
+		_profile_peaks.append({"source_id":"","kind":"","phase":"","part":"","us":0,"frame":-1})
+
+func _record_visit_timing(kind: String, part: String, elapsed: int, frame: int, phase: String) -> void:
+	if not _visit_timing.has(kind): return
+	var bucket: Dictionary=_visit_timing[kind][part]
+	bucket["samples"]=int(bucket["samples"])+1
+	bucket["total_us"]=int(bucket["total_us"])+elapsed
+	if elapsed>int(bucket["max_us"]):
+		bucket["max_us"]=elapsed; bucket["max_frame"]=frame; bucket["max_phase"]=phase
+
+func _profile(label: String, started: int) -> void:
+	var elapsed := Time.get_ticks_usec() - started
+	if elapsed < 1000: return
+	var minimum_index:=0
+	for index in range(1,_profile_peaks.size()):
+		if int(_profile_peaks[index]["us"])<int(_profile_peaks[minimum_index]["us"]): minimum_index=index
+	if elapsed<=int(_profile_peaks[minimum_index]["us"]): return
+	var peak: Dictionary=_profile_peaks[minimum_index]
+	peak["source_id"]=_token.get("source_id",""); peak["kind"]=_goal.get("kind","")
+	peak["phase"]=_phase; peak["part"]=label; peak["us"]=elapsed; peak["frame"]=Engine.get_physics_frames()
+
+func _profile_snapshot() -> Array[Dictionary]:
+	var peaks: Array[Dictionary]=[]
+	for peak: Dictionary in _profile_peaks:
+		if int(peak["us"])>0: peaks.append(peak.duplicate())
+	peaks.sort_custom(func(a:Dictionary,b:Dictionary)->bool:return int(a.us)>int(b.us))
+	return peaks
+
+## Factory(kind, goal, activity_owner) returns a CONFIGURED concrete controller
+## with begin/step/snapshot/cancel/dispose. Its service owner is authoritative.
+func configure(host: RefCounted, token: Dictionary, health: RefCounted, account: RefCounted, policy: RefCounted, factory: Callable) -> Dictionary:
+	if _phase!="UNBOUND" or _disposed or not is_instance_valid(host) or not host.target_current(token): return _fail("current_actor_required")
+	if not is_instance_valid(health) or health.get("_host")!=host or health.get("_token")!=token or not is_instance_valid(account) or account.get("_host")!=host or account.get("_token")!=token: return _fail("same_actor_health_and_account_required")
+	if not is_instance_valid(policy) or not policy.has_method("source_admit") or not policy.has_method("support_height") or not factory.is_valid(): return _fail("world_and_activity_factory_required")
+	_host=host; _token=token.duplicate(); _health=health; _account=account; _policy=policy; _factory=factory
+	_walk=Walk.new()
+	var configured: Dictionary=_walk.configure(host,token,self)
+	if not configured.get("ok",false): _host=null; return configured
+	_now=health._now()
+	var offset:=_unit("start")
+	_next_shop=_now+20000.0+offset*45000.0
+	_next_bank=_now+12000.0+offset*90000.0
+	_next_drive=_now+45000.0+_unit("drive")*120000.0
+	_next_decision=_now+offset*4000.0
+	var money: Dictionary=account.snapshot().account
+	_bank_established=int(money.get("bank",0))>0 or bool(money.get("deposit_seen",false))
+	_phase="IDLE"
+	return {"ok":true,"source_id":token.source_id,"scope":"new_local_resident_needs"}
+
+func _fail(reason: String) -> Dictionary: return {"ok":false,"reason":reason}
+
+func _unit(salt: String) -> float:
+	var value:=2166136261
+	var text: String=str(_token.get("source_id",""))+":"+salt
+	for index in text.length(): value=((value^text.unicode_at(index))*16777619)&0xffffffff
+	return float(value)/4294967296.0
+
+func _life() -> Dictionary:
+	if _disposed or not is_instance_valid(_host) or not is_instance_valid(_health) or _health.get("_host")!=_host or _health.get("_token")!=_token: return {}
+	var current: Dictionary=_health._current(_health._binding)
+	if current.is_empty() or not is_same(current.get("row"),_health._row): return {}
+	return current.row
+
+func _record(event: String, reason: String="") -> void:
+	_journal.append({"event":event,"kind":_goal.get("kind",""),"goal_id":_goal.get("goal_id",""),"at":_now,"reason":reason})
+	if _journal.size()>16: _journal.pop_front()
+
+func step(delta: float) -> void:
+	if _disposed or _busy or not Thread.is_main_thread() or not is_finite(delta) or delta<=0.0 or delta>.05: return
+	var frame:=Engine.get_physics_frames()
+	if frame==_frame: return
+	_frame=frame; _busy=true
+	var row:=_life()
+	if row.is_empty() or row.get("dead",false) or float(row.get("hp",0))<=0:
+		_end_life(); _busy=false; return
+	_now=_health._now()
+	if _visit!=null:
+		# Let boarding/exit/interior owners unwind physically before another task.
+		if not _interrupting and _goal.get("kind")!="hospital" and _needs_hospital(row):
+			_visit.cancel("medical_priority"); _interrupting=true; _record("interrupted","medical_priority")
+		var visit_kind:=str(_goal.get("kind","")); var visit_phase:=_phase
+		var profile_started := Time.get_ticks_usec()
+		_visit.step(delta)
+		var visit_step_us:=Time.get_ticks_usec()-profile_started
+		_profile("visit_step",profile_started)
+		_record_visit_timing(visit_kind,"step",visit_step_us,frame,visit_phase)
+		profile_started=Time.get_ticks_usec()
+		var state: Dictionary=_visit.snapshot()
+		var visit_snapshot_us:=Time.get_ticks_usec()-profile_started
+		_profile("visit_snapshot",profile_started)
+		_record_visit_timing(visit_kind,"snapshot",visit_snapshot_us,frame,visit_phase)
+		var status: String=str(state.get("status",state.get("phase","")))
+		if status in ["COMPLETE","DONE"]: _finish_activity(true,state)
+		elif status in ["CANCELLED","BLOCKED","HOLD","FAILED","STALE","DISPOSED"] and state.get("released",false): _finish_activity(false,state)
+		_busy=false; return
+	if not _host.target_current(_token): _phase="WAITING_FOR_RECOVERY"; _busy=false; return
+	if _health.should_pause_walk():
+		# The existing movement owner handles fear, hits, pause and medical state.
+		_busy=false; return
+	if _phase=="WALKING":
+		if _needs_hospital(row):
+			if _walk.cancel().get("ok",false): _phase="IDLE"; _next_decision=_now
+		else:
+			_walk.step(delta)
+			var walking: Dictionary=_walk.snapshot()
+			if walking.status=="COMPLETE":
+				_walk.cancel(); _completed.walk+=1; _phase="RESTING"; _next_decision=_now+2000.0+_unit("rest:"+str(_roam_serial))*6500.0
+			elif walking.status in ["BLOCKED","CANCELLED"]:
+				_reason=str(walking.reason); _phase="RESTING"; _next_decision=_now+1500.0
+	if _phase in ["IDLE","RESTING","WAITING_FOR_RECOVERY"] and _now>=_next_decision: _choose(row)
+	_busy=false
+
+func _needs_hospital(row: Dictionary) -> bool:
+	return _now>=_next_medical and float(row.get("max_hp",0))>0 and float(row.get("hp",0))<float(row.max_hp)*MEDICAL_THRESHOLD and not row.get("_medicalDowned",false) and not row.get("_forcedCrawl",false)
+
+func _new_goal(kind: String) -> Dictionary:
+	_sequence+=1
+	return {"goal_id":str(_token.source_id)+":daily:"+str(_sequence),"kind":kind}
+
+func _choose(row: Dictionary) -> void:
+	if _needs_hospital(row):
+		_start(_new_goal("hospital")); return
+	var wallet: Dictionary=_account.snapshot().account
+	var pending: Dictionary=wallet.get("pending_purchase",{})
+	if _now>=_next_shop:
+		var goal_id: String=str(pending.get("goal_id",_new_goal("shop").goal_id))
+		var choice: Dictionary=_account.plan_purchase(goal_id,_now)
+		if choice.get("ok",false) and choice.get("kind")=="shop":
+			_start({"goal_id":goal_id,"kind":"shop"}); return
+		if choice.get("ok",false) and choice.get("kind")=="bank" and choice.get("funded",false) and _now>=_next_bank:
+			var bank_goal:=_new_goal("bank")
+			bank_goal.operation="withdraw"
+			bank_goal.amount=mini(int(wallet.bank),maxi(int(choice.amount),15-int(wallet.cash)))
+			bank_goal.resume_purchase=goal_id
+			_start(bank_goal); return
+		# No made-up money: unavailable income leaves the purchase pending.
+		_reason=str(choice.get("reason","purchase_unavailable")); _next_shop=_now+10000.0
+	if not _bank_established and _now>=_next_bank and int(wallet.get("cash",0))>=12:
+		var saving:=_new_goal("bank")
+		saving.operation="deposit"; saving.amount=int(floor(float(wallet.cash)*.60))
+		_start(saving); return
+	if _now>=_next_drive:
+		_next_drive=_now+90000.0+_unit("drive:"+str(_sequence))*180000.0
+		_start(_new_goal("drive")); return
+	_roam()
+
+func _start(goal: Dictionary) -> void:
+	var cancelled: Dictionary=_walk.cancel()
+	if not cancelled.get("ok",false): _reason="previous_walk_cancellation_pending"; _next_decision=_now+1000.0; return
+	_goal=goal
+	var profile_started := Time.get_ticks_usec()
+	var created: Variant=_factory.call(goal.kind,goal.duplicate(true),self)
+	_profile("configure",profile_started)
+	if not created is Dictionary or not created.get("ok",false) or not is_instance_valid(created.get("controller")):
+		_retry(str(created.get("reason","activity_unavailable")) if created is Dictionary else "factory_result"); return
+	var controller: RefCounted=created.controller
+	for method: String in ["begin","step","snapshot","cancel","dispose"]:
+		if not controller.has_method(method):
+			if controller.has_method("dispose"): controller.dispose()
+			_retry("activity_interface:"+method); return
+	_visit=controller; _interrupting=false
+	profile_started=Time.get_ticks_usec()
+	var begun: Variant=_visit.begin()
+	_profile("begin",profile_started)
+	if not begun is Dictionary or not begun.get("ok",false):
+		_visit.cancel("begin_refused")
+		# Even failed admission may own a lease which needs normal cleanup ticks.
+		_phase="ACTIVITY"; _interrupting=true; _reason=str(begun.get("reason","begin_refused")) if begun is Dictionary else "begin_result"; return
+	_phase="ACTIVITY"; _reason=""; _record("started")
+
+func _finish_activity(success: bool, state: Dictionary) -> void:
+	var kind: String=str(_goal.get("kind",""))
+	if state.get("timing_buckets",{}) is Dictionary and not state.get("timing_buckets",{}).is_empty():
+		_visit_controller_timing[kind]=state["timing_buckets"].duplicate(true)
+	var samples: Array=state.get("profile_peaks",[])
+	var visit_state: Variant=state.get("visit",{})
+	if visit_state is Dictionary:
+		samples.append_array(visit_state.get("profile_peaks",[]))
+	for sample: Dictionary in samples:
+		var captured := sample.duplicate(true);captured["kind"] = kind;captured["source_id"] = _token.get("source_id","")
+		_controller_peaks.append(captured)
+	_controller_peaks.sort_custom(func(a: Dictionary,b: Dictionary)->bool:return int(a.us)>int(b.us))
+	if _controller_peaks.size()>12:_controller_peaks.resize(12)
+	# COMPLETE is published by a visit only after its physical return/release.
+	if not state.get("released",false): return
+	_visit.dispose(); _visit=null
+	if success and not _interrupting:
+		if _completed.has(kind): _completed[kind]+=1
+		if kind=="bank":
+			_bank_established=true; _next_bank=_now+1000.0
+			if _goal.get("operation")=="withdraw": _next_shop=_now
+		elif kind=="shop": _next_shop=_now+SHOP_INTERVAL_MS
+		elif kind=="hospital": _next_medical=_now+1000.0
+		_record("completed"); _goal={}; _phase="IDLE"; _next_decision=_now+1000.0
+	else: _retry(str(state.get("reason",_reason)))
+	_interrupting=false
+
+func _retry(reason: String) -> void:
+	_reason=reason; _record("retry",reason)
+	match str(_goal.get("kind","")):
+		"hospital": _next_medical=_now+10000.0
+		"bank": _next_bank=_now+30000.0
+		"shop": _next_shop=_now+15000.0
+	_phase="IDLE"; _next_decision=_now+1500.0; _goal={}
+
+func _roam() -> void:
+	_roam_serial+=1
+	var body: CharacterBody3D=_token.body
+	# Bounded source-floor proposals. The current native path and host still
+	# validate every segment; these points never authorize teleport or passage.
+	for attempt in 6:
+		var angle:=TAU*_unit("walk:"+str(_roam_serial)+":"+str(attempt))
+		var distance:=6.0+_unit("range:"+str(_roam_serial)+":"+str(attempt))*18.0
+		var target:=body.global_position+Vector3(cos(angle),0,sin(angle))*distance
+		var floor_y: float=_policy.support_height(target,_token.source_id,_token.life_generation)
+		if not is_finite(floor_y): continue
+		target.y=floor_y
+		if not _policy.source_admit(target,_token.source_id,_token.life_generation,.738,"target"): continue
+		var begun: Dictionary=_walk.begin(target)
+		if begun.get("ok",false): _phase="WALKING"; _reason=""; return
+	_phase="RESTING"; _reason="no_current_clear_walking_goal"; _next_decision=_now+2000.0
+
+func _end_life() -> void:
+	if _visit!=null:
+		_visit.cancel("actor_life_ended"); _visit.dispose(); _visit=null
+	if _walk!=null: _walk.dispose()
+	_phase="RETIRED"; _disposed=true; _factory=Callable()
+	_health=null; _account=null; _host=null
+
+func snapshot() -> Dictionary:
+	return {"source_id":_token.get("source_id",""),"phase":_phase,"reason":_reason,"goal":_goal.duplicate(true),"completed":_completed.duplicate(),"events":_journal.duplicate(true),"activity":_visit.snapshot() if _visit!=null else {},"walk":_walk.snapshot() if _walk!=null else {},"account":_account.snapshot() if _account!=null else {},"source_rows_written":false,"profile_peaks":_profile_snapshot(),"controller_peaks":_controller_peaks.duplicate(true),"visit_timing":_visit_timing.duplicate(true),"visit_controller_timing":_visit_controller_timing.duplicate(true)}
+
+func dispose() -> void:
+	if _disposed or _busy: return
+	if _visit!=null:
+		_visit.cancel("scheduler_disposed")
+		# The host/scene owner keeps stepping until the physical owner releases.
+		if not _visit.snapshot().get("released",false): _interrupting=true; return
+		_visit.dispose(); _visit=null
+	if _walk!=null: _walk.dispose()
+	_disposed=true; _phase="DISPOSED"; _factory=Callable()

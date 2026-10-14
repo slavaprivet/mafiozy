@@ -1,0 +1,41 @@
+{
+  "schema": "mafiozi.stage6-population-application/v1",
+  "shared_applied": true,
+  "file": "scripts/npc_city_population.gd",
+  "before": "3ca9eb40178510b7fbe2c4bd9b5883e12a6ca2ea49d3d5c513fa1204ab4ce2f3",
+  "after": "c1409ccb747326679dd1031a3da7d22185bbf0f154aaf6e8821626c9053481a9",
+  "source_hashes": {
+    "scripts/shop/npc_daily_shop.gd": "0e22ea589129772cb6d2b15c9f41a015f5d78cc8bbcf569b1cf46655fd0011b7",
+    "scripts/shop/npc_local_shop_visit.gd": "32528e3d30177d5c3ed7668316403397b28d76132874adbd9702db66ef9adf21",
+    "scripts/shop/npc_local_account.gd": "9acdba29c8315871636b4c8b9a722d2fd54fdf6e256ac8d2d4c9fd082a60d50d",
+    "scripts/city/runtime/npc_city_engine_navigation.gd": "03ed6875833dd00903c013a5321602cb95fb4cfa38ce1e1b42fba7c48a4228c7",
+    "scripts/city/runtime/npc_city_world_policy.gd": "9c46025e19f52c8b2c97b61e380b83be37745a0c085f9e1e7fd70108ae9be3f8",
+    "scripts/npc_daily_walk.gd": "8ae316619c456eac13bbb925a742945895d591e9b38adc425f47c3c5a8aec8eb",
+    "scripts/npc_visual/preview_resident_host.gd": "5d75b7a82aac6389d1deb3d6b4a9a77a2717de66a082e21ca4fcef2cfa084687",
+    "scripts/destruction/palazzo/palazzo_ground.gd": "6f2bc8493e5cfa75e4f7f47df6fd6609672e3196b9a0fa642912ea0d69aacec3",
+    "scripts/preview_printshop_interior.gd": "8ca46fcaa295090070bd12a4046ba31450ad6c07ce8e6341c4849fd5a64d6371",
+    "scenes/main_city.tscn": "9a252531ceda19074bc2a9ac9a674d4b26f3c2a1331821490901cadeb09d9be5",
+    "project.godot": "5e45528ade62ce0cb89aa53aa7f7d3e5f18aa1574c2555ae37cd5a972ae8bedf",
+    "scripts/city/runtime/npc_city_navigation_host.gd": "b32158b641bdb0635c851f188d80ecdc81e198b1d2f017a48de4e74c2c72bc44",
+    "scripts/npc_city_daily.gd": "a48f1ceaaa142ba96dc5485125c4a98f4417f2f05d51b4823f963a92752acb91",
+    "scripts/city/runtime/npc_native_obstacle_detour.gd": "db6ea93ed251ba6f47170405b95f4bbd6550eeaf913c1beef29e78dd2faaca2e",
+    "scripts/npc_visual/npc_local_printshop_visit.gd": "88605c31cd76733c3563a7dcf4cab454bc311ceea86eb69f3cf37b02f0b82ddc",
+    "scripts/npc_daily_life.gd": "f17ef8437b8fded6204dfd1ad370acf223bebd64b14667ee15c18d69f31bd41e",
+    "scripts/npc_visual/npc_local_preview_hit_owner.gd": "09703514665b3101c114d51b475f369741fea13557259d5fbbe082e12159bb58",
+    "scripts/npc_city_population.gd": "c1409ccb747326679dd1031a3da7d22185bbf0f154aaf6e8821626c9053481a9",
+    "scripts/hospital/npc_daily_hospital_visit.gd": "0dc443463add4c908e333b8badea924755ef6b851f2dafb4404d813e4c79a300"
+  },
+  "backup": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\dsh_living_city_01\\patches\\codex_stage6_population_20261008_task3",
+  "native_result_sha256": "30cab2373a554667cb1d73012aa5de5d7a4b95c61d05919eb56a89fa91d8dc4e",
+  "body_count": 286,
+  "restored_source_ids": [
+    "resident_70",
+    "resident_92"
+  ],
+  "default_promotion": "Only ring default 16 to tested explicit19; original probe order, elapsed/attempt budgets and admission unchanged",
+  "index_unchanged": true,
+  "protected_unchanged": true,
+  "memo_applied": false,
+  "city_complete": false,
+  "publication": "DEFERRED_BY_USER"
+}

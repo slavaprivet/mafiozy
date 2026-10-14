@@ -1,0 +1,522 @@
+{
+	"checks": [
+		{
+			"detail": {
+				"bank": 0,
+				"cash": 60,
+				"ok": true,
+				"scope": "new_local_session_account",
+				"server_authority": false
+			},
+			"label": "actual_account_configure",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "actual_visit_and_commerce_configure",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "real_fixture_body_grounded",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "real_account_service_started",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "ordinary_checkout_commits_one_local_receipt",
+			"ok": true
+		},
+		{
+			"detail": {
+				"bank": 0,
+				"cash": 60,
+				"ok": true,
+				"scope": "new_local_session_account",
+				"server_authority": false
+			},
+			"label": "actual_account_configure",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "actual_visit_and_commerce_configure",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "real_fixture_body_grounded",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "real_account_service_started",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "life_refuses_complete_before_release",
+			"ok": true
+		},
+		{
+			"detail": {
+				"goal_id": "fixture_shop:goal:1",
+				"ok": true,
+				"result": {
+					"ok": true,
+					"phase": "complete",
+					"receipt": {
+						"amount": 3,
+						"at": 4000.0,
+						"bank_after": 0,
+						"building_id": "REBUILD-VISUAL-print_shop-001",
+						"cash_after": 57,
+						"goal_id": "fixture_shop:goal:1",
+						"id": "LOCAL_SHOP_REVIEW:fixture_shop:1",
+						"item": "newspaper",
+						"kind": "purchase",
+						"order_id": "fixture_shop:1",
+						"scope": "new_local_session_account",
+						"sequence": 1
+					}
+				},
+				"service_id": 1,
+				"status": "COMPLETE"
+			},
+			"label": "delayed_tick_legacy_cancels_or_candidate_commits",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "duplicate_poll_never_debits_twice",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "unconfirmed_adapter_release_keeps_owner",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "unconfirmed_release_never_counts_shop",
+			"ok": true
+		},
+		{
+			"detail": {
+				"active_seconds": 0.1,
+				"actor_transform_written": false,
+				"commerce": {
+					"goal_id": "fixture_shop:goal:1",
+					"ok": true,
+					"result": {
+						"ok": true,
+						"phase": "complete",
+						"receipt": {
+							"amount": 3,
+							"at": 4000.0,
+							"bank_after": 0,
+							"building_id": "REBUILD-VISUAL-print_shop-001",
+							"cash_after": 57,
+							"goal_id": "fixture_shop:goal:1",
+							"id": "LOCAL_SHOP_REVIEW:fixture_shop:1",
+							"item": "newspaper",
+							"kind": "purchase",
+							"order_id": "fixture_shop:1",
+							"scope": "new_local_session_account",
+							"sequence": 1
+						}
+					},
+					"service_id": 1,
+					"status": "COMPLETE"
+				},
+				"goal": {
+					"goal_id": "fixture_shop:goal:1",
+					"kind": "shop"
+				},
+				"handoff": "(0.0, 0.0, 0.0)",
+				"public_lease_serial": 5,
+				"reason": "",
+				"release": {
+					"ok": true
+				},
+				"released": true,
+				"request_id": -1,
+				"source_authority": false,
+				"status": "COMPLETE",
+				"timing_buckets": {
+					"commerce_copy": {
+						"max_frame": 14,
+						"max_phase": "VISIT",
+						"max_us": 6,
+						"samples": 5,
+						"total_us": 25
+					},
+					"current": {
+						"max_frame": 17,
+						"max_phase": "VISIT",
+						"max_us": 24,
+						"samples": 13,
+						"total_us": 143
+					},
+					"occupants": {
+						"max_frame": -1,
+						"max_phase": "",
+						"max_us": 0,
+						"samples": 0,
+						"total_us": 0
+					},
+					"printshop_tick": {
+						"max_frame": 11,
+						"max_phase": "VISIT",
+						"max_us": 226,
+						"samples": 5,
+						"total_us": 627
+					},
+					"route_poll": {
+						"max_frame": -1,
+						"max_phase": "",
+						"max_us": 0,
+						"samples": 0,
+						"total_us": 0
+					},
+					"step_total": {
+						"max_frame": -1,
+						"max_phase": "",
+						"max_us": 0,
+						"samples": 0,
+						"total_us": 0
+					},
+					"unwind": {
+						"max_frame": -1,
+						"max_phase": "",
+						"max_us": 0,
+						"samples": 0,
+						"total_us": 0
+					},
+					"walk_snapshot": {
+						"max_frame": -1,
+						"max_phase": "",
+						"max_us": 0,
+						"samples": 0,
+						"total_us": 0
+					},
+					"walk_step": {
+						"max_frame": -1,
+						"max_phase": "",
+						"max_us": 0,
+						"samples": 0,
+						"total_us": 0
+					}
+				},
+				"visit": {},
+				"visit_seconds": 0.1,
+				"visit_started": true,
+				"walk": {}
+			},
+			"label": "exit_street_return_exact_release_before_complete",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "released_shop_schedules_next_valid_decision",
+			"ok": true
+		},
+		{
+			"detail": {
+				"bank": 0,
+				"cash": 60,
+				"ok": true,
+				"scope": "new_local_session_account",
+				"server_authority": false
+			},
+			"label": "actual_account_configure",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "actual_visit_and_commerce_configure",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "real_fixture_body_grounded",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "real_account_service_started",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "pause_defers_browse_and_account",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "resumed_checkout_commits_once",
+			"ok": true
+		},
+		{
+			"detail": {
+				"bank": 0,
+				"cash": 60,
+				"ok": true,
+				"scope": "new_local_session_account",
+				"server_authority": false
+			},
+			"label": "actual_account_configure",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "actual_visit_and_commerce_configure",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "real_fixture_body_grounded",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "real_account_service_started",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "ended_life_never_buys_or_completes",
+			"ok": true
+		},
+		{
+			"detail": {
+				"bank": 0,
+				"cash": 60,
+				"ok": true,
+				"scope": "new_local_session_account",
+				"server_authority": false
+			},
+			"label": "actual_account_configure",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "actual_visit_and_commerce_configure",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "real_fixture_body_grounded",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "real_account_service_started",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "replacement_route_owner_never_authorizes_checkout_or_release",
+			"ok": true
+		},
+		{
+			"detail": {
+				"bank": 0,
+				"cash": 60,
+				"ok": true,
+				"scope": "new_local_session_account",
+				"server_authority": false
+			},
+			"label": "actual_account_configure",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "actual_visit_and_commerce_configure",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "real_fixture_body_grounded",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "real_account_service_started",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "new_physical_obstacle_prevents_receipt",
+			"ok": true
+		},
+		{
+			"detail": {
+				"bank": 0,
+				"cash": 60,
+				"ok": true,
+				"scope": "new_local_session_account",
+				"server_authority": false
+			},
+			"label": "actual_account_configure",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "actual_visit_and_commerce_configure",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "real_fixture_body_grounded",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "real_account_service_started",
+			"ok": true
+		},
+		{
+			"detail": {
+				"body": "(4.1552, 0.390156, 5.649447)",
+				"paid": true,
+				"shop": {
+					"active_seconds": 0.0666666666666667,
+					"actor_transform_written": false,
+					"commerce": {
+						"goal_id": "fixture_shop:goal:1",
+						"ok": true,
+						"result": {
+							"ok": true,
+							"phase": "complete",
+							"receipt": {
+								"amount": 3,
+								"at": 3100.0,
+								"bank_after": 0,
+								"building_id": "REBUILD-VISUAL-print_shop-001",
+								"cash_after": 57,
+								"goal_id": "fixture_shop:goal:1",
+								"id": "LOCAL_SHOP_REVIEW:fixture_shop:1",
+								"item": "newspaper",
+								"kind": "purchase",
+								"order_id": "fixture_shop:1",
+								"scope": "new_local_session_account",
+								"sequence": 1
+							}
+						},
+						"service_id": 1,
+						"status": "COMPLETE"
+					},
+					"goal": {
+						"goal_id": "fixture_shop:goal:1",
+						"kind": "shop"
+					},
+					"handoff": "(0.0, 0.0, 0.0)",
+					"public_lease_serial": 5,
+					"reason": "arrival_precision_required",
+					"release": {},
+					"released": false,
+					"request_id": -1,
+					"source_authority": false,
+					"status": "VISIT",
+					"timing_buckets": {
+						"commerce_copy": {
+							"max_frame": 33,
+							"max_phase": "VISIT",
+							"max_us": 5,
+							"samples": 4,
+							"total_us": 17
+						},
+						"current": {
+							"max_frame": 33,
+							"max_phase": "VISIT",
+							"max_us": 20,
+							"samples": 7,
+							"total_us": 74
+						},
+						"occupants": {
+							"max_frame": -1,
+							"max_phase": "",
+							"max_us": 0,
+							"samples": 0,
+							"total_us": 0
+						},
+						"printshop_tick": {
+							"max_frame": 33,
+							"max_phase": "VISIT",
+							"max_us": 221,
+							"samples": 4,
+							"total_us": 461
+						},
+						"route_poll": {
+							"max_frame": -1,
+							"max_phase": "",
+							"max_us": 0,
+							"samples": 0,
+							"total_us": 0
+						},
+						"step_total": {
+							"max_frame": -1,
+							"max_phase": "",
+							"max_us": 0,
+							"samples": 0,
+							"total_us": 0
+						},
+						"unwind": {
+							"max_frame": -1,
+							"max_phase": "",
+							"max_us": 0,
+							"samples": 0,
+							"total_us": 0
+						},
+						"walk_snapshot": {
+							"max_frame": -1,
+							"max_phase": "",
+							"max_us": 0,
+							"samples": 0,
+							"total_us": 0
+						},
+						"walk_step": {
+							"max_frame": -1,
+							"max_phase": "",
+							"max_us": 0,
+							"samples": 0,
+							"total_us": 0
+						}
+					},
+					"visit": {
+						"cycle": 0,
+						"door_id": "native:REBUILD-VISUAL-print_shop-001",
+						"life_generation": 1,
+						"local_completed": 0,
+						"local_session": "LOCAL_NPC_VISIT23:review",
+						"original_agenda_completed": false,
+						"original_source_progress_written": false,
+						"phase": "HOLD",
+						"reason": "arrival_precision_required",
+						"scope": "NEW_LOCAL_PREVIEW_SESSION_ONE_ORIGINAL_PHYSICAL_ENTRY",
+						"source_id": "fixture_shop"
+					},
+					"visit_seconds": 0.0666666666666667,
+					"visit_started": true,
+					"walk": {}
+				},
+				"visit_phase": "HOLD"
+			},
+			"label": "forged_exit_arrived_cannot_complete_without_physical_return",
+			"ok": true
+		},
+		{
+			"detail": {},
+			"label": "unsafe_forged_return_retains_life_owner_without_completion",
+			"ok": true
+		}
+	],
+	"expected_legacy": false,
+	"failed": 0,
+	"scope": "actual_commerce_controllers_after_entry_fixture; not city physical acceptance"
+}

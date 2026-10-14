@@ -1,0 +1,7 @@
+{
+  "source": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\dsh_living_city_01\\game\\scripts\\shop\\npc_daily_shop.gd",
+  "before_sha256": "66e9a8f3614f80c16c142249f8a60653230c9328eb7d9d3adffa27dc99c6d6db",
+  "candidate_sha256": "0e22ea589129772cb6d2b15c9f41a015f5d78cc8bbcf569b1cf46655fd0011b7",
+  "edits": 4,
+  "scope": "Visit budget only after Visit.begin succeeds; approach bounded by unchanged cumulative Walk900 and detour/stall guards; no completion/release/collision changes."
+}
