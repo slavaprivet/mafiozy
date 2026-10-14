@@ -1115,6 +1115,12 @@ func _install_palazzo_clones() -> void:
 				(dsh_clone as Node3D).add_child(dsh_door)
 				(dsh_door as Node3D).position = (dsh_door_source as Node3D).position
 				dsh_door.set_meta("dsh_town_extra", true)
+				# Owner's step: no barriers and no thresholds - the doorway must be walkable for
+				# the player AND for the resident. The copied leaf is parked wide open and every
+				# collider under it is taken off the collision layers, so the opening is free.
+				for dsh_part: Node in _dsh_walk(dsh_door):
+					if dsh_part is CollisionObject3D: (dsh_part as CollisionObject3D).collision_layer = 0
+				(dsh_door as Node3D).rotate_y(deg_to_rad(100.0))
 				dsh_door_ok = true
 		dsh_built += 1
 		print("CITY_TOWN_CLONE ", JSON.stringify({"ok": true, "sign": dsh_names[dsh_i], "built": true, "sign_node": "TownCloneSign", "door_copied": dsh_door_ok, "door_source": (str(dsh_door_source.name) if dsh_door_source != null else "-"), "origin": [dsh_at.x, dsh_at.y, dsh_at.z]}))
