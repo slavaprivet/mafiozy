@@ -165,6 +165,324 @@ var _dsh_walk_rad_max := -1.0
 var _dsh_walk_uncal := 0
 # --- end ported fields ---
 
+# DSH_TESTRESIDENT: one clearly identified test resident, behind two flags that both
+# default to today's behaviour.
+#   --city-resident-name="тест 1"          -> Label3D over the head of the first admitted
+#                                             resident (billboard, follows its visual)
+#   --city-resident-name=resident_1:тест 1 -> the same, but bound to that exact source id
+#   --city-resident-near-player=1          -> the first admitted resident is placed next
+#                                             to the player instead of at its authored point
+# 0 rows / empty name = no label, no relocation and no DSH_TESTRESIDENT line at all.
+# Nothing here writes simulation state: the label is a child of the resident's existing
+# "ResidentVisualMotion" node (no collision shape, no navigation, no AI input) and the
+# relocation only chooses a different admitted point for the one record.
+const TR_NAME_FLAG := "--city-resident-name="
+const TR_NEAR_PLAYER_FLAG := "--city-resident-near-player="
+const TR_CELL_M := 4.1
+const TR_ORIGIN := Vector3(395.65, 0, 45.1)
+const TR_NAME_MAX := 64
+# DSH_TESTRESIDENT: candidate distances from the player, in metres. The first eight follow
+# the source 0.5-cell fallback offsets (ring*0.5 = 2.05 / 2.56 / 3.07 m at cellSize 4.1),
+# then reach out to 4.1 / 6.2 / 8.2 m. 2.5 m is the requested default and is tried first.
+const TR_NEAR_DISTANCES := [2.5, 2.05, 2.56, 3.07, 3.5, 4.0, 5.0, 6.0, 4.1, 6.2, 8.2, 1.5]
+const TR_NEAR_DIRECTIONS := 16
+# DSH_TESTRESIDENT: the most candidates one relocation attempt may prove. Every candidate
+# costs two policy calls and two physics queries; the bound keeps the one-shot attempt at
+# the same order of cost as a single source fallback probe.
+const TR_NEAR_MAX_TRIED := 288
+# A grid point farther than this from the player is not "near the player" in the owner's
+# sense; when the best admitted point is beyond it, the player-spot fallback is preferred so
+# the test resident is always where the owner can see it.
+const TR_NEAR_CLOSE_M := 3.0
+# --city-resident-near-player last resort. When no policy-admitted grid point exists around
+# the player, the resident is placed at the player's own spot offset by this many metres,
+# using the player's own Y: the player is standing there, so the ground height is proved by
+# the fact that the player occupies it. Offsets are one per axis direction, tried in order;
+# each one is still checked for clearance from every body except the player's.
+const TR_PLAYER_FALLBACK_OFFSET_M := 2.5
+const TR_PLAYER_FALLBACK_DIRECTIONS := [Vector3(1, 0, 0), Vector3(-1, 0, 0), Vector3(0, 0, 1), Vector3(0, 0, -1)]
+const TR_LABEL_HEIGHT := .25
+var _dsh_tr_flag := -1
+var _dsh_tr_name := ""
+var _dsh_tr_name_id := ""
+var _dsh_tr_label := false
+var _dsh_tr_near := false
+var _dsh_tr_seat_id := ""
+var _dsh_tr_seat_claimed := false
+var _dsh_tr_near_done := false
+var _dsh_tr_applied := false
+var _dsh_tr_mode := "authored"
+var _dsh_tr_reason := "authored_position"
+var _dsh_tr_override_r := 0.0
+var _dsh_tr_override_c := 0.0
+var _dsh_tr_printed := 0
+
+# DSH_TESTRESIDENT: one argument scan for both flags. Absent flags leave _dsh_tr_label and
+# _dsh_tr_near false, which is the exact pre-flag path: _dsh_test_seat() claims nothing and
+# _dsh_near_player_override() returns immediately on the first _dsh_tr_feature_on() test.
+#
+# A name that contains a space reaches this process split across several entries of
+# OS.get_cmdline_user_args() (measured: `--city-resident-name=тест 1` on a command line
+# arrives as "--city-resident-name=тест" and "1"). The name is therefore assembled from the
+# value after `=` plus every following entry that does not begin with "--", joined by a
+# single space. An id binding (`resident_1:тест 1`) is split at the first ":" inside that
+# assembled value, so the id may also precede a multi-piece name.
+func _dsh_test_resident_flags() -> void:
+	if _dsh_tr_flag >= 0: return
+	_dsh_tr_flag = 0
+	_dsh_tr_name = ""
+	_dsh_tr_name_id = ""
+	_dsh_tr_label = false
+	_dsh_tr_near = false
+	var arguments: PackedStringArray = OS.get_cmdline_user_args()
+	var index := 0
+	while index < arguments.size():
+		var argument: String = arguments[index]
+		index += 1
+		if argument.begins_with(TR_NEAR_PLAYER_FLAG):
+			_dsh_tr_near = maxi(0, int(argument.trim_prefix(TR_NEAR_PLAYER_FLAG))) == 1
+			continue
+		if not argument.begins_with(TR_NAME_FLAG): continue
+		var raw: String = argument.trim_prefix(TR_NAME_FLAG)
+		while index < arguments.size() and not arguments[index].begins_with("--"):
+			raw += " " + arguments[index]
+			index += 1
+		var separator: int = raw.find(":")
+		if separator > 0 and raw.substr(0, separator).begins_with("resident_"):
+			_dsh_tr_name_id = raw.substr(0, separator)
+			raw = raw.substr(separator + 1)
+		if not raw.is_empty() and raw.length() > TR_NAME_MAX: raw = raw.substr(0, TR_NAME_MAX)
+		_dsh_tr_name = raw
+	_dsh_tr_label = not _dsh_tr_name.is_empty()
+
+func _dsh_tr_feature_on() -> bool:
+	_dsh_test_resident_flags()
+	return _dsh_tr_label or _dsh_tr_near
+
+# DSH_TESTRESIDENT: the test resident is the first record this host hands a spawn point to,
+# i.e. resident_1 for the pinned packet (also the only row under --city-qa=1). With an
+# explicit id binding the seat is claimed by the first of {named id, first admitted}.
+func _dsh_test_seat() -> String:
+	if _dsh_tr_seat_claimed: return _dsh_tr_seat_id
+	_dsh_tr_seat_claimed = true
+	_dsh_tr_seat_id = ""
+	for id: String in _records:
+		if not _records[id].attempted:
+			_dsh_tr_seat_id = id
+			break
+	if _dsh_tr_seat_id.is_empty(): return ""
+	if not _dsh_tr_name_id.is_empty() and _records.has(_dsh_tr_name_id):
+		var named_last: bool = true
+		for id: String in _records:
+			if id == _dsh_tr_name_id: continue
+			if not _records[id].attempted: named_last = false; break
+		if named_last: _dsh_tr_seat_id = _dsh_tr_name_id
+	return _dsh_tr_seat_id
+
+## True when this record may carry the visible name. _dsh_test_seat() is the single owner of
+## "which resident is the test resident", so it is consulted here as well: a bare
+## --city-resident-name without the near-player flag claims the seat at this call.
+func _dsh_label_for(identity: String) -> bool:
+	return _dsh_tr_label and (not _dsh_tr_near or identity == _dsh_test_seat())
+
+# DSH_TESTRESIDENT: the player, or null. main.gd owns it as the scene's own _player and
+# positions it before the city population attaches, so the authored hero spawn is readable
+# here. No movement, no input and no authority is touched.
+func _dsh_player_node() -> Node3D:
+	var scene: Node3D = _scene.get_ref() if _scene != null else null
+	if not is_instance_valid(scene): return null
+	var player: Variant = scene.get("_player")
+	if not player is Node3D: return null
+	var node: Node3D = player
+	if not node.is_inside_tree(): return null
+	return node
+
+# DSH_TESTRESIDENT: world candidate -> the exact (r, c) this host's own spawn formula maps
+# back onto that world point (candidate.c * 4.1 - 395.65, candidate.r * 4.1 - 45.1). A
+# candidate on a 4.1 m lattice is therefore placed bit-exactly; any other candidate is
+# placed on the nearest lattice point, and the value is reported in DSH_TESTRESIDENT.
+func _dsh_r_for_world_z(world_z: float) -> float:
+	return (world_z + TR_ORIGIN.z) / TR_CELL_M
+
+func _dsh_c_for_world_x(world_x: float) -> float:
+	return (world_x + TR_ORIGIN.x) / TR_CELL_M
+
+# DSH_TESTRESIDENT: would the resident capsule stand at this point without touching the
+# player capsule? The player is the only actor body expected at the hero spawn, and it is
+# excluded explicitly; every other body (residents, statics, props) is respected.
+func _dsh_player_clear(point: Vector3, player: Node3D) -> bool:
+	var body: CharacterBody3D = player as CharacterBody3D
+	if body == null: return true
+	var space: PhysicsDirectSpaceState3D = body.get_world_3d().direct_space_state
+	# DSH_TESTRESIDENT: PhysicsShapeQueryParameters3D is not a Resource, so it has no
+	# duplicate(); this builds the same query the host already uses (same box, same layer,
+	# same margin) with only the player's own body excluded.
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = _box
+	query.collision_mask = 1
+	query.margin = .001
+	query.exclude = [body.get_rid()]
+	query.transform = Transform3D(Basis.IDENTITY, point + Vector3.UP * (HEIGHT * .5 + .025))
+	return space.intersect_shape(query, 1).is_empty()
+
+# DSH_TESTRESIDENT: 2.5 m from the player in 16 directions, then inward/outward until the
+# existing admission policy accepts the point. Every candidate is proved by the SAME
+# callables the authored position is proved by: policy.support_height() (source floor +
+# source_admit), _dsh_player_clear() (the resident capsule must clear the player capsule)
+# and _physical_clear() (native floor square, capsule and building envelopes).
+# If the player is outside the packet crop, the anchor is pulled onto the nearest in-crop
+# cell (reported by the caller) instead of silently giving up.
+# Returns {"ok": true, "r":…, "c":…, "distance_m":…, "anchor":…} or {"ok": false, "reason": …}.
+func _dsh_near_player_point(record: Dictionary) -> Dictionary:
+	var player: Node3D = _dsh_player_node()
+	if player == null: return {"ok": false, "reason": "player_unavailable"}
+	var at: Vector3 = player.global_position
+	if not at.is_finite(): return {"ok": false, "reason": "player_position_nonfinite"}
+	var crop: Dictionary = _city_spawn_context.get("crop", {})
+	if crop.is_empty(): return {"ok": false, "reason": "city_crop_unavailable"}
+	var r_min: float = float(crop.get("r_min", 0.0))
+	var c_min: float = float(crop.get("c_min", 0.0))
+	# The authored packet rows are half-integers, so the source fallback ring search can
+	# only ever land on this lattice; staying on it keeps every candidate a real grid point.
+	var anchor_r: float = floor(_dsh_r_for_world_z(at.z)) + .5
+	var anchor_c: float = floor(_dsh_c_for_world_x(at.x)) + .5
+	var anchor: Vector3 = Vector3(anchor_c * TR_CELL_M - TR_ORIGIN.x, at.y, anchor_r * TR_CELL_M - TR_ORIGIN.z)
+	var identity: String = str(record.row.source_id)
+	var tried := 0
+	var last_reason := "none"
+	for distance: float in TR_NEAR_DISTANCES:
+		for direction in TR_NEAR_DIRECTIONS:
+			var angle: float = TAU * float(direction) / float(TR_NEAR_DIRECTIONS)
+			var candidate: Vector3 = anchor + Vector3(cos(angle) * distance, 0.0, sin(angle) * distance)
+			var r: float = _dsh_r_for_world_z(candidate.z)
+			var c: float = _dsh_c_for_world_x(candidate.x)
+			var r_cell: float = floor(r) + .5
+			var c_cell: float = floor(c) + .5
+			if r_cell < r_min or r >= float(crop.get("r_max", 0.0)) or c_cell < c_min or c >= float(crop.get("c_max", 0.0)): continue
+			var proposed: Vector3 = Vector3(c_cell * TR_CELL_M - TR_ORIGIN.x, at.y, r_cell * TR_CELL_M - TR_ORIGIN.z)
+			if at.distance_to(proposed) > TR_NEAR_REACH_M: continue
+			tried += 1
+			if tried > TR_NEAR_MAX_TRIED: break
+			var height: Variant = _support.call(proposed, identity, record.generation)
+			if not (height is float or height is int) or not is_finite(float(height)):
+				last_reason = "support_unknown"
+				continue
+			proposed.y = float(height)
+			if not _dsh_player_clear(proposed, player):
+				last_reason = "too_close_to_player"
+				continue
+			if not _physical_clear(proposed, [player.get_rid()]):
+				last_reason = "physical_clear_refused"
+				continue
+			return {"ok": true, "r": r_cell, "c": c_cell, "distance_m": at.distance_to(proposed), "anchor": at.distance_to(anchor) > .01}
+		if tried > TR_NEAR_MAX_TRIED: break
+	if tried == 0: return {"ok": false, "reason": "no_candidate_inside_city_crop", "tried": tried}
+	return {"ok": false, "reason": "no_admitted_point_near_player(reach_m=%.1f,last=%s)" % [TR_NEAR_REACH_M, last_reason], "tried": tried}
+
+# DSH_TESTRESIDENT: the last resort of --city-resident-near-player. The player occupies a
+# spot that is walkable by construction, so the 2.5 m axis neighbours of that spot are valid
+# residency even when the policy refuses every grid cell around it because the cell index is
+# not a registered source floor. Y comes from the player, never from the surface palette; the
+# grid coordinates are derived only so the placement passes the host's own city-crop
+# admission, and the crop is respected by clamping.
+# The player's own cell is deliberately not a candidate: a capsule standing where the player
+# stands is refused by the clearance test, so it could only ever produce a false refusal.
+# Returns {"ok": true, "r":…, "c":…, "offset_m":…, "clamped":bool} or {"ok": false, …}.
+func _dsh_player_spot_point(record: Dictionary) -> Dictionary:
+	var player: Node3D = _dsh_player_node()
+	if player == null: return {"ok": false, "reason": "player_unavailable", "tried": 0}
+	var at: Vector3 = player.global_position
+	if not at.is_finite(): return {"ok": false, "reason": "player_position_nonfinite", "tried": 0}
+	var crop: Dictionary = _city_spawn_context.get("crop", {})
+	if crop.is_empty(): return {"ok": false, "reason": "city_crop_unavailable", "tried": 0}
+	var tried := 0
+	var last_reason := "none"
+	for direction: Vector3 in TR_PLAYER_FALLBACK_DIRECTIONS:
+		tried += 1
+		var raw: Vector3 = at + direction * TR_PLAYER_FALLBACK_OFFSET_M
+		var r: float = _dsh_r_for_world_z(raw.z)
+		var c: float = _dsh_c_for_world_x(raw.x)
+		# The host's own city-crop admission (crop match + half-open bounds) must accept the
+		# derived coordinates; clamping keeps the candidate legal when the player stands on a
+		# crop edge, and the telemetry then reports the real distance that was reached.
+		var r_clamped: float = clampf(r, float(crop.get("r_min", 0.0)), float(crop.get("r_max", 0.0)) - .5)
+		var c_clamped: float = clampf(c, float(crop.get("c_min", 0.0)), float(crop.get("c_max", 0.0)) - .5)
+		var proposed: Vector3 = Vector3(c_clamped * TR_CELL_M - TR_ORIGIN.x, at.y, r_clamped * TR_CELL_M - TR_ORIGIN.z)
+		if not _dsh_player_clear(proposed, player):
+			last_reason = "clearance_refused"
+			continue
+		return {"ok": true, "r": r_clamped, "c": c_clamped, "offset_m": at.distance_to(proposed), "clamped": not (is_equal_approx(r_clamped, r) and is_equal_approx(c_clamped, c))}
+	return {"ok": false, "reason": "player_spot_clearance_refused:" + last_reason, "tried": tried}
+
+# DSH_TESTRESIDENT: the one-shot relocation of this record's spawn point, in three honest
+# steps. 1) the grid search near the player, proved by the policy itself; 2) if it found
+# nothing, or found only a point farther than TR_NEAR_CLOSE_M, the player-spot fallback,
+# because the owner requires the test resident next to the player; 3) only if both refuse,
+# the untouched authored point. The chosen step and the reason are carried to the
+# DSH_TESTRESIDENT line, so a fallback is never presented as a policy admission.
+func _dsh_near_player_override(record: Dictionary) -> void:
+	if not _dsh_tr_feature_on() or _dsh_tr_near_done or not _dsh_tr_near: return
+	var identity: String = str(record.row.source_id)
+	if _dsh_test_seat() != identity or identity.is_empty(): return
+	_dsh_tr_near_done = true
+	var found: Dictionary = _dsh_near_player_point(record)
+	if found.get("ok", false) and float(found.distance_m) <= TR_NEAR_CLOSE_M:
+		_dsh_tr_applied = true
+		_dsh_tr_override_r = float(found.r)
+		_dsh_tr_override_c = float(found.c)
+		_dsh_tr_mode = "near_player"
+		_dsh_tr_reason = "admitted_near_player_%.2fm" % float(found.distance_m)
+		return
+	var grid_note: String = ("grid_reason=%s" % str(found.get("reason", "near_player_failed"))) if not found.get("ok", false) else ("grid_best=%.2fm" % float(found.distance_m))
+	var spot: Dictionary = _dsh_player_spot_point(record)
+	if not spot.get("ok", false):
+		_dsh_tr_mode = "authored"
+		_dsh_tr_reason = "grid_points_tried=%d;%s;player_spot_fallback_failed:%s" % [int(found.get("tried", 0)), grid_note, str(spot.get("reason", "unknown"))]
+		return
+	_dsh_tr_applied = true
+	_dsh_tr_override_r = float(spot.r)
+	_dsh_tr_override_c = float(spot.c)
+	_dsh_tr_mode = "player_spot_fallback"
+	_dsh_tr_reason = "grid_points_tried=%d;%s;offset=%.2fm%s" % [int(found.get("tried", 0)), grid_note, float(spot.offset_m), ";crop_clamped" if bool(spot.clamped) else ""]
+
+# DSH_TESTRESIDENT: the visible name. Label3D is a pure render node: it has no collision
+# shape, no physics body, no navigation and no script, and it is a child of the resident's
+# existing visual motion node, so it follows the resident without touching its behaviour.
+func _dsh_apply_resident_name(body: Node3D, motion: Node3D, record: Dictionary) -> void:
+	if not _dsh_tr_feature_on() or not _dsh_label_for(str(record.row.source_id)): return
+	if not is_instance_valid(motion) or not is_instance_valid(body): return
+	var label := Label3D.new()
+	label.name = "DshResidentName"
+	label.text = _dsh_tr_name
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.double_sided = true
+	label.no_depth_test = true
+	label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	label.pixel_size = .0025
+	label.font_size = 64
+	label.modulate = Color(1, .93, .72, 1)
+	label.outline_modulate = Color(0, 0, 0, 1)
+	label.outline_size = 14
+	var height: float = MAX_VISUAL_HEIGHT
+	var descriptor: Variant = record.row.get("descriptor", {})
+	if descriptor is Dictionary and (descriptor.get("height") is float or descriptor.get("height") is int) and is_finite(float(descriptor.height)):
+		height = float(descriptor.height)
+	var top: float = clampf(height, 1.65, MAX_VISUAL_HEIGHT) + TR_LABEL_HEIGHT
+	motion.add_child(label)
+	label.position = Vector3(0, top, 0)
+	body.set_meta("dsh_test_resident_name", _dsh_tr_name)
+
+# DSH_TESTRESIDENT: exactly one telemetry line per created test resident.
+# DSH_TESTRESIDENT id=… name="…" label=true/false spawn=(x,y,z) mode=authored|near_player reason=… frame=…
+func _dsh_print_test_resident(record: Dictionary, point: Vector3, labelled: bool) -> void:
+	if not _dsh_tr_feature_on() or _dsh_tr_printed > 0: return
+	_dsh_tr_printed += 1
+	var mode: String = _dsh_tr_mode if _dsh_tr_applied else "authored"
+	print("DSH_TESTRESIDENT id=", str(record.row.source_id), " name=", JSON.stringify(_dsh_tr_name),
+		" label=", "true" if labelled else "false",
+		" spawn=(", "%.3f" % point.x, ",", "%.3f" % point.y, ",", "%.3f" % point.z, ")",
+		" mode=", mode, " reason=", _dsh_tr_reason, " frame=", Engine.get_physics_frames())
+
 func configure(scene: Node3D, navigation: RefCounted, packet: PackedByteArray, trust: Dictionary, prepared_manifest: PackedByteArray, prepared_directory: String, owners: Dictionary, source_admit: Callable, support_height: Callable) -> Dictionary:
 	if not Thread.is_main_thread() or _busy or _disposed or _scene != null: return {"ok": false, "error": "lifetime"}
 	if not is_instance_valid(scene) or not scene.is_inside_tree() or not scene.global_transform.is_equal_approx(Transform3D.IDENTITY) or not (navigation is Navigation or navigation is CityNavigation) or not source_admit.is_valid() or not support_height.is_valid(): return {"ok": false, "error": "host_contract"}
@@ -395,9 +713,18 @@ func _admit_record(record: Dictionary, candidate: Dictionary = {}, preview_stage
 	elif is_instance_valid(record.body):
 		return _reject(record, "duplicate_source_body")
 	var raw: Dictionary = record.row.source_raw
+	# DSH_TESTRESIDENT: the one-shot --city-resident-near-player relocation. With both flags
+	# absent this call returns before it reads a single field and the four lines below are
+	# the exact pre-flag path.
+	_dsh_near_player_override(record)
 	var point := Vector3(float(raw.c) * 4.1 - 395.65, 0, float(raw.r) * 4.1 - 45.1)
 	if not candidate.is_empty(): point = Vector3(float(candidate.c) * 4.1 - 395.65, 0, float(candidate.r) * 4.1 - 45.1)
 	if not preview_stage.is_empty(): point = Vector3(float(preview_stage.c) * 4.1 - 395.65, 0, float(preview_stage.r) * 4.1 - 45.1)
+	# DSH_TESTRESIDENT: the relocation replaces only this record's otherwise identical authored
+	# point; support_height(), _source_admits(), _owned_clear() and _physical_clear() below run
+	# on it unchanged, so a candidate too close to a wall or a prop is refused, not forced.
+	if _dsh_tr_applied and _dsh_test_seat() == record.row.source_id:
+		point = Vector3(_dsh_tr_override_c * 4.1 - 395.65, 0, _dsh_tr_override_r * 4.1 - 45.1)
 	var height: Variant = _support.call(point, record.row.source_id, record.generation)
 	if not (height is float or height is int) or not is_finite(float(height)): return _reject(record, "support_unknown")
 	point.y = height
@@ -439,6 +766,9 @@ func _admit_record(record: Dictionary, candidate: Dictionary = {}, preview_stage
 	var activity := PreviewActivity.new()
 	if not activity.bind(rigs[0] as Skeleton3D, record.row.source_id):
 		body.free(); return _reject(record, "canonical_activity_bones")
+	# DSH_TESTRESIDENT: the visible name, added only after the actor, its gait and its
+	# activity rig are all valid, so a rejected spawn never carries a half-built label.
+	_dsh_apply_resident_name(body, motion, record)
 	record.body = body; record.motion = motion; record.gait = gait; record.activity = activity; record.origin = point
 	record["display_yaw"] = body.rotation.y
 	record["turn_from"] = body.rotation.y
@@ -447,6 +777,9 @@ func _admit_record(record: Dictionary, candidate: Dictionary = {}, preview_stage
 	record["placement_mode"] = body.get_meta("placement_mode")
 	record.attempted = true
 	record.status = "IDLE"; record.reason = ""; _stats.admissions += 1
+	# DSH_TESTRESIDENT: the one telemetry line, emitted here because this is the exact
+	# moment the resident exists (same placement, same frame as the pre-flag code).
+	_dsh_print_test_resident(record, body.global_position, body.has_meta("dsh_test_resident_name"))
 	return {"status": "IDLE", "source_id": record.row.source_id, "position": point}
 
 ## Deterministic local preview circuit, not the source NPC agenda. Every
