@@ -42,8 +42,14 @@ const MAX_ATTEMPTS := 3
 const RETRY_DELAY_S := 1.0
 ## Frames of a fully blocked direction before one attempt is counted as failed.
 const STUCK_FRAMES := 12
-## Side steps tried when the direct direction is a wall: +-35 and +-70 degrees.
-const SIDESTEPS := [0.61, -0.61, 1.22, -1.22]
+## Side steps tried when the direct direction is a wall, ordered by how little they
+## deviate from the desired direction (radians). A flat city wall needs the wide angles
+## (`+-90` and beyond) to become a slide along the facade instead of a dead stop.
+const SIDESTEPS := [0.35, -0.35, 0.7, -0.7, 1.05, -1.05, 1.4, -1.4, 1.75, -1.75, 2.1, -2.1, 2.45, -2.45, 2.8, -2.8, 3.14]
+## A chosen side step wider than this is remembered and kept for HOLD_FRAMES, so the
+## resident walks along the wall (rounds the corner) instead of jittering in place.
+const HOLD_RAD := 0.6
+const HOLD_FRAMES := 45
 ## Ground/floor probe: water and world layers, the same pair the room marker probes.
 const PROBE_MASK := 1 | 256
 ## Wall probe: the world layer only.
@@ -80,6 +86,9 @@ var _printed_frame := -9999
 var _printed_dist := -1.0
 var _moved_m := 0.0
 var _last_reason := ""
+## Wall-follow memory: the side direction currently held, and for how many frames.
+var _hold_dir := Vector3.ZERO
+var _hold_frames := 0
 
 
 static func enabled() -> bool:  # DSH_SIMPLEHOSP
@@ -248,19 +257,28 @@ func step(delta: float) -> String:
 	var direction: Vector3 = _flat_dir(here, goal)
 	if direction == Vector3.ZERO: return ""
 	var step_m: float = maxf(.02, SPEED_MPS * delta)
-	var move: Dictionary = _candidate(here, direction, step_m, dist)
+	# Wall-follow: while a side direction is held, move along it. The direct direction is
+	# re-asked on every frame, so the hold is dropped as soon as the goal is reachable again.
+	var wanted: Vector3 = direction
+	if _hold_frames > 0 and _hold_dir != Vector3.ZERO:
+		wanted = _hold_dir
+		_hold_frames -= 1
+	var move: Dictionary = _candidate(here, wanted, step_m, dist)
 	if not bool(move.get("ok", false)):
-		var reason: String = str(move.get("reason", "blocked"))
-		for angle: float in SIDESTEPS:
-			var side: Vector3 = direction.rotated(Vector3.UP, angle)
-			var attempt: Dictionary = _candidate(here, side, step_m, dist)
-			if bool(attempt.get("ok", false)): move = attempt; break
-		if not bool(move.get("ok", false)):
-			_stuck += 1
-			_last_reason = reason
-			if _stuck >= STUCK_FRAMES: return _fail_attempt(reason)
-			return ""
+		move = _best_side_candidate(here, direction, step_m, dist)
+		if bool(move.get("ok", false)):
+			var offset: float = float(move.get("offset", 0.0))
+			if absf(offset) > HOLD_RAD:
+				_hold_dir = move.get("dir", Vector3.ZERO)
+				_hold_frames = HOLD_FRAMES
+				_last_reason = "wall_at_%.0f_deg" % rad_to_deg(offset)
+	if not bool(move.get("ok", false)):
+		_stuck += 1
+		_last_reason = str(move.get("reason", "blocked"))
+		if _stuck >= STUCK_FRAMES: return _fail_attempt(_last_reason)
+		return ""
 	_stuck = 0
+	if _hold_frames <= 0: _hold_dir = Vector3.ZERO
 	var point: Vector3 = move.point
 	_body.velocity = Vector3.ZERO
 	_body.global_position = point
@@ -279,6 +297,8 @@ func step(delta: float) -> String:
 
 func _fail_attempt(reason: String) -> String:
 	_attempts += 1
+	_hold_dir = Vector3.ZERO
+	_hold_frames = 0
 	if _attempts >= MAX_ATTEMPTS:
 		_active = false
 		_phase = "blocked"
@@ -292,6 +312,22 @@ func _fail_attempt(reason: String) -> String:
 	_wait_s = RETRY_DELAY_S
 	_emit("retry", "%s_attempt_%d_of_%d" % [reason, _attempts, MAX_ATTEMPTS])
 	return "retry"
+
+
+## The closest clear direction to the desired one. Returns the first candidate that does
+## not increase the distance to the goal; otherwise the least-deviating clear candidate,
+## which is what makes the resident slide along a facade instead of stopping.
+func _best_side_candidate(here: Vector3, direction: Vector3, step_m: float, dist: float) -> Dictionary:
+	var fallback := {}
+	for angle: float in SIDESTEPS:
+		var side: Vector3 = direction.rotated(Vector3.UP, angle)
+		var attempt: Dictionary = _candidate(here, side, step_m, dist)
+		if not bool(attempt.get("ok", false)): continue
+		attempt["offset"] = angle
+		attempt["dir"] = side
+		if _flat(attempt.point, _target) <= dist + .05: return attempt
+		if fallback.is_empty(): fallback = attempt
+	return fallback
 
 
 ## One bounded move: the floor under the destination must be a legal step, and no wall
