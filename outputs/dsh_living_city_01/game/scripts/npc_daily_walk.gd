@@ -126,6 +126,28 @@ var _interleg_wait_frames_max := 0  # DSH_LEGHANDOFF
 var _interleg_zero_frame_requests := 0  # DSH_LEGHANDOFF
 var _interleg_cancel_refusals := 0  # DSH_LEGHANDOFF
 var _interleg_request_refusals := 0  # DSH_LEGHANDOFF
+# DSH_LEGNOMOTION: --city-leg-nomotion-fix=1 (default 0 = today's behaviour everywhere).
+# Measured defect (MAFIOZY_HOSPITAL_STOP.md, section P2): a leg the native host already
+# polls as READY can leave the body standing - measured in the same window
+# `DSH_NAVSTEP steps/s=0`, `DSH_ONE calls=0`, `DSH_RESDIAG walked_m=0.0` - and today's only
+# answer is `_begin_detour("current_ready_leg_no_motion")` after 2.0 s. That detour then
+# spends its whole frame budget: `frames=241/240 nodes=54/160 open_after_first=2
+# goal_distance_m=3.556 status=BLOCKED reason=detour_frame_budget`, which the hospital
+# visit reports as `outdoor:detour_frame_budget` and which ends the errand ~13 m into the
+# walk. With the flag ON the bars are 1.5 s and 5 cm, and the answer is bounded:
+# 1st stall -> advance to the next point of the SAME admitted route, 2nd -> the existing
+# bounded fresh replan (MAX_FRESH_REPLANS, policy-authorized), 3rd -> the shipped detour.
+# Nothing here moves a body, registers a floor or authorizes a route.
+const DSH_NM_MOVE_M := .05
+const DSH_NM_STALL_S := 1.5
+const DSH_NM_LINE_CAP := 400
+var _dsh_nm := -1
+var _dsh_nm_pos := Vector3.ZERO
+var _dsh_nm_at := 0.0
+var _dsh_nm_frames := 0
+var _dsh_nm_actions := 0
+var _dsh_nm_leg := -2
+var _dsh_nm_lines := 0
 # DSH_VISITDEADLINE: bounded insurance for the shop visit chain. A daily walk that
 # belongs to the local printshop visit may stop making progress (a leg deadline, an
 # exhausted detour budget, a blocked admission) and then the visit never starts: the
@@ -353,11 +375,14 @@ func step(delta: float) -> void:
 			_block("stale_native_identity_changed"); return
 		_start_fresh_replan(str(native.reason),native)
 	elif status in ["BLOCKED","NO_PATH"]:
-		_begin_detour("native_route:"+status)
+		if _dsh_legnomotion_on(): _dsh_nm_route_failed("native_route:"+status, native)  # DSH_LEGNOMOTION
+		else: _begin_detour("native_route:"+status)
 	elif status not in ["PENDING","READY"]:
 		_block("native_route:"+status)
 	elif not _streaming_route and _active_time-_leg_started>30.0:
 		_begin_detour("native_leg_deadline")
+	elif status=="READY" and _dsh_legnomotion_on():
+		_dsh_nm_step(native)  # DSH_LEGNOMOTION
 	elif status=="READY":
 		# A queued request has had no opportunity to move. Start only its
 		# no-motion clock at the first READY poll; the original leg and
@@ -650,6 +675,128 @@ func _dsh_force_visit_arrival(body: CharacterBody3D, left: float, veto: String) 
 		" frame=", Engine.get_physics_frames())
 	return true
 
+## DSH_LEGNOMOTION: the flag read, once per walk lifetime.
+func _dsh_legnomotion_on() -> bool:
+	if _dsh_nm < 0:
+		_dsh_nm = 0
+		for dsh_argument: String in OS.get_cmdline_user_args():
+			if dsh_argument.begins_with("--city-leg-nomotion-fix="):
+				_dsh_nm = maxi(0, mini(1, int(dsh_argument.trim_prefix("--city-leg-nomotion-fix="))))
+	return _dsh_nm == 1
+
+## DSH_LEGNOMOTION: the flagged answer to "the leg is READY and the body is not moving".
+## It never stands still waiting for the 240-frame detour: the first stall spends one
+## admitted waypoint, the second asks the existing bounded replan, and only the third falls
+## back to the shipped detour. Every action keeps the shipped exact-cancel / exact-request /
+## policy-authorized proof order.
+func _dsh_nm_step(native: Dictionary) -> void:
+	var body: CharacterBody3D = _token.body
+	if not is_instance_valid(body):
+		_begin_detour("current_ready_leg_no_motion"); return
+	var here: Vector3 = body.global_position
+	if _dsh_nm_leg != _edge:
+		_dsh_nm_leg = _edge; _dsh_nm_pos = here; _dsh_nm_at = _active_time
+		_dsh_nm_frames = 0; _dsh_nm_actions = 0
+	if here.distance_to(_dsh_nm_pos) > DSH_NM_MOVE_M:
+		_dsh_nm_pos = here; _dsh_nm_at = _active_time; _dsh_nm_frames = 0
+		return
+	# The shipped streaming-route exemption is kept verbatim: a leg that is legitimately
+	# waiting for its own frontier (body standing on the frontier point) is not a stall.
+	var frontier: Vector3 = native.get("route_frontier", Vector3.ZERO)
+	var waiting: bool = _streaming_route and bool(native.get("route_frontier_pending", false)) and Vector2(here.x-frontier.x, here.z-frontier.z).length()<.20 and absf(here.y-frontier.y)<.30
+	if waiting and _active_time-_dsh_nm_at<=45.0: return
+	_dsh_nm_frames += 1
+	if _active_time - _dsh_nm_at < DSH_NM_STALL_S: return
+	var stuck_m: float = here.distance_to(_dsh_nm_pos)
+	var can_advance: bool = _edge + 1 < _points.size()
+	var action := "blocked"
+	if _dsh_nm_actions == 0 and can_advance: action = "advance"
+	elif _dsh_nm_actions <= 1 and _fresh_replans < MAX_FRESH_REPLANS: action = "replan"
+	_dsh_nm_actions += 1
+	_dsh_nm_emit(action, stuck_m, native)
+	_dsh_nm_pos = here; _dsh_nm_at = _active_time; _dsh_nm_frames = 0
+	match action:
+		"advance":
+			# The unreachable target is skipped for the next point of the SAME route that
+			# the policy already admitted; the old exact job is cancelled first, and a
+			# refused cancellation blocks exactly as it does on the shipped path.
+			_edge += 1
+			if not _cancel_request(): _block("leg_nomotion_advance_cancel_refused"); return
+			if _navigation.state()=="READY": _request_current_leg()
+		"replan":
+			_start_fresh_replan("leg_no_motion")
+		_:
+			_begin_detour("current_ready_leg_no_motion")
+
+## DSH_LEGNOMOTION: one line per action, bounded per walk. `moved_m` is the motion inside
+## the stall window (the quantity the rule tests), `frames_stuck` its physics frames, and
+## the trailing fields name the state the action was taken in (they are read-only).
+func _dsh_nm_emit(action: String, stuck_m: float, native: Dictionary) -> void:
+	if _dsh_nm_lines >= DSH_NM_LINE_CAP: return
+	_dsh_nm_lines += 1
+	var here: Vector3 = _token.body.global_position
+	var target: Vector3 = _points[_edge] if _edge >= 0 and _edge < _points.size() else Vector3.ZERO
+	print("DSH_LEGNOMOTION leg=", _edge + 1, " points=", _points.size(),
+		" done=", bool(_path_admission.get("done", false)),
+		" moved_m=", "%.3f" % stuck_m, " frames_stuck=", _dsh_nm_frames,
+		" action=", action, " frame=", Engine.get_physics_frames(),
+		" status=", str(native.get("status", "-")),
+		" stalled_s=", "%.2f" % maxf(0.0, _active_time - _dsh_nm_at),
+		" to_leg_m=", "%.2f" % Vector2(here.x - target.x, here.z - target.z).length(),
+		" detours=", _detour_count, " replans=", _fresh_replans, " reason=", _reason)
+
+## DSH_LEGNOMOTION: the measured COMMON case is not READY-without-motion but an explicit
+## native `NO_PATH`/`BLOCKED` for the current waypoint (111 occurrences in 145 s of the
+## control run). The shipped answer is a 240-frame detour search (~4 s, ~1 native check per
+## frame because each check costs more than the detour's 750 us frame budget). With the flag
+## on the walk first spends one admitted waypoint (advance) or one bounded replan, and only
+## then falls back to that detour - so the cheap answers are not paid for with four seconds
+## of standing still.
+func _dsh_nm_route_failed(reason: String, native: Dictionary) -> void:
+	if _dsh_nm_leg != _edge:
+		_dsh_nm_leg = _edge; _dsh_nm_actions = 0
+	var can_advance: bool = _edge + 1 < _points.size()
+	var action := "detour"
+	if _dsh_nm_actions == 0 and can_advance: action = "advance"
+	elif _dsh_nm_actions <= 1 and _fresh_replans < MAX_FRESH_REPLANS: action = "replan"
+	_dsh_nm_actions += 1
+	_dsh_nm_emit(action, 0.0, native)
+	match action:
+		"advance":
+			_edge += 1
+			if not _cancel_request(): _begin_detour(reason); return
+			if _navigation.state()=="READY": _request_current_leg()
+		"replan":
+			_start_fresh_replan(reason)
+		_:
+			_begin_detour(reason)
+
+## DSH_LEGNOMOTION: a detour that ran out of its own budget (measured:
+## `frames=241/240 nodes=54/160 open_after_first=2`) has still proved that open cells exist.
+## Instead of blocking the whole errand (which the hospital visit reports as
+## `outdoor:detour_frame_budget` and which is what ends the walk ~13 m in), the flag spends
+## one waypoint or one bounded replan and leaves the errand alive. Returns true when the
+## escape was taken; false keeps the shipped `_block`.
+func _dsh_nm_detour_escape(reason: String) -> bool:
+	if _dsh_nm_leg != _edge:
+		_dsh_nm_leg = _edge; _dsh_nm_actions = 0
+	if _dsh_nm_actions > 1: return false
+	var can_advance: bool = _dsh_nm_actions == 0 and _edge + 1 < _points.size()
+	var can_replan: bool = not can_advance and _fresh_replans < MAX_FRESH_REPLANS
+	if not can_advance and not can_replan: return false
+	var action := "advance" if can_advance else "replan"
+	if _detour != null: _detour.cancel()
+	_detour = null; _phase = "WALKING"
+	_dsh_nm_actions += 1
+	_dsh_nm_emit(action, 0.0, {"status":"DETOUR_FAILED","reason":reason})
+	if can_advance:
+		_edge += 1
+		if not _cancel_request(): _block(reason); return true
+		if _navigation.state()=="READY": _request_current_leg()
+	else:
+		_start_fresh_replan(reason)
+	return true
+
 func _begin_detour(reason: String) -> void:
 	# Both ordinary leg walks and streaming walks own an exact policy route.
 	# Keep its static projection only while this body is held in DETOUR after
@@ -697,7 +844,10 @@ func _step_detour() -> void:
 		_block("detour_object_missing");return
 	var result: Dictionary=_detour.step()
 	if result.status=="SEARCHING": return
-	if result.status!="FOUND": _block(str(result.get("reason","detour_failed")));return
+	if result.status!="FOUND":
+		# DSH_LEGNOMOTION: a search that ends on its own budget must not kill the errand.
+		if _dsh_legnomotion_on() and _dsh_nm_detour_escape(str(result.get("reason","detour_failed"))): return
+		_block(str(result.get("reason","detour_failed")));return
 	var rejoin: int=result.rejoin_index
 	var proposal: PackedVector3Array=result.points
 	if not _current() or proposal.is_empty() or proposal[0].distance_to(_token.body.global_position)>.05 or rejoin<_edge or rejoin>=_points.size():

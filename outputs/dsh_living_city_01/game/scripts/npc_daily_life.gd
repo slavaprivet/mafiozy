@@ -5,6 +5,7 @@ const Walk = preload("npc_daily_walk.gd")
 const MedMarker = preload("res://scripts/hospital/npc_hospital_marker.gd")
 const SimpleHospital = preload("res://scripts/hospital/npc_simple_hospital.gd")  # DSH_SIMPLEHOSP
 const ResDiag = preload("res://scripts/npc_visual/npc_resident_diag.gd")
+const NeedsCatalog = preload("res://scripts/npc_needs_catalog.gd")  # DSH_CATALOG
 const MEDICAL_THRESHOLD := .75
 ## DSH_MEDPRIORITY: --city-medical-threshold=<0..1> overrides MEDICAL_THRESHOLD. The flag's
 ## ABSENCE (not its value) is what arms the new read-only telemetry and the hospital room
@@ -16,6 +17,19 @@ static var _dsh_hp_flag: int = -2  # DSH_MEDPRIORITY: -2 unknown, -1 absent, 0..
 static var _dsh_med_rings: Array = []  # DSH_MEDPRIORITY: read-only, bounded to 48 rows
 var _dsh_moved_m := 0.0  # DSH_MEDPRIORITY: metres actually walked since the first medical goal
 var _dsh_moved_last := Vector3.ZERO  # DSH_MEDPRIORITY
+# DSH_WANDER: the ordinary walk of the owner's step 2. It is the shipped `_walk` route to a
+# random reachable point; this state only describes it for telemetry and never moves anything.
+var _dsh_wander_target := Vector3.ZERO  # DSH_WANDER
+var _dsh_wander_from := Vector3.ZERO  # DSH_WANDER
+var _dsh_wander_last_m := -1.0  # DSH_WANDER: the last reported distance, for a changed line
+var _dsh_wander_phase := ""  # DSH_WANDER
+# DSH_DEATH: residents whose life ended with hp 0. A new life for that id reports the respawn
+# and starts from an empty task set, so no goal, queue mark or hold survives the death.
+static var _dsh_dead: Dictionary = {}  # DSH_DEATH
+# DSH_CATALOG: the nearest site of the current goal's kind (the owner's district rule) and the
+# kind it was chosen for. Read-only: telemetry plus the goal's own point.
+var _dsh_site_choice: Dictionary = {}  # DSH_CATALOG
+var _dsh_site_kind := ""  # DSH_CATALOG
 ## DSH_NEEDS: "little money -> go to the bank and top up" thresholds. Cash below
 ## NEEDS_LOW_CASH counts as low; a withdrawal never takes less than
 ## NEEDS_WITHDRAW_MIN, and a deposit keeps NEEDS_CASH_RESERVE in hand so the
@@ -155,6 +169,13 @@ func configure(host: RefCounted, token: Dictionary, health: RefCounted, account:
 	if not _energy_ready:
 		_energy_ready = true
 		_energy = _dsh_energy_start()
+	# DSH_DEATH: a new life of a resident that died starts clean and says so. Nothing from
+	# the previous route is carried in (the queue, the goal and the walk belong to the life
+	# that ended), and the mark is consumed exactly once.
+	if _dsh_dead.has(str(token.source_id)):
+		_dsh_dead.erase(str(token.source_id))
+		print("DSH_RESPAWN id=", str(token.source_id), " cleared_tasks=true goals=", str(_dsh_task_queue),
+			" energy=%.0f" % _energy, " frame=", Engine.get_physics_frames())
 	return {"ok":true,"source_id":token.source_id,"scope":"new_local_resident_needs"}
 
 func _fail(reason: String) -> Dictionary: return {"ok":false,"reason":reason}
@@ -184,7 +205,33 @@ func _dsh_med_chain(stage: String, row: Dictionary, detail: String = "") -> void
 		var here: Vector3 = (body as Node3D).global_position
 		var at: Vector3 = marker
 		if Vector2(here.x - at.x, here.z - at.z).length() > 2.0: return
-	ResDiag.chain(str(_token.get("source_id", "")), stage, row, marker, _token.get("body"), detail, _dsh_hp_pct(row))
+	ResDiag.chain(str(_token.get("source_id", "")), stage, row, marker, _token.get("body"),
+		detail + " " + NeedsCatalog.site_telemetry(_dsh_site_choice), _dsh_hp_pct(row))
+
+## DSH_CATALOG: the owner's district rule - among every known site of this kind take the
+## NEAREST to the resident (inside DISTRICТ_RADIUS_M when one is that close, otherwise the
+## nearest overall). One line per change of the chosen site, so a log shows that a near site
+## was picked and not one across the city.
+func _dsh_site_pick(kind: String) -> Dictionary:  # DSH_CATALOG
+	if kind.is_empty(): return {}
+	var body: Variant = _token.get("body")
+	if not is_instance_valid(body) or not body is Node3D: return _dsh_site_choice
+	var scene: Node3D = _dsh_life_scene()
+	if not is_instance_valid(scene): return _dsh_site_choice
+	NeedsCatalog.scan(scene)
+	var here: Vector3 = (body as Node3D).global_position
+	var choice: Dictionary = NeedsCatalog.nearest(kind, here)
+	if not bool(choice.get("ok", false)): return choice
+	var changed: bool = kind != _dsh_site_kind or str(choice.get("site_id", "")) != str(_dsh_site_choice.get("site_id", ""))
+	_dsh_site_kind = kind
+	_dsh_site_choice = choice
+	if changed:
+		print("DSH_SITE id=", str(_token.get("source_id", "")), " kind=", kind,
+			" ", NeedsCatalog.site_telemetry(choice),
+			" body=(", "%.1f" % here.x, ",", "%.1f" % here.z, ")",
+			" radius_m=%.0f" % NeedsCatalog.DISTRICT_RADIUS_M,
+			" frame=", Engine.get_physics_frames())
+	return choice
 
 ## DSH_RESDIAG: the per-frame repaint of one resident's caption. The city steps the hit
 ## owner every physics frame, while this life is only polled on its turn in the daily slice
@@ -433,10 +480,13 @@ func _mark_served(task: String) -> void:  # DSH_TASKQUEUE
 		"restaurant": _dsh_queued_restaurant = true
 
 ## DSH_TASKQUEUE: the same condition returning after a served task frees that task again.
+## The queue entry is dropped too, so a condition that ended can never leave a stale head
+## that would send the resident to a place it no longer needs.
 func _release_served(task: String) -> void:  # DSH_TASKQUEUE
 	match task:
 		"hospital": _dsh_queued_hospital = false
 		"restaurant": _dsh_queued_restaurant = false
+	_dsh_task_queue.erase(task)
 
 ## DSH_ENERGY: after a goal ends, a condition that is still true re-arms its task, so a
 ## resident that is still hungry (or still hurt) keeps its place in the queue. The energy
@@ -538,6 +588,7 @@ func _dsh_med_emit(result: String, row: Dictionary, reason: String = "") -> void
 		+ " threshold_pct=%.1f" % (_dsh_threshold() * 100.0) + " strict_lt=true" \
 		+ " goal=" + goal_kind + " marker=" + marker_text \
 		+ " dist_m=%.1f" % distance + " moved_m=%.1f" % _dsh_moved_m \
+		+ " " + NeedsCatalog.site_telemetry(_dsh_site_choice) \
 		+ " hp_applied_to_row=" + ("true" if _dsh_hp_override() >= 0.0 else "false") \
 		+ " result=" + result
 	if not reason.is_empty(): line += " reason=" + reason
@@ -778,9 +829,16 @@ func step(delta: float) -> void:
 			_walk.step(delta)
 			var walking: Dictionary=_walk.snapshot()
 			if walking.status=="COMPLETE":
-				_walk.cancel(); _completed.walk+=1; _phase="RESTING"; _next_decision=_now+2000.0+_unit("rest:"+str(_roam_serial))*6500.0
+				# DSH_WANDER: the owner's rule - the base state is WALKING, so a completed
+				# leg is followed by a SHORT pause (1-3 s) and the next random point, never
+				# by the long rest the shipped 2.0-8.5 s window produced in the measurements.
+				_walk.cancel(); _completed.walk+=1; _phase="RESTING"; _next_decision=_now+1000.0+_unit("rest:"+str(_roam_serial))*2000.0
+				_dsh_wander_finish(true, "walk_complete")  # DSH_WANDER
 			elif walking.status in ["BLOCKED","CANCELLED"]:
 				_reason=str(walking.reason); _phase="RESTING"; _next_decision=_now+1500.0
+				_dsh_wander_finish(false, _reason)  # DSH_WANDER
+			else:
+				_dsh_wander_step()  # DSH_WANDER: report a falling dist_m without per-frame spam
 	_dsh_energy_drain()  # DSH_ENERGY: spent by the metres the shipped host really moved
 	_dsh_resdiag_step(row)  # DSH_RESDIAG: the head-up display of the owner's test resident
 	_dsh_quit_after()  # DSH_MEDPRIORITY: --city-quit-after=<s> bounds a short proof run
@@ -936,6 +994,7 @@ func _choose(row: Dictionary) -> void:
 	# before the marker admission, so nothing below can mark the task served or hand this
 	# resident to the standing hospital's controller.
 	if _needs_hospital(row) and _dsh_simple_on():
+		_dsh_site_pick("hospital")  # DSH_CATALOG: nearest hospital site of this district
 		if _dsh_med_on(): _dsh_med_chain("damaged", row, "hp_strictly_below_threshold_simple")
 		_dsh_simple_begin(row)
 		return
@@ -946,29 +1005,43 @@ func _choose(row: Dictionary) -> void:
 	# DSH_TASKQUEUE: the owner's order is health before energy. Health is therefore asked
 	# FIRST and only then does the energy side put its task in, so a resident in both
 	# states always ends up with ["hospital","restaurant"].
-	if _needs_hospital(row):
-		_dsh_marker_ready()  # DSH_MEDPRIORITY: resolve and place the visible room marker
-		if _dsh_med_on(): _dsh_med_chain("damaged", row, "hp_strictly_below_threshold")  # DSH_MEDCHAIN
-		_dsh_queue_push("hospital")  # DSH_TASKQUEUE: health first, always
-	elif _dsh_queued_hospital:
+	# DSH_CATALOG: the owner's step 4. Both the condition and the priority of a place live
+	# in ONE record in npc_needs_catalog.gd; this loop only walks the armed records in
+	# priority order, so adding a place never means editing the life in three places.
+	# Health still outranks energy because the record's priority says so, not because the
+	# branches happen to be written in that order.
+	var catalog: Array = NeedsCatalog.order(row, _energy, dsh_energy_on())
+	for record: Dictionary in catalog:
+		var place: String = str(record.get("id", ""))
+		# DSH_CATALOG: the owner's district rule - the concrete site of this kind is the
+		# nearest one to the resident, never one across the city. The choice is reported once
+		# per change and repeated in every goal line below.
+		_dsh_site_pick(place)
+		_dsh_queue_push(place)
+		if place == "hospital":
+			_dsh_marker_ready()  # DSH_MEDPRIORITY: the visible room marker of the goal
+			if _dsh_med_on(): _dsh_med_chain("damaged", row, "hp_strictly_below_threshold")  # DSH_MEDCHAIN
+		elif _dsh_med_on() and place == "restaurant":
+			_dsh_med_chain("goal_set", row, "restaurant_from_catalog")
+	if not _needs_hospital(row) and _dsh_queued_hospital:
 		_release_served("hospital")  # DSH_TASKQUEUE: the condition ended, the task is free again
-	if dsh_energy_on():
-		_dsh_energy_queue()  # DSH_ENERGY
-		if _dsh_task_queue.has("hospital") and _dsh_task_queue.find("hospital") > 0:
-			_dsh_task_queue.erase("hospital")
-			_dsh_task_queue.push_front("hospital")
-			print("DSH_TASKQUEUE id=", str(_token.get("source_id", "")), " push=-", " pop=-",
-				" current=hospital", " queue=", str(_dsh_task_queue),
-				" frame=", Engine.get_physics_frames(), " reorder=hospital_first")
-	if _queue_has("hospital"):
-		var hospital_task: String = _dsh_queue_pop_front()
-		_mark_served(hospital_task)
-		_start(_new_goal(hospital_task), true); return
-	if _queue_has("restaurant"):
-		var meal_task: String = _dsh_queue_pop_front()
-		_mark_served(meal_task)
-		if _dsh_med_on(): _dsh_med_chain("goal_set", row, "restaurant_from_queue")
-		_start(_new_goal(meal_task)); return
+	if dsh_energy_on() and _dsh_queued_restaurant:
+		var meal_record: Dictionary = NeedsCatalog.find("restaurant")
+		var meal_condition: Dictionary = meal_record.get("condition", {})
+		if not NeedsCatalog._matches(meal_condition, row, _energy, true): _release_served("restaurant")
+	# DSH_CATALOG: the queue is worked head-first, so the record with the lowest priority
+	# number is served first and the rest wait - they never overwrite each other.
+	if not _dsh_task_queue.is_empty():
+		var task: String = _dsh_task_queue[0]
+		if task == "hospital":
+			_dsh_queue_pop_front()
+			_mark_served("hospital")
+			_start(_new_goal("hospital"), true)  # DSH_CATALOG: visit/direct owner takes over
+			return
+		elif task == "restaurant":
+			_dsh_queue_pop_front()
+			_mark_served("restaurant")
+			_start(_new_goal("restaurant")); return
 	# DSH_MEDPRIORITY: the owner's 50 %-exactly case. This line is printed only when the
 	# new threshold flag is present, and only on a change of the resident's HP state.
 	if _dsh_med_on():
@@ -1138,6 +1211,7 @@ func _retry(reason: String) -> void:
 func _roam() -> void:
 	_roam_serial+=1
 	var body: CharacterBody3D=_token.body
+	var origin: Vector3 = body.global_position
 	# Bounded source-floor proposals. The current native path and host still
 	# validate every segment; these points never authorize teleport or passage.
 	for attempt in 6:
@@ -1149,14 +1223,85 @@ func _roam() -> void:
 		target.y=floor_y
 		if not _policy.source_admit(target,_token.source_id,_token.life_generation,.738,"target"): continue
 		var begun: Dictionary=_walk.begin(target)
-		if begun.get("ok",false): _phase="WALKING"; _reason=""; return
-	_phase="RESTING"; _reason="no_current_clear_walking_goal"; _next_decision=_now+2000.0
+		if begun.get("ok",false):
+			_phase="WALKING"; _reason=""
+			_dsh_wander_begin(origin, target, attempt)  # DSH_WANDER
+			return
+	_phase="RESTING"; _reason="no_current_clear_walking_goal"; _next_decision=_now+1500.0
+	_dsh_wander_emit("blocked", "no_current_clear_walking_goal")  # DSH_WANDER
+	# DSH_WANDER: the owner's rule - never leave the resident without a goal. A failed
+	# proposal only parks it for ~1.5 s; the next decision tries another random point.
+
+# --------------------------------------------------------------------------- #
+# DSH_WANDER: owner's step 2 - "when there is no priority need the resident walks to a
+# random point of the map". The walk itself is the SHIPPED `_walk` route (native path,
+# source support and admission unchanged); this only reports it. One line per change, plus
+# one line whenever the rounded distance to the target drops by a metre, so a log shows
+# `dist_m` falling without printing every frame.
+# --------------------------------------------------------------------------- #
+func _dsh_wander_begin(origin: Vector3, target: Vector3, attempt: int) -> void:
+	_dsh_wander_target = target
+	_dsh_wander_from = origin
+	_dsh_wander_last_m = -1.0
+	_dsh_wander_phase = "walking"
+	_dsh_wander_emit("walking", "attempt=" + str(attempt + 1) + " accepted")
+
+func _dsh_wander_emit(phase: String, detail: String = "") -> void:
+	if not ResDiag.diag_on() and not _dsh_med_on(): return
+	var body: Variant = _token.get("body")
+	var distance := -1.0
+	if is_instance_valid(body) and body is Node3D and _dsh_wander_target.is_finite():
+		var here: Vector3 = (body as Node3D).global_position
+		distance = Vector2(here.x - _dsh_wander_target.x, here.z - _dsh_wander_target.z).length()
+	print("DSH_WANDER id=", str(_token.get("source_id", "")),
+		" target=(", "%.2f" % _dsh_wander_target.x, ",", "%.2f" % _dsh_wander_target.y, ",", "%.2f" % _dsh_wander_target.z, ")",
+		" dist_m=", "%.1f" % distance, " phase=", phase, " result=", detail,
+		" from=(", "%.1f" % _dsh_wander_from.x, ",", "%.1f" % _dsh_wander_from.z, ")",
+		" frame=", Engine.get_physics_frames())
+
+## DSH_WANDER: called from the walking phase only, so a non-wander walk never reports here.
+func _dsh_wander_step() -> void:
+	if _dsh_wander_phase != "walking": return
+	var body: Variant = _token.get("body")
+	if not is_instance_valid(body) or not body is Node3D: return
+	var here: Vector3 = (body as Node3D).global_position
+	var distance: float = Vector2(here.x - _dsh_wander_target.x, here.z - _dsh_wander_target.z).length()
+	if _dsh_wander_last_m < 0.0 or _dsh_wander_last_m - distance >= 1.0:
+		_dsh_wander_last_m = distance
+		_dsh_wander_emit("walking", "moved")
+
+## DSH_WANDER: the terminal line of one ordinary walk.
+func _dsh_wander_finish(arrived: bool, reason: String) -> void:
+	if _dsh_wander_phase == "": return
+	_dsh_wander_phase = "done" if arrived else "blocked"
+	_dsh_wander_emit("arrived" if arrived else "blocked", reason)
 
 func _end_life() -> void:
+	# DSH_DEATH: the owner's step 1. A life that ends at hp 0 stops here: the visit is
+	# cancelled and disposed, the direct errand is cancelled, the walk is disposed, every
+	# task mark and the queue are dropped. Nothing of this route can be resumed, and the
+	# id is remembered so the next life of this resident reports a clean respawn.
+	var row: Dictionary = _life()
+	var died: bool = not row.is_empty() and (float(row.get("hp", 0)) <= 0.0 or bool(row.get("dead", false)))
+	var id: String = str(_token.get("source_id", ""))
+	if died:
+		print("DSH_DEATH id=", id, " hp=0 action=stop_path goals=", str(_dsh_task_queue),
+			" goal=", str(_goal.get("kind", "none")), " visited=", _completed.duplicate(),
+			" frame=", Engine.get_physics_frames())
+		_dsh_dead[id] = true
 	if _visit!=null:
 		_visit.cancel("actor_life_ended"); _visit.dispose(); _visit=null
 	if _dsh_simple!=null: _dsh_simple.cancel(); _dsh_simple=null  # DSH_SIMPLEHOSP
 	if _walk!=null: _walk.dispose()
+	# DSH_DEATH: without this the old goal, queue and served marks would outlive the body.
+	_goal={}
+	_dsh_task_queue.clear()
+	_dsh_queued_hospital=false
+	_dsh_queued_restaurant=false
+	_dsh_med_state=""
+	_dsh_wander_phase=""
+	_dsh_wander_last_m=-1.0
+	_energy=0.0 if died else _energy
 	_phase="RETIRED"; _disposed=true; _factory=Callable()
 	_incident_waiting_release=false; _clear_incident_hold(); _incident_seen.clear(); _incident_seen_ring.clear()
 	_health=null; _account=null; _host=null
