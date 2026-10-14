@@ -431,6 +431,7 @@ func _source_admit_scoped(point: Vector3, id: String, generation: int, radius: f
 # gate is one int compare after the first call and every probe read re-runs exactly the
 # same tests the refusal already ran, so no decision, order or stored state changes.
 var _dsh_hp := -1
+static var _dsh_hp_seen := {}  # DSH_HANDOFFPROBE: one scan per distinct tentative point
 
 func _handoff_probe_on() -> int:  # DSH_HANDOFFPROBE
 	if _dsh_hp < 0:
@@ -445,6 +446,33 @@ func _handoff_probe(point: Vector3, id: String, index: int, height: float, admit
 		") index=", index, " height=", "%.4f" % height, " admit=", admit, " hit=", hit,
 		" hit_y=", "%.4f" % hit_y, " dy=", "%.4f" % dy, " reason=", reason)
 
+# DSH_HANDOFFPROBE: temporary read-only scan of the source crop around one tentative
+# handoff point. Prints land/ordinary/height per probed point so the failing sub-test of
+# _source_segment can be seen directly. It admits nothing and writes nothing.
+func _handoff_probe_scan(point: Vector3, id: String, generation: int, tag: String) -> void:  # DSH_HANDOFFPROBE
+	var summary := ""
+	for dr in [-1, 0, 1]:
+		for dc in [-1, 0, 1]:
+			var at := point + Vector3(float(dc) * 1.23, 0.0, float(dr) * 1.23)
+			var index := _index(at)
+			if index < 0:
+				summary += "[%+.0f,%+.0f:oob]" % [float(dr), float(dc)]
+				continue
+			var ordinary := int(_ordinary[index])
+			var land := int(_land[index])
+			var height := _heights[index]
+			var admitted := source_admit(Vector3(at.x, height, at.z), id, generation, RADIUS, "placement")
+			var hit_n := 0
+			if admitted:
+				_busy = true
+				_ray.from = Vector3(at.x, height + .30, at.z); _ray.to = Vector3(at.x, height - .30, at.z)
+				var scene: Node3D = _scene.get_ref()
+				var probe_hit: Dictionary = scene.get_world_3d().direct_space_state.intersect_ray(_ray)
+				if not probe_hit.is_empty() and _floors.has(probe_hit.rid): hit_n = 1
+				_busy = false
+			summary += "[%+.0f,%+.0f:L%d/O%d/h%.2f/a%d/f%d]" % [float(dr), float(dc), land, ordinary, height, 1 if admitted else 0, hit_n]
+	print("DSH_HANDOFF_SCAN tag=", tag, " point=(", "%.3f" % point.x, ",", "%.3f" % point.z, ")", summary)
+
 func support_height(point: Vector3, id: String, generation: int) -> float:
 	if not Thread.is_main_thread() or _busy or not _owner_allowed(id, generation) or not point.is_finite(): return NAN
 	var probe: bool = _handoff_probe_on() == 1  # DSH_HANDOFFPROBE
@@ -452,6 +480,9 @@ func support_height(point: Vector3, id: String, generation: int) -> float:
 	if index < 0:
 		if probe: _handoff_probe(point, id, index, NAN, -1, 0, NAN, NAN, "index")  # DSH_HANDOFFPROBE
 		return NAN
+	if probe:  # DSH_HANDOFFPROBE
+		var probe_key := id + "|%.3f,%.3f" % [point.x, point.z]
+		if not _dsh_hp_seen.has(probe_key) and _dsh_hp_seen.size() < 40: _dsh_hp_seen[probe_key] = true; _handoff_probe_scan(point, id, generation, probe_key)
 	var reference := Vector3(point.x, _heights[index], point.z)
 	if not source_admit(reference, id, generation, RADIUS, "placement"):
 		if probe: _handoff_probe(point, id, index, reference.y, 0, 0, NAN, NAN, "admit")  # DSH_HANDOFFPROBE

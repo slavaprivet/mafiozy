@@ -4,6 +4,7 @@ extends RefCounted
 const Walk = preload("../npc_daily_walk.gd")
 const Route = preload("res://scripts/npc_visual/npc_local_printshop_route.gd")
 const Visit = preload("npc_local_shop_visit.gd")
+const npc_city_world_policy = preload("res://scripts/city/runtime/npc_city_world_policy.gd")  # DSH_HANDOFFADMIT: ORIGIN of the world crop
 var _host: RefCounted
 var _health: RefCounted
 var _account: RefCounted
@@ -167,8 +168,10 @@ func configure(host: RefCounted, policy: RefCounted, health: RefCounted, scene: 
 	# instead, which is by construction in the same frame as the scene spawn.
 	# Without the flag this is the exact previous line.
 	var dsh_anchor_handoff := false
+	var dsh_admit_handoff := false  # DSH_HANDOFFADMIT: --city-handoff-admit=1, 0 (default) = previous line
 	for dsh_argument: String in OS.get_cmdline_user_args():
 		if dsh_argument == "--city-shop-handoff-anchor=1": dsh_anchor_handoff = true
+		elif dsh_argument == "--city-handoff-admit=1": dsh_admit_handoff = true
 	_handoff=Vector3(minf(8.5,float(outside[0])+1.1),0.0,float(outside[2]))
 	if dsh_anchor_handoff:
 		var dsh_printshop: Variant = scene.get("_printshop")
@@ -176,7 +179,26 @@ func configure(host: RefCounted, policy: RefCounted, health: RefCounted, scene: 
 			var dsh_approach: Vector3 = dsh_printshop.anchor("publicApproach")
 			if dsh_approach.is_finite(): _handoff = Vector3(dsh_approach.x, 0.0, dsh_approach.z)
 		if not _handoff.is_finite(): _handoff=Vector3(minf(8.5,float(outside[0])+1.1),0.0,float(outside[2]))
-	var floor_y: float=policy.support_height(_handoff,token.source_id,token.life_generation)
+	# DSH_HANDOFFADMIT: the authored lane/anchor point is in the BUILDING-local frame
+	# (ENTRY_GEOMETRY.json originM / printshop_interior.json anchors), while the policy
+	# indexes the world crop. The source block places its first printshop at exactly
+	# ORIGIN, which is why the policy's own source polygon conversion adds 395.65/45.1 to
+	# the same numbers. With the flag the world-translated candidate is offered as a
+	# fallback; the original local point stays first, so an unchanged frame still wins.
+	var dsh_candidates: Array = [Vector3(_handoff.x, 0.0, _handoff.z)]  # DSH_HANDOFFADMIT
+	if dsh_admit_handoff:
+		dsh_candidates.append(Vector3(_handoff.x + npc_city_world_policy.ORIGIN.x, 0.0, _handoff.z + npc_city_world_policy.ORIGIN.z))
+	var dsh_probe_handoff := false  # DSH_HANDOFFPROBE
+	if dsh_admit_handoff:
+		for dsh_argument: String in OS.get_cmdline_user_args():
+			if dsh_argument.begins_with("--city-handoff-probe="): dsh_probe_handoff = int(dsh_argument.trim_prefix("--city-handoff-probe=")) == 1
+	var floor_y := NAN
+	for dsh_candidate: Vector3 in dsh_candidates:
+		var dsh_y: float = policy.support_height(dsh_candidate, token.source_id, token.life_generation)
+		if dsh_probe_handoff:
+			print("DSH_HANDOFFADMIT candidate=(", "%.3f" % dsh_candidate.x, ",", "%.3f" % dsh_candidate.z, ") floor_y=", dsh_y)
+		if is_finite(dsh_y):
+			_handoff = dsh_candidate; floor_y = dsh_y; break
 	if not is_finite(floor_y): return _fail("current_handoff_floor")
 	_handoff.y=floor_y
 	if not policy.source_admit(_handoff,token.source_id,token.life_generation,.738,"target"): return _fail("current_handoff_source")
