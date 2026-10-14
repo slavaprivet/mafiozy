@@ -26,6 +26,32 @@ func _leg_metres() -> float:  # DSH_DAILYLEG
 				_dsh_leg_cache = clampf(float(argument.trim_prefix("--city-daily-leg-m=")), 1.0, 60.0)
 	return _dsh_leg_cache
 
+# DSH_VISITDEADLINE: --city-visit-deadline-s=<seconds>, 0 (default) = the watchdog is off
+# and no branch below is entered. The value is the longest time without progress towards
+# the destination that a shop-visit approach may spend before the insurance finishes it.
+func _dsh_visit_deadline_s() -> float:  # DSH_VISITDEADLINE
+	if _dsh_visit_deadline < -1.0:
+		_dsh_visit_deadline = 0.0
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-visit-deadline-s="):
+				_dsh_visit_deadline = clampf(float(argument.trim_prefix("--city-visit-deadline-s=")), 0.0, 300.0)
+	return _dsh_visit_deadline
+
+# The insurance exists for the shop visit chain only. The daily shop passes the *life*
+# controller as its activity owner (npc_daily_life.gd:359 calls the factory with `self`),
+# so the kind of the life's current goal is what identifies this walk: a roam has `_goal`
+# empty and a bank/hospital goal carries another kind. A walk owned directly by the shop
+# controller is accepted as well. Every other daily walk keeps today's bounded behaviour.
+func _dsh_visit_owner() -> bool:  # DSH_VISITDEADLINE
+	if _dsh_visit_deadline_s() <= 0.0 or _owner == null: return false
+	var owner: Variant = _owner.get_ref()
+	if not is_instance_valid(owner) or not owner is Object: return false
+	var object: Object = owner as Object
+	var script: Variant = object.get_script()
+	if script is Script and str((script as Script).resource_path).ends_with("npc_daily_shop.gd"): return true
+	var goal: Variant = object.get("_goal")
+	return goal is Dictionary and str((goal as Dictionary).get("kind","")) == "shop"
+
 func _leg_handoff_fast_on() -> bool:  # DSH_LEGHANDOFF
 	if _dsh_leg_handoff_flag < 0:
 		_dsh_leg_handoff_flag = 1
@@ -90,6 +116,20 @@ var _interleg_wait_frames_max := 0  # DSH_LEGHANDOFF
 var _interleg_zero_frame_requests := 0  # DSH_LEGHANDOFF
 var _interleg_cancel_refusals := 0  # DSH_LEGHANDOFF
 var _interleg_request_refusals := 0  # DSH_LEGHANDOFF
+# DSH_VISITDEADLINE: bounded insurance for the shop visit chain. A daily walk that
+# belongs to the local printshop visit may stop making progress (a leg deadline, an
+# exhausted detour budget, a blocked admission) and then the visit never starts: the
+# activity lease is held forever, `completed.shop` stays 0 and the resident is stuck in
+# ACTIVITY. With --city-visit-deadline-s=N>0 such a walk is finished for the resident:
+# the still-desired point is snapped onto the native map with the map's own projection,
+# the resident is placed there (velocity zeroed, the exact request cancelled first) and
+# the walk reports COMPLETE, so the shop controller continues with its ordinary
+# entry/browse/checkout steps. 0 (default) reads none of this: the watchdog never arms.
+var _dsh_visit_deadline := -2.0  # DSH_VISITDEADLINE
+const DSH_DEADLINE_SNAP_MAX_M := 6.0  # DSH_VISITDEADLINE: last-mile bound of the placement
+var _dsh_progress_left := -1.0  # DSH_VISITDEADLINE: best distance to the destination so far
+var _dsh_progress_at := 0.0  # DSH_VISITDEADLINE: _active_time of that best distance
+static var _dsh_deadline_n := 0  # DSH_VISITDEADLINE: enforced arrivals this process
 var _path_admission := {}
 var _native_endpoints := {}
 # INITIAL_ADMISSION: only a pending INITIAL proposal; no movement/cookie grant.
@@ -148,6 +188,7 @@ func begin(target: Vector3) -> Dictionary:
 	if _navigation.state() != "READY": return {"ok":false,"reason":"navigation_not_ready"}
 	_target=target; _active_time=0.0; _reason=""
 	_fresh_replans=0; _replan_waiting=false; _last_replan={}
+	_dsh_progress_left=-1.0; _dsh_progress_at=0.0  # DSH_VISITDEADLINE: the wait starts with this approach
 	return _query_native_path()
 
 func _query_native_path() -> Dictionary:
@@ -238,6 +279,7 @@ func step(delta: float) -> void:
 	if paused: return
 	_active_time+=(_dsh_elapsed if _dsh_elapsed>=0.0 else delta)
 	if _active_time>900.0: _block("bounded_errand_deadline"); return
+	if _dsh_visit_deadline_step(): return  # DSH_VISITDEADLINE: one predicate per step when the flag is off
 	if _phase=="DETOUR":
 		_step_detour();return
 	if _phase=="PLANNING":
@@ -399,6 +441,7 @@ func _cancel_request() -> bool:
 	return false
 
 func _block(reason: String) -> void:
+	if _dsh_conclude_block(reason): return  # DSH_VISITDEADLINE: a shop-visit last mile is concluded instead
 	if _detour!=null: _detour.cancel()
 	_epoch+=1; _phase="BLOCKED"; _reason=reason; _streaming_route=false; _replan_waiting=false
 	_interleg_arrived_frame=-1
@@ -476,6 +519,92 @@ func dispose() -> void:
 	_disposed=true; _phase="DISPOSED"; _host=null; _navigation=null; _owner=null
 
 
+# DSH_VISITDEADLINE: "no progress" is measured against the destination itself, not against
+# the clock. The smallest distance to _target seen so far is remembered and only the time
+# since that best distance last improved counts, so walking around an obstacle never spends
+# the budget while a stalled leg, an exhausted detour budget or a refused leg admission does.
+# Returns true only when this step already finished the walk.
+func _dsh_visit_deadline_step() -> bool:  # DSH_VISITDEADLINE
+	if not _dsh_visit_owner() or _phase not in ["PLANNING","WALKING","DETOUR"]: return false
+	var body: CharacterBody3D = _token.body
+	if not is_instance_valid(body): return false
+	var left := Vector2(body.global_position.x-_target.x, body.global_position.z-_target.z).length()
+	if _dsh_progress_left < 0.0 or left < _dsh_progress_left - 0.05:
+		_dsh_progress_left = left; _dsh_progress_at = _active_time
+		return false
+	if _active_time - _dsh_progress_at < _dsh_visit_deadline_s(): return false
+	return _dsh_force_visit_arrival(body, left, "")
+
+# DSH_VISITDEADLINE: the insurance also runs at the exact moment a shop-visit walk would
+# block (a leg deadline, an exhausted detour budget, a refused leg admission, NO_PATH). The
+# shop reacts to a BLOCKED walk in the very same step by finishing the activity outside, so
+# this is the last place where a last-mile veto can still be turned into the visit's ordinary
+# entry/browse/checkout steps. Everything that is not a shop-visit last mile takes the shipped
+# path untouched: another owner, a dead or replaced actor (`_current()`), or a destination
+# farther than the last-mile bound all return false and the block proceeds exactly as today.
+func _dsh_conclude_block(reason: String) -> bool:  # DSH_VISITDEADLINE
+	if _dsh_visit_deadline_s() <= 0.0 or not _dsh_visit_owner() or not _current(): return false
+	var body: CharacterBody3D = _token.body
+	if not is_instance_valid(body): return false
+	var left := Vector2(body.global_position.x-_target.x, body.global_position.z-_target.z).length()
+	return _dsh_force_visit_arrival(body, left, reason)
+
+# DSH_VISITDEADLINE: the insurance itself. The still-desired destination is projected onto
+# the native map with the map's own query (exactly the projection the errand admission and
+# the detour goal already use), the resident is placed on that walkable point with its
+# velocity zeroed and the exact movement request cancelled first, and the walk reports
+# COMPLETE so the shop continues with its ordinary entry/browse/checkout steps. It refuses
+# (and retries on the next step) when the backend request cannot be exactly cancelled or the
+# map is not current, so no arrival is ever faked on top of a live movement authority.
+func _dsh_force_visit_arrival(body: CharacterBody3D, left: float, veto: String) -> bool:  # DSH_VISITDEADLINE
+	if not _map.is_valid() and _navigation != null and _navigation.get("_backend") != null:
+		_map = _navigation.get("_backend").map_rid()
+	if not _map.is_valid(): return false
+	var from_phase := _phase
+	var before := body.global_position
+	var target := _target
+	var snapped := NavigationServer3D.map_get_closest_point(_map, target)
+	if not snapped.is_finite(): snapped = target
+	var floor_y := NAN
+	if _policy != null and _policy.has_method("support_height"):
+		floor_y = _policy.support_height(Vector3(snapped.x, 0.0, snapped.z), str(_token.get("source_id","")), int(_token.get("life_generation",-1)))
+	var placed_y := float(snapped.y)
+	if is_finite(floor_y) and absf(floor_y - before.y) <= 1.5: placed_y = floor_y
+	var placed := Vector3(snapped.x, placed_y, snapped.z)
+	# DSH_VISITDEADLINE: the insurance is a LAST-MILE device, not a relocation. A resident
+	# still far from the shop keeps its ordinary bounded walk (the 900 s errand deadline and
+	# the blocked state still apply); once the projected point is within this small bound the
+	# conclusion is forced. The bound stays well under the population's own teleport
+	# classification (npc_city_population.gd: maxf(1.0,_height*4)).
+	# This test runs BEFORE any cancellation, so a declined insurance has no side effect at
+	# all: the live leg request and the detour stay exactly as the shipped path left them.
+	if before.distance_to(placed) > DSH_DEADLINE_SNAP_MAX_M:
+		_dsh_progress_at = _active_time
+		return false
+	if not _cancel_request(): return false
+	if _detour != null: _detour.cancel()
+	_detour = null
+	body.velocity = Vector3.ZERO
+	body.global_position = placed
+	_target = placed
+	_points.clear(); _edge = 0; _streaming_route = false; _replan_waiting = false
+	_interleg_arrived_frame = -1
+	_epoch += 1
+	_revoke_path()
+	_phase = "COMPLETE"
+	_reason = "visit_deadline_forced_arrival"
+	_dsh_deadline_n += 1
+	print("DSH_VISITDEADLINE id=", str(_token.get("source_id","")), " waited_s=", "%.1f" % maxf(0.0,_active_time-_dsh_progress_at),
+		" target=(", "%.2f" % target.x, ",", "%.2f" % target.y, ",", "%.2f" % target.z, ")",
+		" snapped_m=", "%.2f" % target.distance_to(placed),
+		" moved_m=", "%.2f" % before.distance_to(placed),
+		" left_before_m=", "%.2f" % left,
+		" from=", from_phase, " to=COMPLETE",
+		" veto=", (veto if not veto.is_empty() else "-"),
+		" total=", _dsh_deadline_n,
+		" frame=", Engine.get_physics_frames())
+	return true
+
 func _begin_detour(reason: String) -> void:
 	# Both ordinary leg walks and streaming walks own an exact policy route.
 	# Keep its static projection only while this body is held in DETOUR after
@@ -503,6 +632,12 @@ func _begin_detour(reason: String) -> void:
 	_phase="DETOUR";_reason=reason
 
 func _step_detour() -> void:
+	# DSH_DETOURNULL: the walk can be in the detour phase while owning NO detour object
+	# (creation refused, or the object was released and set to null). Calling into Nil
+	# raised "Nonexistent function 'step' in base 'Nil'" 51 times per run and left the
+	# resident frozen mid-leg - the visible "walks 4 m then stops". Re-plan instead.
+	if _detour == null:
+		_block("detour_object_missing");return
 	var result: Dictionary=_detour.step()
 	if result.status=="SEARCHING": return
 	if result.status!="FOUND": _block(str(result.get("reason","detour_failed")));return
