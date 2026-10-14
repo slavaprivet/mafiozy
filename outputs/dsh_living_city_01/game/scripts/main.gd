@@ -1107,7 +1107,7 @@ func _install_palazzo_clones() -> void:
 		dsh_label.outline_size = 18
 		dsh_label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		(dsh_clone as Node3D).add_child(dsh_label)
-		dsh_label.position = Vector3(0.0, 14.0, 0.0)
+		dsh_label.position = Vector3(0.0, 8.0, 0.0)
 		var dsh_door_ok := false
 		if dsh_door_source != null and dsh_door_source is Node3D:
 			var dsh_door: Node = dsh_door_source.duplicate()
