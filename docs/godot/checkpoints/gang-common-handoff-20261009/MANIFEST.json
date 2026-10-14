@@ -1,0 +1,478 @@
+{
+  "schema": "mafiozy.common-gang-handoff.archive.v3",
+  "status": "COMBINED_CANDIDATE_HANDOFF_REPEAT_IMPORT_PENDING",
+  "project_manifest_sha256": "5c4263187ba865022e5ba495c5a7a1dc196ae0791f18f5049d54f0101974f284",
+  "entry_project": "project/project.godot",
+  "launch_scene": "project/scenes/gang_recruitment.tscn",
+  "files": [
+    {
+      "path": "COMPILE_DELTA.json",
+      "bytes": 1494,
+      "sha256": "e588d6376b7a2a075cfad738a61b3fb8a9088cc36213625451bedc55af02c9e6"
+    },
+    {
+      "path": "CONTINUATION.json",
+      "bytes": 3134,
+      "sha256": "7490382e5e529c9b0cd84729402ecdaac2b688547bcb03ec1696c083a2639cc3"
+    },
+    {
+      "path": "KNOWN_LIMITATIONS.json",
+      "bytes": 897,
+      "sha256": "f713afdfef3a11112f3574dd4b79bbb253b725e44f993183cb3836e6ac501b38"
+    },
+    {
+      "path": "evidence/CHAT1_FINAL_HANDOFF.json",
+      "bytes": 4818,
+      "sha256": "126b2b506605b60d7a0d12e9cae10a824beaf6b98c366171d15cf72e35cef19c"
+    },
+    {
+      "path": "evidence/CURRENT286_LAUNCH_HANDOFF.txt",
+      "bytes": 10454,
+      "sha256": "cfe198397e7a03e4d854c1ddb94fafbd328a6a9e6e7fc939144e2aaec05a91b5"
+    },
+    {
+      "path": "evidence/GAMEPLAY_HANDOFF_TO_MESSI.json",
+      "bytes": 9129,
+      "sha256": "c5458e1468f01cc89dcd11f5c5bb6a9ce27b6b3e2cf4d0c3154e58fcbb2ca408"
+    },
+    {
+      "path": "evidence/GANG_ACTIONS_ARCHIVE_PUBLICATION_RECEIPT.json",
+      "bytes": 2355,
+      "sha256": "5fa1112bed002a8f7ac6f6ef0d4d5d1d07853a9a60c8cf6491e87a22d968265d"
+    },
+    {
+      "path": "evidence/GANG_ACTIONS_CIVILIAN_PANIC_OWNER_RECEIPT.json",
+      "bytes": 16181,
+      "sha256": "f28eaf4d46078bbbad7570b85edff29494df4cace7ae04333d4aef1b06385724"
+    },
+    {
+      "path": "evidence/GANG_ACTIONS_HOST_R5_INTAKE.json",
+      "bytes": 675,
+      "sha256": "9695d4d60d66836906c0f0bdd8f858d965964006f7ce23ebc65be36e3c918cfe"
+    },
+    {
+      "path": "evidence/GANG_ACTIONS_MOVEMENT_STAGE03_INTAKE.json",
+      "bytes": 1046,
+      "sha256": "289d7fa8ee110c1362fcbd248df4eb91e57c06a39549f429bbe8bd6531dd8016"
+    },
+    {
+      "path": "evidence/GANG_ACTIONS_PARKED_VEHICLE_IMPLEMENTATION.json",
+      "bytes": 8865,
+      "sha256": "32e4783de346a9289e234b89312d80b18f7286d7014b9814c9d188c7d5585053"
+    },
+    {
+      "path": "evidence/GANG_ACTIONS_ROOT_DELTA_STATIC_RECEIPT.json",
+      "bytes": 2122,
+      "sha256": "4f82a3be0dcfb289223db6b19fd11e01ef0c75109b0c013c0a4e2c9747b13dd7"
+    },
+    {
+      "path": "evidence/GANG_ACTIONS_SAFE_BINDING_REVIEW.json",
+      "bytes": 19461,
+      "sha256": "ef9d53d0ed6dae2548bd33c233a7fe9bfb2f9e68b07a661ab3ac0856a5899068"
+    },
+    {
+      "path": "evidence/GANG_ACTIONS_SAFE_GEOMETRY_EXPORT.json",
+      "bytes": 3364,
+      "sha256": "ff97529e5553c7e90e1e2c3dc9db4147c8870b433008164d4f617f387b52252d"
+    },
+    {
+      "path": "evidence/GANG_ACTIONS_SOURCE_SAFE_AUTHOR_RECEIPT.json",
+      "bytes": 8441,
+      "sha256": "5a94fb0f2f668052131c5e2fcebe0d29c9b8c943e773f8d603358ae3f95cafc4"
+    },
+    {
+      "path": "evidence/GANG_BREACH_DOOR_COLLISION_F01_IMPLEMENTATION.json",
+      "bytes": 4376,
+      "sha256": "086ced31919c6c39f03d874f660e2ffa6d3498dcc9307fe2745683c0fa2c0bcf"
+    },
+    {
+      "path": "evidence/GANG_FIRST_STAGE_PUBLICATION_RECEIPT.json",
+      "bytes": 1516,
+      "sha256": "01bbeab6bcdd78764a76aafdeeb030a03681613acb5a73fc307d82d6a302ae8a"
+    },
+    {
+      "path": "evidence/GANG_PHYSICAL_LIFE_ABI.json",
+      "bytes": 7389,
+      "sha256": "6c5c72658a9f09318e5fa756d5c3073acd25f74ebd86bddfb56dbf89f63b4af1"
+    },
+    {
+      "path": "evidence/GANG_PHYSICAL_LIFE_IMPLEMENTATION.json",
+      "bytes": 2906,
+      "sha256": "c017df225d79de5ea387f6af0c013976ef201bd235309c639421c32dc5392248"
+    },
+    {
+      "path": "evidence/GANG_PHYSICAL_POSE_INTEGRATION_ABI.json",
+      "bytes": 9855,
+      "sha256": "f4b726205053af54a06d3f816adbedbfa3994ccf9ac266f3e6f0dccad05ddf96"
+    },
+    {
+      "path": "evidence/GANG_POSE_STAGE01_INTAKE.json",
+      "bytes": 1628,
+      "sha256": "1b2a1590d0543b3e49d548d56268fbfe97871b420589ff61f8a92d483108cf8b"
+    },
+    {
+      "path": "evidence/SERVICES_CURRENT_AUDIT.json",
+      "bytes": 9998,
+      "sha256": "45abfc076d90f585a5730df479f0fe95bd56307d1fe206e8a686f56d7e17e0ef"
+    },
+    {
+      "path": "evidence/stage02_import/IMPORT_RESULT.json",
+      "bytes": 6398,
+      "sha256": "503261e1f412ea6b4f727f4662133141edd1b118a1b3db84f3fb7829c8de875d"
+    },
+    {
+      "path": "evidence/stage02_import/import/SCHEDULER_RUN.json",
+      "bytes": 4740,
+      "sha256": "d68bf2b3d2e5998ff054f2b03c5f84bf882be496081c08c8ca71506794eafaa1"
+    },
+    {
+      "path": "evidence/stage02_import/import/stderr.log",
+      "bytes": 974,
+      "sha256": "07b2f941cab90e2ec578f81e119bdfa111a22b3fbd74268db99e6c0dbcb50c6c"
+    },
+    {
+      "path": "evidence/stage02_import/import/stdout.log",
+      "bytes": 6782,
+      "sha256": "90331733fdf190657923b543f50f1e3efd226450f1e56f7ef8e4e1a12044ee11"
+    },
+    {
+      "path": "project/README.md",
+      "bytes": 5225,
+      "sha256": "207d5ff0c6b2eacff7b5f1deaaa7c9dbffd78244bd3bbe0f3bec91e4ffad8bc8"
+    },
+    {
+      "path": "project/SOURCE_MANIFEST.json",
+      "bytes": 16698,
+      "sha256": "5c4263187ba865022e5ba495c5a7a1dc196ae0791f18f5049d54f0101974f284"
+    },
+    {
+      "path": "project/addons/walk_mercenary/mercenary_catchup.gd",
+      "bytes": 17453,
+      "sha256": "7f9d53e24d9a3f547349c229c07f5152efd9b4631739eb48b2c786be8d7ca328"
+    },
+    {
+      "path": "project/addons/walk_mercenary/mercenary_movement.gd",
+      "bytes": 37751,
+      "sha256": "b4fa8efefaaf4774da294d52f1c5f83789a190d1e9f5deda7fd6ff81f656740f"
+    },
+    {
+      "path": "project/addons/walk_mercenary/mercenary_persistence.gd",
+      "bytes": 13302,
+      "sha256": "b595afcaf77a4c0418b0a17565689d94e71881b01a869274b9361acd8e9d0dac"
+    },
+    {
+      "path": "project/addons/walk_mercenary/mercenary_route.gd",
+      "bytes": 11950,
+      "sha256": "efd78536ede8574226633f2bb3670ddb4427826ec26ae51b2b89b5b4c458b0c9"
+    },
+    {
+      "path": "project/addons/walk_mercenary/mercenary_squad.gd",
+      "bytes": 41811,
+      "sha256": "d8d2d3029ce3cee09190b08e0ba0cbf94c2b1b723b3b51cda23651d4b36cc5c1"
+    },
+    {
+      "path": "project/addons/walk_mercenary_host/mercenary_host.gd",
+      "bytes": 34604,
+      "sha256": "7bf3c8d8edafb38913a32168ff6bdfc9f0644c81c3c2e5679fc3e82799095b3e"
+    },
+    {
+      "path": "project/addons/walk_mercenary_host/mercenary_target_effects.gd",
+      "bytes": 5271,
+      "sha256": "68e8505adbee0ba33b453dfc61a5e8784a101cd3de40d1ef65f79ab262568d70"
+    },
+    {
+      "path": "project/assets/hero.glb",
+      "bytes": 652732,
+      "sha256": "8130dfb1f7eb91bff31e932feef1717672070a6767ccc726d7cb1ee23133fd00"
+    },
+    {
+      "path": "project/assets/npc_visual/death_eyes/assets_manifest.json",
+      "bytes": 9158,
+      "sha256": "90d20822a859a7a19ff5785772d0dcbde3bbfb8ff15a40636f5c290af5b4131f"
+    },
+    {
+      "path": "project/assets/npc_visual/death_eyes/npc_resident_169_hair_closed.res",
+      "bytes": 64346,
+      "sha256": "49ce7b368944d9f89c13b4ba2a595a4f43ff2f2e7497da6f68b8f6c97dc4a1b1"
+    },
+    {
+      "path": "project/assets/npc_visual/death_eyes/npc_resident_169_skin_closed.res",
+      "bytes": 175998,
+      "sha256": "59d3393889e4c14fbe38af5e777e0fc38372e52948c86ce65070e7225873614b"
+    },
+    {
+      "path": "project/assets/npc_visual/death_eyes/npc_resident_252_hair_closed.res",
+      "bytes": 62234,
+      "sha256": "f1697dd64ba5a82886defb22e0d7c93dfae33b44368264e4651c1ca17bb70956"
+    },
+    {
+      "path": "project/assets/npc_visual/death_eyes/npc_resident_252_skin_closed.res",
+      "bytes": 175998,
+      "sha256": "9a330dc9dce45b62d610cd06c274cfe50d127bee26c08a0cd0623c55405acb9d"
+    },
+    {
+      "path": "project/assets/npc_visual/death_eyes/npc_resident_72_hair_closed.res",
+      "bytes": 62234,
+      "sha256": "896a894c664112760b950a4a454c810228609dfe51858a087e72d4ae10df05e5"
+    },
+    {
+      "path": "project/assets/npc_visual/death_eyes/npc_resident_72_skin_closed.res",
+      "bytes": 175998,
+      "sha256": "7ffbbad4c0ad98bc8c636fced8d3c648cba095419d8f3edf96004a4daf4faf85"
+    },
+    {
+      "path": "project/assets/source_safe.glb.bytes",
+      "bytes": 174980,
+      "sha256": "4503b7e50904d2a7187ece196a2782c19dda500a09da4520022f5eddde499db0"
+    },
+    {
+      "path": "project/assets/vehicle_visual/compact_sedan.f2b7d7884d48.glb.bytes",
+      "bytes": 4112896,
+      "sha256": "f2b7d7884d486e08e66a7fb25cf4fe58900814efaabe9dcee42b408c21353783"
+    },
+    {
+      "path": "project/assets/vehicle_visual/manifest.json",
+      "bytes": 347890,
+      "sha256": "13dc4703d74f12be8ba9010d8a61e04b6015d21dbf69d2f41b980a75eda89c9b"
+    },
+    {
+      "path": "project/assets/vehicle_visual/vehicle_factory_oracle.v1.json",
+      "bytes": 33761,
+      "sha256": "d2a7943d34009350f37a59c7238f46d9d1ee714f7826fdf69033c8014b4df2af"
+    },
+    {
+      "path": "project/baseline/SOURCE_MANIFEST_STAGE04.json",
+      "bytes": 8983,
+      "sha256": "0b1b9b8acfcf78d87dd4df6dbe2d32266433520e5d6352da2808908b95e2afdf"
+    },
+    {
+      "path": "project/project.godot",
+      "bytes": 604,
+      "sha256": "8d63ac7883d8ee51b0ab28ddea460bcbf448701dd003d296165aa8e17ca97c3f"
+    },
+    {
+      "path": "project/scenes/gang_recruitment.tscn",
+      "bytes": 181,
+      "sha256": "77d3b61046d049c414c0a952509d0f5570eef9c888b8fbc58c9ebe1f73ebf09c"
+    },
+    {
+      "path": "project/scripts/character_physics/character_physics_pose.gd",
+      "bytes": 8538,
+      "sha256": "1118f21a76b1d74e5e0cd303d3cc66c05338479f01a00b19008383adb8e0b6b9"
+    },
+    {
+      "path": "project/scripts/character_physics/exit_ragdoll_body.gd",
+      "bytes": 26622,
+      "sha256": "822966ac0b03bbb0dbb37085fccf915fdbc11d07d8c6d05bd9035c66f26f58f8"
+    },
+    {
+      "path": "project/scripts/character_physics/recovery_clearance.gd",
+      "bytes": 7277,
+      "sha256": "d5ff65db2e804dcab31756559dbb3170640962ccdc376a5013b8eb974893ede2"
+    },
+    {
+      "path": "project/scripts/character_physics/recovery_surface_bounds.gd",
+      "bytes": 13074,
+      "sha256": "23b78c72bdca0a2da64dcd7d4e8e54163299414feb66ae9c9cb489ed6f247c1e"
+    },
+    {
+      "path": "project/scripts/gang/commitment_checkpoint.gd",
+      "bytes": 3344,
+      "sha256": "c6728d3dc7135a14cb7f55d063ba17ddfd4b7a7435656729a77bf64986a314b6"
+    },
+    {
+      "path": "project/scripts/gang/fixture_world.gd",
+      "bytes": 32168,
+      "sha256": "ae79138dbae518416911c3c03bd598d97e040628aa4e585885910822e4f9231a"
+    },
+    {
+      "path": "project/scripts/gang/gang_actor_admission.gd",
+      "bytes": 21737,
+      "sha256": "b03bb520b7c8cfeaa8e01c2db6b81ef5a19035849d132580ba7af36372961b3b"
+    },
+    {
+      "path": "project/scripts/gang/gang_pose_manager.gd",
+      "bytes": 9301,
+      "sha256": "2be79744d0fe9a71eea85091cd6ab138df86ea83c392c46aea0a93abee1f1e50"
+    },
+    {
+      "path": "project/scripts/gang/interaction_context.gd",
+      "bytes": 2395,
+      "sha256": "fa9436b5d5fb440ce9423c33f00150c207e7ace6f2898a451c8f77de43ca3556"
+    },
+    {
+      "path": "project/scripts/gang/main_scene.gd",
+      "bytes": 31253,
+      "sha256": "530ad75b762a6b0139214fb520ffd35809e52349a305d5b7ad70782dc9551013"
+    },
+    {
+      "path": "project/scripts/gang/persistence_owner.gd",
+      "bytes": 24536,
+      "sha256": "9b665f4e588502026e7773ca0e88dae573394d839260d2ec053bc07a96f298b9"
+    },
+    {
+      "path": "project/scripts/gang/physical_life_owner.gd",
+      "bytes": 34546,
+      "sha256": "5c2a8e31e74c131d79397e28a1f5148d9b97f889baa21ebbcb251664becbe8f0"
+    },
+    {
+      "path": "project/scripts/gang/physical_movement_owner.gd",
+      "bytes": 23203,
+      "sha256": "bf1a8e23ac04892824cb423acbd2783dd47f4acb2e33cc0e43b8555e18de1437"
+    },
+    {
+      "path": "project/scripts/gang/physical_targets_owner.gd",
+      "bytes": 7944,
+      "sha256": "801781cab5ae5ddc3ca3de0c93c45673c39bf00dffb3b032f435d9fae954240f"
+    },
+    {
+      "path": "project/scripts/gang/physical_writer_bridge.gd",
+      "bytes": 8233,
+      "sha256": "24e94d97d74cf9c86b9c0ff479a2ebac18e0592791d56dd72f1236331c61b241"
+    },
+    {
+      "path": "project/scripts/gang/recruitment_host_view.gd",
+      "bytes": 1314,
+      "sha256": "d53bb3aefa70860264ee64930c181e84b6e3f48fc20afd90ba4be3a43e6f4c2c"
+    },
+    {
+      "path": "project/scripts/gang/source_breach_door.gd",
+      "bytes": 10297,
+      "sha256": "7e1dfc9e125b297fbc75728c1d8d29a18648a0d303a65bca3ea7a49bf1e896f7"
+    },
+    {
+      "path": "project/scripts/gang/source_civilian_panic_owner.gd",
+      "bytes": 16587,
+      "sha256": "eb03ddf0ad714a76b1896663397789237bcd56dd1f2ef720a534097acfb7670d"
+    },
+    {
+      "path": "project/scripts/gang/source_fence.gd",
+      "bytes": 9213,
+      "sha256": "deabf8864b3ffc65a1d550dd42f82dcbbdf2a1130c6709fec660b621ec0ca511"
+    },
+    {
+      "path": "project/scripts/gang/source_grounded_pose_owner.gd",
+      "bytes": 25996,
+      "sha256": "57bf0e2ecc95c2ff988ae84861b7eecde12070fe5a724daec354900d37a26507"
+    },
+    {
+      "path": "project/scripts/gang/source_parked_vehicle.gd",
+      "bytes": 13861,
+      "sha256": "f3de4e235b0d82b74482b1cec68f3362b8fafd52a9e69e515385caca9062511e"
+    },
+    {
+      "path": "project/scripts/gang/source_power_panel.gd",
+      "bytes": 7503,
+      "sha256": "a8220a42dd083dfcbd0cfdd999ad202a634cbfe6a35244861a1856148123b1e2"
+    },
+    {
+      "path": "project/scripts/gang/source_safe.gd",
+      "bytes": 19020,
+      "sha256": "b779f09adbaee929b7f91866700a60954ef273754e9961f909b416ccc1ebd1bf"
+    },
+    {
+      "path": "project/scripts/gang/ui/data/presentation.json",
+      "bytes": 3957,
+      "sha256": "7fac5a5cf3b6c52142f267b8b7988a71676a7ea91c26a1f0afe563236b931643"
+    },
+    {
+      "path": "project/scripts/gang/ui/icons/bruiser.svg",
+      "bytes": 243,
+      "sha256": "18a47979d9163550314f9c86f9415e37f46ee2e9d21ee85be6d6a074d5615289"
+    },
+    {
+      "path": "project/scripts/gang/ui/icons/demolitions.svg",
+      "bytes": 240,
+      "sha256": "d02042e0b730a7bc46e0a775ec2cda2fc3fc136808930aca141b0781a72f401c"
+    },
+    {
+      "path": "project/scripts/gang/ui/icons/engineer.svg",
+      "bytes": 271,
+      "sha256": "4f8db230e97191781d000ae3282a216da5452af10cb9871b03ceb2086d405836"
+    },
+    {
+      "path": "project/scripts/gang/ui/icons/medic.svg",
+      "bytes": 224,
+      "sha256": "91f2dad20c38b589fbd93bf382e5ca16d61a3796196819d64e5f272b5e78a2af"
+    },
+    {
+      "path": "project/scripts/gang/ui/icons/safecracker.svg",
+      "bytes": 240,
+      "sha256": "3187553af2d2b38b72e221f0be3030e24280de6040902f3ca2a7eb5a2472c276"
+    },
+    {
+      "path": "project/scripts/gang/ui/mercenary_action_menu.gd",
+      "bytes": 9585,
+      "sha256": "d4058027a8e272060cb8e53fedf7aa9ad775346ce1c6d63d76b296c166150b3c"
+    },
+    {
+      "path": "project/scripts/gang/ui/mercenary_action_timers.gd",
+      "bytes": 11154,
+      "sha256": "7234617bd3880474b479b7bd05a8b43a8752fff466a23397ddd6bab749bedfb9"
+    },
+    {
+      "path": "project/scripts/gang/ui/mercenary_badges.gd",
+      "bytes": 19605,
+      "sha256": "cf717a68bb921a689c79ea68d53a4a61286b3ea3640d7a9f5b82250f943d31eb"
+    },
+    {
+      "path": "project/scripts/gang/ui/mercenary_command_ui.gd",
+      "bytes": 38173,
+      "sha256": "7e8b7c646119bf30334d434be1a143055dad4bd45e25a85dbd27d682b42ae8fe"
+    },
+    {
+      "path": "project/scripts/gang/ui/mercenary_recruit_ui.gd",
+      "bytes": 20864,
+      "sha256": "0cd2b8b1ac009322811d15df17f35064800dda9b594c1cbce3a0941825dc0ff5"
+    },
+    {
+      "path": "project/scripts/gang/ui/mercenary_selection_view.gd",
+      "bytes": 14370,
+      "sha256": "3f39f10cd19fcad6320fc2fa2025c703ebc1a72a696c56f9f6f7a18447be3c87"
+    },
+    {
+      "path": "project/scripts/gang/ui/mercenary_task_markers.gd",
+      "bytes": 10432,
+      "sha256": "84d76ee0fa7b2f41f4ac7bdbe7d8c21701b9a06fed55aef27f36c93f6b66a4bf"
+    },
+    {
+      "path": "project/scripts/gang/ui/render_occlusion.gd",
+      "bytes": 3878,
+      "sha256": "13ded4ec2d5ecb1812a00b0d6f472fe360f3397242ac02aed411ecb65f48b193"
+    },
+    {
+      "path": "project/scripts/npc_visual/npc_body.gd",
+      "bytes": 3626,
+      "sha256": "1947938608f8ddb50cbfb7ee68d86d780c5e041eeb4c257bed99fc953e327162"
+    },
+    {
+      "path": "project/scripts/npc_visual/npc_death_eyes.gd",
+      "bytes": 4900,
+      "sha256": "67971321ba296ba6e70a76a6f4a95ca55df3de34c2848e54b4a7e0ba552b978c"
+    },
+    {
+      "path": "project/scripts/npc_visual/npc_ragdoll_host.gd",
+      "bytes": 17295,
+      "sha256": "59573587d7eac3c6e4911ff1279e0c683f2646be61bc2346be0c82e314850bb2"
+    },
+    {
+      "path": "project/scripts/vehicle_visual/vehicle_exit_pose.gd",
+      "bytes": 10000,
+      "sha256": "1afafedfa6c1544e47cabb19e76fa438aff6a29ef2f495fdb73d6b2bef725a89"
+    },
+    {
+      "path": "project/scripts/vehicle_visual/vehicle_exit_pose_blend.gd",
+      "bytes": 5857,
+      "sha256": "8e1350680b10511e88c75df70be887b9ac3bc40041575a7578362d07589ecad3"
+    },
+    {
+      "path": "project/scripts/vehicle_visual/vehicle_visual.gd",
+      "bytes": 8708,
+      "sha256": "d586952de302b7ec0467b89b91ba117e3350e8a5c217f48c303f06ff88494e34"
+    }
+  ],
+  "handoff": "Messi/subagents",
+  "runtime_native": "REPEAT_COLD_IMPORT_PENDING; functional NOT_RUN",
+  "all8": "NOT_ACCEPTED",
+  "full_goal": "ACTIVE_NOT_COMPLETE"
+}

@@ -1,0 +1,16 @@
+{
+  "scope": "TRANSPORT_ONLY_NOT_GODOT_ACCEPTANCE",
+  "fixture": "published release48, not current286",
+  "base_commit": "dcfb5e3d1421d9554b061d77e65f4ccf66f72d0c",
+  "expected_pins_source": "outputs/coordinator27_release48/ACCEPTED_ASSEMBLY.json",
+  "expected_pins": 486,
+  "exact_matches": 486,
+  "bytes": 72616305,
+  "archive_sha256": "554d84afa4831573dc7a8bf43361545db4f506f56f84bec98c79e97621e7d088",
+  "collector_sha256": "8bdec997e4642098b387ab13f5a3480b05db9a3e53ef474f2ac3dc13008434e3",
+  "verify_status": "TRANSPORT_VERIFIED",
+  "local_boundary_tests_passed": 12,
+  "current286_present": false,
+  "source_first_pc_required": true,
+  "verifier_sha256": "16dc6f020a6c0a904534e03cbff9b427fa2826d2923813f14a4a2b0b517ea397"
+}

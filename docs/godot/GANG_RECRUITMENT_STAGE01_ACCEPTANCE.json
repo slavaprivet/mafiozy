@@ -1,0 +1,102 @@
+{
+  "source_manifest_sha256": "0b1b9b8acfcf78d87dd4df6dbe2d32266433520e5d6352da2808908b95e2afdf",
+  "native_checks": 551,
+  "immutable_manifest_note": "SOURCE_MANIFEST retains its freeze-time QA_PENDING state; this separate receipt records subsequent scoped acceptance without changing tested bytes.",
+  "entry_scene": "res://scenes/gang_recruitment.tscn",
+  "status": "ACCEPTED_FIRST_HIRING_GATE_ONLY",
+  "revision": "gang_recruitment_stage04",
+  "NOT_RUN": [
+    "Authentic current286 scene/population and first-PC full source restoration",
+    "Full eight actions/follow/ordered point/shared physical boarding",
+    "Physical vehicle movement/sinking exit/water/vehicle defensive fire",
+    "Real damage and hospital transport",
+    "Forced post-removal transaction commit failure/rollback native proof",
+    "OS input and full-city performance",
+    "Crash recovery for two-rename save replacement"
+  ],
+  "qualifications": [
+    "Original JS terminal-high-surrogate core name slice is replaced with U+FFFD only after full-host-name/source-ID correlation; strict full host names and original raw748/866 input bytes were verified.",
+    "Numeric quantity equality permits integral int/float representation changes while IDs/keys/order/other values remain strict.",
+    "E tests inject native window/viewport events and exercise real popup callback plus public transport-provider reservation; they are not physical vehicle or OS-input proof.",
+    "Moving-resident tests use a QA-only physics callback on the same existing CharacterBody; production daily AI and original286 are not proved.",
+    "Dead/hospital fixture flags verify dismissal/refund/no resurrection; actual damage/hospital transfer remain untested."
+  ],
+  "evidence": [
+    {
+      "sha256": "465c154e77601aa37d5a4189a68dd7db049a7e001af06275bd97cd0c59343d24",
+      "bytes": 599453,
+      "path": "BUILD/outputs/gang_common_stage04_qa_evidence/NATIVE_RESULT.json"
+    },
+    {
+      "sha256": "0c53c8c9798b1a09b9c8a1fdd0c773bf44520565b8d20bcfa82d8c69e5614c83",
+      "bytes": 808516,
+      "path": "BUILD/outputs/gang_common_stage04_qa_evidence/EXECUTION_RESULT.json"
+    },
+    {
+      "sha256": "3754eeab03419006d880139cb0c5cf456d32d3f1c757d76c0df6d8b34a9af30c",
+      "bytes": 257724,
+      "path": "BUILD/outputs/gang_common_stage04_qa_evidence/five_roles_nameplates.png"
+    },
+    {
+      "sha256": "b76fecef9c27d3d70b8a0af92b8bd5d10777aa9f5050ab44a224d45bbd8f0e16",
+      "bytes": 257590,
+      "path": "BUILD/outputs/gang_common_stage04_qa_evidence/loaded_nameplates.png"
+    }
+  ],
+  "archive_sha256": "d19b4d7313be9ca4bfedc7ca056eaea8876752f3fb935f8d1d3d52161cb074c1",
+  "scope": "One controlled six-resident source-model scene combining core, actual ownership host, source UI/badges, source save migration and paired body conversation callbacks. This is not original286/full-city/full-gang acceptance.",
+  "engine": {
+    "renderer": "OpenGL API 3.3.0 Core Profile Context 22.20.42.02.221103 - Compatibility - Using Device: ATI Technologies Inc. - AMD Radeon (TM) Graphics",
+    "sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+    "required_version": "4.7.2.stable.official.ed1daf0bf",
+    "stages": [
+      {
+        "errors": [],
+        "name": "import",
+        "stderr_bytes": 0,
+        "cleanup_verified": true,
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "errors": [],
+        "name": "graphical_common_gate",
+        "stderr_bytes": 0,
+        "cleanup_verified": true,
+        "exit_code": 0,
+        "passed": true
+      }
+    ]
+  },
+  "source_and_staged_owner_bytes_unchanged": true,
+  "checked_utc": "2026-10-09T03:25:07.7743217Z",
+  "driver_manifest_sha256": "f53953660ca9e8601423cd9a866a0020def14586a56f7a19f91e9e7d39164d4e",
+  "schema": "mafiozy.common-gang-acceptance/v1",
+  "completed_cases": [
+    "ui_hire_all5",
+    "same_actor_identity",
+    "equipment_conservation",
+    "dismiss_rehire",
+    "ui_save_load",
+    "nameplate_lifecycle",
+    "source_hint_layout",
+    "transport_E_provider_contract",
+    "qualified_source_save_compatibility",
+    "controlled_conversation_lifecycle",
+    "dismiss_dead_hospital_fixture"
+  ],
+  "prior_failures_preserved": [
+    "common_native01",
+    "common_native02",
+    "common_raw_legacy02",
+    "common_native03"
+  ],
+  "visual": {
+    "result": "All five source profession/name/owned cards and gold talk hint readable; own-card20px gap retained and controlled fixture neighboring cards do not obscure hint.",
+    "status": "PASS_READ_BOTH_ACTUAL_IMAGES",
+    "observer": "BUILD"
+  },
+  "root_engine_runs": 0,
+  "project": "godot/mercenary_demo",
+  "native_failures": 0
+}

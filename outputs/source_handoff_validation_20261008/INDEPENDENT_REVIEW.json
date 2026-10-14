@@ -1,0 +1,110 @@
+{
+  "target": "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-build\\work\\mafiozy\\tools\\godot\\source_handoff.py",
+  "source_sha256": "16dc6f020a6c0a904534e03cbff9b427fa2826d2923813f14a4a2b0b517ea397",
+  "source_unchanged_during_review": true,
+  "passed": 20,
+  "total": 20,
+  "results": [
+    {
+      "test": "byte_preservation",
+      "passed": true,
+      "detail": "Binary, Unicode name, BOM, CRLF/LF, NUL preserved and SHA independently recomputed"
+    },
+    {
+      "test": "excluded_caches",
+      "passed": true,
+      "detail": "Nested .git, .godot and node_modules excluded"
+    },
+    {
+      "test": "source_mutation",
+      "passed": true,
+      "detail": "Actual source mutation after first archive write: rejected as ValueError (Source changed during collection; obtain a quiet snapshot); incomplete output removed"
+    },
+    {
+      "test": "source_addition",
+      "passed": true,
+      "detail": "Actual source addition after first archive write: rejected as ValueError (Source changed during collection; obtain a quiet snapshot); incomplete output removed"
+    },
+    {
+      "test": "selection_parent_escape",
+      "passed": true,
+      "detail": "Selected parent escape: rejected as ValueError (Unsafe relative path)"
+    },
+    {
+      "test": "source_symlink",
+      "passed": true,
+      "detail": "Symlink to outside declared root: rejected as ValueError (Source contains a link/junction)"
+    },
+    {
+      "test": "explicit_git_root",
+      "passed": true,
+      "detail": "Explicit source root named .git: rejected as ValueError (Forbidden source root)"
+    },
+    {
+      "test": "explicit_godot_cache_root",
+      "passed": true,
+      "detail": "Explicit source root named .godot: rejected as ValueError (Forbidden source root)"
+    },
+    {
+      "test": "env_secret_filename",
+      "passed": true,
+      "detail": "Credential location .env: rejected as ValueError (Source contains a credential filename; narrow the root)"
+    },
+    {
+      "test": "aws_credentials_filename",
+      "passed": true,
+      "detail": "Credential location .aws/credentials: rejected as ValueError (Source contains a credential filename; narrow the root)"
+    },
+    {
+      "test": "chunk_boundary_secret",
+      "passed": true,
+      "detail": "Credential marker crossing 1 MiB read boundary: rejected as ValueError (Credential-like archive bytes)"
+    },
+    {
+      "test": "undeclared_payload_root",
+      "passed": true,
+      "detail": "Payload outside manifest declared roots: rejected as ValueError (Member outside declared roots)"
+    },
+    {
+      "test": "missing_game_root",
+      "passed": true,
+      "detail": "Manifest with no game root: rejected as ValueError (A declared game root is required)"
+    },
+    {
+      "test": "windows_name_collision",
+      "passed": true,
+      "detail": "Windows trailing-dot colliding filenames: rejected as ValueError (Unsafe Windows path component)"
+    },
+    {
+      "test": "file_directory_collision",
+      "passed": true,
+      "detail": "Archive file also used as parent directory: rejected as ValueError (Archive file/directory collision)"
+    },
+    {
+      "test": "manifest_secret",
+      "passed": true,
+      "detail": "Credential marker in HANDOFF.json metadata: rejected as ValueError (Credential-like manifest bytes)"
+    },
+    {
+      "test": "dependency_layout",
+      "passed": true,
+      "detail": "Unsafe flattening rejected: Roots must preserve relative layout beneath one common anchor"
+    },
+    {
+      "test": "preserved_dependency_layout",
+      "passed": true,
+      "detail": "Common-anchor nested game + external assets restored without rewriting reference or bytes"
+    },
+    {
+      "test": "explicit_selection_scope",
+      "passed": true,
+      "detail": "Explicit files selection excludes unrelated personal file"
+    },
+    {
+      "test": "archive_parent_escape",
+      "passed": true,
+      "detail": "Archive parent traversal: rejected as ValueError (Unsafe relative path)"
+    }
+  ],
+  "scope": "Synthetic transport verification only; no real credentials, remote mutations or Godot execution"
+}

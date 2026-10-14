@@ -1,0 +1,116 @@
+{
+  "schema": "mafiozi.combined-handoff-import/v1",
+  "status": "FAIL_COMBINED_COLD_IMPORT",
+  "manifest_sha256": "9a14d1560a59650a98981377445186a3dc65b70d2e1af961d4a8bd76b126f509",
+  "archive_sha256": "8e1d82ef996cd6b2375613d676931cf2556c939584a8c154f1e252ddd8af6cbf",
+  "outer_manifest_sha256": "816930a2e9bb228a5b7afb7514e2a39b5f6f7b5241d812b516758832b072a0d4",
+  "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "version_required": "4.7.2.stable.official.ed1daf0bf",
+  "mode": "headless_cold_import",
+  "renderer_requested": "gl_compatibility",
+  "renderer_observed": null,
+  "gpu_rendering": "NOT_RUN",
+  "functional": "NOT_RUN",
+  "all_eight_physical_actions": "NOT_RUN",
+  "current286": "NOT_RECEIVED/NOT_RUN",
+  "scope": "Exact source closure plus one editor cold import; no actual gameplay assertions",
+  "existing_harness_sha256": "cdd329fddc68848cc43aeb3c32e0e5ce1fe6754f441f5b1c51fdb3587ac3caba",
+  "wrapper_sha256": "d8b15c20c575b95e2238e21488c0f43803202638b2086da5fbd7f59f346d7cc9",
+  "goal": "ACTIVE_NOT_COMPLETE",
+  "scene": "res://scenes/gang_recruitment.tscn",
+  "scene_sha256": "77d3b61046d049c414c0a952509d0f5570eef9c888b8fbc58c9ebe1f73ebf09c",
+  "staged_source_count": 66,
+  "receipt": {
+    "mode": "headless",
+    "performance_accepted": false,
+    "command": [
+      "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--path",
+      "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\outputs\\gang_qa\\handoff_stage02_import\\project",
+      "--rendering-method",
+      "gl_compatibility",
+      "--headless",
+      "--editor",
+      "--import"
+    ],
+    "passed": false,
+    "timed_out": false,
+    "cleanup_verified": true,
+    "errors": [
+      "SCRIPT ERROR: Parse Error: Cannot infer the type of \"allowed\" variable because the value doesn't have a set type.",
+      "SCRIPT ERROR: Parse Error: Cannot infer the type of \"known\" variable because the value doesn't have a set type.",
+      "SCRIPT ERROR: Compile Error: Failed to compile depended scripts.",
+      "SCRIPT ERROR: Parse Error: Expression is of type \"Control\" so it can't be of type \"PopupMenu\".",
+      "SCRIPT ERROR: Compile Error: Failed to compile depended scripts.",
+      "ERROR: Failed to load script \"res://scripts/gang/main_scene.gd\" with error \"Parse error\"."
+    ],
+    "stderr_bytes": 974,
+    "perf_environment_clean": false,
+    "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required",
+    "lease": {
+      "id": "0e05cfa6657144088dfd7acb4372140d",
+      "owner": {
+        "pid": 8084,
+        "creation_filetime": "134359935735896600"
+      },
+      "mode": "headless",
+      "project": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\outputs\\gang_qa\\handoff_stage02_import\\project",
+      "access": "write",
+      "children": [
+        {
+          "pid": 20276,
+          "creation_filetime": "134359935767066527",
+          "command_line": "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --path C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\outputs\\gang_qa\\handoff_stage02_import\\project --rendering-method gl_compatibility --headless --editor --import",
+          "command": [
+            "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+            "--path",
+            "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\outputs\\gang_qa\\handoff_stage02_import\\project",
+            "--rendering-method",
+            "gl_compatibility",
+            "--headless",
+            "--editor",
+            "--import"
+          ],
+          "executable": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+          "executable_path": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+          "mode": "headless",
+          "project": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\outputs\\gang_qa\\handoff_stage02_import\\project",
+          "affinity_mask": 3,
+          "logical_cpu_limit": 2
+        }
+      ],
+      "deadline": 340825.7456066,
+      "queued_at": 340810.7456066,
+      "ticket": 196,
+      "inventory_before": [],
+      "editor_identities": [],
+      "queue_wait_seconds": 0.7023983999970369
+    },
+    "child": {
+      "pid": 20276,
+      "creation_filetime": "134359935767066527",
+      "command_line": "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --path C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\outputs\\gang_qa\\handoff_stage02_import\\project --rendering-method gl_compatibility --headless --editor --import",
+      "command": [
+        "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "--path",
+        "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\outputs\\gang_qa\\handoff_stage02_import\\project",
+        "--rendering-method",
+        "gl_compatibility",
+        "--headless",
+        "--editor",
+        "--import"
+      ],
+      "executable": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+      "executable_path": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+      "mode": "headless",
+      "project": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\outputs\\gang_qa\\handoff_stage02_import\\project",
+      "affinity_mask": 3,
+      "logical_cpu_limit": 2
+    },
+    "exit_code": 0,
+    "elapsed_seconds": 5.157101199962199
+  },
+  "engine_banner": "Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org",
+  "error": "Owned combined import failed; see actual logs",
+  "source_and_staged_owner_bytes_unchanged": true
+}
