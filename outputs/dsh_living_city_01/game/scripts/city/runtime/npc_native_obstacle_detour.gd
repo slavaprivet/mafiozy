@@ -10,6 +10,27 @@ const CHECKS_PER_FRAME := 3
 const USEC_PER_FRAME := 750
 const MAX_FRAMES := 240
 const DIRECTIONS := [Vector2i(1,0),Vector2i(0,1),Vector2i(-1,0),Vector2i(0,-1),Vector2i(1,1),Vector2i(-1,1),Vector2i(-1,-1),Vector2i(1,-1)]
+
+# DSH_DETOURBUDGET: every lever defaults to the value above, so a run without the
+# matching argument is byte-for-byte the previous behaviour. The constants stay the
+# source of truth; these only add a bounded override plus one telemetry line so
+# "bounded_native_detour_exhausted" can be attributed instead of guessed at.
+const CELL_MIN_M := 0.5
+const CELL_MAX_M := 5.0
+const RANGE_MIN_M := 4.0
+const RANGE_MAX_M := 40.0
+const NODES_MAX_CAP := 4096
+const CHECKS_MAX_CAP := 16384
+const FRAMES_MAX_CAP := 4096
+static var _dsh_cell := -1.0
+static var _dsh_range := -1.0
+static var _dsh_nodes := -1
+static var _dsh_checks := -1
+static var _dsh_frames := -1
+static var _dsh_flag := -1
+static var _s_ok := 0
+static var _s_exhausted := 0
+static var _s_other := 0
 var _host: RefCounted
 var _policy: RefCounted
 var _owner: WeakRef
@@ -34,6 +55,57 @@ var _reason := ""
 var _result := PackedVector3Array()
 var _rejoin := -1
 var _max_step_us := 0
+var _began_us := 0
+var _checks_at_end := 0
+var _nodes_at_end := 0
+var _frames_at_end := 0
+var _exhausted := false
+var _exit_reason := ""
+var _verdict := ""
+
+# DSH_DETOURBUDGET: argument parsing and the bounded overrides. Shape follows the
+# existing levers of this project (cache once, one prefix scan, clamp the value).
+static func _dsh_arg_int(prefix: String, fallback: int) -> int:
+	for argument: String in OS.get_cmdline_user_args():
+		if argument.begins_with(prefix): return int(argument.trim_prefix(prefix))
+	return fallback
+
+static func _dsh_arg_float(prefix: String, fallback: float) -> float:
+	for argument: String in OS.get_cmdline_user_args():
+		if argument.begins_with(prefix): return float(argument.trim_prefix(prefix))
+	return fallback
+
+static func _dsh_resolve() -> void:
+	if _dsh_flag >= 0: return
+	_dsh_flag = 1 if OS.get_cmdline_user_args().has("--city-detour-budget=1") else 0
+	_dsh_cell = clampf(_dsh_arg_float("--city-detour-cell-m=", CELL), CELL_MIN_M, CELL_MAX_M)
+	_dsh_range = clampf(_dsh_arg_float("--city-detour-range-m=", RANGE), RANGE_MIN_M, RANGE_MAX_M)
+	_dsh_nodes = clampi(_dsh_arg_int("--city-detour-max-nodes=", MAX_NODES), 8, NODES_MAX_CAP)
+	# "--city-detour-attempts" is the user-facing alias of the query budget.
+	_dsh_checks = clampi(_dsh_arg_int("--city-detour-max-checks=", _dsh_arg_int("--city-detour-attempts=", MAX_CHECKS)), 8, CHECKS_MAX_CAP)
+	_dsh_frames = clampi(_dsh_arg_int("--city-detour-max-frames=", MAX_FRAMES), 8, FRAMES_MAX_CAP)
+
+static func budget() -> Dictionary:
+	_dsh_resolve()
+	return {"on": _dsh_flag == 1, "cell_m": _dsh_cell, "range_m": _dsh_range,
+		"max_nodes": _dsh_nodes, "max_checks": _dsh_checks, "max_frames": _dsh_frames}
+
+static func counters() -> Dictionary:
+	return {"searches_ok": _s_ok, "searches_exhausted": _s_exhausted, "searches_other_stop": _s_other}
+
+## One line per ended search, and a summary every 32 of them. Read-only observation:
+## the search has already written its own status/reason by the time this runs.
+static func _dsh_emit(snapshot: Dictionary, budget_now: Dictionary, frame: int) -> void:
+	if budget_now["on"] != true: return
+	print("DSH_DETOUR status=", snapshot.get("status", "?"),
+		" reason=", snapshot.get("reason", ""),
+		" attempts=", snapshot.get("native_checks", 0), "/", budget_now["max_checks"],
+		" nodes=", snapshot.get("nodes", 0), "/", budget_now["max_nodes"],
+		" frames=", snapshot.get("frames", 0), "/", budget_now["max_frames"],
+		" cell_m=", budget_now["cell_m"], " range_m=", budget_now["range_m"],
+		" failing=", snapshot.get("failing", ""),
+		" ok=", _s_ok, " exhausted=", _s_exhausted, " other=", _s_other,
+		" frame=", frame)
 
 func begin(host: RefCounted, policy: RefCounted, activity_owner: RefCounted, token: Dictionary, map: RID, iteration: int, route: PackedVector3Array, first_index: int) -> Dictionary:
 	if _status!="UNBOUND" or not is_instance_valid(host) or not is_instance_valid(policy) or not is_instance_valid(activity_owner) or first_index<0 or first_index>=route.size(): return {"ok":false,"reason":"detour_arguments"}
@@ -44,12 +116,14 @@ func begin(host: RefCounted, policy: RefCounted, activity_owner: RefCounted, tok
 	_navigation=policy._ordinary_navigation(host)
 	_claim_serial=int(host.daily_activity_status(token.source_id).get("serial",-1))
 	_origin=token.body.global_position
+	_began_us=Time.get_ticks_usec()
 	if not _current(): return _fail("detour_current_idle_actor_required")
 	# Rejoin only a short prefix of the still-desired path. A blocked next goal
 	# may be inside the car; later real goals let us get around its far end.
+	var rejoin_range:=_range()
 	for index in range(first_index,mini(route.size(),first_index+4)):
 		var point: Vector3=route[index]
-		if not point.is_finite() or Vector2(point.x-_origin.x,point.z-_origin.z).length()>RANGE+.01: continue
+		if not point.is_finite() or Vector2(point.x-_origin.x,point.z-_origin.z).length()>rejoin_range+.01: continue
 		var projected:=NavigationServer3D.map_get_closest_point(_map,point)
 		if projected.distance_to(point)>.12: continue
 		_goals.append({"point":projected,"index":index})
@@ -57,6 +131,14 @@ func begin(host: RefCounted, policy: RefCounted, activity_owner: RefCounted, tok
 	_nodes.append({"point":_origin,"key":Vector2i.ZERO,"g":0.0,"parent":-1,"closed":false})
 	_by_key[Vector2i.ZERO]=0;_open.append(0);_status="SEARCHING"
 	return {"ok":true,"status":_status,"movement_owner":"existing_daily_host"}
+
+## DSH_DETOURBUDGET: resolved budget of this search. All three fall back to the
+## constants above when the matching argument is absent.
+func _cell() -> float:
+	_dsh_resolve(); return _dsh_cell
+
+func _range() -> float:
+	_dsh_resolve(); return _dsh_range
 
 func _current() -> bool:
 	if not Thread.is_main_thread() or not is_instance_valid(_host) or not is_instance_valid(_policy) or _owner==null or not is_instance_valid(_owner.get_ref()) or not _host._local_walker_current(_token): return false
@@ -74,20 +156,22 @@ func step() -> Dictionary:
 	var frame:=Engine.get_physics_frames()
 	if frame==_frame: return snapshot()
 	_frame=frame;_frames+=1
-	if not _current(): _fail("detour_actor_claim_request_or_map_changed");return snapshot()
-	if _frames>MAX_FRAMES: _fail("detour_frame_budget");return snapshot()
+	if not _current(): _fail("detour_actor_claim_request_or_map_changed");return _dsh_report(frame)
+	if _frames>_dsh_frames: _fail("detour_frame_budget");return _dsh_report(frame)
 	var began:=Time.get_ticks_usec();var count:=0
 	while count<CHECKS_PER_FRAME and Time.get_ticks_usec()-began<USEC_PER_FRAME:
-		if _checks>=MAX_CHECKS: _fail("detour_query_budget");break
+		if _checks>=_dsh_checks: _fail("detour_query_budget");break
 		if _active<0:
 			_active=_pop_best()
-			if _active<0: _fail("bounded_native_detour_exhausted");break
+			if _active<0:
+				_exhausted=true
+				_fail("bounded_native_detour_exhausted");break
 			_prepare_candidates()
 		if _cursor>=_candidates.size(): _active=-1;continue
 		var candidate: Dictionary=_candidates[_cursor];_cursor+=1
 		var start: Vector3=_nodes[_active].point
 		var point: Vector3=candidate.point
-		if Vector2(point.x-_origin.x,point.z-_origin.z).length()>RANGE+.01 or point.distance_to(start)>5.0: continue
+		if Vector2(point.x-_origin.x,point.z-_origin.z).length()>_range()+.01 or point.distance_to(start)>5.0: continue
 		if not candidate.get("goal",false) and _by_key.has(candidate.key) and _nodes[_by_key[candidate.key]].closed: continue
 		var projected:=NavigationServer3D.map_get_closest_point(_map,point)
 		if projected.distance_to(point)>.12: continue
@@ -101,12 +185,33 @@ func step() -> Dictionary:
 			var known: int=_by_key[candidate.key]
 			if cost<float(_nodes[known].g): _nodes[known].g=cost;_nodes[known].parent=_active
 		else:
-			if _nodes.size()>=MAX_NODES: _fail("detour_node_budget");break
+			if _nodes.size()>=_dsh_nodes: _fail("detour_node_budget");break
 			var next:=_nodes.size()
 			_by_key[candidate.key]=next
 			_nodes.append({"point":projected,"key":candidate.key,"g":cost,"parent":_active,"closed":false});_open.append(next)
 	_max_step_us=maxi(_max_step_us,Time.get_ticks_usec()-began)
-	return snapshot()
+	return _dsh_report(frame)
+
+## DSH_DETOURBUDGET: the single exit of one search attempt. It records the state of
+## the search at the moment the verdict was reached and prints exactly one line per
+## attempt when --city-detour-budget=1 is passed. With the flag absent this is one
+## integer compare and the original snapshot().
+func _dsh_report(frame: int) -> Dictionary:
+	var result:=snapshot()
+	if _dsh_flag != 1: return result
+	_exit_reason=_reason
+	if _status=="FOUND": _s_ok+=1
+	elif _exhausted: _s_exhausted+=1
+	else: _s_other+=1
+	_checks_at_end=_checks
+	_nodes_at_end=_nodes.size()
+	_frames_at_end=_frames
+	if _verdict == _reason and _status == "SEARCHING": return result
+	_verdict=_reason
+	var failing := "%s|%d|%d|%d" % [_exit_reason, _checks_at_end, _nodes_at_end, _frames_at_end]
+	_dsh_emit({"status": _status, "reason": _reason, "native_checks": _checks_at_end,
+		"nodes": _nodes_at_end, "frames": _frames_at_end, "failing": failing}, budget(), frame)
+	return result
 
 func _pop_best() -> int:
 	var best:=-1;var score:=INF
@@ -126,7 +231,7 @@ func _prepare_candidates() -> void:
 		if (node.point as Vector3).distance_to(goal.point)<=3.0: _candidates.append({"goal":true,"point":goal.point,"index":goal.index})
 	for direction: Vector2i in DIRECTIONS:
 		var key: Vector2i=node.key+direction
-		_candidates.append({"goal":false,"key":key,"point":_origin+Vector3(key.x*CELL,0.0,key.y*CELL)})
+		_candidates.append({"goal":false,"key":key,"point":_origin+Vector3(key.x*_cell(),0.0,key.y*_cell())})
 
 func _finish(point: Vector3, rejoin_index: int) -> void:
 	var reverse: Array[Vector3]=[point];var index:=_active
@@ -135,7 +240,7 @@ func _finish(point: Vector3, rejoin_index: int) -> void:
 	_result.clear()
 	for p in range(reverse.size()-1,-1,-1):
 		if _result.is_empty() or _result[-1].distance_to(reverse[p])>.02: _result.append(reverse[p])
-	_rejoin=rejoin_index;_status="FOUND";_reason=""
+	_rejoin=rejoin_index;_status="FOUND";_reason="";_exhausted=false;_verdict=""
 
 func cancel() -> void:
 	if _status in ["SEARCHING","FOUND"]: _status="CANCELLED"
@@ -145,5 +250,5 @@ func snapshot() -> Dictionary:
 	return {"status":_status,"reason":_reason,"points":_result.duplicate(),"rejoin_index":_rejoin,"nodes":_nodes.size(),"native_checks":_checks,"frames":_frames,"max_step_us":_max_step_us,"actor_transform_written":false,"movement_authority":false}
 
 func _fail(reason: String) -> Dictionary:
-	_status="BLOCKED";_reason=reason;_result.clear()
+	_status="BLOCKED";_reason=reason;_result.clear();_verdict=""
 	return {"ok":false,"status":_status,"reason":reason}

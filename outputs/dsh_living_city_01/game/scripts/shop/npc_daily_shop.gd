@@ -159,7 +159,23 @@ func configure(host: RefCounted, policy: RefCounted, health: RefCounted, scene: 
 	if outside.size()!=3: return _fail("source_lane_shape")
 	# This is the exterior end of the existing <=9m one-entry corridor. The
 	# ordinary map/host must admit the actual approach before the lease exists.
+	# DSH_SHOPHANDOFF: the lane's `outside` vector is authored in the BUILDING-local
+	# frame (`originM` of ENTRY_GEOMETRY.json is 395.65/45.1), so using it as a
+	# preview/world point lands far off the walkable crop and support_height cannot
+	# answer (the reason reported as `current_handoff_floor`). With the opt-in flag
+	# the handoff is taken from the printshop's own authored public approach anchor
+	# instead, which is by construction in the same frame as the scene spawn.
+	# Without the flag this is the exact previous line.
+	var dsh_anchor_handoff := false
+	for dsh_argument: String in OS.get_cmdline_user_args():
+		if dsh_argument == "--city-shop-handoff-anchor=1": dsh_anchor_handoff = true
 	_handoff=Vector3(minf(8.5,float(outside[0])+1.1),0.0,float(outside[2]))
+	if dsh_anchor_handoff:
+		var dsh_printshop: Variant = scene.get("_printshop")
+		if is_instance_valid(dsh_printshop) and dsh_printshop.has_method("anchor"):
+			var dsh_approach: Vector3 = dsh_printshop.anchor("publicApproach")
+			if dsh_approach.is_finite(): _handoff = Vector3(dsh_approach.x, 0.0, dsh_approach.z)
+		if not _handoff.is_finite(): _handoff=Vector3(minf(8.5,float(outside[0])+1.1),0.0,float(outside[2]))
 	var floor_y: float=policy.support_height(_handoff,token.source_id,token.life_generation)
 	if not is_finite(floor_y): return _fail("current_handoff_floor")
 	_handoff.y=floor_y

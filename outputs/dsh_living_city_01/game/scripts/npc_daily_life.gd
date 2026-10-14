@@ -3,6 +3,13 @@ extends RefCounted
 ## this scheduler never changes HP, cash, transforms, seats or source rows.
 const Walk = preload("npc_daily_walk.gd")
 const MEDICAL_THRESHOLD := .75
+## DSH_NEEDS: "little money -> go to the bank and top up" thresholds. Cash below
+## NEEDS_LOW_CASH counts as low; a withdrawal never takes less than
+## NEEDS_WITHDRAW_MIN, and a deposit keeps NEEDS_CASH_RESERVE in hand so the
+## planned purchase stays possible after banking.
+const NEEDS_LOW_CASH := 6
+const NEEDS_WITHDRAW_MIN := 15
+const NEEDS_CASH_RESERVE := 12
 const SHOP_INTERVAL_MS := 300000.0
 var _host: RefCounted
 var _health: RefCounted
@@ -37,6 +44,7 @@ var _frame := -1
 var _busy := false
 var _disposed := false
 var _bank_established := false
+var _dsh_needs := -1  # DSH_NEEDS
 var _interrupting := false
 const INCIDENT_HOLD_MS := 1200.0
 const INCIDENT_MAX_HOLD_MS := 3000.0
@@ -281,6 +289,15 @@ func step(delta: float) -> void:
 	if _phase in ["IDLE","RESTING","WAITING_FOR_RECOVERY"] and _now>=_next_decision: _choose(row)
 	_busy=false
 
+## DSH_NEEDS: opt-in --city-needs=1. Default 0 keeps every existing decision path.
+func _needs_on() -> bool:  # DSH_NEEDS
+	if _dsh_needs < 0:
+		_dsh_needs = 0
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-needs="):
+				_dsh_needs = maxi(0, mini(1, int(argument.trim_prefix("--city-needs="))))
+	return _dsh_needs == 1
+
 func _needs_hospital(row: Dictionary) -> bool:
 	return _now>=_next_medical and float(row.get("max_hp",0))>0 and float(row.get("hp",0))<float(row.max_hp)*MEDICAL_THRESHOLD and not row.get("_medicalDowned",false) and not row.get("_forcedCrawl",false)
 
@@ -307,9 +324,27 @@ func _choose(row: Dictionary) -> void:
 			_start(bank_goal); return
 		# No made-up money: unavailable income leaves the purchase pending.
 		_reason=str(choice.get("reason","purchase_unavailable")); _next_shop=_now+10000.0
+	# DSH_NEEDS: "little money -> go to the bank and top up". This is the rule that
+	# was missing: cash was only ever topped up as a side effect of a planned
+	# newspaper purchase, so a resident with a low wallet never banked. Opt-in.
+	if _needs_on() and _now>=_next_bank and int(wallet.get("cash",0))<NEEDS_LOW_CASH and int(wallet.get("bank",0))>=NEEDS_WITHDRAW_MIN:
+		var topped:=_new_goal("bank")
+		topped.operation="withdraw"
+		topped.amount=mini(int(wallet.bank),maxi(NEEDS_WITHDRAW_MIN,NEEDS_CASH_RESERVE-int(wallet.cash)))
+		_start(topped); return
 	if not _bank_established and _now>=_next_bank and int(wallet.get("cash",0))>=12:
 		var saving:=_new_goal("bank")
-		saving.operation="deposit"; saving.amount=int(floor(float(wallet.cash)*.60))
+		saving.operation="deposit"
+		# DSH_NEEDS: keep a purchase reserve in hand instead of banking 60% of
+		# everything, which could leave the wallet unable to buy at all.
+		var keep: int = NEEDS_CASH_RESERVE if _needs_on() else 0
+		var depositable: int = maxi(0, int(wallet.cash)-keep)
+		if depositable<=0:
+			if _now>=_next_drive:
+				_next_drive=_now+90000.0+_unit("drive:"+str(_sequence))*180000.0
+				_start(_new_goal("drive")); return
+			_roam(); return
+		saving.amount=int(floor(float(depositable)*.60))
 		_start(saving); return
 	if _now>=_next_drive:
 		_next_drive=_now+90000.0+_unit("drive:"+str(_sequence))*180000.0
@@ -339,6 +374,13 @@ func _start(goal: Dictionary) -> void:
 		# Even failed admission may own a lease which needs normal cleanup ticks.
 		_phase="ACTIVITY"; _interrupting=true; _reason=str(begun.get("reason","begin_refused")) if begun is Dictionary else "begin_result"; return
 	_phase="ACTIVITY"; _reason=""; _record("started")
+	if _needs_on():  # DSH_NEEDS: one line per started activity, with the need state
+		var need_row: Dictionary=_life()
+		var need_wallet: Dictionary=_account.snapshot().account
+		print("DSH_NEEDS id=",str(_token.get("source_id",""))," goal=",str(goal.get("kind",""))," op=",str(goal.get("operation","-")),
+			" hp=",int(need_row.get("hp",-1)),"/",int(need_row.get("max_hp",-1)),
+			" cash=",int(need_wallet.get("cash",-1))," bank=",int(need_wallet.get("bank",-1)),
+			" low_cash_at=",NEEDS_LOW_CASH," reserve=",NEEDS_CASH_RESERVE)
 
 func _finish_activity(success: bool, state: Dictionary) -> void:
 	var kind: String=str(_goal.get("kind",""))
