@@ -31,6 +31,10 @@ var _frame := -1
 var _request_frame := -1
 var _busy := false
 var _elapsed := 0.0
+# Service/exit budget starts only after the physical visit has begun.
+# APPROACH retains Walk's cumulative 900s deadline and bounded detours.
+var _visit_started := false
+var _visit_elapsed := 0.0
 var _dsh_elapsed := -1.0  # DSH_LIFECLOCK: real game time since the previous poll
 var _now := 0.0
 var _dsh_probe := -1  # DSH_VISITPROBE: --city-visit-probe, 0 (default) = off
@@ -298,6 +302,7 @@ func _bind_visit() -> void:
 		_finish_outside("BLOCKED","visit_configuration_refused"); return
 	if not _visit.begin(_now): _finish_outside("BLOCKED","visit_begin_refused"); return
 	_phase="VISIT"
+	_visit_started=true; _visit_elapsed=0.0
 
 func _request_visit(target: Vector3, phase: String, tolerance: float, token: Dictionary) -> Dictionary:
 	var frame: int=Engine.get_physics_frames()
@@ -402,8 +407,10 @@ func _step_impl(delta: float) -> void:
 		# Both original browse and checkout clocks must receive pause samples.
 		if _phase=="VISIT" and _visit!=null: _visit.tick(_now)
 		_busy=false; return
-	_elapsed+=(_dsh_elapsed if _dsh_elapsed>=0.0 else delta)
-	if _elapsed>180.0 and not _cancel_requested: _cancel_requested=true; _terminal="HOLD"; _reason="bounded_shop_deadline"; _disable_checkout()
+	var active_delta: float=(_dsh_elapsed if _dsh_elapsed>=0.0 else delta)
+	_elapsed+=active_delta
+	if _visit_started: _visit_elapsed+=active_delta
+	if _visit_started and _visit_elapsed>180.0 and not _cancel_requested: _cancel_requested=true; _terminal="HOLD"; _reason="bounded_shop_deadline"; _disable_checkout()
 	if _phase=="APPROACH":
 		if _cancel_requested: _finish_outside(_terminal,_reason)
 		else:
@@ -452,7 +459,7 @@ func cancel(reason: String="cancelled") -> Dictionary:
 	return {"ok":true,"released":_released,"status":_phase}
 
 func snapshot() -> Dictionary:
-	return {"status":_phase,"reason":_reason,"released":_released,"goal":_goal.duplicate(true),"handoff":_handoff,"active_seconds":_elapsed,"request_id":_request,"public_lease_serial":_serial,"commerce":_commerce_result.duplicate(true),"release":_release_result.duplicate(true),"visit":_visit.status() if _visit!=null else {},"walk":_walk.snapshot() if _walk!=null else {},"source_authority":false,"actor_transform_written":false,"timing_buckets":_timing_buckets.duplicate(true)}
+	return {"status":_phase,"reason":_reason,"released":_released,"goal":_goal.duplicate(true),"handoff":_handoff,"active_seconds":_elapsed,"visit_seconds":_visit_elapsed,"visit_started":_visit_started,"request_id":_request,"public_lease_serial":_serial,"commerce":_commerce_result.duplicate(true),"release":_release_result.duplicate(true),"visit":_visit.status() if _visit!=null else {},"walk":_walk.snapshot() if _walk!=null else {},"source_authority":false,"actor_transform_written":false,"timing_buckets":_timing_buckets.duplicate(true)}
 
 func dispose() -> void:
 	if _disposed: return

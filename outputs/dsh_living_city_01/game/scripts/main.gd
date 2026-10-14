@@ -84,6 +84,7 @@ var _jump_surface_size: Vector2i
 var printshop_status: String = "not_loaded"
 var printshop_errors: PackedStringArray = []
 var _printshop: Node3D
+var _dsh_lazy_door_occupants: int = -1
 var _printshop_data: Dictionary = {}
 var _player_capsule: CollisionShape3D
 var _door_occupants: Array = [{"position": Vector3.ZERO, "radius": 0.0, "height": 0.0}]
@@ -747,11 +748,27 @@ func _dsh_one_per_frame() -> int:
 				_dsh_one_cache = 1 if int(argument.trim_prefix("--city-sim-one-per-frame=")) != 0 else 0
 	return _dsh_one_cache
 
+# Only idle door animation has no use for occupant rows. All requests and every
+# moving tick still collect the current player and complete resident population.
+# Idle-door component measured on actual286; whole city frame/service acceptance remains pending.
+func _lazy_door_occupants_flag() -> int:
+	if _dsh_lazy_door_occupants < 0:
+		_dsh_lazy_door_occupants = 1
+		for argument: String in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-lazy-door-occupants="):
+				_dsh_lazy_door_occupants = 1 if argument.trim_prefix("--city-lazy-door-occupants=")=="1" else 0
+	return _dsh_lazy_door_occupants
+
+func _advance_printshop_door_motion(delta: float) -> void:
+	if not is_instance_valid(_printshop): return
+	if _lazy_door_occupants_flag()==1 and not _printshop.has_pending_motion(): return
+	_printshop.advance(delta, _current_door_occupants())
+
 func _physics_process(delta: float) -> void:
 	if not preview_ready:
 		return
 	_door_feedback_seconds = maxf(0.0, _door_feedback_seconds - delta)
-	if is_instance_valid(_printshop): _printshop.advance(delta, _current_door_occupants())
+	_advance_printshop_door_motion(delta)
 	if preview_population != null:
 		_dsh_apply_loadcap(bool(preview_population.get("city_ready")))  # DSH_LOADFAST2
 		var dsh_stride := _dsh_stride()  # DSH_STRIDE

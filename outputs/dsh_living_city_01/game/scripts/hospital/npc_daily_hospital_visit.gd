@@ -255,6 +255,7 @@ func _step_impl(delta:float) -> void:
 	if _bound and (_route==null or not _route._current() or not _door_current()):_stop("local_request_or_geometry_superseded");return
 	if _phase=="WALKING_TO_STREET":
 		var profile_started := Time.get_ticks_usec()
+		_daily._dsh_elapsed = _dsh_elapsed  # DSH_LIFECLOCK: outdoor walk consumes the same poll elapsed
 		_daily.step(delta);_record_timing("outdoor_step",profile_started,frame,_phase);_profile("outdoor_step",profile_started)
 		profile_started=Time.get_ticks_usec()
 		var status:Dictionary=_daily.snapshot();_record_timing("outdoor_snapshot",profile_started,frame,_phase);_profile("outdoor_snapshot",profile_started)

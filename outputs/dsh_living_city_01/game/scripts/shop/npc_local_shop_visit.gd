@@ -34,6 +34,13 @@ func bind_commerce(account: RefCounted, goal_id: String) -> bool:
 	commerce = account; commerce_goal = goal_id; return true
 
 func tick(now_ms: float) -> Dictionary:
+	# Settle against the current physical BROWSING proof before the parent can
+	# advance to EXITING on a sparse daily tick. The account remains sole money owner.
+	if commerce != null and commerce_service >= 0 and _phase == "BROWSING" and not _busy and is_finite(now_ms) and now_ms >= _now:
+		commerce_result = commerce.poll_service(commerce_service,now_ms)
+		var settled_result: Dictionary = super.tick(now_ms)
+		settled_result.commerce = commerce_result.duplicate(true)
+		return settled_result
 	var result: Dictionary = super.tick(now_ms)
 	if commerce == null: return result
 	if commerce._health.should_pause_walk():

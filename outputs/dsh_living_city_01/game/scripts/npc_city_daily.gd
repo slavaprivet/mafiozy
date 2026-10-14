@@ -83,6 +83,21 @@ func configure(scene: Node3D, population: RefCounted, hospital: Node3D, bank: No
 		_accounts[id]=account; _lives[id]=life; _health[id]=owner
 	return {"ok":not _lives.is_empty(),"residents":_lives.size(),"failures":_failures.duplicate(true),"scene_mechanics":"new_local_session"}
 
+func incident_can_hear(owner: RefCounted, _observation: Dictionary) -> bool:
+	if _disposed or not Thread.is_main_thread() or not is_instance_valid(owner): return false
+	var token: Dictionary=owner.get("_token")
+	var id: String=str(token.get("source_id",""))
+	if id.is_empty() or not _health.has(id) or _health[id]!=owner or not _lives.has(id) or not _population.residents.target_current(token): return false
+	return _lives[id].incident_can_hear(owner)
+
+func incident_submit_witness(owner: RefCounted, event: Dictionary) -> Dictionary:
+	if _disposed or not Thread.is_main_thread() or not is_instance_valid(owner): return {"accepted":false,"reason":"daily_owner_unavailable"}
+	var token: Dictionary=owner.get("_token")
+	var id: String=str(event.get("witness_source_id",""))
+	if id.is_empty() or str(token.get("source_id",""))!=id or not _health.has(id) or _health[id]!=owner or not _lives.has(id) or not _population.residents.target_current(token):
+		return {"accepted":false,"reason":"current_health_owner_required"}
+	return _lives[id].accept_incident_event(owner,event)
+
 func _create_visit(kind: String, goal: Dictionary, activity_owner: RefCounted, id: String) -> Dictionary:
 	if _disposed or _scene==null or not is_instance_valid(_scene.get_ref()) or not _lives.has(id) or _lives[id]!=activity_owner: return {"ok":false,"reason":"current_daily_owner_required"}
 	var host: RefCounted=_population.residents

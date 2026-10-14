@@ -170,6 +170,15 @@ func request_door(key: String, open: bool, actor_position: Vector3, occupants: A
 	return {"accepted": true, "open": open}
 
 
+# Same readiness/fraction predicate as advance. No position, collider, target,
+# or motion result is cached; this read is immediately followed by fresh rows.
+func has_pending_motion() -> bool:
+	if not ready_for_use: return false
+	for key: String in _doors:
+		var d: Dictionary = _doors[key]
+		if not is_equal_approx(float(d.fraction), float(d.target)): return true
+	return false
+
 func advance(delta: float, occupants: Array) -> void:
 	if not ready_for_use or not is_finite(delta) or delta <= 0.0:
 		return

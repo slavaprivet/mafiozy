@@ -16,6 +16,7 @@ var _interior: WeakRef
 var _backend: RefCounted
 var _queue: RefCounted
 var _static := PackedVector3Array()
+var _door_tiles := -1 # --city-door-tiles=1; default ON, exact publication preparation.
 var _leaves: Array[Dictionary] = []
 var _transitions: Dictionary = {}
 var _records: Dictionary = {}
@@ -32,7 +33,7 @@ var _disposed := false
 var _busy := false
 var _geometry_valid := false
 var _errors: Array[String] = []
-var _stats := {"captures": 0, "static_shapes": 0, "door_shapes": 0, "triangles": 0, "capture_us": 0, "publications": 0, "transition_starts": 0, "steps": 0, "blocked_steps": 0, "step_us_total": 0, "step_us_max": 0, "pump_us": [], "proposals_us": [], "leaf_check_us": []}
+var _stats := {"captures": 0, "static_shapes": 0, "door_shapes": 0, "triangles": 0, "capture_us": 0, "publications": 0, "transition_starts": 0, "publication_us_max":0, "steps": 0, "blocked_steps": 0, "step_us_total": 0, "step_us_max": 0, "pump_us": [], "proposals_us": [], "leaf_check_us": []}
 var _dsh_step_max_us := 0  # DSH_NAVDAILY: max single step since the last counters() read
 var _dsh_pump_every := -1  # DSH_NAVDAILY: resolved --city-nav-pump-every (1 = every tick)
 # DSH_MOTION: optional cost levers, parsed once from OS.get_cmdline_user_args().
@@ -278,15 +279,22 @@ func _space() -> PhysicsDirectSpaceState3D:
 	return scene.get_world_3d().direct_space_state if is_instance_valid(scene) and scene.is_inside_tree() else null
 
 func _publish() -> bool:
+	var publication_started:=Time.get_ticks_usec()
 	_geometry_valid = false
-	var faces := _static.duplicate()
+	if _door_tiles<0:
+		_door_tiles=1
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-door-tiles="): _door_tiles=int(argument.trim_prefix("--city-door-tiles="))
+	var faces := _static.duplicate() if _door_tiles!=1 else PackedVector3Array()
 	for leaf: Dictionary in _leaves:
 		var node: CollisionShape3D = leaf.node.get_ref()
 		if not is_instance_valid(node) or node.disabled: return _fail("door-lifetime-ended")
 		leaf.frame = node.global_transform
 		faces.append_array(leaf.frame * leaf.local)
-	_geometry_version += 1; _stats.triangles = faces.size() / 3
-	if not _backend.publish_source(faces, _authority, _generation, _geometry_version): return _fail("backend-snapshot-rejected")
+	_geometry_version += 1; _stats.triangles = (faces.size()+(_static.size() if _door_tiles==1 else 0)) / 3
+	var accepted: bool=_backend.publish_components(_static,faces,_authority,_generation,_geometry_version) if _door_tiles==1 else _backend.publish_source(faces,_authority,_generation,_geometry_version)
+	if not accepted: return _fail("backend-snapshot-rejected")
+	_stats.publication_us_max=maxi(int(_stats.publication_us_max),Time.get_ticks_usec()-publication_started)
 	_stats.publications += 1
 	_geometry_valid = true
 	return true
@@ -404,10 +412,37 @@ func request(owner: RefCounted, body: CharacterBody3D, target: Vector3, trusted_
 	_source_records[owner.source_id] = _next_id
 	return _next_id
 
+## One physical request owns a previously calculated daily route. The backend
+## validates its prefix in the normal pump before this record can move.
+func request_proven_route(owner: RefCounted, body: CharacterBody3D, route: PackedVector3Array, trusted_admit: Callable, map: RID, iteration: int, static_corridor: Callable = Callable()) -> int:
+	if not Thread.is_main_thread() or _disposed or _busy or _backend == null or not _geometry_valid or not _transitions.is_empty() or not trusted_admit.is_valid() or not owner is Queue.Owner or owner.dead or not is_instance_valid(body) or not body.is_inside_tree() or route.size() < 2: return -1
+	if owner.source_id.is_empty() or owner.source_id.length() > 256 or owner.life_generation < 1 or body.get_world_3d().direct_space_state != _space() or not _body_supported(body) or state() != "READY": return -1
+	if map != _backend.map_rid() or NavigationServer3D.map_get_iteration_id(map) != iteration or body.global_position.distance_to(route[0]) > .02: return -1
+	var owner_id := owner.get_instance_id(); var body_id := body.get_instance_id()
+	if _owner_records.has(owner_id) or _body_records.has(body_id) or _source_records.has(owner.source_id) or _records.size() >= MAX_RECORDS: return -1
+	var revision := _revision; var access := _access_version; var geometry := _geometry_version
+	var excludes: Array[RID] = [body.get_rid()]
+	if static_corridor.is_valid() and not _static_route_slot_available(): return -1
+	var native_id: int = _backend.request_proven_route(owner, route, trusted_admit, excludes, map, iteration, static_corridor)
+	if native_id < 0: return -1
+	if revision != _revision or access != _access_version or geometry != _geometry_version or state() != "READY" or map != _backend.map_rid() or NavigationServer3D.map_get_iteration_id(map) != iteration or not is_instance_valid(body) or body.global_position.distance_to(route[0]) > .02:
+		_backend.cancel(native_id)
+		return -1
+	_next_id += 1
+	_records[_next_id] = {"backend_id": native_id, "owner": weakref(owner), "owner_id": owner_id, "source_id": owner.source_id, "life_generation": owner.life_generation, "body": weakref(body), "body_id": body_id, "revision": revision, "access_version": access, "geometry_version": geometry, "status": "PENDING", "reason": "", "path": PackedVector3Array(), "edge": 1, "target": route[-1], "streaming_route": true, "route_prefix_version": 0, "route_frontier_pending": true}
+	_records[_next_id]["budgeted_static_route"] = static_corridor.is_valid()
+	_owner_records[owner_id] = _next_id; _body_records[body_id] = _next_id
+	_source_records[owner.source_id] = _next_id
+	return _next_id
+
 # DSH_MOTION: the full answer for one already refreshed record. poll() and the
 # status-only step() path share this exact field list, so no returned value changes.
 func _poll_answer(record: Dictionary) -> Dictionary:
-	return {"status": record.status, "reason": record.reason, "revision": record.revision, "access_version": record.access_version, "geometry_version": record.geometry_version, "current_access_version": _access_version, "current_geometry_version": _geometry_version, "source_id": record.source_id, "life_generation": record.life_generation}
+	var answer := {"status": record.status, "reason": record.reason, "revision": record.revision, "access_version": record.access_version, "geometry_version": record.geometry_version, "current_access_version": _access_version, "current_geometry_version": _geometry_version, "source_id": record.source_id, "life_generation": record.life_generation}
+	if bool(record.get("streaming_route", false)):
+		answer["route_frontier_pending"] = bool(record.get("route_frontier_pending", false))
+		answer["route_frontier"] = record.path[-1] if not record.path.is_empty() else Vector3.ZERO
+	return answer
 
 # DSH_MOTION: the one status pull shared by poll() and poll_status(). Identical backend
 # transitions; the steady-state branch asks the backend for the status string only.
@@ -433,7 +468,11 @@ func _refresh(record: Dictionary) -> void:
 		# before, so the full backend answer is taken here.
 		var result: Dictionary = _backend.poll(record.backend_id)
 		if result.status != "READY": record.status = result.status; record.reason = result.get("reason", "")
-		else: record.path = result.path; record.status = "READY"
+		else:
+			record.path = result.path; record.status = "READY"
+			if bool(record.get("streaming_route", false)):
+				record["route_prefix_version"] = int(result.get("route_prefix_version", 0))
+				record["route_frontier_pending"] = bool(result.get("route_frontier_pending", false))
 		return
 	# DSH_MOTION: steady state needs only the status string. record.path already holds
 	# the proposal, so the backend builds no result Dictionary and copies no array. A
@@ -450,6 +489,15 @@ func _refresh(record: Dictionary) -> void:
 		var full: Dictionary = _backend.poll(record.backend_id)
 		if full.status != "READY": record.status = full.status; record.reason = full.get("reason", "")
 		else: record.path = full.path; record.status = "READY"
+	elif bool(record.get("streaming_route", false)):
+		var version: int = _backend.route_prefix_version(record.backend_id)
+		if version > int(record.get("route_prefix_version", 0)):
+			var prefix: Dictionary = _backend.poll(record.backend_id)
+			if prefix.status != "READY": record.status = prefix.status; record.reason = prefix.get("reason", "")
+			else:
+				record.path = prefix.path
+				record["route_prefix_version"] = version
+				record["route_frontier_pending"] = bool(prefix.get("route_frontier_pending", false))
 
 # DSH_MOTION: status-only sibling of poll() for callers that read only `status`.
 # Same guards, same record bookkeeping, same backend transitions; no Dictionary is built.
@@ -571,7 +619,15 @@ func step(id: int, delta: float, speed: float, gravity: float) -> Dictionary:
 		var offset: Vector3 = path[record.edge] - position
 		if Vector2(offset.x, offset.z).length() > .25 or absf(offset.y) > .30: break
 		record.edge += 1
+	if bool(record.get("streaming_route", false)):
+		_backend.demand_route_prefix(record.backend_id, record.edge)
 	var waypoint: Vector3 = path[mini(record.edge, path.size() - 1)]
+	if bool(record.get("route_frontier_pending", false)) and record.edge >= path.size() - 1 and body.is_on_floor() and Vector2(waypoint.x - position.x, waypoint.z - position.z).length() < .15 and absf(waypoint.y - position.y) < .30:
+		body.velocity = Vector3.ZERO
+		record["last_step_gate"]="prefix_frontier"
+		record["frontier_wait_steps"]=int(record.get("frontier_wait_steps",0))+1
+		record["last_step_frame"]=Engine.get_physics_frames()
+		return {"status": "READY", "position": position, "step_metres": 0.0, "route_frontier_waiting": true}
 	var direction := Vector3(waypoint.x - position.x, 0, waypoint.z - position.z)
 	var travel_speed := minf(speed, direction.length() / delta)
 	var velocity := direction.normalized() * travel_speed
@@ -586,6 +642,8 @@ func step(id: int, delta: float, speed: float, gravity: float) -> Dictionary:
 	if _dsh_split_on: dsh_t = Time.get_ticks_usec()  # DSH_NAVSTEP3
 	# DSH_WALKCHEAP: a step whose delta exceeds the legal single city dt is a batched sim-LOD step
 	# (a near record always passes 0.0499); it may reuse the proven statics longer.
+	record["last_step_gate"]="motion"
+	record["last_step_frame"]=Engine.get_physics_frames()
 	var allowed: bool = _backend.admit_motion(record.backend_id, position, position + admitted_velocity * delta, delta > .05)
 	if _dsh_split_on: _dsh_p_add(4, dsh_t)  # DSH_NAVSTEP3: source proof + swept capsule
 	_busy = false
@@ -891,4 +949,22 @@ func _proposals_current() -> bool:
 		for record: Dictionary in block.buildings:
 			if record.id==id: matching=record==pin.record; break
 		if not matching: return false
+	return true
+
+## At most16 active static routes by default; every original ordinary route remains available.
+## Terminal records stop occupying capacity. Authoritative cancel/STALE/ARRIVED
+## remain the production methods; this read grants no movement or completion.
+var _static_route_limit := -1
+func _static_route_slot_available() -> bool:
+	if _static_route_limit<0:
+		_static_route_limit=16
+		for argument: String in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-static-route-limit="):
+				_static_route_limit=clampi(int(argument.trim_prefix("--city-static-route-limit=")),0,32)
+	if _static_route_limit==0: return true
+	var used: int=0
+	for record: Dictionary in _records.values():
+		if record.get("budgeted_static_route",false) and record.status in ["PENDING","READY"]:
+			used+=1
+			if used>=_static_route_limit: return false
 	return true

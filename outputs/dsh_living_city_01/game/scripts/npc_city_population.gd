@@ -12,8 +12,10 @@ const CITY_PACKET := "b9c810e81b8b3da6afc048a32c4fe50745f32e4b15d0fd55ff876e69c3
 const CITY_PREPARED := "929a5083842a5325ba5d4d823b1ac63c8b56b459ac19b414057ce6190f35f288"
 const CITY_BLOCK := "38b4b50ca06fb60172173b04c5b49ff567a84509ea01901a24306ab0d3b41dc7"
 const CITY_DIRECTORY := "res://assets/npc_city/"
+const IncidentDispatcher = preload("res://scripts/city/runtime/npc_incident_dispatcher.gd")
 const ROAD_SHA := "dc77f6495d2657dff91106ca831cf41fb7f7c4ecb80e3211322999e74ad82f4b"
 var daily: RefCounted
+var incident_dispatcher: RefCounted
 var admission_results := {}
 var daily_setup := {}
 var city_ready := false
@@ -21,6 +23,8 @@ var _scene_ref: WeakRef
 var _startup_us := 0
 const FALLBACK_BUDGET_US := 2000
 const FALLBACK_MAX_PROBES := 32
+# POPULATION_RINGS19: bounded source placement extension; default 19, explicit 16 rollback.
+var _city_fallback_ring_cache := -1
 var _startup_progress := {"phase":"not_started","birth_attempts":0,"fallback_probes":0,"fallback_admitted":0,"fallback_yields":0,"health_bound":0,"last_source_id":"","last_reason":""}
 const LOGIC_SAMPLE_CAPACITY := 2048
 const LOGIC_PEAK_CAPACITY := 12
@@ -117,6 +121,17 @@ var _stream_packet := PackedByteArray()
 var _stream_trust: Dictionary = {}
 var _stream_sites: Array[Node3D] = []
 var _stream_fades: Array = []
+
+# POPULATION_RINGS19: no source/body/health/owner admission is bypassed.
+# 19*16=304 fallback slots stays below the host's existing 512-attempt cap.
+# Batch/elapsed budgets and original ring/direction order remain unchanged.
+func _city_fallback_max_ring() -> int:
+	if _city_fallback_ring_cache < 0:
+		_city_fallback_ring_cache = 19
+		for argument: String in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-spawn-rings="):
+				_city_fallback_ring_cache = clampi(int(argument.trim_prefix("--city-spawn-rings=")), 16, 19)
+	return _city_fallback_ring_cache
 
 func _new_timing_bucket() -> Dictionary:
 	return {"samples":0,"total_us":0,"max_us":0,"max_frame":-1}
@@ -531,7 +546,8 @@ func _stream_ring(id: String, raw: Dictionary) -> int:
 	var budget_probe_us: int = _dsh_load_probe_us()
 	var batch_started := Time.get_ticks_usec()
 	var batch_probes := 0
-	while ring <= 16:
+	var max_ring: int = _city_fallback_max_ring()
+	while ring <= max_ring:
 		var angle := TAU * float(direction) / 16.0
 		var probe_started := Time.get_ticks_usec()
 		var result: Dictionary = residents.admit_city_spawn(id, float(raw.r) + sin(angle) * float(ring) * .5, float(raw.c) + cos(angle) * float(ring) * .5)
@@ -552,7 +568,7 @@ func _stream_ring(id: String, raw: Dictionary) -> int:
 			_startup_progress.fallback_admitted += 1
 			_stream_cursor.erase(id)
 			return 1
-		if ring <= 16: _stream_cursor[id] = Vector2i(ring, direction)
+		if ring <= max_ring: _stream_cursor[id] = Vector2i(ring, direction)
 		if batch_probes >= FALLBACK_MAX_PROBES or Time.get_ticks_usec() - batch_started >= budget_probe_us:
 			_startup_progress.fallback_yields += 1
 			_dsh_load_report("fallback_placement", int(_startup_progress.fallback_admitted), _stream_total)
@@ -826,12 +842,55 @@ func _configure_daily(scene: Node3D, sites: Array[Node3D], extend: bool = false)
 		print("DSH_STREAMLOAD daily=deferred reason=",dsh_refused)
 		return true
 	_record_startup_timing("daily_configure",daily_started,Engine.get_physics_frames())
+	var incidents: Dictionary=_configure_incident_dispatcher(scene)
+	daily_setup["incident_dispatcher"]=incidents
 	if extend: _stream_daily_mode = "incremental"
 	return true
 
 # DSH_TELEMETRY (temporary A/B): measure what NPC shadow casting costs.
 # DSH_STREAMLOAD: extracted verbatim into a method so the streamed path runs the same sweep
 # over the completed population instead of over the early cohort only.
+func _configure_incident_dispatcher(scene: Node3D) -> Dictionary:
+	if incident_dispatcher!=null: return {"ok":true,"reason":"already_configured"}
+	if not is_instance_valid(scene) or not scene.is_inside_tree() or daily==null: return {"ok":false,"reason":"current_city_daily_required"}
+	var weapons: Variant=scene.get("preview_weapons")
+	if not is_instance_valid(weapons) or not weapons is Node: return {"ok":false,"reason":"committed_preview_weapons_required"}
+	var dispatcher: RefCounted=IncidentDispatcher.new()
+	var configured: Dictionary=dispatcher.configure(weapons,self)
+	if not configured.get("ok",false): dispatcher.dispose(); return configured
+	incident_dispatcher=dispatcher
+	return configured
+
+func incident_candidate_count() -> int:
+	return hit_owners.size()
+
+func incident_candidate_at(index: int) -> Variant:
+	return hit_owners[index] if index>=0 and index<hit_owners.size() else null
+
+func _incident_observation_current(owner: Object, observation: Dictionary) -> bool:
+	if _disposed or not is_instance_valid(owner) or not hit_owners.has(owner) or residents==null: return false
+	var owner_token_value: Variant=owner.get("_token")
+	var observation_token_value: Variant=observation.get("token")
+	if not owner_token_value is Dictionary or not observation_token_value is Dictionary: return false
+	var owner_token: Dictionary=owner_token_value
+	var observation_token: Dictionary=observation_token_value
+	if str(owner_token.get("source_id",""))!=str(observation_token.get("source_id","")) or str(owner_token.get("session_id",""))!=str(observation_token.get("session_id","")) or int(owner_token.get("life_generation",-1))!=int(observation_token.get("life_generation",-2)) or owner_token.get("body")!=observation_token.get("body"): return false
+	return residents.target_current(owner_token)
+
+func incident_target_current(owner: Object, observation: Dictionary) -> bool:
+	return _incident_observation_current(owner,observation)
+
+func incident_can_hear(owner: Object, observation: Dictionary) -> bool:
+	return daily!=null and _incident_observation_current(owner,observation) and daily.incident_can_hear(owner,observation)
+
+func incident_submit_witness(owner: Object, event: Dictionary) -> Dictionary:
+	if daily==null: return {"accepted":false,"reason":"city_daily_unavailable"}
+	return daily.incident_submit_witness(owner,event)
+
+func incident_game_paused() -> bool:
+	var scene: Node3D=_scene_ref.get_ref() if _scene_ref!=null else null
+	return not is_instance_valid(scene) or not scene.is_inside_tree() or scene.get_tree().paused
+
 func _dsh_shadow_ab() -> void:
 	if not OS.get_cmdline_user_args().has("--city-no-npc-shadows") or residents==null: return
 	var dsh_shadowless := 0
@@ -941,7 +1000,7 @@ func setup_city(scene: Node3D, sites: Array[Node3D], staged_three: bool=false, q
 			if is_instance_valid(residents._records[row.source_id].body): continue
 			var raw: Dictionary=row.source_raw
 			var placed:=false
-			for ring in range(1,17):
+			for ring in range(1,_city_fallback_max_ring()+1):
 				for direction in 16:
 					var angle:=TAU*float(direction)/16.0
 					var probe_started:=Time.get_ticks_usec()
@@ -1102,6 +1161,7 @@ func step(delta: float) -> void:
 	var health_us:=Time.get_ticks_usec()-phase_started
 	phase_started=Time.get_ticks_usec()
 	if city_ready and daily!=null: daily.step(delta)
+	if city_ready and incident_dispatcher!=null: incident_dispatcher.step(delta)
 	var daily_us:=Time.get_ticks_usec()-phase_started
 	phase_started=Time.get_ticks_usec()
 	residents.step(delta)
@@ -1224,9 +1284,10 @@ func snapshot() -> Dictionary:
 	for peak: Dictionary in _logic_peaks:
 		if int(peak["frame"])>=0: peaks.append(peak.duplicate())
 	peaks.sort_custom(func(a: Dictionary,b: Dictionary)->bool:return int(a["total_us"])>int(b["total_us"]))
-	return {"status":status,"error":error,"city_ready":city_ready,"admitted":hit_owners.size(),"startup_us":_startup_us,"startup_frames":{"first":_startup_frame_start,"last":_startup_frame_end,"navigation_ready_wait_frames":_navigation_ready_wait_frames},"startup_timing":_startup_timing.duplicate(true),"startup_progress":_startup_progress.duplicate(),"admissions":admission_results.duplicate(true),"residents":residents.snapshot() if residents!=null else {},"navigation":navigation.diagnostics() if navigation!=null else {},"policy":policy.diagnostics() if policy!=null else {},"daily_setup":daily_setup,"daily":daily.snapshot() if daily!=null else {},"logic_cost":cost,"logic_peaks":peaks,"logic_peak_frame":_logic_peak_frame.duplicate(),"logic_timing_buckets":_logic_buckets.duplicate(true),"logic_frame_trace":_logic_frame_trace(),"stream":city_stream_report()}
+	return {"status":status,"error":error,"city_ready":city_ready,"admitted":hit_owners.size(),"startup_us":_startup_us,"startup_frames":{"first":_startup_frame_start,"last":_startup_frame_end,"navigation_ready_wait_frames":_navigation_ready_wait_frames},"startup_timing":_startup_timing.duplicate(true),"startup_progress":_startup_progress.duplicate(),"admissions":admission_results.duplicate(true),"residents":residents.snapshot() if residents!=null else {},"navigation":navigation.diagnostics() if navigation!=null else {},"policy":policy.diagnostics() if policy!=null else {},"daily_setup":daily_setup,"daily":daily.snapshot() if daily!=null else {},"incidents":incident_dispatcher.snapshot() if incident_dispatcher!=null else {},"logic_cost":cost,"logic_peaks":peaks,"logic_peak_frame":_logic_peak_frame.duplicate(),"logic_timing_buckets":_logic_buckets.duplicate(true),"logic_frame_trace":_logic_frame_trace(),"stream":city_stream_report()}
 
 func dispose() -> void:
+	if incident_dispatcher!=null: incident_dispatcher.dispose(); incident_dispatcher=null
 	if daily!=null:
 		daily._retire_scene(); daily=null
 	city_ready=false

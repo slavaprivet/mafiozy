@@ -109,6 +109,8 @@ var _mutation_fault := false
 var _version_ok := false
 var _last_iteration := 0
 var _timing_heads: Dictionary = {}
+var _route_lookahead_m := -1.0
+var _validation_refusals: Array[Dictionary] = []
 var _stats := {"bakes": 0, "stale_bakes": 0, "queries": 0, "stale_queries": 0, "validated_samples": 0, "rejected_motion": 0, "publish_us": [], "bake_submit_us": [], "bake_wall_us": [], "query_us": [], "pump_us": [], "motion_us": []}
 
 func _init(queue: RefCounted, physics_space: Callable) -> void:
@@ -213,15 +215,21 @@ var _tile_cache := {}
 var _regions: Array[RID] = []
 var _meshes: Array[NavigationMesh] = []
 var _worker_key := ""
+# Exact immutable-prefix certificate. Routes still use a NEW global map and STALE.
+const MAX_DOOR_VERTICES := 4096
+var _components := {}
+var _component_stats := {"fast_publications":0,"fallbacks":0,"certified_reuses":0,"dirty_tiles":0,"fallback_reason":"","publish_us_max":0,"update_us_max":0}
 var _tile_stats := {"prepared_triangles":0,"index_references":0,"tiles":0,"baked":0,"reused":0,"empty":0,"prepare_us_max":0,"polygons":0}
 
 func _free_map() -> void:
 	for region: RID in _regions:
 		if region.is_valid(): NavigationServer3D.free_rid(region)
+	_native_zero_reset()
 	_regions.clear(); _meshes.clear()
 	if _map.is_valid(): NavigationServer3D.free_rid(_map)
 	_region=RID(); _map=RID(); _mesh=null; _last_iteration=0
 	_dsh_iter_frame = -1  # DSH_NAVSTEP3: the cached iteration id belongs to the freed map
+	_reset_ready_proof()
 
 func publish_source(faces: PackedVector3Array, authority: String, generation: int, version: int) -> bool:
 	var started:=Time.get_ticks_usec()
@@ -229,6 +237,7 @@ func publish_source(faces: PackedVector3Array, authority: String, generation: in
 	if _busy: _mutation_fault=true; return false
 	if authority.is_empty() or generation<1 or version<0 or faces.is_empty() or faces.size()%3!=0 or faces.size()>MAX_FACE_VERTICES: return false
 	if _authority!="" and (authority!=_authority or generation<_generation or (generation==_generation and version<=_version)): return false
+	_components={} # A generic source publication cannot preserve a component certificate.
 	_authority=authority; _generation=generation; _version=version; _epoch+=1
 	for job: Dictionary in _jobs.values(): _terminal(job,"STALE","source-version-changed")
 	_free_map(); _state="PREPARING"
@@ -237,6 +246,102 @@ func publish_source(faces: PackedVector3Array, authority: String, generation: in
 	_tile_stats={"prepared_triangles":0,"index_references":0,"tiles":0,"baked":0,"reused":0,"empty":0,"prepare_us_max":0,"polygons":0}
 	_record("publish_us",Time.get_ticks_usec()-started)
 	return true
+
+## This API is used only by the existing-world host after capturing exact static
+## collisions and the current physical door leaves. No path/cookie is retained.
+func publish_components(static_faces: PackedVector3Array, door_faces: PackedVector3Array, authority: String, generation: int, version: int) -> bool:
+	if not Thread.is_main_thread() or _disposed or not _version_ok: return false
+	if _busy: _mutation_fault=true; return false
+	if authority.is_empty() or generation<1 or version<0 or static_faces.is_empty() or static_faces.size()%3!=0 or door_faces.size()%3!=0 or static_faces.size()+door_faces.size()>MAX_FACE_VERTICES: return false
+	if _authority!="" and (authority!=_authority or generation<_generation or (generation==_generation and version<=_version)): return false
+	var component_started:=Time.get_ticks_usec()
+	var bytes:=static_faces.to_byte_array()
+	var reason:="no-ready-certificate"
+	if state()=="READY" and _baking_token==0 and not _components.is_empty() and authority==_authority and generation==_generation:
+		if bytes!=_components.static_bytes: reason="static-prefix-changed"
+		elif door_faces.size()>MAX_DOOR_VERTICES: reason="door-certificate-budget"
+		else:
+			var prepared:=_component_update(static_faces,door_faces)
+			if not prepared.is_empty():
+				var started:=Time.get_ticks_usec()
+				_authority=authority; _generation=generation; _version=version; _epoch+=1
+				for job: Dictionary in _jobs.values(): _terminal(job,"STALE","source-version-changed")
+				_free_map(); _state="BAKING"; _waiting={}
+				prepared.epoch=_epoch; _build=prepared
+				_tile_stats={"prepared_triangles":int(door_faces.size()/3),"index_references":prepared.references,"tiles":prepared.keys.size(),"baked":0,"reused":0,"empty":0,"prepare_us_max":0,"polygons":0}
+				_component_stats.fast_publications+=1; _component_stats.dirty_tiles=prepared.dirty
+				var inclusive:=Time.get_ticks_usec()-component_started
+				_component_stats.publish_us_max=maxi(int(_component_stats.publish_us_max),inclusive)
+				_record("publish_us",inclusive)
+				return true
+			reason="bounds-domain-cache-or-budget-changed"
+	var faces:=static_faces.duplicate(); faces.append_array(door_faces)
+	if not publish_source(faces,authority,generation,version): return false
+	_component_stats.fallbacks+=1; _component_stats.fallback_reason=reason
+	# Bootstrap metadata is consumed only after the unchanged legacy full partition.
+	# Excessively large dynamic input remains legacy and earns no certificate.
+	if door_faces.size()<=MAX_DOOR_VERTICES:
+		_build.component_bytes=bytes; _build.static_count=static_faces.size()
+		_build.static_bounds=AABB(static_faces[0],Vector3.ZERO)
+	_component_stats.publish_us_max=maxi(int(_component_stats.publish_us_max),Time.get_ticks_usec()-component_started)
+	return true
+
+func _component_update(static_faces: PackedVector3Array, door_faces: PackedVector3Array) -> Dictionary:
+	var update_started:=Time.get_ticks_usec()
+	var bounds: AABB=_components.static_bounds
+	for p: Vector3 in door_faces:
+		if not p.is_finite() or p.length_squared()>1e10: return {}
+		bounds=bounds.expand(p)
+	# Exact global bounds imply the same snapped vertical filter, tile domain and
+	# all immutable bake settings from this script. A changed domain uses legacy.
+	if bounds!=_components.bounds: return {}
+	var dynamic: Dictionary={}; var references:=0
+	for cursor in range(0,door_faces.size(),3):
+		var a: Vector3=door_faces[cursor]; var b: Vector3=door_faces[cursor+1]; var c: Vector3=door_faces[cursor+2]
+		var x0:=maxi(int(_components.x0),int(floor((minf(a.x,minf(b.x,c.x))-BORDER)/TILE_METRES)))
+		var x1:=mini(int(_components.x1),int(floor((maxf(a.x,maxf(b.x,c.x))+BORDER)/TILE_METRES)))
+		var z0:=maxi(int(_components.z0),int(floor((minf(a.z,minf(b.z,c.z))-BORDER)/TILE_METRES)))
+		var z1:=mini(int(_components.z1),int(floor((maxf(a.z,maxf(b.z,c.z))+BORDER)/TILE_METRES)))
+		for z in range(z0,z1+1):
+			for x in range(x0,x1+1):
+				var key:=str(x)+":"+str(z)
+				if not _components.tiles.has(key): return {}
+				if not dynamic.has(key): dynamic[key]={"indices":[],"faces":PackedVector3Array()}
+				dynamic[key].indices.append(static_faces.size()+cursor)
+				dynamic[key].faces.append_array(PackedVector3Array([a,b,c])); references+=1
+				if references>MAX_INDEX_REFERENCES or Time.get_ticks_usec()-update_started>=PREPARE_BUDGET_US: return {}
+	var tiles: Dictionary={}; var dirty:=0
+	for key: String in _components.keys:
+		var previous: Dictionary=_components.tiles[key]
+		if not _tile_cache.has(key) or _tile_cache[key].signature!=previous.signature or _tile_cache[key].mesh!=previous.mesh: return {}
+		var indices: Array=previous.indices
+		var dynamic_indices: Array=dynamic[key].indices if dynamic.has(key) else []
+		var dynamic_bytes: PackedByteArray=dynamic[key].faces.to_byte_array() if dynamic.has(key) else PackedByteArray()
+		var count:=int(previous.static_count)+dynamic_indices.size()
+		# Removed/added keys, including dynamic-only tiles, take the full partition.
+		if count==0 or count*3>MAX_TILE_VERTICES: return {}
+		references+=int(previous.static_count)
+		if references>MAX_INDEX_REFERENCES: return {}
+		var reuse: bool=dynamic_bytes==previous.door_bytes
+		if not reuse:
+			indices=indices.slice(0,int(previous.static_count)); indices.append_array(dynamic_indices); dirty+=1
+		if Time.get_ticks_usec()-update_started>=PREPARE_BUDGET_US: return {}
+		tiles[key]={"indices":indices,"x":previous.x,"z":previous.z,"static_count":previous.static_count,"door_bytes":dynamic_bytes,"component_reuse":reuse}
+	_component_stats.update_us_max=maxi(int(_component_stats.update_us_max),Time.get_ticks_usec()-update_started)
+	var faces:=static_faces.duplicate(); faces.append_array(door_faces)
+	return {"faces":faces,"stage":"TILES","cursor":faces.size(),"bounds":bounds,"static_bounds":_components.static_bounds,"static_count":static_faces.size(),"component_bytes":_components.static_bytes,"tiles":tiles,"keys":_components.keys.duplicate(),"next":0,"references":references,"x0":_components.x0,"z0":_components.z0,"x1":_components.x1,"z1":_components.z1,"component_fast":true,"dirty":dirty}
+
+func _component_snapshot() -> void:
+	_components={}
+	if not _build.has("component_bytes"): return
+	var saved: Dictionary={}
+	var faces: PackedVector3Array=_build.faces
+	for key: String in _build.keys:
+		var tile: Dictionary=_build.tiles[key]
+		var door_bytes: PackedByteArray=tile.door_bytes
+		if not _tile_cache.has(key): return
+		saved[key]={"indices":tile.indices,"static_count":tile.static_count,"door_bytes":door_bytes,"x":tile.x,"z":tile.z,"signature":_tile_cache[key].signature,"mesh":_tile_cache[key].mesh}
+	_components={"static_bytes":_build.component_bytes,"static_bounds":_build.static_bounds,"bounds":_build.bounds,"x0":_build.x0,"z0":_build.z0,"x1":_build.x1,"z1":_build.z1,"keys":_build.keys.duplicate(),"tiles":saved}
 
 func _new_mesh(voxel_size: float=CELL_SIZE) -> NavigationMesh:
 	var mesh:=NavigationMesh.new()
@@ -278,6 +383,7 @@ func _prepare_tiles() -> void:
 			for point: Vector3 in [a,b,c]:
 				if not point.is_finite() or point.length_squared()>1e10: _tile_fail("invalid-collision-coordinate"); return
 				_build.bounds=_build.bounds.expand(point)
+			if _build.has("static_count") and cursor<int(_build.static_count): _build.static_bounds=_build.bounds
 		else:
 			var x0:=maxi(int(_build.x0),int(floor((minf(a.x,minf(b.x,c.x))-BORDER)/TILE_METRES)))
 			var x1:=mini(int(_build.x1),int(floor((maxf(a.x,maxf(b.x,c.x))+BORDER)/TILE_METRES)))
@@ -286,9 +392,12 @@ func _prepare_tiles() -> void:
 			for z in range(z0,z1+1):
 				for x in range(x0,x1+1):
 					var key:=str(x)+":"+str(z)
-					if not _build.tiles.has(key): _build.tiles[key]={"indices":[],"x":x,"z":z}
+					if not _build.tiles.has(key): _build.tiles[key]={"indices":[],"x":x,"z":z,"static_count":0,"door_bytes":PackedByteArray()}
 					var tile: Dictionary=_build.tiles[key]
 					tile.indices.append(cursor); _build.references+=1
+					if _build.has("static_count"):
+						if cursor<int(_build.static_count): tile.static_count+=1
+						else: tile.door_bytes.append_array(PackedVector3Array([a,b,c]).to_byte_array())
 					if tile.indices.size()*3>MAX_TILE_VERTICES or int(_build.references)>MAX_INDEX_REFERENCES: _tile_fail("tile-source-budget-no-triangles-dropped"); return
 			_tile_stats.prepared_triangles+=1
 		_build.cursor=cursor+3
@@ -297,6 +406,14 @@ func _prepare_tiles() -> void:
 
 func _start_tile() -> void:
 	if _disposed or _build.is_empty() or _build.stage!="TILES" or _baking_token!=0: return
+	# Exact certified cache hits need no rematerialization/hash and are consumed in
+	# one bounded batch. Dirty tiles retain the original full soup/signature/bake.
+	var reuse_started:=Time.get_ticks_usec()
+	while bool(_build.get("component_fast",false)) and int(_build.next)<_build.keys.size():
+		var reuse_key: String=_build.keys[int(_build.next)]
+		if not bool(_build.tiles[reuse_key].get("component_reuse",false)): break
+		_meshes.append(_tile_cache[reuse_key].mesh); _build.next+=1; _tile_stats.reused+=1; _component_stats.certified_reuses+=1
+		if Time.get_ticks_usec()-reuse_started>=PREPARE_BUDGET_US: return
 	if int(_build.next)>=_build.keys.size(): _activate_tiles(); return
 	var key: String=_build.keys[int(_build.next)]
 	var tile: Dictionary=_build.tiles[key]
@@ -355,17 +472,22 @@ func _activate_tiles() -> void:
 	for mesh: NavigationMesh in _meshes:
 		if mesh.get_polygon_count()==0: continue
 		var region:=NavigationServer3D.region_create()
+		# Opt-in intended construction mode. Setter is queued; getter is NOT observed yet.
+		if _native_zero_enabled(): NavigationServer3D.region_set_use_async_iterations(region,false)
 		NavigationServer3D.region_set_enabled(region,true)
 		NavigationServer3D.region_set_navigation_layers(region,1)
 		NavigationServer3D.region_set_navigation_mesh(region,mesh)
 		NavigationServer3D.region_set_map(region,_map)
 		_regions.append(region)
+	if _native_zero_enabled(): _native_zero_record_birth()
 	NavigationServer3D.map_set_active(_map,true)
+	_component_snapshot()
 	_build={}; _state="SYNCING"
 
 func state() -> String:
 	if not Thread.is_main_thread(): return "INVALID_THREAD"
 	if _state=="SYNCING" and _map.is_valid():
+		if _ready_budget_enabled(): return _bounded_map_ready()
 		var iteration:=NavigationServer3D.map_get_iteration_id(_map)
 		if iteration<=0: return _state
 		for region: RID in _regions:
@@ -377,6 +499,7 @@ func state() -> String:
 			var point: Vector3=mesh.get_vertices()[0]
 			if not NavigationServer3D.map_get_closest_point_owner(_map,point) in _regions or NavigationServer3D.map_get_closest_point(_map,point).distance_to(point)>CELL_SIZE: return _state
 		_last_iteration=iteration; _state="READY"
+		if _native_zero_enabled(): _native_zero_commit_ready(iteration)
 	return _state
 
 func map_rid() -> RID:
@@ -390,8 +513,9 @@ func _terminal(job: Dictionary, status: String, reason: String = "") -> void:
 	# DSH_NAVTAIL: this is the only place `status` is ever written, so a job leaves
 	# the pending list exactly when its status leaves PENDING; _pending_ids therefore
 	# stays equal to { id : _jobs[id].status == "PENDING" } and ascending by id.
-	var dsh_pending: bool = job.status == "PENDING"
+	var dsh_pending: bool = job.status == "PENDING" or bool(job.get("route_prefix_queued", false))
 	job.status = status; job.reason = reason
+	job["route_prefix_queued"] = false
 	if status != "READY": job.admit = Callable(); job.path = PackedVector3Array()
 	# DSH_NAVFAIR: a READY job is a leg the resident may now walk; its wait is
 	# request -> READY in whole milliseconds (256-entry integer ring, _nav_wait_push).
@@ -414,6 +538,81 @@ func request_path(owner: RefCounted, start: Vector3, target: Vector3, admit: Cal
 	_dsh_requests += 1  # DSH_NAVFAIR: incoming path jobs of this window
 	if _pending_scan_flag() == 1: _pending_ids.append(_next_job)  # DSH_NAVTAIL
 	return _next_job
+
+## A daily route already has one bounded native proposal. Validate its existing
+## segments through the same queue as request_path(), exposing only completed
+## segments to the mover. No query or new job is needed for each waypoint.
+func request_proven_route(owner: RefCounted, route: PackedVector3Array, admit: Callable, exclude: Array[RID], map: RID, iteration: int, static_corridor: Callable = Callable()) -> int:
+	if not Thread.is_main_thread() or _disposed or _busy or state() != "READY" or map != _map or iteration != _map_iteration() or route.size() < 2 or route.size() > 512: return -1
+	if static_corridor.is_valid():
+		var object: Object=static_corridor.get_object()
+		if object!=admit.get_object() or static_corridor.get_method()!="_route_static_corridor" or admit.get_method()!="_route_admit_pinned" or not object.get_script() is Script or object.get_script().resource_path!="res://scripts/npc_visual/preview_resident_host.gd":return -1
+	var metres := 0.0
+	for index in route.size():
+		if not route[index].is_finite(): return -1
+		if index > 0:
+			var leg := route[index - 1].distance_to(route[index])
+			if leg < 0.001 or leg > 5.1: return -1
+			metres += leg
+			if metres > MAX_PATH_METRES: return -1
+	if _by_owner.has(owner.get_instance_id()): return -1
+	var id := request_path(owner, route[0], route[-1], admit, exclude)
+	if id < 0: return -1
+	if state() != "READY" or map != _map or iteration != _map_iteration():
+		cancel(id)
+		return -1
+	var job: Dictionary = _jobs[id]
+	job.path = route.duplicate()
+	job.phase = "VALIDATING"
+	job.iteration = iteration
+	if static_corridor.is_valid():job["static_corridor"]=static_corridor
+	job["streaming_route"] = true
+	job["route_verified_edge"] = 0
+	job["route_desired_edge"] = 1
+	job["route_prefix_queued"] = true
+	return id
+
+func route_prefix_version(id: int) -> int:
+	if not _jobs.has(id): return -1
+	var job: Dictionary = _jobs[id]
+	if not bool(job.get("streaming_route", false)) or job.status != "READY": return -1
+	return int(job.get("route_verified_edge", 0))
+
+## Called by the physical mover as it advances through the verified prefix.
+## Demand stays two waypoints ahead and never grants an unvalidated waypoint.
+func _route_lookahead_metres() -> float:
+	if _route_lookahead_m<0.0:
+		_route_lookahead_m=0.0
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-route-lookahead-m="):
+				_route_lookahead_m=clampf(float(argument.trim_prefix("--city-route-lookahead-m=")),0.0,5.1)
+	return _route_lookahead_m
+
+func demand_route_prefix(id: int, current_edge: int) -> bool:
+	if not Thread.is_main_thread() or _disposed or _busy or not _jobs.has(id): return false
+	var job: Dictionary = _jobs[id]
+	if not bool(job.get("streaming_route", false)) or job.status != "READY" or not _owner_valid(job) or job.epoch != _epoch or job.iteration != _map_iteration(): return false
+	if current_edge < 0 or current_edge > int(job.get("route_verified_edge", 0)): return false
+	var desired: int = mini(job.path.size() - 1, maxi(int(job.get("route_desired_edge", 1)), current_edge + 2))
+	# Waypoint spacing varies. A two-point frontier can provide only centimetres
+	# near a destination and charge another full queue wait for each pair.
+	# Ask for a bounded distance along the same exact path; validation, queue
+	# budget and every real movement proof remain unchanged. Default is legacy.
+	var lookahead:=_route_lookahead_metres()
+	if lookahead>0.0:
+		var distance:=0.0
+		var limit:=mini(job.path.size()-1,current_edge+32)
+		for edge in range(current_edge+1,limit+1):
+			distance+=job.path[edge-1].distance_to(job.path[edge])
+			if distance>lookahead: break
+			desired=maxi(desired,edge)
+	job["route_desired_edge"] = desired
+	job["route_prefix_demand_frame"] = Engine.get_physics_frames()
+	if desired > int(job.get("route_verified_edge", 0)) and not bool(job.get("route_prefix_queued", false)):
+		job["route_prefix_queued"] = true
+		job["route_prefix_queued_frame"] = Engine.get_physics_frames()
+		if _pending_scan_flag() == 1: _pending_ids.append(id)
+	return true
 
 # DSH_MOTION: status-only sibling of poll(). Identical owner/epoch/iteration checks and
 # identical terminal transitions; no result Dictionary is built and the proposal array
@@ -448,7 +647,10 @@ func poll(id: int) -> Dictionary:
 	if not _owner_valid(job): _terminal(job, "CANCELLED", "owner-life-ended")
 	if job.epoch != _epoch: _terminal(job, "STALE", "source-version-changed")
 	if job.status == "READY" and (state() != "READY" or job.iteration != NavigationServer3D.map_get_iteration_id(_map)): _terminal(job, "STALE", "map-iteration-changed")
-	return {"status": job.status, "reason": job.reason, "source_id": job.source_id, "life_generation": job.life_generation, "authority": _authority, "generation": _generation, "version": _version, "epoch": job.epoch, "iteration": job.iteration, "path": job.path.duplicate() if job.status == "READY" else PackedVector3Array()}
+	var ready_path := PackedVector3Array()
+	if job.status == "READY":
+		ready_path = job.path.slice(0, int(job.get("route_verified_edge", job.path.size() - 1)) + 1) if bool(job.get("streaming_route", false)) else job.path.duplicate()
+	return {"status": job.status, "reason": job.reason, "source_id": job.source_id, "life_generation": job.life_generation, "authority": _authority, "generation": _generation, "version": _version, "epoch": job.epoch, "iteration": job.iteration, "path": ready_path, "route_prefix_version": int(job.get("route_verified_edge", 0)), "route_frontier_pending": bool(job.get("streaming_route", false)) and int(job.get("route_verified_edge", 0)) < job.path.size() - 1,"validation_refusal":job.get("validation_refusal",{}).duplicate(true)}
 
 func cancel(id: int) -> void:
 	if not Thread.is_main_thread(): return
@@ -499,7 +701,7 @@ func pump(frame_id: int) -> void:
 				break
 			var job: Dictionary = _jobs[_pending_ids[dsh_at]]
 			dsh_at += 1
-			if job.status != "PENDING" or job.phase == "QUERY_WAIT": continue
+			if (job.status != "PENDING" and not (job.status == "READY" and bool(job.get("route_prefix_queued", false)))) or job.phase == "QUERY_WAIT": continue
 			if not _owner_valid(job): _terminal(job, "CANCELLED", "owner-life-ended"); continue
 			if job.epoch != _epoch: _terminal(job, "STALE", "source-version-changed"); continue
 			if current == "EMPTY_MAP": _terminal(job, "NO_PATH", "empty-authoritative-map"); continue
@@ -524,7 +726,7 @@ func pump(frame_id: int) -> void:
 				_dsh_tail_refused += dsh_values_size - dsh_seen
 				break
 			dsh_seen += 1
-			if job.status != "PENDING" or job.phase == "QUERY_WAIT": continue
+			if (job.status != "PENDING" and not (job.status == "READY" and bool(job.get("route_prefix_queued", false)))) or job.phase == "QUERY_WAIT": continue
 			if not _owner_valid(job): _terminal(job, "CANCELLED", "owner-life-ended"); continue
 			if job.epoch != _epoch: _terminal(job, "STALE", "source-version-changed"); continue
 			if current == "EMPTY_MAP": _terminal(job, "NO_PATH", "empty-authoritative-map"); continue
@@ -624,7 +826,35 @@ func _admitted(job: Dictionary, point: Vector3) -> bool:
 	var result: Variant = job.admit.call(point, job.source_id, job.life_generation)
 	return result is bool and result and not _mutation_fault and _owner_valid(job)
 
+func _validation_refused(job: Dictionary, reason: String, stage: String, a: Vector3, b: Vector3) -> void:
+	# Capture exact operands before _terminal clears the path. Bounded diagnostics
+	# only: no repeated admission, no new grant and no body/claim changes.
+	var refusal := {"job_id":int(job.id),"reason":reason,"stage":stage,"a":a,"b":b,"frame":Engine.get_physics_frames(),"epoch":int(job.epoch),"iteration":int(job.iteration),"edge":int(job.edge),"sample":int(job.sample),"source_id":str(job.source_id),"life_generation":int(job.life_generation),"owner_instance":int(job.owner_instance),"start":job.start,"target":job.target}
+	var callback: Object=job.admit.get_object() if job.admit.is_valid() else null
+	if is_instance_valid(callback) and callback.has_method("_route_admit_pinned"):
+		var records: Variant=callback.get("_records")
+		var record: Dictionary=records.get(job.source_id,{}) if records is Dictionary else {}
+		var body: Variant=record.get("body")
+		if body is CharacterBody3D and is_instance_valid(body):
+			refusal["body"]=body.global_position
+			refusal["body_to_a_m"]=body.global_position.distance_to(a)
+			refusal["body_to_b_m"]=body.global_position.distance_to(b)
+		var source_callback: Variant=callback.get("_admit")
+		if source_callback is Callable and source_callback.is_valid():
+			var policy: Object=source_callback.get_object()
+			if is_instance_valid(policy) and policy.has_method("current_errand_cookie"):
+				refusal["policy_reason_observation"]=str(policy.get("_last_reason"))
+	job["validation_refusal"]=refusal
+	_validation_refusals.append(refusal)
+	if _validation_refusals.size()>16: _validation_refusals.pop_front()
+	_terminal(job,"NO_PATH",reason)
+
 func _validate(job: Dictionary) -> void:
+	if job.get("static_corridor") is Callable and job.static_corridor.is_valid():
+		_validate_static_corridor(job);return
+	if bool(job.get("streaming_route",false)):
+		job["route_prefix_served_frame"]=Engine.get_physics_frames()
+		job["route_prefix_visits"]=int(job.get("route_prefix_visits",0))+1
 	# DSH_QUERY_PROBE (temporary): path-validation query rate.
 	if _dsh_ms == 0:
 		_dsh_ms = Time.get_ticks_msec(); _dsh_samples = 0; _dsh_clears = 0; _dsh_admitted = 0; _dsh_rejected_last = _stats.rejected_motion
@@ -674,6 +904,7 @@ func _validate(job: Dictionary) -> void:
 	var dsh_prev_point: Vector3 = Vector3(job.get("dsh_prev_point", Vector3.ZERO)) if dsh_slice > 0 else Vector3.ZERO
 	var dsh_prev_ok: bool = dsh_slice > 0 and bool(job.get("dsh_prev_ok", false))
 	while job.edge < path.size() and not _queue.expired():
+		if bool(job.get("streaming_route", false)) and int(job.edge) > int(job.get("route_desired_edge", 1)): break
 		if dsh_slice > 0 and dsh_probes >= dsh_slice: break  # DSH_NAVFAIR: one slice per visit
 		dsh_probes += 1
 		var from: Vector3 = path[job.edge - 1]; var to: Vector3 = path[job.edge]
@@ -689,16 +920,29 @@ func _validate(job: Dictionary) -> void:
 			_dsh_dedupe_skips += 1
 		else:
 			dsh_ok_a = _admitted(job, a)
-		if not dsh_ok_a: _terminal(job, "NO_PATH", "source-admission-refused"); return
+		if not dsh_ok_a: _validation_refused(job,"source-admission-refused","source_a",a,b); return
 		var dsh_ok_b := _admitted(job, b)
 		dsh_prev_point = b; dsh_prev_ok = dsh_ok_b; dsh_have_prev = true
-		if not dsh_ok_b: _terminal(job, "NO_PATH", "source-admission-refused"); return
-		if not _physics_clear(a, b, job.exclude, job): _terminal(job, "NO_PATH", "physical-capsule-refused"); return
+		if not dsh_ok_b: _validation_refused(job,"source-admission-refused","source_b",a,b); return
+		if not _physics_clear(a, b, job.exclude, job): _validation_refused(job,"physical-capsule-refused","capsule_sweep",a,b); return
 		job.sample += 1
 		if job.sample == count: job.edge += 1; job.sample = 0
 	# DSH_NAVFAIR: keep the carried DSH_NAVDEDUPE point for the next visit (slice on only).
 	if dsh_slice > 0:
 		job["dsh_have_prev"] = dsh_have_prev; job["dsh_prev_point"] = dsh_prev_point; job["dsh_prev_ok"] = dsh_prev_ok
+	if bool(job.get("streaming_route", false)):
+		var verified_edge: int = int(job.edge) - 1
+		if verified_edge > int(job.get("route_verified_edge", 0)):
+			job["route_verified_edge"] = verified_edge
+		if job.status == "PENDING" and verified_edge >= 1:
+			job.status = "READY"
+			_dsh_ready += 1
+			_nav_wait_push(Time.get_ticks_msec() - int(job.created_ms))
+		if job.edge == path.size(): job.phase = "COMPLETE"
+		if verified_edge >= int(job.get("route_desired_edge", 1)) or job.edge == path.size():
+			if bool(job.get("route_prefix_queued", false)): _pending_forget(int(job.id))
+			job["route_prefix_queued"] = false
+		return
 	if job.edge == path.size(): _terminal(job, "READY")
 
 
@@ -860,7 +1104,7 @@ func _pending_compact() -> void:
 	for read in _pending_ids.size():
 		var dsh_id: int = _pending_ids[read]
 		var dsh_job: Dictionary = _jobs.get(dsh_id, {})
-		if not dsh_job.is_empty() and dsh_job.status == "PENDING":
+		if not dsh_job.is_empty() and (dsh_job.status == "PENDING" or (dsh_job.status == "READY" and bool(dsh_job.get("route_prefix_queued", false)))):
 			_pending_ids[write] = dsh_id
 			write += 1
 	_pending_ids.resize(write)
@@ -884,29 +1128,24 @@ func admit_motion(id: int, from: Vector3, to: Vector3, far: bool = false) -> boo
 	# validation when the job was created), so the source policy is asked only for the
 	# new position. The swept capsule check still spans the whole motion.
 	var allowed := false
-	# DSH_WALKCHEAP: `far` is set by the host for a batched (sim-LOD) step; with
-	# --city-walk-far-ttl=0 this line resolves to exactly _admit_ttl().
-	var ttl := _admit_ttl()
-	if far: ttl = maxi(ttl, _walk_far_ttl())
-	if ttl > 0 and bool(job.get("admit_ok", false)) and Engine.get_physics_frames() < int(job.get("admit_due", 0)):
-		_dsh_reused += 1; _dsh_t["reused"] = _dsh_reused  # DSH_ADMITTTL
-		allowed = true
-	else:
-		var dsh_a0 := Time.get_ticks_usec() if _dsh_split_on else 0  # DSH_NAVSTEP3
-		allowed = _admitted(job, to)
-		if _dsh_split_on:
-			_dsh_t["admit_calls"] = int(_dsh_t["admit_calls"]) + 1
-			_dsh_t_add("admit_us", dsh_a0)
-		if allowed and ttl > 0:
-			job["admit_ok"] = true
-			job["admit_due"] = Engine.get_physics_frames() + 1 + (_admit_phase(job) % ttl)
-		else:
-			job.erase("admit_ok"); job.erase("admit_due")
+	# A previous admission includes live access, route-cookie and floor checks.
+	# Without a complete invalidation contract it cannot grant another motion.
+	# Keep the legacy TTL options inert; every real step asks the current source.
+	var dsh_a0 := Time.get_ticks_usec() if _dsh_split_on else 0
+	allowed = _admitted(job, to)
+	job["last_motion_stage"]="source_admitted" if allowed else "source_refused"
+	if _dsh_split_on:
+		_dsh_t["admit_calls"] = int(_dsh_t["admit_calls"]) + 1
+		_dsh_t_add("admit_us", dsh_a0)
+	job["last_motion_frame"]=Engine.get_physics_frames()
+	job["last_motion_from"]=from; job["last_motion_to"]=to
+	job.erase("admit_ok"); job.erase("admit_due")
 	if allowed:
 		var dsh_c1 := Time.get_ticks_usec() if _dsh_split_on else 0  # DSH_NAVSTEP3
 		var dsh_pre_shape := int(_dsh_t["clear_shape_us"]) if _dsh_split_on else 0  # DSH_NAVSTEP3
 		var dsh_pre_cast := int(_dsh_t["clear_cast_us"]) if _dsh_split_on else 0  # DSH_NAVSTEP3
 		allowed = _physics_clear(from, to, job.exclude, job)
+		job["last_motion_stage"]="admitted" if allowed else "capsule_refused"
 		if _dsh_split_on:
 			_dsh_t_add("clear_us", dsh_c1)
 			# DSH_NAVSTEP3: the move-call share of the two inner native queries, so the
@@ -928,6 +1167,9 @@ func admit_motion(id: int, from: Vector3, to: Vector3, far: bool = false) -> boo
 
 func diagnostics() -> Dictionary:
 	var result := _stats.duplicate(true)
+	result["validation_refusals"]=_validation_refusals.duplicate(true)
+	result["components"]=_component_stats.duplicate(true)
+	result["ready_proof"]={"enabled":_ready_budget_enabled(),"cursor":_ready_proof_cursor,"mesh_count":_meshes.size(),"slice_us_max":_ready_proof_us_max,"checks":_ready_proof_checks,"resets":_ready_proof_resets,"slice_budget_us":READY_PROOF_SLICE_US}
 	result.merge({"state":state(),"epoch":_epoch,"jobs":_jobs.size(),"bakes_inflight":1 if _baking_token!=0 else 0,"queued_snapshots":0 if _build.is_empty() else 1,"map_iteration":_last_iteration,"nav_polygons":_tile_stats.polygons,"tiles":_tile_stats.duplicate(true),"regions":_regions.size(),"cache_tiles":_tile_cache.size(),"proposal_only":true})
 	return result
 
@@ -937,4 +1179,202 @@ func dispose() -> void:
 	if _disposed: return
 	for id: int in _jobs.keys(): cancel(id)
 	_disposed = true; _epoch += 1; _waiting = {}; _state = "DISPOSED"
-	_free_map(); _space = Callable(); _build={}; _tile_cache.clear()
+	_free_map(); _space = Callable(); _build={}; _tile_cache.clear(); _components={}
+
+
+# A completed bake does not yet prove publication in the asynchronous map.
+# Keep every original region/closest-owner/distance predicate, but spend one
+# bounded slice per physics frame. Partial proof never exposes the map.
+var _ready_budget_flag := -1
+var _ready_proof_map := RID()
+var _ready_proof_epoch := -1
+var _ready_proof_iteration := -1
+var _ready_proof_cursor := 0
+var _ready_proof_frame := -1
+var _ready_proof_us_max := 0
+var _ready_proof_checks := 0
+var _ready_proof_resets := 0
+const READY_PROOF_SLICE_US := 4000
+
+func _ready_budget_enabled() -> bool:
+	if _ready_budget_flag<0:
+		_ready_budget_flag=1
+		for arg in OS.get_cmdline_user_args():
+			if arg.begins_with("--city-ready-budget="):
+				_ready_budget_flag=1 if arg.trim_prefix("--city-ready-budget=")=="1" else 0
+	return _ready_budget_flag==1
+
+func _reset_ready_proof() -> void:
+	_ready_proof_map=RID(); _ready_proof_epoch=-1; _ready_proof_iteration=-1
+	_ready_proof_cursor=0; _ready_proof_frame=-1
+
+func _bounded_map_ready() -> String:
+	var frame:=Engine.get_physics_frames()
+	if frame==_ready_proof_frame: return _state
+	_ready_proof_frame=frame
+	var started:=Time.get_ticks_usec()
+	var iteration:=NavigationServer3D.map_get_iteration_id(_map)
+	if iteration<=0: return _state
+	if _ready_proof_map!=_map or _ready_proof_epoch!=_epoch or _ready_proof_iteration!=iteration:
+		_ready_proof_map=_map; _ready_proof_epoch=_epoch; _ready_proof_iteration=iteration
+		_ready_proof_cursor=0; _ready_proof_resets+=1
+	for region: RID in _regions:
+		if NavigationServer3D.region_get_iteration_id(region)<=0 or NavigationServer3D.region_get_bounds(region).size.length_squared()<=0.0:
+			_ready_proof_cursor=0; return _state
+	while _ready_proof_cursor<_meshes.size():
+		if Time.get_ticks_usec()-started>=READY_PROOF_SLICE_US: break
+		var mesh: NavigationMesh=_meshes[_ready_proof_cursor]
+		if mesh.get_polygon_count()>0:
+			var point: Vector3=mesh.get_vertices()[0]
+			_ready_proof_checks+=1
+			if not NavigationServer3D.map_get_closest_point_owner(_map,point) in _regions or NavigationServer3D.map_get_closest_point(_map,point).distance_to(point)>CELL_SIZE:
+				_ready_proof_cursor=0
+				_ready_proof_us_max=maxi(_ready_proof_us_max,Time.get_ticks_usec()-started)
+				return _state
+		_ready_proof_cursor+=1
+	_ready_proof_us_max=maxi(_ready_proof_us_max,Time.get_ticks_usec()-started)
+	# No callback occurs inside a slice. The final fresh iteration prevents
+	# joining evidence from different asynchronous map publications.
+	if NavigationServer3D.map_get_iteration_id(_map)!=iteration:
+		_ready_proof_cursor=0; _ready_proof_iteration=-1; return _state
+	if _ready_proof_cursor==_meshes.size():
+		_last_iteration=iteration; _state="READY"
+		if _native_zero_enabled(): _native_zero_commit_ready(iteration)
+	return _state
+
+func _validate_static_corridor(job: Dictionary) -> void:
+	if job.iteration!=_map_iteration():_terminal(job,"STALE","map-iteration-changed");return
+	var path: PackedVector3Array=job.path
+	while job.edge<path.size() and int(job.edge)<=int(job.route_desired_edge) and not _queue.expired():
+		var a: Vector3=path[job.edge-1];var b: Vector3=path[job.edge]
+		var started:=Time.get_ticks_usec()
+		var proof: Variant=job.static_corridor.call(a,b,job.source_id,job.life_generation,int(job.edge),_validate_metres())
+		if not proof is Dictionary or not proof.get("ok",false) or proof.get("source_id")!=job.source_id or proof.get("life_generation")!=job.life_generation or proof.get("map")!=_map or proof.get("iteration")!=job.iteration or not proof.get("exclude") is Array:
+			_validation_refused(job,"static-corridor-refused","corridor",a,b);return
+		var exclusions: Array[RID]=[]
+		if proof.exclude.size()>128:_validation_refused(job,"static-corridor-exclusion-overflow","corridor",a,b);return
+		for rid: Variant in proof.exclude:
+			if not rid is RID or not rid.is_valid():_validation_refused(job,"invalid-static-corridor-exclusion","corridor",a,b);return
+			exclusions.append(rid)
+		if not _owner_valid(job) or job.epoch!=_epoch or job.iteration!=_map_iteration():_terminal(job,"STALE","corridor-authority-changed");return
+		if not _physics_clear(a,b,exclusions):_validation_refused(job,"static-corridor-capsule-refused","capsule_sweep",a,b);return
+		if _mutation_fault or not _owner_valid(job) or job.epoch!=_epoch or job.iteration!=_map_iteration():_terminal(job,"STALE","corridor-authority-changed");return
+		var spent:=Time.get_ticks_usec()-started
+		_stats["corridor_edges"]=int(_stats.get("corridor_edges",0))+1
+		_stats["corridor_us_total"]=int(_stats.get("corridor_us_total",0))+spent
+		_stats["corridor_us_max"]=maxi(int(_stats.get("corridor_us_max",0)),spent)
+		job.edge+=1;job.sample=0
+		job.route_verified_edge=int(job.edge)-1
+	if job.status=="PENDING" and int(job.route_verified_edge)>=1:
+		job.status="READY";_dsh_ready+=1;_nav_wait_push(Time.get_ticks_msec()-int(job.created_ms))
+	if job.edge==path.size():job.phase="COMPLETE"
+	if int(job.route_verified_edge)>=int(job.route_desired_edge) or job.edge==path.size():
+		if bool(job.route_prefix_queued):_pending_forget(int(job.id))
+		job.route_prefix_queued=false
+
+
+# INITIAL admission zero-distance membership accelerator. Default OFF. Every
+# refused/uncertain case returns false so the caller uses its original map query.
+# This API never grants a route/cookie and never memoizes physical or owner proof.
+const NATIVE_ZERO_GRID_METRES: float=96.0
+const NATIVE_ZERO_MAX_REGIONS: int=256
+const NATIVE_ZERO_MAX_CANDIDATES: int=4
+const NATIVE_ZERO_MAX_REFERENCES: int=4096
+const NATIVE_ZERO_INDEX_BUDGET_US: int=2000
+var _native_zero_flag: int=-1
+var _native_zero_birth: Dictionary={}
+var _native_zero_certificate: Dictionary={}
+var _native_zero_index_stats: Dictionary={"attempts":0,"committed":0,"refused":0,"build_us":0,"build_us_max":0,"last_reason":"","references":0}
+
+func _native_zero_enabled() -> bool:
+	if _native_zero_flag<0:
+		_native_zero_flag=1 # Certified native birth/query + matched default286 PASS.
+		for argument: String in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-initial-admission-budget="):
+				_native_zero_flag=1 if argument.trim_prefix("--city-initial-admission-budget=")=="1" else 0
+	return _native_zero_flag==1
+
+func _native_zero_reset() -> void:
+	_native_zero_birth={};_native_zero_certificate={}
+	_native_zero_index_stats.references=0
+
+func _native_zero_record_birth() -> void:
+	# Called ONLY by _activate_tiles directly after freshly creating all regions.
+	# Async false was intentionally QUEUED before their mesh/map setters, all in
+	# this same main-thread call. No immediate native getter proves application.
+	_native_zero_birth={"map":_map,"epoch":_epoch,"regions":_regions.duplicate(),"queued_async_false":true,"expected_first_iteration":1}
+	_native_zero_certificate={}
+
+func _native_zero_birth_current(map: RID) -> bool:
+	return not _native_zero_birth.is_empty() and bool(_native_zero_birth.queued_async_false) and map==_map and map==_native_zero_birth.map and _epoch==int(_native_zero_birth.epoch) and _regions==_native_zero_birth.regions
+
+func _native_zero_region_current(region: RID, map: RID, bounds: AABB) -> bool:
+	return region.is_valid() and not NavigationServer3D.region_get_use_async_iterations(region) and NavigationServer3D.region_get_iteration_id(region)==1 and NavigationServer3D.region_get_map(region)==map and NavigationServer3D.region_get_transform(region)==Transform3D.IDENTITY and NavigationServer3D.region_get_enabled(region) and NavigationServer3D.region_get_navigation_layers(region)==1 and NavigationServer3D.region_get_bounds(region)==bounds
+
+func _native_zero_index_result(started: int, reason: String, certificate: Dictionary={}) -> void:
+	var elapsed: int=Time.get_ticks_usec()-started
+	_native_zero_index_stats.build_us+=elapsed
+	_native_zero_index_stats.build_us_max=maxi(int(_native_zero_index_stats.build_us_max),elapsed)
+	_native_zero_index_stats.last_reason=reason
+	if certificate.is_empty():
+		_native_zero_index_stats.refused+=1;_native_zero_certificate={};_native_zero_index_stats.references=0
+	else:
+		_native_zero_index_stats.committed+=1;_native_zero_certificate=certificate
+		_native_zero_index_stats.references=int(certificate.references)
+
+func _native_zero_commit_ready(iteration: int) -> void:
+	# Runs only AFTER all original region/mesh-owner/distance READY proofs passed.
+	# Cold construction cost belongs to this transition and is explicitly counted.
+	var started: int=Time.get_ticks_usec()
+	_native_zero_index_stats.attempts+=1
+	if not Thread.is_main_thread() or _disposed or _busy or not _version_ok or _state!="READY" or iteration<=0 or not _native_zero_birth_current(_map) or NavigationServer3D.map_get_iteration_id(_map)!=iteration:
+		_native_zero_index_result(started,"birth_or_current_ready_required");return
+	if _regions.is_empty() or _regions.size()>NATIVE_ZERO_MAX_REGIONS:
+		_native_zero_index_result(started,"region_count_bound");return
+	var cells: Dictionary={};var references: int=0
+	for region: RID in _native_zero_birth.regions:
+		if Time.get_ticks_usec()-started>=NATIVE_ZERO_INDEX_BUDGET_US:
+			_native_zero_index_result(started,"cold_index_budget");return
+		var bounds: AABB=NavigationServer3D.region_get_bounds(region)
+		if not bounds.position.is_finite() or not bounds.size.is_finite() or bounds.size.x<=0.0 or bounds.size.z<=0.0 or not _native_zero_region_current(region,_map,bounds):
+			_native_zero_index_result(started,"fresh_sync_birth_region_required");return
+		var x0: int=int(floor(bounds.position.x/NATIVE_ZERO_GRID_METRES));var x1: int=int(floor(bounds.end.x/NATIVE_ZERO_GRID_METRES))
+		var z0: int=int(floor(bounds.position.z/NATIVE_ZERO_GRID_METRES));var z1: int=int(floor(bounds.end.z/NATIVE_ZERO_GRID_METRES))
+		if (x1-x0+1)*(z1-z0+1)>16:
+			_native_zero_index_result(started,"single_region_index_domain");return
+		var descriptor: Dictionary={"region":region,"bounds":bounds}
+		for z in range(z0,z1+1):
+			for x in range(x0,x1+1):
+				references+=1
+				if references>NATIVE_ZERO_MAX_REFERENCES:
+					_native_zero_index_result(started,"index_reference_bound");return
+				var key: Vector2i=Vector2i(x,z)
+				if not cells.has(key):cells[key]=[]
+				cells[key].append(descriptor)
+	if Time.get_ticks_usec()-started>=NATIVE_ZERO_INDEX_BUDGET_US or not _native_zero_birth_current(_map) or NavigationServer3D.map_get_iteration_id(_map)!=iteration:
+		_native_zero_index_result(started,"index_budget_or_epoch_changed");return
+	_native_zero_index_result(started,"",{"map":_map,"epoch":_epoch,"iteration":iteration,"regions":_native_zero_birth.regions.duplicate(),"cells":cells,"references":references,"observed_all_async_false":true,"observed_all_first_iteration":1})
+
+func native_published_point_zero(map: RID, iteration: int, point: Vector3) -> bool:
+	# Pure bool query: no index construction, cache insertion, actor/goal/route
+	# writes or diagnostic counter writes occur here. Point0 stays with its caller.
+	if not Thread.is_main_thread() or not _native_zero_enabled() or _disposed or _busy or not _version_ok or _state!="READY" or not point.is_finite() or point.length_squared()>1e10 or point==Vector3.ZERO or not map.is_valid() or _native_zero_certificate.is_empty():return false
+	if not _native_zero_birth_current(map) or map!=_native_zero_certificate.map or _epoch!=int(_native_zero_certificate.epoch) or iteration!=int(_native_zero_certificate.iteration) or _regions!=_native_zero_certificate.regions or NavigationServer3D.map_get_iteration_id(map)!=iteration:return false
+	var key: Vector2i=Vector2i(int(floor(point.x/NATIVE_ZERO_GRID_METRES)),int(floor(point.z/NATIVE_ZERO_GRID_METRES)))
+	var candidates: Array=_native_zero_certificate.cells.get(key,[])
+	if candidates.is_empty() or candidates.size()>NATIVE_ZERO_MAX_CANDIDATES:return false
+	for descriptor: Dictionary in candidates:
+		var bounds: AABB=descriptor.bounds
+		if point.x<bounds.position.x or point.x>bounds.end.x or point.z<bounds.position.z or point.z>bounds.end.z:continue
+		var region: RID=descriptor.region
+		if not _native_zero_region_current(region,map,bounds):continue
+		var closest: Vector3=NavigationServer3D.region_get_closest_point(region,point)
+		if closest!=point:continue
+		# Region sync is main-thread; no callbacks/await can mutate publication in
+		# this query. Fresh final map/region proof still refuses any changed scope.
+		if NavigationServer3D.map_get_iteration_id(map)==iteration and _native_zero_birth_current(map) and _native_zero_region_current(region,map,bounds):return true
+	return false
+
+func snapshot_native_published_zero() -> Dictionary:
+	# Construction metrics only, not per-query hits or current physical proof.
+	return {"enabled":_native_zero_enabled(),"birth_recorded":not _native_zero_birth.is_empty(),"birth_regions":_native_zero_birth.get("regions",[]).size(),"certificate_ready":not _native_zero_certificate.is_empty(),"certificate_map_id":str(_native_zero_certificate.map.get_id()) if not _native_zero_certificate.is_empty() else "","certificate_iteration":_native_zero_certificate.get("iteration",0),"epoch":_epoch,"index_stats":_native_zero_index_stats.duplicate(),"index_budget_us":NATIVE_ZERO_INDEX_BUDGET_US,"max_candidates":NATIVE_ZERO_MAX_CANDIDATES,"construction_observed_all_async_false":_native_zero_certificate.get("observed_all_async_false",false),"construction_observed_first_iteration":_native_zero_certificate.get("observed_all_first_iteration",0),"point0_caller_must_use_original":true,"actor_or_goal_writes":0,"token_or_physics_memo":false}

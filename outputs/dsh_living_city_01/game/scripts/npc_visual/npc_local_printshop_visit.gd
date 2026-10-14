@@ -120,7 +120,11 @@ func tick(now_ms:float) -> Dictionary:
 				_until=now_ms+3000.0+floor(_unit(_id,"visit:"+str(_cycle))*4000.0+.5)
 			elif _phase=="EXITING":_route(_street_return,"RETURNING_TO_STREET",.025*WORLD_SCALE)
 			else:_phase="COMPLETE";_completed+=1;_request_id=-1
-	elif _phase=="OPENING":
+	# Begin the physical door request on the ARRIVED poll itself. A sparse
+	# daily poll may come after the existing three-second door deadline.
+	# The deadline remains anchored to physical entry arrival; retries do
+	# not restart it, and current ownership/arrival precision stay required.
+	if _phase=="OPENING":
 		var interior:Node3D=_interior.get_ref()
 		if float(interior.door_fraction("public"))==1.0:
 			_route(_inside,"ENTERING",.025*WORLD_SCALE)

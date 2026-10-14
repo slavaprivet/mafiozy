@@ -38,6 +38,14 @@ var _busy := false
 var _disposed := false
 var _bank_established := false
 var _interrupting := false
+const INCIDENT_HOLD_MS := 1200.0
+const INCIDENT_MAX_HOLD_MS := 3000.0
+var _incident_waiting_release := false
+var _incident_hold_started := -1.0
+var _incident_hold_until := -1.0
+var _incident_hold_cap := -1.0
+var _incident_seen: Dictionary = {}
+var _incident_seen_ring: Array[String] = []
 var _journal: Array[Dictionary] = []
 var _completed := {"hospital":0,"bank":0,"shop":0,"drive":0,"walk":0}
 var _profile_peaks: Array[Dictionary] = []
@@ -119,6 +127,75 @@ func _record(event: String, reason: String="") -> void:
 	_journal.append({"event":event,"kind":_goal.get("kind",""),"goal_id":_goal.get("goal_id",""),"at":_now,"reason":reason})
 	if _journal.size()>16: _journal.pop_front()
 
+
+## The life owner is the only public boundary allowed to interrupt its private controllers.
+func incident_can_hear(owner: RefCounted) -> bool:
+	if _disposed or not Thread.is_main_thread() or _busy or owner!=_health or not _host.target_current(_token): return false
+	if _visit!=null or _interrupting or _health.should_pause_walk(): return false
+	return _phase in ["IDLE","RESTING","WAITING_FOR_RECOVERY","WALKING","INCIDENT_REACTING"]
+
+func accept_incident_event(owner: RefCounted, event: Dictionary) -> Dictionary:
+	if _disposed or not Thread.is_main_thread() or owner!=_health or not _host.target_current(_token):
+		return {"accepted":false,"reason":"current_daily_owner_required"}
+	if _busy: return {"accepted":false,"retryable":true,"reason":"life_busy"}
+	if _interrupting or _incident_waiting_release: return {"accepted":false,"reason":"life_interruption_pending"}
+	if event.get("schema")!="local_city_incident/v1" or event.get("authority")!="local_presentation" or event.get("server_ack",true) or event.get("hp_changed",true) or event.get("money_changed",true):
+		return {"accepted":false,"reason":"presentation_only_event_required"}
+	var kind: String=str(event.get("kind",""))
+	var distance: float=float(event.get("distance_m",INF))
+	if not is_finite(distance) or distance<0.0 or distance>41.0 or event.get("source_identified",true):
+		return {"accepted":false,"reason":"incident_perception_bounds"}
+	if kind=="gunshot_visual":
+		if event.get("visibility_confirmed")!=true or event.get("line_of_sight")!=true or event.get("fov_confirmed")!=true or not event.has("origin"):
+			return {"accepted":false,"reason":"visual_proof_required"}
+	elif kind=="heard_gunfire":
+		if event.get("audible")!=true or event.get("visibility_confirmed",false) or event.has("origin") or event.has("weapon_id") or (not event.get("line_of_sight",false) and distance>18.45):
+			return {"accepted":false,"reason":"auditory_proof_required"}
+	else:
+		return {"accepted":false,"reason":"unsupported_incident_kind"}
+	if event.get("witness_role_scope")!="ordinary_unarmed_civilian": return {"accepted":false,"reason":"role_scope"}
+	var body: Variant=_token.get("body")
+	if not is_instance_valid(body) or not body is Node3D or str(event.get("witness_source_id",""))!=str(_token.get("source_id","")) or str(event.get("witness_session_id",""))!=str(_token.get("session_id","")) or int(event.get("witness_life_generation",-1))!=int(_token.get("life_generation",-2)) or int(event.get("witness_body_instance_id",-1))!=body.get_instance_id():
+		return {"accepted":false,"reason":"witness_life_mismatch"}
+	var event_id: String=str(event.get("event_id",""))
+	if event_id.is_empty() or _incident_seen.has(event_id): return {"accepted":false,"reason":"duplicate_or_missing_event"}
+	var row: Dictionary=_life()
+	_now=_health._now()
+	if row.is_empty() or row.get("dead",false) or float(row.get("hp",0))<=0 or _health.should_pause_walk() or _needs_hospital(row) or _goal.get("kind")=="hospital":
+		return {"accepted":false,"reason":"medical_or_hospital_priority"}
+	if _visit!=null:
+		var stopped_visit: Dictionary=_visit.cancel("incident_gunshot")
+		if not stopped_visit.get("ok",false):
+			var refusal: String=str(stopped_visit.get("reason","visit_cancel_refused"))
+			return {"accepted":false,"retryable":refusal=="controller_busy","reason":refusal}
+		_interrupting=true
+		_incident_waiting_release=true
+		_record("interrupted","incident_gunshot")
+	else:
+		var stopped_walk: Dictionary=_walk.interrupt_current_route()
+		if not stopped_walk.get("ok",false):
+			return {"accepted":false,"retryable":bool(stopped_walk.get("retryable",false)),"reason":str(stopped_walk.get("reason","walk_cancel_refused"))}
+		_start_incident_hold()
+	_incident_seen[event_id]=true
+	_incident_seen_ring.append(event_id)
+	if _incident_seen_ring.size()>64: _incident_seen.erase(_incident_seen_ring.pop_front())
+	return {"accepted":true,"reason":"waiting_for_visit_release" if _incident_waiting_release else "local_startle"}
+
+func _start_incident_hold() -> void:
+	if _incident_hold_started<0.0 or _now>=_incident_hold_cap:
+		_incident_hold_started=_now
+		_incident_hold_cap=_now+INCIDENT_MAX_HOLD_MS
+	_incident_hold_until=minf(_now+INCIDENT_HOLD_MS,_incident_hold_cap)
+	_phase="INCIDENT_REACTING"
+	_reason="local_gunshot_startle"
+	_next_decision=_incident_hold_until
+	_record("reaction","gunshot_startle")
+
+func _clear_incident_hold() -> void:
+	_incident_hold_started=-1.0
+	_incident_hold_until=-1.0
+	_incident_hold_cap=-1.0
+
 # DSH_VISITPROBE: the life-side counterpart. `npc_daily_life.gd:147` finishes an activity only
 # when a terminal status comes WITH `released`; a terminal status without it is ignored and the
 # visit is polled again silently. This prints that case once per change, read-only.
@@ -180,8 +257,16 @@ func step(delta: float) -> void:
 		_busy=false; return
 	if not _host.target_current(_token): _phase="WAITING_FOR_RECOVERY"; _busy=false; return
 	if _health.should_pause_walk():
-		# The existing movement owner handles fear, hits, pause and medical state.
+		# Existing health/combat and medical owners retain priority over startle.
+		if _phase=="INCIDENT_REACTING": _clear_incident_hold(); _phase="IDLE"; _next_decision=_now
 		_busy=false; return
+	if _phase=="INCIDENT_REACTING":
+		if _needs_hospital(row):
+			_clear_incident_hold(); _phase="IDLE"; _next_decision=_now
+		elif _now<_incident_hold_until:
+			_busy=false; return
+		else:
+			_clear_incident_hold(); _phase="IDLE"; _reason=""; _next_decision=_now
 	if _phase=="WALKING":
 		if _needs_hospital(row):
 			if _walk.cancel().get("ok",false): _phase="IDLE"; _next_decision=_now
@@ -281,6 +366,13 @@ func _finish_activity(success: bool, state: Dictionary) -> void:
 		_record("completed"); _goal={}; _phase="IDLE"; _next_decision=_now+1000.0
 	else: _retry(str(state.get("reason",_reason)))
 	_interrupting=false
+	if _incident_waiting_release:
+		_incident_waiting_release=false
+		var current: Dictionary=_life()
+		if not current.is_empty() and not _health.should_pause_walk() and not _needs_hospital(current) and _goal.get("kind")!="hospital":
+			_start_incident_hold()
+		else:
+			_clear_incident_hold(); _phase="IDLE"; _next_decision=_now
 
 func _retry(reason: String) -> void:
 	_reason=reason; _record("retry",reason)
@@ -313,10 +405,11 @@ func _end_life() -> void:
 		_visit.cancel("actor_life_ended"); _visit.dispose(); _visit=null
 	if _walk!=null: _walk.dispose()
 	_phase="RETIRED"; _disposed=true; _factory=Callable()
+	_incident_waiting_release=false; _clear_incident_hold(); _incident_seen.clear(); _incident_seen_ring.clear()
 	_health=null; _account=null; _host=null
 
 func snapshot() -> Dictionary:
-	return {"source_id":_token.get("source_id",""),"phase":_phase,"reason":_reason,"goal":_goal.duplicate(true),"completed":_completed.duplicate(),"events":_journal.duplicate(true),"activity":_visit.snapshot() if _visit!=null else {},"walk":_walk.snapshot() if _walk!=null else {},"account":_account.snapshot() if _account!=null else {},"source_rows_written":false,"profile_peaks":_profile_snapshot(),"controller_peaks":_controller_peaks.duplicate(true),"visit_timing":_visit_timing.duplicate(true),"visit_controller_timing":_visit_controller_timing.duplicate(true)}
+	return {"source_id":_token.get("source_id",""),"phase":_phase,"reason":_reason,"goal":_goal.duplicate(true),"completed":_completed.duplicate(),"events":_journal.duplicate(true),"activity":_visit.snapshot() if _visit!=null else {},"walk":_walk.snapshot() if _walk!=null else {},"account":_account.snapshot() if _account!=null else {},"source_rows_written":false,"profile_peaks":_profile_snapshot(),"controller_peaks":_controller_peaks.duplicate(true),"visit_timing":_visit_timing.duplicate(true),"visit_controller_timing":_visit_controller_timing.duplicate(true),"incident_waiting_release":_incident_waiting_release,"incident_hold_until":_incident_hold_until,"incident_seen":_incident_seen.size()}
 
 func dispose() -> void:
 	if _disposed or _busy: return

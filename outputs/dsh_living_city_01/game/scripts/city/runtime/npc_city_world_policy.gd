@@ -33,6 +33,8 @@ var _start_r := 0
 var _start_c := 0
 var _host: WeakRef
 var _paths := {}
+var _detour_suffix_reuses := 0
+var _detour_suffix_points := 0
 var _cookie := 0
 var _contact := Contact.new()
 var _box := BoxShape3D.new()
@@ -47,9 +49,10 @@ var _dsh_slim := -1
 var _dsh_proof_ttl := -1
 var _dsh_proof := {}
 # DSH_NAVSTEP3: --city-navsplit=0 (default) reads no clock and touches no counter.
-# --city-policy-token-memo=0 (default) re-asks the host on every _token_current call.
+# --city-policy-token-memo=0 explicitly restores repeated fresh host proofs.
 var _dsh_split := -1
 var _dsh_split_on := false
+var _dsh_split_capture := false # Diagnostic logger suppression only.
 var _dsh_memo := -1
 var _dsh_memo_hits := 0
 var _dsh_p_ms := 0
@@ -58,9 +61,48 @@ var _dsh_p := {"calls": 0, "owner_us": 0, "road_us": 0, "daily_us": 0, "path_us"
 var _heights := PackedFloat64Array()
 var _cells: Array = []
 var _floors := {}
+# The authored Palazzo dry plate overlaps existing source terrain at y=0.
+# It grants no NPC land. Only an exact, current duplicate may be excluded from
+# support rays, which must still find an unchanged pinned source floor below.
+const DUPLICATE_SUPPORT_SIZE := Vector3(16.4, .16, 127.1)
+const DUPLICATE_SUPPORT_FRAME := Transform3D(Basis.IDENTITY, Vector3(51.25, -.08, 18.45))
+var _duplicate_support := {}
 var _ray := PhysicsRayQueryParameters3D.new()
 var _disposed := false
 var _busy := false
+# INITIAL_ADMISSION: global per-physics-frame budget, never one budget per actor.
+const INITIAL_ADMISSION_BUDGET_US := 4000
+# The measured R1 charged 4ms to every catch-up physics tick. Bound the complete
+# consumer across all policies/ticks in the same process frame as well.
+const INITIAL_ADMISSION_PROCESS_BUDGET_US := 2500
+const INITIAL_ADMISSION_LIMIT := 512
+const INITIAL_ADMISSION_NO_PROGRESS_US := 10000000
+const INITIAL_ADMISSION_RESULT_RETENTION_US := 30000000
+const INITIAL_ADMISSION_CHUNK_POINTS := 4
+static var _initial_budget_frame := -1
+static var _initial_budget_used_us := 0
+static var _initial_budget_calls := 0
+static var _initial_budget_max_us := 0
+static var _initial_process_budget_frame := -1
+static var _initial_process_budget_used_us := 0
+static var _initial_process_budget_calls := 0
+static var _initial_process_budget_max_us := 0
+static var _initial_process_budget_skips := 0
+var _initial_flag := -1
+var _initial_jobs := {}
+var _initial_queue: Array[int] = []
+var _initial_gc: Array[int] = []
+var _initial_serial := 0
+var _initial_pump: Node
+var _initial_pumping := false
+var _initial_stats := {"created":0,"completed":0,"cancelled":0,"expired":0,"points":0,"last_frame":-1,"last_frame_us":0,"last_points":0,"atomic_step_max_us":0,"guard_max_us":0,"max_wait_us":0,"total_wait_us":0,"queue_peak":0,"completed_ok":0,"completed_refused":0,"pending_no_progress_timeouts":0,"consumed_ok":0,"consumed_refused":0,"cancelled_pending":0,"cancelled_done":0,"requester_gc_pending":0,"requester_gc_done":0,"result_gc_ok":0,"result_gc_refused":0,"disposed_jobs":0}
+
+class InitialAdmissionPump extends Node:
+	var policy: WeakRef
+	func _physics_process(_delta: float) -> void:
+		var current: RefCounted=policy.get_ref() if policy!=null else null
+		if is_instance_valid(current): current.pump_initial_path_admissions()
+		else: queue_free()
 
 func configure(scene: Node3D, packet_rows: Array, owners: Dictionary, trust: Dictionary, access: Dictionary) -> Dictionary:
 	if not Thread.is_main_thread() or _busy or _disposed or _scene != null: return {"ok": false, "error": "lifetime"}
@@ -122,6 +164,7 @@ func configure(scene: Node3D, packet_rows: Array, owners: Dictionary, trust: Dic
 				for c in range(first_c, last_c + 1): _cells[r * _cols + c].append(record)
 	_scene = weakref(scene)
 	if not _capture_floors(scene, surface): _scene = null; _land.clear(); _cells.clear(); _heights.clear(); _floors.clear(); return {"ok": false, "error": "source_floor_identity"}
+	_capture_duplicate_support(scene)
 	_owners = checked; _states = states.duplicate(); _version = version
 	_ray.collision_mask = 1
 	_box.size=Vector3(RADIUS*2.0,1.9,RADIUS*2.0);_query.shape=_box;_query.collision_mask=1|256;_query.margin=.001
@@ -170,12 +213,12 @@ func _split_flags() -> void:
 			_dsh_split = maxi(0, int(argument.trim_prefix("--city-navsplit=")))
 	_dsh_split_on = _dsh_split == 1
 
-# DSH_NAVSTEP3: --city-policy-token-memo=1 lets one source_admit() frame reuse the
-# _token_current() answer it already computed. The memo is the Array that frame owns, so
-# no other entry point can ever see it; 0 (default) re-asks the host every time.
+# One fresh owner/rig/capsule proof per synchronous pinned cookie/source call.
+# The local Array is consumed and cleared before returning; actual floor/source/
+# sweep checks stay fresh. Enabled by default; --city-policy-token-memo=0 restores repeated proofs.
 func _memo_flag() -> int:
 	if _dsh_memo < 0:
-		_dsh_memo = 0
+		_dsh_memo = 1
 		for argument in OS.get_cmdline_user_args():
 			if argument.begins_with("--city-policy-token-memo="):
 				_dsh_memo = maxi(0, int(argument.trim_prefix("--city-policy-token-memo=")))
@@ -185,6 +228,7 @@ func _dsh_add(key: String, started: int) -> void:  # DSH_NAVSTEP3
 	_dsh_p[key] = int(_dsh_p[key]) + Time.get_ticks_usec() - started
 
 func _dsh_report() -> void:  # DSH_NAVSTEP3
+	if _dsh_split_capture: return
 	var now := Time.get_ticks_msec()
 	if _dsh_p_ms == 0 or now <= _dsh_p_ms:
 		_dsh_p_ms = now; _dsh_p = {"calls": 0, "owner_us": 0, "road_us": 0, "daily_us": 0, "path_us": 0, "seg_us": 0, "floor_us": 0, "native_us": 0, "chain_us": 0, "tc_calls": 0, "tc_us": 0, "token_empty": 0, "prove_fail": 0, "guard_refuse": 0}
@@ -231,6 +275,32 @@ func _capture_floors(scene: Node3D, surface: Dictionary) -> bool:
 		_floors[node.get_rid()] = {"body": weakref(node), "shape": weakref(shape), "frame": node.global_transform, "size": shape.shape.size}
 	return seen.size() == expected.size()
 
+func _duplicate_support_geometry(scene: Node3D, root: Variant, body: Variant, shape: Variant) -> bool:
+	if not is_instance_valid(root) or not root is Node3D or not is_instance_valid(body) or not body is StaticBody3D or not is_instance_valid(shape) or not shape is CollisionShape3D: return false
+	if root.is_queued_for_deletion() or body.is_queued_for_deletion() or shape.is_queued_for_deletion(): return false
+	if root.get_parent()!=scene or root.name!=&"PalazzoGroundExtension" or root.global_transform!=Transform3D.IDENTITY or root.get_script()!=null: return false
+	if root.get_meta("palazzo_ground_extension",false)!=true or root.get_meta("navigation_policy","")!="outside_unchanged_source_crop_no_npc_entry": return false
+	if body.get_parent()!=root or body.name!=&"DryGround" or body.get_script()!=null or body.global_transform!=DUPLICATE_SUPPORT_FRAME or body.collision_layer!=1 or body.collision_mask!=1: return false
+	if body.get_child_count()!=2 or body.get_child(0)!=shape or body.get_shape_owners().size()!=1: return false
+	if shape.get_parent()!=body or shape.get_script()!=null or shape.disabled or shape.transform!=Transform3D.IDENTITY or not shape.shape is BoxShape3D: return false
+	return shape.shape.get_script()==null and shape.shape.size==DUPLICATE_SUPPORT_SIZE
+
+func _capture_duplicate_support(scene: Node3D) -> void:
+	var root: Node=scene.get_node_or_null("PalazzoGroundExtension")
+	var body: Node=root.get_node_or_null("DryGround") if root!=null else null
+	var shape: Node=body.get_child(0) if body!=null and body.get_child_count()>0 else null
+	if not _duplicate_support_geometry(scene,root,body,shape): return
+	_duplicate_support={"root":weakref(root),"body":weakref(body),"shape":weakref(shape),"resource":weakref(shape.shape),"rid":body.get_rid()}
+
+func _current_duplicate_support(scene: Node3D) -> RID:
+	if _duplicate_support.is_empty(): return RID()
+	var root: Variant=_duplicate_support.root.get_ref()
+	var body: Variant=_duplicate_support.body.get_ref()
+	var shape: Variant=_duplicate_support.shape.get_ref()
+	if not _duplicate_support_geometry(scene,root,body,shape): return RID()
+	if shape.shape!=_duplicate_support.resource.get_ref() or body.get_rid()!=_duplicate_support.rid: return RID()
+	return _duplicate_support.rid
+
 func _valid_states(states: Variant, owners: Dictionary) -> bool:
 	if not states is Dictionary or states.size() > owners.size(): return false
 	for id: Variant in states:
@@ -254,7 +324,16 @@ func _world_index(world_x: float, world_z: float) -> int:
 	if r<0 or r>=_rows or c<0 or c>=_cols: return -1
 	return int(floor(r))*_cols+int(floor(c))
 
-func source_admit(point: Vector3, id: String, generation: int, radius: float, purpose: String) -> bool:
+func source_admit(point: Vector3, id: String, generation: int, radius: float, purpose: String, token_scope: Array=NO_MEMO) -> bool:
+	if _dsh_memo<0: _memo_flag()
+	if not token_scope.is_empty() and token_scope.size()==9 and (token_scope[8]!=1 or _host==null or not is_instance_valid(_host.get_ref()) or token_scope[1]!=_host.get_ref() or token_scope[1].get("_busy")!=true):
+		token_scope.clear();return false # Invalid external/reused scope confers no token proof.
+	var scope: Array=_take_pinned_token_scope(token_scope) if not token_scope.is_empty() else ([null] if _dsh_memo==1 and _same_call_token_contract() else NO_MEMO)
+	var admitted: bool=_source_admit_scoped(point,id,generation,radius,purpose,scope)
+	if not scope.is_empty(): scope.clear()
+	return admitted
+
+func _source_admit_scoped(point: Vector3, id: String, generation: int, radius: float, purpose: String, token_scope: Array) -> bool:
 	# DSH_QUERY_PROBE (temporary): physics-query rate of the city admission policy.
 	if _dsh_ms == 0:
 		_dsh_ms = Time.get_ticks_msec(); _dsh_last = _counts.duplicate()
@@ -270,7 +349,7 @@ func source_admit(point: Vector3, id: String, generation: int, radius: float, pu
 	if _dsh_memo < 0: _memo_flag()  # DSH_NAVSTEP3
 	var dsh_t := Time.get_ticks_usec() if _dsh_split_on else 0  # DSH_NAVSTEP3
 	if _dsh_split_on: _dsh_p["calls"] = int(_dsh_p["calls"]) + 1; _dsh_report()  # DSH_NAVSTEP3
-	var dsh_memo: Array = [] if _dsh_memo == 1 else NO_MEMO  # DSH_NAVSTEP3: frame-owned memo
+	var dsh_memo: Array=token_scope # Owned solely by the immediately enclosing wrapper.
 	if not Thread.is_main_thread() or _busy or not _owner_allowed(id,generation) or not is_finite(radius) or absf(radius-RADIUS)>.000001 or purpose not in ["placement","target","route"]:
 		if _dsh_split_on: _dsh_p["guard_refuse"] = int(_dsh_p["guard_refuse"]) + 1  # DSH_NAVSTEP3
 		return false
@@ -290,7 +369,7 @@ func source_admit(point: Vector3, id: String, generation: int, radius: float, pu
 		if _ordinary[index]==0: road=true
 	if _dsh_split_on: _dsh_add("road_us", dsh_t)  # DSH_NAVSTEP3
 	if _dsh_split_on: dsh_t = Time.get_ticks_usec()  # DSH_NAVSTEP3
-	var token:=_daily_token(id,generation)
+	var token:=_daily_token(id,generation,dsh_memo)
 	if _dsh_split_on: _dsh_add("daily_us", dsh_t)  # DSH_NAVSTEP3
 	# The final full segment includes this exact endpoint proof. No dynamic
 	# or owner result is cached beyond this synchronous admission.
@@ -307,7 +386,7 @@ func source_admit(point: Vector3, id: String, generation: int, radius: float, pu
 		return _source_segment(point,point,true)
 	var handoff: bool=Vector2(point.x-token.body.global_position.x,point.z-token.body.global_position.z).length()<=.02
 	if _dsh_split_on: dsh_t = Time.get_ticks_usec()  # DSH_NAVSTEP3
-	var dsh_path_ok: bool = not (road and not handoff) or _path_contains(id,point)  # DSH_NAVSTEP3
+	var dsh_path_ok: bool = not (road and not handoff) or _path_contains(id,point,dsh_memo)  # DSH_NAVSTEP3
 	if _dsh_split_on: _dsh_add("path_us", dsh_t)  # DSH_NAVSTEP3
 	if not dsh_path_ok: _last_reason="road_outside_current_errand_path";return false
 	var from: Vector3=token.body.global_position if purpose=="route" and token.body.global_position.distance_to(point)<=.25 else point
@@ -374,66 +453,93 @@ func bind_host(host: RefCounted) -> bool:
 	for method: String in ["_local_walker_current","daily_activity_status","physical_life_current"]:
 		if not host.has_method(method): return false
 	_host=weakref(host)
+	_install_initial_admission_pump()
 	return true
 
-func _daily_token(id: String, generation: int) -> Dictionary:
+func _daily_token(id: String, generation: int, memo: Array=NO_MEMO) -> Dictionary:
 	if _host==null or not is_instance_valid(_host.get_ref()): return {}
 	var host: RefCounted=_host.get_ref()
 	var claims: Variant=host.get("_daily_activities")
 	if not claims is Dictionary or not claims.has(id): return {}
 	var token: Dictionary=claims[id].binding
-	if token.life_generation!=generation or not _token_current(token): return {}
+	if token.life_generation!=generation or not _token_current(token,null,memo): return {}
 	return token
 
 func _token_current(token: Dictionary, activity_owner: RefCounted=null, memo: Array=NO_MEMO) -> bool:
-	# DSH_NAVSTEP3: --city-policy-token-memo=1 reuses the answer this same source_admit()
-	# frame already computed for this exact (source_id, life_generation). The memo Array
-	# belongs to that frame, so it cannot outlive the call or be seen by another entry
-	# point; a call that carries an activity_owner is never memoised.
-	if _dsh_memo == 1 and not memo.is_empty():
-		if int(memo[0]) == 1 and str(memo[1]) == str(token.get("source_id","")) and int(memo[2]) == int(token.get("life_generation",-1)):
-			if _dsh_split_on: _dsh_memo_hits += 1
-			return bool(memo[3])
-	var dsh_t0 := Time.get_ticks_usec() if _dsh_split_on else 0  # DSH_NAVSTEP3
+	# Only the exact synchronous caller mints and clears a scope; no memo fields.
+	var dsh_t0 := Time.get_ticks_usec() if _dsh_split_on else 0
 	var dsh_current := false
-	if not Thread.is_main_thread() or _disposed or _host==null or not is_instance_valid(_host.get_ref()) or not _owner_allowed(str(token.get("source_id","")),int(token.get("life_generation",-1))): dsh_current = false
+	var id: String=str(token.get("source_id",""))
+	var generation: int=int(token.get("life_generation",-1))
+	if not Thread.is_main_thread() or _disposed or _host==null or not is_instance_valid(_host.get_ref()) or not _owner_allowed(id,generation): dsh_current=false
 	else:
 		var host: RefCounted=_host.get_ref()
-		# The host may be busy while invoking its current local movement adapter.
-		# This identity/death/capsule gate deliberately does not use target_current.
-		if not host._local_walker_current(token): dsh_current = false
+		var have_memo: bool=_dsh_memo==1 and (memo.size()==1 and memo[0]==null or memo.size()==9 and (memo[8]==0 or memo[8]==2))
+		var claims: Variant=host.get("_daily_activities") if have_memo else null
+		if have_memo and memo.size()==9 and is_same(token,memo[0]) and memo[1]==host and memo[3]==id and memo[4]==generation and memo[7]==_version and host.get("_disposed")==false and host.get("_dispose_requested")==false and is_instance_valid(token.get("body")) and token.body.get_rid()==memo[5] and claims is Dictionary and claims.has(id):
+			var claim: Dictionary=claims[id]
+			if is_same(claim.binding,token) and claim.serial==memo[6] and claim.owner is WeakRef and claim.owner.get_ref()==memo[2] and is_instance_valid(memo[2]):
+				_dsh_memo_hits+=1
+				return activity_owner==null or memo[2]==activity_owner
+		# A fresh original body/rig/capsule predicate is always the first proof.
+		if not host._local_walker_current(token): dsh_current=false
 		else:
-			var lease: Dictionary=host.daily_activity_status(token.source_id)
-			dsh_current = lease.get("current",false) and lease.get("life_generation")==token.life_generation and is_instance_valid(lease.get("owner")) and (activity_owner==null or lease.owner==activity_owner)
+			var direct: Dictionary=claims[id] if have_memo and claims is Dictionary and claims.has(id) else {}
+			# local_walker_current implies transport_life_current for this exact
+			# full binding. These dictionary reads cannot change the world.
+			if not direct.is_empty() and direct.get("binding")==token and direct.get("owner") is WeakRef:
+				var owner: RefCounted=direct.owner.get_ref()
+				dsh_current=is_instance_valid(owner) and (activity_owner==null or owner==activity_owner)
+				if dsh_current:
+					var phase: int=int(memo[8]) if memo.size()==9 else 0
+					memo.resize(9)
+					memo[0]=direct.binding;memo[1]=host;memo[2]=owner;memo[3]=id;memo[4]=generation;memo[5]=token.body.get_rid();memo[6]=direct.serial;memo[7]=_version;memo[8]=phase
+			else:
+				# Unequal claims and custom graphs retain the original heavy proof.
+				var lease: Dictionary=host.daily_activity_status(token.source_id)
+				dsh_current=lease.get("current",false) and lease.get("life_generation")==token.life_generation and is_instance_valid(lease.get("owner")) and (activity_owner==null or lease.owner==activity_owner)
 	if _dsh_split_on:
-		_dsh_p["tc_calls"] = int(_dsh_p["tc_calls"]) + 1
-		_dsh_add("tc_us", dsh_t0)
-	if _dsh_memo == 1 and not memo.is_empty() and activity_owner == null:
-		memo.clear()
-		memo.append(1); memo.append(str(token.get("source_id",""))); memo.append(int(token.get("life_generation",-1))); memo.append(dsh_current)
+		_dsh_p["tc_calls"]=int(_dsh_p["tc_calls"])+1
+		_dsh_add("tc_us",dsh_t0)
 	return dsh_current
 
-func authorize_errand_path(activity_owner: RefCounted, token: Dictionary, map: RID, iteration: int, path: PackedVector3Array) -> Dictionary:
+
+func authorize_errand_path(activity_owner: RefCounted, token: Dictionary, map: RID, iteration: int, path: PackedVector3Array, previous_cookie: int = -1, reused_suffix_from: int = -1, old_suffix_from: int = -1) -> Dictionary:
 	if _busy or not _token_current(token,activity_owner) or not map.is_valid() or path.is_empty() or path.size()>512: return {"ok":false,"reason":"current_bounded_errand_required"}
 	var host: RefCounted=_host.get_ref();var navigation: RefCounted=_ordinary_navigation(host)
 	var backend: Variant=navigation.get("_backend") if navigation!=null else null
 	if backend==null or backend.map_rid()!=map or NavigationServer3D.map_get_iteration_id(map)!=iteration: return {"ok":false,"reason":"current_native_map_required"}
 	if path[0].distance_to(token.body.global_position)>.35: return {"ok":false,"reason":"path_must_start_at_actual_body"}
+	# A detour replaces only the travelled prefix of this exact, still current
+	# policy route. The byte-exact suffix was already projected onto this same
+	# native map and policy version. Rebuild all buckets for the NEW route, but
+	# avoid repeating hundreds of static closest-point queries for that suffix.
+	var reuse_suffix := previous_cookie >= 0
+	if reuse_suffix:
+		var id: String = str(token.get("source_id", ""))
+		if not current_errand_cookie(id, int(token.get("life_generation", -1)), previous_cookie): return {"ok":false,"reason":"detour_previous_path_not_current"}
+		var old: Dictionary = _paths[id]
+		var vertices: PackedVector3Array = old.vertices
+		if old.owner.get_ref() != activity_owner or old.token != token or old.map != map or old.iteration != iteration or reused_suffix_from < 1 or reused_suffix_from > path.size() or old_suffix_from < 1 or old_suffix_from > vertices.size() or path.size() - reused_suffix_from != vertices.size() - old_suffix_from:
+			return {"ok":false,"reason":"detour_suffix_identity"}
+		for offset in path.size() - reused_suffix_from:
+			if path[reused_suffix_from + offset] != vertices[old_suffix_from + offset]: return {"ok":false,"reason":"detour_suffix_changed"}
 	var buckets: Dictionary={};var distance:=0.0
 	for index in path.size():
 		var point: Vector3=path[index]
 		if not point.is_finite(): return {"ok":false,"reason":"path_point_off_native_map","point_index":index,"point":point,"nonfinite":true}
-		var closest:=NavigationServer3D.map_get_closest_point(map,point)
-		var off_map:=closest.distance_to(point)
-		if off_map>.12:
-			# The physical floor and voxel surface can differ at kerbs. Admit
-			# only the actual initial body through its bounded physical connector.
-			# Every subsequent proposal must still lie on the current native map.
-			var actual_start:=index==0 and point.distance_to(token.body.global_position)<=.000001
-			if not actual_start or off_map>2.0:
-				return {"ok":false,"reason":"path_point_off_native_map","point_index":index,"point":point,"closest":closest,"distance_m":off_map,"is_actual_start":actual_start,"connector_reason":"actual_start_or_gap_bound"}
-			if not native_clear_segment(token,point,closest):
-				return {"ok":false,"reason":"path_point_off_native_map","point_index":index,"point":point,"closest":closest,"distance_m":off_map,"is_actual_start":actual_start,"connector_reason":_last_reason}
+		if not reuse_suffix or index < reused_suffix_from:
+			var closest:=NavigationServer3D.map_get_closest_point(map,point)
+			var off_map:=closest.distance_to(point)
+			if off_map>.12:
+				# The physical floor and voxel surface can differ at kerbs. Admit
+				# only the actual initial body through its bounded physical connector.
+				# Every subsequent proposal must still lie on the current native map.
+				var actual_start:=index==0 and point.distance_to(token.body.global_position)<=.000001
+				if not actual_start or off_map>2.0:
+					return {"ok":false,"reason":"path_point_off_native_map","point_index":index,"point":point,"closest":closest,"distance_m":off_map,"is_actual_start":actual_start,"connector_reason":"actual_start_or_gap_bound"}
+				if not native_clear_segment(token,point,closest):
+					return {"ok":false,"reason":"path_point_off_native_map","point_index":index,"point":point,"closest":closest,"distance_m":off_map,"is_actual_start":actual_start,"connector_reason":_last_reason}
 		if index==0: continue
 		var a: Vector3=path[index-1]
 		if a.distance_to(point)>_dsh_leg_bound(): return {"ok":false,"reason":"path_leg_exceeds_bound"}  # DSH_POLICYLEG
@@ -448,8 +554,38 @@ func authorize_errand_path(activity_owner: RefCounted, token: Dictionary, map: R
 				buckets[key].append([Vector2(a.x,a.z),Vector2(point.x,point.z)])
 	if not _token_current(token,activity_owner) or NavigationServer3D.map_get_iteration_id(map)!=iteration: return {"ok":false,"reason":"owner_or_map_changed"}
 	_cookie+=1
-	_paths[token.source_id]={"owner":weakref(activity_owner),"token":token.duplicate(),"cookie":_cookie,"map":map,"iteration":iteration,"buckets":buckets,"version":_version,"navigation":weakref(navigation),"backend":weakref(backend)}
+	_paths[token.source_id]={"owner":weakref(activity_owner),"token":token.duplicate(),"cookie":_cookie,"map":map,"iteration":iteration,"buckets":buckets,"vertices":path.duplicate(),"version":_version,"navigation":weakref(navigation),"backend":weakref(backend)}
+	if reuse_suffix:
+		_detour_suffix_reuses += 1
+		_detour_suffix_points += path.size() - reused_suffix_from
 	return {"ok":true,"cookie":_cookie,"points":path.size(),"source_authority":false}
+
+## The persistent mover may reuse only this exact current policy proposal.
+## This identity check does not prove physics; the backend validates its prefix.
+func current_errand_cookie(id: String, life_generation: int, cookie: int, token_scope: Array=NO_MEMO) -> bool:
+	var cookie_scope: Array=token_scope if _dsh_memo==1 and token_scope.size()==1 and token_scope[0]==null else NO_MEMO
+	if not token_scope.is_empty() and cookie_scope.is_empty(): token_scope.clear()
+	if not _paths.has(id): return false
+	var path: Dictionary = _paths[id]
+	var owner: RefCounted = path.owner.get_ref()
+	if not is_instance_valid(owner) or int(path.token.get("life_generation", -1)) != life_generation or int(path.cookie) != cookie or path.version != _version or not _token_current(path.token,owner,cookie_scope): return false
+	var host: RefCounted = _host.get_ref()
+	var navigation: RefCounted = _ordinary_navigation(host)
+	if navigation == null or not is_instance_valid(path.backend.get_ref()) or path.navigation.get_ref() != navigation or path.backend.get_ref() != navigation.get("_backend") or not path.map.is_valid(): return false
+	var current: bool=path.backend.get_ref().map_rid()==path.map and NavigationServer3D.map_get_iteration_id(path.map)==path.iteration
+	if current and cookie_scope.size()==9: cookie_scope[8]=1 # immediately following source call consumes the cookie proof.
+	return current
+
+func current_errand_route(activity_owner: RefCounted, token: Dictionary, map: RID, iteration: int, cookie: int, route: PackedVector3Array) -> bool:
+	var id: String = str(token.get("source_id", ""))
+	if not current_errand_cookie(id, int(token.get("life_generation", -1)), cookie): return false
+	var path: Dictionary = _paths[id]
+	if path.owner.get_ref() != activity_owner or path.token != token or path.map != map or path.iteration != iteration: return false
+	var vertices: PackedVector3Array = path.vertices
+	if route.size() != vertices.size() or route.is_empty() or route[0].distance_to(vertices[0]) > .35: return false
+	for index in range(1, route.size()):
+		if route[index] != vertices[index]: return false
+	return true
 
 func revoke_errand_path(activity_owner: RefCounted, token: Dictionary, cookie: int) -> bool:
 	var id: String=str(token.get("source_id",""))
@@ -459,10 +595,11 @@ func revoke_errand_path(activity_owner: RefCounted, token: Dictionary, cookie: i
 	if path.owner.get_ref()!=activity_owner or path.token!=token or path.cookie!=cookie: return false
 	_paths.erase(id);return true
 
-func _path_contains(id: String, point: Vector3) -> bool:
+func _path_contains(id: String, point: Vector3, memo: Array=NO_MEMO) -> bool:
 	if not _paths.has(id): return false
 	var path: Dictionary=_paths[id]
-	if not is_instance_valid(path.owner.get_ref()) or not _token_current(path.token,path.owner.get_ref()) or path.version!=_version or not path.map.is_valid(): return false
+	var path_token: Dictionary=memo[0] if memo.size()==9 and memo[0] is Dictionary and path.token==memo[0] else path.token
+	if not is_instance_valid(path.owner.get_ref()) or not _token_current(path_token,path.owner.get_ref(),memo) or path.version!=_version or not path.map.is_valid(): return false
 	if not is_instance_valid(path.navigation.get_ref()) or _ordinary_navigation(_host.get_ref())!=path.navigation.get_ref() or path.navigation.get_ref().get("_backend")!=path.backend.get_ref(): return false
 	if not is_instance_valid(path.backend.get_ref()) or path.backend.get_ref().map_rid()!=path.map or NavigationServer3D.map_get_iteration_id(path.map)!=path.iteration: return false
 	var p:=Vector2(point.x,point.z)
@@ -551,13 +688,25 @@ func _native_segment(token: Dictionary, from: Vector3, to: Vector3, dynamic_only
 	if cast.size()!=2 or cast[0]<.999999: _last_reason="current_square_sweep";return false
 	_last_reason="";return _token_current(token, null, memo)
 
-func _native_floor_square(token: Dictionary, point: Vector3) -> bool:
-	_ray.exclude=[token.body.get_rid()]
+func _native_floor_square(token: Dictionary, point: Vector3, static_excludes: Array[RID]=[]) -> bool:
+	var body_rid: RID=token.body.get_rid()
 	var scene: Node3D=_scene.get_ref();var space:=scene.get_world_3d().direct_space_state
+	var duplicate_rid:=_current_duplicate_support(scene)
 	for offset: Vector2 in OFFSETS:
 		var at:=point+Vector3(offset.x,0,offset.y)
 		var y:=_terrain_height(float(at.x)+395.65,float(at.z)+45.099999999999994)
 		if not is_finite(y): return false
+		# Select original support through the audited coplanar duplicate only at
+		# its exact source height. Other floors, steps, ramps and all obstacles
+		# retain their original queries; this exclusion never reaches movement.
+		_ray.exclude=[body_rid,duplicate_rid] if duplicate_rid.is_valid() and y==0.0 else [body_rid]
+		# Only explicit STATIC corridor callers supply authenticated dynamic RIDs.
+		# All current movement callers retain the original exclusions above.
+		if not static_excludes.is_empty():
+			var floor_excludes: Array[RID]=_ray.exclude
+			for rid: RID in static_excludes:
+				if not rid in floor_excludes:floor_excludes.append(rid)
+			_ray.exclude=floor_excludes
 		_ray.from=Vector3(at.x,y+.3,at.z);_ray.to=Vector3(at.x,y-.3,at.z)
 		var hit: Dictionary=space.intersect_ray(_ray);_counts.floor_rays+=1
 		if hit.is_empty() or not _floors.has(hit.rid) or hit.normal.y<.7 or absf(hit.position.y-y)>.0001: _last_reason="current_source_floor_missing";return false
@@ -623,11 +772,406 @@ static func _segment_distance(r: float,c: float,ar: float,ac: float,br: float,bc
 	return sqrt((r-ar-vr*k)*(r-ar-vr*k)+(c-ac-vc*k)*(c-ac-vc*k))
 
 func diagnostics() -> Dictionary:
-	return {"scope":"NEW_LOCAL_ERRAND_CROSSING","reason":_last_reason,"counts":_counts.duplicate(),"paths":_paths.size(),"rows":_rows,"cols":_cols,"owners":_owners.size(),"source_authority":false}
+	return {"scope":"NEW_LOCAL_ERRAND_CROSSING","reason":_last_reason,"counts":_counts.duplicate(),"paths":_paths.size(),"rows":_rows,"cols":_cols,"owners":_owners.size(),"detour_suffix_reuses":_detour_suffix_reuses,"detour_suffix_points":_detour_suffix_points,"source_authority":false}
 
 func dispose() -> void:
+	_duplicate_support.clear()
 	if not Thread.is_main_thread() or _busy or _disposed: return
 	_disposed = true
+	_initial_stats.disposed_jobs+=_initial_jobs.size()
+	_initial_jobs.clear(); _initial_queue.clear(); _initial_gc.clear()
+	if is_instance_valid(_initial_pump):
+		_initial_pump.set_physics_process(false); _initial_pump.queue_free()
+	_initial_pump=null
 	var scene: Node3D = _scene.get_ref() if _scene != null else null
 	if is_instance_valid(scene) and scene.tree_exiting.is_connected(dispose): scene.tree_exiting.disconnect(dispose)
 	_paths.clear();_host=null;_owners.clear(); _states.clear(); _floors.clear(); _cells.clear(); _land.clear(); _heights.clear(); _ray = null
+
+## Proves one exact authorized static corridor edge. Every actual movement still
+## calls source_admit and the original swept capsule; this proof never moves.
+func static_errand_corridor(id: String, generation: int, cookie: int, edge: int, from: Vector3, to: Vector3, spacing: float) -> Dictionary:
+	if not Thread.is_main_thread() or _busy or _disposed or edge<1 or not is_finite(spacing) or spacing<.25 or spacing>1.0 or not current_errand_cookie(id,generation,cookie): return {"ok":false,"reason":"current_corridor_identity"}
+	var path: Dictionary=_paths[id]
+	var vertices: PackedVector3Array=path.vertices
+	if edge>=vertices.size() or to!=vertices[edge] or (from!=vertices[edge-1] and not (edge==1 and from.distance_to(vertices[0])<=.35 and from.distance_to(path.token.body.global_position)<=.02)): return {"ok":false,"reason":"exact_corridor_edge"}
+	var token: Dictionary=path.token
+	if not _source_segment(from,to,true): return {"ok":false,"reason":"static_source_corridor:"+_last_reason}
+	var result:=_static_corridor_clear(token,from,to,spacing)
+	if not result.get("ok",false): return result
+	var static_excludes: Array[RID]=result.exclude
+	# Retain the old preflight's interior source-floor grid, once per unique point.
+	var count:=maxi(1,ceili(from.distance_to(to)/spacing))
+	for sample in range(count+1):
+		var point:=from.lerp(to,float(sample)/count)
+		if not _native_floor_square(token,point,static_excludes): return {"ok":false,"reason":"static_corridor_floor:"+_last_reason}
+	if not current_errand_cookie(id,generation,cookie) or _paths[id]!=path: return {"ok":false,"reason":"corridor_changed_during_proof"}
+	result.merge({"source_id":id,"life_generation":generation,"map":path.map,"iteration":path.iteration,"cookie":cookie,"floor_samples":count+1},true)
+	return result
+
+func _static_corridor_clear(token: Dictionary, from: Vector3, to: Vector3, spacing: float) -> Dictionary:
+	var scene: Node3D=_scene.get_ref()
+	var host: RefCounted=_host.get_ref()
+	var space:=scene.get_world_3d().direct_space_state
+	var excludes: Array[RID]=[token.body.get_rid()]
+	# Include every old interior terrain-adjusted square, including a higher
+	# interior kerb. This conservative vertical envelope also contains all
+	# original point-relative boxes; endpoint-only height adjustment would not.
+	var lift:=0.0
+	var count:=maxi(1,ceili(from.distance_to(to)/spacing))
+	for sample in range(count+1):
+		var point:=from.lerp(to,float(sample)/count)
+		for offset: Vector2 in OFFSETS:
+			var y:=_terrain_height(point.x+395.65+offset.x,point.z+45.099999999999994+offset.y)
+			if not is_finite(y) or absf(y-point.y)>.18:return {"ok":false,"reason":"static_corridor_point_floor_height"}
+			lift=maxf(lift,y-point.y)
+	var envelope:=BoxShape3D.new();envelope.size=_box.size+Vector3.UP*lift
+	var centre:=Vector3.UP*(.975+lift*.5)
+	var broad:=BoxShape3D.new();broad.size=(to-from).abs()+envelope.size+Vector3.ONE*.01
+	var query:=PhysicsShapeQueryParameters3D.new();query.shape=broad;query.collision_mask=1|256;query.margin=.001;query.exclude=excludes
+	query.transform=Transform3D(Basis.IDENTITY,(from+to)*.5+centre)
+	var hits:=space.intersect_shape(query,128)
+	if hits.size()>=128: return {"ok":false,"reason":"corridor_broadphase_overflow"}
+	# Mask1 includes NPCs. Ignore only currently authenticated ordinary bodies
+	# and this scene's exact player in STATIC planning; unknown bodies refuse.
+	for hit: Dictionary in hits:
+		var collider: Object=hit.get("collider")
+		if collider is StaticBody3D:continue
+		if collider is CharacterBody3D:
+			var managed: Dictionary=host.target_from_collider(collider)
+			var player: Variant=scene.get("_player")
+			if managed.get("ok",false) and host.physical_life_current(managed) or collider==player and is_instance_valid(player) and player.get_parent()==scene:
+				if not hit.rid in excludes:excludes.append(hit.rid)
+				continue
+		return {"ok":false,"reason":"unowned_corridor_body"}
+	query.exclude=excludes;query.shape=envelope
+	for point: Vector3 in [from,to]:
+		query.transform=Transform3D(Basis.IDENTITY,point+centre);query.motion=Vector3.ZERO
+		if not space.intersect_shape(query,1).is_empty():return {"ok":false,"reason":"static_corridor_square_overlap"}
+	query.transform=Transform3D(Basis.IDENTITY,from+centre);query.motion=to-from
+	var cast:=space.cast_motion(query)
+	if cast.size()!=2 or cast[0]<.999999:return {"ok":false,"reason":"static_corridor_square_sweep"}
+	return {"ok":_token_current(token),"exclude":excludes}
+
+## One graph check per direct-source or exact pinned callback scope.
+func _same_call_token_contract() -> bool:
+	if not Thread.is_main_thread() or _host==null or not is_instance_valid(_host.get_ref()) or not is_instance_valid(_contact): return false
+	var host: RefCounted=_host.get_ref()
+	var admission: Variant=host.get("_admit")
+	if not admission is Callable or not admission.is_valid() or admission.get_object()!=self or admission.get_method()!=&"source_admit" or admission.get_bound_arguments_count()!=0 or admission.get_unbound_arguments_count()!=0: return false
+	var host_script: Variant=host.get_script()
+	var this_script: Variant=get_script()
+	var footprint: Variant=_contact.get("_footprint")
+	var navigation: Variant=host.get("_navigation")
+	var local_lease: Variant=host.get("_local_navigation_lease")
+	if not local_lease is Dictionary or not local_lease.is_empty() or not is_instance_valid(navigation) or not navigation.get_script() is Script or navigation.get_script().resource_path!="res://scripts/city/runtime/npc_city_navigation_host.gd": return false
+	var backend: Variant=navigation.get("_backend")
+	return this_script is Script and this_script.resource_path=="res://scripts/city/runtime/npc_city_world_policy.gd" and host_script is Script and host_script.resource_path=="res://scripts/npc_visual/preview_resident_host.gd" and is_instance_valid(backend) and backend.get_script() is Script and backend.get_script().resource_path=="res://scripts/city/runtime/npc_city_engine_navigation.gd" and backend.get("_state")=="READY" and _contact.get_script()==Contact and is_instance_valid(footprint) and footprint.get_script() is Script and footprint.get_script().resource_path=="res://scripts/navigation/npc_swept_footprint.gd"
+
+func _new_pinned_token_scope(host: RefCounted) -> Array:
+	if _dsh_memo<0: _memo_flag()
+	if _dsh_memo!=1 or _host==null or _host.get_ref()!=host or not _same_call_token_contract(): return NO_MEMO
+	return [null]
+
+func _take_pinned_token_scope(scope: Array) -> Array:
+	if _dsh_memo==1 and scope.size()==9 and scope[8]==1 and _host!=null and scope[1]==_host.get_ref() and scope[1].get("_busy")==true:
+		scope[8]=2 # A retained Array cannot seed a second source entry.
+		return scope
+	return [null] if _dsh_memo==1 and _same_call_token_contract() else NO_MEMO
+
+
+# Cooperative INITIAL admission changes scheduling only. Public synchronous
+# authorize_errand_path (including suffix reuse) remains byte-exact above.
+func initial_path_admission_enabled() -> bool:
+	if _initial_flag<0:
+		_initial_flag=1 # Native241 + matched default286 original frame budgets PASS.
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-initial-admission-budget="): _initial_flag=1 if argument.trim_prefix("--city-initial-admission-budget=")=="1" else 0
+	return _initial_flag==1
+
+func _install_initial_admission_pump() -> void:
+	if not initial_path_admission_enabled() or _disposed or is_instance_valid(_initial_pump) or _scene==null: return
+	var scene: Node3D=_scene.get_ref()
+	if not is_instance_valid(scene) or not scene.is_inside_tree(): return
+	var pump:=InitialAdmissionPump.new()
+	pump.name="CityInitialAdmissionPump"; pump.policy=weakref(self)
+	pump.process_physics_priority=1
+	pump.set_process(false); scene.add_child(pump); pump.set_physics_process(true)
+	_initial_pump=pump
+
+func begin_initial_path_admission(activity_owner: RefCounted, token: Dictionary, map: RID, iteration: int, path: PackedVector3Array, requester: RefCounted, query_epoch: int) -> int:
+	if not initial_path_admission_enabled() or _busy or _initial_pumping or not _token_current(token,activity_owner) or not map.is_valid() or path.is_empty() or path.size()>512 or _initial_jobs.size()>=INITIAL_ADMISSION_LIMIT: return -1
+	if not is_instance_valid(requester) or requester.get_script()!=load("res://scripts/npc_daily_walk.gd") or requester.get("_policy")!=self or requester.get("_token")!=token or requester.get("_owner")==null or requester.get("_owner").get_ref()!=activity_owner or int(requester.get("_initial_admission_ticket"))>=0 or not requester._initial_admission_intent_current(query_epoch,map,iteration,path): return -1
+	var intent_points: PackedVector3Array=requester.get("_points")
+	for index in intent_points.size():
+		if path[index+1]!=intent_points[index]: return -1
+	for existing: int in _initial_jobs:
+		if _initial_jobs[existing].token.source_id==token.source_id: return -1
+	var host: RefCounted=_host.get_ref(); var navigation: RefCounted=_ordinary_navigation(host)
+	var backend: Variant=navigation.get("_backend") if navigation!=null else null
+	if backend==null or backend.map_rid()!=map or NavigationServer3D.map_get_iteration_id(map)!=iteration: return -1
+	if not path[0].is_finite() or path[0].distance_to(token.body.global_position)>.35: return -1
+	var claim: Dictionary=host.daily_activity_status(token.source_id)
+	_initial_serial+=1
+	var ticket:=_initial_serial
+	_initial_jobs[ticket]={"ticket":ticket,"owner":weakref(activity_owner),"token":token.duplicate(),"requester":weakref(requester),"epoch":query_epoch,"map":map,"iteration":iteration,"version":_version,"navigation":weakref(navigation),"backend":weakref(backend),"claim_serial":claim.get("serial",-1),"path":path.duplicate(),"index":1,"verified":0,"buckets":{},"distance":0.0,"started_us":Time.get_ticks_usec(),"last_progress_us":Time.get_ticks_usec(),"progress_pause_us":0,"paused_us_total":0,"paused":false,"pause_started_us":0,"done":false,"result":{}}
+	_initial_queue.append(ticket); _initial_gc.append(ticket)
+	_initial_stats.created+=1
+	_initial_stats.queue_peak=maxi(_initial_stats.queue_peak,_initial_queue.size())
+	return ticket
+
+func _initial_job_current(job: Dictionary) -> String:
+	var owner: RefCounted=job.owner.get_ref(); var requester: RefCounted=job.requester.get_ref()
+	if _busy or _disposed or not Thread.is_main_thread() or _version!=job.version or not is_instance_valid(owner) or not is_instance_valid(requester) or not _token_current(job.token,owner): return "owner_or_map_changed"
+	if not requester._initial_admission_current(job.ticket,job.epoch,job.map,job.iteration,job.path): return "initial_path_intent_changed"
+	var host: RefCounted=_host.get_ref(); var navigation: RefCounted=_ordinary_navigation(host)
+	var backend: RefCounted=job.backend.get_ref()
+	if not is_instance_valid(navigation) or not is_instance_valid(backend) or navigation!=job.navigation.get_ref() or navigation.get("_backend")!=backend or backend.map_rid()!=job.map or not job.map.is_valid() or NavigationServer3D.map_get_iteration_id(job.map)!=job.iteration: return "current_native_map_required"
+	var claim: Dictionary=host.daily_activity_status(job.token.source_id)
+	if claim.get("serial",-1)!=job.claim_serial or not claim.get("current",false) or claim.get("owner")!=owner or claim.get("life_generation",-1)!=int(job.token.life_generation): return "initial_path_claim_changed"
+	if job.path[0].distance_to(job.token.body.global_position)>.35: return "path_must_start_at_actual_body"
+	return ""
+
+func _initial_finish(job: Dictionary, result: Dictionary) -> void:
+	if not _initial_job_live(job) or job.done: return
+	job.done=true; job.result=result.duplicate(); job.finished_us=Time.get_ticks_usec()
+	_initial_stats.completed+=1
+	if result.get("ok",false): _initial_stats.completed_ok+=1
+	else:
+		_initial_stats.completed_refused+=1
+		if result.get("reason")=="initial_path_no_progress_timeout": _initial_stats.pending_no_progress_timeouts+=1
+	var waited: int=job.finished_us-job.started_us
+	_initial_stats.max_wait_us=maxi(_initial_stats.max_wait_us,waited); _initial_stats.total_wait_us+=waited
+
+func _initial_projection(job: Dictionary, index: int) -> Dictionary:
+	var point: Vector3=job.path[index]
+	if not point.is_finite(): return {"ok":false,"reason":"path_point_off_native_map","point_index":index,"point":point,"nonfinite":true}
+	# Only a freshly certified native region returning this EXACT point can
+	# replace the global map loop. All nonzero/uncertain answers use original.
+	# Point0 always performs its original global query and fresh connector.
+	if index>0:
+		var backend: RefCounted=job.backend.get_ref()
+		if is_instance_valid(backend) and backend.native_published_point_zero(job.map,int(job.iteration),point):
+			return {"ok":true}
+	var closest:=NavigationServer3D.map_get_closest_point(job.map,point)
+	var off_map:=closest.distance_to(point)
+	if off_map>.12:
+		var actual_start: bool=index==0 and point.distance_to(job.token.body.global_position)<=.000001
+		if not actual_start or off_map>2.0:
+			return {"ok":false,"reason":"path_point_off_native_map","point_index":index,"point":point,"closest":closest,"distance_m":off_map,"is_actual_start":actual_start,"connector_reason":"actual_start_or_gap_bound"}
+		if not native_clear_segment(job.token,point,closest):
+			return {"ok":false,"reason":"path_point_off_native_map","point_index":index,"point":point,"closest":closest,"distance_m":off_map,"is_actual_start":actual_start,"connector_reason":_last_reason}
+	return {"ok":true}
+
+func _initial_advance(job: Dictionary, deadline: int) -> int:
+	var guard_started:=Time.get_ticks_usec()
+	var reason:=_initial_job_current(job)
+	_initial_stats.guard_max_us=maxi(_initial_stats.guard_max_us,Time.get_ticks_usec()-guard_started)
+	if not reason.is_empty(): _initial_finish(job,{"ok":false,"reason":reason}); return 0
+	var pause_reason:=_initial_observe_pause(job)
+	if not _initial_job_live(job): return 0 # Original pause callback may cancel synchronously.
+	if not pause_reason.is_empty(): _initial_finish(job,{"ok":false,"reason":pause_reason}); return 0
+	if job.paused: return 0 # Only the same canonical Walk may explicitly resume.
+	if not job.paused and _initial_pending_idle_us(job,Time.get_ticks_usec())>INITIAL_ADMISSION_NO_PROGRESS_US:
+		_initial_finish(job,{"ok":false,"reason":"initial_path_no_progress_timeout"}); return 0
+	var path: PackedVector3Array=job.path; var work:=0
+	while int(job.index)<path.size() and work<INITIAL_ADMISSION_CHUNK_POINTS and Time.get_ticks_usec()<deadline:
+		var atomic_started:=Time.get_ticks_usec()
+		var index: int=job.index; var point: Vector3=path[index]
+		var projected:=_initial_projection(job,index)
+		if not projected.get("ok",false): _initial_finish(job,projected); return work
+		var a: Vector3=path[index-1]
+		if a.distance_to(point)>_dsh_leg_bound(): _initial_finish(job,{"ok":false,"reason":"path_leg_exceeds_bound"}); return work
+		job.distance+=a.distance_to(point)
+		if float(job.distance)>2000.0: _initial_finish(job,{"ok":false,"reason":"path_distance_bound"}); return work
+		var minv:=Vector2(a.x,a.z).min(Vector2(point.x,point.z))-Vector2.ONE*.36
+		var maxv:=Vector2(a.x,a.z).max(Vector2(point.x,point.z))+Vector2.ONE*.36
+		for z in range(floori(minv.y/4.1),floori(maxv.y/4.1)+1):
+			for x in range(floori(minv.x/4.1),floori(maxv.x/4.1)+1):
+				var key:=Vector2i(x,z)
+				if not job.buckets.has(key): job.buckets[key]=[]
+				job.buckets[key].append([Vector2(a.x,a.z),Vector2(point.x,point.z)])
+		job.index+=1; job.verified+=1; work+=1
+		job.last_progress_us=Time.get_ticks_usec(); job.progress_pause_us=int(job.paused_us_total)
+		_initial_stats.atomic_step_max_us=maxi(_initial_stats.atomic_step_max_us,Time.get_ticks_usec()-atomic_started)
+	# Point zero's physical connector is never a stale cross-frame receipt.
+	# Project it last and perform the fresh owner/map/claim guard before minting.
+	if int(job.index)==path.size() and Time.get_ticks_usec()<deadline:
+		var atomic_started:=Time.get_ticks_usec()
+		reason=_initial_job_current(job)
+		if not reason.is_empty(): _initial_finish(job,{"ok":false,"reason":reason}); return work
+		var projected:=_initial_projection(job,0)
+		if not projected.get("ok",false): _initial_finish(job,projected); return work
+		reason=_initial_job_current(job)
+		if not reason.is_empty(): _initial_finish(job,{"ok":false,"reason":reason}); return work
+		_cookie+=1
+		var token: Dictionary=job.token
+		_paths[token.source_id]={"owner":job.owner,"token":token.duplicate(),"cookie":_cookie,"map":job.map,"iteration":job.iteration,"buckets":job.buckets,"vertices":path.duplicate(),"version":_version,"navigation":job.navigation,"backend":job.backend}
+		job.verified+=1; work+=1
+		_initial_finish(job,{"ok":true,"cookie":_cookie,"points":path.size(),"source_authority":false})
+		_initial_stats.atomic_step_max_us=maxi(_initial_stats.atomic_step_max_us,Time.get_ticks_usec()-atomic_started)
+	return work
+
+func _initial_erase(ticket: int, revoke: bool) -> void:
+	if not _initial_jobs.has(ticket): return
+	var job: Dictionary=_initial_jobs[ticket]
+	if revoke and job.done and job.result.get("ok",false):
+		var owner: RefCounted=job.owner.get_ref()
+		if is_instance_valid(owner): revoke_errand_path(owner,job.token,int(job.result.cookie))
+	_initial_jobs.erase(ticket); _initial_queue.erase(ticket); _initial_gc.erase(ticket)
+
+func cancel_initial_path_admission(requester: RefCounted, ticket: int) -> bool:
+	if not Thread.is_main_thread() or not _initial_jobs.has(ticket) or _initial_jobs[ticket].requester.get_ref()!=requester: return false
+	var job: Dictionary=_initial_jobs[ticket]
+	if job.done: _initial_stats.cancelled_done+=1
+	else: _initial_stats.cancelled_pending+=1
+	_initial_erase(ticket,true); _initial_stats.cancelled+=1
+	return true
+
+func poll_initial_path_admission(requester: RefCounted, ticket: int) -> Dictionary:
+	if not Thread.is_main_thread() or not _initial_jobs.has(ticket) or _initial_jobs[ticket].requester.get_ref()!=requester: return {"done":true,"ok":false,"reason":"initial_path_admission_missing"}
+	var job: Dictionary=_initial_jobs[ticket]
+	var reason:=_initial_job_current(job) # Fresh even for PENDING/paused/terminal results.
+	if not job.done and not reason.is_empty(): _initial_finish(job,{"ok":false,"reason":reason})
+	if not job.done and not job.paused and _initial_pending_idle_us(job,Time.get_ticks_usec())>INITIAL_ADMISSION_NO_PROGRESS_US:
+		_initial_finish(job,{"ok":false,"reason":"initial_path_no_progress_timeout"})
+	if not job.done: return {"done":false,"ok":false,"status":"SUSPENDED" if job.paused else "PENDING"}
+	if Time.get_ticks_usec()-int(job.finished_us)>INITIAL_ADMISSION_RESULT_RETENTION_US:
+		_initial_result_gc(job)
+		return {"done":true,"ok":false,"reason":"initial_path_result_expired"}
+	var result: Dictionary=job.result.duplicate(); result.done=true
+	if result.get("ok",false):
+		if not reason.is_empty() or not current_errand_cookie(job.token.source_id,int(job.token.life_generation),int(result.cookie)):
+			_initial_stats.consumed_refused+=1
+			_initial_erase(ticket,true)
+			return {"done":true,"ok":false,"reason":reason if not reason.is_empty() else "owner_or_map_changed"}
+		_initial_stats.consumed_ok+=1
+	else: _initial_stats.consumed_refused+=1
+	_initial_erase(ticket,false)
+	return result
+
+func pump_initial_path_admissions() -> void:
+	if not initial_path_admission_enabled() or _disposed or _busy or _initial_pumping or not Thread.is_main_thread(): return
+	var frame:=Engine.get_physics_frames()
+	if _initial_budget_frame!=frame: _initial_budget_frame=frame; _initial_budget_used_us=0; _initial_budget_calls=0
+	var process_frame:=Engine.get_process_frames()
+	if _initial_process_budget_frame!=process_frame:
+		_initial_process_budget_frame=process_frame; _initial_process_budget_used_us=0; _initial_process_budget_calls=0
+	if _initial_process_budget_used_us>=INITIAL_ADMISSION_PROCESS_BUDGET_US:
+		_initial_process_budget_skips+=1; return
+	if _initial_budget_used_us>=INITIAL_ADMISSION_BUDGET_US: return
+	var started:=Time.get_ticks_usec()
+	var remaining:=mini(INITIAL_ADMISSION_BUDGET_US-_initial_budget_used_us,INITIAL_ADMISSION_PROCESS_BUDGET_US-_initial_process_budget_used_us)
+	var deadline:=started+remaining
+	_initial_pumping=true
+	var points:=0
+	# GC consumes the same budget. A pending stall becomes a retained failure;
+	# it cannot discard a successful partial proof just because enqueue is old.
+	for unused in mini(8,_initial_gc.size()):
+		if Time.get_ticks_usec()>=deadline: break
+		var ticket: int=_initial_gc.pop_front()
+		if not _initial_jobs.has(ticket): continue
+		var job: Dictionary=_initial_jobs[ticket]
+		var now:=Time.get_ticks_usec()
+		if not is_instance_valid(job.requester.get_ref()) or not is_instance_valid(job.owner.get_ref()):
+			if job.done: _initial_stats.requester_gc_done+=1
+			else: _initial_stats.requester_gc_pending+=1
+			_initial_erase(ticket,true)
+		elif job.done and now-int(job.finished_us)>INITIAL_ADMISSION_RESULT_RETENTION_US:
+			_initial_result_gc(job)
+		else:
+			if not job.done and not job.paused and _initial_pending_idle_us(job,now)>INITIAL_ADMISSION_NO_PROGRESS_US:
+				var reason:=_initial_job_current(job)
+				if reason.is_empty(): reason=_initial_observe_pause(job)
+				if not _initial_job_live(job): continue
+				if not reason.is_empty(): _initial_finish(job,{"ok":false,"reason":reason})
+				elif not job.paused: _initial_finish(job,{"ok":false,"reason":"initial_path_no_progress_timeout"})
+				if job.done: _initial_queue.erase(ticket)
+			_initial_gc.append(ticket)
+	var suspended_seen: Dictionary={}
+	while not _initial_queue.is_empty() and Time.get_ticks_usec()<deadline:
+		var ticket: int=_initial_queue.pop_front()
+		if not _initial_jobs.has(ticket): continue
+		var job: Dictionary=_initial_jobs[ticket]
+		if job.done: continue
+		if suspended_seen.has(ticket):
+			_initial_queue.push_front(ticket); break # No paused hot-loop or auto-resume.
+		points+=_initial_advance(job,deadline)
+		if _initial_job_live(job) and not job.done:
+			if job.paused: suspended_seen[ticket]=true
+			_initial_queue.append(ticket)
+	var spent:=Time.get_ticks_usec()-started
+	_initial_budget_used_us+=spent; _initial_budget_calls+=1
+	_initial_process_budget_used_us+=spent; _initial_process_budget_calls+=1
+	_initial_process_budget_max_us=maxi(_initial_process_budget_max_us,_initial_process_budget_used_us)
+	_initial_budget_max_us=maxi(_initial_budget_max_us,_initial_budget_used_us)
+	_initial_stats.last_frame=frame; _initial_stats.last_frame_us=spent; _initial_stats.last_points=points; _initial_stats.points+=points
+	_initial_pumping=false
+
+func snapshot_initial_path_admissions() -> Dictionary:
+	var result: Dictionary=_initial_stats.duplicate()
+	result.queued=_initial_queue.size(); result.jobs=_initial_jobs.size()
+	result.global_frame=_initial_budget_frame; result.global_frame_us=_initial_budget_used_us; result.global_frame_calls=_initial_budget_calls; result.max_frame_us=_initial_budget_max_us
+	result.no_progress_timeout_us=INITIAL_ADMISSION_NO_PROGRESS_US; result.result_retention_us=INITIAL_ADMISSION_RESULT_RETENTION_US
+	result.global_process_frame=_initial_process_budget_frame; result.global_process_frame_us=_initial_process_budget_used_us; result.global_process_frame_calls=_initial_process_budget_calls
+	result.max_process_frame_us=_initial_process_budget_max_us; result.process_budget_us=INITIAL_ADMISSION_PROCESS_BUDGET_US; result.process_budget_skips=_initial_process_budget_skips
+	result.pending=0; result.done=0; result.suspended=0; result.entries=[]
+	var now:=Time.get_ticks_usec()
+	for ticket: int in _initial_jobs:
+		var job: Dictionary=_initial_jobs[ticket]
+		if job.done: result.done+=1
+		else: result.pending+=1
+		if job.paused: result.suspended+=1
+		result.entries.append({"ticket":ticket,"index":job.verified,"point_count":job.path.size(),"done":job.done,"source_id":job.token.source_id,"paused":job.paused,"enqueue_age_us":now-int(job.started_us),"no_progress_us":_initial_pending_idle_us(job,now),"result_age_us":now-int(job.get("finished_us",now))})
+	result.retired=int(result.consumed_ok)+int(result.consumed_refused)+int(result.cancelled_pending)+int(result.cancelled_done)+int(result.requester_gc_pending)+int(result.requester_gc_done)+int(result.result_gc_ok)+int(result.result_gc_refused)+int(result.disposed_jobs)
+	result.conservation_ok=int(result.created)==int(result.jobs)+int(result.retired)
+	return result
+
+
+func _initial_job_live(job: Dictionary) -> bool:
+	return _initial_jobs.has(int(job.ticket)) and is_same(_initial_jobs[int(job.ticket)],job)
+
+func _initial_paused_us(job: Dictionary, now: int) -> int:
+	return int(job.paused_us_total)+(maxi(0,now-int(job.pause_started_us)) if job.paused else 0)
+
+func _initial_pending_idle_us(job: Dictionary, now: int) -> int:
+	return maxi(0,now-int(job.last_progress_us)-(_initial_paused_us(job,now)-int(job.progress_pause_us)))
+
+func _initial_set_paused(job: Dictionary, paused: bool) -> void:
+	if bool(job.paused)==paused: return
+	var now:=Time.get_ticks_usec()
+	if paused: job.pause_started_us=now
+	else: job.paused_us_total=int(job.paused_us_total)+maxi(0,now-int(job.pause_started_us)); job.pause_started_us=0
+	job.paused=paused
+
+func _initial_observe_pause(job: Dictionary) -> String:
+	var host: RefCounted=_host.get_ref() if _host!=null else null
+	if not is_instance_valid(host): return "owner_or_map_changed"
+	var records: Variant=host.get("_records")
+	if not records is Dictionary: return "owner_or_map_changed"
+	var record: Dictionary=records.get(job.token.source_id,{})
+	var pause: Callable=record.get("walk_pause",Callable())
+	if not pause.is_valid(): return ""
+	var paused:=bool(pause.call())
+	if not _initial_job_live(job): return "initial_path_cancelled"
+	var reason:=_initial_job_current(job) # A custom original pause may mutate/cancel.
+	if not reason.is_empty(): return reason
+	if paused: _initial_set_paused(job,true)
+	return "" # False does NOT resume a latched job. Same Walk must do that.
+
+func set_initial_path_admission_paused(requester: RefCounted, ticket: int, paused: bool) -> bool:
+	if not Thread.is_main_thread() or _disposed or _busy or not _initial_jobs.has(ticket): return false
+	var job: Dictionary=_initial_jobs[ticket]
+	if job.requester.get_ref()!=requester or not is_instance_valid(requester) or requester.get_script()!=load("res://scripts/npc_daily_walk.gd"): return false
+	var reason:=_initial_job_current(job)
+	if not reason.is_empty():
+		if not job.done: _initial_finish(job,{"ok":false,"reason":reason})
+		return false
+	_initial_set_paused(job,paused)
+	return true
+
+func _initial_result_gc(job: Dictionary) -> void:
+	if not _initial_job_live(job) or not job.done: return
+	if job.result.get("ok",false): _initial_stats.result_gc_ok+=1
+	else: _initial_stats.result_gc_refused+=1
+	_initial_stats.expired+=1 # Compatibility: now ONLY reclaimed terminal results.
+	_initial_erase(int(job.ticket),true)

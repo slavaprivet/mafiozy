@@ -14,6 +14,7 @@ const Ragdoll = preload("res://scripts/npc_visual/npc_ragdoll_host_v2.gd")
 const PreviewActivity = preload("res://scripts/npc_visual/npc_preview_activity.gd")
 const ContactRetaliation = preload("res://scripts/npc_visual/npc_contact_retaliation.gd")
 const REJECTED_PACKET := "384f1f2d2b673bde13a49cfdff2f88b4e84469801b1f572624c53259a472901d"
+const NO_TOKEN_SCOPE: Array=[]
 const FOOTPRINT := .738 # Source _npcBodyPassable radius .18 * native scale 4.1.
 const HEIGHT := 1.9
 const SOURCE_RENDER_YAW_SECONDS := .1 # npc_population.mjs default interpolationSeconds.
@@ -228,9 +229,9 @@ func _leave_busy() -> void:
 	_busy = false
 	if _dispose_requested: dispose()
 
-func _source_admits(point: Vector3, record: Dictionary, purpose: String) -> bool:
+func _source_admits(point: Vector3, record: Dictionary, purpose: String, token_scope: Array=NO_TOKEN_SCOPE) -> bool:
 	if not _living(record) or not _scene_alive() or not point.is_finite() or not _admit.is_valid(): return false
-	var accepted: Variant = _admit.call(point, record.row.source_id, record.generation, FOOTPRINT, purpose)
+	var accepted: Variant = _admit.call(point,record.row.source_id,record.generation,FOOTPRINT,purpose,token_scope) if not token_scope.is_empty() else _admit.call(point,record.row.source_id,record.generation,FOOTPRINT,purpose)
 	return accepted is bool and accepted and _living(record) and _scene_alive()
 
 func _physical_clear(point: Vector3, excluded: Array[RID]) -> bool:
@@ -271,17 +272,30 @@ func _owned_clear(point: Vector3, identity: String) -> bool:
 			return false
 	return true
 
-func _route_admit(point: Vector3, identity: String, generation: int) -> bool:
+func _route_admit(point: Vector3, identity: String, generation: int, token_scope: Array=NO_TOKEN_SCOPE) -> bool:
 	if _disposed or not _records.has(identity): return false
 	var record: Dictionary = _records[identity]
 	if record.generation != generation or record.get("physical_failed",false) or _physical_occupied(identity) or not is_instance_valid(record.body): return false
 	# Navigation invokes this during its own pump as well as our step. Close the
 	# host API against callback reentry in both cases.
 	var was_busy := _busy; _busy = true
-	var allowed := _source_admits(point, record, "route") and _physical_clear(point, [record.body.get_rid()])
+	var allowed := _source_admits(point,record,"route",token_scope) and _physical_clear(point,[record.body.get_rid()])
 	_busy = was_busy
 	if not _busy and _dispose_requested: dispose()
 	return allowed
+
+func _route_admit_pinned(point: Vector3, identity: String, generation: int, cookie: int) -> bool:
+	if not _admit.is_valid(): return false
+	var policy: Variant=_admit.get_object()
+	if not policy is RefCounted or not policy.has_method("current_errand_cookie"): return false
+	# Only the exact unbound callback/closed graph can mint a scope.
+	var can_scope: bool=policy.get_script() is Script and policy.get_script().resource_path=="res://scripts/city/runtime/npc_city_world_policy.gd" and policy.has_method("_new_pinned_token_scope")
+	var token_scope: Array=policy._new_pinned_token_scope(self) if can_scope else NO_TOKEN_SCOPE
+	var current: bool=policy.current_errand_cookie(identity,generation,cookie,token_scope) if not token_scope.is_empty() else policy.current_errand_cookie(identity,generation,cookie)
+	var allowed: bool=current and _route_admit(point,identity,generation,token_scope)
+	if not token_scope.is_empty(): token_scope.clear()
+	return allowed
+
 
 func admit_next() -> Dictionary:
 	if not Thread.is_main_thread() or _busy or _disposed or _scene == null: return {"status": "UNAVAILABLE"}
@@ -1985,6 +1999,39 @@ func request_daily_walk(owner: RefCounted, binding: Dictionary, target: Vector3)
 	_daily_activities[binding.source_id]["request"]=request_id
 	return request_id
 
+## Keep one exact daily claim and one physical request for a validated route.
+## A refusal leaves both slots untouched so the ordinary leg can be requested.
+func request_daily_route(owner: RefCounted, binding: Dictionary, route: PackedVector3Array, map: RID, iteration: int, cookie: int) -> Dictionary:
+	if not Thread.is_main_thread() or _busy or _disposed or not _daily_owned(owner, binding): return {"ok":false,"stale":true,"reason":"daily_owner_mismatch"}
+	var id: String = str(binding.get("source_id", ""))
+	if not _records.has(id) or route.size() < 2 or route.size() > 512 or int(_records[id].get("request", -1)) >= 0 or int(_daily_activities[id].get("request", -1)) >= 0: return {"ok":false,"reason":"daily_request_slot_busy_or_route_bound"}
+	var record: Dictionary = _records[id]
+	if not _living(record) or not is_instance_valid(record.body) or record.body.global_position.distance_to(route[0]) > .02: return {"ok":false,"stale":true,"reason":"daily_body_changed"}
+	var policy: Variant = _admit.get_object() if _admit.is_valid() else null
+	if not policy is RefCounted or not policy.has_method("current_errand_route") or not policy.current_errand_route(owner, binding, map, iteration, cookie, route): return {"ok":false,"stale":true,"reason":"current_errand_route_required"}
+	var navigation: RefCounted = _navigation
+	if not _local_navigation_lease.is_empty():
+		var lease: Dictionary = _local_navigation_lease
+		if not lease.get("adapter") is WeakRef or _navigation != lease.adapter.get_ref() or not lease.get("base") is RefCounted: return {"ok":false,"stale":true,"reason":"navigation_lease_changed"}
+		navigation = lease.base
+	if not is_instance_valid(navigation) or not navigation.has_method("request_proven_route"): return {"ok":false,"reason":"ordinary_navigation_required"}
+	if not static_corridor_enabled() and (not _source_admits(route[1], record, "target") or not _physical_clear(route[1], [record.body.get_rid()])): return {"ok":false,"reason":"first_prefix_admission_refused"}
+	if not _daily_owned(owner, binding) or int(record.get("request", -1)) >= 0: return {"ok":false,"stale":true,"reason":"daily_owner_changed_during_admission"}
+	var serial: int = int(_daily_activities[id].serial)
+	_busy = true
+	var request_id: int = navigation.request_proven_route(record.owner, record.body, route, Callable(self, "_route_admit_pinned").bind(cookie), map, iteration, Callable(self,"_route_static_corridor").bind(cookie) if static_corridor_enabled() else Callable())
+	if request_id < 0:
+		_leave_busy()
+		return {"ok":false,"reason":"route_request_refused"}
+	if not _daily_owned(owner, binding) or int(_daily_activities[id].serial) != serial or int(record.get("request", -1)) >= 0 or int(_daily_activities[id].get("request", -1)) >= 0:
+		navigation.cancel(request_id)
+		_leave_busy()
+		return {"ok":false,"stale":true,"reason":"daily_owner_changed_before_commit"}
+	record.request = request_id; record.status = "PENDING"
+	_daily_activities[id]["request"] = request_id
+	_leave_busy()
+	return {"ok":true,"request_id":request_id}
+
 func cancel_daily_walk(owner: RefCounted, binding: Dictionary, exact_request_id: int) -> Dictionary:
 	if not Thread.is_main_thread() or _busy or _disposed or exact_request_id<0 or not _daily_owned(owner,binding): return {"ok":false,"reason":"daily_owner_mismatch"}
 	var id: String=binding.source_id
@@ -2033,3 +2080,16 @@ func _sync_transport_body() -> void:
 	_transport_lease={}
 
 # --- end ported methods ---
+
+var _static_corridor_flag := -1
+func static_corridor_enabled() -> bool:
+	if _static_corridor_flag<0:
+		_static_corridor_flag=1
+		for arg in OS.get_cmdline_user_args():
+			if arg.begins_with("--city-static-corridor="):_static_corridor_flag=1 if int(arg.trim_prefix("--city-static-corridor="))==1 else 0
+	return _static_corridor_flag==1
+func _route_static_corridor(from: Vector3,to: Vector3,id: String,generation: int,edge: int,spacing: float,cookie: int) -> Dictionary:
+	if _busy or _disposed or not _admit.is_valid():return {"ok":false,"reason":"corridor_host_lifetime"}
+	var policy: Variant=_admit.get_object()
+	if not policy is RefCounted or not policy.has_method("static_errand_corridor"):return {"ok":false,"reason":"corridor_policy_required"}
+	return policy.static_errand_corridor(id,generation,cookie,edge,from,to,spacing)

@@ -138,6 +138,7 @@ var _effects: RefCounted
 var _token: Dictionary={}
 var _binding: Dictionary={}
 var _row: Dictionary={}
+var _incident_role_scope := ""
 var _adapter: RefCounted
 var _rng:=RandomNumberGenerator.new()
 var _marksman:=0.0
@@ -177,6 +178,19 @@ var _dsh2_lease_enabled:=true  # DSH_ACCEPTED: принятое значение
 var _dsh2_lease_ok:=false
 var _dsh2_lease_until:=-1
 
+static func _incident_scope_for_candidate(candidate: Dictionary) -> String:
+	var bridge: Variant=candidate.get("bridge_row")
+	var raw: Variant=candidate.get("source_raw")
+	if not bridge is Dictionary or not raw is Dictionary or bridge.get("visualRole","")!="civilian": return ""
+	if bridge.get("role","") not in ["pensioner","housewife","student","businessman","worker","homeless"] or raw.get("_arcKey","")!=bridge.get("role"): return ""
+	for flag: String in ["police","empireBoss","shield"]:
+		if not bridge.get(flag) is bool or bool(bridge[flag]): return ""
+	if not bridge.has("prisonGear") or str(bridge.get("prisonGear",""))!="" or raw.get("_empireBoss",false) or raw.get("_empireCrew",false) or raw.get("_formerMercenary",false): return ""
+	for raw_key: Variant in raw.keys():
+		var key_text: String=str(raw_key).to_lower()
+		if "weapon" in key_text or "firearm" in key_text or key_text=="gun": return ""
+	return "ordinary_unarmed_civilian"
+
 func configure(host: RefCounted, token: Dictionary, packet: PackedByteArray, trust: Dictionary, weapons: Node, source_player_stats: Dictionary) -> Dictionary:
 	if _ready or not is_instance_valid(host) or not host.target_current(token) or not is_instance_valid(weapons) or not weapons.is_inside_tree() or not weapons.has_signal("shot_emitted"): return {"ok":false,"reason":"current_native_owners"}
 	if not trust.get("accepted") is bool or not trust.accepted or not trust.get("sources") is Dictionary: return {"ok":false,"reason":"accepted_packet"}
@@ -194,6 +208,7 @@ func configure(host: RefCounted, token: Dictionary, packet: PackedByteArray, tru
 	if candidate.is_empty() or candidate.bridge_id!=token.render_id or candidate.descriptor_sha256!=token.descriptor_sha256: return {"ok":false,"reason":"original_actor"}
 	if not Rules._finite(source_player_stats.get("marksman")) or source_player_stats.get("scope")!="local_new_session" or source_player_stats.get("session_id")!=token.session_id: return {"ok":false,"reason":"source_player_stats_required"}
 	_row=candidate.source_raw.duplicate(true)
+	_incident_role_scope=_incident_scope_for_candidate(candidate)
 	if _row.get("dead",false) or _row.hp<=0 or _row.hp!=_row.max_hp or _row.get("_medicalDowned",false): return {"ok":false,"reason":"healthy_bootstrap_only"}
 	# These richer roles require their actual combat/surrender owner.
 	# The original guard allowed only three named residents and three arc roles: a
@@ -321,6 +336,15 @@ func _service(row: Dictionary,p: Dictionary,name: String) -> Variant:
 func _queue(name: String,p: Dictionary) -> void:
 	if pending_effects.size()>=256: pending_effects.pop_front()
 	pending_effects.append({"service":name,"source_id":_token.source_id,"life_generation":_token.life_generation,"at_ms":_now(),"payload":p.duplicate(true),"executed":false})
+
+func incident_witness_snapshot() -> Dictionary:
+	if _incident_role_scope!="ordinary_unarmed_civilian" or not _ready or not _is_current(_binding) or not _host.target_current(_token): return {}
+	var body: Variant=_token.get("body")
+	if not is_instance_valid(body) or not body is CharacterBody3D or _row.get("dead",false) or float(_row.get("hp",0))<=0 or _row.get("_medicalDowned",false): return {}
+	var position: Vector3=body.global_position
+	var forward: Vector3=-body.global_basis.z
+	if not position.is_finite() or not forward.is_finite(): return {}
+	return {"eligible":true,"role_scope":_incident_role_scope,"position":position,"forward":forward,"source_id":str(_token.get("source_id","")),"session_id":str(_token.get("session_id","")),"life_generation":int(_token.get("life_generation",-1)),"owner_instance_id":get_instance_id(),"body_instance_id":body.get_instance_id(),"body":body,"token":_token.duplicate()}
 
 func _on_shot(shot: Dictionary,muzzle: Dictionary,_camera_origin: Vector3,camera_direction: Vector3) -> void:
 	if not _is_current(_binding) or not muzzle.get("origin") is Vector3 or not muzzle.origin.is_finite(): return
@@ -665,7 +689,7 @@ func dispose() -> void:
 	_melee_producer=null; _completed_player_damage.clear()
 	if blood!=null: blood.dispose(); blood=null
 	if marks!=null: marks.dispose(); marks=null
-	_ready=false
+	_ready=false; _incident_role_scope=""
 	if _registry_key!=0 and _registries.has(_registry_key):
 		var owners: Dictionary=_registries[_registry_key].owners
 		if owners.has(_token.get("source_id","")) and owners[_token.source_id].get_ref()==self: owners.erase(_token.source_id)

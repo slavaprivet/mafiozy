@@ -20268,3 +20268,18 @@ Boundary:
 - Scheduler `adcb` explicitly adopted with Root proof.
 - Old 0194 drift FAIL preserved.
 - All Buildings4 engine children OFF.
+
+## [2026-10-07 10:48:24 +03:00] Быстрые введения: 07.10 сверка car49 against current merged_root48_08
+Источник: 01a0f37d-8a6f-7560-a8a1-53fca08ba0e1
+
+- car49 ещё не доставлен.
+- Фактический `current_version` уже указывает на `artist24_melee_contact/merged_root48_08` SHA `10f29304511fb705d0b18fc7db9a5a76fcd001f59c9225b2c4194ca201fa11f9`, несмотря на прежнюю revision release48.
+- От Quick Controls baseline48 текущая база отличается 13 файлами и 26 добавлениями, включая `main` / `player` / `project` / NPC.
+- Старый candidate49 переключать нельзя: он потеряет melee.
+- Следующий scoped этап: private композиция car delta поверх фактической `merged_root48_08` и новая парная приёмка.
+- Общие файлы / указатель не менялись.
+- Свежий perf probe: `eligible=true`; движок не запускался.
+- Старый active RESULT проверен: p95 on/off/on 10.187 / 10.282 / 10.207 ms, всего 65 samples / 0.45s на фазу.
+- Это только smoke/CHECK, не полный FPS PASS.
+- Детали сохранены в шапке `docs/ai/QUICK_IMPROVEMENTS_CONTINUOUS_20261003.md`.
+- Просьба действующему координатору учитывать актуальную базу при последовательном включении; прежних владельцев не будить.
