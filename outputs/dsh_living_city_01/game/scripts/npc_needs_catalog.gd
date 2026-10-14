@@ -123,12 +123,27 @@ static func kind_of(text: String) -> String:
 ##  * the palazzo copies of the stand (meta `dsh_town_extra` + their `TownCloneSign` label),
 ##  * every node carrying the city's own `source_id` meta (the sites `_attach_site` adds),
 ##  * a bounded name fallback for a site that carries neither marker.
+##
+## Two measured lessons are baked in:
+##  1. the copies are DIRECT children of the scene, so they are collected in their own first
+##     pass. A single depth-first walk spent its whole budget inside one huge subtree and never
+##     reached them (measured: 428 hospital candidates and not one of the three copies);
+##  2. a city site node sits at the world origin while its geometry is built far away
+##     (measured `site_pos=(0,0,0)` for the real hospital, i.e. a distance to nowhere), so the
+##     point of such a site is the centre of its own visual bounds.
 static func scan(scene: Node3D, force: bool = false) -> void:
 	if not is_instance_valid(scene): return
 	if _sites_scanned and not force and _sites_scene_id == scene.get_instance_id(): return
 	_sites = {}
 	_sites_scanned = true
 	_sites_scene_id = scene.get_instance_id()
+	# Pass 1: the stand's own copies, straight off the scene root.
+	for node: Node in scene.get_children():
+		if node.get_meta("dsh_town_extra", false) != true or not node is Node3D: continue
+		var sign_node: Node = node.get_node_or_null("TownCloneSign")
+		var sign_text: String = (sign_node as Label3D).text if sign_node is Label3D else str(node.name)
+		_add_site(sign_text, str(node.name), (node as Node3D).global_position)
+	# Pass 2: the city's own sites, bounded, deduplicated by id.
 	var stack: Array[Node] = [scene]
 	var visited := 0
 	while not stack.is_empty() and visited < 4096:
@@ -136,20 +151,37 @@ static func scan(scene: Node3D, force: bool = false) -> void:
 		visited += 1
 		for child: Node in node.get_children(): stack.append(child)
 		if not node is Node3D or node == scene: continue
-		var text := ""
-		if node.get_meta("dsh_town_extra", false) == true:
-			var sign_node: Node = node.get_node_or_null("TownCloneSign")
-			if sign_node is Label3D: text = (sign_node as Label3D).text
-		if text.is_empty(): text = str(node.get_meta("source_id", ""))
-		if text.is_empty(): text = str(node.name)
-		var kind := kind_of(text)
-		if kind.is_empty(): continue
-		var node_3d: Node3D = node as Node3D
-		if not node_3d.global_position.is_finite(): continue
-		var site_id: String = str(node.get_meta("source_id", ""))
-		if site_id.is_empty(): site_id = str(node.name)
-		if not _sites.has(kind): _sites[kind] = []
-		(_sites[kind] as Array).append({"id": site_id, "pos": node_3d.global_position})
+		var source_id: String = str(node.get_meta("source_id", ""))
+		if source_id.is_empty(): continue
+		_add_site(source_id, source_id, _site_point(node as Node3D))
+
+## DSH_CATALOG: the point a site really stands on: its own node position when that is a real
+## place, otherwise the centre of the visual bounds under it.
+static func _site_point(node: Node3D) -> Vector3:
+	var own: Vector3 = node.global_position
+	if own.length() > .5: return own
+	var box := AABB()
+	var first := true
+	var stack: Array[Node] = [node]
+	var visited := 0
+	while not stack.is_empty() and visited < 512:
+		var part: Node = stack.pop_back()
+		visited += 1
+		for child: Node in part.get_children(): stack.append(child)
+		if part is VisualInstance3D:
+			var world: AABB = (part as Node3D).global_transform * (part as VisualInstance3D).get_aabb()
+			box = world if first else box.merge(world)
+			first = false
+	return box.get_center() if not first else own
+
+static func _add_site(text: String, id: String, pos: Vector3) -> void:
+	var kind := kind_of(text)
+	if kind.is_empty() or id.is_empty() or not pos.is_finite(): return
+	if not _sites.has(kind): _sites[kind] = []
+	var list: Array = _sites[kind]
+	for entry: Dictionary in list:
+		if str(entry.id) == id: return
+	list.append({"id": id, "pos": pos})
 
 ## DSH_CATALOG: the nearest site of `kind` to `from`, by the owner's district rule. The result
 ## is telemetry-ready and never fabricates a site: with none of that kind in the scene `ok` is

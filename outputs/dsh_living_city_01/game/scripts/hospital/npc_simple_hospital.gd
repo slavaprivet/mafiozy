@@ -73,10 +73,20 @@ const DOOR_BONUS_RAD := 0.52
 ## No progress of STALL_M within STALL_S means "look for an opening again, wider".
 const STALL_M := 0.05
 const STALL_S := 1.5
+## DSH_SIMPLEHOSP (measured on the 90 s run of 00:30): movement alone is NOT progress.
+## The walker circled the copy at a constant 5.9 m, moving 0.3 m per step and flipping
+## between the two wide-open sides of the building, so a movement-based stall never fired
+## and the run ended with `stall_no_passage`. The real rule is progress toward the goal:
+## no improvement of PROGRESS_M within PROGRESS_S seconds means "find another opening",
+## and a second window without progress fails the attempt.
+const PROGRESS_M := 0.3
+const PROGRESS_S := 3.0
 ## The owner's turn rate: the body faces its own direction smoothly, never with a snap.
 const YAW_RATE := 8.0
-## Within this distance of the copy's doorway the resident asks for the door to be open.
+## Within this distance of the copy's doorway the resident asks for the door to be open,
+## and the doorway becomes the intermediate steering point while the room centre is walled off.
 const DOOR_NEAR_M := 2.5
+const DOOR_LEG_M := 12.0
 
 ## Ground/floor probe: water and world layers, the same pair the room marker probes.
 const PROBE_MASK := 1 | 256
@@ -131,6 +141,10 @@ var _last_reason := ""
 var _stall_from := Vector3.ZERO
 var _stall_ms := 0
 var _fan_wide := false
+## The smallest distance to the goal seen so far and the wall clock when it was seen: the
+## progress rule above is measured on these two numbers, not on metres walked.
+var _best_dist := -1.0
+var _best_ms := 0
 ## Side hysteresis only (no obstacle memory): keeps a tie between a left and a right
 ## opening on the same side instead of jittering.
 var _side := 0
@@ -293,8 +307,10 @@ func begin(target: Vector3, body: CharacterBody3D, map: RID, id: String, source:
 	_last_reason = ""
 	_fan_wide = false
 	_side = 0
+	_best_dist = -1.0
+	_best_ms = Time.get_ticks_msec()
 	_stall_from = body.global_position
-	_stall_ms = Time.get_ticks_msec()
+	_stall_ms = _best_ms
 	_plan()
 	_resolve_door_nodes()
 	_emit("walking")
@@ -383,18 +399,28 @@ func step(delta: float) -> String:
 		goal = _path[_edge]
 	var to_goal: Vector3 = _flat_dir(here, goal)
 	if to_goal == Vector3.ZERO: return ""
+	# Two legs, the owner's order: while the way to the room centre is walled off and the
+	# copy's own doorway is near, the DOORWAY is the intermediate point to walk to; once the
+	# body stands in it, the room centre is the goal again and the opening is right ahead.
+	var steer: Vector3 = goal
+	_leg = "room"
+	if _door_valid and _flat(here, _door) > ARRIVE_M and _flat(here, _door) <= DOOR_LEG_M and _free_m(here, to_goal) < FORWARD_CLEAR_M:
+		steer = _door
+		_leg = "door"
+	var to_steer: Vector3 = _flat_dir(here, steer)
+	if to_steer == Vector3.ZERO: to_steer = to_goal
 	# 1. Straight to the point: is anything in front of me?
-	var forward_free: float = _free_m(here, to_goal)
-	var direction: Vector3 = to_goal
+	var forward_free: float = _free_m(here, to_steer)
+	var direction: Vector3 = to_steer
 	_hit_wall = forward_free < FORWARD_CLEAR_M
 	_dir_label = "straight"
 	_open_label = "none"
 	_gap_deg = 0.0
 	_gap_m = 0.0
 	_gap_ok = false
-	if _hit_wall or not _width_ok(here, to_goal):
+	if _hit_wall or not _width_ok(here, to_steer):
 		# 2. A wall (or a slit) in front: look for an opening in the live geometry.
-		var best: Dictionary = _find_opening(here, to_goal)
+		var best: Dictionary = _find_opening(here, to_steer, _leg == "door")
 		if bool(best.get("ok", false)):
 			direction = best.dir
 			_dir_label = "gap"
@@ -424,22 +450,24 @@ func step(delta: float) -> String:
 	_anim = _feed_gait(delta, travel, direction)
 	# 4c. The copy's door: ask its own owner to open it, or report the free-entry stand.
 	_update_door()
-	# 5. Stall rule: less than 5 cm in 1.5 s means "look again, wider".
+	# 5. Progress rule (measured): walking around the copy at a constant distance is not
+	# progress. No improvement of PROGRESS_M within PROGRESS_S asks for another opening
+	# (wider fan, side memory cleared); a second window without progress fails the attempt.
 	var point: Vector3 = _body.global_position
 	var now_ms: int = Time.get_ticks_msec()
-	if _flat(point, _stall_from) >= STALL_M:
-		_stall_from = point
-		_stall_ms = now_ms
-		if _fan_wide and _flat(point, _target) < dist: _fan_wide = false
-	elif now_ms - _stall_ms >= int(STALL_S * 1000.0):
+	var reached: float = _flat(point, _target)
+	if _best_dist < 0.0 or reached < _best_dist - PROGRESS_M:
+		_best_dist = reached
+		_best_ms = now_ms
+		if _fan_wide: _fan_wide = false
+	elif now_ms - _best_ms >= int(PROGRESS_S * 1000.0):
 		if not _fan_wide:
 			_fan_wide = true
-			_stall_ms = now_ms
+			_side = 0
+			_best_ms = now_ms
 			_last_reason = "stall_widen_fan"
 		else:
-			return _fail_attempt("stall_no_passage")
-	var reached: float = _flat(point, _target)
-	_leg = "door" if (_door_valid and point.distance_to(_door) <= 8.0) else "room"
+			return _fail_attempt("no_progress_to_target")
 	if reached <= 2.5: _entered = true
 	if reached <= ARRIVE_M:
 		_active = false
@@ -540,10 +568,14 @@ func _step_up(here: Vector3, direction: Vector3) -> bool:
 
 ## The opening search: a fan of rays from -FAN_WIDE_DEG to +FAN_WIDE_DEG (wider after a
 ## stall), and a direction counts only when its ray travels past the wall AND the three-ray
-## width test says the resident fits. The owner's order: a generous opening (>= WIDE_M)
-## inside +-WIDE_DEG wins; otherwise the smallest deviation from the goal; the copy's own
-## doorway direction and the side already in use break ties. Nothing is cached.
-func _find_opening(here: Vector3, to_goal: Vector3) -> Dictionary:
+## width test says the resident fits.
+##
+## Scoring (measured fix): while the DOORWAY is the steering goal, the walker must hug the
+## facade towards the doorway - the "most generous opening" bonus is OFF there, because on
+## the 00:30 run that bonus made it pick the wide-open street on either side of the copy and
+## circle it at a constant 5.9 m from the room centre. On the open leg the owner's >= 6 m
+## rule still applies inside +-60 degrees.
+func _find_opening(here: Vector3, to_goal: Vector3, door_leg: bool) -> Dictionary:
 	var limit: float = FAN_WIDER_DEG if _fan_wide else FAN_WIDE_DEG
 	var door_dir: Vector3 = Vector3.ZERO
 	if _door_valid:
@@ -561,10 +593,11 @@ func _find_opening(here: Vector3, to_goal: Vector3) -> Dictionary:
 			if not _capsule_clear(here, direction): continue
 			var opening := "left" if side_sign > 0.0 else "right"
 			if free >= WIDE_M: opening = "breach"
-			# Cost: generous openings first (the owner's >= 6 m rule inside +-60 deg),
-			# then the smallest deviation, then the doorway, then the side in use.
+			# Cost: the smallest deviation from the direction being walked (the doorway while
+			# the room centre is walled off), then the doorway bonus, then the side in use.
 			var score: float = angle
-			if free >= WIDE_M and angle <= WIDE_DEG + .001: score -= 100.0 - minf(free, 30.0)
+			if not door_leg and free >= WIDE_M and angle <= WIDE_DEG + .001:
+				score -= 100.0 - minf(free, 30.0)
 			if _door_valid and door_dir != Vector3.ZERO and direction.dot(door_dir) >= cos(DOOR_BONUS_RAD):
 				score -= 25.0
 				if opening != "breach": opening = "door"
@@ -689,6 +722,8 @@ func _fail_attempt(reason: String) -> String:
 	_attempts += 1
 	_side = 0
 	_fan_wide = false
+	_best_dist = -1.0
+	_best_ms = Time.get_ticks_msec()
 	if is_instance_valid(_body): _body.velocity = Vector3.ZERO
 	if _attempts >= MAX_ATTEMPTS:
 		_active = false
@@ -703,7 +738,7 @@ func _fail_attempt(reason: String) -> String:
 	_plan()
 	_wait_s = RETRY_DELAY_S
 	_stall_from = _body.global_position if is_instance_valid(_body) else Vector3.ZERO
-	_stall_ms = Time.get_ticks_msec()
+	_stall_ms = _best_ms
 	_emit("retry", "%s_attempt_%d_of_%d" % [reason, _attempts, MAX_ATTEMPTS])
 	return "retry"
 
