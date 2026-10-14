@@ -9,6 +9,7 @@ var _id := ""
 var _base := ""
 var _t := 0.0
 var _last := ""
+var _dumped := false
 
 func setup(host: Object, id: String, base_text: String) -> void:
 	_host = host
@@ -26,11 +27,38 @@ func _row() -> Dictionary:
 	var records: Variant = _host.get("_records")
 	if not (records is Dictionary) or not (records as Dictionary).has(_id): return {}
 	var rec: Variant = (records as Dictionary)[_id]
-	if rec is Dictionary: return (rec as Dictionary).get("row", {})
-	if rec is Object:
-		var r: Variant = (rec as Object).get("row")
-		if r is Dictionary: return r
-	return {}
+	# The record layout is not ours to assume: look for the vitals on the record itself and one
+	# level down (row / life / state), so the bar shows real numbers instead of "-".
+	var dsh := _find_vitals(rec, 0)
+	if not _dumped:
+		_dumped = true
+		print("DSH_RESBAR_DUMP id=", _id, " found_hp=", dsh.has("hp"), " found_max=", dsh.has("max_hp"), " found_energy=", dsh.has("energy"), " keys=", ",".join(PackedStringArray(dsh.keys().map(func(k): return str(k)))))
+	return dsh
+
+func _find_vitals(source: Variant, depth: int) -> Dictionary:
+	var out: Dictionary = {}
+	if source == null or depth > 2: return out
+	if source is Dictionary:
+		var d := source as Dictionary
+		for key: String in ["hp", "max_hp", "energy"]:
+			if d.has(key): out[key] = d[key]
+		if out.has("hp"): return out
+		for nested: String in ["row", "life", "state", "health"]:
+			if d.has(nested):
+				var inner := _find_vitals(d[nested], depth + 1)
+				if not inner.is_empty(): return inner
+		return out
+	if source is Object:
+		for key2: String in ["hp", "max_hp", "energy"]:
+			var v: Variant = (source as Object).get(key2)
+			if v is float or v is int: out[key2] = v
+		if out.has("hp"): return out
+		for nested2: String in ["row", "life", "state", "health"]:
+			var t: Variant = (source as Object).get(nested2)
+			if t != null:
+				var inner2 := _find_vitals(t, depth + 1)
+				if not inner2.is_empty(): return inner2
+	return out
 
 func _compose() -> String:
 	var text := _base
