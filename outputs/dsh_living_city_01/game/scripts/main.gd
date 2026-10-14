@@ -1047,34 +1047,78 @@ func _install_palazzo_clones() -> void:
 	for dsh_argument: String in OS.get_cmdline_user_args():
 		if dsh_argument.begins_with("--city-palazzo-clones="): dsh_on = int(dsh_argument.trim_prefix("--city-palazzo-clones=")) != 0
 	if not dsh_on: return
-	var dsh_sign: Label3D = _dsh_sign_of(self)
-	if dsh_sign == null:
-		print("CITY_TOWN_CLONE ", JSON.stringify({"ok": false, "reason": "palazzo_sign_not_found"}))
+	# The "ПАЛАЦЦО" lettering is not a Label3D, so the anchor is the mesh-heaviest child of
+	# the scene: that is the palazzo block the host built (geometry + door + glazing).
+	var dsh_root: Node = null
+	var dsh_best := 0
+	for dsh_child2: Node in get_children():
+		var dsh_meshes := 0
+		for dsh_node3: Node in _dsh_walk(dsh_child2):
+			if dsh_node3 is MeshInstance3D: dsh_meshes += 1
+		if dsh_meshes > dsh_best:
+			dsh_best = dsh_meshes
+			dsh_root = dsh_child2
+	if dsh_root == null or dsh_best < 50:
+		print("CITY_TOWN_CLONE ", JSON.stringify({"ok": false, "reason": "palazzo_root_not_found", "best_meshes": dsh_best}))
 		return
-	var dsh_root: Node = dsh_sign
-	while dsh_root.get_parent() != null and dsh_root.get_parent() != self: dsh_root = dsh_root.get_parent()
-	if dsh_root.get_parent() != self:
-		print("CITY_TOWN_CLONE ", JSON.stringify({"ok": false, "reason": "palazzo_root_not_found"}))
-		return
+	print("CITY_TOWN_CLONE_ANCHOR ", JSON.stringify({"node": str(dsh_root.name), "meshes": dsh_best}))
 	var dsh_step := 45.0
 	for dsh_argument: String in OS.get_cmdline_user_args():
 		if dsh_argument.begins_with("--city-clone-step="): dsh_step = maxf(12.0, float(dsh_argument.trim_prefix("--city-clone-step=")))
-	var dsh_signs: Array[String] = ["БОЛЬНИЦА", "БАНК", "РЕСТОРАН"]
+	var dsh_names: Array[String] = ["БОЛЬНИЦА", "БАНК", "РЕСТОРАН"]
+	var dsh_flags: Array[String] = ["--city-clone-hospital=", "--city-clone-bank=", "--city-clone-restaurant="]
+	var dsh_enabled: Array = []
+	for dsh_flag: String in dsh_flags:
+		var dsh_value := true
+		for dsh_argument2: String in OS.get_cmdline_user_args():
+			if dsh_argument2.begins_with(dsh_flag): dsh_value = int(dsh_argument2.trim_prefix(dsh_flag)) != 0
+		dsh_enabled.append(dsh_value)
+	# The palazzo door belongs to the host, not to the site geometry, so it is looked up in the
+	# whole scene and copied per clone (the site subtree carries no door node of its own).
+	var dsh_anchor_nodes: Array = _dsh_walk(dsh_root)
+	var dsh_door_source: Node = null
+	for dsh_node4: Node in _dsh_walk(self):
+		if str(dsh_node4.name).to_lower().contains("door") and not dsh_anchor_nodes.has(dsh_node4):
+			dsh_door_source = dsh_node4
+			break
 	var dsh_base: Vector3 = (dsh_root as Node3D).position if dsh_root is Node3D else Vector3.ZERO
-	for dsh_i in dsh_signs.size():
+	var dsh_built := 0
+	for dsh_i in dsh_names.size():
+		if not bool(dsh_enabled[dsh_i]):
+			print("CITY_TOWN_CLONE ", JSON.stringify({"ok": true, "sign": dsh_names[dsh_i], "built": false, "reason": "flag_off"}))
+			continue
 		var dsh_clone: Node = dsh_root.duplicate()
 		if dsh_clone == null: continue
 		dsh_clone.name = "TownClone_" + str(dsh_i + 1)
 		add_child(dsh_clone)
-		if dsh_clone is Node3D: (dsh_clone as Node3D).position = dsh_base + Vector3(dsh_step * float(dsh_i + 1), 0.0, 0.0)
+		var dsh_at: Vector3 = dsh_base + Vector3(dsh_step * float(dsh_i + 1), 0.0, 0.0)
+		if dsh_clone is Node3D: (dsh_clone as Node3D).position = dsh_at
 		dsh_clone.set_meta("dsh_town_extra", true)
-		var dsh_new_sign: Label3D = _dsh_sign_of(dsh_clone)
-		if dsh_new_sign != null: dsh_new_sign.text = dsh_signs[dsh_i]
-		var dsh_at: Vector3 = (dsh_clone as Node3D).position if dsh_clone is Node3D else Vector3.ZERO
-		var dsh_doors := 0
-		for dsh_node2: Node in _dsh_walk(dsh_clone):
-			if str(dsh_node2.name).to_lower().contains("door"): dsh_doors += 1
-		print("CITY_TOWN_CLONE ", JSON.stringify({"ok": true, "sign": dsh_signs[dsh_i], "sign_found": dsh_new_sign != null, "door_nodes": dsh_doors, "origin": [dsh_at.x, dsh_at.y, dsh_at.z]}))
+		var dsh_label := Label3D.new()
+		dsh_label.name = "TownCloneSign"
+		dsh_label.text = dsh_names[dsh_i]
+		dsh_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		dsh_label.double_sided = true
+		dsh_label.no_depth_test = true
+		dsh_label.pixel_size = .02
+		dsh_label.font_size = 96
+		dsh_label.modulate = Color(1, .93, .72, 1)
+		dsh_label.outline_modulate = Color(0, 0, 0, 1)
+		dsh_label.outline_size = 18
+		dsh_label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		(dsh_clone as Node3D).add_child(dsh_label)
+		dsh_label.position = Vector3(0.0, 14.0, 0.0)
+		var dsh_door_ok := false
+		if dsh_door_source != null and dsh_door_source is Node3D:
+			var dsh_door: Node = dsh_door_source.duplicate()
+			if dsh_door != null and dsh_door is Node3D:
+				(dsh_clone as Node3D).add_child(dsh_door)
+				(dsh_door as Node3D).position = (dsh_door_source as Node3D).position
+				dsh_door.set_meta("dsh_town_extra", true)
+				dsh_door_ok = true
+		dsh_built += 1
+		print("CITY_TOWN_CLONE ", JSON.stringify({"ok": true, "sign": dsh_names[dsh_i], "built": true, "sign_node": "TownCloneSign", "door_copied": dsh_door_ok, "door_source": (str(dsh_door_source.name) if dsh_door_source != null else "-"), "origin": [dsh_at.x, dsh_at.y, dsh_at.z]}))
+	print("CITY_TOWN_CLONE_TOTAL ", JSON.stringify({"built": dsh_built, "step_m": dsh_step}))
 
 func _install_town_extras() -> bool:
 	if not city_town_active() or not town_extras.is_empty(): return false
