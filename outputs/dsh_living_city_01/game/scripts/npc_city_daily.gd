@@ -386,7 +386,14 @@ func step(delta: float) -> void:
 			var dsh_now: int = Time.get_ticks_msec()
 			var dsh_last: int = int(life._dsh_last_ms)
 			life._dsh_last_ms = dsh_now
-			if dsh_last <= 0 or life._health.should_pause_walk(): life._dsh_elapsed = 0.0
+			# DSH_HEALTHGUARD: `life._health` can be absent while a resident is being torn down
+			# or was never bound; the unguarded call raised 291 x "Nonexistent function
+			# 'should_pause_walk' in base 'Nil'" per run and ABORTED this iteration before
+			# life.step(delta) - so damage never reached the row and HP stayed at 100%.
+			var dsh_pause := false
+			if life._health != null and (life._health as Object).has_method("should_pause_walk"):
+				dsh_pause = bool(life._health.should_pause_walk())
+			if dsh_last <= 0 or dsh_pause: life._dsh_elapsed = 0.0
 			else: life._dsh_elapsed = clampf(float(dsh_now - dsh_last) / 1000.0, 0.0, _dsh_life_cap())
 		life.step(delta)
 		var life_us:=Time.get_ticks_usec()-life_started
