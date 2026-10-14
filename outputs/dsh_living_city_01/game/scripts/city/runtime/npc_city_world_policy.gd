@@ -479,6 +479,43 @@ func _handoff_probe_scan(point: Vector3, id: String, generation: int, tag: Strin
 			summary += "[%+.0f,%+.0f:L%d/O%d/h%.2f/a%d/f%d]" % [float(dr), float(dc), land, ordinary, height, 1 if admitted else 0, hit_n]
 	print("DSH_HANDOFF_SCAN tag=", tag, " point=(", "%.3f" % point.x, ",", "%.3f" % point.z, ")", summary)
 
+# DSH_HANDOFFSUPPORT: --city-handoff-support-plate=1 (default 0) lets the support ray
+# reach the registered source floor under the printshop's OWN static interior plate.
+# Measured with --city-handoff-probe=1 at the shop handoff (the authored public approach
+# (7.405, 0, 5.649) = cell index 2232, land=1 ordinary=1 palette_h=0.0000):
+#   DSH_HANDOFF_RAY point=(7.405,5.649) y=0.0000 empty=false registered=false hit_y=0.1500 normal_y=1.000
+# The ray stopped on a layer-1 interior body at y=0.150 that is not in _floors, so both
+# support_height and _native_floor_square answered `current_source_floor_missing` and the
+# daily shop failed with `current_handoff_floor`. This is the same audited coplanar
+# duplicate the Palazzo dry plate already is (_duplicate_support / DUPLICATE_SUPPORT_SIZE):
+# a body covering a source floor at another height. It is excluded from the support ray
+# ONLY; source_admit, _source_segment, _native_segment, the capsule proof and all movement
+# are untouched, and with the flag off nothing is parsed or excluded.
+var _dsh_hs := -1
+var _dsh_hs_rids: Array[RID] = []
+
+func _handoff_support_on() -> bool:  # DSH_HANDOFFSUPPORT
+	if _dsh_hs < 0:
+		_dsh_hs = 0
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-handoff-support-plate="):
+				_dsh_hs = maxi(0, int(argument.trim_prefix("--city-handoff-support-plate=")))
+	return _dsh_hs == 1
+
+func _handoff_support_rids(scene: Node3D) -> Array[RID]:  # DSH_HANDOFFSUPPORT
+	if not _handoff_support_on() or not is_instance_valid(scene): return []
+	if not _dsh_hs_rids.is_empty(): return _dsh_hs_rids
+	var interior: Variant = scene.get("_printshop")
+	if not is_instance_valid(interior): return []
+	var stack: Array[Node] = []
+	stack.append(interior)
+	while not stack.is_empty():
+		var node: Node = stack.pop_back()
+		for child: Node in node.get_children(): stack.append(child)
+		if node is StaticBody3D and node.get_meta("source_id", "") == "REBUILD-VISUAL-print_shop-001":
+			_dsh_hs_rids.append((node as StaticBody3D).get_rid())
+	return _dsh_hs_rids
+
 func support_height(point: Vector3, id: String, generation: int) -> float:
 	if not Thread.is_main_thread() or _busy or not _owner_allowed(id, generation) or not point.is_finite(): return NAN
 	var probe: bool = _handoff_probe_on() == 1  # DSH_HANDOFFPROBE
@@ -497,6 +534,14 @@ func support_height(point: Vector3, id: String, generation: int) -> float:
 	_busy = true
 	_ray.from = reference + Vector3.UP * .30; _ray.to = reference - Vector3.UP * .30
 	var scene: Node3D = _scene.get_ref()
+	if _handoff_support_on():  # DSH_HANDOFFSUPPORT
+		var dsh_plate: Array[RID] = _handoff_support_rids(scene)
+		if not dsh_plate.is_empty():
+			# A copy, never the cached array: _native_floor_square appends its own
+			# body/static exclusions to _ray.exclude in place.
+			var dsh_ex: Array[RID] = []
+			for dsh_hs_rid: RID in dsh_plate: dsh_ex.append(dsh_hs_rid)
+			_ray.exclude = dsh_ex
 	var hit: Dictionary = scene.get_world_3d().direct_space_state.intersect_ray(_ray)
 	var result := NAN
 	if not hit.is_empty() and _floors.has(hit.rid) and hit.normal.y >= .70 and absf(hit.position.y - reference.y) < .0001:
@@ -828,6 +873,14 @@ func _native_floor_square(token: Dictionary, point: Vector3, static_excludes: Ar
 		# its exact source height. Other floors, steps, ramps and all obstacles
 		# retain their original queries; this exclusion never reaches movement.
 		_ray.exclude=[body_rid,duplicate_rid] if duplicate_rid.is_valid() and y==0.0 else [body_rid]
+		if _handoff_support_on():  # DSH_HANDOFFSUPPORT
+			var dsh_plate: Array[RID] = _handoff_support_rids(scene)
+			if not dsh_plate.is_empty():
+				var dsh_ex: Array[RID] = []
+				for dsh_hs_rid: RID in _ray.exclude: dsh_ex.append(dsh_hs_rid)
+				for dsh_hs_rid: RID in dsh_plate:
+					if not dsh_hs_rid in dsh_ex: dsh_ex.append(dsh_hs_rid)
+				_ray.exclude = dsh_ex
 		# Only explicit STATIC corridor callers supply authenticated dynamic RIDs.
 		# All current movement callers retain the original exclusions above.
 		if not static_excludes.is_empty():
