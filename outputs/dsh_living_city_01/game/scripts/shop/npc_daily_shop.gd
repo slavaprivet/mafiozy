@@ -430,7 +430,7 @@ func _unwind() -> void:
 		if not _cancel_exact(): _phase="HOLD"; return
 		var result: Dictionary=_request_visit(_route._return,"EXITING",.025*4.1,_token)
 		if result.get("accepted",false): _phase="UNWIND_EXIT"
-		else: _phase="HOLD"
+		else: _phase="HOLD"; return
 	# A closed door or changed geometry is never bypassed. Keep this owner and
 	# HOLD/released=false when the original route cannot safely unwind.
 	_dsh_shop_release_hold()
@@ -450,12 +450,20 @@ func _dsh_shop_release_on() -> bool:
 	return _dsh_shop_release_flag == 1
 
 func _dsh_shop_release_hold() -> void:
-	if _phase != "HOLD" or _released or not _dsh_shop_release_on(): return
-	var dsh_reason := _reason
+	if _released or not _dsh_shop_release_on(): return
+	# DSH_SHOPRELEASE review D1: the visit refusal path leaves _phase == "VISIT" and only sets
+	# _terminal/_reason/_cancel_requested, so demanding _phase == "HOLD" alone released nobody -
+	# residents stayed in ACTIVITY with _released=false for ever. Accept the whole family and
+	# report the REAL phase_before, so the family is visible in the log.
+	var dsh_visit_hold := _cancel_requested or (_visit != null and str(_visit.get("_phase")) == "HOLD")
+	var dsh_releasable := _phase == "HOLD" or (_phase == "VISIT" and dsh_visit_hold)
+	if not dsh_releasable: return
+	var dsh_before := _phase
+	var dsh_reason := _reason if _reason != "" else "release_without_reason"
 	if not _release(): return
-	_phase = _terminal if _terminal != "" else "FAILED"
+	_phase = "FAILED" if dsh_before != "HOLD" or _terminal == "" else _terminal
 	print("DSH_SHOPRELEASE id=", str(_token.get("source_id", "")), " reason=", dsh_reason,
-		" phase_before=HOLD phase_after=", _phase, " released=true frame=", Engine.get_physics_frames())
+		" phase_before=", dsh_before, " phase_after=", _phase, " released=true frame=", Engine.get_physics_frames())
 
 func step(delta: float) -> void:
 	var frame:=Engine.get_physics_frames()

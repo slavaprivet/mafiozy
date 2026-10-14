@@ -478,6 +478,12 @@ func _dsh_apply_resident_name(body: Node3D, motion: Node3D, record: Dictionary) 
 		height = float(descriptor.height)
 	var top: float = clampf(height, 1.65, MAX_VISUAL_HEIGHT) + TR_LABEL_HEIGHT
 	motion.add_child(label)
+	# DSH_RESBAR: the label refreshes itself, because this host has no per-frame step:
+	# name on the first line, HP and energy under it, clamped 0..100, never invented.
+	var dsh_bar: Script = load("res://scripts/npc_visual/npc_test_resident_bar.gd")
+	if dsh_bar != null:
+		label.set_script(dsh_bar)
+		label.call("setup", self, str(record.row.source_id), _dsh_tr_name)
 	label.position = Vector3(0, top, 0)
 	body.set_meta("dsh_test_resident_name", _dsh_tr_name)
 	# DSH_TESTRESIDENT: direct placement next to the player, AFTER admission. No candidate

@@ -666,13 +666,17 @@ func _current_door_action() -> Dictionary:
 	if is_instance_valid(preview_palazzo):
 		var palazzo_action: Dictionary = preview_palazzo.door_action()
 		if not palazzo_action.is_empty(): return palazzo_action
+	# DSH_CLONEDOOR: the swing doors of the palazzo copies use this same panel, the same
+	# "E" key and the same wording; only the owner differs.
+	var clone_action: Dictionary = CityCloneDoorSwing.nearest_door_action(_player.global_position)
+	if not clone_action.is_empty(): return clone_action
 	return _printshop.nearest_action(_player.global_position) if is_instance_valid(_printshop) else {}
 
 func _update_door_hint() -> void:
 	if _door_hint == null:
 		return
 	var action: Dictionary = _current_door_action()
-	if action.get("owner", "") == "palazzo":
+	if action.get("owner", "") in ["palazzo", "clone"]:
 		_door_hint_world = action.world
 	elif not _printshop_data.is_empty():
 		_door_hint_world = _v3(_printshop_data.doors.public.anchor) + Vector3.UP * 2.2
@@ -683,6 +687,14 @@ func _update_door_hint() -> void:
 	if _door_hint.text != hint:
 		_door_hint.text = hint
 		_door_hint_panel.reset_size()
+	# DSH_CLONEDOOR telemetry: the hint panel itself is the prompt, so its reachability
+	# is reported per copy instead of drawing a second one.
+	for _clone_door: Variant in CityCloneDoorSwing.doors():
+		var _owner: Node = _clone_door
+		var _shown: bool = false
+		if not action.is_empty() and str(action.get("owner", "")) == "clone":
+			_shown = str(action.get("clone", "")) == str(_owner.get("clone_id"))
+		_owner.call("set_prompt_visible", _shown)
 
 func _position_door_hint() -> void:
 	if _door_hint_panel == null:
@@ -719,8 +731,26 @@ func _unhandled_input(event: InputEvent) -> void:
 	if action.is_empty():
 		return
 	var is_palazzo: bool = action.get("owner", "") == "palazzo"
-	var result: Dictionary = preview_palazzo.request_door() if is_palazzo else _printshop.request_door(str(action.door), not bool(action.opening), _player.global_position, _current_door_occupants())
-	if not is_palazzo and result.get("accepted", false) and preview_population != null:
+	var is_clone: bool = action.get("owner", "") == "clone"
+	var result: Dictionary = {}
+	if is_palazzo:
+		result = preview_palazzo.request_door()
+	elif is_clone:
+		# DSH_CLONEDOOR: the copy door speaks the same contract as the source owners.
+		var clone_owner: Node = null
+		for clone_door: Variant in CityCloneDoorSwing.doors():
+			if str((clone_door as Node).get("clone_id")) == str(action.get("clone", "")):
+				clone_owner = clone_door
+				break
+		if clone_owner == null:
+			return
+		clone_owner.call("set_trigger", "player_e")
+		result = clone_owner.call("request_door", str(action.get("door", "public")), not bool(action.opening), _player.global_position, _current_door_occupants())
+		# DSH_CLONEDOOR: the last answer of a copy door, readable by a QA probe.
+		_dsh_clone_door_last_result = result.duplicate(true)
+	else:
+		result = _printshop.request_door(str(action.door), not bool(action.opening), _player.global_position, _current_door_occupants())
+	if not is_palazzo and not is_clone and result.get("accepted", false) and preview_population != null:
 		preview_population.door_started(str(action.door), bool(result.open))
 	_door_feedback_seconds = 0.0
 	if not bool(result.get("accepted", false)) and str(result.get("reason", "")) == "door-sweep-occupied":
@@ -1021,6 +1051,11 @@ const TownBankSite = preload("res://scripts/destruction/bank_site/bank_site.gd")
 const ModularPrefabLoader = preload("res://scripts/destruction/modular30/owner/expansion/modular_buildings/export/prefab_loader.gd")
 const TOWN_MODULAR30_SHA := "abfc9126737481f1bed5cc4c63095115a8f756e8c21ceb9b9209fa6a21c6c485"
 var town_extras: Array = []
+## DSH_CLONEDOOR: the real swing door owner for each palazzo copy. Off unless
+## `--city-clone-door-swing=1`; see npc_city_clone_door_swing.gd.
+const CityCloneDoorSwing = preload("res://scripts/city/runtime/npc_city_clone_door_swing.gd")
+## DSH_CLONEDOOR: last answer of a copy swing door, for QA only.
+var _dsh_clone_door_last_result: Dictionary = {}
 
 ## DSH_CITYTOWN: owner's step 2 - three copies of the finished palazzo next to it, each with
 ## its own sign (БОЛЬНИЦА / БАНК / РЕСТОРАН). This is a test stand: the copy carries the same
@@ -1083,6 +1118,10 @@ func _install_palazzo_clones() -> void:
 			break
 	var dsh_base: Vector3 = (dsh_root as Node3D).position if dsh_root is Node3D else Vector3.ZERO
 	var dsh_built := 0
+	# DSH_CLONEDOOR: `--city-clone-door-swing=1` switches the copy from the owner's
+	# free-entry stub to a real openable door. Default 0 keeps the accepted stand.
+	var dsh_swing: bool = CityCloneDoorSwing.enabled()
+	var dsh_clone_keys: Array[String] = ["hospital", "bank", "restaurant"]
 	for dsh_i in dsh_names.size():
 		if not bool(dsh_enabled[dsh_i]):
 			print("CITY_TOWN_CLONE ", JSON.stringify({"ok": true, "sign": dsh_names[dsh_i], "built": false, "reason": "flag_off"}))
@@ -1109,7 +1148,8 @@ func _install_palazzo_clones() -> void:
 		(dsh_clone as Node3D).add_child(dsh_label)
 		dsh_label.position = Vector3(0.0, 8.0, 0.0)
 		var dsh_door_ok := false
-		if dsh_door_source != null and dsh_door_source is Node3D:
+		var dsh_stub_ok := false
+		if not dsh_swing and dsh_door_source != null and dsh_door_source is Node3D:
 			var dsh_door: Node = dsh_door_source.duplicate()
 			if dsh_door != null and dsh_door is Node3D:
 				(dsh_clone as Node3D).add_child(dsh_door)
@@ -1121,10 +1161,39 @@ func _install_palazzo_clones() -> void:
 				for dsh_part: Node in _dsh_walk(dsh_door):
 					if dsh_part is CollisionObject3D: (dsh_part as CollisionObject3D).collision_layer = 0
 				(dsh_door as Node3D).rotate_y(deg_to_rad(100.0))
-				dsh_door_ok = true
+				dsh_stub_ok = true
+		# DSH_CLONEDOOR: with the swing flag on, the owner's free-entry stub is NOT
+		# installed. The copy's OWN entrance panel (the palazzo door the host binds in
+		# palazzo_site.gd `_bind_door`, already inside the duplicated subtree) gets a
+		# real swing owner instead, so a closed doorway is a barrier again.
+		if dsh_swing:
+			var dsh_swing_owner: Node3D = CityCloneDoorSwing.new()
+			dsh_swing_owner.name = "CloneDoorSwing"
+			(dsh_clone as Node3D).add_child(dsh_swing_owner)
+			dsh_swing_owner.set_meta("dsh_town_extra", true)
+			var dsh_configured: bool = dsh_swing_owner.configure(self, dsh_clone_keys[dsh_i], dsh_clone as Node3D)
+			dsh_door_ok = dsh_configured
+			var dsh_leaf_name := "-"
+			var dsh_anchor: Array = []
+			if dsh_configured:
+				var dsh_leaf: Variant = dsh_swing_owner.get("leaf")
+				if dsh_leaf is Node: dsh_leaf_name = str((dsh_leaf as Node).name)
+				dsh_anchor = [dsh_swing_owner.anchor.x, dsh_swing_owner.anchor.y, dsh_swing_owner.anchor.z]
+			print("CITY_TOWN_CLONE_DOOR ", JSON.stringify({
+				"ok": dsh_configured,
+				"sign": dsh_names[dsh_i],
+				"clone": dsh_clone_keys[dsh_i],
+				"owner": "CloneDoorSwing",
+				"contract": "request_door/door_fraction/advance",
+				"mode": "real_swing_door",
+				"stub_free_entry_installed": false,
+				"leaf": dsh_leaf_name,
+				"anchor": dsh_anchor,
+			}))
+		dsh_door_ok = dsh_door_ok or dsh_stub_ok
 		dsh_built += 1
-		print("CITY_TOWN_CLONE ", JSON.stringify({"ok": true, "sign": dsh_names[dsh_i], "built": true, "sign_node": "TownCloneSign", "door_copied": dsh_door_ok, "door_source": (str(dsh_door_source.name) if dsh_door_source != null else "-"), "origin": [dsh_at.x, dsh_at.y, dsh_at.z]}))
-	print("CITY_TOWN_CLONE_TOTAL ", JSON.stringify({"built": dsh_built, "step_m": dsh_step}))
+		print("CITY_TOWN_CLONE ", JSON.stringify({"ok": true, "sign": dsh_names[dsh_i], "built": true, "sign_node": "TownCloneSign", "door_copied": dsh_door_ok, "door_source": (str(dsh_door_source.name) if dsh_door_source != null else "-"), "door_mode": ("swing" if dsh_swing else "stub_free_entry"), "origin": [dsh_at.x, dsh_at.y, dsh_at.z]}))
+	print("CITY_TOWN_CLONE_TOTAL ", JSON.stringify({"built": dsh_built, "step_m": dsh_step, "door_swing": dsh_swing}))
 
 func _install_town_extras() -> bool:
 	if not city_town_active() or not town_extras.is_empty(): return false
