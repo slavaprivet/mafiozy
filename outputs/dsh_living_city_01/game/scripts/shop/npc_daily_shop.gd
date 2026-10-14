@@ -433,6 +433,29 @@ func _unwind() -> void:
 		else: _phase="HOLD"
 	# A closed door or changed geometry is never bypassed. Keep this owner and
 	# HOLD/released=false when the original route cannot safely unwind.
+	_dsh_shop_release_hold()
+
+## DSH_SHOPRELEASE: --city-shop-release=1 (default 0 = today's path). When the approach could
+## not be unwound (refused cancellation, unsafe outside point, closed door, changed lease) the
+## composer kept the resident in ACTIVITY with _released=false for ever - 240+ of 286 residents
+## never returned to their daily life. With the flag the visit ends HONESTLY: the purchase is
+## NOT granted, no teleport, the resident is released and takes his next need.
+var _dsh_shop_release_flag := -1
+
+func _dsh_shop_release_on() -> bool:
+	if _dsh_shop_release_flag < 0:
+		_dsh_shop_release_flag = 0
+		for dsh_argument: String in OS.get_cmdline_user_args():
+			if dsh_argument.begins_with("--city-shop-release="): _dsh_shop_release_flag = 1 if int(dsh_argument.trim_prefix("--city-shop-release=")) != 0 else 0
+	return _dsh_shop_release_flag == 1
+
+func _dsh_shop_release_hold() -> void:
+	if _phase != "HOLD" or _released or not _dsh_shop_release_on(): return
+	var dsh_reason := _reason
+	if not _release(): return
+	_phase = _terminal if _terminal != "" else "FAILED"
+	print("DSH_SHOPRELEASE id=", str(_token.get("source_id", "")), " reason=", dsh_reason,
+		" phase_before=HOLD phase_after=", _phase, " released=true frame=", Engine.get_physics_frames())
 
 func step(delta: float) -> void:
 	var frame:=Engine.get_physics_frames()
