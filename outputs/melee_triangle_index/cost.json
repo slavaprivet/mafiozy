@@ -1,0 +1,299 @@
+{
+	"bounded_refit_begin_us": {
+		"max": 29,
+		"p50": 7,
+		"p95": 13
+	},
+	"bounded_refit_slice_us": {
+		"max": 1700,
+		"p50": 1007,
+		"p95": 1019
+	},
+	"bounded_refit_total_us": {
+		"max": 13112,
+		"p50": 6877,
+		"p95": 11836
+	},
+	"cases": [
+		{
+			"bone": "head",
+			"cheap_cached_aabb_scan_us": {
+				"max": 700,
+				"p50": 407,
+				"p95": 536
+			},
+			"indexed_query_total_us": {
+				"max": 9942,
+				"p50": 6766,
+				"p95": 8270
+			},
+			"indexed_slice_us": {
+				"max": 1039,
+				"p50": 468,
+				"p95": 910
+			},
+			"linear_candidates": 770,
+			"linear_kernel_only_us": {
+				"max": 18291,
+				"p50": 14047,
+				"p95": 16631
+			},
+			"radius_m": 0.1,
+			"samples": 48,
+			"stats": {
+				"candidate_rejections": 47,
+				"filter_calls": 0,
+				"kernel_calls": 215,
+				"nodes": 224,
+				"slices": 14
+			}
+		},
+		{
+			"bone": "head",
+			"cheap_cached_aabb_scan_us": {
+				"max": 754,
+				"p50": 423,
+				"p95": 496
+			},
+			"indexed_query_total_us": {
+				"max": 13845,
+				"p50": 11661,
+				"p95": 13692
+			},
+			"indexed_slice_us": {
+				"max": 1046,
+				"p50": 471,
+				"p95": 737
+			},
+			"linear_candidates": 1483,
+			"linear_kernel_only_us": {
+				"max": 42458,
+				"p50": 26727,
+				"p95": 36996
+			},
+			"radius_m": 0.14,
+			"samples": 48,
+			"stats": {
+				"candidate_rejections": 81,
+				"filter_calls": 0,
+				"kernel_calls": 375,
+				"nodes": 392,
+				"slices": 24
+			}
+		},
+		{
+			"bone": "chest",
+			"cheap_cached_aabb_scan_us": {
+				"max": 523,
+				"p50": 402,
+				"p95": 457
+			},
+			"indexed_query_total_us": {
+				"max": 3802,
+				"p50": 2540,
+				"p95": 2911
+			},
+			"indexed_slice_us": {
+				"max": 1038,
+				"p50": 521,
+				"p95": 744
+			},
+			"linear_candidates": 431,
+			"linear_kernel_only_us": {
+				"max": 9412,
+				"p50": 7739,
+				"p95": 8419
+			},
+			"radius_m": 0.1,
+			"samples": 48,
+			"stats": {
+				"candidate_rejections": 12,
+				"filter_calls": 0,
+				"kernel_calls": 74,
+				"nodes": 103,
+				"slices": 5
+			}
+		},
+		{
+			"bone": "chest",
+			"cheap_cached_aabb_scan_us": {
+				"max": 801,
+				"p50": 425,
+				"p95": 588
+			},
+			"indexed_query_total_us": {
+				"max": 7324,
+				"p50": 4318,
+				"p95": 4946
+			},
+			"indexed_slice_us": {
+				"max": 1041,
+				"p50": 493,
+				"p95": 755
+			},
+			"linear_candidates": 632,
+			"linear_kernel_only_us": {
+				"max": 18349,
+				"p50": 11684,
+				"p95": 17263
+			},
+			"radius_m": 0.14,
+			"samples": 48,
+			"stats": {
+				"candidate_rejections": 22,
+				"filter_calls": 0,
+				"kernel_calls": 131,
+				"nodes": 161,
+				"slices": 9
+			}
+		},
+		{
+			"bone": "forearm_l",
+			"cheap_cached_aabb_scan_us": {
+				"max": 697,
+				"p50": 405,
+				"p95": 569
+			},
+			"indexed_query_total_us": {
+				"max": 6754,
+				"p50": 3989,
+				"p95": 6526
+			},
+			"indexed_slice_us": {
+				"max": 1046,
+				"p50": 498,
+				"p95": 881
+			},
+			"linear_candidates": 228,
+			"linear_kernel_only_us": {
+				"max": 8080,
+				"p50": 4402,
+				"p95": 5506
+			},
+			"radius_m": 0.1,
+			"samples": 48,
+			"stats": {
+				"candidate_rejections": 41,
+				"filter_calls": 0,
+				"kernel_calls": 114,
+				"nodes": 141,
+				"slices": 8
+			}
+		},
+		{
+			"bone": "forearm_l",
+			"cheap_cached_aabb_scan_us": {
+				"max": 752,
+				"p50": 392,
+				"p95": 446
+			},
+			"indexed_query_total_us": {
+				"max": 10037,
+				"p50": 6568,
+				"p95": 8336
+			},
+			"indexed_slice_us": {
+				"max": 1029,
+				"p50": 440,
+				"p95": 1008
+			},
+			"linear_candidates": 347,
+			"linear_kernel_only_us": {
+				"max": 12506,
+				"p50": 6495,
+				"p95": 7855
+			},
+			"radius_m": 0.14,
+			"samples": 48,
+			"stats": {
+				"candidate_rejections": 50,
+				"filter_calls": 0,
+				"kernel_calls": 210,
+				"nodes": 217,
+				"slices": 14
+			}
+		},
+		{
+			"bone": "shin_r",
+			"cheap_cached_aabb_scan_us": {
+				"max": 477,
+				"p50": 404,
+				"p95": 442
+			},
+			"indexed_query_total_us": {
+				"max": 1142,
+				"p50": 957,
+				"p95": 1080
+			},
+			"indexed_slice_us": {
+				"max": 899,
+				"p50": 674,
+				"p95": 773
+			},
+			"linear_candidates": 72,
+			"linear_kernel_only_us": {
+				"max": 1648,
+				"p50": 1447,
+				"p95": 1527
+			},
+			"radius_m": 0.1,
+			"samples": 48,
+			"stats": {
+				"candidate_rejections": 5,
+				"filter_calls": 0,
+				"kernel_calls": 24,
+				"nodes": 45,
+				"slices": 2
+			}
+		},
+		{
+			"bone": "shin_r",
+			"cheap_cached_aabb_scan_us": {
+				"max": 759,
+				"p50": 409,
+				"p95": 706
+			},
+			"indexed_query_total_us": {
+				"max": 5476,
+				"p50": 2589,
+				"p95": 4285
+			},
+			"indexed_slice_us": {
+				"max": 1055,
+				"p50": 578,
+				"p95": 975
+			},
+			"linear_candidates": 132,
+			"linear_kernel_only_us": {
+				"max": 4854,
+				"p50": 2548,
+				"p95": 4102
+			},
+			"radius_m": 0.14,
+			"samples": 48,
+			"stats": {
+				"candidate_rejections": 46,
+				"filter_calls": 0,
+				"kernel_calls": 67,
+				"nodes": 112,
+				"slices": 5
+			}
+		}
+	],
+	"errors": [],
+	"fixture_skin_and_bounds_setup_us": 13174,
+	"full_refit_us": {
+		"max": 12425,
+		"p50": 6717,
+		"p95": 9605
+	},
+	"index_sha256": "b39dead1b1880236d49983db70841fac7402e052801d98a94eb6d3a550c85b9b",
+	"kernel_sha256": "b8e651faa13affa83436bb59fe169c1b23d6dc0344126f78dbb6deca5586ac9b",
+	"last_refit_slices": 8,
+	"nodes": 8191,
+	"passed": true,
+	"scope": "Actual hero skin at stationary current pose; exact same triangles, sweeps and kernel for scan/index. Build once and full refit measured separately. Refit excludes upstream skin deformation; fixture setup includes skin plus test linear bounds. No authority/occlusion or full game FPS claim.",
+	"topology_build_us": 380144,
+	"triangles": 13034,
+	"vertices": 8338
+}

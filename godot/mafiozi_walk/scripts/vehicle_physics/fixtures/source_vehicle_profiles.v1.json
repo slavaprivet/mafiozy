@@ -1,0 +1,13 @@
+{
+  "schema": "mafiozi.native-vehicle-physics-source-fixture/v1",
+  "source": "assets/maps/city_rebuild_v1/vehicle_fleet_models.mjs",
+  "source_receipt": "sha256:5dcec7102fc425c7828239ad5de10d4feb29ff7216610fc842333894f811545c",
+  "axis": {"source_runtime_forward": "+Z", "godot_forward": "-Z", "up": "+Y"},
+  "profiles": [
+    {"profile_id":"compact_sedan","mass_kg":1320,"wheelbase_m":2.7404,"wheel_radius_m":0.33,"engine_accel_mps2":7.0,"max_forward_speed_mps":31,"max_reverse_speed_mps":6,"source_width_m":1.80,"source_length_m":4.42,"source_height_m":1.47},
+    {"profile_id":"sport_coupe","mass_kg":1380,"wheelbase_m":2.821,"wheel_radius_m":0.36,"engine_accel_mps2":10.0,"max_forward_speed_mps":43,"max_reverse_speed_mps":6,"source_width_m":1.91,"source_length_m":4.55,"source_height_m":1.23},
+    {"profile_id":"city_bus","mass_kg":9800,"wheelbase_m":7.128,"wheel_radius_m":0.47,"engine_accel_mps2":2.7,"max_forward_speed_mps":23,"max_reverse_speed_mps":4,"source_width_m":2.55,"source_length_m":10.8,"source_height_m":3.18},
+    {"profile_id":"fire_engine","mass_kg":10500,"wheelbase_m":4.686,"wheel_radius_m":0.48,"engine_accel_mps2":3.0,"max_forward_speed_mps":25,"max_reverse_speed_mps":6,"source_width_m":2.48,"source_length_m":7.10,"source_height_m":3.04}
+  ],
+  "unavailable_in_walk_source": ["ground_clearance_m","center_of_mass_local_m","track_width_m","suspension_rest_length_m","angular_drag"]
+}
