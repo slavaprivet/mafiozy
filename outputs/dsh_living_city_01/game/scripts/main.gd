@@ -19,6 +19,7 @@ const PlayerImpactHost = preload("res://scripts/character_physics/player_impact_
 const PreviewBoundary = preload("res://scripts/preview_boundary.gd")
 const PreviewPopulation = preload("res://scripts/preview_population.gd")
 const PreviewMelee = preload("res://scripts/npc_visual/npc_contact_melee_host.gd")
+const CityMinimapHost = preload("res://scripts/city/runtime/npc_city_minimap_host.gd")
 const STATIC_RENDER_OWNER_IDS := [
 	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-013", "REBUILD-VISUAL-old_town_narrow_townhouse_v1-005",
 	"REBUILD-VISUAL-gun_shop-001", "REBUILD-VISUAL-pawnshop-001",
@@ -51,11 +52,14 @@ var final_dead_block_contract_status := "legacy_v1"
 var _final_dead_block_requested := false
 @export var preview_resident_walk_enabled: bool = true
 @export var preview_melee_enabled: bool = true
+@export var preview_minimap_enabled: bool = true
 @export var preview_weapons_enabled: bool = true
 var preview_weapons: Node
 var weapons_status := "disabled"
 var preview_melee: Node
 var melee_status := "disabled"
+var preview_minimap: Node
+var minimap_status := "disabled"
 var preview_population: RefCounted
 var preview_modular30: Node
 var preview_palazzo: Node
@@ -261,6 +265,8 @@ func _ready() -> void:
 			_capture_path = argument.trim_prefix("--preview-capture=")
 	if preview_melee_enabled or OS.get_cmdline_user_args().has("--preview-melee"):
 		_install_preview_melee_practice()
+	if (preview_minimap_enabled or OS.get_cmdline_user_args().has("--preview-minimap")) and not OS.get_cmdline_user_args().has("--no-minimap"):
+		_install_preview_minimap()
 	if preview_weapons_enabled or OS.get_cmdline_user_args().has("--preview-weapons"):
 		var weapon_script: Script = load("res://scripts/weapons/preview_weapons.gd")
 		if weapon_script != null:
@@ -326,6 +332,7 @@ func _ready() -> void:
 		print("STATIC_BATCH_DETAIL ", JSON.stringify(static_batch_summary))
 	print("RESIDENT_POPULATION_STATUS ", population_status)
 	print("MELEE_PRACTICE_STATUS ", melee_status)
+	print("MINIMAP_STATUS ", minimap_status)
 
 func _install_preview_melee_practice() -> bool:
 	if is_instance_valid(preview_melee) or not is_instance_valid(_player): return false
@@ -344,6 +351,20 @@ func _install_preview_melee_practice() -> bool:
 		host.queue_free(); melee_status = "host_binding"; return false
 	preview_melee = host; _player._melee_practice = host
 	melee_status = "ground_practice_no_combat_targets"
+	return true
+
+func _install_preview_minimap() -> bool:
+	if is_instance_valid(preview_minimap) or not is_instance_valid(_player): return false
+	# Real scene nodes only: the host reads the instantiated building/decor nodes
+	# and their global positions, not a separate map JSON.
+	var host: Node = CityMinimapHost.new()
+	host.name = "CityMinimap"
+	add_child(host)
+	var bound: bool = host.configure(self, _player)
+	if not bound:
+		host.queue_free(); minimap_status = "host_binding"; return false
+	preview_minimap = host
+	minimap_status = str(host.get_status().get("status", "ready"))
 	return true
 
 ## Startup/controlled rebuild only. Restore BEFORE source geometry, transforms,
@@ -567,6 +588,8 @@ func _exit_tree() -> void:
 		preview_population.dispose()
 	# Parent still exists here; clear host-owned mesh/material before destruction.
 	restore_preview_static_batches("scene_exit")
+	if is_instance_valid(preview_minimap): preview_minimap.dispose()
+	preview_minimap = null
 	_dispose_water_surface()
 
 func _load_printshop_data() -> void:
