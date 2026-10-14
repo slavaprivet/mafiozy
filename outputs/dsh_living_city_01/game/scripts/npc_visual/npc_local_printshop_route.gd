@@ -338,6 +338,25 @@ func _native_square_clear(from: Vector3,to: Vector3) -> bool:
 	var cast:=scene.get_world_3d().direct_space_state.cast_motion(_square_query)
 	return cast.size()==2 and cast[0]>=.99999
 
+# DSH_VISITDEADLINE: --city-visit-deadline-s>0 also raises the single distance bound on the
+# START of the visit's own street approach, so a resident the walk insurance finished a few
+# metres from the door can still enter the ordinary entry/browse/checkout chain. Only that
+# one comparison changes: every physical proof of this lane is untouched (`_source_segment`
+# and `_capsule_clear` below still veto the whole lane from the actual body to the door, and
+# each step() re-proves the swept movement of every metre). 0 (default) keeps exactly 1.6 m.
+const DSH_ENTRY_ADMIT_M := 1.6  # DSH_VISITDEADLINE
+const DSH_ENTRY_ADMIT_INSURED_M := 4.0  # DSH_VISITDEADLINE
+static var _dsh_entry_admit := -1.0  # DSH_VISITDEADLINE
+
+static func _dsh_entry_admit_m() -> float:  # DSH_VISITDEADLINE
+	if _dsh_entry_admit < 0.0:
+		_dsh_entry_admit = DSH_ENTRY_ADMIT_M
+		for argument: String in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-visit-deadline-s="):
+				if clampf(float(argument.trim_prefix("--city-visit-deadline-s=")), 0.0, 300.0) > 0.0:
+					_dsh_entry_admit = DSH_ENTRY_ADMIT_INSURED_M
+	return _dsh_entry_admit
+
 func request_route(target: Vector3,phase: String,tolerance: float,actor_token: Dictionary) -> Dictionary:
 	# Give each admission rejection its own reason; a previous negative probe
 	# must not be reported as the cause of a later phase handoff refusal.
@@ -349,7 +368,7 @@ func request_route(target: Vector3,phase: String,tolerance: float,actor_token: D
 	if not target.is_finite():diagnostics.last_reason="request_target_nonfinite";return {"accepted":false}
 	var points: Array[Vector3]=[]
 	if phase=="WALK_TO_ENTRY":
-		if _phase!="READY" or target.distance_to(outside)>.001 or body.global_position.distance_to(outside)>1.6:return {"accepted":false}
+		if _phase!="READY" or target.distance_to(outside)>.001 or body.global_position.distance_to(outside)>_dsh_entry_admit_m():return {"accepted":false}
 		points.append(outside)
 	elif phase=="ENTERING":
 		if _phase!="WALK_TO_ENTRY" or target.distance_to(inside)>.001 or interior.door_fraction("public")!=1.0:return {"accepted":false}

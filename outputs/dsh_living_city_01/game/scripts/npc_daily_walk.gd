@@ -616,7 +616,7 @@ func _begin_detour(reason: String) -> void:
 		var native_record: Dictionary=_navigation.get("_records").get(_request,{})
 		if not native_record.is_empty(): _edge=clampi(int(native_record.get("edge",1))-1,0,_points.size()-1)
 	_streaming_route=false
-	if not _current() or _policy==null or not _policy.has_method("native_clear_segment") or _detour_count>=2:
+	if not _current() or _policy==null or not _policy.has_method("native_clear_segment") or _detour_count>=_dsh_detour_per_leg():  # DSH_DETOURBUDGET
 		_block(reason+":detour_unavailable_or_budget");return
 	# Only the exact current job is cancelled; the helper cannot move actors,
 	# cancel other work, or authorize its proposals.
@@ -631,8 +631,20 @@ func _begin_detour(reason: String) -> void:
 	if not started.get("ok",false): _block(str(started.get("reason",reason)));return
 	_phase="DETOUR";_reason=reason
 
+## DSH_DETOURBUDGET: --city-detour-per-leg=N (default 2 = today's hard limit). A dense
+## city needs more than two obstacle detours on one leg; at the old limit the walk blocked
+## with native_route:NO_PATH:detour_unavailable_or_budget and the resident stood forever.
+var _dsh_detour_per_leg_v := -1
+
+func _dsh_detour_per_leg() -> int:
+	if _dsh_detour_per_leg_v < 0:
+		_dsh_detour_per_leg_v = 2
+		for dsh_argument: String in OS.get_cmdline_user_args():
+			if dsh_argument.begins_with("--city-detour-per-leg="):
+				_dsh_detour_per_leg_v = clampi(int(dsh_argument.trim_prefix("--city-detour-per-leg=")), 1, 512)
+	return _dsh_detour_per_leg_v
+
 func _step_detour() -> void:
-	# DSH_DETOURNULL: the walk can be in the detour phase while owning NO detour object
 	# (creation refused, or the object was released and set to null). Calling into Nil
 	# raised "Nonexistent function 'step' in base 'Nil'" 51 times per run and left the
 	# resident frozen mid-leg - the visible "walks 4 m then stops". Re-plan instead.

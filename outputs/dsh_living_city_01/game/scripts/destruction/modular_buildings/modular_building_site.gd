@@ -16,6 +16,17 @@ extends RefCounted
 const SCHEMA := "mafiozi.modular_building_site/v1"
 const SITE_SCRIPT := preload("res://scripts/destruction/modular_buildings/modular_site.gd")
 
+## DSH_CITYTOWN damage wiring (2026-10-14). Opt-in, default OFF: without
+## `--city-town-damage=1` this file creates nothing, adds no node and prints nothing,
+## so every existing/default run keeps its exact previous scene and log. With the flag
+## the site gets the two missing halves of the accepted Palazzo contract: a native
+## weapon damage owner (`modular_damage_owner.gd`, same bridge as `palazzo_host.gd`)
+## and a C4 target registration (`modular_c4_site_registry.gd`). See
+## MAFIOZY_BUILDING_DAMAGE.md. The reference building is the restaurant only; the
+## hospital and the small bank keep their previous (non-destructible) behaviour.
+const DamageOwner = preload("res://scripts/destruction/modular_buildings/modular_damage_owner.gd")
+const DAMAGE_OWNER_PROFILES := ["template:business:pizza"]
+
 ## The recipe owns the soil position and thickness: `external_soil_required.at`
 ## is the declared centre and `.size.y` the declared thickness. Do not invent a
 ## convention here — restaurant/hospital declare a street-level slab at
@@ -28,6 +39,7 @@ const FALLBACK_SOIL_THICKNESS := 0.25
 
 var _node: Node3D = null
 var _soil: StaticBody3D = null
+var _damage_owner: Node = null
 var _recipe: Dictionary = {}
 var _recipe_path := ""
 var _status := "not_prepared"
@@ -90,8 +102,19 @@ func prepare(parent: Node3D, origin: Vector3, yaw_deg: float) -> Dictionary:
 		site.free()
 		return _fail("site_configure:" + str(configured.get("reason", "unknown")))
 	site.name = "ModularBuilding:" + source_id()
+	# DSH_CITYTOWN: `palazzo_glazing.configure()` (called from the site's own _ready)
+	# captures `_site_frame` and `_current()` then requires
+	# `site.global_transform == _site_frame` for the rest of the generation. With the
+	# flag the final frame is therefore assigned BEFORE add_child, so the captured
+	# frame is the real one and the authored window panes survive; measured proof in
+	# MAFIOZY_BUILDING_DAMAGE.md (restaurant at (27.6,0,50.6) kept `glazing:false`
+	# while the same site placed at the origin kept 53 live panes). Without the flag
+	# the previous order is preserved exactly.
+	var frame := Transform3D(Basis(Vector3.UP, deg_to_rad(yaw_deg)), origin)
+	if DamageOwner.flag_present():
+		site.transform = parent.global_transform.affine_inverse() * frame
 	parent.add_child(site)
-	site.global_transform = Transform3D(Basis(Vector3.UP, deg_to_rad(yaw_deg)), origin)
+	site.global_transform = frame
 	var ground: Array[StaticBody3D] = [_soil]
 	if site.has_method("attach_native_ground"):
 		var attached: Dictionary = site.attach_native_ground(ground)
@@ -111,6 +134,8 @@ func prepare(parent: Node3D, origin: Vector3, yaw_deg: float) -> Dictionary:
 		_terrain = site.verify_terrain_clearance() if site.has_method("verify_terrain_clearance") else {"required": true, "ok": false, "reason": "verify_api_missing"}
 	_reason = ""
 	_prepare_ms = float(Time.get_ticks_usec() - started) / 1000.0
+	var damage_owner: Dictionary = _wire_damage_owner(parent, site)
+	_stats["damage_owner"] = damage_owner.duplicate(true)
 	return {
 		"ok": _status == "intact" or _status == "awaiting_native_basement_clearance",
 		"reason": _reason,
@@ -126,9 +151,42 @@ func prepare(parent: Node3D, origin: Vector3, yaw_deg: float) -> Dictionary:
 		"stats": _stats,
 		"terrain": _terrain,
 		"soil": _soil,
+		"damage_owner": damage_owner,
 	}
 
+## DSH_CITYTOWN: the accepted Palazzo damage owner needs a live native weapon host,
+## which main.gd creates AFTER this instantiator runs (main.gd:295 vs :214). The owner
+## therefore attaches now and performs its own bounded late bind. Disabled by default.
+func _wire_damage_owner(parent: Node3D, site: Node3D) -> Dictionary:
+	if not DamageOwner.flag_present():
+		return {"ok": true, "enabled": false, "status": "disabled_no_flag", "flag": DamageOwner.FLAG, "allowed_profiles": DAMAGE_OWNER_PROFILES}
+	if not DAMAGE_OWNER_PROFILES.has(profile_id()):
+		return {"ok": true, "enabled": false, "status": "disabled_profile", "profile_id": profile_id(), "allowed_profiles": DAMAGE_OWNER_PROFILES}
+	if is_instance_valid(_damage_owner):
+		return {"ok": true, "enabled": true, "status": "already_wired", "source_id": source_id()}
+	var owner_node: Node = DamageOwner.new()
+	owner_node.name = "ModularDamageOwner:" + source_id().validate_node_name()
+	parent.add_child(owner_node)
+	var attached: Dictionary = owner_node.call("attach", parent, site, source_id(), profile_id())
+	if not attached.get("ok", false):
+		owner_node.queue_free()
+		return {"ok": false, "enabled": true, "status": "attach_failed", "detail": attached}
+	_damage_owner = owner_node
+	return {"ok": true, "enabled": true, "status": "owner_attached", "source_id": source_id(), "profile_id": profile_id(), "node": str(owner_node.name), "flag": DamageOwner.FLAG}
+
+func damage_owner() -> Node:
+	return _damage_owner
+
+func damage_status() -> Dictionary:
+	if is_instance_valid(_damage_owner) and _damage_owner.has_method("snapshot"):
+		return _damage_owner.call("snapshot")
+	return {"owner": "absent"}
+
 func dispose() -> void:
+	if is_instance_valid(_damage_owner):
+		if _damage_owner.has_method("dispose"): _damage_owner.call("dispose")
+		else: _damage_owner.queue_free()
+	_damage_owner = null
 	if _node != null and is_instance_valid(_node):
 		_node.queue_free()
 	_node = null
