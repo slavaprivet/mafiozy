@@ -1,0 +1,16 @@
+{
+  "schema": "printshop-cpu-shadow-source-candidate-v2",
+  "v1_status": "rejected_for_positive_reuse_frozen_unchanged",
+  "source_descriptor_sha256": "958a2c2d8cbdc2b2e2e11a57e33bf9bf5a20ec334be8a8997bdad951f9f8086b",
+  "builder_sha256": "b989fea728ee021998b3e5f20a4431b97ca25605ded3487574f4dc3d6a753b0c",
+  "test_sha256": "f5bbf60de212ff847fabfbc4e6c14c08c12dbbfccb8b88c6748653d8568d81c5",
+  "engine": "4.7.2.stable.official.ed1daf0bf",
+  "cpu_checks_passed": 546,
+  "batches": 15,
+  "instances": 280,
+  "linear_colored_instances": 215,
+  "gpu": false,
+  "actual_scene_admitted": false,
+  "native_instance_storage_proven": false,
+  "production_wired": false
+}

@@ -1,0 +1,63 @@
+{
+  "schema": "mafiozi.transport-debris-material-pool-exact-compare-candidate.v1",
+  "date": "2026-09-30",
+  "status": "performance-rejected-do-not-adopt",
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/candidates/transport_debris_material_pool_exact_compare.gd",
+      "bytes": 20081,
+      "sha256": "6d76e4b40b4fc7a2e7e48f039eebbc4f56f24ac0ccfadecfb41ce52323ef1fc3",
+      "role": "isolated exact-comparator experiment; rejected candidate"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_debris_material_pool_exact_compare.gd",
+      "bytes": 17443,
+      "sha256": "178bbce693ea13b529bd24a4e3c84b33bcc6acf01df3df4668355d3a8dea871c",
+      "role": "functional parity, malformed inputs and 20-pair load-only comparison"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_DEBRIS_MATERIAL_POOL_EXACT_COMPARE_HANDOFF.md",
+      "bytes": 5182,
+      "sha256": "50abc96b7d72cfb9cae0a03ff8b699e6962a1b8ae95656631e8a27a801307182",
+      "role": "rejection evidence, boundaries and measurements"
+    }
+  ],
+  "baseline": {
+    "path": "godot/mafiozi_walk/scripts/transport/transport_debris_material_pool.gd",
+    "bytes": 16034,
+    "sha256": "c29037e98c71cc9bed733784adf107edd58417439d721680c0a43ca0ace329d0"
+  },
+  "verification": {
+    "godot": "4.7.2.stable.official.ed1daf0bf",
+    "command": "tools/godot/run_transport_test.ps1 -Resource res://scripts/tests/test_transport_debris_material_pool_exact_compare.gd -TimeoutSeconds 60",
+    "author": "232/232 PASS, exit 0, process joined",
+    "fixture": "actual compact vehicle material graph: 72 surfaces / 29 source identities / 72 private resources",
+    "construction_note": "An earlier 230/231 run used a GDScript -0.0 literal that normalized to +0.0; the final test constructs IEEE-754 negative zero from bytes and passes the signed-zero guard."
+  },
+  "performance_us_20_alternating_pairs": {
+    "baseline": {
+      "configure_median_p95_max": [25840.5, 26919, 28115],
+      "final_median_p95_max": [48676.5, 52301, 53077],
+      "receipt_median_p95_max": [48054.5, 53940, 57876],
+      "take_median_p95_max": [48273, 53168, 59980]
+    },
+    "candidate": {
+      "configure_median_p95_max": [41550, 43085, 43962],
+      "final_median_p95_max": [197641.5, 209427, 226033],
+      "receipt_median_p95_max": [191448, 204077, 204371],
+      "take_median_p95_max": [193636.5, 201312, 204667]
+    },
+    "qualification": "isolated headless load-only CPU only; no event, streaming, GPU, FPS or full-scene claim"
+  },
+  "decision": {
+    "result": "REJECT",
+    "reason": "Recursive GDScript comparison is approximately four times slower than the frozen native var_to_bytes signature validation on the measured atomic final, receipt and take boundaries.",
+    "adoption": "DO NOT ADOPT; frozen baseline remains authoritative and unchanged."
+  },
+  "limits": [
+    "Atomic full validation remains necessary because nested containers can mutate silently between sliced checks without an authenticated host epoch.",
+    "Typed Array and Dictionary values are rejected fail closed because descriptor equality is outside this candidate comparator contract.",
+    "No production transport runtime, event path, callback authority, material behavior or ownership was changed.",
+    "The candidate is retained only as reproducible negative evidence."
+  ]
+}

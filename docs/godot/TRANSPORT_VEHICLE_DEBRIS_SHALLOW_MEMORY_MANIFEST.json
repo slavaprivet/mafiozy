@@ -1,0 +1,59 @@
+{
+  "schema": "mafiozi.transport-vehicle-debris-shallow-memory-audit.v1",
+  "date": "2026-09-30",
+  "status": "functionally-verified-memory-benefit-rejected-do-not-adopt",
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_vehicle_debris_shallow_memory.gd",
+      "bytes": 5107,
+      "sha256": "d87d7a126564e7358c12e007d38997943cb5a717f16ff2279b5bd2f99bb71063"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_VEHICLE_DEBRIS_SHALLOW_MEMORY_HANDOFF.md",
+      "bytes": 3370,
+      "sha256": "975aab8c6317ad5adb4ae9c4eacd3440321691e85fdf1a4ef282711f65a25c5d"
+    }
+  ],
+  "candidate": {
+    "path": "godot/mafiozi_walk/scripts/transport/candidates/transport_vehicle_debris_shallow_mesh.gd",
+    "bytes": 17011,
+    "sha256": "b402026f574115bd79d5f5f7a5e6a91ba8976a4e944e32b498e276e2c3fe8f1f"
+  },
+  "baseline": {
+    "path": "godot/mafiozi_walk/scripts/transport/transport_vehicle_debris.gd",
+    "bytes": 15804,
+    "sha256": "1cf791ea4890c844b8c1072cdccca647b3b8255cec718afa7e96f80b9c2bba8f"
+  },
+  "memory_static_delta_bytes_separate_processes": {
+    "one_provider": {"frozen": 6329728, "shallow": 6329808, "difference": 80},
+    "three_providers": {"frozen": 18263904, "shallow": 18263984, "difference": 80},
+    "ten_providers": {"frozen": 60274768, "shallow": 60274848, "difference": 80}
+  },
+  "verification": {
+    "godot": "4.7.2.stable.official.ed1daf0bf",
+    "memory_cases": "all six modes PASS; 1/3/10 actual hatch providers retain 76 private meshes/materials and 76 hulls each",
+    "shallow_suite": {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_vehicle_debris_shallow_mesh.gd",
+      "sha256": "0131159897c0405381e6ef174ab83316e48355107642545f1c2084f09d22a2fd",
+      "result": "83/83 PASS"
+    },
+    "physical_suite": {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_vehicle_debris_shallow_mesh_inherited.gd",
+      "sha256": "b13f1468a69004d4d03de558b471ce714594f848c58e88d71ef39f5003eb37fc",
+      "result": "264/264 PASS; ten bodies settle in 228 frames, stress 20 in 131 frames"
+    },
+    "qualified_configure_reference_us": {
+      "frozen_min_p50_p95_max": [101913, 107598.5, 112672, 116927],
+      "shallow_min_p50_p95_max": [97875, 100745, 107220, 111784]
+    }
+  },
+  "decision": {
+    "result": "REJECT",
+    "reason": "No retained static-memory reduction at 1, 3 or 10 providers; qualified configure remains about 101 ms despite functional parity."
+  },
+  "limits": [
+    "Performance.MEMORY_STATIC delta, not process RSS, GPU memory or Jolt-attributable allocation.",
+    "Isolated headless physics only; no loaded-scene FPS or LIVE claim.",
+    "No production, frozen runtime, Root, Git or GPU file changed."
+  ]
+}

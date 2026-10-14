@@ -1,0 +1,185 @@
+{
+  "source": "test_npc_exterior_guard_post23.mjs; controlled actual-geometry replay, not LIVE captures",
+  "cases": [
+    {
+      "assetId": "hospital",
+      "instanceId": "REBUILD-VISUAL-hospital-001",
+      "slot": 1,
+      "patrolStep": 1,
+      "from": {
+        "r": 5.90079296861878,
+        "c": 163.23427210196488
+      },
+      "approach": {
+        "r": 9.356984627970292,
+        "c": 164
+      },
+      "occupied": [
+        {
+          "id": "reserved-guard-0",
+          "r": 8.111361368671862,
+          "c": 163.53423426576444
+        },
+        {
+          "id": "reserved-guard-2",
+          "r": 7.677724873361132,
+          "c": 164.1473747929981
+        }
+      ],
+      "status": "blocked",
+      "reason": "no-connected-exterior-post",
+      "slices": 2,
+      "queries": 107
+    },
+    {
+      "assetId": "hospital",
+      "instanceId": "REBUILD-VISUAL-hospital-001",
+      "slot": 0,
+      "patrolStep": 3,
+      "from": {
+        "r": 8.344957875940105,
+        "c": 164.34407427160355
+      },
+      "approach": {
+        "r": 9.356984627970292,
+        "c": 164
+      },
+      "occupied": [
+        {
+          "id": "reserved-guard-1",
+          "r": 7.217437410276492,
+          "c": 163.52597796788302
+        },
+        {
+          "id": "reserved-guard-2",
+          "r": 8.075410902386006,
+          "c": 163.64491717982244
+        }
+      ],
+      "status": "blocked",
+      "reason": "no-connected-exterior-post",
+      "slices": 1,
+      "queries": 77
+    },
+    {
+      "assetId": "hospital",
+      "instanceId": "REBUILD-VISUAL-hospital-001",
+      "slot": 1,
+      "patrolStep": 3,
+      "from": {
+        "r": 7.217437410276492,
+        "c": 163.52597796788302
+      },
+      "approach": {
+        "r": 9.356984627970292,
+        "c": 164
+      },
+      "occupied": [
+        {
+          "id": "reserved-guard-0",
+          "r": 8.344957875940105,
+          "c": 164.34407427160355
+        },
+        {
+          "id": "reserved-guard-2",
+          "r": 8.075410902386006,
+          "c": 163.64491717982244
+        }
+      ],
+      "status": "blocked",
+      "reason": "no-connected-exterior-post",
+      "slices": 2,
+      "queries": 123
+    },
+    {
+      "assetId": "hospital",
+      "instanceId": "REBUILD-VISUAL-hospital-001",
+      "slot": 2,
+      "patrolStep": 3,
+      "from": {
+        "r": 8.075410902386006,
+        "c": 163.64491717982244
+      },
+      "approach": {
+        "r": 9.356984627970292,
+        "c": 164
+      },
+      "occupied": [
+        {
+          "id": "reserved-guard-0",
+          "r": 8.344957875940105,
+          "c": 164.34407427160355
+        },
+        {
+          "id": "reserved-guard-1",
+          "r": 7.217437410276492,
+          "c": 163.52597796788302
+        }
+      ],
+      "status": "blocked",
+      "reason": "no-connected-exterior-post",
+      "slices": 1,
+      "queries": 77
+    },
+    {
+      "assetId": "print_shop",
+      "instanceId": "REBUILD-VISUAL-print_shop-001",
+      "slot": 0,
+      "patrolStep": 2,
+      "from": {
+        "r": 13.724142561674496,
+        "c": 101.09240533428533
+      },
+      "approach": {
+        "r": 12.377913843951179,
+        "c": 98.30614630350254
+      },
+      "occupied": [
+        {
+          "id": "reserved-guard-1",
+          "r": 12.783611374461989,
+          "c": 99.59224677068875
+        },
+        {
+          "id": "reserved-guard-2",
+          "r": 12.075025194568104,
+          "c": 99.48348568898444
+        }
+      ],
+      "status": "blocked",
+      "reason": "no-connected-exterior-post",
+      "slices": 5,
+      "queries": 471
+    },
+    {
+      "assetId": "print_shop",
+      "instanceId": "REBUILD-VISUAL-print_shop-001",
+      "slot": 2,
+      "patrolStep": 3,
+      "from": {
+        "r": 12.59118892247144,
+        "c": 101.2644827457482
+      },
+      "approach": {
+        "r": 12.377913843951179,
+        "c": 98.30614630350254
+      },
+      "occupied": [
+        {
+          "id": "reserved-guard-0",
+          "r": 12.559636206074574,
+          "c": 100.41228045918773
+        },
+        {
+          "id": "reserved-guard-1",
+          "r": 12.783611374461989,
+          "c": 99.59224677068875
+        }
+      ],
+      "status": "blocked",
+      "reason": "no-connected-exterior-post",
+      "slices": 4,
+      "queries": 332
+    }
+  ]
+}

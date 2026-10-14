@@ -1,0 +1,6 @@
+{
+  "npc_service_employee_return23_candidate.mjs": "284c319d21fd5df84ad8c64ac0d6ab68ed664c64740430d8fd289e4ec7fd6778",
+  "npc_service_employee_return23_patch_candidate.mjs": "e354bc88e177f4d580166db35a72f6a1abeefd466e4e5b439a8325cbe04f429b",
+  "assets/maps/city_rebuild_v1/test_npc_service_employee_return23_candidate.mjs": "b7991d412e7b4b46702636c88c65cf0994470e1b29180183a883b871c0d7a63b",
+  "docs/ai/NPC_SERVICE_EMPLOYEE_RETURN23_PROPOSAL.patch": "93a1ad0bef1497788d46ee2951a696d636bbbd129000ec81ede1a977435b0299"
+}

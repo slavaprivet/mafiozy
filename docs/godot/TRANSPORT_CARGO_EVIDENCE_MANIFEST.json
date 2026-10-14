@@ -1,0 +1,54 @@
+{
+  "schema": "mafiozi.transport.cargo-evidence.v1",
+  "status": "FROZEN_ACTUAL_GLBS_VERIFIED",
+  "tests": {
+    "checks": 156,
+    "failures": 0,
+    "profiles": 13
+  },
+  "cost": {
+    "sample_p50_us": 546,
+    "sample_max_us": 709,
+    "scope": "13 isolated profile samples; not full-scene FPS"
+  },
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_cargo_evidence.gd",
+      "bytes": 5104,
+      "sha256": "a6e235b1b56c332f6a5a5b2283e3ad6d045876c46dc28b32fffed207db875a2e"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_cargo_evidence.gd",
+      "bytes": 3350,
+      "sha256": "c6d27f55d58e5c8e221a3f709fc5f5ecc84dbda70e356722d5a9c8a78f4e59f0"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_CARGO_EVIDENCE_HANDOFF.md",
+      "bytes": 2528,
+      "sha256": "a86ef4802469b7d43de21d138aed218b25677f7f983209c70ed19c39a8019025"
+    }
+  ],
+  "dependencies": [
+    {
+      "path": "godot/mafiozi_walk/assets/vehicle_visual/compartments.json",
+      "bytes": 18023,
+      "sha256": "423c09c28b0fbeac819e1d1b351087cdf2e05790254bb9e8371d4e1a2c1cbd51"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/vehicle_visual/vehicle_visual.gd",
+      "bytes": 8708,
+      "sha256": "d586952de302b7ec0467b89b91ba117e3350e8a5c217f48c303f06ff88494e34"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/vehicle_visual/vehicle_compartments.gd",
+      "bytes": 5848,
+      "sha256": "99ee5fcd0b07cb9b918f90280d30ee3f462ab54537c0073f2b079e25d14ca9df"
+    }
+  ],
+  "limits": [
+    "placement query only, no inventory or authority writes",
+    "damage owner must invalidate_geometry before in-place vertex/topology edits",
+    "Root binds actual vehicle/item lifetime and storage receipt",
+    "disposed/detached events remain authoritative external inputs"
+  ]
+}

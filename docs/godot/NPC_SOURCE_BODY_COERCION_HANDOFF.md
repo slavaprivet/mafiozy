@@ -1,0 +1,21 @@
+# BODY source comparison correction — frozen handoff
+
+Current helper SHA3fbdf0259c909ee38c5d25cbe22ac627bc72a84b45af93da63f75979fa3132ca supersedes historical eb1282/0a7d/bd4948. Old receipts/code/results remain unchanged. Root explicitly accepted scope actual public BODY known/pass semantics, not a generic JavaScript Number polyfill.
+
+Final actual Godot author25,059 checks PASS, exit0/stderr0: all326 baseline decisions/7902 observations and lean/full equivalence, plus287 representable original-JS public comparison/policy fixtures. Two source NUL fixtures are representation HOLD and were not replaced or counted as passed. Final scoped test14b8ee9b1a8be058182c3652725ae26062f8f5533ea827bdf4c6e4da466d52a3; existing old23332 test unchanged. Full exact scalar/string transport, source oracle, history and logs are outputs/astra21_npc_source_body_coercion_tests.
+
+The independent reviewer's original187-check harness and Root's original66-check harness were rerun by the owner on this finalSHA with only expectedSHA/output-path substitutions: both exit0/clean. Their original authorship is independent, execution here is by owner. Mirrors/results are outputs/astra21_npc_source_body_coercion_author; no reviewer/Root original outputs were overwritten. Separate Root final review remains Root-owned.
+
+## Confirmed fixes
+
+Godot strip_edges omitted valid ECMAScript whitespace and trimmed invalid controls. Exact JS whitespace/line-terminator set plus entire ASCII numeric grammar now preserves the original NaN comparison fallback. Singleton numeric arrays retain the existing binary64 value rather than lose ULPs through native str(float); singleton booleans still stringify to nonnumeric source text, multi-element arrays retain invalid comma-number semantics. Input Number bytes travel explicitly as Float64, avoiding JSON fixture rounding.
+
+Further testing found native decimal parser double-rounding at the actual .025 threshold. Production unique-city policy now uses _depth_exceeds: raw numeric values compare directly; valid positive decimal strings compare exactly to the IEEE754 midpoint above source Double(.025), with ties returning false because the source threshold is even. Source literal, exact binary bits and BigInt-derived midpoint proof are THRESHOLD_PROOF.json SHAa3258b1716cbef2eaafdb3fce4e942c509c92aff8247a335e3919cd2c56d4255. Midpoint and below-neighbor pass, above-neighbor rejects, matching executed original JS. Valid radix positive integers are zero or>=1; grammar/negatives/NaN/null/arrays preserve the original predicate.
+
+Private _number is an UNUSED production diagnostic approximation. Three numeric-value differences remain explicit UNQUALIFIED diagnostics (one minimum-subnormal case and two decimal midpoint values). These failed generic-value receipts are preserved and are not a full Number parity claim. None is used by production BODY decisions after this fix. This component exports bool/UNKNOWN source predicates, not converted Number values.
+
+## Performance and limits
+
+Same source object_0/resident_1 before-registration no native/water callbacks,50warm/2000calls: body_pass finalp50/p95/max101/143/394us versus historicala460246/304/654us. Diagnosticquery195/281/540us, configure15.616/19.283ms once. CPU only; real geometry/provider/physical/GPU/LIVE/FPS not measured. No source actors/IDs/HP/authority/host/main/player/export/Git changes.
+
+Root should use the final helper as source-policy logic with proven current primitive leases. The real fallback primitive6bac2f10 now has author3070 and independent14117 actual Godot checks, matching originalJS320knownpass6reject0unknown. Those are unchanged-position predicate results, not actual source placement execution. Source `_npcInitialPlacementStep` and `_npcInitialSafePlacement` return before `_walkNpcNavigationResolver` is registered. The immutable pre-native context and initial-placement7450 therefore do not prove runtime readiness. A separately proven registered-native transition, real terrain/water/body/surface callbacks and full326 spacing solve are required; changing only native_nav_present or relabeling the old phase is not acceptable. Frozen context/static inputs still require Root export bundling and physical/life/candidate admission. Phone/reaction/commerce runtime integration remains separate.

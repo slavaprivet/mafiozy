@@ -1,0 +1,82 @@
+
+# Isolated map-editor vehicle lease extension. The transport itself owns the
+# freeze and receipt; callers cannot create a lease by changing a velocity gate.
+var _editor_vehicle_original: Dictionary = {}
+var _editor_vehicle_receipt: Dictionary = {}
+var _editor_vehicle_serial := 0
+
+func map_editor_vehicle_acquire(samples: Array[Dictionary]) -> Dictionary:
+	if not _editor_vehicle_receipt.is_empty() or samples.size() != 31 or not ready_for_play \
+		or phase != "ON_FOOT" or not _parked_brake or _e_down or _pending_exit \
+		or _blocked_transition or not is_instance_valid(body) or body.freeze \
+		or body._contact_buffer.size() != 0 or body._contact_buffer.has_gap() \
+		or body._grounded_wheel_mask != 15 or body._throttle != 0.0 \
+		or body._steering_input != 0.0 or not body._handbrake: return {}
+	var first: Dictionary = samples[0]
+	var last: Dictionary = samples.back()
+	if int(last.get("tick", -1)) - int(first.get("tick", -1)) != 30 \
+		or last.get("transform") != body.global_transform \
+		or last.get("linear") != body.linear_velocity or last.get("angular") != body.angular_velocity: return {}
+	var body_id := body.get_instance_id()
+	var vehicle_id := str(body.get_meta("vehicle_id", ""))
+	var life := int(body.get_meta("life_generation", 0))
+	if vehicle_id.is_empty() or life <= 0: return {}
+	var origin: Vector3 = first.transform.origin
+	var base_rotation: Quaternion = first.transform.basis.get_rotation_quaternion()
+	for i in samples.size():
+		var sample: Dictionary = samples[i]
+		if int(sample.get("tick", -1)) != int(first.tick) + i or int(sample.get("id", -1)) != body_id \
+			or str(sample.get("vehicle_id", "")) != vehicle_id or int(sample.get("life", -1)) != life \
+			or int(sample.get("ground", -1)) != 15: return {}
+		var frame: Transform3D = sample.get("transform", Transform3D.IDENTITY)
+		var linear: Vector3 = sample.get("linear", Vector3.INF)
+		var angular: Vector3 = sample.get("angular", Vector3.INF)
+		if not frame.is_finite() or not linear.is_finite() or not angular.is_finite() \
+			or linear.length() > 0.03 or angular.length() > 0.005 \
+			or frame.origin.distance_to(origin) > 0.01 \
+			or base_rotation.angle_to(frame.basis.get_rotation_quaternion()) > 0.003: return {}
+	_editor_vehicle_original = {"transform":body.global_transform, "linear":body.linear_velocity,
+		"angular":body.angular_velocity, "freeze":body.freeze, "sleeping":body.sleeping,
+		"physics_tick":int(body._physics_tick), "contact_sequence":int(body._contact_sequence),
+		"control_sequence":int(body._control_sequence), "control_source_clock":int(body._control_source_clock),
+		"session":var_to_bytes(_session), "transport_clock":_clock, "transport_sequence":_sequence}
+	_editor_vehicle_serial += 1
+	_editor_vehicle_receipt = {"transport_id":get_instance_id(), "body_id":body_id,
+		"vehicle_id":vehicle_id, "life":life, "serial":_editor_vehicle_serial}
+	body.freeze = true
+	if not map_editor_vehicle_verify(_editor_vehicle_receipt): return {}
+	return _editor_vehicle_receipt.duplicate(true)
+
+func map_editor_vehicle_verify(receipt: Dictionary) -> bool:
+	return not _editor_vehicle_receipt.is_empty() and receipt == _editor_vehicle_receipt \
+		and is_instance_valid(body) and get_instance_id() == int(_editor_vehicle_receipt.transport_id) \
+		and body.get_instance_id() == int(_editor_vehicle_receipt.body_id) \
+		and body.get_meta("vehicle_id", "") == _editor_vehicle_receipt.vehicle_id \
+		and body.get_meta("life_generation", 0) == _editor_vehicle_receipt.life \
+		and phase == "ON_FOOT" and _parked_brake and not _e_down and not _pending_exit \
+		and var_to_bytes(_session) == _editor_vehicle_original.session \
+		and _clock == _editor_vehicle_original.transport_clock \
+		and _sequence == _editor_vehicle_original.transport_sequence \
+		and body.freeze and body.global_transform == _editor_vehicle_original.transform \
+		and body._physics_tick == _editor_vehicle_original.physics_tick \
+		and body._contact_sequence == _editor_vehicle_original.contact_sequence \
+		and body._control_sequence == _editor_vehicle_original.control_sequence \
+		and body._control_source_clock == _editor_vehicle_original.control_source_clock \
+		and body._contact_buffer.size() == 0 and not body._contact_buffer.has_gap()
+
+func map_editor_vehicle_release(receipt: Dictionary) -> bool:
+	if not map_editor_vehicle_verify(receipt): return false
+	body.freeze = bool(_editor_vehicle_original.freeze)
+	body.linear_velocity = _editor_vehicle_original.linear
+	body.angular_velocity = _editor_vehicle_original.angular
+	body.sleeping = bool(_editor_vehicle_original.sleeping)
+	if body.freeze != bool(_editor_vehicle_original.freeze) \
+		or body.global_transform != _editor_vehicle_original.transform \
+		or body.linear_velocity != _editor_vehicle_original.linear \
+		or body.angular_velocity != _editor_vehicle_original.angular \
+		or body.sleeping != bool(_editor_vehicle_original.sleeping):
+		body.freeze = true
+		return false
+	_editor_vehicle_original.clear()
+	_editor_vehicle_receipt.clear()
+	return true

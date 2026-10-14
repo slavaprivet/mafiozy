@@ -1,0 +1,62 @@
+{
+  "schema": "mafiozi.transport-local-dent-core.v1",
+  "status": "FUNCTIONAL_PERFORMANCE_REJECTED_DO_NOT_ADOPT",
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_local_dent.gd",
+      "sha256": "883a4559323649b21315098ae4f6324566e9302bb25a8110a1b8c7dd7c93459e",
+      "bytes": 8897
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_local_dent.gd",
+      "sha256": "c681d7e45a02a3366ae568356315dfda0302311541104969b0e89644d07405dc",
+      "bytes": 14950
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_local_dent_transaction_review.gd",
+      "sha256": "3f8a24ccb9fef3ef377cad932dc24e586d9fe6d155620acab0b79a2560b2bb7a",
+      "bytes": 4356
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_local_dent_cost.gd",
+      "sha256": "9198022db5480fd2bb8311c00434a11a9ec48f9a82d6ca50193b74f334691515",
+      "bytes": 3704
+    },
+    {
+      "path": "godot/mafiozi_walk/data/transport/local_dent_oracle.json",
+      "sha256": "790b7d5e93ddd2cc50db20010012fa786df65ad5dbef5df02910b44f35041059",
+      "bytes": 39279
+    },
+    {
+      "path": "tools/godot/export_transport_local_dent_oracle.mjs",
+      "sha256": "98e9e925a8cea030cf74d762c833739e6a41102e2401744f2170add58d4fd02c",
+      "bytes": 8218
+    },
+    {
+      "path": "docs/godot/TRANSPORT_LOCAL_DENT_SOURCE_REVIEW.md",
+      "sha256": "1ed11343066214e340718328455e328e4cd8a58df54c300ea7be8958a6176195",
+      "bytes": 15047
+    }
+  ],
+  "checks": {
+    "independent_transaction": 18,
+    "parent": 87,
+    "author": 87,
+    "parent_transaction": 18
+  },
+  "cost": {
+    "synthetic_p95_us": 124659,
+    "parent_p95_us": 21899,
+    "bounded_synthetic_vertices": 90000,
+    "parent_p50_us": 16969,
+    "parent_max_us": 25666,
+    "prepared_vertices": 25752,
+    "prepared_panel": "v0163"
+  },
+  "limitations": [
+    "Pure position core only; no main or LIVE adoption",
+    "Host must verify exact committed geometry/revision before token commit",
+    "Normals/bounds/upload/hulls and preparation costs excluded",
+    "Performance rejected and full scene unmeasured"
+  ]
+}

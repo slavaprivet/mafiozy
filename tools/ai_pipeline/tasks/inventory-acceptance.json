@@ -1,0 +1,28 @@
+{
+  "TASK_ID": "walk-mercenary-inventory-acceptance-20260916",
+  "ROLE": "REVIEW_QA",
+  "GOAL": "Prepare independent acceptance regressions for mercenary weapon ownership across equip, dismiss, hospitalization and save/reload. First map existing coverage, then design only missing scenarios. Detect loss or duplication of real inventory items, and preserve source NPC identity.",
+  "SCOPE": "mercenary_world inventory/persistence adapter, core contracts and existing world tests. Astra 2 separately owns two lifecycle core fixes; do not duplicate its implementation or tests of downedAt/detached alone.",
+  "ALLOWED_FILES": [],
+  "CONTEXT_FILES": [
+    "assets/maps/city_rebuild_v1/mercenary_world.js",
+    "assets/maps/city_rebuild_v1/mercenary_core.mjs",
+    "assets/maps/city_rebuild_v1/test_mercenary_world.mjs",
+    "docs/game-design/MERCENARY_SQUAD_20260912.md"
+  ],
+  "CONSTRAINTS": [
+    "No production patch in this task: PATCH remains empty. Do not alter other authors' tests or code.",
+    "Astra 2 is fixing commands to detached bomb operators and restoring downedAt/lifecycleRetryAt. Use those as known boundaries, not new findings.",
+    "Test through public adapter calls and inventory quantities; do not copy the implementation into the expected-value oracle.",
+    "Existing tests already cover basic recruit/equip/dismiss and one inventory reload. Do not report those as missing without checking.",
+    "No Work, terminal, API, browser, subagents or fictional test results. Local preview acceptance is not authenticated server acceptance."
+  ],
+  "ACCEPTANCE_CRITERIA": [
+    "Create a small coverage table: scenario, existing test/evidence, real remaining gap.",
+    "For up to four highest-value uncovered cases, specify initial inventory, exact public-call sequence, failure injection where meaningful, and exact expected counts/identity.",
+    "Provide an independent proposed test file test_mercenary_inventory_acceptance.mjs as an artifact if sufficient context exists. This is a proposed new file, not a patch to existing production; do not put it in PATCH.",
+    "Handle repeated dismissal/reconciliation, failed equip or dismiss, save/reload with issued weapon, and hospital/return without granting a second copy where not already covered.",
+    "Full output in available artifact; chat at most 8 short lines. If file creation is unavailable, concise concrete scenarios within 1500 characters; never claim a file was created."
+  ],
+  "CHECKS": []
+}

@@ -1,0 +1,22 @@
+{
+  "schema": "mafiozi.landmarks-native-resource-candidate/v1",
+  "sourceManifestSha256": "4e459bda9cf6a9ab752667bc8a55fe36a6a6c4d7350a7d5ddc64e08c6a8c490c",
+  "engine": "Godot 4.7.2.stable.official.ed1daf0bf",
+  "cpuChecks": 353646,
+  "parts": 933,
+  "sharedMeshes": 267,
+  "originalMultiMeshes": 22,
+  "textureDependenciesHold": 38,
+  "coldResourceBuildUs": 69940,
+  "warmBridgePreviewSamples": 60,
+  "warmBridgePreviewP50Us": 1426,
+  "warmBridgePreviewP95Us": 2346,
+  "measurementScope": "CPU candidate only, not gameplay frame time or GPU/FPS",
+  "sceneAdmitted": false,
+  "gates": [
+    "Exact original 38 texture capture and source sampler acceptance",
+    "GPU visual parity including Godot internal normal encoding",
+    "Actual canonical site authority, doors/release, collider and navigation owners",
+    "Native visual adapter and live game integration"
+  ]
+}

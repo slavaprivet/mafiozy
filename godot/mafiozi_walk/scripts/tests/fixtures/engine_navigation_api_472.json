@@ -1,0 +1,336 @@
+{
+  "schema": "mafiozi.engine-navigation-api/1",
+  "engine": "4.7.2.stable.official.ed1daf0bf",
+  "provenance": "XML dumped directly from the installed executable with --headless --doctool; no engine API signatures guessed",
+  "classes": {
+    "NavigationServer3D": {
+      "xml_sha256": "97338cf7f8aa970786f6cb0ad3679332cd16c4f1b5796d62d9d06a11de9503e1",
+      "methods": [
+        {
+          "name": "bake_from_source_geometry_data_async",
+          "returns": "void",
+          "parameters": [
+            {
+              "name": "navigation_mesh",
+              "type": "NavigationMesh",
+              "default": ""
+            },
+            {
+              "name": "source_geometry_data",
+              "type": "NavigationMeshSourceGeometryData3D",
+              "default": ""
+            },
+            {
+              "name": "callback",
+              "type": "Callable",
+              "default": "Callable()"
+            }
+          ]
+        },
+        {
+          "name": "free_rid",
+          "returns": "void",
+          "parameters": [
+            {
+              "name": "rid",
+              "type": "RID",
+              "default": ""
+            }
+          ]
+        },
+        {
+          "name": "is_baking_navigation_mesh",
+          "returns": "bool",
+          "parameters": [
+            {
+              "name": "navigation_mesh",
+              "type": "NavigationMesh",
+              "default": ""
+            }
+          ]
+        },
+        {
+          "name": "map_create",
+          "returns": "RID",
+          "parameters": []
+        },
+        {
+          "name": "map_get_closest_point_owner",
+          "returns": "RID",
+          "parameters": [
+            {
+              "name": "map",
+              "type": "RID",
+              "default": ""
+            },
+            {
+              "name": "to_point",
+              "type": "Vector3",
+              "default": ""
+            }
+          ]
+        },
+        {
+          "name": "map_get_iteration_id",
+          "returns": "int",
+          "parameters": [
+            {
+              "name": "map",
+              "type": "RID",
+              "default": ""
+            }
+          ]
+        },
+        {
+          "name": "map_set_active",
+          "returns": "void",
+          "parameters": [
+            {
+              "name": "map",
+              "type": "RID",
+              "default": ""
+            },
+            {
+              "name": "active",
+              "type": "bool",
+              "default": ""
+            }
+          ]
+        },
+        {
+          "name": "map_set_cell_height",
+          "returns": "void",
+          "parameters": [
+            {
+              "name": "map",
+              "type": "RID",
+              "default": ""
+            },
+            {
+              "name": "cell_height",
+              "type": "float",
+              "default": ""
+            }
+          ]
+        },
+        {
+          "name": "map_set_cell_size",
+          "returns": "void",
+          "parameters": [
+            {
+              "name": "map",
+              "type": "RID",
+              "default": ""
+            },
+            {
+              "name": "cell_size",
+              "type": "float",
+              "default": ""
+            }
+          ]
+        },
+        {
+          "name": "map_set_use_async_iterations",
+          "returns": "void",
+          "parameters": [
+            {
+              "name": "map",
+              "type": "RID",
+              "default": ""
+            },
+            {
+              "name": "enabled",
+              "type": "bool",
+              "default": ""
+            }
+          ]
+        },
+        {
+          "name": "query_path",
+          "returns": "void",
+          "parameters": [
+            {
+              "name": "parameters",
+              "type": "NavigationPathQueryParameters3D",
+              "default": ""
+            },
+            {
+              "name": "result",
+              "type": "NavigationPathQueryResult3D",
+              "default": ""
+            },
+            {
+              "name": "callback",
+              "type": "Callable",
+              "default": "Callable()"
+            }
+          ]
+        },
+        {
+          "name": "region_create",
+          "returns": "RID",
+          "parameters": []
+        },
+        {
+          "name": "region_get_bounds",
+          "returns": "AABB",
+          "parameters": [
+            {
+              "name": "region",
+              "type": "RID",
+              "default": ""
+            }
+          ]
+        },
+        {
+          "name": "region_get_iteration_id",
+          "returns": "int",
+          "parameters": [
+            {
+              "name": "region",
+              "type": "RID",
+              "default": ""
+            }
+          ]
+        },
+        {
+          "name": "region_set_map",
+          "returns": "void",
+          "parameters": [
+            {
+              "name": "region",
+              "type": "RID",
+              "default": ""
+            },
+            {
+              "name": "map",
+              "type": "RID",
+              "default": ""
+            }
+          ]
+        },
+        {
+          "name": "region_set_navigation_mesh",
+          "returns": "void",
+          "parameters": [
+            {
+              "name": "region",
+              "type": "RID",
+              "default": ""
+            },
+            {
+              "name": "navigation_mesh",
+              "type": "NavigationMesh",
+              "default": ""
+            }
+          ]
+        }
+      ]
+    },
+    "NavigationMeshSourceGeometryData3D": {
+      "xml_sha256": "db7d65f01ae25868fbccf23c474a4d7e0709d5fff6344f3967bfa96305d027ad",
+      "methods": [
+        {
+          "name": "add_faces",
+          "returns": "void",
+          "parameters": [
+            {
+              "name": "faces",
+              "type": "PackedVector3Array",
+              "default": ""
+            },
+            {
+              "name": "xform",
+              "type": "Transform3D",
+              "default": ""
+            }
+          ]
+        }
+      ]
+    },
+    "PhysicsDirectSpaceState3D": {
+      "xml_sha256": "93490ef73713a21f39af49cd674c05b8ac6deed4e24a08059b4aa886d5ccb8ed",
+      "methods": [
+        {
+          "name": "cast_motion",
+          "returns": "PackedFloat32Array",
+          "parameters": [
+            {
+              "name": "parameters",
+              "type": "PhysicsShapeQueryParameters3D",
+              "default": ""
+            }
+          ]
+        },
+        {
+          "name": "intersect_ray",
+          "returns": "Dictionary",
+          "parameters": [
+            {
+              "name": "parameters",
+              "type": "PhysicsRayQueryParameters3D",
+              "default": ""
+            }
+          ]
+        },
+        {
+          "name": "intersect_shape",
+          "returns": "Dictionary[]",
+          "parameters": [
+            {
+              "name": "parameters",
+              "type": "PhysicsShapeQueryParameters3D",
+              "default": ""
+            },
+            {
+              "name": "max_results",
+              "type": "int",
+              "default": "32"
+            }
+          ]
+        }
+      ]
+    },
+    "NavigationAgent3D": {
+      "xml_sha256": "0fbad01852cc907c8f05d80fbd4361af49522d984126d0468c310866c476869a",
+      "methods": [
+        {
+          "name": "get_next_path_position",
+          "returns": "Vector3",
+          "parameters": []
+        },
+        {
+          "name": "set_navigation_map",
+          "returns": "void",
+          "parameters": [
+            {
+              "name": "navigation_map",
+              "type": "RID",
+              "default": ""
+            }
+          ]
+        }
+      ]
+    },
+    "CharacterBody3D": {
+      "xml_sha256": "0af552bfa1f75962a912e5897491a5b04fca964e0f35ab6261be61ed78615abf",
+      "methods": [
+        {
+          "name": "move_and_slide",
+          "returns": "bool",
+          "parameters": []
+        }
+      ]
+    }
+  },
+  "source_files": [
+    {
+      "path": "data/block.json",
+      "sha256": "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e"
+    },
+    {
+      "path": "data/printshop_interior.json",
+      "sha256": "958a2c2d8cbdc2b2e2e11a57e33bf9bf5a20ec334be8a8997bdad951f9f8086b"
+    }
+  ]
+}

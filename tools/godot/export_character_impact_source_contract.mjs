@@ -1,0 +1,78 @@
+// Offline contract evidence only. Never supplies gameplay authority or force.
+import fs from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+import {repo, html, hash, worldSHA, sourceFunction} from './npc_startup_source_vm.mjs';
+import {createWorldWalkHealth, worldWalkHealthSurfaceReceipt} from '../../assets/maps/city_rebuild_v1/world_walk_health.mjs';
+
+const out=path.join(repo,'outputs/astra21_character_impact_consumers');
+fs.mkdirSync(out,{recursive:true});
+const names=['hitNpc','_hurtLocal','_walkConfirmDamage','_walkConfirmServerHit','_threeNpcDeathState','_walkCoverDamage'];
+const functions=names.map(sourceFunction);
+const modulePaths=['assets/maps/city_rebuild_v1/world_walk_health.mjs','assets/maps/city_rebuild_v1/npc_death_record20_source.js','assets/maps/city_rebuild_v1/npc_death_profile20.mjs','assets/maps/city_rebuild_v1/hero_artist14_pose.mjs','assets/maps/city_rebuild_v1/npc_actor.mjs','assets/maps/city_rebuild_v1/npc_population.mjs','assets/maps/city_rebuild_v1/hero_artist14_surface.mjs'];
+const modules=modulePaths.map(p=>({path:p,code:fs.readFileSync(path.join(repo,p),'utf8')})).map(r=>({...r,sha256:hash(r.code)}));
+const write=(name,value)=>fs.writeFileSync(path.join(out,name),JSON.stringify(value,null,2)+'\n');
+let checks=0;
+function check(value,label){assert.ok(value,label);checks++;}
+const emitted=[],ref={id:'resident_72',hp:100,dead:false};
+let now=1000;
+const ctx=vm.createContext({performance:{now:()=>now},CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail;}},window:{dispatchEvent:e=>emitted.push(JSON.parse(JSON.stringify(e)))},_walkPendingShots:new Map(),_walkShotContext:null,_walkMeleeDamageContext:null,_walkRendererActive:()=>true,QP:{uid:'fixture-user'},ref});
+for(const name of ['_walkConfirmDamage','_walkConfirmServerHit'])vm.runInContext(functions.find(r=>r.name===name).code,ctx);
+function shot(extra={}){return {ref,at:900,contact:{point:{x:1,y:1.3,z:2},normal:{x:-1,y:0,z:0},zone:'torso'},shotId:'fixture-shot',npcId:'npc_resident_72',weapon:'pistol',...extra};}
+function local(s,damage=25){ctx._walkShotContext=s;return ctx._walkConfirmDamage(ref,damage);}
+check(local(shot()),'actual local source confirms contact');
+check(!local(ctx._walkShotContext),'same source context cannot confirm twice');
+check(emitted.length===1,'one source event');
+const bullet=emitted[0].detail;
+check(bullet.point.x===1&&bullet.normal.x===-1&&bullet.zone==='torso','real contact preserved');
+check(!('impulse' in bullet)&&!('travelWorld' in bullet),'confirmed hit carries neither J nor projectile travel');
+check(!local(shot({ref:{...ref}})),'reference identity required');
+check(!local(shot({contact:null})),'contact required');
+check(!local(shot(),0),'zero damage no receipt');
+check(!local(shot({at:now-15001})),'source context expiry');
+check(local(shot({melee:true,airborne:true,blocked:false,animation:{type:'dropkick'}})),'accepted source melee');
+check(emitted.at(-1).detail.knockdown===true,'airborne source knockdown metadata');
+check(local(shot({melee:true,airborne:true,blocked:true})),'blocked source melee can still carry reduced damage');
+check(emitted.at(-1).detail.knockdown===false,'block suppresses knockdown metadata');
+const cop={id:7};
+const server=shot({ref:cop,npcId:'npc_world_cop_7'});ctx._walkPendingShots.set('server-shot',server);
+const ack={kind:'cop_hit',shot_id:'server-shot',shooter_uid:'fixture-user',cop_id:7,dmg:12};
+check(!ctx._walkConfirmServerHit({...ack,replayed:true}),'replayed ack rejected');
+check(!ctx._walkConfirmServerHit({...ack,shooter_uid:'foreign'}),'foreign shooter rejected');
+check(!ctx._walkConfirmServerHit({...ack,cop_id:8}),'foreign recipient rejected');
+check(!ctx._walkConfirmServerHit({...ack,melee:true,attack_id:'server-shot'}),'wrong attack family rejected');
+check(!ctx._walkConfirmServerHit({...ack,dmg:NaN}),'nonfinite ack damage rejected');
+check(ctx._walkConfirmServerHit(ack),'actual matched server ACK');
+check(!ctx._walkConfirmServerHit(ack),'matched context consumed once');
+check(cop.hp===undefined&&ref.hp===100,'confirmation itself does not write HP');
+
+const health=createWorldWalkHealth();
+const source=(hp,version,impact=null,extra={})=>({hp,healthDead:hp<=0,healthCustody:false,combat_state:{body:{current:hp,max:100,dead:hp<=0},combat_version:version},impact,...extra});
+health.update({source:source(100,1,{at:10,power:.3,angle:.1}),time:100});
+const frame=health.update({source:source(80,2,{at:110,power:.5,angle:.4,kind:'pistol',bodyPart:'head'}),time:120});
+check(frame.events.length===1&&frame.events[0].type==='impact','health source impact edge');
+check(!('point' in frame.events[0]),'health impact stamp is not contact');
+check(worldWalkHealthSurfaceReceipt(frame.events[0])===null,'no invented hit contact');
+check(worldWalkHealthSurfaceReceipt(frame.events[0],{confirmed:false,point:{x:0,y:0,z:0}})===null,'unconfirmed host contact rejected');
+check(worldWalkHealthSurfaceReceipt(frame.events[0],{confirmed:true,point:{x:NaN,y:0,z:0}})===null,'nonfinite host contact rejected');
+const receipt=worldWalkHealthSurfaceReceipt(frame.events[0],{confirmed:true,point:{x:1,y:2,z:3}});
+check(!('zone' in receipt)&&!('side' in receipt),'head telemetry does not invent anatomy/side');
+check(health.update({source:source(80,2,{at:110,power:.5}),time:130}).events.length===0,'impact stamp deduplicated');
+check(health.update({source:source(0,1),time:140}).snapshot.dead===false,'stale combat version cannot kill');
+const dead=health.update({source:source(0,3),time:150});
+check(dead.events[0].type==='death'&&dead.snapshot.dead,'source lifecycle death');
+check(!('point' in worldWalkHealthSurfaceReceipt(dead.events[0])),'death has no invented contact');
+check(health.update({source:null,time:160}).snapshot.dead,'missing source preserves life');
+const replacement=health.update({actorKey:'replacement-rig',source:source(0,3),time:170});
+check(replacement.events.length===0&&replacement.actorSync.settled,'replacement does not replay impact/death');
+const custody=health.update({source:source(0,4,null,{healthCustody:true,arrestPhase:'cuffing'}),time:180});
+check(!custody.snapshot.dead&&custody.inputsBlocked,'custody zero HP not death');
+health.dispose();
+const fixtures={synthetic_only:true,authority:false,force_provider:false,events:emitted,healthImpact:frame.events[0],hostContactReceipt:receipt,fixture_checks:checks};
+check(hash(fs.readFileSync(path.join(repo,'world.html')) )===worldSHA,'world unchanged');
+for(const m of modules)check(hash(fs.readFileSync(path.join(repo,m.path)))===m.sha256,'module unchanged '+m.path);
+write('source_receipts.json',{worldSHA,functions,modules});
+write('fixtures.json',fixtures);
+write('RESULT.json',{status:'PASS_SOURCE_CONTRACT_ONLY',checks,synthetic_only:true,live:false,physics_implemented:false,worldSHA,files:['source_receipts.json','fixtures.json'].map(name=>({path:'outputs/astra21_character_impact_consumers/'+name,sha256:hash(fs.readFileSync(path.join(out,name))),bytes:fs.statSync(path.join(out,name)).size}))});
+console.log(JSON.stringify({status:'PASS_SOURCE_CONTRACT_ONLY',checks,worldSHA}));

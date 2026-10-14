@@ -1,0 +1,1294 @@
+{
+  "schema": "mafiozi.map-editor-special-building-readonly-audit/v1",
+  "capturedAt": "2026-09-27T01:27:45.765Z",
+  "scope": "Read-only source audit, not live state or movement acceptance",
+  "metresPerCell": 4.1,
+  "originM": [
+    395.65,
+    0,
+    45.099999999999994
+  ],
+  "sourceReceipts": [
+    {
+      "path": "godot/mafiozi_walk/data/map_editor/catalog.json",
+      "sha256": "ae089d73eb61131bc6a38ccc6a2b9b18639f7bd8b65079f7c15c1e1cda9cde6e"
+    },
+    {
+      "path": "godot/mafiozi_walk/data/block.json",
+      "sha256": "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e"
+    },
+    {
+      "path": "godot/mafiozi_walk/data/printshop_interior.json",
+      "sha256": "958a2c2d8cbdc2b2e2e11a57e33bf9bf5a20ec334be8a8997bdad951f9f8086b"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/main.gd",
+      "sha256": "afc1d53329fc604f53b8028583f3c6a6e7e3a5dd1541c184ed1a27ab516b75fe"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/preview_printshop_interior.gd",
+      "sha256": "300b48c8efa0d0b953514b36e0c0319febfd6d9a2ff61450601a45e1109e37f4"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/preview_interior_finish.gd",
+      "sha256": "f2137740ac1b31669454f18c258db3560bf3c9eb9ff35b0a00875db0ee6bb497"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/preview_population.gd",
+      "sha256": "91815fd8851151fe8443a85b84b268a95a04c07ff39f0a136c60c631f58fe37c"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/navigation/preview_navigation_host.gd",
+      "sha256": "0b6fd34bc1d77e1f27c2005b699477453f089f4f65bf7d21942e73adbad631d4"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/navigation/path_job_queue.gd",
+      "sha256": "dc19de386ccef8e23dcf1c2f0b62f6a46f7f816cf8fd5c3c26c8a6409b7be473"
+    },
+    {
+      "path": "tools/godot/map_editor_assembly_candidate/catalog_factory.gd",
+      "sha256": "042a5e226e3e0eab9a4e2fb4cd9c8cec1c6d7d5e8513e4b5725c79745aac6510"
+    },
+    {
+      "path": "tools/godot/map_editor_candidate/scripts/map_editor/preview_host_bridge.gd",
+      "sha256": "4666154b6759d6ed8c6e80ad7511f52a5d7148a95e68c4819d19209c58d4ecfe"
+    },
+    {
+      "path": "tools/godot/map_editor_candidate/scripts/map_editor/object_registry.gd",
+      "sha256": "369c9457a4fc47fe59c2a876194d0dba2037d5d48b4dc84758a4b3c6349e0749"
+    },
+    {
+      "path": "tools/godot/map_editor_candidate/scripts/map_editor/editor_host_adapter.gd",
+      "sha256": "0942e81016db07ae1ad243081cf82bf9f845029c2067c62496251e9091663b1f"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_entry_profiles.mjs",
+      "sha256": "cdafc87850c0eaabf64090cd8f441c78a20bf9c4d75be7eed1bb3850a482f53b"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/detention_native_sites.mjs",
+      "sha256": "113e0e5f7c8415ed083ff7ef9e4ba373c3b4c7c5e6522b38cd2c260abb5ad0f8"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_detention_access.mjs",
+      "sha256": "2e1b63686cc90469b897637d09d3c885ea8d560cefe2a2253671b0170f5a0ccd"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/native_print_shop_service_station.mjs",
+      "sha256": "2cc1e9ed809d0d0b681c83f685f7a798240590dfd5086870e96db1b6fe301280"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/service_pilot23_candidate/walk_host.mjs",
+      "sha256": "01f5c7bccbc6ada1c45a6aab64f5e76e536246c8d2ef8dd44f5874997c29c85b"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/service_pilot23_candidate/source.mjs",
+      "sha256": "4509f96a514ab4a7b76b8ca4aa72d8aee11c49ada76f0043ed5c0700fc37cc4d"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/walk_map_editor_scene_rebuild_bridge.mjs",
+      "sha256": "69a23a235d6c7758ab4f0d9d86286e13a5cb199dbb960622687e8831c22ee49b"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/police_snapshot.mjs",
+      "sha256": "90f4c7a8a478b2b6d1811b6114096fd80371572783d5e78654ba2579bdc4fb65"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/walk_preview.mjs",
+      "sha256": "e80ebf4be2d0404ad5b51d4bf28b756a9cba2b486c43c0797de748c37364dd47"
+    }
+  ],
+  "objects": [
+    {
+      "key": "buildings:REBUILD-bank:large",
+      "id": "REBUILD-bank:large",
+      "dataset": "buildings",
+      "assetId": "bank_large_shell_v1",
+      "resourceId": "8902684ddc01ff119cb18221ae3853cc78301ae65256c5e69e383549709c1789",
+      "status": "pending-import",
+      "resPath": "",
+      "editCapability": "requires-host-registration",
+      "inCurrentNativeBlock": false,
+      "nativePilotLocked": false,
+      "nativeSpecialFactory": true,
+      "sourceAuthority": {
+        "gameplayId": "bank:large",
+        "detentionId": null,
+        "gameplayActive": false
+      },
+      "sourceTransform": {
+        "positionM": [
+          211.14999999999998,
+          0,
+          641.65
+        ],
+        "yawDegrees": 0,
+        "uniformScale": 1,
+        "modelLocalOffsetM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "positionLocalM": [
+        -184.5,
+        0,
+        596.55
+      ],
+      "sourceAnchors": {
+        "entry": {
+          "anchorRC": {
+            "r": 159.70731707317074,
+            "c": 51.5
+          },
+          "roadProbeRC": {
+            "r": 163.20731707317074,
+            "c": 51.5
+          },
+          "authoredLocalXYZ": [
+            0,
+            0.1,
+            13.15
+          ],
+          "evidence": "authored Bank_Door_L/R bottom midpoint"
+        },
+        "entryCorridor": {
+          "minR": 159.65731707317073,
+          "minC": 51,
+          "maxR": 163.25731707317075,
+          "maxC": 52
+        },
+        "footprint": {
+          "minR": 153.20731707317074,
+          "minC": 47.23170731707317,
+          "maxR": 159.79756097560977,
+          "maxC": 55.76829268292683
+        },
+        "clearance": {
+          "minR": 152.80731707317074,
+          "minC": 46.831707317073175,
+          "maxR": 160.19756097560978,
+          "maxC": 56.168292682926825
+        },
+        "stopFootprint": null,
+        "stopLane": null,
+        "stopLocalZ": null,
+        "bankRoomLabels": [
+          {
+            "id": "public_lobby",
+            "label": "Операционный зал",
+            "center": [
+              0,
+              0.1,
+              6.861111111111111
+            ]
+          },
+          {
+            "id": "staff_office",
+            "label": "Персонал",
+            "center": [
+              -10.540000000000001,
+              0.1,
+              -2.527777777777777
+            ]
+          },
+          {
+            "id": "archive_manager",
+            "label": "Кабинет / архив",
+            "center": [
+              -10.540000000000001,
+              0.1,
+              -9.38888888888889
+            ]
+          },
+          {
+            "id": "security_approach",
+            "label": "Доступ к хранилищу",
+            "center": [
+              0,
+              0.1,
+              -2.022222222222222
+            ]
+          },
+          {
+            "id": "vault",
+            "label": "Хранилище",
+            "center": [
+              0,
+              0.1,
+              -8.883333333333333
+            ]
+          },
+          {
+            "id": "staff_lounge",
+            "label": "Комната отдыха",
+            "center": [
+              10.540000000000003,
+              0.1,
+              -2.166666666666666
+            ]
+          },
+          {
+            "id": "meeting_room",
+            "label": "Переговорная",
+            "center": [
+              10.540000000000003,
+              0.1,
+              -9.027777777777779
+            ]
+          }
+        ],
+        "bankVault": {
+          "rect": [
+            -3.9600000000000017,
+            -13,
+            3.959999999999998,
+            -4.886666666666668
+          ],
+          "doorway": {
+            "center": [
+              0,
+              0.1,
+              -4.7666666666666675
+            ],
+            "width": 2.1,
+            "height": 3
+          }
+        }
+      },
+      "sourceColliderCount": 1,
+      "requiredOwnerContract": "bank physical rooms/vault/original authority transaction"
+    },
+    {
+      "key": "buildings:REBUILD-bank:medium",
+      "id": "REBUILD-bank:medium",
+      "dataset": "buildings",
+      "assetId": "bank_medium_shell_v1",
+      "resourceId": "97d92c7b3aee62d353e74566d262dce887d44f0c692c7b8efd696087df5965fc",
+      "status": "pending-import",
+      "resPath": "",
+      "editCapability": "requires-host-registration",
+      "inCurrentNativeBlock": false,
+      "nativePilotLocked": false,
+      "nativeSpecialFactory": true,
+      "sourceAuthority": {
+        "gameplayId": "bank:medium",
+        "detentionId": null,
+        "gameplayActive": false
+      },
+      "sourceTransform": {
+        "positionM": [
+          164,
+          0,
+          641.65
+        ],
+        "yawDegrees": 90,
+        "uniformScale": 1,
+        "modelLocalOffsetM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "positionLocalM": [
+        -231.64999999999998,
+        0,
+        596.55
+      ],
+      "sourceAnchors": {
+        "entry": {
+          "anchorRC": {
+            "r": 156.5,
+            "c": 42.47560975609756
+          },
+          "roadProbeRC": {
+            "r": 156.5,
+            "c": 44.22560975609756
+          },
+          "authoredLocalXYZ": [
+            0,
+            0.1,
+            10.15
+          ],
+          "evidence": "authored Bank_Door_L/R bottom midpoint"
+        },
+        "entryCorridor": {
+          "minR": 156,
+          "minC": 42.425609756097565,
+          "maxR": 157,
+          "maxC": 44.27560975609756
+        },
+        "footprint": {
+          "minR": 153.20731707317074,
+          "minC": 37.4390243902439,
+          "maxR": 159.79268292682926,
+          "maxC": 42.56585365853658
+        },
+        "clearance": {
+          "minR": 152.80731707317074,
+          "minC": 37.0390243902439,
+          "maxR": 160.19268292682926,
+          "maxC": 42.96585365853658
+        },
+        "stopFootprint": null,
+        "stopLane": null,
+        "stopLocalZ": null,
+        "bankRoomLabels": [
+          {
+            "id": "public_lobby",
+            "label": "Операционный зал",
+            "center": [
+              0,
+              0.1,
+              5
+            ]
+          },
+          {
+            "id": "staff_office",
+            "label": "Персонал",
+            "center": [
+              -8.059999999999999,
+              0.1,
+              -2.333333333333333
+            ]
+          },
+          {
+            "id": "archive_manager",
+            "label": "Кабинет / архив",
+            "center": [
+              -8.059999999999999,
+              0.1,
+              -7.333333333333334
+            ]
+          },
+          {
+            "id": "security_approach",
+            "label": "Доступ к хранилищу",
+            "center": [
+              0,
+              0.1,
+              -2
+            ]
+          },
+          {
+            "id": "vault",
+            "label": "Хранилище",
+            "center": [
+              0,
+              0.1,
+              -7
+            ]
+          },
+          {
+            "id": "staff_lounge",
+            "label": "Комната отдыха",
+            "center": [
+              8.060000000000002,
+              0.1,
+              -2.333333333333333
+            ]
+          },
+          {
+            "id": "meeting_room",
+            "label": "Переговорная",
+            "center": [
+              8.060000000000002,
+              0.1,
+              -7.333333333333334
+            ]
+          }
+        ],
+        "bankVault": {
+          "rect": [
+            -2.999999999999999,
+            -10,
+            3.000000000000001,
+            -4.12
+          ],
+          "doorway": {
+            "center": [
+              0,
+              0.1,
+              -4
+            ],
+            "width": 2.1,
+            "height": 3
+          }
+        }
+      },
+      "sourceColliderCount": 1,
+      "requiredOwnerContract": "bank physical rooms/vault/original authority transaction"
+    },
+    {
+      "key": "buildings:REBUILD-bank:small",
+      "id": "REBUILD-bank:small",
+      "dataset": "buildings",
+      "assetId": "bank_small_shell_v1",
+      "resourceId": "ba3580e4549cf1cce5ceea826aad62158118271a2dbacf23723da7bc33664aab",
+      "status": "pending-import",
+      "resPath": "",
+      "editCapability": "requires-host-registration",
+      "inCurrentNativeBlock": false,
+      "nativePilotLocked": false,
+      "nativeSpecialFactory": true,
+      "sourceAuthority": {
+        "gameplayId": "bank:small",
+        "detentionId": null,
+        "gameplayActive": false
+      },
+      "sourceTransform": {
+        "positionM": [
+          217.29999999999998,
+          0,
+          131.2
+        ],
+        "yawDegrees": 90,
+        "uniformScale": 1,
+        "modelLocalOffsetM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "positionLocalM": [
+        -178.35,
+        0,
+        86.1
+      ],
+      "sourceAnchors": {
+        "entry": {
+          "anchorRC": {
+            "r": 32,
+            "c": 54.74390243902439
+          },
+          "roadProbeRC": {
+            "r": 32,
+            "c": 56.24390243902439
+          },
+          "authoredLocalXYZ": [
+            0,
+            0.1,
+            7.15
+          ],
+          "evidence": "authored Bank_Door_L/R bottom midpoint"
+        },
+        "entryCorridor": {
+          "minR": 31.5,
+          "minC": 54.69390243902439,
+          "maxR": 32.5,
+          "maxC": 56.293902439024386
+        },
+        "footprint": {
+          "minR": 29.682926829268293,
+          "minC": 51.170731707317074,
+          "maxR": 34.31707317073171,
+          "maxC": 54.834146341463416
+        },
+        "clearance": {
+          "minR": 29.282926829268295,
+          "minC": 50.770731707317076,
+          "maxR": 34.71707317073171,
+          "maxC": 55.234146341463415
+        },
+        "stopFootprint": null,
+        "stopLane": null,
+        "stopLocalZ": null,
+        "bankRoomLabels": [
+          {
+            "id": "public_lobby",
+            "label": "Операционный зал",
+            "center": [
+              0,
+              0.1,
+              3.208333333333332
+            ]
+          },
+          {
+            "id": "staff_office",
+            "label": "Персонал",
+            "center": [
+              -5.58,
+              0.1,
+              -2.333333333333334
+            ]
+          },
+          {
+            "id": "archive_manager",
+            "label": "Кабинет / архив",
+            "center": [
+              -5.58,
+              0.1,
+              -5.541666666666666
+            ]
+          },
+          {
+            "id": "security_approach",
+            "label": "Доступ к хранилищу",
+            "center": [
+              0,
+              0.1,
+              -1.8666666666666663
+            ]
+          },
+          {
+            "id": "vault",
+            "label": "Хранилище",
+            "center": [
+              0,
+              0.1,
+              -5.075
+            ]
+          },
+          {
+            "id": "staff_lounge",
+            "label": "Комната отдыха",
+            "center": [
+              5.579999999999998,
+              0.1,
+              -2.041666666666666
+            ]
+          },
+          {
+            "id": "meeting_room",
+            "label": "Переговорная",
+            "center": [
+              5.579999999999998,
+              0.1,
+              -5.25
+            ]
+          }
+        ],
+        "bankVault": {
+          "rect": [
+            -2.04,
+            -7,
+            2.04,
+            -3.2700000000000005
+          ],
+          "doorway": {
+            "center": [
+              0,
+              0.1,
+              -3.1500000000000004
+            ],
+            "width": 2.1,
+            "height": 3
+          }
+        }
+      },
+      "sourceColliderCount": 1,
+      "requiredOwnerContract": "bank physical rooms/vault/original authority transaction"
+    },
+    {
+      "key": "buildings:REBUILD-VISUAL-print_shop-001",
+      "id": "REBUILD-VISUAL-print_shop-001",
+      "dataset": "buildings",
+      "assetId": "print_shop",
+      "resourceId": "ad7b8ef7e7e4143f0e989b7a585c03bb9bd1c13d5efb8689cf67ebcb92ac4d97",
+      "status": "native-static-resource",
+      "resPath": "res://assets/buildings/print_shop.ad7b8ef7e7e4.glb",
+      "editCapability": "requires-host-registration",
+      "inCurrentNativeBlock": true,
+      "nativePilotLocked": true,
+      "nativeSpecialFactory": false,
+      "sourceAuthority": {
+        "gameplayId": null,
+        "detentionId": null,
+        "gameplayActive": false
+      },
+      "sourceTransform": {
+        "positionM": [
+          395.65,
+          0,
+          45.099999999999994
+        ],
+        "yawDegrees": 90,
+        "uniformScale": 1,
+        "modelLocalOffsetM": [
+          -0.13867319894612695,
+          0,
+          0
+        ],
+        "horizontalScale": [
+          1.02,
+          1.02
+        ]
+      },
+      "positionLocalM": [
+        0,
+        0,
+        0
+      ],
+      "sourceAnchors": {
+        "entry": {
+          "anchorRC": {
+            "r": 12.377913843951179,
+            "c": 97.78370727911228
+          },
+          "roadProbeRC": {
+            "r": 12.377913843951179,
+            "c": 103.24024390243903
+          },
+          "authoredLocalXYZ": [
+            -5.400000095367432,
+            2.049999952316284,
+            5.159999847412109
+          ],
+          "evidence": "actual_glb_node:Burgundy entry door"
+        },
+        "entryCorridor": {
+          "minR": 11.949513843951179,
+          "maxR": 12.806313843951179,
+          "minC": 97.73370727911228,
+          "maxC": 103.29024390243903
+        },
+        "footprint": {
+          "minC": 94.50975609756097,
+          "maxC": 98.49024390243903,
+          "minR": 8.47769593587194,
+          "maxR": 13.52230406412806
+        },
+        "clearance": {
+          "minR": 7.82769593587194,
+          "minC": 93.85975609756096,
+          "maxR": 14.17230406412806,
+          "maxC": 99.14024390243904
+        },
+        "stopFootprint": null,
+        "stopLane": null,
+        "stopLocalZ": null,
+        "bankRoomLabels": null,
+        "bankVault": null
+      },
+      "sourceColliderCount": 3,
+      "requiredOwnerContract": "printshop-interior/service/nav revision transaction"
+    },
+    {
+      "key": "buildings:REBUILD-VISUAL-print_shop-002",
+      "id": "REBUILD-VISUAL-print_shop-002",
+      "dataset": "buildings",
+      "assetId": "print_shop",
+      "resourceId": "ad7b8ef7e7e4143f0e989b7a585c03bb9bd1c13d5efb8689cf67ebcb92ac4d97",
+      "status": "native-static-resource",
+      "resPath": "res://assets/buildings/print_shop.ad7b8ef7e7e4.glb",
+      "editCapability": "requires-host-registration",
+      "inCurrentNativeBlock": false,
+      "nativePilotLocked": false,
+      "nativeSpecialFactory": false,
+      "sourceAuthority": {
+        "gameplayId": null,
+        "detentionId": null,
+        "gameplayActive": false
+      },
+      "sourceTransform": {
+        "positionM": [
+          653.9499999999999,
+          0,
+          455.09999999999997
+        ],
+        "yawDegrees": 0,
+        "uniformScale": 1,
+        "modelLocalOffsetM": [
+          -0.13867319894612695,
+          0,
+          0
+        ],
+        "horizontalScale": [
+          1.4,
+          1.4
+        ]
+      },
+      "positionLocalM": [
+        258.29999999999995,
+        0,
+        410
+      ],
+      "sourceAnchors": {
+        "entry": {
+          "anchorRC": {
+            "r": 112.76195116740901,
+            "c": 157.60874570438074
+          },
+          "roadProbeRC": {
+            "r": 114.23170731707317,
+            "c": 157.60874570438074
+          },
+          "authoredLocalXYZ": [
+            -5.400000095367432,
+            2.049999952316284,
+            5.159999847412109
+          ],
+          "evidence": "actual_glb_node:Burgundy entry door"
+        },
+        "entryCorridor": {
+          "minR": 112.71195116740901,
+          "maxR": 114.28170731707317,
+          "minC": 157.02074570438074,
+          "maxC": 158.19674570438073
+        },
+        "footprint": {
+          "minC": 156.03801402962816,
+          "maxC": 162.96198597037184,
+          "minR": 108.26829268292683,
+          "maxR": 113.73170731707317
+        },
+        "clearance": {
+          "minR": 107.61829268292682,
+          "minC": 155.38801402962815,
+          "maxR": 114.38170731707318,
+          "maxC": 163.61198597037185
+        },
+        "stopFootprint": null,
+        "stopLane": null,
+        "stopLocalZ": null,
+        "bankRoomLabels": null,
+        "bankVault": null
+      },
+      "sourceColliderCount": 3,
+      "requiredOwnerContract": "printshop-interior/service/nav revision transaction"
+    },
+    {
+      "key": "buildings:REBUILD-VISUAL-print_shop-003",
+      "id": "REBUILD-VISUAL-print_shop-003",
+      "dataset": "buildings",
+      "assetId": "print_shop",
+      "resourceId": "ad7b8ef7e7e4143f0e989b7a585c03bb9bd1c13d5efb8689cf67ebcb92ac4d97",
+      "status": "native-static-resource",
+      "resPath": "res://assets/buildings/print_shop.ad7b8ef7e7e4.glb",
+      "editCapability": "requires-host-registration",
+      "inCurrentNativeBlock": false,
+      "nativePilotLocked": false,
+      "nativeSpecialFactory": false,
+      "sourceAuthority": {
+        "gameplayId": null,
+        "detentionId": null,
+        "gameplayActive": false
+      },
+      "sourceTransform": {
+        "positionM": [
+          522.75,
+          0,
+          321.84999999999997
+        ],
+        "yawDegrees": 0,
+        "uniformScale": 1,
+        "modelLocalOffsetM": [
+          -0.13867319894612695,
+          0,
+          0
+        ],
+        "horizontalScale": [
+          1.2799999999999998,
+          1.2799999999999998
+        ]
+      },
+      "positionLocalM": [
+        127.10000000000002,
+        0,
+        276.75
+      ],
+      "sourceAnchors": {
+        "entry": {
+          "anchorRC": {
+            "r": 80.1109267816311,
+            "c": 125.77085321543382
+          },
+          "roadProbeRC": {
+            "r": 82.24756097560976,
+            "c": 125.77085321543382
+          },
+          "authoredLocalXYZ": [
+            -5.400000095367432,
+            2.049999952316284,
+            5.159999847412109
+          ],
+          "evidence": "actual_glb_node:Burgundy entry door"
+        },
+        "entryCorridor": {
+          "minR": 80.0609267816311,
+          "maxR": 82.29756097560976,
+          "minC": 125.23325321543382,
+          "maxC": 126.30845321543381
+        },
+        "footprint": {
+          "minC": 124.33475568423145,
+          "maxC": 130.66524431576855,
+          "minR": 76.00243902439024,
+          "maxR": 80.99756097560976
+        },
+        "clearance": {
+          "minR": 75.35243902439024,
+          "minC": 123.68475568423145,
+          "maxR": 81.64756097560976,
+          "maxC": 131.31524431576855
+        },
+        "stopFootprint": null,
+        "stopLane": null,
+        "stopLocalZ": null,
+        "bankRoomLabels": null,
+        "bankVault": null
+      },
+      "sourceColliderCount": 3,
+      "requiredOwnerContract": "printshop-interior/service/nav revision transaction"
+    },
+    {
+      "key": "buildings:REBUILD-VISUAL-print_shop-004",
+      "id": "REBUILD-VISUAL-print_shop-004",
+      "dataset": "buildings",
+      "assetId": "print_shop",
+      "resourceId": "ad7b8ef7e7e4143f0e989b7a585c03bb9bd1c13d5efb8689cf67ebcb92ac4d97",
+      "status": "native-static-resource",
+      "resPath": "res://assets/buildings/print_shop.ad7b8ef7e7e4.glb",
+      "editCapability": "requires-host-registration",
+      "inCurrentNativeBlock": false,
+      "nativePilotLocked": false,
+      "nativeSpecialFactory": false,
+      "sourceAuthority": {
+        "gameplayId": null,
+        "detentionId": null,
+        "gameplayActive": false
+      },
+      "sourceTransform": {
+        "positionM": [
+          106.6,
+          0,
+          377.2
+        ],
+        "yawDegrees": 0,
+        "uniformScale": 1,
+        "modelLocalOffsetM": [
+          -0.13867319894612695,
+          0,
+          0
+        ],
+        "horizontalScale": [
+          1.02,
+          1.02
+        ]
+      },
+      "positionLocalM": [
+        -289.04999999999995,
+        0,
+        332.1
+      ],
+      "sourceAnchors": {
+        "entry": {
+          "anchorRC": {
+            "r": 93.28370727911228,
+            "c": 24.622086156048823
+          },
+          "roadProbeRC": {
+            "r": 95.24024390243903,
+            "c": 24.622086156048823
+          },
+          "authoredLocalXYZ": [
+            -5.400000095367432,
+            2.049999952316284,
+            5.159999847412109
+          ],
+          "evidence": "actual_glb_node:Burgundy entry door"
+        },
+        "entryCorridor": {
+          "minR": 93.23370727911228,
+          "maxR": 95.29024390243903,
+          "minC": 24.193686156048823,
+          "maxC": 25.050486156048823
+        },
+        "footprint": {
+          "minC": 23.47769593587194,
+          "maxC": 28.52230406412806,
+          "minR": 90.00975609756097,
+          "maxR": 93.99024390243903
+        },
+        "clearance": {
+          "minR": 89.35975609756096,
+          "minC": 22.82769593587194,
+          "maxR": 94.64024390243904,
+          "maxC": 29.17230406412806
+        },
+        "stopFootprint": null,
+        "stopLane": null,
+        "stopLocalZ": null,
+        "bankRoomLabels": null,
+        "bankVault": null
+      },
+      "sourceColliderCount": 3,
+      "requiredOwnerContract": "printshop-interior/service/nav revision transaction"
+    },
+    {
+      "key": "detention:REBUILD-DETENTION-chinatown",
+      "id": "REBUILD-DETENTION-chinatown",
+      "dataset": "detention",
+      "assetId": "police_station",
+      "resourceId": "fff0639b3800df3f212c548c9fc45d755b5627c0d3098f10cbc55e9567232d4f",
+      "status": "pending-import",
+      "resPath": "",
+      "editCapability": "requires-host-registration",
+      "inCurrentNativeBlock": false,
+      "nativePilotLocked": false,
+      "nativeSpecialFactory": true,
+      "sourceAuthority": {
+        "gameplayId": null,
+        "detentionId": "detention:chinatown",
+        "gameplayActive": null
+      },
+      "sourceTransform": {
+        "positionM": [
+          32.8,
+          0,
+          364.9
+        ],
+        "yawDegrees": 270,
+        "uniformScale": 0.8,
+        "modelLocalOffsetM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "positionLocalM": [
+        -362.84999999999997,
+        0,
+        319.79999999999995
+      ],
+      "sourceAnchors": {
+        "entry": null,
+        "entryCorridor": {
+          "minC": 5,
+          "maxC": 5.912195121951219,
+          "minR": 87.71219512195121,
+          "maxR": 88.29756097560976
+        },
+        "footprint": {
+          "minC": 5.892682926829267,
+          "maxC": 9.853658536585366,
+          "minR": 86.07317073170732,
+          "maxR": 91.92682926829268
+        },
+        "clearance": null,
+        "stopFootprint": {
+          "minC": 4.402439024390244,
+          "maxC": 4.963414634146341,
+          "minR": 87.22439024390243,
+          "maxR": 88.78536585365853
+        },
+        "stopLane": {
+          "minC": 4.426829268292683,
+          "maxC": 4.939024390243903,
+          "minR": 86.05365853658537,
+          "maxR": 89.95609756097562
+        },
+        "stopLocalZ": 17,
+        "bankRoomLabels": null,
+        "bankVault": null
+      },
+      "sourceColliderCount": 5,
+      "requiredOwnerContract": "detention physical entry/road stop/custody transaction"
+    },
+    {
+      "key": "detention:REBUILD-DETENTION-iron_harbor",
+      "id": "REBUILD-DETENTION-iron_harbor",
+      "dataset": "detention",
+      "assetId": "police_station",
+      "resourceId": "fff0639b3800df3f212c548c9fc45d755b5627c0d3098f10cbc55e9567232d4f",
+      "status": "pending-import",
+      "resPath": "",
+      "editCapability": "requires-host-registration",
+      "inCurrentNativeBlock": false,
+      "nativePilotLocked": false,
+      "nativeSpecialFactory": true,
+      "sourceAuthority": {
+        "gameplayId": null,
+        "detentionId": "detention:iron_harbor",
+        "gameplayActive": null
+      },
+      "sourceTransform": {
+        "positionM": [
+          266.5,
+          0,
+          639.5999999999999
+        ],
+        "yawDegrees": 180,
+        "uniformScale": 0.8,
+        "modelLocalOffsetM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "positionLocalM": [
+        -129.14999999999998,
+        0,
+        594.4999999999999
+      ],
+      "sourceAnchors": {
+        "entry": null,
+        "entryCorridor": {
+          "minC": 65.70243902439024,
+          "maxC": 66.28780487804877,
+          "minR": 153,
+          "maxR": 153.9121951219512
+        },
+        "footprint": {
+          "minC": 62.07317073170732,
+          "maxC": 67.92682926829269,
+          "minR": 153.89268292682925,
+          "maxR": 157.85365853658536
+        },
+        "clearance": null,
+        "stopFootprint": {
+          "minC": 65.21463414634147,
+          "maxC": 66.77560975609757,
+          "minR": 152.40243902439025,
+          "maxR": 152.96341463414632
+        },
+        "stopLane": {
+          "minC": 64.0439024390244,
+          "maxC": 67.94634146341464,
+          "minR": 152.4268292682927,
+          "maxR": 152.9390243902439
+        },
+        "stopLocalZ": 17,
+        "bankRoomLabels": null,
+        "bankVault": null
+      },
+      "sourceColliderCount": 5,
+      "requiredOwnerContract": "detention physical entry/road stop/custody transaction"
+    },
+    {
+      "key": "detention:REBUILD-DETENTION-southside",
+      "id": "REBUILD-DETENTION-southside",
+      "dataset": "detention",
+      "assetId": "police_station",
+      "resourceId": "fff0639b3800df3f212c548c9fc45d755b5627c0d3098f10cbc55e9567232d4f",
+      "status": "pending-import",
+      "resPath": "",
+      "editCapability": "requires-host-registration",
+      "inCurrentNativeBlock": false,
+      "nativePilotLocked": false,
+      "nativeSpecialFactory": true,
+      "sourceAuthority": {
+        "gameplayId": null,
+        "detentionId": "detention:southside",
+        "gameplayActive": null
+      },
+      "sourceTransform": {
+        "positionM": [
+          643.6999999999999,
+          0,
+          418.2
+        ],
+        "yawDegrees": 0,
+        "uniformScale": 0.8,
+        "modelLocalOffsetM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "positionLocalM": [
+        248.04999999999995,
+        0,
+        373.1
+      ],
+      "sourceAnchors": {
+        "entry": null,
+        "entryCorridor": {
+          "minC": 155.71219512195123,
+          "maxC": 156.29756097560974,
+          "minR": 104.08780487804879,
+          "maxR": 105.00000000000001
+        },
+        "footprint": {
+          "minC": 154.0731707317073,
+          "maxC": 159.9268292682927,
+          "minR": 100.14634146341463,
+          "maxR": 104.10731707317073
+        },
+        "clearance": null,
+        "stopFootprint": {
+          "minC": 155.22439024390243,
+          "maxC": 156.78536585365853,
+          "minR": 105.03658536585367,
+          "maxR": 105.59756097560977
+        },
+        "stopLane": {
+          "minC": 154.05365853658535,
+          "maxC": 157.9560975609756,
+          "minR": 105.06097560975611,
+          "maxR": 105.57317073170732
+        },
+        "stopLocalZ": 17,
+        "bankRoomLabels": null,
+        "bankVault": null
+      },
+      "sourceColliderCount": 5,
+      "requiredOwnerContract": "detention physical entry/road stop/custody transaction"
+    }
+  ],
+  "nativePrintshopPackage": {
+    "sourceId": "REBUILD-VISUAL-print_shop-001",
+    "anchors": {
+      "spawn": [
+        -3.868349999999964,
+        0.39,
+        5.5550966629250595
+      ],
+      "doorInside": [
+        -3.2257000000000176,
+        0.39,
+        5.475096662925054
+      ],
+      "doorOutside": [
+        0.4743000000000279,
+        0.39,
+        5.475096662925061
+      ],
+      "work": [
+        0.5842999999999847,
+        0.39,
+        3.7504466629250572
+      ],
+      "customer": [
+        3.064300000000003,
+        0.39,
+        3.7504466629250572
+      ],
+      "customerVia": [
+        3.064300000000003,
+        0.39,
+        5.649446760199837
+      ],
+      "publicApproach": [
+        7.405199844360425,
+        0,
+        5.649446760199837
+      ],
+      "publicInside": [
+        2.81519984436045,
+        0.39,
+        5.649446760199837
+      ]
+    },
+    "transform": {
+      "positionM": [
+        395.65,
+        0,
+        45.099999999999994
+      ],
+      "yawDegrees": 90,
+      "uniformScale": 1,
+      "modelLocalOffsetM": [
+        -0.13867319894612695,
+        0,
+        0
+      ],
+      "horizontalScale": [
+        1.02,
+        1.02
+      ]
+    },
+    "replaceCollisionSourceIndices": [
+      0,
+      1,
+      2
+    ],
+    "staticBodies": 103,
+    "doors": [
+      "public",
+      "service"
+    ]
+  },
+  "preservedNotPlacementIds": [
+    {
+      "worldPoi": "poi:police",
+      "minimapId": "preserved-police",
+      "anchorRC": [
+        76,
+        76
+      ],
+      "catalogObject": false,
+      "reason": "immutable source envelope, protected rects/masks; no native semantic placement"
+    },
+    {
+      "worldPoi": null,
+      "minimapId": "preserved-red-bridge",
+      "anchorRC": [
+        52,
+        90
+      ],
+      "catalogObject": false,
+      "reason": "immutable source bridge surface and protected rects/masks; no native semantic placement"
+    }
+  ],
+  "protectedRects": [
+    {
+      "id": "mainland-dry-compound",
+      "minR": 69,
+      "minC": 69,
+      "maxR": 83,
+      "maxC": 83
+    },
+    {
+      "id": "island-main",
+      "minR": 61,
+      "minC": 80.5,
+      "maxR": 91,
+      "maxC": 98.5
+    },
+    {
+      "id": "intake",
+      "minR": 91,
+      "minC": 85,
+      "maxR": 103,
+      "maxC": 94
+    },
+    {
+      "id": "west-causeway",
+      "minR": 67.93,
+      "minC": 75.85,
+      "maxR": 71.17,
+      "maxC": 80.5
+    },
+    {
+      "id": "north-causeway",
+      "minR": 56,
+      "minC": 88.57,
+      "maxR": 61,
+      "maxC": 90.43
+    },
+    {
+      "id": "original-red-bridge",
+      "minR": 47,
+      "minC": 80,
+      "maxR": 56,
+      "maxC": 100
+    },
+    {
+      "id": "original-red-bridge-open-surface",
+      "minR": 47.34,
+      "minC": 78.25,
+      "maxR": 55.66,
+      "maxC": 101.75
+    }
+  ],
+  "unresolvedRelevant": [
+    {
+      "id": "poi:police",
+      "reason": "protected_existing_police_unchanged_not_replaced"
+    },
+    {
+      "id": "bank:large",
+      "reason": "visual_rooms_placed_host_gameplay_and_original_anchor_migration_pending"
+    },
+    {
+      "id": "bank:medium",
+      "reason": "visual_rooms_placed_host_gameplay_and_original_anchor_migration_pending"
+    },
+    {
+      "id": "bank:small",
+      "reason": "visual_rooms_placed_host_gameplay_and_original_anchor_migration_pending"
+    }
+  ],
+  "nativeOperationsAccepted": false
+}

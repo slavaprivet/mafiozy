@@ -1,0 +1,112 @@
+{
+  "schema": "mafiozi.transport-damage-mark-pool-manifest.v1",
+  "status": "frozen",
+  "date": "2026-09-27",
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_damage_mark_pool.gd",
+      "bytes": 13814,
+      "sha256": "b8b095037f80867f8ec168b75d8a76e0458b1b32b750d9e5e06bb3cc6cc7af0b",
+      "role": "bounded external 32-node runtime"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_damage_mark_pool.gd",
+      "bytes": 11903,
+      "sha256": "06f6d01eca1e24b5fd0bd2e7105efa26f7ac5ba9fb930a8dcb103ddb6fa58a02",
+      "role": "lifecycle, hierarchy, raw-pose, integrity and cost test"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_damage_mark_pool_debris_seam.gd",
+      "bytes": 2940,
+      "sha256": "43aa1f2830c06d3a25f0db578f6cc255225e93da9f4d96f06927dda95ea1ee4e",
+      "role": "external mark plus frozen physical debris seam proof"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_DAMAGE_MARK_POOL_HANDOFF.md",
+      "bytes": 6560,
+      "sha256": "5848f88dd20f8eaa6a413ccd0702557b1e5e23106ffdd964a88bacf56c170f94",
+      "role": "API, host order, seams, verification and limits"
+    }
+  ],
+  "dependencies": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_damage_mark_geometry.gd",
+      "bytes": 9695,
+      "sha256": "314c6d0483b67b600025f96d3194c8ec334532ab2ce73f9fbecd93f0ada72461"
+    },
+    {
+      "path": "godot/mafiozi_walk/data/transport/damage_mark_geometry.json",
+      "bytes": 14964,
+      "sha256": "d05b5114ef6ada70e8690f99752052ac00121aaf774ac6a1bae874c1edd46bf0",
+      "required_runtime_export_dependency": true
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_damage_mark_plan.gd",
+      "bytes": 6367,
+      "sha256": "bac706d5449155814667bf7677c7ae5364b8b95d10cf364d3104799c25d6b42c"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_source_mark_pose.gd",
+      "bytes": 2794,
+      "sha256": "6e8032efe2612e4d70bdad1208a15d633d3b292b903e6705648e935e8d03e5b2"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_vehicle_debris.gd",
+      "bytes": 15804,
+      "sha256": "1cf791ea4890c844b8c1072cdccca647b3b8255cec718afa7e96f80b9c2bba8f",
+      "test_only_seam_dependency": true
+    }
+  ],
+  "api": {
+    "methods": [
+      "configure(vehicle_root, external_parent, target_bindings, generation)",
+      "commit(target_mesh, source_id, planner_receipt, expected_generation)",
+      "reconcile_targets(expected_generation)",
+      "reset(new_generation)",
+      "snapshot()",
+      "get_slot_node(slot)",
+      "dispose()"
+    ],
+    "pool_size": 32,
+    "max_target_bindings": 4096,
+    "mesh_resources_per_car": 2,
+    "material_resources_per_car": 2,
+    "per_hit_resource_allocation": false,
+    "owns_damage_authority": false
+  },
+  "verification": {
+    "pool_resource": "res://scripts/tests/test_transport_damage_mark_pool.gd",
+    "pool_author": "37/37 PASS",
+    "pool_parent": "37/37 PASS",
+    "pool_independent": "37/37 PASS",
+    "physical_seam_resource": "res://scripts/tests/test_transport_damage_mark_pool_debris_seam.gd",
+    "physical_seam_author": "14/14 PASS",
+    "physical_seam_parent": "14/14 PASS",
+    "physical_seam_independent": "14/14 PASS"
+  },
+  "performance": {
+    "qualification": "fresh sequential parent headless run after independent completion",
+    "configure_us_per_car": 2326,
+    "plan_commit_iterations": 1000,
+    "plan_commit_elapsed_us": 75193,
+    "plan_commit_us_per_event": 75.193,
+    "reconcile_iterations": 1000,
+    "reconcile_slots_per_iteration": 32,
+    "reconcile_elapsed_us": 123991,
+    "reconcile_us_per_iteration": 123.991,
+    "discarded_possible_overlap_reconcile_us": 131.309,
+    "scope": "isolated headless CPU only; no FPS, GPU, LIVE or full-scene claim"
+  },
+  "host_contract": [
+    "Effects root is an external sibling of vehicle_root and outside detachable assemblies",
+    "Call reconcile_targets on transform or visibility changes and in the source-hide/detachment frame",
+    "Planner receipts and local bindings are integrity inputs, not damage-authority proof",
+    "snapshot visible is a logical local node.visible count, not renderer evidence",
+    "Prepared resources and pool hierarchy are private and immutable by caller contract; signaled mutations fail closed"
+  ],
+  "limitations": [
+    "Exact Three polygonOffset raster bias remains unresolved and requires GPU/LIVE validation",
+    "No hit authority, HP, RNG, raycast, contact reprojection or TTL is implemented",
+    "No FPS, GPU, LIVE or full-render acceptance is claimed"
+  ]
+}

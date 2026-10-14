@@ -1,0 +1,61 @@
+{
+  "schema": "mafiozi.transport-burn-batch-identity-source-package.v1",
+  "status": "FUNCTIONAL_INITIAL_AND_BODY_SOURCE_PROOF_FURTHER_PHASES_PENDING",
+  "files": [
+    {
+      "path": "tools/godot/export_transport_burn_batch_identity.mjs",
+      "sha256": "a39eb6f5f6c46f0e69a206ab5125b39eacc3d7b461867566d197ef15eab95a8a",
+      "role": "SHA/sentinel-pinned private batch-registration proof exporter"
+    },
+    {
+      "path": "godot/mafiozi_walk/data/transport/source_burn_batch_identities.json",
+      "sha256": "49a0342fb3260e3963ddfbb0446ace151028dba12fb5f7b3b3ed81290ada2da9",
+      "role": "13-profile pre-batch and active-body-batch identity receipt"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_BURN_BATCH_CANONICAL_SOURCE_AUDIT.md",
+      "sha256": "91a375b242b3696efbe56f29f999576aa57f8edfdd97405084f096ed57b96d73",
+      "role": "source call-order and missing-receipt audit"
+    }
+  ],
+  "source_pins": {
+    "step1_identity_receipt_sha256": "38d370792b7e97445b56efb35b4360121157a659905216db79221f78f22c2d38",
+    "vehicle_render_batches_sha256": "a9b4c0c93652b52e29a2c29fe65748bdf451122594583d3bd455238f766df648",
+    "vehicle_rollover_sha256": "21650742ccef39b229917e92986f0a57e91e2b4d77a9ad586839ffb5c50f76d8",
+    "tyre_damage_sha256": "5fb71f8ad6efd84f4a9e998c93a3a112e7874fd4a18448370378c0acd78762af",
+    "raw_visual_manifest_sha256": "10133bb94515eb41078b5b801a647fedad21b1eab4199a430b112359928fc0db",
+    "native_visual_manifest_sha256": "38598f43beb77c095879206ea5820c7fe922b227a64f77f793353f89321fee03",
+    "three_revision": "180"
+  },
+  "proof": {
+    "profiles": 13,
+    "registered_source_meshes": 1438,
+    "registered_current_hidden": 1438,
+    "registered_current_canonical": 0,
+    "hidden_material_identities": 123,
+    "batch_proxy_identities": 291,
+    "tyre_auxiliary_nodes_per_profile": 6,
+    "production_prebatch_materials_different_from_visual_step1": 13,
+    "production_prebatch_descriptor_field_differences": 13,
+    "difference": "One taillamp emissive_intensity per profile differs because production batching occurs before the first car.update; the frozen visual receipt was sampled after neutral car.update.",
+    "double_export_sha_equal": true,
+    "first_export_wall_ms": 9389.045,
+    "second_export_wall_ms": 9197.337
+  },
+  "validation": [
+    "The production vehicle_render_batches.mjs file remains unchanged; a unique SHA-pinned in-memory export queries the private WeakMap by source mesh.",
+    "Every frozen step-1 dependency is rehashed before construction; only the new tool plus separately pinned rollover and tyre modules may extend the loaded repo dependency set.",
+    "All source node keys, parents, visibility, shadow flags, exact JSON matrices, material IDs, source-node aliases, GLBs, visual oracles, and raw/native manifests are validated.",
+    "The exact fleet constructor order damage, rollover, tyres, body batches is executed with no pre-batch car, trunk, or hood update.",
+    "Tyre auxiliary nodes/materials use separate a/am namespaces, remain scene-owned, and are proven outside the car source-copy subtree.",
+    "Two sequential exports produced byte-identical JSON."
+  ],
+  "limits": [
+    "This package proves initial and active body/interior/door registration only.",
+    "Optional wheel batching, registered-disabled toggle, fallback, dispose, explosion callback, getter-call traversal, and debris-clone provenance remain pending.",
+    "Proxy member-to-batch relation and proxy geometry/layout receipt remain null/pending because this component exposes only the private sourceMaterials WeakMap, not private batch entry arrays.",
+    "The current active body phase contains no registered-current-canonical case; the observer can distinguish it, but the toggle phase has not been executed.",
+    "The production prebatch taillamp emissive intensity differs from the frozen visual/native baseline; a current source-state writer and material revision are required before native binding, and shared m identity does not waive this mismatch.",
+    "No native binder, runtime mutation, authority, HP, physics, rendering, GPU, LIVE, or Git integration is included."
+  ]
+}

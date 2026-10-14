@@ -1,0 +1,42 @@
+{
+  "schema": "mafiozi.transport-damage-mark-plan.v1",
+  "status": "PURE_PLAN_READY_NOT_INTEGRATED",
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_damage_mark_plan.gd",
+      "sha256": "bac706d5449155814667bf7677c7ae5364b8b95d10cf364d3104799c25d6b42c",
+      "bytes": 6367
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_damage_mark_plan.gd",
+      "sha256": "316f8f76c44d42ecf9f3005bef07f44dffd7ceba396bac1c1d0c6c3d1236a11e",
+      "bytes": 6834
+    },
+    {
+      "path": "godot/mafiozi_walk/data/transport/damage_mark_oracle.json",
+      "sha256": "85762dbdd103f86428d16e89225384355f96fa46662f7f514b205dbd26d9750d",
+      "bytes": 5874
+    },
+    {
+      "path": "tools/godot/export_transport_damage_mark_oracle.mjs",
+      "sha256": "42ed3e1bfcd69a1806d5a3eb7ca53b5fe5982119a6561f9324297f35544b99f4",
+      "bytes": 7066
+    }
+  ],
+  "checks": {
+    "independent": 85,
+    "parent": 85,
+    "author": 85
+  },
+  "cost": {
+    "total_us": 778141,
+    "us_per_query": 7.78141,
+    "queries": 100000
+  },
+  "limitations": [
+    "Pure same-local-frame transform and cursor query only",
+    "Host owns current actual hit/reprojection/local transforms/pool nodes/authority",
+    "Do not normalize nonunit source scratch quaternion or add X/Z flip",
+    "No main/LIVE/fullsceneFPS adoption"
+  ]
+}

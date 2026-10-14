@@ -1,0 +1,25 @@
+{
+  "files": [
+    {
+      "sha256": "470df1ed69c226de8c5f8c38b612a056c2ff6b04a7e7b124d07469c19caa8efc",
+      "path": "godot/mafiozi_walk/scripts/transport/transport_civilian_trip_registry.gd"
+    },
+    {
+      "sha256": "f0c8b5fdf986bbb6a020934449f64a9040c2dfe26ff9811c84687916de61b9c4",
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_civilian_trip_registry.gd"
+    },
+    {
+      "sha256": "cfb8c8bfd309840da07ca4f489268e9d313ed4761beb99504d44e698aa549500",
+      "path": "docs/godot/TRANSPORT_CIVILIAN_DRIVE_MAPPING.md"
+    },
+    {
+      "sha256": "407e6a11475b5ca262c3e2e9146ffd81881f02c7ee1f5e9f63079859937e5536",
+      "path": "docs/godot/TRANSPORT_CIVILIAN_TRIP_REGISTRY_HANDOFF.md"
+    }
+  ],
+  "scope": "planning registry only",
+  "live": "NOT_RUN",
+  "author_checks": 41,
+  "independent_checks": 41,
+  "schema": "mafiozi.transport-civilian-trip-registry.v1"
+}

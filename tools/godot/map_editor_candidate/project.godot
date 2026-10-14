@@ -1,0 +1,10 @@
+config_version=5
+[application]
+config/name="Godot Map Editor Candidate QA"
+config/use_custom_user_dir=true
+config/custom_user_dir_name="MafioziMapEditorCandidateQA"
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+[rendering]
+renderer/rendering_method="gl_compatibility"

@@ -1,0 +1,33 @@
+{
+  "schema": "mafiozi.authored-object-perf/v1",
+  "checks": {
+    "profile": 7484,
+    "parityAndBenchmark": 8960,
+    "atomic": 66599,
+    "assembly": 12782
+  },
+  "medianUsec": {
+    "baseline": 179143,
+    "both": 149355
+  },
+  "gpu": false,
+  "production": false,
+  "baseSources": {
+    "tools/godot/map_editor_assembly_candidate/catalog_factory.gd": "042a5e226e3e0eab9a4e2fb4cd9c8cec1c6d7d5e8513e4b5725c79745aac6510",
+    "tools/godot/map_editor_candidate/scripts/map_editor/object_registry.gd": "369c9457a4fc47fe59c2a876194d0dba2037d5d48b4dc84758a4b3c6349e0749"
+  },
+  "files": {
+    "authored_factory_perf.gd": "0820d9c97b85c4ff29f0f87759c67336cb49421ced50695569f6857da59a26f9",
+    "authored_registry_perf.gd": "7934d3144b4e24b3470226e2ab1596ee2652469d13f6e98b6da0272146e034df",
+    "benchmark.json": "0788bdd5620d7c24683faeb6143d39570cecfb18dbebb4e907a41fb3b175fca6",
+    "profile_authored_factory.gd": "b7086f64f65d119ee89fb0ec6190bcedf77719cd320e5aea0e9a5907c7d6ceb1",
+    "profile_authored_registry.gd": "6629834f217796a1a8027659f3f93688d53f47a281130b989dfdc589be3f97da",
+    "README.md": "0d20e4be35d2d61e14d1a773a62cad2340a12549936ded8e41ec0acae860690a",
+    "stage.mjs": "e75d72cc04732f11068f42dbf8531b24e11bb840587f08ad77bd6c89816c4376",
+    "test_authored_assembly.gd": "718c07c7bbf701a3d9c4ed405170ece8e7f657575ddb1d303080fa37367ae9da",
+    "test_authored_atomic.gd": "166ca7eb01a07a339147fd17c3d1eccec0f86a2c85bd4b4676c899eb49b680fd",
+    "test_authored_audit.gd": "a4bd6fcf65497a74b3ab1d47f37b26958b8650577c84b61662045c45ce2cf053",
+    "test_authored_combined.gd": "b9c6a9359566f4aeaaa7b38463f6d831880252d566f7f06841b9fea3278eea5a",
+    "test_authored_perf.gd": "f976918fd357125a1c739fffbba09fd5c9f27fcd78d07bd56afaa885a918198b"
+  }
+}

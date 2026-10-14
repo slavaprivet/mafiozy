@@ -1,0 +1,28 @@
+{
+  "launch_us": 523,
+  "scope": "prewarmed native physical source assemblies only",
+  "configure_us": 113665,
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_vehicle_debris.gd",
+      "sha256": "1cf791ea4890c844b8c1072cdccca647b3b8255cec718afa7e96f80b9c2bba8f"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_vehicle_debris.gd",
+      "sha256": "9e91db5ae49adf2080f954ed395f315508db8f9a3f14f59f51a0b094a6747aa6"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_VEHICLE_DEBRIS_HANDOFF.md",
+      "sha256": "88bc9bc89697cb7a5234911ce3ffad9cadcaaeff23e1021ab593d084d76ae3f7"
+    },
+    {
+      "path": "tools/godot/run_transport_test.ps1",
+      "sha256": "d413776a55dbad00f97d944f6ae8715172dae25049af97ac272a24764f1ee541"
+    }
+  ],
+  "source_profiles_actual": 2,
+  "schema": "mafiozi.transport-physical-debris.v1",
+  "live": "NOT_RUN",
+  "author_checks": 264,
+  "parent_repeat_checks": 264
+}

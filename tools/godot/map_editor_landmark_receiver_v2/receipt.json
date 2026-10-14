@@ -1,0 +1,52 @@
+{
+  "negative": {
+    "suite": "landmark-receiver-negative-review",
+    "checks": 44,
+    "status": "PASS",
+    "receiverBrowserHeaderDivergence": false,
+    "outputWrites": 0,
+    "actualValidPositive": false,
+    "partialWritePositive": "covered by paired actual100 proof",
+    "expectedCapturePin": "614c65a7a209946125dbc5fcd0632bb575df66cdf080cf6d083d300b914f4a32",
+    "serverClosed": true,
+    "zeroWebGL": true,
+    "nativeUsed": false,
+    "gpuUsed": false,
+    "fontOrGPUApproved": false
+  },
+  "actual": {
+    "suite": "landmark-receiver-actual-delivery-review",
+    "checks": 100,
+    "status": "PASS",
+    "bundleBytes": 61689344,
+    "archiveSHA": "89746082370fc7e7418239292db64b809ca1f334c001649730da22f393bda8a3",
+    "rootObservedCaptureSHA": "614c65a7a209946125dbc5fcd0632bb575df66cdf080cf6d083d300b914f4a32",
+    "originalFiles": 87,
+    "originalImages": 43,
+    "allStoredHashesExact": true,
+    "lateCorruptionNoOutput": true,
+    "partialPath": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\landmark-receiver-actual-proof-UlZXLV\\landmark-canvas-capture-2kabKq",
+    "goodPath": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\landmark-receiver-actual-proof-UlZXLV\\landmark-canvas-capture-ylXoMC",
+    "receiverSHA": "3a3ad2d506c4bc02d30e2b88f0dbfed5a543e2340a85ba1e8b95bfb7dda7fb81",
+    "serverClosed": true,
+    "browserStarted": false,
+    "nativeUsed": false,
+    "gpuUsed": false,
+    "fontOrGPUApproved": false,
+    "productionInstalled": false
+  },
+  "connection": {
+    "suite": "receiver-v2-http-cleanup",
+    "checks": 7,
+    "status": "PASS",
+    "slowBodyNativeTimeout": true,
+    "progressingBodyBounded": true,
+    "keepAliveRefusalCloses": true,
+    "outputWrites": 0,
+    "serverClosed": true,
+    "nativeGameUsed": false,
+    "gpuUsed": false,
+    "fontOrGPUApproved": false
+  },
+  "totalChecks": 151
+}

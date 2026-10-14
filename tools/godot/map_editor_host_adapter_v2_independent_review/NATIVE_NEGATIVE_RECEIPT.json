@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "engine": "4.7.2.stable.official.ed1daf0bf",
+  "headless": true,
+  "gpu": false,
+  "productionInstalled": false,
+  "actualMainAdmission": false,
+  "exitCode": 0,
+  "meaning": "Both unsafe boundary behaviors reproduced, not safety acceptance",
+  "candidateSha256": "f9373f2c26962f05ed5325e2556d7f49739406d3fbd5d0152dafcb3444ef2947",
+  "baseSha256": "1147d035070488da5b01e558faeee41fde40fc18b0ef86ab1d4a3f5385a3f360",
+  "testSha256": "61f1bbf55250c5bf3ed3ba308451fa077c49349145a365780f32ebdd2867813e",
+  "entrySha256": "f13f1f0966dd74918363b055b72f9a5cab3c6085d3d5c6eddb18a3b5ac61bcb0",
+  "workspaceQueuedDuringVerify": {"queued": true, "forwarded": 1, "consumed": false, "gameplayBlocked": true},
+  "ownerQueuedDuringGroundPatch": {"resumeCalls": 1, "resumeReceivedQueuedOwner": true, "leaseRetained": true, "leaveOk": false}
+}

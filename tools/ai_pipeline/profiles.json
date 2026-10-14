@@ -1,0 +1,7 @@
+{
+  "PERFORMANCE_ARCHITECTURE": "Trace update frequency, collection bounds, allocations and actual diagnostics. Preserve graphics, draw distance, density, collisions and mechanics. Separate CPU evidence from GPU and whole-scene FPS. Reuse previous findings; no mandatory number of defects.",
+  "WORLD_GAMEPLAY": "Review world state, buildings, interiors, objects, vehicles, interactions and persistence. Preserve IDs, ownership, dimensions, physical passage and existing contracts. Stay within the task's file ownership.",
+  "NPC_SERVICES": "Review NPC, bosses, squads, movement, targeting, combat, police, fire and medical services. Preserve individual behavior and agreed mechanics; establish call paths and bounded update cost.",
+  "CLIENT_UI_VISUAL": "Review client state, UI, camera, object presentation and repeated updates. Preserve visual quality and established design. No unsolicited redesign, density reduction or world-distance reduction.",
+  "REVIEW_QA": "Independently examine source evidence and patch, dependency coverage and test sufficiency. Identify regressions or missing context. Agreement or confidence is not proof; never claim tests were executed by this API-only role."
+}

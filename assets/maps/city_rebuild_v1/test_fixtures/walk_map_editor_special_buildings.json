@@ -1,0 +1,27 @@
+{
+  "metresPerCell": 4.1,
+  "supportedCivic": {
+    "id": "SPECIAL-CIVIC-001",
+    "assetId": "civic_hall",
+    "role": "civic_building",
+    "gameplayId": null,
+    "gameplayActive": false,
+    "transform": {"positionM": [12.3, 0, 12.3], "yawDegrees": 0, "uniformScale": 1, "horizontalScale": [1.2, 0.9], "modelLocalOffsetM": [0, 0.62, 0], "preserveSiteBounds": true, "futureScaleField": 17},
+    "footprint": {"minC": 2, "minR": 2, "maxC": 4, "maxR": 4},
+    "clearance": {"minC": 1.8, "minR": 1.8, "maxC": 4.2, "maxR": 4.2},
+    "entry": {"anchorRC": {"c": 4, "r": 3}, "roadProbeRC": {"c": 8, "r": 3}, "unknownEntry": "keep"},
+    "entryCorridor": {"minC": 4, "minR": 2.7, "maxC": 8, "maxR": 3.3},
+    "collision": {"method": "fixture", "worldBodies": [{"id": "shell", "rectangleRC": {"minC": 2, "minR": 2, "maxC": 4, "maxR": 4}, "minYM": 0, "maxYM": 8, "unknownBody": true}]},
+    "unknownFuture": {"nested": [1, 2, 3]},
+    "roomSizing": {"preserveOriginalYard": true}
+  },
+  "gameplayActive": {
+    "id": "ACTIVE-SHOP-001",
+    "assetId": "pawnshop",
+    "role": "shop",
+    "gameplayId": "business:pawnshop",
+    "gameplayActive": true,
+    "transform": {"positionM": [12.3, 0, 12.3], "yawDegrees": 0, "uniformScale": 1},
+    "footprint": {"minC": 2, "minR": 2, "maxC": 4, "maxR": 4}
+  }
+}

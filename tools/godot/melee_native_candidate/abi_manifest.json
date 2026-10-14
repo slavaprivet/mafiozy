@@ -1,0 +1,202 @@
+{
+  "header": {
+    "version_major": 4,
+    "version_minor": 7,
+    "version_patch": 2,
+    "version_status": "stable",
+    "version_build": "official",
+    "version_full_name": "Godot Engine v4.7.2.stable.official",
+    "precision": "single"
+  },
+  "builtin_sizes": {
+    "build_configuration": "float_64",
+    "sizes": [
+      {
+        "name": "Nil",
+        "size": 0
+      },
+      {
+        "name": "bool",
+        "size": 1
+      },
+      {
+        "name": "int",
+        "size": 8
+      },
+      {
+        "name": "float",
+        "size": 8
+      },
+      {
+        "name": "String",
+        "size": 8
+      },
+      {
+        "name": "Vector2",
+        "size": 8
+      },
+      {
+        "name": "Vector2i",
+        "size": 8
+      },
+      {
+        "name": "Rect2",
+        "size": 16
+      },
+      {
+        "name": "Rect2i",
+        "size": 16
+      },
+      {
+        "name": "Vector3",
+        "size": 12
+      },
+      {
+        "name": "Vector3i",
+        "size": 12
+      },
+      {
+        "name": "Transform2D",
+        "size": 24
+      },
+      {
+        "name": "Vector4",
+        "size": 16
+      },
+      {
+        "name": "Vector4i",
+        "size": 16
+      },
+      {
+        "name": "Plane",
+        "size": 16
+      },
+      {
+        "name": "Quaternion",
+        "size": 16
+      },
+      {
+        "name": "AABB",
+        "size": 24
+      },
+      {
+        "name": "Basis",
+        "size": 36
+      },
+      {
+        "name": "Transform3D",
+        "size": 48
+      },
+      {
+        "name": "Projection",
+        "size": 64
+      },
+      {
+        "name": "Color",
+        "size": 16
+      },
+      {
+        "name": "StringName",
+        "size": 8
+      },
+      {
+        "name": "NodePath",
+        "size": 8
+      },
+      {
+        "name": "RID",
+        "size": 8
+      },
+      {
+        "name": "Object",
+        "size": 8
+      },
+      {
+        "name": "Callable",
+        "size": 16
+      },
+      {
+        "name": "Signal",
+        "size": 16
+      },
+      {
+        "name": "Dictionary",
+        "size": 8
+      },
+      {
+        "name": "Array",
+        "size": 8
+      },
+      {
+        "name": "PackedByteArray",
+        "size": 16
+      },
+      {
+        "name": "PackedInt32Array",
+        "size": 16
+      },
+      {
+        "name": "PackedInt64Array",
+        "size": 16
+      },
+      {
+        "name": "PackedFloat32Array",
+        "size": 16
+      },
+      {
+        "name": "PackedFloat64Array",
+        "size": 16
+      },
+      {
+        "name": "PackedStringArray",
+        "size": 16
+      },
+      {
+        "name": "PackedVector2Array",
+        "size": 16
+      },
+      {
+        "name": "PackedVector3Array",
+        "size": 16
+      },
+      {
+        "name": "PackedColorArray",
+        "size": 16
+      },
+      {
+        "name": "PackedVector4Array",
+        "size": 16
+      },
+      {
+        "name": "Variant",
+        "size": 24
+      }
+    ]
+  },
+  "packed_float64_methods": [
+    {
+      "name": "size",
+      "return_type": "int",
+      "is_vararg": false,
+      "is_const": true,
+      "is_static": false,
+      "hash": 3173160232
+    },
+    {
+      "name": "resize",
+      "return_type": "int",
+      "is_vararg": false,
+      "is_const": false,
+      "is_static": false,
+      "hash": 848867239,
+      "arguments": [
+        {
+          "name": "new_size",
+          "type": "int"
+        }
+      ]
+    }
+  ],
+  "source_header_sha": "640b48188708ba0016f8d7ace9e0e1d3279a41fa1226c59ff3193b15538bd254",
+  "source_api_sha": "d0e4c08c03b165156dabe6bfb6a906baf0069189f62035341230a246c86d6986"
+}

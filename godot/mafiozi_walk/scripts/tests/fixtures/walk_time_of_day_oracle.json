@@ -1,0 +1,26 @@
+{
+  "schema": "mafiozi.walk-time-of-day-oracle/v1",
+  "source": "assets/maps/city_rebuild_v1/walk_time_of_day.mjs",
+  "poll_interval_ms": 250,
+  "smoothing_rate": 2.4,
+  "palettes": {
+    "day_sky": "3d7298",
+    "dawn_sky": "b66f63",
+    "dusk_sky": "b2574d",
+    "night_sky": "0a1930",
+    "day_ground": "51473c",
+    "night_ground": "324158",
+    "day_sun": "ffe0ad",
+    "dawn_sun": "ffb071",
+    "dusk_sun": "ff8c58"
+  },
+  "samples": [
+    {"id":"midnight","hour":0,"minute":0,"phase":"night","daylight":0.0,"dawn":0.0,"dusk":0.0,"night":1.0,"lamp_power":1.0,"fog_density":0.00367,"ambient_intensity":1.32,"sun_intensity":0.42,"exposure":1.16,"environment_intensity":0.46,"background":"0a1930","ambient_color":"afbdda","ambient_ground_color":"324158","sun_color":"ffe0ad","sun_offset":[75.0,16.0,0.0]},
+    {"id":"five","hour":5,"minute":0,"phase":"dawn","daylight":0.0,"dawn":0.20863016486871588,"dusk":0.0,"night":1.0,"lamp_power":1.0,"fog_density":0.00367,"ambient_intensity":1.332017097496438,"sun_intensity":0.44403419499287605,"exposure":1.1652574801546915,"environment_intensity":0.46600854874821906,"background":"3b2a37","ambient_color":"b1beda","ambient_ground_color":"324158","sun_color":"ffd7a3","sun_offset":[19.411428382689056,16.0,62.78517870878944]},
+    {"id":"dawn","hour":6,"minute":21,"phase":"dawn","daylight":0.4787597297531504,"dawn":1.0,"dusk":0.0,"night":0.5212402702468496,"lamp_power":0.5212402702468496,"fog_density":0.003373168967553047,"ambient_intensity":1.9425364811087176,"sun_intensity":2.0097799676397035,"exposure":1.261801556760504,"environment_intensity":0.6611535027111343,"background":"7e606c","ambient_color":"d4d7e5","ambient_ground_color":"43444c","sun_color":"ffb071","sun_offset":[-6.862621399755196,51.42822000173313,64.72732029235301]},
+    {"id":"noon","hour":12,"minute":0,"phase":"day","daylight":1.0,"dawn":0.0,"dusk":0.0,"night":0.0,"lamp_power":0.0,"fog_density":0.00305,"ambient_intensity":2.5,"sun_intensity":3.5,"exposure":1.32,"environment_intensity":0.82,"background":"3d7298","ambient_color":"e5e8f1","ambient_ground_color":"51473c","sun_color":"ffe0ad","sun_offset":[-75.0,90.0,0.0]},
+    {"id":"seventeen","hour":17,"minute":0,"phase":"day","daylight":0.8599552937656068,"dawn":0.0,"dusk":0.11430237643971497,"night":0.14004470623439325,"lamp_power":0.48,"fog_density":0.003136827717865324,"ambient_intensity":2.343891436758593,"sun_intensity":3.086950685028423,"exposure":1.3015934301778869,"environment_intensity":0.774156000813207,"background":"476a8c","ambient_color":"dfe4ee","ambient_ground_color":"4e4641","sun_color":"ffd8a6","sun_offset":[-19.411428382689046,79.6366917386549,-62.78517870878944]},
+    {"id":"dusk","hour":18,"minute":39,"phase":"dusk","daylight":0.007562156712380606,"dawn":0.0,"dusk":1.0,"night":0.9924378432876194,"lamp_power":0.9924378432876194,"fog_density":0.003665311462838324,"ambient_intensity":1.4089233449206093,"sun_intensity":0.6032914426741323,"exposure":1.1962099450739807,"environment_intensity":0.502722376416457,"background":"824141","ambient_color":"bec3da","ambient_ground_color":"324158","sun_color":"ff8c58","sun_offset":[12.701212788676772,16.559599596716165,-64.06114383877507]},
+    {"id":"twenty_two","hour":22,"minute":0,"phase":"night","daylight":0.0,"dawn":0.0,"dusk":0.0,"night":1.0,"lamp_power":1.0,"fog_density":0.00367,"ambient_intensity":1.32,"sun_intensity":0.42,"exposure":1.16,"environment_intensity":0.46,"background":"0a1930","ambient_color":"afbdda","ambient_ground_color":"324158","sun_color":"ffe0ad","sun_offset":[64.95190528383287,16.0,-32.50000000000003]}
+  ]
+}

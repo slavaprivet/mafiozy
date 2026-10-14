@@ -1,0 +1,35 @@
+import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..');
+const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
+const main=fs.readFileSync(path.join(root,'outputs/coordinator22_residents_checkpoint/godot/mafiozi_walk/scripts/main.gd'));
+const blockBytes=fs.readFileSync(path.join(root,'outputs/coordinator22_residents_checkpoint/godot/mafiozi_walk/data/block.json'));
+const catalogBytes=fs.readFileSync(path.join(root,'godot/mafiozi_walk/data/map_editor/catalog.json'));
+assert.equal(sha(main),'faac92194afdfac5efb4197a17a81d53738a91a46a6e41f96316f9c282112f53');
+assert.equal(sha(blockBytes),'1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e');
+assert.equal(sha(catalogBytes),'ae089d73eb61131bc6a38ccc6a2b9b18639f7bd8b65079f7c15c1e1cda9cde6e');
+const block=JSON.parse(blockBytes),catalog=JSON.parse(catalogBytes);
+const buildings=catalog.objects.filter(row=>row.dataset==='buildings');
+assert.equal(buildings.length,75);
+assert.equal(block.buildings.length,8);
+const byId=new Map(buildings.map(row=>[row.id,row]));
+assert.equal(byId.size,75);
+let ordinary=0,bodies=0;
+for(const row of block.buildings){
+ const item=byId.get(row.id);assert.ok(item);
+ assert.equal(row.assetId,item.assetId);
+ assert.deepEqual(row.positionLocalM,item.positionLocalM);
+ if(row.id==='REBUILD-VISUAL-print_shop-001')continue;
+ ordinary++;bodies+=row.collisionBodiesM.length;
+ assert.ok(row.collisionBodiesM.length>0);
+}
+assert.equal(ordinary,7);
+assert.equal(bodies,16);
+assert.equal(buildings.filter(row=>!block.buildings.some(live=>live.id===row.id)).length,67);
+const special=buildings.filter(row=>row.sourceRecord.role==='bank_shell');
+assert.equal(special.length,3);
+assert.equal(catalog.objects.filter(row=>row.dataset==='detention').length,3);
+console.log(JSON.stringify({status:'PASS_SOURCE_SCOPE_ONLY',fullBuildings:75,liveBuildings:8,ordinaryEditableCandidate:7,ordinarySiblingBodies:16,outsideCrop:67,printshopHold:1,bankHold:3,detentionHold:3,actualOwnerCallbacksAvailable:false}));

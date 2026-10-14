@@ -1,0 +1,47 @@
+{
+  "schema": "mafiozi.transport-source-mark-pose.v1",
+  "status": "PURE_CONVERSION_READY_NOT_INTEGRATED",
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_source_mark_pose.gd",
+      "sha256": "6e8032efe2612e4d70bdad1208a15d633d3b292b903e6705648e935e8d03e5b2",
+      "bytes": 2794
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_source_mark_pose.gd",
+      "sha256": "9951810067b8fa0b98751468a075fc721e0997b19c9fd761f9894ee23ac1e70e",
+      "bytes": 7344
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_source_mark_pose_review.gd",
+      "sha256": "0b047b361fdad4173c3b7aa8de0da2f1149fa1d76a9f271ce5cfac24a0bd1af7",
+      "bytes": 4270
+    },
+    {
+      "path": "godot/mafiozi_walk/data/transport/source_mark_pose_oracle.json",
+      "sha256": "98b31923aca988ed3b8f1b2f857c1e212080a2a455344cb2cc7697468753badc",
+      "bytes": 11632
+    },
+    {
+      "path": "tools/godot/export_transport_source_mark_pose_oracle.mjs",
+      "sha256": "3bce8c7c07b033d74bbedb9c3c500e8e8217778497428a0cb6be79b37bb04e36",
+      "bytes": 4580
+    }
+  ],
+  "checks": {
+    "adversarial": 34,
+    "parent_adversarial": 34,
+    "author": 52,
+    "independent": 52,
+    "parent": 52
+  },
+  "cost": {
+    "queries": 100000,
+    "total_us": 655775
+  },
+  "limitations": [
+    "Same panel-local frame, no axis flip or normalization",
+    "Rawf64 exact from binary fixtures; native float32 explicitly rounded",
+    "No nodes/render/authority/main/LIVE adoption"
+  ]
+}

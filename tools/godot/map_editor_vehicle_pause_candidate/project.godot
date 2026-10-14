@@ -1,0 +1,7 @@
+config_version=5
+
+[application]
+config/name="Map editor parked car lease isolated test"
+
+[rendering]
+renderer/rendering_method="gl_compatibility"

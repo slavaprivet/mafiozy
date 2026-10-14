@@ -1,0 +1,51 @@
+{
+  "schema": "printshop-shadow-v2-reviewed-source-closure-v1",
+  "engine": "4.7.2.stable.official.ed1daf0bf",
+  "cpu_checks": 546,
+  "gpu": false,
+  "production_wired": false,
+  "files": [
+    {
+      "source": "tools/godot/map_editor_printshop_shadow_v2/receipt.json",
+      "target": "source_receipt.json",
+      "sha256": "56a167d3f2644d4601a49f10c0562fd5bc502d3587eb67a8fdf268bc20ebe9a1",
+      "bytes": 662
+    },
+    {
+      "source": "tools/godot/map_editor_printshop_shadow_v2/printshop_shadow.gd",
+      "target": "printshop_shadow.gd",
+      "sha256": "b989fea728ee021998b3e5f20a4431b97ca25605ded3487574f4dc3d6a753b0c",
+      "bytes": 12307
+    },
+    {
+      "source": "tools/godot/map_editor_printshop_shadow_v2/test_printshop_shadow.gd",
+      "target": "test_printshop_shadow.gd",
+      "sha256": "f5bbf60de212ff847fabfbc4e6c14c08c12dbbfccb8b88c6748653d8568d81c5",
+      "bytes": 9689
+    },
+    {
+      "source": "godot/mafiozi_walk/scripts/preview_printshop_interior.gd",
+      "target": "scripts/preview_printshop_interior.gd",
+      "sha256": "300b48c8efa0d0b953514b36e0c0319febfd6d9a2ff61450601a45e1109e37f4",
+      "bytes": 21621
+    },
+    {
+      "source": "godot/mafiozi_walk/scripts/preview_interior_finish.gd",
+      "target": "scripts/preview_interior_finish.gd",
+      "sha256": "f2137740ac1b31669454f18c258db3560bf3c9eb9ff35b0a00875db0ee6bb497",
+      "bytes": 5700
+    },
+    {
+      "source": "tools/godot/map_editor_candidate/scripts/map_editor/trusted_json.gd",
+      "target": "trusted_json.gd",
+      "sha256": "40e455e671f00bb130cbcdf8ce119a95ef0ef6dcfa4d8772790568efe48a7ccb",
+      "bytes": 1325
+    },
+    {
+      "source": "godot/mafiozi_walk/data/printshop_interior.json",
+      "target": "data/printshop_interior.json",
+      "sha256": "958a2c2d8cbdc2b2e2e11a57e33bf9bf5a20ec334be8a8997bdad951f9f8086b",
+      "bytes": 1922988
+    }
+  ]
+}

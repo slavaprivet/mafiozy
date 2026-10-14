@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+const fixtureURL=new URL('./test_npc_service_applied23.mjs',import.meta.url);
+let prefix=fs.readFileSync(fixtureURL,'utf8'),end=prefix.indexOf('pilot=createStationaryServiceWalk23(');assert(end>0);prefix=prefix.slice(0,end);
+prefix=prefix.replace(/from\s+(['"])(\.[^'"]+)\1/g,(_,q,s)=>'from '+JSON.stringify(new URL(s,fixtureURL).href));
+prefix=prefix.replace(/import\((['"])(\.[^'"]+)\1\)/g,(_,q,s)=>'import('+JSON.stringify(new URL(s,fixtureURL).href)+')');
+prefix=prefix.replace(/new URL\((['"])([^'"]+)\1,import\.meta\.url\)/g,(_,q,s)=>'new URL('+JSON.stringify(new URL(s,fixtureURL).href)+')');
+prefix+='\nexport {f,T,bridge,host,population,createStationaryServiceWalk23};';
+const {f,T,bridge,host,population,createStationaryServiceWalk23}=await import('data:text/javascript;base64,'+Buffer.from(prefix).toString('base64'));
+const revision=['a','b','c','d'].map(c=>c.repeat(64)),before=vm.runInNewContext("String(revision)+':service23:'+buildingCameraIndexGeneration",{revision,buildingCameraIndexGeneration:2}),after=vm.runInNewContext("'service23:'+buildingCameraIndexGeneration",{revision,buildingCameraIndexGeneration:2});
+assert.equal(before.length,271);assert(before.length>240);assert(after.length<240);
+assert.throws(()=>createStationaryServiceWalk23({THREE:T,bridge,host,siteRevision:before}),/Certified service layout required/,'actual composed runtime reproduces LIVE four-SHA failure');
+const controller=createStationaryServiceWalk23({THREE:T,bridge,host,siteRevision:after});assert(controller);assert.equal(controller.station.layout.revision,after);
+host.getEntries=()=>[];assert.equal(controller.controller.tick(1000,.05).reason,'stale-service-source','old entry ownership invalidation preserved');controller.dispose();
+assert.notEqual(vm.runInNewContext("'service23:'+buildingCameraIndexGeneration",{buildingCameraIndexGeneration:3}),after,'next accepted content generation cannot reuse token');
+const walk=fs.readFileSync(new URL('./walk_preview.mjs',import.meta.url),'utf8');assert(walk.includes('buildingCameraIndexGeneration++;')&&walk.includes('npcBridge===servicePilotBridge23')&&walk.includes('stationaryServiceWalk23?.dispose();stationaryServiceWalk23=null;'),'existing generation/bridge/disposal guards retained');
+population.dispose();f.entry.dispose();console.log(JSON.stringify({pass:true,beforeLength:before.length,after,actualBeforeFailure:true,actualAfterFactory:true,oldEntryInvalidated:true,nextGenerationDistinct:true,noValidationRelaxation:true,limits:'Actual applied runtime factory/GLB geometry with changed host token only. No production write or GPU.'}));

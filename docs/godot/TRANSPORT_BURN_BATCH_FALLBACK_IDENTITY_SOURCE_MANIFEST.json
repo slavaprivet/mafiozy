@@ -1,0 +1,63 @@
+{
+  "schema": "mafiozi.transport-burn-batch-fallback-identity-source-package.v1",
+  "status": "FUNCTIONAL_FOUR_COMPACT_SEDAN_FALLBACK_AND_DISPOSE_SOURCE_CASES",
+  "files": [
+    {
+      "path": "tools/godot/export_transport_burn_batch_fallback_identity.mjs",
+      "sha256": "0575ebe69db67168cf7a02beb21a524408332eb0a0f0a404f6064745877573fe",
+      "role": "Executed-source fallback and dispose ownership proof exporter"
+    },
+    {
+      "path": "godot/mafiozi_walk/data/transport/source_burn_batch_fallback_identities.json",
+      "sha256": "4342dcb0f38af60bcdf45e70326386f3d43025dd7321dbf436d85fad5004b8ad",
+      "role": "Four fresh compact-sedan fallback cause receipts"
+    },
+    {
+      "path": "godot/mafiozi_walk/data/transport/source_burn_batch_identities.json",
+      "sha256": "49a0342fb3260e3963ddfbb0446ace151028dba12fb5f7b3b3ed81290ada2da9",
+      "role": "Frozen initial/body prerequisite compared in full for every fresh case"
+    },
+    {
+      "path": "godot/mafiozi_walk/data/transport/source_burn_batch_toggle_identities.json",
+      "sha256": "32ebd8a1a6c5cfbfdb121c4e1cb0b4f529a02b39615533332b5fd315c2fff372",
+      "role": "Frozen detail-toggle/dispose prerequisite pinned and consumed"
+    }
+  ],
+  "proof": {
+    "profile": "compact_sedan",
+    "fresh_cases": 4,
+    "fresh_initial_body_receipts_exact": 4,
+    "current_material_replacement_affected_members": 1,
+    "shared_hidden_mutation_affected_members": 53,
+    "geometry_replacement_affected_members": 1,
+    "source_reparent_affected_members": 1,
+    "dispose_private_registrations": 0,
+    "dispose_remaining_proxies_under_car": 0,
+    "manager_dispose_events_on_caller_or_retained_changed_resources": 0,
+    "double_export_sha_equal": true,
+    "author_run_wall_seconds_rounded": [3.5, 3.7],
+    "fixture_bytes": 1183570
+  },
+  "identity_scope": {
+    "canonical": "m#### compact-sedan/fresh-case-local source identity",
+    "hidden": "h#### compact-sedan/fresh-case-local private hidden identity",
+    "replacement": "r#### compact-sedan/fresh-case-local caller material identity",
+    "geometry": "g#### compact-sedan/fresh-case-local geometry identity",
+    "global_ids": false
+  },
+  "validation": [
+    "Every fresh construction is deep-equal to frozen initial/body receipt 49a0342f before mutation.",
+    "The frozen toggle/dispose receipt is pinned and its compact-sedan row proves the same initial/body prerequisite.",
+    "Actual body.update, private registration query, current identity, canonical getter identity, exact affected keys, and source fields are captured after each mutation.",
+    "Shared hidden mutation falls back the entire exact 53-member hidden alias set and does not assume a single selected member.",
+    "Actual disposal removes registrations and proxies without disposing the caller replacement, caller geometry, or retained changed hidden resource.",
+    "Two sequential exports produced byte-identical JSON."
+  ],
+  "limits": [
+    "Only four compact-sedan fallback causes are executed; there is no all-profile or all-guard fallback claim.",
+    "Wheel registration, explosion callback, copyPart traversal, and debris clone provenance remain pending.",
+    "Proxy member binding and geometry/layout receipts remain pending from the frozen prerequisite.",
+    "The unresolved production prebatch versus visual/native taillamp emissive baseline remains unchanged.",
+    "No native binder, runtime mutation, authority, HP, physics, rendering, GPU, LIVE, or Git integration is included."
+  ]
+}

@@ -1,0 +1,5 @@
+config_version=5
+[application]
+config/name="Exact transport decor native isolated QA"
+[rendering]
+renderer/rendering_method="gl_compatibility"

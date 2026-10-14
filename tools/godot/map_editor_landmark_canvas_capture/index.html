@@ -1,0 +1,33 @@
+<!doctype html><html lang="ru"><meta charset="utf-8"><title>Исходные Canvas2D-текстуры — захват по согласованию</title>
+<style>body{font:16px system-ui;max-width:900px;margin:2em auto}#font-probes{position:absolute;left:0;top:0;opacity:0;pointer-events:none}#font-probes span{display:block}pre{white-space:pre-wrap}</style>
+<h1>Исходные текстуры города</h1><p>Только оригинальные Canvas2D-функции. Никакого запуска игры/WebGL. Захват выполнять после согласования владельцем окна и шрифтового backend.</p>
+<button id="capture">Захватить 43 исходных изображения</button>
+<button id="save-local" disabled>Сохранить PNG и RGBA локально</button>
+<button id="download-tar" disabled>Скачать одним TAR-архивом</button>
+<p>Сохранение выполняется только по нажатию. Пиксели и PNG не изменяются. Приёмка шрифтов и графики остаётся HOLD.</p>
+<pre id="status">Не запущено. Приёмка: HOLD.</pre><div id="font-probes"></div>
+<script type="module">
+import{capture}from'./capture.browser.mjs';
+import{buildTarBundle,downloadBundle}from'./bundle.browser.mjs';
+const status=document.getElementById('status'),captureButton=document.getElementById('capture'),saveButton=document.getElementById('save-local'),downloadButton=document.getElementById('download-tar');
+let working=false,cachedBundle=null;
+function controls(){captureButton.disabled=working;saveButton.disabled=working||!window.landmarkCanvasCapture.receipt();downloadButton.disabled=saveButton.disabled;}
+async function bundle(){
+ const current=window.landmarkCanvasCapture.receipt();if(!current)throw Error('Сначала выполните захват');
+ if(cachedBundle?.receiptSha256===current.canonicalSha256)return cachedBundle;
+ const response=await fetch('./closure.json');if(!response.ok)throw Error('Нет проверенного исходного каталога');
+ cachedBundle=await buildTarBundle(window.landmarkCanvasCapture,new Uint8Array(await response.arrayBuffer()));
+ if(window.landmarkCanvasCapture.receipt()?.canonicalSha256!==cachedBundle.receiptSha256){cachedBundle=null;throw Error('Захват изменился во время упаковки');}
+ return cachedBundle;
+}
+captureButton.onclick=async()=>{if(working)return;working=true;cachedBundle=null;controls();status.textContent='Захват исходных Canvas2D…';try{const result=await capture();status.textContent=JSON.stringify(result,null,2);}catch(error){status.textContent='Захват отклонён: '+error.message;}finally{working=false;controls();}};
+downloadButton.onclick=async()=>{if(working)return;working=true;controls();status.textContent='Проверка 43 PNG и RGBA перед скачиванием…';try{const result=await bundle();downloadBundle(result);status.textContent='Один TAR-архив передан загрузкам. Байты проверены. Приёмка: HOLD.';}catch(error){status.textContent='Архив отклонён: '+error.message;}finally{working=false;controls();}};
+saveButton.onclick=async()=>{if(working)return;working=true;controls();status.textContent='Проверка и локальное сохранение всех 43 изображений…';try{
+ if(!['127.0.0.1','localhost','[::1]'].includes(location.hostname))throw Error('Сохранение разрешено только на локальном сервере');
+ const result=await bundle();
+ const response=await fetch('./capture-bundle',{method:'POST',headers:{'Content-Type':'application/x-tar'},body:result.bytes});
+ if(!response.ok)throw Error('Локальный сервер отказал: '+await response.text());
+ const stored=await response.json();if(stored.ok!==true||stored.ready!==false)throw Error('Нет подтверждения безопасного сохранения HOLD');
+ status.textContent=JSON.stringify(stored,null,2);
+}catch(error){status.textContent='Сохранение отклонено: '+error.message;}finally{working=false;controls();}};
+</script></html>

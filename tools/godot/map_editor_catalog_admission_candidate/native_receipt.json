@@ -1,0 +1,288 @@
+{
+  "admitted": 9863,
+  "availability_mismatches": [],
+  "catalog_items": 9901,
+  "categories": {
+    "Городские объекты": 503,
+    "Деревья и природа": 2041,
+    "Дома и здания": 78,
+    "Дороги": 6449,
+    "Дорожные знаки": 579,
+    "Железная дорога": 15,
+    "Земля и покрытия": 78,
+    "Памятники и фонтаны": 30,
+    "Фонари": 128
+  },
+  "checks": 79711,
+  "document_mismatches": [],
+  "document_objects": 9901,
+  "failures": [],
+  "gpu": false,
+  "mapped_source_key_count": 9394,
+  "mapped_source_key_samples": [
+    {
+      "resolved_id": "explore-bench-100",
+      "source_id": "explore-bench-100",
+      "source_key": "exploration-furniture:explore-bench-100"
+    },
+    {
+      "resolved_id": "explore-bench-105",
+      "source_id": "explore-bench-105",
+      "source_key": "exploration-furniture:explore-bench-105"
+    },
+    {
+      "resolved_id": "explore-bench-107",
+      "source_id": "explore-bench-107",
+      "source_key": "exploration-furniture:explore-bench-107"
+    },
+    {
+      "resolved_id": "explore-bench-113",
+      "source_id": "explore-bench-113",
+      "source_key": "exploration-furniture:explore-bench-113"
+    }
+  ],
+  "matched_items": 9901,
+  "owner_admissions": "test-only native geometry callbacks; real protected resources remain locked",
+  "parking_count": 233,
+  "parking_dataset_counts": {
+    "parking-bays": 59,
+    "parking-lots": 39,
+    "parking-signs": 57,
+    "parking-surfaces": 78
+  },
+  "parking_samples": [
+    {
+      "available": true,
+      "document": true,
+      "registry": true,
+      "resolved_id": "parking-bays:parking:REBUILD-VISUAL-coastal_orchard_house_v1-001:bay:0",
+      "source_id": "parking:REBUILD-VISUAL-coastal_orchard_house_v1-001:bay:0",
+      "source_key": "parking-bays:parking:REBUILD-VISUAL-coastal_orchard_house_v1-001:bay:0"
+    },
+    {
+      "available": true,
+      "document": true,
+      "registry": true,
+      "resolved_id": "parking-bays:parking:REBUILD-VISUAL-coastal_orchard_house_v1-001:bay:1",
+      "source_id": "parking:REBUILD-VISUAL-coastal_orchard_house_v1-001:bay:1",
+      "source_key": "parking-bays:parking:REBUILD-VISUAL-coastal_orchard_house_v1-001:bay:1"
+    },
+    {
+      "available": true,
+      "document": true,
+      "registry": true,
+      "resolved_id": "parking-bays:parking:REBUILD-VISUAL-coastal_orchard_house_v1-002:bay:0",
+      "source_id": "parking:REBUILD-VISUAL-coastal_orchard_house_v1-002:bay:0",
+      "source_key": "parking-bays:parking:REBUILD-VISUAL-coastal_orchard_house_v1-002:bay:0"
+    },
+    {
+      "available": true,
+      "document": true,
+      "registry": true,
+      "resolved_id": "parking-bays:parking:REBUILD-VISUAL-coastal_orchard_house_v1-002:bay:1",
+      "source_id": "parking:REBUILD-VISUAL-coastal_orchard_house_v1-002:bay:1",
+      "source_key": "parking-bays:parking:REBUILD-VISUAL-coastal_orchard_house_v1-002:bay:1"
+    }
+  ],
+  "production_wired": false,
+  "protected": [
+    {
+      "category": "Дома и здания",
+      "id": "buildings:REBUILD-bank:large",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Дома и здания",
+      "id": "buildings:REBUILD-bank:medium",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Дома и здания",
+      "id": "buildings:REBUILD-bank:small",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Дома и здания",
+      "id": "detention:REBUILD-DETENTION-chinatown",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Дома и здания",
+      "id": "detention:REBUILD-DETENTION-iron_harbor",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Дома и здания",
+      "id": "detention:REBUILD-DETENTION-southside",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Железная дорога",
+      "id": "railway-alignment:western-regional-rail",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Железная дорога",
+      "id": "railway-crossings:city-rail-crossing-0",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Железная дорога",
+      "id": "railway-crossings:city-rail-crossing-1",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Железная дорога",
+      "id": "railway-crossings:city-rail-crossing-2",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Железная дорога",
+      "id": "railway-crossings:city-rail-crossing-3",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Железная дорога",
+      "id": "railway-crossings:city-rail-crossing-4",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Железная дорога",
+      "id": "railway-crossings:city-rail-crossing-5",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Железная дорога",
+      "id": "railway-crossings:city-rail-crossing-6",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Железная дорога",
+      "id": "railway-crossings:city-rail-crossing-7",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Железная дорога",
+      "id": "railway-crossings:city-rail-crossing-8",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Железная дорога",
+      "id": "railway-crossings:city-rail-crossing-9",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Железная дорога",
+      "id": "railway-crossings:rail-crossing-0",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Железная дорога",
+      "id": "railway-crossings:rail-crossing-1",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Дорожные знаки",
+      "id": "railway-signals:city-rail-crossing-0:signal:0",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Дорожные знаки",
+      "id": "railway-signals:city-rail-crossing-0:signal:1",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Дорожные знаки",
+      "id": "railway-signals:city-rail-crossing-1:signal:0",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Дорожные знаки",
+      "id": "railway-signals:city-rail-crossing-1:signal:1",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Дорожные знаки",
+      "id": "railway-signals:city-rail-crossing-2:signal:0",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Дорожные знаки",
+      "id": "railway-signals:city-rail-crossing-2:signal:1",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Дорожные знаки",
+      "id": "railway-signals:city-rail-crossing-3:signal:0",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Дорожные знаки",
+      "id": "railway-signals:city-rail-crossing-3:signal:1",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Дорожные знаки",
+      "id": "railway-signals:city-rail-crossing-4:signal:0",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Дорожные знаки",
+      "id": "railway-signals:city-rail-crossing-6:signal:0",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Дорожные знаки",
+      "id": "railway-signals:city-rail-crossing-6:signal:1",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Дорожные знаки",
+      "id": "railway-signals:city-rail-crossing-7:signal:0",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Дорожные знаки",
+      "id": "railway-signals:city-rail-crossing-7:signal:1",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Дорожные знаки",
+      "id": "railway-signals:city-rail-crossing-8:signal:0",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Дорожные знаки",
+      "id": "railway-signals:city-rail-crossing-8:signal:1",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Дорожные знаки",
+      "id": "railway-signals:city-rail-crossing-9:signal:0",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Дорожные знаки",
+      "id": "railway-signals:city-rail-crossing-9:signal:1",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Железная дорога",
+      "id": "railway-stations:south-forest-station",
+      "reason": "нужен игровой адаптер"
+    },
+    {
+      "category": "Железная дорога",
+      "id": "railway-stations:west-city-station",
+      "reason": "нужен игровой адаптер"
+    }
+  ],
+  "protected_present": 38,
+  "reason_mismatches": [],
+  "registry_missing_ui": [],
+  "registry_objects": 9901,
+  "suite": "actual-full-catalog-admission",
+  "synthetic_index": false,
+  "unmatched": [],
+  "verification_cpu_usec": 379525
+}

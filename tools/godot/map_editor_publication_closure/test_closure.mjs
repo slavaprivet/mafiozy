@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import {inventory} from './audit.mjs';
+import {verifyClosure,pathFor,sha} from './closure.mjs';
+const {closure,readBlob,trusted}=inventory();let checks=0;
+const verify=(c=closure,reader=readBlob,t=trusted,options={requireReady:false})=>verifyClosure(c,reader,t,options);
+const valid=verify();assert(valid.ok&&valid.integrity&&!valid.ready);checks++;
+assert(!verifyClosure(closure,readBlob,trusted).ok);assert(valid.holds.some(h=>h.includes('font')));assert(valid.holds.some(h=>h.includes('PMREM')));checks+=3;
+assert.equal(closure.blobs.length,1660);assert.equal(closure.families.find(f=>f.id==='procedural').semanticKeys.length,9394);assert.equal(closure.families.find(f=>f.id==='transport').semanticKeys.length,265);checks+=3;
+for(const c of ['C:/Users/private/file.glb','/tmp/script.gd','../outside.bin','res://.godot/imported/model.scn','user://snapshot.json','blobs/..\\private.gd']){const bad=structuredClone(closure);bad.blobs[0].path=c;let touched=false;const report=verify(bad,p=>{if(p===c)touched=true;return readBlob(p)});assert(!report.integrity);assert(!touched);checks+=2;}
+const badKeys=structuredClone(closure);badKeys.families.find(f=>f.id==='landmarks').semanticKeys[0]='authority:forged';assert(!verify(badKeys).integrity);checks++;
+const missing=structuredClone(closure);missing.families=missing.families.filter(f=>f.id!=='transport');assert(!verify(missing).integrity);checks++;
+const crossed=structuredClone(closure);crossed.families.find(f=>f.id==='ground-palette').manifest_sha256=crossed.families[0].manifest_sha256;assert(!verify(crossed).integrity);checks++;
+const omitted=structuredClone(closure);omitted.blobs=omitted.blobs.filter(b=>b.kind!=='buffer');assert(!verify(omitted).integrity);checks++;
+const corrupt=(p)=>{const bytes=readBlob(p);if(p===closure.blobs[0].path){const changed=Buffer.from(bytes);changed[0]^=1;return changed;}return bytes;};assert(!verify(closure,corrupt).integrity);checks++;
+const wrongBytes=structuredClone(closure);wrongBytes.blobs[0].bytes++;assert(!verify(wrongBytes).integrity);checks++;
+const dup=structuredClone(closure);dup.blobs.push({...dup.blobs[0]});assert(!verify(dup).integrity);checks++;
+const claimed=structuredClone(closure);claimed.ready=true;claimed.authority={unlock:true};assert(!verify(claimed).ok);checks++;
+const script=structuredClone(closure);script.blobs[0].kind='gdscript';script.scripts=['evil.gd'];assert(!verify(script).integrity);checks++;
+const orphan=Buffer.from('{"unauthorizedUserdata":"not part of map closure"}');const extra=structuredClone(closure);const id=sha(orphan);extra.blobs.push({kind:'json',sha256:id,bytes:orphan.length,path:pathFor('json',id)});assert(!verify(extra,p=>p===pathFor('json',id)?orphan:readBlob(p)).integrity);checks++;
+const allRuntime={...trusted,runtimeGates:new Set(['native-importer-closure-v1','source-baseline-identity','ground-owner','procedural-owner','parking-rail-route-owner','protected-landmark-authority-collider-doors-nav','GLB-importer-material-parity','rail-caption-GPU-sampler-parity','landmarks-original-PMREM-IBL'])};
+const stillBlocked=verifyClosure(closure,readBlob,allRuntime);assert(!stillBlocked.ok&&!stillBlocked.ready&&stillBlocked.holds.some(h=>h.includes('capture')));checks++;
+assert(closure.blobs.every(b=>/^blobs\/[a-f0-9]{64}\.(json|glb|bin|rgba)$/.test(b.path)));checks++;
+console.log(JSON.stringify({checks,status:'PASS',existingBlobChecks:valid.checks,integrity:valid.integrity,ready:valid.ready,holds:valid.holds.length,browserUsed:false,gpuUsed:false}));

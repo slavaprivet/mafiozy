@@ -1,0 +1,275 @@
+{
+  "status": "independent-narrow-accepted-comment-only-rebase-not-applied",
+  "runtimeActivation": false,
+  "scope": "REBUILD-VISUAL-print_shop-001 only",
+  "hosts": [
+    {
+      "path": "world.html",
+      "before": "272a22667e1c075962b9a9164e408595e94b1d1edc659fae6b441cb07ec99a79",
+      "after": "9f5cc5a1a80db37dbf3136ecab66c4cdba2bd679dbea03aa10800ac16d8a95b5",
+      "candidate": "outputs/service_walk23_proposal/after/world.html"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/walk_preview.mjs",
+      "before": "8c10460da01bb2d885061dc1390cc1ae0b77ce778367e2bfd904d5aa5f0d8d77",
+      "after": "337d53c2659a0053e0c67645b199e446a2e3b4d0bbb7377e27155ee6d0c9d48f",
+      "candidate": "outputs/service_walk23_proposal/after/assets/maps/city_rebuild_v1/walk_preview.mjs"
+    }
+  ],
+  "runtimeDependencies": [
+    {
+      "path": "assets/maps/city_rebuild_v1/service_pilot23_candidate/employee.mjs",
+      "sha256": "23ce979bc1b1adb34ac5f39d8f00740a253b54d68112e2b78d1dfc40183b13cb"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/service_pilot23_candidate/return.mjs",
+      "sha256": "79aec77dd986c49f1e56f83c18f9fe438c48c562f418cfedbe25b6a681b874a4"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/service_pilot23_candidate/source.mjs",
+      "sha256": "4509f96a514ab4a7b76b8ca4aa72d8aee11c49ada76f0043ed5c0700fc37cc4d"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/service_pilot23_candidate/visibility.mjs",
+      "sha256": "0a9143fb5bbee58e986ed2f68115770ad90cefa7d7cffa1301339c9bdb334d24"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/service_pilot23_candidate/visits.mjs",
+      "sha256": "8fa706d55c786ed2bdf58cdbe800e607a33efc490fc13b145ba1bff590d60709"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/service_pilot23_candidate/walk_host.mjs",
+      "sha256": "757c39924a86620989b49414fbc92b9bd2e0727923cf38ed423c5f04a32ac14f"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_stationary_service_adapter.mjs",
+      "sha256": "cc989b951a25ea5bc4f3fa69f785e0e4a42f39553df4ccba9c106622ebabe2da"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/native_print_shop_service_station.mjs",
+      "sha256": "2cc1e9ed809d0d0b681c83f685f7a798240590dfd5086870e96db1b6fe301280"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/interior_mesh_pool.mjs",
+      "sha256": "6c4e585ed5b649cc03e76a9022728a17e002cf60599a5dc9b1cac982477b7ddd"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_swept_footprint.mjs",
+      "sha256": "918467e987c06cbdc88af5772113d8492f1d58e9198d0e86e7050b2c1c617258"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_resident_commerce_source.js",
+      "sha256": "561ca0122caf39caca7cd15999dfbebdd2257473a1bdcb6e288b18fd2e526cbe"
+    }
+  ],
+  "proposalFiles": [
+    {
+      "path": "npc_stationary_service_activation23_patch_candidate.mjs",
+      "sha256": "f74d81cc8a3acfff8ed788b891e57da5ac003785400a570bef35f3e8b66c6918"
+    },
+    {
+      "path": "npc_stationary_service_walk23_candidate.mjs",
+      "sha256": "0fe551a2c78bb5ad0fbd0e80fddae8673c48d516a6115f45f1a814ebcb05ad80"
+    },
+    {
+      "path": "npc_service_spawn_visibility23_candidate.mjs",
+      "sha256": "5fdbd96f5302e5629a4ee95e0cf6e5de172fa53022e6175e8eef06b57a14a446"
+    },
+    {
+      "path": "npc_service_physical_roster23_patch_candidate.mjs",
+      "sha256": "3765e8b3b0b207a42ddf599a75d2897923f162bfec149443c54a6cf80c1adbe8"
+    },
+    {
+      "path": "npc_stationary_service_world23_patch_candidate.mjs",
+      "sha256": "d1a6b755926aad1cc7836e181a7913072934e3e9584319fa3dcba645eca30586"
+    },
+    {
+      "path": "npc_service_customer_world23_patch_candidate.mjs",
+      "sha256": "967d2d99ac026dc2b15e6cf8b349feaccfe1410a3c6dcb56a0f9a6870cf06d2a"
+    },
+    {
+      "path": "npc_service_employee_return23_patch_candidate.mjs",
+      "sha256": "e354bc88e177f4d580166db35a72f6a1abeefd466e4e5b439a8325cbe04f429b"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/test_npc_stationary_service_walk23_candidate.mjs",
+      "sha256": "3c9fb4bf2ab12cec2c2d597a8919ab6c0c1f64b6956f98c27a14d0d4c85cc025"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/test_npc_service_spawn_visibility23_candidate.mjs",
+      "sha256": "75663f60cb464d4c297fbbd3adf5500b91f6c2e55ba34381c7d03d27d1f530ba"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/test_service_visibility23_package_review.mjs",
+      "sha256": "4f18b588f9a665f54f39ee3262d79bb8acaced4a1e2ffebd70050854dfa8a67c"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/test_npc_service_physical_roster23_candidate.mjs",
+      "sha256": "cd44c9ff7a5499d50b046c2de372fcb26396bde87d715efffc5889411356858c"
+    },
+    {
+      "path": "outputs/package_service_walk23_candidate.mjs",
+      "sha256": "c26176fcc8c9bf72739026693c993dbc21abea4263aab777a86206c6929c2152"
+    },
+    {
+      "path": "outputs/build_service_walk23_proposal.mjs",
+      "sha256": "bbf7dbd3d10ba59b7fbf5c664c2e2b73be048112f9ef62fdce1a59ad868d5a90"
+    },
+    {
+      "path": "docs/ai/NPC_SERVICE_WALK23_ACTIVATION.patch",
+      "sha256": "38d5b63a42cfae1c37cb1e06f2c204905f843f814f4faf35085e123769924cf3"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/test_npc_service_skinned23_candidate.mjs",
+      "sha256": "7f2980c4030e987300da19e20e8129ca832902e6ea466d794b6b94d7e991d265"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/test_npc_service_interruption23_candidate.mjs",
+      "sha256": "322546d8d537aa8f485615cce8ef8f5b108174564cc718184d393e0024b3fe60"
+    }
+  ],
+  "http": {
+    "origin": "http://127.0.0.1:18538",
+    "modules": [
+      "/assets/maps/city_rebuild_v1/service_pilot23_candidate/employee.mjs",
+      "/assets/maps/city_rebuild_v1/service_pilot23_candidate/return.mjs",
+      "/assets/maps/city_rebuild_v1/service_pilot23_candidate/source.mjs",
+      "/assets/maps/city_rebuild_v1/service_pilot23_candidate/visibility.mjs",
+      "/assets/maps/city_rebuild_v1/service_pilot23_candidate/visits.mjs",
+      "/assets/maps/city_rebuild_v1/service_pilot23_candidate/walk_host.mjs"
+    ],
+    "checked": "all six 200 text/javascript"
+  },
+  "tests": {
+    "pass": true,
+    "actualSkin": {
+      "meshes": 4,
+      "bones": 112,
+      "productionPopulation": true,
+      "missionQuota72": true,
+      "streamedOutHiddenDetachedStaleSourceDenied": true
+    },
+    "purchase": {
+      "frames": 131,
+      "balance": 77,
+      "receipts": 1
+    },
+    "uncappedBodies": 100,
+    "actualCameraFrustum": true,
+    "sourceFreshBetweenFrames": true,
+    "sourceTraffic": true,
+    "hiddenFleet": true,
+    "retainedCorpse": true,
+    "doorCrowd65": true,
+    "deadSellerPurchaseDenied": true,
+    "hiddenReplacementAfter60s": true,
+    "cpu": {
+      "units": "ms",
+      "population": 384,
+      "scenario": "warmed identical point at storeroom, all far source bodies still enumerated",
+      "nativePoint": {
+        "p50": 0.0005999999998493877,
+        "p95": 0.0009000000000014552
+      },
+      "composedPoint": {
+        "p50": 0.28319999999985157,
+        "p95": 0.43200000000024374
+      },
+      "idleController": {
+        "p50": 0.008199999999760621,
+        "p95": 0.01999999999998181
+      },
+      "limits": "CPU fixture only; no renderer or whole-scene frame time"
+    },
+    "limits": "Composed actual source/commerce/native geometry/camera/uncapped roster. Production npcPopulation/getActor with verified real GLBs; exact source selection slice including mission quota; CPU skeletal pose, no rendered-frame observation. No activation/GPU/LIVE/FPS."
+  },
+  "visibilityReview": {
+    "cases": 17,
+    "convexPair": 6,
+    "result": "narrow independent ACCEPT; CPU only"
+  },
+  "limits": [
+    "not applied to production World/Walk",
+    "no LIVE/GPU or whole-scene performance acceptance",
+    "unknown source foot elevation conservatively blocks all nearby storeys",
+    "complete personal bank economy remains separate candidate",
+    "no other buildings activated",
+    "CPU actual production population and GLB poses checked; no rendered-frame visual acceptance"
+  ],
+  "interruptionTests": {
+    "pass": true,
+    "results": [
+      {
+        "scenario": "panic-await",
+        "yieldTicks": 20,
+        "exitFrames": 20,
+        "panicMovementM": 0,
+        "balance": 80
+      },
+      {
+        "scenario": "panic-approach",
+        "yieldTicks": 20,
+        "exitFrames": 38,
+        "panicMovementM": 0,
+        "balance": 80
+      },
+      {
+        "scenario": "panic-counter",
+        "yieldTicks": 20,
+        "exitFrames": 38,
+        "panicMovementM": 0.779999999999997,
+        "balance": 80
+      },
+      {
+        "scenario": "combat-counter",
+        "yieldTicks": 20,
+        "exitFrames": 56,
+        "panicMovementM": 0,
+        "balance": 80
+      },
+      {
+        "scenario": "report-counter",
+        "yieldTicks": 20,
+        "exitFrames": 53,
+        "panicMovementM": 0,
+        "balance": 80
+      },
+      {
+        "scenario": "conversation-counter",
+        "yieldTicks": 20,
+        "exitFrames": 46,
+        "panicMovementM": 0,
+        "balance": 80
+      }
+    ],
+    "limits": "Actual composed source visit/commerce/elapsed arbitration, native geometry, production GLB population. Incidents injected at ownership boundary; one real original panic movement branch/route executed. No full world perception/combat/GPU/FPS claim."
+  },
+  "skinFixtureDependencies": [
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_population.mjs",
+      "sha256": "fc3c4cc243ccb7700526b6680fa7ee83e7fbad9e83798880458cb1dd8c0816ad"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_actor.mjs",
+      "sha256": "ceb7266a1fcb9013eda78b6dce8ee67cf5f80c547beb2850e2be76602110af30"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vendor/three_skeleton_utils.mjs",
+      "sha256": "0761b1e003917b215d25dd81439d854b36034b5a57ce84c2cfe3b02428d7b253"
+    }
+  ],
+  "independentReview": {
+    "reportedBy": "Coordinator20 / inventory reviewer",
+    "acceptedPatch": "f2c952c38cc654f96f2889e9ef640919109043aa527cfd4d9a9adaf70c6eee88",
+    "currentRebase": "two Walk shadow comment lines only",
+    "immediateYieldTicks": 20,
+    "leaseNullFirstTick": true,
+    "cancelOnce": true,
+    "balance": 80,
+    "receipts": 0,
+    "actualPanicMovementM": 0.78,
+    "physicalExitFrames": 41,
+    "interruptionScenarios": 6,
+    "reviewedShaMatches": 30
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "schema": "mafiozi.transport-burn-material-alias-census.v1",
+  "date": "2026-09-27",
+  "status": "PASS",
+  "checks": 89,
+  "source": {
+    "vehicle_visual_sha256": "d586952de302b7ec0467b89b91ba117e3350e8a5c217f48c303f06ff88494e34",
+    "manifest_sha256": "38598f43beb77c095879206ea5820c7fe922b227a64f77f793353f89321fee03",
+    "manifest_entries": 13
+  },
+  "profiles": [
+    {"profile_id":"city_hatchback","raw_manifest_slots":270,"raw_manifest_source_material_ids":57,"mesh_nodes":268,"surface_slots":268,"unique_source_material_ids":56,"alias_slots":212,"instantiate_us":130175,"missing_native_slots":[{"node_key":"v0008","source_name":"LOD0_city_hatchback_Taillamp_L","source_material_id":"m0003","native_class":"Node3D","child_count":0,"reason":"imported_non_mesh_node_no_native_surface"},{"node_key":"v0009","source_name":"LOD0_city_hatchback_Taillamp_R","source_material_id":"m0003","native_class":"Node3D","child_count":0,"reason":"imported_non_mesh_node_no_native_surface"}]},
+    {"profile_id":"compact_sedan","raw_manifest_slots":267,"raw_manifest_source_material_ids":57,"mesh_nodes":267,"surface_slots":267,"unique_source_material_ids":57,"alias_slots":210,"instantiate_us":129953,"missing_native_slots":[]},
+    {"profile_id":"family_wagon","raw_manifest_slots":267,"raw_manifest_source_material_ids":57,"mesh_nodes":265,"surface_slots":265,"unique_source_material_ids":56,"alias_slots":209,"instantiate_us":137605,"missing_native_slots":[{"node_key":"v0007","source_name":"LOD0_family_wagon_Taillamp_L","source_material_id":"m0003","native_class":"Node3D","child_count":0,"reason":"imported_non_mesh_node_no_native_surface"},{"node_key":"v0008","source_name":"LOD0_family_wagon_Taillamp_R","source_material_id":"m0003","native_class":"Node3D","child_count":0,"reason":"imported_non_mesh_node_no_native_surface"}]},
+    {"profile_id":"executive_sedan","raw_manifest_slots":272,"raw_manifest_source_material_ids":57,"mesh_nodes":272,"surface_slots":272,"unique_source_material_ids":57,"alias_slots":215,"instantiate_us":131011,"missing_native_slots":[]},
+    {"profile_id":"sport_coupe","raw_manifest_slots":221,"raw_manifest_source_material_ids":58,"mesh_nodes":221,"surface_slots":221,"unique_source_material_ids":58,"alias_slots":163,"instantiate_us":120867,"missing_native_slots":[]},
+    {"profile_id":"city_suv","raw_manifest_slots":273,"raw_manifest_source_material_ids":57,"mesh_nodes":271,"surface_slots":271,"unique_source_material_ids":56,"alias_slots":215,"instantiate_us":143251,"missing_native_slots":[{"node_key":"v0009","source_name":"LOD0_city_suv_Taillamp_L","source_material_id":"m0003","native_class":"Node3D","child_count":0,"reason":"imported_non_mesh_node_no_native_surface"},{"node_key":"v0010","source_name":"LOD0_city_suv_Taillamp_R","source_material_id":"m0003","native_class":"Node3D","child_count":0,"reason":"imported_non_mesh_node_no_native_surface"}]},
+    {"profile_id":"delivery_van","raw_manifest_slots":227,"raw_manifest_source_material_ids":57,"mesh_nodes":226,"surface_slots":226,"unique_source_material_ids":57,"alias_slots":169,"instantiate_us":129114,"missing_native_slots":[{"node_key":"v0002","source_name":"LOD0_delivery_van_CargoDoorSplit","source_material_id":"m0000","native_class":"Node3D","child_count":0,"reason":"imported_non_mesh_node_no_native_surface"}]},
+    {"profile_id":"utility_pickup","raw_manifest_slots":221,"raw_manifest_source_material_ids":58,"mesh_nodes":221,"surface_slots":221,"unique_source_material_ids":58,"alias_slots":163,"instantiate_us":126180,"missing_native_slots":[]},
+    {"profile_id":"city_bus","raw_manifest_slots":233,"raw_manifest_source_material_ids":59,"mesh_nodes":233,"surface_slots":233,"unique_source_material_ids":59,"alias_slots":174,"instantiate_us":145020,"missing_native_slots":[]},
+    {"profile_id":"police_interceptor","raw_manifest_slots":272,"raw_manifest_source_material_ids":60,"mesh_nodes":272,"surface_slots":272,"unique_source_material_ids":60,"alias_slots":212,"instantiate_us":151764,"missing_native_slots":[]},
+    {"profile_id":"city_ambulance","raw_manifest_slots":234,"raw_manifest_source_material_ids":60,"mesh_nodes":234,"surface_slots":234,"unique_source_material_ids":60,"alias_slots":174,"instantiate_us":120457,"missing_native_slots":[]},
+    {"profile_id":"fire_engine","raw_manifest_slots":250,"raw_manifest_source_material_ids":61,"mesh_nodes":250,"surface_slots":250,"unique_source_material_ids":61,"alias_slots":189,"instantiate_us":124352,"missing_native_slots":[]},
+    {"profile_id":"city_taxi","raw_manifest_slots":276,"raw_manifest_source_material_ids":59,"mesh_nodes":276,"surface_slots":276,"unique_source_material_ids":59,"alias_slots":217,"instantiate_us":140578,"missing_native_slots":[]}
+  ],
+  "two_compact_instances": {
+    "unique_source_material_ids_each": 57,
+    "matching_source_id_sets": true,
+    "shared_standard_material_resources": 0
+  },
+  "missing_source_geometry_receipt": {
+    "method": "Actual Three r180 GLTFLoader.parseAsync over each SHA-pinned source GLB; hashes cover the loaded typed-array byte spans",
+    "result": "all seven missing native slots are nonempty indexed source Mesh geometry, so the native placeholders are an export/import coverage loss rather than empty source placeholders",
+    "rows": [
+      {"profile_id":"city_hatchback","node_key":"v0008","source_name":"LOD0_city_hatchback_Taillamp_L","position_count":216,"position_item_size":3,"position_array_type":"Float32Array","position_f32le_sha256":"510f19c443398e217394c859ff57178922a955888c440527cc9c421c18c11560","index_count":324,"index_array_type":"Uint16Array","index_u16le_sha256":"fbacfae4054ccb4531651d1b1b2628752ce13a63e5037f8d56980889a19d1597","index_min":0,"index_max":215,"groups":[],"draw_range":{"start":0,"count":"Infinity"}},
+      {"profile_id":"city_hatchback","node_key":"v0009","source_name":"LOD0_city_hatchback_Taillamp_R","position_count":216,"position_item_size":3,"position_array_type":"Float32Array","position_f32le_sha256":"510f19c443398e217394c859ff57178922a955888c440527cc9c421c18c11560","index_count":324,"index_array_type":"Uint16Array","index_u16le_sha256":"fbacfae4054ccb4531651d1b1b2628752ce13a63e5037f8d56980889a19d1597","index_min":0,"index_max":215,"groups":[],"draw_range":{"start":0,"count":"Infinity"}},
+      {"profile_id":"family_wagon","node_key":"v0007","source_name":"LOD0_family_wagon_Taillamp_L","position_count":216,"position_item_size":3,"position_array_type":"Float32Array","position_f32le_sha256":"a52459389f9e8eacbccf0b7bd652a27ca712ce7203ad1e196b910c1630dce20f","index_count":324,"index_array_type":"Uint16Array","index_u16le_sha256":"8c621653f34c12d26b0abd2eb3b1b3688c33bf7e228c04ad454ec81bb56a2af2","index_min":0,"index_max":215,"groups":[],"draw_range":{"start":0,"count":"Infinity"}},
+      {"profile_id":"family_wagon","node_key":"v0008","source_name":"LOD0_family_wagon_Taillamp_R","position_count":216,"position_item_size":3,"position_array_type":"Float32Array","position_f32le_sha256":"a52459389f9e8eacbccf0b7bd652a27ca712ce7203ad1e196b910c1630dce20f","index_count":324,"index_array_type":"Uint16Array","index_u16le_sha256":"8c621653f34c12d26b0abd2eb3b1b3688c33bf7e228c04ad454ec81bb56a2af2","index_min":0,"index_max":215,"groups":[],"draw_range":{"start":0,"count":"Infinity"}},
+      {"profile_id":"city_suv","node_key":"v0009","source_name":"LOD0_city_suv_Taillamp_L","position_count":216,"position_item_size":3,"position_array_type":"Float32Array","position_f32le_sha256":"501a482678bf02ebb07cf60bf3467b9841df5120009f92adbab42c47770fa08c","index_count":324,"index_array_type":"Uint16Array","index_u16le_sha256":"fbacfae4054ccb4531651d1b1b2628752ce13a63e5037f8d56980889a19d1597","index_min":0,"index_max":215,"groups":[],"draw_range":{"start":0,"count":"Infinity"}},
+      {"profile_id":"city_suv","node_key":"v0010","source_name":"LOD0_city_suv_Taillamp_R","position_count":216,"position_item_size":3,"position_array_type":"Float32Array","position_f32le_sha256":"501a482678bf02ebb07cf60bf3467b9841df5120009f92adbab42c47770fa08c","index_count":324,"index_array_type":"Uint16Array","index_u16le_sha256":"fbacfae4054ccb4531651d1b1b2628752ce13a63e5037f8d56980889a19d1597","index_min":0,"index_max":215,"groups":[],"draw_range":{"start":0,"count":"Infinity"}},
+      {"profile_id":"delivery_van","node_key":"v0002","source_name":"LOD0_delivery_van_CargoDoorSplit","position_count":96,"position_item_size":3,"position_array_type":"Float32Array","position_f32le_sha256":"753548312b7f1abaeb53838afe972d9280f53e225e04bd957f85a88323beee10","index_count":132,"index_array_type":"Uint16Array","index_u16le_sha256":"aa8a4f6083d7b79b136c6b23308cceba243250d12e9bb9324cea712c664efe57","index_min":0,"index_max":95,"groups":[],"draw_range":{"start":0,"count":"Infinity"}}
+    ]
+  },
+  "author_load_only_us": 1811329,
+  "parent_fresh_load_only_us": 1836398,
+  "cost_qualification": "parent fresh sequential headless load-only measurement after the author/source jobs joined; isolated loading only, no adoption, frame-time, GPU or full-scene FPS claim",
+  "proved": [
+    "Within one visual every repeated source_material_id resolves to the same StandardMaterial3D identity",
+    "Within one visual different source_material_id values resolve to different StandardMaterial3D resources",
+    "Every native material source_metadata equals its exact manifest slot metadata",
+    "Two live compact_sedan instances share no StandardMaterial3D resource",
+    "Queued visual roots fail census admission and free cleanly"
+  ],
+  "limitations": [
+    "Seven nonempty source Mesh slots are missing from native surfaces and import only as empty Node3D placeholders: six taillamps using otherwise absent m0003 and one van CargoDoorSplit using aliased m0000",
+    "A native GLTF surface does not reveal whether the original Three mesh used a scalar material or a one-element material array",
+    "No burn preset, material mutation, rendering, GPU, FPS, LIVE or authority is exercised"
+  ]
+}

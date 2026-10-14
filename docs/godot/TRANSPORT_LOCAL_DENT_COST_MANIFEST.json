@@ -1,0 +1,48 @@
+{
+  "schema": "mafiozi.transport-local-dent-copy-cost-candidate.v1",
+  "status": "PERFORMANCE_REJECTED_DO_NOT_ADOPT",
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/candidates/transport_local_dent_cost_candidate.gd",
+      "sha256": "f565b993324f10f19fe6643d541e963fcc0f35b86007d998c57507ab6a89af31",
+      "bytes": 9041
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_local_dent_cost_candidate.gd",
+      "sha256": "7212b4defc725194028da8ea1e9bb1aeb86e2b23260a43b42d3e18fdaff3a50b",
+      "bytes": 18344
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_local_dent_cost_comparison.gd",
+      "sha256": "40ea648edb96bee76409a4915c463f5376cfe2cd4c9fbe8b0910f65de8d893fe",
+      "bytes": 4163
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_local_dent_cost_finite_review.gd",
+      "sha256": "8b65ee096e1a36763357af51681db125eb31ecce9825b8ca63035aed26555059",
+      "bytes": 5670
+    }
+  ],
+  "checks": {
+    "parent": 88,
+    "author": 88,
+    "independent_finite": 19,
+    "parent_finite": 19
+  },
+  "sequential_comparison": {
+    "synthetic_vertices": 90000,
+    "vertices": 25752,
+    "synthetic_candidate_p95_us": 109368,
+    "synthetic_baseline_p95_us": 104502,
+    "baseline_p50_us": 15951,
+    "candidate_p95_us": 17494,
+    "baseline_p95_us": 18351,
+    "candidate_p50_us": 16152
+  },
+  "limitations": [
+    "No stable cost improvement in independent comparison",
+    "Position core only; normals/bounds/upload/hulls excluded",
+    "No main/LIVE/GPU/fullsceneFPS",
+    "Production883 remains unchanged"
+  ]
+}

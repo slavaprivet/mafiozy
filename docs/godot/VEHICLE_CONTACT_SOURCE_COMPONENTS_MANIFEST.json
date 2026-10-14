@@ -1,0 +1,265 @@
+{
+  "schema": "mafiozi.vehicle-contact-source-components.v1",
+  "status": "RUNTIME_NOT_ADOPTED",
+  "date": "2026-09-27",
+  "scope": {
+    "purpose": "Immutable evidence manifest for isolated raw observation, source planar pair impulse, and source polygon/passive-kinematics components.",
+    "runtime_wired": false,
+    "main_scene_wired": false,
+    "native_body_wired": false,
+    "server_authoritative": false,
+    "hp_or_damage_authoritative": false,
+    "live_validated": false
+  },
+  "authority_boundary": {
+    "required_read_before_integration": {
+      "path": "docs/godot/VEHICLE_CONTACT_CRASH_AUTHORITY_GAPS.md",
+      "sha256": "75533572b698e97c19fff790c2dc42d7c56b5e4720cb1638218b992f2e0a8adc",
+      "bytes": 14349
+    },
+    "rules": [
+      "No component in this manifest creates or admits an event, canonicalizes a peer pair, assigns impact_sequence, runs collision cooldown, validates a collision role, applies HP, or authorizes server damage.",
+      "Do not apply the pair resolver impulse to Godot native bodies: the native physics solver has already responded, so doing so would double-apply body force.",
+      "Do not derive source impact speed, directed delta-V, HP, or energy from a later native reported impulse.",
+      "A raw collector envelope is consumable only with valid=true and complete=true; count-at-cap, identity, nonfinite, or other collection gaps must fail closed.",
+      "Caller tick and self identity carried by the raw collector are observations, not authoritative clock or registry proof.",
+      "Wrapper valid fields mean only that the wrapper admitted the documented input container or finite shape. They do not mean a contact resolved, an event was admitted, a role was verified, or damage is authorized.",
+      "Pair math success is source_result.resolved, but even a resolved result remains proposal-only and non-authoritative.",
+      "Polygon geometry success is a non-null source_result, but it does not prove that the obstacle has an authored source-blocking collision role."
+    ],
+    "unresolved_integration_gaps": [
+      "Authoritative global physics tick and live target/counterpart identity-life validation.",
+      "Canonical peer event creation, target-scoped replay ledger, and independent per-target impact_sequence allocation.",
+      "Source target-global and canonical pair cooldown ownership.",
+      "Authored static collision-role validation.",
+      "A reviewed adapter that retains one coherent onset observation and receives already-resolved semantic impact speed without using native J/m."
+    ]
+  },
+  "semantic_tags": {
+    "raw_point_closing": {
+      "component_value": "closing_speed_along_normal_mps",
+      "component_tag": "derived_same_row_point_kinematics_not_source_impact_speed",
+      "authority_semantic": "observation_only",
+      "must_not_be_relabelled_as": ["source impactSpeed", "peer directed delta-V", "HP"]
+    },
+    "passive_static": {
+      "component_tag": "passive_linear_speed_and_travel_yaw_only",
+      "future_authority_tag": "passive_static_linear_closing",
+      "qualification": "Source contactKinematics uses only speed and travelYaw; it omits yaw-arm and peer relative velocity."
+    },
+    "peer_pair": {
+      "future_authority_tag": "peer_directed_source_delta_v",
+      "values": ["deltaVA", "deltaVB"],
+      "qualification": "Requires one canonical pre-solve source-axis pair input; each directed delta-V belongs to its own target receipt."
+    },
+    "active_static": {
+      "future_authority_tag": "active_static_point_closing",
+      "provided_by_this_package": false,
+      "qualification": "No component here decides active-static admission or turns a raw closing observation into an authorized impact."
+    }
+  },
+  "components": [
+    {
+      "id": "coherent_raw_direct_state_observation_d149",
+      "status": "FROZEN_ISOLATED_NOT_ADOPTED",
+      "runtime": {
+        "path": "godot/mafiozi_walk/scripts/vehicle_physics/vehicle_contact_observation_collector.gd",
+        "sha256": "d14946c97ecdb43105d6d760553a7de0151eda64b22e3254b285a94987c759f0",
+        "bytes": 11035
+      },
+      "api": [
+        "collect(state: PhysicsDirectBodyState3D, self_ref: Dictionary, global_physics_tick: int) -> Dictionary",
+        "contract() -> Dictionary"
+      ],
+      "contract": {
+        "point_capacity": 8,
+        "rows_are_raw_and_not_aggregated": true,
+        "same_index_fields": [
+          "point_on_self_world_m",
+          "point_on_counterpart_world_m",
+          "normal_on_self_world",
+          "velocity_on_self_world_mps",
+          "velocity_on_counterpart_world_mps",
+          "relative_velocity_world_mps",
+          "closing_speed_along_normal_mps",
+          "impulse_on_self_world_ns",
+          "raw_contact_index"
+        ],
+        "frozen_same_callback_fields": [
+          "target_root_frame_world",
+          "global_physics_tick",
+          "self_identity",
+          "peer_identity"
+        ],
+        "target_frame_source": "PhysicsDirectBodyState3D.transform_at_collect",
+        "contact_accessors_are_world_space": true,
+        "physics_tick_authoritative": false,
+        "self_identity_authoritative": false,
+        "count_at_capacity_is_incomplete": true,
+        "complete_requires_no_cap_identity_nonfinite_or_collection_gap": true,
+        "produces_impact_speed": false,
+        "produces_hp": false,
+        "runtime_wired": false
+      },
+      "tests": [
+        {
+          "path": "godot/mafiozi_walk/scripts/tests/test_vehicle_contact_observation_collector.gd",
+          "sha256": "8fa1206f1780150876cc3d8134120da8013934de1da756ce0c2c4cbb3db0f87b",
+          "bytes": 16194,
+          "result": "Godot 4.7.2 PASS 33/33, exit 0",
+          "scope": "Actual translated/rotated wall zero-J onset then later J, exact world interpretation, immutable exports, and actual eight-contact fail-closed cap."
+        },
+        {
+          "path": "godot/mafiozi_walk/scripts/tests/test_vehicle_contact_observation_collector_independent.gd",
+          "sha256": "34341e020525d7dc6038b6e97cad23da509d7e35ad107bc6fb637b4987e1fe21",
+          "bytes": 13904,
+          "result": "Independent Godot 4.7.2 PASS 27/27",
+          "scope": "Invalid self/tick, actual unbound identity gaps, sibling/later mutation isolation, forbidden authority fields, and repeated actual wall chronology."
+        }
+      ],
+      "related_frozen_inputs": [
+        {
+          "path": "godot/mafiozi_walk/scripts/vehicle_physics/vehicle_contact_state_bridge.gd",
+          "sha256": "73843ce758381b7911aa432ade0e66cfb9ea96ebd05986f0e9f39bc64a1de1a7",
+          "bytes": 14221
+        },
+        {
+          "path": "godot/mafiozi_walk/scripts/vehicle_physics/vehicle_contact_manifold.gd",
+          "sha256": "dfe706e678fd64a6ac2d67f27bd659733287ff9aba6e62c6b9343889ba3ed9dd",
+          "bytes": 6202
+        }
+      ],
+      "qualification": "duplicate-index and counterpart-overflow flags are structural fail-closed fields but are not independently exercised because retained rows are assigned dense indices and are capped at eight; cap_gap covers unobservable ninth contacts."
+    },
+    {
+      "id": "source_planar_pair_impulse_840",
+      "status": "FROZEN_PURE_MATH_NOT_ADOPTED",
+      "source": {
+        "path": "assets/maps/city_rebuild_v1/vehicle_pair_impulse.mjs",
+        "sha256": "544a6a3c0d3b406ada6f60d38084e3e9ace488e12e7b404e2d9ea75bbb2abbe1",
+        "bytes": 2350
+      },
+      "runtime": {
+        "path": "godot/mafiozi_walk/scripts/vehicle_physics/vehicle_pair_impulse_resolver.gd",
+        "sha256": "840cb2ea2977c43f22efb3936f653ccf1c492264f6f02cb640d80d254034cd18",
+        "bytes": 7607
+      },
+      "api": [
+        "resolve_source(a, b, contact, options={}) -> Dictionary",
+        "propose(a, b, contact, options={}) -> Dictionary",
+        "contract() -> Dictionary"
+      ],
+      "contract": {
+        "plane": "+X/+Z",
+        "yaw_axis": "+Y",
+        "normal_direction": "A_to_B",
+        "half_extent_fields": ["halfWidth", "halfLength"],
+        "directed_outputs": ["deltaVA", "deltaVB"],
+        "wrapper_valid_means": "Dictionary containers admitted; not contact resolution or authority.",
+        "math_resolution_field": "source_result.resolved",
+        "mutates_inputs": false,
+        "reads_native_reported_impulse": false,
+        "applies_body_force": false,
+        "owns_event_or_hp": false,
+        "runtime_wired": false
+      },
+      "oracle_exporter": {
+        "path": "godot/mafiozi_walk/scripts/tests/export_vehicle_pair_impulse_oracle.mjs",
+        "sha256": "845d8207f1ec481e450257acdb6c87d3a96d530b6b6a14f5f4add5e5e2060518",
+        "bytes": 4629,
+        "imports_actual_source": true
+      },
+      "tests": [
+        {
+          "path": "godot/mafiozi_walk/scripts/tests/test_vehicle_pair_impulse_resolver.gd",
+          "sha256": "2ae420b73b81ef86c0941ce5370038df8730ba979cf152dd6243d4d86da0edb8",
+          "bytes": 14050,
+          "result": "Godot 4.7.2 PASS 10963/10963, exit 0",
+          "scope": "278 actual-source transcript cases, 3926 numeric comparisons, tagged nonfinite/extreme cases, swap, momentum, energy, purity, and boundaries."
+        },
+        {
+          "path": "godot/mafiozi_walk/scripts/tests/test_vehicle_pair_impulse_resolver_independent.gd",
+          "sha256": "6f326287ca0a82fc70310ed4d70bb43822ddee1676198e50f750f42f84870681",
+          "bytes": 13483,
+          "result": "Independent Godot 4.7.2 PASS 2121/2121",
+          "scope": "512 analytic/deterministic cases, 271 resolved, directed signs and inverse-mass ratio, restitution, conservation, purity, and malformed boundaries."
+        }
+      ],
+      "qualification": "Safe malformed-container nonthrow behavior intentionally differs from a JavaScript destructuring throw; finite source result math is otherwise the declared parity scope."
+    },
+    {
+      "id": "source_polygon_contact_and_passive_kinematics_9cdc",
+      "status": "FROZEN_PURE_MATH_NOT_ADOPTED",
+      "source": {
+        "path": "assets/maps/city_rebuild_v1/vehicle_contact.mjs",
+        "sha256": "668e776961d474e6a2bceb62f6435027b859f926b819c0f77da5f4bb0afd4020",
+        "bytes": 3287
+      },
+      "runtime": {
+        "path": "godot/mafiozi_walk/scripts/vehicle_physics/vehicle_contact_geometry_source.gd",
+        "sha256": "9cdc97825a072b14410b75e1dd3813aef6855e1e380b1a4f7c89ece36636fc9c",
+        "bytes": 9697
+      },
+      "api": [
+        "polygon_vehicle_contact_source(car, obstacle) -> Variant",
+        "contact_kinematics_source(contact, speed, travel_yaw) -> Dictionary",
+        "propose_polygon(car, obstacle) -> Dictionary",
+        "propose_kinematics(contact, speed, travel_yaw) -> Dictionary",
+        "contract() -> Dictionary"
+      ],
+      "contract": {
+        "plane": "+X/+Z",
+        "normal_direction": "car_to_obstacle",
+        "point_y_m": 0.8,
+        "kinematics_semantics": "passive_linear_speed_and_travel_yaw_only",
+        "uses_yaw_arm_velocity": false,
+        "uses_relative_peer_velocity": false,
+        "wrapper_valid_means": "Finite input shape admitted; not convexity, winding, collision, finite extreme output, role, event, or authority.",
+        "contact_result_field": "source_result; null means no source contact",
+        "collision_role_validated": false,
+        "strict_wrapper_rejects_nonfinite_before_source": true,
+        "native_output_deep_copied": true,
+        "source_shallow_spread_aliasing_preserved": false,
+        "performs_raycast": false,
+        "replaces_native_collision": false,
+        "applies_body_force": false,
+        "runtime_wired": false
+      },
+      "oracle_exporter": {
+        "path": "godot/mafiozi_walk/scripts/tests/export_vehicle_contact_geometry_oracle.mjs",
+        "sha256": "d0cf925313d193a90b801ef344504305e83c9ceec83741d59e147f1b7de33d26",
+        "bytes": 3836,
+        "imports_actual_source": true
+      },
+      "tests": [
+        {
+          "path": "godot/mafiozi_walk/scripts/tests/test_vehicle_contact_geometry_source.gd",
+          "sha256": "28a5939e37e36ce457e47f2a6dee1b757875b58fa5f31577d1d3d63602b774a8",
+          "bytes": 14253,
+          "result": "Godot 4.7.2 PASS 10347/10347, exit 0",
+          "scope": "275 actual-source transcript cases, 3788 numeric comparisons, 199 finite contacts, ordering/ties, support-face clipping, touching, NaN/Infinity, passive motion, purity, and boundaries."
+        },
+        {
+          "path": "godot/mafiozi_walk/scripts/tests/test_vehicle_contact_geometry_source_independent.gd",
+          "sha256": "d156c68403b3aaa522d11a7b076558316b076c07119e4464bbc8b6f2dd5a7781",
+          "bytes": 13318,
+          "result": "Independent Godot 4.7.2 PASS 982/982",
+          "scope": "192 rotated rectangles, 190 contacts, tie order, clipped corner/support, zero edge, NaN/Infinity precedence, touching/separation, scaling, and passive linear-only kinematics."
+        }
+      ],
+      "qualification": "Strict finite wrapper and deep-copied native output intentionally differ from throwable malformed input and shallow-alias JavaScript behavior; these safety differences confer no collision-role or runtime authority."
+    }
+  ],
+  "measurement_policy": {
+    "included_test_results_are_historical_pinned_receipts": true,
+    "tests_rerun_for_this_manifest": false,
+    "node_rerun_for_this_manifest": false,
+    "gpu_or_live_run": false,
+    "performance_claim": "Any component timing in its test receipt is isolated wall latency only, not FPS, aggregate CPU, fleet budget, GPU, or LIVE evidence."
+  },
+  "adoption_gate": {
+    "current": "NOT_ADOPTED",
+    "passing_component_tests_is_runtime_adoption": false,
+    "required_next": "A separately reviewed authoritative contact-event owner and adapter must close the documented authority gaps without applying native body force twice."
+  }
+}

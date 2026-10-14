@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {execFileSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+import {buildSource as buildClockAtomic} from '../map_editor_clock_atomic_candidate/build_candidate.mjs';
+import {buildTeardownSource,deriveTeardownWorkspace} from './teardown_variant.mjs';
+
+const own=path.dirname(fileURLToPath(import.meta.url));
+const sha=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
+const baseline=buildClockAtomic();
+const variant=buildTeardownSource();
+const workspace=variant.workspace.toString('utf8');
+const guard=variant.guard.toString('utf8');
+let checks=0;
+function check(value,label){assert.ok(value,label);checks++;}
+check(sha(variant.clock)===sha(baseline.clock),'clock overlay unchanged');
+check(workspace.includes('child_exiting_tree.connect(_on_child_exiting_tree)'),'teardown preflight before owner children leave');
+check(workspace.includes('if _teardown_current():') && workspace.includes('_teardown_verified = true'),'current owner receipt required');
+check(workspace.includes('if _teardown_verified and not _teardown_poisoned'),'corruption cannot arm teardown guard');
+check(workspace.includes('if is_instance_valid(_teardown_guard): _teardown_guard.disarm()'),'terminal hold disarms guard');
+check(guard.includes('if _owner.get_ref() != null:') && guard.includes('disarm()'),'live scene cannot be released');
+check(guard.includes('_tree.get_meta(_meta_key, "") == _token'),'exact tree ownership token checked');
+check(guard.indexOf('_tree.remove_meta(_meta_key)')<guard.indexOf('_tree.paused = false'),'token cleared before unpause');
+check(workspace.indexOf('population.finalize_editor_resume_atomic(ticket)')<workspace.indexOf('clock.commit_resume(clock_ticket)'),'clock remains transactional');
+assert.throws(()=>deriveTeardownWorkspace(workspace),/Missing\/ambiguous teardown seam/);checks++;
+const dry=JSON.parse(execFileSync(process.execPath,[path.join(own,'stage_teardown.mjs'),'--dry-run'],{encoding:'utf8'}));
+check(dry.workspaceSha256===sha(variant.workspace) && dry.stageCreated===false && dry.gpu===false,'variant dry run exact and isolated');
+console.log(JSON.stringify({checks,failures:[],workspaceSha256:sha(variant.workspace),guardSha256:sha(variant.guard),scope:'source/static and isolated native fixture; no production integration'}));

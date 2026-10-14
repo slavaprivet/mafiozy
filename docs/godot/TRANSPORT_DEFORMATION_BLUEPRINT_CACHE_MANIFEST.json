@@ -1,0 +1,43 @@
+{
+  "schema": "mafiozi.transport-deformation-blueprint-cache.v1",
+  "status": "PREPARATION_ONLY_NOT_INTEGRATED",
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_deformation_blueprint_cache.gd",
+      "sha256": "74b6fc31d7d2a7e702d96f104554fa3606a0aadc050d9b223a218139688f1f7a",
+      "bytes": 15253
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_deformation_blueprint_cache.gd",
+      "sha256": "372b4203fc8c1a38a104ac7851214ef200cfa026410f60d0955c74623fa39a9a",
+      "bytes": 12858
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_mesh_subdivision.gd",
+      "sha256": "f923e741f4899db8a65812d32ff34e0801642e38412af1ea186d74d3df02ac19",
+      "bytes": 8644
+    }
+  ],
+  "checks": {
+    "author": 54,
+    "parent": 54
+  },
+  "metrics": {
+    "prepared_vertices": 726759,
+    "estimated_blueprint_bytes": 44995412,
+    "second_prepare_us": 77456,
+    "candidate_meshes": 121,
+    "first_prepare_us": 3919085
+  },
+  "limits": {
+    "live_node_bindings": 4096,
+    "entries": 16,
+    "estimated_payload_bytes": 134217728
+  },
+  "limitations": [
+    "Load-only; HIT77.456ms not collision-frame safe",
+    "Allocator/temporary/per-instance mutable memory excluded from estimate",
+    "No main/adapter/GPU/loaded-scene adoption",
+    "Strong deformation and dirty hull refresh remain performance rejected"
+  ]
+}

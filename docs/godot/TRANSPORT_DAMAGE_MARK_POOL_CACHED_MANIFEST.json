@@ -1,0 +1,42 @@
+{
+  "schema": "mafiozi.transport-damage-mark-pool-cached-candidate.v1",
+  "date": "2026-09-27",
+  "status": "PERFORMANCE_REJECTED_DO_NOT_ADOPT",
+  "base": {
+    "path": "godot/mafiozi_walk/scripts/transport/transport_damage_mark_pool.gd",
+    "sha256": "b8b095037f80867f8ec168b75d8a76e0458b1b32b750d9e5e06bb3cc6cc7af0b"
+  },
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/candidates/transport_damage_mark_pool_cached.gd",
+      "sha256": "775dadce790a49536e0f5a005d26541c79585ac6d437f41cddfd7d488a9ed122"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_damage_mark_pool_cached.gd",
+      "sha256": "fb2184eca6c79b195d1c9657b025f706570f57e8c7ea298823eca9fd00746eb9"
+    }
+  ],
+  "headless": {
+    "author_checks": 155,
+    "author_failures": 0,
+    "parent_checks": 155,
+    "parent_failures": 0,
+    "independent_checks": 155,
+    "independent_failures": 0,
+    "samples": 24,
+    "calls_per_sample": 25,
+    "statistic": "p50_p95_of_block_mean_us_per_call",
+    "two_targets_32marks_static": {"base": [162.16, 179.56], "candidate": [76.92, 84.20]},
+    "two_targets_32marks_moving": {"base": [161.92, 167.96], "candidate": [82.52, 89.84]},
+    "distinct_32targets_static": {"base": [166.80, 190.08], "candidate": [177.20, 211.00]},
+    "distinct_32targets_moving": {"base": [176.56, 201.72], "candidate": [198.20, 229.60]},
+    "parent": {
+      "two_targets_32marks_static": {"base": [168.48, 200.16], "candidate": [79.72, 95.56]},
+      "two_targets_32marks_moving": {"base": [183.28, 270.76], "candidate": [90.28, 134.48]},
+      "distinct_32targets_static": {"base": [172.52, 259.36], "candidate": [187.76, 277.12]},
+      "distinct_32targets_moving": {"base": [168.12, 199.20], "candidate": [182.88, 219.12]}
+    }
+  },
+  "adoption": false,
+  "gpu_live_git_touched": false
+}

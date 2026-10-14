@@ -1,0 +1,66 @@
+{
+  "schema": "mafiozi.transport-trunk-cargo-store-candidate.v3",
+  "status": "CANDIDATE_DO_NOT_ADOPT",
+  "scope": "authenticated physical trunk cargo data ownership, deterministic slots, atomic store/take/two-phase destruction; no Root inventory/input/renderer/pickup/corpse movement/LIVE",
+  "engine": "Godot 4.7.2-stable (official)",
+  "author_checks": 5384,
+  "author_result": "PASS",
+  "cost": {
+    "scenario": "quiet sequential isolated safe-runner; real compact-sedan evidence, synthetic 100-item policy-limit packing",
+    "empty_prepare_cancel_cycles": 10000,
+    "empty_block_mean_us_p50": 131.746,
+    "empty_block_mean_us_p95": 142.264,
+    "populated_transaction_us_p50": 1091.5,
+    "populated_transaction_us_p95": 3061.0,
+    "populated_transaction_us_max": 3822.0,
+    "summary_100_items_us": 24,
+    "snapshot_var_to_bytes": 72272,
+    "destroy_prepare_us": 1296,
+    "destroy_validate_us": 25,
+    "destroy_commit_us": 1161,
+    "loaded_scene_fps": "NOT_RUN"
+  },
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/trunk/transport_trunk_cargo_store.gd",
+      "sha256": "007e935a06253510db21fbf84a8ead3fd92239dc06a69943ed2833a297309afe"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_trunk_cargo_store.gd",
+      "sha256": "6d7778b97b85b66d2701866ad3cbe228a8af15914d19e57facc71a6b865f8e2b"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_TRUNK_CARGO_STORE_HANDOFF.md",
+      "sha256": "fcc26718313281e7ce838c65f9a18018f6967c31089d2079bca12c911587194a"
+    }
+  ],
+  "source_pins": {
+    "assets/maps/city_rebuild_v1/vehicle_trunk.mjs": "91d8575b2f52ca10b43bfe73d4a004ec4ebfef7b066835c8d1ed1a46239f5fb0",
+    "assets/maps/city_rebuild_v1/test_vehicle_trunk.mjs": "49efb2d3240e5263a5dd55aff691934be4955d022d0a58369531840a63dd1b0c",
+    "assets/maps/city_rebuild_v1/weapon_inventory.mjs": "1c675610bcde2c40a0ef8deb74118ea085968b4bec7538ce8784f5d9ddb405de",
+    "assets/maps/city_rebuild_v1/hero_weapon_fire.mjs": "ae1a5b821b621cd2b0699c2f403a66f6f9f4de2bdbb5534a798d5dec2f95e4d8",
+    "godot/mafiozi_walk/scripts/transport/transport_cargo_admission.gd": "ddc78bc1c7f0dc34e393c90a344dd4b27d004bf41cd85f452122483e863d48bc",
+    "godot/mafiozi_walk/scripts/transport/transport_cargo_evidence.gd": "a6e235b1b56c332f6a5a5b2283e3ad6d045876c46dc28b32fffed207db875a2e",
+    "godot/mafiozi_walk/scripts/vehicle_visual/vehicle_compartments.gd": "99ee5fcd0b07cb9b918f90280d30ee3f462ab54537c0073f2b079e25d14ca9df",
+    "godot/mafiozi_walk/scripts/weapons/weapon_fire_profiles.gd": "8a062c7a0c7e9e7db1a1b98c2ae524bdf8d66390b24070aa4e62f4e2dcd1ea4a",
+    "godot/mafiozi_walk/assets/vehicle_visual/compartments.json": "423c09c28b0fbeac819e1d1b351087cdf2e05790254bb9e8371d4e1a2c1cbd51"
+  },
+  "blocking_dependencies": [
+    "Root model-volume catalog and bridge acceptance for every weapon cost",
+    "SHA-bound scaled actual model AABB and renderer reservation",
+    "Root inventory authority and ammo/UID ownership",
+    "Root inventory-boundary normalization of source reload's expired negative cooldown",
+    "Root paired inventory/cargo adapter with no callbacks after validation seal",
+    "per-item physical ground pickup reservation for destruction",
+    "mixed actual14-model packing and loaded-scene performance acceptance"
+  ],
+  "cargo_policy": "capacity100; positive units supplied by Root model-volume catalog; no weapon-specific constants; all14 exact costs must total100",
+  "root_owned_catalog_observed": {
+    "path": "godot/mafiozi_walk/scripts/weapons/weapon_cargo_sizes.gd",
+    "sha256": "b1fa3deb908c9c24614b77ce8171f0708324c6779e5d37e540204bd9be244cfe",
+    "relationship": "external trusted caller dependency; not imported or owned by this store"
+  },
+  "external_root_bridge_evidence": "SUPERSEDED_POLICY_WITHDRAWN_PENDING_NEW_VOLUME_CATALOG_RECEIPT",
+  "live": "NOT_RUN",
+  "git": "NOT_TOUCHED"
+}

@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {inspectEmbeddedImages} from './inspect_map_editor_embedded_images.mjs';
+const catalog=JSON.parse(await readFile(new URL('../../godot/mafiozi_walk/data/map_editor/catalog.json',import.meta.url),'utf8'));
+const entry=catalog.resources.find(item=>item.sha256==='ecae5f97bd53e9466bea3a520ec95a58ecacd7a232fbde902de0a1a7d4672873');
+assert.ok(entry?.sourcePaths?.[0]?.startsWith('assets/'));
+const source=await readFile(new URL('../../'+entry.sourcePaths[0],import.meta.url));
+const images=inspectEmbeddedImages(source);
+assert.equal(images.length,1);
+assert.equal(images[0].sha256,'db5173358ae98b7fe2b3dc0122e0960e881c9e8469bb587592fb4338d3c17859');
+assert.equal(images[0].bytes,577360);
+assert.equal(images[0].name,'galleria_runtime_ao_v1');
+assert.equal(images[0].mimeType,'image/png');
+const damaged=Buffer.from(source);
+damaged.writeUInt32LE(0xffffffff,12);
+assert.throws(()=>inspectEmbeddedImages(damaged));
+assert.throws(()=>inspectEmbeddedImages(source.subarray(0,source.length-1)));
+console.log('embedded native image receipts: 8 checks PASS; original Galleria AO bytes retained');

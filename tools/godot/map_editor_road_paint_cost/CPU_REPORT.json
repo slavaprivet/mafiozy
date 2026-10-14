@@ -1,0 +1,25 @@
+{
+  "schema": "actual-original-road-paint-cost-diagnostic-v1",
+  "source_manifest_sha256": "82e6ef82a824e002d0f315972ffd3d967102b7c36256371699992bcfb76220dd",
+  "original_runtime_sha256": "280880c927809d0d773c3175cdf43fc7534a772af286d77fbf0b50a85fe53628",
+  "engine": "4.7.2.stable.official.ed1daf0bf",
+  "checks_passed": 23044,
+  "batch_count": 59,
+  "marking_ids": 6449,
+  "vertices": 38694,
+  "samples_per_batch": 60,
+  "move_p50_p95_us": {
+    "small": {"original":[32,57],"candidate":[34,62],"input_payload_bytes":168},
+    "median": {"original":[61,94],"candidate":[61,94],"input_payload_bytes":9912},
+    "largest": {"original":[161,198],"candidate":[162,205],"input_payload_bytes":56952}
+  },
+  "maximum_discarded_old_vertex_copy_bytes": 24408,
+  "array_mesh_creations_per_move": 1,
+  "array_mesh_creations_per_undo_redo": 0,
+  "allocator_probe": "Unavailable: OS.get_static_memory_usage returns 0 in release headless; zero does NOT mean zero allocation",
+  "naive_shallow_copy": "Rejected: packed channel mutation aliases original Variant Array channel",
+  "safe_candidate": "Exact detached channels, no demonstrated acceleration; do not integrate",
+  "gpu": false,
+  "production_changed": false,
+  "common_scene_performance_checked": false
+}

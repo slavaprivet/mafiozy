@@ -1,0 +1,90 @@
+{
+  "schema": "mafiozi.transport-burn-material-alias-manifest.v1",
+  "status": "frozen-read-only-evidence",
+  "date": "2026-09-27",
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_burn_material_aliases.gd",
+      "bytes": 10180,
+      "sha256": "9ebd684058a1dae15ccb40412578f5c7592458608adbd42c2c8f326f2ec878fe",
+      "role": "actual 13-profile native alias/resource census"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_BURN_MATERIAL_ALIAS_CENSUS.json",
+      "bytes": 9964,
+      "sha256": "ff32550ae7d681dab2ec908088368aed419b09fb0f61fdf84599bfddcd040e54",
+      "role": "profile counts, exact missing native slots, actual Three geometry byte receipts and scoped cost output"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_BURN_MATERIAL_ALIAS_HANDOFF.md",
+      "bytes": 6803,
+      "sha256": "fc793e739ca55216f321d318b75885d3f0c7820eb104fc4e5e7d120556724340",
+      "role": "proof boundary, raw/native gap and future host constraints"
+    }
+  ],
+  "dependencies": [
+    {
+      "path": "godot/mafiozi_walk/scripts/vehicle_visual/vehicle_visual.gd",
+      "bytes": 8708,
+      "sha256": "d586952de302b7ec0467b89b91ba117e3350e8a5c217f48c303f06ff88494e34"
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/vehicle_visual/manifest.json",
+      "bytes": 4070550,
+      "sha256": "38598f43beb77c095879206ea5820c7fe922b227a64f77f793353f89321fee03",
+      "entries": 13
+    },
+    {
+      "path": "godot/mafiozi_walk/data/transport/source_burn_identities.json",
+      "bytes": 2588361,
+      "sha256": "38d370792b7e97445b56efb35b4360121157a659905216db79221f78f22c2d38",
+      "role": "executed-source scalar-container and materialRest identity receipt for all 13 profiles"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/models/artist_vehicle_pack/city_hatchback.glb",
+      "bytes": 196376,
+      "sha256": "2b8f1e5a319556b67b1322f3bab55de521f3855e8894e82e1166c8ef5870772e"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/models/artist_vehicle_pack/family_wagon.glb",
+      "bytes": 197044,
+      "sha256": "8357e3cba37673c565b3d289f8437afc4b140eeb963841c2aed6915a056761ce"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/models/artist_vehicle_pack/city_suv.glb",
+      "bytes": 204476,
+      "sha256": "9e194b2b0fae7b1443743a47dbf97389e151f8c2d5e96c42e796a64640b42cb3"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/models/artist_vehicle_pack/delivery_van.glb",
+      "bytes": 214840,
+      "sha256": "42abb4ee66d11850e7d2dfe13f449cb68f9b67e770c50a6e9ad0505a96ebe438"
+    }
+  ],
+  "verification": {
+    "resource": "res://scripts/tests/test_transport_burn_material_aliases.gd",
+    "author": "89/89 PASS",
+    "parent_fresh_sequential": "89/89 PASS",
+    "source_identity_export_replay": "byte-identical SHA-256 38d370792b7e97445b56efb35b4360121157a659905216db79221f78f22c2d38",
+    "profiles": 13,
+    "two_compact_unique_ids_each": 57,
+    "two_compact_shared_resources": 0,
+    "raw_manifest_slots": 3283,
+    "native_surface_slots": 3276,
+    "missing_native_slots": 7
+  },
+  "performance": {
+    "author_total_load_only_us": 1811329,
+    "parent_fresh_total_load_only_us": 1836398,
+    "author_min_profile_us": 120457,
+    "author_max_profile_us": 151764,
+    "qualification": "parent measurement was fresh and sequential after the other jobs joined; still isolated headless load-only evidence, not a frame budget",
+    "scope": "isolated headless GLB load CPU; no GPU, FPS, LIVE, frame-time or adoption claim"
+  },
+  "constraints": [
+    "Native identity and alias proofs are scoped to one visual instance",
+    "Seven nonempty source Mesh slots have no native mesh surface; this is a visual export/import coverage loss and requires restoration or fail-closed behavior",
+    "Native surfaces cannot prove original Three scalar versus one-element material-array identity",
+    "No burn preset, material mutation, authority, alpha conversion or callback timing is implemented"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "schema": "mafiozi.actual-captured-image-cpu-loader/v1",
+  "files": {
+    "captured_image_loader.gd": "3ef383f013d784897da3e8e9fac90a90e387fafb63e1cb58b8bf5d25aba2e329",
+    "test_captured_image_loader.gd": "017d00a02e00b3be8216167605c44d00552a0e3f06554030428228a0695aae7e",
+    "benchmark_captured_image_loader.gd": "5fe31958988d559ca67d4c293dca31c28cec8055e9db09aefb98ef3368446c7f",
+    "project.godot": "b07cfb678a9a8b3d91e44f26ddd12f3f191b3aff134fababfc9492a3c8a21395"
+  },
+  "captureReceiptFileSha256": "2445be8994a25923d05c91f8523be944db7143e9d6e31585b543edcf4083f31a",
+  "rootObservedCaptureCanonicalSha256": "614c65a7a209946125dbc5fcd0632bb575df66cdf080cf6d083d300b914f4a32",
+  "sourceManifestSha256": "4e459bda9cf6a9ab752667bc8a55fe36a6a6c4d7350a7d5ddc64e08c6a8c490c",
+  "sourceClosureSha256": "0c905c26584b0916777973fb7b28e12bfe7aa1e759134e0ec1ad188501897b81",
+  "nativeChecks": 289,
+  "originalImageSlots": 43,
+  "originalRGBABytes": 55033856,
+  "originalPNGBytes": 6522608,
+  "cpuOnly": true,
+  "fontBackendAccepted": false,
+  "samplerAccepted": false,
+  "iblAccepted": false,
+  "productionInstalled": false,
+  "ready": false
+}

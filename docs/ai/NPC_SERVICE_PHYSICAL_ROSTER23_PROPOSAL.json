@@ -1,0 +1,19 @@
+{
+  "files": [
+    {
+      "path": "npc_service_physical_roster23_patch_candidate.mjs",
+      "sha256": "3765e8b3b0b207a42ddf599a75d2897923f162bfec149443c54a6cf80c1adbe8"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/test_npc_service_physical_roster23_candidate.mjs",
+      "sha256": "cd44c9ff7a5499d50b046c2de372fcb26396bde87d715efffc5889411356858c"
+    },
+    {
+      "path": "docs/ai/NPC_SERVICE_PHYSICAL_ROSTER23_PROPOSAL.md",
+      "sha256": "9046f140b42696ff6d1c15835a8379441c6090852e956c6d2d95058a64892fa7"
+    }
+  ],
+  "status": "isolated-cpu-ready-not-applied",
+  "runtimeActivation": false,
+  "tests": 14
+}

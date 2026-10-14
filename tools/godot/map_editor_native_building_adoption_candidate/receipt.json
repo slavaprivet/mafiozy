@@ -1,0 +1,21 @@
+{
+  "schema": "mafiozi.native-building-inventory-proof/v1",
+  "stage": "outputs/actual-main-pause-probe-qAWF1V",
+  "mainSourceSha256": "0916381441df9a9d111006aed2b34e4e1c2ec195ee24609757a552b388017571",
+  "inventorySha256": "d198f419636ca493f5c7b6726421b5790478a3ab3347a0f49b7d546362ddc527",
+  "testSha256": "b56aae735ca44161833d3520bb1ff7355b0b877059db4af18cba455676554434",
+  "default": {"checks": 326, "failures": 0, "exitCode": 0, "engineDiagnostics": 0},
+  "startupStaticBatches": {"checks": 962, "failures": 0, "exitCode": 0, "engineDiagnostics": 0, "batchReceipts": 69},
+  "sourcePlacementBuildings": 75,
+  "actualCropBuildings": 8,
+  "outsideCropBuildings": 67,
+  "ordinaryBuildingCollisionSiblings": 16,
+  "printshopGeneratedBodies": {"static": 103, "floorCeiling": 4, "publicDoor": 2, "staffDoor": 2},
+  "actualOwnerReadyChecked": true,
+  "gpu": false,
+  "fpsMeasured": false,
+  "nativeEditorAdoptionApproved": false,
+  "fullMapComplete": false,
+  "productionChanges": false,
+  "notes": "Read-only actual scene inventory plus explicitly synthetic lifecycle negatives. Initial disabled-subtree fixture physics-space error corrected; no production transport bug inferred. Proposed native source-owner/static-batch/Printshop/nav contracts remain mandatory."
+}

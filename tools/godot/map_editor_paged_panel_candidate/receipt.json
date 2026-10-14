@@ -1,0 +1,15 @@
+{
+  "schema": "mafiozi.map-editor.paged-panel-candidate/v1",
+  "files": {
+    "paged_editor_panel.gd": "a77e1e11fe2cdf8dc9ffc2dffd95c9ddf2b6b35e31b5b30b588f32ba71495a2b",
+    "test_paged_editor_panel.gd": "af723e195992438bca0dc8a2b0bdd34ed7c5862398e40b0ee60c19310f6e51a2",
+    "project.godot": "08173799ba638f51bb5aa2dcef677f898ae74263891704457f90b7281b51a974"
+  },
+  "nativeChecks": 9996,
+  "actualObjects": 9901,
+  "pages": 62,
+  "maximumVisibleEntries": 160,
+  "fullTraversalUsec": 141114,
+  "gpuAcceptance": false,
+  "productionInstalled": false
+}

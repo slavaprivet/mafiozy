@@ -1,0 +1,24 @@
+{
+  "schema": "mafiozi.actual43-captured-image-paired-cpu/v1",
+  "warmup": 1,
+  "pairs": [
+    {"coldUsec":457494,"warmUsec":835},
+    {"coldUsec":441679,"warmUsec":802},
+    {"coldUsec":441262,"warmUsec":878},
+    {"coldUsec":436668,"warmUsec":794},
+    {"coldUsec":457180,"warmUsec":879},
+    {"coldUsec":441886,"warmUsec":768},
+    {"coldUsec":443430,"warmUsec":752}
+  ],
+  "coldP50Usec": 441886,
+  "coldP95Usec": 457494,
+  "warmP50Usec": 802,
+  "warmP95Usec": 879,
+  "coldDefinition": "New approved snapshot generation;43 exactPNG+RGBA source reads/hashes/native PNG decoding. OS filecache warmed; metadata configure excluded.",
+  "warmDefinition": "Same approved immutable generation;43 defensive Image/metadata copies, no new filesystem reads/hashes/PNG decoding.",
+  "coldCountersEachPair": {"imageReads":86,"imageHashes":86,"pngDecodes":43},
+  "warmAdditionalCountersEachPair": {"imageCacheHits":43,"imageCopies":43,"imageReads":0,"imageHashes":0,"pngDecodes":0},
+  "failures": [],
+  "gpu": false,
+  "ready": false
+}

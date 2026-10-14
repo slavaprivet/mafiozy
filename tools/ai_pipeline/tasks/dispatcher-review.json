@@ -1,0 +1,28 @@
+{
+  "TASK_ID": "dispatcher-independent-review-20260916",
+  "ROLE": "REVIEW_QA",
+  "GOAL": "Independently review the new local research dispatcher for concrete defects in context boundaries, persistent budget accounting, API failure handling, patch isolation and truthful reporting. Prioritize reachable defects over hypothetical redesign. Return an actionable bounded review.",
+  "SCOPE": "Dispatcher implementation and its tests/config/profiles. It has no autonomous agent loop. Real API calls have not been made and no owner approval exists yet.",
+  "ALLOWED_FILES": ["tools/ai_pipeline/pipeline.py"],
+  "CONTEXT_FILES": [
+    "tools/ai_pipeline/pipeline.py",
+    "tools/ai_pipeline/test_pipeline.py",
+    "tools/ai_pipeline/config.json",
+    "tools/ai_pipeline/profiles.json",
+    "tools/ai_pipeline/README.md"
+  ],
+  "CONSTRAINTS": [
+    "Do not execute code or API calls, ask for keys, install dependencies, create agents or modify configuration.",
+    "An isolated Git copy is not a security sandbox; this implementation deliberately does not execute generated code.",
+    "Do not confuse locally estimated cost/reserved budget with a provider-enforced billing cap.",
+    "No claims of running tests; CHECKS_ACTUALLY_RUN and CHECK_RESULTS must remain empty.",
+    "Owner approval files and trusted configuration are local trusted inputs, not model-produced instructions."
+  ],
+  "ACCEPTANCE_CRITERIA": [
+    "Trace at least one successful run, failed API call, restart and rejected patch through the code.",
+    "Provide concrete triggering inputs and evidence for confirmed defects.",
+    "Separate severity and real exposure from defense-in-depth suggestions.",
+    "State uncovered scenarios; offer a narrow applicable patch only when sufficient context exists."
+  ],
+  "CHECKS": []
+}

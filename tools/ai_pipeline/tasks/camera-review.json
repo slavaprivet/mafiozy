@@ -1,0 +1,29 @@
+{
+  "TASK_ID": "walk-camera-index-review-20260916",
+  "ROLE": "PERFORMANCE_ARCHITECTURE",
+  "GOAL": "Independently assess whether the existing building camera triangle-index candidate preserves exact raycast behavior and can safely be integrated. Trace the current resolver/camera call chain. Identify actual defects or precisely bounded missing checks; prepare a narrow index-only fix if justified.",
+  "SCOPE": "building_camera_triangle_index, its test, current indoor camera and resolver. Existing owners retain camera framing, character masking and shared walk hooks. No rewrite of these systems.",
+  "ALLOWED_FILES": ["assets/maps/city_rebuild_v1/building_camera_triangle_index.mjs"],
+  "CONTEXT_FILES": [
+    "assets/maps/city_rebuild_v1/building_camera_triangle_index.mjs",
+    "assets/maps/city_rebuild_v1/test_building_camera_triangle_index.mjs",
+    "assets/maps/city_rebuild_v1/building_entry.mjs",
+    "assets/maps/city_rebuild_v1/indoor_camera.mjs",
+    "assets/maps/city_rebuild_v1/indoor_camera_clearance.mjs",
+    "tools/ai_pipeline/tasks/camera-context.md"
+  ],
+  "CONSTRAINTS": [
+    "Keep rendering, image quality, camera positions, wall clearance, aim, damping, furniture, lights and all collisions unchanged.",
+    "Do not edit indoor_camera, clearance, hero_visibility, building_entry, shared walk hooks, renderer or other owners' files.",
+    "Index is a candidate, not proof of production integration or FPS improvement. Historical timings are not fresh measurements.",
+    "Original Three internals are not supplied: distinguish proved code properties from missing vendor contracts.",
+    "No Work, API, terminal, browser or subagents. Tests are source evidence, not checks you executed."
+  ],
+  "ACCEPTANCE_CRITERIA": [
+    "Trace install eligibility, mutable geometry versions, near/far, drawRange, face/object/uv identity, transforms, exceptions and disposal/fallbacks.",
+    "Check which queries the patched mesh internal method affects, rather than assuming it is exclusively camera-owned.",
+    "Return a decision: ready with specific integration conditions, or blocked by concrete evidence. No general re-audit.",
+    "Full findings or narrow patch in an available artifact; chat at most 8 short lines. Explicitly identify unavailable context."
+  ],
+  "CHECKS": []
+}

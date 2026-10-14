@@ -1,0 +1,6 @@
+{
+  "npc_stationary_service_source23_candidate.mjs": "cf740848cb1950c97d70a3c318edbabe1b7c074ade986b917a1c2ae59825a969",
+  "npc_stationary_service_world23_patch_candidate.mjs": "d1a6b755926aad1cc7836e181a7913072934e3e9584319fa3dcba645eca30586",
+  "assets/maps/city_rebuild_v1/test_npc_stationary_service_source23_candidate.mjs": "b2898a4a05e18f164e5acf2ae62828665c84097d0f58ff7b998a0e3382c4abc8",
+  "docs/ai/NPC_STATIONARY_SERVICE_SOURCE23_PROPOSAL.patch": "06f09419500f43bd8ddecc0f37cfee765a69980b43000da987421f224e0d3d74"
+}
