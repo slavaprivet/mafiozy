@@ -62,6 +62,20 @@ var _frames_at_end := 0
 var _exhausted := false
 var _exit_reason := ""
 var _verdict := ""
+# DSH_DETOURNEIGH: why does the first expansion of the start cell produce no child?
+# One counter per rejection class plus a global per-reason tally. Observation only.
+var _cells := 0
+var _cand_total := 0
+var _rejected := {}
+var _first_seen := false
+var _emit_neigh := false
+var _neighbors_total := 0
+var _open_after_first := -1
+var _start_cell := Vector2i.ZERO
+var _goal_dist := -1.0
+var _last_policy_reason := ""
+static var _s_rejected := {}
+static var _s_rejected_searches := 0
 
 # DSH_DETOURBUDGET: argument parsing and the bounded overrides. Shape follows the
 # existing levers of this project (cache once, one prefix scan, clamp the value).
@@ -91,7 +105,22 @@ static func budget() -> Dictionary:
 		"max_nodes": _dsh_nodes, "max_checks": _dsh_checks, "max_frames": _dsh_frames}
 
 static func counters() -> Dictionary:
-	return {"searches_ok": _s_ok, "searches_exhausted": _s_exhausted, "searches_other_stop": _s_other}
+	return {"searches_ok": _s_ok, "searches_exhausted": _s_exhausted, "searches_other_stop": _s_other,
+		"searches_with_neighbour_line": _s_rejected_searches,
+		"neighbour_rejections": _s_rejected.duplicate(),
+		"neighbour_rejections_text": _dsh_join(_s_rejected)}
+
+# DSH_DETOURNEIGH: compact "reason:count,..." rendering, counted both for the current
+# search and globally, so a broken first expansion is visible in one line.
+static func _dsh_tally(target: Dictionary, key: String) -> void:
+	target[key] = int(target.get(key, 0)) + 1
+
+static func _dsh_join(counters: Dictionary) -> String:
+	var parts: Array[String] = []
+	for key: Variant in counters.keys():
+		parts.append(str(key) + ":" + str(counters[key]))
+	parts.sort()
+	return ",".join(parts) if not parts.is_empty() else "-"
 
 ## One line per ended search, and a summary every 32 of them. Read-only observation:
 ## the search has already written its own status/reason by the time this runs.
@@ -105,6 +134,25 @@ static func _dsh_emit(snapshot: Dictionary, budget_now: Dictionary, frame: int) 
 		" cell_m=", budget_now["cell_m"], " range_m=", budget_now["range_m"],
 		" failing=", snapshot.get("failing", ""),
 		" ok=", _s_ok, " exhausted=", _s_exhausted, " other=", _s_other,
+		" frame=", frame)
+
+## DSH_DETOURNEIGH: the first expansion of the start cell, in one line. If the search
+## dies with nodes=1, this says exactly which check rejected every neighbour, and the
+## policy-state fields say whether the refusal came from the gate or from the geometry.
+static func _dsh_emit_neigh(snapshot: Dictionary, rejected: Dictionary, start_cell: Vector2i,
+		neighbors_total: int, open_after_first: int, goal_dist: float, checks: int, frame: int,
+		policy_state: String) -> void:
+	print("DSH_DETOUR_NEIGH start_cell=(", start_cell.x, ",", start_cell.y, ")",
+		" neighbors_total=", neighbors_total,
+		" neighbors_rejected_by=", _dsh_join(rejected),
+		" open_after_first=", open_after_first,
+		" goal_distance_m=", "%.3f" % goal_dist,
+		" native_checks=", checks,
+		" nodes=", snapshot.get("nodes", 0),
+		" frames=", snapshot.get("frames", 0),
+		" status=", snapshot.get("status", "?"),
+		" reason=", snapshot.get("reason", ""),
+		" policy_state=", policy_state,
 		" frame=", frame)
 
 func begin(host: RefCounted, policy: RefCounted, activity_owner: RefCounted, token: Dictionary, map: RID, iteration: int, route: PackedVector3Array, first_index: int) -> Dictionary:
@@ -171,12 +219,23 @@ func step() -> Dictionary:
 		var candidate: Dictionary=_candidates[_cursor];_cursor+=1
 		var start: Vector3=_nodes[_active].point
 		var point: Vector3=candidate.point
-		if Vector2(point.x-_origin.x,point.z-_origin.z).length()>_range()+.01 or point.distance_to(start)>5.0: continue
-		if not candidate.get("goal",false) and _by_key.has(candidate.key) and _nodes[_by_key[candidate.key]].closed: continue
+		if Vector2(point.x-_origin.x,point.z-_origin.z).length()>_range()+.01:
+			_cells+=1;_dsh_tally(_rejected,"outside_range");continue
+		if point.distance_to(start)>5.0:
+			_cells+=1;_dsh_tally(_rejected,"step_too_long");continue
+		if not candidate.get("goal",false) and _by_key.has(candidate.key) and _nodes[_by_key[candidate.key]].closed:
+			_cells+=1;_dsh_tally(_rejected,"cell_already_closed");continue
 		var projected:=NavigationServer3D.map_get_closest_point(_map,point)
-		if projected.distance_to(point)>.12: continue
-		_checks+=1;count+=1
-		if not _policy.native_clear_segment(_token,start,projected): continue
+		if projected.distance_to(point)>.12:
+			_cells+=1;_dsh_tally(_rejected,"off_native_map");continue
+		_checks+=1;count+=1;_cand_total+=1
+		if not _policy.native_clear_segment(_token,start,projected):
+			# DSH_DETOURNEIGH: the policy already stores its refusal reason; read it so
+			# a broken first expansion names the exact conjunct that refused.
+			_last_policy_reason=str(_policy.get("_last_reason"))
+			_dsh_tally(_rejected,"native_clear_refused")
+			_dsh_tally(_rejected,"policy:"+_last_policy_reason)
+			continue
 		if not _current(): _fail("detour_owner_changed_during_native_probe");break
 		if candidate.get("goal",false):
 			_finish(projected,int(candidate.index));break
@@ -206,12 +265,35 @@ func _dsh_report(frame: int) -> Dictionary:
 	_checks_at_end=_checks
 	_nodes_at_end=_nodes.size()
 	_frames_at_end=_frames
+	_open_after_first=_open.size()
+	# Fold this search's rejection classes into the run-wide tally.
+	_s_rejected_searches+=1
+	for key: Variant in _rejected.keys():
+		_s_rejected[str(key)]=int(_s_rejected.get(str(key),0))+int(_rejected[key])
 	if _verdict == _reason and _status == "SEARCHING": return result
 	_verdict=_reason
 	var failing := "%s|%d|%d|%d" % [_exit_reason, _checks_at_end, _nodes_at_end, _frames_at_end]
+	if _emit_neigh:
+		_emit_neigh=false
+		var policy_state := _policy_state_text()
+		_dsh_emit_neigh(result, _rejected, _start_cell, _neighbors_total, _open_after_first,
+			_goal_dist if _goal_dist>=0.0 else -1.0, _checks_at_end, frame, policy_state)
+		_dsh_tally(_s_rejected,"searches")
 	_dsh_emit({"status": _status, "reason": _reason, "native_checks": _checks_at_end,
 		"nodes": _nodes_at_end, "frames": _frames_at_end, "failing": failing}, budget(), frame)
 	return result
+
+## DSH_DETOURNEIGH: is the policy gate open right now? `native_clear_segment` refuses
+## everything when the policy is busy or the token is no longer current, and that refusal
+## is identical to a geometric one from the caller's point of view. Read-only.
+func _policy_state_text() -> String:
+	if not is_instance_valid(_policy): return "policy_invalid"
+	var parts: Array[String] = []
+	parts.append("busy=" + str(bool(_policy.get("_busy"))))
+	if _policy.has_method("_token_current"):
+		parts.append("token_current=" + str(bool(_policy._token_current(_token))))
+	parts.append("last_reason=" + str(_policy.get("_last_reason")))
+	return "|".join(parts)
 
 func _pop_best() -> int:
 	var best:=-1;var score:=INF
@@ -232,6 +314,13 @@ func _prepare_candidates() -> void:
 	for direction: Vector2i in DIRECTIONS:
 		var key: Vector2i=node.key+direction
 		_candidates.append({"goal":false,"key":key,"point":_origin+Vector3(key.x*_cell(),0.0,key.y*_cell())})
+	if not _first_seen:
+		_first_seen=true
+		_start_cell=Vector2i.ZERO
+		_goal_dist=INF
+		for goal: Dictionary in _goals: _goal_dist=minf(_goal_dist,_origin.distance_to(goal.point))
+		_neighbors_total=_candidates.size()
+		_emit_neigh=true
 
 func _finish(point: Vector3, rejoin_index: int) -> void:
 	var reverse: Array[Vector3]=[point];var index:=_active

@@ -373,6 +373,7 @@ func _source_admit_scoped(point: Vector3, id: String, generation: int, radius: f
 		var index:=_world_index(float(point.x)+395.65+float(offset[0]),float(point.z)+45.099999999999994+float(offset[1]))
 		if index<0:
 			if _dsh_split_on: _dsh_add("road_us", dsh_t)  # DSH_NAVSTEP3
+			_dsh_ss = "oob"  # DSH_HANDOFFPROBE
 			return false
 		if _ordinary[index]==0: road=true
 	if _dsh_split_on: _dsh_add("road_us", dsh_t)  # DSH_NAVSTEP3
@@ -391,12 +392,13 @@ func _source_admit_scoped(point: Vector3, id: String, generation: int, radius: f
 	# from 1-2 to 20.
 	if token.is_empty():
 		if _dsh_split_on: _dsh_p["token_empty"] = int(_dsh_p["token_empty"]) + 1  # DSH_NAVSTEP3
+		_dsh_ss = "no_token"  # DSH_HANDOFFPROBE
 		return _source_segment(point,point,true)
 	var handoff: bool=Vector2(point.x-token.body.global_position.x,point.z-token.body.global_position.z).length()<=.02
 	if _dsh_split_on: dsh_t = Time.get_ticks_usec()  # DSH_NAVSTEP3
 	var dsh_path_ok: bool = not (road and not handoff) or _path_contains(id,point,dsh_memo)  # DSH_NAVSTEP3
 	if _dsh_split_on: _dsh_add("path_us", dsh_t)  # DSH_NAVSTEP3
-	if not dsh_path_ok: _last_reason="road_outside_current_errand_path";return false
+	if not dsh_path_ok: _last_reason="road_outside_current_errand_path";_dsh_ss="path";return false  # DSH_HANDOFFPROBE
 	var from: Vector3=token.body.global_position if purpose=="route" and token.body.global_position.distance_to(point)<=.25 else point
 	# DSH_NAVSTEP2: see the POLICY_TTL note in apply_nav_step.py. TTL 0 (default)
 	# re-proves the whole chain exactly as before.
@@ -432,6 +434,7 @@ func _source_admit_scoped(point: Vector3, id: String, generation: int, radius: f
 # same tests the refusal already ran, so no decision, order or stored state changes.
 var _dsh_hp := -1
 static var _dsh_hp_seen := {}  # DSH_HANDOFFPROBE: one scan per distinct tentative point
+static var _dsh_ss := ""  # DSH_HANDOFFPROBE: the sub-check that decided the last _source_segment
 
 func _handoff_probe_on() -> int:  # DSH_HANDOFFPROBE
 	if _dsh_hp < 0:
@@ -484,8 +487,9 @@ func support_height(point: Vector3, id: String, generation: int) -> float:
 		var probe_key := id + "|%.3f,%.3f" % [point.x, point.z]
 		if not _dsh_hp_seen.has(probe_key) and _dsh_hp_seen.size() < 40: _dsh_hp_seen[probe_key] = true; _handoff_probe_scan(point, id, generation, probe_key)
 	var reference := Vector3(point.x, _heights[index], point.z)
-	if not source_admit(reference, id, generation, RADIUS, "placement"):
-		if probe: _handoff_probe(point, id, index, reference.y, 0, 0, NAN, NAN, "admit")  # DSH_HANDOFFPROBE
+	var dsh_admitted: bool = source_admit(reference, id, generation, RADIUS, "placement")  # DSH_HANDOFFPROBE
+	if not dsh_admitted:  # DSH_HANDOFFPROBE
+		if probe: _handoff_probe(point, id, index, reference.y, 0, 0, NAN, NAN, "admit:" + _dsh_ss)
 		return NAN
 	_busy = true
 	_ray.from = reference + Vector3.UP * .30; _ray.to = reference - Vector3.UP * .30
@@ -830,7 +834,8 @@ func _terrain_height(world_x: float, world_z: float) -> float:
 	return _heights[index]
 
 func _source_segment(from: Vector3, to: Vector3, purposeful: bool) -> bool:
-	if not from.is_finite() or not to.is_finite() or from.distance_to(to)>5.1: return false
+	_dsh_ss = "start"  # DSH_HANDOFFPROBE
+	if not from.is_finite() or not to.is_finite() or from.distance_to(to)>5.1: _dsh_ss = "range"; return false  # DSH_HANDOFFPROBE
 	var steps:=0 if from==to else maxi(1,ceili(Vector2(to.x-from.x,to.z-from.z).length()/.574))
 	if _dsh_slim < 0: _dsh_slim = _slim_flag()
 	for step in range(steps+1):
@@ -841,13 +846,14 @@ func _source_segment(from: Vector3, to: Vector3, purposeful: bool) -> bool:
 		var dsh_offsets: Array = POINT_OFFSETS if _dsh_slim == 1 else [[0.0,0.0],[-RADIUS,-RADIUS],[-RADIUS,RADIUS],[RADIUS,-RADIUS],[RADIUS,RADIUS]]
 		for offset: Array in dsh_offsets:
 			var x: float=px+float(offset[0]);var z: float=pz+float(offset[1]);var index:=_world_index(x,z)
-			if index<0 or (not purposeful and _ordinary[index]==0): _last_reason="ordinary_terrain";return false
+			if index<0 or (not purposeful and _ordinary[index]==0): _last_reason="ordinary_terrain";_dsh_ss="oob" if index<0 else "not_ordinary";return false  # DSH_HANDOFFPROBE
 			# DSH_NAVSTEP2: --city-policy-slim=1 evaluates the index it already has
 			# instead of asking _terrain_height() to recompute _world_index(x,z) for
 			# this exact x,z. Same _land / _restricted / _heights test, same NAN
 			# result, same reason string.
 			var height: float = (_heights[index] if _land[index]!=0 and not _restricted(z/4.1,x/4.1,int(_surface.grid[index/_cols][index%_cols])) else NAN) if _dsh_slim == 1 else _terrain_height(x,z)
-			if not is_finite(height) or absf(py-height)>.30: _last_reason="source_terrain_or_restriction";return false
+			if not is_finite(height) or absf(py-height)>.30: _last_reason="source_terrain_or_restriction";_dsh_ss="land_or_restricted" if not is_finite(height) else "height_gap";return false  # DSH_HANDOFFPROBE
+	_dsh_ss = "contact"  # DSH_HANDOFFPROBE
 	if not _contact.begin_segment([float(from.x)+395.65,float(from.z)+45.099999999999994],[float(to.x)+395.65,float(to.z)+45.099999999999994],RADIUS,1.9): return false
 	var minv:=Vector2(from.x,from.z).min(Vector2(to.x,to.z))-Vector2.ONE*RADIUS
 	var maxv:=Vector2(from.x,from.z).max(Vector2(to.x,to.z))+Vector2.ONE*RADIUS
@@ -859,7 +865,8 @@ func _source_segment(from: Vector3, to: Vector3, purposeful: bool) -> bool:
 				if seen.has(key): continue
 				seen[key]=true
 				_counts.polygon_contacts+=1
-				if _contact.blocks_polygon(solid.source_polygon,_terrain_height,solid.min_y,solid.max_y): _last_reason="continuous_source_square";return false
+				if _contact.blocks_polygon(solid.source_polygon,_terrain_height,solid.min_y,solid.max_y): _last_reason="continuous_source_square";_dsh_ss="polygon";return false  # DSH_HANDOFFPROBE
+	_dsh_ss = "admitted"  # DSH_HANDOFFPROBE
 	return true
 
 static func _restricted(r: float, c: float, tile: int) -> bool:

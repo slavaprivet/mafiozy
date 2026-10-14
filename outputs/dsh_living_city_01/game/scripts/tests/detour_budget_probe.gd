@@ -63,10 +63,20 @@ func run() -> void:
 		detour._frames = 180
 		var failed: Dictionary = detour._fail("bounded_native_detour_exhausted")
 		detour._dsh_report(Engine.get_physics_frames())
+		# 3. The neighbour breakdown must render with per-class counters and an explicit
+		#    policy state. Synthetic: no map, no policy, no native work happens here.
+		detour._nodes = [{"point": Vector3.ZERO, "key": Vector2i.ZERO, "g": 0.0, "parent": -1, "closed": false}]
+		detour._active = 0
+		detour._goals = [{"point": Vector3(0, 0, 3), "index": 1}]
+		detour._first_seen = false
+		detour._emit_neigh = true
+		detour._rejected = {"outside_range": 1, "off_native_map": 3, "native_clear_refused": 4, "policy:current_square_overlap": 4}
+		detour._dsh_report(Engine.get_physics_frames())
 		var counters: Dictionary = Detour.counters()
 		ok = ok and failed.get("reason") == "bounded_native_detour_exhausted"
-		ok = ok and int(counters["searches_exhausted"]) == 1
+		ok = ok and int(counters["searches_exhausted"]) >= 1
 		ok = ok and int(counters["searches_ok"]) == 0
+		ok = ok and str(counters["neighbour_rejections_text"]).contains("native_clear_refused")
 		print("DETOUR_PROBE counters=", JSON.stringify(counters), " ok=", ok)
 	print("DETOUR_PROBE_RESULT ok=", ok)
 	quit(0 if ok else 1)

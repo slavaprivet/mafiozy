@@ -1014,6 +1014,8 @@ func city_town_skip(record: Dictionary) -> bool:
 const TownRestaurantSite = preload("res://scripts/destruction/restaurant/restaurant_site.gd")
 const TownHospitalSite = preload("res://scripts/destruction/hospital_site/hospital_site.gd")
 const TownBankSite = preload("res://scripts/destruction/bank_site/bank_site.gd")
+const ModularPrefabLoader = preload("res://scripts/destruction/modular30/owner/expansion/modular_buildings/export/prefab_loader.gd")
+const TOWN_MODULAR30_SHA := "abfc9126737481f1bed5cc4c63095115a8f756e8c21ceb9b9209fa6a21c6c485"
 var town_extras: Array = []
 
 func _install_town_extras() -> bool:
@@ -1040,7 +1042,30 @@ func _install_town_extras() -> bool:
 			"reason": str(dsh_result.get("reason", "")),
 			"prepare_ms": dsh_result.get("prepare_ms", 0.0),
 			"origin": [dsh_entry[2].x, dsh_entry[2].y, dsh_entry[2].z]}))
+	_install_town_modular30()
 	return true
+
+## DSH_CITYTOWN: the modular30 house is placed through its own pinned prefab loader
+## instead of modular30_host.gd, because that host demands the palazzo block SHA
+## (1523f52e...) while the city loads city_block.json. Honest limitation: this places
+## the module MESH only - it has no damage owner and no compound runtime yet, so it
+## is reported as `mesh_only_no_damage_owner` rather than as a destructible site.
+func _install_town_modular30() -> void:
+	var dsh_loaded: Dictionary = ModularPrefabLoader.instantiate_prefab(
+		"res://assets/modular30/townhouse013/townhouse013.scn", TOWN_MODULAR30_SHA)
+	if not bool(dsh_loaded.get("ok", false)):
+		print("CITY_TOWN_EXTRA modular30_townhouse013 ", JSON.stringify({"ok": false, "reason": str(dsh_loaded.get("reason", ""))}))
+		return
+	var dsh_instance: Node3D = dsh_loaded.get("instance")
+	if dsh_instance == null: return
+	dsh_instance.position = Vector3(120.0, 0.0, 0.0)
+	add_child(dsh_instance)
+	dsh_instance.set_meta("dsh_town_extra", true)
+	if dsh_instance.get_child_count() > 0: (dsh_instance.get_child(0) as Node).set_meta("dsh_town_extra", true)
+	var dsh_payload: Variant = dsh_loaded.get("payload")
+	var dsh_source := ""
+	if dsh_payload is Dictionary: dsh_source = str(dsh_payload.get("source_id", ""))
+	print("CITY_TOWN_EXTRA modular30_townhouse013 ", JSON.stringify({"ok": true, "status": "mesh_only_no_damage_owner", "source_id": dsh_source, "origin": [120.0, 0.0, 0.0]}))
 
 func _add_asset(record: Dictionary) -> void:
 	# Every scene passed preflight before any world/physics node was created.
