@@ -1020,10 +1020,14 @@ var town_extras: Array = []
 
 func _install_town_extras() -> bool:
 	if not city_town_active() or not town_extras.is_empty(): return false
+	# DSH_CITYTOWN: the row is anchored to the AUTHORED SPAWN, 60 m to the north, so the
+	# player never spawns inside a ported shell. The first placement used absolute
+	# origins (0/40/80) and the restaurant landed exactly on the printshop spawn.
+	var dsh_base: Vector3 = _v3(_block["hero"]["spawnLocalM"]) + Vector3(0.0, 0.0, -60.0)
 	var dsh_plan: Array = [
-		["restaurant_pizza", TownRestaurantSite, Vector3(0.0, 0.0, 0.0), 0.0],
-		["hospital_structural01", TownHospitalSite, Vector3(40.0, 0.0, 0.0), 0.0],
-		["bank_small", TownBankSite, Vector3(80.0, 0.0, 0.0), 0.0],
+		["restaurant_pizza", TownRestaurantSite, dsh_base + Vector3(0.0, 0.0, 0.0), 0.0],
+		["hospital_structural01", TownHospitalSite, dsh_base + Vector3(40.0, 0.0, 0.0), 0.0],
+		["bank_small", TownBankSite, dsh_base + Vector3(80.0, 0.0, 0.0), 0.0],
 	]
 	for dsh_entry: Array in dsh_plan:
 		# The ported instantiator is a RefCounted that adds its own site AND its own
@@ -1058,7 +1062,7 @@ func _install_town_modular30() -> void:
 		return
 	var dsh_instance: Node3D = dsh_loaded.get("instance")
 	if dsh_instance == null: return
-	dsh_instance.position = Vector3(120.0, 0.0, 0.0)
+	dsh_instance.position = _v3(_block["hero"]["spawnLocalM"]) + Vector3(120.0, 0.0, -60.0)
 	add_child(dsh_instance)
 	dsh_instance.set_meta("dsh_town_extra", true)
 	if dsh_instance.get_child_count() > 0: (dsh_instance.get_child(0) as Node).set_meta("dsh_town_extra", true)
