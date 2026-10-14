@@ -188,6 +188,17 @@ func _dsh_resdiag_step(row: Dictionary) -> void:
 		var here: Vector3 = (body as Node3D).global_position
 		distance = Vector2(here.x - at.x, here.z - at.z).length()
 	var name := str((body as Node3D).get_meta("dsh_test_resident_name", str(_token.get("source_id", ""))))
+	# DSH_RESBAR: push the vitals into the head label from HERE, where hp and energy are known
+	# for certain. Previously only the log line was written, so the owner saw the name alone.
+	var dsh_label: Node = (body as Node3D).find_child("DshResidentName", true, false)
+	if dsh_label == null:
+		var dsh_parent: Node = (body as Node3D).get_parent()
+		if dsh_parent != null: dsh_label = dsh_parent.find_child("DshResidentName", true, false)
+	if dsh_label is Label3D:
+		var dsh_text := "%s\nHP %.0f%%  EN %.0f%%" % [name, clampf(_dsh_hp_pct(row), 0.0, 100.0), clampf(_energy, 0.0, 100.0)]
+		if (dsh_label as Label3D).text != dsh_text:
+			(dsh_label as Label3D).text = dsh_text
+			print("DSH_RESBAR id=", str(_token.get("source_id", "")), " text=\"", dsh_text.replace("\n", " | "), "\"")
 	# DSH_RESDIAG: the label shows what the medical decision reads, so with --city-hp the
 	# head-up display and the telemetry never disagree about the wound.
 	var shown: Dictionary = row.duplicate()
