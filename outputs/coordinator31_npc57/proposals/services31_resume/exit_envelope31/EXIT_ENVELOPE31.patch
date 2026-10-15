@@ -1,0 +1,11 @@
+--- a/scripts/hospital/npc_restaurant_visit28.gd
++++ b/scripts/hospital/npc_restaurant_visit28.gd
+@@ -298,7 +298,7 @@
+ 	if now >= _next_touch:
+ 		_next_touch = now + 1000; _registry.ledger.touch(_key, now, _entered)
+ 	_door_tick()
+-	if depth_inside() > .55: _entered = true
++	if not _entered and _initially_inside30(): _entered = true
+ 	# The ordinary lease/portal remains held while gravity settles the same body.
+ 	# Request intent is insufficient: only the real fully-open leaf admits a cross.
+ 	if _phase == "OUTBOUND" and _exit_door_state56 == "opening":

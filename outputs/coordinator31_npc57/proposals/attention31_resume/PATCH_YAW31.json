@@ -1,0 +1,17 @@
+{
+  "files": [
+    {
+      "path": "scripts/city/runtime/npc_threat_life30.gd",
+      "base_sha256": "594bee9cc8a44a4ce2afe9af3cb02f53ffa9bb53429bb8bd56228e90dec92181",
+      "candidate_sha256": "afb84c3df8f670c9deea44cb03c15fcc5e7e35e6ded0036615613e54629e6999",
+      "candidate": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\attention31_resume\\patch_yaw31\\scripts\\city\\runtime\\npc_threat_life30.gd"
+    },
+    {
+      "path": "scripts/npc_visual/npc_attention29.gd",
+      "base_sha256": "5f1a4e0c9b3f47cc207dd45efbcf0226b7af0a504b593e80aae679839203c669",
+      "candidate_sha256": "cd32a99a34575fe150bef980623db1fe31144f3037b96a24929ad7a645b0699d",
+      "candidate": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\attention31_resume\\patch_yaw31\\scripts\\npc_visual\\npc_attention29.gd"
+    }
+  ],
+  "scope": "Stationary threat/attention yaw preserves the unit rigid capsule; surface safety unchanged"
+}

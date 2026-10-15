@@ -1,0 +1,8327 @@
+{
+  "schema": "artist24.two-leg-source-world/v1",
+  "status": "STATIC_SOURCE_DRIVE_PROPOSAL",
+  "strictFullRoadBoxStatus": "BLOCKED_STRICTER_THAN_SOURCE_ROAD_SEMANTICS",
+  "nativeExecution": false,
+  "liveReservation": false,
+  "source_world": true,
+  "coordinateSystem": "world metres; source yaw faces +Z; native body yaw=wrap(source yaw+PI)",
+  "originM": [
+    395.65,
+    0,
+    45.1
+  ],
+  "start": {
+    "lot_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-004",
+    "bay_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-004:bay:0",
+    "pose": {
+      "id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-004:bay:0",
+      "lotId": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-004",
+      "x": 432.69999999999993,
+      "z": 35.349999999999994,
+      "yaw": 3.141592653589793,
+      "width": 3.2,
+      "length": 6.4
+    }
+  },
+  "destination": {
+    "lot_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-007",
+    "bay_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-007:bay:0",
+    "pose": {
+      "id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-007:bay:0",
+      "lotId": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-007",
+      "x": 423.84999999999997,
+      "z": 100.6,
+      "yaw": 1.5707963267948966,
+      "width": 3.2,
+      "length": 6.4
+    },
+    "source_served_shop": false
+  },
+  "vehicleShape": {
+    "halfLength": 2.1482,
+    "halfWidth": 1.157399988
+  },
+  "sourcePins": {
+    "assets/maps/city_rebuild_v1/city_road_navigation.mjs": "9e51fa010a1d73e6e50673a65f263977bf50bc0f2fcdf283d1675207c4032efe",
+    "assets/maps/city_rebuild_v1/city_parking_origin.mjs": "742bd38cf1f0eca0394cf20d97512f9ff404390d9d5a53c4301d314d40d89401",
+    "assets/maps/city_rebuild_v1/city_parking_plan.mjs": "cf072458316fca09af802c699ba6e8dd71f2e2ab28a2f58621deff719210f21d",
+    "assets/maps/city_rebuild_v1/city_parking_access.mjs": "56510e2bae979eea37c3b4887f20c5e7a76b4975d4645c9296e4051ca84c4d6c",
+    "assets/maps/city_rebuild_v1/city_directed_lane_router.mjs": "81a22831d8f8853afb7cd60b84ace02f98a7eb2fd219c4df7d24a9c1888dc567",
+    "assets/maps/city_rebuild_v1/city_road_dressing_plan.mjs": "e0b825ea77ffd9a2d52910119e85b7f70bbd291a1519bca1c91f5c23d91e0ea9",
+    "assets/maps/city_rebuild_v1/city_road_traffic_plan.mjs": "aab9ea11827ba7dd40d4214986d0847a9ed35548e3ba7f42519fd2473076cabd",
+    "assets/maps/city_rebuild_v1/environment_planning_worker_core.mjs": "73db8573409137b33c774e49c20c3f55df6d313feb170b61ba9eec91c4568af8",
+    "assets/maps/city_rebuild_v1/city_parking_pedestrian_routes.mjs": "92e39bbaf2956589d774154871123a70b56661329645269d39a45267f24ed3e9",
+    "assets/maps/city_rebuild_v1/city_pedestrian_access_plan.mjs": "c28f58db943ac001b8e2a0af5e14817e41f984b3f76d3d4550e5568117ba54e7",
+    "assets/maps/city_rebuild_v1/car_drive.mjs": "a25cb6c140cd770f387f3f9004672d3dcd1aa224f0ba17d2d778c0ae7a7258eb",
+    "assets/maps/city_rebuild_v1/civilian_parking_trip_source.js": "460b197ee52c2facf2b63cdc8d4877aaa6314257ebaccda30459b50bcde2fabc",
+    "assets/maps/city_rebuild_v1/topology_for_placement.json": "11f256f20ea5f8f5387fa4829173e84cf688aa2ba554aa5b6aacdb85301d67b6",
+    "assets/maps/city_rebuild_v1/buildings_placement.v1.json": "90e0b27196b51fc1f09ccc67d4c5f8374d5c37611576106f34b30559e86ed3ca",
+    "assets/maps/city_rebuild_v1/detention_native_sites.v1.json": "646f354a383cbc3b0b025159b3ac573c9046e005a92e7068c534b2e94fb1d138",
+    "assets/maps/city_rebuild_v1/decor_placement.v1.json": "9bdd858e781914df73eba62d47f2df8eec7c9e3057e34f98f9c18134122036c8",
+    "assets/maps/city_rebuild_v1/test_fixtures/native_static_collision19.json.gz": "447079d70b9929c23971b79048652fa4223d7f665bf75f495614ab63ceb9f2d4"
+  },
+  "points": [
+    {
+      "x": 432.69999999999993,
+      "z": 35.349999999999994,
+      "yaw": 3.141592653589793,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.69950873028495,
+      "z": 35.4149975245911,
+      "yaw": 3.1264763745200255,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.6980350333939,
+      "z": 35.47998019740761,
+      "yaw": 3.1113600954502583,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.6955792460629,
+      "z": 35.54493317006853,
+      "yaw": 3.0962438163804906,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.6921419294334,
+      "z": 35.60984160097926,
+      "yaw": 3.0811275373107234,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.6877238689236,
+      "z": 35.674690658722895,
+      "yaw": 3.0660112582409558,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.68232607404974,
+      "z": 35.73946552544914,
+      "yaw": 3.0508949791711886,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.6759497781944,
+      "z": 35.804151400260196,
+      "yaw": 3.035778700101421,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.6685964383258,
+      "z": 35.868733502592654,
+      "yaw": 3.0206624210316537,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.66026773466376,
+      "z": 35.93319707559489,
+      "yaw": 3.005546141961886,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.6509655702967,
+      "z": 35.99752738949894,
+      "yaw": 2.990429862892119,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.64069207074635,
+      "z": 36.0617097449862,
+      "yaw": 2.9753135838223512,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.6294495834821,
+      "z": 36.125729476546226,
+      "yaw": 2.960197304752584,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.61724067738453,
+      "z": 36.18957195582771,
+      "yaw": 2.9450810256828164,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.60406814215884,
+      "z": 36.253222594981075,
+      "yaw": 2.929964746613049,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.5899349876969,
+      "z": 36.31666684999174,
+      "yaw": 2.9148484675432815,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.5748444433897,
+      "z": 36.37989022400339,
+      "yaw": 2.8997321884735143,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.5587999573895,
+      "z": 36.44287827063048,
+      "yaw": 2.8846159094037467,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.54180519582206,
+      "z": 36.50561659725918,
+      "yaw": 2.8694996303339795,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.52386404194846,
+      "z": 36.56809086833607,
+      "yaw": 2.854383351264212,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.50498059527837,
+      "z": 36.630286808643795,
+      "yaw": 2.8392670721944446,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.48515917063287,
+      "z": 36.69219020656288,
+      "yaw": 2.824150793124677,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.4644042971588,
+      "z": 36.753786917319054,
+      "yaw": 2.80903451405491,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.44272071729375,
+      "z": 36.81506286621534,
+      "yaw": 2.793918234985142,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.4201133856824,
+      "z": 36.87600405184803,
+      "yaw": 2.778801955915375,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.3965874680444,
+      "z": 36.93659654930601,
+      "yaw": 2.7636856768456073,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.37214833999417,
+      "z": 36.99682651335256,
+      "yaw": 2.74856939777584,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.34680158581233,
+      "z": 37.056680181588945,
+      "yaw": 2.7334531187060724,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.32055299716995,
+      "z": 37.1161438775991,
+      "yaw": 2.7183368396363052,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.29340857180506,
+      "z": 37.175204014074666,
+      "yaw": 2.7032205605665376,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.265374512152,
+      "z": 37.23384709591963,
+      "yaw": 2.6881042814967704,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.2364572239246,
+      "z": 37.29205972333394,
+      "yaw": 2.6729880024270027,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.2066633146521,
+      "z": 37.34982859487534,
+      "yaw": 2.6578717233572355,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.1759995921695,
+      "z": 37.40714051049868,
+      "yaw": 2.642755444287468,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.1444730630621,
+      "z": 37.46398237457211,
+      "yaw": 2.6276391652177007,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.1120909310642,
+      "z": 37.52034119886944,
+      "yaw": 2.612522886147933,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.0788605954134,
+      "z": 37.576204105537826,
+      "yaw": 2.597406607078166,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.0447896491598,
+      "z": 37.631558330040434,
+      "yaw": 2.582290328008398,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 432.0098858774307,
+      "z": 37.686391224073034,
+      "yaw": 2.567174048938631,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 431.97415725565224,
+      "z": 37.740690258454116,
+      "yaw": 2.5520577698688633,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 431.9376119477267,
+      "z": 37.7944430259878,
+      "yaw": 2.536941490799096,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 431.90025830416704,
+      "z": 37.847637244298845,
+      "yaw": 2.5218252117293285,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 431.862104860189,
+      "z": 37.90026075863912,
+      "yaw": 2.5067089326595613,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 431.8231603337608,
+      "z": 37.95230154466496,
+      "yaw": 2.4915926535897936,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 431.78343362361096,
+      "z": 38.00374771118467,
+      "yaw": 2.4764763745200264,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 431.7429338071951,
+      "z": 38.05458750287568,
+      "yaw": 2.461360095450259,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 431.70167013862164,
+      "z": 38.104809302970544,
+      "yaw": 2.4462438163804916,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 431.65965204653753,
+      "z": 38.1544016359114,
+      "yaw": 2.431127537310724,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 431.6168891319735,
+      "z": 38.203353169972075,
+      "yaw": 2.4160112582409567,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 431.57339116615043,
+      "z": 38.251652719847364,
+      "yaw": 2.400894979171189,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 431.5291680882465,
+      "z": 38.299289249208854,
+      "yaw": 2.385778700101422,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 431.48423000312636,
+      "z": 38.34625187322668,
+      "yaw": 2.3706624210316543,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 431.43858717903197,
+      "z": 38.392529861056694,
+      "yaw": 2.355546141961887,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 431.3922500452365,
+      "z": 38.43811263829243,
+      "yaw": 2.3404298628921194,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 431.34522918966104,
+      "z": 38.48298978938135,
+      "yaw": 2.325313583822352,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 431.2975353564555,
+      "z": 38.52715106000473,
+      "yaw": 2.3101973047525846,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 431.24917944354365,
+      "z": 38.57058635942081,
+      "yaw": 2.2950810256828174,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 431.2001725001326,
+      "z": 38.61328576277042,
+      "yaw": 2.2799647466130497,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 431.1505257241885,
+      "z": 38.65523951334487,
+      "yaw": 2.2648484675432825,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 431.10025045987766,
+      "z": 38.69643802481527,
+      "yaw": 2.249732188473515,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 431.04935819497433,
+      "z": 38.736871883423035,
+      "yaw": 2.2346159094037477,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 430.9978605582359,
+      "z": 38.77653185013086,
+      "yaw": 2.21949963033398,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 430.9457693167459,
+      "z": 38.81540886273383,
+      "yaw": 2.204383351264213,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 430.89309637322486,
+      "z": 38.853494037930155,
+      "yaw": 2.189267072194445,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 430.83985376331094,
+      "z": 38.8907786733509,
+      "yaw": 2.174150793124678,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 430.78605365280964,
+      "z": 38.92725424954854,
+      "yaw": 2.1590345140549103,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 430.7317083349139,
+      "z": 38.96291243194356,
+      "yaw": 2.143918234985143,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 430.6768302273953,
+      "z": 38.99774507272895,
+      "yaw": 2.1288019559153755,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 430.6214318697665,
+      "z": 39.031744212731894,
+      "yaw": 2.1136856768456083,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 430.5655259204161,
+      "z": 39.0649020832325,
+      "yaw": 2.0985693977758406,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 430.50912515371607,
+      "z": 39.09721110773884,
+      "yaw": 2.0834531187060734,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 430.45224245710295,
+      "z": 39.12866390371826,
+      "yaw": 2.0683368396363058,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 430.39489082813304,
+      "z": 39.15925328428418,
+      "yaw": 2.0532205605665386,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 430.3370833715127,
+      "z": 39.18897225983834,
+      "yaw": 2.038104281496771,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 430.2788332961036,
+      "z": 39.21781403966787,
+      "yaw": 2.0229880024270037,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 430.22015391190473,
+      "z": 39.24577203349699,
+      "yaw": 2.007871723357236,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 430.1610586270112,
+      "z": 39.272839852992824,
+      "yaw": 1.9927554442874689,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 430.10156094455033,
+      "z": 39.29901131322515,
+      "yaw": 1.9776391652177012,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 430.0416744595964,
+      "z": 39.324280434079654,
+      "yaw": 1.9625228861479338,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 429.9814128560638,
+      "z": 39.34864144162432,
+      "yaw": 1.9474066070781664,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 429.920789903581,
+      "z": 39.37208876942883,
+      "yaw": 1.932290328008399,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 429.85981945434355,
+      "z": 39.39461705983639,
+      "yaw": 1.9171740489386315,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 429.7985154399492,
+      "z": 39.416221165188034,
+      "yaw": 1.902057769868864,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 429.7368918682146,
+      "z": 39.436896148998784,
+      "yaw": 1.8869414907990967,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 429.6749628199744,
+      "z": 39.45663728708568,
+      "yaw": 1.8718252117293293,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 429.6127424458639,
+      "z": 39.47544006864718,
+      "yaw": 1.8567089326595618,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 429.55024496308556,
+      "z": 39.49330019729393,
+      "yaw": 1.8415926535897942,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 429.4874846521606,
+      "z": 39.51021359203042,
+      "yaw": 1.826476374520027,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 429.4244758536659,
+      "z": 39.526176388187544,
+      "yaw": 1.8113600954502593,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 429.3612329649569,
+      "z": 39.54118493830561,
+      "yaw": 1.796243816380492,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 429.2977704368783,
+      "z": 39.555235812967815,
+      "yaw": 1.7811275373107245,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 429.2341027704617,
+      "z": 39.56832580158383,
+      "yaw": 1.766011258240957,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 429.1702445136124,
+      "z": 39.58045191312345,
+      "yaw": 1.7508949791711896,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 429.10621025778505,
+      "z": 39.59161137679997,
+      "yaw": 1.7357787001014222,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 429.04201463464983,
+      "z": 39.60180164270339,
+      "yaw": 1.7206624210316548,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 428.9776723127487,
+      "z": 39.611020382383,
+      "yaw": 1.7055461419618874,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 428.9131979941442,
+      "z": 39.61926548937944,
+      "yaw": 1.69042986289212,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 428.84860641105945,
+      "z": 39.626535079706024,
+      "yaw": 1.6753135838223523,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 428.78391232251255,
+      "z": 39.63282749227924,
+      "yaw": 1.6601973047525849,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 428.71913051094367,
+      "z": 39.63814128929828,
+      "yaw": 1.6450810256828174,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 428.65427577883753,
+      "z": 39.64247525657359,
+      "yaw": 1.62996474661305,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 428.58936294534095,
+      "z": 39.645828403804295,
+      "yaw": 1.6148484675432826,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 428.52440684287683,
+      "z": 39.6481999648045,
+      "yaw": 1.5997321884735152,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 428.45942231375494,
+      "z": 39.64958939767834,
+      "yaw": 1.5846159094037477,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 428.39442420678046,
+      "z": 39.649996384943826,
+      "yaw": 1.5694996303339803,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 428.329427373861,
+      "z": 39.64942083360537,
+      "yaw": 1.554383351264213,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 428.2644466666131,
+      "z": 39.64786287517503,
+      "yaw": 1.5392670721944453,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 428.1994969329687,
+      "z": 39.64532286564248,
+      "yaw": 1.524150793124678,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 428.13459301378225,
+      "z": 39.641801385393656,
+      "yaw": 1.5090345140549104,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 428.0697497394397,
+      "z": 39.63729923907814,
+      "yaw": 1.493918234985143,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 428.00498192646995,
+      "z": 39.63181745542529,
+      "yaw": 1.4788019559153756,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 427.940304374159,
+      "z": 39.62535728700921,
+      "yaw": 1.4636856768456081,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 427.8757318611685,
+      "z": 39.61792020996249,
+      "yaw": 1.4485693977758407,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 427.811279142159,
+      "z": 39.609507923638965,
+      "yaw": 1.4334531187060733,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 427.7469609444184,
+      "z": 39.60012235022538,
+      "yaw": 1.4183368396363059,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 427.6827919644967,
+      "z": 39.58976563430217,
+      "yaw": 1.4032205605665384,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 427.6187868648481,
+      "z": 39.578440142353486,
+      "yaw": 1.388104281496771,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 427.55496027048054,
+      "z": 39.566148462226394,
+      "yaw": 1.3729880024270034,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 427.49132676561396,
+      "z": 39.55289340253958,
+      "yaw": 1.357871723357236,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 427.4279008903478,
+      "z": 39.53867799204161,
+      "yaw": 1.3427554442874685,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 427.3646971373387,
+      "z": 39.523505478918835,
+      "yaw": 1.327639165217701,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 427.3017299484887,
+      "z": 39.507379330053205,
+      "yaw": 1.3125228861479337,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 427.2390137116458,
+      "z": 39.490303230230104,
+      "yaw": 1.2974066070781662,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 427.1765627573159,
+      "z": 39.47228108129635,
+      "yaw": 1.2822903280083988,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 427.1143913553886,
+      "z": 39.453317001268694,
+      "yaw": 1.2671740489386314,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 427.0525137118763,
+      "z": 39.433415323392786,
+      "yaw": 1.252057769868864,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 426.99094396566863,
+      "z": 39.412580595153116,
+      "yaw": 1.2369414907990963,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 426.92969618530105,
+      "z": 39.39081757723386,
+      "yaw": 1.2218252117293291,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 426.86878436574096,
+      "z": 39.368131242431126,
+      "yaw": 1.2067089326595615,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 426.80822242518934,
+      "z": 39.34452677451664,
+      "yaw": 1.191592653589794,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 426.7480242019007,
+      "z": 39.3200095670533,
+      "yaw": 1.1764763745200266,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 426.6882034510212,
+      "z": 39.294585222162745,
+      "yaw": 1.1613600954502592,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 426.62877384144525,
+      "z": 39.26825954924529,
+      "yaw": 1.1462438163804918,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 426.56974895269263,
+      "z": 39.24103856365248,
+      "yaw": 1.1311275373107244,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 426.5111422718053,
+      "z": 39.21292848531262,
+      "yaw": 1.116011258240957,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 426.4529671902657,
+      "z": 39.18393573730949,
+      "yaw": 1.1008949791711895,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 426.39523700093713,
+      "z": 39.15406694441476,
+      "yaw": 1.085778700101422,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 426.33796489502583,
+      "z": 39.12332893157418,
+      "yaw": 1.0706624210316544,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 426.2811639590672,
+      "z": 39.091728722348115,
+      "yaw": 1.055546141961887,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 426.22484717193555,
+      "z": 39.05927353730671,
+      "yaw": 1.0404298628921196,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 426.1690274018782,
+      "z": 39.025970792379965,
+      "yaw": 1.0253135838223522,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 426.11371740357555,
+      "z": 38.99182809716323,
+      "yaw": 1.0101973047525847,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 426.0589298152262,
+      "z": 38.95685325317842,
+      "yaw": 0.9950810256828173,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 426.0046771556593,
+      "z": 38.921054252091444,
+      "yaw": 0.9799647466130499,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 425.9509718214743,
+      "z": 38.884439273886024,
+      "yaw": 0.9648484675432824,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 425.897826084208,
+      "z": 38.847016684994685,
+      "yaw": 0.9497321884735149,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 425.8452520875308,
+      "z": 38.808795036387,
+      "yaw": 0.9346159094037475,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 425.79326184447166,
+      "z": 38.76978306161571,
+      "yaw": 0.9194996303339801,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 425.74186723467335,
+      "z": 38.72998967482117,
+      "yaw": 0.9043833512642127,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 425.6910800016778,
+      "z": 38.689423968694435,
+      "yaw": 0.8892670721944451,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 425.64091175024294,
+      "z": 38.648095212399646,
+      "yaw": 0.8741507931246777,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 425.59137394369094,
+      "z": 38.606012849456015,
+      "yaw": 0.8590345140549103,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 425.54247790128875,
+      "z": 38.563186495580034,
+      "yaw": 0.8439182349851428,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 425.49423479566195,
+      "z": 38.51962593648829,
+      "yaw": 0.8288019559153754,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 425.44665565024155,
+      "z": 38.47534112566146,
+      "yaw": 0.8136856768456079,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 425.3997513367453,
+      "z": 38.43034218206995,
+      "yaw": 0.7985693977758405,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 425.35353257269355,
+      "z": 38.38463938786177,
+      "yaw": 0.783453118706073,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 425.30800991896035,
+      "z": 38.338243186013045,
+      "yaw": 0.7683368396363056,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 425.2631937773601,
+      "z": 38.29116417794185,
+      "yaw": 0.7532205605665382,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 425.2190943882709,
+      "z": 38.2434131210858,
+      "yaw": 0.7381042814967707,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 425.1757218282949,
+      "z": 38.19500092644402,
+      "yaw": 0.7229880024270032,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 425.1330860079554,
+      "z": 38.14593865608396,
+      "yaw": 0.7078717233572358,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 425.0911966694326,
+      "z": 38.09623752061381,
+      "yaw": 0.6927554442874684,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 425.05006338433725,
+      "z": 38.04590887662085,
+      "yaw": 0.677639165217701,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 425.0096955515239,
+      "z": 37.99496422407652,
+      "yaw": 0.6625228861479334,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.97010239494324,
+      "z": 37.94341520370868,
+      "yaw": 0.647406607078166,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.93129296153415,
+      "z": 37.8912735943418,
+      "yaw": 0.6322903280083986,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8932761191568,
+      "z": 37.83855131020542,
+      "yaw": 0.6171740489386311,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8560605545661,
+      "z": 37.785260398211875,
+      "yaw": 0.6020577698688637,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8196547714272,
+      "z": 37.731413035203566,
+      "yaw": 0.5869414907990962,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.78406708837207,
+      "z": 37.677021525170574,
+      "yaw": 0.5718252117293288,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.7493056370987,
+      "z": 37.62209829643923,
+      "yaw": 0.5567089326595613,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.71537836051334,
+      "z": 37.5666558988323,
+      "yaw": 0.5415926535897939,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.6822930109153,
+      "z": 37.51070700080135,
+      "yaw": 0.5264763745200265,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.6500571482256,
+      "z": 37.45426438653204,
+      "yaw": 0.511360095450259,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.61867813825955,
+      "z": 37.397340953023,
+      "yaw": 0.49624381638049153,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.58816315104394,
+      "z": 37.33994970713885,
+      "yaw": 0.4811275373107241,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.5585191591783,
+      "z": 37.28210376263821,
+      "yaw": 0.4660112582409567,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.5297529362418,
+      "z": 37.22381633717719,
+      "yaw": 0.45089497917118926,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.5018710552457,
+      "z": 37.16510074928924,
+      "yaw": 0.4357787001014218,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.4748798871314,
+      "z": 37.10597041534185,
+      "yaw": 0.42066242103165435,
+      "gear": "reverse",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.4963947447377,
+      "z": 37.1546325820154,
+      "yaw": 0.4118881825817554,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.51728426057286,
+      "z": 37.20302818689471,
+      "yaw": 0.4030520538384716,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.53755644341163,
+      "z": 37.25116199183794,
+      "yaw": 0.3941575353366451,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.55721930202856,
+      "z": 37.29903875870323,
+      "yaw": 0.38520831382731646,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.57628084519826,
+      "z": 37.346663249348765,
+      "yaw": 0.37620826094270055,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.59474908169545,
+      "z": 37.39404022563268,
+      "yaw": 0.3671614311437704,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.61263202029465,
+      "z": 37.44117444941314,
+      "yaw": 0.35807205892923955,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.6299376697706,
+      "z": 37.48807068254831,
+      "yaw": 0.3489445552893876,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.64667403889774,
+      "z": 37.53473368689633,
+      "yaw": 0.33978350339327246,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.66284913645075,
+      "z": 37.58116822431538,
+      "yaw": 0.3305936535033591,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.6784709712043,
+      "z": 37.6273790566636,
+      "yaw": 0.32137991711743674,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.6935475519331,
+      "z": 37.67337094579915,
+      "yaw": 0.3121473603438187,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.7080868874116,
+      "z": 37.71914865358019,
+      "yaw": 0.30290119652216146,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.7220969864144,
+      "z": 37.764716941864876,
+      "yaw": 0.2936467781087222,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.73558585771616,
+      "z": 37.81008057251137,
+      "yaw": 0.2843895878514094,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.74856151009163,
+      "z": 37.85524430737781,
+      "yaw": 0.2751352292864869,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.7610319523153,
+      "z": 37.90021290832237,
+      "yaw": 0.26588941659517157,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.7730051931619,
+      "z": 37.94499113720322,
+      "yaw": 0.25665796386451944,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.78448924140594,
+      "z": 37.989583755878485,
+      "yaw": 0.24744677380284152,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.79549210582206,
+      "z": 38.03399552620635,
+      "yaw": 0.23826182596532436,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.80602179518496,
+      "z": 38.07823121004495,
+      "yaw": 0.2291091645504698,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8160863182692,
+      "z": 38.122295569252465,
+      "yaw": 0.21999488583233215,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8256936838494,
+      "z": 38.166193365687036,
+      "yaw": 0.21092512529724083,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8348519007002,
+      "z": 38.209929361206825,
+      "yaw": 0.2019060445566934,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8435689775962,
+      "z": 38.25350831766998,
+      "yaw": 0.19294381811033331,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.851852923312,
+      "z": 38.29693499693469,
+      "yaw": 0.18404462003434988,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8597117466222,
+      "z": 38.340214160859084,
+      "yaw": 0.17521461067122993,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8671534563016,
+      "z": 38.38335057130132,
+      "yaw": 0.16645992339654342,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8741860611246,
+      "z": 38.426348990119564,
+      "yaw": 0.15778665153735433,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8808175698659,
+      "z": 38.46921417917196,
+      "yaw": 0.14920083551494828,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.88705599130014,
+      "z": 38.511950900316684,
+      "yaw": 0.14070845028187395,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8929093342019,
+      "z": 38.55456391541188,
+      "yaw": 0.13231539311986867,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.89838560734574,
+      "z": 38.59705798631572,
+      "yaw": 0.1240274718611312,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.9034928195065,
+      "z": 38.63943787488634,
+      "yaw": 0.11585039359068587,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.90823897945864,
+      "z": 38.681708342981906,
+      "yaw": 0.10778975388233572,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.91263209597685,
+      "z": 38.72387415246058,
+      "yaw": 0.09985102661500747,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.9166801778357,
+      "z": 38.765940065180516,
+      "yaw": 0.09203955441024565,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.9203912338097,
+      "z": 38.807910842999874,
+      "yaw": 0.0843605397253069,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.92377327267366,
+      "z": 38.849791247776814,
+      "yaw": 0.07681903662983568,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.9268343032021,
+      "z": 38.89158604136948,
+      "yaw": 0.06941994328756045,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.92958233416965,
+      "z": 38.93329998563604,
+      "yaw": 0.06216799515793217,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.932025374351,
+      "z": 38.97493784243465,
+      "yaw": 0.055067758926217646,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.93417143252066,
+      "z": 39.01650437362347,
+      "yaw": 0.04812362716433475,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.9360285174534,
+      "z": 39.058004341060645,
+      "yaw": 0.04133981371876147,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.93760463792376,
+      "z": 39.09944250660434,
+      "yaw": 0.034720349816216634,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.93890780270624,
+      "z": 39.14082363211272,
+      "yaw": 0.028269080872562358,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.9399460205756,
+      "z": 39.18215247944393,
+      "yaw": 0.02198966398556029,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.94072730030643,
+      "z": 39.223433810456136,
+      "yaw": 0.01588556608776062,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.9412596506734,
+      "z": 39.26467238700749,
+      "yaw": 0.009960062731942713,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.94155108045106,
+      "z": 39.305872970956145,
+      "yaw": 0.0042162374781809404,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.941609598414,
+      "z": 39.34704032416027,
+      "yaw": -0.0013430181512246282,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.9414432133369,
+      "z": 39.388179208478014,
+      "yaw": -0.0067150041850226405,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.94105993399444,
+      "z": 39.42929438576755,
+      "yaw": -0.011897211222360754,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.94046776916105,
+      "z": 39.470390617887006,
+      "yaw": -0.016887318997388087,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.9396747276116,
+      "z": 39.51147266669456,
+      "yaw": -0.02168319452911571,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.93868881812045,
+      "z": 39.55254529404836,
+      "yaw": -0.026282889896923647,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.93751804946237,
+      "z": 39.59361326180657,
+      "yaw": -0.03068463968206281,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.93617043041206,
+      "z": 39.634681331827345,
+      "yaw": -0.034886858115076094,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.93465396974403,
+      "z": 39.67575426596884,
+      "yaw": -0.038888135968288294,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.93297667623284,
+      "z": 39.716836826089214,
+      "yaw": -0.042687237231425396,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.93114655865327,
+      "z": 39.75793377404663,
+      "yaw": -0.0462830956070554,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.92917162577976,
+      "z": 39.79904987169924,
+      "yaw": -0.04967481086094058,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.9270598863871,
+      "z": 39.84018988090519,
+      "yaw": -0.05286164506057955,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.92481934924973,
+      "z": 39.88135856352266,
+      "yaw": -0.05584301873324667,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.9224580231424,
+      "z": 39.9225606814098,
+      "yaw": -0.058618506972723736,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.9199839168397,
+      "z": 39.96380099642475,
+      "yaw": -0.061187835521714556,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.9174050391164,
+      "z": 40.005084270425684,
+      "yaw": -0.06355087685464905,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.91472939874683,
+      "z": 40.04641526527075,
+      "yaw": -0.06570764628326599,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.91196500450576,
+      "z": 40.087798742818116,
+      "yaw": -0.06765829810501692,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.90911986516784,
+      "z": 40.12923946492593,
+      "yaw": -0.06940312181200188,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.90620198950757,
+      "z": 40.170742193452355,
+      "yaw": -0.070942538375833,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.9032193862997,
+      "z": 40.21231169025555,
+      "yaw": -0.07227709662155717,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.9001800643189,
+      "z": 40.253952717193656,
+      "yaw": -0.07340746970155368,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8970920323396,
+      "z": 40.29567003612486,
+      "yaw": -0.07433445167818668,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.89396329913654,
+      "z": 40.33746840890729,
+      "yaw": -0.07505895422193397,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8908018734843,
+      "z": 40.37935259739912,
+      "yaw": -0.07558200342975009,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.88761576415754,
+      "z": 40.421327363458495,
+      "yaw": -0.07590473676655478,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.88441297993086,
+      "z": 40.46339746894358,
+      "yaw": -0.07602840013097852,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8812015295788,
+      "z": 40.50556767571254,
+      "yaw": -0.07595434504484647,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.87798942187607,
+      "z": 40.54784274562352,
+      "yaw": -0.07568402596434809,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8747846655973,
+      "z": 40.59022744053469,
+      "yaw": -0.07521899770941715,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.87159526951706,
+      "z": 40.63272652230418,
+      "yaw": -0.07456091300654515,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.86842924241,
+      "z": 40.67534475279018,
+      "yaw": -0.07371152013906881,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8652945930508,
+      "z": 40.718086893850824,
+      "yaw": -0.07267266069790485,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.862199330214,
+      "z": 40.76095770734429,
+      "yaw": -0.07144626742476136,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8591514626742,
+      "z": 40.80396195512871,
+      "yaw": -0.07003436213902277,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.85615899920606,
+      "z": 40.84710439906226,
+      "yaw": -0.06843905373879472,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8532299485842,
+      "z": 40.8903898010031,
+      "yaw": -0.06666253626599938,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.85037231958324,
+      "z": 40.933822922809384,
+      "yaw": -0.06470708702492607,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.84759412097776,
+      "z": 40.97740852633925,
+      "yaw": -0.06257506474326995,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8449033615425,
+      "z": 41.02115137345086,
+      "yaw": -0.0602689077644339,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.842308050052,
+      "z": 41.0650562260024,
+      "yaw": -0.05779113225971124,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.83981619528083,
+      "z": 41.109127845852,
+      "yaw": -0.05514433044892074,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.83743580600367,
+      "z": 41.15337099485783,
+      "yaw": -0.05233116881812014,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8351748909952,
+      "z": 41.197790434878044,
+      "yaw": -0.04935438632317843,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8330414590298,
+      "z": 41.24239092777079,
+      "yaw": -0.0462167925682431,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8310435188824,
+      "z": 41.28717723539424,
+      "yaw": -0.04292126594848076,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.82918907932736,
+      "z": 41.33215411960654,
+      "yaw": -0.03947075174690955,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.82748614913953,
+      "z": 41.37732634226585,
+      "yaw": -0.03586826017566465,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8259427370933,
+      "z": 41.422698665230335,
+      "yaw": -0.032116864352644305,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.82456685196354,
+      "z": 41.46827585035814,
+      "yaw": -0.02821969820516569,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8233665025247,
+      "z": 41.51406265950744,
+      "yaw": -0.024179954293017378,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.82234969755143,
+      "z": 41.560063854536374,
+      "yaw": -0.020000881544114984,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.82152444581834,
+      "z": 41.606284197303104,
+      "yaw": -0.015685782896851682,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.82089875610006,
+      "z": 41.652728449665794,
+      "yaw": -0.011238012844170007,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8204806371713,
+      "z": 41.699401373482594,
+      "yaw": -0.006660974875363454,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8202780978065,
+      "z": 41.74630773061166,
+      "yaw": -0.001958118812642515,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8202991467804,
+      "z": 41.79345228291116,
+      "yaw": 0.0028670619594508896,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.82055179286766,
+      "z": 41.84083979223924,
+      "yaw": 0.007811033372616017,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.82104404484284,
+      "z": 41.88847502045407,
+      "yaw": 0.012870223661101288,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8217839114805,
+      "z": 41.93636272941378,
+      "yaw": 0.01804102645439776,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.82277940155535,
+      "z": 41.984507680976556,
+      "yaw": 0.0233198039738752,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.824038523842,
+      "z": 42.032914637000545,
+      "yaw": 0.028702890329841114,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.825569287115,
+      "z": 42.081588359343904,
+      "yaw": 0.034186594914446235,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8273797001491,
+      "z": 42.1305336098648,
+      "yaw": 0.0397672058848339,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.82947777171876,
+      "z": 42.17975515042137,
+      "yaw": 0.04544099372994773,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8318715105988,
+      "z": 42.22925774287179,
+      "yaw": 0.05120421491347844,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.83456892556353,
+      "z": 42.2790461490742,
+      "yaw": 0.05705311558455363,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.83757802538787,
+      "z": 42.329125130886766,
+      "yaw": 0.06298393534696514,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8409068188464,
+      "z": 42.37949945016765,
+      "yaw": 0.06899291107699046,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.84456331471364,
+      "z": 42.430173868775,
+      "yaw": 0.07507628077920754,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.8485555217642,
+      "z": 42.48115314856699,
+      "yaw": 0.08123028746913499,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.85289144877277,
+      "z": 42.53244205140176,
+      "yaw": 0.08745118307104216,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.85757910451395,
+      "z": 42.584045339137475,
+      "yaw": 0.09373523231889605,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.86262649776234,
+      "z": 42.63596777363229,
+      "yaw": 0.100078716648115,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.86804163729255,
+      "z": 42.688214116744355,
+      "yaw": 0.10647793806562038,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.87383253187926,
+      "z": 42.74078913033184,
+      "yaw": 0.1129292229855849,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.880007190297,
+      "z": 42.793697576252896,
+      "yaw": 0.1194289260183384,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 424.9155485526396,
+      "z": 43.089875595774465,
+      "yaw": 0.1194289260183384,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 424.9510899149822,
+      "z": 43.38605361529604,
+      "yaw": 0.1194289260183384,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 424.9866312773248,
+      "z": 43.68223163481761,
+      "yaw": 0.1194289260183384,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 425.02217263966736,
+      "z": 43.97840965433918,
+      "yaw": 0.1194289260183384,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 425.05771400200996,
+      "z": 44.27458767386076,
+      "yaw": 0.1194289260183384,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 425.09325536435256,
+      "z": 44.570765693382334,
+      "yaw": 0.1194289260183384,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 425.12879672669516,
+      "z": 44.866943712903904,
+      "yaw": 0.1194289260183384,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 425.16433808903776,
+      "z": 45.16312173242547,
+      "yaw": 0.1194289260183384,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 425.21677312422565,
+      "z": 45.536049333233564,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 425.2648587408285,
+      "z": 45.8304510675369,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 425.31294435743143,
+      "z": 46.12485280184023,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 425.3610299740343,
+      "z": 46.41925453614356,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 425.40911559063716,
+      "z": 46.71365627044689,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 425.45720120724,
+      "z": 47.00805800475022,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 425.50528682384294,
+      "z": 47.30245973905355,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 425.5533724404458,
+      "z": 47.59686147335688,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 425.60145805704866,
+      "z": 47.89126320766022,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 425.6495436736515,
+      "z": 48.185664941963545,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 425.69762929025444,
+      "z": 48.48006667626688,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 425.7457149068573,
+      "z": 48.77446841057021,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 425.79380052346016,
+      "z": 49.06887014487354,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 425.841886140063,
+      "z": 49.36327187917687,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 425.88997175666594,
+      "z": 49.657673613480206,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 425.9380573732688,
+      "z": 49.952075347783534,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 425.98614298987167,
+      "z": 50.24647708208687,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 426.0342286064745,
+      "z": 50.5408788163902,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 426.08231422307745,
+      "z": 50.835280550693525,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 426.1303998396803,
+      "z": 51.12968228499686,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 426.17848545628317,
+      "z": 51.424084019300196,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 426.2265710728861,
+      "z": 51.718485753603524,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 426.27465668948895,
+      "z": 52.01288748790685,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 426.3227423060918,
+      "z": 52.30728922221019,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 426.3708279226947,
+      "z": 52.601690956513515,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 426.4189135392976,
+      "z": 52.89609269081685,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 426.46699915590045,
+      "z": 53.190494425120185,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 426.5150847725033,
+      "z": 53.48489615942351,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 426.5631703891062,
+      "z": 53.77929789372684,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 426.6112560057091,
+      "z": 54.07369962803018,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 426.65934162231196,
+      "z": 54.368101362333505,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 426.7074272389148,
+      "z": 54.66250309663683,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 426.7555128555177,
+      "z": 54.95690483094017,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 426.8035984721206,
+      "z": 55.2513065652435,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 426.85168408872346,
+      "z": 55.54570829954683,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 426.8997697053263,
+      "z": 55.84011003385016,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 426.9478553219292,
+      "z": 56.134511768153494,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 426.9959409385321,
+      "z": 56.42891350245683,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 427.04402655513496,
+      "z": 56.72331523676016,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 427.0921121717378,
+      "z": 57.017716971063486,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 427.1401977883407,
+      "z": 57.31211870536682,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 427.1882834049436,
+      "z": 57.60652043967015,
+      "yaw": 0.16190369150866454,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 427.2447124764863,
+      "z": 57.92979566643525,
+      "yaw": 0.17809293823120198,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 427.2975577259266,
+      "z": 58.22338038554795,
+      "yaw": 0.17809293823120198,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 427.3504029753669,
+      "z": 58.51696510466064,
+      "yaw": 0.17809293823120198,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 427.40324822480716,
+      "z": 58.81054982377334,
+      "yaw": 0.17809293823120198,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 427.45609347424744,
+      "z": 59.104134542886044,
+      "yaw": 0.17809293823120198,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 427.5089387236877,
+      "z": 59.39771926199874,
+      "yaw": 0.17809293823120198,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 427.561783973128,
+      "z": 59.69130398111144,
+      "yaw": 0.17809293823120198,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 427.61462922256834,
+      "z": 59.98488870022413,
+      "yaw": 0.17809293823120198,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 427.6674744720086,
+      "z": 60.278473419336834,
+      "yaw": 0.17809293823120198,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 427.7203197214489,
+      "z": 60.572058138449535,
+      "yaw": 0.17815040764952964,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 427.8262694339779,
+      "z": 61.15877091692462,
+      "yaw": 0.17959140728866957,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 427.9315251224449,
+      "z": 61.733225056694764,
+      "yaw": 0.1832595904569363,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 428.0372357527036,
+      "z": 62.29488948391088,
+      "yaw": 0.18926003546479123,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 428.1445502906082,
+      "z": 62.843233124723916,
+      "yaw": 0.1977623959650915,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 428.25461770201247,
+      "z": 63.377724905284786,
+      "yaw": 0.20895923578428127,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 428.36858695277004,
+      "z": 63.89783375174435,
+      "yaw": 0.22306805675612848,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 428.48760700873544,
+      "z": 64.40302859025358,
+      "yaw": 0.24033282810446233,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 428.6128268357621,
+      "z": 64.89277834696338,
+      "yaw": 0.2610245801651993,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 428.7453953997043,
+      "z": 65.36655194802466,
+      "yaw": 0.2854404112157885,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 428.88646166641547,
+      "z": 65.82381831958831,
+      "yaw": 0.3138999759253509,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 429.0371746017498,
+      "z": 66.26404638780527,
+      "yaw": 0.34673818492865266,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 429.19868317156124,
+      "z": 66.68670507882645,
+      "yaw": 0.3842924891264065,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 429.37213634170354,
+      "z": 67.09126331880276,
+      "yaw": 0.4268828551678982,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 429.55868307803075,
+      "z": 67.47719003388512,
+      "yaw": 0.47478256845209194,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 429.7594723463969,
+      "z": 67.84395415022446,
+      "yaw": 0.5281786658062413,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 429.97565311265566,
+      "z": 68.19102459397165,
+      "yaw": 0.5871225420762127,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 430.20837434266093,
+      "z": 68.51787029127765,
+      "yaw": 0.6514744647838746,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 430.4587850022668,
+      "z": 68.82396016829335,
+      "yaw": 0.7208502809205953,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 430.728034057327,
+      "z": 69.10876315116965,
+      "yaw": 0.7945834070763084,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 431.0172704736957,
+      "z": 69.37174816605753,
+      "yaw": 0.8717178123061787,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 431.3276432172265,
+      "z": 69.61238413910783,
+      "yaw": 0.9510449871726139,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 431.6603012537737,
+      "z": 69.83013999647152,
+      "yaw": 1.0311880825713133,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 432.01639354919075,
+      "z": 70.02448466429946,
+      "yaw": 1.1107216757820588,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 432.3970690693318,
+      "z": 70.19488706874262,
+      "yaw": 1.1883024799293986,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 432.8034767800508,
+      "z": 70.34081613595188,
+      "yaw": 1.2627819874381414,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 433.23676564720165,
+      "z": 70.46174079207816,
+      "yaw": 1.3332791088712201,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 433.69808463663816,
+      "z": 70.55712996327237,
+      "yaw": 1.3992051638602256,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 434.1885827142143,
+      "z": 70.62645257568545,
+      "yaw": 1.4602475342871437,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 434.709408845784,
+      "z": 70.66917755546828,
+      "yaw": 1.5163263149409811,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 435.2617119972012,
+      "z": 70.68477382877181,
+      "yaw": 1.5675393894651513,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 435.8466411343197,
+      "z": 70.67271032174693,
+      "yaw": 1.6141025671896063,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 436.62811156843793,
+      "z": 70.63884660293515,
+      "yaw": 1.6141025671896063,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 437.40958200255614,
+      "z": 70.60498288412336,
+      "yaw": 1.6141025671896063,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 438.19105243667434,
+      "z": 70.57111916531157,
+      "yaw": 1.6071167392965984,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 438.7458843588543,
+      "z": 70.56693944118037,
+      "yaw": 1.5401634272681883,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 439.2619058244561,
+      "z": 70.60368565204445,
+      "yaw": 1.4566637237069855,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 439.7397859908047,
+      "z": 70.68060604641198,
+      "yaw": 1.3630654018708557,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 440.1801940152247,
+      "z": 70.79694887279115,
+      "yaw": 1.2593944282381067,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 440.583799055041,
+      "z": 70.95196237969014,
+      "yaw": 1.1465424189007358,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 440.9512702675786,
+      "z": 71.14489481561714,
+      "yaw": 1.0264801519042552,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 441.2832768101623,
+      "z": 71.3749944290803,
+      "yaw": 0.9022390533473453,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 441.58048784011703,
+      "z": 71.64150946858783,
+      "yaw": 0.7775572123077387,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 441.8435725147673,
+      "z": 71.94368818264785,
+      "yaw": 0.6562527206709545,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 442.0731999914384,
+      "z": 72.28077881976859,
+      "yaw": 0.5415638947024989,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 442.2700394274548,
+      "z": 72.65202962845817,
+      "yaw": 0.43571927121909715,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 442.4347599801416,
+      "z": 73.05668885722484,
+      "yaw": 0.3398464476680736,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 442.5680308068236,
+      "z": 73.49400475457671,
+      "yaw": 0.2541458146289652,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 442.6705210648255,
+      "z": 73.963225569022,
+      "yaw": 0.17817744104789698,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 442.74289991147236,
+      "z": 74.46359954906885,
+      "yaw": 0.11113839084335096,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 442.78583650408893,
+      "z": 74.99437494322547,
+      "yaw": 0.05207293033647268,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 442.79999999999995,
+      "z": 75.5548,
+      "yaw": 0,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 442.79999999999995,
+      "z": 76.43356666666666,
+      "yaw": 0,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 442.79999999999995,
+      "z": 77.31233333333333,
+      "yaw": 0,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 442.79999999999995,
+      "z": 78.19109999999999,
+      "yaw": 0,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 442.79999999999995,
+      "z": 79.06986666666666,
+      "yaw": 0.00920062378989309,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 442.82154621409865,
+      "z": 79.56849443895818,
+      "yaw": 0.08275074371081595,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 442.87908565992007,
+      "z": 80.06313292434957,
+      "yaw": 0.14537082940319185,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 442.96196954275246,
+      "z": 80.54957631906514,
+      "yaw": 0.18888857751426213,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 443.0595490678835,
+      "z": 81.02361881932919,
+      "yaw": 0.2138822068975329,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 443.16117544060137,
+      "z": 81.48105462136604,
+      "yaw": 0.21981755265116643,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 443.2561998661942,
+      "z": 81.91767792139997,
+      "yaw": 0.20450527798665483,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 443.3339735499502,
+      "z": 82.32928291565534,
+      "yaw": 0.1633132765875501,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 443.383847697157,
+      "z": 82.71166380035639,
+      "yaw": 0.08795258310475318,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 443.3951735131031,
+      "z": 83.0606147717275,
+      "yaw": -0.03495772590389988,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 443.3573022030761,
+      "z": 83.3719300259929,
+      "yaw": -0.22327658120165067,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 443.2595849723643,
+      "z": 83.64140375937694,
+      "yaw": -0.4882603770506682,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 443.0913730262557,
+      "z": 83.86483016810394,
+      "yaw": -0.805361199142618,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 442.8420175700384,
+      "z": 84.03800344839817,
+      "yaw": -1.1075771089318613,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 442.5008698090004,
+      "z": 84.15671779648396,
+      "yaw": -1.3442367281188017,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 442.0572809484297,
+      "z": 84.2167674085856,
+      "yaw": -1.5120403566654033,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 441.1804528575061,
+      "z": 84.2683456612849,
+      "yaw": -1.5120403566654033,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 440.3036247665825,
+      "z": 84.3199239139842,
+      "yaw": -1.5120403566654033,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 439.4267966756589,
+      "z": 84.37150216668348,
+      "yaw": -1.51221860550663,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 438.6705878325416,
+      "z": 84.41529293084524,
+      "yaw": -1.5139186203762816,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 437.9560913873123,
+      "z": 84.45524352701592,
+      "yaw": -1.5160198072623194,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 437.2805237116684,
+      "z": 84.4915146238858,
+      "yaw": -1.5183583478695233,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 436.64110117730706,
+      "z": 84.52426689014514,
+      "yaw": -1.5209458763974875,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 436.0350401559254,
+      "z": 84.5536609944842,
+      "yaw": -1.5237898227509326,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 435.4595570192208,
+      "z": 84.57985760559326,
+      "yaw": -1.52689173598717,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 434.91186813889055,
+      "z": 84.60301739216256,
+      "yaw": -1.53024543888341,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 434.3891898866317,
+      "z": 84.62330102288237,
+      "yaw": -1.533835151548943,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 433.88873863414153,
+      "z": 84.640869166443,
+      "yaw": -1.5376337960657176,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 433.4077307531173,
+      "z": 84.65588249153463,
+      "yaw": -1.541601764309358,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 432.94338261525627,
+      "z": 84.66850166684759,
+      "yaw": -1.5456864755612663,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 432.4929105922557,
+      "z": 84.67888736107211,
+      "yaw": -1.5498230421901942,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 432.05353105581264,
+      "z": 84.68720024289847,
+      "yaw": -1.553936275905737,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 431.6224603776246,
+      "z": 84.69360098101694,
+      "yaw": -1.5579440939463918,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 431.19691492938864,
+      "z": 84.69825024411779,
+      "yaw": -1.5617621412936644,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 430.77411108280194,
+      "z": 84.70130870089125,
+      "yaw": -1.5653091811907331,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 430.3512652095619,
+      "z": 84.7029370200276,
+      "yaw": -1.568512594916239,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 429.9255936813656,
+      "z": 84.7032958702171,
+      "yaw": -1.5713132450050178,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 429.49431286991035,
+      "z": 84.70254592015006,
+      "yaw": -1.573669034385047,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 429.05463914689335,
+      "z": 84.7008478385167,
+      "yaw": -1.5755567246922249,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 428.60378888401186,
+      "z": 84.69836229400727,
+      "yaw": -1.5769718963729014,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 428.1389784529631,
+      "z": 84.69524995531205,
+      "yaw": -1.577927250877954,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 427.6574242254443,
+      "z": 84.69167149112133,
+      "yaw": -1.5784496905031609,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 427.15634257315264,
+      "z": 84.68778757012535,
+      "yaw": -1.5785767205153458,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 426.6329498677855,
+      "z": 84.68375886101438,
+      "yaw": -1.5783527023438446,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 426.08446248103996,
+      "z": 84.67974603247868,
+      "yaw": -1.5778253806302256,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 425.5080967846134,
+      "z": 84.67590975320851,
+      "yaw": -1.577042958874894,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 424.90106915020283,
+      "z": 84.67241069189416,
+      "yaw": -1.5760518511803987,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 424.26059594950567,
+      "z": 84.66940951722586,
+      "yaw": -1.5748951188075444,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 423.5838935542191,
+      "z": 84.66706689789389,
+      "yaw": -1.5736115209555777,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 422.86817833604033,
+      "z": 84.6655435025885,
+      "yaw": -1.5722350678371375,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 422.11066666666665,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 421.812894592735,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 421.5151225188034,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 421.2173504448718,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 420.91957837094014,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 420.6218062970085,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 420.3240342230769,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 420.0262621491453,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 419.72849007521364,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 419.430718001282,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 419.1329459273504,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 418.8351738534188,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 418.53740177948714,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 418.2396297055555,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 417.9418576316239,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 417.6440855576923,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 417.34631348376064,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 417.048541409829,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 416.7507693358974,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 416.4529972619658,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 416.15522518803414,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 415.85745311410255,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 415.5596810401709,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 415.2619089662393,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 414.96413689230764,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 414.66636481837605,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 414.3685927444444,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 414.0708206705128,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 413.77304859658113,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 413.47527652264955,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 413.1775044487179,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 412.8797323747863,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 412.5819603008547,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 412.28418822692305,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 411.9864161529914,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 411.68864407905977,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 411.3908720051282,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 411.09309993119655,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 410.7953278572649,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 410.49755578333327,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 410.1997837094017,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 409.90201163547005,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 409.6042395615384,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 409.3064674876068,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 409.0086954136752,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 408.71092333974354,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 408.4131512658119,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 408.1153791918803,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 407.8176071179487,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 407.51983504401704,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 407.2220629700854,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 406.9242908961538,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 406.6265188222222,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 406.32874674829054,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 406.03097467435896,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 405.7332026004273,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 405.4354305264957,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 405.13765845256404,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 404.83988637863246,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 404.5421143047008,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 404.2443422307692,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 403.94657015683754,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 403.64879808290596,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 403.3510260089743,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 403.0532539350427,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 402.7554818611111,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 402.45770978717945,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 402.1599377132478,
+      "z": 84.66499999999999,
+      "yaw": -1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 402.1113852668825,
+      "z": 84.66512652114034,
+      "yaw": -1.5655778284150896,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 402.0630228496615,
+      "z": 84.66550542473793,
+      "yaw": -1.560339030832219,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 402.01485046158473,
+      "z": 84.66613572105766,
+      "yaw": -1.5550799825800514,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.96686810265214,
+      "z": 84.66701642036438,
+      "yaw": -1.549800735146617,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.91907577286395,
+      "z": 84.66814653292298,
+      "yaw": -1.5445013430014143,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.87147347222003,
+      "z": 84.66952506899833,
+      "yaw": -1.5391818636217225,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.8240612007204,
+      "z": 84.6711510388553,
+      "yaw": -1.5338423575179758,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.77683895836503,
+      "z": 84.67302345275878,
+      "yaw": -1.528482888258165,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.72980674515406,
+      "z": 84.67514132097364,
+      "yaw": -1.523103522491221,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.68296456108726,
+      "z": 84.67750365376473,
+      "yaw": -1.5177043299693498,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.63631240616473,
+      "z": 84.68010946139694,
+      "yaw": -1.5122853835692667,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.5898502803865,
+      "z": 84.68295775413513,
+      "yaw": -1.5068467593123016,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.5435781837526,
+      "z": 84.68604754224421,
+      "yaw": -1.5013885363833297,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.49749611626294,
+      "z": 84.689377835989,
+      "yaw": -1.495910797148488,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.45160407791764,
+      "z": 84.69294764563442,
+      "yaw": -1.4904136271716417,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.40590206871656,
+      "z": 84.6967559814453,
+      "yaw": -1.484897115229559,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.3603900886598,
+      "z": 84.70080185368657,
+      "yaw": -1.4793613533257552,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.31506813774735,
+      "z": 84.70508427262305,
+      "yaw": -1.4738064367029713,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.26993621597916,
+      "z": 84.70960224851964,
+      "yaw": -1.4682324638542452,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.2249943233552,
+      "z": 84.71435479164123,
+      "yaw": -1.4626395365325406,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.1802424598756,
+      "z": 84.71934091225266,
+      "yaw": -1.4570277597588965,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.13568062554026,
+      "z": 84.7245596206188,
+      "yaw": -1.451397241829061,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.09130882034924,
+      "z": 84.73000992700456,
+      "yaw": -1.445748094318575,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.0471270443025,
+      "z": 84.7356908416748,
+      "yaw": -1.4400804320862695,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.00313529740004,
+      "z": 84.74160137489437,
+      "yaw": -1.4343943732761444,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.95933357964185,
+      "z": 84.74774053692816,
+      "yaw": -1.428690039317595,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.915721891028,
+      "z": 84.75410733804105,
+      "yaw": -1.4229675549239567,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.87230023155837,
+      "z": 84.7607007884979,
+      "yaw": -1.4172270480893323,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.8290686012331,
+      "z": 84.76751989856359,
+      "yaw": -1.4114686500836786,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.78602700005206,
+      "z": 84.77456367850303,
+      "yaw": -1.405692495446119,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.7431754280153,
+      "z": 84.78183113858103,
+      "yaw": -1.3998987219764558,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.7005138851228,
+      "z": 84.78932128906249,
+      "yaw": -1.3940874707248603,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.6580423713747,
+      "z": 84.79703314021228,
+      "yaw": -1.3882588859797103,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.6157608867708,
+      "z": 84.80496570229528,
+      "yaw": -1.3824131152535557,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.57366943131115,
+      "z": 84.81311798557635,
+      "yaw": -1.376550309267192,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.5317680049958,
+      "z": 84.82148900032041,
+      "yaw": -1.3706706219318163,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.49005660782484,
+      "z": 84.83007775679229,
+      "yaw": -1.3647742103292553,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.44853523979805,
+      "z": 84.83888326525687,
+      "yaw": -1.3588612346902413,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.40720390091565,
+      "z": 84.84790453597903,
+      "yaw": -1.3529318583707282,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.36606259117747,
+      "z": 84.85714057922362,
+      "yaw": -1.3469862478262282,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.3251113105836,
+      "z": 84.86659040525554,
+      "yaw": -1.341024572584165,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.284350059134,
+      "z": 84.87625302433966,
+      "yaw": -1.335047005214228,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.2437788368287,
+      "z": 84.88612744674086,
+      "yaw": -1.329053721296726,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.2033976436677,
+      "z": 84.89621268272398,
+      "yaw": -1.323044899388931,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.1632064796511,
+      "z": 84.90650774255393,
+      "yaw": -1.3170207209894134,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.1232053447786,
+      "z": 84.91701163649556,
+      "yaw": -1.3109813705003635,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.08339423905045,
+      "z": 84.92772337481377,
+      "yaw": -1.304927035187905,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.04377316246655,
+      "z": 84.93864196777342,
+      "yaw": -1.298857905140401,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.004342115027,
+      "z": 84.94976642563938,
+      "yaw": -1.29277417322476,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.9651010967317,
+      "z": 84.96109575867652,
+      "yaw": -1.2866760350407496,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.92605010758075,
+      "z": 84.97262897714972,
+      "yaw": -1.2805636888733292,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.88718914757396,
+      "z": 84.98436509132384,
+      "yaw": -1.2744373356430132,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.84851821671157,
+      "z": 84.99630311146377,
+      "yaw": -1.268297178854281,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.8100373149934,
+      "z": 85.0084420478344,
+      "yaw": -1.2621434245420504,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.77174644241956,
+      "z": 85.02078091070055,
+      "yaw": -1.2559762812162354,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.73364559899,
+      "z": 85.03331871032714,
+      "yaw": -1.2497959598044113,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.6957347847047,
+      "z": 85.04605445697902,
+      "yaw": -1.2436026735926071,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.6580139995637,
+      "z": 85.05898716092108,
+      "yaw": -1.237396638164261,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.62048324356704,
+      "z": 85.07211583241819,
+      "yaw": -1.2311780713373586,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.5831425167146,
+      "z": 85.08543948173522,
+      "yaw": -1.2249471930997926,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.54599181900653,
+      "z": 85.09895711913703,
+      "yaw": -1.2187042255429756,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.50903115044264,
+      "z": 85.11266775488852,
+      "yaw": -1.2124493927937432,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.4722605110231,
+      "z": 85.12657039925455,
+      "yaw": -1.2061829209445825,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.4356799007478,
+      "z": 85.14066406249998,
+      "yaw": -1.1999050379822347,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.39928931961686,
+      "z": 85.15494775488972,
+      "yaw": -1.1936159737147072,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.3630887676302,
+      "z": 85.1694204866886,
+      "yaw": -1.187315959696744,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.3270782447878,
+      "z": 85.1840812681615,
+      "yaw": -1.1810052291538033,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.2912577510896,
+      "z": 85.19892910957334,
+      "yaw": -1.174684016904589,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.25562728653574,
+      "z": 85.21396302118896,
+      "yaw": -1.1683525592821893,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.2201868511262,
+      "z": 85.22918201327323,
+      "yaw": -1.1620110940538773,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.18493644486097,
+      "z": 85.24458509609103,
+      "yaw": -1.155659860339625,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.14987606773997,
+      "z": 85.26017127990721,
+      "yaw": -1.1492990985293938,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.1150057197633,
+      "z": 85.27593957498668,
+      "yaw": -1.142929050199255,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.08032540093086,
+      "z": 85.2918889915943,
+      "yaw": -1.1365499580264073,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.0458351112428,
+      "z": 85.30801853999495,
+      "yaw": -1.1301620657031455,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.0115348506989,
+      "z": 85.32432723045349,
+      "yaw": -1.1237656178498536,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.9774246192994,
+      "z": 85.34081407323481,
+      "yaw": -1.1173608599270821,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.9435044170442,
+      "z": 85.35747807860375,
+      "yaw": -1.1109480381467765,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.90977424393327,
+      "z": 85.3743182568252,
+      "yaw": -1.104527399382727,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.8762340999665,
+      "z": 85.39133361816405,
+      "yaw": -1.098099191080308,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.8428839851441,
+      "z": 85.40852317288517,
+      "yaw": -1.0916636611655774,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.809723899466,
+      "z": 85.42588593125342,
+      "yaw": -1.0852210579538077,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.7767538429322,
+      "z": 85.4434209035337,
+      "yaw": -1.0787716300575185,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.7439738155427,
+      "z": 85.46112709999085,
+      "yaw": -1.0723156262940867,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.71138381729753,
+      "z": 85.47900353088974,
+      "yaw": -1.0658532955930065,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.67898384819654,
+      "z": 85.49704920649528,
+      "yaw": -1.0593848869028728,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.6467739082399,
+      "z": 85.51526313707231,
+      "yaw": -1.0529106490981621,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.61475399742744,
+      "z": 85.53364433288573,
+      "yaw": -1.0464308308858876,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.5829241157594,
+      "z": 85.5521918042004,
+      "yaw": -1.0399456807122016,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.5512842632356,
+      "z": 85.5709045612812,
+      "yaw": -1.0334554466690198,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.4885746456208,
+      "z": 85.60882197380064,
+      "yaw": -1.020460717011171,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.4266251445832,
+      "z": 85.64738865256308,
+      "yaw": -1.00744861602337,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.36543576012275,
+      "z": 85.68659667968748,
+      "yaw": -0.9944211062037136,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.3050064922395,
+      "z": 85.72643813729283,
+      "yaw": -0.9813801354975981,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.2453373409333,
+      "z": 85.76690510749815,
+      "yaw": -0.9683276343925538,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.18642830620433,
+      "z": 85.80798967242238,
+      "yaw": -0.9552655130567957,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.1282793880525,
+      "z": 85.84968391418455,
+      "yaw": -0.9421956585303337,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.07089058647784,
+      "z": 85.89197991490363,
+      "yaw": -0.9291199319771891,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.01426190148027,
+      "z": 85.93486975669859,
+      "yaw": -0.9160401660068958,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.9583933330598,
+      "z": 85.97834552168844,
+      "yaw": -0.9029581620730724,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.90328488121656,
+      "z": 86.02239929199217,
+      "yaw": -0.8898756879564049,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.84893654595044,
+      "z": 86.06702314972875,
+      "yaw": -0.8767944753389009,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.7953483272615,
+      "z": 86.11220917701719,
+      "yaw": -0.8637162174757722,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.7425202251497,
+      "z": 86.15794945597646,
+      "yaw": -0.8506425669707598,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.690452239615,
+      "z": 86.20423606872558,
+      "yaw": -0.8375751336601552,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.63914437065756,
+      "z": 86.25106109738348,
+      "yaw": -0.8245154826101986,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.58859661827717,
+      "z": 86.2984166240692,
+      "yaw": -0.8114651322319393,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.53880898247394,
+      "z": 86.3462947309017,
+      "yaw": -0.7984255525170456,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.4897814632478,
+      "z": 86.39468749999999,
+      "yaw": -0.785398163397449,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.44151406059893,
+      "z": 86.44358701348304,
+      "yaw": -0.7723843332311076,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.39400677452716,
+      "z": 86.49298535346985,
+      "yaw": -0.759385377415574,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.3472596050325,
+      "z": 86.5428746020794,
+      "yaw": -0.7464025571304724,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.301272552115,
+      "z": 86.59324684143067,
+      "yaw": -0.7334370782094123,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.2560456157747,
+      "z": 86.64409415364267,
+      "yaw": -0.7204900901413162,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.2115787960115,
+      "z": 86.69540862083436,
+      "yaw": -0.7075626852006036,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.1678720928255,
+      "z": 86.74718232512475,
+      "yaw": -0.6946558977051653,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.1249255062165,
+      "z": 86.79940734863281,
+      "yaw": -0.6817707034005772,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.0827390361849,
+      "z": 86.85207577347755,
+      "yaw": -0.6689080189685528,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.0413126827302,
+      "z": 86.90517968177795,
+      "yaw": -0.6560687016572107,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.0006464458528,
+      "z": 86.95871115565299,
+      "yaw": -0.6432535490303412,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.9607403255525,
+      "z": 87.01266227722168,
+      "yaw": -0.6304632988325033,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.92159432182933,
+      "z": 87.06702512860298,
+      "yaw": -0.6176986289664611,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.8832084346833,
+      "z": 87.12179179191588,
+      "yaw": -0.6049601575791836,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.8455826641145,
+      "z": 87.17695434927938,
+      "yaw": -0.5922484432523788,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.8087170101228,
+      "z": 87.23250488281249,
+      "yaw": -0.5795639852933236,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.77261147270826,
+      "z": 87.28843547463416,
+      "yaw": -0.5669072241215637,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.73726605187085,
+      "z": 87.3447382068634,
+      "yaw": -0.5542785417469169,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.70268074761066,
+      "z": 87.40140516161917,
+      "yaw": -0.5416782623340983,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.6688555599275,
+      "z": 87.45842842102049,
+      "yaw": -0.5291066528492042,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.6357904888216,
+      "z": 87.51580006718632,
+      "yaw": -0.5165639237832449,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.60348553429276,
+      "z": 87.57351218223569,
+      "yaw": -0.5040502299478911,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.57194069634113,
+      "z": 87.63155684828754,
+      "yaw": -0.491565671338609,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.5411559749666,
+      "z": 87.68992614746091,
+      "yaw": -0.47911029406039196,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.5111313701693,
+      "z": 87.74861216187475,
+      "yaw": -0.46668409131135224,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.48186688194903,
+      "z": 87.80760697364805,
+      "yaw": -0.4542870044195142,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.45336251030596,
+      "z": 87.86690266489981,
+      "yaw": -0.44191892392825394,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.42561825524,
+      "z": 87.926491317749,
+      "yaw": -0.42957969072594554,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.3986341167513,
+      "z": 87.98636501431463,
+      "yaw": -0.41726909721550853,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.37241009483967,
+      "z": 88.04651583671568,
+      "yaw": -0.40498688851969955,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.3469461895052,
+      "z": 88.10693586707114,
+      "yaw": -0.3927327637181554,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.3222424007478,
+      "z": 88.16761718749999,
+      "yaw": -0.38050637711236523,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.29829872856766,
+      "z": 88.22855188012122,
+      "yaw": -0.36830733951493194,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.2751151729646,
+      "z": 88.28973202705382,
+      "yaw": -0.35613521955967126,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.2526917339387,
+      "z": 88.35114971041676,
+      "yaw": -0.3439895450292915,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.23102841149,
+      "z": 88.41279701232908,
+      "yaw": -0.33186980419760187,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.2101252056185,
+      "z": 88.47466601490972,
+      "yaw": -0.3197754471833887,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.189982116324,
+      "z": 88.53674880027769,
+      "yaw": -0.307705887313314,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.17059914360675,
+      "z": 88.59903745055198,
+      "yaw": -0.29566050249138665,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.15197628746654,
+      "z": 88.66152404785154,
+      "yaw": -0.28363863657276484,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.13411354790355,
+      "z": 88.7242006742954,
+      "yaw": -0.27163960073984805,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.11701092491774,
+      "z": 88.78705941200255,
+      "yaw": -0.25966267487881317,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.10066841850903,
+      "z": 88.85009234309194,
+      "yaw": -0.24770710895494852,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.0850860286775,
+      "z": 88.91329154968261,
+      "yaw": -0.23577212438532733,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.0702637554232,
+      "z": 88.9766491138935,
+      "yaw": -0.22385691540754887,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.05620159874593,
+      "z": 89.04015711784362,
+      "yaw": -0.21196065044345236,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.04289955864584,
+      "z": 89.10380764365195,
+      "yaw": -0.2000824734568847,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.0303576351228,
+      "z": 89.16759277343749,
+      "yaw": -0.18822150530477091,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.018575828177,
+      "z": 89.23150458931923,
+      "yaw": -0.1763768450808908,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.00755413780837,
+      "z": 89.29553517341614,
+      "yaw": -0.16454757145192123,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.9972925640169,
+      "z": 89.35967660784722,
+      "yaw": -0.15273274398544573,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.9877911068025,
+      "z": 89.42392097473146,
+      "yaw": -0.14093140446977132,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.9790497661653,
+      "z": 89.48826035618782,
+      "yaw": -0.12914257822551878,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.9710685421053,
+      "z": 89.55268683433533,
+      "yaw": -0.11736527540907155,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.9638474346224,
+      "z": 89.61719249129295,
+      "yaw": -0.105598492308082,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.9573864437166,
+      "z": 89.68176940917968,
+      "yaw": -0.09384121262933656,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.951685569388,
+      "z": 89.7464096701145,
+      "yaw": -0.08209240877937403,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.94674481163656,
+      "z": 89.81110535621643,
+      "yaw": -0.07035104313833661,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.9425641704622,
+      "z": 89.87584854960441,
+      "yaw": -0.05861606932761299,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.939143645865,
+      "z": 89.94063133239746,
+      "yaw": -0.046886433471899774,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.936483237845,
+      "z": 90.00544578671455,
+      "yaw": -0.035161075456367735,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.9345829464021,
+      "z": 90.07028399467467,
+      "yaw": -0.023438930179668884,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.93344277153636,
+      "z": 90.13513803839683,
+      "yaw": -0.011718928803566024,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.9330627132478,
+      "z": 90.19999999999999,
+      "yaw": 0,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.93344277153636,
+      "z": 90.26486196160315,
+      "yaw": 0.011718928803566024,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.9345829464021,
+      "z": 90.32971600532531,
+      "yaw": 0.023438930179668884,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.936483237845,
+      "z": 90.39455421328543,
+      "yaw": 0.035161075456367735,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.939143645865,
+      "z": 90.45936866760252,
+      "yaw": 0.046886433471899774,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.9425641704622,
+      "z": 90.52415145039556,
+      "yaw": 0.05861606932761297,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.94674481163656,
+      "z": 90.58889464378355,
+      "yaw": 0.07035104313833661,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.951685569388,
+      "z": 90.65359032988547,
+      "yaw": 0.08209240877937399,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.9573864437166,
+      "z": 90.7182305908203,
+      "yaw": 0.09384121262933653,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.9638474346224,
+      "z": 90.78280750870702,
+      "yaw": 0.10559849230808195,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.9710685421053,
+      "z": 90.84731316566464,
+      "yaw": 0.1173652754090715,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.9790497661653,
+      "z": 90.91173964381215,
+      "yaw": 0.12914257822551872,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.9877911068025,
+      "z": 90.97607902526852,
+      "yaw": 0.14093140446977126,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 395.9972925640169,
+      "z": 91.04032339215276,
+      "yaw": 0.15273274398544567,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.00755413780837,
+      "z": 91.10446482658384,
+      "yaw": 0.16454757145192117,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.018575828177,
+      "z": 91.16849541068075,
+      "yaw": 0.17637684508089066,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.0303576351228,
+      "z": 91.23240722656249,
+      "yaw": 0.18822150530477075,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.04289955864584,
+      "z": 91.29619235634803,
+      "yaw": 0.20008247345688462,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.05620159874593,
+      "z": 91.35984288215636,
+      "yaw": 0.21196065044345222,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.0702637554232,
+      "z": 91.42335088610648,
+      "yaw": 0.22385691540754873,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.0850860286775,
+      "z": 91.48670845031737,
+      "yaw": 0.23577212438532716,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.10066841850903,
+      "z": 91.54990765690803,
+      "yaw": 0.24770710895494832,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.11701092491774,
+      "z": 91.61294058799743,
+      "yaw": 0.259662674878813,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.13411354790355,
+      "z": 91.67579932570457,
+      "yaw": 0.2716396007398477,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.15197628746654,
+      "z": 91.73847595214843,
+      "yaw": 0.28363863657276456,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.17059914360675,
+      "z": 91.800962549448,
+      "yaw": 0.2956605024913863,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.189982116324,
+      "z": 91.86325119972228,
+      "yaw": 0.3077058873133137,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.2101252056185,
+      "z": 91.92533398509026,
+      "yaw": 0.31977544718338835,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.23102841149,
+      "z": 91.9872029876709,
+      "yaw": 0.33186980419760154,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.2526917339387,
+      "z": 92.04885028958321,
+      "yaw": 0.3439895450292912,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.2751151729646,
+      "z": 92.11026797294616,
+      "yaw": 0.3561352195596708,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.29829872856766,
+      "z": 92.17144811987876,
+      "yaw": 0.36830733951493155,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.3222424007478,
+      "z": 92.23238281249999,
+      "yaw": 0.3805063771123647,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.3469461895052,
+      "z": 92.29306413292883,
+      "yaw": 0.3927327637181549,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.37241009483967,
+      "z": 92.35348416328429,
+      "yaw": 0.40498688851969905,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.3986341167513,
+      "z": 92.41363498568535,
+      "yaw": 0.417269097215508,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.42561825524,
+      "z": 92.47350868225098,
+      "yaw": 0.42957969072594493,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.45336251030596,
+      "z": 92.53309733510017,
+      "yaw": 0.44191892392825327,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.48186688194903,
+      "z": 92.59239302635193,
+      "yaw": 0.4542870044195133,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.5111313701693,
+      "z": 92.65138783812523,
+      "yaw": 0.4666840913113516,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.5411559749666,
+      "z": 92.71007385253907,
+      "yaw": 0.47911029406039135,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.57194069634113,
+      "z": 92.76844315171243,
+      "yaw": 0.49156567133860835,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.60348553429276,
+      "z": 92.82648781776429,
+      "yaw": 0.5040502299478904,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.6357904888216,
+      "z": 92.88419993281366,
+      "yaw": 0.516563923783244,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.6688555599275,
+      "z": 92.94157157897949,
+      "yaw": 0.5291066528492032,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.70268074761066,
+      "z": 92.99859483838081,
+      "yaw": 0.5416782623340974,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.73726605187085,
+      "z": 93.05526179313658,
+      "yaw": 0.5542785417469158,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.77261147270826,
+      "z": 93.11156452536582,
+      "yaw": 0.5669072241215627,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.8087170101228,
+      "z": 93.16749511718749,
+      "yaw": 0.5795639852933226,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.8455826641145,
+      "z": 93.2230456507206,
+      "yaw": 0.5922484432523779,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.8832084346833,
+      "z": 93.2782082080841,
+      "yaw": 0.6049601575791828,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.92159432182933,
+      "z": 93.332974871397,
+      "yaw": 0.6176986289664599,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 396.9607403255525,
+      "z": 93.3873377227783,
+      "yaw": 0.630463298832502,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.0006464458528,
+      "z": 93.44128884434699,
+      "yaw": 0.6432535490303399,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.0413126827302,
+      "z": 93.49482031822203,
+      "yaw": 0.6560687016572092,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.0827390361849,
+      "z": 93.54792422652243,
+      "yaw": 0.6689080189685513,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.1249255062165,
+      "z": 93.60059265136717,
+      "yaw": 0.681770703400576,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.1678720928255,
+      "z": 93.65281767487522,
+      "yaw": 0.6946558977051641,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.2115787960115,
+      "z": 93.70459137916562,
+      "yaw": 0.7075626852006024,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.2560456157747,
+      "z": 93.75590584635731,
+      "yaw": 0.7204900901413146,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.301272552115,
+      "z": 93.80675315856931,
+      "yaw": 0.7334370782094106,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.3472596050325,
+      "z": 93.85712539792058,
+      "yaw": 0.7464025571304709,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.39400677452716,
+      "z": 93.90701464653013,
+      "yaw": 0.7593853774155721,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.44151406059893,
+      "z": 93.95641298651694,
+      "yaw": 0.7723843332311058,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.4897814632478,
+      "z": 94.00531249999999,
+      "yaw": 0.7853981633974473,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.53880898247394,
+      "z": 94.05370526909827,
+      "yaw": 0.798425552517044,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.58859661827717,
+      "z": 94.10158337593077,
+      "yaw": 0.8114651322319377,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.63914437065756,
+      "z": 94.1489389026165,
+      "yaw": 0.8245154826101968,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.690452239615,
+      "z": 94.1957639312744,
+      "yaw": 0.8375751336601535,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.7425202251497,
+      "z": 94.24205054402351,
+      "yaw": 0.8506425669707579,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.7953483272615,
+      "z": 94.28779082298279,
+      "yaw": 0.86371621747577,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.84893654595044,
+      "z": 94.33297685027122,
+      "yaw": 0.8767944753388988,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.90328488121656,
+      "z": 94.3776007080078,
+      "yaw": 0.8898756879564028,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 397.9583933330598,
+      "z": 94.42165447831154,
+      "yaw": 0.9029581620730704,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.01426190148027,
+      "z": 94.46513024330139,
+      "yaw": 0.9160401660068938,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.07089058647784,
+      "z": 94.50802008509635,
+      "yaw": 0.9291199319771868,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.1282793880525,
+      "z": 94.55031608581542,
+      "yaw": 0.9421956585303316,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.18642830620433,
+      "z": 94.5920103275776,
+      "yaw": 0.9552655130567935,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.2453373409333,
+      "z": 94.63309489250183,
+      "yaw": 0.9683276343925513,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.3050064922395,
+      "z": 94.67356186270715,
+      "yaw": 0.9813801354975955,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.36543576012275,
+      "z": 94.7134033203125,
+      "yaw": 0.9944211062037112,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.4266251445832,
+      "z": 94.7526113474369,
+      "yaw": 1.0074486160233675,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.4885746456208,
+      "z": 94.79117802619933,
+      "yaw": 1.0204607170111686,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.5512842632356,
+      "z": 94.82909543871878,
+      "yaw": 1.0334554466690173,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.5829241157594,
+      "z": 94.84780819579957,
+      "yaw": 1.039945680712199,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.61475399742744,
+      "z": 94.86635566711425,
+      "yaw": 1.0464308308858852,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.6467739082399,
+      "z": 94.88473686292767,
+      "yaw": 1.0529106490981592,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.67898384819654,
+      "z": 94.9029507935047,
+      "yaw": 1.0593848869028701,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.71138381729753,
+      "z": 94.92099646911024,
+      "yaw": 1.0658532955930038,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.7439738155427,
+      "z": 94.93887290000913,
+      "yaw": 1.072315626294084,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.7767538429322,
+      "z": 94.95657909646627,
+      "yaw": 1.0787716300575159,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.809723899466,
+      "z": 94.97411406874656,
+      "yaw": 1.085221057953805,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.8428839851441,
+      "z": 94.99147682711481,
+      "yaw": 1.091663661165575,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.8762340999665,
+      "z": 95.00866638183592,
+      "yaw": 1.098099191080305,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.90977424393327,
+      "z": 95.02568174317477,
+      "yaw": 1.104527399382724,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.9435044170442,
+      "z": 95.04252192139623,
+      "yaw": 1.1109480381467738,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 398.9774246192994,
+      "z": 95.05918592676517,
+      "yaw": 1.1173608599270795,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.0115348506989,
+      "z": 95.07567276954649,
+      "yaw": 1.123765617849851,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.0458351112428,
+      "z": 95.09198146000503,
+      "yaw": 1.1301620657031428,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.08032540093086,
+      "z": 95.10811100840567,
+      "yaw": 1.1365499580264045,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.1150057197633,
+      "z": 95.1240604250133,
+      "yaw": 1.1429290501992522,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.14987606773997,
+      "z": 95.13982872009277,
+      "yaw": 1.149299098529391,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.18493644486097,
+      "z": 95.15541490390895,
+      "yaw": 1.155659860339622,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.2201868511262,
+      "z": 95.17081798672675,
+      "yaw": 1.1620110940538744,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.25562728653574,
+      "z": 95.18603697881102,
+      "yaw": 1.1683525592821864,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.2912577510896,
+      "z": 95.20107089042664,
+      "yaw": 1.174684016904586,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.3270782447878,
+      "z": 95.21591873183847,
+      "yaw": 1.1810052291538002,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.3630887676302,
+      "z": 95.23057951331138,
+      "yaw": 1.187315959696741,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.39928931961686,
+      "z": 95.24505224511026,
+      "yaw": 1.1936159737147043,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.4356799007478,
+      "z": 95.2593359375,
+      "yaw": 1.1999050379822318,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.4722605110231,
+      "z": 95.27342960074543,
+      "yaw": 1.2061829209445794,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.50903115044264,
+      "z": 95.28733224511146,
+      "yaw": 1.21244939279374,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.54599181900653,
+      "z": 95.30104288086295,
+      "yaw": 1.2187042255429728,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.5831425167146,
+      "z": 95.31456051826476,
+      "yaw": 1.2249471930997895,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.62048324356704,
+      "z": 95.32788416758179,
+      "yaw": 1.2311780713373557,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.6580139995637,
+      "z": 95.3410128390789,
+      "yaw": 1.2373966381642578,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.6957347847047,
+      "z": 95.35394554302096,
+      "yaw": 1.2436026735926042,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.73364559899,
+      "z": 95.36668128967284,
+      "yaw": 1.249795959804408,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.77174644241956,
+      "z": 95.37921908929943,
+      "yaw": 1.2559762812162325,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.8100373149934,
+      "z": 95.39155795216558,
+      "yaw": 1.2621434245420473,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.84851821671157,
+      "z": 95.4036968885362,
+      "yaw": 1.2682971788542778,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.88718914757396,
+      "z": 95.41563490867614,
+      "yaw": 1.27443733564301,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.92605010758075,
+      "z": 95.42737102285025,
+      "yaw": 1.2805636888733258,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 399.9651010967317,
+      "z": 95.43890424132346,
+      "yaw": 1.2866760350407465,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.004342115027,
+      "z": 95.4502335743606,
+      "yaw": 1.2927741732247569,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.04377316246655,
+      "z": 95.46135803222656,
+      "yaw": 1.2988579051403981,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.08339423905045,
+      "z": 95.47227662518621,
+      "yaw": 1.3049270351879019,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.1232053447786,
+      "z": 95.48298836350442,
+      "yaw": 1.3109813705003606,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.1632064796511,
+      "z": 95.49349225744605,
+      "yaw": 1.31702072098941,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.2033976436677,
+      "z": 95.503787317276,
+      "yaw": 1.3230448993889277,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.2437788368287,
+      "z": 95.51387255325912,
+      "yaw": 1.3290537212967226,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.284350059134,
+      "z": 95.52374697566032,
+      "yaw": 1.3350470052142247,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.3251113105836,
+      "z": 95.53340959474444,
+      "yaw": 1.3410245725841619,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.36606259117747,
+      "z": 95.54285942077635,
+      "yaw": 1.346986247826225,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.40720390091565,
+      "z": 95.55209546402095,
+      "yaw": 1.3529318583707248,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.44853523979805,
+      "z": 95.56111673474311,
+      "yaw": 1.358861234690238,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.49005660782484,
+      "z": 95.56992224320769,
+      "yaw": 1.3647742103292522,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.5317680049958,
+      "z": 95.57851099967957,
+      "yaw": 1.370670621931813,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.57366943131115,
+      "z": 95.58688201442362,
+      "yaw": 1.3765503092671887,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.6157608867708,
+      "z": 95.5950342977047,
+      "yaw": 1.3824131152535526,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.6580423713747,
+      "z": 95.6029668597877,
+      "yaw": 1.3882588859797067,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.7005138851228,
+      "z": 95.61067871093749,
+      "yaw": 1.394087470724857,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.7431754280153,
+      "z": 95.61816886141895,
+      "yaw": 1.3998987219764523,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.78602700005206,
+      "z": 95.62543632149695,
+      "yaw": 1.4056924954461156,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.8290686012331,
+      "z": 95.63248010143639,
+      "yaw": 1.4114686500836753,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.87230023155837,
+      "z": 95.63929921150208,
+      "yaw": 1.417227048089329,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.915721891028,
+      "z": 95.64589266195892,
+      "yaw": 1.4229675549239533,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 400.95933357964185,
+      "z": 95.65225946307181,
+      "yaw": 1.4286900393175914,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.00313529740004,
+      "z": 95.6583986251056,
+      "yaw": 1.434394373276141,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.0471270443025,
+      "z": 95.66430915832518,
+      "yaw": 1.4400804320862661,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.09130882034924,
+      "z": 95.66999007299542,
+      "yaw": 1.4457480943185717,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.13568062554026,
+      "z": 95.67544037938117,
+      "yaw": 1.4513972418290575,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.1802424598756,
+      "z": 95.68065908774732,
+      "yaw": 1.4570277597588932,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.2249943233552,
+      "z": 95.68564520835875,
+      "yaw": 1.4626395365325373,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.26993621597916,
+      "z": 95.69039775148033,
+      "yaw": 1.468232463854242,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.31506813774735,
+      "z": 95.69491572737692,
+      "yaw": 1.473806436702968,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.3603900886598,
+      "z": 95.6991981463134,
+      "yaw": 1.4793613533257517,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.40590206871656,
+      "z": 95.70324401855467,
+      "yaw": 1.4848971152295554,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.45160407791764,
+      "z": 95.70705235436556,
+      "yaw": 1.4904136271716386,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.49749611626294,
+      "z": 95.71062216401097,
+      "yaw": 1.4959107971484846,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.5435781837526,
+      "z": 95.71395245775577,
+      "yaw": 1.5013885363833261,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.5898502803865,
+      "z": 95.71704224586485,
+      "yaw": 1.506846759312298,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.63631240616473,
+      "z": 95.71989053860304,
+      "yaw": 1.5122853835692636,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.68296456108726,
+      "z": 95.72249634623525,
+      "yaw": 1.5177043299693467,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.72980674515406,
+      "z": 95.72485867902634,
+      "yaw": 1.5231035224912177,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.77683895836503,
+      "z": 95.7269765472412,
+      "yaw": 1.5284828882581614,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.8240612007204,
+      "z": 95.72884896114468,
+      "yaw": 1.5338423575179723,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.87147347222003,
+      "z": 95.73047493100165,
+      "yaw": 1.5391818636217192,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.91907577286395,
+      "z": 95.731853467077,
+      "yaw": 1.544501343001411,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 401.96686810265214,
+      "z": 95.7329835796356,
+      "yaw": 1.5498007351466134,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 402.01485046158473,
+      "z": 95.73386427894232,
+      "yaw": 1.5550799825800479,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 402.0630228496615,
+      "z": 95.73449457526205,
+      "yaw": 1.5603390308322158,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 402.1113852668825,
+      "z": 95.73487347885964,
+      "yaw": 1.5655778284150863,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 402.1599377132478,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 402.45770978717945,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 402.7554818611111,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 403.0532539350427,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 403.3510260089743,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 403.64879808290596,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 403.94657015683754,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 404.2443422307692,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 404.5421143047008,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 404.83988637863246,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 405.13765845256404,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 405.4354305264957,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 405.7332026004273,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 406.03097467435896,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 406.32874674829054,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 406.6265188222222,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 406.9242908961538,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 407.2220629700854,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 407.51983504401704,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 407.8176071179487,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 408.1153791918803,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 408.4131512658119,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 408.71092333974354,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 409.0086954136752,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 409.3064674876068,
+      "z": 95.73499999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 409.37847300424687,
+      "z": 95.73547332763671,
+      "yaw": 1.5575854118349537,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 409.4482972062493,
+      "z": 95.73685302734374,
+      "yaw": 1.5444475126769714,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 409.5160855145899,
+      "z": 95.7390786743164,
+      "yaw": 1.5314792022403731,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 409.5819833502446,
+      "z": 95.74208984375,
+      "yaw": 1.5187858413423416,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 409.6461361341892,
+      "z": 95.74582611083983,
+      "yaw": 1.5064803555078712,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 409.7086892873996,
+      "z": 95.75022705078123,
+      "yaw": 1.4946815761828214,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 409.76978823085153,
+      "z": 95.75523223876951,
+      "yaw": 1.4835121573582757,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 409.8295783855208,
+      "z": 95.76078124999998,
+      "yaw": 1.4730961064275483,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 409.8882051723833,
+      "z": 95.76681365966796,
+      "yaw": 1.4635559968463407,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 409.945814012415,
+      "z": 95.77326904296874,
+      "yaw": 1.4550099571972805,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 410.00255032659163,
+      "z": 95.78008697509765,
+      "yaw": 1.447568553869822,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 410.058559535889,
+      "z": 95.78720703125,
+      "yaw": 1.4413317003934194,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 410.113987061283,
+      "z": 95.79456878662111,
+      "yaw": 1.4363857338217256,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 410.16897832374957,
+      "z": 95.80211181640625,
+      "yaw": 1.4328007966589467,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 410.2236787442645,
+      "z": 95.80977569580078,
+      "yaw": 1.4306286517693545,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 410.2782337438034,
+      "z": 95.8175,
+      "yaw": 1.4299010384398463,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 410.33278874334235,
+      "z": 95.82522430419921,
+      "yaw": 1.4306286517693605,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 410.38748916385725,
+      "z": 95.83288818359374,
+      "yaw": 1.4328007966589587,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 410.4424804263238,
+      "z": 95.84043121337888,
+      "yaw": 1.4363857338217434,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 410.4979079517178,
+      "z": 95.84779296874999,
+      "yaw": 1.441331700393443,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 410.5539171610152,
+      "z": 95.85491302490233,
+      "yaw": 1.447568553869851,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 410.61065347519184,
+      "z": 95.86173095703123,
+      "yaw": 1.455009957197315,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 410.6682623152235,
+      "z": 95.86818634033202,
+      "yaw": 1.4635559968463805,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 410.72688910208603,
+      "z": 95.87421874999998,
+      "yaw": 1.473096106427593,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 410.7866792567553,
+      "z": 95.87976776123045,
+      "yaw": 1.483512157358325,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 410.84777820020724,
+      "z": 95.88477294921873,
+      "yaw": 1.4946815761828751,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 410.9103313534175,
+      "z": 95.88917388916013,
+      "yaw": 1.5064803555079287,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 410.9744841373621,
+      "z": 95.89291015624998,
+      "yaw": 1.518785841342403,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 411.0403819730168,
+      "z": 95.89592132568359,
+      "yaw": 1.5314792022404378,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 411.1081702813574,
+      "z": 95.89814697265625,
+      "yaw": 1.5444475126770392,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 411.17799448335984,
+      "z": 95.89952667236328,
+      "yaw": 1.5575854118350243,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 411.24999999999994,
+      "z": 95.89999999999999,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": false
+    },
+    {
+      "x": 411.4468749999999,
+      "z": 95.9034065246582,
+      "yaw": 1.5363860864217658,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 411.64374999999995,
+      "z": 95.91348266601561,
+      "yaw": 1.503144886948058,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 411.84062499999993,
+      "z": 95.93001327514648,
+      "yaw": 1.471134580691107,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 412.03749999999997,
+      "z": 95.952783203125,
+      "yaw": 1.4404020123585293,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 412.23437499999994,
+      "z": 95.98157730102538,
+      "yaw": 1.4109800666986874,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 412.4312499999999,
+      "z": 96.01618041992187,
+      "yaw": 1.3828889643186175,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 412.62812499999995,
+      "z": 96.05637741088866,
+      "yaw": 1.3561377087102977,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 412.82499999999993,
+      "z": 96.101953125,
+      "yaw": 1.3307255997205887,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 413.02187499999997,
+      "z": 96.15269241333007,
+      "yaw": 1.306643743933937,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 413.21874999999994,
+      "z": 96.20838012695312,
+      "yaw": 1.2838765085562678,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 413.4156249999999,
+      "z": 96.26880111694335,
+      "yaw": 1.2624028807966465,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 413.61249999999995,
+      "z": 96.33374023437499,
+      "yaw": 1.2421977084119065,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 413.80937499999993,
+      "z": 96.40298233032226,
+      "yaw": 1.223232808476107,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 414.00624999999997,
+      "z": 96.47631225585937,
+      "yaw": 1.2054779404119491,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 414.20312499999994,
+      "z": 96.55351486206054,
+      "yaw": 1.188901645988853,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 414.3999999999999,
+      "z": 96.63437499999999,
+      "yaw": 1.1734719636223254,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 414.59687499999995,
+      "z": 96.71867752075194,
+      "yaw": 1.1591570272441292,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 414.79374999999993,
+      "z": 96.80620727539062,
+      "yaw": 1.1459255616085173,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 414.99062499999997,
+      "z": 96.89674911499023,
+      "yaw": 1.1337472864882923,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 415.18749999999994,
+      "z": 96.99008789062499,
+      "yaw": 1.1225932420837232,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 415.3843749999999,
+      "z": 97.08600845336913,
+      "yaw": 1.112436047353837,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 415.58124999999995,
+      "z": 97.18429565429686,
+      "yaw": 1.1032501020685803,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 415.77812499999993,
+      "z": 97.28473434448242,
+      "yaw": 1.0950117423108314,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 415.97499999999997,
+      "z": 97.387109375,
+      "yaw": 1.0876993580289784,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 416.17187499999994,
+      "z": 97.49120559692382,
+      "yaw": 1.0812934801216683,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 416.3687499999999,
+      "z": 97.59680786132812,
+      "yaw": 1.0757768434696382,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 416.56562499999995,
+      "z": 97.7037010192871,
+      "yaw": 1.0711344313398432,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 416.76249999999993,
+      "z": 97.811669921875,
+      "yaw": 1.06735350568556,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 416.95937499999997,
+      "z": 97.92049942016601,
+      "yaw": 1.0644236270543619,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 417.15624999999994,
+      "z": 98.02997436523437,
+      "yaw": 1.062336667088983,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 417.3531249999999,
+      "z": 98.13987960815429,
+      "yaw": 1.0610868159550908,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 417.54999999999995,
+      "z": 98.24999999999999,
+      "yaw": 1.0606705864430874,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 417.74687499999993,
+      "z": 98.3601203918457,
+      "yaw": 1.0610868159550908,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 417.94374999999997,
+      "z": 98.47002563476562,
+      "yaw": 1.062336667088983,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 418.14062499999994,
+      "z": 98.57950057983398,
+      "yaw": 1.0644236270543619,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 418.3374999999999,
+      "z": 98.68833007812499,
+      "yaw": 1.0673535056855603,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 418.53437499999995,
+      "z": 98.79629898071288,
+      "yaw": 1.0711344313398432,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 418.73124999999993,
+      "z": 98.90319213867187,
+      "yaw": 1.0757768434696382,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 418.92812499999997,
+      "z": 99.00879440307617,
+      "yaw": 1.0812934801216683,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 419.12499999999994,
+      "z": 99.11289062499999,
+      "yaw": 1.0876993580289784,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 419.3218749999999,
+      "z": 99.21526565551757,
+      "yaw": 1.0950117423108314,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 419.51874999999995,
+      "z": 99.31570434570311,
+      "yaw": 1.1032501020685803,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 419.71562499999993,
+      "z": 99.41399154663085,
+      "yaw": 1.112436047353837,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 419.91249999999997,
+      "z": 99.509912109375,
+      "yaw": 1.1225932420837232,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 420.10937499999994,
+      "z": 99.60325088500976,
+      "yaw": 1.1337472864882923,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 420.3062499999999,
+      "z": 99.69379272460937,
+      "yaw": 1.1459255616085173,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 420.50312499999995,
+      "z": 99.78132247924803,
+      "yaw": 1.1591570272441292,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 420.69999999999993,
+      "z": 99.865625,
+      "yaw": 1.1734719636223254,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 420.89687499999997,
+      "z": 99.94648513793945,
+      "yaw": 1.188901645988853,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 421.09374999999994,
+      "z": 100.02368774414062,
+      "yaw": 1.2054779404119491,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 421.2906249999999,
+      "z": 100.09701766967773,
+      "yaw": 1.223232808476107,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 421.48749999999995,
+      "z": 100.16625976562499,
+      "yaw": 1.2421977084119065,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 421.68437499999993,
+      "z": 100.23119888305663,
+      "yaw": 1.2624028807966465,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 421.88124999999997,
+      "z": 100.29161987304687,
+      "yaw": 1.2838765085562678,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 422.07812499999994,
+      "z": 100.34730758666991,
+      "yaw": 1.306643743933937,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 422.2749999999999,
+      "z": 100.39804687499999,
+      "yaw": 1.3307255997205887,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 422.47187499999995,
+      "z": 100.44362258911131,
+      "yaw": 1.3561377087102977,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 422.66874999999993,
+      "z": 100.48381958007812,
+      "yaw": 1.3828889643186175,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 422.86562499999997,
+      "z": 100.5184226989746,
+      "yaw": 1.4109800666986874,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 423.06249999999994,
+      "z": 100.54721679687499,
+      "yaw": 1.4404020123585293,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 423.2593749999999,
+      "z": 100.5699867248535,
+      "yaw": 1.471134580691107,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 423.45624999999995,
+      "z": 100.58651733398436,
+      "yaw": 1.503144886948058,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 423.65312499999993,
+      "z": 100.59659347534179,
+      "yaw": 1.5363860864217658,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    },
+    {
+      "x": 423.84999999999997,
+      "z": 100.6,
+      "yaw": 1.5707963267948966,
+      "gear": "forward",
+      "parking": true,
+      "speedLimitKmh": 5
+    }
+  ],
+  "edgeIds": [
+    "road-tail:street-junction-293:L-EA-V-028:0:-1:incoming:0",
+    "street-junction-293:turn:3415",
+    "lane-edge-1529",
+    "street-junction-299:turn:3475",
+    "lane-edge-627",
+    "street-junction-25:turn:313",
+    "lane-edge-303",
+    "street-junction-20:turn:251",
+    "road-end-turnaround:street-junction-20:A-NORTH:2:-1:outgoing:1>street-junction-20:A-NORTH:2:-1:incoming:1"
+  ],
+  "controls": [
+    {
+      "approachId": "street-junction-293:L-EA-V-028:0:-1",
+      "turnId": "street-junction-293:turn:3415",
+      "junctionId": "street-junction-293",
+      "distanceM": 27.037384636326706,
+      "stopPoint": {
+        "x": 426.31508230987504,
+        "z": 52.26039128618908
+      },
+      "rule": "priority_right",
+      "axis": 1,
+      "offset": 0,
+      "signalId": null,
+      "yieldTo": [
+        "street-junction-293:turn:3409",
+        "street-junction-293:turn:3410",
+        "street-junction-293:turn:3411",
+        "street-junction-293:turn:3417",
+        "street-junction-293:turn:3418"
+      ],
+      "conflictingTurnIds": [
+        "street-junction-293:turn:3409",
+        "street-junction-293:turn:3410",
+        "street-junction-293:turn:3411",
+        "street-junction-293:turn:3416",
+        "street-junction-293:turn:3417",
+        "street-junction-293:turn:3418",
+        "street-junction-293:turn:3412"
+      ],
+      "crosswalkIds": [
+        "street-crosswalk-41"
+      ],
+      "requestedDistanceM": 27.037384636326706,
+      "control_key": "street-junction-293:L-EA-V-028:0:-1|street-junction-293:turn:3415"
+    },
+    {
+      "id": "road-tail:street-junction-293:L-EA-V-028:0:-1:incoming:0:crossing:street-crosswalk-41",
+      "kind": "pedestrian_crossing",
+      "edgeId": "road-tail:street-junction-293:L-EA-V-028:0:-1:incoming:0",
+      "crosswalkIds": [
+        "street-crosswalk-41"
+      ],
+      "railCrossingIds": [],
+      "progressM": 19.520460720250576,
+      "crossingProgressM": 23.820460720250576,
+      "rule": "pedestrian_priority",
+      "requestedDistanceM": 27.136670206252568,
+      "distanceM": 27.136670206252568,
+      "stopPoint": {
+        "x": 426.33120203917383,
+        "z": 52.35908350638569,
+        "yaw": 0.16190369150866454
+      },
+      "startInsideApproach": false,
+      "control_key": "road-tail:street-junction-293:L-EA-V-028:0:-1:incoming:0:crossing:street-crosswalk-41"
+    },
+    {
+      "approachId": "street-junction-299:L-EA-H-024:0:-1",
+      "turnId": "street-junction-299:turn:3475",
+      "junctionId": "street-junction-299",
+      "distanceM": 49.8113269148868,
+      "stopPoint": {
+        "x": 435.49358387212675,
+        "z": 70.6880094697753
+      },
+      "rule": "priority_right",
+      "axis": 1,
+      "offset": 0,
+      "signalId": null,
+      "yieldTo": [
+        "street-junction-116:turn:1424",
+        "street-junction-116:turn:1425",
+        "street-junction-116:turn:1426",
+        "street-junction-116:turn:1427",
+        "street-junction-299:turn:3482",
+        "street-junction-299:turn:3483",
+        "street-junction-299:turn:3484"
+      ],
+      "conflictingTurnIds": [
+        "street-junction-299:turn:3478",
+        "street-junction-299:turn:3481",
+        "street-junction-299:turn:3482",
+        "street-junction-299:turn:3483",
+        "street-junction-299:turn:3484"
+      ],
+      "crosswalkIds": [],
+      "requestedDistanceM": 49.8113269148868,
+      "control_key": "street-junction-299:L-EA-H-024:0:-1|street-junction-299:turn:3475"
+    },
+    {
+      "approachId": "street-junction-25:AL-014:0:-1",
+      "turnId": "street-junction-25:turn:313",
+      "junctionId": "street-junction-25",
+      "distanceM": 61.19044374774393,
+      "stopPoint": {
+        "x": 442.79999999999995,
+        "z": 76.36986666666667
+      },
+      "rule": "yield",
+      "axis": 0,
+      "offset": 0,
+      "signalId": null,
+      "yieldTo": [
+        "street-junction-17:turn:199",
+        "street-junction-17:turn:200",
+        "street-junction-17:turn:201",
+        "street-junction-17:turn:202",
+        "street-junction-17:turn:203",
+        "street-junction-17:turn:204",
+        "street-junction-17:turn:205",
+        "street-junction-17:turn:206",
+        "street-junction-17:turn:207",
+        "street-junction-17:turn:208",
+        "street-junction-17:turn:209",
+        "street-junction-17:turn:210",
+        "street-junction-17:turn:211",
+        "street-junction-17:turn:212",
+        "street-junction-17:turn:213",
+        "street-junction-17:turn:214",
+        "street-junction-25:turn:315",
+        "street-junction-25:turn:316",
+        "street-junction-25:turn:317",
+        "street-junction-25:turn:318",
+        "street-junction-25:turn:319",
+        "street-junction-25:turn:320",
+        "street-junction-117:turn:1434",
+        "street-junction-117:turn:1435",
+        "street-junction-117:turn:1436",
+        "street-junction-117:turn:1437",
+        "street-junction-117:turn:1438",
+        "street-junction-117:turn:1439",
+        "street-junction-117:turn:1440",
+        "street-junction-117:turn:1441",
+        "street-junction-117:turn:1442",
+        "street-junction-117:turn:1443",
+        "street-junction-117:turn:1444",
+        "street-junction-117:turn:1445",
+        "street-junction-117:turn:1446",
+        "street-junction-117:turn:1447"
+      ],
+      "conflictingTurnIds": [
+        "street-junction-25:turn:315",
+        "street-junction-25:turn:318",
+        "street-junction-25:turn:320"
+      ],
+      "crosswalkIds": [],
+      "requestedDistanceM": 61.19044374774393,
+      "control_key": "street-junction-25:AL-014:0:-1|street-junction-25:turn:313"
+    },
+    {
+      "approachId": "street-junction-20:A-NORTH:2:1",
+      "turnId": "street-junction-20:turn:251",
+      "junctionId": "street-junction-20",
+      "distanceM": 69.86141457499605,
+      "stopPoint": {
+        "x": 442.23047986186856,
+        "z": 86.0547685126209
+      },
+      "rule": "signal",
+      "axis": 0,
+      "offset": 7,
+      "signalId": "road-traffic_signal-5",
+      "yieldTo": [],
+      "conflictingTurnIds": [
+        "street-junction-20:turn:248",
+        "street-junction-20:turn:254",
+        "street-junction-20:turn:255",
+        "street-junction-20:turn:256",
+        "street-junction-20:turn:259"
+      ],
+      "crosswalkIds": [
+        "street-crosswalk-4"
+      ],
+      "requestedDistanceM": 69.86141457499605,
+      "control_key": "street-junction-20:A-NORTH:2:1|street-junction-20:turn:251"
+    },
+    {
+      "id": "road-end-turnaround:street-junction-20:A-NORTH:2:-1:outgoing:1>street-junction-20:A-NORTH:2:-1:incoming:1:crossing:street-crosswalk-4",
+      "kind": "pedestrian_crossing",
+      "edgeId": "road-end-turnaround:street-junction-20:A-NORTH:2:-1:outgoing:1>street-junction-20:A-NORTH:2:-1:incoming:1",
+      "crosswalkIds": [
+        "street-crosswalk-4"
+      ],
+      "railCrossingIds": [],
+      "progressM": -4.3,
+      "crossingProgressM": 0,
+      "rule": "pedestrian_priority",
+      "requestedDistanceM": 85.585044984993,
+      "distanceM": 85.585044984993,
+      "stopPoint": {
+        "x": 426.41062218348316,
+        "z": 84.68213227324335,
+        "yaw": -1.5781389541003947
+      },
+      "startInsideApproach": false,
+      "control_key": "road-end-turnaround:street-junction-20:A-NORTH:2:-1:outgoing:1>street-junction-20:A-NORTH:2:-1:incoming:1:crossing:street-crosswalk-4"
+    },
+    {
+      "id": "road-end-turnaround:street-junction-20:A-NORTH:2:-1:outgoing:1>street-junction-20:A-NORTH:2:-1:incoming:1:control",
+      "kind": "road_end_turnaround",
+      "edgeId": "road-end-turnaround:street-junction-20:A-NORTH:2:-1:outgoing:1>street-junction-20:A-NORTH:2:-1:incoming:1",
+      "progressM": 17.250728953418832,
+      "rule": "yield_to_oncoming",
+      "speedLimitKmh": 5,
+      "conflictingEdgeIds": [
+        "road-tail:street-junction-20:A-NORTH:2:-1:incoming:0",
+        "road-tail:street-junction-20:A-NORTH:2:-1:incoming:1"
+      ],
+      "crosswalkIds": [],
+      "requestedDistanceM": 107.13577393841183,
+      "distanceM": 107.13577393841183,
+      "stopPoint": {
+        "x": 404.8599377132478,
+        "z": 84.66499999999999,
+        "yaw": -1.5707963267948966
+      },
+      "startInsideApproach": false,
+      "control_key": "road-end-turnaround:street-junction-20:A-NORTH:2:-1:outgoing:1>street-junction-20:A-NORTH:2:-1:incoming:1:control"
+    }
+  ],
+  "gearChanges": [
+    {
+      "pointIndex": 180,
+      "from": "reverse",
+      "to": "forward",
+      "requiresStop": true
+    }
+  ],
+  "parkingStartIndex": 942,
+  "staticChecks": {
+    "samples": 4005,
+    "hullFailures": [],
+    "supportFailures": [
+      {
+        "index": 336,
+        "x": 426.1111655930392,
+        "z": 51.011921591275524,
+        "yaw": 0.16190369150866454
+      },
+      {
+        "index": 336,
+        "x": 426.1207827163597,
+        "z": 51.07080193813619,
+        "yaw": 0.16190369150866454
+      },
+      {
+        "index": 336,
+        "x": 426.1303998396803,
+        "z": 51.12968228499686,
+        "yaw": 0.16190369150866454
+      },
+      {
+        "index": 337,
+        "x": 426.1303998396803,
+        "z": 51.12968228499686,
+        "yaw": 0.16190369150866454
+      },
+      {
+        "index": 337,
+        "x": 426.1400169630009,
+        "z": 51.18856263185753,
+        "yaw": 0.16190369150866454
+      },
+      {
+        "index": 337,
+        "x": 426.14963408632144,
+        "z": 51.2474429787182,
+        "yaw": 0.16190369150866454
+      },
+      {
+        "index": 337,
+        "x": 426.15925120964204,
+        "z": 51.30632332557886,
+        "yaw": 0.16190369150866454
+      },
+      {
+        "index": 337,
+        "x": 426.1688683329626,
+        "z": 51.36520367243953,
+        "yaw": 0.16190369150866454
+      },
+      {
+        "index": 337,
+        "x": 426.17848545628317,
+        "z": 51.424084019300196,
+        "yaw": 0.16190369150866454
+      },
+      {
+        "index": 338,
+        "x": 426.17848545628317,
+        "z": 51.424084019300196,
+        "yaw": 0.16190369150866454
+      }
+    ]
+  },
+  "bounds": {
+    "minX": 395.9330627132478,
+    "maxX": 443.3951735131031,
+    "minZ": 35.349999999999994,
+    "maxZ": 100.6
+  },
+  "distanceM": 151.19556206471123,
+  "walk": {
+    "from": {
+      "x": 424.49999999999994,
+      "z": 98.87260001199999
+    },
+    "to": {
+      "x": 404.15,
+      "z": 50.749446964263925
+    },
+    "sourceConservativeRadiusM": 1.0436896090313441,
+    "parkingCrosswalkRoute": null,
+    "physicalProposal": {
+      "length": 56.5866892426494,
+      "points": [
+        {
+          "x": 424.49999999999994,
+          "z": 98.87260001199999
+        },
+        {
+          "x": 424.55499999999995,
+          "z": 98.60499999999999
+        },
+        {
+          "x": 424.55499999999995,
+          "z": 98.195
+        },
+        {
+          "x": 424.55499999999995,
+          "z": 97.785
+        },
+        {
+          "x": 424.55499999999995,
+          "z": 97.375
+        },
+        {
+          "x": 424.55499999999995,
+          "z": 96.96499999999999
+        },
+        {
+          "x": 424.55499999999995,
+          "z": 96.55499999999999
+        },
+        {
+          "x": 424.55499999999995,
+          "z": 96.145
+        },
+        {
+          "x": 424.55499999999995,
+          "z": 95.735
+        },
+        {
+          "x": 424.55499999999995,
+          "z": 95.32499999999999
+        },
+        {
+          "x": 424.145,
+          "z": 94.91499999999999
+        },
+        {
+          "x": 424.145,
+          "z": 94.505
+        },
+        {
+          "x": 423.73499999999996,
+          "z": 94.095
+        },
+        {
+          "x": 423.73499999999996,
+          "z": 93.68499999999999
+        },
+        {
+          "x": 423.325,
+          "z": 93.27499999999999
+        },
+        {
+          "x": 423.325,
+          "z": 92.865
+        },
+        {
+          "x": 423.325,
+          "z": 92.455
+        },
+        {
+          "x": 422.91499999999996,
+          "z": 92.04499999999999
+        },
+        {
+          "x": 422.91499999999996,
+          "z": 91.63499999999999
+        },
+        {
+          "x": 422.505,
+          "z": 91.225
+        },
+        {
+          "x": 422.505,
+          "z": 90.815
+        },
+        {
+          "x": 422.09499999999997,
+          "z": 90.405
+        },
+        {
+          "x": 422.09499999999997,
+          "z": 89.99499999999999
+        },
+        {
+          "x": 421.685,
+          "z": 89.585
+        },
+        {
+          "x": 421.685,
+          "z": 89.175
+        },
+        {
+          "x": 421.275,
+          "z": 88.765
+        },
+        {
+          "x": 421.275,
+          "z": 88.35499999999999
+        },
+        {
+          "x": 421.275,
+          "z": 87.945
+        },
+        {
+          "x": 420.86499999999995,
+          "z": 87.535
+        },
+        {
+          "x": 420.455,
+          "z": 87.125
+        },
+        {
+          "x": 420.04499999999996,
+          "z": 86.71499999999999
+        },
+        {
+          "x": 419.635,
+          "z": 86.30499999999999
+        },
+        {
+          "x": 419.22499999999997,
+          "z": 85.895
+        },
+        {
+          "x": 418.815,
+          "z": 85.485
+        },
+        {
+          "x": 418.405,
+          "z": 85.07499999999999
+        },
+        {
+          "x": 417.99499999999995,
+          "z": 84.66499999999999
+        },
+        {
+          "x": 417.585,
+          "z": 84.255
+        },
+        {
+          "x": 417.17499999999995,
+          "z": 83.845
+        },
+        {
+          "x": 416.765,
+          "z": 83.43499999999999
+        },
+        {
+          "x": 416.35499999999996,
+          "z": 83.02499999999999
+        },
+        {
+          "x": 415.945,
+          "z": 82.615
+        },
+        {
+          "x": 415.53499999999997,
+          "z": 82.205
+        },
+        {
+          "x": 415.125,
+          "z": 81.795
+        },
+        {
+          "x": 414.715,
+          "z": 81.38499999999999
+        },
+        {
+          "x": 414.30499999999995,
+          "z": 80.975
+        },
+        {
+          "x": 413.895,
+          "z": 80.565
+        },
+        {
+          "x": 413.48499999999996,
+          "z": 80.155
+        },
+        {
+          "x": 413.075,
+          "z": 79.74499999999999
+        },
+        {
+          "x": 412.66499999999996,
+          "z": 79.335
+        },
+        {
+          "x": 412.255,
+          "z": 78.925
+        },
+        {
+          "x": 411.84499999999997,
+          "z": 78.515
+        },
+        {
+          "x": 411.435,
+          "z": 78.10499999999999
+        },
+        {
+          "x": 411.025,
+          "z": 77.695
+        },
+        {
+          "x": 410.61499999999995,
+          "z": 77.285
+        },
+        {
+          "x": 410.205,
+          "z": 76.875
+        },
+        {
+          "x": 409.79499999999996,
+          "z": 76.46499999999999
+        },
+        {
+          "x": 409.385,
+          "z": 76.05499999999999
+        },
+        {
+          "x": 408.97499999999997,
+          "z": 75.645
+        },
+        {
+          "x": 408.565,
+          "z": 75.235
+        },
+        {
+          "x": 408.155,
+          "z": 74.82499999999999
+        },
+        {
+          "x": 407.74499999999995,
+          "z": 74.41499999999999
+        },
+        {
+          "x": 407.335,
+          "z": 74.005
+        },
+        {
+          "x": 407.335,
+          "z": 73.595
+        },
+        {
+          "x": 407.335,
+          "z": 73.185
+        },
+        {
+          "x": 407.335,
+          "z": 72.77499999999999
+        },
+        {
+          "x": 407.335,
+          "z": 72.365
+        },
+        {
+          "x": 407.335,
+          "z": 71.955
+        },
+        {
+          "x": 407.335,
+          "z": 71.545
+        },
+        {
+          "x": 407.335,
+          "z": 71.13499999999999
+        },
+        {
+          "x": 407.335,
+          "z": 70.725
+        },
+        {
+          "x": 407.335,
+          "z": 70.315
+        },
+        {
+          "x": 407.335,
+          "z": 69.905
+        },
+        {
+          "x": 407.335,
+          "z": 69.49499999999999
+        },
+        {
+          "x": 407.335,
+          "z": 69.085
+        },
+        {
+          "x": 407.335,
+          "z": 68.675
+        },
+        {
+          "x": 407.335,
+          "z": 68.265
+        },
+        {
+          "x": 407.335,
+          "z": 67.85499999999999
+        },
+        {
+          "x": 407.335,
+          "z": 67.445
+        },
+        {
+          "x": 407.335,
+          "z": 67.035
+        },
+        {
+          "x": 407.335,
+          "z": 66.625
+        },
+        {
+          "x": 407.335,
+          "z": 66.21499999999999
+        },
+        {
+          "x": 407.335,
+          "z": 65.80499999999999
+        },
+        {
+          "x": 407.335,
+          "z": 65.395
+        },
+        {
+          "x": 407.335,
+          "z": 64.985
+        },
+        {
+          "x": 407.335,
+          "z": 64.575
+        },
+        {
+          "x": 407.335,
+          "z": 64.16499999999999
+        },
+        {
+          "x": 407.335,
+          "z": 63.754999999999995
+        },
+        {
+          "x": 407.335,
+          "z": 63.345
+        },
+        {
+          "x": 407.335,
+          "z": 62.934999999999995
+        },
+        {
+          "x": 407.335,
+          "z": 62.525
+        },
+        {
+          "x": 407.335,
+          "z": 62.114999999999995
+        },
+        {
+          "x": 407.335,
+          "z": 61.705
+        },
+        {
+          "x": 407.335,
+          "z": 61.294999999999995
+        },
+        {
+          "x": 407.335,
+          "z": 60.885
+        },
+        {
+          "x": 407.335,
+          "z": 60.474999999999994
+        },
+        {
+          "x": 407.335,
+          "z": 60.065
+        },
+        {
+          "x": 407.335,
+          "z": 59.654999999999994
+        },
+        {
+          "x": 407.335,
+          "z": 59.245
+        },
+        {
+          "x": 407.335,
+          "z": 58.834999999999994
+        },
+        {
+          "x": 407.335,
+          "z": 58.425
+        },
+        {
+          "x": 407.335,
+          "z": 58.01499999999999
+        },
+        {
+          "x": 407.335,
+          "z": 57.605
+        },
+        {
+          "x": 406.92499999999995,
+          "z": 57.19499999999999
+        },
+        {
+          "x": 406.92499999999995,
+          "z": 56.785
+        },
+        {
+          "x": 406.515,
+          "z": 56.375
+        },
+        {
+          "x": 406.515,
+          "z": 55.964999999999996
+        },
+        {
+          "x": 406.515,
+          "z": 55.555
+        },
+        {
+          "x": 406.10499999999996,
+          "z": 55.144999999999996
+        },
+        {
+          "x": 406.10499999999996,
+          "z": 54.735
+        },
+        {
+          "x": 405.695,
+          "z": 54.324999999999996
+        },
+        {
+          "x": 405.695,
+          "z": 53.915
+        },
+        {
+          "x": 405.28499999999997,
+          "z": 53.504999999999995
+        },
+        {
+          "x": 405.28499999999997,
+          "z": 53.095
+        },
+        {
+          "x": 404.875,
+          "z": 52.684999999999995
+        },
+        {
+          "x": 404.875,
+          "z": 52.275
+        },
+        {
+          "x": 404.875,
+          "z": 51.864999999999995
+        },
+        {
+          "x": 404.465,
+          "z": 51.455
+        },
+        {
+          "x": 404.465,
+          "z": 51.044999999999995
+        },
+        {
+          "x": 404.15,
+          "z": 50.749446964263925
+        }
+      ],
+      "expanded": 5800,
+      "crosswalkIds": []
+    },
+    "sourceLandMaskAtWaypoints": true,
+    "requiresCurrentNativeWalkingOwner": true,
+    "ownVehicleExitClearance": "NATIVE_OWNER_MUST_PROVE_CURRENT_POSE_AND_OWN_VEHICLE_CLEARANCE"
+  },
+  "newDeparture": {
+    "method": "new_bounded_kinematic_departure",
+    "anchor": {
+      "edgeId": "road-tail:street-junction-293:L-EA-V-028:0:-1:incoming:0",
+      "progressM": 9.843995010606378
+    },
+    "prefixM": 17.46020449660837,
+    "diagnostics": {
+      "anchorPoses": 139,
+      "reachableAnchors": 75,
+      "safeDirectConnectors": 0,
+      "expanded": 222,
+      "closest": 1.4520898661548487,
+      "lengthM": 17.46020449660837
+    }
+  },
+  "requires": [
+    "actual current road/static native coverage",
+    "current full native hull sweeps",
+    "current traffic controls and occupancy",
+    "shared bay reservation",
+    "current actor and seat lease",
+    "actual exit physical proof",
+    "independent physical walk to source public shop entry"
+  ],
+  "traffic_config_file": "TRAFFIC_CONTROLS.json",
+  "traffic_config_sha256": "41c065397f4aa491ffdf5916fc8a302fa06d23d1d3b8530b170396ecdd071b6f"
+}

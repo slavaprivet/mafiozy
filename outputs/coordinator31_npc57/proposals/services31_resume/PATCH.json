@@ -1,0 +1,18 @@
+{
+  "scripts/hospital/npc_physical_route51.gd": {
+    "base_sha256": "6cf3bb96c1ad9875fb3e66313db9b04a518043b4977e1db4420b316d8813b761",
+    "candidate_sha256": "ce8bca0c9d45b88ae45ec3973544838267ef88db2d62911f781e25bed6b7168f"
+  },
+  "scripts/navigation/npc_avoidance_world29.gd": {
+    "base_sha256": "c9a0b6687a369c13affa652f1269f586bf73e7f8b52c40f53b2dd9ba5ec4253c",
+    "candidate_sha256": "43d8778d5d42a769e4be3c81218d8fc891194ee42262863dd6d3b2e93ca6e1fa"
+  },
+  "scripts/navigation/npc_local_avoidance29.gd": {
+    "base_sha256": "855b2e9653e39cd6491a8f601d9c5955942c0d1f204ebf76d25b4a2c3bfbccf3",
+    "candidate_sha256": "eb745234cd6df1803c4d44e00535e81a27e6c9384dbff534d062efff87e0854a"
+  },
+  "scripts/navigation/npc_passage31.gd": {
+    "base_sha256": null,
+    "candidate_sha256": "49ab9e218f37aac086dfe2fd3817f08b759cf2ecb1dc41091cce97c29a5b518e"
+  }
+}

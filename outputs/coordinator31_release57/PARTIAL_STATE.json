@@ -1,0 +1,7 @@
+{
+  "status": "FROZEN_PENDING_BOOTSTRAP_CHECK",
+  "target": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_release57",
+  "pointer_activated": false,
+  "candidate_modified": false,
+  "recovery": "Preserve incomplete copy; never activate it. A retry uses a new partial directory."
+}

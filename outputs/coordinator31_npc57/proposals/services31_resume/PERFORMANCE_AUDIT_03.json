@@ -1,0 +1,170 @@
+{
+  "scope": "Read-only passage/avoidance audit of first matched1920x1080 pair; no source/patch/harness changes or launches",
+  "runs": {
+    "baseline56_perf1080_03": {
+      "pins": {
+        "RUN.json": "dd2bad6f6264a80c4ac7bb7660e64817c0793bec9e4a2a0fd4814af6e0854219",
+        "MASS30.json": "9ce421f3e10990a59cf392906abdb57d10732b52551ff8789eaa4e56906fb195",
+        "SOAK31.json": "e196b6acc4a199dcc4fcbe0603d648154665bb2fa4e4551469c906f46b13d17c"
+      },
+      "frame_ms_mean": 8.744487418634023,
+      "mean_fps": 114.35776073838872,
+      "physics_bucket_mean_us": {
+        "daily": 2784.7836815016653,
+        "effects": 53.05161973963064,
+        "health": 245.24825915834091,
+        "navigation_pump": 111.15909778988798,
+        "residents": 503.7674841053588,
+        "unattributed": 3.135180139267333
+      },
+      "physics_bucket_sum_mean_us": 3701.145322434151,
+      "logic_buckets_samples": 6606,
+      "logic_ring": {
+        "logic_including_profiler_max_us": 10942,
+        "logic_including_profiler_p50_us": 3875,
+        "logic_including_profiler_p95_us": 5462,
+        "max_us": 10924,
+        "p50_us": 3862,
+        "p95_us": 5438,
+        "profiler_write_max_us": 95,
+        "profiler_write_p50_us": 11,
+        "profiler_write_p95_us": 20,
+        "profiler_write_samples": 2048,
+        "samples": 2048,
+        "scope": "NPC logic excludes profiler writes; not rendered FPS"
+      },
+      "global_logic_peak": {
+        "daily_us": 22143,
+        "effects_us": 53,
+        "frame": 4627,
+        "health_us": 423,
+        "logic_including_profiler_us": 23135,
+        "navigation_us": 158,
+        "profiler_write_us": 18,
+        "residents_us": 337,
+        "total_us": 23117,
+        "unattributed_us": 3
+      },
+      "phase_sample_counts": {
+        "WALKING|INBOUND|ready": 374,
+        "WALKING||ready": 254,
+        "RESTING||": 107,
+        "AMBIENT||": 129,
+        "WALKING|INBOUND|cancelled": 9,
+        "WALKING||cancelled": 1,
+        "WALKING|SERVICE_APPROACH|ready": 1,
+        "WALKING|INSIDE|cancelled": 4,
+        "WALKING|OUTBOUND|ready": 7,
+        "IDLE||": 5,
+        "WALKING||searching": 2,
+        "WALKING|INBOUND|searching": 6,
+        "WALKING|SERVICE_APPROACH|searching": 1
+      },
+      "required_motion_samples": 655,
+      "actor_samples": 900,
+      "required_motion_share": 0.7277777777777777,
+      "passage_diagnostics_exported": false,
+      "avoidance_core_diagnostics_exported": false,
+      "wait_cohort": {
+        "enabled": true,
+        "max_delay_ms": 100,
+        "max_skipped_gap_frames": 5,
+        "max_skipped_gap_ms": 90,
+        "moving_delta_scaled": false,
+        "ready_wakes": 216,
+        "skipped": 904,
+        "states": 0,
+        "support_queries": 910,
+        "support_wakes": 6
+      }
+    },
+    "merged57_perf1080_03": {
+      "pins": {
+        "RUN.json": "d341490945fab735e6982cc4cfdb3f2a67ab54b770224550f84b4a3c6a07f8b6",
+        "MASS30.json": "843d8bc10e5e1a5df86b97cacb3d6d4a0f6d2b3f7567575b9f9ff4b55a99e34c",
+        "SOAK31.json": "0898c080bf4495b12c5a2db575473b92c9ec87c43fbf20f49a4b3e439bb9e0fc"
+      },
+      "frame_ms_mean": 9.506049640895649,
+      "mean_fps": 105.19616852177317,
+      "physics_bucket_mean_us": {
+        "daily": 3313.969114307343,
+        "effects": 55.058743376230126,
+        "health": 220.85011355034064,
+        "navigation_pump": 111.40817562452688,
+        "residents": 445.021801665405,
+        "unattributed": 2.899015897047691
+      },
+      "physics_bucket_sum_mean_us": 4149.206964420893,
+      "logic_buckets_samples": 6605,
+      "logic_ring": {
+        "logic_including_profiler_max_us": 26924,
+        "logic_including_profiler_p50_us": 4121,
+        "logic_including_profiler_p95_us": 6498,
+        "max_us": 26904,
+        "p50_us": 4106,
+        "p95_us": 6472,
+        "profiler_write_max_us": 72,
+        "profiler_write_p50_us": 15,
+        "profiler_write_p95_us": 21,
+        "profiler_write_samples": 2048,
+        "samples": 2048,
+        "scope": "NPC logic excludes profiler writes; not rendered FPS"
+      },
+      "global_logic_peak": {
+        "daily_us": 26059,
+        "effects_us": 55,
+        "frame": 5965,
+        "health_us": 224,
+        "logic_including_profiler_us": 26924,
+        "navigation_us": 110,
+        "profiler_write_us": 20,
+        "residents_us": 453,
+        "total_us": 26904,
+        "unattributed_us": 3
+      },
+      "phase_sample_counts": {
+        "WALKING|INBOUND|cancelled": 14,
+        "WALKING||ready": 151,
+        "WALKING|INBOUND|ready": 594,
+        "RESTING||": 53,
+        "AMBIENT||": 51,
+        "WALKING|INBOUND|searching": 13,
+        "WALKING|SERVICE_APPROACH|ready": 2,
+        "WALKING|INSIDE|cancelled": 6,
+        "WALKING|OUTBOUND|ready": 8,
+        "IDLE||": 5,
+        "WALKING|OUTBOUND|cancelled": 1,
+        "WALKING|SERVICE_WAIT|cancelled": 1,
+        "WALKING||searching": 1
+      },
+      "required_motion_samples": 784,
+      "actor_samples": 900,
+      "required_motion_share": 0.8711111111111111,
+      "passage_diagnostics_exported": false,
+      "avoidance_core_diagnostics_exported": false,
+      "wait_cohort": {
+        "enabled": true,
+        "max_delay_ms": 100,
+        "max_skipped_gap_frames": 5,
+        "max_skipped_gap_ms": 96,
+        "moving_delta_scaled": false,
+        "ready_wakes": 282,
+        "skipped": 1431,
+        "states": 0,
+        "support_queries": 1452,
+        "support_wakes": 21
+      }
+    }
+  },
+  "production_changes": false,
+  "optimization_recommended": false,
+  "reviewed_source_pins": {
+    "scripts/navigation/npc_passage31.gd": "49ab9e218f37aac086dfe2fd3817f08b759cf2ecb1dc41091cce97c29a5b518e",
+    "scripts/navigation/npc_avoidance_world29.gd": "43d8778d5d42a769e4be3c81218d8fc891194ee42262863dd6d3b2e93ca6e1fa",
+    "scripts/navigation/npc_local_avoidance29.gd": "eb745234cd6df1803c4d44e00535e81a27e6c9384dbff534d062efff87e0854a",
+    "scripts/hospital/npc_physical_route51.gd": "ce8bca0c9d45b88ae45ec3973544838267ef88db2d62911f781e25bed6b7168f",
+    "scripts/hospital/npc_restaurant_visit28.gd": "bc162fb155708a7172484b24f77ddc994a8d84bf30342182860f5ac1b1345498",
+    "scripts/npc_city_population.gd": "1449483336cd974a817729049fda4bdda03422b7147d216ea97df937a5679ba4",
+    "scripts/npc_visual/preview_resident_host.gd": "9cae435a12c8649eae8f42364225efab19255abad68463d51c47314c983d3cee"
+  }
+}

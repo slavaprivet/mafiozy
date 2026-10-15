@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "checks": {
+    "freeze57.py_syntax": true,
+    "startup57.py_syntax": true,
+    "news_exactly_five_without_old_items": true,
+    "window_exact_physical_and_logical_1080p_accepts": true,
+    "scaled_physical_target_rejected": true,
+    "wrong_logical_viewport_rejected": true,
+    "window_final_dimension_drift_rejected": true,
+    "window_startup_not_ready_rejected": true,
+    "missing_v4_render_protocol_flag_rejected": true,
+    "archived_tested_bytes_survive_later_live_edits": true,
+    "archive_pin_mismatch_rejected": true,
+    "archive_traversal_rejected": true,
+    "unpinned_native_entry_rejected": true,
+    "seeded_city_flags_rejected": true,
+    "real_historical_service_archive_and_checker": true,
+    "known_failed_600s_soak_rejected": true
+  },
+  "engine_launched": false,
+  "freeze_executed": false,
+  "production_modified": false,
+  "source_pins": {
+    "freeze57.py": "8af379eb77808fb10f6174231c87a0624b4697ace505faef246b3a9331ab8816",
+    "startup57.py": "3742fdd17ff6fc6a5d0916552370f8609120eb1c3665cd66efb3b0d42e0e315b",
+    "check_tools57.py": "2f70603e48d8a6b2e8b041a8bf569091321bc7afb8275fff41b17d4e53f0ea31"
+  }
+}

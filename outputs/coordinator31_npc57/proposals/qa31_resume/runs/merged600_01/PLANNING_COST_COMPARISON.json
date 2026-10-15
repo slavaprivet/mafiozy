@@ -1,0 +1,4207 @@
+{
+  "schema": "mafiozi.soak31.planning-cost-comparison/v1",
+  "baseline": {
+    "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\qa31_resume\\runs\\baseline180_01",
+    "mode": "headless",
+    "performance_accepted": false,
+    "duration": 180.0,
+    "windows": {
+      "quarter_1": {
+        "seconds": [
+          0.0,
+          45.0
+        ],
+        "frame_ms": {
+          "n": 6512,
+          "mean": 6.9095132063882065,
+          "p50": 6.909,
+          "p95": 14.715,
+          "p99": 16.265,
+          "max": 50.637
+        },
+        "mean_headless_frame_frequency": 144.7279960439829,
+        "printed_fps": {
+          "n": 45,
+          "mean": 144.6888888888889,
+          "p50": 145.0,
+          "p95": 145.0,
+          "p99": 145.0,
+          "max": 145.0
+        },
+        "sampled_physical_ms": {
+          "n": 180,
+          "mean": 2.714827777777778,
+          "p50": 2.377,
+          "p95": 3.964,
+          "p99": 4.953,
+          "max": 36.85
+        },
+        "sampled_daily_total_ms": {
+          "n": 180,
+          "mean": 2.7628777777777778,
+          "p50": 2.423,
+          "p95": 3.976,
+          "p99": 4.964,
+          "max": 36.86
+        },
+        "native_route_service_us": {
+          "n": 45,
+          "mean": 64.4,
+          "p50": 1,
+          "p95": 17,
+          "p99": 893,
+          "max": 1854
+        },
+        "native_physics_ms": {
+          "n": 45,
+          "mean": 11.82948888888889,
+          "p50": 10.384,
+          "p95": 16.867,
+          "p99": 23.623,
+          "max": 43.713
+        },
+        "native_process_ms": {
+          "n": 45,
+          "mean": 1.4115333333333333,
+          "p50": 1.277,
+          "p95": 2.102,
+          "p99": 2.5,
+          "max": 2.562
+        },
+        "native_objects": {
+          "n": 45,
+          "mean": 100744.17777777778,
+          "p50": 100753.0,
+          "p95": 100870.0,
+          "p99": 100875.0,
+          "max": 100900.0
+        },
+        "native_static_bytes": {
+          "n": 45,
+          "mean": 615296146.0444444,
+          "p50": 615081280.0,
+          "p95": 616830232.0,
+          "p99": 616978056.0,
+          "max": 616979684.0
+        }
+      },
+      "quarter_2": {
+        "seconds": [
+          45.0,
+          90.0
+        ],
+        "frame_ms": {
+          "n": 6519,
+          "mean": 6.90217962877742,
+          "p50": 6.908,
+          "p95": 14.541,
+          "p99": 16.619,
+          "max": 27.537
+        },
+        "mean_headless_frame_frequency": 144.88176978626817,
+        "printed_fps": {
+          "n": 45,
+          "mean": 144.88888888888889,
+          "p50": 145.0,
+          "p95": 145.0,
+          "p99": 145.0,
+          "max": 145.0
+        },
+        "sampled_physical_ms": {
+          "n": 180,
+          "mean": 2.8282777777777777,
+          "p50": 2.602,
+          "p95": 4.544,
+          "p99": 4.771,
+          "max": 5.544
+        },
+        "sampled_daily_total_ms": {
+          "n": 180,
+          "mean": 2.838161111111111,
+          "p50": 2.612,
+          "p95": 4.553,
+          "p99": 4.779,
+          "max": 5.575
+        },
+        "native_route_service_us": {
+          "n": 45,
+          "mean": 244.6,
+          "p50": 1,
+          "p95": 1805,
+          "p99": 2080,
+          "max": 2127
+        },
+        "native_physics_ms": {
+          "n": 45,
+          "mean": 10.582333333333333,
+          "p50": 10.164,
+          "p95": 13.487,
+          "p99": 20.422,
+          "max": 20.629
+        },
+        "native_process_ms": {
+          "n": 45,
+          "mean": 1.3161777777777777,
+          "p50": 1.24,
+          "p95": 1.603,
+          "p99": 1.953,
+          "max": 2.005
+        },
+        "native_objects": {
+          "n": 45,
+          "mean": 100909.44444444444,
+          "p50": 100922.0,
+          "p95": 100984.0,
+          "p99": 101039.0,
+          "max": 101039.0
+        },
+        "native_static_bytes": {
+          "n": 45,
+          "mean": 617304062.4,
+          "p50": 617058632.0,
+          "p95": 617813156.0,
+          "p99": 617987980.0,
+          "max": 618205388.0
+        }
+      },
+      "quarter_3": {
+        "seconds": [
+          90.0,
+          135.0
+        ],
+        "frame_ms": {
+          "n": 6516,
+          "mean": 6.906270104358502,
+          "p50": 6.631,
+          "p95": 15.722,
+          "p99": 17.901,
+          "max": 28.844
+        },
+        "mean_headless_frame_frequency": 144.79595858391153,
+        "printed_fps": {
+          "n": 45,
+          "mean": 144.8,
+          "p50": 145.0,
+          "p95": 145.0,
+          "p99": 145.0,
+          "max": 145.0
+        },
+        "sampled_physical_ms": {
+          "n": 180,
+          "mean": 2.9445111111111113,
+          "p50": 2.71,
+          "p95": 4.582,
+          "p99": 5.52,
+          "max": 6.144
+        },
+        "sampled_daily_total_ms": {
+          "n": 180,
+          "mean": 2.956672222222222,
+          "p50": 2.721,
+          "p95": 4.594,
+          "p99": 5.535,
+          "max": 6.176
+        },
+        "native_route_service_us": {
+          "n": 45,
+          "mean": 208.88888888888889,
+          "p50": 1,
+          "p95": 1820,
+          "p99": 1844,
+          "max": 1937
+        },
+        "native_physics_ms": {
+          "n": 45,
+          "mean": 11.287555555555556,
+          "p50": 10.989,
+          "p95": 13.876,
+          "p99": 17.105,
+          "max": 21.92
+        },
+        "native_process_ms": {
+          "n": 45,
+          "mean": 1.4108666666666667,
+          "p50": 1.295,
+          "p95": 2.049,
+          "p99": 2.054,
+          "max": 2.156
+        },
+        "native_objects": {
+          "n": 45,
+          "mean": 100973.35555555555,
+          "p50": 100957.0,
+          "p95": 101024.0,
+          "p99": 101026.0,
+          "max": 101079.0
+        },
+        "native_static_bytes": {
+          "n": 45,
+          "mean": 617849874.4,
+          "p50": 617814800.0,
+          "p95": 618041128.0,
+          "p99": 618088020.0,
+          "max": 618206180.0
+        }
+      },
+      "quarter_4": {
+        "seconds": [
+          135.0,
+          180.0
+        ],
+        "frame_ms": {
+          "n": 6522,
+          "mean": 6.900073750383318,
+          "p50": 6.887,
+          "p95": 14.978,
+          "p99": 17.123,
+          "max": 20.818
+        },
+        "mean_headless_frame_frequency": 144.92598719607125,
+        "printed_fps": {
+          "n": 45,
+          "mean": 144.93333333333334,
+          "p50": 145.0,
+          "p95": 145.0,
+          "p99": 145.0,
+          "max": 146.0
+        },
+        "sampled_physical_ms": {
+          "n": 180,
+          "mean": 2.745477777777778,
+          "p50": 2.626,
+          "p95": 4.011,
+          "p99": 4.923,
+          "max": 5.772
+        },
+        "sampled_daily_total_ms": {
+          "n": 180,
+          "mean": 2.756622222222222,
+          "p50": 2.642,
+          "p95": 4.029,
+          "p99": 4.934,
+          "max": 5.787
+        },
+        "native_route_service_us": {
+          "n": 45,
+          "mean": 54.86666666666667,
+          "p50": 1,
+          "p95": 163,
+          "p99": 285,
+          "max": 1818
+        },
+        "native_physics_ms": {
+          "n": 45,
+          "mean": 10.840222222222222,
+          "p50": 11.089,
+          "p95": 12.875,
+          "p99": 13.625,
+          "max": 13.806
+        },
+        "native_process_ms": {
+          "n": 45,
+          "mean": 1.3394444444444444,
+          "p50": 1.246,
+          "p95": 1.903,
+          "p99": 1.962,
+          "max": 2.248
+        },
+        "native_objects": {
+          "n": 45,
+          "mean": 101079.53333333334,
+          "p50": 101076.0,
+          "p95": 101117.0,
+          "p99": 101130.0,
+          "max": 101153.0
+        },
+        "native_static_bytes": {
+          "n": 45,
+          "mean": 618224584.4444444,
+          "p50": 618205488.0,
+          "p95": 618354732.0,
+          "p99": 618440436.0,
+          "max": 618455028.0
+        }
+      },
+      "first_180": {
+        "seconds": [
+          0,
+          180.0
+        ],
+        "frame_ms": {
+          "n": 26069,
+          "mean": 6.904507115731328,
+          "p50": 6.906,
+          "p95": 14.953,
+          "p99": 17.105,
+          "max": 50.637
+        },
+        "mean_headless_frame_frequency": 144.832930611598,
+        "printed_fps": {
+          "n": 180,
+          "mean": 144.82777777777778,
+          "p50": 145.0,
+          "p95": 145.0,
+          "p99": 145.0,
+          "max": 146.0
+        },
+        "sampled_physical_ms": {
+          "n": 720,
+          "mean": 2.8082736111111113,
+          "p50": 2.596,
+          "p95": 4.363,
+          "p99": 5.084,
+          "max": 36.85
+        },
+        "sampled_daily_total_ms": {
+          "n": 720,
+          "mean": 2.8285833333333334,
+          "p50": 2.611,
+          "p95": 4.381,
+          "p99": 5.095,
+          "max": 36.86
+        },
+        "native_route_service_us": {
+          "n": 180,
+          "mean": 143.1888888888889,
+          "p50": 1,
+          "p95": 1806,
+          "p99": 1937,
+          "max": 2127
+        },
+        "native_physics_ms": {
+          "n": 180,
+          "mean": 11.1349,
+          "p50": 10.603,
+          "p95": 14.051,
+          "p99": 22.04,
+          "max": 43.713
+        },
+        "native_process_ms": {
+          "n": 180,
+          "mean": 1.3695055555555555,
+          "p50": 1.269,
+          "p95": 2.005,
+          "p99": 2.248,
+          "max": 2.562
+        },
+        "native_objects": {
+          "n": 180,
+          "mean": 100926.62777777777,
+          "p50": 100942.0,
+          "p95": 101104.0,
+          "p99": 101122.0,
+          "max": 101153.0
+        },
+        "native_static_bytes": {
+          "n": 180,
+          "mean": 617168666.8222222,
+          "p50": 617721092.0,
+          "p95": 618304708.0,
+          "p99": 618356812.0,
+          "max": 618455028.0
+        }
+      }
+    },
+    "memory_trends": {
+      "static_memory": {
+        "slope_per_minute": 1242248.7314201037,
+        "first": 614657136.0,
+        "last": 618440436.0,
+        "max": 618455028.0
+      },
+      "objects": {
+        "slope_per_minute": 144.52966926543195,
+        "first": 100641.0,
+        "last": 101130.0,
+        "max": 101153.0
+      },
+      "nodes": {
+        "slope_per_minute": -0.023797584875413794,
+        "first": 48753.0,
+        "last": 48747.0,
+        "max": 48766.0
+      },
+      "resources": {
+        "slope_per_minute": 0.0,
+        "first": 4200.0,
+        "last": 4200.0,
+        "max": 4200.0
+      },
+      "orphans": {
+        "slope_per_minute": 0.0,
+        "first": 0.0,
+        "last": 0.0,
+        "max": 0.0
+      },
+      "rss_bytes": {
+        "slope_per_minute": 252764.14832602604,
+        "first": 831827968,
+        "last": 832376832,
+        "max": 832393216
+      },
+      "private_bytes": {
+        "slope_per_minute": 207290.85208895415,
+        "first": 794791936,
+        "last": 795193344,
+        "max": 795254784
+      }
+    },
+    "mean_frame_ms_slope_per_minute": -0.002743019940293429,
+    "frame_p95_vs_sampled_physical_cost_correlation": 0.40927605724891203,
+    "frames_grouped_by_physics_steps": {
+      "0": {
+        "n": 15271,
+        "mean": 2.243669438805579,
+        "p50": 0.826,
+        "p95": 6.914,
+        "p99": 6.947,
+        "max": 11.053
+      },
+      "1": {
+        "n": 10798,
+        "mean": 13.495489072050379,
+        "p50": 13.225,
+        "p95": 16.238,
+        "p99": 17.99,
+        "max": 50.637
+      },
+      "2": {
+        "n": 1,
+        "mean": 19.087,
+        "p50": 19.087,
+        "p95": 19.087,
+        "p99": 19.087,
+        "max": 19.087
+      }
+    },
+    "top_20_sampled_physical_ticks": [
+      {
+        "f": 3960.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 36860.0,
+        "total_us": 36860.0,
+        "polls": 1.0,
+        "pmin": 85.0,
+        "p50": 85.0,
+        "p90": 85.0,
+        "pmax": 85.0,
+        "budget_us": 0.0,
+        "worst_us": 85.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 9.0,
+        "physical_us30": 36850.0,
+        "second": 32.068
+      },
+      {
+        "f": 9855.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 6176.0,
+        "total_us": 6176.0,
+        "polls": 3.0,
+        "pmin": 96.0,
+        "p50": 101.0,
+        "p90": 969.0,
+        "pmax": 969.0,
+        "budget_us": 0.0,
+        "worst_us": 969.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 8.0,
+        "physical_us30": 6144.0,
+        "second": 130.31358333333333
+      },
+      {
+        "f": 4395.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 6012.0,
+        "total_us": 6012.0,
+        "polls": 0.0,
+        "pmin": 0.0,
+        "p50": 0.0,
+        "p90": 0.0,
+        "pmax": 0.0,
+        "budget_us": 0.0,
+        "worst_us": 0.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 10.0,
+        "physical_us30": 5998.0,
+        "second": 39.30983333333334
+      },
+      {
+        "f": 10965.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 5787.0,
+        "total_us": 5787.0,
+        "polls": 2.0,
+        "pmin": 89.0,
+        "p50": 1848.0,
+        "p90": 1848.0,
+        "pmax": 1848.0,
+        "budget_us": 0.0,
+        "worst_us": 1848.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 10.0,
+        "physical_us30": 5772.0,
+        "second": 148.80803333333333
+      },
+      {
+        "f": 6780.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 5575.0,
+        "total_us": 5575.0,
+        "polls": 2.0,
+        "pmin": 88.0,
+        "p50": 107.0,
+        "p90": 107.0,
+        "pmax": 107.0,
+        "budget_us": 0.0,
+        "worst_us": 107.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 9.0,
+        "physical_us30": 5544.0,
+        "second": 79.06285000000001
+      },
+      {
+        "f": 8670.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 5555.0,
+        "total_us": 5555.0,
+        "polls": 2.0,
+        "pmin": 89.0,
+        "p50": 89.0,
+        "p90": 89.0,
+        "pmax": 89.0,
+        "budget_us": 0.0,
+        "worst_us": 89.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 9.0,
+        "physical_us30": 5540.0,
+        "second": 110.5562
+      },
+      {
+        "f": 9360.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 5535.0,
+        "total_us": 5535.0,
+        "polls": 3.0,
+        "pmin": 168.0,
+        "p50": 1178.0,
+        "p90": 1372.0,
+        "pmax": 1372.0,
+        "budget_us": 0.0,
+        "worst_us": 1372.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 8.0,
+        "physical_us30": 5520.0,
+        "second": 122.06110000000001
+      },
+      {
+        "f": 11160.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 5252.0,
+        "total_us": 5252.0,
+        "polls": 1.0,
+        "pmin": 1108.0,
+        "p50": 1108.0,
+        "p90": 1108.0,
+        "pmax": 1108.0,
+        "budget_us": 0.0,
+        "worst_us": 1108.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 9.0,
+        "physical_us30": 5237.0,
+        "second": 152.056
+      },
+      {
+        "f": 6120.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 5095.0,
+        "total_us": 5095.0,
+        "polls": 0.0,
+        "pmin": 0.0,
+        "p50": 0.0,
+        "p90": 0.0,
+        "pmax": 0.0,
+        "budget_us": 0.0,
+        "worst_us": 0.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 9.0,
+        "physical_us30": 5084.0,
+        "second": 68.0587
+      },
+      {
+        "f": 7620.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 5064.0,
+        "total_us": 5064.0,
+        "polls": 2.0,
+        "pmin": 91.0,
+        "p50": 104.0,
+        "p90": 104.0,
+        "pmax": 104.0,
+        "budget_us": 0.0,
+        "worst_us": 104.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 9.0,
+        "physical_us30": 5053.0,
+        "second": 93.061
+      },
+      {
+        "f": 4560.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 4964.0,
+        "total_us": 4964.0,
+        "polls": 1.0,
+        "pmin": 995.0,
+        "p50": 995.0,
+        "p90": 995.0,
+        "pmax": 995.0,
+        "budget_us": 0.0,
+        "worst_us": 995.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 9.0,
+        "physical_us30": 4953.0,
+        "second": 42.06166666666667
+      },
+      {
+        "f": 12585.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 4934.0,
+        "total_us": 4934.0,
+        "polls": 0.0,
+        "pmin": 0.0,
+        "p50": 0.0,
+        "p90": 0.0,
+        "pmax": 0.0,
+        "budget_us": 0.0,
+        "worst_us": 0.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 9.0,
+        "physical_us30": 4923.0,
+        "second": 175.80829999999997
+      },
+      {
+        "f": 8400.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 4928.0,
+        "total_us": 4928.0,
+        "polls": 0.0,
+        "pmin": 0.0,
+        "p50": 0.0,
+        "p90": 0.0,
+        "pmax": 0.0,
+        "budget_us": 0.0,
+        "worst_us": 0.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 10.0,
+        "physical_us30": 4913.0,
+        "second": 106.06168333333333
+      },
+      {
+        "f": 7860.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 4810.0,
+        "total_us": 4810.0,
+        "polls": 2.0,
+        "pmin": 820.0,
+        "p50": 929.0,
+        "p90": 929.0,
+        "pmax": 929.0,
+        "budget_us": 0.0,
+        "worst_us": 929.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 9.0,
+        "physical_us30": 4801.0,
+        "second": 97.0638
+      },
+      {
+        "f": 8640.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 4790.0,
+        "total_us": 4790.0,
+        "polls": 3.0,
+        "pmin": 89.0,
+        "p50": 91.0,
+        "p90": 1029.0,
+        "pmax": 1029.0,
+        "budget_us": 0.0,
+        "worst_us": 1029.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 8.0,
+        "physical_us30": 4780.0,
+        "second": 110.05566666666667
+      },
+      {
+        "f": 6195.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 4779.0,
+        "total_us": 4779.0,
+        "polls": 0.0,
+        "pmin": 0.0,
+        "p50": 0.0,
+        "p90": 0.0,
+        "pmax": 0.0,
+        "budget_us": 0.0,
+        "worst_us": 0.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 9.0,
+        "physical_us30": 4771.0,
+        "second": 69.309
+      },
+      {
+        "f": 6300.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 4751.0,
+        "total_us": 4751.0,
+        "polls": 0.0,
+        "pmin": 0.0,
+        "p50": 0.0,
+        "p90": 0.0,
+        "pmax": 0.0,
+        "budget_us": 0.0,
+        "worst_us": 0.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 9.0,
+        "physical_us30": 4725.0,
+        "second": 71.059
+      },
+      {
+        "f": 9330.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 4743.0,
+        "total_us": 4743.0,
+        "polls": 2.0,
+        "pmin": 91.0,
+        "p50": 156.0,
+        "p90": 156.0,
+        "pmax": 156.0,
+        "budget_us": 0.0,
+        "worst_us": 156.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 9.0,
+        "physical_us30": 4724.0,
+        "second": 121.5596
+      },
+      {
+        "f": 3600.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 4738.0,
+        "total_us": 4738.0,
+        "polls": 0.0,
+        "pmin": 0.0,
+        "p50": 0.0,
+        "p90": 0.0,
+        "pmax": 0.0,
+        "budget_us": 0.0,
+        "worst_us": 0.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 10.0,
+        "physical_us30": 4722.0,
+        "second": 26.060333333333332
+      },
+      {
+        "f": 6150.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 4708.0,
+        "total_us": 4708.0,
+        "polls": 1.0,
+        "pmin": 903.0,
+        "p50": 903.0,
+        "p90": 903.0,
+        "pmax": 903.0,
+        "budget_us": 0.0,
+        "worst_us": 903.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 9.0,
+        "physical_us30": 4698.0,
+        "second": 68.559
+      }
+    ],
+    "top_20_accumulated_planning_samples": [
+      {
+        "second": 69.209,
+        "id": "resident_6",
+        "venue": "1455826212838",
+        "position": [
+          113.153732299805,
+          0.0905379801988602,
+          6.10274744033813
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "searching",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 1.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 1466.66666666667,
+          "motion_idle_ms": 16.6666666666667,
+          "planning_service_us": 142260,
+          "progress_resets": 21,
+          "reason": "",
+          "total_service_us": 143705
+        }
+      },
+      {
+        "second": 68.209,
+        "id": "resident_6",
+        "venue": "1455826212838",
+        "position": [
+          113.153732299805,
+          0.0905379801988602,
+          6.10274744033813
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "searching",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 466.666666666667,
+          "motion_idle_ms": 16.6666666666667,
+          "planning_service_us": 48315,
+          "progress_resets": 21,
+          "reason": "",
+          "total_service_us": 49760
+        }
+      },
+      {
+        "second": 12.093,
+        "id": "resident_6",
+        "venue": "1455826212838",
+        "position": [
+          135.549789428711,
+          -0.00030813436023891,
+          30.2103672027588
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "searching",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 116.666666666667,
+          "motion_idle_ms": 33.3333333333333,
+          "planning_service_us": 13666,
+          "progress_resets": 95,
+          "reason": "",
+          "total_service_us": 21231
+        }
+      },
+      {
+        "second": 87.258,
+        "id": "resident_2",
+        "venue": "1455826212838",
+        "position": [
+          132.061233520508,
+          0.259766608476639,
+          1.18519234657288
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 66.6666666666667,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 6897,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 6897
+        }
+      },
+      {
+        "second": 89.258,
+        "id": "resident_6",
+        "venue": "1455826212838",
+        "position": [
+          131.910064697266,
+          0.231238171458244,
+          0.76781040430069
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 66.6666666666667,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 6776,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 6776
+        }
+      },
+      {
+        "second": 85.247,
+        "id": "resident_2",
+        "venue": "1455826212838",
+        "position": [
+          130.181182861328,
+          0.0897200778126717,
+          3.85891246795654
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "searching",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 83.3333333333333,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 5823,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 5823
+        }
+      },
+      {
+        "second": 79.213,
+        "id": "resident_1",
+        "venue": "1511140696728",
+        "position": [
+          -136.797073364258,
+          0.239696383476257,
+          161.949935913086
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "OUTBOUND",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 66.6666666666667,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 5546,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 5546
+        }
+      },
+      {
+        "second": 65.205,
+        "id": "resident_7",
+        "venue": "1559442304094",
+        "position": [
+          23.290922164917,
+          0.240185648202896,
+          227.550033569336
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 50.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 4979,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 4979
+        }
+      },
+      {
+        "second": 164.462,
+        "id": "resident_1",
+        "venue": "1511140696728",
+        "position": [
+          -136.917373657227,
+          0.240043461322784,
+          161.949844360352
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "OUTBOUND",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 50.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 4820,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 4820
+        }
+      },
+      {
+        "second": 71.209,
+        "id": "resident_1",
+        "venue": "1511140696728",
+        "position": [
+          -134.262268066406,
+          -0.000431558641139418,
+          161.876098632813
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 50.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 4760,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 4760
+        }
+      },
+      {
+        "second": 156.457,
+        "id": "resident_1",
+        "venue": "1511140696728",
+        "position": [
+          -134.144195556641,
+          -0.000343751278705895,
+          161.784271240234
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 50.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 4293,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 4293
+        }
+      },
+      {
+        "second": 35.14,
+        "id": "resident_9",
+        "venue": "1511140696728",
+        "position": [
+          -281.666168212891,
+          -1.49011611938477e-08,
+          361.059722900391
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 33.3333333333333,
+          "motion_idle_ms": 16.6666666666667,
+          "planning_service_us": 4200,
+          "progress_resets": 167,
+          "reason": "",
+          "total_service_us": 13220
+        }
+      },
+      {
+        "second": 34.139,
+        "id": "resident_6",
+        "venue": "1455826212838",
+        "position": [
+          134.227661132813,
+          0.386021673679352,
+          1.14409518241882
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 50.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 4060,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 4060
+        }
+      },
+      {
+        "second": 179.511,
+        "id": "resident_6",
+        "venue": "1455826212838",
+        "position": [
+          129.938430786133,
+          0.0895704030990601,
+          3.516921043396
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "searching",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 83.3333333333333,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 3685,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 3685
+        }
+      },
+      {
+        "second": 179.511,
+        "id": "resident_9",
+        "venue": "1511140696728",
+        "position": [
+          -134.110153198242,
+          0.000767415389418602,
+          162.190765380859
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "searching",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 116.666666666667,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 3599,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 3599
+        }
+      },
+      {
+        "second": 134.42,
+        "id": "resident_7",
+        "venue": "1559442304094",
+        "position": [
+          22.8759613037109,
+          0.240887463092804,
+          227.550735473633
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "OUTBOUND",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "searching",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 50.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 3467,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 3467
+        }
+      },
+      {
+        "second": 45.147,
+        "id": "resident_2",
+        "venue": "1455826212838",
+        "position": [
+          156.871536254883,
+          -0.000541047076694667,
+          57.2954292297363
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 16.6666666666667,
+          "motion_idle_ms": 16.6666666666667,
+          "planning_service_us": 3102,
+          "progress_resets": 190,
+          "reason": "",
+          "total_service_us": 14371
+        }
+      },
+      {
+        "second": 97.264,
+        "id": "resident_6",
+        "venue": "1455826212838",
+        "position": [
+          135.740005493164,
+          0.300279945135117,
+          1.0
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "OUTBOUND",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 50.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 2988,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 2988
+        }
+      },
+      {
+        "second": 143.431,
+        "id": "resident_10",
+        "venue": "1559442304094",
+        "position": [
+          72.6273727416992,
+          -1.49011611938477e-08,
+          588.87939453125
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 33.3333333333333,
+          "motion_idle_ms": 16.6666666666667,
+          "planning_service_us": 2700,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 2700
+        }
+      },
+      {
+        "second": 24.127,
+        "id": "resident_6",
+        "venue": "1455826212838",
+        "position": [
+          132.017288208008,
+          0.0904304906725883,
+          10.3882122039795
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 16.6666666666667,
+          "motion_idle_ms": 16.6666666666667,
+          "planning_service_us": 2594,
+          "progress_resets": 173,
+          "reason": "",
+          "total_service_us": 49035
+        }
+      }
+    ],
+    "maximum_accumulated_planning_per_id": {
+      "resident_1": {
+        "second": 79.213,
+        "id": "resident_1",
+        "venue": "1511140696728",
+        "position": [
+          -136.797073364258,
+          0.239696383476257,
+          161.949935913086
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "OUTBOUND",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 66.6666666666667,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 5546,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 5546
+        }
+      },
+      "resident_10": {
+        "second": 143.431,
+        "id": "resident_10",
+        "venue": "1559442304094",
+        "position": [
+          72.6273727416992,
+          -1.49011611938477e-08,
+          588.87939453125
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 33.3333333333333,
+          "motion_idle_ms": 16.6666666666667,
+          "planning_service_us": 2700,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 2700
+        }
+      },
+      "resident_2": {
+        "second": 87.258,
+        "id": "resident_2",
+        "venue": "1455826212838",
+        "position": [
+          132.061233520508,
+          0.259766608476639,
+          1.18519234657288
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 66.6666666666667,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 6897,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 6897
+        }
+      },
+      "resident_3": {
+        "second": 165.462,
+        "id": "resident_3",
+        "venue": "1511140696728",
+        "position": [
+          122.03742980957,
+          -0.000459804548881948,
+          395.169464111328
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 50.0,
+          "planning_service_us": 376,
+          "progress_resets": 771,
+          "reason": "",
+          "total_service_us": 65455
+        }
+      },
+      "resident_4": {
+        "second": 103.274,
+        "id": "resident_4",
+        "venue": "1559442304094",
+        "position": [
+          192.252288818359,
+          -0.000568765797652304,
+          480.15625
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "searching",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 33.3333333333333,
+          "motion_idle_ms": 16.6666666666667,
+          "planning_service_us": 1612,
+          "progress_resets": 514,
+          "reason": "",
+          "total_service_us": 34513
+        }
+      },
+      "resident_5": {
+        "second": 133.419,
+        "id": "resident_5",
+        "venue": "1559442304094",
+        "position": [
+          122.004699707031,
+          -0.000370202120393515,
+          395.034759521484
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 66.6666666666667,
+          "planning_service_us": 594,
+          "progress_resets": 779,
+          "reason": "",
+          "total_service_us": 60782
+        }
+      },
+      "resident_6": {
+        "second": 69.209,
+        "id": "resident_6",
+        "venue": "1455826212838",
+        "position": [
+          113.153732299805,
+          0.0905379801988602,
+          6.10274744033813
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "searching",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 1.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 1466.66666666667,
+          "motion_idle_ms": 16.6666666666667,
+          "planning_service_us": 142260,
+          "progress_resets": 21,
+          "reason": "",
+          "total_service_us": 143705
+        }
+      },
+      "resident_7": {
+        "second": 65.205,
+        "id": "resident_7",
+        "venue": "1559442304094",
+        "position": [
+          23.290922164917,
+          0.240185648202896,
+          227.550033569336
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 50.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 4979,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 4979
+        }
+      },
+      "resident_8": {
+        "second": 67.207,
+        "id": "resident_8",
+        "venue": "1559442304094",
+        "position": [
+          -257.390045166016,
+          -1.49011611938477e-08,
+          525.005920410156
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 16.6666666666667,
+          "motion_idle_ms": 16.6666666666667,
+          "planning_service_us": 2196,
+          "progress_resets": 364,
+          "reason": "",
+          "total_service_us": 22653
+        }
+      },
+      "resident_9": {
+        "second": 35.14,
+        "id": "resident_9",
+        "venue": "1511140696728",
+        "position": [
+          -281.666168212891,
+          -1.49011611938477e-08,
+          361.059722900391
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 33.3333333333333,
+          "motion_idle_ms": 16.6666666666667,
+          "planning_service_us": 4200,
+          "progress_resets": 167,
+          "reason": "",
+          "total_service_us": 13220
+        }
+      }
+    },
+    "exit_blocked_events": [],
+    "terminal_logic_ring": {
+      "logic_including_profiler_max_us": 10848,
+      "logic_including_profiler_p50_us": 3805,
+      "logic_including_profiler_p95_us": 5791,
+      "max_us": 10831,
+      "p50_us": 3795,
+      "p95_us": 5775,
+      "profiler_write_max_us": 129,
+      "profiler_write_p50_us": 10,
+      "profiler_write_p95_us": 24,
+      "profiler_write_samples": 2048,
+      "samples": 2048,
+      "scope": "NPC logic excludes profiler writes; not rendered FPS"
+    },
+    "terminal_logic_ring_frames": {
+      "oldest": 10790,
+      "newest": 12837,
+      "capacity": 2048
+    },
+    "evidence_sha256": {
+      "RUN.json": "5dd707672a1e77741ace4b96604bc13f03a63a1262ac4d2be43ac762143d17cf",
+      "MASS30.json": "85cb4e4210837f7e30621879cf17abc72fe48fc1f0542f1a5490bcf3aaec107d",
+      "SOAK31.json": "b4044d7bc723a6f24fe4cea80b8372a555e2e79ad94e5872f912f38abc995654",
+      "OS_MEMORY.json": "58a4fa1a268eae13565ea3aededf9f390bc5274be873fe28b1d7c0fd65f121bd",
+      "stdout.log": "a7d8ca2371c8ca79474794cbeae98c15d76a8859b0e2be3c57c530aa1f4ca366"
+    }
+  },
+  "candidate": {
+    "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\qa31_resume\\runs\\merged600_01",
+    "mode": "headless",
+    "performance_accepted": false,
+    "duration": 600.0,
+    "windows": {
+      "quarter_1": {
+        "seconds": [
+          0.0,
+          150.0
+        ],
+        "frame_ms": {
+          "n": 21716,
+          "mean": 6.906892890034997,
+          "p50": 6.078,
+          "p95": 16.02,
+          "p99": 17.647,
+          "max": 38.001
+        },
+        "mean_headless_frame_frequency": 144.78290251797043,
+        "printed_fps": {
+          "n": 150,
+          "mean": 144.77333333333334,
+          "p50": 145.0,
+          "p95": 145.0,
+          "p99": 146.0,
+          "max": 146.0
+        },
+        "sampled_physical_ms": {
+          "n": 600,
+          "mean": 3.09225,
+          "p50": 2.918,
+          "p95": 4.562,
+          "p99": 5.084,
+          "max": 6.241
+        },
+        "sampled_daily_total_ms": {
+          "n": 600,
+          "mean": 3.1287183333333335,
+          "p50": 2.947,
+          "p95": 4.638,
+          "p99": 5.101,
+          "max": 6.257
+        },
+        "native_route_service_us": {
+          "n": 150,
+          "mean": 129.34666666666666,
+          "p50": 1,
+          "p95": 1122,
+          "p99": 1872,
+          "max": 2023
+        },
+        "native_physics_ms": {
+          "n": 150,
+          "mean": 12.340413333333334,
+          "p50": 11.341,
+          "p95": 19.277,
+          "p99": 26.952,
+          "max": 31.252
+        },
+        "native_process_ms": {
+          "n": 150,
+          "mean": 1.5786933333333333,
+          "p50": 1.483,
+          "p95": 2.234,
+          "p99": 2.543,
+          "max": 2.711
+        },
+        "native_objects": {
+          "n": 150,
+          "mean": 100885.08666666667,
+          "p50": 100935.0,
+          "p95": 101077.0,
+          "p99": 101085.0,
+          "max": 101130.0
+        },
+        "native_static_bytes": {
+          "n": 150,
+          "mean": 652590912.68,
+          "p50": 653079329.0,
+          "p95": 653546541.0,
+          "p99": 653587137.0,
+          "max": 653703161.0
+        }
+      },
+      "quarter_2": {
+        "seconds": [
+          150.0,
+          300.0
+        ],
+        "frame_ms": {
+          "n": 21686,
+          "mean": 6.917242368348243,
+          "p50": 5.889,
+          "p95": 16.161,
+          "p99": 18.151,
+          "max": 49.51
+        },
+        "mean_headless_frame_frequency": 144.56628042639892,
+        "printed_fps": {
+          "n": 150,
+          "mean": 144.56666666666666,
+          "p50": 145.0,
+          "p95": 145.0,
+          "p99": 146.0,
+          "max": 146.0
+        },
+        "sampled_physical_ms": {
+          "n": 600,
+          "mean": 3.230288333333333,
+          "p50": 2.975,
+          "p95": 4.827,
+          "p99": 5.802,
+          "max": 8.3
+        },
+        "sampled_daily_total_ms": {
+          "n": 600,
+          "mean": 3.253798333333333,
+          "p50": 2.992,
+          "p95": 4.846,
+          "p99": 5.816,
+          "max": 8.324
+        },
+        "native_route_service_us": {
+          "n": 149,
+          "mean": 331.8859060402685,
+          "p50": 1,
+          "p95": 1938,
+          "p99": 2067,
+          "max": 2308
+        },
+        "native_physics_ms": {
+          "n": 149,
+          "mean": 12.940744966442953,
+          "p50": 11.56,
+          "p95": 23.194,
+          "p99": 29.437,
+          "max": 42.63
+        },
+        "native_process_ms": {
+          "n": 149,
+          "mean": 1.5769664429530201,
+          "p50": 1.507,
+          "p95": 2.193,
+          "p99": 2.491,
+          "max": 2.753
+        },
+        "native_objects": {
+          "n": 149,
+          "mean": 101166.28187919463,
+          "p50": 101165.0,
+          "p95": 101240.0,
+          "p99": 101308.0,
+          "max": 101317.0
+        },
+        "native_static_bytes": {
+          "n": 149,
+          "mean": 654160532.114094,
+          "p50": 654159369.0,
+          "p95": 654715421.0,
+          "p99": 655064585.0,
+          "max": 655126733.0
+        }
+      },
+      "quarter_3": {
+        "seconds": [
+          300.0,
+          450.0
+        ],
+        "frame_ms": {
+          "n": 21697,
+          "mean": 6.913227128174402,
+          "p50": 5.265,
+          "p95": 16.296,
+          "p99": 18.558,
+          "max": 53.5
+        },
+        "mean_headless_frame_frequency": 144.65024531373572,
+        "printed_fps": {
+          "n": 150,
+          "mean": 144.65333333333334,
+          "p50": 145.0,
+          "p95": 145.0,
+          "p99": 145.0,
+          "max": 145.0
+        },
+        "sampled_physical_ms": {
+          "n": 600,
+          "mean": 3.8983833333333333,
+          "p50": 4.091,
+          "p95": 5.383,
+          "p99": 6.074,
+          "max": 19.16
+        },
+        "sampled_daily_total_ms": {
+          "n": 600,
+          "mean": 3.910451666666667,
+          "p50": 4.101,
+          "p95": 5.396,
+          "p99": 6.089,
+          "max": 19.173
+        },
+        "native_route_service_us": {
+          "n": 150,
+          "mean": 1410.5666666666666,
+          "p50": 1920,
+          "p95": 2191,
+          "p99": 2293,
+          "max": 3816
+        },
+        "native_physics_ms": {
+          "n": 150,
+          "mean": 13.405153333333333,
+          "p50": 12.004,
+          "p95": 22.9,
+          "p99": 25.618,
+          "max": 46.593
+        },
+        "native_process_ms": {
+          "n": 150,
+          "mean": 1.4571866666666666,
+          "p50": 1.379,
+          "p95": 1.927,
+          "p99": 2.184,
+          "max": 2.388
+        },
+        "native_objects": {
+          "n": 150,
+          "mean": 101279.66666666667,
+          "p50": 101278.0,
+          "p95": 101340.0,
+          "p99": 101396.0,
+          "max": 101409.0
+        },
+        "native_static_bytes": {
+          "n": 150,
+          "mean": 655504101.8533334,
+          "p50": 655492749.0,
+          "p95": 656235193.0,
+          "p99": 656450717.0,
+          "max": 656952549.0
+        }
+      },
+      "quarter_4": {
+        "seconds": [
+          450.0,
+          600.0
+        ],
+        "frame_ms": {
+          "n": 21721,
+          "mean": 6.9055752957966945,
+          "p50": 5.981,
+          "p95": 15.422,
+          "p99": 17.232,
+          "max": 34.46
+        },
+        "mean_headless_frame_frequency": 144.8105273153249,
+        "printed_fps": {
+          "n": 150,
+          "mean": 144.80666666666667,
+          "p50": 145.0,
+          "p95": 145.0,
+          "p99": 145.0,
+          "max": 146.0
+        },
+        "sampled_physical_ms": {
+          "n": 600,
+          "mean": 3.57291,
+          "p50": 3.731,
+          "p95": 4.669,
+          "p99": 5.485,
+          "max": 6.306
+        },
+        "sampled_daily_total_ms": {
+          "n": 600,
+          "mean": 3.584041666666667,
+          "p50": 3.744,
+          "p95": 4.682,
+          "p99": 5.5,
+          "max": 6.322
+        },
+        "native_route_service_us": {
+          "n": 149,
+          "mean": 1641.711409395973,
+          "p50": 1908,
+          "p95": 2190,
+          "p99": 2230,
+          "max": 2302
+        },
+        "native_physics_ms": {
+          "n": 149,
+          "mean": 11.474926174496645,
+          "p50": 10.596,
+          "p95": 15.639,
+          "p99": 25.283,
+          "max": 27.543
+        },
+        "native_process_ms": {
+          "n": 149,
+          "mean": 1.3923087248322148,
+          "p50": 1.293,
+          "p95": 2.016,
+          "p99": 2.402,
+          "max": 2.573
+        },
+        "native_objects": {
+          "n": 149,
+          "mean": 101302.67785234899,
+          "p50": 101299.0,
+          "p95": 101336.0,
+          "p99": 101400.0,
+          "max": 101470.0
+        },
+        "native_static_bytes": {
+          "n": 149,
+          "mean": 656603185.0,
+          "p50": 656597421.0,
+          "p95": 657303361.0,
+          "p99": 657687945.0,
+          "max": 658135873.0
+        }
+      },
+      "first_180": {
+        "seconds": [
+          0,
+          180
+        ],
+        "frame_ms": {
+          "n": 26058,
+          "mean": 6.907377542405404,
+          "p50": 6.038,
+          "p95": 16.063,
+          "p99": 17.693,
+          "max": 38.001
+        },
+        "mean_headless_frame_frequency": 144.77274390473858,
+        "printed_fps": {
+          "n": 180,
+          "mean": 144.77777777777777,
+          "p50": 145.0,
+          "p95": 145.0,
+          "p99": 146.0,
+          "max": 146.0
+        },
+        "sampled_physical_ms": {
+          "n": 720,
+          "mean": 3.1304208333333334,
+          "p50": 2.942,
+          "p95": 4.635,
+          "p99": 5.156,
+          "max": 6.241
+        },
+        "sampled_daily_total_ms": {
+          "n": 720,
+          "mean": 3.167015277777778,
+          "p50": 2.968,
+          "p95": 4.676,
+          "p99": 5.17,
+          "max": 6.257
+        },
+        "native_route_service_us": {
+          "n": 180,
+          "mean": 130.17222222222222,
+          "p50": 1,
+          "p95": 1413,
+          "p99": 2002,
+          "max": 2067
+        },
+        "native_physics_ms": {
+          "n": 180,
+          "mean": 12.320283333333334,
+          "p50": 11.357,
+          "p95": 19.277,
+          "p99": 26.952,
+          "max": 31.252
+        },
+        "native_process_ms": {
+          "n": 180,
+          "mean": 1.6053444444444445,
+          "p50": 1.494,
+          "p95": 2.308,
+          "p99": 2.547,
+          "max": 2.753
+        },
+        "native_objects": {
+          "n": 180,
+          "mean": 100923.59444444445,
+          "p50": 100952.0,
+          "p95": 101124.0,
+          "p99": 101166.0,
+          "max": 101176.0
+        },
+        "native_static_bytes": {
+          "n": 180,
+          "mean": 652774917.3111111,
+          "p50": 653135517.0,
+          "p95": 653752617.0,
+          "p99": 653838693.0,
+          "max": 653848057.0
+        }
+      },
+      "before_stall_0_335": {
+        "seconds": [
+          0,
+          335
+        ],
+        "frame_ms": {
+          "n": 48458,
+          "mean": 6.912969726360973,
+          "p50": 6.014,
+          "p95": 15.993,
+          "p99": 17.843,
+          "max": 53.5
+        },
+        "mean_headless_frame_frequency": 144.65563131091648,
+        "printed_fps": {
+          "n": 335,
+          "mean": 144.6537313432836,
+          "p50": 145.0,
+          "p95": 145.0,
+          "p99": 146.0,
+          "max": 146.0
+        },
+        "sampled_physical_ms": {
+          "n": 1340,
+          "mean": 3.1746410447761195,
+          "p50": 2.942,
+          "p95": 4.778,
+          "p99": 5.64,
+          "max": 8.3
+        },
+        "sampled_daily_total_ms": {
+          "n": 1340,
+          "mean": 3.202639552238806,
+          "p50": 2.966,
+          "p95": 4.817,
+          "p99": 5.656,
+          "max": 8.324
+        },
+        "native_route_service_us": {
+          "n": 334,
+          "mean": 298.3922155688623,
+          "p50": 1,
+          "p95": 1969,
+          "p99": 2115,
+          "max": 3816
+        },
+        "native_physics_ms": {
+          "n": 334,
+          "mean": 12.714248502994012,
+          "p50": 11.37,
+          "p95": 23.16,
+          "p99": 30.273,
+          "max": 46.593
+        },
+        "native_process_ms": {
+          "n": 334,
+          "mean": 1.5562694610778443,
+          "p50": 1.472,
+          "p95": 2.217,
+          "p99": 2.523,
+          "max": 2.753
+        },
+        "native_objects": {
+          "n": 334,
+          "mean": 101047.47604790419,
+          "p50": 101118.0,
+          "p95": 101245.0,
+          "p99": 101291.0,
+          "max": 101328.0
+        },
+        "native_static_bytes": {
+          "n": 334,
+          "mean": 653544161.4431138,
+          "p50": 653713381.0,
+          "p95": 655021237.0,
+          "p99": 655394237.0,
+          "max": 655980345.0
+        }
+      },
+      "after_stall_335_end": {
+        "seconds": [
+          335,
+          600.0
+        ],
+        "frame_ms": {
+          "n": 38362,
+          "mean": 6.907903837130494,
+          "p50": 5.622,
+          "p95": 15.971,
+          "p99": 18.01,
+          "max": 37.934
+        },
+        "mean_headless_frame_frequency": 144.76171405642998,
+        "printed_fps": {
+          "n": 265,
+          "mean": 144.75849056603772,
+          "p50": 145.0,
+          "p95": 145.0,
+          "p99": 145.0,
+          "max": 146.0
+        },
+        "sampled_physical_ms": {
+          "n": 1060,
+          "mean": 3.794603773584906,
+          "p50": 3.888,
+          "p95": 5.17,
+          "p99": 5.964,
+          "max": 19.16
+        },
+        "sampled_daily_total_ms": {
+          "n": 1060,
+          "mean": 3.8062915094339624,
+          "p50": 3.898,
+          "p95": 5.185,
+          "p99": 5.982,
+          "max": 19.173
+        },
+        "native_route_service_us": {
+          "n": 264,
+          "mean": 1611.3257575757575,
+          "p50": 1916,
+          "p95": 2208,
+          "p99": 2284,
+          "max": 2360
+        },
+        "native_physics_ms": {
+          "n": 264,
+          "mean": 12.322768939393939,
+          "p50": 11.424,
+          "p95": 21.904,
+          "p99": 25.618,
+          "max": 30.875
+        },
+        "native_process_ms": {
+          "n": 264,
+          "mean": 1.4318560606060606,
+          "p50": 1.337,
+          "p95": 2.014,
+          "p99": 2.388,
+          "max": 2.573
+        },
+        "native_objects": {
+          "n": 264,
+          "mean": 101298.22348484848,
+          "p50": 101294.0,
+          "p95": 101339.0,
+          "p99": 101400.0,
+          "max": 101470.0
+        },
+        "native_static_bytes": {
+          "n": 264,
+          "mean": 656190515.560606,
+          "p50": 656171029.0,
+          "p95": 657185429.0,
+          "p99": 657664813.0,
+          "max": 658135873.0
+        }
+      }
+    },
+    "memory_trends": {
+      "static_memory": {
+        "slope_per_minute": 542980.1496026759,
+        "first": 650157461.0,
+        "last": 656886689.0,
+        "max": 658135873.0
+      },
+      "objects": {
+        "slope_per_minute": 56.027880347310266,
+        "first": 100565.0,
+        "last": 101302.0,
+        "max": 101470.0
+      },
+      "nodes": {
+        "slope_per_minute": 0.09601677665083555,
+        "first": 48752.0,
+        "last": 48748.0,
+        "max": 48771.0
+      },
+      "resources": {
+        "slope_per_minute": 0.0,
+        "first": 4201.0,
+        "last": 4201.0,
+        "max": 4201.0
+      },
+      "orphans": {
+        "slope_per_minute": 0.0,
+        "first": 0.0,
+        "last": 0.0,
+        "max": 0.0
+      },
+      "rss_bytes": {
+        "slope_per_minute": -1812757.8843948066,
+        "first": 875786240,
+        "last": 872300544,
+        "max": 876855296
+      },
+      "private_bytes": {
+        "slope_per_minute": 59615.34156489627,
+        "first": 839229440,
+        "last": 851148800,
+        "max": 851148800
+      }
+    },
+    "mean_frame_ms_slope_per_minute": -0.000414290823253391,
+    "frame_p95_vs_sampled_physical_cost_correlation": 0.5281826937930547,
+    "frames_grouped_by_physics_steps": {
+      "0": {
+        "n": 50823,
+        "mean": 1.7975031383428763,
+        "p50": 0.212,
+        "p95": 6.817,
+        "p99": 6.928,
+        "max": 8.437
+      },
+      "1": {
+        "n": 35996,
+        "mean": 14.129844843871542,
+        "p50": 13.875,
+        "p95": 17.085,
+        "p99": 18.985,
+        "max": 53.5
+      },
+      "2": {
+        "n": 2,
+        "mean": 17.869500000000002,
+        "p50": 17.526,
+        "p95": 17.526,
+        "p99": 17.526,
+        "max": 18.213
+      }
+    },
+    "top_20_sampled_physical_ticks": [
+      {
+        "f": 28710.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 19173.0,
+        "total_us": 19173.0,
+        "polls": 1.0,
+        "pmin": 98.0,
+        "p50": 98.0,
+        "p90": 98.0,
+        "pmax": 98.0,
+        "budget_us": 0.0,
+        "worst_us": 98.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 8.0,
+        "physical_us30": 19160.0,
+        "second": 425.87468852459017
+      },
+      {
+        "f": 17820.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 8324.0,
+        "total_us": 8324.0,
+        "polls": 2.0,
+        "pmin": 218.0,
+        "p50": 887.0,
+        "p90": 887.0,
+        "pmax": 887.0,
+        "budget_us": 0.0,
+        "worst_us": 887.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 8.0,
+        "physical_us30": 8300.0,
+        "second": 244.37326666666667
+      },
+      {
+        "f": 25860.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 7078.0,
+        "total_us": 7078.0,
+        "polls": 1.0,
+        "pmin": 94.0,
+        "p50": 94.0,
+        "p90": 94.0,
+        "pmax": 94.0,
+        "budget_us": 0.0,
+        "worst_us": 94.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 8.0,
+        "physical_us30": 7056.0,
+        "second": 378.3678852459017
+      },
+      {
+        "f": 21735.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 6945.0,
+        "total_us": 6945.0,
+        "polls": 4.0,
+        "pmin": 90.0,
+        "p50": 99.0,
+        "p90": 1043.0,
+        "pmax": 1043.0,
+        "budget_us": 0.0,
+        "worst_us": 1043.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 8.0,
+        "physical_us30": 6923.0,
+        "second": 309.62013333333334
+      },
+      {
+        "f": 29685.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 6808.0,
+        "total_us": 6808.0,
+        "polls": 3.0,
+        "pmin": 86.0,
+        "p50": 90.0,
+        "p90": 90.0,
+        "pmax": 90.0,
+        "budget_us": 0.0,
+        "worst_us": 90.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 4.0,
+        "physical_us30": 6791.0,
+        "second": 442.12076666666667
+      },
+      {
+        "f": 29700.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 6419.0,
+        "total_us": 6419.0,
+        "polls": 3.0,
+        "pmin": 87.0,
+        "p50": 102.0,
+        "p90": 876.0,
+        "pmax": 876.0,
+        "budget_us": 0.0,
+        "worst_us": 876.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 7.0,
+        "physical_us30": 6409.0,
+        "second": 442.37101666666666
+      },
+      {
+        "f": 39060.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 6322.0,
+        "total_us": 6322.0,
+        "polls": 0.0,
+        "pmin": 0.0,
+        "p50": 0.0,
+        "p90": 0.0,
+        "pmax": 0.0,
+        "budget_us": 0.0,
+        "worst_us": 0.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 8.0,
+        "physical_us30": 6306.0,
+        "second": 598.3677333333333
+      },
+      {
+        "f": 9720.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 6257.0,
+        "total_us": 6257.0,
+        "polls": 0.0,
+        "pmin": 0.0,
+        "p50": 0.0,
+        "p90": 0.0,
+        "pmax": 0.0,
+        "budget_us": 0.0,
+        "worst_us": 0.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 9.0,
+        "physical_us30": 6241.0,
+        "second": 109.36758333333333
+      },
+      {
+        "f": 28005.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 6235.0,
+        "total_us": 6235.0,
+        "polls": 2.0,
+        "pmin": 94.0,
+        "p50": 135.0,
+        "p90": 135.0,
+        "pmax": 135.0,
+        "budget_us": 0.0,
+        "worst_us": 135.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 7.0,
+        "physical_us30": 6217.0,
+        "second": 414.1206666666667
+      },
+      {
+        "f": 13695.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 6225.0,
+        "total_us": 6225.0,
+        "polls": 3.0,
+        "pmin": 94.0,
+        "p50": 115.0,
+        "p90": 1142.0,
+        "pmax": 1142.0,
+        "budget_us": 0.0,
+        "worst_us": 1142.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 8.0,
+        "physical_us30": 6206.0,
+        "second": 175.61666666666665
+      },
+      {
+        "f": 32895.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 6089.0,
+        "total_us": 6089.0,
+        "polls": 4.0,
+        "pmin": 84.0,
+        "p50": 91.0,
+        "p90": 98.0,
+        "pmax": 98.0,
+        "budget_us": 0.0,
+        "worst_us": 98.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 5.0,
+        "physical_us30": 6079.0,
+        "second": 495.6175
+      },
+      {
+        "f": 26430.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 6089.0,
+        "total_us": 6089.0,
+        "polls": 0.0,
+        "pmin": 0.0,
+        "p50": 0.0,
+        "p90": 0.0,
+        "pmax": 0.0,
+        "budget_us": 0.0,
+        "worst_us": 0.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 9.0,
+        "physical_us30": 6074.0,
+        "second": 387.87076666666667
+      },
+      {
+        "f": 24510.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 6062.0,
+        "total_us": 6062.0,
+        "polls": 2.0,
+        "pmin": 89.0,
+        "p50": 138.0,
+        "p90": 138.0,
+        "pmax": 138.0,
+        "budget_us": 0.0,
+        "worst_us": 138.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 7.0,
+        "physical_us30": 6047.0,
+        "second": 355.86601639344264
+      },
+      {
+        "f": 26400.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 6032.0,
+        "total_us": 6032.0,
+        "polls": 0.0,
+        "pmin": 0.0,
+        "p50": 0.0,
+        "p90": 0.0,
+        "pmax": 0.0,
+        "budget_us": 0.0,
+        "worst_us": 0.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 9.0,
+        "physical_us30": 6015.0,
+        "second": 387.3702
+      },
+      {
+        "f": 15585.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 6015.0,
+        "total_us": 6015.0,
+        "polls": 0.0,
+        "pmin": 0.0,
+        "p50": 0.0,
+        "p90": 0.0,
+        "pmax": 0.0,
+        "budget_us": 0.0,
+        "worst_us": 0.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 10.0,
+        "physical_us30": 6002.0,
+        "second": 207.1206
+      },
+      {
+        "f": 26250.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 6031.0,
+        "total_us": 6031.0,
+        "polls": 1.0,
+        "pmin": 115.0,
+        "p50": 115.0,
+        "p90": 115.0,
+        "pmax": 115.0,
+        "budget_us": 0.0,
+        "worst_us": 115.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 8.0,
+        "physical_us30": 5998.0,
+        "second": 384.8662
+      },
+      {
+        "f": 28485.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 5982.0,
+        "total_us": 5982.0,
+        "polls": 0.0,
+        "pmin": 0.0,
+        "p50": 0.0,
+        "p90": 0.0,
+        "pmax": 0.0,
+        "budget_us": 0.0,
+        "worst_us": 0.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 8.0,
+        "physical_us30": 5964.0,
+        "second": 422.121
+      },
+      {
+        "f": 28320.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 5974.0,
+        "total_us": 5974.0,
+        "polls": 3.0,
+        "pmin": 92.0,
+        "p50": 93.0,
+        "p90": 94.0,
+        "pmax": 94.0,
+        "budget_us": 0.0,
+        "worst_us": 94.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 6.0,
+        "physical_us30": 5958.0,
+        "second": 419.366
+      },
+      {
+        "f": 17760.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 5900.0,
+        "total_us": 5900.0,
+        "polls": 1.0,
+        "pmin": 89.0,
+        "p50": 89.0,
+        "p90": 89.0,
+        "pmax": 89.0,
+        "budget_us": 0.0,
+        "worst_us": 89.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 7.0,
+        "physical_us30": 5887.0,
+        "second": 243.3737049180328
+      },
+      {
+        "f": 17535.0,
+        "lives": 10.0,
+        "stepped": 0.0,
+        "life_us": 0.0,
+        "overhead_us": 5887.0,
+        "total_us": 5887.0,
+        "polls": 1.0,
+        "pmin": 88.0,
+        "p50": 88.0,
+        "p90": 88.0,
+        "pmax": 88.0,
+        "budget_us": 0.0,
+        "worst_us": 88.0,
+        "scene_cache_lookups": 0.0,
+        "scene_cache_hits": 0.0,
+        "scene_cache_builds": 0.0,
+        "scene_cache_us": 0.0,
+        "physical_steps30": 8.0,
+        "physical_us30": 5870.0,
+        "second": 239.614
+      }
+    ],
+    "top_20_accumulated_planning_samples": [
+      {
+        "second": 515.939,
+        "id": "resident_8",
+        "venue": "1559777848406",
+        "position": [
+          18.2766418457031,
+          0.000591035699471831,
+          203.823150634766
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "EXIT_RETRY",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "blocked",
+        "route_reason": "service_planning_work_limit30",
+        "route_status": "cancelled",
+        "guide_status": "cancelled",
+        "required_motion": true,
+        "motion_idle_s": 180.75,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": true,
+          "local_wait_ms": 4816.66666666667,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 502146,
+          "progress_resets": 0,
+          "reason": "service_planning_work_limit30",
+          "total_service_us": 502146
+        }
+      },
+      {
+        "second": 353.239,
+        "id": "resident_8",
+        "venue": "1559777848406",
+        "position": [
+          18.2766418457031,
+          0.000591035699471831,
+          203.823150634766
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "EXIT_RETRY",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "blocked",
+        "route_reason": "service_planning_work_limit30",
+        "route_status": "cancelled",
+        "guide_status": "cancelled",
+        "required_motion": true,
+        "motion_idle_s": 18.05,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": true,
+          "local_wait_ms": 4716.66666666666,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 501869,
+          "progress_resets": 0,
+          "reason": "service_planning_work_limit30",
+          "total_service_us": 501869
+        }
+      },
+      {
+        "second": 490.856,
+        "id": "resident_8",
+        "venue": "1559777848406",
+        "position": [
+          18.2766418457031,
+          0.000591035699471831,
+          203.823150634766
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "EXIT_RETRY",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "blocked",
+        "route_reason": "service_planning_work_limit30",
+        "route_status": "cancelled",
+        "guide_status": "cancelled",
+        "required_motion": true,
+        "motion_idle_s": 155.667,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": true,
+          "local_wait_ms": 4616.66666666666,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 501771,
+          "progress_resets": 0,
+          "reason": "service_planning_work_limit30",
+          "total_service_us": 501771
+        }
+      },
+      {
+        "second": 367.337,
+        "id": "resident_8",
+        "venue": "1559777848406",
+        "position": [
+          18.2766418457031,
+          0.000591035699471831,
+          203.823150634766
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "EXIT_RETRY",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "blocked",
+        "route_reason": "service_planning_work_limit30",
+        "route_status": "cancelled",
+        "guide_status": "cancelled",
+        "required_motion": true,
+        "motion_idle_s": 32.148,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": true,
+          "local_wait_ms": 4616.66666666666,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 501690,
+          "progress_resets": 0,
+          "reason": "service_planning_work_limit30",
+          "total_service_us": 501690
+        }
+      },
+      {
+        "second": 368.338,
+        "id": "resident_8",
+        "venue": "1559777848406",
+        "position": [
+          18.2766418457031,
+          0.000591035699471831,
+          203.823150634766
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "EXIT_RETRY",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "blocked",
+        "route_reason": "service_planning_work_limit30",
+        "route_status": "cancelled",
+        "guide_status": "cancelled",
+        "required_motion": true,
+        "motion_idle_s": 33.149,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": true,
+          "local_wait_ms": 4616.66666666666,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 501690,
+          "progress_resets": 0,
+          "reason": "service_planning_work_limit30",
+          "total_service_us": 501690
+        }
+      },
+      {
+        "second": 410.549,
+        "id": "resident_8",
+        "venue": "1559777848406",
+        "position": [
+          18.2766418457031,
+          0.000591035699471831,
+          203.823150634766
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "EXIT_RETRY",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "blocked",
+        "route_reason": "service_planning_work_limit30",
+        "route_status": "cancelled",
+        "guide_status": "cancelled",
+        "required_motion": true,
+        "motion_idle_s": 75.36,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": true,
+          "local_wait_ms": 4599.99999999999,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 501522,
+          "progress_resets": 0,
+          "reason": "service_planning_work_limit30",
+          "total_service_us": 501522
+        }
+      },
+      {
+        "second": 471.823,
+        "id": "resident_8",
+        "venue": "1559777848406",
+        "position": [
+          18.2766418457031,
+          0.000591035699471831,
+          203.823150634766
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "EXIT_RETRY",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "blocked",
+        "route_reason": "service_planning_work_limit30",
+        "route_status": "cancelled",
+        "guide_status": "cancelled",
+        "required_motion": true,
+        "motion_idle_s": 136.634,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": true,
+          "local_wait_ms": 5000.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 501463,
+          "progress_resets": 0,
+          "reason": "service_planning_work_limit30",
+          "total_service_us": 501463
+        }
+      },
+      {
+        "second": 472.823,
+        "id": "resident_8",
+        "venue": "1559777848406",
+        "position": [
+          18.2766418457031,
+          0.000591035699471831,
+          203.823150634766
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "EXIT_RETRY",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "blocked",
+        "route_reason": "service_planning_work_limit30",
+        "route_status": "cancelled",
+        "guide_status": "cancelled",
+        "required_motion": true,
+        "motion_idle_s": 137.634,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": true,
+          "local_wait_ms": 5000.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 501463,
+          "progress_resets": 0,
+          "reason": "service_planning_work_limit30",
+          "total_service_us": 501463
+        }
+      },
+      {
+        "second": 566.069,
+        "id": "resident_8",
+        "venue": "1559777848406",
+        "position": [
+          18.2766418457031,
+          0.000591035699471831,
+          203.823150634766
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "EXIT_RETRY",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "blocked",
+        "route_reason": "service_planning_work_limit30",
+        "route_status": "cancelled",
+        "guide_status": "cancelled",
+        "required_motion": true,
+        "motion_idle_s": 230.88,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": true,
+          "local_wait_ms": 6516.6666666667,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 501442,
+          "progress_resets": 0,
+          "reason": "service_planning_work_limit30",
+          "total_service_us": 501442
+        }
+      },
+      {
+        "second": 567.069,
+        "id": "resident_8",
+        "venue": "1559777848406",
+        "position": [
+          18.2766418457031,
+          0.000591035699471831,
+          203.823150634766
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "EXIT_RETRY",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "blocked",
+        "route_reason": "service_planning_work_limit30",
+        "route_status": "cancelled",
+        "guide_status": "cancelled",
+        "required_motion": true,
+        "motion_idle_s": 231.88,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": true,
+          "local_wait_ms": 6516.6666666667,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 501442,
+          "progress_resets": 0,
+          "reason": "service_planning_work_limit30",
+          "total_service_us": 501442
+        }
+      },
+      {
+        "second": 591.122,
+        "id": "resident_8",
+        "venue": "1559777848406",
+        "position": [
+          18.2766418457031,
+          0.000591035699471831,
+          203.823150634766
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "EXIT_RETRY",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "blocked",
+        "route_reason": "service_planning_work_limit30",
+        "route_status": "cancelled",
+        "guide_status": "cancelled",
+        "required_motion": true,
+        "motion_idle_s": 255.933,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": true,
+          "local_wait_ms": 4666.66666666666,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 501362,
+          "progress_resets": 0,
+          "reason": "service_planning_work_limit30",
+          "total_service_us": 501362
+        }
+      },
+      {
+        "second": 579.089,
+        "id": "resident_8",
+        "venue": "1559777848406",
+        "position": [
+          18.2766418457031,
+          0.000591035699471831,
+          203.823150634766
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "EXIT_RETRY",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "blocked",
+        "route_reason": "service_planning_work_limit30",
+        "route_status": "cancelled",
+        "guide_status": "cancelled",
+        "required_motion": true,
+        "motion_idle_s": 243.9,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": true,
+          "local_wait_ms": 4566.66666666666,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 501361,
+          "progress_resets": 0,
+          "reason": "service_planning_work_limit30",
+          "total_service_us": 501361
+        }
+      },
+      {
+        "second": 585.092,
+        "id": "resident_8",
+        "venue": "1559777848406",
+        "position": [
+          18.2766418457031,
+          0.000591035699471831,
+          203.823150634766
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "EXIT_RETRY",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "blocked",
+        "route_reason": "service_planning_work_limit30",
+        "route_status": "cancelled",
+        "guide_status": "cancelled",
+        "required_motion": true,
+        "motion_idle_s": 249.903,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": true,
+          "local_wait_ms": 4583.33333333333,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 501336,
+          "progress_resets": 0,
+          "reason": "service_planning_work_limit30",
+          "total_service_us": 501336
+        }
+      },
+      {
+        "second": 597.132,
+        "id": "resident_8",
+        "venue": "1559777848406",
+        "position": [
+          18.2766418457031,
+          0.000591035699471831,
+          203.823150634766
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "EXIT_RETRY",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "blocked",
+        "route_reason": "service_planning_work_limit30",
+        "route_status": "cancelled",
+        "guide_status": "cancelled",
+        "required_motion": true,
+        "motion_idle_s": 261.943,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": true,
+          "local_wait_ms": 4650.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 501277,
+          "progress_resets": 0,
+          "reason": "service_planning_work_limit30",
+          "total_service_us": 501277
+        }
+      },
+      {
+        "second": 392.482,
+        "id": "resident_8",
+        "venue": "1559777848406",
+        "position": [
+          18.2766418457031,
+          0.000591035699471831,
+          203.823150634766
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "EXIT_RETRY",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "blocked",
+        "route_reason": "service_planning_work_limit30",
+        "route_status": "cancelled",
+        "guide_status": "cancelled",
+        "required_motion": true,
+        "motion_idle_s": 57.293,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": true,
+          "local_wait_ms": 5000.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 501179,
+          "progress_resets": 0,
+          "reason": "service_planning_work_limit30",
+          "total_service_us": 501179
+        }
+      },
+      {
+        "second": 558.022,
+        "id": "resident_8",
+        "venue": "1559777848406",
+        "position": [
+          18.2766418457031,
+          0.000591035699471831,
+          203.823150634766
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "EXIT_RETRY",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "blocked",
+        "route_reason": "service_planning_work_limit30",
+        "route_status": "cancelled",
+        "guide_status": "cancelled",
+        "required_motion": true,
+        "motion_idle_s": 222.833,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": true,
+          "local_wait_ms": 6633.33333333336,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 501136,
+          "progress_resets": 0,
+          "reason": "service_planning_work_limit30",
+          "total_service_us": 501136
+        }
+      },
+      {
+        "second": 559.036,
+        "id": "resident_8",
+        "venue": "1559777848406",
+        "position": [
+          18.2766418457031,
+          0.000591035699471831,
+          203.823150634766
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "EXIT_RETRY",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "blocked",
+        "route_reason": "service_planning_work_limit30",
+        "route_status": "cancelled",
+        "guide_status": "cancelled",
+        "required_motion": true,
+        "motion_idle_s": 223.847,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": true,
+          "local_wait_ms": 6633.33333333336,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 501136,
+          "progress_resets": 0,
+          "reason": "service_planning_work_limit30",
+          "total_service_us": 501136
+        }
+      },
+      {
+        "second": 379.403,
+        "id": "resident_8",
+        "venue": "1559777848406",
+        "position": [
+          18.2766418457031,
+          0.000591035699471831,
+          203.823150634766
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "EXIT_RETRY",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "blocked",
+        "route_reason": "service_planning_work_limit30",
+        "route_status": "cancelled",
+        "guide_status": "cancelled",
+        "required_motion": true,
+        "motion_idle_s": 44.214,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": true,
+          "local_wait_ms": 4466.66666666666,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 501041,
+          "progress_resets": 0,
+          "reason": "service_planning_work_limit30",
+          "total_service_us": 501041
+        }
+      },
+      {
+        "second": 380.416,
+        "id": "resident_8",
+        "venue": "1559777848406",
+        "position": [
+          18.2766418457031,
+          0.000591035699471831,
+          203.823150634766
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "EXIT_RETRY",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "blocked",
+        "route_reason": "service_planning_work_limit30",
+        "route_status": "cancelled",
+        "guide_status": "cancelled",
+        "required_motion": true,
+        "motion_idle_s": 45.227,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": true,
+          "local_wait_ms": 4466.66666666666,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 501041,
+          "progress_resets": 0,
+          "reason": "service_planning_work_limit30",
+          "total_service_us": 501041
+        }
+      },
+      {
+        "second": 361.306,
+        "id": "resident_8",
+        "venue": "1559777848406",
+        "position": [
+          18.2766418457031,
+          0.000591035699471831,
+          203.823150634766
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "EXIT_RETRY",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "blocked",
+        "route_reason": "service_planning_work_limit30",
+        "route_status": "cancelled",
+        "guide_status": "cancelled",
+        "required_motion": true,
+        "motion_idle_s": 26.117,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": true,
+          "local_wait_ms": 6950.00000000004,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 501034,
+          "progress_resets": 0,
+          "reason": "service_planning_work_limit30",
+          "total_service_us": 501034
+        }
+      }
+    ],
+    "maximum_accumulated_planning_per_id": {
+      "resident_1": {
+        "second": 564.066,
+        "id": "resident_1",
+        "venue": "1511056810615",
+        "position": [
+          -138.098052978516,
+          0.23960617184639,
+          163.265930175781
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "SERVICE_APPROACH",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "searching",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 10.048,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 10300.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 476604,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 476604
+        }
+      },
+      "resident_10": {
+        "second": 250.915,
+        "id": "resident_10",
+        "venue": "1559777848406",
+        "position": [
+          22.9742851257324,
+          0.240272879600525,
+          227.550354003906
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "OUTBOUND",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 66.6666666666667,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 6539,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 6539
+        }
+      },
+      "resident_2": {
+        "second": 327.175,
+        "id": "resident_2",
+        "venue": "1456312752103",
+        "position": [
+          152.577163696289,
+          -0.000449799001216888,
+          13.0021018981934
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "searching",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 3.002,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 2950.0,
+          "motion_idle_ms": 33.3333333333333,
+          "planning_service_us": 316605,
+          "progress_resets": 26,
+          "reason": "",
+          "total_service_us": 319326
+        }
+      },
+      "resident_3": {
+        "second": 325.174,
+        "id": "resident_3",
+        "venue": "1559777848406",
+        "position": [
+          129.525985717773,
+          -0.000189342303201556,
+          425.992065429688
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "searching",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 83.3333333333333,
+          "motion_idle_ms": 16.6666666666667,
+          "planning_service_us": 2000,
+          "progress_resets": 649,
+          "reason": "",
+          "total_service_us": 78401
+        }
+      },
+      "resident_4": {
+        "second": 237.851,
+        "id": "resident_4",
+        "venue": "1559777848406",
+        "position": [
+          22.860710144043,
+          0.239815533161163,
+          227.550216674805
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "OUTBOUND",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "searching",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 33.3333333333333,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 1983,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 1983
+        }
+      },
+      "resident_5": {
+        "second": 312.121,
+        "id": "resident_5",
+        "venue": "1511056810615",
+        "position": [
+          24.6228847503662,
+          -0.000267467345111072,
+          196.047653198242
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "searching",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 4.052,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 4533.33333333333,
+          "motion_idle_ms": 16.6666666666667,
+          "planning_service_us": 447934,
+          "progress_resets": 1691,
+          "reason": "",
+          "total_service_us": 592138
+        }
+      },
+      "resident_6": {
+        "second": 261.937,
+        "id": "resident_6",
+        "venue": "1456312752103",
+        "position": [
+          126.27131652832,
+          -0.000349085777997971,
+          4.39790964126587
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 3533.33333333332,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 354708,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 354708
+        }
+      },
+      "resident_7": {
+        "second": 245.9,
+        "id": "resident_7",
+        "venue": "1511056810615",
+        "position": [
+          22.1468276977539,
+          0.000167936086654663,
+          203.277130126953
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "searching",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 5.036,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 4950.0,
+          "motion_idle_ms": 16.6666666666667,
+          "planning_service_us": 497013,
+          "progress_resets": 90,
+          "reason": "",
+          "total_service_us": 506458
+        }
+      },
+      "resident_8": {
+        "second": 515.939,
+        "id": "resident_8",
+        "venue": "1559777848406",
+        "position": [
+          18.2766418457031,
+          0.000591035699471831,
+          203.823150634766
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "EXIT_RETRY",
+        "outer_phase": "OUTBOUND",
+        "route_phase": "blocked",
+        "route_reason": "service_planning_work_limit30",
+        "route_status": "cancelled",
+        "guide_status": "cancelled",
+        "required_motion": true,
+        "motion_idle_s": 180.75,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": true,
+          "local_wait_ms": 4816.66666666667,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 502146,
+          "progress_resets": 0,
+          "reason": "service_planning_work_limit30",
+          "total_service_us": 502146
+        }
+      },
+      "resident_9": {
+        "second": 175.6,
+        "id": "resident_9",
+        "venue": "1511056810615",
+        "position": [
+          -144.822952270508,
+          -1.49011611938477e-08,
+          174.216690063477
+        ],
+        "life_phase": "WALKING",
+        "economy_phase": "INBOUND",
+        "outer_phase": "INBOUND",
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "searching",
+        "guide_status": "ready",
+        "required_motion": true,
+        "motion_idle_s": 0.0,
+        "queue_idle_s": 0.0,
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 400.0,
+          "motion_idle_ms": 16.6666666666667,
+          "planning_service_us": 40281,
+          "progress_resets": 1076,
+          "reason": "",
+          "total_service_us": 122760
+        }
+      }
+    },
+    "exit_blocked_events": [
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "23489",
+        "second": 338.85196666666667
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "23943",
+        "second": 346.41443333333336
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "24317",
+        "second": 352.65566666666666
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "24825",
+        "second": 361.1202833333333
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "25193",
+        "second": 367.2536666666667
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "25550",
+        "second": 373.20360655737704
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "25909",
+        "second": 379.1859
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "26262",
+        "second": 385.0666
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "26652",
+        "second": 391.57134426229504
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "27011",
+        "second": 397.5591639344262
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "27389",
+        "second": 403.852131147541
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "27756",
+        "second": 409.96834426229503
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "28124",
+        "second": 416.105
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "28487",
+        "second": 422.15433333333334
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "28865",
+        "second": 428.44908196721315
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "29235",
+        "second": 434.61181967213116
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "29788",
+        "second": 443.83745901639344
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "30163",
+        "second": 450.083
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "30684",
+        "second": 458.774
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "31055",
+        "second": 464.94613333333336
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "31446",
+        "second": 471.473
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "31814",
+        "second": 477.60034426229504
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "32199",
+        "second": 484.0155
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "32567",
+        "second": 490.156
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "32936",
+        "second": 496.29891803278684
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "33320",
+        "second": 502.7018
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "33686",
+        "second": 508.80198333333334
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "34065",
+        "second": 515.1223333333334
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "34493",
+        "second": 522.2589833333334
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "34857",
+        "second": 528.3155
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "35424",
+        "second": 537.7633333333333
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "35779",
+        "second": 543.6846999999999
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "36145",
+        "second": 549.7869672131147
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "36634",
+        "second": 557.9385833333333
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "37116",
+        "second": 565.9688000000001
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "37485",
+        "second": 572.1228196721311
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "37849",
+        "second": 578.1881
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "38215",
+        "second": 584.2912
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "38585",
+        "second": 590.4513333333334
+      },
+      {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "exit_blocked",
+        "cash": "1000",
+        "serial": "1",
+        "reason": "service_planning_work_limit30",
+        "frame": "38954",
+        "second": 596.603737704918
+      }
+    ],
+    "terminal_logic_ring": {
+      "logic_including_profiler_max_us": 8767,
+      "logic_including_profiler_p50_us": 4909,
+      "logic_including_profiler_p95_us": 6101,
+      "max_us": 8752,
+      "p50_us": 4894,
+      "p95_us": 6084,
+      "profiler_write_max_us": 68,
+      "profiler_write_p50_us": 13,
+      "profiler_write_p95_us": 22,
+      "profiler_write_samples": 2048,
+      "samples": 2048,
+      "scope": "NPC logic excludes profiler writes; not rendered FPS"
+    },
+    "terminal_logic_ring_frames": {
+      "oldest": 37111,
+      "newest": 39158,
+      "capacity": 2048
+    },
+    "evidence_sha256": {
+      "RUN.json": "ce2c80044365ca70d3abdb53cdfddaff0e177071bc805e29e2fce803e835e30a",
+      "MASS30.json": "4483e1d3029bba2dac8e9b4e81dfb5181c6e89d5b9d44cbf03597b7c26be0fd9",
+      "SOAK31.json": "413d458f691c37425afcadff9733c7ff67aa4e8f6674ee23917af36b2f147406",
+      "OS_MEMORY.json": "b23e79c7190a921088e993c3d053ee5923460638a2fdc21e26e091686b5cc12c",
+      "stdout.log": "b6f6de3ff4b577f35e0011fd6ff259da8d1c70fa81cd02f842d0a3aa055855c8"
+    }
+  },
+  "limitations": [
+    "Both runs are headless and may overlap other scheduled functional work; no rendered FPS or exclusive performance verdict follows.",
+    "Durations, natural RNG activity and observer revisions differ. The first180s window is descriptive, not a controlled A/B.",
+    "Daily physical costs are sampled every15 physics ticks; maxima between printed samples can be absent.",
+    "Planning watch values are accumulated CPU microseconds across route work, not a single frame spike. They reset on progress/retry.",
+    "Log-frame alignment uses exact native physics-frame anchors with interpolation within1Hz observation intervals.",
+    "Terminal logic p50/p95 describe a2048-entry rolling buffer, not the entire600s history.",
+    "Observer allocations and ordinary asset/route activity contribute to object/static-memory growth; finite trends are not a leak diagnosis."
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "schema": "mafiozi.soak31.planning-cost-findings/v1",
+  "performance_accepted": false,
+  "rendered_fps_regression_reproduced": false,
+  "leak_established": false,
+  "retained_thresholds_seconds": {
+    "motion": 10,
+    "queue": 30
+  },
+  "observed": {
+    "headless_frequency_quarters": {
+      "baseline180": [
+        144.7279960439829,
+        144.88176978626817,
+        144.79595858391153,
+        144.92598719607125
+      ],
+      "merged600": [
+        144.78290251797043,
+        144.56628042639892,
+        144.65024531373572,
+        144.8105273153249
+      ]
+    },
+    "merged_physical_median_before_after_stall_ms": [
+      2.942,
+      3.888
+    ],
+    "merged_frame_p95_before_after_stall_ms": [
+      15.993,
+      15.971
+    ],
+    "planning_limit_exit_events": 40,
+    "recorded_planner_service_time_lower_bound_us": 20000000,
+    "native_memory_growth_slope_bytes_per_minute": {
+      "baseline": 1242248.73,
+      "merged": 542980.15
+    },
+    "resident1_same_position_interval_seconds": 10.048,
+    "resident1_physics_ticks_between_identical_positions": 603,
+    "resident1_local_wait_ms": 10300,
+    "resident1_planning_accumulated_us": 476604
+  },
+  "interpretation": [
+    "Persistent exit retry is a confirmed behavior failure and repeatedly consumes the shared route budget. It can contribute CPU load and scheduling latency for other residents.",
+    "40 planning-limit failures each reach the500000us recorded service-work cap. The lower bound is accumulated elapsed time attributed to planning units; it is not a hardware CPU-time counter and may include thread scheduling.",
+    "476604us is accumulated across many planner ticks, not a single476ms frozen rendered frame.",
+    "No progressive headless frame-frequency decline was observed; the graphical user140-to90FPS report remains untested by these runs.",
+    "Mean physical daily cost rises after stall, but native rendering work, camera differences, parallel tests, natural RNG and different observer durations prevent causal or performance acceptance claims.",
+    "Stable node/resource counts,zero orphans,flat private-memory quarter medians and a lower static-memory slope provide no evidence of runaway memory growth in this window. They do not prove absence of all leaks.",
+    "Resident1 exceeds10seconds by a real observed identical-position span; gate remains unchanged. Repeat after removing the persistent budget competitor."
+  ],
+  "next": "V3 merged600_02 after envelope/yaw fixes, then exclusive matched1920x1080 pair only if functional gates pass."
+}

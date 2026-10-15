@@ -1,0 +1,163 @@
+{
+  "schema": "mafiozi.local-printshop-approach/v1",
+  "scope": "NEW_LOCAL_PREVIEW_SESSION_ONE_ORIGINAL_PHYSICAL_ENTRY",
+  "source_id": "resident_169",
+  "original_source_progression": false,
+  "path": [
+    [
+      36.122615814208984,
+      0,
+      -4.899998188018799
+    ],
+    [
+      41.122615814208984,
+      0,
+      -4.899998188018799
+    ],
+    [
+      41.122615814208984,
+      0,
+      -11.899998188018799
+    ],
+    [
+      41.122615814208984,
+      0,
+      -14.899998188018799
+    ],
+    [
+      36.122615814208984,
+      0,
+      -14.899998188018799
+    ],
+    [
+      36.122615814208984,
+      0,
+      -17.8999981880188
+    ],
+    [
+      30.122615814208984,
+      0,
+      -17.8999981880188
+    ],
+    [
+      25.122615814209,
+      0.0,
+      -17.8999977111816
+    ],
+    [
+      25.122615814209,
+      0.0,
+      -11.8999977111816
+    ],
+    [
+      25.122615814209,
+      0.0,
+      -10.8999977111816
+    ],
+    [
+      24.122615814209,
+      0.0,
+      -10.8999977111816
+    ],
+    [
+      24.122615814209,
+      0.0,
+      -9.89999771118164
+    ],
+    [
+      23.122615814209,
+      0.0,
+      -9.89999771118164
+    ],
+    [
+      23.122615814209,
+      0.0,
+      -8.89999771118164
+    ],
+    [
+      17.122615814209,
+      0.0,
+      -8.89999771118164
+    ],
+    [
+      13.122615814209,
+      0.0,
+      -8.89999771118164
+    ],
+    [
+      13.122615814209,
+      0.0,
+      -2.8999981880188
+    ],
+    [
+      13.122615814209,
+      0.0,
+      1.1000018119812
+    ],
+    [
+      12.122615814209,
+      0.0,
+      1.1000018119812
+    ],
+    [
+      12.122615814209,
+      0.0,
+      2.1000018119812
+    ],
+    [
+      11.122615814209,
+      0.0,
+      2.1000018119812
+    ],
+    [
+      11.122615814209,
+      0.0,
+      3.1000018119812
+    ],
+    [
+      10.122615814209,
+      0.0,
+      3.1000018119812
+    ],
+    [
+      10.122615814209,
+      0.0,
+      4.1000018119812
+    ],
+    [
+      9.12261581420898,
+      0.0,
+      4.1000018119812
+    ],
+    [
+      9.12261581420898,
+      0.0,
+      5.1000018119812
+    ],
+    [
+      8.5,
+      0.0,
+      5.64944696426392
+    ]
+  ],
+  "proposal_provenance": {
+    "source": "outputs/artist24_printshop_visit/ENTRY_RESULT.json",
+    "sha256": "f95f4a4c9008841c577c2c8d76daf053291db8ee00bc0ba1df71ef42f29dace9",
+    "admission": "Every leg must be admitted again against current source/native collision."
+  },
+  "leg_count": 27,
+  "reroute": {
+    "revision": "root24c-ordinary-city-hatchback-clearance-v2",
+    "reason": "Narrow proposal blocked after native .15m arrival tolerance and ordinary parked-car drift; begin northward and use x41.12 external clearance, retaining all owner guards.",
+    "original27_sha256": "e26d19e8554e50cff620259f5c94c69b4d049c9e8d17b67160427eba8c51d6de",
+    "ordinary_diagnostic_sha256": "6b7b73697a8d1f6ba8841c45a179a35daa8d21bb741239ac058bec7d701aaf8a",
+    "ordinary_plan_sha256": "c1153489f7e76102ee749331bd045f81da9efb131100dfd480f2a73fc2bc9413",
+    "replaced_original_prefix_legs": 7,
+    "new_prefix_legs": 7,
+    "native_full_visit_proven": false,
+    "authority": "local preview proposal; every leg requires current public owner/native admission",
+    "previous28_sha256": "b27715e416c2f9f4d0b8fe221a5149ed5ddd9780ca188042a4461b5051cb155d",
+    "previous28_native_failure_sha256": "5f307785ad1267d5052c99930be61bb5981ff3da97feb31ffe380b30848a338f",
+    "proposal_admission": "Expanded prefix proposal, not claimed physically proved by static coordinates; all actual legs require unchanged public/native admission and full ordinary observer."
+  }
+}

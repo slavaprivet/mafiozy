@@ -1,0 +1,100 @@
+{
+  "status": "SCOPED_NATIVE_FIX_PASS",
+  "production": {
+    "scripts/hospital/npc_restaurant_visit28.gd": {
+      "base_sha256": "63a7e4c03a11b0774f806c5f3565ca4d3c2d1c611cd2b90c5f935cd2cd90fc4f",
+      "candidate_sha256": "bc162fb155708a7172484b24f77ddc994a8d84bf30342182860f5ac1b1345498"
+    }
+  },
+  "patch_sha256": "fb44ca481057b0b922af02d90954ee65388c030a8180b2fb06c006b26f852029",
+  "source_zip_sha256": "0c292d880e12e024ba8c257e22a4b8240e6e78a3436b436c9ca6601749663455",
+  "runs": {
+    "baseline02": {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\services31_resume\\exit_envelope31\\runs\\baseline02",
+      "run_sha256": "83285826c34c94ee8d4334bf453f46e1eb410608f592c281c7ca7e3ea0112dfe",
+      "native_sha256": "0f1a10b2449d34282136b6baa45bd39969119b3c6c2134f72782775384fe4d3b",
+      "execution_clean": true,
+      "passed": false,
+      "native_checks": {
+        "all_motion_in_physics_context": true,
+        "blocked_exterior_needs_no_exit": false,
+        "blocked_exterior_refuses_false_outbound": false,
+        "blocked_exterior_releases_capacity": false,
+        "first_step_does_not_claim_distant_interior": false,
+        "initial_far_start_is_supported_exterior": true,
+        "native_shop_ready": true,
+        "native_wall_search_returns_blocked": true,
+        "no_customer_teleport_or_displacement": true,
+        "real_registry_admission": true
+      }
+    },
+    "candidate02": {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\services31_resume\\exit_envelope31\\runs\\candidate02",
+      "run_sha256": "a4073061995a2c3a99a07494d9528562043c693d4b36ca1b250fc6f9531c5918",
+      "native_sha256": "57403e65867e6959b3c3909d85180d90c780272b01c5559678aaff6c2c2fa7ee",
+      "execution_clean": true,
+      "passed": true,
+      "native_checks": {
+        "all_motion_in_physics_context": true,
+        "blocked_exterior_needs_no_exit": true,
+        "blocked_exterior_refuses_false_outbound": true,
+        "blocked_exterior_releases_capacity": true,
+        "first_step_does_not_claim_distant_interior": true,
+        "initial_far_start_is_supported_exterior": true,
+        "native_shop_ready": true,
+        "native_wall_search_returns_blocked": true,
+        "no_customer_teleport_or_displacement": true,
+        "real_registry_admission": true
+      }
+    },
+    "entry_exit_candidate01": {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\services31_resume\\exit_envelope31\\runs\\entry_exit_candidate01",
+      "run_sha256": "bf370890e5b839e7f5af808ec3d7436b74a7d8352f5763bf9cb88fc0e167622b",
+      "native_sha256": "c317996e7ad87991b82cef9c2b40d17214808e000e81175fda3e682d9fea0db8",
+      "execution_clean": true,
+      "passed": true,
+      "native_checks": {
+        "actual_body_overlap_in_passage": true,
+        "actual_compact_native_site": true,
+        "all_old_pairs_removed": true,
+        "bounded_exit_under_8_seconds": true,
+        "claim_released_only_after_physical_exit": true,
+        "closed_real_door_still_blocks": true,
+        "death_layer_retires_exceptions": true,
+        "exceptions_removed_on_passage_exit": true,
+        "fixed_60hz_controller_and_engine": true,
+        "freed_body_pairs_retired": true,
+        "head_on_actual_overlap": true,
+        "head_on_both_complete_within_8s": true,
+        "head_on_routes_started": true,
+        "native_capsule_configured": true,
+        "native_hit_ray_still_hits_peer": true,
+        "native_moves_in_physics_context": true,
+        "native_walk_without_teleport": true,
+        "no_world_collision_exception": true,
+        "outside_planner_keeps_peer_collision": true,
+        "physical_entry_then_exit": true,
+        "physical_exit_begins": true,
+        "physical_service_interior": true,
+        "planner_ignores_passage_peer": true,
+        "player_never_ignored": true,
+        "respawn_binds_only_new_body": true,
+        "same_frame_free_query_safe": true,
+        "second_pair_has_symmetric_exceptions": true,
+        "service_admission": true,
+        "symmetric_passage_exceptions": true,
+        "wall_still_blocks_capsule": true
+      }
+    }
+  },
+  "matched_harness": true,
+  "matched_source": true,
+  "full_city_acceptance": false,
+  "performance_accepted": false,
+  "source_game_modified": false,
+  "limitations": [
+    "Native fixture uses real compact shop and native enclosing exterior walls; not a replay of the exact600s city arrangement.",
+    "The real600s source before this fix failed with resident8 OUTBOUND stall; a new merged soak is required.",
+    "Resident1 independently observed10.3s planning latency is not fixed by this patch."
+  ]
+}

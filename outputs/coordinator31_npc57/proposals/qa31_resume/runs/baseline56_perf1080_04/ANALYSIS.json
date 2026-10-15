@@ -1,0 +1,2478 @@
+{
+  "schema": "mafiozi.soak31.analysis/v1",
+  "run": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\qa31_resume\\runs\\baseline56_perf1080_04",
+  "passed": false,
+  "performance_accepted": false,
+  "source_drift": [],
+  "control_drift": [],
+  "seconds": 90.0,
+  "sample_count": 90,
+  "moved_residents": 10,
+  "soak_errors": [
+    "motion_idle:resident_2:1"
+  ],
+  "per_id": [
+    {
+      "anchor_ms": 142378,
+      "generation": 1,
+      "id": "resident_1",
+      "last_ms": 142378,
+      "max_motion_idle_s": 1.008,
+      "max_no_progress_s": 10.06,
+      "max_queue_idle_s": 0.0,
+      "max_threat_alert_s": 0.0,
+      "max_threat_recover_s": 0.0,
+      "motion_idle_s": 0.0,
+      "queue_idle_s": 0.0,
+      "sample_count": 90,
+      "threat_alert_s": 0.0,
+      "threat_recover_s": 0.0,
+      "travel_m": 123.454700311529,
+      "completion_deltas_within_measurement": {
+        "bank": 0,
+        "drive": 0,
+        "hospital": 0,
+        "restaurant": 0,
+        "shop": 0,
+        "walk": 7
+      },
+      "worst_motion_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 5
+        },
+        "door_stage": "",
+        "economy_phase": "IDLE",
+        "generation": 1,
+        "goal": "walk",
+        "guide_status": "ready",
+        "id": "resident_1",
+        "life_phase": "WALKING",
+        "motion_idle_s": 1.008,
+        "no_progress_s": 2.008,
+        "outer_phase": "",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 4199,
+        "position": [
+          -76.4788436889648,
+          -0.000310034025460482,
+          148.217956542969
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "",
+        "required_motion": true,
+        "roam_active": true,
+        "route_attempts": 0,
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 0
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": ""
+      },
+      "worst_raw_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 4
+        },
+        "door_stage": "",
+        "economy_phase": "IDLE",
+        "generation": 1,
+        "goal": "walk",
+        "guide_status": "ready",
+        "id": "resident_1",
+        "life_phase": "WALKING",
+        "motion_idle_s": 1.003,
+        "no_progress_s": 9.048,
+        "outer_phase": "",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 3898,
+        "position": [
+          -75.4157409667969,
+          0.000748811173252761,
+          152.942001342773
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "",
+        "required_motion": true,
+        "roam_active": true,
+        "route_attempts": 0,
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 0
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": ""
+      },
+      "worst_queue_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 2
+        },
+        "door_stage": "",
+        "economy_phase": "IDLE",
+        "generation": 1,
+        "goal": "walk",
+        "guide_status": "ready",
+        "id": "resident_1",
+        "life_phase": "WALKING",
+        "motion_idle_s": 0.0,
+        "no_progress_s": 0.0,
+        "outer_phase": "",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 2267,
+        "position": [
+          -83.5337905883789,
+          0.000869890791364014,
+          140.39338684082
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "",
+        "required_motion": true,
+        "roam_active": true,
+        "route_attempts": 0,
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 0
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": ""
+      },
+      "required_motion_max_physics_lag_frames": 0,
+      "threat_phase_samples": {
+        "IDLE": 90
+      },
+      "observed_outer_phases": {
+        "": 69,
+        "INBOUND": 21
+      },
+      "observed_venues": {
+        "1522616312451": 21
+      }
+    },
+    {
+      "anchor_ms": 142378,
+      "generation": 1,
+      "id": "resident_2",
+      "last_ms": 142378,
+      "max_motion_idle_s": 25.147,
+      "max_no_progress_s": 26.158,
+      "max_queue_idle_s": 0.0,
+      "max_threat_alert_s": 0.0,
+      "max_threat_recover_s": 0.0,
+      "motion_idle_s": 0.0,
+      "queue_idle_s": 0.0,
+      "sample_count": 90,
+      "threat_alert_s": 0.0,
+      "threat_recover_s": 0.0,
+      "travel_m": 140.339636750519,
+      "completion_deltas_within_measurement": {
+        "bank": 0,
+        "drive": 0,
+        "hospital": 0,
+        "restaurant": 0,
+        "shop": 0,
+        "walk": 0
+      },
+      "worst_motion_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 1
+        },
+        "door_stage": "approach",
+        "economy_phase": "OUTBOUND",
+        "generation": 1,
+        "goal": "shop",
+        "guide_status": "ready",
+        "id": "resident_2",
+        "life_phase": "WALKING",
+        "motion_idle_s": 25.147,
+        "no_progress_s": 25.147,
+        "outer_phase": "OUTBOUND",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 6916,
+        "position": [
+          152.569854736328,
+          -0.000240864465013146,
+          12.9976062774658
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "reserved",
+        "required_motion": true,
+        "roam_active": false,
+        "route_attempts": 0,
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "searching",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 2200.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 239395,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 239395
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": "1465691215855"
+      },
+      "worst_raw_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 1
+        },
+        "door_stage": "approach",
+        "economy_phase": "OUTBOUND",
+        "generation": 1,
+        "goal": "shop",
+        "guide_status": "ready",
+        "id": "resident_2",
+        "life_phase": "WALKING",
+        "motion_idle_s": 25.147,
+        "no_progress_s": 25.147,
+        "outer_phase": "OUTBOUND",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 6916,
+        "position": [
+          152.569854736328,
+          -0.000240864465013146,
+          12.9976062774658
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "reserved",
+        "required_motion": true,
+        "roam_active": false,
+        "route_attempts": 0,
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "searching",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 2200.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 239395,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 239395
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": "1465691215855"
+      },
+      "worst_queue_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 1
+        },
+        "door_stage": "",
+        "economy_phase": "INBOUND",
+        "generation": 1,
+        "goal": "shop",
+        "guide_status": "ready",
+        "id": "resident_2",
+        "life_phase": "WALKING",
+        "motion_idle_s": 0.0,
+        "no_progress_s": 0.0,
+        "outer_phase": "INBOUND",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 2267,
+        "position": [
+          149.550689697266,
+          -1.49011611938477e-08,
+          105.12865447998
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "reserved",
+        "required_motion": true,
+        "roam_active": false,
+        "route_attempts": 0,
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 69,
+          "reason": "",
+          "total_service_us": 4550
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": "1465691215855"
+      },
+      "required_motion_max_physics_lag_frames": 0,
+      "threat_phase_samples": {
+        "IDLE": 90
+      },
+      "observed_outer_phases": {
+        "INBOUND": 57,
+        "OUTBOUND": 33
+      },
+      "observed_venues": {
+        "1465691215855": 90
+      }
+    },
+    {
+      "anchor_ms": 142378,
+      "generation": 1,
+      "id": "resident_3",
+      "last_ms": 142378,
+      "max_motion_idle_s": 0.0,
+      "max_no_progress_s": 1.015,
+      "max_queue_idle_s": 0.0,
+      "max_threat_alert_s": 0.0,
+      "max_threat_recover_s": 0.0,
+      "motion_idle_s": 0.0,
+      "queue_idle_s": 0.0,
+      "sample_count": 90,
+      "threat_alert_s": 0.0,
+      "threat_recover_s": 0.0,
+      "travel_m": 185.578384589404,
+      "completion_deltas_within_measurement": {
+        "bank": 0,
+        "drive": 0,
+        "hospital": 0,
+        "restaurant": 0,
+        "shop": 0,
+        "walk": 0
+      },
+      "worst_motion_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 1
+        },
+        "door_stage": "",
+        "economy_phase": "INBOUND",
+        "generation": 1,
+        "goal": "shop",
+        "guide_status": "ready",
+        "id": "resident_3",
+        "life_phase": "WALKING",
+        "motion_idle_s": 0.0,
+        "no_progress_s": 0.0,
+        "outer_phase": "INBOUND",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 2267,
+        "position": [
+          104.512481689453,
+          -1.49011611938477e-08,
+          541.631774902344
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "reserved",
+        "required_motion": true,
+        "roam_active": false,
+        "route_attempts": 0,
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 75,
+          "reason": "",
+          "total_service_us": 4827
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": "1571555454051"
+      },
+      "worst_raw_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 1
+        },
+        "door_stage": "",
+        "economy_phase": "INBOUND",
+        "generation": 1,
+        "goal": "shop",
+        "guide_status": "ready",
+        "id": "resident_3",
+        "life_phase": "WALKING",
+        "motion_idle_s": 0.0,
+        "no_progress_s": 0.0,
+        "outer_phase": "INBOUND",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 2267,
+        "position": [
+          104.512481689453,
+          -1.49011611938477e-08,
+          541.631774902344
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "reserved",
+        "required_motion": true,
+        "roam_active": false,
+        "route_attempts": 0,
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 75,
+          "reason": "",
+          "total_service_us": 4827
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": "1571555454051"
+      },
+      "worst_queue_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 1
+        },
+        "door_stage": "",
+        "economy_phase": "INBOUND",
+        "generation": 1,
+        "goal": "shop",
+        "guide_status": "ready",
+        "id": "resident_3",
+        "life_phase": "WALKING",
+        "motion_idle_s": 0.0,
+        "no_progress_s": 0.0,
+        "outer_phase": "INBOUND",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 2267,
+        "position": [
+          104.512481689453,
+          -1.49011611938477e-08,
+          541.631774902344
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "reserved",
+        "required_motion": true,
+        "roam_active": false,
+        "route_attempts": 0,
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 75,
+          "reason": "",
+          "total_service_us": 4827
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": "1571555454051"
+      },
+      "required_motion_max_physics_lag_frames": 0,
+      "threat_phase_samples": {
+        "IDLE": 90
+      },
+      "observed_outer_phases": {
+        "INBOUND": 90
+      },
+      "observed_venues": {
+        "1571555454051": 90
+      }
+    },
+    {
+      "anchor_ms": 142378,
+      "generation": 1,
+      "id": "resident_4",
+      "last_ms": 142378,
+      "max_motion_idle_s": 3.012,
+      "max_no_progress_s": 6.026,
+      "max_queue_idle_s": 0.0,
+      "max_threat_alert_s": 0.0,
+      "max_threat_recover_s": 0.0,
+      "motion_idle_s": 0.0,
+      "queue_idle_s": 0.0,
+      "sample_count": 90,
+      "threat_alert_s": 0.0,
+      "threat_recover_s": 0.0,
+      "travel_m": 172.851352423429,
+      "completion_deltas_within_measurement": {
+        "bank": 0,
+        "drive": 0,
+        "hospital": 0,
+        "restaurant": 0,
+        "shop": 0,
+        "walk": 1
+      },
+      "worst_motion_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 3
+        },
+        "door_stage": "",
+        "economy_phase": "INBOUND",
+        "generation": 1,
+        "goal": "shop",
+        "guide_status": "searching",
+        "id": "resident_4",
+        "life_phase": "WALKING",
+        "motion_idle_s": 3.012,
+        "no_progress_s": 5.023,
+        "outer_phase": "INBOUND",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 2870,
+        "position": [
+          280.102844238281,
+          -1.49011611938477e-08,
+          563.017761230469
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "reserved",
+        "required_motion": true,
+        "roam_active": false,
+        "route_attempts": 0,
+        "route_phase": "searching_guide",
+        "route_reason": "",
+        "route_status": "cancelled",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 0
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": "1571555454051"
+      },
+      "worst_raw_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 3
+        },
+        "door_stage": "",
+        "economy_phase": "INBOUND",
+        "generation": 1,
+        "goal": "shop",
+        "guide_status": "searching",
+        "id": "resident_4",
+        "life_phase": "WALKING",
+        "motion_idle_s": 3.012,
+        "no_progress_s": 5.023,
+        "outer_phase": "INBOUND",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 2870,
+        "position": [
+          280.102844238281,
+          -1.49011611938477e-08,
+          563.017761230469
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "reserved",
+        "required_motion": true,
+        "roam_active": false,
+        "route_attempts": 0,
+        "route_phase": "searching_guide",
+        "route_reason": "",
+        "route_status": "cancelled",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 0
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": "1571555454051"
+      },
+      "worst_queue_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 2
+        },
+        "door_stage": "",
+        "economy_phase": "IDLE",
+        "generation": 1,
+        "goal": "walk",
+        "guide_status": "ready",
+        "id": "resident_4",
+        "life_phase": "WALKING",
+        "motion_idle_s": 0.0,
+        "no_progress_s": 0.0,
+        "outer_phase": "",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 2267,
+        "position": [
+          271.918029785156,
+          -1.49011611938477e-08,
+          566.609191894531
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "",
+        "required_motion": true,
+        "roam_active": true,
+        "route_attempts": 0,
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 0
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": ""
+      },
+      "required_motion_max_physics_lag_frames": 0,
+      "threat_phase_samples": {
+        "IDLE": 90
+      },
+      "observed_outer_phases": {
+        "": 8,
+        "INBOUND": 82
+      },
+      "observed_venues": {
+        "1571555454051": 82
+      }
+    },
+    {
+      "anchor_ms": 142378,
+      "generation": 1,
+      "id": "resident_5",
+      "last_ms": 142378,
+      "max_motion_idle_s": 0.0,
+      "max_no_progress_s": 1.015,
+      "max_queue_idle_s": 0.0,
+      "max_threat_alert_s": 0.0,
+      "max_threat_recover_s": 0.0,
+      "motion_idle_s": 0.0,
+      "queue_idle_s": 0.0,
+      "sample_count": 90,
+      "threat_alert_s": 0.0,
+      "threat_recover_s": 0.0,
+      "travel_m": 181.481348529458,
+      "completion_deltas_within_measurement": {
+        "bank": 0,
+        "drive": 0,
+        "hospital": 0,
+        "restaurant": 0,
+        "shop": 0,
+        "walk": 0
+      },
+      "worst_motion_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 2
+        },
+        "door_stage": "",
+        "economy_phase": "INBOUND",
+        "generation": 1,
+        "goal": "shop",
+        "guide_status": "ready",
+        "id": "resident_5",
+        "life_phase": "WALKING",
+        "motion_idle_s": 0.0,
+        "no_progress_s": 0.0,
+        "outer_phase": "INBOUND",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 2267,
+        "position": [
+          105.04532623291,
+          -1.49011611938477e-08,
+          566.098510742188
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "reserved",
+        "required_motion": true,
+        "roam_active": false,
+        "route_attempts": 0,
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 10,
+          "reason": "",
+          "total_service_us": 19412
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": "1571555454051"
+      },
+      "worst_raw_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 2
+        },
+        "door_stage": "",
+        "economy_phase": "INBOUND",
+        "generation": 1,
+        "goal": "shop",
+        "guide_status": "ready",
+        "id": "resident_5",
+        "life_phase": "WALKING",
+        "motion_idle_s": 0.0,
+        "no_progress_s": 0.0,
+        "outer_phase": "INBOUND",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 2267,
+        "position": [
+          105.04532623291,
+          -1.49011611938477e-08,
+          566.098510742188
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "reserved",
+        "required_motion": true,
+        "roam_active": false,
+        "route_attempts": 0,
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 10,
+          "reason": "",
+          "total_service_us": 19412
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": "1571555454051"
+      },
+      "worst_queue_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 2
+        },
+        "door_stage": "",
+        "economy_phase": "INBOUND",
+        "generation": 1,
+        "goal": "shop",
+        "guide_status": "ready",
+        "id": "resident_5",
+        "life_phase": "WALKING",
+        "motion_idle_s": 0.0,
+        "no_progress_s": 0.0,
+        "outer_phase": "INBOUND",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 2267,
+        "position": [
+          105.04532623291,
+          -1.49011611938477e-08,
+          566.098510742188
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "reserved",
+        "required_motion": true,
+        "roam_active": false,
+        "route_attempts": 0,
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 10,
+          "reason": "",
+          "total_service_us": 19412
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": "1571555454051"
+      },
+      "required_motion_max_physics_lag_frames": 0,
+      "threat_phase_samples": {
+        "IDLE": 90
+      },
+      "observed_outer_phases": {
+        "INBOUND": 90
+      },
+      "observed_venues": {
+        "1571555454051": 90
+      }
+    },
+    {
+      "anchor_ms": 130305,
+      "generation": 1,
+      "id": "resident_6",
+      "last_ms": 142378,
+      "max_motion_idle_s": 4.046,
+      "max_no_progress_s": 12.073,
+      "max_queue_idle_s": 12.073,
+      "max_threat_alert_s": 0.0,
+      "max_threat_recover_s": 0.0,
+      "motion_idle_s": 0.0,
+      "queue_idle_s": 12.073,
+      "sample_count": 90,
+      "threat_alert_s": 0.0,
+      "threat_recover_s": 0.0,
+      "travel_m": 118.462139084935,
+      "completion_deltas_within_measurement": {
+        "bank": 0,
+        "drive": 0,
+        "hospital": 0,
+        "restaurant": 0,
+        "shop": 1,
+        "walk": 3
+      },
+      "worst_motion_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 1,
+          "walk": 2
+        },
+        "door_stage": "",
+        "economy_phase": "IDLE",
+        "generation": 1,
+        "goal": "walk",
+        "guide_status": "ready",
+        "id": "resident_6",
+        "life_phase": "WALKING",
+        "motion_idle_s": 4.046,
+        "no_progress_s": 6.048,
+        "outer_phase": "",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 5106,
+        "position": [
+          132.144973754883,
+          0.275219708681107,
+          0.999999701976776
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "",
+        "required_motion": true,
+        "roam_active": true,
+        "route_attempts": 0,
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "searching",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 0
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": ""
+      },
+      "worst_raw_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 1,
+          "walk": 5
+        },
+        "door_stage": "",
+        "economy_phase": "INBOUND",
+        "generation": 1,
+        "goal": "shop",
+        "guide_status": "complete",
+        "id": "resident_6",
+        "life_phase": "WALKING",
+        "motion_idle_s": 0.0,
+        "no_progress_s": 12.073,
+        "outer_phase": "PORTAL_WAIT_IN",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 7641,
+        "position": [
+          129.914443969727,
+          0.0908347368240356,
+          3.51754426956177
+        ],
+        "queue_idle_s": 12.073,
+        "queue_kind": "portal",
+        "queue_state": "reserved",
+        "required_motion": false,
+        "roam_active": false,
+        "route_attempts": 0,
+        "route_phase": "arrived",
+        "route_reason": "",
+        "route_status": "cancelled",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 51,
+          "reason": "",
+          "total_service_us": 15966
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": "1465691215855"
+      },
+      "worst_queue_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 1,
+          "walk": 5
+        },
+        "door_stage": "",
+        "economy_phase": "INBOUND",
+        "generation": 1,
+        "goal": "shop",
+        "guide_status": "complete",
+        "id": "resident_6",
+        "life_phase": "WALKING",
+        "motion_idle_s": 0.0,
+        "no_progress_s": 12.073,
+        "outer_phase": "PORTAL_WAIT_IN",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 7641,
+        "position": [
+          129.914443969727,
+          0.0908347368240356,
+          3.51754426956177
+        ],
+        "queue_idle_s": 12.073,
+        "queue_kind": "portal",
+        "queue_state": "reserved",
+        "required_motion": false,
+        "roam_active": false,
+        "route_attempts": 0,
+        "route_phase": "arrived",
+        "route_reason": "",
+        "route_status": "cancelled",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 51,
+          "reason": "",
+          "total_service_us": 15966
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": "1465691215855"
+      },
+      "required_motion_max_physics_lag_frames": 0,
+      "threat_phase_samples": {
+        "IDLE": 90
+      },
+      "observed_outer_phases": {
+        "": 30,
+        "INBOUND": 41,
+        "SERVICE_APPROACH": 1,
+        "INSIDE": 2,
+        "OUTBOUND": 3,
+        "PORTAL_WAIT_IN": 13
+      },
+      "observed_venues": {
+        "1465691215855": 60
+      }
+    },
+    {
+      "anchor_ms": 142378,
+      "generation": 1,
+      "id": "resident_7",
+      "last_ms": 142378,
+      "max_motion_idle_s": 2.014,
+      "max_no_progress_s": 8.053,
+      "max_queue_idle_s": 0.0,
+      "max_threat_alert_s": 0.0,
+      "max_threat_recover_s": 0.0,
+      "motion_idle_s": 0.0,
+      "queue_idle_s": 0.0,
+      "sample_count": 90,
+      "threat_alert_s": 0.0,
+      "threat_recover_s": 0.0,
+      "travel_m": 123.99886668101,
+      "completion_deltas_within_measurement": {
+        "bank": 0,
+        "drive": 0,
+        "hospital": 0,
+        "restaurant": 0,
+        "shop": 0,
+        "walk": 4
+      },
+      "worst_motion_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 6
+        },
+        "door_stage": "",
+        "economy_phase": "INBOUND",
+        "generation": 1,
+        "goal": "shop",
+        "guide_status": "ready",
+        "id": "resident_7",
+        "life_phase": "WALKING",
+        "motion_idle_s": 2.014,
+        "no_progress_s": 3.026,
+        "outer_phase": "INBOUND",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 4986,
+        "position": [
+          59.4118385314941,
+          -1.49011611938477e-08,
+          314.492614746094
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "reserved",
+        "required_motion": true,
+        "roam_active": false,
+        "route_attempts": 0,
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 33.3333333333333,
+          "motion_idle_ms": 16.6666666666667,
+          "planning_service_us": 2740,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 2740
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": "1522616312451"
+      },
+      "worst_raw_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 5
+        },
+        "door_stage": "",
+        "economy_phase": "IDLE",
+        "generation": 1,
+        "goal": "",
+        "guide_status": "",
+        "id": "resident_7",
+        "life_phase": "AMBIENT",
+        "motion_idle_s": 0.0,
+        "no_progress_s": 7.048,
+        "outer_phase": "",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 4441,
+        "position": [
+          63.0799217224121,
+          -1.49011611938477e-08,
+          321.848815917969
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "",
+        "required_motion": false,
+        "roam_active": false,
+        "route_attempts": 0,
+        "route_phase": "",
+        "route_reason": "",
+        "route_status": "",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 0
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": ""
+      },
+      "worst_queue_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 2
+        },
+        "door_stage": "",
+        "economy_phase": "IDLE",
+        "generation": 1,
+        "goal": "",
+        "guide_status": "",
+        "id": "resident_7",
+        "life_phase": "AMBIENT",
+        "motion_idle_s": 0.0,
+        "no_progress_s": 0.0,
+        "outer_phase": "",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 2267,
+        "position": [
+          63.3906555175781,
+          -1.49011611938477e-08,
+          325.350311279297
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "",
+        "required_motion": false,
+        "roam_active": false,
+        "route_attempts": 0,
+        "route_phase": "",
+        "route_reason": "",
+        "route_status": "",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 0
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": ""
+      },
+      "required_motion_max_physics_lag_frames": 0,
+      "threat_phase_samples": {
+        "IDLE": 90
+      },
+      "observed_outer_phases": {
+        "": 44,
+        "INBOUND": 46
+      },
+      "observed_venues": {
+        "1522616312451": 46
+      }
+    },
+    {
+      "anchor_ms": 142378,
+      "generation": 1,
+      "id": "resident_8",
+      "last_ms": 142378,
+      "max_motion_idle_s": 4.03,
+      "max_no_progress_s": 9.075,
+      "max_queue_idle_s": 0.0,
+      "max_threat_alert_s": 0.0,
+      "max_threat_recover_s": 0.0,
+      "motion_idle_s": 0.0,
+      "queue_idle_s": 0.0,
+      "sample_count": 90,
+      "threat_alert_s": 0.0,
+      "threat_recover_s": 0.0,
+      "travel_m": 154.893709003925,
+      "completion_deltas_within_measurement": {
+        "bank": 0,
+        "drive": 0,
+        "hospital": 0,
+        "restaurant": 0,
+        "shop": 0,
+        "walk": 3
+      },
+      "worst_motion_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 6
+        },
+        "door_stage": "",
+        "economy_phase": "INBOUND",
+        "generation": 1,
+        "goal": "shop",
+        "guide_status": "searching",
+        "id": "resident_8",
+        "life_phase": "WALKING",
+        "motion_idle_s": 4.03,
+        "no_progress_s": 5.04,
+        "outer_phase": "INBOUND",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 4019,
+        "position": [
+          -223.689300537109,
+          -1.49011611938477e-08,
+          612.081726074219
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "reserved",
+        "required_motion": true,
+        "roam_active": false,
+        "route_attempts": 0,
+        "route_phase": "searching_guide",
+        "route_reason": "",
+        "route_status": "cancelled",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 0
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": "1522616312451"
+      },
+      "worst_raw_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 5
+        },
+        "door_stage": "",
+        "economy_phase": "IDLE",
+        "generation": 1,
+        "goal": "",
+        "guide_status": "",
+        "id": "resident_8",
+        "life_phase": "AMBIENT",
+        "motion_idle_s": 0.0,
+        "no_progress_s": 8.075,
+        "outer_phase": "",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 3475,
+        "position": [
+          -217.789184570313,
+          -1.49011611938477e-08,
+          609.472595214844
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "",
+        "required_motion": false,
+        "roam_active": false,
+        "route_attempts": 0,
+        "route_phase": "",
+        "route_reason": "",
+        "route_status": "",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 0
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": ""
+      },
+      "worst_queue_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 3
+        },
+        "door_stage": "",
+        "economy_phase": "IDLE",
+        "generation": 1,
+        "goal": "",
+        "guide_status": "",
+        "id": "resident_8",
+        "life_phase": "RESTING",
+        "motion_idle_s": 0.0,
+        "no_progress_s": 0.0,
+        "outer_phase": "",
+        "physics_lag_frames": 4,
+        "physics_last_frame": 2263,
+        "position": [
+          -208.443389892578,
+          -1.49011611938477e-08,
+          607.745849609375
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "",
+        "required_motion": false,
+        "roam_active": false,
+        "route_attempts": 0,
+        "route_phase": "",
+        "route_reason": "",
+        "route_status": "",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 0
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": ""
+      },
+      "required_motion_max_physics_lag_frames": 0,
+      "threat_phase_samples": {
+        "IDLE": 90
+      },
+      "observed_outer_phases": {
+        "": 26,
+        "INBOUND": 64
+      },
+      "observed_venues": {
+        "1522616312451": 64
+      }
+    },
+    {
+      "anchor_ms": 142378,
+      "generation": 1,
+      "id": "resident_9",
+      "last_ms": 142378,
+      "max_motion_idle_s": 2.017,
+      "max_no_progress_s": 9.059,
+      "max_queue_idle_s": 0.0,
+      "max_threat_alert_s": 0.0,
+      "max_threat_recover_s": 0.0,
+      "motion_idle_s": 0.0,
+      "queue_idle_s": 0.0,
+      "sample_count": 90,
+      "threat_alert_s": 0.0,
+      "threat_recover_s": 0.0,
+      "travel_m": 152.378831885755,
+      "completion_deltas_within_measurement": {
+        "bank": 0,
+        "drive": 0,
+        "hospital": 0,
+        "restaurant": 0,
+        "shop": 0,
+        "walk": 4
+      },
+      "worst_motion_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 6
+        },
+        "door_stage": "",
+        "economy_phase": "INBOUND",
+        "generation": 1,
+        "goal": "shop",
+        "guide_status": "searching",
+        "id": "resident_9",
+        "life_phase": "WALKING",
+        "motion_idle_s": 2.017,
+        "no_progress_s": 3.025,
+        "outer_phase": "INBOUND",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 4320,
+        "position": [
+          -286.658477783203,
+          0.000581263098865747,
+          389.736877441406
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "reserved",
+        "required_motion": true,
+        "roam_active": false,
+        "route_attempts": 0,
+        "route_phase": "searching_guide",
+        "route_reason": "",
+        "route_status": "cancelled",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 0
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": "1522616312451"
+      },
+      "worst_raw_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 5
+        },
+        "door_stage": "",
+        "economy_phase": "IDLE",
+        "generation": 1,
+        "goal": "walk",
+        "guide_status": "ready",
+        "id": "resident_9",
+        "life_phase": "WALKING",
+        "motion_idle_s": 1.003,
+        "no_progress_s": 8.047,
+        "outer_phase": "",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 3898,
+        "position": [
+          -285.657623291016,
+          0.000581263098865747,
+          395.320129394531
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "",
+        "required_motion": true,
+        "roam_active": true,
+        "route_attempts": 0,
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 0
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": ""
+      },
+      "worst_queue_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 2
+        },
+        "door_stage": "",
+        "economy_phase": "IDLE",
+        "generation": 1,
+        "goal": "walk",
+        "guide_status": "ready",
+        "id": "resident_9",
+        "life_phase": "WALKING",
+        "motion_idle_s": 0.0,
+        "no_progress_s": 0.0,
+        "outer_phase": "",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 2267,
+        "position": [
+          -286.066711425781,
+          -1.49011611938477e-08,
+          375.360656738281
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "",
+        "required_motion": true,
+        "roam_active": true,
+        "route_attempts": 0,
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 0
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": ""
+      },
+      "required_motion_max_physics_lag_frames": 0,
+      "threat_phase_samples": {
+        "IDLE": 90
+      },
+      "observed_outer_phases": {
+        "": 33,
+        "INBOUND": 57
+      },
+      "observed_venues": {
+        "1522616312451": 57
+      }
+    },
+    {
+      "anchor_ms": 142378,
+      "generation": 1,
+      "id": "resident_10",
+      "last_ms": 142378,
+      "max_motion_idle_s": 2.012,
+      "max_no_progress_s": 5.026,
+      "max_queue_idle_s": 0.0,
+      "max_threat_alert_s": 0.0,
+      "max_threat_recover_s": 0.0,
+      "motion_idle_s": 0.0,
+      "queue_idle_s": 0.0,
+      "sample_count": 90,
+      "threat_alert_s": 0.0,
+      "threat_recover_s": 0.0,
+      "travel_m": 163.807944461703,
+      "completion_deltas_within_measurement": {
+        "bank": 0,
+        "drive": 0,
+        "hospital": 0,
+        "restaurant": 0,
+        "shop": 0,
+        "walk": 3
+      },
+      "worst_motion_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 5
+        },
+        "door_stage": "",
+        "economy_phase": "INBOUND",
+        "generation": 1,
+        "goal": "shop",
+        "guide_status": "searching",
+        "id": "resident_10",
+        "life_phase": "WALKING",
+        "motion_idle_s": 2.012,
+        "no_progress_s": 4.023,
+        "outer_phase": "INBOUND",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 3656,
+        "position": [
+          94.2887268066406,
+          -1.49011611938477e-08,
+          595.312072753906
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "reserved",
+        "required_motion": true,
+        "roam_active": false,
+        "route_attempts": 0,
+        "route_phase": "searching_guide",
+        "route_reason": "",
+        "route_status": "cancelled",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 0
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": "1571555454051"
+      },
+      "worst_raw_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 5
+        },
+        "door_stage": "",
+        "economy_phase": "INBOUND",
+        "generation": 1,
+        "goal": "shop",
+        "guide_status": "searching",
+        "id": "resident_10",
+        "life_phase": "WALKING",
+        "motion_idle_s": 2.012,
+        "no_progress_s": 4.023,
+        "outer_phase": "INBOUND",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 3656,
+        "position": [
+          94.2887268066406,
+          -1.49011611938477e-08,
+          595.312072753906
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "reserved",
+        "required_motion": true,
+        "roam_active": false,
+        "route_attempts": 0,
+        "route_phase": "searching_guide",
+        "route_reason": "",
+        "route_status": "cancelled",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 0
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": "1571555454051"
+      },
+      "worst_queue_idle_state": {
+        "attention": false,
+        "completed": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "restaurant": 0,
+          "shop": 0,
+          "walk": 2
+        },
+        "door_stage": "",
+        "economy_phase": "IDLE",
+        "generation": 1,
+        "goal": "walk",
+        "guide_status": "ready",
+        "id": "resident_10",
+        "life_phase": "WALKING",
+        "motion_idle_s": 0.0,
+        "no_progress_s": 0.0,
+        "outer_phase": "",
+        "physics_lag_frames": 0,
+        "physics_last_frame": 2267,
+        "position": [
+          94.2150726318359,
+          -1.49011611938477e-08,
+          592.158203125
+        ],
+        "queue_idle_s": 0.0,
+        "queue_kind": "",
+        "queue_state": "",
+        "required_motion": true,
+        "roam_active": true,
+        "route_attempts": 0,
+        "route_phase": "searching",
+        "route_reason": "",
+        "route_status": "ready",
+        "service_watch": {
+          "blocked": false,
+          "local_wait_ms": 0.0,
+          "motion_idle_ms": 0.0,
+          "planning_service_us": 0,
+          "progress_resets": 0,
+          "reason": "",
+          "total_service_us": 0
+        },
+        "threat": {
+          "active": false,
+          "driver_status": "",
+          "kind": "",
+          "last_observation_s": 0.0,
+          "phase": "IDLE",
+          "phase_age_s": 0.0,
+          "quiet_remaining_s": 0.0,
+          "quiet_until_s": 0.0,
+          "reason": "",
+          "recover_time_s": 0.0
+        },
+        "venue": ""
+      },
+      "required_motion_max_physics_lag_frames": 0,
+      "threat_phase_samples": {
+        "IDLE": 90
+      },
+      "observed_outer_phases": {
+        "": 22,
+        "INBOUND": 68
+      },
+      "observed_venues": {
+        "1571555454051": 68
+      }
+    }
+  ],
+  "matching_log_line_counts": {
+    "exit_blocked": 3,
+    "service_planning_work_limit30": 3
+  },
+  "physics_steps_per_render_histogram": {
+    "0": 4276,
+    "1": 5399,
+    "2": 1
+  },
+  "physics_steps": 5401,
+  "render_frames": 9676,
+  "physics_steps_per_second": 60.01111111111111,
+  "headless_frame_timing_descriptive_only": {
+    "p50": 12.231,
+    "p95": 16.069,
+    "p99": 17.465
+  },
+  "native_trends": {
+    "static_memory": {
+      "first": 725549508.0,
+      "last": 728119337.0,
+      "min": 725549508.0,
+      "max": 728629645.0,
+      "median": 727544031.0,
+      "quarter_medians": [
+        725776892.0,
+        726676498.0,
+        727844817.0,
+        728100773.0
+      ],
+      "last_minus_first_quarter_median": 2323881.0
+    },
+    "objects": {
+      "first": 100446.0,
+      "last": 100749.0,
+      "min": 100446.0,
+      "max": 100804.0,
+      "median": 100643.5,
+      "quarter_medians": [
+        100503.0,
+        100610.5,
+        100650.0,
+        100721.5
+      ],
+      "last_minus_first_quarter_median": 218.5
+    },
+    "nodes": {
+      "first": 48746.0,
+      "last": 48746.0,
+      "min": 48746.0,
+      "max": 48782.0,
+      "median": 48746.0,
+      "quarter_medians": [
+        48746.0,
+        48746.0,
+        48746.0,
+        48746.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    },
+    "orphans": {
+      "first": 0.0,
+      "last": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "median": 0.0,
+      "quarter_medians": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    },
+    "resources": {
+      "first": 4204.0,
+      "last": 4204.0,
+      "min": 4204.0,
+      "max": 4204.0,
+      "median": 4204.0,
+      "quarter_medians": [
+        4204.0,
+        4204.0,
+        4204.0,
+        4204.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    },
+    "draw_calls": {
+      "first": 2187.0,
+      "last": 2123.0,
+      "min": 2123.0,
+      "max": 2194.0,
+      "median": 2175.5,
+      "quarter_medians": [
+        2187.0,
+        2182.0,
+        2170.0,
+        2146.5
+      ],
+      "last_minus_first_quarter_median": -40.5
+    },
+    "primitives": {
+      "first": 1078039.0,
+      "last": 1073168.0,
+      "min": 1073168.0,
+      "max": 1088550.0,
+      "median": 1085524.0,
+      "quarter_medians": [
+        1078039.0,
+        1087304.0,
+        1085570.0,
+        1082839.0
+      ],
+      "last_minus_first_quarter_median": 4800.0
+    },
+    "video_memory": {
+      "first": 596973376.0,
+      "last": 598155824.0,
+      "min": 596973376.0,
+      "max": 598159088.0,
+      "median": 598155824.0,
+      "quarter_medians": [
+        596973376.0,
+        597115312.0,
+        598155824.0,
+        598155824.0
+      ],
+      "last_minus_first_quarter_median": 1182448.0
+    },
+    "texture_memory": {
+      "first": 422094336.0,
+      "last": 423142912.0,
+      "min": 422094336.0,
+      "max": 423142912.0,
+      "median": 423142912.0,
+      "quarter_medians": [
+        422094336.0,
+        422094336.0,
+        423142912.0,
+        423142912.0
+      ],
+      "last_minus_first_quarter_median": 1048576.0
+    },
+    "buffer_memory": {
+      "first": 84680574.0,
+      "last": 84814414.0,
+      "min": 84680574.0,
+      "max": 84842318.0,
+      "median": 84814414.0,
+      "quarter_medians": [
+        84680574.0,
+        84814414.0,
+        84814414.0,
+        84814414.0
+      ],
+      "last_minus_first_quarter_median": 133840.0
+    },
+    "process_ms": {
+      "first": 7.421,
+      "last": 7.212,
+      "min": 7.085,
+      "max": 8.501,
+      "median": 7.377000000000001,
+      "quarter_medians": [
+        7.2735,
+        7.289999999999999,
+        7.4135,
+        7.515499999999999
+      ],
+      "last_minus_first_quarter_median": 0.2419999999999991
+    },
+    "physics_ms": {
+      "first": 8.449,
+      "last": 10.594,
+      "min": 7.951,
+      "max": 23.638,
+      "median": 10.716999999999999,
+      "quarter_medians": [
+        9.329,
+        11.003499999999999,
+        10.8595,
+        10.939499999999999
+      ],
+      "last_minus_first_quarter_median": 1.6104999999999983
+    },
+    "route_jobs": {
+      "first": 0.0,
+      "last": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "median": 0.0,
+      "quarter_medians": [
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    },
+    "route_nodes": {
+      "first": 0.0,
+      "last": 0.0,
+      "min": 0.0,
+      "max": 865.0,
+      "median": 0.0,
+      "quarter_medians": [
+        0.0,
+        0.0,
+        115.5,
+        0.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    },
+    "route_heap": {
+      "first": 0.0,
+      "last": 0.0,
+      "min": 0.0,
+      "max": 161.0,
+      "median": 0.0,
+      "quarter_medians": [
+        0.0,
+        0.0,
+        85.5,
+        0.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    },
+    "nav_pending": {
+      "first": 0.0,
+      "last": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "median": 0.0,
+      "quarter_medians": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    },
+    "nav_guides": {
+      "first": 0.0,
+      "last": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "median": 0.0,
+      "quarter_medians": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    },
+    "registry_entries": {
+      "first": 12.0,
+      "last": 12.0,
+      "min": 12.0,
+      "max": 12.0,
+      "median": 12.0,
+      "quarter_medians": [
+        12.0,
+        12.0,
+        12.0,
+        12.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    },
+    "service_keys": {
+      "first": 0.0,
+      "last": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "median": 0.0,
+      "quarter_medians": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    }
+  },
+  "os_trends": {
+    "rss_bytes": {
+      "first": 2338611200.0,
+      "last": 2338500608.0,
+      "min": 2338381824.0,
+      "max": 2338611200.0,
+      "median": 2338486272.0,
+      "quarter_medians": [
+        2338404352.0,
+        2338482176.0,
+        2338549760.0,
+        2338533376.0
+      ],
+      "last_minus_first_quarter_median": 129024.0
+    },
+    "private_bytes": {
+      "first": 3058741248.0,
+      "last": 3054817280.0,
+      "min": 3054817280.0,
+      "max": 3058741248.0,
+      "median": 3058597888.0,
+      "quarter_medians": [
+        3058597888.0,
+        3058597888.0,
+        3054921728.0,
+        3054882816.0
+      ],
+      "last_minus_first_quarter_median": -3715072.0
+    }
+  },
+  "observer_max_sample_us": 911,
+  "evidence_sha256": {
+    "MASS30.json": "b6c20e5a3152c102f43e0b60745778174ef92e35c35b4f141e3f7f9e61e34977",
+    "SOAK31.json": "8aba11f25c1c40d40337bdb007a7827907538a22917dad174cdb51112ee60224",
+    "RUN.json": "db85c7b0336982d6f85dc7f5530f3f3daf091f321f38a36bfb66a33647885cb1",
+    "OS_MEMORY.json": "bab1107235b2c53d3d0bd959e9094c0ede9a734b91eb620f4b009309e270c327",
+    "stdout.log": "541c160f74f23f9bf2f92631195ec1c9a6cc35974ed48b65406493328c2f4242"
+  },
+  "limitations": [
+    "Natural ordinary RNG differs across runs; observations are not matched scripted traffic.",
+    "Full HP may mean no natural hospital cycle within this window.",
+    "Headless alongside user game does not establish rendered FPS or clean performance.",
+    "Finite memory trends include bounded observer records and do not establish a leak.",
+    "Positions are sampled once per second; 10 cm progress resets accumulated inactivity."
+  ]
+}
