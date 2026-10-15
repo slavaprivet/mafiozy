@@ -8,6 +8,15 @@ var _home58: RefCounted
 var _home_intent58 := ""
 var _rest_driver58: RefCounted
 var _home_retry58 := 0.0
+## DSH_ROUTINE_ROAM58 (proposal routine_stall58, OFF by default): release57 answered
+## "no supported activity" in its simple path with _roam51_begin() (a real 5-15 m leg) and
+## in its shipped path with _roam(). v58 replaced both with logical intents and left a
+## plain RESTING stop, so the city stands still whenever no bench is free or the route
+## planner refuses. This flag only restores that one decision; intents/owners unchanged.
+var _dsh_roam58_flag := -1
+func dsh_roam58_on() -> bool:  # DSH_ROUTINE_ROAM58
+	if _dsh_roam58_flag < 0: _dsh_roam58_flag = 1 if OS.get_cmdline_user_args().has("--city-routine-roam58=1") else 0
+	return _dsh_roam58_flag == 1
 const ThreatLife30 = preload("res://scripts/city/runtime/npc_threat_life30.gd")
 var _threat30: RefCounted
 ## One resident's local needs. Concrete visits own arrival and transactions;
@@ -1992,5 +2001,12 @@ func _routine58_choose(row: Dictionary) -> void:
 	# A missing/destroyed/unreachable home is an explicit supported-stop fallback.
 	# It never certifies sleeping, claims a bed, or labels a spawn point a home.
 	if kind != "rest" and _ambient29_start(_routine58.ambient_choices(clock)): return
+	# DSH_ROUTINE_ROAM58: without the flag this is the shipped v58 stop that reads as ten
+	# residents standing still. With it the shipped random roam chooser decides instead,
+	# exactly as the shipped (non-simple) path still does through _roam(). Stated trade:
+	# random world walk targets return to the simple path, so a leg may have no purpose.
+	if dsh_roam58_on() and kind != "rest":
+		_roam()
+		return
 	_phase="RESTING"; _goal={}; _reason="routine_waiting_for_supported_activity"
 	_next_decision=_now+1000.0

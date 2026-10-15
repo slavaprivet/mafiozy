@@ -1,4 +1,4 @@
-{
+﻿{
   "schema": "mafiozi.assembly/v1",
   "revision": "s01-20261015-residents58",
   "title": "15.10 · Свободный проход жителей · версия58",
@@ -546,7 +546,7 @@
     "scripts\\npc_contact_sweep.gd.uid": "da23b823d690e626085e20c48caf3e6b0b6aa90b743a3a6e31b614d69f274a29",
     "scripts\\npc_daily_drive.gd": "1b65f260a12f213ec421f20056b5968c60d24f144339c52fd5e5f3856e913968",
     "scripts\\npc_daily_drive.gd.uid": "aa42fbb9a89441d65cf8d0a157cf427eee1a04940ac4c61a2b3b30057c022be2",
-    "scripts\\npc_daily_life.gd": "c7f0eae5a02fd1026bbd0961ce966089020d5ee3e22d83d6ec559cc64b2f571a",
+    "scripts\\npc_daily_life.gd": "568f56aafcfdd70bd3bc1d025eee6472d2b2e3bcd10d9a1716c233502b56ed6e",
     "scripts\\npc_daily_life.gd.uid": "2e7ec23eb188396327f724db188c9e809018ada5f10c8a1c4da598724cebc8f7",
     "scripts\\npc_daily_walk.gd": "554600968eafacf57af353e0a09fef95a0c0a251d2de4e6b1db76189482bf0d9",
     "scripts\\npc_daily_walk.gd.uid": "0ba8af5ce295eb075162fe25dedb39ac98a54dbaf110633bef1f72b07a47cc82",
@@ -856,7 +856,7 @@
     "scripts\\hospital\\npc_population_lifecycle30.gd.uid": "f314ca197f9cac1863eb3c9bd68e97b0662de0f25a9e74797951ea2145925e56",
     "scripts\\hospital\\npc_restaurant_visit28.gd": "bc162fb155708a7172484b24f77ddc994a8d84bf30342182860f5ac1b1345498",
     "scripts\\hospital\\npc_restaurant_visit28.gd.uid": "2fcc83c2996704dce5498e7f2a0506d1e9dbb23616765e666ca57b4b07ccd159",
-    "scripts\\hospital\\npc_roam_wait29.gd": "b39dbce75e87c2270f0682301f73dccfcb6532cd7624db34837f83fae724f0d7",
+    "scripts\\hospital\\npc_roam_wait29.gd": "d97ef51fedcaf448d59437c19800cc60afa6707aaf735a4046193fe1a394bc0f",
     "scripts\\hospital\\npc_roam_wait29.gd.uid": "8ac8e4d1f8bf5c78215a6ee1835b0c4239a8e0dba6c10b41a7307bb32d985d41",
     "scripts\\hospital\\npc_route_budget29.gd": "69d59b1bb4b8d66b7afc116c035f6eecbdc60422c5e1eb48c7dde96caf04a6ce",
     "scripts\\hospital\\npc_route_budget29.gd.uid": "748a75fc1469694156dd60692c61994cc3a2411b503b2a662a03737133142941",
@@ -1223,6 +1223,8 @@
     "scripts\\weapon_visual\\weapon_visual_catalog.gd.uid": "abe50e06c400e08a72ebe60fb66710e4b22396c243971e3e8ee1c66003e68312"
   },
   "launch_arguments": [
+    "--city-lively58=1",
+    "--city-observe-npcs=1",
     "--city-simple-hospital=1",
     "--city-plaza-support-plate=1",
     "--city-medical-threshold=0.5",

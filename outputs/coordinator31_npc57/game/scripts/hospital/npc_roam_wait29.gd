@@ -8,6 +8,19 @@ var _last_ms := -1
 var _planning_ms := 0
 var _planning_us := 0
 var _motion_idle_ms := 0
+# DSH_ROAMBUDGET: --city-roam-budget-progress-reset=1 releases the accumulated
+# planning-service budget when the watcher has just measured real travel. The
+# budget exists to bound work that makes no progress (see the file header: queue
+# time is not failed movement); 0 (default) keeps today's text and verdicts.
+var _dsh_roam_budget_progress := -1
+
+func _progress_reset() -> bool:  # DSH_ROAMBUDGET
+	if _dsh_roam_budget_progress < 0:
+		_dsh_roam_budget_progress = 0
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-roam-budget-progress-reset="):
+				_dsh_roam_budget_progress = 1 if argument.trim_prefix("--city-roam-budget-progress-reset=") == "1" else 0
+	return _dsh_roam_budget_progress == 1
 
 func begin(now_ms: int) -> void:
 	_last_ms=now_ms;_planning_ms=0;_planning_us=0;_motion_idle_ms=0
@@ -19,6 +32,7 @@ func observe(now_ms: int, phase: String, moved_m: float, planner_service_delta_u
 	var elapsed: int=now_ms-_last_ms
 	_last_ms=now_ms
 	_planning_us+=planner_service_delta_us
+	if moved_m>.005 and _progress_reset():_planning_us=0  # DSH_ROAMBUDGET
 	if moved_m>.005:_motion_idle_ms=0
 	if phase=="planning":
 		_planning_ms+=elapsed
