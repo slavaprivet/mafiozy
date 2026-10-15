@@ -3,6 +3,20 @@ const Driver = preload("res://scripts/city/runtime/npc_threat_route30.gd")
 const Props = preload("res://scripts/npc_ambient/ambient_props28.gd")
 const QUIET_SECONDS := 15.0
 const PHONE_SECONDS := 4.0
+# DSH_SURRENDER58 (--city-surrender58=1, default off): the web walk raises both
+# hands while the player aims at a civilian and keeps them up for 850 ms after the
+# last aim sample. The aim observation is already re-delivered every 0.10 s, so the
+# same lease works here. The pose channel accepts duration_s in [4,8] only, so the
+# gesture is published in one fixed 8 s window whose elapsed time is held just
+# before its fade-out while the aim stays fresh.
+const AIM_LEASE58 := 0.85
+const SURRENDER_WINDOW58 := 8.0
+const SURRENDER_FADE58 := .35
+const SURRENDER_HOLD58 := SURRENDER_WINDOW58 - SURRENDER_FADE58 - .01
+static var _surrender58_flag := -1
+static func surrender58_on() -> bool:
+	if _surrender58_flag < 0: _surrender58_flag = 1 if OS.get_cmdline_user_args().has("--city-surrender58=1") else 0
+	return _surrender58_flag == 1
 const RECOVER_RETRY_SECONDS31 := 2.0
 const FRESH_OBSERVATION_SECONDS31 := 1.0
 const TURN_SPEED31 := 6.0
@@ -27,6 +41,9 @@ var _owned := false
 var _called := false
 var _last_result: Dictionary={}
 var _reason := ""
+var _aim_until := 0.0
+var _surrender_age := 0.0
+var _surrender_release := -1.0
 
 func active() -> bool:return _phase!="IDLE"
 
@@ -51,15 +68,20 @@ func accept(life: RefCounted, event: Dictionary, world: RefCounted) -> Dictionar
 	if _same_tick_events56.size()>=64:return {"accepted":false,"reason":"same_tick_observation_limit"}
 	_same_tick_events56[observation_key56]=true
 	var new_incident: bool=event.incident_id!=_event.get("incident_id","")
-	var restart: bool=_phase in ["PHONE","RECOVER"] and (stronger or new_violent or new_incident)
+	var restart: bool=_phase in ["PHONE","RECOVER","SURRENDER58"] and (stronger or new_violent or new_incident)
 	if restart:_clear_phone() # Release old reservation before changing incident.
 	_life=weakref(life);_world=weakref(world);_last_observation=at;_quiet_until=at+QUIET_SECONDS
+	# DSH_SURRENDER58: a fresh aim observation only renews the hands-up lease. The
+	# 15 s quiet deadline stays the owner of when the whole fear state ends.
+	if event.kind=="aimed_at" and surrender58_on(): _aim_until=maxf(_aim_until,at+AIM_LEASE58)
 	# A fresh nearby shot renews fear, but cannot downgrade a recent actual injury.
 	if not active() or stronger or event.kind==previous_kind or at-float(_event.get("at",-100.0))>=QUIET_SECONDS:_event=event.duplicate()
 	life._attention29.clear()
 	if not active():_phase="RELEASE_SERVICE";_age=0.0;_attempts=0;_called=false;_owned=false;_serial+=1
 	elif restart:
 		_phase="FLEE";_age=0.0;_attempts=0
+		# DSH_SURRENDER58: a shot or a new incident always breaks the hold.
+		_aim_until=0.0;_surrender_release=-1.0
 		if new_incident:_called=false
 		if _driver!=null:_driver.cancel()
 	return {"accepted":true,"phase":_phase,"quiet_until":_quiet_until}
@@ -92,7 +114,15 @@ func _release_service(life: RefCounted) -> bool:
 	if not _driver.configure(body,str(life._token.source_id),ordinary_speed):cancel("physical_driver_unavailable");return false
 	_start=body.global_position;_owned=true
 	life._goal={};life._phase="THREAT30";life._next_decision=INF
-	_phase="ALERT" if _event.kind=="visible_weapon" else "FLEE";_age=0.0
+	if _event.kind=="aimed_at" and surrender58_on():
+		# DSH_SURRENDER58: the web walk stops the civilian and raises both hands
+		# instead of running. A minimum lease from now keeps the gesture visible
+		# even when releasing ordinary services took longer than the observation.
+		_phase="SURRENDER58";_surrender_age=0.0;_surrender_release=-1.0
+		_aim_until=maxf(_aim_until,_world.get_ref()._now+AIM_LEASE58)
+	else:
+		_phase="ALERT" if _event.kind=="visible_weapon" else "FLEE"
+	_age=0.0
 	return true
 
 func _start_leg(life: RefCounted) -> bool:
@@ -127,7 +157,7 @@ func step(delta: float, row: Dictionary) -> bool:
 		# A real hit-stagger owns the body temporarily. Keep the fear deadline but
 		# stop our planner without zeroing the hit owner's velocity or impulse.
 		if _driver!=null:_driver._route.cancel();_driver.status="idle"
-		if _phase=="PHONE":_clear_phone();_phase="FLEE"
+		if _phase in ["PHONE","SURRENDER58"]:_clear_phone();_phase="FLEE"
 		return false
 	if _world.get_ref()._now>=_quiet_until:cancel("quiet_15_seconds");return false
 	_age+=delta
@@ -137,7 +167,27 @@ func step(delta: float, row: Dictionary) -> bool:
 			_face_known_threat31(life._token.body,delta)
 			return false
 	var body: CharacterBody3D=life._token.body
-	if _phase=="ALERT":
+	if _phase=="SURRENDER58":
+		# DSH_SURRENDER58: the ported web hold-up. The civilian stops, faces the
+		# observed threat and keeps both hands up while the aim lease is fresh. The
+		# lease is renewed by every accepted aimed_at observation (0.10 s cadence),
+		# so lowering the weapon releases the pose after AIM_LEASE58 and one pose
+		# fade. A shot never reaches this arm: accept() restarts it as FLEE.
+		_driver.hold(delta)
+		_face_known_threat31(body,delta)
+		_surrender_age+=delta
+		if _world.get_ref()._now<_aim_until:_surrender_release=-1.0
+		elif _surrender_release<0.0:_surrender_release=_surrender_age
+		var elapsed58: float=minf(_surrender_age,SURRENDER_HOLD58)
+		if _surrender_release>=0.0:
+			# Continue the published window through its own fade-out, then release
+			# the life so the resident returns to ordinary decisions.
+			elapsed58=minf(_surrender_age,SURRENDER_WINDOW58)
+			if _surrender_age-_surrender_release>=SURRENDER_FADE58:
+				cancel("aim_released58");return true
+		_frame=Engine.get_physics_frames()
+		body.set_meta("npc_ambient28",{"active":true,"owner":weakref(self),"serial":_serial,"frame":_frame,"body_id":body.get_instance_id(),"delta":delta,"kind":"surrender58","elapsed_s":elapsed58,"duration_s":SURRENDER_WINDOW58,"surrender_time_s":_surrender_age})
+	elif _phase=="ALERT":
 		_driver.hold(delta)
 		_face_known_threat31(body,delta)
 		if _age>=.8:_phase="FLEE";_age=0.0
@@ -174,8 +224,12 @@ func step(delta: float, row: Dictionary) -> bool:
 	return true
 
 func sample_current(value: Dictionary) -> bool:
-	if _phase!="PHONE" or _life==null or not is_instance_valid(_life.get_ref()):return false
+	if _life==null or not is_instance_valid(_life.get_ref()):return false
 	var body: CharacterBody3D=_life.get_ref()._token.body
+	if value.get("kind")=="surrender58":
+		# DSH_SURRENDER58: no prop and no anchor, only this exact published frame.
+		return _phase=="SURRENDER58" and is_instance_valid(body) and int(value.get("serial",-1))==_serial and int(value.get("frame",-1))==_frame
+	if _phase!="PHONE":return false
 	return is_instance_valid(body) and value.get("kind")=="police_phone30" and int(value.get("serial",-1))==_serial and int(value.get("frame",-1))==_frame and body.global_position.distance_to(_anchor)<=.05
 
 func pose_committed(rig: Skeleton3D, value: Dictionary) -> void:
@@ -203,6 +257,9 @@ func cancel(reason: String="cancelled") -> void:
 		var life: RefCounted=_life.get_ref()
 		if life._phase=="THREAT30":life._phase="IDLE";life._goal={};life._next_decision=life._now
 	_owned=false;_phase="IDLE";_reason=reason
+	_aim_until=0.0;_surrender_release=-1.0
 
 func snapshot() -> Dictionary:
-	return {"phase":_phase,"kind":_event.get("kind",""),"incident_id":_event.get("incident_id",""),"quiet_until":_quiet_until,"last_observation":_last_observation,"reason":_reason,"attempts":_attempts,"pose_frames":_pose_frames,"report":_last_result,"driver":_driver.snapshot() if _driver!=null else {},"normal_speed_unchanged":true}
+	return {"phase":_phase,"kind":_event.get("kind",""),"incident_id":_event.get("incident_id",""),"quiet_until":_quiet_until,"last_observation":_last_observation,"reason":_reason,"attempts":_attempts,"pose_frames":_pose_frames,"report":_last_result,"driver":_driver.snapshot() if _driver!=null else {},"normal_speed_unchanged":true,
+		"surrender58":surrender58_on(),"aim_until":_aim_until,"surrender_age_s":_surrender_age,"surrender_release_s":_surrender_release,
+		"aim_lease_ms":maxf(0.0,(_aim_until-_world.get_ref()._now)*1000.0) if (_world!=null and is_instance_valid(_world.get_ref())) else 0.0}

@@ -1,6 +1,19 @@
 extends RefCounted
 ## A small intent selector. The shared DayClock owns time; service/home owners
 ## own movement, beds and money. This object never changes a body or an account.
+## DSH_LIVELY58 (--city-lively58=1, default off): the accepted cadence parks a
+## resident for 8-32 s after every ambient action and only reconsiders a stroll
+## every 45-120 s, so a full city reads as standing still. The flag only shortens
+## those two waits; every intent, priority and owner stays exactly as it is.
+const LIVELY_REST_QUIET_MS := 3000.0
+const LIVELY_REST_MS := 1500.0
+const LIVELY_REST_SPREAD_MS := 2500.0
+const LIVELY_RETRY_ARRIVED_MS := 12000.0
+const LIVELY_RETRY_MS := 6000.0
+static var _lively58_flag := -1
+static func lively58_on() -> bool:
+	if _lively58_flag < 0: _lively58_flag = 1 if OS.get_cmdline_user_args().has("--city-lively58=1") else 0
+	return _lively58_flag == 1
 var _source_id := ""
 var _profile: Dictionary = {}
 var _paid_days: Dictionary = {}
@@ -92,9 +105,15 @@ func note_paid(ticket: String, event_id: String, kind: String) -> bool:
 
 func after_ambient(now_ms: float, unit: float, clock: RefCounted) -> void:
 	var quiet: bool = not home_intent(clock).is_empty()
+	if lively58_on():  # DSH_LIVELY58
+		_rest_until_ms = now_ms + (LIVELY_REST_QUIET_MS if quiet else LIVELY_REST_MS) + clampf(unit, 0.0, 1.0) * LIVELY_REST_SPREAD_MS
+		return
 	_rest_until_ms = now_ms + (20000.0 if quiet else 8000.0) + clampf(unit, 0.0, 1.0) * 12000.0
 
 func leisure_attempt(now_ms: float, arrived: bool = false) -> void:
+	if lively58_on():  # DSH_LIVELY58
+		_leisure_retry_ms = now_ms + (LIVELY_RETRY_ARRIVED_MS if arrived else LIVELY_RETRY_MS)
+		return
 	_leisure_retry_ms = now_ms + (120000.0 if arrived else 45000.0)
 
 func ambient_choices(clock: RefCounted) -> Array:

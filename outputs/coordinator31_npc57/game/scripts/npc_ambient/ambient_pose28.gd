@@ -2,6 +2,10 @@ extends "res://scripts/hospital/npc_treatment_pose28.gd"
 ## Pure pose composition using the existing calibrated two-bone arm solver.
 ## Only preview_resident_host commits these transforms to the actual skeleton.
 const KINDS := ["bench", "book", "look_around", "watch", "sleeves", "stretch", "rub_palms", "neck", "shoulders", "collar", "wipe_forehead", "scratch_head", "window", "look_far", "newspaper", "camera", "pocket", "phone"]
+## DSH_SURRENDER58: threat-owned gestures. They are published by the threat life
+## itself (never by the ambient controller), so they stay outside KINDS and keep
+## every ordinary ambient decision unchanged.
+const THREAT_KINDS := ["police_phone30", "surrender58"]
 const META := "npc_ambient28"
 var _ambient_rig: WeakRef
 var _legs_ready := false
@@ -24,7 +28,7 @@ static func sample(body: CharacterBody3D, delta: float, physical: Dictionary) ->
 	if not is_instance_valid(body) or not body.is_inside_tree() or not body.is_on_floor() or physical.is_empty() or delta <= 0.0: return {}
 	if not physical.get("horizontal") is Vector3 or Vector3(physical.horizontal).length()/delta > .05: return {}
 	var value: Variant = body.get_meta(META, {})
-	if not value is Dictionary or not value.get("active", false) or (str(value.get("kind", "")) not in KINDS and value.get("kind") != "police_phone30"): return {}
+	if not value is Dictionary or not value.get("active", false) or (str(value.get("kind", "")) not in KINDS and str(value.get("kind", "")) not in THREAT_KINDS): return {}
 	if int(value.get("frame", -1)) != Engine.get_physics_frames() or int(value.get("body_id", -1)) != body.get_instance_id() or absf(float(value.get("delta", 0.0))-delta) > .00001: return {}
 	var owner: Variant = value.get("owner")
 	if not owner is WeakRef or not is_instance_valid(owner.get_ref()): return {}
@@ -159,7 +163,7 @@ func compose(selected: Dictionary, value: Dictionary) -> Dictionary:
 	value["pose_weight"] = 0.0
 	if not _ready or not selected.get("valid", false) or not selected.get("poses") is Array: return selected
 	var kind: String = str(value.get("kind", ""))
-	if kind not in KINDS and kind != "police_phone30": return selected
+	if kind not in KINDS and kind not in THREAT_KINDS: return selected
 	var elapsed: float = float(value.get("elapsed_s", 0.0)); var duration: float = float(value.get("duration_s", 0.0))
 	var fade: float = .75 if kind == "bench" else .35
 	var weight: float = smoothstep(0.0, fade, elapsed) * (1.0-smoothstep(duration-fade, duration, elapsed))
@@ -231,6 +235,20 @@ func compose(selected: Dictionary, value: Dictionary) -> Dictionary:
 			_palm30("l",ear30-_up*_reach*.09,_up)
 			_palm30("r",_p(shoulders,-.08,-.25,.38),-_right*.7+_up*.3)
 			_turn_global("head",_forward,-.06); _turn_global("chest",_up,slow*.025)
+		"surrender58":
+			# DSH_SURRENDER58: ported from the web walk surrender gesture
+			# (sampleNpcSurrenderGesture). Both hands rise above the head and stay
+			# clear of it on their own side, with the web's 2.05 s breath, .7 s sway
+			# and a small tremor. Legs and pelvis stay with the standing pose, so the
+			# capsule keeps its ordinary support.
+			var phase58: float = float(value.get("surrender_time_s", elapsed))
+			var breath58: float = sin(phase58*TAU/2.05)
+			var tremor58: float = sin(phase58*TAU/6.4)
+			var sway58: float = sin(phase58*TAU/.7)
+			_arm("l", _p(shoulders,-.78+.02*sway58,1.52+.03*breath58,.12+.02*tremor58))
+			_arm("r", _p(shoulders,.78+.02*sway58,1.50-.03*breath58,.12-.02*tremor58))
+			_turn_global("chest", _right, -.05+.03*breath58)
+			_turn_global("head", _right, -.04+.022*breath58)
 		"phone":
 			var phone30: Vector3 = _p(shoulders,-.24,-.32,.72)
 			_palm30("l",phone30-_up*_reach*.10-_right*_reach*.06,_up)
