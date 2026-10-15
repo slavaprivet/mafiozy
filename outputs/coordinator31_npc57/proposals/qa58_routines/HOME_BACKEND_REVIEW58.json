@@ -1,0 +1,91 @@
+{
+  "schema": "mafiozi.qa58.home-backend-review/v1",
+  "scope": "Independent source review and bounded native component observations; no production writes; not final sleep/routines/performance acceptance",
+  "source_pins": {
+    "scripts/destruction/palazzo/palazzo_structural_site.gd": "736ea7c32efc10d2ca515b1883d9c3a533c1554552bf916b8e277d891263cf30",
+    "scripts/destruction/palazzo/palazzo_finished_site.gd": "49b635e6bbc81679633742a9433e59d2cc3a56db0934a8d1723f0a177902539d",
+    "scripts/destruction/palazzo/palazzo_live_site.gd": "1342115d570cc3a32f79d36880be3792f94eedcf0a8e73b07667c5d0c5976d1f",
+    "scripts/destruction/palazzo/palazzo_site.gd": "ebac39944f743c532730fd2a793a98fd83cb7df4773d6d5350276292a1557a92",
+    "scripts/destruction/palazzo/source/showcase.gd": "dd734333c59a4efc6f299e67935086fbde3d578ec5ca6860fb9d3183cda8dbcc",
+    "scripts/destruction/palazzo/building_support.gd": "762172cb490dc6f929902e4cb6d5377a9079eeb2848bc9f6f644d70bca5f8bf7",
+    "scripts/venues/npc_compact_service_site29.gd": "1223dc819fc3eb193d3d802351da9870508c92316d8032731e0c4f66c258d397",
+    "scripts/venues/npc_service_sites_host29.gd": "a11c787ec36742d6772eae9e375333b67162ea5d6cefa9409a046246b76c75c0",
+    "scripts/city/runtime/npc_city_clone_door_swing.gd": "fb4f9af5277768272b16323289bdbbe9831bb63f5b63dfd05123195932c93528",
+    "scripts/destruction/palazzo/c4_building_blast.gd": "54a39ca265a692c77456e9f1e243924fc40bf9840509fa7dd6820a1d3adf2888",
+    "scripts/destruction/palazzo/c4_equipment.gd": "11f9c4127d27a3349bc0e1242b3661fb9637e8f2bcd267217ade9db3c4e7cd29"
+  },
+  "reviewed_housing_patch_sha256": "0c1c1f68c2a8a95c1436bb7e369c958a39f120ff65a2adf4dd7fcedbeec6b154",
+  "reviewed_home_controller_patch_sha256": "2e39c030b28157b1bad15c0c42cf831c523d8bd4eff6b1aec4ad23db455810f6",
+  "architecture_review": [
+    "Reuse CompactService -> Structural -> Finished -> Live -> Site -> Showcase preserves owned RigidBody sections, support graph, native terrain, damage and reset. No copied full-Palazzo implementation.",
+    "Compact _build_site supplies mandatory flash and uses prevalidated external terrain; no immovable OriginalFoundation/OriginalPlaza under the house.",
+    "Home labels preserve intended floor/wall/roof sizes; generic Finished Floor/Facade/Side/Roof labels would force 2.002m widths.",
+    "Beds use physical ground-touching base and separate physical mattress, not visual legs. Mattress top .82m; native actor docks at floor .24m, host alone composes skeletal bed pose.",
+    "Normal C4 release changes detached/layer/freeze without incrementing rebuild_generation; current(slot) must check actual owned bed/support identities and physical shape pins, not generation alone.",
+    "Root fixed enabled CollisionShape node/resource/frame/size checks; floor/roof use frame cache invalidated by release. Route geometry is separate from bed habitability so mattress loss does not bypass a live closed door.",
+    "Inherited bind/reset reconstructs Swing and glazing. Old-generation bed/door weakrefs become invalid; reset publishes new slots only after real geometry returns.",
+    "Main C4 provider includes all four homes. Damage bind/dispose reuses existing host lifecycle. Compact glazing capacity12 is required for8 venues+4homes.",
+    "Home host now rejects missing beds after a native runtime failure; geometry is not accepted solely by counting house nodes.",
+    "Home controller one-writer host pose, health precedence, current-frame metadata, exact life/body claims, death planner-only cancel and duplicate-before-merge passage hook passed scoped code review. Concurrent three-resident staging remains to be tested."
+  ],
+  "runs": {
+    "geometry01": {
+      "run_sha256": "d7b860c555c1b167960f42eae68a80462dbcc1cbb3fc43031509898ae359f84d",
+      "native_sha256": null,
+      "raw_passed": false,
+      "native_failed_checks": [],
+      "native_ticks": null,
+      "native_wall_s": null,
+      "raw_unchanged": true,
+      "interpretation": "Real proposal error: typed ternary Array assignment aborted bed creation; host falsely reported ready with0beds. Both fixed by root."
+    },
+    "geometry02": {
+      "run_sha256": "f67f4a378d3c838e080c37e767fe13a3b443a4691047037aa453726ddb12c921",
+      "native_sha256": "dc1a7dc0ed18eacd6a5354fdb71209579772c92c7280f2f682c186e19261c890",
+      "raw_passed": false,
+      "native_failed_checks": [
+        "actual physics advanced for thirty seconds"
+      ],
+      "native_ticks": 1680,
+      "native_wall_s": 30.009735,
+      "raw_unchanged": true,
+      "interpretation": "Structure/10bed/provider/global-ramp checks pass; QA wall-time gate expected1790ticks but saw1680. Next harness waits actual1800, no time scaling."
+    },
+    "geometry_c4_03": {
+      "run_sha256": "e5161a816158a12a8bb8a74f08f3fcfd4b37e2b99eddefeb2e358dc3a18f8103",
+      "native_sha256": "883e4f3354155f3d0c14092b7e668fb326f073d7b84e3c05fbc849efc7556f71",
+      "raw_passed": false,
+      "native_failed_checks": [
+        "mattress becomes moving native rubble"
+      ],
+      "native_ticks": 1800,
+      "native_wall_s": 31.929097,
+      "raw_unchanged": true,
+      "interpretation": "All geometry,1800ticks,C4 actual item/remote,20released,bed4.396m,currentfalse,resetnew-generation pass. Only invalid QA final-freeze assertion failed after8s when valid rubble had parked. Preserve raw FAIL; next exact source test records any_unfrozen per tick."
+    }
+  },
+  "remaining_native_cases": [
+    "Exact merged source: 30 native seconds stability, record physics ticks and wall time independently.",
+    "Actual C4: record any unfreezed mattress frame plus motion after authentic blast; eventual parked/frozen rubble is valid. No forged receipt.",
+    "One original real resident walks from actual position through outside/door/inner to dock; supported pose committed >=8 frames; sleep requires exact current claim/support/pose.",
+    "Three real assigned residents share one home concurrently, distinct bed claims; no NPC/NPC exclusive portal or staging stall.",
+    "Wake and real physical exit for all four houses; no actor/capsule teleport to bed.",
+    "Destroy bed/floor/roof during sleep, including clock T pause: next physics support check cancels sleep, claims/pose retire, safe physical exit retains real door/world/player collisions.",
+    "Generation reset/new life cannot reuse old bed or stale pose/claim; hit/injury/death outrank sleeping.",
+    "Invalid shape disabled/replaced/removed, invalid native ground, duplicate/missing assigned bed are rejected.",
+    "Merged routine morning/lunch/evening/night, N/T, no repeated payments, late leisure target/rest, mandatory spatial liveness and matched performance."
+  ],
+  "clock_contract_clarification": {
+    "supersedes": "CLOCK_HOOK_REVIEW58.json optional forward-jump-day suggestion",
+    "manual_N": "selects hour on same day_index; does not mint a new purchase day",
+    "natural_advance": "midnight and full cycles increment shared day_index",
+    "T": "pauses clock only; native sleep support/health/threat physics continues"
+  },
+  "liveness": {
+    "required_motion_max_s": 10,
+    "queue_max_s": 30,
+    "spatial_required_motion_window_s": 30,
+    "spatial_bbox_diagonal_m": 1.5,
+    "intentional_sleep_only": "live current claim+supported mattress+committed pose; HOME_BLOCKED remains failure eligible"
+  }
+}

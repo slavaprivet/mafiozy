@@ -65,6 +65,7 @@ var _repair_length30 := 0.0
 var _repair_index30 := 0
 var _repair_probes30 := 0
 var _repaired30 := 0
+var _home_rejections58 := 0
 const REPAIR_RADII30 := [1.0,2.0,4.0,6.0]
 
 func _queue() -> RefCounted:
@@ -99,7 +100,7 @@ func begin(actor: CharacterBody3D, map: RID, destination: Vector3, local_only_m:
 	if not is_finite(local_only_m) or local_only_m < LEG_M or local_only_m > LOCAL_ONLY_M: return _fail("invalid_local_domain")
 	_local_only_m = local_only_m
 	_physical30=weakref(physical) if physical!=null else null
-	_repair_pending30=false;_repair_probes30=0;_repaired30=0
+	_repair_pending30=false;_repair_probes30=0;_repaired30=0;_home_rejections58=0
 	_body = weakref(actor); _body_id = actor.get_instance_id(); _map = map; _goal = destination
 	_query_start = actor.global_position; _requeries = 0; _metres = 0.0
 	_prepare_max_us = 0; _submit_us = 0; _query_wall_ms = 0; _last_retry_reason = ""
@@ -290,6 +291,13 @@ func _prepare_one() -> void:
 ## Source nav predates live clone geometry. Repair only a proposed intermediate
 ## checkpoint, never the final goal. Each probe consumes the existing queue's
 ## prepare quantum; actual traversal still belongs to the unchanged capsule A*.
+func _home_checkpoint_allowed58(point: Vector3) -> bool:
+	var actor: CharacterBody3D=_actor()
+	if actor==null: return false
+	var scene: Node=actor.get_tree().current_scene
+	var homes: Variant=scene.get_meta("npc_home_registry58",null) if is_instance_valid(scene) else null
+	return not is_instance_valid(homes) or not homes.has_method("guide_checkpoint_allowed58") or bool(homes.guide_checkpoint_allowed58(point,_goal))
+
 func _repair_one30() -> void:
 	var physical: RefCounted=_physical30.get_ref() if _physical30!=null else null
 	if physical==null:_fail("physical_checkpoint_owner_retired30");return
@@ -307,6 +315,9 @@ func _repair_one30() -> void:
 		candidate+=direction*float(REPAIR_RADII30[index/8])
 	_repair_index30+=1;_repair_probes30+=1
 	if _flat(previous,candidate)>LEG_M+.001:return
+	if not final_point and not _home_checkpoint_allowed58(candidate):
+		_home_rejections58+=1
+		return
 	var supported: Variant=physical.floor_at(candidate,_repair_raw30.y)
 	if not supported is Vector3 or absf(supported.y-_repair_raw30.y)>.5 or not physical.standing(supported):return
 	if _flat(supported,_repair_raw30)>.01:_repaired30+=1
@@ -377,4 +388,4 @@ func cancel() -> void:
 	_physical30=null;_repair_pending30=false
 
 func diagnostics() -> Dictionary:
-	return {"status":status, "phase":_phase, "reason":reason, "distant":_distant, "waypoint":_index, "waypoints":_points.size(), "metres":_metres, "local_leg_limit_m":LEG_M, "local_domain_m":_local_only_m, "map_iteration":_iteration, "revision":revision, "requeries":_requeries, "last_retry_reason":_last_retry_reason, "query_submit_us":_submit_us, "query_wall_ms":_query_wall_ms, "prepare_max_us":_prepare_max_us, "stale_callbacks":_stale_callbacks,"wait_reason":_wait_reason,"queue_wait_ms":_queue_wait_ms,"work_units":_work_units,"work_us":_work_us,"progress_revision":_progress_revision,"query_ticket":_ticket,"checkpoint_probes30":_repair_probes30,"checkpoint_repairs30":_repaired30,"shared_work":Work.diagnostics()}
+	return {"status":status, "phase":_phase, "reason":reason, "distant":_distant, "waypoint":_index, "waypoints":_points.size(), "metres":_metres, "local_leg_limit_m":LEG_M, "local_domain_m":_local_only_m, "map_iteration":_iteration, "revision":revision, "requeries":_requeries, "last_retry_reason":_last_retry_reason, "query_submit_us":_submit_us, "query_wall_ms":_query_wall_ms, "prepare_max_us":_prepare_max_us, "stale_callbacks":_stale_callbacks,"wait_reason":_wait_reason,"queue_wait_ms":_queue_wait_ms,"work_units":_work_units,"work_us":_work_us,"progress_revision":_progress_revision,"query_ticket":_ticket,"checkpoint_probes30":_repair_probes30,"checkpoint_repairs30":_repaired30,"checkpoint_home_rejections58":_home_rejections58,"shared_work":Work.diagnostics()}

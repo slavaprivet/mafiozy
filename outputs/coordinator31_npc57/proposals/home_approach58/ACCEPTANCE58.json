@@ -1,0 +1,322 @@
+{
+  "passed": true,
+  "scope": "isolated native component acceptance; not release acceptance",
+  "production_modified": false,
+  "patch_sha256": "160954f2b26170669aa6dec7a8df1365d29af862b238d094a7ae40b98dd670d6",
+  "patch": {
+    "scripts/homes/npc_home_registry58.gd": {
+      "base_sha256": "fbda1b59044f483ae4e04f69db1728aeb8aacc9c54896aa9e5341166158e5f5a",
+      "candidate_sha256": "60c44ebec1812571b47834b9270bd68a0af9e981aac6b2395bb7bc4601c10b79"
+    },
+    "scripts/hospital/npc_long_route28.gd": {
+      "base_sha256": "49681adf8f9108d53e559172fe8963ea9e20b278e69b7a03af3dae4015f78c54",
+      "candidate_sha256": "e49d12722b859e8885561172799fc756b689792dd277858cfa950f4fe0230cf2"
+    }
+  },
+  "checks": [
+    {
+      "name": "payload scripts/homes/npc_home_registry58.gd",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "base pin scripts/homes/npc_home_registry58.gd",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "payload scripts/hospital/npc_long_route28.gd",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "base pin scripts/hospital/npc_long_route28.gd",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_guide01 clean native receipt",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_guide01 source exact before/after",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_guide01 manifest bound",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_guide01 controls stable",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_guide01 exact declared controls archived",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_guide01 exact harness members",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_guide01 archived bytes",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_guide_candidate01 clean native receipt",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_guide_candidate01 source exact before/after",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_guide_candidate01 manifest bound",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_guide_candidate01 controls stable",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_guide_candidate01 exact declared controls archived",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_guide_candidate01 exact harness members",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_guide_candidate01 archived bytes",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_guide_candidate01 overlay declaration",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_guide_candidate01 exact overlay bytes",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_cycle_candidate01 clean native receipt",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_cycle_candidate01 source exact before/after",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_cycle_candidate01 manifest bound",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_cycle_candidate01 controls stable",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_cycle_candidate01 exact declared controls archived",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_cycle_candidate01 exact harness members",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_cycle_candidate01 archived bytes",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_cycle_candidate01 overlay declaration",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native_cycle_candidate01 exact overlay bytes",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "exact original guide defect",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "candidate guide all checkpoints physically supported outside",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "exact final goal preserved",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "existing bounded repair used",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "all 55 native checks",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "all ten actual sleep and physical exit",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "unchanged liveness gates",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "resident6 cumulative work never resets",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "resident6 retained approach endpoint",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "resident6 follows repaired actual checkpoint",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "resident6 within existing cumulative work cap",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "native movement bounded",
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "evidence": {
+    "native_guide01": {
+      "CONTROL_PINS.json": "a36ac7feb60beb9991fc9fa7f4dcde600e2198eb5fdd79698298734c611b0cfb",
+      "CONTROL_PINS_AFTER.json": "a36ac7feb60beb9991fc9fa7f4dcde600e2198eb5fdd79698298734c611b0cfb",
+      "GUIDE58.json": "5135b7b5ed198eb2d243b98963f772c80c923933fbb9f3316af838241d4e483e",
+      "HARNESS.json": "f89853efafd1d4782934835c3386c4bbe22b8504733c3f0a894145e67bd5f7f3",
+      "HARNESS.zip": "e54968c08fb85486cd89d6a565308191e5b76164c40cf016293ca4ecf4d4f479",
+      "PROBE.json": "2051ecac474fbae7d2987ba072ed7e87fbcabc5263107f81bdf40ad2e1040ab9",
+      "RUN.json": "8a48b323fc8779516bee43b154c011e37549cd0a4ca5bbeec99eee7757ff80c8",
+      "SOURCE.json": "b4fa592d8553964a6c7d903f4b415ef1f44747c204a522347f93afe853665914",
+      "SOURCE_AFTER.json": "b4fa592d8553964a6c7d903f4b415ef1f44747c204a522347f93afe853665914",
+      "stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout.log": "74f4faec801b7ec5d10d13e2dbfb78deed1207c23a77ca7c74af781247ef87bf"
+    },
+    "native_guide_candidate01": {
+      "CONTROL_PINS.json": "fad27780eca32666332b12dc602aaa71c91fea10c9488a14853de4d6a0f31630",
+      "CONTROL_PINS_AFTER.json": "fad27780eca32666332b12dc602aaa71c91fea10c9488a14853de4d6a0f31630",
+      "GUIDE58.json": "0ed805a5ab74aa8bdd7322a9352ccdd03d8f47e01f09e2bbd58481c06bb89b5e",
+      "HARNESS.json": "25636d5b17e9b0c9a5c1aeb85c8eeea4aeb4bd94aebaa112c3434f53d5d2d619",
+      "HARNESS.zip": "5ac8542c0b815e3f112e8bc86573ea481293e7b7590a4e4193971a5b8ee6fbb6",
+      "OVERLAY.json": "65444e72d308514a2221f569fce5fb03c1d39a3eb8ae829f839c6914ad5bfa15",
+      "OVERLAY.zip": "2664cacb0af2f956433a78c0af4cfdc758890ee34fa0a5157e0574627ab3eff8",
+      "PROBE.json": "2051ecac474fbae7d2987ba072ed7e87fbcabc5263107f81bdf40ad2e1040ab9",
+      "RUN.json": "1d9b9e54c157261406533cb44a5d8f78c2a640b48fb432aab33ad8b1c093f19f",
+      "SOURCE.json": "b4fa592d8553964a6c7d903f4b415ef1f44747c204a522347f93afe853665914",
+      "SOURCE_AFTER.json": "b4fa592d8553964a6c7d903f4b415ef1f44747c204a522347f93afe853665914",
+      "stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout.log": "7eec936a13138a3b7f217727a4e1312958c33137c0c730e2c8c7632bec60abb1"
+    },
+    "native_cycle_candidate01": {
+      "CONTROL_PINS.json": "ef73795e76d732e63d659d5081d347bacff5a7744b64abc9b3680715a31e0dc6",
+      "CONTROL_PINS_AFTER.json": "ef73795e76d732e63d659d5081d347bacff5a7744b64abc9b3680715a31e0dc6",
+      "HARNESS.json": "28bb65c7259e8a1d9dfa52e2a853b4466a345b337c923f8c16ac211ba78b52e9",
+      "HARNESS.zip": "a9ce3451edf0676f54110d8d3e42a411304ac899587c89f980f9bf4f2070e711",
+      "HOME_CYCLE58.json": "11ea23d856dd334b0f266507f7da461b3d1d08eaa8df863f31b99729a6894380",
+      "OVERLAY.json": "65444e72d308514a2221f569fce5fb03c1d39a3eb8ae829f839c6914ad5bfa15",
+      "OVERLAY.zip": "2664cacb0af2f956433a78c0af4cfdc758890ee34fa0a5157e0574627ab3eff8",
+      "PROBE.json": "2051ecac474fbae7d2987ba072ed7e87fbcabc5263107f81bdf40ad2e1040ab9",
+      "RUN.json": "4ff35857f0c07176628571fc6dcde5ac0c943453d6a68214ced5c811dc7c074f",
+      "SOURCE.json": "b4fa592d8553964a6c7d903f4b415ef1f44747c204a522347f93afe853665914",
+      "SOURCE_AFTER.json": "b4fa592d8553964a6c7d903f4b415ef1f44747c204a522347f93afe853665914",
+      "stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout.log": "8fbd21958893e48065eba70c9f623cdac0099b8e91a7ba726310963f67033315"
+    }
+  },
+  "derived_audit_sha256": "19a4c0a109e7e4289fd7e5754a7d5c17f034a272ec8ef61f15a72bd5302402cb",
+  "metrics": {
+    "native_elapsed_s": 175.74878,
+    "native_checks": 55,
+    "sleep_count": 10,
+    "physical_exit_count": 10,
+    "max_required_motion_idle_s": 0.992566,
+    "max_native_step_m": 0.0309831462800503,
+    "resident6_planning_service_us": 191373,
+    "resident6_travel_m": 217.63379184925,
+    "resident6_transitions": [
+      {
+        "t": 0.018469,
+        "phase": "HOME_APPROACH",
+        "service_us": 0
+      },
+      {
+        "t": 115.866578,
+        "phase": "HOME_ENTER",
+        "service_us": 173410
+      },
+      {
+        "t": 118.988481,
+        "phase": "HOME_BED_APPROACH",
+        "service_us": 181074
+      },
+      {
+        "t": 120.649053,
+        "phase": "HOME_SETTLE",
+        "service_us": 181846
+      },
+      {
+        "t": 121.399922,
+        "phase": "HOME_SLEEP",
+        "service_us": 181846
+      },
+      {
+        "t": 171.030443,
+        "phase": "HOME_EXIT",
+        "service_us": 181846
+      },
+      {
+        "t": 174.666073,
+        "phase": "IDLE",
+        "service_us": 191373
+      }
+    ]
+  },
+  "limitations": [
+    "Exact stage06 guide baseline/candidate use the same scene. Prior full-cycle failure is stage05; the successful full-cycle is stage06 plus the declared two-file overlay, not a strict whole-source performance pair.",
+    "Physical component intentionally owns home intents; ordinary logical schedules are not accepted by this fixture.",
+    "Headless native committed bone geometry is tested for all10. Existing graphical resident3 image and destruction proof belong to unchanged stage05 home helpers, not a new stage06 visual acceptance.",
+    "Native merged-source cycle, current final ordinary behavior and matched performance remain root integration checks. No FPS claim."
+  ]
+}

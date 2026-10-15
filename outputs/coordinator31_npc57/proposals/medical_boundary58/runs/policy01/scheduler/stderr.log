@@ -1,0 +1,4 @@
+SCRIPT ERROR: Parse Error: Cannot infer the type of "pack" variable because the value doesn't have a set type.
+   at: GDScript::reload (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/medical_boundary58/check58.gd:8)
+ERROR: Failed to load script "C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/medical_boundary58/check58.gd" with error "Parse error".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)

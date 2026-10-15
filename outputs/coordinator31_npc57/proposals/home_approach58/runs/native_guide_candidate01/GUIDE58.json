@@ -1,0 +1,393 @@
+{
+	"checks": [
+		{
+			"detail": null,
+			"name": "configure resident_1",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "assigned current bed resident_1",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "configure resident_2",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "assigned current bed resident_2",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "configure resident_3",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "assigned current bed resident_3",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "configure resident_4",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "assigned current bed resident_4",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "configure resident_5",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "assigned current bed resident_5",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "configure resident_6",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "assigned current bed resident_6",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "configure resident_7",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "assigned current bed resident_7",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "configure resident_8",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "assigned current bed resident_8",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "configure resident_9",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "assigned current bed resident_9",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "configure resident_10",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "assigned current bed resident_10",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "native assigned home begin",
+			"ok": true
+		},
+		{
+			"detail": 60,
+			"name": "real60Hz",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "guide includes original checkpoint11",
+			"ok": true
+		},
+		{
+			"detail": [],
+			"name": "no inaccessible interior intermediate checkpoint",
+			"ok": true
+		},
+		{
+			"detail": {
+				"checkpoint_home_rejections58": 21,
+				"checkpoint_probes30": 37,
+				"checkpoint_repairs30": 1,
+				"distant": true,
+				"last_retry_reason": "",
+				"local_domain_m": 24.0,
+				"local_leg_limit_m": 24.0,
+				"map_iteration": 1,
+				"metres": 202.679432340083,
+				"phase": "following",
+				"prepare_max_us": 464,
+				"progress_revision": 55,
+				"query_submit_us": 643,
+				"query_ticket": 0,
+				"query_wall_ms": 5,
+				"queue_wait_ms": 0,
+				"reason": "",
+				"requeries": 0,
+				"revision": 3,
+				"shared_work": {
+					"authority_maps": 1,
+					"cancel_keeps_native_permit": true,
+					"completed": 1,
+					"dropped_callbacks": 0,
+					"frame": 1309,
+					"guides": 0,
+					"inflight": 0,
+					"max_inflight": 1,
+					"max_prepare_items": 8,
+					"max_prepare_us": 432,
+					"max_submits_per_frame": 1,
+					"oldest_native_ms": 0,
+					"prepare_budget_us": 600,
+					"prepare_items": 5,
+					"prepare_us": 301,
+					"soft_deadline": true,
+					"started": 1,
+					"submitted_this_frame": 0
+				},
+				"stale_callbacks": 0,
+				"status": "ready",
+				"wait_reason": "",
+				"waypoint": 0,
+				"waypoints": 15,
+				"work_units": 53,
+				"work_us": 2154
+			},
+			"name": "native existing radial repair used",
+			"ok": true
+		}
+	],
+	"guide": {
+		"checkpoint_home_rejections58": 21,
+		"checkpoint_probes30": 37,
+		"checkpoint_repairs30": 1,
+		"distant": true,
+		"last_retry_reason": "",
+		"local_domain_m": 24.0,
+		"local_leg_limit_m": 24.0,
+		"map_iteration": 1,
+		"metres": 202.679432340083,
+		"phase": "following",
+		"prepare_max_us": 464,
+		"progress_revision": 55,
+		"query_submit_us": 643,
+		"query_ticket": 0,
+		"query_wall_ms": 5,
+		"queue_wait_ms": 0,
+		"reason": "",
+		"requeries": 0,
+		"revision": 3,
+		"shared_work": {
+			"authority_maps": 1,
+			"cancel_keeps_native_permit": true,
+			"completed": 1,
+			"dropped_callbacks": 0,
+			"frame": 1309,
+			"guides": 0,
+			"inflight": 0,
+			"max_inflight": 1,
+			"max_prepare_items": 8,
+			"max_prepare_us": 432,
+			"max_submits_per_frame": 1,
+			"oldest_native_ms": 0,
+			"prepare_budget_us": 600,
+			"prepare_items": 5,
+			"prepare_us": 301,
+			"soft_deadline": true,
+			"started": 1,
+			"submitted_this_frame": 0
+		},
+		"stale_callbacks": 0,
+		"status": "ready",
+		"wait_reason": "",
+		"waypoint": 0,
+		"waypoints": 15,
+		"work_units": 53,
+		"work_us": 2154
+	},
+	"guide_points": [
+		{
+			"index": 0,
+			"inside_houses": [],
+			"point": [
+				127.100006103516,
+				0.00299998512491584,
+				55.3500061035156
+			],
+			"standing": true
+		},
+		{
+			"index": 1,
+			"inside_houses": [],
+			"point": [
+				146.280014038086,
+				0.00299998512491584,
+				48.2400016784668
+			],
+			"standing": true
+		},
+		{
+			"index": 2,
+			"inside_houses": [],
+			"point": [
+				128.878997802734,
+				0.00299998512491584,
+				64.7688903808594
+			],
+			"standing": true
+		},
+		{
+			"index": 3,
+			"inside_houses": [],
+			"point": [
+				111.477966308594,
+				0.00299998512491584,
+				81.2977828979492
+			],
+			"standing": true
+		},
+		{
+			"index": 4,
+			"inside_houses": [],
+			"point": [
+				96.0,
+				0.00299998512491584,
+				96.0
+			],
+			"standing": true
+		},
+		{
+			"index": 5,
+			"inside_houses": [],
+			"point": [
+				84.4352188110352,
+				0.00299998512491584,
+				117.029876708984
+			],
+			"standing": true
+		},
+		{
+			"index": 6,
+			"inside_houses": [],
+			"point": [
+				72.8704376220703,
+				0.00299998512491584,
+				138.059753417969
+			],
+			"standing": true
+		},
+		{
+			"index": 7,
+			"inside_houses": [],
+			"point": [
+				61.3056602478027,
+				0.00299998512491584,
+				159.089630126953
+			],
+			"standing": true
+		},
+		{
+			"index": 8,
+			"inside_houses": [],
+			"point": [
+				56.2167625427246,
+				0.00299998512491584,
+				168.343505859375
+			],
+			"standing": true
+		},
+		{
+			"index": 9,
+			"inside_houses": [],
+			"point": [
+				55.6435012817383,
+				0.00299998512491584,
+				169.385925292969
+			],
+			"standing": true
+		},
+		{
+			"index": 10,
+			"inside_houses": [],
+			"point": [
+				55.4912338256836,
+				0.00299998512491584,
+				169.662826538086
+			],
+			"standing": true
+		},
+		{
+			"index": 11,
+			"inside_houses": [],
+			"point": [
+				46.9149627685547,
+				0.00299998512491584,
+				191.128021240234
+			],
+			"standing": true
+		},
+		{
+			"index": 12,
+			"inside_houses": [],
+			"point": [
+				43.2075500488281,
+				0.00299998512491584,
+				192.0
+			],
+			"standing": true
+		},
+		{
+			"index": 13,
+			"inside_houses": [],
+			"point": [
+				42.3001976013184,
+				0.00299998512491584,
+				193.649978637695
+			],
+			"standing": true
+		},
+		{
+			"index": 14,
+			"inside_houses": [],
+			"point": [
+				42.2999992370605,
+				0.00300001492723823,
+				193.650009155273
+			],
+			"standing": true
+		}
+	],
+	"interior_checkpoints": [],
+	"native_physics_context": true,
+	"outer_target": [
+		42.2999992370605,
+		0.00300001492723823,
+		193.650009155273
+	],
+	"passed": true,
+	"physics_context": true,
+	"samples": [],
+	"scope": "isolated overlay guide repair; no full physical-home acceptance",
+	"start": [
+		127.099998474121,
+		-0.0000000149011611938477,
+		55.3499984741211
+	],
+	"transitions": []
+}

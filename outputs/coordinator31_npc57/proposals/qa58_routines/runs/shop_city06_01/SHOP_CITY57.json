@@ -1,0 +1,95 @@
+{
+	"checks": 42,
+	"detail": {
+		"ammo_purchase": {
+			"cash": 4320,
+			"ok": true,
+			"receipt": {
+				"cash_after": 4320,
+				"frame": 39,
+				"item_id": "ammo_magnum",
+				"kind": "ammo",
+				"price": 180,
+				"purchase_id": "shop-purchase--9223370190454959369-ammo_magnum-3",
+				"session": -9223370190454959369
+			},
+			"replayed": false
+		},
+		"cash_after": 3790,
+		"cashier_behind_counter": true,
+		"cashiers": 1,
+		"door_distance_m": 16.5002460479736,
+		"owned_sections": 52,
+		"pictures": 20,
+		"reserve_after": 42,
+		"reserve_before": 18,
+		"second_vest": {
+			"cash": 4500,
+			"ok": false,
+			"reason": "already_owned"
+		},
+		"throwables": {
+			"aiming": false,
+			"bounces": 3,
+			"cancelled": 1,
+			"fire_fields": 1,
+			"fire_fx": {
+				"active": 1,
+				"capacity": 6,
+				"dynamic_lights": 2,
+				"maximum_draw_batches": 12,
+				"maximum_quads": 276,
+				"per_impact_node_allocations": 0,
+				"ready": true,
+				"shader_updates": 1,
+				"shadowed_lights": 0
+			},
+			"grenade_detonations": 1,
+			"grenades": 0,
+			"impacts": 2,
+			"in_flight": 0,
+			"last_area": {
+				"affected_houses": [
+					"VENUE29-SHOP-002"
+				],
+				"event_id": "throw:1885977270874:2:fire:0",
+				"kind": "molotov",
+				"ok": true,
+				"radius": 2.6,
+				"released": 2,
+				"visual": {}
+			},
+			"mode": "",
+			"molotov_shatters": 1,
+			"molotovs": 0,
+			"projectiles": {
+				"acquires": 2,
+				"active": 0,
+				"capacity": 8,
+				"maximum_model_draws": 56,
+				"per_throw_node_allocations": 0,
+				"ready": true
+			},
+			"ready": true,
+			"throw_phase": "",
+			"throws": 2,
+			"trajectory_visible": false
+		},
+		"vest_purchase": {
+			"cash": 4500,
+			"ok": true,
+			"receipt": {
+				"cash_after": 4500,
+				"frame": 39,
+				"item_id": "tactical_vest",
+				"kind": "armor",
+				"price": 500,
+				"purchase_id": "shop-purchase--9223370190454959369-tactical_vest-1",
+				"session": -9223370190454959369
+			},
+			"replayed": false
+		}
+	},
+	"failures": [],
+	"ok": true
+}

@@ -1,0 +1,10 @@
+{
+  "passed": false,
+  "classification": "runner_postprocessing_failure_preserved",
+  "error": "NameError: after_cp is not defined",
+  "cause": "Adapter generation replaced the cp assignment substring inside after_cp and overwrote its local name.",
+  "native_result": "GUARD58.json records the expected stale-cashier failure: real grenade purchase debited 50 after disable29 in the same physics frame.",
+  "source_evidence": "SOURCE.json and SOURCE_AFTER.json were written; native scheduler stdout/stderr and receipt preserved.",
+  "control_evidence_limit": "No trustworthy separate before/after control inventory or harness archive was completed. Do not use this run as an accepted pinned proof.",
+  "next": "New run_guard58_v2.py uses fixed before/after locals; repeat baseline02 and overlay01 without rewriting this failed run."
+}

@@ -1,0 +1,49 @@
+{
+  "proof": {
+    "receipt_passed": false,
+    "source_exact_stage05": true,
+    "controls_before_after_equal": true,
+    "archived_control_bytes_match": true,
+    "stderr_empty": true,
+    "wall_s": 207.77547619992401,
+    "run_sha256": "07581c642c0cc11151192e70008bf3b4c0c68331830c23b721cebaba09532126",
+    "harness_zip_sha256": "ca5408634f713a36f5a2f65268a8d48ff6beff78346646a3ed33517ff7ad51f7"
+  },
+  "raw_sha256": "9560e9100db2c3b59ee1945bab6531748ab7047b0618cd96a6785b5a19ca9140",
+  "source_ids": [
+    "resident_1",
+    "resident_10",
+    "resident_2",
+    "resident_3",
+    "resident_4",
+    "resident_5",
+    "resident_6",
+    "resident_7",
+    "resident_8",
+    "resident_9"
+  ],
+  "native_physics_rate": 60.02445002026224,
+  "native_checks_passed": 52,
+  "native_checks_count": 54,
+  "sleep_count": 9,
+  "exit_count": 9,
+  "max_motion_idle_s_with_pose_commit_gate": {
+    "resident_1": 0,
+    "resident_2": 0,
+    "resident_3": 0,
+    "resident_4": 0.991339,
+    "resident_5": 0,
+    "resident_6": 78.014452,
+    "resident_7": 0,
+    "resident_8": 0,
+    "resident_9": 0,
+    "resident_10": 0
+  },
+  "motion_failure_ids": [
+    "resident_6"
+  ],
+  "stale_sleep_commit_samples": [],
+  "spatial_prior_audit_passed": false,
+  "independent_conclusion": "FAIL resident6 still independently confirmed; other9 actual sleep/exit, no pose exemption with stale sleep commits in raw. Source/control proof valid. Not ordinary routine acceptance.",
+  "future_gate_requirement": "Always require current pose commit as well as support/claim for SLEEP/REST exemption. Existing derived audit omits commit field, but current raw has no stale SLEEP/REST commits. Nested V2 service_watch/avoidance aliases cannot establish historical causes."
+}

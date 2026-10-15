@@ -575,6 +575,9 @@ func stock() -> Dictionary:
 ## Plain comparisons instead of `match`: a non-literal pattern in GDScript binds a
 ## variable rather than comparing it, which would silently match every kind.
 func _available(item_id: String) -> Dictionary:
+	# Revalidate on the transaction stack; modal closure runs later in _process.
+	if _physical_store_mode() and not _physical_cashier_available():
+		return {"ok": false, "reason": "store_unavailable"}
 	var item_kind: Variant = catalog.kind(item_id)
 	if item_kind == Catalog.KIND_WEAPON:
 		if _owned_ids().has(item_id):
@@ -651,6 +654,8 @@ func _on_purchase(item_id: String) -> void:
 				text = "Больше %d шт. %s не унести" % [catalog.limit(item_id), item_name]
 			"cash_insufficient":
 				text = "Не хватает денег: цена %s $, у тебя %s $" % [_thousands(price), _thousands(int(result.get("cash", wallet.cash())))]
+			"store_unavailable":
+				text = "Магазин временно закрыт"
 			"unknown_item":
 				text = "Такого товара нет в лавке"
 			_:

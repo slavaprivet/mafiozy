@@ -84,6 +84,18 @@ func passage_entries() -> Dictionary:
 		if route_current(row): result["home58:" + home_id] = {"owner":row.door_owner, "clone":row.house, "door":row.door, "normal":row.normal}
 	return result
 
+## A distant guide is topology, not permission to enter a private house.
+## Reject only intermediate checkpoints inside a live home while the exact
+## requested endpoint is outside it. The existing radial repair and capsule
+## solver still prove the alternative; no floor/world/door query is bypassed.
+func guide_checkpoint_allowed58(point: Vector3, endpoint: Vector3) -> bool:
+	if not point.is_finite() or not endpoint.is_finite() or _homes.size()>288: return false
+	for row: Dictionary in _homes.values():
+		if not route_current(row): continue
+		var bounds: AABB=row.bounds
+		if bounds.has_point(point+Vector3.UP*.3) and not bounds.has_point(endpoint+Vector3.UP*.3): return false
+	return true
+
 func snapshot() -> Dictionary:
 	var assigned_count := 0
 	for row: Dictionary in _slots.values():

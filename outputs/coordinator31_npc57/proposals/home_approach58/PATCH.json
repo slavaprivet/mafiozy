@@ -1,0 +1,10 @@
+{
+  "scripts/homes/npc_home_registry58.gd": {
+    "base_sha256": "fbda1b59044f483ae4e04f69db1728aeb8aacc9c54896aa9e5341166158e5f5a",
+    "candidate_sha256": "60c44ebec1812571b47834b9270bd68a0af9e981aac6b2395bb7bc4601c10b79"
+  },
+  "scripts/hospital/npc_long_route28.gd": {
+    "base_sha256": "49681adf8f9108d53e559172fe8963ea9e20b278e69b7a03af3dae4015f78c54",
+    "candidate_sha256": "e49d12722b859e8885561172799fc756b689792dd277858cfa950f4fe0230cf2"
+  }
+}

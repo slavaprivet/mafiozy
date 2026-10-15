@@ -1,0 +1,21 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+{
+  "checks": 24,
+  "failures": [],
+  "passed": true,
+  "report": {
+    "ammo_bounds": {
+      "owned": 14,
+      "reserve": 9999
+    },
+    "backpack_defaults": {
+      "absorbed": 0,
+      "worn": ""
+    },
+    "default_ownership": {
+      "firearms": 14,
+      "owned": 14
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "scripts/npc_daily_life.gd": {
+    "base_sha256": "af7e6607696f32d4f61942cf726567122529fe19312d5de5d49676e9cd8499e5",
+    "candidate_sha256": "c7f0eae5a02fd1026bbd0961ce966089020d5ee3e22d83d6ec559cc64b2f571a"
+  },
+  "scripts/npc_needs_catalog.gd": {
+    "base_sha256": "02248a4db3a6f91a362636ff106c7872b31b7f68ab290a112328a3e889dfa648",
+    "candidate_sha256": "a5d850c400b51fd67061ca80a3afe80cea34d33cc1b6ed3a2db541d5731bf379"
+  }
+}

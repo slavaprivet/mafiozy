@@ -1,0 +1,51 @@
+{
+	"checks": {
+		"cashier_invalid_now": true,
+		"city_ready": true,
+		"live_sale_positive": true,
+		"modal_closes_on_poll": true,
+		"modal_open_with_live_cashier": true,
+		"modal_still_open_before_poll": true,
+		"no_cash_debit": true,
+		"no_inventory_delivery": true,
+		"no_new_purchase_receipt": true,
+		"one_actual_cashier": true,
+		"same_physics_frame": true,
+		"shop_ready": true,
+		"stale_store_refused": true,
+		"standalone_sandbox_transaction_preserved": true
+	},
+	"detail": {
+		"answer": {
+			"cash": 4820,
+			"ok": false,
+			"reason": "store_unavailable"
+		},
+		"cash_after": 4820,
+		"cash_before": 4820,
+		"purchase_receipts_after": 1,
+		"purchase_receipts_before": 1,
+		"quantity_after": 0,
+		"quantity_before": 0,
+		"sandbox": {
+			"answer": {
+				"cash": 4950,
+				"ok": true,
+				"receipt": {
+					"cash_after": 4950,
+					"frame": 221,
+					"item_id": "grenade",
+					"kind": "consumable",
+					"price": 50,
+					"purchase_id": "sandbox-guard58",
+					"session": -9223369834425641650
+				},
+				"replayed": false
+			},
+			"ok": true
+		}
+	},
+	"overlay": true,
+	"passed": true,
+	"scope": "Actual city cashier lifecycle invalidated synchronously between live modal-open and real goods activation; isolated sandbox transaction uses real catalog/wallet/backpack ports."
+}

@@ -25,7 +25,7 @@ const Attention29 = preload("res://scripts/npc_visual/npc_attention29.gd")
 var _attention29: RefCounted = Attention29.new()
 const ResDiag = preload("res://scripts/npc_visual/npc_resident_diag.gd")
 const NeedsCatalog = preload("res://scripts/npc_needs_catalog.gd")  # DSH_CATALOG
-const MEDICAL_THRESHOLD := .75
+const MEDICAL_THRESHOLD := .5
 ## DSH_MEDPRIORITY: --city-medical-threshold=<0..1> overrides MEDICAL_THRESHOLD. The flag's
 ## ABSENCE (not its value) is what arms the new read-only telemetry and the hospital room
 ## marker, so a run without any new argument behaves exactly as before. --city-hp=<0..100>
@@ -240,7 +240,7 @@ func _fail(reason: String) -> Dictionary: return {"ok":false,"reason":reason}
 # DSH_MEDPRIORITY: owner's step 3. --city-medical-threshold=<0..1> (absent = the
 # shipped 0.75) makes a resident below that fraction of its max HP take the hospital
 # as goal #1 and interrupt the current deed. The comparison is STRICTLY LESS:
-#   hp_pct < threshold_pct      (exactly 50.0 % with a 50 % threshold never goes)
+#   hp_pct <= threshold_pct     (50.0 % is included by the user rule)
 # --city-hp=<0..100> is a DEBUG-ONLY second opinion on the row's HP, in PERCENT of
 # max_hp (the owner's unit: --city-hp=50 means exactly 50 %, --city-hp=49 means 49 % of
 # max_hp). The source row and every other owner keep the authored value; only this
@@ -617,7 +617,7 @@ func _dsh_hp_pct(row: Dictionary) -> float:  # DSH_MEDPRIORITY
 
 ## DSH_MEDPRIORITY: the one line per change of state. `result` is goal_set when the
 ## goal is taken, arrived when the resident physically reached the marker, blocked when
-## the errand ended without arrival, no_goal when the strict threshold was not crossed.
+## the errand ended without arrival, no_goal when HP remained above the threshold.
 func _dsh_med_emit(result: String, row: Dictionary, reason: String = "") -> void:  # DSH_MEDPRIORITY
 	if not _dsh_med_on(): return
 	# DSH_ROWPROBE: the identity of the ROW this decision reads, next to the one the hit
@@ -652,7 +652,7 @@ func _dsh_med_emit(result: String, row: Dictionary, reason: String = "") -> void
 	var line := "DSH_MEDPRIORITY id=" + str(_token.get("source_id", "")) \
 		+ " hp=" + str(int(round(_dsh_effective_hp(row)))) + "/" + str(int(row.get("max_hp", -1))) \
 		+ " hp_pct=%.1f" % _dsh_hp_pct(row) + " threshold=%.3f" % _dsh_threshold() \
-		+ " threshold_pct=%.1f" % (_dsh_threshold() * 100.0) + " strict_lt=true" \
+		+ " threshold_pct=%.1f" % (_dsh_threshold() * 100.0) + " strict_lt=false inclusive_lte=true" \
 		+ " goal=" + goal_kind + " marker=" + marker_text \
 		+ " dist_m=%.1f" % distance + " moved_m=%.1f" % _dsh_moved_m \
 		+ " " + NeedsCatalog.site_telemetry(_dsh_site_choice) \
@@ -1004,19 +1004,17 @@ func _needs_on() -> bool:  # DSH_NEEDS
 	return _dsh_needs == 1
 
 func _needs_hospital(row: Dictionary) -> bool:
-	if _now<_next_medical or float(row.get("max_hp",0))<=0 or row.get("_medicalDowned",false) or row.get("_forcedCrawl",false): return false
-	# DSH_MEDPRIORITY: STRICTLY LESS (owner's rule: exactly 50 % with a 50 % threshold
-	# never goes to hospital). Without the flag both sides are the shipped expression.
-	if _dsh_simple_on():
-		return _hospital51_below_threshold(row)
-	if _dsh_med_on():
-		return _dsh_effective_hp(row) < float(row.max_hp)*_dsh_threshold()
-	return float(row.get("hp",0))<float(row.max_hp)*MEDICAL_THRESHOLD
+	if _now < _next_medical: return false
+	if row.get("dead", false) or row.get("_medicalDowned", false) or row.get("_forcedCrawl", false) or float(row.get("max_hp", 0)) <= 0.0: return false
+	if _dsh_simple_on(): return _hospital51_below_threshold(row)
+	var threshold: float = _dsh_threshold() if _dsh_med_on() else MEDICAL_THRESHOLD
+	var hp: float = _dsh_effective_hp(row) if _dsh_med_on() else float(row.get("hp", 0))
+	return NeedsCatalog.health_at_or_below(row, hp, threshold)
 
 func _hospital51_below_threshold(row: Dictionary) -> bool:
+	# Existing callers share the user's inclusive half-health rule.
 	if row.get("dead", false) or row.get("_medicalDowned", false) or row.get("_forcedCrawl", false) or float(row.get("max_hp", 0)) <= 0.0: return false
-	var hp: float = _dsh_effective_hp(row)
-	return hp > 0.0 and hp < float(row.max_hp) * .5
+	return NeedsCatalog.health_at_or_below(row, _dsh_effective_hp(row), .5)
 
 func _new_goal(kind: String) -> Dictionary:
 	_sequence+=1
@@ -1051,11 +1049,11 @@ func dsh_notice_damage() -> Dictionary:
 	if str(_goal.get("kind", "")) == "hospital" or _visit != null: return {"ok":true,"reason":"already_serving_health"}
 	if not _needs_hospital(row): return {"ok":true,"reason":"threshold_not_crossed"}
 	if _dsh_simple_on():  # DSH_SIMPLEHOSP: the copy errand is taken directly, never queued
-		_dsh_med_chain("damaged", row, "hp_strictly_below_threshold_from_hit")
+		_dsh_med_chain("damaged", row, "hp_at_or_below_threshold_from_hit")
 		var simple_started: bool = _dsh_simple_begin(row)
 		return {"ok":simple_started, "reason":"simple_hospital_from_hit" if simple_started else "simple_hospital_pending", "goal":"hospital"}
 	_dsh_marker_ready()
-	_dsh_med_chain("damaged", row, "hp_strictly_below_threshold_from_hit")
+	_dsh_med_chain("damaged", row, "hp_at_or_below_threshold_from_hit")
 	_dsh_queue_push("hospital")
 	var task: String = _dsh_queue_pop_front()
 	_mark_served(task)
@@ -1498,7 +1496,7 @@ func _choose(row: Dictionary) -> void:
 	# resident to the standing hospital's controller.
 	if _needs_hospital(row) and _dsh_simple_on():
 		_dsh_site_pick("hospital")  # DSH_CATALOG: nearest hospital site of this district
-		if _dsh_med_on(): _dsh_med_chain("damaged", row, "hp_strictly_below_threshold_simple")
+		if _dsh_med_on(): _dsh_med_chain("damaged", row, "hp_at_or_below_threshold_simple")
 		_dsh_simple_begin(row)
 		return
 	if _dsh_simple_on():
@@ -1536,7 +1534,7 @@ func _choose(row: Dictionary) -> void:
 		_dsh_queue_push(place)
 		if place == "hospital":
 			_dsh_marker_ready()  # DSH_MEDPRIORITY: the visible room marker of the goal
-			if _dsh_med_on(): _dsh_med_chain("damaged", row, "hp_strictly_below_threshold")  # DSH_MEDCHAIN
+			if _dsh_med_on(): _dsh_med_chain("damaged", row, "hp_at_or_below_threshold")  # DSH_MEDCHAIN
 		elif _dsh_med_on() and place == "restaurant":
 			_dsh_med_chain("goal_set", row, "restaurant_from_catalog")
 	if not _needs_hospital(row) and _dsh_queued_hospital:
@@ -1562,12 +1560,12 @@ func _choose(row: Dictionary) -> void:
 	# new threshold flag is present, and only on a change of the resident's HP state.
 	if _dsh_med_on():
 		if MedMarker.current().is_empty(): _dsh_marker_ready()
-		if _dsh_effective_hp(row) < float(row.get("max_hp",0))*_dsh_threshold():
+		if NeedsCatalog.health_at_or_below(row, _dsh_effective_hp(row), _dsh_threshold()):
 			_dsh_med_emit("blocked", row, "medical_priority_admission_refused")
 			_dsh_med_chain("blocked:goal_not_owned", row, "medical_priority_admission_refused")
 		else:
-			_dsh_med_emit("no_goal", row, "hp_not_strictly_below_threshold")
-			_dsh_med_chain("no_goal", row, "hp_not_strictly_below_threshold")
+			_dsh_med_emit("no_goal", row, "hp_above_threshold")
+			_dsh_med_chain("no_goal", row, "hp_above_threshold")
 	var wallet: Dictionary=_account.snapshot().account
 	var pending: Dictionary=wallet.get("pending_purchase",{})
 	if _now>=_next_shop:

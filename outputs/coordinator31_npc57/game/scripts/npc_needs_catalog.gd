@@ -16,16 +16,16 @@ extends RefCounted
 ##   enabled   per-record data switch for records that are already always-on (default true)
 ##
 ## Conditions are data expressions, not callables, so a record stays one line:
-##   {"hp_below_max_fraction": .5}   hp < max_hp * fraction   (STRICTLY less: equals never)
+##   {"hp_at_or_below_max_fraction": .5}   0 < hp <= max_hp * fraction (includes the boundary)
 ##   {"energy_below": .2}            energy < fraction * 100
 ##   {"cash_below": 6}               cash < value
 ##   {"bank_at_least": 15}           bank >= value
 const RECORDS: Array = [
 	{
 		"id": "hospital", "priority": 0, "mode": "direct", "target": "clone_room_centre",
-		"condition": {"hp_below_max_fraction": .5},
+		"condition": {"hp_at_or_below_max_fraction": .5},
 		"flag": "--city-medical-threshold", "enabled": true,
-		"note": "owner's step 3: below half of its own bar the resident takes the hospital first",
+		"note": "user rule: at half of its own bar or lower the resident takes the hospital first",
 	},
 	{
 		"id": "restaurant", "priority": 1, "mode": "direct", "target": "clone_restaurant_centre",
@@ -76,15 +76,19 @@ static func find(id: String) -> Dictionary:
 		if str(record.get("id", "")) == id: return record
 	return {}
 
+## Shared by the schedule, immediate hit reaction, and medical queue.
+static func health_at_or_below(row: Dictionary, hp: float, fraction: float) -> bool:
+	var maximum: float = float(row.get("max_hp", 0))
+	if row.get("dead", false) or row.get("_medicalDowned", false) or row.get("_forcedCrawl", false): return false
+	if not is_finite(hp) or not is_finite(maximum) or not is_finite(fraction): return false
+	return maximum > 0.0 and hp > 0.0 and fraction >= 0.0 and fraction <= 1.0 and hp <= maximum * fraction
+
 static func _matches(condition: Dictionary, row: Dictionary, energy: float, energy_on: bool) -> bool:
 	if condition.has("energy_below"):
 		if not energy_on: return false
 		if energy >= float(condition["energy_below"]) * 100.0: return false
-	if condition.has("hp_below_max_fraction"):
-		var maximum: float = float(row.get("max_hp", 0))
-		if maximum <= 0.0: return false
-		# STRICTLY less, by the owner's rule: exactly the threshold never triggers.
-		if not (float(row.get("hp", 0)) < maximum * float(condition["hp_below_max_fraction"])): return false
+	if condition.has("hp_at_or_below_max_fraction"):
+		if not health_at_or_below(row, float(row.get("hp", 0)), float(condition["hp_at_or_below_max_fraction"])): return false
 	if condition.has("cash_below"):
 		if int(row.get("cash", 0)) >= int(condition["cash_below"]): return false
 	if condition.has("bank_at_least"):

@@ -1,0 +1,54 @@
+{
+  "schema": "player_shop58_scoped_review_v1",
+  "source_commit": "e0958ff4e0e2fb350c24a126883ffd78abd64414",
+  "source_check": {
+    "paths": 59,
+    "LF_normalized_differences": [
+      "scripts/main.gd",
+      "scripts/venues/npc_compact_glazing29.gd"
+    ],
+    "reason": "Expected root three-way merges preserve homes and MAX_HELPERS12. Other donor differences were CRLF only."
+  },
+  "verified_boundaries": [
+    "main keeps home damage binding, _c4_sites inclusion and disposal alongside player shop and throwables.",
+    "Compact superclass adds only throwable radius6.4 in _ready; home8x7 shell is within the broadphase radius. Home building override and bed ownership stay independent.",
+    "NPC Economy pending kind/price/ticket is independent of player wallet. Relocated shop registration publishes actual runtime frame; real entry/payment/exit must still be checked in merged long runs."
+  ],
+  "finding": {
+    "priority": "P2",
+    "path": "scripts/shop/player_shop_host.gd",
+    "lines": [
+      577,
+      619,
+      336
+    ],
+    "description": "No live-cashier validation inside transaction; modal closure is asynchronous _process polling.",
+    "fix_proposal": "../player_shop_guard58/ROOT_HANDOFF.json"
+  },
+  "tests": {
+    "defaults01": {
+      "passed": true,
+      "checks": 24
+    },
+    "ui01": {
+      "passed": true,
+      "checks": 118
+    },
+    "modules01": {
+      "passed": false,
+      "checks": 111,
+      "failures": [
+        "worn vest meets damage first",
+        "vest loses exactly what it took"
+      ],
+      "diagnosis": "Original fixture grant_armor(replacement) clears _worn then immediately calls absorb. Production host._deliver explicitly equips after grant. This failure alone does not prove a production purchase bug; a new calibrated test should explicitly equip before worn damage checks."
+    }
+  },
+  "existing_city_fixture_limits": [
+    "test_shop_city57 calls _open_goods directly from original spawn; does not prove walking through the door or E interaction.",
+    "It fires actual consumed projectiles using _launch with chosen physical start/velocity; camera trajectory is separate, so it does not prove full input windup.",
+    "Useful real transaction, loaded texture, consumable, armor and destruction checks. Must remain scoped functional evidence."
+  ],
+  "ready_adapter": "run_shop58.py accepts explicit manifest path+SHA, uses manifest launch_arguments, full source/control before-after pins, non-engine archive, scheduler lease/owned watchdog and error gates. Cases modules/defaults/ui/city/pose; only first3 executed.",
+  "production_changed": false
+}
