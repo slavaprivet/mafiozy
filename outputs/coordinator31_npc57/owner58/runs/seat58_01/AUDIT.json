@@ -1,0 +1,21 @@
+{
+  "run": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\owner58\\runs\\seat58_01",
+  "stdout_bytes": 549016,
+  "seat_reservations": 39,
+  "seat_reservations_without_hold": 0,
+  "benches_with_duplicate_serial": {},
+  "benches_used": 5,
+  "goals_refused_without_standing_point": 0,
+  "goals_resolved_to_nearby_supported_point": 0,
+  "goals_with_no_supported_point_anywhere": 0,
+  "peer_yield_events": 0,
+  "route_detours": 0,
+  "worst_still_seconds_per_resident": {},
+  "worst_still_row": {},
+  "still_ge_3s_reasons": {},
+  "still_ge_3s_phases": {},
+  "max_planner_queries_per_resident": {},
+  "watch_lines": 0,
+  "watch_samples": 0,
+  "last_sample": null
+}
