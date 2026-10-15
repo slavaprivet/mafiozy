@@ -39,6 +39,12 @@ var _last_queue: Dictionary = {}
 var _emergency_exit29 := false
 var _entry_bounds30 := AABB()
 var _entry_bounds_valid30 := false
+var _exit_door_stage56 := Vector3.ZERO
+var _exit_door_state56 := ""
+var _entry_door_wait56 := false
+var _door_hinge56 := Vector3.ZERO
+var _door_radius56 := 0.0
+var _door_stage_events56: Array = []
 
 static func _flat(a: Vector3, b: Vector3) -> float:
 	return Vector2(a.x - b.x, a.z - b.z).length()
@@ -135,14 +141,66 @@ func _fail(reason: String) -> bool:
 
 func _start_leg() -> bool:
 	if not _drive.begin(_legs[_leg], _body, _map, _id, "service_approach"): return _fail("physical_leg_refused")
+	if _phase == "OUTBOUND" and _exit_door_state56 == "approach" and _leg == 0:
+		if not _drive.set_service_arrival56(.025): return _fail("door_stage_tight_arrival_refused56")
 	_progress_at = Time.get_ticks_msec(); _progress_position = _body.global_position
 	return true
 
 func _door_tick() -> void:
 	var now: int = Time.get_ticks_msec()
-	if now < _next_door or not is_instance_valid(_door_owner) or _flat(_body.global_position, _door) >= 2.4: return
+	if now < _next_door or not is_instance_valid(_door_owner) or _flat(_body.global_position, _door) > 2.45: return
 	_next_door = now + 250
 	if float(_door_owner.get("target")) < 1.0: _door_owner.request_door("public", true, _body.global_position, [])
+
+func _door_open56() -> bool:
+	return is_instance_valid(_door_owner) and _door_owner.has_method("door_fraction") and float(_door_owner.door_fraction("public")) >= .999
+
+func _door_event56(event: String) -> void:
+	_door_stage_events56.append({"event":event,"frame":Engine.get_physics_frames(),"position":_body.global_position,"stage":_exit_door_stage56,"fraction":float(_door_owner.door_fraction("public")) if is_instance_valid(_door_owner) else -1.0})
+	if _door_stage_events56.size() > 24: _door_stage_events56.pop_front()
+
+## Conservative horizontal circle around the actual leaf hinge contains every
+## door pose. Stage outside it plus the current capsule and native sweep margin;
+## do not assume all signed sites have the compact site's 1.6m leaf.
+func _prepare_door_stage56() -> bool:
+	if not is_instance_valid(_door_owner): return _fail("door_stage_owner_missing56")
+	var leaf: Variant = _door_owner.get("leaf")
+	var closed: Variant = _door_owner.get("leaf_closed")
+	var hinge: Variant = _door_owner.get("hinge")
+	if not leaf is Node3D or not closed is Transform3D or not hinge is Vector3: return _fail("door_stage_frame_missing56")
+	var parent: Node3D = leaf.get_parent_node_3d()
+	_door_hinge56 = parent.to_global(hinge); _door_radius56 = 0.0
+	for child: Node in leaf.get_children():
+		if not child is CollisionShape3D or child.disabled: continue
+		if not child.shape is BoxShape3D: return _fail("door_stage_unknown_leaf_shape56")
+		var half: Vector3 = child.shape.size*.5
+		var frame: Transform3D = parent.global_transform*closed*child.transform
+		for x: float in [-half.x,half.x]:
+			for y: float in [-half.y,half.y]:
+				for z: float in [-half.z,half.z]:
+					_door_radius56 = maxf(_door_radius56,_flat(frame*Vector3(x,y,z),_door_hinge56))
+	if _door_radius56 <= 0.0 or not _support.shape.shape is CapsuleShape3D: return _fail("door_stage_capsule_required56")
+	var capsule: float = _support.shape.shape.radius
+	var tangent := Vector3(-_inward.z,0,_inward.x)
+	for depth: float in [2.3,2.2,2.1,2.0]:
+		for side: float in [0.0,.4,-.4,.8,-.8]:
+			var point: Variant = _support.floor_at(_door+_inward*depth+tangent*side,_inner.y)
+			if not point is Vector3 or _flat(point,_door) > 2.4: continue
+			if _flat(point,_door_hinge56) < _door_radius56+capsule+.12: continue
+			if absf(point.y-_inner.y) > .1 or not _entry_bounds30.has_point(point+Vector3.UP*.3) or not _support.standing(point): continue
+			_exit_door_stage56 = point
+			return true
+	return _fail("supported_door_stage_missing56")
+
+func _restart_exit_stage56() -> bool:
+	if not _prepare_door_stage56(): return false
+	_drive.cancel(); _legs.assign([_exit_door_stage56,_inner,_outside]); _leg = 0
+	_exit_door_state56 = "approach"; _phase = "OUTBOUND"
+	_door_event56("physical_stage_begin")
+	return _start_leg()
+
+func _stage_safe56() -> bool:
+	return _flat(_body.global_position,_exit_door_stage56) <= .04 and _flat(_body.global_position,_door) <= 2.45 and _flat(_body.global_position,_door_hinge56) >= _door_radius56+float(_support.shape.shape.radius)+.08 and supported(_body,_support)
 
 func depth_inside() -> float:
 	return (_body.global_position - _door).dot(_inward) if is_instance_valid(_body) else -INF
@@ -180,14 +238,17 @@ func _lease_current() -> bool:
 
 func begin_exit() -> bool:
 	if not is_instance_valid(_body) or _drive == null or not needs_exit(): return false
+	_exit_door_state56 = ""; _entry_door_wait56 = false
 	# Loss of an ordinary claim/controller is NOT a catastrophe permission.
 	if not _lease_current():
 		if not _emergency_allowed29(): return false
 		_emergency_exit29 = true
 		_drive.cancel(); _legs = [_outside]; _leg = 0; _phase = "OUTBOUND"
 		return _start_leg()
-	_drive.cancel(); _legs.clear()
-	if depth_inside() > .55: _legs.append(_inner)
+	_drive.cancel(); _legs.clear(); _exit_door_state56 = ""; _entry_door_wait56 = false
+	if depth_inside() > .55:
+		if not _prepare_door_stage56(): return false
+		_legs.append(_exit_door_stage56); _legs.append(_inner); _exit_door_state56 = "approach"
 	_legs.append(_outside); _leg = 0; _phase = "OUTBOUND"
 	if not _registry.ledger.portal_request(_key, _venue):
 		_phase = "PORTAL_WAIT_OUT"; _waiting_move = false; _next_poll = Time.get_ticks_msec() + POLL_MS
@@ -238,6 +299,25 @@ func step(delta: float) -> String:
 		_next_touch = now + 1000; _registry.ledger.touch(_key, now, _entered)
 	_door_tick()
 	if depth_inside() > .55: _entered = true
+	# The ordinary lease/portal remains held while gravity settles the same body.
+	# Request intent is insufficient: only the real fully-open leaf admits a cross.
+	if _phase == "OUTBOUND" and _exit_door_state56 == "opening":
+		_drive.hold(delta)
+		if not _stage_safe56(): return "walking" if _restart_exit_stage56() else "blocked"
+		if not _door_open56() or not _support.standing(_inner): return "walking"
+		_exit_door_state56 = "crossing"; _leg += 1; _door_event56("fully_open_crossing")
+		return "walking" if _start_leg() else "blocked"
+	if _phase == "OUTBOUND" and _exit_door_state56 == "crossing" and depth_inside() > .0 and not _door_open56():
+		# A real closure after an attention interruption must physically retreat.
+		_door_event56("closure_physical_backoff")
+		return "walking" if _restart_exit_stage56() else "blocked"
+	if _phase == "INBOUND" and _entry_door_wait56:
+		_drive.hold(delta)
+		if not needs_exit() and now-_progress_at > APPROACH_STALL_MS:
+			_registry.reject_path(_key,_venue,now,self); _reason = "exterior_approach_no_progress"; return "blocked"
+		if not _door_open56() or not _support.standing(_inner): return "walking"
+		_entry_door_wait56 = false; _leg += 1; _door_event56("fully_open_entry")
+		return "walking" if _start_leg() else "blocked"
 	var result: String = _drive.step(delta)
 	if _flat(_body.global_position, _progress_position) > .1:
 		_progress_at = now; _progress_position = _body.global_position
@@ -250,6 +330,13 @@ func step(delta: float) -> String:
 		if not needs_exit(): _registry.reject_path(_key, _venue, now, self)
 		return "blocked"
 	if result != "arrived": return "walking"
+	if _phase == "OUTBOUND" and _exit_door_state56 == "approach" and _leg == 0:
+		if not _stage_safe56(): return "walking" if _restart_exit_stage56() else "blocked"
+		_exit_door_state56 = "opening"; _door_event56("safe_stage_arrived")
+		return "walking"
+	if _phase == "INBOUND" and _leg == 1 and not _entered:
+		_entry_door_wait56 = true
+		return "walking"
 	if _phase == "INBOUND" and _leg == 0 and not _entered:
 		_leg += 1
 		if not _registry.ledger.portal_request(_key, _venue):
@@ -279,6 +366,7 @@ func step(delta: float) -> String:
 
 func attention_pause29() -> bool:
 	if not is_instance_valid(_body) or _drive == null or _phase in ["CANCELLED", "OUTSIDE", "IDLE"]: return false
+	if _entry_door_wait56 or _exit_door_state56 == "opening": return true
 	if _phase == "INSIDE" or (_phase in ["WAITING", "PORTAL_WAIT_IN", "PORTAL_WAIT_OUT"] and not _waiting_move): return true
 	return _drive.attention_pause29()
 
@@ -293,6 +381,7 @@ func attention_hold29(delta: float) -> void:
 func attention_resume29() -> bool:
 	_progress_at = Time.get_ticks_msec(); _progress_position = _body.global_position
 	_next_poll = 0
+	if _entry_door_wait56 or _exit_door_state56 == "opening": return true
 	return _drive.attention_resume29() if _drive != null else false
 
 func stand(delta: float) -> void:

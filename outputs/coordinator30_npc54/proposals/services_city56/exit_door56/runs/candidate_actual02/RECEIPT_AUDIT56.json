@@ -1,0 +1,86 @@
+{
+  "schema": "mafiozi.native-receipt-audit56/v1",
+  "validation_type": "recorded_native_evidence_reanalysis_not_a_new_run",
+  "original_report_sha256": "2b10b2e59225f47b2c34c93746ce3f9fd211746672d222f8c3ac28318d4b54ef",
+  "original_run_sha256": "e99e42ae4e6b58d54bab38c3fb756c5fd7bb6b7158e6af7da3baf4e0cc081fa8",
+  "original_files_unchanged": true,
+  "original_native_exit_code": 1,
+  "original_native_passed": false,
+  "original_native_reason": "complete",
+  "original_native_failures": [
+    "hospital_60_to_12_to_60",
+    "shot_terminal_health_chain"
+  ],
+  "obsolete_native_predicates_only": true,
+  "native_behavior_conditions": {
+    "bounded_batch_of_ten": true,
+    "four_distinct_original_ids": true,
+    "all_requested_originals_and_12_staff": true,
+    "continuous_full_composition": true,
+    "three_explicit_setup_changes": true,
+    "no_fake_service_or_movement": true,
+    "two_native_tt_shots": true,
+    "two_owned_native_tt_terminals": true,
+    "city_continues_moving": true,
+    "no_false_perf_or_render_claim": true,
+    "hospital_physical_service_and_staff": true,
+    "hospital_actual_entry_outbound_exit": true,
+    "hospital_account_conserved_at_exit": true,
+    "hospital_no_discontinuous_motion": true,
+    "hospital_60_actual_damage_60": true,
+    "hospital_authenticated_chain": true,
+    "hospital_real_treatment": true,
+    "restaurant_physical_service_and_staff": true,
+    "restaurant_actual_entry_outbound_exit": true,
+    "restaurant_account_conserved_at_exit": true,
+    "restaurant_no_discontinuous_motion": true,
+    "restaurant_real_authoritative_receipt": true,
+    "restaurant_cash_debit_and_energy": true,
+    "bank_physical_service_and_staff": true,
+    "bank_actual_entry_outbound_exit": true,
+    "bank_account_conserved_at_exit": true,
+    "bank_no_discontinuous_motion": true,
+    "bank_real_authoritative_receipt": true,
+    "bank_actual_existing_grant_policy": true,
+    "shop_physical_service_and_staff": true,
+    "shop_actual_entry_outbound_exit": true,
+    "shop_account_conserved_at_exit": true,
+    "shop_no_discontinuous_motion": true,
+    "shop_real_authoritative_receipt": true,
+    "shop_cash_debit_and_energy": true,
+    "unique_transaction_events": true
+  },
+  "native_conditions_passed": 36,
+  "native_conditions_total": 36,
+  "negative_evaluator_checks": [
+    {
+      "marked_synthetic_negative": true,
+      "case": "damage_outside_actual_TT_profile",
+      "rejected": true
+    },
+    {
+      "marked_synthetic_negative": true,
+      "case": "HP_does_not_equal_receipt_damage",
+      "rejected": true
+    },
+    {
+      "marked_synthetic_negative": true,
+      "case": "treatment_wrong_HP_before",
+      "rejected": true
+    },
+    {
+      "marked_synthetic_negative": true,
+      "case": "native_terminal_not_owned",
+      "rejected": true
+    },
+    {
+      "marked_synthetic_negative": true,
+      "case": "shop_without_real_exit",
+      "rejected": true
+    }
+  ],
+  "corrected_acceptance_passed": true,
+  "performance_accepted": false,
+  "merged_shared_accepted": false,
+  "diagnosis": "TT critical modifier1.25 is ordinary source policy;24 or30 actual receipt damages must match every HP delta. Native branch assumed24 exactly. No production source or recorded receipt was altered."
+}

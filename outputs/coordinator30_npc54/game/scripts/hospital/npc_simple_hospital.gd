@@ -15,6 +15,7 @@ const SERVICE_LOCAL_WAIT_MS30 := 15000.0
 const SERVICE_MOTION_MS30 := 4000.0
 const SERVICE_PROGRESS_M30 := .25
 static var _flag := -1
+var _arrival_m56 := ARRIVE_M
 var _id := ""
 var _target := Vector3.ZERO
 var _target_source := ""
@@ -25,6 +26,12 @@ var _roam_watch29_state: Dictionary = {}
 var _service_watch30: Dictionary = {}
 var _service_anchor30 := Vector3.ZERO
 var _service_last_us30 := 0
+# Attempted movement must get closer to its current waypoint. Sideways loops
+# around a changed door must not reset progress merely by travelling .25m.
+var _service_ready_frame56 := -1
+var _service_way56 := -1
+var _service_best_distance56 := INF
+var _service_way_idle_s56 := 0.0
 var _body: CharacterBody3D
 var _avoidance29: RefCounted
 var _avoidance29_state: Dictionary = {}
@@ -202,6 +209,7 @@ func begin(goal: Vector3, body: CharacterBody3D, map: RID, id: String, source: S
 	_active=false;_attention_paused29=false;_attention_ready29=false
 	if _guide!=null:_guide.cancel()
 	_body=body;_id=id;_target=goal;_target_source=source;_guide_map=map
+	_arrival_m56=ARRIVE_M
 	_roam_watch29=null;_roam_service29_us=0;_roam_watch29_state.clear()
 	_service_watch30.clear();_service_last_us30=0;_service_anchor30=body.global_position
 	if source=="service_approach":
@@ -242,6 +250,13 @@ func begin(goal: Vector3, body: CharacterBody3D, map: RID, id: String, source: S
 	_active=true
 	if not _begin_guided_leg():return _refuse("guide:"+_guide.reason)
 	_emit("begin")
+	return true
+
+## A door staging leg needs an actual supported stop inside its request radius.
+## The ordinary .30m completion tolerance remains the default for every other leg.
+func set_service_arrival56(distance: float) -> bool:
+	if _target_source != "service_approach" or not is_finite(distance) or distance < .025 or distance > ARRIVE_M: return false
+	_arrival_m56 = distance
 	return true
 
 ## The guide is topology only. Each checkpoint still needs the unchanged live
@@ -423,6 +438,18 @@ func _service_observe30(before: Vector3, delta: float) -> String:
 	_service_watch30.blocked=not why.is_empty();_service_watch30.reason=why
 	return why
 
+# Called only on an attempted service movement, after peer/FIFO waits. This is
+# a local replan request, never arrival, service completion or a collision bypass.
+func _service_waypoint_stalled56(ready_frame: int, way: int, remaining: float, delta: float) -> bool:
+	if ready_frame != _service_ready_frame56 or way != _service_way56:
+		_service_ready_frame56 = ready_frame; _service_way56 = way
+		_service_best_distance56 = remaining; _service_way_idle_s56 = 0.0
+	elif remaining < _service_best_distance56 - .10:
+		_service_best_distance56 = remaining; _service_way_idle_s56 = 0.0
+	else:
+		_service_way_idle_s56 += delta
+	return _service_way_idle_s56 >= 3.0
+
 func _finish_step(before: Vector3, delta: float, result: String, idle: bool = true) -> String:
 	if idle:_route.hold(delta)
 	if _active and result=="walking" and _target_source=="roam" and _roam_watch29!=null:
@@ -508,7 +535,7 @@ func step(delta: float) -> String:
 	var waypoint: Vector3=points[_way]
 	var current: Vector3=_body.global_position
 	var remaining: float=_flat(current,waypoint)
-	if _way==points.size()-1 and remaining<ARRIVE_M and _body.is_on_floor() and absf(current.y-waypoint.y)<.12 and _route.edge_clear(current,waypoint):
+	if _way==points.size()-1 and remaining<_arrival_m56 and _body.is_on_floor() and absf(current.y-waypoint.y)<.12 and _route.edge_clear(current,waypoint):
 		# A local route completion is only a guide checkpoint. It cannot complete
 		# treatment/meal approach until every checkpoint and outer door leg is done.
 		var guide_result: String=_guide.advance(current)
@@ -541,6 +568,9 @@ func step(delta: float) -> String:
 			return _finish_step(before,delta,"walking")
 		direction=_avoidance29_state.direction
 		distance=minf(SPEED_MPS*float(_avoidance29_state.ratio)*delta,remaining)
+	if _target_source == "service_approach" and _service_waypoint_stalled56(int(_route._ready_frame), _way, remaining, delta):
+		_roam_step29_phase = "planning"; _restart("service_waypoint_no_progress56")
+		return _finish_step(before, delta, "walking")
 	# Revalidate current local edge; changed furniture/rubble cannot be traversed from a stale plan.
 	var ahead: Vector3=current+direction*minf(.4,remaining)
 	var floor: Variant=_route.floor_at(ahead,current.y)

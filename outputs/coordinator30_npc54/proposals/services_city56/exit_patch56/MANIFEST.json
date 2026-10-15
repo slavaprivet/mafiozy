@@ -1,0 +1,24 @@
+{
+  "schema": "mafiozi.exit56/v1",
+  "scoped_hunks": 3,
+  "reverse_exact": true,
+  "native_component_pass": true,
+  "city_acceptance": false,
+  "pins": {
+    "apply.py": "95a1ff79291e3d098745151dd63424de84a3db0a19b78dfa6c4d534ab0debd61",
+    "BASE.gd": "22304aa6949767c7fa3daf53534aae3dbc28aa67abb9e1cf4b84f677a899fd9b",
+    "change.diff": "b6298b5ef71ebd94b98485da6b44222520a43fa2fae2507d85173c522231bb15",
+    "COMPONENT.json": "3d5d4a8567f07c57226e0f0d315fa386daef6ef70a2fe0218f04a66d0814780f",
+    "component.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "component.stdout": "e41654113287496b0565974f6a61a23b7ee47222fbc1f7b8c353842fbfb1ff8f",
+    "EXIT_LOOP_EVIDENCE.json": "167c92885a5f3ad06a59701429f1bddde201e510e0ffab9f0442de712452ee09",
+    "fixture.gd": "7f347ac7f13ac1c0eae0d00c969675980bc8291673ae1ba9e32bddf53331699d",
+    "HANDOFF_EXIT56.md": "7d8c3becc389197da1b53c7c029ab501832e3fcd3dd7f16131a177dba1815040",
+    "npc_simple_hospital.gd": "ee46467d27baeb9b3e58f55b191f3f92211544734b4ebfb369eb329168b35f89",
+    "PATCH.json": "05e28f02d5c7e013328a8478861bd96e69838ab4002a7bb797d8b8485e7c4d10",
+    "registration_race_COMPONENT.json": "3d5d4a8567f07c57226e0f0d315fa386daef6ef70a2fe0218f04a66d0814780f",
+    "registration_race_component.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "registration_race_component.stdout": "e41654113287496b0565974f6a61a23b7ee47222fbc1f7b8c353842fbfb1ff8f",
+    "run_component.py": "c63d096adb7291592f2bcb20ff59b700d6220d8095bb1de76186984361717d73"
+  }
+}

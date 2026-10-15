@@ -1,0 +1,12 @@
+{
+  "freeze_batch56.py": {
+    "target": "outputs/coordinator30_npc54/proposals/batches56/freeze_batch56.py",
+    "base_sha256": "f2fcc7be50d59da1dfb2ac4af3a7d31ed449212b5e2b385012d52c0575b674f1",
+    "proposed_sha256": "7eca267436a5a3cf05119944f271248dbbf265fa90ce957cfc2a2f62fedd31d6"
+  },
+  "run_ordinary_batch56.py": {
+    "target": "outputs/coordinator30_npc54/proposals/batches56/run_ordinary_batch56.py",
+    "base_sha256": "993e3a0eec0d8224d4dd4f13b407db3034271adbf63a1b783491994ff92a8a71",
+    "proposed_sha256": "587e1f7587dc0494220c8ff347f28d3fbe41022b93dcf7dfe5f91eab46448d5f"
+  }
+}

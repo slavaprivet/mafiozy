@@ -1,0 +1,3 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+EXIT56_COMPONENT {"checks":{"called_after_peer_wait_return":true,"new_waypoint_resets":true,"no_wall_clock_penalty_during_wait":true,"normal_20s_physical_speed_progress_does_not_replan":true,"only_existing_local_replan_no_finish_bypass":true,"ready_route_revision_resets":true,"recorded_sideways_loop_replans_under_4s":true,"watcher_not_used_by_roam":true},"full_city_acceptance":false,"loop_trigger_frame":181,"native_component_only":true,"passed":true}

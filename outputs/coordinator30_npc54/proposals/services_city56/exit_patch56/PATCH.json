@@ -1,0 +1,19 @@
+{
+  "path": "scripts/hospital/npc_simple_hospital.gd",
+  "base_sha256": "22304aa6949767c7fa3daf53534aae3dbc28aa67abb9e1cf4b84f677a899fd9b",
+  "candidate_sha256": "ee46467d27baeb9b3e58f55b191f3f92211544734b4ebfb369eb329168b35f89",
+  "hunks": [
+    {
+      "before": "var _service_last_us30 := 0\n",
+      "after": "var _service_last_us30 := 0\n# Attempted movement must get closer to its current waypoint. Sideways loops\n# around a changed door must not reset progress merely by travelling .25m.\nvar _service_ready_frame56 := -1\nvar _service_way56 := -1\nvar _service_best_distance56 := INF\nvar _service_way_idle_s56 := 0.0\n"
+    },
+    {
+      "before": "func _finish_step(before: Vector3, delta: float, result: String, idle: bool = true) -> String:\n",
+      "after": "# Called only on an attempted service movement, after peer/FIFO waits. This is\n# a local replan request, never arrival, service completion or a collision bypass.\nfunc _service_waypoint_stalled56(ready_frame: int, way: int, remaining: float, delta: float) -> bool:\n\tif ready_frame != _service_ready_frame56 or way != _service_way56:\n\t\t_service_ready_frame56 = ready_frame; _service_way56 = way\n\t\t_service_best_distance56 = remaining; _service_way_idle_s56 = 0.0\n\telif remaining < _service_best_distance56 - .10:\n\t\t_service_best_distance56 = remaining; _service_way_idle_s56 = 0.0\n\telse:\n\t\t_service_way_idle_s56 += delta\n\treturn _service_way_idle_s56 >= 3.0\n\nfunc _finish_step(before: Vector3, delta: float, result: String, idle: bool = true) -> String:\n"
+    },
+    {
+      "before": "\t# Revalidate current local edge; changed furniture/rubble cannot be traversed from a stale plan.\n",
+      "after": "\tif _target_source == \"service_approach\" and _service_waypoint_stalled56(int(_route._ready_frame), _way, remaining, delta):\n\t\t_roam_step29_phase = \"planning\"; _restart(\"service_waypoint_no_progress56\")\n\t\treturn _finish_step(before, delta, \"walking\")\n\t# Revalidate current local edge; changed furniture/rubble cannot be traversed from a stale plan.\n"
+    }
+  ]
+}

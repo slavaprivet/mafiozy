@@ -1,0 +1,24 @@
+{
+  "ordinary_ready": true,
+  "revision": "s01-20261015-residents56",
+  "resident_count": 10,
+  "staff_count": 12,
+  "window_pid_at_delivery": 18748,
+  "assembly_sha256": "a16147bfcc8857bce47bad9a2ac44f7d5008ac3214c1a34a9bd291c55c28930a",
+  "ordinary_run": "outputs\\current_game\\interactive\\20261015T114641572Z",
+  "recorded_at": "2026-10-15T11:52:18.069653+00:00",
+  "mean_fps": 142.14171095290874,
+  "p95_ms": 13.498,
+  "measurement_seconds": 90,
+  "render_size": [
+    1280,
+    720
+  ],
+  "all_ten_moved": true,
+  "services_pass": true,
+  "threat_pass": true,
+  "next_batch": 20,
+  "full_city_performance_accepted": false,
+  "building_policy": "Current ordinary buildings temporarily allowed for testing; future permanent buildings only destructible like Palazzo",
+  "publication": "Scoped main commit and push follows this delivery record; final SHA in checkpoint_release56/RESULT.json"
+}

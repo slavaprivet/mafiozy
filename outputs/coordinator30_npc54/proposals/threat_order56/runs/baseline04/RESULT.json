@@ -1,0 +1,26 @@
+{
+	"baseline_bug_reproduction": true,
+	"checks": {
+		"cleanup": true,
+		"distinct_same_tick_hit_reproduced_or_fixed": true,
+		"exact_replay_rejected": true,
+		"first_observation_accepted": true,
+		"fresh_visibility_same_id_extends": true,
+		"hidden_weapon_does_not_renew": true,
+		"later_hit_accepted": true,
+		"lower_priority_downgrade_reproduced_or_fixed": true,
+		"medical_priority_unchanged": true,
+		"near_hit_replay_near_keeps_phone": true,
+		"new_threat_extends_quiet": true,
+		"quiet_releases_at_15": true,
+		"quiet_remains_active_before_15": true,
+		"same_tick_hit_priority_reproduced_or_fixed": true,
+		"same_tick_lower_priority_replay_rejected": true,
+		"stale_generation_rejected": true,
+		"stale_time_does_not_extend": true,
+		"world_configured": true
+	},
+	"passed": true,
+	"performance_accepted": false,
+	"scope": "actual World deliver/authentic + Life acceptance ordering with controlled observation/health ports; real weapon proof is separate actual10 city test"
+}

@@ -1,0 +1,148 @@
+{
+  "resident_count": 10,
+  "staff_count": 12,
+  "native_pass": true,
+  "exclusive_clean": true,
+  "seconds": 90.0,
+  "mean_fps": 142.14171095290874,
+  "frame_ms": {
+    "p50": 4.146,
+    "p95": 13.498,
+    "p99": 14.347
+  },
+  "moved_residents": 10,
+  "completions": {
+    "bank": 0,
+    "drive": 0,
+    "hospital": 0,
+    "restaurant": 0,
+    "shop": 3,
+    "walk": 43
+  },
+  "camera": {
+    "basis": [
+      [
+        -4.37113882867379e-08,
+        0.0,
+        1.0
+      ],
+      [
+        0.119712203741074,
+        0.992808640003204,
+        5.23278664843474e-09
+      ],
+      [
+        -0.992808640003204,
+        0.119712203741074,
+        -4.33970441804377e-08
+      ]
+    ],
+    "far": 1600.0,
+    "fov": 45.0,
+    "near": 0.0799999982118607,
+    "position": [
+      37.1172485351563,
+      2.34298133850098,
+      0.999999463558197
+    ],
+    "projection": 0,
+    "render_size": [
+      1280,
+      720
+    ],
+    "rotation": [
+      -0.119999997317791,
+      -1.57079637050629,
+      0.0
+    ],
+    "viewport": [
+      1280.0,
+      720.0
+    ]
+  },
+  "memory_trends": {
+    "rss_bytes": {
+      "first_sample": 2327396352.0,
+      "last_sample": 2327367680.0,
+      "first_window_mean": 2327368326.736842,
+      "last_window_mean": 2327368326.736842,
+      "window_samples": 19,
+      "delta": 0.0,
+      "slope_per_minute": -3193.2039426184024,
+      "min": 2327330816.0,
+      "max": 2327404544.0
+    },
+    "private_bytes": {
+      "first_sample": 3047845888.0,
+      "last_sample": 3043921920.0,
+      "first_window_mean": 3047768064.0,
+      "last_window_mean": 3046904885.894737,
+      "window_samples": 19,
+      "delta": -863178.1052632332,
+      "slope_per_minute": -1032018.2693188454,
+      "min": 3043921920.0,
+      "max": 3047845888.0
+    }
+  },
+  "object_trends": {
+    "objects": {
+      "first_sample": 100432.0,
+      "last_sample": 100717.0,
+      "first_window_mean": 100503.0,
+      "last_window_mean": 100703.9,
+      "window_samples": 30,
+      "delta": 200.89999999999418,
+      "slope_per_minute": 203.0114400913879,
+      "min": 100432.0,
+      "max": 100800.0
+    },
+    "nodes": {
+      "first_sample": 48746.0,
+      "last_sample": 48746.0,
+      "first_window_mean": 48748.566666666666,
+      "last_window_mean": 48746.53333333333,
+      "window_samples": 30,
+      "delta": -2.0333333333328483,
+      "slope_per_minute": -1.5220768977928072,
+      "min": 48746.0,
+      "max": 48752.0
+    },
+    "resources": {
+      "first_sample": 4201.0,
+      "last_sample": 4201.0,
+      "first_window_mean": 4201.0,
+      "last_window_mean": 4201.0,
+      "window_samples": 30,
+      "delta": 0.0,
+      "slope_per_minute": 0.0,
+      "min": 4201.0,
+      "max": 4201.0
+    },
+    "orphans": {
+      "first_sample": 0.0,
+      "last_sample": 0.0,
+      "first_window_mean": 0.0,
+      "last_window_mean": 0.0,
+      "window_samples": 30,
+      "delta": 0.0,
+      "slope_per_minute": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "static_memory": {
+      "first_sample": 719578867.0,
+      "last_sample": 721505984.0,
+      "first_window_mean": 719781973.2666667,
+      "last_window_mean": 721477173.2,
+      "window_samples": 30,
+      "delta": 1695199.933333397,
+      "slope_per_minute": 1581051.761682256,
+      "min": 719578867.0,
+      "max": 721969428.0
+    }
+  },
+  "finite_window_only": true,
+  "full_city_accepted": false,
+  "services_and_reactions_separate": true,
+  "performance_gate": true
+}

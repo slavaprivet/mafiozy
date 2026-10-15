@@ -1,0 +1,32 @@
+{
+  "schema": "services56.prepared/v1",
+  "status": "PREPARED_NOT_NATIVE_TESTED",
+  "native_launched": false,
+  "shared_or_frozen_modified": false,
+  "harness_pins": {
+    "accept_services56.py": "2ded6d6beb2843e3d1c346af7df692645168aadfc28f356e3d63b600ed50e0a2",
+    "CADENCE_REVIEW56.md": "b81e6d79a5390990daebbeeb5fa9350a0888f4fe9f00e6ccadc106755e215b30",
+    "check_harness56.py": "ebd0a3448bad716615338573a2c04004bd7722e70e4843f2e9c2e9066d9b6877",
+    "CPU_CHECK.json": "0863df870c255dfed19c1c8936c89f620671084e45a37bb1adcf3bacb7bae48b",
+    "entry_services56.gd": "c43c71419ffc469cd16d1b53129728bd1bff93f673afea7f4186d039a2e5d1dc",
+    "HANDOFF_SERVICES56.md": "f1c20e63931aa6b478a5f0f8ecc1a74be6ea6768e532569dfb652c4f6216c440",
+    "observer_counts56.gd": "bb11b65f3745035dab811019d352bd4280aede7a006dd191824533651f9ba8b7",
+    "observer_services56.gd": "e165e3e8565c2cf62ab4a16845cd3dd4228a4d01d49d997a1be2a92025509648",
+    "prepare_record56.py": "eecf491d2f0cafa00f9738878a91ea1e2e404e149405582cf129bad0112e7188",
+    "run_services56.py": "9ecbe772bfd3e0ed95bdca72e05ca985abacb132b38713a1586f1b450b019e8a"
+  },
+  "references": {
+    "outputs/coordinator30_npc54/proposals/injury30/observer_injury30.gd": "d0be759128d5203ee9f87ccc3c676f25962fa8202797acfdc313abab42056a82",
+    "outputs/coordinator30_npc54/proposals/injury30/observer_death28.gd": "319dcb1006b7151a3413876f676ebbf28c65e2a480d74c69ae1da119e4ec8d67",
+    "outputs/coordinator30_npc54/proposals/final_qa30/staff_cycle_final30.gd": "3065ab105522e532af3962c03e4ab12a5e3ccdc62fe79f018e1bf942c70bb744",
+    "outputs/coordinator30_npc54/proposals/final_qa30/run_final30b.py": "4495287e9ae734787f06fa968f2f53f8976f4cf222440e9567e1768c88b99d95",
+    "outputs/coordinator30_npc54/proposals/stalls56/observer_counts56.gd": "bb11b65f3745035dab811019d352bd4280aede7a006dd191824533651f9ba8b7",
+    "docs/godot/TEST_SCHEDULER.md": "5b3e8c11d9f795760732bd24537407d9106ce0f9bf1f0f637a9f17b15c2c4855"
+  },
+  "cpu_checks": 30,
+  "independent_acceptance_predicates": 37,
+  "remaining": [
+    "Coordinated native parse/actual full-city run after root perf",
+    "Review failure evidence or accept first four actual services"
+  ]
+}

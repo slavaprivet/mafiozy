@@ -1,0 +1,10 @@
+{
+  "outputs/coordinator30_npc54/proposals/batches56/run_ordinary_batch56.py": "587e1f7587dc0494220c8ff347f28d3fbe41022b93dcf7dfe5f91eab46448d5f",
+  "outputs/coordinator30_npc54/proposals/batches56/entry_batch56.gd": "e9cc4be39bc2cb891f9ffc708afcde23bc74a61ac10e3c576a5d14c57f6ac211",
+  "outputs/coordinator30_npc54/proposals/mass30/observer_mass30.gd": "cc5873e94e2a95917a2b27503f9b675f00714895bae0180afc2646b1b22533b9",
+  "outputs/coordinator30_npc54/proposals/perf30/observer_perf30.gd": "a09828d40003befd3bc1e03cc7f567ac5ff3f7c4f008fb5bfc661bbba6f0e005",
+  "outputs/coordinator30_npc54/proposals/perf30/perf_pair30.py": "76b569e4201bec2d85fcd53f538d7ae0244bd07914baba8d3a53b75607fd5652",
+  "tools/godot/test_scheduler.py": "adcb834390e476edd118f62d8e3e5b391c6ebc97925391e66beeb80430ba8373",
+  "docs/godot/ENGINE_LOCK.json": "9ba68019898613d923476e3db4f184bf6372558e2f3fecb07207a8f9d125246a",
+  "outputs/coordinator30_release55/ASSEMBLY.json": "bdca155eab7c50689ca52c13aa83dcad3adc0b593286710887ee950938b2ca2a"
+}
