@@ -1,0 +1,142 @@
+{
+  "scope": "Small QA script adapters only; no game copies, source writes, imports or changes to historical harness",
+  "max_seconds": 1200,
+  "max_output_bytes": 104857600,
+  "expected_normal_output_bytes": 23068672,
+  "estimated_all_actors_slow_output_bytes": 68157440,
+  "changes": [
+    {
+      "source": "outputs/coordinator30_npc54/proposals/perf30/observer_perf30.gd",
+      "source_sha256": "a09828d40003befd3bc1e03cc7f567ac5ff3f7c4f008fb5bfc661bbba6f0e005",
+      "target": "outputs/coordinator31_npc57/proposals/qa31_extended/observer_perf_extended.gd",
+      "target_sha256": "3d429ae546239e67b26c9b45816fc1dd2a42092446605ae08ce7025c0d081d24",
+      "replacements": [
+        [
+          "_measure_s>600",
+          "_measure_s>1200"
+        ]
+      ]
+    },
+    {
+      "source": "outputs/coordinator30_npc54/proposals/mass30/observer_mass30.gd",
+      "source_sha256": "cc5873e94e2a95917a2b27503f9b675f00714895bae0180afc2646b1b22533b9",
+      "target": "outputs/coordinator31_npc57/proposals/qa31_extended/observer_mass_extended.gd",
+      "target_sha256": "9c88b4fd65649029234aa81b80867a7eb6e1e0f1946464d16bf83b874aa0c97e",
+      "replacements": [
+        [
+          "extends \"../perf30/observer_perf30.gd\"",
+          "extends \"observer_perf_extended.gd\""
+        ],
+        [
+          "\"measurement_seconds\":_measure_s,",
+          "\"measurement_seconds\":_measure_s,\"actual_measurement_elapsed_s\":float(Time.get_ticks_msec()-_sample_start_ms)/1000.0,"
+        ]
+      ]
+    },
+    {
+      "source": "outputs/coordinator31_npc57/proposals/qa31_resume/observer_soak31_v2.gd",
+      "source_sha256": "54bbb0544f137d27b7e847eee800120a7f2c592cd7c5a6f14c99aadacf69f999",
+      "target": "outputs/coordinator31_npc57/proposals/qa31_extended/observer_soak31_v2.gd",
+      "target_sha256": "601e328660d94cb61141349d1db528bf016e7b11dfa0ed154e1cedf1065e75b8",
+      "replacements": [
+        [
+          "extends \"../../../coordinator30_npc54/proposals/mass30/observer_mass30.gd\"",
+          "extends \"observer_mass_extended.gd\""
+        ],
+        [
+          "_intervals31.size() >= 512",
+          "_intervals31.size() >= 4096"
+        ],
+        [
+          "\"interval_capacity\":512",
+          "\"interval_capacity\":4096"
+        ]
+      ]
+    },
+    {
+      "source": "outputs/coordinator31_npc57/proposals/qa31_resume/observer_soak31_v3.gd",
+      "source_sha256": "ff396294ed6f9eef8d2e08f9dbf89fdf2a3725a08e3c293adb8781a63ef84ab8",
+      "target": "outputs/coordinator31_npc57/proposals/qa31_extended/observer_soak31_v3.gd",
+      "target_sha256": "a998263e9ce60156e25f40b1977dedc73847387b2806470c4a4f9d0169e91da4",
+      "replacements": []
+    },
+    {
+      "source": "outputs/coordinator31_npc57/proposals/qa31_resume/entry_soak31_v3.gd",
+      "source_sha256": "27f4b5c50c3067cd36c488a82aab5dc3aaf7e46a80ff05ce84ce059e06ae6f32",
+      "target": "outputs/coordinator31_npc57/proposals/qa31_extended/entry_soak31_extended.gd",
+      "target_sha256": "cf9bd35da2790c2bd38ee407756787e9bd5adc6b2474891a756cf0e61eb7e4aa",
+      "replacements": []
+    },
+    {
+      "source": "outputs/coordinator31_npc57/proposals/qa31_resume/archive_harness31.py",
+      "source_sha256": "88a783544f794a62c9b2c52b7bb3d6d18bd3b191807c18a30ac600a2e7a1be77",
+      "target": "outputs/coordinator31_npc57/proposals/qa31_extended/archive_harness31.py",
+      "target_sha256": "37581aeb525ec65a42fddfd2f33f90a169c62f33b36c70d9a5f879166b87dbdc",
+      "replacements": []
+    },
+    {
+      "source": "outputs/coordinator31_npc57/proposals/qa31_resume/run_soak31_v3.py",
+      "source_sha256": "e31e84c5c3b503d0b477cf1d46c682aca92fc24dd77c4682e86c5ec9c7f424e0",
+      "target": "outputs/coordinator31_npc57/proposals/qa31_extended/run_extended31.py",
+      "target_sha256": "045732100c82343f5d1e3ca5be1f4f35a65a5caada8c9fe89a5583860c15866c",
+      "replacements": [
+        [
+          "import os\n",
+          "import os\nimport shutil\n"
+        ],
+        [
+          "GAME = OUT.parent.parent / 'game'",
+          "GAME = ROOT / 'outputs/coordinator31_release57/game'"
+        ],
+        [
+          "default=180",
+          "default=1200"
+        ],
+        [
+          "default=15)",
+          "default=30)"
+        ],
+        [
+          "choices=['headless', 'graphical', 'perf']",
+          "choices=['headless']"
+        ],
+        [
+          "args.seconds <= 600",
+          "args.seconds <= 1200"
+        ],
+        [
+          "'outputs/coordinator30_release56/ASSEMBLY.json'",
+          "'outputs/coordinator31_release57/ASSEMBLY.json'"
+        ],
+        [
+          "OUT / 'entry_soak31_v3.gd'",
+          "OUT / 'entry_soak31_extended.gd'"
+        ],
+        [
+          "previous / 'mass30/observer_mass30.gd', previous / 'perf30/observer_perf30.gd'",
+          "OUT / 'observer_mass_extended.gd', OUT / 'observer_perf_extended.gd'"
+        ],
+        [
+          "need((game / 'project.godot').is_file(), 'Project missing')",
+          "need((game / 'project.godot').is_file(), 'Project missing')\n    need(game == GAME.resolve(), 'Extended QA is pinned to release57')\n    need(not args.extra and args.resolution is None and args.fixed_camera_from is None, 'No extra behavior or presentation overrides')\n    need(args.max_motion_idle == 10.0 and args.max_queue_idle == 30.0, 'Preserve exact10/30s liveness gates')\n    need(shutil.disk_usage(ROOT).free >= 256 * 1024**2, 'Less than256MiB free before launch')"
+        ],
+        [
+          "before = pins(game)\n            save",
+          "before = pins(game)\n            need(before == read(assembly_path)['source_pins'], 'Exact release57 ASSEMBLY source mismatch')\n            record['release_source_matches_assembly'] = True\n            save"
+        ],
+        [
+          "if time.monotonic() >= next_sample:\n",
+          "if time.monotonic() >= next_sample:\n                                output_bytes = sum(p.stat().st_size for p in run.iterdir() if p.is_file())\n                                need(output_bytes <= 100 * 1024**2, 'Owned output exceeds100MiB cap')\n                                need(shutil.disk_usage(ROOT).free >= 128 * 1024**2, 'Disk reserve below128MiB')\n"
+        ],
+        [
+          "record['mean_fps'] = 1000 / statistics.mean(frames)",
+          "record['headless_frame_frequency_descriptive_only'] = 1000 / statistics.mean(frames)\n            record['physical_ticks_observed'] = sum(soak['physics_steps_per_render'])\n            record['actual_measurement_elapsed_s'] = native['actual_measurement_elapsed_s']\n            record['physical_ticks_per_wall_second'] = record['physical_ticks_observed'] / record['actual_measurement_elapsed_s']\n            record['functional_only_not_fps_acceptance'] = True"
+        ],
+        [
+          "save(run / 'OS_MEMORY.json', {'samples': memory})",
+          "save(run / 'OS_MEMORY.json', {'samples': memory})\n        record['output_bytes_at_terminal'] = sum(p.stat().st_size for p in run.iterdir() if p.is_file())\n        record['disk_free_bytes_at_terminal'] = shutil.disk_usage(ROOT).free"
+        ]
+      ]
+    }
+  ]
+}

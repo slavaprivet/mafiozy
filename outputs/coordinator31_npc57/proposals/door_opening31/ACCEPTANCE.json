@@ -1,0 +1,190 @@
+{
+  "schema": "mafiozi.door-opening31.acceptance/v1",
+  "targeted_acceptance": true,
+  "full_scene_acceptance": false,
+  "performance_accepted": false,
+  "production_modified": false,
+  "user_game_preserved": true,
+  "manifest": {
+    "scripts/hospital/npc_door_clearance31.gd": {
+      "base_sha256": null,
+      "candidate_sha256": "baa15caf217df15ae0d5636cb4c5295e6a3f39ccf805b19333c38e4ec274917e"
+    },
+    "scripts/hospital/npc_simple_hospital.gd": {
+      "base_sha256": "737291ac97b210d4afbe9b490e7f5aefd32833f1ffad867f5fe9f3b677ca6a55",
+      "candidate_sha256": "0bb28b9d34ac0877c23b0737909348dcc715053739738c13f68522635f15020c"
+    },
+    "scripts/city/runtime/npc_city_clone_door_swing.gd": {
+      "base_sha256": "24fb1ef4d35a58ab99e498dd4be1f5d739c2425c767188c9c916df0b869d6fd1",
+      "candidate_sha256": "fb4f9af5277768272b16323289bdbbe9831bb63f5b63dfd05123195932c93528"
+    }
+  },
+  "cases": [
+    {
+      "case": "recovery",
+      "run": "runs\\recovery_final03",
+      "passed": true,
+      "checks": 16,
+      "elapsed_s": 3.58333333333333,
+      "wall_s": 3.545856,
+      "max_native_step_m": 0.0306337755173445,
+      "watch": {},
+      "hashes": {
+        "RUN.json": "6b26ce0396dcf1ed3b8c307649a6e1797791dc6cc7980134cc37f4b5ecc2f432",
+        "NATIVE31.json": "80fcb3ade9917233437a969095050812d8f01731418738c427cdb06c143d32e8",
+        "SOURCE.json": "060c3d5a350d5ead58038439778327705fcb2cac8c003cba7678f1e05e27fe33",
+        "SOURCE_AFTER.json": "060c3d5a350d5ead58038439778327705fcb2cac8c003cba7678f1e05e27fe33",
+        "HARNESS.json": "74d7c46c7c0ede18132265df4092e7e485ec051163b1d1c6c06fadbfa330f0c7",
+        "HARNESS.zip": "e25d26e39f74a71cb6674f7fbefa5eba6e870fedbf10be733700292770b61175"
+      }
+    },
+    {
+      "case": "closed",
+      "run": "runs\\closed_final03",
+      "passed": true,
+      "checks": 17,
+      "elapsed_s": 4.16666666666667,
+      "wall_s": 4.125396,
+      "max_native_step_m": 0.0306337755173445,
+      "watch": {},
+      "hashes": {
+        "RUN.json": "401540e3b444d812bdf9aeb39a78049b5cbd1aca118c767b262179ee440d3d92",
+        "NATIVE31.json": "3fbc4e9a54dc21f8db97674ec6e2e0e32458403b00ad6072c6ada4b79e0b5e44",
+        "SOURCE.json": "060c3d5a350d5ead58038439778327705fcb2cac8c003cba7678f1e05e27fe33",
+        "SOURCE_AFTER.json": "060c3d5a350d5ead58038439778327705fcb2cac8c003cba7678f1e05e27fe33",
+        "HARNESS.json": "74d7c46c7c0ede18132265df4092e7e485ec051163b1d1c6c06fadbfa330f0c7",
+        "HARNESS.zip": "e25d26e39f74a71cb6674f7fbefa5eba6e870fedbf10be733700292770b61175"
+      }
+    },
+    {
+      "case": "pause",
+      "run": "runs\\pause_final03",
+      "passed": true,
+      "checks": 18,
+      "elapsed_s": 3.31666666666667,
+      "wall_s": 3.269081,
+      "max_native_step_m": 0.0306337755173445,
+      "watch": {},
+      "hashes": {
+        "RUN.json": "c64b5ea1e17c0e5c2aed513efceb6d84bca4c1046f586bd22e5b2d3046311a03",
+        "NATIVE31.json": "bb79373791bccfa805b418c09ee80144d29036380cd84a458354ee11465ff552",
+        "SOURCE.json": "060c3d5a350d5ead58038439778327705fcb2cac8c003cba7678f1e05e27fe33",
+        "SOURCE_AFTER.json": "060c3d5a350d5ead58038439778327705fcb2cac8c003cba7678f1e05e27fe33",
+        "HARNESS.json": "74d7c46c7c0ede18132265df4092e7e485ec051163b1d1c6c06fadbfa330f0c7",
+        "HARNESS.zip": "e25d26e39f74a71cb6674f7fbefa5eba6e870fedbf10be733700292770b61175"
+      }
+    },
+    {
+      "case": "cancel",
+      "run": "runs\\cancel_final03",
+      "passed": true,
+      "checks": 18,
+      "elapsed_s": 3.3,
+      "wall_s": 3.255262,
+      "max_native_step_m": 0.0306337755173445,
+      "watch": {},
+      "hashes": {
+        "RUN.json": "9ec324d92f35041b182185e786ff96eba34f1d7272ab895e8e1b6ec445dbbe5f",
+        "NATIVE31.json": "139bef63c599c99af399a00cc7242849db5368d628fc04b1f5914b7d872c7b6e",
+        "SOURCE.json": "060c3d5a350d5ead58038439778327705fcb2cac8c003cba7678f1e05e27fe33",
+        "SOURCE_AFTER.json": "060c3d5a350d5ead58038439778327705fcb2cac8c003cba7678f1e05e27fe33",
+        "HARNESS.json": "74d7c46c7c0ede18132265df4092e7e485ec051163b1d1c6c06fadbfa330f0c7",
+        "HARNESS.zip": "e25d26e39f74a71cb6674f7fbefa5eba6e870fedbf10be733700292770b61175"
+      }
+    },
+    {
+      "case": "revoke",
+      "run": "runs\\revoke_final03",
+      "passed": true,
+      "checks": 17,
+      "elapsed_s": 3.36666666666667,
+      "wall_s": 3.324663,
+      "max_native_step_m": 0.0306637715548277,
+      "watch": {},
+      "hashes": {
+        "RUN.json": "22c72c7607fa9b0331e98f330c20365fd07bc2e30c3788ca89eabc4d48675fe4",
+        "NATIVE31.json": "a2e7ebdfd436739a58a0a8d92bf6faff8514d9f53502b5c1537cc1d737222d14",
+        "SOURCE.json": "060c3d5a350d5ead58038439778327705fcb2cac8c003cba7678f1e05e27fe33",
+        "SOURCE_AFTER.json": "060c3d5a350d5ead58038439778327705fcb2cac8c003cba7678f1e05e27fe33",
+        "HARNESS.json": "74d7c46c7c0ede18132265df4092e7e485ec051163b1d1c6c06fadbfa330f0c7",
+        "HARNESS.zip": "e25d26e39f74a71cb6674f7fbefa5eba6e870fedbf10be733700292770b61175"
+      }
+    },
+    {
+      "case": "player",
+      "run": "runs\\player_final03",
+      "passed": true,
+      "checks": 16,
+      "elapsed_s": 6.05,
+      "wall_s": 6.009217,
+      "max_native_step_m": 0.0300064161419868,
+      "watch": {},
+      "hashes": {
+        "RUN.json": "4e9332d6c82627a0ddf481b7657408124ae0b017b632787e19bba2c19cd5f0b6",
+        "NATIVE31.json": "ccd164a02f5d14920aaaffe9e3ad0068bb69ec1caec0c81dc62977a23aeb59c5",
+        "SOURCE.json": "060c3d5a350d5ead58038439778327705fcb2cac8c003cba7678f1e05e27fe33",
+        "SOURCE_AFTER.json": "060c3d5a350d5ead58038439778327705fcb2cac8c003cba7678f1e05e27fe33",
+        "HARNESS.json": "74d7c46c7c0ede18132265df4092e7e485ec051163b1d1c6c06fadbfa330f0c7",
+        "HARNESS.zip": "e25d26e39f74a71cb6674f7fbefa5eba6e870fedbf10be733700292770b61175"
+      }
+    },
+    {
+      "case": "retire",
+      "run": "runs\\retire_final03",
+      "passed": true,
+      "checks": 15,
+      "elapsed_s": 0.116666666666667,
+      "wall_s": 0.080802,
+      "max_native_step_m": 0.0300027877092361,
+      "watch": {},
+      "hashes": {
+        "RUN.json": "ac76eb2a00b8a515723463d19cc7749536138a50fcf0f9d217ad8a50125cfb68",
+        "NATIVE31.json": "9f6141e034d0c921bf16cd09c64434566d4b55ee462488a0433cdfc0335ab76d",
+        "SOURCE.json": "060c3d5a350d5ead58038439778327705fcb2cac8c003cba7678f1e05e27fe33",
+        "SOURCE_AFTER.json": "060c3d5a350d5ead58038439778327705fcb2cac8c003cba7678f1e05e27fe33",
+        "HARNESS.json": "74d7c46c7c0ede18132265df4092e7e485ec051163b1d1c6c06fadbfa330f0c7",
+        "HARNESS.zip": "e25d26e39f74a71cb6674f7fbefa5eba6e870fedbf10be733700292770b61175"
+      }
+    },
+    {
+      "case": "watch",
+      "run": "runs\\watch_final03",
+      "passed": true,
+      "checks": 19,
+      "elapsed_s": 6.71666666666667,
+      "wall_s": 6.678932,
+      "max_native_step_m": 0.0306337755173445,
+      "watch": {
+        "blocked": false,
+        "motion_idle_ms": 0,
+        "phase": "walking",
+        "planning_ms": 13197,
+        "planning_service_us": 20173,
+        "reason": ""
+      },
+      "hashes": {
+        "RUN.json": "115e1fa519e83d57df74be0bb1c928164899b4c3dc92fc8c072d3ed9cf7379cc",
+        "NATIVE31.json": "d45cc37cedec1c6c023e48611a6426afcb249638c950029a794fb02edc48f8a0",
+        "SOURCE.json": "060c3d5a350d5ead58038439778327705fcb2cac8c003cba7678f1e05e27fe33",
+        "SOURCE_AFTER.json": "060c3d5a350d5ead58038439778327705fcb2cac8c003cba7678f1e05e27fe33",
+        "HARNESS.json": "74d7c46c7c0ede18132265df4092e7e485ec051163b1d1c6c06fadbfa330f0c7",
+        "HARNESS.zip": "e25d26e39f74a71cb6674f7fbefa5eba6e870fedbf10be733700292770b61175"
+      }
+    }
+  ],
+  "checks_passed": 136,
+  "checks_total": 136,
+  "source_zip_sha256": "4fed8f001b73ef7953914f2b08ab493f2a9e870f24a112b94cdbfd55d3febaf3",
+  "diff_sha256": "89e4080087247be30f6a8222b0a7cbcc396eb90560adadaa1d07f5239f04a5ae",
+  "actual_cause_sha256": "36c61bcbb4aee5cc70fdb3fbbc517c0d1ec4c6752e9ba8c929edf29aa6d80139",
+  "review": {
+    "reviewer": "/root/godot_addons31",
+    "status": "Limited read-only review clean after fixing per-step RoamWait accounting; reviewer independently confirmed watch_final03 receipt."
+  },
+  "limits": [
+    "Actual prolonged failure is preserved in release57_1200_01. Short targeted baseline reproduces blocked sweep, but may clear with a simpler outdoor waypoint; it does not reproduce the exact865s treadmill.",
+    "Merged natural1200s plus spatial-progress gate and all-service regressions remain required before delivery.",
+    "Behavior is deliberately roam-only; medical/service routes retain their existing staged passage, flee drivers are unaffected.",
+    "Physical player obstruction remains physical: bounded helper failure is not an accepted successful exit."
+  ]
+}

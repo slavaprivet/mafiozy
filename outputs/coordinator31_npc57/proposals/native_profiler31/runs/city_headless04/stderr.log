@@ -1,0 +1,1430 @@
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/preview_locomotion.gd:280)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "sign" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/preview_airborne.gd:161)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/preview_airborne.gd:262)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "bind" is shadowing an already-declared function at line 137 in the current class.
+   at: GDScript::reload (res://scripts/preview_dive.gd:251)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "sign" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/preview_dive.gd:295)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "visible" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/preview_player.gd:698)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/preview_player.gd:795)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "rotation" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/preview_player.gd:887)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/perf/frame_recorder.gd:163)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/perf/frame_recorder.gd:164)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/perf/frame_recorder.gd:166)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/perf/frame_recorder.gd:168)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/perf/preview_perf_adapter.gd:37)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/perf/preview_perf_adapter.gd:38)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "basis" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/preview_printshop_interior.gd:52)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "basis" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/preview_printshop_interior.gd:267)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "position" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/preview_printshop_interior.gd:341)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/preview_printshop_interior.gd:435)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "size" is shadowing an already-declared property in the base class "Control".
+   at: GDScript::reload (res://scripts/preview_update_panel.gd:93)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "hash" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/preview_static_batch.gd:24)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local "for" iterator variable "reference" is shadowing an already-declared method in the base class "RefCounted".
+   at: GDScript::reload (res://scripts/preview_static_batch.gd:370)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local "for" iterator variable "reference" is shadowing an already-declared method in the base class "RefCounted".
+   at: GDScript::reload (res://scripts/preview_static_batch.gd:389)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "profile" is shadowing an already-declared function at line 50 in the current class.
+   at: GDScript::reload (res://scripts/transport/transport_descriptor_catalog.gd:31)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "profile" is shadowing an already-declared function at line 50 in the current class.
+   at: GDScript::reload (res://scripts/transport/transport_descriptor_catalog.gd:62)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "profile" is shadowing an already-declared function at line 50 in the current class.
+   at: GDScript::reload (res://scripts/transport/transport_descriptor_catalog.gd:80)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "state" is shadowing an already-declared function at line 109 in the current class.
+   at: GDScript::reload (res://scripts/transport/transport_actor_transition.gd:34)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "state" is shadowing an already-declared function at line 109 in the current class.
+   at: GDScript::reload (res://scripts/transport/transport_actor_transition.gd:46)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "state" is shadowing an already-declared function at line 109 in the current class.
+   at: GDScript::reload (res://scripts/transport/transport_actor_transition.gd:84)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "state" is shadowing an already-declared function at line 109 in the current class.
+   at: GDScript::reload (res://scripts/transport/transport_actor_transition.gd:89)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "state" is shadowing an already-declared function at line 109 in the current class.
+   at: GDScript::reload (res://scripts/transport/transport_actor_transition.gd:112)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "state" is shadowing an already-declared function at line 109 in the current class.
+   at: GDScript::reload (res://scripts/transport/transport_actor_transition.gd:128)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "progress" is declared below in the parent block.
+   at: GDScript::reload (res://scripts/transport/transport_actor_transition.gd:131)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "state" is shadowing an already-declared function at line 109 in the current class.
+   at: GDScript::reload (res://scripts/transport/transport_actor_transition.gd:195)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "state" is shadowing an already-declared function at line 109 in the current class.
+   at: GDScript::reload (res://scripts/transport/transport_actor_transition.gd:201)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "state" is shadowing an already-declared function at line 109 in the current class.
+   at: GDScript::reload (res://scripts/transport/transport_actor_transition.gd:206)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "state" is shadowing an already-declared function at line 109 in the current class.
+   at: GDScript::reload (res://scripts/transport/transport_actor_transition.gd:230)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "state" is shadowing an already-declared function at line 109 in the current class.
+   at: GDScript::reload (res://scripts/transport/transport_actor_transition.gd:234)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "position" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/transport/transport_runtime.gd:69)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The parameter "fallback" is never used in the function "_vector3()". If this is intended, prefix it with an underscore: "_fallback".
+   at: GDScript::reload (res://scripts/vehicle_physics/vehicle_profile.gd:149)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "capacity" is shadowing an already-declared function at line 74 in the current class.
+   at: GDScript::reload (res://scripts/vehicle_physics/vehicle_contact_buffer.gd:21)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "basis" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/vehicle_physics/vehicle_native_body.gd:266)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/vehicle_visual/vehicle_exit_pose.gd:76)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The function parameter "floor" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/vehicle_visual/vehicle_exit_pose.gd:94)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The function parameter "floor" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/vehicle_visual/vehicle_exit_pose.gd:105)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/vehicle_visual/vehicle_exit_pose.gd:163)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "rotation" is declared below in the parent block.
+   at: GDScript::reload (res://scripts/vehicle_visual/vehicle_exit_pose_blend.gd:40)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/vehicle_visual/vehicle_exit_pose_blend.gd:76)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "seed" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/character_physics/exit_ragdoll_body.gd:44)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "body" is declared below in the parent block.
+   at: GDScript::reload (res://scripts/character_physics/exit_ragdoll_body.gd:345)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "rotation" is declared below in the parent block.
+   at: GDScript::reload (res://scripts/character_physics/character_physics_pose.gd:62)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/character_physics/character_physics_pose.gd:122)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The class variable "_getup_from" is declared but never used in the class.
+   at: GDScript::reload (res://scripts/character_physics/character_physics_driver.gd:30)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "reference" is shadowing an already-declared method in the base class "RefCounted".
+   at: GDScript::reload (res://scripts/character_physics/character_physics_driver.gd:461)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "state" is shadowing an already-declared function at line 109 in the base class "res://scripts/transport/transport_actor_transition.gd".
+   at: GDScript::reload (res://scripts/character_physics/ragdoll_actor_transition.gd:6)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "state" is shadowing an already-declared function at line 109 in the base class "res://scripts/transport/transport_actor_transition.gd".
+   at: GDScript::reload (res://scripts/character_physics/ragdoll_actor_transition.gd:28)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "hash" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/route/npc_traffic_rules.gd:9)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "lot" is shadowing an already-declared function at line 134 in the current class.
+   at: GDScript::reload (res://scripts/transport/transport_parking_access.gd:54)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local "for" iterator variable "lot" is shadowing an already-declared function at line 134 in the current class.
+   at: GDScript::reload (res://scripts/transport/transport_parking_access.gd:100)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "sign" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/transport/transport_parking_access.gd:123)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "lot" is shadowing an already-declared function at line 134 in the current class.
+   at: GDScript::reload (res://scripts/transport/transport_parking_access.gd:175)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The class variable "_npc_parking_reservations" is declared but never used in the class.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_transport.gd:11)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/character_physics/player_impact_host.gd:114)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "result" is declared below in the parent block.
+   at: GDScript::reload (res://scripts/character_physics/player_impact_host.gd:136)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "hash" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/npc_visual/npc_local_printshop_route.gd:171)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "reference" is shadowing an already-declared method in the base class "RefCounted".
+   at: GDScript::reload (res://scripts/npc_visual/npc_local_printshop_route.gd:284)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "request" is shadowing an already-declared function at line 407 in the current class.
+   at: GDScript::reload (res://scripts/npc_visual/npc_local_printshop_route.gd:421)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The parameter "phase" is never used in the function "_hold_progress()". If this is intended, prefix it with an underscore: "_phase".
+   at: GDScript::reload (res://scripts/npc_visual/npc_local_printshop_visit.gd:86)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "hash" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/npc_visual/npc_local_printshop_visit.gd:201)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/npc_visual/npc_visual_loader.gd:369)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "_ac_hit" is shadowing an already-declared variable at line 312 in the current class.
+   at: GDScript::reload (res://scripts/npc_visual/npc_visual_cache.gd:689)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "_ac_audited" is shadowing an already-declared variable at line 314 in the current class.
+   at: GDScript::reload (res://scripts/npc_visual/npc_visual_cache.gd:700)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/navigation/preview_navigation_host.gd:88)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/navigation/preview_navigation_host.gd:314)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The class variable "_dsh_reused" is declared but never used in the class.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_engine_navigation.gd:69)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "started" is declared but never used in the block. If this is intended, prefix it with an underscore: "_started".
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_engine_navigation.gd:267)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_engine_navigation.gd:272)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "faces" is declared but never used in the block. If this is intended, prefix it with an underscore: "_faces".
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_engine_navigation.gd:339)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "hash" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_engine_navigation.gd:433)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The parameter "far" is never used in the function "admit_motion()". If this is intended, prefix it with an underscore: "_far".
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_engine_navigation.gd:1116)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "basis" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/hospital/npc_hospital_geometry.gd:51)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "position" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/hospital/npc_hospital_geometry.gd:316)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/hospital/npc_hospital_geometry.gd:410)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "position" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/hospital/npc_hospital_geometry.gd:559)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "position" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/hospital/npc_hospital_geometry.gd:597)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "basis" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/bank_geometry/npc_bank_geometry.gd:51)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "position" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/bank_geometry/npc_bank_geometry.gd:318)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/bank_geometry/npc_bank_geometry.gd:412)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "position" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/bank_geometry/npc_bank_geometry.gd:560)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "position" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/bank_geometry/npc_bank_geometry.gd:598)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_navigation_host.gd:137)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_navigation_host.gd:253)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_navigation_host.gd:311)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_navigation_host.gd:866)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_navigation_host.gd:867)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "poll" is shadowing an already-declared function at line 531 in the current class.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_navigation_host.gd:867)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_navigation_host.gd:868)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_navigation_host.gd:869)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_navigation_host.gd:870)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_navigation_host.gd:871)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_navigation_host.gd:872)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_navigation_host.gd:873)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_navigation_host.gd:884)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_navigation_host.gd:885)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_navigation_host.gd:886)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_navigation_host.gd:887)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_navigation_host.gd:888)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_navigation_host.gd:889)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_navigation_host.gd:890)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_navigation_host.gd:891)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_navigation_host.gd:892)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_navigation_host.gd:893)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "pelvis" is declared but never used in the block. If this is intended, prefix it with an underscore: "_pelvis".
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_pose28.gd:173)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "body" is declared below in the parent block.
+   at: GDScript::reload (res://scripts/npc_visual/npc_body.gd:72)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "seed" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/npc_visual/npc_preview_activity.gd:20)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "step" is shadowing an already-declared function at line 116 in the current class.
+   at: GDScript::reload (res://scripts/npc_visual/npc_contact_retaliation.gd:155)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The class variable "_single_respawn28_shape" is declared but never used in the class.
+   at: GDScript::reload (res://scripts/npc_visual/preview_resident_host.gd:93)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The class variable "_single_respawn28_local" is declared but never used in the class.
+   at: GDScript::reload (res://scripts/npc_visual/preview_resident_host.gd:94)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The parameter "identity" is never used in the function "_dsh_label_for()". If this is intended, prefix it with an underscore: "_identity".
+   at: GDScript::reload (res://scripts/npc_visual/preview_resident_host.gd:342)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The parameter "record" is never used in the function "_dsh_player_spot_point()". If this is intended, prefix it with an underscore: "_record".
+   at: GDScript::reload (res://scripts/npc_visual/preview_resident_host.gd:447)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "reference" is shadowing an already-declared method in the base class "RefCounted".
+   at: GDScript::reload (res://scripts/npc_visual/preview_resident_host.gd:640)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/npc_visual/preview_resident_host.gd:1878)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Unreachable code (statement after return) in function "target_from_collider()".
+   at: GDScript::reload (res://scripts/npc_visual/preview_resident_host.gd:2050)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer used when an enum value is expected. If this is intended, cast the integer to the enum type using the "as" keyword.
+   at: GDScript::reload (res://scripts/npc_visual/preview_resident_host.gd:2371)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/npc_visual/npc_head_zone.gd:167)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "hit" is shadowing an already-declared function at line 114 in the current class.
+   at: GDScript::reload (res://scripts/npc_visual/npc_ordinary_hit_lifecycle.gd:106)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "load" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/npc_visual/npc_impact_balance.gd:8)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "status" is shadowing an already-declared function at line 405 in the current class.
+   at: GDScript::reload (res://scripts/npc_visual/npc_ragdoll_recovery.gd:66)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "value" is declared but never used in the block. If this is intended, prefix it with an underscore: "_value".
+   at: GDScript::reload (res://scripts/npc_visual/npc_ragdoll_recovery.gd:387)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/npc_visual/npc_ragdoll_recovery.gd:602)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "body" is declared below in the parent block.
+   at: GDScript::reload (res://scripts/npc_visual/npc_bullet_reaction.gd:255)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "material" is shadowing an already-declared property in the base class "CanvasItem".
+   at: GDScript::reload (res://scripts/npc_visual/npc_resident_card_canvas29.gd:26)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "pct" is declared but never used in the block. If this is intended, prefix it with an underscore: "_pct".
+   at: GDScript::reload (res://scripts/npc_visual/npc_resident_diag.gd:129)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/npc_visual/npc_resident_diag.gd:322)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The parameter "door_owned" is never used in the function "visit_stage()". If this is intended, prefix it with an underscore: "_door_owned".
+   at: GDScript::reload (res://scripts/npc_visual/npc_resident_diag.gd:391)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/npc_visual/npc_local_preview_hit_owner.gd:381)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "registry" is declared below in the parent block.
+   at: GDScript::reload (res://scripts/npc_visual/npc_local_preview_hit_owner.gd:577)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "reference" is shadowing an already-declared method in the base class "RefCounted".
+   at: GDScript::reload (res://scripts/npc_visual/preview_resident_world_policy.gd:162)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/combat/melee_input.gd:160)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/combat/melee_attack_source.gd:125)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/combat/melee_attack_source.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/combat/melee_pose.gd:109)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/combat/melee_pose.gd:109)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/combat/melee_pose.gd:109)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/combat/melee_pose.gd:186)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/combat/melee_pose.gd:186)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/combat/melee_pose.gd:186)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/combat/melee_pose.gd:186)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/combat/melee_pose.gd:186)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/combat/melee_pose.gd:198)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/combat/melee_pose.gd:198)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/combat/melee_pose.gd:198)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "lift" is declared below in the parent block.
+   at: GDScript::reload (res://scripts/combat/melee_pose.gd:213)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "sign" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/npc_visual/npc_melee_triangle_contact.gd:65)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "point" is declared below in the parent block.
+   at: GDScript::reload (res://scripts/npc_visual/npc_melee_triangle_contact.gd:105)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "px" is declared below in the parent block.
+   at: GDScript::reload (res://scripts/npc_visual/npc_melee_triangle_contact.gd:109)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "py" is declared below in the parent block.
+   at: GDScript::reload (res://scripts/npc_visual/npc_melee_triangle_contact.gd:109)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "pz" is declared below in the parent block.
+   at: GDScript::reload (res://scripts/npc_visual/npc_melee_triangle_contact.gd:109)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "prepare_start" is declared but never used in the block. If this is intended, prefix it with an underscore: "_prepare_start".
+   at: GDScript::reload (res://scripts/npc_visual/npc_melee_geometry_cache.gd:5)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "prepare_memory" is declared but never used in the block. If this is intended, prefix it with an underscore: "_prepare_memory".
+   at: GDScript::reload (res://scripts/npc_visual/npc_melee_geometry_cache.gd:6)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/npc_visual/npc_melee_limb_surface.gd:81)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/npc_visual/npc_melee_limb_surface.gd:82)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/npc_visual/npc_melee_limb_surface.gd:294)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/npc_visual/npc_melee_limb_surface.gd:294)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/npc_visual/npc_melee_limb_surface.gd:296)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/npc_visual/npc_melee_limb_surface.gd:296)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/npc_visual/npc_melee_limb_surface.gd:331)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "reference" is shadowing an already-declared method in the base class "RefCounted".
+   at: GDScript::reload (res://scripts/npc_visual/npc_melee_limb_surface.gd:481)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The parameter "delta" is never used in the function "decorate()". If this is intended, prefix it with an underscore: "_delta".
+   at: GDScript::reload (res://scripts/npc_visual/npc_melee_player_health.gd:63)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local "for" iterator variable "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/npc_visual/npc_contact_melee_host.gd:51)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local "for" iterator variable "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/npc_visual/npc_contact_melee_host.gd:77)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local "for" iterator variable "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/npc_visual/npc_contact_melee_host.gd:107)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local "for" iterator variable "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/npc_visual/npc_contact_melee_host.gd:168)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local "for" iterator variable "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/npc_visual/npc_contact_melee_host.gd:224)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local "for" iterator variable "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/npc_visual/npc_contact_melee_host.gd:285)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "result" is declared below in the parent block.
+   at: GDScript::reload (res://scripts/npc_visual/npc_contact_melee_host.gd:293)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/npc_visual/npc_contact_melee_host.gd:328)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/npc_visual/npc_contact_melee_host.gd:366)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local "for" iterator variable "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/npc_visual/npc_contact_melee_host.gd:428)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local "for" iterator variable "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/npc_visual/npc_contact_melee_host.gd:453)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "rows" is declared below in the parent block.
+   at: GDScript::reload (res://scripts/navigation/npc_passage31.gd:43)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/navigation/npc_passage31.gd:61)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/navigation/npc_passage31.gd:92)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "shape" is declared below in the parent block.
+   at: GDScript::reload (res://scripts/navigation/npc_avoidance_world29.gd:63)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/navigation/npc_avoidance_world29.gd:108)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/hospital/npc_physical_route51.gd:182)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "at" is declared below in the parent block.
+   at: GDScript::reload (res://scripts/hospital/npc_physical_route51.gd:284)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/hospital/npc_long_route28.gd:307)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/hospital/npc_long_route28.gd:335)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_clone_door_swing.gd:131)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "rotation" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_clone_door_swing.gd:321)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "_occupants" is shadowing an already-declared function at line 278 in the current class.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_clone_door_swing.gd:351)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "enabled" is shadowing an already-declared function at line 91 in the current class.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_clone_door_swing.gd:502)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "scale" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_clone_door_swing.gd:655)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/hospital/npc_simple_hospital.gd:308)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "floor" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/hospital/npc_simple_hospital.gd:576)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/destruction/palazzo/source/showcase.gd:248)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "transform" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/destruction/palazzo/source/showcase.gd:424)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "visibility_changed" is shadowing an already-declared signal in the base class "Node3D".
+   at: GDScript::reload (res://scripts/destruction/palazzo/source/showcase.gd:429)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "basis" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/destruction/palazzo/palazzo_site.gd:44)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "rotation" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/destruction/palazzo/palazzo_site.gd:292)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "snapshot" is shadowing an already-declared function at line 225 in the current class.
+   at: GDScript::reload (res://scripts/destruction/palazzo/door_close43.gd:90)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "snapshot" is shadowing an already-declared function at line 225 in the current class.
+   at: GDScript::reload (res://scripts/destruction/palazzo/door_close43.gd:112)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "snapshot" is shadowing an already-declared function at line 225 in the current class.
+   at: GDScript::reload (res://scripts/destruction/palazzo/door_close43.gd:128)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "snapshot" is shadowing an already-declared function at line 225 in the current class.
+   at: GDScript::reload (res://scripts/destruction/palazzo/door_close43.gd:164)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "snapshot" is shadowing an already-declared function at line 225 in the current class.
+   at: GDScript::reload (res://scripts/destruction/palazzo/door_close43.gd:174)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "snapshot" is shadowing an already-declared function at line 225 in the current class.
+   at: GDScript::reload (res://scripts/destruction/palazzo/door_close43.gd:191)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "camera" is shadowing an already-declared variable at line 17 in the base class "res://scripts/destruction/palazzo/source/showcase.gd".
+   at: GDScript::reload (res://scripts/destruction/palazzo/palazzo_live_site.gd:22)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/destruction/modular30/owner/vendor/glass/walk_glass_breakage.gd:128)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "transform" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/destruction/modular30/owner/vendor/glass/walk_glass_breakage.gd:227)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "position" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/destruction/modular30/owner/vendor/glass/walk_glass_breakage.gd:484)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "basis" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/destruction/modular30/owner/vendor/glass/walk_glass_breakage.gd:538)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/destruction/palazzo/palazzo_glazing.gd:150)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "stats" is shadowing an already-declared variable at line 20 in the base class "res://scripts/destruction/palazzo/source/showcase.gd".
+   at: GDScript::reload (res://scripts/destruction/palazzo/palazzo_structural_site.gd:60)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The class variable "_door_target_open" is declared but never used in the class.
+   at: GDScript::reload (res://scripts/destruction/modular_buildings/modular_door.gd:17)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "rotation" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/destruction/modular_buildings/modular_door.gd:82)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The "for" iterator variable "sign" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/destruction/modular_buildings/recipe_validator.gd:100)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The "for" iterator variable "sign" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/destruction/modular_buildings/recipe_validator.gd:105)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "sign" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/destruction/modular_buildings/modular_site.gd:182)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/destruction/modular_buildings/modular_c4_probe.gd:43)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "damage_owner" is shadowing an already-declared function at line 177 in the current class.
+   at: GDScript::reload (res://scripts/destruction/modular_buildings/modular_building_site.gd:137)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "soil" is shadowing an already-declared function at line 75 in the current class.
+   at: GDScript::reload (res://scripts/destruction/modular_buildings/modular_building_site.gd:233)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "slab_bottom" is declared but never used in the block. If this is intended, prefix it with an underscore: "_slab_bottom".
+   at: GDScript::reload (res://scripts/destruction/modular_buildings/modular_building_site.gd:272)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/destruction/modular30/owner/expansion/modular_buildings/export/prefab_loader.gd:43)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/destruction/modular30/owner/expansion/modular_buildings/export/prefab_loader.gd:43)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/destruction/modular30/owner/expansion/modular_buildings/export/prefab_loader.gd:45)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The constant "PreviewBoundary" has the same name as a global class defined in "preview_boundary.gd".
+   at: GDScript::reload (res://scripts/main.gd:19)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local "for" iterator variable "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/main.gd:430)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local "for" iterator variable "name" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/main.gd:578)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "ready" is shadowing an already-declared signal in the base class "Node".
+   at: GDScript::reload (res://scripts/main.gd:833)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local "for" iterator variable "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/quick_controls/street_lamps.gd:58)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/quick_controls/street_lamps.gd:123)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer used when an enum value is expected. If this is intended, cast the integer to the enum type using the "as" keyword.
+   at: GDScript::reload (res://scripts/quick_controls/day_night.gd:201)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/quick_controls/day_night_clock.gd:50)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The class variable "_respawn28_owner" is declared but never used in the class.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_world_policy.gd:24)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_world_policy.gd:274)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_world_policy.gd:274)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_world_policy.gd:275)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_world_policy.gd:275)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_world_policy.gd:276)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_world_policy.gd:276)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_world_policy.gd:277)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_world_policy.gd:277)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_world_policy.gd:278)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "reference" is shadowing an already-declared method in the base class "RefCounted".
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_world_policy.gd:650)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "reference" is shadowing an already-declared method in the base class "RefCounted".
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_world_policy.gd:895)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_world_policy.gd:1084)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_world_policy.gd:1105)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "counters" is shadowing an already-declared function at line 107 in the current class.
+   at: GDScript::reload (res://scripts/city/runtime/npc_native_obstacle_detour.gd:118)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "snapshot" is shadowing an already-declared function at line 407 in the current class.
+   at: GDScript::reload (res://scripts/city/runtime/npc_native_obstacle_detour.gd:143)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "snapshot" is shadowing an already-declared function at line 407 in the current class.
+   at: GDScript::reload (res://scripts/city/runtime/npc_native_obstacle_detour.gd:158)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "reference" is shadowing an already-declared method in the base class "RefCounted".
+   at: GDScript::reload (res://scripts/npc_daily_walk.gd:216)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "snapped" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/npc_daily_walk.gd:623)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "snapped" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/npc_daily_walk.gd:675)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The class variable "_install_tried" is declared but never used in the class.
+   at: GDScript::reload (res://scripts/hospital/npc_hospital_marker.gd:26)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The parameter "scene" is never used in the function "measure()". If this is intended, prefix it with an underscore: "_scene".
+   at: GDScript::reload (res://scripts/hospital/npc_hospital_marker.gd:105)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/hospital/npc_hospital_marker.gd:280)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The function parameter "sign" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/venues/npc_venue_registry29.gd:34)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "entry" is shadowing an already-declared function at line 184 in the current class.
+   at: GDScript::reload (res://scripts/venues/npc_venue_registry29.gd:78)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "entry" is shadowing an already-declared function at line 184 in the current class.
+   at: GDScript::reload (res://scripts/venues/npc_venue_registry29.gd:237)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "request" is shadowing an already-declared function at line 164 in the current class.
+   at: GDScript::reload (res://scripts/venues/npc_venue_registry29.gd:249)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "claim" is shadowing an already-declared function at line 121 in the current class.
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_bench_registry29.gd:96)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_bench_registry29.gd:99)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "claim" is shadowing an already-declared function at line 121 in the current class.
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_bench_registry29.gd:104)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_bench_registry29.gd:105)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_bench_registry29.gd:121)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_bench_registry29.gd:129)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "claim" is shadowing an already-declared function at line 121 in the current class.
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_bench_registry29.gd:131)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_bench_registry29.gd:134)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_bench_registry29.gd:139)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "claim" is shadowing an already-declared function at line 121 in the current class.
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_bench_registry29.gd:141)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_bench_registry29.gd:145)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "claim" is shadowing an already-declared function at line 121 in the current class.
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_bench_registry29.gd:148)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local "for" iterator variable "claim" is shadowing an already-declared function at line 121 in the current class.
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_bench_registry29.gd:155)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "floor" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_benches28.gd:23)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local "for" iterator variable "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_windows29.gd:19)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "floor" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_controller28.gd:73)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local "for" iterator variable "reference" is shadowing an already-declared method in the base class "RefCounted".
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_controller28.gd:123)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "floor" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_controller28.gd:184)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "sign" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/shop/npc_economy_visit28.gd:112)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The class variable "_dsh_last_ms" is declared but never used in the class.
+   at: GDScript::reload (res://scripts/npc_daily_life.gd:68)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The class variable "_dsh_s_life_ms" is declared but never used in the class.
+   at: GDScript::reload (res://scripts/npc_daily_life.gd:72)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/npc_daily_life.gd:904)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The parameter "row" is never used in the function "_dsh_simple_finish()". If this is intended, prefix it with an underscore: "_row".
+   at: GDScript::reload (res://scripts/npc_daily_life.gd:1238)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "current" is shadowing an already-declared function at line 95 in the current class.
+   at: GDScript::reload (res://scripts/shop/npc_bank_geometry_snapshot.gd:32)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "native_root" is used before being assigned a value.
+   at: GDScript::reload (res://scripts/shop/npc_bank_geometry_snapshot.gd:58)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/npc_city_daily.gd:323)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/npc_city_daily.gd:622)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "request" is shadowing an already-declared function at line 502 in the current class.
+   at: GDScript::reload (res://scripts/hospital/npc_daily_entry_route.gd:526)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local variable "targets" is shadowing an already-declared function at line 88 in the current class.
+   at: GDScript::reload (res://scripts/hospital/npc_hospital_treatment_port.gd:42)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "result" is declared below in the parent block.
+   at: GDScript::reload (res://scripts/hospital/npc_daily_hospital_visit.gd:335)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The class variable "_dsh_s_complete" is declared but never used in the class.
+   at: GDScript::reload (res://scripts/shop/npc_daily_shop.gd:51)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/shop/npc_daily_shop.gd:334)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/npc_city_population.gd:396)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/npc_city_population.gd:396)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/npc_city_population.gd:559)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/npc_city_population.gd:560)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/npc_city_population.gd:813)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/npc_city_population.gd:891)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The variable "visual" is used before being assigned a value.
+   at: GDScript::reload (res://scripts/city/runtime/npc_city_bootstrap.gd:160)
+   GDScript backtrace (most recent call first):
+       [0] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:4)
+WARNING: The local function parameter "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/venues/npc_compact_glazing29.gd:150)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:244)
+       [1] _start (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_profiler31/entry31.gd:5)
+WARNING: The variable "arrays" is declared below in the parent block.
+   at: GDScript::reload (res://scripts/venues/npc_medic_style30.gd:121)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:249)
+       [1] prepare (res://scripts/venues/npc_service_sites_host29.gd:47)
+WARNING: The local "for" iterator variable "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/venues/npc_venue_staff_host29.gd:61)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:249)
+       [1] prepare (res://scripts/venues/npc_service_sites_host29.gd:47)
+WARNING: The variable "sign" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/venues/npc_venue_staff_host29.gd:66)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:249)
+       [1] prepare (res://scripts/venues/npc_service_sites_host29.gd:47)
+WARNING: The function parameter "seed" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/venues/npc_venue_staff_host29.gd:82)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:249)
+       [1] prepare (res://scripts/venues/npc_service_sites_host29.gd:47)
+WARNING: The local function parameter "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/venues/npc_venue_staff_host29.gd:86)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:249)
+       [1] prepare (res://scripts/venues/npc_service_sites_host29.gd:47)
+WARNING: The local function parameter "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/venues/npc_venue_staff_host29.gd:168)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:249)
+       [1] prepare (res://scripts/venues/npc_service_sites_host29.gd:47)
+WARNING: The local variable "reference" is shadowing an already-declared method in the base class "RefCounted".
+   at: GDScript::reload (res://scripts/combat/melee_physical_pose.gd:222)
+   GDScript backtrace (most recent call first):
+       [0] _install_preview_melee_practice (res://scripts/main.gd:394)
+       [1] _ready (res://scripts/main.gd:318)
+       [2] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [3] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/weapons/weapon_fire.gd:86)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:322)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/weapons/weapon_aim_camera.gd:112)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:322)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: The local variable "drop" is shadowing an already-declared function at line 153 in the current class.
+   at: GDScript::reload (res://scripts/weapons/weapon_inventory.gd:88)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:322)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: The variable "s" is declared below in the parent block.
+   at: GDScript::reload (res://scripts/weapons/weapon_pose.gd:32)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:322)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: The variable "s" is declared below in the parent block.
+   at: GDScript::reload (res://scripts/weapons/weapon_pose.gd:35)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:322)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: The variable "s" is declared below in the parent block.
+   at: GDScript::reload (res://scripts/weapons/weapon_pose.gd:38)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:322)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/weapons/weapon_projectiles.gd:229)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:322)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/weapons/weapon_projectiles.gd:229)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:322)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/weapons/weapon_projectiles.gd:229)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:322)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/weapons/weapon_projectiles.gd:231)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:322)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/weapons/weapon_projectiles.gd:246)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:322)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: The variable "seed" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/weapons/rpg_effects.gd:143)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:322)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: The "for" iterator variable "seed" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/weapons/impact_mark_art.gd:18)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:322)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/weapons/weapon_surface_impacts.gd:205)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:322)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/weapons/weapon_surface_impacts.gd:233)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:322)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/weapons/weapon_surface_impacts.gd:233)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:322)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/weapons/weapon_surface_impacts.gd:233)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:322)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: Values of the ternary operator are not mutually compatible.
+   at: GDScript::reload (res://scripts/weapons/weapon_surface_impacts.gd:234)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:322)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: The class variable "_hud_value" is declared but never used in the class.
+   at: GDScript::reload (res://scripts/weapons/preview_weapons.gd:44)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:322)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: The variable "id" is declared below in the parent block.
+   at: GDScript::reload (res://scripts/weapons/walk_trunk_window.gd:76)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:332)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: The local variable "name" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/weapons/walk_trunk_window.gd:80)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:332)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: Integer division. Decimal part will be discarded.
+   at: GDScript::reload (res://scripts/weapons/weapon_pickup_visuals.gd:419)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:332)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: The variable "floor" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/weapons/preview_weapon_cargo.gd:288)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:332)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: The variable "floor" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/weapons/preview_weapon_cargo.gd:314)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:332)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: The variable "floor" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/weapons/preview_weapon_cargo.gd:533)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:332)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: The variable "floor" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/weapons/preview_weapon_cargo.gd:565)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:332)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: The variable "seed" has the same name as a built-in function.
+   at: GDScript::reload (res://scripts/destruction/palazzo/blast_fx45.gd:72)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:348)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: The local variable "scale" is shadowing an already-declared property in the base class "Node3D".
+   at: GDScript::reload (res://scripts/destruction/palazzo/blast_fx45.gd:88)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:348)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: The local variable "reference" is shadowing an already-declared method in the base class "RefCounted".
+   at: GDScript::reload (res://scripts/destruction/palazzo/c4_surface_owner45.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:351)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: The local variable "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/destruction/palazzo/c4_equipment.gd:207)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:351)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: The local variable "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/destruction/palazzo/c4_equipment.gd:271)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:351)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)
+WARNING: The local variable "owner" is shadowing an already-declared property in the base class "Node".
+   at: GDScript::reload (res://scripts/destruction/palazzo/c4_equipment.gd:296)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://scripts/main.gd:351)
+       [1] prepare29 (res://scripts/venues/npc_venue_staff_host29.gd:40)
+       [2] _scan29 (res://scripts/venues/npc_venue_staff_host29.gd:80)

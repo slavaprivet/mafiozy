@@ -1,0 +1,14 @@
+{
+  "scripts/venues/npc_venue_capacity29.gd": {
+    "base_sha256": "eb5d09e0fef396e7619fef29ab60783b9f0775d0549db4605cddb98099b82e66",
+    "candidate_sha256": "d830ac4a76af0f50ff6fa36f47bae0eed9d6dfd24378ddb3aa09d49eda5bf55f"
+  },
+  "scripts/venues/npc_venue_registry29.gd": {
+    "base_sha256": "234b2a336b4e7aa94789fc50b716da16b7422b3345b01b20a3254be7a72818a8",
+    "candidate_sha256": "eee16f8836df089a52fc6625938d38171de1a531c2702a2bcc00cd0bf9c33adf"
+  },
+  "scripts/navigation/npc_passage31.gd": {
+    "base_sha256": "49ab9e218f37aac086dfe2fd3817f08b759cf2ecb1dc41091cce97c29a5b518e",
+    "candidate_sha256": "4fb0fa9f35fe030628e45a5802ca1ca12cae642f57a0ea6eff2697a25e73e4c9"
+  }
+}

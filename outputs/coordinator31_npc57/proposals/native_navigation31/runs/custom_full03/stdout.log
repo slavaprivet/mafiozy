@@ -1,0 +1,44 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+RVO31_CHECK open_parallel_no_snapshot_failure true
+RVO31_CHECK open_parallel_native_no_teleport true
+RVO31_CHECK open_parallel_all10_complete true
+RVO31_CASE open_parallel complete=10 sim_s=1.05 idle=0.0 adapter_us=10529
+RVO31_CHECK symmetric_headon_no_snapshot_failure true
+RVO31_CHECK symmetric_headon_native_no_teleport true
+RVO31_CHECK symmetric_headon_all10_complete true
+RVO31_CASE symmetric_headon complete=10 sim_s=6.33333333333333 idle=0.0 adapter_us=58988
+RVO31_CHECK crossing10_no_snapshot_failure true
+RVO31_CHECK crossing10_native_no_teleport true
+RVO31_CHECK crossing10_all10_complete true
+RVO31_CASE crossing10 complete=10 sim_s=9.1 idle=0.0 adapter_us=94498
+DSH_CLONEDOOR clone=rvo31_shop state=closed fraction=0.0 trigger=idle prompt=hidden frame=1010 reason=install
+RVO31_CHECK real_compact_site_bound true
+RVO31_CHECK real_native_door_registered true
+DSH_CLONEDOOR clone=rvo31_shop state=opening fraction=0.0 trigger=idle prompt=hidden frame=1012 reason=state
+DSH_CLONEDOOR clone=rvo31_shop state=opening fraction=0.0 trigger=idle prompt=hidden frame=1012 reason=request
+DSH_CLONEDOOR clone=rvo31_shop state=open fraction=1.0 trigger=idle prompt=hidden frame=1050 reason=state
+RVO31_CHECK real_door_fully_open true
+RVO31_CHECK narrow_door_two_flows10_no_snapshot_failure true
+RVO31_CHECK narrow_door_two_flows10_native_no_teleport true
+RVO31_CHECK narrow_door_two_flows10_all10_complete true
+RVO31_CASE narrow_door_two_flows10 complete=10 sim_s=2.48333333333333 idle=0.0 adapter_us=23005
+RVO31_CHECK doorway_native_overlap true
+RVO31_CHECK doorway_symmetric_native_exceptions true
+RVO31_CHECK hit_ray_still_hits_npc true
+RVO31_CHECK death_layer_native_exceptions_retired true
+RVO31_CHECK corpse512_capsule_blocked true
+DSH_CLONEDOOR clone=rvo31_shop state=closing fraction=1.0 trigger=idle prompt=hidden frame=1387 reason=state
+DSH_CLONEDOOR clone=rvo31_shop state=closing fraction=1.0 trigger=idle prompt=hidden frame=1387 reason=request
+RVO31_CHECK wall_player_debris_no_snapshot_failure true
+RVO31_CHECK wall_player_debris_native_no_teleport true
+RVO31_CASE wall_player_debris complete=7 sim_s=3.0 idle=2.23333333333333 adapter_us=26538
+RVO31_CHECK wall_native_blocked false
+RVO31_CHECK player_native_blocked false
+RVO31_CHECK debris512_native_blocked true
+RVO31_CHECK outside_no_peer_exceptions true
+RVO31_CHECK closed_door_not_excluded true
+DSH_CLONEDOOR clone=rvo31_shop state=closed fraction=0.0 trigger=idle prompt=hidden frame=1426 reason=state
+RVO31_CHECK real_closed_door_blocks true
+RVO31_CHECK moves_in_real_physics_context true
+RVO31_CHECK fixed60hz true

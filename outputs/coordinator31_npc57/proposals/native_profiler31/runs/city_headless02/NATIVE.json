@@ -1,0 +1,14 @@
+{
+  "headless_fps_acceptance": false,
+  "measure_s": 61.12,
+  "moved_from_start_m": {},
+  "native_profiler_active": false,
+  "passed": false,
+  "profile_overhead_present": true,
+  "reason": "native_script_profiler_unavailable",
+  "residents": 10,
+  "samples": [],
+  "source_changes": false,
+  "staff": 12,
+  "warmup_s": 30
+}

@@ -1,0 +1,469 @@
+{
+  "schema": "mafiozi.live-log-audit31/v1",
+  "recorded_at": "2026-10-15T13:50:15.352209+00:00",
+  "run": "outputs/current_game/interactive/20261015T134307267Z",
+  "revision": "s01-20261015-residents57",
+  "pid_at_launch": 15100,
+  "read_bytes": 921246,
+  "read_prefix_sha256": "2e52ccd1d681f0aebab534aca4416c5085b5147c6d38fc2f558cdbb4c28012ee",
+  "stderr_bytes_at_read": 0,
+  "first_frame": 1,
+  "last_frame": 24836,
+  "counts": {
+    "economy_configured": 10,
+    "economy_roam_arrived": 179,
+    "ambient_configured": 10,
+    "ambient_started": 65,
+    "ambient_unavailable": 4,
+    "economy_purchase_chosen": 29,
+    "economy_started": 29,
+    "ambient_completed": 62,
+    "economy_entered": 27,
+    "economy_paid": 27,
+    "economy_leaving": 27,
+    "economy_complete": 26,
+    "diagnostic_lines": 3,
+    "economy_interrupted": 1
+  },
+  "residents": {
+    "resident_1": {
+      "walks_completed": 29,
+      "purchases_paid": 5,
+      "services_completed": {
+        "shop": 5
+      },
+      "ambient_completed": {
+        "wipe_forehead": 1,
+        "newspaper": 1,
+        "neck": 1,
+        "book": 1,
+        "scratch_head": 2,
+        "window": 1,
+        "pocket": 1
+      },
+      "ambient_blocked": {},
+      "last_economy": {
+        "id": "resident_1",
+        "kind": "shop",
+        "stage": "roam_arrived",
+        "cash": "884",
+        "serial": "5",
+        "frame": "24595",
+        "reason": "count=29;roll=78;action=walk"
+      },
+      "last_ambient": {
+        "duration_s": 4.65275001525879,
+        "event": "completed",
+        "frame": 24270,
+        "generation": 1,
+        "id": "resident_1",
+        "kind": "pocket",
+        "phase": "ACTING",
+        "pose_frames": 276,
+        "qa_seed": "randomized",
+        "reason": "pose_committed"
+      }
+    },
+    "resident_2": {
+      "walks_completed": 22,
+      "purchases_paid": 3,
+      "services_completed": {
+        "shop": 3
+      },
+      "ambient_completed": {
+        "phone": 1,
+        "look_around": 1,
+        "look_far": 1,
+        "sleeves": 2,
+        "collar": 1,
+        "bench": 1,
+        "camera": 1,
+        "newspaper": 1,
+        "scratch_head": 1
+      },
+      "ambient_blocked": {},
+      "last_economy": {
+        "id": "resident_2",
+        "kind": "shop",
+        "stage": "roam_arrived",
+        "cash": "928",
+        "serial": "3",
+        "frame": "24836",
+        "reason": "count=22;roll=5;action=shop"
+      },
+      "last_ambient": {
+        "duration_s": 6.10559701919556,
+        "event": "completed",
+        "frame": 24468,
+        "generation": 1,
+        "id": "resident_2",
+        "kind": "scratch_head",
+        "phase": "ACTING",
+        "pose_frames": 364,
+        "qa_seed": "randomized",
+        "reason": "pose_committed"
+      }
+    },
+    "resident_3": {
+      "walks_completed": 14,
+      "purchases_paid": 2,
+      "services_completed": {
+        "shop": 2
+      },
+      "ambient_completed": {
+        "book": 2,
+        "shoulders": 1,
+        "phone": 1,
+        "scratch_head": 1,
+        "pocket": 1
+      },
+      "ambient_blocked": {},
+      "last_economy": {
+        "id": "resident_3",
+        "kind": "shop",
+        "stage": "roam_arrived",
+        "cash": "950",
+        "serial": "2",
+        "frame": "24340",
+        "reason": "count=14;roll=49;action=ambient"
+      },
+      "last_ambient": {
+        "duration_s": 5.46424627304077,
+        "event": "completed",
+        "frame": 24820,
+        "generation": 1,
+        "id": "resident_3",
+        "kind": "book",
+        "phase": "ACTING",
+        "pose_frames": 325,
+        "qa_seed": "randomized",
+        "reason": "pose_committed"
+      }
+    },
+    "resident_4": {
+      "walks_completed": 13,
+      "purchases_paid": 1,
+      "services_completed": {},
+      "ambient_completed": {
+        "neck": 1,
+        "watch": 1,
+        "rub_palms": 1,
+        "newspaper": 1,
+        "phone": 1
+      },
+      "ambient_blocked": {},
+      "last_economy": {
+        "id": "resident_4",
+        "kind": "shop",
+        "stage": "leaving",
+        "cash": "955",
+        "serial": "1",
+        "frame": "24731",
+        "reason": "transaction_committed"
+      },
+      "last_ambient": {
+        "duration_s": 5.68514966964722,
+        "event": "completed",
+        "frame": 7915,
+        "generation": 1,
+        "id": "resident_4",
+        "kind": "phone",
+        "phase": "ACTING",
+        "pose_frames": 338,
+        "qa_seed": "randomized",
+        "reason": "pose_committed"
+      }
+    },
+    "resident_5": {
+      "walks_completed": 16,
+      "purchases_paid": 1,
+      "services_completed": {
+        "shop": 1
+      },
+      "ambient_completed": {
+        "shoulders": 1,
+        "watch": 1,
+        "sleeves": 1,
+        "collar": 2,
+        "neck": 1
+      },
+      "ambient_blocked": {},
+      "last_economy": {
+        "id": "resident_5",
+        "kind": "shop",
+        "stage": "roam_arrived",
+        "cash": "962",
+        "serial": "1",
+        "frame": "24738",
+        "reason": "count=16;roll=35;action=ambient"
+      },
+      "last_ambient": {
+        "duration_s": 7.90674448013306,
+        "event": "started",
+        "frame": 24833,
+        "generation": 1,
+        "id": "resident_5",
+        "kind": "newspaper",
+        "phase": "ALIGN",
+        "pose_frames": 0,
+        "qa_seed": "randomized",
+        "reason": "random_choice"
+      }
+    },
+    "resident_6": {
+      "walks_completed": 30,
+      "purchases_paid": 4,
+      "services_completed": {
+        "shop": 4
+      },
+      "ambient_completed": {
+        "camera": 3,
+        "collar": 1,
+        "stretch": 1,
+        "look_around": 1,
+        "look_far": 1,
+        "wipe_forehead": 1,
+        "neck": 1
+      },
+      "ambient_blocked": {},
+      "last_economy": {
+        "id": "resident_6",
+        "kind": "shop",
+        "stage": "roam_arrived",
+        "cash": "917",
+        "serial": "4",
+        "frame": "24714",
+        "reason": "count=30;roll=31;action=ambient"
+      },
+      "last_ambient": {
+        "duration_s": 4.89601278305054,
+        "event": "started",
+        "frame": 24834,
+        "generation": 1,
+        "id": "resident_6",
+        "kind": "collar",
+        "phase": "ALIGN",
+        "pose_frames": 0,
+        "qa_seed": "randomized",
+        "reason": "random_choice"
+      }
+    },
+    "resident_7": {
+      "walks_completed": 18,
+      "purchases_paid": 4,
+      "services_completed": {
+        "shop": 4
+      },
+      "ambient_completed": {
+        "look_far": 1,
+        "look_around": 2,
+        "shoulders": 1,
+        "neck": 1
+      },
+      "ambient_blocked": {},
+      "last_economy": {
+        "id": "resident_7",
+        "kind": "shop",
+        "stage": "roam_arrived",
+        "cash": "836",
+        "serial": "5",
+        "frame": "24408",
+        "reason": "count=18;roll=90;action=walk"
+      },
+      "last_ambient": {
+        "duration_s": 6.92415046691895,
+        "event": "completed",
+        "frame": 14172,
+        "generation": 1,
+        "id": "resident_7",
+        "kind": "neck",
+        "phase": "ACTING",
+        "pose_frames": 413,
+        "qa_seed": "randomized",
+        "reason": "pose_committed"
+      }
+    },
+    "resident_8": {
+      "walks_completed": 9,
+      "purchases_paid": 1,
+      "services_completed": {
+        "shop": 1
+      },
+      "ambient_completed": {
+        "rub_palms": 2,
+        "stretch": 1,
+        "camera": 1,
+        "look_far": 1,
+        "phone": 1
+      },
+      "ambient_blocked": {},
+      "last_economy": {
+        "id": "resident_8",
+        "kind": "shop",
+        "stage": "started",
+        "cash": "979",
+        "serial": "2",
+        "frame": "24836",
+        "reason": "signed_clone;planned=12"
+      },
+      "last_ambient": {
+        "duration_s": 6.84482765197754,
+        "event": "completed",
+        "frame": 5558,
+        "generation": 1,
+        "id": "resident_8",
+        "kind": "rub_palms",
+        "phase": "ACTING",
+        "pose_frames": 408,
+        "qa_seed": "randomized",
+        "reason": "pose_committed"
+      }
+    },
+    "resident_9": {
+      "walks_completed": 15,
+      "purchases_paid": 4,
+      "services_completed": {
+        "shop": 4
+      },
+      "ambient_completed": {
+        "collar": 1,
+        "shoulders": 1,
+        "sleeves": 1
+      },
+      "ambient_blocked": {},
+      "last_economy": {
+        "id": "resident_9",
+        "kind": "shop",
+        "stage": "roam_arrived",
+        "cash": "900",
+        "serial": "4",
+        "frame": "24522",
+        "reason": "count=15;roll=29;action=ambient"
+      },
+      "last_ambient": {
+        "duration_s": 4.25352478027344,
+        "event": "started",
+        "frame": 24667,
+        "generation": 1,
+        "id": "resident_9",
+        "kind": "look_far",
+        "phase": "ALIGN",
+        "pose_frames": 0,
+        "qa_seed": "randomized",
+        "reason": "random_choice"
+      }
+    },
+    "resident_10": {
+      "walks_completed": 13,
+      "purchases_paid": 2,
+      "services_completed": {
+        "shop": 2
+      },
+      "ambient_completed": {
+        "shoulders": 1,
+        "neck": 1,
+        "wipe_forehead": 1,
+        "collar": 1
+      },
+      "ambient_blocked": {},
+      "last_economy": {
+        "id": "resident_10",
+        "kind": "shop",
+        "stage": "roam_arrived",
+        "cash": "938",
+        "serial": "2",
+        "frame": "24514",
+        "reason": "count=13;roll=64;action=walk"
+      },
+      "last_ambient": {
+        "duration_s": 7.21487331390381,
+        "event": "completed",
+        "frame": 24182,
+        "generation": 1,
+        "id": "resident_10",
+        "kind": "collar",
+        "phase": "ACTING",
+        "pose_frames": 430,
+        "qa_seed": "randomized",
+        "reason": "pose_committed"
+      }
+    }
+  },
+  "last_energy": {
+    "resident_8": {
+      "id": "resident_8",
+      "energy": "71",
+      "walked_m": "580.0",
+      "frame": "24533"
+    },
+    "resident_1": {
+      "id": "resident_1",
+      "energy": "78",
+      "walked_m": "440.0",
+      "frame": "23701"
+    },
+    "resident_2": {
+      "id": "resident_2",
+      "energy": "77",
+      "walked_m": "460.0",
+      "frame": "24488"
+    },
+    "resident_6": {
+      "id": "resident_6",
+      "energy": "79",
+      "walked_m": "420.0",
+      "frame": "23556"
+    },
+    "resident_9": {
+      "id": "resident_9",
+      "energy": "72",
+      "walked_m": "560.0",
+      "frame": "23421"
+    },
+    "resident_10": {
+      "id": "resident_10",
+      "energy": "71",
+      "walked_m": "580.0",
+      "frame": "24211"
+    },
+    "resident_4": {
+      "id": "resident_4",
+      "energy": "71",
+      "walked_m": "580.0",
+      "frame": "24578"
+    },
+    "resident_7": {
+      "id": "resident_7",
+      "energy": "75",
+      "walked_m": "500.0",
+      "frame": "24631"
+    },
+    "resident_5": {
+      "id": "resident_5",
+      "energy": "72",
+      "walked_m": "560.0",
+      "frame": "24634"
+    },
+    "resident_3": {
+      "id": "resident_3",
+      "energy": "73",
+      "walked_m": "540.0",
+      "frame": "24051"
+    }
+  },
+  "diagnostic_lines_first100": [
+    {
+      "line": 970,
+      "text": "NPC_ROAM51 id=resident_6 result=blocked reason=roam_planning_work_limit frame=7148"
+    },
+    {
+      "line": 1779,
+      "text": "NPC_ROAM51 id=resident_6 result=blocked reason=roam_planning_work_limit frame=13100"
+    },
+    {
+      "line": 2456,
+      "text": "NPC_ROAM51 id=resident_3 result=blocked reason=roam_planning_work_limit frame=17675"
+    }
+  ],
+  "limits": "Native log summary only: no position samples, no maximum motion-idle proof, no FPS or complete behavior acceptance. Ordinary user process is read only and preserved."
+}

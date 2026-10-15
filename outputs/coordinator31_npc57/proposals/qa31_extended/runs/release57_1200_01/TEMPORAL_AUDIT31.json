@@ -1,0 +1,20 @@
+{
+  "requested_measurement_s": 1200.0,
+  "actual_frame_timeline_start_s": 0.0,
+  "actual_frame_timeline_end_s": 1200.0,
+  "sum_frame_intervals_s": 1200.000104,
+  "native_report_finalization_elapsed_s": 1200.711,
+  "physical_ticks": 71999,
+  "physical_ticks_per_observation_second": 59.99916666666667,
+  "actor_samples": 1196,
+  "first_actor_sample_s": 0.085,
+  "last_actor_sample_s": 1199.821,
+  "gap_mean_s": 1.003963179916318,
+  "gap_max_s": 1.022,
+  "count_gate_error_preserved": "insufficient_soak_samples",
+  "explanation": "Original sampler sets last_sample=now each>=1000ms. Frame quantization accumulates3.963ms per interval across1195 intervals;1196 samples span0.085..1199.821s. Full1200s frame timeline is present. Native finish timestamp1200.711s includes derived SOAK/SLOW serialization before mass report. No liveness gate or raw result is relaxed.",
+  "source_sha256": {
+    "SOAK31.json": "2c245672fc2db55225fc8ba1133e2ceeabc9330133a09078ab9fcfe2f843e5db",
+    "MASS30.json": "263af15d0f65c513dc09215779a4bb13b2b3bb5d6f8073435fd0d26997bab36b"
+  }
+}

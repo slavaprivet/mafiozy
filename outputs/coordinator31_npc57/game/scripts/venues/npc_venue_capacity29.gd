@@ -14,7 +14,7 @@ var _next_prune := 0
 func register(venue: String, kind: String, capacity: int) -> void:
 	if venue.is_empty() or capacity <= 0: return
 	if venues.has(venue): return # Existing live leases must never be resized away.
-	venues[venue] = {"kind":kind,"capacity":clampi(capacity, 1, 32),"slots":{}}
+	venues[venue] = {"kind":kind,"capacity":clampi(capacity, 1, 32),"slots":{},"concurrent_portal31":false}
 
 func unregister(venue: String, now: int) -> void:
 	if not venues.has(venue): return
@@ -87,12 +87,20 @@ func release(key: String, now: int, _reason: String = "cancel") -> void:
 	requests.erase(key)
 	_promote(now)
 
+func set_concurrent_portal31(venue: String, supported: bool) -> void:
+	if venues.has(venue): venues[venue].concurrent_portal31 = supported
+
+func portal_owner31(key: String, venue: String) -> bool:
+	if not venues.has(venue) or not requests.has(key) or requests[key].state != "reserved" or str(requests[key].venue) != venue: return false
+	var queue: Array = _portals.get(venue, [])
+	return queue.has(key) if bool(venues[venue].concurrent_portal31) else (not queue.is_empty() and str(queue[0]) == key)
+
 func portal_request(key: String, venue: String) -> bool:
-	if not requests.has(key) or str(requests[key].venue) != venue: return false
+	if not venues.has(venue) or not requests.has(key) or requests[key].state != "reserved" or str(requests[key].venue) != venue: return false
 	if not _portals.has(venue): _portals[venue] = []
 	var queue: Array = _portals[venue]
 	if not queue.has(key): queue.append(key)
-	return not queue.is_empty() and str(queue[0]) == key
+	return portal_owner31(key, venue)
 
 func portal_release(key: String, venue: String) -> void:
 	if not _portals.has(venue): return

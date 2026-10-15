@@ -1,0 +1,120 @@
+{
+  "candidate": true,
+  "project": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_release57\\game",
+  "access": "read",
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--path",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_release57\\game",
+    "--script",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\door_opening31\\entry.gd",
+    "--",
+    "--candidate31=1",
+    "--qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\door_opening31\\runs\\retire_final03",
+    "--door-case=retire"
+  ],
+  "passed": true,
+  "scheduler_sha256": "adcb834390e476edd118f62d8e3e5b391c6ebc97925391e66beeb80430ba8373",
+  "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "full_city_acceptance": false,
+  "performance_accepted": false,
+  "lease": {
+    "id": "07cc34f298df4d19ba9be609767911d0",
+    "owner": {
+      "pid": 13252,
+      "creation_filetime": "134365485372362513"
+    },
+    "mode": "headless",
+    "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator31_release57\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 6416,
+        "creation_filetime": "134365485396815237",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_release57\\game --script C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\door_opening31\\entry.gd -- --candidate31=1 --qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\door_opening31\\runs\\retire_final03 --door-case=retire",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_release57\\game",
+          "--script",
+          "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\door_opening31\\entry.gd",
+          "--",
+          "--candidate31=1",
+          "--qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\door_opening31\\runs\\retire_final03",
+          "--door-case=retire"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator31_release57\\game",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 1016701.6984875,
+    "queued_at": 1016641.6984875,
+    "ticket": 1780,
+    "inventory_before": [
+      {
+        "pid": 15100,
+        "parent_pid": 26612,
+        "creation_filetime": "134365453872935605",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_release57\\game\" --script \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_release57\\bootstrap_play57.gd\" -- \"--receipt-dir=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261015T134307267Z\" \"--release-title=15.10 · Проходы и реакции жителей · версия57\" \"--release-revision=s01-20261015-residents57\" --city-simple-hospital=1 --city-plaza-support-plate=1 --city-medical-threshold=0.5 --city-energy-drain-per-m=0.05 --city-energy-threshold=0.2 --city-palazzo-clones=1 --city-clone-step=22 --city-town=1 --city-door-free-entry=1 --city-site-door-physics=1 --city-clone-door-swing=1 --city-needs=1 --city-shop-release=1 --city-nav-pump-budget-us=4000 --city-nav-pump-every=1 --city-daily-slice=286 --city-sim-stride=1 --city-sim-one-per-frame=0 --city-walk-pose=1 --city-pose-far-cap=512 --city-clear-cache=1 --city-timing=0 --city-health-lease --city-hospital-marker=0 --city-venue-sites29=1 --city-hp=100 --city-qa=10 --city-venue-staff29=1 --city-physical-dispatch30=1 --city-multi-lifecycle30=1 --city-threat30=1",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози — 15.10 · Проходы и реакции жителей · версия57 (DEBUG)"
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5863854000344872
+  },
+  "child": {
+    "pid": 6416,
+    "creation_filetime": "134365485396815237",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_release57\\game --script C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\door_opening31\\entry.gd -- --candidate31=1 --qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\door_opening31\\runs\\retire_final03 --door-case=retire",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--path",
+      "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_release57\\game",
+      "--script",
+      "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\door_opening31\\entry.gd",
+      "--",
+      "--candidate31=1",
+      "--qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\door_opening31\\runs\\retire_final03",
+      "--door-case=retire"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator31_release57\\game",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "wall_s": 1.1048509000102058,
+  "errors": [],
+  "native_checks": {
+    "actual_door_sweep_blocked_by_resident9": true,
+    "actual_resident2_service_route": true,
+    "actual_resident9_roam_route": true,
+    "both_npcs_share_live_zone_and_symmetric_exceptions": true,
+    "close_revokes_open_intent": true,
+    "door_collision_preserved": true,
+    "exact_compact_shop002_geometry": true,
+    "native60hz": true,
+    "native_step_bounded_no_teleport": true,
+    "original_roam_goal_preserved": true,
+    "resident2_owned_inside_exit_started": true,
+    "retire_during_active_backoff": true,
+    "retired_body_stops_without_original_goal_restart": true,
+    "service_driver_has_no_roam_backoff": true,
+    "world_and_capsules_unchanged": true
+  },
+  "native_sha256": "9f6141e034d0c921bf16cd09c64434566d4b55ee462488a0433cdfc0335ab76d",
+  "source_drift": [],
+  "harness_drift": [],
+  "execution_clean": true
+}

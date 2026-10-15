@@ -144,6 +144,14 @@ func _remove_pair(key: String) -> void:
 func _clear_pairs() -> void:
 	for key: String in _pairs.keys(): _remove_pair(key)
 
+## Capability derives from the same measured, live doorway used by native pairs.
+func supports_venue31(venue: String) -> bool:
+	refresh()
+	if not _zones.has(venue): return false
+	var zone: Dictionary = _zones[venue]
+	var owner: Variant = zone.owner.get_ref(); var clone: Variant = zone.clone.get_ref()
+	return is_instance_valid(owner) and is_instance_valid(clone) and not owner.is_queued_for_deletion() and not clone.is_queued_for_deletion() and not bool(clone.get_meta("venue_closed29", false))
+
 func body_zone(body: CharacterBody3D) -> String:
 	refresh()
 	return str(_body_zones.get(body.get_instance_id(), "")) if _live(body) else ""

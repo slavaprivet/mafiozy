@@ -1,5 +1,89 @@
 # Координатор 31 — 15 октября 2026
 
+## Кандидат58 объединён — 17:43 МСК
+
+Пользовательское свободное прохождение NPC у дверей: root применил
+INTEGRATION_portal58_01.json (3файла) и INTEGRATION_door58_01.json (3файла).
+Portal native25/25:4controller одновременно,8.77с,actualcapsuleoverlap1.6мм.
+Door actualcause57: resident9 sweep_blocker, fraction.692, spatialtreadmill.968м;
+resident2 OUTBOUND865.507с. Helper физически отходит на своей стороне от дуги,
+сохраняет исходную прогулку; explicitclose отменяет, player/world/leafcollisions
+сохранены. Финальные8cases136/136PASS, reviewer P2 watcher-time исправлен.
+Helperbaa15caf/generic0bb28b9d/doorfb4f9af — exactfinal03tested; новыеUID приimport.
+stage58_01 guardedFAIL: ожидался1UID, Godot добавил4UID к существующимscript,
+gdне менялись. Отдельный IMPORT_RECOVERY58.json проверяет additions, stage58_02
+делает чистый повторный import и полный57→58manifest. СтарыйFAIL сохранён.
+Root запускает новый qa58_merged1200 с обязательным spatial gate; QA31 — services,
+services31 — graphical threat/visual. Пока это pending, не новая принятая версия.
+Spatial watcher ловит реальный57FAIL (res2~866с,res9~865с), прежний600PASS сохраняет.
+
+Native profiler city_headless04 PASS: --debug --profiling +EngineDebugger,
+30сwarmup/60сmeasure,1130exactrelease57pins/source+harness/controldrift0.
+Topself staff1.407s/28980calls,physical.move.835s,residenthost.572s,
+compactservice.501s,surfacecheck.495s,floor.433s,dooroccupants.431s.
+Observer dump3.94s исключён, headless profiler НЕFPS и не полнаяC++стоимость.
+GodotStateCharts0.22.5 MIT pinned76d226a3:96files159KB, actual9/9nativePASS,
+10charts/28events; standaloneAPIproof, productionне внедрён. LimboAI source
+reviewonly df8933d3, binaryне проверен. RVOcomparison03 crossing0/10 vs10/10:
+не внедряем, существенного выигрышанет. Reports native_profiler31/SUMMARY31.md,
+godot_addons31/FINDINGS31.md, native_navigation31/EXPERIMENT.md.
+release58_tools PREPARED,36CPUchecksPASS; freeze/startup/activation толькоroot,
+реальные новый1200+services/threat/visual+exclusiveperf57→58 обязательны.
+Пользовательская57 открыта; пока еёокноесть, сопоставимыйperfзаблокирован.
+Первая10ещёнеcomplete;20НЕактивирована. godot-4PAUSED/старыеfrozenне менять.
+Остальные разделы ниже сохраняют историю, включая прежниеpending/неизвестныепричины.
+
+## Позднее уточнение: проходы, profiler, addons
+
+User: «сделай чтоб сквозь проходили друг друга нпс в дверях … а профилер и другие
+годот плагины проверяй». Services31 — concurrent portal policy: физические peer
+исключения уже есть, но ledger.portal_request допускает лишь queue[0] до полного
+прибытия в комнату/выхода. Вместимость, staff/payment и стены/двери/player сохранить.
+QA31 после неизменного1200 terminal взял `proposals/door_opening31`: actual clone
+CompactService29_VENUE29-SHOP-002, door[-135.9,0,161.95], inner[-136.75,.243,161.95],
+stage[-138.2,.243,161.95]. Resident2 opening865.507с, resident8 queue810.235с.
+Planner arrived/cancelled/direct_used; не exhaustion path budget. OR fraction vs
+standing(inner) пока неизвестно. Native final logs24MiB; source/control/harness drift0.
+RVO COMPARISON03 matchedsource/harness: headon5.68s vs custom6.33; door2.50 vs2.48;
+radial crossingRVO0/10/12s vs custom10/10/9.10s. НЕ внедряем RVO. Adapter script
+время не равно C++ cost; TIME_NAVIGATION_PROCESS выше сRVO, perf acceptanceнет.
+Root `native_profiler31`: настоящий --profiling, EngineDebugger script profiler,
+30s warmup/reset+60smeasurement, wholecity10+12 unchanged release57. city_headless01
+не запустилдвижок: отсутствует.vscode/launch.json, сохраненычастичныеpins; runner
+поправлен учитыватьотсутствие, city_headless02 запущен. Source/F5preserve, неFPSgate.
+Attention31 не создал extendedсерии/child, прерван после отсутствиястатуса;
+перезапущен с задачей `godot_addons31`: маленький isolated GodotStateCharts proof,
+точныйupstream/license, оценкаLimboAIбезбольшойзагрузки. Повторныеугрозы10pending.
+Root service_threat31_extended/shop01 иshop02 terminalFAIL native_shot_not_emitted,
+realinside/fullhealth/all9movementPASS, stderr/source/harnessdrift0. Это ошибка
+QAinput calibration, не доказательство ошибки gameplay. Сохранить оба receipts.
+
+## Продолжение цели: дверь57 и готовые средства Godot
+
+Предыдущий goal-turn — progress:57 запущена/F5/main/origin `94367286f3b5273c4d71ab4b60570cd39814c41c`.
+Цель живого города остаётся active, полный результат не достигнут.
+Пользователь спросил о встроенных средствах Godot и прямо сказал «пробуй».
+Source audit подтвердил NavigationServer3D async navmesh/pathquery уже используется;
+локальный avoidance свой, RVO agentAPI пока нет. Services берёт отдельный
+`proposals/native_navigation31` с настоящим сопоставлением10/crossing/doorway,
+не переписывает production до доказательств. 3 микрооптимизации в
+`services31_extended` только подготовлены/CPU35PASS, native ещё PENDING.
+Root подготовил `service_threat31_extended`: shop/restaurant interruption,
+10+12, одна локальная agenda, настоящие input/claims/payment/выход; native PENDING.
+QA `qa31_extended/runs/release57_1200_01` exact1130pins release57: новыйFAIL на361с,
+resident2 OUTBOUND/opening/arrived неподвижен27с; к542с207с, resident8 очередь152с.
+Venue1511023256169, pos[-138.205902,.240001,161.955429]. threatIDLE, exit_blocked0.
+Это новый реальный дефект, ни count exit_blocked0, ни старый600PASS его не исключают.
+Причинная ветка npc_restaurant_visit28.gd304–309 держит hold до door_open56 и
+support.standing(inner), безdeadline. Какоеусловие ложное ещёнеизвестно:
+V3read-onlySLOW неэкспортируетdoor_fraction/owner.target/supportresult.
+RUN ещёживой; исходный harness не менять, не рестартовать по observationtimeout.
+Root разберёт geometry и подготовит точныйdiagnostic. F5/user57не трогать,
+20не активировать. Attention делает repeated all10 threats, безNPC/HPwrites.
+Read-only live57_first: все10 ходили,26полныхпокупок/179прогулок/62ambient,
+все18видовзанятий встречены,stderr0;3failedroam затемrecovery. Это журнал,
+не доказательство отсутствиядолгих motionstalls в пользовательскомокне.
+
 ## Итог доставки57 — 2026-10-15T13:44:52.196526+00:00
 
 Обычная57 READY, F5 проверена и активирована; PID15100 исторический,

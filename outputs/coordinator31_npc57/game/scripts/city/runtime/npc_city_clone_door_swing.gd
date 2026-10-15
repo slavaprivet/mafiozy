@@ -63,6 +63,9 @@ var anchor := Vector3.ZERO
 
 var fraction := 0.0
 var target := 0.0
+## A rejected open still asks the blocking NPC to clear the live leaf arc.
+## A later close request revokes that intent even if target was already closed.
+var _opening_requested31 := false
 var last_trigger := "idle"
 var prompt_visible := false
 var failures := 0
@@ -187,6 +190,7 @@ func configure(owner: Node, clone_name: String, host: Node3D) -> bool:
 	_state = STATE_CLOSED
 	fraction = 0.0
 	target = 0.0
+	_opening_requested31 = false
 	set_physics_process(true)
 	_emit("closed", "idle", "install")
 	return true
@@ -363,7 +367,12 @@ func request_door(key: String, open: bool, actor_position: Vector3, _occupants: 
 	return {"accepted": true, "open": open, "source_id": "clone:" + clone_id, "distance": distance}
 
 
+func opening_requested31() -> bool:
+	return _configured and _available() and _opening_requested31
+
+
 func _request_target(open: bool, trigger: String) -> Dictionary:
+	_opening_requested31 = open
 	var next: float = 1.0 if open else 0.0
 	if is_equal_approx(target, next):
 		return {"accepted": true}
@@ -698,6 +707,7 @@ func snapshot() -> Dictionary:
 		"state": _state,
 		"fraction": fraction,
 		"target": target,
+		"opening_requested31": _opening_requested31,
 		"trigger": last_trigger,
 		"prompt": "shown" if prompt_visible else "hidden",
 		"anchor": [anchor.x, anchor.y, anchor.z],

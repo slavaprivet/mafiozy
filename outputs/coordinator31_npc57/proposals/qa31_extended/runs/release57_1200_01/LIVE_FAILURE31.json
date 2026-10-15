@@ -1,0 +1,407 @@
+{
+  "terminal": false,
+  "run": "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator31_npc57\\proposals\\qa31_extended\\runs\\release57_1200_01",
+  "live_reports": [
+    {
+      "actors": 10,
+      "highlights": [
+        {
+          "door_stage": "opening",
+          "id": "resident_2",
+          "life_phase": "WALKING",
+          "motion_idle_s": 57.273,
+          "no_progress_s": 57.273,
+          "outer_phase": "OUTBOUND",
+          "position": [
+            -138.205902099609,
+            0.240001082420349,
+            161.955429077148
+          ],
+          "queue_idle_s": 0.0,
+          "route_phase": "arrived",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": "1511023256169"
+        }
+      ],
+      "measure_ms": 391587
+    },
+    {
+      "actors": 10,
+      "highlights": [
+        {
+          "door_stage": "opening",
+          "id": "resident_2",
+          "life_phase": "WALKING",
+          "motion_idle_s": 87.397,
+          "no_progress_s": 87.397,
+          "outer_phase": "OUTBOUND",
+          "position": [
+            -138.205902099609,
+            0.240001082420349,
+            161.955429077148
+          ],
+          "queue_idle_s": 0.0,
+          "route_phase": "arrived",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": "1511023256169"
+        },
+        {
+          "door_stage": "",
+          "id": "resident_8",
+          "life_phase": "WALKING",
+          "motion_idle_s": 0.0,
+          "no_progress_s": 32.125,
+          "outer_phase": "PORTAL_WAIT_IN",
+          "position": [
+            -132.322143554688,
+            0.000861597596667707,
+            166.236618041992
+          ],
+          "queue_idle_s": 32.125,
+          "route_phase": "arrived",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": "1511023256169"
+        }
+      ],
+      "measure_ms": 421711
+    },
+    {
+      "actors": 10,
+      "highlights": [
+        {
+          "door_stage": "opening",
+          "id": "resident_2",
+          "life_phase": "WALKING",
+          "motion_idle_s": 117.453,
+          "no_progress_s": 117.453,
+          "outer_phase": "OUTBOUND",
+          "position": [
+            -138.205902099609,
+            0.240001082420349,
+            161.955429077148
+          ],
+          "queue_idle_s": 0.0,
+          "route_phase": "arrived",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": "1511023256169"
+        },
+        {
+          "door_stage": "",
+          "id": "resident_8",
+          "life_phase": "WALKING",
+          "motion_idle_s": 0.0,
+          "no_progress_s": 62.181,
+          "outer_phase": "PORTAL_WAIT_IN",
+          "position": [
+            -132.322143554688,
+            0.000861597596667707,
+            166.236618041992
+          ],
+          "queue_idle_s": 62.181,
+          "route_phase": "arrived",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": "1511023256169"
+        }
+      ],
+      "measure_ms": 451767
+    },
+    {
+      "actors": 10,
+      "highlights": [
+        {
+          "door_stage": "opening",
+          "id": "resident_2",
+          "life_phase": "WALKING",
+          "motion_idle_s": 147.535,
+          "no_progress_s": 147.535,
+          "outer_phase": "OUTBOUND",
+          "position": [
+            -138.205902099609,
+            0.240001082420349,
+            161.955429077148
+          ],
+          "queue_idle_s": 0.0,
+          "route_phase": "arrived",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": "1511023256169"
+        },
+        {
+          "door_stage": "",
+          "id": "resident_8",
+          "life_phase": "WALKING",
+          "motion_idle_s": 0.0,
+          "no_progress_s": 92.263,
+          "outer_phase": "PORTAL_WAIT_IN",
+          "position": [
+            -132.322143554688,
+            0.000861597596667707,
+            166.236618041992
+          ],
+          "queue_idle_s": 92.263,
+          "route_phase": "arrived",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": "1511023256169"
+        }
+      ],
+      "measure_ms": 481849
+    },
+    {
+      "actors": 10,
+      "highlights": [
+        {
+          "door_stage": "opening",
+          "id": "resident_2",
+          "life_phase": "WALKING",
+          "motion_idle_s": 177.641,
+          "no_progress_s": 177.641,
+          "outer_phase": "OUTBOUND",
+          "position": [
+            -138.205902099609,
+            0.240001082420349,
+            161.955429077148
+          ],
+          "queue_idle_s": 0.0,
+          "route_phase": "arrived",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": "1511023256169"
+        },
+        {
+          "door_stage": "",
+          "id": "resident_8",
+          "life_phase": "WALKING",
+          "motion_idle_s": 0.0,
+          "no_progress_s": 122.369,
+          "outer_phase": "PORTAL_WAIT_IN",
+          "position": [
+            -132.322143554688,
+            0.000861597596667707,
+            166.236618041992
+          ],
+          "queue_idle_s": 122.369,
+          "route_phase": "arrived",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": "1511023256169"
+        }
+      ],
+      "measure_ms": 511955
+    },
+    {
+      "actors": 10,
+      "highlights": [
+        {
+          "door_stage": "opening",
+          "id": "resident_2",
+          "life_phase": "WALKING",
+          "motion_idle_s": 207.779,
+          "no_progress_s": 207.779,
+          "outer_phase": "OUTBOUND",
+          "position": [
+            -138.205902099609,
+            0.240001082420349,
+            161.955429077148
+          ],
+          "queue_idle_s": 0.0,
+          "route_phase": "arrived",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": "1511023256169"
+        },
+        {
+          "door_stage": "",
+          "id": "resident_8",
+          "life_phase": "WALKING",
+          "motion_idle_s": 0.0,
+          "no_progress_s": 152.507,
+          "outer_phase": "PORTAL_WAIT_IN",
+          "position": [
+            -132.322143554688,
+            0.000861597596667707,
+            166.236618041992
+          ],
+          "queue_idle_s": 152.507,
+          "route_phase": "arrived",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": "1511023256169"
+        }
+      ],
+      "measure_ms": 542093
+    }
+  ],
+  "resident2_8_economy": [
+    "NPC_ECONOMY28 id=resident_2 kind= stage=configured cash=1000 serial=0 reason=random_sandbox;cash_cap=1000 frame=1230",
+    "NPC_ECONOMY28 id=resident_8 kind= stage=configured cash=1000 serial=0 reason=random_sandbox;cash_cap=1000 frame=1230",
+    "NPC_ECONOMY28 id=resident_2 kind= stage=roam_arrived cash=1000 serial=0 reason=count=1;roll=29;action=ambient frame=1633",
+    "NPC_ECONOMY28 id=resident_8 kind= stage=roam_arrived cash=1000 serial=0 reason=count=1;roll=84;action=walk frame=1693",
+    "NPC_ECONOMY28 id=resident_8 kind= stage=roam_arrived cash=1000 serial=0 reason=count=2;roll=20;action=ambient frame=2126",
+    "NPC_ECONOMY28 id=resident_2 kind= stage=purchase_chosen cash=1000 serial=0 reason={\"kind\":\"shop\",\"price\":17,\"restore_energy\":false} frame=2299",
+    "NPC_ECONOMY28 id=resident_2 kind= stage=roam_arrived cash=1000 serial=0 reason=count=2;roll=16;action=shop frame=2299",
+    "NPC_ECONOMY28 id=resident_2 kind=shop stage=started cash=1000 serial=1 reason=signed_clone;planned=17 frame=2411",
+    "NPC_ECONOMY28 id=resident_8 kind= stage=roam_arrived cash=1000 serial=0 reason=count=3;roll=71;action=walk frame=2804",
+    "NPC_ECONOMY28 id=resident_8 kind= stage=roam_arrived cash=1000 serial=0 reason=count=4;roll=53;action=ambient frame=3078",
+    "NPC_ECONOMY28 id=resident_8 kind= stage=roam_arrived cash=1000 serial=0 reason=count=5;roll=37;action=ambient frame=3792",
+    "NPC_ECONOMY28 id=resident_8 kind= stage=roam_arrived cash=1000 serial=0 reason=count=6;roll=84;action=walk frame=4755",
+    "NPC_ECONOMY28 id=resident_8 kind= stage=roam_arrived cash=1000 serial=0 reason=count=7;roll=34;action=ambient frame=5213",
+    "NPC_ECONOMY28 id=resident_8 kind= stage=roam_arrived cash=1000 serial=0 reason=count=8;roll=58;action=walk frame=5987",
+    "NPC_ECONOMY28 id=resident_2 kind=shop stage=interrupted cash=1000 serial=1 reason=service_planning_work_limit30 frame=6052",
+    "NPC_ECONOMY28 id=resident_2 kind=shop stage=roam_arrived cash=1000 serial=1 reason=count=3;roll=19;action=shop frame=6402",
+    "NPC_ECONOMY28 id=resident_8 kind= stage=roam_arrived cash=1000 serial=0 reason=count=9;roll=94;action=walk frame=6492",
+    "NPC_ECONOMY28 id=resident_2 kind=shop stage=started cash=1000 serial=2 reason=signed_clone;planned=17 frame=6571",
+    "NPC_ECONOMY28 id=resident_8 kind= stage=roam_arrived cash=1000 serial=0 reason=count=10;roll=74;action=walk frame=6977",
+    "NPC_ECONOMY28 id=resident_8 kind= stage=roam_arrived cash=1000 serial=0 reason=count=11;roll=54;action=ambient frame=7383",
+    "NPC_ECONOMY28 id=resident_8 kind= stage=roam_arrived cash=1000 serial=0 reason=count=12;roll=69;action=walk frame=8282",
+    "NPC_ECONOMY28 id=resident_8 kind= stage=roam_arrived cash=1000 serial=0 reason=count=13;roll=55;action=walk frame=8562",
+    "NPC_ECONOMY28 id=resident_8 kind= stage=purchase_chosen cash=1000 serial=0 reason={\"kind\":\"shop\",\"price\":21,\"restore_energy\":false} frame=9129",
+    "NPC_ECONOMY28 id=resident_8 kind= stage=roam_arrived cash=1000 serial=0 reason=count=14;roll=5;action=shop frame=9129",
+    "NPC_ECONOMY28 id=resident_8 kind=shop stage=started cash=1000 serial=1 reason=signed_clone;planned=21 frame=9257",
+    "NPC_ECONOMY28 id=resident_2 kind=shop stage=entered cash=1000 serial=2 reason=live_floor_and_door_plane frame=18829",
+    "NPC_ECONOMY28 id=resident_2 kind=shop stage=paid cash=983 serial=2 reason=inside_still_2000ms frame=18950",
+    "NPC_ECONOMY28 id=resident_2 kind=shop stage=leaving cash=983 serial=2 reason=transaction_committed frame=18950",
+    "NPC_ECONOMY28 id=resident_2 kind=shop stage=complete cash=983 serial=2 reason=physical_exit frame=19246",
+    "NPC_ECONOMY28 id=resident_2 kind=shop stage=purchase_chosen cash=983 serial=2 reason={\"kind\":\"shop\",\"price\":44,\"restore_energy\":false} frame=19674",
+    "NPC_ECONOMY28 id=resident_2 kind=shop stage=roam_arrived cash=983 serial=2 reason=count=4;roll=6;action=shop frame=19674",
+    "NPC_ECONOMY28 id=resident_2 kind=shop stage=started cash=983 serial=3 reason=signed_clone;planned=44 frame=19751",
+    "NPC_ECONOMY28 id=resident_2 kind=shop stage=entered cash=983 serial=3 reason=live_floor_and_door_plane frame=20536",
+    "NPC_ECONOMY28 id=resident_2 kind=shop stage=paid cash=939 serial=3 reason=inside_still_2000ms frame=20657",
+    "NPC_ECONOMY28 id=resident_2 kind=shop stage=leaving cash=939 serial=3 reason=transaction_committed frame=20657",
+    "NPC_ECONOMY28 id=resident_2 kind=shop stage=complete cash=939 serial=3 reason=physical_exit frame=20872",
+    "NPC_ECONOMY28 id=resident_2 kind=shop stage=roam_arrived cash=939 serial=3 reason=count=5;roll=49;action=ambient frame=21238",
+    "NPC_ECONOMY28 id=resident_2 kind=shop stage=purchase_chosen cash=939 serial=3 reason={\"kind\":\"shop\",\"price\":26,\"restore_energy\":false} frame=22149",
+    "NPC_ECONOMY28 id=resident_2 kind=shop stage=roam_arrived cash=939 serial=3 reason=count=6;roll=17;action=shop frame=22149",
+    "NPC_ECONOMY28 id=resident_2 kind=shop stage=started cash=939 serial=4 reason=signed_clone;planned=26 frame=22291",
+    "NPC_ECONOMY28 id=resident_2 kind=shop stage=entered cash=939 serial=4 reason=live_floor_and_door_plane frame=22855",
+    "NPC_ECONOMY28 id=resident_2 kind=shop stage=paid cash=913 serial=4 reason=inside_still_2000ms frame=22976",
+    "NPC_ECONOMY28 id=resident_2 kind=shop stage=leaving cash=913 serial=4 reason=transaction_committed frame=22976"
+  ],
+  "limitations": "Running source/harness unchanged. Current observer does not export door_fraction or standing(inner) result. Native buffers remain in process until bounded terminal."
+}

@@ -2,6 +2,7 @@ extends RefCounted
 ## One registry per scene, one cheap door inventory per second, geometry once/site.
 ## A sign alone is not admission: immutable physical door, floor and capsule remain.
 const Capacity = preload("npc_venue_capacity29.gd")
+const Passage31 = preload("res://scripts/navigation/npc_passage31.gd")
 const Swing = preload("res://scripts/city/runtime/npc_city_clone_door_swing.gd")
 const Physical = preload("res://scripts/hospital/npc_physical_route51.gd")
 const META := "npc_venue_registry29"
@@ -190,6 +191,9 @@ func entry(venue: String) -> Dictionary:
 		unregister(venue, "closed29"); return {}
 	if not is_instance_valid(owner) or not is_instance_valid(clone) or owner.is_queued_for_deletion() or clone.is_queued_for_deletion():
 		unregister(venue, "retired"); return {}
+	var scene31: Node3D = _scene.get_ref() as Node3D if _scene != null else null
+	var passage31: Node = Passage31.for_scene(scene31)
+	ledger.set_concurrent_portal31(venue, is_instance_valid(passage31) and passage31.supports_venue31(venue))
 	return value
 
 func owns(key: String, controller: RefCounted) -> bool:
@@ -332,8 +336,7 @@ func doorway_state29(body: CharacterBody3D) -> Dictionary:
 	if refs.body.get_ref() != body or not is_instance_valid(controller): return empty
 	var venue: String = str(controller.get("_venue"))
 	var phase: String = str(controller.get("_phase"))
-	var portal: Array = ledger._portals.get(venue, [])
-	var owner: bool = not portal.is_empty() and str(portal[0]) == key
+	var owner: bool = ledger.portal_owner31(key, venue)
 	var mode := "none"
 	var hold: Vector3 = body.global_position
 	if phase == "SERVICE_WAIT": mode = "waiting"; hold = controller.get("_room")

@@ -1,0 +1,9 @@
+{
+  "entry.gd": "eb78e820a773c68fc48cde4d257f245148434149d5a86cfbd210664ce18b60f2",
+  "fixture31.gd": "19fe8d45f672e31f6edcd67419a8a22e125cdb3cf32e7aa0a0448a6c73541300",
+  "fixture_base31.gd": "b9437f43879dc655769414cc2de7854379d0e07c8b2fc0ee7328cbc32e125d6c",
+  "run31.py": "0a60b41096ae1c48407bf1d6ddaeec903fcc1740c5ee60f5bc733d5329db821f",
+  "patch/scripts/hospital/npc_door_clearance31.gd": "cee854a393c5f659a5ab1a175650c545b424a8460da1d11bf56810c0b9daf929",
+  "patch/scripts/hospital/npc_simple_hospital.gd": "b74835c0b54269b4ebb48940f037edf7b08fe7ceb8cbef08b7865e69db566ae5",
+  "patch/scripts/city/runtime/npc_city_clone_door_swing.gd": "fb4f9af5277768272b16323289bdbbe9831bb63f5b63dfd05123195932c93528"
+}

@@ -1,0 +1,12 @@
+SCRIPT ERROR: Invalid call. Nonexistent function 'door_fraction' in base 'Nil'.
+   at: snapshot (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/door_opening31/fixture_base31.gd:57)
+   GDScript backtrace (most recent call first):
+       [0] snapshot (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/door_opening31/fixture_base31.gd:57)
+       [1] _run (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/door_opening31/fixture31.gd:50)
+       [2] step (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/door_opening31/fixture_base31.gd:43)
+SCRIPT ERROR: Invalid call. Nonexistent function 'door_fraction' in base 'Nil'.
+   at: snapshot (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/door_opening31/fixture_base31.gd:57)
+   GDScript backtrace (most recent call first):
+       [0] snapshot (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/door_opening31/fixture_base31.gd:57)
+       [1] _run (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/door_opening31/fixture31.gd:50)
+       [2] step (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/door_opening31/fixture_base31.gd:43)

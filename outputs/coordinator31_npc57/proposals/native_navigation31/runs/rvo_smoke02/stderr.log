@@ -1,0 +1,7 @@
+SCRIPT ERROR: Attempt to call function 'dispose' in base 'null instance' on a null instance.
+   at: _notification (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_navigation31/rvo31.gd:131)
+   GDScript backtrace (most recent call first):
+       [0] _notification (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_navigation31/rvo31.gd:131)
+       [1] reset (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_navigation31/fixture31.gd:74)
+       [2] _run (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_navigation31/fixture31.gd:213)
+       [3] step (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/native_navigation31/fixture31.gd:57)

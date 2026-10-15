@@ -1,0 +1,616 @@
+{
+  "statecharts": {
+    "repository": "https://github.com/derkork/godot-statecharts",
+    "commit": "76d226a3efac66a72aea825382b320c94808f409",
+    "files": [
+      {
+        "path": "upstream/statecharts/LICENSE",
+        "upstream_path": "LICENSE",
+        "bytes": 1067,
+        "sha256": "ff750b7a35accad94d9548e5d040da6df9b328a6eaec2918d217022bcd8276d1"
+      },
+      {
+        "path": "upstream/statecharts/README.md",
+        "upstream_path": "README.md",
+        "bytes": 2903,
+        "sha256": "1bd68495f0ed311ea899d1a2fc3da30f26ba3eac8ca6f94849963943932244f1"
+      },
+      {
+        "path": "project/addons/godot_state_charts/LICENSE",
+        "upstream_path": "addons/godot_state_charts/LICENSE",
+        "bytes": 1067,
+        "sha256": "ff750b7a35accad94d9548e5d040da6df9b328a6eaec2918d217022bcd8276d1"
+      },
+      {
+        "path": "project/addons/godot_state_charts/all_of_guard.gd",
+        "upstream_path": "addons/godot_state_charts/all_of_guard.gd",
+        "bytes": 686,
+        "sha256": "56aa2e228df9c4231af5dc36076c8a1ceab5ee9e7e66574439f479156489ab9c"
+      },
+      {
+        "path": "project/addons/godot_state_charts/all_of_guard.gd.uid",
+        "upstream_path": "addons/godot_state_charts/all_of_guard.gd.uid",
+        "bytes": 20,
+        "sha256": "12abcc48d4b1f2c1599f02afa859d95f54a3d3b709f2d16da2165a8ab37e9c19"
+      },
+      {
+        "path": "project/addons/godot_state_charts/all_of_guard.svg",
+        "upstream_path": "addons/godot_state_charts/all_of_guard.svg",
+        "bytes": 2105,
+        "sha256": "33f1b088aa2aed794e627d6094df2ed1d88552aa5605ab4c17104806fd9e4d2b"
+      },
+      {
+        "path": "project/addons/godot_state_charts/animation_player_state.gd",
+        "upstream_path": "addons/godot_state_charts/animation_player_state.gd",
+        "bytes": 2008,
+        "sha256": "0dad168250b270b4b05334da3138bafcbe4f5f7582d57d4d7ffba550b1363a37"
+      },
+      {
+        "path": "project/addons/godot_state_charts/animation_player_state.gd.uid",
+        "upstream_path": "addons/godot_state_charts/animation_player_state.gd.uid",
+        "bytes": 20,
+        "sha256": "185ea5d3dff5241e032f087714644b4750292997d2ddf89b53d54bd0efce81de"
+      },
+      {
+        "path": "project/addons/godot_state_charts/animation_player_state.svg",
+        "upstream_path": "addons/godot_state_charts/animation_player_state.svg",
+        "bytes": 526,
+        "sha256": "d6e7b04bda3d022c1568ff4ea4d427c76bef0e96782ff00aa99c0a8e9b1806c1"
+      },
+      {
+        "path": "project/addons/godot_state_charts/animation_tree_state.gd",
+        "upstream_path": "addons/godot_state_charts/animation_tree_state.gd",
+        "bytes": 1852,
+        "sha256": "4cc0d9a64c00a7848379836bfafc04b5aea07730c598259fb1282a19fe37acc4"
+      },
+      {
+        "path": "project/addons/godot_state_charts/animation_tree_state.gd.uid",
+        "upstream_path": "addons/godot_state_charts/animation_tree_state.gd.uid",
+        "bytes": 19,
+        "sha256": "027d904fb335dcd24e08beb09f23d3a9a4d03102ac2be1089af6ca3b50b6dfb6"
+      },
+      {
+        "path": "project/addons/godot_state_charts/animation_tree_state.svg",
+        "upstream_path": "addons/godot_state_charts/animation_tree_state.svg",
+        "bytes": 821,
+        "sha256": "5f9342f2df79f1a213821991ebdfda2cfde54b5a2be95d8004070b747381e08a"
+      },
+      {
+        "path": "project/addons/godot_state_charts/any_of_guard.gd",
+        "upstream_path": "addons/godot_state_charts/any_of_guard.gd",
+        "bytes": 706,
+        "sha256": "ec577bf96952adcdbb0b95e1c2140a9bb4c08ed7376f3bcca15dc36a6015771e"
+      },
+      {
+        "path": "project/addons/godot_state_charts/any_of_guard.gd.uid",
+        "upstream_path": "addons/godot_state_charts/any_of_guard.gd.uid",
+        "bytes": 20,
+        "sha256": "8a578ef1654c6b732c6955b65ab8c456a41fd4f988ff4406d579dfd834db7c2c"
+      },
+      {
+        "path": "project/addons/godot_state_charts/any_of_guard.svg",
+        "upstream_path": "addons/godot_state_charts/any_of_guard.svg",
+        "bytes": 418,
+        "sha256": "ee8c529e2bf874adeb3524eabbe2e71d1207667179631d282344b659aaf93efb"
+      },
+      {
+        "path": "project/addons/godot_state_charts/atomic_state.gd",
+        "upstream_path": "addons/godot_state_charts/atomic_state.gd",
+        "bytes": 908,
+        "sha256": "6593095bb092fe2d5722777f86dfdc36e2b1798d2fd1b14bf9d8d499d5438cf7"
+      },
+      {
+        "path": "project/addons/godot_state_charts/atomic_state.gd.uid",
+        "upstream_path": "addons/godot_state_charts/atomic_state.gd.uid",
+        "bytes": 20,
+        "sha256": "a96d84fadfb83241d03b987c31c48322d9f0dac9c9aae3e6f58758052b9aa3e0"
+      },
+      {
+        "path": "project/addons/godot_state_charts/atomic_state.svg",
+        "upstream_path": "addons/godot_state_charts/atomic_state.svg",
+        "bytes": 498,
+        "sha256": "ef4e39a812489e6bcc3c271375aab93883096fb22e0f8bbd1685f4b5416b19e1"
+      },
+      {
+        "path": "project/addons/godot_state_charts/compound_state.gd",
+        "upstream_path": "addons/godot_state_charts/compound_state.gd",
+        "bytes": 9931,
+        "sha256": "fd90df70a3c5237805bd206e7a1056ee14327e0ab51bb1bc64d4de977a694b1f"
+      },
+      {
+        "path": "project/addons/godot_state_charts/compound_state.gd.uid",
+        "upstream_path": "addons/godot_state_charts/compound_state.gd.uid",
+        "bytes": 19,
+        "sha256": "bcf7b5c0e429dd907c817b092620e09f33f52bfbbfa12dd549d0e6777a235183"
+      },
+      {
+        "path": "project/addons/godot_state_charts/compound_state.svg",
+        "upstream_path": "addons/godot_state_charts/compound_state.svg",
+        "bytes": 1103,
+        "sha256": "94369b93e952ee21de1255a356b2cc99dce88a8ccd757f017b54038c200c3583"
+      },
+      {
+        "path": "project/addons/godot_state_charts/debug_util.gd",
+        "upstream_path": "addons/godot_state_charts/debug_util.gd",
+        "bytes": 283,
+        "sha256": "58156b5309a4f369d4430b9a9a7112614b071f4ab6dcddb0745cb544ac492d46"
+      },
+      {
+        "path": "project/addons/godot_state_charts/debug_util.gd.uid",
+        "upstream_path": "addons/godot_state_charts/debug_util.gd.uid",
+        "bytes": 20,
+        "sha256": "37ef1839199e016cc3b806f0edd2a3d58579075a6e4fae4fc6692157ea1c5206"
+      },
+      {
+        "path": "project/addons/godot_state_charts/expression_guard.gd",
+        "upstream_path": "addons/godot_state_charts/expression_guard.gd",
+        "bytes": 1111,
+        "sha256": "7f8d3a42d542c6decf14e0b7c63e9f7eea63fd7bdf7c4bdb89933746f4250647"
+      },
+      {
+        "path": "project/addons/godot_state_charts/expression_guard.gd.uid",
+        "upstream_path": "addons/godot_state_charts/expression_guard.gd.uid",
+        "bytes": 19,
+        "sha256": "210a7234ef7d48065fd04df4ed64fec2e7dd764c198e1840a63be10a1ddf7f14"
+      },
+      {
+        "path": "project/addons/godot_state_charts/expression_guard.svg",
+        "upstream_path": "addons/godot_state_charts/expression_guard.svg",
+        "bytes": 1027,
+        "sha256": "fb285879316ba733826aaa583560041484f2ef6e7b3bd19998a67c6d58a6fab3"
+      },
+      {
+        "path": "project/addons/godot_state_charts/expression_util.gd",
+        "upstream_path": "addons/godot_state_charts/expression_util.gd",
+        "bytes": 1072,
+        "sha256": "8e2e785fb5708ae52eebf0e356f762fd9a46502aff5e9d37245f8772b9e96098"
+      },
+      {
+        "path": "project/addons/godot_state_charts/expression_util.gd.uid",
+        "upstream_path": "addons/godot_state_charts/expression_util.gd.uid",
+        "bytes": 20,
+        "sha256": "a96ac0cd62be3df760952d39623ed682f8e483937a3423a87e3f3859c3c3e648"
+      },
+      {
+        "path": "project/addons/godot_state_charts/godot_state_charts.gd",
+        "upstream_path": "addons/godot_state_charts/godot_state_charts.gd",
+        "bytes": 4332,
+        "sha256": "c8318f994e337b17d0bf1880a7def20ae1bdec9a389464d26c5ec3ddba2d02b0"
+      },
+      {
+        "path": "project/addons/godot_state_charts/godot_state_charts.gd.uid",
+        "upstream_path": "addons/godot_state_charts/godot_state_charts.gd.uid",
+        "bytes": 20,
+        "sha256": "bac1571b78fc6d71d3f2c3929ea57f1ffabf4eb446588c60f802e37b18920dc1"
+      },
+      {
+        "path": "project/addons/godot_state_charts/guard.gd",
+        "upstream_path": "addons/godot_state_charts/guard.gd",
+        "bytes": 606,
+        "sha256": "c20fc007c7f60ec27825d548cc37f89ba44cfbf8592aa59c73522397a7bb077d"
+      },
+      {
+        "path": "project/addons/godot_state_charts/guard.gd.uid",
+        "upstream_path": "addons/godot_state_charts/guard.gd.uid",
+        "bytes": 20,
+        "sha256": "c98ab6c2ef8765400d42f3c43455a071c28462896acbaa7de9aef0cf019d31c4"
+      },
+      {
+        "path": "project/addons/godot_state_charts/guard.svg",
+        "upstream_path": "addons/godot_state_charts/guard.svg",
+        "bytes": 348,
+        "sha256": "f32529c83a7c67f74f011f42fafe4927f7048f64725232f67f1fc035969715c3"
+      },
+      {
+        "path": "project/addons/godot_state_charts/history_state.gd",
+        "upstream_path": "addons/godot_state_charts/history_state.gd",
+        "bytes": 1846,
+        "sha256": "da4d77cf5d96493ebbcd48ff0b031cc67a7bd2cd48f58e81e7d391b90f7e4a56"
+      },
+      {
+        "path": "project/addons/godot_state_charts/history_state.gd.uid",
+        "upstream_path": "addons/godot_state_charts/history_state.gd.uid",
+        "bytes": 20,
+        "sha256": "1f1221bc38928867e52e5b2234d362e1c3acb78c8185aa5525f9f6a215e6fb33"
+      },
+      {
+        "path": "project/addons/godot_state_charts/history_state.svg",
+        "upstream_path": "addons/godot_state_charts/history_state.svg",
+        "bytes": 810,
+        "sha256": "49e585a5b46b0d185330c6b853f1c0b392a05e2b89707641de564908506b0297"
+      },
+      {
+        "path": "project/addons/godot_state_charts/not_guard.gd",
+        "upstream_path": "addons/godot_state_charts/not_guard.gd",
+        "bytes": 577,
+        "sha256": "7751cd6bab0f246b5bace32faefe826e859b32c97e9794e563f17fe0f6298b8a"
+      },
+      {
+        "path": "project/addons/godot_state_charts/not_guard.gd.uid",
+        "upstream_path": "addons/godot_state_charts/not_guard.gd.uid",
+        "bytes": 20,
+        "sha256": "1fdc95deee21e07e914e5220d14f92d76e87ce01427d9e296a7b405814c41752"
+      },
+      {
+        "path": "project/addons/godot_state_charts/not_guard.svg",
+        "upstream_path": "addons/godot_state_charts/not_guard.svg",
+        "bytes": 459,
+        "sha256": "60a3f0e3172ade3b544611ef3ebed237b0aab6f1e5bddd95c8bda474bb9fc41d"
+      },
+      {
+        "path": "project/addons/godot_state_charts/parallel_state.gd",
+        "upstream_path": "addons/godot_state_charts/parallel_state.gd",
+        "bytes": 3498,
+        "sha256": "511e74419613205a55442fdf12a87b7a372b4229a396db0d3a773ee863255352"
+      },
+      {
+        "path": "project/addons/godot_state_charts/parallel_state.gd.uid",
+        "upstream_path": "addons/godot_state_charts/parallel_state.gd.uid",
+        "bytes": 20,
+        "sha256": "e6dee866585a73b4e8bb47eba3663d385b1de4af12980122c23b80cf022aeb62"
+      },
+      {
+        "path": "project/addons/godot_state_charts/parallel_state.svg",
+        "upstream_path": "addons/godot_state_charts/parallel_state.svg",
+        "bytes": 666,
+        "sha256": "0347d4370abdbe70c20fa7bcb9d70661b82397293879a49f93ecf583d8b6c637"
+      },
+      {
+        "path": "project/addons/godot_state_charts/plugin.cfg",
+        "upstream_path": "addons/godot_state_charts/plugin.cfg",
+        "bytes": 187,
+        "sha256": "9c0f473854dc0bce53d5563a73ef530949da919995451a208c827e20c5b078dd"
+      },
+      {
+        "path": "project/addons/godot_state_charts/saved_state.gd",
+        "upstream_path": "addons/godot_state_charts/saved_state.gd",
+        "bytes": 1188,
+        "sha256": "ae56555bfb47f0f3262457f804685933f07878fa72d084904c14dc908f89b8ba"
+      },
+      {
+        "path": "project/addons/godot_state_charts/saved_state.gd.uid",
+        "upstream_path": "addons/godot_state_charts/saved_state.gd.uid",
+        "bytes": 20,
+        "sha256": "eaabe89e831508703abb12fa4bac1bdc92e1ea8b27c48b2075327542867a4d4f"
+      },
+      {
+        "path": "project/addons/godot_state_charts/serialized_state_chart.gd",
+        "upstream_path": "addons/godot_state_charts/serialized_state_chart.gd",
+        "bytes": 1501,
+        "sha256": "f219e38f83ec9d78b7ec0d7d29d41df4036404227f86e073ea5f86c7f4f4912f"
+      },
+      {
+        "path": "project/addons/godot_state_charts/serialized_state_chart.gd.uid",
+        "upstream_path": "addons/godot_state_charts/serialized_state_chart.gd.uid",
+        "bytes": 20,
+        "sha256": "a9f285c5c2c3bb67f8f4b68a38c2a037c379c392b6e9d1dfbb009d67c9569284"
+      },
+      {
+        "path": "project/addons/godot_state_charts/serialized_state_chart_state.gd",
+        "upstream_path": "addons/godot_state_charts/serialized_state_chart_state.gd",
+        "bytes": 1172,
+        "sha256": "8a016099ea2a00c1dd827f599068665a52c9bc134b11867c48a7fffb3095b09f"
+      },
+      {
+        "path": "project/addons/godot_state_charts/serialized_state_chart_state.gd.uid",
+        "upstream_path": "addons/godot_state_charts/serialized_state_chart_state.gd.uid",
+        "bytes": 20,
+        "sha256": "5f5042e2b3b2a0c3e779a2ce036c0262c67221c432ae2ecbc06dac66929f126b"
+      },
+      {
+        "path": "project/addons/godot_state_charts/state_chart.gd",
+        "upstream_path": "addons/godot_state_charts/state_chart.gd",
+        "bytes": 13528,
+        "sha256": "68fe24135ab890e1988fd0341995e773d711745e487d6cdefaa388aeb200bc9f"
+      },
+      {
+        "path": "project/addons/godot_state_charts/state_chart.gd.uid",
+        "upstream_path": "addons/godot_state_charts/state_chart.gd.uid",
+        "bytes": 20,
+        "sha256": "ca8d783f5483d79e9e5d386536e6f9099078a7ed989596d4acb50f9b896fcae6"
+      },
+      {
+        "path": "project/addons/godot_state_charts/state_chart.svg",
+        "upstream_path": "addons/godot_state_charts/state_chart.svg",
+        "bytes": 672,
+        "sha256": "5ba066a84ebe06e3e5a89fdcc2ccb847317944cd0826b4b1bf0dc4e48f238485"
+      },
+      {
+        "path": "project/addons/godot_state_charts/state_chart_serializer.gd",
+        "upstream_path": "addons/godot_state_charts/state_chart_serializer.gd",
+        "bytes": 9015,
+        "sha256": "ecacca97a5642570b7105fd0830017e634e1324b530bef9408879cf605ff44f7"
+      },
+      {
+        "path": "project/addons/godot_state_charts/state_chart_serializer.gd.uid",
+        "upstream_path": "addons/godot_state_charts/state_chart_serializer.gd.uid",
+        "bytes": 20,
+        "sha256": "9a1433e9ccb5960e95389d0fc58ff10128e7b923ee01cb9a5742346464bcd6f6"
+      },
+      {
+        "path": "project/addons/godot_state_charts/state_chart_state.gd",
+        "upstream_path": "addons/godot_state_charts/state_chart_state.gd",
+        "bytes": 11857,
+        "sha256": "de4df0b29e50e939069c3d46a9f94df5913db4e6e26d936c6594dbd360a86265"
+      },
+      {
+        "path": "project/addons/godot_state_charts/state_chart_state.gd.uid",
+        "upstream_path": "addons/godot_state_charts/state_chart_state.gd.uid",
+        "bytes": 20,
+        "sha256": "c9bfcdb9b00f4d6af498efdd928bcf2f55997b31696c35c04a803f4bf3e56043"
+      },
+      {
+        "path": "project/addons/godot_state_charts/state_is_active_guard.gd",
+        "upstream_path": "addons/godot_state_charts/state_is_active_guard.gd",
+        "bytes": 865,
+        "sha256": "ba5d97609434ae0b25b25c81a9dea81a03656959bd2b88429224b34247a8a56c"
+      },
+      {
+        "path": "project/addons/godot_state_charts/state_is_active_guard.gd.uid",
+        "upstream_path": "addons/godot_state_charts/state_is_active_guard.gd.uid",
+        "bytes": 20,
+        "sha256": "b7e1c038ae2d9b03998ea1db3e026cab6d22d2e7d76811d063268c5e30f9f900"
+      },
+      {
+        "path": "project/addons/godot_state_charts/state_is_active_guard.svg",
+        "upstream_path": "addons/godot_state_charts/state_is_active_guard.svg",
+        "bytes": 747,
+        "sha256": "b39cca1c5c482371e02753126f861a4bd6bc94e1d6fd9e36a121aac8fa96bc28"
+      },
+      {
+        "path": "project/addons/godot_state_charts/toggle_sidebar.svg",
+        "upstream_path": "addons/godot_state_charts/toggle_sidebar.svg",
+        "bytes": 154,
+        "sha256": "4531be7bbbfdcef1028f44e805e2c2e673fccb2e25fea16f097c687f41c21978"
+      },
+      {
+        "path": "project/addons/godot_state_charts/transition.gd",
+        "upstream_path": "addons/godot_state_charts/transition.gd",
+        "bytes": 7165,
+        "sha256": "0628773979f2a8c5fddca7277e916fcfc254b18b7cf2ab24dfae25d37aa0f89f"
+      },
+      {
+        "path": "project/addons/godot_state_charts/transition.gd.uid",
+        "upstream_path": "addons/godot_state_charts/transition.gd.uid",
+        "bytes": 20,
+        "sha256": "3239500eee6b1751880cc748dafa7a4e3c57ac6294fd2b4e02797c1d4f242712"
+      },
+      {
+        "path": "project/addons/godot_state_charts/transition.svg",
+        "upstream_path": "addons/godot_state_charts/transition.svg",
+        "bytes": 549,
+        "sha256": "9b110fb69ee8f74e03677af1eb68cbe13e04aed2d8497029e7333e7708bbef06"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/debugger_history.gd",
+        "upstream_path": "addons/godot_state_charts/utilities/debugger_history.gd",
+        "bytes": 1549,
+        "sha256": "e9db96a8e2f612ebff12adc89d2a031a83c9f427f97dd0ceeb1b0bfc5e76b397"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/debugger_history.gd.uid",
+        "upstream_path": "addons/godot_state_charts/utilities/debugger_history.gd.uid",
+        "bytes": 19,
+        "sha256": "4bd829cdb6e05c292d4c413d21eb9a825697ddf597288a5b8198a6dac4cc58c6"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/editor_debugger/editor_debugger.gd",
+        "upstream_path": "addons/godot_state_charts/utilities/editor_debugger/editor_debugger.gd",
+        "bytes": 13700,
+        "sha256": "ee740f3c46b6df9be9e48613573cc47fa7e8dbfb720735c158ac74dd1c0663aa"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/editor_debugger/editor_debugger.gd.uid",
+        "upstream_path": "addons/godot_state_charts/utilities/editor_debugger/editor_debugger.gd.uid",
+        "bytes": 20,
+        "sha256": "b37d22dcaf717ece7b87bf0c3882106b3fb43bcb62d32e7327490860cf3f24cc"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/editor_debugger/editor_debugger.tscn",
+        "upstream_path": "addons/godot_state_charts/utilities/editor_debugger/editor_debugger.tscn",
+        "bytes": 5057,
+        "sha256": "e1e9da4a2d7578dc6c29414d2941f9df47b866cdd62546d8cf1d3db68a55bc42"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/editor_debugger/editor_debugger_message.gd",
+        "upstream_path": "addons/godot_state_charts/utilities/editor_debugger/editor_debugger_message.gd",
+        "bytes": 4089,
+        "sha256": "130c62d58fe9f9adfb5ffc720776b3bc119f5cc67d01f087a1cd673a88d70f0f"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/editor_debugger/editor_debugger_message.gd.uid",
+        "upstream_path": "addons/godot_state_charts/utilities/editor_debugger/editor_debugger_message.gd.uid",
+        "bytes": 20,
+        "sha256": "d18af0217f62f1101c206fb5bdb9260b19d2c6984fa06aca2c4c4925d281e193"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/editor_debugger/editor_debugger_plugin.gd",
+        "upstream_path": "addons/godot_state_charts/utilities/editor_debugger/editor_debugger_plugin.gd",
+        "bytes": 1902,
+        "sha256": "043804c83319c5faea43a7d82854fd5cd19ebbbaa1a6a045850e7f200bc13caf"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/editor_debugger/editor_debugger_plugin.gd.uid",
+        "upstream_path": "addons/godot_state_charts/utilities/editor_debugger/editor_debugger_plugin.gd.uid",
+        "bytes": 20,
+        "sha256": "b007ef71bfee64e18daad8d68c15f999c31bead629dcba0bafe0d8b7526cbd16"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/editor_debugger/editor_debugger_remote.gd",
+        "upstream_path": "addons/godot_state_charts/utilities/editor_debugger/editor_debugger_remote.gd",
+        "bytes": 3228,
+        "sha256": "1859c5fb1caebb585ba5f1bdb24d6b73d5e06bd30b5c76567e223fd453e78c9f"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/editor_debugger/editor_debugger_remote.gd.uid",
+        "upstream_path": "addons/godot_state_charts/utilities/editor_debugger/editor_debugger_remote.gd.uid",
+        "bytes": 20,
+        "sha256": "609565ff33dbfc70496ffee9f3092f83fbbd8b1d642fc84cfdff4a226c7c985e"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/editor_debugger/editor_debugger_settings_propagator.gd",
+        "upstream_path": "addons/godot_state_charts/utilities/editor_debugger/editor_debugger_settings_propagator.gd",
+        "bytes": 2248,
+        "sha256": "133b5d1bb5b8e4113fe8c82c27efba76be9b14e9c66cb736dd6e838d6cfcc371"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/editor_debugger/editor_debugger_settings_propagator.gd.uid",
+        "upstream_path": "addons/godot_state_charts/utilities/editor_debugger/editor_debugger_settings_propagator.gd.uid",
+        "bytes": 20,
+        "sha256": "79bd6250b3cd2a9210cdc4edc1253eb11b61a403a4163c4e1591903fd55ce31a"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/editor_debugger/editor_debugger_state_info.gd",
+        "upstream_path": "addons/godot_state_charts/utilities/editor_debugger/editor_debugger_state_info.gd",
+        "bytes": 2899,
+        "sha256": "6f5037f1b51e3ebe813a1b53b225e99483158b4a6c5b72577874a38dd4eb96b5"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/editor_debugger/editor_debugger_state_info.gd.uid",
+        "upstream_path": "addons/godot_state_charts/utilities/editor_debugger/editor_debugger_state_info.gd.uid",
+        "bytes": 20,
+        "sha256": "02a3c8764d244498e275999e6f8967f8d36fe1bbdd8136fed4dd2128ab8dcb85"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/editor_sidebar.gd",
+        "upstream_path": "addons/godot_state_charts/utilities/editor_sidebar.gd",
+        "bytes": 2842,
+        "sha256": "07944825a55ded21793fa4d6901692195f95f4bb8beb132609606ccb84b920cd"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/editor_sidebar.gd.uid",
+        "upstream_path": "addons/godot_state_charts/utilities/editor_sidebar.gd.uid",
+        "bytes": 20,
+        "sha256": "55edb2e0998fa4c862b607bd6d83b52f219605e47b8c5bf2c9a9e1a677c82631"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/editor_sidebar.tscn",
+        "upstream_path": "addons/godot_state_charts/utilities/editor_sidebar.tscn",
+        "bytes": 4717,
+        "sha256": "98f2c9715d68e880f964826d9a09865f85cca76385c71657a8d2793b82010c26"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/event_editor/event_editor.gd",
+        "upstream_path": "addons/godot_state_charts/utilities/event_editor/event_editor.gd",
+        "bytes": 3025,
+        "sha256": "86fade8cc02b75216dce8d45d28b6e2c10ddc9b45d863fa5a39ac1a773709a6b"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/event_editor/event_editor.gd.uid",
+        "upstream_path": "addons/godot_state_charts/utilities/event_editor/event_editor.gd.uid",
+        "bytes": 20,
+        "sha256": "2c4be4b38f53b2aa1254ac60e9b8c29e21d801bd688536a695ebd7fe326f00c0"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/event_editor/event_inspector_plugin.gd",
+        "upstream_path": "addons/godot_state_charts/utilities/event_editor/event_inspector_plugin.gd",
+        "bytes": 836,
+        "sha256": "69f8348e3ff3ba7ccea7e4239b9a4cf29b6b549c0544585b1fae38a82d723761"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/event_editor/event_inspector_plugin.gd.uid",
+        "upstream_path": "addons/godot_state_charts/utilities/event_editor/event_inspector_plugin.gd.uid",
+        "bytes": 20,
+        "sha256": "4fd45e9083a3ec1ee4bbb2f9d97f7a44e408da18f142119b2c2ed9a7763d27e8"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/event_refactor/event_refactor.gd",
+        "upstream_path": "addons/godot_state_charts/utilities/event_refactor/event_refactor.gd",
+        "bytes": 2949,
+        "sha256": "7fc19414fbfbaab0180056b85bc799e45d408c263b575e435b5c04cc15443d8c"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/event_refactor/event_refactor.gd.uid",
+        "upstream_path": "addons/godot_state_charts/utilities/event_refactor/event_refactor.gd.uid",
+        "bytes": 19,
+        "sha256": "1a42b79e4066d94f680fb4f53c3d5c9efdd2650a00f68b33e50310b45259d8fe"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/event_refactor/event_refactor.tscn",
+        "upstream_path": "addons/godot_state_charts/utilities/event_refactor/event_refactor.tscn",
+        "bytes": 2190,
+        "sha256": "c5481bd10175fd7cb74cd1b055c78eab620c57abd1c5af7f1d25bec8bd2de6a7"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/ring_buffer.gd",
+        "upstream_path": "addons/godot_state_charts/utilities/ring_buffer.gd",
+        "bytes": 1059,
+        "sha256": "bac56ccaf353b17677a7dc70ed8aae840cdcd65223892ac077b45fc969989b29"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/ring_buffer.gd.uid",
+        "upstream_path": "addons/godot_state_charts/utilities/ring_buffer.gd.uid",
+        "bytes": 20,
+        "sha256": "8d075fa68a8d8b62a7f7aee794b033a85d71e5eda9cad165dc46a2639ca84c71"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/state_chart_debugger.gd",
+        "upstream_path": "addons/godot_state_charts/utilities/state_chart_debugger.gd",
+        "bytes": 8280,
+        "sha256": "eec99a1e67fadaada0ae11341e531d0cc9a1aed1035b96a94eace88f08498075"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/state_chart_debugger.gd.uid",
+        "upstream_path": "addons/godot_state_charts/utilities/state_chart_debugger.gd.uid",
+        "bytes": 19,
+        "sha256": "7696232fba3a4d842801042f119c902838ed9460168cf5e94277e358f302f575"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/state_chart_debugger.svg",
+        "upstream_path": "addons/godot_state_charts/utilities/state_chart_debugger.svg",
+        "bytes": 939,
+        "sha256": "8058ee031acaca50f0642031b53c522e7d48ae6b7f65ed5096d552db77a551da"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/state_chart_debugger.tscn",
+        "upstream_path": "addons/godot_state_charts/utilities/state_chart_debugger.tscn",
+        "bytes": 3589,
+        "sha256": "60341919a1aa7ad8eac4db3473063ed4d0e6c47165dd93782e2fcf9daa11c145"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/state_chart_util.gd",
+        "upstream_path": "addons/godot_state_charts/utilities/state_chart_util.gd",
+        "bytes": 1380,
+        "sha256": "af91f299549992549441217dbc93a87c8eefac150d5cf19a27bafd36c316ea56"
+      },
+      {
+        "path": "project/addons/godot_state_charts/utilities/state_chart_util.gd.uid",
+        "upstream_path": "addons/godot_state_charts/utilities/state_chart_util.gd.uid",
+        "bytes": 20,
+        "sha256": "173f23d119eda0bd6a4cc2b2b13fa078a1156350ac73fc9f942abe115335a89c"
+      }
+    ],
+    "bytes": 159026
+  },
+  "limboai": {
+    "repository": "https://github.com/limbonaut/limboai",
+    "commit": "df8933d3e1a0e7884efb640c0e363140741c50cb",
+    "files": [
+      {
+        "path": "upstream/limboai/LICENSE.md",
+        "upstream_path": "LICENSE.md",
+        "bytes": 1103,
+        "sha256": "1b2d39c48e02b683abfafa1187de21e75796cd54cd18f6f60ddf369529ee8240"
+      },
+      {
+        "path": "upstream/limboai/LOGO_LICENSE.md",
+        "upstream_path": "LOGO_LICENSE.md",
+        "bytes": 212,
+        "sha256": "72f2de212860327c23d75ff47f49480c4afd5247c99bfefd0ea3b6a804c3b4c9"
+      },
+      {
+        "path": "upstream/limboai/README.md",
+        "upstream_path": "README.md",
+        "bytes": 11759,
+        "sha256": "cb51e1d73bf1a40b7e38bb89c3c822406490c4c0d0b7867727c3bb81072510c1"
+      },
+      {
+        "path": "upstream/limboai/limboai_version.py",
+        "upstream_path": "limboai_version.py",
+        "bytes": 1881,
+        "sha256": "ce890bf596ab2f9033293051a71407244e97a2474dbc175d21e66b94e22adc35"
+      }
+    ],
+    "bytes": 14955
+  }
+}

@@ -1,0 +1,81 @@
+--- a/scripts/venues/npc_venue_capacity29.gd
++++ b/scripts/venues/npc_venue_capacity29.gd
+@@ -14,7 +14,7 @@
+ func register(venue: String, kind: String, capacity: int) -> void:
+ 	if venue.is_empty() or capacity <= 0: return
+ 	if venues.has(venue): return # Existing live leases must never be resized away.
+-	venues[venue] = {"kind":kind,"capacity":clampi(capacity, 1, 32),"slots":{}}
++	venues[venue] = {"kind":kind,"capacity":clampi(capacity, 1, 32),"slots":{},"concurrent_portal31":false}
+ 
+ func unregister(venue: String, now: int) -> void:
+ 	if not venues.has(venue): return
+@@ -87,12 +87,20 @@
+ 	requests.erase(key)
+ 	_promote(now)
+ 
++func set_concurrent_portal31(venue: String, supported: bool) -> void:
++	if venues.has(venue): venues[venue].concurrent_portal31 = supported
++
++func portal_owner31(key: String, venue: String) -> bool:
++	if not venues.has(venue) or not requests.has(key) or requests[key].state != "reserved" or str(requests[key].venue) != venue: return false
++	var queue: Array = _portals.get(venue, [])
++	return queue.has(key) if bool(venues[venue].concurrent_portal31) else (not queue.is_empty() and str(queue[0]) == key)
++
+ func portal_request(key: String, venue: String) -> bool:
+-	if not requests.has(key) or str(requests[key].venue) != venue: return false
++	if not venues.has(venue) or not requests.has(key) or requests[key].state != "reserved" or str(requests[key].venue) != venue: return false
+ 	if not _portals.has(venue): _portals[venue] = []
+ 	var queue: Array = _portals[venue]
+ 	if not queue.has(key): queue.append(key)
+-	return not queue.is_empty() and str(queue[0]) == key
++	return portal_owner31(key, venue)
+ 
+ func portal_release(key: String, venue: String) -> void:
+ 	if not _portals.has(venue): return
+--- a/scripts/venues/npc_venue_registry29.gd
++++ b/scripts/venues/npc_venue_registry29.gd
+@@ -2,6 +2,7 @@
+ ## One registry per scene, one cheap door inventory per second, geometry once/site.
+ ## A sign alone is not admission: immutable physical door, floor and capsule remain.
+ const Capacity = preload("npc_venue_capacity29.gd")
++const Passage31 = preload("res://scripts/navigation/npc_passage31.gd")
+ const Swing = preload("res://scripts/city/runtime/npc_city_clone_door_swing.gd")
+ const Physical = preload("res://scripts/hospital/npc_physical_route51.gd")
+ const META := "npc_venue_registry29"
+@@ -190,6 +191,9 @@
+ 		unregister(venue, "closed29"); return {}
+ 	if not is_instance_valid(owner) or not is_instance_valid(clone) or owner.is_queued_for_deletion() or clone.is_queued_for_deletion():
+ 		unregister(venue, "retired"); return {}
++	var scene31: Node3D = _scene.get_ref() as Node3D if _scene != null else null
++	var passage31: Node = Passage31.for_scene(scene31)
++	ledger.set_concurrent_portal31(venue, is_instance_valid(passage31) and passage31.supports_venue31(venue))
+ 	return value
+ 
+ func owns(key: String, controller: RefCounted) -> bool:
+@@ -332,8 +336,7 @@
+ 	if refs.body.get_ref() != body or not is_instance_valid(controller): return empty
+ 	var venue: String = str(controller.get("_venue"))
+ 	var phase: String = str(controller.get("_phase"))
+-	var portal: Array = ledger._portals.get(venue, [])
+-	var owner: bool = not portal.is_empty() and str(portal[0]) == key
++	var owner: bool = ledger.portal_owner31(key, venue)
+ 	var mode := "none"
+ 	var hold: Vector3 = body.global_position
+ 	if phase == "SERVICE_WAIT": mode = "waiting"; hold = controller.get("_room")
+--- a/scripts/navigation/npc_passage31.gd
++++ b/scripts/navigation/npc_passage31.gd
+@@ -144,6 +144,14 @@
+ func _clear_pairs() -> void:
+ 	for key: String in _pairs.keys(): _remove_pair(key)
+ 
++## Capability derives from the same measured, live doorway used by native pairs.
++func supports_venue31(venue: String) -> bool:
++	refresh()
++	if not _zones.has(venue): return false
++	var zone: Dictionary = _zones[venue]
++	var owner: Variant = zone.owner.get_ref(); var clone: Variant = zone.clone.get_ref()
++	return is_instance_valid(owner) and is_instance_valid(clone) and not owner.is_queued_for_deletion() and not clone.is_queued_for_deletion() and not bool(clone.get_meta("venue_closed29", false))
++
+ func body_zone(body: CharacterBody3D) -> String:
+ 	refresh()
+ 	return str(_body_zones.get(body.get_instance_id(), "")) if _live(body) else ""

@@ -1,0 +1,5400 @@
+{
+	"candidate": true,
+	"case": "revoke",
+	"checks": {
+		"actual_door_sweep_blocked_by_resident9": true,
+		"actual_resident2_service_route": true,
+		"actual_resident9_roam_route": true,
+		"both_finish_under10_seconds": true,
+		"both_npcs_share_live_zone_and_symmetric_exceptions": true,
+		"close_during_active_backoff": true,
+		"close_revokes_open_intent": true,
+		"door_collision_preserved": true,
+		"exact_compact_shop002_geometry": true,
+		"native60hz": true,
+		"native_step_bounded_no_teleport": true,
+		"original_roam_goal_preserved": true,
+		"resident2_and_roamer_both_physically_exit": true,
+		"resident2_owned_inside_exit_started": true,
+		"revocation_retires_backoff_immediately": true,
+		"service_driver_has_no_roam_backoff": true,
+		"world_and_capsules_unchanged": true
+	},
+	"elapsed_s": 3.36666666666667,
+	"full_city_acceptance": false,
+	"max_native_step_m": 0.0306637715548277,
+	"opening_stalled_past10s": false,
+	"performance_accepted": false,
+	"rows": [
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "sweep_body:/root/MafioziWalkMigration/npc_resident_9",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0833333333333333,
+				"entrance_count": 1,
+				"failures": 0,
+				"fraction": 0.692307692307692,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": true,
+				"opening_requested31": true,
+				"prompt": "hidden",
+				"resident_near": false,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "opening",
+				"sweep_checks": 4,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 0.0166666666666667,
+			"frame": 10,
+			"inner_overlap": [
+				"/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41"
+			],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {},
+				"door": 0.692307692307692,
+				"exit_state": "approach",
+				"frame": 9,
+				"goal": "(-138.2, 0.243, 161.95)",
+				"goal_hits": [],
+				"leg": 0,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": true,
+					"expanded": 0,
+					"last_collider": "",
+					"last_query_failure": "",
+					"max_tick_us": 181,
+					"nodes": 1,
+					"open": 1,
+					"pruned_lower_bound": 0,
+					"queries": 3,
+					"ready_frame": 10,
+					"search_phase": "ready",
+					"service_us29": 195,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 10,
+						"frame_us": 229,
+						"heap_items": 1,
+						"jobs": 1,
+						"max_frame_us": 229,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 183,
+						"nodes": 1,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 2
+					},
+					"status": "ready",
+					"tick_us": 14,
+					"total_expanded": 0
+				},
+				"position": "(-138.2059, 0.240001, 161.9554)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {},
+				"clearance": {
+					"activity": "planning",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "retreat",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "door_clear_retreat",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 0,
+					"last_collider": "",
+					"last_query_failure": "",
+					"max_tick_us": 0,
+					"nodes": 1,
+					"open": 1,
+					"pruned_lower_bound": 0,
+					"queries": 0,
+					"ready_frame": -1,
+					"search_phase": "direct_probe",
+					"service_us29": 0,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 10,
+						"frame_us": 229,
+						"heap_items": 1,
+						"jobs": 1,
+						"max_frame_us": 229,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 183,
+						"nodes": 1,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 2
+					},
+					"status": "searching",
+					"tick_us": 0,
+					"total_expanded": 0
+				},
+				"position": "(-137.7398, 0.240942, 162.0626)",
+				"waypoint": null
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 0.769230769230769,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "opening",
+				"sweep_checks": 10,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 0.116666666666667,
+			"frame": 16,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {},
+				"door": 0.769230769230769,
+				"exit_state": "opening",
+				"frame": 15,
+				"goal": "(-138.2, 0.243, 161.95)",
+				"goal_hits": [],
+				"leg": 0,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": true,
+					"expanded": 0,
+					"last_collider": "",
+					"last_query_failure": "",
+					"max_tick_us": 181,
+					"nodes": 1,
+					"open": 1,
+					"pruned_lower_bound": 0,
+					"queries": 5,
+					"ready_frame": 10,
+					"search_phase": "cancelled",
+					"service_us29": 195,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 16,
+						"frame_us": 1811,
+						"heap_items": 6,
+						"jobs": 1,
+						"max_frame_us": 1811,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 314,
+						"nodes": 7,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 10
+					},
+					"status": "cancelled",
+					"tick_us": 14,
+					"total_expanded": 0
+				},
+				"position": "(-138.2059, 0.240001, 161.9554)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "searching",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 1,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 313,
+					"nodes": 7,
+					"open": 6,
+					"pruned_lower_bound": 0,
+					"queries": 40,
+					"ready_frame": -1,
+					"search_phase": "neighbour",
+					"service_us29": 2103,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 16,
+						"frame_us": 1811,
+						"heap_items": 6,
+						"jobs": 1,
+						"max_frame_us": 1811,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 314,
+						"nodes": 7,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 10
+					},
+					"status": "searching",
+					"tick_us": 159,
+					"total_expanded": 1
+				},
+				"position": "(-137.8273, 0.240942, 162.0412)",
+				"waypoint": null
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 0.923076923076923,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "opening",
+				"sweep_checks": 18,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 0.216666666666667,
+			"frame": 22,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {},
+				"door": 0.923076923076923,
+				"exit_state": "opening",
+				"frame": 21,
+				"goal": "(-138.2, 0.243, 161.95)",
+				"goal_hits": [],
+				"leg": 0,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": true,
+					"expanded": 0,
+					"last_collider": "",
+					"last_query_failure": "",
+					"max_tick_us": 181,
+					"nodes": 1,
+					"open": 1,
+					"pruned_lower_bound": 0,
+					"queries": 5,
+					"ready_frame": 10,
+					"search_phase": "cancelled",
+					"service_us29": 195,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 22,
+						"frame_us": 1957,
+						"heap_items": 24,
+						"jobs": 1,
+						"max_frame_us": 2003,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 498,
+						"nodes": 34,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 12
+					},
+					"status": "cancelled",
+					"tick_us": 14,
+					"total_expanded": 0
+				},
+				"position": "(-138.2059, 0.240001, 161.9554)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "searching",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 10,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 34,
+					"open": 24,
+					"pruned_lower_bound": 27,
+					"queries": 249,
+					"ready_frame": -1,
+					"search_phase": "neighbour",
+					"service_us29": 13216,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 22,
+						"frame_us": 1957,
+						"heap_items": 24,
+						"jobs": 1,
+						"max_frame_us": 2003,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 498,
+						"nodes": 34,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 12
+					},
+					"status": "searching",
+					"tick_us": 404,
+					"total_expanded": 10
+				},
+				"position": "(-137.8273, 0.240942, 162.0412)",
+				"waypoint": null
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 0.316666666666667,
+			"frame": 28,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 27,
+				"goal": "(-136.75, 0.243, 161.95)",
+				"goal_hits": [],
+				"leg": 1,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": true,
+					"expanded": 0,
+					"last_collider": "",
+					"last_query_failure": "",
+					"max_tick_us": 175,
+					"nodes": 1,
+					"open": 1,
+					"pruned_lower_bound": 0,
+					"queries": 17,
+					"ready_frame": 26,
+					"search_phase": "ready",
+					"service_us29": 570,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 26,
+						"frame_us": 614,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2003,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 498,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 10
+					},
+					"status": "ready",
+					"tick_us": 7,
+					"total_expanded": 0
+				},
+				"position": "(-138.1459, 0.240001, 161.9552)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(0.554454, 0.0, -0.832214)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 317,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 26,
+						"frame_us": 614,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2003,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 498,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 10
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-137.7607, 0.240942, 161.9413)",
+				"waypoint": "(-137.5, 0.243, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 0.416666666666667,
+			"frame": 34,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 33,
+				"goal": "(-136.75, 0.243, 161.95)",
+				"goal_hits": [],
+				"leg": 1,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": true,
+					"expanded": 0,
+					"last_collider": "",
+					"last_query_failure": "",
+					"max_tick_us": 175,
+					"nodes": 1,
+					"open": 1,
+					"pruned_lower_bound": 0,
+					"queries": 35,
+					"ready_frame": 26,
+					"search_phase": "ready",
+					"service_us29": 570,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 26,
+						"frame_us": 614,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2003,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 498,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 10
+					},
+					"status": "ready",
+					"tick_us": 7,
+					"total_expanded": 0
+				},
+				"position": "(-137.9659, 0.240001, 161.9546)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(0.554447, 0.0, -0.832219)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 335,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 26,
+						"frame_us": 614,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2003,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 498,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 10
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-137.6609, 0.240942, 161.7916)",
+				"waypoint": "(-137.5, 0.243, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 0.516666666666667,
+			"frame": 40,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 39,
+				"goal": "(-136.75, 0.243, 161.95)",
+				"goal_hits": [],
+				"leg": 1,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": true,
+					"expanded": 0,
+					"last_collider": "",
+					"last_query_failure": "",
+					"max_tick_us": 175,
+					"nodes": 1,
+					"open": 1,
+					"pruned_lower_bound": 0,
+					"queries": 53,
+					"ready_frame": 26,
+					"search_phase": "ready",
+					"service_us29": 570,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 26,
+						"frame_us": 614,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2003,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 498,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 10
+					},
+					"status": "ready",
+					"tick_us": 7,
+					"total_expanded": 0
+				},
+				"position": "(-137.7859, 0.240001, 161.9539)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(0.554424, 0.0, -0.832234)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 353,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 26,
+						"frame_us": 614,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2003,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 498,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 10
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-137.5611, 0.240942, 161.6418)",
+				"waypoint": "(-137.5, 0.243, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 0.616666666666667,
+			"frame": 46,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 45,
+				"goal": "(-136.75, 0.243, 161.95)",
+				"goal_hits": [],
+				"leg": 1,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": true,
+					"expanded": 0,
+					"last_collider": "",
+					"last_query_failure": "",
+					"max_tick_us": 175,
+					"nodes": 1,
+					"open": 1,
+					"pruned_lower_bound": 0,
+					"queries": 71,
+					"ready_frame": 26,
+					"search_phase": "ready",
+					"service_us29": 570,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 26,
+						"frame_us": 614,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2003,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 498,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 10
+					},
+					"status": "ready",
+					"tick_us": 7,
+					"total_expanded": 0
+				},
+				"position": "(-137.6059, 0.240001, 161.9533)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(0.980774, 0.0, -0.195145)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 371,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 26,
+						"frame_us": 614,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2003,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 498,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 10
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-137.3846, 0.240942, 161.6066)",
+				"waypoint": "(-137.1, 0.243, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 0.716666666666667,
+			"frame": 52,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 51,
+				"goal": "(-136.75, 0.243, 161.95)",
+				"goal_hits": [],
+				"leg": 1,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": true,
+					"expanded": 0,
+					"last_collider": "",
+					"last_query_failure": "",
+					"max_tick_us": 175,
+					"nodes": 1,
+					"open": 1,
+					"pruned_lower_bound": 0,
+					"queries": 89,
+					"ready_frame": 26,
+					"search_phase": "ready",
+					"service_us29": 570,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 26,
+						"frame_us": 614,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2003,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 498,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 10
+					},
+					"status": "ready",
+					"tick_us": 7,
+					"total_expanded": 0
+				},
+				"position": "(-137.4259, 0.240001, 161.9526)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(0.980802, 0.0, -0.195007)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 389,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 26,
+						"frame_us": 614,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2003,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 498,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 10
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-137.2081, 0.240942, 161.5715)",
+				"waypoint": "(-137.1, 0.243, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 0.816666666666667,
+			"frame": 58,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 57,
+				"goal": "(-136.75, 0.243, 161.95)",
+				"goal_hits": [],
+				"leg": 1,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": true,
+					"expanded": 0,
+					"last_collider": "",
+					"last_query_failure": "",
+					"max_tick_us": 175,
+					"nodes": 1,
+					"open": 1,
+					"pruned_lower_bound": 0,
+					"queries": 107,
+					"ready_frame": 26,
+					"search_phase": "ready",
+					"service_us29": 570,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 26,
+						"frame_us": 614,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2003,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 498,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 10
+					},
+					"status": "ready",
+					"tick_us": 7,
+					"total_expanded": 0
+				},
+				"position": "(-137.2459, 0.240001, 161.9519)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(0.999105, 0.0, -0.042296)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 407,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 26,
+						"frame_us": 614,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2003,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 498,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 10
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-137.0283, 0.240942, 161.5639)",
+				"waypoint": "(-136.7, 0.243, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 0.916666666666667,
+			"frame": 64,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 63,
+				"goal": "(-136.75, 0.243, 161.95)",
+				"goal_hits": [],
+				"leg": 1,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": true,
+					"expanded": 0,
+					"last_collider": "",
+					"last_query_failure": "",
+					"max_tick_us": 175,
+					"nodes": 1,
+					"open": 1,
+					"pruned_lower_bound": 0,
+					"queries": 125,
+					"ready_frame": 26,
+					"search_phase": "ready",
+					"service_us29": 570,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 26,
+						"frame_us": 614,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2003,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 498,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 10
+					},
+					"status": "ready",
+					"tick_us": 7,
+					"total_expanded": 0
+				},
+				"position": "(-137.0659, 0.240001, 161.9512)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(0.999102, 0.0, -0.04237)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 425,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 26,
+						"frame_us": 614,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2003,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 498,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 10
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-136.8485, 0.240942, 161.5563)",
+				"waypoint": "(-136.7, 0.243, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 1.01666666666667,
+			"frame": 70,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 69,
+				"goal": "(-134.25, 0.003, 161.95)",
+				"goal_hits": [],
+				"leg": 2,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 6,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 373,
+					"nodes": 17,
+					"open": 11,
+					"pruned_lower_bound": 13,
+					"queries": 160,
+					"ready_frame": -1,
+					"search_phase": "neighbour",
+					"service_us29": 7544,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 70,
+						"frame_us": 2084,
+						"heap_items": 11,
+						"jobs": 1,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 498,
+						"nodes": 17,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "searching",
+					"tick_us": 348,
+					"total_expanded": 6
+				},
+				"position": "(-137.0359, 0.240001, 161.9511)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(0.999953, 0.0, -0.009725)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 443,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 70,
+						"frame_us": 2084,
+						"heap_items": 11,
+						"jobs": 1,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 498,
+						"nodes": 17,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-136.6685, 0.240942, 161.5536)",
+				"waypoint": "(-136.3, 0.243, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 1.11666666666667,
+			"frame": 76,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 75,
+				"goal": "(-134.25, 0.003, 161.95)",
+				"goal_hits": [],
+				"leg": 2,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 7,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 543,
+					"nodes": 19,
+					"open": 12,
+					"pruned_lower_bound": 13,
+					"queries": 195,
+					"ready_frame": 71,
+					"search_phase": "ready",
+					"service_us29": 9003,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 27,
+					"total_expanded": 7
+				},
+				"position": "(-136.886, 0.240001, 161.9507)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(0.999952, 0.0, -0.009775)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 461,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-136.4885, 0.240942, 161.5518)",
+				"waypoint": "(-136.3, 0.243, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 1.21666666666667,
+			"frame": 82,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 81,
+				"goal": "(-134.25, 0.003, 161.95)",
+				"goal_hits": [],
+				"leg": 2,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 7,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 543,
+					"nodes": 19,
+					"open": 12,
+					"pruned_lower_bound": 13,
+					"queries": 213,
+					"ready_frame": 71,
+					"search_phase": "ready",
+					"service_us29": 9003,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 27,
+					"total_expanded": 7
+				},
+				"position": "(-136.706, 0.240001, 161.9503)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(0.999998, 0.0, -0.001949)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 479,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-136.3085, 0.240942, 161.5508)",
+				"waypoint": "(-135.9, 0.243003, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 1.31666666666667,
+			"frame": 88,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 87,
+				"goal": "(-134.25, 0.003, 161.95)",
+				"goal_hits": [],
+				"leg": 2,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 7,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 543,
+					"nodes": 19,
+					"open": 12,
+					"pruned_lower_bound": 13,
+					"queries": 231,
+					"ready_frame": 71,
+					"search_phase": "ready",
+					"service_us29": 9003,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 27,
+					"total_expanded": 7
+				},
+				"position": "(-136.526, 0.240001, 161.9502)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(0.999998, 0.0, -0.001889)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 497,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-136.1286, 0.240942, 161.5504)",
+				"waypoint": "(-135.9, 0.243003, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 1.41666666666667,
+			"frame": 94,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 93,
+				"goal": "(-134.25, 0.003, 161.95)",
+				"goal_hits": [],
+				"leg": 2,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 7,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 543,
+					"nodes": 19,
+					"open": 12,
+					"pruned_lower_bound": 13,
+					"queries": 249,
+					"ready_frame": 71,
+					"search_phase": "ready",
+					"service_us29": 9003,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 27,
+					"total_expanded": 7
+				},
+				"position": "(-136.346, 0.240001, 161.9501)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000444)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 515,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-135.9512, 0.252582, 161.5502)",
+				"waypoint": "(-135.5, 0.174431, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 1.51666666666667,
+			"frame": 100,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 99,
+				"goal": "(-134.25, 0.003, 161.95)",
+				"goal_hits": [],
+				"leg": 2,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 7,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 543,
+					"nodes": 19,
+					"open": 12,
+					"pruned_lower_bound": 13,
+					"queries": 267,
+					"ready_frame": 71,
+					"search_phase": "ready",
+					"service_us29": 9003,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 27,
+					"total_expanded": 7
+				},
+				"position": "(-136.166, 0.240001, 161.9501)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000406)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 533,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-135.7706, 0.223285, 161.5501)",
+				"waypoint": "(-135.5, 0.174431, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 1.61666666666667,
+			"frame": 106,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 105,
+				"goal": "(-134.25, 0.003, 161.95)",
+				"goal_hits": [],
+				"leg": 2,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 7,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 543,
+					"nodes": 19,
+					"open": 12,
+					"pruned_lower_bound": 13,
+					"queries": 285,
+					"ready_frame": 71,
+					"search_phase": "ready",
+					"service_us29": 9003,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 27,
+					"total_expanded": 7
+				},
+				"position": "(-135.9888, 0.25422, 161.9501)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000254)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 551,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-135.5899, 0.191644, 161.55)",
+				"waypoint": "(-135.5, 0.174431, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 1.71666666666667,
+			"frame": 112,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 111,
+				"goal": "(-134.25, 0.003, 161.95)",
+				"goal_hits": [],
+				"leg": 2,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 7,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 543,
+					"nodes": 19,
+					"open": 12,
+					"pruned_lower_bound": 13,
+					"queries": 303,
+					"ready_frame": 71,
+					"search_phase": "ready",
+					"service_us29": 9003,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 27,
+					"total_expanded": 7
+				},
+				"position": "(-135.8083, 0.229465, 161.95)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000045)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 569,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-135.4091, 0.161469, 161.55)",
+				"waypoint": "(-135.1, 0.105858, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 1.81666666666667,
+			"frame": 118,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 117,
+				"goal": "(-134.25, 0.003, 161.95)",
+				"goal_hits": [],
+				"leg": 2,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 7,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 543,
+					"nodes": 19,
+					"open": 12,
+					"pruned_lower_bound": 13,
+					"queries": 321,
+					"ready_frame": 71,
+					"search_phase": "ready",
+					"service_us29": 9003,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 27,
+					"total_expanded": 7
+				},
+				"position": "(-135.6276, 0.198703, 161.95)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000096)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 587,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-135.2285, 0.130414, 161.55)",
+				"waypoint": "(-135.1, 0.105858, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 1.91666666666667,
+			"frame": 124,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 123,
+				"goal": "(-134.25, 0.003, 161.95)",
+				"goal_hits": [],
+				"leg": 2,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 7,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 543,
+					"nodes": 19,
+					"open": 12,
+					"pruned_lower_bound": 13,
+					"queries": 339,
+					"ready_frame": 71,
+					"search_phase": "ready",
+					"service_us29": 9003,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 27,
+					"total_expanded": 7
+				},
+				"position": "(-135.4469, 0.167941, 161.95)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.00004)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 605,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-135.0479, 0.099359, 161.55)",
+				"waypoint": "(-134.7, 0.037284, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 2.01666666666667,
+			"frame": 130,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 129,
+				"goal": "(-134.25, 0.003, 161.95)",
+				"goal_hits": [],
+				"leg": 2,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 7,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 543,
+					"nodes": 19,
+					"open": 12,
+					"pruned_lower_bound": 13,
+					"queries": 357,
+					"ready_frame": 71,
+					"search_phase": "ready",
+					"service_us29": 9003,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 27,
+					"total_expanded": 7
+				},
+				"position": "(-135.2662, 0.136887, 161.95)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000077)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 623,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-134.8672, 0.068305, 161.55)",
+				"waypoint": "(-134.7, 0.037284, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 2.11666666666667,
+			"frame": 136,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 135,
+				"goal": "(-134.25, 0.003, 161.95)",
+				"goal_hits": [],
+				"leg": 2,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 7,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 543,
+					"nodes": 19,
+					"open": 12,
+					"pruned_lower_bound": 13,
+					"queries": 375,
+					"ready_frame": 71,
+					"search_phase": "ready",
+					"service_us29": 9003,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 27,
+					"total_expanded": 7
+				},
+				"position": "(-135.0855, 0.105832, 161.95)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000037)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 641,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-134.6865, 0.037543, 161.55)",
+				"waypoint": "(-134.3, 0.003, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 2.21666666666667,
+			"frame": 142,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 141,
+				"goal": "(-134.25, 0.003, 161.95)",
+				"goal_hits": [],
+				"leg": 2,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 7,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 543,
+					"nodes": 19,
+					"open": 12,
+					"pruned_lower_bound": 13,
+					"queries": 393,
+					"ready_frame": 71,
+					"search_phase": "ready",
+					"service_us29": 9003,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 27,
+					"total_expanded": 7
+				},
+				"position": "(-134.9049, 0.074777, 161.95)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000065)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 659,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-134.5058, 0.005902, 161.55)",
+				"waypoint": "(-134.3, 0.003, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 2.31666666666667,
+			"frame": 148,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 147,
+				"goal": "(-134.25, 0.003, 161.95)",
+				"goal_hits": [],
+				"leg": 2,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 7,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 543,
+					"nodes": 19,
+					"open": 12,
+					"pruned_lower_bound": 13,
+					"queries": 411,
+					"ready_frame": 71,
+					"search_phase": "ready",
+					"service_us29": 9003,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 27,
+					"total_expanded": 7
+				},
+				"position": "(-134.7243, 0.043722, 161.95)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000033)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 677,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-134.3256, 0.000141, 161.55)",
+				"waypoint": "(-133.9, 0.003, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 2.41666666666667,
+			"frame": 154,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 153,
+				"goal": "(-134.25, 0.003, 161.95)",
+				"goal_hits": [],
+				"leg": 2,
+				"phase": "OUTBOUND",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 7,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 543,
+					"nodes": 19,
+					"open": 12,
+					"pruned_lower_bound": 13,
+					"queries": 429,
+					"ready_frame": 71,
+					"search_phase": "ready",
+					"service_us29": 9003,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 27,
+					"total_expanded": 7
+				},
+				"position": "(-134.5436, 0.012668, 161.95)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000055)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 695,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-134.1456, 0.000141, 161.55)",
+				"waypoint": "(-133.9, 0.003, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 2.51666666666667,
+			"frame": 160,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 159,
+				"goal": "(-134.25, 0.003, 161.95)",
+				"goal_hits": [],
+				"leg": 2,
+				"phase": "OUTSIDE",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 7,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 543,
+					"nodes": 19,
+					"open": 12,
+					"pruned_lower_bound": 13,
+					"queries": 432,
+					"ready_frame": 71,
+					"search_phase": "cancelled",
+					"service_us29": 9003,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "cancelled",
+					"tick_us": 27,
+					"total_expanded": 7
+				},
+				"position": "(-134.5436, 0.012668, 161.95)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000031)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 713,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-133.9656, 0.000141, 161.55)",
+				"waypoint": "(-133.5, 0.003, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 2.61666666666667,
+			"frame": 166,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 165,
+				"goal": "(-134.25, 0.003, 161.95)",
+				"goal_hits": [],
+				"leg": 2,
+				"phase": "OUTSIDE",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 7,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 543,
+					"nodes": 19,
+					"open": 12,
+					"pruned_lower_bound": 13,
+					"queries": 432,
+					"ready_frame": 71,
+					"search_phase": "cancelled",
+					"service_us29": 9003,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "cancelled",
+					"tick_us": 27,
+					"total_expanded": 7
+				},
+				"position": "(-134.5436, 0.012668, 161.95)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000048)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 731,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-133.7856, 0.000141, 161.55)",
+				"waypoint": "(-133.5, 0.003, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 2.71666666666667,
+			"frame": 172,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 171,
+				"goal": "(-134.25, 0.003, 161.95)",
+				"goal_hits": [],
+				"leg": 2,
+				"phase": "OUTSIDE",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 7,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 543,
+					"nodes": 19,
+					"open": 12,
+					"pruned_lower_bound": 13,
+					"queries": 432,
+					"ready_frame": 71,
+					"search_phase": "cancelled",
+					"service_us29": 9003,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "cancelled",
+					"tick_us": 27,
+					"total_expanded": 7
+				},
+				"position": "(-134.5436, 0.012668, 161.95)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000113)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 749,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-133.6056, 0.000141, 161.55)",
+				"waypoint": "(-133.5, 0.003, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 2.81666666666667,
+			"frame": 178,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 177,
+				"goal": "(-134.25, 0.003, 161.95)",
+				"goal_hits": [],
+				"leg": 2,
+				"phase": "OUTSIDE",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 7,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 543,
+					"nodes": 19,
+					"open": 12,
+					"pruned_lower_bound": 13,
+					"queries": 432,
+					"ready_frame": 71,
+					"search_phase": "cancelled",
+					"service_us29": 9003,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "cancelled",
+					"tick_us": 27,
+					"total_expanded": 7
+				},
+				"position": "(-134.5436, 0.012668, 161.95)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000043)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 767,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-133.4256, 0.000141, 161.55)",
+				"waypoint": "(-133.1, 0.003, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 2.91666666666667,
+			"frame": 184,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 183,
+				"goal": "(-134.25, 0.003, 161.95)",
+				"goal_hits": [],
+				"leg": 2,
+				"phase": "OUTSIDE",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 7,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 543,
+					"nodes": 19,
+					"open": 12,
+					"pruned_lower_bound": 13,
+					"queries": 432,
+					"ready_frame": 71,
+					"search_phase": "cancelled",
+					"service_us29": 9003,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "cancelled",
+					"tick_us": 27,
+					"total_expanded": 7
+				},
+				"position": "(-134.5436, 0.012668, 161.95)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000087)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 785,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-133.2456, 0.000141, 161.55)",
+				"waypoint": "(-133.1, 0.003, 161.55)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 3.01666666666667,
+			"frame": 190,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 189,
+				"goal": "(-134.25, 0.003, 161.95)",
+				"goal_hits": [],
+				"leg": 2,
+				"phase": "OUTSIDE",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 7,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 543,
+					"nodes": 19,
+					"open": 12,
+					"pruned_lower_bound": 13,
+					"queries": 432,
+					"ready_frame": 71,
+					"search_phase": "cancelled",
+					"service_us29": 9003,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "cancelled",
+					"tick_us": 27,
+					"total_expanded": 7
+				},
+				"position": "(-134.5436, 0.012668, 161.95)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(0.790148, 0.0, 0.612917)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 803,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-133.0971, 0.000141, 161.642)",
+				"waypoint": "(-132.7, 0.003, 161.95)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 3.11666666666667,
+			"frame": 196,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 195,
+				"goal": "(-134.25, 0.003, 161.95)",
+				"goal_hits": [],
+				"leg": 2,
+				"phase": "OUTSIDE",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 7,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 543,
+					"nodes": 19,
+					"open": 12,
+					"pruned_lower_bound": 13,
+					"queries": 432,
+					"ready_frame": 71,
+					"search_phase": "cancelled",
+					"service_us29": 9003,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "cancelled",
+					"tick_us": 27,
+					"total_expanded": 7
+				},
+				"position": "(-134.5436, 0.012668, 161.95)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(0.790158, 0.0, 0.612903)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 821,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-132.9549, 0.000141, 161.7523)",
+				"waypoint": "(-132.7, 0.003, 161.95)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 3.21666666666667,
+			"frame": 202,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 201,
+				"goal": "(-134.25, 0.003, 161.95)",
+				"goal_hits": [],
+				"leg": 2,
+				"phase": "OUTSIDE",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 7,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 543,
+					"nodes": 19,
+					"open": 12,
+					"pruned_lower_bound": 13,
+					"queries": 432,
+					"ready_frame": 71,
+					"search_phase": "cancelled",
+					"service_us29": 9003,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "cancelled",
+					"tick_us": 27,
+					"total_expanded": 7
+				},
+				"position": "(-134.5436, 0.012668, 161.95)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(0.790156, 0.0, 0.612906)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 839,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-132.8127, 0.000141, 161.8626)",
+				"waypoint": "(-132.7, 0.003, 161.95)"
+			},
+			"same_zone": true
+		},
+		{
+			"door": {
+				"anchor": [
+					-135.899993896484,
+					0.0,
+					161.949996948242
+				],
+				"blocked_reason": "",
+				"clone": "VENUE29-SHOP-002",
+				"configured": true,
+				"empty_seconds": 0.0,
+				"entrance_count": 1,
+				"failures": 1,
+				"fraction": 1.0,
+				"leaf": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+				"motion_blocked": false,
+				"opening_requested31": false,
+				"prompt": "hidden",
+				"resident_near": true,
+				"section_size": [
+					1.60000002384186,
+					2.5,
+					0.219999998807907
+				],
+				"state": "open",
+				"sweep_checks": 21,
+				"target": 1.0,
+				"trigger": "idle",
+				"visual_mode": "native_batch"
+			},
+			"elapsed_s": 3.31666666666667,
+			"frame": 208,
+			"inner_overlap": [],
+			"native_pair_exception": true,
+			"resident2": {
+				"avoidance": {
+					"direction": "(1.0, 0.0, -0.000094)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"door": 1.0,
+				"exit_state": "crossing",
+				"frame": 207,
+				"goal": "(-134.25, 0.003, 161.95)",
+				"goal_hits": [],
+				"leg": 2,
+				"phase": "OUTSIDE",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 7,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/Entrance41",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 543,
+					"nodes": 19,
+					"open": 12,
+					"pruned_lower_bound": 13,
+					"queries": 432,
+					"ready_frame": 71,
+					"search_phase": "cancelled",
+					"service_us29": 9003,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "cancelled",
+					"tick_us": 27,
+					"total_expanded": 7
+				},
+				"position": "(-134.5436, 0.012668, 161.95)",
+				"reason": ""
+			},
+			"resident9": {
+				"avoidance": {
+					"direction": "(0.99019, 0.0, 0.13973)",
+					"ratio": 1.0,
+					"reason": "clear",
+					"replan": false,
+					"waiting": false
+				},
+				"clearance": {
+					"activity": "idle",
+					"events": [
+						{
+							"event": "native_backoff_begin",
+							"frame": 10,
+							"position": "(-137.7398, 0.240942, 162.0626)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						},
+						{
+							"event": "open_intent_revoked",
+							"frame": 15,
+							"position": "(-137.8273, 0.240942, 162.0412)",
+							"stage": "(-138.2, 0.243, 161.95)"
+						}
+					],
+					"phase": "",
+					"reason": "",
+					"stage": "(-138.2, 0.243, 161.95)"
+				},
+				"goal": "(-132.3, 0.003, 161.95)",
+				"phase": "walking",
+				"plan": {
+					"cell_m": 0.4,
+					"coarse_fallback": false,
+					"direct_used": false,
+					"expanded": 14,
+					"last_collider": "/root/MafioziWalkMigration/CompactService29_VENUE29-SHOP-002/CompactOwnedArchitecture29/ServiceDoorJamb40",
+					"last_query_failure": "standing_blocked",
+					"max_tick_us": 496,
+					"nodes": 43,
+					"open": 29,
+					"pruned_lower_bound": 39,
+					"queries": 857,
+					"ready_frame": 24,
+					"search_phase": "ready",
+					"service_us29": 15897,
+					"shared_budget": {
+						"budget_us": 1800,
+						"frame": 71,
+						"frame_us": 1565,
+						"heap_items": 0,
+						"jobs": 0,
+						"max_frame_us": 2084,
+						"max_heap_items": 131072,
+						"max_jobs": 384,
+						"max_nodes": 65536,
+						"max_unit_us": 545,
+						"nodes": 0,
+						"rejected": 0,
+						"retired": 0,
+						"soft_deadline": true,
+						"units": 20
+					},
+					"status": "ready",
+					"tick_us": 55,
+					"total_expanded": 14
+				},
+				"position": "(-132.6404, 0.000141, 161.902)",
+				"waypoint": "(-132.3, 0.003, 161.95)"
+			},
+			"same_zone": true
+		}
+	],
+	"setup": "Exact authored SHOP-002 transform/geometry, real production Visit/Drive, initial observed partial leaf pose and resident9 position; no movement or door pose writes during measurement. Watch case restores13s prior planning/2s motion stall and uses a native player blocking the door for3s before physically walking away.",
+	"wall_s": 3.324663,
+	"watch": {
+		"blocked": false,
+		"motion_idle_ms": 0,
+		"phase": "walking",
+		"planning_ms": 160,
+		"planning_service_us": 15897,
+		"reason": ""
+	}
+}

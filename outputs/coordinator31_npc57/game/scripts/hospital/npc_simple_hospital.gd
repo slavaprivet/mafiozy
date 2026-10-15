@@ -4,6 +4,7 @@ const Avoidance29 = preload("res://scripts/navigation/npc_avoidance_world29.gd")
 const Route = preload("res://scripts/hospital/npc_physical_route51.gd")
 const LongRoute = preload("res://scripts/hospital/npc_long_route28.gd")
 const RoamWait = preload("res://scripts/hospital/npc_roam_wait29.gd")
+const DoorClearance31 = preload("res://scripts/hospital/npc_door_clearance31.gd")
 const Swing = preload("res://scripts/city/runtime/npc_city_clone_door_swing.gd")
 const FLAG := "--city-simple-hospital="
 const TARGET_FLAG := "--city-simple-hospital-target="
@@ -66,6 +67,7 @@ var _print_ms := -1000
 var _event := "idle"
 var _door_retry_ms := 0
 var _door_reason := ""
+var _door_clear31: RefCounted
 
 static func enabled() -> bool:  # DSH_SIMPLEHOSP
 	if _flag < 0:
@@ -205,6 +207,8 @@ func _scene_of_body() -> Node3D:
 	return _body.get_tree().current_scene as Node3D if is_instance_valid(_body) and _body.is_inside_tree() else null
 
 func begin(goal: Vector3, body: CharacterBody3D, map: RID, id: String, source: String) -> bool:
+	if _door_clear31!=null:_door_clear31.cancel()
+	_door_clear31=DoorClearance31.new() if source=="roam" else null
 	if not goal.is_finite() or not is_instance_valid(body) or not body.is_inside_tree():return false
 	_active=false;_attention_paused29=false;_attention_ready29=false
 	if _guide!=null:_guide.cancel()
@@ -315,6 +319,7 @@ func is_inside() -> bool:
 func distance_m() -> float:return _flat(_body.global_position,_target) if is_instance_valid(_body) and _body.is_inside_tree() else -1.0
 static func _flat(a: Vector3,b: Vector3) -> float:return Vector2(a.x-b.x,a.z-b.z).length()
 func cancel() -> void:
+	if _door_clear31!=null:_door_clear31.cancel()
 	_attention_paused29=false;_attention_ready29=false
 	if _route!=null:_route.cancel()
 	_active=false;_phase="cancelled"
@@ -332,12 +337,14 @@ func attention_pause29() -> bool:
 	if not is_instance_valid(_body) or not _body.is_inside_tree() or _body.is_queued_for_deletion():
 		cancel();return false
 	if _attention_paused29:return true
+	var was_door_backoff31:bool=_door_clear31!=null and _door_clear31.active()
+	if _door_clear31!=null:_door_clear31.cancel()
 	_attention_paused29=true;_phase="attention_paused"
 	_attention_position29=_body.global_position;_attention_map29=_guide_map
 	_attention_iteration29=-1
 	if _guide_map.is_valid() and NavigationServer3D.get_maps().has(_guide_map):
 		_attention_iteration29=NavigationServer3D.map_get_iteration_id(_guide_map)
-	_attention_ready29=_route!=null and _route.status=="ready" and _way<_route.route.size() and _guide!=null and _guide.status=="ready"
+	_attention_ready29=not was_door_backoff31 and _route!=null and _route.status=="ready" and _way<_route.route.size() and _guide!=null and _guide.status=="ready"
 	if _attention_ready29 and bool(_guide.diagnostics().get("distant",false)):
 		_attention_ready29=int(_guide.diagnostics().get("map_iteration",-2))==_attention_iteration29
 	if not _attention_ready29:
@@ -505,6 +512,18 @@ func step(delta: float) -> String:
 	var before: Vector3=_body.global_position
 	_roam_step29_phase="planning"
 	_door_tick()
+	if _door_clear31!=null and (_door_clear31.active() or _door_clear31.poll(_route)):
+		var clearance:String=_door_clear31.step(_route,delta,SPEED_MPS)
+		_roam_step29_phase=str(_door_clear31._activity)
+		if clearance=="blocked":
+			_last_reason=str(_door_clear31.snapshot().reason);_active=false;_phase="blocked"
+			_route.cancel();_guide.cancel()
+			return _finish_step(before,delta,"blocked",false)
+		if clearance=="resume":
+			_restart("door_clear_original_goal31")
+			return _finish_step(before,delta,"walking",false)
+		_phase="door_clear_"+str(_door_clear31._phase)
+		return _finish_step(before,delta,"walking",false)
 	_replan_s+=delta
 	var guide_state: String=_sync_guide()
 	if guide_state=="blocked":return _guide_blocked(before,delta)

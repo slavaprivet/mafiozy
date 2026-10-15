@@ -1,0 +1,14 @@
+{
+  "scripts/hospital/npc_door_clearance31.gd": {
+    "base_sha256": null,
+    "candidate_sha256": "baa15caf217df15ae0d5636cb4c5295e6a3f39ccf805b19333c38e4ec274917e"
+  },
+  "scripts/hospital/npc_simple_hospital.gd": {
+    "base_sha256": "737291ac97b210d4afbe9b490e7f5aefd32833f1ffad867f5fe9f3b677ca6a55",
+    "candidate_sha256": "0bb28b9d34ac0877c23b0737909348dcc715053739738c13f68522635f15020c"
+  },
+  "scripts/city/runtime/npc_city_clone_door_swing.gd": {
+    "base_sha256": "24fb1ef4d35a58ab99e498dd4be1f5d739c2425c767188c9c916df0b869d6fd1",
+    "candidate_sha256": "fb4f9af5277768272b16323289bdbbe9831bb63f5b63dfd05123195932c93528"
+  }
+}

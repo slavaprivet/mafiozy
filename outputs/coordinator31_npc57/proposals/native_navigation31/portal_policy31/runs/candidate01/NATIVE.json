@@ -1,0 +1,1997 @@
+{
+	"candidate": true,
+	"checks": {
+		"actual_door_inventory": true,
+		"both_inbound_physically_entered": false,
+		"capability_from_live_passage": true,
+		"cashier_next_only_after_release": true,
+		"cashier_staff_fifo_retained": true,
+		"closed_venue_not_supported": true,
+		"completed_claims_released_after_exit": true,
+		"concurrent_real_portal_owners": true,
+		"four_real_visit_admissions": false,
+		"four_reserved_portal_permissions": true,
+		"held_claim_not_cancelled_or_teleported": true,
+		"lifecycle_clears_portal_claims": true,
+		"native60hz_context": true,
+		"native_no_teleports": true,
+		"opposed_streams_native_overlap": true,
+		"others_physically_exit_while_first_paused": false,
+		"physical_floor_preserved": true,
+		"physical_release_promotes_only_one_room_waiter": true,
+		"portal_release_keeps_room_claim": true,
+		"real_compact_site": true,
+		"retired_venue_releases_portal_and_claims": true,
+		"room_capacity_remains4_fifth_waits": true,
+		"two_physical_exit_requests": true,
+		"unreserved_and_cross_venue_refused": true,
+		"unsupported_venue_still_serial": true
+	},
+	"done": [
+		false,
+		true,
+		true,
+		false
+	],
+	"elapsed_s": 15.0,
+	"entered": [
+		false,
+		false,
+		true,
+		false
+	],
+	"full_city_acceptance": false,
+	"max_native_step_m": 0.0307332649827003,
+	"max_owners": 3,
+	"min_opposed_separation_m": 0.0046234130859375,
+	"physics_context_misses": 0,
+	"production_integrated": false,
+	"source_route_unchanged": true,
+	"trace": [
+		{
+			"door_fraction": 0.0,
+			"owners": 2,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(1.2, 0.240278, 0.5)",
+						"mode": "none",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "free_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(1.2, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(-2.8, 0.000278, 7.1)",
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": "47848622103"
+					},
+					"id": "inbound_a",
+					"leg": 0,
+					"phase": "INBOUND",
+					"position": "(-2.8, 0.000278, 7.1)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 0
+		},
+		{
+			"door_fraction": 0.0,
+			"owners": 2,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.422599, 0.240774, 0.953484)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "free_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.422599, 0.240774, 0.953484)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(-3.669999, 0.000278, 7.1)",
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": "47848622103"
+					},
+					"id": "inbound_a",
+					"leg": 0,
+					"phase": "INBOUND",
+					"position": "(-3.669999, 0.000278, 7.1)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 30
+		},
+		{
+			"door_fraction": 0.564102564102564,
+			"owners": 3,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "opening",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.007985, 0.240774, 1.195342)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "free_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.007985, 0.240774, 1.195342)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(-3.038762, 0.000278, 6.73863)",
+						"mode": "none",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "inbound_a",
+					"leg": 1,
+					"phase": "INBOUND",
+					"position": "(-3.038762, 0.000278, 6.73863)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 60
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 3,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.006009, 0.240774, 1.555336)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "free_outbound",
+					"leg": 1,
+					"phase": "OUTBOUND",
+					"position": "(0.006009, 0.240774, 1.555336)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(-2.24118, 0.000278, 6.321664)",
+						"mode": "none",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "inbound_a",
+					"leg": 1,
+					"phase": "INBOUND",
+					"position": "(-2.24118, 0.000278, 6.321664)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 90
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 3,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.001563, 0.240774, 2.365322)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTBOUND",
+					"position": "(0.001563, 0.240774, 2.365322)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(-1.443598, 0.000278, 5.904699)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "inbound_a",
+					"leg": 1,
+					"phase": "INBOUND",
+					"position": "(-1.443598, 0.000278, 5.904699)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 120
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 3,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.00007, 0.240774, 3.145319)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTBOUND",
+					"position": "(0.00007, 0.240774, 3.145319)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(-0.646017, 0.000278, 5.487733)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "inbound_a",
+					"leg": 1,
+					"phase": "INBOUND",
+					"position": "(-0.646017, 0.000278, 5.487733)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 150
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 3,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.000003, 0.151629, 4.044896)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTBOUND",
+					"position": "(0.000003, 0.151629, 4.044896)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(-0.115239, 0.000278, 5.15686)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "inbound_a",
+					"leg": 2,
+					"phase": "INBOUND",
+					"position": "(-0.115239, 0.000278, 5.15686)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 180
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 2,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.012469, 4.858159)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(-0.003147, 0.109129, 4.298961)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "inbound_a",
+					"leg": 2,
+					"phase": "INBOUND",
+					"position": "(-0.003147, 0.109129, 4.298961)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 210
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 2,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.012469, 4.858159)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(-0.000093, 0.254062, 3.423619)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "inbound_a",
+					"leg": 2,
+					"phase": "INBOUND",
+					"position": "(-0.000093, 0.254062, 3.423619)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 240
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 2,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.012469, 4.858159)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.21229, 0.240194, 2.652587)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "inbound_a",
+					"leg": 3,
+					"phase": "INBOUND",
+					"position": "(0.21229, 0.240194, 2.652587)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 270
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 2,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.012469, 4.858159)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.743053, 0.240194, 1.925751)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "inbound_a",
+					"leg": 3,
+					"phase": "INBOUND",
+					"position": "(0.743053, 0.240194, 1.925751)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 300
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 2,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.012469, 4.858159)",
+					"reason": ""
+				},
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.684209, 0.240194, 1.425445)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "inbound_a",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.684209, 0.240194, 1.425445)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 330
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 2,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.012469, 4.858159)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.000351, 0.240194, 1.290123)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "inbound_a",
+					"leg": 1,
+					"phase": "OUTBOUND",
+					"position": "(0.000351, 0.240194, 1.290123)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 360
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 2,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.012469, 4.858159)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.000119, 0.240194, 2.190122)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "inbound_a",
+					"leg": 1,
+					"phase": "OUTBOUND",
+					"position": "(0.000119, 0.240194, 2.190122)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 390
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 2,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.012469, 4.858159)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.00001, 0.240194, 2.910122)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "inbound_a",
+					"leg": 2,
+					"phase": "OUTBOUND",
+					"position": "(0.00001, 0.240194, 2.910122)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 420
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 2,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.012469, 4.858159)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.19255, 3.808769)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "inbound_a",
+					"leg": 2,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.19255, 3.808769)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 450
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 2,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.012469, 4.858159)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.037569, 4.712164)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "inbound_a",
+					"leg": 2,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.037569, 4.712164)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 480
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 1,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.012469, 4.858159)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_a",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.011886, 4.862782)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 510
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 1,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.012469, 4.858159)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_a",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.011886, 4.862782)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 540
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 1,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.012469, 4.858159)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_a",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.011886, 4.862782)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 570
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 1,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.012469, 4.858159)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_a",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.011886, 4.862782)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 600
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 1,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.012469, 4.858159)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_a",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.011886, 4.862782)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 630
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 1,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.012469, 4.858159)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_a",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.011886, 4.862782)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 660
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 1,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.012469, 4.858159)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_a",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.011886, 4.862782)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 690
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 1,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.012469, 4.858159)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_a",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.011886, 4.862782)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 720
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 1,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.012469, 4.858159)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_a",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.011886, 4.862782)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 750
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 1,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.012469, 4.858159)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_a",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.011886, 4.862782)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 780
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 1,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.012469, 4.858159)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_a",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.011886, 4.862782)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 810
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 1,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.012469, 4.858159)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_a",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.011886, 4.862782)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 840
+		},
+		{
+			"door_fraction": 1.0,
+			"owners": 1,
+			"rows": [
+				{
+					"door_stage": "approach",
+					"hint": {
+						"controlled": true,
+						"hold_point": "(0.0, 0.240278, 0.5)",
+						"mode": "crossing",
+						"portal_owner": true,
+						"venue_id": "47848622103"
+					},
+					"id": "held_outbound",
+					"leg": 0,
+					"phase": "OUTBOUND",
+					"position": "(0.0, 0.240278, 0.5)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "free_outbound",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.012469, 4.858159)",
+					"reason": ""
+				},
+				{
+					"door_stage": "crossing",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_a",
+					"leg": 2,
+					"phase": "OUTSIDE",
+					"position": "(0.0, 0.011886, 4.862782)",
+					"reason": ""
+				},
+				{
+					"door_stage": "",
+					"hint": {
+						"controlled": false,
+						"mode": "none",
+						"portal_owner": false,
+						"venue_id": ""
+					},
+					"id": "inbound_b",
+					"leg": 0,
+					"phase": "IDLE",
+					"position": "(2.8, 0.003, 7.1)",
+					"reason": "reserved_room_no_longer_clear"
+				}
+			],
+			"tick": 870
+		}
+	],
+	"wall_s": 14.95857
+}
