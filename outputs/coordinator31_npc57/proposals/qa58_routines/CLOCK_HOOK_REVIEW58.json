@@ -1,0 +1,72 @@
+{
+  "schema": "mafiozi.routines58.clock-hooks-review/v1",
+  "read_only": true,
+  "source_read_pins": {
+    "scripts/quick_controls/day_night_clock.gd": "5f44a68a315caaef02ee298cef75775ce1905e7315bd0c90f7f6729d5d6e65ca",
+    "scripts/quick_controls/quick_controls.gd": "4cd2207fd28e8941c719d566a9017b4fb81de12cb0c5919ab2fd8e6cca2a7714",
+    "scripts/quick_controls/scene_hook.gd": "c057a05622ce627db6e25ca54ceb3995de950b0ce2d36f687bf3f801a86bd57d",
+    "scripts/npc_daily_life.gd": "55640868c590cfe6451a3b639481f6f96d001c3d5bd79d5606a34e461c29b332",
+    "scripts/npc_city_daily.gd": "6e64b9082d152c8d926dd4813282f59a751bf2fc65c01b13fc55b1d8c5c9aef2",
+    "scripts/npc_ambient/ambient_controller28.gd": "034096d71830cd76ab117f998b4d84218b89bddf7eda671216fc24fe9c7e77c6",
+    "scripts/npc_ambient/ambient_bench_registry29.gd": "3377e33a56e4cb594063595c6bb087f9864744aa6a41eba7e1ddbcd85c72ce9e",
+    "scripts/city/runtime/npc_threat_life30.gd": "ad989e07fc03691bceca3e751f03d42496aefbc1eab5c37064eda4cc8b6d13ae",
+    "scripts/city/runtime/npc_wait_cohort56.gd": "e6943bb031c06cb26602b2cd70e83e8fe9da83e8b07e62c34c9f561194494d72"
+  },
+  "clock": {
+    "owner": "QuickControls._process → _advance_day; root meta mafiozi_visual_clock",
+    "initial_hour": 17.5,
+    "cycle_real_seconds": 5400,
+    "day_seconds_per_hour": 300,
+    "night_seconds_per_hour": 150,
+    "n": "Forward hour-only transition to22 or next12 over2 real seconds; set_hour called each render.",
+    "t": "T stops only clock.advance and cancels an active N transition. It does not pause scene physics.",
+    "current_limit": "No day index; advance reduces delta modulo full cycle and therefore intentionally loses whole-cycle count.",
+    "narrow_extension": "Keep one shared clock. Add day index, count normalized forward midnight wraps once in set_hour; separately count full midnight crossings in advance. Do not increment floor(input_hour/24) on every N render.",
+    "advance_crossing_formula": "With existing elapsed seconds on06:00 axis: floor((elapsed+delta+900)/5400)-floor((elapsed+900)/5400). Equivalent whole-cycle+remainder implementation can bound arithmetic.",
+    "schedule_ticket_rule": "Use stable source ID plus day index plus routine slot for eligibility; actual receipt marks completion. Preserve active ticket across bank/interruptions and clock jumps. Lifecycle ownership still binds current generation."
+  },
+  "hooks": [
+    {
+      "file": "scripts/npc_city_daily.gd",
+      "line": 39,
+      "finding": "_physical_needed30 enumerates existing owners; HOME/SLEEP needs explicit active-owner predicate. New phases alone are not enough for60Hz support/pose/movement."
+    },
+    {
+      "file": "scripts/npc_daily_life.gd",
+      "line": 834,
+      "finding": "Death precedes threat/attention/ambient and physical service branches. Home must not introduce a second movement owner or bypass medical priority."
+    },
+    {
+      "file": "scripts/npc_daily_life.gd",
+      "line": 1010,
+      "finding": "dsh_notice_damage performs immediate damage-side cancellation; home needs equivalent exact cancellation/unwind."
+    },
+    {
+      "file": "scripts/npc_daily_life.gd",
+      "line": 1801,
+      "finding": "_end_life cancels all current owners and marks old generation retired; home lease/pose/ticket owner cleanup must join this hook and dispose1851."
+    },
+    {
+      "file": "scripts/city/runtime/npc_threat_life30.gd",
+      "line": 72,
+      "finding": "_release_service waits for actual service release before starting threat movement. Home approach/sleep/exit must participate here."
+    },
+    {
+      "file": "scripts/city/runtime/npc_wait_cohort56.gd",
+      "line": 32,
+      "finding": "Current optimization knows no home. Returning null/full steps is safe; do not add sleeping owners to throttled waits without live support checks."
+    },
+    {
+      "file": "scripts/npc_ambient/ambient_controller28.gd",
+      "line": 165,
+      "finding": "Bench checks renewable exact reservation, support, native docking and pose commits. Reuse contract, not a fake seated/sleep flag."
+    },
+    {
+      "file": "scripts/npc_ambient/ambient_bench_registry29.gd",
+      "line": 97,
+      "finding": "Registry validates exact physical support and owner/body/serial; destruction removes claim before reentrant cancellation."
+    }
+  ],
+  "observer_change_required_after_api_settled": "Add home owner/phase, bed validity, shared clock and routine ticket fields in a NEW observer version. HOME approach/entry/exit require motion; supported committed sleep does not. Existing V4 has no home-specific knowledge yet.",
+  "errors_claimed_in_unwritten_new_model": false
+}

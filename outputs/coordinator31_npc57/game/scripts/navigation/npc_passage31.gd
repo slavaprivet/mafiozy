@@ -104,6 +104,15 @@ func refresh() -> void:
 	if not is_instance_valid(scene): _clear_pairs(); return
 	var registry: Variant = scene.get_meta("npc_venue_registry29") if scene.has_meta("npc_venue_registry29") else null
 	var entries: Dictionary = registry._entries if is_instance_valid(registry) else {}
+	# Assigned homes share only the measured NPC doorway passage policy.
+	# Copy before merge: home geometry never mutates the trading registry.
+	var homes58: Variant = scene.get_meta("npc_home_registry58", null)
+	if is_instance_valid(homes58) and homes58.has_method("passage_entries"):
+		var home_entries58: Dictionary = homes58.passage_entries()
+		if not home_entries58.is_empty():
+			entries = entries.duplicate()
+			for key58: String in home_entries58:
+				if key58.begins_with("home58:") and not entries.has(key58): entries[key58] = home_entries58[key58]
 	var now: int = Time.get_ticks_msec()
 	if entries.size() != _entry_count or now >= _next_zones:
 		_entry_count = entries.size(); _next_zones = now+1000; _rebuild_zones(entries)

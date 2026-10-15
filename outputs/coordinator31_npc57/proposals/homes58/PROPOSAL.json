@@ -1,0 +1,22 @@
+{
+  "status": "PREPARED_FOR_MERGED_NATIVE_VALIDATION",
+  "production_modified": false,
+  "native_home_acceptance": false,
+  "parse_run": "runs/parse03",
+  "source_stage": "stage58_04",
+  "manifest_sha256": "2e39c030b28157b1bad15c0c42cf831c523d8bd4eff6b1aec4ad23db455810f6",
+  "constraints": [
+    "assigned home/bed only; no source population change",
+    "same physical motor and door route; no body transform/teleport/mask edits",
+    "sleep requires current geometry, actual bed surface rays and host pose commits",
+    "stale generation cancels planners only, never new owner velocity",
+    "HOME_BLOCKED/work exhaustion is a liveness FAIL, never legitimate sleep or release"
+  ],
+  "required_tests": [
+    "real approach/entry/assigned dock/native bed pose/ordinary physical exit",
+    "bed destruction with intact door uses normal safe door opening",
+    "house destruction/injury/shot interrupt sleep immediately and preserve movement ownership",
+    "stale generation/death claim cleanup without touching new owner",
+    "1-3 residents share physical doorway and keep unique assigned beds"
+  ]
+}

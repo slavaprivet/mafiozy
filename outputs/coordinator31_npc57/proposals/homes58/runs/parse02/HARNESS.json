@@ -1,0 +1,10 @@
+{
+  "entry_parse58.gd": "5259b43ac4d0e92e751b79e3e28f051223d18c7269e0ea69ff07e39df3535ce6",
+  "run_parse58.py": "6c0d4e482fa1930fc5e44079ff93f31a22cf9ddc464fc429f7ab191ec4d82c3b",
+  "patch/scripts/homes/npc_home_claim58.gd": "65d40b9907b619132c9c9dbb26ff3fe72e532047b9e0be071c5b9566d740cc50",
+  "patch/scripts/homes/npc_home_controller58.gd": "0eb436a78d92a396405d4ac8ea986523c77d9db8ed4ac933c3d0c14ae5e7d5c8",
+  "patch/scripts/homes/npc_home_pose58.gd": "4532a16fb9ac9748838d8b363fd9570028f607f9be33ca27af5a07481426c4f2",
+  "patch/scripts/homes/npc_home_route58.gd": "ac18d442e21f20234e16488e1b75a662b561e10fd94115fbc8bf06ff5f82aef7",
+  "patch/scripts/navigation/npc_passage31.gd": "058e406a731652a36284385b8c89fcef6579414c1a35fd50e84f7aa41e094f87",
+  "patch/scripts/npc_visual/preview_resident_host.gd": "adca5ac85d6596386d0967ca72464b598c3f19a5af990c750e618280d0bc2474"
+}

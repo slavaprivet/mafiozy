@@ -3,10 +3,10 @@ extends Node3D
 ## Call break_for_wall BEFORE hiding/releasing the wall. On reset dispose this
 ## helper, rebuild the site, then configure a fresh helper for the new generation.
 const WalkGlass = preload("res://scripts/destruction/modular30/owner/vendor/glass/walk_glass_breakage.gd")
-const MAX_HELPERS := 8
+const MAX_HELPERS := 12 # Eight service sites plus four shared residential houses.
 const MAX_PANES := 4
 const MAX_EVENTS := 2048
-const SHARDS_PER_SITE := 8 # Separate compact-owner registry: eight sites, at most64 shard slots.
+const SHARDS_PER_SITE := 8 # Shared compact-owner registry: twelve sites, at most96 shard slots.
 const MAX_BREAKS_PER_TICK := 4
 const THICKNESS := 0.015
 const CONTACT_SLOP := 0.002

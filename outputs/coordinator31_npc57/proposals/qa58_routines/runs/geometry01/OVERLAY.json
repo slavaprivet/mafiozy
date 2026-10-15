@@ -1,0 +1,8 @@
+{
+  "data/homes58.json": "44bfa3fc39146904fa9da1c163c783f7533f84a899b8afd44ec3b48a0533fae4",
+  "scripts/homes/npc_home_host58.gd": "95bd726c2b9c479bcd8dd0aee085d0a451de97b800d8b1820f769d4c1e0fff37",
+  "scripts/homes/npc_home_registry58.gd": "427890a2e459b8816f0c0b9797f9fe8194e373172108a620d06f70307864b1e3",
+  "scripts/homes/npc_home_site58.gd": "2f81d471650178e344ef34107f07990f9eb8eaa58a202b7ffc3a777fdba8242a",
+  "scripts/main.gd": "b76490123c1d79c505a7cffb9bb455ae05908fdf0cdbb317a88b26fac369b133",
+  "scripts/venues/npc_compact_glazing29.gd": "3c440c63036061aa26ec04fa7a09e1924ad4afb3eee4fa5aac6c1cb0b5ee530c"
+}

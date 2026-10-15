@@ -1,0 +1,6 @@
+{
+  "scripts/hospital/npc_simple_hospital.gd": {
+    "base_sha256": "0bb28b9d34ac0877c23b0737909348dcc715053739738c13f68522635f15020c",
+    "candidate_sha256": "d1ea18fbf1740f2b0b029a28bec4b91bccb3e3506ad693b48324c71a98c0106a"
+  }
+}

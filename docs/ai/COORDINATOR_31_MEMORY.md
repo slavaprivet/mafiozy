@@ -346,3 +346,35 @@ source/harness pins, read/write Lease, свежий inventory, закрыват�
 Perf отдельно через probe; открытая user game блокирует сопоставимый perf.
 Пользователь попросил видеть прогоны, допустима одна видимая диагностика с учётом
 очереди. Полные копии QA не плодить: на C при принятии около2.3GiB свободно.
+# Обновление15.10: распорядок и разрушаемые общие дома58
+
+Stage58_05 native import PASS1150pins, SHA
+d5adfedbd8d1920b4544440928f8c5e2b0c52672e360d15be8ec1c3b3b28720d.
+INTEGRATION_homes58_01.json применяет12paths, housing PATCH0c1c1f68... и homes
+PATCH2e39c030...; geometry4 houses54/54/52/52 owned sections,10 physical beds.
+Независимый AUDIT_GEOMETRY_C4_03 PASS17:30nativeс/1800ticks/31.929wall, real
+C4 hold196ticks→charge→retreat→remote,20owned sections release, матрас4.396м,
+layer512, stale slotinvalid; reset→newrevision/all10beds. RawRUNfalse не менять:
+ошибочный конечныйassert требовал mattress.freeze=false после8с, хотя actual
+native motion доказан; parking — лишь объяснение по коду, meta не сэмплировали.
+geometry01 выявил typedArray ternary и beds0, исправлены xs.assign и строгая
+приёмка beds10; geometry02 измерял30wall/28sim, поэтомуне30nativePASS.
+Services выполняет all10 real home route/pose/exit, QA — destruction/generation.
+Logical routines пока НЕ вcandidate; addons добавляет4 настоящие лавки в жилых
+районах, поскольку5 старых лавок вне120м late resident2/7 (leisure01 honestFAIL).
+User57 сохраняется до финальной проверки/perf, разрешение закрыть её действует.
+
+Новое прямое поручение: логические маршруты по потребностям/времени суток;
+между делами случайные занятия, разные расписания. Существующие90минутные сутки,
+общий clock, без второго таймера мира. Дома на1–3 жителей и личные кровати.
+Все дома разрушаемые как Палаццо. Разрушенная кровать/дом отменяет сон и место.
+Root готовит4 компактных дома3+3+2+2 на существующем Palazzo backend;
+services31_resume — физический вход/кровать/выход и поза, godot_addons31 —
+распорядок/clock, qa31_resume — независимая матрица12 сценариев.
+Roamguard d1ea18fbf1740f2b0b029a28bec4b91bccb3e3506ad693b48324c71a98c0106a
+интегрирован; stage58_04 импорт PASS1135pins. Native faultclass14/14: baseline
+45с осцилляции, fix10.465с до цели, свободный путь2.992с. Точный исходный blocker
+не установлен; последнее1200с stage03 остаётся FAIL. Новый1200с только после
+новой объединённой модели. First10 не complete;20 не включать. User57/F5 пока
+сохранены; авторизация закрыть57 для чистого FPS и открыть принятую58 действует.
+

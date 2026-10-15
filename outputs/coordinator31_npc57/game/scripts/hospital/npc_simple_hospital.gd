@@ -445,8 +445,9 @@ func _service_observe30(before: Vector3, delta: float) -> String:
 	_service_watch30.blocked=not why.is_empty();_service_watch30.reason=why
 	return why
 
-# Called only on an attempted service movement, after peer/FIFO waits. This is
-# a local replan request, never arrival, service completion or a collision bypass.
+# Called only on attempted service/roam movement, after peer waits. Track
+# the current waypoint, not the final goal: a planned detour may lead away
+# from that goal. Replan uses the same route and cumulative work budget.
 func _service_waypoint_stalled56(ready_frame: int, way: int, remaining: float, delta: float) -> bool:
 	if ready_frame != _service_ready_frame56 or way != _service_way56:
 		_service_ready_frame56 = ready_frame; _service_way56 = way
@@ -573,7 +574,12 @@ func step(delta: float) -> String:
 		_emit("arrived")
 		return _finish_step(before,delta,"arrived")
 	var direction: Vector3=waypoint-current;direction.y=0
-	if direction.length()<.001:return _finish_step(before,delta,"walking")
+	if direction.length()<.001:
+		# A flat-aligned waypoint can still fail its floor/height/edge arrival
+		# checks. Do not let that early return bypass roaming progress.
+		if _target_source == "roam" and _service_waypoint_stalled56(int(_route._ready_frame), _way, remaining, delta):
+			_roam_step29_phase = "planning"; _restart("roam_waypoint_no_progress58")
+		return _finish_step(before,delta,"walking")
 	direction=direction.normalized()
 	var distance: float=minf(SPEED_MPS*delta,remaining)
 	if _avoidance29!=null:
@@ -587,8 +593,9 @@ func step(delta: float) -> String:
 			return _finish_step(before,delta,"walking")
 		direction=_avoidance29_state.direction
 		distance=minf(SPEED_MPS*float(_avoidance29_state.ratio)*delta,remaining)
-	if _target_source == "service_approach" and _service_waypoint_stalled56(int(_route._ready_frame), _way, remaining, delta):
-		_roam_step29_phase = "planning"; _restart("service_waypoint_no_progress56")
+	if _target_source in ["service_approach", "roam"] and _service_waypoint_stalled56(int(_route._ready_frame), _way, remaining, delta):
+		_roam_step29_phase = "planning"
+		_restart("roam_waypoint_no_progress58" if _target_source == "roam" else "service_waypoint_no_progress56")
 		return _finish_step(before, delta, "walking")
 	# Revalidate current local edge; changed furniture/rubble cannot be traversed from a stale plan.
 	var ahead: Vector3=current+direction*minf(.4,remaining)

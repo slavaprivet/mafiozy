@@ -1,0 +1,233 @@
+{
+  "schema": "mafiozi.homes58/v1",
+  "source_sha256": "38b4b50ca06fb60172173b04c5b49ff567a84509ea01901a24306ab0d3b41dc7",
+  "source_coordinate_frame": "main local X/Z metres; world identity required",
+  "native_acceptance": "PENDING",
+  "existing_models_reintroduced": false,
+  "entries": [
+    {
+      "id": "HOME58-001",
+      "number": 1,
+      "residents": [
+        "resident_1",
+        "resident_8",
+        "resident_9"
+      ],
+      "kind": "home",
+      "sign": "ДОМ 1",
+      "position": [
+        -139.4,
+        0,
+        383.35
+      ],
+      "yaw": -1.5707963267948966,
+      "road_point": [
+        -150.4,
+        0,
+        383.35
+      ],
+      "source_ground": "grass, unprotected, dry",
+      "road_distance_from_centre_m": 11,
+      "footprint_xz": [
+        -143.39999999999998,
+        378.75,
+        -135.39999999999998,
+        387.95000000000005
+      ],
+      "apron_xz": [
+        -150.39999999999998,
+        377.35,
+        -142.89999999999998,
+        389.35
+      ],
+      "initial_native_walk_origin_distance_m": {
+        "resident_1": 251.708,
+        "resident_8": 250.234,
+        "resident_9": 151.921
+      }
+    },
+    {
+      "id": "HOME58-002",
+      "number": 2,
+      "residents": [
+        "resident_2",
+        "resident_6",
+        "resident_7"
+      ],
+      "kind": "home",
+      "sign": "ДОМ 2",
+      "position": [
+        45.1,
+        0,
+        186.55
+      ],
+      "yaw": 0,
+      "road_point": [
+        45.1,
+        0,
+        197.55
+      ],
+      "source_ground": "grass, unprotected, dry",
+      "road_distance_from_centre_m": 11,
+      "footprint_xz": [
+        40.499999999999964,
+        182.54999999999998,
+        49.69999999999997,
+        190.54999999999998
+      ],
+      "apron_xz": [
+        39.099999999999966,
+        190.04999999999998,
+        51.099999999999966,
+        197.54999999999998
+      ],
+      "initial_native_walk_origin_distance_m": {
+        "resident_2": 127.364,
+        "resident_6": 154.717,
+        "resident_7": 131.775
+      }
+    },
+    {
+      "id": "HOME58-003",
+      "number": 3,
+      "residents": [
+        "resident_3",
+        "resident_5"
+      ],
+      "kind": "home",
+      "sign": "ДОМ 3",
+      "position": [
+        102.5,
+        0,
+        530.95
+      ],
+      "yaw": 1.5707963267948966,
+      "road_point": [
+        113.5,
+        0,
+        530.95
+      ],
+      "source_ground": "grass, unprotected, dry",
+      "road_distance_from_centre_m": 11,
+      "footprint_xz": [
+        98.5,
+        526.3499999999999,
+        106.5,
+        535.55
+      ],
+      "apron_xz": [
+        106.0,
+        524.9499999999999,
+        113.5,
+        536.9499999999999
+      ],
+      "initial_native_walk_origin_distance_m": {
+        "resident_3": 37.127,
+        "resident_5": 33.809
+      }
+    },
+    {
+      "id": "HOME58-004",
+      "number": 4,
+      "residents": [
+        "resident_4",
+        "resident_10"
+      ],
+      "kind": "home",
+      "sign": "ДОМ 4",
+      "position": [
+        135.3,
+        0,
+        526.85
+      ],
+      "yaw": -1.5707963267948966,
+      "road_point": [
+        120.3,
+        0,
+        526.85
+      ],
+      "source_ground": "grass, unprotected, dry",
+      "road_distance_from_centre_m": 15,
+      "footprint_xz": [
+        131.29999999999995,
+        522.2499999999999,
+        139.29999999999995,
+        531.4499999999999
+      ],
+      "apron_xz": [
+        120.29999999999995,
+        520.8499999999999,
+        131.79999999999995,
+        532.8499999999999
+      ],
+      "initial_native_walk_origin_distance_m": {
+        "resident_4": 140.122,
+        "resident_10": 92.788
+      }
+    }
+  ],
+  "source_evidence": {
+    "planner_reused": "outputs\\coordinator29_npc53\\proposals\\venues29_sites\\qa\\plan_sites29.py",
+    "planner_sha256": "cbadf8f5dc3dde1d68bd13f4672d94380707d0ec3d3fdbfe9d7a0e5175f95c75",
+    "venue_plan_sha256": "985868421250acd0bdd10eb7199503b051d5562c7b3bb752216d23af410aa10f",
+    "native_initial_walk_log_sha256": "233f78e5820aa4caea6eda996cb7aaad3e816187dd3d018aeb792f5da91330d9",
+    "native_initial_walk_origins": {
+      "resident_9": [
+        -291.1,
+        -0.0,
+        391.55
+      ],
+      "resident_1": [
+        -86.1,
+        -0.0,
+        137.35
+      ],
+      "resident_5": [
+        94.3,
+        -0.0,
+        563.75
+      ],
+      "resident_6": [
+        127.1,
+        -0.0,
+        55.35
+      ],
+      "resident_3": [
+        106.6,
+        -0.0,
+        567.85
+      ],
+      "resident_8": [
+        -217.3,
+        -0.0,
+        621.15
+      ],
+      "resident_2": [
+        151.7,
+        -0.0,
+        116.85
+      ],
+      "resident_4": [
+        266.5,
+        -0.0,
+        576.05
+      ],
+      "resident_7": [
+        57.4,
+        -0.0,
+        317.75
+      ],
+      "resident_10": [
+        93.69299,
+        -0.0,
+        609.7863
+      ]
+    },
+    "source_candidates": 1543,
+    "connected_source_cells": 23122,
+    "source_collision_boxes_excluded": 353,
+    "reserved_palazzo_and_clones": 5,
+    "reserved_current_venues": 8,
+    "limit": "Dry source proof is conservative, not native terrain/placement/route acceptance; historical first walk origins, not current live positions."
+  }
+}

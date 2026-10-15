@@ -83,6 +83,7 @@ var preview_population: RefCounted
 var preview_modular30: Node
 var preview_palazzo: Node
 var preview_service_sites29: Node
+var preview_homes58: Node
 var preview_venue_staff29: Node
 ## DSH_CITYTOWN: --city-palazzo-clones=1 puts three signed copies of the palazzo next to it
 ## (БОЛЬНИЦА / БАНК / РЕСТОРАН). They are scenery: geometry only, no host and no damage.
@@ -245,6 +246,14 @@ func _ready() -> void:
 		preview_service_sites29.name = "CompactServiceSites29"
 		add_child(preview_service_sites29)
 		print("VENUE_SITES29_GEOMETRY ", await preview_service_sites29.prepare(self, _block))
+	if city_block_mode and city_town_active():
+		preview_homes58 = load("res://scripts/homes/npc_home_host58.gd").new()
+		preview_homes58.name = "ResidentHomes58"
+		add_child(preview_homes58)
+		var homes_result58: Dictionary = await preview_homes58.prepare(self, _block)
+		print("HOME58_GEOMETRY ", homes_result58)
+		if not homes_result58.get("ok", false):
+			push_error("Residential geometry failed: " + str(homes_result58)); return
 	if OS.get_cmdline_user_args().has("--city-venue-staff29=1"):
 		preview_venue_staff29 = load("res://scripts/venues/npc_venue_staff_host29.gd").new()
 		add_child(preview_venue_staff29)
@@ -344,6 +353,11 @@ func _ready() -> void:
 		print("PALAZZO_NATIVE_BINDING ", preview_palazzo.bind_weapons())
 	if is_instance_valid(preview_service_sites29):
 		print("VENUE_SITES29_NATIVE_BINDING ", preview_service_sites29.bind_weapons())
+	if is_instance_valid(preview_homes58):
+		var homes_binding58: Dictionary = preview_homes58.bind_weapons()
+		print("HOME58_NATIVE_BINDING ", homes_binding58)
+		if not homes_binding58.get("ok", false):
+			push_error("Residential damage binding failed: " + str(homes_binding58)); return
 	if is_instance_valid(preview_weapons) and is_instance_valid(preview_palazzo) and preview_palazzo.status=="ready":
 		var blast: Node=load("res://scripts/destruction/palazzo/c4_building_blast.gd").new()
 		preview_c4_blast=blast
@@ -629,6 +643,7 @@ func _c4_sites() -> Array:
 	if is_instance_valid(preview_palazzo) and preview_palazzo.status=="ready" and is_instance_valid(preview_palazzo.site):
 		sites.append(preview_palazzo.site)
 	if is_instance_valid(preview_service_sites29): sites.append_array(preview_service_sites29.current_sites())
+	if is_instance_valid(preview_homes58): sites.append_array(preview_homes58.current_sites())
 	return sites
 
 func _exit_tree() -> void:
@@ -639,6 +654,7 @@ func _exit_tree() -> void:
 	GameCursor.release()
 	if is_instance_valid(preview_modular30): preview_modular30.dispose(false)
 	if is_instance_valid(preview_venue_staff29): preview_venue_staff29.dispose29()
+	if is_instance_valid(preview_homes58): preview_homes58.dispose()
 	if is_instance_valid(preview_service_sites29): preview_service_sites29.dispose()
 	if is_instance_valid(preview_palazzo): preview_palazzo.dispose()
 	if preview_population != null:

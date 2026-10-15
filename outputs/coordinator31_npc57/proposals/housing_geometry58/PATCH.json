@@ -1,0 +1,26 @@
+{
+  "data/homes58.json": {
+    "base_sha256": null,
+    "candidate_sha256": "44bfa3fc39146904fa9da1c163c783f7533f84a899b8afd44ec3b48a0533fae4"
+  },
+  "scripts/homes/npc_home_host58.gd": {
+    "base_sha256": null,
+    "candidate_sha256": "4e698a206d5de4156b9496187cfbe9165419f9608b268fa554c0be668da2fb48"
+  },
+  "scripts/homes/npc_home_registry58.gd": {
+    "base_sha256": null,
+    "candidate_sha256": "fbda1b59044f483ae4e04f69db1728aeb8aacc9c54896aa9e5341166158e5f5a"
+  },
+  "scripts/homes/npc_home_site58.gd": {
+    "base_sha256": null,
+    "candidate_sha256": "e37746c8dcdbc2b5ed4c4b7c60ea601d98195c79f7afa5118ffc8dd591ecca63"
+  },
+  "scripts/main.gd": {
+    "base_sha256": "f01818b7d39a87df54ec828b43c45dd88e0a1a1fd5e696a5e4ffb9430b215890",
+    "candidate_sha256": "b76490123c1d79c505a7cffb9bb455ae05908fdf0cdbb317a88b26fac369b133"
+  },
+  "scripts/venues/npc_compact_glazing29.gd": {
+    "base_sha256": "edbe6091d4eacc50ae89a3752b1cf1ddf5a126c8ee073c0397ccb6e9264fdf67",
+    "candidate_sha256": "3c440c63036061aa26ec04fa7a09e1924ad4afb3eee4fa5aac6c1cb0b5ee530c"
+  }
+}

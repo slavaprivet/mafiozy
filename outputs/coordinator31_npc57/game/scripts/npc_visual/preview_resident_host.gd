@@ -13,6 +13,7 @@ const Gait = preload("res://scripts/preview_locomotion.gd")
 const PhysicalMotion51 = preload("res://scripts/hospital/npc_motion_visual51.gd")
 const TreatmentPose28 = preload("res://scripts/hospital/npc_treatment_pose28.gd")
 const AmbientPose28 = preload("res://scripts/npc_ambient/ambient_pose28.gd")
+const HomePose58 = preload("res://scripts/homes/npc_home_pose58.gd")
 const Ragdoll = preload("res://scripts/npc_visual/npc_ragdoll_host_v2.gd")
 const PreviewActivity = preload("res://scripts/npc_visual/npc_preview_activity.gd")
 const ContactRetaliation = preload("res://scripts/npc_visual/npc_contact_retaliation.gd")
@@ -1731,9 +1732,21 @@ func step(delta: float) -> void:
 		if treatment_pose28 != null and treatment_sample28.is_empty():
 			treatment_pose28.last_weight = 0.0; treatment_pose28.last_elapsed = -1.0
 		var treating28: bool = not treatment_sample28.is_empty() and treatment_pose28 != null
+		var home_sample58: Dictionary = HomePose58.sample(body, delta, external_motion51)
+		if treating28 or (retaliation != null and retaliation.engaged()) or hit_pose_active: home_sample58 = {}
+		var home_pose58: RefCounted = record.get("home_pose58")
+		if not home_sample58.is_empty():
+			var home_rig58: Skeleton3D = record.gait._skeleton
+			if home_pose58 == null or not home_pose58.ready_for(home_rig58):
+				home_pose58 = HomePose58.new()
+				if home_pose58.bind(home_rig58, record.gait._rest_poses): record["home_pose58"] = home_pose58
+				else: home_pose58 = null; home_sample58 = {}
+		var home_active58: bool = not home_sample58.is_empty() and home_pose58 != null
+		var home_previous58: bool = bool(record.get("home_pose_active58", false))
+		record["home_pose_active58"] = home_active58
 		# Life publishes a stopped current-frame action. This host keeps one pose writer.
 		var ambient_sample28: Dictionary = AmbientPose28.sample(body, delta, external_motion51)
-		if treating28 or (retaliation != null and retaliation.engaged()) or hit_pose_active: ambient_sample28 = {}
+		if treating28 or home_active58 or (retaliation != null and retaliation.engaged()) or hit_pose_active: ambient_sample28 = {}
 		var ambient_pose28: RefCounted = record.get("ambient_pose28")
 		if not ambient_sample28.is_empty():
 			var ambient_rig28: Skeleton3D = record.gait._skeleton
@@ -1747,12 +1760,13 @@ func step(delta: float) -> void:
 		var ambient_previous28: bool = bool(record.get("ambient_pose_active28", false))
 		record["ambient_pose_active28"] = ambient_active28
 		# A cancelled distant actor also gets one canonical pose commit to stand up.
-		if treating28 or ambient_active28 or ambient_previous28 or hit_pose_active or (retaliation != null and retaliation.engaged()): dsh_lod_ok = true
-		if (retaliation != null and retaliation.engaged()) or hit_pose_active or treating28 or ambient_active28:
+		if treating28 or home_active58 or home_previous58 or ambient_active28 or ambient_previous28 or hit_pose_active or (retaliation != null and retaliation.engaged()): dsh_lod_ok = true
+		if (retaliation != null and retaliation.engaged()) or hit_pose_active or treating28 or home_active58 or ambient_active28:
 			# Sample ordinary pose, compose the selected action, then commit once. Activity is
 			# suppressed here to prevent a second skeleton authority in this frame.
 			var pose: Dictionary = record.gait.sample(delta, horizontal / delta, body.is_on_floor() or record.status in ["IDLE", "ARRIVED"])
 			if treating28: pose = treatment_pose28.compose(pose, treatment_sample28)
+			elif home_active58: pose = home_pose58.compose(pose, home_sample58)
 			elif ambient_active28: pose = ambient_pose28.compose(pose, ambient_sample28)
 			if retaliation != null: pose = retaliation.compose_pose(pose)
 			if hit_pose_active: pose = hit_pose.compose_hit_pose(pose)
@@ -1764,6 +1778,7 @@ func step(delta: float) -> void:
 					for bone: int in bones.size(): rig.set_bone_pose(bone,bones[bone])
 				record.motion.position = pose.visual_offset
 				if ambient_active28: AmbientPose28.committed(rig, ambient_sample28)
+				if home_active58: HomePose58.committed(rig, home_sample58)
 		else:
 			if dsh_lod_ok:
 				# DSH_RESID4: the callee's own first line is this exact guard. Evaluating
