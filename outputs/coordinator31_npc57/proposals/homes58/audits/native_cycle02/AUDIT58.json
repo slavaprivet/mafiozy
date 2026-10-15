@@ -1,0 +1,58 @@
+{
+  "passed": false,
+  "raw_sha256": "9560e9100db2c3b59ee1945bab6531748ab7047b0618cd96a6785b5a19ca9140",
+  "run_sha256": "07581c642c0cc11151192e70008bf3b4c0c68331830c23b721cebaba09532126",
+  "source_before_after_exact": true,
+  "native_checks_passed": 52,
+  "native_checks_count": 54,
+  "native_failures": [
+    {
+      "detail": "service_planning_work_limit30",
+      "name": "home terminated before sleep resident_6",
+      "ok": false
+    },
+    {
+      "detail": 9,
+      "name": "all ten concurrently sleeping in assigned 3+3+2+2 beds",
+      "ok": false
+    }
+  ],
+  "actual_sleep_count": 9,
+  "actual_exit_count": 9,
+  "motion_idle_limit_s": 10,
+  "motion_idle_max_s": {
+    "resident_1": 0,
+    "resident_2": 0,
+    "resident_3": 0,
+    "resident_4": 0.991339,
+    "resident_5": 0,
+    "resident_6": 78.014452,
+    "resident_7": 0,
+    "resident_8": 0,
+    "resident_9": 0,
+    "resident_10": 0
+  },
+  "while_controller_active_max_s": {
+    "resident_1": 0,
+    "resident_2": 0,
+    "resident_3": 0,
+    "resident_4": 0.991339,
+    "resident_5": 0,
+    "resident_6": 3.9991939999999886,
+    "resident_7": 0,
+    "resident_8": 0,
+    "resident_9": 0,
+    "resident_10": 0
+  },
+  "queue_limit_s": 30,
+  "queue_max_s": 0,
+  "queue_rationale": "Assigned-home adapter is concurrent and never enters PORTAL_WAIT. No artificial queue is inferred.",
+  "spatial_passed": false,
+  "spatial_validator_sha256": "020a88f92d3ffc88307115b8aa48a5141f765c9563768df94f0ede890ff18c2b",
+  "excluded_rest_policy": "Only current supported claimed HOME_SETTLE/SLEEP/REST. Inactive unsuccessful home attempt remains required motion until fixture end; successful physical exit completes the objective.",
+  "limitations": [
+    "Component intent takeover, not ordinary daily scheduling acceptance.",
+    "1Hz derived idle/spatial evidence, actual native collisions and velocity guards are in raw run.",
+    "V2 nested service_watch/avoidance dictionaries alias runtime state; use fresh route diagnostics and primitive positions/phases for history."
+  ]
+}

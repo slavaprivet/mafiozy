@@ -71,6 +71,7 @@ func _current() -> bool:
 
 func _release_service(life: RefCounted) -> bool:
 	life._ambient29_cancel("threat")
+	if not life._routine58_release_home("threat"): return false
 	if life._economy28_active():life._economy28.request_priority("threat");return false
 	if life._restaurant28_active():
 		if life._restaurant28_stage not in ["OUTBOUND","EXIT_RETRY"]:

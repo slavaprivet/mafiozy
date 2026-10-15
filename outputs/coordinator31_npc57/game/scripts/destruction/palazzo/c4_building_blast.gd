@@ -12,6 +12,7 @@ var _events: Array[Dictionary]=[]
 var _pending: Array[Dictionary]=[]
 var _dispatch: Dictionary={}
 var _dispatch_applied:=false
+var _throw_events: Dictionary={}
 
 func configure(world: Node3D,site_provider: Callable) -> bool:
 	if _world!=null or not is_instance_valid(world) or not world.is_inside_tree() or not site_provider.is_valid(): return false
@@ -115,6 +116,49 @@ func _apply_consumed(receipt: Dictionary,targets: Array[Dictionary]) -> Dictiona
 	_events.append(result.duplicate(true)); if _events.size()>64: _events.pop_front()
 	return result
 
+## A separate, purchased projectile producer. It cannot claim a C4 receipt;
+## its exact impact/tick id is checked against the live throw owner instead.
+func apply_throwable(owner: Node,kind: String,at: Vector3,normal: Vector3,event_id: String) -> Dictionary:
+	var world: Variant=_world.get_ref() if _world!=null else null
+	if not is_instance_valid(world) or owner!=world.get("player_throwables") or not is_instance_valid(owner) or not owner.has_method("owns_area_event"):
+		return {"ok":false,"reason":"throw_owner"}
+	if kind not in ["grenade","molotov"] or not at.is_finite() or not normal.is_finite() or event_id.is_empty() or _throw_events.has(event_id) or not owner.owns_area_event(event_id,kind,at):
+		return {"ok":false,"reason":"unconsumed_impact"}
+	_throw_events[event_id]=true
+	if _throw_events.size()>128: _throw_events.erase(_throw_events.keys()[0])
+	var radius: float=3.1 if kind=="grenade" else 2.6
+	var budget: int=16 if kind=="grenade" else 2
+	var power: float=720.0 if kind=="grenade" else 110.0
+	var visual: Dictionary={}
+	if kind=="grenade" and is_instance_valid(_fx45): visual=_fx45.emit_blast(at,normal,power,radius)
+	var targets: Array[Dictionary]=[]
+	for site: Node3D in _sites.call():
+		if not is_instance_valid(site) or not site.site_ready or site.rebuilding or site.collapsing: continue
+		var site_radius: float=float(site.get_meta("throwable_bounds_radius",16.0))
+		if Vector2(site.global_position.x,site.global_position.z).distance_to(Vector2(at.x,at.z))>radius+site_radius: continue
+		if is_instance_valid(site.get("_glazing")) and site._glazing.has_method("apply_throwable_area"):
+			site._glazing.apply_throwable_area(owner,{"event_id":event_id,"kind":kind,"position":at,"normal":normal,"radius":radius,"power":power})
+		for body: RigidBody3D in site.pieces:
+			if not _intact(site,body): continue
+			var size: Variant=body.get_meta("section_size",Vector3.ZERO)
+			if size is Vector3 and body.global_position.distance_to(at)>radius+(size as Vector3).length()*.5+.5: continue
+			var near: Dictionary=_closest(body,at)
+			if near.ok and near.distance<=radius: targets.append({"site":site,"body":body,"distance":near.distance})
+	targets.sort_custom(func(a: Dictionary,b: Dictionary)->bool: return a.distance<b.distance)
+	var released:=0; var affected: Dictionary={}
+	for target: Dictionary in targets:
+		if released>=budget: break
+		var site: Node3D=target.site; var body: RigidBody3D=target.body
+		if not _intact(site,body): continue
+		var direction: Vector3=(body.global_position-at).normalized()
+		if direction.length_squared()<.001: direction=normal.normalized()
+		var speed: float=5.5 if kind=="grenade" else 1.7
+		site._release(body,at,speed,site.global_basis.inverse()*direction)
+		affected[site.source_id]=site; released+=1
+	for site: Node3D in affected.values():
+		if site.has_method("_mark_structure_dirty"): site._mark_structure_dirty()
+	return {"ok":true,"kind":kind,"event_id":event_id,"radius":radius,"released":released,"affected_houses":affected.keys(),"visual":visual}
+
 func _intact(site: Node3D,body: Variant) -> bool:
 	return is_instance_valid(body) and body is RigidBody3D and site.owns_collider(body) and body.freeze and (body.collision_layer&1)!=0 and not body.get_meta("detached",false)
 
@@ -136,6 +180,7 @@ func snapshot() -> Dictionary:
 
 func dispose() -> void:
 	set_physics_process(false); _pending.clear(); _dispatch={}; _sites=Callable(); _world=null
+	_throw_events.clear()
 	_dispatch_applied=false
 	if is_instance_valid(_fx45): _fx45.dispose()
 	_fx45=null

@@ -1,4 +1,13 @@
 extends RefCounted
+const Routine58 = preload("res://scripts/city/runtime/npc_routine58.gd")
+const Leisure58 = preload("res://scripts/city/runtime/npc_leisure58.gd")
+var _routine58: RefCounted
+var _leisure58: RefCounted
+var _leisure_arrived58 := false
+var _home58: RefCounted
+var _home_intent58 := ""
+var _rest_driver58: RefCounted
+var _home_retry58 := 0.0
 const ThreatLife30 = preload("res://scripts/city/runtime/npc_threat_life30.gd")
 var _threat30: RefCounted
 ## One resident's local needs. Concrete visits own arrival and transactions;
@@ -220,6 +229,7 @@ func configure(host: RefCounted, token: Dictionary, health: RefCounted, account:
 		print("DSH_RESPAWN id=", str(token.source_id), " cleared_tasks=true goals=", str(_dsh_task_queue),
 			" energy=%.0f" % _energy, " frame=", Engine.get_physics_frames())
 	if _dsh_simple_on():
+		_routine58 = Routine58.new(); _routine58.configure(str(token.source_id))
 		_economy28_prepare()
 		_next_decision = _now + _sandbox28_random() * 4000.0
 	return {"ok":true,"source_id":token.source_id,"scope":"new_local_resident_needs"}
@@ -852,8 +862,13 @@ func step(delta: float) -> void:
 		else:
 			var result: String = _ambient29.step(delta)
 			_dsh_energy_drain(); _dsh_resdiag_step(row)
-			if result != "active": _phase="IDLE"; _next_decision=_now
+			if result != "active":
+				if _routine58 != null: _routine58.after_ambient(_now, _sandbox28_random(), _routine58_clock())
+				_phase="IDLE"; _next_decision=_now
 			_busy=false; return
+	if _routine58_home_active():
+		_routine58_step_home(delta, row)
+		_dsh_energy_drain(); _dsh_resdiag_step(row); _busy=false; return
 	if _dsh_simple_goal_active():
 		if _health.should_pause_walk() or not _host.target_current(_token):
 			_hospital_treat_started = -1.0
@@ -896,9 +911,13 @@ func step(delta: float) -> void:
 			_dsh_queue_push("restaurant")
 			_restaurant28_begin()
 		else:
-			var roam_result: String = _roam51.step(delta)
+			var leisure_lost: bool = _leisure58 != null and not _leisure58.current()
+			var roam_result: String = "blocked" if leisure_lost else _roam51.step(delta)
 			if roam_result in ["arrived", "blocked"]:
-				var roam_reason: String=_roam51.last_reason()
+				var roam_reason: String="leisure_bench_removed" if leisure_lost else _roam51.last_reason()
+				_leisure_arrived58=roam_result=="arrived"
+				if _routine58 != null: _routine58.leisure_attempt(_now,_leisure_arrived58)
+				if _leisure58 != null: _leisure58.clear()
 				_roam51.cancel(); _roam51_active=false
 				_phase="RESTING"; _goal={}
 				_next_decision=_now+(1000.0+_sandbox28_random()*2000.0 if roam_result=="arrived" else SimpleHospital.roam_retry_delay_ms29(str(_token.source_id),_roam_serial,roam_reason))
@@ -965,6 +984,7 @@ func step(delta: float) -> void:
 				_dsh_wander_finish(false, _reason)  # DSH_WANDER
 			else:
 				_dsh_wander_step()  # DSH_WANDER: report a falling dist_m without per-frame spam
+	if _routine58_rest_active(): _routine58_hold(delta)
 	_dsh_energy_drain()  # DSH_ENERGY: spent by the metres the shipped host really moved
 	_dsh_resdiag_step(row)  # DSH_RESDIAG: the head-up display of the owner's test resident
 	_dsh_quit_after()  # DSH_MEDPRIORITY: --city-quit-after=<s> bounds a short proof run
@@ -1014,10 +1034,13 @@ func dsh_notice_damage() -> Dictionary:
 		if world30 != null: world30.confirmed_hit(self)
 	_attention29.clear()
 	_ambient29_cancel("hit")
+	if _routine58_home_active(): _home58.request_wake("hit")
 	if _disposed or _busy or not Thread.is_main_thread(): return {"ok":false,"reason":"life_busy_or_disposed"}
 	if (not _dsh_med_on() and not _dsh_simple_on()) or not _host.target_current(_token): return {"ok":false,"reason":"not_current"}
 	var row: Dictionary = _life()
 	if row.is_empty() or row.get("dead", false) or float(row.get("hp", 0)) <= 0: return {"ok":false,"reason":"life_not_living"}
+	if _routine58_home_active() and _hospital51_below_threshold(row):
+		return {"ok":true,"reason":"hospital_pending_physical_home_exit","goal":"hospital"}
 	if _economy28_active() and _hospital51_below_threshold(row):
 		_economy28.request_priority("hospital")
 		return {"ok":true,"reason":"hospital_pending_physical_economy_exit","goal":"hospital"}
@@ -1083,7 +1106,7 @@ func _dsh_simple_report(result: String, reason: String) -> void:  # DSH_SIMPLEHO
 ## same bounded cancellation `_start` uses), because the resident host moves a body only
 ## while a navigation request owns it.
 func _dsh_simple_begin(row: Dictionary) -> bool:  # DSH_SIMPLEHOSP
-	if _visit != null or _restaurant28_active() or _economy28_active(): return false
+	if _visit != null or _restaurant28_active() or _economy28_active() or _routine58_home_active(): return false
 	if _roam51 != null: _roam51.cancel()
 	_roam51_active=false
 	var cancelled: Dictionary = _walk.cancel()
@@ -1384,6 +1407,8 @@ func _sandbox28_random() -> float:
 ## External ambient owner integration: only call after a genuine native arrived.
 ## A blocked leg, cancelled leg, begin callback or animation ending is not arrival.
 func dsh_economy_roam_arrived(goal_id: String) -> void:
+	# The logical policy selects service intents independently of travelled legs.
+	if _routine58 != null: return
 	if not _economy28_prepare(): return
 	var action: String = _economy28.note_roam_arrived(goal_id)
 	if not action.is_empty(): _sandbox28_action = action
@@ -1395,15 +1420,15 @@ func dsh_take_ambient28_choice() -> bool:
 
 func dsh_economy_priority_pending() -> bool:
 	if _disposed or not _dsh_simple_on(): return false
-	return _economy28_active() or (_economy28 != null and _economy28.has_pending_need() and not _economy28.optional_retry56(_now))
+	return _economy28_active() or (_economy28 != null and _economy28.has_pending_need() and not _economy28.optional_retry56(_now) and not _routine58_purchase_deferred())
 
 func _economy28_try_begin(row: Dictionary) -> bool:
 	if _disposed or row.is_empty() or row.get("dead", false) or float(row.get("hp", 0)) <= 0.0: return false
-	if _dsh_simple_goal_active() or _restaurant28_active() or _visit != null or _hospital51_below_threshold(row): return false
+	if _dsh_simple_goal_active() or _restaurant28_active() or _visit != null or _hospital51_below_threshold(row) or _routine58_home_active(): return false
 	if not _economy28_prepare(): return false
 	if _economy28.active(): return true
 	if dsh_energy_on() and _energy < 20.0: _economy28.request_food()
-	if not _economy28.has_pending_need(): return false
+	if not _economy28.has_pending_need() or _routine58_purchase_deferred(): return false
 	var kind: String = _economy28.desired_kind(_now)
 	if kind.is_empty():
 		if _economy28.optional_retry56(_now): return false
@@ -1444,47 +1469,27 @@ func _economy28_restore_energy(visit: RefCounted, receipt: Dictionary) -> Dictio
 		" before=", before, " after=", _energy, " event=", receipt.get("event_id", ""), " frame=", Engine.get_physics_frames())
 	return {"energy_before":before,"energy_after":_energy,"energy_restored":true}
 
-# Finite local random legs use the same collision-aware driver as the hospital.
-# Only a real native floor hit produces a candidate; planner/physics may still reject it.
-func _roam51_begin() -> void:
-	var body: Variant = _token.get("body")
-	if not body is CharacterBody3D or not is_instance_valid(body): return
-	if not _walk.cancel().get("ok", false):
-		_phase="RESTING"; _next_decision=_now+500.0; return
-	_roam_serial+=1
-	var origin: Vector3 = body.global_position
-	var destination := Vector3.INF
-	var space: PhysicsDirectSpaceState3D = body.get_world_3d().direct_space_state
-	var probe: RefCounted=PhysicalRoute51.new()
-	if not probe.configure(body): return
-	for attempt in 12:
-		var angle: float = _sandbox28_random()*TAU
-		var distance: float = 5.0+_sandbox28_random()*10.0
-		var sample: Vector3 = origin + Vector3(cos(angle)*distance, 0.0, sin(angle)*distance)
-		var query := PhysicsRayQueryParameters3D.create(sample+Vector3.UP*.8, sample-Vector3.UP*2.5, 1|256, [body.get_rid()])
-		var ground: Dictionary = space.intersect_ray(query)
-		if ground.is_empty() or not ground.get("normal") is Vector3 or Vector3(ground.normal).y<.8: continue
-		var floor_point: Vector3 = ground.position
-		if absf(floor_point.y-origin.y)>.5: continue
-		var supported: Variant=probe.floor_at(floor_point,origin.y)
-		if not supported is Vector3 or not probe.standing(supported): continue
-		# Free roaming selects an outdoor visible destination. A floor ray alone
-		# can hit a foundation through a wall and cause a futile interior search.
-		var sight:=PhysicsRayQueryParameters3D.create(origin+Vector3.UP, supported+Vector3.UP, body.collision_mask|512, [body.get_rid()])
-		if not space.intersect_ray(sight).is_empty(): continue
-		destination=supported
-		break
-	if not destination.is_finite():
-		_phase="RESTING"; _next_decision=_now+SimpleHospital.roam_retry_delay_ms29(str(_token.source_id),_roam_serial,"no_native_floor_candidate")
-		print("NPC_ROAM51 id=",str(_token.source_id)," result=blocked reason=no_native_floor_candidate")
-		return
+func _leisure58_begin() -> bool:
+	if _routine58 == null: return false
+	_routine58.leisure_attempt(_now)
+	var body: CharacterBody3D = _token.get("body") as CharacterBody3D
+	if not is_instance_valid(body) or not _walk.cancel().get("ok",false): return false
+	if _leisure58 == null:
+		_leisure58=Leisure58.new()
+		if not _leisure58.configure(_dsh_life_scene(),body): _leisure58=null; return false
+	var destination: Dictionary = _leisure58.select(body,_sandbox28_random())
+	if destination.is_empty():
+		_reason="leisure:"+str(_leisure58.snapshot().reason)
+		return false
+	_roam_serial+=1; _leisure_arrived58=false
 	if _roam51==null: _roam51=SimpleHospital.new()
-	_roam51_active=_roam51.begin(destination, body, _dsh_simple_map(), str(_token.source_id), "roam")
-	if _roam51_active:
-		_goal=_new_goal("walk"); _phase="WALKING"; _reason=""
-		print("NPC_ROAM51 id=",str(_token.source_id)," result=started from=",origin," target=",destination," queue=",str(_dsh_task_queue))
-	else:
-		_phase="RESTING"; _next_decision=_now+SimpleHospital.roam_retry_delay_ms29(str(_token.source_id),_roam_serial,_roam51.last_reason())
+	_roam51_active=_roam51.begin(destination.point,body,_dsh_simple_map(),str(_token.source_id),"roam")
+	if not _roam51_active: _leisure58.clear(); return false
+	_goal=_new_goal("leisure"); _goal["destination"]=destination.duplicate()
+	_phase="WALKING"; _reason=""
+	print("NPC_ROUTINE58 id=",str(_token.source_id)," stage=leisure_started bench=",destination.bench_path," target=",destination.point)
+	return true
+
 
 func _choose(row: Dictionary) -> void:
 	_dsh_decisions+=1  # DSH_LIFETRACE
@@ -1507,8 +1512,7 @@ func _choose(row: Dictionary) -> void:
 			_restaurant28_begin()
 			return
 		if _economy28_try_begin(row): return
-		if dsh_take_ambient28_choice() and _ambient29_start(): return
-		_roam51_begin()
+		_routine58_choose(row)
 		return
 	# DSH_ENERGY / DSH_TASKQUEUE: the owner's ordering. Health outranks energy: a resident
 	# below both thresholds gets hospital first and restaurant next, and neither goal
@@ -1803,6 +1807,9 @@ func _end_life() -> void:
 	if _threat30 != null: _threat30.cancel("death"); _threat30=null
 	_attention29.clear(false)
 	_ambient29_cancel("death")
+	if _home58 != null: _home58.cancel("death"); _home58=null
+	if _rest_driver58 != null: _rest_driver58.cancel(); _rest_driver58=null
+	if _routine58 != null: _routine58.clear()
 	_hospital28_clear_treatment_pose()
 	if _economy28 != null: _economy28.cancel("life_ended"); _economy28 = null
 	_sandbox28_action = "walk"
@@ -1846,12 +1853,15 @@ func _end_life() -> void:
 	_health=null; _account=null; _host=null
 
 func snapshot() -> Dictionary:
-	return {"attention29":_attention29.active,"source_id":_token.get("source_id",""),"phase":_phase,"reason":_reason,"goal":_goal.duplicate(true),"completed":_completed.duplicate(),"events":_journal.duplicate(true),"activity":_visit.snapshot() if _visit!=null else {},"walk":_walk.snapshot() if _walk!=null else {},"account":_account.snapshot() if _account!=null else {},"hospital51_stage":_hospital_stage,"hospital51_healed":_hospital_healed,"restaurant28_stage":_restaurant28_stage,"restaurant28_fed":_restaurant28_fed,"restaurant28_receipt":_restaurant28_receipt.duplicate(true),"restaurant28_route":_restaurant28.snapshot() if _restaurant28!=null else {},"roam51_active":_roam51_active,"economy28":_economy28.snapshot() if _economy28!=null else {},"sandbox28_action":_sandbox28_action,"pending_needs":_dsh_task_queue.duplicate(),"source_rows_written":false,"profile_peaks":_profile_snapshot(),"controller_peaks":_controller_peaks.duplicate(true),"visit_timing":_visit_timing.duplicate(true),"visit_controller_timing":_visit_controller_timing.duplicate(true),"incident_waiting_release":_incident_waiting_release,"incident_hold_until":_incident_hold_until,"incident_seen":_incident_seen.size()}
+	return {"attention29":_attention29.active,"source_id":_token.get("source_id",""),"phase":_phase,"reason":_reason,"goal":_goal.duplicate(true),"completed":_completed.duplicate(),"events":_journal.duplicate(true),"activity":_visit.snapshot() if _visit!=null else {},"walk":_walk.snapshot() if _walk!=null else {},"account":_account.snapshot() if _account!=null else {},"hospital51_stage":_hospital_stage,"hospital51_healed":_hospital_healed,"restaurant28_stage":_restaurant28_stage,"restaurant28_fed":_restaurant28_fed,"restaurant28_receipt":_restaurant28_receipt.duplicate(true),"restaurant28_route":_restaurant28.snapshot() if _restaurant28!=null else {},"roam51_active":_roam51_active,"economy28":_economy28.snapshot() if _economy28!=null else {},"sandbox28_action":_sandbox28_action,"routine58":_routine58.snapshot() if _routine58!=null else {},"home58":_home58.snapshot() if _home58!=null else {},"pending_needs":_dsh_task_queue.duplicate(),"source_rows_written":false,"profile_peaks":_profile_snapshot(),"controller_peaks":_controller_peaks.duplicate(true),"visit_timing":_visit_timing.duplicate(true),"visit_controller_timing":_visit_controller_timing.duplicate(true),"incident_waiting_release":_incident_waiting_release,"incident_hold_until":_incident_hold_until,"incident_seen":_incident_seen.size()}
 
 func dispose() -> void:
 	_attention29.clear(false)
 	_ambient29_cancel("disposed")
 	if _disposed or _busy: return
+	if _home58 != null: _home58.cancel("disposed"); _home58=null
+	if _rest_driver58 != null: _rest_driver58.cancel(); _rest_driver58=null
+	if _routine58 != null: _routine58.clear()
 	_hospital28_clear_treatment_pose()
 	if _economy28 != null: _economy28.cancel("scheduler_disposed"); _economy28 = null
 	_sandbox28_action = "walk"
@@ -1876,7 +1886,8 @@ func _ambient29_cancel(reason: String) -> void:
 	if reason in ["death","disposed"]: _ambient29=null
 	elif _phase=="AMBIENT": _phase="IDLE"; _next_decision=_now
 
-func _ambient29_start() -> bool:
+func _ambient29_start(allowed: Array = []) -> bool:
+	if _routine58_home_active(): return false
 	if not _walk.cancel().get("ok",false): return false
 	if _roam51 != null: _roam51.cancel()
 	_roam51_active=false
@@ -1884,6 +1895,104 @@ func _ambient29_start() -> bool:
 		var candidate: RefCounted=Ambient29.new()
 		if not candidate.configure(_host,_token,_dsh_life_scene(),_dsh_simple_map()): return false
 		_ambient29=candidate
-	if not _ambient29.try_begin(): return false
+	if not _ambient29.try_begin(allowed): return false
 	_phase="AMBIENT"; _goal={}; _reason=""
 	return true
+
+## Routine58 emits intent; current service/home owners remain authoritative.
+func _routine58_clock() -> RefCounted:
+	var body: Node = _token.get("body")
+	if not is_instance_valid(body) or not body.is_inside_tree(): return null
+	var value: Variant = body.get_tree().root.get_meta("mafiozi_visual_clock", null)
+	return value if value is RefCounted else null
+
+func _routine58_home_active() -> bool:
+	return _home58 != null and _home58.active()
+
+func _routine58_rest_active() -> bool:
+	return _routine58 != null and _phase in ["IDLE", "RESTING"] and not _routine58_home_active() and not _economy28_active() and not _roam51_active and _visit == null and not _dsh_simple_goal_active() and not _restaurant28_active()
+
+func _routine58_hold(delta: float) -> void:
+	# Stillness retains native gravity/contact; a removed floor never suspends a
+	# resident in air until the next scheduled meal. No route is begun or reset.
+	if _walk == null or str(_walk.get("_phase")) not in ["IDLE", "CANCELLED", "COMPLETE", "BLOCKED"]: return
+	var body: CharacterBody3D = _token.body
+	if _rest_driver58 == null:
+		_rest_driver58 = PhysicalRoute51.new()
+		if not _rest_driver58.configure(body): _rest_driver58=null; return
+	var before: Vector3 = body.global_position
+	_rest_driver58.hold(delta)
+	var after: Vector3 = body.global_position
+	var velocity: Vector3 = (after-before)/delta
+	body.set_meta("npc_physical_drive51", {"frame":Engine.get_physics_frames(), "body_id":body.get_instance_id(), "from":before, "to":after, "velocity":velocity, "delta":delta, "walking":Vector2(velocity.x,velocity.z).length()>.03})
+
+func _routine58_release_home(reason: String) -> bool:
+	if not _routine58_home_active(): return true
+	_home58.request_wake(reason)
+	# Physical exit stays on the home owner's ticks before threat can own motion.
+	return not _home58.active()
+
+func _routine58_prepare_home() -> bool:
+	if _home58 != null: return _home58.available()
+	if _now < _home_retry58: return false
+	_home_retry58 = _now + 8000.0
+	var path := "res://scripts/homes/npc_home_controller58.gd"
+	if not ResourceLoader.exists(path): return false
+	var script: Script = load(path)
+	if script == null: return false
+	var candidate: RefCounted = script.new()
+	if not candidate.configure(self, _dsh_life_scene(), _dsh_simple_map()): return false
+	_home58 = candidate
+	return _home58.available()
+
+func _routine58_paid(visit: RefCounted, receipt: Dictionary) -> bool:
+	if _disposed or _routine58 == null or visit != _economy28 or not visit.current_inside() or not visit._committed: return false
+	if int(receipt.get("amount", 0)) < 5 or receipt.get("kind") not in ["local_shop_purchase28", "local_restaurant_purchase28"]: return false
+	return _routine58.note_paid(str(receipt.get("routine_ticket58", "")), str(receipt.get("event_id", "")), str(visit._kind))
+
+func _routine58_purchase_deferred() -> bool:
+	if _economy28 == null or not _economy28.has_routine_pending58(): return false
+	if dsh_energy_on() and _energy < 20.0: return false
+	if _economy28.routine_deferred58(_now): return true
+	return _routine58 != null and _routine58.home_intent(_routine58_clock()).get("kind", "") == "home_sleep"
+
+func _routine58_step_home(delta: float, row: Dictionary) -> void:
+	var clock: RefCounted = _routine58_clock()
+	var desired: Dictionary = _routine58.home_intent(clock) if _routine58 != null else {}
+	if _hospital51_below_threshold(row): _home58.request_wake("hospital")
+	elif dsh_energy_on() and _energy < 20.0: _home58.request_wake("energy")
+	elif desired.get("kind", "") != "home_sleep" and not _routine58_purchase_deferred() and _routine58 != null and not _routine58.due_purchase(clock).is_empty(): _home58.request_wake("scheduled_meal_or_supplies")
+	elif desired.is_empty(): _home58.request_wake("wake_time")
+	elif _home_intent58 != str(desired.kind): _home58.request_wake("routine_changed")
+	if _health.should_pause_walk():
+		_home58.request_wake("health_owner")
+		return
+	var result: String = _home58.step(delta, row)
+	if not _home58.active():
+		_phase="IDLE"; _goal={}; _home_intent58=""; _next_decision=_now
+		if result == "blocked": _home_retry58=_now+8000.0
+
+func _routine58_choose(row: Dictionary) -> void:
+	if _routine58 == null:
+		_phase="RESTING"; _next_decision=_now+1000.0; return
+	var clock: RefCounted = _routine58_clock()
+	var intent: Dictionary = _routine58.choose(clock, _now, _routine58_purchase_deferred())
+	var kind: String = str(intent.get("kind", ""))
+	if kind in ["shop", "restaurant"]:
+		if _economy28_prepare() and _economy28.request_routine58(kind, str(intent.ticket)):
+			if _economy28_try_begin(row): return
+	elif kind in ["home_sleep", "home_rest"] and _now >= _home_retry58:
+		if _routine58_prepare_home() and _walk.cancel().get("ok",false):
+			if _home58.begin(intent):
+				_home_intent58=kind; _phase="HOME58"; _goal=_new_goal(kind); _reason=""; return
+		_home_retry58 = _now + 8000.0
+	elif kind == "leisure":
+		if _leisure58_begin(): return
+	if _leisure_arrived58 and kind not in ["home_sleep", "home_rest", "shop", "restaurant"]:
+		_leisure_arrived58=false
+		if _ambient29_start(["bench"]): return
+	# A missing/destroyed/unreachable home is an explicit supported-stop fallback.
+	# It never certifies sleeping, claims a bed, or labels a spawn point a home.
+	if kind != "rest" and _ambient29_start(_routine58.ambient_choices(clock)): return
+	_phase="RESTING"; _goal={}; _reason="routine_waiting_for_supported_activity"
+	_next_decision=_now+1000.0

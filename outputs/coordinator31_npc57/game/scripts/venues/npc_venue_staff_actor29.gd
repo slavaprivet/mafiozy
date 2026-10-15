@@ -1,6 +1,7 @@
 extends CharacterBody3D
 ## One stationary physical staff body; never a ResidentHost or resident pose writer.
 var role29 := "cashier"
+var source_id := ""
 var serving29 := false
 var pose_updates29 := 0
 var _site: WeakRef
@@ -21,6 +22,7 @@ var _disabled29 := false
 func configure29(site: Node3D, registry: RefCounted, venue: String, point: Vector3, inward: Vector3, appearance: Dictionary, kind: String) -> bool:
 	if _ready29 or not appearance.get("ok", false): return false
 	_site = weakref(site); _registry = registry; _venue = venue; _anchor = point
+	source_id = str(site.get("source_id"))
 	role29 = "medic" if kind == "hospital" else "cashier"
 	name = "Medic29" if role29 == "medic" else "Cashier29"
 	collision_layer = 1; collision_mask = 1; floor_snap_length = .25
@@ -47,6 +49,20 @@ func available29() -> bool:
 	var site: Variant = _site.get_ref() if _site != null else null
 	var counter: Variant = _counter29.get_ref() if _counter29 != null else null
 	return _ready29 and not _disabled29 and is_instance_valid(site) and not site.is_queued_for_deletion() and not bool(site.get_meta("venue_closed29", false)) and is_instance_valid(counter) and not counter.is_queued_for_deletion() and counter.freeze and is_on_floor() and global_position.distance_to(_anchor) < .12
+
+## The player shop borrows this existing cashier instead of spawning a second NPC.
+func head_world() -> Vector3:
+	return global_position + Vector3.UP * 1.72
+
+func horizontal_distance(point: Vector3) -> float:
+	var delta: Vector3 = point - global_position
+	return Vector2(delta.x, delta.z).length()
+
+func in_talk_range(point: Vector3, radius: float = 3.5) -> bool:
+	return available29() and point.is_finite() and absf(point.y - global_position.y) <= 3.0 and horizontal_distance(point) <= radius
+
+func snapshot() -> Dictionary:
+	return {"source_id":source_id,"ready":available29(),"model":"venue_staff29","at":[global_position.x,global_position.y,global_position.z],"role":role29,"behind_counter":true}
 
 func disable29() -> void:
 	_disabled29 = true; serving29 = false

@@ -33,6 +33,8 @@ var _planned_amount := 0
 var _receipt: Dictionary = {}
 var _completion: Dictionary = {}
 var _reason := ""
+var _routine_failures58 := 0
+var _routine_defer_until58 := 0.0
 
 func configure(life: RefCounted, account: RefCounted, scene: Node3D, map: RID) -> Dictionary:
 	if _life != null or not is_instance_valid(life) or not is_instance_valid(account) or not is_instance_valid(scene): return {"ok":false,"reason":"economy_configuration"}
@@ -70,10 +72,22 @@ func note_roam_arrived(goal_id: String) -> String:
 
 func _choose_purchase(kind: String, energy: bool) -> void:
 	_pending = {"kind":kind,"price":_rng.randi_range(5, 50),"restore_energy":energy}
+	_routine_failures58=0; _routine_defer_until58=0.0
 	_log("purchase_chosen", JSON.stringify(_pending))
+
+## Routine chooses only a purpose; this owner still chooses/stores the price,
+## obtains the actual venue, and retains the same purchase through a bank detour.
+func request_routine58(kind: String, ticket: String) -> bool:
+	if not current() or active() or ticket.is_empty() or kind not in ["shop", "restaurant"]: return false
+	if not _pending.is_empty(): return _pending.get("routine_ticket58", "") == ticket
+	_choose_purchase(kind, kind == "restaurant")
+	_pending["routine_ticket58"] = ticket
+	return true
 
 func request_food() -> void:
 	if not current(): return
+	# Actual urgent energy need outranks discretionary overnight/defer policy.
+	_routine_failures58=0; _routine_defer_until58=0.0
 	if _pending.is_empty(): _choose_purchase("restaurant" if _rng.randi_range(0, 1) == 0 else "shop", true)
 	else: _pending.restore_energy = true
 
@@ -85,7 +99,7 @@ func has_pending_need() -> bool:
 	return not _pending.is_empty() or int(_account.snapshot().account.get("cash", 0)) == 0
 
 func desired_kind(now_ms: float) -> String:
-	if not current() or active() or now_ms < _retry_at: return ""
+	if not current() or active() or now_ms < _retry_at or routine_deferred58(now_ms): return ""
 	var state: Dictionary = _account.snapshot()
 	if not state.get("conserved", false): return ""
 	var wallet: Dictionary = state.get("account", {})
@@ -112,18 +126,20 @@ func begin(kind: String, now_ms: float) -> bool:
 	var sign: String = "МАГАЗИН" if kind == "shop" else ("РЕСТОРАН" if kind == "restaurant" else "БАНК")
 	if not _route.begin(_scene, body, _map, str(_token.source_id), sign):
 		_reason = _route.last_reason(); _route.cancel(); _route = null
-		_phase = "IDLE"; _retry_at = now_ms + RETRY_MS; _log("blocked", _reason); return false
+		_phase = "IDLE"; _retry_at = now_ms + RETRY_MS; _routine_failure58(now_ms); _log("blocked", _reason); return false
 	_phase = "WAITING" if _route.snapshot().phase == "WAITING" else "INBOUND"
 	if _phase == "WAITING" and optional_purchase56():
 		# No entry/money has occurred. Keep this exact purchase, release the capacity
 		# request and browse the city until a staggered retry instead of standing 120s.
 		_route.cancel(); _route = null; _phase = "IDLE"
 		_reason = "optional_capacity_deferred"; _retry_at = now_ms + RETRY_MS + _rng.randf_range(0.0, 4000.0)
+		_routine_failure58(now_ms)
 		_log("deferred", _reason); return false
 	var reserved: Dictionary = _account.begin_economy28(self, kind, now_ms)
 	if not reserved.get("ok", false):
 		_reason = str(reserved.get("reason", "account_reservation_refused"))
 		_route.cancel(); _route = null; _phase = "IDLE"; _retry_at = now_ms + RETRY_MS
+		_routine_failure58(now_ms)
 		_log("blocked", _reason); return false
 	_serial = int(reserved.serial)
 	_planned_amount = required_cash() if kind != "bank" else 0
@@ -175,9 +191,11 @@ func step(delta: float, now_ms: float, row: Dictionary) -> String:
 		if not settled.get("ok", false): _request_exit("settlement_refused:" + str(settled.get("reason", "unknown"))); return "active"
 		_committed = true; _receipt = settled.receipt.duplicate(true)
 		if _kind != "bank":
+			_receipt["routine_ticket58"] = str(_pending.get("routine_ticket58", ""))
 			if bool(_pending.get("restore_energy", false)) or _kind == "restaurant":
 				var energy_result: Dictionary = life._economy28_restore_energy(self, _receipt)
 				_receipt.merge(energy_result)
+			life._routine58_paid(self, _receipt)
 			_pending.clear()
 			MoneyPopup.show_debit(_token.body, _receipt)
 		_log("paid" if _kind != "bank" else "funded", "inside_still_2000ms")
@@ -205,6 +223,7 @@ func _finish(completed: bool, reason: String) -> void:
 	_route.cancel(); _route = null; _account.release_economy28(self)
 	_phase = "IDLE"; _dwell_started = -1.0
 	_retry_at = _now + 1000.0 if completed or not _interrupted.is_empty() else _now + RETRY_MS
+	if not completed and _interrupted.is_empty(): _routine_failure58(_now)
 
 func take_completion() -> Dictionary:
 	var result: Dictionary = _completion
@@ -224,4 +243,18 @@ func _log(stage: String, reason: String) -> void:
 		" cash=", wallet.get("cash", -1), " serial=", _serial, " reason=", reason, " frame=", Engine.get_physics_frames())
 
 func snapshot() -> Dictionary:
-	return {"kind":_kind,"phase":_phase,"serial":_serial,"committed":_committed,"priority":_interrupted,"roams":_roams,"pending":_pending.duplicate(true),"planned_amount":_planned_amount,"receipt":_receipt.duplicate(true),"retry_at":_retry_at,"reason":_reason,"route":_route.snapshot() if _route != null else {}}
+	return {"kind":_kind,"phase":_phase,"serial":_serial,"committed":_committed,"priority":_interrupted,"roams":_roams,"pending":_pending.duplicate(true),"routine_failures58":_routine_failures58,"routine_defer_until58":_routine_defer_until58,"planned_amount":_planned_amount,"receipt":_receipt.duplicate(true),"retry_at":_retry_at,"reason":_reason,"route":_route.snapshot() if _route != null else {}}
+
+func has_routine_pending58() -> bool:
+	return current() and not str(_pending.get("routine_ticket58", "")).is_empty()
+
+func routine_deferred58(now_ms: float) -> bool:
+	return not active() and has_routine_pending58() and now_ms < _routine_defer_until58
+
+func _routine_failure58(now_ms: float) -> void:
+	if not has_routine_pending58() or _committed: return
+	_routine_failures58 += 1
+	if _routine_failures58 < 3: return
+	_routine_failures58 = 0
+	_routine_defer_until58 = now_ms + 45000.0
+	_log("routine_deferred58", "three_failed_venue_attempts;ticket_and_price_retained;until=" + str(_routine_defer_until58))

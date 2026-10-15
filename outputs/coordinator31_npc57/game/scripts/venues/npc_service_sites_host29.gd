@@ -26,12 +26,24 @@ func prepare(world: Node3D, block: Dictionary) -> Dictionary:
 	if _disposed or not is_instance_valid(world): return {"ok":false,"reason":"world_retired"}
 	var outcomes: Array = []
 	for definition: Dictionary in data.entries:
-		var checked: Dictionary = _placement(world, block, definition)
+		var placement: Dictionary = definition.duplicate(true)
+		if str(definition.id) == "VENUE29-SHOP-002" and world.has_method("player_shop_requested") and bool(world.call("player_shop_requested")):
+			# Ordinary main relocates the hero beside Palazzo at (42.2, 0.14, -1).
+			# This dry site faces east, 16.6 m from that actual starting point.
+			placement.position = [22.2, 0.0, 1.0]
+			placement.yaw = PI * .5
+			placement.road_point = [30.2, 0.0, 1.0]
+			placement.road_distance_from_centre_m = 8.0
+		var checked: Dictionary = _placement(world, block, placement)
 		if not checked.get("ok", false):
 			outcomes.append({"source_id":definition.id,"ok":false,"reason":checked.get("reason")}); continue
 		var site: Node3D = Site29.new()
 		site.name = "CompactService29_" + str(definition.id)
 		site.source_id = str(definition.id); site.service_kind = str(definition.kind); site.service_sign = str(definition.sign)
+		# The weapon store uses the same owned compact shell, door and damage lifecycle.
+		if site.source_id == "VENUE29-SHOP-002" and world.has_method("player_shop_requested") and bool(world.call("player_shop_requested")):
+			site.service_sign = "ОРУЖЕЙНЫЙ МАГАЗИН"
+			site.set_meta("player_weapon_shop", true)
 		site.native_ground29 = checked.ground
 		site.transform = checked.frame
 		site.set_meta("dsh_town_extra", true); site.set_meta("venue_capacity29", int(definition.capacity)); site.set_meta("venue_closed29", true)
@@ -40,7 +52,7 @@ func prepare(world: Node3D, block: Dictionary) -> Dictionary:
 		if not bound.get("ok", false):
 			outcomes.append({"source_id":definition.id,"ok":false,"reason":"site_contract_failed","detail":bound}); site.queue_free(); continue
 		_sites[str(definition.id)] = weakref(site)
-		outcomes.append({"source_id":definition.id,"ok":true,"kind":definition.kind,"position":definition.position,"native_ground_bodies":checked.ground.size(),"owned_sections":site.pieces.size(),"pooled_fragments":site.pooled_fragments.size(),"door_bound":true})
+		outcomes.append({"source_id":definition.id,"ok":true,"kind":definition.kind,"position":placement.position,"native_ground_bodies":checked.ground.size(),"owned_sections":site.pieces.size(),"pooled_fragments":site.pooled_fragments.size(),"door_bound":true})
 		await get_tree().physics_frame # Cold placement and support work remain staged.
 		if _disposed or not is_instance_valid(world): return {"ok":false,"reason":"world_retired"}
 	report = {"ok":_sites.size() == data.entries.size(),"status":"geometry_ready_native_acceptance_pending","requested":data.entries.size(),"built":_sites.size(),"placements":outcomes,"resident_count_changed":false,"source_map_mutated":false,"destruction_owner":"inherited_palazzo_structural_site"}

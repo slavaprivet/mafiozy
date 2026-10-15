@@ -11,6 +11,10 @@ var _world29: WeakRef
 var _catalog_sign29: Label3D
 var _body_budget29 := 0
 
+func _ready() -> void:
+	set_meta("throwable_bounds_radius",6.4)
+	super._ready()
+
 func _build_site() -> void:
 	# Existing native dry terrain is the structural anchor. No new ground is made.
 	flash = OmniLight3D.new(); flash.name = "CompactBlastFlash29"
@@ -27,6 +31,7 @@ func _build_building() -> void:
 	if service_kind == "hospital": wall_color = Color("d7dfd3")
 	elif service_kind == "bank": wall_color = Color("b9b7aa")
 	elif service_kind == "restaurant": wall_color = Color("c5a995")
+	elif bool(get_meta("player_weapon_shop", false)): wall_color = Color("8b7568")
 	# Six independently owned foundation/floor slabs, top .24m above native ground.
 	for ix: int in range(3):
 		for iz: int in range(2):
@@ -69,6 +74,12 @@ func _build_building() -> void:
 	sign_body.add_child(lettering); lettering.position.z = .10
 	# Furnishings are owned physical boxes supported by floor, away from six slots.
 	_section29("ServiceCounter", Vector3(2.2, .9, .65), Vector3(0.0, .69, -1.5), Color("826951"))
+	if bool(get_meta("player_weapon_shop", false)):
+		# This display belongs to the same destructible sections as the shell.
+		var rack: RigidBody3D = _section29("WeaponRack", Vector3(2.8, 1.2, .14), Vector3(0, 1.65, -3.15), Color("493d38"))
+		for x: float in [-.9, 0.0, .9]:
+			visual(rack, Vector3(.58, .12, .08), Vector3(x, .23, .12), Color("302f2f"), .25)
+			visual(rack, Vector3(.14, .34, .08), Vector3(x - .2, .04, .12), Color("302f2f"), .25)
 	if service_kind == "hospital":
 		for side: float in [-1.0, 1.0]: _section29("ServiceBed", Vector3(1.3, .58, 2.0), Vector3(side * 2.9, .53, -.6), Color("e5ece2"))
 	elif service_kind == "bank":

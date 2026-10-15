@@ -156,6 +156,17 @@ func apply_consumed_charge(owner: Node,receipt: Dictionary) -> Dictionary:
 	if _events.has(receipt.event_id): return {"ok":false,"reason":"duplicate_charge"}
 	return _area_blast(receipt.position,receipt.normal,receipt.power,receipt.radius,receipt.event_id,"c4")
 
+func apply_throwable_area(owner: Node,event: Dictionary) -> Dictionary:
+	if not _current() or not is_instance_valid(owner): return {"ok":false,"reason":"throw_owner"}
+	var site: Node3D=_site.get_ref()
+	var world: Node=site.get_parent()
+	var kind: String=str(event.get("kind",""))
+	var at: Variant=event.get("position")
+	var id: String=str(event.get("event_id",""))
+	if owner!=world.get("player_throwables") or kind not in ["grenade","molotov"] or not at is Vector3 or not at.is_finite() or not owner.owns_area_event(id,kind,at) or _events.has(id):
+		return {"ok":false,"reason":"current_throwable_event_required"}
+	return _area_blast(at,event.normal,float(event.power),float(event.radius),id,kind)
+
 func _area_blast(at: Vector3,direction: Vector3,power: float,radius: float,event_id: String,weapon: String) -> Dictionary:
 	_events[event_id]=true
 	var queued:=0; var occluded:=0

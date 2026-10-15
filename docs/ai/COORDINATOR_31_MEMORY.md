@@ -1,5 +1,38 @@
 # Координатор 31 — 15 октября 2026
 
+## Общая сборка06 и прямое поручение сохранить main — актуально
+
+Пользователь передал пакет outputs/coordinator31_player_shop57 из коммита
+e0958ff4e0e2fb350c24a126883ffd78abd64414 и прямо потребовал объединить всё
+в сборку, сохранить вместе в main. Root проверил все59 изменённых файлов
+по commit blobs/manifest/release57; main и glazing объединены с текущими
+домами через явный3-way. Конфликт соседних main hooks разрешён с сохранением
+homes prepare и shop-enabled staff. Затем объединены routines8 и bench1,
+добавлен main вызов install(scene, preview_homes58.current_sites()).
+INTEGRATION_combined58_01.json содержит exact68-path delta, old F5 не менялся.
+Stage58_06 import PASS1212pins, errors0/stderr0, 9.636с; manifestSHA
+b11bdd02916fb37171d0e177bf529569c8d090d82212c4d87d02e6c2fee06346.
+Manifest содержит launch_arguments с --city-player-shop=1; используйте их
+для всех следующих merged проверок. Объединение ещё не полная приёмка58.
+
+Stage05 home_cycle02: 9/10 original residents физически пришли/спали/вышли,
+native175.045с, claims0, остальные motion idle<=.992с. Resident6 FAIL near
+Home2 after172.99м, guide11/15, local work cap exhausted, colliders HomeSide;
+services готовит короткий native guide-only probe на06, budget не повышать.
+Home_damage02 PASS: native Q/C4/LMB196ticks/remote;18 частей отделены,
+матрас прошёл .883м/layer512, сон отменён за2ticks, exit284ticks/4.73с;
+после reset oldslot invalid. SleepPNG01 подтверждает настоящую лежачую позу.
+Logical benches02 overlay PASS9/9: все4новых лавки/9всего, resident5 walk41.52м
+и реальные seat pose frames. Все proof ограничены их pinned source.
+
+QA готовит merged06 ordinary READY/clock/day/night; addons — shop component
+tests. Review выявил P2 same-frame stale cashier purchase между открытым
+modal и _process; отдельный minimal guard/test ещё pending. Main checkpoint
+должен честно сохранить known route6/storeguard pending и не объявлять release.
+Пользователь сейчас гуляет в57: явных зависаний не заметил, но после выхода
+житель иногда стоит. Отдельно проверить physical exit→следующее занятие,
+не выдавать неподтверждённое ожидание пути за законный отдых.
+
 ## Final stage03: новый прогулочный дефект — 18:29 МСК
 
 `qa58_merged/runs/merged58_1200_02` завершился FAIL, exit0/errors0. Exact stage03,

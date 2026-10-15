@@ -54,7 +54,7 @@ func _resize() -> void:
 func _live() -> bool:
 	return _ready and _host!=null and is_instance_valid(_host.get_ref()) and _host.get_ref()._owner_current() and is_instance_valid(_camera) and _camera.get_parent()==_arm and _arm.get_parent()==_pivot and not _camera.top_level
 func _on_foot(host: Node) -> bool:
-	return host._interaction_allowed() and not host.controls_blocked() and not host.player._text_control_focused()
+	return host._combat_allowed() and not host.controls_blocked() and not host.player._text_control_focused()
 func _allowed(host: Node) -> bool:
 	# Walk combatAllowed does not disable aim/scope during reload.
 	return _on_foot(host) and host.armed()
@@ -104,7 +104,7 @@ func advance(delta: float) -> void:
 	var pitch: float=clampf(host.player._camera_pitch,limits.x,limits.y)
 	if pitch!=host.player._camera_pitch: host.player._camera_pitch=pitch; host.player._update_camera_rotation()
 	_blend+=(float(desired)-_blend)*(1-exp(-14*delta))
-	var scope: bool=desired and host.fire_state.weaponId=="sniper"
+	var scope: bool=desired and host.fire_state.weaponId=="sniper" and host.player._jump.is_empty()
 	_set_scope(scope)
 	var pivot_height: float=(_pivot.global_position-host.player.global_position).y
 	var eye: float=host._posture_view.get("eyeHeight",1.64)

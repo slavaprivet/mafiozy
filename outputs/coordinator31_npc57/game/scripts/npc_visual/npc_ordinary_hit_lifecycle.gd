@@ -123,7 +123,8 @@ func hit(event_id: String, proposed: Dictionary) -> Dictionary:
 	for key: String in ["damage","dir_r","dir_c","player_r","player_c"]:
 		if not Rules._finite(h.get(key)): return _stop("hit_shape")
 	var melee: bool=h.get("contact_kind")=="melee" and h.get("weapon_id")=="unarmed" and h.get("contact_proof")=="native_swept_fist_original_surface"
-	if h.damage<=0 or not h.get("weapon_id") is String or (not melee and Rules.balance_id(h.weapon_id) in ["","rpg"]): return _stop("admitted_bullet_or_melee_required")
+	var area: bool=h.get("contact_kind")=="throwable_area" and h.get("weapon_id") in ["grenade","molotov"] and h.get("contact_proof")=="consumed_player_throw_swept_impact" and h.damage<= (80 if h.weapon_id=="grenade" else 12)
+	if h.damage<=0 or not h.get("weapon_id") is String or (not melee and not area and Rules.balance_id(h.weapon_id) in ["","rpg"]): return _stop("admitted_bullet_melee_or_throw_required")
 	if h.get("weapon_id")=="unarmed" and (not melee or not MELEE_DAMAGE.has(h.get("attack_type")) or h.damage!=MELEE_DAMAGE[h.attack_type]): return _stop("melee_damage_contract")
 	if not h.get("source") is Dictionary or not h.source.get("kind") is String: return _stop("source_identity")
 	_seen[event_id]=true # Admission is consumed even if a later callback retires it.

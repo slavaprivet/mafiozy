@@ -53,11 +53,14 @@ var _last_foot := Vector3.ZERO
 var _shot_ray := PhysicsRayQueryParameters3D.new()
 var cosmetic_impacts := 0
 
-func configure(world: Node3D, actor: CharacterBody3D) -> Dictionary:
+func configure(world: Node3D, actor: CharacterBody3D, options: Dictionary = {}) -> Dictionary:
 	if ready_for_play or not is_instance_valid(world) or not is_instance_valid(actor) or not actor.is_inside_tree(): return {"ok":false,"reason":"binding"}
 	scene = world; player = actor
 	inventory = Inventory.new()
-	var configured: Dictionary = inventory.configure(Fire.new())
+	var inventory_options: Dictionary = {}
+	# DSH_PLAYERSHOP: starter ownership is supplied only when the shop is enabled.
+	if options.has("ownedIds"): inventory_options["ownedIds"] = options["ownedIds"]
+	var configured: Dictionary = inventory.configure(Fire.new(), inventory_options)
 	if not configured.get("ok", false): return configured
 	presentation = Presentation.new()
 	configured = presentation.configure(player)
@@ -92,6 +95,9 @@ func _owner_current() -> bool:
 
 func _interaction_allowed() -> bool:
 	return _owner_current() and player._free_mouse_look and player._pose_authority == &"on_foot" and player._jump.is_empty() and not bool(scene.get("preview_dead")) and not bool(scene.get("preview_physics_fault"))
+
+func _combat_allowed() -> bool:
+	return _owner_current() and player._free_mouse_look and player._pose_authority == &"on_foot" and not bool(scene.get("preview_dead")) and not bool(scene.get("preview_physics_fault"))
 
 func armed() -> bool:
 	return ready_for_play and fire_state.get("weaponId", "none") != "none"
@@ -181,13 +187,10 @@ func input_event(event: InputEvent) -> bool:
 			if code == KEY_ESCAPE and menu_open:
 				set_menu(false); player.set_mouse_captured(false); return true
 			if menu_open: return true
-			if code in [KEY_C,KEY_Z] and _interaction_allowed():
-				var requested: String="crouch" if code==KEY_C else "prone"
-				posture.request_posture("stand" if posture.posture_state().target==requested else requested,Callable(self,"_can_occupy_posture"))
-				return true
-			if code == KEY_R and armed() and _interaction_allowed(): _reload = true; return true
+			if code in [KEY_C,KEY_CTRL,KEY_Z] and _request_posture(code): return true
+			if code == KEY_R and armed() and _combat_allowed(): _reload = true; return true
 		return menu_open
-	if event is InputEventMouseButton and not menu_open and armed() and _interaction_allowed():
+	if event is InputEventMouseButton and not menu_open and armed() and _combat_allowed():
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			if event.pressed and not _held: _pressed = true
 			_held = event.pressed
@@ -199,12 +202,25 @@ func input_event(event: InputEvent) -> bool:
 func _input(event: InputEvent) -> void:
 	# The visible arsenal owns keys before vehicle/building unhandled shortcuts.
 	# GUI mouse clicks still reach the actual weapon buttons.
+	if event is InputEventKey and event.pressed and not event.echo:
+		var stance_code: int=event.physical_keycode if event.physical_keycode!=0 else event.keycode
+		if stance_code in [KEY_C,KEY_CTRL,KEY_Z] and _request_posture(stance_code):
+			get_viewport().set_input_as_handled()
+			return
 	if controls_blocked() and event is InputEventKey:
 		# Let the focused GUI receive navigation/activation before unhandled gameplay.
 		# Unused keys still reach input_event(), which consumes them while a modal is open.
 		var code:int=event.physical_keycode if event.physical_keycode!=0 else event.keycode
 		if code in [KEY_TAB,KEY_ENTER,KEY_KP_ENTER,KEY_SPACE,KEY_LEFT,KEY_RIGHT,KEY_UP,KEY_DOWN,KEY_HOME,KEY_END,KEY_PAGEUP,KEY_PAGEDOWN]:return
 		if input_event(event):get_viewport().set_input_as_handled()
+
+func _request_posture(code: int) -> bool:
+	if not _owner_current() or not player._free_mouse_look or player._pose_authority!=&"on_foot" or not player._jump.is_empty(): return false
+	if bool(scene.get("preview_dead")) or controls_blocked() or player._text_control_focused(): return false
+	var requested: String="prone" if code==KEY_Z else "crouch"
+	var target: String="stand" if posture.posture_state().target==requested else requested
+	posture.request_posture(target,Callable(self,"_can_occupy_posture"))
+	return true
 
 func advance(delta: float) -> void:
 	_combat_active=false
@@ -218,7 +234,7 @@ func advance(delta: float) -> void:
 		_last_pose_epoch = player._pose_epoch
 		cancel_inputs()
 		if armed() and player._pose_authority == &"on_foot": presentation.equip(str(fire_state.weaponId))
-	if not _interaction_allowed():
+	if not _combat_allowed():
 		cancel_inputs()
 		if menu_open: set_menu(false)
 		if cargo_menu_active():
@@ -229,11 +245,12 @@ func advance(delta: float) -> void:
 		_posture_view=posture.step_posture(delta,Callable(self,"_can_occupy_posture"),Input.is_action_pressed(player.ACTION_RUN))
 		var capsule: CollisionShape3D=player.get_node("PlayerCapsule")
 		capsule.shape.height=float(_posture_view.height); capsule.position.y=float(_posture_view.height)*.5
+		player.set_posture_eye_height(float(_posture_view.eyeHeight))
 	if aim_camera!=null: aim_camera.advance(delta)
 	var forward: Vector3 = -player.get_preview_camera().global_basis.z
 	_aim={"aimYaw":atan2(forward.x,forward.z),"aimPitch":asin(clampf(forward.y,-.958,.958)),"recoil":0.0,"recoilYaw":0.0,"reloadProgress":0.0}
 	if not armed(): return
-	var allowed: bool = _interaction_allowed() and not controls_blocked()
+	var allowed: bool = _combat_allowed() and not controls_blocked()
 	var moving: bool = Vector2(player.velocity.x,player.velocity.z).length_squared() > .01
 	var stance: String="prone" if float(_posture_view.value)>=1.95 else "crouch" if float(_posture_view.value)>=.95 else "stand"
 	var input := {"triggerHeld":allowed and _held,"triggerPressed":allowed and _pressed,"reload":allowed and _reload,"aiming":_aiming,"posture":stance,"moving":moving,"running":moving and Input.is_action_pressed(player.ACTION_RUN)}
@@ -264,7 +281,7 @@ func decorate(selected: Dictionary) -> Dictionary:
 	var actual_speed:=Vector2(player.velocity.x,player.velocity.z).length()
 	var distance:=Vector2(player.global_position.x-_last_foot.x,player.global_position.z-_last_foot.z).length()
 	_last_foot=player.global_position
-	if player.is_on_floor() and player._jump.is_empty():
+	if player.is_on_floor() and player._jump.is_empty() and player._jump_pose.is_empty():
 		# Source hero.update rotates the complete visual pivot toward aim before
 		# weapon IK. The standing posture fast path otherwise keeps travel yaw.
 		# Set an absolute relative yaw: crouch/prone may assign the same value,
@@ -278,7 +295,12 @@ func decorate(selected: Dictionary) -> Dictionary:
 	# Source inactive hero.update receives no aimYaw/aimPitch. Reload progress
 	# remains a separate presentation input even if menu/authority blocks aim.
 	var presentation_aim: Dictionary=_aim if _combat_active else {"reloadProgress":_aim.get("reloadProgress",0.0)}
-	return presentation.decorate(selected,presentation_aim,{"crouch":_posture_view.crouch,"prone":_posture_view.prone},float(source_gait.get("phase",gait._phase)),float(source_gait.get("gait",gait._gait)),player._pose_epoch)
+	var jumping: bool=not player._jump_pose.is_empty()
+	if jumping:
+		presentation_aim=presentation_aim.duplicate()
+		presentation_aim["airborne"]=true
+		presentation_aim["airBlend"]=1.0
+	return presentation.decorate(selected,presentation_aim,{"crouch":0.0 if jumping else _posture_view.crouch,"prone":0.0 if jumping else _posture_view.prone},float(source_gait.get("phase",gait._phase)),float(source_gait.get("gait",gait._gait)),player._pose_epoch)
 
 func finish_pose(selected: Dictionary) -> Dictionary:
 	return posture.finish_ground(selected) if _owner_current() else selected
@@ -321,7 +343,7 @@ func after_pose_applied(selected: Dictionary) -> void:
 	if not _owner_current() or not armed(): _settle_pending(false); return
 	var receipt: Dictionary = presentation.after_pose_applied(selected)
 	last_muzzle = receipt.duplicate(true)
-	if not receipt.get("ok", false) or _pending_epoch != player._pose_epoch or not _interaction_allowed():
+	if not receipt.get("ok", false) or _pending_epoch != player._pose_epoch or not _combat_allowed():
 		_settle_pending(false); return
 	if _pending_plan.is_empty(): return
 	var camera: Camera3D = player.get_preview_camera()

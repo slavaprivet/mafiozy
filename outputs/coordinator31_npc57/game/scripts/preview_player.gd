@@ -72,6 +72,7 @@ var _jump_ceiling_ray: PhysicsRayQueryParameters3D
 var _jump_physics_visible: bool = true
 var _source_falling: bool = false
 var _hit_pose_decorator: Callable
+var _throw_pose_decorator: Callable
 var _melee_practice: Node
 var _weapon_host: Node
 var _corpse_contact_sampler: RefCounted
@@ -836,7 +837,11 @@ func _update_owned_pose(delta: float) -> void:
 		var source: Dictionary = _dive.sample(float(_jump_pose.progress), float(_jump_pose.diveBlend), _visual.global_rotation.y,
 			aim_yaw, _camera_pitch, travel_yaw, _pose_authority, _pose_epoch)
 		if bool(source.get("valid", false)) and bool(source.get("active", false)):
-			_apply_selected_pose(_decorate_hit_pose(delta, source), expected_epoch)
+			set_posture_eye_height(1.64)
+			if is_instance_valid(_weapon_host): source=_weapon_host.decorate(source)
+			source=_decorate_hit_pose(delta,source)
+			if is_instance_valid(_weapon_host): source=_weapon_host.finish_pose(source)
+			_apply_selected_pose(source, expected_epoch)
 			return
 	var actual_velocity: Vector3 = get_real_velocity()
 	var grounded: bool = is_on_floor()
@@ -853,6 +858,9 @@ func _update_owned_pose(delta: float) -> void:
 	if is_instance_valid(_melee_practice) and (not is_instance_valid(_weapon_host) or not _weapon_host.armed()): selected = _melee_practice.decorate(selected,delta)
 	selected=_decorate_hit_pose(delta, selected)
 	if is_instance_valid(_weapon_host): selected=_weapon_host.finish_pose(selected)
+	if _throw_pose_decorator.is_valid() and _pose_authority==&"on_foot":
+		var throw_pose: Variant=_throw_pose_decorator.call(delta,selected)
+		if throw_pose is Dictionary and throw_pose.get("valid",false): selected=throw_pose
 	_apply_selected_pose(selected, expected_epoch)
 
 
@@ -861,6 +869,12 @@ func set_hit_pose_decorator(decorator: Callable) -> bool:
 	if decorator.is_valid() and _hit_pose_decorator.is_valid() and decorator != _hit_pose_decorator:
 		return false
 	_hit_pose_decorator = decorator
+	return true
+
+func set_throw_pose_decorator(decorator: Callable) -> bool:
+	if decorator.is_valid() and _throw_pose_decorator.is_valid() and decorator!=_throw_pose_decorator:
+		return false
+	_throw_pose_decorator=decorator
 	return true
 
 
@@ -1039,6 +1053,12 @@ func set_mouse_captured(captured: bool) -> void:
 
 func get_preview_camera() -> Camera3D:
 	return _camera
+
+
+func set_posture_eye_height(height: float) -> void:
+	if not is_finite(height) or height<.4 or height>1.9 or not is_instance_valid(_yaw_pivot): return
+	var next_y: float=model_target_height*.79+height-1.64
+	if not is_equal_approx(_yaw_pivot.position.y,next_y): _yaw_pivot.position.y=next_y
 
 
 func get_preview_status() -> Dictionary:

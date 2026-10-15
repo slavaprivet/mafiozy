@@ -39,7 +39,7 @@ func _physical_on30() -> bool:
 func _physical_needed30(life: RefCounted) -> bool:
 	if life._disposed:return false
 	if life.has_method("threat_physics_active30") and life.threat_physics_active30():return true
-	return life._roam51_active or life._dsh_simple_goal_active() or life._economy28_active() or life._restaurant28_active() or life._attention29.active or (life._ambient29!=null and life._ambient29.active()) or life._visit!=null or life._phase=="WALKING"
+	return life._routine58_home_active() or life._routine58_rest_active() or life._roam51_active or life._dsh_simple_goal_active() or life._economy28_active() or life._restaurant28_active() or life._attention29.active or (life._ambient29!=null and life._ambient29.active()) or life._visit!=null or life._phase=="WALKING"
 
 func _physical_refresh30(id: String) -> void:
 	if not _physical_on30():return

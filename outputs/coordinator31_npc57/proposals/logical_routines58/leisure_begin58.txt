@@ -1,0 +1,20 @@
+func _leisure58_begin() -> bool:
+	if _routine58 == null: return false
+	_routine58.leisure_attempt(_now)
+	var body: CharacterBody3D = _token.get("body") as CharacterBody3D
+	if not is_instance_valid(body) or not _walk.cancel().get("ok",false): return false
+	if _leisure58 == null:
+		_leisure58=Leisure58.new()
+		if not _leisure58.configure(_dsh_life_scene(),body): _leisure58=null; return false
+	var destination: Dictionary = _leisure58.select(body,_sandbox28_random())
+	if destination.is_empty():
+		_reason="leisure:"+str(_leisure58.snapshot().reason)
+		return false
+	_roam_serial+=1; _leisure_arrived58=false
+	if _roam51==null: _roam51=SimpleHospital.new()
+	_roam51_active=_roam51.begin(destination.point,body,_dsh_simple_map(),str(_token.source_id),"roam")
+	if not _roam51_active: _leisure58.clear(); return false
+	_goal=_new_goal("leisure"); _goal["destination"]=destination.duplicate()
+	_phase="WALKING"; _reason=""
+	print("NPC_ROUTINE58 id=",str(_token.source_id)," stage=leisure_started bench=",destination.bench_path," target=",destination.point)
+	return true

@@ -42,8 +42,16 @@ func apply_contact(contact: Dictionary,producer: Object) -> Dictionary:
 	# Same source block rule as the existing input port: 90% reduction while held.
 	var blocked: bool=producer._source.snapshot().get("block",false)
 	var damage:=1 if blocked else 12
+	# DSH_PLAYERSHOP: worn armor absorbs contact damage before HP.
+	var armor_absorbed:=0
+	if _player.has_meta("player_armor_absorb"):
+		var provider: Variant=_player.get_meta("player_armor_absorb")
+		if provider is Callable and (provider as Callable).is_valid():
+			var vest: Dictionary=(provider as Callable).call(damage)
+			armor_absorbed=clampi(int(vest.get("absorbed",0)),0,damage)
+	var taken:=maxi(0,damage-armor_absorbed)
 	var before:=_hp
-	_hp=maxi(0,_hp-damage);_revision+=1;_hit_age=0.0
+	_hp=maxi(0,_hp-taken);_revision+=1;_hit_age=0.0
 	if _hp>0:_player.apply_contact_melee_impulse(contact.direction,3.0 if blocked else 30.0)
 	_receipts.append(id)
 	if _receipts.size()>MAX_RECEIPTS:_receipts.pop_front()
@@ -53,7 +61,38 @@ func apply_contact(contact: Dictionary,producer: Object) -> Dictionary:
 		else:_player.set_preview_pose_authority(&"dead")
 		_player.set_mouse_captured(false)
 	_refresh()
-	return {"applied":true,"event_id":id,"hp_before":before,"hp_after":_hp,"revision":_revision,"blocked":blocked,"scope":"local_new_session"}
+	return {"applied":true,"event_id":id,"hp_before":before,"hp_after":_hp,"revision":_revision,"blocked":blocked,"armor_absorbed":armor_absorbed,"damage_taken":taken,"scope":"local_new_session"}
+
+func apply_throwable_area(producer: Node,event_id: String,kind: String,center: Vector3,radius: float,damage: int) -> Dictionary:
+	if not _ready or not is_instance_valid(_scene) or not is_instance_valid(_player) or _scene.preview_dead or _hp<=0:
+		return {"applied":false,"reason":"inactive"}
+	if producer!=_scene.get("player_throwables") or not is_instance_valid(producer) or not producer.owns_area_event(event_id,kind,center) or _receipts.has(event_id):
+		return {"applied":false,"reason":"event"}
+	if kind not in ["grenade","molotov"] or radius<=0 or radius>3.1 or damage<=0 or damage>(80 if kind=="grenade" else 12):
+		return {"applied":false,"reason":"profile"}
+	var distance: float=(_player.global_position+Vector3.UP*.95).distance_to(center)
+	if distance>radius+.45: return {"applied":false,"reason":"out_of_range"}
+	var sight:=PhysicsRayQueryParameters3D.create(center+Vector3.UP*.12,_player.global_position+Vector3.UP*.95,1,[_player.get_rid()])
+	if not _player.get_world_3d().direct_space_state.intersect_ray(sight).is_empty():
+		return {"applied":false,"reason":"area_occluded"}
+	var amount: int=maxi(1,int(round(float(damage)*(1.0-.55*clampf(distance/radius,0.0,1.0)))))
+	var absorbed:=0
+	if _player.has_meta("player_armor_absorb"):
+		var provider: Variant=_player.get_meta("player_armor_absorb")
+		if provider is Callable and (provider as Callable).is_valid():
+			var vest: Dictionary=(provider as Callable).call(amount)
+			absorbed=clampi(int(vest.get("absorbed",0)),0,amount)
+	var before:=_hp
+	_hp=maxi(0,_hp-amount+absorbed); _revision+=1; _hit_age=0.0
+	_receipts.append(event_id)
+	if _receipts.size()>MAX_RECEIPTS:_receipts.pop_front()
+	if _hp==0:
+		_scene.preview_dead=true
+		if is_instance_valid(_scene.preview_transport):_scene.preview_transport.mark_dead()
+		else:_player.set_preview_pose_authority(&"dead")
+		_player.set_mouse_captured(false)
+	_refresh()
+	return {"applied":true,"event_id":event_id,"hp_before":before,"hp_after":_hp,"armor_absorbed":absorbed,"damage_taken":amount-absorbed,"kind":kind}
 
 func step(delta: float) -> void:
 	if not _ready or not is_finite(delta) or delta<0:return

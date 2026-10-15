@@ -550,6 +550,44 @@ func _apply_hit(shot_id: String,shot: Dictionary,damage: int,direction: Vector3,
 	_native_impulse_context={}
 	_last_hit_us=Time.get_ticks_usec()-started_us
 
+## The thrown item's real swept impact is owned by player_throwables. Each actor
+## checks its own current body and life lease before admitting one area contact.
+func apply_throwable_area(producer: Node,event_id: String,kind: String,center: Vector3,radius: float,damage: int) -> Dictionary:
+	if not _is_current(_binding) or _row.get("dead",false) or not is_instance_valid(producer) or producer!=_weapons.scene.get("player_throwables"):
+		return {"ok":false,"reason":"owner"}
+	if kind not in ["grenade","molotov"] or not center.is_finite() or radius<=0 or radius>3.1 or damage<=0 or damage>(80 if kind=="grenade" else 12) or not producer.owns_area_event(event_id,kind,center):
+		return {"ok":false,"reason":"area_event"}
+	var body: CharacterBody3D=_token.body
+	if not is_instance_valid(body) or not _host.target_current(_token): return {"ok":false,"reason":"body"}
+	var point: Vector3=body.global_position+Vector3.UP*.95
+	var distance: float=point.distance_to(center)
+	if distance>radius+.45:
+		return {"ok":false,"reason":"out_of_range"}
+	var sight:=PhysicsRayQueryParameters3D.create(center+Vector3.UP*.12,point,1,[body.get_rid(),_weapons.player.get_rid()])
+	var obstruction: Dictionary=body.get_world_3d().direct_space_state.intersect_ray(sight)
+	if not obstruction.is_empty(): return {"ok":false,"reason":"area_occluded"}
+	var direction: Vector3=(point-center).normalized()
+	if direction.length_squared()<.001: direction=Vector3.RIGHT
+	var scaled: int=maxi(1,int(round(float(damage)*(1.0-.55*clampf(distance/radius,0.0,1.0)))))
+	_serial+=1
+	var id: String=_token.source_id+":"+str(_serial)+":"+event_id
+	_last_player=_weapons.player.global_position
+	_admitting={"event_id":id,"binding":_binding.duplicate(true),"hit":{"weapon_id":kind,"contact_kind":"throwable_area","contact_proof":"consumed_player_throw_swept_impact","damage":scaled,"dir_r":direction.z,"dir_c":direction.x,"player_r":(_last_player.z+45.1)/4.1,"player_c":(_last_player.x+395.65)/4.1,"source":{"kind":"player","uid":"local"}}}
+	last_result=_adapter.hit(id,_admitting.hit)
+	_admitting={}
+	_dsh_refresh_caption(body); _dsh_notice_damage()
+	if not last_result.get("ok",false) or not last_result.get("applied",false): return last_result.duplicate(true)
+	last_contact={"event_id":id,"incoming_direction":direction,"actor_transform_at_impact":body.global_transform,"point":point,"normal":Vector3.UP,"weapon_id":kind,"source_id":_token.source_id,"life_generation":_token.life_generation}
+	if kind=="grenade" and blood!=null: blood.receive(id,point,Vector3.UP)
+	var impulse: Dictionary=HitImpulse.blast(distance,direction,_row.get("_invulnerable",false)) if kind=="grenade" else {"ok":false,"impulse_ns":Vector3.ZERO}
+	if impulse.get("ok",false): impulse.impulse_ns=(impulse.impulse_ns as Vector3).limit_length(300.0)
+	_native_impulse_context={"event_id":id,"value":impulse}
+	if bullet_reaction!=null: bullet_reaction.prepare_before_publish(id)
+	_publish_physical(id,last_result.reason,point)
+	if bullet_reaction!=null: bullet_reaction.accept(id,_native_impulse_context.value.get("impulse_ns",Vector3.ZERO),point)
+	_native_impulse_context={}
+	return last_result.duplicate(true)
+
 ## One completed native pellet terminal per accepted p.index. A cosmetic hit
 ## alone is insufficient: misses/cancellation must also settle the seven rays.
 func _on_projectile_resolved(receipt: Dictionary) -> void:

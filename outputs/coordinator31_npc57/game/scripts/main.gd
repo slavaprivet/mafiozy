@@ -23,6 +23,7 @@ const CityMinimapHost = preload("res://scripts/city/runtime/npc_city_minimap_hos
 ## DSH_SIMPLEHOSP: --city-simple-hospital=1 - the owner's "the hospital is the palazzo copy"
 ## stand. The flag itself is read by scripts/hospital/npc_simple_hospital.gd.
 const SimpleHospital = preload("res://scripts/hospital/npc_simple_hospital.gd")
+const PlayerShopCatalog = preload("res://scripts/shop/player_shop_catalog.gd")  # DSH_PLAYERSHOP
 const STATIC_RENDER_OWNER_IDS := [
 	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-013", "REBUILD-VISUAL-old_town_narrow_townhouse_v1-005",
 	"REBUILD-VISUAL-gun_shop-001", "REBUILD-VISUAL-pawnshop-001",
@@ -90,6 +91,7 @@ var preview_venue_staff29: Node
 @export var palazzo_clones: bool = false
 var preview_c4: Node
 var preview_c4_blast: Node
+var player_throwables: Node
 const PalazzoGround = preload("res://scripts/destruction/palazzo/palazzo_ground.gd")
 var population_status := "disabled"
 var preview_transport: Node3D
@@ -241,7 +243,7 @@ func _ready() -> void:
 	add_child(preview_palazzo)
 	print("PALAZZO_GEOMETRY ", preview_palazzo.prepare(self))
 	_install_palazzo_clones()
-	if OS.get_cmdline_user_args().has("--city-venue-sites29=1"):
+	if OS.get_cmdline_user_args().has("--city-venue-sites29=1") or player_shop_requested():
 		preview_service_sites29 = load("res://scripts/venues/npc_service_sites_host29.gd").new()
 		preview_service_sites29.name = "CompactServiceSites29"
 		add_child(preview_service_sites29)
@@ -254,7 +256,11 @@ func _ready() -> void:
 		print("HOME58_GEOMETRY ", homes_result58)
 		if not homes_result58.get("ok", false):
 			push_error("Residential geometry failed: " + str(homes_result58)); return
-	if OS.get_cmdline_user_args().has("--city-venue-staff29=1"):
+		var benches_result58: Dictionary = load("res://scripts/homes/npc_home_benches58.gd").install(self, preview_homes58.current_sites())
+		print("HOME58_STREET_BENCHES ", benches_result58)
+		if not benches_result58.get("ok", false):
+			push_error("Residential street benches failed: " + str(benches_result58)); return
+	if OS.get_cmdline_user_args().has("--city-venue-staff29=1") or player_shop_requested():
 		preview_venue_staff29 = load("res://scripts/venues/npc_venue_staff_host29.gd").new()
 		add_child(preview_venue_staff29)
 		print("VENUE_STAFF29 ", await preview_venue_staff29.prepare29(self))
@@ -332,7 +338,7 @@ func _ready() -> void:
 		if weapon_script != null:
 			var weapon_host: Node = weapon_script.new()
 			add_child(weapon_host)
-			var weapon_setup: Dictionary = weapon_host.configure(self, _player)
+			var weapon_setup: Dictionary = weapon_host.configure(self, _player, player_shop_weapon_options())
 			weapons_status = "local_arsenal" if weapon_setup.get("ok",false) else str(weapon_setup)
 			if weapon_setup.get("ok",false):
 				preview_weapons = weapon_host
@@ -347,6 +353,7 @@ func _ready() -> void:
 						if not cargo_result.get("ok",false):
 							push_error("Weapon cargo binding: "+str(cargo_result)); cargo_host.queue_free()
 			else: weapon_host.queue_free()
+	if player_shop_requested(): install_player_shop()  # DSH_PLAYERSHOP
 	if is_instance_valid(preview_modular30):
 		print("MODULAR30_NATIVE_BINDING ", preview_modular30.bind_weapons())
 	if is_instance_valid(preview_palazzo):
@@ -372,6 +379,16 @@ func _ready() -> void:
 				preview_c4=null; blast.dispose(); preview_c4_blast=null
 		else:
 			preview_c4_blast=null; blast.free(); push_error("C4 blast binding failed")
+	if is_instance_valid(player_shop) and is_instance_valid(preview_c4_blast) and is_instance_valid(preview_weapons):
+		var throw_script: Script=load("res://scripts/shop/player_throwables.gd")
+		if throw_script!=null:
+			var throw_host: Node=throw_script.new()
+			throw_host.name="PlayerThrowables"; add_child(throw_host)
+			player_throwables=throw_host
+			var throw_setup: Dictionary=throw_host.configure(self,player_shop,preview_c4_blast,preview_c4)
+			print("DSH_THROWABLE_BINDING ",JSON.stringify(throw_setup))
+			if not throw_setup.get("ok",false):
+				player_throwables=null; throw_host.dispose()
 	if preview_residents_enabled or OS.get_cmdline_user_args().has("--preview-residents"):
 		# Physics must see the authored colliders before source placement proofs.
 		await get_tree().physics_frame
@@ -647,6 +664,8 @@ func _c4_sites() -> Array:
 	return sites
 
 func _exit_tree() -> void:
+	if is_instance_valid(player_throwables): player_throwables.dispose()
+	player_throwables=null
 	if is_instance_valid(preview_c4): preview_c4.dispose()
 	preview_c4=null
 	if is_instance_valid(preview_c4_blast): preview_c4_blast.dispose()
@@ -1558,3 +1577,58 @@ func _bind_final_dead_contact_port(measured_limits: Dictionary = FINAL_DEAD_CONT
 	var bound: bool = _player.set_final_dead_contact_owner(Callable(preview_population,"player_final_dead_contact_ready"), Callable(preview_population,"admit_player_final_dead_contact"))
 	final_dead_contact_status = "bound_waiting_final_death" if bound else "binding_failed"
 	return bound
+
+
+# ── DSH_PLAYERSHOP: локальная торговая лавка ───────────────────────────────
+# Модуль живёт в scripts/shop и включается флагом --city-player-shop=1.
+# Без флага поведение прежнее: продавца в сцене нет, арсенал выдаёт все стволы.
+@export var city_player_shop_enabled: bool = false
+@export var city_player_shop_cash: int = -1
+var player_shop: Node = null
+
+func player_shop_requested() -> bool:  # DSH_PLAYERSHOP
+	if city_player_shop_enabled:
+		return true
+	for argument: String in OS.get_cmdline_user_args():
+		if argument == "--city-player-shop=1" or argument == "--city-player-shop":
+			return true
+	return false
+
+## The starter ownership set comes from the same catalog the shop sells from, so a
+## purchase is the only way to grow the arsenal while the flag is on.
+func player_shop_weapon_options() -> Dictionary:  # DSH_PLAYERSHOP
+	var options: Dictionary = {}
+	if not player_shop_requested():
+		return options
+	var catalog = PlayerShopCatalog.new()
+	var opened: Dictionary = catalog.open()
+	if not opened.get("ok", false):
+		push_error("Player shop catalog: " + str(opened))
+		return options
+	options["ownedIds"] = catalog.starter_ids()
+	print("DSH_SHOP_STARTER ", JSON.stringify({"starter": catalog.starter_ids(), "items": catalog.item_count(), "cash": catalog.starting_cash()}))
+	return options
+
+func install_player_shop() -> void:  # DSH_PLAYERSHOP
+	if is_instance_valid(player_shop) or not is_instance_valid(preview_weapons):
+		return
+	var shop_script: Script = load("res://scripts/shop/player_shop_host.gd")
+	if shop_script == null:
+		push_error("Player shop module unavailable")
+		return
+	var host: Node = shop_script.new()
+	host.name = "PlayerShop"
+	add_child(host)
+	var options: Dictionary = {}
+	if city_player_shop_cash >= 0:
+		options["cash"] = city_player_shop_cash
+	for argument: String in OS.get_cmdline_user_args():
+		if argument.begins_with("--city-player-cash="):
+			options["cash"] = int(argument.trim_prefix("--city-player-cash="))
+	var installed: Dictionary = host.configure(self, _player, preview_weapons, options)
+	if not installed.get("ok", false):
+		push_error("Player shop binding: " + str(installed))
+		host.queue_free()
+		return
+	player_shop = host
+	print("DSH_SHOP_BINDING ", JSON.stringify(installed))

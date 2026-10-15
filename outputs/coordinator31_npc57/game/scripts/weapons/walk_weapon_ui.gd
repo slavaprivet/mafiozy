@@ -135,7 +135,7 @@ func refresh() -> void:
 		ammo.add_theme_color_override("font_color",Color("bda879" if reload>0 else ("d99b94" if id!="none" and magazine==0 else "adb8be")))
 	if menu.visible != host.menu_open: menu.visible = host.menu_open
 	var scoped:bool=host.aim_camera!=null and host.aim_camera.scoped()
-	var allowed:bool=host._interaction_allowed() and not host.controls_blocked() and not host.player._text_control_focused()
+	var allowed:bool=host._combat_allowed() and not host.controls_blocked() and not host.player._text_control_focused()
 	# Walk shows ordinary crosshair only while aiming or holding the trigger.
 	var firearm_reticle:bool=allowed and host.armed() and (host._aiming or host._held) and not scoped
 	var show_reticle:bool=firearm_reticle or (allowed and host.cargo_reticle_requested and not scoped)

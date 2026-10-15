@@ -73,9 +73,11 @@ func _supported_here() -> bool:
 	var floor: Variant = _route.floor_at(_body.global_position, _body.global_position.y)
 	return floor is Vector3 and absf(floor.y-_body.global_position.y) < .08 and _route.standing(floor)
 
-func try_begin() -> bool:
+func try_begin(allowed: Array = []) -> bool:
 	if active() or not _current() or not _supported_here(): return false
 	var choices: Array = Pose.KINDS.duplicate()
+	if not allowed.is_empty():
+		choices = choices.filter(func(kind: String) -> bool: return kind in allowed)
 	choices.erase(_previous)
 	# Conditional bench/window choices can fail without forcing an unsuitable act.
 	# At most five choices, no unbounded scene sampling or retry loops.

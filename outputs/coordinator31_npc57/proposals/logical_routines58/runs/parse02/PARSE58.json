@@ -1,0 +1,13 @@
+{
+	"parsed": [
+		"scripts/city/runtime/npc_routine58.gd",
+		"scripts/quick_controls/day_night_clock.gd",
+		"scripts/shop/npc_economy_visit28.gd",
+		"scripts/npc_ambient/ambient_controller28.gd",
+		"scripts/city/runtime/npc_threat_life30.gd",
+		"scripts/npc_daily_life.gd",
+		"scripts/npc_city_daily.gd"
+	],
+	"passed": true,
+	"scope": "Native GDScript compile and original resource identity only; no city behavior acceptance"
+}

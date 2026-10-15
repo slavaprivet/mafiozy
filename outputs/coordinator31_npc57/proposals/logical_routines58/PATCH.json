@@ -1,0 +1,48 @@
+{
+  "schema": "logical_routines58_patch_v1",
+  "production_edited": false,
+  "files": [
+    {
+      "path": "scripts/quick_controls/day_night_clock.gd",
+      "base_sha256": "5f44a68a315caaef02ee298cef75775ce1905e7315bd0c90f7f6729d5d6e65ca",
+      "sha256": "e4b106166a197776b03ef63884d596b6d6f15d5d13547197bf06bbd3fd785a3a"
+    },
+    {
+      "path": "scripts/shop/npc_economy_visit28.gd",
+      "base_sha256": "8767eafb2360cb841499eb54227ba95dc108fd426331dd6807a6a55e695de2f2",
+      "sha256": "b847f19537e2040bf289a3449388368a50092143ef7e9dbc00839efcb097d93e"
+    },
+    {
+      "path": "scripts/npc_ambient/ambient_controller28.gd",
+      "base_sha256": "034096d71830cd76ab117f998b4d84218b89bddf7eda671216fc24fe9c7e77c6",
+      "sha256": "800f252ee7237abcf5f6340cc11d930bc606b9e34b139c16a219287933a25582"
+    },
+    {
+      "path": "scripts/npc_city_daily.gd",
+      "base_sha256": "6e64b9082d152c8d926dd4813282f59a751bf2fc65c01b13fc55b1d8c5c9aef2",
+      "sha256": "4483b9b278c92e5b166a6f36678e91ab9bc202d766068611409d47dbaba8ff1a"
+    },
+    {
+      "path": "scripts/city/runtime/npc_threat_life30.gd",
+      "base_sha256": "ad989e07fc03691bceca3e751f03d42496aefbc1eab5c37064eda4cc8b6d13ae",
+      "sha256": "a956bcb9d4446699d38daec87490b29820c4c23657c0fdcce85088882872a83f"
+    },
+    {
+      "path": "scripts/npc_daily_life.gd",
+      "base_sha256": "55640868c590cfe6451a3b639481f6f96d001c3d5bd79d5606a34e461c29b332",
+      "sha256": "af7e6607696f32d4f61942cf726567122529fe19312d5de5d49676e9cd8499e5"
+    },
+    {
+      "path": "scripts/city/runtime/npc_routine58.gd",
+      "base_sha256": null,
+      "sha256": "ce614f03f3752b1c487149968142187060463386e7a934fdd5481321c045b748"
+    },
+    {
+      "path": "scripts/city/runtime/npc_leisure58.gd",
+      "base_sha256": null,
+      "sha256": "e9bffa669b47f1d81e348d554a6f5ca1e7f0df55cacdd9e568b43169e2f6fccb"
+    }
+  ],
+  "home_controller_required": "scripts/homes/npc_home_controller58.gd",
+  "native_acceptance": "PENDING"
+}

@@ -1,0 +1,115 @@
+{
+  "schema": "logical_routines58_handoff_v1",
+  "status": "SCOPED_NATIVE_PASS_READY_FOR_ROOT_MERGE",
+  "production_edited": false,
+  "own_native_processes_active": false,
+  "integration": {
+    "core_manifest": "PATCH_FOR_ROOT.json",
+    "core_files": 8,
+    "bench_manifest": "BENCH_PATCH_FOR_ROOT.json",
+    "bench_files": 1,
+    "all_candidate_files_root": "patch",
+    "bench_native_input_root": "bench_patch",
+    "main_call": "load(\"res://scripts/homes/npc_home_benches58.gd\").install(self, preview_homes58.current_sites()) after successful home prepare",
+    "base": "extended31/stage58_05/CANDIDATE58.json",
+    "base_manifest_sha256": "d5adfedbd8d1920b4544440928f8c5e2b0c52672e360d15be8ec1c3b3b28720d"
+  },
+  "behavior": [
+    "Existing 90 minute shared clock; manual N keeps same day, natural midnight advances day tickets.",
+    "Individual meal, supplies, home rest and sleep windows. Actual service controller still owns payment and physical entry/exit.",
+    "Scheduled purchase survives interruptions and overnight home; three venue failures defer 45 seconds without losing price/ticket.",
+    "Actual low energy, injury, threat and death retain priority; home keeps physical motion ownership until actual exit.",
+    "Random world roaming replaced by bounded selection of actual supported real benches; random ambient acts and pauses retained.",
+    "HOME/sleep and supported rest dispatched every physics tick, independent of paused game clock.",
+    "Four street benches use exact existing six mesh OriginalBench support and seat registry, 9 total below limit16."
+  ],
+  "verification": {
+    "policy03": {
+      "passed": true,
+      "checks": 26
+    },
+    "native_latest_parse": "All eight sealed routine scripts compile at original resource paths in benches02 entry.",
+    "benches02": {
+      "passed": true,
+      "source_count": 1150,
+      "source_drift": false,
+      "control_drift": false,
+      "native_path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\logical_routines58\\runs\\benches02\\BENCHES58.json",
+      "native_sha256": "7ccc1607da13a22666669d1c922aa9442c180df495a1219728e89352b833003f",
+      "checks": {
+        "four_real_benches": true,
+        "idempotent_install": true,
+        "nine_total_benches": true,
+        "real_home_bench_walk_arrival_and_seated_pose": true,
+        "resident_10_no_teleport": true,
+        "resident_3_no_teleport": true,
+        "resident_5_no_teleport": true,
+        "ten_residents_twelve_staff": true,
+        "window_complete": true
+      },
+      "engine_clean": true,
+      "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+      "overlay_only": true,
+      "production_changed": false
+    },
+    "resident5": {
+      "travel_m": 41.5174835138023,
+      "max_physics_step_m": 0.0300295762717724,
+      "actual_bench": "/root/MafioziWalkMigration/ResidentHome58_3_0/OriginalBenchHome58",
+      "first_live_seated_sample": {
+        "elapsed_ms": 31209,
+        "position": "(109.4191, -0.0, 527.7681)",
+        "phase": "ACTING",
+        "pose_frames": 58,
+        "bench_slot": {
+          "action_serial": 1,
+          "bench_id": 1603063068675,
+          "body_id": 2111010054220,
+          "serial": 1
+        }
+      },
+      "last_live_seated_sample": {
+        "elapsed_ms": 34224,
+        "position": "(109.4191, -0.0, 527.7681)",
+        "phase": "ACTING",
+        "pose_frames": 239,
+        "bench_slot": {
+          "action_serial": 1,
+          "bench_id": 1603063068675,
+          "body_id": 2111010054220,
+          "serial": 1
+        }
+      }
+    }
+  },
+  "preserved_failures": [
+    {
+      "run": "runs/parse01",
+      "reason": "Initial overlay lacked VFS entries for new preload resources; fixed by isolated resource pack."
+    },
+    {
+      "run": "runs/leisure01",
+      "reason": "Five old benches did not cover original night-walker spawn positions within unchanged120m; no actual leisure goal, reported FAIL."
+    },
+    {
+      "run": "runs/benches01",
+      "reason": "Observer called nonexistent SimpleHospital.snapshot during route; scheduler/RUN FAIL despite raw behavior checks. Fixed observer v2 uses supported accessors; old receipt preserved."
+    }
+  ],
+  "pending": [
+    "Combined stage06 compile and runtime after root integrates player shop and character delta.",
+    "Full actual late resident2/7 sleep→physical exit→night bench cycle, to run on merged build per latest root request. Prepared night overlay remains unexecuted and pinned to obsolete stage05; adapt NEW merged runner before use.",
+    "Long ordinary merged behavior and comparable exclusive performance; current functional receipt is not FPS acceptance."
+  ],
+  "evidence_pins": {
+    "PATCH_FOR_ROOT.json": "9ab7f1a9f73f9a5d8d08695afe4abf653a989e5c9f222167dedd7982e20706a3",
+    "BENCH_PATCH_FOR_ROOT.json": "5b0e92fd20c54258024108012e9b549f0b4a0b20a68d327906328fc13b639f62",
+    "PATCH.json": "94ce15b00ae0e048daa3ba80356f72aae13020689d2f3f7c0bfff31a3ac44bed",
+    "runs/benches02/RUN.json": "20b4a1ec60957fe830a62d8b49319b7b05c0a6fc5624b513277b0e7020b82adc",
+    "runs/benches02/SCHEDULER_RUN.json": "4cd83e0d3aad70526cfc3be63b770bd540a5264492b5eadf8c9572b72382f4a2",
+    "runs/benches02/BENCHES58.json": "7ccc1607da13a22666669d1c922aa9442c180df495a1219728e89352b833003f",
+    "runs/benches02/HARNESS.zip": "e256fddffd93ac929e64f3a108a2d78ae3807738d21889c96702b89439c34ff9",
+    "runs/benches02/CONTROL_PINS.json": "4fcef9f0ecb7df058a45ac2fac4461bcf5dcf0ed77c17917481a59ef6c1590fb",
+    "policy_projects/policy03/POLICY58.json": "e7c6a7259f680234ba4649e3fa7762abfbd8636340b86ea1f34b86f65d15eebf"
+  }
+}

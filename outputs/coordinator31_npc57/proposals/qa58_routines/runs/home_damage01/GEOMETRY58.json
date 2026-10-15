@@ -1,0 +1,3890 @@
+{
+	"c4_aim": {
+		"actual_target": "<null>",
+		"camera": "[X: (-0.797642, 0.0, 0.603131), Y: (0.375589, 0.782436, 0.496716), Z: (-0.471911, 0.622731, -0.624104), O: (95.90309, 4.829064, 530.0528)]",
+		"diagnostic": {
+			"counts": {
+				"accepted": 0,
+				"actor_inside_surface": 0,
+				"actor_los_blocked": 0,
+				"actor_los_empty": 0,
+				"camera_inside_surface": 0,
+				"camera_missing": 0,
+				"different_surface_contact": 0,
+				"inactive": 181,
+				"invalid_contact": 0,
+				"invalid_query": 0,
+				"no_surface": 0,
+				"ready": 0,
+				"too_far": 0,
+				"unsupported_surface": 0
+			},
+			"horizontal_reach_m": 2.0,
+			"last": {
+				"collider_id": 0,
+				"distance_m": -1.0,
+				"ray_count": 0,
+				"reason": "inactive",
+				"reticle_error_m": -1.0
+			},
+			"maximum_history_entries": 0,
+			"maximum_rays_per_query": 2,
+			"queries": 181,
+			"reach_m": 2.5
+		},
+		"player": "(98.31908, 0.000943, 533.2479)",
+		"target": "(98.85, 0.94, 533.95)"
+	},
+	"checks": [
+		{
+			"detail": {
+				"damage_trigger_frame": -1,
+				"exit_frame": -1,
+				"failed": "",
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": true,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_SLEEP",
+					"planning_service_us": 25525,
+					"pose_committed_frame": 2748,
+					"pose_frames": 41,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": true,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 3,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INSIDE",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": true,
+					"support_current": true
+				},
+				"max_required_idle_s": 0.353321999999999,
+				"rows": [
+					{
+						"at_s": 0.010062,
+						"driver": {},
+						"frame": 1194,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": false,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_APPROACH",
+							"planning_service_us": 0,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": false,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 0,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.010062,
+						"native_velocity": [
+							0.0,
+							0.0,
+							0.0
+						],
+						"position": [
+							106.599998474121,
+							-0.0000000149011611938477,
+							567.849975585938
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 1.000032,
+						"driver": {},
+						"frame": 1256,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": false,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_APPROACH",
+							"planning_service_us": 5456,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": false,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 0,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0,
+						"native_velocity": [
+							0.15774442255497,
+							0.0,
+							-1.7930748462677
+						],
+						"position": [
+							106.747398376465,
+							-0.0000000149011611938477,
+							566.175170898438
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 2.016244,
+						"driver": {},
+						"frame": 1317,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": false,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_APPROACH",
+							"planning_service_us": 5456,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": false,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 0,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0194799999999999,
+						"native_velocity": [
+							0.157738715410233,
+							0.0,
+							-1.79307520389557
+						],
+						"position": [
+							106.907958984375,
+							-0.0000000149011611938477,
+							564.350830078125
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 3.015643,
+						"driver": {},
+						"frame": 1377,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": false,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_APPROACH",
+							"planning_service_us": 5456,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": false,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 0,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0160279999999999,
+						"native_velocity": [
+							0.157732009887695,
+							0.0,
+							-1.79307591915131
+						],
+						"position": [
+							107.065887451172,
+							-0.0000000149011611938477,
+							562.556396484375
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 4.013903,
+						"driver": {},
+						"frame": 1437,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": false,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_APPROACH",
+							"planning_service_us": 5456,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": false,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 0,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.01762,
+						"native_velocity": [
+							0.157723844051361,
+							0.0,
+							-1.79307627677917
+						],
+						"position": [
+							107.223815917969,
+							-0.0000000149011611938477,
+							560.761962890625
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 5.008747,
+						"driver": {},
+						"frame": 1496,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": false,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_APPROACH",
+							"planning_service_us": 5456,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": false,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 0,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0,
+						"native_velocity": [
+							0.157713979482651,
+							0.0,
+							-1.79307723045349
+						],
+						"position": [
+							107.379112243652,
+							-0.0000000149011611938477,
+							558.997436523438
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 6.00214,
+						"driver": {},
+						"frame": 1556,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": false,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_APPROACH",
+							"planning_service_us": 5456,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": false,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 0,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0,
+						"native_velocity": [
+							0.15770123898983,
+							0.0,
+							-1.79307854175568
+						],
+						"position": [
+							107.537040710449,
+							-0.0000000149011611938477,
+							557.203002929688
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 7.010363,
+						"driver": {},
+						"frame": 1617,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": false,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_APPROACH",
+							"planning_service_us": 5456,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": false,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 0,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0174950000000003,
+						"native_velocity": [
+							0.157699584960938,
+							0.0,
+							-1.79307866096497
+						],
+						"position": [
+							107.69750213623,
+							-0.0000000149011611938477,
+							555.378662109375
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 8.010832,
+						"driver": {},
+						"frame": 1677,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": false,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_APPROACH",
+							"planning_service_us": 5456,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": false,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 0,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0142080000000009,
+						"native_velocity": [
+							0.157700464129448,
+							0.0,
+							-1.79307866096497
+						],
+						"position": [
+							107.855316162109,
+							-0.0000000149011611938477,
+							553.584228515625
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 9.00547,
+						"driver": {},
+						"frame": 1736,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": false,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_APPROACH",
+							"planning_service_us": 5456,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": false,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 0,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0,
+						"native_velocity": [
+							0.157700404524803,
+							0.0,
+							-1.79307842254639
+						],
+						"position": [
+							108.01050567627,
+							-0.0000000149011611938477,
+							551.819702148438
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 10.005727,
+						"driver": {},
+						"frame": 1796,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": false,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_APPROACH",
+							"planning_service_us": 5456,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": false,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 0,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0,
+						"native_velocity": [
+							0.157699793577194,
+							0.0,
+							-1.79307842254639
+						],
+						"position": [
+							108.168327331543,
+							-0.0000000149011611938477,
+							550.025268554688
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 11.011491,
+						"driver": {},
+						"frame": 1856,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": false,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_APPROACH",
+							"planning_service_us": 5456,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": false,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 0,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0,
+						"native_velocity": [
+							0.157701849937439,
+							0.0,
+							-1.7930783033371
+						],
+						"position": [
+							108.326141357422,
+							-0.0000000149011611938477,
+							548.230834960938
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 12.004961,
+						"driver": {},
+						"frame": 1917,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": false,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_APPROACH",
+							"planning_service_us": 5456,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": false,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 0,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0111799999999995,
+						"native_velocity": [
+							0.157700136303902,
+							0.0,
+							-1.79307878017426
+						],
+						"position": [
+							108.486595153809,
+							-0.0000000149011611938477,
+							546.406494140625
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 13.005052,
+						"driver": {},
+						"frame": 1976,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": false,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_APPROACH",
+							"planning_service_us": 5456,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": false,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 0,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0,
+						"native_velocity": [
+							0.157698810100555,
+							0.0,
+							-1.79307866096497
+						],
+						"position": [
+							108.641777038574,
+							-0.0000000149011611938477,
+							544.641967773438
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 14.01218,
+						"driver": {},
+						"frame": 2037,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": false,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_APPROACH",
+							"planning_service_us": 7928,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": false,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 0,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0173550000000002,
+						"native_velocity": [
+							0.15773843228817,
+							0.0,
+							-1.79307520389557
+						],
+						"position": [
+							108.797050476074,
+							-0.0000000149011611938477,
+							542.87744140625
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 15.015433,
+						"driver": {},
+						"frame": 2097,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": false,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_APPROACH",
+							"planning_service_us": 7928,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": false,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 0,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0194119999999991,
+						"native_velocity": [
+							0.157721400260925,
+							0.0,
+							-1.79307687282562
+						],
+						"position": [
+							108.954978942871,
+							-0.0000000149011611938477,
+							541.0830078125
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 16.014725,
+						"driver": {},
+						"frame": 2157,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": false,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_APPROACH",
+							"planning_service_us": 7928,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": false,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 0,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.017059999999999,
+						"native_velocity": [
+							0.157700657844543,
+							0.0,
+							-1.79307842254639
+						],
+						"position": [
+							109.112884521484,
+							-0.0000000149011611938477,
+							539.28857421875
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 17.001639,
+						"driver": {},
+						"frame": 2216,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": false,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_APPROACH",
+							"planning_service_us": 7928,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": false,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 0,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0,
+						"native_velocity": [
+							0.157700657844543,
+							0.0,
+							-1.79307866096497
+						],
+						"position": [
+							109.268074035645,
+							-0.0000000149011611938477,
+							537.524047851563
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 18.005013,
+						"driver": {},
+						"frame": 2277,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": false,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_APPROACH",
+							"planning_service_us": 7928,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": false,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 0,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0163390000000021,
+						"native_velocity": [
+							0.157704263925552,
+							0.0,
+							-1.7930783033371
+						],
+						"position": [
+							109.428520202637,
+							-0.0000000149011611938477,
+							535.69970703125
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 19.014051,
+						"driver": {},
+						"frame": 2337,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": false,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_ENTER",
+							"planning_service_us": 8971,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": false,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 1,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0202869999999997,
+						"native_velocity": [
+							-0.90020477771759,
+							0.0,
+							-1.55872774124146
+						],
+						"position": [
+							109.545806884766,
+							-0.0000000149011611938477,
+							533.972900390625
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 20.009829,
+						"driver": {},
+						"frame": 2396,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": false,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_ENTER",
+							"planning_service_us": 8971,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": false,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 1,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0,
+						"native_velocity": [
+							-0.900623619556427,
+							0.0,
+							-1.55848550796509
+						],
+						"position": [
+							108.66039276123,
+							-0.0000000149011611938477,
+							532.438842773438
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 21.002117,
+						"driver": {},
+						"frame": 2456,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": false,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_ENTER",
+							"planning_service_us": 8971,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": false,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 1,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.197015999999998,
+						"native_velocity": [
+							0.0,
+							0.0,
+							0.0
+						],
+						"position": [
+							107.939674377441,
+							-0.0000000149011611938477,
+							531.191528320313
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 22.005984,
+						"driver": {},
+						"frame": 2517,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": true,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_ENTER",
+							"planning_service_us": 15142,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": false,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 2,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0,
+						"native_velocity": [
+							-1.79997587203979,
+							0.0,
+							-0.00932358205318451
+						],
+						"position": [
+							106.456527709961,
+							0.167843893170357,
+							530.951110839844
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 23.003141,
+						"driver": {},
+						"frame": 2576,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": true,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_BED_APPROACH",
+							"planning_service_us": 25525,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": true,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 3,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0,
+						"native_velocity": [
+							-1.79777050018311,
+							0.0,
+							0.0895651653409004
+						],
+						"position": [
+							104.919654846191,
+							0.240303575992584,
+							531.029052734375
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 24.010189,
+						"driver": {},
+						"frame": 2637,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": true,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_BED_APPROACH",
+							"planning_service_us": 25525,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": true,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 3,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0201050000000009,
+						"native_velocity": [
+							-1.29439675807953,
+							0.0,
+							1.25081443786621
+						],
+						"position": [
+							103.369064331055,
+							0.240303575992584,
+							531.783325195313
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 25.002595,
+						"driver": {},
+						"frame": 2696,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": true,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_BED_APPROACH",
+							"planning_service_us": 25525,
+							"pose_committed_frame": -1,
+							"pose_frames": 0,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": true,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 3,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INBOUND",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": false
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0,
+						"native_velocity": [
+							-0.266153484582901,
+							0.0,
+							1.7802140712738
+						],
+						"position": [
+							102.528846740723,
+							0.240303575992584,
+							533.257080078125
+						],
+						"required_motion": true
+					},
+					{
+						"at_s": 26.005036,
+						"driver": {},
+						"frame": 2757,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": true,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_SLEEP",
+							"planning_service_us": 25525,
+							"pose_committed_frame": 2756,
+							"pose_frames": 49,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": true,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 3,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INSIDE",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": true
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0,
+						"native_velocity": [
+							0.0,
+							0.0,
+							0.0
+						],
+						"position": [
+							102.502235412598,
+							0.240303575992584,
+							533.43505859375
+						],
+						"required_motion": false
+					},
+					{
+						"at_s": 27.006722,
+						"driver": {},
+						"frame": 2816,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": true,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_SLEEP",
+							"planning_service_us": 25525,
+							"pose_committed_frame": 2815,
+							"pose_frames": 108,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": true,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 3,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INSIDE",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": true
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0,
+						"native_velocity": [
+							0.0,
+							0.0,
+							0.0
+						],
+						"position": [
+							102.502235412598,
+							0.240303575992584,
+							533.43505859375
+						],
+						"required_motion": false
+					},
+					{
+						"at_s": 28.006105,
+						"driver": {},
+						"frame": 2877,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": true,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_SLEEP",
+							"planning_service_us": 25525,
+							"pose_committed_frame": 2876,
+							"pose_frames": 169,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": true,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 3,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INSIDE",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": true
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0,
+						"native_velocity": [
+							0.0,
+							0.0,
+							0.0
+						],
+						"position": [
+							102.502235412598,
+							0.240303575992584,
+							533.43505859375
+						],
+						"required_motion": false
+					},
+					{
+						"at_s": 29.010961,
+						"driver": {},
+						"frame": 2937,
+						"home": {
+							"active": true,
+							"bed_id": "HOME58-003:bed:1",
+							"claim_current": true,
+							"exit_requested": false,
+							"exit_retries": 0,
+							"exit_work_exhausted": false,
+							"home_id": "HOME58-003",
+							"inside": true,
+							"intent": "home_sleep",
+							"life_generation": 1,
+							"phase": "HOME_SLEEP",
+							"planning_service_us": 25525,
+							"pose_committed_frame": 2936,
+							"pose_frames": 229,
+							"reason": "",
+							"route": {
+								"capacity": {
+									"assigned_bed": "HOME58-003:bed:1",
+									"claims": 1,
+									"home_id": "HOME58-003",
+									"trading": false
+								},
+								"clone": "ResidentHome58_3_0",
+								"door": "(106.0, 0.24, 530.95)",
+								"entered": true,
+								"inward": "(-1.0, 0.0, 0.0)",
+								"leg": 3,
+								"legs": 4,
+								"outside": "(107.8, 0.0, 530.95)",
+								"phase": "INSIDE",
+								"queue": {},
+								"reason": "",
+								"room": "(102.5, 0.24, 533.45)",
+								"sign": "ДОМ",
+								"venue": "HOME58-003"
+							},
+							"serial": 1,
+							"sleeping": false,
+							"support_current": true
+						},
+						"hp": 60.0,
+						"motion_idle_s": 0.0,
+						"native_velocity": [
+							0.0,
+							0.0,
+							0.0
+						],
+						"position": [
+							102.502235412598,
+							0.240303575992584,
+							533.43505859375
+						],
+						"required_motion": false
+					}
+				],
+				"sleep_cancel_frame": -1,
+				"started": true,
+				"takeover": {
+					"body_id": 2163791203072,
+					"life_generation": 1,
+					"ordinary_phase": "IDLE",
+					"scope": "Suspend this resident's ordinary intent scheduling only; no position/health/mask/physics/host changes",
+					"source_id": "resident_3",
+					"start": [
+						106.599998474121,
+						-0.0000000149011611938477,
+						567.849975585938
+					]
+				}
+			},
+			"name": "original resident physically reached assigned bed and host committed sleep",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "native rendered bed-pose frame available",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "native bed PNG saved",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "actual home rear wall found",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "cold player settled on actual ground",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "native Q arsenal opens",
+			"ok": true
+		},
+		{
+			"detail": null,
+			"name": "native Q button selects actual C4",
+			"ok": true
+		},
+		{
+			"detail": {
+				"actual_target": "<null>",
+				"camera": "[X: (-0.797642, 0.0, 0.603131), Y: (0.375589, 0.782436, 0.496716), Z: (-0.471911, 0.622731, -0.624104), O: (95.90309, 4.829064, 530.0528)]",
+				"diagnostic": {
+					"counts": {
+						"accepted": 0,
+						"actor_inside_surface": 0,
+						"actor_los_blocked": 0,
+						"actor_los_empty": 0,
+						"camera_inside_surface": 0,
+						"camera_missing": 0,
+						"different_surface_contact": 0,
+						"inactive": 181,
+						"invalid_contact": 0,
+						"invalid_query": 0,
+						"no_surface": 0,
+						"ready": 0,
+						"too_far": 0,
+						"unsupported_surface": 0
+					},
+					"horizontal_reach_m": 2.0,
+					"last": {
+						"collider_id": 0,
+						"distance_m": -1.0,
+						"ray_count": 0,
+						"reason": "inactive",
+						"reticle_error_m": -1.0
+					},
+					"maximum_history_entries": 0,
+					"maximum_rays_per_query": 2,
+					"queries": 181,
+					"reach_m": 2.5
+				},
+				"player": "(98.31908, 0.000943, 533.2479)",
+				"target": "(98.85, 0.94, 533.95)"
+			},
+			"name": "actual native C4 query selects home wall",
+			"ok": false
+		},
+		{
+			"detail": {
+				"cancel": -1,
+				"damage": -1
+			},
+			"name": "C4 cancels sleep within three native ticks",
+			"ok": true
+		},
+		{
+			"detail": -1,
+			"name": "damaged-home owner physically exits before release",
+			"ok": true
+		},
+		{
+			"detail": 0.353321999999999,
+			"name": "home required motion gate remains10seconds",
+			"ok": true
+		}
+	],
+	"component": {
+		"damage_trigger_frame": -1,
+		"exit_frame": -1,
+		"failed": "",
+		"home": {
+			"active": true,
+			"bed_id": "HOME58-003:bed:1",
+			"claim_current": true,
+			"exit_requested": false,
+			"exit_retries": 0,
+			"exit_work_exhausted": false,
+			"home_id": "HOME58-003",
+			"inside": true,
+			"intent": "home_sleep",
+			"life_generation": 1,
+			"phase": "HOME_SLEEP",
+			"planning_service_us": 25525,
+			"pose_committed_frame": 2985,
+			"pose_frames": 278,
+			"reason": "",
+			"route": {
+				"capacity": {
+					"assigned_bed": "HOME58-003:bed:1",
+					"claims": 1,
+					"home_id": "HOME58-003",
+					"trading": false
+				},
+				"clone": "ResidentHome58_3_0",
+				"door": "(106.0, 0.24, 530.95)",
+				"entered": true,
+				"inward": "(-1.0, 0.0, 0.0)",
+				"leg": 3,
+				"legs": 4,
+				"outside": "(107.8, 0.0, 530.95)",
+				"phase": "INSIDE",
+				"queue": {},
+				"reason": "",
+				"room": "(102.5, 0.24, 533.45)",
+				"sign": "ДОМ",
+				"venue": "HOME58-003"
+			},
+			"serial": 1,
+			"sleeping": true,
+			"support_current": true
+		},
+		"max_required_idle_s": 0.353321999999999,
+		"rows": [
+			{
+				"at_s": 0.010062,
+				"driver": {},
+				"frame": 1194,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": false,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_APPROACH",
+					"planning_service_us": 0,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": false,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 0,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.010062,
+				"native_velocity": [
+					0.0,
+					0.0,
+					0.0
+				],
+				"position": [
+					106.599998474121,
+					-0.0000000149011611938477,
+					567.849975585938
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 1.000032,
+				"driver": {},
+				"frame": 1256,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": false,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_APPROACH",
+					"planning_service_us": 5456,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": false,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 0,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0,
+				"native_velocity": [
+					0.15774442255497,
+					0.0,
+					-1.7930748462677
+				],
+				"position": [
+					106.747398376465,
+					-0.0000000149011611938477,
+					566.175170898438
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 2.016244,
+				"driver": {},
+				"frame": 1317,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": false,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_APPROACH",
+					"planning_service_us": 5456,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": false,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 0,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0194799999999999,
+				"native_velocity": [
+					0.157738715410233,
+					0.0,
+					-1.79307520389557
+				],
+				"position": [
+					106.907958984375,
+					-0.0000000149011611938477,
+					564.350830078125
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 3.015643,
+				"driver": {},
+				"frame": 1377,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": false,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_APPROACH",
+					"planning_service_us": 5456,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": false,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 0,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0160279999999999,
+				"native_velocity": [
+					0.157732009887695,
+					0.0,
+					-1.79307591915131
+				],
+				"position": [
+					107.065887451172,
+					-0.0000000149011611938477,
+					562.556396484375
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 4.013903,
+				"driver": {},
+				"frame": 1437,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": false,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_APPROACH",
+					"planning_service_us": 5456,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": false,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 0,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.01762,
+				"native_velocity": [
+					0.157723844051361,
+					0.0,
+					-1.79307627677917
+				],
+				"position": [
+					107.223815917969,
+					-0.0000000149011611938477,
+					560.761962890625
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 5.008747,
+				"driver": {},
+				"frame": 1496,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": false,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_APPROACH",
+					"planning_service_us": 5456,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": false,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 0,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0,
+				"native_velocity": [
+					0.157713979482651,
+					0.0,
+					-1.79307723045349
+				],
+				"position": [
+					107.379112243652,
+					-0.0000000149011611938477,
+					558.997436523438
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 6.00214,
+				"driver": {},
+				"frame": 1556,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": false,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_APPROACH",
+					"planning_service_us": 5456,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": false,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 0,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0,
+				"native_velocity": [
+					0.15770123898983,
+					0.0,
+					-1.79307854175568
+				],
+				"position": [
+					107.537040710449,
+					-0.0000000149011611938477,
+					557.203002929688
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 7.010363,
+				"driver": {},
+				"frame": 1617,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": false,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_APPROACH",
+					"planning_service_us": 5456,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": false,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 0,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0174950000000003,
+				"native_velocity": [
+					0.157699584960938,
+					0.0,
+					-1.79307866096497
+				],
+				"position": [
+					107.69750213623,
+					-0.0000000149011611938477,
+					555.378662109375
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 8.010832,
+				"driver": {},
+				"frame": 1677,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": false,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_APPROACH",
+					"planning_service_us": 5456,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": false,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 0,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0142080000000009,
+				"native_velocity": [
+					0.157700464129448,
+					0.0,
+					-1.79307866096497
+				],
+				"position": [
+					107.855316162109,
+					-0.0000000149011611938477,
+					553.584228515625
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 9.00547,
+				"driver": {},
+				"frame": 1736,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": false,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_APPROACH",
+					"planning_service_us": 5456,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": false,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 0,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0,
+				"native_velocity": [
+					0.157700404524803,
+					0.0,
+					-1.79307842254639
+				],
+				"position": [
+					108.01050567627,
+					-0.0000000149011611938477,
+					551.819702148438
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 10.005727,
+				"driver": {},
+				"frame": 1796,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": false,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_APPROACH",
+					"planning_service_us": 5456,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": false,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 0,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0,
+				"native_velocity": [
+					0.157699793577194,
+					0.0,
+					-1.79307842254639
+				],
+				"position": [
+					108.168327331543,
+					-0.0000000149011611938477,
+					550.025268554688
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 11.011491,
+				"driver": {},
+				"frame": 1856,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": false,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_APPROACH",
+					"planning_service_us": 5456,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": false,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 0,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0,
+				"native_velocity": [
+					0.157701849937439,
+					0.0,
+					-1.7930783033371
+				],
+				"position": [
+					108.326141357422,
+					-0.0000000149011611938477,
+					548.230834960938
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 12.004961,
+				"driver": {},
+				"frame": 1917,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": false,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_APPROACH",
+					"planning_service_us": 5456,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": false,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 0,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0111799999999995,
+				"native_velocity": [
+					0.157700136303902,
+					0.0,
+					-1.79307878017426
+				],
+				"position": [
+					108.486595153809,
+					-0.0000000149011611938477,
+					546.406494140625
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 13.005052,
+				"driver": {},
+				"frame": 1976,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": false,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_APPROACH",
+					"planning_service_us": 5456,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": false,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 0,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0,
+				"native_velocity": [
+					0.157698810100555,
+					0.0,
+					-1.79307866096497
+				],
+				"position": [
+					108.641777038574,
+					-0.0000000149011611938477,
+					544.641967773438
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 14.01218,
+				"driver": {},
+				"frame": 2037,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": false,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_APPROACH",
+					"planning_service_us": 7928,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": false,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 0,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0173550000000002,
+				"native_velocity": [
+					0.15773843228817,
+					0.0,
+					-1.79307520389557
+				],
+				"position": [
+					108.797050476074,
+					-0.0000000149011611938477,
+					542.87744140625
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 15.015433,
+				"driver": {},
+				"frame": 2097,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": false,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_APPROACH",
+					"planning_service_us": 7928,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": false,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 0,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0194119999999991,
+				"native_velocity": [
+					0.157721400260925,
+					0.0,
+					-1.79307687282562
+				],
+				"position": [
+					108.954978942871,
+					-0.0000000149011611938477,
+					541.0830078125
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 16.014725,
+				"driver": {},
+				"frame": 2157,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": false,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_APPROACH",
+					"planning_service_us": 7928,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": false,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 0,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.017059999999999,
+				"native_velocity": [
+					0.157700657844543,
+					0.0,
+					-1.79307842254639
+				],
+				"position": [
+					109.112884521484,
+					-0.0000000149011611938477,
+					539.28857421875
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 17.001639,
+				"driver": {},
+				"frame": 2216,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": false,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_APPROACH",
+					"planning_service_us": 7928,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": false,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 0,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0,
+				"native_velocity": [
+					0.157700657844543,
+					0.0,
+					-1.79307866096497
+				],
+				"position": [
+					109.268074035645,
+					-0.0000000149011611938477,
+					537.524047851563
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 18.005013,
+				"driver": {},
+				"frame": 2277,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": false,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_APPROACH",
+					"planning_service_us": 7928,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": false,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 0,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0163390000000021,
+				"native_velocity": [
+					0.157704263925552,
+					0.0,
+					-1.7930783033371
+				],
+				"position": [
+					109.428520202637,
+					-0.0000000149011611938477,
+					535.69970703125
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 19.014051,
+				"driver": {},
+				"frame": 2337,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": false,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_ENTER",
+					"planning_service_us": 8971,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": false,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 1,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0202869999999997,
+				"native_velocity": [
+					-0.90020477771759,
+					0.0,
+					-1.55872774124146
+				],
+				"position": [
+					109.545806884766,
+					-0.0000000149011611938477,
+					533.972900390625
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 20.009829,
+				"driver": {},
+				"frame": 2396,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": false,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_ENTER",
+					"planning_service_us": 8971,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": false,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 1,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0,
+				"native_velocity": [
+					-0.900623619556427,
+					0.0,
+					-1.55848550796509
+				],
+				"position": [
+					108.66039276123,
+					-0.0000000149011611938477,
+					532.438842773438
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 21.002117,
+				"driver": {},
+				"frame": 2456,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": false,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_ENTER",
+					"planning_service_us": 8971,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": false,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 1,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.197015999999998,
+				"native_velocity": [
+					0.0,
+					0.0,
+					0.0
+				],
+				"position": [
+					107.939674377441,
+					-0.0000000149011611938477,
+					531.191528320313
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 22.005984,
+				"driver": {},
+				"frame": 2517,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": true,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_ENTER",
+					"planning_service_us": 15142,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": false,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 2,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0,
+				"native_velocity": [
+					-1.79997587203979,
+					0.0,
+					-0.00932358205318451
+				],
+				"position": [
+					106.456527709961,
+					0.167843893170357,
+					530.951110839844
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 23.003141,
+				"driver": {},
+				"frame": 2576,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": true,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_BED_APPROACH",
+					"planning_service_us": 25525,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": true,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 3,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0,
+				"native_velocity": [
+					-1.79777050018311,
+					0.0,
+					0.0895651653409004
+				],
+				"position": [
+					104.919654846191,
+					0.240303575992584,
+					531.029052734375
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 24.010189,
+				"driver": {},
+				"frame": 2637,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": true,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_BED_APPROACH",
+					"planning_service_us": 25525,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": true,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 3,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0201050000000009,
+				"native_velocity": [
+					-1.29439675807953,
+					0.0,
+					1.25081443786621
+				],
+				"position": [
+					103.369064331055,
+					0.240303575992584,
+					531.783325195313
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 25.002595,
+				"driver": {},
+				"frame": 2696,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": true,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_BED_APPROACH",
+					"planning_service_us": 25525,
+					"pose_committed_frame": -1,
+					"pose_frames": 0,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": true,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 3,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INBOUND",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": false
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0,
+				"native_velocity": [
+					-0.266153484582901,
+					0.0,
+					1.7802140712738
+				],
+				"position": [
+					102.528846740723,
+					0.240303575992584,
+					533.257080078125
+				],
+				"required_motion": true
+			},
+			{
+				"at_s": 26.005036,
+				"driver": {},
+				"frame": 2757,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": true,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_SLEEP",
+					"planning_service_us": 25525,
+					"pose_committed_frame": 2756,
+					"pose_frames": 49,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": true,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 3,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INSIDE",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": true
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0,
+				"native_velocity": [
+					0.0,
+					0.0,
+					0.0
+				],
+				"position": [
+					102.502235412598,
+					0.240303575992584,
+					533.43505859375
+				],
+				"required_motion": false
+			},
+			{
+				"at_s": 27.006722,
+				"driver": {},
+				"frame": 2816,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": true,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_SLEEP",
+					"planning_service_us": 25525,
+					"pose_committed_frame": 2815,
+					"pose_frames": 108,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": true,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 3,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INSIDE",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": true
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0,
+				"native_velocity": [
+					0.0,
+					0.0,
+					0.0
+				],
+				"position": [
+					102.502235412598,
+					0.240303575992584,
+					533.43505859375
+				],
+				"required_motion": false
+			},
+			{
+				"at_s": 28.006105,
+				"driver": {},
+				"frame": 2877,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": true,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_SLEEP",
+					"planning_service_us": 25525,
+					"pose_committed_frame": 2876,
+					"pose_frames": 169,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": true,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 3,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INSIDE",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": true
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0,
+				"native_velocity": [
+					0.0,
+					0.0,
+					0.0
+				],
+				"position": [
+					102.502235412598,
+					0.240303575992584,
+					533.43505859375
+				],
+				"required_motion": false
+			},
+			{
+				"at_s": 29.010961,
+				"driver": {},
+				"frame": 2937,
+				"home": {
+					"active": true,
+					"bed_id": "HOME58-003:bed:1",
+					"claim_current": true,
+					"exit_requested": false,
+					"exit_retries": 0,
+					"exit_work_exhausted": false,
+					"home_id": "HOME58-003",
+					"inside": true,
+					"intent": "home_sleep",
+					"life_generation": 1,
+					"phase": "HOME_SLEEP",
+					"planning_service_us": 25525,
+					"pose_committed_frame": 2936,
+					"pose_frames": 229,
+					"reason": "",
+					"route": {
+						"capacity": {
+							"assigned_bed": "HOME58-003:bed:1",
+							"claims": 1,
+							"home_id": "HOME58-003",
+							"trading": false
+						},
+						"clone": "ResidentHome58_3_0",
+						"door": "(106.0, 0.24, 530.95)",
+						"entered": true,
+						"inward": "(-1.0, 0.0, 0.0)",
+						"leg": 3,
+						"legs": 4,
+						"outside": "(107.8, 0.0, 530.95)",
+						"phase": "INSIDE",
+						"queue": {},
+						"reason": "",
+						"room": "(102.5, 0.24, 533.45)",
+						"sign": "ДОМ",
+						"venue": "HOME58-003"
+					},
+					"serial": 1,
+					"sleeping": false,
+					"support_current": true
+				},
+				"hp": 60.0,
+				"motion_idle_s": 0.0,
+				"native_velocity": [
+					0.0,
+					0.0,
+					0.0
+				],
+				"position": [
+					102.502235412598,
+					0.240303575992584,
+					533.43505859375
+				],
+				"required_motion": false
+			}
+		],
+		"sleep_cancel_frame": -1,
+		"started": true,
+		"takeover": {
+			"body_id": 2163791203072,
+			"life_generation": 1,
+			"ordinary_phase": "IDLE",
+			"scope": "Suspend this resident's ordinary intent scheduling only; no position/health/mask/physics/host changes",
+			"source_id": "resident_3",
+			"start": [
+				106.599998474121,
+				-0.0000000149011611938477,
+				567.849975585938
+			]
+		}
+	},
+	"passed": false,
+	"samples": [],
+	"scope": "Exact stage05 original resident3 native walk/bed pose/actual C4 interruption/exit/reset; component intent scheduling; not natural routines or performance",
+	"sleep_before_damage": {
+		"active": true,
+		"bed_id": "HOME58-003:bed:1",
+		"claim_current": true,
+		"exit_requested": false,
+		"exit_retries": 0,
+		"exit_work_exhausted": false,
+		"home_id": "HOME58-003",
+		"inside": true,
+		"intent": "home_sleep",
+		"life_generation": 1,
+		"phase": "HOME_SLEEP",
+		"planning_service_us": 25525,
+		"pose_committed_frame": 2748,
+		"pose_frames": 41,
+		"reason": "",
+		"route": {
+			"capacity": {
+				"assigned_bed": "HOME58-003:bed:1",
+				"claims": 1,
+				"home_id": "HOME58-003",
+				"trading": false
+			},
+			"clone": "ResidentHome58_3_0",
+			"door": "(106.0, 0.24, 530.95)",
+			"entered": true,
+			"inward": "(-1.0, 0.0, 0.0)",
+			"leg": 3,
+			"legs": 4,
+			"outside": "(107.8, 0.0, 530.95)",
+			"phase": "INSIDE",
+			"queue": {},
+			"reason": "",
+			"room": "(102.5, 0.24, 533.45)",
+			"sign": "ДОМ",
+			"venue": "HOME58-003"
+		},
+		"serial": 1,
+		"sleeping": true,
+		"support_current": true
+	},
+	"sleep_image": {
+		"actor_position": "(102.5022, 0.240304, 533.4351)",
+		"bed_surface": "(100.6, 0.82, 533.45)",
+		"camera": "native QA inspection camera; no NPC/body pose or transform change",
+		"home": {
+			"active": true,
+			"bed_id": "HOME58-003:bed:1",
+			"claim_current": true,
+			"exit_requested": false,
+			"exit_retries": 0,
+			"exit_work_exhausted": false,
+			"home_id": "HOME58-003",
+			"inside": true,
+			"intent": "home_sleep",
+			"life_generation": 1,
+			"phase": "HOME_SLEEP",
+			"planning_service_us": 25525,
+			"pose_committed_frame": 2748,
+			"pose_frames": 41,
+			"reason": "",
+			"route": {
+				"capacity": {
+					"assigned_bed": "HOME58-003:bed:1",
+					"claims": 1,
+					"home_id": "HOME58-003",
+					"trading": false
+				},
+				"clone": "ResidentHome58_3_0",
+				"door": "(106.0, 0.24, 530.95)",
+				"entered": true,
+				"inward": "(-1.0, 0.0, 0.0)",
+				"leg": 3,
+				"legs": 4,
+				"outside": "(107.8, 0.0, 530.95)",
+				"phase": "INSIDE",
+				"queue": {},
+				"reason": "",
+				"room": "(102.5, 0.24, 533.45)",
+				"sign": "ДОМ",
+				"venue": "HOME58-003"
+			},
+			"serial": 1,
+			"sleeping": true,
+			"support_current": true
+		},
+		"path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\qa58_routines\\runs\\home_damage01/sleep_resident3_native.png",
+		"physics_frame": 2748
+	}
+}
