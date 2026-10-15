@@ -1,0 +1,42 @@
+{
+	"checks": [
+		"real native ray focuses final member of287",
+		"286 hidden bodies perform no authority reads",
+		"hidden bodies create no label or canvas",
+		"hidden production life path performs zero walk snapshots",
+		"original final identity gets its own focused card",
+		"current full health painted",
+		"same-frame hit paints exact current HP",
+		"same-frame healing restores number and green",
+		"same-frame generation mismatch hides old card",
+		"authority failure hides card without stale fallback",
+		"same-frame death hides card",
+		"new focus releases old card immediately",
+		"second original identity gets card",
+		"dispose removes registration and releases visible canvas",
+		"ordinary look-away releases tracked card immediately",
+		"legacy diagnostic update creates an untracked visible card",
+		"diagnostic look-away still releases untracked card",
+		"queued untracked body releases its label before deletion",
+		"unregister removes retired unfocused cache",
+		"detached untracked body releases its label",
+		"late old-life cleanup cannot erase successor",
+		"freed body call is harmless",
+		"all287 registrations/label caches released"
+	],
+	"evidence": {
+		"fixture": {
+			"calls": 304,
+			"current_reads": 11,
+			"hidden": 292,
+			"paints": 8,
+			"releases": 9
+		},
+		"headless_native_center_ray_adapter": true,
+		"hidden286_us": 728
+	},
+	"failures": [],
+	"ok": true,
+	"performance_accepted": false,
+	"scope": "native focus/label lifecycle; HP rows controlled by fixture, no combat/city claim"
+}

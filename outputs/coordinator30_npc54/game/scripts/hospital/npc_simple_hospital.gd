@@ -215,7 +215,8 @@ func begin(goal: Vector3, body: CharacterBody3D, map: RID, id: String, source: S
 	_frame=-1;_way=0;_stall_s=0;_replan_s=0;_legs.clear();_leg=0
 	_door_retry_ms=0;_door_reason=""
 	var scene: Node3D=_scene_of_body()
-	_avoidance29=Avoidance29.for_scene(scene);_avoidance29_state.clear()
+	# steer returns the core-owned output Dictionary: never clear that shared value.
+	_avoidance29=Avoidance29.for_scene(scene);_avoidance29_state={}
 	var medical: bool=source not in ["hospital_exit","roam","service_approach"]
 	if medical:
 		_room=goal;_hospital_frame=false;_door_valid=false
@@ -459,6 +460,13 @@ func hold(delta: float) -> void:
 	var before: Vector3=_body.global_position
 	_door_tick()
 	_finish_step(before,delta,"")
+
+## Called only for a skipped stationary planning wait; no movement/arrival occurs.
+func wait_clock56(delta: float) -> void:
+	if not _active or _attention_paused29 or not is_finite(delta) or delta<=0.0:return
+	_replan_s+=delta
+	if not _service_watch30.is_empty() and _guide!=null and _guide.status=="ready":
+		_service_watch30.local_wait_ms=float(_service_watch30.local_wait_ms)+delta*1000.0
 
 func step(delta: float) -> String:
 	if not _active or not is_instance_valid(_body) or not _body.is_inside_tree() or not is_finite(delta) or delta<=0:return ""

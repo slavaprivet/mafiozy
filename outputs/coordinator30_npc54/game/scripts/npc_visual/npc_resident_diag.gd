@@ -440,8 +440,14 @@ static func unregister_life30(id: String, life: RefCounted) -> void:
 static func repaint_focus30(body: Variant) -> void:
 	_hp_fast30.calls+=1
 	if not is_instance_valid(body) or not body is Node3D:return
-	if not body.is_inside_tree() or body.is_queued_for_deletion() or not Focus29.focused(body):
+	if not body.is_inside_tree() or body.is_queued_for_deletion():
 		_hp_fast30.hidden+=1;_release_focus30(body);return
+	if not Focus29.focused(body):
+		_hp_fast30.hidden+=1
+		# HP-only mode owns one focused card. Diagnostic update() also has a legacy writer.
+		if diag_on() or (_focused_body30!=null and _focused_body30.get_ref()==body):
+			_release_focus30(body)
+		return
 	var id: String=str(body.get_meta("source_id",""))
 	var life: RefCounted=life_of(id)
 	if life==null or not life.has_method("_life"):_release_focus30(body);return

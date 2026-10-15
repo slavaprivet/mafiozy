@@ -1,0 +1,53 @@
+{
+  "schema": "stalls56/exact-hunks-v1",
+  "baseline": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_release55\\game",
+  "changes": [
+    {
+      "file": "scripts/shop/npc_local_account.gd",
+      "before": "\tif visit._kind != kind or visit._phase != \"INBOUND\" or visit._route == null: return _fail(\"physical_route_required\")",
+      "after": "\t# Reservation owns a genuine queued journey; only settle_economy28 can debit.\n\tif visit._kind != kind or visit._phase not in [\"INBOUND\", \"WAITING\"] or visit._route == null: return _fail(\"physical_route_required\")\n\tif not visit._route.admission_current56(_token.body, str(_token.source_id), kind, visit._phase): return _fail(\"current_physical_route_required\")"
+    },
+    {
+      "file": "scripts/hospital/npc_restaurant_visit28.gd",
+      "before": "func _prepare_wait() -> bool:",
+      "after": "## Account admission checks the real current registry claim, never a success receipt.\nfunc admission_current56(body: CharacterBody3D, id: String, kind: String, phase: String) -> bool:\n\tif body != _body or id != _id or kind != _kind or phase != _phase or _registry == null: return false\n\tif not is_instance_valid(body) or not body.is_inside_tree() or body.is_queued_for_deletion(): return false\n\tif not _registry.owns(_key, self): return false\n\tvar claim: Dictionary = _registry.ledger.requests.get(_key, {})\n\treturn claim.get(\"kind\") == kind and claim.get(\"state\") == (\"waiting\" if phase == \"WAITING\" else \"reserved\")\n\nfunc _prepare_wait() -> bool:"
+    },
+    {
+      "file": "scripts/shop/npc_economy_visit28.gd",
+      "before": "func active() -> bool:",
+      "after": "## A discretionary purchase may be retried after ordinary activities; hunger/bank cannot.\nfunc optional_purchase56() -> bool:\n\treturn _pending.get(\"kind\") == \"shop\" and not bool(_pending.get(\"restore_energy\", false)) and int(_account._account.get(\"cash\", 0)) >= required_cash()\n\nfunc optional_retry56(now_ms: float) -> bool:\n\treturn not active() and now_ms < _retry_at and optional_purchase56()\n\nfunc active() -> bool:"
+    },
+    {
+      "file": "scripts/shop/npc_economy_visit28.gd",
+      "before": "\t_phase = \"WAITING\" if _route.snapshot().phase == \"WAITING\" else \"INBOUND\"\n\tvar reserved: Dictionary = _account.begin_economy28(self, kind, now_ms)",
+      "after": "\t_phase = \"WAITING\" if _route.snapshot().phase == \"WAITING\" else \"INBOUND\"\n\tif _phase == \"WAITING\" and optional_purchase56():\n\t\t# No entry/money has occurred. Keep this exact purchase, release the capacity\n\t\t# request and browse the city until a staggered retry instead of standing 120s.\n\t\t_route.cancel(); _route = null; _phase = \"IDLE\"\n\t\t_reason = \"optional_capacity_deferred\"; _retry_at = now_ms + RETRY_MS + _rng.randf_range(0.0, 4000.0)\n\t\t_log(\"deferred\", _reason); return false\n\tvar reserved: Dictionary = _account.begin_economy28(self, kind, now_ms)"
+    },
+    {
+      "file": "scripts/npc_daily_life.gd",
+      "before": "\treturn _economy28_active() or (_economy28 != null and _economy28.has_pending_need())",
+      "after": "\treturn _economy28_active() or (_economy28 != null and _economy28.has_pending_need() and not _economy28.optional_retry56(_now))"
+    },
+    {
+      "file": "scripts/npc_daily_life.gd",
+      "before": "\tif kind.is_empty():\n\t\t_phase = \"RESTING\"; _next_decision = maxf(_now + 250.0, float(_economy28.snapshot().retry_at))",
+      "after": "\tif kind.is_empty():\n\t\tif _economy28.optional_retry56(_now): return false\n\t\t_phase = \"RESTING\"; _next_decision = maxf(_now + 250.0, float(_economy28.snapshot().retry_at))"
+    },
+    {
+      "file": "scripts/npc_daily_life.gd",
+      "before": "\tif not _economy28.begin(kind, _now):\n\t\t_goal = {}; _phase = \"RESTING\"; _next_decision = _now + 1000.0\n\t\treturn true",
+      "after": "\tif not _economy28.begin(kind, _now):\n\t\t_goal = {}; _phase = \"RESTING\"; _next_decision = _now + 1000.0\n\t\treturn not _economy28.optional_retry56(_now)"
+    },
+    {
+      "file": "scripts/npc_city_daily.gd",
+      "before": "\t\t\t\tvar dsh_left: float=float(dsh_life._next_decision)-float(dsh_life._now)",
+      "after": "\t\t\t\tvar dsh_left: float=maxf(0.0, (float(dsh_life._next_decision)-float(dsh_life._now))/1000.0)"
+    }
+  ],
+  "baseline_sha256": {
+    "scripts/hospital/npc_restaurant_visit28.gd": "177c6fb11c322e09047f8b77962cad530fc63999c28f152c694556f53f3a760a",
+    "scripts/npc_city_daily.gd": "1d5552709eabe886413c4d3bea310bf99f42b736d69be4425e2ca47db4f8c64f",
+    "scripts/npc_daily_life.gd": "803ead008072c6cef4239e9467d50e9ef0c6fcfc5cbd51ad3ceb28cf47e278ba",
+    "scripts/shop/npc_economy_visit28.gd": "a0d01d94eefbd1ea1d9fcd29ebedddd8f010fe8997829a1ddd11e580a94ce344",
+    "scripts/shop/npc_local_account.gd": "7f9ea106302e9a32633d7e512d251d4b6ca8c33fe4a1054a4834e6d1c826b8a5"
+  }
+}

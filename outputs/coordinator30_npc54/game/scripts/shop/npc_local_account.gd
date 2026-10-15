@@ -234,7 +234,9 @@ func _economy28_matches(visit: RefCounted) -> bool:
 func begin_economy28(visit: RefCounted, kind: String, now_ms: float) -> Dictionary:
 	if not _economy28_matches(visit) or _interrupted() or kind not in ["shop", "restaurant", "bank"] or not is_finite(now_ms) or now_ms < _last_now: return _fail("test_economy_reservation")
 	if _economy28_visit != null and is_instance_valid(_economy28_visit.get_ref()): return _fail("test_economy_visit_owned")
-	if visit._kind != kind or visit._phase != "INBOUND" or visit._route == null: return _fail("physical_route_required")
+	# Reservation owns a genuine queued journey; only settle_economy28 can debit.
+	if visit._kind != kind or visit._phase not in ["INBOUND", "WAITING"] or visit._route == null: return _fail("physical_route_required")
+	if not visit._route.admission_current56(_token.body, str(_token.source_id), kind, visit._phase): return _fail("current_physical_route_required")
 	if kind == "bank" and int(_account.cash) >= visit.required_cash(): return _fail("bank_only_when_purchase_unfunded")
 	if kind != "bank" and (visit._pending.get("kind") != kind or int(_account.cash) < visit.required_cash()): return _fail("saved_purchase_or_bank_required")
 	_account.economy28.visit_serial += 1

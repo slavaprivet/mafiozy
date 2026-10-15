@@ -1468,6 +1468,8 @@ func step(delta: float) -> void:
 		# exactly what _anim_lod_ok() has always answered for a null camera.
 		var dsh_dist_sq: float = 0.0 if dsh_camera == null else (dsh_camera_pos - before).length_squared()
 		var dsh_lod_ok: bool = dsh_camera == null or dsh_dist_sq <= dsh_lod_limit
+		# Visual56: shadow distance is independent from action/physical pose urgency.
+		var shadow_near56: bool = dsh_lod_ok
 		var dsh_tier := _simlod_tier(record, dsh_dist_sq) if dsh_simlod else -1  # DSH_SIMLOD
 		if dsh_tier == 0: dsh_tier_near += 1  # DSH_SIMLOD
 		elif dsh_tier == 1: dsh_tier_mid += 1
@@ -1653,7 +1655,7 @@ func step(delta: float) -> void:
 		var external_motion51: Dictionary = PhysicalMotion51.consume(body, delta)
 		if not external_motion51.is_empty():
 			horizontal = external_motion51.horizontal
-			dsh_lod_ok = true # The opted-in physical actor retains its actual rig pose.
+			# Visual56: actual physical movement supplies gait distance, not visual proximity.
 		if horizontal.length_squared() > .00000001:
 			body.basis = Basis(Vector3.UP, atan2(-horizontal.x, -horizontal.z))
 			if dsh_yaw_sticky != 0: record["dsh_yaw_settled"] = false  # DSH_PAUSELAZY (H9): the body heading moved
@@ -1745,7 +1747,7 @@ func step(delta: float) -> void:
 		var ambient_previous28: bool = bool(record.get("ambient_pose_active28", false))
 		record["ambient_pose_active28"] = ambient_active28
 		# A cancelled distant actor also gets one canonical pose commit to stand up.
-		if treating28 or ambient_active28 or ambient_previous28: dsh_lod_ok = true
+		if treating28 or ambient_active28 or ambient_previous28 or hit_pose_active or (retaliation != null and retaliation.engaged()): dsh_lod_ok = true
 		if (retaliation != null and retaliation.engaged()) or hit_pose_active or treating28 or ambient_active28:
 			# Sample ordinary pose, compose the selected action, then commit once. Activity is
 			# suppressed here to prevent a second skeleton authority in this frame.
@@ -1758,7 +1760,7 @@ func step(delta: float) -> void:
 				var rig: Skeleton3D = record.gait._skeleton
 				var bones: Array[Transform3D] = pose.poses
 				if dsh_lod_ok:
-					_set_resident_shadows(record, true)
+					_set_resident_shadows(record, shadow_near56)
 					for bone: int in bones.size(): rig.set_bone_pose(bone,bones[bone])
 				record.motion.position = pose.visual_offset
 				if ambient_active28: AmbientPose28.committed(rig, ambient_sample28)
@@ -1768,7 +1770,7 @@ func step(delta: float) -> void:
 				# it here keeps the identical transition (and the identical
 				# record["shadow_on"] write) while skipping the call for the 281 of 287
 				# residents that are far - and already off - on every step.
-				if not bool(record.get("shadow_on", true)): _set_resident_shadows(record, true)
+				if bool(record.get("shadow_on", true)) != shadow_near56: _set_resident_shadows(record, shadow_near56)
 				var dsh_t0 := Time.get_ticks_usec() if dsh_timing else 0
 				record.gait.update_pose(delta, horizontal / delta, body.is_on_floor() or record.status in ["IDLE", "ARRIVED"])
 				if dsh_timing: dsh_pose_us += Time.get_ticks_usec() - dsh_t0
@@ -1785,7 +1787,7 @@ func step(delta: float) -> void:
 				# --city-walk-pose=0, and the near band above is untouched in both arms.
 				if dsh_walk_pose == 1 and record.gait != null:
 					var dsh_far_grounded: bool = body.is_on_floor() or record.status in ["IDLE", "ARRIVED"]
-					if dsh_nav_skipped:
+					if dsh_nav_skipped and external_motion51.is_empty():
 						# The body did not move on this step (navigation was deferred): add no
 						# metres, but do not let the amplitude decay either - the distance of
 						# the due step arrives with that step.
@@ -1794,7 +1796,7 @@ func step(delta: float) -> void:
 						if dsh_detail: _dsh_walk_advance += 1
 					else:
 						var dsh_far_travel: float = horizontal.length()
-						if dsh_far_travel <= 0.0001 and not bool(record.get("walk_far_on", false)):
+						if dsh_far_travel <= 0.0001 and not bool(record.get("walk_far_on", false)) and record.gait.settled():
 							pass  # standing and already settled: today's frozen pose is the correct one
 						elif dsh_far_travel <= 0.0001:
 							# Just stopped: commit the decay to the standing pose, then stop paying

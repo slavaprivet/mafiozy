@@ -1,0 +1,13 @@
+{
+  "changes": [
+    {
+      "file": "scripts/hospital/npc_simple_hospital.gd",
+      "before": "\t_avoidance29=Avoidance29.for_scene(scene);_avoidance29_state.clear()",
+      "after": "\t# steer returns the core-owned output Dictionary: never clear that shared value.\n\t_avoidance29=Avoidance29.for_scene(scene);_avoidance29_state={}"
+    }
+  ],
+  "helpers": {},
+  "cause": "begin clears the aliased Core.State.output; cached branch only restores direction/replan; waiting/ratio missing",
+  "error_site": "npc_simple_hospital.gd:538",
+  "fix_site": "begin:218"
+}

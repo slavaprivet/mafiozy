@@ -192,3 +192,35 @@ HPcore67/guard43+43 включеныscoped; import_trial55 чистыйPASS. LOS
 СтатусЭКСПЕРИМЕНТАЛЬНАЯМАССОВАЯСБОРКАпо прямомупоручению, performance_accepted=false.
 У полиции готовыдвемодели, AI/выездотложен. Следующее — наблюденияпользователя,
 нагрузка/routequeries/memory исервисныйвыходприугрозе, безснижениянаселения.
+
+## Последнее поручение15окт — партии по10, commit после каждого успеха
+
+Пользователь изменил стратегию: «не сразу260, пачкамипо10проверять»,
+«послекаждогоуспехакомитвмейн». Это отменяет запрет уменьшать trial-когорту;
+каталог287 сохранить, активировать10→20 только после поведенческой/FPS приёмки.
+55 была отправлена вmain/origin093e2e3e00d36cf065214d321e2e0b08a56a271a,
+SHAпроверен. Пользователь разрешил закрыть55; свежийinventory подтвердил закрытие.
+F5 пока55, НЕ объявлять56доставленной. Рабочаяgame54 теперьcandidate56.
+
+Приняты stalls56 (WAITING service claim admission/optionalshop backoff),
+visual_perf56 (farboneLOD/shadows), rootattention earlyfocus,
+wait_perf56 (только дальние неподвижные grounded planning waits, max100ms,
+реальныйsupport ray иsameframe wake, движениеdeltaнерастёт), hp_release56
+(hiddenfocusrelease), avoid_state56 (Simple.begin присваивает новыйсловарь,
+а неclear общегоCore avoidance output). Последнее исправляет stage2rendered
+ошибку 'waiting' отсутствует. Alias native baseline7/candidate9PASS.
+Stage1/2 287 всё ещё3FPS: NPCphysics~54ms ×4catchup→~260ms renderedframe.
+Это неGPUтолько и не принятаяпроизводительность. Roam_fast56толькоплан,
+реализацияне начата после нового поручения.
+
+proposals/batches56/runs/batch10_perf01: exclusive nativePASS,10/10двигались,
+67законченныхпрогулок,90сек+15прогрев;mean142.928FPS,p50 4.226ms,
+p9513.277,p9914.169,1280x720. Source/harnessdrift0,stderr0.
+Пока это толькоFPS/прогулки. Servicesactual10_01: hospital+restaurant полные
+циклыпройдены, bank realgrantпроизошёл,ноphysicalOUTBOUND застрял;shopещёбез
+подтверждённогозавершенияна240сек. Staffagentведётвыходыизолированно.
+Injuryagentготовитthreat_batch56 actual10. Не увеличивать20допочинки.
+freeze_batch56.py подготовлен,НЕисполнен; gatesтребуютсовпадающиеpinsиз
+perf/services/threat иPASS. Толькопослеэтогоimmutable56/bootstrap/pointer/launch,
+scopedmaincommit. ВGitindex34чужихdshshopфайла:сохранить,неstage-all,
+использоватьсобственныйpathspecдляcommit--only.

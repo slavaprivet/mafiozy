@@ -1,0 +1,15 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+DSH_RESID f=60 records=2 posed=2 lod_skip=0 walk=0 recover=0 pause_fast=0 pause_slow=0 pause_lazy=2 cadence_skip=0 recover_skip=0 pose_us=0 yaw_sticky=0 loop_us=149 fps=109.0 simlod=true near=1 mid=1 far=0 skip_near=0 skip_mid=0 skip_far=0 sim_ms=0
+DSH_RESID f=60 records=3 posed=1 lod_skip=2 walk=2 recover=0 pause_fast=0 pause_slow=2 pause_lazy=1 cadence_skip=0 recover_skip=0 pose_us=0 yaw_sticky=0 loop_us=154 fps=109.0 simlod=true near=1 mid=2 far=0 skip_near=0 skip_mid=0 skip_far=0 sim_ms=33
+DSH_RESID f=120 records=2 posed=2 lod_skip=0 walk=0 recover=0 pause_fast=0 pause_slow=0 pause_lazy=2 cadence_skip=0 recover_skip=0 pose_us=0 yaw_sticky=0 loop_us=225 fps=145.0 simlod=true near=1 mid=1 far=0 skip_near=0 skip_mid=0 skip_far=0 sim_ms=0
+DSH_RESID f=120 records=3 posed=1 lod_skip=2 walk=2 recover=0 pause_fast=0 pause_slow=2 pause_lazy=1 cadence_skip=0 recover_skip=0 pose_us=0 yaw_sticky=0 loop_us=224 fps=145.0 simlod=true near=1 mid=2 far=0 skip_near=0 skip_mid=0 skip_far=0 sim_ms=33
+DSH_RESID f=180 records=2 posed=2 lod_skip=0 walk=0 recover=0 pause_fast=0 pause_slow=0 pause_lazy=2 cadence_skip=0 recover_skip=0 pose_us=0 yaw_sticky=0 loop_us=251 fps=145.0 simlod=true near=1 mid=1 far=0 skip_near=0 skip_mid=0 skip_far=0 sim_ms=0
+DSH_RESID f=180 records=3 posed=1 lod_skip=2 walk=2 recover=0 pause_fast=0 pause_slow=2 pause_lazy=1 cadence_skip=0 recover_skip=0 pose_us=0 yaw_sticky=0 loop_us=275 fps=145.0 simlod=true near=1 mid=2 far=0 skip_near=0 skip_mid=0 skip_far=0 sim_ms=33
+DSH_RESID f=240 records=2 posed=2 lod_skip=0 walk=0 recover=0 pause_fast=0 pause_slow=0 pause_lazy=2 cadence_skip=0 recover_skip=0 pose_us=0 yaw_sticky=0 loop_us=239 fps=145.0 simlod=true near=1 mid=1 far=0 skip_near=0 skip_mid=0 skip_far=0 sim_ms=0
+DSH_RESID f=240 records=3 posed=1 lod_skip=2 walk=2 recover=0 pause_fast=0 pause_slow=2 pause_lazy=1 cadence_skip=0 recover_skip=0 pose_us=0 yaw_sticky=0 loop_us=114 fps=145.0 simlod=true near=1 mid=2 far=0 skip_near=0 skip_mid=0 skip_far=0 sim_ms=33
+DSH_RESID f=300 records=2 posed=2 lod_skip=0 walk=0 recover=0 pause_fast=0 pause_slow=0 pause_lazy=2 cadence_skip=0 recover_skip=0 pose_us=0 yaw_sticky=0 loop_us=106 fps=145.0 simlod=true near=1 mid=1 far=0 skip_near=0 skip_mid=0 skip_far=0 sim_ms=0
+DSH_RESID f=300 records=3 posed=1 lod_skip=1 walk=2 recover=0 pause_fast=0 pause_slow=2 pause_lazy=1 cadence_skip=0 recover_skip=0 pose_us=0 yaw_sticky=0 loop_us=232 fps=145.0 simlod=true near=1 mid=2 far=0 skip_near=0 skip_mid=0 skip_far=0 sim_ms=33
+DSH_RESID f=360 records=2 posed=2 lod_skip=0 walk=0 recover=0 pause_fast=0 pause_slow=0 pause_lazy=2 cadence_skip=0 recover_skip=0 pose_us=0 yaw_sticky=0 loop_us=87 fps=145.0 simlod=true near=1 mid=1 far=0 skip_near=0 skip_mid=0 skip_far=0 sim_ms=0
+DSH_RESID f=360 records=3 posed=1 lod_skip=1 walk=1 recover=0 pause_fast=0 pause_slow=1 pause_lazy=1 cadence_skip=0 recover_skip=0 pose_us=0 yaw_sticky=0 loop_us=86 fps=145.0 simlod=true near=1 mid=1 far=0 skip_near=0 skip_mid=0 skip_far=0 sim_ms=33
+VISUAL_LOD56 true checks=31

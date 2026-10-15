@@ -93,6 +93,13 @@ func desired_kind(now_ms: float) -> String:
 	if cash == 0 or (not _pending.is_empty() and cash < required_cash()): return "bank"
 	return str(_pending.get("kind", ""))
 
+## A discretionary purchase may be retried after ordinary activities; hunger/bank cannot.
+func optional_purchase56() -> bool:
+	return _pending.get("kind") == "shop" and not bool(_pending.get("restore_energy", false)) and int(_account._account.get("cash", 0)) >= required_cash()
+
+func optional_retry56(now_ms: float) -> bool:
+	return not active() and now_ms < _retry_at and optional_purchase56()
+
 func active() -> bool:
 	return _phase in ["WAITING", "INBOUND", "DWELL", "OUTBOUND", "EXIT_RETRY"]
 
@@ -107,6 +114,12 @@ func begin(kind: String, now_ms: float) -> bool:
 		_reason = _route.last_reason(); _route.cancel(); _route = null
 		_phase = "IDLE"; _retry_at = now_ms + RETRY_MS; _log("blocked", _reason); return false
 	_phase = "WAITING" if _route.snapshot().phase == "WAITING" else "INBOUND"
+	if _phase == "WAITING" and optional_purchase56():
+		# No entry/money has occurred. Keep this exact purchase, release the capacity
+		# request and browse the city until a staggered retry instead of standing 120s.
+		_route.cancel(); _route = null; _phase = "IDLE"
+		_reason = "optional_capacity_deferred"; _retry_at = now_ms + RETRY_MS + _rng.randf_range(0.0, 4000.0)
+		_log("deferred", _reason); return false
 	var reserved: Dictionary = _account.begin_economy28(self, kind, now_ms)
 	if not reserved.get("ok", false):
 		_reason = str(reserved.get("reason", "account_reservation_refused"))

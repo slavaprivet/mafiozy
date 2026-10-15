@@ -1,0 +1,9 @@
+{
+  "status": "READY_NATIVE36_CITY_RENDER_PERF_PENDING",
+  "runtime_hunks": 7,
+  "checks": 36,
+  "shared_game_modified": false,
+  "graphical_started": false,
+  "performance_accepted": false,
+  "native_processes_finished": true
+}

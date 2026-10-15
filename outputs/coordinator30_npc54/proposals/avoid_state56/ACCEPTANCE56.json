@@ -1,0 +1,38 @@
+{
+  "status": "native PASS",
+  "patch_sha256": "9be931162a09f7ad6d6a39a392fbe6ee49c18c7b0416a5e34c37dcca1b3b4e65",
+  "baseline": "actual Simple repeated begin destroys shared Core output; actual cached Core branch lacks waiting/ratio",
+  "fixed": "new caller dictionary preserves same Core output; cached contract complete; decisions/budget unchanged",
+  "runs": {
+    "baseline02": {
+      "passed": true,
+      "checks": 7,
+      "source_drift": [],
+      "harness_drift": [],
+      "stderr_bytes": 0,
+      "proof_sha256": {
+        "RESULT.json": "29eb4ec1a804952134d864cd5d240f56ca7ad38058207017830d99f4ec6e15a2",
+        "RUN_CHECK.json": "c29927168b52a7d553a8fb341e543444a74d0c1ace8b6710960bfd651232bdc8",
+        "SOURCE.zip": "89fd0d18f2a0874c1e11cc7031c7f3e280ad95a63d36c78fd5a196f18955a994",
+        "engine/SCHEDULER_RUN.json": "c8b69f7a8898f972e4594cfcd819188590ae277d7dadb61f2c0242a2c1d1a476"
+      }
+    },
+    "candidate02": {
+      "passed": true,
+      "checks": 9,
+      "source_drift": [],
+      "harness_drift": [],
+      "stderr_bytes": 0,
+      "proof_sha256": {
+        "RESULT.json": "ca9705205813b86e6bf2cb2fec4d774e9a18b2f5182dd42291cd97df48065626",
+        "RUN_CHECK.json": "ac8871976ba999e126d5e0c7defe5389496df2a35c28297df3301dae3003f6f5",
+        "SOURCE.zip": "aff5cd63009560bda6e8972019b31397db73edd3f377f2f1d5b64389350ca24d",
+        "engine/SCHEDULER_RUN.json": "a2653c56f199395b0480f0950593000068d76d0364652729aaed44bc8f7a2f10"
+      }
+    }
+  },
+  "earlier_run": "baseline01 invalid fixture configuration: missing required water palette; fixed only fixture, preserved failed proof. Its subsecond child also exited before scheduler registration; bounded startup wait added.",
+  "production_patch_unchanged": true,
+  "performance_accepted": false,
+  "shared_frozen_modified": false
+}

@@ -1,0 +1,17 @@
+{
+  "id": "300b6a2630194894b52290fa02ab9346",
+  "owner": {
+    "pid": 26512,
+    "creation_filetime": "134365025408024908"
+  },
+  "mode": "headless",
+  "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator30_release55\\game",
+  "access": "read",
+  "children": [],
+  "deadline": 970823.3139358,
+  "queued_at": 970643.3139358,
+  "ticket": 1619,
+  "inventory_before": [],
+  "editor_identities": [],
+  "queue_wait_seconds": 0.48293669999111444
+}

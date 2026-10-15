@@ -1,0 +1,62 @@
+{
+  "lease": {
+    "id": "0e654cc70b52439087a10c4ff584a331",
+    "owner": {
+      "pid": 26512,
+      "creation_filetime": "134365025408024908"
+    },
+    "mode": "headless",
+    "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator30_npc54\\proposals\\ambient30\\runs\\oracle01\\project",
+    "access": "write",
+    "children": [],
+    "deadline": 970826.2082346,
+    "queued_at": 970646.2082346,
+    "ticket": 1620,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.4710161000257358
+  },
+  "source_files_changed": [
+    "scripts/npc_visual/preview_resident_host.gd"
+  ],
+  "changed_bytes": 172798,
+  "reused_project": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\ambient30\\runs\\oracle01\\project",
+  "exact_hunks": [
+    {
+      "path": "scripts/npc_visual/preview_resident_host.gd",
+      "hunk": "shadow_distance",
+      "state": "apply"
+    },
+    {
+      "path": "scripts/npc_visual/preview_resident_host.gd",
+      "hunk": "physical_pose_lod",
+      "state": "apply"
+    },
+    {
+      "path": "scripts/npc_visual/preview_resident_host.gd",
+      "hunk": "urgent_reactions",
+      "state": "apply"
+    },
+    {
+      "path": "scripts/npc_visual/preview_resident_host.gd",
+      "hunk": "action_shadows",
+      "state": "apply"
+    },
+    {
+      "path": "scripts/npc_visual/preview_resident_host.gd",
+      "hunk": "walk_shadows",
+      "state": "apply"
+    },
+    {
+      "path": "scripts/npc_visual/preview_resident_host.gd",
+      "hunk": "actual_external_distance",
+      "state": "apply"
+    },
+    {
+      "path": "scripts/npc_visual/preview_resident_host.gd",
+      "hunk": "settle_previous_near_pose",
+      "state": "apply"
+    }
+  ],
+  "generic_lifecycle_preserved": true
+}

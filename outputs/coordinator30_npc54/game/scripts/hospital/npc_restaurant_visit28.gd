@@ -64,6 +64,14 @@ func begin(scene: Node3D, body: CharacterBody3D, map: RID, id: String, sign_text
 	_phase = "WAITING"; _reason = "capacity_queue"; _next_poll = now + POLL_MS
 	return _prepare_wait()
 
+## Account admission checks the real current registry claim, never a success receipt.
+func admission_current56(body: CharacterBody3D, id: String, kind: String, phase: String) -> bool:
+	if body != _body or id != _id or kind != _kind or phase != _phase or _registry == null: return false
+	if not is_instance_valid(body) or not body.is_inside_tree() or body.is_queued_for_deletion(): return false
+	if not _registry.owns(_key, self): return false
+	var claim: Dictionary = _registry.ledger.requests.get(_key, {})
+	return claim.get("kind") == kind and claim.get("state") == ("waiting" if phase == "WAITING" else "reserved")
+
 func _prepare_wait() -> bool:
 	# Virtual waiting is distributed at current positions, never at the target door.
 	var wait_point: Vector3 = _body.global_position

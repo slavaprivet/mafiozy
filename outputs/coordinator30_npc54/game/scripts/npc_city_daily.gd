@@ -28,6 +28,8 @@ var _physical_dirty30 := false
 var _physical_steps30 := 0
 var _physical_us30 := 0
 var _physical_peak_us30 := 0
+const WaitCohort56=preload("res://scripts/city/runtime/npc_wait_cohort56.gd")
+var _wait_cohort56: RefCounted=WaitCohort56.new()
 
 func _physical_on30() -> bool:
 	if _physical_enabled30<0:
@@ -50,11 +52,13 @@ func _physical_refresh30(id: String) -> void:
 ## No new life/body/goal is created, and the life still performs all its guards.
 func wake_physical30(id: String) -> bool:
 	if _disposed or not _physical_on30() or not _lives.has(id):return false
+	_wait_cohort56.forget(id)
 	if _physical_lives30.get(id)!=_lives[id]:_physical_lives30[id]=_lives[id];_physical_dirty30=true
 	return true
 
 ## Exact owner prevents an old death callback from removing a successor's tick.
 func forget_physical30(id: String, exact_life: RefCounted) -> bool:
+	_wait_cohort56.forget(id,exact_life)
 	if not _physical_lives30.has(id):return true
 	if _physical_lives30[id]!=exact_life:return false
 	_physical_lives30.erase(id);_physical_dirty30=true
@@ -65,6 +69,13 @@ func _physical_tick30(delta: float) -> void:
 	if not _physical_on30():return
 	if _physical_dirty30:_physical_ids30=_physical_lives30.keys();_physical_dirty30=false
 	var started30: int=Time.get_ticks_usec();var frame30: int=Engine.get_physics_frames()
+	var now56: int=Time.get_ticks_msec()
+	var scene56: Node3D=_scene.get_ref() as Node3D if _scene!=null else null
+	var player56: Node3D=scene56.get("_player") as Node3D if is_instance_valid(scene56) else null
+	var camera56: Camera3D=scene56.get_viewport().get_camera_3d() if is_instance_valid(scene56) else null
+	var player_position56: Vector3=player56.global_position if is_instance_valid(player56) else Vector3.INF
+	var camera_position56: Vector3=camera56.global_position if is_instance_valid(camera56) else Vector3.INF
+	_wait_cohort56.begin_frame()
 	# Bounded by the original288 resident catalogue. Never skip a moving body's
 	# physics tick to fake performance; frame cost remains a release acceptance gate.
 	for id: String in _physical_ids30:
@@ -73,9 +84,11 @@ func _physical_tick30(delta: float) -> void:
 			if _physical_lives30.erase(id):_physical_dirty30=true
 			continue
 		if life._frame!=frame30:
+			if _wait_cohort56.skip(life,delta,frame30,now56,player_position56,camera_position56):continue
 			_life_clock30(life)
 			if _track_single28:_step_calls28+=1
 			life.step(delta);_physical_steps30+=1
+		_wait_cohort56.note_full(life,frame30,now56,player_position56,camera_position56)
 		_physical_refresh30(id)
 	_physical_us30=Time.get_ticks_usec()-started30
 	_physical_peak_us30=maxi(_physical_peak_us30,_physical_us30)
@@ -88,7 +101,7 @@ func _life_clock30(life: RefCounted) -> void:
 	life._dsh_elapsed=0.0 if last30<=0 or paused30 else clampf(float(now30-last30)/1000.0,0.0,_dsh_life_cap())
 
 func physical_dispatch_state30() -> Dictionary:
-	return {"enabled":_physical_on30(),"active":_physical_lives30.size(),"steps":_physical_steps30,"us":_physical_us30,"peak_us":_physical_peak_us30,"life_count":_lives.size(),"physical_delta_not_scaled":true}
+	return {"enabled":_physical_on30(),"active":_physical_lives30.size(),"steps":_physical_steps30,"us":_physical_us30,"peak_us":_physical_peak_us30,"life_count":_lives.size(),"physical_delta_not_scaled":true,"wait_cohort56":_wait_cohort56.snapshot()}
 var _step_calls28 := 0
 var _accounts := {}
 var _health := {}
@@ -591,7 +604,7 @@ func step(delta: float) -> void:
 			elif dsh_rs=="READY": dsh_path_ready+=1
 			elif dsh_rs=="BLOCKED" or dsh_rs=="NO_PATH": dsh_path_blocked+=1
 			if dsh_phase=="RESTING":
-				var dsh_left: float=float(dsh_life._next_decision)-float(dsh_life._now)
+				var dsh_left: float=maxf(0.0, (float(dsh_life._next_decision)-float(dsh_life._now))/1000.0)
 				dsh_rest_left+=dsh_left
 				if dsh_left>9.0: dsh_rest_long+=1
 			if dsh_phase=="ACTIVITY" and dsh_life._visit!=null:
@@ -633,6 +646,7 @@ func dispose() -> void:
 	for account: RefCounted in _accounts.values(): account.dispose()
 	_disposed=true; _lives.clear(); _accounts.clear(); _health.clear(); _scene=null
 	_physical_lives30.clear();_physical_ids30.clear();_physical_dirty30=false
+	_wait_cohort56.clear()
 
 ## Authenticated one-shot death retirement, before the next daily dispatch.
 func retire_single_dead28(owner: Node, health: RefCounted) -> bool:
@@ -659,3 +673,4 @@ func _retire_scene() -> void:
 	for account: RefCounted in _accounts.values(): account.dispose()
 	_disposed=true; _lives.clear(); _accounts.clear(); _health.clear(); _scene=null
 	_physical_lives30.clear();_physical_ids30.clear();_physical_dirty30=false
+	_wait_cohort56.clear()

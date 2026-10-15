@@ -23,6 +23,9 @@ func step(life: RefCounted, delta: float, row: Dictionary) -> bool:
 	var body: CharacterBody3D = life._token.get("body") as CharacterBody3D
 	var allowed: bool = is_instance_valid(body) and body.is_inside_tree() and not life._disposed and not row.is_empty()
 	allowed = allowed and not bool(row.get("dead", false)) and float(row.get("hp", 0)) > 0.0
+	# Only the camera target can enter attention. An unfocused resident releases
+	# existing attention immediately, without repeating unrelated admission checks.
+	if not allowed or not Focus.focused(body): clear(); return false
 	if allowed:
 		allowed = life._host.target_current(life._token) and not life._health.should_pause_walk()
 		# Damage clears attention synchronously, but gaze is evaluated again next frame.
@@ -34,7 +37,7 @@ func step(life: RefCounted, delta: float, row: Dictionary) -> bool:
 		var record: Dictionary = life._host.get("_records").get(str(life._token.source_id), {})
 		var retaliation: RefCounted = record.get("melee_retaliation")
 		if retaliation != null and retaliation.engaged(): allowed = false
-	if not allowed or not Focus.focused(body): clear(); return false
+	if not allowed: clear(); return false
 	var route: RefCounted = _driver(life)
 	if life._visit != null or (route == null and life._phase not in ["IDLE", "RESTING", "AMBIENT", "WAITING_FOR_RECOVERY"]):
 		clear(); return false

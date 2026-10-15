@@ -1,6 +1,6 @@
 {
   "schema": "mafiozi.coordination/v1",
-  "updated_at": "2026-10-15T01:36:45.018107+00:00",
+  "updated_at": "2026-10-15T02:16:45.536085+00:00",
   "number": 30,
   "thread_id": "01a13cd3-b533-7743-94ae-ca181fcbf8c1",
   "title": "Координатор 30",
@@ -21,16 +21,16 @@
   "accepted_pointer": "godot/current_version.json",
   "user_authorized_continuous_work": true,
   "user_authorized_numbered_successors": true,
-  "last_inventory_note": "User game55 PID12392 ordinary ready; preserve window, fresh inventory before any later action.",
+  "last_inventory_note": "55 closed with user authorization; tests only; fresh inventory required",
   "accepted_revision": "s01-20261003-c4-release48",
   "accepted_assembly": "outputs/artist24_melee_contact/merged_root48_08/ASSEMBLY.json",
   "accepted_assembly_sha256": "10f29304511fb705d0b18fc7db9a5a76fcd001f59c9225b2c4194ca201fa11f9",
   "accepted_delivery": "outputs/coordinator27_release48/DELIVERY.json",
-  "last_verified_source_commit": "99de9145d3baac7ccd3af654d9a25499e0efde0b",
+  "last_verified_source_commit": "093e2e3e00d36cf065214d321e2e0b08a56a271a",
   "publication_commit_pending_reason": null,
   "git_recovery": "outputs/coordinator27_git_recovery/RECOVERY.json",
   "current_candidate": "outputs/coordinator30_npc54",
-  "current_candidate_status": "RELEASE55_OPENED_USER_AUTHORIZED_MASS_TRIAL_PERFORMANCE_PENDING",
+  "current_candidate_status": "BATCH10_PERF_PASS_SERVICES_OUTBOUND_FIX_PENDING",
   "current_play_revision": "s01-20261015-residents55",
   "current_play_assembly": "outputs/coordinator30_release55/ASSEMBLY.json",
   "previous_subagents_note": "User reports all29bots hung and explicitly authorizes taking their work. staff29 and navigation29 packages recovered; ambient completed by own30 successor. Do not wake old threads.",
@@ -39,5 +39,8 @@
   "population_target": 287,
   "police_behavior_deferred_by_user": true,
   "police_models_requested": true,
-  "current_play_residents": 287
+  "current_play_residents": 287,
+  "population_batch_size": 10,
+  "initial_batch_target": 10,
+  "population_strategy": "10 then +10 only after behavior/performance success; scoped main commit and GitHub push each success"
 }

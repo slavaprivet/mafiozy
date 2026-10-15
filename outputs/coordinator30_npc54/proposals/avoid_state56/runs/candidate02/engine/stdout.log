@@ -1,0 +1,3 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+AVOID_STATE56 {"baseline_bug_reproduction":false,"checks":{"all287_core_members":true,"begin_reproduces_or_preserves_core_output":true,"cached_path_reproduces_or_preserves_contract":true,"caller_owns_new_empty_value":true,"core_output_remains_shared":true,"first_output_complete":true,"native_first_begin":true,"native_repeated_begin":true,"no_decision_or_budget_change":true},"passed":true,"performance_accepted":false,"scope":"native Simple repeated begin plus actual Core 287-member cached output contract; not a city performance test"}

@@ -1395,7 +1395,7 @@ func dsh_take_ambient28_choice() -> bool:
 
 func dsh_economy_priority_pending() -> bool:
 	if _disposed or not _dsh_simple_on(): return false
-	return _economy28_active() or (_economy28 != null and _economy28.has_pending_need())
+	return _economy28_active() or (_economy28 != null and _economy28.has_pending_need() and not _economy28.optional_retry56(_now))
 
 func _economy28_try_begin(row: Dictionary) -> bool:
 	if _disposed or row.is_empty() or row.get("dead", false) or float(row.get("hp", 0)) <= 0.0: return false
@@ -1406,6 +1406,7 @@ func _economy28_try_begin(row: Dictionary) -> bool:
 	if not _economy28.has_pending_need(): return false
 	var kind: String = _economy28.desired_kind(_now)
 	if kind.is_empty():
+		if _economy28.optional_retry56(_now): return false
 		_phase = "RESTING"; _next_decision = maxf(_now + 250.0, float(_economy28.snapshot().retry_at))
 		return true
 	if _roam51 != null: _roam51.cancel()
@@ -1413,7 +1414,7 @@ func _economy28_try_begin(row: Dictionary) -> bool:
 	if not _walk.cancel().get("ok", false): _phase = "RESTING"; _next_decision = _now + 500.0; return true
 	if not _economy28.begin(kind, _now):
 		_goal = {}; _phase = "RESTING"; _next_decision = _now + 1000.0
-		return true
+		return not _economy28.optional_retry56(_now)
 	_goal = _new_goal(kind); _phase = "WALKING"; _reason = ""
 	_sandbox28_action = "walk"
 	_record("economy_started", kind)

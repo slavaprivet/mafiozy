@@ -1,0 +1,16 @@
+{
+  "schema": "mafiozi.batched_population56/v1",
+  "user_request": "Внедрять и проверять по 10 жителей вместо всей массы сразу.",
+  "initial_residents": 10,
+  "increment": 10,
+  "full_catalogue_retained": 287,
+  "staff": 12,
+  "increase_only_after": [
+    "no native script errors",
+    "original admitted identities and actual movement",
+    "venue cycle evidence",
+    "rendered FPS and frame latency measured"
+  ],
+  "first_playable_delivery": 10,
+  "mass_performance_fixed": false
+}

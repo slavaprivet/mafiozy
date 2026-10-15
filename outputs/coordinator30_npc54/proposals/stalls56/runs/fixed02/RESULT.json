@@ -1,0 +1,34 @@
+{
+	"checks": {
+		"all_claims_cancelled": true,
+		"cooldown_allows_normal_decision": true,
+		"cooldown_does_not_cancel_activity": true,
+		"current_route_claim": true,
+		"fifo_promotion": true,
+		"full_287_admission": true,
+		"hunger_keeps_priority": true,
+		"hunger_not_optional": true,
+		"medical_blocks_economy": true,
+		"no_route_jobs_after_cancel": true,
+		"no_waiting_payment": false,
+		"old_generation_cannot_restart": true,
+		"optional_goal_money_preserved": true,
+		"optional_real_route_result": true,
+		"pending_purchase_retained": true,
+		"real_food_route_waits": true,
+		"real_queue_retained": true,
+		"retired_route_rejected": true
+	},
+	"details": {
+		"admitted": 287,
+		"baseline_rejected": 0,
+		"full_city_entry_test": false,
+		"optional_reason": "fixture_food_cancel",
+		"optional_retry_ms": -1000.0,
+		"performance_accepted": false,
+		"protected_wallets": 0,
+		"waiting_claims": 287
+	},
+	"fixed": true,
+	"passed": false
+}

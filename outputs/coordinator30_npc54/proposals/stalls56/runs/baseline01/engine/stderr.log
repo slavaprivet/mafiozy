@@ -1,0 +1,22 @@
+SCRIPT ERROR: Parse Error: Could not resolve script "res://scripts/npc_ambient/ambient_pose28.gd".
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_controller28.gd:4)
+SCRIPT ERROR: Parse Error: Could not resolve script "res://scripts/npc_ambient/ambient_pose28.gd".
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_controller28.gd:78)
+SCRIPT ERROR: Parse Error: Could not resolve script "res://scripts/npc_ambient/ambient_pose28.gd".
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_controller28.gd:112)
+SCRIPT ERROR: Parse Error: Could not resolve script "res://scripts/npc_ambient/ambient_pose28.gd".
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_controller28.gd:210)
+SCRIPT ERROR: Parse Error: Could not resolve script "res://scripts/npc_ambient/ambient_pose28.gd".
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_controller28.gd:237)
+SCRIPT ERROR: Parse Error: Could not resolve script "res://scripts/npc_ambient/ambient_pose28.gd".
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_controller28.gd:238)
+SCRIPT ERROR: Parse Error: Could not resolve script "res://scripts/npc_ambient/ambient_pose28.gd".
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_controller28.gd:245)
+SCRIPT ERROR: Parse Error: Could not resolve script "res://scripts/npc_ambient/ambient_pose28.gd".
+   at: GDScript::reload (res://scripts/npc_ambient/ambient_controller28.gd:245)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+   at: GDScript::reload (res://scripts/npc_daily_life.gd:0)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+   at: GDScript::reload (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator30_npc54/proposals/stalls56/fixture56.gd:0)
+ERROR: Failed to load script "C:/Users/Слава/Desktop/Мафиози/outputs/coordinator30_npc54/proposals/stalls56/fixture56.gd" with error "Compilation failed".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)

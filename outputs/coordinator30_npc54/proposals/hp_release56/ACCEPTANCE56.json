@@ -1,0 +1,56 @@
+{
+  "status": "native component PASS; safe one-hunk integration ready",
+  "scope": "ordinary hidden HP card release only",
+  "shared_or_frozen_modified": false,
+  "patch_sha256": "9b8f065a4be17c6b9927e9bb54dae9843042021e116e55dd72a4c38631b8184a",
+  "candidate_diag_sha256": "f9a7b910ec855dabc2b0811595c81b8f504efcd6e71c2ed851df69071cf53261",
+  "files": {
+    "apply": "apply56.py",
+    "harness": "fixture56.gd",
+    "runner": "run56.py"
+  },
+  "invariants": [
+    "Ordinary HP-only mode creates/claims labels only through repaint_focus30 and records the sole focused body.",
+    "A new ordinary focus releases prior focus. No authority or health caching was added.",
+    "Diagnostic update() can claim a label without _focused_body30, so diagnostic hidden cleanup remains unconditional.",
+    "Detached/queued bodies and unregister retain unconditional cleanup.",
+    "Authority, generation, HP<=0, dead, wrong body and late old-life cleanup behavior unchanged."
+  ],
+  "runs": {
+    "baseline01": {
+      "checks": 23,
+      "ok": true,
+      "stderr_bytes": 0,
+      "source_drift": [],
+      "harness_drift": [],
+      "hidden286_us_observation_only": 1167,
+      "proof_sha256": {
+        "HP_RELEASE56.json": "68dcbb138df55673f9bd0175bdb9d34dc053cb1052b5c8af90da993f1c34ea0e",
+        "RUN_CHECK.json": "c29927168b52a7d553a8fb341e543444a74d0c1ace8b6710960bfd651232bdc8",
+        "SOURCE.zip": "b44d99f11c1baa9593c5bed87fb73512ac528aad2b6448869d1d5a2ad42a6545",
+        "engine/SCHEDULER_RUN.json": "9411271cdd80a967715ecdace70c832b738195f7d1d18432441719acf1d22ea1"
+      }
+    },
+    "candidate01": {
+      "checks": 23,
+      "ok": true,
+      "stderr_bytes": 0,
+      "source_drift": [],
+      "harness_drift": [],
+      "hidden286_us_observation_only": 728,
+      "proof_sha256": {
+        "HP_RELEASE56.json": "3515fb067e6071320b45705a4dbb3c653d31fc9affc2d30089105e20a0c644a6",
+        "RUN_CHECK.json": "ac8871976ba999e126d5e0c7defe5389496df2a35c28297df3301dae3003f6f5",
+        "SOURCE.zip": "a9576d17fe204ecd76e699fdf2e60596d8c0f04fe5f8b23b9cd2dd102dd33c02",
+        "engine/SCHEDULER_RUN.json": "0486d314933a25ecbc380415da41083fa9cbc337470e8d635c8038c397d87661"
+      }
+    }
+  },
+  "performance_accepted": false,
+  "limits": [
+    "One 287-body headless fixture; health rows controlled, not actual combat or full city.",
+    "Timings are single functional observations, not comparable FPS/performance acceptance.",
+    "Headless focus uses the same native center ray because dummy display cannot capture the cursor."
+  ],
+  "apply_command": "python -B outputs/coordinator30_npc54/proposals/hp_release56/apply56.py <candidate-game>"
+}
