@@ -3,7 +3,7 @@
   "title": "15.10 · Свободный проход жителей · версия58",
   "revision": "s01-20261015-residents58",
   "assembly": "outputs/coordinator31_unified58/ASSEMBLY.json",
-  "assembly_sha256": "f60dba54fdbfbb58ab894b06a6dae834a1663581d7643390f303ae21d411b509",
+  "assembly_sha256": "549939d9d690609c12669a34ad89b1c48ffc1e6c856fcc9671d330c1478a6132",
   "bootstrap": "outputs/coordinator31_unified58/bootstrap_play58.gd",
   "bootstrap_sha256": "bc86deb2ac56cebf18c3655c3c0e115d5f8e8720b86ca1c85a1f9339614035b3",
   "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",

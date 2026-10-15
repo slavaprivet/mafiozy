@@ -24,6 +24,7 @@ const CityMinimapHost = preload("res://scripts/city/runtime/npc_city_minimap_hos
 ## stand. The flag itself is read by scripts/hospital/npc_simple_hospital.gd.
 const SimpleHospital = preload("res://scripts/hospital/npc_simple_hospital.gd")
 const PlayerShopCatalog = preload("res://scripts/shop/player_shop_catalog.gd")  # DSH_PLAYERSHOP
+const NpcObserve58 = preload("res://scripts/ui/npc_observe_host.gd")  # DSH_OBSERVE58
 const STATIC_RENDER_OWNER_IDS := [
 	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-013", "REBUILD-VISUAL-old_town_narrow_townhouse_v1-005",
 	"REBUILD-VISUAL-gun_shop-001", "REBUILD-VISUAL-pawnshop-001",
@@ -81,6 +82,7 @@ var melee_status := "disabled"
 var preview_minimap: Node
 var minimap_status := "disabled"
 var preview_population: RefCounted
+var npc_observer58: Node = null  # DSH_OBSERVE58
 var preview_modular30: Node
 var preview_palazzo: Node
 var preview_service_sites29: Node
@@ -401,6 +403,7 @@ func _ready() -> void:
 			if not contact_binding.get("ok",false): push_error("Contact combat binding failed: " + str(contact_binding))
 	if preview_final_dead_contact_enabled: _bind_final_dead_contact_port()
 	preview_ready = true
+	if observe_npcs_mode() > 0: install_npc_observer()  # DSH_OBSERVE58
 	print("PALAZZO_READY ", is_instance_valid(preview_palazzo) and preview_palazzo.status == "ready")
 	print("PALAZZO_ONLY43_READY legacy_buildings=", _block.buildings.size(), " palazzo=", int(is_instance_valid(preview_palazzo.site)))
 	_setup_preview_perf()
@@ -1585,6 +1588,25 @@ func _bind_final_dead_contact_port(measured_limits: Dictionary = FINAL_DEAD_CONT
 @export var city_player_shop_enabled: bool = false
 @export var city_player_shop_cash: int = -1
 var player_shop: Node = null
+
+## DSH_OBSERVE58: --city-observe-npcs=1 numbers above every resident, 2 adds a manual
+## camera tour (O toggles, [ and ] switch), 3 adds an automatic tour. 0 (default) is off.
+func observe_npcs_mode() -> int:  # DSH_OBSERVE58
+	for argument: String in OS.get_cmdline_user_args():
+		if argument == "--city-observe-npcs": return 1
+		if argument.begins_with("--city-observe-npcs="):
+			return clampi(int(argument.trim_prefix("--city-observe-npcs=")), 0, 3)
+	return 0
+
+func install_npc_observer() -> void:  # DSH_OBSERVE58
+	if is_instance_valid(npc_observer58): return
+	var host: Node = NpcObserve58.new()
+	host.name = "NpcObserve58"
+	add_child(host)
+	if not host.configure(self, _player, preview_population, observe_npcs_mode()):
+		host.queue_free(); return
+	npc_observer58 = host
+	print("DSH_OBSERVE58 binding=", JSON.stringify(host.report()))
 
 func player_shop_requested() -> bool:  # DSH_PLAYERSHOP
 	if city_player_shop_enabled:
