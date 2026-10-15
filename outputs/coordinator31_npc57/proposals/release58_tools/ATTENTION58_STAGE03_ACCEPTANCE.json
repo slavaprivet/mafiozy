@@ -1,0 +1,73 @@
+{
+  "passed": true,
+  "scope": "Native graphical threat and visual only; not release58 acceptance",
+  "release_accepted": false,
+  "performance_accepted": false,
+  "source_count": 1135,
+  "candidate_manifest_sha256": "46a095bd14fdede78861d097cd5e69ad73a32c6cdf842b6944375101e84155a7",
+  "checks": {
+    "threat": {
+      "actual_hit_reaction": true,
+      "actual_nonfatal_hp_from_native_receipt": true,
+      "after_hit_ordinary_activity_completed": true,
+      "after_hit_speed_not_accumulated": true,
+      "aimed_at": true,
+      "hit_physical_flee": true,
+      "hit_quiet_15_released": true,
+      "initial_hp_full": true,
+      "native_near_shot": true,
+      "no_fake_police_arrival": true,
+      "production_ordinary_activity_completed": true,
+      "quiet_15_released": true,
+      "real_flee": true,
+      "real_hit_chain": true,
+      "real_phone": true,
+      "visible_weapon": true
+    },
+    "visual": {
+      "actual_visible_turn": true,
+      "actual_visible_weapon": true,
+      "body_faces_known_threat": true,
+      "health_untouched": true,
+      "native_recover_returned_to_motion": true,
+      "no_attention_movement_hold": true,
+      "original_ten": true,
+      "presentation_faces_known_threat": true,
+      "recover_retry_within5s": true,
+      "skeleton_faces_known_threat": true,
+      "weapon_equipped": true
+    }
+  },
+  "evidence": {
+    "threat": {
+      "run": "outputs/coordinator31_npc57/proposals/attention31_resume/runs/merged58_threat02",
+      "run_sha256": "75196128cb6cceb06e45659a9462d944f869f41baccc0391ded56d9bbb2856e9",
+      "wall_s": 81.18200439994689,
+      "native_run_sha256": "b0072c591dfab9d07f909c869559f3b739de6f72e582710238353d67ab4bb6de",
+      "harness_sha256": "ba12a38fc312f4482da6bf6ecdac296e4dd6b138429a8360d044c4c28a2de4c7"
+    },
+    "visual": {
+      "run": "outputs/coordinator31_npc57/proposals/attention31_resume/runs/merged58_visual02",
+      "run_sha256": "682e20d44ee6c8ccd8c4a1d4e328ac2bfc753ea76943ca639a2a9f044def87d4",
+      "wall_s": 51.04728080006316,
+      "native_run_sha256": "712479b5ff5aea14f2e6997b98f2c65ae79c62b779c6bdff18d63dbf4c4d962f",
+      "harness_sha256": "cb75a697e32f0ded2ac9a5630e53a01e06bef12f52f740262a2dae48d241725a"
+    }
+  },
+  "photographs_manually_inspected": [
+    "01_neutral.png",
+    "02_alert_facing.png"
+  ],
+  "visual_observation": "Resident visibly turns from a side/back orientation to face the player holding a weapon.",
+  "no_source_writes": true,
+  "pointer_modified": false,
+  "pending": [
+    "perf_comparison",
+    "soak.run",
+    "services.run",
+    "shop_interruption.run",
+    "restaurant_interruption.run",
+    "perf_baseline.run",
+    "perf_candidate.run"
+  ]
+}

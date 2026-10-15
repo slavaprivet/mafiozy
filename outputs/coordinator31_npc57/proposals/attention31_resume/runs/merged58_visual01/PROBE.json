@@ -1,0 +1,12 @@
+{
+  "request": {
+    "mode": "graphical",
+    "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator31_npc57\\game",
+    "access": "read",
+    "ticket": 1793
+  },
+  "eligible_snapshot": true,
+  "reasons": [],
+  "scope": "Snapshot only; Lease rechecks inventory and legacy launch mutex before admission",
+  "performance_accepted": false
+}

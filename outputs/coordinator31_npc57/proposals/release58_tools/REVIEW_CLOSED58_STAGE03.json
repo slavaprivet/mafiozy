@@ -1,0 +1,19 @@
+{
+  "status": "READ_ONLY_REVIEW_CLOSED",
+  "reviewer": "/root/godot_addons31",
+  "utc": "2026-10-15T15:23:00.534062+00:00",
+  "finding": "P2 incomplete declared control inventory",
+  "resolution": "Exact canonical12 controls and duplicate-alias rejection before immutable non-engine byte/hash verification",
+  "review_confirmed": true,
+  "remaining_findings": [],
+  "cpu_checks": 62,
+  "actual_roles": 5,
+  "release_accepted": false,
+  "files": {
+    "freeze58.py": "c9194d30b057a6421fc859a24301c2cad13a6dba8b1d2553a168bc68b66eb0d0",
+    "check_tools58.py": "e88f7d5117bb652ed77cad2d8ee5eacc7f1c8b0e47cf5ecfaccea73c889f39a5",
+    "audit_available58.py": "2c45014f87592c22de0ed3e815929d1168770fe45e2907547bdf5eac3b93e38a",
+    "CPU_CHECKS58.json": "99cb700eb4da5d52052dc23f6f3f62e7df5442a45c58ffddfceb803edeaa4467",
+    "ACTUAL_ROLES58_STAGE03_03.json": "ded471ef2b50541a0f31088b9992af9c5f78d7b2a8adcc99e5daca0e7cc2a937"
+  }
+}

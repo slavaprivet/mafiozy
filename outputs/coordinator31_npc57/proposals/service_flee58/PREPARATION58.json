@@ -1,0 +1,20 @@
+{
+  "baseline_harness_pins": {
+    "run58.py": "f0663c253d0cd1dee99a48b61d858f361db0705563889b6fe5290761ba071b5c",
+    "observer58.gd": "fd040129bec238a5c6470745fa4f88b98ed39f152dd120a89f663f972a2ce806",
+    "observer_base58.gd": "319dcb1006b7151a3413876f676ebbf28c65e2a480d74c69ae1da119e4ec8d67"
+  },
+  "observer_bytes_unchanged": true,
+  "patch": {
+    "scripts/city/runtime/npc_threat_route30.gd": {
+      "base_sha256": "b2aebb500dd5d69028f3f5cf4257503ae476b43b391c0554d3fff3bc27cc5574",
+      "candidate_sha256": "6b330fbf8374f4fb95064970a383bda0d4abb1011a3c5e4c5fd2338e64fb5968"
+    },
+    "scripts/city/runtime/npc_threat_life30.gd": {
+      "base_sha256": "afb84c3df8f670c9deea44cb03c15fcc5e7e35e6ded0036615613e54629e6999",
+      "candidate_sha256": "ad989e07fc03691bceca3e751f03d42496aefbc1eab5c37064eda4cc8b6d13ae"
+    }
+  },
+  "no_production_changes": true,
+  "no_engine_started": true
+}

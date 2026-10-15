@@ -1,0 +1,12 @@
+{
+  "outputs/coordinator31_npc57/proposals/service_flee58/entry58.gd": "9c4bd3c63a2440e20af77677d9be7cf216249361ac00c578f3fb25ae6b95039a",
+  "outputs/coordinator31_npc57/proposals/service_flee58/observer58.gd": "fd040129bec238a5c6470745fa4f88b98ed39f152dd120a89f663f972a2ce806",
+  "outputs/coordinator31_npc57/proposals/service_flee58/observer_base58.gd": "319dcb1006b7151a3413876f676ebbf28c65e2a480d74c69ae1da119e4ec8d67",
+  "outputs/coordinator31_npc57/proposals/service_flee58/run58.py": "5693574475a12f44e62231cc63233e481dc7fb715d65a0e06325fe9d0a9c4e3f",
+  "outputs/coordinator31_npc57/proposals/service_flee58/prepare_fixture58.py": "9db852c7095cdd344a7f190f87f6ede51d0725cb58b20f0f1a190300315edff3",
+  "outputs/coordinator31_npc57/proposals/service_flee58/build_patch58.py": "55b679eaed46c3cea38d343ace92639a38a0ad1c6866b9d107175dadbfcbcc47",
+  "outputs/coordinator31_npc57/proposals/service_flee58/PATCH.json": "cb514cd882a7e4e0808215bc67ca67f0e4bc0a6cb6334963c71e55d5596c57f3",
+  "outputs/coordinator31_npc57/proposals/service_flee58/unit58.gd": "35ee4c116fcf75db8352e267efca639b2051c0a2477c7f508796fe7bec103b02",
+  "outputs/coordinator31_npc57/proposals/service_flee58/patch/scripts/city/runtime/npc_threat_route30.gd": "6b330fbf8374f4fb95064970a383bda0d4abb1011a3c5e4c5fd2338e64fb5968",
+  "outputs/coordinator31_npc57/proposals/service_flee58/patch/scripts/city/runtime/npc_threat_life30.gd": "ad989e07fc03691bceca3e751f03d42496aefbc1eab5c37064eda4cc8b6d13ae"
+}

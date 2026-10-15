@@ -1,0 +1,75 @@
+{
+  "schema": "mafiozi.release58.plan/v1",
+  "target_revision": "s01-20261015-residents58",
+  "baseline_revision": "s01-20261015-residents57",
+  "integration": null,
+  "perf_comparison": null,
+  "evidence": {
+    "soak": {
+      "run": null,
+      "harness_root": ".",
+      "entry": "outputs/coordinator31_npc57/proposals/qa58_merged/entry_soak31_extended.gd",
+      "entry_sha256": "cf9bd35da2790c2bd38ee407756787e9bd5adc6b2474891a756cf0e61eb7e4aa",
+      "archive": "HARNESS.zip",
+      "pins_file": "HARNESS.json"
+    },
+    "services": {
+      "run": null,
+      "harness_root": null,
+      "entry": null,
+      "entry_sha256": null,
+      "archive": "HARNESS.zip",
+      "pins_file": "HARNESS_PINS.json",
+      "checker": null,
+      "checker_sha256": null
+    },
+    "threat": {
+      "run": null,
+      "harness_root": null,
+      "entry": null,
+      "entry_sha256": null,
+      "archive": "HARNESS.zip",
+      "pins_file": "HARNESS.json"
+    },
+    "visual": {
+      "run": null,
+      "harness_root": null,
+      "entry": null,
+      "entry_sha256": null,
+      "archive": "HARNESS.zip",
+      "pins_file": "HARNESS.json"
+    },
+    "perf_baseline": {
+      "run": null,
+      "harness_root": null,
+      "entry": null,
+      "entry_sha256": null,
+      "archive": "HARNESS.zip",
+      "pins_file": "HARNESS.json"
+    },
+    "perf_candidate": {
+      "run": null,
+      "harness_root": null,
+      "entry": null,
+      "entry_sha256": null,
+      "archive": "HARNESS.zip",
+      "pins_file": "HARNESS.json"
+    },
+    "shop_interruption": {
+      "run": null,
+      "harness_root": ".",
+      "entry": "outputs/coordinator31_npc57/proposals/service_threat58_final/entry58.gd",
+      "entry_sha256": "64898ff896767bceb81da3ac6d35bfc4a1b8c508b2a8f5f7e769f4c01c4ab986",
+      "pins_file": "HARNESS.json",
+      "archive": "HARNESS.zip"
+    },
+    "restaurant_interruption": {
+      "run": null,
+      "harness_root": ".",
+      "entry": "outputs/coordinator31_npc57/proposals/service_threat58_final/entry58.gd",
+      "entry_sha256": "64898ff896767bceb81da3ac6d35bfc4a1b8c508b2a8f5f7e769f4c01c4ab986",
+      "pins_file": "HARNESS.json",
+      "archive": "HARNESS.zip"
+    }
+  }
+}

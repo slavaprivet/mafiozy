@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "checks": {
+    "identical_full_harness_both_roles": true,
+    "identical_transitive_controls_both_roles": true,
+    "different_exact_source_projects": true,
+    "both_manifests_pinned_for_both_roles": true,
+    "f5_control_pinned": true,
+    "exact_reference_view_same": true,
+    "role_name_mismatch_rejected": true,
+    "native_90plus20_1080p_baseline": true,
+    "native_90plus20_1080p_candidate": true,
+    "full_reference_accepts_exact_view": true,
+    "initial_view_mismatch_rejected": true,
+    "final_view_drift_rejected": true,
+    "full_window_metadata_mismatch_rejected": true,
+    "source_drift_rejected_before_probe_or_launch": true
+  },
+  "engine_launched": false,
+  "probe_called": false,
+  "performance_accepted": false,
+  "source_counts": {
+    "baseline57": 1130,
+    "candidate58": 1135
+  },
+  "common_harness_sha256": "b9479d9920b8b6258399995a9af830cebe4f9e440e005986d9ab2f80d001ab94",
+  "tool_pins": {
+    "run_perf58.py": "7aa13ac3dadc0643ffd8872a02560966f2728e5b507c5bec859e12ebcfafd1b5",
+    "check_perf58.py": "b7bbb1aa06af5f2ca24df62ee60805c154ec95ebd7c4defdf5113bf4663821f0",
+    "validators58.py": "963a65aaf345c3459de2c566e1e8a5622a4521fe8bb1b9634d626bb2ea0d72cd"
+  }
+}

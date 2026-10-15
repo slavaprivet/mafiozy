@@ -1,0 +1,106 @@
+{
+  "passed": true,
+  "scope": "Completed native roles only; not release acceptance",
+  "release_accepted": false,
+  "performance_accepted": false,
+  "engine_launched": false,
+  "plan_sha256": "7d23bcf6ebfec92729fd3c295ae65e08d9e637a76e51b3875dfdbb9f25bc3c49",
+  "integration_sha256": "46a095bd14fdede78861d097cd5e69ad73a32c6cdf842b6944375101e84155a7",
+  "completed": {
+    "threat": {
+      "passed": true,
+      "run": "outputs/coordinator31_npc57/proposals/attention31_resume/runs/merged58_threat02",
+      "run_sha256": "75196128cb6cceb06e45659a9462d944f869f41baccc0391ded56d9bbb2856e9",
+      "checks": 16,
+      "harness_sha256": "ba12a38fc312f4482da6bf6ecdac296e4dd6b138429a8360d044c4c28a2de4c7",
+      "source_count": 1135,
+      "detail": {}
+    },
+    "visual": {
+      "passed": true,
+      "run": "outputs/coordinator31_npc57/proposals/attention31_resume/runs/merged58_visual02",
+      "run_sha256": "682e20d44ee6c8ccd8c4a1d4e328ac2bfc753ea76943ca639a2a9f044def87d4",
+      "checks": 11,
+      "harness_sha256": "cb75a697e32f0ded2ac9a5630e53a01e06bef12f52f740262a2dae48d241725a",
+      "source_count": 1135,
+      "detail": {}
+    },
+    "shop_interruption": {
+      "passed": true,
+      "run": "outputs/coordinator31_npc57/proposals/service_threat58_final/runs/shop_final01",
+      "run_sha256": "2f1c8df1dbb78ebd9e52cc0d563ec066b83abc31a27e476fb49f785b65ac2008",
+      "checks": 19,
+      "harness_sha256": "639c4e3d4737a15874de8fca67e474f0f3e7dea75df131a10299ca659b4280d7",
+      "source_count": 1135,
+      "detail": {
+        "kind": "shop",
+        "native_sha256": "d1b885b343a8558877e8d1104e163afb8833c0f35eb5b4749cf0533d3141243d",
+        "checks": {
+          "actual_energy_restored": true,
+          "authentic_native_shot": true,
+          "claims_released": true,
+          "conserved_account": true,
+          "initial_affordable_purchase": true,
+          "initial_full_health": true,
+          "interrupted_purchase_preserved": true,
+          "native_fire_inside_unpaid_service": true,
+          "native_service_inside": true,
+          "normal_native_walk_completed": true,
+          "other_nine_moved": true,
+          "physical_exit": true,
+          "population_preserved": true,
+          "quiet_releases_at_15s": true,
+          "real_flee": true,
+          "real_payment_once": true,
+          "resumed_purchase_completed": true,
+          "single_native_miss": true,
+          "threat_during_service": true
+        },
+        "flee_m": 7.72143239527941,
+        "max_flee_speed": 1.98071591556072
+      }
+    },
+    "restaurant_interruption": {
+      "passed": true,
+      "run": "outputs/coordinator31_npc57/proposals/service_threat58_final/runs/restaurant_final01",
+      "run_sha256": "a49a611125f42708dedcf8cafc66a687fa1c1aecece5826918160b9a06d465cf",
+      "checks": 19,
+      "harness_sha256": "639c4e3d4737a15874de8fca67e474f0f3e7dea75df131a10299ca659b4280d7",
+      "source_count": 1135,
+      "detail": {
+        "kind": "restaurant",
+        "native_sha256": "3ac336a23e9ee31087426d1b8b28833b9e3a16cc4c2ce302295bb159c61c7e9a",
+        "checks": {
+          "actual_energy_restored": true,
+          "authentic_native_shot": true,
+          "claims_released": true,
+          "conserved_account": true,
+          "initial_affordable_purchase": true,
+          "initial_full_health": true,
+          "interrupted_purchase_preserved": true,
+          "native_fire_inside_unpaid_service": true,
+          "native_service_inside": true,
+          "normal_native_walk_completed": true,
+          "other_nine_moved": true,
+          "physical_exit": true,
+          "population_preserved": true,
+          "quiet_releases_at_15s": true,
+          "real_flee": true,
+          "real_payment_once": true,
+          "resumed_purchase_completed": true,
+          "single_native_miss": true,
+          "threat_during_service": true
+        },
+        "flee_m": 7.72144073992968,
+        "max_flee_speed": 1.98071591556072
+      }
+    }
+  },
+  "pending": [
+    "perf_comparison",
+    "soak.run",
+    "services.run",
+    "perf_baseline.run",
+    "perf_candidate.run"
+  ]
+}

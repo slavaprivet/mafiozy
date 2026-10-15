@@ -1,5 +1,35 @@
 # Координация проекта
 
+## Последний статус58 — 15 октября, 18:29 МСК
+
+Final stage03 natural1200 `merged58_1200_02` FAIL: resident_7 топчется в WALKING
+с438.384 до1199.386с, bbox<=1.216м, позиция[134.948,.381,-.002]. Это отдельная
+прогулка без угроз/услуги; причину выясняют qa31_resume (roam_stall58) и
+services31_resume (roam_recovery58). Не ослаблять spatial gate, не телепортировать.
+Все5 других final ролей PASS: услуги37, угрозы16, поворот11, shop/rest interruption
+по19. Source1135/control/harness неизменны; raw FAIL и FINAL_AUDIT58 сохранены.
+Новая58 пока НЕ принята,20 не включать. F5/обычная57 ещё сохранены.
+Пользователь18:27 МСК прямо разрешил закрыть открытую57 для чистого FPS и затем
+открыть58 при успехе (при неудаче вернуть57). Это разрешение сохраняется; повторно
+не спрашивать. Пока исправляется новый дефект,57 ещё не закрыта.
+Godot profiler/StateCharts/RVO проверены, результаты ниже; старыеpending исторические.
+
+## Финальный кандидат58 stage03 — двери и бегство после услуги
+
+Первый общий1200с stage02 PASS:127полныхпокупок/680прогулок, spatial0,
+максимум required-motion idle7.006с, queue2.992с; все4услуги37/37 PASS.
+Дополнительная проверка нашла FLEE0м после настоящего выстрела внутри магазина:
+все3цели были направлены в стену. Изолированный service_flee58 выбирает свободную
+боковую цель через native capsule queries, сохраняя общий200000us cap и скорость+10%.
+Budget12/12 и shop/restaurant overlay19/19 PASS; root интегрировал2файла.
+Точный finalmanifest `outputs/coordinator31_npc57/extended31/stage58_03/CANDIDATE58.json`
+SHA46a095bd14fdede78861d097cd5e69ad73a32c6cdf842b6944375101e84155a7,1135pins.
+На нём final threat16/16,visual11/11,shop interruption19/19 уже PASS;
+новые1200с/всеуслуги/restaurant interruption ещё идут. До их terminal sourceне менять.
+Обычная57/F5 сохраняются; perf57→58 ещё PENDING пользовательского окна.
+Release58 обязательно требует обе service interruption проверки на merged source;
+overlay proof их не заменяет. First10 не complete,20 не активирована.
+
 ## Кандидат58: свободные двери и подтверждённая причина остановки
 
 Root31 объединил concurrent portal policy и физический отход NPC от створки

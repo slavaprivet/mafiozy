@@ -96,12 +96,9 @@ func _release_service(life: RefCounted) -> bool:
 
 func _start_leg(life: RefCounted) -> bool:
 	if _attempts>=3:return false
-	var body: CharacterBody3D=life._token.body
-	var away: Vector3=body.global_position-Vector3(_event.escape_from);away.y=0.0
-	if away.length_squared()<.01:away=-body.global_basis.z
-	away=away.normalized().rotated(Vector3.UP,[0.0,.75,-.75][_attempts])
+	var attempt: int=_attempts
 	_attempts+=1
-	return _driver.begin(body.global_position+away*8.0)
+	return _driver.begin_escape58(Vector3(_event.escape_from),attempt)
 
 func _recover31() -> void:
 	_phase="RECOVER";_age=0.0

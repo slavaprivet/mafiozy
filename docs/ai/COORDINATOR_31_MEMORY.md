@@ -1,5 +1,79 @@
 # Координатор 31 — 15 октября 2026
 
+## Final stage03: новый прогулочный дефект — 18:29 МСК
+
+`qa58_merged/runs/merged58_1200_02` завершился FAIL, exit0/errors0. Exact stage03,
+1135 исходников, без source/control/harness drift.1200.002с,71998physics ticks,
+1200 actor samples,121 полная покупка/623 завершённые прогулки. Resident7 при
+WALKING ходит внутри bbox<=1.21554м с438.384 до1199.386с; итоговая позиция
+[134.947937,.380619,-.002031]. max motion idle8.999с пропускал это движение туда-
+сюда; spatial gate обнаружил761с. Это НЕ PASS и НЕ основание выпускать58.
+Root finalize_soak58 сохраняет raw FAIL; FINAL_AUDIT58 false по двум связанным
+гейтам native_passed/no_confined_motion. Остальная временная и source приёмка PASS.
+
+QA31 в новой proposals/roam_stall58 разбирает точную причину и native fixture.
+Services31 в proposals/roam_recovery58 читает roam/route, готовит ограниченное
+физическое восстановление только после диагноза. Root один меняет candidate.
+Запрещены teleport, ослабление spatial, сброс бюджета для обхода проверки.
+
+Остальные final stage03 роли приняты: services_graphical03 PASS37/37,257.451с
+native; банк1000, ресторан48, магазин25; больница native24+30 damage,6→60HP.
+threat02 16/16,visual02 11/11, shop_final01 иrestaurant_final01 по19/19,
+flee7.7214м/speed1.9807. ACTUAL_ROLES58_STAGE03_03 подтверждает5 ролей.
+Release validators62/62 CPU иperf14/14; review exact12 control inventory закрыт.
+
+Пользователь через request_user_input_async прямо ответил «Да, проверить и
+открыть обновление»: разрешено закрыть открытую57 для двух чистых FPS замеров,
+после успеха открыть58, при неудаче вернуть57. Больше разрешения не спрашивать.
+Из-за нового natural FAIL закрытие ещё НЕ выполнено. Fresh inventory обязателен.
+Память о разрешении важнее прежних записей «нельзя без разрешения».
+Предложенный checkpoint58_functional.py сохраняет и FAIL, не заявляет приёмку.
+Main/origin пока379dbb38;20 не активирована, goal active, godot-4 PAUSED.
+
+## Финальный58 stage03 — 18:13 МСК
+
+Root со всемиагентами завершил stage02: qa58_merged/runs/merged58_1200_01 PASS,
+точные1200сек/71994физ.tick/1200actor samples,127полныхshopcycles/680walks,
+spatial0, maxrequired-motion7.006с,queue2.992с; source/control/harnessdrift0.
+Стабильные48748nodes/4203resources/orphans0; RAMрост~7MiBвключаетobserver,
+это finitefunctional, НЕFPS. FINAL_AUDIT58.json/ANALYZERS58.zip сохранены.
+RootfinalizerисправленпослеревьюQA: timestamp mass.actualelapsed включает
+сериализацию; теперь timeframe frame_at_s[-1], микросекундныеframe_mspositive,
+миллисекундныеtimestamps monotonic nondecreasing (равенство допустимо).
+Stage02 услуги37/37 graphical PASS, threat16/16 иvisual11/11 тожеPASS.
+
+Новый настоящийservice_threat58/shop_calibration01 FAIL: выстрелдооплаты,
+физическийвыход/claims/pending/retry/payment/normalwalk PASS, FLEE0м.
+Доэтогоshop02имелошибкуQA: камерас pitch<=-π*.02 не моглацелитьсявверх+.6,
+stable0/fired0. Исправлено отдельнымservice_threat58: наружныйпромахвниз-.15,
+nativecamera/muzzlemissguards+fireтольковоactualunpaidservice; никакихNPC/HPwrites.
+Fleeпричина: _start_leg цели0/±.75по8м попадаливздание;200msобщийcapисчерпан.
+service_flee58 двафайла: bounded5angles×2lengths,одинnativeprecheck/frame,
+nativefloor/standing/sweep, боковаяцельдальшеизвестнойугрозы,старыйplannerfallback.
+Общий200000us НЕсбрасываетсямеждуretries; выборучтёнвтомжеcap,+10%сохранены.
+Budget12/12PASS;shop_overlay01 иrestaurant_overlay01 по19/19PASS, flee7.72м,
+speed1.9807, steps.033, selector~745us+route~2262us; controls/source/harnessdrift0.
+Rootreview+servicesindependentreview, интеграция INTEGRATION_flee58_01.json.
+stage58_03 cleanimport PASS,1135pins,полная57→58delta14файлов (metadata+4UIDincluded).
+Manifest SHA46a095bd14fdede78861d097cd5e69ad73a32c6cdf842b6944375101e84155a7.
+
+Активныефинальныетестыsource03 (не менятьcandidate): root qa58_merged/runs/
+merged58_1200_02, execsession27434, стартоколо15:08UTC,длительность1200+startup.
+QA: qa58_services_final/runs/merged58_services_graphical03,600сboundвместо420
+из-запрежнегонатурального695мпути/407.7сfinish,гейты/скоростьнеослаблены.
+Services finalthreat02 PASS16/16,visual02 PASS11/11,перешёлнаревьюreleasegates.
+Addons service_threat58_final/shop_final01 PASS19/19;restaurant_final01 ещёидёт.
+Finalmergedrunner архивируетвсеnon-enginecontrolbytes; overlayнедопустимдляrelease.
+release58_tools требуетfinal1200+spatial+services+threat/visual+shop/restaurant+
+новуюexclusive renderedperf57→58 пару. Готовrun_perf58.py, samefullcamera1920x1080,
+90сmeasure+20warmup, --candidate-manifest теперьstage03. Приuser57 probeineligible,
+не ждать/не закрыватьигрубезразрешения. F5/ordinary57PID15100историческийсохранять.
+Rootподготовил extended31/record_delivery58.py (толькочтение/записьбудущейдоставки,
+НЕзапуск/закрытие), --go ещёНЕисполнялся; freshprocessidentity+nativeREADY+метрики.
+Последнийmain/origin379dbb38cd88cad453a6eb12afa0857e747d8b4a, foreignindexсохранён.
+Новыеfleepatch/proofs/source03ещёнеcommit, следующийscopedcheckpointпослеterminal.
+First10ещёнеcomplete;20НЕактивирована, goalживойгородостаётсяactive.
+
 ## Кандидат58 объединён — 17:43 МСК
 
 Пользовательское свободное прохождение NPC у дверей: root применил

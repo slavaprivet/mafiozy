@@ -1,0 +1,36 @@
+{
+  "passed": true,
+  "engine_launched": false,
+  "sources_unchanged": true,
+  "cases": [
+    {
+      "source": "outputs\\coordinator31_npc57\\proposals\\qa31_extended\\runs\\release57_1200_01\\SOAK31.json",
+      "sha256": "2c245672fc2db55225fc8ba1133e2ceeabc9330133a09078ab9fcfe2f843e5db",
+      "episodes": [
+        {
+          "id": "resident_2",
+          "generation": 1,
+          "start_s": 333.313,
+          "end_s": 1199.821,
+          "max_bbox_diagonal_m": 0.24005797449837668,
+          "windows": 834
+        },
+        {
+          "id": "resident_9",
+          "generation": 1,
+          "start_s": 334.314,
+          "end_s": 1199.821,
+          "max_bbox_diagonal_m": 0.9682202271367275,
+          "windows": 833
+        }
+      ],
+      "passed": false
+    },
+    {
+      "source": "outputs\\coordinator31_npc57\\proposals\\qa58_merged\\runs\\merged58_1200_01\\SOAK31.json",
+      "sha256": "15ae0edb623c4a7475cf3e44b0d6349b8554f36ccec0eca73b742306caaacc4b",
+      "episodes": [],
+      "passed": true
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "generated_only": true,
+  "engine_launched": false,
+  "freeze_executed": false,
+  "original_templates": {
+    "outputs\\coordinator31_npc57\\proposals\\services31_resume\\release_tools\\freeze57.py": "8af379eb77808fb10f6174231c87a0624b4697ace505faef246b3a9331ab8816",
+    "outputs\\coordinator31_npc57\\proposals\\services31_resume\\release_tools\\startup57.py": "3742fdd17ff6fc6a5d0916552370f8609120eb1c3665cd66efb3b0d42e0e315b"
+  },
+  "copied_algorithms": {
+    "spatial58.py": {
+      "source": "outputs/coordinator31_npc57/proposals/qa58_merged/audit_spatial_liveness31.py",
+      "sha256": "020a88f92d3ffc88307115b8aa48a5141f765c9563768df94f0ede890ff18c2b",
+      "copied_sha256": "020a88f92d3ffc88307115b8aa48a5141f765c9563768df94f0ede890ff18c2b"
+    },
+    "perf_compare58.py": {
+      "source": "outputs/coordinator31_npc57/proposals/qa31_resume/compare_perf31.py",
+      "sha256": "6d554658c2e82565c40f5031b762c21aeb227e0d4c89a3445239d970ccada0d0",
+      "copied_sha256": "6d554658c2e82565c40f5031b762c21aeb227e0d4c89a3445239d970ccada0d0"
+    }
+  }
+}

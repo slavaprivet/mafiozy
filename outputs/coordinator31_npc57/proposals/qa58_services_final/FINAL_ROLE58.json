@@ -1,0 +1,17 @@
+{
+  "schema": "mafiozi.qa58.final-services-role/v1",
+  "passed": true,
+  "source_manifest": "outputs/coordinator31_npc57/extended31/stage58_03/CANDIDATE58.json",
+  "source_manifest_sha256": "46a095bd14fdede78861d097cd5e69ad73a32c6cdf842b6944375101e84155a7",
+  "services": {
+    "run": "outputs/coordinator31_npc57/proposals/qa58_services_final/runs/merged58_services_graphical03",
+    "harness_root": "outputs/coordinator31_npc57/proposals/qa58_services_final",
+    "entry": "entry_services56.gd",
+    "entry_sha256": "c43c71419ffc469cd16d1b53129728bd1bff93f673afea7f4186d039a2e5d1dc",
+    "checker": "accept_services56.py",
+    "checker_sha256": "df62eda3bce3cdad6824e3ed897a331aba6545649abaf05540d2fb39213b0006",
+    "pins_file": "HARNESS_PINS.json",
+    "archive": "HARNESS.zip"
+  },
+  "final_audit_sha256": "9abbc25f1fc30f646c42e32538ed4fa54c42fe445cd1c6d818eca30a8b133b24"
+}

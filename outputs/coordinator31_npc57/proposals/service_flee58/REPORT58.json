@@ -1,0 +1,914 @@
+{
+  "status": "PROPOSAL_NOT_INTEGRATED",
+  "source_stage": "stage58_02",
+  "source_count": 1135,
+  "candidate_sha256": "4a00c3c85b4d705ce917c60a7d0b92deb634d24eb57b41cff2664d24e2cfb70e",
+  "patch": {
+    "scripts/city/runtime/npc_threat_route30.gd": {
+      "base_sha256": "b2aebb500dd5d69028f3f5cf4257503ae476b43b391c0554d3fff3bc27cc5574",
+      "candidate_sha256": "6b330fbf8374f4fb95064970a383bda0d4abb1011a3c5e4c5fd2338e64fb5968"
+    },
+    "scripts/city/runtime/npc_threat_life30.gd": {
+      "base_sha256": "afb84c3df8f670c9deea44cb03c15fcc5e7e35e6ded0036615613e54629e6999",
+      "candidate_sha256": "ad989e07fc03691bceca3e751f03d42496aefbc1eab5c37064eda4cc8b6d13ae"
+    }
+  },
+  "baseline_failure": {
+    "path": "outputs\\coordinator31_npc57\\proposals\\service_threat58\\runs\\shop_calibration01",
+    "run_sha256": "bc47d07d50241a0a3ae28e5d1886896ec7fb81d73cc623752f2cf2269107eb0a",
+    "native_sha256": "52d868af00910d0f97730bea8c7c99a21bbc76cc5d397580fd9fb850319ff838",
+    "failed_checks": [
+      "real_flee"
+    ],
+    "flee_m": 0.0,
+    "max_flee_speed": 0.0,
+    "source_drift": [],
+    "evidence": [
+      {
+        "ms": 40360,
+        "position": "(-134.5201, 0.008771, 161.95)",
+        "threat": {
+          "attempts": 1,
+          "driver": {
+            "age": 0.466666666666667,
+            "fear_speed": 1.98,
+            "goal": "(-142.5035, 0.008771, 162.4649)",
+            "moved_m": 0.0,
+            "multiplier": 1.1,
+            "normal_speed": 1.8,
+            "queries": 1006,
+            "reason": "",
+            "service_us": 47989,
+            "status": "searching"
+          },
+          "incident_id": "gunfire:1682503184741:1",
+          "kind": "near_shot",
+          "last_observation": 36.9166666666659,
+          "normal_speed_unchanged": true,
+          "phase": "FLEE",
+          "pose_frames": 0,
+          "quiet_until": 51.9166666666659,
+          "reason": "",
+          "report": {}
+        }
+      },
+      {
+        "ms": 40862,
+        "position": "(-134.5201, 0.008771, 161.95)",
+        "threat": {
+          "attempts": 1,
+          "driver": {
+            "age": 0.966666666666668,
+            "fear_speed": 1.98,
+            "goal": "(-142.5035, 0.008771, 162.4649)",
+            "moved_m": 0.0,
+            "multiplier": 1.1,
+            "normal_speed": 1.8,
+            "queries": 1919,
+            "reason": "",
+            "service_us": 95510,
+            "status": "searching"
+          },
+          "incident_id": "gunfire:1682503184741:1",
+          "kind": "near_shot",
+          "last_observation": 36.9166666666659,
+          "normal_speed_unchanged": true,
+          "phase": "FLEE",
+          "pose_frames": 0,
+          "quiet_until": 51.9166666666659,
+          "reason": "",
+          "report": {}
+        }
+      },
+      {
+        "ms": 41363,
+        "position": "(-134.5201, 0.008771, 161.95)",
+        "threat": {
+          "attempts": 1,
+          "driver": {
+            "age": 1.46666666666667,
+            "fear_speed": 1.98,
+            "goal": "(-142.5035, 0.008771, 162.4649)",
+            "moved_m": 0.0,
+            "multiplier": 1.1,
+            "normal_speed": 1.8,
+            "queries": 2999,
+            "reason": "",
+            "service_us": 149698,
+            "status": "searching"
+          },
+          "incident_id": "gunfire:1682503184741:1",
+          "kind": "near_shot",
+          "last_observation": 36.9166666666659,
+          "normal_speed_unchanged": true,
+          "phase": "FLEE",
+          "pose_frames": 0,
+          "quiet_until": 51.9166666666659,
+          "reason": "",
+          "report": {}
+        }
+      },
+      {
+        "ms": 41878,
+        "position": "(-134.5201, 0.008771, 161.95)",
+        "threat": {
+          "attempts": 1,
+          "driver": {
+            "age": 1.98333333333333,
+            "fear_speed": 1.98,
+            "goal": "(-142.5035, 0.008771, 162.4649)",
+            "moved_m": 0.0,
+            "multiplier": 1.1,
+            "normal_speed": 1.8,
+            "queries": 3956,
+            "reason": "bounded_route_deadline",
+            "service_us": 200935,
+            "status": "idle"
+          },
+          "incident_id": "gunfire:1682503184741:1",
+          "kind": "near_shot",
+          "last_observation": 36.9166666666659,
+          "normal_speed_unchanged": true,
+          "phase": "FLEE",
+          "pose_frames": 0,
+          "quiet_until": 51.9166666666659,
+          "reason": "",
+          "report": {}
+        }
+      },
+      {
+        "ms": 42395,
+        "position": "(-134.5201, 0.008771, 161.95)",
+        "threat": {
+          "attempts": 3,
+          "driver": {
+            "age": 0.0166666666666667,
+            "fear_speed": 1.98,
+            "goal": "(-140.7124, 0.008771, 156.8849)",
+            "moved_m": 0.0,
+            "multiplier": 1.1,
+            "normal_speed": 1.8,
+            "queries": 0,
+            "reason": "bounded_route_deadline",
+            "service_us": 200935,
+            "status": "idle"
+          },
+          "incident_id": "gunfire:1682503184741:1",
+          "kind": "near_shot",
+          "last_observation": 36.9166666666659,
+          "normal_speed_unchanged": true,
+          "phase": "RECOVER",
+          "pose_frames": 0,
+          "quiet_until": 51.9166666666659,
+          "reason": "",
+          "report": {}
+        }
+      },
+      {
+        "ms": 42904,
+        "position": "(-134.5201, 0.008771, 161.95)",
+        "threat": {
+          "attempts": 3,
+          "driver": {
+            "age": 0.0166666666666667,
+            "fear_speed": 1.98,
+            "goal": "(-140.7124, 0.008771, 156.8849)",
+            "moved_m": 0.0,
+            "multiplier": 1.1,
+            "normal_speed": 1.8,
+            "queries": 0,
+            "reason": "bounded_route_deadline",
+            "service_us": 200935,
+            "status": "idle"
+          },
+          "incident_id": "gunfire:1682503184741:1",
+          "kind": "near_shot",
+          "last_observation": 36.9166666666659,
+          "normal_speed_unchanged": true,
+          "phase": "RECOVER",
+          "pose_frames": 0,
+          "quiet_until": 51.9166666666659,
+          "reason": "",
+          "report": {}
+        }
+      }
+    ]
+  },
+  "cause": [
+    "The original 0/+0.75/-0.75 rad eight-metre goals all point behind the shop wall when the observed shooter is outside its door.",
+    "The first unhelpful physical search consumes the intentional shared incident cap: observed service_us29=200935. Subsequent attempts receive zero new queries. This cap is intentional, not reset by this patch.",
+    "No renewed observation follows the single shot because QA immediately unequips the pistol; existing RECOVER policy waits for the normal 15-second quiet deadline."
+  ],
+  "change": [
+    "Two files only; lifecycle selects escape through its existing physical driver.",
+    "One candidate per physics frame, five angles at 8m then 4m, at most ten candidates per attempt. Require greater distance from the last observed threat, live floor, actual capsule standing and sweep.",
+    "Existing incremental physical planner still verifies all intermediate support; native move_and_slide, masks/exclusions, player/world/door/debris collisions and 1.10 speed remain unchanged.",
+    "No directly clear candidate does not prove no path: the original bounded goal remains a planner fallback.",
+    "Selection work is charged in addition to monotonically accumulated route work against the same 200000us cap; neither retry nor cancel resets either counter."
+  ],
+  "limitations": [
+    "The work cap remains an admission bound plus one indivisible query/shared pump, not a hard real-time upper limit.",
+    "Preselection executes outside the shared route pump, bounded to one candidate per actor/frame. Simultaneous ten-actor selection and clean FPS have not been measured.",
+    "A straight capsule sweep is a route hint only. Moving obstacles can change; actual physical movement remains authoritative.",
+    "The isolated unit fixture uses synthetic budget counters on its own driver only; city service tests use unchanged native observers and real purchases."
+  ],
+  "production_modified": false,
+  "frozen_release_modified": false,
+  "integrated": false,
+  "performance_accepted": false,
+  "runs": {
+    "budget01": {
+      "passed": true,
+      "case": "budget",
+      "checks": {
+        "actual_side_retreat": true,
+        "begin_escape": true,
+        "bounded_preselection": true,
+        "combined_cap_blocks_before_queries": true,
+        "configured_real_capsule": true,
+        "distance_never_approaches_known_threat": true,
+        "native_speed_110_percent": true,
+        "over_cap_begin": true,
+        "retry_begin": true,
+        "retry_does_not_reset_incident_cap": true,
+        "second_driver_configured": true,
+        "wall_preserved": true
+      },
+      "semantic_reason": "complete",
+      "error": null,
+      "elapsed_seconds": 1.8124140000436455,
+      "exit_code": 0,
+      "stderr_bytes": 0,
+      "source_drift": [],
+      "control_drift": [],
+      "harness_drift": [],
+      "run_sha256": "5e35e9c16573deb220d79435869596d26c4f34dc1bb557012167f4e94406f17e",
+      "native_sha256": "aa2db64d1c3ca699c9fc01b20b4e50f41d47ae6e86d89348f13302d2d001ae2f",
+      "path": "outputs\\coordinator31_npc57\\proposals\\service_flee58\\runs\\budget01"
+    },
+    "shop_overlay01": {
+      "passed": true,
+      "case": "shop",
+      "checks": {
+        "actual_energy_restored": true,
+        "authentic_native_shot": true,
+        "claims_released": true,
+        "conserved_account": true,
+        "initial_affordable_purchase": true,
+        "initial_full_health": true,
+        "interrupted_purchase_preserved": true,
+        "native_fire_inside_unpaid_service": true,
+        "native_service_inside": true,
+        "normal_native_walk_completed": true,
+        "other_nine_moved": true,
+        "physical_exit": true,
+        "population_preserved": true,
+        "quiet_releases_at_15s": true,
+        "real_flee": true,
+        "real_payment_once": true,
+        "resumed_purchase_completed": true,
+        "single_native_miss": true,
+        "threat_during_service": true
+      },
+      "semantic_reason": "complete",
+      "error": null,
+      "elapsed_seconds": 106.74947390006855,
+      "exit_code": 0,
+      "stderr_bytes": 0,
+      "source_drift": [],
+      "control_drift": [],
+      "harness_drift": [],
+      "run_sha256": "97f9acab505694b2d7413d98d8eac513ee1270675d994454d8555c401bdb090c",
+      "native_sha256": "ed86d2363bf2891ce23ddc3d582904ae4833613d241b3c3525d6844d9607207b",
+      "path": "outputs\\coordinator31_npc57\\proposals\\service_flee58\\runs\\shop_overlay01",
+      "flee_m": 7.72143239527941,
+      "max_flee_speed": 1.98071591556072,
+      "max_step_m": 0.033011931926012,
+      "fire_sent58": {
+        "cash": 1000,
+        "frame": 3504,
+        "miss_rays": {
+          "camera_hit": "@StaticBody3D@3542:<StaticBody3D#273334414078>",
+          "camera_misses_actors": true,
+          "frame": 3504,
+          "muzzle_hit": "@StaticBody3D@3542:<StaticBody3D#273334414078>",
+          "muzzle_misses_actors": true,
+          "muzzle_ok": true
+        },
+        "ms": 36727,
+        "pitch": -0.148889958437354,
+        "receipt_count": 0,
+        "service": true
+      },
+      "interruption": {
+        "capacity_released": true,
+        "cash": 1000,
+        "depth": -1.37986755371094,
+        "outside_distance": 0.270187973976135,
+        "pending": {
+          "kind": "shop",
+          "price": 40,
+          "restore_energy": true
+        },
+        "phase": "RELEASE_SERVICE",
+        "position": "(-134.5201, 0.008771, 161.95)",
+        "receipts": 0,
+        "service_released": true
+      },
+      "payment": {
+        "cash": 960,
+        "energy": 100.0,
+        "frame": 5228,
+        "receipt": {
+          "amount": 40,
+          "at": 66405.96,
+          "bank_after": 0,
+          "building": "CompactService29_VENUE29-SHOP-002",
+          "cash_after": 960,
+          "cash_before": 1000,
+          "dwell_ms": 2007.41500000001,
+          "event_id": "godot-preview-new-session-20260927-01:resident_1:1:economy28:2",
+          "frame": 5228,
+          "id": "godot-preview-new-session-20260927-01:resident_1:2",
+          "inside": true,
+          "kind": "local_shop_purchase28",
+          "life_generation": 1,
+          "own_bank_debit": false,
+          "planned_amount": 40,
+          "policy": "user_local_test28",
+          "saved_purchase": {
+            "kind": "shop",
+            "price": 40,
+            "restore_energy": true
+          },
+          "scope": "new_local_session_account",
+          "sequence": 2,
+          "server_authority": false,
+          "visit_serial": 2
+        },
+        "service": true
+      },
+      "other_nine_distance_m": {
+        "resident_10": 121.933212626725,
+        "resident_2": 110.90815182589,
+        "resident_3": 84.3642539158463,
+        "resident_4": 112.710036670789,
+        "resident_5": 76.4695153813809,
+        "resident_6": 98.0129160936922,
+        "resident_7": 103.57287716493,
+        "resident_8": 102.580414718017,
+        "resident_9": 82.7748523298651
+      },
+      "flee_samples": [
+        {
+          "ms": 39958,
+          "position": "(-134.5201, 0.008771, 161.95)",
+          "driver": {
+            "age": 0.0166666666666667,
+            "fear_speed": 1.98,
+            "goal": "(0.0, 0.0, 0.0)",
+            "moved_m": 0.0,
+            "multiplier": 1.1,
+            "normal_speed": 1.8,
+            "queries": 2,
+            "reason": "",
+            "selection58": [
+              {
+                "accepted": false,
+                "goal": "(-142.5035, 0.008771, 162.4649)",
+                "index": 0,
+                "reason": "capsule_blocked"
+              }
+            ],
+            "selection_max_us58": 99,
+            "selection_us58": 99,
+            "service_us": 0,
+            "status": "selecting",
+            "total_work_us58": 99
+          }
+        },
+        {
+          "ms": 40474,
+          "position": "(-134.4629, 0.000348, 162.8393)",
+          "driver": {
+            "age": 0.466666666666667,
+            "fear_speed": 1.98,
+            "goal": "(-134.0053, 0.003, 169.9334)",
+            "moved_m": 0.891078498214483,
+            "multiplier": 1.1,
+            "normal_speed": 1.8,
+            "queries": 128,
+            "reason": "",
+            "selection58": [
+              {
+                "accepted": false,
+                "goal": "(-142.5035, 0.008771, 162.4649)",
+                "index": 0,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(-140.0106, 0.008771, 167.7685)",
+                "index": 1,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(-140.7124, 0.008771, 156.8849)",
+                "index": 2,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": true,
+                "goal": "(-134.0053, 0.003, 169.9334)",
+                "index": 3,
+                "reason": "direct_corridor_hint"
+              }
+            ],
+            "selection_max_us58": 249,
+            "selection_us58": 745,
+            "service_us": 2262,
+            "status": "walking",
+            "total_work_us58": 3007
+          }
+        },
+        {
+          "ms": 40977,
+          "position": "(-134.3992, 0.000348, 163.8271)",
+          "driver": {
+            "age": 0.966666666666668,
+            "fear_speed": 1.98,
+            "goal": "(-134.0053, 0.003, 169.9334)",
+            "moved_m": 1.88097958639264,
+            "multiplier": 1.1,
+            "normal_speed": 1.8,
+            "queries": 218,
+            "reason": "",
+            "selection58": [
+              {
+                "accepted": false,
+                "goal": "(-142.5035, 0.008771, 162.4649)",
+                "index": 0,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(-140.0106, 0.008771, 167.7685)",
+                "index": 1,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(-140.7124, 0.008771, 156.8849)",
+                "index": 2,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": true,
+                "goal": "(-134.0053, 0.003, 169.9334)",
+                "index": 3,
+                "reason": "direct_corridor_hint"
+              }
+            ],
+            "selection_max_us58": 249,
+            "selection_us58": 745,
+            "service_us": 2262,
+            "status": "walking",
+            "total_work_us58": 3007
+          }
+        },
+        {
+          "ms": 41490,
+          "position": "(-134.3335, 0.000348, 164.8479)",
+          "driver": {
+            "age": 1.48333333333333,
+            "fear_speed": 1.98,
+            "goal": "(-134.0053, 0.003, 169.9334)",
+            "moved_m": 2.90387737751007,
+            "multiplier": 1.1,
+            "normal_speed": 1.8,
+            "queries": 311,
+            "reason": "",
+            "selection58": [
+              {
+                "accepted": false,
+                "goal": "(-142.5035, 0.008771, 162.4649)",
+                "index": 0,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(-140.0106, 0.008771, 167.7685)",
+                "index": 1,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(-140.7124, 0.008771, 156.8849)",
+                "index": 2,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": true,
+                "goal": "(-134.0053, 0.003, 169.9334)",
+                "index": 3,
+                "reason": "direct_corridor_hint"
+              }
+            ],
+            "selection_max_us58": 249,
+            "selection_us58": 745,
+            "service_us": 2262,
+            "status": "walking",
+            "total_work_us58": 3007
+          }
+        },
+        {
+          "ms": 41996,
+          "position": "(-134.2699, 0.000348, 165.8358)",
+          "driver": {
+            "age": 1.98333333333333,
+            "fear_speed": 1.98,
+            "goal": "(-134.0053, 0.003, 169.9334)",
+            "moved_m": 3.89377846568823,
+            "multiplier": 1.1,
+            "normal_speed": 1.8,
+            "queries": 401,
+            "reason": "",
+            "selection58": [
+              {
+                "accepted": false,
+                "goal": "(-142.5035, 0.008771, 162.4649)",
+                "index": 0,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(-140.0106, 0.008771, 167.7685)",
+                "index": 1,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(-140.7124, 0.008771, 156.8849)",
+                "index": 2,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": true,
+                "goal": "(-134.0053, 0.003, 169.9334)",
+                "index": 3,
+                "reason": "direct_corridor_hint"
+              }
+            ],
+            "selection_max_us58": 249,
+            "selection_us58": 745,
+            "service_us": 2262,
+            "status": "walking",
+            "total_work_us58": 3007
+          }
+        }
+      ]
+    },
+    "restaurant_overlay01": {
+      "passed": true,
+      "case": "restaurant",
+      "checks": {
+        "actual_energy_restored": true,
+        "authentic_native_shot": true,
+        "claims_released": true,
+        "conserved_account": true,
+        "initial_affordable_purchase": true,
+        "initial_full_health": true,
+        "interrupted_purchase_preserved": true,
+        "native_fire_inside_unpaid_service": true,
+        "native_service_inside": true,
+        "normal_native_walk_completed": true,
+        "other_nine_moved": true,
+        "physical_exit": true,
+        "population_preserved": true,
+        "quiet_releases_at_15s": true,
+        "real_flee": true,
+        "real_payment_once": true,
+        "resumed_purchase_completed": true,
+        "single_native_miss": true,
+        "threat_during_service": true
+      },
+      "semantic_reason": "complete",
+      "error": null,
+      "elapsed_seconds": 208.3373817000538,
+      "exit_code": 0,
+      "stderr_bytes": 0,
+      "source_drift": [],
+      "control_drift": [],
+      "harness_drift": [],
+      "run_sha256": "b0f1b0e2371054b86f0c44950a2679418bfbea81dd1fe9bd98309040130cb71b",
+      "native_sha256": "7a8f9fc88e2e6c007b78c8054d56d881145fc5211afc4bdcaea8649008a30fa7",
+      "path": "outputs\\coordinator31_npc57\\proposals\\service_flee58\\runs\\restaurant_overlay01",
+      "flee_m": 7.72139505296946,
+      "max_flee_speed": 1.98071591556072,
+      "max_step_m": 0.033011931926012,
+      "fire_sent58": {
+        "cash": 1000,
+        "frame": 9591,
+        "miss_rays": {
+          "camera_hit": "@StaticBody3D@2764:<StaticBody3D#253755401839>",
+          "camera_misses_actors": true,
+          "frame": 9591,
+          "muzzle_hit": "@StaticBody3D@2764:<StaticBody3D#253755401839>",
+          "muzzle_misses_actors": true,
+          "muzzle_ok": true
+        },
+        "ms": 137906,
+        "pitch": -0.148889958437354,
+        "receipt_count": 0,
+        "service": true
+      },
+      "interruption": {
+        "capacity_released": true,
+        "cash": 1000,
+        "depth": -1.37953186035156,
+        "outside_distance": 0.270538300275803,
+        "pending": {
+          "kind": "restaurant",
+          "price": 31,
+          "restore_energy": true
+        },
+        "phase": "RELEASE_SERVICE",
+        "position": "(136.0795, 0.009424, 120.95)",
+        "receipts": 0,
+        "service_released": true
+      },
+      "payment": {
+        "cash": 969,
+        "energy": 100.0,
+        "frame": 11160,
+        "receipt": {
+          "amount": 31,
+          "at": 164980.917,
+          "bank_after": 0,
+          "building": "CompactService29_VENUE29-RESTAURANT-002",
+          "cash_after": 969,
+          "cash_before": 1000,
+          "dwell_ms": 2001.29299999998,
+          "event_id": "godot-preview-new-session-20260927-01:resident_1:1:economy28:2",
+          "frame": 11160,
+          "id": "godot-preview-new-session-20260927-01:resident_1:2",
+          "inside": true,
+          "kind": "local_restaurant_purchase28",
+          "life_generation": 1,
+          "own_bank_debit": false,
+          "planned_amount": 31,
+          "policy": "user_local_test28",
+          "saved_purchase": {
+            "kind": "restaurant",
+            "price": 31,
+            "restore_energy": true
+          },
+          "scope": "new_local_session_account",
+          "sequence": 2,
+          "server_authority": false,
+          "visit_serial": 2
+        },
+        "service": true
+      },
+      "other_nine_distance_m": {
+        "resident_10": 258.121424280107,
+        "resident_2": 223.759457848966,
+        "resident_3": 299.492663724348,
+        "resident_4": 272.698791302741,
+        "resident_5": 209.32555869408,
+        "resident_6": 218.025927321985,
+        "resident_7": 226.765560990199,
+        "resident_8": 269.654785523191,
+        "resident_9": 284.021275641397
+      },
+      "flee_samples": [
+        {
+          "ms": 141374,
+          "position": "(136.1156, 0.003321, 121.5099)",
+          "driver": {
+            "age": 0.3,
+            "fear_speed": 1.98,
+            "goal": "(136.5943, 0.003, 128.9334)",
+            "moved_m": 0.561035323888063,
+            "multiplier": 1.1,
+            "normal_speed": 1.8,
+            "queries": 98,
+            "reason": "",
+            "selection58": [
+              {
+                "accepted": false,
+                "goal": "(128.0961, 0.009424, 121.4648)",
+                "index": 0,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(130.589, 0.009424, 126.7685)",
+                "index": 1,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(129.8873, 0.009424, 115.8848)",
+                "index": 2,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": true,
+                "goal": "(136.5943, 0.003, 128.9334)",
+                "index": 3,
+                "reason": "direct_corridor_hint"
+              }
+            ],
+            "selection_max_us58": 187,
+            "selection_us58": 608,
+            "service_us": 1912,
+            "status": "walking",
+            "total_work_us58": 2520
+          }
+        },
+        {
+          "ms": 141891,
+          "position": "(136.1813, 0.000635, 122.5307)",
+          "driver": {
+            "age": 0.816666666666668,
+            "fear_speed": 1.98,
+            "goal": "(136.5943, 0.003, 128.9334)",
+            "moved_m": 1.58397880196571,
+            "multiplier": 1.1,
+            "normal_speed": 1.8,
+            "queries": 191,
+            "reason": "",
+            "selection58": [
+              {
+                "accepted": false,
+                "goal": "(128.0961, 0.009424, 121.4648)",
+                "index": 0,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(130.589, 0.009424, 126.7685)",
+                "index": 1,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(129.8873, 0.009424, 115.8848)",
+                "index": 2,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": true,
+                "goal": "(136.5943, 0.003, 128.9334)",
+                "index": 3,
+                "reason": "direct_corridor_hint"
+              }
+            ],
+            "selection_max_us58": 187,
+            "selection_us58": 608,
+            "service_us": 1912,
+            "status": "walking",
+            "total_work_us58": 2520
+          }
+        },
+        {
+          "ms": 142408,
+          "position": "(136.2471, 0.000635, 123.5515)",
+          "driver": {
+            "age": 1.33333333333333,
+            "fear_speed": 1.98,
+            "goal": "(136.5943, 0.003, 128.9334)",
+            "moved_m": 2.60687659308314,
+            "multiplier": 1.1,
+            "normal_speed": 1.8,
+            "queries": 284,
+            "reason": "",
+            "selection58": [
+              {
+                "accepted": false,
+                "goal": "(128.0961, 0.009424, 121.4648)",
+                "index": 0,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(130.589, 0.009424, 126.7685)",
+                "index": 1,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(129.8873, 0.009424, 115.8848)",
+                "index": 2,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": true,
+                "goal": "(136.5943, 0.003, 128.9334)",
+                "index": 3,
+                "reason": "direct_corridor_hint"
+              }
+            ],
+            "selection_max_us58": 187,
+            "selection_us58": 608,
+            "service_us": 1912,
+            "status": "walking",
+            "total_work_us58": 2520
+          }
+        },
+        {
+          "ms": 142925,
+          "position": "(136.3128, 0.000635, 124.5723)",
+          "driver": {
+            "age": 1.85,
+            "fear_speed": 1.98,
+            "goal": "(136.5943, 0.003, 128.9334)",
+            "moved_m": 3.62977438420057,
+            "multiplier": 1.1,
+            "normal_speed": 1.8,
+            "queries": 377,
+            "reason": "",
+            "selection58": [
+              {
+                "accepted": false,
+                "goal": "(128.0961, 0.009424, 121.4648)",
+                "index": 0,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(130.589, 0.009424, 126.7685)",
+                "index": 1,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(129.8873, 0.009424, 115.8848)",
+                "index": 2,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": true,
+                "goal": "(136.5943, 0.003, 128.9334)",
+                "index": 3,
+                "reason": "direct_corridor_hint"
+              }
+            ],
+            "selection_max_us58": 187,
+            "selection_us58": 608,
+            "service_us": 1912,
+            "status": "walking",
+            "total_work_us58": 2520
+          }
+        },
+        {
+          "ms": 143428,
+          "position": "(136.3765, 0.000635, 125.5601)",
+          "driver": {
+            "age": 2.35,
+            "fear_speed": 1.98,
+            "goal": "(136.5943, 0.003, 128.9334)",
+            "moved_m": 4.61967547237873,
+            "multiplier": 1.1,
+            "normal_speed": 1.8,
+            "queries": 467,
+            "reason": "",
+            "selection58": [
+              {
+                "accepted": false,
+                "goal": "(128.0961, 0.009424, 121.4648)",
+                "index": 0,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(130.589, 0.009424, 126.7685)",
+                "index": 1,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(129.8873, 0.009424, 115.8848)",
+                "index": 2,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": true,
+                "goal": "(136.5943, 0.003, 128.9334)",
+                "index": 3,
+                "reason": "direct_corridor_hint"
+              }
+            ],
+            "selection_max_us58": 187,
+            "selection_us58": 608,
+            "service_us": 1912,
+            "status": "walking",
+            "total_work_us58": 2520
+          }
+        }
+      ]
+    }
+  }
+}
