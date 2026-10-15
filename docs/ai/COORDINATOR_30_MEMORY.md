@@ -104,3 +104,91 @@ Launcher держит mutex и WaitForExit до закрытия игры: не 
 и origin; чужого WIP много, не stage-all. Старая приёмка48 и53a сохраняются.
 
 API повторно подтвердил: root29 и ambient29 idle/interrupted, completedAt1792022800. Вместе с ранее завершёнными venues/navigation все старые владельцы теперь остановлены. CURRENT_COORDINATOR обновлён; старые чаты не разбужены.
+
+
+## Новое прямое расширение — 15 октября около03:50
+
+Пользователь разрешил бытовые циклы всем200+ жителям после добавления реакций
+на выстрелы/видимое оружие/прицеливание, панику и вызов полиции. Предыдущий
+запрет массовых жителей этим новым прямым поручением отменён, но обязательная
+оптимизация и native приёмка остаются. В городе287 loaded residents; resident15
+вне границ; полныйsource roster288. Staff12 считаются отдельно. В текущем
+citypacket нет боссов или полиции, поэтому их нельзя обещать включёнными.
+Пользователь выбрал прибытие полицейской МАШИНЫ с патрулём (не пешийвариант).
+Дополнительно: при фактическом восстановленииHP лёгкие розовые + крестики;
+испуганный беглец на10% быстрее обычнойскорости. Я выбрал15сек без новойугрозы
+для успокоения, необходимо реально проверить возврат к прогулке/занятиям.
+
+injury_fix30 теперь владеет proposals/threat30: bounded perception, real flee,
+phone/report port, safe service exit,15sec quiet,1.10 multiplier. Старый native
+hit panicUntil не исполнял маршрут. staff_integration30 завершил/заморозил
+medic30 и теперь делает heal_fx30, затем police_response30: настоящий car
+response, остановка/патруль, intake/case_id; не фиктивныйACK. release_qa30 ведёт
+population30 active/cleanup index, bounded admission, physical daily dispatch;
+root делает lifecycle30 per-ID authenticated death/fullrespawn. Все пакеты
+изолированы, общую54 не трогать; coherent55 будет после готовности.
+
+Medic30 уже принят root по3изображениям и применён, import_final54b PASS0/0.
+Initial import_final54 ошибочно имел относительный --path и exited до регистрации,
+не приёмка. Final injury54_01 PASS13, весь состав12staff/8newvenues сохранён,
+focused12/60HP held0/moving92; лечение/выход. combined54_01 headless и
+Death54_01 graphical ещё идут. F5 по-прежнему53a. Checkpoint99de9145
+успешно отправлен вorigin/main и SHA совпал. Native regression и новаямассовость
+не выдаются за доставленные в пользовательскую игру.
+
+Perf baseline final54_pair02 был прерван корректно сPERF_CONTAMINATED:
+внешний DeepSeekshop запустился03:42:50 на100сек, закончилсам, чужиепроцессы
+не трогали. Эта попытка не результатFPS. Финальную чистую пару повторитьпосле
+functional, используем300сек+20прогрев. Не объявлять отсутствиевсехутечек.
+
+
+## 15 октября04:25 — последняя граница55
+Пользователь уточнил: сделать полицейских, поведение/выезд отложить следующим
+шагом. Приоритет — реакции и200+ жителей. Две модели police_response30 прошли
+349checks/5видов; root просмотрелfront и включил толькоfactoryhelper вgame,
+безworldAIhooks. HealFX принят/rootпросмотрел110checksнастоящийhospital.
+Общая outputs/coordinator30_npc54/game теперь candidate55, НЕfrozen54.
+Всеverified54sourcepins+deltaот53a сохранены VERIFIED54_SOURCE_DELTA.zip.
+Stage1: healFX+population+threat; hotfix1: safeexitdispose+missingmeta+fairperception.
+Stage2: lifecycle30(7files)+rawshots30, INTEGRATION55_STAGE2.json.
+Lifecycle single02 иmulti05наоднойподписиPASS:50checks,4nativeсмерти/две
+новыегенерации1→2→3, occupiedspawnretry/staleguards, третийдвигался23.9м.
+Hostnamefixture раньше перемещалВСЕХnamedNPCкplayer; исправленsingleinitial-only,
+respawn иmass сохраняютподтверждённыеspawn. Приватнаяinjurygame уreleaseqa30,
+онготовитservice-exit-after-threatfixture. Лишьrootпишетsharedgame.
+Threat city02 PASS11 настоящие visiblegun/aim/TTmissshot/flee7.72м/phone237frames/
+quiet15/ordinaryactioncomplete/actualhit60→36;drift0/stderr0. Телефоннаскрине
+заслонён, city03последиагоптимизации с яснойбоковойQAкамерой. Rawshots30
+boundedretrytested224nativecapsules/productiongridиemptybudget. Дополнительно
+rootнашёлpotentialpendingLOSstarvation, injuryagentпроверяетдоfinalcity03.
+Mass readonlyactualscene: stage1_16_01 движ16/16,59walkcompletions, active11/recent11;
+FAILтолькостарыйdispose(исправлен). stage1_64_01 cleanstderr,63/64sourceIDs,
+63moved,168walkcompleted. Missingresident25sourcebeach44.2мдосуши, старые19rings
+38.95мнедоставали. Rootподнялboundedдо24rings384<512attempts, allnativeguards
+иsourcepacketсохранены. Полная64/287повторнаяпроверкавпереди.
+64headless2CPU totalNPCmedian26ms/p9531.15ms, этоНЕFPSприёмка; сильнаястоимость
+скрытыхcaption/diagnostic snapshots. staffagentделаетdiag_perf30: focus-onlyHP,
+allresidentcards,sameframehit/heal/generationhide, cacheOFFdamageprobe и
+allocation-free target_current с ПОЛНЫМИexistingguards, безframecacheauthority.
+Roottrace30уже применён: huge simplehospitalJSON+DSHperiodicprints только
+--city-debug-trace30=1, всебoundedtimingringcountersсохранены. Этоубирает
+ненужнуюсериализацию/floorqueryдлялога иростжурналов(64run6MBза90сек).
+Необъявлять287готовымипока actualmass ичистыйrenderperfнепройдены. F5всёещё53a.
+
+
+## Доставка55 — обычная сцена открыта
+Последнее прямое поручение отменило блокировку доставки поFPS: «добавь, потом
+исправим баги/нагрузку», затем «запускай сцену» и сохранить эту сборку main/GitHub.
+Замороженная outputs/coordinator30_release55/ASSEMBLY.json:1127sourcepins,
+SHA bdca155eab7c50689ca52c13aa83dcad3adc0b593286710887ee950938b2ca2a.
+F5/current_version обновлён на55, previous53a сохранён вPREVIOUS_CURRENT.json.
+Обычный stablelauncher подтвердил ready=true; жители287,
+staff12/sites8/actions18, currenttokensсовпали, threat+multi+fullphysical активны.
+Пользовательское окноPID12392 сохранять, launcher session88813 держитmutex
+до его закрытия — не прерывать и не ждать окончания длязавершениячата.
+HPcore67/guard43+43 включеныscoped; import_trial55 чистыйPASS. LOSpendingfix
+включён, raw_far02PASS64. service-threat иcity03harnessготовы, но новыеengine
+пользовательскойдоставкене мешают: всеагентызавершилисвоипроцессы.
+СтатусЭКСПЕРИМЕНТАЛЬНАЯМАССОВАЯСБОРКАпо прямомупоручению, performance_accepted=false.
+У полиции готовыдвемодели, AI/выездотложен. Следующее — наблюденияпользователя,
+нагрузка/routequeries/memory исервисныйвыходприугрозе, безснижениянаселения.

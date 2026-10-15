@@ -1,0 +1,14 @@
+{
+  "scripts/npc_daily_life.gd": {
+    "base_sha256": "5c03830a225745ec34b06697e70e57992dcb16f017c52d9bfaefa0761072164e",
+    "proposed_sha256": "7f87c74c74498146de43bab974618897ca4264bc8c058e494875d8c1df9c6774"
+  },
+  "scripts/npc_visual/npc_local_preview_hit_owner.gd": {
+    "base_sha256": "a23f10b297212593ab210bfc428f3b1095aa5f1b4a3ba00c465546a422385e55",
+    "proposed_sha256": "501ee2c7bd32fdf07e96b6dcc9f1fbfc646b4a5a5391c323472d469d069f8312"
+  },
+  "scripts/npc_visual/npc_resident_diag.gd": {
+    "base_sha256": "ec2a4f6fe3c2ec70538359702169b8b97e72ffee154488fde931bfc8f9db1ab4",
+    "proposed_sha256": "7e97f446977f40653e5b032f5199ac1e1b2ef1ba60feeaf1c50170812e49ea36"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "run": "candidate02",
+  "source": "native main_city scene, real placed staff/counter, ordinary perspective camera",
+  "reviewed_images": [
+    "medic_front.png",
+    "medic_side.png",
+    "medic_case.png"
+  ],
+  "findings": [
+    "Front: white upper coat, lapels and case read at ordinary staff interaction distance; existing floating venue labels overlap the cap from this exact angle.",
+    "Side: white knee-length coat panels, pockets, cap and retained dark trousers/shoes are distinct; no visible body breakthrough in inspected standing pose.",
+    "Close case: U-shaped handle, lid rim, latches/notches, feet and red cross are visible; rear hinges are in geometry but not shown by these angles.",
+    "Canonical staff animation and 20 Hz update remain unchanged; source helper adds no callback, collider or pose write."
+  ],
+  "scope": "Three native rendered standing views plus functional service fixture; not exhaustive animation/performance acceptance."
+}

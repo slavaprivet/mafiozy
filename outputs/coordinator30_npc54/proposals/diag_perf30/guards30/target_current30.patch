@@ -1,0 +1,59 @@
+--- base/lifecycle30.target_current
++++ proposed/target_current
+@@ -1,9 +1,50 @@
+ func target_current(token: Dictionary) -> bool:
+ 	if not Thread.is_main_thread() or _busy or _disposed or token.get("ok") != true or token.get("source_authority") != false: return false
+-	var body: Variant = token.get("body")
+-	if not is_instance_valid(body) or not body is CharacterBody3D: return false
+-	var fresh: Dictionary = target_from_collider(body)
+-	if not fresh.get("ok", false): return false
+-	for key: String in ["session_id", "source_id", "bridge_id", "render_id", "life_generation", "descriptor_sha256", "placement_mode", "body_instance_id", "body_rid", "rig", "rig_instance_id", "rig_epoch"]:
+-		if token.get(key) != fresh.get(key): return false
++	var body30: Variant = token.get("body")
++	if not is_instance_valid(body30) or not body30 is CharacterBody3D: return false
++	# DSH_TARGETFAST: _admit_record() writes this exact source_id into the body
++	# (:358) BEFORE record.body is set (:379), inside the host's _busy section, so the
++	# record owning this body30 is one Dictionary lookup away; bodies are unique, so
++	# this is the record the scan below would have found. Every check that follows is
++	# the original one, re-checked on the selected record; when the O(1) lookup cannot
++	# prove the identity (missing/foreign meta) the original scan runs verbatim.
++	var id := ""
++	if _dsh_target_fast() != 0:
++		id = str(body30.get_meta("source_id", ""))
++		if not id.is_empty():
++			if not _records.has(id): id = ""
++			else:
++				var dsh_candidate: Dictionary = _records[id]
++				if dsh_candidate.get("body") != body30: id = ""
++	if id.is_empty():
++		for scan_id: String in _records:
++			var scan_record: Dictionary = _records[scan_id]
++			if not _living(scan_record) or not is_instance_valid(scan_record.body) or scan_record.body != body30 or not is_instance_valid(scan_record.motion): continue
++			id = scan_id
++			break
++	if id.is_empty(): return false
++	var record: Dictionary = _records[id]
++	if not _living(record) or not is_instance_valid(record.body) or record.body != body30 or not is_instance_valid(record.motion): return false
++	var body: CharacterBody3D = record.body
++	if body.get_meta("source_id", "") != id or body.get_meta("session_id", "") != _session or body.get_meta("descriptor_sha256", "") != record.row.descriptor_sha256 or body.get_child_count() < 2: return false
++	var shape: Node = body.get_child(0)
++	if not shape is CollisionShape3D or shape.disabled or not shape.shape is CapsuleShape3D or not is_equal_approx(shape.shape.radius, .36) or not is_equal_approx(shape.shape.height, HEIGHT): return false
++	if body.collision_layer != 1 or body.collision_mask != 1 or body.get_parent() != _scene.get_ref(): return false
++	# DSH_RIGCACHE: cached rig lookup, same single-rig requirement.
++	var rig: Skeleton3D = _current_record_rig(record)
++	if rig == null: return false
++	# Allocation-free equivalent of the public fresh token, with live validation on
++	# EVERY call. No frame cache may outlive same-frame death/rig/collider changes.
++	if token.get("session_id") != _session:return false
++	if token.get("source_id") != id:return false
++	if token.get("bridge_id") != record.row.bridge_id:return false
++	if token.get("render_id") != record.row.bridge_id:return false
++	if token.get("life_generation") != record.generation:return false
++	if token.get("descriptor_sha256") != record.row.descriptor_sha256:return false
++	if token.get("placement_mode") != record.get("placement_mode","NONE"):return false
++	if token.get("body_instance_id") != body.get_instance_id():return false
++	if token.get("body_rid") != body.get_rid():return false
++	if token.get("rig") != rig:return false
++	if token.get("rig_instance_id") != rig.get_instance_id():return false
++	if token.get("rig_epoch") != rig.get_instance_id():return false
+ 	return true

@@ -1,0 +1,17 @@
+{
+  "files": {
+    "scripts/hospital/npc_simple_hospital.gd": {
+      "before": "d0fc9ec4bac901225322c9b9e1d4a7ace18bf6a79b72ea82adf1221d52b9653a",
+      "after": "16c6169dcdd774fff57ee2b796ad950882669a7319091daf47a67a679fed7aaf"
+    },
+    "scripts/npc_city_population.gd": {
+      "before": "1b55c8421779a58e624550ab16265d4f2f5085c717d60078b963e1aa5ed26bcd",
+      "after": "c8f251580914bb39556d314e604e2632c4787f4508548753a0c36d32c8db13d1"
+    }
+  },
+  "helper": "9435c6e9497eb4f7dd66dc85e02c73362819605623b997cd408f915d6ca2d53a",
+  "source_rows_unchanged": true,
+  "max_fallback_probes": 384,
+  "physics_admission_unchanged": true,
+  "native_verified": false
+}

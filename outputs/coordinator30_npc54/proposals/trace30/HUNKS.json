@@ -1,0 +1,46 @@
+{
+  "changes": [
+    {
+      "file": "scripts/hospital/npc_simple_hospital.gd",
+      "before": "func _emit(result: String) -> void:\n\t_event=result",
+      "after": "func _emit(result: String) -> void:\n\t_event=result\n\tif not preload(\"res://scripts/city/runtime/npc_runtime_trace30.gd\").enabled():return"
+    },
+    {
+      "file": "scripts/npc_city_population.gd",
+      "before": "\t\t_city_fallback_ring_cache = 19",
+      "after": "\t\t_city_fallback_ring_cache = 24 # Resident25 starts 44.2m from the nearest dry cell; 384 probes stay below512."
+    },
+    {
+      "file": "scripts/npc_city_population.gd",
+      "before": "int(argument.trim_prefix(\"--city-spawn-rings=\")), 16, 19)",
+      "after": "int(argument.trim_prefix(\"--city-spawn-rings=\")), 16, 24)"
+    },
+    {
+      "file": "scripts/npc_city_population.gd",
+      "before": "\t\tprint(\"DSH_PHYS hz=\",\"%.1f\" % (float(dsh_ticks)/dsh_dt),\" render_fps=\",Engine.get_frames_per_second(),\" drawn=\",Engine.get_frames_drawn(),\" city_ready=\",city_ready,\" phase=\",str(_startup_progress.get(\"phase\",\"\")))",
+      "after": "\t\tif preload(\"res://scripts/city/runtime/npc_runtime_trace30.gd\").enabled():print(\"DSH_PHYS hz=\",\"%.1f\" % (float(dsh_ticks)/dsh_dt),\" render_fps=\",Engine.get_frames_per_second(),\" drawn=\",Engine.get_frames_drawn(),\" city_ready=\",city_ready,\" phase=\",str(_startup_progress.get(\"phase\",\"\")))"
+    },
+    {
+      "file": "scripts/npc_city_population.gd",
+      "before": "\t\t\tprint(\"DSH_STEPSPERFRAME h0=\",dsh_spf_zero,\" h1=\",_dsh_spf_h1,\" h2=\",_dsh_spf_h2,\" h3plus=\",_dsh_spf_h3,\" frames=\",dsh_spf_frames,\" steps=\",_dsh_spf_steps_total,\" steps_per_frame=\",(\"0.00\" if dsh_spf_frames<=0 else \"%.2f\" % (float(_dsh_spf_steps_total)/float(dsh_spf_frames))),\" render_fps_avg=\",(\"0.0\" if dsh_spf_dt<=0.0 else \"%.1f\" % (float(dsh_spf_frames)/dsh_spf_dt)))",
+      "after": "\t\t\tif preload(\"res://scripts/city/runtime/npc_runtime_trace30.gd\").enabled():print(\"DSH_STEPSPERFRAME h0=\",dsh_spf_zero,\" h1=\",_dsh_spf_h1,\" h2=\",_dsh_spf_h2,\" h3plus=\",_dsh_spf_h3,\" frames=\",dsh_spf_frames,\" steps=\",_dsh_spf_steps_total,\" steps_per_frame=\",(\"0.00\" if dsh_spf_frames<=0 else \"%.2f\" % (float(_dsh_spf_steps_total)/float(dsh_spf_frames))),\" render_fps_avg=\",(\"0.0\" if dsh_spf_dt<=0.0 else \"%.1f\" % (float(dsh_spf_frames)/dsh_spf_dt)))"
+    },
+    {
+      "file": "scripts/npc_city_population.gd",
+      "before": "\t\tprint(\"DSH_NAVSTEP steps/s=\",\"%.0f\" % (float(dsh_step_delta)/dsh_step_dt),\" step_us/s=\",dsh_step_sum,\" avg_us=\",(\"0\" if dsh_step_delta<=0 else \"%.1f\" % (float(dsh_step_sum)/float(dsh_step_delta))),\" max_us=\",int(dsh_step_now[\"step_us_max\"]),\" blocked/s=\",\"%.0f\" % (float(dsh_step_blocked)/dsh_step_dt))",
+      "after": "\t\tif preload(\"res://scripts/city/runtime/npc_runtime_trace30.gd\").enabled():print(\"DSH_NAVSTEP steps/s=\",\"%.0f\" % (float(dsh_step_delta)/dsh_step_dt),\" step_us/s=\",dsh_step_sum,\" avg_us=\",(\"0\" if dsh_step_delta<=0 else \"%.1f\" % (float(dsh_step_sum)/float(dsh_step_delta))),\" max_us=\",int(dsh_step_now[\"step_us_max\"]),\" blocked/s=\",\"%.0f\" % (float(dsh_step_blocked)/dsh_step_dt))"
+    },
+    {
+      "file": "scripts/npc_city_population.gd",
+      "before": "\t\tprint(\"DSH_CITY f=\",frame,\" fps=\",Engine.get_frames_per_second(),\" ready=\",city_ready,\" phase=\",str(_startup_progress.get(\"phase\",\"\")),\" births=\",int(_startup_progress.get(\"birth_attempts\",0)),\" probes=\",int(_startup_progress.get(\"fallback_probes\",0)),\" bound=\",int(_startup_progress.get(\"health_bound\",0)),\" nav=\",navigation_us,\" health=\",health_us,\" daily=\",daily_us,\" resid=\",residents_us,\" fx=\",effects_us,\" total=\",Time.get_ticks_usec()-started,\" fx_blood=\",_dsh_fx_blood_steps,\" fx_marks=\",_dsh_fx_marks_steps,\" fx_active=\",_dsh_fx_active_steps,\" fx_owners=\",hit_owners.size(),\" fx_idle_deferred=\",_dsh_fx_deferred_steps,\" fx_idle_skipped=\",_dsh_fx_skipped_steps,\" fx_idle_bypass=\",_dsh_fx_bypass_steps)",
+      "after": "\t\tif preload(\"res://scripts/city/runtime/npc_runtime_trace30.gd\").enabled():print(\"DSH_CITY f=\",frame,\" fps=\",Engine.get_frames_per_second(),\" ready=\",city_ready,\" phase=\",str(_startup_progress.get(\"phase\",\"\")),\" births=\",int(_startup_progress.get(\"birth_attempts\",0)),\" probes=\",int(_startup_progress.get(\"fallback_probes\",0)),\" bound=\",int(_startup_progress.get(\"health_bound\",0)),\" nav=\",navigation_us,\" health=\",health_us,\" daily=\",daily_us,\" resid=\",residents_us,\" fx=\",effects_us,\" total=\",Time.get_ticks_usec()-started,\" fx_blood=\",_dsh_fx_blood_steps,\" fx_marks=\",_dsh_fx_marks_steps,\" fx_active=\",_dsh_fx_active_steps,\" fx_owners=\",hit_owners.size(),\" fx_idle_deferred=\",_dsh_fx_deferred_steps,\" fx_idle_skipped=\",_dsh_fx_skipped_steps,\" fx_idle_bypass=\",_dsh_fx_bypass_steps)"
+    },
+    {
+      "file": "scripts/npc_city_population.gd",
+      "before": "\t\tprint(\"DSH_PERF f=\",frame,\" fps=\",Engine.get_frames_per_second(),\" process_ms=\",int(Performance.get_monitor(Performance.TIME_PROCESS)*1000.0),\" physics_ms=\",int(Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)*1000.0),\" draw_calls=\",int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),\" prims=\",int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)),\" nodes=\",int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)),\" bodies=\",int(Performance.get_monitor(Performance.PHYSICS_3D_ACTIVE_OBJECTS)),\" ready=\",city_ready)",
+      "after": "\t\tif preload(\"res://scripts/city/runtime/npc_runtime_trace30.gd\").enabled():print(\"DSH_PERF f=\",frame,\" fps=\",Engine.get_frames_per_second(),\" process_ms=\",int(Performance.get_monitor(Performance.TIME_PROCESS)*1000.0),\" physics_ms=\",int(Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)*1000.0),\" draw_calls=\",int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),\" prims=\",int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)),\" nodes=\",int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)),\" bodies=\",int(Performance.get_monitor(Performance.PHYSICS_3D_ACTIVE_OBJECTS)),\" ready=\",city_ready)"
+    }
+  ],
+  "helper": "scripts/city/runtime/npc_runtime_trace30.gd",
+  "retained": "Every simulation and bounded timing counter; only verbose JSON/floor debug query and recurring console diagnostics gated"
+}

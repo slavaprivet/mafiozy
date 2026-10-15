@@ -29,6 +29,7 @@ func step(life: RefCounted, delta: float, row: Dictionary) -> bool:
 		# Medical need (including retry cooldown) and the complete hospital visit own
 		# movement until the resident has healed and physically left the building.
 		allowed = allowed and not life._hospital51_below_threshold(row) and not life._needs_hospital(row) and str(life._goal.get("kind", "")) != "hospital"
+		allowed = allowed and (life._threat30 == null or not life._threat30.active())
 		allowed = allowed and life._phase != "INCIDENT_REACTING" and not life._incident_waiting_release and not life._interrupting
 		var record: Dictionary = life._host.get("_records").get(str(life._token.source_id), {})
 		var retaliation: RefCounted = record.get("melee_retaliation")

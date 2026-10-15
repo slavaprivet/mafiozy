@@ -1,0 +1,10 @@
+--- a/scripts/npc_daily_life.gd
++++ b/scripts/npc_daily_life.gd
+@@ -1210,6 +1210,7 @@
+ 	receipt["hospital"] = {"goal_id":_goal.get("goal_id", ""), "treatment_ms":_now - _hospital_treat_started, "hp_before":hp_before, "hp_after":row.hp, "inside":true, "policy":"user_local_hospital51"}
+ 	adapter._events[event_id] = receipt.duplicate(true)
+ 	_health.last_result = receipt.duplicate(true)
++	preload("res://scripts/npc_visual/npc_heal_fx30.gd").confirmed30(_health,event_id)
+ 	_hospital_healed = true
+ 	_dsh_hp_apply_pending = false
+ 	return true

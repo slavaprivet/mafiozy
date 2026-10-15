@@ -1,0 +1,20 @@
+--- a/scripts/npc_visual/npc_local_preview_hit_owner.gd
++++ b/scripts/npc_visual/npc_local_preview_hit_owner.gd
+@@ -303,6 +303,8 @@
+ ## decision, and without --city-resident-name there is no caption to paint.
+ func _dsh_refresh_caption(body: Node3D) -> void:
+ 	if not ResDiag.hp_label_on() and not ResDiag.diag_on(): return
++	if ResDiag.simple_vitals_on():
++		ResDiag.repaint_focus30(body); return
+ 	var name: String = str(body.get_meta("dsh_test_resident_name", ""))
+ 	if name.is_empty(): return
+ 	ResDiag.refresh_after_hit(body, name, _row)
+@@ -313,6 +315,8 @@
+ ## text and nothing else; only the owner's named resident has a caption at all.
+ func _dsh_repaint_caption() -> void:
+ 	if not _ready: return
++	if ResDiag.simple_vitals_on() and not ResDiag.diag_on():
++		ResDiag.repaint_focus30(_token.get("body")); return
+ 	if not ResDiag.hp_label_on() and not ResDiag.diag_on(): return
+ 	var body: Variant = _token.get("body")
+ 	if not is_instance_valid(body) or not body is Node3D: return

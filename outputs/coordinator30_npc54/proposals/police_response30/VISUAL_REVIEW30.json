@@ -1,0 +1,24 @@
+{
+  "accepted": true,
+  "run": "models02",
+  "images_viewed": [
+    "police_front.png",
+    "police_side_a.png",
+    "police_side_b.png",
+    "police_cap.png",
+    "police_gait.png"
+  ],
+  "findings": [
+    "Both canonical male variants distinct in height/build/skin/brows",
+    "Navy uniform and peaked cap with black visor and gold emblem are visible at full-body camera",
+    "No remaining exposed crown or crew tufts in cap closeup/side views",
+    "Cap remains attached during canonical gait",
+    "No authority/physics/AI/world population instantiated"
+  ],
+  "first_run": "models01 native passed347; visual rejected for exposed crown/crew tufts; preserved",
+  "limits": [
+    "Presentation preview, not patrol/service behaviour",
+    "No FPS acceptance",
+    "Future physical owner must create legitimate authority, body, collision, health, lifecycle independently"
+  ]
+}

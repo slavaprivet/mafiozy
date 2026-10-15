@@ -1,0 +1,6 @@
+{
+  "file": "scripts/npc_daily_life.gd",
+  "before": "\t\tvar world30: RefCounted = scene30.get_meta(\"npc_threat_world30\",null)",
+  "after": "\t\tvar world30: RefCounted = scene30.get_meta(\"npc_threat_world30\") if scene30.has_meta(\"npc_threat_world30\") else null",
+  "reason": "Godot null default still logs missing metadata when threat flag is disabled; preserve no-threat lifecycle"
+}

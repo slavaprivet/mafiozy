@@ -1,0 +1,22 @@
+{
+  "status": "NATIVE_VERIFIED_SCOPED_PACKAGE",
+  "owner": "release_qa30",
+  "scope": "Generalize exact authenticated lifecycle to 287 preserved resident identities; staff excluded",
+  "design": [
+    "One lazy event-driven controller per admitted resident; share immutable packet data",
+    "Per-ID owner registry and capsule snapshot; generation/health receipt guards remain strict",
+    "Corpse retains ragdoll, no daily/health/navigation work; living neighbours keep working",
+    "Shared respawn admission gate: at most one expensive birth per physics frame",
+    "Spawn current floor/capsule occupancy validated, retries wait; new owner/body/health/life/account/fullHP/energy100/cash1000",
+    "Integrate population30 exact active/physical index wake/forget hooks; no removal by dead flag before corpse teardown"
+  ],
+  "native_acceptance": [
+    "At least3 simultaneous real residents, two authenticated deaths staggered, third keeps moving",
+    "Duplicate/stale hit does not extend timer or affect successor",
+    "Occupied spawn remains cold then retries when vacant",
+    "Both new generations retain source identities and regain full needs; old claims/queues/effects gone",
+    "Several cycles return live controller/body counts to cohort size"
+  ],
+  "handoff": "HANDOFF30.md",
+  "manifest": "MANIFEST30.json"
+}

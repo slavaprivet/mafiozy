@@ -19,7 +19,7 @@ func _box(parent: Node3D, size: Vector3, at: Vector3, color: Color) -> void:
 
 func begin(rig: Skeleton3D, kind: String) -> bool:
 	clear()
-	if kind not in ["book", "newspaper", "camera", "phone"]: return true
+	if kind not in ["book", "newspaper", "camera", "phone", "police_phone30"]: return true
 	if not is_instance_valid(rig) or rig.find_bone("hand_l") < 0: return false
 	_attachment = BoneAttachment3D.new(); _attachment.name = "AmbientProp28"; _attachment.bone_name = "hand_l"
 	_attachment.set_meta("ambient_prop28", true)
@@ -38,7 +38,7 @@ func begin(rig: Skeleton3D, kind: String) -> bool:
 			for column: int in 3:
 				for line: int in 5:
 					_box(_root, Vector3(.105,.002,.008), Vector3((column-1)*.13,.005,-.11+line*.045), Color("5c5b55"))
-		"phone":
+		"phone", "police_phone30":
 			_box(_root,Vector3(.075,.145,.012),Vector3.ZERO,Color("202326"))
 			_box(_root,Vector3(.065,.125,.002),Vector3(0,0,-.0075),Color("718fa2"))
 			_box(_root,Vector3(.047,.007,.002),Vector3(0,.037,-.009),Color("d5e4e8"))
@@ -61,7 +61,7 @@ func sync_after_pose(rig: Skeleton3D, kind: String) -> void:
 	var left: int = rig.find_bone("hand_l"); var right: int = rig.find_bone("hand_r")
 	var chest: int = rig.find_bone("chest"); var head: int = rig.find_bone("head")
 	if left < 0 or right < 0 or chest < 0 or head < 0: hide(); return
-	if kind == "phone":
+	if kind in ["phone", "police_phone30"]:
 		var palm: int = rig.find_bone("socket_hand_l")
 		var upper_l: int = rig.find_bone("upperarm_l"); var upper_r: int = rig.find_bone("upperarm_r")
 		if palm < 0 or upper_l < 0 or upper_r < 0: hide(); return
@@ -77,7 +77,12 @@ func sync_after_pose(rig: Skeleton3D, kind: String) -> void:
 		reach30 *= .5
 		var center30: Vector3 = rig.get_bone_global_pose(palm).origin+(up30*.10+side30*.06)*reach30
 		var frame30: Basis = rig.global_basis*Basis(side30,up30,forward30)
-		_root.global_transform = Transform3D(frame30.orthonormalized()*Basis(Vector3.RIGHT,-.22),rig.to_global(center30))
+		if kind == "police_phone30":
+			center30 = rig.get_bone_global_pose(palm).origin+up30*reach30*.09
+			frame30 = rig.global_basis*Basis(forward30,up30,-side30)
+			_root.global_transform = Transform3D(frame30.orthonormalized(),rig.to_global(center30))
+		else:
+			_root.global_transform = Transform3D(frame30.orthonormalized()*Basis(Vector3.RIGHT,-.22),rig.to_global(center30))
 		_attachment.visible = true
 		return
 	var a: Vector3 = rig.to_global(rig.get_bone_global_pose(left).origin)

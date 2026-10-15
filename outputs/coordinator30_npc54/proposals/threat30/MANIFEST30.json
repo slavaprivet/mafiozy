@@ -1,0 +1,22 @@
+{
+  "status": "COMPONENT_VERIFIED_READY_FOR_COHERENT_CITY_QA",
+  "component_checks": 17,
+  "production_city_accepted": false,
+  "phone_visual_accepted": false,
+  "police_dispatch_accepted": false,
+  "performance_accepted": false,
+  "source_pins": {
+    "apply30.py": "f6092950aaf3cd954b740cb8b9733d04398858756250561b1cb26e3b35679e1c",
+    "INTEGRATION_HUNKS.json": "28ddfc14e11a265f06c692a252a5944283438d2ae161ea631a920cba9000a1e4",
+    "HANDOFF_THREAT30.md": "188df4cf582d3874bdd1139c798d92774a198c61c95845bba6d6f68d4117b3cc",
+    "patch/scripts/npc_ambient/ambient_pose28.gd": "fd358c40a100169a3e39efeec77fd25353b0c461bd08694493d9214b0cf3a050",
+    "patch/scripts/npc_ambient/ambient_props28.gd": "20552fc71d9a163cd3e79c9452cc069a70765cdbd036d8cd3eac61f9c88a5704",
+    "patch/scripts/city/runtime/npc_threat_life30.gd": "9108b854190f56951a6419b197d6c8bb236b6eab72b6a86b7f9542d12192e7b0",
+    "patch/scripts/city/runtime/npc_threat_route30.gd": "e8ab64124321fa89fd3852b9c8a6cf4bdc06127e42dcc55205f8c726044b9abe",
+    "patch/scripts/city/runtime/npc_threat_world30.gd": "0e2230076498dde243a207a13e92600392be8f549c42d0a5a1f28a6afe53aab8",
+    "component_fixture30.gd": "0ebdfb0e406dc5880a0ff64dde52e5668d9a7fc528192be16028650d94998e6f",
+    "runs/component04/COMPONENT30.json": "9197e5e585c9ca1ac9ac48d4aed9f6964d58b553bd19c17416c4ff161ab9e2ba",
+    "runs/component04/SCHEDULER_RUN.json": "9b1416010d31e10305da5569e6716660aba3713663adb425f5187f3979a70495",
+    "runs/component04/FIXTURE_SOURCE_PINS.json": "43430e2d437de762dc5171e17829b4f4038859d5d1a148a6ff9d506c2ee4f03e"
+  }
+}

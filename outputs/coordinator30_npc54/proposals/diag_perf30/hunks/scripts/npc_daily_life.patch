@@ -1,0 +1,36 @@
+--- a/scripts/npc_daily_life.gd
++++ b/scripts/npc_daily_life.gd
+@@ -285,6 +285,8 @@
+ ## with no throttle of any kind in between - as well as from the hit itself.
+ func dsh_repaint_caption() -> void:
+ 	if _disposed or _walk == null: return
++	if ResDiag.simple_vitals_on() and not ResDiag.diag_on():
++		ResDiag.repaint_focus30(_token.get("body")); return
+ 	if not ResDiag.hp_label_on() and not ResDiag.diag_on(): return
+ 	var row: Dictionary = _life()
+ 	if row.is_empty(): return
+@@ -293,6 +295,8 @@
+ ## DSH_RESDIAG: one read-only head-up display per resident, from the existing snapshots.
+ func _dsh_resdiag_step(row: Dictionary) -> void:
+ 	if not ResDiag.diag_on() and not ResDiag.hp_label_on(): return
++	if ResDiag.simple_vitals_on() and not ResDiag.diag_on():
++		ResDiag.repaint_focus30(_token.get("body")); return
+ 	var body: Variant = _token.get("body")
+ 	if not is_instance_valid(body) or not body is Node3D: return
+ 	var walk: Dictionary = _walk.snapshot() if _walk != null else {}
+@@ -1794,6 +1798,7 @@
+ 	return true
+ 
+ func _end_life() -> void:
++	ResDiag.unregister_life30(str(_token.get("source_id","")),self)
+ 	if _threat30 != null: _threat30.cancel("death"); _threat30=null
+ 	_attention29.clear(false)
+ 	_ambient29_cancel("death")
+@@ -1861,6 +1866,7 @@
+ 	_hospital_support51=null
+ 	_roam51_active=false
+ 	if _walk!=null: _walk.dispose()
++	ResDiag.unregister_life30(str(_token.get("source_id","")),self)
+ 	_disposed=true; _phase="DISPOSED"; _factory=Callable()
+ 
+ func _ambient29_cancel(reason: String) -> void:

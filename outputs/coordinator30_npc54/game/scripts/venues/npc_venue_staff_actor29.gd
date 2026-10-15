@@ -29,6 +29,10 @@ func configure29(site: Node3D, registry: RefCounted, venue: String, point: Vecto
 	_motion = Node3D.new(); _motion.name = "StaffVisual29"; add_child(_motion)
 	_motion.add_child(appearance.visual); _motion.rotation.y = PI
 	_skeleton = appearance.skeleton
+	if role29 == "medic":
+		var style30: Dictionary = preload("npc_medic_style30.gd").dress30(_skeleton)
+		if not style30.get("ok",false): push_error("MEDIC30 "+str(style30)); return false
+		set_meta("medic_style30",style30)
 	if _skeleton.get_bone_count() != 28: return false
 	for bone: int in range(_skeleton.get_bone_count()):
 		_poses.append(_skeleton.get_bone_pose(bone)); _bones[str(_skeleton.get_bone_name(bone))] = bone

@@ -1,0 +1,11 @@
+{
+  "status": "READY_SCOPED_NATIVE",
+  "runs": [
+    "guards_off02",
+    "guards_on02"
+  ],
+  "checks_per_run": 43,
+  "shared_game_modified": false,
+  "fps_accepted": false,
+  "apply": "apply_guards30.py"
+}

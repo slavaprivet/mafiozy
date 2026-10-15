@@ -1,0 +1,35 @@
+{
+  "city02_native_passed": true,
+  "checks": {
+    "actual_hit_reaction": true,
+    "aimed_at": true,
+    "initial_hp_full": true,
+    "native_near_shot": true,
+    "no_fake_police_arrival": true,
+    "production_ordinary_activity_completed": true,
+    "quiet_15_released": true,
+    "real_flee": true,
+    "real_hit_chain": true,
+    "real_phone": true,
+    "visible_weapon": true
+  },
+  "max_flee_speed_mps": 1.98000870645046,
+  "phone_committed_frames": 237,
+  "visual_phone_quality_accepted": false,
+  "visual_reason": "The captured phone frame is occluded by the player; native sole-writer pose and prop commits are proven, clear framing remains pending.",
+  "production_service_exit_accepted": false,
+  "performance_accepted": false,
+  "raw_retry_status": "isolated revision2 pending native fixture",
+  "proofs": {
+    "runs/city02/CITY_THREAT30.json": "7af0ade6fd8ad9243e3a2c2d70f88751e3bc7f9de16eac9d56245bf3b52f20e9",
+    "runs/city02/RUN_CHECK.json": "59ba5bdf614d213ec472a77f19903b9a2d04d960da90b08675207082ca9ff09d",
+    "runs/city02/engine/SCHEDULER_RUN.json": "2bd52fbe4972ffea879c599b9878b9f2ced9c9425e562ca02f445923a91e609d",
+    "runs/city02/SOURCE.json": "25b31cb317a18dab07fd377d6e42dba407d7ec7ddf67e17ceb26bae6aca0da20",
+    "runs/city02/HARNESS_PINS.json": "66d232cb2c8ab56ec97d9439a75a6d1639c245a762ccd93350045beb5f37b048",
+    "runs/city02/PHONE30.png": "b371d9ab96d072f7551c55977a971692dc952dca75c0e750052070f373325be6",
+    "runs/component05/SCHEDULER_RUN.json": "90b659e5caeb5a42da2b535bb1f0ba828eda5abb5e5568a84687eeb309f17f30",
+    "FIX_DISPOSE30.json": "741bcc94f33ba6ab6cf4f45fdee4c1b9c86ce29960171db57a731b13320320cf",
+    "FIX_META30.json": "ad3f8b4a2d93aaa05e1189fb539949a4c958e319b7f6c1fba164bb27e33e5d4f",
+    "FIX_FAIR_PERCEPTION30.json": "28dc57678eb25c2d327608462cca81dfdc47a6770fb7391a94d2702d2a34050d"
+  }
+}

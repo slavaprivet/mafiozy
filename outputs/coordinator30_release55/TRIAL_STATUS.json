@@ -1,0 +1,23 @@
+{
+  "status": "OPENED_USER_REQUESTED_MASS_TRIAL",
+  "created_at": "2026-10-15T01:33:55.846802+00:00",
+  "user_request": "Launch the scene with200+ residents now; investigate bugs and load afterwards. Save this build to main and GitHub after launch.",
+  "source_import_passed": true,
+  "performance_accepted": false,
+  "pending": [
+    "long mass performance/memory",
+    "service exit during threat"
+  ],
+  "component_evidence": [
+    "proposals/threat30/runs/city02",
+    "proposals/lifecycle30/runs/multi05",
+    "proposals/diag_perf30/runs/hp03",
+    "proposals/diag_perf30/runs/guards_off02",
+    "proposals/diag_perf30/runs/guards_on02",
+    "proposals/heal_fx30/runs/visual03",
+    "proposals/police_response30/runs/models02"
+  ],
+  "actual_residents": 287,
+  "ordinary_ready": true,
+  "source_pins_reverified_after_launch": true
+}

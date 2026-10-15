@@ -1,0 +1,6 @@
+{
+  "file": "scripts/city/runtime/npc_threat_world30.gd",
+  "before": "\tvar nearby: Array=_population.get_ref().query_near30(origin,VISIBLE_RADIUS,8,64,\"perception\")",
+  "after": "\tif _los_left<=0:return\n\tvar nearby: Array=_population.get_ref().query_near30(origin,VISIBLE_RADIUS,_los_left,64,\"perception\")",
+  "reason": "Only dequeue as many fair candidates as can be examined by current LOS budget; never permanently skip 6 of each dense batch8"
+}

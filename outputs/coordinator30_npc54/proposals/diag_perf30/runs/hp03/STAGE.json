@@ -1,0 +1,26 @@
+{
+  "lease": {
+    "id": "3d5a869285b6414382139ed093a53507",
+    "owner": {
+      "pid": 18672,
+      "creation_filetime": "134365010156560584"
+    },
+    "mode": "headless",
+    "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator30_npc54\\proposals\\ambient30\\runs\\oracle01\\project",
+    "access": "write",
+    "children": [],
+    "deadline": 969300.8836995,
+    "queued_at": 969120.8836995,
+    "ticket": 1570,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.4778733999701217
+  },
+  "source_files_changed": [
+    "scripts/npc_daily_life.gd",
+    "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+    "scripts/npc_visual/npc_resident_diag.gd"
+  ],
+  "changed_bytes": 191467,
+  "reused_project": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\ambient30\\runs\\oracle01\\project"
+}

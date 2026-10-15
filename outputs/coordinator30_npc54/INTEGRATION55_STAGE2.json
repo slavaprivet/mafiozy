@@ -1,0 +1,49 @@
+{
+  "files": [
+    {
+      "file": "scripts/hospital/npc_single_lifecycle28.gd",
+      "before": "910537f5c7994b5320a8ac75e722a4f4170d9100bb85d6997ba118628cee8c1e",
+      "after": "148c36b82c468d3d3a64c0ba5a054803aec77e4448e55621fb0214673f417047"
+    },
+    {
+      "file": "scripts/npc_visual/preview_resident_host.gd",
+      "before": "7f0d9586d218e53cf04b0fb5850ca6c3ba10ab475b0f1f049eb88e7b936ad898",
+      "after": "4e73dc5133bb4fd40408bfab848b35f7a78b5c0a3c428df1e4809b3c159aedaa"
+    },
+    {
+      "file": "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "before": "a23f10b297212593ab210bfc428f3b1095aa5f1b4a3ba00c465546a422385e55",
+      "after": "40fccfa5e475de2f6d0acbe1c8159e1c276602316d482fc2128897d01c8fab91"
+    },
+    {
+      "file": "scripts/npc_city_daily.gd",
+      "before": "fd0cb6c810f9d1d3b40cb9ced476d3c5555f2baff91da134909c4dba11d68a58",
+      "after": "1d5552709eabe886413c4d3bea310bf99f42b736d69be4425e2ca47db4f8c64f"
+    },
+    {
+      "file": "scripts/city/runtime/npc_city_world_policy.gd",
+      "before": "767c1ce111910dfa25983e0162603761d3987af83accd12cad412127efa7a0df",
+      "after": "a3bf6b8041706ce8641ee9a0756121561fe394acfb357a6d55a38fff1b931e70"
+    },
+    {
+      "file": "scripts/npc_city_population.gd",
+      "before": "c8f251580914bb39556d314e604e2632c4787f4508548753a0c36d32c8db13d1",
+      "after": "1449483336cd974a817729049fda4bdda03422b7147d216ea97df937a5679ba4"
+    },
+    {
+      "file": "scripts/hospital/npc_population_lifecycle30.gd",
+      "before": null,
+      "after": "5c9513d2150a3d4c320d1ea47f190849506c4a0de4689422b3ef8bc2e114b6d3"
+    },
+    {
+      "file": "scripts/city/runtime/npc_threat_world30.gd",
+      "before": "d45243fb824924cc718f2bd688a0d88a23c1b01d49f51e6f96fd4ef3ebe8c381",
+      "after": "e70ad35aa04edb57f99217dd181c8509d9e04c2fa864ce9202717d646a6f81ab"
+    }
+  ],
+  "packages": [
+    "lifecycle30",
+    "threat30/raw_shots"
+  ],
+  "ordinary_pointer_changed": false
+}

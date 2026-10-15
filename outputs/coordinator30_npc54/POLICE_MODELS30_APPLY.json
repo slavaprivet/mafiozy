@@ -1,0 +1,14 @@
+{
+  "game": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\game",
+  "files": [
+    {
+      "path": "scripts/police/npc_police_model30.gd",
+      "before": null,
+      "after": "cf25bccf493d842d690d79c46c636c2ef8b400dad4224ac1f67c2013670397ed",
+      "changed": true
+    }
+  ],
+  "world_hook_added": false,
+  "police_behaviour_enabled": false,
+  "models_only": true
+}

@@ -1,0 +1,14 @@
+{
+  "base": {
+    "apply_hunks": 11,
+    "idempotent_hunks": 11,
+    "partial_conflict_rejected": true,
+    "preserves_generic_lifecycle": false
+  },
+  "current55_lifecycle": {
+    "apply_hunks": 11,
+    "idempotent_hunks": 11,
+    "partial_conflict_rejected": true,
+    "preserves_generic_lifecycle": true
+  }
+}

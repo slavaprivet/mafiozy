@@ -1,0 +1,18 @@
+{
+  "run": "../runs/hp04",
+  "native_checks": 67,
+  "passed": true,
+  "image": "../runs/hp04/observed/focused_resident.png",
+  "reviewed": true,
+  "observations": [
+    "Actual current55 city,16 residents",
+    "Readable green card with original resident health60/60",
+    "Player and focused resident visible without camera intersection"
+  ],
+  "qa_only": [
+    "Player moved beside resident for camera framing",
+    "No resident transform/health mutation"
+  ],
+  "performance_accepted": false,
+  "no_more_engines_started": true
+}

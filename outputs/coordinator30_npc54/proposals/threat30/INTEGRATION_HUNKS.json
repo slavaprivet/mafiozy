@@ -1,0 +1,87 @@
+{
+  "source_pins": {
+    "scripts/npc_daily_life.gd": "db7181da6154da8b7579c66ace734b93971009cf7a4c8e5cd7ed70424c5f76eb",
+    "scripts/npc_visual/npc_attention29.gd": "eafe8d084bc6e3f82051372c00fe83fee8c5597b3ce1e21db660fda34be064c7",
+    "scripts/npc_city_population.gd": "9f3a18a9cb9aa090ab95c611a098ae8cafd4e9502d4b00b004e6b5bc0bb9174f",
+    "scripts/npc_ambient/ambient_pose28.gd": "eff44ab194903b0f82ef5023e8ba82119165c81a3d056c27eb3f84d5c5a36659",
+    "scripts/npc_ambient/ambient_props28.gd": "442220200fbb5994f6a4a5a023569307e98dd3e79c4dcb307808983f7315c3ae"
+  },
+  "changes": [
+    {
+      "file": "scripts/npc_daily_life.gd",
+      "before": "extends RefCounted\n",
+      "after": "extends RefCounted\nconst ThreatLife30 = preload(\"res://scripts/city/runtime/npc_threat_life30.gd\")\nvar _threat30: RefCounted\n"
+    },
+    {
+      "file": "scripts/npc_daily_life.gd",
+      "before": "\t_now=_health._now()\n\tif _attention29.step(self, delta, row):",
+      "after": "\t_now=_health._now()\n\tif _threat30 != null and _threat30.step(delta,row):\n\t\t_busy=false; return\n\tif _attention29.step(self, delta, row):"
+    },
+    {
+      "file": "scripts/npc_daily_life.gd",
+      "before": "func dsh_notice_damage() -> Dictionary:\n\t_attention29.clear()",
+      "after": "func dsh_notice_damage() -> Dictionary:\n\tvar scene30: Node3D = _dsh_life_scene()\n\tif is_instance_valid(scene30):\n\t\tvar world30: RefCounted = scene30.get_meta(\"npc_threat_world30\",null)\n\t\tif world30 != null: world30.confirmed_hit(self)\n\t_attention29.clear()"
+    },
+    {
+      "file": "scripts/npc_daily_life.gd",
+      "before": "func _end_life() -> void:\n",
+      "after": "func _end_life() -> void:\n\tif _threat30 != null: _threat30.cancel(\"death\"); _threat30=null\n"
+    },
+    {
+      "file": "scripts/npc_daily_life.gd",
+      "before": "func incident_can_hear(owner: RefCounted) -> bool:\n",
+      "after": "func threat_physics_active30() -> bool:\n\treturn _threat30 != null and _threat30.active()\n\nfunc threat_event30(event: Dictionary, world: RefCounted) -> Dictionary:\n\tif _disposed or not Thread.is_main_thread(): return {\"accepted\":false,\"reason\":\"life_retired\"}\n\tif _threat30 == null: _threat30=ThreatLife30.new()\n\treturn _threat30.accept(self,event,world)\n\nfunc incident_can_hear(owner: RefCounted) -> bool:\n"
+    },
+    {
+      "file": "scripts/npc_visual/npc_attention29.gd",
+      "before": "\t\tallowed = allowed and life._phase != \"INCIDENT_REACTING\"",
+      "after": "\t\tallowed = allowed and (life._threat30 == null or not life._threat30.active())\n\t\tallowed = allowed and life._phase != \"INCIDENT_REACTING\""
+    },
+    {
+      "file": "scripts/npc_city_population.gd",
+      "before": "const IncidentDispatcher = preload(\"res://scripts/city/runtime/npc_incident_dispatcher.gd\")",
+      "after": "const IncidentDispatcher = preload(\"res://scripts/city/runtime/npc_incident_dispatcher.gd\")\nconst ThreatWorld30 = preload(\"res://scripts/city/runtime/npc_threat_world30.gd\")"
+    },
+    {
+      "file": "scripts/npc_city_population.gd",
+      "before": "\tvar dispatcher: RefCounted=IncidentDispatcher.new()\n\tvar configured: Dictionary=dispatcher.configure(weapons,self)",
+      "after": "\tvar threats30: bool = OS.get_cmdline_user_args().has(\"--city-threat30=1\")\n\tvar dispatcher: RefCounted=ThreatWorld30.new() if threats30 else IncidentDispatcher.new()\n\tvar configured: Dictionary=dispatcher.configure(weapons,self,scene.get_meta(\"npc_police_report30\",Callable())) if threats30 else dispatcher.configure(weapons,self)"
+    },
+    {
+      "file": "scripts/npc_ambient/ambient_pose28.gd",
+      "before": "or str(value.get(\"kind\", \"\")) not in KINDS: return {}",
+      "after": "or (str(value.get(\"kind\", \"\")) not in KINDS and value.get(\"kind\") != \"police_phone30\"): return {}"
+    },
+    {
+      "file": "scripts/npc_ambient/ambient_pose28.gd",
+      "before": "\tif kind not in KINDS: return selected",
+      "after": "\tif kind not in KINDS and kind != \"police_phone30\": return selected"
+    },
+    {
+      "file": "scripts/npc_ambient/ambient_pose28.gd",
+      "before": "\t\t\"phone\":\n\t\t\tvar phone30:",
+      "after": "\t\t\"police_phone30\":\n\t\t\tvar ear30: Vector3 = head+(-_right*.27+_up*.04+_forward*.07)*_reach\n\t\t\t_palm30(\"l\",ear30-_up*_reach*.09,_up)\n\t\t\t_palm30(\"r\",_p(shoulders,-.08,-.25,.38),-_right*.7+_up*.3)\n\t\t\t_turn_global(\"head\",_forward,-.06); _turn_global(\"chest\",_up,slow*.025)\n\t\t\"phone\":\n\t\t\tvar phone30:"
+    },
+    {
+      "file": "scripts/npc_ambient/ambient_props28.gd",
+      "before": "if kind not in [\"book\", \"newspaper\", \"camera\", \"phone\"]",
+      "after": "if kind not in [\"book\", \"newspaper\", \"camera\", \"phone\", \"police_phone30\"]"
+    },
+    {
+      "file": "scripts/npc_ambient/ambient_props28.gd",
+      "before": "\t\t\"phone\":",
+      "after": "\t\t\"phone\", \"police_phone30\":"
+    },
+    {
+      "file": "scripts/npc_ambient/ambient_props28.gd",
+      "before": "\tif kind == \"phone\":",
+      "after": "\tif kind in [\"phone\", \"police_phone30\"]:"
+    },
+    {
+      "file": "scripts/npc_ambient/ambient_props28.gd",
+      "before": "\t\t_root.global_transform = Transform3D(frame30.orthonormalized()*Basis(Vector3.RIGHT,-.22),rig.to_global(center30))",
+      "after": "\t\tif kind == \"police_phone30\":\n\t\t\tcenter30 = rig.get_bone_global_pose(palm).origin+up30*reach30*.09\n\t\t\tframe30 = rig.global_basis*Basis(forward30,up30,-side30)\n\t\t\t_root.global_transform = Transform3D(frame30.orthonormalized(),rig.to_global(center30))\n\t\telse:\n\t\t\t_root.global_transform = Transform3D(frame30.orthonormalized()*Basis(Vector3.RIGHT,-.22),rig.to_global(center30))"
+    }
+  ],
+  "note": "Apply these exact hunks after population30. Never replace peer full files."
+}

@@ -1,0 +1,35 @@
+{
+  "source": "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator30_npc54\\game",
+  "files": {
+    "scripts/npc_visual/preview_resident_host.gd": {
+      "base_sha256": "2491fab33486255913231bb3382a506f6dbb869c81917d5fb267b882dfc77687"
+    },
+    "scripts/navigation/npc_avoidance_world29.gd": {
+      "base_sha256": "94c1cc60cd6cc09e5a177ea79655456673ea3b888ecfe5176dde5d2119d8f28c"
+    },
+    "scripts/npc_city_population.gd": {
+      "base_sha256": "9f3a18a9cb9aa090ab95c611a098ae8cafd4e9502d4b00b004e6b5bc0bb9174f"
+    },
+    "scripts/npc_city_daily.gd": {
+      "base_sha256": "4d5033ddbe6902931dc567d2677983682dcd1463771eff769c4528adec0f9112"
+    }
+  },
+  "native_launched": false,
+  "read_lease": {
+    "id": "43ba2da888e145b2a06e3d3be87c9902",
+    "owner": {
+      "pid": 15056,
+      "creation_filetime": "134364991832990114"
+    },
+    "mode": "headless",
+    "project": "c:\\users\\\u0441\u043b\u0430\u0432\u0430\\desktop\\\u043c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator30_npc54\\game",
+    "access": "read",
+    "children": [],
+    "deadline": 967290.4574386,
+    "queued_at": 967285.4574386,
+    "ticket": 1474,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5354311999399215
+  }
+}

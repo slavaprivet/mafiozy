@@ -1,0 +1,25 @@
+{
+  "lease": {
+    "id": "208a210c1a21496b968ef08d50b71226",
+    "owner": {
+      "pid": 21284,
+      "creation_filetime": "134364998522839402"
+    },
+    "mode": "headless",
+    "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator30_npc54\\proposals\\ambient30\\runs\\oracle01\\project",
+    "access": "write",
+    "children": [],
+    "deadline": 968137.6618038,
+    "queued_at": 967957.6618038,
+    "ticket": 1502,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 9.259120399947278
+  },
+  "source_files_changed": [
+    "scripts/npc_daily_life.gd",
+    "scripts/hospital/npc_hospital_treatment_port.gd"
+  ],
+  "changed_bytes": 116916,
+  "reused_project": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\ambient30\\runs\\oracle01\\project"
+}

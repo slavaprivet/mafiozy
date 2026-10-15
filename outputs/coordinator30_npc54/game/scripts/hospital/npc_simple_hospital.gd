@@ -556,6 +556,7 @@ func step(delta: float) -> String:
 
 func _emit(result: String) -> void:
 	_event=result
+	if not preload("res://scripts/city/runtime/npc_runtime_trace30.gd").enabled():return
 	var now: int=Time.get_ticks_msec()
 	if now-_print_ms<1000:return
 	_print_ms=now

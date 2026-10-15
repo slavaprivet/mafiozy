@@ -303,6 +303,8 @@ func _now() -> float:
 ## decision, and without --city-resident-name there is no caption to paint.
 func _dsh_refresh_caption(body: Node3D) -> void:
 	if not ResDiag.hp_label_on() and not ResDiag.diag_on(): return
+	if ResDiag.simple_vitals_on():
+		ResDiag.repaint_focus30(body); return
 	var name: String = str(body.get_meta("dsh_test_resident_name", ""))
 	if name.is_empty(): return
 	ResDiag.refresh_after_hit(body, name, _row)
@@ -313,6 +315,8 @@ func _dsh_refresh_caption(body: Node3D) -> void:
 ## text and nothing else; only the owner's named resident has a caption at all.
 func _dsh_repaint_caption() -> void:
 	if not _ready: return
+	if ResDiag.simple_vitals_on() and not ResDiag.diag_on():
+		ResDiag.repaint_focus30(_token.get("body")); return
 	if not ResDiag.hp_label_on() and not ResDiag.diag_on(): return
 	var body: Variant = _token.get("body")
 	if not is_instance_valid(body) or not body is Node3D: return
@@ -335,12 +339,11 @@ func _dsh_notice_damage() -> void:
 ## own damage pipeline (`_apply_hit` -> adapter.hit -> npc_ordinary_hit_lifecycle), so the row
 ## identity, the hp write and the label repaint can be measured headlessly, where no player
 ## can shoot. The damage number is the project's own (`Rules.damage_at`), never a new balance.
+static var _damage_probe_flag30 := -1
 func _dsh_damage_probe() -> void:
 	if _dsh_probe_fired or not _ready: return
-	var wanted := false
-	for argument: String in OS.get_cmdline_user_args():
-		if argument == "--city-damage-probe=1": wanted = true
-	if not wanted: return
+	if _damage_probe_flag30<0:_damage_probe_flag30=1 if OS.get_cmdline_user_args().has("--city-damage-probe=1") else 0
+	if _damage_probe_flag30==0:return
 	var body: Variant = _token.get("body")
 	if not is_instance_valid(body) or not body is Node3D: return
 	if str(body.get_meta("dsh_test_resident_name", "")).is_empty(): return
@@ -612,7 +615,7 @@ var _step_calls28 := 0
 
 func bind_single_lifecycle28(owner: Node) -> bool:
 	if _single_lifecycle28!=null or not is_instance_valid(owner) or not owner.is_inside_tree() or owner.get_script().resource_path!="res://scripts/hospital/npc_single_lifecycle28.gd":return false
-	if _token.get("source_id")!="resident_1" or not _host.single_lifecycle28_current(owner) or owner.get("_health")!=self or owner.get("_token")!=_token:return false
+	if _token.get("source_id")!=owner.get("source_id30") or not _host.single_lifecycle28_current(owner) or owner.get("_health")!=self or owner.get("_token")!=_token:return false
 	_single_lifecycle28=weakref(owner)
 	return true
 

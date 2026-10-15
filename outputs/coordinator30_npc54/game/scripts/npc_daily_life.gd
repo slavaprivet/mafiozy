@@ -1,4 +1,6 @@
 extends RefCounted
+const ThreatLife30 = preload("res://scripts/city/runtime/npc_threat_life30.gd")
+var _threat30: RefCounted
 ## One resident's local needs. Concrete visits own arrival and transactions;
 ## The opt-in hospital51 policy commits local HP through the current hit lifecycle;
 ## it never modifies imported source-save rows, cash, transforms or seats.
@@ -283,6 +285,8 @@ func _dsh_site_pick(kind: String) -> Dictionary:  # DSH_CATALOG
 ## with no throttle of any kind in between - as well as from the hit itself.
 func dsh_repaint_caption() -> void:
 	if _disposed or _walk == null: return
+	if ResDiag.simple_vitals_on() and not ResDiag.diag_on():
+		ResDiag.repaint_focus30(_token.get("body")); return
 	if not ResDiag.hp_label_on() and not ResDiag.diag_on(): return
 	var row: Dictionary = _life()
 	if row.is_empty(): return
@@ -291,6 +295,8 @@ func dsh_repaint_caption() -> void:
 ## DSH_RESDIAG: one read-only head-up display per resident, from the existing snapshots.
 func _dsh_resdiag_step(row: Dictionary) -> void:
 	if not ResDiag.diag_on() and not ResDiag.hp_label_on(): return
+	if ResDiag.simple_vitals_on() and not ResDiag.diag_on():
+		ResDiag.repaint_focus30(_token.get("body")); return
 	var body: Variant = _token.get("body")
 	if not is_instance_valid(body) or not body is Node3D: return
 	var walk: Dictionary = _walk.snapshot() if _walk != null else {}
@@ -718,6 +724,14 @@ func _record(event: String, reason: String="") -> void:
 
 
 ## The life owner is the only public boundary allowed to interrupt its private controllers.
+func threat_physics_active30() -> bool:
+	return _threat30 != null and _threat30.active()
+
+func threat_event30(event: Dictionary, world: RefCounted) -> Dictionary:
+	if _disposed or not Thread.is_main_thread(): return {"accepted":false,"reason":"life_retired"}
+	if _threat30 == null: _threat30=ThreatLife30.new()
+	return _threat30.accept(self,event,world)
+
 func incident_can_hear(owner: RefCounted) -> bool:
 	if _disposed or not Thread.is_main_thread() or _busy or owner!=_health or not _host.target_current(_token): return false
 	if _dsh_simple_goal_active() or _restaurant28_active() or _economy28_active(): return false
@@ -828,6 +842,8 @@ func step(delta: float) -> void:
 	if row.is_empty() or row.get("dead",false) or float(row.get("hp",0))<=0:
 		_end_life(); _busy=false; return
 	_now=_health._now()
+	if _threat30 != null and _threat30.step(delta,row):
+		_busy=false; return
 	if _attention29.step(self, delta, row):
 		_dsh_energy_drain(); _dsh_resdiag_step(row); _busy=false; return
 	if _ambient29 != null and _ambient29.active():
@@ -992,6 +1008,10 @@ func _new_goal(kind: String) -> Dictionary:
 ## (measured period ~1.6 s). It decides exactly what `_choose` decides and never reads a
 ## clock, invents damage or moves anything.
 func dsh_notice_damage() -> Dictionary:
+	var scene30: Node3D = _dsh_life_scene()
+	if is_instance_valid(scene30):
+		var world30: RefCounted = scene30.get_meta("npc_threat_world30") if scene30.has_meta("npc_threat_world30") else null
+		if world30 != null: world30.confirmed_hit(self)
 	_attention29.clear()
 	_ambient29_cancel("hit")
 	if _disposed or _busy or not Thread.is_main_thread(): return {"ok":false,"reason":"life_busy_or_disposed"}
@@ -1210,6 +1230,7 @@ func _hospital51_heal(row: Dictionary) -> bool:
 	receipt["hospital"] = {"goal_id":_goal.get("goal_id", ""), "treatment_ms":_now - _hospital_treat_started, "hp_before":hp_before, "hp_after":row.hp, "inside":true, "policy":"user_local_hospital51"}
 	adapter._events[event_id] = receipt.duplicate(true)
 	_health.last_result = receipt.duplicate(true)
+	preload("res://scripts/npc_visual/npc_heal_fx30.gd").confirmed30(_health,event_id)
 	_hospital_healed = true
 	_dsh_hp_apply_pending = false
 	return true
@@ -1777,6 +1798,8 @@ func dsh_notice_death() -> bool:
 	return true
 
 func _end_life() -> void:
+	ResDiag.unregister_life30(str(_token.get("source_id","")),self)
+	if _threat30 != null: _threat30.cancel("death"); _threat30=null
 	_attention29.clear(false)
 	_ambient29_cancel("death")
 	_hospital28_clear_treatment_pose()
@@ -1843,6 +1866,7 @@ func dispose() -> void:
 	_hospital_support51=null
 	_roam51_active=false
 	if _walk!=null: _walk.dispose()
+	ResDiag.unregister_life30(str(_token.get("source_id","")),self)
 	_disposed=true; _phase="DISPOSED"; _factory=Callable()
 
 func _ambient29_cancel(reason: String) -> void:

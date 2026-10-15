@@ -1,0 +1,26 @@
+{
+  "scripts/hospital/npc_single_lifecycle28.gd": {
+    "base_sha256": "910537f5c7994b5320a8ac75e722a4f4170d9100bb85d6997ba118628cee8c1e",
+    "candidate_sha256": "148c36b82c468d3d3a64c0ba5a054803aec77e4448e55621fb0214673f417047"
+  },
+  "scripts/npc_visual/preview_resident_host.gd": {
+    "base_sha256": "7f0d9586d218e53cf04b0fb5850ca6c3ba10ab475b0f1f049eb88e7b936ad898",
+    "candidate_sha256": "4e73dc5133bb4fd40408bfab848b35f7a78b5c0a3c428df1e4809b3c159aedaa"
+  },
+  "scripts/npc_visual/npc_local_preview_hit_owner.gd": {
+    "base_sha256": "a23f10b297212593ab210bfc428f3b1095aa5f1b4a3ba00c465546a422385e55",
+    "candidate_sha256": "40fccfa5e475de2f6d0acbe1c8159e1c276602316d482fc2128897d01c8fab91"
+  },
+  "scripts/npc_city_daily.gd": {
+    "base_sha256": "fd0cb6c810f9d1d3b40cb9ced476d3c5555f2baff91da134909c4dba11d68a58",
+    "candidate_sha256": "1d5552709eabe886413c4d3bea310bf99f42b736d69be4425e2ca47db4f8c64f"
+  },
+  "scripts/city/runtime/npc_city_world_policy.gd": {
+    "base_sha256": "767c1ce111910dfa25983e0162603761d3987af83accd12cad412127efa7a0df",
+    "candidate_sha256": "a3bf6b8041706ce8641ee9a0756121561fe394acfb357a6d55a38fff1b931e70"
+  },
+  "scripts/npc_city_population.gd": {
+    "base_sha256": "9395a2199e26479fbffc289beabaa8308a8aac21eb6ef756d729894d3fc73e64",
+    "candidate_sha256": "860d2b4763eb3bbc71b401b478657311086d9672f4ade32e98311cc3f9ea8b59"
+  }
+}

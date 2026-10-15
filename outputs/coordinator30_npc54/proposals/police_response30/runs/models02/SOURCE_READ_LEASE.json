@@ -1,0 +1,36 @@
+{
+  "id": "af05eadf016f49fa85421fa69ce33ca7",
+  "owner": {
+    "pid": 25656,
+    "creation_filetime": "134365004133418021"
+  },
+  "mode": "headless",
+  "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator30_npc54\\game",
+  "access": "read",
+  "children": [],
+  "deadline": 968695.9268633,
+  "queued_at": 968515.9268633,
+  "ticket": 1536,
+  "inventory_before": [
+    {
+      "pid": 15732,
+      "parent_pid": 26268,
+      "creation_filetime": "134365003813535331",
+      "name": "Godot_v4.7.2-stable_win64.exe",
+      "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\game --script C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\threat30\\entry_city30.gd -- --city-qa=1 --city-resident-name=Житель --city-simple-hospital=1 --city-plaza-support-plate=1 --city-medical-threshold=0.5 --city-energy-drain-per-m=0.05 --city-energy-threshold=0.2 --city-palazzo-clones=1 --city-clone-step=22 --city-town=1 --city-door-free-entry=1 --city-site-door-physics=1 --city-clone-door-swing=1 --city-needs=1 --city-shop-release=1 --city-nav-pump-budget-us=4000 --city-nav-pump-every=1 --city-daily-slice=286 --city-sim-stride=1 --city-sim-one-per-frame=0 --city-walk-pose=1 --city-pose-far-cap=512 --city-timing=0 --city-health-lease --city-resident-detail=1 --city-hospital-marker=0 --city-respawn-seconds=2 --city-venue-sites29=1 --city-venue-staff29=1 --city-sandbox-seed=53 --city-hp=100 --city-threat30=1 --city-physical-dispatch30=1 --city-local-avoidance29=1 --qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\threat30\\runs\\city01",
+      "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "title": "Мафиози — перенос в Godot (DEBUG)"
+    },
+    {
+      "pid": 27720,
+      "parent_pid": 27444,
+      "creation_filetime": "134365004056014903",
+      "name": "Godot_v4.7.2-stable_win64.exe",
+      "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\injury30\\game --script C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\lifecycle30\\qa\\entry_multi30.gd -- --city-resident-name=Житель --city-simple-hospital=1 --city-plaza-support-plate=1 --city-medical-threshold=0.5 --city-energy-drain-per-m=0.05 --city-energy-threshold=0.2 --city-palazzo-clones=1 --city-clone-step=22 --city-town=1 --city-door-free-entry=1 --city-site-door-physics=1 --city-clone-door-swing=1 --city-needs=1 --city-shop-release=1 --city-nav-pump-budget-us=4000 --city-nav-pump-every=1 --city-daily-slice=286 --city-sim-stride=1 --city-sim-one-per-frame=0 --city-walk-pose=1 --city-pose-far-cap=512 --city-clear-cache=1 --city-timing=0 --city-health-lease --city-resident-detail=1 --city-hospital-marker=0 --city-qa=3 --city-hp=100 --city-physical-dispatch30=1 --city-venue-sites29=1 --city-venue-staff29=1 --city-respawn-seconds=3 --qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\lifecycle30\\runs\\multi02 --city-multi-lifecycle30=1",
+      "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "title": ""
+    }
+  ],
+  "editor_identities": [],
+  "queue_wait_seconds": 0.582302000024356
+}

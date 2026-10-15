@@ -1,0 +1,95 @@
+{
+  "lease": {
+    "id": "fe0a91f6beff4788aeba985b70087ca5",
+    "owner": {
+      "pid": 14068,
+      "creation_filetime": "134365013813869740"
+    },
+    "mode": "headless",
+    "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator30_npc54\\proposals\\ambient30\\runs\\oracle01\\project",
+    "access": "write",
+    "children": [],
+    "deadline": 969666.7268381,
+    "queued_at": 969486.7268381,
+    "ticket": 1583,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.47526510001625866
+  },
+  "source_files_changed": [
+    "scripts/npc_daily_life.gd",
+    "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+    "scripts/npc_visual/npc_resident_diag.gd",
+    "scripts/npc_visual/preview_resident_host.gd"
+  ],
+  "changed_bytes": 365325,
+  "reused_project": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\ambient30\\runs\\oracle01\\project",
+  "exact_hunks": [
+    {
+      "path": "scripts/npc_daily_life.gd",
+      "hunk": 1,
+      "state": "apply"
+    },
+    {
+      "path": "scripts/npc_daily_life.gd",
+      "hunk": 2,
+      "state": "apply"
+    },
+    {
+      "path": "scripts/npc_daily_life.gd",
+      "hunk": 3,
+      "state": "apply"
+    },
+    {
+      "path": "scripts/npc_daily_life.gd",
+      "hunk": 4,
+      "state": "apply"
+    },
+    {
+      "path": "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "hunk": 1,
+      "state": "apply"
+    },
+    {
+      "path": "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "hunk": 2,
+      "state": "apply"
+    },
+    {
+      "path": "scripts/npc_visual/npc_resident_diag.gd",
+      "hunk": 1,
+      "state": "apply"
+    },
+    {
+      "path": "scripts/npc_visual/npc_resident_diag.gd",
+      "hunk": 2,
+      "state": "apply"
+    },
+    {
+      "path": "scripts/npc_visual/npc_resident_diag.gd",
+      "hunk": 3,
+      "state": "apply"
+    },
+    {
+      "path": "scripts/npc_visual/npc_resident_diag.gd",
+      "hunk": 4,
+      "state": "apply"
+    },
+    {
+      "path": "scripts/npc_visual/npc_resident_diag.gd",
+      "hunk": 5,
+      "state": "apply"
+    },
+    {
+      "path": "scripts/npc_visual/preview_resident_host.gd",
+      "hunk": "target_current30",
+      "state": "apply"
+    },
+    {
+      "path": "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "hunk": "damage_probe30",
+      "state": "apply"
+    }
+  ],
+  "generic_lifecycle_preserved": true
+}

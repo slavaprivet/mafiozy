@@ -1,0 +1,48 @@
+{
+  "base_sha256": "d45243fb824924cc718f2bd688a0d88a23c1b01d49f51e6f96fd4ef3ebe8c381",
+  "after_sha256": "e70ad35aa04edb57f99217dd181c8509d9e04c2fa864ce9202717d646a6f81ab",
+  "changes": [
+    {
+      "file": "scripts/city/runtime/npc_threat_world30.gd",
+      "before": "var _pending: Array[Dictionary] = []",
+      "after": "var _pending: Array[Dictionary] = []\nvar _shot_jobs30: Array[Dictionary] = []\nconst MAX_SHOT_JOBS30 := 8\nconst SHOT_TTL30 := 4.0"
+    },
+    {
+      "file": "scripts/city/runtime/npc_threat_world30.gd",
+      "before": "\"max_step_us\":0}",
+      "after": "\"max_step_us\":0,\"raw_queue_drops\":0,\"raw_expired\":0,\"raw_empty_retries\":0,\"raw_batches\":0,\"max_raw_jobs\":0}"
+    },
+    {
+      "file": "scripts/city/runtime/npc_threat_world30.gd",
+      "before": "\tvar nearby: Array=_population.get_ref().query_near30(origin,SHOT_RADIUS,32,128,\"shot\")\n\tfor candidate: Dictionary in nearby:\n\t\tvar owner: RefCounted=candidate.get(\"health\")\n\t\tvar observation: Dictionary=_observation(owner)\n\t\tif observation.is_empty():continue\n\t\tvar queued := -1\n\t\tfor index: int in _pending.size():\n\t\t\tif _pending[index].owner_id==owner.get_instance_id() and _pending[index].incident_id==_burst:queued=index;break\n\t\tif queued>=0:_stats.coalesced_shots+=1;continue\n\t\tif _pending.size()>=MAX_PENDING:_stats.queue_drops+=1;break\n\t\t_pending.append({\"owner_id\":owner.get_instance_id(),\"owner\":weakref(owner),\"observation\":observation,\"origin\":origin,\"event_id\":\"shot:\"+shot_id,\"incident_id\":_burst,\"weapon\":str(shot.get(\"weaponId\",\"\")),\"expires\":_now+4.0})\n\t_stats.max_pending=maxi(_stats.max_pending,_pending.size())\n",
+      "after": "\t# Keep the actual shot independently of spatial budget. Empty means retry,\n\t# never no witnesses. An automatic burst updates one bounded incident job.\n\tfor job: Dictionary in _shot_jobs30:\n\t\tif job.incident_id==_burst:\n\t\t\tjob.event_id=\"shot:\"+shot_id;job.origin=origin;job.weapon=str(shot.get(\"weaponId\",\"\"));job.expires=_now+SHOT_TTL30\n\t\t\t_stats.coalesced_shots+=1;return\n\tif _shot_jobs30.size()>=MAX_SHOT_JOBS30:_stats.raw_queue_drops+=1;return\n\t_shot_jobs30.append({\"origin\":origin,\"event_id\":\"shot:\"+shot_id,\"incident_id\":_burst,\"weapon\":str(shot.get(\"weaponId\",\"\")),\"expires\":_now+SHOT_TTL30,\"seen\":{}})\n\t_stats.max_raw_jobs=maxi(_stats.max_raw_jobs,_shot_jobs30.size())\n\nfunc _pump_shots30() -> void:\n\tfor index: int in range(_shot_jobs30.size()-1,-1,-1):\n\t\tif _shot_jobs30[index].expires<_now:_shot_jobs30.remove_at(index);_stats.raw_expired+=1\n\tif _shot_jobs30.is_empty():return\n\tvar job: Dictionary=_shot_jobs30.pop_front()\n\t# Process no more witnesses than the delivery lane can consume this tick.\n\tvar capacity: int=mini(16,MAX_PENDING-_pending.size())\n\tif capacity<=0:_shot_jobs30.append(job);return\n\tvar nearby: Array=_population.get_ref().query_near30(job.origin,SHOT_RADIUS,capacity,128,\"shot\")\n\t_stats.raw_batches+=1\n\tif nearby.is_empty():_stats.raw_empty_retries+=1\n\tfor candidate: Dictionary in nearby:\n\t\tvar owner: RefCounted=candidate.get(\"health\")\n\t\tvar observation: Dictionary=_observation(owner)\n\t\tif observation.is_empty():continue\n\t\tvar owner_key: String=str(owner.get_instance_id())\n\t\tif job.seen.get(owner_key,\"\")==job.event_id:continue\n\t\tvar queued := false\n\t\tfor pending: Dictionary in _pending:\n\t\t\tif pending.owner_id==owner.get_instance_id() and pending.incident_id==job.incident_id:queued=true;break\n\t\tif queued:continue\n\t\t_remember(job.seen,owner_key,job.event_id,512)\n\t\t_pending.append({\"owner_id\":owner.get_instance_id(),\"owner\":weakref(owner),\"observation\":observation,\"origin\":job.origin,\"event_id\":job.event_id,\"incident_id\":job.incident_id,\"weapon\":job.weapon,\"expires\":job.expires})\n\t_stats.max_pending=maxi(_stats.max_pending,_pending.size())\n\t# Cursor progress is opaque. Retain until TTL instead of mistaking an empty\n\t# or duplicate batch for a complete spatial scan. All storage stays bounded.\n\t_shot_jobs30.append(job)\n"
+    },
+    {
+      "file": "scripts/city/runtime/npc_threat_world30.gd",
+      "before": "\t\t_sense_at=_now+SENSE_INTERVAL;_los_left=2",
+      "after": "\t\t_sense_at=_now+SENSE_INTERVAL;_los_left=2\n\t\t_pump_shots30()"
+    },
+    {
+      "file": "scripts/city/runtime/npc_threat_world30.gd",
+      "before": "value.merge({\"pending\":_pending.size(),",
+      "after": "value.merge({\"raw_jobs\":_shot_jobs30.size(),\"pending\":_pending.size(),"
+    },
+    {
+      "file": "scripts/city/runtime/npc_threat_world30.gd",
+      "before": "_disposed=true;_pending.clear();",
+      "after": "_disposed=true;_shot_jobs30.clear();_pending.clear();"
+    }
+  ],
+  "status": "NATIVE_COMPONENT_VERIFIED_64_AND_224_WITNESSES",
+  "proofs": {
+    "runs/raw01/RAW_SHOTS30.json": "93a6ac1307582dbf39e103e93a93a64d2fc233bc709baa9a04bd658e60e754a6",
+    "runs/raw01/SCHEDULER_RUN.json": "4098982d58585a1fbbcaf728a6b71eac776b31cc10dc07dcc3e7d0136a13e06f",
+    "runs/raw01/SOURCE_PINS.json": "11fde67ee50f44b35e02f69f0b530400739cf04d661ecb8dbedeed3a161e0d5d",
+    "runs/raw02/RAW_SHOTS30.json": "a629d9aa7e85e3497fc73089120e3c321c0e3156ea0853b280df06e098b9058f",
+    "runs/raw02/SCHEDULER_RUN.json": "c3175f9ad0e63acc4d389f42b3233a9985d2d345bfd223c8b43377d7423c15f6",
+    "runs/raw02/SOURCE_PINS.json": "11fde67ee50f44b35e02f69f0b530400739cf04d661ecb8dbedeed3a161e0d5d",
+    "raw_fixture30.gd": "6ba481eaff0e29ded81e4bfa74b63f37708aab28272fdf2ed30b949cd8106245",
+    "raw_many_fixture30.gd": "648a8285eba7107b98ca7b57e0f12f4da50efdf418d97755958575ab21b0f61f",
+    "revision2/npc_threat_world30.gd": "e70ad35aa04edb57f99217dd181c8509d9e04c2fa864ce9202717d646a6f81ab"
+  }
+}

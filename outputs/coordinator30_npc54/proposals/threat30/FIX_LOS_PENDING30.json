@@ -1,0 +1,29 @@
+{
+  "base_sha256": "e70ad35aa04edb57f99217dd181c8509d9e04c2fa864ce9202717d646a6f81ab",
+  "after_sha256": "22ed08e2680343562dd0cc91c8441868e7acd7f06d876fe12cdfed55a4bc4fe3",
+  "changes": [
+    {
+      "file": "scripts/city/runtime/npc_threat_world30.gd",
+      "before": "\"max_raw_jobs\":0}",
+      "after": "\"max_raw_jobs\":0,\"los_deferred\":0}"
+    },
+    {
+      "file": "scripts/city/runtime/npc_threat_world30.gd",
+      "before": "\t\t\tvar distance: float=Vector3(pending.observation.position).distance_to(pending.origin)\n\t\t\tvar visual: bool=in_fov(pending.observation,pending.origin) and _line_clear(pending.observation,pending.origin)\n\t\t\tif visual or distance<=CLOSE_HEARING:\n\t\t\t\t_deliver(owner,observed,\"near_shot\",pending.incident_id,pending.event_id,pending.origin,visual,pending.weapon)\n\t\t\telif _los_left>0 and _line_clear(pending.observation,pending.origin):\n\t\t\t\t_deliver(owner,observed,\"near_shot\",pending.incident_id,pending.event_id,pending.origin,false)",
+      "after": "\t\t\tvar distance: float=Vector3(pending.observation.position).distance_to(pending.origin)\n\t\t\tif distance>CLOSE_HEARING and _los_left<=0:\n\t\t\t\t# This is unknown visibility, not a blocked ray. Keep the exact\n\t\t\t\t# captured witness until its actual LOS turn, life change or TTL.\n\t\t\t\t_pending.append(pending);_stats.los_deferred+=1;continue\n\t\t\tvar clear: bool=_line_clear(pending.observation,pending.origin) if _los_left>0 else false\n\t\t\tvar visual: bool=clear and in_fov(pending.observation,pending.origin)\n\t\t\tif visual or distance<=CLOSE_HEARING:\n\t\t\t\t_deliver(owner,observed,\"near_shot\",pending.incident_id,pending.event_id,pending.origin,visual,pending.weapon)\n\t\t\telif clear:\n\t\t\t\t_deliver(owner,observed,\"near_shot\",pending.incident_id,pending.event_id,pending.origin,false)"
+    },
+    {
+      "file": "scripts/city/runtime/npc_threat_world30.gd",
+      "before": "\tif _now>=_sense_at:",
+      "after": "\tif _now+.000001>=_sense_at:"
+    }
+  ],
+  "status": "NATIVE_FAR_LOS_COMPONENT_VERIFIED",
+  "proofs": {
+    "runs/raw_far02/RAW_SHOTS30.json": "a94dbf2d513948d8e989ea2bcc5cd91bc238d53b8653c2f02e9116f88c90b550",
+    "runs/raw_far02/SCHEDULER_RUN.json": "4c09210df4d4f4853b9b44c022b60d9e969379f603dc646667d73b083f2cb990",
+    "runs/raw_far02/SOURCE_PINS.json": "f368dbd8b9ee7c12c07c7bbb11482ab9707a093cf054cb676e2bd5faa76db2f6",
+    "raw_far_fixture30.gd": "5664c3663c1d30cade08b9f02bf8f8cae045d69f716da89d4044303f35e33987",
+    "revision3/npc_threat_world30.gd": "22ed08e2680343562dd0cc91c8441868e7acd7f06d876fe12cdfed55a4bc4fe3"
+  }
+}

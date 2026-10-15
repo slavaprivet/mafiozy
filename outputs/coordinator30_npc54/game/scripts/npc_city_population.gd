@@ -14,9 +14,35 @@ const CITY_PREPARED := "929a5083842a5325ba5d4d823b1ac63c8b56b459ac19b414057ce619
 const CITY_BLOCK := "38b4b50ca06fb60172173b04c5b49ff567a84509ea01901a24306ab0d3b41dc7"
 const CITY_DIRECTORY := "res://assets/npc_city/"
 const IncidentDispatcher = preload("res://scripts/city/runtime/npc_incident_dispatcher.gd")
+const ThreatWorld30 = preload("res://scripts/city/runtime/npc_threat_world30.gd")
 const ROAD_SHA := "dc77f6495d2657dff91106ca831cf41fb7f7c4ecb80e3211322999e74ad82f4b"
 const SingleLifecycle28 = preload("res://scripts/hospital/npc_single_lifecycle28.gd")
 var _single_lifecycle28: Node
+const MultiLife30=preload("res://scripts/hospital/npc_population_lifecycle30.gd")
+var _multi_lifecycle30: Node
+
+## Exact resident health lookup for perception; a metadata hint grants no authority.
+func health_from_body30(body: CharacterBody3D) -> RefCounted:
+	if _disposed or residents==null or daily==null or not is_instance_valid(body) or body.is_queued_for_deletion():return null
+	var id: String=str(body.get_meta("source_id",""))
+	var health: RefCounted=daily._health.get(id)
+	if health==null:return null
+	var token: Dictionary=health._token
+	return health if token.get("body")==body and residents.target_current(token) else null
+
+## Reuses the authoritative avoidance input snapshot, never a second body registry.
+func query_near30(origin: Vector3, radius: float, max_results: int=8, max_scan: int=64, channel: String="perception") -> Array[Dictionary]:
+	var result: Array[Dictionary]=[]
+	if _disposed or not city_ready or _scene_ref==null:return result
+	var scene: Node3D=_scene_ref.get_ref() as Node3D
+	if not is_instance_valid(scene):return result
+	var view: RefCounted=Avoidance29.for_scene(scene)
+	if view==null or not view.refresh(scene):return result
+	for row: Dictionary in view.query_near30(origin,radius,max_results,max_scan,channel):
+		var health: RefCounted=health_from_body30(row.body)
+		if health==null or int(health._token.life_generation)!=int(row.life_generation):continue
+		row.health=health;row.token=health._token.duplicate();result.append(row)
+	return result
 var daily: RefCounted
 var incident_dispatcher: RefCounted
 var admission_results := {}
@@ -130,10 +156,10 @@ var _stream_fades: Array = []
 # Batch/elapsed budgets and original ring/direction order remain unchanged.
 func _city_fallback_max_ring() -> int:
 	if _city_fallback_ring_cache < 0:
-		_city_fallback_ring_cache = 19
+		_city_fallback_ring_cache = 24 # Resident25 starts 44.2m from the nearest dry cell; 384 probes stay below512.
 		for argument: String in OS.get_cmdline_user_args():
 			if argument.begins_with("--city-spawn-rings="):
-				_city_fallback_ring_cache = clampi(int(argument.trim_prefix("--city-spawn-rings=")), 16, 19)
+				_city_fallback_ring_cache = clampi(int(argument.trim_prefix("--city-spawn-rings=")), 16, 24)
 	return _city_fallback_ring_cache
 
 func _new_timing_bucket() -> Dictionary:
@@ -635,6 +661,8 @@ func _stream_register_daily(id: String, owner: RefCounted) -> bool:
 	(lives as Dictionary)[id]=life
 	(accounts as Dictionary)[id]=account
 	(health as Dictionary)[id]=owner
+	if daily.has_method("wake_physical30"):daily.call("wake_physical30",id)
+	if is_instance_valid(_multi_lifecycle30) and not _multi_lifecycle30.bind_health30(owner):return false
 	return true
 
 # DSH_STREAMLOAD: fade a forced (visible) admission in instead of popping it. OFF by
@@ -771,6 +799,7 @@ func _stream_begin(scene: Node3D, parsed: Dictionary, qa_source_ids: Array[Strin
 	_stream_ready_us = Time.get_ticks_usec()
 	_stream_ready_ms = Time.get_ticks_msec()
 	if not _configure_daily(scene, sites, true): return false
+	if MultiLife30.enabled30() and not _configure_multi_lifecycle30(scene,packet,trust):return false
 	_stream_phase = "streaming"
 	city_ready = true
 	status = "ready" if hit_owners.size() == _stream_total else "pending_placement"
@@ -858,8 +887,9 @@ func _configure_incident_dispatcher(scene: Node3D) -> Dictionary:
 	if not is_instance_valid(scene) or not scene.is_inside_tree() or daily==null: return {"ok":false,"reason":"current_city_daily_required"}
 	var weapons: Variant=scene.get("preview_weapons")
 	if not is_instance_valid(weapons) or not weapons is Node: return {"ok":false,"reason":"committed_preview_weapons_required"}
-	var dispatcher: RefCounted=IncidentDispatcher.new()
-	var configured: Dictionary=dispatcher.configure(weapons,self)
+	var threats30: bool = OS.get_cmdline_user_args().has("--city-threat30=1")
+	var dispatcher: RefCounted=ThreatWorld30.new() if threats30 else IncidentDispatcher.new()
+	var configured: Dictionary=dispatcher.configure(weapons,self,scene.get_meta("npc_police_report30",Callable())) if threats30 else dispatcher.configure(weapons,self)
 	if not configured.get("ok",false): dispatcher.dispose(); return configured
 	incident_dispatcher=dispatcher
 	return configured
@@ -1086,7 +1116,9 @@ func setup_city(scene: Node3D, sites: Array[Node3D], staged_three: bool=false, q
 		return _stream_begin(scene,parsed,qa_source_ids,packet,trust,sites,started)
 	if not _configure_daily(scene,sites): return false
 	city_ready=true; status="ready" if hit_owners.size()==parsed.rows.size() else "pending_placement"
-	if SingleLifecycle28.enabled() and qa_source_ids==["resident_1"]:
+	if MultiLife30.enabled30():
+		if not _configure_multi_lifecycle30(scene,packet,trust):return false
+	elif SingleLifecycle28.enabled() and qa_source_ids==["resident_1"]:
 		_single_lifecycle28=SingleLifecycle28.new();scene.add_child(_single_lifecycle28)
 		if not _single_lifecycle28.configure(scene,self,packet,trust):return _fail("single_lifecycle28_configure")
 	# DSH_TELEMETRY (temporary A/B): measure what NPC shadow casting costs.
@@ -1114,7 +1146,7 @@ func step(delta: float) -> void:
 	elif dsh_now_ms - _dsh_phys_ms >= 1000:
 		var dsh_dt := float(dsh_now_ms - _dsh_phys_ms) / 1000.0
 		var dsh_ticks := Engine.get_physics_frames() - _dsh_phys_last
-		print("DSH_PHYS hz=","%.1f" % (float(dsh_ticks)/dsh_dt)," render_fps=",Engine.get_frames_per_second()," drawn=",Engine.get_frames_drawn()," city_ready=",city_ready," phase=",str(_startup_progress.get("phase","")))
+		if preload("res://scripts/city/runtime/npc_runtime_trace30.gd").enabled():print("DSH_PHYS hz=","%.1f" % (float(dsh_ticks)/dsh_dt)," render_fps=",Engine.get_frames_per_second()," drawn=",Engine.get_frames_drawn()," city_ready=",city_ready," phase=",str(_startup_progress.get("phase","")))
 		_dsh_phys_ms = dsh_now_ms
 		_dsh_phys_last = Engine.get_physics_frames()
 	# DSH_STEPSPERFRAME (intentional, keep): whole-city steps per RENDERED frame. Zero-step
@@ -1143,7 +1175,7 @@ func step(delta: float) -> void:
 			var dsh_spf_frames:=dsh_spf_seen-_dsh_spf_window_drawn
 			var dsh_spf_zero:=maxi(0,dsh_spf_frames-dsh_spf_stepped)
 			var dsh_spf_dt:=float(dsh_spf_now-_dsh_spf_ms)/1000.0
-			print("DSH_STEPSPERFRAME h0=",dsh_spf_zero," h1=",_dsh_spf_h1," h2=",_dsh_spf_h2," h3plus=",_dsh_spf_h3," frames=",dsh_spf_frames," steps=",_dsh_spf_steps_total," steps_per_frame=",("0.00" if dsh_spf_frames<=0 else "%.2f" % (float(_dsh_spf_steps_total)/float(dsh_spf_frames)))," render_fps_avg=",("0.0" if dsh_spf_dt<=0.0 else "%.1f" % (float(dsh_spf_frames)/dsh_spf_dt)))
+			if preload("res://scripts/city/runtime/npc_runtime_trace30.gd").enabled():print("DSH_STEPSPERFRAME h0=",dsh_spf_zero," h1=",_dsh_spf_h1," h2=",_dsh_spf_h2," h3plus=",_dsh_spf_h3," frames=",dsh_spf_frames," steps=",_dsh_spf_steps_total," steps_per_frame=",("0.00" if dsh_spf_frames<=0 else "%.2f" % (float(_dsh_spf_steps_total)/float(dsh_spf_frames)))," render_fps_avg=",("0.0" if dsh_spf_dt<=0.0 else "%.1f" % (float(dsh_spf_frames)/dsh_spf_dt)))
 			_dsh_spf_ms=dsh_spf_now
 			_dsh_spf_window_drawn=dsh_spf_seen
 			_dsh_spf_drawn=dsh_spf_seen
@@ -1166,7 +1198,7 @@ func step(delta: float) -> void:
 		var dsh_step_sum:=int(dsh_step_now["step_us_total"])-int(_dsh_step_counters["step_us_total"])
 		var dsh_step_blocked:=int(dsh_step_now["blocked_steps"])-int(_dsh_step_counters["blocked_steps"])
 		var dsh_step_dt:=float(dsh_step_ms-_dsh_step_counters_ms)/1000.0
-		print("DSH_NAVSTEP steps/s=","%.0f" % (float(dsh_step_delta)/dsh_step_dt)," step_us/s=",dsh_step_sum," avg_us=",("0" if dsh_step_delta<=0 else "%.1f" % (float(dsh_step_sum)/float(dsh_step_delta)))," max_us=",int(dsh_step_now["step_us_max"])," blocked/s=","%.0f" % (float(dsh_step_blocked)/dsh_step_dt))
+		if preload("res://scripts/city/runtime/npc_runtime_trace30.gd").enabled():print("DSH_NAVSTEP steps/s=","%.0f" % (float(dsh_step_delta)/dsh_step_dt)," step_us/s=",dsh_step_sum," avg_us=",("0" if dsh_step_delta<=0 else "%.1f" % (float(dsh_step_sum)/float(dsh_step_delta)))," max_us=",int(dsh_step_now["step_us_max"])," blocked/s=","%.0f" % (float(dsh_step_blocked)/dsh_step_dt))
 		_dsh_step_counters_ms=dsh_step_ms
 		_dsh_step_counters=dsh_step_now
 	if residents==null: return
@@ -1178,7 +1210,7 @@ func step(delta: float) -> void:
 		if is_instance_valid(stream_scene): _stream_tick(stream_scene,delta)
 	phase_started=Time.get_ticks_usec()
 	# A confirmed bleedout may synchronously retire this exact one-NPC owner.
-	var health_dispatch28: Array=hit_owners.duplicate() if _single_lifecycle28!=null else hit_owners
+	var health_dispatch28: Array=hit_owners.duplicate() if _single_lifecycle28!=null or _multi_lifecycle30!=null else hit_owners
 	for health: RefCounted in health_dispatch28: health.step()
 	if is_instance_valid(_single_lifecycle28) and _single_lifecycle28.suspended():
 		residents.step_single_corpse28(_single_lifecycle28);return
@@ -1260,9 +1292,9 @@ func step(delta: float) -> void:
 	_dsh_fx_active_steps=dsh_fx_active
 	# DSH_TELEMETRY (temporary): where the collapsed city frame actually goes.
 	if frame%30==0:
-		print("DSH_CITY f=",frame," fps=",Engine.get_frames_per_second()," ready=",city_ready," phase=",str(_startup_progress.get("phase",""))," births=",int(_startup_progress.get("birth_attempts",0))," probes=",int(_startup_progress.get("fallback_probes",0))," bound=",int(_startup_progress.get("health_bound",0))," nav=",navigation_us," health=",health_us," daily=",daily_us," resid=",residents_us," fx=",effects_us," total=",Time.get_ticks_usec()-started," fx_blood=",_dsh_fx_blood_steps," fx_marks=",_dsh_fx_marks_steps," fx_active=",_dsh_fx_active_steps," fx_owners=",hit_owners.size()," fx_idle_deferred=",_dsh_fx_deferred_steps," fx_idle_skipped=",_dsh_fx_skipped_steps," fx_idle_bypass=",_dsh_fx_bypass_steps)
+		if preload("res://scripts/city/runtime/npc_runtime_trace30.gd").enabled():print("DSH_CITY f=",frame," fps=",Engine.get_frames_per_second()," ready=",city_ready," phase=",str(_startup_progress.get("phase",""))," births=",int(_startup_progress.get("birth_attempts",0))," probes=",int(_startup_progress.get("fallback_probes",0))," bound=",int(_startup_progress.get("health_bound",0))," nav=",navigation_us," health=",health_us," daily=",daily_us," resid=",residents_us," fx=",effects_us," total=",Time.get_ticks_usec()-started," fx_blood=",_dsh_fx_blood_steps," fx_marks=",_dsh_fx_marks_steps," fx_active=",_dsh_fx_active_steps," fx_owners=",hit_owners.size()," fx_idle_deferred=",_dsh_fx_deferred_steps," fx_idle_skipped=",_dsh_fx_skipped_steps," fx_idle_bypass=",_dsh_fx_bypass_steps)
 		# DSH_TELEMETRY (temporary): attribute the frame outside city logic.
-		print("DSH_PERF f=",frame," fps=",Engine.get_frames_per_second()," process_ms=",int(Performance.get_monitor(Performance.TIME_PROCESS)*1000.0)," physics_ms=",int(Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)*1000.0)," draw_calls=",int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))," prims=",int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))," nodes=",int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))," bodies=",int(Performance.get_monitor(Performance.PHYSICS_3D_ACTIVE_OBJECTS))," ready=",city_ready)
+		if preload("res://scripts/city/runtime/npc_runtime_trace30.gd").enabled():print("DSH_PERF f=",frame," fps=",Engine.get_frames_per_second()," process_ms=",int(Performance.get_monitor(Performance.TIME_PROCESS)*1000.0)," physics_ms=",int(Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)*1000.0)," draw_calls=",int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))," prims=",int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))," nodes=",int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))," bodies=",int(Performance.get_monitor(Performance.PHYSICS_3D_ACTIVE_OBJECTS))," ready=",city_ready)
 	if city_ready:
 		var elapsed:=Time.get_ticks_usec()-started
 		var unattributed_us:=elapsed-navigation_us-health_us-daily_us-residents_us-effects_us
@@ -1312,6 +1344,7 @@ func snapshot() -> Dictionary:
 	return {"status":status,"error":error,"city_ready":city_ready,"admitted":hit_owners.size(),"startup_us":_startup_us,"startup_frames":{"first":_startup_frame_start,"last":_startup_frame_end,"navigation_ready_wait_frames":_navigation_ready_wait_frames},"startup_timing":_startup_timing.duplicate(true),"startup_progress":_startup_progress.duplicate(),"admissions":admission_results.duplicate(true),"residents":residents.snapshot() if residents!=null else {},"navigation":navigation.diagnostics() if navigation!=null else {},"policy":policy.diagnostics() if policy!=null else {},"daily_setup":daily_setup,"daily":daily.snapshot() if daily!=null else {},"incidents":incident_dispatcher.snapshot() if incident_dispatcher!=null else {},"logic_cost":cost,"logic_peaks":peaks,"logic_peak_frame":_logic_peak_frame.duplicate(),"logic_timing_buckets":_logic_buckets.duplicate(true),"logic_frame_trace":_logic_frame_trace(),"stream":city_stream_report()}
 
 func dispose() -> void:
+	if is_instance_valid(_multi_lifecycle30):_multi_lifecycle30.dispose();_multi_lifecycle30=null
 	if is_instance_valid(_single_lifecycle28):_single_lifecycle28.dispose();_single_lifecycle28=null
 	if incident_dispatcher!=null: incident_dispatcher.dispose(); incident_dispatcher=null
 	if daily!=null:
@@ -1320,3 +1353,9 @@ func dispose() -> void:
 	# DSH_STREAMLOAD: the streaming pass dies with the population it streams.
 	_stream_on=false; _stream_phase="off"; _stream_pending_ids.clear(); _stream_sorted.clear(); _stream_held.clear(); _stream_fades.clear()
 	super.dispose()
+
+func _configure_multi_lifecycle30(scene: Node3D, packet: PackedByteArray, trust: Dictionary) -> bool:
+	if is_instance_valid(_multi_lifecycle30):return true
+	_multi_lifecycle30=MultiLife30.new();scene.add_child(_multi_lifecycle30)
+	if not _multi_lifecycle30.configure30(scene,self,packet,trust):return _fail("multi_lifecycle30_configure")
+	return true

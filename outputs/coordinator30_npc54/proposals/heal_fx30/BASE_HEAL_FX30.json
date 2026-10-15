@@ -1,0 +1,14 @@
+{
+  "scripts/npc_daily_life.gd": {
+    "base_sha256": "db7181da6154da8b7579c66ace734b93971009cf7a4c8e5cd7ed70424c5f76eb",
+    "proposed_sha256": "4b4778be7f8e5a65f847133ce9b49582d1150d8e38c7761bacf9da140e649fa9"
+  },
+  "scripts/hospital/npc_hospital_treatment_port.gd": {
+    "base_sha256": "f14a46bd93a589f24206ba21b2d3030ada1f1f2473a2735662ef057c80c24200",
+    "proposed_sha256": "df1afd6f688d46892cde369d4de814884d771ca55ed4721f8f89cb40c78cb97b"
+  },
+  "scripts/npc_visual/npc_heal_fx30.gd": {
+    "base_sha256": null,
+    "proposed_sha256": "f504516d4e22146b7c4125348bdc86a1f684ac797d470d4c0744c5db220feb67"
+  }
+}

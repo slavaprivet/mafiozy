@@ -149,11 +149,10 @@ func _install29(owner: Node3D, clone: Node3D, venue: String, kind: String) -> Di
 		counter = floor_body
 		_box29(counter, Vector3(1.8,.9,.55), Transform3D(basis,counter_center), Color("80654e"), true)
 	var device_at: Vector3 = door + normal * (staff_depth - .75); device_at.y = y + .99
-	_box29(counter, Vector3(.44,.18,.30), Transform3D(basis,device_at), Color("e8ede8") if kind == "hospital" else Color("263a3f"))
 	if kind == "hospital":
-		_box29(counter, Vector3(.25,.015,.065), Transform3D(basis,device_at + Vector3.UP * .10), Color("bc3636"))
-		_box29(counter, Vector3(.065,.015,.22), Transform3D(basis,device_at + Vector3.UP * .101), Color("bc3636"))
+		preload("npc_medic_style30.gd").case30(counter,Transform3D(basis,device_at))
 	else:
+		_box29(counter, Vector3(.44,.18,.30), Transform3D(basis,device_at), Color("263a3f"))
 		_box29(counter, Vector3(.32,.015,.17), Transform3D(basis,device_at + Vector3.UP * .10), Color("62b5c2"))
 	var label := Label3D.new(); label.text = "МЕДИК" if kind == "hospital" else "КАССИР"
 	label.font_size = 40; label.pixel_size = .004; label.modulate = Color("e9e1c7")

@@ -24,7 +24,7 @@ static func sample(body: CharacterBody3D, delta: float, physical: Dictionary) ->
 	if not is_instance_valid(body) or not body.is_inside_tree() or not body.is_on_floor() or physical.is_empty() or delta <= 0.0: return {}
 	if not physical.get("horizontal") is Vector3 or Vector3(physical.horizontal).length()/delta > .05: return {}
 	var value: Variant = body.get_meta(META, {})
-	if not value is Dictionary or not value.get("active", false) or str(value.get("kind", "")) not in KINDS: return {}
+	if not value is Dictionary or not value.get("active", false) or (str(value.get("kind", "")) not in KINDS and value.get("kind") != "police_phone30"): return {}
 	if int(value.get("frame", -1)) != Engine.get_physics_frames() or int(value.get("body_id", -1)) != body.get_instance_id() or absf(float(value.get("delta", 0.0))-delta) > .00001: return {}
 	var owner: Variant = value.get("owner")
 	if not owner is WeakRef or not is_instance_valid(owner.get_ref()): return {}
@@ -159,7 +159,7 @@ func compose(selected: Dictionary, value: Dictionary) -> Dictionary:
 	value["pose_weight"] = 0.0
 	if not _ready or not selected.get("valid", false) or not selected.get("poses") is Array: return selected
 	var kind: String = str(value.get("kind", ""))
-	if kind not in KINDS: return selected
+	if kind not in KINDS and kind != "police_phone30": return selected
 	var elapsed: float = float(value.get("elapsed_s", 0.0)); var duration: float = float(value.get("duration_s", 0.0))
 	var fade: float = .75 if kind == "bench" else .35
 	var weight: float = smoothstep(0.0, fade, elapsed) * (1.0-smoothstep(duration-fade, duration, elapsed))
@@ -226,6 +226,11 @@ func compose(selected: Dictionary, value: Dictionary) -> Dictionary:
 			var hips30: Vector3 = (_point("thigh_l")+_point("thigh_r"))*.5
 			_palm30("r",_p(hips30,.35,.26+.012*pulse,.36),-_up)
 			_turn_global("head",_right,.26); _turn_global("head",_up,.17)
+		"police_phone30":
+			var ear30: Vector3 = head+(-_right*.27+_up*.04+_forward*.07)*_reach
+			_palm30("l",ear30-_up*_reach*.09,_up)
+			_palm30("r",_p(shoulders,-.08,-.25,.38),-_right*.7+_up*.3)
+			_turn_global("head",_forward,-.06); _turn_global("chest",_up,slow*.025)
 		"phone":
 			var phone30: Vector3 = _p(shoulders,-.24,-.32,.72)
 			_palm30("l",phone30-_up*_reach*.10-_right*_reach*.06,_up)

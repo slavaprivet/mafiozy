@@ -1,0 +1,17 @@
+{
+  "id": "988b6def099d448781ba050d748eaa14",
+  "owner": {
+    "pid": 18672,
+    "creation_filetime": "134365010156560584"
+  },
+  "mode": "headless",
+  "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator30_npc54\\game",
+  "access": "read",
+  "children": [],
+  "deadline": 969298.1549847,
+  "queued_at": 969118.1549847,
+  "ticket": 1569,
+  "inventory_before": [],
+  "editor_identities": [],
+  "queue_wait_seconds": 0.48587550001684576
+}

@@ -1,0 +1,39 @@
+{
+  "status": "COMPONENT_PASS_PENDING_COHERENT55_MASS_AND_PERF",
+  "files": {
+    "scripts/npc_visual/preview_resident_host.gd": {
+      "base_sha256": "2491fab33486255913231bb3382a506f6dbb869c81917d5fb267b882dfc77687",
+      "candidate_sha256": "7f0d9586d218e53cf04b0fb5850ca6c3ba10ab475b0f1f049eb88e7b936ad898"
+    },
+    "scripts/navigation/npc_avoidance_world29.gd": {
+      "base_sha256": "94c1cc60cd6cc09e5a177ea79655456673ea3b888ecfe5176dde5d2119d8f28c",
+      "candidate_sha256": "c9a0b6687a369c13affa652f1269f586bf73e7f8b52c40f53b2dd9ba5ec4253c"
+    },
+    "scripts/npc_city_population.gd": {
+      "base_sha256": "9f3a18a9cb9aa090ab95c611a098ae8cafd4e9502d4b00b004e6b5bc0bb9174f",
+      "candidate_sha256": "9395a2199e26479fbffc289beabaa8308a8aac21eb6ef756d729894d3fc73e64"
+    },
+    "scripts/npc_city_daily.gd": {
+      "base_sha256": "4d5033ddbe6902931dc567d2677983682dcd1463771eff769c4528adec0f9112",
+      "candidate_sha256": "fd0cb6c810f9d1d3b40cb9ced476d3c5555f2baff91da134909c4dba11d68a58"
+    }
+  },
+  "last_component_run": "runs/component04",
+  "native_checks": 33,
+  "native_result_sha256": "e7727376e5f3ee69caaa40585e071b3857c5d25d8f05575d1ba97796c28d2f9f",
+  "receipt_sha256": "24e469fff8f6f1480da126c0d10d83108aaac8876b834f72c0ae38aa83721d7f",
+  "changed_sources_archive_sha256": "09b1a931f66b76037d649fd2fe91e3574176a4e6658769addff8d666d1f9d68a",
+  "source_pins_sha256": "5fc0d9f4128ea1d36d8c7ad70410058f6415f92ba297304167cc5d4f3ba3e2ad",
+  "audit_sha256": "e3335e8b2763a27ae12bb509528a982ad074d14d5f29ddf8b1ffba4efb0891b0",
+  "plan_sha256": "3aef484e2c1221d542ab398c9a4dd38d91f9081856cfca7cd6635a81775a33d9",
+  "apply_sha256": "5db12ea4c6917fdd0e4ce7cb8de545a162b1825065d287a32c8c92dcdfce4ddd",
+  "diff_sha256": "c37be587080724966dc5326c18e4383afcb12c9bfaa92dc91cb9282c7b2ef1ce",
+  "production_modified": false,
+  "native_capsules_peak": 12,
+  "pinned_residents": 287,
+  "separate_staff": 12,
+  "new_launch_flag": "--city-physical-dispatch30=1",
+  "physical_delta_scaled": false,
+  "performance_accepted": false,
+  "mass_behavior_accepted": false
+}

@@ -1,0 +1,82 @@
+{
+  "schema": "scoped_exact_hunks30/v1",
+  "edits": [
+    {
+      "path": "scripts/npc_daily_life.gd",
+      "hunk": 1,
+      "before": "## with no throttle of any kind in between - as well as from the hit itself.\nfunc dsh_repaint_caption() -> void:\n\tif _disposed or _walk == null: return\n\tif not ResDiag.hp_label_on() and not ResDiag.diag_on(): return\n\tvar row: Dictionary = _life()\n\tif row.is_empty(): return\n",
+      "after": "## with no throttle of any kind in between - as well as from the hit itself.\nfunc dsh_repaint_caption() -> void:\n\tif _disposed or _walk == null: return\n\tif ResDiag.simple_vitals_on() and not ResDiag.diag_on():\n\t\tResDiag.repaint_focus30(_token.get(\"body\")); return\n\tif not ResDiag.hp_label_on() and not ResDiag.diag_on(): return\n\tvar row: Dictionary = _life()\n\tif row.is_empty(): return\n",
+      "before_at_eof": false
+    },
+    {
+      "path": "scripts/npc_daily_life.gd",
+      "hunk": 2,
+      "before": "## DSH_RESDIAG: one read-only head-up display per resident, from the existing snapshots.\nfunc _dsh_resdiag_step(row: Dictionary) -> void:\n\tif not ResDiag.diag_on() and not ResDiag.hp_label_on(): return\n\tvar body: Variant = _token.get(\"body\")\n\tif not is_instance_valid(body) or not body is Node3D: return\n\tvar walk: Dictionary = _walk.snapshot() if _walk != null else {}\n",
+      "after": "## DSH_RESDIAG: one read-only head-up display per resident, from the existing snapshots.\nfunc _dsh_resdiag_step(row: Dictionary) -> void:\n\tif not ResDiag.diag_on() and not ResDiag.hp_label_on(): return\n\tif ResDiag.simple_vitals_on() and not ResDiag.diag_on():\n\t\tResDiag.repaint_focus30(_token.get(\"body\")); return\n\tvar body: Variant = _token.get(\"body\")\n\tif not is_instance_valid(body) or not body is Node3D: return\n\tvar walk: Dictionary = _walk.snapshot() if _walk != null else {}\n",
+      "before_at_eof": false
+    },
+    {
+      "path": "scripts/npc_daily_life.gd",
+      "hunk": 3,
+      "before": "\treturn true\n\nfunc _end_life() -> void:\n\tif _threat30 != null: _threat30.cancel(\"death\"); _threat30=null\n\t_attention29.clear(false)\n\t_ambient29_cancel(\"death\")\n",
+      "after": "\treturn true\n\nfunc _end_life() -> void:\n\tResDiag.unregister_life30(str(_token.get(\"source_id\",\"\")),self)\n\tif _threat30 != null: _threat30.cancel(\"death\"); _threat30=null\n\t_attention29.clear(false)\n\t_ambient29_cancel(\"death\")\n",
+      "before_at_eof": false
+    },
+    {
+      "path": "scripts/npc_daily_life.gd",
+      "hunk": 4,
+      "before": "\t_hospital_support51=null\n\t_roam51_active=false\n\tif _walk!=null: _walk.dispose()\n\t_disposed=true; _phase=\"DISPOSED\"; _factory=Callable()\n\nfunc _ambient29_cancel(reason: String) -> void:\n",
+      "after": "\t_hospital_support51=null\n\t_roam51_active=false\n\tif _walk!=null: _walk.dispose()\n\tResDiag.unregister_life30(str(_token.get(\"source_id\",\"\")),self)\n\t_disposed=true; _phase=\"DISPOSED\"; _factory=Callable()\n\nfunc _ambient29_cancel(reason: String) -> void:\n",
+      "before_at_eof": false
+    },
+    {
+      "path": "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "hunk": 1,
+      "before": "## decision, and without --city-resident-name there is no caption to paint.\nfunc _dsh_refresh_caption(body: Node3D) -> void:\n\tif not ResDiag.hp_label_on() and not ResDiag.diag_on(): return\n\tvar name: String = str(body.get_meta(\"dsh_test_resident_name\", \"\"))\n\tif name.is_empty(): return\n\tResDiag.refresh_after_hit(body, name, _row)\n",
+      "after": "## decision, and without --city-resident-name there is no caption to paint.\nfunc _dsh_refresh_caption(body: Node3D) -> void:\n\tif not ResDiag.hp_label_on() and not ResDiag.diag_on(): return\n\tif ResDiag.simple_vitals_on():\n\t\tResDiag.repaint_focus30(body); return\n\tvar name: String = str(body.get_meta(\"dsh_test_resident_name\", \"\"))\n\tif name.is_empty(): return\n\tResDiag.refresh_after_hit(body, name, _row)\n",
+      "before_at_eof": false
+    },
+    {
+      "path": "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "hunk": 2,
+      "before": "## text and nothing else; only the owner's named resident has a caption at all.\nfunc _dsh_repaint_caption() -> void:\n\tif not _ready: return\n\tif not ResDiag.hp_label_on() and not ResDiag.diag_on(): return\n\tvar body: Variant = _token.get(\"body\")\n\tif not is_instance_valid(body) or not body is Node3D: return\n",
+      "after": "## text and nothing else; only the owner's named resident has a caption at all.\nfunc _dsh_repaint_caption() -> void:\n\tif not _ready: return\n\tif ResDiag.simple_vitals_on() and not ResDiag.diag_on():\n\t\tResDiag.repaint_focus30(_token.get(\"body\")); return\n\tif not ResDiag.hp_label_on() and not ResDiag.diag_on(): return\n\tvar body: Variant = _token.get(\"body\")\n\tif not is_instance_valid(body) or not body is Node3D: return\n",
+      "before_at_eof": false
+    },
+    {
+      "path": "scripts/npc_visual/npc_resident_diag.gd",
+      "hunk": 1,
+      "before": "## poll slice. A miss simply means the immediate check does not run; the slice still does.\nstatic func register_life(id: String, life: RefCounted) -> void:\n\tif id.is_empty() or not is_instance_valid(life): return\n\t_lives[id] = weakref(life)\n\nstatic func life_of(id: String) -> RefCounted:\n",
+      "after": "## poll slice. A miss simply means the immediate check does not run; the slice still does.\nstatic func register_life(id: String, life: RefCounted) -> void:\n\tif id.is_empty() or not is_instance_valid(life): return\n\tvar prior: RefCounted=life_of(id)\n\tif prior!=null and prior!=life:unregister_life30(id,prior)\n\t_lives[id] = weakref(life)\n\nstatic func life_of(id: String) -> RefCounted:\n",
+      "before_at_eof": false
+    },
+    {
+      "path": "scripts/npc_visual/npc_resident_diag.gd",
+      "hunk": 2,
+      "before": "## did not pick gets one.\nstatic func caption_allowed(body: Node3D) -> bool:\n\tif not is_instance_valid(body): return false\n\tif simple_vitals_on() and str(body.get_meta(\"source_id\", \"\")) == \"resident_1\": return true\n\tif body.has_meta(\"dsh_test_resident_name\"): return true\n\tvar parent: Node = body.get_parent()\n\treturn parent != null and parent is Node3D and (parent as Node3D).has_meta(\"dsh_test_resident_name\")\n",
+      "after": "## did not pick gets one.\nstatic func caption_allowed(body: Node3D) -> bool:\n\tif not is_instance_valid(body): return false\n\tif simple_vitals_on():\n\t\tvar life: RefCounted=life_of(str(body.get_meta(\"source_id\",\"\")))\n\t\tif life==null:return false\n\t\tvar token: Variant=life.get(\"_token\")\n\t\treturn token is Dictionary and token.get(\"body\")==body and str(token.get(\"source_id\",\"\"))==str(body.get_meta(\"source_id\",\"\"))\n\tif body.has_meta(\"dsh_test_resident_name\"): return true\n\tvar parent: Node = body.get_parent()\n\treturn parent != null and parent is Node3D and (parent as Node3D).has_meta(\"dsh_test_resident_name\")\n",
+      "before_at_eof": false
+    },
+    {
+      "path": "scripts/npc_visual/npc_resident_diag.gd",
+      "hunk": 3,
+      "before": "## that resident's turn in the daily poll slice (measured poll period ~1.6 s).\nstatic func refresh_after_hit(body: Node3D, name: String, row: Dictionary) -> void:\n\tif not hp_label_on() and not diag_on(): return\n\tif not is_instance_valid(body) or not caption_allowed(body): return\n\tvar label := _label_for(body, true)\n\tif label == null: return\n",
+      "after": "## that resident's turn in the daily poll slice (measured poll period ~1.6 s).\nstatic func refresh_after_hit(body: Node3D, name: String, row: Dictionary) -> void:\n\tif not hp_label_on() and not diag_on(): return\n\tif simple_vitals_on():repaint_focus30(body);return\n\tif not is_instance_valid(body) or not caption_allowed(body): return\n\tvar label := _label_for(body, true)\n\tif label == null: return\n",
+      "before_at_eof": false
+    },
+    {
+      "path": "scripts/npc_visual/npc_resident_diag.gd",
+      "hunk": 4,
+      "before": "## timer and no keep-alive of its own.\nstatic func update(id: String, body: Variant, row: Dictionary, life_state: Dictionary, walk: Dictionary, name: String) -> void:\n\tif not diag_on() and not hp_label_on(): return\n\tif not is_instance_valid(body) or not body is Node3D: return\n\tvar now_frame := Engine.get_physics_frames()\n\tvar record: Dictionary = _seen.get(id, {})\n",
+      "after": "## timer and no keep-alive of its own.\nstatic func update(id: String, body: Variant, row: Dictionary, life_state: Dictionary, walk: Dictionary, name: String) -> void:\n\tif not diag_on() and not hp_label_on(): return\n\tif simple_vitals_on() and not diag_on():repaint_focus30(body);return\n\tif not is_instance_valid(body) or not body is Node3D: return\n\tvar now_frame := Engine.get_physics_frames()\n\tvar record: Dictionary = _seen.get(id, {})\n",
+      "before_at_eof": false
+    },
+    {
+      "path": "scripts/npc_visual/npc_resident_diag.gd",
+      "hunk": 5,
+      "before": "\t\t\"COMPLETE\": return \"complete\"\n\t\t\"CANCELLED\", \"BLOCKED\", \"HOLD\", \"FAILED\", \"STALE\": return \"blocked:\" + status\n\treturn \"\"\n",
+      "after": "\t\t\"COMPLETE\": return \"complete\"\n\t\t\"CANCELLED\", \"BLOCKED\", \"HOLD\", \"FAILED\", \"STALE\": return \"blocked:\" + status\n\treturn \"\"\n\n## HP-only path: hidden actors perform no life/route snapshots, no label creation,\n## no canvas acquisition and no authority memoization. Focus's native ray is shared.\nstatic var _focused_body30: WeakRef\nstatic var _hp_fast30 := {\"calls\":0,\"hidden\":0,\"current_reads\":0,\"paints\":0,\"releases\":0}\n\nstatic func _cached_label30(body: Node3D) -> Label3D:\n\tvar id: String=str(body.get_instance_id())\n\tvar held: Variant=_labels.get(id)\n\tvar label: Variant=held.get_ref() if held is WeakRef else null\n\tif is_instance_valid(label) and label is Label3D and body.is_ancestor_of(label):return label\n\t_labels.erase(id);return null\n\nstatic func _release_focus30(body: Variant, retire: bool=false) -> void:\n\tif not is_instance_valid(body) or not body is Node3D:return\n\tvar label: Label3D=_cached_label30(body)\n\tif label!=null:\n\t\tvar was_visible: bool=label.visible\n\t\tlabel.visible=false\n\t\t# Releasing a hidden label must not instantiate the shared canvas.\n\t\tif body.is_inside_tree():\n\t\t\tvar scene: Node=body.get_tree().current_scene\n\t\t\tvar held: Variant=scene.get_meta(Focus29.CanvasCard.META) if scene!=null and scene.has_meta(Focus29.CanvasCard.META) else null\n\t\t\tvar canvas: Variant=held.get_ref() if held is WeakRef else null\n\t\t\tif is_instance_valid(canvas):canvas.release(label)\n\t\tif was_visible:_hp_fast30.releases+=1\n\tif retire:_labels.erase(str(body.get_instance_id()))\n\tif _focused_body30!=null and _focused_body30.get_ref()==body:_focused_body30=null\n\nstatic func unregister_life30(id: String, life: RefCounted) -> void:\n\tif is_instance_valid(life):\n\t\tvar token: Variant=life.get(\"_token\")\n\t\tif token is Dictionary:_release_focus30(token.get(\"body\"),true)\n\t# A late callback of an old life cannot erase its successor's registration.\n\tif life_of(id)!=life:return\n\t_lives.erase(id);_seen.erase(id);_stages.erase(id)\n\nstatic func repaint_focus30(body: Variant) -> void:\n\t_hp_fast30.calls+=1\n\tif not is_instance_valid(body) or not body is Node3D:return\n\tif not body.is_inside_tree() or body.is_queued_for_deletion() or not Focus29.focused(body):\n\t\t_hp_fast30.hidden+=1;_release_focus30(body);return\n\tvar id: String=str(body.get_meta(\"source_id\",\"\"))\n\tvar life: RefCounted=life_of(id)\n\tif life==null or not life.has_method(\"_life\"):_release_focus30(body);return\n\tvar token: Variant=life.get(\"_token\")\n\tif not token is Dictionary or token.get(\"body\")!=body or str(token.get(\"source_id\",\"\"))!=id:\n\t\t_release_focus30(body);return\n\t# No frame/revision cache: hit/heal/death may change authority in this same tick.\n\t_hp_fast30.current_reads+=1\n\tvar current: Variant=life.call(\"_life\")\n\tif not current is Dictionary or current.is_empty() or str(current.get(\"source_id\",\"\"))!=id or current.get(\"life_generation\")!=token.get(\"life_generation\") or bool(current.get(\"dead\",false)) or float(current.get(\"hp\",0))<=0.0:\n\t\t_release_focus30(body);return\n\tvar prior: Variant=_focused_body30.get_ref() if _focused_body30!=null else null\n\tif is_instance_valid(prior) and prior!=body:_release_focus30(prior)\n\tvar label: Label3D=_simple_label_for(body,true)\n\tif label==null:return\n\tvar generation: int=int(token.get(\"life_generation\",-1))\n\tif label.get_meta(\"card30_generation\",-1)!=generation or str(label.get_meta(\"card30_source_id\",\"\"))!=id:\n\t\tif label.has_meta(\"card29_display_ratio\"):label.remove_meta(\"card29_display_ratio\")\n\t\tif label.has_meta(\"card29_paint_ms\"):label.remove_meta(\"card29_paint_ms\")\n\tlabel.set_meta(\"card30_source_id\",id);label.set_meta(\"card30_generation\",generation)\n\tlabel.set_meta(\"card30_body_id\",body.get_instance_id());label.set_meta(\"card30_session_id\",str(token.get(\"session_id\",\"\")))\n\t_paint_simple_vitals(label,current)\n\tFocus29.update_visibility(body,label,current)\n\t_focused_body30=weakref(body);_hp_fast30.paints+=1\n\nstatic func hp_fast_state30() -> Dictionary:return _hp_fast30.duplicate()\n",
+      "before_at_eof": true
+    }
+  ]
+}

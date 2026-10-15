@@ -1,0 +1,67 @@
+{
+	"checks": [
+		"live canonical token equal",
+		"changed token field ok",
+		"changed token field source_authority",
+		"changed token field session_id",
+		"changed token field source_id",
+		"changed token field bridge_id",
+		"changed token field render_id",
+		"changed token field life_generation",
+		"changed token field descriptor_sha256",
+		"changed token field placement_mode",
+		"changed token field body_instance_id",
+		"changed token field body_rid",
+		"changed token field rig",
+		"changed token field rig_instance_id",
+		"changed token field rig_epoch",
+		"same lookup mode 0",
+		"foreign source metadata mode 0",
+		"same lookup mode 1",
+		"foreign source metadata mode 1",
+		"changed body session_id",
+		"changed body descriptor_sha256",
+		"changed mask",
+		"changed layer",
+		"disabled collider",
+		"wrong shape replacement",
+		"same geometric capsule replacement retains prior semantics",
+		"changed capsule radius",
+		"changed capsule height",
+		"same-frame dead owner",
+		"same-frame stale generation",
+		"owner generation mismatch",
+		"owner source mismatch",
+		"host guard _busy",
+		"host guard _disposed",
+		"host guard _dispose_requested",
+		"body parent changed",
+		"rig removed",
+		"same-frame rig replaced",
+		"second rig introduced",
+		"restored rig accepted same frame",
+		"freed body rejected before type test",
+		"immutable damage probe flag correctly cached",
+		"fixture probe does not grant or apply a shot"
+	],
+	"evidence": {
+		"guard_5000_calls_us": [
+			{
+				"new": 59071,
+				"old": 80949
+			},
+			{
+				"new": 50878,
+				"old": 79174
+			},
+			{
+				"new": 52803,
+				"old": 79820
+			}
+		],
+		"probe_cached": 0
+	},
+	"failures": [],
+	"ok": true,
+	"performance_accepted": false
+}

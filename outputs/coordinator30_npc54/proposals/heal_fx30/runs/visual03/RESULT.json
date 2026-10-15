@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "baseline": false,
+  "mode": "graphical",
+  "drift": [],
+  "import_exit": 0,
+  "native_exit": 0,
+  "native_error": null,
+  "visual_review_pending": true,
+  "shared_game_modified": false,
+  "performance_accepted": false
+}

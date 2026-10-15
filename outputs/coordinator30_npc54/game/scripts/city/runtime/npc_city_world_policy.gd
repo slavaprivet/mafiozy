@@ -22,6 +22,7 @@ const NO_MEMO: Array = []
 var _scene: WeakRef
 var _owners := {}
 var _respawn28_owner: WeakRef
+var _respawn_owners30: Dictionary = {}
 var _states := {}
 var _version := -1
 # Base terrain is not a movement grant; local authored entry owners combine it
@@ -389,13 +390,14 @@ func _valid_states(states: Variant, owners: Dictionary) -> bool:
 ## Authenticated local generation transfer; does not replace source geometry,
 ## source role or footprint checks, and cannot enable another resident.
 func replace_single_dead_owner28(lifecycle: Node, host: RefCounted, token: Dictionary, previous: RefCounted, successor: RefCounted) -> bool:
+	var id: String=str(lifecycle.get("source_id30"))
 	if _disposed or _busy or not Thread.is_main_thread() or _host==null or _host.get_ref()!=host or not host.single_lifecycle28_current(lifecycle):return false
-	if token.get("source_id")!="resident_1" or not host.physical_life_current(token) or not _owners.has("resident_1"):return false
-	if _owners["resident_1"].owner!=previous or host._records["resident_1"].owner!=previous or not previous.dead or previous.life_generation!=token.life_generation:return false
-	if not successor is Queue.Owner or successor.dead or successor.source_id!="resident_1" or successor.life_generation!=previous.life_generation+1:return false
-	_owners["resident_1"]={"owner":successor,"dead_seen":false}
-	_respawn28_owner=weakref(successor)
-	_paths.erase("resident_1")
+	if token.get("source_id")!=id or not host.physical_life_current(token) or not _owners.has(id):return false
+	if _owners[id].owner!=previous or host._records[id].owner!=previous or not previous.dead or previous.life_generation!=token.life_generation:return false
+	if not successor is Queue.Owner or successor.dead or successor.source_id!=id or successor.life_generation!=previous.life_generation+1:return false
+	_owners[id]={"owner":successor,"dead_seen":false}
+	_respawn_owners30[id]=weakref(successor)
+	_paths.erase(id)
 	return true
 
 func _owner_allowed(id: String, generation: int) -> bool:
@@ -404,7 +406,7 @@ func _owner_allowed(id: String, generation: int) -> bool:
 	var record: Dictionary = _owners[id]; var owner: RefCounted = record.owner
 	# A stale generation must never poison its valid successor with dead_seen.
 	if owner.source_id!=id or owner.life_generation!=generation:return false
-	if generation!=1 and (id!="resident_1" or _respawn28_owner==null or _respawn28_owner.get_ref()!=owner):return false
+	if generation!=1 and (not _respawn_owners30.has(id) or _respawn_owners30[id].get_ref()!=owner):return false
 	if owner.dead:record.dead_seen=true
 	return not record.dead_seen
 

@@ -1,0 +1,29 @@
+{
+  "first_apply": [
+    {
+      "path": "scripts/npc_visual/preview_resident_host.gd",
+      "hunk": "target_current30",
+      "state": "apply"
+    },
+    {
+      "path": "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "hunk": "damage_probe30",
+      "state": "apply"
+    }
+  ],
+  "second_apply": [
+    {
+      "path": "scripts/npc_visual/preview_resident_host.gd",
+      "hunk": "target_current30",
+      "state": "already_applied"
+    },
+    {
+      "path": "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "hunk": "damage_probe30",
+      "state": "already_applied"
+    }
+  ],
+  "partial_conflict_rejected": true,
+  "current_lifecycle_preserved": true,
+  "shared_game_modified": false
+}

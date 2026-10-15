@@ -168,6 +168,7 @@ func _commit() -> Dictionary:
 	receipt["hospital"]={"source_id":HOSPITAL_ID,"goal_request_id":_request_id,"treatment_ms":_elapsed_ms,"hp_before":_hp_before,"hp_after":_row.hp,"local_session":_local_session,"policy":"user_requested_native_walk_in_treatment_v1"}
 	_lifecycle._events[event_id]=receipt.duplicate(true)
 	_owner.get_ref().last_result=receipt.duplicate(true)
+	preload("res://scripts/npc_visual/npc_heal_fx30.gd").confirmed30(_owner.get_ref(),event_id)
 	_phase="COMPLETE"; _busy=false
 	var result := {"status":"COMPLETE","treatment_id":_active,"receipt":receipt}
 	_store_result(result)

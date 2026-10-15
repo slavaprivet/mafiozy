@@ -19,6 +19,76 @@ var _road_path := ""
 var _road_sha := ""
 var _lives := {}
 var _track_single28 := false
+## Opt-in full-population dispatch: native Simple drivers must run at physics Hz.
+## Dormant decision polls retain the existing bounded rotating queue below.
+var _physical_enabled30 := -1
+var _physical_lives30: Dictionary = {}
+var _physical_ids30: Array = []
+var _physical_dirty30 := false
+var _physical_steps30 := 0
+var _physical_us30 := 0
+var _physical_peak_us30 := 0
+
+func _physical_on30() -> bool:
+	if _physical_enabled30<0:
+		_physical_enabled30=1 if OS.get_cmdline_user_args().has("--city-physical-dispatch30=1") else 0
+	return _physical_enabled30==1
+
+func _physical_needed30(life: RefCounted) -> bool:
+	if life._disposed:return false
+	if life.has_method("threat_physics_active30") and life.threat_physics_active30():return true
+	return life._roam51_active or life._dsh_simple_goal_active() or life._economy28_active() or life._restaurant28_active() or life._attention29.active or (life._ambient29!=null and life._ambient29.active()) or life._visit!=null or life._phase=="WALKING"
+
+func _physical_refresh30(id: String) -> void:
+	if not _physical_on30():return
+	var life: RefCounted=_lives.get(id)
+	if life!=null and _physical_needed30(life):
+		if _physical_lives30.get(id)!=life:_physical_lives30[id]=life;_physical_dirty30=true
+	elif _physical_lives30.erase(id):_physical_dirty30=true
+
+## Incident/health integration may request an exact current life on the next tick.
+## No new life/body/goal is created, and the life still performs all its guards.
+func wake_physical30(id: String) -> bool:
+	if _disposed or not _physical_on30() or not _lives.has(id):return false
+	if _physical_lives30.get(id)!=_lives[id]:_physical_lives30[id]=_lives[id];_physical_dirty30=true
+	return true
+
+## Exact owner prevents an old death callback from removing a successor's tick.
+func forget_physical30(id: String, exact_life: RefCounted) -> bool:
+	if not _physical_lives30.has(id):return true
+	if _physical_lives30[id]!=exact_life:return false
+	_physical_lives30.erase(id);_physical_dirty30=true
+	return true
+
+func _physical_tick30(delta: float) -> void:
+	_physical_steps30=0;_physical_us30=0
+	if not _physical_on30():return
+	if _physical_dirty30:_physical_ids30=_physical_lives30.keys();_physical_dirty30=false
+	var started30: int=Time.get_ticks_usec();var frame30: int=Engine.get_physics_frames()
+	# Bounded by the original288 resident catalogue. Never skip a moving body's
+	# physics tick to fake performance; frame cost remains a release acceptance gate.
+	for id: String in _physical_ids30:
+		var life: RefCounted=_lives.get(id)
+		if life==null or life!=_physical_lives30.get(id):
+			if _physical_lives30.erase(id):_physical_dirty30=true
+			continue
+		if life._frame!=frame30:
+			_life_clock30(life)
+			if _track_single28:_step_calls28+=1
+			life.step(delta);_physical_steps30+=1
+		_physical_refresh30(id)
+	_physical_us30=Time.get_ticks_usec()-started30
+	_physical_peak_us30=maxi(_physical_peak_us30,_physical_us30)
+
+func _life_clock30(life: RefCounted) -> void:
+	if _dsh_life_clock_on()!=1:return
+	var now30: int=Time.get_ticks_msec();var last30: int=int(life._dsh_last_ms)
+	life._dsh_last_ms=now30
+	var paused30: bool=life._health!=null and life._health.has_method("should_pause_walk") and life._health.should_pause_walk()
+	life._dsh_elapsed=0.0 if last30<=0 or paused30 else clampf(float(now30-last30)/1000.0,0.0,_dsh_life_cap())
+
+func physical_dispatch_state30() -> Dictionary:
+	return {"enabled":_physical_on30(),"active":_physical_lives30.size(),"steps":_physical_steps30,"us":_physical_us30,"peak_us":_physical_peak_us30,"life_count":_lives.size(),"physical_delta_not_scaled":true}
 var _step_calls28 := 0
 var _accounts := {}
 var _health := {}
@@ -360,13 +430,11 @@ func step(delta: float) -> void:
 		current._dsh_elapsed = 0.0; current._dsh_last_ms = Time.get_ticks_msec()
 		if _track_single28: _step_calls28 += 1
 		current.step(delta)
-	# The walk and visit controllers only POLL. The native navigation host advances
-	# every actor in population.step on every frame, so polling all residents here
-	# cost about 1 ms per resident per frame at city scale and dominated the frame.
-	# Poll a rotating slice instead: every resident is still served once per
-	# DAILY_SLICE frames, so a leg or visit advance lands at most that many frames
-	# later. Decisions keep their own millisecond time base, so no work is skipped,
-	# only sampled less often.
+		_physical_refresh30(id)
+	_physical_tick30(delta)
+	# Dormant decisions keep the bounded rotating poll. The opt-in physical pass
+	# above advances active Simple/visit/attention/threat controllers every frame;
+	# unlike legacy native navigation, those controllers move inside life.step.
 	# DSH_NAVDAILY: the key order is cached; a resident-count change rebuilds it. Same
 	# residents, same order, same cursor arithmetic, same polling cadence.
 	var count:=_lives.size()
@@ -380,18 +448,22 @@ func step(delta: float) -> void:
 	var dsh_min_polls:=_dsh_daily_min_per_frame()
 	if dsh_min_polls>per_frame and count>0: per_frame=mini(count, dsh_min_polls)
 	var stepped:=0
+	var advanced30:=0
 	var life_total:=0
 	var dsh_budget:=_dsh_daily_budget()  # DSH_DAILYFX
 	# DSH_NAVDAILY: `phases` is read only by the DSH_DAILY print below.
 	var dsh_phases_frame:=frame%15==0
 	var phases:={}
+	var decision_started30: int=Time.get_ticks_usec() if _physical_on30() else started
 	for k in per_frame:
 		if count<=0: break
 		# DSH_DAILYFX: dsh_budget==0 (default) never breaks here. k>0 guarantees at
 		# least one poll per step, so no step can starve the walk.
-		if dsh_budget>0 and k>0 and Time.get_ticks_usec()-started>=dsh_budget: break
+		if dsh_budget>0 and k>0 and Time.get_ticks_usec()-decision_started30>=dsh_budget: break
 		var index:=(_cursor+k)%count
 		var life: RefCounted=_lives[ids[index]]
+		advanced30+=1
+		if _physical_on30() and life._frame==frame:continue
 		var life_started:=Time.get_ticks_usec()
 		var life_phase:String=life._phase
 		var life_kind:String=str(life._goal.get("kind",""))
@@ -414,6 +486,7 @@ func step(delta: float) -> void:
 			else: life._dsh_elapsed = clampf(float(dsh_now - dsh_last) / 1000.0, 0.0, _dsh_life_cap())
 		if _track_single28:_step_calls28+=1
 		life.step(delta)
+		_physical_refresh30(str(ids[index]))
 		var life_us:=Time.get_ticks_usec()-life_started
 		stepped+=1; life_total+=life_us
 		if dsh_phases_frame: phases[life_phase]=int(phases.get(life_phase,0))+1
@@ -432,7 +505,7 @@ func step(delta: float) -> void:
 			_dsh_worst_state=life_kind
 			_dsh_worst_reason=str(life._reason)
 			_dsh_worst_parts=_dsh_poll_parts(life) if life_us>=2000 else ""
-	if count>0: _cursor=(_cursor+stepped)%count
+	if count>0: _cursor=(_cursor+advanced30)%count
 	var elapsed:=Time.get_ticks_usec()-started
 	# DSH_VISITCACHE: the visit-scene cache trigger of this window. lookups = every cache decision
 	# (one per configured daily route), hits/builds its outcome, us the time the cache itself spent
@@ -446,7 +519,7 @@ func step(delta: float) -> void:
 		var dsh_cache: Dictionary=dsh_cache_value if dsh_cache_value is Dictionary else {}
 		dsh_cache_lookups=int(dsh_cache.get("lookups",0));dsh_cache_hits=int(dsh_cache.get("hits",0));dsh_cache_builds=int(dsh_cache.get("builds",0));dsh_cache_us=int(dsh_cache.get("us",0))
 		dsh_cache["lookups"]=0;dsh_cache["hits"]=0;dsh_cache["builds"]=0;dsh_cache["us"]=0
-	if frame%15==0: print("DSH_DAILY f=",frame," lives=",count," stepped=",stepped," life_us=",life_total," overhead_us=",elapsed-life_total," total_us=",elapsed," phases=",phases," polls=",_dsh_poll_filled," pmin=",_dsh_poll_us_at(0.0)," p50=",_dsh_poll_us_at(.5)," p90=",_dsh_poll_us_at(.9)," pmax=",_dsh_poll_us_at(1.0)," budget_us=",dsh_budget," worst_us=",_dsh_worst_us," worst_id=",_dsh_worst_id," worst_from=",_dsh_worst_from," worst_to=",_dsh_worst_to," worst_state=",_dsh_worst_state," worst_reason=",_dsh_worst_reason," worst_parts=",_dsh_worst_parts," scene_cache_lookups=",dsh_cache_lookups," scene_cache_hits=",dsh_cache_hits," scene_cache_builds=",dsh_cache_builds," scene_cache_us=",dsh_cache_us)
+	if frame%15==0: print("DSH_DAILY f=",frame," lives=",count," stepped=",stepped," life_us=",life_total," overhead_us=",elapsed-life_total," total_us=",elapsed," phases=",phases," polls=",_dsh_poll_filled," pmin=",_dsh_poll_us_at(0.0)," p50=",_dsh_poll_us_at(.5)," p90=",_dsh_poll_us_at(.9)," pmax=",_dsh_poll_us_at(1.0)," budget_us=",dsh_budget," worst_us=",_dsh_worst_us," worst_id=",_dsh_worst_id," worst_from=",_dsh_worst_from," worst_to=",_dsh_worst_to," worst_state=",_dsh_worst_state," worst_reason=",_dsh_worst_reason," worst_parts=",_dsh_worst_parts," scene_cache_lookups=",dsh_cache_lookups," scene_cache_hits=",dsh_cache_hits," scene_cache_builds=",dsh_cache_builds," scene_cache_us=",dsh_cache_us," physical_steps30=",_physical_steps30," physical_us30=",_physical_us30)
 	if frame%15==0: _dsh_poll_filled=0; _dsh_poll_cursor=0; _dsh_worst_us=0; _dsh_worst_id=""; _dsh_worst_from=""; _dsh_worst_to=""; _dsh_worst_state=""; _dsh_worst_reason=""; _dsh_worst_parts=""  # DSH_DAILYFX: the window is the print interval
 	if _dsh_life_trace() > 0: _dsh_trace_line(frame)  # DSH_LIFETRACE: one line per traced resident per wall second
 	# DSH_LIVES (temporary): the population-wide counterpart of DSH_ECON, so one long
@@ -548,7 +621,7 @@ func snapshot(include_details: bool=false) -> Dictionary:
 	for id: String in _lives:
 		var life: RefCounted=_lives[id]
 		rows.append(life.snapshot() if include_details else {"source_id":id,"phase":life._phase,"reason":life._reason,"kind":life._goal.get("kind",""),"completed":life._completed.duplicate()})
-	return {"residents":rows,"failures":_failures.duplicate(true),"scope":"local_daily_services","cost":{"samples":_samples,"total_us":_total_us,"max_us":_max_us,"max_frame":_max_frame},"life_peaks":_life_peaks_snapshot(),"native_movement_tick_added":false}
+	return {"residents":rows,"failures":_failures.duplicate(true),"scope":"local_daily_services","cost":{"samples":_samples,"total_us":_total_us,"max_us":_max_us,"max_frame":_max_frame},"life_peaks":_life_peaks_snapshot(),"native_movement_tick_added":_physical_on30(),"physical_dispatch30":physical_dispatch_state30()}
 
 func dispose() -> void:
 	if _disposed: return
@@ -559,12 +632,13 @@ func dispose() -> void:
 	if pending: return
 	for account: RefCounted in _accounts.values(): account.dispose()
 	_disposed=true; _lives.clear(); _accounts.clear(); _health.clear(); _scene=null
+	_physical_lives30.clear();_physical_ids30.clear();_physical_dirty30=false
 
 ## Authenticated one-shot death retirement, before the next daily dispatch.
 func retire_single_dead28(owner: Node, health: RefCounted) -> bool:
 	if _disposed or not _population.residents.single_lifecycle28_current(owner) or not owner.owns_health(health):return false
 	var id: String=str(health.get("_token").get("source_id",""))
-	if id!="resident_1" or _health.get(id)!=health or not _lives.has(id):return false
+	if id!=str(owner.get("source_id30")) or _health.get(id)!=health or not _lives.has(id):return false
 	var row: Dictionary=health.get("_row")
 	var life: RefCounted=_lives[id]
 	if not row.get("dead",false) or float(row.get("hp",1))>0 or life.get("_busy")==true:return false
@@ -574,6 +648,7 @@ func retire_single_dead28(owner: Node, health: RefCounted) -> bool:
 		else:life._end_life()
 	if _accounts.has(id):_accounts[id].dispose()
 	_lives.erase(id);_accounts.erase(id);_health.erase(id)
+	forget_physical30(id,life)
 	_dsh_ids.clear();_cursor=0
 	return true
 
@@ -583,3 +658,4 @@ func _retire_scene() -> void:
 	for life: RefCounted in _lives.values(): life._end_life()
 	for account: RefCounted in _accounts.values(): account.dispose()
 	_disposed=true; _lives.clear(); _accounts.clear(); _health.clear(); _scene=null
+	_physical_lives30.clear();_physical_ids30.clear();_physical_dirty30=false
