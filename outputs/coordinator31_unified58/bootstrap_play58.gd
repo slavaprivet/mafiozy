@@ -4,8 +4,8 @@ extends SceneTree
 ## and reports CURRENT_GAME_READY for the user launcher. No gameplay is altered.
 var _out:=""
 var _expected:=10
-var _revision:="s01-20261015-residents58"
-var _title:="15.10 · Свободный проход жителей · версия58"
+var _revision:="s01-20261016-residents58-onepass"
+var _title:="16.10 · Один владелец действий · версия58"
 func _initialize() -> void:
 	for arg: String in OS.get_cmdline_user_args():
 		if arg.begins_with("--receipt-dir="):_out=arg.trim_prefix("--receipt-dir=")
