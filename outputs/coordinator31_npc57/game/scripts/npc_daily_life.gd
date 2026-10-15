@@ -1,6 +1,7 @@
 extends RefCounted
 const Routine58 = preload("res://scripts/city/runtime/npc_routine58.gd")
 const Leisure58 = preload("res://scripts/city/runtime/npc_leisure58.gd")
+const PreparedRoutes = preload("res://scripts/navigation/prepared_routes58.gd")
 var _routine58: RefCounted
 var _leisure58: RefCounted
 var _leisure_arrived58 := false
@@ -1548,6 +1549,14 @@ func _leisure58_begin() -> bool:
 		if _roam51_active:
 			_goal=_new_goal("leisure"); _goal["destination"]=destination.duplicate()
 			_phase="WALKING"; _reason=""
+			# DSH_ROUTES58: one line per walk that names the route source, so a log shows
+			# whether the prepared graph or the physical search carried this resident.
+			print("NPC_ROUTE58 id=",str(_token.source_id)," source=",str(_roam51._prepared58_reason),
+				" plan_ok=",_roam51._prepared58_plan_ok," plan_points=",int(_roam51._prepared58_plan_points),
+				" prepared_used=",int(_roam51._prepared58_used)," length_m=","%.1f" % float(_roam51._prepared58_length_m),
+				" graph_on=",_roam51.prepared58_on()," graph_loaded=",PreparedRoutes.loaded(),
+				" phase=",str(_roam51._phase)," waypoints=",int(_roam51._route.route.size()),
+				" target=",destination.point)
 			# DSH_RESERVE58: the seat was already reserved by this selection, so the log
 			# names the seat this resident holds - two residents can no longer log the
 			# same bench, and the print proves which serial this life owns.

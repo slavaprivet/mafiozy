@@ -1,8 +1,8 @@
 extends Node
 ## Owner58 read-only watcher. Every second it prints one JSON line per resident with the
 ## state a human can check: where it is, what it is doing, why it is stopped, which goal
-## and which seat it holds. It never writes to a body, a route, a claim, a clock or the
-## population; it only reads fields that already exist.
+## and which seat it holds, and whether its walk used the prepared pedestrian graph.
+const PreparedRoutes = preload("res://scripts/navigation/prepared_routes58.gd")
 const PERIOD_MS := 1000
 const STILL_M := 0.10
 const MAX_LINES := 20000
@@ -95,7 +95,8 @@ func _sample(now: int) -> void:
 	print("OWNER58_SAMPLE ", JSON.stringify({
 		"t_ms": now, "residents": ids.size(), "lines": _lines,
 		"worst_still_s": _still_worst, "goals_without_standing_point": _unsupported_goals,
-		"seat_refusals": _seat_refusals, "peers_pass_through": _passthrough_on()}))
+		"seat_refusals": _seat_refusals, "peers_pass_through": _passthrough_on(),
+		"graph": PreparedRoutes.stats()}))
 
 func _line(id: String, life: RefCounted, now: int) -> void:
 	var body: CharacterBody3D = life.get("_token").get("body")
@@ -125,7 +126,14 @@ func _line(id: String, life: RefCounted, now: int) -> void:
 			"reason": driver.last_reason(), "dist_m": driver.distance_m(),
 			"queries": int(driver._route.queries) if driver._route != null else -1,
 			"expanded": int(driver._route.expanded) if driver._route != null else -1,
-			"goal_supported": driver._last_goal_support58.duplicate(true)}
+			"goal_supported": driver._last_goal_support58.duplicate(true),
+			# DSH_ROUTES58: how many prepared graph lines this driver walked, and the exact
+			# reason whenever it fell back to the old physical search.
+			"prepared_used": int(driver._prepared58_used),
+			"prepared_reason": str(driver._prepared58_reason),
+			"prepared_length_m": float(driver._prepared58_length_m),
+			"way": int(driver._way),
+			"waypoints": driver._route.route.size() if driver._route != null else -1}
 	var amb: RefCounted = life.get("_ambient29")
 	var amb_state: Dictionary = amb.snapshot() if amb != null else {}
 	if amb_state.get("active") == true:

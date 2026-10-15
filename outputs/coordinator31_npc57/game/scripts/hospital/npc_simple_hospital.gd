@@ -1,6 +1,7 @@
 extends RefCounted
 ## Private52: generic physical route drive. No raw position assignment or collider edits.
 const Avoidance29 = preload("res://scripts/navigation/npc_avoidance_world29.gd")
+const PreparedRoutes = preload("res://scripts/navigation/prepared_routes58.gd")
 const Route = preload("res://scripts/hospital/npc_physical_route51.gd")
 const LongRoute = preload("res://scripts/hospital/npc_long_route28.gd")
 const RoamWait = preload("res://scripts/hospital/npc_roam_wait29.gd")
@@ -70,6 +71,17 @@ var _door_reason := ""
 var _door_clear31: RefCounted
 # DSH_GOALSUPPORT58: the result of resolving this goal to a supported standing point.
 var _last_goal_support58: Dictionary = {}
+# DSH_ROUTES58: how the prepared graph was used by this driver, so a run can name the
+# prepared stretches and the exact reason a fallback happened.
+var _prepared58_used := 0
+var _prepared58_reason := ""
+var _prepared58_length_m := 0.0
+var _prepared58_plan_ok := false
+var _prepared58_plan_points := 0
+# The prepared arc being walked: one waypoint list, one owner, one stall clock.
+var _prepared58_points: Array[Vector3] = []
+var _prepared58_way := 0
+var _prepared58_stall := 0.0
 
 static func enabled() -> bool:  # DSH_SIMPLEHOSP
 	if _flag < 0:
@@ -263,10 +275,139 @@ func begin(goal: Vector3, body: CharacterBody3D, map: RID, id: String, source: S
 		_legs.append(Vector3(_door.x,_room.y,_door.z)+_inside_normal*.85)
 		_legs.append(_outside)
 	if _legs.is_empty() or _flat(_legs[-1],_target)>.01:_legs.append(_target)
+	# DSH_ROUTES58: the long way is the PREPARED pedestrian graph, not a fresh search. This
+	# runs for ordinary walks (roam / service approach) before the guided leg would start a
+	# local search. If the graph has no prepared line, or a point on it is no longer
+	# walkable, this refuses and the ordinary physical planner keeps its exact old role.
+	if source in ["roam", "service_approach"]:
+		# DSH_ROUTES58: one line per ordinary goal, naming whether the prepared network was
+		# asked at all and what it answered. This is the only honest way to tell "the graph
+		# carried this walk" apart from "the graph was never in the way".
+		print("NPC_GRAPH58 id=", _id, " source=", source, " allowed=", _prepared58_allowed(),
+			" on=", prepared58_on(), " loaded=", PreparedRoutes.loaded(), " reason=", PreparedRoutes.reason())
+		if _prepared58_allowed() and _begin_prepared58():
+			_active=true
+			_emit("begin")
+			return true
 	_active=true
 	if not _begin_guided_leg():return _refuse("guide:"+_guide.reason)
 	_emit("begin")
 	return true
+
+## DSH_ROUTES58: --city-prepared-routes58 (default on) uses the prepared graph for the
+## long stretches. --city-prepared-routes58=0 keeps the shipped physical search only.
+static var _prepared58_flag := -1
+static func prepared58_on() -> bool:
+	if _prepared58_flag < 0:
+		_prepared58_flag = 1
+		for argument: String in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-prepared-routes58="):
+				_prepared58_flag = 1 if int(argument.trim_prefix("--city-prepared-routes58=")) > 0 else 0
+	return _prepared58_flag == 1
+
+func _prepared58_allowed() -> bool:
+	# The guide object is created only when a guided leg starts, so it must not be required
+	# here: the prepared arc replaces that leg entirely and never needs the guide to exist.
+	return prepared58_on() and _route != null and PreparedRoutes.loaded()
+
+## Walk the prepared line, checking every step against the live floor and capsule. The many
+## points of the graph line are thinned to waypoints the physical loop can follow, and the
+## last approach stays with the same floor/edge/arrival checks as any other leg.
+func _begin_prepared58() -> bool:
+	var plan: Dictionary = PreparedRoutes.route_between(_body.global_position, _target, 120.0)
+	# DSH_ROUTES58: the loop-level truth. `source=plan_no_route` means the graph was asked and
+	# answered; an empty source with waypoints<=1 means this function never got to answer.
+	_prepared58_plan_ok = bool(plan.get("ok", false))
+	_prepared58_plan_points = (plan.get("points", PackedVector3Array()) as PackedVector3Array).size()
+	if not _prepared58_plan_ok:
+		_prepared58_reason = "plan_" + str(plan.get("reason", "unavailable"))
+		# DSH_ROUTES58: a refused plan must name its reason in the run log, not only in memory.
+		print("NPC_GRAPH58 id=", _id, " refused=", _prepared58_reason,
+			" from=(%.1f,%.1f,%.1f)" % [_body.global_position.x, _body.global_position.y, _body.global_position.z],
+			" to=(%.1f,%.1f,%.1f)" % [_target.x, _target.y, _target.z], " frame=", Engine.get_physics_frames())
+		return false
+	var points: PackedVector3Array = plan.points
+	var accepted: Array[Vector3] = []
+	var previous: Vector3 = _body.global_position
+	var refused_at := -1
+	var refused_reason := ""
+	for point: Vector3 in points:
+		if accepted.is_empty() and previous.distance_to(point) <= .05: continue
+		# Changed obstacle check: the line was proved when the graph was built; this proves
+		# it still holds NOW for the real capsule, at the same spacing the builder used.
+		if not _prepared58_segment_clear(previous, point):
+			refused_at = accepted.size()
+			refused_reason = _prepared58_reason
+			break
+		accepted.append(point)
+		previous = point
+	if refused_at >= 0:
+		# DSH_ROUTES58: one refused segment does not throw the whole graph away. The prefix
+		# that IS clear is walked on the graph, and the remaining metres stay with the
+		# physical planner, which is exactly the check a changed obstacle needs.
+		_prepared58_reason = "prefix_%d_of_%d_%s" % [refused_at, points.size(), refused_reason]
+	if accepted.size() < 2:
+		_prepared58_reason = "graph_line_degenerate" if refused_at < 0 else _prepared58_reason
+		return false
+	if accepted[-1].distance_to(_target) > .05: accepted.append(_target)
+	# The prepared arc is walked by _prepared58_step; the local planner keeps its old role for
+	# anything the arc cannot cover, and nothing here starts a search for this route.
+	_guide.cancel()
+	_route.cancel()
+	_prepared58_points = accepted
+	_prepared58_way = 0
+	_prepared58_stall = 0.0
+	_route.route = accepted
+	_route.status = "ready"
+	_route._ready_frame = Engine.get_physics_frames()
+	_way = 0
+	_phase = "walking_prepared58"
+	_prepared58_used += 1
+	_prepared58_length_m = float(plan.get("length_m", 0.0))
+	if refused_at < 0: _prepared58_reason = "prepared"
+	_emit("prepared_route")
+	return true
+
+func _prepared58_segment_clear(a: Vector3, b: Vector3) -> bool:
+	var length: float = a.distance_to(b)
+	var count: int = maxi(1, ceili(length / 1.5))
+	var previous_y: float = a.y
+	for index: int in range(0, count + 1):
+		var along: float = float(index) / float(count) * length
+		var at: Vector3 = a.lerp(b, float(index) / float(count))
+		var direction: Vector3 = (b - a); direction.y = 0.0
+		direction = direction.normalized() if direction.length() > .001 else Vector3.ZERO
+		# DSH_ROUTES58: a single missed ray is not proof of a hole. Measured: one sample on a
+		# proven graph line fell between two floor colliders and refused the whole walk. The
+		# support is therefore confirmed by a small cross-section, and a real gap - where the
+		# body would fall - still refuses, because none of the samples finds a floor.
+		var ground: Variant = _prepared58_ground(at, direction, previous_y)
+		if not ground is Vector3:
+			_prepared58_reason = "graph_line_no_floor_m%.1f" % along
+			return false
+		var ground_y: float = Vector3(ground).y
+		if absf(ground_y - previous_y) > .45:
+			_prepared58_reason = "graph_line_step_m%.1f" % along
+			return false
+		previous_y = ground_y
+		if not _route.standing(Vector3(at.x, ground_y + .003, at.z)):
+			_prepared58_reason = "graph_line_blocked_m%.1f_at_(%.1f,%.1f,%.1f)" % [along, at.x, at.y, at.z]
+			return false
+	return true
+
+## The floor under a sample, confirmed across a short cross-section of the walking line.
+func _prepared58_ground(at: Vector3, direction: Vector3, reference_y: float) -> Variant:
+	var offsets: Array = [0.0, .35, -.35]
+	var found: Array[Vector3] = []
+	for offset: float in offsets:
+		var probe: Vector3 = at + direction * offset
+		var hit: Variant = _route.floor_at(probe, reference_y)
+		if hit is Vector3 and Vector3(hit).is_finite(): found.append(Vector3(hit))
+	if found.size() < 2: return null
+	var lowest: Vector3 = found[0]
+	for row: Vector3 in found:
+		if row.y < lowest.y: lowest = row
+	return lowest
 
 ## DSH_GOALSUPPORT58: resolve one walking goal to a point where this exact body can
 ## actually stand. The goal itself is tried first, so an already valid goal keeps its
@@ -341,6 +482,9 @@ func _guide_blocked(before: Vector3, delta: float) -> String:
 func _refuse(reason: String) -> bool:
 	if _route!=null:_route.cancel()
 	if _guide!=null:_guide.cancel()
+	# DSH_ROUTES58: a refused start must not leave a prepared arc behind that would keep
+	# moving the body under a goal the driver has already given up.
+	_prepared58_finish("refused:"+reason)
 	_active=false;_phase="blocked";_last_reason=reason
 	_emit("begin_refused")
 	return false
@@ -368,6 +512,9 @@ static func _flat(a: Vector3,b: Vector3) -> float:return Vector2(a.x-b.x,a.z-b.z
 func cancel() -> void:
 	if _door_clear31!=null:_door_clear31.cancel()
 	_attention_paused29=false;_attention_ready29=false
+	# DSH_ROUTES58: cancelling the driver cancels the prepared arc with it. Otherwise a stale
+	# arc would keep stepping a body whose route the caller has already released.
+	_prepared58_finish("cancelled")
 	if _route!=null:_route.cancel()
 	_active=false;_phase="cancelled"
 	if _guide!=null:_guide.cancel()
@@ -466,6 +613,67 @@ func _restart(reason: String) -> void:
 	_phase="searching"
 	_emit("replan")
 
+## DSH_ROUTES58: the prepared line walked PHYSICALLY. One waypoint at a time, each step paid
+## for by a live floor/step/clearance check, exactly like the shipped physical loop. The
+## resident walks the whole arc in one prepared route: no local search has to be paid for it.
+## A refused step (changed obstacle, blocked line) hands the remaining metres back to the
+## ordinary physical planner, which is the check the owner asked to keep.
+func _prepared58_step(before: Vector3, delta: float) -> String:
+	_roam_step29_phase = "walking"
+	if _prepared58_way >= _prepared58_points.size():
+		_prepared58_finish("prepared_complete")
+		return _finish_step(before, delta, "arrived", false)
+	var waypoint: Vector3 = _prepared58_points[_prepared58_way]
+	var current: Vector3 = _body.global_position
+	var remaining: float = _flat(current, waypoint)
+	while _prepared58_way < _prepared58_points.size() - 1 and remaining <= .12:
+		_prepared58_way += 1
+		waypoint = _prepared58_points[_prepared58_way]
+		remaining = _flat(current, waypoint)
+	if _prepared58_way == _prepared58_points.size() - 1 and remaining < _arrival_m56 and _body.is_on_floor() and absf(current.y - waypoint.y) < .12:
+		_prepared58_finish("prepared_complete")
+		if _target_source == "roam" and _roam_watch29 != null:
+			_roam_watch29_state = _roam_watch29.observe(Time.get_ticks_msec(), "arrived", _moved_m, 0)
+		return _finish_step(before, delta, "arrived", false)
+	var direction: Vector3 = waypoint - current; direction.y = 0.0
+	if direction.length() < .001:
+		_prepared58_way += 1
+		return _finish_step(before, delta, "walking", false)
+	direction = direction.normalized()
+	var distance: float = minf(SPEED_MPS * delta, remaining)
+	# The same live window the physical loop uses: floor ahead, step height, then the sweep.
+	var ahead: Vector3 = current + direction * minf(.4, remaining)
+	var ground: Variant = _route.floor_at(ahead, current.y)
+	if not ground is Vector3 or absf(Vector3(ground).y - current.y) > Route.STEP + .01:
+		_prepared58_finish("prepared_step_refused")
+		_restart("prepared_arc_changed")
+		return _finish_step(before, delta, "walking", false)
+	if not _route.edge_clear(current, current + direction * distance):
+		_prepared58_finish("prepared_blocked")
+		_restart("prepared_arc_blocked")
+		return _finish_step(before, delta, "walking", false)
+	var displacement: Vector3 = _route.move(direction, distance, delta)
+	var travel: float = Vector2(displacement.x, displacement.z).length()
+	_moved_m += travel
+	if travel < distance * .2:
+		_prepared58_stall += delta
+		if _prepared58_stall > 1.0:
+			_prepared58_finish("prepared_stalled")
+			_restart("prepared_arc_stalled")
+			return _finish_step(before, delta, "walking", false)
+	else:
+		_prepared58_stall = 0.0
+	_event = "walking_prepared58"
+	return _finish_step(before, delta, "walking", false)
+
+func _prepared58_finish(reason: String) -> void:
+	# Handing back to the planner keeps the same actor, target and lease; the arc itself is
+	# dropped here, so a stale arc can never move a body the planner has taken over.
+	_prepared58_points.clear()
+	_prepared58_way = 0
+	_prepared58_stall = 0.0
+	_prepared58_reason = reason
+
 ## Only actual serviced local search and attempted motion accumulate. The guide
 ## already bounds native/authority waits. Hold/dwell/attention never enter here.
 ## Reset only after a real .25m displacement, never on replan or gaze resume.
@@ -560,7 +768,23 @@ func step(delta: float) -> String:
 	var before: Vector3=_body.global_position
 	_roam_step29_phase="planning"
 	_door_tick()
-	if _door_clear31!=null and (_door_clear31.active() or _door_clear31.poll(_route)):
+	# DSH_ROUTES58: a prepared arc owns the motion until it ends, is refused, or the resident
+	# is asked to stop. It never coexists with the local search, so no second route exists.
+	if not _prepared58_points.is_empty():
+		if _door_clear31!=null and (_door_clear31.active() or _door_clear31.poll(_route)):
+			var clearance:String=_door_clear31.step(_route,delta,SPEED_MPS)
+			_roam_step29_phase=str(_door_clear31._activity)
+			if clearance=="blocked":
+				_last_reason=str(_door_clear31.snapshot().reason);_active=false;_phase="blocked"
+				_prepared58_finish("prepared_door_blocked")
+				_route.cancel();_guide.cancel()
+				return _finish_step(before,delta,"blocked",false)
+			if clearance=="resume":
+				_restart("door_clear_original_goal31")
+				return _finish_step(before,delta,"walking",false)
+			_phase="door_clear_"+str(_door_clear31._phase)
+			return _finish_step(before,delta,"walking",false)
+		return _prepared58_step(before,delta)
 		var clearance:String=_door_clear31.step(_route,delta,SPEED_MPS)
 		_roam_step29_phase=str(_door_clear31._activity)
 		if clearance=="blocked":
