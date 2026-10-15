@@ -1,0 +1,75 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--path",
+    "C:\\Users\\Слава\\Desktop\\Мафиози/outputs/coordinator30_npc54/proposals/injury30/game",
+    "--script",
+    "C:\\Users\\Слава\\Desktop\\Мафиози/outputs/coordinator30_npc54/proposals/perf30/parse_fixture30.gd"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "34073039d5c9402c9b6cdfa514e970cd",
+    "owner": {
+      "pid": 18264,
+      "creation_filetime": "134364973523115678"
+    },
+    "mode": "headless",
+    "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator30_npc54\\proposals\\injury30\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 28500,
+        "creation_filetime": "134364973533882988",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози/outputs/coordinator30_npc54/proposals/injury30/game --script C:\\Users\\Слава\\Desktop\\Мафиози/outputs/coordinator30_npc54/proposals/perf30/parse_fixture30.gd",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "C:\\Users\\Слава\\Desktop\\Мафиози/outputs/coordinator30_npc54/proposals/injury30/game",
+          "--script",
+          "C:\\Users\\Слава\\Desktop\\Мафиози/outputs/coordinator30_npc54/proposals/perf30/parse_fixture30.gd"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator30_npc54\\proposals\\injury30\\game",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 965484.8807174,
+    "queued_at": 965454.8807174,
+    "ticket": 1410,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5224042000481859
+  },
+  "child": {
+    "pid": 28500,
+    "creation_filetime": "134364973533882988",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози/outputs/coordinator30_npc54/proposals/injury30/game --script C:\\Users\\Слава\\Desktop\\Мафиози/outputs/coordinator30_npc54/proposals/perf30/parse_fixture30.gd",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--path",
+      "C:\\Users\\Слава\\Desktop\\Мафиози/outputs/coordinator30_npc54/proposals/injury30/game",
+      "--script",
+      "C:\\Users\\Слава\\Desktop\\Мафиози/outputs/coordinator30_npc54/proposals/perf30/parse_fixture30.gd"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator30_npc54\\proposals\\injury30\\game",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 3.837944700033404,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

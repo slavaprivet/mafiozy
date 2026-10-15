@@ -1,0 +1,44 @@
+{
+  "targets": [
+    {
+      "exit": 0,
+      "summary": "\n1333 files within 81 directories were compressed.\n286 783 267 total bytes of data are stored in 125 581 309 bytes.\nThe compression ratio is 2,3 to 1.",
+      "result": "NTFS_compression_no_content_change",
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\route30\\runs\\native02\\project"
+    },
+    {
+      "exit": 0,
+      "summary": "\n1333 files within 81 directories were compressed.\n286 783 392 total bytes of data are stored in 125 581 434 bytes.\nThe compression ratio is 2,3 to 1.",
+      "result": "NTFS_compression_no_content_change",
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\route30\\runs\\native03\\project"
+    },
+    {
+      "exit": 0,
+      "summary": "\n1336 files within 81 directories were compressed.\n286 789 937 total bytes of data are stored in 125 587 839 bytes.\nThe compression ratio is 2,3 to 1.",
+      "result": "NTFS_compression_no_content_change",
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\staff30\\runs\\fixture01\\project"
+    },
+    {
+      "exit": 0,
+      "summary": "\n1336 files within 81 directories were compressed.\n286 789 978 total bytes of data are stored in 125 587 880 bytes.\nThe compression ratio is 2,3 to 1.",
+      "result": "NTFS_compression_no_content_change",
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\staff30\\runs\\cycle01\\project"
+    },
+    {
+      "exit": 0,
+      "summary": "\n1336 files within 81 directories were compressed.\n286 790 160 total bytes of data are stored in 125 587 840 bytes.\nThe compression ratio is 2,3 to 1.",
+      "result": "NTFS_compression_no_content_change",
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\staff30\\runs\\cycle03\\project"
+    },
+    {
+      "exit": 0,
+      "summary": "\n1324 files within 80 directories were compressed.\n286 753 962 total bytes of data are stored in 125 558 534 bytes.\nThe compression ratio is 2,3 to 1.",
+      "result": "NTFS_compression_no_content_change",
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\injury30\\game"
+    }
+  ],
+  "after_free_bytes": 1463123968,
+  "reclaimed_bytes": 961089536,
+  "deleted_files": 0,
+  "before_free_bytes": 502034432
+}

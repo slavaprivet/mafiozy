@@ -1,0 +1,178 @@
+{
+  "logical_contents_unchanged": true,
+  "after_free_bytes": 2768564224,
+  "results": [
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\navigation29\\runs\\baseline01\\project",
+      "summary": "\n21 files within 8 directories were compressed.\n25 859 total bytes of data are stored in 23 986 bytes.\nThe compression ratio is 1,1 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\navigation29\\runs\\candidate01\\project",
+      "summary": "\n27 files within 8 directories were compressed.\n42 849 total bytes of data are stored in 36 200 bytes.\nThe compression ratio is 1,2 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\navigation29_avoidance\\runs\\avoidance01\\project",
+      "summary": "\n42 files within 11 directories were compressed.\n132 017 total bytes of data are stored in 96 421 bytes.\nThe compression ratio is 1,4 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\navigation29_avoidance\\runs\\avoidance02\\project",
+      "summary": "\n42 files within 11 directories were compressed.\n132 561 total bytes of data are stored in 96 848 bytes.\nThe compression ratio is 1,4 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\navigation29_avoidance\\runs\\avoidance03\\project",
+      "summary": "\n42 files within 11 directories were compressed.\n133 009 total bytes of data are stored in 96 848 bytes.\nThe compression ratio is 1,4 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\navigation29_avoidance\\runs\\avoidance04\\project",
+      "summary": "\n42 files within 11 directories were compressed.\n132 763 total bytes of data are stored in 96 846 bytes.\nThe compression ratio is 1,4 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\navigation29_avoidance\\runs\\avoidance05\\project",
+      "summary": "\n42 files within 11 directories were compressed.\n132 073 total bytes of data are stored in 96 464 bytes.\nThe compression ratio is 1,4 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\navigation29_avoidance\\runs\\avoidance06\\project",
+      "summary": "\n42 files within 11 directories were compressed.\n132 908 total bytes of data are stored in 97 311 bytes.\nThe compression ratio is 1,4 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\navigation29_avoidance\\runs\\avoidance07\\project",
+      "summary": "\n42 files within 11 directories were compressed.\n133 008 total bytes of data are stored in 97 314 bytes.\nThe compression ratio is 1,4 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\navigation29_avoidance\\runs\\avoidance08\\project",
+      "summary": "\n42 files within 11 directories were compressed.\n133 059 total bytes of data are stored in 97 355 bytes.\nThe compression ratio is 1,4 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\navigation29_avoidance\\runs\\avoidance09\\project",
+      "summary": "\n42 files within 11 directories were compressed.\n133 964 total bytes of data are stored in 98 178 bytes.\nThe compression ratio is 1,4 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\navigation29_avoidance\\runs\\avoidance10\\project",
+      "summary": "\n42 files within 11 directories were compressed.\n134 802 total bytes of data are stored in 98 178 bytes.\nThe compression ratio is 1,4 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\navigation29_avoidance\\runs\\avoidance11\\project",
+      "summary": "\n42 files within 11 directories were compressed.\n134 307 total bytes of data are stored in 101 490 bytes.\nThe compression ratio is 1,3 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\navigation29_integration\\runs\\integration01\\project",
+      "summary": "\n82 files within 15 directories were compressed.\n426 846 total bytes of data are stored in 290 957 bytes.\nThe compression ratio is 1,5 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\navigation29_integration\\runs\\integration02\\project",
+      "summary": "\n82 files within 15 directories were compressed.\n426 969 total bytes of data are stored in 290 957 bytes.\nThe compression ratio is 1,5 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\navigation29_integration\\runs\\integration03\\project",
+      "summary": "\n84 files within 15 directories were compressed.\n433 962 total bytes of data are stored in 295 244 bytes.\nThe compression ratio is 1,5 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\navigation29_integration\\runs\\integration04\\project",
+      "summary": "\n84 files within 15 directories were compressed.\n438 359 total bytes of data are stored in 299 343 bytes.\nThe compression ratio is 1,5 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\navigation29_integration\\runs\\integration05\\project",
+      "summary": "\n84 files within 15 directories were compressed.\n438 579 total bytes of data are stored in 299 342 bytes.\nThe compression ratio is 1,5 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\navigation29_long\\runs\\long02\\project",
+      "summary": "\n38 files within 11 directories were compressed.\n221 828 total bytes of data are stored in 137 060 bytes.\nThe compression ratio is 1,6 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\venues29_sites_repair01\\runs\\batch01\\project",
+      "summary": "\n78 files within 19 directories were compressed.\n3 649 882 total bytes of data are stored in 967 507 bytes.\nThe compression ratio is 3,8 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\venues29_sites_repair01\\runs\\sites02\\project",
+      "summary": "\n76 files within 19 directories were compressed.\n3 640 539 total bytes of data are stored in 962 823 bytes.\nThe compression ratio is 3,8 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\venues29_sites_repair01\\runs\\sites03\\project",
+      "summary": "\n76 files within 19 directories were compressed.\n3 641 271 total bytes of data are stored in 962 823 bytes.\nThe compression ratio is 3,8 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\venues29_sites_repair01\\runs\\sites05\\project",
+      "summary": "\n78 files within 19 directories were compressed.\n3 643 139 total bytes of data are stored in 964 629 bytes.\nThe compression ratio is 3,8 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\venues29_sites_repair01\\runs\\sites06\\project",
+      "summary": "\n78 files within 19 directories were compressed.\n3 649 882 total bytes of data are stored in 967 507 bytes.\nThe compression ratio is 3,8 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\venues29_sites_repair01\\runs\\sites07\\project",
+      "summary": "\n540 files within 57 directories were compressed.\n17 167 017 total bytes of data are stored in 6 625 995 bytes.\nThe compression ratio is 2,6 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\venues29_sites_repair01\\runs\\sites08\\project",
+      "summary": "\n544 files within 57 directories were compressed.\n17 187 773 total bytes of data are stored in 6 644 504 bytes.\nThe compression ratio is 2,6 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\venues29_sites_repair01\\runs\\world01\\project",
+      "summary": "\n1325 files within 81 directories were compressed.\n286 752 925 total bytes of data are stored in 125 556 169 bytes.\nThe compression ratio is 2,3 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\venues29_sites_repair01\\runs\\world02\\project",
+      "summary": "\n1325 files within 81 directories were compressed.\n286 753 866 total bytes of data are stored in 125 556 177 bytes.\nThe compression ratio is 2,3 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\venues29_staff\\runs\\staff02\\project",
+      "summary": "\n1336 files within 81 directories were compressed.\n286 790 682 total bytes of data are stored in 125 590 057 bytes.\nThe compression ratio is 2,3 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\venues29_staff\\runs\\staff03\\project",
+      "summary": "\n1336 files within 81 directories were compressed.\n286 792 339 total bytes of data are stored in 125 590 528 bytes.\nThe compression ratio is 2,3 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\venues29_staff\\runs\\staff04\\project",
+      "summary": "\n1336 files within 81 directories were compressed.\n286 793 333 total bytes of data are stored in 125 590 537 bytes.\nThe compression ratio is 2,3 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\venues29_staff\\runs\\staff05\\project",
+      "summary": "\n1336 files within 81 directories were compressed.\n286 794 194 total bytes of data are stored in 125 591 205 bytes.\nThe compression ratio is 2,3 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\venues29_staff\\runs\\staff06\\project",
+      "summary": "\n1336 files within 81 directories were compressed.\n286 795 336 total bytes of data are stored in 125 591 781 bytes.\nThe compression ratio is 2,3 to 1.",
+      "exit": 0
+    },
+    {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_npc53\\proposals\\venues29_staff\\runs\\staff07\\project",
+      "summary": "\n1336 files within 81 directories were compressed.\n286 795 840 total bytes of data are stored in 125 591 956 bytes.\nThe compression ratio is 2,3 to 1.",
+      "exit": 0
+    }
+  ],
+  "deleted_files": 0,
+  "before_free_bytes": 1447567360
+}

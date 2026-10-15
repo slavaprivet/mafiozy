@@ -1,0 +1,17 @@
+[
+  {
+    "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\route30\\runs\\native02\\project",
+    "bytes": 286783267.0,
+    "kind": "completed_reconstructible_QA_project"
+  },
+  {
+    "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\route30\\runs\\native03\\project",
+    "bytes": 286783392.0,
+    "kind": "completed_reconstructible_QA_project"
+  },
+  {
+    "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\injury30\\game\\.godot",
+    "bytes": 10218230.0,
+    "kind": "generated_cache"
+  }
+]

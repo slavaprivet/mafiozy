@@ -1,0 +1,99 @@
+{
+  "passed": true,
+  "count": 23,
+  "checks": [
+    {
+      "name": "exact_simple_patch_roundtrip",
+      "passed": true
+    },
+    {
+      "name": "preserved_attention_pause29",
+      "passed": true
+    },
+    {
+      "name": "preserved_attention_resume29",
+      "passed": true
+    },
+    {
+      "name": "preserved_attention_hold29",
+      "passed": true
+    },
+    {
+      "name": "preserved_cancel",
+      "passed": true
+    },
+    {
+      "name": "preserved__finish_step",
+      "passed": true
+    },
+    {
+      "name": "preserved__door_tick",
+      "passed": true
+    },
+    {
+      "name": "full_capsule_and_water_implementation_unchanged",
+      "passed": true
+    },
+    {
+      "name": "live_movement_guard_retained",
+      "passed": true
+    },
+    {
+      "name": "known_scene_weakref",
+      "passed": true
+    },
+    {
+      "name": "snapshot_before_daily",
+      "passed": true
+    },
+    {
+      "name": "only_readonly_venue_hint",
+      "passed": true
+    },
+    {
+      "name": "weak_body_and_shape_cache",
+      "passed": true
+    },
+    {
+      "name": "life_generation_in_key",
+      "passed": true
+    },
+    {
+      "name": "no_crowd_sort",
+      "passed": true
+    },
+    {
+      "name": "hard_population_bound",
+      "passed": true
+    },
+    {
+      "name": "no_physics_ownership_in_core",
+      "passed": true
+    },
+    {
+      "name": "grammar_scripts\\hospital\\npc_simple_hospital.gd",
+      "passed": true
+    },
+    {
+      "name": "grammar_scripts\\navigation\\npc_avoidance_world29.gd",
+      "passed": true
+    },
+    {
+      "name": "grammar_scripts\\navigation\\npc_local_avoidance29.gd",
+      "passed": true
+    },
+    {
+      "name": "grammar_qa\\avoidance_fixture29.gd",
+      "passed": true
+    },
+    {
+      "name": "grammar_qa\\proxies_fixture29.gd",
+      "passed": true
+    },
+    {
+      "name": "population_patch_grammar",
+      "passed": true
+    }
+  ],
+  "native_not_implied": true
+}

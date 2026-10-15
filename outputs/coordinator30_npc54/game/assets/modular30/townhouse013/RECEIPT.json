@@ -1,0 +1,87 @@
+{
+  "schema": "mafiozi.townhouse013-frozen-companion-receipt/v1",
+  "status": "FROZEN_ISOLATED_LOAD_REGISTER_RESET_PASS",
+  "source_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-013",
+  "asset_id": "old_town_narrow_townhouse_v1",
+  "frozen_closure_receipt": "../modular_minimal_delivery/RECEIPT.json",
+  "frozen_closure_receipt_sha256": "adc588b7ec0790994f722a0ab024b7d9a888379215a7813ed58b26fc30e181fb",
+  "entrypoint": "entrypoint.json",
+  "files": [
+    {
+      "path": "README.txt",
+      "sha256": "ff1b48f7ecf2999eb4edb5986206a03724e83a1fb9081b8d747d9f77c46116d0",
+      "bytes": 3899
+    },
+    {
+      "path": "binder_report.json",
+      "sha256": "2eb1702a420d2189437eeabb016fed1b54aeb589bce972a605e39020ff67c583",
+      "bytes": 7016
+    },
+    {
+      "path": "entrypoint.json",
+      "sha256": "37246d0886a0ac94ccabed6f603f3f77e3a801a5581b5a3b8b14c3a679130b3a",
+      "bytes": 3363
+    },
+    {
+      "path": "prepare_companion.mjs",
+      "sha256": "495db0c9096875c665afb6acb2bf43a3b825eb8fcca46fe931d29cd80e88e3ef",
+      "bytes": 3983
+    },
+    {
+      "path": "seal_companion.mjs",
+      "sha256": "ad729d32dd03121a08193b6fcbeaddc5b1c4ef29851bdfc08ede5171db5d2720",
+      "bytes": 8326
+    },
+    {
+      "path": "source_proof.json",
+      "sha256": "88ca9955bd62763ffac3f5e86be0cb3db5a112c4c3bf7b2d5ea87a501a7c9129",
+      "bytes": 7607
+    },
+    {
+      "path": "source_record.json",
+      "sha256": "20df390b734162381fd5d1b7c0fb494a2fdc70ac8836e29c91a24cd2ce50faef",
+      "bytes": 4643
+    },
+    {
+      "path": "test_townhouse013.gd",
+      "sha256": "7f457bd9d935be90559d40d2e6c4e40e75450c02ffb972a5157caab9ab83188f",
+      "bytes": 9598
+    },
+    {
+      "path": "townhouse013.scn",
+      "sha256": "abfc9126737481f1bed5cc4c63095115a8f756e8c21ceb9b9209fa6a21c6c485",
+      "bytes": 40381
+    },
+    {
+      "path": "townhouse013_mapping_review.json",
+      "sha256": "93c2b80daca36324a22ff37bb749b69e3c7cc3aa18245b7ab75876d8a2001a7e",
+      "bytes": 16815
+    },
+    {
+      "path": "townhouse013_mapping_review.md",
+      "sha256": "68d9e97f7168178e6128870b08238d8e6d512b9debb51a6653ba38031682c8d0",
+      "bytes": 3233
+    },
+    {
+      "path": "verification.json",
+      "sha256": "54bd3dad372726e54f70cd222f39ceff6580675691c462724dfb1f1b3bc0b529",
+      "bytes": 547
+    }
+  ],
+  "total_payload_bytes": 109411,
+  "result": {
+    "native_smoke_pass": true,
+    "native_checks": 106,
+    "original_record_verbatim": true,
+    "original_collisionBodiesM": 2,
+    "native_mesh_modules": 116,
+    "glazing_pending": 22,
+    "entry_connectors_pending": 2
+  },
+  "limitations": [
+    "Isolated JSON-derived collider fixtures only; actual LIVE collision owner must approve and replace actual nodes.",
+    "No RPG shot, player W passage, full collapse, external owner integration or loaded-scene FPS acceptance.",
+    "Cold registration/admission and memory deltas are diagnostic; do not treat functional test as per-frame performance approval."
+  ],
+  "receipt_self_hash": "Excluded from own inventory; external SHA256 returned by seal/verify script."
+}

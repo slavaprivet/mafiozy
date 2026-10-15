@@ -1,0 +1,14 @@
+[
+  {
+    "pid": 1684,
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\dsh_living_city_01\\game --script res://scripts/shop/tests/test_player_shop_ui.gd",
+    "result": "stopped_user_authorized_failed_shop_test",
+    "creation_filetime": "134364958163402878"
+  },
+  {
+    "pid": 25304,
+    "command_line": null,
+    "result": "wrapper_exited_after_child_no_live_identity_remained",
+    "creation_filetime": "134364958162967499"
+  }
+]

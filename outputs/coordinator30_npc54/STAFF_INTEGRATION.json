@@ -1,0 +1,55 @@
+{
+  "base": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_release53a\\game",
+  "destination": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\game",
+  "changes": [
+    {
+      "path": "scripts/venues/npc_compact_service_site29.gd",
+      "before": "174097f0e403db0836c0165c43a3262243d1efe6664a175dd45aa411d3c3e3d5",
+      "after": "1223dc819fc3eb193d3d802351da9870508c92316d8032731e0c4f66c258d397"
+    },
+    {
+      "path": "scripts/shop/npc_economy_visit28.gd",
+      "before": "91fadacfc516dba30834c756d2bfc1619520ec9e82fc0c01b997f9eecc189a89",
+      "after": "a0d01d94eefbd1ea1d9fcd29ebedddd8f010fe8997829a1ddd11e580a94ce344"
+    },
+    {
+      "path": "scripts/main.gd",
+      "before": "bb107619e98ed2bf1050912acac0269fcf17836987e52620f30fb4439e20af6c",
+      "after": "30367275a65d73fd1b011061446e942dcf5982b398001c10cb45681191263e15"
+    },
+    {
+      "path": "scripts/venues/npc_venue_registry29.gd",
+      "before": "46f2895ae4e5a70e03b7a02126cad3ab3a9b4ddb1a7b31ca4d892c2d3b68d7a4",
+      "after": "234b2a336b4e7aa94789fc50b716da16b7422b3345b01b20a3254be7a72818a8"
+    },
+    {
+      "path": "scripts/hospital/npc_restaurant_visit28.gd",
+      "before": "d4c7bad075dd753604d304b64ea0e0a6bb2b33734665905f921841c271fda416",
+      "after": "b904845f2710e8486020c35d8b6d57e2eb4b879f834715e11ccb1e7b7151a29a"
+    },
+    {
+      "path": "scripts/venues/npc_service_queue29.gd",
+      "before": null,
+      "after": "380fff0378ab6229174aa955e564dffaa2b1a81ea3e6d1edd5a6b5c2fdbe9178"
+    },
+    {
+      "path": "scripts/venues/npc_venue_staff_actor29.gd",
+      "before": null,
+      "after": "515c852c407676b6b347dfacf09ed223be8a51e8d445053a4da8b6ec62e15a83"
+    },
+    {
+      "path": "scripts/venues/npc_venue_staff_host29.gd",
+      "before": null,
+      "after": "e07e0922d22ddc5dbaac4869b23c0327919c83b4208049e59ed8a0e15f543b46"
+    },
+    {
+      "path": "data/venue_staff29.json",
+      "before": null,
+      "after": "a14dc263ebff3574f6a58daa880509c5aee5f3b9c77a67506445e4e11fe2502f"
+    }
+  ],
+  "staff_manifest_sha256": "a9133a6c8850d4e5fd65a94b86bdf27e5f596fd11a9eb12383e5ac33fd9ecce9",
+  "enable_flag": "--city-venue-staff29=1",
+  "user_game_modified": false,
+  "performance_accepted": false
+}

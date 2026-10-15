@@ -1,0 +1,73 @@
+{
+  "status": "READY_SCOPED_NATIVE_AND_RENDERED",
+  "runtime_files": 5,
+  "host_changed": false,
+  "population_changed": false,
+  "actual_residents_in_pose_fixture": 1,
+  "activities": 18,
+  "completed_counts": {
+    "begin": 18,
+    "ended": 18,
+    "walk_resumed": 18
+  },
+  "bench_foot_target_error_m": 3.49726651620585e-05,
+  "bench_hip_seat_error_m": 0.000110742112156004,
+  "max_physical_step_m": 0.0300004631280899,
+  "standing_to_sitting_foot_travel_m": 0.360582917928696,
+  "slot_contract_checks": 15,
+  "contract_runs": [
+    {
+      "name": "slots02",
+      "exit": 0
+    },
+    {
+      "name": "cancel_approach01",
+      "exit": 0
+    },
+    {
+      "name": "cancel_dock01",
+      "exit": 0
+    },
+    {
+      "name": "cancel_align01",
+      "exit": 0
+    },
+    {
+      "name": "cancel_bench01",
+      "exit": 0
+    },
+    {
+      "name": "cancel_phone01",
+      "exit": 0
+    },
+    {
+      "name": "stale_approach01",
+      "exit": 0
+    },
+    {
+      "name": "stale_phone01",
+      "exit": 0
+    }
+  ],
+  "passing_runs": [
+    "candidate03",
+    "visual01",
+    "visual02",
+    "full18_01",
+    "slots02",
+    "cancel_approach01",
+    "cancel_dock01",
+    "cancel_align01",
+    "cancel_bench01",
+    "cancel_phone01",
+    "stale_approach01",
+    "stale_phone01"
+  ],
+  "source_drift": false,
+  "stderr_bytes": 0,
+  "graphical_review": "VISUAL_REVIEW30.json",
+  "native_seed_policy": "Fixture chooses real RNG seeds; production remains random. No forced runtime pose or teleport.",
+  "shared_game_modified": false,
+  "performance_accepted": false,
+  "integration_next": "Root apply under game54 write lease, city injury/death/ambient/route regression, comparable performance acceptance."
+}

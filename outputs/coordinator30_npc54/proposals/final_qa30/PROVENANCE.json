@@ -1,0 +1,10 @@
+{
+  "cycle03_original_fixture_sha256": "45d145152010a20daa9984f1ec3df288cba8a6272d3eed897c94d44f11647a09",
+  "cycle03_original_flags_sha256": "1f9e173906728052a1142947f876bac850b7075afb5b42dbcc6eb3c18f1144f2",
+  "accept_cycle_source": "outputs\\coordinator30_npc54\\proposals\\staff30\\run_staff30.py",
+  "accept_cycle_function_sha256": "3acaea04983b287d001847d6a7b10d3873af2224b947e84bc5eead0e54c5f0ac",
+  "observer_sha256": "3065ab105522e532af3962c03e4ab12a5e3ccdc62fe79f018e1bf942c70bb744",
+  "observer_delta_sha256": "12e94880ef6d7c55845d6512d96a598bd4d7678e1c25d83986652b5d4aff56f6",
+  "production_modified": false,
+  "native_launched": false
+}

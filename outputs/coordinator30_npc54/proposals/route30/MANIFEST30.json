@@ -1,0 +1,202 @@
+{
+  "status": "READY_FOR_SCOPED_APPLY_AND_COMBINED54_QA",
+  "files": [
+    {
+      "path": "scripts/hospital/npc_long_route28.gd",
+      "pristine_apply": true,
+      "unrelated_edits_preserved": true,
+      "before_sha256": "ffa9806c378aacd8dd4238d6d4bcedc50c7a050284f0c6aab9f874ec359916f0",
+      "merged_tested_sha256": "49681adf8f9108d53e559172fe8963ea9e20b278e69b7a03af3dae4015f78c54"
+    },
+    {
+      "path": "scripts/hospital/npc_simple_hospital.gd",
+      "pristine_apply": true,
+      "unrelated_edits_preserved": true,
+      "before_sha256": "e6731623b40d2e4a06878457f54fa7f9461a4f747e666989e1b9d89ce32bfe3f",
+      "merged_tested_sha256": "d0fc9ec4bac901225322c9b9e1d4a7ace18bf6a79b72ea82adf1221d52b9653a"
+    },
+    {
+      "path": "scripts/hospital/npc_restaurant_visit28.gd",
+      "pristine_apply": true,
+      "unrelated_edits_preserved": true,
+      "before_sha256": "b904845f2710e8486020c35d8b6d57e2eb4b879f834715e11ccb1e7b7151a29a",
+      "merged_tested_sha256": "177c6fb11c322e09047f8b77962cad530fc63999c28f152c694556f53f3a760a"
+    }
+  ],
+  "selected_runs": {
+    "hospital08": {
+      "cases": [
+        {
+          "name": "real_hospital30",
+          "checks": 10,
+          "passed": true,
+          "result_sha256": "2cd23ef153d3ad7700623a7337a855d4b394153166025e9e4639c34ecec33ee5"
+        }
+      ],
+      "source_pins_sha256": "d9716fb93e7f66128ae54190f4f9a490c98a9832850461e6722e4fbf50b7d42e",
+      "result_sha256": "6bb48b3ceefedbe22c7eaf2d5fc7a36b0fc64a83cff1f35e2c1b3d6ef7d71286",
+      "reconstruction_sha256": "63c0d859de3002f98ba654e2fc210251c72de341b1a0001a814a998297c73269",
+      "changed_sources_zip_sha256": "1f2cc4aa16a8c379127a8b3756a59d4996e36c1463be1576e3e7b0db3a6cb611",
+      "stderr_bytes": 0,
+      "drift": []
+    },
+    "local09": {
+      "cases": [
+        {
+          "name": "service_guard30",
+          "checks": 36,
+          "passed": true,
+          "result_sha256": "1a2a8b82074250336c0ebb5543eee02120dfc9190439e7d17c898a26bfe6460c"
+        },
+        {
+          "name": "integration_fixture29",
+          "checks": 17,
+          "passed": true,
+          "result_sha256": "3788bd505aa07151a8b8a592ddb4fc2c36d1b1f027f2de5186dccd416e50f6d6"
+        },
+        {
+          "name": "daily_policy_fixture29",
+          "checks": 10,
+          "passed": true,
+          "result_sha256": "08618bf51335f953ea0283b6ce6395d3dc83c8d6b77f2aaa2e0f4a9a3b632d83"
+        }
+      ],
+      "source_pins_sha256": "3b6fa2bc8f54ef792757f550de69dc004d8e2a9253b645ab9b4349eb81eefba1",
+      "result_sha256": "7ff44eaa6a134163761b6384b1b655e827b8b9b32d280979f069499532923797",
+      "reconstruction_sha256": "1331efe94f3985b7f48e5a8ae64b1a803836b58efb78da81079e518f90936399",
+      "changed_sources_zip_sha256": "d487fa205f6d3c275202fbe6cfab0a29560124bbaa02086219c6bd7376de7cac",
+      "stderr_bytes": 0,
+      "drift": []
+    }
+  },
+  "hospital": {
+    "initial_room_distance_m": 68.6313781738281,
+    "physical_progress_m": 108.186133855954,
+    "elapsed_ms": 65869,
+    "hp": [
+      12.0,
+      60.0
+    ],
+    "fixture_extra_bodies": 0,
+    "relocations_after_medical_begin": 0,
+    "authoritative_staff_service": {
+      "customer_matches": true,
+      "distance": 0.28288459777832,
+      "ms": 63230,
+      "point": "(70.7, 0.303, 1.0)",
+      "position": "(70.51408, 0.299908, 1.213184)",
+      "serving": true
+    },
+    "claims_released": true
+  },
+  "soak": {
+    "seconds": 12,
+    "ranges": {
+      "nodes": [
+        48023.0,
+        48023.0
+      ],
+      "objects": [
+        98441.0,
+        98558.0
+      ],
+      "resources": [
+        4189.0,
+        4189.0
+      ],
+      "memory_static": [
+        576384945.0,
+        576967997.0
+      ],
+      "resident_count": [
+        1,
+        1
+      ]
+    },
+    "native_end": {
+      "authority_maps": 1,
+      "cancel_keeps_native_permit": true,
+      "completed": 1,
+      "dropped_callbacks": 0,
+      "frame": 5880,
+      "guides": 0,
+      "inflight": 0,
+      "max_inflight": 1,
+      "max_prepare_items": 8,
+      "max_prepare_us": 372,
+      "max_submits_per_frame": 1,
+      "oldest_native_ms": 0,
+      "prepare_budget_us": 600,
+      "prepare_items": 0,
+      "prepare_us": 0,
+      "soft_deadline": true,
+      "started": 1,
+      "submitted_this_frame": 0
+    },
+    "budget_end": {
+      "budget_us": 1800,
+      "frame": 5705,
+      "frame_us": 818,
+      "heap_items": 0,
+      "jobs": 0,
+      "max_frame_us": 2309,
+      "max_heap_items": 131072,
+      "max_jobs": 384,
+      "max_nodes": 65536,
+      "max_unit_us": 936,
+      "nodes": 0,
+      "rejected": 0,
+      "retired": 0,
+      "soft_deadline": true,
+      "units": 47
+    },
+    "limit": "Short functional counters only. Sampling allocates report dictionaries; autonomous resident starts later tasks. Not a heap-leak or FPS acceptance."
+  },
+  "performance_accepted": false,
+  "production_modified_by_this_agent": false,
+  "user_processes_closed": false,
+  "root54_integration_snapshot": {
+    "pins": 1109,
+    "delta_files": 20,
+    "json_sha256": "3cf05d21fbaa1f715ab90358dab1fb7c921f5d566cf87808b40595bcac38ba47",
+    "zip_sha256": "c532ca1e63e5a79c6d5dca79a04e27d6b8a31a62c493f502372f633e7dc94c10",
+    "contains": [
+      "staff",
+      "injury attention",
+      "avoidance",
+      "revision/news54"
+    ],
+    "ambient_merge_included": false
+  },
+  "limitations": [
+    "hospital08 is authoritative full physical hospital evidence. city07 plain capsule stops honestly outside the building and is not full hospital acceptance.",
+    "hospital08 diagnostic legs array was retained by reference and serializes later exit legs; boolean admission check evaluated the initial four legs. Current fixture uses duplicate() for immutable diagnostic output; production source unchanged.",
+    "Root must run import and relevant combined54 functional checks after ambient merge. Current frozen runs do not include subsequent ambient source.",
+    "No active-record index included: host loop has cleanup and lifecycle responsibilities requiring separately scoped hooks and death/respawn/transport coverage.",
+    "No source count reduction or smaller city used to claim optimization. One requested active resident retained; records287 is inactive catalogue.",
+    "Cleanup of own completed caches was rejected twice by automatic approval review (blocked by policy), no deletion performed. Reusable private staging avoids further full copies."
+  ],
+  "historical_runs_preserved": {
+    "native01": "No engine; duplicate staging lease fixed",
+    "native02": "QA float equality defect, behavior checks passed",
+    "native03": "No checkpoint repair; real long route blocked at native checkpoint",
+    "city04": "No engine; legacy mutex acquisition timed out",
+    "city05": "Larger guard still hit bad native checkpoint; not selected",
+    "points06": "Diagnostic confirmed real Cornice collider blocking native point",
+    "city07": "Bounded intermediate repair walked79.302m; plain capsule blocked outside room without portal owner; not full acceptance"
+  },
+  "artifact_sha256": {
+    "BASELINE30.json": "2935247051818633daddea2a881fbae4929ea5247b923d5d0f1ca4127ae66d17",
+    "APPLY_CHECK.json": "e0bab97ec13ba1657cf6c69b2eaddcda1803089c7d004c2b28f579301abcc987",
+    "apply30.py": "9ad0c5607034ccb054e8dcb85ac46f9eb2ede60f7b3281874f73aba547d11660",
+    "run_native30.py": "509cf16c3cac62d6534debdbe149ac3bb7f466c7a50ad3105bf7dedee4baa3f7",
+    "HANDOFF30.md": "a56a80ced757c215e5ea560ad4708be33f961f8f80800e00f90f75323e70c5c4",
+    "qa/actual_city_route30.gd": "e9ea3638aea027555cb51d77e7ee87f520b547836ac2a094f0d843af0e81bd91",
+    "qa/guide_points30.gd": "3f4cf1410765764c18b8daf1c11752fc639e9b905583bc851ed262ca6346c32e",
+    "qa/real_hospital30.gd": "31ae049d36c698d63098cbebd3e927ac0c00bfcdc97b1bc1f6a2a455e1ee7b34",
+    "qa/service_guard30.gd": "3703b78ad453dbce8268535e83b9bdd923424b6a747d3cf59435cdc63e82f4c4",
+    "npc_long_route28.patch": "08d686de5101fd8cab6c2bac752447700e4a52af4ab861af4aef64d677665d72",
+    "npc_restaurant_visit28.patch": "e01c29be6f0be4ca6f52f3141cfdfdd48d034914872df83c0dba1257fd204191",
+    "npc_simple_hospital.patch": "46690783009b7566e5edab14356102ba925a5d484f67ac965d65d1097e2c12da"
+  }
+}

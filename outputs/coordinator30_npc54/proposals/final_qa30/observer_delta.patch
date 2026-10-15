@@ -1,0 +1,51 @@
+--- staff30/qa/staff_cycle30.gd
++++ final_qa30/staff_cycle_final30.gd
+@@ -2,6 +2,7 @@
+ ## Read-only observer of one resident's ordinary hospital -> bank -> food cycle.
+ ## Start flags select HP/energy/wallet; no teleports, fake arrivals, or settlements.
+ const Registry = preload("res://scripts/venues/npc_venue_registry29.gd")
++const AmbientPose30 = preload("res://scripts/npc_ambient/ambient_pose28.gd")
+ var game: Node3D
+ var output := ""
+ var duration := 240
+@@ -16,6 +17,7 @@
+ var previous_receipts := 0
+ var previous_route: Dictionary = {}
+ var finished := false
++var composition30: Dictionary = {}
+ 
+ func _initialize() -> void:
+ 	_run.call_deferred()
+@@ -44,6 +46,14 @@
+ 	var body: CharacterBody3D = life._token.body
+ 	var host: Node = game.preview_venue_staff29
+ 	var registry: RefCounted = Registry.for_scene(game)
++	var sites30: Node = game.preview_service_sites29
++	var site_count30: int = sites30.current_sites().size() if is_instance_valid(sites30) else 0
++	var staff_live30 := 0
++	if is_instance_valid(host):
++		for staff_row30: Dictionary in host._rows.values():
++			if is_instance_valid(staff_row30.actor) and staff_row30.actor.is_inside_tree(): staff_live30 += 1
++	if composition30.is_empty():
++		composition30 = {"activity_kinds":AmbientPose30.KINDS.duplicate(),"activity_count":AmbientPose30.KINDS.size(),"new_sites":sites30.snapshot() if is_instance_valid(sites30) else {},"staff_report":host.report.duplicate(true) if is_instance_valid(host) else {}}
+ 	var hospital: String = str(life._hospital_stage)
+ 	var economy: RefCounted = life._economy28
+ 	var economy_state: Dictionary = economy.snapshot()
+@@ -80,7 +90,7 @@
+ 	var complete: bool = int(life._completed.get("hospital",0)) >= 1 and bank == 1 and food == 1 and not economy.active() and economy._roams >= 1 and registry.ledger.requests.is_empty() and registry._service29.keys.is_empty()
+ 	if now - sampled >= 500 or complete or now - ready_ms >= duration * 1000:
+ 		sampled = now
+-		var row := {"ready_ms":now-ready_ms,"hp":hp,"max_hp":life._life().max_hp,"energy":life._energy,"hospital":hospital,"hospital_completed":life._completed.get("hospital",0),"economy":economy_state,"account":account,"route":route_state,"position":body.global_position,"service":active_service,"staff_count":host._rows.size() if is_instance_valid(host) else 0,"resident_count":pop.daily._lives.size(),"service_claims":registry._service29.keys.size(),"capacity_claims":registry.ledger.requests.size()}
++		var row := {"ready_ms":now-ready_ms,"hp":hp,"max_hp":life._life().max_hp,"energy":life._energy,"hospital":hospital,"hospital_completed":life._completed.get("hospital",0),"economy":economy_state,"account":account,"route":route_state,"position":body.global_position,"service":active_service,"staff_count":host._rows.size() if is_instance_valid(host) else 0,"resident_count":pop.daily._lives.size(),"service_claims":registry._service29.keys.size(),"capacity_claims":registry.ledger.requests.size(),"new_venue_count30":site_count30,"live_staff30":staff_live30,"resident_body_count30":pop.hit_owners.size(),"activity_count30":AmbientPose30.KINDS.size()}
+ 		samples.append(row)
+ 		print("STAFF30_CYCLE ", JSON.stringify(row))
+ 	if complete:
+@@ -90,7 +100,7 @@
+ func finish(reason: String) -> void:
+ 	if finished: return
+ 	finished = true
+-	var result := {"reason":reason,"samples":samples,"physical_service_evidence":evidence,"staff_serving_evidence":serving,"violations":violations,"performance_accepted":false,"visual_verified":false}
++	var result := {"reason":reason,"samples":samples,"physical_service_evidence":evidence,"staff_serving_evidence":serving,"violations":violations,"performance_accepted":false,"visual_verified":false,"composition30":composition30,"observer_read_only":true,"observer_relocations":0,"observer_settlements":0}
+ 	var file := FileAccess.open(output, FileAccess.WRITE)
+ 	if file != null: file.store_string(JSON.stringify(result,"\t")); file.close()
+ 	print("STAFF30_CYCLE_FINISH ", reason)

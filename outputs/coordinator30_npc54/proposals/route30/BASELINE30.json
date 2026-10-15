@@ -1,0 +1,23 @@
+{
+  "files": {
+    "scripts/hospital/npc_long_route28.gd": {
+      "base_sha256": "ffa9806c378aacd8dd4238d6d4bcedc50c7a050284f0c6aab9f874ec359916f0",
+      "base_lf_sha256": "7274028f64aa864ca043cc8c857d9ff8393c9a322975dc6cef3cc4b4af9868aa",
+      "candidate_sha256": "49681adf8f9108d53e559172fe8963ea9e20b278e69b7a03af3dae4015f78c54"
+    },
+    "scripts/hospital/npc_simple_hospital.gd": {
+      "base_sha256": "2a95ca719fd7b7353cb18526af5d988f2cebb3cd09517e9f7506f70d25e4867d",
+      "base_lf_sha256": "1a410f3503a92af9e5a921bb2f0db77523785389e8d833df8b787270f55f8696",
+      "candidate_sha256": "308202542563cb5a3a2aef7fad91eb393e333dcd6819050dbd7802b19c3f025a"
+    },
+    "scripts/hospital/npc_restaurant_visit28.gd": {
+      "base_sha256": "b904845f2710e8486020c35d8b6d57e2eb4b879f834715e11ccb1e7b7151a29a",
+      "base_lf_sha256": "b904845f2710e8486020c35d8b6d57e2eb4b879f834715e11ccb1e7b7151a29a",
+      "base_source": "outputs/coordinator30_npc54/game with staff29",
+      "frozen53a_sha256": "d4c7bad075dd753604d304b64ea0e0a6bb2b33734665905f921841c271fda416",
+      "candidate_sha256": "177c6fb11c322e09047f8b77962cad530fc63999c28f152c694556f53f3a760a"
+    }
+  },
+  "base": "outputs/coordinator29_release53a/game",
+  "scheduler_sha256": "adcb834390e476edd118f62d8e3e5b391c6ebc97925391e66beeb80430ba8373"
+}

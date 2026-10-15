@@ -1,0 +1,50 @@
+--- a/scripts/hospital/npc_simple_hospital.gd
++++ b/scripts/hospital/npc_simple_hospital.gd
+@@ -1,5 +1,6 @@
+ extends RefCounted
+ ## Private52: generic physical route drive. No raw position assignment or collider edits.
++const Avoidance29 = preload("res://scripts/navigation/npc_avoidance_world29.gd")
+ const Route = preload("res://scripts/hospital/npc_physical_route51.gd")
+ const LongRoute = preload("res://scripts/hospital/npc_long_route28.gd")
+ const RoamWait = preload("res://scripts/hospital/npc_roam_wait29.gd")
+@@ -17,6 +18,8 @@
+ var _roam_step29_phase := "planning"
+ var _roam_watch29_state: Dictionary = {}
+ var _body: CharacterBody3D
++var _avoidance29: RefCounted
++var _avoidance29_state: Dictionary = {}
+ var _route: RefCounted
+ var _guide: RefCounted
+ var _guide_map := RID()
+@@ -201,6 +204,7 @@
+ 	_frame=-1;_way=0;_stall_s=0;_replan_s=0;_legs.clear();_leg=0
+ 	_door_retry_ms=0;_door_reason=""
+ 	var scene: Node3D=_scene_of_body()
++	_avoidance29=Avoidance29.for_scene(scene);_avoidance29_state.clear()
+ 	var medical: bool=source not in ["hospital_exit","roam","service_approach"]
+ 	if medical:
+ 		_room=goal;_hospital_frame=false;_door_valid=false
+@@ -471,6 +475,17 @@
+ 	if direction.length()<.001:return _finish_step(before,delta,"walking")
+ 	direction=direction.normalized()
+ 	var distance: float=minf(SPEED_MPS*delta,remaining)
++	if _avoidance29!=null:
++		_avoidance29.refresh(_scene_of_body(),_body,_id)
++		_avoidance29_state=_avoidance29.steer(_body,direction,SPEED_MPS)
++		if bool(_avoidance29_state.replan):
++			_roam_step29_phase="planning";_restart("peer_detour_no_progress")
++			return _finish_step(before,delta,"walking")
++		if bool(_avoidance29_state.waiting):
++			_roam_step29_phase="planning";_stall_s=0.0
++			return _finish_step(before,delta,"walking")
++		direction=_avoidance29_state.direction
++		distance=minf(SPEED_MPS*float(_avoidance29_state.ratio)*delta,remaining)
+ 	# Revalidate current local edge; changed furniture/rubble cannot be traversed from a stale plan.
+ 	var ahead: Vector3=current+direction*minf(.4,remaining)
+ 	var floor: Variant=_route.floor_at(ahead,current.y)
+@@ -502,4 +517,4 @@
+ 	var point: Variant=_route.route[_way] if _route!=null and _way<_route.route.size() else null
+ 	var floor_point: Variant=_route.floor_at(pos,pos.y) if _route!=null and alive else null
+ 	var state: Dictionary=_route.diagnostics() if _route!=null else {}
+-	print("DSH_SIMPLEHOSP ",JSON.stringify({"id":_id,"result":_event,"phase":_phase,"source":_target_source,"position":[pos.x,pos.y,pos.z],"target":[_target.x,_target.y,_target.z],"leg":_leg,"legs":_legs.size(),"way":_way,"waypoint":[point.x,point.y,point.z] if point is Vector3 else [],"dist_m":distance_m() if alive else -1.0,"moved_m":_moved_m,"attempts":_attempts,"reason":_last_reason,"door_reason":_door_reason,"on_floor":_body.is_on_floor() if alive else false,"floor":[floor_point.x,floor_point.y,floor_point.z] if floor_point is Vector3 else [],"route":state,"guide":_guide.diagnostics() if _guide!=null else {},"roam_watch":_roam_watch29_state,"frame":Engine.get_physics_frames(),"time_ms":now}))
++	print("DSH_SIMPLEHOSP ",JSON.stringify({"id":_id,"result":_event,"phase":_phase,"source":_target_source,"position":[pos.x,pos.y,pos.z],"target":[_target.x,_target.y,_target.z],"leg":_leg,"legs":_legs.size(),"way":_way,"waypoint":[point.x,point.y,point.z] if point is Vector3 else [],"dist_m":distance_m() if alive else -1.0,"moved_m":_moved_m,"attempts":_attempts,"reason":_last_reason,"door_reason":_door_reason,"on_floor":_body.is_on_floor() if alive else false,"floor":[floor_point.x,floor_point.y,floor_point.z] if floor_point is Vector3 else [],"route":state,"guide":_guide.diagnostics() if _guide!=null else {},"roam_watch":_roam_watch29_state,"avoidance":_avoidance29_state,"frame":Engine.get_physics_frames(),"time_ms":now}))

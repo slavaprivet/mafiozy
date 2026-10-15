@@ -1,0 +1,9 @@
+{
+  "base": "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator29_release53a\\game",
+  "changes": {
+    "scripts/npc_visual/npc_attention29.gd": {
+      "before": "cbae609778089b86cd59791a3eab76c44522d8bb341249bc58389caf9dc1189f",
+      "after": "eafe8d084bc6e3f82051372c00fe83fee8c5597b3ce1e21db660fda34be064c7"
+    }
+  }
+}

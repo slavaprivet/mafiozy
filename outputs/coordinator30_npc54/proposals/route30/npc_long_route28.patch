@@ -1,0 +1,156 @@
+--- a/scripts/hospital/npc_long_route28.gd
++++ b/scripts/hospital/npc_long_route28.gd
+@@ -7,6 +7,8 @@
+ ## Backend/API limits match npc_city_engine_navigation.gd's native query contract.
+ const LOCAL_ONLY_M := 75.0
+ const LEG_M := 24.0
++## Service approaches must never expand the whole 75m legacy local domain.
++const SERVICE_LOCAL_M := LEG_M
+ const MAX_QUERY_POLYGONS := 8192
+ const MAX_ROUTE_M := 2000.0
+ const MAX_RAW_POINTS := 4096
+@@ -33,6 +35,7 @@
+ var _submitted_ms := 0
+ var _next_map_check_ms := 0
+ var _distant := false
++var _local_only_m := LOCAL_ONLY_M
+ var _raw := PackedVector3Array()
+ var _raw_index := 0
+ var _cursor := Vector3.ZERO
+@@ -55,6 +58,14 @@
+ var _progress_revision := 0
+ var _pending_result: NavigationPathQueryResult3D
+ var _prepare_started_ms := 0
++var _physical30: WeakRef
++var _repair_pending30 := false
++var _repair_raw30 := Vector3.ZERO
++var _repair_length30 := 0.0
++var _repair_index30 := 0
++var _repair_probes30 := 0
++var _repaired30 := 0
++const REPAIR_RADII30 := [1.0,2.0,4.0,6.0]
+ 
+ func _queue() -> RefCounted:
+ 	var queue: RefCounted=_queue_ref.get_ref() if _queue_ref!=null else null
+@@ -82,15 +93,19 @@
+ 	# merely because RID.is_valid() is true; only the server's live maps qualify.
+ 	return _map.is_valid() and NavigationServer3D.get_maps().has(_map)
+ 
+-func begin(actor: CharacterBody3D, map: RID, destination: Vector3) -> bool:
++func begin(actor: CharacterBody3D, map: RID, destination: Vector3, local_only_m: float = LOCAL_ONLY_M, physical: RefCounted = null) -> bool:
+ 	cancel()
+ 	if not is_instance_valid(actor) or not actor.is_inside_tree() or not destination.is_finite(): return _fail("invalid_actor_or_goal")
++	if not is_finite(local_only_m) or local_only_m < LEG_M or local_only_m > LOCAL_ONLY_M: return _fail("invalid_local_domain")
++	_local_only_m = local_only_m
++	_physical30=weakref(physical) if physical!=null else null
++	_repair_pending30=false;_repair_probes30=0;_repaired30=0
+ 	_body = weakref(actor); _body_id = actor.get_instance_id(); _map = map; _goal = destination
+ 	_query_start = actor.global_position; _requeries = 0; _metres = 0.0
+ 	_prepare_max_us = 0; _submit_us = 0; _query_wall_ms = 0; _last_retry_reason = ""
+ 	_work_units=0;_work_us=0;_queue_wait_ms=0;_progress_revision=0
+ 	if _query_start.distance_to(_goal) > MAX_ROUTE_M: return _fail("destination_outside_query_bound")
+-	_distant = _flat(_query_start, _goal) > LOCAL_ONLY_M
++	_distant = _flat(_query_start, _goal) > _local_only_m
+ 	if not _distant:
+ 		# Ordinary 5–15 m roam and final door/interior legs keep the current local solver.
+ 		_points = [_goal]; _index = 0; _phase = "local"; status = "ready"; revision += 1
+@@ -100,7 +115,7 @@
+ func _fail(detail: String) -> bool:
+ 	_retire_owner()
+ 	status = "blocked"; reason = detail; _phase = "blocked"; revision += 1
+-	_raw.clear();_pending_result=null
++	_raw.clear();_pending_result=null;_repair_pending30=false
+ 	return false
+ 
+ func _submit() -> bool:
+@@ -119,6 +134,7 @@
+ 	_serial += 1; revision += 1
+ 	_owner=Queue.Owner.new("guide29:"+str(_body_id)+":"+str(get_instance_id()),_serial)
+ 	_points.clear(); _raw.clear(); _raw_index = 0; _index = 0; _metres = 0.0
++	_repair_pending30=false
+ 	_pending_result=null;_ticket=0
+ 	_queued_ms=Time.get_ticks_msec();_queue_wait_ms=0;_wait_reason="authority_admission"
+ 	status = "searching"; _phase = "query_queued"; reason = ""
+@@ -252,6 +268,9 @@
+ 	queue.finish()
+ 
+ func _prepare_one() -> void:
++	if _repair_pending30:
++		_repair_one30()
++		return
+ 	if _raw_index < _raw.size():
+ 		var endpoint: Vector3=_raw[_raw_index]
+ 		if not endpoint.is_finite():
+@@ -262,13 +281,48 @@
+ 			_raw_index += 1
+ 			return
+ 		var point: Vector3 = _cursor.move_toward(endpoint, LEG_M)
+-		_metres += _cursor.distance_to(point)
+-		if _metres > MAX_ROUTE_M or _points.size() >= MAX_WAYPOINTS:
+-			_fail("prepared_route_over_bound")
++		if _physical30!=null:
++			_repair_raw30=point;_repair_length30=length;_repair_index30=0;_repair_pending30=true
+ 			return
+-		_points.append(point)
+-		_cursor = point
+-		if length <= LEG_M: _raw_index += 1
++		_append_prepared30(point,point,length)
++	_finish_prepare30()
++
++## Source nav predates live clone geometry. Repair only a proposed intermediate
++## checkpoint, never the final goal. Each probe consumes the existing queue's
++## prepare quantum; actual traversal still belongs to the unchanged capsule A*.
++func _repair_one30() -> void:
++	var physical: RefCounted=_physical30.get_ref() if _physical30!=null else null
++	if physical==null:_fail("physical_checkpoint_owner_retired30");return
++	var previous: Vector3=_points[-1] if not _points.is_empty() else _query_start
++	var candidate: Vector3=_repair_raw30
++	var final_point: bool=_raw_index==_raw.size()-1 and _repair_length30<=LEG_M
++	if _repair_index30>0:
++		if final_point or _repair_index30>REPAIR_RADII30.size()*8:
++			_fail("physical_guide_checkpoint_unavailable30");return
++		var toward: Vector3=previous-_repair_raw30;toward.y=0.0
++		if toward.length_squared()<.0001:toward=Vector3.RIGHT
++		toward=toward.normalized()
++		var index:int=_repair_index30-1
++		var direction: Vector3=toward.rotated(Vector3.UP,float(index%8)*TAU/8.0)
++		candidate+=direction*float(REPAIR_RADII30[index/8])
++	_repair_index30+=1;_repair_probes30+=1
++	if _flat(previous,candidate)>LEG_M+.001:return
++	var supported: Variant=physical.floor_at(candidate,_repair_raw30.y)
++	if not supported is Vector3 or absf(supported.y-_repair_raw30.y)>.5 or not physical.standing(supported):return
++	if _flat(supported,_repair_raw30)>.01:_repaired30+=1
++	_repair_pending30=false
++	_append_prepared30(_goal if final_point else supported,_repair_raw30,_repair_length30)
++	_finish_prepare30()
++
++func _append_prepared30(point: Vector3, raw_point: Vector3, length: float) -> void:
++	var previous: Vector3=_points[-1] if not _points.is_empty() else _query_start
++	_metres+=previous.distance_to(point)
++	if _metres>MAX_ROUTE_M or _points.size()>=MAX_WAYPOINTS:
++		_fail("prepared_route_over_bound");return
++	_points.append(point);_cursor=raw_point
++	if length<=LEG_M:_raw_index+=1
++
++func _finish_prepare30() -> void:
+ 	if status == "blocked" or _raw_index < _raw.size(): return
+ 	_raw.clear()
+ 	if _points.is_empty(): _points.append(_goal)
+@@ -298,7 +352,7 @@
+ 	_index += 1; revision += 1
+ 	# New clones are not baked into the source navmesh. Once within the bounded
+ 	# local domain, the exact live-physics route owns the complete final approach.
+-	if _index < _points.size() and _flat(actual_position,_goal)<=LOCAL_ONLY_M:
++	if _index < _points.size() and _flat(actual_position,_goal)<=_local_only_m:
+ 		_points=[_goal];_index=0
+ 		return "next"
+ 	if _index < _points.size(): return "next"
+@@ -320,6 +374,7 @@
+ 	_body = null; _body_id = 0
+ 	_map = RID(); _iteration = 0; _distant = false
+ 	_queue_ref=null;_ticket=0;_pending_result=null;_wait_reason=""
++	_physical30=null;_repair_pending30=false
+ 
+ func diagnostics() -> Dictionary:
+-	return {"status":status, "phase":_phase, "reason":reason, "distant":_distant, "waypoint":_index, "waypoints":_points.size(), "metres":_metres, "local_leg_limit_m":LEG_M, "map_iteration":_iteration, "revision":revision, "requeries":_requeries, "last_retry_reason":_last_retry_reason, "query_submit_us":_submit_us, "query_wall_ms":_query_wall_ms, "prepare_max_us":_prepare_max_us, "stale_callbacks":_stale_callbacks,"wait_reason":_wait_reason,"queue_wait_ms":_queue_wait_ms,"work_units":_work_units,"work_us":_work_us,"progress_revision":_progress_revision,"query_ticket":_ticket,"shared_work":Work.diagnostics()}
++	return {"status":status, "phase":_phase, "reason":reason, "distant":_distant, "waypoint":_index, "waypoints":_points.size(), "metres":_metres, "local_leg_limit_m":LEG_M, "local_domain_m":_local_only_m, "map_iteration":_iteration, "revision":revision, "requeries":_requeries, "last_retry_reason":_last_retry_reason, "query_submit_us":_submit_us, "query_wall_ms":_query_wall_ms, "prepare_max_us":_prepare_max_us, "stale_callbacks":_stale_callbacks,"wait_reason":_wait_reason,"queue_wait_ms":_queue_wait_ms,"work_units":_work_units,"work_us":_work_us,"progress_revision":_progress_revision,"query_ticket":_ticket,"checkpoint_probes30":_repair_probes30,"checkpoint_repairs30":_repaired30,"shared_work":Work.diagnostics()}

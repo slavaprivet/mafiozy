@@ -1,0 +1,27 @@
+{
+  "native_fixture": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\avoidance30\\runs\\avoidance30_02",
+  "source_changes": [
+    {
+      "file": "scripts/npc_city_population.gd",
+      "before": "0f10997488db61226a08cfa86bbd415d83be91fc1bc0d8ca4280430fce685b44",
+      "after": "9f3a18a9cb9aa090ab95c611a098ae8cafd4e9502d4b00b004e6b5bc0bb9174f"
+    },
+    {
+      "file": "scripts/hospital/npc_simple_hospital.gd",
+      "before": "2a95ca719fd7b7353cb18526af5d988f2cebb3cd09517e9f7506f70d25e4867d",
+      "after": "e6731623b40d2e4a06878457f54fa7f9461a4f747e666989e1b9d89ce32bfe3f"
+    },
+    {
+      "file": "scripts/navigation/npc_avoidance_world29.gd",
+      "before": null,
+      "after": "94c1cc60cd6cc09e5a177ea79655456673ea3b888ecfe5176dde5d2119d8f28c"
+    },
+    {
+      "file": "scripts/navigation/npc_local_avoidance29.gd",
+      "before": null,
+      "after": "855b2e9653e39cd6491a8f601d9c5955942c0d1f204ebf76d25b4a2c3bfbccf3"
+    }
+  ],
+  "population286_enabled": false,
+  "full_gameplay_perf_accepted": false
+}

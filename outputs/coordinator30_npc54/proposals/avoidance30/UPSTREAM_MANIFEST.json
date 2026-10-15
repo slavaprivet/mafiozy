@@ -1,0 +1,111 @@
+{
+  "status": "source_candidate_native_pending_not_for_integration",
+  "created_utc": "2026-10-15T00:03:13.030476+00:00",
+  "latest_full_native_attempt": "runs/avoidance11/RESULT.json",
+  "latest_full_native_attempt_outcome": "scheduler did not admit proxy/native runs: unrelated shop test engine unregistered; no process stopped",
+  "prior_native_summary": "run09: two-way, merge, Simple two-way PASS; FIFO FAIL, fixture/idle contract corrected afterwards and pending revalidation",
+  "gameplay_performance_accepted": false,
+  "286_gameplay_enabled": false,
+  "files": [
+    {
+      "path": "baseline/scripts/city/runtime/npc_city_clone_door_swing.gd",
+      "sha256": "24fb1ef4d35a58ab99e498dd4be1f5d739c2425c767188c9c916df0b869d6fd1"
+    },
+    {
+      "path": "baseline/scripts/hospital/npc_long_route28.gd",
+      "sha256": "ffa9806c378aacd8dd4238d6d4bcedc50c7a050284f0c6aab9f874ec359916f0"
+    },
+    {
+      "path": "baseline/scripts/hospital/npc_physical_route51.gd",
+      "sha256": "6cf3bb96c1ad9875fb3e66313db9b04a518043b4977e1db4420b316d8813b761"
+    },
+    {
+      "path": "baseline/scripts/hospital/npc_roam_wait29.gd",
+      "sha256": "b39dbce75e87c2270f0682301f73dccfcb6532cd7624db34837f83fae724f0d7"
+    },
+    {
+      "path": "baseline/scripts/hospital/npc_route_budget29.gd",
+      "sha256": "69d59b1bb4b8d66b7afc116c035f6eecbdc60422c5e1eb48c7dde96caf04a6ce"
+    },
+    {
+      "path": "baseline/scripts/hospital/npc_simple_hospital.gd",
+      "sha256": "2a95ca719fd7b7353cb18526af5d988f2cebb3cd09517e9f7506f70d25e4867d"
+    },
+    {
+      "path": "baseline/scripts/hospital/npc_walk_surface28.gd",
+      "sha256": "fe28870674944d9b9fc45f338a40f4ced0dfd9e312a7e44fcb3ffc6e416192b1"
+    },
+    {
+      "path": "baseline/scripts/navigation/npc_navigation_work29.gd",
+      "sha256": "f9f8267663f7fbe6de117b29f5c7fc1d8f63d2fed3007d21b06e460d534a79b8"
+    },
+    {
+      "path": "baseline/scripts/navigation/path_job_queue.gd",
+      "sha256": "03d3dfd3d05dc20b93e7b7bf0caf6efb0730d6119326416404135cf7ac2372f3"
+    },
+    {
+      "path": "baseline/scripts/npc_city_population.gd",
+      "sha256": "0f10997488db61226a08cfa86bbd415d83be91fc1bc0d8ca4280430fce685b44"
+    },
+    {
+      "path": "baseline/scripts/npc_visual/preview_resident_host.gd",
+      "sha256": "7790a84e1c18811384f430ed299df5e657f0e59d8fad1df50324978ff1ab93df"
+    },
+    {
+      "path": "baseline/scripts/venues/npc_venue_registry29.gd",
+      "sha256": "46f2895ae4e5a70e03b7a02126cad3ab3a9b4ddb1a7b31ca4d892c2d3b68d7a4"
+    },
+    {
+      "path": "BASELINE.json",
+      "sha256": "f9b6561047d188d5dafd81925adb40f8081b65bd5a904a98a82c347d20015c59"
+    },
+    {
+      "path": "CPU_CHECKS.json",
+      "sha256": "7593da6a685796ef8779f97631c9acf41714e5667d2713a49ce8888efd231cc7"
+    },
+    {
+      "path": "HANDOFF_DRAFT.md",
+      "sha256": "c650f23f7eb3d25614bfe5dfb15e151bedc7720811a308d7cf3ad6a6aa24c01b"
+    },
+    {
+      "path": "patches/population_snapshot29.patch",
+      "sha256": "54e4fe1c24b5cb54c79c2791170ed4a5ecc81055ed7e266e6c66f2d6f75b8b73"
+    },
+    {
+      "path": "patches/simple_avoidance29.patch",
+      "sha256": "f6aa7a9df88fb68cb04093b8048253c1fe27aa58fd35aebe3ac7f221ac40b595"
+    },
+    {
+      "path": "PLAN.json",
+      "sha256": "685ed11affb0dc2143496504184315f0f7cec0716c9e40d1e1dca17bd847cc4a"
+    },
+    {
+      "path": "qa/avoidance_fixture29.gd",
+      "sha256": "e7c9ca7df969362d797536b4dff85a6d9227e4fb7ddb8c4b6af366e3026751af"
+    },
+    {
+      "path": "qa/proxies_fixture29.gd",
+      "sha256": "920af2a1df7e7b9e1bcdccd4bbf07151ffb57444b22bf458c4e1eddeb4b52499"
+    },
+    {
+      "path": "qa/source_checks29.py",
+      "sha256": "adaf68451437d50f201e619e2c0c6f255cb5a4df03f995f3d828fb9eb130d2e2"
+    },
+    {
+      "path": "run_fixtures29.py",
+      "sha256": "40147bcc335974ef062e16183c0ef5e6a170bd4cb281a4c5429aa137f5986fd1"
+    },
+    {
+      "path": "scripts/hospital/npc_simple_hospital.gd",
+      "sha256": "294ad825a39db92e92fad62e3edcbcba7970fec45c5c694b17c11ebbbb8d8fea"
+    },
+    {
+      "path": "scripts/navigation/npc_avoidance_world29.gd",
+      "sha256": "ed09bdf8247c1a5cfee0c36272d13ceb8c995562ba547d7d3bd4c240755d190b"
+    },
+    {
+      "path": "scripts/navigation/npc_local_avoidance29.gd",
+      "sha256": "855b2e9653e39cd6491a8f601d9c5955942c0d1f204ebf76d25b4a2c3bfbccf3"
+    }
+  ]
+}

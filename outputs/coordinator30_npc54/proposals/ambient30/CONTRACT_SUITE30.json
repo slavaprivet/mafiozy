@@ -1,0 +1,37 @@
+{
+  "passed": true,
+  "runs": [
+    {
+      "name": "slots02",
+      "exit": 0
+    },
+    {
+      "name": "cancel_approach01",
+      "exit": 0
+    },
+    {
+      "name": "cancel_dock01",
+      "exit": 0
+    },
+    {
+      "name": "cancel_align01",
+      "exit": 0
+    },
+    {
+      "name": "cancel_bench01",
+      "exit": 0
+    },
+    {
+      "name": "cancel_phone01",
+      "exit": 0
+    },
+    {
+      "name": "stale_approach01",
+      "exit": 0
+    },
+    {
+      "name": "stale_phone01",
+      "exit": 0
+    }
+  ]
+}
