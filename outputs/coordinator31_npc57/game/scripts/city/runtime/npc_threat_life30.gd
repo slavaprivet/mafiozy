@@ -44,6 +44,7 @@ var _reason := ""
 var _aim_until := 0.0
 var _surrender_age := 0.0
 var _surrender_release := -1.0
+var _surrender_pose_frames := 0
 
 func active() -> bool:return _phase!="IDLE"
 
@@ -77,7 +78,19 @@ func accept(life: RefCounted, event: Dictionary, world: RefCounted) -> Dictionar
 	# A fresh nearby shot renews fear, but cannot downgrade a recent actual injury.
 	if not active() or stronger or event.kind==previous_kind or at-float(_event.get("at",-100.0))>=QUIET_SECONDS:_event=event.duplicate()
 	life._attention29.clear()
+	var came_from: String=_phase
 	if not active():_phase="RELEASE_SERVICE";_age=0.0;_attempts=0;_called=false;_owned=false;_serial+=1
+	elif event.kind=="aimed_at" and surrender58_on() and came_from in ["ALERT","FLEE","RECOVER"] and _driver!=null:
+		# DSH_SURRENDER58: visibility or a retreat becomes a hold-up the moment the
+		# player actually aims at this civilian. The web walk stops the actor on the
+		# same condition, so a resident who was only alert or already running halts
+		# and raises both hands instead of escaping. This is the fix for the first
+		# live run, where the earlier visible_weapon/near_shot observation had already
+		# chosen ALERT/FLEE and the stronger aimed_at observation upgraded nothing.
+		_driver.cancel()
+		_phase="SURRENDER58";_surrender_age=0.0;_surrender_release=-1.0
+		_aim_until=maxf(_aim_until,at+AIM_LEASE58)
+		print("DSH_SURRENDER58 stage=enter id=",str(life._token.source_id),"from=",came_from,"at_s=","%.2f" % at)
 	elif restart:
 		_phase="FLEE";_age=0.0;_attempts=0
 		# DSH_SURRENDER58: a shot or a new incident always breaks the hold.
@@ -184,6 +197,7 @@ func step(delta: float, row: Dictionary) -> bool:
 			# the life so the resident returns to ordinary decisions.
 			elapsed58=minf(_surrender_age,SURRENDER_WINDOW58)
 			if _surrender_age-_surrender_release>=SURRENDER_FADE58:
+				print("DSH_SURRENDER58 stage=release id=",str(_event.get("source_id","")),"held_s=","%.2f" % _surrender_age)
 				cancel("aim_released58");return true
 		_frame=Engine.get_physics_frames()
 		body.set_meta("npc_ambient28",{"active":true,"owner":weakref(self),"serial":_serial,"frame":_frame,"body_id":body.get_instance_id(),"delta":delta,"kind":"surrender58","elapsed_s":elapsed58,"duration_s":SURRENDER_WINDOW58,"surrender_time_s":_surrender_age})
@@ -233,6 +247,13 @@ func sample_current(value: Dictionary) -> bool:
 	return is_instance_valid(body) and value.get("kind")=="police_phone30" and int(value.get("serial",-1))==_serial and int(value.get("frame",-1))==_frame and body.global_position.distance_to(_anchor)<=.05
 
 func pose_committed(rig: Skeleton3D, value: Dictionary) -> void:
+	if str(value.get("kind",""))=="surrender58":
+		# DSH_SURRENDER58 proof: the resident host calls this only after it accepted
+		# our published gesture for this exact physics frame and wrote the composed
+		# bones to the skeleton. A non-zero count is therefore "hands really went up".
+		if sample_current(value) and _life!=null and is_instance_valid(_life.get_ref()) and rig==_life.get_ref()._token.rig and float(value.get("pose_weight",0))>.01:
+			_surrender_pose_frames+=1
+		return
 	if _props==null:return
 	if not sample_current(value) or rig!=_life.get_ref()._token.rig or float(value.get("pose_weight",0))<=.01:_props.hide();return
 	_pose_frames+=1;_props.sync_after_pose(rig,"police_phone30")
@@ -261,5 +282,5 @@ func cancel(reason: String="cancelled") -> void:
 
 func snapshot() -> Dictionary:
 	return {"phase":_phase,"kind":_event.get("kind",""),"incident_id":_event.get("incident_id",""),"quiet_until":_quiet_until,"last_observation":_last_observation,"reason":_reason,"attempts":_attempts,"pose_frames":_pose_frames,"report":_last_result,"driver":_driver.snapshot() if _driver!=null else {},"normal_speed_unchanged":true,
-		"surrender58":surrender58_on(),"aim_until":_aim_until,"surrender_age_s":_surrender_age,"surrender_release_s":_surrender_release,
+		"surrender58":surrender58_on(),"aim_until":_aim_until,"surrender_age_s":_surrender_age,"surrender_release_s":_surrender_release,"surrender_pose_frames":_surrender_pose_frames,
 		"aim_lease_ms":maxf(0.0,(_aim_until-_world.get_ref()._now)*1000.0) if (_world!=null and is_instance_valid(_world.get_ref())) else 0.0}
