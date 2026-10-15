@@ -71,6 +71,12 @@ var _held_root: Node3D
 var _charge_tool: Node3D
 var _remote_tool: Node3D
 var _charges: Dictionary = {}
+## DSH_PLAYERSHOP: with a bound provider every placed charge is taken from the
+## player's real backpack. Without one the previous virtual C4 keeps working.
+var _charge_provider: Callable
+
+func set_charge_provider(provider: Callable) -> void:  # DSH_PLAYERSHOP
+	_charge_provider = provider if provider.is_valid() else Callable()
 var _hold: Dictionary = {}
 var _elapsed := 0.0
 var _sequence := 0
@@ -273,6 +279,14 @@ func _place_charge() -> void:
 	# No direct call can bypass current geometry, original hold time or lifetime.
 	var current: Dictionary=_target()
 	if _elapsed<HOLD_SECONDS or Engine.get_physics_frames()<=int(_hold.get("completion_frame",Engine.get_physics_frames())) or not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or current.is_empty() or current.body!=body or current.owner!=owner or current.owner_generation!=_hold.owner_generation or current.body_life_generation!=_hold.body_life_generation or not SurfaceOwner45.shape_current(body,_hold.shape_binding) or current.source_id!=_hold.source_id or current.local_point.distance_to(_hold.local_point)>AIM_DRIFT_M or current.normal.dot(_hold.normal)<.999 or _player.global_position.distance_to(_hold.actor_position)>ACTOR_DRIFT_M or Vector2(_player.velocity.x,_player.velocity.z).length()>.08: _cancel_hold(true); return
+	# DSH_PLAYERSHOP: a real backpack is charged only after every geometry and
+	# lifetime gate above has passed. No provider = virtual C4, unchanged.
+	if _charge_provider.is_valid():
+		var taken: Dictionary=_charge_provider.call(true)
+		if not taken.get("ok",false):
+			var blocked_point: Vector3=_hold.point
+			_cancel_hold(false); _require_release=true
+			_notice("Нет зарядов C4","Купи в оружейной лавке",blocked_point); return
 	_hold.point=current.point; _hold.normal=current.normal
 	_sequence+=1
 	var id: String="c4:%d:%d"%[get_instance_id(),_sequence]
@@ -369,6 +383,10 @@ func _update_hud() -> void:
 	_remote_button.disabled=count==0
 	_remote_button.get_meta("description").text="Зарядов: %d · ЛКМ — подрыв"%count
 	_button.get_meta("description").text="ЛКМ 3 с · %d / %d установлено"%[count,MAX_CHARGES]
+	# DSH_PLAYERSHOP: the pack count is a peek, it never consumes a charge.
+	if _charge_provider.is_valid():
+		var pack: Dictionary=_charge_provider.call(false)
+		_button.get_meta("description").text="ЛКМ 3 с · %d / %d установлено · в рюкзаке %d"%[count,MAX_CHARGES,int(pack.get("count",0))]
 	if _mode!="off" and _weapons.fire_state.get("weaponId")=="none":
 		_ui.title.text="C4 · Установка" if _mode=="place" else "Пульт C4"
 		_ui.ammo.text="ЛКМ 3 с у поверхности · Q — арсенал" if _mode=="place" else "ЛКМ — подорвать · Зарядов: %d"%count

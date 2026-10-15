@@ -42,8 +42,17 @@ func apply_contact(contact: Dictionary,producer: Object) -> Dictionary:
 	# Same source block rule as the existing input port: 90% reduction while held.
 	var blocked: bool=producer._source.snapshot().get("block",false)
 	var damage:=1 if blocked else 12
+	# DSH_PLAYERSHOP: a worn vest meets the damage first. Without the provider meta
+	# the previous exact behaviour (full damage straight to HP) is unchanged.
+	var armor_absorbed:=0
+	if _player.has_meta("player_armor_absorb"):
+		var provider: Variant=_player.get_meta("player_armor_absorb")
+		if provider is Callable and (provider as Callable).is_valid():
+			var vest: Dictionary=(provider as Callable).call(damage)
+			armor_absorbed=clampi(int(vest.get("absorbed",0)),0,damage)
+	var taken:=maxi(0,damage-armor_absorbed)
 	var before:=_hp
-	_hp=maxi(0,_hp-damage);_revision+=1;_hit_age=0.0
+	_hp=maxi(0,_hp-taken);_revision+=1;_hit_age=0.0
 	if _hp>0:_player.apply_contact_melee_impulse(contact.direction,3.0 if blocked else 30.0)
 	_receipts.append(id)
 	if _receipts.size()>MAX_RECEIPTS:_receipts.pop_front()
@@ -53,7 +62,7 @@ func apply_contact(contact: Dictionary,producer: Object) -> Dictionary:
 		else:_player.set_preview_pose_authority(&"dead")
 		_player.set_mouse_captured(false)
 	_refresh()
-	return {"applied":true,"event_id":id,"hp_before":before,"hp_after":_hp,"revision":_revision,"blocked":blocked,"scope":"local_new_session"}
+	return {"applied":true,"event_id":id,"hp_before":before,"hp_after":_hp,"armor_absorbed":armor_absorbed,"damage_taken":taken,"revision":_revision,"blocked":blocked,"scope":"local_new_session"}
 
 func step(delta: float) -> void:
 	if not _ready or not is_finite(delta) or delta<0:return

@@ -108,6 +108,21 @@ func get_fire_state(id: Variant = OMITTED) -> Variant:
 	if not id is String: return null
 	if id == "none": return _fire.create_state("none")
 	return _owned[id].duplicate(true) if _owned.has(id) else null
+## DSH_PLAYERSHOP: a box of ammo bought in the shop goes into the reserve of an
+## owned gun. Bounded exactly like the persistent state contract and refused for
+## anything this inventory does not own; no other field of the state is touched.
+func add_reserve(id: String, rounds: int) -> Dictionary:
+	if not _readable(): return _failure("lifetime")
+	if not _ids.has(id) or id == "none" or not _owned.has(id): return {"ok":false,"reason":"not_owned"}
+	if rounds <= 0 or rounds > 9999: return {"ok":false,"reason":"rounds"}
+	var state: Dictionary = _owned[id]
+	var current: int = int(state.get("reserveAmmo", 0))
+	if current >= 9999: return {"ok":false,"reason":"reserve_full","reserve":current}
+	var updated: int = mini(9999, current + rounds)
+	state["reserveAmmo"] = updated
+	_owned[id] = state
+	return {"ok":true,"id":id,"reserve":updated,"added":updated-current}
+
 func snapshot() -> Dictionary:
 	if not _readable(): return {}
 	return {"equippedId":_equipped,"ownedIds":get_owned_ids(),"fireStates":_owned.duplicate(true),"dropped":get_dropped()}

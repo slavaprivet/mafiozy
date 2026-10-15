@@ -23,6 +23,7 @@ const CityMinimapHost = preload("res://scripts/city/runtime/npc_city_minimap_hos
 ## DSH_SIMPLEHOSP: --city-simple-hospital=1 - the owner's "the hospital is the palazzo copy"
 ## stand. The flag itself is read by scripts/hospital/npc_simple_hospital.gd.
 const SimpleHospital = preload("res://scripts/hospital/npc_simple_hospital.gd")
+const PlayerShopCatalog = preload("res://scripts/shop/player_shop_catalog.gd")  # DSH_PLAYERSHOP
 const STATIC_RENDER_OWNER_IDS := [
 	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-013", "REBUILD-VISUAL-old_town_narrow_townhouse_v1-005",
 	"REBUILD-VISUAL-gun_shop-001", "REBUILD-VISUAL-pawnshop-001",
@@ -312,7 +313,7 @@ func _ready() -> void:
 		if weapon_script != null:
 			var weapon_host: Node = weapon_script.new()
 			add_child(weapon_host)
-			var weapon_setup: Dictionary = weapon_host.configure(self, _player)
+			var weapon_setup: Dictionary = weapon_host.configure(self, _player, player_shop_weapon_options())
 			weapons_status = "local_arsenal" if weapon_setup.get("ok",false) else str(weapon_setup)
 			if weapon_setup.get("ok",false):
 				preview_weapons = weapon_host
@@ -327,6 +328,7 @@ func _ready() -> void:
 						if not cargo_result.get("ok",false):
 							push_error("Weapon cargo binding: "+str(cargo_result)); cargo_host.queue_free()
 			else: weapon_host.queue_free()
+	if player_shop_requested(): install_player_shop()  # DSH_PLAYERSHOP
 	if is_instance_valid(preview_modular30):
 		print("MODULAR30_NATIVE_BINDING ", preview_modular30.bind_weapons())
 	if is_instance_valid(preview_palazzo):
@@ -1513,3 +1515,58 @@ func _bind_final_dead_contact_port(measured_limits: Dictionary = FINAL_DEAD_CONT
 	var bound: bool = _player.set_final_dead_contact_owner(Callable(preview_population,"player_final_dead_contact_ready"), Callable(preview_population,"admit_player_final_dead_contact"))
 	final_dead_contact_status = "bound_waiting_final_death" if bound else "binding_failed"
 	return bound
+
+
+# ── DSH_PLAYERSHOP: локальная торговая лавка ───────────────────────────────
+# Модуль живёт в scripts/shop и включается флагом --city-player-shop=1.
+# Без флага поведение прежнее: продавца в сцене нет, арсенал выдаёт все стволы.
+@export var city_player_shop_enabled: bool = false
+@export var city_player_shop_cash: int = -1
+var player_shop: Node = null
+
+func player_shop_requested() -> bool:  # DSH_PLAYERSHOP
+	if city_player_shop_enabled:
+		return true
+	for argument: String in OS.get_cmdline_user_args():
+		if argument == "--city-player-shop=1" or argument == "--city-player-shop":
+			return true
+	return false
+
+## The starter ownership set comes from the same catalog the shop sells from, so a
+## purchase is the only way to grow the arsenal while the flag is on.
+func player_shop_weapon_options() -> Dictionary:  # DSH_PLAYERSHOP
+	var options: Dictionary = {}
+	if not player_shop_requested():
+		return options
+	var catalog = PlayerShopCatalog.new()
+	var opened: Dictionary = catalog.open()
+	if not opened.get("ok", false):
+		push_error("Player shop catalog: " + str(opened))
+		return options
+	options["ownedIds"] = catalog.starter_ids()
+	print("DSH_SHOP_STARTER ", JSON.stringify({"starter": catalog.starter_ids(), "items": catalog.item_count(), "cash": catalog.starting_cash()}))
+	return options
+
+func install_player_shop() -> void:  # DSH_PLAYERSHOP
+	if is_instance_valid(player_shop) or not is_instance_valid(preview_weapons):
+		return
+	var shop_script: Script = load("res://scripts/shop/player_shop_host.gd")
+	if shop_script == null:
+		push_error("Player shop module unavailable")
+		return
+	var host: Node = shop_script.new()
+	host.name = "PlayerShop"
+	add_child(host)
+	var options: Dictionary = {}
+	if city_player_shop_cash >= 0:
+		options["cash"] = city_player_shop_cash
+	for argument: String in OS.get_cmdline_user_args():
+		if argument.begins_with("--city-player-cash="):
+			options["cash"] = int(argument.trim_prefix("--city-player-cash="))
+	var installed: Dictionary = host.configure(self, _player, preview_weapons, options)
+	if not installed.get("ok", false):
+		push_error("Player shop binding: " + str(installed))
+		host.queue_free()
+		return
+	player_shop = host
+	print("DSH_SHOP_BINDING ", JSON.stringify(installed))

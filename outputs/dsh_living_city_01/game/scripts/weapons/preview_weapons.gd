@@ -53,11 +53,16 @@ var _last_foot := Vector3.ZERO
 var _shot_ray := PhysicsRayQueryParameters3D.new()
 var cosmetic_impacts := 0
 
-func configure(world: Node3D, actor: CharacterBody3D) -> Dictionary:
+func configure(world: Node3D, actor: CharacterBody3D, options: Dictionary = {}) -> Dictionary:
 	if ready_for_play or not is_instance_valid(world) or not is_instance_valid(actor) or not actor.is_inside_tree(): return {"ok":false,"reason":"binding"}
 	scene = world; player = actor
 	inventory = Inventory.new()
-	var configured: Dictionary = inventory.configure(Fire.new())
+	var inventory_options: Dictionary = {}
+	# DSH_PLAYERSHOP: the local shop hands the player the catalog starter set instead
+	# of every gun, so a purchase really changes what the arsenal owns. Without the
+	# option the previous default (all guns) is untouched.
+	if options.has("ownedIds"): inventory_options["ownedIds"] = options["ownedIds"]
+	var configured: Dictionary = inventory.configure(Fire.new(), inventory_options)
 	if not configured.get("ok", false): return configured
 	presentation = Presentation.new()
 	configured = presentation.configure(player)
