@@ -87,7 +87,38 @@ func refresh(scene:Node3D, fallback_actor:CharacterBody3D=null, fallback_id:Stri
 	for id:Variant in _entries.keys():
 		if _entries[id].seen!=frame:_entries.erase(id)
 	_valid=core.snapshot(rows,frame,Time.get_ticks_msec())
+	# DSH_PASSTHROUGH58: residents pass through each other. The mutual detour they used
+	# to perform - yielding to a peer, stepping aside, then re-planning a route it had
+	# already proven - is removed at its source: a peer body is no longer a wall. Walls,
+	# floors and obstacles stay physical; bullets, hits and melee queries are unaffected
+	# because collision exceptions change motion only, never a shape/ray query.
+	if not passthrough58_on(): return _valid
+	var group: Array[CharacterBody3D]=[]
+	for entry: Entry in _entries.values():
+		var actor: Variant = entry.body.get_ref()
+		if is_instance_valid(actor) and actor.is_inside_tree() and not actor.is_queued_for_deletion() and actor.collision_layer == 1: group.append(actor)
+	for left: int in group.size():
+		for right: int in range(left+1, group.size()):
+			var a: CharacterBody3D = group[left]; var b: CharacterBody3D = group[right]
+			if Vector2(a.global_position.x-b.global_position.x, a.global_position.z-b.global_position.z).length_squared() > PEER_PASS_M*PEER_PASS_M: continue
+			_pair_excepted58(a,b)
 	return _valid
+
+## DSH_PASSTHROUGH58: one shared switch for the whole behaviour change. With
+## --city-passthrough58=0 the shipped mutual avoidance is used unchanged.
+const PEER_PASS_M := 3.0
+static var _passthrough58 := -1
+static func passthrough58_on() -> bool:
+	if _passthrough58 < 0:
+		_passthrough58 = 1
+		for argument: String in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-passthrough58="): _passthrough58 = 1 if int(argument.trim_prefix("--city-passthrough58=")) > 0 else 0
+	return _passthrough58 == 1
+
+func _pair_excepted58(a: CharacterBody3D, b: CharacterBody3D) -> void:
+	if a == b: return
+	if not a.get_collision_exceptions().has(b): a.add_collision_exception_with(b)
+	if not b.get_collision_exceptions().has(a): b.add_collision_exception_with(a)
 
 ## Fair bounded candidate discovery only. Consumers recheck identity/LOS/authority.
 ## Each empty cell or candidate costs one scan unit; only two bounded cursors exist.
@@ -125,5 +156,11 @@ func query_state30() -> Dictionary:
 func steer(actor:CharacterBody3D,direction:Vector3,speed:float)->Dictionary:
 	if not _valid or _frame!=Engine.get_physics_frames() or not is_instance_valid(actor) or actor.is_queued_for_deletion() or actor.collision_layer!=1:
 		return {"direction":Vector3.ZERO,"ratio":0.0,"waiting":true,"reason":"no_current_snapshot","replan":false}
+	# DSH_PASSTHROUGH58: no peer is an obstacle any more, so the neighbour scan, the
+	# yield decision, the passing side and the peer-driven replan are not consulted
+	# at all. The walk keeps its own wall/floor/step admission and the same no-motion
+	# check, so a real obstacle is still detected; only the peer mechanism is gone.
+	if passthrough58_on():
+		return {"direction":direction,"ratio":1.0,"waiting":false,"reason":"peers_pass_through","replan":false}
 	return core.steer(str(_keys.get(actor.get_instance_id(),"")),direction,speed)
 

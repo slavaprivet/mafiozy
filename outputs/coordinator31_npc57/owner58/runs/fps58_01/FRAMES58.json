@@ -1,0 +1,10 @@
+{
+	"frames": 19631,
+	"headless": false,
+	"mean_fps": 117.241601969167,
+	"p50_ms": 8.3333330078125,
+	"p95_ms": 10.606060546875,
+	"p99_ms": 13.888888671875,
+	"schema": "mafiozi.owner58.frames/v1",
+	"worst_ms": 81.3233359375
+}

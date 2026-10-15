@@ -1,0 +1,487 @@
+{
+  "run": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\owner58\\runs\\nav58_03",
+  "stdout_bytes": 2195924,
+  "seat_reservations": 23,
+  "seat_reservations_without_hold": 0,
+  "benches_with_duplicate_serial": {},
+  "benches_used": 9,
+  "goals_refused_without_standing_point": 160,
+  "goals_resolved_to_nearby_supported_point": 980,
+  "goals_with_no_supported_point_anywhere": 274,
+  "peer_yield_events": 0,
+  "route_detours": 0,
+  "worst_still_seconds_per_resident": {
+    "resident_1": 4.0,
+    "resident_10": 4.0,
+    "resident_2": 6.0,
+    "resident_3": 4.0,
+    "resident_4": 4.0,
+    "resident_5": 4.0,
+    "resident_6": 8.0,
+    "resident_7": 2.0,
+    "resident_8": 0.0,
+    "resident_9": 6.0
+  },
+  "worst_still_row": {
+    "resident_1": {
+      "ambient_kind": "look_around",
+      "ambient_phase": "IDLE",
+      "asked_to_move": true,
+      "busy_elsewhere": false,
+      "driver": {
+        "dist_m": 61.1200103759766,
+        "expanded": 212,
+        "goal_supported": {
+          "from": "(85.58, 0.093, -6.2)",
+          "radius_m": 0.4,
+          "resolved": true,
+          "to": "(85.58, 0.093, -6.6)"
+        },
+        "phase": "searching",
+        "queries": 4802,
+        "reason": "",
+        "target_source": "roam"
+      },
+      "goal_kind": "leisure",
+      "id": "resident_1",
+      "leisure_arrived": false,
+      "moved_m": 0.0,
+      "on_floor": true,
+      "phase": "WALKING",
+      "pos": [
+        60.9411773681641,
+        -0.000807957374490798,
+        49.3337440490723
+      ],
+      "reason": "",
+      "roam_active": true,
+      "seat_bench": 910851878635,
+      "seat_nearest_m": 55.5964050292969,
+      "seat_reason": "",
+      "seat_serial": 22,
+      "stalled_while_walking": 4,
+      "still_s": 4.0,
+      "t_ms": 186756,
+      "velocity": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "resident_10": {
+      "ambient_kind": "",
+      "ambient_phase": "",
+      "asked_to_move": true,
+      "busy_elsewhere": false,
+      "driver": {
+        "dist_m": 62.7584037780762,
+        "expanded": 231,
+        "goal_supported": {},
+        "phase": "searching",
+        "queries": 5888,
+        "reason": "",
+        "target_source": "roam"
+      },
+      "goal_kind": "leisure",
+      "id": "resident_10",
+      "leisure_arrived": false,
+      "moved_m": 0.0,
+      "on_floor": true,
+      "phase": "WALKING",
+      "pos": [
+        95.4870223999023,
+        -1.49011611938477e-08,
+        583.497802734375
+      ],
+      "reason": "",
+      "roam_active": true,
+      "seat_bench": 1626802829397,
+      "seat_nearest_m": 83.5301513671875,
+      "seat_reason": "",
+      "seat_serial": 3,
+      "stalled_while_walking": 4,
+      "still_s": 4.0,
+      "t_ms": 48354,
+      "velocity": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "resident_2": {
+      "ambient_kind": "wipe_forehead",
+      "ambient_phase": "IDLE",
+      "asked_to_move": true,
+      "busy_elsewhere": false,
+      "driver": {
+        "dist_m": 69.6533813476563,
+        "expanded": 268,
+        "goal_supported": {
+          "from": "(48.3, 0.003, 193.47)",
+          "radius_m": 1.6,
+          "resolved": true,
+          "to": "(49.9, 0.003, 193.47)"
+        },
+        "phase": "searching",
+        "queries": 6162,
+        "reason": "",
+        "target_source": "roam"
+      },
+      "goal_kind": "leisure",
+      "id": "resident_2",
+      "leisure_arrived": false,
+      "moved_m": 0.0,
+      "on_floor": true,
+      "phase": "WALKING",
+      "pos": [
+        72.7346496582031,
+        0.000683329999446869,
+        127.665954589844
+      ],
+      "reason": "",
+      "roam_active": true,
+      "seat_bench": 1625326434354,
+      "seat_nearest_m": 21.9106540679932,
+      "seat_reason": "",
+      "seat_serial": 17,
+      "stalled_while_walking": 6,
+      "still_s": 6.0,
+      "t_ms": 207835,
+      "velocity": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "resident_3": {
+      "ambient_kind": "",
+      "ambient_phase": "",
+      "asked_to_move": true,
+      "busy_elsewhere": false,
+      "driver": {
+        "dist_m": 56.1429061889648,
+        "expanded": 149,
+        "goal_supported": {
+          "from": "(-146.32, 0.003, 386.55)",
+          "radius_m": 0.9,
+          "resolved": true,
+          "to": "(-146.9564, 0.003, 387.1864)"
+        },
+        "phase": "cancelled",
+        "queries": 4067,
+        "reason": "roam_planning_work_limit",
+        "target_source": "roam"
+      },
+      "goal_kind": "restaurant",
+      "id": "resident_3",
+      "leisure_arrived": false,
+      "moved_m": 0.0,
+      "on_floor": true,
+      "phase": "WALKING",
+      "pos": [
+        -178.622161865234,
+        -0.000383784412406385,
+        433.546997070313
+      ],
+      "reason": "",
+      "roam_active": false,
+      "seat_bench": -1,
+      "seat_nearest_m": 40.1990089416504,
+      "seat_reason": "",
+      "seat_serial": -1,
+      "stalled_while_walking": 4,
+      "still_s": 4.0,
+      "t_ms": 269054,
+      "velocity": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "resident_4": {
+      "ambient_kind": "scratch_head",
+      "ambient_phase": "IDLE",
+      "asked_to_move": true,
+      "busy_elsewhere": false,
+      "driver": {
+        "dist_m": 164.338119506836,
+        "expanded": 0,
+        "goal_supported": {
+          "from": "(128.38, 0.003, 530.05)",
+          "queries": 67,
+          "radius_m": 1.6,
+          "reason": "standing_blocked",
+          "resolved": false,
+          "to": "(128.38, 0.003, 530.05)"
+        },
+        "phase": "searching_guide",
+        "queries": 3,
+        "reason": "",
+        "target_source": "roam"
+      },
+      "goal_kind": "leisure",
+      "id": "resident_4",
+      "leisure_arrived": false,
+      "moved_m": 0.0,
+      "on_floor": true,
+      "phase": "WALKING",
+      "pos": [
+        266.5,
+        -1.49011611938477e-08,
+        576.049987792969
+      ],
+      "reason": "",
+      "roam_active": true,
+      "seat_bench": 1626064631857,
+      "seat_nearest_m": 145.57861328125,
+      "seat_reason": "",
+      "seat_serial": 19,
+      "stalled_while_walking": 4,
+      "still_s": 4.0,
+      "t_ms": 156659,
+      "velocity": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "resident_5": {
+      "ambient_kind": "",
+      "ambient_phase": "",
+      "asked_to_move": true,
+      "busy_elsewhere": false,
+      "driver": {
+        "dist_m": 39.202938079834,
+        "expanded": 124,
+        "goal_supported": {
+          "from": "(109.42, 0.003, 527.75)",
+          "radius_m": 0.4,
+          "resolved": true,
+          "to": "(109.82, 0.003, 527.75)"
+        },
+        "phase": "searching",
+        "queries": 3061,
+        "reason": "",
+        "target_source": "roam"
+      },
+      "goal_kind": "leisure",
+      "id": "resident_5",
+      "leisure_arrived": false,
+      "moved_m": 0.0,
+      "on_floor": true,
+      "phase": "WALKING",
+      "pos": [
+        94.3000030517578,
+        -1.49011611938477e-08,
+        563.75
+      ],
+      "reason": "",
+      "roam_active": true,
+      "seat_bench": 1626064631857,
+      "seat_nearest_m": 39.0463104248047,
+      "seat_reason": "",
+      "seat_serial": 2,
+      "stalled_while_walking": 4,
+      "still_s": 4.0,
+      "t_ms": 32302,
+      "velocity": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "resident_6": {
+      "ambient_kind": "newspaper",
+      "ambient_phase": "IDLE",
+      "asked_to_move": true,
+      "busy_elsewhere": false,
+      "driver": {
+        "dist_m": 55.6584739685059,
+        "expanded": 216,
+        "goal_supported": {
+          "from": "(85.58, 0.093, -6.2)",
+          "radius_m": 0.9,
+          "resolved": true,
+          "to": "(84.68, 0.093, -6.2)"
+        },
+        "phase": "searching",
+        "queries": 6439,
+        "reason": "",
+        "target_source": "roam"
+      },
+      "goal_kind": "leisure",
+      "id": "resident_6",
+      "leisure_arrived": false,
+      "moved_m": 0.0,
+      "on_floor": true,
+      "phase": "WALKING",
+      "pos": [
+        95.9812927246094,
+        -2.21903901547194e-05,
+        48.2990493774414
+      ],
+      "reason": "",
+      "roam_active": true,
+      "seat_bench": 910851878635,
+      "seat_nearest_m": 55.4827308654785,
+      "seat_reason": "",
+      "seat_serial": 27,
+      "stalled_while_walking": 8,
+      "still_s": 8.0,
+      "t_ms": 207835,
+      "velocity": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "resident_7": {
+      "ambient_kind": "camera",
+      "ambient_phase": "IDLE",
+      "asked_to_move": true,
+      "busy_elsewhere": false,
+      "driver": {
+        "dist_m": 281.363006591797,
+        "expanded": 0,
+        "goal_supported": {},
+        "phase": "searching_guide",
+        "queries": 3,
+        "reason": "",
+        "target_source": "roam"
+      },
+      "goal_kind": "leisure",
+      "id": "resident_7",
+      "leisure_arrived": false,
+      "moved_m": 0.0,
+      "on_floor": true,
+      "phase": "WALKING",
+      "pos": [
+        133.75016784668,
+        -0.000202353694476187,
+        461.543518066406
+      ],
+      "reason": "",
+      "roam_active": true,
+      "seat_bench": 1625326434354,
+      "seat_nearest_m": 68.7166290283203,
+      "seat_reason": "",
+      "seat_serial": 28,
+      "stalled_while_walking": -1,
+      "still_s": 2.0,
+      "t_ms": 210849,
+      "velocity": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "resident_8": {
+      "ambient_kind": "look_far",
+      "ambient_phase": "ACTING",
+      "asked_to_move": false,
+      "busy_elsewhere": true,
+      "driver": {
+        "dist_m": 245.102691650391,
+        "expanded": 0,
+        "goal_supported": {
+          "from": "(-146.32, 0.003, 386.55)",
+          "queries": 67,
+          "radius_m": 1.6,
+          "reason": "standing_blocked",
+          "resolved": false,
+          "to": "(-146.32, 0.003, 386.55)"
+        },
+        "phase": "cancelled",
+        "queries": 67,
+        "reason": "goal_has_no_supported_standing_point",
+        "target_source": "roam"
+      },
+      "goal_kind": "",
+      "id": "resident_8",
+      "leisure_arrived": false,
+      "moved_m": 0.0,
+      "on_floor": true,
+      "phase": "AMBIENT",
+      "pos": [
+        -217.300003051758,
+        -1.49011611938477e-08,
+        621.150024414063
+      ],
+      "reason": "",
+      "roam_active": false,
+      "seat_bench": -1,
+      "seat_nearest_m": 245.102691650391,
+      "seat_reason": "no_real_bench_destination",
+      "seat_serial": -1,
+      "stalled_while_walking": -1,
+      "still_s": 0.0,
+      "t_ms": 269054,
+      "velocity": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "resident_9": {
+      "ambient_kind": "pocket",
+      "ambient_phase": "IDLE",
+      "asked_to_move": true,
+      "busy_elsewhere": false,
+      "driver": {},
+      "goal_kind": "restaurant",
+      "id": "resident_9",
+      "leisure_arrived": false,
+      "moved_m": 0.0,
+      "on_floor": true,
+      "phase": "WALKING",
+      "pos": [
+        -291.100006103516,
+        -1.49011611938477e-08,
+        391.549987792969
+      ],
+      "reason": "",
+      "roam_active": false,
+      "seat_bench": -1,
+      "seat_nearest_m": 144.866317749023,
+      "seat_reason": "no_real_bench_destination",
+      "seat_serial": -1,
+      "stalled_while_walking": 6,
+      "still_s": 6.0,
+      "t_ms": 177740,
+      "velocity": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "still_ge_3s_reasons": {
+    "unstated": 16,
+    "roam_planning_work_limit": 1
+  },
+  "still_ge_3s_phases": {
+    "WALKING": 17
+  },
+  "max_planner_queries_per_resident": {
+    "resident_10": 6608,
+    "resident_2": 6913,
+    "resident_5": 9139,
+    "resident_6": 7246,
+    "resident_1": 7471,
+    "resident_3": 19143,
+    "resident_4": 10798,
+    "resident_7": 12599,
+    "resident_8": 67
+  },
+  "watch_lines": 2390,
+  "watch_samples": 239,
+  "last_sample": {
+    "goals_without_standing_point": 0,
+    "lines": 2390,
+    "peers_pass_through": true,
+    "residents": 10,
+    "seat_refusals": 0,
+    "t_ms": 269054,
+    "worst_still_s": 9.0
+  }
+}

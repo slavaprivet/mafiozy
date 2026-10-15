@@ -117,6 +117,31 @@ func try_begin(allowed: Array = []) -> bool:
 	_phase = "IDLE"; _kind = ""
 	return false
 
+## Task58: sit on the seat that the goal chooser already RESERVED, instead of looking
+## for a free seat after arriving. The seat, its approach point and its lease are the
+## same objects the walk was planned with, so no second resident can take them in
+## between, and this action never re-derives the approach from a possibly blocked spot.
+func try_begin_reserved(lease: Dictionary, searcher: RefCounted) -> bool:
+	if active() or not _current() or lease.is_empty() or not _supported_here(): return false
+	var seat: Dictionary = _benches.adopt_reserved(lease, searcher, self, _body, _serial+1)
+	if seat.is_empty(): _log("unavailable", "reserved_seat_not_adoptable"); return false
+	_kind = "bench"; _previous = "bench"
+	_serial = int(lease.action_serial)
+	_seat = seat
+	_face = seat.face
+	_duration = _rng.randf_range(4.0,8.0); _elapsed = 0.0; _age = 0.0
+	_pose_frames = 0; _frame = -1; _last_reason = ""
+	_driver = Driver.new()
+	if not _driver.begin(_seat.approach, _body, _map, str(_token.source_id), "roam"):
+		_driver.cancel(); _driver = null
+		_benches.release(_seat,self,_body); _seat = {}; _kind = ""
+		return false
+	_phase = "APPROACH"
+	if not _current(): cancel("actor_life_changed_during_begin"); return false
+	_body.set_meta(Pose.META,{"active":false,"owner":weakref(self),"serial":_serial,"body_id":_body.get_instance_id(),"kind":_kind})
+	_log("started", "reserved_seat_from_goal_choice")
+	return true
+
 func _visible_window() -> Dictionary:
 	var best := {}; var distance := 22.0
 	var eye: Vector3 = _body.global_position + Vector3.UP*1.55

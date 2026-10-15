@@ -97,13 +97,21 @@ func _drop(id: int, reason: String, cancel_owner: bool) -> void:
 	_claims.erase(id) # Erase BEFORE cancellation, whose release re-enters this registry.
 	if cancel_owner and not claim.is_empty():
 		var owner: Variant = claim.owner.get_ref()
-		if is_instance_valid(owner): owner.cancel(reason)
+		# A selection-time reservation belongs to the walking life, which may have no
+		# cancellation entry point of its own: only signal an owner that offers one.
+		if is_instance_valid(owner) and owner.has_method("cancel"): owner.cancel(reason)
 
 func _live(id: int) -> bool:
 	if not _claims.has(id): return false
 	var claim: Dictionary = _claims[id]
 	var owner: Variant = claim.owner.get_ref(); var body: Variant = claim.body.get_ref()
 	if not _rows.has(id) or not current(_rows[id]): _drop(id,"bench_support_lost",true); return false
+	# Task58: a reservation placed AT GOAL SELECTION belongs to the resident that chose
+	# the place, and it lives exactly as long as that resident still holds it. There is
+	# no second-scale deadline: a seat is not lost because its owner paused for a moment
+	# between two actions, and it is not held by a resident that stopped holding it.
+	if str(claim.get("mode","ambient")) == "reserved":
+		return _reserved_owner_live(claim)
 	if not is_instance_valid(owner) or not is_instance_valid(body) or not body.is_inside_tree() or body.is_queued_for_deletion(): _drop(id,"bench_owner_removed",true); return false
 	# Only life-side acquisition/renew invokes this. Pose sampling NEVER re-enters host.
 	if not owner.bench_slot_living29(int(claim.serial)): _drop(id,"bench_life_stale",true); return false
@@ -117,6 +125,106 @@ func _live(id: int) -> bool:
 
 func available(id: int) -> bool:
 	return not _live(id)
+
+## Task58: is this bench held by a reservation nobody has reached yet?
+func reserved(id: int) -> bool:
+	if not _claims.has(id): return false
+	return str(_claims[id].get("mode","ambient")) == "reserved"
+
+## Task58: the number of benches that currently hold a selection-time reservation.
+func reservations() -> int:
+	var total := 0
+	for claim: Dictionary in _claims.values():
+		if str(claim.get("mode","ambient")) == "reserved": total += 1
+	return total
+
+## Task58: the live reservation placed by one searcher, so the action that finally
+## reaches the bench can adopt that exact claim instead of trying to claim again.
+func reserved_by(owner: RefCounted, body: CharacterBody3D) -> Dictionary:
+	if not is_instance_valid(owner) or not is_instance_valid(body): return {}
+	for id: int in _claims.keys():
+		var claim: Dictionary = _claims[id]
+		if str(claim.get("mode","ambient")) != "reserved": continue
+		var searcher: RefCounted = claim.get("searcher",{}).get("owner",{}).get_ref() if claim.get("searcher",{}).get("owner") is WeakRef else null
+		var at: CharacterBody3D = claim.get("searcher",{}).get("body",{}).get_ref() if claim.get("searcher",{}).get("body") is WeakRef else null
+		if searcher != owner or at != body: continue
+		if int(claim.get("searcher",{}).get("action_serial",-1)) != int(claim.get("action_serial",-2)): continue
+		if not _live(id): return {}
+		var row: Dictionary = _rows[id]
+		var bench: Node3D = row.bench.get_ref()
+		if not is_instance_valid(bench): return {}
+		var out: Dictionary = row.duplicate()
+		out["approach"] = claim.get("approach", Vector3.ZERO)
+		out["seat"] = claim.get("seat", Vector3.ZERO)
+		out["right"] = claim.get("right", Vector3.ZERO)
+		out["bench_path"] = str(bench.get_path())
+		out["support_path"] = str(row.support.get_ref().get_path()) if row.support.get_ref() != null else ""
+		out["slot"] = {"bench_id":id,"serial":int(claim.serial),"action_serial":int(claim.action_serial),"body_id":int(claim.body_id)}
+		return out
+	return {}
+
+## Task58: THE SELECTION-TIME RESERVATION. Two residents that both see the same bench
+## free must not both be sent to it: availability is tested and the claim is written
+## in the same main-thread call, with no await between the test and the write.
+## The approach point is the one the searcher already proved walkable, so the action
+## that adopts this reservation never re-derives the seat from a blocked position.
+func reserve(row: Dictionary, searcher: RefCounted, body: CharacterBody3D, action_serial: int, approach: Vector3, seat: Vector3, right: Vector3) -> Dictionary:
+	var id: int = int(row.get("bench_id",0))
+	if not Thread.is_main_thread() or not _rows.has(id) or not current(row): return {}
+	if not is_instance_valid(searcher) or not is_instance_valid(body) or not approach.is_finite() or not seat.is_finite(): return {}
+	if _live(id): return {}
+	_serial += 1
+	# No deadline field at all: a reservation has no timer to expire. It ends when its
+	# owner releases it, loses it, or stops holding it, never because a second passed.
+	_claims[id] = {"serial":_serial,"action_serial":action_serial,"mode":"reserved",
+		"owner":weakref(searcher),"body":weakref(body),"body_id":body.get_instance_id(),
+		"searcher":{"owner":weakref(searcher),"body":weakref(body),"action_serial":action_serial},
+		"approach":approach,"seat":seat,"right":right,"phase":"APPROACH","anchor":Vector3.ZERO}
+	return {"bench_id":id,"serial":_serial,"action_serial":action_serial,"body_id":body.get_instance_id()}
+
+## Task58: the owner keeps its reservation alive by holding it. There is nothing to
+## renew on a timer, so a pause of any length between two actions of the same resident
+## cannot lose the seat, and no deadline can free a seat that is still wanted.
+func renew_reservation(lease: Dictionary, searcher: RefCounted, body: CharacterBody3D) -> bool:
+	var id: int = int(lease.get("bench_id",0)); var claim: Dictionary = _claims.get(id,{})
+	if claim.is_empty() or claim.serial != lease.get("serial") or claim.action_serial != lease.get("action_serial"): return false
+	if str(claim.get("mode","ambient")) != "reserved": return false
+	if claim.searcher.owner.get_ref() != searcher or claim.searcher.body.get_ref() != body: return false
+	return _live(id)
+
+## Task58: ownership handover of one reservation, choosing action -> sitting action.
+## The physical claim, the seat point and the dwell time are the SAME claim, so the
+## bench can never be double-sold between the two actions.
+func adopt_reservation(lease: Dictionary, from: RefCounted, to: RefCounted, body: CharacterBody3D, action_serial: int) -> Dictionary:
+	var id: int = int(lease.get("bench_id",0)); var claim: Dictionary = _claims.get(id,{})
+	if not Thread.is_main_thread() or claim.is_empty() or not is_instance_valid(to) or not is_instance_valid(body): return {}
+	if claim.serial != lease.get("serial") or str(claim.get("mode","ambient")) != "reserved": return {}
+	if claim.searcher.owner.get_ref() != from or claim.searcher.body.get_ref() != body: return {}
+	if claim.body.get_ref() != body or not _live(id): return {}
+	_serial += 1
+	claim.mode = "ambient"; claim.owner = weakref(to); claim.action_serial = action_serial
+	claim.serial = _serial
+	claim.heartbeat_deadline = Time.get_ticks_msec()+HEARTBEAT_MS
+	claim.approach_deadline = Time.get_ticks_msec()+APPROACH_MS
+	return {"bench_id":id,"serial":_serial,"action_serial":action_serial,"body_id":body.get_instance_id()}
+
+## Task58: an abandoned walk or a finished action frees its bench at once, instead of
+## holding it until some deadline. Only the exact owner may drop its reservation.
+func release_reservation(lease: Dictionary, searcher: RefCounted, body: CharacterBody3D, reason: String) -> void:
+	var id: int = int(lease.get("bench_id",0)); var claim: Dictionary = _claims.get(id,{})
+	if claim.is_empty() or str(claim.get("mode","ambient")) != "reserved": return
+	if claim.serial != lease.get("serial"): return
+	if claim.owner.get_ref() != searcher: return
+	if is_instance_valid(body) and claim.body.get_ref() != body: return
+	_drop(id,"reservation_"+reason,false)
+
+func _reserved_owner_live(claim: Dictionary) -> bool:
+	var owner: Variant = claim.owner.get_ref()
+	var body: Variant = claim.body.get_ref()
+	# The owner is the resident that chose this place. The seat lives exactly as long as
+	# that resident is present and still holds it - no second-scale deadline exists.
+	if not is_instance_valid(owner) or not is_instance_valid(body) or not body.is_inside_tree() or body.is_queued_for_deletion(): _drop(int(claim.get("bench_id",0)),"bench_seat_owner_removed",true); return false
+	return true
 
 func claim(row: Dictionary, owner: RefCounted, body: CharacterBody3D, action_serial: int) -> Dictionary:
 	var id: int = int(row.get("bench_id",0))
@@ -152,6 +260,8 @@ func release(lease: Dictionary, owner: RefCounted, body: CharacterBody3D) -> voi
 
 func snapshot() -> Dictionary:
 	var occupied := 0
+	var reserved := 0
 	for claim: Dictionary in _claims.values():
-		if claim.phase == "OCCUPIED": occupied += 1
-	return {"scene_scans":_scans,"benches":_rows.size(),"claims":_claims.size(),"occupied":occupied,"slots_per_bench":1}
+		if str(claim.get("mode","ambient")) == "leisure": reserved += 1
+		elif claim.phase == "OCCUPIED": occupied += 1
+	return {"scene_scans":_scans,"benches":_rows.size(),"claims":_claims.size(),"occupied":occupied,"reserved":reserved,"slots_per_bench":1}

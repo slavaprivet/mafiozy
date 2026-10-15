@@ -117,6 +117,9 @@ func _release_service(life: RefCounted) -> bool:
 		if not life._interrupting:life._visit.cancel("threat");life._interrupting=true
 		return false
 	if life._roam51!=null:life._roam51.cancel();life._roam51_active=false
+	# DSH_RESERVE58: a startle ends the stroll, so the seat this walk reserved is
+	# freed here instead of being held while the resident reacts to the danger.
+	life._leisure58_abandon("threat30")
 	var stopped: Dictionary=life._walk.interrupt_current_route()
 	if not stopped.get("ok",false):return false
 	var body: CharacterBody3D=life._token.body

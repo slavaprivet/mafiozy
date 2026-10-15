@@ -37,6 +37,20 @@ func reserve_nearest(body: CharacterBody3D, route: RefCounted, owner: RefCounted
 	best["slot"] = lease
 	return best
 
+## Task58: take over the exact reservation the goal chooser placed before the walk.
+## The seat geometry and the claim are handed over unchanged, so the seat cannot be
+## lost or double-sold between choosing it and reaching it.
+func adopt_reserved(lease: Dictionary, searcher: RefCounted, owner: RefCounted, body: CharacterBody3D, action_serial: int) -> Dictionary:
+	if not is_instance_valid(_registry): return {}
+	var candidate: Dictionary = _registry.reserved_by(searcher,body)
+	if candidate.is_empty(): return {}
+	var adopted: Dictionary = _registry.adopt_reservation(lease,searcher,owner,body,action_serial)
+	if adopted.is_empty(): return {}
+	var bench: Node3D = candidate.bench.get_ref()
+	candidate["face"] = bench.global_basis.z.normalized() if is_instance_valid(bench) else Vector3.FORWARD
+	candidate["slot"] = adopted
+	return candidate
+
 func renew(row: Dictionary, owner: RefCounted, body: CharacterBody3D) -> bool:
 	return is_instance_valid(_registry) and _registry.renew(row.get("slot",{}),owner,body)
 

@@ -68,6 +68,8 @@ var _event := "idle"
 var _door_retry_ms := 0
 var _door_reason := ""
 var _door_clear31: RefCounted
+# DSH_GOALSUPPORT58: the result of resolving this goal to a supported standing point.
+var _last_goal_support58: Dictionary = {}
 
 static func enabled() -> bool:  # DSH_SIMPLEHOSP
 	if _flag < 0:
@@ -246,6 +248,16 @@ func begin(goal: Vector3, body: CharacterBody3D, map: RID, id: String, source: S
 			_legs.append(Vector3(_door.x,_room.y,_door.z)+_inside_normal*.85)
 	elif source in ["roam","service_approach"]:
 		_hospital_frame=false;_door_valid=false;_door_owner=null
+		# DSH_GOALSUPPORT58: a stroll, errand or bench goal is only a place to STAND.
+		# Measured defect: resident_5 was 0.73 m from its own roam goal, the planner
+		# rejected that goal as standing_blocked and searched 720 nodes / 5.9 k queries
+		# for 7 s while the resident stood still. The goal is therefore resolved to a
+		# supported standing point BEFORE any search, with a bounded probe budget. A
+		# goal that has no standing point nearby is refused here, in microseconds, and
+		# the caller is free to choose another place instead of paying for a dead search.
+		var resolved: Variant=_resolve_supported_goal(goal,_target_source)
+		if not resolved is Vector3:return _refuse("goal_has_no_supported_standing_point")
+		_target=resolved
 	if source=="hospital_exit":
 		if not _hospital_frame:return _refuse("exit_interior_frame_missing")
 		_legs.append(Vector3(_door.x,_room.y,_door.z)+_inside_normal*.85)
@@ -255,6 +267,41 @@ func begin(goal: Vector3, body: CharacterBody3D, map: RID, id: String, source: S
 	if not _begin_guided_leg():return _refuse("guide:"+_guide.reason)
 	_emit("begin")
 	return true
+
+## DSH_GOALSUPPORT58: resolve one walking goal to a point where this exact body can
+## actually stand. The goal itself is tried first, so an already valid goal keeps its
+## exact coordinates and this changes nothing for a healthy goal. Only when the goal
+## is unsupported is a bounded ring of nearby points probed (three radii, eight
+## directions, both the fine step and the direct corridor). Returns null when there is
+## no supported standing point within GOAL_SUPPORT_R_M - the caller must then choose
+## another place rather than pay for a search that cannot succeed.
+const GOAL_SUPPORT_R_M := 1.6
+const GOAL_SUPPORT_RINGS := [.4, .9, 1.6]
+const GOAL_SUPPORT_DIRECTIONS := 8
+func _resolve_supported_goal(goal: Vector3, source: String) -> Variant:
+	if _route==null or not goal.is_finite():return null
+	if _supported_goal_point(goal,goal,source):return goal
+	for radius: float in GOAL_SUPPORT_RINGS:
+		var step: float=TAU/float(GOAL_SUPPORT_DIRECTIONS)
+		for index: int in GOAL_SUPPORT_DIRECTIONS:
+			var angle: float=float(index)*step
+			var candidate: Vector3=Vector3(goal.x+cos(angle)*radius,goal.y,goal.z+sin(angle)*radius)
+			if not _supported_goal_point(candidate,goal,source):continue
+			_last_goal_support58={"resolved":true,"radius_m":radius,"from":goal,"to":candidate}
+			return candidate
+	_last_goal_support58={"resolved":false,"radius_m":GOAL_SUPPORT_R_M,"from":goal,"to":goal,
+		"reason":str(_route._last_query_failure),"queries":int(_route.queries)}
+	return null
+
+func _supported_goal_point(at: Vector3, goal: Vector3, source: String) -> bool:
+	var floor: Variant=_route.floor_at(at,goal.y)
+	if not floor is Vector3 or absf(floor.y-goal.y)>=.5:return false
+	if not _route.standing(floor):return false
+	# A point the body cannot walk to is not a reachable goal either. The direct
+	# corridor is the same admission the planner uses, so an accepted point here
+	# cannot be rejected later as an unreachable first connector.
+	if _flat(_body.global_position,floor)<=.35:return true
+	return _route.sweep(_body.global_position,floor)
 
 ## A door staging leg needs an actual supported stop inside its request radius.
 ## The ordinary .30m completion tolerance remains the default for every other leg.

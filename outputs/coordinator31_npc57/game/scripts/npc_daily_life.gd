@@ -4,6 +4,14 @@ const Leisure58 = preload("res://scripts/city/runtime/npc_leisure58.gd")
 var _routine58: RefCounted
 var _leisure58: RefCounted
 var _leisure_arrived58 := false
+# DSH_ONEGOAL58: places this resident already refused for the current decision, so a
+# refusal is answered by CHOOSING ANOTHER AVAILABLE PLACE, never by standing still.
+var _leisure58_avoid: Array = []
+const LEISURE58_ATTEMPTS := 3
+# DSH_ONEGOAL58: deeds whose place and seat were prepared before they were needed.
+var _dsh_prefetched58 := 0
+# DSH_RESERVE58: why a claimed bench seat was given up, for diagnosis of a lost walk.
+var _leisure58_release_reason := ""
 var _home58: RefCounted
 var _home_intent58 := ""
 var _rest_driver58: RefCounted
@@ -45,12 +53,10 @@ static var _dsh_hp_flag: int = -2  # DSH_MEDPRIORITY: -2 unknown, -1 absent, 0..
 static var _dsh_med_rings: Array = []  # DSH_MEDPRIORITY: read-only, bounded to 48 rows
 var _dsh_moved_m := 0.0  # DSH_MEDPRIORITY: metres actually walked since the first medical goal
 var _dsh_moved_last := Vector3.ZERO  # DSH_MEDPRIORITY
-# DSH_WANDER: the ordinary walk of the owner's step 2. It is the shipped `_walk` route to a
-# random reachable point; this state only describes it for telemetry and never moves anything.
-var _dsh_wander_target := Vector3.ZERO  # DSH_WANDER
-var _dsh_wander_from := Vector3.ZERO  # DSH_WANDER
-var _dsh_wander_last_m := -1.0  # DSH_WANDER: the last reported distance, for a changed line
-var _dsh_wander_phase := ""  # DSH_WANDER
+# DSH_ONEGOAL58: the ordinary walk of a resident is the shipped `_walk` route to a place
+# that was resolved to a supported standing point first. The old DSH_WANDER reporter, its
+# random-target state and its telemetry were REMOVED from the active build instead of being
+# kept behind a flag: one owner, one goal, one route, one state.
 # DSH_DEATH: residents whose life ended with hp 0. A new life for that id reports the respawn
 # and starts from an empty task set, so no goal, queue mark or hold survives the death.
 static var _dsh_dead: Dictionary = {}  # DSH_DEATH
@@ -89,6 +95,8 @@ var _dsh_life_seen := ""  # DSH_VISITPROBE: the last printed tuple
 static var _dsh_s_life_nr := 0  # DSH_VISITPROBE: terminal status seen without released
 static var _dsh_s_life_ms := 0  # DSH_VISITPROBE
 var _next_decision := 0.0
+# DSH_ONEGOAL58: the clock of the last place/need decision, see dsh_daily_decision_due().
+var _last_decision_ms := -1.0e12
 var _next_shop := 0.0
 var _next_drive := 0.0
 var _next_medical := 0.0
@@ -808,6 +816,7 @@ func accept_incident_event(owner: RefCounted, event: Dictionary) -> Dictionary:
 func _start_incident_hold() -> void:
 	_attention29.clear()
 	if _roam51_active and _roam51 != null: _roam51.cancel(); _roam51_active=false
+	_leisure58_abandon("incident")
 	_ambient29_cancel("incident")
 	if _incident_hold_started<0.0 or _now>=_incident_hold_cap:
 		_incident_hold_started=_now
@@ -910,23 +919,35 @@ func step(delta: float) -> void:
 	if _roam51_active and _dsh_simple_on():
 		if _health.should_pause_walk() or not _host.target_current(_token):
 			_roam51.cancel(); _roam51_active=false
+			_leisure58_abandon("health_or_owner_lost")
 			_phase="RESTING"; _next_decision=_now+250.0
 			_busy=false; return
 		if _needs_hospital(row):
 			_roam51.cancel(); _roam51_active=false
+			_leisure58_abandon("medical_priority")
 			_dsh_simple_begin(row)
 		elif dsh_energy_on() and _energy < _dsh_energy_threshold() * 100.0 and _now >= _restaurant28_retry_at and not _hospital51_below_threshold(row):
 			_roam51.cancel(); _roam51_active=false
+			_leisure58_abandon("energy_priority")
 			_dsh_queue_push("restaurant")
 			_restaurant28_begin()
 		else:
+			# DSH_RESERVE58: the seat was reserved at goal-selection time, so the walk
+			# itself keeps that exact reservation alive. Without this renewal a long
+			# walk would drop its own seat on the selection deadline.
+			if _leisure58 != null and not _leisure58.renew(_token.get("body")) and _leisure58.reserved_bench_id() != 0:
+				_leisure58_abandon("bench_selection_lease_lost")
+				_leisure_arrived58=false
 			var leisure_lost: bool = _leisure58 != null and not _leisure58.current()
 			var roam_result: String = "blocked" if leisure_lost else _roam51.step(delta)
 			if roam_result in ["arrived", "blocked"]:
 				var roam_reason: String="leisure_bench_removed" if leisure_lost else _roam51.last_reason()
 				_leisure_arrived58=roam_result=="arrived"
 				if _routine58 != null: _routine58.leisure_attempt(_now,_leisure_arrived58)
-				if _leisure58 != null: _leisure58.clear()
+				# DSH_RESERVE58: an arrived resident KEEPS its reserved seat until the
+				# bench action adopts it; a failed walk frees the seat at once.
+				if roam_result != "arrived" or _leisure58 == null or _leisure58.reserved_bench_id() == 0:
+					_leisure58_abandon("walk_ended:"+roam_reason)
 				_roam51.cancel(); _roam51_active=false
 				_phase="RESTING"; _goal={}
 				_next_decision=_now+(1000.0+_sandbox28_random()*2000.0 if roam_result=="arrived" else SimpleHospital.roam_retry_delay_ms29(str(_token.source_id),_roam_serial,roam_reason))
@@ -983,21 +1004,19 @@ func step(delta: float) -> void:
 			_walk.step(delta)
 			var walking: Dictionary=_walk.snapshot()
 			if walking.status=="COMPLETE":
-				# DSH_WANDER: the owner's rule - the base state is WALKING, so a completed
-				# leg is followed by a SHORT pause (1-3 s) and the next random point, never
-				# by the long rest the shipped 2.0-8.5 s window produced in the measurements.
+				# The base states stay exactly as they were: a completed walk is followed by
+				# a short rest, a refused one by a bounded pause before the next decision.
 				_walk.cancel(); _completed.walk+=1; _phase="RESTING"; _next_decision=_now+1000.0+_unit("rest:"+str(_roam_serial))*2000.0
-				_dsh_wander_finish(true, "walk_complete")  # DSH_WANDER
+				_leisure58_prefetch()  # DSH_ONEGOAL58: prepare the next deed during the pause
 			elif walking.status in ["BLOCKED","CANCELLED"]:
 				_reason=str(walking.reason); _phase="RESTING"; _next_decision=_now+1500.0
-				_dsh_wander_finish(false, _reason)  # DSH_WANDER
-			else:
-				_dsh_wander_step()  # DSH_WANDER: report a falling dist_m without per-frame spam
+				_leisure58_prefetch()  # DSH_ONEGOAL58: same, a refused walk is not a lost pause
 	if _routine58_rest_active(): _routine58_hold(delta)
+	if _phase in ["IDLE","RESTING"]: _leisure58_prefetch()  # DSH_ONEGOAL58: decide the next deed now
 	_dsh_energy_drain()  # DSH_ENERGY: spent by the metres the shipped host really moved
 	_dsh_resdiag_step(row)  # DSH_RESDIAG: the head-up display of the owner's test resident
 	_dsh_quit_after()  # DSH_MEDPRIORITY: --city-quit-after=<s> bounds a short proof run
-	if _phase in ["IDLE","RESTING","WAITING_FOR_RECOVERY"] and _now>=_next_decision: _choose(row)
+	if dsh_daily_decision_due() and _phase in ["IDLE","RESTING","WAITING_FOR_RECOVERY"] and _now>=_next_decision: _choose(row)
 	# DSH_ENERGY / DSH_TASKQUEUE: if the condition that produced the goal is still true after
 	# the goal ended, the task goes back into the queue and is taken on the next decision.
 	if dsh_energy_on() and _phase in ["IDLE","RESTING"]: _dsh_rearm_energy_queue(row)
@@ -1116,6 +1135,7 @@ func _dsh_simple_begin(row: Dictionary) -> bool:  # DSH_SIMPLEHOSP
 	if _visit != null or _restaurant28_active() or _economy28_active() or _routine58_home_active(): return false
 	if _roam51 != null: _roam51.cancel()
 	_roam51_active=false
+	_leisure58_abandon("medical_priority")
 	var cancelled: Dictionary = _walk.cancel()
 	if not cancelled.get("ok", false):
 		_reason = "simple_hospital_previous_walk_pending"
@@ -1443,6 +1463,7 @@ func _economy28_try_begin(row: Dictionary) -> bool:
 		return true
 	if _roam51 != null: _roam51.cancel()
 	_roam51_active = false
+	_leisure58_abandon("economy_priority")
 	if not _walk.cancel().get("ok", false): _phase = "RESTING"; _next_decision = _now + 500.0; return true
 	if not _economy28.begin(kind, _now):
 		_goal = {}; _phase = "RESTING"; _next_decision = _now + 1000.0
@@ -1476,6 +1497,37 @@ func _economy28_restore_energy(visit: RefCounted, receipt: Dictionary) -> Dictio
 		" before=", before, " after=", _energy, " event=", receipt.get("event_id", ""), " frame=", Engine.get_physics_frames())
 	return {"energy_before":before,"energy_after":_energy,"energy_restored":true}
 
+## Task58: frees the bench that THIS resident reserved when it chose to walk there.
+## Called wherever a walk to a bench is cut short, so an interrupted resident never
+## holds a seat another resident could be using. The registry is the only owner of
+## the seat: this only drops the exact reservation this life placed.
+func _leisure58_abandon(reason: String) -> void:
+	if _leisure58 == null: return
+	var body: Variant = _token.get("body")
+	_leisure58.clear(body if body is CharacterBody3D else null)
+	if not reason.is_empty(): _leisure58_release_reason = reason
+
+## DSH_ONEGOAL58: one goal, and a refused goal is answered by choosing another place.
+## Bounded to LEISURE58_ATTEMPTS real benches; each refused place is remembered so the
+## next attempt cannot offer it again, and a refusal never leaves the resident standing.
+## DSH_ONEGOAL58: the next deed is decided WHILE the resident is between actions, not after
+## the pause ends. Measured defect: exit -> new intent -> first 10 cm took seconds, because
+## the whole choice (schedule, wallet, site scan, seat search, first path query) happened only
+## when the resident was already free. Here the choice and its seat are prepared in advance;
+## when the pause ends the walk starts immediately with the reservation already in hand.
+func _leisure58_prefetch() -> bool:
+	if _leisure58 == null or _routine58 == null: return false
+	if _leisure58.reserved_bench_id() != 0: return true
+	var kind: String = str(_routine58.choose(_routine58_clock(), _now, _routine58_purchase_deferred()).get("kind", ""))
+	if kind != "leisure": return false
+	var body: CharacterBody3D = _token.get("body") as CharacterBody3D
+	if not is_instance_valid(body): return false
+	if _routine58 != null: _routine58.leisure_attempt(_now)
+	var prepared: Dictionary = _leisure58.select(body, _sandbox28_random(), _leisure58_avoid)
+	if prepared.is_empty(): return false
+	_dsh_prefetched58 += 1
+	return true
+
 func _leisure58_begin() -> bool:
 	if _routine58 == null: return false
 	_routine58.leisure_attempt(_now)
@@ -1484,21 +1536,58 @@ func _leisure58_begin() -> bool:
 	if _leisure58 == null:
 		_leisure58=Leisure58.new()
 		if not _leisure58.configure(_dsh_life_scene(),body): _leisure58=null; return false
-	var destination: Dictionary = _leisure58.select(body,_sandbox28_random())
-	if destination.is_empty():
-		_reason="leisure:"+str(_leisure58.snapshot().reason)
-		return false
-	_roam_serial+=1; _leisure_arrived58=false
-	if _roam51==null: _roam51=SimpleHospital.new()
-	_roam51_active=_roam51.begin(destination.point,body,_dsh_simple_map(),str(_token.source_id),"roam")
-	if not _roam51_active: _leisure58.clear(); return false
-	_goal=_new_goal("leisure"); _goal["destination"]=destination.duplicate()
-	_phase="WALKING"; _reason=""
-	print("NPC_ROUTINE58 id=",str(_token.source_id)," stage=leisure_started bench=",destination.bench_path," target=",destination.point)
+	var reason := ""
+	for attempt: int in LEISURE58_ATTEMPTS:
+		var destination: Dictionary = _leisure58.select(body,_sandbox28_random(),_leisure58_avoid)
+		if destination.is_empty():
+			reason=str(_leisure58.snapshot().reason)
+			break
+		_roam_serial+=1; _leisure_arrived58=false
+		if _roam51==null: _roam51=SimpleHospital.new()
+		_roam51_active=_roam51.begin(destination.point,body,_dsh_simple_map(),str(_token.source_id),"roam")
+		if _roam51_active:
+			_goal=_new_goal("leisure"); _goal["destination"]=destination.duplicate()
+			_phase="WALKING"; _reason=""
+			# DSH_RESERVE58: the seat was already reserved by this selection, so the log
+			# names the seat this resident holds - two residents can no longer log the
+			# same bench, and the print proves which serial this life owns.
+			print("NPC_ROUTINE58 id=",str(_token.source_id)," stage=leisure_started bench=",destination.bench_path,
+				" target=",destination.point," seat_reserved=",not _leisure58.reserved_slot().is_empty(),
+				" seat_serial=",int(_leisure58.reserved_slot().get("serial",-1))," attempt=",attempt+1)
+			return true
+		# This exact place is refused for a stated reason: remember it and take the next
+		# available one. The seat it reserved is freed in the same call.
+		reason=_roam51.last_reason()
+		_leisure58_avoid.append(int(destination.bench_id))
+		_leisure58_abandon("walk_begin_refused:"+reason)
+	_reason="leisure:"+reason	# DSH_ONEGOAL58: the avoid list covers ONE decision only. Keeping only the last
+	# refused place lets the next decision try every real bench again, in distance order.
+	if _leisure58_avoid.size()>0: _leisure58_avoid=[_leisure58_avoid[-1]]
+	return false
+
+
+## DSH_ONEGOAL58: needs and place choice are re-evaluated at most once per second, while
+## MOTION keeps running every physics frame. The expensive part of a resident tick is not
+## the walk: it is re-asking "what do I want" - health, energy, wallet, schedule, shop
+## planning, site scan - for ten residents every frame, and then changing its mind
+## mid-action. The clock below bounds that question without touching any movement code.
+const DECISION_INTERVAL_MS := 1000.0
+static var _dsh_decision_interval := -1.0
+func _decision_interval_ms() -> float:
+	if _dsh_decision_interval < 0.0:
+		_dsh_decision_interval = DECISION_INTERVAL_MS
+		for argument: String in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-decision-interval-ms="):
+				_dsh_decision_interval = clampf(float(argument.trim_prefix("--city-decision-interval-ms=")), 50.0, 5000.0)
+	return _dsh_decision_interval
+
+func dsh_daily_decision_due() -> bool:
+	if _now - _last_decision_ms < _decision_interval_ms(): return false
+	_last_decision_ms = _now
 	return true
 
-
 func _choose(row: Dictionary) -> void:
+	_last_decision_ms = _now
 	_dsh_decisions+=1  # DSH_LIFETRACE
 	# DSH_SIMPLEHOSP: the owner's direct copy errand is decided BEFORE the queue and
 	# before the marker admission, so nothing below can mark the task served or hand this
@@ -1748,56 +1837,8 @@ func _roam() -> void:
 		var begun: Dictionary=_walk.begin(target)
 		if begun.get("ok",false):
 			_phase="WALKING"; _reason=""
-			_dsh_wander_begin(origin, target, attempt)  # DSH_WANDER
 			return
 	_phase="RESTING"; _reason="no_current_clear_walking_goal"; _next_decision=_now+1500.0
-	_dsh_wander_emit("blocked", "no_current_clear_walking_goal")  # DSH_WANDER
-	# DSH_WANDER: the owner's rule - never leave the resident without a goal. A failed
-	# proposal only parks it for ~1.5 s; the next decision tries another random point.
-
-# --------------------------------------------------------------------------- #
-# DSH_WANDER: owner's step 2 - "when there is no priority need the resident walks to a
-# random point of the map". The walk itself is the SHIPPED `_walk` route (native path,
-# source support and admission unchanged); this only reports it. One line per change, plus
-# one line whenever the rounded distance to the target drops by a metre, so a log shows
-# `dist_m` falling without printing every frame.
-# --------------------------------------------------------------------------- #
-func _dsh_wander_begin(origin: Vector3, target: Vector3, attempt: int) -> void:
-	_dsh_wander_target = target
-	_dsh_wander_from = origin
-	_dsh_wander_last_m = -1.0
-	_dsh_wander_phase = "walking"
-	_dsh_wander_emit("walking", "attempt=" + str(attempt + 1) + " accepted")
-
-func _dsh_wander_emit(phase: String, detail: String = "") -> void:
-	if not ResDiag.diag_on() and not _dsh_med_on(): return
-	var body: Variant = _token.get("body")
-	var distance := -1.0
-	if is_instance_valid(body) and body is Node3D and _dsh_wander_target.is_finite():
-		var here: Vector3 = (body as Node3D).global_position
-		distance = Vector2(here.x - _dsh_wander_target.x, here.z - _dsh_wander_target.z).length()
-	print("DSH_WANDER id=", str(_token.get("source_id", "")),
-		" target=(", "%.2f" % _dsh_wander_target.x, ",", "%.2f" % _dsh_wander_target.y, ",", "%.2f" % _dsh_wander_target.z, ")",
-		" dist_m=", "%.1f" % distance, " phase=", phase, " result=", detail,
-		" from=(", "%.1f" % _dsh_wander_from.x, ",", "%.1f" % _dsh_wander_from.z, ")",
-		" frame=", Engine.get_physics_frames())
-
-## DSH_WANDER: called from the walking phase only, so a non-wander walk never reports here.
-func _dsh_wander_step() -> void:
-	if _dsh_wander_phase != "walking": return
-	var body: Variant = _token.get("body")
-	if not is_instance_valid(body) or not body is Node3D: return
-	var here: Vector3 = (body as Node3D).global_position
-	var distance: float = Vector2(here.x - _dsh_wander_target.x, here.z - _dsh_wander_target.z).length()
-	if _dsh_wander_last_m < 0.0 or _dsh_wander_last_m - distance >= 1.0:
-		_dsh_wander_last_m = distance
-		_dsh_wander_emit("walking", "moved")
-
-## DSH_WANDER: the terminal line of one ordinary walk.
-func _dsh_wander_finish(arrived: bool, reason: String) -> void:
-	if _dsh_wander_phase == "": return
-	_dsh_wander_phase = "done" if arrived else "blocked"
-	_dsh_wander_emit("arrived" if arrived else "blocked", reason)
 
 ## Scheduler/health death hook: validate the actual owner's terminal row, then
 ## cancel routes/pending needs immediately without waiting for the daily slice.
@@ -1843,6 +1884,7 @@ func _end_life() -> void:
 	_restaurant28_stage=""; _restaurant28_meal_started=-1.0; _restaurant28_medical=false
 	_hospital_support51=null
 	_roam51_active=false
+	_leisure58_abandon("end_life")
 	if _walk!=null: _walk.dispose()
 	# DSH_DEATH: without this the old goal, queue and served marks would outlive the body.
 	_goal={}
@@ -1852,8 +1894,6 @@ func _end_life() -> void:
 	_hospital_treat_started=-1.0
 	_dsh_queued_restaurant=false
 	_dsh_med_state=""
-	_dsh_wander_phase=""
-	_dsh_wander_last_m=-1.0
 	_energy=0.0 if died else _energy
 	_phase="RETIRED"; _disposed=true; _factory=Callable()
 	_incident_waiting_release=false; _clear_incident_hold(); _incident_seen.clear(); _incident_seen_ring.clear()
@@ -1883,6 +1923,7 @@ func dispose() -> void:
 	_restaurant28_stage=""; _restaurant28_meal_started=-1.0; _restaurant28_medical=false
 	_hospital_support51=null
 	_roam51_active=false
+	_leisure58_abandon("dispose")
 	if _walk!=null: _walk.dispose()
 	ResDiag.unregister_life30(str(_token.get("source_id","")),self)
 	_disposed=true; _phase="DISPOSED"; _factory=Callable()
@@ -1903,6 +1944,34 @@ func _ambient29_start(allowed: Array = []) -> bool:
 		if not candidate.configure(_host,_token,_dsh_life_scene(),_dsh_simple_map()): return false
 		_ambient29=candidate
 	if not _ambient29.try_begin(allowed): return false
+	_phase="AMBIENT"; _goal={}; _reason=""
+	return true
+
+## DSH_RESERVE58: the seat reserved at goal-selection time is handed to the bench
+## action at the bench. One claim, one seat, no second look for a free place.
+func _ambient29_start_reserved() -> bool:
+	if _routine58_home_active():
+		_leisure58_abandon("home_priority")
+		return false
+	if _leisure58 == null: return false
+	var lease: Dictionary = _leisure58.reserved_slot()
+	if lease.is_empty(): return false
+	if not _walk.cancel().get("ok",false):
+		_leisure58_abandon("walk_cancel_refused")
+		return false
+	if _roam51 != null: _roam51.cancel()
+	_roam51_active=false
+	if _ambient29 == null:
+		var candidate: RefCounted=Ambient29.new()
+		if not candidate.configure(_host,_token,_dsh_life_scene(),_dsh_simple_map()):
+			_leisure58_abandon("ambient_unavailable")
+			return false
+		_ambient29=candidate
+	if not _ambient29.try_begin_reserved(lease,_leisure58):
+		_leisure58_abandon("reserved_seat_refused")
+		return false
+	# The bench action now owns the claim; this life keeps no second copy of it.
+	_leisure58.clear(_token.get("body"))
 	_phase="AMBIENT"; _goal={}; _reason=""
 	return true
 
@@ -1982,6 +2051,12 @@ func _routine58_step_home(delta: float, row: Dictionary) -> void:
 func _routine58_choose(row: Dictionary) -> void:
 	if _routine58 == null:
 		_phase="RESTING"; _next_decision=_now+1000.0; return
+	# DSH_RESERVE58: a resident that already walked to a reserved seat takes THAT seat
+	# before any new plan is made, so the reserved place is used and not re-chosen.
+	if _leisure_arrived58 and _leisure58 != null and _leisure58.reserved_bench_id() != 0:
+		if _ambient29_start_reserved():
+			_leisure_arrived58=false
+			return
 	var clock: RefCounted = _routine58_clock()
 	var intent: Dictionary = _routine58.choose(clock, _now, _routine58_purchase_deferred())
 	var kind: String = str(intent.get("kind", ""))
