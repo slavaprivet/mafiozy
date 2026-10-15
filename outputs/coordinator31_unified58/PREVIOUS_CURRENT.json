@@ -1,11 +1,11 @@
 {
   "schema": "mafiozi.current-play/v1",
-  "title": "15.10 · Свободный проход жителей · версия58",
-  "revision": "s01-20261015-residents58",
-  "assembly": "outputs/coordinator31_unified58/ASSEMBLY.json",
-  "assembly_sha256": "0f0d0122b3574a2f1a4a1357d69c8d5452b76cfb30da98f9d6009004c25a1216",
-  "bootstrap": "outputs/coordinator31_unified58/bootstrap_play58.gd",
-  "bootstrap_sha256": "bc86deb2ac56cebf18c3655c3c0e115d5f8e8720b86ca1c85a1f9339614035b3",
+  "title": "15.10 · Проходы и реакции жителей · версия57",
+  "revision": "s01-20261015-residents57",
+  "assembly": "outputs/coordinator31_release57/ASSEMBLY.json",
+  "assembly_sha256": "6a99005e492f9372a7abc64db85fce8952a18dcd39abba65708e08a8e50c13f6",
+  "bootstrap": "outputs/coordinator31_release57/bootstrap_play57.gd",
+  "bootstrap_sha256": "cc17a44f4714ab9ff6edb283ce859f62cb32318323f19b10c8f233c6087b751f",
   "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
-  "scope": "Single unified scene: 10 residents + 12 staff, player weapon shop, destructible homes and 10 personal beds, night routine, threat reactions. Performance acceptance pending."
+  "scope": "Verified batch10+12; full287 catalogue retained. Root activates only after startup57 passes."
 }

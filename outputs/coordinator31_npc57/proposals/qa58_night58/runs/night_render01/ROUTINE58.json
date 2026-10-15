@@ -1,0 +1,935 @@
+{
+  "passed": true,
+  "schema": "routine58.liveness/v1",
+  "raw_sha256": "fa4b1a85e95c3bdc41aae8222255180ea21db99bf72f7bcaf7f013b5e296bda1",
+  "source_ids": [
+    "resident_1",
+    "resident_10",
+    "resident_2",
+    "resident_3",
+    "resident_4",
+    "resident_5",
+    "resident_6",
+    "resident_7",
+    "resident_8",
+    "resident_9"
+  ],
+  "unexplained_idle_limit_s": 10.0,
+  "max_unexplained_idle_s": {
+    "resident_1": 1.0039999999999907,
+    "resident_2": 0,
+    "resident_3": 0.9989999999999952,
+    "resident_4": 1.0030000000000143,
+    "resident_5": 0.9990000000000236,
+    "resident_6": 1.9909999999999854,
+    "resident_7": 8.00800000000001,
+    "resident_8": 0,
+    "resident_9": 1.0019999999999811,
+    "resident_10": 1.0109999999999957
+  },
+  "failures": [],
+  "missing_evidence_samples": [],
+  "post_exit": [
+    {
+      "id": "resident_1",
+      "generation": 1,
+      "kind": "home_exit_transition",
+      "observed_exit_s": 167.682,
+      "exit_sampling_interval_s": [
+        166.677,
+        167.682
+      ],
+      "anchor": [
+        -144.411468505859,
+        0.000323742628097534,
+        383.350006103516
+      ],
+      "first_next_intent_s": 0.0,
+      "first_movement_s": 2.991000000000014,
+      "evidence": [
+        {
+          "at_s": 167.682,
+          "phase": "WALKING",
+          "goal": "shop",
+          "intent": {
+            "day": 0,
+            "event": "supplies",
+            "kind": "shop",
+            "ticket": "resident_1:routine58:0:supplies"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 188635.052,
+            "next_decision_ms": 188504.593,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": true
+        },
+        {
+          "at_s": 168.669,
+          "phase": "WALKING",
+          "goal": "shop",
+          "intent": {
+            "day": 0,
+            "event": "supplies",
+            "kind": "shop",
+            "ticket": "resident_1:routine58:0:supplies"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 189634.753,
+            "next_decision_ms": 188504.593,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": true
+        },
+        {
+          "at_s": 169.681,
+          "phase": "WALKING",
+          "goal": "shop",
+          "intent": {
+            "day": 0,
+            "event": "supplies",
+            "kind": "shop",
+            "ticket": "resident_1:routine58:0:supplies"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 190716.57,
+            "next_decision_ms": 188504.593,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": true
+        },
+        {
+          "at_s": 170.673,
+          "phase": "WALKING",
+          "goal": "shop",
+          "intent": {
+            "day": 0,
+            "event": "supplies",
+            "kind": "shop",
+            "ticket": "resident_1:routine58:0:supplies"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 191709.192,
+            "next_decision_ms": 188504.593,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": true
+        }
+      ],
+      "home_finish_reason": "scheduled_meal_or_supplies",
+      "observed_through_s": 170.673
+    },
+    {
+      "id": "resident_2",
+      "generation": 1,
+      "kind": "home_exit_transition",
+      "observed_exit_s": 167.682,
+      "exit_sampling_interval_s": [
+        166.677,
+        167.682
+      ],
+      "anchor": [
+        45.0999984741211,
+        -0.000113338232040405,
+        191.561416625977
+      ],
+      "first_next_intent_s": 0.0,
+      "first_movement_s": 0.9870000000000232,
+      "evidence": [
+        {
+          "at_s": 167.682,
+          "phase": "WALKING",
+          "goal": "restaurant",
+          "intent": {
+            "day": 0,
+            "event": "breakfast",
+            "kind": "restaurant",
+            "ticket": "resident_2:routine58:0:breakfast"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 188651.671,
+            "next_decision_ms": 188505.313,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": true
+        },
+        {
+          "at_s": 168.669,
+          "phase": "WALKING",
+          "goal": "restaurant",
+          "intent": {
+            "day": 0,
+            "event": "breakfast",
+            "kind": "restaurant",
+            "ticket": "resident_2:routine58:0:breakfast"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 189703.371,
+            "next_decision_ms": 188505.313,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": true
+        }
+      ],
+      "home_finish_reason": "scheduled_meal_or_supplies",
+      "observed_through_s": 168.669
+    },
+    {
+      "id": "resident_6",
+      "generation": 1,
+      "kind": "home_exit_transition",
+      "observed_exit_s": 167.682,
+      "exit_sampling_interval_s": [
+        166.677,
+        167.682
+      ],
+      "anchor": [
+        46.1183624267578,
+        0.000334709882736206,
+        192.489608764648
+      ],
+      "first_next_intent_s": 0.0,
+      "first_movement_s": 0.9870000000000232,
+      "evidence": [
+        {
+          "at_s": 167.682,
+          "phase": "WALKING",
+          "goal": "leisure",
+          "intent": {
+            "kind": "leisure",
+            "reason": "walk_to_real_bench"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 188719.127,
+            "next_decision_ms": 187835.327,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": true
+        },
+        {
+          "at_s": 168.669,
+          "phase": "WALKING",
+          "goal": "leisure",
+          "intent": {
+            "kind": "leisure",
+            "reason": "walk_to_real_bench"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 189704.523,
+            "next_decision_ms": 187835.327,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": true
+        }
+      ],
+      "home_finish_reason": "wake_time",
+      "observed_through_s": 168.669
+    },
+    {
+      "id": "resident_8",
+      "generation": 1,
+      "kind": "home_exit_transition",
+      "observed_exit_s": 167.682,
+      "exit_sampling_interval_s": [
+        166.677,
+        167.682
+      ],
+      "anchor": [
+        -144.411163330078,
+        0.000183314085006714,
+        383.350006103516
+      ],
+      "first_next_intent_s": 0.0,
+      "first_movement_s": 1.9990000000000236,
+      "evidence": [
+        {
+          "at_s": 167.682,
+          "phase": "WALKING",
+          "goal": "shop",
+          "intent": {
+            "day": 0,
+            "event": "supplies",
+            "kind": "shop",
+            "ticket": "resident_8:routine58:0:supplies"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 188654.517,
+            "next_decision_ms": 187836.283,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": true
+        },
+        {
+          "at_s": 168.669,
+          "phase": "WALKING",
+          "goal": "shop",
+          "intent": {
+            "day": 0,
+            "event": "supplies",
+            "kind": "shop",
+            "ticket": "resident_8:routine58:0:supplies"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 189652.748,
+            "next_decision_ms": 187836.283,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": true
+        },
+        {
+          "at_s": 169.681,
+          "phase": "WALKING",
+          "goal": "shop",
+          "intent": {
+            "day": 0,
+            "event": "supplies",
+            "kind": "shop",
+            "ticket": "resident_8:routine58:0:supplies"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 190718.794,
+            "next_decision_ms": 187836.283,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": true
+        }
+      ],
+      "home_finish_reason": "scheduled_meal_or_supplies",
+      "observed_through_s": 169.681
+    },
+    {
+      "id": "resident_3",
+      "generation": 1,
+      "kind": "home_exit_transition",
+      "observed_exit_s": 168.669,
+      "exit_sampling_interval_s": [
+        167.682,
+        168.669
+      ],
+      "anchor": [
+        108.142791748047,
+        0.000179648399353027,
+        530.230590820313
+      ],
+      "first_next_intent_s": 0.0,
+      "first_movement_s": 1.0120000000000005,
+      "evidence": [
+        {
+          "at_s": 168.669,
+          "phase": "WALKING",
+          "goal": "leisure",
+          "intent": {
+            "kind": "leisure",
+            "reason": "walk_to_real_bench"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 189703.712,
+            "next_decision_ms": 188785.236,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": true
+        },
+        {
+          "at_s": 169.681,
+          "phase": "WALKING",
+          "goal": "leisure",
+          "intent": {
+            "kind": "leisure",
+            "reason": "walk_to_real_bench"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 190717.549,
+            "next_decision_ms": 188785.236,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": true
+        }
+      ],
+      "home_finish_reason": "wake_time",
+      "observed_through_s": 169.681
+    },
+    {
+      "id": "resident_4",
+      "generation": 1,
+      "kind": "home_exit_transition",
+      "observed_exit_s": 168.669,
+      "exit_sampling_interval_s": [
+        167.682,
+        168.669
+      ],
+      "anchor": [
+        129.761032104492,
+        0.000136524438858032,
+        527.461059570313
+      ],
+      "first_next_intent_s": 0.0,
+      "first_movement_s": 1.0120000000000005,
+      "evidence": [
+        {
+          "at_s": 168.669,
+          "phase": "WALKING",
+          "goal": "leisure",
+          "intent": {
+            "kind": "leisure",
+            "reason": "walk_to_real_bench"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 189703.992,
+            "next_decision_ms": 188938.911,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": true
+        },
+        {
+          "at_s": 169.681,
+          "phase": "WALKING",
+          "goal": "leisure",
+          "intent": {
+            "kind": "leisure",
+            "reason": "walk_to_real_bench"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 190717.825,
+            "next_decision_ms": 188938.911,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": true
+        }
+      ],
+      "home_finish_reason": "wake_time",
+      "observed_through_s": 169.681
+    },
+    {
+      "id": "resident_5",
+      "generation": 1,
+      "kind": "home_exit_transition",
+      "observed_exit_s": 168.669,
+      "exit_sampling_interval_s": [
+        167.682,
+        168.669
+      ],
+      "anchor": [
+        108.141143798828,
+        -2.46763229370117e-05,
+        530.232116699219
+      ],
+      "first_next_intent_s": 0.0,
+      "first_movement_s": 1.0120000000000005,
+      "evidence": [
+        {
+          "at_s": 168.669,
+          "phase": "WALKING",
+          "goal": "leisure",
+          "intent": {
+            "kind": "leisure",
+            "reason": "walk_to_real_bench"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 189704.261,
+            "next_decision_ms": 188786.4,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": true
+        },
+        {
+          "at_s": 169.681,
+          "phase": "WALKING",
+          "goal": "leisure",
+          "intent": {
+            "kind": "leisure",
+            "reason": "walk_to_real_bench"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 190718.105,
+            "next_decision_ms": 188786.4,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": true
+        }
+      ],
+      "home_finish_reason": "wake_time",
+      "observed_through_s": 169.681
+    },
+    {
+      "id": "resident_7",
+      "generation": 1,
+      "kind": "home_exit_transition",
+      "observed_exit_s": 168.669,
+      "exit_sampling_interval_s": [
+        167.682,
+        168.669
+      ],
+      "anchor": [
+        45.1000061035156,
+        0.000204682350158691,
+        191.559555053711
+      ],
+      "first_next_intent_s": 0.0,
+      "first_movement_s": 1.0120000000000005,
+      "evidence": [
+        {
+          "at_s": 168.669,
+          "phase": "WALKING",
+          "goal": "restaurant",
+          "intent": {
+            "day": 0,
+            "event": "breakfast",
+            "kind": "restaurant",
+            "ticket": "resident_7:routine58:0:breakfast"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 189636.896,
+            "next_decision_ms": 188891.034,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": true
+        },
+        {
+          "at_s": 169.681,
+          "phase": "WALKING",
+          "goal": "restaurant",
+          "intent": {
+            "day": 0,
+            "event": "breakfast",
+            "kind": "restaurant",
+            "ticket": "resident_7:routine58:0:breakfast"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 190718.512,
+            "next_decision_ms": 188891.034,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": true
+        }
+      ],
+      "home_finish_reason": "scheduled_meal_or_supplies",
+      "observed_through_s": 169.681
+    },
+    {
+      "id": "resident_9",
+      "generation": 1,
+      "kind": "home_exit_transition",
+      "observed_exit_s": 168.669,
+      "exit_sampling_interval_s": [
+        167.682,
+        168.669
+      ],
+      "anchor": [
+        -144.934936523438,
+        -0.00016862154006958,
+        383.959136962891
+      ],
+      "first_next_intent_s": 0.0,
+      "first_movement_s": 1.0120000000000005,
+      "evidence": [
+        {
+          "at_s": 168.669,
+          "phase": "WALKING",
+          "goal": "leisure",
+          "intent": {
+            "kind": "leisure",
+            "reason": "walk_to_real_bench"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 189704.887,
+            "next_decision_ms": 188891.743,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": true
+        },
+        {
+          "at_s": 169.681,
+          "phase": "WALKING",
+          "goal": "leisure",
+          "intent": {
+            "kind": "leisure",
+            "reason": "walk_to_real_bench"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 190719.076,
+            "next_decision_ms": 188891.743,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": true
+        }
+      ],
+      "home_finish_reason": "wake_time",
+      "observed_through_s": 169.681
+    },
+    {
+      "id": "resident_10",
+      "generation": 1,
+      "kind": "home_exit_transition",
+      "observed_exit_s": 168.669,
+      "exit_sampling_interval_s": [
+        167.682,
+        168.669
+      ],
+      "anchor": [
+        129.456100463867,
+        -8.11219215393066e-05,
+        526.885986328125
+      ],
+      "first_next_intent_s": 0.0,
+      "first_movement_s": 1.0120000000000005,
+      "evidence": [
+        {
+          "at_s": 168.669,
+          "phase": "WALKING",
+          "goal": "leisure",
+          "intent": {
+            "kind": "leisure",
+            "reason": "walk_to_real_bench"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 189705.162,
+            "next_decision_ms": 188940.573,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": true
+        },
+        {
+          "at_s": 169.681,
+          "phase": "WALKING",
+          "goal": "leisure",
+          "intent": {
+            "kind": "leisure",
+            "reason": "walk_to_real_bench"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 190719.357,
+            "next_decision_ms": 188940.573,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": true
+        }
+      ],
+      "home_finish_reason": "wake_time",
+      "observed_through_s": 169.681
+    },
+    {
+      "id": "resident_2",
+      "generation": 1,
+      "kind": "restaurant",
+      "observed_exit_s": 231.669,
+      "exit_sampling_interval_s": [
+        230.678,
+        231.669
+      ],
+      "anchor": [
+        139.399978637695,
+        0.0137684047222137,
+        191.402526855469
+      ],
+      "first_next_intent_s": 1.0049999999999955,
+      "first_movement_s": null,
+      "evidence": [
+        {
+          "at_s": 231.669,
+          "phase": "IDLE",
+          "goal": "",
+          "intent": {
+            "day": 0,
+            "event": "breakfast",
+            "kind": "restaurant",
+            "ticket": "resident_2:routine58:0:breakfast"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 252703.766,
+            "next_decision_ms": 253240.068,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": false
+        },
+        {
+          "at_s": 232.674,
+          "phase": "AMBIENT",
+          "goal": "",
+          "intent": {
+            "kind": "leisure",
+            "reason": "walk_to_real_bench"
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": false,
+            "life_now_ms": 253702.109,
+            "next_decision_ms": 253240.068,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": false
+        },
+        {
+          "at_s": 233.671,
+          "phase": "AMBIENT",
+          "goal": "",
+          "intent": {
+            "kind": "leisure",
+            "reason": "walk_to_real_bench"
+          },
+          "rest": {
+            "ambient_pose_active": true,
+            "bounded_routine_rest": false,
+            "life_now_ms": 254707.803,
+            "next_decision_ms": 253240.068,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": false
+        },
+        {
+          "at_s": 234.669,
+          "phase": "AMBIENT",
+          "goal": "",
+          "intent": {
+            "kind": "leisure",
+            "reason": "walk_to_real_bench"
+          },
+          "rest": {
+            "ambient_pose_active": true,
+            "bounded_routine_rest": false,
+            "life_now_ms": 255703.827,
+            "next_decision_ms": 253240.068,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": false
+        },
+        {
+          "at_s": 235.682,
+          "phase": "AMBIENT",
+          "goal": "",
+          "intent": {
+            "kind": "leisure",
+            "reason": "walk_to_real_bench"
+          },
+          "rest": {
+            "ambient_pose_active": true,
+            "bounded_routine_rest": false,
+            "life_now_ms": 256718.548,
+            "next_decision_ms": 253240.068,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": false
+        },
+        {
+          "at_s": 236.68,
+          "phase": "AMBIENT",
+          "goal": "",
+          "intent": {
+            "kind": "leisure",
+            "reason": "walk_to_real_bench"
+          },
+          "rest": {
+            "ambient_pose_active": true,
+            "bounded_routine_rest": false,
+            "life_now_ms": 257717.451,
+            "next_decision_ms": 253240.068,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": false
+        },
+        {
+          "at_s": 237.681,
+          "phase": "AMBIENT",
+          "goal": "",
+          "intent": {
+            "kind": "leisure",
+            "reason": "walk_to_real_bench"
+          },
+          "rest": {
+            "ambient_pose_active": true,
+            "bounded_routine_rest": false,
+            "life_now_ms": 258718.057,
+            "next_decision_ms": 253240.068,
+            "on_floor": true,
+            "reason": "",
+            "rest_remaining_s": 0.0,
+            "supported_bed_pose": false
+          },
+          "required_motion": false
+        },
+        {
+          "at_s": 238.67,
+          "phase": "RESTING",
+          "goal": "",
+          "intent": {
+            "kind": "rest",
+            "reason": "pause_after_real_activity",
+            "until_ms": 271277.520278282
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": true,
+            "life_now_ms": 259705.229,
+            "next_decision_ms": 260306.553,
+            "on_floor": true,
+            "reason": "routine_waiting_for_supported_activity",
+            "rest_remaining_s": 11.5722912782822,
+            "supported_bed_pose": false
+          },
+          "required_motion": false
+        },
+        {
+          "at_s": 239.669,
+          "phase": "RESTING",
+          "goal": "",
+          "intent": {
+            "kind": "rest",
+            "reason": "pause_after_real_activity",
+            "until_ms": 271277.520278282
+          },
+          "rest": {
+            "ambient_pose_active": false,
+            "bounded_routine_rest": true,
+            "life_now_ms": 260704.58,
+            "next_decision_ms": 261318.35,
+            "on_floor": true,
+            "reason": "routine_waiting_for_supported_activity",
+            "rest_remaining_s": 10.5729402782822,
+            "supported_bed_pose": false
+          },
+          "required_motion": false
+        }
+      ],
+      "observed_through_s": 239.669
+    }
+  ],
+  "limitations": [
+    "Exit times are bounded by successive actual1Hz samples, not exact native callbacks. Service completion counters increment only after physical exit in the source. Home exit is an explicitly labelled phase transition.",
+    "No elapsed limit is imposed on proven timed rest or live committed sleeping/ambient pose. Rolling decision poll timestamps alone do not prove a rest duration.",
+    "A final event without movement remains censored at the last observed sample; it is never reported as resumed."
+  ]
+}

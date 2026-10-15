@@ -651,7 +651,7 @@
     "scripts\\city\\runtime\\npc_routine58.gd.uid": "7bda745e2d63cef2dc23ade2bfe15bdff9010e8ea3dd19209463c502a85dacee",
     "scripts\\city\\runtime\\npc_runtime_trace30.gd": "9435c6e9497eb4f7dd66dc85e02c73362819605623b997cd408f915d6ca2d53a",
     "scripts\\city\\runtime\\npc_runtime_trace30.gd.uid": "f6d002883eee8938fa706803aa4831ab9e3e32fcc227dc73fc075d060c8057cd",
-    "scripts\\city\\runtime\\npc_threat_life30.gd": "08f8c0cdeb557ac6d66c3d40dba517441298e954ea6279ac7a76a4f1f822476b",
+    "scripts\\city\\runtime\\npc_threat_life30.gd": "dbfa68c59822423442b29d7b3910234bb95a740e2dec102724aa7194b3d9168e",
     "scripts\\city\\runtime\\npc_threat_life30.gd.uid": "b5d1e26a6ec025b3b8e359d0fee6ab4f648411092bc0ecdc856941aa908054f0",
     "scripts\\city\\runtime\\npc_threat_route30.gd": "6b330fbf8374f4fb95064970a383bda0d4abb1011a3c5e4c5fd2338e64fb5968",
     "scripts\\city\\runtime\\npc_threat_route30.gd.uid": "a9ea1edf279529556e07766f79f942adff5c53adbb0c778858834108ef997bc8",
@@ -1238,7 +1238,7 @@
     "--city-nav-pump-every=1",
     "--city-daily-slice=286",
     "--city-sim-stride=1",
-    "--city-sim-one-per-frame=0",
+    "--city-sim-one-per-frame=1",
     "--city-walk-pose=1",
     "--city-pose-far-cap=512",
     "--city-clear-cache=1",
@@ -1252,7 +1252,8 @@
     "--city-physical-dispatch30=1",
     "--city-multi-lifecycle30=1",
     "--city-threat30=1",
-    "--city-player-shop=1"
+    "--city-player-shop=1",
+    "--city-surrender58=1"
   ],
   "ready_timeout_seconds": 110,
   "requested_population": 10,
