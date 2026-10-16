@@ -72,7 +72,7 @@ const CONTACT_COOLDOWN_MS := 700
 ## A blow only counts after the blade actually left the target for this long.
 ## Without it, a blade resting on the ground or wobbling against the dummy fires
 ## a fresh "entry" every frame and floods damage, sounds and damage numbers.
-const CONTACT_REARM_MS := 260
+const CONTACT_REARM_MS := 120
 const SPARK_COOLDOWN_MS := 140
 const BLOCK_SOUND_COOLDOWN_MS := 420
 const DAMAGE_NUMBER_COOLDOWN_MS := 220
@@ -686,11 +686,11 @@ func _carry_direction() -> Vector3:
 	var visual: Node3D = _player._visual
 	return (Vector3.UP * 0.92 + visual.global_basis.x * 0.26 + visual.global_basis.z * 0.26).normalized()
 
-## Where the sword HAND rests in the ready stance: forward at chest height with a
-## natural bend, so the elbow is not folded back into the chest.
+## Where the sword HAND rests in the ready stance: forward at CHEST height with a
+## natural bend. Too much lift here put the fist into the character's own head.
 func _ready_hand_direction() -> Vector3:
 	var visual: Node3D = _player._visual
-	return (visual.global_basis.z * 0.88 + Vector3.UP * 0.32).normalized()
+	return (visual.global_basis.z * 0.97 + Vector3.UP * 0.10).normalized()
 
 ## Where the blade is held while guarding. The steel lies ACROSS the body like a
 ## bar - mostly in the frontal plane, not pointing at the enemy - and the mouse
@@ -757,6 +757,9 @@ func _steer(delta: float) -> void:
 	if angle > 1.0e-4 and axis.length_squared() > 1.0e-10:
 		desired = axis.normalized() * clampf(angle * STEER_GAIN, 0.0, MAX_OMEGA)
 	desired -= _omega * STEER_DAMPING
+	# Biting into a body or blade makes the sword heavy for a moment.
+	if Time.get_ticks_msec() < _bind_until_ms:
+		desired = desired.limit_length(1.6)
 	var dv := desired - _omega
 	var max_dv := MAX_ALPHA * delta
 	if dv.length() > max_dv and dv.length() > 1.0e-9: dv = dv.normalized() * max_dv
@@ -979,12 +982,12 @@ func _solve_arm(delta: float) -> void:
 		# bent), while the BLADE still points up. Using the blade direction for the
 		# hand as well is what folded the arm across the chest.
 		var want_dir := _constrain_forward(_ready_hand_direction())
-		want_dir = _constrain_to_body(want_dir, 0.10)
+		want_dir = _constrain_to_body(want_dir, 0.34)
 		var want_rig := (rig_basis.inverse() * want_dir).normalized()
 		var blade_rig := (rig_basis.inverse() * _dir).normalized()
 		_lean_body(want_dir, delta)
 		var side := _active_side()
-		var grip_rig := _pose_main(side, want_rig, blade_rig, 0.72)
+		var grip_rig := _pose_main(side, want_rig, blade_rig, 0.84)
 		if grip_rig != Vector3.ZERO:
 			_sword_origin = (_rig.global_transform * grip_rig) + _dir * GRIP_CENTER_OFFSET
 		return
@@ -1663,10 +1666,11 @@ func _sweep(delta: float) -> void:
 	var excluded: Array[RID] = [_player.get_rid()]
 	var now := Time.get_ticks_msec()
 	var touched: Dictionary = {}
-	# EVERY collider the blade crossed this frame is a contact, not just the
-	# nearest one: a single swing through an arm and a chest is two hits.
-	# nearest one: a single swing through an arm and a chest is two hits.
-	var hits: Array[Dictionary] = []
+	# A cut MEETS something and stops there. Only the FIRST contact along the swing
+	# is resolved: resolving every collider crossed in one frame let a single swing
+	# slice through an arm, a chest and both legs at once, with no resistance.
+	var best_hit: Dictionary = {}
+	var best_distance := INF
 	var seen: Dictionary = {}
 	# The opponent's steel is a REAL barrier: if our blade meets his anywhere along
 	# the swing, the cut stops there and nothing behind it is reached.
@@ -1695,15 +1699,15 @@ func _sweep(delta: float) -> void:
 		_sweep_hits += 1
 		var collider: Variant = hit.get("collider")
 		if not is_instance_valid(collider): continue
-		var id: int = collider.get_instance_id()
-		touched[id] = true
-		if seen.has(id): continue
-		seen[id] = true
-		hit["_speed"] = from.distance_to(to) / delta
-		# Direction of the contact point's motion decides cut vs thrust.
-		hit["_velocity"] = (to - from) / delta
-		hit["_index"] = i
-		hits.append(hit)
+		touched[collider.get_instance_id()] = true
+		# Nearest blade point to the grip meets the surface first.
+		var reach := from.distance_to(hit.position)
+		if reach < best_distance:
+			best_distance = reach
+			best_hit = hit
+			best_hit["_speed"] = from.distance_to(to) / delta
+			best_hit["_velocity"] = (to - from) / delta
+			best_hit["_index"] = i
 	if clash:
 		# Steel on steel: a small bounce for both blades, and this swing is spent.
 		_register_clash(clash_at)
@@ -1712,8 +1716,9 @@ func _sweep(delta: float) -> void:
 		_contact_prev = touched
 		_prev_points = points
 		return
-	for hit: Dictionary in hits:
-		_resolve_contact(hit, points, now, touched)
+	if not best_hit.is_empty():
+		_resolve_contact(best_hit, points, now, touched)
+	# Remember what the blade was already touching: a target that stays in
 	# contact is not struck again, so one swing cannot machine-gun damage.
 	for id: Variant in _contact_prev:
 		if not touched.has(id): _contact_gap[id] = now
@@ -1774,6 +1779,7 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 		if _held and now - int(_hit_ms.get(id_any, -10000)) >= CONTACT_COOLDOWN_MS:
 			_hit_ms[id_any] = now
 			var cut := clampf((speed * 0.6 - DAMAGE_SPEED_MIN) * DAMAGE_PER_MPS, 1.0, DAMAGE_MAX)
+			_bite_into(0.70)
 			_duelist_hp = maxf(0.0, _duelist_hp - cut)
 			# Being struck is what makes him fight back.
 			_duelist_engaged = true
@@ -1806,6 +1812,7 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 			_swing_start_dir = _dir
 			_swing_travel = 0.0
 			if npc_part != "":
+				_bite_into(0.72)
 				_npc_take_blade_part(npc_part, position, speed, hit.get("_velocity", Vector3.ZERO), npc_cut)
 			else:
 				_npc_take_blade(position, speed, hit.get("_velocity", Vector3.ZERO), npc_cut)
@@ -1854,6 +1861,7 @@ func _damage_dummy(dummy: StaticBody3D, position: Vector3, speed: float, velocit
 	# full wind-up followed by a cut lands far harder.
 	var strength := clampf(SWING_STRENGTH_MIN + _swing_travel * SWING_STRENGTH_GAIN, SWING_STRENGTH_MIN, 2.0)
 	if _active_side() == &"both": strength *= TWO_HAND_DAMAGE_SCALE
+	_bite_into(0.62)
 	_last_hit_kind = kind
 	_last_hit_scale = strength
 	var damage := clampf((effective * strength - DAMAGE_SPEED_MIN) * DAMAGE_PER_MPS, 0.0, DAMAGE_MAX)
@@ -1982,6 +1990,14 @@ var _npc_blocked := 0
 var _npc_blade_prev: PackedVector3Array = PackedVector3Array()
 var _npc_hit_ms := -10000
 var _npc_blade_ms := -10000
+## While set, the blade is biting into something and cannot accelerate freely.
+var _bind_until_ms := 0
+
+## The blade bites into what it hits: it loses speed on impact and stays heavy for
+## a moment. That is the resistance that stops a cut from slicing straight through.
+func _bite_into(hardness: float) -> void:
+	_omega *= clampf(1.0 - hardness, 0.05, 0.92)
+	_bind_until_ms = now_ms() + 110
 ## While set, the knight's blade is still springing back from a parry.
 var _npc_recoil_until_ms := 0
 ## Deferred binding: the population host appears after the prototype.
@@ -2527,9 +2543,9 @@ func _is_npc_collider(collider: Variant) -> bool:
 ## a limb that takes enough damage is taken off - the mesh really disappears, the
 ## wound bleeds, a physical stump is thrown, and a severed sword arm can no longer
 ## hold the weapon.
-const PART_HP := {"head": 55.0, "chest": 110.0, "pelvis": 110.0,
-	"upperarm": 42.0, "forearm": 34.0, "hand": 24.0,
-	"thigh": 55.0, "shin": 42.0, "foot": 26.0}
+const PART_HP := {"head": 50.0, "chest": 96.0, "pelvis": 96.0,
+	"upperarm": 34.0, "forearm": 30.0, "hand": 22.0,
+	"thigh": 44.0, "shin": 34.0, "foot": 22.0}
 const BLOOD_LIFETIME := 2.6
 ## Severed pieces are permanent; the cap only stops unbounded growth.
 const MAX_STUMPS := 48

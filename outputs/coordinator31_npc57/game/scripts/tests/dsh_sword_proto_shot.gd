@@ -410,7 +410,7 @@ func _run() -> void:
 		_player.global_position = npc_pos + away2.normalized() * 1.15 + Vector3.UP * 0.05
 		_face_body_at(npc_pos)
 		await _settle(10)
-		for round_index: int in 10:
+		for round_index: int in 18:
 			_press(true)
 			for i: int in 10:
 				_move(0.0, -60.0)
