@@ -43,6 +43,13 @@ func _press(pressed: bool) -> void:
 	event.pressed = pressed
 	Input.parse_input_event(event)
 
+## Right mouse button = two-handed grip.
+func _press_right(pressed: bool) -> void:
+	var event := InputEventMouseButton.new()
+	event.button_index = MOUSE_BUTTON_RIGHT
+	event.pressed = pressed
+	Input.parse_input_event(event)
+
 ## Wheel = thrust axis: up drives the point forward, down pulls it back.
 func _wheel(up: bool) -> void:
 	var event := InputEventMouseButton.new()
@@ -244,6 +251,26 @@ func _run() -> void:
 	_press(true)
 	await _settle(24)
 	await _shot("sword_closeup")
+	# Two-handed grip pass: RMB brings the left hand onto the handle.
+	_press_right(true)
+	await _settle(20)
+	var grip_before: Dictionary = _proto.snapshot()
+	await _recenter()
+	for i: int in 8:
+		_move(0.0, -70.0)
+		await _settle(2)
+	for i: int in 12:
+		_move(0.0, 70.0)
+		await _settle(2)
+	await _settle(6)
+	await _shot("two_handed")
+	var two_hand: Dictionary = _proto.snapshot()
+	print("SWORD_SHOT_TWO_HANDED active=", two_hand.two_handed, " left_error=", two_hand.left_hand_error,
+		" hits=", two_hand.hits, " hp=", two_hand.dummy_hp, " damage=", two_hand.max_damage,
+		" scale=", two_hand.hit_scale, " kind=", two_hand.last_hit_kind)
+	_press_right(false)
+	await _settle(10)
+	print("SWORD_SHOT_TWO_HANDED_RELEASED ", _proto.snapshot().two_handed)
 	# Pull-back pass: a hard drag backwards must still leave the blade in front.
 	await _recenter()
 	for i: int in 14:
@@ -309,6 +336,44 @@ func _run() -> void:
 	await _settle(90)
 	var still_after: Dictionary = _proto.snapshot()
 	print("SWORD_SHOT_STILL_HP ", still_before.dummy_hp, " -> ", still_after.dummy_hp)
+
+	# 6. Sparring: the opponent walks in and cuts. Blade-on-blade must stop the
+	# blow; with the blade held aside the same cut must land on the body.
+	var duel_before: Dictionary = _proto.snapshot()
+	var duelist_pos: Vector3 = duel_before.duelist_position
+	print("SWORD_SHOT_DUELIST_START ", JSON.stringify({
+		"state": duel_before.duelist_state, "hp": duel_before.duelist_hp,
+		"distance": _player.global_position.distance_to(duelist_pos)}))
+	# Guard phase: keep our blade pointing at the opponent.
+	for i: int in 420:
+		if is_instance_valid(_proto):
+			var to_duelist: Vector3 = duelist_pos - _player.global_position
+			if duelist_pos != Vector3.ZERO and to_duelist.length_squared() > 1.0e-6:
+				_proto.set("_dir", (to_duelist.normalized() * 0.7 + Vector3.UP * 0.5).normalized())
+		if i % 60 == 0: await _settle(1)
+		await process_frame
+	var guarded: Dictionary = _proto.snapshot()
+	print("SWORD_SHOT_DUELIST_GUARD blocks=", guarded.player_blocks, " blocked=", guarded.duelist_blocked,
+		" swings=", guarded.duelist_swings, " hits_on_player=", guarded.duelist_hits,
+		" sparring_hp=", guarded.sparring_hp)
+	# Open phase: swing the blade clear of the incoming line so the cut connects.
+	_press(true)
+	await _settle(4)
+	for i: int in 420:
+		if i % 12 == 0:
+			_move(45.0, 45.0)
+		await process_frame
+	var opened: Dictionary = _proto.snapshot()
+	_press(false)
+	print("SWORD_SHOT_DUELIST_OPEN blocks=", opened.player_blocks, " blocked=", opened.duelist_blocked,
+		" swings=", opened.duelist_swings, " hits_on_player=", opened.duelist_hits,
+		" sparring_hp=", opened.sparring_hp)
+	print("SWORD_SHOT_DUELIST_END ", JSON.stringify({
+		"state": opened.duelist_state, "hp": opened.duelist_hp,
+		"swings": opened.duelist_swings, "hits": opened.duelist_hits,
+		"blocked": opened.duelist_blocked, "player_blocks": opened.player_blocks,
+		"sparring_hp": opened.sparring_hp}))
+	await _shot("duelist")
 
 	var final: Dictionary = _proto.snapshot()
 	final["camera_lock_delta"] = absf(yaw_held_after - yaw_held_before)

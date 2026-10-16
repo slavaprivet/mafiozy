@@ -84,6 +84,14 @@ var _bone_spine := -1
 var _bone_chest := -1
 var _bone_pelvis := -1
 var _bone_head := -1
+## Left arm chain, used by the two-handed grip (RMB).
+var _bone_l_clavicle := -1
+var _bone_l_upper := -1
+var _bone_l_fore := -1
+var _bone_l_hand := -1
+var _rest_l_upper := Transform3D.IDENTITY
+var _rest_l_fore := Transform3D.IDENTITY
+var _rest_l_hand := Transform3D.IDENTITY
 var _rest_upper := Transform3D.IDENTITY
 var _rest_fore := Transform3D.IDENTITY
 var _rest_hand := Transform3D.IDENTITY
@@ -117,8 +125,20 @@ var _body_yaw_vel := 0.0
 var _body_push := Vector3.ZERO
 var _prev_points: PackedVector3Array = PackedVector3Array()
 var _held := false
+## Which hand is holding the sword. LMB = left hand, RMB = right hand, both
+## buttons = two-handed grip. Releasing keeps the grip in the hand that had it.
+var _hold_left := false
+var _hold_right := false
+var _carry_side: StringName = &"right"
+## Distance between the supporting fist and the handle it should be gripping.
+var _left_hand_error := 0.0
 ## Wheel-driven thrust: pulls the hand back or drives the point forward.
 var _thrust := 0.2
+## Blade direction expressed in the fist's own frame while the sword is carried.
+## Locking the carried blade to the fist (instead of re-deriving it from the
+## camera every frame) is what stops the idle jitter and keeps it in the hand.
+var _carry_offset := Vector3.ZERO
+var _carry_valid := false
 ## True only while the prototype sword is the item equipped in the arsenal menu.
 var _selected := false
 ## Button state straight from the events, so the blade also follows input that
@@ -175,6 +195,13 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 	_bone_chest = rig.find_bone("chest")
 	_bone_pelvis = rig.find_bone("pelvis")
 	_bone_head = rig.find_bone("head")
+	_bone_l_clavicle = rig.find_bone("clavicle_l")
+	_bone_l_upper = rig.find_bone("upperarm_l")
+	_bone_l_fore = rig.find_bone("forearm_l")
+	_bone_l_hand = rig.find_bone("hand_l")
+	_rest_l_upper = rig.get_bone_rest(_bone_l_upper) if _bone_l_upper >= 0 else Transform3D.IDENTITY
+	_rest_l_fore = rig.get_bone_rest(_bone_l_fore) if _bone_l_fore >= 0 else Transform3D.IDENTITY
+	_rest_l_hand = rig.get_bone_rest(_bone_l_hand) if _bone_l_hand >= 0 else Transform3D.IDENTITY
 	if _bone_upper < 0 or _bone_fore < 0 or _bone_hand < 0:
 		return {"ok": false, "reason": "arm_bones"}
 	if _bone_socket < 0: _bone_socket = rig.find_bone("socket_hand_r")
@@ -185,7 +212,7 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 	_upper_len = _rest_fore.origin.length()
 	_fore_len = _rest_hand.origin.length()
 	if _upper_len <= 0.01 or _fore_len <= 0.01: return {"ok": false, "reason": "arm_lengths"}
-	_build_sword()
+	_sword = _build_sword_model(_world, "PrototypeSword")
 	_build_impacts()
 	_build_hint()
 	var placed := _place_targets()
@@ -199,6 +226,8 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 	# The player asks this host directly before turning the camera, so the lock
 	# never depends on input routing order.
 	player.set("_sword_host", self)
+	print("DSH_SWORD_PROTO_BONES right=", _bone_clavicle, ",", _bone_upper, ",", _bone_fore, ",", _bone_hand,
+		" left=", _bone_l_clavicle, ",", _bone_l_upper, ",", _bone_l_fore, ",", _bone_l_hand)
 	return {"ok": true, "socket": rig.get_bone_name(_bone_socket), "upper_len": _upper_len, "fore_len": _fore_len, "dummy": placed.dummy, "pole": placed.pole}
 
 ## True while the player is actively steering the blade (LMB held).
@@ -210,10 +239,12 @@ func is_steering() -> bool:
 ## One-handed sword, built from parts: tapering double-edged blade with a fuller,
 ## ricasso, curved cross-guard with quillon blocks, wrapped grip and a disc
 ## pommel. Local +X is the point, so the sweep maths above stays unchanged.
-func _build_sword() -> void:
-	_sword = Node3D.new()
-	_sword.name = "PrototypeSword"
-	_world.add_child(_sword)
+## Builds one sword model into `parent` and returns it. Used for the player and
+## for the sparring opponent, so both carry the same weapon.
+func _build_sword_model(parent: Node3D, node_name: String) -> Node3D:
+	var sword := Node3D.new()
+	sword.name = node_name
+	parent.add_child(sword)
 	var steel := StandardMaterial3D.new()
 	steel.albedo_color = Color(0.74, 0.78, 0.84); steel.metallic = 0.92; steel.roughness = 0.22
 	var edge := StandardMaterial3D.new()
@@ -237,63 +268,64 @@ func _build_sword() -> void:
 		var body := BoxMesh.new(); body.size = Vector3(length, width, thickness)
 		var body_node := MeshInstance3D.new(); body_node.mesh = body; body_node.material_override = steel
 		body_node.position = Vector3(cursor + length * 0.5, 0.0, 0.0)
-		_sword.add_child(body_node)
+		sword.add_child(body_node)
 		# Cutting edges on both sides of every section.
 		for side: float in [1.0, -1.0]:
 			var bevel := BoxMesh.new(); bevel.size = Vector3(length, 0.014, thickness * 0.45)
 			var bevel_node := MeshInstance3D.new(); bevel_node.mesh = bevel; bevel_node.material_override = edge
 			bevel_node.position = Vector3(cursor + length * 0.5, side * (width * 0.5 - 0.005), 0.0)
-			_sword.add_child(bevel_node)
+			sword.add_child(bevel_node)
 		cursor += length
 	# Fuller (blood groove) running along the strong part of the blade.
 	var fuller := BoxMesh.new(); fuller.size = Vector3(0.62, 0.026, 0.024)
 	var fuller_node := MeshInstance3D.new(); fuller_node.mesh = fuller; fuller_node.material_override = dark_steel
 	fuller_node.position = Vector3(start + 0.33, 0.0, -0.001)
-	_sword.add_child(fuller_node)
+	sword.add_child(fuller_node)
 	# Ricasso: the flat, thicker root of the blade above the guard.
 	var ricasso := BoxMesh.new(); ricasso.size = Vector3(0.085, 0.048, 0.026)
 	var ricasso_node := MeshInstance3D.new(); ricasso_node.mesh = ricasso; ricasso_node.material_override = dark_steel
 	ricasso_node.position = Vector3(start - 0.042, 0.0, 0.0)
-	_sword.add_child(ricasso_node)
+	sword.add_child(ricasso_node)
 	# Cross-guard: central block plus two arms tilted slightly toward the blade,
 	# each finished with a small quillon block.
 	var guard_core := BoxMesh.new(); guard_core.size = Vector3(0.045, 0.075, 0.042)
 	var guard_core_node := MeshInstance3D.new(); guard_core_node.mesh = guard_core; guard_core_node.material_override = brass
 	guard_core_node.position = Vector3(start - 0.095, 0.0, 0.0)
-	_sword.add_child(guard_core_node)
+	sword.add_child(guard_core_node)
 	for side: float in [1.0, -1.0]:
 		var arm := BoxMesh.new(); arm.size = Vector3(0.030, 0.115, 0.032)
 		var arm_node := MeshInstance3D.new(); arm_node.mesh = arm; arm_node.material_override = brass
 		arm_node.position = Vector3(start - 0.098, side * 0.093, 0.0)
 		arm_node.rotation = Vector3(0.0, 0.0, side * -0.16)
-		_sword.add_child(arm_node)
+		sword.add_child(arm_node)
 		var quillon := SphereMesh.new(); quillon.radius = 0.020; quillon.height = 0.040
 		var quillon_node := MeshInstance3D.new(); quillon_node.mesh = quillon; quillon_node.material_override = brass
 		quillon_node.position = Vector3(start - 0.098, side * 0.150, 0.0)
-		_sword.add_child(quillon_node)
+		sword.add_child(quillon_node)
 	# Grip: leather core with metal ferrules and a wrapped pattern of rings.
 	var grip := CylinderMesh.new(); grip.top_radius = 0.019; grip.bottom_radius = 0.021; grip.height = 0.175
 	var grip_node := MeshInstance3D.new(); grip_node.mesh = grip; grip_node.material_override = leather
 	grip_node.position = Vector3(start - 0.205, 0.0, 0.0)
 	grip_node.rotation = Vector3(0.0, 0.0, PI * 0.5)
-	_sword.add_child(grip_node)
+	sword.add_child(grip_node)
 	for index: int in 5:
 		var ring := TorusMesh.new(); ring.inner_radius = 0.020; ring.outer_radius = 0.025
 		var ring_node := MeshInstance3D.new(); ring_node.mesh = ring
 		ring_node.material_override = brass if index % 2 == 0 else dark_steel
 		ring_node.position = Vector3(start - 0.130 - index * 0.035, 0.0, 0.0)
 		ring_node.rotation = Vector3(0.0, PI * 0.5, 0.0)
-		_sword.add_child(ring_node)
+		sword.add_child(ring_node)
 	# Pommel: disc with a small button, sitting against the fist.
 	var pommel := CylinderMesh.new(); pommel.top_radius = 0.040; pommel.bottom_radius = 0.044; pommel.height = 0.030
 	var pommel_node := MeshInstance3D.new(); pommel_node.mesh = pommel; pommel_node.material_override = brass
 	pommel_node.position = Vector3(start - 0.305, 0.0, 0.0)
 	pommel_node.rotation = Vector3(0.0, 0.0, PI * 0.5)
-	_sword.add_child(pommel_node)
+	sword.add_child(pommel_node)
 	var button := SphereMesh.new(); button.radius = 0.017; button.height = 0.030
 	var button_node := MeshInstance3D.new(); button_node.mesh = button; button_node.material_override = dark_steel
 	button_node.position = Vector3(start - 0.325, 0.0, 0.0)
-	_sword.add_child(button_node)
+	sword.add_child(button_node)
+	return sword
 
 func _build_impacts() -> void:
 	_impact_player = AudioStreamPlayer3D.new()
@@ -339,7 +371,7 @@ func _build_hint() -> void:
 	style.content_margin_top = 6; style.content_margin_bottom = 6
 	panel.add_theme_stylebox_override("panel", style)
 	_hint = Label.new()
-	_hint.text = "ТЕСТОВЫЙ МЕЧ (прототип)\nЛКМ + движение мыши — рубить влево/вправо/вверх/вниз и по диагонали\nКолесо мыши — укол вперёд / оттянуть назад\nОтпустите ЛКМ — меч возвращается; камера при удержании не вращается"
+	_hint.text = "Р В РЎС›Р В РІР‚СћР В Р Р‹Р В РЎС›Р В РЎвЂєР В РІР‚в„ўР В Р’В«Р В РІвЂћСћ Р В РЎС™Р В РІР‚СћР В Р’В§ (Р В РЎвЂ”Р РЋР вЂљР В РЎвЂўР РЋРІР‚С™Р В РЎвЂўР РЋРІР‚С™Р В РЎвЂР В РЎвЂ”)\nР В РІР‚С”Р В РЎв„ўР В РЎС™ + Р В РўвЂР В Р вЂ Р В РЎвЂР В Р’В¶Р В Р’ВµР В Р вЂ¦Р В РЎвЂР В Р’Вµ Р В РЎВР РЋРІР‚в„–Р РЋРІвЂљВ¬Р В РЎвЂ Р Р†Р вЂљРІР‚Сњ Р РЋР вЂљР РЋРЎвЂњР В Р’В±Р В РЎвЂР РЋРІР‚С™Р РЋР Р‰ Р В Р вЂ Р В Р’В»Р В Р’ВµР В Р вЂ Р В РЎвЂў/Р В Р вЂ Р В РЎвЂ”Р РЋР вЂљР В Р’В°Р В Р вЂ Р В РЎвЂў/Р В Р вЂ Р В Р вЂ Р В Р’ВµР РЋР вЂљР РЋРІР‚В¦/Р В Р вЂ Р В Р вЂ¦Р В РЎвЂР В Р’В· Р В РЎвЂ Р В РЎвЂ”Р В РЎвЂў Р В РўвЂР В РЎвЂР В Р’В°Р В РЎвЂ“Р В РЎвЂўР В Р вЂ¦Р В Р’В°Р В Р’В»Р В РЎвЂ\nР В РЎв„ўР В РЎвЂўР В Р’В»Р В Р’ВµР РЋР С“Р В РЎвЂў Р В РЎВР РЋРІР‚в„–Р РЋРІвЂљВ¬Р В РЎвЂ Р Р†Р вЂљРІР‚Сњ Р РЋРЎвЂњР В РЎвЂќР В РЎвЂўР В Р’В» Р В Р вЂ Р В РЎвЂ”Р В Р’ВµР РЋР вЂљР РЋРІР‚ВР В РўвЂ / Р В РЎвЂўР РЋРІР‚С™Р РЋРІР‚С™Р РЋР РЏР В Р вЂ¦Р РЋРЎвЂњР РЋРІР‚С™Р РЋР Р‰ Р В Р вЂ¦Р В Р’В°Р В Р’В·Р В Р’В°Р В РўвЂ\nР В РЎСџР В РЎв„ўР В РЎС™ Р Р†Р вЂљРІР‚Сњ Р В РўвЂР В Р вЂ Р РЋРЎвЂњР РЋР вЂљР РЋРЎвЂњР РЋРІР‚РЋР В Р вЂ¦Р РЋРІР‚в„–Р В РІвЂћвЂ“ Р РЋРІР‚В¦Р В Р вЂ Р В Р’В°Р РЋРІР‚С™: Р В Р’В»Р В Р’ВµР В Р вЂ Р В Р’В°Р РЋР РЏ Р РЋР вЂљР РЋРЎвЂњР В РЎвЂќР В Р’В° Р В Р вЂ¦Р В Р’В° Р РЋР вЂљР РЋРЎвЂњР В РЎвЂќР В РЎвЂўР РЋР РЏР РЋРІР‚С™Р В РЎвЂ, Р РЋРЎвЂњР В РўвЂР В Р’В°Р РЋР вЂљ Р РЋР С“Р В РЎвЂР В Р’В»Р РЋР Р‰Р В Р вЂ¦Р В Р’ВµР В Р’Вµ\nР В РЎвЂєР РЋРІР‚С™Р В РЎвЂ”Р РЋРЎвЂњР РЋР С“Р РЋРІР‚С™Р В РЎвЂР РЋРІР‚С™Р В Р’Вµ Р В РІР‚С”Р В РЎв„ўР В РЎС™ Р Р†Р вЂљРІР‚Сњ Р В РЎВР В Р’ВµР РЋРІР‚РЋ Р В Р вЂ Р В РЎвЂўР В Р’В·Р В Р вЂ Р РЋР вЂљР В Р’В°Р РЋРІР‚В°Р В Р’В°Р В Р’ВµР РЋРІР‚С™Р РЋР С“Р РЋР РЏ; Р В РЎвЂќР В Р’В°Р В РЎВР В Р’ВµР РЋР вЂљР В Р’В° Р В РЎвЂ”Р РЋР вЂљР В РЎвЂ Р РЋРЎвЂњР В РўвЂР В Р’ВµР РЋР вЂљР В Р’В¶Р В Р’В°Р В Р вЂ¦Р В РЎвЂР В РЎвЂ Р В Р вЂ¦Р В Р’Вµ Р В Р вЂ Р РЋР вЂљР В Р’В°Р РЋРІР‚В°Р В Р’В°Р В Р’ВµР РЋРІР‚С™Р РЋР С“Р РЋР РЏ"
 	_hint.add_theme_font_size_override("font_size", 14)
 	_hint.add_theme_color_override("font_color", Color(1.0, 0.93, 0.72))
 	panel.add_child(_hint)
@@ -367,7 +399,16 @@ func _place_targets() -> Dictionary:
 	if not pole_at.is_finite(): pole_at = _grounded(base + pole_dir * 2.4)
 	_dummy = _build_dummy(dummy_at)
 	_pole = _build_pole(pole_at)
-	print("DSH_SWORD_PROTO_PLACEMENT dummy=", dummy_at, " pole=", pole_at, " player=", base, " dir=", dummy_dir)
+	# The sparring partner starts a few metres along the open direction and walks
+	# in on his own, so the opening view already shows him approaching.
+	var duelist_dir := (dummy_at - base)
+	duelist_dir.y = 0.0
+	if duelist_dir.length_squared() < 1.0e-6: duelist_dir = Vector3.FORWARD
+	duelist_dir = duelist_dir.normalized()
+	var duelist_at := _grounded(base + duelist_dir * 4.6)
+	if not duelist_at.is_finite(): duelist_at = base + duelist_dir * 4.6
+	_build_duelist(duelist_at)
+	print("DSH_SWORD_PROTO_PLACEMENT dummy=", dummy_at, " pole=", pole_at, " duelist=", duelist_at, " player=", base)
 	return {"dummy": true, "pole": true}
 
 ## Picks the most open azimuth around the player, softly preferring the camera
@@ -476,7 +517,7 @@ func _build_dummy(at: Vector3) -> StaticBody3D:
 	_dummy_label.outline_size = 18
 	_dummy_label.modulate = Color(1.0, 0.92, 0.65)
 	_dummy_label.position = Vector3(0.0, 1.95, 0.0)
-	_dummy_label.text = "Манекен 100"
+	_dummy_label.text = "Р В РЎС™Р В Р’В°Р В Р вЂ¦Р В Р’ВµР В РЎвЂќР В Р’ВµР В Р вЂ¦ 100"
 	_dummy_pivot.add_child(_dummy_label)
 	body.position = at
 	_world.add_child(body)
@@ -509,7 +550,14 @@ func _input(event: InputEvent) -> void:
 		var button := event as InputEventMouseButton
 		if button.button_index == MOUSE_BUTTON_LEFT:
 			_held_event = button.pressed
-			_held = button.pressed
+			_hold_left = button.pressed
+			_held = _hold_left or _hold_right
+			_player.set("_sword_lock", _held)
+			get_viewport().set_input_as_handled()
+			return
+		if button.button_index == MOUSE_BUTTON_RIGHT:
+			_hold_right = button.pressed
+			_held = _hold_left or _hold_right
 			_player.set("_sword_lock", _held)
 			get_viewport().set_input_as_handled()
 			return
@@ -519,6 +567,12 @@ func _input(event: InputEvent) -> void:
 			var step := 0.22 if button.button_index == MOUSE_BUTTON_WHEEL_UP else -0.22
 			_thrust = clampf(_thrust + step, 0.0, 1.0)
 			_player.set("_sword_lock", true)
+			get_viewport().set_input_as_handled()
+			return
+		if button.button_index == MOUSE_BUTTON_RIGHT:
+			_hold_right = button.pressed
+			_held = _hold_left or _hold_right
+			_player.set("_sword_lock", _held)
 			get_viewport().set_input_as_handled()
 		return
 	if event is InputEventMouseMotion and (Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or _held_event or _held):
@@ -587,13 +641,18 @@ func _target_direction() -> Vector3:
 	return target
 
 func _steer(delta: float) -> void:
+	var fist_basis := _fist_basis()
 	if not _held:
-		# Idle stance: follow the CURRENT view, without inertia. The old fixed
-		# rest vector made the blade hunt back and forth while simply walking.
-		var rest := _soft_body_limit(_constrain_forward(_rest_direction()), 0.20, 0.55)
-		_dir = _dir.slerp(rest, clampf(6.0 * delta, 0.0, 1.0)).normalized()
+		# Carried stance: the blade keeps the exact angle it had in the hand when
+		# the swing ended and simply rides the animation. No camera-driven target,
+		# so walking cannot make it hunt, shake or slip out of the grip.
+		if not _carry_valid:
+			_carry_offset = (fist_basis.inverse() * _dir).normalized()
+			_carry_valid = true
+		_dir = (fist_basis * _carry_offset).normalized()
 		_omega = Vector3.ZERO
 		return
+	_carry_valid = false
 	var target := _soft_body_limit(_constrain_forward(_target_direction()), 0.20, 0.55)
 	# A larger error drives a proportionally faster blade, so a decisive flick
 	# whips the sword through instead of dragging it.
@@ -662,6 +721,14 @@ func _process(delta: float) -> void:
 		return
 	_sword.visible = true
 	_attach_sword_to_fist()
+	_update_duelist(delta)
+	if not _held:
+		# Carried blade: attached to the fist and nothing else. No limits, no
+		# sweep bookkeeping - that is what keeps it still in the hand.
+		_prev_points = PackedVector3Array()
+		_update_dummy(delta)
+		_update_spark(delta)
+		return
 	_sweep(delta)
 	# A contact may deflect the blade; put it back into the allowed front space
 	# immediately so it can never be shown behind the character.
@@ -675,6 +742,38 @@ func _attach_sword_to_fist() -> void:
 	if _bone_hand < 0: return
 	var fist := _rig.global_transform * _rig.get_bone_global_pose(_bone_hand).origin
 	_place_sword(fist + _dir * GRIP_CENTER_OFFSET, _dir)
+
+## Left hand takes the lower part of the handle: reaches from its own shoulder to
+## that point, so the second hand really sits on the grip instead of being faked.
+## Distance from the right fist down the handle for the supporting hand.
+const TWO_HAND_LOWER_OFFSET := 0.115
+## Damage bonus of the two-handed grip.
+const TWO_HAND_DAMAGE_SCALE := 1.25
+
+func _solve_left_arm(grip_world: Vector3) -> void:
+	if _bone_l_upper < 0 or _bone_l_fore < 0 or _bone_l_hand < 0: return
+	if _bone_l_clavicle < 0: return
+	var rig_basis := _rig.global_transform.basis
+	var target_rig := rig_basis.inverse() * grip_world
+	var clavicle_global := _chain_global(_bone_l_clavicle)
+	var joint := (clavicle_global * _rest_l_upper).origin
+	var to_target := target_rig - joint
+	if to_target.length_squared() < 1.0e-8: return
+	var reach_dir := to_target.normalized()
+	var upper_local := _point_bone(_bone_l_upper, _rest_l_upper, _rest_l_fore.origin, clavicle_global.basis, reach_dir)
+	var upper_global := clavicle_global * upper_local
+	var fore_local := _point_bone(_bone_l_fore, _rest_l_fore, _rest_l_hand.origin, upper_global.basis, reach_dir)
+	var fore_global := upper_global * fore_local
+	# The supporting palm faces the handle, so the wrist is aimed along it.
+	var wrist_dir := (target_rig - fore_global.origin)
+	if wrist_dir.length_squared() > 1.0e-8:
+		_point_bone(_bone_l_hand, _rest_l_hand, _rest_l_hand.origin, fore_global.basis, wrist_dir.normalized())
+	_left_hand_error = (rig_basis * fore_global.origin).distance_to(grip_world)
+
+## World basis of the sword fist, as the rig currently displays it.
+func _fist_basis() -> Basis:
+	if not is_instance_valid(_rig) or _bone_hand < 0: return Basis.IDENTITY
+	return (_rig.global_transform.basis * _rig.get_bone_global_pose(_bone_hand).basis).orthonormalized()
 
 ## Blends into the body-space limit instead of snapping to it, so the blade is
 ## pulled back into the allowed front space over a few frames.
@@ -706,8 +805,8 @@ func _constrain_to_body(direction: Vector3, min_forward: float) -> Vector3:
 	var corrected := (side + Vector3(0.0, 0.0, min_forward)).normalized()
 	return (basis * corrected).normalized()
 
-## Where the sword hand is allowed to go. The whole front hemisphere is open —
-## high, low, left, right and thrusting forward — but never behind the back and
+## Where the sword hand is allowed to go. The whole front hemisphere is open Р Р†Р вЂљРІР‚Сњ
+## high, low, left, right and thrusting forward Р Р†Р вЂљРІР‚Сњ but never behind the back and
 ## never folded through the head.
 func _hand_target_direction() -> Vector3:
 	var basis := _camera.global_basis
@@ -728,36 +827,100 @@ func _hand_target_direction() -> Vector3:
 func _solve_arm(delta: float) -> void:
 	var rig_basis := _rig.global_transform.basis
 	if not _held:
-		# Idle: the arm keeps its own locomotion animation and only CARRIES the
-		# sword. The fist is read straight from the rig's displayed bone pose, so
-		# the handle stays in the hand exactly as the animation shows it.
-		var resting_fist: Vector3 = _rig.get_bone_global_pose(_bone_hand).origin
-		_sword_origin = (_rig.global_transform * resting_fist) + _dir * GRIP_CENTER_OFFSET
-		# A gentle torso help only; no arm authority at all.
+		# Carried: the arms keep their own locomotion animation and simply hold the
+		# sword in the hand that last gripped it. No IK runs here, which is what
+		# stops the idle shake entirely.
+		var resting := _hand_bone_for(_active_side())
+		if resting >= 0:
+			var resting_fist: Vector3 = _rig.get_bone_global_pose(resting).origin
+			_sword_origin = (_rig.global_transform * resting_fist) + _dir * GRIP_CENTER_OFFSET
 		_lean_body(_constrain_forward(_hand_target_direction()), delta)
 		return
 	var want_dir := _constrain_forward(_hand_target_direction())
-	# The hand stays in front of the torso even while the body is still turning.
 	want_dir = _constrain_to_body(want_dir, 0.55)
 	var want_rig := (rig_basis.inverse() * want_dir).normalized()
 	var blade_rig := (rig_basis.inverse() * _dir).normalized()
 	_lean_body(want_dir, delta)
-	var clavicle_global := _chain_global(_bone_clavicle)
-	if _bone_upper < 0 or _bone_fore < 0 or _bone_hand < 0: return
-	var upper_local := _point_bone(_bone_upper, _rest_upper, _rest_fore.origin, clavicle_global.basis, want_rig)
-	var upper_global := clavicle_global * upper_local
-	var fore_local := _point_bone(_bone_fore, _rest_fore, _rest_hand.origin, upper_global.basis, want_rig)
-	var fore_global := upper_global * fore_local
-	var hand_offset := _rest_socket.origin if _bone_socket >= 0 else Vector3(0.0, 1.0, 0.0)
-	var hand_local := _point_bone(_bone_hand, _rest_hand, hand_offset, fore_global.basis, blade_rig)
-	var hand_global := fore_global * hand_local
-	# The fist grips the MIDDLE of the handle, not the model origin: the handle
-	# sits behind the origin, so the sword is shifted forward by that offset. The
-	# grip is read from the CURRENT skeleton pose, so the handle stays inside the
-	# hand even if another owner touches the rig after this pass.
-	var fist := _chain_global(_bone_hand).origin
-	_sword_origin = (_rig.global_transform * fist) + _dir * GRIP_CENTER_OFFSET
+	var side := _active_side()
+	var grip_rig := Vector3.ZERO
+	if side == &"left":
+		grip_rig = _pose_left_main(want_rig, blade_rig)
+	elif side == &"both":
+		# Two-handed: the sword hand comes closer to the chest so the supporting
+		# hand can actually reach the handle.
+		grip_rig = _pose_right_main(want_rig, blade_rig, 0.55)
+		if grip_rig != Vector3.ZERO: _pose_left_support(grip_rig - blade_rig * TWO_HAND_LOWER_OFFSET)
+	else:
+		grip_rig = _pose_right_main(want_rig, blade_rig)
+	if side == &"left" and grip_rig == Vector3.ZERO:
+		grip_rig = _pose_right_main(want_rig, blade_rig)
+	if grip_rig == Vector3.ZERO: return
+	_sword_origin = (_rig.global_transform * grip_rig) + _dir * GRIP_CENTER_OFFSET
 
+## Which hand holds the sword right now. Both buttons = two-handed grip.
+func _active_side() -> StringName:
+	if _hold_left and _hold_right: return &"both"
+	if _hold_left: return &"left"
+	if _hold_right: return &"right"
+	return _carry_side
+
+func _hand_bone_for(side: StringName) -> int:
+	return _bone_l_hand if side == &"left" else _bone_hand
+
+## Right arm holds the sword in the main grip; returns the fist in rig space.
+## Right arm holds the sword in the main grip; returns the fist in rig space.
+func _pose_right_main(want_rig: Vector3, blade_rig: Vector3, reach_scale: float = 1.0) -> Vector3:
+	var hand_offset := _rest_socket.origin if _bone_socket >= 0 else Vector3(0.0, 1.0, 0.0)
+	return _pose_arm_ik(_bone_clavicle, _bone_upper, _bone_fore, _bone_hand, _rest_upper, _rest_fore, _rest_hand, hand_offset, want_rig, blade_rig, reach_scale)
+
+## Left arm holds the sword in the main grip (mirror of the right arm).
+func _pose_left_main(want_rig: Vector3, blade_rig: Vector3, reach_scale: float = 1.0) -> Vector3:
+	return _pose_arm_ik(_bone_l_clavicle, _bone_l_upper, _bone_l_fore, _bone_l_hand, _rest_l_upper, _rest_l_fore, _rest_l_hand, _rest_l_hand.origin, want_rig, blade_rig, reach_scale)
+
+## Supporting left hand closes on the lower part of the handle (two-handed grip).
+func _pose_left_support(grip_rig: Vector3) -> void:
+	var fist := _pose_arm_ik(_bone_l_clavicle, _bone_l_upper, _bone_l_fore, _bone_l_hand, _rest_l_upper, _rest_l_fore, _rest_l_hand, _rest_l_hand.origin, grip_rig, Vector3.UP, 1.0, true)
+	if fist != Vector3.ZERO: _left_hand_error = fist.distance_to(grip_rig)
+
+## Two-bone IK with a real elbow: the hand reaches the requested point (clamped
+## to the arm's length) instead of always being fully extended. That bend is what
+## lets the second hand reach the handle in a two-handed grip.
+func _pose_arm_ik(clav: int, upper: int, fore: int, hand: int, rest_upper: Transform3D, rest_fore: Transform3D, rest_hand: Transform3D, hand_offset: Vector3, want_rig: Vector3, blade_rig: Vector3, reach_scale: float = 1.0, want_is_point: bool = false) -> Vector3:
+	if clav < 0 or upper < 0 or fore < 0 or hand < 0: return Vector3.ZERO
+	var clavicle_global := _chain_global(clav)
+	var joint := (clavicle_global * rest_upper).origin
+	var l1 := rest_fore.origin.length()
+	var l2 := rest_hand.origin.length()
+	if l1 <= 0.01 or l2 <= 0.01: return Vector3.ZERO
+	var target := want_rig if want_is_point else joint + want_rig * (l1 + l2) * clampf(reach_scale, 0.3, 1.0)
+	var to_target := target - joint
+	var distance := to_target.length()
+	if distance < 1.0e-4: return Vector3.ZERO
+	var direction := to_target.normalized()
+	var d := clampf(distance, absf(l1 - l2) + 1.0e-3, l1 + l2 - 1.0e-3)
+	# Elbow hangs low and slightly behind, which reads naturally for a sword arm.
+	var pole := Vector3(0.0, -0.4, -0.3)
+	pole -= direction * pole.dot(direction)
+	if pole.length_squared() < 1.0e-6:
+		pole = direction.cross(Vector3.RIGHT)
+		if pole.length_squared() < 1.0e-6: pole = direction.cross(Vector3.UP)
+	pole = pole.normalized()
+	var cos_angle := clampf((l1 * l1 + d * d - l2 * l2) / (2.0 * l1 * d), -1.0, 1.0)
+	var upper_dir := (Quaternion(pole.cross(direction).normalized(), acos(cos_angle)) * direction).normalized()
+	var elbow := joint + upper_dir * l1
+	var fore_dir := (joint + direction * d - elbow).normalized()
+	var upper_local := _point_bone(upper, rest_upper, rest_fore.origin, clavicle_global.basis, upper_dir)
+	var upper_global := clavicle_global * upper_local
+	var fore_local := _point_bone(fore, rest_fore, rest_hand.origin, upper_global.basis, fore_dir)
+	var fore_global := upper_global * fore_local
+	var wrist_dir := blade_rig
+	if want_is_point:
+		var to_grip := target - fore_global.origin
+		if to_grip.length_squared() > 1.0e-8: wrist_dir = to_grip.normalized()
+	var hand_local := _point_bone(hand, rest_hand, hand_offset, fore_global.basis, wrist_dir)
+	return (fore_global * hand_local).origin
+
+## Hard guarantee that the sword hand can never end up behind the character's
 ## Hard guarantee that the sword hand can never end up behind the character's
 ## back or on top of his head: the grip is clamped into a front envelope at
 ## chest-to-shoulder height, so the blade is always readable in front of him.
@@ -860,12 +1023,264 @@ func _release_arm() -> void:
 	# Nothing to undo: the pose authority rewrites every bone on its next pass as
 	# soon as this host stops writing the arm.
 	pass
-func _place_sword(origin: Vector3, direction: Vector3) -> void:
+## ------------------------------------------------------------------ duelist
+## A sparring partner with the same sword. It walks in, winds up and cuts; the
+## player's blade is a REAL physical guard: if the two blades meet during the
+## incoming cut, the blow is stopped and no health is lost.
+const DUELIST_HP := 120.0
+const DUELIST_SPEED := 1.7
+const DUELIST_REACH := 1.05
+const DUELIST_WINDUP := 0.55
+const DUELIST_STRIKE := 0.20
+const DUELIST_RECOVER := 0.85
+const DUELIST_DAMAGE := 12.0
+const BLOCK_RADIUS := 0.24
+
+var _duelist: Node3D
+var _duelist_hull: StaticBody3D
+var _duelist_body: Node3D
+var _duelist_sword: Node3D
+var _duelist_dir := Vector3.FORWARD
+var _duelist_hp := DUELIST_HP
+var _duelist_state := "approach"
+var _duelist_timer := 0.0
+var _duelist_blade_prev: PackedVector3Array = PackedVector3Array()
+var _duelist_swings := 0
+var _duelist_hits := 0
+var _duelist_blocked := 0
+var _player_blocks := 0
+var _sparring_hp := 100.0
+var _last_clash_ms := -1000
+
+func _build_duelist(at: Vector3) -> void:
+	_duelist = Node3D.new()
+	_duelist.name = "SwordDuelist"
+	_world.add_child(_duelist)
+	var body_shape := StaticBody3D.new()
+	body_shape.name = "DuelistHull"
+	body_shape.collision_layer = 1
+	body_shape.collision_mask = 0
+	body_shape.set_meta("sword_duelist", true)
+	var hull := CollisionShape3D.new()
+	var capsule := CapsuleShape3D.new(); capsule.radius = 0.32; capsule.height = 1.55
+	hull.shape = capsule; hull.position = Vector3(0.0, 0.85, 0.0)
+	body_shape.add_child(hull)
+	_duelist.add_child(body_shape)
+	_duelist_hull = body_shape
+	_duelist_body = Node3D.new()
+	_duelist.add_child(_duelist_body)
+	var cloth := StandardMaterial3D.new(); cloth.albedo_color = Color(0.22, 0.26, 0.38); cloth.roughness = 0.85
+	var skin := StandardMaterial3D.new(); skin.albedo_color = Color(0.78, 0.62, 0.48); skin.roughness = 0.7
+	var torso := CapsuleMesh.new(); torso.radius = 0.26; torso.height = 0.95
+	var torso_node := MeshInstance3D.new(); torso_node.mesh = torso; torso_node.material_override = cloth
+	torso_node.position = Vector3(0.0, 1.02, 0.0)
+	_duelist_body.add_child(torso_node)
+	var head := SphereMesh.new(); head.radius = 0.16; head.height = 0.32
+	var head_node := MeshInstance3D.new(); head_node.mesh = head; head_node.material_override = skin
+	head_node.position = Vector3(0.0, 1.68, 0.0)
+	_duelist_body.add_child(head_node)
+	for side: float in [1.0, -1.0]:
+		var leg := CylinderMesh.new(); leg.top_radius = 0.10; leg.bottom_radius = 0.09; leg.height = 0.75
+		var leg_node := MeshInstance3D.new(); leg_node.mesh = leg; leg_node.material_override = cloth
+		leg_node.position = Vector3(side * 0.13, 0.38, 0.0)
+		_duelist_body.add_child(leg_node)
+	# Sword held in the opponent's right hand, pivoting about that fist.
+	var fist := Node3D.new(); fist.name = "Fist"
+	fist.position = Vector3(0.30, 1.24, 0.16)
+	_duelist_body.add_child(fist)
+	_duelist_sword = _build_sword_model(fist, "DuelistSword")
+	_duelist.position = at
+	_duelist_look_at_player(0.0)
+
+func _duelist_look_at_player(delta: float) -> void:
+	if not is_instance_valid(_duelist) or not is_instance_valid(_player): return
+	var to_player := _player.global_position - _duelist.global_position
+	to_player.y = 0.0
+	if to_player.length_squared() < 1.0e-6: return
+	var want := atan2(to_player.x, to_player.z)
+	var current := _duelist.rotation.y
+	_duelist.rotation.y = lerp_angle(current, want, clampf(5.0 * delta, 0.0, 1.0))
+
+## Walk in, wind up, cut, recover. Every strike sweeps the opponent's blade and
+## asks the player's blade whether it is in the way.
+func _update_duelist(delta: float) -> void:
+	if not is_instance_valid(_duelist) or not is_instance_valid(_player): return
+	if _duelist_hp <= 0.0:
+		_duelist_body.rotation.x = lerp_angle(_duelist_body.rotation.x, -1.35, clampf(3.0 * delta, 0.0, 1.0))
+		return
+	_duelist_look_at_player(delta)
+	var to_player := _player.global_position - _duelist.global_position
+	to_player.y = 0.0
+	var distance := to_player.length()
+	_duelist_timer += delta
+	match _duelist_state:
+		"approach":
+			if distance > DUELIST_REACH:
+				_duelist.global_position += to_player.normalized() * DUELIST_SPEED * delta
+				_duelist.global_position.y = _player.global_position.y
+			else:
+				_duelist_state = "windup"
+				_duelist_timer = 0.0
+		"windup":
+			_duelist_dir = _duelist_dir.slerp(_duelist_high_guard(), clampf(7.0 * delta, 0.0, 1.0)).normalized()
+			if _duelist_timer >= DUELIST_WINDUP:
+				_duelist_state = "strike"
+				_duelist_timer = 0.0
+				_duelist_swings += 1
+				_duelist_blade_prev = PackedVector3Array()
+		"strike":
+			var cut := _duelist_cut_direction()
+			_duelist_dir = _duelist_dir.slerp(cut, clampf(16.0 * delta, 0.0, 1.0)).normalized()
+			# A short lunge so the blade actually reaches the player.
+			_duelist.global_position += cut * 1.2 * delta
+			_duelist.global_position.y = _player.global_position.y
+			_duelist_resolve_strike(delta)
+			if _duelist_timer >= DUELIST_STRIKE:
+				_duelist_state = "recover"
+				_duelist_timer = 0.0
+		_:
+			_duelist_dir = _duelist_dir.slerp(_duelist_high_guard(), clampf(4.0 * delta, 0.0, 1.0)).normalized()
+			if _duelist_timer >= DUELIST_RECOVER:
+				_duelist_state = "approach" if distance > DUELIST_REACH else "windup"
+				_duelist_timer = 0.0
+	var fist_global: Vector3 = _duelist_body.to_global(Vector3(0.30, 1.24, 0.16))
+	_duelist_sword.global_transform = _place_basis(fist_global + _duelist_dir * GRIP_CENTER_OFFSET, _duelist_dir)
+
+func _duelist_high_guard() -> Vector3:
+	var up := Vector3.UP
+	return (up * 0.85 + _duelist.global_basis.z * -0.35).normalized()
+
+func _duelist_cut_direction() -> Vector3:
+	var to_player := (_player.global_position + Vector3.UP * 1.0) - _duelist.global_position
+	if to_player.length_squared() < 1.0e-6: return Vector3.FORWARD
+	return to_player.normalized()
+
+func _duelist_blade_points() -> PackedVector3Array:
+	var points := PackedVector3Array()
+	var origin: Vector3 = _duelist_sword.global_position
+	var direction: Vector3 = _duelist_sword.global_basis.x.normalized()
+	for i: int in 5:
+		points.append(origin + direction * (0.10 + BLADE_LENGTH * float(i) / 4.0))
+	return points
+
+## The incoming cut: first ask the player's blade (a real guard), then the body.
+func _duelist_resolve_strike(delta: float) -> void:
+	var points := _duelist_blade_points()
+	if _duelist_blade_prev.size() != points.size():
+		_duelist_blade_prev = points
+		return
+	var space := _player.get_world_3d().direct_space_state
+	for i: int in points.size():
+		var from := _duelist_blade_prev[i]
+		var to := points[i]
+		if from.distance_squared_to(to) < 1.0e-8: continue
+		# 1. Did the player's blade meet ours on this segment?
+		if _player_blade_intercepts(from, to):
+			_register_clash((from + to) * 0.5)
+			_duelist_blade_prev = points
+			return
+		# 2. Otherwise a real hit on the body? The player is on layer 2, and the
+		# opponent's own hull is on layer 1, so no exclusion list is needed.
+		var query := PhysicsRayQueryParameters3D.create(from, to, 2)
+		var hit := space.intersect_ray(query)
+		if hit.is_empty(): continue
+		if now_ms() - _last_player_hit_ms < 400: continue
+		_last_player_hit_ms = now_ms()
+		_duelist_hits += 1
+		_apply_player_damage(DUELIST_DAMAGE, hit.position, (to - from).normalized())
+		_duelist_blade_prev = points
+		return
+	# Fallback reach test: a cut swung at the player from close range lands unless
+	# the player's blade is actually in the way, even if the thin ray misses.
+	var to_player := (_player.global_position + Vector3.UP * 1.0) - _duelist.global_position
+	if to_player.length() <= BLADE_LENGTH + 0.75 and _duelist_dir.dot(to_player.normalized()) > 0.72:
+		var clash_at := _player.global_position + Vector3.UP * 1.0
+		if _player_blade_intercepts(_duelist.global_position, clash_at):
+			_register_clash(clash_at)
+		elif now_ms() - _last_player_hit_ms >= 400:
+			_last_player_hit_ms = now_ms()
+			_duelist_hits += 1
+			_apply_player_damage(DUELIST_DAMAGE, clash_at, to_player.normalized())
+	_duelist_blade_prev = points
+
+## True when the segment of the opponent's cut crosses the player's blade.
+func _player_blade_intercepts(from: Vector3, to: Vector3) -> bool:
+	if not is_instance_valid(_sword) or not _sword.visible: return false
+	var mine_a: Vector3 = _sword_origin
+	var mine_b: Vector3 = _sword_origin + _dir * (0.06 + BLADE_LENGTH)
+	return _segment_distance(from, to, mine_a, mine_b) <= BLOCK_RADIUS
+
+func _register_clash(at: Vector3) -> void:
+	var now := now_ms()
+	if now - _last_clash_ms < 260: return
+	_last_clash_ms = now
+	_player_blocks += 1
+	_duelist_blocked += 1
+	_block_push = (_block_push + (_sword_origin - at).normalized() * 0.05).limit_length(0.5)
+	_body_push = (_body_push + (_player.global_position - at).normalized() * 0.02).limit_length(BODY_PUSH_LIMIT)
+	_impact_player.global_position = at
+	_impact_player.pitch_scale = 1.7
+	_impact_player.play()
+	_show_spark(at)
+	_duelist_state = "recover"
+	_duelist_timer = 0.0
+
+## Damage to the player: goes through the session health owner when present, so
+## the ordinary HUD reacts, with a local sparring counter as a fallback.
+var _last_player_hit_ms := -1000
+func _apply_player_damage(amount: float, at: Vector3, direction: Vector3) -> void:
+	_sparring_hp = maxf(0.0, _sparring_hp - amount)
+	_impact_player.global_position = at
+	_impact_player.pitch_scale = 0.8
+	_impact_player.play()
+	var owner := _session_health()
+	if owner != null:
+		var hp: Variant = owner.get("_hp")
+		if hp is int:
+			owner.set("_hp", maxi(0, int(hp) - int(round(amount))))
+			owner.set("_hit_age", 0.0)
+			owner.call("_refresh")
+	if is_instance_valid(_player): _player.apply_contact_melee_impulse(direction, 18.0)
+
+func _session_health() -> Object:
+	if not is_instance_valid(_player) or not _player.has_meta("local_contact_health_owner"): return null
+	var id: int = int(_player.get_meta("local_contact_health_owner"))
+	var owner: Object = instance_from_id(id)
+	return owner if is_instance_valid(owner) else null
+
+func now_ms() -> int:
+	return Time.get_ticks_msec()
+
+## Shortest distance between two segments (used for blade-on-blade contact).
+func _segment_distance(a0: Vector3, a1: Vector3, b0: Vector3, b1: Vector3) -> float:
+	var u := a1 - a0
+	var v := b1 - b0
+	var w := a0 - b0
+	var a := u.dot(u); var b := u.dot(v); var c := v.dot(v)
+	var d := u.dot(w); var e := v.dot(w)
+	var denominator := a * c - b * b
+	var s := 0.0
+	var t := 0.0
+	if denominator > 1.0e-9:
+		s = clampf((b * e - c * d) / denominator, 0.0, 1.0)
+		t = clampf((a * e - b * d) / denominator, 0.0, 1.0)
+	else:
+		s = 0.0
+		t = clampf(e / maxf(c, 1.0e-9), 0.0, 1.0)
+	var closest_a := a0 + u * s
+	var closest_b := b0 + v * t
+	return closest_a.distance_to(closest_b)
+
+## Builds a sword transform with +X along `direction`.
+func _place_basis(origin: Vector3, direction: Vector3) -> Transform3D:
 	var x := direction.normalized()
 	var reference := Vector3.UP if absf(x.dot(Vector3.UP)) < 0.94 else Vector3.FORWARD
 	var z := x.cross(reference).normalized()
 	var y := z.cross(x).normalized()
-	_sword.global_transform = Transform3D(Basis(x, y, z), origin)
+	return Transform3D(Basis(x, y, z), origin)
+
+func _place_sword(origin: Vector3, direction: Vector3) -> void:
+	_sword.global_transform = _place_basis(origin, direction)
 
 # -------------------------------------------------------------- blade sweeping
 
@@ -919,6 +1334,7 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 	var position: Vector3 = hit.position
 	var normal: Vector3 = hit.normal
 	var is_target: bool = is_instance_valid(collider) and collider.has_meta("sword_target")
+	var is_duelist: bool = is_instance_valid(collider) and collider.has_meta("sword_duelist")
 	if not _held:
 		# Carrying the sword is not a strike: a tip brushing the ground must not
 		# push, deflect or rattle anything. Reacting here was the 10 Hz jitter.
@@ -951,6 +1367,17 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 		var recoil := clampf(speed, 0.0, 4.0)
 		_body_push += normal * recoil * (0.02 if is_target else 0.04)
 		_body_push = _body_push.limit_length(BODY_PUSH_LIMIT)
+	if is_duelist:
+		if _held and now - int(_hit_ms.get(id_any, -10000)) >= CONTACT_COOLDOWN_MS:
+			_hit_ms[id_any] = now
+			var cut := clampf((speed * 0.6 - DAMAGE_SPEED_MIN) * DAMAGE_PER_MPS, 1.0, DAMAGE_MAX)
+			_duelist_hp = maxf(0.0, _duelist_hp - cut)
+			_impact_player.global_position = position
+			_impact_player.pitch_scale = 1.3
+			_impact_player.play()
+			_show_spark(position)
+			_duelist_body.rotation.x = 0.22
+		return
 	if is_target:
 		var id: int = collider.get_instance_id()
 		# One entry = one blow, and only a deliberately steered blade (LMB held,
@@ -994,6 +1421,7 @@ func _damage_dummy(dummy: StaticBody3D, position: Vector3, speed: float, velocit
 	# Wind-up matters: a stroke that barely moved the blade stays a graze, while a
 	# full wind-up followed by a cut lands far harder.
 	var strength := clampf(SWING_STRENGTH_MIN + _swing_travel * SWING_STRENGTH_GAIN, SWING_STRENGTH_MIN, 2.0)
+	if _active_side() == &"both": strength *= TWO_HAND_DAMAGE_SCALE
 	_last_hit_kind = kind
 	_last_hit_scale = strength
 	var damage := clampf((effective * strength - DAMAGE_SPEED_MIN) * DAMAGE_PER_MPS, 0.0, DAMAGE_MAX)
@@ -1024,21 +1452,21 @@ func _damage_dummy(dummy: StaticBody3D, position: Vector3, speed: float, velocit
 	_dummy_tilt_axis = Vector3(local.z, 0.0, -local.x).normalized()
 	if _dummy_tilt_axis.length_squared() < 1e-6: _dummy_tilt_axis = Vector3.RIGHT
 	_dummy_tilt = clampf(_dummy_tilt + 0.12 + damage * 0.012, 0.0, 0.62)
-	_dummy_label.text = "Манекен %d" % int(round(_dummy_hp))
+	_dummy_label.text = "Р В РЎС™Р В Р’В°Р В Р вЂ¦Р В Р’ВµР В РЎвЂќР В Р’ВµР В Р вЂ¦ %d" % int(round(_dummy_hp))
 	_dummy_label.modulate = Color(1.0, 0.55, 0.45) if _dummy_hp <= 40.0 else Color(1.0, 0.92, 0.65)
 	_spawn_damage_number(position, damage, kind)
 	if _dummy_hp <= 0.0:
 		_dummy_down = true
 		_down_until_ms = now + 2200
 		_dummy_tilt = 0.62
-		_dummy_label.text = "Манекен сбит"
+		_dummy_label.text = "Р В РЎС™Р В Р’В°Р В Р вЂ¦Р В Р’ВµР В РЎвЂќР В Р’ВµР В Р вЂ¦ Р РЋР С“Р В Р’В±Р В РЎвЂР РЋРІР‚С™"
 
 func _update_dummy(delta: float) -> void:
 	if not is_instance_valid(_dummy_pivot): return
 	if _dummy_down and Time.get_ticks_msec() >= _down_until_ms:
 		_dummy_down = false
 		_dummy_hp = DUMMY_MAX_HP
-		_dummy_label.text = "Манекен %d" % int(DUMMY_MAX_HP)
+		_dummy_label.text = "Р В РЎС™Р В Р’В°Р В Р вЂ¦Р В Р’ВµР В РЎвЂќР В Р’ВµР В Р вЂ¦ %d" % int(DUMMY_MAX_HP)
 		_dummy_label.modulate = Color(1.0, 0.92, 0.65)
 	_dummy_tilt = maxf(0.0, _dummy_tilt - delta * (0.55 if _dummy_down else 1.35))
 	_dummy_pivot.rotation = _dummy_tilt_axis * _dummy_tilt
@@ -1091,6 +1519,13 @@ func snapshot() -> Dictionary:
 		"body_push": _body_push.length(), "omega": _omega.length(), "thrust": _thrust,
 		"last_hit_kind": _last_hit_kind, "contact_now": _contact_prev.size(),
 		"swing_travel": _swing_travel, "hit_scale": _last_hit_scale,
+		"two_handed": _active_side() == &"both", "left_hand_error": _left_hand_error,
+		"hand_side": str(_active_side()),
+		"duelist_state": _duelist_state, "duelist_hp": _duelist_hp, "duelist_swings": _duelist_swings,
+		"duelist_hits": _duelist_hits, "duelist_blocked": _duelist_blocked, "player_blocks": _player_blocks,
+		"sparring_hp": _sparring_hp,
+		"duelist_position": _duelist.global_position if is_instance_valid(_duelist) else Vector3.ZERO,
+		"blade_from": _sword_origin, "blade_to": _sword_origin + _dir * (0.06 + BLADE_LENGTH),
 		"blade_body_dot": _dir.dot(_player._visual.global_basis.z) if is_instance_valid(_player) and is_instance_valid(_player._visual) else -1.0,
 		"hand_local_z": (_player._visual.global_basis.inverse() * (_sword_origin - _player._visual.global_position)).z if is_instance_valid(_player) and is_instance_valid(_player._visual) else 0.0,
 		"upper_len": _upper_len, "fore_len": _fore_len,
