@@ -1447,15 +1447,23 @@ func _register_clash(at: Vector3) -> void:
 	away.y *= 0.35
 	if away.length_squared() < 1.0e-6: away = -_dir
 	away = away.normalized()
-	_dir = (_dir - away * 0.45).normalized()
-	_omega += away.cross(Vector3.UP) * 3.0
+	# A SMALL bounce: enough to feel the steel and to stop the cut dead, not enough
+	# to throw the sword out of the hand.
+	_dir = (_dir - away * 0.30).normalized()
+	_omega += away.cross(Vector3.UP) * 2.0
 	if _omega.length() > MAX_OMEGA: _omega = _omega.normalized() * MAX_OMEGA
-	_block_push = (_block_push + away * 0.05).limit_length(0.5)
+	_block_push = (_block_push + away * 0.04).limit_length(0.5)
 	_body_push = (_body_push + away * 0.02).limit_length(BODY_PUSH_LIMIT)
-	# The opponent's blade is knocked away too.
+	# The opponent's blade is knocked away too - including the real knight.
 	var push_back := -away
 	_duelist_dir = (_duelist_dir + push_back * 0.5).normalized()
 	_duelist_recoil_until_ms = now + 200
+	if is_instance_valid(_npc_rig) and is_instance_valid(_npc_sword):
+		_npc_dir = (_npc_dir + push_back * 0.55).normalized()
+		_npc_recoil_until_ms = now + 220
+		if _npc_state == "strike":
+			_npc_state = "recover"
+			_npc_timer = 0.0
 	_impact_player.global_position = at
 	_impact_player.pitch_scale = 1.7
 	_impact_player.play()
@@ -1657,12 +1665,28 @@ func _sweep(delta: float) -> void:
 	var touched: Dictionary = {}
 	# EVERY collider the blade crossed this frame is a contact, not just the
 	# nearest one: a single swing through an arm and a chest is two hits.
+	# nearest one: a single swing through an arm and a chest is two hits.
 	var hits: Array[Dictionary] = []
 	var seen: Dictionary = {}
+	# The opponent's steel is a REAL barrier: if our blade meets his anywhere along
+	# the swing, the cut stops there and nothing behind it is reached.
+	var npc_blade_ok := false
+	var npc_a := Vector3.ZERO
+	var npc_b := Vector3.ZERO
+	if is_instance_valid(_npc_sword) and _npc_sword.visible:
+		npc_a = _npc_sword.global_position
+		npc_b = npc_a + _npc_sword.global_basis.x.normalized() * (0.06 + BLADE_LENGTH)
+		npc_blade_ok = true
+	var clash := false
+	var clash_at := Vector3.ZERO
 	for i: int in points.size():
 		var from := _prev_points[i]
 		var to := points[i]
 		if from.distance_squared_to(to) < 1.0e-8: continue
+		if npc_blade_ok and _segment_distance(from, to, npc_a, npc_b) <= BLOCK_RADIUS:
+			clash = true
+			clash_at = (from + to) * 0.5
+			break
 		var query := PhysicsRayQueryParameters3D.create(from, to, 1, excluded)
 		query.hit_from_inside = true
 		var hit := space.intersect_ray(query)
@@ -1680,9 +1704,16 @@ func _sweep(delta: float) -> void:
 		hit["_velocity"] = (to - from) / delta
 		hit["_index"] = i
 		hits.append(hit)
+	if clash:
+		# Steel on steel: a small bounce for both blades, and this swing is spent.
+		_register_clash(clash_at)
+		for id: Variant in _contact_prev:
+			if not touched.has(id): _contact_gap[id] = now
+		_contact_prev = touched
+		_prev_points = points
+		return
 	for hit: Dictionary in hits:
 		_resolve_contact(hit, points, now, touched)
-	# Remember what the blade was already touching: a target that stays in
 	# contact is not struck again, so one swing cannot machine-gun damage.
 	for id: Variant in _contact_prev:
 		if not touched.has(id): _contact_gap[id] = now
@@ -1951,6 +1982,8 @@ var _npc_blocked := 0
 var _npc_blade_prev: PackedVector3Array = PackedVector3Array()
 var _npc_hit_ms := -10000
 var _npc_blade_ms := -10000
+## While set, the knight's blade is still springing back from a parry.
+var _npc_recoil_until_ms := 0
 ## Deferred binding: the population host appears after the prototype.
 var _npc_bind_timer := 0.0
 var _npc_bind_attempts := 0
