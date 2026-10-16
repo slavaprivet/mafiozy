@@ -482,6 +482,18 @@ func _run() -> void:
 	await _shot("duelist")
 
 	var final: Dictionary = _proto.snapshot()
+	# 9. Drop the sword on the ground with G and take it back with E.
+	var drop_ok: bool = _proto.call("drop_sword_to_ground")
+	await _settle(8)
+	var dropped_state: Dictionary = _proto.snapshot()
+	await _shot("dropped")
+	var pick_ok: bool = _proto.call("try_pickup_sword")
+	await _settle(10)
+	var picked_state: Dictionary = _proto.snapshot()
+	print("SWORD_SHOT_GROUND drop_ok=", drop_ok, " grounded=", dropped_state.get("sword_grounded", false),
+		" at=", dropped_state.get("dropped_at", Vector3.ZERO),
+		" pickup_ok=", pick_ok, " grounded_after=", picked_state.get("sword_grounded", true),
+		" in_hand_error=", picked_state.get("grip_hand_error", 9.0))
 	final["camera_lock_delta"] = absf(yaw_held_after - yaw_held_before)
 	final["free_look_delta"] = absf(yaw_free_after - yaw_free_before)
 	final["still_hp_delta"] = float(still_before.dummy_hp) - float(still_after.dummy_hp)

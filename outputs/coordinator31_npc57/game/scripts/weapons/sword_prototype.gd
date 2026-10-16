@@ -409,11 +409,69 @@ func _build_hint() -> void:
 	style.content_margin_top = 6; style.content_margin_bottom = 6
 	panel.add_theme_stylebox_override("panel", style)
 	_hint = Label.new()
-	_hint.text = "ТЕСТОВЫЙ МЕЧ (прототип)\nЛКМ и мышь — рубящий удар ЛЕВОЙ рукой\nПКМ и мышь — БЛОК: меч ставится туда, куда ведёшь мышью\nЛКМ + ПКМ — двуручный хват, удар сильнее\nКолесо мыши — укол вперёд / оттянуть назад"
 	_hint.add_theme_font_size_override("font_size", 14)
 	_hint.add_theme_color_override("font_color", Color(1.0, 0.93, 0.72))
 	panel.add_child(_hint)
 	_hint_layer.add_child(panel)
+	_update_hint()
+
+## The hint follows the state: a sword lying on the ground only offers "pick up".
+func _update_hint() -> void:
+	if not is_instance_valid(_hint): return
+	if _sword_grounded:
+		_hint.text = "ТЕСТОВЫЙ МЕЧ (прототип)\nМеч лежит на земле\nE — поднять меч"
+		return
+	_hint.text = "ТЕСТОВЫЙ МЕЧ (прототип)\nЛКМ и мышь — рубящий удар ЛЕВОЙ рукой\nПКМ — БЛОК в диагональной стойке, мышь поднимает/опускает\nЛКМ + ПКМ — двуручный хват, удар сильнее\nКолесо мыши — укол вперёд / оттянуть назад\nG — бросить меч, E — поднять"
+
+## A dropped sword lies on the ground and is picked up with E, the same way every
+## other weapon in the game behaves.
+var _sword_grounded := false
+var _dropped_at := Vector3.ZERO
+
+func is_sword_grounded() -> bool:
+	return _sword_grounded
+
+## G: leave the sword as a real 3D object lying on the ground.
+func drop_sword_to_ground() -> bool:
+	if not _selected or _sword_grounded or not is_instance_valid(_sword): return false
+	_sword_grounded = true
+	_held = false
+	_hold_left = false
+	_hold_right = false
+	_held_event = false
+	_blocking = false
+	_omega = Vector3.ZERO
+	_prev_points = PackedVector3Array()
+	_contact_prev.clear()
+	_contact_gap.clear()
+	if is_instance_valid(_player): _player.set("_sword_lock", false)
+	var visual: Node3D = _player._visual
+	var forward: Vector3 = visual.global_basis.z
+	forward.y = 0.0
+	if forward.length_squared() < 1.0e-6: forward = Vector3.FORWARD
+	forward = forward.normalized()
+	var at: Vector3 = _player.global_position + forward * 0.75 + visual.global_basis.x * 0.25
+	var ground := _grounded(at)
+	if ground.is_finite(): at = ground + Vector3.UP * 0.05
+	else: at = Vector3(at.x, _player.global_position.y + 0.05, at.z)
+	_dropped_at = at
+	# Lying flat: the blade runs along the ground with the flat face down.
+	_sword.visible = true
+	_sword.global_transform = _place_basis(at, forward) * Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3.ZERO)
+	_update_hint()
+	print("DSH_SWORD_PROTO_DROPPED at=", at)
+	return true
+
+## E: pick the lying sword back up when the player is close enough.
+func try_pickup_sword() -> bool:
+	if not _selected or not _sword_grounded: return false
+	var distance := _player.global_position.distance_to(_dropped_at)
+	if distance > 2.4: return false
+	_sword_grounded = false
+	_arm_ready_ms = Time.get_ticks_msec() + 450
+	_update_hint()
+	print("DSH_SWORD_PROTO_PICKED distance=", distance)
+	return true
 
 # ------------------------------------------------------------ target placement
 
@@ -596,6 +654,17 @@ func _input(event: InputEvent) -> void:
 			get_tree().reload_current_scene.call_deferred()
 			return
 	if not _ready or not _active(): return
+	if event is InputEventKey and event.pressed and not event.echo:
+		var code: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
+		# G drops the sword as a real object on the ground; E picks it back up.
+		if code == KEY_G and not _sword_grounded:
+			if drop_sword_to_ground():
+				get_viewport().set_input_as_handled()
+				return
+		if code == KEY_E and _sword_grounded:
+			if try_pickup_sword():
+				get_viewport().set_input_as_handled()
+				return
 	if event is InputEventMouseButton:
 		var button := event as InputEventMouseButton
 		if button.button_index == MOUSE_BUTTON_LEFT:
@@ -812,6 +881,17 @@ func _physics_process(delta: float) -> void:
 		_held = _hold_left or _hold_right
 		_player.set("_sword_lock", false)
 	if is_instance_valid(_sword): _sword.visible = true
+	if _sword_grounded:
+		# The sword lies on the ground: no steering, no arm, it is simply not held.
+		_held = false
+		_hold_left = false
+		_hold_right = false
+		_blocking = false
+		_omega = Vector3.ZERO
+		_prev_points = PackedVector3Array()
+		if is_instance_valid(_player): _player.set("_sword_lock", false)
+		_update_city_npc(delta)
+		return
 	_dir = _soft_body_limit(_constrain_forward(_dir), 0.10, 0.16)
 	if not _held:
 		# Released: the mouse command decays so the blade returns to rest.
@@ -856,7 +936,7 @@ func _process(delta: float) -> void:
 	# neither the animation nor our own arm IK can restore it.
 	_apply_player_severed()
 	var armed_with_sword := is_instance_valid(_sword)
-	if armed_with_sword:
+	if armed_with_sword and not _sword_grounded:
 		_sword.visible = true
 		_attach_sword_to_fist()
 	_update_gore(delta)
@@ -865,6 +945,11 @@ func _process(delta: float) -> void:
 	if not armed_with_sword:
 		# The blade lies on the ground with the hand that used to hold it.
 		_prev_points = PackedVector3Array()
+		return
+	if _sword_grounded:
+		# Dropped: the sword stays a real object where it fell.
+		_prev_points = PackedVector3Array()
+		if is_instance_valid(_player): _player.set("_sword_lock", false)
 		return
 	if not _held:
 		# Carried blade: attached to the fist and nothing else. No limits, no
@@ -2887,6 +2972,7 @@ func snapshot() -> Dictionary:
 		"npc_part_hp": _npc_part_hp.duplicate(),
 		"npc_position": _npc_body.global_position if is_instance_valid(_npc_body) else Vector3.ZERO,
 		"grip_hand_error": _grip_hand_error,
+		"sword_grounded": _sword_grounded, "dropped_at": _dropped_at,
 		"armour_plates": _knight_armour.size(), "stump_count": _stumps.size(),
 		"bleeding": Time.get_ticks_msec() < _npc_bleed_until_ms,
 		"npc_fall": _npc_fall, "npc_speed_scale": _npc_speed_scale(),
