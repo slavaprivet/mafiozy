@@ -61,13 +61,20 @@ const BODY_YAW_LIMIT := 0.30
 ## body visibly drives the swing.
 const BODY_YAW_SHARE_SWING := 0.48
 const BODY_YAW_LIMIT_SWING := 0.70
-const DAMAGE_SPEED_MIN := 1.05  # m/s below which a touch deals no damage
+const DAMAGE_SPEED_MIN := 1.50  # m/s below which a touch deals no damage
 const DAMAGE_PER_MPS := 9.0
 const DAMAGE_MAX := 34.0
-## Wind-up: radians of blade travel that saturate the strength bonus.
+## Wind-up is what makes a blow strong. It counts the ANGLE the blade turned, and
+## how DECISIVELY it turned: a slow wave of the mouse earns almost nothing, so
+## flailing around the desk is not a strategy, while one committed wind-up behind a
+## cut is. Sensitivity is still irrelevant - only angles and time are used.
 const MAX_SWING_TRAVEL := 2.4
-const SWING_STRENGTH_GAIN := 0.62
-const SWING_STRENGTH_MIN := 0.45
+const SWING_STRENGTH_MIN := 0.20
+const SWING_STRENGTH_GAIN := 0.95
+const SWING_STRENGTH_MAX := 2.6
+## Wind-up speed (rad/s) that counts as fully decisive.
+const WINDUP_RATE_IDEAL := 6.0
+const WINDUP_DECISION_FLOOR := 0.30
 const CONTACT_COOLDOWN_MS := 700
 ## A blow only counts after the blade actually left the target for this long.
 ## Without it, a blade resting on the ground or wobbling against the dummy fires
@@ -175,6 +182,8 @@ var _number_count := 0
 var _swing_travel := 0.0
 ## Blade direction when the current swing began, and the previous held state.
 var _swing_start_dir := Vector3.ZERO
+## When the current swing began, so the wind-up can be judged for decisiveness.
+var _swing_start_ms := 0
 ## Smoothed steering target, so a raw camera/mouse target cannot ripple the blade.
 var _steer_target := Vector3.ZERO
 var _held_prev := false
@@ -186,6 +195,17 @@ const SWING_ANGLE_MAX := 2.4
 func _windup_angle() -> float:
 	if _swing_start_dir.length_squared() < 1.0e-6: return 0.0
 	return clampf(_swing_start_dir.angle_to(_dir), 0.0, SWING_ANGLE_MAX)
+
+## Strength of the blow about to land. It grows with the wind-up ANGLE and with how
+## DECISIVELY that angle was taken, so one committed wind-up behind a cut is strong
+## while slowly waving the mouse around earns almost nothing.
+func _strength_now() -> float:
+	var angle := _windup_angle()
+	var seconds := maxf(0.06, float(Time.get_ticks_msec() - _swing_start_ms) * 0.001)
+	var rate := angle / seconds
+	var decisiveness := clampf(rate / WINDUP_RATE_IDEAL, WINDUP_DECISION_FLOOR, 1.0)
+	return clampf(SWING_STRENGTH_MIN + angle * SWING_STRENGTH_GAIN * decisiveness,
+		SWING_STRENGTH_MIN, SWING_STRENGTH_MAX)
 ## Kind of the last landed blow: slice, stab or flat.
 var _last_hit_kind := ""
 var _last_hit_scale := 1.0
@@ -910,6 +930,7 @@ func _physics_process(delta: float) -> void:
 	# still what a real wind-up is.
 	if _held and not _held_prev:
 		_swing_start_dir = _dir
+		_swing_start_ms = Time.get_ticks_msec()
 	_held_prev = _held
 	if not _held:
 		_swing_start_dir = _dir
@@ -1898,9 +1919,10 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 			_hit_ms[id_any] = now
 			# A full wind-up lands far harder, so a strong, prepared cut is what
 			# actually severs a limb.
-			var strength := clampf(SWING_STRENGTH_MIN + _swing_travel * SWING_STRENGTH_GAIN, SWING_STRENGTH_MIN, 2.0)
+			var strength := _strength_now()
 			var npc_cut := clampf((speed * 0.6 - DAMAGE_SPEED_MIN) * DAMAGE_PER_MPS * strength, 4.0, DAMAGE_MAX)
 			_swing_start_dir = _dir
+			_swing_start_ms = now
 			_swing_travel = 0.0
 			if npc_part != "":
 				_bite_into(0.72)
@@ -1950,7 +1972,7 @@ func _damage_dummy(dummy: StaticBody3D, position: Vector3, speed: float, velocit
 	var kind := "slice" if across >= 0.72 else ("stab" if along >= 0.72 else "flat")
 	# Wind-up matters: a stroke that barely moved the blade stays a graze, while a
 	# full wind-up followed by a cut lands far harder.
-	var strength := clampf(SWING_STRENGTH_MIN + _swing_travel * SWING_STRENGTH_GAIN, SWING_STRENGTH_MIN, 2.0)
+	var strength := _strength_now()
 	if _active_side() == &"both": strength *= TWO_HAND_DAMAGE_SCALE
 	_bite_into(0.62)
 	_last_hit_kind = kind
@@ -1958,6 +1980,7 @@ func _damage_dummy(dummy: StaticBody3D, position: Vector3, speed: float, velocit
 	var damage := clampf((effective * strength - DAMAGE_SPEED_MIN) * DAMAGE_PER_MPS, 0.0, DAMAGE_MAX)
 	# A landed blow spends the wind-up; the next hit must be earned again.
 	_swing_start_dir = _dir
+	_swing_start_ms = now
 	_swing_travel = 0.0
 	_hit_ms[key] = now
 	if damage <= 0.05:
