@@ -195,11 +195,14 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 	_bone_chest = rig.find_bone("chest")
 	_bone_pelvis = rig.find_bone("pelvis")
 	_bone_head = rig.find_bone("head")
-	# Resolve the rig's mirrored naming once: if the "_l" clavicle sits on the
-	# side the model calls right, the names are inverted for our purposes.
+	# Resolve the mirrored naming once. Pressing LMB must move the arm the player
+	# sees on the left, so the mapping follows the observed geometry instead of
+	# trusting the "_l"/"_r" suffixes.
 	var l_clavicle_x := rig.get_bone_rest(rig.find_bone("clavicle_l")).origin.x if rig.find_bone("clavicle_l") >= 0 else 0.0
 	var r_clavicle_x := rig.get_bone_rest(rig.find_bone("clavicle_r")).origin.x if rig.find_bone("clavicle_r") >= 0 else 0.0
-	_side_inverted = l_clavicle_x < r_clavicle_x
+	_side_inverted = l_clavicle_x > r_clavicle_x
+	_left_sign = signf(r_clavicle_x) if _side_inverted else signf(l_clavicle_x)
+	if _left_sign == 0.0: _left_sign = 1.0
 	_bone_l_clavicle = rig.find_bone("clavicle_l")
 	_bone_l_upper = rig.find_bone("upperarm_l")
 	_bone_l_fore = rig.find_bone("forearm_l")
@@ -376,7 +379,7 @@ func _build_hint() -> void:
 	style.content_margin_top = 6; style.content_margin_bottom = 6
 	panel.add_theme_stylebox_override("panel", style)
 	_hint = Label.new()
-	_hint.text = "Р В Р’В Р РЋРЎвЂєР В Р’В Р Р†Р вЂљРЎС›Р В Р’В Р В Р вЂ№Р В Р’В Р РЋРЎвЂєР В Р’В Р РЋРІР‚С”Р В Р’В Р Р†Р вЂљРІвЂћСћР В Р’В Р вЂ™Р’В«Р В Р’В Р Р†РІР‚С›РЎС› Р В Р’В Р РЋРЎв„ўР В Р’В Р Р†Р вЂљРЎС›Р В Р’В Р вЂ™Р’В§ (Р В Р’В Р РЋРІР‚вЂќР В Р Р‹Р В РІР‚С™Р В Р’В Р РЋРІР‚СћР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚СћР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚ВР В Р’В Р РЋРІР‚вЂќ)\nР В Р’В Р Р†Р вЂљРЎвЂќР В Р’В Р РЋРІвЂћСћР В Р’В Р РЋРЎв„ў + Р В Р’В Р СћРІР‚ВР В Р’В Р В РІР‚В Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’В¶Р В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’Вµ Р В Р’В Р РЋР’ВР В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р Р‹Р Р†РІР‚С™Р’В¬Р В Р’В Р РЋРІР‚В Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљ Р В Р Р‹Р В РІР‚С™Р В Р Р‹Р РЋРІР‚СљР В Р’В Р вЂ™Р’В±Р В Р’В Р РЋРІР‚ВР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р В Р вЂ° Р В Р’В Р В РІР‚В Р В Р’В Р вЂ™Р’В»Р В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В Р В Р’В Р РЋРІР‚Сћ/Р В Р’В Р В РІР‚В Р В Р’В Р РЋРІР‚вЂќР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В Р В Р’В Р РЋРІР‚Сћ/Р В Р’В Р В РІР‚В Р В Р’В Р В РІР‚В Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РІР‚С™Р В Р Р‹Р Р†Р вЂљР’В¦/Р В Р’В Р В РІР‚В Р В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’В· Р В Р’В Р РЋРІР‚В Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚Сћ Р В Р’В Р СћРІР‚ВР В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’В°Р В Р’В Р РЋРІР‚вЂњР В Р’В Р РЋРІР‚СћР В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚В\nР В Р’В Р РЋРІвЂћСћР В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В»Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РЎвЂњР В Р’В Р РЋРІР‚Сћ Р В Р’В Р РЋР’ВР В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р Р‹Р Р†РІР‚С™Р’В¬Р В Р’В Р РЋРІР‚В Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљ Р В Р Р‹Р РЋРІР‚СљР В Р’В Р РЋРІР‚СњР В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В» Р В Р’В Р В РІР‚В Р В Р’В Р РЋРІР‚вЂќР В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РІР‚С™Р В Р Р‹Р Р†Р вЂљР’ВР В Р’В Р СћРІР‚В / Р В Р’В Р РЋРІР‚СћР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р В Р РЏР В Р’В Р В РІР‚В¦Р В Р Р‹Р РЋРІР‚СљР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р В Р вЂ° Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’В·Р В Р’В Р вЂ™Р’В°Р В Р’В Р СћРІР‚В\nР В Р’В Р РЋРЎСџР В Р’В Р РЋРІвЂћСћР В Р’В Р РЋРЎв„ў Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљ Р В Р’В Р СћРІР‚ВР В Р’В Р В РІР‚В Р В Р Р‹Р РЋРІР‚СљР В Р Р‹Р В РІР‚С™Р В Р Р‹Р РЋРІР‚СљР В Р Р‹Р Р†Р вЂљР Р‹Р В Р’В Р В РІР‚В¦Р В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р Р†РІР‚С›РІР‚вЂњ Р В Р Р‹Р Р†Р вЂљР’В¦Р В Р’В Р В РІР‚В Р В Р’В Р вЂ™Р’В°Р В Р Р‹Р Р†Р вЂљРЎв„ў: Р В Р’В Р вЂ™Р’В»Р В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В Р В Р’В Р вЂ™Р’В°Р В Р Р‹Р В Р РЏ Р В Р Р‹Р В РІР‚С™Р В Р Р‹Р РЋРІР‚СљР В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’В° Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’В° Р В Р Р‹Р В РІР‚С™Р В Р Р‹Р РЋРІР‚СљР В Р’В Р РЋРІР‚СњР В Р’В Р РЋРІР‚СћР В Р Р‹Р В Р РЏР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚В, Р В Р Р‹Р РЋРІР‚СљР В Р’В Р СћРІР‚ВР В Р’В Р вЂ™Р’В°Р В Р Р‹Р В РІР‚С™ Р В Р Р‹Р В РЎвЂњР В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’В»Р В Р Р‹Р В Р вЂ°Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’ВµР В Р’В Р вЂ™Р’Вµ\nР В Р’В Р РЋРІР‚С”Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚вЂќР В Р Р‹Р РЋРІР‚СљР В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚ВР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’Вµ Р В Р’В Р Р†Р вЂљРЎвЂќР В Р’В Р РЋРІвЂћСћР В Р’В Р РЋРЎв„ў Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљ Р В Р’В Р РЋР’ВР В Р’В Р вЂ™Р’ВµР В Р Р‹Р Р†Р вЂљР Р‹ Р В Р’В Р В РІР‚В Р В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В·Р В Р’В Р В РІР‚В Р В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°Р В Р Р‹Р Р†Р вЂљР’В°Р В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р В РЎвЂњР В Р Р‹Р В Р РЏ; Р В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’В°Р В Р’В Р РЋР’ВР В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В° Р В Р’В Р РЋРІР‚вЂќР В Р Р‹Р В РІР‚С™Р В Р’В Р РЋРІР‚В Р В Р Р‹Р РЋРІР‚СљР В Р’В Р СћРІР‚ВР В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В¶Р В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚ВР В Р’В Р РЋРІР‚В Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’Вµ Р В Р’В Р В РІР‚В Р В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°Р В Р Р‹Р Р†Р вЂљР’В°Р В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р В РЎвЂњР В Р Р‹Р В Р РЏ"
+	_hint.text = "ТЕСТОВЫЙ МЕЧ (прототип)\nЛКМ и мышь — рубящий удар ЛЕВОЙ рукой\nПКМ и мышь — БЛОК: меч ставится туда, куда ведёшь мышью\nЛКМ + ПКМ — двуручный хват, удар сильнее\nКолесо мыши — укол вперёд / оттянуть назад"
 	_hint.add_theme_font_size_override("font_size", 14)
 	_hint.add_theme_color_override("font_color", Color(1.0, 0.93, 0.72))
 	panel.add_child(_hint)
@@ -413,6 +416,11 @@ func _place_targets() -> Dictionary:
 	var duelist_at := _grounded(base + duelist_dir * 4.6)
 	if not duelist_at.is_finite(): duelist_at = base + duelist_dir * 4.6
 	_build_duelist(duelist_at)
+	# The opponent is the game's own resident model, wearing plate, driven by the
+	# canonical walk gait; the simple figure stays only as a fallback.
+	if _spawn_resident_knight(duelist_at):
+		_duelist.visible = false
+		_duelist_hull.set_meta("sword_duelist", false)
 	print("DSH_SWORD_PROTO_PLACEMENT dummy=", dummy_at, " pole=", pole_at, " duelist=", duelist_at, " player=", base)
 	return {"dummy": true, "pole": true}
 
@@ -522,7 +530,7 @@ func _build_dummy(at: Vector3) -> StaticBody3D:
 	_dummy_label.outline_size = 18
 	_dummy_label.modulate = Color(1.0, 0.92, 0.65)
 	_dummy_label.position = Vector3(0.0, 1.95, 0.0)
-	_dummy_label.text = "Р В Р’В Р РЋРЎв„ўР В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’ВµР В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В¦ 100"
+	_dummy_label.text = "Манекен 100"
 	_dummy_pivot.add_child(_dummy_label)
 	body.position = at
 	_world.add_child(body)
@@ -637,6 +645,18 @@ func _rest_direction() -> Vector3:
 	var basis := _camera.global_basis
 	return (-basis.z * 0.35 + basis.y * 0.92 + basis.x * 0.10).normalized()
 
+## Where the blade is held while guarding: the mouse steers it left/right and
+## up/down across the body, so the player aims the steel at the incoming blow.
+func _guard_direction() -> Vector3:
+	var basis := _camera.global_basis
+	var hx := clampf(_hand.x, -1.0, 1.0)
+	var hy := clampf(_hand.y, -1.0, 1.0)
+	var across := basis.x * (hx * 1.05) + basis.y * (0.25 + hy * 0.85)
+	var forward_bias := 0.30 + _thrust * 0.55
+	var guard := (-basis.z * forward_bias + across + basis.y * 0.55).normalized()
+	if not guard.is_finite(): return _rest_dir
+	return guard
+
 func _target_direction() -> Vector3:
 	var basis := _camera.global_basis
 	var steer := basis.x * (_hand.x * 1.30) + basis.y * (_hand.y * 2.10)
@@ -653,6 +673,13 @@ func _target_direction() -> Vector3:
 	return target
 
 func _steer(delta: float) -> void:
+	if _blocking and not _hold_left:
+		# GUARD (RMB): the blade is placed where the mouse points and simply stays
+		# there - a real, physical barrier for incoming blows, not a swing.
+		var guard := _guard_direction()
+		_dir = _dir.slerp(guard, clampf(14.0 * delta, 0.0, 1.0)).normalized()
+		_omega = Vector3.ZERO
+		return
 	if not _held:
 		# Carried stance: a stable, body-relative ready angle (up, a little out and
 		# forward). Deriving it from the fist made the blade swing into the body as
@@ -689,6 +716,7 @@ func _physics_process(delta: float) -> void:
 	# the grip exactly there. Both buttons = two-handed (right hand leads).
 	if _hold_left and not _hold_right: _carry_side = &"left"
 	elif _hold_right and not _hold_left: _carry_side = &"right"
+	_blocking = _hold_right
 	_player.set("_sword_lock", _selected and _held and bool(_player.get("_free_mouse_look")))
 	if not active:
 		# Outside the play state (menu, free cursor, death) no button stays held:
@@ -745,11 +773,22 @@ func _physics_process(delta: float) -> void:
 func _process(delta: float) -> void:
 	if not _ready or not is_instance_valid(_world) or not is_instance_valid(_rig): return
 	if not _active():
-		_sword.visible = false
+		if is_instance_valid(_sword): _sword.visible = false
 		return
-	_sword.visible = true
-	_attach_sword_to_fist()
-	_update_duelist(delta)
+	# A severed limb is cut away every frame, AFTER the player's own pose pass, so
+	# neither the animation nor our own arm IK can restore it.
+	_apply_player_severed()
+	var armed_with_sword := is_instance_valid(_sword)
+	if armed_with_sword:
+		_sword.visible = true
+		_attach_sword_to_fist()
+	_update_gore(delta)
+	_update_city_npc(delta)
+	if not is_instance_valid(_npc_rig): _update_duelist(delta)
+	if not armed_with_sword:
+		# The blade lies on the ground with the hand that used to hold it.
+		_prev_points = PackedVector3Array()
+		return
 	if not _held:
 		# Carried blade: attached to the fist and nothing else. No limits, no
 		# sweep bookkeeping - that is what keeps it still in the hand.
@@ -836,8 +875,8 @@ func _constrain_to_body(direction: Vector3, min_forward: float) -> Vector3:
 	var corrected := (side + Vector3(0.0, 0.0, min_forward)).normalized()
 	return (basis * corrected).normalized()
 
-## Where the sword hand is allowed to go. The whole front hemisphere is open Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљ
-## high, low, left, right and thrusting forward Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљ but never behind the back and
+## Where the sword hand is allowed to go. The whole front hemisphere is open -
+## high, low, left, right and thrusting forward - but never behind the back and
 ## never folded through the head.
 func _hand_target_direction() -> Vector3:
 	var basis := _camera.global_basis
@@ -878,7 +917,12 @@ func _solve_arm(delta: float) -> void:
 		# Two-handed: the sword hand comes closer to the chest so the supporting
 		# hand can actually reach the handle. Right button leads, left supports.
 		grip_rig = _pose_main(&"right", want_rig, blade_rig, 0.55)
-		if grip_rig != Vector3.ZERO: _pose_support(&"left", grip_rig - blade_rig * TWO_HAND_LOWER_OFFSET)
+		if grip_rig != Vector3.ZERO:
+			var support := grip_rig - blade_rig * TWO_HAND_LOWER_OFFSET
+			# The supporting hand never reaches across the centre line, which is
+			# what used to knot the two arms together during a cut.
+			if support.x * _left_sign < 0.06: support.x = _left_sign * 0.06
+			_pose_support(&"left", support)
 	elif side == &"left":
 		grip_rig = _pose_main(&"left", want_rig, blade_rig)
 	else:
@@ -886,7 +930,11 @@ func _solve_arm(delta: float) -> void:
 	if grip_rig == Vector3.ZERO: return
 	_sword_origin = (_rig.global_transform * grip_rig) + _dir * GRIP_CENTER_OFFSET
 
-## Which hand holds the sword right now. Both buttons = two-handed grip.
+## Which hand holds the sword right now. LMB = left-hand strike, RMB = a guard in
+## the right hand (the blade is placed where the mouse points and stops blows),
+## both buttons = two-handed grip.
+var _blocking := false
+
 func _active_side() -> StringName:
 	if _hold_left and _hold_right: return &"both"
 	if _hold_left: return &"left"
@@ -1111,6 +1159,8 @@ var _duelist_recoil_until_ms := 0
 ## True when the rig's "_l"/"_r" names are mirrored relative to the visible sides
 ## (the hero faces +Z), resolved once at install time.
 var _side_inverted := false
+## X sign (rig space) of the arm the player sees as the left one.
+var _left_sign := 1.0
 ## Set by a driven test that feeds button state directly, because synthetic mouse
 ## events are not mirrored by Input.is_mouse_button_pressed.
 var _synthetic_hands := false
@@ -1323,6 +1373,9 @@ func _register_clash(at: Vector3) -> void:
 ## the ordinary HUD reacts, with a local sparring counter as a fallback.
 var _last_player_hit_ms := -1000
 func _apply_player_damage(amount: float, at: Vector3, direction: Vector3) -> void:
+	# The wound lands on a real part of the body: it is tracked and, when it gives
+	# out, that limb comes off the player exactly as it does off the opponent.
+	_player_take_blade(amount, at, direction)
 	_sparring_hp = maxf(0.0, _sparring_hp - amount)
 	_impact_player.global_position = at
 	_impact_player.pitch_scale = 0.8
@@ -1337,6 +1390,107 @@ func _apply_player_damage(amount: float, at: Vector3, direction: Vector3) -> voi
 			owner.call("_refresh")
 			if remaining == 0: _kill_player()
 	if is_instance_valid(_player): _player.apply_contact_melee_impulse(direction, 18.0)
+
+## True when both arms are gone, so no hand can carry the sword at all.
+func _both_hands_lost() -> bool:
+	var right_lost: bool = _player_severed.has("hand_r") or _player_severed.has("forearm_r") or _player_severed.has("upperarm_r")
+	var left_lost: bool = _player_severed.has("hand_l") or _player_severed.has("forearm_l") or _player_severed.has("upperarm_l")
+	return right_lost and left_lost
+
+## Player dismemberment: which part was hit, how much it can take, and what is
+## lost when it comes off.
+var _player_part_hp: Dictionary = {}
+var _player_severed: Dictionary = {}
+var _player_hidden_bones: Dictionary = {}
+var _player_disarmed := false
+
+func _player_part_at(point: Vector3) -> Dictionary:
+	var best := {"key": "chest", "sever": "chest", "distance": 1.0e9}
+	var probes := {
+		"head": ["head", "neck"],
+		"chest": ["chest", "spine_01"],
+		"pelvis": ["pelvis"],
+		"upperarm": ["upperarm_r", "upperarm_l"],
+		"forearm": ["forearm_r", "forearm_l"],
+		"hand": ["hand_r", "hand_l"],
+		"thigh": ["thigh_r", "thigh_l"],
+		"shin": ["shin_r", "shin_l"],
+		"foot": ["foot_r", "foot_l"],
+	}
+	for part: String in probes.keys():
+		for bone_name: String in probes[part]:
+			var bone := _rig.find_bone(bone_name)
+			if bone < 0: continue
+			var bone_at: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(bone).origin
+			var distance := bone_at.distance_to(point)
+			if distance < best.distance:
+				best = {"key": part, "sever": bone_name, "distance": distance}
+	return best
+
+func _player_take_blade(amount: float, at: Vector3, direction: Vector3) -> void:
+	var part := _player_part_at(at)
+	var kind: String = part.key
+	var bone_name: String = part.sever
+	var suffix := ""
+	if bone_name.ends_with("_r"): suffix = "_r"
+	elif bone_name.ends_with("_l"): suffix = "_l"
+	var full_key: String = kind + suffix if kind not in ["head", "chest", "pelvis"] else kind
+	if _player_severed.has(full_key): return
+	if not _player_part_hp.has(full_key):
+		_player_part_hp[full_key] = float(PART_HP.get(kind, 40.0))
+	_player_part_hp[full_key] = float(_player_part_hp[full_key]) - maxf(4.0, amount)
+	if float(_player_part_hp[full_key]) > 0.0: return
+	_player_severed[full_key] = true
+	_hide_player_limb(full_key, kind, bone_name)
+	_spray_blood(at, direction, 30)
+	_throw_stump(kind, at, direction, 3.0)
+	if kind in ["upperarm", "forearm", "hand"]:
+		var side := &"right"
+		if full_key.ends_with("_l"): side = &"left"
+		if _carry_side == side or (side == &"right" and _blocking):
+			_player_disarmed = true
+			_drop_player_sword(direction)
+	if kind == "head":
+		_player_disarmed = true
+		_kill_player()
+	print("DSH_SWORD_PROTO_PLAYER_SEVER part=", full_key, " disarmed=", _player_disarmed)
+
+func _hide_player_limb(full_key: String, kind: String, bone_name: String) -> void:
+	if kind in ["head", "chest", "pelvis"]:
+		var chain: Array[String] = ["head", "neck"] if kind == "head" else []
+		for name: String in chain: _player_hidden_bones[name] = true
+		return
+	_player_hidden_bones[bone_name] = true
+
+## Applied every frame, AFTER the player's own pose pass, so the limb really
+## disappears and cannot be restored by the animation or by our own arm IK.
+func _apply_player_severed() -> void:
+	if _player_hidden_bones.is_empty(): return
+	for name: String in _player_hidden_bones.keys():
+		var bone := _rig.find_bone(name)
+		if bone < 0: continue
+		var pose := _rig.get_bone_pose(bone)
+		_rig.set_bone_pose(bone, Transform3D(Basis.IDENTITY.scaled(Vector3(0.001, 0.001, 0.001)), pose.origin))
+
+func _drop_player_sword(direction: Vector3) -> void:
+	if not is_instance_valid(_sword): return
+	var falling: Node3D = _sword
+	_sword = null
+	var body := RigidBody3D.new()
+	body.mass = 1.2
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new(); box.size = Vector3(1.3, 0.1, 0.1)
+	shape.shape = box
+	body.add_child(shape)
+	_world.add_child(body)
+	body.global_position = falling.global_position
+	var visual := falling
+	if visual.get_parent() != null: visual.get_parent().remove_child(visual)
+	body.add_child(visual)
+	visual.transform = Transform3D.IDENTITY
+	body.linear_velocity = direction.normalized() * 1.5 + Vector3.UP * 0.5
+	body.angular_velocity = Vector3(randf_range(-4.0, 4.0), randf_range(-4.0, 4.0), randf_range(-4.0, 4.0))
+
 
 ## Mirrors the session death path so the ordinary R restart works after a
 ## sparring death.
@@ -1504,13 +1658,21 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 			_show_spark(position)
 			_duelist_body.rotation.x = 0.22
 		return
+	if _is_npc_collider(collider):
+		# Hitting the armed resident hurts the LIMB that was struck, and a limb
+		# that gives out is cut off - losing the sword arm also loses the sword.
+		if _held and now - int(_hit_ms.get(id_any, -10000)) >= CONTACT_COOLDOWN_MS:
+			_hit_ms[id_any] = now
+			var npc_cut := clampf((speed * 0.6 - DAMAGE_SPEED_MIN) * DAMAGE_PER_MPS, 4.0, DAMAGE_MAX)
+			_npc_take_blade(position, speed, hit.get("_velocity", Vector3.ZERO), npc_cut)
+		return
 	if is_target:
 		var id: int = collider.get_instance_id()
 		# One entry = one blow, and only a deliberately steered blade (LMB held,
 		# past the arming delay) hurts anything. Carrying the sword, drawing it or
 		# letting it rest against the dummy never removes health. A blade that
 		# keeps resting on the target must first leave it again (rearm window).
-		var armed: bool = _held and Time.get_ticks_msec() >= _arm_ready_ms
+		var armed: bool = _held and not _blocking and Time.get_ticks_msec() >= _arm_ready_ms
 		var rearmed: bool = not _contact_gap.has(id) or now - int(_contact_gap[id]) >= CONTACT_REARM_MS
 		if armed and rearmed and not _contact_prev.has(id):
 			_damage_dummy(collider, position, speed, hit.get("_velocity", Vector3.ZERO), now)
@@ -1578,21 +1740,21 @@ func _damage_dummy(dummy: StaticBody3D, position: Vector3, speed: float, velocit
 	_dummy_tilt_axis = Vector3(local.z, 0.0, -local.x).normalized()
 	if _dummy_tilt_axis.length_squared() < 1e-6: _dummy_tilt_axis = Vector3.RIGHT
 	_dummy_tilt = clampf(_dummy_tilt + 0.12 + damage * 0.012, 0.0, 0.62)
-	_dummy_label.text = "Р В Р’В Р РЋРЎв„ўР В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’ВµР В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В¦ %d" % int(round(_dummy_hp))
+	_dummy_label.text = "Манекен %d" % int(round(_dummy_hp))
 	_dummy_label.modulate = Color(1.0, 0.55, 0.45) if _dummy_hp <= 40.0 else Color(1.0, 0.92, 0.65)
 	_spawn_damage_number(position, damage, kind)
 	if _dummy_hp <= 0.0:
 		_dummy_down = true
 		_down_until_ms = now + 2200
 		_dummy_tilt = 0.62
-		_dummy_label.text = "Р В Р’В Р РЋРЎв„ўР В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’ВµР В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В¦ Р В Р Р‹Р В РЎвЂњР В Р’В Р вЂ™Р’В±Р В Р’В Р РЋРІР‚ВР В Р Р‹Р Р†Р вЂљРЎв„ў"
+		_dummy_label.text = "Манекен сбит"
 
 func _update_dummy(delta: float) -> void:
 	if not is_instance_valid(_dummy_pivot): return
 	if _dummy_down and Time.get_ticks_msec() >= _down_until_ms:
 		_dummy_down = false
 		_dummy_hp = DUMMY_MAX_HP
-		_dummy_label.text = "Р В Р’В Р РЋРЎв„ўР В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’ВµР В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В¦ %d" % int(DUMMY_MAX_HP)
+		_dummy_label.text = "Манекен %d" % int(DUMMY_MAX_HP)
 		_dummy_label.modulate = Color(1.0, 0.92, 0.65)
 	_dummy_tilt = maxf(0.0, _dummy_tilt - delta * (0.55 if _dummy_down else 1.35))
 	_dummy_pivot.rotation = _dummy_tilt_axis * _dummy_tilt
@@ -1636,6 +1798,692 @@ func _spawn_damage_number(at: Vector3, damage: float, kind: String) -> void:
 
 # ------------------------------------------------------------------- reporting
 
+## ------------------------------------------------------- resident swordsman
+## The opponent is built exactly like a city resident: the SAME character model
+## from the game's own prepared assets, driven by the SAME canonical walk gait
+## (PreviewLocomotion) the population uses. He is dressed in plate armour, gets a
+## sword in his right fist and is cut apart piece by piece.
+const NpcCache = preload("res://scripts/npc_visual/npc_visual_cache.gd")
+const NpcGait = preload("res://scripts/preview_locomotion.gd")
+const NPC_MANIFEST := "res://assets/npc_visual/session/prepared/manifest.json"
+const NPC_DIRECTORY := "res://assets/npc_visual/session/prepared"
+const NPC_MANIFEST_SHA := "3c07e72938a0918fa32de33ca442bf07cb50f21f0916b8b091b552473bd9aac0"
+const NPC_SOURCES := [
+	{"bridge": "npc_resident_72", "descriptor": "fb812a2fc447726dd30548edb34805295ac28e6970c2ca55a6abb18a5a4c39bd"},
+	{"bridge": "npc_resident_252", "descriptor": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55"},
+]
+const NPC_HEIGHT := 1.9
+var _npc_gait: RefCounted
+var _npc_record: Dictionary = {}
+var _npc_body: CharacterBody3D
+var _npc_motion: Node3D
+var _npc_rig: Skeleton3D
+var _npc_sword: Node3D
+var _npc_hand := -1
+var _npc_clav := -1
+var _npc_upper := -1
+var _npc_fore := -1
+var _npc_rest_upper := Transform3D.IDENTITY
+var _npc_rest_fore := Transform3D.IDENTITY
+var _npc_rest_hand := Transform3D.IDENTITY
+var _npc_dir := Vector3.FORWARD
+var _npc_state := "wait"
+var _npc_timer := 0.0
+var _npc_hp := 90.0
+var _npc_engaged := false
+var _npc_swings := 0
+var _npc_hits := 0
+var _npc_blocked := 0
+var _npc_blade_prev: PackedVector3Array = PackedVector3Array()
+var _npc_hit_ms := -10000
+var _npc_blade_ms := -10000
+## Deferred binding: the population host appears after the prototype.
+var _npc_bind_timer := 0.0
+var _npc_bind_attempts := 0
+
+## Takes the nearest idle city resident and hands him a sword.
+## ------------------------------------------------------------ knight armour
+## Plate fitted to the bones themselves: every piece is authored in its own
+## bone's frame, so it sits correctly on the body whatever the model scale is.
+const STEEL := Color(0.70, 0.73, 0.78)
+const STEEL_DARK := Color(0.30, 0.33, 0.38)
+const MAIL := Color(0.20, 0.21, 0.24)
+var _knight_armour: Array[Node3D] = []
+
+func _dress_knight() -> void:
+	if not is_instance_valid(_npc_rig): return
+	_recolour_as_mail()
+	var shoulder := 0.40
+	var left := _npc_rig.find_bone("clavicle_l")
+	var right := _npc_rig.find_bone("clavicle_r")
+	if left >= 0 and right >= 0:
+		shoulder = maxf(0.25, _npc_rig.get_bone_rest(left).origin.distance_to(_npc_rig.get_bone_rest(right).origin) * 0.62)
+	# Helm with a raised visor and a crest.
+	_fit_plate("head", "KnightHelm", [
+		{"shape": "sphere", "along": 0.5, "radius": shoulder * 1.05, "offset": Vector3(0.0, 0.0, 0.0), "scale": Vector3(1.0, 1.05, 1.02), "color": STEEL},
+		{"shape": "box", "along": 0.62, "radius": shoulder * 0.52, "offset": Vector3(0.0, 0.0, 0.30), "size": Vector3(0.52, 0.30, 0.34), "color": STEEL_DARK},
+		{"shape": "box", "along": 0.62, "radius": shoulder * 0.52, "offset": Vector3(0.0, 0.10, -0.06), "size": Vector3(0.10, 0.34, 0.52), "color": STEEL},
+	])
+	# Breastplate, fauld and a gorget collar.
+	_fit_plate("chest", "KnightBreastplate", [
+		{"shape": "box", "along": 0.55, "radius": shoulder, "offset": Vector3(0.0, 0.0, 0.02), "size": Vector3(shoulder * 2.05, shoulder * 1.45, shoulder * 1.20), "color": STEEL},
+		{"shape": "box", "along": 0.90, "radius": shoulder, "offset": Vector3(0.0, 0.0, 0.0), "size": Vector3(shoulder * 2.10, shoulder * 0.42, shoulder * 1.26), "color": STEEL_DARK},
+		{"shape": "box", "along": 1.02, "radius": shoulder, "offset": Vector3(0.0, 0.0, 0.0), "size": Vector3(shoulder * 1.55, shoulder * 0.34, shoulder * 1.10), "color": STEEL},
+	])
+	# Pauldrons and vambraces on both arms.
+	for bone_name: String in ["upperarm_l", "upperarm_r"]:
+		var side := -1.0 if bone_name.ends_with("_l") else 1.0
+		_fit_plate(bone_name, "KnightPauldron" + bone_name, [
+			{"shape": "sphere", "along": 0.12, "radius": shoulder * 0.78, "offset": Vector3(side * shoulder * 0.22, 0.0, 0.0), "scale": Vector3(1.15, 0.85, 1.10), "color": STEEL},
+		])
+	for bone_name: String in ["forearm_l", "forearm_r"]:
+		_fit_plate(bone_name, "KnightVambrace" + bone_name, [
+			{"shape": "cylinder", "along": 0.5, "radius": shoulder * 0.48, "offset": Vector3.ZERO, "color": STEEL},
+		])
+	for bone_name: String in ["shin_l", "shin_r"]:
+		_fit_plate(bone_name, "KnightGreave" + bone_name, [
+			{"shape": "cylinder", "along": 0.45, "radius": shoulder * 0.52, "offset": Vector3(0.0, 0.0, shoulder * 0.06), "color": STEEL},
+		])
+	print("DSH_SWORD_PROTO_ARMOUR plates=", _knight_armour.size(), " shoulder=", shoulder)
+
+## Paints the street clothes into dark mail so the plate reads as armour.
+func _recolour_as_mail() -> void:
+	var visual: Node = _npc_rig.get_parent()
+	if visual == null: return
+	var paint := StandardMaterial3D.new()
+	paint.albedo_color = MAIL
+	paint.metallic = 0.35
+	paint.roughness = 0.55
+	var count := 0
+	for node: Node in visual.find_children("*", "MeshInstance3D", true, false):
+		var mesh := node as MeshInstance3D
+		var name := String(mesh.name)
+		if name.begins_with("Knight") or name.begins_with("ResidentSword") or name.begins_with("KnightSword"): continue
+		mesh.material_override = paint
+		count += 1
+	print("DSH_SWORD_PROTO_MAIL meshes=", count)
+
+## Attaches one plate group to a bone. Distances are expressed as fractions of
+## the bone length and of the shoulder width, so nothing is hard-coded to a model.
+func _fit_plate(bone_name: String, label: String, parts: Array) -> void:
+	var bone := _npc_rig.find_bone(bone_name)
+	if bone < 0: return
+	var anchor := BoneAttachment3D.new()
+	anchor.name = label + "Anchor"
+	anchor.bone_name = bone_name
+	_npc_rig.add_child(anchor)
+	var holder := Node3D.new()
+	holder.name = label
+	anchor.add_child(holder)
+	var bone_len := maxf(0.12, _npc_rig.get_bone_rest(bone).origin.length())
+	for part: Dictionary in parts:
+		var node := MeshInstance3D.new()
+		var radius := float(part.get("radius", 0.2))
+		match String(part.get("shape", "box")):
+			"sphere":
+				var sphere := SphereMesh.new()
+				sphere.radius = radius
+				sphere.height = radius * 2.0
+				sphere.radial_segments = 16
+				sphere.rings = 8
+				node.mesh = sphere
+			"cylinder":
+				var cylinder := CylinderMesh.new()
+				cylinder.top_radius = radius
+				cylinder.bottom_radius = radius * 1.05
+				cylinder.height = bone_len * 0.9
+				cylinder.radial_segments = 14
+				node.mesh = cylinder
+			_:
+				var box := BoxMesh.new()
+				box.size = part.get("size", Vector3(radius, radius, radius))
+				node.mesh = box
+		var material := StandardMaterial3D.new()
+		material.albedo_color = part.get("color", STEEL)
+		material.metallic = 0.92
+		material.roughness = 0.18
+		node.material_override = material
+		var scale_value: Vector3 = part.get("scale", Vector3.ONE)
+		node.scale = scale_value
+		# Down the bone (its own +Y points at the child) plus a local offset.
+		node.position = Vector3(0.0, bone_len * float(part.get("along", 0.5)), 0.0) + part.get("offset", Vector3.ZERO)
+		holder.add_child(node)
+	_knight_armour.append(holder)
+
+## Builds the opponent from the game's own resident model and canonical walk gait.
+func _spawn_resident_knight(at: Vector3) -> bool:
+	if is_instance_valid(_npc_rig): return true
+	var cache_bytes := FileAccess.get_file_as_bytes(NPC_MANIFEST)
+	if cache_bytes.is_empty():
+		print("DSH_SWORD_PROTO_NPC manifest_missing")
+		return false
+	var source: Dictionary = NPC_SOURCES[0]
+	var loaded: Dictionary = NpcCache.load_verified(cache_bytes, NPC_MANIFEST_SHA, String(source.bridge), String(source.descriptor), NPC_DIRECTORY)
+	if not loaded.get("ok", false):
+		print("DSH_SWORD_PROTO_NPC load_failed ", loaded.get("error", ""))
+		return false
+	var cache: RefCounted = loaded.cache
+	var appearance: Dictionary = cache.instantiate_actor()
+	cache.dispose()
+	if not appearance.get("ok", false):
+		print("DSH_SWORD_PROTO_NPC appearance_failed ", appearance.get("error", ""))
+		return false
+	var body := CharacterBody3D.new()
+	body.name = "SwordKnight"
+	body.collision_layer = 1
+	body.collision_mask = 1
+	body.floor_snap_length = 0.25
+	var capsule := CapsuleShape3D.new(); capsule.radius = 0.36; capsule.height = NPC_HEIGHT
+	var hull := CollisionShape3D.new(); hull.shape = capsule; hull.position.y = NPC_HEIGHT * 0.5
+	body.add_child(hull)
+	var motion := Node3D.new(); motion.name = "KnightMotion"
+	body.add_child(motion)
+	motion.add_child(appearance.visual)
+	# Canonical forward +Z is converted to the native body heading once, the same
+	# way the population host does it.
+	motion.rotation.y = PI
+	_world.add_child(body)
+	body.global_position = at
+	var gait: RefCounted = NpcGait.new()
+	if not gait.bind(appearance.visual, motion, true):
+		print("DSH_SWORD_PROTO_NPC gait_failed ", gait.get_status())
+		body.queue_free()
+		return false
+	var rigs: Array[Node] = appearance.visual.find_children("*", "Skeleton3D", true, false)
+	if rigs.size() != 1:
+		print("DSH_SWORD_PROTO_NPC rig_count=", rigs.size())
+		body.queue_free()
+		return false
+	_npc_body = body
+	_npc_motion = motion
+	_npc_gait = gait
+	_npc_rig = rigs[0] as Skeleton3D
+	_npc_clav = _npc_rig.find_bone("clavicle_r")
+	_npc_upper = _npc_rig.find_bone("upperarm_r")
+	_npc_fore = _npc_rig.find_bone("forearm_r")
+	_npc_hand = _npc_rig.find_bone("hand_r")
+	if _npc_hand < 0:
+		print("DSH_SWORD_PROTO_NPC no_hand_r")
+		return false
+	_npc_rest_upper = _npc_rig.get_bone_rest(_npc_upper)
+	_npc_rest_fore = _npc_rig.get_bone_rest(_npc_fore)
+	_npc_rest_hand = _npc_rig.get_bone_rest(_npc_hand)
+	_npc_sword = _build_sword_model(motion, "KnightSword")
+	print("DSH_SWORD_PROTO_NPC spawned bones=", _npc_rig.get_bone_count(), " at=", at)
+	_dress_knight()
+	return true
+
+## Poses the resident's sword arm and hangs the sword in that fist.
+func _update_city_npc(delta: float) -> void:
+	if not is_instance_valid(_npc_rig):
+		# The model loads asynchronously, so he is picked up as soon as it is ready.
+		_npc_bind_timer += delta
+		if _npc_bind_timer >= 0.5 and _npc_bind_attempts < 20:
+			_npc_bind_timer = 0.0
+			_npc_bind_attempts += 1
+			if _spawn_resident_knight(_grounded(_player.global_position + _player._visual.global_basis.z * 4.6)) \
+				and is_instance_valid(_duelist):
+				_duelist.visible = false
+				_duelist_hull.set_meta("sword_duelist", false)
+		return
+	if not is_instance_valid(_npc_sword):
+		# Disarmed (sword arm severed) or already cut down: he neither carries the
+		# blade nor attacks, but he is still standing there.
+		_npc_engaged = false
+		_npc_body.velocity = Vector3.ZERO
+		return
+	_npc_sword.visible = _npc_hp > 0.0
+	var to_player := _player.global_position - _npc_body.global_position
+	to_player.y = 0.0
+	var distance := to_player.length()
+	# He faces the player and looks passive until the fight starts.
+	if to_player.length_squared() > 1.0e-6:
+		var want_yaw := atan2(to_player.x, to_player.z)
+		_npc_body.rotation.y = lerp_angle(_npc_body.rotation.y, want_yaw + PI, clampf(4.0 * delta, 0.0, 1.0))
+	# Wake up when the player swings at him from close range.
+	if not _npc_engaged and _held and distance < 3.2:
+		_npc_engaged = true
+		_npc_state = "approach"
+		print("DSH_SWORD_PROTO_NPC aggro distance=", distance)
+	_npc_timer += delta
+	var want := _npc_high_guard()
+	if _npc_engaged:
+		# Walk in, wind up, cut - the walk animation plays because his own body is
+		# actually moving, and the population host samples the gait from it.
+		match _npc_state:
+			"approach":
+				if distance > 1.25:
+					_npc_body.velocity = to_player.normalized() * 1.9
+				else:
+					_npc_body.velocity = Vector3.ZERO
+				if _npc_timer > 0.6:
+					_npc_state = "windup"
+					_npc_timer = 0.0
+			"windup":
+				_npc_body.velocity = Vector3.ZERO
+				want = _npc_high_guard()
+				if _npc_timer > 0.5:
+					_npc_state = "strike"
+					_npc_timer = 0.0
+					_npc_swings += 1
+					_npc_blade_prev = PackedVector3Array()
+			"strike":
+				_npc_body.velocity = to_player.normalized() * 1.1
+				want = _npc_cut_direction()
+				_npc_resolve_strike(delta)
+				if _npc_timer > 0.22:
+					_npc_state = "recover"
+					_npc_timer = 0.0
+			_:
+				_npc_body.velocity = Vector3.ZERO
+				if _npc_timer > 0.7:
+					_npc_state = "approach"
+					_npc_timer = 0.0
+		if distance < 20.0: _npc_body.move_and_slide()
+		if _npc_hp <= 0.0:
+			_npc_engaged = false
+			_npc_state = "wait"
+	# The canonical walk gait plays FIRST, so his legs really step while he moves;
+	# the sword arm is then written over it, exactly like the player's own arm.
+	if _npc_gait != null:
+		_npc_gait.update_pose(delta, _npc_body.velocity, _npc_body.is_on_floor())
+	_npc_dir = _npc_dir.slerp(want, clampf(10.0 * delta, 0.0, 1.0)).normalized()
+	if not _npc_severed.has("upperarm_r") and not _npc_severed.has("forearm_r") and not _npc_severed.has("hand_r"):
+		_npc_pose_arm()
+	var local := _npc_dir
+	# The sword is held in the resident's own right hand, in world space.
+	var fist: Vector3 = _npc_rig.global_transform * _npc_rig.get_bone_global_pose(_npc_hand).origin
+	if _npc_hp > 0.0:
+		_npc_sword.global_transform = _place_basis(fist + local * GRIP_CENTER_OFFSET, local)
+
+func _npc_high_guard() -> Vector3:
+	return (Vector3.UP * 0.80 + _npc_body.global_basis.z * 0.45).normalized()
+
+func _npc_cut_direction() -> Vector3:
+	var to_player := (_player.global_position + Vector3.UP * 1.05) - _npc_body.global_position
+	if to_player.length_squared() < 1.0e-6: return Vector3.FORWARD
+	return to_player.normalized()
+
+## Two-bone IK on the resident's rig: the same maths used for the player's arm.
+func _npc_pose_arm() -> void:
+	if _npc_clav < 0 or _npc_upper < 0 or _npc_fore < 0 or _npc_hand < 0: return
+	var rig_basis: Basis = _npc_rig.global_transform.basis
+	var dir_rig: Vector3 = (rig_basis.inverse() * _npc_dir).normalized()
+	var clavicle_global := _npc_chain(_npc_clav)
+	var joint := (clavicle_global * _npc_rest_upper).origin
+	var l1 := _npc_rest_fore.origin.length()
+	var l2 := _npc_rest_hand.origin.length()
+	if l1 <= 0.01 or l2 <= 0.01: return
+	var target := joint + dir_rig * (l1 + l2) * 0.94
+	var to_target := target - joint
+	var distance := to_target.length()
+	if distance < 1.0e-4: return
+	var direction := to_target.normalized()
+	var d := clampf(distance, absf(l1 - l2) + 1.0e-3, l1 + l2 - 1.0e-3)
+	var pole := Vector3(0.45, -0.55, -0.25)
+	pole -= direction * pole.dot(direction)
+	if pole.length_squared() < 1.0e-6: pole = direction.cross(Vector3.UP)
+	pole = pole.normalized()
+	var cos_angle := clampf((l1 * l1 + d * d - l2 * l2) / (2.0 * l1 * d), -1.0, 1.0)
+	var upper_dir := (Quaternion(pole.cross(direction).normalized(), acos(cos_angle)) * direction).normalized()
+	var elbow := joint + upper_dir * l1
+	var fore_dir := (joint + direction * d - elbow).normalized()
+	var upper_local := _npc_point_bone(_npc_upper, _npc_rest_upper, _npc_rest_fore.origin, clavicle_global.basis, upper_dir)
+	var upper_global := clavicle_global * upper_local
+	var fore_local := _npc_point_bone(_npc_fore, _npc_rest_fore, _npc_rest_hand.origin, upper_global.basis, fore_dir)
+	var fore_global := upper_global * fore_local
+	_npc_point_bone(_npc_hand, _npc_rest_hand, _npc_rest_hand.origin, fore_global.basis, dir_rig)
+
+func _npc_point_bone(bone: int, rest: Transform3D, child_offset: Vector3, parent_basis: Basis, dir_rig: Vector3) -> Transform3D:
+	var rest_dir := rest.basis * child_offset
+	if rest_dir.length_squared() < 1.0e-10: rest_dir = rest.basis.y
+	var local_dir := parent_basis.inverse() * dir_rig
+	if local_dir.length_squared() < 1.0e-10: local_dir = rest_dir
+	var turn := Quaternion(rest_dir.normalized(), local_dir.normalized())
+	var local := Transform3D((Basis(turn) * rest.basis).orthonormalized(), rest.origin)
+	_npc_rig.set_bone_pose(bone, local)
+	return local
+
+func _npc_chain(bone: int) -> Transform3D:
+	var chain: Array[int] = []
+	var index := bone
+	while index >= 0:
+		chain.push_front(index)
+		index = _npc_rig.get_bone_parent(index)
+	var result := Transform3D.IDENTITY
+	for item: int in chain:
+		result = result * _npc_rig.get_bone_pose(item)
+	return result
+
+func _npc_blade_points() -> PackedVector3Array:
+	var points := PackedVector3Array()
+	var origin: Vector3 = _npc_sword.global_position
+	var direction: Vector3 = _npc_sword.global_basis.x.normalized()
+	for i: int in 5:
+		points.append(origin + direction * (0.10 + BLADE_LENGTH * float(i) / 4.0))
+	return points
+
+## His cut: our blade stops it, otherwise it reaches the body.
+func _npc_resolve_strike(delta: float) -> void:
+	var points := _npc_blade_points()
+	if _npc_blade_prev.size() != points.size():
+		_npc_blade_prev = points
+		return
+	var space := _player.get_world_3d().direct_space_state
+	for i: int in points.size():
+		var from := _npc_blade_prev[i]
+		var to := points[i]
+		if from.distance_squared_to(to) < 1.0e-8: continue
+		if _player_blade_intercepts(from, to):
+			_npc_blocked += 1
+			if now_ms() - _last_clash_ms >= 260:
+				_register_clash((from + to) * 0.5)
+			_npc_blade_prev = points
+			return
+		var query := PhysicsRayQueryParameters3D.create(from, to, 2)
+		var hit := space.intersect_ray(query)
+		if hit.is_empty(): continue
+		if now_ms() - _npc_hit_ms < 400: continue
+		_npc_hit_ms = now_ms()
+		_npc_hits += 1
+		_apply_player_damage(DUELIST_DAMAGE, hit.position, (to - from).normalized())
+		_npc_blade_prev = points
+		return
+	# Reach fallback, same as the sparring dummy opponent.
+	var to_player := (_player.global_position + Vector3.UP * 1.0) - _npc_body.global_position
+	if to_player.length() <= BLADE_LENGTH + 0.8 and _npc_dir.dot(to_player.normalized()) > 0.70:
+		var at := _player.global_position + Vector3.UP * 1.0
+		if _player_blade_intercepts(_npc_body.global_position, at):
+			_npc_blocked += 1
+			if now_ms() - _last_clash_ms >= 260: _register_clash(at)
+		elif now_ms() - _npc_hit_ms >= 400:
+			_npc_hit_ms = now_ms()
+			_npc_hits += 1
+			_apply_player_damage(DUELIST_DAMAGE, at, to_player.normalized())
+	_npc_blade_prev = points
+
+## The player's blade damages the resident, which also wakes him up.
+func _damage_npc(amount: float, position: Vector3, now: int) -> void:
+	if _npc_hp <= 0.0: return
+	_npc_hp = maxf(0.0, _npc_hp - amount)
+	_npc_engaged = true
+	if _npc_state == "wait":
+		_npc_state = "approach"
+		_npc_timer = 0.0
+	_impact_player.global_position = position
+	_impact_player.pitch_scale = 1.25
+	_impact_player.play()
+	_show_spark(position)
+
+## True when the collider belongs to the resident we armed.
+func _is_npc_collider(collider: Variant) -> bool:
+	return is_instance_valid(_npc_body) and is_instance_valid(collider) \
+		and (collider == _npc_body or _npc_body.is_ancestor_of(collider as Node))
+
+## ------------------------------------------------------------- dismemberment
+## The resident is cut apart piece by piece: every limb has its own health, and
+## a limb that takes enough damage is taken off - the mesh really disappears, the
+## wound bleeds, a physical stump is thrown, and a severed sword arm can no longer
+## hold the weapon.
+const PART_HP := {"head": 55.0, "chest": 110.0, "pelvis": 110.0,
+	"upperarm": 42.0, "forearm": 34.0, "hand": 24.0,
+	"thigh": 55.0, "shin": 42.0, "foot": 26.0}
+const BLOOD_LIFETIME := 2.6
+## Severed pieces are permanent; the cap only stops unbounded growth.
+const MAX_STUMPS := 120
+var _stump_count := 0
+var _stumps: Array[Node3D] = []
+var _npc_part_hp: Dictionary = {}
+var _npc_severed: Dictionary = {}
+var _npc_gore: Array[Node3D] = []
+var _npc_disarmed := false
+var _npc_dead := false
+
+## Which body part sits closest to the wound.
+func _npc_part_at(point: Vector3) -> Dictionary:
+	var best := {"key": "chest", "bone": -1, "distance": 1.0e9, "sever": ""}
+	var probes := {
+		"head": ["head", "neck"],
+		"chest": ["chest", "spine_01"],
+		"pelvis": ["pelvis"],
+		"upperarm": ["upperarm_r", "upperarm_l"],
+		"forearm": ["forearm_r", "forearm_l"],
+		"hand": ["hand_r", "hand_l"],
+		"thigh": ["thigh_r", "thigh_l"],
+		"shin": ["shin_r", "shin_l"],
+		"foot": ["foot_r", "foot_l"],
+	}
+	for part: String in probes.keys():
+		for bone_name: String in probes[part]:
+			var bone := _npc_rig.find_bone(bone_name)
+			if bone < 0: continue
+			var at: Vector3 = _npc_rig.global_transform * _npc_rig.get_bone_global_pose(bone).origin
+			var distance := at.distance_to(point)
+			if distance < best.distance:
+				best = {"key": part, "bone": bone, "distance": distance, "sever": bone_name}
+	return best
+
+## Blade lands on the resident: damage the part, and cut it off when it gives out.
+func _npc_take_blade(point: Vector3, speed: float, direction: Vector3, damage: float) -> void:
+	if _npc_dead: return
+	var part := _npc_part_at(point)
+	var key: String = part.key
+	var side_suffix := ""
+	if String(part.sever).ends_with("_r"): side_suffix = "_r"
+	elif String(part.sever).ends_with("_l"): side_suffix = "_l"
+	var full_key := key + side_suffix if key not in ["head", "chest", "pelvis"] else key
+	if _npc_severed.has(full_key): return
+	if not _npc_part_hp.has(full_key):
+		_npc_part_hp[full_key] = float(PART_HP.get(key, 40.0))
+	_npc_part_hp[full_key] = float(_npc_part_hp[full_key]) - maxf(4.0, damage)
+	_npc_engaged = true
+	if _npc_state == "wait":
+		_npc_state = "approach"
+		_npc_timer = 0.0
+	_spray_blood(point, direction, 8 if damage < 20.0 else 16)
+	if float(_npc_part_hp[full_key]) > 0.0: return
+	_sever_part(full_key, key, part, point, direction, speed)
+
+## Takes the limb off: the mesh vanishes, the stump bleeds, a chunk is thrown.
+func _sever_part(full_key: String, kind: String, part: Dictionary, point: Vector3, direction: Vector3, speed: float) -> void:
+	_npc_severed[full_key] = true
+	_hide_limb(full_key, kind, String(part.sever))
+	_spray_blood(point, direction, 34)
+	_throw_stump(kind, point, direction, speed)
+	_impact_player.global_position = point
+	_impact_player.pitch_scale = 0.65
+	_impact_player.play()
+	# Losing the sword arm means losing the sword.
+	if kind in ["upperarm", "forearm", "hand"] and full_key.ends_with("_r"):
+		_npc_disarmed = true
+		_npc_engaged = false
+		_npc_state = "wait"
+		if is_instance_valid(_npc_sword):
+			_drop_sword(_npc_sword.global_position, direction, speed)
+	if kind == "head":
+		_npc_dead = true
+		_npc_disarmed = true
+		_npc_engaged = false
+	print("DSH_SWORD_PROTO_SEVER part=", full_key, " kind=", kind, " disarmed=", _npc_disarmed)
+
+## Collapses the bones of that limb (and everything under them) to nothing.
+func _hide_limb(full_key: String, kind: String, bone_name: String) -> void:
+	var bones: Array[String] = []
+	match kind:
+		"head": bones = ["head", "neck"]
+		"upperarm": bones = [bone_name]
+		"forearm": bones = [bone_name]
+		"hand": bones = [bone_name]
+		"thigh": bones = [bone_name]
+		"shin": bones = [bone_name]
+		"foot": bones = [bone_name]
+	for name: String in bones:
+		var bone := _npc_rig.find_bone(name)
+		if bone < 0: continue
+		var pose := _npc_rig.get_bone_pose(bone)
+		_npc_rig.set_bone_pose(bone, Transform3D(Basis.IDENTITY.scaled(Vector3(0.001, 0.001, 0.001)), pose.origin))
+
+## A short burst of blood drops that fall and fade.
+func _spray_blood(at: Vector3, direction: Vector3, count: int) -> void:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.45, 0.015, 0.02)
+	mat.roughness = 0.35
+	for i: int in count:
+		var drop := MeshInstance3D.new()
+		var sphere := SphereMesh.new()
+		sphere.radius = randf_range(0.012, 0.032)
+		sphere.height = sphere.radius * 2.0
+		drop.mesh = sphere
+		drop.material_override = mat
+		_world.add_child(drop)
+		drop.global_position = at + Vector3(randf_range(-0.06, 0.06), randf_range(-0.04, 0.08), randf_range(-0.06, 0.06))
+		var spread := Vector3(randf_range(-1.0, 1.0), randf_range(-0.3, 1.2), randf_range(-1.0, 1.0))
+		var velocity := (direction.normalized() * randf_range(1.2, 3.4) + spread * 0.9)
+		_npc_gore.append(drop)
+		_blood_velocities.append(velocity)
+		_blood_timers.append(BLOOD_LIFETIME)
+
+var _blood_velocities: Array[Vector3] = []
+var _blood_timers: Array[float] = []
+
+## A real piece of the body, thrown where the limb used to be: the shape follows
+## the part that came off (arm, leg, head with helm) and the cut end is bloody.
+func _throw_stump(kind: String, at: Vector3, direction: Vector3, speed: float) -> void:
+	var body := RigidBody3D.new()
+	body.mass = 1.4
+	var holder := Node3D.new()
+	body.add_child(holder)
+	var skin := StandardMaterial3D.new()
+	skin.albedo_color = Color(0.76, 0.60, 0.47)
+	skin.roughness = 0.65
+	var cloth := StandardMaterial3D.new()
+	cloth.albedo_color = MAIL
+	cloth.roughness = 0.6
+	var plate := StandardMaterial3D.new()
+	plate.albedo_color = STEEL
+	plate.metallic = 0.9
+	plate.roughness = 0.22
+	var flesh := StandardMaterial3D.new()
+	flesh.albedo_color = Color(0.42, 0.03, 0.035)
+	flesh.roughness = 0.4
+	var length := 0.34
+	var radius := 0.09
+	var material: Material = skin
+	var cut_offset := Vector3(0.0, -0.17, 0.0)
+	match kind:
+		"upperarm":
+			length = 0.34; radius = 0.095; material = cloth
+		"forearm":
+			length = 0.30; radius = 0.075; material = cloth
+		"hand":
+			length = 0.16; radius = 0.075; material = skin
+		"thigh":
+			length = 0.44; radius = 0.115; material = cloth
+		"shin":
+			length = 0.40; radius = 0.095; material = cloth
+		"foot":
+			length = 0.12; radius = 0.09; material = cloth
+		"head":
+			length = 0.24; radius = 0.13; material = skin
+	if kind == "head":
+		# Head with the helm still on it, and a bare neck at the cut.
+		_add_stump_mesh(holder, "sphere", radius, Vector3.ZERO, skin)
+		_add_stump_mesh(holder, "sphere", radius * 1.05, Vector3(0.0, 0.06, 0.0), plate)
+		_add_stump_mesh(holder, "box", radius * 0.8, Vector3(0.0, -0.12, 0.0), flesh)
+	else:
+		_add_stump_mesh(holder, "cylinder", radius, Vector3(0.0, 0.0, 0.0), material, length)
+		# The cut surface: a bloody disc at the severed end.
+		_add_stump_mesh(holder, "cylinder", radius * 1.02, Vector3(0.0, -length * 0.5, 0.0), flesh, radius * 0.35)
+		if kind in ["forearm", "hand", "shin", "foot"]:
+			# A hand or a foot still hangs at the far end.
+			_add_stump_mesh(holder, "sphere", radius * 0.95, Vector3(0.0, length * 0.5, 0.0), skin)
+	var shape := CollisionShape3D.new()
+	var capsule := CapsuleShape3D.new(); capsule.radius = radius; capsule.height = maxf(radius * 2.1, length)
+	shape.shape = capsule
+	body.add_child(shape)
+	_world.add_child(body)
+	body.global_position = at
+	body.linear_velocity = direction.normalized() * clampf(speed * 0.35, 1.0, 4.5) + Vector3.UP * 1.1
+	body.angular_velocity = Vector3(randf_range(-6.0, 6.0), randf_range(-6.0, 6.0), randf_range(-6.0, 6.0))
+	_npc_gore.append(body)
+	# Severed pieces are left lying on the ground for good; only a hard cap keeps
+	# the scene bounded.
+	_stumps.append(body)
+	_stump_count += 1
+	if _stumps.size() > MAX_STUMPS:
+		var oldest: Node3D = _stumps.pop_front()
+		if is_instance_valid(oldest): oldest.queue_free()
+		_stump_count = _stumps.size()
+
+func _add_stump_mesh(holder: Node3D, shape: String, radius: float, at: Vector3, material: Material, length: float = 0.0) -> void:
+	var node := MeshInstance3D.new()
+	if shape == "sphere":
+		var sphere := SphereMesh.new()
+		sphere.radius = radius
+		sphere.height = radius * 2.0
+		sphere.radial_segments = 14
+		sphere.rings = 7
+		node.mesh = sphere
+	elif shape == "cylinder":
+		var cylinder := CylinderMesh.new()
+		cylinder.top_radius = radius
+		cylinder.bottom_radius = radius
+		cylinder.height = length if length > 0.0 else radius * 2.0
+		cylinder.radial_segments = 14
+		node.mesh = cylinder
+	else:
+		var box := BoxMesh.new()
+		box.size = Vector3(radius * 1.6, radius * 0.9, radius * 2.0)
+		node.mesh = box
+	node.material_override = material
+	node.position = at
+	holder.add_child(node)
+
+## The sword leaves the severed hand and falls with it.
+func _drop_sword(at: Vector3, direction: Vector3, speed: float) -> void:
+	if not is_instance_valid(_npc_sword): return
+	var falling: Node3D = _npc_sword
+	_npc_sword = null
+	var body := RigidBody3D.new()
+	body.mass = 1.2
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new(); box.size = Vector3(1.3, 0.1, 0.1)
+	shape.shape = box
+	body.add_child(shape)
+	_world.add_child(body)
+	body.global_position = at
+	var visual := falling
+	visual.get_parent().remove_child(visual)
+	body.add_child(visual)
+	visual.transform = Transform3D.IDENTITY
+	body.linear_velocity = direction.normalized() * clampf(speed * 0.3, 0.8, 3.0) + Vector3.UP * 0.6
+	body.angular_velocity = Vector3(randf_range(-4.0, 4.0), randf_range(-4.0, 4.0), randf_range(-4.0, 4.0))
+
+## Blood drops fall, and everything gore-related is cleaned up over time.
+func _update_gore(delta: float) -> void:
+	var index := 0
+	while index < _npc_gore.size():
+		var node: Node3D = _npc_gore[index]
+		if not is_instance_valid(node):
+			_npc_gore.remove_at(index)
+			if index < _blood_velocities.size():
+				_blood_velocities.remove_at(index)
+				_blood_timers.remove_at(index)
+			continue
+		if index < _blood_velocities.size():
+			var velocity: Vector3 = _blood_velocities[index] - Vector3.UP * 9.0 * delta
+			_blood_velocities[index] = velocity
+			_blood_timers[index] -= delta
+			if node is MeshInstance3D:
+				node.global_position += velocity * delta
+				if _blood_timers[index] <= 0.0:
+					node.queue_free()
+					_npc_gore.remove_at(index)
+					_blood_velocities.remove_at(index)
+					_blood_timers.remove_at(index)
+					continue
+		index += 1
+
 func snapshot() -> Dictionary:
 	return {
 		"ready": _ready, "held": _held, "hits": _hits, "blocks": _blocks,
@@ -1649,6 +2497,14 @@ func snapshot() -> Dictionary:
 		"hand_side": str(_active_side()),
 		"duelist_state": _duelist_state, "duelist_hp": _duelist_hp, "duelist_swings": _duelist_swings,
 		"duelist_engaged": _duelist_engaged,
+		"npc_bound": is_instance_valid(_npc_rig), "npc_hp": _npc_hp, "npc_state": _npc_state,
+		"npc_engaged": _npc_engaged, "npc_swings": _npc_swings, "npc_hits": _npc_hits,
+		"npc_blocked": _npc_blocked, "npc_sword": _npc_sword.global_position if is_instance_valid(_npc_sword) else Vector3.ZERO,
+		"player_severed": _player_severed.keys(), "player_disarmed": _player_disarmed,
+		"has_sword": is_instance_valid(_sword),
+		"npc_severed": _npc_severed.keys(), "npc_disarmed": _npc_disarmed, "npc_dead": _npc_dead,
+		"npc_part_hp": _npc_part_hp.duplicate(),
+		"npc_position": _npc_body.global_position if is_instance_valid(_npc_body) else Vector3.ZERO,
 		"grip_hand_error": _grip_hand_error,
 		"hold_left": _hold_left, "hold_right": _hold_right, "carry_side": str(_carry_side),
 		"duelist_hits": _duelist_hits, "duelist_blocked": _duelist_blocked, "player_blocks": _player_blocks,

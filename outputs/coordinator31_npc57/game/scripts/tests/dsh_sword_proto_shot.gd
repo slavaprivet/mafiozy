@@ -395,7 +395,46 @@ func _run() -> void:
 		_press(false)
 		await _settle(10)
 
-	# 6. Sparring: the opponent walks in and cuts. Blade-on-blade must stop the
+	# 7. Dismemberment: cut the resident until a limb comes off.
+	var cut_state: Dictionary = _proto.snapshot()
+	if cut_state.npc_bound:
+		var npc_pos: Vector3 = cut_state.npc_position
+		var away2: Vector3 = _player.global_position - npc_pos
+		away2.y = 0.0
+		if away2.length_squared() < 1.0e-6: away2 = Vector3.FORWARD
+		_player.global_position = npc_pos + away2.normalized() * 1.15 + Vector3.UP * 0.05
+		_face_body_at(npc_pos)
+		await _settle(10)
+		for round_index: int in 10:
+			_press(true)
+			for i: int in 10:
+				_move(0.0, -60.0)
+				await _settle(2)
+			for i: int in 10:
+				_move(0.0, 65.0)
+				await _settle(2)
+			_press(false)
+			await _settle(8)
+		var cut_after: Dictionary = _proto.snapshot()
+		print("SWORD_SHOT_DISMEMBER severed=", cut_after.get("npc_severed", []), " disarmed=", cut_after.get("npc_disarmed", false),
+			" dead=", cut_after.get("npc_dead", false), " parts=", cut_after.get("npc_part_hp", {}))
+		await _shot("dismember")
+	# 7c. The PLAYER is cut apart too: wounds accumulate on a limb, and losing the
+	# sword hand means losing the sword with it.
+	var cut_rig: Skeleton3D = _player._pose_skeleton
+	var hand_bone: int = cut_rig.find_bone("hand_r")
+	if hand_bone >= 0:
+		var wound: Vector3 = cut_rig.global_transform * cut_rig.get_bone_global_pose(hand_bone).origin
+		for i: int in 3:
+			_proto.call("_apply_player_damage", 26.0, wound, Vector3.FORWARD)
+			await _settle(3)
+		var wound_state: Dictionary = _proto.snapshot()
+		print("SWORD_SHOT_PLAYER_CUT severed=", wound_state.get("player_severed", []),
+			" disarmed=", wound_state.get("player_disarmed", false),
+			" has_sword=", wound_state.get("has_sword", true),
+			" sparring_hp=", wound_state.get("sparring_hp", -1.0))
+		await _shot("player_cut")
+	# 8. Sparring: the opponent walks in and cuts. Blade-on-blade must stop the
 	# blow; with the blade held aside the same cut must land on the body.
 	var duel_before: Dictionary = _proto.snapshot()
 	var duelist_pos: Vector3 = duel_before.duelist_position
@@ -426,6 +465,10 @@ func _run() -> void:
 	print("SWORD_SHOT_DUELIST_OPEN blocks=", opened.player_blocks, " blocked=", opened.duelist_blocked,
 		" swings=", opened.duelist_swings, " hits_on_player=", opened.duelist_hits,
 		" sparring_hp=", opened.sparring_hp)
+	print("SWORD_SHOT_NPC bound=", opened.get("npc_bound", false), " hp=", opened.get("npc_hp", 0.0), " state=", opened.get("npc_state", ""),
+		" engaged=", opened.get("npc_engaged", false), " swings=", opened.get("npc_swings", 0), " hits=", opened.get("npc_hits", 0),
+		" blocked=", opened.get("npc_blocked", 0), " sparring_hp=", opened.sparring_hp,
+		" distance=", _player.global_position.distance_to(opened.get("npc_position", Vector3.ZERO)))
 	print("SWORD_SHOT_DUELIST_END ", JSON.stringify({
 		"state": opened.duelist_state, "hp": opened.duelist_hp,
 		"swings": opened.duelist_swings, "hits": opened.duelist_hits,
