@@ -545,6 +545,13 @@ func _build_pole(at: Vector3) -> StaticBody3D:
 # ---------------------------------------------------------------------- input
 
 func _input(event: InputEvent) -> void:
+	# Death restart must work even with the cursor released and the host inactive.
+	if event is InputEventKey and event.pressed and not event.echo:
+		var code: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
+		if code == KEY_R and is_instance_valid(_world) and bool(_world.get("preview_dead")):
+			get_viewport().set_input_as_handled()
+			get_tree().reload_current_scene.call_deferred()
+			return
 	if not _ready or not _active(): return
 	if event is InputEventMouseButton:
 		var button := event as InputEventMouseButton
@@ -1237,10 +1244,26 @@ func _apply_player_damage(amount: float, at: Vector3, direction: Vector3) -> voi
 	if owner != null:
 		var hp: Variant = owner.get("_hp")
 		if hp is int:
-			owner.set("_hp", maxi(0, int(hp) - int(round(amount))))
+			var remaining := maxi(0, int(hp) - int(round(amount)))
+			owner.set("_hp", remaining)
 			owner.set("_hit_age", 0.0)
 			owner.call("_refresh")
+			if remaining == 0: _kill_player()
 	if is_instance_valid(_player): _player.apply_contact_melee_impulse(direction, 18.0)
+
+## Mirrors the session death path so the ordinary R restart works after a
+## sparring death.
+func _kill_player() -> void:
+	if not is_instance_valid(_world) or not is_instance_valid(_player): return
+	_world.set("preview_dead", true)
+	var transport: Variant = _world.get("preview_transport")
+	if is_instance_valid(transport) and transport.has_method("mark_dead"): transport.mark_dead()
+	else: _player.set_preview_pose_authority(&"dead")
+	_player.set_mouse_captured(false)
+	_held = false
+	_hold_left = false
+	_hold_right = false
+	_player.set("_sword_lock", false)
 
 func _session_health() -> Object:
 	if not is_instance_valid(_player) or not _player.has_meta("local_contact_health_owner"): return null
