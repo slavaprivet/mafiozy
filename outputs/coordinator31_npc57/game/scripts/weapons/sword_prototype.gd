@@ -27,6 +27,12 @@ const HAND_SLEW_RATE := 8.0     # units per second
 const HAND_MAX_OFFSET := 1.0
 const MAX_OMEGA := 15.0         # rad/s, fast enough to cut instead of paint
 const MAX_ALPHA := 72.0         # rad/s^2, snappy acceleration into the swing
+## Steering controller: proportional gain plus damping, and a dead zone that parks
+## a settled blade. Without these the free camera made the sword buzz in the hand.
+const STEER_GAIN := 9.0
+const STEER_DAMPING := 0.42
+const STEER_DEADZONE := 0.35
+const STEER_ANGLE_DEADZONE := 0.05
 const FOLLOW_RATE := 7.5        # hand spring rate toward the commanded point
 const REST_RETURN_RATE := 4.5   # blade return when LMB is released
 ## Body weight: the swing is carried by hips, spine and chest, not only by the
@@ -226,7 +232,7 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 	# The two-handed offset (13 cm down the handle) must be in the rig's own bone
 	# units, or the supporting fist lands on the main one and the arm folds up.
 	var rig_scale := maxf(0.02, rig.global_transform.basis.get_scale().y)
-	_two_hand_offset_rig = 0.13 / rig_scale
+	_two_hand_offset_rig = 0.11 / rig_scale
 	_rest_l_upper = rig.get_bone_rest(_bone_l_upper) if _bone_l_upper >= 0 else Transform3D.IDENTITY
 	_rest_l_fore = rig.get_bone_rest(_bone_l_fore) if _bone_l_fore >= 0 else Transform3D.IDENTITY
 	_rest_l_hand = rig.get_bone_rest(_bone_l_hand) if _bone_l_hand >= 0 else Transform3D.IDENTITY
@@ -727,16 +733,24 @@ func _steer(delta: float) -> void:
 	if Time.get_ticks_msec() - _ground_touch_ms < 130 and target.y < 0.0:
 		target = Vector3(target.x, 0.0, target.z).normalized()
 	# A larger error drives a proportionally faster blade, so a decisive flick
-	# whips the sword through instead of dragging it.
+	# whips the sword through instead of dragging it. Damping is essential now that
+	# the view is free: without it the blade rings against a moving target and the
+	# sword visibly buzzes while the button is merely held.
 	var axis := _dir.cross(target)
 	var angle := _dir.angle_to(target)
 	var desired := Vector3.ZERO
-	if angle > 1e-4 and axis.length_squared() > 1e-10:
-		desired = axis.normalized() * clampf(angle * 11.0, 0.0, MAX_OMEGA)
+	if angle > 1.0e-4 and axis.length_squared() > 1.0e-10:
+		desired = axis.normalized() * clampf(angle * STEER_GAIN, 0.0, MAX_OMEGA)
+	desired -= _omega * STEER_DAMPING
 	var dv := desired - _omega
 	var max_dv := MAX_ALPHA * delta
 	if dv.length() > max_dv and dv.length() > 1.0e-9: dv = dv.normalized() * max_dv
 	_omega += dv
+	# Park a nearly-settled blade instead of letting it buzz around the target.
+	if _omega.length() < STEER_DEADZONE and angle < STEER_ANGLE_DEADZONE:
+		_omega = Vector3.ZERO
+		if angle > 1.0e-5:
+			_dir = _dir.slerp(target, clampf(6.0 * delta, 0.0, 1.0)).normalized()
 	if _omega.length() > MAX_OMEGA: _omega = _omega.normalized() * MAX_OMEGA
 	if _omega.length() > 1e-6:
 		var q := Quaternion(_omega.normalized(), _omega.length() * delta)
@@ -965,9 +979,9 @@ func _solve_arm(delta: float) -> void:
 	var side := _active_side()
 	var grip_rig := Vector3.ZERO
 	if side == &"both":
-		# Two-handed: both hands come forward off the chest so the arms read as a
-		# proper grip instead of folding together. Right button leads.
-		grip_rig = _pose_main(&"right", want_rig, blade_rig, 0.74)
+		# Two-handed: BOTH hands are pushed well forward of the chest, so the arms
+		# read as an extended grip instead of a knot against the body. Right leads.
+		grip_rig = _pose_main(&"right", want_rig, blade_rig, 0.88)
 		if grip_rig != Vector3.ZERO:
 			var support := grip_rig - blade_rig * _two_hand_offset_rig
 			# The supporting hand never reaches across the centre line, which is
@@ -1057,7 +1071,7 @@ func _pose_arm_ik(clav: int, upper: int, fore: int, hand: int, rest_upper: Trans
 		if pole.length_squared() < 1.0e-6: pole = direction.cross(Vector3.UP)
 	pole = pole.normalized()
 	var cos_angle := clampf((l1 * l1 + d * d - l2 * l2) / (2.0 * l1 * d), -1.0, 1.0)
-	var upper_dir := (Quaternion(pole.cross(direction).normalized(), acos(cos_angle)) * direction).normalized()
+	var upper_dir := (Quaternion(pole.cross(direction).normalized(), -acos(cos_angle)) * direction).normalized()
 	var elbow := joint + upper_dir * l1
 	var fore_dir := (joint + direction * d - elbow).normalized()
 	var upper_local := _point_bone(upper, rest_upper, rest_fore.origin, clavicle_global.basis, upper_dir)
@@ -2276,6 +2290,7 @@ func _update_city_npc(delta: float) -> void:
 		_npc_body.move_and_slide()
 		if _npc_gait != null:
 			_npc_gait.update_pose(delta, Vector3.ZERO, _npc_body.is_on_floor())
+		_apply_npc_severed()
 		return
 	var want := _npc_high_guard()
 	var move := Vector3.ZERO
@@ -2322,6 +2337,8 @@ func _update_city_npc(delta: float) -> void:
 	# the sword arm is then written over it, exactly like the player's own arm.
 	if _npc_gait != null:
 		_npc_gait.update_pose(delta, _npc_body.velocity, _npc_body.is_on_floor())
+	# Hidden limbs, re-cut every frame behind the gait.
+	_apply_npc_severed()
 	_npc_dir = _npc_dir.slerp(want, clampf(10.0 * delta, 0.0, 1.0)).normalized()
 	if not _npc_severed.has("upperarm_r") and not _npc_severed.has("forearm_r") and not _npc_severed.has("hand_r"):
 		_npc_pose_arm()
@@ -2360,7 +2377,7 @@ func _npc_pose_arm() -> void:
 	if pole.length_squared() < 1.0e-6: pole = direction.cross(Vector3.UP)
 	pole = pole.normalized()
 	var cos_angle := clampf((l1 * l1 + d * d - l2 * l2) / (2.0 * l1 * d), -1.0, 1.0)
-	var upper_dir := (Quaternion(pole.cross(direction).normalized(), acos(cos_angle)) * direction).normalized()
+	var upper_dir := (Quaternion(pole.cross(direction).normalized(), -acos(cos_angle)) * direction).normalized()
 	var elbow := joint + upper_dir * l1
 	var fore_dir := (joint + direction * d - elbow).normalized()
 	var upper_local := _npc_point_bone(_npc_upper, _npc_rest_upper, _npc_rest_fore.origin, clavicle_global.basis, upper_dir)
@@ -2557,6 +2574,25 @@ func _hide_limb(full_key: String, kind: String, bone_name: String) -> void:
 		if bone < 0: continue
 		var pose := _npc_rig.get_bone_pose(bone)
 		_npc_rig.set_bone_pose(bone, Transform3D(Basis.IDENTITY.scaled(Vector3(0.001, 0.001, 0.001)), pose.origin))
+
+## Re-hides every severed limb. Called every frame right after the walk gait,
+## which rewrites all bones and would otherwise put the limb straight back on.
+func _apply_npc_severed() -> void:
+	if _npc_severed.is_empty() or not is_instance_valid(_npc_rig): return
+	for full_key: String in _npc_severed.keys():
+		var kind := full_key
+		if full_key.ends_with("_l") or full_key.ends_with("_r"):
+			kind = full_key.substr(0, full_key.length() - 2)
+		var bones: Array[String] = []
+		match kind:
+			"head": bones = ["head", "neck"]
+			"upperarm", "forearm", "hand", "thigh", "shin", "foot": bones = [full_key]
+			_: bones = []
+		for name: String in bones:
+			var bone := _npc_rig.find_bone(name)
+			if bone < 0: continue
+			var pose := _npc_rig.get_bone_pose(bone)
+			_npc_rig.set_bone_pose(bone, Transform3D(Basis.IDENTITY.scaled(Vector3(0.001, 0.001, 0.001)), pose.origin))
 
 ## A short burst of blood drops that fall and fade.
 func _spray_blood(at: Vector3, direction: Vector3, count: int) -> void:
