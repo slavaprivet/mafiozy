@@ -602,11 +602,11 @@ func _input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseMotion and (Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or _held_event or _held):
 		var motion := event as InputEventMouseMotion
-		# The same motion must not also turn the camera.
+		# The SAME motion also turns the camera: the event is deliberately NOT
+		# consumed here, so the view stays free while the blade is steered.
 		_hand_cmd.x += motion.relative.x * MOUSE_TO_HAND
 		_hand_cmd.y -= motion.relative.y * MOUSE_TO_HAND
 		_hand_cmd = _hand_cmd.limit_length(HAND_MAX_OFFSET)
-		get_viewport().set_input_as_handled()
 
 func _active() -> bool:
 	return _ready and _selected and is_instance_valid(_player) and _player.is_inside_tree() \
@@ -656,6 +656,12 @@ func _rest_direction() -> Vector3:
 func _carry_direction() -> Vector3:
 	var visual: Node3D = _player._visual
 	return (Vector3.UP * 0.92 + visual.global_basis.x * 0.26 + visual.global_basis.z * 0.26).normalized()
+
+## Where the sword HAND rests in the ready stance: forward at chest height with a
+## natural bend, so the elbow is not folded back into the chest.
+func _ready_hand_direction() -> Vector3:
+	var visual: Node3D = _player._visual
+	return (visual.global_basis.z * 0.88 + Vector3.UP * 0.32).normalized()
 
 ## Where the blade is held while guarding. The steel lies ACROSS the body like a
 ## bar - mostly in the frontal plane, not pointing at the enemy - and the mouse
@@ -918,13 +924,16 @@ func _solve_arm(delta: float) -> void:
 		# blade, so the sword stays visibly in the fist while walking instead of
 		# hanging down beside the leg. The target is the body-relative carry, so it
 		# does not chase the camera and cannot shake.
-		var want_dir := _constrain_forward(_carry_direction())
+		# The HAND goes to a natural ready position (forward and slightly up, elbow
+		# bent), while the BLADE still points up. Using the blade direction for the
+		# hand as well is what folded the arm across the chest.
+		var want_dir := _constrain_forward(_ready_hand_direction())
 		want_dir = _constrain_to_body(want_dir, 0.55)
 		var want_rig := (rig_basis.inverse() * want_dir).normalized()
 		var blade_rig := (rig_basis.inverse() * _dir).normalized()
 		_lean_body(want_dir, delta)
 		var side := _active_side()
-		var grip_rig := _pose_main(side, want_rig, blade_rig, 0.90)
+		var grip_rig := _pose_main(side, want_rig, blade_rig, 0.72)
 		if grip_rig != Vector3.ZERO:
 			_sword_origin = (_rig.global_transform * grip_rig) + _dir * GRIP_CENTER_OFFSET
 		return
@@ -973,16 +982,19 @@ func _arm_set(side: StringName) -> Dictionary:
 	# The hero rig is MIRRORED on screen: the "_l" bones render on the character's
 	# right. So LMB (left) drives the "_r" bones and RMB (right) the "_l" bones.
 	var use_l_named: bool = side == &"right"
+	# The elbow must fall to the arm's OWN side. That side is decided by the visual
+	# side, not by which bones happen to be named "_l"/"_r".
+	var pole := _left_sign if side == &"left" else -_left_sign
 	if use_l_named:
 		return {
 			"clav": _bone_l_clavicle, "upper": _bone_l_upper, "fore": _bone_l_fore, "hand": _bone_l_hand,
 			"rest_upper": _rest_l_upper, "rest_fore": _rest_l_fore, "rest_hand": _rest_l_hand,
-			"offset": _rest_l_hand.origin, "pole": -1.0,
+			"offset": _rest_l_hand.origin, "pole": pole,
 		}
 	return {
 		"clav": _bone_clavicle, "upper": _bone_upper, "fore": _bone_fore, "hand": _bone_hand,
 		"rest_upper": _rest_upper, "rest_fore": _rest_fore, "rest_hand": _rest_hand,
-		"offset": _rest_socket.origin if _bone_socket >= 0 else Vector3(0.0, 1.0, 0.0), "pole": 1.0,
+		"offset": _rest_socket.origin if _bone_socket >= 0 else Vector3(0.0, 1.0, 0.0), "pole": pole,
 	}
 
 ## Poses the arm that holds the sword in the main grip; returns the fist in
