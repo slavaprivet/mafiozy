@@ -201,6 +201,9 @@ func _run() -> void:
 	for sample: Variant in samples:
 		drift = maxf(drift, (sample as Vector3).distance_to(samples[0]))
 	print("SWORD_SHOT_ARM_STABILITY ", drift, " samples=", samples.size())
+	print("SWORD_SHOT_HEAD_CLEARANCE idle=", _proto.snapshot().get("head_clearance", -1.0),
+		" body=", _proto.snapshot().get("body_clearance", -1.0),
+		" metres to head/spine (steel must never be inside the character)")
 	_arm_drift = drift
 
 	# 1. Free look works while LMB is released.
@@ -534,6 +537,11 @@ func _run() -> void:
 		" taken=", foreign_taken, " armed=", not bool(foreign_state.get("sword_grounded", true)),
 		" swords_left_on_ground=", own_left, " refused_when_armed=", armed_refused,
 		" in_hand_error=", foreign_state.get("grip_hand_error", 9.0))
+	# 11. Blade on blade throws sparks and counts as a parry.
+	var clash_state: Dictionary = _proto.snapshot()
+	print("SWORD_SHOT_SPARKS total=", clash_state.get("sparks_total", 0),
+		" live=", clash_state.get("sparks", 0),
+		" parries=", clash_state.get("player_blocks", 0))
 	final["camera_lock_delta"] = absf(yaw_held_after - yaw_held_before)
 	final["free_look_delta"] = absf(yaw_free_after - yaw_free_before)
 	final["still_hp_delta"] = float(still_before.dummy_hp) - float(still_after.dummy_hp)
@@ -552,6 +560,9 @@ func _run() -> void:
 		"sword_in_hand": float(final.get("grip_hand_error", 9.0)) < 0.10,
 		"two_handed_grip_ok": float(final.get("left_hand_error", 9.0)) < 0.20,
 		"arm_steady": _arm_drift < 0.05,
+		"blade_clear_of_head": float(final.get("head_clearance", 0.0)) > 0.10,
+		"blade_clear_of_body": float(final.get("body_clearance", 0.0)) > 0.12,
+		"clash_makes_sparks": int(final.get("sparks_total", 0)) > 0,
 		"camera_free_when_held": true,
 	}
 	var failed: Array[String] = []

@@ -56,7 +56,7 @@ const BODY_PUSH_DECAY := 3.2
 ## arm is what reaches, and it is clamped in front of the torso, so the blade can
 ## never end up behind the back.
 const BODY_YAW_SHARE := 0.16
-const BODY_YAW_LIMIT := 0.30
+const BODY_YAW_LIMIT := 0.50
 ## During a live cut the torso turns much further than while guarding, so the
 ## body visibly drives the swing.
 const BODY_YAW_SHARE_SWING := 0.48
@@ -173,6 +173,16 @@ var _contact_prev: Dictionary = {}
 ## id -> time of the last frame the blade was NOT touching that collider.
 var _contact_gap: Dictionary = {}
 var _last_spark_ms := -1000
+## Flying sparks from blade-on-blade clashes: one entry per live streak.
+var _sparks: Array[Dictionary] = []
+var _spark_mesh: BoxMesh
+var _spark_material: StandardMaterial3D
+var _spark_mesh_instance: BoxMesh
+## Hard cap on live sparks.
+const MAX_SPARKS := 140
+## Total sparks thrown since the prototype started, so a test can prove the bursts
+## really happened even though the streaks themselves live a third of a second.
+var _sparks_total := 0
 var _last_block_sound_ms := -1000
 var _last_number_ms := -1000
 var _ground_touch_ms := -10000
@@ -399,6 +409,65 @@ func _build_impacts() -> void:
 	_spark.material_override = spark_mat
 	_spark.visible = false
 	_world.add_child(_spark)
+	# Flying sparks: short bright streaks thrown off a blade-on-blade clash. They
+	# are drawn as thin boxes stretched along their own velocity, share one material
+	# and one mesh, and are hard-capped so a long duel cannot flood the scene.
+	_spark_mesh = BoxMesh.new(); _spark_mesh.size = Vector3(0.012, 0.012, 0.10)
+	_spark_material = StandardMaterial3D.new()
+	_spark_material.albedo_color = Color(1.0, 0.93, 0.68)
+	_spark_material.emission_enabled = true
+	_spark_material.emission = Color(1.0, 0.78, 0.34)
+	_spark_material.emission_energy_multiplier = 3.2
+	_spark_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_spark_mesh_instance = _spark_mesh
+
+## Throws a burst of sparks from `at`, away along `normal`.
+func _spark_burst(at: Vector3, normal: Vector3, count: int) -> void:
+	if not is_instance_valid(_world) or count <= 0: return
+	var away: Vector3 = normal
+	if away.length_squared() < 1.0e-6: away = Vector3.UP
+	away = away.normalized()
+	for i: int in count:
+		if _sparks.size() >= MAX_SPARKS: return
+		_sparks_total += 1
+		var node := MeshInstance3D.new()
+		node.mesh = _spark_mesh
+		node.material_override = _spark_material
+		_world.add_child(node)
+		node.global_position = at + Vector3(randf_range(-0.03, 0.03), randf_range(-0.03, 0.03), randf_range(-0.03, 0.03))
+		var spread := Vector3(randf_range(-1.0, 1.0), randf_range(0.2, 1.4), randf_range(-1.0, 1.0))
+		var velocity: Vector3 = away * randf_range(2.4, 6.2) + spread * 1.7
+		var life: float = randf_range(0.22, 0.42)
+		_sparks.append({"node": node, "velocity": velocity, "life": life, "max_life": life})
+		_node_aim_along(node, velocity)
+
+## Points a spark's long axis (local +Z) along its travel, so it reads as a streak.
+func _node_aim_along(node: Node3D, direction: Vector3) -> void:
+	if direction.length_squared() < 1.0e-8: return
+	node.look_at(node.global_position + direction.normalized(), Vector3.UP, true)
+
+func _update_sparks(delta: float) -> void:
+	if _sparks.is_empty(): return
+	var index := 0
+	while index < _sparks.size():
+		var entry: Dictionary = _sparks[index]
+		var node: Node3D = entry.get("node")
+		if not is_instance_valid(node):
+			_sparks.remove_at(index)
+			continue
+		var life: float = float(entry.get("life", 0.0)) - delta
+		if life <= 0.0:
+			node.queue_free()
+			_sparks.remove_at(index)
+			continue
+		var velocity: Vector3 = entry.get("velocity", Vector3.ZERO) - Vector3.UP * 16.0 * delta
+		entry["life"] = life
+		entry["velocity"] = velocity
+		_sparks[index] = entry
+		node.global_position += velocity * delta
+		var fade: float = life / maxf(0.01, float(entry.get("max_life", 0.3)))
+		node.scale = Vector3.ONE * clampf(fade, 0.12, 1.0)
+		index += 1
 
 func _impact_stream(duration: float, base_hz: float, noise: float) -> AudioStreamWAV:
 	var rate := 22050
@@ -882,19 +951,58 @@ func _rest_direction() -> Vector3:
 	var basis := _camera.global_basis
 	return (-basis.z * 0.35 + basis.y * 0.92 + basis.x * 0.10).normalized()
 
-## Body-relative carried stance (independent of the camera): the point is up and
-## a touch out and forward. This is what keeps the idle blade steady instead of
-## chasing the camera's micro-movement.
+## Which way is AWAY from the body, horizontally, on the sword-hand side. The
+## blade leans that way so it can never cross the character's own head.
+func _outward_from_body() -> Vector3:
+	var visual: Node3D = _player._visual
+	var bone := _hand_bone_for(_carry_side)
+	if bone < 0: return visual.global_basis.x
+	var fist: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(bone).origin
+	var outward := fist - _player.global_position
+	outward.y = 0.0
+	if outward.length_squared() < 1.0e-6: return visual.global_basis.x
+	return outward.normalized()
+
+## Radius of the character's own body that the blade must stay out of. Deliberately
+## tight: this safety net should only fire when the blade really is inside him.
+const BODY_CLEAR_RADIUS := 0.16
+## Largest correction the safety net may apply, in 15-degree steps. A big turn here
+## moved the ready pose and wrecked the cut built on top of it.
+const BODY_CLEAR_MAX_STEPS := 3
+
+## Steel must never be drawn through the character's own body. If the wanted blade
+## line passes through his torso, the blade is swung around the vertical axis to
+## the nearest side that clears him - turning the sword is better than letting it
+## pass through the character. The correction is small and bounded.
+func _clear_blade_from_body(direction: Vector3) -> Vector3:
+	if not is_instance_valid(_rig) or _bone_chest < 0 or _bone_pelvis < 0: return direction
+	var chest: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_chest).origin
+	var pelvis: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_pelvis).origin
+	var reach := 0.06 + BLADE_LENGTH
+	if _segment_distance(_sword_origin, _sword_origin + direction * reach, chest, pelvis) > BODY_CLEAR_RADIUS:
+		return direction
+	for step: int in BODY_CLEAR_MAX_STEPS:
+		var angle := deg_to_rad(15.0) * float(step + 1)
+		for turn: float in [1.0, -1.0]:
+			var rotated := direction.rotated(Vector3.UP, angle * turn)
+			if _segment_distance(_sword_origin, _sword_origin + rotated * reach, chest, pelvis) > BODY_CLEAR_RADIUS:
+				return rotated
+	return direction
+
+## Body-relative carried stance (independent of the camera): the point is up, out
+## to the sword side and forward, so the raised blade stands clear of the head
+## instead of being driven up through the face.
 func _carry_direction() -> Vector3:
 	var visual: Node3D = _player._visual
-	return (Vector3.UP * 0.92 + visual.global_basis.x * 0.26 + visual.global_basis.z * 0.26).normalized()
+	return (Vector3.UP * 0.74 + _outward_from_body() * 0.34 + visual.global_basis.z * 0.50).normalized()
 
-## Where the sword HAND rests in the ready stance: forward and a touch BELOW the
-## shoulder, so the fist sits at chest height. Anything above that put the hand
-## into the character's own head, which is the pose the player kept rejecting.
+## Where the sword HAND rests in the ready stance: forward and clearly BELOW the
+## shoulder, so the fist sits at chest height. This is the third time this pose has
+## been wrong for the same reason - the fist drifting up to the face - so the
+## downward component is decisive here rather than a touch.
 func _ready_hand_direction() -> Vector3:
 	var visual: Node3D = _player._visual
-	return (visual.global_basis.z * 0.99 - Vector3.UP * 0.10).normalized()
+	return (visual.global_basis.z * 0.94 - Vector3.UP * 0.34).normalized()
 
 ## The guard is the SAME diagonal carried pose the sword rests in (steel across the
 ## body, point up), held as a barrier. The mouse only raises or lowers that guard,
@@ -935,7 +1043,7 @@ func _steer(delta: float) -> void:
 		# Carried stance: a stable, body-relative ready angle (up, a little out and
 		# forward). Deriving it from the fist made the blade swing into the body as
 		# the walk animation turned the wrist.
-		var carry := _carry_direction()
+		var carry := _clear_blade_from_body(_carry_direction())
 		_dir = _dir.slerp(carry, clampf(7.0 * delta, 0.0, 1.0)).normalized()
 		_omega = Vector3.ZERO
 		return
@@ -1090,6 +1198,7 @@ func _process(delta: float) -> void:
 		_attach_sword_to_fist()
 	_update_gore(delta)
 	_update_stumps(delta)
+	_update_sparks(delta)
 	if not is_instance_valid(_npc_rig): _update_duelist(delta)
 	if not armed_with_sword:
 		# The blade lies on the ground with the hand that used to hold it.
@@ -1228,6 +1337,9 @@ func _solve_arm(delta: float) -> void:
 		var grip_rig := _pose_main(side, want_rig, blade_rig, 0.70)
 		if grip_rig != Vector3.ZERO:
 			_sword_origin = (_rig.global_transform * grip_rig) + _dir * GRIP_CENTER_OFFSET
+		# The carried blade is never shown inside the character: if the pose would
+		# drive steel through him, the blade swings around him instead.
+		_dir = _clear_blade_from_body(_dir)
 		return
 	var want_dir := _constrain_forward(_hand_target_direction())
 	want_dir = _constrain_to_body(want_dir, 0.10)
@@ -1728,6 +1840,8 @@ func _register_clash(at: Vector3) -> void:
 	_impact_player.pitch_scale = 1.7
 	_impact_player.play()
 	_show_spark(at)
+	# Real sparks off the steel, thrown away from the point of contact.
+	_spark_burst(at, -away, 16)
 	_duelist_state = "recover"
 	_duelist_timer = 0.0
 
@@ -2099,6 +2213,8 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 	if first_touch and now - _last_spark_ms >= SPARK_COOLDOWN_MS:
 		_last_spark_ms = now
 		_show_spark(position)
+		# Steel scraping stone throws a smaller, shorter burst.
+		_spark_burst(position, normal, 8)
 
 ## A blow is judged by HOW the edge arrives, not just how fast the point moves:
 ## a slice (motion across the blade axis) cuts at full strength, a stab (motion
@@ -3123,8 +3239,26 @@ func _update_stumps(delta: float) -> void:
 		# Hard caps: a severed piece rolls, it never launches.
 		rig_body.linear_velocity = rig_body.linear_velocity.limit_length(2.2)
 		rig_body.angular_velocity = rig_body.angular_velocity.limit_length(7.0)
-func snapshot() -> Dictionary:
-	return {
+## Shortest distance from the character's OWN head to the blade line. The "sword is
+## stuck through his face" pose is measurable this way instead of argued about.
+func _head_blade_clearance() -> float:
+	if not is_instance_valid(_rig) or not is_instance_valid(_sword) or _bone_head < 0: return 99.0
+	var head: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_head).origin
+	var a: Vector3 = _sword_origin
+	var b: Vector3 = _sword_origin + _dir * (0.06 + BLADE_LENGTH)
+	return _segment_distance(head, head, a, b)
+
+## Shortest distance from the blade line to the character's own SPINE. Companion to
+## the head clearance: together they prove no steel is drawn through the body.
+func _body_blade_clearance() -> float:
+	if not is_instance_valid(_rig) or not is_instance_valid(_sword) or _bone_chest < 0 or _bone_pelvis < 0: return 99.0
+	var chest: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_chest).origin
+	var pelvis: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_pelvis).origin
+	var a: Vector3 = _sword_origin
+	var b: Vector3 = _sword_origin + _dir * (0.06 + BLADE_LENGTH)
+	return _segment_distance(a, b, chest, pelvis)
+
+func snapshot() -> Dictionary:	return {
 		"ready": _ready, "held": _held, "hits": _hits, "blocks": _blocks,
 		"dummy_hp": _dummy_hp, "dummy_down": _dummy_down, "max_damage": _max_damage,
 		"hand": [_hand.x, _hand.y], "direction": [_dir.x, _dir.y, _dir.z],
@@ -3146,7 +3280,10 @@ func snapshot() -> Dictionary:
 		"npc_position": _npc_body.global_position if is_instance_valid(_npc_body) else Vector3.ZERO,
 		"grip_hand_error": _grip_hand_error,
 		"sword_grounded": _sword_grounded, "dropped_at": _dropped_at,
+		"head_clearance": _head_blade_clearance(),
+		"body_clearance": _body_blade_clearance(),
 		"armour_plates": _knight_armour.size(), "stump_count": _stumps.size(),
+		"sparks": _sparks.size(), "sparks_total": _sparks_total,
 		"bleeding": Time.get_ticks_msec() < _npc_bleed_until_ms,
 		"npc_fall": _npc_fall, "npc_speed_scale": _npc_speed_scale(),
 		"clav_l_x": (_rig.global_transform * _chain_global(_bone_l_clavicle).origin).x if _bone_l_clavicle >= 0 else 0.0,
