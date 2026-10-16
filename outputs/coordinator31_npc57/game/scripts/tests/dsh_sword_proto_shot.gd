@@ -227,6 +227,11 @@ func _run() -> void:
 	var elevation := asin(clampf(float(high_dir[1]), -1.0, 1.0))
 	print("SWORD_SHOT_HIGH_GUARD elevation_deg=", rad_to_deg(elevation), " hand=", high_snap.hand,
 		" body_pitch=", high_snap.body_pitch)
+	# Camera lock is measured across the steered phase only, before the close-up
+	# below deliberately turns the view (free look is legal while LMB is up).
+	var yaw_held_after := _yaw()
+	print("SWORD_SHOT_CAMERA_LOCK_DELTA ", absf(yaw_held_after - yaw_held_before))
+	print("SWORD_SHOT_DURING_SWING ", JSON.stringify(_proto.snapshot()))
 	# Close-up in profile so the sword model itself can be reviewed.
 	var spring: Variant = _player.get("_spring_arm")
 	_player.set("camera_distance", 3.2)
@@ -255,7 +260,6 @@ func _run() -> void:
 		await _settle(2)
 	await _settle(6)
 	await _shot("swing_up")
-	var yaw_held_after := _yaw()
 
 	# 2b. Solid contact: stand next to the test pole and swing into it.
 	var saved_position: Vector3 = _player.global_position
@@ -287,8 +291,6 @@ func _run() -> void:
 	print("SWORD_SHOT_POLE_PLAYER ", _player.global_position, " POLE ", pole)
 	_player.global_position = saved_position
 	await _settle(10)
-	print("SWORD_SHOT_CAMERA_LOCK_DELTA ", absf(yaw_held_after - yaw_held_before))
-	print("SWORD_SHOT_DURING_SWING ", JSON.stringify(_proto.snapshot()))
 
 	# 3. Rest return.
 	_press(false)

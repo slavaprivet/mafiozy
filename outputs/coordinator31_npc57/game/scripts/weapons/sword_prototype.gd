@@ -15,12 +15,20 @@ extends Node3D
 ## no combat AI, no dismemberment, no fully physical body.
 
 const BLADE_LENGTH := 1.15
+## Distance from the model origin to the middle of the grip along the blade axis.
+## The fist closes on this point, so the handle (not the guard) sits in the hand.
+const GRIP_CENTER_OFFSET := 0.0625
 const SWEEP_SEGMENTS := 5
 const MOUSE_TO_HAND := 0.0030
+## The commanded hand offset cannot jump: it is slewed toward the mouse command
+## at a bounded rate, which is what keeps a fast mouse flick from snapping the
+## whole arm (and the blade with it) across the body.
+const HAND_SLEW_RATE := 4.6     # units per second
+const HAND_MAX_OFFSET := 1.0
 const MAX_OMEGA := 6.2          # rad/s, heavy weapon steering limit
 const MAX_ALPHA := 20.0         # rad/s^2, acceleration limit
 const FOLLOW_RATE := 7.5        # hand spring rate toward the commanded point
-const REST_RETURN_RATE := 2.6   # blade return when LMB is released
+const REST_RETURN_RATE := 4.2   # blade return when LMB is released
 ## Body weight: the swing is carried by hips, spine and chest, not only by the
 ## arm. The torso leans against the blade's angular acceleration and takes the
 ## recoil of every contact.
@@ -42,8 +50,8 @@ const BODY_PUSH_DECAY := 3.2
 const BODY_YAW_SHARE := 0.16
 const BODY_YAW_LIMIT := 0.30
 const DAMAGE_SPEED_MIN := 1.05  # m/s below which a touch deals no damage
-const DAMAGE_PER_MPS := 6.5
-const DAMAGE_MAX := 26.0
+const DAMAGE_PER_MPS := 9.0
+const DAMAGE_MAX := 28.0
 const CONTACT_COOLDOWN_MS := 320
 const DUMMY_MAX_HP := 100.0
 const DUMMY_CLEAR_RADIUS := 0.75
@@ -83,6 +91,8 @@ var _down_until_ms := 0
 var _pole: StaticBody3D
 
 var _hand := Vector2.ZERO          # commanded hand offset in camera plane (x right, y up)
+## Raw mouse command and the slewed value that actually drives the arm.
+var _hand_cmd := Vector2.ZERO
 var _sword_origin := Vector3.ZERO
 var _dir := Vector3.FORWARD
 var _omega := Vector3.ZERO
@@ -489,9 +499,9 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and (Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or _held_event or _held):
 		var motion := event as InputEventMouseMotion
 		# The same motion must not also turn the camera.
-		_hand.x += motion.relative.x * MOUSE_TO_HAND
-		_hand.y -= motion.relative.y * MOUSE_TO_HAND
-		_hand = _hand.limit_length(1.0)
+		_hand_cmd.x += motion.relative.x * MOUSE_TO_HAND
+		_hand_cmd.y -= motion.relative.y * MOUSE_TO_HAND
+		_hand_cmd = _hand_cmd.limit_length(HAND_MAX_OFFSET)
 		get_viewport().set_input_as_handled()
 
 func _active() -> bool:
@@ -507,6 +517,7 @@ func set_selected(value: bool) -> void:
 		_held = false
 		_held_event = false
 		_hand = Vector2.ZERO
+		_hand_cmd = Vector2.ZERO
 		_omega = Vector3.ZERO
 		_dir = _rest_direction()
 		_block_push = Vector3.ZERO
@@ -532,20 +543,25 @@ func _rest_direction() -> Vector3:
 	# Rest is a ready stance with the point clearly UP and only slightly forward,
 	# so the blade reads as carried in the fist instead of hanging from its tip.
 	var basis := _camera.global_basis
-	return (-basis.z * 0.30 + basis.y * 0.94 + basis.x * 0.14).normalized()
+	return (-basis.z * 0.35 + basis.y * 0.92 + basis.x * 0.10).normalized()
 
 func _target_direction() -> Vector3:
 	var basis := _camera.global_basis
 	var steer := basis.x * (_hand.x * 1.30) + basis.y * (_hand.y * 2.10)
-	# A wheel thrust pushes the point straight forward (a stab), without one it
-	# keeps the ordinary diagonal swing bias.
-	var forward_bias := 0.80 + _thrust * 1.00
-	var target := (-basis.z * forward_bias + steer + basis.y * 0.10).normalized()
+	# A wheel thrust pushes the point straight forward (a stab); otherwise the
+	# ready bias keeps the point up-forward so a low cut only happens when the
+	# player actually drives the mouse down.
+	var forward_bias := 0.55 + _thrust * 1.10
+	var target := (-basis.z * forward_bias + steer + basis.y * 0.35).normalized()
+	# Guard against a default low cut: without a deliberate downward command the
+	# blade never points below the horizon.
+	if _hand.y > -0.25 and target.y < 0.05:
+		target = Vector3(target.x, 0.05, target.z).normalized()
 	if not target.is_finite(): return _rest_dir
 	return target
 
 func _steer(delta: float) -> void:
-	var target := _constrain_to_body(_constrain_forward(_target_direction()), 0.20) if _held else _constrain_to_body(_constrain_forward(_rest_dir), 0.20)
+	var target := _soft_body_limit(_constrain_forward(_target_direction()), 0.20, 0.55) if _held else _soft_body_limit(_constrain_forward(_rest_dir), 0.20, 0.55)
 	var rate := 1.0 if _held else REST_RETURN_RATE
 	var axis := _dir.cross(target)
 	var angle := _dir.angle_to(target)
@@ -569,6 +585,7 @@ func _physics_process(delta: float) -> void:
 	_held = _held_event or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
 	_player.set("_sword_lock", _selected and _held and bool(_player.get("_free_mouse_look")))
 	if not active:
+		_hand_cmd = _hand_cmd.lerp(Vector2.ZERO, clampf(REST_RETURN_RATE * delta, 0.0, 1.0))
 		_hand = _hand.lerp(Vector2.ZERO, clampf(REST_RETURN_RATE * delta, 0.0, 1.0))
 		_release_arm()
 		_sword.visible = false
@@ -576,24 +593,37 @@ func _physics_process(delta: float) -> void:
 		_block_push = _block_push.lerp(Vector3.ZERO, clampf(6.0 * delta, 0.0, 1.0))
 		return
 	_sword.visible = true
+	_dir = _soft_body_limit(_constrain_forward(_dir), 0.28, 0.55)
 	if not _held:
-		# Released: the commanded hand offset decays so the blade returns to rest.
-		_hand = _hand.lerp(Vector2.ZERO, clampf(REST_RETURN_RATE * delta, 0.0, 1.0))
+		# Released: the mouse command decays so the blade returns to rest.
+		_hand_cmd = _hand_cmd.lerp(Vector2.ZERO, clampf(REST_RETURN_RATE * delta, 0.0, 1.0))
+	# Slew the driving value toward the mouse command at a bounded rate.
+	var to_command := _hand_cmd - _hand
+	var max_step := HAND_SLEW_RATE * delta
+	if to_command.length() > max_step and to_command.length() > 1.0e-6:
+		to_command = to_command.normalized() * max_step
+	_hand += to_command
 	_thrust = lerpf(_thrust, 0.2, clampf(0.9 * delta, 0.0, 1.0))
 	_steer(delta)
 	_block_push = _block_push.lerp(Vector3.ZERO, clampf(6.0 * delta, 0.0, 1.0))
 	_body_push = _body_push.lerp(Vector3.ZERO, clampf(BODY_PUSH_DECAY * delta, 0.0, 1.0))
 	_solve_arm(delta)
 	# The blade is never allowed to point behind the player.
-	_dir = _constrain_forward(_dir)
-	_dir = _constrain_to_body(_dir, 0.28)
+	_dir = _soft_body_limit(_constrain_forward(_dir), 0.28, 0.55)
 	_place_sword(_sword_origin, _dir)
 	_sweep(delta)
 	# A contact may deflect the blade; put it back into the allowed front space
 	# immediately so it can never be shown behind the character.
-	_dir = _constrain_to_body(_constrain_forward(_dir), 0.28)
+	_dir = _soft_body_limit(_constrain_forward(_dir), 0.28, 0.55)
 	_update_dummy(delta)
 	_update_spark(delta)
+
+## Blends into the body-space limit instead of snapping to it, so the blade is
+## pulled back into the allowed front space over a few frames.
+func _soft_body_limit(direction: Vector3, min_forward: float, weight: float) -> Vector3:
+	var limited := _constrain_to_body(direction, min_forward)
+	if limited.distance_squared_to(direction) < 1.0e-10: return direction
+	return direction.slerp(limited, weight).normalized()
 
 ## Keeps a direction inside the player's forward half space (never behind).
 func _constrain_forward(direction: Vector3) -> Vector3:
@@ -654,9 +684,12 @@ func _solve_arm(delta: float) -> void:
 	var hand_offset := _rest_socket.origin if _bone_socket >= 0 else Vector3(0.0, 1.0, 0.0)
 	var hand_local := _point_bone(_bone_hand, _rest_hand, hand_offset, fore_global.basis, blade_rig)
 	var hand_global := fore_global * hand_local
-	# The pommel sits in the fist: the grip centre is the wrist, pushed a little
-	# back along the blade so the hand does not hold the guard.
-	_sword_origin = _guard_hand_in_front((_rig.global_transform * hand_global.origin) - _dir * 0.055)
+	# The fist grips the MIDDLE of the handle, not the model origin: the handle
+	# sits behind the origin, so the sword is shifted forward by that offset. The
+	# grip is read from the CURRENT skeleton pose, so the handle stays inside the
+	# hand even if another owner touches the rig after this pass.
+	var fist := _chain_global(_bone_hand).origin
+	_sword_origin = (_rig.global_transform * fist) + _dir * GRIP_CENTER_OFFSET
 
 ## Hard guarantee that the sword hand can never end up behind the character's
 ## back or on top of his head: the grip is clamped into a front envelope at
@@ -823,7 +856,10 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 	var penetration := correction.length()
 	if penetration > 0.02:
 		var gain := 0.30 if is_target else 0.50
-		_block_push = (_block_push + correction * gain).limit_length(0.55)
+		var add := correction * gain
+		# Recoil is applied in bounded steps, never as one snap.
+		if add.length() > 0.05: add = add.normalized() * 0.05
+		_block_push = (_block_push + add).limit_length(0.55)
 	var into := _dir.dot(normal)
 	if into < 0.0:
 		_dir = _dir.slerp((_dir - normal * into).normalized(), 0.45).normalized()

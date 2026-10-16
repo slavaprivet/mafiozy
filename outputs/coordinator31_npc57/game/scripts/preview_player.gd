@@ -40,6 +40,9 @@ var _free_mouse_look: bool = false
 ## DSH_SWORD_PROTO: while the prototype sword is steered (LMB held) the same
 ## mouse motion must not also turn the camera.
 var _sword_lock: bool = false
+## DSH_SWORD_PROTO: the prototype sword host registers itself here; while it is
+## steering the blade it owns the mouse and the view stays put.
+var _sword_host: Node = null
 var _model_loaded: bool = false
 var _model_error: String = ""
 var _source_height: float = 0.0
