@@ -156,6 +156,7 @@ var _contact_gap: Dictionary = {}
 var _last_spark_ms := -1000
 var _last_block_sound_ms := -1000
 var _last_number_ms := -1000
+var _ground_touch_ms := -10000
 var _number_count := 0
 ## Blade travel accumulated during the current wind-up: a swipe that stroked the
 ## target barely counts, a full wind-up followed by a cut hits much harder.
@@ -651,6 +652,13 @@ func _rest_direction() -> Vector3:
 	var basis := _camera.global_basis
 	return (-basis.z * 0.35 + basis.y * 0.92 + basis.x * 0.10).normalized()
 
+## Body-relative carried stance (independent of the camera): the point is up and
+## a touch out and forward. This is what keeps the idle blade steady instead of
+## chasing the camera's micro-movement.
+func _carry_direction() -> Vector3:
+	var visual: Node3D = _player._visual
+	return (Vector3.UP * 0.92 + visual.global_basis.x * 0.26 + visual.global_basis.z * 0.26).normalized()
+
 ## Where the blade is held while guarding: the mouse steers it left/right and
 ## up/down across the body, so the player aims the steel at the incoming blow.
 func _guard_direction() -> Vector3:
@@ -690,12 +698,15 @@ func _steer(delta: float) -> void:
 		# Carried stance: a stable, body-relative ready angle (up, a little out and
 		# forward). Deriving it from the fist made the blade swing into the body as
 		# the walk animation turned the wrist.
-		var visual: Node3D = _player._visual
-		var carry := (Vector3.UP * 0.92 + visual.global_basis.x * 0.26 + visual.global_basis.z * 0.26).normalized()
+		var carry := _carry_direction()
 		_dir = _dir.slerp(carry, clampf(7.0 * delta, 0.0, 1.0)).normalized()
 		_omega = Vector3.ZERO
 		return
 	var target := _soft_body_limit(_constrain_forward(_target_direction()), 0.20, 0.55)
+	# After the tip has just touched the floor, the blade cannot be driven back
+	# down until it has lifted - this is what stops the 10 Hz ground hop.
+	if Time.get_ticks_msec() - _ground_touch_ms < 130 and target.y < 0.0:
+		target = Vector3(target.x, 0.0, target.z).normalized()
 	# A larger error drives a proportionally faster blade, so a decisive flick
 	# whips the sword through instead of dragging it.
 	var axis := _dir.cross(target)
@@ -905,8 +916,9 @@ func _solve_arm(delta: float) -> void:
 	if not _held:
 		# Carried but READY: the sword hand keeps a light, bent grip on the raised
 		# blade, so the sword stays visibly in the fist while walking instead of
-		# hanging down beside the leg. The target is the rest stance, softly.
-		var want_dir := _constrain_forward(_rest_direction())
+		# hanging down beside the leg. The target is the body-relative carry, so it
+		# does not chase the camera and cannot shake.
+		var want_dir := _constrain_forward(_carry_direction())
 		want_dir = _constrain_to_body(want_dir, 0.55)
 		var want_rig := (rig_basis.inverse() * want_dir).normalized()
 		var blade_rig := (rig_basis.inverse() * _dir).normalized()
@@ -958,9 +970,9 @@ func _hand_bone_for(side: StringName) -> int:
 ## mirrored relative to the model's visible sides, so the mapping is resolved
 ## once at install time by comparing the clavicle positions.
 func _arm_set(side: StringName) -> Dictionary:
-	# Direct anatomical mapping: the "_l" bones are the character's own left arm
-	# and "_r" are the right. LMB = left, RMB = right.
-	var use_l_named: bool = side == &"left"
+	# The hero rig is MIRRORED on screen: the "_l" bones render on the character's
+	# right. So LMB (left) drives the "_r" bones and RMB (right) the "_l" bones.
+	var use_l_named: bool = side == &"right"
 	if use_l_named:
 		return {
 			"clav": _bone_l_clavicle, "upper": _bone_l_upper, "fore": _bone_l_fore, "hand": _bone_l_hand,
@@ -1621,6 +1633,7 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 	# Ground contact never bounces: a blade resting on the floor only has its
 	# downward rotation damped. Pushing or deflecting here made it hop repeatedly.
 	if normal.y > 0.7:
+		_ground_touch_ms = now
 		_omega *= 0.90
 		if fresh and now - _last_block_sound_ms >= BLOCK_SOUND_COOLDOWN_MS:
 			_last_block_sound_ms = now
@@ -2060,20 +2073,18 @@ func _update_city_npc(delta: float) -> void:
 		print("DSH_SWORD_PROTO_NPC aggro distance=", distance)
 	_npc_timer += delta
 	var want := _npc_high_guard()
+	var move := Vector3.ZERO
 	if _npc_engaged:
 		# Walk in, wind up, cut - the walk animation plays because his own body is
-		# actually moving, and the population host samples the gait from it.
+		# actually moving, and the gait samples the horizontal velocity from it.
 		match _npc_state:
 			"approach":
 				if distance > 1.25:
-					_npc_body.velocity = to_player.normalized() * 1.9
-				else:
-					_npc_body.velocity = Vector3.ZERO
+					move = to_player.normalized() * 1.9
 				if _npc_timer > 0.6:
 					_npc_state = "windup"
 					_npc_timer = 0.0
 			"windup":
-				_npc_body.velocity = Vector3.ZERO
 				want = _npc_high_guard()
 				if _npc_timer > 0.5:
 					_npc_state = "strike"
@@ -2081,21 +2092,26 @@ func _update_city_npc(delta: float) -> void:
 					_npc_swings += 1
 					_npc_blade_prev = PackedVector3Array()
 			"strike":
-				_npc_body.velocity = to_player.normalized() * 1.1
+				move = to_player.normalized() * 1.1
 				want = _npc_cut_direction()
 				_npc_resolve_strike(delta)
 				if _npc_timer > 0.22:
 					_npc_state = "recover"
 					_npc_timer = 0.0
 			_:
-				_npc_body.velocity = Vector3.ZERO
 				if _npc_timer > 0.7:
 					_npc_state = "approach"
 					_npc_timer = 0.0
-		if distance < 20.0: _npc_body.move_and_slide()
 		if _npc_hp <= 0.0:
 			_npc_engaged = false
 			_npc_state = "wait"
+	# Gravity keeps him planted on the ground; without it he drifts through the air.
+	_npc_body.velocity = move
+	if _npc_body.is_on_floor():
+		_npc_body.velocity.y = -0.5
+	else:
+		_npc_body.velocity.y -= 9.8 * delta
+	_npc_body.move_and_slide()
 	# The canonical walk gait plays FIRST, so his legs really step while he moves;
 	# the sword arm is then written over it, exactly like the player's own arm.
 	if _npc_gait != null:
