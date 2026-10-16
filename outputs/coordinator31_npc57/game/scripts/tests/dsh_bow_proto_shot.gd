@@ -103,8 +103,22 @@ func _run() -> void:
 		" nocked=", loaded.nocked, " fetch_phase=", loaded.fetch_phase,
 		" quiver_mouth=", loaded.quiver_mouth)
 	await _shot("quiver")
+	# Watch the WHOLE fetch and draw frame by frame: the arm must never be posed
+	# through the body, and the string must really come back as the draw rises.
+	var min_hand := 99.0
+	var min_elbow := 99.0
+	var max_pull := 0.0
+	var string_seen := 0
+	var samples_taken := 0
 	await _press_mouse(MOUSE_BUTTON_RIGHT, true)
-	await _settle(140)
+	for i: int in 170:
+		await process_frame
+		var watch: Dictionary = _proto.snapshot()
+		samples_taken += 1
+		min_hand = minf(min_hand, float(watch.get("hand_clearance", 99.0)))
+		min_elbow = minf(min_elbow, float(watch.get("elbow_clearance", 99.0)))
+		max_pull = maxf(max_pull, float(watch.get("string_pull_m", 0.0)))
+		if bool(watch.get("string_visible", false)): string_seen += 1
 	var drawn: Dictionary = _proto.snapshot()
 	print("BOW_SHOT_DRAW drawing=", drawn.drawing, " draw=", drawn.draw,
 		" speed=", drawn.speed_now, " aim_dots=", drawn.aim_dots,
@@ -112,6 +126,11 @@ func _run() -> void:
 		" base_fov=", rest_state.fov,
 		" predicted_range=", drawn.predicted_range)
 	await _shot("drawn")
+	print("BOW_SHOT_CLEARANCE samples=", samples_taken, " min_hand_from_spine=", min_hand,
+		" min_elbow_from_spine=", min_elbow, " max_string_pull_m=", max_pull,
+		" frames_with_visible_string=", string_seen,
+		" string_pull_at_full_draw=", drawn.get("string_pull_m", 0.0),
+		" nocked_arrow=", drawn.get("nocked_arrow_visible", false))
 
 	# 2. The arc must be ballistic: the far end of the prediction sits BELOW the
 	# straight line from the muzzle.
@@ -237,6 +256,10 @@ func _run() -> void:
 			and quiver_back and int(with_again.arrows_left) > 0 and bool(with_again.quiver_worn),
 		"bow_can_be_dropped_and_taken": bow_dropped and bool(bow_ground.grounded)
 			and bow_back and not bool(bow_up.grounded) and refused_in_hand,
+		"arm_never_through_the_body": min_hand > 0.24 and min_elbow > 0.18,
+		"string_is_visible": string_seen > 100 and bool(drawn.get("string_visible", false)),
+		"string_comes_back_with_the_draw": max_pull > 0.30,
+		"arrow_sits_on_the_string": bool(drawn.get("nocked_arrow_visible", false)),
 	}
 	var failed: Array[String] = []
 	for key: String in verdict.keys():

@@ -92,6 +92,11 @@ var _quiver_worn := false
 var _arrows_left := 0
 var _nocked := false
 var _quiver_mouth := Vector3.ZERO
+## World position the drawing hand actually reached, which is where the string nock
+## is drawn: the string and the hand can never disagree.
+var _string_hand_world := Vector3.ZERO
+## The arrow sitting on the string, shown while an arrow is nocked.
+var _nocked_arrow: Node3D
 const ARROWS_PER_QUIVER := 20
 
 # ---------------------------------------------------------------- arrow fetching
@@ -162,6 +167,8 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 		return {"ok": false, "reason": "arm_lengths"}
 	_build_materials()
 	_bow = _build_bow(_world)
+	_nocked_arrow = _build_arrow(_world)
+	_nocked_arrow.visible = false
 	_quiver = _build_quiver(_world)
 	_ground_quiver = _build_quiver(_world)
 	_build_aim_dots()
@@ -365,15 +372,6 @@ func _bow_hand_point() -> Vector3:
 	var visual: Node3D = _player._visual
 	var side := visual.global_basis.x * (_left_sign * 0.16)
 	return _player.global_position + Vector3.UP * 1.30 + aim * 0.62 + side
-
-## Where the string hand anchors at the given draw: from beside the jaw back to the
-## shoulder, along the aim line.
-func _string_hand_point() -> Vector3:
-	var aim := _aim_direction()
-	var anchor := _player.global_position + Vector3.UP * 1.38
-	var visual: Node3D = _player._visual
-	anchor += visual.global_basis.x * (_left_sign * 0.05)
-	return anchor - aim * (0.12 + STRING_PULL * _draw_amount)
 
 func _aim_direction() -> Vector3:
 	if not is_instance_valid(_camera): return Vector3.FORWARD
@@ -660,10 +658,11 @@ func _place_quiver() -> void:
 		anchor = _rig.global_transform * _chain_global(_bone_chest)
 	var visual: Node3D = _player._visual
 	var back: Vector3 = visual.global_basis.z
-	# Behind and a little to the drawing side, leaning so the shafts sit by the
-	# shoulder where the hand can reach them.
-	var origin: Vector3 = anchor.origin - back * 0.17 + visual.global_basis.x * (0.13 * _left_sign) + Vector3.UP * 0.02
-	var basis := Basis(visual.global_basis.x, Vector3.UP, back) * Basis(Vector3.RIGHT, deg_to_rad(-24.0)) * Basis(Vector3.UP, deg_to_rad(28.0))
+	# Behind the back but TOWARD THE DRAWING SIDE, and tilted so the shafts stand up
+	# beside that shoulder. Hanging it dead centre is what forced the fetching arm
+	# through the torso; at the side the hand reaches it past the ribs.
+	var origin: Vector3 = anchor.origin - back * 0.15 + _draw_side() * 0.20 + Vector3.UP * 0.02
+	var basis := Basis(visual.global_basis.x, Vector3.UP, back) * Basis(Vector3.RIGHT, deg_to_rad(-26.0)) * Basis(Vector3.UP, deg_to_rad(34.0))
 	_quiver.global_transform = Transform3D(basis.orthonormalized(), origin)
 	_quiver_mouth = _quiver.global_transform * Vector3(0.0, 0.30, 0.0)
 	_show_quiver_arrows(_quiver, clampi(_arrows_left, 0, ARROWS_PER_QUIVER))
@@ -920,8 +919,44 @@ func _pose_archer(delta: float) -> void:
 	var bow_point := _bow_hand_point()
 	_pose_arm(_bone_bow_clavicle, _bone_bow_upper, _bone_bow_fore, _bone_bow_hand,
 		_rest_bow_upper, _rest_bow_fore, _rest_bow_hand, bow_point, _left_sign)
+	# The string follows the hand exactly, so keep the world point the hand reached.
+	_string_hand_world = _constrain_hand_path(_draw_hand_point(delta))
 	_pose_arm(_bone_draw_clavicle, _bone_draw_upper, _bone_draw_fore, _bone_draw_hand,
-		_rest_draw_upper, _rest_draw_fore, _rest_draw_hand, _draw_hand_point(delta), -_left_sign)
+		_rest_draw_upper, _rest_draw_fore, _rest_draw_hand, _string_hand_world, -_left_sign)
+
+## Keeps the drawing hand OUT of the archer's own body. Whatever the fetch or the
+## draw asks for, the hand target is pushed out of a cylinder around his spine, so
+## the arm can never be posed through his chest or back.
+func _constrain_hand_path(point: Vector3) -> Vector3:
+	var centre: Vector3 = _player.global_position
+	var flat := Vector3(point.x - centre.x, 0.0, point.z - centre.z)
+	var radius: float = maxf(0.30, _draw_side().length() * 0.0 + 0.30)
+	if flat.length() >= radius: return point
+	var away: Vector3 = flat.normalized() if flat.length_squared() > 1.0e-8 else _draw_side()
+	return Vector3(centre.x + away.x * radius, point.y, centre.z + away.z * radius)
+
+## Which way the DRAWING side is, horizontally, measured from the body centre to the
+## drawing hand. The quiver and the whole fetch are built on this side, so the arm
+## travels past the shoulder instead of through the torso.
+func _draw_side() -> Vector3:
+	if not is_instance_valid(_rig) or _bone_draw_hand < 0: return _player._visual.global_basis.x
+	var fist: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_draw_hand).origin
+	var side := fist - _player.global_position
+	side.y = 0.0
+	if side.length_squared() < 1.0e-6: return _player._visual.global_basis.x
+	return side.normalized()
+
+## Where the string hand is right now. It works the string once an arrow is nocked,
+## or travels to the quiver and back when one has to be fetched.
+##
+## NOTE: the hand comes back to the ARCHER'S FACE, not behind his back. Pulling the
+## hand backwards past the body is what made the arm read as going through the back;
+## a real draw ends at the jaw, and the string follows the hand.
+func _string_hand_point() -> Vector3:
+	var aim := _aim_direction()
+	var braced: Vector3 = _bow_hand_point() - aim * 0.04
+	var anchor: Vector3 = _player.global_position + Vector3.UP * 1.42 + aim * 0.06 + _draw_side() * 0.05
+	return braced.lerp(anchor, clampf(_draw_amount, 0.0, 1.0))
 
 ## Where the string hand is right now: working the string once an arrow is nocked,
 ## or on its way to the quiver and back when one has to be fetched. The path curves
@@ -963,13 +998,13 @@ func _ensure_nocked() -> void:
 func _rest_hand_anchor() -> Vector3:
 	return _player.global_position + Vector3.UP * 1.20 + _aim_direction() * 0.24
 
-## A point above and outside the drawing shoulder: the hand travels over it, not
-## through the neck.
+## A point beside and above the DRAWING shoulder, out to the drawing side. The hand
+## travels around this, not through the neck, and never crosses the body.
 func _over_shoulder_point() -> Vector3:
 	var visual: Node3D = _player._visual
-	return _player.global_position + Vector3.UP * 1.58 \
-		+ visual.global_basis.x * (0.30 * _left_sign) \
-		- visual.global_basis.z * 0.10
+	return _player.global_position + Vector3.UP * 1.54 \
+		+ _draw_side() * 0.38 \
+		- visual.global_basis.z * 0.04
 
 ## Quadratic Bezier, used for both halves of the fetch.
 func _arc_point(a: Vector3, control: Vector3, b: Vector3, t: float) -> Vector3:
@@ -1033,20 +1068,38 @@ func _chain_global(bone: int) -> Transform3D:
 		result = result * _rig.get_bone_pose(item)
 	return result
 
-## The bow sits in the bow hand, its own +Z along the aim, and the string follows
-## the draw: tip to nock to tip.
+## The bow sits in the bow hand, its own +Z along the aim, and the string runs from
+## tip to tip THROUGH THE STRING HAND. The nock is the hand itself, so what the
+## player sees is the string really coming back as he draws.
 func _place_bow() -> void:
 	if not is_instance_valid(_bow): return
 	var aim := _aim_direction()
 	var fist: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_bow_hand).origin
 	var origin := fist + aim * 0.06
 	_bow.global_transform = _basis_z_along(origin, aim)
-	var tip_a: Vector3 = _bow.to_global(Vector3(0.0, 0.62, 0.10 - 0.20))
-	var tip_b: Vector3 = _bow.to_global(Vector3(0.0, -0.62, 0.10 - 0.20))
-	var nock_at: Vector3 = _bow.to_global(Vector3(0.0, 0.0, 0.10 - STRING_PULL * _draw_amount))
+	# The tips must be the SAME points the limbs were built from, or the string hangs
+	# off the bow instead of running between the nocks.
+	var tip_a: Vector3 = _bow.to_global(_limb_point(1.0, 1.0))
+	var tip_b: Vector3 = _bow.to_global(_limb_point(1.0, -1.0))
+	var nock_at: Vector3 = _string_hand_world
+	if nock_at == Vector3.ZERO: nock_at = _bow.to_global(Vector3(0.0, 0.0, 0.04))
 	if is_instance_valid(_nock): _nock.global_position = nock_at
 	if is_instance_valid(_string_a): _stretch(_string_a, tip_a, nock_at)
 	if is_instance_valid(_string_b): _stretch(_string_b, nock_at, tip_b)
+	_place_nocked_arrow(nock_at)
+
+## The arrow on the string, which is what makes a draw readable: it sits between the
+## archer's fingers with its point toward the target.
+func _place_nocked_arrow(nock_at: Vector3) -> void:
+	if not is_instance_valid(_nocked_arrow): return
+	var wanted: bool = _nocked and _arrows_left > 0
+	_nocked_arrow.visible = wanted
+	if not wanted: return
+	var aim := _aim_direction()
+	# The model's nock sits 0.37 m behind its origin.
+	var origin: Vector3 = nock_at + aim * 0.37
+	_nocked_arrow.global_position = origin
+	_nocked_arrow.look_at(origin + aim, Vector3.UP, true)
 
 ## Basis whose local +Z runs along `direction`.
 func _basis_z_along(origin: Vector3, direction: Vector3) -> Transform3D:
@@ -1146,6 +1199,9 @@ func snapshot() -> Dictionary:
 		"draw": _draw_amount, "arrows": _arrows.size(), "shots": _shots,
 		"arrows_left": _arrows_left, "quiver_worn": _quiver_worn,
 		"nocked": _nocked, "fetch_phase": _fetch_phase, "grounded": _grounded,
+		"string_pull_m": string_pull_m(), "hand_clearance": hand_clearance(),
+		"elbow_clearance": elbow_clearance(), "string_visible": string_visible(),
+		"nocked_arrow_visible": is_instance_valid(_nocked_arrow) and _nocked_arrow.visible,
 		"ground_items": _ground_items.size(), "quiver_mouth": _quiver_mouth,
 		"stuck": _stuck_total, "last_hit_distance": _last_hit_distance,
 		"last_flight_time": _last_flight_time, "predicted_range": _predicted_range,
@@ -1184,6 +1240,32 @@ func arrow_state(index: int) -> Dictionary:
 ## the ballistic drop made visible.
 func arrow_count() -> int:
 	return _arrows.size()
+
+## Horizontal distance from the drawing hand to the archer's own centre line, and
+## the same for his elbow. These are the measurements that say whether the arm is
+## being posed through his body, which is exactly the fault being fixed.
+func hand_clearance() -> float:
+	return _flat_clearance(_string_hand_world)
+
+func elbow_clearance() -> float:
+	if not is_instance_valid(_rig) or _bone_draw_fore < 0: return 99.0
+	var elbow: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_draw_fore).origin
+	return _flat_clearance(elbow)
+
+func _flat_clearance(point: Vector3) -> float:
+	if not is_instance_valid(_player): return 99.0
+	var flat := Vector2(point.x - _player.global_position.x, point.z - _player.global_position.z)
+	return flat.length()
+
+## How far the nock has been pulled back from the bow's own grip, in metres.
+func string_pull_m() -> float:
+	if not is_instance_valid(_bow) or _string_hand_world == Vector3.ZERO: return 0.0
+	var grip: Vector3 = _bow.global_position
+	return grip.distance_to(_string_hand_world)
+
+func string_visible() -> bool:
+	return is_instance_valid(_string_a) and _string_a.visible \
+		and is_instance_valid(_string_b) and _string_b.visible
 
 func _visible_aim_dots() -> int:
 	var count := 0
