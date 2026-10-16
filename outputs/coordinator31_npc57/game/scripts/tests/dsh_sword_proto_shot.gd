@@ -49,7 +49,10 @@ func _hand_state(label: String) -> void:
 	print("SWORD_SHOT_HANDS ", label, " side=", snap.hand_side, " carry=", snap.carry_side,
 		" left=", snap.hold_left, " right=", snap.hold_right,
 		" grip_error=", snap.grip_hand_error, " two_handed=", snap.two_handed,
-		" left_hand_error=", snap.left_hand_error)
+		" left_hand_error=", snap.left_hand_error,
+		" clavL=", snap.clav_l_x, " clavR=", snap.clav_r_x, " fwdZ=", snap.visual_fwd.z,
+		" upL=", snap.uparm_l_x, " upR=", snap.uparm_r_x, " gripX=", snap.grip_x,
+		" lIsL=", snap.left_is_l_named)
 
 ## Sets the mouse buttons on the prototype directly. Synthetic InputEvents do not
 ## reach Input.is_mouse_button_pressed in a driven run, so the state is set here.

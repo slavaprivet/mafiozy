@@ -195,18 +195,24 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 	_bone_chest = rig.find_bone("chest")
 	_bone_pelvis = rig.find_bone("pelvis")
 	_bone_head = rig.find_bone("head")
-	# Resolve the mirrored naming once. Pressing LMB must move the arm the player
-	# sees on the left, so the mapping follows the observed geometry instead of
-	# trusting the "_l"/"_r" suffixes.
-	var l_clavicle_x := rig.get_bone_rest(rig.find_bone("clavicle_l")).origin.x if rig.find_bone("clavicle_l") >= 0 else 0.0
-	var r_clavicle_x := rig.get_bone_rest(rig.find_bone("clavicle_r")).origin.x if rig.find_bone("clavicle_r") >= 0 else 0.0
-	_side_inverted = l_clavicle_x > r_clavicle_x
-	_left_sign = signf(r_clavicle_x) if _side_inverted else signf(l_clavicle_x)
-	if _left_sign == 0.0: _left_sign = 1.0
+	# Resolve the mirrored naming ONCE, from real world geometry. The character
+	# faces along +Z and up is +Y, so its right hand points along forward x up;
+	# compare the two shoulders to learn which named bone sits on the visual left.
 	_bone_l_clavicle = rig.find_bone("clavicle_l")
 	_bone_l_upper = rig.find_bone("upperarm_l")
 	_bone_l_fore = rig.find_bone("forearm_l")
 	_bone_l_hand = rig.find_bone("hand_l")
+	if _bone_l_upper >= 0 and _bone_upper >= 0 and is_instance_valid(_camera):
+		# "Left hand" means the hand on the character's screen-left: opposite of the
+		# camera's right vector. This is independent of the rig's world rotation.
+		var cam_right: Vector3 = _camera.global_basis.x.normalized()
+		var l_pos: Vector3 = rig.global_transform * rig.get_bone_global_pose(_bone_l_upper).origin
+		var r_pos: Vector3 = rig.global_transform * rig.get_bone_global_pose(_bone_upper).origin
+		_left_is_l_named = (l_pos - r_pos).dot(cam_right) < 0.0
+		var l_rig: Vector3 = rig.get_bone_global_pose(_bone_l_upper).origin
+		var r_rig: Vector3 = rig.get_bone_global_pose(_bone_upper).origin
+		_left_sign = 1.0 if (l_rig.x - r_rig.x) >= 0.0 else -1.0
+		if _left_sign == 0.0: _left_sign = 1.0
 	_rest_l_upper = rig.get_bone_rest(_bone_l_upper) if _bone_l_upper >= 0 else Transform3D.IDENTITY
 	_rest_l_fore = rig.get_bone_rest(_bone_l_fore) if _bone_l_fore >= 0 else Transform3D.IDENTITY
 	_rest_l_hand = rig.get_bone_rest(_bone_l_hand) if _bone_l_hand >= 0 else Transform3D.IDENTITY
@@ -727,6 +733,12 @@ func _physics_process(delta: float) -> void:
 		_held_event = false
 		_player.set("_sword_lock", false)
 		_hand_cmd = _hand_cmd.lerp(Vector2.ZERO, clampf(REST_RETURN_RATE * delta, 0.0, 1.0))
+		_hand = _hand.lerp(Vector2.ZERO, clampf(REST_RETURN_RATE * delta, 0.0, 1.0))
+		_release_arm()
+		if is_instance_valid(_sword): _sword.visible = false
+		_prev_points = PackedVector3Array()
+		_block_push = _block_push.lerp(Vector3.ZERO, clampf(6.0 * delta, 0.0, 1.0))
+		return
 	if not _synthetic_hands:
 		# Real input: the buttons are read from the engine every frame, so a missed
 		# release event can never leave the view locked.
@@ -735,13 +747,7 @@ func _physics_process(delta: float) -> void:
 		_held_event = _hold_left
 		_held = _hold_left or _hold_right
 		_player.set("_sword_lock", _selected and _held and bool(_player.get("_free_mouse_look")))
-		_hand = _hand.lerp(Vector2.ZERO, clampf(REST_RETURN_RATE * delta, 0.0, 1.0))
-		_release_arm()
-		_sword.visible = false
-		_prev_points = PackedVector3Array()
-		_block_push = _block_push.lerp(Vector3.ZERO, clampf(6.0 * delta, 0.0, 1.0))
-		return
-	_sword.visible = true
+	if is_instance_valid(_sword): _sword.visible = true
 	_dir = _soft_body_limit(_constrain_forward(_dir), 0.28, 0.55)
 	if not _held:
 		# Released: the mouse command decays so the blade returns to rest.
@@ -897,14 +903,18 @@ func _hand_target_direction() -> Vector3:
 func _solve_arm(delta: float) -> void:
 	var rig_basis := _rig.global_transform.basis
 	if not _held:
-		# Carried: the arms keep their own locomotion animation and simply hold the
-		# sword in the hand that last gripped it. No IK runs here, which is what
-		# stops the idle shake entirely.
-		var resting := _hand_bone_for(_active_side())
-		if resting >= 0:
-			var resting_fist: Vector3 = _rig.get_bone_global_pose(resting).origin
-			_sword_origin = (_rig.global_transform * resting_fist) + _dir * GRIP_CENTER_OFFSET
-		_lean_body(_constrain_forward(_hand_target_direction()), delta)
+		# Carried but READY: the sword hand keeps a light, bent grip on the raised
+		# blade, so the sword stays visibly in the fist while walking instead of
+		# hanging down beside the leg. The target is the rest stance, softly.
+		var want_dir := _constrain_forward(_rest_direction())
+		want_dir = _constrain_to_body(want_dir, 0.55)
+		var want_rig := (rig_basis.inverse() * want_dir).normalized()
+		var blade_rig := (rig_basis.inverse() * _dir).normalized()
+		_lean_body(want_dir, delta)
+		var side := _active_side()
+		var grip_rig := _pose_main(side, want_rig, blade_rig, 0.82)
+		if grip_rig != Vector3.ZERO:
+			_sword_origin = (_rig.global_transform * grip_rig) + _dir * GRIP_CENTER_OFFSET
 		return
 	var want_dir := _constrain_forward(_hand_target_direction())
 	want_dir = _constrain_to_body(want_dir, 0.55)
@@ -948,8 +958,9 @@ func _hand_bone_for(side: StringName) -> int:
 ## mirrored relative to the model's visible sides, so the mapping is resolved
 ## once at install time by comparing the clavicle positions.
 func _arm_set(side: StringName) -> Dictionary:
-	var want_left_visual := side == &"left"
-	var use_l_named: bool = want_left_visual != _side_inverted
+	# Direct anatomical mapping: the "_l" bones are the character's own left arm
+	# and "_r" are the right. LMB = left, RMB = right.
+	var use_l_named: bool = side == &"left"
 	if use_l_named:
 		return {
 			"clav": _bone_l_clavicle, "upper": _bone_l_upper, "fore": _bone_l_fore, "hand": _bone_l_hand,
@@ -1161,6 +1172,8 @@ var _duelist_recoil_until_ms := 0
 var _side_inverted := false
 ## X sign (rig space) of the arm the player sees as the left one.
 var _left_sign := 1.0
+## Whether the "_l"-named bones are the ones on the visual left side.
+var _left_is_l_named := true
 ## Set by a driven test that feeds button state directly, because synthetic mouse
 ## events are not mirrored by Input.is_mouse_button_pressed.
 var _synthetic_hands := false
@@ -2506,6 +2519,13 @@ func snapshot() -> Dictionary:
 		"npc_part_hp": _npc_part_hp.duplicate(),
 		"npc_position": _npc_body.global_position if is_instance_valid(_npc_body) else Vector3.ZERO,
 		"grip_hand_error": _grip_hand_error,
+		"clav_l_x": (_rig.global_transform * _chain_global(_bone_l_clavicle).origin).x if _bone_l_clavicle >= 0 else 0.0,
+		"clav_r_x": (_rig.global_transform * _chain_global(_bone_clavicle).origin).x if _bone_clavicle >= 0 else 0.0,
+		"uparm_l_x": (_rig.global_transform * _chain_global(_bone_l_upper).origin).x if _bone_l_upper >= 0 else 0.0,
+		"uparm_r_x": (_rig.global_transform * _chain_global(_bone_upper).origin).x if _bone_upper >= 0 else 0.0,
+		"grip_x": _sword_origin.x,
+		"left_is_l_named": _left_is_l_named,
+		"visual_fwd": _player._visual.global_basis.z if is_instance_valid(_player) and is_instance_valid(_player._visual) else Vector3.ZERO,
 		"hold_left": _hold_left, "hold_right": _hold_right, "carry_side": str(_carry_side),
 		"duelist_hits": _duelist_hits, "duelist_blocked": _duelist_blocked, "player_blocks": _player_blocks,
 		"sparring_hp": _sparring_hp,
