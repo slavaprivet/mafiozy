@@ -735,7 +735,7 @@ func _steer(delta: float) -> void:
 		_dir = _dir.slerp(carry, clampf(7.0 * delta, 0.0, 1.0)).normalized()
 		_omega = Vector3.ZERO
 		return
-	var target := _soft_body_limit(_constrain_forward(_target_direction()), 0.12, 0.40)
+	var target := _soft_body_limit(_constrain_forward(_target_direction()), 0.05, 0.22)
 	# Smooth the target itself: the camera basis and the mouse both feed it, and a
 	# raw per-frame target is what showed up as a ripple on the blade.
 	if _steer_target.length_squared() < 1.0e-6:
@@ -781,7 +781,9 @@ func _physics_process(delta: float) -> void:
 	# the grip exactly there. Both buttons = two-handed (right hand leads).
 	if _hold_left and not _hold_right: _carry_side = &"left"
 	elif _hold_right and not _hold_left: _carry_side = &"right"
-	_blocking = _hold_right
+	# RMB ALONE is the guard. LMB+RMB is the two-handed cut and must still wound,
+	# which it could not while ANY right button counted as blocking.
+	_blocking = _hold_right and not _hold_left
 	_player.set("_sword_lock", false)
 	if not active:
 		# Outside the play state (menu, free cursor, death) no button stays held:
@@ -807,7 +809,7 @@ func _physics_process(delta: float) -> void:
 		_held = _hold_left or _hold_right
 		_player.set("_sword_lock", false)
 	if is_instance_valid(_sword): _sword.visible = true
-	_dir = _soft_body_limit(_constrain_forward(_dir), 0.28, 0.55)
+	_dir = _soft_body_limit(_constrain_forward(_dir), 0.10, 0.16)
 	if not _held:
 		# Released: the mouse command decays so the blade returns to rest.
 		_hand_cmd = _hand_cmd.lerp(Vector2.ZERO, clampf(REST_RETURN_RATE * delta, 0.0, 1.0))
@@ -833,7 +835,7 @@ func _physics_process(delta: float) -> void:
 	_body_push = _body_push.lerp(Vector3.ZERO, clampf(BODY_PUSH_DECAY * delta, 0.0, 1.0))
 	_solve_arm(delta)
 	# The blade is never allowed to point behind the player.
-	_dir = _soft_body_limit(_constrain_forward(_dir), 0.28, 0.55)
+	_dir = _soft_body_limit(_constrain_forward(_dir), 0.10, 0.16)
 	# The opponent is a real body: his step, gravity and pose belong to the physics
 	# frame, otherwise move_and_slide() leaves him hanging in the air.
 	_update_city_npc(delta)
@@ -871,7 +873,7 @@ func _process(delta: float) -> void:
 	_sweep(delta)
 	# A contact may deflect the blade; put it back into the allowed front space
 	# immediately so it can never be shown behind the character.
-	_dir = _soft_body_limit(_constrain_forward(_dir), 0.28, 0.55)
+	_dir = _soft_body_limit(_constrain_forward(_dir), 0.10, 0.16)
 	_update_dummy(delta)
 	_update_spark(delta)
 
@@ -943,7 +945,7 @@ func _constrain_to_body(direction: Vector3, min_forward: float) -> Vector3:
 	var ahead: float = local.z
 	if ahead >= min_forward: return direction
 	var side := Vector3(local.x, local.y, 0.0)
-	if side.length_squared() > 0.36: side = side.normalized() * 0.6
+	if side.length_squared() > 0.81: side = side.normalized() * 0.9
 	var corrected := (side + Vector3(0.0, 0.0, min_forward)).normalized()
 	return (basis * corrected).normalized()
 
@@ -977,7 +979,7 @@ func _solve_arm(delta: float) -> void:
 		# bent), while the BLADE still points up. Using the blade direction for the
 		# hand as well is what folded the arm across the chest.
 		var want_dir := _constrain_forward(_ready_hand_direction())
-		want_dir = _constrain_to_body(want_dir, 0.34)
+		want_dir = _constrain_to_body(want_dir, 0.10)
 		var want_rig := (rig_basis.inverse() * want_dir).normalized()
 		var blade_rig := (rig_basis.inverse() * _dir).normalized()
 		_lean_body(want_dir, delta)
@@ -987,7 +989,7 @@ func _solve_arm(delta: float) -> void:
 			_sword_origin = (_rig.global_transform * grip_rig) + _dir * GRIP_CENTER_OFFSET
 		return
 	var want_dir := _constrain_forward(_hand_target_direction())
-	want_dir = _constrain_to_body(want_dir, 0.34)
+	want_dir = _constrain_to_body(want_dir, 0.10)
 	var want_rig := (rig_basis.inverse() * want_dir).normalized()
 	var blade_rig := (rig_basis.inverse() * _dir).normalized()
 	_lean_body(want_dir, delta)
