@@ -2781,11 +2781,13 @@ func _update_gore(delta: float) -> void:
 					continue
 		index += 1
 
-## Walking into a severed piece kicks it along the ground. The pieces live on
-## their own layer so they never block the player, but a real nudge still rolls
-## them, which is what a body part on the floor should do.
+## Walking into a severed piece kicks it along the ground. The pieces live on their
+## own layer so they never block the player, but a real nudge still rolls them.
+## The kick is ONE impulse per approach with a cooldown: applying it every frame
+## used to accelerate a piece away across the map.
 func _update_stumps(delta: float) -> void:
 	if not is_instance_valid(_player) or _stumps.is_empty(): return
+	var now := Time.get_ticks_msec()
 	var player_pos: Vector3 = _player.global_position + Vector3.UP * 0.45
 	for index: int in range(_stumps.size() - 1, -1, -1):
 		var body: Node3D = _stumps[index]
@@ -2793,14 +2795,21 @@ func _update_stumps(delta: float) -> void:
 			_stumps.remove_at(index)
 			continue
 		if not body is RigidBody3D: continue
-		var to_body := body.global_position - player_pos
+		var rig_body := body as RigidBody3D
+		var to_body := rig_body.global_position - player_pos
+		to_body.y = 0.0
 		var distance := to_body.length()
-		if distance > 1.05 or distance < 0.02: continue
-		var push := (to_body / distance) * (1.05 - distance) * 0.16
-		push.y = 0.0
-		(body as RigidBody3D).apply_central_impulse(push)
-		(body as RigidBody3D).apply_torque_impulse(Vector3(0.0, push.x * 2.0, 0.0) + Vector3(push.z * 2.0, 0.0, 0.0))
-
+		if distance > 0.9 or distance < 0.02: continue
+		# One nudge per approach, and never on a piece that is already rolling.
+		if now - int(rig_body.get_meta("kick_ms", -10000)) < 500: continue
+		if rig_body.linear_velocity.length() > 1.6: continue
+		rig_body.set_meta("kick_ms", now)
+		var away := to_body / distance
+		rig_body.apply_central_impulse(away * 0.30 + Vector3.UP * 0.05)
+		rig_body.apply_torque_impulse(Vector3(away.z, 0.0, -away.x) * 0.22)
+		# Hard caps: a severed piece rolls, it never launches.
+		rig_body.linear_velocity = rig_body.linear_velocity.limit_length(2.2)
+		rig_body.angular_velocity = rig_body.angular_velocity.limit_length(7.0)
 func snapshot() -> Dictionary:
 	return {
 		"ready": _ready, "held": _held, "hits": _hits, "blocks": _blocks,
