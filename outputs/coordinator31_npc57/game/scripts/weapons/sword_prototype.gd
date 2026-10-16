@@ -195,6 +195,11 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 	_bone_chest = rig.find_bone("chest")
 	_bone_pelvis = rig.find_bone("pelvis")
 	_bone_head = rig.find_bone("head")
+	# Resolve the rig's mirrored naming once: if the "_l" clavicle sits on the
+	# side the model calls right, the names are inverted for our purposes.
+	var l_clavicle_x := rig.get_bone_rest(rig.find_bone("clavicle_l")).origin.x if rig.find_bone("clavicle_l") >= 0 else 0.0
+	var r_clavicle_x := rig.get_bone_rest(rig.find_bone("clavicle_r")).origin.x if rig.find_bone("clavicle_r") >= 0 else 0.0
+	_side_inverted = l_clavicle_x < r_clavicle_x
 	_bone_l_clavicle = rig.find_bone("clavicle_l")
 	_bone_l_upper = rig.find_bone("upperarm_l")
 	_bone_l_fore = rig.find_bone("forearm_l")
@@ -371,7 +376,7 @@ func _build_hint() -> void:
 	style.content_margin_top = 6; style.content_margin_bottom = 6
 	panel.add_theme_stylebox_override("panel", style)
 	_hint = Label.new()
-	_hint.text = "Р В РЎС›Р В РІР‚СћР В Р Р‹Р В РЎС›Р В РЎвЂєР В РІР‚в„ўР В Р’В«Р В РІвЂћСћ Р В РЎС™Р В РІР‚СћР В Р’В§ (Р В РЎвЂ”Р РЋР вЂљР В РЎвЂўР РЋРІР‚С™Р В РЎвЂўР РЋРІР‚С™Р В РЎвЂР В РЎвЂ”)\nР В РІР‚С”Р В РЎв„ўР В РЎС™ + Р В РўвЂР В Р вЂ Р В РЎвЂР В Р’В¶Р В Р’ВµР В Р вЂ¦Р В РЎвЂР В Р’Вµ Р В РЎВР РЋРІР‚в„–Р РЋРІвЂљВ¬Р В РЎвЂ Р Р†Р вЂљРІР‚Сњ Р РЋР вЂљР РЋРЎвЂњР В Р’В±Р В РЎвЂР РЋРІР‚С™Р РЋР Р‰ Р В Р вЂ Р В Р’В»Р В Р’ВµР В Р вЂ Р В РЎвЂў/Р В Р вЂ Р В РЎвЂ”Р РЋР вЂљР В Р’В°Р В Р вЂ Р В РЎвЂў/Р В Р вЂ Р В Р вЂ Р В Р’ВµР РЋР вЂљР РЋРІР‚В¦/Р В Р вЂ Р В Р вЂ¦Р В РЎвЂР В Р’В· Р В РЎвЂ Р В РЎвЂ”Р В РЎвЂў Р В РўвЂР В РЎвЂР В Р’В°Р В РЎвЂ“Р В РЎвЂўР В Р вЂ¦Р В Р’В°Р В Р’В»Р В РЎвЂ\nР В РЎв„ўР В РЎвЂўР В Р’В»Р В Р’ВµР РЋР С“Р В РЎвЂў Р В РЎВР РЋРІР‚в„–Р РЋРІвЂљВ¬Р В РЎвЂ Р Р†Р вЂљРІР‚Сњ Р РЋРЎвЂњР В РЎвЂќР В РЎвЂўР В Р’В» Р В Р вЂ Р В РЎвЂ”Р В Р’ВµР РЋР вЂљР РЋРІР‚ВР В РўвЂ / Р В РЎвЂўР РЋРІР‚С™Р РЋРІР‚С™Р РЋР РЏР В Р вЂ¦Р РЋРЎвЂњР РЋРІР‚С™Р РЋР Р‰ Р В Р вЂ¦Р В Р’В°Р В Р’В·Р В Р’В°Р В РўвЂ\nР В РЎСџР В РЎв„ўР В РЎС™ Р Р†Р вЂљРІР‚Сњ Р В РўвЂР В Р вЂ Р РЋРЎвЂњР РЋР вЂљР РЋРЎвЂњР РЋРІР‚РЋР В Р вЂ¦Р РЋРІР‚в„–Р В РІвЂћвЂ“ Р РЋРІР‚В¦Р В Р вЂ Р В Р’В°Р РЋРІР‚С™: Р В Р’В»Р В Р’ВµР В Р вЂ Р В Р’В°Р РЋР РЏ Р РЋР вЂљР РЋРЎвЂњР В РЎвЂќР В Р’В° Р В Р вЂ¦Р В Р’В° Р РЋР вЂљР РЋРЎвЂњР В РЎвЂќР В РЎвЂўР РЋР РЏР РЋРІР‚С™Р В РЎвЂ, Р РЋРЎвЂњР В РўвЂР В Р’В°Р РЋР вЂљ Р РЋР С“Р В РЎвЂР В Р’В»Р РЋР Р‰Р В Р вЂ¦Р В Р’ВµР В Р’Вµ\nР В РЎвЂєР РЋРІР‚С™Р В РЎвЂ”Р РЋРЎвЂњР РЋР С“Р РЋРІР‚С™Р В РЎвЂР РЋРІР‚С™Р В Р’Вµ Р В РІР‚С”Р В РЎв„ўР В РЎС™ Р Р†Р вЂљРІР‚Сњ Р В РЎВР В Р’ВµР РЋРІР‚РЋ Р В Р вЂ Р В РЎвЂўР В Р’В·Р В Р вЂ Р РЋР вЂљР В Р’В°Р РЋРІР‚В°Р В Р’В°Р В Р’ВµР РЋРІР‚С™Р РЋР С“Р РЋР РЏ; Р В РЎвЂќР В Р’В°Р В РЎВР В Р’ВµР РЋР вЂљР В Р’В° Р В РЎвЂ”Р РЋР вЂљР В РЎвЂ Р РЋРЎвЂњР В РўвЂР В Р’ВµР РЋР вЂљР В Р’В¶Р В Р’В°Р В Р вЂ¦Р В РЎвЂР В РЎвЂ Р В Р вЂ¦Р В Р’Вµ Р В Р вЂ Р РЋР вЂљР В Р’В°Р РЋРІР‚В°Р В Р’В°Р В Р’ВµР РЋРІР‚С™Р РЋР С“Р РЋР РЏ"
+	_hint.text = "Р В Р’В Р РЋРЎвЂєР В Р’В Р Р†Р вЂљРЎС›Р В Р’В Р В Р вЂ№Р В Р’В Р РЋРЎвЂєР В Р’В Р РЋРІР‚С”Р В Р’В Р Р†Р вЂљРІвЂћСћР В Р’В Р вЂ™Р’В«Р В Р’В Р Р†РІР‚С›РЎС› Р В Р’В Р РЋРЎв„ўР В Р’В Р Р†Р вЂљРЎС›Р В Р’В Р вЂ™Р’В§ (Р В Р’В Р РЋРІР‚вЂќР В Р Р‹Р В РІР‚С™Р В Р’В Р РЋРІР‚СћР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚СћР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚ВР В Р’В Р РЋРІР‚вЂќ)\nР В Р’В Р Р†Р вЂљРЎвЂќР В Р’В Р РЋРІвЂћСћР В Р’В Р РЋРЎв„ў + Р В Р’В Р СћРІР‚ВР В Р’В Р В РІР‚В Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’В¶Р В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’Вµ Р В Р’В Р РЋР’ВР В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р Р‹Р Р†РІР‚С™Р’В¬Р В Р’В Р РЋРІР‚В Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљ Р В Р Р‹Р В РІР‚С™Р В Р Р‹Р РЋРІР‚СљР В Р’В Р вЂ™Р’В±Р В Р’В Р РЋРІР‚ВР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р В Р вЂ° Р В Р’В Р В РІР‚В Р В Р’В Р вЂ™Р’В»Р В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В Р В Р’В Р РЋРІР‚Сћ/Р В Р’В Р В РІР‚В Р В Р’В Р РЋРІР‚вЂќР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В Р В Р’В Р РЋРІР‚Сћ/Р В Р’В Р В РІР‚В Р В Р’В Р В РІР‚В Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РІР‚С™Р В Р Р‹Р Р†Р вЂљР’В¦/Р В Р’В Р В РІР‚В Р В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’В· Р В Р’В Р РЋРІР‚В Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚Сћ Р В Р’В Р СћРІР‚ВР В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’В°Р В Р’В Р РЋРІР‚вЂњР В Р’В Р РЋРІР‚СћР В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚В\nР В Р’В Р РЋРІвЂћСћР В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В»Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РЎвЂњР В Р’В Р РЋРІР‚Сћ Р В Р’В Р РЋР’ВР В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р Р‹Р Р†РІР‚С™Р’В¬Р В Р’В Р РЋРІР‚В Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљ Р В Р Р‹Р РЋРІР‚СљР В Р’В Р РЋРІР‚СњР В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В» Р В Р’В Р В РІР‚В Р В Р’В Р РЋРІР‚вЂќР В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РІР‚С™Р В Р Р‹Р Р†Р вЂљР’ВР В Р’В Р СћРІР‚В / Р В Р’В Р РЋРІР‚СћР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р В Р РЏР В Р’В Р В РІР‚В¦Р В Р Р‹Р РЋРІР‚СљР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р В Р вЂ° Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’В·Р В Р’В Р вЂ™Р’В°Р В Р’В Р СћРІР‚В\nР В Р’В Р РЋРЎСџР В Р’В Р РЋРІвЂћСћР В Р’В Р РЋРЎв„ў Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљ Р В Р’В Р СћРІР‚ВР В Р’В Р В РІР‚В Р В Р Р‹Р РЋРІР‚СљР В Р Р‹Р В РІР‚С™Р В Р Р‹Р РЋРІР‚СљР В Р Р‹Р Р†Р вЂљР Р‹Р В Р’В Р В РІР‚В¦Р В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р Р†РІР‚С›РІР‚вЂњ Р В Р Р‹Р Р†Р вЂљР’В¦Р В Р’В Р В РІР‚В Р В Р’В Р вЂ™Р’В°Р В Р Р‹Р Р†Р вЂљРЎв„ў: Р В Р’В Р вЂ™Р’В»Р В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В Р В Р’В Р вЂ™Р’В°Р В Р Р‹Р В Р РЏ Р В Р Р‹Р В РІР‚С™Р В Р Р‹Р РЋРІР‚СљР В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’В° Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’В° Р В Р Р‹Р В РІР‚С™Р В Р Р‹Р РЋРІР‚СљР В Р’В Р РЋРІР‚СњР В Р’В Р РЋРІР‚СћР В Р Р‹Р В Р РЏР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚В, Р В Р Р‹Р РЋРІР‚СљР В Р’В Р СћРІР‚ВР В Р’В Р вЂ™Р’В°Р В Р Р‹Р В РІР‚С™ Р В Р Р‹Р В РЎвЂњР В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’В»Р В Р Р‹Р В Р вЂ°Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’ВµР В Р’В Р вЂ™Р’Вµ\nР В Р’В Р РЋРІР‚С”Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚вЂќР В Р Р‹Р РЋРІР‚СљР В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚ВР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’Вµ Р В Р’В Р Р†Р вЂљРЎвЂќР В Р’В Р РЋРІвЂћСћР В Р’В Р РЋРЎв„ў Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљ Р В Р’В Р РЋР’ВР В Р’В Р вЂ™Р’ВµР В Р Р‹Р Р†Р вЂљР Р‹ Р В Р’В Р В РІР‚В Р В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В·Р В Р’В Р В РІР‚В Р В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°Р В Р Р‹Р Р†Р вЂљР’В°Р В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р В РЎвЂњР В Р Р‹Р В Р РЏ; Р В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’В°Р В Р’В Р РЋР’ВР В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В° Р В Р’В Р РЋРІР‚вЂќР В Р Р‹Р В РІР‚С™Р В Р’В Р РЋРІР‚В Р В Р Р‹Р РЋРІР‚СљР В Р’В Р СћРІР‚ВР В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В¶Р В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚ВР В Р’В Р РЋРІР‚В Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’Вµ Р В Р’В Р В РІР‚В Р В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°Р В Р Р‹Р Р†Р вЂљР’В°Р В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р В РЎвЂњР В Р Р‹Р В Р РЏ"
 	_hint.add_theme_font_size_override("font_size", 14)
 	_hint.add_theme_color_override("font_color", Color(1.0, 0.93, 0.72))
 	panel.add_child(_hint)
@@ -517,7 +522,7 @@ func _build_dummy(at: Vector3) -> StaticBody3D:
 	_dummy_label.outline_size = 18
 	_dummy_label.modulate = Color(1.0, 0.92, 0.65)
 	_dummy_label.position = Vector3(0.0, 1.95, 0.0)
-	_dummy_label.text = "Р В РЎС™Р В Р’В°Р В Р вЂ¦Р В Р’ВµР В РЎвЂќР В Р’ВµР В Р вЂ¦ 100"
+	_dummy_label.text = "Р В Р’В Р РЋРЎв„ўР В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’ВµР В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В¦ 100"
 	_dummy_pivot.add_child(_dummy_label)
 	body.position = at
 	_world.add_child(body)
@@ -648,18 +653,15 @@ func _target_direction() -> Vector3:
 	return target
 
 func _steer(delta: float) -> void:
-	var fist_basis := _fist_basis()
 	if not _held:
-		# Carried stance: the blade keeps the exact angle it had in the hand when
-		# the swing ended and simply rides the animation. No camera-driven target,
-		# so walking cannot make it hunt, shake or slip out of the grip.
-		if not _carry_valid:
-			_carry_offset = (fist_basis.inverse() * _dir).normalized()
-			_carry_valid = true
-		_dir = (fist_basis * _carry_offset).normalized()
+		# Carried stance: a stable, body-relative ready angle (up, a little out and
+		# forward). Deriving it from the fist made the blade swing into the body as
+		# the walk animation turned the wrist.
+		var visual: Node3D = _player._visual
+		var carry := (Vector3.UP * 0.92 + visual.global_basis.x * 0.26 + visual.global_basis.z * 0.26).normalized()
+		_dir = _dir.slerp(carry, clampf(7.0 * delta, 0.0, 1.0)).normalized()
 		_omega = Vector3.ZERO
 		return
-	_carry_valid = false
 	var target := _soft_body_limit(_constrain_forward(_target_direction()), 0.20, 0.55)
 	# A larger error drives a proportionally faster blade, so a decisive flick
 	# whips the sword through instead of dragging it.
@@ -697,6 +699,14 @@ func _physics_process(delta: float) -> void:
 		_held_event = false
 		_player.set("_sword_lock", false)
 		_hand_cmd = _hand_cmd.lerp(Vector2.ZERO, clampf(REST_RETURN_RATE * delta, 0.0, 1.0))
+	if not _synthetic_hands:
+		# Real input: the buttons are read from the engine every frame, so a missed
+		# release event can never leave the view locked.
+		_hold_left = Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+		_hold_right = Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)
+		_held_event = _hold_left
+		_held = _hold_left or _hold_right
+		_player.set("_sword_lock", _selected and _held and bool(_player.get("_free_mouse_look")))
 		_hand = _hand.lerp(Vector2.ZERO, clampf(REST_RETURN_RATE * delta, 0.0, 1.0))
 		_release_arm()
 		_sword.visible = false
@@ -826,8 +836,8 @@ func _constrain_to_body(direction: Vector3, min_forward: float) -> Vector3:
 	var corrected := (side + Vector3(0.0, 0.0, min_forward)).normalized()
 	return (basis * corrected).normalized()
 
-## Where the sword hand is allowed to go. The whole front hemisphere is open Р Р†Р вЂљРІР‚Сњ
-## high, low, left, right and thrusting forward Р Р†Р вЂљРІР‚Сњ but never behind the back and
+## Where the sword hand is allowed to go. The whole front hemisphere is open Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљ
+## high, low, left, right and thrusting forward Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљ but never behind the back and
 ## never folded through the head.
 func _hand_target_direction() -> Vector3:
 	var basis := _camera.global_basis
@@ -864,17 +874,15 @@ func _solve_arm(delta: float) -> void:
 	_lean_body(want_dir, delta)
 	var side := _active_side()
 	var grip_rig := Vector3.ZERO
-	if side == &"left":
-		grip_rig = _pose_left_main(want_rig, blade_rig)
-	elif side == &"both":
+	if side == &"both":
 		# Two-handed: the sword hand comes closer to the chest so the supporting
-		# hand can actually reach the handle.
-		grip_rig = _pose_right_main(want_rig, blade_rig, 0.55)
-		if grip_rig != Vector3.ZERO: _pose_left_support(grip_rig - blade_rig * TWO_HAND_LOWER_OFFSET)
+		# hand can actually reach the handle. Right button leads, left supports.
+		grip_rig = _pose_main(&"right", want_rig, blade_rig, 0.55)
+		if grip_rig != Vector3.ZERO: _pose_support(&"left", grip_rig - blade_rig * TWO_HAND_LOWER_OFFSET)
+	elif side == &"left":
+		grip_rig = _pose_main(&"left", want_rig, blade_rig)
 	else:
-		grip_rig = _pose_right_main(want_rig, blade_rig)
-	if side == &"left" and grip_rig == Vector3.ZERO:
-		grip_rig = _pose_right_main(want_rig, blade_rig)
+		grip_rig = _pose_main(&"right", want_rig, blade_rig)
 	if grip_rig == Vector3.ZERO: return
 	_sword_origin = (_rig.global_transform * grip_rig) + _dir * GRIP_CENTER_OFFSET
 
@@ -886,23 +894,39 @@ func _active_side() -> StringName:
 	return _carry_side
 
 func _hand_bone_for(side: StringName) -> int:
-	return _bone_l_hand if side == &"left" else _bone_hand
+	return _arm_set(side).hand
 
-## Right arm holds the sword in the main grip; returns the fist in rig space.
-## Right arm holds the sword in the main grip; returns the fist in rig space.
-func _pose_right_main(want_rig: Vector3, blade_rig: Vector3, reach_scale: float = 1.0) -> Vector3:
-	var hand_offset := _rest_socket.origin if _bone_socket >= 0 else Vector3(0.0, 1.0, 0.0)
-	return _pose_arm_ik(_bone_clavicle, _bone_upper, _bone_fore, _bone_hand, _rest_upper, _rest_fore, _rest_hand, hand_offset, want_rig, blade_rig, reach_scale, false, 1.0)
+## Bone set that is VISUALLY on the requested side. The hero rig names are
+## mirrored relative to the model's visible sides, so the mapping is resolved
+## once at install time by comparing the clavicle positions.
+func _arm_set(side: StringName) -> Dictionary:
+	var want_left_visual := side == &"left"
+	var use_l_named: bool = want_left_visual != _side_inverted
+	if use_l_named:
+		return {
+			"clav": _bone_l_clavicle, "upper": _bone_l_upper, "fore": _bone_l_fore, "hand": _bone_l_hand,
+			"rest_upper": _rest_l_upper, "rest_fore": _rest_l_fore, "rest_hand": _rest_l_hand,
+			"offset": _rest_l_hand.origin, "pole": -1.0,
+		}
+	return {
+		"clav": _bone_clavicle, "upper": _bone_upper, "fore": _bone_fore, "hand": _bone_hand,
+		"rest_upper": _rest_upper, "rest_fore": _rest_fore, "rest_hand": _rest_hand,
+		"offset": _rest_socket.origin if _bone_socket >= 0 else Vector3(0.0, 1.0, 0.0), "pole": 1.0,
+	}
 
-## Left arm holds the sword in the main grip (mirror of the right arm).
-func _pose_left_main(want_rig: Vector3, blade_rig: Vector3, reach_scale: float = 1.0) -> Vector3:
-	return _pose_arm_ik(_bone_l_clavicle, _bone_l_upper, _bone_l_fore, _bone_l_hand, _rest_l_upper, _rest_l_fore, _rest_l_hand, _rest_l_hand.origin, want_rig, blade_rig, reach_scale, false, -1.0)
+## Poses the arm that holds the sword in the main grip; returns the fist in
+## rig space. `side` is the VISUAL side, so the rig's mirrored names are handled
+## here and nowhere else.
+func _pose_main(side: StringName, want_rig: Vector3, blade_rig: Vector3, reach_scale: float = 1.0) -> Vector3:
+	var set := _arm_set(side)
+	return _pose_arm_ik(set.clav, set.upper, set.fore, set.hand, set.rest_upper, set.rest_fore, set.rest_hand, set.offset, want_rig, blade_rig, reach_scale, false, set.pole)
 
-## Supporting left hand closes on the lower part of the handle (two-handed grip).
+## Supporting hand closes on the lower part of the handle (two-handed grip).
 ## The wrist simply continues the forearm - no twist toward the handle, which is
 ## what used to fold the arm into a hook.
-func _pose_left_support(grip_rig: Vector3) -> void:
-	var fist := _pose_arm_ik(_bone_l_clavicle, _bone_l_upper, _bone_l_fore, _bone_l_hand, _rest_l_upper, _rest_l_fore, _rest_l_hand, _rest_l_hand.origin, grip_rig, Vector3.UP, 1.0, true, -1.0)
+func _pose_support(side: StringName, grip_rig: Vector3) -> void:
+	var set := _arm_set(side)
+	var fist: Vector3 = _pose_arm_ik(set.clav, set.upper, set.fore, set.hand, set.rest_upper, set.rest_fore, set.rest_hand, set.offset, grip_rig, Vector3.UP, 1.0, true, set.pole)
 	if fist != Vector3.ZERO: _left_hand_error = fist.distance_to(grip_rig)
 
 ## Two-bone IK with a real elbow: the hand reaches the requested point (clamped
@@ -1082,6 +1106,14 @@ var _grip_hand_error := 0.0
 ## The opponent only fights back once the player has actually hurt him.
 var _duelist_engaged := false
 var _duelist_aggro_until_ms := 0
+## While set, the opponent's blade is still springing back from a parry.
+var _duelist_recoil_until_ms := 0
+## True when the rig's "_l"/"_r" names are mirrored relative to the visible sides
+## (the hero faces +Z), resolved once at install time.
+var _side_inverted := false
+## Set by a driven test that feeds button state directly, because synthetic mouse
+## events are not mirrored by Input.is_mouse_button_pressed.
+var _synthetic_hands := false
 
 func _build_duelist(at: Vector3) -> void:
 	_duelist = Node3D.new()
@@ -1147,7 +1179,13 @@ func _update_duelist(delta: float) -> void:
 		_duelist_state = "idle"
 		_duelist_timer = 0.0
 	if not _duelist_engaged:
-		_duelist_state = "idle"
+		# He walks up and waits in guard: reachable, but he does not attack until
+		# the player actually lands a blow on him.
+		var to_player_idle := _player.global_position - _duelist.global_position
+		to_player_idle.y = 0.0
+		if to_player_idle.length() > DUELIST_REACH:
+			_duelist.global_position += to_player_idle.normalized() * DUELIST_SPEED * delta
+			_duelist.global_position.y = _player.global_position.y
 		_duelist_dir = _duelist_dir.slerp(_duelist_high_guard(), clampf(3.0 * delta, 0.0, 1.0)).normalized()
 		var fist_idle: Vector3 = _duelist_body.to_global(Vector3(0.30, 1.24, 0.16))
 		_duelist_sword.global_transform = _place_basis(fist_idle + _duelist_dir * GRIP_CENTER_OFFSET, _duelist_dir)
@@ -1259,8 +1297,21 @@ func _register_clash(at: Vector3) -> void:
 	_last_clash_ms = now
 	_player_blocks += 1
 	_duelist_blocked += 1
-	_block_push = (_block_push + (_sword_origin - at).normalized() * 0.05).limit_length(0.5)
-	_body_push = (_body_push + (_player.global_position - at).normalized() * 0.02).limit_length(BODY_PUSH_LIMIT)
+	# Blade-on-blade bounce: both swords are knocked a little off the line, which
+	# is what a parry feels like with steel.
+	var away := _sword_origin - at
+	away.y *= 0.35
+	if away.length_squared() < 1.0e-6: away = -_dir
+	away = away.normalized()
+	_dir = (_dir - away * 0.45).normalized()
+	_omega += away.cross(Vector3.UP) * 3.0
+	if _omega.length() > MAX_OMEGA: _omega = _omega.normalized() * MAX_OMEGA
+	_block_push = (_block_push + away * 0.05).limit_length(0.5)
+	_body_push = (_body_push + away * 0.02).limit_length(BODY_PUSH_LIMIT)
+	# The opponent's blade is knocked away too.
+	var push_back := -away
+	_duelist_dir = (_duelist_dir + push_back * 0.5).normalized()
+	_duelist_recoil_until_ms = now + 200
 	_impact_player.global_position = at
 	_impact_player.pitch_scale = 1.7
 	_impact_player.play()
@@ -1527,21 +1578,21 @@ func _damage_dummy(dummy: StaticBody3D, position: Vector3, speed: float, velocit
 	_dummy_tilt_axis = Vector3(local.z, 0.0, -local.x).normalized()
 	if _dummy_tilt_axis.length_squared() < 1e-6: _dummy_tilt_axis = Vector3.RIGHT
 	_dummy_tilt = clampf(_dummy_tilt + 0.12 + damage * 0.012, 0.0, 0.62)
-	_dummy_label.text = "Р В РЎС™Р В Р’В°Р В Р вЂ¦Р В Р’ВµР В РЎвЂќР В Р’ВµР В Р вЂ¦ %d" % int(round(_dummy_hp))
+	_dummy_label.text = "Р В Р’В Р РЋРЎв„ўР В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’ВµР В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В¦ %d" % int(round(_dummy_hp))
 	_dummy_label.modulate = Color(1.0, 0.55, 0.45) if _dummy_hp <= 40.0 else Color(1.0, 0.92, 0.65)
 	_spawn_damage_number(position, damage, kind)
 	if _dummy_hp <= 0.0:
 		_dummy_down = true
 		_down_until_ms = now + 2200
 		_dummy_tilt = 0.62
-		_dummy_label.text = "Р В РЎС™Р В Р’В°Р В Р вЂ¦Р В Р’ВµР В РЎвЂќР В Р’ВµР В Р вЂ¦ Р РЋР С“Р В Р’В±Р В РЎвЂР РЋРІР‚С™"
+		_dummy_label.text = "Р В Р’В Р РЋРЎв„ўР В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’ВµР В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В¦ Р В Р Р‹Р В РЎвЂњР В Р’В Р вЂ™Р’В±Р В Р’В Р РЋРІР‚ВР В Р Р‹Р Р†Р вЂљРЎв„ў"
 
 func _update_dummy(delta: float) -> void:
 	if not is_instance_valid(_dummy_pivot): return
 	if _dummy_down and Time.get_ticks_msec() >= _down_until_ms:
 		_dummy_down = false
 		_dummy_hp = DUMMY_MAX_HP
-		_dummy_label.text = "Р В РЎС™Р В Р’В°Р В Р вЂ¦Р В Р’ВµР В РЎвЂќР В Р’ВµР В Р вЂ¦ %d" % int(DUMMY_MAX_HP)
+		_dummy_label.text = "Р В Р’В Р РЋРЎв„ўР В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’ВµР В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В¦ %d" % int(DUMMY_MAX_HP)
 		_dummy_label.modulate = Color(1.0, 0.92, 0.65)
 	_dummy_tilt = maxf(0.0, _dummy_tilt - delta * (0.55 if _dummy_down else 1.35))
 	_dummy_pivot.rotation = _dummy_tilt_axis * _dummy_tilt

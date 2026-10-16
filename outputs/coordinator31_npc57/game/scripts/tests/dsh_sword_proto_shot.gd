@@ -54,6 +54,7 @@ func _hand_state(label: String) -> void:
 ## Sets the mouse buttons on the prototype directly. Synthetic InputEvents do not
 ## reach Input.is_mouse_button_pressed in a driven run, so the state is set here.
 func _set_hands(left: bool, right: bool) -> void:
+	_proto.set("_synthetic_hands", true)
 	_proto.set("_hold_left", left)
 	_proto.set("_hold_right", right)
 	_proto.set("_held", left or right)
@@ -368,6 +369,31 @@ func _run() -> void:
 	await _settle(90)
 	var still_after: Dictionary = _proto.snapshot()
 	print("SWORD_SHOT_STILL_HP ", still_before.dummy_hp, " -> ", still_after.dummy_hp)
+
+	# 5b. Strike the opponent: the cut must damage him and wake him up.
+	var bot_before: Dictionary = _proto.snapshot()
+	var bot_pos: Vector3 = bot_before.duelist_position
+	if bot_pos != Vector3.ZERO:
+		var away: Vector3 = (_player.global_position - bot_pos)
+		away.y = 0.0
+		if away.length_squared() < 1.0e-6: away = Vector3.FORWARD
+		_player.global_position = bot_pos + away.normalized() * 1.3 + Vector3.UP * 0.05
+		_face_body_at(bot_pos)
+		await _settle(12)
+		_press(true)
+		for i: int in 16:
+			_move(0.0, -55.0)
+			await _settle(2)
+		for i: int in 16:
+			_move(0.0, 60.0)
+			await _settle(2)
+		await _settle(12)
+		var bot_after: Dictionary = _proto.snapshot()
+		print("SWORD_SHOT_BOT_HIT hp=", bot_before.duelist_hp, " -> ", bot_after.duelist_hp,
+			" engaged=", bot_after.duelist_engaged, " state=", bot_after.duelist_state,
+			" damage=", bot_after.max_damage)
+		_press(false)
+		await _settle(10)
 
 	# 6. Sparring: the opponent walks in and cuts. Blade-on-blade must stop the
 	# blow; with the blade held aside the same cut must land on the body.
