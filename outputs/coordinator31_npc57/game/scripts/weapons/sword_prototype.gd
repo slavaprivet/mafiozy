@@ -692,15 +692,15 @@ func _ready_hand_direction() -> Vector3:
 	var visual: Node3D = _player._visual
 	return (visual.global_basis.z * 0.97 + Vector3.UP * 0.10).normalized()
 
-## Where the blade is held while guarding. The steel lies ACROSS the body like a
-## bar - mostly in the frontal plane, not pointing at the enemy - and the mouse
-## slides that bar up/down/left/right so the player picks the zone to cover.
+## The guard is the SAME diagonal carried pose the sword rests in (steel across the
+## body, point up), held as a barrier. The mouse only raises or lowers that guard,
+## so blocking always looks right and the player still picks the covered zone.
 func _guard_direction() -> Vector3:
-	var basis := _camera.global_basis
-	var hx := clampf(_hand.x, -1.0, 1.0)
 	var hy := clampf(_hand.y, -1.0, 1.0)
-	var across := basis.x * (hx * 1.25) + basis.y * (0.55 + hy * 0.95)
-	var guard := (across - basis.z * 0.22).normalized()
+	var hx := clampf(_hand.x, -1.0, 1.0)
+	var base: Vector3 = _carry_direction()
+	var visual: Node3D = _player._visual
+	var guard: Vector3 = (base + Vector3.UP * (hy * 0.50 + 0.12) + visual.global_basis.x * (hx * 0.30)).normalized()
 	if not guard.is_finite(): return _rest_dir
 	return guard
 
@@ -993,6 +993,12 @@ func _solve_arm(delta: float) -> void:
 		return
 	var want_dir := _constrain_forward(_hand_target_direction())
 	want_dir = _constrain_to_body(want_dir, 0.10)
+	# The GUARD keeps the same diagonal arm as the carried pose, just lifted or
+	# lowered by the mouse, so blocking always reads as the same guard.
+	if _blocking and not _hold_left:
+		var lift := clampf(_hand.y, -1.0, 1.0)
+		want_dir = _constrain_forward((_ready_hand_direction() + Vector3.UP * (lift * 0.45)).normalized())
+		want_dir = _constrain_to_body(want_dir, 0.34)
 	var want_rig := (rig_basis.inverse() * want_dir).normalized()
 	var blade_rig := (rig_basis.inverse() * _dir).normalized()
 	_lean_body(want_dir, delta)
