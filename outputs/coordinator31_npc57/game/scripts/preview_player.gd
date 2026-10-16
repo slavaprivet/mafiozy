@@ -37,6 +37,9 @@ var _camera_yaw: float = 0.0
 var _camera_pitch: float = -0.24
 var _right_mouse_down: bool = false
 var _free_mouse_look: bool = false
+## DSH_SWORD_PROTO: while the prototype sword is steered (LMB held) the same
+## mouse motion must not also turn the camera.
+var _sword_lock: bool = false
 var _model_loaded: bool = false
 var _model_error: String = ""
 var _source_height: float = 0.0
@@ -1001,7 +1004,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		var motion: InputEventMouseMotion = event as InputEventMouseMotion
 		if is_instance_valid(_weapon_host) and _weapon_host.controls_blocked(): return
-		if _free_mouse_look and not _text_control_focused():
+		if _free_mouse_look and not _text_control_focused() and not _sword_lock:
 			_camera_yaw -= motion.relative.x * mouse_sensitivity
 			var pitch_limits: Vector2=_weapon_host.aim_camera.pitch_limits() if is_instance_valid(_weapon_host) and _weapon_host.aim_camera!=null else Vector2(-1.05,.45)
 			_camera_pitch = clampf(_camera_pitch - motion.relative.y * mouse_sensitivity, pitch_limits.x, pitch_limits.y)

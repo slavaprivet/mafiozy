@@ -21,7 +21,9 @@ var _hud_signature := ""
 var _menu_signature := ""
 var _inventory_revision := 0
 var _previous_id := ""
-const FAMILIES := {"none":"УБРАТЬ ОРУЖИЕ","nagan":"РЕВОЛЬВЕР","tt_pistol":"ПИСТОЛЕТ","revolver":"РЕВОЛЬВЕР","deagle":"ТЯЖЁЛЫЙ ПИСТОЛЕТ","golden_colt":"ПИСТОЛЕТ","sawn_off":"ДРОБОВИК","shotgun":"ДРОБОВИК","uzi":"ПИСТОЛЕТ-ПУЛЕМЁТ","golden_uzi":"ПИСТОЛЕТ-ПУЛЕМЁТ","ak74":"АВТОМАТ","m16":"АВТОМАТ","tommy_gun":"ПИСТОЛЕТ-ПУЛЕМЁТ","sniper":"ВИНТОВКА","rpg":"ГРАНАТОМЁТ"}
+const FAMILIES := {"none":"УБРАТЬ ОРУЖИЕ","sword":"МЕЧ · БЛИЖНИЙ БОЙ","nagan":"РЕВОЛЬВЕР","tt_pistol":"ПИСТОЛЕТ","revolver":"РЕВОЛЬВЕР","deagle":"ТЯЖЁЛЫЙ ПИСТОЛЕТ","golden_colt":"ПИСТОЛЕТ","sawn_off":"ДРОБОВИК","shotgun":"ДРОБОВИК","uzi":"ПИСТОЛЕТ-ПУЛЕМЁТ","golden_uzi":"ПИСТОЛЕТ-ПУЛЕМЁТ","ak74":"АВТОМАТ","m16":"АВТОМАТ","tommy_gun":"ПИСТОЛЕТ-ПУЛЕМЁТ","sniper":"ВИНТОВКА","rpg":"ГРАНАТОМЁТ"}
+## DSH_SWORD_PROTO: the prototype sword is always available in the arsenal menu.
+const SWORD_ID := "sword"
 
 static func panel_style(background: String, border: String, radius: int = 6) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
@@ -156,7 +158,8 @@ func refresh() -> void:
 	if count.text != count_text: count.text=count_text
 	for key: String in choices:
 		var choice: Dictionary = choices[key]; var selected := key == id
-		var available := key == "none" or owned.has(key)
+		# DSH_SWORD_PROTO: the prototype sword is owned from the start.
+		var available := key == "none" or key == SWORD_ID or owned.has(key)
 		if choice.button.visible != available:
 			choice.button.visible=available; choice.button.disabled=not available
 		if choice.selected != selected:
@@ -166,7 +169,10 @@ func refresh() -> void:
 		if not available: continue
 		var rounds: Variant = state if selected else host.inventory.get_fire_state(key)
 		var detail: String = ("РУКИ СВОБОДНЫ" if selected else "УБРАТЬ ОРУЖИЕ") if key=="none" else ("В РУКАХ" if selected else FAMILIES[key])
-		if key != "none" and rounds is Dictionary: detail += " · %d / %d" % [int(rounds.magazine),int(rounds.reserveAmmo)]
+		if key == SWORD_ID:
+			detail = "В РУКАХ · ЛКМ + МЫШЬ" if selected else "БЕСПЛАТНО · ЛКМ + МЫШЬ"
+		elif key != "none" and rounds is Dictionary:
+			detail += " · %d / %d" % [int(rounds.magazine),int(rounds.reserveAmmo)]
 		if choice.detail.text != detail: choice.detail.text = detail
 
 func _launcher_pressed() -> void:

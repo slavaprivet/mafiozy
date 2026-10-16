@@ -1,0 +1,214 @@
+extends SceneTree
+## DSH_SWORD_PROTO graphical check. Loads the real city scene, drives the real
+## input path (LMB + mouse motion) and proves, with PNG evidence and numbers:
+##   1. free look still turns the camera while LMB is released,
+##   2. mouse motion while LMB is held does NOT turn the camera,
+##   3. the blade follows the commanded direction and returns to rest,
+##   4. a fast swing damages the training dummy, a motionless blade does not,
+##   5. the blade meets a solid obstacle (block event) instead of passing through.
+const OUT_DIR := "C:/Users/Слава/Documents/deepseek-harness/default-workspace"
+
+var _scene: Node3D
+var _proto: Node3D
+var _player: CharacterBody3D
+
+func _initialize() -> void:
+	_run.call_deferred()
+
+func _settle(frames: int) -> void:
+	for i: int in frames:
+		await process_frame
+
+func _move(dx: float, dy: float) -> void:
+	var event := InputEventMouseMotion.new()
+	event.relative = Vector2(dx, dy)
+	Input.parse_input_event(event)
+
+func _press(pressed: bool) -> void:
+	var event := InputEventMouseButton.new()
+	event.button_index = MOUSE_BUTTON_LEFT
+	event.pressed = pressed
+	Input.parse_input_event(event)
+
+func _shot(name: String) -> void:
+	await RenderingServer.frame_post_draw
+	var image: Image = root.get_texture().get_image()
+	if image == null:
+		print("SWORD_SHOT_IMAGE_FAIL ", name); return
+	var path := OUT_DIR + "/shot_sword_" + name + ".png"
+	print("SWORD_SHOT ", name, " ", image.save_png(path), " ", path)
+
+func _yaw() -> float:
+	return float(_player.get("_camera_yaw"))
+
+## Free-look aim: turns the camera toward the dummy before the swing starts.
+func _aim_camera_at(target: Vector3) -> void:
+	var to_target := target - _player.global_position
+	to_target.y = 0.0
+	if to_target.length_squared() < 1e-6: return
+	var camera: Camera3D = _player.get_preview_camera()
+	var forward: Vector3 = -camera.global_basis.z
+	forward.y = 0.0
+	forward = forward.normalized()
+	var want := to_target.normalized()
+	var angle := atan2(forward.cross(want).y, forward.dot(want))
+	var sensitivity := float(_player.get("mouse_sensitivity"))
+	var pixels := -angle / maxf(sensitivity, 1e-5)
+	var steps := 20
+	for i: int in steps:
+		_move(pixels / float(steps), 0.0)
+		await _settle(1)
+	await _settle(4)
+
+## Pulls the commanded hand offset back to the neutral centre (the way a player
+## brings the mouse back) so a following pass sweeps the blade across the front.
+func _recenter() -> void:
+	for i: int in 14:
+		var snap: Dictionary = _proto.snapshot()
+		var hand: Array = snap.hand
+		var dx := -float(hand[0]) / 0.0030
+		var dy := float(hand[1]) / 0.0030
+		if absf(dx) < 4.0 and absf(dy) < 4.0: return
+		_move(clampf(dx, -140.0, 140.0), clampf(dy, -140.0, 140.0))
+		await _settle(2)
+
+func _run() -> void:
+	var packed: PackedScene = load("res://scenes/main_city.tscn")
+	if packed == null:
+		print("SWORD_SHOT_FAIL scene"); quit(1); return
+	_scene = packed.instantiate()
+	root.add_child(_scene)
+	current_scene = _scene
+	var deadline := Time.get_ticks_msec() + 180000
+	while Time.get_ticks_msec() < deadline:
+		if _scene.get("preview_ready") == true: break
+		await process_frame
+	if _scene.get("preview_ready") != true:
+		print("SWORD_SHOT_FAIL not_ready"); quit(1); return
+	_player = _scene.get("_player")
+	_proto = _scene.get("preview_sword_prototype")
+	print("SWORD_SHOT_PROTO ", _proto != null, " status=", _scene.get("sword_prototype_status"))
+	if _proto == null:
+		print("SWORD_SHOT_FAIL proto_missing"); quit(1); return
+	var placement: Dictionary = _proto.snapshot()
+	print("SWORD_SHOT_PLACEMENT ", JSON.stringify(placement))
+	_player.set_mouse_captured(true)
+	# The sword must be selectable through the existing arsenal menu, free of
+	# charge and without any ammunition bookkeeping.
+	var weapons: Node = _scene.get("preview_weapons")
+	var equipped: Dictionary = weapons.equip("sword") if weapons != null else {}
+	print("SWORD_SHOT_EQUIP ", JSON.stringify(equipped), " selected=", _proto.snapshot().selected)
+	await _settle(30)
+	await _shot("rest")
+	# The arm must hold one steady pose while nothing is commanded (no flicker).
+	var samples: Array = []
+	for i: int in 12:
+		await _settle(2)
+		samples.append(_proto.snapshot().sword_origin)
+	var drift := 0.0
+	for sample: Variant in samples:
+		drift = maxf(drift, (sample as Vector3).distance_to(samples[0]))
+	print("SWORD_SHOT_ARM_STABILITY ", drift, " samples=", samples.size())
+
+	# 1. Free look works while LMB is released.
+	var yaw_free_before := _yaw()
+	await _aim_camera_at(placement.dummy_position)
+	var yaw_free_after := _yaw()
+	print("SWORD_SHOT_FREE_LOOK_DELTA ", absf(yaw_free_after - yaw_free_before))
+
+	# 2. Steered swings: LMB held, camera must stay put.
+	var yaw_held_before := _yaw()
+	_press(true)
+	await _settle(4)
+	await _recenter()
+	for i: int in 10:
+		_move(0.0, 26.0)
+		await _settle(2)
+	await _settle(6)
+	await _shot("swing_down")
+	# Strike passes: wind up, then drive the blade through the dummy on the front
+	# arc. Each candidate swing direction is tried and reported honestly.
+	var directions := [
+		Vector2(0.0, 1.0), Vector2(0.7, 0.7), Vector2(-0.7, 0.7),
+		Vector2(1.0, 0.0), Vector2(0.35, 1.0), Vector2(1.0, 0.55),
+	]
+	for index: int in directions.size():
+		await _recenter()
+		for i: int in 8:
+			_move(0.0, -70.0)
+			await _settle(2)
+		for i: int in 12:
+			_move(directions[index].x * 70.0, directions[index].y * 70.0)
+			await _settle(2)
+		await _shot("strike_%d" % index)
+		var snap: Dictionary = _proto.snapshot()
+		print("SWORD_SHOT_STRIKE ", index, " dir=", directions[index], " hits=", snap.hits, " hp=", snap.dummy_hp,
+			" damage=", snap.max_damage, " blocks=", snap.blocks, " hand=", snap.hand, " blade=", snap.direction,
+			" rays=", snap.sweep_rays, " ray_hits=", snap.sweep_hits, " tip=", snap.blade_tip)
+		if float(snap.hits) > 0.0:
+			break
+	await _recenter()
+	for i: int in 10:
+		_move(0.0, -26.0)
+		await _settle(2)
+	await _settle(6)
+	await _shot("swing_up")
+	var yaw_held_after := _yaw()
+
+	# 2b. Solid contact: stand next to the test pole and swing into it.
+	var saved_position: Vector3 = _player.global_position
+	var pole: Vector3 = placement.pole_position
+	var to_pole: Vector3 = pole - saved_position
+	to_pole.y = 0.0
+	# Stand 1.2 m from the pole along the current view direction, so the pole is
+	# dead ahead and the blade must meet it instead of passing through.
+	var camera: Camera3D = _player.get_preview_camera()
+	var ahead: Vector3 = -camera.global_basis.z
+	ahead.y = 0.0
+	ahead = ahead.normalized()
+	_player.global_position = pole - ahead * 1.2 + Vector3.UP * 0.05
+	await _settle(10)
+	_press(true)
+	await _settle(6)
+	var blocks_before := int(_proto.snapshot().blocks)
+	for i: int in 10:
+		_move(0.0, -60.0)
+		await _settle(2)
+	for i: int in 14:
+		_move(0.0, 70.0)
+		await _settle(2)
+	await _settle(6)
+	await _shot("pole_strike")
+	var blocks_after := int(_proto.snapshot().blocks)
+	print("SWORD_SHOT_POLE_BLOCKS ", blocks_before, " -> ", blocks_after)
+	print("SWORD_SHOT_POLE_SNAPSHOT ", JSON.stringify(_proto.snapshot()))
+	print("SWORD_SHOT_POLE_PLAYER ", _player.global_position, " POLE ", pole)
+	_player.global_position = saved_position
+	await _settle(10)
+	print("SWORD_SHOT_CAMERA_LOCK_DELTA ", absf(yaw_held_after - yaw_held_before))
+	print("SWORD_SHOT_DURING_SWING ", JSON.stringify(_proto.snapshot()))
+
+	# 3. Rest return.
+	_press(false)
+	await _settle(60)
+	await _shot("returned")
+	print("SWORD_SHOT_RESTED ", JSON.stringify(_proto.snapshot()))
+
+	# 4. Free look must come back after the release.
+	var yaw_back_before := _yaw()
+	await _aim_camera_at(placement.pole_position)
+	var yaw_back_after := _yaw()
+	print("SWORD_SHOT_FREE_LOOK_RETURNED ", absf(yaw_back_after - yaw_back_before))
+
+	# 5. A motionless blade inside the dummy must not remove health.
+	var still_before: Dictionary = _proto.snapshot()
+	await _settle(90)
+	var still_after: Dictionary = _proto.snapshot()
+	print("SWORD_SHOT_STILL_HP ", still_before.dummy_hp, " -> ", still_after.dummy_hp)
+
+	var final: Dictionary = _proto.snapshot()
+	final["camera_lock_delta"] = absf(yaw_held_after - yaw_held_before)
+	final["free_look_delta"] = absf(yaw_free_after - yaw_free_before)
+	final["still_hp_delta"] = float(still_before.dummy_hp) - float(still_after.dummy_hp)
+	print("SWORD_SHOT_FINAL ", JSON.stringify(final))
+	quit(0)

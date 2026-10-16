@@ -25,6 +25,7 @@ const CityMinimapHost = preload("res://scripts/city/runtime/npc_city_minimap_hos
 const SimpleHospital = preload("res://scripts/hospital/npc_simple_hospital.gd")
 const PlayerShopCatalog = preload("res://scripts/shop/player_shop_catalog.gd")  # DSH_PLAYERSHOP
 const NpcObserve58 = preload("res://scripts/ui/npc_observe_host.gd")  # DSH_OBSERVE58
+const SwordPrototype = preload("res://scripts/weapons/sword_prototype.gd")  # DSH_SWORD_PROTO
 const STATIC_RENDER_OWNER_IDS := [
 	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-013", "REBUILD-VISUAL-old_town_narrow_townhouse_v1-005",
 	"REBUILD-VISUAL-gun_shop-001", "REBUILD-VISUAL-pawnshop-001",
@@ -77,6 +78,11 @@ var _final_dead_block_requested := false
 @export var preview_weapons_enabled: bool = true
 var preview_weapons: Node
 var weapons_status := "disabled"
+## DSH_SWORD_PROTO: isolated mouse-steered sword prototype (one sword, one dummy,
+## one pole). OFF by default; enabled by --sword-proto=1 or this export.
+@export var preview_sword_prototype_enabled: bool = false
+var preview_sword_prototype: Node
+var sword_prototype_status := "disabled"
 var preview_melee: Node
 var melee_status := "disabled"
 var preview_minimap: Node
@@ -356,6 +362,11 @@ func _ready() -> void:
 							push_error("Weapon cargo binding: "+str(cargo_result)); cargo_host.queue_free()
 			else: weapon_host.queue_free()
 	if player_shop_requested(): install_player_shop()  # DSH_PLAYERSHOP
+	# DSH_SWORD_PROTO: the prototype host is always installed alongside the local
+	# arsenal, so the test sword can be picked in the existing weapon menu. It
+	# only acts while that item is equipped (no purchase, no ammo).
+	if preview_sword_prototype_enabled or is_instance_valid(preview_weapons) or OS.get_cmdline_user_args().has("--sword-proto=1"):
+		_install_sword_prototype()  # DSH_SWORD_PROTO
 	if is_instance_valid(preview_modular30):
 		print("MODULAR30_NATIVE_BINDING ", preview_modular30.bind_weapons())
 	if is_instance_valid(preview_palazzo):
@@ -420,6 +431,24 @@ func _ready() -> void:
 	print("RESIDENT_POPULATION_STATUS ", population_status)
 	print("MELEE_PRACTICE_STATUS ", melee_status)
 	print("MINIMAP_STATUS ", minimap_status)
+	print("SWORD_PROTOTYPE_STATUS ", sword_prototype_status)
+
+## DSH_SWORD_PROTO: isolated prototype host. Adds its own sword, training dummy,
+## pole and HUD hint; reads the existing hand socket and never writes poses.
+func _install_sword_prototype() -> bool:
+	if is_instance_valid(preview_sword_prototype) or not is_instance_valid(_player): return false
+	var host: Node3D = SwordPrototype.new()
+	host.name = "SwordPrototype"
+	add_child(host)
+	var installed: Dictionary = host.install(self, _player)
+	if not installed.get("ok", false):
+		sword_prototype_status = str(installed.get("reason", "install_failed"))
+		host.queue_free()
+		return false
+	preview_sword_prototype = host
+	sword_prototype_status = "ready"
+	print("DSH_SWORD_PROTO ", JSON.stringify(installed))
+	return true
 
 func _install_preview_melee_practice() -> bool:
 	if is_instance_valid(preview_melee) or not is_instance_valid(_player): return false
