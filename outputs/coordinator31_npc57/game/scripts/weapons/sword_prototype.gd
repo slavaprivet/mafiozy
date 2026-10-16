@@ -19,20 +19,22 @@ const BLADE_LENGTH := 1.15
 ## The fist closes on this point, so the handle (not the guard) sits in the hand.
 const GRIP_CENTER_OFFSET := 0.0625
 const SWEEP_SEGMENTS := 9
-const MOUSE_TO_HAND := 0.0030
+const MOUSE_TO_HAND := 0.0042
 ## The commanded hand offset cannot jump: it is slewed toward the mouse command
 ## at a bounded rate, which is what keeps a fast mouse flick from snapping the
 ## whole arm (and the blade with it) across the body.
-const HAND_SLEW_RATE := 8.0     # units per second
-const HAND_MAX_OFFSET := 1.0
-const MAX_OMEGA := 15.0         # rad/s, fast enough to cut instead of paint
-const MAX_ALPHA := 72.0         # rad/s^2, snappy acceleration into the swing
-## Steering controller: proportional gain plus damping, and a dead zone that parks
-## a settled blade. Without these the free camera made the sword buzz in the hand.
-const STEER_GAIN := 9.0
-const STEER_DAMPING := 0.42
-const STEER_DEADZONE := 0.35
-const STEER_ANGLE_DEADZONE := 0.05
+const HAND_SLEW_RATE := 14.0    # units per second
+const HAND_MAX_OFFSET := 1.5
+const MAX_OMEGA := 22.0         # rad/s, a decisive cut, not a paint stroke
+const MAX_ALPHA := 160.0        # rad/s^2, hard acceleration into the swing
+## Steering: high gain so a flick really whips the blade, light damping and light
+## target smoothing. Heavy damping here is what turned cuts into brush strokes.
+const STEER_GAIN := 13.0
+const STEER_DAMPING := 0.20
+const STEER_DEADZONE := 0.25
+const STEER_ANGLE_DEADZONE := 0.04
+const STEER_TARGET_SMOOTH := 45.0
+const MOUSE_NOISE_FLOOR := 1.2
 const FOLLOW_RATE := 7.5        # hand spring rate toward the commanded point
 const REST_RETURN_RATE := 4.5   # blade return when LMB is released
 ## Body weight: the swing is carried by hips, spine and chest, not only by the
@@ -173,6 +175,8 @@ var _number_count := 0
 var _swing_travel := 0.0
 ## Blade direction when the current swing began, and the previous held state.
 var _swing_start_dir := Vector3.ZERO
+## Smoothed steering target, so a raw camera/mouse target cannot ripple the blade.
+var _steer_target := Vector3.ZERO
 var _held_prev := false
 ## Largest wind-up angle that still counts (radians).
 const SWING_ANGLE_MAX := 2.4
@@ -623,6 +627,10 @@ func _input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseMotion and (Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or _held_event or _held):
 		var motion := event as InputEventMouseMotion
+		# Mouse sensors keep reporting a pixel or two while the hand is still; that
+		# noise is what made the blade ripple. Anything below the floor is ignored.
+		if absf(motion.relative.x) + absf(motion.relative.y) < MOUSE_NOISE_FLOOR:
+			return
 		# The SAME motion also turns the camera: the event is deliberately NOT
 		# consumed here, so the view stays free while the blade is steered.
 		_hand_cmd.x += motion.relative.x * MOUSE_TO_HAND
@@ -727,7 +735,14 @@ func _steer(delta: float) -> void:
 		_dir = _dir.slerp(carry, clampf(7.0 * delta, 0.0, 1.0)).normalized()
 		_omega = Vector3.ZERO
 		return
-	var target := _soft_body_limit(_constrain_forward(_target_direction()), 0.20, 0.55)
+	var target := _soft_body_limit(_constrain_forward(_target_direction()), 0.12, 0.40)
+	# Smooth the target itself: the camera basis and the mouse both feed it, and a
+	# raw per-frame target is what showed up as a ripple on the blade.
+	if _steer_target.length_squared() < 1.0e-6:
+		_steer_target = target
+	else:
+		_steer_target = _steer_target.slerp(target, clampf(STEER_TARGET_SMOOTH * delta, 0.0, 1.0)).normalized()
+	target = _steer_target
 	# After the tip has just touched the floor, the blade cannot be driven back
 	# down until it has lifted - this is what stops the 10 Hz ground hop.
 	if Time.get_ticks_msec() - _ground_touch_ms < 130 and target.y < 0.0:
@@ -913,8 +928,8 @@ func _soft_body_limit(direction: Vector3, min_forward: float, weight: float) -> 
 func _constrain_forward(direction: Vector3) -> Vector3:
 	var forward := -_camera.global_basis.z
 	var cast := direction.dot(forward)
-	if cast >= 0.12: return direction
-	var corrected := direction - forward * (cast - 0.12)
+	if cast >= 0.02: return direction
+	var corrected := direction - forward * (cast - 0.02)
 	if corrected.length_squared() < 1e-8: return forward
 	return corrected.normalized()
 
@@ -939,10 +954,10 @@ func _hand_target_direction() -> Vector3:
 	var basis := _camera.global_basis
 	var hx := clampf(_hand.x, -1.0, 1.0)
 	var hy := clampf(_hand.y, -1.0, 1.0)
-	var yaw_off := hx * 1.05
-	# The whole vertical arc is open: the fist can go from hip height to well
-	# above the shoulder, which is what allows high guards and overhead cuts.
-	var pitch_off := clampf(0.10 + hy * 0.70 - _thrust * 0.30, -0.80, 0.72)
+	var yaw_off := hx * 1.30
+	# The whole vertical arc is open, and now a real wind-up is possible too: the
+	# fist can swing from below the hip right up over the head.
+	var pitch_off := clampf(0.10 + hy * 1.05 - _thrust * 0.30, -1.00, 1.30)
 	var flat := (-basis.z).rotated(Vector3.UP, -yaw_off).normalized()
 	return (flat * cos(pitch_off) + Vector3.UP * sin(pitch_off)).normalized()
 
@@ -962,7 +977,7 @@ func _solve_arm(delta: float) -> void:
 		# bent), while the BLADE still points up. Using the blade direction for the
 		# hand as well is what folded the arm across the chest.
 		var want_dir := _constrain_forward(_ready_hand_direction())
-		want_dir = _constrain_to_body(want_dir, 0.55)
+		want_dir = _constrain_to_body(want_dir, 0.34)
 		var want_rig := (rig_basis.inverse() * want_dir).normalized()
 		var blade_rig := (rig_basis.inverse() * _dir).normalized()
 		_lean_body(want_dir, delta)
@@ -972,7 +987,7 @@ func _solve_arm(delta: float) -> void:
 			_sword_origin = (_rig.global_transform * grip_rig) + _dir * GRIP_CENTER_OFFSET
 		return
 	var want_dir := _constrain_forward(_hand_target_direction())
-	want_dir = _constrain_to_body(want_dir, 0.55)
+	want_dir = _constrain_to_body(want_dir, 0.34)
 	var want_rig := (rig_basis.inverse() * want_dir).normalized()
 	var blade_rig := (rig_basis.inverse() * _dir).normalized()
 	_lean_body(want_dir, delta)
