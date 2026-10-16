@@ -1007,7 +1007,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		var motion: InputEventMouseMotion = event as InputEventMouseMotion
 		if is_instance_valid(_weapon_host) and _weapon_host.controls_blocked(): return
-		if _free_mouse_look and not _text_control_focused() and not _sword_lock and not _sword_steering():
+		if _free_mouse_look and not _text_control_focused():
+			# The prototype sword no longer freezes the view: the same motion both
+			# steers the blade and turns the camera, so the player can look around
+			# while holding LMB/RMB.
 			_camera_yaw -= motion.relative.x * mouse_sensitivity
 			var pitch_limits: Vector2=_weapon_host.aim_camera.pitch_limits() if is_instance_valid(_weapon_host) and _weapon_host.aim_camera!=null else Vector2(-1.05,.45)
 			_camera_pitch = clampf(_camera_pitch - motion.relative.y * mouse_sensitivity, pitch_limits.x, pitch_limits.y)

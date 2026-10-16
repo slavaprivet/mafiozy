@@ -196,24 +196,22 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 	_bone_chest = rig.find_bone("chest")
 	_bone_pelvis = rig.find_bone("pelvis")
 	_bone_head = rig.find_bone("head")
-	# Resolve the mirrored naming ONCE, from real world geometry. The character
-	# faces along +Z and up is +Y, so its right hand points along forward x up;
-	# compare the two shoulders to learn which named bone sits on the visual left.
 	_bone_l_clavicle = rig.find_bone("clavicle_l")
 	_bone_l_upper = rig.find_bone("upperarm_l")
 	_bone_l_fore = rig.find_bone("forearm_l")
 	_bone_l_hand = rig.find_bone("hand_l")
-	if _bone_l_upper >= 0 and _bone_upper >= 0 and is_instance_valid(_camera):
-		# "Left hand" means the hand on the character's screen-left: opposite of the
-		# camera's right vector. This is independent of the rig's world rotation.
-		var cam_right: Vector3 = _camera.global_basis.x.normalized()
-		var l_pos: Vector3 = rig.global_transform * rig.get_bone_global_pose(_bone_l_upper).origin
-		var r_pos: Vector3 = rig.global_transform * rig.get_bone_global_pose(_bone_upper).origin
-		_left_is_l_named = (l_pos - r_pos).dot(cam_right) < 0.0
-		var l_rig: Vector3 = rig.get_bone_global_pose(_bone_l_upper).origin
-		var r_rig: Vector3 = rig.get_bone_global_pose(_bone_upper).origin
-		_left_sign = 1.0 if (l_rig.x - r_rig.x) >= 0.0 else -1.0
+	# The rig is mirrored on screen: the "_l" bones are the character's RIGHT arm.
+	# The rig-space "left" sign therefore points from the "_l"-named hand to the
+	# "_r"-named one, which is what keeps the supporting hand on its own side.
+	if _bone_hand >= 0 and _bone_l_hand >= 0:
+		var visual_left_rig: Vector3 = rig.get_bone_global_pose(_bone_hand).origin
+		var visual_right_rig: Vector3 = rig.get_bone_global_pose(_bone_l_hand).origin
+		_left_sign = 1.0 if (visual_left_rig.x - visual_right_rig.x) >= 0.0 else -1.0
 		if _left_sign == 0.0: _left_sign = 1.0
+	# The two-handed offset (13 cm down the handle) must be in the rig's own bone
+	# units, or the supporting fist lands on the main one and the arm folds up.
+	var rig_scale := maxf(0.02, rig.global_transform.basis.get_scale().y)
+	_two_hand_offset_rig = 0.13 / rig_scale
 	_rest_l_upper = rig.get_bone_rest(_bone_l_upper) if _bone_l_upper >= 0 else Transform3D.IDENTITY
 	_rest_l_fore = rig.get_bone_rest(_bone_l_fore) if _bone_l_fore >= 0 else Transform3D.IDENTITY
 	_rest_l_hand = rig.get_bone_rest(_bone_l_hand) if _bone_l_hand >= 0 else Transform3D.IDENTITY
@@ -579,13 +577,13 @@ func _input(event: InputEvent) -> void:
 			_held_event = button.pressed
 			_hold_left = button.pressed
 			_held = _hold_left or _hold_right
-			_player.set("_sword_lock", _held)
+			_player.set("_sword_lock", false)
 			get_viewport().set_input_as_handled()
 			return
 		if button.button_index == MOUSE_BUTTON_RIGHT:
 			_hold_right = button.pressed
 			_held = _hold_left or _hold_right
-			_player.set("_sword_lock", _held)
+			_player.set("_sword_lock", false)
 			get_viewport().set_input_as_handled()
 			return
 		if button.pressed and button.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
@@ -593,13 +591,13 @@ func _input(event: InputEvent) -> void:
 			# axis that lets the player stab as well as cut.
 			var step := 0.22 if button.button_index == MOUSE_BUTTON_WHEEL_UP else -0.22
 			_thrust = clampf(_thrust + step, 0.0, 1.0)
-			_player.set("_sword_lock", true)
+			_player.set("_sword_lock", false)
 			get_viewport().set_input_as_handled()
 			return
 		if button.button_index == MOUSE_BUTTON_RIGHT:
 			_hold_right = button.pressed
 			_held = _hold_left or _hold_right
-			_player.set("_sword_lock", _held)
+			_player.set("_sword_lock", false)
 			get_viewport().set_input_as_handled()
 		return
 	if event is InputEventMouseMotion and (Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or _held_event or _held):
@@ -659,15 +657,15 @@ func _carry_direction() -> Vector3:
 	var visual: Node3D = _player._visual
 	return (Vector3.UP * 0.92 + visual.global_basis.x * 0.26 + visual.global_basis.z * 0.26).normalized()
 
-## Where the blade is held while guarding: the mouse steers it left/right and
-## up/down across the body, so the player aims the steel at the incoming blow.
+## Where the blade is held while guarding. The steel lies ACROSS the body like a
+## bar - mostly in the frontal plane, not pointing at the enemy - and the mouse
+## slides that bar up/down/left/right so the player picks the zone to cover.
 func _guard_direction() -> Vector3:
 	var basis := _camera.global_basis
 	var hx := clampf(_hand.x, -1.0, 1.0)
 	var hy := clampf(_hand.y, -1.0, 1.0)
-	var across := basis.x * (hx * 1.05) + basis.y * (0.25 + hy * 0.85)
-	var forward_bias := 0.30 + _thrust * 0.55
-	var guard := (-basis.z * forward_bias + across + basis.y * 0.55).normalized()
+	var across := basis.x * (hx * 1.25) + basis.y * (0.55 + hy * 0.95)
+	var guard := (across - basis.z * 0.22).normalized()
 	if not guard.is_finite(): return _rest_dir
 	return guard
 
@@ -734,7 +732,7 @@ func _physics_process(delta: float) -> void:
 	if _hold_left and not _hold_right: _carry_side = &"left"
 	elif _hold_right and not _hold_left: _carry_side = &"right"
 	_blocking = _hold_right
-	_player.set("_sword_lock", _selected and _held and bool(_player.get("_free_mouse_look")))
+	_player.set("_sword_lock", false)
 	if not active:
 		# Outside the play state (menu, free cursor, death) no button stays held:
 		# a missed release used to leave RMB stuck on and force a two-handed grip.
@@ -757,7 +755,7 @@ func _physics_process(delta: float) -> void:
 		_hold_right = Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)
 		_held_event = _hold_left
 		_held = _hold_left or _hold_right
-		_player.set("_sword_lock", _selected and _held and bool(_player.get("_free_mouse_look")))
+		_player.set("_sword_lock", false)
 	if is_instance_valid(_sword): _sword.visible = true
 	_dir = _soft_body_limit(_constrain_forward(_dir), 0.28, 0.55)
 	if not _held:
@@ -782,6 +780,9 @@ func _physics_process(delta: float) -> void:
 	_solve_arm(delta)
 	# The blade is never allowed to point behind the player.
 	_dir = _soft_body_limit(_constrain_forward(_dir), 0.28, 0.55)
+	# The opponent is a real body: his step, gravity and pose belong to the physics
+	# frame, otherwise move_and_slide() leaves him hanging in the air.
+	_update_city_npc(delta)
 
 ## The sword is attached in the DRAW frame, not in the physics step: the rig has
 ## already applied every bone pose by then (including the player's own pass), so
@@ -800,7 +801,6 @@ func _process(delta: float) -> void:
 		_sword.visible = true
 		_attach_sword_to_fist()
 	_update_gore(delta)
-	_update_city_npc(delta)
 	if not is_instance_valid(_npc_rig): _update_duelist(delta)
 	if not armed_with_sword:
 		# The blade lies on the ground with the hand that used to hold it.
@@ -924,7 +924,7 @@ func _solve_arm(delta: float) -> void:
 		var blade_rig := (rig_basis.inverse() * _dir).normalized()
 		_lean_body(want_dir, delta)
 		var side := _active_side()
-		var grip_rig := _pose_main(side, want_rig, blade_rig, 0.82)
+		var grip_rig := _pose_main(side, want_rig, blade_rig, 0.90)
 		if grip_rig != Vector3.ZERO:
 			_sword_origin = (_rig.global_transform * grip_rig) + _dir * GRIP_CENTER_OFFSET
 		return
@@ -936,11 +936,11 @@ func _solve_arm(delta: float) -> void:
 	var side := _active_side()
 	var grip_rig := Vector3.ZERO
 	if side == &"both":
-		# Two-handed: the sword hand comes closer to the chest so the supporting
-		# hand can actually reach the handle. Right button leads, left supports.
-		grip_rig = _pose_main(&"right", want_rig, blade_rig, 0.55)
+		# Two-handed: both hands come forward off the chest so the arms read as a
+		# proper grip instead of folding together. Right button leads.
+		grip_rig = _pose_main(&"right", want_rig, blade_rig, 0.74)
 		if grip_rig != Vector3.ZERO:
-			var support := grip_rig - blade_rig * TWO_HAND_LOWER_OFFSET
+			var support := grip_rig - blade_rig * _two_hand_offset_rig
 			# The supporting hand never reaches across the centre line, which is
 			# what used to knot the two arms together during a cut.
 			if support.x * _left_sign < 0.06: support.x = _left_sign * 0.06
@@ -1186,6 +1186,8 @@ var _side_inverted := false
 var _left_sign := 1.0
 ## Whether the "_l"-named bones are the ones on the visual left side.
 var _left_is_l_named := true
+## Distance down the handle for the supporting hand, in the rig's bone units.
+var _two_hand_offset_rig := 0.3
 ## Set by a driven test that feeds button state directly, because synthetic mouse
 ## events are not mirrored by Input.is_mouse_button_pressed.
 var _synthetic_hands := false
@@ -1684,13 +1686,24 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 			_show_spark(position)
 			_duelist_body.rotation.x = 0.22
 		return
-	if _is_npc_collider(collider):
+	var npc_part := ""
+	if is_instance_valid(collider):
+		var tag: Variant = collider.get_meta("sword_npc_part", "")
+		if tag is String: npc_part = tag
+	if npc_part != "" or _is_npc_collider(collider):
 		# Hitting the armed resident hurts the LIMB that was struck, and a limb
 		# that gives out is cut off - losing the sword arm also loses the sword.
 		if _held and now - int(_hit_ms.get(id_any, -10000)) >= CONTACT_COOLDOWN_MS:
 			_hit_ms[id_any] = now
-			var npc_cut := clampf((speed * 0.6 - DAMAGE_SPEED_MIN) * DAMAGE_PER_MPS, 4.0, DAMAGE_MAX)
-			_npc_take_blade(position, speed, hit.get("_velocity", Vector3.ZERO), npc_cut)
+			# A full wind-up lands far harder, so a strong, prepared cut is what
+			# actually severs a limb.
+			var strength := clampf(SWING_STRENGTH_MIN + _swing_travel * SWING_STRENGTH_GAIN, SWING_STRENGTH_MIN, 2.0)
+			var npc_cut := clampf((speed * 0.6 - DAMAGE_SPEED_MIN) * DAMAGE_PER_MPS * strength, 4.0, DAMAGE_MAX)
+			_swing_travel = 0.0
+			if npc_part != "":
+				_npc_take_blade_part(npc_part, position, speed, hit.get("_velocity", Vector3.ZERO), npc_cut)
+			else:
+				_npc_take_blade(position, speed, hit.get("_velocity", Vector3.ZERO), npc_cut)
 		return
 	if is_target:
 		var id: int = collider.get_instance_id()
@@ -1976,6 +1989,84 @@ func _fit_plate(bone_name: String, label: String, parts: Array) -> void:
 		holder.add_child(node)
 	_knight_armour.append(holder)
 
+## Per-bone hit boxes. One capsule for the whole body made every cut land on the
+## torso, so arms and legs never took damage and never came off. Each limb now has
+## its own tagged collider.
+func _add_npc_hitboxes() -> void:
+	if not is_instance_valid(_npc_rig): return
+	# Everything here is in the rig's own bone units: the box is sized from the
+	# bone's TRUE length (the offset to its child), so it wraps the limb whatever
+	# the model scale is.
+	var unit := 1.0
+	var thigh := _npc_rig.find_bone("thigh_l")
+	if thigh >= 0: unit = maxf(0.2, _bone_length(thigh))
+	var limbs := ["head", "upperarm_l", "upperarm_r", "forearm_l", "forearm_r",
+		"hand_l", "hand_r", "thigh_l", "thigh_r", "shin_l", "shin_r", "foot_l", "foot_r"]
+	var count := 0
+	for part: String in limbs:
+		var bone := _npc_rig.find_bone(part)
+		if bone < 0: continue
+		var blen := _bone_length(bone)
+		var radius := blen * 0.45
+		if part == "head":
+			blen = unit * 0.55
+			radius = unit * 0.32
+		elif part.begins_with("hand"):
+			blen = maxf(blen, unit * 0.22)
+			radius = blen * 0.5
+		elif part.begins_with("foot"):
+			blen = maxf(blen, unit * 0.20)
+			radius = blen * 0.5
+		if blen < 0.05 or radius < 0.03: continue
+		var anchor := BoneAttachment3D.new()
+		anchor.name = "Hit" + part
+		anchor.bone_name = part
+		_npc_rig.add_child(anchor)
+		# AnimatableBody3D, not StaticBody3D: a static body hung on a bone never
+		# synced its transform with the physics server, so rays missed the limbs.
+		var hit_body := AnimatableBody3D.new()
+		hit_body.sync_to_physics = true
+		hit_body.collision_layer = 1
+		hit_body.collision_mask = 0
+		hit_body.set_meta("sword_npc_part", part)
+		var hit_shape := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = Vector3(radius * 2.1, blen * 1.15, radius * 2.1)
+		hit_shape.shape = box
+		# Centred on the bone, halfway toward its child.
+		hit_shape.position = Vector3(0.0, blen * 0.5, 0.0)
+		hit_body.add_child(hit_shape)
+		anchor.add_child(hit_body)
+		count += 1
+	print("DSH_SWORD_PROTO_HITBOXES parts=", count, " unit=", unit)
+
+## Distance from a bone to its first child - the bone's real length, in rig units.
+func _bone_length(bone: int) -> float:
+	if not is_instance_valid(_npc_rig): return 0.0
+	var count := _npc_rig.get_bone_count()
+	for index: int in count:
+		if _npc_rig.get_bone_parent(index) == bone:
+			return _npc_rig.get_bone_rest(index).origin.length()
+	return 0.0
+
+## Damage a named part directly (used by the tagged limb hit boxes).
+func _npc_take_blade_part(full_key: String, point: Vector3, speed: float, direction: Vector3, damage: float) -> void:
+	if _npc_dead: return
+	if _npc_severed.has(full_key): return
+	var kind := full_key
+	if full_key.ends_with("_l") or full_key.ends_with("_r"):
+		kind = full_key.substr(0, full_key.length() - 2)
+	if not _npc_part_hp.has(full_key):
+		_npc_part_hp[full_key] = float(PART_HP.get(kind, 40.0))
+	_npc_part_hp[full_key] = float(_npc_part_hp[full_key]) - maxf(4.0, damage)
+	_npc_engaged = true
+	if _npc_state == "wait":
+		_npc_state = "approach"
+		_npc_timer = 0.0
+	_spray_blood(point, direction, 8 if damage < 20.0 else 16)
+	if float(_npc_part_hp[full_key]) > 0.0: return
+	_sever_part(full_key, kind, {"sever": full_key}, point, direction, speed)
+
 ## Builds the opponent from the game's own resident model and canonical walk gait.
 func _spawn_resident_knight(at: Vector3) -> bool:
 	if is_instance_valid(_npc_rig): return true
@@ -2037,6 +2128,7 @@ func _spawn_resident_knight(at: Vector3) -> bool:
 	_npc_sword = _build_sword_model(motion, "KnightSword")
 	print("DSH_SWORD_PROTO_NPC spawned bones=", _npc_rig.get_bone_count(), " at=", at)
 	_dress_knight()
+	_add_npc_hitboxes()
 	return true
 
 ## Poses the resident's sword arm and hangs the sword in that fist.
@@ -2259,7 +2351,7 @@ const PART_HP := {"head": 55.0, "chest": 110.0, "pelvis": 110.0,
 	"thigh": 55.0, "shin": 42.0, "foot": 26.0}
 const BLOOD_LIFETIME := 2.6
 ## Severed pieces are permanent; the cap only stops unbounded growth.
-const MAX_STUMPS := 120
+const MAX_STUMPS := 48
 var _stump_count := 0
 var _stumps: Array[Node3D] = []
 var _npc_part_hp: Dictionary = {}
@@ -2379,12 +2471,15 @@ var _blood_timers: Array[float] = []
 ## the part that came off (arm, leg, head with helm) and the cut end is bloody.
 func _throw_stump(kind: String, at: Vector3, direction: Vector3, speed: float) -> void:
 	var body := RigidBody3D.new()
-	body.mass = 1.4
-	var holder := Node3D.new()
-	body.add_child(holder)
+	body.mass = 1.2
+	body.gravity_scale = 1.35
+	# A separate layer keeps the player from bumping into severed pieces, while
+	# mask 1 still lets them fall and roll on the real ground.
+	body.collision_layer = 128
+	body.collision_mask = 1
 	var skin := StandardMaterial3D.new()
-	skin.albedo_color = Color(0.76, 0.60, 0.47)
-	skin.roughness = 0.65
+	skin.albedo_color = Color(0.78, 0.62, 0.49)
+	skin.roughness = 0.62
 	var cloth := StandardMaterial3D.new()
 	cloth.albedo_color = MAIL
 	cloth.roughness = 0.6
@@ -2393,41 +2488,39 @@ func _throw_stump(kind: String, at: Vector3, direction: Vector3, speed: float) -
 	plate.metallic = 0.9
 	plate.roughness = 0.22
 	var flesh := StandardMaterial3D.new()
-	flesh.albedo_color = Color(0.42, 0.03, 0.035)
+	flesh.albedo_color = Color(0.45, 0.03, 0.035)
 	flesh.roughness = 0.4
 	var length := 0.34
 	var radius := 0.09
-	var material: Material = skin
-	var cut_offset := Vector3(0.0, -0.17, 0.0)
+	var material: Material = cloth
 	match kind:
-		"upperarm":
-			length = 0.34; radius = 0.095; material = cloth
-		"forearm":
-			length = 0.30; radius = 0.075; material = cloth
-		"hand":
-			length = 0.16; radius = 0.075; material = skin
-		"thigh":
-			length = 0.44; radius = 0.115; material = cloth
-		"shin":
-			length = 0.40; radius = 0.095; material = cloth
-		"foot":
-			length = 0.12; radius = 0.09; material = cloth
-		"head":
-			length = 0.24; radius = 0.13; material = skin
+		"upperarm": length = 0.34; radius = 0.10; material = cloth
+		"forearm": length = 0.30; radius = 0.08; material = cloth
+		"hand": length = 0.17; radius = 0.08; material = skin
+		"thigh": length = 0.44; radius = 0.12; material = cloth
+		"shin": length = 0.40; radius = 0.10; material = cloth
+		"foot": length = 0.14; radius = 0.10; material = cloth
+		"head": length = 0.24; radius = 0.13; material = skin
+	# One ArrayMesh with one surface per material: a single MeshInstance3D instead
+	# of a stack of nodes, which is what keeps many pieces cheap.
+	var mesh := ArrayMesh.new()
 	if kind == "head":
-		# Head with the helm still on it, and a bare neck at the cut.
-		_add_stump_mesh(holder, "sphere", radius, Vector3.ZERO, skin)
-		_add_stump_mesh(holder, "sphere", radius * 1.05, Vector3(0.0, 0.06, 0.0), plate)
-		_add_stump_mesh(holder, "box", radius * 0.8, Vector3(0.0, -0.12, 0.0), flesh)
+		_add_stump_surface(mesh, true, radius, Vector3.ZERO, skin)
+		_add_stump_surface(mesh, true, radius * 1.02, Vector3(0.0, 0.05, 0.0), plate)
+		_add_stump_surface(mesh, false, radius * 0.62, Vector3(0.0, -length * 0.5, 0.0), flesh, 0.06)
 	else:
-		_add_stump_mesh(holder, "cylinder", radius, Vector3(0.0, 0.0, 0.0), material, length)
-		# The cut surface: a bloody disc at the severed end.
-		_add_stump_mesh(holder, "cylinder", radius * 1.02, Vector3(0.0, -length * 0.5, 0.0), flesh, radius * 0.35)
+		_add_stump_surface(mesh, false, radius, Vector3.ZERO, material, length)
+		_add_stump_surface(mesh, false, radius * 1.04, Vector3(0.0, -length * 0.5, 0.0), flesh, 0.05)
 		if kind in ["forearm", "hand", "shin", "foot"]:
-			# A hand or a foot still hangs at the far end.
-			_add_stump_mesh(holder, "sphere", radius * 0.95, Vector3(0.0, length * 0.5, 0.0), skin)
+			_add_stump_surface(mesh, true, radius * 0.95, Vector3(0.0, length * 0.5, 0.0), skin)
+	var visual := MeshInstance3D.new()
+	visual.name = "Piece"
+	visual.mesh = mesh
+	body.add_child(visual)
 	var shape := CollisionShape3D.new()
-	var capsule := CapsuleShape3D.new(); capsule.radius = radius; capsule.height = maxf(radius * 2.1, length)
+	var capsule := CapsuleShape3D.new()
+	capsule.radius = radius
+	capsule.height = maxf(radius * 2.2, length)
 	shape.shape = capsule
 	body.add_child(shape)
 	_world.add_child(body)
@@ -2444,31 +2537,29 @@ func _throw_stump(kind: String, at: Vector3, direction: Vector3, speed: float) -
 		if is_instance_valid(oldest): oldest.queue_free()
 		_stump_count = _stumps.size()
 
-func _add_stump_mesh(holder: Node3D, shape: String, radius: float, at: Vector3, material: Material, length: float = 0.0) -> void:
-	var node := MeshInstance3D.new()
-	if shape == "sphere":
+## Appends one primitive (sphere or a length-sized cylinder) as its own surface.
+func _add_stump_surface(mesh: ArrayMesh, is_sphere: bool, radius: float, at: Vector3, material: Material, height: float = 0.0) -> void:
+	var prim: Mesh
+	if is_sphere:
 		var sphere := SphereMesh.new()
 		sphere.radius = radius
 		sphere.height = radius * 2.0
-		sphere.radial_segments = 14
-		sphere.rings = 7
-		node.mesh = sphere
-	elif shape == "cylinder":
+		sphere.radial_segments = 12
+		sphere.rings = 6
+		prim = sphere
+	else:
 		var cylinder := CylinderMesh.new()
 		cylinder.top_radius = radius
 		cylinder.bottom_radius = radius
-		cylinder.height = length if length > 0.0 else radius * 2.0
-		cylinder.radial_segments = 14
-		node.mesh = cylinder
-	else:
-		var box := BoxMesh.new()
-		box.size = Vector3(radius * 1.6, radius * 0.9, radius * 2.0)
-		node.mesh = box
-	node.material_override = material
-	node.position = at
-	holder.add_child(node)
+		cylinder.height = height if height > 0.0 else radius * 2.0
+		cylinder.radial_segments = 12
+		prim = cylinder
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_material(material)
+	st.append_from(prim, 0, Transform3D(Basis.IDENTITY, at))
+	st.commit(mesh)
 
-## The sword leaves the severed hand and falls with it.
 func _drop_sword(at: Vector3, direction: Vector3, speed: float) -> void:
 	if not is_instance_valid(_npc_sword): return
 	var falling: Node3D = _npc_sword
