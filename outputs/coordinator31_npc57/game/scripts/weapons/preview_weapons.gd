@@ -315,7 +315,10 @@ func advance(delta: float) -> void:
 	if not armed(): return
 	# DSH_SWORD_PROTO: the melee sword has no firearm state machine, ammo or
 	# shots. Its own host owns the swing, so no Fire.step runs for it.
-	if sword_selected(): return
+	# DSH_BOW_PROTO: the bow is its own host too - it owns the draw, the string, the
+	# flight and the arrows, so the firearm pipeline must not touch it. The host still
+	# consumes the left button, which is fine: the bow polls the real button state.
+	if sword_selected() or bow_selected(): return
 	var allowed: bool = _combat_allowed() and not controls_blocked()
 	var moving: bool = Vector2(player.velocity.x,player.velocity.z).length_squared() > .01
 	var stance: String="prone" if float(_posture_view.value)>=1.95 else "crouch" if float(_posture_view.value)>=.95 else "stand"

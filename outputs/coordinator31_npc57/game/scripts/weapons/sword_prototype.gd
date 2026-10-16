@@ -3236,21 +3236,37 @@ func _apply_npc_severed() -> void:
 			_npc_rig.set_bone_pose(bone, Transform3D(Basis.IDENTITY.scaled(Vector3(0.001, 0.001, 0.001)), pose.origin))
 
 ## A short burst of blood drops that fall and fade.
+## Blood is drawn from a shared pool: one material and a few drop meshes reused by
+## every drop. Creating a fresh material and sphere per drop cost hundreds of GPU
+## resources during a fight for exactly the same picture.
+var _blood_material: StandardMaterial3D
+var _blood_meshes: Array[SphereMesh] = []
+const BLOOD_MESH_VARIANTS := 5
+
+func _ensure_blood_resources() -> void:
+	if _blood_material == null:
+		_blood_material = StandardMaterial3D.new()
+		_blood_material.albedo_color = Color(0.42, 0.012, 0.018)
+		_blood_material.roughness = 0.35
+	if _blood_meshes.is_empty():
+		for i: int in BLOOD_MESH_VARIANTS:
+			var sphere := SphereMesh.new()
+			sphere.radius = lerpf(0.020, 0.050, float(i) / float(BLOOD_MESH_VARIANTS - 1))
+			sphere.height = sphere.radius * 2.0
+			_blood_meshes.append(sphere)
+var _blood_mesh_cursor := 0
+
 func _spray_blood(at: Vector3, direction: Vector3, count: int) -> void:
 	# A hard cap keeps a long fight from drowning the scene in drop nodes.
 	if _blood_count >= MAX_BLOOD:
 		return
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.42, 0.012, 0.018)
-	mat.roughness = 0.35
+	_ensure_blood_resources()
 	for i: int in count:
 		if _blood_count >= MAX_BLOOD: return
 		var drop := MeshInstance3D.new()
-		var sphere := SphereMesh.new()
-		sphere.radius = randf_range(0.020, 0.050)
-		sphere.height = sphere.radius * 2.0
-		drop.mesh = sphere
-		drop.material_override = mat
+		drop.mesh = _blood_meshes[_blood_mesh_cursor % _blood_meshes.size()]
+		_blood_mesh_cursor += 1
+		drop.material_override = _blood_material
 		_world.add_child(drop)
 		drop.global_position = at + Vector3(randf_range(-0.07, 0.07), randf_range(-0.05, 0.09), randf_range(-0.07, 0.07))
 		var spread := Vector3(randf_range(-1.0, 1.0), randf_range(-0.4, 1.4), randf_range(-1.0, 1.0))

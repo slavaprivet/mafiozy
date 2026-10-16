@@ -94,13 +94,16 @@ func _run() -> void:
 	print("BOW_SHOT_EQUIP ", JSON.stringify(equipped), " selected=", _proto.snapshot().selected)
 	await _settle(20)
 
-	# 1. Drawing the string: the draw rises, the view zooms in, the arc appears.
+	# 1. Drawing the string with the LEFT button: the draw rises, the view zooms in,
+	# the arc appears. The bow is drawn and loosed with LMB, not RMB.
 	# The arrow has to be fetched from the quiver first, which takes a moment.
 	var rest_state: Dictionary = _proto.snapshot()
 	await _settle(110)
 	var loaded: Dictionary = _proto.snapshot()
 	print("BOW_SHOT_QUIVER worn=", loaded.quiver_worn, " arrows_left=", loaded.arrows_left,
 		" nocked=", loaded.nocked, " fetch_phase=", loaded.fetch_phase,
+		" quiver_offset_m=", loaded.get("quiver_offset_m", -1.0),
+		" clear_of_body=", loaded.get("quiver_clear_of_body", false),
 		" quiver_mouth=", loaded.quiver_mouth)
 	await _shot("quiver")
 	# Watch the WHOLE fetch and draw frame by frame: the arm must never be posed
@@ -110,7 +113,7 @@ func _run() -> void:
 	var max_pull := 0.0
 	var string_seen := 0
 	var samples_taken := 0
-	await _press_mouse(MOUSE_BUTTON_RIGHT, true)
+	await _press_mouse(MOUSE_BUTTON_LEFT, true)
 	for i: int in 170:
 		await process_frame
 		var watch: Dictionary = _proto.snapshot()
@@ -147,7 +150,7 @@ func _run() -> void:
 	_player.global_position += Vector3.UP * 26.0
 	await _settle(14)
 	var arrows_before: int = int(_proto.call("arrow_count"))
-	await _press_mouse(MOUSE_BUTTON_RIGHT, false)
+	await _press_mouse(MOUSE_BUTTON_LEFT, false)
 	await _settle(3)
 	var fired: Dictionary = _proto.snapshot()
 	var flown: int = int(_proto.call("last_fired_index"))
@@ -206,9 +209,9 @@ func _run() -> void:
 
 	# 5. Fire a second arrow into the same place: they accumulate.
 	await _settle(90)
-	await _press_mouse(MOUSE_BUTTON_RIGHT, true)
+	await _press_mouse(MOUSE_BUTTON_LEFT, true)
 	await _settle(60)
-	await _press_mouse(MOUSE_BUTTON_RIGHT, false)
+	await _press_mouse(MOUSE_BUTTON_LEFT, false)
 	await _settle(90)
 	var final: Dictionary = _proto.snapshot()
 	print("BOW_SHOT_FINAL ", JSON.stringify(final))
@@ -240,6 +243,13 @@ func _run() -> void:
 		" picked_up=", bow_back, " grounded_after=", bow_up.grounded,
 		" refused_when_in_hand=", refused_in_hand)
 	await _shot("ground")
+	# Resource report: the bow pools its meshes, so the unique-mesh count must stay
+	# small however many arrows have been fired and stuck.
+	var perf: Dictionary = _proto.call("perf_report")
+	print("BOW_SHOT_PERF nodes=", perf.get("nodes", 0), " mesh_nodes=", perf.get("mesh_nodes", 0),
+		" multimesh_nodes=", perf.get("multimesh_nodes", 0),
+		" unique_meshes=", perf.get("unique_meshes", 0),
+		" arrows_spawned=", perf.get("arrows", 0), " arrows_stuck=", perf.get("stuck", 0))
 
 	var verdict := {
 		"draws_the_string": float(drawn.draw) > 0.8,
@@ -257,6 +267,9 @@ func _run() -> void:
 		"bow_can_be_dropped_and_taken": bow_dropped and bool(bow_ground.grounded)
 			and bow_back and not bool(bow_up.grounded) and refused_in_hand,
 		"arm_never_through_the_body": min_hand > 0.24 and min_elbow > 0.18,
+		"quiver_hugs_the_back": float(loaded.get("quiver_offset_m", 0.0)) > 0.135
+			and float(loaded.get("quiver_offset_m", 9.0)) < 0.26
+			and bool(loaded.get("quiver_clear_of_body", false)),
 		"string_is_visible": string_seen > 100 and bool(drawn.get("string_visible", false)),
 		"string_comes_back_with_the_draw": max_pull > 0.30,
 		"arrow_sits_on_the_string": bool(drawn.get("nocked_arrow_visible", false)),

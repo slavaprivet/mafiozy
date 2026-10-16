@@ -21,9 +21,11 @@ var _hud_signature := ""
 var _menu_signature := ""
 var _inventory_revision := 0
 var _previous_id := ""
-const FAMILIES := {"none":"УБРАТЬ ОРУЖИЕ","sword":"МЕЧ · БЛИЖНИЙ БОЙ","nagan":"РЕВОЛЬВЕР","tt_pistol":"ПИСТОЛЕТ","revolver":"РЕВОЛЬВЕР","deagle":"ТЯЖЁЛЫЙ ПИСТОЛЕТ","golden_colt":"ПИСТОЛЕТ","sawn_off":"ДРОБОВИК","shotgun":"ДРОБОВИК","uzi":"ПИСТОЛЕТ-ПУЛЕМЁТ","golden_uzi":"ПИСТОЛЕТ-ПУЛЕМЁТ","ak74":"АВТОМАТ","m16":"АВТОМАТ","tommy_gun":"ПИСТОЛЕТ-ПУЛЕМЁТ","sniper":"ВИНТОВКА","rpg":"ГРАНАТОМЁТ"}
+const FAMILIES := {"none":"УБРАТЬ ОРУЖИЕ","sword":"МЕЧ · БЛИЖНИЙ БОЙ","bow":"ЛУК · ДАЛЬНИЙ БОЙ","nagan":"РЕВОЛЬВЕР","tt_pistol":"ПИСТОЛЕТ","revolver":"РЕВОЛЬВЕР","deagle":"ТЯЖЁЛЫЙ ПИСТОЛЕТ","golden_colt":"ПИСТОЛЕТ","sawn_off":"ДРОБОВИК","shotgun":"ДРОБОВИК","uzi":"ПИСТОЛЕТ-ПУЛЕМЁТ","golden_uzi":"ПИСТОЛЕТ-ПУЛЕМЁТ","ak74":"АВТОМАТ","m16":"АВТОМАТ","tommy_gun":"ПИСТОЛЕТ-ПУЛЕМЁТ","sniper":"ВИНТОВКА","rpg":"ГРАНАТОМЁТ"}
 ## DSH_SWORD_PROTO: the prototype sword is always available in the arsenal menu.
 const SWORD_ID := "sword"
+## DSH_BOW_PROTO: the test bow, shown with its quiver count on the weapon card.
+const BOW_ID := "bow"
 
 static func panel_style(background: String, border: String, radius: int = 6) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
@@ -135,11 +137,20 @@ func refresh() -> void:
 			_previous_id=id; title.text=host.LABELS.get(id,id); photo.texture=textures.get(id)
 		if id == SWORD_ID:
 			ammo.text = "МЕЧ · ПРОТОТИП · ЛКМ + МЫШЬ"
+		elif id == BOW_ID:
+			# DSH_BOW_PROTO: the quiver is the bow's ammunition, so the card shows the
+			# arrows left instead of a meaningless empty magazine.
+			var bow_host: Node = host.scene.get("preview_bow_prototype") if is_instance_valid(host.scene) else null
+			var bow_state: Dictionary = bow_host.call("snapshot") if is_instance_valid(bow_host) else {}
+			if bool(bow_state.get("quiver_worn", false)):
+				ammo.text = "СТРЕЛ %d / 20" % int(bow_state.get("arrows_left", 0))
+			else:
+				ammo.text = "БЕЗ КОЛЧАНА · 0 СТРЕЛ"
 		elif id == "none":
 			ammo.text = "ОРУЖИЕ УБРАНО"
 		else:
 			ammo.text = "ПЕРЕЗАРЯДКА · %.1f С" % reload if reload > 0 else ("ПУСТО · 0 / %d" % reserve if magazine == 0 else "%d / %d" % [magazine,reserve])
-		ammo.add_theme_color_override("font_color",Color("bda879" if reload>0 else ("d99b94" if id!="none" and id!=SWORD_ID and magazine==0 else "adb8be")))
+		ammo.add_theme_color_override("font_color",Color("bda879" if reload>0 else ("d99b94" if id!="none" and id!=SWORD_ID and id!=BOW_ID and magazine==0 else "adb8be")))
 	if menu.visible != host.menu_open: menu.visible = host.menu_open
 	var scoped:bool=host.aim_camera!=null and host.aim_camera.scoped()
 	var allowed:bool=host._combat_allowed() and not host.controls_blocked() and not host.player._text_control_focused()
@@ -164,7 +175,7 @@ func refresh() -> void:
 	for key: String in choices:
 		var choice: Dictionary = choices[key]; var selected := key == id
 		# DSH_SWORD_PROTO: the prototype sword is owned from the start.
-		var available := key == "none" or key == SWORD_ID or owned.has(key)
+		var available := key == "none" or key == SWORD_ID or key == BOW_ID or owned.has(key)
 		if choice.button.visible != available:
 			choice.button.visible=available; choice.button.disabled=not available
 		if choice.selected != selected:
@@ -174,7 +185,7 @@ func refresh() -> void:
 		if not available: continue
 		var rounds: Variant = state if selected else host.inventory.get_fire_state(key)
 		var detail: String = ("РУКИ СВОБОДНЫ" if selected else "УБРАТЬ ОРУЖИЕ") if key=="none" else ("В РУКАХ" if selected else FAMILIES[key])
-		if key == SWORD_ID:
+		if key == SWORD_ID or key == BOW_ID:
 			detail = "В РУКАХ · ЛКМ + МЫШЬ" if selected else "БЕСПЛАТНО · ЛКМ + МЫШЬ"
 		elif key != "none" and rounds is Dictionary:
 			detail += " · %d / %d" % [int(rounds.magazine),int(rounds.reserveAmmo)]

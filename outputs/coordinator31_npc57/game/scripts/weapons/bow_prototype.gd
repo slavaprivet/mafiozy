@@ -84,6 +84,14 @@ var _leather: StandardMaterial3D
 var _feather: StandardMaterial3D
 var _steel: StandardMaterial3D
 var _string_material: StandardMaterial3D
+## Meshes shared by every arrow and every quiver.
+var _shaft_mesh: CylinderMesh
+var _head_mesh: CylinderMesh
+var _collar_mesh: CylinderMesh
+var _nock_mesh: CylinderMesh
+var _vane_mesh: BoxMesh
+var _quiver_shaft_mesh: CylinderMesh
+var _quiver_fletch_mesh: BoxMesh
 ## The quiver worn on the back, and the arrows left in it.
 var _quiver: Node3D
 var _ground_quiver: Node3D
@@ -123,6 +131,7 @@ var _base_fov := 70.0
 ## Smoothed field-of-view multiplier handed to the shared aim camera.
 var _zoom_scale := 1.0
 var _weapons_host: Node = null
+var _debug_tick := 0
 
 func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 	if _ready or not is_instance_valid(world) or not is_instance_valid(player):
@@ -212,6 +221,41 @@ func _build_materials() -> void:
 	_feather = StandardMaterial3D.new()
 	_feather.albedo_color = Color(0.88, 0.86, 0.80)
 	_feather.roughness = 0.92
+	_build_shared_meshes()
+
+## Every arrow in the game - nocked, in flight, and the ones standing in a quiver -
+## is drawn from these meshes. Building a fresh set per arrow allocated several
+## hundred mesh resources for an identical picture.
+func _build_shared_meshes() -> void:
+	_shaft_mesh = CylinderMesh.new()
+	_shaft_mesh.top_radius = 0.0048
+	_shaft_mesh.bottom_radius = 0.0072
+	_shaft_mesh.height = 0.74
+	_shaft_mesh.radial_segments = 8
+	_head_mesh = CylinderMesh.new()
+	_head_mesh.top_radius = 0.0
+	_head_mesh.bottom_radius = 0.0125
+	_head_mesh.height = 0.095
+	_head_mesh.radial_segments = 8
+	_collar_mesh = CylinderMesh.new()
+	_collar_mesh.top_radius = 0.0075
+	_collar_mesh.bottom_radius = 0.0075
+	_collar_mesh.height = 0.018
+	_collar_mesh.radial_segments = 8
+	_nock_mesh = CylinderMesh.new()
+	_nock_mesh.top_radius = 0.0072
+	_nock_mesh.bottom_radius = 0.0072
+	_nock_mesh.height = 0.028
+	_nock_mesh.radial_segments = 6
+	_vane_mesh = BoxMesh.new()
+	_vane_mesh.size = Vector3(0.0016, 0.042, 0.115)
+	_quiver_shaft_mesh = CylinderMesh.new()
+	_quiver_shaft_mesh.top_radius = 0.0044
+	_quiver_shaft_mesh.bottom_radius = 0.0044
+	_quiver_shaft_mesh.height = 0.34
+	_quiver_shaft_mesh.radial_segments = 6
+	_quiver_fletch_mesh = BoxMesh.new()
+	_quiver_fletch_mesh.size = Vector3(0.0016, 0.030, 0.075)
 
 # ---------------------------------------------------------------- construction
 
@@ -239,25 +283,16 @@ func _build_bow(parent: Node3D) -> Node3D:
 	wrap.material_override = _leather
 	wrap.position = Vector3(0.0, 0.0, 0.10)
 	root.add_child(wrap)
-	# Limbs, upper and lower, stave by stave so they taper.
-	var staves := 16
+	# Limbs, upper and lower. The staves are MERGED into one mesh per tone per side,
+	# which takes the bow from thirty-odd nodes and meshes down to a handful while
+	# keeping the two-tone limbs exactly as they were drawn.
 	for side: float in [1.0, -1.0]:
-		for i: int in staves:
-			var s0 := float(i) / float(staves)
-			var s1 := float(i + 1) / float(staves)
-			var a := _limb_point(s0, side)
-			var b := _limb_point(s1, side)
+		for dark: bool in [true, false]:
+			var merged := _build_limb_mesh(side, dark)
+			if merged == null: continue
 			var limb := MeshInstance3D.new()
-			var box := BoxMesh.new()
-			# Taper: thick at the riser, slim at the tip, and thinner across.
-			var thick := lerpf(0.036, 0.014, s0)
-			box.size = Vector3(thick, a.distance_to(b) * 1.15, thick * 0.72)
-			limb.mesh = box
-			limb.material_override = _wood_dark if s0 < 0.5 else _wood_light
-			limb.position = (a + b) * 0.5
-			var tangent := b - a
-			if tangent.length_squared() > 1.0e-9:
-				limb.rotation = _rotation_along(tangent)
+			limb.mesh = merged
+			limb.material_override = _wood_dark if dark else _wood_light
 			root.add_child(limb)
 		# Horn nock at the tip, where the string sits.
 		var tip := _limb_point(1.0, side)
@@ -275,6 +310,31 @@ func _build_bow(parent: Node3D) -> Node3D:
 	_nock.name = "Nock"
 	root.add_child(_nock)
 	return root
+
+## One limb's staves of a single tone, merged into a single surface. The taper is
+## kept exactly: each stave is placed with the same size and rotation it had as its
+## own node, only now they share one mesh.
+func _build_limb_mesh(side: float, dark: bool) -> ArrayMesh:
+	var staves := 16
+	var unit := BoxMesh.new()
+	unit.size = Vector3.ONE
+	var tool := SurfaceTool.new()
+	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var placed := 0
+	for i: int in staves:
+		var s0 := float(i) / float(staves)
+		var s1 := float(i + 1) / float(staves)
+		if (s0 < 0.5) != dark: continue
+		var a := _limb_point(s0, side)
+		var b := _limb_point(s1, side)
+		var thick := lerpf(0.036, 0.014, s0)
+		var size := Vector3(thick, a.distance_to(b) * 1.15, thick * 0.72)
+		var basis := Basis.from_euler(_rotation_along(b - a)).scaled(size)
+		tool.append_from(unit, 0, Transform3D(basis, (a + b) * 0.5))
+		placed += 1
+	if placed == 0: return null
+	tool.generate_normals()
+	return tool.commit()
 
 ## Point on a limb at `s` (0 at the riser, 1 at the tip). The limb bows away from
 ## the archer and then curves back, which is what makes it a recurve.
@@ -357,12 +417,12 @@ func _update_hint() -> void:
 		state += "   достаёт стрелу из колчана"
 	var draw := ""
 	if _drawing:
-		draw = "\nНАТЯЖЕНИЕ %d%%   отпусти ПКМ — выстрел" % int(round(_draw_amount * 100.0))
+		draw = "\nНАТЯЖЕНИЕ %d%%   отпусти ЛКМ — выстрел" % int(round(_draw_amount * 100.0))
 	var pick := ""
 	var near := _nearest_ground_item()
 	if not near.is_empty():
 		pick = "\nE — поднять " + ("лук" if str(near.get("kind", "")) == "bow" else "колчан")
-	_hint.text = "ТЕСТОВЫЙ ЛУК (прототип)\n" + state + "\nПКМ (удерживать) — натянуть тетиву, вид приближается\nПКМ (отпустить) — выстрел по дуге\nСтрела втыкается и остаётся в теле или предмете\nG — бросить лук, потом колчан" + pick + draw
+	_hint.text = "ТЕСТОВЫЙ ЛУК (прототип)\n" + state + "\nЛКМ (удерживать) — натянуть тетиву, вид приближается\nЛКМ (отпустить) — выстрел по дуге\nСтрела втыкается и остаётся в теле или предмете\nG — бросить лук, потом колчан" + pick + draw
 
 # ---------------------------------------------------------------- archer pose
 
@@ -381,7 +441,12 @@ func _aim_direction() -> Vector3:
 
 func _active() -> bool:
 	if not _ready or not is_instance_valid(_player): return false
-	if _player.has_method("controls_blocked") and bool(_player.call("controls_blocked")): return false
+	# The prototype must stand down while the arsenal menu is open - and that method
+	# lives on the weapons host, not on the player, which is where it was being
+	# asked for before.
+	if is_instance_valid(_weapons_host) and _weapons_host.has_method("controls_blocked") \
+			and bool(_weapons_host.call("controls_blocked")):
+		return false
 	return _selected
 
 func set_selected(value: bool) -> void:
@@ -403,7 +468,7 @@ func is_drawing() -> bool:
 
 func _input(event: InputEvent) -> void:
 	if not _active(): return
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			_begin_draw()
 		else:
@@ -521,51 +586,32 @@ func _build_arrow(parent: Node3D) -> Node3D:
 	root.name = "PrototypeArrow"
 	parent.add_child(root)
 	var shaft := MeshInstance3D.new()
-	var cyl := CylinderMesh.new()
-	cyl.top_radius = 0.0048
-	cyl.bottom_radius = 0.0072
-	cyl.height = 0.74
-	shaft.mesh = cyl
+	shaft.mesh = _shaft_mesh
 	shaft.material_override = _wood_light
 	# A cylinder runs along Y; the arrow flies along Z.
 	shaft.rotation = Vector3(PI * 0.5, 0.0, 0.0)
 	root.add_child(shaft)
 	var head := MeshInstance3D.new()
-	var cone := CylinderMesh.new()
-	cone.top_radius = 0.0
-	cone.bottom_radius = 0.0125
-	cone.height = 0.095
-	head.mesh = cone
+	head.mesh = _head_mesh
 	head.material_override = _steel
 	head.rotation = Vector3(-PI * 0.5, 0.0, 0.0)
 	head.position = Vector3(0.0, 0.0, 0.395)
 	root.add_child(head)
 	var collar := MeshInstance3D.new()
-	var collar_cyl := CylinderMesh.new()
-	collar_cyl.top_radius = 0.0075
-	collar_cyl.bottom_radius = 0.0075
-	collar_cyl.height = 0.018
-	collar.mesh = collar_cyl
+	collar.mesh = _collar_mesh
 	collar.material_override = _horn
 	collar.rotation = Vector3(PI * 0.5, 0.0, 0.0)
 	collar.position = Vector3(0.0, 0.0, 0.345)
 	root.add_child(collar)
-	# Nock: the slot the string sits in.
 	var nock := MeshInstance3D.new()
-	var nock_cyl := CylinderMesh.new()
-	nock_cyl.top_radius = 0.0072
-	nock_cyl.bottom_radius = 0.0072
-	nock_cyl.height = 0.028
-	nock.mesh = nock_cyl
+	nock.mesh = _nock_mesh
 	nock.material_override = _horn
 	nock.rotation = Vector3(PI * 0.5, 0.0, 0.0)
 	nock.position = Vector3(0.0, 0.0, -0.368)
 	root.add_child(nock)
 	for i: int in 3:
 		var vane := MeshInstance3D.new()
-		var box := BoxMesh.new()
-		box.size = Vector3(0.0016, 0.042, 0.115)
-		vane.mesh = box
+		vane.mesh = _vane_mesh
 		vane.material_override = _feather
 		var angle := TAU * float(i) / 3.0
 		vane.position = Vector3(cos(angle) * 0.0185, sin(angle) * 0.0185, -0.295)
@@ -616,34 +662,49 @@ func _build_quiver(parent: Node3D) -> Node3D:
 	strap.position = Vector3(-0.055, 0.02, -0.045)
 	strap.rotation = Vector3(0.0, 0.0, deg_to_rad(18.0))
 	root.add_child(strap)
-	# The arrows still in the quiver: a bundle of shafts and fletchings. They are
-	# shown or hidden as arrows are spent, so the quiver reads as a real count.
-	var shafts: Array[Node3D] = []
+	# The arrows still in the quiver: a bundle of shafts and fletchings. A MultiMesh
+	# draws all twenty in one node, and `visible_instance_count` is the quiver's
+	# count, so the arrows thin out as they are spent at almost no cost.
+	var shaft_multi := MultiMesh.new()
+	shaft_multi.transform_format = MultiMesh.TRANSFORM_3D
+	shaft_multi.mesh = _quiver_shaft_mesh
+	shaft_multi.instance_count = ARROWS_PER_QUIVER
+	shaft_multi.visible_instance_count = ARROWS_PER_QUIVER
+	var fletch_multi := MultiMesh.new()
+	fletch_multi.transform_format = MultiMesh.TRANSFORM_3D
+	fletch_multi.mesh = _quiver_fletch_mesh
+	fletch_multi.instance_count = ARROWS_PER_QUIVER
+	fletch_multi.visible_instance_count = ARROWS_PER_QUIVER
 	for i: int in ARROWS_PER_QUIVER:
-		var shaft := MeshInstance3D.new()
-		var cyl := CylinderMesh.new()
-		cyl.top_radius = 0.0044
-		cyl.bottom_radius = 0.0044
-		cyl.height = 0.34
-		shaft.mesh = cyl
-		shaft.material_override = _wood_light
 		var angle := TAU * float(i) / float(ARROWS_PER_QUIVER)
 		var radius := 0.030 * sqrt(float(i) / float(ARROWS_PER_QUIVER))
-		shaft.position = Vector3(cos(angle) * radius, 0.30, sin(angle) * radius)
 		var lean := deg_to_rad(4.0)
-		shaft.rotation = Vector3(cos(angle) * lean, 0.0, -sin(angle) * lean)
-		root.add_child(shaft)
-		var fletch := MeshInstance3D.new()
-		var box := BoxMesh.new()
-		box.size = Vector3(0.0016, 0.030, 0.075)
-		fletch.mesh = box
-		fletch.material_override = _feather
-		fletch.position = Vector3(cos(angle) * radius, 0.44, sin(angle) * radius)
-		fletch.rotation = Vector3(0.0, 0.0, angle)
-		root.add_child(fletch)
-		shafts.append(shaft)
-	root.set_meta("shafts", shafts)
+		var at := Vector3(cos(angle) * radius, 0.30, sin(angle) * radius)
+		var lean_basis := Basis.from_euler(Vector3(cos(angle) * lean, 0.0, -sin(angle) * lean))
+		shaft_multi.set_instance_transform(i, Transform3D(lean_basis, at))
+		fletch_multi.set_instance_transform(i,
+			Transform3D(Basis.from_euler(Vector3(0.0, 0.0, angle)), Vector3(cos(angle) * radius, 0.44, sin(angle) * radius)))
+	var shafts_node := MultiMeshInstance3D.new()
+	shafts_node.multimesh = shaft_multi
+	shafts_node.material_override = _wood_light
+	root.add_child(shafts_node)
+	var fletch_node := MultiMeshInstance3D.new()
+	fletch_node.multimesh = fletch_multi
+	fletch_node.material_override = _feather
+	root.add_child(fletch_node)
+	root.set_meta("shaft_multimesh", shaft_multi)
+	root.set_meta("fletch_multimesh", fletch_multi)
 	return root
+
+## The quiver's count is the number of instances it draws: no per-arrow nodes, no
+## per-arrow visibility bookkeeping.
+func _show_quiver_arrows(root: Node3D, shown: int) -> void:
+	if not is_instance_valid(root): return
+	var count := clampi(shown, 0, ARROWS_PER_QUIVER)
+	for key: String in ["shaft_multimesh", "fletch_multimesh"]:
+		var multi: Variant = root.get_meta(key, null)
+		if multi is MultiMesh:
+			(multi as MultiMesh).visible_instance_count = count
 
 ## Hangs the quiver off the archer's chest bone, tilted across his back. Setting the
 ## transform every frame keeps it on the body without an attachment node.
@@ -658,24 +719,14 @@ func _place_quiver() -> void:
 		anchor = _rig.global_transform * _chain_global(_bone_chest)
 	var visual: Node3D = _player._visual
 	var back: Vector3 = visual.global_basis.z
-	# Behind the back but TOWARD THE DRAWING SIDE, and tilted so the shafts stand up
-	# beside that shoulder. Hanging it dead centre is what forced the fetching arm
-	# through the torso; at the side the hand reaches it past the ribs.
-	var origin: Vector3 = anchor.origin - back * 0.15 + _draw_side() * 0.20 + Vector3.UP * 0.02
-	var basis := Basis(visual.global_basis.x, Vector3.UP, back) * Basis(Vector3.RIGHT, deg_to_rad(-26.0)) * Basis(Vector3.UP, deg_to_rad(34.0))
+	# Behind the back but TOWARD THE DRAWING SIDE, and laid ALONG the back rather
+	# than pushed out from it. The offsets are small on purpose: the tube has to sit
+	# against the spine, and a quiver standing off the back is what the player saw.
+	var origin: Vector3 = anchor.origin - back * 0.125 + _draw_side() * 0.115 + Vector3.UP * 0.02
+	var basis := Basis(visual.global_basis.x, Vector3.UP, back) * Basis(Vector3.RIGHT, deg_to_rad(-34.0)) * Basis(Vector3.UP, deg_to_rad(16.0))
 	_quiver.global_transform = Transform3D(basis.orthonormalized(), origin)
 	_quiver_mouth = _quiver.global_transform * Vector3(0.0, 0.30, 0.0)
 	_show_quiver_arrows(_quiver, clampi(_arrows_left, 0, ARROWS_PER_QUIVER))
-
-## The shafts in a quiver are hidden as arrows are spent, so a quiver reads as a
-## real count rather than decoration.
-func _show_quiver_arrows(root: Node3D, shown: int) -> void:
-	if not is_instance_valid(root): return
-	var shafts: Variant = root.get_meta("shafts", null)
-	if shafts == null: return
-	for i: int in (shafts as Array).size():
-		var node: Node3D = (shafts as Array)[i]
-		if is_instance_valid(node): node.visible = i < shown
 
 ## Nearest bow or quiver lying on the ground within reach.
 func _nearest_ground_item() -> Dictionary:
@@ -775,7 +826,7 @@ func _physics_process(delta: float) -> void:
 	if _active() and not _grounded:
 		# The button state is read every frame so a missed release cannot leave the
 		# string drawn for ever.
-		var pressed: bool = Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)
+		var pressed: bool = Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
 		if pressed and not _drawing:
 			_begin_draw()
 		elif not pressed and _drawing:
@@ -877,6 +928,9 @@ func _recycle(index: int) -> void:
 
 func _process(delta: float) -> void:
 	if not _ready or not is_instance_valid(_player) or not is_instance_valid(_rig): return
+	# The WAIT state is reported periodically so a live session can be diagnosed from
+	# its log without guessing which branch of _process is being taken.
+	_debug_tick += 1
 	if not _active():
 		if is_instance_valid(_bow): _bow.visible = false
 		if is_instance_valid(_quiver): _quiver.visible = false
@@ -896,6 +950,15 @@ func _process(delta: float) -> void:
 	_update_aim_preview()
 	_update_zoom(delta)
 	_update_hint()
+	# Reported AFTER the pose and the bow placement, so the numbers describe the
+	# frame that is actually drawn instead of the state left by the physics step.
+	_debug_tick += 1
+	if _debug_tick % 240 == 0:
+		print("DSH_BOW_PROTO_TICK selected=", _selected, " drawing=", _drawing,
+			" draw=", _draw_amount, " nocked=", _nocked, " quiver=", _quiver_worn,
+			" arrows=", _arrows_left, " bow_visible=", is_instance_valid(_bow) and _bow.visible,
+			" bow_in_hand_error=", _bow_hand_error(),
+			" quiver_offset_m=", quiver_offset_m())
 
 ## Aim zoom: the view tightens as the string comes back, and opens again on release.
 ## The field of view belongs to the shared aim camera, so the bow asks it for a
@@ -935,13 +998,16 @@ func _constrain_hand_path(point: Vector3) -> Vector3:
 	var away: Vector3 = flat.normalized() if flat.length_squared() > 1.0e-8 else _draw_side()
 	return Vector3(centre.x + away.x * radius, point.y, centre.z + away.z * radius)
 
-## Which way the DRAWING side is, horizontally, measured from the body centre to the
-## drawing hand. The quiver and the whole fetch are built on this side, so the arm
-## travels past the shoulder instead of through the torso.
+## Which way the DRAWING side is, horizontally. It is measured between the two
+## SHOULDERS, not from the drawing hand: during a draw the hand is out in front of
+## the chest, so a hand-derived "side" is really "forward", and the quiver was
+## pushed into the middle of his back instead of sitting on it.
 func _draw_side() -> Vector3:
-	if not is_instance_valid(_rig) or _bone_draw_hand < 0: return _player._visual.global_basis.x
-	var fist: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_draw_hand).origin
-	var side := fist - _player.global_position
+	if not is_instance_valid(_rig) or _bone_bow_clavicle < 0 or _bone_draw_clavicle < 0:
+		return _player._visual.global_basis.x
+	var bow_at: Vector3 = _rig.global_transform * _chain_global(_bone_bow_clavicle).origin
+	var draw_at: Vector3 = _rig.global_transform * _chain_global(_bone_draw_clavicle).origin
+	var side := draw_at - bow_at
 	side.y = 0.0
 	if side.length_squared() < 1.0e-6: return _player._visual.global_basis.x
 	return side.normalized()
@@ -1202,6 +1268,7 @@ func snapshot() -> Dictionary:
 		"string_pull_m": string_pull_m(), "hand_clearance": hand_clearance(),
 		"elbow_clearance": elbow_clearance(), "string_visible": string_visible(),
 		"nocked_arrow_visible": is_instance_valid(_nocked_arrow) and _nocked_arrow.visible,
+		"quiver_offset_m": quiver_offset_m(), "quiver_clear_of_body": quiver_clear_of_body(),
 		"ground_items": _ground_items.size(), "quiver_mouth": _quiver_mouth,
 		"stuck": _stuck_total, "last_hit_distance": _last_hit_distance,
 		"last_flight_time": _last_flight_time, "predicted_range": _predicted_range,
@@ -1244,6 +1311,21 @@ func arrow_count() -> int:
 ## Horizontal distance from the drawing hand to the archer's own centre line, and
 ## the same for his elbow. These are the measurements that say whether the arm is
 ## being posed through his body, which is exactly the fault being fixed.
+## How far the quiver's axis sits from the archer's spine, horizontally. It has to
+## clear the body but stay against it: too small is inside the torso, too large is
+## the quiver standing off his back.
+func quiver_offset_m() -> float:
+	if not is_instance_valid(_quiver) or not _quiver_worn: return 0.0
+	var spine: Vector3 = _player.global_position
+	if is_instance_valid(_rig) and _bone_chest >= 0:
+		spine = (_rig.global_transform * _chain_global(_bone_chest)).origin
+	var flat := Vector2(_quiver.global_position.x - spine.x, _quiver.global_position.z - spine.z)
+	return flat.length()
+
+## The quiver's tube must not be inside the character's own body.
+func quiver_clear_of_body() -> bool:
+	return quiver_offset_m() > 0.135
+
 func hand_clearance() -> float:
 	return _flat_clearance(_string_hand_world)
 
@@ -1266,6 +1348,42 @@ func string_pull_m() -> float:
 func string_visible() -> bool:
 	return is_instance_valid(_string_a) and _string_a.visible \
 		and is_instance_valid(_string_b) and _string_b.visible
+
+## Counts what the bow actually costs the scene: total nodes, mesh-drawing nodes,
+## MultiMesh nodes, and how many UNIQUE meshes they share. The point of the pooling
+## is that the unique-mesh count stays tiny however many arrows are in flight.
+func perf_report() -> Dictionary:
+	# The models live under the world, not under this host, so they are named here.
+	var roots: Array[Node] = []
+	for candidate: Variant in [_bow, _nocked_arrow, _quiver, _ground_quiver]:
+		if is_instance_valid(candidate): roots.append(candidate)
+	for entry: Dictionary in _arrows:
+		var node: Node3D = entry.get("node")
+		if is_instance_valid(node): roots.append(node)
+	for dot: MeshInstance3D in _aim_dots:
+		if is_instance_valid(dot): roots.append(dot)
+	if is_instance_valid(_string_a): roots.append(_string_a)
+	if is_instance_valid(_string_b): roots.append(_string_b)
+	var nodes := 0
+	var mesh_nodes := 0
+	var multimesh_nodes := 0
+	var unique: Dictionary = {}
+	var stack: Array[Node] = roots.duplicate()
+	while not stack.is_empty():
+		var node: Node = stack.pop_back()
+		nodes += 1
+		if node is MeshInstance3D:
+			mesh_nodes += 1
+			var m: Mesh = (node as MeshInstance3D).mesh
+			if m != null: unique[m.get_instance_id()] = true
+		elif node is MultiMeshInstance3D:
+			multimesh_nodes += 1
+			var mm: MultiMesh = (node as MultiMeshInstance3D).multimesh
+			if mm != null and mm.mesh != null: unique[mm.mesh.get_instance_id()] = true
+		for child: Node in node.get_children():
+			stack.append(child)
+	return {"nodes": nodes, "mesh_nodes": mesh_nodes, "multimesh_nodes": multimesh_nodes,
+		"unique_meshes": unique.size(), "arrows": _arrows.size(), "stuck": _stuck_total}
 
 func _visible_aim_dots() -> int:
 	var count := 0
