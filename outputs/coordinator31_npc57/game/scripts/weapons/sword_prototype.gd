@@ -512,7 +512,8 @@ func _update_hint() -> void:
 	if _sword_grounded:
 		_hint.text = "ТЕСТОВЫЙ МЕЧ (прототип)\nМеч лежит на земле\nE — поднять меч"
 		return
-	var text := "ТЕСТОВЫЙ МЕЧ (прототип)\nЛКМ и мышь — рубящий удар ЛЕВОЙ рукой\nПКМ — БЛОК в диагональной стойке, мышь поднимает/опускает\nЛКМ + ПКМ — двуручный хват, удар сильнее\nКолесо мыши — укол вперёд / оттянуть назад\nG — бросить меч"
+	var mode := "ПОЛУМЕЧ: рука на лезвии, укол в щели доспеха" if _half_sword else "ЛКМ + ПКМ — двуручный хват, удар сильнее"
+	var text := "ТЕСТОВЫЙ МЕЧ (прототип)\nЛКМ и мышь — рубящий удар\nПКМ — БЛОК, мышь поднимает/опускает\n" + mode + "\nКолесо мыши — укол вперёд / оттянуть назад\nX — полумеч (хват за лезвие против доспеха)\nG — бросить меч"
 	if reachable:
 		text += "\nE — поднять меч (рядом лежит меч, свой или чужой)"
 	_hint.text = text
@@ -868,6 +869,11 @@ func _input(event: InputEvent) -> void:
 			if try_pickup_sword():
 				get_viewport().set_input_as_handled()
 				return
+		# X: half-sword - the off hand takes the blade instead of the hilt.
+		if code == KEY_X and not _sword_grounded:
+			set_half_sword(not _half_sword)
+			get_viewport().set_input_as_handled()
+			return
 	if event is InputEventMouseButton:
 		var button := event as InputEventMouseButton
 		if button.button_index == MOUSE_BUTTON_LEFT:
@@ -994,6 +1000,10 @@ func _clear_blade_from_body(direction: Vector3) -> Vector3:
 ## instead of being driven up through the face.
 func _carry_direction() -> Vector3:
 	var visual: Node3D = _player._visual
+	if _half_sword:
+		# Half-sword carries the point FORWARD and level: it is a thrusting stance,
+		# not a raised guard.
+		return (visual.global_basis.z * 0.94 + Vector3.UP * 0.22).normalized()
 	return (Vector3.UP * 0.74 + _outward_from_body() * 0.34 + visual.global_basis.z * 0.50).normalized()
 
 ## Where the sword HAND rests in the ready stance: forward and clearly BELOW the
@@ -1372,6 +1382,15 @@ func _solve_arm(delta: float) -> void:
 				support.x = body_center.x + away.x * min_radius
 				support.z = body_center.z + away.z * min_radius
 			_pose_support(&"left", support)
+	elif _half_sword:
+		# HALF-SWORD: the off hand grips the BLADE, well up from the guard, which is
+		# the technique the game is named after - it shortens the weapon and puts the
+		# point exactly where the armour opens. Right hand keeps the hilt.
+		grip_rig = _pose_main(&"right", want_rig, blade_rig, 0.62)
+		if grip_rig != Vector3.ZERO:
+			var on_blade := grip_rig + blade_rig * (HALF_SWORD_GRIP / maxf(0.05, _rig_scale()))
+			_pose_support(&"left", on_blade)
+			_half_sword_blade_point = (_rig.global_transform * on_blade)
 	elif side == &"left":
 		grip_rig = _pose_main(&"left", want_rig, blade_rig)
 	else:
@@ -2184,10 +2203,35 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 			_swing_start_ms = now
 			_swing_travel = 0.0
 			if npc_part != "":
-				_bite_into(0.72)
-				_npc_take_blade_part(npc_part, position, speed, hit.get("_velocity", Vector3.ZERO), npc_cut)
+				# Armour decides how much of the blow actually lands: plate turns an
+				# edge but not a point, so a cut mostly rings off the steel while a
+				# thrust finds the gaps. This is how Half Sword treats armour, and it
+				# is what makes a knight in plate different from a bare body.
+				var motion: Vector3 = hit.get("_velocity", Vector3.ZERO)
+				if motion.length_squared() < 1.0e-8: motion = _dir * speed
+				var along := absf(motion.normalized().dot(_dir))
+				var across := sqrt(maxf(0.0, 1.0 - along * along))
+				var kind := "slice" if across >= 0.72 else ("stab" if along >= 0.72 else "flat")
+				var factor := _armour_factor(npc_part, kind)
+				if _half_sword:
+					# Half-swording trades the cut for the point: a thrust from the
+					# blade grip goes into the joints whatever the plate says.
+					if kind == "stab":
+						factor = HALF_SWORD_THRUST
+					else:
+						factor *= HALF_SWORD_CUT
+				var rang_off_plate: bool = is_instance_valid(_npc_rig) and factor < 1.0
+				_bite_into(0.72 if not rang_off_plate else 0.35)
+				if rang_off_plate:
+					# Steel on plate: clang and sparks instead of a wound.
+					_spark_burst(position, -motion.normalized(), 8)
+					_impact_player.global_position = position
+					_impact_player.pitch_scale = 1.95
+					_impact_player.play()
+				_npc_take_blade_part(npc_part, position, speed, motion, npc_cut * factor)
 			else:
 				_npc_take_blade(position, speed, hit.get("_velocity", Vector3.ZERO), npc_cut)
+			_last_hit_kind = "slice"
 		return
 	if is_target:
 		var id: int = collider.get_instance_id()
@@ -2363,8 +2407,53 @@ var _npc_swings := 0
 var _npc_hits := 0
 var _npc_blocked := 0
 var _npc_blade_prev: PackedVector3Array = PackedVector3Array()
+## ---- half-swording -------------------------------------
+## Gripping the BLADE with the off hand: the technique the reference game is named
+## after. It gives up reach and cutting power and buys a precise, armour-piercing
+## point, which is the only sane way to fight a man in plate.
+var _half_sword := false
+## How far up the blade the off hand takes hold, in metres from the guard.
+const HALF_SWORD_GRIP := 0.40
+## Cutting power and thrust power of the half-sword grip.
+const HALF_SWORD_CUT := 0.45
+const HALF_SWORD_THRUST := 1.90
+## World position the off hand is gripping the blade at, for measurement.
+var _half_sword_blade_point := Vector3.ZERO
+
+func is_half_swording() -> bool:
+	return _half_sword
+
+func set_half_sword(on: bool) -> void:
+	if _half_sword == on: return
+	_half_sword = on
+	if not on: _half_sword_blade_point = Vector3.ZERO
+	_update_hint()
+	print("DSH_SWORD_PROTO_HALF_SWORD ", on)
+
+## Rig scale, needed to convert metres into bone units.
+func _rig_scale() -> float:
+	if is_instance_valid(_rig):
+		var s := _rig.global_transform.basis.get_scale()
+		if s.y > 1.0e-5: return s.y
+	return 0.38
+
 var _npc_hit_ms := -10000
 var _npc_blade_ms := -10000
+## Armour: how much of a SLICE each covered part eats. A thrust is not stopped this
+## way - a point goes into the joints and the helmet slits, which is exactly why
+## half-swording exists. Unlisted parts (arms, legs, hands) are taken as unarmoured.
+const ARMOUR_SLICE := {"head": 0.16, "chest": 0.22, "pelvis": 0.40}
+## A thrust against armour actually gets through, rather than merely not being cut.
+const ARMOUR_THRUST_BONUS := 1.30
+
+## Damage multiplier for a blow of `kind` landing on `part` of the armoured knight.
+func _armour_factor(part: String, kind: String) -> float:
+	var base := part
+	if base.ends_with("_l") or base.ends_with("_r"): base = base.substr(0, base.length() - 2)
+	if kind == "stab": return ARMOUR_THRUST_BONUS
+	if kind == "slice": return float(ARMOUR_SLICE.get(base, 1.0))
+	# A flat slap lays steel on plate: it bruises at most.
+	return 0.35
 ## While set, the blade is biting into something and cannot accelerate freely.
 var _bind_until_ms := 0
 
@@ -3283,7 +3372,7 @@ func snapshot() -> Dictionary:	return {
 		"head_clearance": _head_blade_clearance(),
 		"body_clearance": _body_blade_clearance(),
 		"armour_plates": _knight_armour.size(), "stump_count": _stumps.size(),
-		"sparks": _sparks.size(), "sparks_total": _sparks_total,
+		"sparks": _sparks.size(), "sparks_total": _sparks_total, "half_sword": _half_sword, "half_sword_point": _half_sword_blade_point,
 		"bleeding": Time.get_ticks_msec() < _npc_bleed_until_ms,
 		"npc_fall": _npc_fall, "npc_speed_scale": _npc_speed_scale(),
 		"clav_l_x": (_rig.global_transform * _chain_global(_bone_l_clavicle).origin).x if _bone_l_clavicle >= 0 else 0.0,

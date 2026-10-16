@@ -11,6 +11,10 @@ const OUT_DIR := "C:/Users/Слава/Documents/deepseek-harness/default-workspa
 var _scene: Node3D
 var _proto: Node3D
 var _arm_drift := 0.0
+var _armour_cut_plate := 0.0
+var _armour_cut_bare := 0.0
+var _armour_thrust_plate := 0.0
+var _half_sword_hand_error := 9.0
 var _player: CharacterBody3D
 ## Largest body lean seen during the running swing pass.
 var _body_peak := 0.0
@@ -542,6 +546,25 @@ func _run() -> void:
 	print("SWORD_SHOT_SPARKS total=", clash_state.get("sparks_total", 0),
 		" live=", clash_state.get("sparks", 0),
 		" parries=", clash_state.get("player_blocks", 0))
+	# 12. Armour: plate eats an edge but not a point, and half-swording is the
+	# answer to it - the off hand takes the BLADE, not the hilt.
+	var cut_plate: float = _proto.call("_armour_factor", "chest", "slice")
+	var cut_bare: float = _proto.call("_armour_factor", "forearm_l", "slice")
+	var thrust_plate: float = _proto.call("_armour_factor", "chest", "stab")
+	_proto.call("set_half_sword", true)
+	await _settle(10)
+	var half_state: Dictionary = _proto.snapshot()
+	await _shot("half_sword")
+	_proto.call("set_half_sword", false)
+	await _settle(6)
+	print("SWORD_SHOT_ARMOUR cut_on_plate=", cut_plate, " cut_on_bare=", cut_bare,
+		" thrust_on_plate=", thrust_plate,
+		" half_sword=", half_state.get("half_sword", false),
+		" off_hand_on_blade_error=", half_state.get("left_hand_error", 9.0))
+	_armour_cut_plate = cut_plate
+	_armour_cut_bare = cut_bare
+	_armour_thrust_plate = thrust_plate
+	_half_sword_hand_error = float(half_state.get("left_hand_error", 9.0))
 	final["camera_lock_delta"] = absf(yaw_held_after - yaw_held_before)
 	final["free_look_delta"] = absf(yaw_free_after - yaw_free_before)
 	final["still_hp_delta"] = float(still_before.dummy_hp) - float(still_after.dummy_hp)
@@ -563,6 +586,9 @@ func _run() -> void:
 		"blade_clear_of_head": float(final.get("head_clearance", 0.0)) > 0.10,
 		"blade_clear_of_body": float(final.get("body_clearance", 0.0)) > 0.12,
 		"clash_makes_sparks": int(final.get("sparks_total", 0)) > 0,
+		"armour_turns_the_edge": _armour_cut_plate < _armour_cut_bare,
+		"point_beats_plate": _armour_thrust_plate > _armour_cut_plate,
+		"half_sword_grips_the_blade": _half_sword_hand_error < 0.20,
 		"camera_free_when_held": true,
 	}
 	var failed: Array[String] = []
