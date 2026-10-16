@@ -17,10 +17,24 @@ extends Node3D
 const BLADE_LENGTH := 1.15
 const SWEEP_SEGMENTS := 5
 const MOUSE_TO_HAND := 0.0030
-const MAX_OMEGA := 8.5          # rad/s, heavy weapon steering limit
-const MAX_ALPHA := 34.0         # rad/s^2, acceleration limit
+const MAX_OMEGA := 6.2          # rad/s, heavy weapon steering limit
+const MAX_ALPHA := 20.0         # rad/s^2, acceleration limit
 const FOLLOW_RATE := 7.5        # hand spring rate toward the commanded point
-const REST_RETURN_RATE := 3.2   # blade return when LMB is released
+const REST_RETURN_RATE := 2.6   # blade return when LMB is released
+## Body weight: the swing is carried by hips, spine and chest, not only by the
+## arm. The torso leans against the blade's angular acceleration and takes the
+## recoil of every contact.
+const BODY_FOLLOW_RATE := 4.5   # how fast the body follows the load
+const BODY_LEAN_GAIN := 0.055   # radians of lean per rad/s of blade rotation
+const BODY_LEAN_LIMIT := 0.20
+const BODY_PUSH_GAIN := 0.55    # metres of recoil per metre/second of contact
+const BODY_PUSH_LIMIT := 0.30
+const BODY_PUSH_DECAY := 3.2
+## The torso only helps the swing: a small, soft turn plus the lean above. The
+## arm is what reaches, and it is clamped in front of the torso, so the blade can
+## never end up behind the back.
+const BODY_YAW_SHARE := 0.35
+const BODY_YAW_LIMIT := 0.50
 const DAMAGE_SPEED_MIN := 1.05  # m/s below which a touch deals no damage
 const DAMAGE_PER_MPS := 6.5
 const DAMAGE_MAX := 26.0
@@ -42,6 +56,8 @@ var _bone_hand := -1
 var _bone_socket := -1
 var _bone_spine := -1
 var _bone_chest := -1
+var _bone_pelvis := -1
+var _bone_head := -1
 var _rest_upper := Transform3D.IDENTITY
 var _rest_fore := Transform3D.IDENTITY
 var _rest_hand := Transform3D.IDENTITY
@@ -65,8 +81,14 @@ var _sword_origin := Vector3.ZERO
 var _dir := Vector3.FORWARD
 var _omega := Vector3.ZERO
 var _block_push := Vector3.ZERO
+## Body load: lean (pitch, roll) and recoil carried by hips/spine/chest.
+var _body_lean := Vector2.ZERO
+var _body_yaw := 0.0
+var _body_push := Vector3.ZERO
 var _prev_points: PackedVector3Array = PackedVector3Array()
 var _held := false
+## Wheel-driven thrust: pulls the hand back or drives the point forward.
+var _thrust := 0.2
 ## True only while the prototype sword is the item equipped in the arsenal menu.
 var _selected := false
 ## Button state straight from the events, so the blade also follows input that
@@ -76,6 +98,9 @@ var _ready := false
 var _rest_dir := Vector3.FORWARD
 var _last_block_ms := -1000
 var _hit_ms: Dictionary = {}
+## Colliders the blade was already touching on the previous frame, so a target
+## that stays on the edge is not struck over and over.
+var _contact_prev: Dictionary = {}
 var _hits := 0
 var _blocks := 0
 var _sweep_rays := 0
@@ -103,6 +128,8 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 	_bone_socket = rig.find_bone("socket_weapon")
 	_bone_spine = rig.find_bone("spine_01")
 	_bone_chest = rig.find_bone("chest")
+	_bone_pelvis = rig.find_bone("pelvis")
+	_bone_head = rig.find_bone("head")
 	if _bone_upper < 0 or _bone_fore < 0 or _bone_hand < 0:
 		return {"ok": false, "reason": "arm_bones"}
 	if _bone_socket < 0: _bone_socket = rig.find_bone("socket_hand_r")
@@ -199,7 +226,7 @@ func _build_hint() -> void:
 	style.content_margin_top = 6; style.content_margin_bottom = 6
 	panel.add_theme_stylebox_override("panel", style)
 	_hint = Label.new()
-	_hint.text = "РўР•РЎРўРћР’Р«Р™ РњР•Р§ (РїСЂРѕС‚РѕС‚РёРї)\nР›РљРњ + РґРІРёР¶РµРЅРёРµ РјС‹С€Рё вЂ” РЅР°РїСЂР°РІР»РµРЅРёРµ РІР·РјР°С…Р°\nРћС‚РїСѓСЃС‚РёС‚Рµ Р›РљРњ вЂ” РјРµС‡ РІРѕР·РІСЂР°С‰Р°РµС‚СЃСЏ\nРљР°РјРµСЂР° РїСЂРё СѓРґРµСЂР¶Р°РЅРёРё Р›РљРњ РЅРµ РІСЂР°С‰Р°РµС‚СЃСЏ"
+	_hint.text = "ТЕСТОВЫЙ МЕЧ (прототип)\nЛКМ + движение мыши — рубить влево/вправо/вверх/вниз и по диагонали\nКолесо мыши — укол вперёд / оттянуть назад\nОтпустите ЛКМ — меч возвращается; камера при удержании не вращается"
 	_hint.add_theme_font_size_override("font_size", 14)
 	_hint.add_theme_color_override("font_color", Color(1.0, 0.93, 0.72))
 	panel.add_child(_hint)
@@ -336,7 +363,7 @@ func _build_dummy(at: Vector3) -> StaticBody3D:
 	_dummy_label.outline_size = 18
 	_dummy_label.modulate = Color(1.0, 0.92, 0.65)
 	_dummy_label.position = Vector3(0.0, 1.95, 0.0)
-	_dummy_label.text = "РњР°РЅРµРєРµРЅ 100"
+	_dummy_label.text = "Манекен 100"
 	_dummy_pivot.add_child(_dummy_label)
 	body.position = at
 	_world.add_child(body)
@@ -372,6 +399,14 @@ func _input(event: InputEvent) -> void:
 			_held = button.pressed
 			_player.set("_sword_lock", _held)
 			get_viewport().set_input_as_handled()
+			return
+		if button.pressed and button.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
+			# Wheel = pull back / drive the point forward (thrust), the missing
+			# axis that lets the player stab as well as cut.
+			var step := 0.22 if button.button_index == MOUSE_BUTTON_WHEEL_UP else -0.22
+			_thrust = clampf(_thrust + step, 0.0, 1.0)
+			_player.set("_sword_lock", true)
+			get_viewport().set_input_as_handled()
 		return
 	if event is InputEventMouseMotion and (Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or _held_event or _held):
 		var motion := event as InputEventMouseMotion
@@ -397,6 +432,10 @@ func set_selected(value: bool) -> void:
 		_omega = Vector3.ZERO
 		_dir = _rest_direction()
 		_block_push = Vector3.ZERO
+		_body_push = Vector3.ZERO
+		_body_lean = Vector2.ZERO
+		_body_yaw = 0.0
+		_contact_prev.clear()
 		_prev_points = PackedVector3Array()
 		if is_instance_valid(_sword): _sword.visible = false
 		if is_instance_valid(_player): _player.set("_sword_lock", false)
@@ -417,12 +456,15 @@ func _rest_direction() -> Vector3:
 func _target_direction() -> Vector3:
 	var basis := _camera.global_basis
 	var steer := basis.x * (_hand.x * 1.25) + basis.y * (_hand.y * 1.25)
-	var target := (-basis.z * 0.95 + steer + basis.y * 0.10).normalized()
+	# A wheel thrust pushes the point straight forward (a stab), without one it
+	# keeps the ordinary diagonal swing bias.
+	var forward_bias := 0.95 + _thrust * 0.95
+	var target := (-basis.z * forward_bias + steer + basis.y * 0.10).normalized()
 	if not target.is_finite(): return _rest_dir
 	return target
 
 func _steer(delta: float) -> void:
-	var target := _constrain_forward(_target_direction()) if _held else _constrain_forward(_rest_dir)
+	var target := _constrain_to_body(_constrain_forward(_target_direction()), 0.20) if _held else _constrain_to_body(_constrain_forward(_rest_dir), 0.20)
 	var rate := 1.0 if _held else REST_RETURN_RATE
 	var axis := _dir.cross(target)
 	var angle := _dir.angle_to(target)
@@ -441,13 +483,11 @@ func _steer(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	if not _ready or not is_instance_valid(_world): return
 	var active := _active()
-	# Camera lock is driven from the real button state, so a missed button event
-	# can never let mouse motion turn the camera while swinging.
-	_held = active and (Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or _held_event)
-	_player.set("_sword_lock", _held)
+	# Camera lock follows the real button state and survives a momentary loss of
+	# activity, so the view can never drift while the blade is being steered.
+	_held = _held_event or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+	_player.set("_sword_lock", _selected and _held and bool(_player.get("_free_mouse_look")))
 	if not active:
-		_held = false
-		_held_event = false
 		_hand = _hand.lerp(Vector2.ZERO, clampf(REST_RETURN_RATE * delta, 0.0, 1.0))
 		_release_arm()
 		_sword.visible = false
@@ -458,13 +498,19 @@ func _physics_process(delta: float) -> void:
 	if not _held:
 		# Released: the commanded hand offset decays so the blade returns to rest.
 		_hand = _hand.lerp(Vector2.ZERO, clampf(REST_RETURN_RATE * delta, 0.0, 1.0))
+	_thrust = lerpf(_thrust, 0.2, clampf(0.9 * delta, 0.0, 1.0))
 	_steer(delta)
 	_block_push = _block_push.lerp(Vector3.ZERO, clampf(6.0 * delta, 0.0, 1.0))
+	_body_push = _body_push.lerp(Vector3.ZERO, clampf(BODY_PUSH_DECAY * delta, 0.0, 1.0))
 	_solve_arm(delta)
 	# The blade is never allowed to point behind the player.
 	_dir = _constrain_forward(_dir)
+	_dir = _constrain_to_body(_dir, 0.40)
 	_place_sword(_sword_origin, _dir)
 	_sweep(delta)
+	# A contact may deflect the blade; put it back into the allowed front space
+	# immediately so it can never be shown behind the character.
+	_dir = _constrain_to_body(_constrain_forward(_dir), 0.40)
 	_update_dummy(delta)
 	_update_spark(delta)
 
@@ -477,17 +523,30 @@ func _constrain_forward(direction: Vector3) -> Vector3:
 	if corrected.length_squared() < 1e-8: return forward
 	return corrected.normalized()
 
-## Where the sword hand is allowed to go: in front of the torso, never above
-## the head and never across to the far shoulder. This is what keeps the arm
-## from folding through the character's head on a full upward swing.
+## Keeps the sword hand in front of the TORSO (never behind the back). The hero
+## model faces along +Z of its visual node, so "ahead" is +local.z here.
+func _constrain_to_body(direction: Vector3, min_forward: float) -> Vector3:
+	if not is_instance_valid(_player) or not is_instance_valid(_player._visual): return direction
+	var visual: Node3D = _player._visual
+	var basis: Basis = visual.global_basis
+	var local: Vector3 = basis.inverse() * direction
+	var ahead: float = local.z
+	if ahead >= min_forward: return direction
+	var side := Vector3(local.x, local.y, 0.0)
+	if side.length_squared() > 0.36: side = side.normalized() * 0.6
+	var corrected := (side + Vector3(0.0, 0.0, min_forward)).normalized()
+	return (basis * corrected).normalized()
+
+## Where the sword hand is allowed to go. The whole front hemisphere is open —
+## high, low, left, right and thrusting forward — but never behind the back and
+## never folded through the head.
 func _hand_target_direction() -> Vector3:
 	var basis := _camera.global_basis
-	var hx := clampf(_hand.x, -0.55, 0.85)
-	var hy := clampf(_hand.y, -0.85, 0.18)
-	var yaw_off := hx * 0.80
-	# Base pitch keeps the fist at chest height: the blade then sweeps the body
-	# of a standing opponent instead of passing over its head.
-	var pitch_off := clampf(-0.06 + hy * 0.50, -0.50, 0.14)
+	var hx := clampf(_hand.x, -1.0, 1.0)
+	var hy := clampf(_hand.y, -1.0, 0.40)
+	var yaw_off := hx * 0.95
+	# Base pitch keeps the fist at chest height; a thrust drives it forward.
+	var pitch_off := clampf(0.02 + hy * 0.60 - _thrust * 0.35, -0.65, 0.35)
 	var flat := (-basis.z).rotated(Vector3.UP, -yaw_off).normalized()
 	return (flat * cos(pitch_off) + Vector3.UP * sin(pitch_off)).normalized()
 
@@ -499,9 +558,11 @@ func _hand_target_direction() -> Vector3:
 func _solve_arm(delta: float) -> void:
 	var rig_basis := _rig.global_transform.basis
 	var want_dir := _constrain_forward(_hand_target_direction())
+	# The hand stays in front of the torso even while the body is still turning.
+	want_dir = _constrain_to_body(want_dir, 0.55)
 	var want_rig := (rig_basis.inverse() * want_dir).normalized()
 	var blade_rig := (rig_basis.inverse() * _dir).normalized()
-	_lean_body(want_dir)
+	_lean_body(want_dir, delta)
 	var clavicle_global := _chain_global(_bone_clavicle)
 	if _bone_upper < 0 or _bone_fore < 0 or _bone_hand < 0: return
 	var upper_local := _point_bone(_bone_upper, _rest_upper, _rest_fore.origin, clavicle_global.basis, want_rig)
@@ -513,7 +574,20 @@ func _solve_arm(delta: float) -> void:
 	var hand_global := fore_global * hand_local
 	# The pommel sits in the fist: the grip centre is the wrist, pushed a little
 	# back along the blade so the hand does not hold the guard.
-	_sword_origin = (_rig.global_transform * hand_global.origin) - _dir * 0.055
+	_sword_origin = _guard_hand_in_front((_rig.global_transform * hand_global.origin) - _dir * 0.055)
+
+## Hard guarantee that the sword hand can never end up behind the character's
+## back: the grip is clamped into the front half space of the torso, with a
+## bounded sideways/vertical envelope so the arm cannot wrap around the body.
+func _guard_hand_in_front(origin: Vector3) -> Vector3:
+	if not is_instance_valid(_player) or not is_instance_valid(_player._visual): return origin
+	var visual: Node3D = _player._visual
+	var basis: Basis = visual.global_basis
+	var local: Vector3 = basis.inverse() * (origin - visual.global_position)
+	local.z = maxf(local.z, 0.22)
+	local.x = clampf(local.x, -0.80, 0.80)
+	local.y = clampf(local.y, -0.10, 1.25)
+	return visual.global_position + basis * local
 
 ## Rotates one bone so that the direction toward its child points at dir_rig.
 func _point_bone(bone: int, rest: Transform3D, child_offset: Vector3, parent_global_basis: Basis, dir_rig: Vector3) -> Transform3D:
@@ -539,21 +613,56 @@ func _chain_global(bone: int) -> Transform3D:
 		result = result * _rig.get_bone_pose(item)
 	return result
 
-## The character keeps facing the target: the torso takes a bounded share of the
-## yaw between where the body looks and where the blade is commanded.
-func _lean_body(want_dir: Vector3) -> void:
-	if _bone_spine < 0 or _bone_chest < 0: return
+## The character keeps facing the target, and the whole body carries the weight:
+## the hips, spine and chest lean against the blade's angular load and absorb the
+## recoil of a contact, while the head keeps looking at the target.
+func _lean_body(want_dir: Vector3, delta: float) -> void:
+	var rig_basis := _rig.global_transform.basis
+	var inv := rig_basis.inverse()
+	var axis_right := (inv * Vector3(1.0, 0.0, 0.0)).normalized()
+	var axis_fwd := (inv * Vector3(0.0, 0.0, 1.0)).normalized()
+	var axis_up := (inv * Vector3(0.0, 1.0, 0.0)).normalized()
+	var visual: Node3D = _player._visual
+	var world_fwd: Vector3 = -visual.global_basis.z
+	var world_right: Vector3 = visual.global_basis.x
+	# 1. Torso yaw toward the commanded blade direction.
+	var yaw_target := 0.0
 	var flat := Vector3(want_dir.x, 0.0, want_dir.z)
-	if flat.length_squared() < 1.0e-6: return
-	var target_yaw := atan2(flat.x, flat.z)
-	var current_yaw: float = _player._visual.global_rotation.y
-	var delta_yaw := wrapf(target_yaw - current_yaw, -PI, PI)
-	var applied := clampf(delta_yaw * 0.55, -0.55, 0.55)
-	if absf(applied) < 0.01: return
-	var turn := Quaternion(Vector3.UP, applied * 0.5)
-	for bone: int in [_bone_spine, _bone_chest]:
+	if flat.length_squared() > 1.0e-6:
+		# The visual node faces along +Z, so its yaw is atan2(x, z).
+		var delta_yaw := wrapf(atan2(flat.x, flat.z) - visual.global_rotation.y, -PI, PI)
+		yaw_target = clampf(delta_yaw * BODY_YAW_SHARE, -BODY_YAW_LIMIT, BODY_YAW_LIMIT)
+	_body_yaw = lerpf(_body_yaw, yaw_target, clampf(BODY_FOLLOW_RATE * delta, 0.0, 1.0))
+	# 2. Lean: opposite the blade's angular acceleration, plus contact recoil.
+	var swing_pitch := -_omega.dot(world_right) * BODY_LEAN_GAIN
+	var swing_roll := -_omega.dot(world_fwd) * BODY_LEAN_GAIN
+	var push_pitch := _body_push.dot(world_fwd) * BODY_PUSH_GAIN
+	var push_roll := -_body_push.dot(world_right) * BODY_PUSH_GAIN
+	var target_lean := Vector2(swing_pitch + push_pitch, swing_roll + push_roll)
+	target_lean.x = clampf(target_lean.x, -BODY_LEAN_LIMIT, BODY_LEAN_LIMIT)
+	target_lean.y = clampf(target_lean.y, -BODY_LEAN_LIMIT, BODY_LEAN_LIMIT)
+	_body_lean = _body_lean.lerp(target_lean, clampf(BODY_FOLLOW_RATE * delta, 0.0, 1.0))
+	# 3. Distribute the load over the chain: hips take the least, chest the most.
+	var shares := [
+		[_bone_pelvis, 0.35, 0.30, 0.45],
+		[_bone_spine, 0.65, 0.60, 0.70],
+		[_bone_chest, 1.00, 1.00, 1.00],
+	]
+	for entry: Array in shares:
+		var bone: int = entry[0]
+		if bone < 0: continue
+		var yaw := _body_yaw * float(entry[1])
+		var pitch := _body_lean.x * float(entry[2])
+		var roll := _body_lean.y * float(entry[3])
+		if absf(yaw) + absf(pitch) + absf(roll) < 0.002: continue
+		var turn := Quaternion(axis_up, yaw) * Quaternion(axis_right, -pitch) * Quaternion(axis_fwd, roll)
 		var local := _rig.get_bone_pose(bone)
 		_rig.set_bone_pose(bone, Transform3D((Basis(turn) * local.basis).orthonormalized(), local.origin))
+	# 4. The head counter-turns a little so the character keeps his eyes on target.
+	if _bone_head >= 0 and absf(_body_yaw) > 0.01:
+		var head_turn := Quaternion(axis_up, -_body_yaw * 0.45)
+		var head_local := _rig.get_bone_pose(_bone_head)
+		_rig.set_bone_pose(_bone_head, Transform3D((Basis(head_turn) * head_local.basis).orthonormalized(), head_local.origin))
 
 func _release_arm() -> void:
 	# Nothing to undo: the pose authority rewrites every bone on its next pass as
@@ -582,6 +691,7 @@ func _sweep(delta: float) -> void:
 	var best_hit: Dictionary = {}
 	var best_distance := INF
 	var now := Time.get_ticks_msec()
+	var touched: Dictionary = {}
 	for i: int in points.size():
 		var from := _prev_points[i]
 		var to := points[i]
@@ -592,6 +702,8 @@ func _sweep(delta: float) -> void:
 		_sweep_rays += 1
 		if hit.is_empty(): continue
 		_sweep_hits += 1
+		var collider: Variant = hit.get("collider")
+		if is_instance_valid(collider): touched[collider.get_instance_id()] = true
 		var distance := from.distance_to(hit.position)
 		if distance < best_distance:
 			best_distance = distance
@@ -599,36 +711,50 @@ func _sweep(delta: float) -> void:
 			best_hit["_speed"] = from.distance_to(to) / delta
 			best_hit["_index"] = i
 	if not best_hit.is_empty():
-		_resolve_contact(best_hit, points, now)
+		_resolve_contact(best_hit, points, now, touched)
+	# Remember what the blade was already touching: a target that stays in
+	# contact is not struck again, so one swing cannot machine-gun damage.
+	_contact_prev = touched
 	_prev_points = points
 
-func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int) -> void:
+func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, touched: Dictionary) -> void:
 	var collider: Variant = hit.get("collider")
 	var speed := float(hit.get("_speed", 0.0))
 	var position: Vector3 = hit.position
 	var normal: Vector3 = hit.normal
-	if is_instance_valid(collider) and collider.has_meta("sword_target"):
-		_damage_dummy(collider, position, speed, now)
-	else:
-		# Wall/pole: the visible blade stops and slides along the surface instead
-		# of passing through. Pulling the mouse back releases it immediately.
-		var point_index := int(hit.get("_index", 0))
-		var correction := position - points[point_index]
-		if correction.length() > 0.02:
-			_block_push += correction * 0.85
-		var into := _dir.dot(normal)
-		if into < 0.0:
-			_dir = (_dir - normal * into).normalized()
-		_omega *= 0.15
-		var deflect := _dir - normal * _dir.dot(normal)
-		if deflect.length_squared() > 1e-6: _dir = deflect.normalized()
-		if now - _last_block_ms >= 180:
-			_last_block_ms = now
-			_blocks += 1
-			_impact_player.global_position = position
-			_impact_player.pitch_scale = 1.15
-			_impact_player.play()
-		_show_spark(position)
+	var is_target: bool = is_instance_valid(collider) and collider.has_meta("sword_target")
+	# Hitting a body stops the blade just like masonry does: it never sinks in and
+	# stays there. The push is softer than a wall so the sword frees itself.
+	var point_index := int(hit.get("_index", 0))
+	var correction := position - points[point_index]
+	var penetration := correction.length()
+	if penetration > 0.02:
+		_block_push += correction * (0.55 if is_target else 0.85)
+	var into := _dir.dot(normal)
+	if into < 0.0:
+		_dir = (_dir - normal * into).normalized()
+	var deflect := _dir - normal * _dir.dot(normal)
+	if deflect.length_squared() > 1e-6: _dir = deflect.normalized()
+	_omega *= 0.45 if is_target else 0.15
+	var recoil := clampf(speed, 0.0, 4.0)
+	_body_push += normal * recoil * (0.05 if is_target else 0.08)
+	_body_push = _body_push.limit_length(BODY_PUSH_LIMIT)
+	if is_target:
+		var id: int = collider.get_instance_id()
+		# One entry = one blow. While the blade keeps touching the dummy (or the
+		# dummy is wobbling away from it) no further damage is dealt.
+		if not _contact_prev.has(id) and penetration >= 0.0:
+			_damage_dummy(collider, position, speed, now)
+		return
+	# Wall/pole: the visible blade stops and slides along the surface instead
+	# of passing through. Pulling the mouse back releases it immediately.
+	if now - _last_block_ms >= 180:
+		_last_block_ms = now
+		_blocks += 1
+		_impact_player.global_position = position
+		_impact_player.pitch_scale = 1.15
+		_impact_player.play()
+	_show_spark(position)
 
 func _damage_dummy(dummy: StaticBody3D, position: Vector3, speed: float, now: int) -> void:
 	if _dummy_down: return
@@ -648,6 +774,9 @@ func _damage_dummy(dummy: StaticBody3D, position: Vector3, speed: float, now: in
 	_impact_player.global_position = position
 	_impact_player.pitch_scale = 0.85 + randf() * 0.25
 	_impact_player.play()
+	# A landed blow pushes the body back through the arm.
+	_body_push += -_dir * clampf(speed, 0.0, 4.0) * 0.05
+	_body_push = _body_push.limit_length(BODY_PUSH_LIMIT)
 	_show_spark(position)
 	_hits += 1
 	_max_damage = maxf(_max_damage, damage)
@@ -656,21 +785,21 @@ func _damage_dummy(dummy: StaticBody3D, position: Vector3, speed: float, now: in
 	_dummy_tilt_axis = Vector3(local.z, 0.0, -local.x).normalized()
 	if _dummy_tilt_axis.length_squared() < 1e-6: _dummy_tilt_axis = Vector3.RIGHT
 	_dummy_tilt = clampf(_dummy_tilt + 0.12 + damage * 0.012, 0.0, 0.62)
-	_dummy_label.text = "РњР°РЅРµРєРµРЅ %d" % int(round(_dummy_hp))
+	_dummy_label.text = "Манекен %d" % int(round(_dummy_hp))
 	_dummy_label.modulate = Color(1.0, 0.55, 0.45) if _dummy_hp <= 40.0 else Color(1.0, 0.92, 0.65)
 	_spawn_damage_number(position, damage)
 	if _dummy_hp <= 0.0:
 		_dummy_down = true
 		_down_until_ms = now + 2200
 		_dummy_tilt = 0.62
-		_dummy_label.text = "РњР°РЅРµРєРµРЅ СЃР±РёС‚"
+		_dummy_label.text = "Манекен сбит"
 
 func _update_dummy(delta: float) -> void:
 	if not is_instance_valid(_dummy_pivot): return
 	if _dummy_down and Time.get_ticks_msec() >= _down_until_ms:
 		_dummy_down = false
 		_dummy_hp = DUMMY_MAX_HP
-		_dummy_label.text = "РњР°РЅРµРєРµРЅ %d" % int(DUMMY_MAX_HP)
+		_dummy_label.text = "Манекен %d" % int(DUMMY_MAX_HP)
 		_dummy_label.modulate = Color(1.0, 0.92, 0.65)
 	_dummy_tilt = maxf(0.0, _dummy_tilt - delta * (0.55 if _dummy_down else 1.35))
 	_dummy_pivot.rotation = _dummy_tilt_axis * _dummy_tilt
@@ -710,6 +839,10 @@ func snapshot() -> Dictionary:
 		"ready": _ready, "held": _held, "hits": _hits, "blocks": _blocks,
 		"dummy_hp": _dummy_hp, "dummy_down": _dummy_down, "max_damage": _max_damage,
 		"hand": [_hand.x, _hand.y], "direction": [_dir.x, _dir.y, _dir.z],
+		"body_yaw": _body_yaw, "body_pitch": _body_lean.x, "body_roll": _body_lean.y,
+		"body_push": _body_push.length(), "omega": _omega.length(), "thrust": _thrust,
+		"blade_body_dot": _dir.dot(_player._visual.global_basis.z) if is_instance_valid(_player) and is_instance_valid(_player._visual) else -1.0,
+		"hand_local_z": (_player._visual.global_basis.inverse() * (_sword_origin - _player._visual.global_position)).z if is_instance_valid(_player) and is_instance_valid(_player._visual) else 0.0,
 		"upper_len": _upper_len, "fore_len": _fore_len,
 		"player_position": _player.global_position if is_instance_valid(_player) else Vector3.ZERO,
 		"dummy_position": _dummy.global_position if is_instance_valid(_dummy) else Vector3.ZERO,

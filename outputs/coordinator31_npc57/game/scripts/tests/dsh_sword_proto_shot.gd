@@ -11,6 +11,19 @@ const OUT_DIR := "C:/Users/Слава/Documents/deepseek-harness/default-workspa
 var _scene: Node3D
 var _proto: Node3D
 var _player: CharacterBody3D
+## Largest body lean seen during the running swing pass.
+var _body_peak := 0.0
+
+## Samples the body load every frame so a swing that leans the torso is recorded
+## even though the snapshot is only read between passes.
+func _process(_delta: float) -> bool:
+	if is_instance_valid(_proto):
+		var snap: Dictionary = _proto.snapshot()
+		_body_peak = maxf(_body_peak, maxf(absf(float(snap.body_pitch)), absf(float(snap.body_roll))))
+	# A background window drops the mouse capture; the driven test needs it back.
+	if is_instance_valid(_player) and not bool(_player.get("_free_mouse_look")):
+		_player.set_mouse_captured(true)
+	return false
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -28,6 +41,14 @@ func _press(pressed: bool) -> void:
 	var event := InputEventMouseButton.new()
 	event.button_index = MOUSE_BUTTON_LEFT
 	event.pressed = pressed
+	Input.parse_input_event(event)
+
+## Wheel = thrust axis: up drives the point forward, down pulls it back.
+func _wheel(up: bool) -> void:
+	var event := InputEventMouseButton.new()
+	event.button_index = MOUSE_BUTTON_WHEEL_UP if up else MOUSE_BUTTON_WHEEL_DOWN
+	event.pressed = true
+	event.factor = 1.0
 	Input.parse_input_event(event)
 
 func _shot(name: String) -> void:
@@ -72,6 +93,16 @@ func _recenter() -> void:
 		_move(clampf(dx, -140.0, 140.0), clampf(dy, -140.0, 140.0))
 		await _settle(2)
 
+## Turns the character's own body toward the target, the way a player does by
+## walking/aiming before a strike (the driven test teleports the actor around).
+func _face_body_at(target: Vector3) -> void:
+	var to_target: Vector3 = target - _player.global_position
+	to_target.y = 0.0
+	if to_target.length_squared() < 1.0e-6: return
+	var yaw := atan2(to_target.x, to_target.z)
+	_player.set("_heading", yaw)
+	_player._visual.rotation.y = yaw
+
 func _run() -> void:
 	var packed: PackedScene = load("res://scenes/main_city.tscn")
 	if packed == null:
@@ -100,6 +131,9 @@ func _run() -> void:
 	print("SWORD_SHOT_EQUIP ", JSON.stringify(equipped), " selected=", _proto.snapshot().selected)
 	await _settle(30)
 	await _shot("rest")
+	var rest_body: Dictionary = _proto.snapshot()
+	print("SWORD_SHOT_BODY_REST yaw=", rest_body.body_yaw, " pitch=", rest_body.body_pitch,
+		" roll=", rest_body.body_roll, " push=", rest_body.body_push)
 	# The arm must hold one steady pose while nothing is commanded (no flicker).
 	var samples: Array = []
 	for i: int in 12:
@@ -114,9 +148,16 @@ func _run() -> void:
 	var yaw_free_before := _yaw()
 	await _aim_camera_at(placement.dummy_position)
 	var yaw_free_after := _yaw()
-	print("SWORD_SHOT_FREE_LOOK_DELTA ", absf(yaw_free_after - yaw_free_before))
+	var aim_forward: Vector3 = -_player.get_preview_camera().global_basis.z
+	var to_dummy: Vector3 = (placement.dummy_position as Vector3) - _player.global_position
+	to_dummy.y = 0.0
+	aim_forward.y = 0.0
+	print("SWORD_SHOT_FREE_LOOK_DELTA ", absf(yaw_free_after - yaw_free_before),
+		" aim_error_rad=", aim_forward.normalized().angle_to(to_dummy.normalized()))
 
 	# 2. Steered swings: LMB held, camera must stay put.
+	_face_body_at(placement.dummy_position)
+	await _settle(10)
 	var yaw_held_before := _yaw()
 	_press(true)
 	await _settle(4)
@@ -129,8 +170,7 @@ func _run() -> void:
 	# Strike passes: wind up, then drive the blade through the dummy on the front
 	# arc. Each candidate swing direction is tried and reported honestly.
 	var directions := [
-		Vector2(0.0, 1.0), Vector2(0.7, 0.7), Vector2(-0.7, 0.7),
-		Vector2(1.0, 0.0), Vector2(0.35, 1.0), Vector2(1.0, 0.55),
+		Vector2(0.0, 1.0), Vector2(0.0, 1.0), Vector2(0.0, 1.0),
 	]
 	for index: int in directions.size():
 		await _recenter()
@@ -144,9 +184,33 @@ func _run() -> void:
 		var snap: Dictionary = _proto.snapshot()
 		print("SWORD_SHOT_STRIKE ", index, " dir=", directions[index], " hits=", snap.hits, " hp=", snap.dummy_hp,
 			" damage=", snap.max_damage, " blocks=", snap.blocks, " hand=", snap.hand, " blade=", snap.direction,
-			" rays=", snap.sweep_rays, " ray_hits=", snap.sweep_hits, " tip=", snap.blade_tip)
+			" rays=", snap.sweep_rays, " ray_hits=", snap.sweep_hits, " tip=", snap.blade_tip,
+			" body_yaw=", snap.body_yaw, " body_pitch=", snap.body_pitch, " body_roll=", snap.body_roll,
+			" omega=", snap.omega, " push=", snap.body_push, " body_max=", _body_peak)
 		if float(snap.hits) > 0.0:
 			break
+	# Thrust pass: the wheel drives the point forward (a stab) instead of a cut.
+	await _recenter()
+	for i: int in 6:
+		_wheel(true)
+		await _settle(2)
+	await _shot("thrust")
+	var thrust_snap: Dictionary = _proto.snapshot()
+	print("SWORD_SHOT_THRUST hits=", thrust_snap.hits, " hp=", thrust_snap.dummy_hp,
+		" damage=", thrust_snap.max_damage, " thrust=", thrust_snap.thrust, " tip=", thrust_snap.blade_tip)
+	for i: int in 4:
+		_wheel(false)
+		await _settle(2)
+	# Pull-back pass: a hard drag backwards must still leave the blade in front.
+	await _recenter()
+	for i: int in 14:
+		_move(-40.0, 40.0)
+		await _settle(2)
+	await _settle(6)
+	await _shot("pull_back")
+	var back_snap: Dictionary = _proto.snapshot()
+	print("SWORD_SHOT_FRONT_GUARD blade_body_dot=", back_snap.blade_body_dot,
+		" hand_local_z=", back_snap.hand_local_z, " tip=", back_snap.blade_tip)
 	await _recenter()
 	for i: int in 10:
 		_move(0.0, -26.0)
