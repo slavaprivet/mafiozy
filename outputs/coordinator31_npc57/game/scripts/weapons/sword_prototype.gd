@@ -826,6 +826,7 @@ func _process(delta: float) -> void:
 		_sword.visible = true
 		_attach_sword_to_fist()
 	_update_gore(delta)
+	_update_stumps(delta)
 	if not is_instance_valid(_npc_rig): _update_duelist(delta)
 	if not armed_with_sword:
 		# The blade lies on the ground with the hand that used to hold it.
@@ -2726,6 +2727,26 @@ func _update_gore(delta: float) -> void:
 					_blood_count = maxi(0, _blood_count - 1)
 					continue
 		index += 1
+
+## Walking into a severed piece kicks it along the ground. The pieces live on
+## their own layer so they never block the player, but a real nudge still rolls
+## them, which is what a body part on the floor should do.
+func _update_stumps(delta: float) -> void:
+	if not is_instance_valid(_player) or _stumps.is_empty(): return
+	var player_pos: Vector3 = _player.global_position + Vector3.UP * 0.45
+	for index: int in range(_stumps.size() - 1, -1, -1):
+		var body: Node3D = _stumps[index]
+		if not is_instance_valid(body):
+			_stumps.remove_at(index)
+			continue
+		if not body is RigidBody3D: continue
+		var to_body := body.global_position - player_pos
+		var distance := to_body.length()
+		if distance > 1.05 or distance < 0.02: continue
+		var push := (to_body / distance) * (1.05 - distance) * 0.16
+		push.y = 0.0
+		(body as RigidBody3D).apply_central_impulse(push)
+		(body as RigidBody3D).apply_torque_impulse(Vector3(0.0, push.x * 2.0, 0.0) + Vector3(push.z * 2.0, 0.0, 0.0))
 
 func snapshot() -> Dictionary:
 	return {
