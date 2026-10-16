@@ -23,10 +23,10 @@ const MOUSE_TO_HAND := 0.0042
 ## The commanded hand offset cannot jump: it is slewed toward the mouse command
 ## at a bounded rate, which is what keeps a fast mouse flick from snapping the
 ## whole arm (and the blade with it) across the body.
-const HAND_SLEW_RATE := 14.0    # units per second
+const HAND_SLEW_RATE := 10.5    # units per second
 const HAND_MAX_OFFSET := 1.5
 const MAX_OMEGA := 22.0         # rad/s, a decisive cut, not a paint stroke
-const MAX_ALPHA := 160.0        # rad/s^2, hard acceleration into the swing
+const MAX_ALPHA := 105.0        # rad/s^2, quick but not a teleport into the swing
 ## Steering: high gain so a flick really whips the blade, light damping and light
 ## target smoothing. Heavy damping here is what turned cuts into brush strokes.
 const STEER_GAIN := 13.0
@@ -435,13 +435,22 @@ func _build_hint() -> void:
 	_hint_layer.add_child(panel)
 	_update_hint()
 
-## The hint follows the state: a sword lying on the ground only offers "pick up".
+## The hint follows the state: a sword lying within reach always offers "pick up".
 func _update_hint() -> void:
 	if not is_instance_valid(_hint): return
+	var reachable := not _nearest_ground_sword().is_empty()
+	_hint_ground_reachable = reachable
 	if _sword_grounded:
 		_hint.text = "ТЕСТОВЫЙ МЕЧ (прототип)\nМеч лежит на земле\nE — поднять меч"
 		return
-	_hint.text = "ТЕСТОВЫЙ МЕЧ (прототип)\nЛКМ и мышь — рубящий удар ЛЕВОЙ рукой\nПКМ — БЛОК в диагональной стойке, мышь поднимает/опускает\nЛКМ + ПКМ — двуручный хват, удар сильнее\nКолесо мыши — укол вперёд / оттянуть назад\nG — бросить меч, E — поднять"
+	var text := "ТЕСТОВЫЙ МЕЧ (прототип)\nЛКМ и мышь — рубящий удар ЛЕВОЙ рукой\nПКМ — БЛОК в диагональной стойке, мышь поднимает/опускает\nЛКМ + ПКМ — двуручный хват, удар сильнее\nКолесо мыши — укол вперёд / оттянуть назад\nG — бросить меч"
+	if reachable:
+		text += "\nE — поднять меч (рядом лежит меч, свой или чужой)"
+	_hint.text = text
+
+## True while some sword lies within reach, so the hint can be refreshed cheaply.
+var _hint_ground_reachable := false
+var _hint_check_ms := 400.0
 
 ## A dropped sword lies on the ground and is picked up with E, the same way every
 ## other weapon in the game behaves.
@@ -478,20 +487,125 @@ func drop_sword_to_ground() -> bool:
 	# Lying flat: the blade runs along the ground with the flat face down.
 	_sword.visible = true
 	_sword.global_transform = _place_basis(at, forward) * Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3.ZERO)
+	_register_ground_sword(_sword)
 	_update_hint()
-	print("DSH_SWORD_PROTO_DROPPED at=", at)
+	print("DSH_SWORD_PROTO_DROPPED at=", at, " ground_swords=", _ground_swords.size())
 	return true
 
-## E: pick the lying sword back up when the player is close enough.
+## Distance at which a sword on the ground can be reached.
+const GROUND_PICKUP_RANGE := 2.4
+
+## Swords lying on the ground. The held sword is in here while it is dropped, and
+## so are the knights' swords - anyone may take any of them.
+var _ground_swords: Array[Node3D] = []
+
+func _register_ground_sword(node: Node3D) -> void:
+	if not is_instance_valid(node): return
+	if not _ground_swords.has(node): _ground_swords.append(node)
+
+## Nearest sword on the ground within reach, or an empty dictionary.
+func _nearest_ground_sword() -> Dictionary:
+	var best: Dictionary = {}
+	var best_distance := GROUND_PICKUP_RANGE
+	for index: int in range(_ground_swords.size() - 1, -1, -1):
+		var node: Node3D = _ground_swords[index]
+		if not is_instance_valid(node):
+			_ground_swords.remove_at(index)
+			continue
+		var distance: float = _player.global_position.distance_to(node.global_position)
+		if distance <= best_distance:
+			best_distance = distance
+			best = {"node": node, "distance": distance, "own": node == _sword}
+	return best
+
+## Pulls the sword model out of a dropped knight's sword (a physics body wrapper)
+## so the player can hold the very same model.
+func _take_sword_model(node: Node3D) -> Node3D:
+	if node is MeshInstance3D: return node
+	for child: Node in node.get_children():
+		if child is CollisionShape3D: continue
+		if child is Node3D: return child as Node3D
+	return null
+
+## E: take the nearest sword on the ground - the player's own or a knight's. A
+## sword already in the hand cannot be swapped for another: drop it first.
 func try_pickup_sword() -> bool:
-	if not _selected or not _sword_grounded: return false
-	var distance := _player.global_position.distance_to(_dropped_at)
-	if distance > 2.4: return false
+	if not _selected: return false
+	if not _sword_grounded:
+		print("DSH_SWORD_PROTO_PICKUP_REFUSED reason=in_hand")
+		return false
+	var found := _nearest_ground_sword()
+	if found.is_empty():
+		print("DSH_SWORD_PROTO_PICKUP_REFUSED reason=nothing_in_reach")
+		return false
+	var node: Node3D = found.get("node")
+	var taken_own: bool = bool(found.get("own", false))
+	_ground_swords.erase(node)
+	if not taken_own:
+		# A knight's sword: hold its model, and leave the player's own sword lying
+		# where it fell so it can still be collected later.
+		var model := _take_sword_model(node)
+		if model == null:
+			_register_ground_sword(node)
+			print("DSH_SWORD_PROTO_PICKUP_REFUSED reason=bad_model")
+			return false
+		node.remove_child(model)
+		_world.add_child(model)
+		node.queue_free()
+		_sword = model
+		_dropped_at = Vector3.ZERO
 	_sword_grounded = false
 	_arm_ready_ms = Time.get_ticks_msec() + 450
+	if is_instance_valid(_sword):
+		_sword.visible = true
+		_sword.global_transform = _place_basis(_player.global_position + Vector3.UP * 1.2, _dir)
 	_update_hint()
-	print("DSH_SWORD_PROTO_PICKED distance=", distance)
+	print("DSH_SWORD_PROTO_PICKED distance=", found.get("distance", 0.0), " own=", taken_own,
+		" ground_swords=", _ground_swords.size())
 	return true
+
+## Drops the held sword at an exact point (used by the driven test and diagnostics).
+func drop_sword_at(point: Vector3) -> bool:
+	if not _selected or _sword_grounded or not is_instance_valid(_sword): return false
+	_sword_grounded = true
+	_held = false
+	_hold_left = false
+	_hold_right = false
+	_held_event = false
+	_blocking = false
+	_omega = Vector3.ZERO
+	_prev_points = PackedVector3Array()
+	_contact_prev.clear()
+	_contact_gap.clear()
+	if is_instance_valid(_player): _player.set("_sword_lock", false)
+	var forward: Vector3 = _player._visual.global_basis.z
+	forward.y = 0.0
+	if forward.length_squared() < 1.0e-6: forward = Vector3.FORWARD
+	_dropped_at = point
+	_sword.visible = true
+	_sword.global_transform = _place_basis(point, forward.normalized()) * Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3.ZERO)
+	_register_ground_sword(_sword)
+	_update_hint()
+	return true
+
+func ground_sword_count() -> int:
+	var count := 0
+	for node: Node3D in _ground_swords:
+		if is_instance_valid(node): count += 1
+	return count
+
+## How many swords lie on the ground, how many of them belong to someone else, and
+## where the first foreign one is - so a test can walk up to it.
+func ground_sword_info() -> Dictionary:
+	var foreign := 0
+	var first_foreign := Vector3.ZERO
+	for node: Node3D in _ground_swords:
+		if not is_instance_valid(node): continue
+		if node == _sword: continue
+		if foreign == 0: first_foreign = node.global_position
+		foreign += 1
+	return {"count": ground_sword_count(), "foreign": foreign, "first_foreign_at": first_foreign,
+		"own_grounded": _sword_grounded}
 
 # ------------------------------------------------------------ target placement
 
@@ -775,11 +889,12 @@ func _carry_direction() -> Vector3:
 	var visual: Node3D = _player._visual
 	return (Vector3.UP * 0.92 + visual.global_basis.x * 0.26 + visual.global_basis.z * 0.26).normalized()
 
-## Where the sword HAND rests in the ready stance: forward at CHEST height with a
-## natural bend. Too much lift here put the fist into the character's own head.
+## Where the sword HAND rests in the ready stance: forward and a touch BELOW the
+## shoulder, so the fist sits at chest height. Anything above that put the hand
+## into the character's own head, which is the pose the player kept rejecting.
 func _ready_hand_direction() -> Vector3:
 	var visual: Node3D = _player._visual
-	return (visual.global_basis.z * 0.97 + Vector3.UP * 0.10).normalized()
+	return (visual.global_basis.z * 0.99 - Vector3.UP * 0.10).normalized()
 
 ## The guard is the SAME diagonal carried pose the sword rests in (steel across the
 ## body, point up), held as a barrier. The mouse only raises or lowers that guard,
@@ -931,6 +1046,12 @@ func _physics_process(delta: float) -> void:
 	if _held and not _held_prev:
 		_swing_start_dir = _dir
 		_swing_start_ms = Time.get_ticks_msec()
+		# A fresh, deliberate swing re-arms every target. The old rule demanded the
+		# blade LEAVE a part before it could be cut again, which never happened in a
+		# close fight - the blade simply stayed inside the body, so a whole duel
+		# landed a single blow.
+		_contact_prev.clear()
+		_contact_gap.clear()
 	_held_prev = _held
 	if not _held:
 		_swing_start_dir = _dir
@@ -956,6 +1077,13 @@ func _process(delta: float) -> void:
 	# A severed limb is cut away every frame, AFTER the player's own pose pass, so
 	# neither the animation nor our own arm IK can restore it.
 	_apply_player_severed()
+	# The "pick up" line appears as soon as a sword comes within reach, and goes
+	# again when it does not - checked a few times a second, not every frame.
+	_hint_check_ms -= delta * 1000.0
+	if _hint_check_ms <= 0.0:
+		_hint_check_ms = 400.0
+		if (not _nearest_ground_sword().is_empty()) != _hint_ground_reachable:
+			_update_hint()
 	var armed_with_sword := is_instance_valid(_sword)
 	if armed_with_sword and not _sword_grounded:
 		_sword.visible = true
@@ -1087,13 +1215,17 @@ func _solve_arm(delta: float) -> void:
 		# The HAND goes to a natural ready position (forward and slightly up, elbow
 		# bent), while the BLADE still points up. Using the blade direction for the
 		# hand as well is what folded the arm across the chest.
+		# The HAND goes to a natural ready position (forward at chest height, elbow
+		# bent), while the BLADE still points up. Using the blade direction for the
+		# hand as well is what folded the arm across the chest. The reach stays well
+		# short of full extension: a nearly straight arm is both ugly and unstable.
 		var want_dir := _constrain_forward(_ready_hand_direction())
 		want_dir = _constrain_to_body(want_dir, 0.34)
 		var want_rig := (rig_basis.inverse() * want_dir).normalized()
 		var blade_rig := (rig_basis.inverse() * _dir).normalized()
 		_lean_body(want_dir, delta)
 		var side := _active_side()
-		var grip_rig := _pose_main(side, want_rig, blade_rig, 0.84)
+		var grip_rig := _pose_main(side, want_rig, blade_rig, 0.70)
 		if grip_rig != Vector3.ZERO:
 			_sword_origin = (_rig.global_transform * grip_rig) + _dir * GRIP_CENTER_OFFSET
 		return
@@ -1116,9 +1248,17 @@ func _solve_arm(delta: float) -> void:
 		grip_rig = _pose_main(&"right", want_rig, blade_rig, 0.88)
 		if grip_rig != Vector3.ZERO:
 			var support := grip_rig - blade_rig * _two_hand_offset_rig
-			# The supporting hand never reaches across the centre line, which is
-			# what used to knot the two arms together during a cut.
+			# The supporting hand must stay OUT of the torso: never across the centre
+			# line, and never inside the body's own radius. Without this the arm
+			# passed straight through the chest during a cut.
 			if support.x * _left_sign < 0.06: support.x = _left_sign * 0.06
+			var body_center: Vector3 = _chain_global(_bone_chest).origin
+			var flat := Vector3(support.x - body_center.x, 0.0, support.z - body_center.z)
+			var min_radius: float = maxf(0.28, _two_hand_offset_rig * 0.85)
+			if flat.length() < min_radius:
+				var away: Vector3 = flat.normalized() if flat.length_squared() > 1.0e-8 else Vector3(_left_sign, 0.0, 0.0)
+				support.x = body_center.x + away.x * min_radius
+				support.z = body_center.z + away.z * min_radius
 			_pose_support(&"left", support)
 	elif side == &"left":
 		grip_rig = _pose_main(&"left", want_rig, blade_rig)
@@ -1336,6 +1476,11 @@ const DUELIST_STRIKE := 0.20
 const DUELIST_RECOVER := 0.85
 const DUELIST_DAMAGE := 12.0
 const BLOCK_RADIUS := 0.24
+## How close the two BLADES must actually be for the player's cut to be stopped by
+## the opponent's steel. This has to be the real thickness of the blades: the
+## generous BLOCK_RADIUS above is for judging an incoming blow as parried, and
+## using it for the player's own swing made every cut at close range clash.
+const BLADE_TOUCH_RADIUS := 0.07
 
 var _duelist: Node3D
 var _duelist_hull: StaticBody3D
@@ -1799,7 +1944,7 @@ func _sweep(delta: float) -> void:
 		var from := _prev_points[i]
 		var to := points[i]
 		if from.distance_squared_to(to) < 1.0e-8: continue
-		if npc_blade_ok and _segment_distance(from, to, npc_a, npc_b) <= BLOCK_RADIUS:
+		if npc_blade_ok and _segment_distance(from, to, npc_a, npc_b) <= BLADE_TOUCH_RADIUS:
 			clash = true
 			clash_at = (from + to) * 0.5
 			break
@@ -2736,6 +2881,9 @@ func _sever_part(full_key: String, kind: String, part: Dictionary, point: Vector
 		_npc_dead = true
 		_npc_disarmed = true
 		_npc_engaged = false
+		# A dead knight lets go of his sword, and anyone may take it.
+		if is_instance_valid(_npc_sword):
+			_drop_sword(_npc_sword.global_position, direction, speed)
 	print("DSH_SWORD_PROTO_SEVER part=", full_key, " kind=", kind, " disarmed=", _npc_disarmed)
 
 ## Collapses the bones of that limb (and everything under them) to nothing.
@@ -2916,6 +3064,8 @@ func _drop_sword(at: Vector3, direction: Vector3, speed: float) -> void:
 	visual.transform = Transform3D.IDENTITY
 	body.linear_velocity = direction.normalized() * clampf(speed * 0.3, 0.8, 3.0) + Vector3.UP * 0.6
 	body.angular_velocity = Vector3(randf_range(-4.0, 4.0), randf_range(-4.0, 4.0), randf_range(-4.0, 4.0))
+	# A sword on the ground can be taken by ANYONE, the player included.
+	_register_ground_sword(body)
 
 ## Blood drops fall, and everything gore-related is cleaned up over time.
 func _update_gore(delta: float) -> void:

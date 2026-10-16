@@ -411,6 +411,19 @@ func _run() -> void:
 		_face_body_at(npc_pos)
 		await _settle(10)
 		for round_index: int in 18:
+			# Stay on top of the resident: he keeps walking, and a cut that misses
+			# proves nothing. Re-close and re-face before every round.
+			var live: Dictionary = _proto.snapshot()
+			var where: Vector3 = live.get("npc_position", Vector3.ZERO)
+			if where != Vector3.ZERO:
+				_player.global_position = where + Vector3(0.96, 0.0, 0.55).normalized() * 1.12 + Vector3.UP * 0.05
+				_face_body_at(where)
+				await _settle(2)
+				# The blade is steered relative to the CAMERA, so the camera has to
+				# look at the resident too - otherwise every cut swings into empty space.
+				await _aim_camera_at(where)
+				await _recenter()
+				await _settle(2)
 			_press(true)
 			for i: int in 10:
 				_move(0.0, -60.0)
@@ -420,6 +433,12 @@ func _run() -> void:
 				await _settle(2)
 			_press(false)
 			await _settle(8)
+			var diag: Dictionary = _proto.snapshot()
+			if round_index % 6 == 0 or round_index == 17:
+				print("SWORD_SHOT_CUT round=", round_index,
+					" rays=", diag.get("sweep_rays", 0), " ray_hits=", diag.get("sweep_hits", 0),
+					" blocks=", diag.get("player_blocks", 0),
+					" parts=", diag.get("npc_part_hp", {}))
 		var cut_after: Dictionary = _proto.snapshot()
 		print("SWORD_SHOT_DISMEMBER severed=", cut_after.get("npc_severed", []), " disarmed=", cut_after.get("npc_disarmed", false),
 			" dead=", cut_after.get("npc_dead", false), " parts=", cut_after.get("npc_part_hp", {}))
@@ -494,6 +513,27 @@ func _run() -> void:
 		" at=", dropped_state.get("dropped_at", Vector3.ZERO),
 		" pickup_ok=", pick_ok, " grounded_after=", picked_state.get("sword_grounded", true),
 		" in_hand_error=", picked_state.get("grip_hand_error", 9.0))
+	# 10. ANY sword on the ground can be taken, including a knight's, and a sword
+	# already in the hand cannot be swapped.
+	var ground_info: Dictionary = _proto.call("ground_sword_info")
+	var foreign_available: int = int(ground_info.get("foreign", 0))
+	_proto.call("drop_sword_at", _player.global_position + Vector3(0.0, 0.0, -7.0))
+	await _settle(4)
+	var foreign_taken := false
+	var own_left := 0
+	if foreign_available > 0:
+		var foreign_at: Vector3 = ground_info.get("first_foreign_at", Vector3.ZERO)
+		_player.global_position = foreign_at + Vector3(0.7, 0.0, 0.0)
+		await _settle(4)
+		foreign_taken = _proto.call("try_pickup_sword")
+		await _settle(6)
+		own_left = int(_proto.call("ground_sword_count"))
+	var armed_refused: bool = not bool(_proto.call("try_pickup_sword"))
+	var foreign_state: Dictionary = _proto.snapshot()
+	print("SWORD_SHOT_GROUND_FOREIGN foreign_available=", foreign_available,
+		" taken=", foreign_taken, " armed=", not bool(foreign_state.get("sword_grounded", true)),
+		" swords_left_on_ground=", own_left, " refused_when_armed=", armed_refused,
+		" in_hand_error=", foreign_state.get("grip_hand_error", 9.0))
 	final["camera_lock_delta"] = absf(yaw_held_after - yaw_held_before)
 	final["free_look_delta"] = absf(yaw_free_after - yaw_free_before)
 	final["still_hp_delta"] = float(still_before.dummy_hp) - float(still_after.dummy_hp)
