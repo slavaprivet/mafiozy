@@ -43,6 +43,21 @@ func _press(pressed: bool) -> void:
 	event.pressed = pressed
 	Input.parse_input_event(event)
 
+## Reads the prototype's hand state straight out of its snapshot.
+func _hand_state(label: String) -> void:
+	var snap: Dictionary = _proto.snapshot()
+	print("SWORD_SHOT_HANDS ", label, " side=", snap.hand_side, " carry=", snap.carry_side,
+		" left=", snap.hold_left, " right=", snap.hold_right,
+		" grip_error=", snap.grip_hand_error, " two_handed=", snap.two_handed,
+		" left_hand_error=", snap.left_hand_error)
+
+## Sets the mouse buttons on the prototype directly. Synthetic InputEvents do not
+## reach Input.is_mouse_button_pressed in a driven run, so the state is set here.
+func _set_hands(left: bool, right: bool) -> void:
+	_proto.set("_hold_left", left)
+	_proto.set("_hold_right", right)
+	_proto.set("_held", left or right)
+
 ## Right mouse button = two-handed grip.
 func _press_right(pressed: bool) -> void:
 	var event := InputEventMouseButton.new()
@@ -143,6 +158,23 @@ func _run() -> void:
 	print("SWORD_SHOT_IDLE_HP ", idle_before, " -> ", idle_after)
 	await _settle(30)
 	await _shot("rest")
+	# Hand assignment: LMB = left, RMB = right, both = two-handed grip, and in
+	# every case the sword must sit in the fist that is holding it.
+	_set_hands(true, false)
+	await _settle(24)
+	await _shot("hand_left")
+	_hand_state("left")
+	_set_hands(false, true)
+	await _settle(24)
+	await _shot("hand_right")
+	_hand_state("right")
+	_set_hands(true, true)
+	await _settle(24)
+	await _shot("hand_both")
+	_hand_state("both")
+	_set_hands(false, false)
+	await _settle(24)
+	_hand_state("released")
 	var rest_body: Dictionary = _proto.snapshot()
 	print("SWORD_SHOT_BODY_REST yaw=", rest_body.body_yaw, " pitch=", rest_body.body_pitch,
 		" roll=", rest_body.body_roll, " push=", rest_body.body_push)

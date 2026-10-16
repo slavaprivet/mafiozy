@@ -682,9 +682,20 @@ func _physics_process(delta: float) -> void:
 	var active := _active()
 	# Camera lock follows the real button state and survives a momentary loss of
 	# activity, so the view can never drift while the blade is being steered.
-	_held = _held_event or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+	_held = _hold_left or _hold_right or _held_event or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)
+	# Remember which single hand is holding the sword, so releasing a button keeps
+	# the grip exactly there. Both buttons = two-handed (right hand leads).
+	if _hold_left and not _hold_right: _carry_side = &"left"
+	elif _hold_right and not _hold_left: _carry_side = &"right"
 	_player.set("_sword_lock", _selected and _held and bool(_player.get("_free_mouse_look")))
 	if not active:
+		# Outside the play state (menu, free cursor, death) no button stays held:
+		# a missed release used to leave RMB stuck on and force a two-handed grip.
+		_hold_left = false
+		_hold_right = false
+		_held = false
+		_held_event = false
+		_player.set("_sword_lock", false)
 		_hand_cmd = _hand_cmd.lerp(Vector2.ZERO, clampf(REST_RETURN_RATE * delta, 0.0, 1.0))
 		_hand = _hand.lerp(Vector2.ZERO, clampf(REST_RETURN_RATE * delta, 0.0, 1.0))
 		_release_arm()
@@ -746,9 +757,12 @@ func _process(delta: float) -> void:
 ## Places the sword on the RIG'S CURRENT fist (displayed pose), with the grip
 ## centre inside the hand and the blade along the commanded direction.
 func _attach_sword_to_fist() -> void:
-	if _bone_hand < 0: return
-	var fist := _rig.global_transform * _rig.get_bone_global_pose(_bone_hand).origin
-	_place_sword(fist + _dir * GRIP_CENTER_OFFSET, _dir)
+	var bone := _hand_bone_for(_active_side())
+	if bone < 0: return
+	var fist: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(bone).origin
+	_sword_origin = fist + _dir * GRIP_CENTER_OFFSET
+	_place_sword(_sword_origin, _dir)
+	_grip_hand_error = _sword_origin.distance_to(fist)
 
 ## Left hand takes the lower part of the handle: reaches from its own shoulder to
 ## that point, so the second hand really sits on the grip instead of being faked.
@@ -878,21 +892,23 @@ func _hand_bone_for(side: StringName) -> int:
 ## Right arm holds the sword in the main grip; returns the fist in rig space.
 func _pose_right_main(want_rig: Vector3, blade_rig: Vector3, reach_scale: float = 1.0) -> Vector3:
 	var hand_offset := _rest_socket.origin if _bone_socket >= 0 else Vector3(0.0, 1.0, 0.0)
-	return _pose_arm_ik(_bone_clavicle, _bone_upper, _bone_fore, _bone_hand, _rest_upper, _rest_fore, _rest_hand, hand_offset, want_rig, blade_rig, reach_scale)
+	return _pose_arm_ik(_bone_clavicle, _bone_upper, _bone_fore, _bone_hand, _rest_upper, _rest_fore, _rest_hand, hand_offset, want_rig, blade_rig, reach_scale, false, 1.0)
 
 ## Left arm holds the sword in the main grip (mirror of the right arm).
 func _pose_left_main(want_rig: Vector3, blade_rig: Vector3, reach_scale: float = 1.0) -> Vector3:
-	return _pose_arm_ik(_bone_l_clavicle, _bone_l_upper, _bone_l_fore, _bone_l_hand, _rest_l_upper, _rest_l_fore, _rest_l_hand, _rest_l_hand.origin, want_rig, blade_rig, reach_scale)
+	return _pose_arm_ik(_bone_l_clavicle, _bone_l_upper, _bone_l_fore, _bone_l_hand, _rest_l_upper, _rest_l_fore, _rest_l_hand, _rest_l_hand.origin, want_rig, blade_rig, reach_scale, false, -1.0)
 
 ## Supporting left hand closes on the lower part of the handle (two-handed grip).
+## The wrist simply continues the forearm - no twist toward the handle, which is
+## what used to fold the arm into a hook.
 func _pose_left_support(grip_rig: Vector3) -> void:
-	var fist := _pose_arm_ik(_bone_l_clavicle, _bone_l_upper, _bone_l_fore, _bone_l_hand, _rest_l_upper, _rest_l_fore, _rest_l_hand, _rest_l_hand.origin, grip_rig, Vector3.UP, 1.0, true)
+	var fist := _pose_arm_ik(_bone_l_clavicle, _bone_l_upper, _bone_l_fore, _bone_l_hand, _rest_l_upper, _rest_l_fore, _rest_l_hand, _rest_l_hand.origin, grip_rig, Vector3.UP, 1.0, true, -1.0)
 	if fist != Vector3.ZERO: _left_hand_error = fist.distance_to(grip_rig)
 
 ## Two-bone IK with a real elbow: the hand reaches the requested point (clamped
 ## to the arm's length) instead of always being fully extended. That bend is what
 ## lets the second hand reach the handle in a two-handed grip.
-func _pose_arm_ik(clav: int, upper: int, fore: int, hand: int, rest_upper: Transform3D, rest_fore: Transform3D, rest_hand: Transform3D, hand_offset: Vector3, want_rig: Vector3, blade_rig: Vector3, reach_scale: float = 1.0, want_is_point: bool = false) -> Vector3:
+func _pose_arm_ik(clav: int, upper: int, fore: int, hand: int, rest_upper: Transform3D, rest_fore: Transform3D, rest_hand: Transform3D, hand_offset: Vector3, want_rig: Vector3, blade_rig: Vector3, reach_scale: float = 1.0, want_is_point: bool = false, pole_side: float = 1.0) -> Vector3:
 	if clav < 0 or upper < 0 or fore < 0 or hand < 0: return Vector3.ZERO
 	var clavicle_global := _chain_global(clav)
 	var joint := (clavicle_global * rest_upper).origin
@@ -905,8 +921,9 @@ func _pose_arm_ik(clav: int, upper: int, fore: int, hand: int, rest_upper: Trans
 	if distance < 1.0e-4: return Vector3.ZERO
 	var direction := to_target.normalized()
 	var d := clampf(distance, absf(l1 - l2) + 1.0e-3, l1 + l2 - 1.0e-3)
-	# Elbow hangs low and slightly behind, which reads naturally for a sword arm.
-	var pole := Vector3(0.0, -0.4, -0.3)
+	# Elbow hangs low and slightly behind and OUTWARD on its own side, which is
+	# what keeps the arm from folding into a hook across the body.
+	var pole := Vector3(0.45 * pole_side, -0.55, -0.25)
 	pole -= direction * pole.dot(direction)
 	if pole.length_squared() < 1.0e-6:
 		pole = direction.cross(Vector3.RIGHT)
@@ -1059,6 +1076,13 @@ var _player_blocks := 0
 var _sparring_hp := 100.0
 var _last_clash_ms := -1000
 
+## Distance between the sword grip and the fist that should be holding it; a
+## health check that the weapon really follows the chosen hand.
+var _grip_hand_error := 0.0
+## The opponent only fights back once the player has actually hurt him.
+var _duelist_engaged := false
+var _duelist_aggro_until_ms := 0
+
 func _build_duelist(at: Vector3) -> void:
 	_duelist = Node3D.new()
 	_duelist.name = "SwordDuelist"
@@ -1116,6 +1140,18 @@ func _update_duelist(delta: float) -> void:
 		_duelist_body.rotation.x = lerp_angle(_duelist_body.rotation.x, -1.35, clampf(3.0 * delta, 0.0, 1.0))
 		return
 	_duelist_look_at_player(delta)
+	# He waits until the player actually lands a blow, then fights for a while and
+	# calms down again if nothing happens.
+	if _duelist_engaged and now_ms() > _duelist_aggro_until_ms:
+		_duelist_engaged = false
+		_duelist_state = "idle"
+		_duelist_timer = 0.0
+	if not _duelist_engaged:
+		_duelist_state = "idle"
+		_duelist_dir = _duelist_dir.slerp(_duelist_high_guard(), clampf(3.0 * delta, 0.0, 1.0)).normalized()
+		var fist_idle: Vector3 = _duelist_body.to_global(Vector3(0.30, 1.24, 0.16))
+		_duelist_sword.global_transform = _place_basis(fist_idle + _duelist_dir * GRIP_CENTER_OFFSET, _duelist_dir)
+		return
 	var to_player := _player.global_position - _duelist.global_position
 	to_player.y = 0.0
 	var distance := to_player.length()
@@ -1364,6 +1400,16 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 		return
 	var id_any: int = collider.get_instance_id() if is_instance_valid(collider) else -1
 	var fresh: bool = id_any < 0 or not _contact_prev.has(id_any)
+	# Ground contact never bounces: a blade resting on the floor only has its
+	# downward rotation damped. Pushing or deflecting here made it hop repeatedly.
+	if normal.y > 0.7:
+		_omega *= 0.90
+		if fresh and now - _last_block_sound_ms >= BLOCK_SOUND_COOLDOWN_MS:
+			_last_block_sound_ms = now
+			_impact_player.global_position = position
+			_impact_player.pitch_scale = 1.05
+			_impact_player.play()
+		return
 	# Hitting a body stops the blade just like masonry does: it never sinks in and
 	# stays there. The push is applied on a fresh touch and blended, so the sword
 	# neither jerks in the hand nor bounces off the same surface every frame.
@@ -1395,6 +1441,12 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 			_hit_ms[id_any] = now
 			var cut := clampf((speed * 0.6 - DAMAGE_SPEED_MIN) * DAMAGE_PER_MPS, 1.0, DAMAGE_MAX)
 			_duelist_hp = maxf(0.0, _duelist_hp - cut)
+			# Being struck is what makes him fight back.
+			_duelist_engaged = true
+			_duelist_aggro_until_ms = now + 30000
+			if _duelist_state == "idle":
+				_duelist_state = "approach"
+				_duelist_timer = 0.0
 			_impact_player.global_position = position
 			_impact_player.pitch_scale = 1.3
 			_impact_player.play()
@@ -1545,6 +1597,9 @@ func snapshot() -> Dictionary:
 		"two_handed": _active_side() == &"both", "left_hand_error": _left_hand_error,
 		"hand_side": str(_active_side()),
 		"duelist_state": _duelist_state, "duelist_hp": _duelist_hp, "duelist_swings": _duelist_swings,
+		"duelist_engaged": _duelist_engaged,
+		"grip_hand_error": _grip_hand_error,
+		"hold_left": _hold_left, "hold_right": _hold_right, "carry_side": str(_carry_side),
 		"duelist_hits": _duelist_hits, "duelist_blocked": _duelist_blocked, "player_blocks": _player_blocks,
 		"sparring_hp": _sparring_hp,
 		"duelist_position": _duelist.global_position if is_instance_valid(_duelist) else Vector3.ZERO,
