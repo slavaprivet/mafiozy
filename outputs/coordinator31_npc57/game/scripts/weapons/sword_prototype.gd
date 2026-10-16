@@ -1053,7 +1053,7 @@ func _steer(delta: float) -> void:
 		# Carried stance: a stable, body-relative ready angle (up, a little out and
 		# forward). Deriving it from the fist made the blade swing into the body as
 		# the walk animation turned the wrist.
-		var carry := _clear_blade_from_body(_carry_direction())
+		var carry := _clear_blade_from_world(_clear_blade_from_body(_carry_direction()))
 		_dir = _dir.slerp(carry, clampf(7.0 * delta, 0.0, 1.0)).normalized()
 		_omega = Vector3.ZERO
 		return
@@ -1233,6 +1233,22 @@ func _process(delta: float) -> void:
 	_update_dummy(delta)
 	_update_spark(delta)
 
+## True when the character himself is standing inside geometry. The driven test
+## teleports him around, so it can leave him inside a building - a sword measured
+## there says nothing about the sword.
+func player_inside_geometry() -> bool:
+	if not is_instance_valid(_player) or not is_instance_valid(_world): return false
+	var space := _player.get_world_3d().direct_space_state
+	if space == null: return false
+	var sphere := SphereShape3D.new()
+	sphere.radius = 0.42
+	var params := PhysicsShapeQueryParameters3D.new()
+	params.shape = sphere
+	params.transform = Transform3D(Basis.IDENTITY, _player.global_position + Vector3.UP * 0.95)
+	params.collision_mask = BLADE_PROBE_MASK
+	params.exclude = [_player.get_rid()]
+	return not space.intersect_shape(params, 1).is_empty()
+
 ## Places the sword on the RIG'S CURRENT fist (displayed pose), with the grip
 ## centre inside the hand and the blade along the commanded direction.
 func _attach_sword_to_fist() -> void:
@@ -1240,8 +1256,39 @@ func _attach_sword_to_fist() -> void:
 	if bone < 0: return
 	var fist: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(bone).origin
 	_sword_origin = fist + _dir * GRIP_CENTER_OFFSET
-	_place_sword(_sword_origin, _dir)
 	_grip_hand_error = _sword_origin.distance_to(fist)
+	if not _held:
+		_settle_carried_blade()
+	_place_sword(_sword_origin, _dir)
+
+## While the sword is merely CARRIED, steel may not stand inside the world. The
+## blade is first turned clear; whatever still does not fit is drawn back until the
+## point rests on the surface, and the arm is pulled in to match on the next frame.
+## Simply turning the blade was not enough - the blade was inside the world in 66 of
+## 140 walking frames - because the whole sword had been driven into an obstacle.
+func _settle_carried_blade() -> void:
+	if not is_instance_valid(_player) or not is_instance_valid(_world): return
+	var direction := _clear_blade_from_world(_dir)
+	_dir = direction
+	if not _blade_penetrates_world(direction, _sword_origin):
+		_carry_pull = maxf(0.0, _carry_pull - 0.03)
+		return
+	# Turning the blade was not enough - the whole sword had been driven in. Draw it
+	# back until the SAME test that measures the fault reports it clear, so the fix
+	# and the check can never disagree.
+	var pulled := 0.0
+	var origin := _sword_origin
+	for step: int in BLADE_PULL_STEPS:
+		pulled += BLADE_PULL_STEP
+		origin = _sword_origin - direction * pulled
+		if not _blade_penetrates_world(direction, origin):
+			break
+	_sword_origin = origin
+	_carry_pull = pulled
+
+## How far, and in how many steps, the carried sword may be drawn out of geometry.
+const BLADE_PULL_STEP := 0.07
+const BLADE_PULL_STEPS := 9
 
 ## Left hand takes the lower part of the handle: reaches from its own shoulder to
 ## that point, so the second hand really sits on the grip instead of being faked.
@@ -1344,12 +1391,16 @@ func _solve_arm(delta: float) -> void:
 		var blade_rig := (rig_basis.inverse() * _dir).normalized()
 		_lean_body(want_dir, delta)
 		var side := _active_side()
-		var grip_rig := _pose_main(side, want_rig, blade_rig, 0.70)
+		# If the carried sword had to be drawn out of a wall, the arm comes in with
+		# it, so the fist keeps holding the grip instead of being left behind.
+		var pulled := clampf(_carry_pull / 0.55, 0.0, 1.0)
+		var grip_rig := _pose_main(side, want_rig, blade_rig, lerpf(0.70, 0.40, pulled))
 		if grip_rig != Vector3.ZERO:
 			_sword_origin = (_rig.global_transform * grip_rig) + _dir * GRIP_CENTER_OFFSET
-		# The carried blade is never shown inside the character: if the pose would
-		# drive steel through him, the blade swings around him instead.
+		# The carried blade is never shown inside the character or inside the world:
+		# if the pose would drive steel through him or a wall, the blade is turned.
 		_dir = _clear_blade_from_body(_dir)
+		_dir = _clear_blade_from_world(_dir)
 		return
 	var want_dir := _constrain_forward(_hand_target_direction())
 	want_dir = _constrain_to_body(want_dir, 0.10)
@@ -2407,6 +2458,60 @@ var _npc_swings := 0
 var _npc_hits := 0
 var _npc_blocked := 0
 var _npc_blade_prev: PackedVector3Array = PackedVector3Array()
+## Builds a transform whose local Y runs along `direction`, which is the axis a
+## capsule shape uses.
+func _blade_shape_transform(direction: Vector3, origin: Vector3) -> Transform3D:
+	var y := direction.normalized()
+	if y.length_squared() < 1.0e-8: y = Vector3.UP
+	var reference := Vector3.UP if absf(y.dot(Vector3.UP)) < 0.94 else Vector3.RIGHT
+	var x := y.cross(reference).normalized()
+	var z := x.cross(y).normalized()
+	return Transform3D(Basis(x, y, z), origin)
+
+## True when the blade itself is inside world geometry or another body. A thin
+## capsule along the steel answers this properly, where a single ray would miss a
+## blade lying across a wall.
+func _blade_penetrates_world(direction: Vector3, origin: Vector3) -> bool:
+	if not is_instance_valid(_player) or not is_instance_valid(_world): return false
+	var space := _player.get_world_3d().direct_space_state
+	if space == null: return false
+	var length := 0.06 + BLADE_LENGTH
+	var capsule := CapsuleShape3D.new()
+	capsule.radius = 0.030
+	capsule.height = length
+	var params := PhysicsShapeQueryParameters3D.new()
+	params.shape = capsule
+	params.transform = _blade_shape_transform(direction, origin + direction.normalized() * length * 0.5)
+	params.collision_mask = BLADE_PROBE_MASK
+	params.exclude = [_player.get_rid()]
+	return not space.intersect_shape(params, 1).is_empty()
+
+## Keeps the CARRIED blade out of the world: if the steel would sink into a wall,
+## the dummy or a body, it is turned until it lies clear. Bounded and only applied
+## while the sword is not being swung, so it can never fight the cut itself.
+func _clear_blade_from_world(direction: Vector3) -> Vector3:
+	if not _blade_penetrates_world(direction, _sword_origin): return direction
+	var up_axis := direction.cross(Vector3.UP)
+	if up_axis.length_squared() < 1.0e-6: up_axis = Vector3.RIGHT
+	up_axis = up_axis.normalized()
+	var side_axis := direction.cross(up_axis).normalized()
+	for step: int in BLADE_CLEAR_STEPS:
+		var angle := deg_to_rad(12.0) * float(step + 1)
+		for axis: Vector3 in [up_axis, -up_axis, side_axis, -side_axis]:
+			var rotated := direction.rotated(axis, angle)
+			if not _blade_penetrates_world(rotated, _sword_origin):
+				return rotated
+	# Nothing cleared it: lift the blade straight up, which always frees a blade
+	# lying against something low.
+	var lifted := (direction + Vector3.UP * 1.2).normalized()
+	if not _blade_penetrates_world(lifted, _sword_origin): return lifted
+	return direction
+
+## Physics layer the carried blade must stay out of.
+const BLADE_PROBE_MASK := 1
+## How many 12-degree steps the carried blade may be turned to free it.
+const BLADE_CLEAR_STEPS := 6
+
 ## ---- half-swording -------------------------------------
 ## Gripping the BLADE with the off hand: the technique the reference game is named
 ## after. It gives up reach and cutting power and buys a precise, armour-piercing
@@ -2430,6 +2535,9 @@ func set_half_sword(on: bool) -> void:
 	_update_hint()
 	print("DSH_SWORD_PROTO_HALF_SWORD ", on)
 
+## How far the carried sword had to be drawn back out of an obstacle, so the arm
+## can be pulled in to match instead of leaving the fist behind.
+var _carry_pull := 0.0
 ## Rig scale, needed to convert metres into bone units.
 func _rig_scale() -> float:
 	if is_instance_valid(_rig):
@@ -3370,6 +3478,7 @@ func snapshot() -> Dictionary:	return {
 		"grip_hand_error": _grip_hand_error,
 		"sword_grounded": _sword_grounded, "dropped_at": _dropped_at,
 		"head_clearance": _head_blade_clearance(),
+		"blade_in_world": _blade_penetrates_world(_dir, _sword_origin),
 		"body_clearance": _body_blade_clearance(),
 		"armour_plates": _knight_armour.size(), "stump_count": _stumps.size(),
 		"sparks": _sparks.size(), "sparks_total": _sparks_total, "half_sword": _half_sword, "half_sword_point": _half_sword_blade_point,

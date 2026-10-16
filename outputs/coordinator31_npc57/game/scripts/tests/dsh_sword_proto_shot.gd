@@ -15,6 +15,8 @@ var _armour_cut_plate := 0.0
 var _armour_cut_bare := 0.0
 var _armour_thrust_plate := 0.0
 var _half_sword_hand_error := 9.0
+var _walk_bad_world := 0
+var _walk_bad_body := 0
 var _player: CharacterBody3D
 ## Largest body lean seen during the running swing pass.
 var _body_peak := 0.0
@@ -209,6 +211,43 @@ func _run() -> void:
 		" body=", _proto.snapshot().get("body_clearance", -1.0),
 		" metres to head/spine (steel must never be inside the character)")
 	_arm_drift = drift
+	# Walking with the sword carried must not drag the steel through the world or
+	# through the character: this was the "the blade passes through everything"
+	# complaint, so it is counted rather than argued about.
+	var walk_bad_world := 0
+	var walk_bad_body := 0
+	var walk_head_min := 99.0
+	var walk_body_min := 99.0
+	var walk_samples := 0
+	var walk_home: Vector3 = _player.global_position
+	var walk_saw_wall := false
+	var walk_step: Vector3 = _player._visual.global_basis.z
+	walk_step.y = 0.0
+	if walk_step.length_squared() < 1.0e-6: walk_step = Vector3.FORWARD
+	walk_step = walk_step.normalized() * 0.035
+	for i: int in 140:
+		_player.global_position += walk_step
+		await process_frame
+		# The test teleports the actor, so it can put him inside a building; a sword
+		# measured there would be the test's fault, not the game's.
+		if bool(_proto.call("player_inside_geometry")):
+			walk_saw_wall = true
+			_player.global_position -= walk_step
+			break
+		walk_samples += 1
+		var walk_snap: Dictionary = _proto.snapshot()
+		if bool(walk_snap.get("blade_in_world", false)): walk_bad_world += 1
+		if float(walk_snap.get("body_clearance", 99.0)) <= 0.12: walk_bad_body += 1
+		walk_head_min = minf(walk_head_min, float(walk_snap.get("head_clearance", 99.0)))
+		walk_body_min = minf(walk_body_min, float(walk_snap.get("body_clearance", 99.0)))
+	print("SWORD_SHOT_WALK samples=", walk_samples, " blade_in_world=", walk_bad_world,
+		" body_violations=", walk_bad_body, " stopped_at_wall=", walk_saw_wall,
+		" min_head=", walk_head_min, " min_body=", walk_body_min)
+	_walk_bad_world = walk_bad_world
+	_walk_bad_body = walk_bad_body
+	# Put the actor back where the rest of the run expects him.
+	_player.global_position = walk_home
+	await _settle(6)
 
 	# 1. Free look works while LMB is released.
 	var yaw_free_before := _yaw()
@@ -589,6 +628,7 @@ func _run() -> void:
 		"armour_turns_the_edge": _armour_cut_plate < _armour_cut_bare,
 		"point_beats_plate": _armour_thrust_plate > _armour_cut_plate,
 		"half_sword_grips_the_blade": _half_sword_hand_error < 0.20,
+		"walking_keeps_steel_clear": _walk_bad_world == 0 and _walk_bad_body == 0,
 		"camera_free_when_held": true,
 	}
 	var failed: Array[String] = []
