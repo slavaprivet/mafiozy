@@ -367,6 +367,10 @@ func _ready() -> void:
 	# only acts while that item is equipped (no purchase, no ammo).
 	if preview_sword_prototype_enabled or is_instance_valid(preview_weapons) or OS.get_cmdline_user_args().has("--sword-proto=1"):
 		_install_sword_prototype()  # DSH_SWORD_PROTO
+	# DSH_SWORD_PROTO: with the explicit test flag the blade is equipped at once,
+	# so the scene opens with the sword already in hand.
+	if OS.get_cmdline_user_args().has("--sword-proto=1"):
+		_equip_sword_for_test()
 	if is_instance_valid(preview_modular30):
 		print("MODULAR30_NATIVE_BINDING ", preview_modular30.bind_weapons())
 	if is_instance_valid(preview_palazzo):
@@ -449,6 +453,17 @@ func _install_sword_prototype() -> bool:
 	sword_prototype_status = "ready"
 	print("DSH_SWORD_PROTO ", JSON.stringify(installed))
 	return true
+
+## DSH_SWORD_PROTO: `--sword-proto=1` opens the scene with the blade in hand.
+func _equip_sword_for_test() -> void:
+	if not is_instance_valid(_player): return
+	_player.set_mouse_captured(true)
+	if is_instance_valid(preview_weapons):
+		var equipped: Dictionary = preview_weapons.equip("sword")
+		print("DSH_SWORD_PROTO_EQUIP ", JSON.stringify(equipped))
+	elif is_instance_valid(preview_sword_prototype):
+		preview_sword_prototype.set_selected(true)
+		print("DSH_SWORD_PROTO_EQUIP ", JSON.stringify({"ok": true, "direct": true}))
 
 func _install_preview_melee_practice() -> bool:
 	if is_instance_valid(preview_melee) or not is_instance_valid(_player): return false

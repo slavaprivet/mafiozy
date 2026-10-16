@@ -133,8 +133,13 @@ func refresh() -> void:
 		_hud_signature = hud_signature
 		if id != _previous_id:
 			_previous_id=id; title.text=host.LABELS.get(id,id); photo.texture=textures.get(id)
-		ammo.text = "ОРУЖИЕ УБРАНО" if id == "none" else ("ПЕРЕЗАРЯДКА · %.1f С" % reload if reload > 0 else ("ПУСТО · 0 / %d" % reserve if magazine == 0 else "%d / %d" % [magazine,reserve]))
-		ammo.add_theme_color_override("font_color",Color("bda879" if reload>0 else ("d99b94" if id!="none" and magazine==0 else "adb8be")))
+		if id == SWORD_ID:
+			ammo.text = "МЕЧ · ПРОТОТИП · ЛКМ + МЫШЬ"
+		elif id == "none":
+			ammo.text = "ОРУЖИЕ УБРАНО"
+		else:
+			ammo.text = "ПЕРЕЗАРЯДКА · %.1f С" % reload if reload > 0 else ("ПУСТО · 0 / %d" % reserve if magazine == 0 else "%d / %d" % [magazine,reserve])
+		ammo.add_theme_color_override("font_color",Color("bda879" if reload>0 else ("d99b94" if id!="none" and id!=SWORD_ID and magazine==0 else "adb8be")))
 	if menu.visible != host.menu_open: menu.visible = host.menu_open
 	var scoped:bool=host.aim_camera!=null and host.aim_camera.scoped()
 	var allowed:bool=host._combat_allowed() and not host.controls_blocked() and not host.player._text_control_focused()
