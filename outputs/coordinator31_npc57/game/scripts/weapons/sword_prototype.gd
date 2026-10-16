@@ -23,12 +23,12 @@ const MOUSE_TO_HAND := 0.0030
 ## The commanded hand offset cannot jump: it is slewed toward the mouse command
 ## at a bounded rate, which is what keeps a fast mouse flick from snapping the
 ## whole arm (and the blade with it) across the body.
-const HAND_SLEW_RATE := 4.6     # units per second
+const HAND_SLEW_RATE := 8.0     # units per second
 const HAND_MAX_OFFSET := 1.0
-const MAX_OMEGA := 6.2          # rad/s, heavy weapon steering limit
-const MAX_ALPHA := 20.0         # rad/s^2, acceleration limit
+const MAX_OMEGA := 15.0         # rad/s, fast enough to cut instead of paint
+const MAX_ALPHA := 72.0         # rad/s^2, snappy acceleration into the swing
 const FOLLOW_RATE := 7.5        # hand spring rate toward the commanded point
-const REST_RETURN_RATE := 4.2   # blade return when LMB is released
+const REST_RETURN_RATE := 4.5   # blade return when LMB is released
 ## Body weight: the swing is carried by hips, spine and chest, not only by the
 ## arm. The torso leans against the blade's angular acceleration and takes the
 ## recoil of every contact.
@@ -39,7 +39,7 @@ const BODY_STIFFNESS := 22.0
 const BODY_DAMPING := 8.5
 const BODY_YAW_STIFFNESS := 16.0
 const BODY_YAW_DAMPING := 7.5
-const BODY_LEAN_GAIN := 0.030   # radians of lean per rad/s of blade rotation
+const BODY_LEAN_GAIN := 0.018   # radians of lean per rad/s of blade rotation
 const BODY_LEAN_LIMIT := 0.11
 const BODY_PUSH_GAIN := 0.55    # metres of recoil per metre/second of contact
 const BODY_PUSH_LIMIT := 0.22
@@ -567,7 +567,9 @@ func _steer(delta: float) -> void:
 	var angle := _dir.angle_to(target)
 	var desired := Vector3.ZERO
 	if angle > 1e-4 and axis.length_squared() > 1e-10:
-		desired = axis.normalized() * clampf(angle * 7.0 * rate, 0.0, MAX_OMEGA)
+		# A larger error drives a proportionally faster blade, so a decisive flick
+		# whips the sword through instead of dragging it.
+		desired = axis.normalized() * clampf(angle * 11.0 * rate, 0.0, MAX_OMEGA)
 	var dv := desired - _omega
 	var max_dv := MAX_ALPHA * delta
 	if dv.length() > max_dv and dv.length() > 1e-9: dv = dv.normalized() * max_dv
