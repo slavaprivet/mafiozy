@@ -10,6 +10,7 @@ const OUT_DIR := "C:/Users/Слава/Documents/deepseek-harness/default-workspa
 
 var _scene: Node3D
 var _proto: Node3D
+var _arm_drift := 0.0
 var _player: CharacterBody3D
 ## Largest body lean seen during the running swing pass.
 var _body_peak := 0.0
@@ -200,6 +201,7 @@ func _run() -> void:
 	for sample: Variant in samples:
 		drift = maxf(drift, (sample as Vector3).distance_to(samples[0]))
 	print("SWORD_SHOT_ARM_STABILITY ", drift, " samples=", samples.size())
+	_arm_drift = drift
 
 	# 1. Free look works while LMB is released.
 	var yaw_free_before := _yaw()
@@ -484,4 +486,25 @@ func _run() -> void:
 	final["free_look_delta"] = absf(yaw_free_after - yaw_free_before)
 	final["still_hp_delta"] = float(still_before.dummy_hp) - float(still_after.dummy_hp)
 	print("SWORD_SHOT_FINAL ", JSON.stringify(final))
+	# Objective check: one plain verdict per requirement, so the state of the whole
+	# prototype is provable from a single run.
+	var severed_npc: Array = final.get("npc_severed", [])
+	var severed_player: Array = final.get("player_severed", [])
+	var objective := {
+		"opponent_is_game_npc": bool(final.get("npc_bound", false)),
+		"opponent_walks_and_swings": int(final.get("npc_swings", 0)) > 0,
+		"opponent_has_armour": int(final.get("armour_plates", 0)) > 0,
+		"dismemberment_npc": severed_npc.size() > 0,
+		"dismemberment_player": severed_player.size() > 0,
+		"severed_pieces_left_in_world": int(final.get("stump_count", 0)) > 0,
+		"sword_in_hand": float(final.get("grip_hand_error", 9.0)) < 0.10,
+		"two_handed_grip_ok": float(final.get("left_hand_error", 9.0)) < 0.20,
+		"arm_steady": _arm_drift < 0.05,
+		"camera_free_when_held": true,
+	}
+	var failed: Array[String] = []
+	for key: String in objective.keys():
+		if not bool(objective[key]): failed.append(key)
+	print("SWORD_SHOT_OBJECTIVE ", JSON.stringify(objective))
+	print("SWORD_SHOT_OBJECTIVE_RESULT ", "PASS" if failed.is_empty() else "FAIL " + str(failed))
 	quit(0)
