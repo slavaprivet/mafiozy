@@ -49,6 +49,10 @@ const BODY_PUSH_DECAY := 3.2
 ## never end up behind the back.
 const BODY_YAW_SHARE := 0.16
 const BODY_YAW_LIMIT := 0.30
+## During a live cut the torso turns much further than while guarding, so the
+## body visibly drives the swing.
+const BODY_YAW_SHARE_SWING := 0.48
+const BODY_YAW_LIMIT_SWING := 0.70
 const DAMAGE_SPEED_MIN := 1.05  # m/s below which a touch deals no damage
 const DAMAGE_PER_MPS := 9.0
 const DAMAGE_MAX := 34.0
@@ -1116,18 +1120,22 @@ func _lean_body(want_dir: Vector3, delta: float) -> void:
 	var visual: Node3D = _player._visual
 	var world_fwd: Vector3 = -visual.global_basis.z
 	var world_right: Vector3 = visual.global_basis.x
-	# 1. Torso yaw toward the commanded blade direction.
+	# 1. Torso yaw toward the commanded blade direction. A live cut turns the body
+	# much further than a guard does, which is what sells the swing.
 	var yaw_target := 0.0
 	var flat := Vector3(want_dir.x, 0.0, want_dir.z)
 	if flat.length_squared() > 1.0e-6:
 		# The visual node faces along +Z, so its yaw is atan2(x, z).
 		var delta_yaw := wrapf(atan2(flat.x, flat.z) - visual.global_rotation.y, -PI, PI)
-		yaw_target = clampf(delta_yaw * BODY_YAW_SHARE, -BODY_YAW_LIMIT, BODY_YAW_LIMIT)
+		var swing_intensity := clampf(_omega.length() / maxf(0.01, MAX_OMEGA), 0.0, 1.0)
+		var share := lerpf(BODY_YAW_SHARE, BODY_YAW_SHARE_SWING, swing_intensity)
+		var limit := lerpf(BODY_YAW_LIMIT, BODY_YAW_LIMIT_SWING, swing_intensity)
+		yaw_target = clampf(delta_yaw * share, -limit, limit)
 	_body_yaw = lerpf(_body_yaw, yaw_target, clampf(BODY_FOLLOW_RATE * delta, 0.0, 1.0))
 	var yaw_accel := (yaw_target - _body_yaw) * BODY_YAW_STIFFNESS - _body_yaw_vel * BODY_YAW_DAMPING
 	_body_yaw_vel += yaw_accel * delta
 	_body_yaw += _body_yaw_vel * delta
-	_body_yaw = clampf(_body_yaw, -BODY_YAW_LIMIT, BODY_YAW_LIMIT)
+	_body_yaw = clampf(_body_yaw, -BODY_YAW_LIMIT_SWING, BODY_YAW_LIMIT_SWING)
 	# 2. Lean: opposite the blade's angular acceleration, plus contact recoil.
 	var swing_pitch := -_omega.dot(world_right) * BODY_LEAN_GAIN
 	var swing_roll := -_omega.dot(world_fwd) * BODY_LEAN_GAIN
@@ -1158,10 +1166,10 @@ func _lean_body(want_dir: Vector3, delta: float) -> void:
 		var turn := Quaternion(axis_up, yaw) * Quaternion(axis_right, -pitch) * Quaternion(axis_fwd, roll)
 		var local := _rig.get_bone_pose(bone)
 		_rig.set_bone_pose(bone, Transform3D((Basis(turn) * local.basis).orthonormalized(), local.origin))
-	# 4. The head counter-turns only slightly, so the eyes follow the target
-	# without the neck wobbling with every swing.
+	# 4. The head counter-turns against the torso so the eyes keep following the
+	# blade through the whole cut instead of swinging away with the chest.
 	if _bone_head >= 0 and absf(_body_yaw) > 0.02:
-		var head_turn := Quaternion(axis_up, -_body_yaw * 0.20)
+		var head_turn := Quaternion(axis_up, -_body_yaw * 0.45)
 		var head_local := _rig.get_bone_pose(_bone_head)
 		_rig.set_bone_pose(_bone_head, Transform3D((Basis(head_turn) * head_local.basis).orthonormalized(), head_local.origin))
 
@@ -2551,26 +2559,34 @@ func _hide_limb(full_key: String, kind: String, bone_name: String) -> void:
 
 ## A short burst of blood drops that fall and fade.
 func _spray_blood(at: Vector3, direction: Vector3, count: int) -> void:
+	# A hard cap keeps a long fight from drowning the scene in drop nodes.
+	if _blood_count >= MAX_BLOOD:
+		return
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.45, 0.015, 0.02)
+	mat.albedo_color = Color(0.42, 0.012, 0.018)
 	mat.roughness = 0.35
 	for i: int in count:
+		if _blood_count >= MAX_BLOOD: return
 		var drop := MeshInstance3D.new()
 		var sphere := SphereMesh.new()
-		sphere.radius = randf_range(0.012, 0.032)
+		sphere.radius = randf_range(0.020, 0.050)
 		sphere.height = sphere.radius * 2.0
 		drop.mesh = sphere
 		drop.material_override = mat
 		_world.add_child(drop)
-		drop.global_position = at + Vector3(randf_range(-0.06, 0.06), randf_range(-0.04, 0.08), randf_range(-0.06, 0.06))
-		var spread := Vector3(randf_range(-1.0, 1.0), randf_range(-0.3, 1.2), randf_range(-1.0, 1.0))
-		var velocity := (direction.normalized() * randf_range(1.2, 3.4) + spread * 0.9)
+		drop.global_position = at + Vector3(randf_range(-0.07, 0.07), randf_range(-0.05, 0.09), randf_range(-0.07, 0.07))
+		var spread := Vector3(randf_range(-1.0, 1.0), randf_range(-0.4, 1.4), randf_range(-1.0, 1.0))
+		var velocity := (direction.normalized() * randf_range(1.6, 4.2) + spread * 1.1)
 		_npc_gore.append(drop)
 		_blood_velocities.append(velocity)
 		_blood_timers.append(BLOOD_LIFETIME)
+		_blood_count += 1
 
 var _blood_velocities: Array[Vector3] = []
 var _blood_timers: Array[float] = []
+var _blood_count := 0
+## Most live blood drops at once.
+const MAX_BLOOD := 260
 
 ## A real piece of the body, thrown where the limb used to be: the shape follows
 ## the part that came off (arm, leg, head with helm) and the cut end is bloody.
@@ -2694,6 +2710,7 @@ func _update_gore(delta: float) -> void:
 			if index < _blood_velocities.size():
 				_blood_velocities.remove_at(index)
 				_blood_timers.remove_at(index)
+				_blood_count = maxi(0, _blood_count - 1)
 			continue
 		if index < _blood_velocities.size():
 			var velocity: Vector3 = _blood_velocities[index] - Vector3.UP * 9.0 * delta
@@ -2706,6 +2723,7 @@ func _update_gore(delta: float) -> void:
 					_npc_gore.remove_at(index)
 					_blood_velocities.remove_at(index)
 					_blood_timers.remove_at(index)
+					_blood_count = maxi(0, _blood_count - 1)
 					continue
 		index += 1
 
