@@ -18,7 +18,7 @@ const BLADE_LENGTH := 1.15
 ## Distance from the model origin to the middle of the grip along the blade axis.
 ## The fist closes on this point, so the handle (not the guard) sits in the hand.
 const GRIP_CENTER_OFFSET := 0.0625
-const SWEEP_SEGMENTS := 5
+const SWEEP_SEGMENTS := 9
 const MOUSE_TO_HAND := 0.0030
 ## The commanded hand offset cannot jump: it is slewed toward the mouse command
 ## at a bounded rate, which is what keeps a fast mouse flick from snapping the
@@ -1613,10 +1613,12 @@ func _sweep(delta: float) -> void:
 		return
 	var space := _player.get_world_3d().direct_space_state
 	var excluded: Array[RID] = [_player.get_rid()]
-	var best_hit: Dictionary = {}
-	var best_distance := INF
 	var now := Time.get_ticks_msec()
 	var touched: Dictionary = {}
+	# EVERY collider the blade crossed this frame is a contact, not just the
+	# nearest one: a single swing through an arm and a chest is two hits.
+	var hits: Array[Dictionary] = []
+	var seen: Dictionary = {}
 	for i: int in points.size():
 		var from := _prev_points[i]
 		var to := points[i]
@@ -1628,17 +1630,18 @@ func _sweep(delta: float) -> void:
 		if hit.is_empty(): continue
 		_sweep_hits += 1
 		var collider: Variant = hit.get("collider")
-		if is_instance_valid(collider): touched[collider.get_instance_id()] = true
-		var distance := from.distance_to(hit.position)
-		if distance < best_distance:
-			best_distance = distance
-			best_hit = hit
-			best_hit["_speed"] = from.distance_to(to) / delta
-			# Direction of the contact point's motion decides cut vs thrust.
-			best_hit["_velocity"] = (to - from) / delta
-			best_hit["_index"] = i
-	if not best_hit.is_empty():
-		_resolve_contact(best_hit, points, now, touched)
+		if not is_instance_valid(collider): continue
+		var id: int = collider.get_instance_id()
+		touched[id] = true
+		if seen.has(id): continue
+		seen[id] = true
+		hit["_speed"] = from.distance_to(to) / delta
+		# Direction of the contact point's motion decides cut vs thrust.
+		hit["_velocity"] = (to - from) / delta
+		hit["_index"] = i
+		hits.append(hit)
+	for hit: Dictionary in hits:
+		_resolve_contact(hit, points, now, touched)
 	# Remember what the blade was already touching: a target that stays in
 	# contact is not struck again, so one swing cannot machine-gun damage.
 	for id: Variant in _contact_prev:
@@ -1720,7 +1723,10 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 	if npc_part != "" or _is_npc_collider(collider):
 		# Hitting the armed resident hurts the LIMB that was struck, and a limb
 		# that gives out is cut off - losing the sword arm also loses the sword.
-		if _held and now - int(_hit_ms.get(id_any, -10000)) >= CONTACT_COOLDOWN_MS:
+		# One ENTRY = one blow: the blade must have left the part again, so a fast
+		# second swing counts while a blade resting in the wound does not spam.
+		var npc_rearmed: bool = not _contact_gap.has(id_any) or now - int(_contact_gap[id_any]) >= CONTACT_REARM_MS
+		if _held and npc_rearmed and not _contact_prev.has(id_any):
 			_hit_ms[id_any] = now
 			# A full wind-up lands far harder, so a strong, prepared cut is what
 			# actually severs a limb.
