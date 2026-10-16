@@ -26,6 +26,7 @@ const SimpleHospital = preload("res://scripts/hospital/npc_simple_hospital.gd")
 const PlayerShopCatalog = preload("res://scripts/shop/player_shop_catalog.gd")  # DSH_PLAYERSHOP
 const NpcObserve58 = preload("res://scripts/ui/npc_observe_host.gd")  # DSH_OBSERVE58
 const SwordPrototype = preload("res://scripts/weapons/sword_prototype.gd")  # DSH_SWORD_PROTO
+const BowPrototype = preload("res://scripts/weapons/bow_prototype.gd")  # DSH_BOW_PROTO
 const STATIC_RENDER_OWNER_IDS := [
 	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-013", "REBUILD-VISUAL-old_town_narrow_townhouse_v1-005",
 	"REBUILD-VISUAL-gun_shop-001", "REBUILD-VISUAL-pawnshop-001",
@@ -83,6 +84,11 @@ var weapons_status := "disabled"
 @export var preview_sword_prototype_enabled: bool = false
 var preview_sword_prototype: Node
 var sword_prototype_status := "disabled"
+## DSH_BOW_PROTO: the test bow, installed next to the test sword. OFF by default;
+## enabled by --bow-proto=1 or this export.
+@export var preview_bow_prototype_enabled: bool = false
+var preview_bow_prototype: Node
+var bow_prototype_status := "disabled"
 var preview_melee: Node
 var melee_status := "disabled"
 var preview_minimap: Node
@@ -367,6 +373,12 @@ func _ready() -> void:
 	# only acts while that item is equipped (no purchase, no ammo).
 	if preview_sword_prototype_enabled or is_instance_valid(preview_weapons) or OS.get_cmdline_user_args().has("--sword-proto=1"):
 		_install_sword_prototype()  # DSH_SWORD_PROTO
+	# DSH_BOW_PROTO: the bow prototype rides along with the same arsenal, so it can
+	# be picked from the weapon menu next to the test sword.
+	if preview_bow_prototype_enabled or is_instance_valid(preview_weapons) or OS.get_cmdline_user_args().has("--bow-proto=1"):
+		_install_bow_prototype()  # DSH_BOW_PROTO
+	if OS.get_cmdline_user_args().has("--bow-proto=1"):
+		_equip_bow_for_test()
 	# DSH_SWORD_PROTO: with the explicit test flag the blade is equipped at once,
 	# so the scene opens with the sword already in hand.
 	if OS.get_cmdline_user_args().has("--sword-proto=1"):
@@ -436,6 +448,7 @@ func _ready() -> void:
 	print("MELEE_PRACTICE_STATUS ", melee_status)
 	print("MINIMAP_STATUS ", minimap_status)
 	print("SWORD_PROTOTYPE_STATUS ", sword_prototype_status)
+	print("BOW_PROTOTYPE_STATUS ", bow_prototype_status)
 
 ## DSH_SWORD_PROTO: isolated prototype host. Adds its own sword, training dummy,
 ## pole and HUD hint; reads the existing hand socket and never writes poses.
@@ -453,6 +466,33 @@ func _install_sword_prototype() -> bool:
 	sword_prototype_status = "ready"
 	print("DSH_SWORD_PROTO ", JSON.stringify(installed))
 	return true
+
+## DSH_BOW_PROTO: same isolated-host pattern as the sword, with its own models,
+## aim arc, projectile flight and HUD.
+func _install_bow_prototype() -> bool:
+	if is_instance_valid(preview_bow_prototype) or not is_instance_valid(_player): return false
+	var host: Node3D = BowPrototype.new()
+	host.name = "BowPrototype"
+	add_child(host)
+	var installed: Dictionary = host.install(self, _player)
+	if not installed.get("ok", false):
+		bow_prototype_status = str(installed.get("reason", "install_failed"))
+		host.queue_free()
+		return false
+	preview_bow_prototype = host
+	bow_prototype_status = "ready"
+	print("DSH_BOW_PROTO ", JSON.stringify(installed))
+	return true
+
+## DSH_BOW_PROTO: `--bow-proto=1` opens the scene with the bow in hand.
+func _equip_bow_for_test() -> void:
+	if not is_instance_valid(_player): return
+	_player.set_mouse_captured(true)
+	if is_instance_valid(preview_weapons):
+		print("DSH_BOW_PROTO_EQUIP ", JSON.stringify(preview_weapons.equip("bow")))
+	elif is_instance_valid(preview_bow_prototype):
+		preview_bow_prototype.set_selected(true)
+		print("DSH_BOW_PROTO_EQUIP ", JSON.stringify({"ok": true, "direct": true}))
 
 ## DSH_SWORD_PROTO: `--sword-proto=1` opens the scene with the blade in hand.
 func _equip_sword_for_test() -> void:

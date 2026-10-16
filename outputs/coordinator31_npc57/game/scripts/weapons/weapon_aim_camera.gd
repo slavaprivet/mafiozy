@@ -23,6 +23,9 @@ var _optic: TextureRect
 var _scope_alpha := 0.0
 var _query := PhysicsShapeQueryParameters3D.new()
 var _query_count := 0
+## External field-of-view multiplier. 1.0 is untouched; the bow prototype lowers it
+## while the string is drawn, so the zoom needs no second writer of `fov`.
+var zoom_scale := 1.0
 
 func configure(host: Node) -> bool:
 	if _ready or not is_instance_valid(host) or not host._owner_current(): return false
@@ -117,7 +120,9 @@ func advance(delta: float) -> void:
 	_arm.spring_length=distance if scope else lerpf(_arm.spring_length,distance if desired else host.player.camera_distance,rate)
 	# Walk applies45 even without a weapon.65 is restored only on ownership exit.
 	var kick: float=Fire.sample_recoil(host.fire_state).weaponKick
-	_camera.fov=(14.0 if scope else lerpf(NORMAL_FOV,AIM_FOV,_blend))+kick*.15
+	# `zoom_scale` lets another presentation (the bow prototype drawing its string)
+	# tighten the view without fighting this camera for the field of view.
+	_camera.fov=((14.0 if scope else lerpf(NORMAL_FOV,AIM_FOV,_blend))+kick*.15)*zoom_scale
 	if scope: _scope_alpha=minf(1,_scope_alpha+delta/.1); _overlay.modulate.a=_scope_alpha
 	if not desired and _blend<.005:
 		_blend=0; _arm.spring_length=host.player.camera_distance
@@ -142,8 +147,7 @@ func reset(release_owner: bool = false) -> void:
 		if is_instance_valid(_camera): _camera.fov=45.0 if retain_walk else _base_fov
 		if is_instance_valid(_arm) and _host!=null and is_instance_valid(_host.get_ref()) and is_instance_valid(_host.get_ref().player): _arm.spring_length=_host.get_ref().player.camera_distance
 	_blend=0; _owns=retain_walk
-func stats() -> Dictionary:
-	return {"owns":_owns,"scoped":_scoped,"blend":_blend,"base_fov":_base_fov,"hidden_geometry":_hidden.size(),"queries":_query_count,"scope_alpha":_scope_alpha}
+func stats() -> Dictionary:	return {"owns":_owns,"scoped":_scoped,"blend":_blend,"base_fov":_base_fov,"hidden_geometry":_hidden.size(),"queries":_query_count,"scope_alpha":_scope_alpha}
 func dispose() -> void:
 	reset(true)
 	if _host!=null and is_instance_valid(_host.get_ref()):

@@ -12,11 +12,13 @@ const Projectiles = preload("res://scripts/weapons/weapon_projectiles.gd")
 const SurfaceImpacts = preload("res://scripts/weapons/weapon_surface_impacts.gd")
 const Posture = preload("res://scripts/weapons/weapon_posture_base.gd")
 signal shot_emitted(shot: Dictionary, muzzle: Dictionary, camera_origin: Vector3, camera_direction: Vector3)
-const LABELS := {"none":"Без оружия", "sword":"Тестовый меч (прототип)", "nagan":"Наган", "tt_pistol":"ТТ", "revolver":"Револьвер", "deagle":"Desert Eagle", "golden_colt":"Золотой Colt", "sawn_off":"Обрез", "shotgun":"Дробовик", "uzi":"Uzi", "golden_uzi":"Золотой Uzi", "ak74":"АК-74", "m16":"M16", "tommy_gun":"Томпсон", "sniper":"Снайперская винтовка", "rpg":"РПГ"}
+const LABELS := {"none":"Без оружия", "sword":"Тестовый меч (прототип)", "bow":"Тестовый лук (прототип)", "nagan":"Наган", "tt_pistol":"ТТ", "revolver":"Револьвер", "deagle":"Desert Eagle", "golden_colt":"Золотой Colt", "sawn_off":"Обрез", "shotgun":"Дробовик", "uzi":"Uzi", "golden_uzi":"Золотой Uzi", "ak74":"АК-74", "m16":"M16", "tommy_gun":"Томпсон", "sniper":"Снайперская винтовка", "rpg":"РПГ"}
 ## DSH_SWORD_PROTO: the prototype sword is a melee item, not a firearm. It is
 ## always available in the existing arsenal menu (no purchase, no ammo) and it
 ## only routes input to the prototype host while it is the equipped item.
 const SWORD_ID := "sword"
+## DSH_BOW_PROTO: the test bow, always available like the test sword.
+const BOW_ID := "bow"
 var aim_camera: RefCounted
 var inventory: RefCounted
 var presentation: RefCounted
@@ -117,7 +119,9 @@ func equip(id: String) -> Dictionary:
 	# DSH_SWORD_PROTO: the prototype sword is always available and never consumes
 	# inventory ownership or ammunition. It disables the firearm presentation.
 	if id == SWORD_ID: return _equip_sword_prototype()
+	if id == BOW_ID: return _equip_bow_prototype()
 	_sword_prototype_selected(false)
+	_bow_prototype_selected(false)
 	if id != "none" and not inventory.get_owned_ids().has(id): return {"ok":false,"reason":"not_owned"}
 	cancel_inputs()
 	# Prepare the real model before changing item ownership/equipment state.
@@ -158,6 +162,32 @@ func _sword_prototype_selected(selected: bool) -> void:
 
 func sword_selected() -> bool:
 	return ready_for_play and fire_state.get("weaponId","none") == SWORD_ID
+
+## DSH_BOW_PROTO: hands the scene over to the bow host, exactly as the sword does.
+## No inventory ownership, no ammunition, no firearm presentation.
+func _equip_bow_prototype() -> Dictionary:
+	cancel_inputs()
+	presentation.equip("none")
+	fire_state = Fire.create_state("none")
+	fire_state.weaponId = BOW_ID
+	fire_state.magazine = 0
+	fire_state.reserveAmmo = 0
+	_profile = {}
+	_sword_prototype_selected(false)
+	_bow_prototype_selected(true)
+	if is_instance_valid(player._melee_practice): player._melee_practice.cancel("bow_equipped")
+	set_menu(false)
+	_refresh_ui()
+	return {"ok":true,"weaponId":BOW_ID,"bow":true,"ammo_free":true}
+
+func _bow_prototype_selected(selected: bool) -> void:
+	if not is_instance_valid(scene): return
+	var prototype: Node = scene.get("preview_bow_prototype")
+	if is_instance_valid(prototype) and prototype.has_method("set_selected"):
+		prototype.set_selected(selected)
+
+func bow_selected() -> bool:
+	return ready_for_play and fire_state.get("weaponId","none") == BOW_ID
 
 func set_menu(open: bool) -> void:
 	if open and not _interaction_allowed(): return
