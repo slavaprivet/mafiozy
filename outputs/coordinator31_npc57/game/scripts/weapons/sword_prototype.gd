@@ -51,7 +51,11 @@ const BODY_YAW_SHARE := 0.16
 const BODY_YAW_LIMIT := 0.30
 const DAMAGE_SPEED_MIN := 1.05  # m/s below which a touch deals no damage
 const DAMAGE_PER_MPS := 9.0
-const DAMAGE_MAX := 28.0
+const DAMAGE_MAX := 34.0
+## Wind-up: radians of blade travel that saturate the strength bonus.
+const MAX_SWING_TRAVEL := 2.4
+const SWING_STRENGTH_GAIN := 0.62
+const SWING_STRENGTH_MIN := 0.45
 const CONTACT_COOLDOWN_MS := 700
 ## A blow only counts after the blade actually left the target for this long.
 ## Without it, a blade resting on the ground or wobbling against the dummy fires
@@ -133,8 +137,12 @@ var _last_spark_ms := -1000
 var _last_block_sound_ms := -1000
 var _last_number_ms := -1000
 var _number_count := 0
+## Blade travel accumulated during the current wind-up: a swipe that stroked the
+## target barely counts, a full wind-up followed by a cut hits much harder.
+var _swing_travel := 0.0
 ## Kind of the last landed blow: slice, stab or flat.
 var _last_hit_kind := ""
+var _last_hit_scale := 1.0
 ## Time until which contacts are ignored: drawing the blade into the stance moves
 ## it fast, and that motion must not count as a blow.
 var _arm_ready_ms := 0
@@ -187,6 +195,7 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 	_ready = true
 	set_process_input(true)
 	set_physics_process(true)
+	set_process(true)
 	# The player asks this host directly before turning the camera, so the lock
 	# never depends on input routing order.
 	player.set("_sword_host", self)
@@ -630,18 +639,42 @@ func _physics_process(delta: float) -> void:
 	_hand += to_command
 	_thrust = lerpf(_thrust, 0.2, clampf(0.9 * delta, 0.0, 1.0))
 	_steer(delta)
+	# Wind-up bookkeeping: travel builds while the blade is being driven and
+	# decays when it is not, so a stroke cannot borrow an old swing's strength.
+	if _held:
+		_swing_travel = minf(MAX_SWING_TRAVEL, _swing_travel + _omega.length() * delta)
+	else:
+		_swing_travel = maxf(0.0, _swing_travel - delta * 2.2)
 	_block_push = _block_push.lerp(Vector3.ZERO, clampf(6.0 * delta, 0.0, 1.0))
 	_body_push = _body_push.lerp(Vector3.ZERO, clampf(BODY_PUSH_DECAY * delta, 0.0, 1.0))
 	_solve_arm(delta)
 	# The blade is never allowed to point behind the player.
 	_dir = _soft_body_limit(_constrain_forward(_dir), 0.28, 0.55)
-	_place_sword(_sword_origin, _dir)
+
+## The sword is attached in the DRAW frame, not in the physics step: the rig has
+## already applied every bone pose by then (including the player's own pass), so
+## the handle is placed on the fist the animation actually shows. Attaching it
+## during the physics step read a stale skeleton and left the sword out of hand.
+func _process(delta: float) -> void:
+	if not _ready or not is_instance_valid(_world) or not is_instance_valid(_rig): return
+	if not _active():
+		_sword.visible = false
+		return
+	_sword.visible = true
+	_attach_sword_to_fist()
 	_sweep(delta)
 	# A contact may deflect the blade; put it back into the allowed front space
 	# immediately so it can never be shown behind the character.
 	_dir = _soft_body_limit(_constrain_forward(_dir), 0.28, 0.55)
 	_update_dummy(delta)
 	_update_spark(delta)
+
+## Places the sword on the RIG'S CURRENT fist (displayed pose), with the grip
+## centre inside the hand and the blade along the commanded direction.
+func _attach_sword_to_fist() -> void:
+	if _bone_hand < 0: return
+	var fist := _rig.global_transform * _rig.get_bone_global_pose(_bone_hand).origin
+	_place_sword(fist + _dir * GRIP_CENTER_OFFSET, _dir)
 
 ## Blends into the body-space limit instead of snapping to it, so the blade is
 ## pulled back into the allowed front space over a few frames.
@@ -696,9 +729,9 @@ func _solve_arm(delta: float) -> void:
 	var rig_basis := _rig.global_transform.basis
 	if not _held:
 		# Idle: the arm keeps its own locomotion animation and only CARRIES the
-		# sword. Fighting that animation with IK is what made the blade wander
-		# while simply walking, so the fist is read from the rig as it is.
-		var resting_fist := _chain_global(_bone_hand).origin
+		# sword. The fist is read straight from the rig's displayed bone pose, so
+		# the handle stays in the hand exactly as the animation shows it.
+		var resting_fist: Vector3 = _rig.get_bone_global_pose(_bone_hand).origin
 		_sword_origin = (_rig.global_transform * resting_fist) + _dir * GRIP_CENTER_OFFSET
 		# A gentle torso help only; no arm authority at all.
 		_lean_body(_constrain_forward(_hand_target_direction()), delta)
@@ -886,28 +919,38 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 	var position: Vector3 = hit.position
 	var normal: Vector3 = hit.normal
 	var is_target: bool = is_instance_valid(collider) and collider.has_meta("sword_target")
+	if not _held:
+		# Carrying the sword is not a strike: a tip brushing the ground must not
+		# push, deflect or rattle anything. Reacting here was the 10 Hz jitter.
+		return
+	var id_any: int = collider.get_instance_id() if is_instance_valid(collider) else -1
+	var fresh: bool = id_any < 0 or not _contact_prev.has(id_any)
 	# Hitting a body stops the blade just like masonry does: it never sinks in and
-	# stays there. Everything is blended instead of snapped, so the sword does not
-	# jerk in the hand on impact.
+	# stays there. The push is applied on a fresh touch and blended, so the sword
+	# neither jerks in the hand nor bounces off the same surface every frame.
 	var point_index := int(hit.get("_index", 0))
 	var correction := position - points[point_index]
 	var penetration := correction.length()
-	if penetration > 0.02:
+	if penetration > 0.02 and (fresh or penetration > 0.10):
 		var gain := 0.30 if is_target else 0.50
 		var add := correction * gain
 		# Recoil is applied in bounded steps, never as one snap.
 		if add.length() > 0.05: add = add.normalized() * 0.05
 		_block_push = (_block_push + add).limit_length(0.55)
-	var into := _dir.dot(normal)
-	if into < 0.0:
-		_dir = _dir.slerp((_dir - normal * into).normalized(), 0.45).normalized()
-	var deflect := _dir - normal * _dir.dot(normal)
-	if deflect.length_squared() > 1e-6:
-		_dir = _dir.slerp(deflect.normalized(), 0.25 if is_target else 0.45).normalized()
-	_omega *= 0.60 if is_target else 0.25
-	var recoil := clampf(speed, 0.0, 4.0)
-	_body_push += normal * recoil * (0.02 if is_target else 0.04)
-	_body_push = _body_push.limit_length(BODY_PUSH_LIMIT)
+	if fresh:
+		var into := _dir.dot(normal)
+		if into < 0.0:
+			_dir = _dir.slerp((_dir - normal * into).normalized(), 0.45).normalized()
+		var deflect := _dir - normal * _dir.dot(normal)
+		if deflect.length_squared() > 1e-6:
+			_dir = _dir.slerp(deflect.normalized(), 0.25 if is_target else 0.45).normalized()
+	# Rotation is braked on a fresh impact only; while the blade simply rests
+	# against masonry it keeps sliding instead of stalling and re-accelerating.
+	if fresh:
+		_omega *= 0.60 if is_target else 0.25
+		var recoil := clampf(speed, 0.0, 4.0)
+		_body_push += normal * recoil * (0.02 if is_target else 0.04)
+		_body_push = _body_push.limit_length(BODY_PUSH_LIMIT)
 	if is_target:
 		var id: int = collider.get_instance_id()
 		# One entry = one blow, and only a deliberately steered blade (LMB held,
@@ -922,7 +965,7 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 	# Wall/pole: the visible blade stops and slides along the surface instead
 	# of passing through. Pulling the mouse back releases it immediately. The
 	# clang and the sparks are rate-limited so resting on masonry stays quiet.
-	var first_touch: bool = not _contact_prev.has(collider.get_instance_id()) if is_instance_valid(collider) else true
+	var first_touch: bool = fresh
 	if first_touch and now - _last_block_sound_ms >= BLOCK_SOUND_COOLDOWN_MS:
 		_last_block_sound_ms = now
 		_blocks += 1
@@ -948,8 +991,14 @@ func _damage_dummy(dummy: StaticBody3D, position: Vector3, speed: float, velocit
 	var quality := clampf(across * 1.0 + along * 0.45, 0.0, 1.0)
 	var effective := speed * quality
 	var kind := "slice" if across >= 0.72 else ("stab" if along >= 0.72 else "flat")
+	# Wind-up matters: a stroke that barely moved the blade stays a graze, while a
+	# full wind-up followed by a cut lands far harder.
+	var strength := clampf(SWING_STRENGTH_MIN + _swing_travel * SWING_STRENGTH_GAIN, SWING_STRENGTH_MIN, 2.0)
 	_last_hit_kind = kind
-	var damage := clampf((effective - DAMAGE_SPEED_MIN) * DAMAGE_PER_MPS, 0.0, DAMAGE_MAX)
+	_last_hit_scale = strength
+	var damage := clampf((effective * strength - DAMAGE_SPEED_MIN) * DAMAGE_PER_MPS, 0.0, DAMAGE_MAX)
+	# A landed blow spends the wind-up; the next hit must be earned again.
+	_swing_travel = 0.0
 	_hit_ms[key] = now
 	if damage <= 0.05:
 		# A light or flat touch is felt but does not remove health.
@@ -1041,6 +1090,7 @@ func snapshot() -> Dictionary:
 		"body_yaw": _body_yaw, "body_pitch": _body_lean.x, "body_roll": _body_lean.y,
 		"body_push": _body_push.length(), "omega": _omega.length(), "thrust": _thrust,
 		"last_hit_kind": _last_hit_kind, "contact_now": _contact_prev.size(),
+		"swing_travel": _swing_travel, "hit_scale": _last_hit_scale,
 		"blade_body_dot": _dir.dot(_player._visual.global_basis.z) if is_instance_valid(_player) and is_instance_valid(_player._visual) else -1.0,
 		"hand_local_z": (_player._visual.global_basis.inverse() * (_sword_origin - _player._visual.global_position)).z if is_instance_valid(_player) and is_instance_valid(_player._visual) else 0.0,
 		"upper_len": _upper_len, "fore_len": _fore_len,
