@@ -52,7 +52,15 @@ const BODY_YAW_LIMIT := 0.30
 const DAMAGE_SPEED_MIN := 1.05  # m/s below which a touch deals no damage
 const DAMAGE_PER_MPS := 9.0
 const DAMAGE_MAX := 28.0
-const CONTACT_COOLDOWN_MS := 320
+const CONTACT_COOLDOWN_MS := 700
+## A blow only counts after the blade actually left the target for this long.
+## Without it, a blade resting on the ground or wobbling against the dummy fires
+## a fresh "entry" every frame and floods damage, sounds and damage numbers.
+const CONTACT_REARM_MS := 260
+const SPARK_COOLDOWN_MS := 140
+const BLOCK_SOUND_COOLDOWN_MS := 420
+const DAMAGE_NUMBER_COOLDOWN_MS := 220
+const DAMAGE_NUMBER_LIMIT := 6
 const DUMMY_MAX_HP := 100.0
 const DUMMY_CLEAR_RADIUS := 0.75
 const POLE_CLEAR_RADIUS := 0.55
@@ -119,6 +127,14 @@ var _hit_ms: Dictionary = {}
 ## Colliders the blade was already touching on the previous frame, so a target
 ## that stays on the edge is not struck over and over.
 var _contact_prev: Dictionary = {}
+## id -> time of the last frame the blade was NOT touching that collider.
+var _contact_gap: Dictionary = {}
+var _last_spark_ms := -1000
+var _last_block_sound_ms := -1000
+var _last_number_ms := -1000
+var _number_count := 0
+## Kind of the last landed blow: slice, stab or flat.
+var _last_hit_kind := ""
 ## Time until which contacts are ignored: drawing the blade into the stance moves
 ## it fast, and that motion must not count as a blow.
 var _arm_ready_ms := 0
@@ -527,6 +543,7 @@ func set_selected(value: bool) -> void:
 		_body_yaw = 0.0
 		_body_yaw_vel = 0.0
 		_contact_prev.clear()
+		_contact_gap.clear()
 		_prev_points = PackedVector3Array()
 		if is_instance_valid(_sword): _sword.visible = false
 		if is_instance_valid(_player): _player.set("_sword_lock", false)
@@ -561,18 +578,24 @@ func _target_direction() -> Vector3:
 	return target
 
 func _steer(delta: float) -> void:
-	var target := _soft_body_limit(_constrain_forward(_target_direction()), 0.20, 0.55) if _held else _soft_body_limit(_constrain_forward(_rest_dir), 0.20, 0.55)
-	var rate := 1.0 if _held else REST_RETURN_RATE
+	if not _held:
+		# Idle stance: follow the CURRENT view, without inertia. The old fixed
+		# rest vector made the blade hunt back and forth while simply walking.
+		var rest := _soft_body_limit(_constrain_forward(_rest_direction()), 0.20, 0.55)
+		_dir = _dir.slerp(rest, clampf(6.0 * delta, 0.0, 1.0)).normalized()
+		_omega = Vector3.ZERO
+		return
+	var target := _soft_body_limit(_constrain_forward(_target_direction()), 0.20, 0.55)
+	# A larger error drives a proportionally faster blade, so a decisive flick
+	# whips the sword through instead of dragging it.
 	var axis := _dir.cross(target)
 	var angle := _dir.angle_to(target)
 	var desired := Vector3.ZERO
 	if angle > 1e-4 and axis.length_squared() > 1e-10:
-		# A larger error drives a proportionally faster blade, so a decisive flick
-		# whips the sword through instead of dragging it.
-		desired = axis.normalized() * clampf(angle * 11.0 * rate, 0.0, MAX_OMEGA)
+		desired = axis.normalized() * clampf(angle * 11.0, 0.0, MAX_OMEGA)
 	var dv := desired - _omega
 	var max_dv := MAX_ALPHA * delta
-	if dv.length() > max_dv and dv.length() > 1e-9: dv = dv.normalized() * max_dv
+	if dv.length() > max_dv and dv.length() > 1.0e-9: dv = dv.normalized() * max_dv
 	_omega += dv
 	if _omega.length() > MAX_OMEGA: _omega = _omega.normalized() * MAX_OMEGA
 	if _omega.length() > 1e-6:
@@ -671,6 +694,15 @@ func _hand_target_direction() -> Vector3:
 ## follows the blade, and the torso turns toward the target.
 func _solve_arm(delta: float) -> void:
 	var rig_basis := _rig.global_transform.basis
+	if not _held:
+		# Idle: the arm keeps its own locomotion animation and only CARRIES the
+		# sword. Fighting that animation with IK is what made the blade wander
+		# while simply walking, so the fist is read from the rig as it is.
+		var resting_fist := _chain_global(_bone_hand).origin
+		_sword_origin = (_rig.global_transform * resting_fist) + _dir * GRIP_CENTER_OFFSET
+		# A gentle torso help only; no arm authority at all.
+		_lean_body(_constrain_forward(_hand_target_direction()), delta)
+		return
 	var want_dir := _constrain_forward(_hand_target_direction())
 	# The hand stays in front of the torso even while the body is still turning.
 	want_dir = _constrain_to_body(want_dir, 0.55)
@@ -836,11 +868,15 @@ func _sweep(delta: float) -> void:
 			best_distance = distance
 			best_hit = hit
 			best_hit["_speed"] = from.distance_to(to) / delta
+			# Direction of the contact point's motion decides cut vs thrust.
+			best_hit["_velocity"] = (to - from) / delta
 			best_hit["_index"] = i
 	if not best_hit.is_empty():
 		_resolve_contact(best_hit, points, now, touched)
 	# Remember what the blade was already touching: a target that stays in
 	# contact is not struck again, so one swing cannot machine-gun damage.
+	for id: Variant in _contact_prev:
+		if not touched.has(id): _contact_gap[id] = now
 	_contact_prev = touched
 	_prev_points = points
 
@@ -876,29 +912,47 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 		var id: int = collider.get_instance_id()
 		# One entry = one blow, and only a deliberately steered blade (LMB held,
 		# past the arming delay) hurts anything. Carrying the sword, drawing it or
-		# letting it rest against the dummy never removes health.
+		# letting it rest against the dummy never removes health. A blade that
+		# keeps resting on the target must first leave it again (rearm window).
 		var armed: bool = _held and Time.get_ticks_msec() >= _arm_ready_ms
-		if armed and not _contact_prev.has(id):
-			_damage_dummy(collider, position, speed, now)
+		var rearmed: bool = not _contact_gap.has(id) or now - int(_contact_gap[id]) >= CONTACT_REARM_MS
+		if armed and rearmed and not _contact_prev.has(id):
+			_damage_dummy(collider, position, speed, hit.get("_velocity", Vector3.ZERO), now)
 		return
 	# Wall/pole: the visible blade stops and slides along the surface instead
-	# of passing through. Pulling the mouse back releases it immediately.
-	if now - _last_block_ms >= 180:
-		_last_block_ms = now
+	# of passing through. Pulling the mouse back releases it immediately. The
+	# clang and the sparks are rate-limited so resting on masonry stays quiet.
+	var first_touch: bool = not _contact_prev.has(collider.get_instance_id()) if is_instance_valid(collider) else true
+	if first_touch and now - _last_block_sound_ms >= BLOCK_SOUND_COOLDOWN_MS:
+		_last_block_sound_ms = now
 		_blocks += 1
 		_impact_player.global_position = position
 		_impact_player.pitch_scale = 1.15
 		_impact_player.play()
-	_show_spark(position)
+	if first_touch and now - _last_spark_ms >= SPARK_COOLDOWN_MS:
+		_last_spark_ms = now
+		_show_spark(position)
 
-func _damage_dummy(dummy: StaticBody3D, position: Vector3, speed: float, now: int) -> void:
+## A blow is judged by HOW the edge arrives, not just how fast the point moves:
+## a slice (motion across the blade axis) cuts at full strength, a stab (motion
+## along the axis) is weaker, and sliding flat along the surface barely marks.
+func _damage_dummy(dummy: StaticBody3D, position: Vector3, speed: float, velocity: Vector3, now: int) -> void:
 	if _dummy_down: return
 	var key := dummy.get_instance_id()
 	if _hit_ms.has(key) and now - int(_hit_ms[key]) < CONTACT_COOLDOWN_MS: return
-	var damage := clampf((speed - DAMAGE_SPEED_MIN) * DAMAGE_PER_MPS, 0.0, DAMAGE_MAX)
+	var motion := velocity
+	if motion.length_squared() < 1.0e-8: motion = _dir * speed
+	var along := absf(motion.normalized().dot(_dir))
+	var across := sqrt(maxf(0.0, 1.0 - along * along))
+	# Blend from a pure stab to a clean slice; a flat slap stays near zero.
+	var quality := clampf(across * 1.0 + along * 0.45, 0.0, 1.0)
+	var effective := speed * quality
+	var kind := "slice" if across >= 0.72 else ("stab" if along >= 0.72 else "flat")
+	_last_hit_kind = kind
+	var damage := clampf((effective - DAMAGE_SPEED_MIN) * DAMAGE_PER_MPS, 0.0, DAMAGE_MAX)
 	_hit_ms[key] = now
 	if damage <= 0.05:
-		# A light touch is felt but does not remove health.
+		# A light or flat touch is felt but does not remove health.
 		_impact_player.global_position = position
 		_impact_player.pitch_scale = 1.45
 		_impact_player.volume_db = -12.0
@@ -907,7 +961,8 @@ func _damage_dummy(dummy: StaticBody3D, position: Vector3, speed: float, now: in
 		return
 	_impact_player.volume_db = 0.0
 	_impact_player.global_position = position
-	_impact_player.pitch_scale = 0.85 + randf() * 0.25
+	# A slice rings higher and sharper than a stab.
+	_impact_player.pitch_scale = (1.35 + randf() * 0.25) if kind == "slice" else (0.85 + randf() * 0.15)
 	_impact_player.play()
 	# A landed blow pushes the body back through the arm.
 	_body_push += -_dir * clampf(speed, 0.0, 4.0) * 0.05
@@ -922,7 +977,7 @@ func _damage_dummy(dummy: StaticBody3D, position: Vector3, speed: float, now: in
 	_dummy_tilt = clampf(_dummy_tilt + 0.12 + damage * 0.012, 0.0, 0.62)
 	_dummy_label.text = "Манекен %d" % int(round(_dummy_hp))
 	_dummy_label.modulate = Color(1.0, 0.55, 0.45) if _dummy_hp <= 40.0 else Color(1.0, 0.92, 0.65)
-	_spawn_damage_number(position, damage)
+	_spawn_damage_number(position, damage, kind)
 	if _dummy_hp <= 0.0:
 		_dummy_down = true
 		_down_until_ms = now + 2200
@@ -951,13 +1006,20 @@ func _update_spark(delta: float) -> void:
 	_spark.scale = Vector3.ONE * maxf(0.15, _spark_left / 0.09)
 	if _spark_left <= 0.0: _spark.visible = false
 
-func _spawn_damage_number(at: Vector3, damage: float) -> void:
+func _spawn_damage_number(at: Vector3, damage: float, kind: String) -> void:
+	var now := Time.get_ticks_msec()
+	# Damage numbers are rate-limited and capped: a blade resting on a target can
+	# otherwise spawn one label per frame and stall the frame rate.
+	if now - _last_number_ms < DAMAGE_NUMBER_COOLDOWN_MS: return
+	if _number_count >= DAMAGE_NUMBER_LIMIT: return
+	_last_number_ms = now
+	_number_count += 1
 	var label := Label3D.new()
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.font_size = 110
 	label.pixel_size = 0.0032
 	label.outline_size = 20
-	label.modulate = Color(1.0, 0.35, 0.28)
+	label.modulate = Color(1.0, 0.35, 0.28) if kind == "slice" else Color(1.0, 0.72, 0.35)
 	label.text = "-%d" % int(round(damage))
 	label.position = at + Vector3.UP * 0.22
 	_world.add_child(label)
@@ -965,7 +1027,9 @@ func _spawn_damage_number(at: Vector3, damage: float) -> void:
 	tween.set_parallel(true)
 	tween.tween_property(label, "position", label.position + Vector3.UP * 0.75, 0.85)
 	tween.tween_property(label, "modulate:a", 0.0, 0.85)
-	tween.chain().tween_callback(label.queue_free)
+	tween.chain().tween_callback(func() -> void:
+		_number_count = maxi(0, _number_count - 1)
+		label.queue_free())
 
 # ------------------------------------------------------------------- reporting
 
@@ -976,6 +1040,7 @@ func snapshot() -> Dictionary:
 		"hand": [_hand.x, _hand.y], "direction": [_dir.x, _dir.y, _dir.z],
 		"body_yaw": _body_yaw, "body_pitch": _body_lean.x, "body_roll": _body_lean.y,
 		"body_push": _body_push.length(), "omega": _omega.length(), "thrust": _thrust,
+		"last_hit_kind": _last_hit_kind, "contact_now": _contact_prev.size(),
 		"blade_body_dot": _dir.dot(_player._visual.global_basis.z) if is_instance_valid(_player) and is_instance_valid(_player._visual) else -1.0,
 		"hand_local_z": (_player._visual.global_basis.inverse() * (_sword_origin - _player._visual.global_position)).z if is_instance_valid(_player) and is_instance_valid(_player._visual) else 0.0,
 		"upper_len": _upper_len, "fore_len": _fore_len,
