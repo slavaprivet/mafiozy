@@ -1004,7 +1004,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		var motion: InputEventMouseMotion = event as InputEventMouseMotion
 		if is_instance_valid(_weapon_host) and _weapon_host.controls_blocked(): return
-		if _free_mouse_look and not _text_control_focused() and not _sword_lock:
+		if _free_mouse_look and not _text_control_focused() and not _sword_lock and not _sword_steering():
 			_camera_yaw -= motion.relative.x * mouse_sensitivity
 			var pitch_limits: Vector2=_weapon_host.aim_camera.pitch_limits() if is_instance_valid(_weapon_host) and _weapon_host.aim_camera!=null else Vector2(-1.05,.45)
 			_camera_pitch = clampf(_camera_pitch - motion.relative.y * mouse_sensitivity, pitch_limits.x, pitch_limits.y)
@@ -1039,6 +1039,13 @@ func _update_camera_rotation() -> void:
 func _text_control_focused() -> bool:
 	var focused: Control = get_viewport().gui_get_focus_owner()
 	return focused is LineEdit or focused is TextEdit
+
+## DSH_SWORD_PROTO: while the prototype sword is being steered it owns the mouse,
+## so the view cannot drift no matter how the input events are routed.
+func _sword_steering() -> bool:
+	var host: Variant = get("_sword_host")
+	if host == null or not is_instance_valid(host): return false
+	return host.has_method("is_steering") and host.is_steering()
 
 
 func set_mouse_captured(captured: bool) -> void:

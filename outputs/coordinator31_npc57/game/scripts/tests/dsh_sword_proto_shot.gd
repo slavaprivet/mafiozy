@@ -129,11 +129,25 @@ func _run() -> void:
 	var weapons: Node = _scene.get("preview_weapons")
 	var equipped: Dictionary = weapons.equip("sword") if weapons != null else {}
 	print("SWORD_SHOT_EQUIP ", JSON.stringify(equipped), " selected=", _proto.snapshot().selected)
+	# Merely holding the blade must never take health off the dummy.
+	var idle_before: float = _proto.snapshot().dummy_hp
+	await _settle(70)
+	var idle_after: float = _proto.snapshot().dummy_hp
+	print("SWORD_SHOT_IDLE_HP ", idle_before, " -> ", idle_after)
 	await _settle(30)
 	await _shot("rest")
 	var rest_body: Dictionary = _proto.snapshot()
 	print("SWORD_SHOT_BODY_REST yaw=", rest_body.body_yaw, " pitch=", rest_body.body_pitch,
 		" roll=", rest_body.body_roll, " push=", rest_body.body_push)
+	# Quiet hold: the torso must not sway while nothing is commanded.
+	var quiet_pitch := 0.0
+	var quiet_roll := 0.0
+	for i: int in 60:
+		await _settle(1)
+		var quiet: Dictionary = _proto.snapshot()
+		quiet_pitch = maxf(quiet_pitch, absf(float(quiet.body_pitch)))
+		quiet_roll = maxf(quiet_roll, absf(float(quiet.body_roll)))
+	print("SWORD_SHOT_BODY_QUIET max_pitch=", quiet_pitch, " max_roll=", quiet_roll)
 	# The arm must hold one steady pose while nothing is commanded (no flicker).
 	var samples: Array = []
 	for i: int in 12:
@@ -201,6 +215,30 @@ func _run() -> void:
 	for i: int in 4:
 		_wheel(false)
 		await _settle(2)
+	# High guard pass: the blade must be able to go clearly above the shoulder.
+	await _recenter()
+	for i: int in 22:
+		_move(0.0, -60.0)
+		await _settle(2)
+	await _settle(8)
+	await _shot("high_guard")
+	var high_snap: Dictionary = _proto.snapshot()
+	var high_dir: Array = high_snap.direction
+	var elevation := asin(clampf(float(high_dir[1]), -1.0, 1.0))
+	print("SWORD_SHOT_HIGH_GUARD elevation_deg=", rad_to_deg(elevation), " hand=", high_snap.hand,
+		" body_pitch=", high_snap.body_pitch)
+	# Close-up in profile so the sword model itself can be reviewed.
+	var spring: Variant = _player.get("_spring_arm")
+	_player.set("camera_distance", 3.2)
+	if spring != null and is_instance_valid(spring): spring.spring_length = 3.2
+	await _settle(10)
+	_press(false)
+	await _settle(6)
+	var profile_target: Vector3 = _player.global_position + _player._visual.global_basis.x * 3.5
+	await _aim_camera_at(profile_target)
+	_press(true)
+	await _settle(24)
+	await _shot("sword_closeup")
 	# Pull-back pass: a hard drag backwards must still leave the blade in front.
 	await _recenter()
 	for i: int in 14:
