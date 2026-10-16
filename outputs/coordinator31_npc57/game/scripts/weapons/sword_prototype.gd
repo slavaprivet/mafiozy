@@ -161,6 +161,17 @@ var _number_count := 0
 ## Blade travel accumulated during the current wind-up: a swipe that stroked the
 ## target barely counts, a full wind-up followed by a cut hits much harder.
 var _swing_travel := 0.0
+## Blade direction when the current swing began, and the previous held state.
+var _swing_start_dir := Vector3.ZERO
+var _held_prev := false
+## Largest wind-up angle that still counts (radians).
+const SWING_ANGLE_MAX := 2.4
+
+## How far the blade has turned since the swing started. Sensitivity-independent:
+## any player can reach the same angles with the same swing.
+func _windup_angle() -> float:
+	if _swing_start_dir.length_squared() < 1.0e-6: return 0.0
+	return clampf(_swing_start_dir.angle_to(_dir), 0.0, SWING_ANGLE_MAX)
 ## Kind of the last landed blow: slice, stab or flat.
 var _last_hit_kind := ""
 var _last_hit_scale := 1.0
@@ -775,12 +786,16 @@ func _physics_process(delta: float) -> void:
 	_hand += to_command
 	_thrust = lerpf(_thrust, 0.2, clampf(0.9 * delta, 0.0, 1.0))
 	_steer(delta)
-	# Wind-up bookkeeping: travel builds while the blade is being driven and
-	# decays when it is not, so a stroke cannot borrow an old swing's strength.
-	if _held:
-		_swing_travel = minf(MAX_SWING_TRAVEL, _swing_travel + _omega.length() * delta)
-	else:
-		_swing_travel = maxf(0.0, _swing_travel - delta * 2.2)
+	# Wind-up bookkeeping, measured as the ANGLE the blade has turned away from
+	# where the swing began. Accumulating mouse travel rewarded high DPI, which is
+	# unfair; an angle is the same for every player and every sensitivity, and it is
+	# still what a real wind-up is.
+	if _held and not _held_prev:
+		_swing_start_dir = _dir
+	_held_prev = _held
+	if not _held:
+		_swing_start_dir = _dir
+	_swing_travel = _windup_angle()
 	_block_push = _block_push.lerp(Vector3.ZERO, clampf(6.0 * delta, 0.0, 1.0))
 	_body_push = _body_push.lerp(Vector3.ZERO, clampf(BODY_PUSH_DECAY * delta, 0.0, 1.0))
 	_solve_arm(delta)
@@ -1028,9 +1043,9 @@ func _pose_arm_ik(clav: int, upper: int, fore: int, hand: int, rest_upper: Trans
 	if distance < 1.0e-4: return Vector3.ZERO
 	var direction := to_target.normalized()
 	var d := clampf(distance, absf(l1 - l2) + 1.0e-3, l1 + l2 - 1.0e-3)
-	# Elbow hangs low and slightly behind and OUTWARD on its own side, which is
-	# what keeps the arm from folding into a hook across the body.
-	var pole := Vector3(0.45 * pole_side, -0.55, -0.25)
+	# The elbow hangs DOWN (a little to its own side and slightly back), which is
+	# what a human arm does. A sideways pole threw the elbow out into a Г shape.
+	var pole := Vector3(0.16 * pole_side, -1.0, -0.12)
 	pole -= direction * pole.dot(direction)
 	if pole.length_squared() < 1.0e-6:
 		pole = direction.cross(Vector3.RIGHT)
@@ -1711,6 +1726,7 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 			# actually severs a limb.
 			var strength := clampf(SWING_STRENGTH_MIN + _swing_travel * SWING_STRENGTH_GAIN, SWING_STRENGTH_MIN, 2.0)
 			var npc_cut := clampf((speed * 0.6 - DAMAGE_SPEED_MIN) * DAMAGE_PER_MPS * strength, 4.0, DAMAGE_MAX)
+			_swing_start_dir = _dir
 			_swing_travel = 0.0
 			if npc_part != "":
 				_npc_take_blade_part(npc_part, position, speed, hit.get("_velocity", Vector3.ZERO), npc_cut)
@@ -1765,6 +1781,7 @@ func _damage_dummy(dummy: StaticBody3D, position: Vector3, speed: float, velocit
 	_last_hit_scale = strength
 	var damage := clampf((effective * strength - DAMAGE_SPEED_MIN) * DAMAGE_PER_MPS, 0.0, DAMAGE_MAX)
 	# A landed blow spends the wind-up; the next hit must be earned again.
+	_swing_start_dir = _dir
 	_swing_travel = 0.0
 	_hit_ms[key] = now
 	if damage <= 0.05:
@@ -2012,7 +2029,7 @@ func _add_npc_hitboxes() -> void:
 	var unit := 1.0
 	var thigh := _npc_rig.find_bone("thigh_l")
 	if thigh >= 0: unit = maxf(0.2, _bone_length(thigh))
-	var limbs := ["head", "upperarm_l", "upperarm_r", "forearm_l", "forearm_r",
+	var limbs := ["head", "chest", "pelvis", "upperarm_l", "upperarm_r", "forearm_l", "forearm_r",
 		"hand_l", "hand_r", "thigh_l", "thigh_r", "shin_l", "shin_r", "foot_l", "foot_r"]
 	var count := 0
 	for part: String in limbs:
@@ -2020,16 +2037,30 @@ func _add_npc_hitboxes() -> void:
 		if bone < 0: continue
 		var blen := _bone_length(bone)
 		var radius := blen * 0.45
+		var box_size := Vector3.ZERO
+		var box_at := Vector3(0.0, blen * 0.5, 0.0)
 		if part == "head":
 			blen = unit * 0.55
 			radius = unit * 0.32
+			box_size = Vector3(radius * 2.1, blen * 1.15, radius * 2.1)
+		elif part == "chest":
+			# Torso: a big box centred on the chest bone, not a limb along it.
+			box_size = Vector3(unit * 1.55, unit * 1.45, unit * 0.95)
+			box_at = Vector3.ZERO
+		elif part == "pelvis":
+			box_size = Vector3(unit * 1.30, unit * 0.95, unit * 0.90)
+			box_at = Vector3.ZERO
 		elif part.begins_with("hand"):
 			blen = maxf(blen, unit * 0.22)
 			radius = blen * 0.5
+			box_size = Vector3(radius * 2.1, blen * 1.15, radius * 2.1)
 		elif part.begins_with("foot"):
 			blen = maxf(blen, unit * 0.20)
 			radius = blen * 0.5
-		if blen < 0.05 or radius < 0.03: continue
+			box_size = Vector3(radius * 2.1, blen * 1.15, radius * 2.1)
+		else:
+			if blen < 0.05 or radius < 0.03: continue
+			box_size = Vector3(radius * 2.1, blen * 1.15, radius * 2.1)
 		var anchor := BoneAttachment3D.new()
 		anchor.name = "Hit" + part
 		anchor.bone_name = part
@@ -2043,10 +2074,9 @@ func _add_npc_hitboxes() -> void:
 		hit_body.set_meta("sword_npc_part", part)
 		var hit_shape := CollisionShape3D.new()
 		var box := BoxShape3D.new()
-		box.size = Vector3(radius * 2.1, blen * 1.15, radius * 2.1)
+		box.size = box_size
 		hit_shape.shape = box
-		# Centred on the bone, halfway toward its child.
-		hit_shape.position = Vector3(0.0, blen * 0.5, 0.0)
+		hit_shape.position = box_at
 		hit_body.add_child(hit_shape)
 		anchor.add_child(hit_body)
 		count += 1
@@ -2075,9 +2105,56 @@ func _npc_take_blade_part(full_key: String, point: Vector3, speed: float, direct
 	if _npc_state == "wait":
 		_npc_state = "approach"
 		_npc_timer = 0.0
-	_spray_blood(point, direction, 8 if damage < 20.0 else 16)
+	_spray_blood(point, direction, 10 if damage < 20.0 else 24)
+	# A wound keeps bleeding for a while, like a stream rather than one puff.
+	_npc_bleed_until_ms = Time.get_ticks_msec() + 2600
+	_npc_bleed_at = point
 	if float(_npc_part_hp[full_key]) > 0.0: return
+	# The torso cannot be taken off - a cut that empties it simply drops him.
+	if kind in ["chest", "pelvis"]:
+		_npc_dead = true
+		_npc_disarmed = true
+		_npc_engaged = false
+		_npc_state = "wait"
+		_spray_blood(point, direction, 60)
+		_npc_bleed_until_ms = Time.get_ticks_msec() + 4000
+		print("DSH_SWORD_PROTO_SEVER part=", full_key, " kind=cut_down")
+		return
 	_sever_part(full_key, kind, {"sever": full_key}, point, direction, speed)
+
+## The wound keeps pouring for a few seconds instead of a single puff.
+var _npc_bleed_until_ms := 0
+var _npc_bleed_at := Vector3.ZERO
+var _npc_bleed_accum := 0.0
+## When he is cut down he topples over instead of standing there.
+var _npc_fall := 0.0
+
+## Runs the open wound: a steady stream of drops from the cut.
+func _update_npc_bleed(delta: float) -> void:
+	if not is_instance_valid(_npc_body): return
+	var now := Time.get_ticks_msec()
+	if _npc_dead and _npc_fall < 1.0:
+		# Dead: fall over on the ground, physically.
+		_npc_fall = minf(1.0, _npc_fall + delta * 1.6)
+		var t := _npc_fall * _npc_fall
+		_npc_motion.rotation.x = -PI * 0.5 * t
+		var drop := _npc_body.global_position.y
+		if _npc_fall >= 1.0:
+			_npc_body.velocity = Vector3.ZERO
+	if now > _npc_bleed_until_ms: return
+	_npc_bleed_accum += delta
+	if _npc_bleed_accum < 0.05: return
+	_npc_bleed_accum = 0.0
+	var drop_dir := Vector3(randf_range(-0.4, 0.4), -1.0, randf_range(-0.4, 0.4)).normalized()
+	_spray_blood(_npc_bleed_at + Vector3(randf_range(-0.06, 0.06), randf_range(-0.06, 0.06), randf_range(-0.06, 0.06)),
+		drop_dir, 3)
+
+## How much slower he moves with legs missing.
+func _npc_speed_scale() -> float:
+	var loss := 0.0
+	for key: String in ["thigh_l", "thigh_r", "shin_l", "shin_r", "foot_l", "foot_r"]:
+		if _npc_severed.has(key): loss += 0.28
+	return clampf(1.0 - loss, 0.18, 1.0)
 
 ## Builds the opponent from the game's own resident model and canonical walk gait.
 func _spawn_resident_knight(at: Vector3) -> bool:
@@ -2176,15 +2253,25 @@ func _update_city_npc(delta: float) -> void:
 		_npc_state = "approach"
 		print("DSH_SWORD_PROTO_NPC aggro distance=", distance)
 	_npc_timer += delta
+	_update_npc_bleed(delta)
+	if _npc_dead:
+		# Cut down: he is on the ground and no longer acts.
+		_npc_engaged = false
+		_npc_body.velocity = Vector3.ZERO
+		_npc_body.move_and_slide()
+		if _npc_gait != null:
+			_npc_gait.update_pose(delta, Vector3.ZERO, _npc_body.is_on_floor())
+		return
 	var want := _npc_high_guard()
 	var move := Vector3.ZERO
+	var speed_scale := _npc_speed_scale()
 	if _npc_engaged:
 		# Walk in, wind up, cut - the walk animation plays because his own body is
 		# actually moving, and the gait samples the horizontal velocity from it.
 		match _npc_state:
 			"approach":
 				if distance > 1.25:
-					move = to_player.normalized() * 1.9
+					move = to_player.normalized() * 1.9 * speed_scale
 				if _npc_timer > 0.6:
 					_npc_state = "windup"
 					_npc_timer = 0.0
@@ -2196,7 +2283,7 @@ func _update_city_npc(delta: float) -> void:
 					_npc_swings += 1
 					_npc_blade_prev = PackedVector3Array()
 			"strike":
-				move = to_player.normalized() * 1.1
+				move = to_player.normalized() * 1.1 * speed_scale
 				want = _npc_cut_direction()
 				_npc_resolve_strike(delta)
 				if _npc_timer > 0.22:
