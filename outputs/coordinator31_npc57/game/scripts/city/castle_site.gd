@@ -840,20 +840,27 @@ func _build_gatehouse() -> void:
 		add_child(pivot)
 		var leaf_width := GATE_WIDTH * 0.5
 		var board := leaf_width / 6.0
-		# THE LEAF IS SIX BOARDS, not one shield: a stone then takes out the boards it
-		# reaches and leaves the rest of the door standing - brick by brick, where it struck.
-		# They are laid edge to edge, so a closed gate still reads as solid oak.
+		# THE LEAF IS A GRID OF PLANKS: six columns by eight rows. A single tall board meant
+		# that knocking it out tore an eleven-metre strip out of the door; with a grid a hit
+		# opens a hole the size of the strike, which is what was asked for.
+		var leaf_columns := 6
+		var leaf_rows := 8
+		var board_w := leaf_width / float(leaf_columns)
+		var board_h := (GATE_HEIGHT * 0.96) / float(leaf_rows)
 		var boards: Array = []
-		for plank: int in 6:
-			var board_mesh := MeshInstance3D.new()
-			var board_box := BoxMesh.new()
-			board_box.size = Vector3(board * 0.98, GATE_HEIGHT * 0.96, 0.26)
-			board_mesh.mesh = board_box
-			board_mesh.material_override = _materials["wood"]
-			board_mesh.position = Vector3(-side * (board * (float(plank) + 0.5)),
-				GATE_HEIGHT * 0.5, 0.0)
-			pivot.add_child(board_mesh)
-			boards.append({"mesh": board_mesh, "broken": false})
+		for row: int in leaf_rows:
+			for column: int in leaf_columns:
+				var board_mesh := MeshInstance3D.new()
+				var board_box := BoxMesh.new()
+				board_box.size = Vector3(board_w * 0.98, board_h * 0.97, 0.26)
+				board_mesh.mesh = board_box
+				board_mesh.material_override = _materials["wood"]
+				board_mesh.position = Vector3(
+					-side * (board_w * (float(column) + 0.5)),
+					board_h * (float(row) + 0.5) + GATE_HEIGHT * 0.02,
+					0.0)
+				pivot.add_child(board_mesh)
+				boards.append({"mesh": board_mesh, "broken": false})
 		# The seams between the boards: shallow dark strips on the face, not slots.
 		var seam_material := StandardMaterial3D.new()
 		seam_material.albedo_color = Color(0.24, 0.15, 0.08)

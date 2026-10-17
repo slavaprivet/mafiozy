@@ -480,34 +480,24 @@ func _active() -> bool:
 ## ------------------------------------------------------------------ interaction
 func _try_interact() -> bool:
 	var player_at: Vector3 = _player.global_position
-	# 1. Carrying the stone: E at the spoon loads it; E anywhere else puts it down.
+	# 1. Carrying: E at the spoon lays it in, E anywhere else puts it down.
 	if _carrying_stone:
 		if player_at.distance_to(_spoon_point()) <= FRAME_RANGE:
 			_set_stone_on_spoon()
 			return true
 		_drop_stone()
 		return true
-	# 2. Standing at the frame: with a stone on the spoon, E FIRES. Otherwise E takes
-	# the post, which is only what lets the arc be drawn.
-	if player_at.distance_to(_cart.global_position) <= FRAME_RANGE:
-		if _stone_on_spoon and not _flying and not _winding:
-			_fire()
-			return true
-		_occupied = not _occupied
-		if _occupied and not bool(_player.get("_free_mouse_look")):
-			_player.set_mouse_captured(true)
+	# 2. At the frame with a stone on the spoon: E FIRES.
+	if player_at.distance_to(_cart.global_position) <= FRAME_RANGE \
+			and _stone_on_spoon and not _flying and not _winding:
+		_fire()
 		return true
-	# 3. Near the stone on the ground: E CHARGES THE MACHINE. One key by the stone, the same
-	# key at the frame to fire - the machine is loaded, not the man.
+	# 3. Near the stone: E TAKES IT IN HIS HANDS. It is never teleported into the spoon.
 	if not _stone_on_spoon and is_instance_valid(_stone) and not _flying \
 			and player_at.distance_to(_stone.global_position) <= CARRY_RANGE:
-		_carrying_stone = false
-		_set_stone_on_spoon()
-		return true
-	if not _stone_on_spoon and not _flying and is_instance_valid(_stone) \
-			and player_at.distance_to(_spoon_point()) <= FRAME_RANGE:
-		_carrying_stone = false
-		_set_stone_on_spoon()
+		_carrying_stone = true
+		_stone.freeze = true
+		_stone.sleeping = false
 		return true
 	return false
 
@@ -778,6 +768,8 @@ func _physics_process(delta: float) -> void:
 	# THE MACHINE DOES NOT TRAVEL. Every "jump" was it being shoved by a player who was
 	# merely walking at it to fire. It stands where it is put.
 	var want_speed := 0.0
+	_cart_speed = 0.0
+	_cart.velocity = Vector3.ZERO
 	var rate: float = 1.30 if want_speed > _cart_speed else 2.30
 	_cart_speed = move_toward(_cart_speed, want_speed, rate * delta)
 	_cart.velocity = push_direction * _cart_speed
