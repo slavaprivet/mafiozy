@@ -1701,7 +1701,11 @@ func apply_explosion(event: Dictionary) -> Dictionary:
 			# parented stores it as a LOCAL one, and against this castle at z=900 the board
 			# was thrown nine hundred metres into the fields, which looked like it vanishing.
 			add_child(plank)
-			plank.global_position = board_mesh.global_position
+			# OUTWARD, clear of the doorway, so the board is SEEN flying instead of being
+			# hidden behind the door it came out of.
+			var outward: Vector3 = Vector3(0.0, 0.0, 1.0) if global_position.z > 0.0 \
+				else Vector3(0.0, 0.0, -1.0)
+			plank.global_position = board_mesh.global_position + outward * 0.9 + Vector3.UP * 0.2
 			var plank_shape := CollisionShape3D.new()
 			var plank_box := BoxShape3D.new()
 			plank_box.size = Vector3(GATE_WIDTH * 0.5 / 6.0, GATE_HEIGHT * 0.96, 0.26)
@@ -1722,6 +1726,36 @@ func apply_explosion(event: Dictionary) -> Dictionary:
 			plank.angular_velocity = Vector3(randf_range(-4.0, 4.0), randf_range(-4.0, 4.0),
 				randf_range(-4.0, 4.0))
 			_falling.append({"body": plank, "age": 0.0})
+			# A door does not break into one neat plank: chips of oak go with it, thrown
+			# outward with the board so the break is seen as pieces and not as a hole.
+			for splinter: int in 5:
+				var chip := RigidBody3D.new()
+				chip.collision_layer = 1
+				chip.collision_mask = 1
+				chip.mass = 2.0
+				add_child(chip)
+				chip.global_position = board_mesh.global_position + outward * 0.6 \
+					+ Vector3(randf_range(-0.4, 0.4), randf_range(-1.2, 1.2), 0.0)
+				var chip_shape := CollisionShape3D.new()
+				var chip_box := BoxShape3D.new()
+				chip_box.size = Vector3(randf_range(0.12, 0.3), randf_range(0.2, 0.5), 0.12)
+				chip_shape.shape = chip_box
+				chip.add_child(chip_shape)
+				if _debris_mesh == null:
+					_debris_mesh = BoxMesh.new()
+					_debris_mesh.size = Vector3.ONE
+				var chip_mesh := MeshInstance3D.new()
+				chip_mesh.mesh = _debris_mesh
+				chip_mesh.scale = chip_box.size
+				chip_mesh.material_override = _materials["wood"]
+				chip_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				chip.add_child(chip_mesh)
+				chip.linear_velocity = (outward * 1.2 + Vector3.UP * randf_range(0.4, 1.2)
+					+ Vector3(randf_range(-0.8, 0.8), 0.0, 0.0)).normalized() \
+					* randf_range(5.0, 11.0)
+				chip.angular_velocity = Vector3(randf_range(-12.0, 12.0), randf_range(-12.0, 12.0),
+					randf_range(-12.0, 12.0))
+				_falling.append({"body": chip, "age": 0.0})
 		var remaining := 0
 		for board: Dictionary in boards:
 			if not bool(board.get("broken", false)): remaining += 1

@@ -750,7 +750,9 @@ func _physics_process(delta: float) -> void:
 	to_cart.y = 0.0
 	if to_cart.length_squared() > 1.0e-6:
 		push_direction = to_cart.normalized()
-	var want_speed: float = _push_speed if (_pushers > 0 and not _occupied) else 0.0
+	# THE MACHINE DOES NOT TRAVEL. Every "jump" was it being shoved by a player who was
+	# merely walking at it to fire. It stands where it is put.
+	var want_speed := 0.0
 	var rate: float = 1.30 if want_speed > _cart_speed else 2.30
 	_cart_speed = move_toward(_cart_speed, want_speed, rate * delta)
 	_cart.velocity = push_direction * _cart_speed

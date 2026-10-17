@@ -546,6 +546,12 @@ func _build_castle_map() -> bool:
 		_player.set_mouse_captured(true)
 	# DSH_CASTLE: the city has no business running on this map at all - stop the population
 	# node's own processing as well as the steps this script used to drive.
+	# The sword's help panel is a test tool and has no business on a siege map: it covers a
+	# quarter of the screen. Hidden here and kept hidden below.
+	if is_instance_valid(preview_sword_prototype):
+		var sword_hint: Variant = preview_sword_prototype.get("_hint")
+		if sword_hint is CanvasItem:
+			(sword_hint as CanvasItem).visible = false
 	if is_instance_valid(preview_population):
 		preview_population.set_process(false)
 		preview_population.set_physics_process(false)
@@ -1151,6 +1157,11 @@ func _physics_process(delta: float) -> void:
 			_player.velocity = Vector3.ZERO
 	if not preview_ready:
 		return
+	# Keep the test tool's help panel off this map.
+	if is_instance_valid(preview_castle) and is_instance_valid(preview_sword_prototype):
+		var castle_hint: Variant = preview_sword_prototype.get("_hint")
+		if castle_hint is CanvasItem and (castle_hint as CanvasItem).visible:
+			(castle_hint as CanvasItem).visible = false
 	_door_feedback_seconds = maxf(0.0, _door_feedback_seconds - delta)
 	_advance_printshop_door_motion(delta)
 	if preview_population != null:
