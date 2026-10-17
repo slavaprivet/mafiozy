@@ -60,13 +60,17 @@ func install(world: Node3D, origin: Vector3) -> Dictionary:
 	_build_corner_towers()
 	_build_gatehouse()
 	_build_stairs()
+	_build_wall_walks()
 	_build_keep()
 	_build_keep_details()
 	_build_gate_arch()
 	_build_banners()
+	_build_wall_banners()
+	_build_brick_floor()
 	_add_rubble()
 	_build_torches()
 	_build_portcullis()
+	_build_gate_lamps()
 	_flush_buckets()
 	_ready = true
 	return {"ok": true, "origin": origin, "bricks": _cells.size(),
@@ -139,10 +143,13 @@ func _build_environment() -> void:
 	settings.background_mode = Environment.BG_SKY
 	settings.sky = sky
 	settings.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	settings.ambient_light_sky_contribution = 0.45
-	settings.ambient_light_energy = 0.55
+	settings.ambient_light_sky_contribution = 0.7
+	settings.ambient_light_energy = 0.95
 	settings.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	settings.tonemap_exposure = 0.82
+	settings.ssao_enabled = true
+	settings.ssao_radius = 2.4
+	settings.ssao_intensity = 1.4
 	settings.glow_enabled = true
 	settings.glow_intensity = 0.35
 	settings.fog_enabled = true
@@ -163,7 +170,11 @@ func _build_environment() -> void:
 	sun.light_energy = 0.85
 	sun.light_color = Color(1.0, 0.95, 0.86)
 	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 220.0
+	sun.shadow_bias = 0.06
+	sun.shadow_blur = 1.6
+	sun.directional_shadow_blend_splits = true
+	sun.directional_shadow_max_distance = 150.0
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
 	sun.rotation_degrees = Vector3(-38.0, 128.0, 0.0)
 	add_child(sun)
 
@@ -993,6 +1004,167 @@ func _build_keep() -> void:
 	floor_mesh.material_override = _materials["warm"]
 	floor_mesh.position = base + Vector3.UP * 0.1
 	add_child(floor_mesh)
+## ------------------------------------------------------------------ colour and banners
+## Banners hanging on the walls, in the colour of the house, with a gold device: a
+const WALK_WIDTH := 3.0
+const WALK_PARAPET := 0.9
+
+## THE WALL-WALK: a continuous platform round all four walls at the wall head, wide enough
+## for two men to pass, with a waist-high parapet on the courtyard side. Without it the
+## battlements are decoration nobody can stand on.
+func _build_wall_walks() -> void:
+	for side: String in ["north", "south", "east", "west"]:
+		var vertical: bool = side == "north" or side == "south"
+		var sign_z: float = 1.0 if side == "south" else -1.0
+		var sign_x: float = 1.0 if side == "east" else -1.0
+		var centre: Vector3
+		if vertical:
+			centre = Vector3(0.0, WALL_HEIGHT - 0.1, sign_z * (WALL_HALF - 0.55))
+		else:
+			centre = Vector3(sign_x * (WALL_HALF - 0.55), WALL_HEIGHT - 0.1, 0.0)
+		var size := Vector3(WALK_WIDTH if vertical else WALL_HALF * 2.0, 0.24,
+			WALL_HALF * 2.0 if vertical else WALK_WIDTH)
+		var body := StaticBody3D.new()
+		body.collision_layer = 1
+		body.collision_mask = 1
+		body.position = centre
+		add_child(body)
+		var shape := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = size
+		shape.shape = box
+		body.add_child(shape)
+		var slab := MeshInstance3D.new()
+		var slab_mesh := BoxMesh.new()
+		slab_mesh.size = size
+		slab.mesh = slab_mesh
+		slab.material_override = _materials["warm"]
+		slab.position = centre
+		add_child(slab)
+		# The inner parapet: what keeps a man from falling into the courtyard.
+		var inward_dir: Vector3 = Vector3(0.0, 0.0, -sign_z) if vertical else Vector3(-sign_x, 0.0, 0.0)
+		var inner: Vector3 = centre + inward_dir * (WALK_WIDTH * 0.5 - 0.2)
+		var parapet_size := Vector3(0.35, WALK_PARAPET, WALL_HALF * 2.0) if vertical \
+			else Vector3(WALL_HALF * 2.0, WALK_PARAPET, 0.35)
+		var parapet := StaticBody3D.new()
+		parapet.collision_layer = 1
+		parapet.collision_mask = 1
+		parapet.position = inner + Vector3.UP * (WALK_PARAPET * 0.5 + 0.12)
+		add_child(parapet)
+		var parapet_shape := CollisionShape3D.new()
+		var parapet_box := BoxShape3D.new()
+		parapet_box.size = parapet_size
+		parapet_shape.shape = parapet_box
+		parapet.add_child(parapet_shape)
+		var parapet_mesh := MeshInstance3D.new()
+		var parapet_mesh_box := BoxMesh.new()
+		parapet_mesh_box.size = parapet_size
+		parapet_mesh.mesh = parapet_mesh_box
+		parapet_mesh.material_override = _materials["cold"]
+		parapet_mesh.position = parapet.position
+		add_child(parapet_mesh)
+
+## ------------------------------------------------------------------ colour and banners
+func _build_wall_banners() -> void:
+	var cloth := StandardMaterial3D.new()
+	cloth.albedo_color = Color(0.46, 0.07, 0.08)
+	cloth.roughness = 0.92
+	cloth.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var gold := StandardMaterial3D.new()
+	gold.albedo_color = Color(0.72, 0.55, 0.18)
+	gold.metallic = 0.6
+	gold.roughness = 0.42
+	var pole := StandardMaterial3D.new()
+	pole.albedo_color = Color(0.26, 0.18, 0.11)
+	pole.roughness = 0.9
+	for side: String in ["north", "south", "east", "west"]:
+		var vertical: bool = side == "north" or side == "south"
+		var sign_z: float = 1.0 if side == "south" else -1.0
+		var sign_x: float = 1.0 if side == "east" else -1.0
+		for slot: int in 3:
+			var along: float = (float(slot) - 1.0) * (WALL_HALF * 0.52)
+			var anchor := Vector3.ZERO
+			var outward := Vector3.ZERO
+			if vertical:
+				anchor = Vector3(along, WALL_HEIGHT - 0.5, sign_z * (WALL_HALF - 0.9))
+				outward = Vector3(0.0, 0.0, sign_z)
+			else:
+				anchor = Vector3(sign_x * (WALL_HALF - 0.9), WALL_HEIGHT - 0.5, along)
+				outward = Vector3(sign_x, 0.0, 0.0)
+			var rotation_y: float = 0.0 if vertical else PI * 0.5
+			# The cross-bar the cloth hangs from.
+			var bar := MeshInstance3D.new()
+			var bar_mesh := CylinderMesh.new()
+			bar_mesh.top_radius = 0.07
+			bar_mesh.bottom_radius = 0.07
+			bar_mesh.height = 2.5
+			bar.mesh = bar_mesh
+			bar.material_override = pole
+			bar.position = anchor
+			bar.rotation = Vector3(0.0, rotation_y, PI * 0.5)
+			add_child(bar)
+			# The cloth, hanging two metres down the face.
+			var flag := MeshInstance3D.new()
+			var flag_mesh := BoxMesh.new()
+			flag_mesh.size = Vector3(2.3, 4.2, 0.07)
+			flag.mesh = flag_mesh
+			flag.material_override = cloth
+			flag.position = anchor + Vector3(0.0, -2.15, 0.0) - outward * 0.06
+			flag.rotation = Vector3(0.0, rotation_y, 0.0)
+			add_child(flag)
+			# A gold device: three petals and a bar, a fleur-de-lis at any distance.
+			for petal: int in 3:
+				var device := MeshInstance3D.new()
+				var device_mesh := BoxMesh.new()
+				device_mesh.size = Vector3(0.22, 1.05 if petal == 1 else 0.75, 0.05)
+				device.mesh = device_mesh
+				device.material_override = gold
+				var offset_x: float = 0.0 if petal == 1 else (-0.30 if petal == 0 else 0.30)
+				device.position = anchor + Vector3(offset_x, -1.7, 0.0) + outward * 0.02
+				device.rotation = Vector3(0.0, rotation_y, 0.0)
+				add_child(device)
+			var band := MeshInstance3D.new()
+			var band_mesh := BoxMesh.new()
+			band_mesh.size = Vector3(0.95, 0.18, 0.05)
+			band.mesh = band_mesh
+			band.material_override = gold
+			band.position = anchor + Vector3(0.0, -2.25, 0.0) + outward * 0.02
+			band.rotation = Vector3(0.0, rotation_y, 0.0)
+			add_child(band)
+
+## ------------------------------------------------------------------ the floor
+## The courtyard is laid in BRICKS, a shade cooler and darker than the walls, so the
+## ground does not read as one poured slab. Drawn as a MultiMesh (one draw call) with a
+## little variation per stone; the collision is the flat slab that was already there.
+func _build_brick_floor() -> void:
+	var paving := StandardMaterial3D.new()
+	paving.albedo_color = Color(0.44, 0.42, 0.40)
+	paving.roughness = 1.0
+	var stone_mesh := BoxMesh.new()
+	stone_mesh.size = Vector3(0.86, 0.09, 0.42)
+	var per_row: int = int((WALL_HALF * 2.0) / 0.90)
+	var rows: int = int((WALL_HALF * 2.0) / 0.46)
+	var multi := MultiMesh.new()
+	multi.transform_format = MultiMesh.TRANSFORM_3D
+	multi.use_colors = true
+	multi.mesh = stone_mesh
+	multi.instance_count = per_row * rows
+	var slot := 0
+	for row: int in rows:
+		var offset: float = 0.0 if row % 2 == 0 else 0.45
+		for column: int in per_row:
+			var x: float = (float(column) - float(per_row - 1) * 0.5) * 0.90 + offset
+			var z: float = (float(row) - float(rows - 1) * 0.5) * 0.46
+			var basis := Basis.from_euler(Vector3(0.0, float(int(x * 31.0 + z * 17.0) % 7) * 0.006, 0.0))
+			multi.set_instance_transform(slot, Transform3D(basis, Vector3(x, 0.02, z)))
+			var tone: float = 0.88 + float(abs(int(x * 131.0) ^ int(z * 977.0)) % 100) / 100.0 * 0.22
+			multi.set_instance_color(slot, Color(tone, tone * 0.99, tone * 0.97))
+			slot += 1
+	var node := MultiMeshInstance3D.new()
+	node.name = "FloorBricks"
+	node.multimesh = multi
+	node.material_override = paving
+	add_child(node)
 ## ------------------------------------------------------------------ masonry detail
 ## A wall of identical stones still looks manufactured. These are the things that make it
 ## read as a building that has stood for a century: brackets under the battlements,
