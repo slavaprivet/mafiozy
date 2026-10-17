@@ -27,6 +27,7 @@ const PlayerShopCatalog = preload("res://scripts/shop/player_shop_catalog.gd")  
 const NpcObserve58 = preload("res://scripts/ui/npc_observe_host.gd")  # DSH_OBSERVE58
 const SwordPrototype = preload("res://scripts/weapons/sword_prototype.gd")  # DSH_SWORD_PROTO
 const BowPrototype = preload("res://scripts/weapons/bow_prototype.gd")  # DSH_BOW_PROTO
+const CatapultPrototype = preload("res://scripts/weapons/catapult_prototype.gd")  # DSH_CATAPULT
 const STATIC_RENDER_OWNER_IDS := [
 	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-013", "REBUILD-VISUAL-old_town_narrow_townhouse_v1-005",
 	"REBUILD-VISUAL-gun_shop-001", "REBUILD-VISUAL-pawnshop-001",
@@ -89,6 +90,10 @@ var sword_prototype_status := "disabled"
 @export var preview_bow_prototype_enabled: bool = false
 var preview_bow_prototype: Node
 var bow_prototype_status := "disabled"
+## DSH_CATAPULT: the wheeled siege machine, installed into the city itself.
+@export var preview_catapult_enabled: bool = false
+var preview_catapult: Node
+var catapult_status := "disabled"
 var preview_melee: Node
 var melee_status := "disabled"
 var preview_minimap: Node
@@ -375,6 +380,10 @@ func _ready() -> void:
 		_install_sword_prototype()  # DSH_SWORD_PROTO
 	# DSH_BOW_PROTO: the bow prototype rides along with the same arsenal, so it can
 	# be picked from the weapon menu next to the test sword.
+	# DSH_CATAPULT: the siege machine lives in the city and is always installed while a
+	# local arsenal exists, because it is part of the world rather than a test weapon.
+	if preview_catapult_enabled or is_instance_valid(preview_weapons) or OS.get_cmdline_user_args().has("--catapult=1"):
+		_install_catapult()
 	if preview_bow_prototype_enabled or is_instance_valid(preview_weapons) or OS.get_cmdline_user_args().has("--bow-proto=1"):
 		_install_bow_prototype()  # DSH_BOW_PROTO
 	if OS.get_cmdline_user_args().has("--bow-proto=1"):
@@ -469,6 +478,34 @@ func _install_sword_prototype() -> bool:
 
 ## DSH_BOW_PROTO: same isolated-host pattern as the sword, with its own models,
 ## aim arc, projectile flight and HUD.
+## DSH_CATAPULT: builds the machine in the street and reports how it went.
+func _install_catapult() -> bool:
+	if is_instance_valid(preview_catapult) or not is_instance_valid(_player): return false
+	var host: Node3D = CatapultPrototype.new()
+	host.name = "CatapultPrototype"
+	add_child(host)
+	var installed: Dictionary = host.install(self, _player)
+	if not installed.get("ok", false):
+		catapult_status = str(installed.get("reason", "install_failed"))
+		host.queue_free()
+		return false
+	preview_catapult = host
+	catapult_status = "ready"
+	print("DSH_CATAPULT ", JSON.stringify(installed))
+	return true
+
+## DSH_CATAPULT: how many extra bodies are standing at a machine, which is what makes a
+## heavy cart move faster than one man can push it. The resident knight counts, so a
+## player with the knight beside him pushes with two men.
+func count_helpers_near(at: Vector3, radius: float) -> int:
+	var men := 0
+	var sword: Variant = preview_sword_prototype
+	if is_instance_valid(sword):
+		var knight: Variant = sword.get("_npc_body")
+		if is_instance_valid(knight) and knight.global_position.distance_to(at) <= radius:
+			men += 1
+	return men
+
 func _install_bow_prototype() -> bool:
 	if is_instance_valid(preview_bow_prototype) or not is_instance_valid(_player): return false
 	var host: Node3D = BowPrototype.new()
