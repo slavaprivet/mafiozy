@@ -170,7 +170,17 @@ func equip(id: String) -> Dictionary:
 
 ## DSH_MELEE_SET: hands the chosen melee weapon to the prototype host and takes the
 ## firearm presentation away. No inventory ownership and no ammo are involved.
+## Castle loading may defer these hosts. Prepare before changing equipment.
+func _ensure_medieval_host(property: String, installer: String) -> bool:
+	if not is_instance_valid(scene): return false
+	if is_instance_valid(scene.get(property)): return true
+	if not scene.has_method(installer): return false
+	scene.call(installer)
+	return is_instance_valid(scene.get(property))
+
 func _equip_melee(id: String) -> Dictionary:
+	if not _ensure_medieval_host("preview_sword_prototype", "_install_sword_prototype"):
+		return {"ok":false,"reason":"no_prototype"}
 	cancel_inputs()
 	presentation.equip("none")
 	fire_state = Fire.create_state("none")
@@ -188,6 +198,8 @@ func _equip_melee(id: String) -> Dictionary:
 
 ## Wears or stows the shield. It goes in the hand that is not carrying the weapon.
 func _equip_shield() -> Dictionary:
+	if not _ensure_medieval_host("preview_sword_prototype", "_install_sword_prototype"):
+		return {"ok":false,"reason":"no_prototype"}
 	cancel_inputs()
 	var prototype: Node = scene.get("preview_sword_prototype") if is_instance_valid(scene) else null
 	if is_instance_valid(prototype) and prototype.has_method("set_shield_worn"):
@@ -224,6 +236,8 @@ func sword_selected() -> bool:
 ## DSH_BOW_PROTO: hands the scene over to the bow host, exactly as the sword does.
 ## No inventory ownership, no ammunition, no firearm presentation.
 func _equip_bow_prototype() -> Dictionary:
+	if not _ensure_medieval_host("preview_sword_prototype", "_install_sword_prototype") or not _ensure_medieval_host("preview_bow_prototype", "_install_bow_prototype"):
+		return {"ok":false,"reason":"no_prototype"}
 	cancel_inputs()
 	presentation.equip("none")
 	fire_state = Fire.create_state("none")

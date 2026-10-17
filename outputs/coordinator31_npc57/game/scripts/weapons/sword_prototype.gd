@@ -1,4 +1,5 @@
 extends Node3D
+const ModelFinish31 = preload("res://scripts/weapons/weapon_model_finish31.gd")
 ## DSH_SWORD_PROTO (prototype only): mouse-driven heavy sword play inspired by
 ## Half Sword. Hold LMB and move the mouse to steer the blade (left/right/up/down
 ## and diagonals); the camera does NOT turn while the blade is steered. The blade
@@ -66,6 +67,11 @@ func weapon_ids() -> Array:
 func set_weapon(id: String) -> bool:
 	if not WEAPONS.has(id) or id == _weapon_id: return WEAPONS.has(id)
 	_weapon_id = id
+	_reset_contact_plane()
+	# Old reach and old target contacts do not belong to the newly equipped model.
+	_prev_points = PackedVector3Array()
+	_contact_prev.clear()
+	_contact_gap.clear()
 	var entry: Dictionary = WEAPONS[id]
 	_weapon_length = float(entry.get("length", 1.15))
 	_weapon_mass = maxf(0.4, float(entry.get("mass", 1.0)))
@@ -247,6 +253,7 @@ var _dir := Vector3.FORWARD
 var _omega := Vector3.ZERO
 var _block_push := Vector3.ZERO
 ## Body load: lean (pitch, roll) and recoil carried by hips/spine/chest.
+var _body_load_omega := Vector3.ZERO
 var _body_lean := Vector2.ZERO
 var _body_lean_vel := Vector2.ZERO
 var _body_yaw := 0.0
@@ -507,40 +514,15 @@ func _build_shield_model(parent: Node3D) -> Node3D:
 	var plank := StandardMaterial3D.new()
 	plank.albedo_color = Color(0.46, 0.30, 0.16)
 	plank.roughness = 0.82
-	var face := StandardMaterial3D.new()
-	face.albedo_color = Color(0.52, 0.36, 0.20)
-	face.roughness = 0.78
-	# The face is a heater shape: wide at the top, drawn to a point at the bottom.
-	# It is built from a few tapering boxes so it reads as a real shield from the front.
-	var widths := [0.66, 0.62, 0.54, 0.42, 0.26]
-	var heights := 0.16
-	for i: int in widths.size():
-		var slab := MeshInstance3D.new()
-		var box := BoxMesh.new()
-		box.size = Vector3(float(widths[i]), heights, 0.055)
-		slab.mesh = box
-		slab.material_override = plank if i % 2 == 0 else face
-		# Slight curve: the middle of the shield sits forward of its edges.
-		var curve := 0.03 * (1.0 - absf(float(i) - 2.0) / 2.0)
-		slab.position = Vector3(0.0, 0.34 - float(i) * heights, curve)
-		shield.add_child(slab)
-	# Steel rim down both edges and across the top.
-	for side: float in [-1.0, 1.0]:
-		var rim := MeshInstance3D.new()
-		var rim_mesh := BoxMesh.new()
-		rim_mesh.size = Vector3(0.035, 0.80, 0.075)
-		rim.mesh = rim_mesh
-		rim.material_override = _mat_steel
-		rim.position = Vector3(side * 0.33, -0.02, 0.02)
-		rim.rotation = Vector3(0.0, 0.0, side * 0.05)
-		shield.add_child(rim)
-	var top_rim := MeshInstance3D.new()
-	var top_mesh := BoxMesh.new()
-	top_mesh.size = Vector3(0.70, 0.035, 0.075)
-	top_rim.mesh = top_mesh
-	top_rim.material_override = _mat_steel
-	top_rim.position = Vector3(0.0, 0.42, 0.01)
-	shield.add_child(top_rim)
+	# One closed wooden panel, with a continuous rim following the silhouette.
+	var panel := MeshInstance3D.new()
+	panel.mesh = ModelFinish31.shield_plate()
+	panel.material_override = plank
+	shield.add_child(panel)
+	var rim := MeshInstance3D.new()
+	rim.mesh = ModelFinish31.shield_rim()
+	rim.material_override = _mat_steel
+	shield.add_child(rim)
 	# The boss: a domed steel centre that is what the blows actually strike.
 	var boss := MeshInstance3D.new()
 	var boss_mesh := SphereMesh.new()
@@ -550,15 +532,6 @@ func _build_shield_model(parent: Node3D) -> Node3D:
 	boss.material_override = _mat_steel
 	boss.position = Vector3(0.0, 0.10, 0.055)
 	shield.add_child(boss)
-	# A diagonal band across the face, so it is not a plain board.
-	var band := MeshInstance3D.new()
-	var band_mesh := BoxMesh.new()
-	band_mesh.size = Vector3(0.10, 0.74, 0.062)
-	band.mesh = band_mesh
-	band.material_override = _mat_brass
-	band.position = Vector3(0.0, 0.02, 0.045)
-	band.rotation = Vector3(0.0, 0.0, deg_to_rad(38.0))
-	shield.add_child(band)
 	# Arm straps on the back, where the hand actually goes.
 	for y: float in [0.20, -0.10]:
 		var strap := MeshInstance3D.new()
@@ -568,6 +541,7 @@ func _build_shield_model(parent: Node3D) -> Node3D:
 		strap.material_override = _mat_leather
 		strap.position = Vector3(0.0, y, -0.09)
 		shield.add_child(strap)
+	ModelFinish31.finish(shield)
 	return shield
 
 ## Places the shield in its hand and raises it as the right button is held.
@@ -645,9 +619,9 @@ var _mat_iron: StandardMaterial3D
 func _weapon_materials() -> void:
 	if _mat_steel != null: return
 	_mat_steel = StandardMaterial3D.new()
-	_mat_steel.albedo_color = Color(0.74, 0.78, 0.84); _mat_steel.metallic = 0.92; _mat_steel.roughness = 0.22
+	_mat_steel.albedo_color = Color(0.74, 0.78, 0.84); _mat_steel.metallic = 0.92; _mat_steel.roughness = 0.38
 	_mat_edge = StandardMaterial3D.new()
-	_mat_edge.albedo_color = Color(0.88, 0.91, 0.95); _mat_edge.metallic = 0.95; _mat_edge.roughness = 0.12
+	_mat_edge.albedo_color = Color(0.88, 0.91, 0.95); _mat_edge.metallic = 0.95; _mat_edge.roughness = 0.27
 	_mat_dark_steel = StandardMaterial3D.new()
 	_mat_dark_steel.albedo_color = Color(0.50, 0.54, 0.60); _mat_dark_steel.metallic = 0.86; _mat_dark_steel.roughness = 0.36
 	_mat_iron = StandardMaterial3D.new()
@@ -655,7 +629,7 @@ func _weapon_materials() -> void:
 	_mat_leather = StandardMaterial3D.new()
 	_mat_leather.albedo_color = Color(0.22, 0.14, 0.10); _mat_leather.roughness = 0.88
 	_mat_brass = StandardMaterial3D.new()
-	_mat_brass.albedo_color = Color(0.66, 0.50, 0.20); _mat_brass.metallic = 0.78; _mat_brass.roughness = 0.34
+	_mat_brass.albedo_color = Color(0.50, 0.39, 0.19); _mat_brass.metallic = 0.78; _mat_brass.roughness = 0.34
 	_mat_wood = StandardMaterial3D.new()
 	_mat_wood.albedo_color = Color(0.36, 0.23, 0.12); _mat_wood.roughness = 0.72
 
@@ -734,7 +708,7 @@ func _build_mace_model(parent: Node3D) -> Node3D:
 		box.size = Vector3(0.17, 0.052, 0.014)
 		flange.mesh = box
 		flange.material_override = _mat_steel
-		flange.position = Vector3(0.52, sin(angle) * 0.048, cos(angle) * 0.048)
+		flange.position = Vector3(0.52, cos(angle) * 0.048, sin(angle) * 0.048)
 		flange.rotation = Vector3(angle, 0.0, 0.0)
 		mace.add_child(flange)
 	var cap := MeshInstance3D.new()
@@ -744,6 +718,7 @@ func _build_mace_model(parent: Node3D) -> Node3D:
 	cap.material_override = _mat_steel
 	cap.position = Vector3(0.60, 0.0, 0.0)
 	mace.add_child(cap)
+	ModelFinish31.finish(mace)
 	return mace
 
 ## Two-handed axe: long haft, a bearded single-bit head with a back spike.
@@ -789,9 +764,10 @@ func _build_axe_model(parent: Node3D) -> Node3D:
 	spike_mesh.top_radius = 0.001; spike_mesh.bottom_radius = 0.030; spike_mesh.height = 0.16
 	spike.mesh = spike_mesh
 	spike.material_override = _mat_steel
-	spike.rotation = Vector3(0.0, 0.0, PI * 0.5)
-	spike.position = Vector3(0.90, -0.11, 0.0)
+	spike.rotation = Vector3(0.0, 0.0, PI)
+	spike.position = Vector3(0.86, -0.11, 0.0)
 	axe.add_child(spike)
+	ModelFinish31.finish(axe)
 	return axe
 
 ## Two-handed sledgehammer: long haft, a heavy square block head with banded faces.
@@ -800,7 +776,7 @@ func _build_sledge_model(parent: Node3D) -> Node3D:
 	var sledge := Node3D.new()
 	sledge.name = "PrototypeSledge"
 	parent.add_child(sledge)
-	_add_haft(sledge, -0.34, 0.78, 0.034, 0.026, _mat_wood)
+	_add_haft(sledge, -0.34, 0.86, 0.034, 0.026, _mat_wood)
 	_add_grip(sledge, -0.33, -0.02, 0.038)
 	_add_grip(sledge, 0.10, 0.34, 0.036)
 	var butt := MeshInstance3D.new()
@@ -814,21 +790,21 @@ func _build_sledge_model(parent: Node3D) -> Node3D:
 	# Block head, square in section so a blow lands on a face.
 	var head := MeshInstance3D.new()
 	var head_mesh := BoxMesh.new()
-	head_mesh.size = Vector3(0.30, 0.15, 0.15)
+	head_mesh.size = Vector3(0.16, 0.32, 0.16)
 	head.mesh = head_mesh
 	head.material_override = _mat_iron
-	head.position = Vector3(0.90, 0.0, 0.0)
+	head.position = Vector3(0.82, 0.0, 0.0)
 	sledge.add_child(head)
-	for side: float in [0.075, -0.075]:
+	for side: float in [0.16, -0.16]:
 		var face := MeshInstance3D.new()
 		var face_mesh := BoxMesh.new()
-		face_mesh.size = Vector3(0.045, 0.16, 0.16)
+		face_mesh.size = Vector3(0.17, 0.04, 0.17)
 		face.mesh = face_mesh
 		face.material_override = _mat_dark_steel
-		face.position = Vector3(0.90 + side, 0.0, 0.0)
+		face.position = Vector3(0.82, side, 0.0)
 		sledge.add_child(face)
 	# Banding either side of the eye.
-	for at: float in [0.72, 1.08]:
+	for at: float in [0.72, 0.88]:
 		var band := MeshInstance3D.new()
 		var band_mesh := CylinderMesh.new()
 		band_mesh.top_radius = 0.040; band_mesh.bottom_radius = 0.040; band_mesh.height = 0.05
@@ -837,6 +813,7 @@ func _build_sledge_model(parent: Node3D) -> Node3D:
 		band.rotation = Vector3(0.0, 0.0, PI * 0.5)
 		band.position = Vector3(at, 0.0, 0.0)
 		sledge.add_child(band)
+	ModelFinish31.finish(sledge)
 	return sledge
 
 ## Two-handed spear: a long ash shaft with a leaf-shaped head, a collar and a
@@ -863,20 +840,13 @@ func _build_spear_model(parent: Node3D) -> Node3D:
 	spear.add_child(collar)
 	var blade := MeshInstance3D.new()
 	var blade_mesh := PrismMesh.new()
-	blade_mesh.size = Vector3(0.30, 0.09, 0.020)
-	blade_mesh.left_to_right = 1.0
+	blade_mesh.size = Vector3(0.09, 0.30, 0.020)
+	blade_mesh.left_to_right = 0.5
 	blade.mesh = blade_mesh
 	blade.material_override = _mat_edge
 	blade.position = Vector3(1.69, 0.0, 0.0)
+	blade.rotation = Vector3(0.0, 0.0, -PI * 0.5)
 	spear.add_child(blade)
-	var point := MeshInstance3D.new()
-	var point_mesh := CylinderMesh.new()
-	point_mesh.top_radius = 0.001; point_mesh.bottom_radius = 0.030; point_mesh.height = 0.10
-	point.mesh = point_mesh
-	point.material_override = _mat_steel
-	point.rotation = Vector3(0.0, 0.0, -PI * 0.5)
-	point.position = Vector3(1.82, 0.0, 0.0)
-	spear.add_child(point)
 	# Butt-spike, which is what makes a spear throwable and still a weapon.
 	var butt := MeshInstance3D.new()
 	var butt_mesh := CylinderMesh.new()
@@ -886,6 +856,7 @@ func _build_spear_model(parent: Node3D) -> Node3D:
 	butt.rotation = Vector3(0.0, 0.0, PI * 0.5)
 	butt.position = Vector3(-0.36, 0.0, 0.0)
 	spear.add_child(butt)
+	ModelFinish31.finish(spear)
 	return spear
 
 ## One-handed sword, built from parts: tapering double-edged blade with a fuller,
@@ -898,41 +869,18 @@ func _build_sword_model(parent: Node3D, node_name: String) -> Node3D:
 	sword.name = node_name
 	parent.add_child(sword)
 	var steel := StandardMaterial3D.new()
-	steel.albedo_color = Color(0.74, 0.78, 0.84); steel.metallic = 0.92; steel.roughness = 0.22
-	var edge := StandardMaterial3D.new()
-	edge.albedo_color = Color(0.88, 0.91, 0.95); edge.metallic = 0.95; edge.roughness = 0.12
+	steel.albedo_color = Color(0.74, 0.78, 0.84); steel.metallic = 0.92; steel.roughness = 0.38
 	var dark_steel := StandardMaterial3D.new()
 	dark_steel.albedo_color = Color(0.52, 0.56, 0.62); dark_steel.metallic = 0.85; dark_steel.roughness = 0.34
 	var leather := StandardMaterial3D.new()
 	leather.albedo_color = Color(0.22, 0.14, 0.10); leather.roughness = 0.88
 	var brass := StandardMaterial3D.new()
-	brass.albedo_color = Color(0.66, 0.50, 0.20); brass.metallic = 0.78; brass.roughness = 0.34
+	brass.albedo_color = Color(0.50, 0.39, 0.19); brass.metallic = 0.78; brass.roughness = 0.34
 	var start := 0.155                     # blade starts after the ricasso
-	# Blade: four tapering sections so the profile narrows toward the point.
-	var sections := [
-		[0.42, 0.060, 0.021], [0.34, 0.050, 0.018], [0.26, 0.038, 0.014], [0.20, 0.024, 0.010],
-	]
-	var cursor := start
-	for section: Array in sections:
-		var length := float(section[0])
-		var width := float(section[1])
-		var thickness := float(section[2])
-		var body := BoxMesh.new(); body.size = Vector3(length, width, thickness)
-		var body_node := MeshInstance3D.new(); body_node.mesh = body; body_node.material_override = steel
-		body_node.position = Vector3(cursor + length * 0.5, 0.0, 0.0)
-		sword.add_child(body_node)
-		# Cutting edges on both sides of every section.
-		for side: float in [1.0, -1.0]:
-			var bevel := BoxMesh.new(); bevel.size = Vector3(length, 0.014, thickness * 0.45)
-			var bevel_node := MeshInstance3D.new(); bevel_node.mesh = bevel; bevel_node.material_override = edge
-			bevel_node.position = Vector3(cursor + length * 0.5, side * (width * 0.5 - 0.005), 0.0)
-			sword.add_child(bevel_node)
-		cursor += length
-	# Fuller (blood groove) running along the strong part of the blade.
-	var fuller := BoxMesh.new(); fuller.size = Vector3(0.62, 0.026, 0.024)
-	var fuller_node := MeshInstance3D.new(); fuller_node.mesh = fuller; fuller_node.material_override = dark_steel
-	fuller_node.position = Vector3(start + 0.33, 0.0, -0.001)
-	sword.add_child(fuller_node)
+	var blade_node := MeshInstance3D.new()
+	blade_node.mesh = ModelFinish31.sword_blade()
+	blade_node.material_override = steel
+	sword.add_child(blade_node)
 	# Ricasso: the flat, thicker root of the blade above the guard.
 	var ricasso := BoxMesh.new(); ricasso.size = Vector3(0.085, 0.048, 0.026)
 	var ricasso_node := MeshInstance3D.new(); ricasso_node.mesh = ricasso; ricasso_node.material_override = dark_steel
@@ -965,7 +913,7 @@ func _build_sword_model(parent: Node3D, node_name: String) -> Node3D:
 		var ring_node := MeshInstance3D.new(); ring_node.mesh = ring
 		ring_node.material_override = brass if index % 2 == 0 else dark_steel
 		ring_node.position = Vector3(start - 0.130 - index * 0.035, 0.0, 0.0)
-		ring_node.rotation = Vector3(0.0, PI * 0.5, 0.0)
+		ring_node.rotation = Vector3(0.0, 0.0, PI * 0.5)
 		sword.add_child(ring_node)
 	# Pommel: disc with a small button, sitting against the fist.
 	var pommel := CylinderMesh.new(); pommel.top_radius = 0.040; pommel.bottom_radius = 0.044; pommel.height = 0.030
@@ -977,6 +925,7 @@ func _build_sword_model(parent: Node3D, node_name: String) -> Node3D:
 	var button_node := MeshInstance3D.new(); button_node.mesh = button; button_node.material_override = dark_steel
 	button_node.position = Vector3(start - 0.325, 0.0, 0.0)
 	sword.add_child(button_node)
+	ModelFinish31.finish(sword)
 	return sword
 
 func _build_impacts() -> void:
@@ -1118,6 +1067,7 @@ func is_sword_grounded() -> bool:
 func drop_sword_to_ground() -> bool:
 	if not _selected or _sword_grounded or not is_instance_valid(_sword): return false
 	_sword_grounded = true
+	_reset_contact_plane()
 	_held = false
 	_hold_left = false
 	_hold_right = false
@@ -1246,6 +1196,7 @@ func try_pickup_sword() -> bool:
 func drop_sword_at(point: Vector3) -> bool:
 	if not _selected or _sword_grounded or not is_instance_valid(_sword): return false
 	_sword_grounded = true
+	_reset_contact_plane()
 	_held = false
 	_hold_left = false
 	_hold_right = false
@@ -1306,6 +1257,11 @@ func _place_targets() -> Dictionary:
 		pole_at = _pick_along(base, side_right, [2.6, 2.9, 2.2], POLE_CLEAR_RADIUS)
 	if not dummy_at.is_finite(): dummy_at = _grounded(base + dummy_dir * 2.6)
 	if not pole_at.is_finite(): pole_at = _grounded(base + pole_dir * 2.4)
+	# A deferred host can be equipped during scene construction, before the
+	# castle's colliders have entered the physics space. Never pass INF from a
+	# failed ground query into a target transform or direction normalisation.
+	if not dummy_at.is_finite(): dummy_at = base + dummy_dir * 2.6
+	if not pole_at.is_finite(): pole_at = base + pole_dir * 2.4
 	_dummy = _build_dummy(dummy_at)
 	_pole = _build_pole(pole_at)
 	# The sparring partner starts a few metres along the open direction and walks
@@ -1568,6 +1524,7 @@ func _active() -> bool:
 func set_selected(value: bool) -> void:
 	if _selected == value: return
 	_selected = value
+	_reset_contact_plane()
 	if not _selected:
 		_held = false
 		_held_event = false
@@ -1701,7 +1658,9 @@ func _steer(delta: float) -> void:
 		_dir = _dir.slerp(carry, clampf(7.0 * delta, 0.0, 1.0)).normalized()
 		_omega = Vector3.ZERO
 		return
-	var target := _soft_body_limit(_constrain_forward(_target_direction()), 0.05, 0.22)
+	# The spring target must be reachable. A partial body limit left the
+	# target behind the actual pose limit and fed torque into that limit forever.
+	var target := _constrain_to_body(_constrain_forward(_target_direction()), 0.10)
 	# Smooth the target itself: the camera basis and the mouse both feed it, and a
 	# raw per-frame target is what showed up as a ripple on the blade.
 	if _steer_target.length_squared() < 1.0e-6:
@@ -1709,10 +1668,7 @@ func _steer(delta: float) -> void:
 	else:
 		_steer_target = _steer_target.slerp(target, clampf(STEER_TARGET_SMOOTH * delta, 0.0, 1.0)).normalized()
 	target = _steer_target
-	# After the tip has just touched the floor, the blade cannot be driven back
-	# down until it has lifted - this is what stops the 10 Hz ground hop.
-	if Time.get_ticks_msec() - _ground_touch_ms < 130 and target.y < 0.0:
-		target = Vector3(target.x, 0.0, target.z).normalized()
+	target = _contact_direction(target, true)
 	# A larger error drives a proportionally faster blade, so a decisive flick
 	# whips the sword through instead of dragging it. Damping is essential now that
 	# the view is free: without it the blade rings against a moving target and the
@@ -1720,18 +1676,33 @@ func _steer(delta: float) -> void:
 	var axis := _dir.cross(target)
 	var angle := _dir.angle_to(target)
 	var desired := Vector3.ZERO
+	# A one-handed sword needs time to accelerate and reverse. Other weapon
+	# profiles retain their existing tuning until separately evaluated.
+	var one_hand_sword := _weapon_id == "sword" and _active_side() != &"both"
+	var speed_limit := (7.0 if one_hand_sword else 8.5) if _weapon_id == "sword" else MAX_OMEGA
+	var acceleration := (26.0 if one_hand_sword else 40.0) if _weapon_id == "sword" else MAX_ALPHA
+	var gain := 6.0 if one_hand_sword else STEER_GAIN
 	if angle > 1.0e-4 and axis.length_squared() > 1.0e-10:
 		# DSH_MELEE_SET: mass is felt as lag. A sledge answers the mouse later than a
 		# sword does, which is the whole point of carrying one.
-		desired = axis.normalized() * clampf(angle * STEER_GAIN / _weapon_mass, 0.0, MAX_OMEGA / _weapon_mass)
+		desired = axis.normalized() * clampf(angle * gain / _weapon_mass, 0.0, speed_limit / _weapon_mass)
 	desired -= _omega * STEER_DAMPING
 	# Biting into a body or blade makes the sword heavy for a moment.
 	if Time.get_ticks_msec() < _bind_until_ms:
 		desired = desired.limit_length(1.6)
-	var dv := desired - _omega
-	var max_dv := MAX_ALPHA * delta / _weapon_mass
-	if dv.length() > max_dv and dv.length() > 1.0e-9: dv = dv.normalized() * max_dv
-	_omega += dv
+	if _weapon_id == "sword":
+		# Torque drives angular acceleration. Close to the target the controller
+		# brakes over time instead of assigning a new velocity every frame.
+		var stiffness := 38.0 if one_hand_sword else 55.0
+		var damping := 10.0 if one_hand_sword else 12.0
+		var error_axis := axis.normalized() * angle if axis.length_squared() > 0.00000001 else Vector3.ZERO
+		var torque := (error_axis * stiffness - _omega * damping).limit_length(acceleration)
+		_omega = (_omega + torque * delta).limit_length(speed_limit)
+		if Time.get_ticks_msec() < _bind_until_ms: _omega = _omega.limit_length(1.6)
+	else:
+		var dv := desired - _omega
+		var max_dv := acceleration * delta / _weapon_mass
+		_omega += dv.limit_length(max_dv)
 	# Park a nearly-settled blade instead of letting it buzz around the target.
 	if _omega.length() < STEER_DEADZONE and angle < STEER_ANGLE_DEADZONE:
 		_omega = Vector3.ZERO
@@ -1759,6 +1730,7 @@ func _physics_process(delta: float) -> void:
 	# DSH_MELEE_SET: with the weapon thrown the hands are empty, so no steering and no
 	# arm IK - the player's own animation owns the arms again until E lifts it.
 	if _unarmed:
+		_reset_contact_plane()
 		_held = false
 		_hold_left = false
 		_hold_right = false
@@ -1769,6 +1741,7 @@ func _physics_process(delta: float) -> void:
 		_step_thrown(delta)
 		return
 	if not active:
+		_reset_contact_plane()
 		# Outside the play state (menu, free cursor, death) no button stays held:
 		# a missed release used to leave RMB stuck on and force a two-handed grip.
 		_hold_left = false
@@ -1793,6 +1766,7 @@ func _physics_process(delta: float) -> void:
 		_player.set("_sword_lock", false)
 	if is_instance_valid(_sword): _sword.visible = true
 	if _sword_grounded:
+		_reset_contact_plane()
 		# The sword lies on the ground: no steering, no arm, it is simply not held.
 		_held = false
 		_hold_left = false
@@ -1803,7 +1777,7 @@ func _physics_process(delta: float) -> void:
 		if is_instance_valid(_player): _player.set("_sword_lock", false)
 		_update_city_npc(delta)
 		return
-	_dir = _soft_body_limit(_constrain_forward(_dir), 0.10, 0.16)
+	_dir = _contact_direction(_soft_body_limit(_constrain_forward(_dir), 0.10, 0.16))
 	if not _held:
 		# Released: the mouse command decays so the blade returns to rest.
 		_hand_cmd = _hand_cmd.lerp(Vector2.ZERO, clampf(REST_RETURN_RATE * delta, 0.0, 1.0))
@@ -1841,7 +1815,8 @@ func _physics_process(delta: float) -> void:
 		_shield_raise = move_toward(_shield_raise, want_raise, SHIELD_RAISE_RATE * delta)
 	_solve_arm(delta)
 	# The blade is never allowed to point behind the player.
-	_dir = _soft_body_limit(_constrain_forward(_dir), 0.10, 0.16)
+	_dir = _contact_direction(_soft_body_limit(_constrain_forward(_dir), 0.10, 0.16))
+	_advance_edge(delta)
 	# The opponent is a real body: his step, gravity and pose belong to the physics
 	# frame, otherwise move_and_slide() leaves him hanging in the air.
 	_update_city_npc(delta)
@@ -2123,7 +2098,13 @@ func _process(delta: float) -> void:
 	_sweep(delta)
 	# A contact may deflect the blade; put it back into the allowed front space
 	# immediately so it can never be shown behind the character.
-	_dir = _soft_body_limit(_constrain_forward(_dir), 0.10, 0.16)
+	_dir = _contact_direction(_soft_body_limit(_constrain_forward(_dir), 0.10, 0.16))
+	# Display and next sweep begin at the RESOLVED pose, never the penetrated
+	# pre-contact blade. This removes the render/physics tug of war at rest.
+	_attach_sword_to_fist()
+	_prev_points = PackedVector3Array()
+	for i in SWEEP_SEGMENTS + 1:
+		_prev_points.append(_sword_origin + _dir * (0.06 + _weapon_length * float(i) / SWEEP_SEGMENTS))
 	_update_dummy(delta)
 	_update_spark(delta)
 
@@ -2145,15 +2126,89 @@ func player_inside_geometry() -> bool:
 
 ## Places the sword on the RIG'S CURRENT fist (displayed pose), with the grip
 ## centre inside the hand and the blade along the commanded direction.
+func _grip_origin_offset() -> float:
+	if _weapon_id != "sword": return GRIP_CENTER_OFFSET
+	return 0.005 if _active_side() == &"both" else 0.05
+
+func _palm_offset(hand: int) -> Vector3:
+	var socket_name := "socket_hand_l" if hand == _bone_l_hand else "socket_hand_r"
+	var socket := _rig.find_bone(socket_name)
+	return _rig.get_bone_rest(socket).origin if socket >= 0 else Vector3.ZERO
+
+func _palm_position(side: StringName) -> Vector3:
+	var bone := _hand_bone_for(side)
+	return _rig.global_transform * (_rig.get_bone_global_pose(bone) * _palm_offset(bone))
+
 func _attach_sword_to_fist() -> void:
 	var bone := _hand_bone_for(_active_side())
 	if bone < 0: return
-	var fist: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(bone).origin
-	_sword_origin = fist + _dir * GRIP_CENTER_OFFSET
-	_grip_hand_error = _sword_origin.distance_to(fist)
-	if not _held:
-		_settle_carried_blade()
+	_self_pose_forward = 0.0
+	_solve_arm(0.0)
+	_rig.force_update_all_bone_transforms()
+	var fist := _palm_position(_active_side())
+	_sword_origin = fist + _dir * _grip_origin_offset()
+	if not _held: _settle_carried_blade()
+	# Every direction correction changes wrist orientation and therefore the
+	# palm anchor. Validate the resulting pose, not the old anchor.
+	for attempt in 5:
+		var safe_dir := _guard_self_blade(_contact_direction(_dir))
+		var changed := safe_dir.distance_squared_to(_dir) > 0.000001
+		_dir = safe_dir
+		if not changed and _self_blade_clear(_dir): break
+		if not _self_blade_clear(_dir):
+			# Rotation cannot rescue an anchor already inside the torso. Move the
+			# common hand target before solving both arms, never detach the sword.
+			_self_pose_forward = minf(0.20, _self_pose_forward + 0.04)
+		_solve_arm(0.0)
+		_rig.force_update_all_bone_transforms()
+		fist = _palm_position(_active_side())
+		_sword_origin = fist + _dir * _grip_origin_offset()
+	_self_pose_clear = _self_blade_clear(_dir)
 	_place_sword(_sword_origin, _dir)
+	_grip_hand_error = (_sword_origin - _dir * _grip_origin_offset()).distance_to(fist)
+	if _active_side() == &"both":
+		_left_hand_error = _palm_position(&"left").distance_to(fist - _dir * 0.11)
+
+var _self_pose_forward := 0.0
+var _self_pose_clear := true
+var _self_safe_dir := Vector3.ZERO
+
+func _self_blade_clear(direction: Vector3) -> bool:
+	var chest: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_chest).origin
+	var pelvis: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_pelvis).origin
+	var head: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_head).origin
+	var tip := _sword_origin + direction * (0.06 + _weapon_length)
+	return _segment_distance(_sword_origin, tip, chest, pelvis) >= 0.20 and _segment_distance(_sword_origin, tip, head, head) >= 0.18
+
+func _guard_self_blade(wanted: Vector3) -> Vector3:
+	# Test the whole angular path, not only a tip already on the far side of the body.
+	if _self_safe_dir.length_squared() > 0.5 and _self_blade_clear(_self_safe_dir):
+		var steps := maxi(1, ceili(_self_safe_dir.angle_to(wanted) / deg_to_rad(3.0)))
+		var safe := _self_safe_dir
+		for step in range(1, steps + 1):
+			var next := _self_safe_dir.slerp(wanted, float(step) / steps).normalized()
+			if not _self_blade_clear(next):
+				_omega *= 0.35
+				_self_safe_dir = safe
+				return safe
+			safe = next
+		_self_safe_dir = safe
+		return safe
+	if _self_blade_clear(wanted):
+		_self_safe_dir = wanted
+		return wanted
+	# The body may move around a previously safe blade. Find the nearest clear
+	# direction towards the front before displaying it, retaining its hand anchor.
+	var forward: Vector3 = _player._visual.global_basis.z.normalized()
+	for step in range(1, 25):
+		var next := wanted.slerp(forward, float(step) / 24.0).normalized()
+		if _self_blade_clear(next):
+			_self_safe_dir = next
+			_omega *= 0.35
+			return next
+	# No feasible rotation was found; attachment retries the hand pose.
+	_self_safe_dir = Vector3.ZERO
+	return wanted
 
 ## While the sword is merely CARRIED, steel may not stand inside the world. The
 ## blade is first turned clear; whatever still does not fit is drawn back until the
@@ -2283,14 +2338,14 @@ func _solve_arm(delta: float) -> void:
 		want_dir = _constrain_to_body(want_dir, 0.34)
 		var want_rig := (rig_basis.inverse() * want_dir).normalized()
 		var blade_rig := (rig_basis.inverse() * _dir).normalized()
-		_lean_body(want_dir, delta)
+		if delta > 0.0: _lean_body(want_dir, delta)
 		var side := _active_side()
 		# If the carried sword had to be drawn out of a wall, the arm comes in with
 		# it, so the fist keeps holding the grip instead of being left behind.
 		var pulled := clampf(_carry_pull / 0.55, 0.0, 1.0)
-		var grip_rig := _pose_main(side, want_rig, blade_rig, lerpf(0.70, 0.40, pulled))
+		var grip_rig := _pose_shared_grip(want_dir, blade_rig) if side == &"both" else _pose_main(side, want_rig, blade_rig, lerpf(0.70, 0.40, pulled))
 		if grip_rig != Vector3.ZERO:
-			_sword_origin = (_rig.global_transform * grip_rig) + _dir * GRIP_CENTER_OFFSET
+			_sword_origin = (_rig.global_transform * grip_rig) + _dir * _grip_origin_offset()
 		# The carried blade is never shown inside the character or inside the world:
 		# if the pose would drive steel through him or a wall, the blade is turned.
 		_dir = _clear_blade_from_body(_dir)
@@ -2306,27 +2361,11 @@ func _solve_arm(delta: float) -> void:
 		want_dir = _constrain_to_body(want_dir, 0.34)
 	var want_rig := (rig_basis.inverse() * want_dir).normalized()
 	var blade_rig := (rig_basis.inverse() * _dir).normalized()
-	_lean_body(want_dir, delta)
+	if delta > 0.0: _lean_body(want_dir, delta)
 	var side := _active_side()
 	var grip_rig := Vector3.ZERO
 	if side == &"both":
-		# Two-handed: BOTH hands are pushed well forward of the chest, so the arms
-		# read as an extended grip instead of a knot against the body. Right leads.
-		grip_rig = _pose_main(&"right", want_rig, blade_rig, 0.88)
-		if grip_rig != Vector3.ZERO:
-			var support := grip_rig - blade_rig * _two_hand_offset_rig
-			# The supporting hand must stay OUT of the torso: never across the centre
-			# line, and never inside the body's own radius. Without this the arm
-			# passed straight through the chest during a cut.
-			if support.x * _left_sign < 0.06: support.x = _left_sign * 0.06
-			var body_center: Vector3 = _chain_global(_bone_chest).origin
-			var flat := Vector3(support.x - body_center.x, 0.0, support.z - body_center.z)
-			var min_radius: float = maxf(0.28, _two_hand_offset_rig * 0.85)
-			if flat.length() < min_radius:
-				var away: Vector3 = flat.normalized() if flat.length_squared() > 1.0e-8 else Vector3(_left_sign, 0.0, 0.0)
-				support.x = body_center.x + away.x * min_radius
-				support.z = body_center.z + away.z * min_radius
-			_pose_support(&"left", support)
+		grip_rig = _pose_shared_grip(want_dir, blade_rig)
 	elif _half_sword:
 		# HALF-SWORD: the off hand grips the BLADE, well up from the guard, which is
 		# the technique the game is named after - it shortens the weapon and puts the
@@ -2341,7 +2380,46 @@ func _solve_arm(delta: float) -> void:
 	else:
 		grip_rig = _pose_main(&"right", want_rig, blade_rig)
 	if grip_rig == Vector3.ZERO: return
-	_sword_origin = (_rig.global_transform * grip_rig) + _dir * GRIP_CENTER_OFFSET
+	_sword_origin = (_rig.global_transform * grip_rig) + _dir * _grip_origin_offset()
+
+## Solve one rigid handle reachable by both arms. Moving the supporting hand
+## independently breaks its contact with the handle and crosses the forearms.
+func _pose_shared_grip(want_dir: Vector3, blade_rig: Vector3) -> Vector3:
+	var rig_to_world := _rig.global_transform
+	var world_to_rig := rig_to_world.affine_inverse()
+	var visual_basis: Basis = _player._visual.global_basis.orthonormalized()
+	var right_set := _arm_set(&"right")
+	var left_set := _arm_set(&"left")
+	var right_joint: Vector3 = (_chain_global(right_set.clav) * right_set.rest_upper).origin
+	var left_joint: Vector3 = (_chain_global(left_set.clav) * left_set.rest_upper).origin
+	var middle_world: Vector3 = rig_to_world * ((right_joint + left_joint) * 0.5)
+	var local_want: Vector3 = visual_basis.inverse() * want_dir
+	var target_world: Vector3 = middle_world + visual_basis * Vector3(
+		clampf(local_want.x * 0.14, -0.14, 0.14),
+		clampf(local_want.y * 0.20 - 0.12, -0.30, 0.08), 0.38 + _self_pose_forward)
+	var grip: Vector3 = world_to_rig * target_world
+	# Reach spheres belong to wrists; offset their centres to the palm anchors
+	# using the SAME wrist orientation that the final IK will apply.
+	var right_basis: Basis = (_chain_global(right_set.clav) * right_set.rest_upper * right_set.rest_fore * right_set.rest_hand).basis.orthonormalized()
+	var left_basis: Basis = (_chain_global(left_set.clav) * left_set.rest_upper * left_set.rest_fore * left_set.rest_hand).basis.orthonormalized()
+	right_basis = Basis(Quaternion((right_basis * Vector3(0, 0, -1)).normalized(), blade_rig)) * right_basis
+	left_basis = Basis(Quaternion((left_basis * Vector3(0, 0, -1)).normalized(), blade_rig)) * left_basis
+	right_joint += right_basis * _palm_offset(right_set.hand)
+	left_joint += left_basis * _palm_offset(left_set.hand)
+	var offset := blade_rig * _two_hand_offset_rig
+	var right_reach: float = (right_set.rest_fore.origin.length() + right_set.rest_hand.origin.length()) * 0.94
+	var left_reach: float = (left_set.rest_fore.origin.length() + left_set.rest_hand.origin.length()) * 0.94
+	# Intersect the two reach spheres by moving the HANDLE, keeping both anchors.
+	for iteration in 10:
+		grip = right_joint + (grip - right_joint).limit_length(right_reach)
+		var support := grip - offset
+		support = left_joint + (support - left_joint).limit_length(left_reach)
+		grip = support + offset
+	var fist: Vector3 = _pose_arm_ik(right_set.clav, right_set.upper, right_set.fore,
+		right_set.hand, right_set.rest_upper, right_set.rest_fore, right_set.rest_hand,
+		right_set.offset, grip, blade_rig, 1.0, true, right_set.pole)
+	_pose_support(&"left", fist - offset)
+	return fist
 
 ## Which hand holds the sword right now. LMB = left-hand strike, RMB = a guard in
 ## the right hand (the blade is placed where the mouse points and stops blows),
@@ -2368,7 +2446,7 @@ func _hand_bone_for(side: StringName) -> int:
 func _arm_set(side: StringName) -> Dictionary:
 	# The hero rig is MIRRORED on screen: the "_l" bones render on the character's
 	# right. So LMB (left) drives the "_r" bones and RMB (right) the "_l" bones.
-	var use_l_named: bool = side == &"right"
+	var use_l_named: bool = side in [&"right", &"both"]
 	# The elbow must fall to the arm's OWN side. That side is decided by the visual
 	# side, not by which bones happen to be named "_l"/"_r".
 	var pole := _left_sign if side == &"left" else -_left_sign
@@ -2396,7 +2474,7 @@ func _pose_main(side: StringName, want_rig: Vector3, blade_rig: Vector3, reach_s
 ## what used to fold the arm into a hook.
 func _pose_support(side: StringName, grip_rig: Vector3) -> void:
 	var set := _arm_set(side)
-	var fist: Vector3 = _pose_arm_ik(set.clav, set.upper, set.fore, set.hand, set.rest_upper, set.rest_fore, set.rest_hand, set.offset, grip_rig, Vector3.UP, 1.0, true, set.pole)
+	var fist: Vector3 = _pose_arm_ik(set.clav, set.upper, set.fore, set.hand, set.rest_upper, set.rest_fore, set.rest_hand, set.offset, grip_rig, (_rig.global_basis.inverse() * _dir).normalized(), 1.0, true, set.pole)
 	if fist != Vector3.ZERO: _left_hand_error = fist.distance_to(grip_rig)
 
 ## Two-bone IK with a real elbow: the hand reaches the requested point (clamped
@@ -2410,14 +2488,29 @@ func _pose_arm_ik(clav: int, upper: int, fore: int, hand: int, rest_upper: Trans
 	var l2 := rest_hand.origin.length()
 	if l1 <= 0.01 or l2 <= 0.01: return Vector3.ZERO
 	var target := want_rig if want_is_point else joint + want_rig * (l1 + l2) * clampf(reach_scale, 0.3, 1.0)
+	# Single-hand targets stay forward of the chest and on a reachable arc.
+	if not want_is_point:
+		var visual_basis: Basis = _player._visual.global_basis.orthonormalized()
+		var chest_world: Vector3 = _rig.global_transform * _chain_global(_bone_chest).origin
+		var target_world: Vector3 = _rig.global_transform * target
+		var relative: Vector3 = visual_basis.inverse() * (target_world - chest_world)
+		relative.z = maxf(relative.z, 0.24 + _self_pose_forward)
+		target = _rig.global_transform.affine_inverse() * (chest_world + visual_basis * relative)
+	# Aim the grip axis across the closed palm; IK solves the wrist behind
+	# that palm centre rather than placing the wrist itself on the handle.
+	var rest_global_basis := (clavicle_global * rest_upper * rest_fore * rest_hand).basis.orthonormalized()
+	var grip_axis := (rest_global_basis * Vector3(0, 0, -1)).normalized()
+	var palm_basis := Basis(Quaternion(grip_axis, blade_rig.normalized())) * rest_global_basis
+	var palm_offset := _palm_offset(hand)
+	target -= palm_basis * palm_offset
 	var to_target := target - joint
 	var distance := to_target.length()
 	if distance < 1.0e-4: return Vector3.ZERO
 	var direction := to_target.normalized()
-	var d := clampf(distance, absf(l1 - l2) + 1.0e-3, l1 + l2 - 1.0e-3)
+	var d := clampf(distance, absf(l1 - l2) + 1.0e-3, (l1 + l2) * 0.96)
 	# The elbow hangs DOWN (a little to its own side and slightly back), which is
 	# what a human arm does. A sideways pole threw the elbow out into a Г shape.
-	var pole := Vector3(0.16 * pole_side, -1.0, -0.12)
+	var pole := Vector3(0.55 * pole_side, -1.0, -0.12)
 	pole -= direction * pole.dot(direction)
 	if pole.length_squared() < 1.0e-6:
 		pole = direction.cross(Vector3.RIGHT)
@@ -2431,12 +2524,9 @@ func _pose_arm_ik(clav: int, upper: int, fore: int, hand: int, rest_upper: Trans
 	var upper_global := clavicle_global * upper_local
 	var fore_local := _point_bone(fore, rest_fore, rest_hand.origin, upper_global.basis, fore_dir)
 	var fore_global := upper_global * fore_local
-	var wrist_dir := blade_rig
-	if want_is_point:
-		var to_grip := target - fore_global.origin
-		if to_grip.length_squared() > 1.0e-8: wrist_dir = to_grip.normalized()
-	var hand_local := _point_bone(hand, rest_hand, hand_offset, fore_global.basis, wrist_dir)
-	return (fore_global * hand_local).origin
+	var hand_local := Transform3D((fore_global.basis.inverse() * palm_basis).orthonormalized(), rest_hand.origin)
+	_rig.set_bone_pose(hand, hand_local)
+	return (fore_global * hand_local) * palm_offset
 
 ## Hard guarantee that the sword hand can never end up behind the character's
 ## Hard guarantee that the sword hand can never end up behind the character's
@@ -2600,8 +2690,10 @@ func _lean_body(want_dir: Vector3, delta: float) -> void:
 	_body_yaw += _body_yaw_vel * delta
 	_body_yaw = clampf(_body_yaw, -BODY_YAW_LIMIT_SWING, BODY_YAW_LIMIT_SWING)
 	# 2. Lean: opposite the blade's angular acceleration, plus contact recoil.
-	var swing_pitch := -_omega.dot(world_right) * BODY_LEAN_GAIN
-	var swing_roll := -_omega.dot(world_fwd) * BODY_LEAN_GAIN
+	var angular_load := ((_omega - _body_load_omega) / maxf(delta, 0.001)).limit_length(45.0)
+	_body_load_omega = _omega
+	var swing_pitch := -_omega.dot(world_right) * BODY_LEAN_GAIN - angular_load.dot(world_right) * 0.0015
+	var swing_roll := -_omega.dot(world_fwd) * BODY_LEAN_GAIN - angular_load.dot(world_fwd) * 0.0015
 	var push_pitch := _body_push.dot(world_fwd) * BODY_PUSH_GAIN
 	var push_roll := -_body_push.dot(world_right) * BODY_PUSH_GAIN
 	var target_lean := Vector2(swing_pitch + push_pitch, swing_roll + push_roll)
@@ -3090,21 +3182,31 @@ func now_ms() -> int:
 func _segment_distance(a0: Vector3, a1: Vector3, b0: Vector3, b1: Vector3) -> float:
 	var u := a1 - a0
 	var v := b1 - b0
-	var w := a0 - b0
-	var a := u.dot(u); var b := u.dot(v); var c := v.dot(v)
-	var d := u.dot(w); var e := v.dot(w)
-	var denominator := a * c - b * b
-	var s := 0.0
-	var t := 0.0
-	if denominator > 1.0e-9:
-		s = clampf((b * e - c * d) / denominator, 0.0, 1.0)
-		t = clampf((a * e - b * d) / denominator, 0.0, 1.0)
+	var r := a0 - b0
+	var a := u.dot(u)
+	var e := v.dot(v)
+	var f := v.dot(r)
+	var first := 0.0
+	var second := 0.0
+	if a <= 0.00000001 and e <= 0.00000001: return a0.distance_to(b0)
+	if a <= 0.00000001:
+		second = clampf(f / e, 0.0, 1.0)
 	else:
-		s = 0.0
-		t = clampf(e / maxf(c, 1.0e-9), 0.0, 1.0)
-	var closest_a := a0 + u * s
-	var closest_b := b0 + v * t
-	return closest_a.distance_to(closest_b)
+		var c := u.dot(r)
+		if e <= 0.00000001:
+			first = clampf(-c / a, 0.0, 1.0)
+		else:
+			var b := u.dot(v)
+			var denominator := a * e - b * b
+			if denominator > 0.00000001: first = clampf((b * f - c * e) / denominator, 0.0, 1.0)
+			second = (b * first + f) / e
+			if second < 0.0:
+				second = 0.0
+				first = clampf(-c / a, 0.0, 1.0)
+			elif second > 1.0:
+				second = 1.0
+				first = clampf((b - c) / a, 0.0, 1.0)
+	return (a0 + u * first).distance_to(b0 + v * second)
 
 ## Builds a sword transform with +X along `direction`.
 func _place_basis(origin: Vector3, direction: Vector3) -> Transform3D:
@@ -3114,8 +3216,73 @@ func _place_basis(origin: Vector3, direction: Vector3) -> Transform3D:
 	var y := z.cross(x).normalized()
 	return Transform3D(Basis(x, y, z), origin)
 
+var _contact_plane := Plane()
+var _contact_anchor := Vector3.ZERO
+var _contact_plane_active := false
+var _contact_rid := RID()
+var _edge_direction := Vector3.UP
+
+func _reset_contact_plane() -> void:
+	_contact_plane_active = false
+	_contact_rid = RID()
+	_contact_plane = Plane()
+	_contact_anchor = Vector3.ZERO
+	_ground_touch_ms = -10000
+
+func _contact_direction(wanted: Vector3, allow_release: bool = false) -> Vector3:
+	if not _contact_plane_active: return wanted
+	var reach := 0.06 + _weapon_length
+	var distance := _contact_plane.distance_to(_sword_origin)
+	var clearance := distance + wanted.dot(_contact_plane.normal) * reach
+	if _sword_origin.distance_to(_contact_anchor) > 0.55 or (allow_release and clearance > 0.10):
+		_reset_contact_plane()
+		return wanted
+	var minimum := clampf((0.018 - distance) / reach, -1.0, 1.0)
+	if wanted.dot(_contact_plane.normal) < minimum + 0.015:
+		# Project angular velocity onto the contact constraint at EVERY step,
+		# including frames without a new collision. Otherwise torque accumulates
+		# against an immovable floor and is released as a repeated twitch.
+		var gradient := _dir.cross(_contact_plane.normal)
+		var into := _omega.dot(gradient)
+		if into < 0.0 and gradient.length_squared() > 0.000001:
+			_omega -= gradient * (into / gradient.length_squared())
+	if wanted.dot(_contact_plane.normal) >= minimum: return wanted
+	var tangent := wanted - _contact_plane.normal * wanted.dot(_contact_plane.normal)
+	if tangent.length_squared() < 0.000001:
+		tangent = _contact_plane.normal.cross(Vector3.RIGHT)
+		if tangent.length_squared() < 0.000001: tangent = _contact_plane.normal.cross(Vector3.UP)
+	return (tangent.normalized() * sqrt(maxf(0.0, 1.0 - minimum * minimum)) + _contact_plane.normal * minimum).normalized()
+
+func _edge_axis(direction: Vector3) -> Vector3:
+	# Pure projection: repeated render placement never advances the edge state.
+	var x := direction.normalized()
+	var y := _edge_direction - x * _edge_direction.dot(x)
+	if y.length_squared() < 0.000001: y = x.cross(Vector3.RIGHT)
+	if y.length_squared() < 0.000001: y = x.cross(Vector3.FORWARD)
+	return y.normalized()
+
+func _advance_edge(delta: float) -> void:
+	# Integrate twist once on the physics clock, independently of render count.
+	var x := _dir.normalized()
+	var y := _edge_axis(x)
+	var travel := _omega.cross(x)
+	if _held and travel.length() > 0.6:
+		var wanted := travel.normalized()
+		if wanted.dot(y) < 0.0: wanted = -wanted
+		var angle := y.signed_angle_to(wanted, x)
+		y = y.rotated(x, clampf(angle, -4.0 * delta, 4.0 * delta))
+	_edge_direction = y
+
 func _place_sword(origin: Vector3, direction: Vector3) -> void:
-	_sword.global_transform = _place_basis(origin, direction)
+	var x := direction.normalized()
+	var y := _edge_axis(x)
+	_sword.global_transform = Transform3D(Basis(x, y, x.cross(y).normalized()), origin)
+
+func _edge_motion(motion: Vector3) -> float:
+	if _weapon_id != "sword":
+		var along := absf(motion.normalized().dot(_dir))
+		return sqrt(maxf(0.0, 1.0 - along * along))
+	return absf(motion.normalized().dot(_sword.global_basis.y.normalized()))
 
 # -------------------------------------------------------------- blade sweeping
 
@@ -3196,6 +3363,14 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 	var speed := float(hit.get("_speed", 0.0))
 	var position: Vector3 = hit.position
 	var normal: Vector3 = hit.normal
+	# A ray beginning inside a solid reports a zero normal; never turn that
+	# sentinel into a plane or a deflection axis.
+	if not normal.is_finite() or normal.length_squared() < 0.5:
+		var hit_rid: RID = hit.get("rid", RID())
+		# An inside-hit sentinel cannot borrow a different obstacle's normal.
+		if not _contact_plane_active or not hit_rid.is_valid() or hit_rid != _contact_rid: return
+		normal = _contact_plane.normal
+		position = _contact_plane.project(position)
 	var is_target: bool = is_instance_valid(collider) and collider.has_meta("sword_target")
 	var is_duelist: bool = is_instance_valid(collider) and collider.has_meta("sword_duelist")
 	if not _held:
@@ -3204,17 +3379,25 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 		return
 	var id_any: int = collider.get_instance_id() if is_instance_valid(collider) else -1
 	var fresh: bool = id_any < 0 or not _contact_prev.has(id_any)
-	# Ground contact never bounces: a blade resting on the floor only has its
-	# downward rotation damped. Pushing or deflecting here made it hop repeatedly.
-	if normal.y > 0.7:
-		_ground_touch_ms = now
-		_omega *= 0.90
-		if fresh and now - _last_block_sound_ms >= BLOCK_SOUND_COOLDOWN_MS:
-			_last_block_sound_ms = now
-			_impact_player.global_position = position
-			_impact_player.pitch_scale = 1.05
-			_impact_player.play()
-		return
+	if not is_target and not is_duelist and is_instance_valid(collider) and not collider.has_meta("sword_npc_part"):
+		_contact_plane = Plane(normal.normalized(), position)
+		_contact_rid = hit.get("rid", RID())
+		_contact_anchor = _sword_origin
+		_contact_plane_active = true
+		_dir = _contact_direction(_dir)
+		# Remove only velocity pressing into the plane. There is no restitution
+		# while resting on it, so held input cannot repeatedly recharge a bounce.
+		var tip_velocity := _omega.cross(_dir)
+		if tip_velocity.dot(normal) < 0.0:
+			var tangent := tip_velocity - normal * tip_velocity.dot(normal)
+			_omega = _dir.cross(tangent)
+		if normal.y > 0.7:
+			_ground_touch_ms = now
+			if fresh and speed > DAMAGE_SPEED_MIN and now - _last_block_sound_ms >= BLOCK_SOUND_COOLDOWN_MS:
+				_last_block_sound_ms = now
+				_impact_player.global_position = position
+				_impact_player.play()
+			return
 	# Hitting a body stops the blade just like masonry does: it never sinks in and
 	# stays there. The push is applied on a fresh touch and blended, so the sword
 	# neither jerks in the hand nor bounces off the same surface every frame.
@@ -3286,9 +3469,10 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 				var motion: Vector3 = hit.get("_velocity", Vector3.ZERO)
 				if motion.length_squared() < 1.0e-8: motion = _dir * speed
 				var along := absf(motion.normalized().dot(_dir))
-				var across := sqrt(maxf(0.0, 1.0 - along * along))
+				var across := _edge_motion(motion)
 				var kind := "slice" if across >= 0.72 else ("stab" if along >= 0.72 else "flat")
 				var factor := _armour_factor(npc_part, kind)
+				if _weapon_id == "sword" and kind == "flat": factor *= 0.12
 				# DSH_MELEE_SET: blunt weapons do not have an edge to turn. A mace or a
 				# sledge transmits the blow through plate, which is exactly why they were
 				# carried against armour, so they skip the armour reduction entirely.
@@ -3355,9 +3539,9 @@ func _damage_dummy(dummy: StaticBody3D, position: Vector3, speed: float, velocit
 	var motion := velocity
 	if motion.length_squared() < 1.0e-8: motion = _dir * speed
 	var along := absf(motion.normalized().dot(_dir))
-	var across := sqrt(maxf(0.0, 1.0 - along * along))
+	var across := _edge_motion(motion)
 	# Blend from a pure stab to a clean slice; a flat slap stays near zero.
-	var quality := clampf(across * 1.0 + along * 0.45, 0.0, 1.0)
+	var quality := clampf(across + along * 0.45, 0.0, 1.0)
 	var effective := speed * quality
 	var kind := "slice" if across >= 0.72 else ("stab" if along >= 0.72 else "flat")
 	# Wind-up matters: a stroke that barely moved the blade stays a graze, while a
@@ -4697,7 +4881,7 @@ func snapshot() -> Dictionary:	return {
 		"npc_position": _npc_body.global_position if is_instance_valid(_npc_body) else Vector3.ZERO,
 		"npc_cuts": _npc_cut_total, "npc_debris": _npc_debris.size(),
 		"npc_severed_count": _npc_severed.size(),
-		"grip_hand_error": _grip_hand_error,
+		"grip_hand_error": _grip_hand_error, "self_pose_clear": _self_pose_clear,
 		"sword_grounded": _sword_grounded, "dropped_at": _dropped_at,
 		"head_clearance": _head_blade_clearance(),
 		"blade_in_world": _blade_penetrates_world(_dir, _sword_origin),

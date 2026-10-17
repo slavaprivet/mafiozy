@@ -1,4 +1,5 @@
 extends Node3D
+const ModelFinish31 = preload("res://scripts/weapons/weapon_model_finish31.gd")
 ## DSH_BOW_PROTO
 ##
 ## A physical bow for the Mafiozi build, built the same way as the sword
@@ -203,12 +204,12 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 func _build_materials() -> void:
 	_wood_dark = StandardMaterial3D.new()
 	_wood_dark.albedo_color = Color(0.24, 0.14, 0.07)
-	_wood_dark.roughness = 0.62
+	_wood_dark.roughness = 0.78
 	_wood_light = StandardMaterial3D.new()
 	_wood_light.albedo_color = Color(0.42, 0.27, 0.13)
-	_wood_light.roughness = 0.55
+	_wood_light.roughness = 0.72
 	_horn = StandardMaterial3D.new()
-	_horn.albedo_color = Color(0.86, 0.82, 0.70)
+	_horn.albedo_color = Color(0.68, 0.62, 0.45)
 	_horn.roughness = 0.35
 	_leather = StandardMaterial3D.new()
 	_leather.albedo_color = Color(0.30, 0.19, 0.12)
@@ -216,7 +217,7 @@ func _build_materials() -> void:
 	_steel = StandardMaterial3D.new()
 	_steel.albedo_color = Color(0.76, 0.77, 0.80)
 	_steel.metallic = 0.88
-	_steel.roughness = 0.24
+	_steel.roughness = 0.38
 	_string_material = StandardMaterial3D.new()
 	_string_material.albedo_color = Color(0.90, 0.87, 0.76)
 	_string_material.roughness = 0.85
@@ -311,6 +312,7 @@ func _build_bow(parent: Node3D) -> Node3D:
 	_nock = Node3D.new()
 	_nock.name = "Nock"
 	root.add_child(_nock)
+	ModelFinish31.finish(root, [_string_a, _string_b])
 	return root
 
 ## One limb's staves of a single tone, merged into a single surface. The taper is
