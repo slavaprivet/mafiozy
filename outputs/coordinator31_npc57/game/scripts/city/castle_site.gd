@@ -1696,7 +1696,10 @@ func apply_explosion(event: Dictionary) -> Dictionary:
 			var drop: float = maxf(0.0, absf(at_world.y - board_at.y) - GATE_HEIGHT * 0.46)
 			# A stone takes the boards within about a metre of where it struck. The blast
 			# radius is for masonry; a door gives way locally.
-			if Vector2(flat, drop).length() > 1.1: continue
+			# THE HOLE SCALES WITH THE STRIKE: a fast heavy stone takes more of the door than
+			# a slow one. power arrives from the machine, so the hole is its own force.
+			var hole: float = clampf(0.55 + power * 0.010, 0.8, 2.8)
+			if Vector2(flat, drop).length() > hole: continue
 			board["broken"] = true
 			board_mesh.visible = false
 			killed += 1
@@ -1843,7 +1846,12 @@ func _physics_process(_delta: float) -> void:
 		# A stone that has stopped is rubble, not a moving body. Retiring its solver is the
 		# single biggest saving after a blast: a hundred solvers awake is what stalls the
 		# frame, and once they are asleep the cost is their meshes and nothing else.
-		if age > BRICK_SETTLE_S and not bool(entry.get("settled", false)):
+		# ONLY when it has actually come to rest. Freezing on a timer alone left boards
+		# hanging in mid-air exactly where they were blown to.
+		var resting: bool = body.linear_velocity.length() < 0.7 \
+			and body.angular_velocity.length() < 1.6
+		if ((age > BRICK_SETTLE_S and resting) or age > 6.0) \
+				and not bool(entry.get("settled", false)):
 			entry["settled"] = true
 			body.linear_velocity = Vector3.ZERO
 			body.angular_velocity = Vector3.ZERO

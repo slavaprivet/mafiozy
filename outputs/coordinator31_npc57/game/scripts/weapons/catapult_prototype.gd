@@ -84,6 +84,8 @@ var _recoil_lock := 0.0
 ## DSH_CATAPULT: where the machine was put. It is restored to this transform every frame, so
 ## nothing - a shove, a slope, the player leaning on it - can move it.
 var _cart_home := Transform3D()
+var _host_home := Transform3D()
+var _host_home_set := false
 var _cart_home_set := false
 var _travelled := 0.0
 ## Laying the stone in the spoon is an animation, not a teleport.
@@ -315,6 +317,8 @@ func place_near_castle(castle: Node3D) -> void:
 		_stone.linear_velocity = Vector3.ZERO
 	_cart_home = _cart.global_transform
 	_cart_home_set = true
+	_host_home = global_transform
+	_host_home_set = true
 	print("DSH_CATAPULT_PLACED castle_gate=", gate, " cart=", _cart.global_position,
 		" stone=", _stone.global_position if is_instance_valid(_stone) else "none")
 
@@ -497,6 +501,14 @@ func _try_interact() -> bool:
 	if player_at.distance_to(_cart.global_position) <= FRAME_RANGE \
 			and _stone_on_spoon and not _flying and not _winding:
 		_fire()
+		return true
+	# 2b. Standing at the SPOON with a loaded machine: E takes the stone back into his hands.
+	if _stone_on_spoon and not _flying and not _winding \
+			and player_at.distance_to(_spoon_point()) <= 1.9:
+		_stone_on_spoon = false
+		_carrying_stone = true
+		if is_instance_valid(_stone):
+			_stone.freeze = true
 		return true
 	# 3. Near the stone: E TAKES IT IN HIS HANDS. It is never teleported into the spoon.
 	if not _stone_on_spoon and is_instance_valid(_stone) and not _flying \
