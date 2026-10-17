@@ -560,7 +560,7 @@ func _build_castle_map() -> bool:
 			else:
 				child.process_mode = Node.PROCESS_MODE_DISABLED
 	if is_instance_valid(preview_minimap):
-		var map_layer := preview_minimap.get("_map")
+		var map_layer: Variant = preview_minimap.get("_map")
 		if map_layer is Control:
 			(map_layer as Control).scale = Vector2(0.62, 0.62)
 			(map_layer as Control).pivot_offset = Vector2.ZERO
