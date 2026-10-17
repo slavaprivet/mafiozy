@@ -71,7 +71,17 @@ var _carrying_stone := false
 var _stone_on_spoon := false
 var _pushers := 0
 var _push_speed := 0.0
+## The cart has its own speed: it takes time to reach and time to lose.
+var _cart_speed := 0.0
 var _travelled := 0.0
+## Laying the stone in the spoon is an animation, not a teleport.
+var _loading := false
+var _loading_t := 0.0
+var _loading_from := Vector3.ZERO
+## A ring on the ground marks the stone while it can be taken.
+var _stone_marker: MeshInstance3D
+var _dust: Array[Dictionary] = []
+var _dust_total := 0
 
 var _flying := false
 var _fly_velocity := Vector3.ZERO
@@ -474,15 +484,12 @@ func _spoon_point() -> Vector3:
 
 func _set_stone_on_spoon() -> void:
 	_carrying_stone = false
-	_stone_on_spoon = true
+	_stone_on_spoon = false
+	_loading = true
+	_loading_t = 0.0
 	if is_instance_valid(_stone):
 		_stone.freeze = true
-		_stone.global_position = _spoon_point() + Vector3.UP * (STONE_RADIUS + 0.06)
-	_arm_wound = false
-	_winding = false
-	_arm_angle = _cocked_angle
-	_arm_settle = 0.0
-	_apply_arm()
+		_loading_from = _stone.global_position
 
 func _drop_stone() -> void:
 	_carrying_stone = false
@@ -491,6 +498,85 @@ func _drop_stone() -> void:
 		_stone.global_position = _player.global_position \
 			+ _player._visual.global_basis.z * 1.1 + Vector3.UP * 0.45
 		_stone.linear_velocity = Vector3.ZERO
+
+## ------------------------------------------------------------------ polish
+## A ring on the ground around the stone while it can be taken. Without it a player has
+## to guess which of the things lying in the street he is meant to lift.
+func _build_stone_marker() -> void:
+	_stone_marker = MeshInstance3D.new()
+	var ring := TorusMesh.new()
+	ring.inner_radius = STONE_RADIUS * 1.20
+	ring.outer_radius = STONE_RADIUS * 1.52
+	ring.rings = 20
+	ring.ring_segments = 8
+	_stone_marker.mesh = ring
+	var glow := StandardMaterial3D.new()
+	glow.albedo_color = Color(0.96, 0.90, 0.72, 0.55)
+	glow.emission_enabled = true
+	glow.emission = Color(0.55, 0.48, 0.30)
+	glow.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	glow.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_stone_marker.material_override = glow
+	_stone_marker.visible = false
+	add_child(_stone_marker)
+
+func _update_stone_marker() -> void:
+	if not is_instance_valid(_stone_marker): return
+	var show: bool = is_instance_valid(_stone) and not _carrying_stone and not _stone_on_spoon \
+		and not _flying and not _loading \
+		and _player.global_position.distance_to(_stone.global_position) <= CARRY_RANGE
+	_stone_marker.visible = show
+	if show:
+		_stone_marker.global_position = _stone.global_position - Vector3.UP * (STONE_RADIUS * 0.9)
+		_stone_marker.rotation.y += 0.02
+
+## Dust thrown up by a strike on masonry.
+func _spawn_dust(at: Vector3, normal: Vector3) -> void:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(0.62, 0.58, 0.50, 0.55)
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var puff := SphereMesh.new()
+	puff.radius = 0.22
+	puff.height = 0.44
+	for i: int in 9:
+		var mote := MeshInstance3D.new()
+		mote.mesh = puff
+		mote.material_override = material
+		_world.add_child(mote)
+		mote.global_position = at + Vector3(randf_range(-0.2, 0.2), randf_range(-0.2, 0.2), randf_range(-0.2, 0.2))
+		_dust.append({
+			"node": mote,
+			"velocity": normal * randf_range(0.6, 2.4)
+				+ Vector3(randf_range(-1.2, 1.2), randf_range(0.2, 1.6), randf_range(-1.2, 1.2)),
+			"age": 0.0, "life": randf_range(0.55, 1.1),
+		})
+		_dust_total += 1
+
+func _update_dust(delta: float) -> void:
+	if _dust.is_empty(): return
+	for index: int in range(_dust.size() - 1, -1, -1):
+		var entry: Dictionary = _dust[index]
+		var node: Node3D = entry.get("node")
+		if not is_instance_valid(node):
+			_dust.remove_at(index)
+			continue
+		var age: float = float(entry.get("age", 0.0)) + delta
+		var life: float = maxf(0.05, float(entry.get("life", 1.0)))
+		var velocity: Vector3 = entry.get("velocity", Vector3.ZERO)
+		velocity.y -= 2.4 * delta
+		velocity *= (1.0 - clampf(2.2 * delta, 0.0, 1.0))
+		node.global_position += velocity * delta
+		var t: float = clampf(age / life, 0.0, 1.0)
+		var grow: float = lerpf(0.6, 2.6, t)
+		node.scale = Vector3(grow, grow, grow)
+		if t >= 1.0:
+			node.queue_free()
+			_dust.remove_at(index)
+			continue
+		entry["age"] = age
+		entry["velocity"] = velocity
+		_dust[index] = entry
 
 ## ------------------------------------------------------------------ firing
 func _start_wind() -> void:
@@ -547,9 +633,15 @@ func _count_pushers() -> int:
 		var to_cart: Vector3 = _cart.global_position - _player.global_position
 		to_cart.y = 0.0
 		if to_cart.length() <= PUSH_RANGE and _player.is_on_floor():
-			var push := Vector2(_player.velocity.x, _player.velocity.z)
-			if push.length() > 0.6 and push.normalized().dot(Vector2(to_cart.x, to_cart.z).normalized()) > 0.35:
-				men += 1
+			# A man at the frame pushing counts whether he is leaning into it or walking
+			# into it: requiring a measured velocity left him pushing with no effect
+			# whenever he was wedged against the timber.
+			var pushing: bool = _player.velocity.length() > 0.25 \
+				or Input.is_action_pressed(_player.ACTION_FORWARD) \
+				or Input.is_action_pressed(_player.ACTION_BACK) \
+				or Input.is_action_pressed(_player.ACTION_LEFT) \
+				or Input.is_action_pressed(_player.ACTION_RIGHT)
+			if pushing: men += 1
 	# Everyone else standing at the frame counts too: the game's own population is
 	# already walking this street, and a machine this heavy is moved by a crowd.
 	if is_instance_valid(_world) and _world.has_method("count_helpers_near"):
@@ -564,15 +656,18 @@ func _physics_process(delta: float) -> void:
 	if not _ready or not is_instance_valid(_cart): return
 	_pushers = _count_pushers()
 	_push_speed = _push_speed_for(_pushers)
-	if _pushers > 0 and not _occupied:
-		var direction := Vector3(sin(_cart.rotation.y), 0.0, cos(_cart.rotation.y))
-		var to_cart: Vector3 = _cart.global_position - _player.global_position
-		to_cart.y = 0.0
-		if to_cart.length_squared() > 1.0e-6:
-			direction = to_cart.normalized()
-		_cart.velocity = direction * _push_speed
-	else:
-		_cart.velocity = Vector3.ZERO
+	# A machine of this mass does not start or stop instantly. It is spun up towards the
+	# speed its pushers can give it and it coasts to a halt, which is the whole point of
+	# calling it heavy.
+	var push_direction := Vector3(sin(_cart.rotation.y), 0.0, cos(_cart.rotation.y))
+	var to_cart: Vector3 = _cart.global_position - _player.global_position
+	to_cart.y = 0.0
+	if to_cart.length_squared() > 1.0e-6:
+		push_direction = to_cart.normalized()
+	var want_speed: float = _push_speed if (_pushers > 0 and not _occupied) else 0.0
+	var rate: float = 1.30 if want_speed > _cart_speed else 2.30
+	_cart_speed = move_toward(_cart_speed, want_speed, rate * delta)
+	_cart.velocity = push_direction * _cart_speed
 	_cart.velocity.y = -1.0
 	_cart.move_and_slide()
 	# The wheels turn with the distance actually covered.
@@ -601,16 +696,31 @@ func _physics_process(delta: float) -> void:
 			_arm_wound = true
 			_release()
 	_apply_arm()
-	# The stone follows the player while it is being carried.
+	# The stone follows the player while it is being carried, and is LAYED INTO the spoon
+	# over a moment rather than snapping there.
 	if _carrying_stone and is_instance_valid(_stone):
 		var want: Vector3 = _player.global_position \
 			+ _player._visual.global_basis.z * 0.9 + Vector3.UP * 0.55
 		_stone.global_position = _stone.global_position.lerp(want, clampf(12.0 * delta, 0.0, 1.0))
+	elif _loading and is_instance_valid(_stone):
+		_loading_t = minf(1.0, _loading_t + delta / 0.28)
+		var target: Vector3 = _spoon_point() + Vector3.UP * (STONE_RADIUS + 0.06)
+		_stone.global_position = _loading_from.lerp(target, smoothstep(0.0, 1.0, _loading_t))
+		if _loading_t >= 1.0:
+			_loading = false
+			_stone_on_spoon = true
+			_arm_wound = false
+			_winding = false
+			_arm_angle = _cocked_angle
+			_arm_settle = 0.0
+			_apply_arm()
 	elif _stone_on_spoon and is_instance_valid(_stone):
 		_stone.global_position = _spoon_point() + Vector3.UP * (STONE_RADIUS + 0.06)
 	# A fired stone is a real projectile: swept, so it cannot tunnel through a wall.
 	if _flying and is_instance_valid(_stone):
 		_step_flight(delta)
+	_update_dust(delta)
+	_update_stone_marker()
 	_update_aim()
 
 ## A real contact from the physics engine. This is the impact that counts.
@@ -696,26 +806,69 @@ func _impact(hit: Dictionary) -> void:
 	_hits += 1
 	var delivered := false
 	var host: Variant = _world.get("preview_palazzo") if is_instance_valid(_world) else null
+	# A SHOPFRONT IS GLASS, and the building refuses a solid blast against a pane. A stone
+	# through a window is a real strike, so it is forwarded into the glazing path the
+	# palazzo already has instead of being thrown away.
+	if is_instance_valid(host) and is_instance_valid(collider) \
+			and String((collider as Node).name).begins_with("Glass"):
+		var glass_event := {
+			"scope": "new_local_session_building_damage",
+			"event_id": "catapult-glass:%d" % _hits,
+			"position": point, "normal": normal, "direction": direction,
+			"power": BLAST_POWER * 4.0, "radius": 6.0,
+			"weapon_id": "catapult", "explosive": true,
+			"admitted": true, "authority": "local_preview", "server_authority": false,
+		}
+		if host.has_method("_native_glass_blast"):
+			var glass_result: Variant = host.call("_native_glass_blast", glass_event)
+			var glass_ok: bool = glass_result is Dictionary and bool(glass_result.get("ok", false))
+			_last_impact = {"ok": glass_ok, "result": glass_result, "point": point, "glass": true}
+			print("DSH_CATAPULT_GLASS delivered=", glass_ok, " result=", glass_result)
+			if glass_ok:
+				_spawn_dust(point, normal)
+				_vanish()
+				return
 	if is_instance_valid(host) and is_instance_valid(collider) and host.has_method("_native_blast"):
 		var source_id := ""
 		var site: Variant = host.get("site")
 		if is_instance_valid(site): source_id = str(site.get("source_id"))
-		var event := {
-			"scope": "new_local_session_building_damage",
-			"event_id": "catapult:%d" % _hits,
-			"source_id": source_id,
-			"position": point, "normal": normal, "direction": direction,
-			"collider": collider,
-			"power": BLAST_POWER, "radius": BLAST_RADIUS,
-			"weapon_id": "catapult", "explosive": true,
-			"admitted": true, "authority": "local_preview", "server_authority": false,
-		}
-		var result: Variant = host.call("_native_blast", event)
-		delivered = result is Dictionary and bool(result.get("ok", false))
-		_last_impact = {"ok": delivered, "result": result, "point": point}
-		print("DSH_CATAPULT_IMPACT delivered=", delivered, " at=", point, " result=", result)
+		# The building validates that the point lies INSIDE the collider it is handed, so
+		# three attempts are made: the surface as found, then the point pushed into the
+		# wall, then deeper still. A surface point on a decoration is rejected outright,
+		# which is why a shot that visibly struck the wall could report no damage.
+		var fallback: Variant = hit.get("fallback_body")
+		var attempts: Array = [
+			[collider, point],
+			[fallback if is_instance_valid(fallback) else collider, point + direction * 0.12],
+			[fallback if is_instance_valid(fallback) else collider, point + direction * 0.28],
+		]
+		for attempt: Array in attempts:
+			var use_body: Variant = attempt[0]
+			var use_point: Vector3 = attempt[1]
+			if not is_instance_valid(use_body): continue
+			var event := {
+				"scope": "new_local_session_building_damage",
+				"event_id": "catapult:%d" % _hits,
+				"source_id": source_id,
+				"position": use_point, "normal": normal, "direction": direction,
+				"collider": use_body,
+				"power": BLAST_POWER, "radius": BLAST_RADIUS,
+				"weapon_id": "catapult", "explosive": true,
+				"admitted": true, "authority": "local_preview", "server_authority": false,
+			}
+			var result: Variant = host.call("_native_blast", event)
+			var ok: bool = result is Dictionary and bool(result.get("ok", false))
+			_last_impact = {"ok": ok, "result": result, "point": use_point}
+			if ok:
+				delivered = true
+				print("DSH_CATAPULT_IMPACT delivered=true at=", use_point, " result=", result)
+				break
+		if not delivered:
+			print("DSH_CATAPULT_IMPACT delivered=false result=", str(_last_impact.get("result", {})))
 	else:
 		print("DSH_CATAPULT_IMPACT delivered=false reason=no_palazzo_host or foreign_collider")
+	# Dust thrown up by the strike, before the stone is taken away.
+	_spawn_dust(point, normal)
 	_vanish()
 
 ## The stone disappears after impact - it does not lie around as litter.
@@ -812,10 +965,16 @@ func snapshot() -> Dictionary:
 		"stone": _stone.global_position if is_instance_valid(_stone) else Vector3.ZERO,
 		"stone_on_spoon": _stone_on_spoon, "carrying": _carrying_stone,
 		"occupied": _occupied, "winding": _winding, "wound": _arm_wound,
-		"fired": _fired, "flying": _flying, "hits": _hits,
+		"fired": _fired, "flying": _flying, "hits": _hits, "cart_speed": _cart_speed,
+		"loading": _loading, "marker": is_instance_valid(_stone_marker) and _stone_marker.visible,
+		"dust_total": _dust_total, "parts": _count_parts(),
 		"last_impact": _last_impact,
 		"spoon": _spoon_point(),
 	}
+
+func _count_parts() -> int:
+	if not is_instance_valid(_cart): return 0
+	return _cart.find_children("*", "MeshInstance3D", true, false).size()
 
 func _exit_tree() -> void:
 	_aim_dots.clear()

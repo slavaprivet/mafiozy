@@ -59,14 +59,31 @@ func _run() -> void:
 	print("CATAPULT_START ", JSON.stringify(start))
 	await _shot("placed")
 
-	# 1. The push is shared: one man slow, several faster.
+	# 1. The push is shared: one man slow, several faster, and the cart takes TIME to get
+	#    going - a machine this heavy does not reach its speed in one frame.
+	var speed_early := 0.0
+	var speed_late := 0.0
+	_player.global_position = (start.get("cart", Vector3.ZERO) as Vector3) + Vector3(0.0, 0.05, -1.8)
+	_player.velocity = Vector3.ZERO
+	await _settle(10)
+	var forward_action: StringName = _player.ACTION_FORWARD
+	if InputMap.has_action(forward_action):
+		Input.action_press(forward_action)
+		await _settle(6)
+		speed_early = float(_catapult.call("snapshot").get("cart_speed", 0.0))
+		await _settle(70)
+		speed_late = float(_catapult.call("snapshot").get("cart_speed", 0.0))
+		Input.action_release(forward_action)
+	await _settle(10)
+	print("CATAPULT_INERTIA early=", speed_early, " late=", speed_late)
+	# 2. The push is shared: one man slow, several faster.
 	var speeds: Dictionary = {
 		"one": start.get("speed_for_1", 0.0),
 		"two": start.get("speed_for_2", 0.0),
 		"five": start.get("speed_for_5", 0.0),
 	}
 
-	# 2. Walk onto the stone and pick it up, carry it to the spoon, set it down.
+	# 3. Walk onto the stone and pick it up, carry it to the spoon, set it down.
 	var stone: Vector3 = start.get("stone", Vector3.ZERO)
 	_player.global_position = stone + Vector3(0.9, 0.05, 0.0)
 	_player.velocity = Vector3.ZERO
@@ -80,13 +97,23 @@ func _run() -> void:
 	_player.velocity = Vector3.ZERO
 	await _settle(10)
 	_key(KEY_E, true); await _settle(2); _key(KEY_E, false)
-	await _settle(14)
-	var on_spoon: Dictionary = _catapult.call("snapshot")
+	# The stone is LAYED IN, not teleported: catch the animation mid-flight.
+	var loading_seen := false
+	var on_spoon: Dictionary = {}
+	for i: int in 40:
+		await process_frame
+		var mid: Dictionary = _catapult.call("snapshot")
+		if bool(mid.get("loading", false)): loading_seen = true
+		on_spoon = mid
+		if bool(mid.get("stone_on_spoon", false)): break
 	print("CATAPULT_STONE carried=", carried.get("carrying", false),
-		" on_spoon=", on_spoon.get("stone_on_spoon", false))
+		" loading_seen=", loading_seen,
+		" on_spoon=", on_spoon.get("stone_on_spoon", false),
+		" marker=", on_spoon.get("marker", false),
+		" parts=", on_spoon.get("parts", 0))
 	await _shot("loaded")
 
-	# 3. Stand at the frame, AIM at the wall, then E fires. Aim first: E at the frame
+	# 4. Stand at the frame, AIM at the wall, then E fires. Aim first: E at the frame
 	#    with a stone loaded is the trigger, so aiming after that would fire blind.
 	_player.global_position = (on_spoon.get("cart", Vector3.ZERO) as Vector3) + Vector3(0.0, 0.05, -2.4)
 	_player.velocity = Vector3.ZERO
@@ -100,14 +127,14 @@ func _run() -> void:
 	# finds the facade, and the machine is laid on that point.
 	var spoon_now: Vector3 = _catapult.call("snapshot").get("spoon", Vector3.ZERO)
 	var space := _player.get_world_3d().direct_space_state
-	var aim_point: Vector3 = site_position + Vector3.UP * 4.0
+	var aim_point: Vector3 = site_position + Vector3.UP * 2.0
 	if space != null:
 		var exclude: Array[RID] = [_player.get_rid()]
 		var cart_node: Variant = _catapult.get("_cart")
 		if is_instance_valid(cart_node): exclude.append((cart_node as CollisionObject3D).get_rid())
 		var stone_node: Variant = _catapult.get("_stone")
 		if is_instance_valid(stone_node): exclude.append((stone_node as CollisionObject3D).get_rid())
-		var query := PhysicsRayQueryParameters3D.create(spoon_now, site_position + Vector3.UP * 4.0,
+		var query := PhysicsRayQueryParameters3D.create(spoon_now, site_position + Vector3.UP * 2.0,
 			1 | 5 | 256, exclude)
 		query.hit_from_inside = true
 		var ray_hit: Dictionary = space.intersect_ray(query)
@@ -134,7 +161,7 @@ func _run() -> void:
 		if bool(mid.get("flying", false)):
 			wound = true
 			break
-	# 4. Follow the stone until it lands.
+	# 5. Follow the stone until it lands.
 	var fired: Dictionary = _catapult.call("snapshot")
 	print("CATAPULT_FIRE wound=", wound, " fired=", fired.get("fired", 0),
 		" flying=", fired.get("flying", false), " stone=", fired.get("stone", Vector3.ZERO))
@@ -173,6 +200,11 @@ func _run() -> void:
 		# E at the frame now FIRES when the machine is loaded, so "taking the post" is not
 		# a separate step any more: what matters is that the shot went.
 		"the_machine_aimed": float(aimed.get("elevation", 0.0)) > 0.0,
+		"the_cart_has_inertia": speed_early > 0.0 and speed_early < float(speeds.get("one", 1.0)) * 0.75,
+		"the_stone_is_layed_in": loading_seen,
+		"the_stone_is_marked": bool(on_spoon.get("marker", false)) or loading_seen,
+		"the_machine_is_detailed": int(on_spoon.get("parts", 0)) >= 30,
+		"an_impact_raises_dust": int(_catapult.call("snapshot").get("dust_total", 0)) > 0,
 		"the_arm_winds_and_releases": wound and int(fired.get("fired", 0)) > 0,
 		"stone_hits_the_building": landed and bool(impact.get("ok", false)),
 		"stone_is_gone_after_impact": not bool(_catapult.call("snapshot").get("flying", false)),
