@@ -5,6 +5,7 @@ const Crosshair = preload("res://scripts/weapons/walk_weapon_crosshair.gd")
 var host: Node
 var menu: PanelContainer
 var launcher: Button
+var _arsenal_status: Label
 var title: Label
 var ammo: Label
 var count: Label
@@ -87,6 +88,7 @@ func configure(weapon_host: Node, baked_textures: Dictionary = {}) -> void:
 	var heading_copy := VBoxContainer.new(); heading_copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL; heading.add_child(heading_copy)
 	heading_copy.add_child(label("А Р С Е Н А Л",18))
 	count = label("",11,"a9b1b5"); heading_copy.add_child(count)
+	_arsenal_status = label("",10,"8fa0a8"); heading_copy.add_child(_arsenal_status)
 	var close := Button.new(); close.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND; close.text = "×"; close.custom_minimum_size = Vector2(30,30); close.pressed.connect(func(): host.set_menu(false)); heading.add_child(close)
 	scroll = ScrollContainer.new(); scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL; scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; column.add_child(scroll)
 	grid = GridContainer.new(); grid.columns = 3; grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL; grid.add_theme_constant_override("h_separation",10); grid.add_theme_constant_override("v_separation",10); scroll.add_child(grid)
@@ -159,6 +161,10 @@ func refresh() -> void:
 			ammo.text = "ПЕРЕЗАРЯДКА · %.1f С" % reload if reload > 0 else ("ПУСТО · 0 / %d" % reserve if magazine == 0 else "%d / %d" % [magazine,reserve])
 		ammo.add_theme_color_override("font_color",Color("bda879" if reload>0 else ("d99b94" if id!="none" and not MELEE_IDS.has(id) and id!=BOW_ID and magazine==0 else "adb8be")))
 	if menu.visible != host.menu_open: menu.visible = host.menu_open
+	if is_instance_valid(_arsenal_status):
+		var state: Dictionary = host.fire_state
+		_arsenal_status.text = "выбрано: %s%s" % [str(state.get("weaponId", "none")),
+			"" if host.menu_open else "  ·  меню закрыто"]
 	var scoped:bool=host.aim_camera!=null and host.aim_camera.scoped()
 	var allowed:bool=host._combat_allowed() and not host.controls_blocked() and not host.player._text_control_focused()
 	# Walk shows ordinary crosshair only while aiming or holding the trigger.

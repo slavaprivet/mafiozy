@@ -20,6 +20,8 @@ extends Node3D
 ##   LMB                - wind and release
 ##   WASD at the frame  - push the cart (with everyone else standing at it)
 
+const MeshMerge = preload("res://scripts/weapons/mesh_merge.gd")
+
 const STONE_MASS := 92.0
 const STONE_RADIUS := 0.36
 const CART_MASS := 900.0
@@ -245,7 +247,22 @@ func _build_cart() -> void:
 	# change length and angle as the arm is wound down and released.
 	_rope = _beam(body, Vector3(0.04, 0.04, 1.0), Vector3(0.0, 1.0, -0.4), _materials["rope"])
 	_crank = _beam(body, Vector3(0.05, 0.34, 0.05), Vector3(0.0, 1.0, -0.86), _materials["iron"])
+	_weld_static_frame(body)
 	_place_cart_near_palazzo()
+
+## DSH_OPT: the frame is forty-odd boxes that never move relative to each other, so they
+## are welded into one surface per material. The wheels, the arm, the rope and the spoon
+## are left alone because their transforms are animated.
+var _weld_report := {}
+func _weld_static_frame(body: Node3D) -> void:
+	if not is_instance_valid(body): return
+	var keep: Array[Node] = []
+	for wheel: Node3D in _wheel_nodes: keep.append(wheel)
+	if is_instance_valid(_arm_pivot): keep.append(_arm_pivot)
+	if is_instance_valid(_rope): keep.append(_rope)
+	if is_instance_valid(_crank): keep.append(_crank)
+	_weld_report = MeshMerge.weld_children(body, keep)
+	print("DSH_CATAPULT_WELD ", JSON.stringify(_weld_report))
 
 ## Where the machine starts: on the street in front of the palazzo, facing it.
 func _place_cart_near_palazzo() -> void:
