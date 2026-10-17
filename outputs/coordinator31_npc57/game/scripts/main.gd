@@ -563,7 +563,7 @@ func _build_castle_map() -> bool:
 			_player.velocity = Vector3.ZERO
 			_player.set("_camera_yaw", PI)
 			_castle_spawn_target = cart_pos + Vector3(0.0, 0.2, 4.5)
-			_castle_spawn_frames = 20
+			_castle_spawn_frames = 400
 			print("DSH_CASTLE_SPAWN_AT_CATAPULT player=", _player.global_position, " cart=", cart_pos)
 	if is_instance_valid(_player):
 		_player.global_position = castle.call("spawn_point")
@@ -1116,6 +1116,13 @@ func _advance_printshop_door_motion(delta: float) -> void:
 	_printshop.advance(delta, _current_door_occupants())
 
 func _physics_process(delta: float) -> void:
+	if Engine.get_physics_frames() == 30:
+		var scene_path := ""
+		if get_tree() != null and get_tree().current_scene != null:
+			scene_path = get_tree().current_scene.scene_file_path
+		print("DSH_SCENE_LOADED path=", scene_path, " castle_map=", castle_map,
+			" preview_castle=", is_instance_valid(preview_castle),
+			" player=", _player.global_position if is_instance_valid(_player) else Vector3.ZERO)
 	# DSH_CASTLE: the machine is installed by one boot step and the map built by another, in
 	# an order that is not guaranteed. Once both exist the machine is moved to the gate, and
 	# this cannot be missed the way a one-shot call can.
@@ -1123,10 +1130,25 @@ func _physics_process(delta: float) -> void:
 			and is_instance_valid(preview_catapult) and preview_catapult.has_method("place_near_castle"):
 		_catapult_at_castle = true
 		preview_catapult.call("place_near_castle", preview_castle)
+		# The spawn is set HERE, where both the map and the machine are known to exist. The
+		# earlier copy lived in the build step, which runs before the machine is installed -
+		# so the target was never set and the city's own spawn kept the player.
+		var cart: Variant = preview_catapult.get("_cart")
+		if is_instance_valid(cart) and is_instance_valid(_player):
+			var cart_pos: Vector3 = (cart as Node3D).global_position
+			_castle_spawn_target = cart_pos + Vector3(0.0, 0.2, 4.5)
+			_castle_spawn_frames = 400
+			_player.global_position = _castle_spawn_target
+			_player.velocity = Vector3.ZERO
+			print("DSH_CASTLE_SPAWN_AT_CATAPULT player=", _player.global_position)
 	if _castle_spawn_frames > 0 and is_instance_valid(_player):
 		_castle_spawn_frames -= 1
-		_player.global_position = _castle_spawn_target
-		_player.velocity = Vector3.ZERO
+		# Only pull him back if something has THROWN him far away - a city boot step was
+		# teleporting him to the palazzo, and the map then looked like the wrong map. Once he
+		# is near his start and walking himself, he is left alone.
+		if _player.global_position.distance_to(_castle_spawn_target) > 25.0:
+			_player.global_position = _castle_spawn_target
+			_player.velocity = Vector3.ZERO
 	if not preview_ready:
 		return
 	_door_feedback_seconds = maxf(0.0, _door_feedback_seconds - delta)
