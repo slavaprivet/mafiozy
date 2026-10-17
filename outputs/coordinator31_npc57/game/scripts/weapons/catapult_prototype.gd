@@ -101,6 +101,9 @@ var _hits := 0
 var _aim_dots: Array[MeshInstance3D] = []
 var _aim_material: StandardMaterial3D
 var _hud: Label
+## DSH_CATAPULT: the same prompt the car uses - a plate with a yellow E badge.
+var _prompt_panel: PanelContainer
+var _prompt_label: Label
 var _materials: Dictionary = {}
 
 ## ------------------------------------------------------------------ install
