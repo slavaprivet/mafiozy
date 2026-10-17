@@ -953,9 +953,12 @@ func _build_stair_flight(normal: Vector3, name: String) -> void:
 	prism.points = points
 	shape.shape = prism
 	body.add_child(shape)
-	# The steps, drawn but not colliding: the wedge carries the man.
+	# The steps, drawn but not colliding: the wedge carries the man. They must climb the
+	# SAME WAY as the wedge - towards the wall - or the stone you see and the stone you walk
+	# on are two different staircases, and the end of the wedge shows as a flat grey face at
+	# the foot of the steps.
 	for i: int in steps:
-		var at: Vector3 = top_centre + inward * (float(i) * run) + Vector3.UP * (rise * float(i) + rise * 0.5)
+		var at: Vector3 = bottom_centre - inward * (float(i) * run) + Vector3.UP * (rise * float(i) + rise * 0.5)
 		_add_brick(at, Vector3(width, rise, run * 1.04), "cold", Vector3.ZERO, "stairs_" + name, i, 0)
 		_add_brick(at + lateral * (width * 0.5 + 0.16) + Vector3.UP * 0.55,
 			Vector3(0.32, 1.0, run * 1.04), "stone", Vector3.ZERO, "stairs_rail_" + name, i, 0)
