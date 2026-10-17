@@ -17,6 +17,13 @@ extends Node3D
 ## and a keep in the courtyard.
 
 const BRICK := Vector3(1.00, 0.54, 0.58)
+## DSH_OPT: a blast must not spawn a thousand solvers. Debris is capped, its physics is
+## retired once it has settled, and every brick shares one mesh.
+const MAX_FALLING := 150
+const BRICK_SETTLE_S := 1.4
+const BRICK_LIFE_S := 30.0
+var _debris_mesh: BoxMesh
+var _debris_materials: Dictionary = {}
 const WALL_HEIGHT := 19.0
 const WALL_HALF := 68.0          # half of the outside square: a siege map, not a yard
 const WALL_THICK := 1.1
@@ -520,22 +527,35 @@ func _spawn_falling_brick(cell: Dictionary, impulse: Vector3, power: float) -> v
 	shape.shape = box
 	body.add_child(shape)
 	var mesh := MeshInstance3D.new()
-	var box_mesh := BoxMesh.new()
-	box_mesh.size = box.size
-	mesh.mesh = box_mesh
+	# ONE mesh resource, scaled per stone: a BoxMesh per brick meant a resource allocation
+	# for every one of hundreds of bodies in a single blast.
+	if _debris_mesh == null:
+		_debris_mesh = BoxMesh.new()
+		_debris_mesh.size = Vector3.ONE
+	mesh.mesh = _debris_mesh
+	mesh.scale = box.size
+	mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var key: String = str(cell.get("material", "stone"))
-	var base_material: StandardMaterial3D = _materials.get(key, _materials["stone"])
-	var tinted: StandardMaterial3D = base_material.duplicate()
 	var tint: Color = _brick_tint(cell)
-	tinted.albedo_color = Color(base_material.albedo_color.r * tint.r,
-		base_material.albedo_color.g * tint.g, base_material.albedo_color.b * tint.b)
-	mesh.material_override = tinted
+	var debris_key := "%s|%d" % [key, int(tint.r * 40.0)]
+	if not _debris_materials.has(debris_key):
+		var base_material: StandardMaterial3D = _materials.get(key, _materials["stone"])
+		var tinted: StandardMaterial3D = base_material.duplicate()
+		tinted.albedo_color = Color(base_material.albedo_color.r * tint.r,
+			base_material.albedo_color.g * tint.g, base_material.albedo_color.b * tint.b)
+		_debris_materials[debris_key] = tinted
+	mesh.material_override = _debris_materials[debris_key]
 	body.add_child(mesh)
 	var direction: Vector3 = impulse.normalized() if impulse.length_squared() > 1.0e-6 else Vector3.DOWN
 	body.linear_velocity = (direction * 0.55 + Vector3.UP * 0.55).normalized() \
 		* clampf(power * 0.35, 2.0, 26.0) * randf_range(0.7, 1.3)
 	body.angular_velocity = Vector3(randf_range(-6, 6), randf_range(-6, 6), randf_range(-6, 6))
 	_falling.append({"body": body, "age": 0.0})
+	# Over the cap the oldest debris is retired: a solver per stone is what stalls a blast.
+	while _falling.size() > MAX_FALLING:
+		var oldest: Dictionary = _falling.pop_front()
+		var old_body: Node = oldest.get("body")
+		if is_instance_valid(old_body): old_body.queue_free()
 	body.set_meta("castle_brick", true)
 
 ## ------------------------------------------------------------------ walls
@@ -1595,8 +1615,19 @@ func _physics_process(_delta: float) -> void:
 		if not is_instance_valid(body):
 			_falling.remove_at(index)
 			continue
-		entry["age"] = float(entry.get("age", 0.0)) + _delta
-		if float(entry.get("age", 0.0)) > 90.0:
+		var age: float = float(entry.get("age", 0.0)) + _delta
+		entry["age"] = age
+		# A stone that has stopped is rubble, not a moving body. Retiring its solver is the
+		# single biggest saving after a blast: a hundred solvers awake is what stalls the
+		# frame, and once they are asleep the cost is their meshes and nothing else.
+		if age > BRICK_SETTLE_S and not bool(entry.get("settled", false)):
+			entry["settled"] = true
+			body.linear_velocity = Vector3.ZERO
+			body.angular_velocity = Vector3.ZERO
+			body.freeze = true
+			body.collision_layer = 0
+			body.collision_mask = 0
+		if age > BRICK_LIFE_S:
 			body.queue_free()
 			_falling.remove_at(index)
 
