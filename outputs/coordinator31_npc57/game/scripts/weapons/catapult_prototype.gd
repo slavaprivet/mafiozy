@@ -50,10 +50,14 @@ var _wheel_nodes: Array[Node3D] = []
 var _wheel_radius := 0.42
 
 var _arm_pivot: Node3D
+var _rope: MeshInstance3D
+var _crank: MeshInstance3D
 var _arm_spoon: Node3D
 var _arm_angle := -0.55
 var _arm_wound := false
 var _winding := false
+var _arm_settle := 0.0
+var _release_angle := -0.55
 var _wind_t := 0.0
 var _fired := 0
 
@@ -224,10 +228,10 @@ func _build_cart() -> void:
 		lip.rotation = Vector3(0.12, 0.0, 0.0)
 	_beam(_arm_spoon, Vector3(0.66, 0.06, 0.50), Vector3(0.0, 0.0, 0.0), iron)
 	_beam(_arm_spoon, Vector3(0.66, 0.30, 0.06), Vector3(0.0, 0.15, 0.24), iron)
-	# A rope from the spoon to the winch, which is what is wound.
-	var rope := _beam(_arm_pivot, Vector3(0.035, 0.035, 0.9), Vector3(0.0, 0.0, -0.35),
-		_materials["rope"])
-	rope.rotation = Vector3(0.25, 0.0, 0.0)
+	# A rope from the arm back to the winch drum. It is its own node because it has to
+	# change length and angle as the arm is wound down and released.
+	_rope = _beam(body, Vector3(0.04, 0.04, 1.0), Vector3(0.0, 1.0, -0.4), _materials["rope"])
+	_crank = _beam(body, Vector3(0.05, 0.34, 0.05), Vector3(0.0, 1.0, -0.86), _materials["iron"])
 	_place_cart_near_palazzo()
 
 ## Where the machine starts: on the street in front of the palazzo, facing it.
@@ -258,17 +262,50 @@ func _build_stone() -> void:
 	shape.shape = sphere
 	_stone.add_child(shape)
 	var rock := MeshInstance3D.new()
-	var rock_mesh := SphereMesh.new()
-	rock_mesh.radius = STONE_RADIUS
-	rock_mesh.height = STONE_RADIUS * 2.0
-	rock_mesh.radial_segments = 14
-	rock_mesh.rings = 8
-	rock.mesh = rock_mesh
+	rock.mesh = _build_rock_mesh()
 	rock.material_override = _materials["stone"]
 	_stone.add_child(rock)
 	add_child(_stone)
 	# It starts on the ground beside the cart, where a man would leave it.
 	_stone.global_position = _cart.global_position + Vector3(2.3, STONE_RADIUS + 0.05, 0.6)
+
+## A ROCK, not a ball. The sphere is unwelded and every vertex is pushed in or out by a
+## deterministic hash of its own direction, then rebuilt with flat per-face normals so it
+## reads as a chipped stone. Deterministic means the same rock every reload.
+func _build_rock_mesh() -> ArrayMesh:
+	var sphere := SphereMesh.new()
+	sphere.radius = STONE_RADIUS
+	sphere.height = STONE_RADIUS * 2.0
+	sphere.radial_segments = 9
+	sphere.rings = 6
+	var source: Array = sphere.get_mesh_arrays()
+	var vertices: PackedVector3Array = source[Mesh.ARRAY_VERTEX]
+	var indices: PackedInt32Array = source[Mesh.ARRAY_INDEX]
+	var mesh := ArrayMesh.new()
+	var out_vertices := PackedVector3Array()
+	var out_normals := PackedVector3Array()
+	var hash := func(v: Vector3) -> float:
+		var h := int(round(v.x * 731.0)) * 73856093 ^ int(round(v.y * 977.0)) * 19349663 \
+			^ int(round(v.z * 613.0)) * 83492791
+		return float(abs(h) % 1000) / 1000.0
+	for i: int in range(0, indices.size(), 3):
+		var a: Vector3 = vertices[indices[i]]
+		var b: Vector3 = vertices[indices[i + 1]]
+		var c: Vector3 = vertices[indices[i + 2]]
+		var pa := a.normalized() * (0.82 + 0.26 * float(hash.call(a.normalized())))
+		var pb := b.normalized() * (0.82 + 0.26 * float(hash.call(b.normalized())))
+		var pc := c.normalized() * (0.82 + 0.26 * float(hash.call(c.normalized())))
+		pa *= STONE_RADIUS; pb *= STONE_RADIUS; pc *= STONE_RADIUS
+		var normal: Vector3 = (pb - pa).cross(pc - pa).normalized()
+		if normal.length_squared() < 0.5: continue
+		out_vertices.append(pa); out_vertices.append(pb); out_vertices.append(pc)
+		out_normals.append(normal); out_normals.append(normal); out_normals.append(normal)
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = out_vertices
+	arrays[Mesh.ARRAY_NORMAL] = out_normals
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh
 
 ## The dotted arc the stone would follow, drawn from the spoon.
 func _build_aim() -> void:
@@ -325,6 +362,9 @@ func _input(event: InputEvent) -> void:
 		var motion := event as InputEventMouseMotion
 		_yaw -= motion.relative.x * 0.0022
 		_elevation = clampf(_elevation - motion.relative.y * 0.0016, ELEV_MIN, ELEV_MAX)
+		# Consumed: while the player is laying the machine the mouse is the gun sight,
+		# not the camera. Letting both move it made the aim and the view disagree.
+		get_viewport().set_input_as_handled()
 
 func _active() -> bool:
 	if not _ready or not is_instance_valid(_player): return false
@@ -404,6 +444,16 @@ func _start_wind() -> void:
 func _apply_arm() -> void:
 	if is_instance_valid(_arm_pivot):
 		_arm_pivot.rotation = Vector3(_arm_angle, 0.0, 0.0)
+	if is_instance_valid(_rope) and is_instance_valid(_arm_pivot):
+		# From the drum at the back to the arm where the rope is tied.
+		var from: Vector3 = _cart.global_position + Vector3(0.0, 0.62, -0.86)
+		var to: Vector3 = _arm_pivot.to_global(Vector3(0.0, 0.0, -0.55))
+		var middle: Vector3 = (from + to) * 0.5
+		var length: float = from.distance_to(to)
+		_rope.global_position = middle
+		_rope.scale = Vector3(1.0, 1.0, maxf(0.05, length))
+		if length > 0.05:
+			_rope.look_at(to, Vector3.UP, true)
 
 ## Where the stone would go from here: a real ballistic solution, not a guess.
 func _launch_velocity() -> Vector3:
@@ -415,8 +465,10 @@ func _release() -> void:
 	if not _stone_on_spoon or not is_instance_valid(_stone): return
 	_winding = false
 	_arm_wound = false
-	# The arm swings forward and lets go at its own release angle.
-	_arm_angle = _elevation - 1.15
+	# The arm swings forward and lets go at its own release angle, then settles.
+	_release_angle = _elevation - 1.15
+	_arm_angle = _release_angle
+	_arm_settle = 1.0
 	_apply_arm()
 	_flying = true
 	_fly_age = 0.0
@@ -471,8 +523,16 @@ func _physics_process(delta: float) -> void:
 	var spin := moved / maxf(0.05, _wheel_radius)
 	for wheel: Node3D in _wheel_nodes:
 		if is_instance_valid(wheel): wheel.rotate_x(spin)
-	# The arm: winding pulls it back, and the catch holds it until released.
+	# The arm: winding pulls it back, the catch holds it, and after the release it
+	# slams forward and settles instead of stopping dead.
+	if _arm_settle > 0.0:
+		_arm_settle = maxf(0.0, _arm_settle - delta * 1.9)
+		var t := 1.0 - _arm_settle
+		_arm_angle = lerpf(_release_angle, -0.55, t) + sin(t * PI * 2.0) * 0.10 * (1.0 - t)
+		_apply_arm()
 	if _winding:
+		if is_instance_valid(_crank): _crank.rotate_x(delta * 5.0)
+		if is_instance_valid(_crank): _crank.rotate_y(0.0)
 		_wind_t += delta
 		_arm_angle = lerpf(-0.55, -0.95, clampf(_wind_t / WIND_TIME, 0.0, 1.0))
 		_apply_arm()
@@ -480,6 +540,7 @@ func _physics_process(delta: float) -> void:
 			_winding = false
 			_arm_wound = true
 			_release()
+	_apply_arm()
 	# The stone follows the player while it is being carried.
 	if _carrying_stone and is_instance_valid(_stone):
 		var want: Vector3 = _player.global_position \
