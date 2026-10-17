@@ -893,6 +893,13 @@ func _physics_process(delta: float) -> void:
 	_apply_arm()
 	# The stone follows the player while it is being carried, and is LAYED INTO the spoon
 	# over a moment rather than snapping there.
+	if is_instance_valid(_stone):
+		# A CARRIED STONE MUST NOT COLLIDE. Frozen but solid, it overlapped the player's own
+		# capsule, and the solver pushed him away every frame - which is why he wandered off
+		# the moment the stone was lifted.
+		var held: bool = _carrying_stone or _loading
+		_stone.collision_layer = 0 if held else 1
+		_stone.collision_mask = 0 if held else 1
 	if _carrying_stone and is_instance_valid(_stone):
 		# HELD AGAINST THE CHEST, not floating out in front. The character has no hand bones to
 		# hang it from, so the stone is carried where his arms would be.
