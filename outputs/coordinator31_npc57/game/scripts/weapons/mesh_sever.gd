@@ -27,10 +27,12 @@ const _INTERPOLATED := [
 class Cut:
 	var front_arrays: Array = []      ## surfaces that stayed in front of the plane
 	var back_arrays: Array = []       ## surfaces behind it
-	var front_cap: Array = []         ## cap vertices (Vector3) for the front side
-	var front_cap_normals: PackedVector3Array = PackedVector3Array()
+	## Cap vertices for each side, as _Vertex so bone data survives the cut.
+	var front_cap: Array = []
 	var back_cap: Array = []
-	var back_cap_normals: PackedVector3Array = PackedVector3Array()
+	## Ready-to-add surface arrays for the fleshy cut face, one per side.
+	var front_cap_arrays: Array = []
+	var back_cap_arrays: Array = []
 	var cap_bone_indices: PackedInt32Array = PackedInt32Array()
 	var cap_bone_weights: PackedFloat32Array = PackedFloat32Array()
 	var triangles_in := 0
@@ -51,27 +53,22 @@ static func cut(source: ArrayMesh, plane: Plane) -> Cut:
 		if not split.back.is_empty(): result.back_arrays.append(split.back)
 		result.triangles_in += split.triangles_in
 		result.triangles_split += split.triangles_split
-		if not split.front_cap.is_empty():
-			result.front_cap.append_array(split.front_cap)
-			result.front_cap_normals.append_array(split.front_cap_normals)
-		if not split.back_cap.is_empty():
-			result.back_cap.append_array(split.back_cap)
-			result.back_cap_normals.append_array(split.back_cap_normals)
+		result.front_cap.append_array(split.front_cap)
+		result.back_cap.append_array(split.back_cap)
 		result.boundary_segments += split.boundary_segments
 	# The cap is triangulated per side, from the segments the cut left on the plane.
-	result.cap_triangles = _triangulate_cap(result.front_cap, result.front_cap_normals)
-	result.cap_triangles += _triangulate_cap(result.back_cap, result.back_cap_normals,
-		-plane.normal)
+	result.front_cap_arrays = _triangulate_cap(result.front_cap, plane.normal)
+	result.back_cap_arrays = _triangulate_cap(result.back_cap, -plane.normal)
+	# Count real triangles, not array slots.
+	result.cap_triangles = _count_triangles(result.front_cap_arrays) + _count_triangles(result.back_cap_arrays)
 	return result
 
 ## One surface in, its two sides plus the boundary the cut left behind.
 class SurfaceSplit:
 	var front: Array = []
 	var back: Array = []
-	var front_cap := PackedVector3Array()
-	var front_cap_normals := PackedVector3Array()
-	var back_cap := PackedVector3Array()
-	var back_cap_normals := PackedVector3Array()
+	var front_cap: Array = []
+	var back_cap: Array = []
 	var triangles_in := 0
 	var triangles_split := 0
 	var boundary_segments := 0
@@ -143,14 +140,10 @@ static func _cut_surface(arrays: Array, plane: Plane) -> SurfaceSplit:
 		var b: _Vertex = crossing[1]
 		# Each side gets the cut edge with the normal of the plane, which is what makes
 		# the opening read as a wound rather than as a fold.
-		out.front_cap.append(a.position)
-		out.front_cap.append(b.position)
-		out.front_cap_normals.append(plane.normal)
-		out.front_cap_normals.append(plane.normal)
-		out.back_cap.append(b.position)
-		out.back_cap.append(a.position)
-		out.back_cap_normals.append(-plane.normal)
-		out.back_cap_normals.append(-plane.normal)
+		out.front_cap.append(a)
+		out.front_cap.append(b)
+		out.back_cap.append(b)
+		out.back_cap.append(a)
 	out.front = front.build()
 	out.back = back.build()
 	return out
@@ -312,21 +305,34 @@ class _Builder:
 		arrays[Mesh.ARRAY_INDEX] = indices
 		return arrays
 
+## How many triangles a packed surface array actually holds.
+static func _count_triangles(arrays: Array) -> int:
+	if arrays.is_empty(): return 0
+	var indices = arrays[Mesh.ARRAY_INDEX]
+	if indices is PackedInt32Array and (indices as PackedInt32Array).size() > 0:
+		return (indices as PackedInt32Array).size() / 3
+	var vertices = arrays[Mesh.ARRAY_VERTEX]
+	if vertices is PackedVector3Array: return (vertices as PackedVector3Array).size() / 3
+	return 0
+
 ## Chains the segments the cut left on the plane into loops and fans each one.
-static func _triangulate_cap(points: PackedVector3Array, normals: PackedVector3Array,
-		face_normal: Vector3 = Vector3.ZERO) -> int:
-	var count := points.size()
-	if count < 3: return 0
+## It returns ready-to-add surface ARRAYS, not raw points, so the fleshy face can carry
+## the bone data of the boundary it was built from and skin with the rest of the body.
+static func _triangulate_cap(vertices: Array, face_normal: Vector3) -> Array:
+	var count := vertices.size()
+	if count < 3: return []
 	# Segments are stored as consecutive pairs; chain them into ordered loops by
-	# matching endpoints. An unordered fan would produce a bow-tie, which is exactly
-	# the artefact that makes a cut look wrong.
+	# matching endpoints. An unordered fan would bow-tie, which is exactly the artefact
+	# that makes a cut look wrong.
 	var adjacency: Dictionary = {}
 	var quantise := 10000.0
 	var key := func(p: Vector3) -> String:
 		return "%d:%d:%d" % [int(round(p.x * quantise)), int(round(p.y * quantise)), int(round(p.z * quantise))]
 	for i: int in range(0, count - 1, 2):
-		var ka: String = key.call(points[i])
-		var kb: String = key.call(points[i + 1])
+		var a: _Vertex = vertices[i]
+		var b: _Vertex = vertices[i + 1]
+		var ka: String = key.call(a.position)
+		var kb: String = key.call(b.position)
 		if ka == kb: continue
 		if not adjacency.has(ka): adjacency[ka] = []
 		if not adjacency.has(kb): adjacency[kb] = []
@@ -334,38 +340,49 @@ static func _triangulate_cap(points: PackedVector3Array, normals: PackedVector3A
 		(adjacency[kb] as Array).append(ka)
 	var by_key: Dictionary = {}
 	for i: int in count:
-		by_key[key.call(points[i])] = points[i]
-	var loop: PackedVector3Array = PackedVector3Array()
-	var visited: Dictionary = {}
+		var vertex: _Vertex = vertices[i]
+		by_key[key.call(vertex.position)] = vertex
+	# Every disconnected loop becomes its own fan, so a cut that opens the body in two
+	# places (through both arms, say) is capped in both places.
+	var built := _Builder.new()
 	for start: String in adjacency.keys():
-		if visited.has(start): continue
+		if not by_key.has(start): continue
+		var loop: Array = []
+		var visited: Dictionary = {}
 		var current := start
 		var previous := ""
 		while true:
+			if visited.has(current): break
 			visited[current] = true
 			if by_key.has(current): loop.append(by_key[current])
-			var neighbours: Array = adjacency[current]
 			var next := ""
-			for candidate: String in neighbours:
+			for candidate: String in adjacency[current]:
 				if candidate != previous and not visited.has(candidate):
 					next = candidate
 					break
 			if next == "": break
 			previous = current
 			current = next
-		if loop.size() >= 3: break
-	if loop.size() < 3: return 0
-	# Fan from the centroid: robust for the convex-ish openings a body cut produces.
-	var centre := Vector3.ZERO
-	for p: Vector3 in loop: centre += p
-	centre /= float(loop.size())
-	var made := 0
-	for i: int in loop.size():
-		var a := loop[i]
-		var b := loop[(i + 1) % loop.size()]
-		if a.distance_squared_to(b) < 1.0e-12: continue
-		points.append(centre); points.append(a); points.append(b)
-		var n: Vector3 = face_normal if face_normal.length_squared() > 1.0e-8 else (a - centre).cross(b - centre).normalized()
-		normals.append(n); normals.append(n); normals.append(n)
-		made += 1
-	return made
+		if loop.size() < 3: continue
+		var centre := Vector3.ZERO
+		for vertex: _Vertex in loop: centre += vertex.position
+		centre /= float(loop.size())
+		# The centre takes the bone data of the first loop vertex, which is the closest
+		# thing to a correct influence for a point inside the opening.
+		var hub := _Vertex.new()
+		hub.position = centre
+		hub.normal = face_normal
+		hub.has_skin = (loop[0] as _Vertex).has_skin
+		hub.bone = (loop[0] as _Vertex).bone
+		hub.weight = (loop[0] as _Vertex).weight
+		for i: int in loop.size():
+			var a: _Vertex = loop[i]
+			var b: _Vertex = loop[(i + 1) % loop.size()]
+			if a.position.distance_squared_to(b.position) < 1.0e-12: continue
+			var edge := (a.position - centre).cross(b.position - centre)
+			var normal: Vector3 = face_normal if face_normal.length_squared() > 1.0e-8 else edge.normalized()
+			if edge.length_squared() > 1.0e-12 and edge.normalized().dot(face_normal) < 0.0:
+				built.add_triangle(hub, b, a)
+			else:
+				built.add_triangle(hub, a, b)
+	return built.build()

@@ -76,6 +76,8 @@ func _run() -> void:
 	print("SEVER_CUBE triangles_in=", cut.triangles_in, " split=", cut.triangles_split,
 		" front_verts=", front_verts, " back_verts=", back_verts,
 		" boundary_segments=", cut.boundary_segments, " cap_triangles=", cut.cap_triangles,
+		" cap_arrays=", cut.front_cap_arrays.size(), " skin_in_cap=",
+		(cut.front_cap_arrays.size() > 0 and cut.front_cap_arrays[0][Mesh.ARRAY_BONES] != null),
 		" elapsed_us=", cube_us)
 
 	# --- 2. the skinned mesh -----------------------------------------
@@ -108,6 +110,8 @@ func _run() -> void:
 		"cut_is_real": cut.triangles_split > 0 and front_verts > 0 and back_verts > 0,
 		"halves_are_on_their_own_side": front_clean and back_clean,
 		"opening_is_closed": cut.cap_triangles > 0,
+		"cap_carries_its_skinning": cut.front_cap_arrays.size() > 0
+			and cut.front_cap_arrays[0][Mesh.ARRAY_BONES] != null,
 		"cube_cut_is_fast": cube_us < 20000,
 		"skinned_cut_is_real": body_cut.triangles_split > 0 and kept > 0,
 		"skinning_survives_on_both_sides": skin_front and skin_back,
