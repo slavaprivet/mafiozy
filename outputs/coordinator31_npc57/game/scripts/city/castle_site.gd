@@ -916,7 +916,10 @@ func _build_stairs() -> void:
 		var slope_length := (end_point - start_point).length()
 		var basis := Basis(Vector3(1.0, 0.0, 0.0), up, -forward)
 		var mid := (start_point + end_point) * 0.5
-		var thickness := 1.2
+		# The flight is a MASS, not a skin: a ramp 1.2 m thick left the side of the
+		# staircase open, so a man walked into a mountain of bricks that had no collision.
+		# Buried this deep, the ramp is the whole body of the stair.
+		var thickness := 5.0
 		var body := StaticBody3D.new()
 		body.collision_layer = 1
 		body.collision_mask = 1

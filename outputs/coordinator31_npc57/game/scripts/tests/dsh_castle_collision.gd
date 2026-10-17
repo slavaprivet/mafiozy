@@ -55,6 +55,13 @@ func _run() -> void:
 		base + Vector3(0.0, 3.0, half + 10.0), 1)
 	var gate_hit: Dictionary = space.intersect_ray(gate_query)
 	report["gate_passable"] = gate_hit.is_empty()
+	# The staircase must be solid from the SIDE too, not only where you walk up it.
+	# At knee height, halfway up the flight, where the masonry is solid.
+	var stair_x: float = -half * 0.52
+	var stair_from: Vector3 = base + Vector3(stair_x + 4.0, 0.9, half - 9.0)
+	var stair_to: Vector3 = stair_from + Vector3(-6.0, 0.0, 0.0)
+	var stair_hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(stair_from, stair_to, 1))
+	report["stair_side_solid"] = not stair_hit.is_empty()
 	print("COLL_REPORT ", JSON.stringify(report))
 	var failed: Array[String] = []
 	for key: String in report.keys():
@@ -62,6 +69,8 @@ func _run() -> void:
 			if not bool(report[key]): failed.append("shut_gate_lets_you_through")
 		elif key == "gate_passable":
 			if not bool(report[key]): failed.append("gate_blocked")
+		elif key == "stair_side_solid":
+			if not bool(report[key]): failed.append("stair_side_open")
 		elif not bool(report[key]): failed.append(key + "_open")
 	print("COLL_RESULT ", "PASS" if failed.is_empty() else "FAIL " + str(failed))
 	quit(0)
