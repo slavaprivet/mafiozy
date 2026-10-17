@@ -739,6 +739,50 @@ func _release() -> void:
 	print("DSH_CATAPULT_FIRED yaw=", _yaw, " elevation=", _elevation,
 		" speed=", _fly_velocity.length(), " shots=", _fired)
 
+## DSH_CATAPULT: the model has no arms, so carrying a stone looked like it floating against
+## his chest. Two simple arms are drawn from the shoulders to the stone while it is carried,
+## and taken away the moment it is put down - a man hugging his ammunition.
+var _carry_arms: Array[MeshInstance3D] = []
+
+func _update_carry_arms() -> void:
+	if not is_instance_valid(_player) or not is_instance_valid(_stone):
+		return
+	if _carry_arms.is_empty():
+		for side: float in [-1.0, 1.0]:
+			var arm := MeshInstance3D.new()
+			var sleeve := CylinderMesh.new()
+			sleeve.top_radius = 0.075
+			sleeve.bottom_radius = 0.085
+			sleeve.height = 1.0
+			arm.mesh = sleeve
+			# The same dark cloth the man wears, so the arms read as his.
+			var cloth := StandardMaterial3D.new()
+			cloth.albedo_color = Color(0.42, 0.16, 0.20)
+			cloth.roughness = 0.9
+			arm.material_override = cloth
+			add_child(arm)
+			arm.set_meta("side", side)
+			_carry_arms.append(arm)
+	var basis: Basis = _player._visual.global_basis
+	var right: Vector3 = basis.x.normalized()
+	var chest: Vector3 = _player.global_position + Vector3.UP * 1.26
+	var stone_at: Vector3 = _stone.global_position
+	for arm: MeshInstance3D in _carry_arms:
+		if not is_instance_valid(arm): continue
+		var side: float = float(arm.get_meta("side", 1.0))
+		var shoulder: Vector3 = chest + right * (0.24 * side)
+		var hand: Vector3 = stone_at + right * (0.33 * side) - basis.z * 0.12
+		var middle: Vector3 = (shoulder + hand) * 0.5
+		var length: float = shoulder.distance_to(hand)
+		arm.visible = true
+		arm.global_position = middle
+		arm.scale = Vector3(1.0, maxf(0.05, length), 1.0)
+		arm.look_at_from_position(middle, hand, Vector3.UP)
+		arm.rotate_object_local(Vector3.RIGHT, PI * 0.5)
+
+func _hide_carry_arms() -> void:
+	for arm: MeshInstance3D in _carry_arms:
+		if is_instance_valid(arm): arm.visible = false
 ## ------------------------------------------------------------------ rolling
 func _count_pushers() -> int:
 	var men := 0
@@ -857,7 +901,9 @@ func _physics_process(delta: float) -> void:
 		var want: Vector3 = _player.global_position \
 			+ _player._visual.global_basis.z * 0.45 + Vector3.UP * 0.92
 		_stone.global_position = _stone.global_position.lerp(want, clampf(12.0 * delta, 0.0, 1.0))
+		_update_carry_arms()
 	elif _loading and is_instance_valid(_stone):
+		_hide_carry_arms()
 		_loading_t = minf(1.0, _loading_t + delta / 0.28)
 		# Seated IN the cup: the stone's centre sits on the spoon's surface, not above it.
 		var target: Vector3 = _spoon_point() + Vector3.UP * (STONE_RADIUS * 0.55)
