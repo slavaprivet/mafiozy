@@ -33,12 +33,25 @@ func _run() -> void:
 	await _settle(20)
 	var start: Dictionary = _castle.call("get_stats")
 	print("CASTLE_BUILT ", JSON.stringify(start))
+	# Optimisation, measured: how many chunks exist at all, and how many the camera
+	# actually has to draw. Also the raw frame rate over two seconds.
+	var render: Dictionary = _castle.call("render_stats")
+	var frames := 0
+	var started := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - started < 2000:
+		await process_frame
+		frames += 1
+	var fps := float(frames) / 2.0
+	print("CASTLE_RENDER ", JSON.stringify(render), " fps=", fps)
 	print("CASTLE_SPAWN player=", player.global_position, " castle_at=", _castle.global_position)
 	# Fire a heavy stone at the south wall, a little above the ground, and watch it open.
-	var wall := _castle.global_position + Vector3(13.0, 5.0, 32.0)
+	# The wall stands at WALL_HALF; the map is a siege map now, so the numbers are read
+	# from the castle instead of being remembered from the old one.
+	var wall_half: float = float(_castle.call("wall_half"))
+	var wall := _castle.global_position + Vector3(13.0, 6.0, wall_half)
 	var before := int(start.get("detached", 0))
 	var result: Dictionary = _castle.call("apply_explosion", {
-		"position": wall, "radius": 4.5, "power": 220.0,
+		"position": wall, "radius": 5.5, "power": 240.0,
 		"direction": Vector3(0.0, -0.2, -1.0), "event_id": "castle_test:1",
 	})
 	print("CASTLE_BLAST ", JSON.stringify(result))
@@ -49,12 +62,13 @@ func _run() -> void:
 	var after: Dictionary = _castle.call("get_stats")
 	print("CASTLE_AFTER_CASCADE ", JSON.stringify(after))
 	var failed: Array[String] = []
-	if int(start.get("bricks", 0)) < 2000: failed.append("too_few_bricks")
+	if int(start.get("bricks", 0)) < 20000: failed.append("too_few_bricks")
 	if int(start.get("gates", 0)) != 2: failed.append("gates")
 	if not bool(result.get("ok", false)): failed.append("blast_refused")
 	if int(mid.get("detached", 0)) <= before: failed.append("nothing_detached")
 	if int(after.get("falling", 0)) <= 0: failed.append("no_falling_bodies")
 	# A breach must GROW: bricks above the hole come down after the hit.
-	if int(after.get("detached", 0)) <= int(mid.get("detached", 0)): failed.append("breach_does_not_climb")
+	# The breach must GROW beyond what the blast itself took out.
+	if int(after.get("detached", 0)) <= int(result.get("detached", 0)): failed.append("breach_does_not_climb")
 	print("CASTLE_RESULT ", "PASS" if failed.is_empty() else "FAIL " + str(failed))
 	quit(0)

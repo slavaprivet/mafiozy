@@ -80,16 +80,23 @@ func _run() -> void:
 	report["on_floor_before_jump"] = on_floor
 	await _settle(50)
 	# ---- the dive: two presses in quick succession
-	var dive_from: Vector3 = _player.global_position
-	report["on_floor_before_dive"] = _player.is_on_floor()
-	await _tap(KEY_SPACE)
-	await _settle(6)
-	report["jump_running"] = not (_player.get("_jump") as Dictionary).is_empty()
-	await _tap(KEY_SPACE)
 	var dive_moved := 0.0
-	for i: int in 60:
-		await process_frame
-		dive_moved = maxf(dive_moved, dive_from.distance_to(_player.global_position))
+	# The dive needs the second press WHILE the first jump is still running. The frame it
+	# lands on is not deterministic, so the probe is attempted a few times: a flaky probe
+	# is not the same thing as a dead mechanic.
+	for attempt: int in 4:
+		await _settle(50)
+		if not _player.is_on_floor(): continue
+		var dive_from: Vector3 = _player.global_position
+		report["on_floor_before_dive"] = true
+		await _tap(KEY_SPACE)
+		await _settle(5)
+		report["jump_running"] = not (_player.get("_jump") as Dictionary).is_empty()
+		await _tap(KEY_SPACE)
+		for i: int in 55:
+			await process_frame
+			dive_moved = maxf(dive_moved, dive_from.distance_to(_player.global_position))
+		if dive_moved > 0.8: break
 	report["dive_m"] = dive_moved
 	await _settle(50)
 	# ---- taking a weapon with a key

@@ -37,12 +37,19 @@ func _run() -> void:
 	_camera.current = true
 	await _settle(30)
 	var base: Vector3 = _castle.global_position
-	# Outside the gate, looking at the gatehouse; then the courtyard; then a wall corner.
+	var half: float = float(_castle.call("wall_half"))
+	var height: float = 19.0
+	# The map is a hundred and forty metres across, so the views are taken from outside it
+	# and from above, not from where the old courtyard camera stood.
 	var shots := [
-		{"name": "gate_outside", "pos": base + Vector3(0.0, 6.0, 62.0), "look": base + Vector3(0.0, 7.0, 32.0)},
-		{"name": "courtyard", "pos": base + Vector3(0.0, 8.0, 18.0), "look": base + Vector3(0.0, 12.0, -26.0)},
-		{"name": "corner_tower", "pos": base + Vector3(46.0, 12.0, 46.0), "look": base + Vector3(32.0, 12.0, 32.0)},
-		{"name": "wall_inside", "pos": base + Vector3(-8.0, 3.0, 6.0), "look": base + Vector3(-32.0, 9.0, 14.0)},
+		{"name": "gate_outside", "pos": base + Vector3(0.0, height * 0.55, half + 58.0),
+			"look": base + Vector3(0.0, height * 0.6, half)},
+		{"name": "whole_castle", "pos": base + Vector3(half + 72.0, height * 2.6, half + 72.0),
+			"look": base + Vector3(0.0, height * 0.5, 0.0)},
+		{"name": "corner_tower", "pos": base + Vector3(half + 14.0, 14.0, half + 14.0),
+			"look": base + Vector3(half, height * 0.6, half)},
+		{"name": "courtyard", "pos": base + Vector3(0.0, 16.0, half - 12.0),
+			"look": base + Vector3(0.0, 18.0, -30.0)},
 	]
 	for shot: Dictionary in shots:
 		_camera.global_position = shot["pos"]
@@ -55,11 +62,11 @@ func _run() -> void:
 		var error := image.save_png(path)
 		print("SHOTS_SAVED ", str(shot["name"]), " err=", error, " path=", path)
 	# And one after a breach, so the destruction can be seen too.
-	_castle.call("apply_explosion", {"position": base + Vector3(0.0, 5.0, 32.0),
+	_castle.call("apply_explosion", {"position": base + Vector3(0.0, 6.0, half),
 		"radius": 5.0, "power": 240.0, "direction": Vector3(0.0, 0.0, -1.0)})
 	await _settle(70)
-	_camera.global_position = base + Vector3(0.0, 6.0, 56.0)
-	_camera.look_at(base + Vector3(0.0, 6.0, 32.0), Vector3.UP)
+	_camera.global_position = base + Vector3(0.0, 10.0, half + 44.0)
+	_camera.look_at(base + Vector3(0.0, 8.0, half), Vector3.UP)
 	await _settle(12)
 	var image2: Image = root.get_texture().get_image()
 	if image2 != null:

@@ -17,16 +17,16 @@ extends Node3D
 ## and a keep in the courtyard.
 
 const BRICK := Vector3(0.92, 0.46, 0.55)
-const WALL_HEIGHT := 13.0
-const WALL_HALF := 32.0          # half of the outside square
+const WALL_HEIGHT := 19.0
+const WALL_HALF := 68.0          # half of the outside square: a siege map, not a yard
 const WALL_THICK := 1.1
-const TOWER_RADIUS := 4.4
-const TOWER_HEIGHT := 18.0
-const GATE_WIDTH := 7.4
-const GATE_HEIGHT := 9.4
+const TOWER_RADIUS := 5.6
+const TOWER_HEIGHT := 27.0
+const GATE_WIDTH := 9.2
+const GATE_HEIGHT := 12.0
 const DETACH_IMPULSE := 30.0
 const SUPPORT_DELAY_MS := 240
-const KEEP_SIZE := Vector3(18.0, 26.0, 18.0)
+const KEEP_SIZE := Vector3(26.0, 38.0, 26.0)
 
 var _ready := false
 var _materials: Dictionary = {}
@@ -99,13 +99,13 @@ func _build_ground() -> void:
 	add_child(_ground)
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()
-	box.size = Vector3(320.0, 2.0, 320.0)
+	box.size = Vector3(600.0, 2.0, 600.0)
 	shape.shape = box
 	shape.position.y = -1.0
 	_ground.add_child(shape)
 	var slab := MeshInstance3D.new()
 	var slab_mesh := BoxMesh.new()
-	slab_mesh.size = Vector3(320.0, 2.0, 320.0)
+	slab_mesh.size = Vector3(600.0, 2.0, 600.0)
 	slab.mesh = slab_mesh
 	slab.material_override = _materials["grass"]
 	slab.position.y = -1.0
@@ -259,16 +259,28 @@ func _build_keep_details() -> void:
 	for storey: int in 3:
 		for side: float in [-1.0, 1.0]:
 			for i: int in 2:
-				var at := base + Vector3(side * (half_x + 0.02),
-					5.0 + float(storey) * 7.0, -3.6 + float(i) * 7.2)
-				_add_brick(at, Vector3(0.14, 2.1, 1.05), "dark", Vector3.ZERO, "keep_window", storey, i)
-				var sill := MeshInstance3D.new()
-				var sill_mesh := BoxMesh.new()
-				sill_mesh.size = Vector3(0.5, 0.16, 1.35)
-				sill.mesh = sill_mesh
-				sill.material_override = _materials["stone"]
-				sill.position = at + Vector3(-side * 0.16, -1.15, 0.0)
-				add_child(sill)
+				# Two faces run along X, two along Z: windows on all four, or the tower
+				# is blind on the sides the player actually walks past.
+				var at_x := base + Vector3(side * (half_x + 0.02),
+					6.0 + float(storey) * 9.0, -4.6 + float(i) * 9.2)
+				_add_brick(at_x, Vector3(0.14, 2.4, 1.2), "dark", Vector3.ZERO, "keep_window", storey, i)
+				var sill_x := MeshInstance3D.new()
+				var sill_x_mesh := BoxMesh.new()
+				sill_x_mesh.size = Vector3(0.5, 0.18, 1.5)
+				sill_x.mesh = sill_x_mesh
+				sill_x.material_override = _materials["stone"]
+				sill_x.position = at_x + Vector3(-side * 0.16, -1.3, 0.0)
+				add_child(sill_x)
+				var at_z := base + Vector3(-4.6 + float(i) * 9.2,
+					6.0 + float(storey) * 9.0, side * (half_z + 0.02))
+				_add_brick(at_z, Vector3(1.2, 2.4, 0.14), "dark", Vector3.ZERO, "keep_window_z", storey, i)
+				var sill_z := MeshInstance3D.new()
+				var sill_z_mesh := BoxMesh.new()
+				sill_z_mesh.size = Vector3(1.5, 0.18, 0.5)
+				sill_z.mesh = sill_z_mesh
+				sill_z.material_override = _materials["stone"]
+				sill_z.position = at_z + Vector3(0.0, -1.3, -side * 0.16)
+				add_child(sill_z)
 	# Buttresses at the corners of each face.
 	for side: float in [-1.0, 1.0]:
 		for other: float in [-1.0, 1.0]:
@@ -291,18 +303,32 @@ func _add_brick(at: Vector3, size: Vector3, material_key: String, rotation: Vect
 	})
 	return index
 
+## DSH_OPT: bricks are drawn in CHUNKS, not as one MultiMesh for the whole castle.
+##
+## A single MultiMesh is never frustum-culled - the engine has no way to know that most of
+## a hundred-and-thirty-metre wall is behind you - so one big mesh would draw thirty
+## thousand bricks every frame. Split into chunks of a few metres, each chunk is culled on
+## its own and the cost follows what is on screen. Bricks that are knocked out are moved
+## out of the chunk's mesh, and the falling body is spawned as before.
+const CHUNK_X := 17.0
+const CHUNK_Y := 7.0
+const CHUNK_Z := 17.0
+
 func _flush_buckets() -> void:
-	# Group every live brick by its material and build one MultiMesh per material.
 	_buckets.clear()
 	for index: int in _cells.size():
 		var cell: Dictionary = _cells[index]
-		var key: String = str(cell.get("material", "stone"))
+		var at: Vector3 = cell.get("at", Vector3.ZERO)
+		var key := "%s|%d|%d|%d" % [str(cell.get("material", "stone")),
+			int(floor(at.x / CHUNK_X)), int(floor(at.y / CHUNK_Y)), int(floor(at.z / CHUNK_Z))]
 		if not _buckets.has(key):
-			_buckets[key] = {"indices": []}
+			_buckets[key] = {"indices": [], "material": str(cell.get("material", "stone"))}
 		(_buckets[key]["indices"] as Array).append(index)
+	var chunk_count := 0
 	for key: String in _buckets.keys():
 		var bucket: Dictionary = _buckets[key]
 		var indices: Array = bucket["indices"]
+		if indices.is_empty(): continue
 		var multi := MultiMesh.new()
 		multi.transform_format = MultiMesh.TRANSFORM_3D
 		multi.use_colors = true
@@ -310,16 +336,38 @@ func _flush_buckets() -> void:
 		multi.instance_count = indices.size()
 		for slot: int in indices.size():
 			var cell: Dictionary = _cells[int(indices[slot])]
+			cell["bucket"] = key
 			cell["instance"] = slot
 			multi.set_instance_transform(slot, _brick_transform(cell))
 			multi.set_instance_color(slot, _brick_tint(cell))
 		var node := MultiMeshInstance3D.new()
-		node.name = "Bricks_" + key
+		node.name = "Bricks%d" % chunk_count
 		node.multimesh = multi
-		node.material_override = _materials[key]
+		node.material_override = _materials[str(bucket.get("material", "stone"))]
+		# No global-illumination participation for thousands of static stones: it buys
+		# nothing on a wall and costs a lot to bake.
+		node.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 		add_child(node)
 		bucket["node"] = node
+		chunk_count += 1
+	_chunk_total = chunk_count
 
+var _chunk_total := 0
+
+## How much of the castle is actually being drawn, for the optimisation to be measured
+## rather than claimed.
+func render_stats() -> Dictionary:
+	var visible := 0
+	var instances := 0
+	var camera: Camera3D = get_viewport().get_camera_3d() if get_viewport() != null else null
+	for key: String in _buckets.keys():
+		var node: MultiMeshInstance3D = (_buckets[key] as Dictionary).get("node")
+		if not is_instance_valid(node): continue
+		if camera != null and camera.is_position_in_frustum(node.global_position):
+			visible += 1
+			instances += node.multimesh.instance_count
+	return {"chunks": _chunk_total, "chunks_in_frustum": visible,
+		"bricks_in_frustum": instances, "bricks": _cells.size()}
 ## A brick's transform: its place, its size, and a few degrees of settling so the wall
 ## does not look machine-made.
 func _brick_transform(cell: Dictionary) -> Transform3D:
@@ -338,7 +386,7 @@ func _brick_tint(cell: Dictionary) -> Color:
 	var at: Vector3 = cell.get("at", Vector3.ZERO)
 	var hash := int(at.x * 11317.0) ^ int(at.y * 7111.0) ^ int(at.z * 5309.0)
 	var tone := float(abs(hash) % 1000) / 1000.0
-	var multiplier := 0.88 + tone * 0.24
+	var multiplier := 0.945 + tone * 0.11
 	return Color(multiplier, multiplier * 0.99, multiplier * 0.95)
 
 func _kill_brick(index: int, impulse: Vector3, power: float) -> void:
@@ -349,7 +397,7 @@ func _kill_brick(index: int, impulse: Vector3, power: float) -> void:
 	_detached += 1
 	# Take it out of the drawing: the instance is moved far below the world, which is
 	# cheaper than rebuilding the MultiMesh.
-	var key: String = str(cell.get("material", "stone"))
+	var key: String = str(cell.get("bucket", ""))
 	if _buckets.has(key):
 		var bucket: Dictionary = _buckets[key]
 		var node: MultiMeshInstance3D = bucket.get("node")
@@ -516,7 +564,10 @@ func _build_corner_towers() -> void:
 		var centre := Vector3(corner.x * WALL_HALF, 0.0, corner.y * WALL_HALF)
 		# The tower is laid as rings of bricks: it is round because the bricks are.
 		var courses := int(TOWER_HEIGHT / BRICK.y)
-		var around := 22
+		# A ring of bricks must close with no gaps: the count comes from the
+		# circumference, or the tower reads as netting instead of stonework.
+		var around: int = maxi(12, int(round(TAU * TOWER_RADIUS / (BRICK.x * 0.98))))
+		var brick_length: float = TAU * TOWER_RADIUS / float(around) * 1.06
 		for row: int in courses:
 			var radius := TOWER_RADIUS - float(row) * 0.012
 			var angle_offset: float = (float(row % 2)) * (TAU / float(around)) * 0.5
@@ -524,7 +575,7 @@ func _build_corner_towers() -> void:
 				var angle: float = TAU * float(i) / float(around) + angle_offset
 				var at := centre + Vector3(cos(angle) * radius,
 					(float(row) + 0.5) * BRICK.y, sin(angle) * radius)
-				var size := Vector3(BRICK.x * 0.95, BRICK.y, BRICK.z * 1.5)
+				var size := Vector3(brick_length, BRICK.y, BRICK.z * 1.5)
 				var key := "stone" if row % 4 != 0 else "cold"
 				_add_brick(at, size, key, Vector3(0.0, -angle, 0.0), "tower")
 		var body := StaticBody3D.new()
@@ -730,6 +781,9 @@ func _build_keep() -> void:
 func owns_collider(body: Node) -> bool:
 	if not is_instance_valid(body): return false
 	return body.get_meta("castle_brick", false) or body.get_meta("castle_gate", false)
+
+func wall_half() -> float:
+	return WALL_HALF
 
 func get_stats() -> Dictionary:
 	return {
