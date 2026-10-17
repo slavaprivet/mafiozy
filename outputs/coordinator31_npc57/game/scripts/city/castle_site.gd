@@ -852,7 +852,9 @@ func _build_gatehouse() -> void:
 			for column: int in leaf_columns:
 				var board_mesh := MeshInstance3D.new()
 				var board_box := BoxMesh.new()
-				board_box.size = Vector3(board_w * 0.98, board_h * 0.97, 0.26)
+				# IN CONTACT, with a hair of overlap: at 0.98 and 0.97 the planks showed light
+				# through the joints, which read as cracks in the door.
+				board_box.size = Vector3(board_w * 1.004, board_h * 1.004, 0.26)
 				board_mesh.mesh = board_box
 				board_mesh.material_override = _materials["wood"]
 				board_mesh.position = Vector3(
@@ -860,7 +862,7 @@ func _build_gatehouse() -> void:
 					board_h * (float(row) + 0.5) + GATE_HEIGHT * 0.02,
 					0.0)
 				pivot.add_child(board_mesh)
-				boards.append({"mesh": board_mesh, "broken": false})
+				boards.append({"mesh": board_mesh, "broken": false, "size": board_box.size})
 		# The seams between the boards: shallow dark strips on the face, not slots.
 		var seam_material := StandardMaterial3D.new()
 		seam_material.albedo_color = Color(0.24, 0.15, 0.08)
@@ -1719,7 +1721,10 @@ func apply_explosion(event: Dictionary) -> Dictionary:
 			plank.global_position = board_mesh.global_position + outward * 0.9 + Vector3.UP * 0.2
 			var plank_shape := CollisionShape3D.new()
 			var plank_box := BoxShape3D.new()
-			plank_box.size = Vector3(GATE_WIDTH * 0.5 / 6.0, GATE_HEIGHT * 0.96, 0.26)
+			# THE PIECE THAT FLIES IS THE PIECE THAT BROKE: a plank, not a twelve-metre
+			# beam. The debris was sized as a whole door leaf, which is why long timbers kept
+			# falling out of the gate.
+			plank_box.size = board.get("size", Vector3(0.8, 1.4, 0.26))
 			plank_shape.shape = plank_box
 			plank.add_child(plank_shape)
 			if _debris_mesh == null:
