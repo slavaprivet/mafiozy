@@ -53,7 +53,7 @@ const WEAPONS := {
 	},
 	"spear": {
 		"label": "Копьё (прототип)", "category": "polearm", "category_label": "КОПЬЁ · КОЛЮЩЕЕ",
-		"length": 1.95, "mass": 1.15, "grip": "two",
+		"length": 1.76, "mass": 1.15, "grip": "two",
 		"slice": 0.15, "stab": 1.9, "flat": 0.15, "crush": false, "throwable": true,
 	},
 }
@@ -89,6 +89,18 @@ func set_weapon(id: String) -> bool:
 ## One model per weapon of the set, built once and kept.
 var _weapon_models: Dictionary = {}
 
+## How far the weapon model extends BEHIND its own grip, in metres. A long haft that
+## reaches back further than the arm does is a weapon through the chest.
+func weapon_rear_extent() -> float:
+	if not is_instance_valid(_sword): return 0.0
+	var rear := 0.0
+	for node: Node in _sword.get_children():
+		var mesh_node := node as MeshInstance3D
+		if not is_instance_valid(mesh_node) or mesh_node.mesh == null: continue
+		var aabb: AABB = mesh_node.transform * mesh_node.mesh.get_aabb()
+		rear = maxf(rear, -aabb.position.x)
+	return rear
+
 ## The current weapon's entry.
 func weapon_entry() -> Dictionary:
 	return WEAPONS.get(_weapon_id, WEAPONS["sword"])
@@ -116,11 +128,11 @@ const HAND_SLEW_RATE := 10.5    # units per second
 const HAND_MAX_OFFSET := 1.5
 # A decisive cut, not a blur. 22 rad/s was three and a half turns a second, which is
 # why a flick of the wrist read as an instant cut with no weight behind it.
-const MAX_OMEGA := 12.5         # rad/s
-const MAX_ALPHA := 68.0         # rad/s^2, quick but not a teleport into the swing
+const MAX_OMEGA := 15.5         # rad/s
+const MAX_ALPHA := 82.0         # rad/s^2, quick but not a teleport into the swing
 ## Steering: high gain so a flick really whips the blade, light damping and light
 ## target smoothing. Heavy damping here is what turned cuts into brush strokes.
-const STEER_GAIN := 8.5
+const STEER_GAIN := 10.5
 const STEER_DAMPING := 0.20
 const STEER_DEADZONE := 0.25
 const STEER_ANGLE_DEADZONE := 0.04
@@ -834,9 +846,12 @@ func _build_spear_model(parent: Node3D) -> Node3D:
 	var spear := Node3D.new()
 	spear.name = "PrototypeSpear"
 	parent.add_child(spear)
-	_add_haft(spear, -1.05, 0.74, 0.028, 0.022, _mat_wood)
-	_add_grip(spear, -0.42, -0.06, 0.031)
-	_add_grip(spear, 0.06, 0.40, 0.030)
+	# A spear is held a third of the way from the butt, so only a short length of haft
+	# sits behind the fist. The old model ran 1.05 m backwards - which is a spear going
+	# straight through the man holding it.
+	_add_haft(spear, -0.30, 1.60, 0.028, 0.022, _mat_wood)
+	_add_grip(spear, -0.22, 0.02, 0.031)
+	_add_grip(spear, 0.14, 0.46, 0.030)
 	# Collar and the leaf head.
 	var collar := MeshInstance3D.new()
 	var collar_mesh := CylinderMesh.new()
@@ -844,7 +859,7 @@ func _build_spear_model(parent: Node3D) -> Node3D:
 	collar.mesh = collar_mesh
 	collar.material_override = _mat_brass
 	collar.rotation = Vector3(0.0, 0.0, PI * 0.5)
-	collar.position = Vector3(0.74, 0.0, 0.0)
+	collar.position = Vector3(1.55, 0.0, 0.0)
 	spear.add_child(collar)
 	var blade := MeshInstance3D.new()
 	var blade_mesh := PrismMesh.new()
@@ -852,7 +867,7 @@ func _build_spear_model(parent: Node3D) -> Node3D:
 	blade_mesh.left_to_right = 1.0
 	blade.mesh = blade_mesh
 	blade.material_override = _mat_edge
-	blade.position = Vector3(0.92, 0.0, 0.0)
+	blade.position = Vector3(1.69, 0.0, 0.0)
 	spear.add_child(blade)
 	var point := MeshInstance3D.new()
 	var point_mesh := CylinderMesh.new()
@@ -860,7 +875,7 @@ func _build_spear_model(parent: Node3D) -> Node3D:
 	point.mesh = point_mesh
 	point.material_override = _mat_steel
 	point.rotation = Vector3(0.0, 0.0, -PI * 0.5)
-	point.position = Vector3(1.10, 0.0, 0.0)
+	point.position = Vector3(1.82, 0.0, 0.0)
 	spear.add_child(point)
 	# Butt-spike, which is what makes a spear throwable and still a weapon.
 	var butt := MeshInstance3D.new()
@@ -869,7 +884,7 @@ func _build_spear_model(parent: Node3D) -> Node3D:
 	butt.mesh = butt_mesh
 	butt.material_override = _mat_steel
 	butt.rotation = Vector3(0.0, 0.0, PI * 0.5)
-	butt.position = Vector3(-1.10, 0.0, 0.0)
+	butt.position = Vector3(-0.36, 0.0, 0.0)
 	spear.add_child(butt)
 	return spear
 
@@ -4721,6 +4736,7 @@ func snapshot() -> Dictionary:	return {
 		"sweep_rays": _sweep_rays, "sweep_hits": _sweep_hits, "selected": _selected,
 		"side": str(_active_side()),
 		"weapon_visible": is_instance_valid(_sword) and _sword.visible,
+		"weapon_rear_m": weapon_rear_extent(),
 		"weapon_active": _active(),
 		"swing_phase": _swing_phase, "anticipation": _anticipation, "brace": _brace,
 		"omega_speed": _omega.length(), "omega_cap": MAX_OMEGA / _weapon_mass,
