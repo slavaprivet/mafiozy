@@ -41,11 +41,15 @@ var _collapsed := 0
 var _events: Array[Dictionary] = []
 var _pending_support: Array[Dictionary] = []
 var _ground: StaticBody3D
+var _player: CharacterBody3D
+var _world_ref: Node3D
 
 ## ------------------------------------------------------------------ build
 func install(world: Node3D, origin: Vector3) -> Dictionary:
 	if _ready: return {"ok": false, "reason": "already"}
 	if not is_instance_valid(world): return {"ok": false, "reason": "no_world"}
+	_world_ref = world
+	_player = world.get("_player") as CharacterBody3D
 	_build_materials()
 	_brick_mesh = BoxMesh.new()
 	_brick_mesh.size = BRICK
@@ -464,36 +468,43 @@ func _build_curtain_walls() -> void:
 		_add_corbels(side)
 		_add_buttresses(side)
 
+## The wall is laid in TWO skins of brick, an outer and an inner. A single skin with a dark
+## slab behind it is what a breach used to show: a grey square, with the street beyond it.
+## Two skins give a breach depth, and the joints between the bricks read dark on their own
+## because the opposite skin sits half a metre behind them in shadow.
 func _build_wall(side: String) -> void:
 	var courses := int(WALL_HEIGHT / BRICK.y)
 	var per_course := int((WALL_HALF * 2.0) / BRICK.x)
 	var gate_columns := int(GATE_WIDTH / BRICK.x)
 	var middle := per_course / 2
-	for row: int in courses:
-		var offset := 0.0 if row % 2 == 0 else BRICK.x * 0.5
-		for column: int in per_course:
-			# The gate is a real opening: no bricks inside it.
-			if (side == "south") and row * BRICK.y < GATE_HEIGHT \
-					and absi(column - middle) < gate_columns / 2 + 1:
-				continue
-			var along := (float(column) - float(per_course - 1) * 0.5) * BRICK.x + offset
-			var height := (float(row) + 0.5) * BRICK.y
-			var at := Vector3.ZERO
-			var size := BRICK
-			match side:
-				"north":
-					at = Vector3(along, height, -WALL_HALF)
-					size = Vector3(BRICK.x, BRICK.y, WALL_THICK)
-				"south":
-					at = Vector3(along, height, WALL_HALF)
-					size = Vector3(BRICK.x, BRICK.y, WALL_THICK)
-				"east":
-					at = Vector3(WALL_HALF, height, along)
-					size = Vector3(WALL_THICK, BRICK.y, BRICK.x)
-				"west":
-					at = Vector3(-WALL_HALF, height, along)
-					size = Vector3(WALL_THICK, BRICK.y, BRICK.x)
-			_add_brick(at, size, "stone", Vector3.ZERO, side, row, column)
+	var layer_depth := WALL_THICK * 0.5
+	for layer: int in 2:
+		var layer_sign: float = -1.0 if layer == 0 else 1.0
+		var inset: float = layer_sign * (WALL_THICK * 0.5 - layer_depth * 0.5)
+		for row: int in courses:
+			var offset := 0.0 if (row + layer) % 2 == 0 else BRICK.x * 0.5
+			for column: int in per_course:
+				# The gate is a real opening: no bricks inside it.
+				if (side == "south") and row * BRICK.y < GATE_HEIGHT and absi(column - middle) < gate_columns / 2 + 1:
+					continue
+				var along := (float(column) - float(per_course - 1) * 0.5) * BRICK.x + offset
+				var height := (float(row) + 0.5) * BRICK.y
+				var at := Vector3.ZERO
+				var size := BRICK
+				match side:
+					"north":
+						at = Vector3(along, height, -WALL_HALF + inset)
+						size = Vector3(BRICK.x, BRICK.y, layer_depth)
+					"south":
+						at = Vector3(along, height, WALL_HALF + inset)
+						size = Vector3(BRICK.x, BRICK.y, layer_depth)
+					"east":
+						at = Vector3(WALL_HALF + inset, height, along)
+						size = Vector3(layer_depth, BRICK.y, BRICK.x)
+					"west":
+						at = Vector3(-WALL_HALF + inset, height, along)
+						size = Vector3(layer_depth, BRICK.y, BRICK.x)
+				_add_brick(at, size, "stone", Vector3.ZERO, side, row, column)
 		# The wall itself is solid: one collision slab per wall, so the map is a place you
 		# can lean on, not a curtain of loose stones.
 	if side in ["north", "south"]:
@@ -517,7 +528,7 @@ func _add_mortar(at: Vector3, size: Vector3, vertical: bool = false) -> void:
 		var box := BoxMesh.new()
 		box.size = size
 		mortar.mesh = box
-	mortar.material_override = _materials["dark"]
+	mortar.material_override = _materials["cold"]
 	mortar.position = at
 	add_child(mortar)
 
@@ -685,38 +696,81 @@ func _build_gatehouse() -> void:
 			var along := (float(column) - float(per_course - 1) * 0.5) * BRICK.x
 			_add_brick(at + Vector3(along, GATE_HEIGHT + (float(row) + 0.5) * BRICK.y, 0.0),
 				Vector3(BRICK.x, BRICK.y, WALL_THICK * 1.6), "stone", Vector3.ZERO, "gate_arch", row, column)
-	# Two hammered leaves, real bodies that can be blown in.
+	# THE LEAVES are hung on HINGES: each one a pivot at its own edge, so it can be swung.
+	# Planks, three iron bands and studs - a flat box behind the portcullis read as a metal
+	# grille where an oak door should be.
 	for side: float in [-1.0, 1.0]:
-		var leaf := RigidBody3D.new()
-		leaf.name = "GateLeaf" + ("Left" if side < 0.0 else "Right")
-		leaf.collision_layer = 1
-		leaf.collision_mask = 1
-		leaf.freeze = true
-		leaf.freeze_mode = RigidBody3D.FREEZE_MODE_STATIC
-		leaf.mass = 420.0
-		leaf.position = at + Vector3(side * GATE_WIDTH * 0.25, GATE_HEIGHT * 0.5, 0.0)
-		add_child(leaf)
-		var shape := CollisionShape3D.new()
-		var box := BoxShape3D.new()
-		box.size = Vector3(GATE_WIDTH * 0.5, GATE_HEIGHT, 0.5)
-		shape.shape = box
-		leaf.add_child(shape)
-		var mesh := MeshInstance3D.new()
-		var leaf_mesh := BoxMesh.new()
-		leaf_mesh.size = box.size
-		mesh.mesh = leaf_mesh
-		mesh.material_override = _materials["wood"]
-		leaf.add_child(mesh)
+		var pivot := Node3D.new()
+		pivot.name = "GateLeaf" + ("Left" if side < 0.0 else "Right")
+		pivot.position = at + Vector3(side * GATE_WIDTH * 0.5, 0.0, 0.0)
+		add_child(pivot)
+		var leaf_width := GATE_WIDTH * 0.5
+		var board := leaf_width / 6.0
+		for i: int in 6:
+			var plank := MeshInstance3D.new()
+			var plank_mesh := BoxMesh.new()
+			plank_mesh.size = Vector3(board * 0.94, GATE_HEIGHT * 0.96, 0.26)
+			plank.mesh = plank_mesh
+			plank.material_override = _materials["wood"]
+			plank.position = Vector3(-side * (board * (float(i) + 0.5)), GATE_HEIGHT * 0.5, 0.0)
+			pivot.add_child(plank)
 		for band: int in 3:
 			var strip := MeshInstance3D.new()
 			var strip_mesh := BoxMesh.new()
-			strip_mesh.size = Vector3(box.size.x * 0.96, 0.24, 0.68)
+			strip_mesh.size = Vector3(leaf_width * 0.98, 0.30, 0.34)
 			strip.mesh = strip_mesh
 			strip.material_override = _materials["iron"]
-			strip.position = Vector3(0.0, -box.size.y * 0.5 + 1.6 + float(band) * 2.9, 0.0)
-			leaf.add_child(strip)
-		leaf.set_meta("castle_gate", true)
-		_gate_leaves.append({"body": leaf, "side": side, "detached": false})
+			strip.position = Vector3(-side * leaf_width * 0.5, GATE_HEIGHT * (0.18 + float(band) * 0.3), 0.0)
+			pivot.add_child(strip)
+			for stud: int in 5:
+				var bolt := MeshInstance3D.new()
+				var bolt_mesh := BoxMesh.new()
+				bolt_mesh.size = Vector3(0.11, 0.11, 0.42)
+				bolt.mesh = bolt_mesh
+				bolt.material_override = _materials["iron"]
+				bolt.position = Vector3(-side * leaf_width * (0.1 + float(stud) * 0.2),
+					GATE_HEIGHT * (0.18 + float(band) * 0.3), 0.0)
+				pivot.add_child(bolt)
+		# The collision rides with the hinge, so an open gate is really open.
+		var body := StaticBody3D.new()
+		body.collision_layer = 1
+		body.collision_mask = 1
+		body.position = Vector3(-side * leaf_width * 0.5, GATE_HEIGHT * 0.5, 0.0)
+		pivot.add_child(body)
+		var shape := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = Vector3(leaf_width, GATE_HEIGHT * 0.96, 0.3)
+		shape.shape = box
+		body.add_child(shape)
+		body.set_meta("castle_gate", true)
+		_gate_leaves.append({"pivot": pivot, "side": side, "body": body, "detached": false})
+		if side < 0.0: _gate_left = pivot
+		else: _gate_right = pivot
+	# THE LEVER, inside the courtyard by the gate: a post, a handle, and a hinge of its own.
+	var lever_base := at + Vector3(GATE_WIDTH * 0.5 + 2.6, 0.0, -2.2)
+	var post := MeshInstance3D.new()
+	var post_mesh := CylinderMesh.new()
+	post_mesh.top_radius = 0.16
+	post_mesh.bottom_radius = 0.20
+	post_mesh.height = 1.5
+	post.mesh = post_mesh
+	post.material_override = _materials["iron"]
+	post.position = lever_base + Vector3.UP * 0.75
+	add_child(post)
+	_lever_pivot = Node3D.new()
+	_lever_pivot.position = lever_base + Vector3.UP * 1.32
+	add_child(_lever_pivot)
+	var handle := MeshInstance3D.new()
+	var handle_mesh := CylinderMesh.new()
+	handle_mesh.top_radius = 0.075
+	handle_mesh.bottom_radius = 0.09
+	handle_mesh.height = 1.1
+	handle.mesh = handle_mesh
+	handle.material_override = _materials["wood"]
+	handle.position = Vector3(0.0, 0.5, 0.0)
+	_lever_pivot.add_child(handle)
+	_lever_pivot.rotation.z = 0.5
+	_lever_pos = lever_base + Vector3.UP * 1.3
 
 ## Two flights up to the wall-walk, for archers.
 ##
@@ -724,6 +778,56 @@ func _build_gatehouse() -> void:
 ## stair built from boxes of collision is a stair a character gets stuck on - the first
 ## version used half-metre steps and a single rectangular block for the whole flight, and
 ## he could not get up it at all. A ramp cannot be stuck on, and the steps are what is seen.
+var _gate_left: Node3D
+var _gate_right: Node3D
+var _lever_pivot: Node3D
+var _lever_pos := Vector3.ZERO
+var _gate_open_state := false
+var _gate_angle := 0.0
+var _lever_angle := 0.5
+
+## Swings the two leaves inward, smoothly, and back. The angle is eased every physics step,
+## so the gate never snaps: a gate this heavy takes a moment to move.
+func set_gate(open: bool) -> void:
+	_gate_open_state = open
+
+func gate_open() -> bool:
+	return _gate_open_state
+
+func gate_angle() -> float:
+	return _gate_angle
+
+func lever_position() -> Vector3:
+	return _lever_pos
+
+## True when E would work the lever from where the player is standing.
+func wants_e() -> bool:
+	if not _ready or not is_instance_valid(_player): return false
+	return _player.global_position.distance_to(_lever_pos) <= 2.6
+
+## E at the lever works the gate. The gate is the player's own business, so it answers the
+## key itself rather than going through the weapons.
+func _unhandled_input(event: InputEvent) -> void:
+	if not _ready or not is_instance_valid(_player): return
+	if not (event is InputEventKey) or not event.pressed or event.echo: return
+	var code: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
+	if code != KEY_E: return
+	if not bool(_player.get("_free_mouse_look")): return
+	if _player.global_position.distance_to(_lever_pos) > 2.6: return
+	set_gate(not _gate_open_state)
+	get_viewport().set_input_as_handled()
+
+func _advance_gate(delta: float) -> void:
+	if not is_instance_valid(_gate_left) or not is_instance_valid(_gate_right): return
+	var target := 1.0 if _gate_open_state else 0.0
+	_gate_angle = move_toward(_gate_angle, target, (1.0 / 1.6) * delta)
+	var eased := smoothstep(0.0, 1.0, _gate_angle)
+	_gate_left.rotation.y = eased * 1.85
+	_gate_right.rotation.y = -eased * 1.85
+	if is_instance_valid(_lever_pivot):
+		_lever_angle = lerpf(0.5, -0.5, eased)
+		_lever_pivot.rotation.z = _lever_angle
+
 func _build_stairs() -> void:
 	for side: float in [-1.0, 1.0]:
 		var rise := 0.26
@@ -1024,6 +1128,7 @@ func _schedule_support_failure(at: Vector3, radius: float) -> void:
 				break
 func _physics_process(_delta: float) -> void:
 	if not _ready: return
+	_advance_gate(_delta)
 	# The cascade.
 	if not _pending_support.is_empty():
 		var now := Time.get_ticks_msec()
