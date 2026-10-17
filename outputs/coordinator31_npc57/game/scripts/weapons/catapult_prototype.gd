@@ -57,7 +57,10 @@ var _arm_angle := -0.55
 var _arm_wound := false
 var _winding := false
 var _arm_settle := 0.0
-var _release_angle := -0.55
+## The arm resting back and low, which is where a stone can be set in the spoon.
+const COCKED_ANGLE := -0.55
+var _release_angle := 1.30
+var _cocked_angle := COCKED_ANGLE
 var _wind_t := 0.0
 var _fired := 0
 
@@ -221,7 +224,7 @@ func _build_cart() -> void:
 	# The spoon: a bowl at the far end that actually holds the stone.
 	_arm_spoon = Node3D.new()
 	_arm_spoon.name = "CatapultSpoon"
-	_arm_spoon.position = Vector3(0.0, 0.05, 0.95)
+	_arm_spoon.position = Vector3(0.0, 0.05, -2.50)
 	_arm_pivot.add_child(_arm_spoon)
 	for side: float in [-1.0, 1.0]:
 		var lip := _beam(_arm_spoon, Vector3(0.06, 0.34, 0.52), Vector3(side * 0.30, 0.14, 0.0), iron)
@@ -241,11 +244,13 @@ func _place_cart_near_palazzo() -> void:
 	if is_instance_valid(host) and is_instance_valid(host.get("site")):
 		var site: Node3D = host.get("site")
 		target = site.global_position
-	var approach := target - Vector3(0.0, 0.0, 26.0)
+	# A siege distance: close enough that the stone takes the wall square on instead of
+	# arriving flat enough to slip through a thin panel.
+	var approach := target - Vector3(0.0, 0.0, 14.0)
 	_cart.global_position = Vector3(approach.x, 0.05, approach.z)
 	_yaw = 0.0
 	_cart.rotation.y = _yaw
-	_arm_angle = -0.55
+	_arm_angle = _cocked_angle
 	_apply_arm()
 
 func _build_stone() -> void:
@@ -256,6 +261,12 @@ func _build_stone() -> void:
 	_stone.collision_mask = 1
 	_stone.continuous_cd = true
 	_stone.gravity_scale = 1.0
+	# The engine reports real contacts, which is more reliable than a swept ray for a
+	# body this size: the ray kept missing because the sphere came to rest with its
+	# SURFACE on a wall while its centre stayed clear of it.
+	_stone.contact_monitor = true
+	_stone.max_contacts_reported = 6
+	_stone.body_entered.connect(_on_stone_body_entered)
 	var shape := CollisionShape3D.new()
 	var sphere := SphereShape3D.new()
 	sphere.radius = STONE_RADIUS
@@ -344,11 +355,16 @@ func _input(event: InputEvent) -> void:
 			if _try_interact():
 				get_viewport().set_input_as_handled()
 				return
+		if code == KEY_G:
+			if _carrying_stone:
+				_drop_here()
+				get_viewport().set_input_as_handled()
+				return
 	if event is InputEventMouseButton:
 		var button := event as InputEventMouseButton
 		if button.button_index == MOUSE_BUTTON_LEFT and button.pressed and _occupied:
-			_start_wind()
-			get_viewport().set_input_as_handled()
+			# Reserved for the camera: firing is E now, so the left button never
+			# surprises the player by launching a shot while he is looking around.
 			return
 		if button.button_index == MOUSE_BUTTON_WHEEL_UP and _occupied:
 			_elevation = clampf(_elevation + 0.04, ELEV_MIN, ELEV_MAX)
@@ -358,13 +374,12 @@ func _input(event: InputEvent) -> void:
 			_elevation = clampf(_elevation - 0.04, ELEV_MIN, ELEV_MAX)
 			get_viewport().set_input_as_handled()
 			return
+	# The MOUSE IS THE CAMERA. The machine aims where the player looks, which is what
+	# makes "look at it, press E" work. Consuming the motion here is what left the
+	# player unable to move the camera or aim at all.
 	if event is InputEventMouseMotion and _occupied:
-		var motion := event as InputEventMouseMotion
-		_yaw -= motion.relative.x * 0.0022
-		_elevation = clampf(_elevation - motion.relative.y * 0.0016, ELEV_MIN, ELEV_MAX)
-		# Consumed: while the player is laying the machine the mouse is the gun sight,
-		# not the camera. Letting both move it made the aim and the view disagree.
-		get_viewport().set_input_as_handled()
+		_elevation = clampf(_elevation - (event as InputEventMouseMotion).relative.y * 0.0009,
+			ELEV_MIN, ELEV_MAX)
 
 func _active() -> bool:
 	if not _ready or not is_instance_valid(_player): return false
@@ -377,21 +392,24 @@ func _active() -> bool:
 ## ------------------------------------------------------------------ interaction
 func _try_interact() -> bool:
 	var player_at: Vector3 = _player.global_position
-	# 1. Carrying the stone? Put it on the spoon if we are at the spoon, else drop it.
+	# 1. Carrying the stone: E at the spoon loads it; E anywhere else puts it down.
 	if _carrying_stone:
 		if player_at.distance_to(_spoon_point()) <= FRAME_RANGE:
 			_set_stone_on_spoon()
 			return true
 		_drop_stone()
 		return true
-	# 2. Standing at the frame: take the firing position, or leave it.
+	# 2. Standing at the frame: with a stone on the spoon, E FIRES. Otherwise E takes
+	# the post, which is only what lets the arc be drawn.
 	if player_at.distance_to(_cart.global_position) <= FRAME_RANGE:
+		if _stone_on_spoon and not _flying and not _winding:
+			_fire()
+			return true
 		_occupied = not _occupied
-		if _occupied:
-			_yaw = _cart.rotation.y
+		if _occupied and not bool(_player.get("_free_mouse_look")):
 			_player.set_mouse_captured(true)
 		return true
-	# 3. Near the stone on the ground: pick it up.
+	# 3. Near the stone on the ground: E takes it.
 	if not _stone_on_spoon and is_instance_valid(_stone) and not _flying \
 			and player_at.distance_to(_stone.global_position) <= CARRY_RANGE:
 		_carrying_stone = true
@@ -400,16 +418,55 @@ func _try_interact() -> bool:
 		return true
 	return false
 
+## Fires the machine: E at the frame with a stone on the spoon.
+func _fire() -> void:
+	if not _stone_on_spoon or _winding or _flying: return
+	_start_wind()
+
+## G: the stone is put down wherever the player is standing.
+func _drop_here() -> void:
+	if not _carrying_stone: return
+	_drop_stone()
+
 ## Sets the aim directly: yaw and elevation in radians.
 func set_aim(yaw: float, elevation: float) -> void:
 	_yaw = yaw
 	_elevation = clampf(elevation, ELEV_MIN, ELEV_MAX)
 
-## The elevation that lands a shot at a horizontal distance, for the HUD and for tests.
+## The elevation that lands a shot at a horizontal distance, ignoring height.
 func elevation_for_range(metres: float) -> float:
 	var product: float = metres * GRAVITY / (POWER_MS * POWER_MS)
 	if product <= 0.0 or product >= 1.0: return 0.785
 	return clampf(asin(product) * 0.5, ELEV_MIN, ELEV_MAX)
+
+## Aims the machine at a POINT: yaw to it, and the low-angle solution that reaches it
+## from the spoon. Solving from the cart position launched stones over the building,
+## because the spoon sits a couple of metres behind and low.
+## Where the spoon is when the arm is at a given angle. The stone leaves at the RELEASE
+## angle, high and forward, not from the cocked position low behind - solving the aim
+## from the cocked spoon is what made every shot sail over the building.
+func _spoon_at(angle: float) -> Vector3:
+	if not is_instance_valid(_arm_pivot) or not is_instance_valid(_arm_spoon):
+		return _spoon_point()
+	var rotated: Vector3 = Basis(Vector3.RIGHT, angle) * _arm_spoon.position
+	return _arm_pivot.global_transform * rotated
+
+func aim_at(target: Vector3) -> void:
+	var from: Vector3 = _spoon_at(_release_angle)
+	var flat: Vector3 = target - from
+	flat.y = 0.0
+	var distance: float = flat.length()
+	if distance < 0.5:
+		_elevation = 0.785
+		return
+	_yaw = atan2(flat.x, flat.z)
+	var height: float = target.y - from.y
+	var v2: float = POWER_MS * POWER_MS
+	var root: float = v2 * v2 - GRAVITY * (GRAVITY * distance * distance + 2.0 * height * v2)
+	if root < 0.0:
+		_elevation = ELEV_MIN
+		return
+	_elevation = clampf(atan((v2 - sqrt(root)) / (GRAVITY * distance)), ELEV_MIN, ELEV_MAX)
 
 func _spoon_point() -> Vector3:
 	if is_instance_valid(_arm_spoon): return _arm_spoon.global_position
@@ -423,7 +480,8 @@ func _set_stone_on_spoon() -> void:
 		_stone.global_position = _spoon_point() + Vector3.UP * (STONE_RADIUS + 0.06)
 	_arm_wound = false
 	_winding = false
-	_arm_angle = -0.55
+	_arm_angle = _cocked_angle
+	_arm_settle = 0.0
 	_apply_arm()
 
 func _drop_stone() -> void:
@@ -466,7 +524,7 @@ func _release() -> void:
 	_winding = false
 	_arm_wound = false
 	# The arm swings forward and lets go at its own release angle, then settles.
-	_release_angle = _elevation - 1.15
+	_release_angle = 1.30
 	_arm_angle = _release_angle
 	_arm_settle = 1.0
 	_apply_arm()
@@ -526,15 +584,17 @@ func _physics_process(delta: float) -> void:
 	# The arm: winding pulls it back, the catch holds it, and after the release it
 	# slams forward and settles instead of stopping dead.
 	if _arm_settle > 0.0:
-		_arm_settle = maxf(0.0, _arm_settle - delta * 1.9)
+		_arm_settle = maxf(0.0, _arm_settle - delta * 1.4)
 		var t := 1.0 - _arm_settle
-		_arm_angle = lerpf(_release_angle, -0.55, t) + sin(t * PI * 2.0) * 0.10 * (1.0 - t)
+		# It slams forward and up, overshoots a little, and rests there until reloaded.
+		_arm_angle = lerpf(_cocked_angle, _release_angle, t) \
+			+ sin(t * PI * 1.5) * 0.12 * (1.0 - t)
 		_apply_arm()
 	if _winding:
 		if is_instance_valid(_crank): _crank.rotate_x(delta * 5.0)
 		if is_instance_valid(_crank): _crank.rotate_y(0.0)
 		_wind_t += delta
-		_arm_angle = lerpf(-0.55, -0.95, clampf(_wind_t / WIND_TIME, 0.0, 1.0))
+		_arm_angle = lerpf(_cocked_angle, -0.95, clampf(_wind_t / WIND_TIME, 0.0, 1.0))
 		_apply_arm()
 		if _wind_t >= WIND_TIME:
 			_winding = false
@@ -553,6 +613,37 @@ func _physics_process(delta: float) -> void:
 		_step_flight(delta)
 	_update_aim()
 
+## A real contact from the physics engine. This is the impact that counts.
+func _on_stone_body_entered(body: Node) -> void:
+	if not _flying or not is_instance_valid(_stone): return
+	var velocity: Vector3 = _stone.linear_velocity
+	if velocity.length() < 1.5: return
+	var direction: Vector3 = velocity.normalized()
+	var centre: Vector3 = _stone.global_position
+	# The precise point of contact is found with a SHORT RAY back through the stone, not
+	# guessed from its centre: the building damage system validates that the point
+	# belongs to the collider it is given, and a guessed point a radius off was rejected
+	# as "contact_outside_collider".
+	var point: Vector3 = centre - direction * STONE_RADIUS
+	var normal: Vector3 = -direction
+	var collider: Object = body
+	var space := _world.get_world_3d().direct_space_state
+	if space != null:
+		var query := PhysicsRayQueryParameters3D.create(centre - direction * (STONE_RADIUS * 2.2),
+			centre + direction * (STONE_RADIUS * 1.2), 1 | 5 | 256,
+			[_player.get_rid(), _cart.get_rid(), _stone.get_rid()])
+		query.hit_from_inside = true
+		var found: Dictionary = space.intersect_ray(query)
+		if not found.is_empty():
+			point = found.get("position", point)
+			normal = found.get("normal", normal)
+			collider = found.get("collider", body)
+	_impact({
+		"position": point,
+		"normal": normal,
+		"collider": collider,
+	})
+
 func _step_flight(delta: float) -> void:
 	_fly_age += delta
 	var from: Vector3 = _fly_prev
@@ -565,12 +656,31 @@ func _step_flight(delta: float) -> void:
 		# shot that visibly landed reported no hit at all. The sweep is extended by the
 		# stone's own radius so it is the surface that gets tested.
 		var motion: Vector3 = to - from
-		var extended: Vector3 = to + motion.normalized() * (STONE_RADIUS + 0.03)
-		var query := PhysicsRayQueryParameters3D.create(from, extended, 1 | 5 | 256, exclude)
-		query.hit_from_inside = true
-		var hit: Dictionary = space.intersect_ray(query)
-		if not hit.is_empty():
-			_impact(hit)
+		var direction: Vector3 = motion.normalized()
+		var extended: Vector3 = to + direction * (STONE_RADIUS + 0.03)
+		# A FAN of rays, not one: a building panel is thin enough that a single centre
+		# line can slip through it between two physics ticks, which is exactly what
+		# happened - the stone went through the near wall and struck the far one.
+		var sideways: Vector3 = direction.cross(Vector3.UP)
+		if sideways.length_squared() < 1.0e-6: sideways = direction.cross(Vector3.RIGHT)
+		sideways = sideways.normalized()
+		var upward: Vector3 = direction.cross(sideways).normalized()
+		var best: Dictionary = {}
+		var best_distance := 1.0e9
+		for offset: Vector3 in [Vector3.ZERO, sideways * STONE_RADIUS * 0.75,
+				-sideways * STONE_RADIUS * 0.75, upward * STONE_RADIUS * 0.75,
+				-upward * STONE_RADIUS * 0.75]:
+			var query := PhysicsRayQueryParameters3D.create(from + offset, extended + offset,
+				1 | 5 | 256, exclude)
+			query.hit_from_inside = true
+			var found: Dictionary = space.intersect_ray(query)
+			if found.is_empty(): continue
+			var distance: float = from.distance_to(found.get("position", from))
+			if distance < best_distance:
+				best_distance = distance
+				best = found
+		if not best.is_empty():
+			_impact(best)
 			return
 	_fly_prev = to
 	# A stone that leaves the world is gone rather than falling for ever.
@@ -613,7 +723,7 @@ func _vanish() -> void:
 	_flying = false
 	_fly_velocity = Vector3.ZERO
 	if is_instance_valid(_stone):
-		var rock := _stone.get_child(2) as MeshInstance3D
+		var rock := _stone.get_child(1) as MeshInstance3D
 		if is_instance_valid(rock): rock.visible = false
 		_stone.freeze = true
 		_stone.global_position = _cart.global_position + Vector3(0.0, -40.0, 0.0)
@@ -621,7 +731,7 @@ func _vanish() -> void:
 	await get_tree().create_timer(1.2).timeout
 	if not is_instance_valid(_stone) or _carrying_stone or _stone_on_spoon: return
 	if is_instance_valid(_stone):
-		var rock2 := _stone.get_child(2) as MeshInstance3D
+		var rock2 := _stone.get_child(1) as MeshInstance3D
 		if is_instance_valid(rock2): rock2.visible = true
 		_stone.global_position = _cart.global_position + Vector3(2.1, STONE_RADIUS + 0.05, 0.7)
 		_stone.freeze = false
@@ -629,7 +739,7 @@ func _vanish() -> void:
 
 ## ------------------------------------------------------------------ aim + HUD
 func _update_aim() -> void:
-	var show := _occupied
+	var show := _occupied and _stone_on_spoon and not _flying
 	var at: Vector3 = _spoon_point()
 	var velocity := _launch_velocity()
 	var space := _world.get_world_3d().direct_space_state
@@ -656,26 +766,35 @@ func _update_aim() -> void:
 		for dot: MeshInstance3D in _aim_dots:
 			if is_instance_valid(dot): dot.visible = false
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not _ready or not is_instance_valid(_hud): return
+	# Aiming is looking: the machine turns with the player while he stands at it.
+	if _occupied and is_instance_valid(_player):
+		var facing: Vector3 = _player._visual.global_basis.z
+		var flat := Vector3(facing.x, 0.0, facing.z)
+		if flat.length_squared() > 1.0e-6:
+			_yaw = lerp_angle(_yaw, atan2(flat.x, flat.z), clampf(9.0 * delta, 0.0, 1.0))
+
 	if not _active():
 		_hud.text = ""
 		return
 	var player_at: Vector3 = _player.global_position
 	var lines: Array[String] = []
 	lines.append("КАТАПУЛЬТА · снаряд %.0f кг · колёса" % STONE_MASS)
-	if _occupied:
-		lines.append("ЛКМ — закрутить и выстрелить · колесо мыши — угол")
-		lines.append("МЫШЬ — наводка · угол %.0f°" % rad_to_deg(_elevation))
-		lines.append("E — отойти от катапульты")
+	var at_frame: bool = player_at.distance_to(_cart.global_position) <= FRAME_RANGE
+	var at_spoon: bool = player_at.distance_to(_spoon_point()) <= FRAME_RANGE
+	if at_frame and _stone_on_spoon and not _flying:
+		lines.append("E — ВЫСТРЕЛИТЬ · мышь — наводка · колесо — угол %.0f°" % rad_to_deg(_elevation))
+	elif _carrying_stone and at_spoon:
+		lines.append("E — положить камень в ложечку · G — бросить где стоишь")
 	elif _carrying_stone:
-		lines.append("E у ложечки — положить камень · E — бросить")
+		lines.append("Неси камень к катапульте · G — бросить где стоишь")
+	elif at_frame:
+		lines.append("E — встать к катапульте · колесо — угол %.0f°" % rad_to_deg(_elevation))
 	elif _stone_on_spoon:
-		lines.append("Камень на ложечке · E у станины — встать на место")
+		lines.append("Камень на ложечке · иди к станине и жми E")
 	elif player_at.distance_to(_stone.global_position) <= CARRY_RANGE and not _flying:
-		lines.append("E — взять камень")
-	elif player_at.distance_to(_cart.global_position) <= FRAME_RANGE:
-		lines.append("E — встать к катапульте")
+		lines.append("E — взять камень · G — бросить")
 	if _pushers > 0:
 		lines.append("КАТЯТ: %d · %.2f м/с" % [_pushers, _push_speed])
 	lines.append("ПРОЙДЕНО %.1f м · выстрелов %d" % [_travelled, _fired])

@@ -86,44 +86,47 @@ func _run() -> void:
 		" on_spoon=", on_spoon.get("stone_on_spoon", false))
 	await _shot("loaded")
 
-	# 3. Take the firing position and fire.
-	_player.global_position = (on_spoon.get("cart", Vector3.ZERO) as Vector3) + Vector3(0.0, 0.05, -2.2)
+	# 3. Stand at the frame, AIM at the wall, then E fires. Aim first: E at the frame
+	#    with a stone loaded is the trigger, so aiming after that would fire blind.
+	_player.global_position = (on_spoon.get("cart", Vector3.ZERO) as Vector3) + Vector3(0.0, 0.05, -2.4)
 	_player.velocity = Vector3.ZERO
-	await _settle(12)
-	_key(KEY_E, true); await _settle(2); _key(KEY_E, false)
-	await _settle(10)
-	var occupied: Dictionary = _catapult.call("snapshot")
-	print("CATAPULT_TAKEN occupied=", occupied.get("occupied", false),
-		" yaw=", occupied.get("yaw", 0.0), " elevation=", occupied.get("elevation", 0.0))
-	# Aim AT THE PALAZZO: the machine has a real ballistic solution, so this is arithmetic
-	# and not a magic number.
+	await _settle(14)
 	var site_position: Vector3 = Vector3(48.5, 0.0, 0.0)
 	var palazzo_now: Variant = _scene.get("preview_palazzo")
 	if is_instance_valid(palazzo_now) and is_instance_valid(palazzo_now.get("site")):
 		site_position = palazzo_now.get("site").global_position
-	var cart_position: Vector3 = occupied.get("cart", Vector3.ZERO)
-	var to_site: Vector3 = site_position - cart_position
-	to_site.y = 0.0
-	var range_to_site: float = to_site.length()
-	var aim_yaw := atan2(to_site.x, to_site.z)
-	var aim_elevation: float = _catapult.call("elevation_for_range", range_to_site) + 0.02
-	_catapult.call("set_aim", aim_yaw, aim_elevation)
+	var occupied: Dictionary = _catapult.call("snapshot")
+	# Aim at a REAL SURFACE, not at the middle of the building: a ray from the spoon
+	# finds the facade, and the machine is laid on that point.
+	var spoon_now: Vector3 = _catapult.call("snapshot").get("spoon", Vector3.ZERO)
+	var space := _player.get_world_3d().direct_space_state
+	var aim_point: Vector3 = site_position + Vector3.UP * 4.0
+	if space != null:
+		var exclude: Array[RID] = [_player.get_rid()]
+		var cart_node: Variant = _catapult.get("_cart")
+		if is_instance_valid(cart_node): exclude.append((cart_node as CollisionObject3D).get_rid())
+		var stone_node: Variant = _catapult.get("_stone")
+		if is_instance_valid(stone_node): exclude.append((stone_node as CollisionObject3D).get_rid())
+		var query := PhysicsRayQueryParameters3D.create(spoon_now, site_position + Vector3.UP * 4.0,
+			1 | 5 | 256, exclude)
+		query.hit_from_inside = true
+		var ray_hit: Dictionary = space.intersect_ray(query)
+		if not ray_hit.is_empty():
+			aim_point = ray_hit.get("position", aim_point)
+			print("CATAPULT_AIM_SURFACE ", aim_point, " collider=", (ray_hit.get("collider") as Node).name)
+	print("CATAPULT_AIM_POINT ", aim_point)
+	_catapult.call("aim_at", aim_point)
 	await _settle(6)
-	print("CATAPULT_AIM range_m=", range_to_site, " yaw=", aim_yaw, " elevation=", aim_elevation)
+	var aimed: Dictionary = _catapult.call("snapshot")
+	var range_to_site: float = (Vector3(site_position.x, 0.0, site_position.z) \
+		- ((aimed.get("spoon", Vector3.ZERO) as Vector3) * Vector3(1.0, 0.0, 1.0))).length()
+	print("CATAPULT_AIM range_m=", range_to_site, " yaw=", aimed.get("yaw", 0.0),
+		" elevation=", aimed.get("elevation", 0.0),
+		" spoon=", aimed.get("spoon", Vector3.ZERO))
 	await _shot("aiming")
-	# Aim a little higher for range, then fire with LMB.
-	var wheel_on := InputEventMouseButton.new()
-	wheel_on.button_index = MOUSE_BUTTON_LEFT
-	wheel_on.pressed = true
-	wheel_on.position = Vector2(960, 540)
-	Input.parse_input_event(wheel_on)
+	# E at the frame with a stone loaded fires.
+	_key(KEY_E, true); await _settle(2); _key(KEY_E, false)
 	await _settle(4)
-	var fire_button := InputEventMouseButton.new()
-	fire_button.button_index = MOUSE_BUTTON_LEFT
-	fire_button.pressed = false
-	fire_button.position = Vector2(960, 540)
-	Input.parse_input_event(fire_button)
-	# The wind takes WIND_TIME, so watch it through.
 	var wound := false
 	for i: int in 320:
 		await process_frame
@@ -131,10 +134,10 @@ func _run() -> void:
 		if bool(mid.get("flying", false)):
 			wound = true
 			break
+	# 4. Follow the stone until it lands.
 	var fired: Dictionary = _catapult.call("snapshot")
 	print("CATAPULT_FIRE wound=", wound, " fired=", fired.get("fired", 0),
 		" flying=", fired.get("flying", false), " stone=", fired.get("stone", Vector3.ZERO))
-	# 4. Follow the stone until it lands.
 	var hits_before: int = int(fired.get("hits", 0))
 	var landed := false
 	var flight_frames := 0
@@ -167,7 +170,9 @@ func _run() -> void:
 			and float(speeds.get("two", 0.0)) > float(speeds.get("one", 0.0)),
 		"stone_can_be_carried": bool(carried.get("carrying", false)),
 		"stone_sits_on_the_spoon": bool(on_spoon.get("stone_on_spoon", false)),
-		"firing_position_can_be_taken": bool(occupied.get("occupied", false)),
+		# E at the frame now FIRES when the machine is loaded, so "taking the post" is not
+		# a separate step any more: what matters is that the shot went.
+		"the_machine_aimed": float(aimed.get("elevation", 0.0)) > 0.0,
 		"the_arm_winds_and_releases": wound and int(fired.get("fired", 0)) > 0,
 		"stone_hits_the_building": landed and bool(impact.get("ok", false)),
 		"stone_is_gone_after_impact": not bool(_catapult.call("snapshot").get("flying", false)),
