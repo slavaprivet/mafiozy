@@ -852,8 +852,10 @@ func _physics_process(delta: float) -> void:
 	# The stone follows the player while it is being carried, and is LAYED INTO the spoon
 	# over a moment rather than snapping there.
 	if _carrying_stone and is_instance_valid(_stone):
+		# HELD AGAINST THE CHEST, not floating out in front. The character has no hand bones to
+		# hang it from, so the stone is carried where his arms would be.
 		var want: Vector3 = _player.global_position \
-			+ _player._visual.global_basis.z * 0.9 + Vector3.UP * 0.55
+			+ _player._visual.global_basis.z * 0.45 + Vector3.UP * 0.92
 		_stone.global_position = _stone.global_position.lerp(want, clampf(12.0 * delta, 0.0, 1.0))
 	elif _loading and is_instance_valid(_stone):
 		_loading_t = minf(1.0, _loading_t + delta / 0.28)
