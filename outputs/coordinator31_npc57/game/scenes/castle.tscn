@@ -1,0 +1,17 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/quick_controls/scene_hook.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/city/runtime/npc_city_bootstrap.gd" id="3"]
+
+[node name="MafioziCastle" type="Node3D"]
+script = ExtResource("1")
+block_data_path = "res://data/city_block.json"
+city_block_mode = true
+castle_map = true
+
+[node name="SceneHook" type="Node" parent="."]
+script = ExtResource("2")
+
+[node name="NpcCityBootstrap" type="Node" parent="."]
+script = ExtResource("3")

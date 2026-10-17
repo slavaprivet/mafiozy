@@ -11,6 +11,7 @@ func _initialize() -> void:
 		"res://scripts/weapons/catapult_prototype.gd",
 		"res://scripts/weapons/mesh_sever.gd",
 		"res://scripts/weapons/mesh_merge.gd",
+		"res://scripts/city/castle_site.gd",
 	]
 	var failed: Array[String] = []
 	for path: String in paths:

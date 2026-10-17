@@ -28,6 +28,10 @@ const NpcObserve58 = preload("res://scripts/ui/npc_observe_host.gd")  # DSH_OBSE
 const SwordPrototype = preload("res://scripts/weapons/sword_prototype.gd")  # DSH_SWORD_PROTO
 const BowPrototype = preload("res://scripts/weapons/bow_prototype.gd")  # DSH_BOW_PROTO
 const CatapultPrototype = preload("res://scripts/weapons/catapult_prototype.gd")  # DSH_CATAPULT
+const CastleSite = preload("res://scripts/city/castle_site.gd")  # DSH_CASTLE
+## DSH_CASTLE: the castle is its OWN MAP. It is built far from the city so the two never
+## interact, and the player is put down in its courtyard.
+const CASTLE_ORIGIN := Vector3(0.0, 0.0, 900.0)
 const STATIC_RENDER_OWNER_IDS := [
 	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-013", "REBUILD-VISUAL-old_town_narrow_townhouse_v1-005",
 	"REBUILD-VISUAL-gun_shop-001", "REBUILD-VISUAL-pawnshop-001",
@@ -94,6 +98,10 @@ var bow_prototype_status := "disabled"
 @export var preview_catapult_enabled: bool = false
 var preview_catapult: Node
 var catapult_status := "disabled"
+## DSH_CASTLE: --castle=1 (or castle_map on the scene) opens the castle map instead.
+@export var castle_map: bool = false
+var preview_castle: Node
+var castle_status := "disabled"
 var preview_melee: Node
 var melee_status := "disabled"
 var preview_minimap: Node
@@ -384,6 +392,10 @@ func _ready() -> void:
 	# local arsenal exists, because it is part of the world rather than a test weapon.
 	if preview_catapult_enabled or is_instance_valid(preview_weapons) or OS.get_cmdline_user_args().has("--catapult=1"):
 		_install_catapult()
+	# DSH_CASTLE: the castle map. It is built as part of the same world but at its own
+	# place, and the player is moved into its courtyard.
+	if castle_map or OS.get_cmdline_user_args().has("--castle=1"):
+		_build_castle_map()
 	if preview_bow_prototype_enabled or is_instance_valid(preview_weapons) or OS.get_cmdline_user_args().has("--bow-proto=1"):
 		_install_bow_prototype()  # DSH_BOW_PROTO
 	if OS.get_cmdline_user_args().has("--bow-proto=1"):
@@ -497,6 +509,26 @@ func _install_catapult() -> bool:
 ## DSH_CATAPULT: how many extra bodies are standing at a machine, which is what makes a
 ## heavy cart move faster than one man can push it. The resident knight counts, so a
 ## player with the knight beside him pushes with two men.
+## DSH_CASTLE: builds the castle and puts the player inside it.
+func _build_castle_map() -> bool:
+	if is_instance_valid(preview_castle): return false
+	var castle: Node3D = CastleSite.new()
+	castle.name = "CastleSite"
+	castle.position = CASTLE_ORIGIN
+	add_child(castle)
+	var built: Dictionary = castle.call("install", self, CASTLE_ORIGIN)
+	if not built.get("ok", false):
+		castle_status = str(built.get("reason", "install_failed"))
+		castle.queue_free()
+		return false
+	preview_castle = castle
+	castle_status = "ready"
+	if is_instance_valid(_player):
+		_player.global_position = castle.call("spawn_point")
+		_player.velocity = Vector3.ZERO
+	print("DSH_CASTLE ", JSON.stringify(built))
+	return true
+
 func count_helpers_near(at: Vector3, radius: float) -> int:
 	var men := 0
 	var sword: Variant = preview_sword_prototype
@@ -1039,7 +1071,7 @@ func _physics_process(delta: float) -> void:
 	_door_feedback_seconds = maxf(0.0, _door_feedback_seconds - delta)
 	_advance_printshop_door_motion(delta)
 	if preview_population != null:
-		_dsh_apply_loadcap(bool(preview_population.get("city_ready")))  # DSH_LOADFAST2
+		_dsh_apply_loadcap(preview_population.get("city_ready") == true)  # DSH_LOADFAST2
 		var dsh_stride := _dsh_stride()  # DSH_STRIDE
 		# Only in the steady city state: the load phases advance one resident per tick
 		# on purpose, and stretching those would make loading N times longer.
@@ -1052,7 +1084,7 @@ func _physics_process(delta: float) -> void:
 		# phases advance one resident per tick on purpose.
 		# Real rendering is required: if Engine.get_frames_drawn() is frozen at 0
 		# (headless), fall back to the existing stride path instead of freezing the city.
-		var dsh_one: bool = _dsh_one_per_frame() != 0 and bool(preview_population.get("city_ready")) and Engine.get_frames_drawn() > 0
+		var dsh_one: bool = _dsh_one_per_frame() != 0 and (preview_population.get("city_ready") == true) and Engine.get_frames_drawn() > 0
 		if dsh_one:
 			_dsh_one_carry += delta
 			var dsh_one_drawn := Engine.get_frames_drawn()
@@ -1068,7 +1100,7 @@ func _physics_process(delta: float) -> void:
 				var dsh_one_delta := minf(.0499, _dsh_one_carry)
 				_dsh_one_carry = 0.0
 				preview_population.step(dsh_one_delta)
-		elif dsh_stride > 1 and bool(preview_population.get("city_ready")):
+		elif dsh_stride > 1 and (preview_population.get("city_ready") == true):
 			_dsh_stride_tick += 1
 			_dsh_stride_carry += delta
 			# DSH_RIGCACHE: drive the stride from the physics frame counter, otherwise the
