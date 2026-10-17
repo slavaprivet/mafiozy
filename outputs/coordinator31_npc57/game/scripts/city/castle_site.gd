@@ -58,6 +58,9 @@ func install(world: Node3D, origin: Vector3) -> Dictionary:
 	_build_stairs()
 	_build_keep()
 	_build_keep_details()
+	_build_gate_arch()
+	_build_banners()
+	_add_rubble()
 	_build_torches()
 	_build_portcullis()
 	_flush_buckets()
@@ -75,9 +78,10 @@ func _build_materials() -> void:
 	var stone_cold := StandardMaterial3D.new()
 	stone_cold.albedo_color = Color(0.52, 0.52, 0.51)
 	stone_cold.roughness = 0.93
+	# The gate leaves sat in the shadow of the arch and read as a black hole. Oak, not tar.
 	var wood := StandardMaterial3D.new()
-	wood.albedo_color = Color(0.32, 0.20, 0.10)
-	wood.roughness = 0.9
+	wood.albedo_color = Color(0.46, 0.31, 0.17)
+	wood.roughness = 0.88
 	var iron := StandardMaterial3D.new()
 	iron.albedo_color = Color(0.26, 0.27, 0.30)
 	iron.metallic = 0.8
@@ -389,7 +393,11 @@ func _brick_tint(cell: Dictionary) -> Color:
 	var at: Vector3 = cell.get("at", Vector3.ZERO)
 	var hash := int(at.x * 11317.0) ^ int(at.y * 7111.0) ^ int(at.z * 5309.0)
 	var tone := float(abs(hash) % 1000) / 1000.0
+	# One stone in sixteen is weathered: a wall of stones all the same age is a wall of
+	# stones nobody has ever lived with.
 	var multiplier := 0.945 + tone * 0.11
+	if abs(hash) % 16 == 0:
+		multiplier *= 0.86
 	return Color(multiplier, multiplier * 0.99, multiplier * 0.95)
 
 func _kill_brick(index: int, impulse: Vector3, power: float) -> void:
@@ -453,6 +461,8 @@ func _build_curtain_walls() -> void:
 		_add_battlements(side)
 		_add_arrow_slits(side)
 		_add_plinth(side)
+		_add_corbels(side)
+		_add_buttresses(side)
 
 func _build_wall(side: String) -> void:
 	var courses := int(WALL_HEIGHT / BRICK.y)
@@ -822,6 +832,112 @@ func _build_keep() -> void:
 	floor_mesh.material_override = _materials["warm"]
 	floor_mesh.position = base + Vector3.UP * 0.1
 	add_child(floor_mesh)
+## ------------------------------------------------------------------ masonry detail
+## A wall of identical stones still looks manufactured. These are the things that make it
+## read as a building that has stood for a century: brackets under the battlements,
+## buttresses where the wall is weakest, worn stones here and there, rubble at the foot.
+
+## Machicolation corbels: the brackets that carry the battlements out over the wall.
+func _add_corbels(side: String) -> void:
+	var step := 2.6
+	var count := int((WALL_HALF * 2.0) / step)
+	for i: int in count:
+		var along := (float(i) - float(count - 1) * 0.5) * step
+		var at := Vector3.ZERO
+		var size := Vector3(0.55, 0.9, 0.85)
+		match side:
+			"north": at = Vector3(along, WALL_HEIGHT - 0.45, -WALL_HALF + 0.55)
+			"south": at = Vector3(along, WALL_HEIGHT - 0.45, WALL_HALF - 0.55)
+			"east":
+				at = Vector3(WALL_HALF - 0.55, WALL_HEIGHT - 0.45, along)
+				size = Vector3(0.85, 0.9, 0.55)
+			"west":
+				at = Vector3(-WALL_HALF + 0.55, WALL_HEIGHT - 0.45, along)
+				size = Vector3(0.85, 0.9, 0.55)
+		_add_brick(at, size, "cold", Vector3.ZERO, side + "_corbel", 0, i)
+
+## Buttresses: a thicker pier against the wall every dozen metres, which is both how the
+## wall stands up and where the eye rests.
+func _add_buttresses(side: String) -> void:
+	var step := 15.0
+	var count := int((WALL_HALF * 2.0) / step)
+	for i: int in count:
+		var along := (float(i) - float(count - 1) * 0.5) * step
+		for row: int in int(WALL_HEIGHT / BRICK.y):
+			var at := Vector3.ZERO
+			var size := Vector3(1.5, BRICK.y, 1.9)
+			match side:
+				"north": at = Vector3(along, (float(row) + 0.5) * BRICK.y, -WALL_HALF - 0.5)
+				"south": at = Vector3(along, (float(row) + 0.5) * BRICK.y, WALL_HALF + 0.5)
+				"east":
+					at = Vector3(WALL_HALF + 0.5, (float(row) + 0.5) * BRICK.y, along)
+					size = Vector3(1.9, BRICK.y, 1.5)
+				"west":
+					at = Vector3(-WALL_HALF - 0.5, (float(row) + 0.5) * BRICK.y, along)
+					size = Vector3(1.9, BRICK.y, 1.5)
+			_add_brick(at, size, "warm", Vector3.ZERO, side + "_buttress", row, i)
+
+## A proper ARCH over the gate: wedge stones laid on a radius, not a flat lintel.
+func _build_gate_arch() -> void:
+	var at := Vector3(0.0, GATE_HEIGHT, WALL_HALF)
+	var radius := GATE_WIDTH * 0.5
+	var count := 15
+	for i: int in count:
+		var angle := PI * (float(i) + 0.5) / float(count)
+		var offset := Vector3(cos(angle) * radius, sin(angle) * radius, 0.0)
+		_add_brick(at + offset, Vector3(0.62, 1.05, WALL_THICK * 1.7), "cold",
+			Vector3(0.0, 0.0, angle - PI * 0.5), "gate_voussoir", 0, i)
+	# The springers on either side, where the arch meets the jambs.
+	for side: float in [-1.0, 1.0]:
+		_add_brick(at + Vector3(side * (radius + 0.3), -0.5, 0.0),
+			Vector3(0.9, 1.2, WALL_THICK * 1.7), "stone", Vector3.ZERO, "gate_jamb", 0, 0)
+
+## Rubble: chips of stone fallen from the walls over the years.
+func _add_rubble() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20251017
+	for i: int in 240:
+		var side := i % 4
+		var along := rng.randf_range(-WALL_HALF + 2.0, WALL_HALF - 2.0)
+		var out := WALL_HALF + rng.randf_range(-1.2, 3.0)
+		var at := Vector3.ZERO
+		match side:
+			0: at = Vector3(along, rng.randf_range(0.02, 0.12), -out)
+			1: at = Vector3(along, rng.randf_range(0.02, 0.12), out)
+			2: at = Vector3(out, rng.randf_range(0.02, 0.12), along)
+			_: at = Vector3(-out, rng.randf_range(0.02, 0.12), along)
+		var size := Vector3(rng.randf_range(0.20, 0.55), rng.randf_range(0.10, 0.24),
+			rng.randf_range(0.20, 0.55))
+		_add_brick(at, size, "cold" if i % 3 != 0 else "warm",
+			Vector3(0.0, rng.randf_range(0.0, TAU), 0.0), "rubble", 0, i)
+
+## Banners on the corner towers: cloth, a pole, and a colour that carries.
+func _build_banners() -> void:
+	var pole := StandardMaterial3D.new()
+	pole.albedo_color = Color(0.30, 0.22, 0.14)
+	pole.roughness = 0.9
+	var cloth := StandardMaterial3D.new()
+	cloth.albedo_color = Color(0.55, 0.09, 0.10)
+	cloth.roughness = 0.85
+	cloth.cull_mode = BaseMaterial3D.CULL_DISABLED
+	for corner: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
+		var centre := Vector3(corner.x * WALL_HALF, 0.0, corner.y * WALL_HALF)
+		var mast := MeshInstance3D.new()
+		var mast_mesh := CylinderMesh.new()
+		mast_mesh.top_radius = 0.08
+		mast_mesh.bottom_radius = 0.10
+		mast_mesh.height = 7.0
+		mast.mesh = mast_mesh
+		mast.material_override = pole
+		mast.position = centre + Vector3.UP * (TOWER_HEIGHT + 3.4)
+		add_child(mast)
+		var flag := MeshInstance3D.new()
+		var flag_mesh := BoxMesh.new()
+		flag_mesh.size = Vector3(2.6, 1.5, 0.06)
+		flag.mesh = flag_mesh
+		flag.material_override = cloth
+		flag.position = centre + Vector3(1.35, TOWER_HEIGHT + 5.6, 0.0)
+		add_child(flag)
 ## ------------------------------------------------------------------ destruction
 func owns_collider(body: Node) -> bool:
 	if not is_instance_valid(body): return false
