@@ -84,8 +84,9 @@ func _build_materials() -> void:
 	stone_cold.roughness = 0.93
 	# The gate leaves sat in the shadow of the arch and read as a black hole. Oak, not tar.
 	var wood := StandardMaterial3D.new()
-	wood.albedo_color = Color(0.46, 0.31, 0.17)
-	wood.roughness = 0.88
+	# Oak. It read as pale plaster under a strong sun, so it is darker and rougher.
+	wood.albedo_color = Color(0.38, 0.24, 0.13)
+	wood.roughness = 0.96
 	var iron := StandardMaterial3D.new()
 	iron.albedo_color = Color(0.26, 0.27, 0.30)
 	iron.metallic = 0.8
@@ -138,9 +139,10 @@ func _build_environment() -> void:
 	settings.background_mode = Environment.BG_SKY
 	settings.sky = sky
 	settings.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	settings.ambient_light_sky_contribution = 0.55
-	settings.ambient_light_energy = 0.9
+	settings.ambient_light_sky_contribution = 0.45
+	settings.ambient_light_energy = 0.55
 	settings.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	settings.tonemap_exposure = 0.82
 	settings.glow_enabled = true
 	settings.glow_intensity = 0.35
 	settings.fog_enabled = true
@@ -158,7 +160,7 @@ func _build_environment() -> void:
 		get_viewport().world_3d.environment = settings
 	var sun := DirectionalLight3D.new()
 	sun.name = "CastleSun"
-	sun.light_energy = 1.35
+	sun.light_energy = 0.85
 	sun.light_color = Color(1.0, 0.95, 0.86)
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 220.0
@@ -232,6 +234,17 @@ func _build_torches() -> void:
 		add_child(light)
 
 ## The portcullis, raised behind the arch: the bars are what a gate is actually held by.
+func _build_gate_lamps() -> void:
+	for side: float in [-1.0, 1.0]:
+		var lamp := OmniLight3D.new()
+		lamp.light_color = Color(1.0, 0.76, 0.48)
+		# Three metres out and faint: at half a metre the inverse-square turned the oak
+		# into a white panel.
+		lamp.light_energy = 0.45
+		lamp.omni_range = 6.0
+		lamp.position = Vector3(side * GATE_WIDTH * 0.60, GATE_HEIGHT * 0.55, WALL_HALF + 3.0)
+		add_child(lamp)
+
 func _build_portcullis() -> void:
 	var at := Vector3(0.0, GATE_HEIGHT * 0.5 + 0.4, WALL_HALF - 1.6)
 	for i: int in 9:
@@ -697,8 +710,9 @@ func _build_gatehouse() -> void:
 			_add_brick(at + Vector3(along, GATE_HEIGHT + (float(row) + 0.5) * BRICK.y, 0.0),
 				Vector3(BRICK.x, BRICK.y, WALL_THICK * 1.6), "stone", Vector3.ZERO, "gate_arch", row, column)
 	# THE LEAVES are hung on HINGES: each one a pivot at its own edge, so it can be swung.
-	# Planks, three iron bands and studs - a flat box behind the portcullis read as a metal
-	# grille where an oak door should be.
+	# The leaf is ONE SOLID SHIELD of oak with the plank seams cut into its face. Built from
+	# six separate boards it had finger-wide gaps between them, and an oak gate that you can
+	# see through is a grille.
 	for side: float in [-1.0, 1.0]:
 		var pivot := Node3D.new()
 		pivot.name = "GateLeaf" + ("Left" if side < 0.0 else "Right")
@@ -706,14 +720,25 @@ func _build_gatehouse() -> void:
 		add_child(pivot)
 		var leaf_width := GATE_WIDTH * 0.5
 		var board := leaf_width / 6.0
-		for i: int in 6:
-			var plank := MeshInstance3D.new()
-			var plank_mesh := BoxMesh.new()
-			plank_mesh.size = Vector3(board * 0.94, GATE_HEIGHT * 0.96, 0.26)
-			plank.mesh = plank_mesh
-			plank.material_override = _materials["wood"]
-			plank.position = Vector3(-side * (board * (float(i) + 0.5)), GATE_HEIGHT * 0.5, 0.0)
-			pivot.add_child(plank)
+		var shield := MeshInstance3D.new()
+		var shield_mesh := BoxMesh.new()
+		shield_mesh.size = Vector3(leaf_width, GATE_HEIGHT * 0.96, 0.26)
+		shield.mesh = shield_mesh
+		shield.material_override = _materials["wood"]
+		shield.position = Vector3(-side * leaf_width * 0.5, GATE_HEIGHT * 0.5, 0.0)
+		pivot.add_child(shield)
+		# The seams between the boards: shallow dark strips on the face, not slots.
+		var seam_material := StandardMaterial3D.new()
+		seam_material.albedo_color = Color(0.24, 0.15, 0.08)
+		seam_material.roughness = 0.95
+		for i: int in range(1, 6):
+			var seam := MeshInstance3D.new()
+			var seam_mesh := BoxMesh.new()
+			seam_mesh.size = Vector3(0.045, GATE_HEIGHT * 0.94, 0.05)
+			seam.mesh = seam_mesh
+			seam.material_override = seam_material
+			seam.position = Vector3(-side * (board * float(i)), GATE_HEIGHT * 0.5, 0.14)
+			pivot.add_child(seam)
 		for band: int in 3:
 			var strip := MeshInstance3D.new()
 			var strip_mesh := BoxMesh.new()
@@ -747,7 +772,7 @@ func _build_gatehouse() -> void:
 		if side < 0.0: _gate_left = pivot
 		else: _gate_right = pivot
 	# THE LEVER, inside the courtyard by the gate: a post, a handle, and a hinge of its own.
-	var lever_base := at + Vector3(GATE_WIDTH * 0.5 + 2.6, 0.0, -2.2)
+	var lever_base := at + Vector3(GATE_WIDTH * 0.5 + 2.4, 0.0, -0.75)
 	var post := MeshInstance3D.new()
 	var post_mesh := CylinderMesh.new()
 	post_mesh.top_radius = 0.16
@@ -755,10 +780,18 @@ func _build_gatehouse() -> void:
 	post_mesh.height = 1.5
 	post.mesh = post_mesh
 	post.material_override = _materials["iron"]
+	# A bracket bolted to the wall, and the post standing against it.
 	post.position = lever_base + Vector3.UP * 0.75
+	var bracket := MeshInstance3D.new()
+	var bracket_mesh := BoxMesh.new()
+	bracket_mesh.size = Vector3(0.55, 0.22, 0.30)
+	bracket.mesh = bracket_mesh
+	bracket.material_override = _materials["iron"]
+	bracket.position = lever_base + Vector3(0.0, 1.25, 0.32)
+	add_child(bracket)
 	add_child(post)
 	_lever_pivot = Node3D.new()
-	_lever_pivot.position = lever_base + Vector3.UP * 1.32
+	_lever_pivot.position = lever_base + Vector3.UP * 1.12
 	add_child(_lever_pivot)
 	var handle := MeshInstance3D.new()
 	var handle_mesh := CylinderMesh.new()
@@ -770,7 +803,7 @@ func _build_gatehouse() -> void:
 	handle.position = Vector3(0.0, 0.5, 0.0)
 	_lever_pivot.add_child(handle)
 	_lever_pivot.rotation.z = 0.5
-	_lever_pos = lever_base + Vector3.UP * 1.3
+	_lever_pos = lever_base + Vector3.UP * 1.1
 
 ## Two flights up to the wall-walk, for archers.
 ##
@@ -793,6 +826,26 @@ func set_gate(open: bool) -> void:
 
 func gate_open() -> bool:
 	return _gate_open_state
+
+func _leaf_debug() -> Dictionary:
+	if _gate_leaves.is_empty(): return {}
+	var pivot: Node3D = _gate_leaves[0].get("pivot")
+	if not is_instance_valid(pivot): return {"pivot": "invalid"}
+	var child: Node3D = pivot.get_child(0)
+	return {"pivot": pivot.global_position,
+		"child": child.global_position if is_instance_valid(child) else "none",
+		"child_visible": child.is_visible_in_tree() if is_instance_valid(child) else false,
+		"child_name": child.name if is_instance_valid(child) else "",
+		"mats": _materials.size()}
+
+func _count_gate_bricks() -> int:
+	var count := 0
+	for cell: Dictionary in _cells:
+		if not bool(cell.get("alive", false)): continue
+		var at: Vector3 = cell.get("at", Vector3.ZERO)
+		if absf(at.x) < 4.4 and at.y > 1.0 and at.y < 10.0 and absf(at.z - WALL_HALF) < 1.6:
+			count += 1
+	return count
 
 func gate_angle() -> float:
 	return _gate_angle
@@ -1055,7 +1108,8 @@ func get_stats() -> Dictionary:
 		"ok": _ready, "bricks": _cells.size(), "detached": _detached,
 		"collapsed": _collapsed, "gates": _gate_leaves.size(),
 		"gate_open": _gate_leaves.size() > 0 and bool(_gate_leaves[0].get("detached", false)),
-		"falling": _falling.size(), "events": _events.size(),
+		"falling": _falling.size(), "events": _events.size(), "leaf_dbg": _leaf_debug(),
+		"gate_bricks": _count_gate_bricks(),
 	}
 
 ## A blast knocks out every brick inside its radius, and the courses above them come down
