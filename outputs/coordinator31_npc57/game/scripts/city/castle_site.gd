@@ -402,7 +402,7 @@ func _brick_transform(cell: Dictionary) -> Transform3D:
 		rotation.x + float(int(at.x * 7.0 + at.y * 13.0) % 5) * 0.004,
 		rotation.y + float(int(at.z * 11.0 + at.y * 5.0) % 5) * 0.004,
 		rotation.z))
-	basis = basis.scaled(Vector3(size.x / BRICK.x, size.y / BRICK.y, size.z / BRICK.z) * 0.96)
+	basis = basis.scaled(Vector3(size.x / BRICK.x, size.y / BRICK.y, size.z / BRICK.z))
 	return Transform3D(basis, at)
 
 ## Slight colour variation per brick, so the wall reads as stone rather than as paint.
@@ -520,8 +520,17 @@ func _build_wall(side: String) -> void:
 				_add_brick(at, size, "stone", Vector3.ZERO, side, row, column)
 		# The wall itself is solid: one collision slab per wall, so the map is a place you
 		# can lean on, not a curtain of loose stones.
-	if side in ["north", "south"]:
-		_add_wall_collision(Vector3(0.0, WALL_HEIGHT * 0.5, -WALL_HALF if side == "north" else WALL_HALF),
+	if side == "south":
+		# The wall is solid EXCEPT at the gate: two piers and a lintel, so the opening can
+		# be walked through and the masonry either side of it is still a wall.
+		var pier: float = (WALL_HALF * 2.0 - GATE_WIDTH) * 0.5
+		for pier_side: float in [-1.0, 1.0]:
+			_add_wall_collision(Vector3(pier_side * (GATE_WIDTH * 0.5 + pier * 0.5), WALL_HEIGHT * 0.5, WALL_HALF),
+				Vector3(pier, WALL_HEIGHT, WALL_THICK))
+		_add_wall_collision(Vector3(0.0, (WALL_HEIGHT + GATE_HEIGHT) * 0.5, WALL_HALF),
+			Vector3(GATE_WIDTH, WALL_HEIGHT - GATE_HEIGHT, WALL_THICK))
+	elif side == "north":
+		_add_wall_collision(Vector3(0.0, WALL_HEIGHT * 0.5, -WALL_HALF),
 			Vector3(WALL_HALF * 2.0, WALL_HEIGHT, WALL_THICK))
 	else:
 		_add_wall_collision(Vector3(WALL_HALF if side == "east" else -WALL_HALF, WALL_HEIGHT * 0.5, 0.0),
@@ -546,7 +555,9 @@ func _add_mortar(at: Vector3, size: Vector3, vertical: bool = false) -> void:
 	add_child(mortar)
 
 func _add_wall_collision(at: Vector3, size: Vector3) -> void:
-	_add_mortar(at, Vector3(size.x, size.y, maxf(0.25, size.z - 0.34)))
+	# No mortar slab behind the masonry: it was the pale sheet visible through every joint
+	# and straight through the open gate. The wall is two solid skins now, and that is what
+	# a breach shows.
 	var body := StaticBody3D.new()
 	body.collision_layer = 1
 	body.collision_mask = 1
