@@ -892,71 +892,61 @@ func _advance_gate(delta: float) -> void:
 		_lever_angle = lerpf(0.5, -0.5, eased)
 		_lever_pivot.rotation.z = _lever_angle
 
+## Flights up to the wall-walk, one on every wall.
+##
+## The first version climbed AWAY from the wall: it reached nineteen metres at a point
+## twenty-six metres out in the courtyard, with nothing to step onto. A stair to the
+## battlements must LAND on them, so each flight now runs from deep in the courtyard up to
+## the wall head, and the wall carries a walk along its whole length for the archers.
 func _build_stairs() -> void:
-	for side: float in [-1.0, 1.0]:
-		var rise := 0.26
-		var run := 0.36
-		var width := 2.8
-		var steps := int(ceil(WALL_HEIGHT / rise))
-		var length := float(steps) * run
-		var x := side * WALL_HALF * 0.52
-		var z_bottom := WALL_HALF - 3.0
-		var z_top := z_bottom - length
-		var top_height := float(steps) * rise
-		# The ramp: one box, tilted, its top face running from BELOW THE GROUND up to the
-		# wall-walk. Its lower end must be buried, because a ramp that starts exactly at
-		# floor level presents its own one-metre end face as a wall - which is precisely
-		# what the first version did, and the man could not walk onto it.
-		var angle := atan2(top_height, length)
-		var bury := 0.6
-		var start_point := Vector3(x, -bury, z_bottom + bury / maxf(0.05, tan(angle)))
-		var end_point := Vector3(x, top_height, z_top)
-		var forward := (end_point - start_point).normalized()
-		var up := Vector3(0.0, cos(angle), sin(angle))
-		var slope_length := (end_point - start_point).length()
-		var basis := Basis(Vector3(1.0, 0.0, 0.0), up, -forward)
-		var mid := (start_point + end_point) * 0.5
-		# The flight is a MASS, not a skin: a ramp 1.2 m thick left the side of the
-		# staircase open, so a man walked into a mountain of bricks that had no collision.
-		# Buried this deep, the ramp is the whole body of the stair.
-		var thickness := 5.0
-		var body := StaticBody3D.new()
-		body.collision_layer = 1
-		body.collision_mask = 1
-		body.transform = Transform3D(basis, mid - up * (thickness * 0.5))
-		add_child(body)
-		var shape := CollisionShape3D.new()
-		var box := BoxShape3D.new()
-		box.size = Vector3(width, thickness, slope_length)
-		shape.shape = box
-		body.add_child(shape)		# The steps themselves, as bricks, with no collision of their own.
-		var step_material: String = "cold"
-		for i: int in steps:
-			var at := Vector3(x, rise * (float(i) + 0.5), z_bottom - run * (float(i) + 0.5))
-			_add_brick(at, Vector3(width, rise, run * 1.04), step_material, Vector3.ZERO, "stairs", i, 0)
-		# A parapet along the open side, so the flight reads as a stair and not as a slope.
-		for i: int in steps:
-			var at := Vector3(x + side * width * 0.5 - side * 0.18,
-				rise * (float(i) + 0.5) + 0.5, z_bottom - run * (float(i) + 0.5))
-			_add_brick(at, Vector3(0.32, 1.0, run * 1.04), "stone", Vector3.ZERO, "stairs_rail", i, 0)
-		# And the wall-walk it leads onto: a real place to stand behind the battlements.
-		var walk := StaticBody3D.new()
-		walk.collision_layer = 1
-		walk.collision_mask = 1
-		walk.position = Vector3(x, WALL_HEIGHT + 0.02, WALL_HALF - 1.6)
-		add_child(walk)
-		var walk_shape := CollisionShape3D.new()
-		var walk_box := BoxShape3D.new()
-		walk_box.size = Vector3(width + 1.2, 0.16, 3.4)
-		walk_shape.shape = walk_box
-		walk.add_child(walk_shape)
-		var walk_mesh := MeshInstance3D.new()
-		var walk_mesh_box := BoxMesh.new()
-		walk_mesh_box.size = walk_box.size
-		walk_mesh.mesh = walk_mesh_box
-		walk_mesh.material_override = _materials["warm"]
-		walk_mesh.position = walk.position
-		add_child(walk_mesh)
+	var flights := [
+		{"normal": Vector3(0.0, 0.0, 1.0), "name": "south"},
+		{"normal": Vector3(1.0, 0.0, 0.0), "name": "east"},
+		{"normal": Vector3(0.0, 0.0, -1.0), "name": "north"},
+		{"normal": Vector3(-1.0, 0.0, 0.0), "name": "west"},
+	]
+	for flight: Dictionary in flights:
+		_build_stair_flight(flight["normal"], str(flight["name"]))
+
+func _build_stair_flight(normal: Vector3, name: String) -> void:
+	var rise := 0.26
+	var run := 0.36
+	var width := 2.8
+	var steps := int(ceil(WALL_HEIGHT / rise))
+	var length := float(steps) * run
+	var top_height := float(steps) * rise
+	var inward: Vector3 = -normal
+	var lateral: Vector3 = Vector3(inward.z, 0.0, -inward.x).normalized()
+	var lateral_offset := WALL_HALF * 0.42
+	# The wall head is where the flight ENDS; the foot runs back into the courtyard.
+	var top_centre: Vector3 = -inward * (WALL_HALF - 2.2) + lateral * lateral_offset
+	var bottom_centre: Vector3 = top_centre + inward * length
+	# THE FLIGHT IS A WEDGE from the ground to the wall head: its hypotenuse is the stair,
+	# its vertical face is the wall end, its underside lies on the ground. A tilted slab
+	# leaves open air underneath - a man could walk under the staircase and could not use
+	# it, which is exactly what the last version did.
+	var points := PackedVector3Array()
+	for wsign: float in [-1.0, 1.0]:
+		var side_vec: Vector3 = lateral * (wsign * width * 0.5)
+		points.append(bottom_centre + side_vec)
+		points.append(top_centre + side_vec)
+		points.append(top_centre + side_vec + Vector3.UP * top_height)
+	var body := StaticBody3D.new()
+	body.collision_layer = 1
+	body.collision_mask = 1
+	add_child(body)
+	var shape := CollisionShape3D.new()
+	var prism := ConvexPolygonShape3D.new()
+	prism.points = points
+	shape.shape = prism
+	body.add_child(shape)
+	# The steps, drawn but not colliding: the wedge carries the man.
+	for i: int in steps:
+		var at: Vector3 = top_centre + inward * (float(i) * run) + Vector3.UP * (rise * float(i) + rise * 0.5)
+		_add_brick(at, Vector3(width, rise, run * 1.04), "cold", Vector3.ZERO, "stairs_" + name, i, 0)
+		_add_brick(at + lateral * (width * 0.5 + 0.16) + Vector3.UP * 0.55,
+			Vector3(0.32, 1.0, run * 1.04), "stone", Vector3.ZERO, "stairs_rail_" + name, i, 0)
+
 func _build_keep() -> void:
 	var base := Vector3(0.0, 0.0, -8.0)
 	var courses := int(KEEP_SIZE.y / BRICK.y)
