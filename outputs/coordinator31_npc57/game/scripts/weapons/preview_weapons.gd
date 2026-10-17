@@ -104,6 +104,22 @@ func _owner_current() -> bool:
 func _interaction_allowed() -> bool:
 	return _owner_current() and player._free_mouse_look and player._pose_authority == &"on_foot" and player._jump.is_empty() and not bool(scene.get("preview_dead")) and not bool(scene.get("preview_physics_fault"))
 
+## DSH_MELEE_SET: the arsenal OWNS the cursor, so choosing a weapon has to be allowed
+## while it is open even though the mouse is not captured. Requiring capture here is
+## what made pressing a weapon card do nothing at all.
+func _equip_allowed() -> bool:
+	if not _owner_current(): return false
+	if bool(scene.get("preview_dead")) or bool(scene.get("preview_physics_fault")): return false
+	if player._pose_authority != &"on_foot": return false
+	return player._free_mouse_look or menu_open
+
+## The arsenal may be opened from a captured mouse OR while it is already open, but
+## never while the player is dead, mid-air or not in control of his body.
+func _menu_allowed() -> bool:
+	if not _owner_current(): return false
+	if bool(scene.get("preview_dead")) or bool(scene.get("preview_physics_fault")): return false
+	return player._pose_authority == &"on_foot"
+
 func _combat_allowed() -> bool:
 	return _owner_current() and player._free_mouse_look and player._pose_authority == &"on_foot" and not bool(scene.get("preview_dead")) and not bool(scene.get("preview_physics_fault"))
 
@@ -117,7 +133,7 @@ func controls_blocked() -> bool:
 	return menu_open or cargo_menu_active()
 
 func equip(id: String) -> Dictionary:
-	if not _interaction_allowed(): return {"ok":false,"reason":"inactive"}
+	if not _equip_allowed(): return {"ok":false,"reason":"inactive"}
 	# DSH_MELEE_SET / DSH_SWORD_PROTO: the whole melee set is always available and
 	# never consumes inventory ownership or ammunition. It disables the firearm
 	# presentation, and only one weapon host is ever selected at a time.
@@ -207,7 +223,7 @@ func bow_selected() -> bool:
 	return ready_for_play and fire_state.get("weaponId","none") == BOW_ID
 
 func set_menu(open: bool) -> void:
-	if open and not _interaction_allowed(): return
+	if open and not _menu_allowed(): return
 	if open and cargo_menu_active(): cargo_menu_owner.close_window(false)
 	var was_open := menu_open
 	menu_open = open

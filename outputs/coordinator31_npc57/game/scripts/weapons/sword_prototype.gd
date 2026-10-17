@@ -177,6 +177,10 @@ var _bone_spine := -1
 var _bone_chest := -1
 var _bone_pelvis := -1
 var _bone_head := -1
+var _bone_thigh_r := -1
+var _bone_shin_r := -1
+var _bone_thigh_l := -1
+var _bone_shin_l := -1
 ## Left arm chain, used by the two-handed grip (RMB).
 var _bone_l_clavicle := -1
 var _bone_l_upper := -1
@@ -325,6 +329,20 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 	_bone_chest = rig.find_bone("chest")
 	_bone_pelvis = rig.find_bone("pelvis")
 	_bone_head = rig.find_bone("head")
+	# DSH_ANIM: the stance. The front leg is the one OPPOSITE the weapon hand, which is
+	# how a swordsman stands; it takes the weight while the back leg drives.
+	_bone_thigh_r = rig.find_bone("thigh_r")
+	_bone_shin_r = rig.find_bone("shin_r")
+	_bone_thigh_l = rig.find_bone("thigh_l")
+	_bone_shin_l = rig.find_bone("shin_l")
+	# The stance: the FRONT leg is the one opposite the weapon hand, which is how a
+	# swordsman stands. The rig is mirrored on screen, so "opposite" is resolved from
+	# the side the weapon is actually carried on.
+	var weapon_on_left: bool = _carry_side == &"left"
+	_bone_thigh_front = _bone_thigh_r if weapon_on_left else _bone_thigh_l
+	_bone_shin_front = _bone_shin_r if weapon_on_left else _bone_shin_l
+	_bone_thigh_back = _bone_thigh_l if weapon_on_left else _bone_thigh_r
+	_bone_shin_back = _bone_shin_l if weapon_on_left else _bone_shin_r
 	_bone_l_clavicle = rig.find_bone("clavicle_l")
 	_bone_l_upper = rig.find_bone("upperarm_l")
 	_bone_l_fore = rig.find_bone("forearm_l")
@@ -2193,6 +2211,114 @@ func _chain_global(bone: int) -> Transform3D:
 ## The character keeps facing the target, and the whole body carries the weight:
 ## the hips, spine and chest lean against the blade's angular load and absorb the
 ## recoil of a contact, while the head keeps looking at the target.
+## DSH_ANIM: the body animation layer.
+##
+## The arm IK only places the hands. This owns the BODY, and it is built the way a
+## real cut is: the hips start the turn, the chest follows a moment later and carries
+## the most, the legs brace against the ground, the whole frame coils before the blow
+## and settles after it, and steel biting into something jolts the torso. It replaces
+## the old "lean" which moved the whole chain at once and had no anticipation.
+const WINDUP_TIME := 0.14          # coil before the cut
+const RECOVER_TIME := 0.26         # follow-through and settle
+const WINDUP_ANTICIPATION := 0.30  # radians the torso counter-turns while coiling
+const CHAIN_RATE := 15.0           # how fast each link catches the one below it
+const IMPACT_JOLT_LIMIT := 0.105
+const BREATH_RATE := 1.5
+const BREATH_AMPLITUDE := 0.013
+## The kinetic chain: pelvis, spine, chest, each with its own share and its own
+## stiffness, so the turn travels UP the body instead of arriving all at once.
+var _chain_yaw := Vector3.ZERO     # pelvis, spine, chest
+var _chain_pitch := Vector3.ZERO
+var _chain_roll := Vector3.ZERO
+var _swing_phase := "idle"
+var _phase_t := 0.0
+var _impact_jolt := 0.0
+var _breath := 0.0
+var _brace := 0.0
+## Which way the cut is about to go, captured as the coil starts.
+var _swing_sign := 1.0
+var _anticipation := 0.0
+var _bone_thigh_front := -1
+var _bone_shin_front := -1
+var _bone_thigh_back := -1
+var _bone_shin_back := -1
+
+## Runs the phase machine that the body animation is built on. `yaw_target` is the
+## turn the cut is heading into, and its sign is what the coil is measured against.
+func _advance_swing_phase(delta: float, yaw_target: float) -> void:
+	_phase_t += delta
+	var entering := false
+	match _swing_phase:
+		"windup":
+			if _phase_t >= WINDUP_TIME: _swing_phase = "strike"; _phase_t = 0.0
+		"strike":
+			if not _held: _swing_phase = "recover"; _phase_t = 0.0
+		"recover":
+			if _phase_t >= RECOVER_TIME: _swing_phase = "idle"; _phase_t = 0.0
+		_:
+			if _held:
+				_swing_phase = "windup"
+				_phase_t = 0.0
+				entering = true
+	# The direction the cut will go. Captured as the coil STARTS, because that is when
+	# the body has to decide which way to wind up against.
+	if entering:
+		var sign_now := signf(yaw_target)
+		if absf(sign_now) < 0.01: sign_now = signf(_omega.dot(Vector3.UP))
+		if absf(sign_now) < 0.01: sign_now = 1.0
+		_swing_sign = sign_now
+	# How far into the anticipation the body is: 1 at the peak of the coil, 0 in the
+	# strike, and a small overshoot during the follow-through.
+	var want_anticipation := 0.0
+	match _swing_phase:
+		"windup": want_anticipation = clampf(_phase_t / maxf(0.001, WINDUP_TIME), 0.0, 1.0)
+		"strike": want_anticipation = 0.0
+		"recover": want_anticipation = -0.40 * (1.0 - clampf(_phase_t / maxf(0.001, RECOVER_TIME), 0.0, 1.0))
+	_anticipation = lerpf(_anticipation, want_anticipation, clampf(12.0 * delta, 0.0, 1.0))
+	# The legs brace hardest in the coil and push through the cut.
+	var want_brace := 0.0
+	if _swing_phase == "windup": want_brace = clampf(_phase_t / maxf(0.001, WINDUP_TIME), 0.0, 1.0)
+	elif _swing_phase == "strike": want_brace = 1.0
+	elif _swing_phase == "recover": want_brace = 1.0 - clampf(_phase_t / maxf(0.001, RECOVER_TIME), 0.0, 1.0)
+	_brace = lerpf(_brace, want_brace, clampf(10.0 * delta, 0.0, 1.0))
+	# The jolt has to LAST long enough to be seen: at 4.5/s it was gone in two frames.
+	_impact_jolt = maxf(0.0, _impact_jolt - delta * 2.2)
+	_breath += delta * BREATH_RATE
+
+## Writes one link of the chain: it chases the link below it, never the target
+## directly, which is what makes the turn travel up the body.
+func _chain_link(current: float, below: float, delta: float) -> float:
+	return lerpf(current, below, clampf(CHAIN_RATE * delta, 0.0, 1.0))
+
+func _apply_chain(bone: int, yaw: float, pitch: float, roll: float,
+		axis_up: Vector3, axis_right: Vector3, axis_fwd: Vector3) -> void:
+	if bone < 0: return
+	if absf(yaw) + absf(pitch) + absf(roll) < 0.002: return
+	var turn := Quaternion(axis_up, yaw) * Quaternion(axis_right, -pitch) * Quaternion(axis_fwd, roll)
+	var local := _rig.get_bone_pose(bone)
+	_rig.set_bone_pose(bone, Transform3D((Basis(turn) * local.basis).orthonormalized(), local.origin))
+
+## The legs: the front knee takes the weight in the coil, the back leg drives through
+## the cut, and both settle afterwards. This is the "упор" - the stance has to hold.
+func _animate_legs(delta: float, axis_right: Vector3, axis_fwd: Vector3) -> void:
+	var front_bend := 0.22 * _brace * (1.0 - 0.5 * absf(_anticipation))
+	var back_push := 0.16 * _brace * (0.4 + 0.6 * maxf(0.0, -_anticipation + 1.0))
+	for spec: Array in [
+		[_bone_thigh_front, front_bend, axis_right], [_bone_shin_front, -front_bend * 1.35, axis_right],
+		[_bone_thigh_back, -back_push * 0.7, axis_right], [_bone_shin_back, back_push * 0.9, axis_right],
+	]:
+		var bone: int = spec[0]
+		if bone < 0: continue
+		var amount := float(spec[1])
+		if absf(amount) < 0.002: continue
+		var turn := Quaternion(spec[2], amount)
+		var local := _rig.get_bone_pose(bone)
+		_rig.set_bone_pose(bone, Transform3D((Basis(turn) * local.basis).orthonormalized(), local.origin))
+
+## A landed blow jolts the frame; this is what the player feels when the blade bites.
+func register_impact_jolt(strength: float) -> void:
+	_impact_jolt = minf(IMPACT_JOLT_LIMIT, _impact_jolt + IMPACT_JOLT_LIMIT * clampf(strength, 0.0, 1.0))
+
 func _lean_body(want_dir: Vector3, delta: float) -> void:
 	var rig_basis := _rig.global_transform.basis
 	var inv := rig_basis.inverse()
@@ -2232,26 +2358,42 @@ func _lean_body(want_dir: Vector3, delta: float) -> void:
 	_body_lean += _body_lean_vel * delta
 	_body_lean.x = clampf(_body_lean.x, -BODY_LEAN_LIMIT, BODY_LEAN_LIMIT)
 	_body_lean.y = clampf(_body_lean.y, -BODY_LEAN_LIMIT, BODY_LEAN_LIMIT)
-	# 3. Distribute the load over the chain: hips take the least, chest the most.
-	var shares := [
-		[_bone_pelvis, 0.35, 0.30, 0.45],
-		[_bone_spine, 0.65, 0.60, 0.70],
-		[_bone_chest, 1.00, 1.00, 1.00],
-	]
-	for entry: Array in shares:
-		var bone: int = entry[0]
-		if bone < 0: continue
-		var yaw := _body_yaw * float(entry[1])
-		var pitch := _body_lean.x * float(entry[2])
-		var roll := _body_lean.y * float(entry[3])
-		if absf(yaw) + absf(pitch) + absf(roll) < 0.002: continue
-		var turn := Quaternion(axis_up, yaw) * Quaternion(axis_right, -pitch) * Quaternion(axis_fwd, roll)
-		var local := _rig.get_bone_pose(bone)
-		_rig.set_bone_pose(bone, Transform3D((Basis(turn) * local.basis).orthonormalized(), local.origin))
+	# 3. Distribute the load over the chain: hips START the turn, the chest carries the
+	# most, and each link follows the one below it a moment later. That lag is the
+	# difference between a body that swings and a body that is dragged.
+	_advance_swing_phase(delta, yaw_target)
+	# The coil turns the chest the OPPOSITE way first, then the strike whips it back
+	# through. The follow-yaw is DAMPED while the coil is on, otherwise following the
+	# mouse simply overpowers the wind-up and the body never reads as winding up.
+	var coil := -_swing_sign * WINDUP_ANTICIPATION * _anticipation
+	var chest_yaw := _body_yaw * (1.0 - 0.90 * maxf(0.0, _anticipation)) + coil
+	# The coil is also, and most clearly, a matter of WEIGHT: the frame settles back and
+	# down onto the rear leg, then drives forward through the cut. Unlike the yaw, this
+	# reads the same whichever way the blow is aimed, so it is the honest measure of
+	# anticipation.
+	var strike_drive := 0.0
+	if _swing_phase == "strike": strike_drive = 0.055
+	elif _swing_phase == "recover": strike_drive = 0.055 * (1.0 - clampf(_phase_t / maxf(0.001, RECOVER_TIME), 0.0, 1.0))
+	var lean_pitch := _body_lean.x * (1.0 - 0.75 * maxf(0.0, _anticipation))
+	var chest_pitch := lean_pitch + _impact_jolt - _anticipation * 0.22 + strike_drive + sin(_breath) * BREATH_AMPLITUDE
+	var chest_roll := _body_lean.y + _anticipation * 0.06
+	_chain_yaw.x = _chain_link(_chain_yaw.x, chest_yaw * 0.45, delta)
+	_chain_yaw.y = _chain_link(_chain_yaw.y, _chain_yaw.x * 0.85, delta)
+	_chain_yaw.z = _chain_link(_chain_yaw.z, _chain_yaw.y, delta)
+	_chain_pitch.x = _chain_link(_chain_pitch.x, chest_pitch * 0.40, delta)
+	_chain_pitch.y = _chain_link(_chain_pitch.y, _chain_pitch.x * 0.85, delta)
+	_chain_pitch.z = _chain_link(_chain_pitch.z, _chain_pitch.y, delta)
+	_chain_roll.x = _chain_link(_chain_roll.x, chest_roll * 0.40, delta)
+	_chain_roll.y = _chain_link(_chain_roll.y, _chain_roll.x * 0.85, delta)
+	_chain_roll.z = _chain_link(_chain_roll.z, _chain_roll.y, delta)
+	_apply_chain(_bone_pelvis, _chain_yaw.x, _chain_pitch.x, _chain_roll.x, axis_up, axis_right, axis_fwd)
+	_apply_chain(_bone_spine, _chain_yaw.y, _chain_pitch.y, _chain_roll.y, axis_up, axis_right, axis_fwd)
+	_apply_chain(_bone_chest, _chain_yaw.z, _chain_pitch.z, _chain_roll.z, axis_up, axis_right, axis_fwd)
+	_animate_legs(delta, axis_right, axis_fwd)
 	# 4. The head counter-turns against the torso so the eyes keep following the
 	# blade through the whole cut instead of swinging away with the chest.
-	if _bone_head >= 0 and absf(_body_yaw) > 0.02:
-		var head_turn := Quaternion(axis_up, -_body_yaw * 0.45)
+	if _bone_head >= 0 and (absf(_chain_yaw.z) > 0.02 or absf(_anticipation) > 0.02):
+		var head_turn := Quaternion(axis_up, -_chain_yaw.z * 0.45 + _anticipation * WINDUP_ANTICIPATION * 0.5 * _swing_sign)
 		var head_local := _rig.get_bone_pose(_bone_head)
 		_rig.set_bone_pose(_bone_head, Transform3D((Basis(head_turn) * head_local.basis).orthonormalized(), head_local.origin))
 
@@ -2891,6 +3033,9 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 					else:
 						factor *= HALF_SWORD_CUT
 				var rang_off_plate: bool = is_instance_valid(_npc_rig) and factor < 1.0
+				# DSH_ANIM: a blow that bites jolts the body; one that rings off plate
+				# jolts it less, which is a real difference in how the two feel.
+				register_impact_jolt(0.45 if rang_off_plate else 0.8)
 				_bite_into(0.72 if not rang_off_plate else 0.35)
 				if rang_off_plate:
 					# Steel on plate: clang and sparks instead of a wound.
@@ -2951,6 +3096,8 @@ func _damage_dummy(dummy: StaticBody3D, position: Vector3, speed: float, velocit
 	if _active_side() == &"both": strength *= TWO_HAND_DAMAGE_SCALE
 	# DSH_MELEE_SET: the weapon decides how much of each kind of blow it delivers.
 	strength *= _kind_multiplier(kind)
+	# DSH_ANIM: a landed blow jolts the frame, which is what the player feels.
+	register_impact_jolt(0.65)
 	_bite_into(0.62)
 	_last_hit_kind = kind
 	_last_hit_scale = strength
@@ -4149,6 +4296,8 @@ func snapshot() -> Dictionary:	return {
 		"blade_tip": _sword_origin + _dir * (0.06 + _weapon_length),
 		"sweep_rays": _sweep_rays, "sweep_hits": _sweep_hits, "selected": _selected,
 		"side": str(_active_side()),
+		"swing_phase": _swing_phase, "anticipation": _anticipation, "brace": _brace,
+		"jolt": _impact_jolt, "chain_yaw": _chain_yaw, "chain_pitch": _chain_pitch,
 		"rig_scale": _rig.global_transform.basis.get_scale() if is_instance_valid(_rig) else Vector3.ZERO,
 		"shoulder_world": _rig.global_transform * (_rig.get_bone_global_pose(_bone_clavicle) * _rest_upper).origin if is_instance_valid(_rig) and _bone_clavicle >= 0 else Vector3.ZERO,
 		"sword_origin": _sword_origin,
