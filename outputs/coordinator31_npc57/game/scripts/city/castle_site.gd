@@ -72,6 +72,7 @@ func install(world: Node3D, origin: Vector3) -> Dictionary:
 	_build_keep_details()
 	_build_gate_arch()
 	_build_banners()
+	_build_ring_road()
 	_build_tower_platforms()
 	_build_gate_bridge()
 	_build_far_slabs()
@@ -1333,6 +1334,62 @@ func _build_string_courses() -> void:
 						at = Vector3(-WALL_HALF, height, along)
 						size = Vector3(WALL_THICK * 1.22, 0.34, BRICK.x * 1.02)
 				_add_brick(at, size, "cold", Vector3.ZERO, side + "_course", 0, column)
+## A ROAD AROUND THE CASTLE. Four paved strips running the whole way round the outside of
+## the walls, wide enough to march a column along: the wall foot is where an army waits, and
+## without it the outside of the castle is a field you can only cross by eye.
+const RING_WIDTH := 9.0
+const RING_GAP := 2.0
+
+func _build_ring_road() -> void:
+	var road := StandardMaterial3D.new()
+	road.albedo_color = Color(0.38, 0.34, 0.28)
+	road.roughness = 1.0
+	var kerb := StandardMaterial3D.new()
+	kerb.albedo_color = Color(0.52, 0.50, 0.46)
+	kerb.roughness = 0.95
+	var ring_radius: float = WALL_HALF + RING_GAP + RING_WIDTH * 0.5
+	for side: String in ["north", "south", "east", "west"]:
+		var vertical: bool = side == "north" or side == "south"
+		var sign_z: float = 1.0 if side == "south" else -1.0
+		var sign_x: float = 1.0 if side == "east" else -1.0
+		# The strip runs past the corners so the four of them join without a gap.
+		var span: float = WALL_HALF * 2.0 + (RING_WIDTH + RING_GAP) * 2.0
+		var centre := Vector3(0.0, 0.02, sign_z * ring_radius) if vertical \
+			else Vector3(sign_x * ring_radius, 0.02, 0.0)
+		var size := Vector3(span, 0.08, RING_WIDTH) if vertical \
+			else Vector3(RING_WIDTH, 0.08, span)
+		var strip := MeshInstance3D.new()
+		var strip_box := BoxMesh.new()
+		strip_box.size = size
+		strip.mesh = strip_box
+		strip.material_override = road
+		strip.position = centre
+		add_child(strip)
+		# A kerb on the inner edge, so the road reads as a road.
+		var inner := Vector3(0.0, 0.06, sign_z * (WALL_HALF + RING_GAP * 0.5)) if vertical \
+			else Vector3(sign_x * (WALL_HALF + RING_GAP * 0.5), 0.06, 0.0)
+		var kerb_size := Vector3(span, 0.12, 0.5) if vertical else Vector3(0.5, 0.12, span)
+		var kerb_mesh := MeshInstance3D.new()
+		var kerb_box := BoxMesh.new()
+		kerb_box.size = kerb_size
+		kerb_mesh.mesh = kerb_box
+		kerb_mesh.material_override = kerb
+		kerb_mesh.position = inner
+		add_child(kerb_mesh)
+	# The ground under the road must be walkable stone, so a footstep there is stone too.
+	var ring_body := StaticBody3D.new()
+	ring_body.name = "RingRoad"
+	ring_body.collision_layer = 1
+	ring_body.collision_mask = 1
+	ring_body.set_meta("surface", "stone")
+	ring_body.position = Vector3(0.0, -0.02, 0.0)
+	add_child(ring_body)
+	var ring_shape := CollisionShape3D.new()
+	var ring_box_shape := BoxShape3D.new()
+	var outer: float = WALL_HALF + RING_GAP + RING_WIDTH
+	ring_box_shape.size = Vector3(outer * 2.0, 0.10, outer * 2.0)
+	ring_shape.shape = ring_box_shape
+	ring_body.add_child(ring_shape)
 ## ------------------------------------------------------------------ masonry detail
 ## A wall of identical stones still looks manufactured. These are the things that make it
 ## read as a building that has stood for a century: brackets under the battlements,

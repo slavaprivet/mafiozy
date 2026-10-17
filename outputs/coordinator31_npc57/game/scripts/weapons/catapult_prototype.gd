@@ -280,6 +280,20 @@ func _place_cart_near_palazzo() -> void:
 	_arm_angle = _cocked_angle
 	_apply_arm()
 
+## DSH_CASTLE: called once the castle exists - the machine is installed before the map is
+## built, so it cannot know about the gate at install time.
+func place_near_castle(castle: Node3D) -> void:
+	if not is_instance_valid(castle) or not is_instance_valid(_cart): return
+	if not castle.has_method("wall_half"): return
+	var half: float = float(castle.call("wall_half"))
+	var gate: Vector3 = castle.global_position + Vector3(0.0, 0.0, half)
+	_cart.global_position = Vector3(gate.x, 0.05, gate.z + 15.0)
+	_yaw = PI
+	_cart.rotation.y = _yaw
+	_arm_angle = _cocked_angle
+	_apply_arm()
+	print("DSH_CATAPULT_PLACED castle_gate=", gate, " cart=", _cart.global_position)
+
 func _build_stone() -> void:
 	_stone = RigidBody3D.new()
 	_stone.name = "CatapultStone"

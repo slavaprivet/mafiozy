@@ -531,6 +531,18 @@ func _build_castle_map() -> bool:
 		return false
 	preview_castle = castle
 	castle_status = "ready"
+	# The catapult was installed before this map existed; put it in front of the gate now.
+	if is_instance_valid(preview_catapult) and preview_catapult.has_method("place_near_castle"):
+		preview_catapult.call("place_near_castle", castle)
+		# The player starts AT the machine, not in the courtyard: this map exists to be
+		# besieged, and a walk to the catapult every time is not a test.
+		var cart: Variant = preview_catapult.get("_cart")
+		if is_instance_valid(cart) and is_instance_valid(_player):
+			var cart_pos: Vector3 = (cart as Node3D).global_position
+			_player.global_position = cart_pos + Vector3(0.0, 0.2, -4.0)
+			_player.velocity = Vector3.ZERO
+			_player.set("_camera_yaw", PI)
+			print("DSH_CASTLE_SPAWN_AT_CATAPULT player=", _player.global_position, " cart=", cart_pos)
 	if is_instance_valid(_player):
 		_player.global_position = castle.call("spawn_point")
 		_player.velocity = Vector3.ZERO
