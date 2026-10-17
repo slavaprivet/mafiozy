@@ -465,12 +465,17 @@ func _try_interact() -> bool:
 		if _occupied and not bool(_player.get("_free_mouse_look")):
 			_player.set_mouse_captured(true)
 		return true
-	# 3. Near the stone on the ground: E takes it.
+	# 3. Near the stone on the ground: E CHARGES THE MACHINE. One key by the stone, the same
+	# key at the frame to fire - the machine is loaded, not the man.
 	if not _stone_on_spoon and is_instance_valid(_stone) and not _flying \
 			and player_at.distance_to(_stone.global_position) <= CARRY_RANGE:
-		_carrying_stone = true
-		_stone.freeze = true
-		_stone.sleeping = false
+		_carrying_stone = false
+		_set_stone_on_spoon()
+		return true
+	if not _stone_on_spoon and not _flying and is_instance_valid(_stone) \
+			and player_at.distance_to(_spoon_point()) <= FRAME_RANGE:
+		_carrying_stone = false
+		_set_stone_on_spoon()
 		return true
 	return false
 
