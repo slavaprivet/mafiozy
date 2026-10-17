@@ -84,6 +84,9 @@ func install(world: Node3D, origin: Vector3) -> Dictionary:
 	_build_portcullis()
 	_build_gate_lamps()
 	_build_gate_deck()
+	_cull_small_shadows()
+	# Same triangles, same materials, same shadows - just not one draw call per bracket.
+	_batch_static_decoration()
 	_flush_buckets()
 	_ready = true
 	return {"ok": true, "origin": origin, "bricks": _cells.size(),
@@ -264,12 +267,17 @@ func _build_torches() -> void:
 		torch.material_override = flame
 		torch.position = at + Vector3(0.0, 0.22, 0.0)
 		add_child(torch)
-		var light := OmniLight3D.new()
-		light.light_color = Color(1.0, 0.66, 0.34)
-		light.light_energy = 2.4
-		light.omni_range = 9.0
-		light.position = at + Vector3(0.0, 0.3, 0.0)
-		add_child(light)
+		# HALF THE LIGHTS, ALL OF THE GLOW. Four torches flank the gate but only one light per
+		# side is needed - they are two metres apart - and the two high on the wall throw no
+		# light at all: nothing a player can see is up there but the emissive flame itself.
+		# Ten lights became four, and every lit surface in range stopped paying for them.
+		if at.y < WALL_HEIGHT and at.x < 0.0:
+			var light := OmniLight3D.new()
+			light.light_color = Color(1.0, 0.66, 0.34)
+			light.light_energy = 2.6
+			light.omni_range = 9.5
+			light.position = at + Vector3(0.0, 0.3, 0.0)
+			add_child(light)
 
 ## The portcullis, raised behind the arch: the bars are what a gate is actually held by.
 func _build_gate_lamps() -> void:
@@ -414,6 +422,112 @@ const BRICK_LOD_END := 110.0
 const CHUNK_X := 26.0
 const CHUNK_Y := 10.0
 const CHUNK_Z := 26.0
+
+## DSH_OPT: a bracket, a stud, a rope or a lantern glass does not need to cast a shadow, and
+## every caster is a draw in the shadow pass - the whole castle was 390 of them. Only shapes
+## bigger than a metre and a half keep their shadow, so the walls, towers, gate and banners
+## still throw exactly the shadow they did before.
+func _cull_small_shadows() -> void:
+	var kept := 0
+	var dropped := 0
+	for child: Node in find_children("*", "MeshInstance3D", true, false):
+		var mesh_instance := child as MeshInstance3D
+		if mesh_instance == null: continue
+		if mesh_instance.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF: continue
+		var size := 0.0
+		if mesh_instance.mesh != null:
+			size = mesh_instance.mesh.get_aabb().size.length()
+		if size <= 1.8:
+			mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			dropped += 1
+		else:
+			kept += 1
+	print("DSH_SHADOWS kept=", kept, " dropped=", dropped)
+## DSH_OPT: one mesh per material instead of one node per bracket.
+## Everything under the castle that never moves is appended into a single surface per
+## material and the originals are freed. Triangles, materials and shadows are unchanged; the
+## draw calls go from hundreds to a handful. The gate leaves (which swing and lose planks one
+## by one) and the lever (which turns) are skipped.
+func _batch_static_decoration() -> void:
+	var groups: Dictionary = {}
+	var doomed: Array[MeshInstance3D] = []
+	for child: Node in find_children("*", "MeshInstance3D", true, false):
+		var instance := child as MeshInstance3D
+		if instance == null or instance.mesh == null: continue
+		if _under_moving_parent(instance): continue
+		var material: Variant = instance.material_override
+		if material == null and instance.mesh.get_surface_count() > 0:
+			material = instance.mesh.surface_get_material(0)
+		if material == null: continue
+		# Family by LOOK, not by identity: a duplicate material with the same colour and the same
+		# parameters draws identically, so it can share one merged surface.
+		var key: String = _material_family(material) + "|" + instance.mesh.get_class()
+		if not groups.has(key):
+			groups[key] = {"material": material, "items": [], "shadow": false}
+		var group: Dictionary = groups[key]
+		(group["items"] as Array).append(instance)
+		if instance.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+			group["shadow"] = true
+	var merged_nodes := 0
+	var merged_sources := 0
+	# Only what was really merged goes: the list is filled inside the merge loop, because a
+	# group with a single member is left exactly as it is.
+	var to_free: Array[MeshInstance3D] = []
+	for key: String in groups:
+		var group: Dictionary = groups[key]
+		var items: Array = group.get("items", [])
+		if items.size() < 2: continue
+		var tool := SurfaceTool.new()
+		tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var appended := 0
+		for item: MeshInstance3D in items:
+			if not is_instance_valid(item) or item.mesh == null: continue
+			var relative: Transform3D = global_transform.affine_inverse() * item.global_transform
+			tool.append_from(item.mesh, 0, relative)
+			appended += 1
+		if appended < 2: continue
+		var merged: Mesh = tool.commit()
+		if merged == null: continue
+		var node := MeshInstance3D.new()
+		node.name = "Batched_" + str(merged_nodes)
+		node.mesh = merged
+		node.material_override = group.get("material")
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if bool(group.get("shadow", false)) else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(node)
+		merged_nodes += 1
+		merged_sources += items.size()
+		# The geometry is copied into the merged surface; the originals can go now.
+		for item: MeshInstance3D in items:
+			if is_instance_valid(item):
+				item.queue_free()
+	print("DSH_BATCH merged_nodes=", merged_nodes, " sources_merged=", merged_sources,
+		" left=", find_children("*", "MeshInstance3D", true, false).size())
+
+## A stable key for "this will look the same as that": colour, roughness, metalness, emission
+## and shading mode. Textured materials are keyed by their texture as well.
+func _material_family(material: Variant) -> String:
+	var standard := material as StandardMaterial3D
+	if standard == null:
+		return "other|%d" % (material as Resource).get_instance_id()
+	var key := "%s|%s|%.3f|%.3f|%s|%d|%.2f" % [
+		standard.albedo_color.to_html(),
+		str(standard.albedo_texture != null),
+		standard.roughness, standard.metallic,
+		standard.emission.to_html(),
+		standard.shading_mode,
+		standard.emission_energy_multiplier]
+	if standard.albedo_texture != null:
+		key += "|%d" % standard.albedo_texture.get_instance_id()
+	return key
+
+func _under_moving_parent(node: Node) -> bool:
+	var walk: Node = node
+	while walk != null and walk != self:
+		var name_text := String(walk.name)
+		if name_text.begins_with("GateLeaf") or name_text.begins_with("Lever"):
+			return true
+		walk = walk.get_parent()
+	return false
 
 func _flush_buckets() -> void:
 	_buckets.clear()
