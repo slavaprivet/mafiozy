@@ -80,7 +80,30 @@ func _run() -> void:
 	var image: Image = get_root().get_texture().get_image()
 	if image != null:
 		print("BOW_POSE_SHOT ", image.save_png(OUT_DIR + "/shot_bow_pose.png"))
+	# WALKING: with the cursor free (the player pressed Esc) a left click has to
+	# re-capture the mouse, and that capture is what enables WASD. The bow must let
+	# that click through instead of consuming it.
+	_player.set_mouse_captured(false)
+	await _settle(12)
+	var free_before: bool = bool(_player.get("_free_mouse_look"))
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	click.position = Vector2(960, 540)
+	Input.parse_input_event(click)
+	await _settle(12)
+	var free_after: bool = bool(_player.get("_free_mouse_look"))
+	click = InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = false
+	click.position = Vector2(960, 540)
+	Input.parse_input_event(click)
+	await _settle(8)
+	var recaptured: bool = free_before == false and free_after == true
+	print("BOW_POSE_WALK cursor_was_free=", free_before == false,
+		" left_click_recaptures=", recaptured, " free_after=", free_after)
 	var verdict := {
+		"left_click_still_recaptures_the_mouse": recaptured,
 		"hands_are_in_front": float(rest.get("draw_hand_forward", -9.0)) > 0.0
 			and float(rest.get("bow_hand_forward", -9.0)) > 0.0,
 		"bow_is_in_the_bow_hand": float(rest.get("bow_grip_error", 99.0)) < 0.05,
