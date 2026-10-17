@@ -120,14 +120,21 @@ func _run() -> void:
 			after = "shield" if bool(shield_state.get("worn", false)) else "none"
 		var proto: Node = _scene.get("preview_sword_prototype")
 		var proto_weapon := ""
+		var weapon_visible := false
+		var grip_error := 99.0
 		if proto != null:
-			proto_weapon = str((proto.call("snapshot") as Dictionary).get("weapon", ""))
+			var snap_after: Dictionary = proto.call("snapshot")
+			proto_weapon = str(snap_after.get("weapon", ""))
+			weapon_visible = bool(snap_after.get("weapon_visible", false))
+			grip_error = float(snap_after.get("grip_hand_error", 99.0))
 		report[id] = {
 			"button": true, "visible": visible,
 			"rect": rect, "centre": centre,
 			"before": before, "after": after, "proto_weapon": proto_weapon,
+			"weapon_visible": weapon_visible, "grip_error": grip_error,
 		}
-		print("CLICK_CARD ", id, " menu_open=", bool(_weapons.get("menu_open")),
+		print("CLICK_CARD ", id, " in_hand=", weapon_visible, " grip_err=", grip_error,
+			" menu_open=", bool(_weapons.get("menu_open")),
 			" menu_visible=", menu_now.visible if is_instance_valid(menu_now) else false,
 			" hovered=", hovered,
 			" visible=", visible, " rect=", rect, " centre=", centre,
@@ -141,6 +148,8 @@ func _run() -> void:
 		var line: Dictionary = report.get(id, {})
 		if not bool(line.get("button", false)) or not bool(line.get("visible", false)):
 			failed.append(id + ":not_shown")
+		elif not bool(line.get("weapon_visible", false)):
+			failed.append(id + ":not_in_hands")
 		elif str(line.get("after", "")) != id:
 			failed.append(id + ":click_ignored")
 	print("CLICK_OBJECTIVE ", JSON.stringify(report))

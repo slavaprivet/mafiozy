@@ -4720,6 +4720,8 @@ func snapshot() -> Dictionary:	return {
 		"blade_tip": _sword_origin + _dir * (0.06 + _weapon_length),
 		"sweep_rays": _sweep_rays, "sweep_hits": _sweep_hits, "selected": _selected,
 		"side": str(_active_side()),
+		"weapon_visible": is_instance_valid(_sword) and _sword.visible,
+		"weapon_active": _active(),
 		"swing_phase": _swing_phase, "anticipation": _anticipation, "brace": _brace,
 		"omega_speed": _omega.length(), "omega_cap": MAX_OMEGA / _weapon_mass,
 		"hand_cmd": _hand_cmd,

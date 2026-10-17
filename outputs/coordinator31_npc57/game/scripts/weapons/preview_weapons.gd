@@ -313,6 +313,17 @@ func input_event(event: InputEvent) -> bool:
 		if event.pressed and not event.echo:
 			var code: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
 			if code == KEY_Q and _interaction_allowed(): set_menu(not menu_open); return true
+			# DSH_MELEE_SET: a DIRECT path to the set, independent of the arsenal window.
+			# If the menu is ever in a bad state the player can still take a weapon, and it
+			# says at once whether a fault is in the menu or in the presentation.
+			if not menu_open:
+				match code:
+					KEY_1: equip("sword"); return true
+					KEY_2: equip("mace"); return true
+					KEY_3: equip("axe"); return true
+					KEY_4: equip("sledge"); return true
+					KEY_5: equip("spear"); return true
+					KEY_6: equip("shield"); return true
 			if code == KEY_ESCAPE and menu_open:
 				set_menu(false); player.set_mouse_captured(false); return true
 			if menu_open: return true
