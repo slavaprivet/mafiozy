@@ -1661,7 +1661,9 @@ func apply_explosion(event: Dictionary) -> Dictionary:
 		# The distance is to the middle of the LEAF, not to the hinge at its foot: the hinge
 		# sits four metres out to the side, and a stone on the doors was measured as wide.
 		var leaf_centre: Vector3 = pivot.global_position + Vector3.UP * (GATE_HEIGHT * 0.5)
-		if leaf_centre.distance_to(at_world) > radius + 2.0: continue
+		# A blow on the doors is measured against the whole leaf, generously: a stone that
+		# clips the top of a door knocks that door out, it does not need to be dead centre.
+		if leaf_centre.distance_to(at_world) > radius + 6.0: continue
 		# The leaves hang on hinges now, so they are not rigid bodies to push: they are
 		# BLOWN OFF. The hinge goes, its collision with it, and a handful of planks are
 		# thrown out where the door stood - which is what a gate hit by a stone looks like.

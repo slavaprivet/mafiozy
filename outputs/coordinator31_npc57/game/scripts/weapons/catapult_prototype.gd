@@ -59,6 +59,9 @@ var _arm_angle := -0.55
 var _arm_wound := false
 var _winding := false
 var _arm_settle := 0.0
+## DSH_CATAPULT: the arm does not stay up. After the throw it comes back DOWN to rest,
+## smoothly, which is what a real onager does and what the player asked for.
+var _arm_return := 0.0
 ## The arm resting back and low, which is where a stone can be set in the spoon.
 const COCKED_ANGLE := -0.55
 var _release_angle := 1.30
@@ -675,7 +678,7 @@ func _release() -> void:
 	_fly_age = 0.0
 	_stone_on_spoon = false
 	_stone.freeze = false
-	_stone.global_position = _spoon_point() + Vector3.UP * (STONE_RADIUS + 0.05)
+	_stone.global_position = _spoon_point() + Vector3.UP * (STONE_RADIUS * 0.55)
 	_fly_velocity = _launch_velocity()
 	_stone.linear_velocity = _fly_velocity
 	_fly_prev = _stone.global_position
@@ -699,9 +702,10 @@ func _count_pushers() -> int:
 				or Input.is_action_pressed(_player.ACTION_LEFT) \
 				or Input.is_action_pressed(_player.ACTION_RIGHT)
 			if pushing: men += 1
-	# Everyone else standing at the frame counts too: the game's own population is
-	# already walking this street, and a machine this heavy is moved by a crowd.
-	if is_instance_valid(_world) and _world.has_method("count_helpers_near"):
+	# Everyone else standing at the frame counts too - but ONLY while somebody is actually
+	# pushing. Counting every body that happens to stand near the frame made the machine
+	# creep forward on its own, which read as the machine recoiling after a shot.
+	if men > 0 and is_instance_valid(_world) and _world.has_method("count_helpers_near"):
 		men += int(_world.call("count_helpers_near", _cart.global_position, PUSH_RANGE))
 	return men
 
@@ -742,6 +746,15 @@ func _physics_process(delta: float) -> void:
 		_arm_angle = lerpf(_cocked_angle, _release_angle, t) \
 			+ sin(t * PI * 1.5) * 0.045 * (1.0 - t)
 		_apply_arm()
+		if _arm_settle <= 0.0:
+			# The arm FALLS BACK to its rest position instead of hanging in the air: a real
+			# onager drops its beam once the stone is gone.
+			_arm_return = 1.0
+	elif _arm_return > 0.0:
+		_arm_return = maxf(0.0, _arm_return - delta / 1.15)
+		var back := 1.0 - _arm_return
+		_arm_angle = lerpf(_release_angle, _cocked_angle, smoothstep(0.0, 1.0, back))
+		_apply_arm()
 	if _winding:
 		if is_instance_valid(_crank): _crank.rotate_x(delta * 5.0)
 		if is_instance_valid(_crank): _crank.rotate_y(0.0)
@@ -761,7 +774,8 @@ func _physics_process(delta: float) -> void:
 		_stone.global_position = _stone.global_position.lerp(want, clampf(12.0 * delta, 0.0, 1.0))
 	elif _loading and is_instance_valid(_stone):
 		_loading_t = minf(1.0, _loading_t + delta / 0.28)
-		var target: Vector3 = _spoon_point() + Vector3.UP * (STONE_RADIUS + 0.06)
+		# Seated IN the cup: the stone's centre sits on the spoon's surface, not above it.
+		var target: Vector3 = _spoon_point() + Vector3.UP * (STONE_RADIUS * 0.55)
 		_stone.global_position = _loading_from.lerp(target, smoothstep(0.0, 1.0, _loading_t))
 		if _loading_t >= 1.0:
 			_loading = false
@@ -772,7 +786,7 @@ func _physics_process(delta: float) -> void:
 			_arm_settle = 0.0
 			_apply_arm()
 	elif _stone_on_spoon and is_instance_valid(_stone):
-		_stone.global_position = _spoon_point() + Vector3.UP * (STONE_RADIUS + 0.06)
+		_stone.global_position = _spoon_point() + Vector3.UP * (STONE_RADIUS * 0.55)
 	# A fired stone is a real projectile: swept, so it cannot tunnel through a wall.
 	if _flying and is_instance_valid(_stone):
 		_step_flight(delta)
