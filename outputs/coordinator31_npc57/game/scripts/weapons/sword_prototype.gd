@@ -93,22 +93,27 @@ var _weapon_crush := false
 ## The fist closes on this point, so the handle (not the guard) sits in the hand.
 const GRIP_CENTER_OFFSET := 0.0625
 const SWEEP_SEGMENTS := 9
-const MOUSE_TO_HAND := 0.0042
+const MOUSE_TO_HAND := 0.0031
 ## The commanded hand offset cannot jump: it is slewed toward the mouse command
 ## at a bounded rate, which is what keeps a fast mouse flick from snapping the
 ## whole arm (and the blade with it) across the body.
 const HAND_SLEW_RATE := 10.5    # units per second
 const HAND_MAX_OFFSET := 1.5
-const MAX_OMEGA := 22.0         # rad/s, a decisive cut, not a paint stroke
-const MAX_ALPHA := 105.0        # rad/s^2, quick but not a teleport into the swing
+# A decisive cut, not a blur. 22 rad/s was three and a half turns a second, which is
+# why a flick of the wrist read as an instant cut with no weight behind it.
+const MAX_OMEGA := 12.5         # rad/s
+const MAX_ALPHA := 68.0         # rad/s^2, quick but not a teleport into the swing
 ## Steering: high gain so a flick really whips the blade, light damping and light
 ## target smoothing. Heavy damping here is what turned cuts into brush strokes.
-const STEER_GAIN := 13.0
+const STEER_GAIN := 8.5
 const STEER_DAMPING := 0.20
 const STEER_DEADZONE := 0.25
 const STEER_ANGLE_DEADZONE := 0.04
 const STEER_TARGET_SMOOTH := 45.0
 const MOUSE_NOISE_FLOOR := 1.2
+## The most a single mouse event is allowed to move the blade target. A violent flick
+## is damped instead of teleporting the blade: the arm has to TRAVEL to the cut.
+const MOUSE_PER_EVENT_CAP := 24.0
 const FOLLOW_RATE := 7.5        # hand spring rate toward the commanded point
 const REST_RETURN_RATE := 4.5   # blade return when LMB is released
 ## Body weight: the swing is carried by hips, spine and chest, not only by the
@@ -153,7 +158,7 @@ const CONTACT_COOLDOWN_MS := 700
 ## A blow only counts after the blade actually left the target for this long.
 ## Without it, a blade resting on the ground or wobbling against the dummy fires
 ## a fresh "entry" every frame and floods damage, sounds and damage numbers.
-const CONTACT_REARM_MS := 120
+const CONTACT_REARM_MS := 175
 const SPARK_COOLDOWN_MS := 140
 const BLOCK_SOUND_COOLDOWN_MS := 420
 const DAMAGE_NUMBER_COOLDOWN_MS := 220
@@ -1314,8 +1319,13 @@ func _input(event: InputEvent) -> void:
 			return
 		# The SAME motion also turns the camera: the event is deliberately NOT
 		# consumed here, so the view stays free while the blade is steered.
-		_hand_cmd.x += motion.relative.x * MOUSE_TO_HAND
-		_hand_cmd.y -= motion.relative.y * MOUSE_TO_HAND
+		# A single violent flick is DAMPED: one event may only move the target so far,
+		# so a hard wrist snap cannot teleport the blade through a whole arc in one
+		# frame. The arm still gets there - it just has to travel for it.
+		var mouse_x := clampf(motion.relative.x, -MOUSE_PER_EVENT_CAP, MOUSE_PER_EVENT_CAP)
+		var mouse_y := clampf(motion.relative.y, -MOUSE_PER_EVENT_CAP, MOUSE_PER_EVENT_CAP)
+		_hand_cmd.x += mouse_x * MOUSE_TO_HAND
+		_hand_cmd.y -= mouse_y * MOUSE_TO_HAND
 		_hand_cmd = _hand_cmd.limit_length(HAND_MAX_OFFSET)
 
 func _active() -> bool:
@@ -4309,6 +4319,8 @@ func snapshot() -> Dictionary:	return {
 		"sweep_rays": _sweep_rays, "sweep_hits": _sweep_hits, "selected": _selected,
 		"side": str(_active_side()),
 		"swing_phase": _swing_phase, "anticipation": _anticipation, "brace": _brace,
+		"omega_speed": _omega.length(), "omega_cap": MAX_OMEGA / _weapon_mass,
+		"hand_cmd": _hand_cmd,
 		"jolt": _impact_jolt, "chain_yaw": _chain_yaw, "chain_pitch": _chain_pitch,
 		"rig_scale": _rig.global_transform.basis.get_scale() if is_instance_valid(_rig) else Vector3.ZERO,
 		"shoulder_world": _rig.global_transform * (_rig.get_bone_global_pose(_bone_clavicle) * _rest_upper).origin if is_instance_valid(_rig) and _bone_clavicle >= 0 else Vector3.ZERO,
