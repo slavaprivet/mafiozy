@@ -1269,6 +1269,7 @@ func snapshot() -> Dictionary:
 		"elbow_clearance": elbow_clearance(), "string_visible": string_visible(),
 		"nocked_arrow_visible": is_instance_valid(_nocked_arrow) and _nocked_arrow.visible,
 		"quiver_offset_m": quiver_offset_m(), "quiver_clear_of_body": quiver_clear_of_body(),
+		"draw_hand_forward": draw_hand_forward(), "bow_hand_forward": bow_hand_forward(),
 		"ground_items": _ground_items.size(), "quiver_mouth": _quiver_mouth,
 		"stuck": _stuck_total, "last_hit_distance": _last_hit_distance,
 		"last_flight_time": _last_flight_time, "predicted_range": _predicted_range,
@@ -1307,6 +1308,23 @@ func arrow_state(index: int) -> Dictionary:
 ## the ballistic drop made visible.
 func arrow_count() -> int:
 	return _arrows.size()
+
+## How far IN FRONT of the body a hand actually ended up, in metres. Negative means
+## the arm is behind the character, which is the fault being chased: it measures the
+## BONE the player sees, not the target we asked for.
+func draw_hand_forward() -> float:
+	return _bone_forward(_bone_draw_hand)
+
+func bow_hand_forward() -> float:
+	return _bone_forward(_bone_bow_hand)
+
+func _bone_forward(bone: int) -> float:
+	if not is_instance_valid(_rig) or bone < 0 or not is_instance_valid(_player): return 0.0
+	var at: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(bone).origin
+	var fwd: Vector3 = _player._visual.global_basis.z
+	fwd.y = 0.0
+	if fwd.length_squared() < 1.0e-6: return 0.0
+	return (at - _player.global_position).dot(fwd.normalized())
 
 ## Horizontal distance from the drawing hand to the archer's own centre line, and
 ## the same for his elbow. These are the measurements that say whether the arm is

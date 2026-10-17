@@ -131,6 +131,13 @@ func refresh() -> void:
 	var reload := float(state.get("reloadRemaining",0))
 	var magazine := int(state.get("magazine",0)); var reserve := int(state.get("reserveAmmo",0))
 	var hud_signature := "%s:%d:%d:%.1f" % [id,magazine,reserve,reload]
+	# DSH_BOW_PROTO: the bow has no magazine, so its signature must carry the quiver
+	# count - without it the card froze at the first reading while the arrows fell.
+	var bow_now: Dictionary = {}
+	if id == BOW_ID:
+		var bow_node: Node = host.scene.get("preview_bow_prototype") if is_instance_valid(host.scene) else null
+		if is_instance_valid(bow_node): bow_now = bow_node.call("snapshot")
+		hud_signature = "%s:%d:%s" % [id, int(bow_now.get("arrows_left", 0)), str(bow_now.get("quiver_worn", false))]
 	if hud_signature != _hud_signature:
 		_hud_signature = hud_signature
 		if id != _previous_id:
@@ -140,10 +147,8 @@ func refresh() -> void:
 		elif id == BOW_ID:
 			# DSH_BOW_PROTO: the quiver is the bow's ammunition, so the card shows the
 			# arrows left instead of a meaningless empty magazine.
-			var bow_host: Node = host.scene.get("preview_bow_prototype") if is_instance_valid(host.scene) else null
-			var bow_state: Dictionary = bow_host.call("snapshot") if is_instance_valid(bow_host) else {}
-			if bool(bow_state.get("quiver_worn", false)):
-				ammo.text = "СТРЕЛ %d / 20" % int(bow_state.get("arrows_left", 0))
+			if bool(bow_now.get("quiver_worn", false)):
+				ammo.text = "СТРЕЛ %d / 20" % int(bow_now.get("arrows_left", 0))
 			else:
 				ammo.text = "БЕЗ КОЛЧАНА · 0 СТРЕЛ"
 		elif id == "none":
