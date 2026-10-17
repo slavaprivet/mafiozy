@@ -778,7 +778,9 @@ func _build_corner_towers() -> void:
 		add_child(corner_block)
 		var corner_shape := CollisionShape3D.new()
 		var corner_box := BoxShape3D.new()
-		corner_box.size = Vector3(TOWER_RADIUS * 2.6, WALL_HEIGHT, TOWER_RADIUS * 2.6)
+		# Just wide enough to close the joint: the first version was 2.6x the tower radius and
+		# stuck metres out from the corner, where it blocked a man walking near the wall.
+		corner_box.size = Vector3(TOWER_RADIUS * 1.35, WALL_HEIGHT, TOWER_RADIUS * 1.35)
 		corner_shape.shape = corner_box
 		corner_block.add_child(corner_shape)
 		# Slits, facing outwards at three heights.
