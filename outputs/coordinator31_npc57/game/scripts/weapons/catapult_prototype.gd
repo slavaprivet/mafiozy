@@ -1056,7 +1056,7 @@ func _update_aim() -> void:
 			if is_instance_valid(dot): dot.visible = false
 
 func _process(delta: float) -> void:
-	if not _ready or not is_instance_valid(_hud): return
+	if not _ready or not is_instance_valid(_prompt_panel): return
 	# Aiming is looking: the machine turns with the player while he stands at it.
 	if _occupied and is_instance_valid(_player):
 		var facing: Vector3 = _player._visual.global_basis.z
