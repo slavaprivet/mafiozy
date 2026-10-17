@@ -106,6 +106,8 @@ var _footsteps: Node  # DSH_STEPS
 ## DSH_CASTLE: a spawn point that is RE-ASSERTED for a few frames, because other boot steps
 ## were teleporting the player out of it afterwards.
 var _catapult_at_castle := false
+var _boot_clock := 0
+var _boot_last := 0
 var _castle_spawn_target := Vector3.ZERO
 var _castle_spawn_frames := 0
 var castle_status := "disabled"
@@ -276,7 +278,9 @@ func _ready() -> void:
 	preview_palazzo.name = "PalazzoHost"
 	add_child(preview_palazzo)
 	print("PALAZZO_GEOMETRY ", preview_palazzo.prepare(self))
+	_boot_clock = Time.get_ticks_msec()
 	_install_palazzo_clones()
+	_boot_mark("palazzo_clones")
 	if OS.get_cmdline_user_args().has("--city-venue-sites29=1") or player_shop_requested():
 		preview_service_sites29 = load("res://scripts/venues/npc_service_sites_host29.gd").new()
 		preview_service_sites29.name = "CompactServiceSites29"
@@ -338,7 +342,7 @@ func _ready() -> void:
 	_build_hud()
 	# Negotiate before any transport/support snapshots, without changing masks.
 	# Actual resident/weapon setup retains its existing later startup order.
-	if preview_residents_enabled or OS.get_cmdline_user_args().has("--preview-residents"):
+	if not castle_map and (preview_residents_enabled or OS.get_cmdline_user_args().has("--preview-residents")):
 		preview_population = PreviewPopulation.new()
 		if preview_final_dead_contact_enabled:
 			var contract: Dictionary = preview_population.final_dead_contact_startup_contract()
@@ -373,6 +377,7 @@ func _ready() -> void:
 		_install_preview_melee_practice()
 	if (preview_minimap_enabled or OS.get_cmdline_user_args().has("--preview-minimap")) and not OS.get_cmdline_user_args().has("--no-minimap"):
 		_install_preview_minimap()
+		_boot_mark("minimap")
 	if preview_weapons_enabled or OS.get_cmdline_user_args().has("--preview-weapons"):
 		var weapon_script: Script = load("res://scripts/weapons/preview_weapons.gd")
 		if weapon_script != null:
@@ -397,19 +402,25 @@ func _ready() -> void:
 	# DSH_SWORD_PROTO: the prototype host is always installed alongside the local
 	# arsenal, so the test sword can be picked in the existing weapon menu. It
 	# only acts while that item is equipped (no purchase, no ammo).
-	if preview_sword_prototype_enabled or is_instance_valid(preview_weapons) or OS.get_cmdline_user_args().has("--sword-proto=1"):
+	# DSH_OPT: on the castle map the weapon prototype, its help panel and the city population
+	# are never used - the panel is hidden and the population is switched off anyway - and
+	# building them costs about two seconds of the map load. They are skipped there only.
+	if not castle_map and (preview_sword_prototype_enabled or is_instance_valid(preview_weapons) or OS.get_cmdline_user_args().has("--sword-proto=1")):
 		_install_sword_prototype()  # DSH_SWORD_PROTO
+		_boot_mark("sword_pair")
 	# DSH_BOW_PROTO: the bow prototype rides along with the same arsenal, so it can
 	# be picked from the weapon menu next to the test sword.
 	# DSH_CATAPULT: the siege machine lives in the city and is always installed while a
 	# local arsenal exists, because it is part of the world rather than a test weapon.
 	if preview_catapult_enabled or is_instance_valid(preview_weapons) or OS.get_cmdline_user_args().has("--catapult=1"):
 		_install_catapult()
+		_boot_mark("catapult")
 	# DSH_CASTLE: the castle map. It is built as part of the same world but at its own
 	# place, and the player is moved into its courtyard.
 	if castle_map or OS.get_cmdline_user_args().has("--castle=1"):
 		_build_castle_map()
-	if preview_bow_prototype_enabled or is_instance_valid(preview_weapons) or OS.get_cmdline_user_args().has("--bow-proto=1"):
+		_boot_mark("castle")
+	if not castle_map and (preview_bow_prototype_enabled or is_instance_valid(preview_weapons) or OS.get_cmdline_user_args().has("--bow-proto=1")):
 		_install_bow_prototype()  # DSH_BOW_PROTO
 	if OS.get_cmdline_user_args().has("--bow-proto=1"):
 		_equip_bow_for_test()
@@ -452,11 +463,12 @@ func _ready() -> void:
 			print("DSH_THROWABLE_BINDING ",JSON.stringify(throw_setup))
 			if not throw_setup.get("ok",false):
 				player_throwables=null; throw_host.dispose()
-	if preview_residents_enabled or OS.get_cmdline_user_args().has("--preview-residents"):
+	if not castle_map and (preview_residents_enabled or OS.get_cmdline_user_args().has("--preview-residents")):
 		# Physics must see the authored colliders before source placement proofs.
 		await get_tree().physics_frame
 		await get_tree().physics_frame
 		preview_population.setup(self, true, preview_resident_walk_enabled)
+		_boot_mark("population")
 		population_status = preview_population.status
 		if population_status == "ready" and is_instance_valid(preview_melee):
 			var contact_binding: Dictionary = preview_melee.bind_combat(preview_population)
@@ -504,6 +516,17 @@ func _install_sword_prototype() -> bool:
 ## DSH_BOW_PROTO: same isolated-host pattern as the sword, with its own models,
 ## aim arc, projectile flight and HUD.
 ## DSH_CATAPULT: builds the machine in the street and reports how it went.
+## DSH_OPT: where the boot seconds go. Prints only when --castle-timing=1 is passed.
+func _boot_mark(label: String) -> void:
+	var timing := false
+	for argument: String in OS.get_cmdline_user_args():
+		if argument.begins_with("--castle-timing="):
+			timing = int(argument.trim_prefix("--castle-timing=")) != 0
+	if not timing: return
+	var now := Time.get_ticks_msec()
+	if _boot_last == 0: _boot_last = _boot_clock
+	print("DSH_BOOT ", label, " +", now - _boot_last, "ms total=", now - _boot_clock, "ms")
+	_boot_last = now
 func _install_catapult() -> bool:
 	if is_instance_valid(preview_catapult) or not is_instance_valid(_player): return false
 	var host: Node3D = CatapultPrototype.new()
@@ -570,10 +593,7 @@ func _build_castle_map() -> bool:
 		var sword_hint: Variant = preview_sword_prototype.get("_hint")
 		if sword_hint is CanvasItem:
 			(sword_hint as CanvasItem).visible = false
-	if is_instance_valid(preview_population):
-		preview_population.set_process(false)
-		preview_population.set_physics_process(false)
-		preview_population.process_mode = Node.PROCESS_MODE_DISABLED
+
 	# The catapult was installed before this map existed; put it in front of the gate now.
 	if is_instance_valid(preview_catapult) and preview_catapult.has_method("place_near_castle"):
 		preview_catapult.call("place_near_castle", castle)

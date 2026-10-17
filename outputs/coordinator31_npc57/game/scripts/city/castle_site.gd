@@ -27,6 +27,28 @@ var _debris_materials: Dictionary = {}
 ## DSH_OPT: dead stones come back here instead of being freed. A blast that reuses its stones
 ## allocates nothing, and allocation spikes are what a hitch is made of.
 var _debris_pool: Array[RigidBody3D] = []
+## DSH_OPT: the build is timed by phase when --castle-timing=1 is passed, so a slow map
+## load is attacked where the seconds actually are.
+var _phase_us := 0
+var _phase_name := ""
+var _phase_report: Array[String] = []
+var _phase_enabled := false
+
+func _phase(label: String) -> void:
+	var now := Time.get_ticks_usec()
+	if _phase_name != "":
+		_phase_report.append("%s=%.1fms" % [_phase_name, float(now - _phase_us) / 1000.0])
+	_phase_name = label
+	_phase_us = now
+
+func _phase_done() -> void:
+	var now := Time.get_ticks_usec()
+	if _phase_name != "":
+		_phase_report.append("%s=%.1fms" % [_phase_name, float(now - _phase_us) / 1000.0])
+	_phase_name = ""
+	if _phase_enabled:
+		print("DSH_PHASES ", " ".join(_phase_report))
+	_phase_report.clear()
 const DEBRIS_POOL_MAX := 220
 var _reused_stones := 0
 
@@ -75,39 +97,72 @@ var _world_ref: Node3D
 func install(world: Node3D, origin: Vector3) -> Dictionary:
 	if _ready: return {"ok": false, "reason": "already"}
 	if not is_instance_valid(world): return {"ok": false, "reason": "no_world"}
+	# DSH_OPT: --castle-timing=1 prints what each phase of the build costs.
+	for argument: String in OS.get_cmdline_user_args():
+		if argument.begins_with("--castle-timing="):
+			_phase_enabled = int(argument.trim_prefix("--castle-timing=")) != 0
 	_world_ref = world
 	_player = world.get("_player") as CharacterBody3D
+	if _phase_enabled: _phase("_build_materials")
 	_build_materials()
 	_brick_mesh = BoxMesh.new()
 	_brick_mesh.size = BRICK
+	if _phase_enabled: _phase("_build_environment")
 	_build_environment()
+	if _phase_enabled: _phase("_build_ground")
 	_build_ground()
+	if _phase_enabled: _phase("_build_path")
 	_build_path()
+	if _phase_enabled: _phase("_build_curtain_walls")
 	_build_curtain_walls()
+	if _phase_enabled: _phase("_build_corner_towers")
 	_build_corner_towers()
+	if _phase_enabled: _phase("_build_gatehouse")
 	_build_gatehouse()
+	if _phase_enabled: _phase("_build_stairs")
 	_build_stairs()
+	if _phase_enabled: _phase("_build_wall_walks")
 	_build_wall_walks()
+	if _phase_enabled: _phase("_build_keep")
 	_build_keep()
+	if _phase_enabled: _phase("_build_keep_details")
 	_build_keep_details()
+	if _phase_enabled: _phase("_build_gate_arch")
 	_build_gate_arch()
+	if _phase_enabled: _phase("_build_banners")
 	_build_banners()
+	if _phase_enabled: _phase("_build_ring_road")
 	_build_ring_road()
+	if _phase_enabled: _phase("_build_tower_platforms")
 	_build_tower_platforms()
+	if _phase_enabled: _phase("_build_gate_bridge")
 	_build_gate_bridge()
+	if _phase_enabled: _phase("_build_far_slabs")
 	_build_far_slabs()
+	if _phase_enabled: _phase("_build_string_courses")
 	_build_string_courses()
+	if _phase_enabled: _phase("_build_wall_banners")
 	_build_wall_banners()
+	if _phase_enabled: _phase("_build_brick_floor")
 	_build_brick_floor()
+	if _phase_enabled: _phase("_add_rubble")
 	_add_rubble()
+	if _phase_enabled: _phase("_build_torches")
 	_build_torches()
+	if _phase_enabled: _phase("_build_portcullis")
 	_build_portcullis()
+	if _phase_enabled: _phase("_build_gate_lamps")
 	_build_gate_lamps()
+	if _phase_enabled: _phase("_build_gate_deck")
 	_build_gate_deck()
+	if _phase_enabled: _phase("_cull_small_shadows")
 	_cull_small_shadows()
 	# Same triangles, same materials, same shadows - just not one draw call per bracket.
+	if _phase_enabled: _phase("_batch_static_decoration")
 	_batch_static_decoration()
+	if _phase_enabled: _phase("_flush_buckets")
 	_flush_buckets()
+	if _phase_enabled: _phase_done()
 	_ready = true
 	return {"ok": true, "origin": origin, "bricks": _cells.size(),
 		"gates": _gate_leaves.size(), "stats": get_stats()}
