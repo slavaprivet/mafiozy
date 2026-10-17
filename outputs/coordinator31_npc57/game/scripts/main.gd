@@ -546,6 +546,24 @@ func _build_castle_map() -> bool:
 		_player.set_mouse_captured(true)
 	# DSH_CASTLE: the city has no business running on this map at all - stop the population
 	# node's own processing as well as the steps this script used to drive.
+	# A CLEAN SCREEN FOR A SIEGE. The city's control hint, the update banner and a full-size
+	# map belong to the town. The hint and the banner go, the map is cut down.
+	for child: Node in get_children():
+		if child == castle or child == _player or child == preview_catapult: continue
+		var child_script: String = ""
+		var script_ref: Variant = child.get_script()
+		if script_ref != null and script_ref is Script:
+			child_script = (script_ref as Script).resource_path
+		if child_script.find("quick_controls") >= 0 or child_script.find("update_panel") >= 0:
+			if child is CanvasItem:
+				(child as CanvasItem).visible = false
+			else:
+				child.process_mode = Node.PROCESS_MODE_DISABLED
+	if is_instance_valid(preview_minimap):
+		var map_layer := preview_minimap.get("_map")
+		if map_layer is Control:
+			(map_layer as Control).scale = Vector2(0.62, 0.62)
+			(map_layer as Control).pivot_offset = Vector2.ZERO
 	# The sword's help panel is a test tool and has no business on a siege map: it covers a
 	# quarter of the screen. Hidden here and kept hidden below.
 	if is_instance_valid(preview_sword_prototype):
