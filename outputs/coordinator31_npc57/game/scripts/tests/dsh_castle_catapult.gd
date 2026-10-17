@@ -7,6 +7,7 @@ var _scene: Node
 var _player: CharacterBody3D
 var _castle: Node3D
 var _catapult: Node3D
+var cart_from := Vector3.ZERO
 
 func _initialize() -> void:
 	_run()
@@ -53,6 +54,7 @@ func _run() -> void:
 	await _settle(4)
 	var aimed: Dictionary = _catapult.call("snapshot")
 	print("CSCAT_AIM yaw=", aimed.get("yaw", 0.0), " elevation=", aimed.get("elevation", 0.0))
+	cart_from = (_catapult.call("snapshot") as Dictionary).get("cart", Vector3.ZERO)
 	_catapult.call("_fire")
 	var fired := false
 	for i: int in 400:

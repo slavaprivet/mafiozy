@@ -35,6 +35,7 @@ func _run() -> void:
 	print("CASTLE_BUILT ", JSON.stringify(start))
 	# Optimisation, measured: how many chunks exist at all, and how many the camera
 	# actually has to draw. Also the raw frame rate over two seconds.
+	print("CASTLE_LEAF ", JSON.stringify(start.get("leaf", {})))
 	var render: Dictionary = _castle.call("render_stats")
 	var frames := 0
 	var started := Time.get_ticks_msec()

@@ -42,6 +42,10 @@ func _run() -> void:
 	# The map is a hundred and forty metres across, so the views are taken from outside it
 	# and from above, not from where the old courtyard camera stood.
 	var shots := [
+		{"name": "gate_close", "pos": base + Vector3(2.0, 6.0, half + 12.0),
+			"look": base + Vector3(0.0, 6.0, half)},
+		{"name": "gate_inside", "pos": base + Vector3(0.0, 5.0, half - 12.0),
+			"look": base + Vector3(0.0, 6.0, half)},
 		{"name": "gate_outside", "pos": base + Vector3(0.0, height * 0.55, half + 58.0),
 			"look": base + Vector3(0.0, height * 0.6, half)},
 		{"name": "whole_castle", "pos": base + Vector3(half + 72.0, height * 2.6, half + 72.0),
@@ -51,6 +55,21 @@ func _run() -> void:
 		{"name": "courtyard", "pos": base + Vector3(0.0, 16.0, half - 12.0),
 			"look": base + Vector3(0.0, 18.0, -30.0)},
 	]
+	# What is actually on the line of sight to the gate? A door that renders black and a
+	# door that is not there look the same from a distance, and they are different bugs.
+	var from: Vector3 = base + Vector3(2.0, 6.0, half + 6.0)
+	var to: Vector3 = base + Vector3(-2.4, 6.0, half)
+	var query := PhysicsRayQueryParameters3D.create(from, to, 1 | 5 | 256)
+	var hit: Dictionary = root.world_3d.direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		print("SHOTS_RAY nothing between the camera and the door")
+	else:
+		var collider: Node = hit.get("collider")
+		print("SHOTS_RAY hit=", collider.name if is_instance_valid(collider) else "?",
+			" at=", hit.get("position"), " meta_gate=",
+			is_instance_valid(collider) and collider.get_meta("castle_gate", false))
+		var leaf: Dictionary = _castle.call("get_stats").get("leaf", {})
+		print("SHOTS_LEAF ", JSON.stringify(leaf))
 	for shot: Dictionary in shots:
 		_camera.global_position = shot["pos"]
 		_camera.look_at(shot["look"], Vector3.UP)
