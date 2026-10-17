@@ -51,6 +51,23 @@ func _walk_sample(label: String) -> Dictionary:
 	print("STANCE ", label, " ", JSON.stringify(result))
 	return result
 
+## Standing still, through a full breathing cycle: the legs must not move at all now
+## that the pelvis belongs to the walk animation.
+func _idle_sample(label: String) -> Dictionary:
+	# Let him come to a complete stand first: a walk-to-idle transition moves the feet
+	# far more than any idle sway, and measuring through it would blame the idle.
+	await _settle(70)
+	var gap_min := 99.0
+	var gap_max := 0.0
+	for i: int in 320:
+		await process_frame
+		var gap := _foot_gap()
+		gap_min = minf(gap_min, gap)
+		gap_max = maxf(gap_max, gap)
+	var result := {"gap_min": gap_min, "gap_max": gap_max, "swing": gap_max - gap_min}
+	print("STANCE_IDLE ", label, " ", JSON.stringify(result))
+	return result
+
 func _run() -> void:
 	var packed: PackedScene = load("res://scenes/main_city.tscn")
 	if packed == null:
@@ -95,12 +112,20 @@ func _run() -> void:
 	Input.parse_input_event(press)
 	await _settle(6)
 
+	var idle_plain := await _idle_sample("no_weapon")
+	_weapons.call("equip", "sword")
+	await _settle(10)
+	var idle_sword := await _idle_sample("sword_idle")
 	var base_gap := float(plain.get("gap_max", 0.0))
 	var carried_min := float(carried.get("gap_min", 0.0))
 	var swinging_min := float(swinging.get("gap_min", 0.0))
 	var verdict := {
 		"stance_survives_the_weapon": carried_min > base_gap * 0.55,
 		"stance_survives_the_swing": swinging_min > base_gap * 0.40,
+		# Standing still, the feet must not drift at all: any drift is the body layer
+		# moving the legs, which is what "the legs open and close" looked like.
+		"legs_are_still_while_idle": float(idle_sword.get("swing", 9.0)) < 0.02,
+		"idle_matches_the_baseline": absf(float(idle_sword.get("gap_max", 0.0)) - float(idle_plain.get("gap_max", 0.0))) < 0.02,
 	}
 	var failed: Array[String] = []
 	for key: String in verdict.keys():

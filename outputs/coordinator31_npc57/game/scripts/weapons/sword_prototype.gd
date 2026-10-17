@@ -2544,23 +2544,6 @@ func _apply_chain(bone: int, yaw: float, pitch: float, roll: float,
 	var local := _rig.get_bone_pose(bone)
 	_rig.set_bone_pose(bone, Transform3D((Basis(turn) * local.basis).orthonormalized(), local.origin))
 
-## The legs: the front knee takes the weight in the coil, the back leg drives through
-## the cut, and both settle afterwards. This is the "упор" - the stance has to hold.
-func _animate_legs(delta: float, axis_right: Vector3, axis_fwd: Vector3) -> void:
-	var front_bend := 0.22 * _brace * (1.0 - 0.5 * absf(_anticipation))
-	var back_push := 0.16 * _brace * (0.4 + 0.6 * maxf(0.0, -_anticipation + 1.0))
-	for spec: Array in [
-		[_bone_thigh_front, front_bend, axis_right], [_bone_shin_front, -front_bend * 1.35, axis_right],
-		[_bone_thigh_back, -back_push * 0.7, axis_right], [_bone_shin_back, back_push * 0.9, axis_right],
-	]:
-		var bone: int = spec[0]
-		if bone < 0: continue
-		var amount := float(spec[1])
-		if absf(amount) < 0.002: continue
-		var turn := Quaternion(spec[2], amount)
-		var local := _rig.get_bone_pose(bone)
-		_rig.set_bone_pose(bone, Transform3D((Basis(turn) * local.basis).orthonormalized(), local.origin))
-
 ## A landed blow jolts the frame; this is what the player feels when the blade bites.
 func register_impact_jolt(strength: float) -> void:
 	_impact_jolt = minf(IMPACT_JOLT_LIMIT, _impact_jolt + IMPACT_JOLT_LIMIT * clampf(strength, 0.0, 1.0))
@@ -2636,10 +2619,12 @@ func _lean_body(want_dir: Vector3, delta: float) -> void:
 	_chain_roll.x = _chain_link(_chain_roll.x, chest_roll * 0.40, delta)
 	_chain_roll.y = _chain_link(_chain_roll.y, _chain_roll.x * 0.85, delta)
 	_chain_roll.z = _chain_link(_chain_roll.z, _chain_roll.y, delta)
-	_apply_chain(_bone_pelvis, _chain_yaw.x, _chain_pitch.x, _chain_roll.x, axis_up, axis_right, axis_fwd)
+	# DSH_ANIM: THE PELVIS AND THE LEGS ARE NOT TOUCHED. The pelvis is the parent of both
+	# legs, so rotating it swings them sideways, and the leg brace rotated the thighs
+	# directly - together they read as the legs opening and closing while he walks. The
+	# legs belong to the walking gait; this layer now owns everything ABOVE the hips.
 	_apply_chain(_bone_spine, _chain_yaw.y, _chain_pitch.y, _chain_roll.y, axis_up, axis_right, axis_fwd)
 	_apply_chain(_bone_chest, _chain_yaw.z, _chain_pitch.z, _chain_roll.z, axis_up, axis_right, axis_fwd)
-	_animate_legs(delta, axis_right, axis_fwd)
 	# 4. The head counter-turns against the torso so the eyes keep following the
 	# blade through the whole cut instead of swinging away with the chest.
 	if _bone_head >= 0 and (absf(_chain_yaw.z) > 0.02 or absf(_anticipation) > 0.02):
