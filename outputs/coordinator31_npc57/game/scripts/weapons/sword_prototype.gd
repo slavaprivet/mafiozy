@@ -401,6 +401,187 @@ func is_steering() -> bool:
 
 # ---------------------------------------------------------------- construction
 
+## DSH_MELEE_SET: the SHIELD - worn in the second hand, raised with the right button.
+##
+## It is not a magic "block": it covers a real piece of space around its own boss,
+## anything that lands inside that space is stopped outright, and the shield wears with
+## every blow it takes. As it is beaten down its coverage SHRINKS, so a battered shield
+## stops protecting the shoulder and the ribs and finally only the centre.
+const SHIELD_MAX_HP := 130.0
+const SHIELD_RADIUS := 0.62        ## coverage radius with a fresh shield, fully raised
+const SHIELD_WEAR_SCALE := 1.0     ## shield HP lost per point of incoming damage
+const SHIELD_RAISE_RATE := 9.0
+const SHIELD_RAISE_NEEDED := 0.55  ## below this the shield is still coming up
+var _shield_hp := SHIELD_MAX_HP
+var _shield_worn := false
+var _shield_broken := false
+var _shield_raise := 0.0
+var _shield: Node3D
+var _shield_blocks_total := 0
+var _shield_absorbed := 0.0
+var _bone_shield_hand := -1
+
+## The shield goes in the hand that is NOT carrying the weapon, so a shield and a sword
+## are usable together, which is the whole point of carrying one.
+func _shield_side() -> StringName:
+	return &"left" if _carry_side != &"left" else &"right"
+
+## How much space the shield covers right now: it grows as it comes up and shrinks as it
+## is beaten down.
+func _shield_coverage() -> float:
+	if _shield_broken: return 0.0
+	var health := clampf(_shield_hp / SHIELD_MAX_HP, 0.0, 1.0)
+	return SHIELD_RADIUS * lerpf(0.42, 1.0, health) * lerpf(0.45, 1.0, _shield_raise)
+
+## The shield's covering point in world space: where its boss sits.
+func _shield_centre() -> Vector3:
+	if is_instance_valid(_shield): return _shield.global_position
+	var arm := _arm_set(_shield_side())
+	if is_instance_valid(_rig) and arm.hand >= 0:
+		return (_rig.global_transform * _rig.get_bone_global_pose(int(arm.hand))).origin
+	return _player.global_position + Vector3.UP * 1.2
+
+## A blow landing inside the shield is stopped by it, not by the body.
+func _shield_blocks(at: Vector3) -> bool:
+	if not _shield_worn or _shield_broken or _shield_raise < SHIELD_RAISE_NEEDED: return false
+	return _shield_centre().distance_to(at) <= _shield_coverage()
+
+## Takes the wear of a stopped blow. Returns true when the shield has just failed.
+func _shield_take_blow(amount: float) -> bool:
+	var wear := maxf(1.0, amount * SHIELD_WEAR_SCALE)
+	_shield_hp = maxf(0.0, _shield_hp - wear)
+	_shield_blocks_total += 1
+	_shield_absorbed += amount
+	if _shield_hp <= 0.0 and not _shield_broken:
+		_shield_broken = true
+		return true
+	return false
+
+## Builds the shield: planks, a steel rim, a central boss and two straps, curved so it
+## is a shape rather than a plank.
+func _build_shield_model(parent: Node3D) -> Node3D:
+	_weapon_materials()
+	var shield := Node3D.new()
+	shield.name = "PrototypeShield"
+	parent.add_child(shield)
+	var plank := StandardMaterial3D.new()
+	plank.albedo_color = Color(0.46, 0.30, 0.16)
+	plank.roughness = 0.82
+	var face := StandardMaterial3D.new()
+	face.albedo_color = Color(0.52, 0.36, 0.20)
+	face.roughness = 0.78
+	# The face is a heater shape: wide at the top, drawn to a point at the bottom.
+	# It is built from a few tapering boxes so it reads as a real shield from the front.
+	var widths := [0.66, 0.62, 0.54, 0.42, 0.26]
+	var heights := 0.16
+	for i: int in widths.size():
+		var slab := MeshInstance3D.new()
+		var box := BoxMesh.new()
+		box.size = Vector3(float(widths[i]), heights, 0.055)
+		slab.mesh = box
+		slab.material_override = plank if i % 2 == 0 else face
+		# Slight curve: the middle of the shield sits forward of its edges.
+		var curve := 0.03 * (1.0 - absf(float(i) - 2.0) / 2.0)
+		slab.position = Vector3(0.0, 0.34 - float(i) * heights, curve)
+		shield.add_child(slab)
+	# Steel rim down both edges and across the top.
+	for side: float in [-1.0, 1.0]:
+		var rim := MeshInstance3D.new()
+		var rim_mesh := BoxMesh.new()
+		rim_mesh.size = Vector3(0.035, 0.80, 0.075)
+		rim.mesh = rim_mesh
+		rim.material_override = _mat_steel
+		rim.position = Vector3(side * 0.33, -0.02, 0.02)
+		rim.rotation = Vector3(0.0, 0.0, side * 0.05)
+		shield.add_child(rim)
+	var top_rim := MeshInstance3D.new()
+	var top_mesh := BoxMesh.new()
+	top_mesh.size = Vector3(0.70, 0.035, 0.075)
+	top_rim.mesh = top_mesh
+	top_rim.material_override = _mat_steel
+	top_rim.position = Vector3(0.0, 0.42, 0.01)
+	shield.add_child(top_rim)
+	# The boss: a domed steel centre that is what the blows actually strike.
+	var boss := MeshInstance3D.new()
+	var boss_mesh := SphereMesh.new()
+	boss_mesh.radius = 0.075
+	boss_mesh.height = 0.11
+	boss.mesh = boss_mesh
+	boss.material_override = _mat_steel
+	boss.position = Vector3(0.0, 0.10, 0.055)
+	shield.add_child(boss)
+	# A diagonal band across the face, so it is not a plain board.
+	var band := MeshInstance3D.new()
+	var band_mesh := BoxMesh.new()
+	band_mesh.size = Vector3(0.10, 0.74, 0.062)
+	band.mesh = band_mesh
+	band.material_override = _mat_brass
+	band.position = Vector3(0.0, 0.02, 0.045)
+	band.rotation = Vector3(0.0, 0.0, deg_to_rad(38.0))
+	shield.add_child(band)
+	# Arm straps on the back, where the hand actually goes.
+	for y: float in [0.20, -0.10]:
+		var strap := MeshInstance3D.new()
+		var strap_mesh := BoxMesh.new()
+		strap_mesh.size = Vector3(0.24, 0.05, 0.20)
+		strap.mesh = strap_mesh
+		strap.material_override = _mat_leather
+		strap.position = Vector3(0.0, y, -0.09)
+		shield.add_child(strap)
+	return shield
+
+## Places the shield in its hand and raises it as the right button is held.
+func _place_shield() -> void:
+	if not _shield_worn: return
+	if not is_instance_valid(_shield):
+		_shield = _build_shield_model(_world)
+	if not is_instance_valid(_shield): return
+	var arm := _arm_set(_shield_side())
+	if not is_instance_valid(_rig) or arm.hand < 0:
+		_shield.visible = false
+		return
+	_shield.visible = not _shield_broken
+	var aim: Vector3 = _player._visual.global_basis.z.normalized()
+	var hand: Vector3 = (_rig.global_transform * _rig.get_bone_global_pose(int(arm.hand))).origin
+	# Raised: the shield comes up and across, covering the chest and the leading side.
+	# Stowed: it hangs at the side, face down.
+	var up_amount := clampf(_shield_raise, 0.0, 1.0)
+	var raised: Vector3 = _player.global_position + Vector3.UP * 1.22 + aim * 0.46 \
+		+ _player._visual.global_basis.x * (_left_sign * -0.16)
+	var stowed: Vector3 = hand - aim * 0.06 - Vector3.UP * 0.10
+	var place: Vector3 = stowed.lerp(raised, up_amount)
+	_shield.global_position = place
+	# The face looks where the danger comes from; while stowed it hangs.
+	var face_dir: Vector3 = aim if up_amount > 0.05 else (-Vector3.UP)
+	if face_dir.length_squared() > 1.0e-6:
+		_shield.look_at(place + face_dir, Vector3.UP, true)
+	# Beaten-down shields sit lower and tilt away, which is what shrinking coverage
+	# looks like from outside.
+	if _shield_broken:
+		_shield.visible = false
+
+## What the shield is doing, for the HUD and for the checks.
+func shield_status() -> Dictionary:
+	return {
+		"worn": _shield_worn, "broken": _shield_broken,
+		"hp": _shield_hp, "max_hp": SHIELD_MAX_HP,
+		"raise": _shield_raise, "coverage_m": _shield_coverage(),
+		"blocks": _shield_blocks_total, "absorbed": _shield_absorbed,
+		"centre": _shield_centre(),
+	}
+
+## Equips or stows the shield, and puts it on the ground with the weapon when dropped.
+func set_shield_worn(worn: bool) -> void:
+	_shield_worn = worn
+	if worn and _shield_hp <= 0.0:
+		# A broken shield is a fresh one when it is taken up again from the menu.
+		_shield_hp = SHIELD_MAX_HP
+		_shield_broken = false
+	if not worn and is_instance_valid(_shield):
+		_shield.visible = false
+	if is_instance_valid(_shield):
+		_shield.visible = worn and not _shield_broken
+
 ## DSH_MELEE_SET: builds the model for whichever weapon is equipped. Every model is
 ## laid out with its point or head along local +X, because that is the axis the
 ## sweep, the IK and the placement maths all assume.
@@ -1603,6 +1784,11 @@ func _physics_process(delta: float) -> void:
 	_swing_travel = _windup_angle()
 	_block_push = _block_push.lerp(Vector3.ZERO, clampf(6.0 * delta, 0.0, 1.0))
 	_body_push = _body_push.lerp(Vector3.ZERO, clampf(BODY_PUSH_DECAY * delta, 0.0, 1.0))
+	# The shield comes up while the right button is held and drops back when it is let
+	# go: that IS the block animation.
+	if _shield_worn and not _shield_broken:
+		var want_raise := 1.0 if (_hold_right or _blocking) else 0.0
+		_shield_raise = move_toward(_shield_raise, want_raise, SHIELD_RAISE_RATE * delta)
 	_solve_arm(delta)
 	# The blade is never allowed to point behind the player.
 	_dir = _soft_body_limit(_constrain_forward(_dir), 0.10, 0.16)
@@ -1848,6 +2034,9 @@ func _process(delta: float) -> void:
 	if armed_with_sword and not _sword_grounded:
 		_sword.visible = true
 		_attach_sword_to_fist()
+	# DSH_MELEE_SET: the shield hangs in the second hand, here in the draw frame where
+	# the rig has already settled.
+	_place_shield()
 	# DSH_MELEE_SET: the right button is the aiming stance for a throwable weapon, so
 	# the arc is drawn here - after the model has been placed on the fist.
 	if _aiming_throw and is_throwable() and not _unarmed:
@@ -2696,6 +2885,19 @@ func _register_clash(at: Vector3) -> void:
 ## the ordinary HUD reacts, with a local sparring counter as a fallback.
 var _last_player_hit_ms := -1000
 func _apply_player_damage(amount: float, at: Vector3, direction: Vector3) -> void:
+	# DSH_MELEE_SET: the SHIELD. A blow that lands inside its coverage is stopped by
+	# it: the body takes nothing, no limb is damaged, and the shield wears instead.
+	# Checked BEFORE the wound is tracked, which is what makes it a real block.
+	if _shield_blocks(at):
+		var failed := _shield_take_blow(amount)
+		_impact_player.global_position = at
+		_impact_player.pitch_scale = 1.35 if failed else 1.1
+		_impact_player.play()
+		_block_push = (_block_push + direction.normalized() * 0.10).limit_length(0.5)
+		print("DSH_SHIELD_BLOCK amount=", amount, " hp=", _shield_hp,
+			" coverage=", _shield_coverage(), " broken=", _shield_broken)
+		if is_instance_valid(_player): _player.apply_contact_melee_impulse(direction, 8.0)
+		return
 	# The wound lands on a real part of the body: it is tracked and, when it gives
 	# out, that limb comes off the player exactly as it does off the opponent.
 	_player_take_blade(amount, at, direction)
@@ -4307,6 +4509,7 @@ func snapshot() -> Dictionary:	return {
 		"aiming_throw": _aiming_throw, "throw_aim_dots": _aim_visible, "throw_aim_range": _aim_range,
 		"thrown_total": _thrown_total, "thrown_alive": _thrown_alive(),
 		"thrown_at": _thrown_position(), "ground_swords": _ground_swords.size(),
+		"shield": shield_status(),
 		"blade_from": _sword_origin, "blade_to": _sword_origin + _dir * (0.06 + _weapon_length),
 		"blade_body_dot": _dir.dot(_player._visual.global_basis.z) if is_instance_valid(_player) and is_instance_valid(_player._visual) else -1.0,
 		"hand_local_z": (_player._visual.global_basis.inverse() * (_sword_origin - _player._visual.global_position)).z if is_instance_valid(_player) and is_instance_valid(_player._visual) else 0.0,

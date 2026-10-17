@@ -21,13 +21,13 @@ var _hud_signature := ""
 var _menu_signature := ""
 var _inventory_revision := 0
 var _previous_id := ""
-const FAMILIES := {"none":"УБРАТЬ ОРУЖИЕ","sword":"МЕЧ · БЛИЖНИЙ БОЙ","mace":"БУЛАВА · ОДНОРУЧНОЕ","axe":"ТОПОР · ДВУРУЧНОЕ","sledge":"КУВАЛДА · ДВУРУЧНОЕ","spear":"КОПЬЁ · КОЛЮЩЕЕ","bow":"ЛУК · ДАЛЬНИЙ БОЙ","nagan":"РЕВОЛЬВЕР","tt_pistol":"ПИСТОЛЕТ","revolver":"РЕВОЛЬВЕР","deagle":"ТЯЖЁЛЫЙ ПИСТОЛЕТ","golden_colt":"ПИСТОЛЕТ","sawn_off":"ДРОБОВИК","shotgun":"ДРОБОВИК","uzi":"ПИСТОЛЕТ-ПУЛЕМЁТ","golden_uzi":"ПИСТОЛЕТ-ПУЛЕМЁТ","ak74":"АВТОМАТ","m16":"АВТОМАТ","tommy_gun":"ПИСТОЛЕТ-ПУЛЕМЁТ","sniper":"ВИНТОВКА","rpg":"ГРАНАТОМЁТ"}
+const FAMILIES := {"none":"УБРАТЬ ОРУЖИЕ","sword":"МЕЧ · БЛИЖНИЙ БОЙ","mace":"БУЛАВА · ОДНОРУЧНОЕ","axe":"ТОПОР · ДВУРУЧНОЕ","sledge":"КУВАЛДА · ДВУРУЧНОЕ","spear":"КОПЬЁ · КОЛЮЩЕЕ","bow":"ЛУК · ДАЛЬНИЙ БОЙ","shield":"ЩИТ · БЛОК (ПКМ)","nagan":"РЕВОЛЬВЕР","tt_pistol":"ПИСТОЛЕТ","revolver":"РЕВОЛЬВЕР","deagle":"ТЯЖЁЛЫЙ ПИСТОЛЕТ","golden_colt":"ПИСТОЛЕТ","sawn_off":"ДРОБОВИК","shotgun":"ДРОБОВИК","uzi":"ПИСТОЛЕТ-ПУЛЕМЁТ","golden_uzi":"ПИСТОЛЕТ-ПУЛЕМЁТ","ak74":"АВТОМАТ","m16":"АВТОМАТ","tommy_gun":"ПИСТОЛЕТ-ПУЛЕМЁТ","sniper":"ВИНТОВКА","rpg":"ГРАНАТОМЁТ"}
 ## DSH_SWORD_PROTO: the prototype sword is always available in the arsenal menu.
 const SWORD_ID := "sword"
 ## DSH_BOW_PROTO: the test bow, shown with its quiver count on the weapon card.
 const BOW_ID := "bow"
 ## DSH_MELEE_SET: every melee weapon of the set, shown with its own category.
-const MELEE_IDS := {"sword":"МЕЧ · БЛИЖНИЙ БОЙ", "mace":"БУЛАВА · ОДНОРУЧНОЕ", "axe":"ТОПОР · ДВУРУЧНОЕ", "sledge":"КУВАЛДА · ДВУРУЧНОЕ", "spear":"КОПЬЁ · КОЛЮЩЕЕ"}
+const MELEE_IDS := {"shield":"ЩИТ · БЛОК (ПКМ)", "sword":"МЕЧ · БЛИЖНИЙ БОЙ", "mace":"БУЛАВА · ОДНОРУЧНОЕ", "axe":"ТОПОР · ДВУРУЧНОЕ", "sledge":"КУВАЛДА · ДВУРУЧНОЕ", "spear":"КОПЬЁ · КОЛЮЩЕЕ"}
 
 static func panel_style(background: String, border: String, radius: int = 6) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()

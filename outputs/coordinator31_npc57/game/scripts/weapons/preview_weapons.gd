@@ -12,7 +12,7 @@ const Projectiles = preload("res://scripts/weapons/weapon_projectiles.gd")
 const SurfaceImpacts = preload("res://scripts/weapons/weapon_surface_impacts.gd")
 const Posture = preload("res://scripts/weapons/weapon_posture_base.gd")
 signal shot_emitted(shot: Dictionary, muzzle: Dictionary, camera_origin: Vector3, camera_direction: Vector3)
-const LABELS := {"none":"Без оружия", "sword":"Тестовый меч (прототип)", "bow":"Тестовый лук (прототип)", "mace":"Булава (прототип)", "axe":"Двуручный топор (прототип)", "sledge":"Кувалда (прототип)", "spear":"Копьё (прототип)", "nagan":"Наган", "tt_pistol":"ТТ", "revolver":"Револьвер", "deagle":"Desert Eagle", "golden_colt":"Золотой Colt", "sawn_off":"Обрез", "shotgun":"Дробовик", "uzi":"Uzi", "golden_uzi":"Золотой Uzi", "ak74":"АК-74", "m16":"M16", "tommy_gun":"Томпсон", "sniper":"Снайперская винтовка", "rpg":"РПГ"}
+const LABELS := {"none":"Без оружия", "sword":"Тестовый меч (прототип)", "bow":"Тестовый лук (прототип)", "mace":"Булава (прототип)", "axe":"Двуручный топор (прототип)", "sledge":"Кувалда (прототип)", "spear":"Копьё (прототип)", "shield":"Щит (прототип)", "nagan":"Наган", "tt_pistol":"ТТ", "revolver":"Револьвер", "deagle":"Desert Eagle", "golden_colt":"Золотой Colt", "sawn_off":"Обрез", "shotgun":"Дробовик", "uzi":"Uzi", "golden_uzi":"Золотой Uzi", "ak74":"АК-74", "m16":"M16", "tommy_gun":"Томпсон", "sniper":"Снайперская винтовка", "rpg":"РПГ"}
 ## DSH_SWORD_PROTO: the prototype sword is a melee item, not a firearm. It is
 ## always available in the existing arsenal menu (no purchase, no ammo) and it
 ## only routes input to the prototype host while it is the equipped item.
@@ -21,6 +21,8 @@ const SWORD_ID := "sword"
 const BOW_ID := "bow"
 ## DSH_MELEE_SET: every melee weapon of the set, always available and free of charge.
 const MELEE_IDS := ["sword", "mace", "axe", "sledge", "spear"]
+## DSH_MELEE_SET: the shield is worn, not held, so it has its own equip path.
+const SHIELD_ID := "shield"
 var aim_camera: RefCounted
 var inventory: RefCounted
 var presentation: RefCounted
@@ -137,6 +139,7 @@ func equip(id: String) -> Dictionary:
 	# DSH_MELEE_SET / DSH_SWORD_PROTO: the whole melee set is always available and
 	# never consumes inventory ownership or ammunition. It disables the firearm
 	# presentation, and only one weapon host is ever selected at a time.
+	if id == SHIELD_ID: return _equip_shield()
 	if id in MELEE_IDS: return _equip_melee(id)
 	if id == BOW_ID: return _equip_bow_prototype()
 	_sword_prototype_selected(false)
@@ -174,6 +177,20 @@ func _equip_melee(id: String) -> Dictionary:
 	set_menu(false)
 	_refresh_ui()
 	return {"ok":true,"weaponId":id,"melee":true,"ammo_free":true}
+
+## Wears or stows the shield. It goes in the hand that is not carrying the weapon.
+func _equip_shield() -> Dictionary:
+	cancel_inputs()
+	var prototype: Node = scene.get("preview_sword_prototype") if is_instance_valid(scene) else null
+	if is_instance_valid(prototype) and prototype.has_method("set_shield_worn"):
+		var worn: bool = not bool(prototype.shield_status().get("worn", false))
+		prototype.set_shield_worn(worn)
+		if worn:
+			_sword_prototype_selected(true)
+		set_menu(false)
+		_refresh_ui()
+		return {"ok":true,"weaponId":SHIELD_ID,"shield":worn}
+	return {"ok":false,"reason":"no_prototype"}
 
 ## Tells the host which weapon of the set to present.
 func _sword_prototype_weapon(id: String) -> void:
