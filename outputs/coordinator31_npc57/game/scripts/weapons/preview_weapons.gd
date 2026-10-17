@@ -123,7 +123,15 @@ func _menu_allowed() -> bool:
 	return player._pose_authority == &"on_foot"
 
 func _combat_allowed() -> bool:
-	return _owner_current() and player._free_mouse_look and player._pose_authority == &"on_foot" and not bool(scene.get("preview_dead")) and not bool(scene.get("preview_physics_fault"))
+	if not _owner_current(): return false
+	if bool(scene.get("preview_dead")) or bool(scene.get("preview_physics_fault")): return false
+	if player._pose_authority != &"on_foot": return false
+	# DSH_MELEE_SET: the ARSENAL owns the cursor while it is open, so "the mouse is
+	# captured" cannot be a condition for it - the arsenal is exactly what released it.
+	# Requiring capture here made combat "not allowed", and advance() then closed the
+	# arsenal on the very next physics frame, which is why its cards could not be
+	# clicked.
+	return player._free_mouse_look or menu_open
 
 func armed() -> bool:
 	return ready_for_play and fire_state.get("weaponId", "none") != "none"
@@ -239,22 +247,28 @@ func _bow_prototype_selected(selected: bool) -> void:
 func bow_selected() -> bool:
 	return ready_for_play and fire_state.get("weaponId","none") == BOW_ID
 
+## DSH_MELEE_SET: the menu transition is guarded against re-entrancy.
+## Releasing the pointer calls the host's release_controls(), which itself calls
+## set_menu(false) - so without this guard the nested call closed the arsenal that the
+## outer call was in the middle of opening, and the cards were never clickable.
+var _menu_transition := false
+
 func set_menu(open: bool) -> void:
+	if _menu_transition: return
 	if open and not _menu_allowed(): return
 	if open and cargo_menu_active(): cargo_menu_owner.close_window(false)
 	var was_open := menu_open
+	_menu_transition = true
+	# The arsenal OWNS the cursor while it is open: freeing it through the player's own
+	# API is what makes the cards clickable, and it is done inside the guard so the
+	# nested close it triggers cannot undo this transition.
 	menu_open = open
 	cancel_inputs()
 	if is_instance_valid(_menu): _menu.visible = open
-	if _owner_current():
-		# A direct equip/cargo transfer does not own pointer capture. Only an
-		# actual menu transition changes it; blur remains owned by the player.
-		if open or was_open:
-			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if open or not player._free_mouse_look else Input.MOUSE_MODE_CAPTURED
-		for action: StringName in [player.ACTION_LEFT,player.ACTION_RIGHT,player.ACTION_FORWARD,player.ACTION_BACK,player.ACTION_RUN,player.ACTION_JUMP]:
-			if InputMap.has_action(action): Input.action_release(action)
 	_refresh_ui()
-
+	if _owner_current() and (open or was_open):
+		player.set_mouse_captured(not open)
+	_menu_transition = false
 func cancel_inputs(reset_camera: bool = true) -> void:
 	if reset_camera and aim_camera!=null: aim_camera.reset()
 	_combat_active=false
@@ -288,7 +302,9 @@ func _inventory_state(state: Dictionary) -> Dictionary:
 func release_controls() -> void:
 	if cargo_menu_active(): cargo_menu_owner.close_window(false)
 	cancel_inputs()
-	set_menu(false)
+	# DSH_MELEE_SET: when the ARSENAL is the one freeing the pointer, this must not
+	# close it again. Esc still closes it, because that release is not a transition.
+	if not _menu_transition: set_menu(false)
 
 func input_event(event: InputEvent) -> bool:
 	if cargo_menu_active(): return cargo_menu_owner.window_input(event)
