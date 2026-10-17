@@ -108,7 +108,7 @@ func _build_ground() -> void:
 	slab_mesh.size = Vector3(600.0, 2.0, 600.0)
 	slab.mesh = slab_mesh
 	slab.material_override = _materials["grass"]
-	slab.position.y = -1.0
+	slab.position.y = -1.03
 	_ground.add_child(slab)
 
 ## ------------------------------------------------------------------ light and setting
@@ -170,14 +170,14 @@ func _build_path() -> void:
 	road_box.size = Vector3(11.0, 0.12, 42.0)
 	road_mesh.mesh = road_box
 	road_mesh.material_override = road
-	road_mesh.position = Vector3(0.0, -0.06, WALL_HALF + 21.0)
+	road_mesh.position = Vector3(0.0, -0.04, WALL_HALF + 21.0)
 	add_child(road_mesh)
 	var courtyard := MeshInstance3D.new()
 	var courtyard_box := BoxMesh.new()
 	courtyard_box.size = Vector3(WALL_HALF * 2.0 - 2.0, 0.12, WALL_HALF * 2.0 - 2.0)
 	courtyard.mesh = courtyard_box
 	courtyard.material_override = cobble
-	courtyard.position = Vector3(0.0, -0.06, 0.0)
+	courtyard.position = Vector3(0.0, -0.04, 0.0)
 	add_child(courtyard)
 
 ## Torches on either side of the gate and along the wall-walk: light is what makes stone
