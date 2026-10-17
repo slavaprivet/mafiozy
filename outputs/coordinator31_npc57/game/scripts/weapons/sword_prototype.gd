@@ -421,10 +421,16 @@ var _shield_blocks_total := 0
 var _shield_absorbed := 0.0
 var _bone_shield_hand := -1
 
-## The shield goes in the hand that is NOT carrying the weapon, so a shield and a sword
-## are usable together, which is the whole point of carrying one.
+## The shield is worn on the RIGHT hand, as asked. On this mirrored rig `_arm_set` maps
+## the string "right" to the bones that RENDER on the character's right.
 func _shield_side() -> StringName:
-	return &"left" if _carry_side != &"left" else &"right"
+	return &"right"
+
+## One hand cannot hold a weapon and a shield at once, so while the shield is worn the
+## weapon is carried in the other hand.
+func _carry_side_effective() -> StringName:
+	if _shield_worn and _carry_side == &"right": return &"left"
+	return _carry_side
 
 ## How much space the shield covers right now: it grows as it comes up and shrinks as it
 ## is beaten down.
@@ -2296,7 +2302,7 @@ func _active_side() -> StringName:
 	# always held in both hands; a mace never is; the sword can be either.
 	var grip := str(weapon_entry().get("grip", "both_optional"))
 	if grip == "two": return &"both"
-	if grip == "one": return _carry_side if _carry_side != &"both" else &"right"
+	if grip == "one": return _carry_side_effective() if _carry_side != &"both" else &"right"
 	if _hold_left and _hold_right: return &"both"
 	if _hold_left: return &"left"
 	if _hold_right: return &"right"
