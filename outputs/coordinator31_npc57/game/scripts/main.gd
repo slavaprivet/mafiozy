@@ -103,6 +103,10 @@ var catapult_status := "disabled"
 @export var castle_map: bool = false
 var preview_castle: Node
 var _footsteps: Node  # DSH_STEPS
+## DSH_CASTLE: a spawn point that is RE-ASSERTED for a few frames, because other boot steps
+## were teleporting the player out of it afterwards.
+var _castle_spawn_target := Vector3.ZERO
+var _castle_spawn_frames := 0
 var castle_status := "disabled"
 var preview_melee: Node
 var melee_status := "disabled"
@@ -539,9 +543,12 @@ func _build_castle_map() -> bool:
 		var cart: Variant = preview_catapult.get("_cart")
 		if is_instance_valid(cart) and is_instance_valid(_player):
 			var cart_pos: Vector3 = (cart as Node3D).global_position
-			_player.global_position = cart_pos + Vector3(0.0, 0.2, -4.0)
+			# BEHIND the machine, facing it and the wall beyond: the gate is at -Z from here.
+			_player.global_position = cart_pos + Vector3(0.0, 0.2, 4.5)
 			_player.velocity = Vector3.ZERO
 			_player.set("_camera_yaw", PI)
+			_castle_spawn_target = cart_pos + Vector3(0.0, 0.2, 4.5)
+			_castle_spawn_frames = 20
 			print("DSH_CASTLE_SPAWN_AT_CATAPULT player=", _player.global_position, " cart=", cart_pos)
 	if is_instance_valid(_player):
 		_player.global_position = castle.call("spawn_point")
@@ -1094,6 +1101,10 @@ func _advance_printshop_door_motion(delta: float) -> void:
 	_printshop.advance(delta, _current_door_occupants())
 
 func _physics_process(delta: float) -> void:
+	if _castle_spawn_frames > 0 and is_instance_valid(_player):
+		_castle_spawn_frames -= 1
+		_player.global_position = _castle_spawn_target
+		_player.velocity = Vector3.ZERO
 	if not preview_ready:
 		return
 	_door_feedback_seconds = maxf(0.0, _door_feedback_seconds - delta)

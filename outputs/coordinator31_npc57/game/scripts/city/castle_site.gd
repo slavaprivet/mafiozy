@@ -895,7 +895,9 @@ func _build_gatehouse() -> void:
 		if side < 0.0: _gate_left = pivot
 		else: _gate_right = pivot
 	# THE LEVER, inside the courtyard by the gate: a post, a handle, and a hinge of its own.
-	var lever_base := at + Vector3(GATE_WIDTH * 0.5 + 2.4, 0.0, -0.75)
+	# Right beside the gate on the courtyard side, where a man coming out of the doors
+	# cannot miss it.
+	var lever_base := at + Vector3(GATE_WIDTH * 0.5 + 1.3, 0.0, -1.1)
 	var post := MeshInstance3D.new()
 	var post_mesh := CylinderMesh.new()
 	post_mesh.top_radius = 0.16
@@ -927,6 +929,13 @@ func _build_gatehouse() -> void:
 	_lever_pivot.add_child(handle)
 	_lever_pivot.rotation.z = 0.5
 	_lever_pos = lever_base + Vector3.UP * 1.1
+	# A lamp over the lever: a mechanism nobody can find is a mechanism nobody uses.
+	var lever_lamp := OmniLight3D.new()
+	lever_lamp.light_color = Color(1.0, 0.78, 0.45)
+	lever_lamp.light_energy = 2.2
+	lever_lamp.omni_range = 6.0
+	lever_lamp.position = lever_base + Vector3.UP * 2.1
+	add_child(lever_lamp)
 
 ## Two flights up to the wall-walk, for archers.
 ##
@@ -1039,26 +1048,53 @@ func _build_stair_flight(normal: Vector3, name: String) -> void:
 	# The wall head is where the flight ENDS; the foot runs back into the courtyard.
 	var top_centre: Vector3 = -inward * (WALL_HALF - 2.2) + lateral * lateral_offset
 	var bottom_centre: Vector3 = top_centre + inward * length
-	# THE FLIGHT IS A WEDGE from the ground to the wall head: its hypotenuse is the stair,
-	# its vertical face is the wall end, its underside lies on the ground. A tilted slab
-	# leaves open air underneath - a man could walk under the staircase and could not use
-	# it, which is exactly what the last version did.
-	var points := PackedVector3Array()
-	for wsign: float in [-1.0, 1.0]:
-		var side_vec: Vector3 = lateral * (wsign * width * 0.5)
-		points.append(bottom_centre + side_vec)
-		points.append(top_centre + side_vec)
-		points.append(top_centre + side_vec + Vector3.UP * top_height)
-	var body := StaticBody3D.new()
-	body.collision_layer = 1
-	body.collision_mask = 1
-	add_child(body)
-	var shape := CollisionShape3D.new()
-	var prism := ConvexPolygonShape3D.new()
-	prism.points = points
-	shape.shape = prism
-	body.add_child(shape)
-	# The steps, drawn but not colliding: the wedge carries the man. They must climb the
+	# THE FLIGHT IS A THIN DECK ON PILLARS. A solid wedge from the ground up is a wall you
+	# cannot pass, and a man should be able to walk under a staircase - that is where a
+	# castle puts its stores. The deck carries the climb, the pillars stand every couple of
+	# metres, and between them there is a way through.
+	var slope: Vector3 = -inward
+	var deck_thickness := 0.45
+	var deck_point_a: Vector3 = bottom_centre - Vector3.UP * (deck_thickness * 0.5)
+	var deck_point_b: Vector3 = top_centre + Vector3.UP * (top_height - deck_thickness * 0.5)
+	var deck_mid: Vector3 = (deck_point_a + deck_point_b) * 0.5
+	var deck_length: float = (deck_point_b - deck_point_a).length()
+	var deck_up: Vector3 = (Vector3.UP - slope * slope.dot(Vector3.UP)).normalized()
+	var deck_basis := Basis(lateral, deck_up, -slope)
+	var deck := StaticBody3D.new()
+	deck.collision_layer = 1
+	deck.collision_mask = 1
+	deck.set_meta("surface", "stone")
+	deck.transform = Transform3D(deck_basis, deck_mid)
+	add_child(deck)
+	var deck_shape := CollisionShape3D.new()
+	var deck_box := BoxShape3D.new()
+	deck_box.size = Vector3(width, deck_thickness, deck_length)
+	deck_shape.shape = deck_box
+	deck.add_child(deck_shape)
+	var stations: int = maxi(2, int(length / 2.6))
+	for station: int in stations:
+		var along: float = (float(station) + 0.5) * (length / float(stations))
+		var height: float = (along / length) * top_height
+		var at: Vector3 = bottom_centre + slope * along + Vector3.UP * (height * 0.5 - deck_thickness)
+		var pillar := StaticBody3D.new()
+		pillar.collision_layer = 1
+		pillar.collision_mask = 1
+		pillar.set_meta("surface", "stone")
+		pillar.position = at
+		add_child(pillar)
+		var pillar_shape := CollisionShape3D.new()
+		var pillar_box := BoxShape3D.new()
+		pillar_box.size = Vector3(0.8, maxf(0.4, height - deck_thickness), 0.8)
+		pillar_shape.shape = pillar_box
+		pillar.add_child(pillar_shape)
+		var pillar_mesh := MeshInstance3D.new()
+		var pillar_mesh_box := BoxMesh.new()
+		pillar_mesh_box.size = pillar_box.size
+		pillar_mesh.mesh = pillar_mesh_box
+		pillar_mesh.material_override = _materials["cold"]
+		pillar_mesh.position = at
+		add_child(pillar_mesh)
+	# The steps, drawn but not colliding: the deck carries the man. They must climb the
 	# SAME WAY as the wedge - towards the wall - or the stone you see and the stone you walk
 	# on are two different staircases, and the end of the wedge shows as a flat grey face at
 	# the foot of the steps.
