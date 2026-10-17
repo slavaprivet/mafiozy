@@ -539,6 +539,12 @@ func _build_castle_map() -> bool:
 	# control is behind a captured mouse, and a siege where you cannot move is not a test.
 	if is_instance_valid(_player):
 		_player.set_mouse_captured(true)
+	# DSH_CASTLE: the city has no business running on this map at all - stop the population
+	# node's own processing as well as the steps this script used to drive.
+	if is_instance_valid(preview_population):
+		preview_population.set_process(false)
+		preview_population.set_physics_process(false)
+		preview_population.process_mode = Node.PROCESS_MODE_DISABLED
 	# The catapult was installed before this map existed; put it in front of the gate now.
 	if is_instance_valid(preview_catapult) and preview_catapult.has_method("place_near_castle"):
 		preview_catapult.call("place_near_castle", castle)
@@ -1142,18 +1148,20 @@ func _physics_process(delta: float) -> void:
 				# (accumulated - .0499) s per city step.
 				var dsh_one_delta := minf(.0499, _dsh_one_carry)
 				_dsh_one_carry = 0.0
-				preview_population.step(dsh_one_delta)
+				if not is_instance_valid(preview_castle): preview_population.step(dsh_one_delta)
 		elif dsh_stride > 1 and (preview_population.get("city_ready") == true):
 			_dsh_stride_tick += 1
 			_dsh_stride_carry += delta
 			# DSH_RIGCACHE: drive the stride from the physics frame counter, otherwise the
 			# city telemetry gates (frame % 30) stop coinciding with the stepped frames.
 			if Engine.get_physics_frames() % dsh_stride == 0:
-				preview_population.step(minf(.0499, _dsh_stride_carry))
+				if not is_instance_valid(preview_castle): preview_population.step(minf(.0499, _dsh_stride_carry))
 				_dsh_stride_carry = 0.0
 		else:
 			_dsh_stride_carry = 0.0
-			preview_population.step(delta)
+			# DSH_CASTLE: no city on the castle map - this every-frame step was the
+			# one-per-second stall measured while walking.
+			if not is_instance_valid(preview_castle): preview_population.step(delta)
 	_update_door_hint()
 
 func _setup_preview_perf() -> void:
