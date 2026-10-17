@@ -2568,10 +2568,14 @@ func register_impact_jolt(strength: float) -> void:
 func _lean_body(want_dir: Vector3, delta: float) -> void:
 	var rig_basis := _rig.global_transform.basis
 	var inv := rig_basis.inverse()
-	var axis_right := (inv * Vector3(1.0, 0.0, 0.0)).normalized()
-	var axis_fwd := (inv * Vector3(0.0, 0.0, 1.0)).normalized()
-	var axis_up := (inv * Vector3(0.0, 1.0, 0.0)).normalized()
 	var visual: Node3D = _player._visual
+	# DSH_ANIM: the body axes must be the CHARACTER's own, not the world's. They used
+	# to be the world axes, which is only correct while he happens to be facing along
+	# world +Z. Facing any other way, a rotation meant to swing a leg fore and aft swung
+	# it SIDEWAYS instead - which is what pulled the legs together on a walk.
+	var axis_right := (inv * visual.global_basis.x).normalized()
+	var axis_fwd := (inv * visual.global_basis.z).normalized()
+	var axis_up := (inv * visual.global_basis.y).normalized()
 	var world_fwd: Vector3 = -visual.global_basis.z
 	var world_right: Vector3 = visual.global_basis.x
 	# 1. Torso yaw toward the commanded blade direction. A live cut turns the body
