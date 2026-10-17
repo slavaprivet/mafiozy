@@ -308,22 +308,51 @@ func release_controls() -> void:
 
 func input_event(event: InputEvent) -> bool:
 	if cargo_menu_active(): return cargo_menu_owner.window_input(event)
-	if not _owner_current() or not player._free_mouse_look: return false
+	if not _owner_current(): return false
+	# DSH_MELEE_SET: THE CURSOR MAY LEGITIMATELY BE FREE - at the very start of a session,
+	# after Esc, after Alt-tab - and the arsenal's own keys must still work. Requiring a
+	# captured mouse here meant Q and the weapon keys were dead exactly when a player was
+	# most likely to press them, and no weapon could be taken at all.
+	if not player._free_mouse_look:
+		if not (event is InputEventKey) or not event.pressed or event.echo: return false
+		var loose_code: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
+		if loose_code == KEY_Q and _menu_allowed():
+			player.set_mouse_captured(true)
+			set_menu(not menu_open)
+			return true
+		var loose_hot: String = ""
+		match loose_code:
+			KEY_1: loose_hot = "sword"
+			KEY_2: loose_hot = "mace"
+			KEY_3: loose_hot = "axe"
+			KEY_4: loose_hot = "sledge"
+			KEY_5: loose_hot = "spear"
+			KEY_6: loose_hot = "shield"
+		if loose_hot != "":
+			if menu_open: set_menu(false)
+			player.set_mouse_captured(true)
+			equip(loose_hot)
+			return true
+		return false
 	if event is InputEventKey:
 		if event.pressed and not event.echo:
 			var code: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
 			if code == KEY_Q and _interaction_allowed(): set_menu(not menu_open); return true
-			# DSH_MELEE_SET: a DIRECT path to the set, independent of the arsenal window.
-			# If the menu is ever in a bad state the player can still take a weapon, and it
-			# says at once whether a fault is in the menu or in the presentation.
-			if not menu_open:
-				match code:
-					KEY_1: equip("sword"); return true
-					KEY_2: equip("mace"); return true
-					KEY_3: equip("axe"); return true
-					KEY_4: equip("sledge"); return true
-					KEY_5: equip("spear"); return true
-					KEY_6: equip("shield"); return true
+			# DSH_MELEE_SET: a DIRECT path to the set. It works whether the arsenal window is
+			# open or not, and closes it behind itself: a hotkey is a complete command, not a
+			# selection that still needs a second click.
+			var hot: String = ""
+			match code:
+				KEY_1: hot = "sword"
+				KEY_2: hot = "mace"
+				KEY_3: hot = "axe"
+				KEY_4: hot = "sledge"
+				KEY_5: hot = "spear"
+				KEY_6: hot = "shield"
+			if hot != "":
+				if menu_open: set_menu(false)
+				equip(hot)
+				return true
 			if code == KEY_ESCAPE and menu_open:
 				set_menu(false); player.set_mouse_captured(false); return true
 			if menu_open: return true
