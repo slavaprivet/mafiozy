@@ -487,7 +487,10 @@ func movement_speed(standing_speed: float) -> float:
 func _can_occupy_posture(height: float,_target: String) -> bool:
 	if not _owner_current() or not is_finite(height) or height<.62 or height>1.9: return false
 	_posture_shape.radius=.30; _posture_shape.height=height-.012
-	_posture_query.transform=Transform3D(Basis.IDENTITY,player.global_position+Vector3.UP*(height*.5+.007))
+	# DSH_CASTLE: the clearance probe used to start 7 mm above the boots, which is a
+	# contact, not a clearance: on the castle's own ground the probe touched the paving
+	# and every crouch was refused. Five centimetres is still a real clearance test.
+	_posture_query.transform=Transform3D(Basis.IDENTITY,player.global_position+Vector3.UP*(height*.5+.05))
 	return player.get_world_3d().direct_space_state.intersect_shape(_posture_query,1).is_empty()
 
 func _projectile_ray(request: Dictionary) -> Dictionary:

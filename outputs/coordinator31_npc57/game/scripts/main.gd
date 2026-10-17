@@ -788,6 +788,14 @@ func _cache_jump_surface_contains() -> void:
 		_jump_surface_offsets.append(Vector2(cos(angle), sin(angle)))
 
 func preview_jump_surface_allowed(feet_world: Vector3, radius: float = 0.36) -> bool:
+	# DSH_CASTLE: the castle is its own map with its own ground, and the city's cell grid
+	# knows nothing about it. Without this the jump AND the dive are dead there - which is
+	# exactly the report of "I cannot jump and the double jump does nothing".
+	if is_instance_valid(preview_castle) and feet_world.is_finite():
+		var castle_local: Vector3 = preview_castle.to_local(feet_world)
+		if absf(castle_local.x) <= 62.0 and absf(castle_local.z) <= 62.0 \
+				and castle_local.y > -3.0 and castle_local.y < 40.0:
+			return true
 	# Exact source circle sample count: centre +12, bounded cached lookups only.
 	# Player separately owns swept substeps, physical collision/height/ceiling.
 	if _jump_surface_cells.is_empty() or not feet_world.is_finite() or not is_finite(radius) or radius <= 0.0:

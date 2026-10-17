@@ -170,14 +170,14 @@ func _build_path() -> void:
 	road_box.size = Vector3(11.0, 0.12, 42.0)
 	road_mesh.mesh = road_box
 	road_mesh.material_override = road
-	road_mesh.position = Vector3(0.0, 0.06, WALL_HALF + 21.0)
+	road_mesh.position = Vector3(0.0, -0.06, WALL_HALF + 21.0)
 	add_child(road_mesh)
 	var courtyard := MeshInstance3D.new()
 	var courtyard_box := BoxMesh.new()
 	courtyard_box.size = Vector3(WALL_HALF * 2.0 - 2.0, 0.12, WALL_HALF * 2.0 - 2.0)
 	courtyard.mesh = courtyard_box
 	courtyard.material_override = cobble
-	courtyard.position = Vector3(0.0, 0.05, 0.0)
+	courtyard.position = Vector3(0.0, -0.06, 0.0)
 	add_child(courtyard)
 
 ## Torches on either side of the gate and along the wall-walk: light is what makes stone
@@ -633,27 +633,74 @@ func _build_gatehouse() -> void:
 		leaf.set_meta("castle_gate", true)
 		_gate_leaves.append({"body": leaf, "side": side, "detached": false})
 
+## Two flights up to the wall-walk, for archers.
+##
+## The steps are DRAWN, and an invisible RAMP carries the player up underneath them. A
+## stair built from boxes of collision is a stair a character gets stuck on - the first
+## version used half-metre steps and a single rectangular block for the whole flight, and
+## he could not get up it at all. A ramp cannot be stuck on, and the steps are what is seen.
 func _build_stairs() -> void:
 	for side: float in [-1.0, 1.0]:
-		var steps := int(WALL_HEIGHT / 0.52)
-		for i: int in steps:
-			var at := Vector3(side * WALL_HALF * 0.55, 0.26 + float(i) * 0.52,
-				WALL_HALF - 4.0 - float(i) * 0.66)
-			_add_brick(at, Vector3(3.4, 0.52, 0.78), "cold", Vector3.ZERO, "stairs", i, 0)
-		# The stair is solid underfoot.
+		var rise := 0.26
+		var run := 0.36
+		var width := 2.8
+		var steps := int(ceil(WALL_HEIGHT / rise))
+		var length := float(steps) * run
+		var x := side * WALL_HALF * 0.52
+		var z_bottom := WALL_HALF - 3.0
+		var z_top := z_bottom - length
+		var top_height := float(steps) * rise
+		# The ramp: one box, tilted, its top face running from BELOW THE GROUND up to the
+		# wall-walk. Its lower end must be buried, because a ramp that starts exactly at
+		# floor level presents its own one-metre end face as a wall - which is precisely
+		# what the first version did, and the man could not walk onto it.
+		var angle := atan2(top_height, length)
+		var bury := 0.6
+		var start_point := Vector3(x, -bury, z_bottom + bury / maxf(0.05, tan(angle)))
+		var end_point := Vector3(x, top_height, z_top)
+		var forward := (end_point - start_point).normalized()
+		var up := Vector3(0.0, cos(angle), sin(angle))
+		var slope_length := (end_point - start_point).length()
+		var basis := Basis(Vector3(1.0, 0.0, 0.0), up, -forward)
+		var mid := (start_point + end_point) * 0.5
+		var thickness := 1.2
 		var body := StaticBody3D.new()
 		body.collision_layer = 1
 		body.collision_mask = 1
-		body.position = Vector3(side * WALL_HALF * 0.55, WALL_HEIGHT * 0.5,
-			WALL_HALF - 4.0 - float(steps) * 0.33)
+		body.transform = Transform3D(basis, mid - up * (thickness * 0.5))
 		add_child(body)
 		var shape := CollisionShape3D.new()
 		var box := BoxShape3D.new()
-		box.size = Vector3(3.4, WALL_HEIGHT, float(steps) * 0.66)
+		box.size = Vector3(width, thickness, slope_length)
 		shape.shape = box
-		body.add_child(shape)
-		body.rotation.x = 0.0
-
+		body.add_child(shape)		# The steps themselves, as bricks, with no collision of their own.
+		var step_material: String = "cold"
+		for i: int in steps:
+			var at := Vector3(x, rise * (float(i) + 0.5), z_bottom - run * (float(i) + 0.5))
+			_add_brick(at, Vector3(width, rise, run * 1.04), step_material, Vector3.ZERO, "stairs", i, 0)
+		# A parapet along the open side, so the flight reads as a stair and not as a slope.
+		for i: int in steps:
+			var at := Vector3(x + side * width * 0.5 - side * 0.18,
+				rise * (float(i) + 0.5) + 0.5, z_bottom - run * (float(i) + 0.5))
+			_add_brick(at, Vector3(0.32, 1.0, run * 1.04), "stone", Vector3.ZERO, "stairs_rail", i, 0)
+		# And the wall-walk it leads onto: a real place to stand behind the battlements.
+		var walk := StaticBody3D.new()
+		walk.collision_layer = 1
+		walk.collision_mask = 1
+		walk.position = Vector3(x, WALL_HEIGHT + 0.02, WALL_HALF - 1.6)
+		add_child(walk)
+		var walk_shape := CollisionShape3D.new()
+		var walk_box := BoxShape3D.new()
+		walk_box.size = Vector3(width + 1.2, 0.16, 3.4)
+		walk_shape.shape = walk_box
+		walk.add_child(walk_shape)
+		var walk_mesh := MeshInstance3D.new()
+		var walk_mesh_box := BoxMesh.new()
+		walk_mesh_box.size = walk_box.size
+		walk_mesh.mesh = walk_mesh_box
+		walk_mesh.material_override = _materials["warm"]
+		walk_mesh.position = walk.position
+		add_child(walk_mesh)
 func _build_keep() -> void:
 	var base := Vector3(0.0, 0.0, -8.0)
 	var courses := int(KEEP_SIZE.y / BRICK.y)
