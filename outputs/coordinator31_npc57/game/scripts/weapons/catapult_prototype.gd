@@ -396,15 +396,37 @@ func _build_hud() -> void:
 	var layer := CanvasLayer.new()
 	layer.layer = 13
 	add_child(layer)
-	_hud = Label.new()
-	# Below the sword help panel: at 120 the machine's prompts were drawn underneath it and
-	# the player never saw "E - зарядить" or "E - выстрелить".
-	# Clear of the sword help panel (x 300-690) and of the mini-map: the prompts are drawn
-	# where nothing covers them, or the player never sees "E - зарядить".
-	_hud.position = Vector2(700, 150)
-	_hud.add_theme_font_size_override("font_size", 22)
-	_hud.add_theme_color_override("font_color", Color(1.0, 0.86, 0.42))
-	layer.add_child(_hud)
+	# ONE-TO-ONE WITH THE CAR'S PROMPT: a small dark plate, a yellow key badge with a dark
+	# "E", and one line of text, hung in the world above the thing it is about.
+	var panel := PanelContainer.new()
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.04, 0.05, 0.06, 0.9)
+	style.content_margin_left = 6
+	style.content_margin_right = 6
+	style.content_margin_top = 4
+	style.content_margin_bottom = 4
+	panel.add_theme_stylebox_override("panel", style)
+	panel.visible = false
+	layer.add_child(panel)
+	_prompt_panel = panel
+	var row := HBoxContainer.new()
+	panel.add_child(row)
+	var key := PanelContainer.new()
+	var key_style := StyleBoxFlat.new()
+	key_style.bg_color = Color("f0c86b")
+	key.add_theme_stylebox_override("panel", key_style)
+	key.custom_minimum_size = Vector2(24, 24)
+	row.add_child(key)
+	var key_label := Label.new()
+	key_label.text = "E"
+	key_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	key_label.add_theme_color_override("font_color", Color("15191b"))
+	key.add_child(key_label)
+	var text := Label.new()
+	text.add_theme_font_size_override("font_size", 14)
+	row.add_child(text)
+	_prompt_label = text
 
 ## ------------------------------------------------------------------ input
 func _input(event: InputEvent) -> void:
@@ -1057,30 +1079,38 @@ func _process(delta: float) -> void:
 			_elevation = lerpf(_elevation, from_look, clampf(4.5 * delta, 0.0, 1.0))
 
 	if not _active():
-		_hud.text = ""
+		_prompt_panel.visible = false
 		return
 	var player_at: Vector3 = _player.global_position
-	var lines: Array[String] = []
-	lines.append("КАТАПУЛЬТА · снаряд %.0f кг · колёса" % STONE_MASS)
 	var at_frame: bool = player_at.distance_to(_cart.global_position) <= FRAME_RANGE
 	var at_spoon: bool = player_at.distance_to(_spoon_point()) <= FRAME_RANGE
-	if at_frame and _stone_on_spoon and not _flying:
-		lines.append("E — ВЫСТРЕЛИТЬ · наводись ВЗГЛЯДОМ · колесо — угол %.0f°" % rad_to_deg(_elevation))
-	elif _carrying_stone and at_spoon:
-		lines.append("E — положить камень в ложечку · G — бросить где стоишь")
+	var near_stone: bool = is_instance_valid(_stone) \
+		and player_at.distance_to(_stone.global_position) <= CARRY_RANGE
+	var prompt := ""
+	var anchor: Vector3 = _cart.global_position + Vector3.UP * 1.9
+	if _carrying_stone and at_spoon:
+		prompt = "  положить камень в ложечку"
+		anchor = _spoon_point() + Vector3.UP * 0.9
 	elif _carrying_stone:
-		lines.append("Неси камень к катапульте · G — бросить где стоишь")
-	elif at_frame:
-		lines.append("E — встать к катапульте · наводись взглядом · колесо — угол")
-	elif _stone_on_spoon:
-		lines.append("Камень на ложечке · иди к станине и жми E")
-	elif player_at.distance_to(_stone.global_position) <= CARRY_RANGE and not _flying:
-		lines.append("E — взять камень · G — бросить")
-	if _pushers > 0:
-		lines.append("КАТЯТ: %d · %.2f м/с" % [_pushers, _push_speed])
-	if _fired > 0 or _travelled > 1.0:
-		lines.append("выстрелов %d · пройдено %.0f м" % [_fired, _travelled])
-	_hud.text = "\n".join(lines)
+		prompt = ""
+	elif at_frame and _stone_on_spoon and not _flying and not _winding:
+		prompt = "  выстрелить"
+	elif _winding:
+		prompt = "  заряжается…"
+	elif _stone_on_spoon and not _flying:
+		prompt = "  камень в ложке — иди к станине"
+		anchor = _spoon_point() + Vector3.UP * 0.9
+	elif near_stone and not _flying:
+		prompt = "  взять камень"
+		anchor = _stone.global_position + Vector3.UP * 0.8
+	_prompt_panel.visible = prompt != ""
+	if _prompt_panel.visible:
+		_prompt_label.text = prompt
+		_prompt_panel.reset_size()
+		var camera := get_viewport().get_camera_3d()
+		if camera != null and not camera.is_position_behind(anchor):
+			_prompt_panel.position = camera.unproject_position(anchor) \
+				- Vector2(_prompt_panel.size.x * 0.5, _prompt_panel.size.y)
 
 ## ------------------------------------------------------------------ telemetry
 func snapshot() -> Dictionary:
