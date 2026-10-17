@@ -105,6 +105,7 @@ var preview_castle: Node
 var _footsteps: Node  # DSH_STEPS
 ## DSH_CASTLE: a spawn point that is RE-ASSERTED for a few frames, because other boot steps
 ## were teleporting the player out of it afterwards.
+var _catapult_at_castle := false
 var _castle_spawn_target := Vector3.ZERO
 var _castle_spawn_frames := 0
 var castle_status := "disabled"
@@ -515,6 +516,10 @@ func _install_catapult() -> bool:
 		return false
 	preview_catapult = host
 	catapult_status = "ready"
+	# DSH_CASTLE: if the map is already built, the machine belongs at its gate - the build
+	# order is not guaranteed, so this is handled from BOTH sides.
+	if is_instance_valid(preview_castle) and host.has_method("place_near_castle"):
+		host.call("place_near_castle", preview_castle)
 	print("DSH_CATAPULT ", JSON.stringify(installed))
 	return true
 
@@ -1111,6 +1116,13 @@ func _advance_printshop_door_motion(delta: float) -> void:
 	_printshop.advance(delta, _current_door_occupants())
 
 func _physics_process(delta: float) -> void:
+	# DSH_CASTLE: the machine is installed by one boot step and the map built by another, in
+	# an order that is not guaranteed. Once both exist the machine is moved to the gate, and
+	# this cannot be missed the way a one-shot call can.
+	if not _catapult_at_castle and is_instance_valid(preview_castle) \
+			and is_instance_valid(preview_catapult) and preview_catapult.has_method("place_near_castle"):
+		_catapult_at_castle = true
+		preview_catapult.call("place_near_castle", preview_castle)
 	if _castle_spawn_frames > 0 and is_instance_valid(_player):
 		_castle_spawn_frames -= 1
 		_player.global_position = _castle_spawn_target

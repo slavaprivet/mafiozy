@@ -283,6 +283,8 @@ func _place_cart_near_palazzo() -> void:
 ## DSH_CASTLE: called once the castle exists - the machine is installed before the map is
 ## built, so it cannot know about the gate at install time.
 func place_near_castle(castle: Node3D) -> void:
+	print("DSH_CATAPULT_PLACE_CALL castle=", is_instance_valid(castle),
+		" cart=", is_instance_valid(_cart), " half_method=", castle.has_method("wall_half") if is_instance_valid(castle) else false)
 	if not is_instance_valid(castle) or not is_instance_valid(_cart): return
 	if not castle.has_method("wall_half"): return
 	var half: float = float(castle.call("wall_half"))
@@ -860,6 +862,27 @@ func _impact(hit: Dictionary) -> void:
 	var direction: Vector3 = _fly_velocity.normalized()
 	_hits += 1
 	var delivered := false
+	# DSH_CASTLE: anything that lands INSIDE the castle's footprint is the castle's business.
+	# Asking the collider whether it belonged was too strict - the wall is a plain static
+	# body - so every stone that struck the masonry was refused by the castle and then
+	# refused again by the palazzo, which is exactly why a shot broke nothing.
+	var castle_host: Variant = _world.get("preview_castle") if is_instance_valid(_world) else null
+	if is_instance_valid(castle_host) and castle_host.has_method("wall_half"):
+		var half: float = float(castle_host.call("wall_half"))
+		var local_point: Vector3 = (castle_host as Node3D).to_local(point)
+		if absf(local_point.x) <= half + 8.0 and absf(local_point.z) <= half + 8.0 \
+				and local_point.y > -2.0 and local_point.y < 45.0:
+			var castle_result: Variant = castle_host.call("apply_explosion", {
+				"position": point, "radius": BLAST_RADIUS, "power": BLAST_POWER,
+				"direction": direction, "event_id": "catapult-castle:%d" % _hits,
+			})
+			var castle_ok: bool = castle_result is Dictionary and bool(castle_result.get("ok", false))
+			_last_impact = {"ok": castle_ok, "result": castle_result, "point": point, "castle": true}
+			print("DSH_CATAPULT_CASTLE delivered=", castle_ok, " result=", castle_result)
+			if castle_ok:
+				_spawn_dust(point, normal)
+				_vanish()
+				return
 	var host: Variant = _world.get("preview_palazzo") if is_instance_valid(_world) else null
 	# A SHOPFRONT IS GLASS, and the building refuses a solid blast against a pane. A stone
 	# through a window is a real strike, so it is forwarded into the glazing path the
