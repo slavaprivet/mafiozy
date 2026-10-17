@@ -81,6 +81,10 @@ var _cart_speed := 0.0
 ## DSH_CATAPULT: while the arm throws, the frame is held still. It used to lunge forward on
 ## every shot, and no amount of damping stopped it.
 var _recoil_lock := 0.0
+## DSH_CATAPULT: where the machine was put. It is restored to this transform every frame, so
+## nothing - a shove, a slope, the player leaning on it - can move it.
+var _cart_home := Transform3D()
+var _cart_home_set := false
 var _travelled := 0.0
 ## Laying the stone in the spoon is an animation, not a teleport.
 var _loading := false
@@ -309,6 +313,8 @@ func place_near_castle(castle: Node3D) -> void:
 		_stone.freeze = true
 		_stone.global_position = _cart.global_position + Vector3(3.2, STONE_RADIUS + 0.1, 2.4)
 		_stone.linear_velocity = Vector3.ZERO
+	_cart_home = _cart.global_transform
+	_cart_home_set = true
 	print("DSH_CATAPULT_PLACED castle_gate=", gate, " cart=", _cart.global_position,
 		" stone=", _stone.global_position if is_instance_valid(_stone) else "none")
 
@@ -1084,7 +1090,7 @@ func _process(delta: float) -> void:
 	var prompt := ""
 	var anchor: Vector3 = _cart.global_position + Vector3.UP * 1.9
 	if _carrying_stone and at_spoon:
-		prompt = "  положить камень в ложечку"
+		prompt = "  зарядить катапульту"
 		anchor = _spoon_point() + Vector3.UP * 0.9
 	elif _carrying_stone:
 		prompt = ""
