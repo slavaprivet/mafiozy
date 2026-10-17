@@ -620,11 +620,14 @@ func _build_wall(side: String) -> void:
 		_add_wall_collision(Vector3(0.0, (WALL_HEIGHT + GATE_HEIGHT) * 0.5, WALL_HALF),
 			Vector3(GATE_WIDTH, WALL_HEIGHT - GATE_HEIGHT, WALL_THICK))
 	elif side == "north":
+		# RUN PAST THE CORNER. The wall box ended exactly at the corner, where the round
+		# tower begins, and that joint was a seam a player could squeeze into. Extending it by
+		# a tower radius costs nothing visible - the thickness is unchanged - and shuts it.
 		_add_wall_collision(Vector3(0.0, WALL_HEIGHT * 0.5, -WALL_HALF),
-			Vector3(WALL_HALF * 2.0, WALL_HEIGHT, WALL_THICK))
+			Vector3(WALL_HALF * 2.0 + TOWER_RADIUS * 2.0, WALL_HEIGHT, WALL_THICK))
 	else:
 		_add_wall_collision(Vector3(WALL_HALF if side == "east" else -WALL_HALF, WALL_HEIGHT * 0.5, 0.0),
-			Vector3(WALL_THICK, WALL_HEIGHT, WALL_HALF * 2.0))
+			Vector3(WALL_THICK, WALL_HEIGHT, WALL_HALF * 2.0 + TOWER_RADIUS * 2.0))
 
 func _add_mortar(at: Vector3, size: Vector3, vertical: bool = false) -> void:
 	# A dark core, a little thinner than the wall, seen through the joints between bricks.
