@@ -307,8 +307,10 @@ func place_near_castle(castle: Node3D) -> void:
 	if not castle.has_method("wall_half"): return
 	var half: float = float(castle.call("wall_half"))
 	var gate: Vector3 = castle.global_position + Vector3(0.0, 0.0, half)
-	_cart.global_position = Vector3(gate.x, 0.05, gate.z + 15.0)
-	_yaw = PI
+	# INSIDE THE COURTYARD, twenty metres back from the gate and facing it. That is where a
+	# siege engine is served, and it is where the player asked to be put with it.
+	_cart.global_position = Vector3(gate.x, 0.05, gate.z - 20.0)
+	_yaw = 0.0
 	_cart.rotation.y = _yaw
 	_arm_angle = _cocked_angle
 	_apply_arm()
@@ -900,11 +902,15 @@ func _physics_process(delta: float) -> void:
 		var held: bool = _carrying_stone or _loading
 		_stone.collision_layer = 0 if held else 1
 		_stone.collision_mask = 0 if held else 1
+		# A boulder the width of his chest cannot be hugged by a low-poly rig, so while it is
+		# in his arms it is drawn at 0.72 of its size. The real stone is unchanged for the
+		# throw, the flight and the damage.
+		_stone.scale = Vector3(0.72, 0.72, 0.72) if held else Vector3.ONE
 	if _carrying_stone and is_instance_valid(_stone):
 		# HELD AGAINST THE CHEST, not floating out in front. The character has no hand bones to
 		# hang it from, so the stone is carried where his arms would be.
 		var want: Vector3 = _player.global_position \
-			+ _player._visual.global_basis.z * 0.58 + Vector3.UP * 0.70
+			+ _player._visual.global_basis.z * 0.42 + Vector3.UP * 0.95
 		_stone.global_position = _stone.global_position.lerp(want, clampf(12.0 * delta, 0.0, 1.0))
 		_hug_arms(true)
 	elif _loading and is_instance_valid(_stone):

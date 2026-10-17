@@ -586,7 +586,10 @@ func _build_castle_map() -> bool:
 			_player.global_position = cart_pos + Vector3(0.0, 0.2, 4.5)
 			_player.velocity = Vector3.ZERO
 			_player.set("_camera_yaw", PI)
-			_castle_spawn_target = cart_pos + Vector3(0.0, 0.2, 4.5)
+			# Behind the machine, whichever way it faces.
+			var machine_yaw: float = float(preview_catapult.get("_yaw"))
+			var behind := Vector3(sin(machine_yaw), 0.0, cos(machine_yaw))
+			_castle_spawn_target = cart_pos - behind * 4.5 + Vector3.UP * 0.2
 			_castle_spawn_frames = 400
 			print("DSH_CASTLE_SPAWN_AT_CATAPULT player=", _player.global_position, " cart=", cart_pos)
 	if is_instance_valid(_player):
@@ -1160,7 +1163,10 @@ func _physics_process(delta: float) -> void:
 		var cart: Variant = preview_catapult.get("_cart")
 		if is_instance_valid(cart) and is_instance_valid(_player):
 			var cart_pos: Vector3 = (cart as Node3D).global_position
-			_castle_spawn_target = cart_pos + Vector3(0.0, 0.2, 4.5)
+			# Behind the machine, whichever way it faces.
+			var machine_yaw: float = float(preview_catapult.get("_yaw"))
+			var behind := Vector3(sin(machine_yaw), 0.0, cos(machine_yaw))
+			_castle_spawn_target = cart_pos - behind * 4.5 + Vector3.UP * 0.2
 			_castle_spawn_frames = 400
 			_player.global_position = _castle_spawn_target
 			_player.velocity = Vector3.ZERO
