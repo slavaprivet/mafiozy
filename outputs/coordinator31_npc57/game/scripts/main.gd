@@ -562,7 +562,7 @@ func _build_castle_map() -> bool:
 	if is_instance_valid(preview_minimap):
 		var map_layer: Variant = preview_minimap.get("_map")
 		if map_layer is Control:
-			(map_layer as Control).scale = Vector2(0.62, 0.62)
+			(map_layer as Control).scale = Vector2(0.82, 0.82)
 			(map_layer as Control).pivot_offset = Vector2.ZERO
 	# The sword's help panel is a test tool and has no business on a siege map: it covers a
 	# quarter of the screen. Hidden here and kept hidden below.

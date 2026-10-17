@@ -839,18 +839,25 @@ func _physics_process(delta: float) -> void:
 	to_cart.y = 0.0
 	if to_cart.length_squared() > 1.0e-6:
 		push_direction = to_cart.normalized()
-	# THE MACHINE DOES NOT TRAVEL. Every "jump" was it being shoved by a player who was
-	# merely walking at it to fire. It stands where it is put.
+	# THE MACHINE CAN BE PUSHED - and only pushed. It rolls when a man walks INTO it, along
+	# the way he is walking, and more men make it faster; merely standing next to it does
+	# nothing, which is what made it appear to jump on its own before.
 	var want_speed := 0.0
-	_cart_speed = 0.0
-	_cart.velocity = Vector3.ZERO
-	var rate: float = 1.30 if want_speed > _cart_speed else 2.30
-	_cart_speed = move_toward(_cart_speed, want_speed, rate * delta)
-	_cart.velocity = push_direction * _cart_speed
-	_cart.velocity.y = -1.0
-	# (removed) the pin holds the frame; move_and_slide fought it every frame.
-	# The wheels turn with the distance actually covered.
-	var moved: float = _cart.velocity.length() * delta
+	var push_dir := Vector3.ZERO
+	if not _occupied and is_instance_valid(_player):
+		var gap: float = to_cart.length()
+		var walking: float = _player.velocity.length()
+		if gap <= PUSH_RANGE and walking > 0.4:
+			var heading: Vector3 = _player.velocity.normalized()
+			if heading.dot(to_cart.normalized()) > 0.35:
+				push_dir = heading
+				# One man heaves; every extra pair of hands adds to it, with diminishing gain.
+				want_speed = PUSH_BASE_MS * (1.0 + 0.45 * float(maxi(0, _pushers - 1)))
+	_cart_speed = move_toward(_cart_speed, want_speed, (1.6 if want_speed > _cart_speed else 3.0) * delta)
+	if _cart_speed > 0.001 and push_dir != Vector3.ZERO and _cart_home_set:
+		# The HOME moves, so the pin follows the machine instead of snapping it back.
+		_cart_home.origin += push_dir * _cart_speed * delta
+	var moved: float = _cart_speed * delta
 	_travelled += moved
 	var spin := moved / maxf(0.05, _wheel_radius)
 	for wheel: Node3D in _wheel_nodes:
@@ -890,7 +897,7 @@ func _physics_process(delta: float) -> void:
 		# HELD AGAINST THE CHEST, not floating out in front. The character has no hand bones to
 		# hang it from, so the stone is carried where his arms would be.
 		var want: Vector3 = _player.global_position \
-			+ _player._visual.global_basis.z * 0.45 + Vector3.UP * 0.92
+			+ _player._visual.global_basis.z * 0.58 + Vector3.UP * 0.70
 		_stone.global_position = _stone.global_position.lerp(want, clampf(12.0 * delta, 0.0, 1.0))
 		_hug_arms(true)
 	elif _loading and is_instance_valid(_stone):
