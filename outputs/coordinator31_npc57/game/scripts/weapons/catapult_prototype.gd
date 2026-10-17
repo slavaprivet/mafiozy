@@ -81,6 +81,9 @@ var _cart_speed := 0.0
 ## DSH_CATAPULT: while the arm throws, the frame is held still. It used to lunge forward on
 ## every shot, and no amount of damping stopped it.
 var _recoil_lock := 0.0
+## DSH_CATAPULT: a SHORT lurch forward at the throw - the kick the player asked for - which
+## decays in a fraction of a second. The machine is still held in place.
+var _lurch := 0.0
 ## DSH_CATAPULT: where the machine was put. It is restored to this transform every frame, so
 ## nothing - a shove, a slope, the player leaning on it - can move it.
 var _cart_home := Transform3D()
@@ -729,7 +732,8 @@ func _release() -> void:
 	# NO TRAVEL, just a kick: the frame is held still for a moment after the throw.
 	_cart_speed = 0.0
 	_cart.velocity = Vector3.ZERO
-	_recoil_lock = 0.7
+	_recoil_lock = 0.55
+	_lurch = 0.55
 	_fly_prev = _stone.global_position
 	_fired += 1
 	print("DSH_CATAPULT_FIRED yaw=", _yaw, " elevation=", _elevation,
@@ -768,7 +772,11 @@ func _physics_process(delta: float) -> void:
 	# machine with the player: the two wrote different rotations every frame, and the machine
 	# shook while the stone was in the air.
 	if _host_home_set:
-		global_position = _host_home.origin
+		# A SHORT LURCH at the throw, decaying in half a second: the kick that was asked for,
+		# with nothing left over. The machine still stands where it was put.
+		var forward := Vector3(sin(rotation.y), 0.0, cos(rotation.y))
+		_lurch = maxf(0.0, _lurch - delta * 2.2)
+		global_position = _host_home.origin - forward * _lurch
 	if _cart_home_set:
 		_cart.global_position = _cart_home.origin
 		_cart.velocity = Vector3.ZERO
@@ -778,7 +786,7 @@ func _physics_process(delta: float) -> void:
 		_recoil_lock = maxf(0.0, _recoil_lock - delta)
 		_cart_speed = 0.0
 		_cart.velocity = Vector3.ZERO
-		_cart.move_and_slide()
+		# (removed) the pin holds the frame; move_and_slide fought it every frame.
 		_apply_arm()
 		return
 	_pushers = _count_pushers()
@@ -800,7 +808,7 @@ func _physics_process(delta: float) -> void:
 	_cart_speed = move_toward(_cart_speed, want_speed, rate * delta)
 	_cart.velocity = push_direction * _cart_speed
 	_cart.velocity.y = -1.0
-	_cart.move_and_slide()
+	# (removed) the pin holds the frame; move_and_slide fought it every frame.
 	# The wheels turn with the distance actually covered.
 	var moved: float = _cart.velocity.length() * delta
 	_travelled += moved
