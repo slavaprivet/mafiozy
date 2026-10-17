@@ -84,6 +84,8 @@ var _recoil_lock := 0.0
 ## DSH_CATAPULT: a SHORT lurch forward at the throw - the kick the player asked for - which
 ## decays in a fraction of a second. The machine is still held in place.
 var _lurch := 0.0
+## DSH_OPT: pushers are counted five times a second, not every physics frame.
+var _pusher_timer := 0.0
 ## DSH_CATAPULT: where the machine was put. It is restored to this transform every frame, so
 ## nothing - a shove, a slope, the player leaning on it - can move it.
 var _cart_home := Transform3D()
@@ -113,6 +115,8 @@ var _hud: Label
 ## DSH_CATAPULT: the same prompt the car uses - a plate with a yellow E badge.
 var _prompt_panel: PanelContainer
 var _prompt_label: Label
+## DSH_OPT: the prompt text as last written, so the layout pass only runs on a change.
+var _last_prompt := ""
 var _materials: Dictionary = {}
 
 ## ------------------------------------------------------------------ install
@@ -842,7 +846,11 @@ func _physics_process(delta: float) -> void:
 		# (removed) the pin holds the frame; move_and_slide fought it every frame.
 		_apply_arm()
 		return
-	_pushers = _count_pushers()
+	_pusher_timer -= delta
+	if _pusher_timer <= 0.0:
+		_pusher_timer = 0.2
+		_pushers = _count_pushers()
+		_push_speed = _push_speed_for(_pushers)
 	_push_speed = _push_speed_for(_pushers)
 	# A machine of this mass does not start or stop instantly. It is spun up towards the
 	# speed its pushers can give it and it coasts to a halt, which is the whole point of
@@ -1216,8 +1224,12 @@ func _process(delta: float) -> void:
 		anchor = _stone.global_position + Vector3.UP * 0.8
 	_prompt_panel.visible = prompt != ""
 	if _prompt_panel.visible:
-		_prompt_label.text = prompt
-		_prompt_panel.reset_size()
+		# ONLY WHEN THE TEXT CHANGES. reset_size() runs a layout pass, and doing that every
+		# frame for a label that reads the same is work with nothing to show for it.
+		if prompt != _last_prompt:
+			_last_prompt = prompt
+			_prompt_label.text = prompt
+			_prompt_panel.reset_size()
 		var camera := get_viewport().get_camera_3d()
 		if camera != null and not camera.is_position_behind(anchor):
 			_prompt_panel.position = camera.unproject_position(anchor) \
