@@ -407,7 +407,9 @@ func _build_camera() -> void:
 	_spring_arm = SpringArm3D.new()
 	_spring_arm.name = "CameraSpringArm"
 	_spring_arm.spring_length = camera_distance
-	_spring_arm.margin = 0.16
+	# DSH_CASTLE: a narrow gate passage needs a bigger margin, or the arm grazes the door
+	# and the camera ends up on the wrong side of it.
+	_spring_arm.margin = 0.30
 	_spring_arm.collision_mask = 1
 	# A sphere also protects near-plane corners at oblique walls.
 	var camera_shape: SphereShape3D = SphereShape3D.new()

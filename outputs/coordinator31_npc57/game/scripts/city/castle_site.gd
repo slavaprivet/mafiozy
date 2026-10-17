@@ -786,7 +786,9 @@ func _build_gatehouse() -> void:
 		pivot.add_child(body)
 		var shape := CollisionShape3D.new()
 		var box := BoxShape3D.new()
-		box.size = Vector3(leaf_width, GATE_HEIGHT * 0.96, 0.3)
+		# A thick leaf, because a thin one lets the camera cast straight through it and the
+		# view ends up outside the gate looking in.
+		box.size = Vector3(leaf_width, GATE_HEIGHT * 0.96, 0.7)
 		shape.shape = box
 		body.add_child(shape)
 		body.set_meta("castle_gate", true)
