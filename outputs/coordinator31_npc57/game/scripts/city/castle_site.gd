@@ -1359,6 +1359,9 @@ func _build_string_courses() -> void:
 		for height in [WALL_HEIGHT * 0.42, WALL_HEIGHT * 0.78]:
 			for column: int in per_course:
 				var along: float = (float(column) - float(per_course - 1) * 0.5) * BRICK.x
+				# The band stops at the gate: a course of stone run across the doorway is a
+				# bar on the doors.
+				if side == "south" and absf(along) < GATE_WIDTH * 0.5 + 1.0: continue
 				var at := Vector3.ZERO
 				var size := Vector3(BRICK.x * 1.02, 0.34, WALL_THICK * 1.22)
 				match side:
@@ -1458,6 +1461,9 @@ func _add_buttresses(side: String) -> void:
 	var count := int((WALL_HALF * 2.0) / step)
 	for i: int in count:
 		var along := (float(i) - float(count - 1) * 0.5) * step
+		# NOT across the gate. A pier lands every fifteen metres, and one of them lands dead
+		# centre on the opening - a column of brick standing where the doors are.
+		if side == "south" and absf(along) < GATE_WIDTH * 0.5 + 2.5: continue
 		for row: int in int(WALL_HEIGHT / BRICK.y):
 			var at := Vector3.ZERO
 			var size := Vector3(1.5, BRICK.y, 1.9)
