@@ -780,7 +780,10 @@ func _physics_process(delta: float) -> void:
 		# settles back to where it stands.
 		global_position = _host_home.origin + forward * _lurch
 	if _cart_home_set:
-		_cart.global_position = _cart_home.origin
+		# THE LURCH LIVES ON THE CART. Applied to the host it was cancelled by this very line,
+		# which puts the frame back where it belongs - so no kick was ever seen.
+		var kick := Vector3(sin(rotation.y), 0.0, cos(rotation.y)) * _lurch
+		_cart.global_position = _cart_home.origin + kick
 		_cart.velocity = Vector3.ZERO
 	if _recoil_lock > 0.0:
 		# ROOTED for a moment after the throw: the machine kicks, it does not travel. Without
