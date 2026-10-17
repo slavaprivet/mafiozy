@@ -292,7 +292,14 @@ func place_near_castle(castle: Node3D) -> void:
 	_cart.rotation.y = _yaw
 	_arm_angle = _cocked_angle
 	_apply_arm()
-	print("DSH_CATAPULT_PLACED castle_gate=", gate, " cart=", _cart.global_position)
+	# THE AMMUNITION lies beside the machine, within arm's reach: a siege with the stone
+	# on the far side of the map is not a siege.
+	if is_instance_valid(_stone):
+		_stone.freeze = true
+		_stone.global_position = _cart.global_position + Vector3(3.2, STONE_RADIUS + 0.1, 2.4)
+		_stone.linear_velocity = Vector3.ZERO
+	print("DSH_CATAPULT_PLACED castle_gate=", gate, " cart=", _cart.global_position,
+		" stone=", _stone.global_position if is_instance_valid(_stone) else "none")
 
 func _build_stone() -> void:
 	_stone = RigidBody3D.new()
@@ -731,7 +738,7 @@ func _physics_process(delta: float) -> void:
 		var t := 1.0 - _arm_settle
 		# It slams forward and up, overshoots a little, and rests there until reloaded.
 		_arm_angle = lerpf(_cocked_angle, _release_angle, t) \
-			+ sin(t * PI * 1.5) * 0.12 * (1.0 - t)
+			+ sin(t * PI * 1.5) * 0.045 * (1.0 - t)
 		_apply_arm()
 	if _winding:
 		if is_instance_valid(_crank): _crank.rotate_x(delta * 5.0)

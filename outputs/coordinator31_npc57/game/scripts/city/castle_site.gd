@@ -897,16 +897,17 @@ func _build_gatehouse() -> void:
 	# THE LEVER, inside the courtyard by the gate: a post, a handle, and a hinge of its own.
 	# Right beside the gate on the courtyard side, where a man coming out of the doors
 	# cannot miss it.
-	var lever_base := at + Vector3(GATE_WIDTH * 0.5 + 1.3, 0.0, -1.1)
+	# At EYE HEIGHT on the wall beside the gate, where a man looks for it.
+	var lever_base := at + Vector3(GATE_WIDTH * 0.5 + 1.3, 1.55, -1.1)
 	var post := MeshInstance3D.new()
 	var post_mesh := CylinderMesh.new()
 	post_mesh.top_radius = 0.16
 	post_mesh.bottom_radius = 0.20
-	post_mesh.height = 1.5
+	post_mesh.height = 0.9
 	post.mesh = post_mesh
 	post.material_override = _materials["iron"]
 	# A bracket bolted to the wall, and the post standing against it.
-	post.position = lever_base + Vector3.UP * 0.75
+	post.position = lever_base
 	var bracket := MeshInstance3D.new()
 	var bracket_mesh := BoxMesh.new()
 	bracket_mesh.size = Vector3(0.55, 0.22, 0.30)
@@ -916,7 +917,7 @@ func _build_gatehouse() -> void:
 	add_child(bracket)
 	add_child(post)
 	_lever_pivot = Node3D.new()
-	_lever_pivot.position = lever_base + Vector3.UP * 1.12
+	_lever_pivot.position = lever_base
 	add_child(_lever_pivot)
 	var handle := MeshInstance3D.new()
 	var handle_mesh := CylinderMesh.new()
@@ -925,10 +926,10 @@ func _build_gatehouse() -> void:
 	handle_mesh.height = 1.1
 	handle.mesh = handle_mesh
 	handle.material_override = _materials["wood"]
-	handle.position = Vector3(0.0, 0.5, 0.0)
+	handle.position = Vector3(0.0, -0.5, 0.0)
 	_lever_pivot.add_child(handle)
-	_lever_pivot.rotation.z = 0.5
-	_lever_pos = lever_base + Vector3.UP * 1.1
+	_lever_pivot.rotation.x = -0.7
+	_lever_pos = lever_base
 	# A lamp over the lever: a mechanism nobody can find is a mechanism nobody uses.
 	var lever_lamp := OmniLight3D.new()
 	lever_lamp.light_color = Color(1.0, 0.78, 0.45)
@@ -1590,7 +1591,7 @@ func _build_gate_bridge() -> void:
 		# A shallow sag in the middle, the way a rope bridge hangs.
 		var sag: float = -0.28 * sin(PI * (float(i) + 0.5) / float(planks))
 		_add_brick(Vector3(x, y + sag, WALL_HALF), Vector3(plank_w * 0.94, 0.16, 2.2),
-			"wood_bridge", Vector3.ZERO, "bridge", 0, i)
+			"wood", Vector3.ZERO, "bridge", 0, i)
 	for side: float in [-1.0, 1.0]:
 		for i: int in 9:
 			var t_norm: float = float(i) / 8.0

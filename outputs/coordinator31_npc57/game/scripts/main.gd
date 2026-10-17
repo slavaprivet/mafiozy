@@ -535,6 +535,10 @@ func _build_castle_map() -> bool:
 		return false
 	preview_castle = castle
 	castle_status = "ready"
+	# The map boots with the CURSOR CAPTURED, or the player cannot walk: every movement
+	# control is behind a captured mouse, and a siege where you cannot move is not a test.
+	if is_instance_valid(_player):
+		_player.set_mouse_captured(true)
 	# The catapult was installed before this map existed; put it in front of the gate now.
 	if is_instance_valid(preview_catapult) and preview_catapult.has_method("place_near_castle"):
 		preview_catapult.call("place_near_castle", castle)
