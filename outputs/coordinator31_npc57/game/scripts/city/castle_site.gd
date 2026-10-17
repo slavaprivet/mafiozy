@@ -71,6 +71,7 @@ func install(world: Node3D, origin: Vector3) -> Dictionary:
 	_build_torches()
 	_build_portcullis()
 	_build_gate_lamps()
+	_build_gate_deck()
 	_flush_buckets()
 	_ready = true
 	return {"ok": true, "origin": origin, "bricks": _cells.size(),
@@ -203,6 +204,20 @@ func _build_path() -> void:
 	courtyard.material_override = cobble
 	courtyard.position = Vector3(0.0, -0.04, 0.0)
 	add_child(courtyard)
+	# The paving is a SURFACE of its own, a whisker above the earth: without this a footstep
+	# inside the walls would take the ground slab underneath and sound like a field.
+	var paving_body := StaticBody3D.new()
+	paving_body.name = "CourtyardPaving"
+	paving_body.collision_layer = 1
+	paving_body.collision_mask = 1
+	paving_body.set_meta("surface", "stone")
+	paving_body.position = Vector3(0.0, -0.02, 0.0)
+	add_child(paving_body)
+	var paving_area := CollisionShape3D.new()
+	var paving_shape := BoxShape3D.new()
+	paving_shape.size = Vector3(WALL_HALF * 2.0 + 1.6, 0.10, WALL_HALF * 2.0 + 1.6)
+	paving_area.shape = paving_shape
+	paving_body.add_child(paving_area)
 
 ## Torches on either side of the gate and along the wall-walk: light is what makes stone
 ## read as stone at night, and they give the gate a warm mouth instead of a black hole.
@@ -256,6 +271,43 @@ func _build_gate_lamps() -> void:
 		lamp.position = Vector3(side * GATE_WIDTH * 0.60, GATE_HEIGHT * 0.55, WALL_HALF + 3.0)
 		add_child(lamp)
 
+## A plank deck through the gate passage: a timber floor under the arch, which is what a
+## gate is actually floored with - and the one place on the map where a boot lands on wood.
+func _build_gate_deck() -> void:
+	var deck_material := StandardMaterial3D.new()
+	deck_material.albedo_color = Color(0.42, 0.30, 0.18)
+	deck_material.roughness = 0.94
+	var body := StaticBody3D.new()
+	body.name = "GateDeck"
+	body.collision_layer = 1
+	body.collision_mask = 1
+	body.set_meta("surface", "wood")
+	body.position = Vector3(0.0, -0.02, WALL_HALF)
+	add_child(body)
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(GATE_WIDTH + 2.0, 0.10, 6.0)
+	shape.shape = box
+	body.add_child(shape)
+	var deck := MeshInstance3D.new()
+	var deck_box := BoxMesh.new()
+	deck_box.size = box.size
+	deck.mesh = deck_box
+	deck.material_override = deck_material
+	deck.position = body.position
+	add_child(deck)
+	# The boards, drawn as seams across the deck.
+	var seam := StandardMaterial3D.new()
+	seam.albedo_color = Color(0.24, 0.16, 0.09)
+	seam.roughness = 0.96
+	for i: int in 9:
+		var strip := MeshInstance3D.new()
+		var strip_box := BoxMesh.new()
+		strip_box.size = Vector3(GATE_WIDTH + 2.0, 0.02, 0.06)
+		strip.mesh = strip_box
+		strip.material_override = seam
+		strip.position = Vector3(0.0, 0.03, WALL_HALF - 2.6 + float(i) * 0.68)
+		add_child(strip)
 func _build_portcullis() -> void:
 	var at := Vector3(0.0, GATE_HEIGHT * 0.5 + 0.4, WALL_HALF - 1.6)
 	for i: int in 9:
@@ -792,6 +844,7 @@ func _build_gatehouse() -> void:
 		shape.shape = box
 		body.add_child(shape)
 		body.set_meta("castle_gate", true)
+		body.set_meta("surface", "wood")
 		_gate_leaves.append({"pivot": pivot, "side": side, "body": body, "detached": false})
 		if side < 0.0: _gate_left = pivot
 		else: _gate_right = pivot

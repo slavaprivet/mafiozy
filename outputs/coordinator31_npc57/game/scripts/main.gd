@@ -29,6 +29,7 @@ const SwordPrototype = preload("res://scripts/weapons/sword_prototype.gd")  # DS
 const BowPrototype = preload("res://scripts/weapons/bow_prototype.gd")  # DSH_BOW_PROTO
 const CatapultPrototype = preload("res://scripts/weapons/catapult_prototype.gd")  # DSH_CATAPULT
 const CastleSite = preload("res://scripts/city/castle_site.gd")  # DSH_CASTLE
+const FootstepsScript = preload("res://scripts/audio/footsteps.gd")  # DSH_STEPS
 ## DSH_CASTLE: the castle is its OWN MAP. It is built far from the city so the two never
 ## interact, and the player is put down in its courtyard.
 const CASTLE_ORIGIN := Vector3(0.0, 0.0, 900.0)
@@ -101,6 +102,7 @@ var catapult_status := "disabled"
 ## DSH_CASTLE: --castle=1 (or castle_map on the scene) opens the castle map instead.
 @export var castle_map: bool = false
 var preview_castle: Node
+var _footsteps: Node  # DSH_STEPS
 var castle_status := "disabled"
 var preview_melee: Node
 var melee_status := "disabled"
@@ -313,6 +315,12 @@ func _ready() -> void:
 	add_child(_player)
 	_player.get_node("VisualHeading").rotation.y = spawn_yaw + deg_to_rad(_player.visual_yaw_degrees)
 	_player.set_preview_jump_surface_guard(Callable(self, "preview_jump_surface_allowed"))
+	# DSH_STEPS: footfalls that know what they are standing on.
+	if _footsteps == null:
+		_footsteps = FootstepsScript.new()
+		_footsteps.name = "Footsteps"
+		add_child(_footsteps)
+		_footsteps.call("install", _player)
 	_player_capsule = _player.get_node_or_null("PlayerCapsule") as CollisionShape3D
 	if not bool(_player.get_preview_status().get("model_loaded", false)):
 		validation_errors.append("Hero did not produce a valid visible model")
