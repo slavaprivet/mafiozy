@@ -767,6 +767,20 @@ func _build_corner_towers() -> void:
 			ring_shape.shape = ring_box
 			ring.add_child(ring_shape)
 			ring.rotation.y = -angle
+		# A SOLID BLOCK IN THE CORNER. The wall boxes end exactly at ±WALL_HALF and the tower
+		# is a cylinder, so a man could slip between them at the four corners - measured: 84
+		# rays went straight through the walls there. This block seals the joint.
+		var corner_block := StaticBody3D.new()
+		corner_block.collision_layer = 1
+		corner_block.collision_mask = 1
+		corner_block.set_meta("surface", "stone")
+		corner_block.position = centre + Vector3.UP * WALL_HEIGHT * 0.5
+		add_child(corner_block)
+		var corner_shape := CollisionShape3D.new()
+		var corner_box := BoxShape3D.new()
+		corner_box.size = Vector3(TOWER_RADIUS * 2.6, WALL_HEIGHT, TOWER_RADIUS * 2.6)
+		corner_shape.shape = corner_box
+		corner_block.add_child(corner_shape)
 		# Slits, facing outwards at three heights.
 		for i: int in 6:
 			var slit_angle := TAU * float(i) / 6.0
