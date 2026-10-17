@@ -106,6 +106,33 @@ func _run() -> void:
 		" clear_of_body=", loaded.get("quiver_clear_of_body", false),
 		" quiver_mouth=", loaded.quiver_mouth)
 	await _shot("quiver")
+	# Walking with the bow nocked: the hands must stay IN FRONT of the body.
+	# Measuring the actual hand BONES is the only way to catch the walk animation
+	# winning the pose over the archer IK, which is what "arms behind" looks like.
+	var walk_home: Vector3 = _player.global_position
+	var walk_step: Vector3 = _player._visual.global_basis.z
+	walk_step.y = 0.0
+	if walk_step.length_squared() < 1.0e-6: walk_step = Vector3.FORWARD
+	walk_step = walk_step.normalized() * 0.03
+	var min_draw_fwd := 99.0
+	var min_bow_fwd := 99.0
+	var walk_frames := 0
+	for i: int in 150:
+		_player.global_position += walk_step
+		await process_frame
+		if bool(_proto.call("player_inside_geometry")):
+			_player.global_position -= walk_step
+			break
+		walk_frames += 1
+		var walk_watch: Dictionary = _proto.snapshot()
+		min_draw_fwd = minf(min_draw_fwd, float(walk_watch.get("draw_hand_forward", 99.0)))
+		min_bow_fwd = minf(min_bow_fwd, float(walk_watch.get("bow_hand_forward", 99.0)))
+	_player.global_position = walk_home
+	await _settle(8)
+	print("BOW_SHOT_WALK frames=", walk_frames, " min_draw_hand_forward_m=", min_draw_fwd,
+		" min_bow_hand_forward_m=", min_bow_fwd,
+		" (negative means the arm is behind the body)")
+	var walk_ok: bool = min_draw_fwd > -0.02 and min_bow_fwd > 0.05
 	# Watch the WHOLE fetch and draw frame by frame: the arm must never be posed
 	# through the body, and the string must really come back as the draw rises.
 	var min_hand := 99.0
@@ -134,6 +161,26 @@ func _run() -> void:
 		" frames_with_visible_string=", string_seen,
 		" string_pull_at_full_draw=", drawn.get("string_pull_m", 0.0),
 		" nocked_arrow=", drawn.get("nocked_arrow_visible", false))
+	# 1b. The RIGHT button is the targeting aid: it draws the arrow's path and spends
+	# nothing at all - no arrow, no shot.
+	var shots_before_aim: int = int(_proto.snapshot().shots)
+	var arrows_before_aim: int = int(_proto.snapshot().arrows_left)
+	await _press_mouse(MOUSE_BUTTON_RIGHT, true)
+	await _settle(40)
+	var aiming_state: Dictionary = _proto.snapshot()
+	await _press_mouse(MOUSE_BUTTON_RIGHT, false)
+	await _settle(20)
+	var after_aim: Dictionary = _proto.snapshot()
+	print("BOW_SHOT_AIM_ONLY aiming=", aiming_state.get("aiming", false),
+		" aim_shown=", aiming_state.get("aim_shown", false),
+		" aim_dots=", aiming_state.get("aim_dots", 0),
+		" shots_before=", shots_before_aim, " shots_after=", after_aim.shots,
+		" arrows_before=", arrows_before_aim, " arrows_after=", after_aim.arrows_left)
+	var aim_only_ok: bool = bool(aiming_state.get("aiming", false)) \
+		and int(aiming_state.get("aim_dots", 0)) > 3 \
+		and int(after_aim.shots) == shots_before_aim \
+		and int(after_aim.arrows_left) == arrows_before_aim
+	await _shot("aiming")
 
 	# 2. The arc must be ballistic: the far end of the prediction sits BELOW the
 	# straight line from the muzzle.
@@ -273,6 +320,8 @@ func _run() -> void:
 		"string_is_visible": string_seen > 100 and bool(drawn.get("string_visible", false)),
 		"string_comes_back_with_the_draw": max_pull > 0.30,
 		"arrow_sits_on_the_string": bool(drawn.get("nocked_arrow_visible", false)),
+		"hands_stay_in_front_while_walking": walk_ok,
+		"rmb_shows_the_path_free": aim_only_ok,
 	}
 	var failed: Array[String] = []
 	for key: String in verdict.keys():

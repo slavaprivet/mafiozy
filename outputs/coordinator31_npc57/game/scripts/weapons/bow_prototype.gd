@@ -44,6 +44,8 @@ var _sword_host: Node = null
 var _ready := false
 var _selected := false
 var _drawing := false
+## Right button: shows the arrow's path without spending an arrow.
+var _aiming := false
 var _draw_amount := 0.0
 var _release_ms := -10000
 var _lock_until_ms := 0
@@ -422,7 +424,7 @@ func _update_hint() -> void:
 	var near := _nearest_ground_item()
 	if not near.is_empty():
 		pick = "\nE — поднять " + ("лук" if str(near.get("kind", "")) == "bow" else "колчан")
-	_hint.text = "ТЕСТОВЫЙ ЛУК (прототип)\n" + state + "\nЛКМ (удерживать) — натянуть тетиву, вид приближается\nЛКМ (отпустить) — выстрел по дуге\nСтрела втыкается и остаётся в теле или предмете\nG — бросить лук, потом колчан" + pick + draw
+	_hint.text = "ТЕСТОВЫЙ ЛУК (прототип)\n" + state + "\nПКМ (удерживать) — ЦЕЛЬ: рисует путь стрелы, стрелу не тратит\nЛКМ (удерживать) — натянуть тетиву, вид приближается\nЛКМ (отпустить) — выстрел по дуге\nСтрела втыкается и остаётся в теле или предмете\nG — бросить лук, потом колчан" + pick + draw
 
 # ---------------------------------------------------------------- archer pose
 
@@ -447,6 +449,13 @@ func _active() -> bool:
 	if is_instance_valid(_weapons_host) and _weapons_host.has_method("controls_blocked") \
 			and bool(_weapons_host.call("controls_blocked")):
 		return false
+	# The bow must NOT consume the mouse while the cursor is free: the ordinary
+	# player code re-captures the mouse on a left click, and eating that click is
+	# what stopped the character from walking. Same rule as the sword prototype.
+	if not bool(_player.get("_free_mouse_look")): return false
+	if _player.get("_pose_authority") != &"on_foot": return false
+	if is_instance_valid(_world):
+		if bool(_world.get("preview_dead")) or bool(_world.get("preview_physics_fault")): return false
 	return _selected
 
 func set_selected(value: bool) -> void:
@@ -473,6 +482,14 @@ func _input(event: InputEvent) -> void:
 			_begin_draw()
 		else:
 			_loose()
+		get_viewport().set_input_as_handled()
+		return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT:
+		# The right button is the AIMING aid: it draws the arrow's path without
+		# spending an arrow, so a shot can be planned before the string is pulled.
+		_aiming = event.pressed
+		if not _aiming and not _drawing: _hide_aim()
+		_update_hint()
 		get_viewport().set_input_as_handled()
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -833,6 +850,9 @@ func _physics_process(delta: float) -> void:
 			_loose()
 		if _drawing:
 			_draw_amount = clampf(_draw_amount + delta / DRAW_TIME, 0.0, 1.0)
+		# The right button is read the same way, so a missed release cannot leave the
+		# aiming arc stuck on.
+		_aiming = Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)
 	_step_arrows(delta)
 
 func _step_arrows(delta: float) -> void:
@@ -944,6 +964,8 @@ func _process(delta: float) -> void:
 		_update_hint()
 		return
 	if is_instance_valid(_bow): _bow.visible = true
+	# Face the shot before posing: every hand target below is built from the camera.
+	_face_the_aim(delta)
 	_pose_archer(delta)
 	_place_bow()
 	_place_quiver()
@@ -964,7 +986,7 @@ func _process(delta: float) -> void:
 ## The field of view belongs to the shared aim camera, so the bow asks it for a
 ## scale instead of writing `fov` and being overwritten every frame.
 func _update_zoom(delta: float) -> void:
-	_zoom_scale = lerpf(_zoom_scale, ZOOM_FACTOR if _drawing else 1.0, clampf(ZOOM_RATE * delta, 0.0, 1.0))
+	_zoom_scale = lerpf(_zoom_scale, ZOOM_FACTOR if _show_aim() else 1.0, clampf(ZOOM_RATE * delta, 0.0, 1.0))
 	var aim_camera: Variant = _aim_camera()
 	if aim_camera != null: aim_camera.set("zoom_scale", _zoom_scale)
 
@@ -976,6 +998,23 @@ func _restore_zoom() -> void:
 	_zoom_scale = 1.0
 	var aim_camera: Variant = _aim_camera()
 	if aim_camera != null: aim_camera.set("zoom_scale", 1.0)
+
+## The archer must FACE where he shoots. The bow is placed along the CAMERA, so
+## without this the body keeps whatever facing it had, the bow is thrown out to his
+## side, and the string reads as passing through his back with the hands hidden.
+func _face_the_aim(delta: float) -> void:
+	if not is_instance_valid(_player) or not is_instance_valid(_camera): return
+	var visual: Node3D = _player._visual
+	if not is_instance_valid(visual): return
+	var aim := _aim_direction()
+	var flat := Vector3(aim.x, 0.0, aim.z)
+	if flat.length_squared() < 1.0e-6: return
+	# The model faces along its own +Z, so its yaw is atan2(x, z).
+	var want := atan2(flat.x, flat.z)
+	visual.rotation.y += wrapf(want - visual.rotation.y, -PI, PI) * clampf(FACE_RATE * delta, 0.0, 1.0)
+
+## How fast the body swings round to face the shot.
+const FACE_RATE := 9.0
 
 ## Two-bone IK on both arms, so no bone is ever written without a reason.
 func _pose_archer(delta: float) -> void:
@@ -1183,11 +1222,13 @@ func _basis_z_along(origin: Vector3, direction: Vector3) -> Transform3D:
 ## The first few dots are always shown - the ray from the bow can clip the archer's
 ## own surroundings right at the muzzle, and an arc that vanishes is no use.
 func _update_aim_preview() -> void:
-	if not _drawing:
+	if not _show_aim():
 		_hide_aim()
 		return
 	var aim := _aim_direction()
-	var speed := launch_speed(_draw_amount)
+	# While the string is coming back the arc is the REAL shot. While merely aiming
+	# it shows where a full draw would send the arrow, which is the useful guide.
+	var speed := launch_speed(_draw_amount if _drawing else 1.0)
 	var space := _player.get_world_3d().direct_space_state
 	var excluded: Array[RID] = [_player.get_rid()]
 	var step := clampf(0.9 / maxf(speed, 1.0), 0.012, 0.05)
@@ -1262,6 +1303,7 @@ func _pluck_stream() -> AudioStreamWAV:
 func snapshot() -> Dictionary:
 	return {
 		"ready": _ready, "selected": _selected, "drawing": _drawing,
+		"aiming": _aiming, "aim_shown": _show_aim(),
 		"draw": _draw_amount, "arrows": _arrows.size(), "shots": _shots,
 		"arrows_left": _arrows_left, "quiver_worn": _quiver_worn,
 		"nocked": _nocked, "fetch_phase": _fetch_phase, "grounded": _grounded,
@@ -1279,6 +1321,11 @@ func snapshot() -> Dictionary:
 		"active": _active(), "aim_dots": _visible_aim_dots(),
 		"bow_in_hand_error": _bow_hand_error(),
 	}
+
+## The arc is shown while the string is drawn AND while the right button is held:
+## that button is the targeting aid, and costs no arrow.
+func _show_aim() -> bool:
+	return _drawing or _aiming
 
 ## How far the predicted arc ends BELOW the straight line from the muzzle: the one
 ## number that says the aim line is ballistic rather than a laser.
