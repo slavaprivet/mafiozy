@@ -16,7 +16,7 @@ extends Node3D
 ## slits in every wall and tower, four corner towers, a gatehouse with two hammered gates,
 ## and a keep in the courtyard.
 
-const BRICK := Vector3(0.92, 0.46, 0.55)
+const BRICK := Vector3(1.00, 0.54, 0.58)
 const WALL_HEIGHT := 19.0
 const WALL_HALF := 68.0          # half of the outside square: a siege map, not a yard
 const WALL_THICK := 1.1
@@ -65,6 +65,8 @@ func install(world: Node3D, origin: Vector3) -> Dictionary:
 	_build_keep_details()
 	_build_gate_arch()
 	_build_banners()
+	_build_far_slabs()
+	_build_string_courses()
 	_build_wall_banners()
 	_build_brick_floor()
 	_add_rubble()
@@ -174,8 +176,8 @@ func _build_environment() -> void:
 	sun.shadow_bias = 0.06
 	sun.shadow_blur = 1.6
 	sun.directional_shadow_blend_splits = true
-	sun.directional_shadow_max_distance = 150.0
-	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	sun.directional_shadow_max_distance = 95.0
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
 	sun.rotation_degrees = Vector3(-38.0, 128.0, 0.0)
 	add_child(sun)
 
@@ -397,9 +399,11 @@ func _add_brick(at: Vector3, size: Vector3, material_key: String, rotation: Vect
 ## thousand bricks every frame. Split into chunks of a few metres, each chunk is culled on
 ## its own and the cost follows what is on screen. Bricks that are knocked out are moved
 ## out of the chunk's mesh, and the falling body is spawned as before.
-const CHUNK_X := 17.0
-const CHUNK_Y := 7.0
-const CHUNK_Z := 17.0
+## Bricks are drawn in detail up to this distance; past it a plain slab stands in.
+const BRICK_LOD_END := 110.0
+const CHUNK_X := 26.0
+const CHUNK_Y := 10.0
+const CHUNK_Z := 26.0
 
 func _flush_buckets() -> void:
 	_buckets.clear()
@@ -1199,7 +1203,7 @@ func _build_brick_floor() -> void:
 	paving.albedo_color = Color(0.44, 0.42, 0.40)
 	paving.roughness = 1.0
 	var stone_mesh := BoxMesh.new()
-	stone_mesh.size = Vector3(0.86, 0.09, 0.42)
+	stone_mesh.size = Vector3(1.86, 0.10, 0.92)
 	var per_row: int = int((WALL_HALF * 2.0) / 0.90)
 	var rows: int = int((WALL_HALF * 2.0) / 0.46)
 	var multi := MultiMesh.new()
@@ -1209,7 +1213,7 @@ func _build_brick_floor() -> void:
 	multi.instance_count = per_row * rows
 	var slot := 0
 	for row: int in rows:
-		var offset: float = 0.0 if row % 2 == 0 else 0.45
+		var offset: float = 0.0 if row % 2 == 0 else 0.95
 		for column: int in per_row:
 			var x: float = (float(column) - float(per_row - 1) * 0.5) * 0.90 + offset
 			var z: float = (float(row) - float(rows - 1) * 0.5) * 0.46
@@ -1223,6 +1227,62 @@ func _build_brick_floor() -> void:
 	node.multimesh = multi
 	node.material_override = paving
 	add_child(node)
+## ------------------------------------------------------------------ distance and detail
+## A plain slab standing in for the masonry beyond the brick-LOD distance: without it the
+## walls would vanish at a hundred metres, and with it a far view costs four boxes.
+func _build_far_slabs() -> void:
+	for side: String in ["north", "south", "east", "west"]:
+		var vertical: bool = side == "north" or side == "south"
+		var sign_z: float = 1.0 if side == "south" else -1.0
+		var sign_x: float = 1.0 if side == "east" else -1.0
+		var centre := Vector3(0.0, WALL_HEIGHT * 0.5, sign_z * WALL_HALF) if vertical \
+			else Vector3(sign_x * WALL_HALF, WALL_HEIGHT * 0.5, 0.0)
+		var size := Vector3(WALL_HALF * 2.0, WALL_HEIGHT, WALL_THICK) if vertical \
+			else Vector3(WALL_THICK, WALL_HEIGHT, WALL_HALF * 2.0)
+		var slab := MeshInstance3D.new()
+		var box := BoxMesh.new()
+		box.size = size
+		slab.mesh = box
+		slab.material_override = _materials["stone"]
+		slab.position = centre
+		slab.visibility_range_begin = BRICK_LOD_END - 4.0
+		slab.visibility_range_begin_margin = 6.0
+		slab.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		add_child(slab)
+		# The shadow proxy: the same box, invisible, casting what the bricks no longer cast.
+		var proxy := MeshInstance3D.new()
+		var proxy_box := BoxMesh.new()
+		proxy_box.size = size
+		proxy.mesh = proxy_box
+		var hidden := StandardMaterial3D.new()
+		hidden.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		hidden.albedo_color = Color(0.0, 0.0, 0.0, 0.0)
+		proxy.material_override = hidden
+		proxy.position = centre
+		proxy.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		add_child(proxy)
+
+## String courses: a band of stone standing proud of the wall at two heights, which is the
+## cheapest way to break a flat face - one line and the wall stops being a panel.
+func _build_string_courses() -> void:
+	for side: String in ["north", "south", "east", "west"]:
+		var vertical: bool = side == "north" or side == "south"
+		var per_course: int = int((WALL_HALF * 2.0) / BRICK.x)
+		for height in [WALL_HEIGHT * 0.42, WALL_HEIGHT * 0.78]:
+			for column: int in per_course:
+				var along: float = (float(column) - float(per_course - 1) * 0.5) * BRICK.x
+				var at := Vector3.ZERO
+				var size := Vector3(BRICK.x * 1.02, 0.34, WALL_THICK * 1.22)
+				match side:
+					"north": at = Vector3(along, height, -WALL_HALF)
+					"south": at = Vector3(along, height, WALL_HALF)
+					"east":
+						at = Vector3(WALL_HALF, height, along)
+						size = Vector3(WALL_THICK * 1.22, 0.34, BRICK.x * 1.02)
+					"west":
+						at = Vector3(-WALL_HALF, height, along)
+						size = Vector3(WALL_THICK * 1.22, 0.34, BRICK.x * 1.02)
+				_add_brick(at, size, "cold", Vector3.ZERO, side + "_course", 0, column)
 ## ------------------------------------------------------------------ masonry detail
 ## A wall of identical stones still looks manufactured. These are the things that make it
 ## read as a building that has stood for a century: brackets under the battlements,
