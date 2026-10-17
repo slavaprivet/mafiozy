@@ -1697,8 +1697,11 @@ func apply_explosion(event: Dictionary) -> Dictionary:
 			plank.collision_layer = 1
 			plank.collision_mask = 1
 			plank.mass = 30.0
-			plank.global_position = board_mesh.global_position
+			# IN THE TREE FIRST, then placed. Setting a global position before a node is
+			# parented stores it as a LOCAL one, and against this castle at z=900 the board
+			# was thrown nine hundred metres into the fields, which looked like it vanishing.
 			add_child(plank)
+			plank.global_position = board_mesh.global_position
 			var plank_shape := CollisionShape3D.new()
 			var plank_box := BoxShape3D.new()
 			plank_box.size = Vector3(GATE_WIDTH * 0.5 / 6.0, GATE_HEIGHT * 0.96, 0.26)

@@ -78,6 +78,9 @@ var _pushers := 0
 var _push_speed := 0.0
 ## The cart has its own speed: it takes time to reach and time to lose.
 var _cart_speed := 0.0
+## DSH_CATAPULT: while the arm throws, the frame is held still. It used to lunge forward on
+## every shot, and no amount of damping stopped it.
+var _recoil_lock := 0.0
 var _travelled := 0.0
 ## Laying the stone in the spoon is an animation, not a teleport.
 var _loading := false
@@ -399,8 +402,8 @@ func _build_hud() -> void:
 	# Clear of the sword help panel (x 300-690) and of the mini-map: the prompts are drawn
 	# where nothing covers them, or the player never sees "E - зарядить".
 	_hud.position = Vector2(700, 150)
-	_hud.add_theme_font_size_override("font_size", 15)
-	_hud.add_theme_color_override("font_color", Color(0.92, 0.90, 0.84))
+	_hud.add_theme_font_size_override("font_size", 22)
+	_hud.add_theme_color_override("font_color", Color(1.0, 0.86, 0.42))
 	layer.add_child(_hud)
 
 ## ------------------------------------------------------------------ input
@@ -690,12 +693,10 @@ func _release() -> void:
 	_stone.global_position = _spoon_point() + Vector3.UP * (STONE_RADIUS * 0.55)
 	_fly_velocity = _launch_velocity()
 	_stone.linear_velocity = _fly_velocity
-	# A SHORT KICK BACKWARDS, and nothing more. The machine used to keep creeping forward
-	# after a shot, which read as it flying away; this replaces that drift with one thrust.
+	# NO TRAVEL, just a kick: the frame is held still for a moment after the throw.
 	_cart_speed = 0.0
-	_cart.velocity = -Vector3(sin(_cart.rotation.y), 0.0, cos(_cart.rotation.y)) * 0.8
-	_cart.move_and_slide()
 	_cart.velocity = Vector3.ZERO
+	_recoil_lock = 0.7
 	_fly_prev = _stone.global_position
 	_fired += 1
 	print("DSH_CATAPULT_FIRED yaw=", _yaw, " elevation=", _elevation,
@@ -730,6 +731,15 @@ func _push_speed_for(men: int) -> float:
 
 func _physics_process(delta: float) -> void:
 	if not _ready or not is_instance_valid(_cart): return
+	if _recoil_lock > 0.0:
+		# ROOTED for a moment after the throw: the machine kicks, it does not travel. Without
+		# this the frame lunged forward on every shot.
+		_recoil_lock = maxf(0.0, _recoil_lock - delta)
+		_cart_speed = 0.0
+		_cart.velocity = Vector3.ZERO
+		_cart.move_and_slide()
+		_apply_arm()
+		return
 	_pushers = _count_pushers()
 	_push_speed = _push_speed_for(_pushers)
 	# A machine of this mass does not start or stop instantly. It is spun up towards the
@@ -1066,7 +1076,8 @@ func _process(delta: float) -> void:
 		lines.append("E — взять камень · G — бросить")
 	if _pushers > 0:
 		lines.append("КАТЯТ: %d · %.2f м/с" % [_pushers, _push_speed])
-	lines.append("ПРОЙДЕНО %.1f м · выстрелов %d" % [_travelled, _fired])
+	if _fired > 0 or _travelled > 1.0:
+		lines.append("выстрелов %d · пройдено %.0f м" % [_fired, _travelled])
 	_hud.text = "\n".join(lines)
 
 ## ------------------------------------------------------------------ telemetry
