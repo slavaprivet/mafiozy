@@ -846,8 +846,8 @@ func _update_hint() -> void:
 	if not is_instance_valid(_hint): return
 	var reachable := not _nearest_ground_sword().is_empty()
 	_hint_ground_reachable = reachable
-	if _sword_grounded:
-		_hint.text = "ТЕСТОВЫЙ МЕЧ (прототип)\nМеч лежит на земле\nE — поднять меч"
+	if _sword_grounded or _unarmed:
+		_hint.text = "Оружие лежит на земле\nE — поднять (то же самое оружие)"
 		return
 	var mode := "ПОЛУМЕЧ: рука на лезвии, укол в щели доспеха" if _half_sword else "ЛКМ + ПКМ — двуручный хват, удар сильнее"
 	var text := "ТЕСТОВЫЙ МЕЧ (прототип)\nЛКМ и мышь — рубящий удар\nПКМ — БЛОК, мышь поднимает/опускает\n" + mode + "\nКолесо мыши — укол вперёд / оттянуть назад\nX — полумеч (хват за лезвие против доспеха)\nG — бросить меч"
@@ -948,7 +948,8 @@ func _take_sword_model(node: Node3D) -> Node3D:
 ## sword already in the hand cannot be swapped for another: drop it first.
 func try_pickup_sword() -> bool:
 	if not _selected: return false
-	if not _sword_grounded:
+	# Thrown away counts as empty-handed just as much as put down.
+	if not _sword_grounded and not _unarmed:
 		print("DSH_SWORD_PROTO_PICKUP_REFUSED reason=in_hand")
 		return false
 	var found := _nearest_ground_sword()
@@ -964,6 +965,7 @@ func try_pickup_sword() -> bool:
 		set_weapon(stamp)
 		if is_instance_valid(node): node.queue_free()
 		_sword_grounded = false
+		_unarmed = false
 		_arm_ready_ms = Time.get_ticks_msec() + 450
 		if is_instance_valid(_sword): _sword.visible = true
 		_update_hint()
@@ -983,6 +985,7 @@ func try_pickup_sword() -> bool:
 		_sword = model
 		_dropped_at = Vector3.ZERO
 	_sword_grounded = false
+	_unarmed = false
 	_arm_ready_ms = Time.get_ticks_msec() + 450
 	if is_instance_valid(_sword):
 		_sword.visible = true
@@ -1219,6 +1222,11 @@ func _input(event: InputEvent) -> void:
 	if not _ready or not _active(): return
 	if event is InputEventKey and event.pressed and not event.echo:
 		var code: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
+		# T winds up a throwable weapon; letting T go throws it.
+		if code == KEY_T and is_throwable() and not _unarmed and not _sword_grounded:
+			_begin_throw()
+			get_viewport().set_input_as_handled()
+			return
 		# G drops the sword as a real object on the ground; E picks it back up.
 		if code == KEY_G and not _sword_grounded:
 			if drop_sword_to_ground():
@@ -1233,9 +1241,24 @@ func _input(event: InputEvent) -> void:
 			set_half_sword(not _half_sword)
 			get_viewport().set_input_as_handled()
 			return
+	if event is InputEventKey and not event.pressed and not event.echo:
+		var released: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
+		if released == KEY_T and _throwing:
+			_release_throw()
+			get_viewport().set_input_as_handled()
+			return
 	if event is InputEventMouseButton:
 		var button := event as InputEventMouseButton
 		if button.button_index == MOUSE_BUTTON_LEFT:
+			# DSH_MELEE_SET: with a throwable weapon the LEFT button THROWS - hold to
+			# wind up, release to let the spear go. The right button aims for it.
+			if is_throwable() and not _unarmed and not _sword_grounded:
+				if button.pressed:
+					_begin_throw()
+				else:
+					_release_throw()
+				get_viewport().set_input_as_handled()
+				return
 			_held_event = button.pressed
 			_hold_left = button.pressed
 			_held = _hold_left or _hold_right
@@ -1243,6 +1266,9 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 		if button.button_index == MOUSE_BUTTON_RIGHT:
+			# Holding the right button shows where the throw would land. It is also
+			# the aiming stance, so the melee sweep still works while it is held.
+			_aiming_throw = button.pressed and is_throwable()
 			_hold_right = button.pressed
 			_held = _hold_left or _hold_right
 			_player.set("_sword_lock", false)
@@ -1469,8 +1495,20 @@ func _physics_process(delta: float) -> void:
 	elif _hold_right and not _hold_left: _carry_side = &"right"
 	# RMB ALONE is the guard. LMB+RMB is the two-handed cut and must still wound,
 	# which it could not while ANY right button counted as blocking.
-	_blocking = _hold_right and not _hold_left
+	_blocking = _hold_right and not _hold_left and not is_throwable()
 	_player.set("_sword_lock", false)
+	# DSH_MELEE_SET: with the weapon thrown the hands are empty, so no steering and no
+	# arm IK - the player's own animation owns the arms again until E lifts it.
+	if _unarmed:
+		_held = false
+		_hold_left = false
+		_hold_right = false
+		_throwing = false
+		_omega = Vector3.ZERO
+		_prev_points = PackedVector3Array()
+		_update_city_npc(delta)
+		_step_thrown(delta)
+		return
 	if not active:
 		# Outside the play state (menu, free cursor, death) no button stays held:
 		# a missed release used to leave RMB stuck on and force a two-handed grip.
@@ -1543,6 +1581,201 @@ func _physics_process(delta: float) -> void:
 	# The opponent is a real body: his step, gravity and pose belong to the physics
 	# frame, otherwise move_and_slide() leaves him hanging in the air.
 	_update_city_npc(delta)
+	# DSH_MELEE_SET: a thrown weapon flies on its own, once per physics tick.
+	_step_thrown(delta)
+	# The wind-up runs on the physics clock so a missed release cannot leave it stuck.
+	if _throwing:
+		_throw_windup = minf(_throw_windup + delta, THROW_WINDUP_TIME)
+
+## ---- DSH_MELEE_SET: throwing -----------------------------------------
+## A throwable weapon (the spear) can be wound up with T and let go. The model leaves
+## the hand as a real projectile: it flies under gravity, sticks where it lands, and
+## is stamped as the weapon it is so E lifts the same spear back up.
+const THROW_SPEED_MIN := 11.0
+const THROW_SPEED_MAX := 26.0
+const THROW_WINDUP_TIME := 0.55
+const THROW_GRAVITY := 9.81
+var _throwing := false
+## Right button held with a throwable weapon: the aiming stance, which draws the arc.
+var _aiming_throw := false
+var _throw_windup := 0.0
+var _thrown: Array[Dictionary] = []
+var _unarmed := false
+var _thrown_total := 0
+
+func is_throwable() -> bool:
+	return bool(weapon_entry().get("throwable", false))
+
+## ---- throwing aim -----------------------------------------------
+## While the LEFT button is held with a throwable weapon, a dotted arc shows where the
+## throw would send it, using the same launch speed and gravity as the real throw.
+const MAX_THROW_DOTS := 26
+const THROW_PREVIEW_STEP := 0.035
+var _aim_dots: Array[MeshInstance3D] = []
+var _aim_dot_mesh: SphereMesh
+var _aim_material: StandardMaterial3D
+var _aim_visible := 0
+var _aim_range := 0.0
+
+func _build_throw_dots() -> void:
+	if _aim_dot_mesh != null: return
+	_aim_dot_mesh = SphereMesh.new()
+	_aim_dot_mesh.radius = 0.024
+	_aim_dot_mesh.height = 0.048
+	_aim_material = StandardMaterial3D.new()
+	_aim_material.albedo_color = Color(0.96, 0.94, 0.90)
+	_aim_material.emission_enabled = true
+	_aim_material.emission = Color(0.62, 0.60, 0.55)
+	_aim_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	for i: int in MAX_THROW_DOTS:
+		var dot := MeshInstance3D.new()
+		dot.mesh = _aim_dot_mesh
+		dot.material_override = _aim_material
+		dot.visible = false
+		_world.add_child(dot)
+		_aim_dots.append(dot)
+
+func _update_throw_preview() -> void:
+	_build_throw_dots()
+	var speed: float = _throw_speed_now()
+	var space := _player.get_world_3d().direct_space_state
+	var excluded: Array[RID] = [_player.get_rid()]
+	var at := _sword_origin
+	var velocity := _dir.normalized() * speed
+	var shown := 0
+	var travelled := 0.0
+	for i: int in MAX_THROW_DOTS:
+		var next := at + velocity * THROW_PREVIEW_STEP
+		velocity += Vector3.DOWN * THROW_GRAVITY * THROW_PREVIEW_STEP
+		# The arc stops where the weapon would hit, but always shows a few points.
+		if shown >= 3 and space != null:
+			var query := PhysicsRayQueryParameters3D.create(at, next, 1, excluded)
+			query.hit_from_inside = true
+			if not space.intersect_ray(query).is_empty(): break
+		var dot: MeshInstance3D = _aim_dots[i]
+		dot.visible = true
+		dot.global_position = next
+		dot.scale = Vector3.ONE * clampf(1.15 - float(i) / float(MAX_THROW_DOTS), 0.25, 1.15)
+		shown += 1
+		travelled += THROW_PREVIEW_STEP * speed
+		at = next
+	for i: int in range(shown, _aim_dots.size()):
+		_aim_dots[i].visible = false
+	_aim_visible = shown
+	_aim_range = travelled
+
+func _hide_throw_dots() -> void:
+	for dot: MeshInstance3D in _aim_dots:
+		if is_instance_valid(dot): dot.visible = false
+	_aim_visible = 0
+	_aim_range = 0.0
+
+## The speed the throw would leave at right now, which is what the arc is drawn with.
+func _throw_speed_now() -> float:
+	var power := 0.5 if not _throwing else clampf(_throw_windup / THROW_WINDUP_TIME, 0.0, 1.0)
+	return lerpf(THROW_SPEED_MIN, THROW_SPEED_MAX, power)
+
+## How many thrown weapons are still in the air, and where the last one is.
+func _thrown_alive() -> int:
+	var alive := 0
+	for entry: Dictionary in _thrown:
+		if bool(entry.get("alive", false)): alive += 1
+	return alive
+
+func _thrown_position() -> Vector3:
+	for entry: Dictionary in _thrown:
+		var node: Node3D = entry.get("node")
+		if is_instance_valid(node): return node.global_position
+	return Vector3.ZERO
+
+func _begin_throw() -> void:
+	if not _active() or _unarmed or not is_throwable(): return
+	if _throwing: return
+	_throwing = true
+	_throw_windup = 0.0
+	_update_hint()
+	print("DSH_MELEE_THROW windup weapon=", _weapon_id)
+
+## Lets the weapon go: it becomes a projectile and the hands are empty.
+func _release_throw() -> void:
+	if not _throwing: return
+	_throwing = false
+	var power := clampf(_throw_windup / THROW_WINDUP_TIME, 0.0, 1.0)
+	if not is_instance_valid(_sword): return
+	var speed := lerpf(THROW_SPEED_MIN, THROW_SPEED_MAX, power)
+	var from: Vector3 = _sword_origin
+	var direction: Vector3 = _dir.normalized()
+	# The spear leaves the hand and lives in the world from here on.
+	_sword.visible = true
+	_thrown.append({
+		"node": _sword, "velocity": direction * speed, "prev": from,
+		"weapon": _weapon_id, "alive": true, "fired_ms": Time.get_ticks_msec(),
+	})
+	_unarmed = true
+	_thrown_total += 1
+	_prev_points = PackedVector3Array()
+	# A fresh model is built for the next time the player picks something up.
+	_sword = _build_weapon_model(_world, _weapon_id)
+	_sword.visible = false
+	print("DSH_MELEE_THROW released weapon=", _weapon_id, " power=", power, " speed=", speed)
+
+func _step_thrown(delta: float) -> void:
+	if _thrown.is_empty(): return
+	var space := _player.get_world_3d().direct_space_state
+	var excluded: Array[RID] = [_player.get_rid()]
+	for index: int in range(_thrown.size() - 1, -1, -1):
+		var entry: Dictionary = _thrown[index]
+		var node: Node3D = entry.get("node")
+		if not is_instance_valid(node):
+			_thrown.remove_at(index)
+			continue
+		if not bool(entry.get("alive", false)): continue
+		var velocity: Vector3 = entry.get("velocity", Vector3.ZERO)
+		var from: Vector3 = entry.get("prev", node.global_position)
+		velocity += Vector3.DOWN * THROW_GRAVITY * delta
+		var to: Vector3 = from + velocity * delta
+		var hit: Dictionary = {}
+		if space != null:
+			var query := PhysicsRayQueryParameters3D.create(from, to, 1, excluded)
+			query.hit_from_inside = true
+			hit = space.intersect_ray(query)
+		entry["velocity"] = velocity
+		entry["prev"] = to
+		_thrown[index] = entry
+		if not hit.is_empty():
+			_land_thrown(index, hit, velocity)
+			continue
+		node.global_position = to
+		if velocity.length_squared() > 1.0e-6:
+			node.look_at(to + velocity, Vector3.UP, true)
+
+## The weapon comes to rest where it struck, is stamped so it can be lifted again, and
+## hurts whatever it hit on the way in.
+func _land_thrown(index: int, hit: Dictionary, velocity: Vector3) -> void:
+	var entry: Dictionary = _thrown[index]
+	var node: Node3D = entry.get("node")
+	var point: Vector3 = hit.get("position", node.global_position)
+	var collider: Variant = hit.get("collider")
+	var direction := velocity.normalized()
+	var rest := point - direction * (_weapon_length * 0.5)
+	node.global_position = rest
+	if direction.length_squared() > 1.0e-6:
+		node.look_at(rest + direction, Vector3.UP, true)
+	entry["alive"] = false
+	entry["velocity"] = Vector3.ZERO
+	_thrown[index] = entry
+	_register_ground_sword(node)
+	_stamp_ground_weapon(node, str(entry.get("weapon", _weapon_id)))
+	# A thrown spear is a thrust: it uses the weapon's own stab multiplier.
+	var speed := velocity.length()
+	if is_instance_valid(collider) and collider is Node3D and collider.has_meta("sword_npc_part"):
+		var part := str(collider.get_meta("sword_npc_part"))
+		var cut := clampf((speed * 0.7 - DAMAGE_SPEED_MIN) * DAMAGE_PER_MPS * _kind_multiplier("stab"), 4.0, DAMAGE_MAX)
+		_npc_take_blade_part(part, point, speed, direction, cut)
+	elif is_instance_valid(collider) and collider is Node3D and collider.has_meta("sword_target"):
+		_damage_dummy(collider, point, speed, direction, Time.get_ticks_msec())
+	print("DSH_MELEE_THROWN_LAND weapon=", entry.get("weapon", ""), " at=", point,
+		" speed=", speed, " distance=", _player.global_position.distance_to(point))
 
 ## The sword is attached in the DRAW frame, not in the physics step: the rig has
 ## already applied every bone pose by then (including the player's own pass), so
@@ -1552,6 +1785,14 @@ func _process(delta: float) -> void:
 	if not _ready or not is_instance_valid(_world) or not is_instance_valid(_rig): return
 	if not _active():
 		if is_instance_valid(_sword): _sword.visible = false
+		return
+	if _unarmed:
+		# Empty hands after a throw: the player's own animation owns the arms again.
+		if is_instance_valid(_sword): _sword.visible = false
+		_update_gore(delta)
+		_update_stumps(delta)
+		_update_sparks(delta)
+		if not is_instance_valid(_npc_rig): _update_duelist(delta)
 		return
 	# A severed limb is cut away every frame, AFTER the player's own pose pass, so
 	# neither the animation nor our own arm IK can restore it.
@@ -1567,6 +1808,12 @@ func _process(delta: float) -> void:
 	if armed_with_sword and not _sword_grounded:
 		_sword.visible = true
 		_attach_sword_to_fist()
+	# DSH_MELEE_SET: the right button is the aiming stance for a throwable weapon, so
+	# the arc is drawn here - after the model has been placed on the fist.
+	if _aiming_throw and is_throwable() and not _unarmed:
+		_update_throw_preview()
+	else:
+		_hide_throw_dots()
 	_update_gore(delta)
 	_update_stumps(delta)
 	_update_sparks(delta)
@@ -3887,6 +4134,10 @@ func snapshot() -> Dictionary:	return {
 		"duelist_position": _duelist.global_position if is_instance_valid(_duelist) else Vector3.ZERO,
 		"weapon": _weapon_id, "weapon_mass": _weapon_mass, "weapon_length": _weapon_length,
 		"weapon_crush": _weapon_crush, "weapon_category": str(weapon_entry().get("category", "")),
+		"throwable": is_throwable(), "throwing": _throwing, "unarmed": _unarmed,
+		"aiming_throw": _aiming_throw, "throw_aim_dots": _aim_visible, "throw_aim_range": _aim_range,
+		"thrown_total": _thrown_total, "thrown_alive": _thrown_alive(),
+		"thrown_at": _thrown_position(), "ground_swords": _ground_swords.size(),
 		"blade_from": _sword_origin, "blade_to": _sword_origin + _dir * (0.06 + _weapon_length),
 		"blade_body_dot": _dir.dot(_player._visual.global_basis.z) if is_instance_valid(_player) and is_instance_valid(_player._visual) else -1.0,
 		"hand_local_z": (_player._visual.global_basis.inverse() * (_sword_origin - _player._visual.global_position)).z if is_instance_valid(_player) and is_instance_valid(_player._visual) else 0.0,
