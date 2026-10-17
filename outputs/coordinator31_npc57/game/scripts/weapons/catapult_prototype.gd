@@ -764,12 +764,13 @@ func _push_speed_for(men: int) -> float:
 
 func _physics_process(delta: float) -> void:
 	if not _ready or not is_instance_valid(_cart): return
-	# HELD IN PLACE, first thing, every physics frame: the host and the frame are restored
-	# from the transforms captured when the machine was put down.
+	# POSITION ONLY. Restoring the whole transform fought the aiming code, which turns the
+	# machine with the player: the two wrote different rotations every frame, and the machine
+	# shook while the stone was in the air.
 	if _host_home_set:
-		global_transform = _host_home
+		global_position = _host_home.origin
 	if _cart_home_set:
-		_cart.global_transform = _cart_home
+		_cart.global_position = _cart_home.origin
 		_cart.velocity = Vector3.ZERO
 	if _recoil_lock > 0.0:
 		# ROOTED for a moment after the throw: the machine kicks, it does not travel. Without
