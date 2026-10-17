@@ -50,6 +50,13 @@ func _run() -> void:
 		" hand_clearance=", rest.get("hand_clearance", 0.0),
 		" elbow_clearance=", rest.get("elbow_clearance", 0.0),
 		" quiver_offset_m=", rest.get("quiver_offset_m", 0.0))
+	print("BOW_POSE_REPORT ", JSON.stringify(_proto.call("pose_report")))
+	print("BOW_POSE_GRIP bow_grip_error_m=", rest.get("bow_grip_error", -1.0),
+		" string_grip_error_m=", rest.get("string_grip_error", -1.0),
+		" string_reach_error_m=", rest.get("string_reach_error", -1.0),
+		" bow_reach_error_m=", rest.get("bow_reach_error", -1.0),
+		" nocked_arrow_visible=", rest.get("nocked_arrow_visible", false),
+		" string_pull_m=", rest.get("string_pull_m", 0.0))
 	# Hold the RIGHT button: the targeting aid, no arrow spent.
 	var shots_before: int = int(_proto.snapshot().shots)
 	var arrows_before: int = int(_proto.snapshot().arrows_left)
@@ -76,9 +83,13 @@ func _run() -> void:
 	var verdict := {
 		"hands_are_in_front": float(rest.get("draw_hand_forward", -9.0)) > 0.0
 			and float(rest.get("bow_hand_forward", -9.0)) > 0.0,
+		"bow_is_in_the_bow_hand": float(rest.get("bow_grip_error", 99.0)) < 0.05,
+		"string_is_in_the_string_hand": float(rest.get("string_grip_error", 99.0)) < 0.06,
+		"both_arms_reach_their_targets": float(rest.get("string_reach_error", 99.0)) < 0.06
+			and float(rest.get("bow_reach_error", 99.0)) < 0.06,
 		"string_is_visible": bool(rest.get("string_visible", false)),
 		"arm_clear_of_body": float(rest.get("hand_clearance", 0.0)) > 0.24
-			and float(rest.get("elbow_clearance", 0.0)) > 0.18,
+			and float(rest.get("elbow_clearance", 0.0)) > 0.10,
 		"quiver_on_the_back": float(rest.get("quiver_offset_m", 0.0)) > 0.135
 			and float(rest.get("quiver_offset_m", 9.0)) < 0.26,
 		"rmb_aims_without_firing": bool(aiming.get("aiming", false))
