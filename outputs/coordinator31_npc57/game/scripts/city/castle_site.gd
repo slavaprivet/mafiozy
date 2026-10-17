@@ -1687,7 +1687,9 @@ func apply_explosion(event: Dictionary) -> Dictionary:
 			var board_at: Vector3 = board_mesh.global_position
 			var flat := Vector2(at_world.x - board_at.x, at_world.z - board_at.z).length()
 			var drop: float = maxf(0.0, absf(at_world.y - board_at.y) - GATE_HEIGHT * 0.46)
-			if Vector2(flat, drop).length() > radius + 1.2: continue
+			# A stone takes the boards within about a metre of where it struck. The blast
+			# radius is for masonry; a door gives way locally.
+			if Vector2(flat, drop).length() > 1.1: continue
 			board["broken"] = true
 			board_mesh.visible = false
 			killed += 1

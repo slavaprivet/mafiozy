@@ -49,8 +49,8 @@ func _run() -> void:
 	_scene.add_child(_camera)
 	_camera.current = true
 	# A view of the wall a little to the side of the gate, from outside.
-	_camera.global_position = base + Vector3(26.0, 10.0, half + 34.0)
-	_camera.look_at(base + Vector3(16.0, 9.0, half), Vector3.UP)
+	_camera.global_position = base + Vector3(0.0, 9.0, half + 26.0)
+	_camera.look_at(base + Vector3(0.0, 7.0, half), Vector3.UP)
 	await _settle(20)
 	_shot("before")
 	# Load, aim at the wall, fire.
@@ -58,7 +58,7 @@ func _run() -> void:
 	for i: int in 60:
 		await process_frame
 		if bool((_catapult.call("snapshot") as Dictionary).get("stone_on_spoon", false)): break
-	_catapult.call("aim_at", base + Vector3(16.0, 9.0, half))
+	_catapult.call("aim_at", base + Vector3(1.2, 7.0, half))
 	await _settle(4)
 	_catapult.call("_fire")
 	var fired := false
