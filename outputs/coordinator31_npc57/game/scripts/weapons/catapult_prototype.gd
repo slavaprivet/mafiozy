@@ -764,6 +764,13 @@ func _push_speed_for(men: int) -> float:
 
 func _physics_process(delta: float) -> void:
 	if not _ready or not is_instance_valid(_cart): return
+	# HELD IN PLACE, first thing, every physics frame: the host and the frame are restored
+	# from the transforms captured when the machine was put down.
+	if _host_home_set:
+		global_transform = _host_home
+	if _cart_home_set:
+		_cart.global_transform = _cart_home
+		_cart.velocity = Vector3.ZERO
 	if _recoil_lock > 0.0:
 		# ROOTED for a moment after the throw: the machine kicks, it does not travel. Without
 		# this the frame lunged forward on every shot.

@@ -1698,7 +1698,8 @@ func apply_explosion(event: Dictionary) -> Dictionary:
 			# radius is for masonry; a door gives way locally.
 			# THE HOLE SCALES WITH THE STRIKE: a fast heavy stone takes more of the door than
 			# a slow one. power arrives from the machine, so the hole is its own force.
-			var hole: float = clampf(0.55 + power * 0.010, 0.8, 2.8)
+			# A stone opens a patch about the size of itself, not half the door.
+			var hole: float = clampf(0.5 + power * 0.004, 0.6, 2.0)
 			if Vector2(flat, drop).length() > hole: continue
 			board["broken"] = true
 			board_mesh.visible = false
