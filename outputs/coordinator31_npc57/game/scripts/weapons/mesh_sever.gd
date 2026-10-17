@@ -321,48 +321,55 @@ static func _count_triangles(arrays: Array) -> int:
 static func _triangulate_cap(vertices: Array, face_normal: Vector3) -> Array:
 	var count := vertices.size()
 	if count < 3: return []
-	# Segments are stored as consecutive pairs; chain them into ordered loops by
-	# matching endpoints. An unordered fan would bow-tie, which is exactly the artefact
-	# that makes a cut look wrong.
-	var adjacency: Dictionary = {}
+	# Segments are stored as consecutive pairs. They are chained by walking EDGES, not
+	# vertices: a cut through a limb revisits the same point along different segments,
+	# and marking vertices as visited abandoned the contour halfway and restarted it as
+	# several short loops - which is why a cube with eight boundary segments produced
+	# 128 cap triangles instead of 16.
 	var quantise := 10000.0
 	var key := func(p: Vector3) -> String:
 		return "%d:%d:%d" % [int(round(p.x * quantise)), int(round(p.y * quantise)), int(round(p.z * quantise))]
+	var edges: Array = []
+	var by_key: Dictionary = {}
 	for i: int in range(0, count - 1, 2):
 		var a: _Vertex = vertices[i]
 		var b: _Vertex = vertices[i + 1]
 		var ka: String = key.call(a.position)
 		var kb: String = key.call(b.position)
 		if ka == kb: continue
-		if not adjacency.has(ka): adjacency[ka] = []
-		if not adjacency.has(kb): adjacency[kb] = []
-		(adjacency[ka] as Array).append(kb)
-		(adjacency[kb] as Array).append(ka)
-	var by_key: Dictionary = {}
-	for i: int in count:
-		var vertex: _Vertex = vertices[i]
-		by_key[key.call(vertex.position)] = vertex
-	# Every disconnected loop becomes its own fan, so a cut that opens the body in two
+		by_key[ka] = a
+		by_key[kb] = b
+		edges.append([ka, kb])
+	if edges.size() < 3: return []
+	# Every closed contour becomes its own fan, so a cut that opens the body in two
 	# places (through both arms, say) is capped in both places.
 	var built := _Builder.new()
-	for start: String in adjacency.keys():
-		if not by_key.has(start): continue
+	var used: Dictionary = {}
+	for seed: int in edges.size():
+		if used.has(seed): continue
 		var loop: Array = []
-		var visited: Dictionary = {}
-		var current := start
-		var previous := ""
+		var current := seed
+		var start_key: String = edges[seed][0]
 		while true:
-			if visited.has(current): break
-			visited[current] = true
-			if by_key.has(current): loop.append(by_key[current])
-			var next := ""
-			for candidate: String in adjacency[current]:
-				if candidate != previous and not visited.has(candidate):
-					next = candidate
+			used[current] = true
+			var edge: Array = edges[current]
+			loop.append(by_key[edge[0]])
+			var next_key: String = edge[1]
+			if next_key == start_key: break
+			var found := -1
+			for candidate: int in edges.size():
+				if used.has(candidate): continue
+				var other: Array = edges[candidate]
+				if other[0] == next_key:
+					found = candidate
 					break
-			if next == "": break
-			previous = current
-			current = next
+				if other[1] == next_key:
+					# Walk it the right way round rather than backwards.
+					edges[candidate] = [other[1], other[0]]
+					found = candidate
+					break
+			if found < 0: break
+			current = found
 		if loop.size() < 3: continue
 		var centre := Vector3.ZERO
 		for vertex: _Vertex in loop: centre += vertex.position
