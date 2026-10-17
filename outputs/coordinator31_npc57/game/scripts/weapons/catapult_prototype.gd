@@ -733,7 +733,7 @@ func _release() -> void:
 	_cart_speed = 0.0
 	_cart.velocity = Vector3.ZERO
 	_recoil_lock = 0.55
-	_lurch = 0.55
+	_lurch = 1.10
 	_fly_prev = _stone.global_position
 	_fired += 1
 	print("DSH_CATAPULT_FIRED yaw=", _yaw, " elevation=", _elevation,
@@ -775,8 +775,10 @@ func _physics_process(delta: float) -> void:
 		# A SHORT LURCH at the throw, decaying in half a second: the kick that was asked for,
 		# with nothing left over. The machine still stands where it was put.
 		var forward := Vector3(sin(rotation.y), 0.0, cos(rotation.y))
-		_lurch = maxf(0.0, _lurch - delta * 2.2)
-		global_position = _host_home.origin - forward * _lurch
+		_lurch = maxf(0.0, _lurch - delta * 3.2)
+		# FORWARD, the way the throw goes: the machine jolts toward what it fires at, then
+		# settles back to where it stands.
+		global_position = _host_home.origin + forward * _lurch
 	if _cart_home_set:
 		_cart.global_position = _cart_home.origin
 		_cart.velocity = Vector3.ZERO
