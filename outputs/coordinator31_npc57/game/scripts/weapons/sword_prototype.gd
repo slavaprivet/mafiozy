@@ -14,6 +14,10 @@ extends Node3D
 ## Scope: one sword, one training dummy, one pole, one control scheme. No network,
 ## no combat AI, no dismemberment, no fully physical body.
 
+## DSH_GORE: the planar severer, preloaded because its class_name is not registered in
+## a fresh run of this script.
+const MeshSever = preload("res://scripts/weapons/mesh_sever.gd")
+
 ## DSH_MELEE_SET: the weapon table. Every melee weapon in the set is one entry here,
 ## so the proven mechanics - the sweep, the contacts, the gore, drop and pickup - are
 ## shared instead of copied five times.
@@ -66,13 +70,24 @@ func set_weapon(id: String) -> bool:
 	_weapon_length = float(entry.get("length", 1.15))
 	_weapon_mass = maxf(0.4, float(entry.get("mass", 1.0)))
 	_weapon_crush = bool(entry.get("crush", false))
-	# Rebuild the model for the new weapon, dropping the old one.
-	if is_instance_valid(_sword):
-		_sword.get_parent().remove_child(_sword)
-		_sword.queue_free()
-	_sword = _build_weapon_model(_world, id)
+	# DSH_MELEE_SET: models are CACHED, never rebuilt on equip. Rebuilding took a whole
+	# frame (measured at 105 ms on the axe), which is the hitch that felt like a freeze
+	# when choosing a weapon. A weapon is built the first time it is needed and then
+	# only shown or hidden.
+	var model: Node3D = _weapon_models.get(id)
+	if not is_instance_valid(model):
+		model = _build_weapon_model(_world, id)
+		_weapon_models[id] = model
+	for other: String in _weapon_models.keys():
+		var node: Node3D = _weapon_models[other]
+		if is_instance_valid(node): node.visible = (other == id)
+	_sword = model
+	if is_instance_valid(_sword): _sword.visible = true
 	if is_instance_valid(_hint): _update_hint()
 	return true
+
+## One model per weapon of the set, built once and kept.
+var _weapon_models: Dictionary = {}
 
 ## The current weapon's entry.
 func weapon_entry() -> Dictionary:
@@ -377,7 +392,14 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 	_upper_len = _rest_fore.origin.length()
 	_fore_len = _rest_hand.origin.length()
 	if _upper_len <= 0.01 or _fore_len <= 0.01: return {"ok": false, "reason": "arm_lengths"}
-	_sword = _build_weapon_model(_world, _weapon_id)
+	# DSH_MELEE_SET: every weapon of the set is built NOW, at install time, so choosing
+	# one never pays for building it. The cost of a first equip that was measured at
+	# about 105 ms - long enough to feel like a freeze - is paid once, at load.
+	for weapon_id: String in WEAPONS.keys():
+		var model: Node3D = _build_weapon_model(_world, weapon_id)
+		model.visible = (weapon_id == _weapon_id)
+		_weapon_models[weapon_id] = model
+	_sword = _weapon_models.get(_weapon_id)
 	_build_impacts()
 	_build_hint()
 	var placed := _place_targets()
@@ -1947,7 +1969,14 @@ func _release_throw() -> void:
 	_thrown_total += 1
 	_prev_points = PackedVector3Array()
 	# A fresh model is built for the next time the player picks something up.
-	_sword = _build_weapon_model(_world, _weapon_id)
+	# DSH_MELEE_SET: every weapon of the set is built NOW, at install time, so choosing
+	# one never pays for building it. The cost of a first equip that was measured at
+	# about 105 ms - long enough to feel like a freeze - is paid once, at load.
+	for weapon_id: String in WEAPONS.keys():
+		var model: Node3D = _build_weapon_model(_world, weapon_id)
+		model.visible = (weapon_id == _weapon_id)
+		_weapon_models[weapon_id] = model
+	_sword = _weapon_models.get(_weapon_id)
 	_sword.visible = false
 	print("DSH_MELEE_THROW released weapon=", _weapon_id, " power=", power, " speed=", speed)
 
@@ -3820,6 +3849,154 @@ func _npc_speed_scale() -> float:
 	for key: String in ["thigh_l", "thigh_r", "shin_l", "shin_r", "foot_l", "foot_r"]:
 		if _npc_severed.has(key): loss += 0.28
 	return clampf(1.0 - loss, 0.18, 1.0)
+
+## ---- DSH_GORE: real severing of the knight's own skin ----------------
+## The old dismemberment collapsed a limb's bones to nothing and spawned a stump that
+## only looked like a wound. These functions cut the ACTUAL body surface along a plane,
+## keep the side that stays on the body (still skinned, so it keeps deforming), and
+## hand the side that comes off to the world as rigid debris - the same piece of skin
+## that was cut away, not a stand-in.
+var _npc_cut_total := 0
+var _npc_debris: Array[Dictionary] = []
+
+## The knight's SKINNED mesh instances. The armour plates are attached rigidly to bones,
+## so they are deliberately skipped: only real skinned surfaces can be cut.
+func _npc_skinned_meshes() -> Array:
+	var out: Array = []
+	if not is_instance_valid(_npc_rig): return out
+	var visual: Node = _npc_rig.get_parent()
+	if visual == null: return out
+	for node: Node in visual.find_children("*", "MeshInstance3D", true, false):
+		var mesh_node := node as MeshInstance3D
+		if mesh_node.mesh == null or not (mesh_node.mesh is ArrayMesh): continue
+		var mesh: ArrayMesh = mesh_node.mesh
+		for s: int in mesh.get_surface_count():
+			var arrays: Array = mesh.surface_get_arrays(s)
+			if arrays.size() <= Mesh.ARRAY_BONES: continue
+			var bones = arrays[Mesh.ARRAY_BONES]
+			if bones is PackedInt32Array and (bones as PackedInt32Array).size() > 0:
+				out.append(mesh_node)
+				break
+	return out
+
+## Turns a world plane into the mesh's own space.
+func _plane_in_local(mesh_node: MeshInstance3D, plane_world: Plane) -> Plane:
+	var inv := mesh_node.global_transform.affine_inverse()
+	var point_world := plane_world.normal * plane_world.d
+	var point_local := inv * point_world
+	var normal_local := (inv.basis * plane_world.normal).normalized()
+	return Plane(normal_local, normal_local.dot(point_local))
+
+## The flesh material of a fresh cut. One instance for the whole run.
+var _flesh_material: StandardMaterial3D
+
+func _flesh() -> StandardMaterial3D:
+	if _flesh_material == null:
+		_flesh_material = StandardMaterial3D.new()
+		_flesh_material.albedo_color = Color(0.42, 0.06, 0.07)
+		_flesh_material.roughness = 0.55
+		_flesh_material.metallic = 0.0
+	return _flesh_material
+
+## Cuts the knight's skin along `plane_world`. `keep_point_world` says which side stays
+## on the body. Returns true when anything was actually cut.
+func npc_cut_body(plane_world: Plane, keep_point_world: Vector3) -> bool:
+	var meshes := _npc_skinned_meshes()
+	if meshes.is_empty():
+		print("DSH_GORE_CUT refused=no_skinned_mesh")
+		return false
+	var any := false
+	for entry: Variant in meshes:
+		var mesh_node: MeshInstance3D = entry
+		if not is_instance_valid(mesh_node): continue
+		var source: ArrayMesh = mesh_node.mesh
+		var local_plane := _plane_in_local(mesh_node, plane_world)
+		var keep_local: Vector3 = mesh_node.global_transform.affine_inverse() * keep_point_world
+		var keep_front: bool = local_plane.distance_to(keep_local) >= 0.0
+		var cut = MeshSever.cut(source, local_plane)
+		if cut.triangles_split == 0:
+			continue
+		var kept_arrays: Array = cut.front_arrays if keep_front else cut.back_arrays
+		var gone_arrays: Array = cut.back_arrays if keep_front else cut.front_arrays
+		var kept_cap: Array = cut.front_cap_arrays if keep_front else cut.back_cap_arrays
+		var gone_cap: Array = cut.back_cap_arrays if keep_front else cut.front_cap_arrays
+		# 1. The body keeps its side, with the cut face closed.
+		var body_mesh := ArrayMesh.new()
+		for arrays: Array in kept_arrays:
+			body_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		for i: int in body_mesh.get_surface_count():
+			var material: Material = source.surface_get_material(mini(i, source.get_surface_count() - 1))
+			if material != null: body_mesh.surface_set_material(i, material)
+		for arrays: Array in kept_cap:
+			body_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+			body_mesh.surface_set_material(body_mesh.get_surface_count() - 1, _flesh())
+		if body_mesh.get_surface_count() > 0:
+			mesh_node.mesh = body_mesh
+		# 2. The piece that came off goes into the world as the same skin, rigid.
+		_spawn_cut_debris(gone_arrays, gone_cap, mesh_node, plane_world.normal)
+		any = true
+		_npc_cut_total += 1
+		print("DSH_GORE_CUT surfaces_in=", source.get_surface_count(),
+			" kept=", body_mesh.get_surface_count(),
+			" taken=", gone_arrays.size(), " cap=", kept_cap.size(),
+			" split=", cut.triangles_split, " boundary=", cut.boundary_segments,
+			" cap_triangles=", cut.cap_triangles)
+	if not any:
+		print("DSH_GORE_CUT refused=nothing_crossed")
+	return any
+
+## The cut-away piece: the very same surface, no skeleton, falling under gravity.
+func _spawn_cut_debris(gone_arrays: Array, gone_cap: Array, from: MeshInstance3D, push: Vector3) -> void:
+	if gone_arrays.is_empty(): return
+	var debris_mesh := ArrayMesh.new()
+	for arrays: Array in gone_arrays:
+		debris_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		debris_mesh.surface_set_material(debris_mesh.get_surface_count() - 1, _flesh())
+	for arrays: Array in gone_cap:
+		debris_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		debris_mesh.surface_set_material(debris_mesh.get_surface_count() - 1, _flesh())
+	if debris_mesh.get_surface_count() == 0: return
+	var piece := MeshInstance3D.new()
+	piece.name = "KnightCutPiece"
+	piece.mesh = debris_mesh
+	_world.add_child(piece)
+	# The piece keeps the transform of the surface it came from, so it starts exactly
+	# where it was cut, not at the origin.
+	piece.global_transform = from.global_transform
+	_npc_debris.append({
+		"node": piece,
+		"velocity": push.normalized() * randf_range(0.6, 1.8) + Vector3.UP * randf_range(0.2, 0.8),
+		"spin": Vector3(randf_range(-2.0, 2.0), randf_range(-2.0, 2.0), randf_range(-2.0, 2.0)),
+		"age": 0.0,
+	})
+
+## Drops the cut pieces under gravity, spins them, and lets them settle.
+func _update_npc_debris(delta: float) -> void:
+	if _npc_debris.is_empty(): return
+	var floor_y: float = 0.0
+	if is_instance_valid(_player): floor_y = _player.global_position.y - 0.9
+	for index: int in range(_npc_debris.size() - 1, -1, -1):
+		var entry: Dictionary = _npc_debris[index]
+		var node: Node3D = entry.get("node")
+		if not is_instance_valid(node):
+			_npc_debris.remove_at(index)
+			continue
+		var velocity: Vector3 = entry.get("velocity", Vector3.ZERO)
+		velocity.y -= 9.81 * delta
+		var position := node.global_position + velocity * delta
+		var spin: Vector3 = entry.get("spin", Vector3.ZERO)
+		node.global_position = position
+		node.rotate_x(spin.x * delta)
+		node.rotate_y(spin.y * delta)
+		node.rotate_z(spin.z * delta)
+		if position.y <= floor_y:
+			# Settled: stop moving, and let it rest flat where it landed.
+			velocity = Vector3.ZERO
+			position.y = floor_y
+			node.global_position = position
+		entry["velocity"] = velocity
+		entry["age"] = float(entry.get("age", 0.0)) + delta
+		_npc_debris[index] = entry
 
 ## Builds the opponent from the game's own resident model and canonical walk gait.
 func _spawn_resident_knight(at: Vector3) -> bool:
