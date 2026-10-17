@@ -24,6 +24,26 @@ const BRICK_SETTLE_S := 1.4
 const BRICK_LIFE_S := 30.0
 var _debris_mesh: BoxMesh
 var _debris_materials: Dictionary = {}
+## DSH_OPT: dead stones come back here instead of being freed. A blast that reuses its stones
+## allocates nothing, and allocation spikes are what a hitch is made of.
+var _debris_pool: Array[RigidBody3D] = []
+const DEBRIS_POOL_MAX := 220
+var _reused_stones := 0
+
+## Put a stone away: hidden, frozen, out of every collision, and kept for the next blast.
+func _recycle_stone(body: RigidBody3D) -> void:
+	if not is_instance_valid(body): return
+	if _debris_pool.size() >= DEBRIS_POOL_MAX:
+		body.queue_free()
+		return
+	body.linear_velocity = Vector3.ZERO
+	body.angular_velocity = Vector3.ZERO
+	body.freeze = true
+	body.collision_layer = 0
+	body.collision_mask = 0
+	body.visible = false
+	_debris_pool.append(body)
+
 const WALL_HEIGHT := 19.0
 const WALL_HALF := 68.0          # half of the outside square: a siege map, not a yard
 const WALL_THICK := 1.1
@@ -628,52 +648,67 @@ func _kill_brick(index: int, impulse: Vector3, power: float) -> void:
 	_spawn_falling_brick(cell, impulse, power)
 
 func _spawn_falling_brick(cell: Dictionary, impulse: Vector3, power: float) -> void:
-	var body := RigidBody3D.new()
-	body.name = "Brick"
+	# FROM THE POOL when there is one: a blast that reuses its stones allocates nothing.
+	var body: RigidBody3D = null
+	while not _debris_pool.is_empty():
+		var candidate: RigidBody3D = _debris_pool.pop_back()
+		if is_instance_valid(candidate):
+			body = candidate
+			break
+	var from_pool: bool = body != null
+	if body == null:
+		body = RigidBody3D.new()
+		body.name = "Brick"
+		body.mass = 18.0
+		var shape := CollisionShape3D.new()
+		shape.name = "Shape"
+		body.add_child(shape)
+		if _debris_mesh == null:
+			_debris_mesh = BoxMesh.new()
+			_debris_mesh.size = Vector3.ONE
+		var fresh_mesh := MeshInstance3D.new()
+		fresh_mesh.name = "Mesh"
+		fresh_mesh.mesh = _debris_mesh
+		fresh_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		body.add_child(fresh_mesh)
+		add_child(body)
+	var size: Vector3 = cell.get("size", BRICK)
+	var body_shape: CollisionShape3D = body.get_node_or_null("Shape") as CollisionShape3D
+	if body_shape != null:
+		var box := BoxShape3D.new()
+		box.size = size
+		body_shape.shape = box
+	var mesh_instance: MeshInstance3D = body.get_node_or_null("Mesh") as MeshInstance3D
+	if mesh_instance != null:
+		mesh_instance.scale = size
+		var key: String = str(cell.get("material", "stone"))
+		var tint: Color = _brick_tint(cell)
+		var debris_key := "%s|%d" % [key, int(tint.r * 40.0)]
+		if not _debris_materials.has(debris_key):
+			var base_material: StandardMaterial3D = _materials.get(key, _materials["stone"])
+			var tinted: StandardMaterial3D = base_material.duplicate()
+			tinted.albedo_color = Color(base_material.albedo_color.r * tint.r,
+				base_material.albedo_color.g * tint.g, base_material.albedo_color.b * tint.b)
+			_debris_materials[debris_key] = tinted
+		mesh_instance.material_override = _debris_materials[debris_key]
+	body.freeze = false
 	body.collision_layer = 1
 	body.collision_mask = 1
-	body.mass = 18.0
+	body.visible = true
 	body.position = cell.get("at", Vector3.ZERO)
 	body.rotation = cell.get("rotation", Vector3.ZERO)
-	add_child(body)
-	var shape := CollisionShape3D.new()
-	var box := BoxShape3D.new()
-	box.size = cell.get("size", BRICK)
-	shape.shape = box
-	body.add_child(shape)
-	var mesh := MeshInstance3D.new()
-	# ONE mesh resource, scaled per stone: a BoxMesh per brick meant a resource allocation
-	# for every one of hundreds of bodies in a single blast.
-	if _debris_mesh == null:
-		_debris_mesh = BoxMesh.new()
-		_debris_mesh.size = Vector3.ONE
-	mesh.mesh = _debris_mesh
-	mesh.scale = box.size
-	mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	var key: String = str(cell.get("material", "stone"))
-	var tint: Color = _brick_tint(cell)
-	var debris_key := "%s|%d" % [key, int(tint.r * 40.0)]
-	if not _debris_materials.has(debris_key):
-		var base_material: StandardMaterial3D = _materials.get(key, _materials["stone"])
-		var tinted: StandardMaterial3D = base_material.duplicate()
-		tinted.albedo_color = Color(base_material.albedo_color.r * tint.r,
-			base_material.albedo_color.g * tint.g, base_material.albedo_color.b * tint.b)
-		_debris_materials[debris_key] = tinted
-	mesh.material_override = _debris_materials[debris_key]
-	body.add_child(mesh)
 	var direction: Vector3 = impulse.normalized() if impulse.length_squared() > 1.0e-6 else Vector3.DOWN
 	body.linear_velocity = (direction * 0.55 + Vector3.UP * 0.55).normalized() \
 		* clampf(power * 0.35, 2.0, 26.0) * randf_range(0.7, 1.3)
 	body.angular_velocity = Vector3(randf_range(-6, 6), randf_range(-6, 6), randf_range(-6, 6))
 	_falling.append({"body": body, "age": 0.0})
-	# Over the cap the oldest debris is retired: a solver per stone is what stalls a blast.
+	if from_pool:
+		_reused_stones += 1
 	while _falling.size() > MAX_FALLING:
 		var oldest: Dictionary = _falling.pop_front()
 		var old_body: Node = oldest.get("body")
-		if is_instance_valid(old_body): old_body.queue_free()
-	body.set_meta("castle_brick", true)
-
-## ------------------------------------------------------------------ walls
+		if is_instance_valid(old_body):
+			_recycle_stone(old_body as RigidBody3D)
 func _build_curtain_walls() -> void:
 	# Four walls round the courtyard, laid course by course with a half-brick offset on
 	# every other course, which is how a real bond looks.
@@ -1998,7 +2033,8 @@ func _physics_process(_delta: float) -> void:
 			body.collision_layer = 0
 			body.collision_mask = 0
 		if age > BRICK_LIFE_S:
-			body.queue_free()
+			# Back to the pool, not to the allocator.
+			_recycle_stone(body)
 			_falling.remove_at(index)
 
 ## Where the player appears: in the courtyard, with the gate behind him.
