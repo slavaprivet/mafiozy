@@ -174,7 +174,10 @@ func _build_path() -> void:
 	add_child(road_mesh)
 	var courtyard := MeshInstance3D.new()
 	var courtyard_box := BoxMesh.new()
-	courtyard_box.size = Vector3(WALL_HALF * 2.0 - 2.0, 0.12, WALL_HALF * 2.0 - 2.0)
+	# The paving runs all the way UNDER the walls: it used to stop a metre short, and in
+	# that gap the grass showed through the floor - exactly the ugly strip at the foot of
+	# the stairs.
+	courtyard_box.size = Vector3(WALL_HALF * 2.0 + 1.6, 0.12, WALL_HALF * 2.0 + 1.6)
 	courtyard.mesh = courtyard_box
 	courtyard.material_override = cobble
 	courtyard.position = Vector3(0.0, -0.04, 0.0)
@@ -378,7 +381,7 @@ func _brick_transform(cell: Dictionary) -> Transform3D:
 		rotation.x + float(int(at.x * 7.0 + at.y * 13.0) % 5) * 0.004,
 		rotation.y + float(int(at.z * 11.0 + at.y * 5.0) % 5) * 0.004,
 		rotation.z))
-	basis = basis.scaled(Vector3(size.x / BRICK.x, size.y / BRICK.y, size.z / BRICK.z))
+	basis = basis.scaled(Vector3(size.x / BRICK.x, size.y / BRICK.y, size.z / BRICK.z) * 0.96)
 	return Transform3D(basis, at)
 
 ## Slight colour variation per brick, so the wall reads as stone rather than as paint.
@@ -490,7 +493,26 @@ func _build_wall(side: String) -> void:
 		_add_wall_collision(Vector3(WALL_HALF if side == "east" else -WALL_HALF, WALL_HEIGHT * 0.5, 0.0),
 			Vector3(WALL_THICK, WALL_HEIGHT, WALL_HALF * 2.0))
 
+func _add_mortar(at: Vector3, size: Vector3, vertical: bool = false) -> void:
+	# A dark core, a little thinner than the wall, seen through the joints between bricks.
+	var mortar := MeshInstance3D.new()
+	if vertical:
+		var cylinder := CylinderMesh.new()
+		cylinder.top_radius = size.x * 0.5
+		cylinder.bottom_radius = size.x * 0.5
+		cylinder.height = size.y
+		cylinder.radial_segments = 16
+		mortar.mesh = cylinder
+	else:
+		var box := BoxMesh.new()
+		box.size = size
+		mortar.mesh = box
+	mortar.material_override = _materials["dark"]
+	mortar.position = at
+	add_child(mortar)
+
 func _add_wall_collision(at: Vector3, size: Vector3) -> void:
+	_add_mortar(at, Vector3(size.x, size.y, maxf(0.25, size.z - 0.34)))
 	var body := StaticBody3D.new()
 	body.collision_layer = 1
 	body.collision_mask = 1
@@ -578,6 +600,8 @@ func _build_corner_towers() -> void:
 				var size := Vector3(brick_length, BRICK.y, BRICK.z * 1.5)
 				var key := "stone" if row % 4 != 0 else "cold"
 				_add_brick(at, size, key, Vector3(0.0, -angle, 0.0), "tower")
+		_add_mortar(centre + Vector3.UP * TOWER_HEIGHT * 0.5,
+			Vector3(TOWER_RADIUS * 1.92, TOWER_HEIGHT, 0.0), true)
 		var body := StaticBody3D.new()
 		body.collision_layer = 1
 		body.collision_mask = 1
@@ -756,6 +780,9 @@ func _build_keep() -> void:
 	var base := Vector3(0.0, 0.0, -8.0)
 	var courses := int(KEEP_SIZE.y / BRICK.y)
 	var per_course := int(KEEP_SIZE.x / BRICK.x)
+	# The keep is LAID IN BRICKS on all four faces - a solid box underneath it would hide
+	# every one of them behind a flat slab, which is exactly how it looked: a featureless
+	# monolith with no windows at all.
 	for row: int in courses:
 		for column: int in per_course:
 			var along := (float(column) - float(per_course - 1) * 0.5) * BRICK.x
@@ -766,6 +793,9 @@ func _build_keep() -> void:
 				_add_brick(base + Vector3(side * KEEP_SIZE.x * 0.5,
 					(float(row) + 0.5) * BRICK.y, along),
 					Vector3(WALL_THICK * 1.3, BRICK.y, BRICK.x), "warm", Vector3.ZERO, "keep", row, column)
+	# Collision inside the brick skin, so the tower is solid but its face is the masonry.
+	_add_mortar(base + Vector3.UP * KEEP_SIZE.y * 0.5,
+		Vector3(KEEP_SIZE.x - 0.5, KEEP_SIZE.y, KEEP_SIZE.z - 0.5))
 	var body := StaticBody3D.new()
 	body.collision_layer = 1
 	body.collision_mask = 1
@@ -773,10 +803,25 @@ func _build_keep() -> void:
 	add_child(body)
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()
-	box.size = KEEP_SIZE
+	box.size = Vector3(KEEP_SIZE.x - 0.6, KEEP_SIZE.y, KEEP_SIZE.z - 0.6)
 	shape.shape = box
 	body.add_child(shape)
-
+	# A roof slab, so the keep is not an open-topped shell.
+	var roof := MeshInstance3D.new()
+	var roof_mesh := BoxMesh.new()
+	roof_mesh.size = Vector3(KEEP_SIZE.x + 0.8, 0.5, KEEP_SIZE.z + 0.8)
+	roof.mesh = roof_mesh
+	roof.material_override = _materials["cold"]
+	roof.position = base + Vector3.UP * (KEEP_SIZE.y + 0.25)
+	add_child(roof)
+	# And a floor, for a man standing inside it.
+	var floor_mesh := MeshInstance3D.new()
+	var floor_box := BoxMesh.new()
+	floor_box.size = Vector3(KEEP_SIZE.x - 0.4, 0.2, KEEP_SIZE.z - 0.4)
+	floor_mesh.mesh = floor_box
+	floor_mesh.material_override = _materials["warm"]
+	floor_mesh.position = base + Vector3.UP * 0.1
+	add_child(floor_mesh)
 ## ------------------------------------------------------------------ destruction
 func owns_collider(body: Node) -> bool:
 	if not is_instance_valid(body): return false
