@@ -431,6 +431,20 @@ func _try_interact() -> bool:
 		return true
 	return false
 
+## True when E would do something here. The sword prototype asks this before it takes
+## the key for its own pickup, so a stone on the ground is not stolen by a dropped sword.
+func wants_e() -> bool:
+	if not _ready or not is_instance_valid(_player): return false
+	var player_at: Vector3 = _player.global_position
+	if _carrying_stone: return true
+	if bool(_player.get("_free_mouse_look")) == false: return false
+	if _player.get("_pose_authority") != &"on_foot": return false
+	if player_at.distance_to(_cart.global_position) <= FRAME_RANGE: return true
+	if player_at.distance_to(_spoon_point()) <= FRAME_RANGE: return true
+	if not _stone_on_spoon and not _flying and is_instance_valid(_stone) \
+			and player_at.distance_to(_stone.global_position) <= CARRY_RANGE: return true
+	return false
+
 ## Fires the machine: E at the frame with a stone on the spoon.
 func _fire() -> void:
 	if not _stone_on_spoon or _winding or _flying: return

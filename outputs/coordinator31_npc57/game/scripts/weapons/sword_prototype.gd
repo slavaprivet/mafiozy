@@ -1465,6 +1465,13 @@ func _input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 				return
 		if code == KEY_E and _sword_grounded:
+			# DSH_CATAPULT: if the siege machine claims E here - a stone to lift, a spoon to
+			# load, a frame to stand at - a dropped sword must NOT steal the key. Both
+			# prototypes listen for E, and this is exactly what made the stone impossible to
+			# pick up whenever the sword happened to be lying on the ground.
+			var siege: Variant = _world.get("preview_catapult") if is_instance_valid(_world) else null
+			if is_instance_valid(siege) and siege.has_method("wants_e") and bool(siege.call("wants_e")):
+				return
 			if try_pickup_sword():
 				get_viewport().set_input_as_handled()
 				return
@@ -3916,8 +3923,11 @@ func npc_cut_body(plane_world: Plane, keep_point_world: Vector3) -> bool:
 		for i: int in body_mesh.get_surface_count():
 			var material: Material = source.surface_get_material(mini(i, source.get_surface_count() - 1))
 			if material != null: body_mesh.surface_set_material(i, material)
-		for arrays: Array in kept_cap:
-			body_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		# The cut face is ONE surface with its own flesh material. The cap comes back as a
+		# single packed array, not a list of them - iterating it as a list handed a Null
+		# to add_surface_from_arrays, which is why the cut silently fell back.
+		if not kept_cap.is_empty():
+			body_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, kept_cap)
 			body_mesh.surface_set_material(body_mesh.get_surface_count() - 1, _flesh())
 		if body_mesh.get_surface_count() > 0:
 			mesh_node.mesh = body_mesh
@@ -3941,8 +3951,8 @@ func _spawn_cut_debris(gone_arrays: Array, gone_cap: Array, from: MeshInstance3D
 	for arrays: Array in gone_arrays:
 		debris_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 		debris_mesh.surface_set_material(debris_mesh.get_surface_count() - 1, _flesh())
-	for arrays: Array in gone_cap:
-		debris_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	if not gone_cap.is_empty():
+		debris_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, gone_cap)
 		debris_mesh.surface_set_material(debris_mesh.get_surface_count() - 1, _flesh())
 	if debris_mesh.get_surface_count() == 0: return
 	var piece := MeshInstance3D.new()
@@ -4341,7 +4351,22 @@ func _npc_take_blade(point: Vector3, speed: float, direction: Vector3, damage: f
 ## Takes the limb off: the mesh vanishes, the stump bleeds, a chunk is thrown.
 func _sever_part(full_key: String, kind: String, part: Dictionary, point: Vector3, direction: Vector3, speed: float) -> void:
 	_npc_severed[full_key] = true
-	_hide_limb(full_key, kind, String(part.sever))
+	# DSH_GORE: cut the ACTUAL skin first. The plane runs through the point that was
+	# struck, with the blade's own motion as its normal, and the side that stays is
+	# whichever lies towards the chest - so the limb comes away as the skin it was, and
+	# the body keeps a closed, still-skinned cut face. Only when that is impossible does
+	# the old bone collapse happen.
+	var cut_done := false
+	if is_instance_valid(_npc_rig):
+		var chest := _npc_rig.find_bone("chest")
+		var body_side: Vector3 = point - direction.normalized()
+		if chest >= 0:
+			body_side = _npc_rig.global_transform * _npc_rig.get_bone_global_pose(chest).origin
+		var normal: Vector3 = direction.normalized()
+		if normal.length_squared() > 1.0e-6:
+			cut_done = npc_cut_body(Plane(normal, normal.dot(point)), body_side)
+	if not cut_done:
+		_hide_limb(full_key, kind, String(part.sever))
 	_spray_blood(point, direction, 34)
 	_throw_stump(kind, point, direction, speed)
 	_impact_player.global_position = point
@@ -4655,6 +4680,8 @@ func snapshot() -> Dictionary:	return {
 		"npc_severed": _npc_severed.keys(), "npc_disarmed": _npc_disarmed, "npc_dead": _npc_dead,
 		"npc_part_hp": _npc_part_hp.duplicate(),
 		"npc_position": _npc_body.global_position if is_instance_valid(_npc_body) else Vector3.ZERO,
+		"npc_cuts": _npc_cut_total, "npc_debris": _npc_debris.size(),
+		"npc_severed_count": _npc_severed.size(),
 		"grip_hand_error": _grip_hand_error,
 		"sword_grounded": _sword_grounded, "dropped_at": _dropped_at,
 		"head_clearance": _head_blade_clearance(),
