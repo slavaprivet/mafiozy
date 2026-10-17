@@ -65,6 +65,8 @@ func install(world: Node3D, origin: Vector3) -> Dictionary:
 	_build_keep_details()
 	_build_gate_arch()
 	_build_banners()
+	_build_tower_platforms()
+	_build_gate_bridge()
 	_build_far_slabs()
 	_build_string_courses()
 	_build_wall_banners()
@@ -698,8 +700,6 @@ func _build_corner_towers() -> void:
 		var centre := Vector3(corner.x * WALL_HALF, 0.0, corner.y * WALL_HALF)
 		# The tower is laid as rings of bricks: it is round because the bricks are.
 		var courses := int(TOWER_HEIGHT / BRICK.y)
-		# A ring of bricks must close with no gaps: the count comes from the
-		# circumference, or the tower reads as netting instead of stonework.
 		var around: int = maxi(12, int(round(TAU * TOWER_RADIUS / (BRICK.x * 0.98))))
 		var brick_length: float = TAU * TOWER_RADIUS / float(around) * 1.06
 		for row: int in courses:
@@ -714,24 +714,45 @@ func _build_corner_towers() -> void:
 				_add_brick(at, size, key, Vector3(0.0, -angle, 0.0), "tower")
 		_add_mortar(centre + Vector3.UP * TOWER_HEIGHT * 0.5,
 			Vector3(TOWER_RADIUS * 1.92, TOWER_HEIGHT, 0.0), true)
-		var body := StaticBody3D.new()
-		body.collision_layer = 1
-		body.collision_mask = 1
-		body.position = centre + Vector3.UP * TOWER_HEIGHT * 0.5
-		add_child(body)
-		var shape := CollisionShape3D.new()
-		var cylinder := CylinderShape3D.new()
-		cylinder.radius = TOWER_RADIUS
-		cylinder.height = TOWER_HEIGHT
-		shape.shape = cylinder
-		body.add_child(shape)
+		# SOLID only up to the wall-walk. Above it the tower is a RING with an open middle
+		# and a doorway onto the battlements, so its top is a room and not a drum.
+		var base := StaticBody3D.new()
+		base.collision_layer = 1
+		base.collision_mask = 1
+		base.set_meta("surface", "stone")
+		base.position = centre + Vector3.UP * WALL_HEIGHT * 0.5
+		add_child(base)
+		var base_shape := CollisionShape3D.new()
+		var base_cylinder := CylinderShape3D.new()
+		base_cylinder.radius = TOWER_RADIUS
+		base_cylinder.height = WALL_HEIGHT
+		base_shape.shape = base_cylinder
+		base.add_child(base_shape)
+		var to_centre: Vector3 = Vector3(-corner.x, 0.0, -corner.y).normalized()
+		var doorway_angle: float = atan2(to_centre.z, to_centre.x)
+		for segment: int in 8:
+			var angle: float = TAU * float(segment) / 8.0
+			if absf(wrapf(angle - doorway_angle, -PI, PI)) < 0.45: continue
+			var ring := StaticBody3D.new()
+			ring.collision_layer = 1
+			ring.collision_mask = 1
+			ring.set_meta("surface", "stone")
+			ring.position = centre + Vector3(cos(angle) * (TOWER_RADIUS - 0.35),
+				(WALL_HEIGHT + TOWER_HEIGHT) * 0.5, sin(angle) * (TOWER_RADIUS - 0.35))
+			add_child(ring)
+			var ring_shape := CollisionShape3D.new()
+			var ring_box := BoxShape3D.new()
+			ring_box.size = Vector3(0.7, TOWER_HEIGHT - WALL_HEIGHT, TOWER_RADIUS * 0.95)
+			ring_shape.shape = ring_box
+			ring.add_child(ring_shape)
+			ring.rotation.y = -angle
 		# Slits, facing outwards at three heights.
 		for i: int in 6:
-			var angle := TAU * float(i) / 6.0
+			var slit_angle := TAU * float(i) / 6.0
 			for height: float in [6.4, 10.2, 14.4]:
-				_add_brick(centre + Vector3(cos(angle) * (TOWER_RADIUS + 0.05), height,
-					sin(angle) * (TOWER_RADIUS + 0.05)),
-					Vector3(0.30, 1.25, 0.16), "dark", Vector3(0.0, -angle, 0.0), "tower_slit")
+				_add_brick(centre + Vector3(cos(slit_angle) * (TOWER_RADIUS + 0.05), height,
+					sin(slit_angle) * (TOWER_RADIUS + 0.05)),
+					Vector3(0.30, 1.25, 0.16), "dark", Vector3(0.0, -slit_angle, 0.0), "tower_slit")
 
 func _build_gatehouse() -> void:
 	var at := Vector3(0.0, 0.0, WALL_HALF)
@@ -1143,7 +1164,10 @@ func _build_wall_banners() -> void:
 		var vertical: bool = side == "north" or side == "south"
 		var sign_z: float = 1.0 if side == "south" else -1.0
 		var sign_x: float = 1.0 if side == "east" else -1.0
-		for slot: int in 3:
+		# On the gate wall the middle bay IS the gate: a banner hanging over it reads as a
+		# black stripe across the doors, so that wall gets its two side bays only.
+		var bays: Array = [0, 2] if side == "south" else [0, 1, 2]
+		for slot: int in bays:
 			var along: float = (float(slot) - 1.0) * (WALL_HALF * 0.52)
 			var anchor := Vector3.ZERO
 			var outward := Vector3.ZERO
@@ -1389,6 +1413,80 @@ func _build_banners() -> void:
 		flag.material_override = cloth
 		flag.position = centre + Vector3(1.35, TOWER_HEIGHT + 5.6, 0.0)
 		add_child(flag)
+## ------------------------------------------------------------------ towers and bridges
+## A tower that is a solid drum is a box. Each corner tower gets a FLOOR at the level of the
+## wall-walk, an opening onto it, and crenellations above: a room at the top a man can walk
+## into from the battlements, which is what the reference picture shows.
+func _build_tower_platforms() -> void:
+	for corner: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
+		var centre := Vector3(corner.x * WALL_HALF, 0.0, corner.y * WALL_HALF)
+		# The floor of the upper room, at the height of the wall-walk.
+		var floor_body := StaticBody3D.new()
+		floor_body.collision_layer = 1
+		floor_body.collision_mask = 1
+		floor_body.set_meta("surface", "stone")
+		floor_body.position = centre + Vector3.UP * (WALL_HEIGHT - 0.1)
+		add_child(floor_body)
+		var floor_shape := CollisionShape3D.new()
+		var floor_cylinder := CylinderShape3D.new()
+		floor_cylinder.radius = TOWER_RADIUS - 0.35
+		floor_cylinder.height = 0.24
+		floor_shape.shape = floor_cylinder
+		floor_body.add_child(floor_shape)
+		var floor_mesh := MeshInstance3D.new()
+		var floor_cylinder_mesh := CylinderMesh.new()
+		floor_cylinder_mesh.top_radius = TOWER_RADIUS - 0.35
+		floor_cylinder_mesh.bottom_radius = TOWER_RADIUS - 0.35
+		floor_cylinder_mesh.height = 0.24
+		floor_cylinder_mesh.radial_segments = 20
+		floor_mesh.mesh = floor_cylinder_mesh
+		floor_mesh.material_override = _materials["warm"]
+		floor_mesh.position = floor_body.position
+		add_child(floor_mesh)
+		# A roof ring at the top, so the room is not open to the sky in the middle.
+		var roof := MeshInstance3D.new()
+		var roof_mesh := CylinderMesh.new()
+		roof_mesh.top_radius = 0.8
+		roof_mesh.bottom_radius = TOWER_RADIUS + 0.4
+		roof_mesh.height = 2.4
+		roof_mesh.radial_segments = 20
+		roof.mesh = roof_mesh
+		roof.material_override = _materials["cold"]
+		roof.position = centre + Vector3.UP * (TOWER_HEIGHT + 1.2)
+		add_child(roof)
+
+## A HANGING BRIDGE between the two gate towers, at the height of the wall-walk: planks,
+## two ropes, and nothing under them. The planks are bricks like everything else, so a stone
+## from a catapult takes the bridge apart exactly the way it takes a wall apart.
+func _build_gate_bridge() -> void:
+	var y := WALL_HEIGHT + 0.15
+	var span := GATE_WIDTH + 7.2
+	var planks := 22
+	var plank_w: float = span / float(planks)
+	var rope := StandardMaterial3D.new()
+	rope.albedo_color = Color(0.52, 0.44, 0.30)
+	rope.roughness = 0.95
+	for i: int in planks:
+		var x: float = -span * 0.5 + plank_w * (float(i) + 0.5)
+		# A shallow sag in the middle, the way a rope bridge hangs.
+		var sag: float = -0.28 * sin(PI * (float(i) + 0.5) / float(planks))
+		_add_brick(Vector3(x, y + sag, WALL_HALF), Vector3(plank_w * 0.94, 0.16, 2.2),
+			"wood_bridge", Vector3.ZERO, "bridge", 0, i)
+	for side: float in [-1.0, 1.0]:
+		for i: int in 9:
+			var t_norm: float = float(i) / 8.0
+			var x: float = -span * 0.5 + span * t_norm
+			var sag: float = -0.28 * sin(PI * t_norm)
+			var rope_mesh := MeshInstance3D.new()
+			var rope_cylinder := CylinderMesh.new()
+			rope_cylinder.top_radius = 0.05
+			rope_cylinder.bottom_radius = 0.05
+			rope_cylinder.height = span / 8.0 * 1.1
+			rope_mesh.mesh = rope_cylinder
+			rope_mesh.material_override = rope
+			rope_mesh.position = Vector3(x, y + sag + 0.95, WALL_HALF + side * 1.15)
+			rope_mesh.rotation = Vector3(0.0, 0.0, PI * 0.5)
+			add_child(rope_mesh)
 ## ------------------------------------------------------------------ destruction
 func owns_collider(body: Node) -> bool:
 	if not is_instance_valid(body): return false
