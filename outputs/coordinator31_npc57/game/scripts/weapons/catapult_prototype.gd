@@ -387,9 +387,12 @@ func _input(event: InputEvent) -> void:
 	# The MOUSE IS THE CAMERA. The machine aims where the player looks, which is what
 	# makes "look at it, press E" work. Consuming the motion here is what left the
 	# player unable to move the camera or aim at all.
+	# THE MOUSE IS THE CAMERA ALONE. It used to drive the elevation as well, so looking
+	# down at the machine tilted the whole view and aiming became impossible - exactly
+	# the "I cannot aim, the camera is off" report. Elevation follows where the player
+	# looks (see _process), and the wheel is the fine trim.
 	if event is InputEventMouseMotion and _occupied:
-		_elevation = clampf(_elevation - (event as InputEventMouseMotion).relative.y * 0.0009,
-			ELEV_MIN, ELEV_MAX)
+		return
 
 func _active() -> bool:
 	if not _ready or not is_instance_valid(_player): return false
@@ -927,6 +930,15 @@ func _process(delta: float) -> void:
 		var flat := Vector3(facing.x, 0.0, facing.z)
 		if flat.length_squared() > 1.0e-6:
 			_yaw = lerp_angle(_yaw, atan2(flat.x, flat.z), clampf(9.0 * delta, 0.0, 1.0))
+		# Elevation comes from where the camera is LOOKING, mapped onto the machine's own
+		# range: look at the foot of the wall for a flat shot, at its top for a high one.
+		var camera: Camera3D = _player.get_preview_camera()
+		if is_instance_valid(camera):
+			var look: Vector3 = -camera.global_basis.z
+			var pitch: float = asin(clampf(look.y, -1.0, 1.0))
+			var matched: float = clampf((pitch + 0.45) / 0.90, 0.0, 1.0)
+			var from_look: float = lerpf(ELEV_MIN, ELEV_MAX, matched)
+			_elevation = lerpf(_elevation, from_look, clampf(4.5 * delta, 0.0, 1.0))
 
 	if not _active():
 		_hud.text = ""
@@ -937,13 +949,13 @@ func _process(delta: float) -> void:
 	var at_frame: bool = player_at.distance_to(_cart.global_position) <= FRAME_RANGE
 	var at_spoon: bool = player_at.distance_to(_spoon_point()) <= FRAME_RANGE
 	if at_frame and _stone_on_spoon and not _flying:
-		lines.append("E — ВЫСТРЕЛИТЬ · мышь — наводка · колесо — угол %.0f°" % rad_to_deg(_elevation))
+		lines.append("E — ВЫСТРЕЛИТЬ · наводись ВЗГЛЯДОМ · колесо — угол %.0f°" % rad_to_deg(_elevation))
 	elif _carrying_stone and at_spoon:
 		lines.append("E — положить камень в ложечку · G — бросить где стоишь")
 	elif _carrying_stone:
 		lines.append("Неси камень к катапульте · G — бросить где стоишь")
 	elif at_frame:
-		lines.append("E — встать к катапульте · колесо — угол %.0f°" % rad_to_deg(_elevation))
+		lines.append("E — встать к катапульте · наводись взглядом · колесо — угол")
 	elif _stone_on_spoon:
 		lines.append("Камень на ложечке · иди к станине и жми E")
 	elif player_at.distance_to(_stone.global_position) <= CARRY_RANGE and not _flying:
