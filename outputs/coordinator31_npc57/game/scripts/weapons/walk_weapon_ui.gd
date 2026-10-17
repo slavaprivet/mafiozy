@@ -162,8 +162,8 @@ func refresh() -> void:
 		ammo.add_theme_color_override("font_color",Color("bda879" if reload>0 else ("d99b94" if id!="none" and not MELEE_IDS.has(id) and id!=BOW_ID and magazine==0 else "adb8be")))
 	if menu.visible != host.menu_open: menu.visible = host.menu_open
 	if is_instance_valid(_arsenal_status):
-		var state: Dictionary = host.fire_state
-		_arsenal_status.text = "выбрано: %s%s" % [str(state.get("weaponId", "none")),
+		var arsenal_state: Dictionary = host.fire_state
+		_arsenal_status.text = "выбрано: %s%s" % [str(arsenal_state.get("weaponId", "none")),
 			"" if host.menu_open else "  ·  меню закрыто"]
 	var scoped:bool=host.aim_camera!=null and host.aim_camera.scoped()
 	var allowed:bool=host._combat_allowed() and not host.controls_blocked() and not host.player._text_control_focused()
