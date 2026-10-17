@@ -759,6 +759,17 @@ func _find_skeleton() -> void:
 		_arm_bones.append(bone)
 		_arm_rest.append(_skeleton.get_bone_pose_rotation(bone) if bone >= 0 else Quaternion())
 
+## DSH_CATAPULT: the midpoint between the two HAND bones - the stone is carried there.
+func _hand_midpoint() -> Vector3:
+	_find_skeleton()
+	if not is_instance_valid(_skeleton): return Vector3.ZERO
+	var left: int = _skeleton.find_bone("hand_l")
+	var right: int = _skeleton.find_bone("hand_r")
+	if left < 0 or right < 0: return Vector3.ZERO
+	var a: Vector3 = _skeleton.to_global(_skeleton.get_bone_global_pose(left).origin)
+	var b: Vector3 = _skeleton.to_global(_skeleton.get_bone_global_pose(right).origin)
+	return (a + b) * 0.5
+
 func _hug_arms(on: bool) -> void:
 	_find_skeleton()
 	if not is_instance_valid(_skeleton) or _arms_hugging == on: return
@@ -909,8 +920,14 @@ func _physics_process(delta: float) -> void:
 	if _carrying_stone and is_instance_valid(_stone):
 		# HELD AGAINST THE CHEST, not floating out in front. The character has no hand bones to
 		# hang it from, so the stone is carried where his arms would be.
-		var want: Vector3 = _player.global_position \
-			+ _player._visual.global_basis.z * 0.42 + Vector3.UP * 0.95
+		# AT THE HANDS. The rig has hand_l and hand_r, so the stone is carried between them and
+		# follows them wherever the pose puts them; the fallback is a spot in front of the chest
+		# for a model without hands.
+		var want: Vector3 = _hand_midpoint()
+		if want == Vector3.ZERO:
+			want = _player.global_position \
+				+ _player._visual.global_basis.z * 0.42 + Vector3.UP * 0.95
+		want += _player._visual.global_basis.z * 0.16
 		_stone.global_position = _stone.global_position.lerp(want, clampf(12.0 * delta, 0.0, 1.0))
 		_hug_arms(true)
 	elif _loading and is_instance_valid(_stone):
