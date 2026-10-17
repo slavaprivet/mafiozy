@@ -57,8 +57,9 @@ func _run() -> void:
 	report["gate_passable"] = gate_hit.is_empty()
 	# The staircase must be solid from the SIDE too, not only where you walk up it.
 	# At knee height, halfway up the flight, where the masonry is solid.
-	var stair_x: float = -half * 0.52
-	var stair_from: Vector3 = base + Vector3(stair_x + 4.0, 0.9, half - 9.0)
+	# The flight stands at -0.42 of the wall half, and its foot is 27 m back from the wall.
+	var stair_x: float = -half * 0.42
+	var stair_from: Vector3 = base + Vector3(stair_x + 4.0, 0.9, half - 14.0)
 	var stair_to: Vector3 = stair_from + Vector3(-6.0, 0.0, 0.0)
 	var stair_hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(stair_from, stair_to, 1))
 	report["stair_side_solid"] = not stair_hit.is_empty()

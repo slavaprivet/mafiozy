@@ -946,6 +946,12 @@ var _lever_angle := 0.5
 func set_gate(open: bool) -> void:
 	_gate_open_state = open
 
+func _gate_leaves_detached() -> int:
+	var count := 0
+	for entry: Dictionary in _gate_leaves:
+		if bool(entry.get("detached", false)): count += 1
+	return count
+
 func gate_open() -> bool:
 	return _gate_open_state
 
@@ -1520,6 +1526,7 @@ func get_stats() -> Dictionary:
 		"ok": _ready, "bricks": _cells.size(), "detached": _detached,
 		"collapsed": _collapsed, "gates": _gate_leaves.size(),
 		"gate_open": _gate_leaves.size() > 0 and bool(_gate_leaves[0].get("detached", false)),
+		"gate_leaves_detached": _gate_leaves_detached(),
 		"falling": _falling.size(), "events": _events.size(), "leaf_dbg": _leaf_debug(),
 		"gate_bricks": _count_gate_bricks(),
 	}
@@ -1530,7 +1537,12 @@ func apply_explosion(event: Dictionary) -> Dictionary:
 	if not _ready: return {"ok": false, "reason": "not_ready"}
 	# The strike arrives in WORLD coordinates - a catapult stone knows nothing of this
 	# node - while the bricks are laid in local ones.
-	var at: Vector3 = to_local(event.get("position", Vector3.ZERO))
+	# The strike arrives in WORLD coordinates - a catapult stone knows nothing of this
+	# node - while the bricks are laid in local ones. Both are kept: the gates hang on
+	# nodes whose positions are world, and comparing those against a local point put them
+	# nine hundred metres from every blast.
+	var at_world: Vector3 = event.get("position", Vector3.ZERO)
+	var at: Vector3 = to_local(at_world)
 	var radius: float = maxf(1.0, float(event.get("radius", 3.0)))
 	var power: float = maxf(1.0, float(event.get("power", 40.0)))
 	var direction: Vector3 = event.get("direction", Vector3.DOWN)
@@ -1544,15 +1556,52 @@ func apply_explosion(event: Dictionary) -> Dictionary:
 		killed += 1
 	for entry: Dictionary in _gate_leaves:
 		if bool(entry.get("detached", false)): continue
-		var body: RigidBody3D = entry.get("body")
-		if not is_instance_valid(body): continue
-		if body.global_position.distance_to(at) > radius + 2.0: continue
+		var pivot: Node3D = entry.get("pivot")
+		if not is_instance_valid(pivot): continue
+		# The distance is to the middle of the LEAF, not to the hinge at its foot: the hinge
+		# sits four metres out to the side, and a stone on the doors was measured as wide.
+		var leaf_centre: Vector3 = pivot.global_position + Vector3.UP * (GATE_HEIGHT * 0.5)
+		if leaf_centre.distance_to(at_world) > radius + 2.0: continue
+		# The leaves hang on hinges now, so they are not rigid bodies to push: they are
+		# BLOWN OFF. The hinge goes, its collision with it, and a handful of planks are
+		# thrown out where the door stood - which is what a gate hit by a stone looks like.
 		entry["detached"] = true
-		body.freeze = false
-		body.sleeping = false
+		_gate_open_state = false
+		_gate_angle = 0.0
+		pivot.visible = false
+		for child: Node in pivot.get_children():
+			var child_body := child as StaticBody3D
+			if is_instance_valid(child_body):
+				child_body.collision_layer = 0
+				child_body.collision_mask = 0
 		var away: Vector3 = direction.normalized() if direction.length_squared() > 1.0e-6 else Vector3.BACK
-		body.apply_central_impulse((away * 0.9 + Vector3.UP * 0.1).normalized()
-			* DETACH_IMPULSE * 2.4 * clampf(power / 120.0, 0.6, 2.6))
+		var gate_centre: Vector3 = pivot.global_position
+		for plank: int in 9:
+			var debris := RigidBody3D.new()
+			debris.collision_layer = 1
+			debris.collision_mask = 1
+			debris.mass = 26.0
+			debris.position = gate_centre + Vector3(randf_range(-2.2, 2.2), randf_range(-1.0, 3.0), 0.0)
+			add_child(debris)
+			var debris_shape := CollisionShape3D.new()
+			var debris_box := BoxShape3D.new()
+			debris_box.size = Vector3(0.8, GATE_HEIGHT * 0.3, 0.35)
+			debris_shape.shape = debris_box
+			debris.add_child(debris_shape)
+			if _debris_mesh == null:
+				_debris_mesh = BoxMesh.new()
+				_debris_mesh.size = Vector3.ONE
+			var debris_mesh := MeshInstance3D.new()
+			debris_mesh.mesh = _debris_mesh
+			debris_mesh.scale = debris_box.size
+			debris_mesh.material_override = _materials["wood"]
+			debris_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			debris.add_child(debris_mesh)
+			debris.linear_velocity = (away * 0.8 + Vector3.UP * 0.3).normalized() \
+				* clampf(power * 0.18, 3.0, 14.0) * randf_range(0.7, 1.3)
+			debris.angular_velocity = Vector3(randf_range(-5.0, 5.0), randf_range(-5.0, 5.0),
+				randf_range(-5.0, 5.0))
+			_falling.append({"body": debris, "age": 0.0})
 		_detached += 1
 		killed += 1
 	_schedule_support_failure(at, radius)
