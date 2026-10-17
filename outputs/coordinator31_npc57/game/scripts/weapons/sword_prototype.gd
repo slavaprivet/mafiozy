@@ -14,7 +14,81 @@ extends Node3D
 ## Scope: one sword, one training dummy, one pole, one control scheme. No network,
 ## no combat AI, no dismemberment, no fully physical body.
 
-const BLADE_LENGTH := 1.15
+## DSH_MELEE_SET: the weapon table. Every melee weapon in the set is one entry here,
+## so the proven mechanics - the sweep, the contacts, the gore, drop and pickup - are
+## shared instead of copied five times.
+##
+##   length  the weapon's reach from the fist, in metres
+##   mass    swing lag: 1.0 is the sword's feel, higher is heavier and slower
+##   grip    "one" | "two" | "both_optional"
+##   slice   damage multiplier for an edge drawn across the target
+##   stab    damage multiplier for the point driven in
+##   flat    damage multiplier for a blow laid on flat
+##   crush   true for blunt weapons: they do NOT get stopped by plate, they dent it
+##   category  how the arsenal groups it
+const WEAPONS := {
+	"sword": {
+		"label": "Тестовый меч (прототип)", "category": "blade", "category_label": "МЕЧ · БЛИЖНИЙ БОЙ",
+		"length": 1.15, "mass": 1.0, "grip": "both_optional",
+		"slice": 1.0, "stab": 1.0, "flat": 1.0, "crush": false,
+	},
+	"mace": {
+		"label": "Булава (прототип)", "category": "one_hand", "category_label": "БУЛАВА · ОДНОРУЧНОЕ",
+		"length": 0.60, "mass": 1.45, "grip": "one",
+		"slice": 0.22, "stab": 0.12, "flat": 1.05, "crush": true,
+	},
+	"axe": {
+		"label": "Двуручный топор (прототип)", "category": "two_hand", "category_label": "ТОПОР · ДВУРУЧНОЕ",
+		"length": 1.05, "mass": 2.0, "grip": "two",
+		"slice": 1.45, "stab": 0.22, "flat": 0.55, "crush": false,
+	},
+	"sledge": {
+		"label": "Кувалда (прототип)", "category": "two_hand", "category_label": "КУВАЛДА · ДВУРУЧНОЕ",
+		"length": 0.92, "mass": 2.7, "grip": "two",
+		"slice": 0.18, "stab": 0.10, "flat": 1.6, "crush": true,
+	},
+	"spear": {
+		"label": "Копьё (прототип)", "category": "polearm", "category_label": "КОПЬЁ · КОЛЮЩЕЕ",
+		"length": 1.95, "mass": 1.15, "grip": "two",
+		"slice": 0.15, "stab": 1.9, "flat": 0.15, "crush": false, "throwable": true,
+	},
+}
+## The weapon this host is currently presenting.
+var _weapon_id := "sword"
+
+func weapon_ids() -> Array:
+	return WEAPONS.keys()
+
+func set_weapon(id: String) -> bool:
+	if not WEAPONS.has(id) or id == _weapon_id: return WEAPONS.has(id)
+	_weapon_id = id
+	var entry: Dictionary = WEAPONS[id]
+	_weapon_length = float(entry.get("length", 1.15))
+	_weapon_mass = maxf(0.4, float(entry.get("mass", 1.0)))
+	_weapon_crush = bool(entry.get("crush", false))
+	# Rebuild the model for the new weapon, dropping the old one.
+	if is_instance_valid(_sword):
+		_sword.get_parent().remove_child(_sword)
+		_sword.queue_free()
+	_sword = _build_weapon_model(_world, id)
+	if is_instance_valid(_hint): _update_hint()
+	return true
+
+## The current weapon's entry.
+func weapon_entry() -> Dictionary:
+	return WEAPONS.get(_weapon_id, WEAPONS["sword"])
+
+## Damage multiplier of the current weapon for a blow of this kind.
+func _kind_multiplier(kind: String) -> float:
+	var entry := weapon_entry()
+	match kind:
+		"slice": return float(entry.get("slice", 1.0))
+		"stab": return float(entry.get("stab", 1.0))
+		_: return float(entry.get("flat", 1.0))
+
+var _weapon_length := 1.15
+var _weapon_mass := 1.0
+var _weapon_crush := false
 ## Distance from the model origin to the middle of the grip along the blade axis.
 ## The fist closes on this point, so the handle (not the guard) sits in the hand.
 const GRIP_CENTER_OFFSET := 0.0625
@@ -280,7 +354,7 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 	_upper_len = _rest_fore.origin.length()
 	_fore_len = _rest_hand.origin.length()
 	if _upper_len <= 0.01 or _fore_len <= 0.01: return {"ok": false, "reason": "arm_lengths"}
-	_sword = _build_sword_model(_world, "PrototypeSword")
+	_sword = _build_weapon_model(_world, _weapon_id)
 	_build_impacts()
 	_build_hint()
 	var placed := _place_targets()
@@ -303,6 +377,269 @@ func is_steering() -> bool:
 	return _ready and _selected and _held
 
 # ---------------------------------------------------------------- construction
+
+## DSH_MELEE_SET: builds the model for whichever weapon is equipped. Every model is
+## laid out with its point or head along local +X, because that is the axis the
+## sweep, the IK and the placement maths all assume.
+func _build_weapon_model(parent: Node3D, id: String) -> Node3D:
+	match id:
+		"mace": return _build_mace_model(parent)
+		"axe": return _build_axe_model(parent)
+		"sledge": return _build_sledge_model(parent)
+		"spear": return _build_spear_model(parent)
+		_: return _build_sword_model(parent, "PrototypeSword")
+
+## Shared materials for the weapon set, so five models do not allocate five sets.
+var _mat_steel: StandardMaterial3D
+var _mat_edge: StandardMaterial3D
+var _mat_dark_steel: StandardMaterial3D
+var _mat_leather: StandardMaterial3D
+var _mat_brass: StandardMaterial3D
+var _mat_wood: StandardMaterial3D
+var _mat_iron: StandardMaterial3D
+
+func _weapon_materials() -> void:
+	if _mat_steel != null: return
+	_mat_steel = StandardMaterial3D.new()
+	_mat_steel.albedo_color = Color(0.74, 0.78, 0.84); _mat_steel.metallic = 0.92; _mat_steel.roughness = 0.22
+	_mat_edge = StandardMaterial3D.new()
+	_mat_edge.albedo_color = Color(0.88, 0.91, 0.95); _mat_edge.metallic = 0.95; _mat_edge.roughness = 0.12
+	_mat_dark_steel = StandardMaterial3D.new()
+	_mat_dark_steel.albedo_color = Color(0.50, 0.54, 0.60); _mat_dark_steel.metallic = 0.86; _mat_dark_steel.roughness = 0.36
+	_mat_iron = StandardMaterial3D.new()
+	_mat_iron.albedo_color = Color(0.38, 0.39, 0.42); _mat_iron.metallic = 0.72; _mat_iron.roughness = 0.48
+	_mat_leather = StandardMaterial3D.new()
+	_mat_leather.albedo_color = Color(0.22, 0.14, 0.10); _mat_leather.roughness = 0.88
+	_mat_brass = StandardMaterial3D.new()
+	_mat_brass.albedo_color = Color(0.66, 0.50, 0.20); _mat_brass.metallic = 0.78; _mat_brass.roughness = 0.34
+	_mat_wood = StandardMaterial3D.new()
+	_mat_wood.albedo_color = Color(0.36, 0.23, 0.12); _mat_wood.roughness = 0.72
+
+## A tapered shaft from the grip outward, the haft every hafted weapon shares.
+## Returns the tip position so a head or a point can be placed on it.
+func _add_haft(parent: Node3D, from: float, to: float, radius: float, taper: float, material: Material) -> Vector3:
+	var steps := 4
+	for i: int in steps:
+		var t0 := float(i) / float(steps)
+		var t1 := float(i + 1) / float(steps)
+		var x0 := lerpf(from, to, t0)
+		var x1 := lerpf(from, to, t1)
+		var r0 := lerpf(radius, taper, t0)
+		var seg := MeshInstance3D.new()
+		var cyl := CylinderMesh.new()
+		cyl.top_radius = r0
+		cyl.bottom_radius = lerpf(radius, taper, t1)
+		cyl.height = absf(x1 - x0) * 1.05
+		cyl.radial_segments = 10
+		seg.mesh = cyl
+		seg.material_override = material
+		# Cylinders run along Y; lay this one along X.
+		seg.rotation = Vector3(0.0, 0.0, PI * 0.5)
+		seg.position = Vector3((x0 + x1) * 0.5, 0.0, 0.0)
+		parent.add_child(seg)
+	return Vector3(to, 0.0, 0.0)
+
+## A wrapped grip, so every weapon's hand-hold reads as leather rather than metal.
+func _add_grip(parent: Node3D, from: float, to: float, radius: float) -> void:
+	var grip := MeshInstance3D.new()
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = radius
+	cyl.bottom_radius = radius
+	cyl.height = absf(to - from)
+	cyl.radial_segments = 12
+	grip.mesh = cyl
+	grip.material_override = _mat_leather
+	grip.rotation = Vector3(0.0, 0.0, PI * 0.5)
+	grip.position = Vector3((from + to) * 0.5, 0.0, 0.0)
+	parent.add_child(grip)
+
+## One-handed mace: a hafted weapon with a flanged iron head. Blunt, so it crushes
+## rather than cuts - the damage table says so.
+func _build_mace_model(parent: Node3D) -> Node3D:
+	_weapon_materials()
+	var mace := Node3D.new()
+	mace.name = "PrototypeMace"
+	parent.add_child(mace)
+	_add_haft(mace, -0.16, 0.44, 0.030, 0.022, _mat_wood)
+	_add_grip(mace, -0.15, 0.06, 0.034)
+	# Pommel and a ferrule where the haft meets the head.
+	for spec: Array in [[-0.175, 0.038], [0.44, 0.030]]:
+		var ring := MeshInstance3D.new()
+		var cyl := CylinderMesh.new()
+		cyl.top_radius = float(spec[1]); cyl.bottom_radius = float(spec[1]); cyl.height = 0.035
+		cyl.radial_segments = 12
+		ring.mesh = cyl
+		ring.material_override = _mat_brass
+		ring.rotation = Vector3(0.0, 0.0, PI * 0.5)
+		ring.position = Vector3(float(spec[0]), 0.0, 0.0)
+		mace.add_child(ring)
+	# The head: a core with six radial flanges.
+	var core := MeshInstance3D.new()
+	var core_mesh := CylinderMesh.new()
+	core_mesh.top_radius = 0.052; core_mesh.bottom_radius = 0.052; core_mesh.height = 0.17
+	core_mesh.radial_segments = 12
+	core.mesh = core_mesh
+	core.material_override = _mat_iron
+	core.rotation = Vector3(0.0, 0.0, PI * 0.5)
+	core.position = Vector3(0.52, 0.0, 0.0)
+	mace.add_child(core)
+	for i: int in 6:
+		var angle := TAU * float(i) / 6.0
+		var flange := MeshInstance3D.new()
+		var box := BoxMesh.new()
+		box.size = Vector3(0.17, 0.052, 0.014)
+		flange.mesh = box
+		flange.material_override = _mat_steel
+		flange.position = Vector3(0.52, sin(angle) * 0.048, cos(angle) * 0.048)
+		flange.rotation = Vector3(angle, 0.0, 0.0)
+		mace.add_child(flange)
+	var cap := MeshInstance3D.new()
+	var cap_mesh := SphereMesh.new()
+	cap_mesh.radius = 0.046; cap_mesh.height = 0.092
+	cap.mesh = cap_mesh
+	cap.material_override = _mat_steel
+	cap.position = Vector3(0.60, 0.0, 0.0)
+	mace.add_child(cap)
+	return mace
+
+## Two-handed axe: long haft, a bearded single-bit head with a back spike.
+func _build_axe_model(parent: Node3D) -> Node3D:
+	_weapon_materials()
+	var axe := Node3D.new()
+	axe.name = "PrototypeAxe"
+	parent.add_child(axe)
+	_add_haft(axe, -0.34, 0.86, 0.034, 0.026, _mat_wood)
+	_add_grip(axe, -0.33, -0.02, 0.038)
+	_add_grip(axe, 0.10, 0.34, 0.036)
+	var butt := MeshInstance3D.new()
+	var butt_mesh := CylinderMesh.new()
+	butt_mesh.top_radius = 0.042; butt_mesh.bottom_radius = 0.042; butt_mesh.height = 0.04
+	butt.mesh = butt_mesh
+	butt.material_override = _mat_brass
+	butt.rotation = Vector3(0.0, 0.0, PI * 0.5)
+	butt.position = Vector3(-0.35, 0.0, 0.0)
+	axe.add_child(butt)
+	# Head socket.
+	var socket := MeshInstance3D.new()
+	var sock_mesh := CylinderMesh.new()
+	sock_mesh.top_radius = 0.040; sock_mesh.bottom_radius = 0.040; sock_mesh.height = 0.16
+	sock_mesh.radial_segments = 12
+	socket.mesh = sock_mesh
+	socket.material_override = _mat_iron
+	socket.rotation = Vector3(0.0, 0.0, PI * 0.5)
+	socket.position = Vector3(0.86, 0.0, 0.0)
+	axe.add_child(socket)
+	# The bit: a crescent blade sweeping forward and up from the socket.
+	var bit := MeshInstance3D.new()
+	var bit_mesh := PrismMesh.new()
+	bit_mesh.size = Vector3(0.30, 0.34, 0.035)
+	bit_mesh.left_to_right = 0.7
+	bit.mesh = bit_mesh
+	bit.material_override = _mat_edge
+	bit.position = Vector3(0.99, 0.06, 0.0)
+	bit.rotation = Vector3(0.0, 0.0, deg_to_rad(-14.0))
+	axe.add_child(bit)
+	# A back spike, so the reverse blow is a real one.
+	var spike := MeshInstance3D.new()
+	var spike_mesh := CylinderMesh.new()
+	spike_mesh.top_radius = 0.001; spike_mesh.bottom_radius = 0.030; spike_mesh.height = 0.16
+	spike.mesh = spike_mesh
+	spike.material_override = _mat_steel
+	spike.rotation = Vector3(0.0, 0.0, PI * 0.5)
+	spike.position = Vector3(0.90, -0.11, 0.0)
+	axe.add_child(spike)
+	return axe
+
+## Two-handed sledgehammer: long haft, a heavy square block head with banded faces.
+func _build_sledge_model(parent: Node3D) -> Node3D:
+	_weapon_materials()
+	var sledge := Node3D.new()
+	sledge.name = "PrototypeSledge"
+	parent.add_child(sledge)
+	_add_haft(sledge, -0.34, 0.78, 0.034, 0.026, _mat_wood)
+	_add_grip(sledge, -0.33, -0.02, 0.038)
+	_add_grip(sledge, 0.10, 0.34, 0.036)
+	var butt := MeshInstance3D.new()
+	var butt_mesh := CylinderMesh.new()
+	butt_mesh.top_radius = 0.042; butt_mesh.bottom_radius = 0.042; butt_mesh.height = 0.04
+	butt.mesh = butt_mesh
+	butt.material_override = _mat_brass
+	butt.rotation = Vector3(0.0, 0.0, PI * 0.5)
+	butt.position = Vector3(-0.35, 0.0, 0.0)
+	sledge.add_child(butt)
+	# Block head, square in section so a blow lands on a face.
+	var head := MeshInstance3D.new()
+	var head_mesh := BoxMesh.new()
+	head_mesh.size = Vector3(0.30, 0.15, 0.15)
+	head.mesh = head_mesh
+	head.material_override = _mat_iron
+	head.position = Vector3(0.90, 0.0, 0.0)
+	sledge.add_child(head)
+	for side: float in [0.075, -0.075]:
+		var face := MeshInstance3D.new()
+		var face_mesh := BoxMesh.new()
+		face_mesh.size = Vector3(0.045, 0.16, 0.16)
+		face.mesh = face_mesh
+		face.material_override = _mat_dark_steel
+		face.position = Vector3(0.90 + side, 0.0, 0.0)
+		sledge.add_child(face)
+	# Banding either side of the eye.
+	for at: float in [0.72, 1.08]:
+		var band := MeshInstance3D.new()
+		var band_mesh := CylinderMesh.new()
+		band_mesh.top_radius = 0.040; band_mesh.bottom_radius = 0.040; band_mesh.height = 0.05
+		band.mesh = band_mesh
+		band.material_override = _mat_brass
+		band.rotation = Vector3(0.0, 0.0, PI * 0.5)
+		band.position = Vector3(at, 0.0, 0.0)
+		sledge.add_child(band)
+	return sledge
+
+## Two-handed spear: a long ash shaft with a leaf-shaped head, a collar and a
+## butt-spike, balanced so it can also be thrown.
+func _build_spear_model(parent: Node3D) -> Node3D:
+	_weapon_materials()
+	var spear := Node3D.new()
+	spear.name = "PrototypeSpear"
+	parent.add_child(spear)
+	_add_haft(spear, -1.05, 0.74, 0.028, 0.022, _mat_wood)
+	_add_grip(spear, -0.42, -0.06, 0.031)
+	_add_grip(spear, 0.06, 0.40, 0.030)
+	# Collar and the leaf head.
+	var collar := MeshInstance3D.new()
+	var collar_mesh := CylinderMesh.new()
+	collar_mesh.top_radius = 0.030; collar_mesh.bottom_radius = 0.030; collar_mesh.height = 0.05
+	collar.mesh = collar_mesh
+	collar.material_override = _mat_brass
+	collar.rotation = Vector3(0.0, 0.0, PI * 0.5)
+	collar.position = Vector3(0.74, 0.0, 0.0)
+	spear.add_child(collar)
+	var blade := MeshInstance3D.new()
+	var blade_mesh := PrismMesh.new()
+	blade_mesh.size = Vector3(0.30, 0.09, 0.020)
+	blade_mesh.left_to_right = 1.0
+	blade.mesh = blade_mesh
+	blade.material_override = _mat_edge
+	blade.position = Vector3(0.92, 0.0, 0.0)
+	spear.add_child(blade)
+	var point := MeshInstance3D.new()
+	var point_mesh := CylinderMesh.new()
+	point_mesh.top_radius = 0.001; point_mesh.bottom_radius = 0.030; point_mesh.height = 0.10
+	point.mesh = point_mesh
+	point.material_override = _mat_steel
+	point.rotation = Vector3(0.0, 0.0, -PI * 0.5)
+	point.position = Vector3(1.10, 0.0, 0.0)
+	spear.add_child(point)
+	# Butt-spike, which is what makes a spear throwable and still a weapon.
+	var butt := MeshInstance3D.new()
+	var butt_mesh := CylinderMesh.new()
+	butt_mesh.top_radius = 0.026; butt_mesh.bottom_radius = 0.001; butt_mesh.height = 0.10
+	butt.mesh = butt_mesh
+	butt.material_override = _mat_steel
+	butt.rotation = Vector3(0.0, 0.0, PI * 0.5)
+	butt.position = Vector3(-1.10, 0.0, 0.0)
+	spear.add_child(butt)
+	return spear
 
 ## One-handed sword, built from parts: tapering double-edged blade with a fuller,
 ## ricasso, curved cross-guard with quillon blocks, wrapped grip and a disc
@@ -558,6 +895,7 @@ func drop_sword_to_ground() -> bool:
 	_sword.visible = true
 	_sword.global_transform = _place_basis(at, forward) * Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3.ZERO)
 	_register_ground_sword(_sword)
+	_stamp_ground_weapon(_sword, _weapon_id)
 	_update_hint()
 	print("DSH_SWORD_PROTO_DROPPED at=", at, " ground_swords=", _ground_swords.size())
 	return true
@@ -572,6 +910,15 @@ var _ground_swords: Array[Node3D] = []
 func _register_ground_sword(node: Node3D) -> void:
 	if not is_instance_valid(node): return
 	if not _ground_swords.has(node): _ground_swords.append(node)
+
+## Records WHICH weapon of the set a ground node is, so picking it back up returns the
+## same axe or spear instead of whatever happened to be equipped last.
+func _stamp_ground_weapon(node: Node3D, weapon: String) -> void:
+	if is_instance_valid(node): node.set_meta("melee_weapon", weapon)
+
+func _ground_weapon_of(node: Node3D) -> String:
+	if not is_instance_valid(node) or not node.has_meta("melee_weapon"): return ""
+	return str(node.get_meta("melee_weapon"))
 
 ## Nearest sword on the ground within reach, or an empty dictionary.
 func _nearest_ground_sword() -> Dictionary:
@@ -610,7 +957,18 @@ func try_pickup_sword() -> bool:
 		return false
 	var node: Node3D = found.get("node")
 	var taken_own: bool = bool(found.get("own", false))
+	# DSH_MELEE_SET: a weapon of the set that was put down is picked back up AS ITSELF.
+	var stamp := _ground_weapon_of(node)
 	_ground_swords.erase(node)
+	if stamp != "" and stamp != _weapon_id:
+		set_weapon(stamp)
+		if is_instance_valid(node): node.queue_free()
+		_sword_grounded = false
+		_arm_ready_ms = Time.get_ticks_msec() + 450
+		if is_instance_valid(_sword): _sword.visible = true
+		_update_hint()
+		print("DSH_SWORD_PROTO_PICKED weapon=", stamp)
+		return true
 	if not taken_own:
 		# A knight's sword: hold its model, and leave the player's own sword lying
 		# where it fell so it can still be collected later.
@@ -655,6 +1013,7 @@ func drop_sword_at(point: Vector3) -> bool:
 	_sword.visible = true
 	_sword.global_transform = _place_basis(point, forward.normalized()) * Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3.ZERO)
 	_register_ground_sword(_sword)
+	_stamp_ground_weapon(_sword, _weapon_id)
 	_update_hint()
 	return true
 
@@ -984,7 +1343,7 @@ func _clear_blade_from_body(direction: Vector3) -> Vector3:
 	if not is_instance_valid(_rig) or _bone_chest < 0 or _bone_pelvis < 0: return direction
 	var chest: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_chest).origin
 	var pelvis: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_pelvis).origin
-	var reach := 0.06 + BLADE_LENGTH
+	var reach := 0.06 + _weapon_length
 	if _segment_distance(_sword_origin, _sword_origin + direction * reach, chest, pelvis) > BODY_CLEAR_RADIUS:
 		return direction
 	for step: int in BODY_CLEAR_MAX_STEPS:
@@ -1077,13 +1436,15 @@ func _steer(delta: float) -> void:
 	var angle := _dir.angle_to(target)
 	var desired := Vector3.ZERO
 	if angle > 1.0e-4 and axis.length_squared() > 1.0e-10:
-		desired = axis.normalized() * clampf(angle * STEER_GAIN, 0.0, MAX_OMEGA)
+		# DSH_MELEE_SET: mass is felt as lag. A sledge answers the mouse later than a
+		# sword does, which is the whole point of carrying one.
+		desired = axis.normalized() * clampf(angle * STEER_GAIN / _weapon_mass, 0.0, MAX_OMEGA / _weapon_mass)
 	desired -= _omega * STEER_DAMPING
 	# Biting into a body or blade makes the sword heavy for a moment.
 	if Time.get_ticks_msec() < _bind_until_ms:
 		desired = desired.limit_length(1.6)
 	var dv := desired - _omega
-	var max_dv := MAX_ALPHA * delta
+	var max_dv := MAX_ALPHA * delta / _weapon_mass
 	if dv.length() > max_dv and dv.length() > 1.0e-9: dv = dv.normalized() * max_dv
 	_omega += dv
 	# Park a nearly-settled blade instead of letting it buzz around the target.
@@ -1455,6 +1816,11 @@ func _solve_arm(delta: float) -> void:
 var _blocking := false
 
 func _active_side() -> StringName:
+	# DSH_MELEE_SET: the weapon decides the grip. A two-handed axe, sledge or spear is
+	# always held in both hands; a mace never is; the sword can be either.
+	var grip := str(weapon_entry().get("grip", "both_optional"))
+	if grip == "two": return &"both"
+	if grip == "one": return _carry_side if _carry_side != &"both" else &"right"
 	if _hold_left and _hold_right: return &"both"
 	if _hold_left: return &"left"
 	if _hold_right: return &"right"
@@ -1827,7 +2193,7 @@ func _duelist_blade_points() -> PackedVector3Array:
 	var origin: Vector3 = _duelist_sword.global_position
 	var direction: Vector3 = _duelist_sword.global_basis.x.normalized()
 	for i: int in 5:
-		points.append(origin + direction * (0.10 + BLADE_LENGTH * float(i) / 4.0))
+		points.append(origin + direction * (0.10 + _weapon_length * float(i) / 4.0))
 	return points
 
 ## The incoming cut: first ask the player's blade (a real guard), then the body.
@@ -1860,7 +2226,7 @@ func _duelist_resolve_strike(delta: float) -> void:
 	# Fallback reach test: a cut swung at the player from close range lands unless
 	# the player's blade is actually in the way, even if the thin ray misses.
 	var to_player := (_player.global_position + Vector3.UP * 1.0) - _duelist.global_position
-	if to_player.length() <= BLADE_LENGTH + 0.75 and _duelist_dir.dot(to_player.normalized()) > 0.72:
+	if to_player.length() <= _weapon_length + 0.75 and _duelist_dir.dot(to_player.normalized()) > 0.72:
 		var clash_at := _player.global_position + Vector3.UP * 1.0
 		if _player_blade_intercepts(_duelist.global_position, clash_at):
 			_register_clash(clash_at)
@@ -1874,7 +2240,7 @@ func _duelist_resolve_strike(delta: float) -> void:
 func _player_blade_intercepts(from: Vector3, to: Vector3) -> bool:
 	if not is_instance_valid(_sword) or not _sword.visible: return false
 	var mine_a: Vector3 = _sword_origin
-	var mine_b: Vector3 = _sword_origin + _dir * (0.06 + BLADE_LENGTH)
+	var mine_b: Vector3 = _sword_origin + _dir * (0.06 + _weapon_length)
 	return _segment_distance(from, to, mine_a, mine_b) <= BLOCK_RADIUS
 
 func _register_clash(at: Vector3) -> void:
@@ -2099,7 +2465,7 @@ func _sweep(delta: float) -> void:
 	var points := PackedVector3Array()
 	for i: int in SWEEP_SEGMENTS + 1:
 		var t := float(i) / float(SWEEP_SEGMENTS)
-		points.append(_sword_origin + _dir * (0.06 + BLADE_LENGTH * t))
+		points.append(_sword_origin + _dir * (0.06 + _weapon_length * t))
 	if _prev_points.size() != points.size():
 		_prev_points = points
 		return
@@ -2120,7 +2486,7 @@ func _sweep(delta: float) -> void:
 	var npc_b := Vector3.ZERO
 	if is_instance_valid(_npc_sword) and _npc_sword.visible:
 		npc_a = _npc_sword.global_position
-		npc_b = npc_a + _npc_sword.global_basis.x.normalized() * (0.06 + BLADE_LENGTH)
+		npc_b = npc_a + _npc_sword.global_basis.x.normalized() * (0.06 + _weapon_length)
 		npc_blade_ok = true
 	var clash := false
 	var clash_at := Vector3.ZERO
@@ -2264,6 +2630,12 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 				var across := sqrt(maxf(0.0, 1.0 - along * along))
 				var kind := "slice" if across >= 0.72 else ("stab" if along >= 0.72 else "flat")
 				var factor := _armour_factor(npc_part, kind)
+				# DSH_MELEE_SET: blunt weapons do not have an edge to turn. A mace or a
+				# sledge transmits the blow through plate, which is exactly why they were
+				# carried against armour, so they skip the armour reduction entirely.
+				if _weapon_crush:
+					factor = 1.0
+				factor *= _kind_multiplier(kind)
 				if _half_sword:
 					# Half-swording trades the cut for the point: a thrust from the
 					# blade grip goes into the joints whatever the plate says.
@@ -2330,6 +2702,8 @@ func _damage_dummy(dummy: StaticBody3D, position: Vector3, speed: float, velocit
 	# full wind-up followed by a cut lands far harder.
 	var strength := _strength_now()
 	if _active_side() == &"both": strength *= TWO_HAND_DAMAGE_SCALE
+	# DSH_MELEE_SET: the weapon decides how much of each kind of blow it delivers.
+	strength *= _kind_multiplier(kind)
 	_bite_into(0.62)
 	_last_hit_kind = kind
 	_last_hit_scale = strength
@@ -2475,7 +2849,7 @@ func _blade_penetrates_world(direction: Vector3, origin: Vector3) -> bool:
 	if not is_instance_valid(_player) or not is_instance_valid(_world): return false
 	var space := _player.get_world_3d().direct_space_state
 	if space == null: return false
-	var length := 0.06 + BLADE_LENGTH
+	var length := 0.06 + _weapon_length
 	var capsule := CapsuleShape3D.new()
 	capsule.radius = 0.030
 	capsule.height = length
@@ -3050,7 +3424,7 @@ func _npc_blade_points() -> PackedVector3Array:
 	var origin: Vector3 = _npc_sword.global_position
 	var direction: Vector3 = _npc_sword.global_basis.x.normalized()
 	for i: int in 5:
-		points.append(origin + direction * (0.10 + BLADE_LENGTH * float(i) / 4.0))
+		points.append(origin + direction * (0.10 + _weapon_length * float(i) / 4.0))
 	return points
 
 ## His cut: our blade stops it, otherwise it reaches the body.
@@ -3081,7 +3455,7 @@ func _npc_resolve_strike(delta: float) -> void:
 		return
 	# Reach fallback, same as the sparring dummy opponent.
 	var to_player := (_player.global_position + Vector3.UP * 1.0) - _npc_body.global_position
-	if to_player.length() <= BLADE_LENGTH + 0.8 and _npc_dir.dot(to_player.normalized()) > 0.70:
+	if to_player.length() <= _weapon_length + 0.8 and _npc_dir.dot(to_player.normalized()) > 0.70:
 		var at := _player.global_position + Vector3.UP * 1.0
 		if _player_blade_intercepts(_npc_body.global_position, at):
 			_npc_blocked += 1
@@ -3458,7 +3832,7 @@ func _head_blade_clearance() -> float:
 	if not is_instance_valid(_rig) or not is_instance_valid(_sword) or _bone_head < 0: return 99.0
 	var head: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_head).origin
 	var a: Vector3 = _sword_origin
-	var b: Vector3 = _sword_origin + _dir * (0.06 + BLADE_LENGTH)
+	var b: Vector3 = _sword_origin + _dir * (0.06 + _weapon_length)
 	return _segment_distance(head, head, a, b)
 
 ## Shortest distance from the blade line to the character's own SPINE. Companion to
@@ -3468,7 +3842,7 @@ func _body_blade_clearance() -> float:
 	var chest: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_chest).origin
 	var pelvis: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_pelvis).origin
 	var a: Vector3 = _sword_origin
-	var b: Vector3 = _sword_origin + _dir * (0.06 + BLADE_LENGTH)
+	var b: Vector3 = _sword_origin + _dir * (0.06 + _weapon_length)
 	return _segment_distance(a, b, chest, pelvis)
 
 func snapshot() -> Dictionary:	return {
@@ -3511,7 +3885,9 @@ func snapshot() -> Dictionary:	return {
 		"duelist_hits": _duelist_hits, "duelist_blocked": _duelist_blocked, "player_blocks": _player_blocks,
 		"sparring_hp": _sparring_hp,
 		"duelist_position": _duelist.global_position if is_instance_valid(_duelist) else Vector3.ZERO,
-		"blade_from": _sword_origin, "blade_to": _sword_origin + _dir * (0.06 + BLADE_LENGTH),
+		"weapon": _weapon_id, "weapon_mass": _weapon_mass, "weapon_length": _weapon_length,
+		"weapon_crush": _weapon_crush, "weapon_category": str(weapon_entry().get("category", "")),
+		"blade_from": _sword_origin, "blade_to": _sword_origin + _dir * (0.06 + _weapon_length),
 		"blade_body_dot": _dir.dot(_player._visual.global_basis.z) if is_instance_valid(_player) and is_instance_valid(_player._visual) else -1.0,
 		"hand_local_z": (_player._visual.global_basis.inverse() * (_sword_origin - _player._visual.global_position)).z if is_instance_valid(_player) and is_instance_valid(_player._visual) else 0.0,
 		"upper_len": _upper_len, "fore_len": _fore_len,
@@ -3519,8 +3895,9 @@ func snapshot() -> Dictionary:	return {
 		"dummy_position": _dummy.global_position if is_instance_valid(_dummy) else Vector3.ZERO,
 		"pole_position": _pole.global_position if is_instance_valid(_pole) else Vector3.ZERO,
 		"dummy_distance": _player.global_position.distance_to(_dummy.global_position) if is_instance_valid(_player) and is_instance_valid(_dummy) else -1.0,
-		"blade_tip": _sword_origin + _dir * (0.06 + BLADE_LENGTH),
+		"blade_tip": _sword_origin + _dir * (0.06 + _weapon_length),
 		"sweep_rays": _sweep_rays, "sweep_hits": _sweep_hits, "selected": _selected,
+		"side": str(_active_side()),
 		"rig_scale": _rig.global_transform.basis.get_scale() if is_instance_valid(_rig) else Vector3.ZERO,
 		"shoulder_world": _rig.global_transform * (_rig.get_bone_global_pose(_bone_clavicle) * _rest_upper).origin if is_instance_valid(_rig) and _bone_clavicle >= 0 else Vector3.ZERO,
 		"sword_origin": _sword_origin,
