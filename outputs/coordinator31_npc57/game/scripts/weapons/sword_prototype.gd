@@ -1617,6 +1617,8 @@ var _throwing := false
 ## Right button held with a throwable weapon: the aiming stance, which draws the arc.
 var _aiming_throw := false
 var _throw_windup := 0.0
+## Wall-clock start of the wind-up, so the power cannot be lost to a skipped frame.
+var _throw_start_ms := 0
 var _thrown: Array[Dictionary] = []
 var _unarmed := false
 var _thrown_total := 0
@@ -1690,7 +1692,7 @@ func _hide_throw_dots() -> void:
 
 ## The speed the throw would leave at right now, which is what the arc is drawn with.
 func _throw_speed_now() -> float:
-	var power := 0.5 if not _throwing else clampf(_throw_windup / THROW_WINDUP_TIME, 0.0, 1.0)
+	var power := 0.5 if not _throwing else clampf(_throw_held_seconds() / THROW_WINDUP_TIME, 0.0, 1.0)
 	return lerpf(THROW_SPEED_MIN, THROW_SPEED_MAX, power)
 
 ## How many thrown weapons are still in the air, and where the last one is.
@@ -1711,14 +1713,24 @@ func _begin_throw() -> void:
 	if _throwing: return
 	_throwing = true
 	_throw_windup = 0.0
+	# The power is measured in WALL TIME, not in accumulated physics deltas: a skipped
+	# physics frame used to cut the wind-up short and throw far weaker than the player
+	# had held for.
+	_throw_start_ms = Time.get_ticks_msec()
 	_update_hint()
 	print("DSH_MELEE_THROW windup weapon=", _weapon_id)
+
+## How long the wind-up has been held, in seconds.
+func _throw_held_seconds() -> float:
+	if not _throwing: return 0.0
+	return float(Time.get_ticks_msec() - _throw_start_ms) / 1000.0
 
 ## Lets the weapon go: it becomes a projectile and the hands are empty.
 func _release_throw() -> void:
 	if not _throwing: return
+	var held := _throw_held_seconds()
 	_throwing = false
-	var power := clampf(_throw_windup / THROW_WINDUP_TIME, 0.0, 1.0)
+	var power := clampf(held / THROW_WINDUP_TIME, 0.0, 1.0)
 	if not is_instance_valid(_sword): return
 	var speed := lerpf(THROW_SPEED_MIN, THROW_SPEED_MAX, power)
 	var from: Vector3 = _sword_origin
