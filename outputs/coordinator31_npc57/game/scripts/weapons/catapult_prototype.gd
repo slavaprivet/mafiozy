@@ -394,7 +394,11 @@ func _build_hud() -> void:
 	layer.layer = 13
 	add_child(layer)
 	_hud = Label.new()
-	_hud.position = Vector2(24, 120)
+	# Below the sword help panel: at 120 the machine's prompts were drawn underneath it and
+	# the player never saw "E - зарядить" or "E - выстрелить".
+	# Clear of the sword help panel (x 300-690) and of the mini-map: the prompts are drawn
+	# where nothing covers them, or the player never sees "E - зарядить".
+	_hud.position = Vector2(700, 150)
 	_hud.add_theme_font_size_override("font_size", 15)
 	_hud.add_theme_color_override("font_color", Color(0.92, 0.90, 0.84))
 	layer.add_child(_hud)
@@ -686,6 +690,12 @@ func _release() -> void:
 	_stone.global_position = _spoon_point() + Vector3.UP * (STONE_RADIUS * 0.55)
 	_fly_velocity = _launch_velocity()
 	_stone.linear_velocity = _fly_velocity
+	# A SHORT KICK BACKWARDS, and nothing more. The machine used to keep creeping forward
+	# after a shot, which read as it flying away; this replaces that drift with one thrust.
+	_cart_speed = 0.0
+	_cart.velocity = -Vector3(sin(_cart.rotation.y), 0.0, cos(_cart.rotation.y)) * 0.8
+	_cart.move_and_slide()
+	_cart.velocity = Vector3.ZERO
 	_fly_prev = _stone.global_position
 	_fired += 1
 	print("DSH_CATAPULT_FIRED yaw=", _yaw, " elevation=", _elevation,

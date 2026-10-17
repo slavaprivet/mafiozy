@@ -840,13 +840,20 @@ func _build_gatehouse() -> void:
 		add_child(pivot)
 		var leaf_width := GATE_WIDTH * 0.5
 		var board := leaf_width / 6.0
-		var shield := MeshInstance3D.new()
-		var shield_mesh := BoxMesh.new()
-		shield_mesh.size = Vector3(leaf_width, GATE_HEIGHT * 0.96, 0.26)
-		shield.mesh = shield_mesh
-		shield.material_override = _materials["wood"]
-		shield.position = Vector3(-side * leaf_width * 0.5, GATE_HEIGHT * 0.5, 0.0)
-		pivot.add_child(shield)
+		# THE LEAF IS SIX BOARDS, not one shield: a stone then takes out the boards it
+		# reaches and leaves the rest of the door standing - brick by brick, where it struck.
+		# They are laid edge to edge, so a closed gate still reads as solid oak.
+		var boards: Array = []
+		for plank: int in 6:
+			var board_mesh := MeshInstance3D.new()
+			var board_box := BoxMesh.new()
+			board_box.size = Vector3(board * 0.98, GATE_HEIGHT * 0.96, 0.26)
+			board_mesh.mesh = board_box
+			board_mesh.material_override = _materials["wood"]
+			board_mesh.position = Vector3(-side * (board * (float(plank) + 0.5)),
+				GATE_HEIGHT * 0.5, 0.0)
+			pivot.add_child(board_mesh)
+			boards.append({"mesh": board_mesh, "broken": false})
 		# The seams between the boards: shallow dark strips on the face, not slots.
 		var seam_material := StandardMaterial3D.new()
 		seam_material.albedo_color = Color(0.24, 0.15, 0.08)
@@ -891,7 +898,8 @@ func _build_gatehouse() -> void:
 		body.add_child(shape)
 		body.set_meta("castle_gate", true)
 		body.set_meta("surface", "wood")
-		_gate_leaves.append({"pivot": pivot, "side": side, "body": body, "detached": false})
+		_gate_leaves.append({"pivot": pivot, "side": side, "body": body, "detached": false,
+			"boards": boards})
 		if side < 0.0: _gate_left = pivot
 		else: _gate_right = pivot
 	# THE LEVER, inside the courtyard by the gate: a post, a handle, and a hinge of its own.
@@ -956,6 +964,13 @@ var _lever_angle := 0.5
 ## so the gate never snaps: a gate this heavy takes a moment to move.
 func set_gate(open: bool) -> void:
 	_gate_open_state = open
+
+func _gate_boards_broken() -> int:
+	var count := 0
+	for entry: Dictionary in _gate_leaves:
+		for board: Dictionary in entry.get("boards", []):
+			if bool(board.get("broken", false)): count += 1
+	return count
 
 func _gate_leaves_detached() -> int:
 	var count := 0
@@ -1627,6 +1642,7 @@ func get_stats() -> Dictionary:
 		"collapsed": _collapsed, "gates": _gate_leaves.size(),
 		"gate_open": _gate_leaves.size() > 0 and bool(_gate_leaves[0].get("detached", false)),
 		"gate_leaves_detached": _gate_leaves_detached(),
+		"gate_boards_broken": _gate_boards_broken(),
 		"falling": _falling.size(), "events": _events.size(), "leaf_dbg": _leaf_debug(),
 		"gate_bricks": _count_gate_bricks(),
 	}
@@ -1655,18 +1671,56 @@ func apply_explosion(event: Dictionary) -> Dictionary:
 		_kill_brick(index, direction, power)
 		killed += 1
 	for entry: Dictionary in _gate_leaves:
-		if bool(entry.get("detached", false)): continue
 		var pivot: Node3D = entry.get("pivot")
 		if not is_instance_valid(pivot): continue
-		# The distance is to the middle of the LEAF, not to the hinge at its foot: the hinge
-		# sits four metres out to the side, and a stone on the doors was measured as wide.
-		var leaf_centre: Vector3 = pivot.global_position + Vector3.UP * (GATE_HEIGHT * 0.5)
-		# A blow on the doors is measured against the whole leaf, generously: a stone that
-		# clips the top of a door knocks that door out, it does not need to be dead centre.
-		if leaf_centre.distance_to(at_world) > radius + 6.0: continue
-		# The leaves hang on hinges now, so they are not rigid bodies to push: they are
-		# BLOWN OFF. The hinge goes, its collision with it, and a handful of planks are
-		# thrown out where the door stood - which is what a gate hit by a stone looks like.
+		var boards: Array = entry.get("boards", [])
+		# BOARD BY BOARD, where the stone struck. A leaf is six oak boards; a hit takes the
+		# boards it reaches and leaves the rest of the door standing. Only when every board is
+		# gone does the leaf come off its hinge.
+		for board: Dictionary in boards:
+			if bool(board.get("broken", false)): continue
+			var board_mesh: MeshInstance3D = board.get("mesh")
+			if not is_instance_valid(board_mesh): continue
+			# Distance to the NEAREST POINT of the board, not to its middle: a stone that
+			# strikes the top of a door is four metres from the centre of every board and was
+			# measured as a miss.
+			var board_at: Vector3 = board_mesh.global_position
+			var flat := Vector2(at_world.x - board_at.x, at_world.z - board_at.z).length()
+			var drop: float = maxf(0.0, absf(at_world.y - board_at.y) - GATE_HEIGHT * 0.46)
+			if Vector2(flat, drop).length() > radius + 1.2: continue
+			board["broken"] = true
+			board_mesh.visible = false
+			killed += 1
+			var plank := RigidBody3D.new()
+			plank.collision_layer = 1
+			plank.collision_mask = 1
+			plank.mass = 30.0
+			plank.global_position = board_mesh.global_position
+			add_child(plank)
+			var plank_shape := CollisionShape3D.new()
+			var plank_box := BoxShape3D.new()
+			plank_box.size = Vector3(GATE_WIDTH * 0.5 / 6.0, GATE_HEIGHT * 0.96, 0.26)
+			plank_shape.shape = plank_box
+			plank.add_child(plank_shape)
+			if _debris_mesh == null:
+				_debris_mesh = BoxMesh.new()
+				_debris_mesh.size = Vector3.ONE
+			var plank_mesh := MeshInstance3D.new()
+			plank_mesh.mesh = _debris_mesh
+			plank_mesh.scale = plank_box.size
+			plank_mesh.material_override = _materials["wood"]
+			plank_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			plank.add_child(plank_mesh)
+			var away: Vector3 = direction.normalized() if direction.length_squared() > 1.0e-6 else Vector3.BACK
+			plank.linear_velocity = (away * 0.8 + Vector3.UP * 0.35).normalized() \
+				* clampf(power * 0.12, 3.0, 12.0) * randf_range(0.7, 1.3)
+			plank.angular_velocity = Vector3(randf_range(-4.0, 4.0), randf_range(-4.0, 4.0),
+				randf_range(-4.0, 4.0))
+			_falling.append({"body": plank, "age": 0.0})
+		var remaining := 0
+		for board: Dictionary in boards:
+			if not bool(board.get("broken", false)): remaining += 1
+		if remaining > 0 or bool(entry.get("detached", false)): continue
 		entry["detached"] = true
 		_gate_open_state = false
 		_gate_angle = 0.0
@@ -1676,34 +1730,6 @@ func apply_explosion(event: Dictionary) -> Dictionary:
 			if is_instance_valid(child_body):
 				child_body.collision_layer = 0
 				child_body.collision_mask = 0
-		var away: Vector3 = direction.normalized() if direction.length_squared() > 1.0e-6 else Vector3.BACK
-		var gate_centre: Vector3 = pivot.global_position
-		for plank: int in 9:
-			var debris := RigidBody3D.new()
-			debris.collision_layer = 1
-			debris.collision_mask = 1
-			debris.mass = 26.0
-			debris.position = gate_centre + Vector3(randf_range(-2.2, 2.2), randf_range(-1.0, 3.0), 0.0)
-			add_child(debris)
-			var debris_shape := CollisionShape3D.new()
-			var debris_box := BoxShape3D.new()
-			debris_box.size = Vector3(0.8, GATE_HEIGHT * 0.3, 0.35)
-			debris_shape.shape = debris_box
-			debris.add_child(debris_shape)
-			if _debris_mesh == null:
-				_debris_mesh = BoxMesh.new()
-				_debris_mesh.size = Vector3.ONE
-			var debris_mesh := MeshInstance3D.new()
-			debris_mesh.mesh = _debris_mesh
-			debris_mesh.scale = debris_box.size
-			debris_mesh.material_override = _materials["wood"]
-			debris_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			debris.add_child(debris_mesh)
-			debris.linear_velocity = (away * 0.8 + Vector3.UP * 0.3).normalized() \
-				* clampf(power * 0.18, 3.0, 14.0) * randf_range(0.7, 1.3)
-			debris.angular_velocity = Vector3(randf_range(-5.0, 5.0), randf_range(-5.0, 5.0),
-				randf_range(-5.0, 5.0))
-			_falling.append({"body": debris, "age": 0.0})
 		_detached += 1
 		killed += 1
 	_schedule_support_failure(at, radius)

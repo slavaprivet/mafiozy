@@ -68,6 +68,8 @@ func _run() -> void:
 		" collapsed=", after.get("collapsed", 0), " falling=", after.get("falling", 0))
 	var failed: Array[String] = []
 	if not fired: failed.append("never_fired")
-	if int(after.get("detached", 0)) <= int(before.get("detached", 0)): failed.append("castle_took_no_damage")
+	# A hit on the doors breaks BOARDS; a hit on the wall knocks out BRICKS. Either is damage.
+	var damaged: int = (int(after.get("detached", 0)) - int(before.get("detached", 0))) + (int(after.get("gate_boards_broken", 0)) - int(before.get("gate_boards_broken", 0)))
+	if damaged <= 0: failed.append("castle_took_no_damage")
 	print("CSCAT_RESULT ", "PASS" if failed.is_empty() else "FAIL " + str(failed))
 	quit(0)
