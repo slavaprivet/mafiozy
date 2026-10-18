@@ -133,7 +133,9 @@ func _build_projectiles() -> void:
 				_rng.randf_range(-0.24, 0.20))
 			var start := Vector3(x, ground + 0.08, z)
 			var end := start + Vector3(lean.x, h, lean.z)
-			_beam(start, end, 0.035, 0.035, Color(0.25, 0.16, 0.09))
+			# Extend the same shaft line below the soil, preserving tail and feathers.
+			var buried_start := start - (end - start) * (0.12 / (end.y - start.y))
+			_beam(buried_start, end, 0.035, 0.035, Color(0.25, 0.16, 0.09))
 			# The arrowhead is buried at start; feathers belong at the exposed tail.
 			# Reuse the existing tip/box batches for two thin crossed feather vanes.
 			var shaft := (end - start).normalized()
@@ -148,8 +150,10 @@ func _build_projectiles() -> void:
 	for at in [Vector2(-16.0, 76.0), Vector2(18.0, 77.0),
 			Vector2(-34.0, 87.0), Vector2(35.0, 89.0)]:
 		var p := Vector3(at.x, _ground(at.x, at.y), at.y)
-		_beam(p + Vector3.UP * 0.05, p + Vector3(0.35, 2.35, 0.24),
-			0.065, 0.065, Color(0.31, 0.20, 0.11))
+		var spear_start := p + Vector3.UP * 0.05
+		var spear_end := p + Vector3(0.35, 2.35, 0.24)
+		spear_start -= (spear_end - spear_start) * (0.09 / (spear_end.y - spear_start.y))
+		_beam(spear_start, spear_end, 0.065, 0.065, Color(0.31, 0.20, 0.11))
 		_add("tip", p + Vector3(0.38, 2.44, 0.26), Vector3(0.20, 0.36, 0.14),
 			Color(0.19, 0.20, 0.20))
 		_stats["spears"] += 1
