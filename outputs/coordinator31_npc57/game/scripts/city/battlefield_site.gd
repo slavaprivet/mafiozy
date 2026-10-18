@@ -1,0 +1,242 @@
+extends Node3D
+## The ground outside the south castle gate. Coordinates are local to CastleSite.
+## A few bounded terrain chunks replace thousands of individual ground tiles.
+
+const X_MIN := -90.0
+const X_MAX := 90.0
+const Z_MIN := 86.0
+const Z_MAX := 252.0
+const CHUNKS_X := 4
+const CHUNKS_Z := 4
+const STEPS_X := 18
+const STEPS_Z := 17
+const CRATER_CENTERS := [Vector2(-20.0, 157.0), Vector2(25.0, 176.0),
+	Vector2(-28.0, 216.0), Vector2(67.0, 207.0)]
+const BURN_CENTERS := [Vector2(-28.0, 151.0), Vector2(33.0, 171.0),
+	Vector2(-65.0, 206.0), Vector2(16.0, 222.0)]
+
+var _built := false
+var _chunks := 0
+var _vertices := 0
+var _triangles := 0
+var _landmarks: Dictionary = {}
+var _terrain_material: StandardMaterial3D
+
+func install(world: Node3D, castle: Node3D) -> Dictionary:
+	if _built:
+		return {"ok": false, "reason": "already_installed"}
+	if not is_instance_valid(world) or not is_instance_valid(castle):
+		return {"ok": false, "reason": "missing_world_or_castle"}
+	if get_parent() != world:
+		if get_parent() != null:
+			get_parent().remove_child(self)
+		world.add_child(self)
+	global_position = castle.global_position
+	name = "BattlefieldSite"
+	set_meta("battlefield", true)
+	_terrain_material = StandardMaterial3D.new()
+	_terrain_material.vertex_color_use_as_albedo = true
+	# Vertex colors arrive linearized by the renderer. This tint also blends the
+	# field into the existing, darker CastleGround rather than a bright rectangle.
+	_terrain_material.albedo_color = Color(0.60, 0.60, 0.60)
+	_terrain_material.albedo_texture = _make_grit_texture()
+	_terrain_material.roughness = 1.0
+	_terrain_material.metallic = 0.0
+	_terrain_material.cull_mode = BaseMaterial3D.CULL_BACK
+	_build_terrain()
+	_build_landmarks()
+	_built = true
+	return {"ok": true, "stats": get_stats(), "landmarks": get_landmarks()}
+
+func get_stats() -> Dictionary:
+	return {"terrain_chunks": _chunks, "terrain_draw_calls_max": _chunks,
+		"terrain_vertices": _vertices, "terrain_triangles": _triangles,
+		"terrain_collision_shapes": _chunks, "bounds_local": [X_MIN, Z_MIN, X_MAX, Z_MAX]}
+
+func get_landmarks() -> Dictionary:
+	return _landmarks.duplicate(true)
+
+func _make_grit_texture() -> ImageTexture:
+	# A single tiny shared repeating texture adds close-up soil grain to every
+	# chunk; no per-tile meshes, decals, disk assets or runtime random state.
+	var image := Image.create(64, 64, false, Image.FORMAT_RGB8)
+	for iy in 64:
+		for ix in 64:
+			var seed := sin(float(ix) * 12.9898 + float(iy) * 78.233) * 43758.5453
+			var grain := seed - floorf(seed)
+			# Keep the grain subtle: strong white noise produced distance shimmer.
+			var shade := 0.88 + 0.12 * grain
+			image.set_pixel(ix, iy, Color(shade, shade * 0.98, shade * 0.93))
+	image.generate_mipmaps()
+	return ImageTexture.create_from_image(image)
+
+func terrain_height(x: float, z: float) -> float:
+	# Near the original forecourt and at the outer edge, fade to CastleGround.
+	# The central x+-13 m at z<110 stays *below* the existing gate road.
+	var old_road := (1.0 - smoothstep(107.0, 113.0, z)) * (1.0 - smoothstep(11.5, 16.5, absf(x)))
+	var edge_x := 1.0 - smoothstep(76.0, 90.0, absf(x))
+	var edge_z := 1.0 - smoothstep(240.0, 252.0, z)
+	var start_z := smoothstep(86.0, 101.0, z)
+	var noise := sin(x * 0.16 + z * 0.087) * sin(z * 0.13 - x * 0.061)
+	var undulation := 0.12 + 0.09 * noise
+	# Earthen defence line is broken in three deliberate, wide walkable passages.
+	var defence := exp(-pow((z - 122.0) / 7.5, 2.0))
+	var passage := minf(absf(x - _route_x(z, 0)),
+		minf(absf(x - _route_x(z, -1)), absf(x - _route_x(z, 1))))
+	var bank := 1.48 * defence * smoothstep(6.0, 16.0, passage)
+	# Broad shoulders break the flat horizon without obstructing the three
+	# approach lanes; they are part of this same physical mesh.
+	var hill := 1.18 * exp(-pow((x + 28.0) / 13.0, 2.0) - pow((z - 177.0) / 16.0, 2.0))
+	hill += 0.95 * exp(-pow((x - 29.0) / 14.0, 2.0) - pow((z - 195.0) / 13.0, 2.0))
+	hill += 0.70 * exp(-pow((x + 68.0) / 12.0, 2.0) - pow((z - 225.0) / 15.0, 2.0))
+	# A crater is a low centre surrounded by a rounded rim. The centre cannot
+	# be below y=0 because the existing CastleGround collider remains intact.
+	var craters := 0.0
+	for center: Vector2 in CRATER_CENTERS:
+		var radius := Vector2(x - center.x, z - center.y).length()
+		craters += 0.68 * exp(-pow((radius - 6.5) / 2.7, 2.0))
+	var road := _road_weight(x, z)
+	var h := (undulation + bank + hill + craters) * (1.0 - road * 0.72)
+	var rut := (1.0 - smoothstep(0.32, 0.85,
+		absf(absf(x - _route_x(z, 0)) - 2.1))) * road
+	h -= 0.035 * rut
+	var coverage := minf(edge_x, minf(edge_z, start_z))
+	# Physically sink the outermost vertices under CastleGround; this removes
+	# the rectangular seam even where the two materials have different lighting.
+	var visible_height := h * edge_x * edge_z * start_z + 0.018 - 0.072 * (1.0 - coverage)
+	return lerpf(visible_height, -0.07, old_road)
+
+func _route_x(z: float, lane: int) -> float:
+	var t := clampf((z - 105.0) / 140.0, 0.0, 1.0)
+	if lane == 0:
+		return 2.5 * sin(t * TAU * 0.8) * sin(t * PI)
+	return float(lane) * (47.0 + 3.5 * sin(t * TAU * 0.65 + 0.4))
+
+func _road_weight(x: float, z: float) -> float:
+	var center := 1.0 - smoothstep(4.8, 10.4, absf(x - _route_x(z, 0)))
+	var left := 1.0 - smoothstep(3.4, 8.0, absf(x - _route_x(z, -1)))
+	var right := 1.0 - smoothstep(3.4, 8.0, absf(x - _route_x(z, 1)))
+	return maxf(center, maxf(left, right))
+
+func _ground_color(x: float, z: float) -> Color:
+	var grass := Color(0.31, 0.37, 0.23)
+	var dirt := Color(0.39, 0.315, 0.23)
+	var road := Color(0.345, 0.295, 0.235)
+	var ash := Color(0.205, 0.195, 0.18)
+	var edge := minf(smoothstep(76.0, 89.0, absf(x)), smoothstep(240.0, 251.0, z))
+	var track := _road_weight(x, z)
+	var churn := 0.13 + 0.24 * absf(sin(x * 0.43 + z * 0.11) * sin(z * 0.29 - x * 0.07))
+	var color := grass.lerp(dirt, churn)
+	# Dark, irregular burn scars; the low-frequency edge is much less tiled than a decal.
+	var scorch := 0.0
+	for center: Vector2 in BURN_CENTERS:
+		var ellipse := Vector2((x - center.x) / 18.0, (z - center.y) / 11.0)
+		var radius := ellipse.length() + 0.19 * sin(x * 0.42 + z * 0.23)
+		scorch = maxf(scorch, 1.0 - smoothstep(0.55, 1.15, radius))
+	color = color.lerp(ash, scorch * 0.84)
+	# The ditch is cut into the existing ground only visually: the dark muddy
+	# channel lies between low banks, with wide unbroken crossings at each lane.
+	var ditch := exp(-pow((z - 134.0) / 3.4, 2.0)) * (1.0 - track)
+	color = color.lerp(Color(0.27, 0.25, 0.20), ditch * 0.64)
+	color = color.lerp(road, track * (0.83 + 0.1 * sin(x * 0.61 + z * 0.14)))
+	# Two hoof/wheel ruts keep the road legible at a distance with zero extra meshes.
+	var rut_offset := absf(x - _route_x(z, 0))
+	var rut := (1.0 - smoothstep(0.25, 0.75, absf(rut_offset - 2.1))) * track
+	color = color.darkened(rut * 0.14)
+	# Compensate for the shared terrain tint at the buried edge; its last visible
+	# vertices meet the CastleGround grass rather than outlining the mesh square.
+	return color.lerp(Color(0.43, 0.50, 0.31), edge)
+
+func _build_terrain() -> void:
+	var step_x := (X_MAX - X_MIN) / float(CHUNKS_X)
+	var step_z := (Z_MAX - Z_MIN) / float(CHUNKS_Z)
+	for cz in CHUNKS_Z:
+		for cx in CHUNKS_X:
+			var x0 := X_MIN + float(cx) * step_x
+			var z0 := Z_MIN + float(cz) * step_z
+			_build_chunk(cx, cz, x0, z0, step_x, step_z)
+
+func _build_chunk(cx: int, cz: int, x0: float, z0: float, span_x: float, span_z: float) -> void:
+	var vertices := PackedVector3Array()
+	var normals := PackedVector3Array()
+	var colors := PackedColorArray()
+	var uvs := PackedVector2Array()
+	var indices := PackedInt32Array()
+	for iz in STEPS_Z + 1:
+		for ix in STEPS_X + 1:
+			var x := x0 + span_x * float(ix) / float(STEPS_X)
+			var z := z0 + span_z * float(iz) / float(STEPS_Z)
+			var h := terrain_height(x, z)
+			vertices.append(Vector3(x, h, z))
+			normals.append(Vector3.UP)
+			colors.append(_ground_color(x, z))
+			uvs.append(Vector2(x * 0.15, z * 0.15))
+	# Reuse adjacent sampled heights for smooth normals. Calling terrain_height
+	# four extra times at every vertex made the crater math needlessly expensive.
+	for iz in STEPS_Z + 1:
+		for ix in STEPS_X + 1:
+			var i := iz * (STEPS_X + 1) + ix
+			var left := vertices[iz * (STEPS_X + 1) + maxi(ix - 1, 0)]
+			var right := vertices[iz * (STEPS_X + 1) + mini(ix + 1, STEPS_X)]
+			var near := vertices[maxi(iz - 1, 0) * (STEPS_X + 1) + ix]
+			var far := vertices[mini(iz + 1, STEPS_Z) * (STEPS_X + 1) + ix]
+			normals[i] = (far - near).cross(right - left).normalized()
+	for iz in STEPS_Z:
+		for ix in STEPS_X:
+			var a := iz * (STEPS_X + 1) + ix
+			var b := a + 1
+			var c := a + STEPS_X + 1
+			var d := c + 1
+			# Godot renders clockwise front faces; these triangles face upward.
+			indices.append_array(PackedInt32Array([a, b, c, b, d, c]))
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_COLOR] = colors
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var visual := MeshInstance3D.new()
+	visual.name = "Terrain_%d_%d" % [cx, cz]
+	visual.mesh = mesh
+	visual.material_override = _terrain_material
+	visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	visual.set_meta("surface", "battlefield_ground")
+	visual.set_meta("vegetation", "grass")
+	visual.set_meta("road", "path")
+	add_child(visual)
+	# The shared CastleGround remains underneath. Each simple triangle terrain shape
+	# follows the visible bank, so fighters neither float over nor sink into it.
+	var body := StaticBody3D.new()
+	body.name = "TerrainCollision_%d_%d" % [cx, cz]
+	body.collision_layer = 1
+	body.collision_mask = 1
+	body.set_meta("surface", "dirt")
+	body.set_meta("battlefield_ground", true)
+	add_child(body)
+	var shape := CollisionShape3D.new()
+	var terrain_shape := mesh.create_trimesh_shape()
+	# Godot's mesh front-face winding differs from the triangle normal convention
+	# in some physics backends. The player must collide from above in either one.
+	terrain_shape.backface_collision = true
+	shape.shape = terrain_shape
+	body.add_child(shape)
+	_chunks += 1
+	_vertices += vertices.size()
+	_triangles += indices.size() / 3
+
+func _build_landmarks() -> void:
+	_landmarks = {
+		"defender_spawn": Vector3(0.0, 0.05, 96.0),
+		"defender_left": Vector3(-28.0, terrain_height(-28.0, 103.0), 103.0),
+		"defender_right": Vector3(28.0, terrain_height(28.0, 103.0), 103.0),
+		"attacker_spawn": Vector3(0.0, terrain_height(0.0, 229.0), 229.0),
+		"attacker_left": Vector3(-43.0, terrain_height(-43.0, 226.0), 226.0),
+		"attacker_right": Vector3(43.0, terrain_height(43.0, 226.0), 226.0),
+		"left_flank": Vector3(-49.0, terrain_height(-49.0, 155.0), 155.0),
+		"right_flank": Vector3(49.0, terrain_height(49.0, 155.0), 155.0),
+		"catapult_lane": Vector3(14.0, terrain_height(14.0, 199.0), 199.0),
+		"central_approach": Vector3(0.0, terrain_height(0.0, 156.0), 156.0),
+	}

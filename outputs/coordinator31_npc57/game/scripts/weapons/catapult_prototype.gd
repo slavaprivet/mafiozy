@@ -1252,6 +1252,18 @@ func _impact(hit: Dictionary) -> void:
 				_spawn_dust(point, normal)
 				_vanish()
 				return
+	# The siege camp uses small, individually breakable cover groups. Forward a
+	# physical stone contact to the group under the hit before the city fallback.
+	var battlefield: Variant = _world.get("preview_battlefield") if is_instance_valid(_world) else null
+	if is_instance_valid(battlefield):
+		var camp_props := (battlefield as Node3D).get_node_or_null("BattlefieldProps")
+		if is_instance_valid(camp_props) and camp_props.has_method("apply_damage"):
+			var broken: int = camp_props.call("apply_damage", point, BLAST_RADIUS, BLAST_POWER, "stone")
+			if broken > 0:
+				_last_impact = {"ok": true, "point": point, "battlefield_groups": broken}
+				_spawn_dust(point, normal)
+				_vanish()
+				return
 	var host: Variant = _world.get("preview_palazzo") if is_instance_valid(_world) else null
 	# A SHOPFRONT IS GLASS, and the building refuses a solid blast against a pane. A stone
 	# through a window is a real strike, so it is forwarded into the glazing path the

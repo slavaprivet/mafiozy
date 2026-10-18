@@ -29,6 +29,8 @@ const SwordPrototype = preload("res://scripts/weapons/sword_prototype.gd")  # DS
 const BowPrototype = preload("res://scripts/weapons/bow_prototype.gd")  # DSH_BOW_PROTO
 const CatapultPrototype = preload("res://scripts/weapons/catapult_prototype.gd")  # DSH_CATAPULT
 const CastleSite = preload("res://scripts/city/castle_site.gd")  # DSH_CASTLE
+const BattlefieldSite = preload("res://scripts/city/battlefield_site.gd")
+const BattlefieldProps = preload("res://scripts/city/battlefield_props.gd")
 const FootstepsScript = preload("res://scripts/audio/footsteps.gd")  # DSH_STEPS
 ## DSH_CASTLE: the castle is its OWN MAP. It is built far from the city so the two never
 ## interact, and the player is put down in its courtyard.
@@ -102,6 +104,7 @@ var catapult_status := "disabled"
 ## DSH_CASTLE: --castle=1 (or castle_map on the scene) opens the castle map instead.
 @export var castle_map: bool = false
 var preview_castle: Node
+var preview_battlefield: Node3D
 var _footsteps: Node  # DSH_STEPS
 ## DSH_CASTLE: a spawn point that is RE-ASSERTED for a few frames, because other boot steps
 ## were teleporting the player out of it afterwards.
@@ -593,6 +596,17 @@ func _build_castle_map() -> bool:
 		castle.queue_free()
 		return false
 	preview_castle = castle
+	var battlefield := BattlefieldSite.new() as Node3D
+	var field_result: Dictionary = battlefield.install(self, castle)
+	if field_result.get("ok", false):
+		preview_battlefield = battlefield
+		var field_props := BattlefieldProps.new() as Node3D
+		field_props.name = "BattlefieldProps"
+		battlefield.add_child(field_props)
+		field_props.install(castle)
+	else:
+		battlefield.queue_free()
+		push_warning("Battlefield install failed: %s" % field_result.get("reason", "unknown"))
 	castle_status = "ready"
 	# The map boots with the CURSOR CAPTURED, or the player cannot walk: every movement
 	# control is behind a captured mouse, and a siege where you cannot move is not a test.
