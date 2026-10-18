@@ -374,7 +374,13 @@ func _build_tent(p: Vector3, id: String) -> void:
 		# Seam and rolled eave make the continuous cloth roof read at walking distance.
 		_box("canvas_dark", p + b * Vector3(0, 0.36, side * 2.58), Vector3(6.12, 0.12, 0.10), Vector3(0, yaw, 0), id)
 		for x in [-2.90, 2.90]:
-			_box("rope", p + b * Vector3(x, 0.95, side * 2.98), Vector3(0.055, 2.02, 0.055), Vector3(side * 0.69, yaw, 0), id)
+			# Tie the roof slope to the existing peg instead of tilting a loose rod.
+			var roof_tie := Vector3(x, 3.72 - 3.4 * 1.95 / 2.58, side * 1.95)
+			var peg_tie := Vector3(x, 0.28, side * 3.55)
+			var rope_delta := b * (roof_tie - peg_tie)
+			var rope_rotation := Basis(Quaternion(Vector3.UP, rope_delta.normalized())).get_euler()
+			_box("rope", p + b * (roof_tie + peg_tie) * 0.5,
+				Vector3(0.055, rope_delta.length(), 0.055), rope_rotation, id)
 			_piece("cone", "oak_edge", p + b * Vector3(x, 0.16, side * 3.55), Vector3(0.14, 0.32, 0.14), Vector3.ZERO, id)
 	_box("oak_edge", p + Vector3.UP * 3.72, Vector3(6.2, 0.09, 0.09), Vector3(0, yaw, 0), id)
 	for side in [-1.0, 1.0]:
