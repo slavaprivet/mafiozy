@@ -617,10 +617,48 @@ func _build_shield(p: Vector3, yaw: float, group: String, fallen := false) -> vo
 	var tilt := 0.11 if fallen else PI * 0.5 + 0.12
 	var height := 0.13 if fallen else 0.73
 	var rot := Vector3(tilt, yaw, 0.11)
+	var basis := Basis.from_euler(rot)
+	var ground_chunks: Array[Dictionary] = []
+	var terrain := get_parent()
+	for child: Node in terrain.get_children():
+		if not child is MeshInstance3D or child.get_meta("surface", "") != "battlefield_ground": continue
+		var bounds: AABB = child.mesh.get_aabb()
+		if p.x + 1.0 < bounds.position.x or p.x - 1.0 > bounds.end.x or p.z + 1.0 < bounds.position.z or p.z - 1.0 > bounds.end.z: continue
+		var arrays: Array = child.mesh.surface_get_arrays(0)
+		ground_chunks.append({"bounds": bounds, "vertices": arrays[Mesh.ARRAY_VERTEX],
+			"indices": arrays[Mesh.ARRAY_INDEX], "steps_x": terrain.STEPS_X, "steps_z": terrain.STEPS_Z})
+	var lift := float(_groups[group]["ground_offset"]) if group != "" and _groups.has(group) else _terrain_y(p.x, p.z)
+	var lowest := INF
+	# Ground the whole shield without separating its face, rim and boss.
+	for part: Array in [["drum", Vector3(1.26, 0.10, 1.26)], ["wheel", Vector3(1.28, 0.13, 1.28)], ["drum", Vector3(0.27, 0.15, 0.27)]]:
+		var vertices: PackedVector3Array = _meshes[part[0]].surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+		for vertex: Vector3 in vertices:
+			var point: Vector3 = p + Vector3.UP * (height + lift) + basis * (vertex * part[1])
+			lowest = minf(lowest, point.y - _shield_ground_height(point.x, point.z, ground_chunks))
+	height -= lowest + 0.015
 	_piece("drum", "red", p + Vector3.UP * height, Vector3(1.26, 0.10, 1.26), rot, group)
 	_piece("wheel", "iron", p + Vector3.UP * height, Vector3(1.28, 0.13, 1.28), rot, group)
 	_piece("drum", "iron", p + Vector3.UP * height, Vector3(0.27, 0.15, 0.27), rot, group)
 	_stats["shields"] += 1
+
+func _shield_ground_height(x: float, z: float, chunks: Array[Dictionary]) -> float:
+	# Use the existing visible/collision triangles, not the unsampled height formula.
+	for chunk: Dictionary in chunks:
+		var bounds: AABB = chunk.bounds
+		if x < bounds.position.x or x > bounds.end.x or z < bounds.position.z or z > bounds.end.z: continue
+		var gx: float = (x - bounds.position.x) / bounds.size.x * chunk.steps_x
+		var gz: float = (z - bounds.position.z) / bounds.size.z * chunk.steps_z
+		var ix := clampi(int(floor(gx)), 0, int(chunk.steps_x) - 1)
+		var iz := clampi(int(floor(gz)), 0, int(chunk.steps_z) - 1)
+		var offset: int = (iz * chunk.steps_x + ix) * 6 + (0 if gx - ix + gz - iz <= 1.0 else 3)
+		var a: Vector3 = chunk.vertices[chunk.indices[offset]]
+		var b: Vector3 = chunk.vertices[chunk.indices[offset + 1]]
+		var c: Vector3 = chunk.vertices[chunk.indices[offset + 2]]
+		var denominator := (b.z - c.z) * (a.x - c.x) + (c.x - b.x) * (a.z - c.z)
+		var wa := ((b.z - c.z) * (x - c.x) + (c.x - b.x) * (z - c.z)) / denominator
+		var wb := ((c.z - a.z) * (x - c.x) + (a.x - c.x) * (z - c.z)) / denominator
+		return wa * a.y + wb * b.y + (1.0 - wa - wb) * c.y
+	return _terrain_y(x, z)
 
 func _build_firepit(p: Vector3) -> void:
 	for i in 9:
