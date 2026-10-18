@@ -579,6 +579,14 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		var code: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
 		if code == KEY_G:
+			# The castle inventory owns carried gear and its physical floor item.
+			# Keep its carried slots and visible bow in the same transaction.
+			var storage: Node = _weapons_host.get('castle_storage_owner') if is_instance_valid(_weapons_host) else null
+			if is_instance_valid(storage) and bool(storage.snapshot().get('carried', {}).get('bow', false)):
+				if bool(storage.drop_held(false).get('ok', false)):
+					get_viewport().set_input_as_handled()
+				return
+			# Outside castle storage, the prototype still drops its own bow.
 			# First the bow goes down, then the quiver comes off the back.
 			if drop_bow_to_ground():
 				get_viewport().set_input_as_handled()
