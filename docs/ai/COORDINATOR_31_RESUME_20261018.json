@@ -127,5 +127,12 @@
     "open_process": 34164,
     "open_process_has_armory_fix": false,
     "activation": "Next ordinary launch; existing user game preserved"
+  },
+  "active_goal": "Improve/test strikes and dismemberment; merge all READY packages in one scene; gate inside grid/threshold removal pending map owner",
+  "current_revision": "castle-20261018-combined39-combat01",
+  "combat39": "Natural sword sever/death; natural sledge nonsever damage/disarm; scoped posed cuts preserve other surfaces; head cap120ticks; armor39 matrix720; merged C scope PASS",
+  "owners39": {
+    "map": "01a14e94-94a5-7050-9546-880e5e927751",
+    "armor": "01a14e94-9c49-7f12-a3cd-1bbc0dd2e29b"
   }
 }

@@ -375,7 +375,9 @@ func _apply_lost(slot: String) -> void:
 			var suffix := "_l" if side < 0 else ("_r" if side > 0 else "")
 			var hidden := false
 			if not suffix.is_empty():
-				for part: String in ["upperarm", "forearm", "hand", "thigh", "shin", "foot"]:
+				# A missing arm must not hide clothing on a healthy leg (or vice versa).
+				var parts: Array = ["upperarm", "forearm", "hand"] if slot in ["torso", "hands"] else ["thigh", "shin", "foot"]
+				for part: String in parts:
 					if _lost.has(part + suffix): hidden = true
 			overlay.visible = not hidden
 

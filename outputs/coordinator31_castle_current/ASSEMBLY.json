@@ -1,6 +1,6 @@
 {
   "schema": "mafiozi.castle-assembly/v1",
-  "revision": "castle-20261018-combined31-armory01",
+  "revision": "castle-20261018-combined39-combat01",
   "scene_kind": "castle",
   "game_relative": "outputs/coordinator31_npc57/game",
   "scene": "res://scenes/castle.tscn",
@@ -634,7 +634,7 @@
     "scripts/city/runtime/npc_wait_cohort56.gd.uid": "ef54b883ed259940d3aca14d1a2f6cd3f699b7dbb44c1093e807517b03e94231",
     "scripts/city/siege_wall_dressing.gd": "872452d73dee69ffd39170eb053955755e517192eeb564f9356ffb8d24c9c791",
     "scripts/combat/armor_damage31.gd": "72cb2c906098266ae7b29f395a218c3ed0a9b4d1153e6c4da99765476ff14e0c",
-    "scripts/combat/castle_armor_visual.gd": "96fa9218196248a7b1843dfeb02038eadae159442aefb019a3a3225903b624f5",
+    "scripts/combat/castle_armor_visual.gd": "df0cd3e414a1b6ae34b62c76f09828b1f5bac41f0dac2b84cd8913b6c2751902",
     "scripts/combat/melee_attack_source.gd": "1127d5eba2139af8b01df56c77f67dc32e66fb055252810d92b440d46e3bffc4",
     "scripts/combat/melee_attack_source.gd.uid": "fae28284d2dd37b8e6976d15331054d4116fa880e0a7cd8a66e3bdb64b45a136",
     "scripts/combat/melee_input.gd": "21b211d8a4d45347c8bdc960e1d6113bfdf8f038ceec943f0862d9cff962aac4",
@@ -1304,7 +1304,7 @@
     "scripts/weapons/rpg_flight.gd.uid": "4b5636dd1b35cb05b74e1ae0cbf3f5b9476b2b1281bf89e058fc4c52536ea5f3",
     "scripts/weapons/scope_optic.svg": "477959383b359752a578a851e9b678e498b4904cca0e76a47b4a7dd5b33395ed",
     "scripts/weapons/scope_optic.svg.import": "0081075e89bfbdcb69ea6dea5a1e021a38fa40a734c0a732cbdab2eac00fb006",
-    "scripts/weapons/sword_prototype.gd": "1a04abbfe36e4bac37b99b65acb7616e1237f06dbabc5d4129e9da4f9a463504",
+    "scripts/weapons/sword_prototype.gd": "667a1a4ef3b1aa2b659431370618a82e39cfd38d2f45fd82db8992bad8a28fe6",
     "scripts/weapons/walk_cargo_card.gd": "298f56dd73f9265a13333e5d4041b2906593c693c8aadc5cb58b32128749191e",
     "scripts/weapons/walk_cargo_card.gd.uid": "a473b69142b69ac1fef8541bdabe9424e09d59a21749589e8f15fba24a84aa04",
     "scripts/weapons/walk_trunk_window.gd": "2dc9c14005d0afab1a6d10b2940fde60ce1aaf93300e5ac76234619dfb6fa7d0",
@@ -1370,5 +1370,17 @@
   "f5_launcher": "tools/godot/launch_current_game.ps1",
   "base_published_commit": "8fe0a10dbd0307562d2d55a157203f853da96bc1",
   "pin_scope": "Published permanent source only; local generated metadata and diagnostic artifacts excluded",
-  "armory_hand_fix": "Merged native real scene PASS: rack/chest occupied hand, ground preflight, bow back, shield and one-hand compatibility"
+  "armory_hand_fix": "Merged native real scene PASS: rack/chest occupied hand, ground preflight, bow back, shield and one-hand compatibility",
+  "combat39": {
+    "natural_sword": "PASS: LMB sharp sever, disarm, death",
+    "natural_sledge": "PASS: LMB blunt injury/disarm, no cut",
+    "protected_mesh": "PASS: area34.5244114316 to34.5244113838",
+    "head_caps": "PASS: preserved 120ticks; inactive head hitbox",
+    "armor39": "PASS: healthy leg overlays retained",
+    "limits": [
+      "No claim of full articulated ragdoll",
+      "No clean combined FPS acceptance yet",
+      "Gate/map owner updates pending"
+    ]
+  }
 }

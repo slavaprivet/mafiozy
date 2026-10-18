@@ -72,6 +72,8 @@ func set_weapon(id: String) -> bool:
 	if _shield_worn and str(WEAPONS[id].get("grip", "")) == "two": return false
 	if id == _weapon_id: return true
 	_weapon_id = id
+	_sword_coast_until_ms31 = 0
+	_omega = Vector3.ZERO
 	_reset_contact_plane()
 	# Old reach and old target contacts do not belong to the newly equipped model.
 	_prev_points = PackedVector3Array()
@@ -348,7 +350,7 @@ func _strength_now() -> float:
 		SWING_STRENGTH_MIN, SWING_STRENGTH_MAX)
 
 func _sword_coasting31() -> bool:
-	return _weapon_id == "sword" and not _hold_right and now_ms() < _sword_coast_until_ms31
+	return _weapon_id in ["sword", "sledge"] and not _hold_right and now_ms() < _sword_coast_until_ms31
 
 ## The damage comes from the visible weapon's contact speed, its mass and the
 ## prepared arc. Squared speed makes a slow brush a scratch while a committed
@@ -357,7 +359,7 @@ func _impact_damage31(contact_speed: float, prepared: float, kind: String) -> fl
 	var grip := TWO_HAND_DAMAGE_SCALE if _active_side() == &"both" else 1.0
 	var momentum := sqrt(maxf(0.4, _weapon_mass))
 	return clampf(2.5 * contact_speed * contact_speed * prepared * momentum * grip
-		* _kind_multiplier(kind), 0.0, 160.0)
+		* _kind_multiplier("flat" if _weapon_crush else kind), 0.0, 160.0)
 
 ## A committed heavy blow to an unprotected head crosses the resident's full
 ## head health in one real contact. A brush cannot earn this floor, and visible
@@ -1645,11 +1647,11 @@ func _input(event: InputEvent) -> void:
 				else: _release_throw()
 				get_viewport().set_input_as_handled()
 				return
-			if button.pressed and not _hold_left and _weapon_id == "sword":
+			if button.pressed and not _hold_left and _weapon_id in ["sword", "sledge"]:
 				_arrow_parry_until_ms31 = now_ms() + ARROW_PARRY_WINDOW_MS31
 				_sword_coast_until_ms31 = 0
-			elif not button.pressed and _hold_left and _weapon_id == "sword":
-				_sword_coast_until_ms31 = now_ms() + 180
+			elif not button.pressed and _hold_left and _weapon_id in ["sword", "sledge"]:
+				_sword_coast_until_ms31 = now_ms() + (260 if _weapon_id == "sledge" else 180)
 				_sword_coast_target31 = _dir
 				_steer_target = _dir
 			_held_event = button.pressed
@@ -1870,34 +1872,31 @@ func _steer(delta: float) -> void:
 	var axis := _dir.cross(target)
 	var angle := _dir.angle_to(target)
 	var desired := Vector3.ZERO
-	# A one-handed sword needs time to accelerate and reverse. Other weapon
-	# profiles retain their existing tuning until separately evaluated.
 	var one_hand_sword := _weapon_id == "sword" and _active_side() != &"both"
-	var speed_limit := (7.0 if one_hand_sword else 8.5) if _weapon_id == "sword" else MAX_OMEGA
-	# Heavy heads must accelerate more slowly than the one-handed sword.
-	var acceleration := (26.0 if one_hand_sword else 40.0) if _weapon_id == "sword" else 25.0
-	var gain := 6.0 if one_hand_sword else STEER_GAIN
-	if angle > 1.0e-4 and axis.length_squared() > 1.0e-10:
-		# DSH_MELEE_SET: mass is felt as lag. A sledge answers the mouse later than a
-		# sword does, which is the whole point of carrying one.
-		desired = axis.normalized() * clampf(angle * gain / _weapon_mass, 0.0, speed_limit / _weapon_mass)
-	desired -= _omega * STEER_DAMPING
-	# Biting into a body or blade makes the sword heavy for a moment.
-	if Time.get_ticks_msec() < _bind_until_ms:
-		desired = desired.limit_length(1.6)
-	if _weapon_id == "sword":
-		# Torque drives angular acceleration. Close to the target the controller
-		# brakes over time instead of assigning a new velocity every frame.
-		var stiffness := 38.0 if one_hand_sword else 55.0
-		var damping := 10.0 if one_hand_sword else 12.0
-		var error_axis := axis.normalized() * angle if axis.length_squared() > 0.00000001 else Vector3.ZERO
-		var torque := (error_axis * stiffness - _omega * damping).limit_length(acceleration)
+	if _weapon_id in ["sword", "sledge"]:
+		# Drive the weapon with bounded torque, then brake near the aimed endpoint.
+		# Mass changes acceleration and reversal, not an extra division of both
+		# target speed and gain that made the hammer crawl for its entire arc.
+		var heavy := _weapon_id == "sledge"
+		var speed_limit := 7.5 if heavy else (9.5 if one_hand_sword else 11.0)
+		var acceleration := 24.0 if heavy else (48.0 if one_hand_sword else 62.0)
+		# The stopping distance grows with kinetic energy. Brake before the aimed
+		# endpoint, without an underdamped spring repeatedly overshooting it.
+		var stopping_speed := sqrt(2.0 * acceleration * angle) * 0.72
+		var aim_speed := minf(speed_limit, minf(stopping_speed, angle * (10.0 if heavy else 14.0)))
+		var aim_velocity := axis.normalized() * aim_speed if axis.length_squared() > 0.00000001 else Vector3.ZERO
+		var torque := ((aim_velocity - _omega) / maxf(delta, 0.001)).limit_length(acceleration)
+		if _sword_coasting31() and not _hold_left:
+			# Release spends existing momentum only: no target spring or new energy.
+			torque = -_omega * (4.5 if heavy else 7.0)
 		_omega = (_omega + torque * delta).limit_length(speed_limit)
 		if Time.get_ticks_msec() < _bind_until_ms: _omega = _omega.limit_length(1.6)
 	else:
-		var dv := desired - _omega
-		var max_dv := acceleration * delta / _weapon_mass
-		_omega += dv.limit_length(max_dv)
+		if angle > 1.0e-4 and axis.length_squared() > 1.0e-10:
+			desired = axis.normalized() * clampf(angle * STEER_GAIN / _weapon_mass, 0.0, MAX_OMEGA / _weapon_mass)
+		desired -= _omega * STEER_DAMPING
+		if Time.get_ticks_msec() < _bind_until_ms: desired = desired.limit_length(1.6)
+		_omega += (desired - _omega).limit_length(25.0 * delta / _weapon_mass)
 	# Park a nearly-settled blade instead of letting it buzz around the target.
 	if _omega.length() < STEER_DEADZONE and angle < STEER_ANGLE_DEADZONE:
 		_omega = Vector3.ZERO
@@ -4124,7 +4123,7 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 				if motion.length_squared() < 1.0e-8: motion = _dir * speed
 				var along := absf(motion.normalized().dot(_dir))
 				var across := _edge_motion(motion)
-				var kind := "slice" if across >= 0.72 else ("stab" if along >= 0.72 else "flat")
+				var kind := "flat" if _weapon_crush else ("slice" if across >= 0.72 else ("stab" if along >= 0.72 else "flat"))
 				npc_cut = _impact_damage31(speed * 0.6, strength, kind)
 				var contact := _armor_point31(_npc_rig, npc_part, position, collider)
 				var incidence := clampf(-motion.normalized().dot(normal), 0.0, 1.0)
@@ -4221,9 +4220,9 @@ func _damage_dummy(dummy: StaticBody3D, position: Vector3, speed: float, velocit
 	var along := absf(motion.normalized().dot(_dir))
 	var across := _edge_motion(motion)
 	# Blend from a pure stab to a clean slice; a flat slap stays near zero.
-	var quality := clampf(across + along * 0.45, 0.0, 1.0)
+	var quality := 1.0 if _weapon_crush else clampf(across + along * 0.45, 0.0, 1.0)
 	var effective := speed * quality
-	var kind := "slice" if across >= 0.72 else ("stab" if along >= 0.72 else "flat")
+	var kind := "flat" if _weapon_crush else ("slice" if across >= 0.72 else ("stab" if along >= 0.72 else "flat"))
 	# Wind-up matters: a stroke that barely moved the blade stays a graze, while a
 	# full wind-up followed by a cut lands far harder.
 	var strength := _strength_now()
@@ -4485,7 +4484,7 @@ var _bind_until_ms := 0
 ## a moment. That is the resistance that stops a cut from slicing straight through.
 func _bite_into(hardness: float) -> void:
 	_omega *= clampf(1.0 - hardness, 0.05, 0.92)
-	_bind_until_ms = now_ms() + 110
+	_bind_until_ms = now_ms() + (165 if _weapon_id == "sledge" else 95)
 ## While set, the knight's blade is still springing back from a parry.
 var _npc_recoil_until_ms := 0
 ## Deferred binding: the population host appears after the prototype.
@@ -4829,6 +4828,13 @@ func _npc_take_blade_part(full_key: String, point: Vector3, speed: float, direct
 	# Separation is a separate event: only a fast slicing contact may sever.
 	if kind in ["chest", "pelvis"] or (kind == "head" and not sever_contact):
 		_npc_die_from_vital_wound31(point, direction, speed, penetrates)
+	# A ruined weapon arm cannot keep fighting just because a blunt blow did
+	# not cut it off. Keep the real limb visible and its collider intact.
+	if not sever_contact and full_key in ["upperarm_r", "forearm_r", "hand_r"] and not _npc_dead:
+		_npc_disarmed = true
+		_npc_engaged = false
+		_npc_state = "wait"
+		if is_instance_valid(_npc_sword): _drop_sword(_npc_sword.global_position, direction, speed)
 	if kind in ["chest", "pelvis"] or not sever_contact or not penetrates: return
 	_sever_part(full_key, kind, {"sever": full_key}, point, direction, speed)
 
@@ -5095,6 +5101,7 @@ func _npc_speed_scale() -> float:
 var _npc_cut_total := 0
 # A real head cut leaves a skinned neck cap; shrinking its bone destroys the cap.
 var _npc_head_mesh_cut31 := false
+var _npc_mesh_cut_parts39: Dictionary = {}
 var _npc_debris: Array[Dictionary] = []
 
 ## The knight's SKINNED mesh instances. The armour plates are attached rigidly to bones,
@@ -5144,13 +5151,55 @@ func _npc_limb_bind_ids(mesh_node: MeshInstance3D, part_key: String) -> Dictiona
 	var base := _npc_rig.find_bone(part_key)
 	if base < 0: return ids
 	for bind: int in mesh_node.skin.get_bind_count():
-		var bone: int = mesh_node.skin.get_bind_bone(bind)
+		var bind_name := mesh_node.skin.get_bind_name(bind)
+		var bone: int = _npc_rig.find_bone(bind_name) if bind_name != &"" else mesh_node.skin.get_bind_bone(bind)
 		while bone >= 0:
 			if bone == base:
 				ids[bind] = true
 				break
 			bone = _npc_rig.get_bone_parent(bone)
 	return ids
+
+# Cut in the visible posed surface, then restore the kept vertices to bind space.
+# Detached pieces keep the posed coordinates and no longer follow a skeleton.
+func _cut_skin_transforms39(node: MeshInstance3D) -> Array[Transform3D]:
+	var out: Array[Transform3D] = []
+	if node.skin == null: return out
+	var to_mesh := node.global_transform.affine_inverse() * _npc_rig.global_transform
+	for index in node.skin.get_bind_count():
+		var name := node.skin.get_bind_name(index)
+		var bone := _npc_rig.find_bone(name) if name != &"" else node.skin.get_bind_bone(index)
+		if bone < 0: return []
+		out.append(to_mesh * _npc_rig.get_bone_global_pose(bone) * node.skin.get_bind_pose(index))
+	return out
+
+func _cut_skin_arrays39(source: Array, binds: Array[Transform3D], undo: bool) -> Array:
+	var arrays: Array = source.duplicate(true)
+	if arrays.is_empty() or binds.is_empty(): return arrays
+	var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var bones = arrays[Mesh.ARRAY_BONES]
+	var weights = arrays[Mesh.ARRAY_WEIGHTS]
+	if bones == null or weights == null or bones.size() != vertices.size() * 4: return arrays
+	var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL] if arrays[Mesh.ARRAY_NORMAL] != null else PackedVector3Array()
+	for i in vertices.size():
+		var matrix := Transform3D(Basis(Vector3.ZERO, Vector3.ZERO, Vector3.ZERO), Vector3.ZERO)
+		var total := 0.0
+		for k in 4:
+			var weight: float = weights[i * 4 + k]
+			var index: int = bones[i * 4 + k]
+			if weight <= 0.0 or index < 0 or index >= binds.size(): continue
+			matrix.basis.x += binds[index].basis.x * weight
+			matrix.basis.y += binds[index].basis.y * weight
+			matrix.basis.z += binds[index].basis.z * weight
+			matrix.origin += binds[index].origin * weight
+			total += weight
+		if total < 0.001 or absf(matrix.basis.determinant()) < 0.0000001: continue
+		if undo: matrix = matrix.affine_inverse()
+		vertices[i] = matrix * vertices[i]
+		if normals.size() == vertices.size(): normals[i] = (matrix.basis.inverse().transposed() * normals[i]).normalized()
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	if not normals.is_empty(): arrays[Mesh.ARRAY_NORMAL] = normals
+	return arrays
 
 func npc_cut_body(plane_world: Plane, keep_point_world: Vector3, part_key: String = "", preserve_head31: bool = false) -> bool:
 	var meshes := _npc_skinned_meshes()
@@ -5171,7 +5220,12 @@ func npc_cut_body(plane_world: Plane, keep_point_world: Vector3, part_key: Strin
 		if not part_key.is_empty():
 			part_binds = _npc_limb_bind_ids(mesh_node, part_key)
 			if part_binds.is_empty(): continue
-		var cut = MeshSever.cut(source, local_plane, part_binds, keep_front)
+		var skin_transforms := _cut_skin_transforms39(mesh_node)
+		var posed := ArrayMesh.new()
+		for surface in source.get_surface_count():
+			posed.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,
+				_cut_skin_arrays39(source.surface_get_arrays(surface), skin_transforms, false))
+		var cut = MeshSever.cut(posed, local_plane, part_binds, keep_front)
 		if cut.triangles_split == 0:
 			continue
 		var kept_arrays: Array = cut.front_arrays if keep_front else cut.back_arrays
@@ -5191,7 +5245,7 @@ func npc_cut_body(plane_world: Plane, keep_point_world: Vector3, part_key: Strin
 		# 1. The body keeps its side, with the cut face closed.
 		var body_mesh := ArrayMesh.new()
 		for arrays: Array in kept_arrays:
-			body_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+			body_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, _cut_skin_arrays39(arrays, skin_transforms, true))
 		for i: int in body_mesh.get_surface_count():
 			var material: Material = source_materials[kept_indices[i]]
 			if material != null: body_mesh.surface_set_material(i, material)
@@ -5199,7 +5253,7 @@ func npc_cut_body(plane_world: Plane, keep_point_world: Vector3, part_key: Strin
 		# single packed array, not a list of them - iterating it as a list handed a Null
 		# to add_surface_from_arrays, which is why the cut silently fell back.
 		if not kept_cap.is_empty():
-			body_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, kept_cap)
+			body_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, _cut_skin_arrays39(kept_cap, skin_transforms, true))
 			body_mesh.surface_set_material(body_mesh.get_surface_count() - 1, _flesh())
 		if body_mesh.get_surface_count() > 0:
 			# Old slot overrides would otherwise recolour a shifted surface or its cap.
@@ -5374,6 +5428,7 @@ func _spawn_resident_knight(at: Vector3) -> bool:
 	# from an older generation. Its mesh starts whole; equipment is explicit.
 	_npc_severed.clear()
 	_npc_head_mesh_cut31 = false
+	_npc_mesh_cut_parts39.clear()
 	_npc_part_hp.clear()
 	_npc_dead = false
 	_npc_disarmed = false
@@ -5978,8 +6033,9 @@ func _sever_part(full_key: String, kind: String, part: Dictionary, point: Vector
 			body_side = _npc_rig.global_transform * _npc_rig.get_bone_global_pose(chest).origin
 		var normal: Vector3 = direction.normalized()
 		if normal.length_squared() > 1.0e-6:
-			var scoped_part := full_key if kind in ["thigh", "shin", "foot"] else ""
+			var scoped_part := full_key if kind in ["upperarm", "forearm", "hand", "thigh", "shin", "foot"] else ""
 			cut_done = npc_cut_body(Plane(normal, normal.dot(point)), body_side, scoped_part, kind == "head")
+	if cut_done: _npc_mesh_cut_parts39[full_key] = true
 	if cut_done and kind == "head": _npc_head_mesh_cut31 = true
 	if not cut_done:
 		_hide_limb(full_key, kind, String(part.sever))
@@ -6043,6 +6099,7 @@ func _hide_limb(full_key: String, kind: String, bone_name: String) -> void:
 func _apply_npc_severed() -> void:
 	if _npc_severed.is_empty() or not is_instance_valid(_npc_rig): return
 	for full_key: String in _npc_severed.keys():
+		if _npc_mesh_cut_parts39.has(full_key): continue
 		var kind := full_key
 		if full_key.ends_with("_l") or full_key.ends_with("_r"):
 			kind = full_key.substr(0, full_key.length() - 2)
@@ -6367,7 +6424,7 @@ func snapshot() -> Dictionary:	return {
 		"weapon_rear_m": weapon_rear_extent(),
 		"weapon_active": _active(),
 		"swing_phase": _swing_phase, "anticipation": _anticipation, "brace": _brace,
-		"omega_speed": _omega.length(), "omega_cap": MAX_OMEGA / _weapon_mass,
+		"omega_speed": _omega.length(), "omega_cap": (7.5 if _weapon_id == "sledge" else (9.5 if _active_side() != &"both" else 11.0)) if _weapon_id in ["sword", "sledge"] else MAX_OMEGA / _weapon_mass,
 		"hand_cmd": _hand_cmd,
 		"jolt": _impact_jolt, "chain_yaw": _chain_yaw, "chain_pitch": _chain_pitch,
 		"rig_scale": _rig.global_transform.basis.get_scale() if is_instance_valid(_rig) else Vector3.ZERO,
@@ -6449,7 +6506,7 @@ func _play_melee_hit31(at: Vector3, kind: String, strength: float) -> void:
 	var variants: Array = _melee_streams31[kind]
 	sound.stream = variants[randi() % variants.size()]
 	sound.global_position = at
-	sound.pitch_scale = randf_range(0.94, 1.06)
+	sound.pitch_scale = randf_range(0.76, 0.84) if _weapon_id == "sledge" else randf_range(0.94, 1.06)
 	sound.volume_db = lerpf(-13.0, -1.0, clampf(strength, 0.0, 1.0))
 	sound.play()
 	_melee_audio_events31[kind] = int(_melee_audio_events31.get(kind, 0)) + 1

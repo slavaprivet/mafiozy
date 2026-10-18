@@ -1,0 +1,56 @@
+{
+  "status": "FUNCTIONAL_READY",
+  "revision": "castle-20261018-combined31-armory01",
+  "scope": "Only castle_armor_visual.gd _apply_lost; prevent arm/leg cross-hiding of skinned armor",
+  "expected_shared_sha256": "96fa9218196248a7b1843dfeb02038eadae159442aefb019a3a3225903b624f5",
+  "candidate_sha256": "df0cd3e414a1b6ae34b62c76f09828b1f5bac41f0dac2b84cd8913b6c2751902",
+  "changed_files": [
+    "scripts/combat/castle_armor_visual.gd"
+  ],
+  "source_pin_count": 1330,
+  "canonical_drift_at_stage": [],
+  "results": {
+    "actual_baseline": {
+      "errors": [
+        "healthy_hidden:ArmorTailoredLegL",
+        "healthy_hidden:ArmorTailoredBootL"
+      ],
+      "healthy_leg_overlays": 2,
+      "healthy_visible": 0,
+      "new_mesh_debris": 4,
+      "passed": false,
+      "scope": "Native NPC damage handler with physical sever; injected localized blade damage, not natural player swing or FPS",
+      "severed": [
+        "forearm_l"
+      ]
+    },
+    "actual_candidate": {
+      "errors": [],
+      "healthy_leg_overlays": 2,
+      "healthy_visible": 2,
+      "new_mesh_debris": 4,
+      "passed": true,
+      "scope": "Native NPC damage handler with physical sever; injected localized blade damage, not natural player swing or FPS",
+      "severed": [
+        "forearm_l"
+      ]
+    },
+    "matrix_candidate": {
+      "checks": 720,
+      "errors": [],
+      "overlay_observations": 360,
+      "passed": true,
+      "scope": "Real castle player armor; sever notification matrix and reset, not physical dismemberment or FPS"
+    }
+  },
+  "limits": [
+    "Injected localized blade damage through real NPC damage handler; no natural player swing proof",
+    "Existing whole-overlay hiding within affected limb unchanged",
+    "No FPS claim; user game preserved",
+    "Coordinator32 alone integrates; shared source untouched"
+  ],
+  "old_packages_preserved": [
+    "D:/MafioziArmorRework37/package/MANIFEST.json",
+    "D:/MafioziBannerMark36"
+  ]
+}

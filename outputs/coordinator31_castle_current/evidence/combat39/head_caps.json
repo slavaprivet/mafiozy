@@ -1,0 +1,43 @@
+{
+	"after": [
+		{
+			"area": 0.338465382024879,
+			"name": "player_male_DEMO_core_FABRIC",
+			"triangles": 50
+		},
+		{
+			"area": 0.13530436262954,
+			"name": "player_male_DEMO_core_SKIN",
+			"triangles": 32
+		}
+	],
+	"after_120_ticks": [
+		{
+			"area": 0.338465382024879,
+			"name": "player_male_DEMO_core_FABRIC",
+			"triangles": 50
+		},
+		{
+			"area": 0.13530436262954,
+			"name": "player_male_DEMO_core_SKIN",
+			"triangles": 32
+		}
+	],
+	"before": [
+		{
+			"area": 0.338465382024879,
+			"name": "player_male_DEMO_core_FABRIC",
+			"triangles": 50
+		},
+		{
+			"area": 0.13530436262954,
+			"name": "player_male_DEMO_core_SKIN",
+			"triangles": 32
+		}
+	],
+	"cut_count": 2,
+	"head_scale": "(1.0, 1.0, 1.0)",
+	"inactive_head_hitboxes": 1,
+	"neck_scale": "(1.0, 1.0, 1.0)",
+	"whole_meshes_attached_to_real_debris": 1
+}
