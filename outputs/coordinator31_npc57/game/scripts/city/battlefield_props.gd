@@ -221,7 +221,7 @@ func _build_siege_line() -> void:
 				_build_barricade(p, side, "barrier_%d_%d_%d" % [int(side), row, i])
 	_build_cart(Vector3(63.0, 0, 143.0), 0.36, "cart_supply")
 	_build_cart(Vector3(-63.0, 0, 158.0), -0.44, "cart_broken", true)
-	_build_wheel(Vector3(-58.6, 0.18, 162.2), 0.76, 0.38, "")
+	_build_fallen_wheel(Vector3(-58.6, 0.18, 162.2), 0.76, 0.38)
 	for side in [-1.0, 1.0]:
 		for i in 2:
 			_build_barricade(Vector3(side * (23.0 + i * 5.0), 0, 178.0 + i * 3.0), side, "outer_barrier_%d_%d" % [int(side), i])
@@ -342,6 +342,36 @@ func _build_wheel(p: Vector3, radius: float, yaw: float, group: String) -> void:
 		var a := float(i) * TAU / 8.0
 		var radial := Basis(Vector3.UP, yaw) * Vector3(cos(a), sin(a), 0)
 		_box("oak", p + radial * radius * 0.45, Vector3(radius * 0.95, 0.09, 0.10), Vector3(0, yaw, a), group)
+
+func _build_fallen_wheel(p: Vector3, radius: float, yaw: float) -> void:
+	# A loose wheel lies flat as one rigid arrangement, even on uneven terrain.
+	var parts: Array[Dictionary] = [
+		{"mesh": "wheel", "material": "oak_edge", "p": p, "size": Vector3(radius * 2.0, 0.23, radius * 2.0), "rotation": Vector3(0, yaw, 0)},
+		{"mesh": "drum", "material": "iron", "p": p, "size": Vector3(0.27, 0.29, 0.27), "rotation": Vector3(0, yaw, 0)}
+	]
+	for i in 8:
+		var a := float(i) * TAU / 8.0
+		var radial := Basis(Vector3.UP, yaw) * Vector3(cos(a), 0, sin(a))
+		parts.append({"mesh": "box", "material": "oak", "p": p + radial * radius * 0.45,
+			"size": Vector3(radius * 0.95, 0.09, 0.10), "rotation": Vector3(0, yaw - a, 0)})
+	# Lean onto the rim as well as the projecting hub, avoiding a hovering hoop.
+	var lean := Basis(Vector3.RIGHT, 0.18)
+	for part: Dictionary in parts:
+		part.p = p + lean * (part.p - p)
+		part.rotation = (lean * Basis.from_euler(part.rotation)).get_euler()
+	var terrain_lift := _terrain_y(p.x, p.z)
+	var lowest := INF
+	for part: Dictionary in parts:
+		var basis := Basis.from_euler(part.rotation) * Basis().scaled(part.size)
+		var vertices: PackedVector3Array = _meshes[part.mesh].surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+		for vertex: Vector3 in vertices:
+			var point: Vector3 = part.p + basis * vertex
+			lowest = minf(lowest, point.y + terrain_lift - _terrain_y(point.x, point.z))
+	for part: Dictionary in parts:
+		var point: Vector3 = part.p
+		# Cancel per-piece terrain offsets so spokes remain attached to their rim.
+		point.y += terrain_lift - _terrain_y(point.x, point.z) - lowest - 0.015
+		_piece(part.mesh, part.material, point, part.size, part.rotation)
 
 func _build_camp() -> void:
 	for p in [Vector3(-77, 0, 198), Vector3(-65, 0, 205), Vector3(-33, 0, 224), Vector3(-33, 0, 240), Vector3(33, 0, 240), Vector3(33, 0, 205), Vector3(65, 0, 225), Vector3(77, 0, 202)]:
