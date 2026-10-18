@@ -196,7 +196,7 @@ func _flush_batches() -> void:
 
 func _group(id: String, center: Vector3, health: float, kind: String, collision_size := Vector3.ZERO) -> void:
 	var lift := _terrain_y(center.x, center.z)
-	_groups[id] = {"center": center + Vector3.UP * lift, "ground_offset": lift, "reach": maxf(2.2, collision_size.x * 0.5), "health": health, "kind": kind, "indices": [], "collider": null, "destroyed": false}
+	_groups[id] = {"center": center + Vector3.UP * lift, "ground_offset": lift, "reach": maxf(2.2, collision_size.x * 0.5), "height": collision_size.y, "health": health, "kind": kind, "indices": [], "collider": null, "destroyed": false}
 	if collision_size != Vector3.ZERO:
 		var body := StaticBody3D.new()
 		body.name = "Cover_%s" % id
@@ -623,7 +623,11 @@ func apply_damage(world_point: Vector3, radius: float, impulse: float, damage_ty
 		var g: Dictionary = _groups[id]
 		if g["destroyed"] or (damage_type == "sword" and g["kind"] != "wood"):
 			continue
-		if (g["center"] as Vector3).distance_to(local_point) > radius + float(g["reach"]):
+		var center: Vector3 = g["center"]
+		var offset := local_point - center
+		var height: float = g["height"]
+		var vertical_gap := maxf(0.0, absf(offset.y - height * 0.5) - height * 0.5)
+		if Vector3(offset.x, vertical_gap, offset.z).length() > radius + float(g["reach"]):
 			continue
 		g["health"] = float(g["health"]) - maxf(0.0, impulse)
 		if g["health"] <= 0.0:
