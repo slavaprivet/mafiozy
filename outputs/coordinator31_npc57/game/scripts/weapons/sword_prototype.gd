@@ -1572,6 +1572,17 @@ func _input(event: InputEvent) -> void:
 		# G chooses the held hand: RMB releases the right-hand shield, LMB the
 		# left-hand weapon. A two-handed weapon is one object and always drops.
 		if code == KEY_G:
+			# Castle storage owns carried weapons and their physical dropped models.
+			var weapon_host: Node = _world.get('preview_weapons') if is_instance_valid(_world) else null
+			var storage: Node = weapon_host.get('castle_storage_owner') if is_instance_valid(weapon_host) else null
+			if is_instance_valid(storage):
+				var stored: Dictionary = storage.snapshot()
+				var prefer_shield: bool = _shield_worn and _hold_right
+				var item_id: String = 'shield' if prefer_shield else str(stored.get('hand_weapon', ''))
+				if stored.get('carried', {}).has(item_id):
+					if bool(storage.drop_held(prefer_shield).get('ok', false)):
+						get_viewport().set_input_as_handled()
+					return
 			var released := false
 			if _shield_worn and _hold_right: released = drop_shield_to_ground31()
 			elif not _sword_grounded: released = drop_sword_to_ground()
