@@ -575,11 +575,18 @@ func _build_terrain_dressing() -> void:
 func _build_tree(p: Vector3, id: String) -> void:
 	var tall := _rng.randf_range(5.8, 8.1)
 	_group(id, p, 120.0, "wood", Vector3(0.9, tall, 0.9))
-	_piece("cone", "char", p + Vector3.UP * tall * 0.5, Vector3(1.08, tall, 1.08), Vector3(0, _rng.randf_range(0, TAU), 0.08), id)
+	var trunk_rotation := Vector3(0, _rng.randf_range(0, TAU), 0.08)
+	var trunk_basis := Basis.from_euler(trunk_rotation)
+	_piece("cone", "char", p + Vector3.UP * tall * 0.5, Vector3(1.08, tall, 1.08), trunk_rotation, id)
 	for i in 4:
 		var a := float(i) * TAU / 4.0 + 0.3
 		var high := tall * (0.51 + float(i % 2) * 0.14)
-		_box("char", p + Vector3(cos(a) * 0.95, high, sin(a) * 0.95), Vector3(0.22, tall * 0.43, 0.22), Vector3(sin(a) * 0.69, a, cos(a) * 0.69), id)
+		# Start inside the actual tilted trunk, then grow outward and upward.
+		var start := p + Vector3.UP * tall * 0.5 + trunk_basis * Vector3(0, high - tall * 0.5, 0)
+		var tip := start + Vector3(cos(a) * tall * 0.23, tall * 0.24, sin(a) * tall * 0.23)
+		var direction := tip - start
+		var rotation := Basis(Quaternion(Vector3.UP, direction.normalized())).get_euler()
+		_box("char", (start + tip) * 0.5, Vector3(0.22, direction.length(), 0.22), rotation, id)
 	for i in 3:
 		var a := float(i) * TAU / 3.0
 		_box("oak_edge", p + Vector3(cos(a) * 0.62, 0.15, sin(a) * 0.62), Vector3(1.4, 0.15, 0.19), Vector3(0, a, 0), id)
