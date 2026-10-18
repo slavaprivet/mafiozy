@@ -13,7 +13,8 @@ const STEPS_Z := 22
 const CRATER_CENTERS := [Vector2(-20.0, 157.0), Vector2(14.0, 158.0), Vector2(25.0, 176.0),
 	Vector2(-28.0, 216.0), Vector2(67.0, 207.0)]
 const BURN_CENTERS := [Vector2(-28.0, 151.0), Vector2(33.0, 171.0),
-	Vector2(4.0, 166.0), Vector2(-65.0, 206.0), Vector2(16.0, 222.0)]
+	Vector2(4.0, 166.0), Vector2(-65.0, 206.0), Vector2(16.0, 222.0),
+	Vector2(-14.0, 116.0), Vector2(17.0, 131.0)]
 
 var _built := false
 var _chunks := 0
@@ -40,6 +41,7 @@ func install(world: Node3D, castle: Node3D) -> Dictionary:
 	# field into the existing, darker CastleGround rather than a bright rectangle.
 	_terrain_material.albedo_color = Color(0.60, 0.60, 0.60)
 	_terrain_material.albedo_texture = _make_grit_texture()
+	_terrain_material.shading_mode = BaseMaterial3D.SHADING_MODE_PER_VERTEX
 	_terrain_material.roughness = 1.0
 	_terrain_material.metallic = 0.0
 	_terrain_material.cull_mode = BaseMaterial3D.CULL_BACK
@@ -57,16 +59,25 @@ func get_landmarks() -> Dictionary:
 	return _landmarks.duplicate(true)
 
 func _make_grit_texture() -> ImageTexture:
-	# A single tiny shared repeating texture adds close-up soil grain to every
-	# chunk; no per-tile meshes, decals, disk assets or runtime random state.
-	var image := Image.create(64, 64, false, Image.FORMAT_RGB8)
-	for iy in 64:
-		for ix in 64:
+	# One shared world-space albedo bake: wagon wheel ruts, trampled earth and
+	# blast dust survive between the 2.5 m terrain vertices with no new meshes.
+	const SIDE := 256
+	var image := Image.create(SIDE, SIDE, false, Image.FORMAT_RGB8)
+	for iy in SIDE:
+		var z := lerpf(Z_MIN, Z_MAX, (float(iy) + 0.5) / float(SIDE))
+		var road_x := _route_x(z, 0)
+		for ix in SIDE:
+			var x := lerpf(X_MIN, X_MAX, (float(ix) + 0.5) / float(SIDE))
 			var seed := sin(float(ix) * 12.9898 + float(iy) * 78.233) * 43758.5453
 			var grain := seed - floorf(seed)
-			# Keep the grain subtle: strong white noise produced distance shimmer.
-			var shade := 0.91 + 0.09 * grain
-			image.set_pixel(ix, iy, Color(shade, shade * 0.98, shade * 0.93))
+			var track := _road_weight(x, z)
+			var rut_distance := absf(absf(x - road_x) - 2.35)
+			var wheel_rut := (1.0 - smoothstep(0.25, 1.05, rut_distance)) * track
+			var hoof_patches := pow(sin(x * 0.47 + z * 0.29) * sin(z * 0.39 - x * 0.19), 4.0) * track
+			var bombardment := exp(-pow((z - 120.0) / 25.0, 2.0)) * (1.0 - 0.32 * track)
+			var shade := clampf(0.91 + 0.09 * grain - 0.30 * wheel_rut -
+				0.15 * hoof_patches - 0.09 * bombardment, 0.49, 1.0)
+			image.set_pixel(ix, iy, Color(shade, shade * 0.97, shade * 0.91))
 	image.generate_mipmaps()
 	return ImageTexture.create_from_image(image)
 
@@ -175,7 +186,8 @@ func _build_chunk(cx: int, cz: int, x0: float, z0: float, span_x: float, span_z:
 			vertices.append(Vector3(x, h, z))
 			normals.append(Vector3.UP)
 			colors.append(_ground_color(x, z))
-			uvs.append(Vector2(x * 0.15, z * 0.15))
+			uvs.append(Vector2((x - X_MIN) / (X_MAX - X_MIN),
+				(z - Z_MIN) / (Z_MAX - Z_MIN)))
 	# Reuse adjacent sampled heights for smooth normals. Calling terrain_height
 	# four extra times at every vertex made the crater math needlessly expensive.
 	for iz in STEPS_Z + 1:

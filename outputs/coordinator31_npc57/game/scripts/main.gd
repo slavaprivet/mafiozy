@@ -1265,13 +1265,17 @@ func _physics_process(delta: float) -> void:
 			_player.velocity = Vector3.ZERO
 			print("DSH_CASTLE_SPAWN_AT_CATAPULT player=", _player.global_position)
 	if _castle_spawn_frames > 0 and is_instance_valid(_player):
-		_castle_spawn_frames -= 1
-		# Only pull him back if something has THROWN him far away - a city boot step was
-		# teleporting him to the palazzo, and the map then looked like the wrong map. Once he
-		# is near his start and walking himself, he is left alone.
-		if _player.global_position.distance_to(_castle_spawn_target) > 25.0:
-			_player.global_position = _castle_spawn_target
-			_player.velocity = Vector3.ZERO
+		# Startup placement only guards against a stray city boot teleport. As soon
+		# as the player walks, the route away from the siege machine is intentional.
+		var move_axes := Input.get_vector(&"preview_move_left", &"preview_move_right",
+			&"preview_move_forward", &"preview_move_back")
+		if move_axes.length_squared() > 0.01:
+			_castle_spawn_frames = 0
+		else:
+			_castle_spawn_frames -= 1
+			if _player.global_position.distance_to(_castle_spawn_target) > 25.0:
+				_player.global_position = _castle_spawn_target
+				_player.velocity = Vector3.ZERO
 	if not preview_ready:
 		return
 	# Keep the test tool's help panel off this map.

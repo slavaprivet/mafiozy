@@ -23,9 +23,10 @@ func install(_castle: Node3D) -> Dictionary:
 	_installed = true
 	_rng.seed = SEED
 	_make_resources()
-	_stats = {"carts": 0, "tents": 0, "barriers": 0, "watchtowers": 0, "trees": 0, "crates": 0, "barrels": 0, "shields": 0, "firepits": 0, "stones": 0, "grass": 0, "mesh_instances": 0, "mesh_pieces": 0, "colliders": 0, "breakable_groups": 0, "batches_by_z_sector": {}}
+	_stats = {"carts": 0, "tents": 0, "barriers": 0, "watchtowers": 0, "trees": 0, "crates": 0, "barrels": 0, "shields": 0, "firepits": 0, "stone_piles": 0, "smoke_plumes": 0, "stones": 0, "grass": 0, "mesh_instances": 0, "mesh_pieces": 0, "colliders": 0, "breakable_groups": 0, "batches_by_z_sector": {}}
 	_build_siege_line()
 	_build_camp()
+	_build_active_siege()
 	_build_terrain_dressing()
 	_flush_batches()
 	_stats["breakable_groups"] = _groups.size()
@@ -61,6 +62,7 @@ func _make_resources() -> void:
 		shared.albedo_color = Color.WHITE
 		shared.roughness = 0.93
 		shared.vertex_color_use_as_albedo = true
+		shared.shading_mode = BaseMaterial3D.SHADING_MODE_PER_VERTEX
 		if bucket == "glow":
 			shared.emission_enabled = true
 			shared.emission = Color(0.72, 0.16, 0.025)
@@ -131,7 +133,9 @@ func _piece(mesh: String, material: String, pos: Vector3, size: Vector3, rotatio
 	# Looking along the assault axis spans both flanks; two depth sectors cull the
 	# distant camp while avoiding a separate draw call for each side of the road.
 	var cell := Vector2i(0, int(floor((pos.z - 80.0) / 85.0)))
-	var bucket := "vegetation_grass" if material in ["grass", "grass_dry"] else ("glow" if material == "ember" else ("detail" if no_shadow else "solid"))
+	# Small opaque rubble shares the same batch as large opaque cover: both use
+	# vertex colours and only wheel/tent-roof meshes may cast shadows.
+	var bucket := "vegetation_grass" if material in ["grass", "grass_dry"] else ("glow" if material == "ember" else "solid")
 	var key := "%s|%s|%d|%d" % [mesh, bucket, cell.x, cell.y]
 	if not _pending.has(key):
 		_pending[key] = {"mesh": mesh, "bucket": bucket, "cell": cell, "no_shadow": no_shadow, "parts": []}
@@ -289,7 +293,7 @@ func _build_camp() -> void:
 	for p in [Vector3(-77, 0, 198), Vector3(-65, 0, 205), Vector3(-33, 0, 224), Vector3(-33, 0, 240), Vector3(33, 0, 240), Vector3(33, 0, 205), Vector3(65, 0, 225), Vector3(77, 0, 202)]:
 		_build_tent(p, "tent_%d" % _stats["tents"])
 	for p in [Vector3(-53, 0, 195), Vector3(58, 0, 191), Vector3(-31, 0, 231), Vector3(31, 0, 231)]:
-		_build_banner(p)
+		_build_banner(p, "canvas_dark")
 	for p in [Vector3(-16, 0, 157), Vector3(16, 0, 157)]:
 		_build_banner(p)
 	for p in [Vector3(-44, 0, 207), Vector3(43, 0, 221)]:
@@ -322,6 +326,43 @@ func _build_discarded_spear(p: Vector3, yaw: float) -> void:
 	_box("oak", p + b * Vector3(0, 0.055, 0), Vector3(0.055, 0.06, 2.75), Vector3(0, yaw, 0), "", true)
 	_box("rope", p + b * Vector3(0, 0.075, -0.87), Vector3(0.082, 0.07, 0.34), Vector3(0, yaw, 0), "", true)
 	_piece("cone", "iron", p + b * Vector3(0, 0.07, 1.55), Vector3(0.18, 0.48, 0.12), Vector3(PI * 0.5, yaw, 0), "", true)
+
+func _build_active_siege() -> void:
+	# Terrain owns the continuous, irregular wheel ruts; prop geometry must not
+	# create regular bright road markings over them.
+	for p in [Vector3(-10, 0, 139), Vector3(10, 0, 169), Vector3(-10, 0, 196), Vector3(10, 0, 211)]:
+		_build_stone_pile(p, "stone_pile_%d" % _stats["stone_piles"])
+	for p in [Vector3(-8, 0, 151), Vector3(8, 0, 163), Vector3(-8, 0, 183), Vector3(8, 0, 203), Vector3(-9, 0, 223)]:
+		_build_shield(p, _rng.randf_range(-0.5, 0.5), "", true)
+		for j in 4:
+			var q: Vector3 = p + Vector3(_rng.randf_range(-2.2, 2.2), 0.075, _rng.randf_range(-1.5, 1.5))
+			_box("oak_edge", q, Vector3(_rng.randf_range(0.7, 1.8), 0.09, 0.17), Vector3(0, _rng.randf_range(0, TAU), 0), "", true)
+	for p in [Vector3(-26, 0, 149), Vector3(27, 0, 180), Vector3(-17, 0, 209)]:
+		_build_smouldering_wreck(p)
+	_build_watchtower(Vector3(-16, 0, 220), "command_tower_left")
+	_build_watchtower(Vector3(16, 0, 220), "command_tower_right")
+	for p in [Vector3(-28, 0, 200), Vector3(28, 0, 200), Vector3(-23, 0, 238), Vector3(23, 0, 238), Vector3(-71, 0, 153), Vector3(71, 0, 160)]:
+		_build_tree(p, "tree_%d" % _stats["trees"])
+
+func _build_stone_pile(p: Vector3, id: String) -> void:
+	_group(id, p, 115.0, "stone", Vector3(2.45, 0.72, 2.0))
+	_piece("rock", "ash", p + Vector3.UP * 0.035, Vector3(3.1, 0.055, 2.5), Vector3.ZERO, "", true)
+	for i in 11:
+		var x := _rng.randf_range(-1.12, 1.12)
+		var z := _rng.randf_range(-0.86, 0.86)
+		var h := _rng.randf_range(0.26, 0.54)
+		_piece("rock", "stone" if i % 3 else "stone_dark", p + Vector3(x, h * 0.55, z), Vector3(h * 1.5, h, h * 1.18), Vector3(0, _rng.randf_range(0, TAU), 0), id)
+	_stats["stone_piles"] += 1
+
+func _build_smouldering_wreck(p: Vector3) -> void:
+	_piece("rock", "ash", p + Vector3.UP * 0.03, Vector3(3.8, 0.05, 2.8), Vector3.ZERO, "", true)
+	for i in 7:
+		var q := p + Vector3(_rng.randf_range(-1.5, 1.5), 0.12, _rng.randf_range(-1.1, 1.1))
+		_box("char", q, Vector3(_rng.randf_range(0.9, 2.2), 0.14, 0.19), Vector3(0, _rng.randf_range(0, TAU), 0), "", true)
+	for i in 3:
+		var glow := p + Vector3(_rng.randf_range(-0.48, 0.48), 0.13, _rng.randf_range(-0.35, 0.35))
+		_piece("rock", "ember", glow, Vector3(0.18, 0.075, 0.15), Vector3.ZERO, "", true)
+	_stats["smoke_plumes"] += 1
 
 func _build_tent(p: Vector3, id: String) -> void:
 	_group(id, p, 95.0, "canvas", Vector3(6.15, 2.4, 5.15))
@@ -369,10 +410,10 @@ func _build_watchtower(p: Vector3, id: String) -> void:
 	_box("red", p + Vector3(0.64, 6.78, 0), Vector3(1.20, 0.72, 0.04), Vector3.ZERO, id)
 	_stats["watchtowers"] += 1
 
-func _build_banner(p: Vector3) -> void:
+func _build_banner(p: Vector3, cloth := "red") -> void:
 	_box("oak_edge", p + Vector3.UP * 2.1, Vector3(0.13, 4.2, 0.13))
 	_box("iron", p + Vector3.UP * 4.16, Vector3(1.25, 0.08, 0.08))
-	_box("red", p + Vector3(0.54, 3.47, 0), Vector3(1.05, 1.37, 0.055), Vector3(0, 0, 0.08))
+	_box(cloth, p + Vector3(0.87, 3.28, 0), Vector3(1.72, 1.74, 0.055), Vector3(0, 0, 0.08))
 	_box("red_edge", p + Vector3(0.55, 2.87, 0.035), Vector3(1.0, 0.10, 0.028))
 
 func _build_crate(p: Vector3, size: float, id: String, collider := true) -> void:
@@ -393,11 +434,13 @@ func _build_barrel(p: Vector3, size: float, id: String) -> void:
 	_piece("drum", "oak_edge", p + Vector3.UP * size * 1.45, Vector3(size * 0.82, size * 0.065, size * 0.82), Vector3.ZERO, id)
 	_stats["barrels"] += 1
 
-func _build_shield(p: Vector3, yaw: float, group: String) -> void:
-	var rot := Vector3(0.12, yaw, 0.16)
-	_piece("drum", "red", p + Vector3.UP * 0.59, Vector3(0.92, 0.10, 0.92), Vector3(PI * 0.5 + rot.x, rot.y, rot.z), group)
-	_piece("wheel", "iron", p + Vector3.UP * 0.59, Vector3(0.94, 0.13, 0.94), Vector3(PI * 0.5 + rot.x, rot.y, rot.z), group)
-	_piece("drum", "iron", p + Vector3.UP * 0.59, Vector3(0.23, 0.15, 0.23), Vector3(PI * 0.5 + rot.x, rot.y, rot.z), group)
+func _build_shield(p: Vector3, yaw: float, group: String, fallen := false) -> void:
+	var tilt := 0.11 if fallen else PI * 0.5 + 0.12
+	var height := 0.13 if fallen else 0.73
+	var rot := Vector3(tilt, yaw, 0.11)
+	_piece("drum", "red", p + Vector3.UP * height, Vector3(1.26, 0.10, 1.26), rot, group)
+	_piece("wheel", "iron", p + Vector3.UP * height, Vector3(1.28, 0.13, 1.28), rot, group)
+	_piece("drum", "iron", p + Vector3.UP * height, Vector3(0.27, 0.15, 0.27), rot, group)
 	_stats["shields"] += 1
 
 func _build_firepit(p: Vector3) -> void:
@@ -439,12 +482,13 @@ func _build_terrain_dressing() -> void:
 		_stats["grass"] += 1
 
 func _build_tree(p: Vector3, id: String) -> void:
-	_group(id, p, 120.0, "wood", Vector3(0.9, 3.8, 0.9))
-	_piece("cone", "char", p + Vector3.UP * 2.0, Vector3(1.02, 4.0, 1.02), Vector3(0, _rng.randf_range(0, TAU), 0.11), id)
+	var tall := _rng.randf_range(5.8, 8.1)
+	_group(id, p, 120.0, "wood", Vector3(0.9, tall, 0.9))
+	_piece("cone", "char", p + Vector3.UP * tall * 0.5, Vector3(1.08, tall, 1.08), Vector3(0, _rng.randf_range(0, TAU), 0.08), id)
 	for i in 4:
 		var a := float(i) * TAU / 4.0 + 0.3
-		var high := 2.3 + float(i % 2) * 0.9
-		_box("char", p + Vector3(cos(a) * 0.64, high, sin(a) * 0.64), Vector3(0.19, 1.7, 0.19), Vector3(sin(a) * 0.67, a, cos(a) * 0.67), id)
+		var high := tall * (0.51 + float(i % 2) * 0.14)
+		_box("char", p + Vector3(cos(a) * 0.95, high, sin(a) * 0.95), Vector3(0.22, tall * 0.43, 0.22), Vector3(sin(a) * 0.69, a, cos(a) * 0.69), id)
 	for i in 3:
 		var a := float(i) * TAU / 3.0
 		_box("oak_edge", p + Vector3(cos(a) * 0.62, 0.15, sin(a) * 0.62), Vector3(1.4, 0.15, 0.19), Vector3(0, a, 0), id)

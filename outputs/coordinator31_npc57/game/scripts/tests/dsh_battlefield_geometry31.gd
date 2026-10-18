@@ -103,6 +103,8 @@ func _run() -> void:
 	var colliders := 0
 	var lights := 0
 	var grass_on_road: Array[String] = []
+	var grass_checked := 0
+	var grass_index_batches := 0
 	var cover_without_collision: Array[String] = []
 	var cover_count := 0
 	var first_cover: CollisionObject3D
@@ -124,7 +126,18 @@ func _run() -> void:
 					count = multi.instance_count
 				instances += count
 				if grass:
-					for index: int in count:
+					var grass_indices: Array = node.get_meta("grass_instance_indices", [])
+					if node.has_meta("grass_instance_indices"):
+						grass_index_batches += 1
+					if grass_indices.is_empty():
+						for index: int in count:
+							grass_indices.append(index)
+					for raw_index: Variant in grass_indices:
+						var index: int = int(raw_index)
+						grass_checked += 1
+						if index < 0 or index >= count:
+							grass_on_road.append("%s invalid grass index %d" % [node.name, index])
+							continue
 						var at: Vector3 = (node as Node3D).global_transform * multi.get_instance_transform(index).origin
 						if _over_road(at):
 							grass_on_road.append("%s[%d] %s" % [node.name, index, at])
@@ -160,7 +173,10 @@ func _run() -> void:
 		for tick: int in 2:
 			await physics_frame
 		cover_released = not is_instance_valid(first_cover) or (first_cover.collision_layer & 1) == 0
-	var passable := grass_on_road.is_empty() and cover_without_collision.is_empty() \
+	var road_probe: bool = _over_road(_castle.global_position + Vector3(0.0, 0.5, 150.0)) \
+		and not _over_road(_castle.global_position + Vector3(12.0, 0.5, 150.0))
+	var passable := grass_on_road.is_empty() and grass_checked > 0 and road_probe \
+		and cover_without_collision.is_empty() \
 		and meshes <= 1200 and multi_meshes <= 180 and colliders <= 350 and lights <= 12 \
 		and cover_count > 0 and break_result > 0 and cover_released
 	print("BATTLEFIELD_GEOMETRY ", JSON.stringify({"pass": passable,
@@ -169,6 +185,8 @@ func _run() -> void:
 		"break_result": break_result, "cover_released": cover_released,
 		"grass_on_road": grass_on_road.slice(0, 24),
 		"grass_on_road_count": grass_on_road.size(),
+		"grass_checked": grass_checked, "grass_index_batches": grass_index_batches,
+		"road_probe": road_probe,
 		"cover_without_collision": cover_without_collision}))
 	await create_timer(3.0).timeout
 	quit(0 if passable else 1)
