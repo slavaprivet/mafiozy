@@ -1,4 +1,4 @@
-﻿extends Node3D
+extends Node3D
 ## DSH_CASTLE: a large mediaeval castle as its own map, built from BRICKS that come down.
 ##
 ## Every course of every curtain wall, the battlements, the gate towers and the keep's
@@ -220,6 +220,8 @@ func install(world: Node3D, origin: Vector3) -> Dictionary:
 	_batch_static_decoration()
 	if _phase_enabled: _phase("_flush_buckets")
 	_flush_buckets()
+	if _phase_enabled: _phase("_prewarm_debris_pool")
+	_prewarm_debris_pool()
 	if _phase_enabled: _phase_done()
 	_ready = true
 	if is_instance_valid(world.get("preview_weapons")):
@@ -1054,6 +1056,34 @@ func _kill_brick(index: int, impulse: Vector3, power: float) -> void:
 	else:
 		_spawn_falling_brick(cell, impulse, power)
 
+func _new_debris_body() -> RigidBody3D:
+	var body := RigidBody3D.new()
+	body.name = "Brick"
+	body.mass = 18.0
+	var shape := CollisionShape3D.new()
+	shape.name = "Shape"
+	body.add_child(shape)
+	if _debris_mesh == null:
+		_debris_mesh = BoxMesh.new()
+		_debris_mesh.size = Vector3.ONE
+	var fresh_mesh := MeshInstance3D.new()
+	fresh_mesh.name = "Mesh"
+	fresh_mesh.mesh = _debris_mesh
+	fresh_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	body.add_child(fresh_mesh)
+	add_child(body)
+	return body
+
+## DSH_OPT: the first wall blast used to allocate every stone it throws, and 150 new
+## RigidBody3D nodes in one frame froze the game for two hundred milliseconds. The pool is
+## filled during the build instead, so a breach reuses bodies that already exist.
+func _prewarm_debris_pool() -> void:
+	var started := Time.get_ticks_usec()
+	while _debris_pool.size() < MAX_FALLING:
+		_recycle_stone(_new_debris_body())
+	print("DSH_DEBRIS_PREWARM bodies=", _debris_pool.size(), " ms=",
+		float(Time.get_ticks_usec() - started) / 1000.0)
+
 func _spawn_falling_brick(cell: Dictionary, impulse: Vector3, power: float) -> void:
 	# FROM THE POOL when there is one: a blast that reuses its stones allocates nothing.
 	var body: RigidBody3D = null
@@ -1064,21 +1094,7 @@ func _spawn_falling_brick(cell: Dictionary, impulse: Vector3, power: float) -> v
 			break
 	var from_pool: bool = body != null
 	if body == null:
-		body = RigidBody3D.new()
-		body.name = "Brick"
-		body.mass = 18.0
-		var shape := CollisionShape3D.new()
-		shape.name = "Shape"
-		body.add_child(shape)
-		if _debris_mesh == null:
-			_debris_mesh = BoxMesh.new()
-			_debris_mesh.size = Vector3.ONE
-		var fresh_mesh := MeshInstance3D.new()
-		fresh_mesh.name = "Mesh"
-		fresh_mesh.mesh = _debris_mesh
-		fresh_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		body.add_child(fresh_mesh)
-		add_child(body)
+		body = _new_debris_body()
 	var size: Vector3 = cell.get("size", BRICK)
 	var material_key: String = str(cell.get("material", "stone"))
 	var volume: float = size.x * size.y * size.z
@@ -3210,9 +3226,11 @@ func get_stats() -> Dictionary:
 ## DSH_OPT: every cell index whose grid box overlaps a cube round `at`. The boxes are
 ## coarse (8 m) so a blast touches a few dozen of them, not the whole map.
 func _indices_near(at: Vector3, reach: float) -> Array[int]:
+	return _indices_box(at - Vector3.ONE * reach, at + Vector3.ONE * reach)
+
+## Every cell index whose grid box overlaps the given world box.
+func _indices_box(low: Vector3, high: Vector3) -> Array[int]:
 	var out: Array[int] = []
-	var low := at - Vector3.ONE * reach
-	var high := at + Vector3.ONE * reach
 	var gx0 := int(floor(low.x / SPATIAL_STEP))
 	var gx1 := int(floor(high.x / SPATIAL_STEP))
 	var gy0 := int(floor(low.y / SPATIAL_STEP))
@@ -3337,13 +3355,14 @@ func _schedule_support_failure(at: Vector3, radius: float) -> void:
 		holes.append({"x": brick_at.x, "y": brick_at.y, "z": brick_at.z})
 	if holes.is_empty(): return
 	# Only the box a breach can reach upward needs to be visited: a support brick is
-	# within a brick of the hole's footprint and inside the same breach height.
-	var reach: float = radius * 3.2 + 2.0
-	for index: int in _indices_near(at, reach):
+	# within a brick of the hole's footprint and inside the same breach height. A cube
+	# of reach radius*3.2 round the strike was five times more cells than this needs.
+	var support_low := at + Vector3(-(radius + 1.2), -radius + BRICK.y * 0.3, -(radius + 1.2))
+	var support_high := at + Vector3(radius + 1.2, radius * 3.2, radius + 1.2)
+	for index: int in _indices_box(support_low, support_high):
 		var cell: Dictionary = _cells[index]
 		if not bool(cell.get("alive", false)): continue
 		var brick_at: Vector3 = cell.get("at", Vector3.ZERO)
-		if brick_at.distance_to(at) > reach: continue
 		for hole: Dictionary in holes:
 			var dx: float = absf(brick_at.x - float(hole.get("x", 0.0)))
 			var dz: float = absf(brick_at.z - float(hole.get("z", 0.0)))
