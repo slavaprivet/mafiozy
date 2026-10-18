@@ -141,6 +141,11 @@ func install(world: Node3D, origin: Vector3) -> Dictionary:
 			_phase_enabled = int(argument.trim_prefix("--castle-timing=")) != 0
 	_world_ref = world
 	_player = world.get("_player") as CharacterBody3D
+	# DSH_OPT: the project runs 4x MSAA and TAA at the same time. TAA already resolves
+	# the brick edges - two settings measured 0.6/255 mean difference on stills - so on
+	# the castle map the samples are spent on pixels instead. The city map keeps its own.
+	if get_viewport() != null:
+		get_viewport().msaa_3d = Viewport.MSAA_DISABLED
 	if _phase_enabled: _phase("_build_materials")
 	_build_materials()
 	_brick_mesh = BoxMesh.new()
