@@ -144,7 +144,10 @@ func _ground_color(x: float, z: float) -> Color:
 	var dirt := Color(0.39, 0.315, 0.23)
 	var road := Color(0.285, 0.247, 0.195)
 	var ash := Color(0.205, 0.195, 0.18)
-	var edge := minf(smoothstep(76.0, 89.0, absf(x)), smoothstep(240.0, 251.0, z))
+	# The last visible terrain vertices are buried by CastleGround near z=248.
+	# Blend colour before that occlusion point so the soil does not end in a
+	# sharp brown line against the existing green plane.
+	var edge := maxf(smoothstep(73.0, 88.0, absf(x)), smoothstep(226.0, 246.0, z))
 	var track := _road_weight(x, z)
 	var churn := 0.13 + 0.24 * absf(sin(x * 0.43 + z * 0.11) * sin(z * 0.29 - x * 0.07))
 	var color := grass.lerp(dirt, churn)
@@ -172,7 +175,7 @@ func _ground_color(x: float, z: float) -> Color:
 	color = color.darkened(rut * 0.24)
 	# Compensate for the shared terrain tint at the buried edge; its last visible
 	# vertices meet the CastleGround grass rather than outlining the mesh square.
-	return color.lerp(Color(0.43, 0.50, 0.31), edge)
+	return color.lerp(Color(0.46, 0.66, 0.30), edge)
 
 func _build_terrain() -> void:
 	var step_x := (X_MAX - X_MIN) / float(CHUNKS_X)
