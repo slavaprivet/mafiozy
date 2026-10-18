@@ -116,6 +116,10 @@ var _cells: Array[Dictionary] = []
 var _furniture_cells: Dictionary = {}
 ## One MultiMesh per material, holding every brick that is still in place.
 var _buckets: Dictionary = {}     # material_id -> {instance: MultiMeshInstance3D, indices: Array}
+## DSH_OPT: a blast is local. This grid of cell indices means it tests the stones the
+## explosion touches instead of walking all sixty thousand of them three times.
+const SPATIAL_STEP := 8.0
+var _spatial: Dictionary = {}
 var _falling: Array[Dictionary] = []
 var _gate_leaves: Array[Dictionary] = []
 var _detached := 0
@@ -813,11 +817,58 @@ func _under_moving_parent(node: Node) -> bool:
 		walk = walk.get_parent()
 	return false
 
+## DSH_OPT: the iron bands, studs, hinges, stiles and the seam strips of one gate leaf
+## never come apart on their own - they go when the whole leaf goes. Merged into one mesh
+## per material they still swing on the hinge, and the leaf drops from ~40 draws to 2.
+func _merge_pivot_decoration(pivot: Node3D) -> void:
+	var groups: Dictionary = {}
+	for child: Node in pivot.get_children():
+		if child is MultiMeshInstance3D: continue
+		var item := child as MeshInstance3D
+		if item == null or item.mesh == null: continue
+		var material: Variant = item.material_override
+		if material == null and item.mesh.get_surface_count() > 0:
+			material = item.mesh.surface_get_material(0)
+		if material == null: continue
+		var key: String = _material_family(material)
+		if not groups.has(key):
+			groups[key] = {"material": material, "items": []}
+		(groups[key]["items"] as Array).append(item)
+	var pivot_inverse: Transform3D = pivot.global_transform.affine_inverse()
+	for key: String in groups:
+		var items: Array = groups[key]["items"]
+		if items.size() < 2: continue
+		var tool := SurfaceTool.new()
+		tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var appended := 0
+		for item: MeshInstance3D in items:
+			if not is_instance_valid(item) or item.mesh == null: continue
+			tool.append_from(item.mesh, 0, pivot_inverse * item.global_transform)
+			appended += 1
+		if appended < 2: continue
+		var merged: Mesh = tool.commit()
+		if merged == null: continue
+		var node := MeshInstance3D.new()
+		node.name = "GateLeafFittings"
+		node.mesh = merged
+		node.material_override = groups[key]["material"]
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		pivot.add_child(node)
+		for item: MeshInstance3D in items:
+			if is_instance_valid(item):
+				item.queue_free()
+
 func _flush_buckets() -> void:
 	_buckets.clear()
+	_spatial.clear()
 	for index: int in _cells.size():
 		var cell: Dictionary = _cells[index]
 		var at: Vector3 = cell.get("at", Vector3.ZERO)
+		var spatial_key := "%d|%d|%d" % [int(floor(at.x / SPATIAL_STEP)),
+			int(floor(at.y / SPATIAL_STEP)), int(floor(at.z / SPATIAL_STEP))]
+		if not _spatial.has(spatial_key):
+			_spatial[spatial_key] = []
+		(_spatial[spatial_key] as Array).append(index)
 		var key := "%s|%s|%d|%d|%d" % [str(cell.get("material", "stone")),
 			str(cell.get("shape", "box")),
 			int(floor(at.x / CHUNK_X)), int(floor(at.y / CHUNK_Y)), int(floor(at.z / CHUNK_Z))]
@@ -861,18 +912,66 @@ var _chunk_total := 0
 
 ## How much of the castle is actually being drawn, for the optimisation to be measured
 ## rather than claimed.
+##
+## A chunk node is added at the castle's own origin and its bricks are spread along a whole
+## wall, so asking whether the NODE's position is inside the camera said every chunk was on
+## screen: all 60k stones "in frame" from any angle. The real answer is the world-space AABB
+## of the chunk's LIVE instances, tested against the camera's frustum. Dead bricks are left
+## out on purpose - a knocked-out stone is parked kilometres below the map so the engine
+## would otherwise count it again.
 func render_stats() -> Dictionary:
+	var camera: Camera3D = get_viewport().get_camera_3d() if get_viewport() != null else null
+	var planes: Array[Plane] = []
+	var inside_point := Vector3.ZERO
+	if camera != null:
+		planes = camera.get_frustum()
+		# The camera lies ON four of its six planes (the sides), so it cannot say which
+		# side of them is "inside". A metre in front of the lens can.
+		inside_point = camera.global_position - camera.global_basis.z
+	# One pass over the cells: each live brick grows the box of its own chunk, and each
+	# chunk's live count is kept for the report.
+	var bounds: Dictionary = {}
+	var live_by_chunk: Dictionary = {}
+	var alive := 0
+	for cell: Dictionary in _cells:
+		if not bool(cell.get("alive", false)): continue
+		var key: String = str(cell.get("bucket", ""))
+		if key == "": continue
+		alive += 1
+		live_by_chunk[key] = int(live_by_chunk.get(key, 0)) + 1
+		var brick_box: AABB = _brick_transform(cell) * AABB(Vector3(-0.5, -0.5, -0.5), Vector3.ONE)
+		if bounds.has(key):
+			bounds[key] = (bounds[key] as AABB).merge(brick_box)
+		else:
+			bounds[key] = brick_box
 	var visible := 0
 	var instances := 0
-	var camera: Camera3D = get_viewport().get_camera_3d() if get_viewport() != null else null
+	var live := 0
 	for key: String in _buckets.keys():
 		var node: MultiMeshInstance3D = (_buckets[key] as Dictionary).get("node")
-		if not is_instance_valid(node): continue
-		if camera != null and camera.is_position_in_frustum(node.global_position):
+		if not is_instance_valid(node) or not bounds.has(key): continue
+		live += 1
+		var world_box: AABB = global_transform * (bounds[key] as AABB)
+		if planes.is_empty() or _aabb_in_frustum(world_box, planes, inside_point):
 			visible += 1
-			instances += node.multimesh.instance_count
-	return {"chunks": _chunk_total, "chunks_in_frustum": visible,
-		"bricks_in_frustum": instances, "bricks": _cells.size()}
+			instances += int(live_by_chunk.get(key, 0))
+	return {"chunks": _chunk_total, "chunks_live": live, "chunks_in_frustum": visible,
+		"bricks_in_frustum": instances, "bricks": _cells.size(), "bricks_alive": alive,
+		"bounds_alive": bounds.size()}
+
+## Conservative frustum test against a world-space box: a box is outside when its corner
+## furthest along one plane's inward normal is still behind that plane. The inward side is
+## anchored on the camera itself, which is always inside its own frustum.
+func _aabb_in_frustum(box: AABB, planes: Array[Plane], inside_point: Vector3) -> bool:
+	for plane: Plane in planes:
+		var inward: float = 1.0 if plane.distance_to(inside_point) >= 0.0 else -1.0
+		var positive := box.position
+		if plane.normal.x >= 0.0: positive.x += box.size.x
+		if plane.normal.y >= 0.0: positive.y += box.size.y
+		if plane.normal.z >= 0.0: positive.z += box.size.z
+		if plane.distance_to(positive) * inward < 0.0:
+			return false
+	return true
 ## A brick's transform: its place, its size, and a few degrees of settling so the wall
 ## does not look machine-made.
 func _brick_transform(cell: Dictionary) -> Transform3D:
@@ -1414,26 +1513,49 @@ func _build_gatehouse() -> void:
 		# THE LEAF IS A GRID OF PLANKS: six columns by eight rows. A single tall board meant
 		# that knocking it out tore an eleven-metre strip out of the door; with a grid a hit
 		# opens a hole the size of the strike, which is what was asked for.
+		# DSH_OPT: the planks are drawn as TWO MultiMeshes per leaf, one per oak tone, not
+		# as forty-eight meshes. A plank still breaks on its own: the broken one is parked
+		# out of the world, exactly like a knocked-out brick, and its collider is disabled.
 		var leaf_columns := 6
 		var leaf_rows := 8
 		var board_w := leaf_width / float(leaf_columns)
 		var board_h := (GATE_HEIGHT * 0.96) / float(leaf_rows)
+		var board_box := BoxMesh.new()
+		# IN CONTACT, with a hair of overlap: at 0.98 and 0.97 the planks showed light
+		# through the joints, which read as cracks in the door.
+		board_box.size = Vector3(board_w * 1.004, board_h * 1.004, 0.62)
+		var tone_counts: Dictionary = {}
+		for column: int in leaf_columns:
+			var tone: String = "wood_alt" if column % 3 == 1 else "wood"
+			tone_counts[tone] = int(tone_counts.get(tone, 0)) + 1
+		var board_multis: Dictionary = {}
+		for tone: String in tone_counts:
+			var multi := MultiMesh.new()
+			multi.transform_format = MultiMesh.TRANSFORM_3D
+			multi.mesh = board_box
+			multi.instance_count = int(tone_counts[tone]) * leaf_rows
+			var boards_node := MultiMeshInstance3D.new()
+			boards_node.name = "GateBoards_" + tone
+			boards_node.multimesh = multi
+			boards_node.material_override = _materials[tone]
+			boards_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			pivot.add_child(boards_node)
+			board_multis[tone] = boards_node
+		var board_slots: Dictionary = {}
 		var boards: Array = []
 		for row: int in leaf_rows:
 			for column: int in leaf_columns:
-				var board_mesh := MeshInstance3D.new()
-				var board_box := BoxMesh.new()
-				# IN CONTACT, with a hair of overlap: at 0.98 and 0.97 the planks showed light
-				# through the joints, which read as cracks in the door.
-				board_box.size = Vector3(board_w * 1.004, board_h * 1.004, 0.62)
-				board_mesh.mesh = board_box
-				board_mesh.material_override = _materials["wood_alt"] if column % 3 == 1 else _materials["wood"]
-				board_mesh.position = Vector3(
+				var tone: String = "wood_alt" if column % 3 == 1 else "wood"
+				var slot: int = int(board_slots.get(tone, 0))
+				board_slots[tone] = slot + 1
+				var board_at := Vector3(
 					-side * (board_w * (float(column) + 0.5)),
 					board_h * (float(row) + 0.5) + GATE_HEIGHT * 0.02,
 					0.0)
-				pivot.add_child(board_mesh)
-				boards.append({"mesh": board_mesh, "broken": false, "size": board_box.size})
+				(board_multis[tone] as MultiMeshInstance3D).multimesh.set_instance_transform(
+					slot, Transform3D(Basis.IDENTITY, board_at))
+				boards.append({"at": board_at, "broken": false, "size": board_box.size,
+					"multi": board_multis[tone], "slot": slot})
 		# The seams between the boards: shallow dark strips on the face, not slots.
 		var seam_material := StandardMaterial3D.new()
 		seam_material.albedo_color = Color(0.24, 0.15, 0.08)
@@ -1516,15 +1638,15 @@ func _build_gatehouse() -> void:
 		# through while the sound boards continue to swing on the hinge.
 		for board_entry: Dictionary in boards:
 			var board_shape := CollisionShape3D.new()
-			var board_box := BoxShape3D.new()
-			board_box.size = board_entry["size"]
-			board_shape.shape = board_box
-			var board_visual: MeshInstance3D = board_entry["mesh"]
-			board_shape.position = board_visual.position
+			var board_shape_box := BoxShape3D.new()
+			board_shape_box.size = board_entry["size"]
+			board_shape.shape = board_shape_box
+			board_shape.position = board_entry["at"]
 			body.add_child(board_shape)
 			board_entry["shape"] = board_shape
 		body.set_meta("castle_gate", true)
 		body.set_meta("surface", "wood")
+		_merge_pivot_decoration(pivot)
 		_gate_leaves.append({"pivot": pivot, "side": side, "body": body, "detached": false,
 			"boards": boards})
 		if side < 0.0: _gate_left = pivot
@@ -3099,6 +3221,27 @@ func get_stats() -> Dictionary:
 		"gate_bricks": _count_gate_bricks(),
 	}
 
+## DSH_OPT: every cell index whose grid box overlaps a cube round `at`. The boxes are
+## coarse (8 m) so a blast touches a few dozen of them, not the whole map.
+func _indices_near(at: Vector3, reach: float) -> Array[int]:
+	var out: Array[int] = []
+	var low := at - Vector3.ONE * reach
+	var high := at + Vector3.ONE * reach
+	var gx0 := int(floor(low.x / SPATIAL_STEP))
+	var gx1 := int(floor(high.x / SPATIAL_STEP))
+	var gy0 := int(floor(low.y / SPATIAL_STEP))
+	var gy1 := int(floor(high.y / SPATIAL_STEP))
+	var gz0 := int(floor(low.z / SPATIAL_STEP))
+	var gz1 := int(floor(high.z / SPATIAL_STEP))
+	for gx: int in range(gx0, gx1 + 1):
+		for gy: int in range(gy0, gy1 + 1):
+			for gz: int in range(gz0, gz1 + 1):
+				var bucket: Variant = _spatial.get("%d|%d|%d" % [gx, gy, gz])
+				if bucket != null:
+					for index: int in bucket:
+						out.append(index)
+	return out
+
 ## A blast knocks out every brick inside its radius, and the courses above them come down
 ## a moment later.
 func apply_explosion(event: Dictionary) -> Dictionary:
@@ -3115,7 +3258,7 @@ func apply_explosion(event: Dictionary) -> Dictionary:
 	var power: float = maxf(1.0, float(event.get("power", 40.0)))
 	var direction: Vector3 = event.get("direction", Vector3.DOWN)
 	var killed := 0
-	for index: int in _cells.size():
+	for index: int in _indices_near(at, radius):
 		var cell: Dictionary = _cells[index]
 		if not bool(cell.get("alive", false)): continue
 		var brick_at: Vector3 = cell.get("at", Vector3.ZERO)
@@ -3131,25 +3274,33 @@ func apply_explosion(event: Dictionary) -> Dictionary:
 		# when every section of the leaf has been destroyed.
 		for board: Dictionary in boards:
 			if bool(board.get("broken", false)): continue
-			var board_mesh: MeshInstance3D = board.get("mesh")
-			if not is_instance_valid(board_mesh): continue
+			# The planks are drawn through the leaf's MultiMesh, so the distance is taken
+			# in the PIVOT's space: the leaf can be swinging, and the planks swing with it.
 			# Distance to the NEAREST POINT of the board, not to its middle: a stone that
 			# strikes the top of a door is four metres from the centre of every board and was
 			# measured as a miss.
-			var local_hit: Vector3 = board_mesh.to_local(at_world)
+			var local_hit: Vector3 = pivot.to_local(at_world)
+			var board_at: Vector3 = board.get("at", Vector3.ZERO)
 			var board_size: Vector3 = board.get("size", Vector3(0.8, 1.4, 0.26))
-			var nearest := Vector3(clampf(local_hit.x, -board_size.x * 0.5, board_size.x * 0.5),
-				clampf(local_hit.y, -board_size.y * 0.5, board_size.y * 0.5),
-				clampf(local_hit.z, -board_size.z * 0.5, board_size.z * 0.5))
+			var nearest := Vector3(
+				clampf(local_hit.x, board_at.x - board_size.x * 0.5, board_at.x + board_size.x * 0.5),
+				clampf(local_hit.y, board_at.y - board_size.y * 0.5, board_at.y + board_size.y * 0.5),
+				clampf(local_hit.z, board_at.z - board_size.z * 0.5, board_at.z + board_size.z * 0.5))
 			var hole: float = clampf(0.5 + power * 0.004, 0.6, 2.0)
 			if local_hit.distance_to(nearest) > hole: continue
 			board["broken"] = true
-			board_mesh.visible = false
+			var multi: MultiMeshInstance3D = board.get("multi")
+			var slot: int = int(board.get("slot", -1))
+			if is_instance_valid(multi) and multi.multimesh != null and slot >= 0:
+				multi.multimesh.set_instance_transform(slot,
+					Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * 0.0001),
+						Vector3(0.0, -4000.0, 0.0)))
 			var board_shape: CollisionShape3D = board.get("shape")
 			if is_instance_valid(board_shape): board_shape.disabled = true
 			killed += 1
 			# The fallen plank and chips share the bounded debris pool with masonry.
-			var plank_at: Vector3 = to_local(board_mesh.global_position) + Vector3(0.0, 0.2, 0.9)
+			var plank_at: Vector3 = to_local(pivot.global_transform * board_at) \
+				+ Vector3(0.0, 0.2, 0.9)
 			_spawn_falling_brick({"at": plank_at, "size": board_size, "material": "wood",
 				"rotation": Vector3.ZERO, "row": 0, "column": 0}, direction, power * 0.45)
 			for splinter: int in 3:
@@ -3191,17 +3342,21 @@ func apply_explosion(event: Dictionary) -> Dictionary:
 func _schedule_support_failure(at: Vector3, radius: float) -> void:
 	var now := Time.get_ticks_msec()
 	var holes: Array[Dictionary] = []
-	for index: int in _cells.size():
+	for index: int in _indices_near(at, radius + 0.5):
 		var cell: Dictionary = _cells[index]
 		if bool(cell.get("alive", false)): continue
 		var brick_at: Vector3 = cell.get("at", Vector3.ZERO)
 		if brick_at.distance_to(at) > radius + 0.5: continue
 		holes.append({"x": brick_at.x, "y": brick_at.y, "z": brick_at.z})
 	if holes.is_empty(): return
-	for index: int in _cells.size():
+	# Only the box a breach can reach upward needs to be visited: a support brick is
+	# within a brick of the hole's footprint and inside the same breach height.
+	var reach: float = radius * 3.2 + 2.0
+	for index: int in _indices_near(at, reach):
 		var cell: Dictionary = _cells[index]
 		if not bool(cell.get("alive", false)): continue
 		var brick_at: Vector3 = cell.get("at", Vector3.ZERO)
+		if brick_at.distance_to(at) > reach: continue
 		for hole: Dictionary in holes:
 			var dx: float = absf(brick_at.x - float(hole.get("x", 0.0)))
 			var dz: float = absf(brick_at.z - float(hole.get("z", 0.0)))
