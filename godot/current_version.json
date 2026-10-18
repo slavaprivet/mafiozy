@@ -1,11 +1,11 @@
 {
   "schema": "mafiozi.current-play/v1",
-  "title": "Замок и осада · общая сборка 40",
-  "revision": "castle-20261018-combined40-final",
+  "title": "Замок и осада · направленные удары 41",
+  "revision": "castle-20261018-combined41-directional01",
   "assembly": "outputs/coordinator31_castle_current/ASSEMBLY.json",
-  "assembly_sha256": "1b59afe7d7b4c2673549bbe44d77aa671a773b778806f1ee5a1452daf80be033",
+  "assembly_sha256": "10b1dbdc2e6b41865ba8f91227eca43c42a477945bb654a82a8188fb3b969880",
   "bootstrap": "outputs/coordinator31_castle_current/bootstrap_castle.gd",
   "bootstrap_sha256": "318b2fe49cf454e0f41766ac4e5aa23ea43b2a26f5fa8d5b9c2ed3a617d0858b",
   "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
-  "scope": "Single combined castle and siege field: combat weight/cutting40, armor lifecycle40, gate40/stairs40, field cycles1+2. Functional acceptance and finite-view ABBA recorded."
+  "scope": "Combined40 map/armor/destruction preserved. First directional sword/sledge controller: mouse origin, one click windup/release/recovery, actual contact, central direction reticle. Wheel camera only. Held guard retained; feint/chamber/riposte extensions not implemented."
 }

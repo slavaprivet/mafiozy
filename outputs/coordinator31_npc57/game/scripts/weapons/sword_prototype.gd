@@ -19,6 +19,12 @@ const CastleArmorVisual31 = preload("res://scripts/combat/castle_armor_visual.gd
 
 ## DSH_GORE: the planar severer, preloaded because its class_name is not registered in
 ## a fresh run of this script.
+const DirectionalMelee41 = preload("res://scripts/weapons/directional_melee41.gd")
+var _directional41 = DirectionalMelee41.new()
+
+func _directional_enabled41() -> bool:
+	return _weapon_id in ["sword", "sledge"]
+
 const MeshSever = preload("res://scripts/weapons/mesh_sever.gd")
 const CharacterPhysicsDriver31 = preload("res://scripts/character_physics/character_physics_driver.gd")
 
@@ -71,6 +77,7 @@ func set_weapon(id: String) -> bool:
 	if not WEAPONS.has(id): return false
 	if _shield_worn and str(WEAPONS[id].get("grip", "")) == "two": return false
 	if id == _weapon_id: return true
+	_directional41.reset()
 	_weapon_id = id
 	_sword_coast_until_ms31 = 0
 	_omega = Vector3.ZERO
@@ -342,6 +349,7 @@ func _windup_angle() -> float:
 ## DECISIVELY that angle was taken, so one committed wind-up behind a cut is strong
 ## while slowly waving the mouse around earns almost nothing.
 func _strength_now() -> float:
+	if _directional_enabled41(): return 0.85 if _directional41.damaging() else 0.0
 	var angle := _windup_angle()
 	var seconds := maxf(0.06, float(Time.get_ticks_msec() - _swing_start_ms) * 0.001)
 	var rate := angle / seconds
@@ -350,6 +358,7 @@ func _strength_now() -> float:
 		SWING_STRENGTH_MIN, SWING_STRENGTH_MAX)
 
 func _sword_coasting31() -> bool:
+	if _directional_enabled41(): return false
 	return _weapon_id in ["sword", "sledge"] and not _hold_right and now_ms() < _sword_coast_until_ms31
 
 ## The damage comes from the visible weapon's contact speed, its mass and the
@@ -1157,6 +1166,9 @@ func _impact_stream(duration: float, base_hz: float, noise: float) -> AudioStrea
 func _build_hint() -> void:
 	_hint_layer = CanvasLayer.new(); _hint_layer.layer = 30
 	_world.add_child(_hint_layer)
+	var reticle = preload("res://scripts/weapons/directional_reticle41.gd").new()
+	reticle.combat = self
+	_hint_layer.add_child(reticle)
 	var panel := PanelContainer.new()
 	panel.position = Vector2(18, 150)
 	var style := StyleBoxFlat.new()
@@ -1179,8 +1191,10 @@ func _update_hint() -> void:
 	if _sword_grounded or _unarmed:
 		_hint.text = "Оружие лежит на земле\nE — поднять (то же самое оружие)"
 		return
-	var mode := "ПОЛУМЕЧ: рука на лезвии, укол в щели доспеха" if _half_sword else "ЛКМ + ПКМ — двуручный хват, удар сильнее"
-	var text := "ТЕСТОВЫЙ МЕЧ (прототип)\nЛКМ и мышь — рубящий удар\nПКМ — БЛОК, мышь поднимает/опускает\n" + mode + "\nКолесо мыши — укол вперёд / оттянуть назад\nX — полумеч (хват за лезвие против доспеха)\nG — бросить меч"
+	var text := "ЛКМ + мышь — удар · ПКМ — блок\nКолесо — камера · G — бросить оружие"
+	if _directional_enabled41():
+		text = "Удар " + _directional41.description() + "\nДвижение мыши → ЛКМ — замах\nПКМ — блок · Колесо — камера"
+
 	if reachable:
 		text += "\nE — поднять меч (рядом лежит меч, свой или чужой)"
 	_hint.text = text
@@ -1636,8 +1650,29 @@ func _input(event: InputEvent) -> void:
 			set_half_sword(not _half_sword)
 			get_viewport().set_input_as_handled()
 			return
+	if event is InputEventMouseMotion and _directional_enabled41():
+		_directional41.mouse(event.relative)
+		_update_hint()
+		return
 	if event is InputEventMouseButton:
 		var button := event as InputEventMouseButton
+		if _directional_enabled41() and button.button_index == MOUSE_BUTTON_LEFT:
+			if button.pressed and not _hold_left and not _hold_right and not _sword_grounded and not _unarmed:
+				if _directional41.begin(_weapon_id == "sledge", _dir, _camera.global_basis):
+					_contact_prev.clear()
+					_contact_gap.clear()
+					_swing_start_dir = _dir
+					_swing_start_ms = now_ms()
+			_hold_left = button.pressed
+			_held_event = button.pressed
+			get_viewport().set_input_as_handled()
+			return
+		if _directional_enabled41() and button.button_index == MOUSE_BUTTON_RIGHT:
+			if button.pressed: _arrow_parry_until_ms31 = now_ms() + ARROW_PARRY_WINDOW_MS31
+			_hold_right = button.pressed
+			if button.pressed and _directional41.phase == "windup": _directional41.stop()
+			get_viewport().set_input_as_handled()
+			return
 		if button.button_index == MOUSE_BUTTON_LEFT:
 			# Aimed throw: hold RMB to see the arc, then hold and release LMB.
 			# Without RMB, LMB keeps the spear's ordinary melee strike.
@@ -1672,13 +1707,8 @@ func _input(event: InputEvent) -> void:
 			_player.set("_sword_lock", false)
 			get_viewport().set_input_as_handled()
 			return
-		if button.pressed and button.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
-			# Wheel = pull back / drive the point forward (thrust), the missing
-			# axis that lets the player stab as well as cut.
-			var step := 0.22 if button.button_index == MOUSE_BUTTON_WHEEL_UP else -0.22
-			_thrust = clampf(_thrust + step, 0.0, 1.0)
-			_player.set("_sword_lock", false)
-			get_viewport().set_input_as_handled()
+		if button.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
+			# The wheel belongs exclusively to camera zoom, not thrust input.
 			return
 		if button.button_index == MOUSE_BUTTON_RIGHT:
 			_hold_right = button.pressed
@@ -1710,6 +1740,7 @@ func _active() -> bool:
 
 ## Called by the arsenal host when the prototype sword is equipped or removed.
 func set_selected(value: bool) -> void:
+	if not value: _directional41.reset()
 	if _selected == value: return
 	_selected = value
 	_reset_contact_plane()
@@ -1833,6 +1864,14 @@ func _target_direction() -> Vector3:
 	return target
 
 func _steer(delta: float) -> void:
+	if _directional_enabled41() and _directional41.phase in ["windup", "release"]:
+		var target: Vector3 = _contact_direction(_constrain_to_body(_directional41.target(), 0.10))
+		var old := _dir
+		var angle := old.angle_to(target)
+		_dir = old.slerp(target, minf(1.0, 13.0 * delta / maxf(angle, 0.00001))).normalized()
+		var axis := old.cross(_dir)
+		_omega = axis.normalized() * old.angle_to(_dir) / maxf(delta, 0.001) if axis.length_squared() > 0.0000001 else Vector3.ZERO
+		return
 	if _blocking and not _hold_left:
 		# GUARD (RMB): the blade is placed where the mouse points and simply stays
 		# there - a real, physical barrier for incoming blows, not a swing.
@@ -1916,6 +1955,7 @@ func _physics_process(delta: float) -> void:
 		elif not bool(fallen.get("valid", false)):
 			_player_death_physics31.reason = str(fallen.get("reason", "advance_failed"))
 	var active := _active()
+	if _directional_enabled41() and (not active or _unarmed or _sword_grounded): _directional41.reset()
 	# Camera lock follows the real button state and survives a momentary loss of
 	# activity, so the view can never drift while the blade is being steered.
 	_held = _hold_left or _held_event or _sword_coasting31() or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) \
@@ -1997,6 +2037,14 @@ func _physics_process(delta: float) -> void:
 		if is_instance_valid(_player): _player.set("_sword_lock", false)
 		_update_city_npc(delta)
 		return
+	if _directional_enabled41():
+		var was_windup41: bool = _directional41.phase == "windup"
+		_directional41.advance(delta, _camera.global_basis)
+		if was_windup41 and _directional41.damaging():
+			_contact_prev.clear()
+			_contact_gap.clear()
+		_blocking = _hold_right and not _directional41.active() and not _shield_worn
+		_held = _directional41.phase in ["windup", "release"] or _blocking
 	_face_spear_aim31(delta)
 	_dir = _contact_direction(_soft_body_limit(_constrain_forward(_dir), 0.10, 0.16))
 	if not _held:
@@ -2876,6 +2924,9 @@ func _pose_spear_throw31(want_dir: Vector3, blade_rig: Vector3) -> Vector3:
 var _blocking := false
 
 func _active_side() -> StringName:
+	if _directional_enabled41():
+		if str(weapon_entry().get("grip", "")) == "two": return &"both"
+		return &"right" if _hand_lost31(&"left") else &"left"
 	# DSH_MELEE_SET: the weapon decides the grip. A two-handed axe, sledge or spear is
 	# always held in both hands; a mace never is; the sword can be either.
 	var grip := str(weapon_entry().get("grip", "both_optional"))
@@ -3058,25 +3109,30 @@ var _bone_shin_back := -1
 ## Runs the phase machine that the body animation is built on. `yaw_target` is the
 ## turn the cut is heading into, and its sign is what the coil is measured against.
 func _advance_swing_phase(delta: float, yaw_target: float) -> void:
-	_phase_t += delta
 	var entering := false
-	if not _hold_left: _swing_button_latched31 = false
-	match _swing_phase:
-		"windup":
-			if _weapon_id == "sword" and not _hold_left:
-				_swing_phase = "recover"; _phase_t = 0.0
-			elif _phase_t >= WINDUP_TIME: _swing_phase = "strike"; _phase_t = 0.0
-		"strike":
-			if (_weapon_id == "sword" and not _hold_left) or (_weapon_id != "sword" and not _held):
-				_swing_phase = "recover"; _phase_t = 0.0
-		"recover":
-			if _phase_t >= RECOVER_TIME: _swing_phase = "idle"; _phase_t = 0.0
-		_:
-			if (_weapon_id == "sword" and _hold_left and not _swing_button_latched31) or (_weapon_id != "sword" and _held):
-				_swing_phase = "windup"
-				_phase_t = 0.0
-				entering = true
-				if _weapon_id == "sword": _swing_button_latched31 = true
+	if _directional_enabled41():
+		_swing_phase = "strike" if _directional41.phase == "release" else _directional41.phase
+		_phase_t = _directional41.elapsed
+		_swing_sign = -signf(_directional41.chosen.x)
+	else:
+		_phase_t += delta
+		if not _hold_left: _swing_button_latched31 = false
+		match _swing_phase:
+			"windup":
+				if _weapon_id == "sword" and not _hold_left:
+					_swing_phase = "recover"; _phase_t = 0.0
+				elif _phase_t >= WINDUP_TIME: _swing_phase = "strike"; _phase_t = 0.0
+			"strike":
+				if (_weapon_id == "sword" and not _hold_left) or (_weapon_id != "sword" and not _held):
+					_swing_phase = "recover"; _phase_t = 0.0
+			"recover":
+				if _phase_t >= RECOVER_TIME: _swing_phase = "idle"; _phase_t = 0.0
+			_:
+				if (_weapon_id == "sword" and _hold_left and not _swing_button_latched31) or (_weapon_id != "sword" and _held):
+					_swing_phase = "windup"
+					_phase_t = 0.0
+					entering = true
+					if _weapon_id == "sword": _swing_button_latched31 = true
 	# The direction the cut will go. Captured as the coil STARTS, because that is when
 	# the body has to decide which way to wind up against.
 	if entering:
@@ -3105,6 +3161,7 @@ func _advance_swing_phase(delta: float, yaw_target: float) -> void:
 	_breath += delta * BREATH_RATE
 
 func _swing_can_damage31() -> bool:
+	if _directional_enabled41(): return _directional41.damaging()
 	return _hold_left or _sword_coasting31()
 
 ## Writes one link of the chain: it chases the link below it, never the target
@@ -4014,6 +4071,14 @@ func _sweep(delta: float) -> void:
 	_prev_points = points
 
 func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, touched: Dictionary) -> void:
+	var was_release: bool = _directional_enabled41() and _directional41.damaging()
+	_resolve_contact_body41(hit, points, now, touched)
+	if not was_release: return
+	var collider: Object = hit.get("collider")
+	var actor: bool = is_instance_valid(collider) and (collider.has_meta("sword_target") or collider.has_meta("sword_duelist") or collider.has_meta("sword_npc_part"))
+	if not actor or _weapon_crush: _directional41.stop()
+
+func _resolve_contact_body41(hit: Dictionary, points: PackedVector3Array, now: int, touched: Dictionary) -> void:
 	var collider: Variant = hit.get("collider")
 	var speed := float(hit.get("_speed", 0.0))
 	var position: Vector3 = hit.position
@@ -4034,6 +4099,9 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 		return
 	var id_any: int = collider.get_instance_id() if is_instance_valid(collider) else -1
 	var fresh: bool = id_any < 0 or not _contact_prev.has(id_any)
+	if _directional_enabled41() and _directional41.damaging() and id_any >= 0:
+		if _directional41.hits.has(id_any): return
+		_directional41.hits[id_any] = true
 	if not is_target and not is_duelist and is_instance_valid(collider) and not collider.has_meta("sword_npc_part"):
 		_contact_plane = Plane(normal.normalized(), position)
 		_contact_rid = hit.get("rid", RID())
@@ -6417,6 +6485,7 @@ func snapshot() -> Dictionary:	return {
 		"armour_plates": _knight_armour.size(), "stump_count": _stumps.size(),
 		"sparks": _sparks.size(), "sparks_total": _sparks_total, "half_sword": _half_sword, "half_sword_point": _half_sword_blade_point,
 		"bleeding": Time.get_ticks_msec() < _npc_bleed_until_ms,
+		"directional41": {"phase":_directional41.phase,"elapsed":_directional41.elapsed,"serial":_directional41.serial,"chosen":str(_directional41.chosen),"preview":_directional41.description()},
 		"npc_fall": (1.0 - absf(_npc_corpse31.global_basis.y.dot(Vector3.UP))) if is_instance_valid(_npc_corpse31) else 0.0,
 		"npc_corpse_physics31": {"active": is_instance_valid(_npc_corpse31),
 			"position": _npc_corpse31.global_position if is_instance_valid(_npc_corpse31) else Vector3.ZERO,

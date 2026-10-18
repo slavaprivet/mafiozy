@@ -1,6 +1,6 @@
 {
   "schema": "mafiozi.castle-assembly/v1",
-  "revision": "castle-20261018-combined40-final",
+  "revision": "castle-20261018-combined41-directional01",
   "scene_kind": "castle",
   "game_relative": "outputs/coordinator31_npc57/game",
   "scene": "res://scenes/castle.tscn",
@@ -1304,7 +1304,7 @@
     "scripts/weapons/rpg_flight.gd.uid": "4b5636dd1b35cb05b74e1ae0cbf3f5b9476b2b1281bf89e058fc4c52536ea5f3",
     "scripts/weapons/scope_optic.svg": "477959383b359752a578a851e9b678e498b4904cca0e76a47b4a7dd5b33395ed",
     "scripts/weapons/scope_optic.svg.import": "0081075e89bfbdcb69ea6dea5a1e021a38fa40a734c0a732cbdab2eac00fb006",
-    "scripts/weapons/sword_prototype.gd": "5e24ec29640136f9adfc0d45ec736adc7968e41c0289a88e2f954423d3d2b70c",
+    "scripts/weapons/sword_prototype.gd": "a4552609af680c99cf7195eafb8845011a659c51a611160368da8da94029a9e9",
     "scripts/weapons/walk_cargo_card.gd": "298f56dd73f9265a13333e5d4041b2906593c693c8aadc5cb58b32128749191e",
     "scripts/weapons/walk_cargo_card.gd.uid": "a473b69142b69ac1fef8541bdabe9424e09d59a21749589e8f15fba24a84aa04",
     "scripts/weapons/walk_trunk_window.gd": "2dc9c14005d0afab1a6d10b2940fde60ce1aaf93300e5ac76234619dfb6fa7d0",
@@ -1339,7 +1339,10 @@
     "scripts/weapons/weapon_projectiles.gd.uid": "c340803098c2c4deaf639927cac80a3809609d6b5e15ac7bd7409accf8f0ae00",
     "scripts/weapons/weapon_surface_impacts.gd": "4adeb69f9e118d9275f6fcdf09666ffda15b6121b87986d16e1336b6761f06bc",
     "scripts/weapons/weapon_surface_impacts.gd.uid": "9dcd14da5fbd29acb97c4216c6b19aa5ba94d24927407184f328f02c5711998c",
-    "tools/make_steps.py": "ddbc05ca0fadae493fd06054ea6acddd7510ed4a6273b745e79f951c20552cc2"
+    "tools/make_steps.py": "ddbc05ca0fadae493fd06054ea6acddd7510ed4a6273b745e79f951c20552cc2",
+    "scripts/weapons/directional_melee41.gd": "0c4b81771529106dae8c8bf6cdd1654d83aa5c2cb4f12c45bf77a4e211c72692",
+    "scripts/weapons/directional_melee41.gd.uid": "e43be5c94ce6cccecf723dacff4ae9a5e5a326f5ed6a91686b2ba710f4c0125f",
+    "scripts/weapons/directional_reticle41.gd": "92049011c6af121dc14e3bed34ddfcb12942da204bea5c8bb32175562e2c6243"
   },
   "source_pin_scope": "Published permanent game files only; untracked generated metadata and local diagnostic artifacts excluded",
   "included_packages": [

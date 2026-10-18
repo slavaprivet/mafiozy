@@ -1,0 +1,15 @@
+{
+	"chosen": "(-0.780869, 0.624695)",
+	"errors": [],
+	"passed": true,
+	"phases": {
+		"idle": true,
+		"recover": true,
+		"release": true,
+		"windup": true
+	},
+	"scope": "Real input events and native player/weapon in latest castle, wall is a physical fixture; no damage injection",
+	"wall_stop": true,
+	"wheel_after": 4.54065152137382,
+	"wheel_before": 5.11957029446808
+}
