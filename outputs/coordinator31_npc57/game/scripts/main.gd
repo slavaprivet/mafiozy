@@ -31,6 +31,8 @@ const CatapultPrototype = preload("res://scripts/weapons/catapult_prototype.gd")
 const CastleSite = preload("res://scripts/city/castle_site.gd")  # DSH_CASTLE
 const BattlefieldSite = preload("res://scripts/city/battlefield_site.gd")
 const BattlefieldProps = preload("res://scripts/city/battlefield_props.gd")
+const SiegeWallDressing = preload("res://scripts/city/siege_wall_dressing.gd")
+const CastleWallDefense24 = preload("res://scripts/city/castle_wall_defense24.gd")
 const FootstepsScript = preload("res://scripts/audio/footsteps.gd")  # DSH_STEPS
 ## DSH_CASTLE: the castle is its OWN MAP. It is built far from the city so the two never
 ## interact, and the player is put down in its courtyard.
@@ -596,6 +598,11 @@ func _build_castle_map() -> bool:
 		castle.queue_free()
 		return false
 	preview_castle = castle
+	var wall_defense := CastleWallDefense24.new() as Node3D
+	var defense_result: Dictionary = wall_defense.install(castle)
+	if not defense_result.get("ok", false):
+		wall_defense.queue_free()
+		push_warning("Wall defense install failed: %s" % defense_result.get("reason", "unknown"))
 	var battlefield := BattlefieldSite.new() as Node3D
 	var field_result: Dictionary = battlefield.install(self, castle)
 	if field_result.get("ok", false):
@@ -604,6 +611,10 @@ func _build_castle_map() -> bool:
 		field_props.name = "BattlefieldProps"
 		battlefield.add_child(field_props)
 		field_props.install(castle)
+		var wall_dressing := SiegeWallDressing.new() as Node3D
+		wall_dressing.name = "SiegeWallDressing"
+		battlefield.add_child(wall_dressing)
+		wall_dressing.install(battlefield)
 	else:
 		battlefield.queue_free()
 		push_warning("Battlefield install failed: %s" % field_result.get("reason", "unknown"))

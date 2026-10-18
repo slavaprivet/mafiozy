@@ -1231,6 +1231,13 @@ func _impact(hit: Dictionary) -> void:
 	var direction: Vector3 = _fly_velocity.normalized()
 	_hits += 1
 	var delivered := false
+	# Lightweight siege dressing sits outside the curtain wall. A stone hitting
+	# masonry still breaks a nearby ladder before the castle branch returns.
+	var siege_field: Variant = _world.get("preview_battlefield") if is_instance_valid(_world) else null
+	if is_instance_valid(siege_field):
+		var wall_dressing := (siege_field as Node3D).get_node_or_null("SiegeWallDressing")
+		if is_instance_valid(wall_dressing) and wall_dressing.has_method("apply_damage"):
+			wall_dressing.call("apply_damage", point, BLAST_RADIUS, BLAST_POWER)
 	# DSH_CASTLE: anything that lands INSIDE the castle's footprint is the castle's business.
 	# Asking the collider whether it belonged was too strict - the wall is a plain static
 	# body - so every stone that struck the masonry was refused by the castle and then
