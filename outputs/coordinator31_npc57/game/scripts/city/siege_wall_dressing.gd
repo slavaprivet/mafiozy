@@ -162,16 +162,19 @@ func _build_broken_shields() -> void:
 			"indices": [], "broken": false}
 		var y := _ground(q.x, q.y)
 		var yaw := _rng.randf_range(-PI, PI)
+		var shield_rotation := Vector3(0.13, yaw, 0.10)
+		var shield_basis := Basis.from_euler(shield_rotation)
+		var shield_center := Vector3(q.x, y + 0.095, q.y)
 		var broken: bool = int(_stats["broken_shields"]) % 2 == 0
 		for plank in 3:
 			if broken and plank == 2:
 				continue
-			var p := Vector3(q.x + (plank - 1) * 0.24, y + 0.095, q.y)
+			var p := shield_center + shield_basis * Vector3((plank - 1) * 0.24, 0, 0)
 			_add("box", p, Vector3(0.24, 0.10, 1.32 - plank * 0.12),
 				Color(0.37, 0.16, 0.12) if plank != 1 else Color(0.45, 0.19, 0.14),
-				Vector3(0.13, yaw, 0.10), id)
-		_add("box", Vector3(q.x, y + 0.17, q.y), Vector3(0.19, 0.11, 0.19),
-			Color(0.17, 0.18, 0.18), Vector3.ZERO, id)
+				shield_rotation, id)
+		_add("box", shield_center + shield_basis * Vector3(0, 0.075, 0),
+			Vector3(0.19, 0.11, 0.19), Color(0.17, 0.18, 0.18), shield_rotation, id)
 		_stats["broken_shields"] += 1
 
 func _build_impact_scars() -> void:
