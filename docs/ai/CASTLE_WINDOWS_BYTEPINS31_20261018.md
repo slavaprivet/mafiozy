@@ -1,0 +1,13 @@
+# Castle ordinary Q1 resident proof, commit 2864dcfb
+
+Exact isolated stage: `D:/MafioziCastle31/main2864_bytepins_q1b`. Source pin receipt: `D:/MafioziCastle31/main2864_bytepins_q1b_SOURCE_PINS.json`; all 779 tracked scripts/scenes/project bytes match Git commit `2864dcfbcb2a5fb7884e7dfde381f26cc60130b7`. Three files came from the fresh sparse checkout `D:/MafioziCombat31/bytepins_fresh2864`, with byte-identical SHA256 values recorded in the receipt. The NPC city prepared directory is a private copy of 287 model files plus the fresh manifest, not a writable link into the shared game. Other unchanged asset directories use junctions. Stage assembly held a scheduler write lease.
+
+Scheduler import PASS: `D:/MafioziCastle31/main2864_bytepins_q1b_import01/SCHEDULER_RUN.json`, exit 0, stderr 0. This proves import only; no prepared-asset runtime claim follows from it.
+
+External ordinary fixture `ordinary_q1_npc2864.gd` starts `castle.tscn` with `--castle=1`, applies no `castle_map`/metadata or host override, uses ordinary Q then 1 key events, waits at most 12 seconds for the resident's deferred bind, and records exactly one `SwordKnight`, hidden fallback and the three byte hashes. It never calls `_install_sword_prototype` or `_spawn_resident_knight` itself.
+
+The first graphical scheduler attempt at `D:/MafioziCastle31/main2864_bytepins_q1b_q1run01/SCHEDULER_RUN.json` failed before Godot child launch: `Fresh process inventory failed (exit 1): ForEach-Object: You cannot call a method on a null-valued expression.` The fixture did not run. No direct bypass was used. After a fresh free-lane probe, the coordinator authorized one ordinary retry.
+
+That retry **PASS**: `D:/MafioziCastle31/main2864_bytepins_q1b_q1run02/SCHEDULER_RUN.json` exit 0/stderr 0 and `ORDINARY_Q1_NPC2864.json` `passed=true`, `failures=[]`. The castle was ready, city population absent, sword host absent before Q, Q opened the menu, 1 selected the sword and closed the menu. The resident appeared on the first deferred bind attempt: one `SwordKnight` body with rig, the fallback hidden and its duel metadata disabled. The game's stdout confirms `DSH_LOADFAST session entries=3 receipts=3 builds=1` and `DSH_SWORD_PROTO_NPC spawned bones=28`; no prepared errors appeared. Runtime SHA256 for all three fresh files matches the stage/source receipt. This is a short ordinary startup and NPC binding proof, not a combat/FPS acceptance. Graphical lane was released; no further native runs were started.
+
+Publication note: the attribute-only commit was rebased from 2864dcfb onto map commit0817f8c1 as df23a996. The three byte-pin rules and NPC runtime files are unchanged; map cart collision is independent.
