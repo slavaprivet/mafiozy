@@ -112,8 +112,16 @@ func has_back_bow() -> bool: return _back_bow
 
 func _hand_reason(id: String) -> String:
 	if _carried.has(id): return "Уже при себе"
+	# A bow can be carried on the back while another item occupies the hands.
+	# Every other newly claimed weapon needs its weapon hand free; a shield may
+	# share only with a one-handed weapon.
+	if id == "shield":
+		if _hand_weapon in TWO_HANDED: return "Рука занята"
+	elif id != "bow":
+		if not _hand_weapon.is_empty() or (_hand_shield and id in TWO_HANDED):
+			return "Рука занята"
 	if carried_slots() + (2 if id in TWO_HANDED else 1) > CARRY_CAPACITY: return "Нет места при себе"
-	return "Рука занята" if id == "shield" and _hand_weapon in TWO_HANDED else ""
+	return ""
 
 ## The melee host owns dropped world models; this ledger owns carried slots and
 ## the HUD. A thrown weapon leaves a free hand but can still be marked carried
@@ -125,6 +133,10 @@ func can_adopt_ground_melee31(id: String, previous_id: String, previous_empty: b
 	if _carried.has(id):
 		return {"ok": previous_empty and _hand_weapon == id, "reason": "duplicate_item"}
 	var departed := previous_empty and previous_id == _hand_weapon and _carried.has(previous_id)
+	# A thrown/grounded previous weapon has left the hand. Otherwise a ground
+	# pickup follows the same one-weapon-in-hand rule as racks and chest slots.
+	if not _hand_weapon.is_empty() and not departed:
+		return {"ok": false, "reason": "hand_occupied"}
 	var slots := carried_slots() - (2 if previous_id in TWO_HANDED else 1) if departed else carried_slots()
 	if slots + (2 if id in TWO_HANDED else 1) > CARRY_CAPACITY:
 		return {"ok": false, "reason": "carry_capacity"}

@@ -1,0 +1,85 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--path",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\game",
+    "--script",
+    "D:/MafioziCombat31/armory_mergedC_current/game/scripts/tests/dsh_castle_armory_hands28.gd"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "53a09028902648d88ec0cb5b61a5bcf2",
+    "owner": {
+      "pid": 38124,
+      "creation_filetime": "134367928214623970"
+    },
+    "mode": "headless",
+    "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator31_npc57\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 38000,
+        "creation_filetime": "134367928225755215",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\game --script D:/MafioziCombat31/armory_mergedC_current/game/scripts/tests/dsh_castle_armory_hands28.gd",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\game",
+          "--script",
+          "D:/MafioziCombat31/armory_mergedC_current/game/scripts/tests/dsh_castle_armory_hands28.gd"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator31_npc57\\game",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 1260958.6681688,
+    "queued_at": 1260928.6681688,
+    "ticket": 3722,
+    "inventory_before": [
+      {
+        "pid": 34164,
+        "parent_pid": 39760,
+        "creation_filetime": "134367921988496868",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\game\" --script \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_castle_current\\bootstrap_castle.gd\" -- \"--receipt-dir=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261018T101638821Z\" \"--release-title=Замок и осада · единая сборка 31\" \"--release-revision=castle-20261018-combined31\" --castle=1 --castle-start-outside=1",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози — Замок и осада · единая сборка 31 (DEBUG)"
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5703706999775022
+  },
+  "child": {
+    "pid": 38000,
+    "creation_filetime": "134367928225755215",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\game --script D:/MafioziCombat31/armory_mergedC_current/game/scripts/tests/dsh_castle_armory_hands28.gd",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--path",
+      "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\game",
+      "--script",
+      "D:/MafioziCombat31/armory_mergedC_current/game/scripts/tests/dsh_castle_armory_hands28.gd"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator31_npc57\\game",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 7.563617900013924,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

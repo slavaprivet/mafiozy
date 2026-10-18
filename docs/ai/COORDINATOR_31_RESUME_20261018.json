@@ -120,5 +120,12 @@
     "exterior startup",
     "cut topology and retained head cap",
     "skinned convex corpse collision"
-  ]
+  ],
+  "armory_update": {
+    "revision": "castle-20261018-combined31-armory01",
+    "merged_native": "PASS, errors0",
+    "open_process": 34164,
+    "open_process_has_armory_fix": false,
+    "activation": "Next ordinary launch; existing user game preserved"
+  }
 }
