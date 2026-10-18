@@ -1,0 +1,38 @@
+{
+  "date_moscow": "2026-10-18",
+  "number": 31,
+  "thread_id": "01a14e61-e58d-7e43-8d95-a6898cf0586f",
+  "previous_thread_id": "01a14c14-47e7-7752-9922-2481c248366b",
+  "previous_title": "Координатор 31 (2)",
+  "previous_status_observed": "idle",
+  "scope": "Castle combat and current shared castle scene; city58 handoff is historical for this task",
+  "shared_game": "outputs/coordinator31_npc57/game",
+  "latest_user_defect": "Cannot walk around the map; screenshot codex-clipboard-a2d77b07-c1f4-4ec8-ae38-020aef221ec5.png",
+  "root_history": "Read all available pages to hasMore=false; latest interrupted complaint has priority",
+  "prior_agents_read": [
+    "01a14c15-b524-7782-97df-60a81ecf713c",
+    "01a14c56-4b66-7103-9455-0833e3a13534",
+    "01a14c15-a553-7d31-8e48-b3f3f4dc5e42"
+  ],
+  "prior_agents_status_observed": "idle; latest npc_duel turn interrupted",
+  "new_agents": {
+    "movement31": "Reproduce startup/click/WASD and isolate movement defect",
+    "joint_resume31": "Audit unfinished ca91 joint candidate and validate late impulse after severing in separate D copy"
+  },
+  "published_combat": "ca91ae2c disables phantom hitboxes after limb severing",
+  "latest_map_received": "962a893a6fe0ac5f36dbb659fcbcbdcb46166818",
+  "map_receipt": "D:/MafioziCombat31/battlefield_qa/MERGED962_QA_RESULT.json",
+  "joint_candidate_handoff": "D:/MafioziCastle31/qa/npc_corpse1376/JOINT63F_HANDOFF.md",
+  "joint_candidate_status": "Experimental, not integrated or accepted; strong ordinary severing and sleeping/performance unresolved",
+  "constraints": [
+    "Preserve user game; live PID35736 is historical inventory only, refresh before any action",
+    "Preserve shared castle_site DSH_OPT and armor WIP",
+    "All native QA through test_scheduler; no comparable perf alongside user game",
+    "Use separate D proposals and receipts; never mutate prior evidence",
+    "Review fresh origin/main before scoped publication; local C HEAD is older than published main",
+    "Windows hash-pin fresh checkout issue was already fixed; do not redo it",
+    "Do not restart former coordinator or his agents"
+  ],
+  "tool_availability": "ToolSearch and Ruflo MCP not exposed; continued with available thread and collaboration tools",
+  "acceptance": "Takeover complete; movement and joint work in progress, no new gameplay acceptance claimed"
+}
