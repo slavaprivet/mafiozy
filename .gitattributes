@@ -22,3 +22,8 @@
 
 # Preserve the exact bytes of the independently tested common hiring project.
 /godot/mercenary_demo/** -text
+
+# Prepared NPC receipts in packaged games pin JSON and these two source files.
+/outputs/**/game/assets/**/*.json -text
+/outputs/**/game/scripts/npc_visual/npc_visual_loader.gd -text
+/outputs/**/game/scripts/npc_visual/npc_float_color_bridge.gd -text
