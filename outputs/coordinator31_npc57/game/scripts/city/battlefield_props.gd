@@ -306,6 +306,14 @@ func _build_cart(p: Vector3, yaw: float, id: String, broken := false) -> void:
 			var xp := _rng.randf_range(-1.35, 1.35)
 			var zp := _rng.randf_range(-0.55, 0.55)
 			_build_crate(p + b * Vector3(xp, 1.15, zp), 0.47, "cart_crate_%d" % i, false, id)
+			# Cargo shares the cart body: dropped shields and bodies rest on visible crates.
+			# The single owner collider removes every cargo shape with the cart.
+			var cargo_shape := CollisionShape3D.new()
+			var cargo_box := BoxShape3D.new()
+			cargo_box.size = Vector3.ONE * 0.47
+			cargo_shape.shape = cargo_box
+			cargo_shape.position = b * Vector3(xp, 1.385 - 0.65, zp)
+			(_groups[id]["collider"] as StaticBody3D).add_child(cargo_shape)
 		_piece("drum", "canvas_dark", p + b * Vector3(-0.65, 1.54, 0.20), Vector3(0.66, 1.55, 0.66), Vector3(0, yaw, PI * 0.5), id)
 		# The rolled canvas axis is local X after the quarter-turn around Z.
 		for dx in [-0.28, 0.28]:
