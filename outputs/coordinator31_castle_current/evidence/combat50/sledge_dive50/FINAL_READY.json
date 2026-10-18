@@ -1,0 +1,46 @@
+{
+  "status": "PASS_COMPONENT_SLEDGE_DIVE_REAL_CONTACT",
+  "receipt": "D:\\MafioziCombat31\\final_sledge50\\FINAL_RESULT.json",
+  "scheduler": "D:\\MafioziCombat31\\final_sledge50\\native02\\SCHEDULER_RUN.json",
+  "fixture": "D:\\MafioziCombat31\\final_sledge50\\sledge_final_trace50.gd",
+  "fixture_sha256": "bef8dc9ae3119c7a7cf04487a1dce8c48c5fe6ea67a1d56ce76fc83cbb95ac8c",
+  "source_pins": "D:\\MafioziCombat31\\final_sledge50\\SOURCE_PINS.json",
+  "source_pins_sha256": "4e63bbc2bc28056bca3702f88287c29b094ca9e69fecc84c5796dd0266d9c296",
+  "source_drift": [],
+  "sword_sha256": "72b043623ca3d70f27fcc5485680d2cb7780b6f97470a6e13a86295f0293146f",
+  "player_sha256": "3e1e46febba29274b1fc2357bd1e06ce36ce10f0571c19458db5ba6e48408052",
+  "result": {
+    "air_active": 65,
+    "air_damage": 34.0,
+    "air_damage_gate": 56,
+    "air_grip_max": 2.98604732051899e-08,
+    "air_held": 56,
+    "air_hits": 1,
+    "air_left_max": 0.0840418413281441,
+    "authority": "on_foot",
+    "dive_requested": true,
+    "final_tilt": 0.0,
+    "guard": true,
+    "hidden_air": 0,
+    "landed": true,
+    "location": "field",
+    "omega_max": 1.04212522506714,
+    "peak": 0.959629535675049,
+    "rays": 820,
+    "release_clear": true,
+    "rise": 0.879526995122433,
+    "saw_dive": true,
+    "saw_normal": false,
+    "travel": 4.970458984375,
+    "weapon": "sledge"
+  },
+  "prior_miss_preserved": [
+    "D:\\MafioziCombat31\\final_sledge50\\RESULT.json",
+    "D:\\MafioziCombat31\\final_sledge50\\DIAGNOSIS.json",
+    "D:\\MafioziCombat31\\final_sledge50\\native01\\SCHEDULER_RUN.json"
+  ],
+  "target_setup": "Standard training dummy moved once before input to base+(1,0,-4), based on exact final72b measured trace. Native double-space then held LMB/mouse motion; actual sweeps produced34HP while airborne. No target movement in flight, no injected damage, no source edits.",
+  "limits": [
+    "Native headless functional contact only; visual cinematic quality and full game acceptance are separate."
+  ]
+}

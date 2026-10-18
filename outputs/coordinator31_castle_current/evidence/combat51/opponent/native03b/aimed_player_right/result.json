@@ -1,0 +1,23 @@
+{
+	"armor_requested": false,
+	"armor_snapshot": {},
+	"failures": [
+		"input_not_1to1"
+	],
+	"input_probe": {
+		"delivered": 199.999984741211,
+		"direction": 1.0,
+		"injected": 10.0,
+		"viewport": "(64, 64)"
+	},
+	"input_protocol": "Initial gap1.5m; real mouse re-aim between strokes; held 12x-10,12x+20,12x-10 pixels horizontal, alternating sign; native NPC remains free. No pose assignment after initial setup.",
+	"max_strokes": 8,
+	"passed": false,
+	"player_dead": null,
+	"player_severed": null,
+	"same_direction": false,
+	"scope": "rack equip + choose mouse direction + click/release, no damage injection or teleport after initial placement",
+	"strokes": [],
+	"trace": [],
+	"weapon_after_q": "sword"
+}

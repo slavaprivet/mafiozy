@@ -1,0 +1,53 @@
+{
+	"drawcalls_after": 169.0,
+	"drawcalls_before": 169.0,
+	"equip_swap": {
+		"heavy_torso": true,
+		"light_torso": true,
+		"medium_torso": true
+	},
+	"explosion_broken": true,
+	"focus": {
+		"heavy_feet": true,
+		"heavy_hands": true,
+		"heavy_head": true,
+		"heavy_legs": true,
+		"heavy_torso": true,
+		"light_feet": true,
+		"light_hands": true,
+		"light_head": true,
+		"light_legs": true,
+		"light_torso": true,
+		"medium_feet": true,
+		"medium_hands": true,
+		"medium_head": true,
+		"medium_legs": true,
+		"medium_torso": true
+	},
+	"melee_broken": true,
+	"neighbor_preserved": true,
+	"no_duplicate_after_break": true,
+	"no_duplicate_after_swap": true,
+	"pass": true,
+	"ready": true,
+	"room_entry": true,
+	"salvage": true,
+	"stands": 3,
+	"tent_entry": true,
+	"tent_inside": true,
+	"tent_local": "(-1.0, 0.08, 0.0)",
+	"terrain_stats": {
+		"bounds_local": [
+			-90.0,
+			76.0,
+			90.0,
+			252.0
+		],
+		"terrain_chunks": 9,
+		"terrain_collision_shapes": 9,
+		"terrain_draw_calls_max": 9,
+		"terrain_triangles": 9504,
+		"terrain_vertices": 5175
+	},
+	"unique_items": 15
+}

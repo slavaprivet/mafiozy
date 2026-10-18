@@ -1,0 +1,68 @@
+{
+  "mode": "graphical",
+  "performance_accepted": false,
+  "command": [
+    "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+    "--path",
+    "D:/MafioziCombat31/merged51/game",
+    "--script",
+    "D:/MafioziCombat31/merged51/side03/review51.gd"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "1d79073a05df4a01abef24811cde1757",
+    "owner": {
+      "pid": 50384,
+      "creation_filetime": "134368072989437838"
+    },
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\merged51\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 45608,
+        "creation_filetime": "134368072999680333",
+        "command_line": "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --path D:/MafioziCombat31/merged51/game --script D:/MafioziCombat31/merged51/side03/review51.gd",
+        "command": [
+          "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+          "--path",
+          "D:/MafioziCombat31/merged51/game",
+          "--script",
+          "D:/MafioziCombat31/merged51/side03/review51.gd"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "graphical",
+        "project": "d:\\mafiozicombat31\\merged51\\game"
+      }
+    ],
+    "deadline": 1275526.2022607,
+    "queued_at": 1275406.2022607,
+    "ticket": 4037,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5119598000310361
+  },
+  "child": {
+    "pid": 45608,
+    "creation_filetime": "134368072999680333",
+    "command_line": "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --path D:/MafioziCombat31/merged51/game --script D:/MafioziCombat31/merged51/side03/review51.gd",
+    "command": [
+      "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+      "--path",
+      "D:/MafioziCombat31/merged51/game",
+      "--script",
+      "D:/MafioziCombat31/merged51/side03/review51.gd"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\merged51\\game"
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 29.095717000076547,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

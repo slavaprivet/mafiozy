@@ -1,0 +1,232 @@
+--- a/scripts/weapons/sword_prototype.gd
++++ b/scripts/weapons/sword_prototype.gd
+@@ -1919,6 +1919,11 @@
+ 				_hammer_torque44 = torque
+ 			else:
+ 				_hammer_torque44 = _hammer_torque44.move_toward(torque, 100.0 * delta)
++				# Braking must act now, rather than spending another half-second
++				# accelerating along the previous vertical swing.
++				for component in 3:
++					if torque[component] * _omega[component] < 0.0:
++						_hammer_torque44[component] = torque[component]
+ 			torque = _hammer_torque44
+ 		_omega = (_omega + torque * delta).limit_length(speed_limit)
+ 		if Time.get_ticks_msec() < _bind_until_ms: _omega = _omega.limit_length(1.6)
+@@ -2120,6 +2125,18 @@
+ 	return bool(weapon_entry().get("throwable", false))
+ 
+ func _face_spear_aim31(delta: float) -> void:
++	if _held and WEAPONS.has(_weapon_id) and not _aiming_throw and is_instance_valid(_player):
++		# Mouse look and free weapon aim share one facing frame. Without this,
++		# the camera/front-body constraints fought and sent side cuts vertically.
++		var melee_visual: Node3D = _player._visual
++		var view_forward: Vector3 = -_camera.global_basis.z
++		if is_instance_valid(melee_visual) and Vector2(view_forward.x, view_forward.z).length_squared() > 0.01:
++			var wanted_yaw := atan2(view_forward.x, view_forward.z)
++			var yaw_error := wrapf(wanted_yaw - melee_visual.global_rotation.y, -PI, PI)
++			melee_visual.rotation.y += clampf(yaw_error, -8.0 * delta, 8.0 * delta)
++			_player._heading = melee_visual.rotation.y - deg_to_rad(_player.visual_yaw_degrees)
++		_spear_aim_heading_active31 = false
++		return
+ 	if _weapon_id != "spear" or not _aiming_throw or not is_instance_valid(_player):
+ 		_spear_aim_heading_active31 = false
+ 		return
+@@ -2581,7 +2598,8 @@
+ 	var incoming_bones: Array[Transform3D] = []
+ 	for index in _rig.get_bone_count(): incoming_bones.append(_rig.get_bone_pose(index))
+ 	_self_pose_evaluations45 = 0
+-	_self_pose_forward = maxf(0.0, _self_pose_forward - 0.06)
++	if _self_model_frame45 != Engine.get_physics_frames():
++		_self_pose_forward = maxf(0.0, _self_pose_forward - 0.06 * _self_elapsed_steps51)
+ 	_self_evaluate_pose45(_dir)
+ 	if not _held: _settle_carried_blade()
+ 	var requested := _dir
+@@ -2597,6 +2615,12 @@
+ 		# A known pose is safer than rotating the weapon abruptly around the
+ 		# head. Restore it only after validating it against this frame's body.
+ 		resolved = _restore_safe_self_pose45()
++		if resolved:
++			# A body contact removes momentum into the rejected rotation, while
++			# preserving motion tangent to that contact.
++			var blocked_axis := _dir.cross(requested).normalized()
++			_omega -= blocked_axis * maxf(0.0, _omega.dot(blocked_axis))
++			_hammer_torque44 -= blocked_axis * maxf(0.0, _hammer_torque44.dot(blocked_axis))
+ 		if not resolved:
+ 			# Cold equipment has no compatible verified pose yet. Search locally
+ 			# with the remaining fixed budget, never displaying a rejected trial.
+@@ -2653,14 +2677,18 @@
+ var _self_motion_budget45 := 0.0
+ var _self_motion_excess45 := 0.0
+ var _self_model_frame45 := -1
++var _self_safe_local_origin51 := Vector3.ZERO
++var _self_elapsed_steps51 := 1
+ 
+ func _self_begin_step45() -> void:
+ 	var frame := Engine.get_physics_frames()
+ 	if not _held or _self_motion_weapon45 != _weapon_id or _self_motion_from45.length_squared() < 0.5:
++		_self_elapsed_steps51 = 1
+ 		_self_motion_from45 = _dir
+ 		_self_motion_weapon45 = _weapon_id
+ 		_self_motion_frame45 = frame
+ 	elif frame != _self_motion_frame45:
++		_self_elapsed_steps51 = maxi(1, frame - _self_motion_frame45)
+ 		_self_motion_from45 = _self_safe_dir if _self_safe_dir.length_squared() > 0.5 else _dir
+ 		_self_motion_frame45 = frame
+ 	var rate := 10.0
+@@ -2669,7 +2697,7 @@
+ 	elif _weapon_id == "axe": rate = 7.4
+ 	elif _weapon_id == "spear": rate = 8.0
+ 	elif _weapon_id == "sword" and _active_side() != &"both": rate = 9.0
+-	_self_motion_budget45 = rate * get_physics_process_delta_time()
++	_self_motion_budget45 = rate * get_physics_process_delta_time() * _self_elapsed_steps51
+ 
+ func _self_limit_step45(direction: Vector3) -> Vector3:
+ 	if not _held or _self_motion_from45.length_squared() < 0.5: return direction
+@@ -2681,9 +2709,12 @@
+ 	if not _self_blade_clear(direction): return false
+ 	if _self_safe_weapon45 != _weapon_id or _self_safe_side45 != _active_side(): return true
+ 	if _self_safe_dir.length_squared() < 0.5: return true
+-	var steps := maxi(1, ceili(_self_safe_dir.angle_to(direction) / deg_to_rad(3.0)))
++	var old_origin: Vector3 = _rig.global_transform * _self_safe_local_origin51
++	var old_direction: Vector3 = (_rig.global_basis * _self_safe_local_dir45).normalized()
++	var steps := maxi(1, maxi(ceili(old_direction.angle_to(direction) / deg_to_rad(3.0)), ceili(old_origin.distance_to(_sword_origin) / 0.025)))
+ 	for step in range(steps + 1):
+-		if not _self_blade_clear(_self_safe_dir.slerp(direction, float(step) / steps).normalized()): return false
++		var t := float(step) / steps
++		if not _self_blade_clear_at51(old_direction.slerp(direction, t).normalized(), old_origin.lerp(_sword_origin, t)): return false
+ 	return true
+ 
+ func _self_evaluate_pose45(direction: Vector3) -> bool:
+@@ -2700,6 +2731,7 @@
+ 	for index in _rig.get_bone_count():
+ 		_self_safe_bones45.append(_rig.get_bone_pose(index))
+ 	_self_safe_local_dir45 = (_rig.global_basis.inverse() * _dir).normalized()
++	_self_safe_local_origin51 = _rig.global_transform.affine_inverse() * _sword_origin
+ 	_self_safe_weapon45 = _weapon_id
+ 	_self_safe_side45 = _active_side()
+ 
+@@ -2721,13 +2753,16 @@
+ var _self_safe_dir := Vector3.ZERO
+ 
+ func _self_blade_clear(direction: Vector3) -> bool:
++	return _self_blade_clear_at51(direction, _sword_origin)
++
++func _self_blade_clear_at51(direction: Vector3, origin: Vector3) -> bool:
+ 	var chest: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_chest).origin
+ 	var pelvis: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_pelvis).origin
+ 	var head: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_head).origin
+ 	# The pommel/haft behind the hand is part of the same weapon. A clear
+ 	# blade tip alone must not approve a hilt driven through the face or torso.
+-	var rear := _sword_origin - direction * weapon_rear_extent()
+-	var tip := _sword_origin + direction * (0.06 + _weapon_length)
++	var rear := origin - direction * weapon_rear_extent()
++	var tip := origin + direction * (0.06 + _weapon_length)
+ 	return _segment_distance(rear, tip, chest, pelvis) >= 0.20 and _segment_distance(rear, tip, head, head) >= 0.18
+ 
+ func _guard_self_blade(wanted: Vector3) -> Vector3:
+@@ -2947,31 +2982,37 @@
+ 	var middle_world: Vector3 = rig_to_world * ((right_joint + left_joint) * 0.5)
+ 	var local_want: Vector3 = visual_basis.inverse() * want_dir
+ 	var side_load := (1.0 - smoothstep(0.20, 0.70, absf(_hand.y))) if _weapon_id in ["sledge", "axe", "spear"] and _hold_left else 0.0
+-	var side_reach := lerpf(0.34, 0.54 if _weapon_id == "sledge" else 0.48, side_load)
++	var side_reach := lerpf(0.30, 0.36, side_load)
+ 	# Live weapon momentum carries the hands away from the chest into the strike.
+ 	# Stopping the mouse leaves the loading pose; no timed attack drives the hands.
+-	var arm_drive := smoothstep(0.8, 5.0, _omega.length()) if _hold_left and _weapon_id != "sword" else 0.0
++	var arm_drive := 1.0 if _hold_left else 0.0
+ 	var target_world: Vector3 = middle_world + visual_basis * Vector3(
+ 		clampf(local_want.x * (side_reach if _hold_left else 0.14), -side_reach, side_reach),
+-		clampf(local_want.y * (0.82 if _hold_left else 0.20) - 0.12, -0.38, 0.64),
+-		(lerpf(0.44, 0.40, clampf(local_want.y, 0.0, 1.0)) if _weapon_id == "sledge" else lerpf(0.38, 0.25, clampf(local_want.y, 0.0, 1.0))) + arm_drive * 0.20 + _self_pose_forward)
++		clampf(local_want.y * (0.64 if _hold_left else 0.20) - 0.08, -0.30, 0.48),
++		(lerpf(0.44, 0.40, clampf(local_want.y, 0.0, 1.0)) if _weapon_id == "sledge" else lerpf(0.38, 0.25, clampf(local_want.y, 0.0, 1.0))) + arm_drive * 0.34 + _self_pose_forward)
++	if _weapon_id == "sledge" and _hold_left:
++		# Lift beside the leading shoulder, keeping the rear haft outside the face.
++		var high_arc := smoothstep(0.15, 0.65, (rig_to_world.basis * blade_rig).y)
++		var leading_side := signf((rig_to_world * right_joint - middle_world).dot(visual_basis.x))
++		var relative: Vector3 = visual_basis.inverse() * (target_world - middle_world)
++		relative.x = lerpf(relative.x, leading_side * 0.28, high_arc)
++		target_world = middle_world + visual_basis * relative
+ 	var grip: Vector3 = world_to_rig * target_world
+ 	# Reach spheres belong to wrists; offset their centres to the palm anchors
+ 	# using the SAME wrist orientation that the final IK will apply.
+-	var right_basis: Basis = (_chain_global(right_set.clav) * right_set.rest_upper * right_set.rest_fore * right_set.rest_hand).basis.orthonormalized()
+-	var left_basis: Basis = (_chain_global(left_set.clav) * left_set.rest_upper * left_set.rest_fore * left_set.rest_hand).basis.orthonormalized()
+-	right_basis = Basis(Quaternion((right_basis * Vector3(0, 0, -1)).normalized(), blade_rig)) * right_basis
+-	left_basis = Basis(Quaternion((left_basis * Vector3(0, 0, -1)).normalized(), blade_rig)) * left_basis
+-	right_joint += right_basis * _palm_offset(right_set.hand)
+-	left_joint += left_basis * _palm_offset(left_set.hand)
++	var right_rest_basis: Basis = (_chain_global(right_set.clav) * right_set.rest_upper * right_set.rest_fore * right_set.rest_hand).basis.orthonormalized()
++	var left_rest_basis: Basis = (_chain_global(left_set.clav) * left_set.rest_upper * left_set.rest_fore * left_set.rest_hand).basis.orthonormalized()
+ 	var offset := blade_rig * _two_hand_offset_rig
+ 	var right_reach: float = (right_set.rest_fore.origin.length() + right_set.rest_hand.origin.length()) * 0.94
+ 	var left_reach: float = (left_set.rest_fore.origin.length() + left_set.rest_hand.origin.length()) * 0.94
+-	# Intersect the two reach spheres by moving the HANDLE, keeping both anchors.
+ 	for iteration in 10:
+-		grip = right_joint + (grip - right_joint).limit_length(right_reach)
++		var right_basis := _palm_basis51(right_joint, grip, blade_rig, right_rest_basis)
++		var right_center: Vector3 = right_joint + right_basis * _palm_offset(right_set.hand)
++		grip = right_center + (grip - right_center).limit_length(right_reach)
+ 		var support := grip - offset
+-		support = left_joint + (support - left_joint).limit_length(left_reach)
++		var left_basis := _palm_basis51(left_joint, support, blade_rig, left_rest_basis)
++		var left_center: Vector3 = left_joint + left_basis * _palm_offset(left_set.hand)
++		support = left_center + (support - left_center).limit_length(left_reach)
+ 		grip = support + offset
+ 	var fist: Vector3 = _pose_arm_ik(right_set.clav, right_set.upper, right_set.fore,
+ 		right_set.hand, right_set.rest_upper, right_set.rest_fore, right_set.rest_hand,
+@@ -3079,7 +3120,7 @@
+ 	# The hand loads near the shoulder, then extends with real weapon momentum.
+ 	# Mouse direction and angular dynamics remain free; this only solves the arm.
+ 	if _hold_left and not _aiming_throw and not _half_sword and reach_scale > 0.99:
+-		reach_scale *= lerpf(0.76, 1.0, smoothstep(0.8, 5.0, _omega.length()))
++		reach_scale *= 1.0
+ 	return _pose_arm_ik(set.clav, set.upper, set.fore, set.hand, set.rest_upper, set.rest_fore, set.rest_hand, set.offset, want_rig, blade_rig, reach_scale, false, set.pole)
+ 
+ ## Supporting hand closes on the lower part of the handle (two-handed grip).
+@@ -3093,6 +3134,20 @@
+ ## Two-bone IK with a real elbow: the hand reaches the requested point (clamped
+ ## to the arm's length) instead of always being fully extended. That bend is what
+ ## lets the second hand reach the handle in a two-handed grip.
++func _palm_basis51(shoulder: Vector3, grip: Vector3, blade: Vector3, fallback: Basis) -> Basis:
++	# The grip axis crosses the closed palm. Choose its remaining roll from
++	# the forearm reach, so the wrist continues the arm instead of folding back.
++	var z := -blade.normalized()
++	var y := (grip - shoulder).normalized()
++	y -= z * y.dot(z)
++	if y.length_squared() < 0.0001:
++		y = fallback.y - z * fallback.y.dot(z)
++	if y.length_squared() < 0.0001:
++		y = z.cross(Vector3.RIGHT)
++		if y.length_squared() < 0.0001: y = z.cross(Vector3.UP)
++	y = y.normalized()
++	return Basis(y.cross(z).normalized(), y, z).orthonormalized()
++
+ func _pose_arm_ik(clav: int, upper: int, fore: int, hand: int, rest_upper: Transform3D, rest_fore: Transform3D, rest_hand: Transform3D, hand_offset: Vector3, want_rig: Vector3, blade_rig: Vector3, reach_scale: float = 1.0, want_is_point: bool = false, pole_side: float = 1.0, elbow_up: bool = false) -> Vector3:
+ 	if clav < 0 or upper < 0 or fore < 0 or hand < 0: return Vector3.ZERO
+ 	var clavicle_global := _chain_global(clav)
+@@ -3113,7 +3168,7 @@
+ 	# that palm centre rather than placing the wrist itself on the handle.
+ 	var rest_global_basis := (clavicle_global * rest_upper * rest_fore * rest_hand).basis.orthonormalized()
+ 	var grip_axis := (rest_global_basis * Vector3(0, 0, -1)).normalized()
+-	var palm_basis := Basis(Quaternion(grip_axis, blade_rig.normalized())) * rest_global_basis
++	var palm_basis := _palm_basis51(joint, target, blade_rig, rest_global_basis)
+ 	var palm_offset := _palm_offset(hand)
+ 	target -= palm_basis * palm_offset
+ 	var to_target := target - joint
+@@ -3137,6 +3192,15 @@
+ 	var upper_global := clavicle_global * upper_local
+ 	var fore_local := _point_bone(fore, rest_fore, rest_hand.origin, upper_global.basis, fore_dir)
+ 	var fore_global := upper_global * fore_local
++	# Share axial rotation with forearm pronation instead of twisting only the wrist.
++	var natural_hand := (fore_global.basis * rest_hand.basis).orthonormalized()
++	var natural_cross := natural_hand.z - fore_dir * natural_hand.z.dot(fore_dir)
++	var wanted_cross := palm_basis.z - fore_dir * palm_basis.z.dot(fore_dir)
++	if natural_cross.length_squared() > 0.0001 and wanted_cross.length_squared() > 0.0001:
++		var pronation := clampf(natural_cross.signed_angle_to(wanted_cross, fore_dir), -1.35, 1.35)
++		fore_global.basis = Basis(fore_dir, pronation) * fore_global.basis
++		fore_local.basis = upper_global.basis.inverse() * fore_global.basis
++		_rig.set_bone_pose(fore, fore_local)
+ 	var hand_local := Transform3D((fore_global.basis.inverse() * palm_basis).orthonormalized(), rest_hand.origin)
+ 	_rig.set_bone_pose(hand, hand_local)
+ 	return (fore_global * hand_local) * palm_offset

@@ -1,0 +1,98 @@
+{
+	"errors": [],
+	"passed": true,
+	"rows": [
+		{
+			"enemy": 0.0,
+			"kind": "slice",
+			"player": 0.0,
+			"speed": 0.0
+		},
+		{
+			"enemy": 1.05901169089348,
+			"kind": "slice",
+			"player": 1.05901169089348,
+			"speed": 1.0
+		},
+		{
+			"enemy": 10.8442797147492,
+			"kind": "slice",
+			"player": 10.8442797147492,
+			"speed": 3.2
+		},
+		{
+			"enemy": 51.8915728537803,
+			"kind": "slice",
+			"player": 51.8915728537803,
+			"speed": 7.0
+		},
+		{
+			"enemy": 152.497683488661,
+			"kind": "slice",
+			"player": 152.497683488661,
+			"speed": 12.0
+		},
+		{
+			"enemy": 0.0,
+			"kind": "stab",
+			"player": 0.0,
+			"speed": 0.0
+		},
+		{
+			"enemy": 1.05901169089348,
+			"kind": "stab",
+			"player": 1.05901169089348,
+			"speed": 1.0
+		},
+		{
+			"enemy": 10.8442797147492,
+			"kind": "stab",
+			"player": 10.8442797147492,
+			"speed": 3.2
+		},
+		{
+			"enemy": 51.8915728537803,
+			"kind": "stab",
+			"player": 51.8915728537803,
+			"speed": 7.0
+		},
+		{
+			"enemy": 152.497683488661,
+			"kind": "stab",
+			"player": 152.497683488661,
+			"speed": 12.0
+		},
+		{
+			"enemy": 0.0,
+			"kind": "flat",
+			"player": 0.0,
+			"speed": 0.0
+		},
+		{
+			"enemy": 1.05901169089348,
+			"kind": "flat",
+			"player": 1.05901169089348,
+			"speed": 1.0
+		},
+		{
+			"enemy": 10.8442797147492,
+			"kind": "flat",
+			"player": 10.8442797147492,
+			"speed": 3.2
+		},
+		{
+			"enemy": 51.8915728537803,
+			"kind": "flat",
+			"player": 51.8915728537803,
+			"speed": 7.0
+		},
+		{
+			"enemy": 152.497683488661,
+			"kind": "flat",
+			"player": 152.497683488661,
+			"speed": 12.0
+		}
+	],
+	"scope": "Native same sword mass/one-hand grip/preparation/speed/kind law and sample geometry; armor uses shared resolver, separate real-contact scene required.",
+	"sweep_samples": 10
+}

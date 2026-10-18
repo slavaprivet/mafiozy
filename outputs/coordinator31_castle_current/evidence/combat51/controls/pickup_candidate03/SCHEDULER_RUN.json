@@ -1,0 +1,91 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--path",
+    "D:/MafioziCombat31/resume51_controls/candidate03_game",
+    "--script",
+    "D:/MafioziCombat31/resume51_controls/pickup51.gd",
+    "--",
+    "--qa-out=D:/MafioziCombat31/resume51_controls/PICKUP_CANDIDATE03.json"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "1efe4bee43744fcd9534997d3f51a555",
+    "owner": {
+      "pid": 47852,
+      "creation_filetime": "134368073281742403"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\resume51_controls\\candidate03_game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 44420,
+        "creation_filetime": "134368073293039124",
+        "command_line": "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --headless --path D:/MafioziCombat31/resume51_controls/candidate03_game --script D:/MafioziCombat31/resume51_controls/pickup51.gd -- --qa-out=D:/MafioziCombat31/resume51_controls/PICKUP_CANDIDATE03.json",
+        "command": [
+          "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "D:/MafioziCombat31/resume51_controls/candidate03_game",
+          "--script",
+          "D:/MafioziCombat31/resume51_controls/pickup51.gd",
+          "--",
+          "--qa-out=D:/MafioziCombat31/resume51_controls/PICKUP_CANDIDATE03.json"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "d:\\mafiozicombat31\\resume51_controls\\candidate03_game",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 1275555.4711133,
+    "queued_at": 1275435.4711133,
+    "ticket": 4039,
+    "inventory_before": [
+      {
+        "pid": 45608,
+        "parent_pid": 50384,
+        "creation_filetime": "134368072999680333",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --path D:/MafioziCombat31/merged51/game --script D:/MafioziCombat31/merged51/side03/review51.gd",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози — перенос в Godot (DEBUG)"
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5775796000380069
+  },
+  "child": {
+    "pid": 44420,
+    "creation_filetime": "134368073293039124",
+    "command_line": "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --headless --path D:/MafioziCombat31/resume51_controls/candidate03_game --script D:/MafioziCombat31/resume51_controls/pickup51.gd -- --qa-out=D:/MafioziCombat31/resume51_controls/PICKUP_CANDIDATE03.json",
+    "command": [
+      "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--path",
+      "D:/MafioziCombat31/resume51_controls/candidate03_game",
+      "--script",
+      "D:/MafioziCombat31/resume51_controls/pickup51.gd",
+      "--",
+      "--qa-out=D:/MafioziCombat31/resume51_controls/PICKUP_CANDIDATE03.json"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\resume51_controls\\candidate03_game",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 13.801778099965304,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

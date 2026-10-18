@@ -30,5 +30,8 @@
 
 # Exact byte pins for the current unified castle assembly.
 /outputs/coordinator31_npc57/game/** -text
+/outputs/coordinator32_release50/game/** -text
 /outputs/coordinator31_castle_current/** -text
 /godot/current_version.json -text
+
+/outputs/coordinator32_release51/game/** -text

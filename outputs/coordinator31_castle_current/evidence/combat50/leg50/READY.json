@@ -1,0 +1,44 @@
+{
+  "status": "READY_COMPONENT",
+  "base": "root merged50 sword b3a683fb + player 51df2618",
+  "patch": "D:\\MafioziCombat31\\leg50\\leg50.patch",
+  "files": [
+    {
+      "path": "scripts/preview_player.gd",
+      "preimage_sha256": "51df261899f946bbbc50b7b20b6c54dae35e8eaa6be2932db9c44466687f4304",
+      "candidate_sha256": "f6e585b253bf98743b31781c775ffb61a5e2450b2e860ae240f717f751d951b6"
+    },
+    {
+      "path": "scripts/weapons/sword_prototype.gd",
+      "preimage_sha256": "b3a683fbf72d3e792e83afb5f46307aaf4960a2c446b01dbcb4264d2fc579b19",
+      "candidate_sha256": "b5427856e83f2637e4ca8c7793fc8a6212804c71c67e4fd944557102fc1cc6de"
+    }
+  ],
+  "source_pins": "D:\\MafioziCombat31\\leg50\\SOURCE_PINS.json",
+  "source_pins_sha256": "1f7ab4936c73b3b1b1cce14670443fc8409bdca367085aab5aad793a5d787c04",
+  "fixture": "D:\\MafioziCombat31\\leg50\\leg50.gd",
+  "fixture_sha256": "45ad10b02e619e5c5371b6107bf9539dee5a0c17628e9ca9311b43e90e1117ce",
+  "receipt": "D:\\MafioziCombat31\\leg50\\NATIVE04.json",
+  "scheduler": "D:\\MafioziCombat31\\leg50\\native04\\SCHEDULER_RUN.json",
+  "import": "D:\\MafioziCombat31\\leg50\\import01\\SCHEDULER_RUN.json",
+  "semantics": "Same NPC sever-only support rule; HP<=0 without sever does not change leg speed. Registered live sword host query avoids stale limb metadata across scene reload. One lost support .24, both 0; new normaljump/dive/dropkick denied; ongoing authored flight retires to native gravity without position write and preserves swept velocity. main untouched.",
+  "checks": {
+    "healthy_speed": 3.2,
+    "hp_zero_unsevered_speed": 3.2,
+    "one_leg_speed": 0.768,
+    "both_legs_speed": 0.0,
+    "native_scene_reload_speed": 3.2,
+    "midair_dive_sever_lands": true,
+    "midair_max_frame_step": 0.0873820186,
+    "native_stderr_bytes": 0
+  },
+  "limits": [
+    "Damage called actual shared damage/sever API with exact part; no claim of collision-delivered injury test.",
+    "Visual limp/fall appearance and full game acceptance not performed.",
+    "New contact-dropkick support guard included; no separate contact-dropkick flight matrix."
+  ],
+  "failed_attempts": [
+    "native01/native02 fixture parse type inference failure, engine exited before child registration; fixed explicit bool.",
+    "native03 fixture reload attempted before scene_changed, runtime error and watchdog timeout; fixed await valid current_scene. Raw retained."
+  ]
+}

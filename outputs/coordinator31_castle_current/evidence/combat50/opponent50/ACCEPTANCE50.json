@@ -1,0 +1,76 @@
+{
+  "status": "PASS_SCOPED_NATIVE",
+  "created_utc": "2026-10-18T13:34:17.626466+00:00",
+  "frozen_copy": {
+    "source": "D:\\MafioziCombat31\\merged50\\game",
+    "copied": "D:\\MafioziCombat31\\opponent50\\frozen_root50\\game",
+    "sha256": {
+      "scripts/weapons/sword_prototype.gd": "b3a683fbf72d3e792e83afb5f46307aaf4960a2c446b01dbcb4264d2fc579b19",
+      "scripts/weapons/bow_prototype.gd": "4e41a0e76b6b6ce0f09275604236fb859d2ddd39c4a3fea01b19ac877bb2ff4a",
+      "scripts/main.gd": "0a6a09d000f277b762f44df1aab42e938e46df952a7b30837120b2fab7e4b746"
+    },
+    "source_stable_during_copy": true
+  },
+  "checks": {
+    "duel": {
+      "passed": true,
+      "result": "D:\\MafioziCombat31\\opponent50\\frozen50_duel\\duel.json",
+      "result_sha256": "3204532b9dc078a99aed499ce60365b648315f714000f6cddc6d2803c5f56863",
+      "scheduler_receipt": "D:\\MafioziCombat31\\opponent50\\frozen50_duel\\SCHEDULER_RUN.json",
+      "source_receipt": "D:\\MafioziCombat31\\opponent50\\frozen50_duel\\SOURCE.json",
+      "stderr_bytes": 0,
+      "elapsed_seconds": 26.995194599963725
+    },
+    "player": {
+      "passed": true,
+      "result": "D:\\MafioziCombat31\\opponent50\\frozen50_player_result\\result.json",
+      "result_sha256": "e1c128f81d084a05e0bffef739b5f06ea70b10b95a1c0247fbc9585a08807363",
+      "scheduler_receipt": "D:\\MafioziCombat31\\opponent50\\frozen50_player\\SCHEDULER_RUN.json",
+      "source_receipt": "D:\\MafioziCombat31\\opponent50\\frozen50_player\\SOURCE.json",
+      "stderr_bytes": 0,
+      "elapsed_seconds": 14.489824800053611
+    },
+    "detour": {
+      "passed": true,
+      "result": "D:\\MafioziCombat31\\opponent50\\frozen50_detour\\detour.json",
+      "result_sha256": "7aab5ed2516dd0a022e590d1d8f690a1da6dbd5fafb2dbab626f5bb64ed7bc91",
+      "scheduler_receipt": "D:\\MafioziCombat31\\opponent50\\frozen50_detour\\SCHEDULER_RUN.json",
+      "source_receipt": "D:\\MafioziCombat31\\opponent50\\frozen50_detour\\SOURCE.json",
+      "stderr_bytes": 0,
+      "elapsed_seconds": 12.791471500182524
+    },
+    "retreat": {
+      "passed": true,
+      "result": "D:\\MafioziCombat31\\opponent50\\frozen50_retreat\\retreat.json",
+      "result_sha256": "24a7e687d0ae1f38c78fe4a9db29ebc88eda96daedc5a52dd712599f2e3e7488",
+      "scheduler_receipt": "D:\\MafioziCombat31\\opponent50\\frozen50_retreat\\SCHEDULER_RUN.json",
+      "source_receipt": "D:\\MafioziCombat31\\opponent50\\frozen50_retreat\\SOURCE.json",
+      "stderr_bytes": 0,
+      "elapsed_seconds": 10.477830399991944
+    },
+    "law": {
+      "passed": true,
+      "result": "D:\\MafioziCombat31\\opponent50\\frozen50_law\\LAW_PARITY.json",
+      "result_sha256": "776aecd82902cb48be40c76e56a24d163a1962861eda403298ebc0be4db3adc2",
+      "scheduler_receipt": "D:\\MafioziCombat31\\opponent50\\frozen50_law\\SCHEDULER_RUN.json",
+      "source_receipt": "D:\\MafioziCombat31\\opponent50\\frozen50_law\\SOURCE.json",
+      "stderr_bytes": 0,
+      "elapsed_seconds": 1.711514700204134
+    }
+  },
+  "observed": {
+    "npc_to_player": "Automatic pursuit from6m; five real blade contacts, head sever with5 original mesh layers and death,999ticks. No damage injection or teleport after setup.",
+    "player_to_npc": "Actual rack equip, mouse/LMB, second stroke forearm_l sever with original mesh pipeline, disarm and HP90 to0. Fatal wound did not suppress cut.",
+    "detour": "One3m-wide wall, lateral displacement2.377m, no wall crossing; windup1.5056m, hit native player upperarm.",
+    "retreat": "Start0.82m, backstep to1.257m, first windup1.161m; no pre-reach hit.",
+    "law": "15 of15 same contact speed/preparation/kind values and10 blade samples."
+  },
+  "limits": [
+    "Functional headless tests, no FPS acceptance.",
+    "Local bounded obstacle detour, not global maze pathfinding proof.",
+    "Equal shared damage/armor/sever mechanisms, not identical actor stats or AI/player input decisions.",
+    "Different starting HP90NPC/100player preserved.",
+    "Armor resolver and real contact geometry shared; these final natural combat tests are unarmored.",
+    "Parent may subsequently change heavy grip; final combined exact-scene gate remains parent responsibility."
+  ]
+}

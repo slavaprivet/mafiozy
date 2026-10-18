@@ -1,0 +1,76 @@
+{
+  "status": "READY_MAIN_SURFACE_FIX",
+  "base_revision": "castle-20261018-combined47-soil-armor",
+  "base_manifest_sha256": "90600062e6e452bf03b3a425cf074bb6db4154cc0cbf9147512dfe5eb42bcf79",
+  "base_pins": 1337,
+  "patch": "jump_surface50.patch",
+  "candidate_main": "main.candidate.gd",
+  "main_preimage_sha256": "db7cdd6edac58207295e612e39ec1a2bcf30437709b553d180f7cc6a8560bd10",
+  "main_candidate_sha256": "0a6a09d000f277b762f44df1aab42e938e46df952a7b30837120b2fab7e4b746",
+  "merged_sword_test_sha256": "1688f24c79d490e10ac8933c68a58e4c8cb148b644a194aa972942174111fac9",
+  "source_changes": [
+    {
+      "file": "scripts/main.gd",
+      "base_sha256": "db7cdd6edac58207295e612e39ec1a2bcf30437709b553d180f7cc6a8560bd10",
+      "test_sha256": "0a6a09d000f277b762f44df1aab42e938e46df952a7b30837120b2fab7e4b746"
+    },
+    {
+      "file": "scripts/weapons/sword_prototype.gd",
+      "base_sha256": "5b5bc4dceecdfcd30d2d7b4ef4f4bfc39a664759075cb4ce3247026ffe1bab2b",
+      "test_sha256": "1688f24c79d490e10ac8933c68a58e4c8cb148b644a194aa972942174111fac9"
+    }
+  ],
+  "fix_scope": "main.gd preview_jump_surface_allowed only; actual installed finite CastleGround collision box and radius inset replace obsolete +/-62m courtyard limit. Existing jump/dive/melee controllers unchanged.",
+  "evidence": {
+    "field_failure": {
+      "receipt": "BASELINE.json",
+      "scheduler": "baseline01/SCHEDULER_RUN.json",
+      "meaning": "Four armed Space/double-Space cases never leave ground before guard fix."
+    },
+    "movement_grip": {
+      "receipt": "CANDIDATE.json",
+      "scheduler": "candidate01/SCHEDULER_RUN.json",
+      "passed": true,
+      "meaning": "Eight source47 sword/sledge, field/courtyard Space/double-Space cases. Swept flight, active free melee, grip, release, landing/upright."
+    },
+    "merged_sword_normal_and_dive": {
+      "receipt": "MERGED_DAMAGE03.json",
+      "scheduler": "merged_damage03/SCHEDULER_RUN.json",
+      "whole_run_passed": false,
+      "row_scope": "First two sword cases each actual air hit34HP through native dummy contact. Remaining two sledge cases no contact; do not call whole run PASS."
+    },
+    "merged_sledge_normal": {
+      "receipt": "MERGED_DAMAGE02.json",
+      "scheduler": "merged_damage02/SCHEDULER_RUN.json",
+      "whole_run_passed": false,
+      "row_scope": "Sledge normal jump actual air hit34HP; dive missed static target."
+    },
+    "finite_bounds": {
+      "receipt": "MERGED_DAMAGE03.json",
+      "checks": [
+        "inside_field",
+        "edge_inside",
+        "radius_outside_rejected",
+        "outside_rejected",
+        "invalid_radius_rejected"
+      ],
+      "passed": true
+    },
+    "sledge_trace": "SLEDGE_TRACE.json"
+  },
+  "boundary": "Native training dummy positioned once before input (normal elevated0.7m,dive ground level), actual Space/LMB/mouse and collision damage; no direct damage injection. No complete NPC or ordinary GUI acceptance claimed.",
+  "pending": [
+    "Sledge dive actual hit after root final shared hand path; old trace sends dive weapon to negativeX while fixed dummy was positiveX. No further repeats per root instruction.",
+    "Final merged GUI/ordinary acceptance and performance belong to root."
+  ],
+  "fixtures": {
+    "jump50.gd": "3dad8e9af6c11aca6bb09efb076e1fdfe95e31a6f7d7d76412e4326b55f66f75",
+    "damage50.gd": "bbdd0eb6aa9363ac688e5a4248514a33be7ed0f87fa1666510a660209a6f8a3e",
+    "trace50.gd": "edc951352fc61dd7ae5a7b5f3cb61aa56dbf850a78008df90c12dd89eec4f4da",
+    "merged_trace50.gd": "b3886736844551e5882eeba64ccc1a490879926d00b052cf670899e8ba068a12",
+    "sledge_trace50.gd": "ba4b6adebd715b19197b2dbcf603b0a651ca5cdf771629c598832d5007f852f1"
+  },
+  "reusable": "jump50.gd and damage50.gd accept --qa-out=<absolute report JSON>; damage50 additionally accepts --weapon=sword or sledge.",
+  "shared_changed": false,
+  "raw_failures_preserved": true
+}

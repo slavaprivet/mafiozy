@@ -1,0 +1,56 @@
+{
+  "revision": "castle-20261018-combined50-combat-jumps",
+  "root_thread": "01a14cbd-8db9-7182-b9e7-0f277781b5fb",
+  "canonical_pointer": "godot/current_version.json",
+  "assembly": "outputs/coordinator31_castle_current/ASSEMBLY.json",
+  "game_relative": "outputs/coordinator32_release50/game",
+  "local_physical_game": "D:\\MafioziCombat31\\merged50\\game",
+  "freeze": "This D source is now a release. Do not clean up or edit it. New candidates copy exact manifest pins to D and publish a new release after review.",
+  "old_source": "outputs/coordinator31_npc57/game is historical43/47; do not overwrite it or launch it as latest. User requested replacing the old43 window after the screenshot.",
+  "user_controls": {
+    "melee": "Existing free LMB + mouse steering preserved; staged arm load/extension, all five melee.",
+    "jump": "Space; double Space forward dive; melee remains usable during flight."
+  },
+  "map_owner": "01a14e94-9c49-7f12-a3cd-1bbc0dd2e29b",
+  "map_pending": "49 grass/leg contact plus expanded camp visuals and optimization; D-only, withdrawn READY. Rebase on50.",
+  "old_roots_not_to_resume": [
+    "01a14e61-e58d-7e43-8d95-a6898cf0586f",
+    "01a14c14-47e7-7752-9922-2481c248366b"
+  ],
+  "automation3": "Observed PAUSED externally; preserve pause.",
+  "performance_accepted": false,
+  "limits": [
+    "No clean full-game FPS acceptance. User requested replacing the old43 window after identifying it in their screenshot.",
+    "Shared damage, armor and posed mesh sever mechanisms; NPC90/player100 initial HP retained.",
+    "Enemy obstacle routing is local bounded detour, not whole-maze pathfinding.",
+    "Self clearance verifies the full weapon axis including hilt against head/torso proxies, not full mesh geometry. Extreme unreachable poses stop at cached safe pose.",
+    "Sword ordinary jump and double-Space dive delivered actual34HP native dummy contacts on final source; sledge double-Space dive also delivered34HP on the exact final source; fixed targets placed before input, not moved during flight.",
+    "Leg support movement was tested with actual damage API, not collision-delivered injury; visual limp not fully reviewed.",
+    "Map/camp49 owner withdrew READY; only already accepted map44/armor46/soil47 retained."
+  ],
+  "next": "Collect user combat feel feedback; finish map owner49/camp separately. Keep one pointer and only accepted packages. All engine tests through scheduler; all new runs/candidates on D.",
+  "ordinary_delivery": {
+    "revision": "castle-20261018-combined50-combat-jumps",
+    "status": "ORDINARY_OPEN_READY",
+    "pid": 52880,
+    "started_at": "2026-10-18T16:57:17.7892089+03:00",
+    "assembly_sha256": "2b5871b6eddcc2ee05057a70fb50152f4193ff7e1df8727ee0494eb5f37c4bf7",
+    "replaced_old43_gracefully": true,
+    "reason": "User identified stale43 screenshot and requested current scene.",
+    "readiness": "evidence/combat50/ordinary50/CURRENT_READY.json",
+    "screenshot": "evidence/combat50/ordinary50/opened.png",
+    "performance_accepted": false
+  },
+  "user_rejection": {
+    "status": "REJECTED_BY_USER_PLAYTEST",
+    "revision": "castle-20261018-combined50-combat-jumps",
+    "published": false,
+    "observed": [
+      "Sword lateral swings constrained",
+      "Sledge wrists twist and horizontal input drags down",
+      "Hands remain bent near chest instead of extending into strike"
+    ],
+    "next": "Fix player pose and self-guard in separate51 candidate; retain hilt, NPC and jump changes. Do not publish staged50 tree.",
+    "time_utc": "2026-10-18T14:03:42.759824+00:00"
+  }
+}

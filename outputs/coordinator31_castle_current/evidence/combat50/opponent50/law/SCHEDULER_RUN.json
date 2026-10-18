@@ -1,0 +1,85 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--path",
+    "D:\\MafioziCombat31\\opponent50\\frozen_root50\\game",
+    "--script",
+    "D:\\MafioziCombat31\\opponent50\\law_parity.gd"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "1183ee09c1b746149f0a4d8afe3232ca",
+    "owner": {
+      "pid": 24304,
+      "creation_filetime": "134368039260171919"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\opponent50\\frozen_root50\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 53500,
+        "creation_filetime": "134368039271500847",
+        "command_line": "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\opponent50\\frozen_root50\\game --script D:\\MafioziCombat31\\opponent50\\law_parity.gd",
+        "command": [
+          "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "D:\\MafioziCombat31\\opponent50\\frozen_root50\\game",
+          "--script",
+          "D:\\MafioziCombat31\\opponent50\\law_parity.gd"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "d:\\mafiozicombat31\\opponent50\\frozen_root50\\game",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 1272153.2825073,
+    "queued_at": 1272033.2825073,
+    "ticket": 3980,
+    "inventory_before": [
+      {
+        "pid": 12656,
+        "parent_pid": 43696,
+        "creation_filetime": "134368008441584844",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\game\" --script \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_castle_current\\bootstrap_castle.gd\" -- \"--receipt-dir=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261018T124044131Z\" \"--release-title=Замок и осада · замах и подбор 43\" \"--release-revision=castle-20261018-combined43-raised-arms\" --castle=1 --castle-start-outside=1",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози — Замок и осада · замах и подбор 43 (DEBUG)"
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5946523000020534
+  },
+  "child": {
+    "pid": 53500,
+    "creation_filetime": "134368039271500847",
+    "command_line": "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\opponent50\\frozen_root50\\game --script D:\\MafioziCombat31\\opponent50\\law_parity.gd",
+    "command": [
+      "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--path",
+      "D:\\MafioziCombat31\\opponent50\\frozen_root50\\game",
+      "--script",
+      "D:\\MafioziCombat31\\opponent50\\law_parity.gd"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\opponent50\\frozen_root50\\game",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 1.711514700204134,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

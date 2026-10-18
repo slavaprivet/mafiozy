@@ -1,0 +1,23 @@
+{
+	"bounds_checks": {
+		"edge_inside": true,
+		"inside_field": true,
+		"invalid_radius_rejected": true,
+		"outside_rejected": true,
+		"radius_outside_rejected": true
+	},
+	"cases": [],
+	"errors": [
+		"input_not_1to1",
+		"input_not_1to1"
+	],
+	"input_probe": {
+		"delivered": 199.999984741211,
+		"direction": -1.0,
+		"injected": 10.0,
+		"viewport": "(64, 64)"
+	},
+	"input_protocol": "Same native dummy on ray-verified support ahead1.3m normal/3m dive, fixed before Space. Horizontal held mouse12x-10,12x+20,12x-10px, no target or actor changes after input.",
+	"passed": false,
+	"scope": "Real space/double-space + mouse hold/motion, airborne controls/grip/sweeps/release/landing. Native existing training target moved once before input, actual swept contacts and damage observed while airborne. Pixel appearance not accepted."
+}

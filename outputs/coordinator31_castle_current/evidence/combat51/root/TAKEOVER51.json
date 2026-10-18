@@ -1,0 +1,28 @@
+{
+  "root": "01a14f5a-83ca-7771-b1c4-ea45592b8f18",
+  "previous_root": "01a14cbd-8db9-7182-b9e7-0f277781b5fb",
+  "previous_status": "interrupted/idle observed",
+  "base": "castle-20261018-combined50-combat-jumps",
+  "candidate": "D:\\MafioziCombat31\\merged51\\game",
+  "candidate_drift_from50": [],
+  "status": "IN_PROGRESS_NOT_ACCEPTED",
+  "agents": [
+    "hilt_resume51",
+    "controls_qa51",
+    "opponent_qa51"
+  ],
+  "prior_agents_resumption": "Read prior histories; direct continuation unavailable across multi-agent trees; successor agents explicitly authorized by user",
+  "constraints": [
+    "preserve open user game and frozen50",
+    "all engine runs via scheduler, new files D",
+    "do not publish rejected50",
+    "do not resume paused automation"
+  ],
+  "created_utc": "2026-10-18T14:14:14.964396+00:00",
+  "findings": [
+    "Sword candidate01 reach improved but not accepted",
+    "Heavy horizontal trace dips to ground: candidate01 rejected",
+    "preview_player camera rotates under held mouse while visual facing remains fixed; competing camera/body hemisphere constraints distort target",
+    "hilt_resume51 implements bounded melee body facing and heavy braking; controls_qa51 independently compares raw traces"
+  ]
+}

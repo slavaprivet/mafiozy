@@ -1,0 +1,78 @@
+{
+  "mode": "graphical",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+    "--path",
+    "D:/MafioziCombat31/merged50/game",
+    "--script",
+    "D:/MafioziCombat31/merged50/final_visual/review50.gd"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "aadef6eaf2ca43eaa7af1d55d90b2953",
+    "owner": {
+      "pid": 51160,
+      "creation_filetime": "134368048092407856"
+    },
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\merged50\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 5600,
+        "creation_filetime": "134368048104056153",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --path D:/MafioziCombat31/merged50/game --script D:/MafioziCombat31/merged50/final_visual/review50.gd",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+          "--path",
+          "D:/MafioziCombat31/merged50/game",
+          "--script",
+          "D:/MafioziCombat31/merged50/final_visual/review50.gd"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "graphical",
+        "project": "d:\\mafiozicombat31\\merged50\\game"
+      }
+    ],
+    "deadline": 1272976.5100298,
+    "queued_at": 1272916.5100298,
+    "ticket": 3995,
+    "inventory_before": [
+      {
+        "pid": 12656,
+        "parent_pid": 43696,
+        "creation_filetime": "134368008441584844",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\game\" --script \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_castle_current\\bootstrap_castle.gd\" -- \"--receipt-dir=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261018T124044131Z\" \"--release-title=Замок и осада · замах и подбор 43\" \"--release-revision=castle-20261018-combined43-raised-arms\" --castle=1 --castle-start-outside=1",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози — Замок и осада · замах и подбор 43 (DEBUG)"
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.6274087999481708
+  },
+  "child": {
+    "pid": 5600,
+    "creation_filetime": "134368048104056153",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --path D:/MafioziCombat31/merged50/game --script D:/MafioziCombat31/merged50/final_visual/review50.gd",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+      "--path",
+      "D:/MafioziCombat31/merged50/game",
+      "--script",
+      "D:/MafioziCombat31/merged50/final_visual/review50.gd"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\merged50\\game"
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 26.90880659990944,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

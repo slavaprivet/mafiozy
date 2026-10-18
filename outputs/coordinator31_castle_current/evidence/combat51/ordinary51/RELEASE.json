@@ -1,0 +1,11 @@
+{
+  "schema": "mafiozi.current-play/v1",
+  "title": "Замок и осада · свободный бой 51",
+  "revision": "castle-20261018-combined51-free-melee",
+  "assembly": "outputs/coordinator31_castle_current/ASSEMBLY.json",
+  "assembly_sha256": "43523c1c0b43489732cca1287ad49fde8e43a4f674fbfd12f77d0183a6b1d1ce",
+  "bootstrap": "outputs/coordinator31_castle_current/bootstrap_castle.gd",
+  "bootstrap_sha256": "318b2fe49cf454e0f41766ac4e5aa23ea43b2a26f5fa8d5b9c2ed3a617d0858b",
+  "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "scope": "Combined50 retained; free lateral melee51 and arms corrected. Spear/bow aim52 in progress."
+}

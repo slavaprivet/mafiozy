@@ -1,0 +1,22 @@
+{
+  "status": "TARGET_MISS_NOT_ACCEPTED",
+  "one_requested_targeted_run_completed": true,
+  "source_drift": [],
+  "source_sword": "72b043623ca3d70f27fcc5485680d2cb7780b6f97470a6e13a86295f0293146f",
+  "source_player": "3e1e46febba29274b1fc2357bd1e06ce36ce10f0571c19458db5ba6e48408052",
+  "receipt": "D:\\MafioziCombat31\\final_sledge50\\RESULT.json",
+  "scheduler": "D:\\MafioziCombat31\\final_sledge50\\native01\\SCHEDULER_RUN.json",
+  "target": [
+    -0.85,
+    0.080102540552616,
+    986.2
+  ],
+  "rationale": "Target on negative-X side from older SLEDGE_TRACE tick25 strike; kept fixed throughout. Final anchor05 route differs from earlier trace.",
+  "observation": "No damage. Current final tip at tick30=(.996856,1.248407,986.3818), tick35=(1.01767,.884044,985.6025), positive X. Current path misses fixed negative-X capsule. Air hold55ticks, damage gate55ticks,830 rays; landing and hands passed.",
+  "closest_sampled_blade_axis_distance_m": 0.9080587999733282,
+  "closest_sample_tick": 30,
+  "capsule_radius_m": 0.28,
+  "sample_limit": "Trace every5ticks; distance is sampled support for miss diagnosis, not exhaustive collision proof. Native actual hits0.",
+  "conclusion": "No evidence of airborne gating defect from this miss. Real sledge dive damage remains unverified. No further target retries and no source changes, per parent request.",
+  "followup_if_authorized": "A future exact-final target at x=+1.0,z=start-4.0,floor y is justified by this final trace, not the old route."
+}

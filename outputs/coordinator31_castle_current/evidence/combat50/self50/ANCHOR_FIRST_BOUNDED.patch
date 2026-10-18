@@ -1,0 +1,147 @@
+--- a/scripts/weapons/sword_prototype.gd
++++ b/scripts/weapons/sword_prototype.gd
+@@ -2575,6 +2575,8 @@
+ 	var bone := _hand_bone_for(_active_side())
+ 	if bone < 0: return
+ 	var started := Time.get_ticks_usec()
++	_self_begin_step45()
++	_dir = _self_limit_step45(_dir)
+ 	var incoming_direction := _dir
+ 	var incoming_bones: Array[Transform3D] = []
+ 	for index in _rig.get_bone_count(): incoming_bones.append(_rig.get_bone_pose(index))
+@@ -2583,26 +2585,25 @@
+ 	_self_evaluate_pose45(_dir)
+ 	if not _held: _settle_carried_blade()
+ 	var requested := _dir
+-	# Test changes against the new palm anchor, with a fixed small IK budget.
++	# Resolve the hand anchor before changing weapon orientation. The old
++	# anchor can make an otherwise reachable downstroke appear to hit the head.
++	var resolved := _self_path_clear45(requested)
+ 	for attempt in 6:
+-		var safe_dir := _guard_self_blade(_contact_direction(_dir))
+-		if safe_dir.distance_squared_to(_dir) <= 0.000001 and _self_blade_clear(_dir): break
+-		if not _self_blade_clear(safe_dir):
+-			_self_pose_forward = minf(0.80, _self_pose_forward + 0.12)
+-		if _self_evaluate_pose45(safe_dir): break
++		if resolved: break
+ 		_self_pose_forward = minf(0.80, _self_pose_forward + 0.12)
+-	if not _self_blade_clear(_dir):
+-		# First retry the last safe direction with THIS frame's arm/body anchor.
+-		var resolved := false
+-		if _self_safe_dir.length_squared() > 0.5:
+-			resolved = _self_evaluate_pose45(_self_safe_dir)
++		_self_evaluate_pose45(requested)
++		resolved = _self_path_clear45(requested)
++	if not resolved:
++		# A known pose is safer than rotating the weapon abruptly around the
++		# head. Restore it only after validating it against this frame's body.
++		resolved = _restore_safe_self_pose45()
+ 		if not resolved:
++			# Cold equipment has no compatible verified pose yet. Search locally
++			# with the remaining fixed budget, never displaying a rejected trial.
+ 			var tangent := requested.cross(Vector3.UP).normalized()
+ 			if tangent.length_squared() < 0.5:
+ 				tangent = requested.cross(Vector3.RIGHT).normalized()
+-			# Sixteen candidates, at most a quarter-turn from the request. No
+-			# unbounded search and no 180-degree snap to the opposite side.
+-			for angle: float in [15.0, 30.0, 60.0, 90.0]:
++			for angle: float in [5.0, 10.0, 15.0, 20.0]:
+ 				for spoke in 4:
+ 					var axis := tangent.rotated(requested, PI * 0.5 * float(spoke))
+ 					var next := requested.rotated(axis, deg_to_rad(angle)).normalized()
+@@ -2610,27 +2611,21 @@
+ 						resolved = true
+ 						break
+ 				if resolved: break
+-		if resolved:
+-			_self_safe_dir = _dir
+-			_omega *= 0.35
+-		else:
+-			# Never retain the final rejected search pose. A previous verified
+-			# pose is stored relative to the rig, so player translation/rotation
+-			# still follows the player while the arm safely holds its last pose.
+-			if not _restore_safe_self_pose45():
+-				# A new weapon/grip may not have a verified history yet. Restore
+-				# the incoming pose and expose unresolved, never a rejected trial.
+-				for index in incoming_bones.size():
+-					_rig.set_bone_pose(index, incoming_bones[index])
+-				_rig.force_update_all_bone_transforms()
+-				_dir = incoming_direction
+-				_sword_origin = _palm_position(_active_side()) + _dir * _grip_origin_offset()
++		if not resolved:
++			for index in incoming_bones.size():
++				_rig.set_bone_pose(index, incoming_bones[index])
++			_rig.force_update_all_bone_transforms()
++			_dir = incoming_direction
++			_sword_origin = _palm_position(_active_side()) + _dir * _grip_origin_offset()
+ 	_self_pose_clear = _self_blade_clear(_dir)
+ 	if _self_pose_clear:
+ 		_self_safe_dir = _dir
+ 		_save_safe_self_pose45()
+ 	else:
+ 		_self_pose_unresolved45 += 1
++	_self_model_frame45 = Engine.get_physics_frames()
++	if _held:
++		_self_motion_excess45 = maxf(_self_motion_excess45, _self_motion_from45.angle_to(_dir) - _self_motion_budget45)
+ 	_place_sword(_sword_origin, _dir)
+ 	var fist := _palm_position(_active_side())
+ 	_grip_hand_error = (_sword_origin - _dir * _grip_origin_offset()).distance_to(fist)
+@@ -2652,10 +2647,49 @@
+ var _self_safe_weapon45 := ""
+ var _self_safe_side45: StringName = &""
+ 
++var _self_motion_frame45 := -1
++var _self_motion_from45 := Vector3.ZERO
++var _self_motion_weapon45 := ""
++var _self_motion_budget45 := 0.0
++var _self_motion_excess45 := 0.0
++var _self_model_frame45 := -1
++
++func _self_begin_step45() -> void:
++	var frame := Engine.get_physics_frames()
++	if not _held or _self_motion_weapon45 != _weapon_id or _self_motion_from45.length_squared() < 0.5:
++		_self_motion_from45 = _dir
++		_self_motion_weapon45 = _weapon_id
++		_self_motion_frame45 = frame
++	elif frame != _self_motion_frame45:
++		_self_motion_from45 = _self_safe_dir if _self_safe_dir.length_squared() > 0.5 else _dir
++		_self_motion_frame45 = frame
++	var rate := 10.0
++	if _weapon_id == "sledge": rate = 7.6
++	elif _weapon_id == "mace": rate = 8.4
++	elif _weapon_id == "axe": rate = 7.4
++	elif _weapon_id == "spear": rate = 8.0
++	elif _weapon_id == "sword" and _active_side() != &"both": rate = 9.0
++	_self_motion_budget45 = rate * get_physics_process_delta_time()
++
++func _self_limit_step45(direction: Vector3) -> Vector3:
++	if not _held or _self_motion_from45.length_squared() < 0.5: return direction
++	var angle := _self_motion_from45.angle_to(direction)
++	if angle <= _self_motion_budget45: return direction
++	return _self_motion_from45.slerp(direction, _self_motion_budget45 / angle).normalized()
++
++func _self_path_clear45(direction: Vector3) -> bool:
++	if not _self_blade_clear(direction): return false
++	if _self_safe_weapon45 != _weapon_id or _self_safe_side45 != _active_side(): return true
++	if _self_safe_dir.length_squared() < 0.5: return true
++	var steps := maxi(1, ceili(_self_safe_dir.angle_to(direction) / deg_to_rad(3.0)))
++	for step in range(steps + 1):
++		if not _self_blade_clear(_self_safe_dir.slerp(direction, float(step) / steps).normalized()): return false
++	return true
++
+ func _self_evaluate_pose45(direction: Vector3) -> bool:
+ 	if _self_pose_evaluations45 >= SELF_POSE_IK_BUDGET45: return false
+ 	_self_pose_evaluations45 += 1
+-	_dir = direction
++	_dir = _self_limit_step45(direction)
+ 	_solve_arm(0.0)
+ 	_rig.force_update_all_bone_transforms()
+ 	_sword_origin = _palm_position(_active_side()) + _dir * _grip_origin_offset()
+@@ -2678,6 +2712,7 @@
+ 	_dir = (_rig.global_basis * _self_safe_local_dir45).normalized()
+ 	_sword_origin = _palm_position(_active_side()) + _dir * _grip_origin_offset()
+ 	_self_pose_restores45 += 1
++	if _held and _dir.angle_to(_self_limit_step45(_dir)) > 0.0001: return false
+ 	return _self_blade_clear(_dir)
+ 
+ 

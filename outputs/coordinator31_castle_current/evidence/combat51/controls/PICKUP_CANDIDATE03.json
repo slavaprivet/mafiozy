@@ -1,0 +1,220 @@
+{
+	"errors": [],
+	"passed": true,
+	"rows": [
+		{
+			"carried": {
+				"sledge": true
+			},
+			"fallen": [],
+			"fire_weapon": "sledge",
+			"ground_weapon": "sword",
+			"hand": "sledge",
+			"host_grounded": false,
+			"host_unarmed": false,
+			"host_weapon": "sledge",
+			"owner": "castle_pickup",
+			"selected": true,
+			"stage": "before_g",
+			"target_model_id": 531519002990
+		},
+		{
+			"carried": {},
+			"fallen": [
+				"sledge"
+			],
+			"fire_weapon": "none",
+			"ground_weapon": "sword",
+			"hand": "",
+			"host_grounded": false,
+			"host_unarmed": false,
+			"host_weapon": "sledge",
+			"owner": "castle_pickup",
+			"selected": false,
+			"stage": "after_g",
+			"target_model_id": 531519002990
+		},
+		{
+			"carried": {},
+			"fallen": [
+				"sledge"
+			],
+			"fire_weapon": "none",
+			"ground_weapon": "sword",
+			"hand": "",
+			"host_grounded": false,
+			"host_unarmed": false,
+			"host_weapon": "sledge",
+			"owner": "castle_pickup",
+			"selected": false,
+			"stage": "before_e",
+			"target_model_id": 531519002990
+		},
+		{
+			"carried": {
+				"sword": true
+			},
+			"fallen": [
+				"sledge"
+			],
+			"fire_weapon": "sword",
+			"ground_weapon": "",
+			"hand": "sword",
+			"host_grounded": false,
+			"host_unarmed": false,
+			"host_weapon": "sword",
+			"owner": "",
+			"selected": true,
+			"stage": "after_e",
+			"target_model_id": 551953646351
+		},
+		{
+			"carried": {},
+			"fallen": [
+				"sledge"
+			],
+			"fire_weapon": "none",
+			"ground_weapon": "sword",
+			"hand": "",
+			"host_grounded": true,
+			"host_unarmed": false,
+			"host_weapon": "sword",
+			"owner": "castle_pickup",
+			"selected": false,
+			"stage": "foreign_sword_dropped",
+			"target_model_id": 551953646351
+		},
+		{
+			"carried": {
+				"sword": true
+			},
+			"fallen": [
+				"sledge"
+			],
+			"fire_weapon": "sword",
+			"ground_weapon": "",
+			"hand": "sword",
+			"host_grounded": false,
+			"host_unarmed": false,
+			"host_weapon": "sword",
+			"owner": "",
+			"selected": true,
+			"stage": "foreign_sword_recovered",
+			"target_model_id": 551953646351
+		},
+		{
+			"carried": {
+				"sledge": true
+			},
+			"fallen": [],
+			"fire_weapon": "sledge",
+			"ground_weapon": "",
+			"hand": "sledge",
+			"host_grounded": false,
+			"host_unarmed": false,
+			"host_weapon": "sledge",
+			"owner": "",
+			"selected": true,
+			"stage": "sledge_recovered_while_sword_grounded",
+			"target_model_id": 531519002990
+		},
+		{
+			"carried": {},
+			"fallen": [
+				"sledge"
+			],
+			"fire_weapon": "none",
+			"ground_weapon": "sword",
+			"hand": "",
+			"host_grounded": false,
+			"host_unarmed": false,
+			"host_weapon": "sledge",
+			"owner": "castle_pickup",
+			"selected": false,
+			"stage": "before_whole_root_e",
+			"target_model_id": 531519002990
+		},
+		{
+			"carried": {
+				"sword": true
+			},
+			"fallen": [
+				"sledge"
+			],
+			"fire_weapon": "sword",
+			"ground_weapon": "",
+			"hand": "sword",
+			"host_grounded": false,
+			"host_unarmed": false,
+			"host_weapon": "sword",
+			"owner": "",
+			"selected": true,
+			"stage": "after_whole_root_e",
+			"target_model_id": 551953646351
+		},
+		{
+			"actual_parts": [
+				{
+					"color": "(0.74, 0.78, 0.84, 1.0)",
+					"id": 552591180368,
+					"name": "StaticMaterial0",
+					"vertices": 60,
+					"visible": true
+				},
+				{
+					"color": "(0.52, 0.56, 0.62, 1.0)",
+					"id": 552641512212,
+					"name": "StaticMaterial1",
+					"vertices": 366,
+					"visible": true
+				},
+				{
+					"color": "(0.5, 0.39, 0.19, 1.0)",
+					"id": 552691843675,
+					"name": "StaticMaterial2",
+					"vertices": 704,
+					"visible": true
+				},
+				{
+					"color": "(0.22, 0.14, 0.1, 1.0)",
+					"id": 552742175321,
+					"name": "StaticMaterial3",
+					"vertices": 67,
+					"visible": true
+				}
+			],
+			"expected_parts": [
+				{
+					"color": "(0.74, 0.78, 0.84, 1.0)",
+					"id": 552591180368,
+					"name": "StaticMaterial0",
+					"vertices": 60,
+					"visible": true
+				},
+				{
+					"color": "(0.52, 0.56, 0.62, 1.0)",
+					"id": 552641512212,
+					"name": "StaticMaterial1",
+					"vertices": 366,
+					"visible": true
+				},
+				{
+					"color": "(0.5, 0.39, 0.19, 1.0)",
+					"id": 552691843675,
+					"name": "StaticMaterial2",
+					"vertices": 704,
+					"visible": true
+				},
+				{
+					"color": "(0.22, 0.14, 0.1, 1.0)",
+					"id": 552742175321,
+					"name": "StaticMaterial3",
+					"vertices": 67,
+					"visible": true
+				}
+			],
+			"stage": "whole_model_evidence"
+		}
+	],
+	"scope": "Native G drop sledge, NPC physical ground sword, E through common interaction owner; no combat/performance acceptance."
+}

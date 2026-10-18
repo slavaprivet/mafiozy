@@ -1,0 +1,54 @@
+{
+  "status": "candidate03_component_and_visual_review_complete_user_feel_not_accepted",
+  "source": "sword.candidate03.gd",
+  "source_sha256": "8c1318349b4831b6d7d0626d93936da19cc5d101f1af785fd95909244717e6a6",
+  "baseline_sha256": "72b043623ca3d70f27fcc5485680d2cb7780b6f97470a6e13a86295f0293146f",
+  "base_manifest": "BASE_MANIFEST50.json",
+  "patch": "CANDIDATE03.patch",
+  "changed_files": [
+    "scripts/weapons/sword_prototype.gd"
+  ],
+  "changes": [
+    "Do not shorten active one-hand reach when omega slows",
+    "Two-hand grip uses deeper forward reach and stable loading position independent of omega",
+    "Palm roll follows forearm reach; forearm shares pronation to reduce wrist fold",
+    "Swept self-clearance interpolates real previous/current grip anchors and matching local direction",
+    "Self contact removes forbidden angular momentum component, preserving tangential exit",
+    "Heavy angular acceleration stays bounded; braking torque applies without delayed sign reversal",
+    "Held melee body follows free camera yaw at bounded8rad/s and updates movement heading",
+    "Elapsed physics steps rather than draw frames determine self-guard motion budget/clearance decay"
+  ],
+  "native": {
+    "passed": true,
+    "total": 2154,
+    "penetrating_frames": 0,
+    "unresolved": 0,
+    "cached_pose_restores": 110,
+    "max_ik_evaluations": 7,
+    "max_grip_error": 1.20137002568299e-07,
+    "max_support_grip_error": 6.10359493293799e-05,
+    "component_usec_p95": 266
+  },
+  "visual": {
+    "passed": true,
+    "errors": [],
+    "frames": 21,
+    "folder": "visual03",
+    "reviewed": [
+      "sledge_-1_load.png",
+      "sledge_-1_strike_1.png",
+      "sledge_high.png",
+      "sword_-1_strike_1.png"
+    ]
+  },
+  "independent_corrected_controls": "D:/MafioziCombat31/resume51_controls/CANDIDATE03_V3.json",
+  "limitations": [
+    "Headless previous controls scaled dx10 to200 due64px window; old control01/02 are stress tests, not ordinary user motion",
+    "Native2154 covers stress input with5 weapons but not full triangle-mesh self collision",
+    "Current high sledge grip is beside/front of face rather than a deep shoulder windup; optional follow-up pose experiment not included",
+    "Some extreme unreachable poses restore verified safe pose110times/2154samples",
+    "Movement/dive/jump and actual NPC contact acceptance belongs to root merged51 suite",
+    "No full game FPS acceptance; user feel still requires actual play"
+  ],
+  "root_files_untouched": true
+}

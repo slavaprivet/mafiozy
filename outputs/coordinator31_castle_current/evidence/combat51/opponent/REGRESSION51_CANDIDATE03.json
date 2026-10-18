@@ -1,0 +1,656 @@
+{
+  "status": "PASS_SCOPED_BILATERAL_CONTACT_WITH_RETAINED_MISSES",
+  "source": "D:\\MafioziCombat31\\resume51_opponent\\candidate03\\game",
+  "sword_sha256": "8c1318349b4831b6d7d0626d93936da19cc5d101f1af785fd95909244717e6a6",
+  "source_drift": [],
+  "scope": [
+    "NPC natural auto-aggro/chase/sever, detour and retreat PASS.",
+    "Player sword both directions native NPC head sever PASS with verified10px->10px input.",
+    "Sword and sledge both lateral directions actual airborne dive contacts; same native dummy on ray verified support, fixed before input.",
+    "Functional source acceptance only. User feel and visual review separate."
+  ],
+  "bilateral_dive_damage": {
+    "sword_left": 34.0,
+    "sword_right": 17.7454231951487,
+    "sledge_left": 34.0,
+    "sledge_right": 34.0
+  },
+  "limitations": [
+    "Not all prescribed inputs hit. Raw03c misses preserved.",
+    "Downward aim03d still missed sword normal left and sledge normal right. Those whole fixtures are FAIL, despite successful dive subcases.",
+    "Initial legacy input20x was unsuitable for1:1 acceptance.03b aimed cases stopped before attacks on input_probe failure.",
+    "03a runner path setup failure and rapid viewport probe scheduler registration race preserved; no gameplay failure inferred."
+  ],
+  "results": [
+    {
+      "case": "duel",
+      "exit_code": 0,
+      "source_drift": [],
+      "harness_sha256": "2a49dab22bd6a62eb73dfb0c2b6f6206104fc0a95ee28fee92d85f7f85bf4bd5",
+      "fixture_passed": true,
+      "scheduler_passed": true,
+      "result": "D:\\MafioziCombat31\\resume51_opponent\\native03b\\duel\\result.json",
+      "errors": [],
+      "passed": true,
+      "suite": "native03b",
+      "result_sha256": "bfab2c8bddd3cbcc0cef2d4f19d3e55d2d46b18426b7890446d866147fef7e3d",
+      "input_probe": null,
+      "air_contacts": [],
+      "npc_final": null,
+      "npc_hits": 5,
+      "npc_sever_layers": 5
+    },
+    {
+      "case": "detour",
+      "exit_code": 0,
+      "source_drift": [],
+      "harness_sha256": "4b40635dd9bd26a36131c73bf4c46da0b511a0d5de56592bc1796b239941985a",
+      "fixture_passed": true,
+      "scheduler_passed": true,
+      "result": "D:\\MafioziCombat31\\resume51_opponent\\native03b\\detour\\result.json",
+      "errors": [],
+      "passed": true,
+      "suite": "native03b",
+      "result_sha256": "2e14cb5e43b5e2f03be62e054bdfd4554782066a2936ffbd8249bafa8e3d2fd3",
+      "input_probe": null,
+      "air_contacts": [],
+      "npc_final": null,
+      "npc_hits": 1,
+      "npc_sever_layers": null
+    },
+    {
+      "case": "retreat",
+      "exit_code": 0,
+      "source_drift": [],
+      "harness_sha256": "4b40635dd9bd26a36131c73bf4c46da0b511a0d5de56592bc1796b239941985a",
+      "fixture_passed": true,
+      "scheduler_passed": true,
+      "result": "D:\\MafioziCombat31\\resume51_opponent\\native03b\\retreat\\result.json",
+      "errors": [],
+      "passed": true,
+      "suite": "native03b",
+      "result_sha256": "24a7e687d0ae1f38c78fe4a9db29ebc88eda96daedc5a52dd712599f2e3e7488",
+      "input_probe": null,
+      "air_contacts": [],
+      "npc_final": null,
+      "npc_hits": 0,
+      "npc_sever_layers": null
+    },
+    {
+      "case": "aimed_player_left",
+      "exit_code": 2,
+      "source_drift": [],
+      "harness_sha256": "331be3ffc773c730633a8c510519b9f1d0e5c9da863f5099054b3bfa0b9bf109",
+      "fixture_passed": false,
+      "scheduler_passed": false,
+      "result": "D:\\MafioziCombat31\\resume51_opponent\\native03b\\aimed_player_left\\result.json",
+      "errors": [
+        "input_not_1to1"
+      ],
+      "passed": false,
+      "suite": "native03b",
+      "result_sha256": "7dd48e5a4e2e20bcd42874b60be1ccd96d7c78e245727df2affbda176d3131b7",
+      "input_probe": {
+        "delivered": 199.999984741211,
+        "direction": -1.0,
+        "injected": 10.0,
+        "viewport": "(64, 64)"
+      },
+      "air_contacts": [],
+      "npc_final": null,
+      "npc_hits": null,
+      "npc_sever_layers": null
+    },
+    {
+      "case": "aimed_air_sword_left",
+      "exit_code": 2,
+      "source_drift": [],
+      "harness_sha256": "85dc3f620da5f22b7bb025c7306efe6855e4fa63264df8c034e4d7eae69ba490",
+      "fixture_passed": false,
+      "scheduler_passed": false,
+      "result": "D:\\MafioziCombat31\\resume51_opponent\\native03b\\aimed_air_sword_left\\result.json",
+      "errors": [
+        "input_not_1to1",
+        "input_not_1to1"
+      ],
+      "passed": false,
+      "suite": "native03b",
+      "result_sha256": "fe698fa95b868f2d6a6471aea985440b7ecbbf00325552f64de2cf2bfb4e4e54",
+      "input_probe": {
+        "delivered": 199.999984741211,
+        "direction": -1.0,
+        "injected": 10.0,
+        "viewport": "(64, 64)"
+      },
+      "air_contacts": [],
+      "npc_final": null,
+      "npc_hits": null,
+      "npc_sever_layers": null
+    },
+    {
+      "case": "aimed_air_sledge_left",
+      "exit_code": 2,
+      "source_drift": [],
+      "harness_sha256": "85dc3f620da5f22b7bb025c7306efe6855e4fa63264df8c034e4d7eae69ba490",
+      "fixture_passed": false,
+      "scheduler_passed": false,
+      "result": "D:\\MafioziCombat31\\resume51_opponent\\native03b\\aimed_air_sledge_left\\result.json",
+      "errors": [
+        "input_not_1to1",
+        "input_not_1to1"
+      ],
+      "passed": false,
+      "suite": "native03b",
+      "result_sha256": "fe698fa95b868f2d6a6471aea985440b7ecbbf00325552f64de2cf2bfb4e4e54",
+      "input_probe": {
+        "delivered": 199.999984741211,
+        "direction": -1.0,
+        "injected": 10.0,
+        "viewport": "(64, 64)"
+      },
+      "air_contacts": [],
+      "npc_final": null,
+      "npc_hits": null,
+      "npc_sever_layers": null
+    },
+    {
+      "case": "aimed_player_right",
+      "exit_code": 2,
+      "source_drift": [],
+      "harness_sha256": "331be3ffc773c730633a8c510519b9f1d0e5c9da863f5099054b3bfa0b9bf109",
+      "fixture_passed": false,
+      "scheduler_passed": false,
+      "result": "D:\\MafioziCombat31\\resume51_opponent\\native03b\\aimed_player_right\\result.json",
+      "errors": [
+        "input_not_1to1"
+      ],
+      "passed": false,
+      "suite": "native03b",
+      "result_sha256": "123c72203806d9b26a6871e47798f507288d3741c324c3e7d003340286fd719b",
+      "input_probe": {
+        "delivered": 199.999984741211,
+        "direction": 1.0,
+        "injected": 10.0,
+        "viewport": "(64, 64)"
+      },
+      "air_contacts": [],
+      "npc_final": null,
+      "npc_hits": null,
+      "npc_sever_layers": null
+    },
+    {
+      "case": "aimed_air_sword_right",
+      "exit_code": 2,
+      "source_drift": [],
+      "harness_sha256": "85dc3f620da5f22b7bb025c7306efe6855e4fa63264df8c034e4d7eae69ba490",
+      "fixture_passed": false,
+      "scheduler_passed": false,
+      "result": "D:\\MafioziCombat31\\resume51_opponent\\native03b\\aimed_air_sword_right\\result.json",
+      "errors": [
+        "input_not_1to1",
+        "input_not_1to1"
+      ],
+      "passed": false,
+      "suite": "native03b",
+      "result_sha256": "799bf34d4f97443e3d77130bf1944cd39a24bb8c74ccad68d424e734b9e81c3d",
+      "input_probe": {
+        "delivered": 199.999984741211,
+        "direction": 1.0,
+        "injected": 10.0,
+        "viewport": "(64, 64)"
+      },
+      "air_contacts": [],
+      "npc_final": null,
+      "npc_hits": null,
+      "npc_sever_layers": null
+    },
+    {
+      "case": "aimed_air_sledge_right",
+      "exit_code": 2,
+      "source_drift": [],
+      "harness_sha256": "85dc3f620da5f22b7bb025c7306efe6855e4fa63264df8c034e4d7eae69ba490",
+      "fixture_passed": false,
+      "scheduler_passed": false,
+      "result": "D:\\MafioziCombat31\\resume51_opponent\\native03b\\aimed_air_sledge_right\\result.json",
+      "errors": [
+        "input_not_1to1",
+        "input_not_1to1"
+      ],
+      "passed": false,
+      "suite": "native03b",
+      "result_sha256": "799bf34d4f97443e3d77130bf1944cd39a24bb8c74ccad68d424e734b9e81c3d",
+      "input_probe": {
+        "delivered": 199.999984741211,
+        "direction": 1.0,
+        "injected": 10.0,
+        "viewport": "(64, 64)"
+      },
+      "air_contacts": [],
+      "npc_final": null,
+      "npc_hits": null,
+      "npc_sever_layers": null
+    },
+    {
+      "case": "aimed_player_left",
+      "exit_code": 0,
+      "source_drift": [],
+      "harness_sha256": "e580573e583f85658559b3811b4fe87fafa1d7d4d165faa9386f90efafd683e5",
+      "fixture_passed": true,
+      "scheduler_passed": true,
+      "result": "D:\\MafioziCombat31\\resume51_opponent\\native03c\\aimed_player_left\\result.json",
+      "errors": [],
+      "passed": true,
+      "suite": "native03c",
+      "result_sha256": "34b68d512031b79535b16b2c4d176174ede5608869a7ab6737aa0518adcf3e8a",
+      "input_probe": {
+        "delivered": 9.99999999999993,
+        "direction": -1.0,
+        "injected": 10.0,
+        "viewport": "(1280, 720)"
+      },
+      "air_contacts": [],
+      "npc_final": {
+        "dead": true,
+        "disarmed": true,
+        "fall": 0.739607483148575,
+        "npc_hp": 0.0,
+        "part_hp": {
+          "forearm_r": -18.5927257715453,
+          "head": -45.6589500351849
+        },
+        "severed": [
+          "head"
+        ],
+        "sword_held": false
+      },
+      "npc_hits": null,
+      "npc_sever_layers": null
+    },
+    {
+      "case": "aimed_air_sword_left",
+      "exit_code": 2,
+      "source_drift": [],
+      "harness_sha256": "965148d45492377d611fbd0082a6d8489008f843d8cc5da27caed5070ac1ac60",
+      "fixture_passed": false,
+      "scheduler_passed": false,
+      "result": "D:\\MafioziCombat31\\resume51_opponent\\native03c\\aimed_air_sword_left\\result.json",
+      "errors": [
+        "sword_no_native_air_damage_false",
+        "sword_no_native_air_damage_true"
+      ],
+      "passed": false,
+      "suite": "native03c",
+      "result_sha256": "f6c637891201c8f60932b68c9cf442390482a766bb03c109377786c086ed0a2a",
+      "input_probe": {
+        "delivered": 10.0,
+        "direction": -1.0,
+        "injected": 10.0,
+        "viewport": "(1280, 720)"
+      },
+      "air_contacts": [
+        {
+          "weapon": "sword",
+          "dive_requested": false,
+          "air_damage": 0.0,
+          "air_hits": 0,
+          "landed": true,
+          "air_grip_max": 1.19209289550781e-07,
+          "air_left_max": 0.0
+        },
+        {
+          "weapon": "sword",
+          "dive_requested": true,
+          "air_damage": 0.0,
+          "air_hits": 0,
+          "landed": true,
+          "air_grip_max": 2.98023223876953e-08,
+          "air_left_max": 0.0
+        }
+      ],
+      "npc_final": null,
+      "npc_hits": null,
+      "npc_sever_layers": null
+    },
+    {
+      "case": "aimed_air_sledge_left",
+      "exit_code": 2,
+      "source_drift": [],
+      "harness_sha256": "965148d45492377d611fbd0082a6d8489008f843d8cc5da27caed5070ac1ac60",
+      "fixture_passed": false,
+      "scheduler_passed": false,
+      "result": "D:\\MafioziCombat31\\resume51_opponent\\native03c\\aimed_air_sledge_left\\result.json",
+      "errors": [
+        "sledge_no_native_air_damage_true"
+      ],
+      "passed": false,
+      "suite": "native03c",
+      "result_sha256": "7355c552aa9fac406321caf3a873688557692bd63bd2746e905d2183e239a6d5",
+      "input_probe": {
+        "delivered": 10.0,
+        "direction": -1.0,
+        "injected": 10.0,
+        "viewport": "(1280, 720)"
+      },
+      "air_contacts": [
+        {
+          "weapon": "sledge",
+          "dive_requested": false,
+          "air_damage": 34.0,
+          "air_hits": 1,
+          "landed": true,
+          "air_grip_max": 1.19209289550781e-07,
+          "air_left_max": 6.10356728429906e-05
+        },
+        {
+          "weapon": "sledge",
+          "dive_requested": true,
+          "air_damage": 0.0,
+          "air_hits": 0,
+          "landed": true,
+          "air_grip_max": 2.98023223876953e-08,
+          "air_left_max": 6.10357383266091e-05
+        }
+      ],
+      "npc_final": null,
+      "npc_hits": null,
+      "npc_sever_layers": null
+    },
+    {
+      "case": "aimed_player_right",
+      "exit_code": 0,
+      "source_drift": [],
+      "harness_sha256": "e580573e583f85658559b3811b4fe87fafa1d7d4d165faa9386f90efafd683e5",
+      "fixture_passed": true,
+      "scheduler_passed": true,
+      "result": "D:\\MafioziCombat31\\resume51_opponent\\native03c\\aimed_player_right\\result.json",
+      "errors": [],
+      "passed": true,
+      "suite": "native03c",
+      "result_sha256": "e346b2a9f038134c9f75eb369a484785adf6019ebae8659eb3600aff108905d1",
+      "input_probe": {
+        "delivered": 9.99999999999993,
+        "direction": 1.0,
+        "injected": 10.0,
+        "viewport": "(1280, 720)"
+      },
+      "air_contacts": [],
+      "npc_final": {
+        "dead": true,
+        "disarmed": true,
+        "fall": 0.921800725162029,
+        "npc_hp": 0.0,
+        "part_hp": {
+          "head": -52.1715628319118
+        },
+        "severed": [
+          "head"
+        ],
+        "sword_held": false
+      },
+      "npc_hits": null,
+      "npc_sever_layers": null
+    },
+    {
+      "case": "aimed_air_sword_right",
+      "exit_code": 2,
+      "source_drift": [],
+      "harness_sha256": "965148d45492377d611fbd0082a6d8489008f843d8cc5da27caed5070ac1ac60",
+      "fixture_passed": false,
+      "scheduler_passed": false,
+      "result": "D:\\MafioziCombat31\\resume51_opponent\\native03c\\aimed_air_sword_right\\result.json",
+      "errors": [
+        "sword_no_native_air_damage_true"
+      ],
+      "passed": false,
+      "suite": "native03c",
+      "result_sha256": "e9ee8fe3c82f7b8c13fafdf56c30bd58921a74c54b8549f20c5809e82deb61e1",
+      "input_probe": {
+        "delivered": 10.0,
+        "direction": 1.0,
+        "injected": 10.0,
+        "viewport": "(1280, 720)"
+      },
+      "air_contacts": [
+        {
+          "weapon": "sword",
+          "dive_requested": false,
+          "air_damage": 2.76372819590091,
+          "air_hits": 1,
+          "landed": true,
+          "air_grip_max": 1.19209289550781e-07,
+          "air_left_max": 0.0
+        },
+        {
+          "weapon": "sword",
+          "dive_requested": true,
+          "air_damage": 0.0,
+          "air_hits": 0,
+          "landed": true,
+          "air_grip_max": 1.19209289550781e-07,
+          "air_left_max": 0.0
+        }
+      ],
+      "npc_final": null,
+      "npc_hits": null,
+      "npc_sever_layers": null
+    },
+    {
+      "case": "aimed_air_sledge_right",
+      "exit_code": 2,
+      "source_drift": [],
+      "harness_sha256": "965148d45492377d611fbd0082a6d8489008f843d8cc5da27caed5070ac1ac60",
+      "fixture_passed": false,
+      "scheduler_passed": false,
+      "result": "D:\\MafioziCombat31\\resume51_opponent\\native03c\\aimed_air_sledge_right\\result.json",
+      "errors": [
+        "sledge_no_native_air_damage_false",
+        "sledge_no_native_air_damage_true"
+      ],
+      "passed": false,
+      "suite": "native03c",
+      "result_sha256": "73091be4c9af58f99f21fe23994282f70978081b9a5a5e56356b1c8a4fa3460b",
+      "input_probe": {
+        "delivered": 10.0,
+        "direction": 1.0,
+        "injected": 10.0,
+        "viewport": "(1280, 720)"
+      },
+      "air_contacts": [
+        {
+          "weapon": "sledge",
+          "dive_requested": false,
+          "air_damage": 0.0,
+          "air_hits": 0,
+          "landed": true,
+          "air_grip_max": 1.1944189282076e-07,
+          "air_left_max": 6.10356219112873e-05
+        },
+        {
+          "weapon": "sledge",
+          "dive_requested": true,
+          "air_damage": 0.0,
+          "air_hits": 0,
+          "landed": true,
+          "air_grip_max": 5.96046447753906e-08,
+          "air_left_max": 6.10357383266091e-05
+        }
+      ],
+      "npc_final": null,
+      "npc_hits": null,
+      "npc_sever_layers": null
+    },
+    {
+      "case": "aimed_air_down_sword_left",
+      "exit_code": 2,
+      "source_drift": [],
+      "harness_sha256": "f0967a21044d2ca8c5d15ecfbbb38809a0babb2983259ada7c0949e25968bd4b",
+      "fixture_passed": false,
+      "scheduler_passed": false,
+      "result": "D:\\MafioziCombat31\\resume51_opponent\\native03d\\aimed_air_down_sword_left\\result.json",
+      "errors": [
+        "sword_no_native_air_damage_false"
+      ],
+      "passed": false,
+      "suite": "native03d",
+      "result_sha256": "9d6bee707ed375811754a4a7e365ce7a47bb980f61778127da0b3c7d0dc54716",
+      "input_probe": {
+        "delivered": 10.0,
+        "direction": -1.0,
+        "injected": 10.0,
+        "viewport": "(1280, 720)"
+      },
+      "air_contacts": [
+        {
+          "weapon": "sword",
+          "dive_requested": false,
+          "air_damage": 0.0,
+          "air_hits": 0,
+          "landed": true,
+          "air_grip_max": 1.19209289550781e-07,
+          "air_left_max": 0.0
+        },
+        {
+          "weapon": "sword",
+          "dive_requested": true,
+          "air_damage": 34.0,
+          "air_hits": 1,
+          "landed": true,
+          "air_grip_max": 1.49011611938477e-08,
+          "air_left_max": 0.0
+        }
+      ],
+      "npc_final": null,
+      "npc_hits": null,
+      "npc_sever_layers": null
+    },
+    {
+      "case": "aimed_air_down_sledge_left",
+      "exit_code": 0,
+      "source_drift": [],
+      "harness_sha256": "f0967a21044d2ca8c5d15ecfbbb38809a0babb2983259ada7c0949e25968bd4b",
+      "fixture_passed": true,
+      "scheduler_passed": true,
+      "result": "D:\\MafioziCombat31\\resume51_opponent\\native03d\\aimed_air_down_sledge_left\\result.json",
+      "errors": [],
+      "passed": true,
+      "suite": "native03d",
+      "result_sha256": "bb77e95f3ab22ea1818ded0196bf789e4c18ed003ede54ff8ae94a85efdcdd36",
+      "input_probe": {
+        "delivered": 10.0,
+        "direction": -1.0,
+        "injected": 10.0,
+        "viewport": "(1280, 720)"
+      },
+      "air_contacts": [
+        {
+          "weapon": "sledge",
+          "dive_requested": false,
+          "air_damage": 34.0,
+          "air_hits": 1,
+          "landed": true,
+          "air_grip_max": 1.19209289550781e-07,
+          "air_left_max": 0.0230053476989269
+        },
+        {
+          "weapon": "sledge",
+          "dive_requested": true,
+          "air_damage": 34.0,
+          "air_hits": 1,
+          "landed": true,
+          "air_grip_max": 5.96046447753906e-08,
+          "air_left_max": 6.10354982200079e-05
+        }
+      ],
+      "npc_final": null,
+      "npc_hits": null,
+      "npc_sever_layers": null
+    },
+    {
+      "case": "aimed_air_down_sword_right",
+      "exit_code": 0,
+      "source_drift": [],
+      "harness_sha256": "f0967a21044d2ca8c5d15ecfbbb38809a0babb2983259ada7c0949e25968bd4b",
+      "fixture_passed": true,
+      "scheduler_passed": true,
+      "result": "D:\\MafioziCombat31\\resume51_opponent\\native03d\\aimed_air_down_sword_right\\result.json",
+      "errors": [],
+      "passed": true,
+      "suite": "native03d",
+      "result_sha256": "7c20949d2e14c309883579efbf0e20e486e69445e332b2a93d05804117e1a7db",
+      "input_probe": {
+        "delivered": 10.0,
+        "direction": 1.0,
+        "injected": 10.0,
+        "viewport": "(1280, 720)"
+      },
+      "air_contacts": [
+        {
+          "weapon": "sword",
+          "dive_requested": false,
+          "air_damage": 6.28632620273652,
+          "air_hits": 1,
+          "landed": true,
+          "air_grip_max": 2.98023223876953e-08,
+          "air_left_max": 0.0
+        },
+        {
+          "weapon": "sword",
+          "dive_requested": true,
+          "air_damage": 17.7454231951487,
+          "air_hits": 1,
+          "landed": true,
+          "air_grip_max": 1.19209289550781e-07,
+          "air_left_max": 0.0
+        }
+      ],
+      "npc_final": null,
+      "npc_hits": null,
+      "npc_sever_layers": null
+    },
+    {
+      "case": "aimed_air_down_sledge_right",
+      "exit_code": 2,
+      "source_drift": [],
+      "harness_sha256": "f0967a21044d2ca8c5d15ecfbbb38809a0babb2983259ada7c0949e25968bd4b",
+      "fixture_passed": false,
+      "scheduler_passed": false,
+      "result": "D:\\MafioziCombat31\\resume51_opponent\\native03d\\aimed_air_down_sledge_right\\result.json",
+      "errors": [
+        "sledge_no_native_air_damage_false"
+      ],
+      "passed": false,
+      "suite": "native03d",
+      "result_sha256": "0c7201592799e3b0b552df63787c03cf1590dc3f679055e242fbdabb652ee395",
+      "input_probe": {
+        "delivered": 10.0,
+        "direction": 1.0,
+        "injected": 10.0,
+        "viewport": "(1280, 720)"
+      },
+      "air_contacts": [
+        {
+          "weapon": "sledge",
+          "dive_requested": false,
+          "air_damage": 0.0,
+          "air_hits": 0,
+          "landed": true,
+          "air_grip_max": 1.1944189282076e-07,
+          "air_left_max": 6.10356291872449e-05
+        },
+        {
+          "weapon": "sledge",
+          "dive_requested": true,
+          "air_damage": 34.0,
+          "air_hits": 1,
+          "landed": true,
+          "air_grip_max": 1.49011611938477e-08,
+          "air_left_max": 6.10353381489404e-05
+        }
+      ],
+      "npc_final": null,
+      "npc_hits": null,
+      "npc_sever_layers": null
+    }
+  ],
+  "active_runs": 0
+}

@@ -1,0 +1,97 @@
+{
+	"failures": [],
+	"passed": true,
+	"rows": [
+		{
+			"actor": "player",
+			"caps": 1,
+			"cut": true,
+			"debris": 1,
+			"kept_meshes": 7,
+			"meshes": 7,
+			"part": "forearm_r"
+		},
+		{
+			"actor": "player",
+			"caps": 1,
+			"cut": true,
+			"debris": 1,
+			"kept_meshes": 7,
+			"meshes": 7,
+			"part": "shin_l"
+		},
+		{
+			"actor": "player",
+			"caps": 1,
+			"cut": true,
+			"debris": 1,
+			"kept_meshes": 7,
+			"meshes": 7,
+			"part": "upperarm_l"
+		},
+		{
+			"actor": "player",
+			"caps": 1,
+			"cut": true,
+			"debris": 1,
+			"kept_meshes": 7,
+			"meshes": 7,
+			"part": "thigh_r"
+		},
+		{
+			"actor": "player",
+			"caps": 1,
+			"cut": true,
+			"debris": 4,
+			"kept_meshes": 4,
+			"meshes": 7,
+			"part": "head"
+		},
+		{
+			"actor": "npc",
+			"caps": 1,
+			"cut": true,
+			"debris": 1,
+			"kept_meshes": 5,
+			"meshes": 5,
+			"part": "forearm_r"
+		},
+		{
+			"actor": "npc",
+			"caps": 1,
+			"cut": true,
+			"debris": 1,
+			"kept_meshes": 5,
+			"meshes": 5,
+			"part": "shin_l"
+		},
+		{
+			"actor": "npc",
+			"caps": 1,
+			"cut": true,
+			"debris": 1,
+			"kept_meshes": 5,
+			"meshes": 5,
+			"part": "upperarm_l"
+		},
+		{
+			"actor": "npc",
+			"caps": 1,
+			"cut": true,
+			"debris": 1,
+			"kept_meshes": 5,
+			"meshes": 5,
+			"part": "thigh_r"
+		},
+		{
+			"actor": "npc",
+			"caps": 1,
+			"cut": true,
+			"debris": 1,
+			"kept_meshes": 5,
+			"meshes": 5,
+			"part": "head"
+		}
+	],
+	"scope": "posed original-skin geometric cuts on player and NPC, not input combat"
+}

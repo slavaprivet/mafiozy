@@ -1,0 +1,87 @@
+{
+  "mode": "graphical",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+    "--path",
+    "D:/MafioziCombat31/merged50/game",
+    "--script",
+    "D:/MafioziCombat31/merged50/final_scene/scene50.gd",
+    "--",
+    "--castle=1",
+    "--castle-start-outside=1"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "74dfc868e1294e48b1b6610b96a1c0cf",
+    "owner": {
+      "pid": 49256,
+      "creation_filetime": "134368049845589556"
+    },
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\merged50\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 54436,
+        "creation_filetime": "134368049856876441",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --path D:/MafioziCombat31/merged50/game --script D:/MafioziCombat31/merged50/final_scene/scene50.gd -- --castle=1 --castle-start-outside=1",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+          "--path",
+          "D:/MafioziCombat31/merged50/game",
+          "--script",
+          "D:/MafioziCombat31/merged50/final_scene/scene50.gd",
+          "--",
+          "--castle=1",
+          "--castle-start-outside=1"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "graphical",
+        "project": "d:\\mafiozicombat31\\merged50\\game"
+      }
+    ],
+    "deadline": 1273151.821263,
+    "queued_at": 1273091.821263,
+    "ticket": 3998,
+    "inventory_before": [
+      {
+        "pid": 12656,
+        "parent_pid": 43696,
+        "creation_filetime": "134368008441584844",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\game\" --script \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_castle_current\\bootstrap_castle.gd\" -- \"--receipt-dir=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261018T124044131Z\" \"--release-title=Замок и осада · замах и подбор 43\" \"--release-revision=castle-20261018-combined43-raised-arms\" --castle=1 --castle-start-outside=1",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози — Замок и осада · замах и подбор 43 (DEBUG)"
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5981898000463843
+  },
+  "child": {
+    "pid": 54436,
+    "creation_filetime": "134368049856876441",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --path D:/MafioziCombat31/merged50/game --script D:/MafioziCombat31/merged50/final_scene/scene50.gd -- --castle=1 --castle-start-outside=1",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+      "--path",
+      "D:/MafioziCombat31/merged50/game",
+      "--script",
+      "D:/MafioziCombat31/merged50/final_scene/scene50.gd",
+      "--",
+      "--castle=1",
+      "--castle-start-outside=1"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\merged50\\game"
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 20.844533199910074,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

@@ -1,0 +1,29 @@
+{
+  "status": "READY_FOR_PARENT_MERGE",
+  "patch": "D:\\MafioziCombat31\\opponent50\\opponent50_delta_on46pluscut.patch",
+  "patch_sha256": "404e4db29b7c26b6f5f76233e7657326b41321feb7de41aff387139d670102ec",
+  "patch_base": "opponent_resume46 plus parent player_cut50 only. Parent visual patch not included in this delta.",
+  "preimage_sha256": "aedb5eea8a8947900a171c709144527951135bcf419e95b51bfe41f0352f2c19",
+  "candidate_sha256": "9d7c06dcab46e42e52c0501ae983efc95ddbfee409dce2787781e132fd26b5f6",
+  "patch_apply_note": "git apply --ignore-space-change needed for CRLF context. Reconstructed text equality verified.",
+  "reconstructed_exact_hash_equal": false,
+  "tested_merged_source": {
+    "scripts/weapons/sword_prototype.gd": "b3a683fbf72d3e792e83afb5f46307aaf4960a2c446b01dbcb4264d2fc579b19",
+    "scripts/weapons/bow_prototype.gd": "4e41a0e76b6b6ce0f09275604236fb859d2ddd39c4a3fea01b19ac877bb2ff4a",
+    "scripts/main.gd": "0a6a09d000f277b762f44df1aab42e938e46df952a7b30837120b2fab7e4b746"
+  },
+  "acceptance": "D:\\MafioziCombat31\\opponent50\\ACCEPTANCE50.json",
+  "previous46_package": "D:/MafioziCombat31/opponent_resume46/PACKAGE.json",
+  "ownership": [
+    "NPC state/reset/update, bounded chase/retreat/LOS/range",
+    "NPC strike collision/contact ordering,10samples, sword edge roll and common damage law",
+    "player exact bone melee hitboxes, damage/armor/sever decision and blunt arm disabled state",
+    "NPC global meleeHP after sever decision"
+  ],
+  "excluded": [
+    "Parent visual MeshSever helpers and cut geometry",
+    "Player sword steering/pose/attach/shared heavy grip",
+    "Main scene/map, launcher, production files"
+  ],
+  "ready_note": "Parent already applied this exact delta. No further source changes needed from this agent."
+}

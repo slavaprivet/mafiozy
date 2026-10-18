@@ -1,0 +1,101 @@
+{
+	"armor_requested": false,
+	"armor_snapshot": {},
+	"directional": null,
+	"failures": [],
+	"final": {
+		"dead": true,
+		"disarmed": true,
+		"fall": 0.984933361411095,
+		"npc_hp": 0.0,
+		"part_hp": {
+			"forearm_l": -130.0
+		},
+		"severed": [
+			"forearm_l"
+		],
+		"sword_held": false
+	},
+	"first_sever": {
+		"bleeding": true,
+		"blocks_delta": 0,
+		"dead": true,
+		"disarmed": true,
+		"fall": 0.592357516288757,
+		"ground_swords": 1,
+		"hits_delta": 0,
+		"index": 1,
+		"npc_hp_after": 0.0,
+		"npc_hp_before": 90.0,
+		"part_hp_after": {
+			"forearm_l": -130.0
+		},
+		"part_hp_before": {},
+		"player_npc_distance": 2.40874981880188,
+		"severed": [
+			"forearm_l"
+		],
+		"sparks_delta": 0,
+		"sweep_hits_delta": 70,
+		"sword_held": false
+	},
+	"initial": {
+		"npc_dead": false,
+		"npc_hp": 90.0,
+		"npc_pos": "(4.6, 0.030936, 947.5225)",
+		"npc_sword": true,
+		"part_hp": {},
+		"player_pos": "(4.6, 0.03, 946.45)"
+	},
+	"max_strokes": 8,
+	"passed": true,
+	"same_direction": false,
+	"scope": "rack equip + choose mouse direction + click/release, no damage injection or teleport after initial placement",
+	"stroke_dx_per_frame": 20.0,
+	"strokes": [
+		{
+			"bleeding": false,
+			"blocks_delta": 0,
+			"dead": false,
+			"disarmed": false,
+			"fall": 0.0,
+			"ground_swords": 0,
+			"hits_delta": 0,
+			"index": 0,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {},
+			"part_hp_before": {},
+			"player_npc_distance": 1.07244908809662,
+			"severed": [],
+			"sparks_delta": 16,
+			"sweep_hits_delta": 27,
+			"sword_held": true
+		},
+		{
+			"bleeding": true,
+			"blocks_delta": 0,
+			"dead": true,
+			"disarmed": true,
+			"fall": 0.592357516288757,
+			"ground_swords": 1,
+			"hits_delta": 0,
+			"index": 1,
+			"npc_hp_after": 0.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"forearm_l": -130.0
+			},
+			"part_hp_before": {},
+			"player_npc_distance": 2.40874981880188,
+			"severed": [
+				"forearm_l"
+			],
+			"sparks_delta": 0,
+			"sweep_hits_delta": 70,
+			"sword_held": false
+		}
+	],
+	"weapon_after_q": "sword",
+	"weapon_test": "sword"
+}

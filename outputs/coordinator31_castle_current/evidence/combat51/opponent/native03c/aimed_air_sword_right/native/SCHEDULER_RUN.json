@@ -1,0 +1,87 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--path",
+    "D:\\MafioziCombat31\\resume51_opponent\\candidate03\\game",
+    "--script",
+    "D:\\MafioziCombat31\\resume51_opponent\\aimed_air51.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\resume51_opponent\\native03c\\aimed_air_sword_right\\result.json",
+    "--weapon=sword",
+    "--direction=right"
+  ],
+  "passed": false,
+  "lease": {
+    "id": "53802ed80c3d44218f73692adcb837a1",
+    "owner": {
+      "pid": 50544,
+      "creation_filetime": "134368076089184248"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\resume51_opponent\\candidate03\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 50668,
+        "creation_filetime": "134368076099552310",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\resume51_opponent\\candidate03\\game --script D:\\MafioziCombat31\\resume51_opponent\\aimed_air51.gd -- --qa-out=D:\\MafioziCombat31\\resume51_opponent\\native03c\\aimed_air_sword_right\\result.json --weapon=sword --direction=right",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "D:\\MafioziCombat31\\resume51_opponent\\candidate03\\game",
+          "--script",
+          "D:\\MafioziCombat31\\resume51_opponent\\aimed_air51.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\resume51_opponent\\native03c\\aimed_air_sword_right\\result.json",
+          "--weapon=sword",
+          "--direction=right"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "d:\\mafiozicombat31\\resume51_opponent\\candidate03\\game",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 1275836.1825854,
+    "queued_at": 1275716.1825854,
+    "ticket": 4055,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5202746000140905
+  },
+  "child": {
+    "pid": 50668,
+    "creation_filetime": "134368076099552310",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\resume51_opponent\\candidate03\\game --script D:\\MafioziCombat31\\resume51_opponent\\aimed_air51.gd -- --qa-out=D:\\MafioziCombat31\\resume51_opponent\\native03c\\aimed_air_sword_right\\result.json --weapon=sword --direction=right",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--path",
+      "D:\\MafioziCombat31\\resume51_opponent\\candidate03\\game",
+      "--script",
+      "D:\\MafioziCombat31\\resume51_opponent\\aimed_air51.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\resume51_opponent\\native03c\\aimed_air_sword_right\\result.json",
+      "--weapon=sword",
+      "--direction=right"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\resume51_opponent\\candidate03\\game",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 1,
+  "elapsed_seconds": 19.326987799955532,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

@@ -1,0 +1,38 @@
+{
+	"case": "retreat",
+	"errors": [],
+	"final_gap": 1.257084608078,
+	"first_windup_gap": 1.16143870353699,
+	"hits": 0,
+	"impacts": [],
+	"last_impact": {},
+	"max_lateral_m": 0.000301361083984375,
+	"passed": true,
+	"replans": 3,
+	"samples": [
+		{
+			"gap": 0.842578589916229,
+			"hp": 100.0,
+			"npc": "(14.99985, 0.180954, 999.9778)",
+			"state": "approach",
+			"tick": 0
+		},
+		{
+			"gap": 1.16143870353699,
+			"hp": 100.0,
+			"npc": "(14.9998, 0.183819, 999.6589)",
+			"state": "approach",
+			"tick": 30
+		},
+		{
+			"gap": 1.257084608078,
+			"hp": 100.0,
+			"npc": "(14.9997, 0.18468, 999.5633)",
+			"state": "windup",
+			"tick": 60
+		}
+	],
+	"scope": "Native castle actors: initial positions and detour obstacle only. Chase auto-aggro has no held input; detour/retreat seeds alert. Real move_and_slide, no subsequent actor teleport or damage injection.",
+	"transitions": [],
+	"wall_crossed": false
+}

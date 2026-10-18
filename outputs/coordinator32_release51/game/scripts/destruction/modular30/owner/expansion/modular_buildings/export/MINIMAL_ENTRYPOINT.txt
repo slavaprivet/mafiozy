@@ -1,0 +1,45 @@
+Frozen minimal candidate for Root24
+
+Structured entrypoint: minimal_entrypoint.json
+Source ID: REBUILD-VISUAL-hillstep_chalet_v1-002
+Asset ID: hillstep_chalet_v1
+Body relative path: modular_body_v1
+One floor;29 closed modules;348 triangles;4 material surfaces;16,303 binary bytes.
+No protected interior rooms or owner holds. Glazing and the one external entry
+connector remain pending and are explicitly recorded in prefab metadata.
+
+Only these two runtime input files are needed from this export directory:
+1. prefab_loader.gd
+2. prefabs/p_bcf15753559fb291258b7b2a.scn
+Copy minimal_entrypoint.json and binder_report.json alongside as evidence.
+The .scn is a ready binary prefab; runtime loading does not call Builder or Panels.
+
+const Loader = preload("<destination>/prefab_loader.gd")
+var loaded = Loader.instantiate_prefab(
+    "<destination>/prefabs/p_bcf15753559fb291258b7b2a.scn",
+    "524fb0caba7e9c6af002387369116102f47773bf898460e7e314d44001a5071b")
+if not loaded.ok: return loaded
+world.add_child(loaded.instance) # world must have identity world transform
+var source_record = {"id":"REBUILD-VISUAL-hillstep_chalet_v1-002",
+    "assetId":"hillstep_chalet_v1"}
+var bound = Loader.bind_record(loaded.instance,source_record)
+# bound.record.collision_replacement_approved is FALSE.
+# Actual Root-owned collider admission is required before explicitly passing true
+# as bind_record's third argument and calling the private Runtime.register_building.
+
+The prefab already holds the exact native placement. Do not apply the source
+record placement a second time. The child mesh has identity local transform.
+Exact design/native-float32 frame columns are in minimal_entrypoint.json.
+
+Actual headless private Runtime admission PASS22:
+load + binary validation4.865ms; binder0.584ms; Compound admission35.047ms;
+whole register36.918ms. The loading/admission static-memory delta is3,383,952bytes;
+this is engine static allocation accounting, not process RSS or whole-city memory.
+Treat all these as cold/cache-loading work, outside frame/weapon update budgets.
+The real Runtime rejects default approval without touching the original collider;
+explicit isolated-fixture approval registers all29 profiles and one collision group.
+Reset/dispose restore original mesh identity/bytes and fixture collider layer/mask.
+
+The smoke does not test weapons, full collapse, GPU visuals or loaded-city FPS.
+This handoff supports the local-breach candidate; mechanical interiors and external
+glazing/connectors are not silently marked ready.
