@@ -1,0 +1,2074 @@
+extends Node3D
+## First migration quarter: authored assets, walking and source printshop doors.
+
+const PalazzoOnlyPreview = preload("res://scripts/palazzo_only_preview.gd")
+const GameCursor = preload("res://scripts/ui/walk_cursor.gd")
+const PlayerController = preload("res://scripts/preview_player.gd")
+const BlockValidation = preload("res://scripts/preview_block_validation.gd")
+const SurfaceMaterials = preload("res://scripts/preview_surface_materials.gd")
+const PreviewPerfAdapter = preload("res://scripts/perf/preview_perf_adapter.gd")
+const PrintshopInterior = preload("res://scripts/preview_printshop_interior.gd")
+const WaterSurface = preload("res://scripts/preview_water_surface.gd")
+const UpdatePanel = preload("res://scripts/preview_update_panel.gd")
+const StaticBatch = preload("res://scripts/preview_static_batch.gd")
+const PreviewTransport = preload("res://scripts/preview_transport.gd")
+## City mode drives NPC trips; that stack lives in scripts/city/runtime/ and leaves
+## the curated preview transport above untouched.
+const CityTransport = preload("res://scripts/city/runtime/npc_city_transport.gd")
+const PlayerImpactHost = preload("res://scripts/character_physics/player_impact_host.gd")
+const PreviewBoundary = preload("res://scripts/preview_boundary.gd")
+const PreviewPopulation = preload("res://scripts/preview_population.gd")
+const PreviewMelee = preload("res://scripts/npc_visual/npc_contact_melee_host.gd")
+const CityMinimapHost = preload("res://scripts/city/runtime/npc_city_minimap_host.gd")
+## DSH_SIMPLEHOSP: --city-simple-hospital=1 - the owner's "the hospital is the palazzo copy"
+## stand. The flag itself is read by scripts/hospital/npc_simple_hospital.gd.
+const SimpleHospital = preload("res://scripts/hospital/npc_simple_hospital.gd")
+const PlayerShopCatalog = preload("res://scripts/shop/player_shop_catalog.gd")  # DSH_PLAYERSHOP
+const NpcObserve58 = preload("res://scripts/ui/npc_observe_host.gd")  # DSH_OBSERVE58
+const SwordPrototype = preload("res://scripts/weapons/sword_prototype.gd")  # DSH_SWORD_PROTO
+const BowPrototype = preload("res://scripts/weapons/bow_prototype.gd")  # DSH_BOW_PROTO
+const CatapultPrototype = preload("res://scripts/weapons/catapult_prototype.gd")  # DSH_CATAPULT
+const CastleSite = preload("res://scripts/city/castle_site.gd")  # DSH_CASTLE
+const BattlefieldSite = preload("res://scripts/city/battlefield_site.gd")
+const BattlefieldProps = preload("res://scripts/city/battlefield_props.gd")
+const SiegeWallDressing = preload("res://scripts/city/siege_wall_dressing.gd")
+const CastleWallDefense24 = preload("res://scripts/city/castle_wall_defense24.gd")
+const FootstepsScript = preload("res://scripts/audio/footsteps.gd")  # DSH_STEPS
+## DSH_CASTLE: the castle is its OWN MAP. It is built far from the city so the two never
+## interact, and the player is put down in its courtyard.
+const CASTLE_ORIGIN := Vector3(0.0, 0.0, 900.0)
+const STATIC_RENDER_OWNER_IDS := [
+	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-013", "REBUILD-VISUAL-old_town_narrow_townhouse_v1-005",
+	"REBUILD-VISUAL-gun_shop-001", "REBUILD-VISUAL-pawnshop-001",
+	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-004", "REBUILD-VISUAL-old_town_narrow_townhouse_v1-012",
+	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-007", "LAMP-1-83", "LAMP-15-78", "LAMP-19-97",
+	"LAMP-21-84", "LAMP-29-79", "LAMP-30-98", "LAMP-9-102", "LAMP-9-84"
+]
+const PREVIEW_RUNTIME_REVISION := "s01-20261016-residents58-onepass"
+const PRINTSHOP_DATA_SHA256 := "958a2c2d8cbdc2b2e2e11a57e33bf9bf5a20ec334be8a8997bdad951f9f8086b"
+const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8abc72b3e3b824"
+@export_file("*.json") var block_data_path: String = "res://data/block.json"
+## City preview composition, requested for the living-city scene only: keep the
+## source block's 75 buildings, its 200x180 surface crop and the three legacy
+## "REBUILD-bank:*" source IDs instead of the curated palazzo-only reduction.
+## Default false, so the accepted preview and every existing benchmark are untouched.
+@export var city_block_mode: bool = false
+## DSH_CITYTOWN: mini-town composition of the living city. When ON, only the
+## buildings whose assetId is in city_town_keep are instantiated; every other
+## source building is skipped in the SCENE while the pinned block data stays
+## byte-identical (SHA and all 75 rows are untouched, so every pin still proves
+## the same source). Default OFF: with the flag absent the loop below is the
+## exact previous path. Enabled by `--city-town=1` or this export.
+@export var city_town_mode: bool = false
+## Comma-separated assetIds kept in town mode. Empty = CITY_TOWN_DEFAULT_KEEP.
+## The default keeps ONLY the buildings residents actually visit (each has an
+## admitted entry or an authored approach); the plain non-destructible houses are
+## left out, which is the user-requested "town of destructible buildings" plus the
+## service buildings the daily life needs. --city-town-keep=... overrides it.
+@export var city_town_keep: String = ""
+const CITY_TOWN_DEFAULT_KEEP := "hospital,bank_small_shell_v1,gun_shop,print_shop"
+var city_town_built := 0
+var city_town_skipped := 0
+@export_file("*.json") var printshop_data_path: String = "res://data/printshop_interior.json"
+@export_file("*.json") var water_data_path: String = "res://data/preview_water.json"
+@export var preview_perf_enabled: bool = false
+@export var preview_water_detail_enabled: bool = true
+@export var preview_start_at_printshop: bool = true
+@export var preview_static_batch_enabled: bool = false
+@export var preview_transport_enabled: bool = true
+@export var preview_start_at_vehicle: bool = true
+@export var preview_residents_enabled: bool = true
+@export var preview_final_dead_contact_enabled: bool = true
+const FINAL_DEAD_CONTACT_LIMITS: Dictionary = {"max_impulse_ns": 3.0, "impulse_ns_per_mps": 1.0, "max_point_delta_energy_j": 1.5, "max_linear_speed_mps": 2.5, "max_angular_speed_rps": 15.0, "cooldown_ms": 160} # Bounded per-contact limits; original masses and joint constraints preserved.
+var final_dead_contact_status := "disabled"
+var final_dead_block_contract_status := "legacy_v1"
+var _final_dead_block_requested := false
+@export var preview_resident_walk_enabled: bool = true
+@export var preview_melee_enabled: bool = true
+@export var preview_minimap_enabled: bool = true
+@export var preview_weapons_enabled: bool = true
+var preview_weapons: Node
+var weapons_status := "disabled"
+## DSH_SWORD_PROTO: isolated mouse-steered sword prototype (one sword, one dummy,
+## one pole). OFF by default; enabled by --sword-proto=1 or this export.
+@export var preview_sword_prototype_enabled: bool = false
+var preview_sword_prototype: Node
+var sword_prototype_status := "disabled"
+## DSH_BOW_PROTO: the test bow, installed next to the test sword. OFF by default;
+## enabled by --bow-proto=1 or this export.
+@export var preview_bow_prototype_enabled: bool = false
+var preview_bow_prototype: Node
+var bow_prototype_status := "disabled"
+## DSH_CATAPULT: the wheeled siege machine, installed into the city itself.
+@export var preview_catapult_enabled: bool = false
+var preview_catapult: Node
+var catapult_status := "disabled"
+## DSH_CASTLE: --castle=1 (or castle_map on the scene) opens the castle map instead.
+@export var castle_map: bool = false
+var preview_castle: Node
+var preview_battlefield: Node3D
+var _footsteps: Node  # DSH_STEPS
+## DSH_CASTLE: a spawn point that is RE-ASSERTED for a few frames, because other boot steps
+## were teleporting the player out of it afterwards.
+var _catapult_at_castle := false
+var _boot_clock := 0
+var _boot_last := 0
+var _castle_spawn_target := Vector3.ZERO
+var _castle_spawn_frames := 0
+var castle_status := "disabled"
+var preview_melee: Node
+var melee_status := "disabled"
+var preview_minimap: Node
+var minimap_status := "disabled"
+var preview_population: RefCounted
+var npc_observer58: Node = null  # DSH_OBSERVE58
+var preview_modular30: Node
+var preview_palazzo: Node
+var preview_service_sites29: Node
+var preview_homes58: Node
+var preview_venue_staff29: Node
+## DSH_CITYTOWN: --city-palazzo-clones=1 puts three signed copies of the palazzo next to it
+## (БОЛЬНИЦА / БАНК / РЕСТОРАН). They are scenery: geometry only, no host and no damage.
+@export var palazzo_clones: bool = false
+var preview_c4: Node
+var preview_c4_blast: Node
+var player_throwables: Node
+const PalazzoGround = preload("res://scripts/destruction/palazzo/palazzo_ground.gd")
+var population_status := "disabled"
+var preview_transport: Node3D
+var preview_character_impacts: Node
+var transport_status := "disabled"
+var preview_dead := false
+var preview_physics_fault := false
+var static_batch_status: String = "disabled"
+var static_batch_summary: Dictionary = {}
+var _static_batch_lease: RefCounted
+var _static_render_roots: Array[Node3D] = []
+var water_status: String = "not_loaded"
+var water_errors: PackedStringArray = []
+var water_summary: Dictionary = {}
+var _water_host: RefCounted
+var _jump_surface_cells: PackedByteArray = PackedByteArray()
+var _jump_surface_offsets: PackedVector2Array = PackedVector2Array()
+var _jump_surface_cell_size: float = 0.0
+var _jump_surface_start: Vector2i
+var _jump_surface_size: Vector2i
+var printshop_status: String = "not_loaded"
+var printshop_errors: PackedStringArray = []
+var _printshop: Node3D
+var _dsh_lazy_door_occupants: int = -1
+var _printshop_data: Dictionary = {}
+var _player_capsule: CollisionShape3D
+var _door_occupants: Array = [{"position": Vector3.ZERO, "radius": 0.0, "height": 0.0}]
+var _door_hint: Label
+var _door_hint_panel: PanelContainer
+var _door_hint_key: PanelContainer
+var _door_hint_world: Vector3 = Vector3.ZERO
+var _door_feedback_seconds: float = 0.0
+var preview_perf: Node = null
+var preview_ready: bool = false
+var validation_errors: PackedStringArray = []
+var _resource_scenes: Dictionary = {}
+var _surface_materials: Dictionary = {}
+var _block: Dictionary = {}
+var _origin: Vector3
+var _player: CharacterBody3D
+var _spawn: Vector3
+var _stats: Label
+var _clock: float = 0.0
+var _samples: Array[float] = []
+var _runtime_seconds: float = 0.0
+var _capture_done: bool = false
+var _capture_path: String = ""
+var _last_frame_usec: int = 0
+
+# DSH_WALKCHEAP: --city-physics-catchup and --city-walk-far-ttl, resolved once and printed so the
+# run's log names both levers and their rollback values. catchup<=0 (or >=8) leaves the engine's
+# own default of 8 steps per frame untouched.
+func _dsh_physics_catchup() -> void:  # DSH_WALKCHEAP
+	var dsh_catchup := 4
+	var dsh_far_ttl := 96
+	for argument in OS.get_cmdline_user_args():
+		if argument.begins_with("--city-physics-catchup="):
+			dsh_catchup = int(argument.trim_prefix("--city-physics-catchup="))
+		elif argument.begins_with("--city-walk-far-ttl="):
+			dsh_far_ttl = maxi(0, int(argument.trim_prefix("--city-walk-far-ttl=")))
+	if dsh_catchup > 0 and dsh_catchup < 8:
+		Engine.max_physics_steps_per_frame = dsh_catchup
+	print("DSH_WALKCHEAP catchup=",Engine.max_physics_steps_per_frame," far_ttl=",dsh_far_ttl," default_catchup=4 default_far_ttl=96 restore_catchup=0or8 restore_far_ttl=0")
+
+func _ready() -> void:
+	GameCursor.install()
+	# The castle scene and --castle=1 are one isolated play mode. Resolve the flag
+	# before any city geometry, residents or services can be instantiated.
+	castle_map = castle_map or OS.get_cmdline_user_args().has("--castle=1")
+	# DSH_WALKCHEAP: --city-physics-catchup=N caps Engine.max_physics_steps_per_frame. The city
+	# steps inside _physics_process every third tick (main.gd:764-771), so an uncapped catch-up at
+	# 6+ ticks per rendered frame multiplies one 26 ms city step into ~52 ms of the frame; the cap
+	# bounds that work and lets the world run in slow motion instead of collapsing to 8 FPS.
+	# 0 and 8 both restore today's engine default (8).
+	_dsh_physics_catchup()
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(block_data_path))
+	if not parsed is Dictionary:
+		validation_errors = PackedStringArray(["Invalid source block"])
+		_show_load_error()
+		return
+	var block_options: Dictionary = {"max_side": BlockValidation.CITY_MAX_SIDE, "city_source_ids": true} if city_block_mode else {}
+	validation_errors = BlockValidation.validate(parsed, block_options)
+	if not validation_errors.is_empty():
+		_show_load_error()
+		return
+	set_meta("preview_building_mode", "source_block" if city_block_mode else PalazzoOnlyPreview.MODE)
+	if not city_block_mode:
+		parsed = PalazzoOnlyPreview.prepare_block(parsed)
+	var prepared: Dictionary = BlockValidation.prepare_assets(parsed, Callable(), block_options)
+	validation_errors = prepared["errors"]
+	if not validation_errors.is_empty():
+		_show_load_error()
+		return
+	_resource_scenes = prepared["scenes"]
+	_block = parsed
+	_origin = _v3(_block["originM"])
+	_cache_jump_surface_contains()
+	# Material preparation is also atomic: a failed shader/material must not
+	# leave a partially populated scene reporting READY.
+	for row: Array in _block["surface"]["grid"]:
+		for tile: Variant in row:
+			var key: String = str(int(tile))
+			if _surface_materials.has(key):
+				continue
+			var material: Material = SurfaceMaterials.create_material(_block["surface"], int(tile), _origin)
+			_surface_materials[key] = material
+			if material == null:
+				validation_errors.append("Surface material unavailable for tile " + key)
+	if not validation_errors.is_empty():
+		_surface_materials.clear()
+		_resource_scenes.clear()
+		_show_load_error()
+		return
+	_build_lighting()
+	if not castle_map:
+		_build_surface()
+		var boundary := PreviewBoundary.new()
+		add_child(boundary)
+		PalazzoGround.install(self)
+		boundary.configure(PalazzoGround.bounds(_block.surface.boundsLocalM))
+	if city_block_mode and not castle_map:
+		# The source city block keeps its printshop and all 75 buildings. Their
+		# interiors and envelopes are what the city navigation attaches to.
+		_load_printshop_data()
+		for record: Dictionary in _block["buildings"]:
+			# DSH_CITYTOWN: in town mode every non-kept building is skipped in the
+			# scene only. The pinned block data, its SHA and all 75 rows are intact.
+			if city_town_skip(record):
+				city_town_skipped += 1
+				continue
+			_add_asset(record)
+			city_town_built += 1
+		if city_town_active():
+			print("CITY_TOWN built=", city_town_built, " skipped=", city_town_skipped, " keep=", city_town_keep_raw())
+			# DSH_SIMPLEHOSP: with --city-simple-hospital=1 the "hospital" row is NOT
+			# dropped from the keep set on purpose - npc_city_bootstrap._attach_site and
+			# npc_city_daily.configure refuse to build the city without the real hospital
+			# site, so the row stays in the scene and is switched off there instead
+			# (hidden + never addressed). See npc_simple_hospital.disable_standing_hospital.
+			if SimpleHospital.enabled():
+				print("DSH_SIMPLEHOSP town_keep=", city_town_keep_raw(),
+					" standing_hospital=kept_for_bootstrap geometry_kept=true")
+			if OS.get_cmdline_user_args().has("--city-town-extras=1"): _install_town_extras()
+	else:
+		# Removed buildings are never instantiated, including their interior/colliders.
+		printshop_status = "removed_by_user"
+	if not castle_map:
+		for record: Dictionary in _block["decor"]:
+			_add_asset(record)
+	# Cold registration before player, transport, navigation and static batching.
+	# The old modular townhouse is also excluded from this composition.
+	if not castle_map:
+		preview_palazzo = load("res://scripts/destruction/palazzo/palazzo_host.gd").new()
+		preview_palazzo.name = "PalazzoHost"
+		add_child(preview_palazzo)
+		print("PALAZZO_GEOMETRY ", preview_palazzo.prepare(self))
+	_boot_clock = Time.get_ticks_msec()
+	if not castle_map: _install_palazzo_clones()
+	_boot_mark("palazzo_clones")
+	if not castle_map and (OS.get_cmdline_user_args().has("--city-venue-sites29=1") or player_shop_requested()):
+		preview_service_sites29 = load("res://scripts/venues/npc_service_sites_host29.gd").new()
+		preview_service_sites29.name = "CompactServiceSites29"
+		add_child(preview_service_sites29)
+		print("VENUE_SITES29_GEOMETRY ", await preview_service_sites29.prepare(self, _block))
+	if not castle_map and city_block_mode and city_town_active():
+		preview_homes58 = load("res://scripts/homes/npc_home_host58.gd").new()
+		preview_homes58.name = "ResidentHomes58"
+		add_child(preview_homes58)
+		var homes_result58: Dictionary = await preview_homes58.prepare(self, _block)
+		print("HOME58_GEOMETRY ", homes_result58)
+		if not homes_result58.get("ok", false):
+			push_error("Residential geometry failed: " + str(homes_result58)); return
+		var benches_result58: Dictionary = load("res://scripts/homes/npc_home_benches58.gd").install(self, preview_homes58.current_sites())
+		print("HOME58_STREET_BENCHES ", benches_result58)
+		if not benches_result58.get("ok", false):
+			push_error("Residential street benches failed: " + str(benches_result58)); return
+	if not castle_map and (OS.get_cmdline_user_args().has("--city-venue-staff29=1") or player_shop_requested()):
+		preview_venue_staff29 = load("res://scripts/venues/npc_venue_staff_host29.gd").new()
+		add_child(preview_venue_staff29)
+		print("VENUE_STAFF29 ", await preview_venue_staff29.prepare29(self))
+	if not castle_map and (preview_static_batch_enabled or OS.get_cmdline_user_args().has("--preview-static-batch")) and not OS.get_cmdline_user_args().has("--preview-static-batch-off"):
+		apply_preview_static_batches()
+	_spawn = _v3(_block["hero"]["spawnLocalM"])
+	var spawn_yaw := 0.0
+	# User-requested preview start, derived from the real public entrance.
+	# Source IDs, authored map spawn and any future saved session stay distinct.
+	if preview_start_at_printshop and printshop_status == "ready" and is_instance_valid(_printshop):
+		var approach: Vector3 = _printshop.anchor("publicApproach")
+		var inside: Vector3 = _printshop.anchor("publicInside")
+		if approach.is_finite() and inside.is_finite():
+			_spawn = approach + Vector3.UP * 0.05
+			var facing := inside - approach
+			spawn_yaw = atan2(-facing.x, -facing.z)
+	_player = PlayerController.new()
+	_player.hero_scene_path = str(_block["hero"]["path"])
+	_player.model_target_height = float(_block["hero"]["targetHeightM"])
+	_player.position = _spawn
+	_player.set("_camera_yaw", spawn_yaw)
+	_player.set("_heading", spawn_yaw)
+	add_child(_player)
+	# City transport normally assigns this identity. Castle mode has no transport,
+	# but its weapon effects still bind to the player's life generation.
+	if castle_map:
+		_player.set_meta("actor_id", "player")
+		_player.set_meta("life_generation", 1)
+	_player.get_node("VisualHeading").rotation.y = spawn_yaw + deg_to_rad(_player.visual_yaw_degrees)
+	_player.set_preview_jump_surface_guard(Callable(self, "preview_jump_surface_allowed"))
+	# DSH_STEPS: footfalls that know what they are standing on.
+	if _footsteps == null:
+		_footsteps = FootstepsScript.new()
+		_footsteps.name = "Footsteps"
+		add_child(_footsteps)
+		_footsteps.call("install", _player)
+	_player_capsule = _player.get_node_or_null("PlayerCapsule") as CollisionShape3D
+	if not bool(_player.get_preview_status().get("model_loaded", false)):
+		validation_errors.append("Hero did not produce a valid visible model")
+		restore_preview_static_batches("invalid_player")
+		_dispose_water_surface()
+		for child: Node in get_children():
+			child.queue_free()
+		_show_load_error()
+		return
+	_build_hud()
+	# Negotiate before any transport/support snapshots, without changing masks.
+	# Actual resident/weapon setup retains its existing later startup order.
+	if not castle_map and (preview_residents_enabled or OS.get_cmdline_user_args().has("--preview-residents")):
+		preview_population = PreviewPopulation.new()
+		if preview_final_dead_contact_enabled:
+			var contract: Dictionary = preview_population.final_dead_contact_startup_contract()
+			if not contract.is_empty():
+				_final_dead_block_requested = _player.prepare_final_dead_block_contract(contract)
+				final_dead_block_contract_status = "negotiated_before_transport" if _final_dead_block_requested else "contract_rejected_legacy_v1"
+	if not castle_map and (preview_transport_enabled or OS.get_cmdline_user_args().has("--preview-transport")):
+		preview_transport = CityTransport.new() if city_block_mode else PreviewTransport.new()
+		preview_transport.name = "PreviewTransport"
+		add_child(preview_transport)
+		var vehicle_setup: Dictionary = preview_transport.setup(_player, _origin)
+		transport_status = "ready" if vehicle_setup.get("ok", false) else str(vehicle_setup.get("error", "failed"))
+		if vehicle_setup.get("ok", false) and preview_start_at_vehicle:
+			_player.position = vehicle_setup.spawn
+			_player.set_preview_pose_authority(&"on_foot", true)
+			_player._camera_yaw = preview_transport.body.global_rotation.y - PI / 2.0
+			_player._heading = _player._camera_yaw
+			_player._visual.rotation.y = _player._heading + PI
+			_player._update_camera_rotation()
+	# Start beside the requested building while preserving authored source spawn data.
+	if is_instance_valid(preview_palazzo) and is_instance_valid(preview_palazzo.site) and not OS.get_cmdline_user_args().has("--palazzo-start-off"):
+		_player.position = preview_palazzo.site.to_global(Vector3(1,.14,6.3))
+		_player._camera_yaw = -PI/2.0
+		_player._camera_pitch = -.12
+		_player._heading = _player._camera_yaw
+		_player._visual.rotation.y = _player._heading + PI
+		_player._update_camera_rotation()
+	for argument: String in OS.get_cmdline_user_args():
+		if argument.begins_with("--preview-capture="):
+			_capture_path = argument.trim_prefix("--preview-capture=")
+	if not castle_map and (preview_melee_enabled or OS.get_cmdline_user_args().has("--preview-melee")):
+		_install_preview_melee_practice()
+	if not castle_map and (preview_minimap_enabled or OS.get_cmdline_user_args().has("--preview-minimap")) and not OS.get_cmdline_user_args().has("--no-minimap"):
+		_install_preview_minimap()
+		_boot_mark("minimap")
+	if preview_weapons_enabled or OS.get_cmdline_user_args().has("--preview-weapons"):
+		var weapon_script: Script = load("res://scripts/weapons/preview_weapons.gd")
+		if weapon_script != null:
+			var weapon_host: Node = weapon_script.new()
+			add_child(weapon_host)
+			var weapon_setup: Dictionary = weapon_host.configure(self, _player, player_shop_weapon_options())
+			weapons_status = "local_arsenal" if weapon_setup.get("ok",false) else str(weapon_setup)
+			if weapon_setup.get("ok",false):
+				preview_weapons = weapon_host
+				_player._weapon_host = weapon_host
+				if is_instance_valid(preview_transport):
+					var cargo_script: Script=load("res://scripts/weapons/preview_weapon_cargo.gd")
+					if cargo_script != null:
+						var cargo_host: Node=cargo_script.new()
+						cargo_host.name="WeaponCargo"
+						weapon_host.add_child(cargo_host)
+						var cargo_result: Dictionary=cargo_host.configure(weapon_host,preview_transport)
+						if not cargo_result.get("ok",false):
+							push_error("Weapon cargo binding: "+str(cargo_result)); cargo_host.queue_free()
+			else: weapon_host.queue_free()
+	if not castle_map and player_shop_requested(): install_player_shop()  # DSH_PLAYERSHOP
+	# DSH_SWORD_PROTO: the prototype host is always installed alongside the local
+	# arsenal, so the test sword can be picked in the existing weapon menu. It
+	# only acts while that item is equipped (no purchase, no ammo).
+	# DSH_OPT: on the castle map the weapon prototype, its help panel and the city population
+	# are never used - the panel is hidden and the population is switched off anyway - and
+	# building them costs about two seconds of the map load. They are skipped there only.
+	if not castle_map and (preview_sword_prototype_enabled or is_instance_valid(preview_weapons) or OS.get_cmdline_user_args().has("--sword-proto=1")):
+		_install_sword_prototype()  # DSH_SWORD_PROTO
+		_boot_mark("sword_pair")
+	# DSH_BOW_PROTO: the bow prototype rides along with the same arsenal, so it can
+	# be picked from the weapon menu next to the test sword.
+	# DSH_CATAPULT: the siege machine lives in the city and is always installed while a
+	# local arsenal exists, because it is part of the world rather than a test weapon.
+	if preview_catapult_enabled or is_instance_valid(preview_weapons) or OS.get_cmdline_user_args().has("--catapult=1"):
+		_install_catapult()
+		_boot_mark("catapult")
+	# DSH_CASTLE: the castle map. It is built as part of the same world but at its own
+	# place, and the player is moved into its courtyard.
+	if castle_map or OS.get_cmdline_user_args().has("--castle=1"):
+		_build_castle_map()
+		_boot_mark("castle")
+		_install_castle_armor31()
+	if not castle_map and (preview_bow_prototype_enabled or is_instance_valid(preview_weapons) or OS.get_cmdline_user_args().has("--bow-proto=1")):
+		_install_bow_prototype()  # DSH_BOW_PROTO
+	if OS.get_cmdline_user_args().has("--bow-proto=1"):
+		_equip_bow_for_test()
+	# DSH_SWORD_PROTO: with the explicit test flag the blade is equipped at once,
+	# so the scene opens with the sword already in hand.
+	if OS.get_cmdline_user_args().has("--sword-proto=1"):
+		_equip_sword_for_test()
+	if is_instance_valid(preview_modular30):
+		print("MODULAR30_NATIVE_BINDING ", preview_modular30.bind_weapons())
+	if is_instance_valid(preview_palazzo):
+		print("PALAZZO_NATIVE_BINDING ", preview_palazzo.bind_weapons())
+	if is_instance_valid(preview_service_sites29):
+		print("VENUE_SITES29_NATIVE_BINDING ", preview_service_sites29.bind_weapons())
+	if is_instance_valid(preview_homes58):
+		var homes_binding58: Dictionary = preview_homes58.bind_weapons()
+		print("HOME58_NATIVE_BINDING ", homes_binding58)
+		if not homes_binding58.get("ok", false):
+			push_error("Residential damage binding failed: " + str(homes_binding58)); return
+	if is_instance_valid(preview_weapons) and is_instance_valid(preview_palazzo) and preview_palazzo.status=="ready":
+		var blast: Node=load("res://scripts/destruction/palazzo/c4_building_blast.gd").new()
+		preview_c4_blast=blast
+		if blast.configure(self,Callable(self,"_c4_sites")):
+			var equipment: Node=load("res://scripts/destruction/palazzo/c4_equipment.gd").new()
+			preview_c4=equipment
+			var c4_setup: Dictionary=equipment.configure(self,Callable(blast,"detonate"))
+			print("C4_NATIVE_BINDING ",c4_setup)
+			if not c4_setup.get("ok",false):
+				if equipment.get_parent()==null: equipment.free()
+				else: equipment.dispose()
+				preview_c4=null; blast.dispose(); preview_c4_blast=null
+		else:
+			preview_c4_blast=null; blast.free(); push_error("C4 blast binding failed")
+	if is_instance_valid(player_shop) and is_instance_valid(preview_c4_blast) and is_instance_valid(preview_weapons):
+		var throw_script: Script=load("res://scripts/shop/player_throwables.gd")
+		if throw_script!=null:
+			var throw_host: Node=throw_script.new()
+			throw_host.name="PlayerThrowables"; add_child(throw_host)
+			player_throwables=throw_host
+			var throw_setup: Dictionary=throw_host.configure(self,player_shop,preview_c4_blast,preview_c4)
+			print("DSH_THROWABLE_BINDING ",JSON.stringify(throw_setup))
+			if not throw_setup.get("ok",false):
+				player_throwables=null; throw_host.dispose()
+	if not castle_map and (preview_residents_enabled or OS.get_cmdline_user_args().has("--preview-residents")):
+		# Physics must see the authored colliders before source placement proofs.
+		await get_tree().physics_frame
+		await get_tree().physics_frame
+		preview_population.setup(self, true, preview_resident_walk_enabled)
+		_boot_mark("population")
+		population_status = preview_population.status
+		if population_status == "ready" and is_instance_valid(preview_melee):
+			var contact_binding: Dictionary = preview_melee.bind_combat(preview_population)
+			melee_status = "local_contact_combat" if contact_binding.get("ok",false) else "contact_binding_failed"
+			if not contact_binding.get("ok",false): push_error("Contact combat binding failed: " + str(contact_binding))
+	if preview_final_dead_contact_enabled: _bind_final_dead_contact_port()
+	preview_ready = true
+	if observe_npcs_mode() > 0: install_npc_observer()  # DSH_OBSERVE58
+	print("PALAZZO_READY ", is_instance_valid(preview_palazzo) and preview_palazzo.status == "ready")
+	print("PALAZZO_ONLY43_READY legacy_buildings=", _block.buildings.size(), " palazzo=", int(is_instance_valid(preview_palazzo) and is_instance_valid(preview_palazzo.site)))
+	_setup_preview_perf()
+	_last_frame_usec = Time.get_ticks_usec()
+	print("MAFIOZI_PREVIEW_READY buildings=%d decor=%d source_colliders=%d renderer=%s" % [_block["counts"]["buildings"], _block["counts"]["decor"], _block["counts"]["collisionBodies"], RenderingServer.get_current_rendering_method()])
+	print("PRINTSHOP_INTERIOR_STATUS ", printshop_status)
+	print("WATER_SURFACE_STATUS ", water_status)
+	print("STATIC_BATCH_STATUS ", static_batch_status)
+	# The fallback reason was computed but never printed, which made a silent
+	# "fallback" the only symptom. Surface it so the rejecting node or contract
+	# violation is visible in the run log.
+	if static_batch_status != "ready" and not static_batch_summary.is_empty():
+		print("STATIC_BATCH_DETAIL ", JSON.stringify(static_batch_summary))
+	print("RESIDENT_POPULATION_STATUS ", population_status)
+	print("MELEE_PRACTICE_STATUS ", melee_status)
+	print("MINIMAP_STATUS ", minimap_status)
+	print("SWORD_PROTOTYPE_STATUS ", sword_prototype_status)
+	print("BOW_PROTOTYPE_STATUS ", bow_prototype_status)
+
+## DSH_SWORD_PROTO: isolated prototype host. Adds its own sword, training dummy,
+## pole and HUD hint; reads the existing hand socket and never writes poses.
+func _install_sword_prototype() -> bool:
+	if is_instance_valid(preview_sword_prototype) or not is_instance_valid(_player): return false
+	var host: Node3D = SwordPrototype.new()
+	host.name = "SwordPrototype"
+	add_child(host)
+	var installed: Dictionary = host.install(self, _player)
+	if not installed.get("ok", false):
+		sword_prototype_status = str(installed.get("reason", "install_failed"))
+		host.queue_free()
+		return false
+	preview_sword_prototype = host
+	sword_prototype_status = "ready"
+	print("DSH_SWORD_PROTO ", JSON.stringify(installed))
+	return true
+
+## DSH_BOW_PROTO: same isolated-host pattern as the sword, with its own models,
+## aim arc, projectile flight and HUD.
+## DSH_CATAPULT: builds the machine in the street and reports how it went.
+## DSH_OPT: where the boot seconds go. Prints only when --castle-timing=1 is passed.
+func _boot_mark(label: String) -> void:
+	var timing := false
+	for argument: String in OS.get_cmdline_user_args():
+		if argument.begins_with("--castle-timing="):
+			timing = int(argument.trim_prefix("--castle-timing=")) != 0
+	if not timing: return
+	var now := Time.get_ticks_msec()
+	if _boot_last == 0: _boot_last = _boot_clock
+	print("DSH_BOOT ", label, " +", now - _boot_last, "ms total=", now - _boot_clock, "ms")
+	_boot_last = now
+func _install_catapult() -> bool:
+	if is_instance_valid(preview_catapult) or not is_instance_valid(_player): return false
+	var host: Node3D = CatapultPrototype.new()
+	host.name = "CatapultPrototype"
+	add_child(host)
+	var installed: Dictionary = host.install(self, _player)
+	if not installed.get("ok", false):
+		catapult_status = str(installed.get("reason", "install_failed"))
+		host.queue_free()
+		return false
+	preview_catapult = host
+	catapult_status = "ready"
+	# DSH_CASTLE: if the map is already built, the machine belongs at its gate - the build
+	# order is not guaranteed, so this is handled from BOTH sides.
+	if is_instance_valid(preview_castle) and host.has_method("place_near_castle"):
+		host.call("place_near_castle", preview_castle)
+	print("DSH_CATAPULT ", JSON.stringify(installed))
+	return true
+
+## DSH_CATAPULT: how many extra bodies are standing at a machine, which is what makes a
+## heavy cart move faster than one man can push it. The resident knight counts, so a
+## player with the knight beside him pushes with two men.
+## DSH_CASTLE: builds the castle and puts the player inside it.
+func _install_castle_armor31() -> void:
+	if not is_instance_valid(preview_castle) or not is_instance_valid(preview_weapons) or not is_instance_valid(_player): return
+	var rig := _player.get("_pose_skeleton") as Skeleton3D
+	if not is_instance_valid(rig): return
+	var visual_script := load("res://scripts/combat/castle_armor_visual.gd") as Script
+	var equipment_script := load("res://scripts/city/castle_armor_equipment.gd") as Script
+	if visual_script == null or equipment_script == null: return
+	var visual := visual_script.new() as Node3D
+	visual.name = "CastleArmorVisual"
+	_player.add_child(visual)
+	var binding: Dictionary = visual.configure(rig, _player)
+	if not binding.get("ok", false):
+		visual.queue_free()
+		return
+	var equipment := equipment_script.new() as Node3D
+	equipment.name = "CastleArmorEquipment"
+	add_child(equipment)
+	equipment.configure(preview_castle, preview_weapons, visual)
+
+func _build_castle_map() -> bool:
+	if is_instance_valid(preview_castle): return false
+	var castle: Node3D = CastleSite.new()
+	castle.name = "CastleSite"
+	castle.position = CASTLE_ORIGIN
+	add_child(castle)
+	var built: Dictionary = castle.call("install", self, CASTLE_ORIGIN)
+	if not built.get("ok", false):
+		castle_status = str(built.get("reason", "install_failed"))
+		castle.queue_free()
+		return false
+	preview_castle = castle
+	var wall_defense := CastleWallDefense24.new() as Node3D
+	var defense_result: Dictionary = wall_defense.install(castle)
+	if not defense_result.get("ok", false):
+		wall_defense.queue_free()
+		push_warning("Wall defense install failed: %s" % defense_result.get("reason", "unknown"))
+	var battlefield := BattlefieldSite.new() as Node3D
+	var field_result: Dictionary = battlefield.install(self, castle)
+	if field_result.get("ok", false):
+		preview_battlefield = battlefield
+		var field_props := BattlefieldProps.new() as Node3D
+		field_props.name = "BattlefieldProps"
+		battlefield.add_child(field_props)
+		field_props.install(castle)
+		var wall_dressing := SiegeWallDressing.new() as Node3D
+		wall_dressing.name = "SiegeWallDressing"
+		battlefield.add_child(wall_dressing)
+		wall_dressing.install(battlefield)
+	else:
+		battlefield.queue_free()
+		push_warning("Battlefield install failed: %s" % field_result.get("reason", "unknown"))
+	castle_status = "ready"
+	# The map boots with the CURSOR CAPTURED, or the player cannot walk: every movement
+	# control is behind a captured mouse, and a siege where you cannot move is not a test.
+	if is_instance_valid(_player):
+		_player.set_mouse_captured(true)
+		# The castle is a separate play area about 900 m from the city. Drawing the
+		# whole city behind its walls costs thousands of calls with no gate detail.
+		# Keep this distance local to the castle camera; the city camera stays at 1600 m.
+		var castle_camera := _player.get_node_or_null("CameraYaw/CameraSpringArm/PlayerCamera") as Camera3D
+		if is_instance_valid(castle_camera): castle_camera.far = 350.0
+	# DSH_CASTLE: the city has no business running on this map at all - stop the population
+	# node's own processing as well as the steps this script used to drive.
+	# A CLEAN SCREEN FOR A SIEGE. The city's control hint, the update banner and a full-size
+	# map belong to the town. The hint and the banner go, the map is cut down.
+	for child: Node in get_children():
+		if child == castle or child == _player or child == preview_catapult: continue
+		var child_script: String = ""
+		var script_ref: Variant = child.get_script()
+		if script_ref != null and script_ref is Script:
+			child_script = (script_ref as Script).resource_path
+		if child_script.find("quick_controls") >= 0 or child_script.find("update_panel") >= 0:
+			if child is CanvasItem:
+				(child as CanvasItem).visible = false
+			else:
+				child.process_mode = Node.PROCESS_MODE_DISABLED
+	if is_instance_valid(preview_minimap):
+		var map_layer: Variant = preview_minimap.get("_map")
+		if map_layer is Control:
+			(map_layer as Control).scale = Vector2(0.82, 0.82)
+			(map_layer as Control).pivot_offset = Vector2.ZERO
+	# The sword's help panel is a test tool and has no business on a siege map: it covers a
+	# quarter of the screen. Hidden here and kept hidden below.
+	if is_instance_valid(preview_sword_prototype):
+		var sword_hint: Variant = preview_sword_prototype.get("_hint")
+		if sword_hint is CanvasItem:
+			(sword_hint as CanvasItem).visible = false
+
+	# The catapult was installed before this map existed; put it in front of the gate now.
+	if is_instance_valid(preview_catapult) and preview_catapult.has_method("place_near_castle"):
+		preview_catapult.call("place_near_castle", castle)
+		# The player starts AT the machine, not in the courtyard: this map exists to be
+		# besieged, and a walk to the catapult every time is not a test.
+		var cart: Variant = preview_catapult.get("_cart")
+		if is_instance_valid(cart) and is_instance_valid(_player):
+			var cart_pos: Vector3 = (cart as Node3D).global_position
+			# BEHIND the machine, facing it and the wall beyond: the gate is at -Z from here.
+			_player.global_position = cart_pos + Vector3(0.0, 0.2, 4.5)
+			_player.velocity = Vector3.ZERO
+			_player.set("_camera_yaw", PI)
+			_player._heading = PI
+			_player._visual.rotation.y = PI + deg_to_rad(_player.visual_yaw_degrees)
+			_player._update_camera_rotation()
+			# Behind the machine, whichever way it faces.
+			var machine_yaw: float = float(preview_catapult.get("_yaw"))
+			var behind := Vector3(sin(machine_yaw), 0.0, cos(machine_yaw))
+			_castle_spawn_target = cart_pos - behind * 4.5 + Vector3.UP * 0.2
+			_castle_spawn_frames = 400
+			print("DSH_CASTLE_SPAWN_AT_CATAPULT player=", _player.global_position, " cart=", cart_pos)
+	if is_instance_valid(_player):
+		_player.global_position = castle.call("spawn_point")
+		_player.velocity = Vector3.ZERO
+	print("DSH_CASTLE ", JSON.stringify(built))
+	return true
+
+func count_helpers_near(at: Vector3, radius: float) -> int:
+	var men := 0
+	for candidate: Node in get_tree().get_nodes_in_group("catapult_pushers"):
+		var helper := candidate as CharacterBody3D
+		if not is_instance_valid(helper): continue
+		var toward: Vector3 = at - helper.global_position
+		toward.y = 0.0
+		var motion: Vector3 = helper.velocity
+		motion.y = 0.0
+		if toward.length() <= radius and toward.length_squared() > 0.01 \
+				and motion.length() > 0.25 and motion.normalized().dot(toward.normalized()) > 0.35:
+			men += 1
+	return men
+
+func _install_bow_prototype() -> bool:
+	if is_instance_valid(preview_bow_prototype) or not is_instance_valid(_player): return false
+	var host: Node3D = BowPrototype.new()
+	host.name = "BowPrototype"
+	add_child(host)
+	var installed: Dictionary = host.install(self, _player)
+	if not installed.get("ok", false):
+		bow_prototype_status = str(installed.get("reason", "install_failed"))
+		host.queue_free()
+		return false
+	preview_bow_prototype = host
+	bow_prototype_status = "ready"
+	print("DSH_BOW_PROTO ", JSON.stringify(installed))
+	return true
+
+## DSH_BOW_PROTO: `--bow-proto=1` opens the scene with the bow in hand.
+func _equip_bow_for_test() -> void:
+	if not is_instance_valid(_player): return
+	_player.set_mouse_captured(true)
+	if is_instance_valid(preview_weapons):
+		print("DSH_BOW_PROTO_EQUIP ", JSON.stringify(preview_weapons.equip("bow")))
+	elif is_instance_valid(preview_bow_prototype):
+		preview_bow_prototype.set_selected(true)
+		print("DSH_BOW_PROTO_EQUIP ", JSON.stringify({"ok": true, "direct": true}))
+
+## DSH_SWORD_PROTO: `--sword-proto=1` opens the scene with the blade in hand.
+func _equip_sword_for_test() -> void:
+	if not is_instance_valid(_player): return
+	_player.set_mouse_captured(true)
+	if is_instance_valid(preview_weapons):
+		var equipped: Dictionary = preview_weapons.equip("sword")
+		print("DSH_SWORD_PROTO_EQUIP ", JSON.stringify(equipped))
+	elif is_instance_valid(preview_sword_prototype):
+		preview_sword_prototype.set_selected(true)
+		print("DSH_SWORD_PROTO_EQUIP ", JSON.stringify({"ok": true, "direct": true}))
+
+func _install_preview_melee_practice() -> bool:
+	if is_instance_valid(preview_melee) or not is_instance_valid(_player): return false
+	# Explicit practice presentation only. A future live combat owner must bind
+	# actual targets, state and source consequences instead of reusing this host.
+	var adapter_script: Script = load("res://scripts/combat/melee_physical_pose.gd")
+	if adapter_script == null:
+		melee_status = "physical_pose_unavailable"; return false
+	var adapter: RefCounted = adapter_script.new()
+	if not adapter.configure(_player._pose_skeleton, _player._locomotion._rest_poses):
+		melee_status = "physical_pose_binding"; return false
+	var host := PreviewMelee.new()
+	host.name = "MeleePractice"
+	add_child(host)
+	if not host.configure(self, _player, adapter):
+		host.queue_free(); melee_status = "host_binding"; return false
+	preview_melee = host; _player._melee_practice = host
+	melee_status = "ground_practice_no_combat_targets"
+	return true
+
+func _install_preview_minimap() -> bool:
+	if is_instance_valid(preview_minimap) or not is_instance_valid(_player): return false
+	# Real scene nodes only: the host reads the instantiated building/decor nodes
+	# and their global positions, not a separate map JSON.
+	var host: Node = CityMinimapHost.new()
+	host.name = "CityMinimap"
+	add_child(host)
+	var bound: bool = host.configure(self, _player)
+	if not bound:
+		host.queue_free(); minimap_status = "host_binding"; return false
+	preview_minimap = host
+	minimap_status = str(host.get_status().get("status", "ready"))
+	return true
+
+## Startup/controlled rebuild only. Restore BEFORE source geometry, transforms,
+## visibility, materials or shared-sun/sky lighting dependencies are changed.
+## Printshop, terrain, actors and all physics stay outside this render lease.
+func apply_preview_static_batches() -> bool:
+	if _static_batch_lease != null:
+		return static_batch_status == "ready"
+	var declarations: Array = []
+	for owner: Node3D in _static_render_roots:
+		if not is_instance_valid(owner) or owner.get_parent() != self:
+			static_batch_status = "fallback"
+			static_batch_summary = {"ok": false, "errors": ["Static owner changed before planning"]}
+			return false
+		var source_id: String = str(owner.get_meta("source_id", ""))
+		if source_id not in STATIC_RENDER_OWNER_IDS:
+			static_batch_status = "fallback"
+			static_batch_summary = {"ok": false, "errors": ["Static owner identity changed"]}
+			return false
+		declarations.append({"root": owner, "source_id": source_id, "static_authorized": true,
+			"shared_sun_sky_only": true, "allow_static_gi_without_capture": true})
+	var lease := StaticBatch.new()
+	var started := Time.get_ticks_usec()
+	static_batch_summary = lease.plan(self, declarations, 16.0)
+	var planned := Time.get_ticks_usec()
+	if not bool(static_batch_summary.get("ok", false)) or not lease.apply():
+		# Keep the planner's reason: it names the exact node and rejection counts. The
+		# original line replaced it with lease.errors, which is empty when the plan
+		# itself failed, so the fallback was undiagnosable in the log.
+		var plan_errors: Variant = static_batch_summary.get("errors", [])
+		static_batch_summary["ok"] = false
+		static_batch_summary["plan_errors"] = plan_errors
+		static_batch_summary["apply_errors"] = lease.errors.duplicate()
+		static_batch_summary["registered_roots"] = _static_render_roots.size()
+		static_batch_summary["declared_owners"] = declarations.size()
+		static_batch_summary["owner_whitelist_size"] = STATIC_RENDER_OWNER_IDS.size()
+		lease.restore()
+		static_batch_status = "fallback"
+		return false
+	static_batch_summary["plan_us"] = planned - started
+	static_batch_summary["apply_us"] = Time.get_ticks_usec() - planned
+	static_batch_summary["active"] = true
+	_static_batch_lease = lease
+	static_batch_status = "ready"
+	return true
+
+func restore_preview_static_batches(reason: String = "restored") -> void:
+	if _static_batch_lease == null:
+		return
+	_static_batch_lease.restore()
+	_static_batch_lease = null
+	static_batch_summary["active"] = false
+	static_batch_summary["restore_reason"] = reason
+	static_batch_status = "restored"
+
+func _build_water_surface() -> bool:
+	# Build-time selection only. Never mutate water topology from a frame callback.
+	water_status = "baseline_disabled"
+	if not preview_water_detail_enabled or OS.get_cmdline_user_args().has("--preview-water-off"):
+		return false
+	water_status = "baseline_fallback"
+	if not FileAccess.file_exists(water_data_path):
+		water_errors.append("WATER_DATA_MISSING")
+		return false
+	var source_text: String = FileAccess.get_file_as_string(water_data_path).replace("\r\n", "\n")
+	if source_text.sha256_text() != WATER_DATA_SHA256:
+		water_errors.append("WATER_DATA_CHECKSUM")
+		return false
+	var parsed: Variant = JSON.parse_string(source_text)
+	water_errors.append_array(WaterSurface.validate(parsed))
+	if not water_errors.is_empty():
+		return false
+	water_errors.append_array(_validate_water_crop(parsed))
+	if not water_errors.is_empty():
+		return false
+	var candidate: RefCounted = WaterSurface.new()
+	var result: Dictionary = candidate.build(parsed, self)
+	if not bool(result.get("ok", false)):
+		water_errors.append_array(result.get("errors", PackedStringArray(["WATER_BUILD_FAILED"])))
+		candidate.dispose() # Remove any owned partial resource before fallback.
+		return false
+	_water_host = candidate
+	water_summary = result
+	water_status = "detail_ready"
+	return true
+
+func _validate_water_crop(data: Dictionary) -> PackedStringArray:
+	# Hash pins reviewed source depths; these checks prevent that valid package
+	# being applied to a different currently admitted preview block/crop.
+	var errors: PackedStringArray = []
+	var surface: Dictionary = _block["surface"]
+	for axis: int in range(3):
+		if absf(float(data.originM[axis]) - float(_block.originM[axis])) > 0.000001:
+			errors.append("WATER_BLOCK_ORIGIN")
+	var cell: float = float(surface.cellSize)
+	if absf(float(data.metresPerCell) - cell) > 0.000001:
+		errors.append("WATER_BLOCK_CELL_SIZE")
+	var expected_bounds: Dictionary = {"rMinInclusive": int(surface.startRow), "rMaxExclusive": int(surface.startRow) + int(surface.rows),
+		"cMinInclusive": int(surface.startCol), "cMaxExclusive": int(surface.startCol) + int(surface.cols)}
+	var bounds: Variant = data.get("previewBoundsRC")
+	if not bounds is Dictionary:
+		errors.append("WATER_BLOCK_BOUNDS")
+	else:
+		for key: String in expected_bounds:
+			if not WaterSurface._number(bounds.get(key), 0, 100000) or float(bounds[key]) != float(expected_bounds[key]):
+				errors.append("WATER_BLOCK_BOUNDS")
+				break
+	var water_palette: Dictionary = surface.palette.get("16", {})
+	if water_palette.is_empty() or bool(water_palette.get("solid", true)) or absf(float(water_palette.get("heightM", INF)) - float(data.native.surfaceYM)) > 0.000001:
+		errors.append("WATER_BLOCK_SURFACE_HEIGHT")
+	var masks: Variant = surface.get("masks")
+	if not masks is Dictionary or not masks.get("protectedMask") is Array:
+		errors.append("WATER_PROTECTED_MASK_REQUIRED")
+		return errors
+	var protected: Array = masks.protectedMask
+	if protected.size() != int(surface.rows):
+		errors.append("WATER_PROTECTED_MASK_ROWS")
+		return errors
+	var expected: Dictionary = {}
+	for row: int in range(int(surface.rows)):
+		if not protected[row] is Array or protected[row].size() != int(surface.cols):
+			errors.append("WATER_PROTECTED_MASK_COLUMNS")
+			return errors
+		for col: int in range(int(surface.cols)):
+			var flag: Variant = protected[row][col]
+			if not (flag is bool or ((flag is int or flag is float) and (flag == 0 or flag == 1))):
+				errors.append("WATER_PROTECTED_MASK_VALUE")
+				return errors
+			if int(surface.grid[row][col]) != 16:
+				continue
+			if bool(protected[row][col]):
+				errors.append("WATER_PROTECTED_CELL_UNSUPPORTED")
+				continue
+			expected[Vector2i(int(surface.startRow) + row, int(surface.startCol) + col)] = true
+	var cells: Array = data.native.cells
+	if cells.size() != 303 or expected.size() != cells.size():
+		errors.append("WATER_BLOCK_CELL_COUNT")
+	for record: Dictionary in cells:
+		if not expected.has(Vector2i(int(record.r), int(record.c))):
+			errors.append("WATER_BLOCK_FOOTPRINT")
+			break
+	return errors
+
+func _dispose_water_surface() -> void:
+	if _water_host != null:
+		_water_host.dispose()
+		_water_host = null
+
+func _cache_jump_surface_contains() -> void:
+	# Source traversalMapContains for this native crop only: nativePedestrianLand
+	# OR waterAt. This is not full traversal occupancy, swimming or a new floor.
+	_jump_surface_cells.clear()
+	_jump_surface_offsets.clear()
+	var surface: Dictionary = _block.surface
+	var masks: Variant = surface.get("masks")
+	if not masks is Dictionary:
+		return
+	for name: String in ["walkableMask", "policeMask", "protectedMask"]:
+		var rows: Variant = masks.get(name)
+		if not rows is Array or rows.size() != int(surface.rows):
+			return
+		for row: Variant in rows:
+			if not row is Array or row.size() != int(surface.cols):
+				return
+			for flag: Variant in row:
+				if not (flag is bool or ((flag is int or flag is float) and (flag == 0 or flag == 1))):
+					return
+	_jump_surface_cell_size = float(surface.cellSize)
+	_jump_surface_start = Vector2i(int(surface.startCol), int(surface.startRow))
+	_jump_surface_size = Vector2i(int(surface.cols), int(surface.rows))
+	_jump_surface_cells.resize(_jump_surface_size.x * _jump_surface_size.y)
+	for row: int in range(_jump_surface_size.y):
+		for col: int in range(_jump_surface_size.x):
+			var tile: int = int(surface.grid[row][col])
+			var police: Variant = masks.policeMask[row][col]
+			var land: bool = bool(masks.walkableMask[row][col]) or (tile == 9 and (police is int or police is float) and police == 1)
+			var water: bool = tile == 16 and not bool(masks.protectedMask[row][col])
+			_jump_surface_cells[row * _jump_surface_size.x + col] = 1 if land or water else 0
+	for index: int in range(12):
+		var angle: float = float(index) * PI / 6.0
+		_jump_surface_offsets.append(Vector2(cos(angle), sin(angle)))
+
+func preview_jump_surface_allowed(feet_world: Vector3, radius: float = 0.36) -> bool:
+	if not feet_world.is_finite() or not is_finite(radius) or radius <= 0.0:
+		return false
+	# Castle and its siege field share a real finite ground slab. The former
+	# courtyard-only 62 m gate blocked jump input on the newer field and road.
+	# Use the installed collision footprint; physical sweeps still own walls,
+	# slopes, ceilings and contact throughout the jump.
+	if is_instance_valid(preview_castle):
+		var ground := preview_castle.get_node_or_null("CastleGround") as StaticBody3D
+		if is_instance_valid(ground) and (ground.collision_layer & 1) != 0:
+			for child: Node in ground.get_children():
+				if not child is CollisionShape3D or child.disabled or not child.shape is BoxShape3D: continue
+				var local: Vector3 = child.to_local(feet_world)
+				var size: Vector3 = child.shape.size * 0.5
+				var inverse_scale: Vector3 = child.global_basis.inverse().get_scale().abs()
+				var margin := radius * maxf(inverse_scale.x, inverse_scale.z)
+				if absf(local.x) + margin <= size.x and absf(local.z) + margin <= size.z \
+						and local.y > -size.y - 2.0 and local.y < size.y + 40.0:
+					return true
+	# Exact source circle sample count: centre +12, bounded cached lookups only.
+	# Player separately owns swept substeps, physical collision/height/ceiling.
+	if _jump_surface_cells.is_empty() or not feet_world.is_finite() or not is_finite(radius) or radius <= 0.0:
+		return false
+	var local: Vector3 = to_local(feet_world)
+	var centre: Vector2 = Vector2(local.x + _origin.x, local.z + _origin.z)
+	if not _jump_surface_point_contains(centre):
+		return false
+	for offset: Vector2 in _jump_surface_offsets:
+		if not _jump_surface_point_contains(centre + offset * radius):
+			return false
+	return true
+
+func _jump_surface_point_contains(source_xz: Vector2) -> bool:
+	if PalazzoGround.contains_world(to_global(Vector3(source_xz.x - _origin.x, 0, source_xz.y - _origin.z))): return true
+	var col: float = source_xz.x / _jump_surface_cell_size - float(_jump_surface_start.x)
+	var row: float = source_xz.y / _jump_surface_cell_size - float(_jump_surface_start.y)
+	# Check signed fractions before conversion: negative positions never truncate
+	# into the first cell. The exclusive far bounds stay exclusive.
+	if not is_finite(col) or not is_finite(row) or col < 0.0 or row < 0.0 or col >= _jump_surface_size.x or row >= _jump_surface_size.y:
+		return false
+	return _jump_surface_cells[int(floor(row)) * _jump_surface_size.x + int(floor(col))] == 1
+
+func _c4_sites() -> Array:
+	var sites: Array = []
+	if is_instance_valid(preview_palazzo) and preview_palazzo.status=="ready" and is_instance_valid(preview_palazzo.site):
+		sites.append(preview_palazzo.site)
+	if is_instance_valid(preview_service_sites29): sites.append_array(preview_service_sites29.current_sites())
+	if is_instance_valid(preview_homes58): sites.append_array(preview_homes58.current_sites())
+	return sites
+
+func _exit_tree() -> void:
+	if is_instance_valid(player_throwables): player_throwables.dispose()
+	player_throwables=null
+	if is_instance_valid(preview_c4): preview_c4.dispose()
+	preview_c4=null
+	if is_instance_valid(preview_c4_blast): preview_c4_blast.dispose()
+	preview_c4_blast=null
+	GameCursor.release()
+	if is_instance_valid(preview_modular30): preview_modular30.dispose(false)
+	if is_instance_valid(preview_venue_staff29): preview_venue_staff29.dispose29()
+	if is_instance_valid(preview_homes58): preview_homes58.dispose()
+	if is_instance_valid(preview_service_sites29): preview_service_sites29.dispose()
+	if is_instance_valid(preview_palazzo): preview_palazzo.dispose()
+	if preview_population != null:
+		preview_population.dispose()
+	# Parent still exists here; clear host-owned mesh/material before destruction.
+	restore_preview_static_batches("scene_exit")
+	if is_instance_valid(preview_minimap): preview_minimap.dispose()
+	preview_minimap = null
+	_dispose_water_surface()
+
+func _load_printshop_data() -> void:
+	# Pin this reviewed generated package before passing structured data to the
+	# adapter. A corrupt/unreviewed package keeps the complete exterior fallback.
+	printshop_status = "exterior_fallback"
+	if not FileAccess.file_exists(printshop_data_path):
+		printshop_errors.append("Printshop package missing or checksum mismatch")
+		return
+	# Windows checkouts may convert text newlines. Hash and parse the same
+	# canonical text; content changes still fail closed, CRLF/LF alone do not.
+	var source_text: String = FileAccess.get_file_as_string(printshop_data_path).replace("\r\n", "\n")
+	if source_text.sha256_text() != PRINTSHOP_DATA_SHA256:
+		printshop_errors.append("Printshop package missing or checksum mismatch")
+		return
+	var parsed: Variant = JSON.parse_string(source_text)
+	if not parsed is Dictionary:
+		printshop_errors.append("Printshop package is not a dictionary")
+		return
+	_printshop_data = parsed
+
+func _current_door_occupants() -> Array:
+	_door_occupants.resize(1)
+	# Read the actual collider; the current player radius is 0.30, not the
+	# independent adapter test's conservative 0.36. Missing bounds fail closed.
+	var occupant: Dictionary = _door_occupants[0]
+	occupant.radius = 0.0
+	occupant.height = 0.0
+	if is_instance_valid(_player_capsule) and _player_capsule.shape is CapsuleShape3D:
+		var capsule: CapsuleShape3D = _player_capsule.shape as CapsuleShape3D
+		var frame: Transform3D = _player_capsule.global_transform
+		occupant.height = capsule.height * frame.basis.y.length()
+		occupant.radius = capsule.radius * maxf(frame.basis.x.length(), frame.basis.z.length())
+		occupant.position = frame.origin - Vector3.UP * float(occupant.height) * 0.5
+	if preview_population != null:
+		_door_occupants.append_array(preview_population.occupants())
+	return _door_occupants
+
+func _current_door_action() -> Dictionary:
+	if not preview_ready or not is_instance_valid(_player):
+		return {}
+	var focused: Control = get_viewport().gui_get_focus_owner()
+	if focused is LineEdit or focused is TextEdit:
+		return {}
+	if is_instance_valid(preview_castle) and is_instance_valid(preview_castle.armory_storage) \
+			and preview_castle.armory_storage.chest_focused():
+		return {"owner": "castle_chest", "label": "Открыть сундук",
+			"world": preview_castle.armory_storage.chest_hint_position()}
+	if is_instance_valid(preview_castle) and is_instance_valid(preview_castle.armory_storage):
+		var pickup: Dictionary = preview_castle.armory_storage.pickup_action43()
+		if not pickup.is_empty(): return pickup
+	if is_instance_valid(preview_castle) and preview_castle.wants_e():
+		var inner: Vector3 = preview_castle.lever_position()
+		var outer: Vector3 = preview_castle.outer_lever_position()
+		var nearest: Vector3 = inner if _player.global_position.distance_to(inner) <= _player.global_position.distance_to(outer) else outer
+		return {"owner": "castle", "label": "Открыть ворота" if not preview_castle.gate_open() else "Закрыть ворота",
+			"world": nearest + Vector3.UP * 0.9}
+	if is_instance_valid(preview_palazzo):
+		var palazzo_action: Dictionary = preview_palazzo.door_action()
+		if not palazzo_action.is_empty(): return palazzo_action
+	# DSH_CLONEDOOR: the swing doors of the palazzo copies use this same panel, the same
+	# "E" key and the same wording; only the owner differs.
+	var clone_action: Dictionary = CityCloneDoorSwing.nearest_door_action(_player.global_position)
+	if not clone_action.is_empty(): return clone_action
+	return _printshop.nearest_action(_player.global_position) if is_instance_valid(_printshop) else {}
+
+func _update_door_hint() -> void:
+	if _door_hint == null:
+		return
+	var action: Dictionary = _current_door_action()
+	if action.get("owner", "") in ["palazzo", "clone", "castle", "castle_chest", "castle_pickup"]:
+		_door_hint_world = action.world
+	elif not _printshop_data.is_empty():
+		_door_hint_world = _v3(_printshop_data.doors.public.anchor) + Vector3.UP * 2.2
+	var hint: String = str(action.label) if not action.is_empty() else ""
+	_door_hint_key.visible = not action.is_empty() and _door_feedback_seconds <= 0.0
+	if not action.is_empty() and _door_feedback_seconds > 0.0:
+		hint = "Дверь заблокирована"
+	if _door_hint.text != hint:
+		_door_hint.text = hint
+		_door_hint_panel.reset_size()
+	# DSH_CLONEDOOR telemetry: the hint panel itself is the prompt, so its reachability
+	# is reported per copy instead of drawing a second one.
+	for _clone_door: Variant in CityCloneDoorSwing.doors():
+		var _owner: Node = _clone_door
+		var _shown: bool = false
+		if not action.is_empty() and str(action.get("owner", "")) == "clone":
+			_shown = str(action.get("clone", "")) == str(_owner.get("clone_id"))
+		_owner.call("set_prompt_visible", _shown)
+
+func _position_door_hint() -> void:
+	if _door_hint_panel == null:
+		return
+	var camera: Camera3D = get_viewport().get_camera_3d()
+	_door_hint_panel.visible = not _door_hint.text.is_empty() and camera != null and not camera.is_position_behind(_door_hint_world)
+	if not _door_hint_panel.visible:
+		return
+	var screen: Vector2 = camera.unproject_position(_door_hint_world)
+	var viewport: Vector2 = get_viewport().get_visible_rect().size
+	var size: Vector2 = _door_hint_panel.size
+	_door_hint_panel.position = Vector2(clampf(screen.x - size.x * 0.5, 12.0, maxf(12.0, viewport.x - size.x - 12.0)),
+		clampf(screen.y - size.y, 12.0, maxf(12.0, viewport.y - size.y - 12.0)))
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and (event.physical_keycode == KEY_F5 or event.keycode == KEY_F5):
+		get_viewport().set_input_as_handled()
+		get_tree().reload_current_scene.call_deferred()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not is_instance_valid(_player) or not _player._free_mouse_look: return
+	if preview_dead or preview_physics_fault:
+		if event is InputEventKey and event.pressed and not event.echo and (event.physical_keycode == KEY_R or event.keycode == KEY_R):
+			get_viewport().set_input_as_handled()
+			get_tree().reload_current_scene.call_deferred()
+		return
+	if not event is InputEventKey or not event.pressed or event.echo:
+		return
+	var palazzo_key: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
+	if palazzo_key in [KEY_K, KEY_J] and is_instance_valid(preview_palazzo):
+		var command: Dictionary = preview_palazzo.request_full_collapse() if palazzo_key == KEY_K else preview_palazzo.request_reset()
+		if command.get("ok", false): get_viewport().set_input_as_handled()
+		return
+	if event.physical_keycode != KEY_E and event.keycode != KEY_E:
+		return
+	if not is_instance_valid(_player) or _player._pose_authority != &"on_foot":
+		return
+	var action: Dictionary = _current_door_action()
+	if action.is_empty():
+		return
+	var is_palazzo: bool = action.get("owner", "") == "palazzo"
+	var is_clone: bool = action.get("owner", "") == "clone"
+	if action.get("owner", "") == "castle_pickup":
+		if preview_castle.armory_storage.interact(): get_viewport().set_input_as_handled()
+		_update_door_hint()
+		return
+	if action.get("owner", "") == "castle_chest":
+		if preview_castle.armory_storage.open_window(): get_viewport().set_input_as_handled()
+		return
+	if action.get("owner", "") == "castle":
+		preview_castle.set_gate(not preview_castle.gate_open())
+		_update_door_hint()
+		get_viewport().set_input_as_handled()
+		return
+	var result: Dictionary = {}
+	if is_palazzo:
+		result = preview_palazzo.request_door()
+	elif is_clone:
+		# DSH_CLONEDOOR: the copy door speaks the same contract as the source owners.
+		var clone_owner: Node = null
+		for clone_door: Variant in CityCloneDoorSwing.doors():
+			if str((clone_door as Node).get("clone_id")) == str(action.get("clone", "")):
+				clone_owner = clone_door
+				break
+		if clone_owner == null:
+			return
+		clone_owner.call("set_trigger", "player_e")
+		result = clone_owner.call("request_door", str(action.get("door", "public")), not bool(action.opening), _player.global_position, _current_door_occupants())
+		# DSH_CLONEDOOR: the last answer of a copy door, readable by a QA probe.
+		_dsh_clone_door_last_result = result.duplicate(true)
+	else:
+		result = _printshop.request_door(str(action.door), not bool(action.opening), _player.global_position, _current_door_occupants())
+	if not is_palazzo and not is_clone and result.get("accepted", false) and preview_population != null:
+		preview_population.door_started(str(action.door), bool(result.open))
+	_door_feedback_seconds = 0.0
+	if not bool(result.get("accepted", false)) and str(result.get("reason", "")) == "door-sweep-occupied":
+		_door_feedback_seconds = 0.9
+	_update_door_hint()
+	get_viewport().set_input_as_handled()
+
+func install_character_impact_source(resolver: Callable, reaction_profile: Dictionary, local_inertias: Dictionary) -> Dictionary:
+	# Only a real source owner supplies accepted current contacts and force data.
+	# No preview key, damage observation or arbitrary confirmed flag creates hits.
+	if is_instance_valid(preview_character_impacts) or preview_dead or preview_physics_fault or not resolver.is_valid():
+		return {"ok":false,"error":"impact_source_binding"}
+	var host := PlayerImpactHost.new()
+	host.name = "CharacterImpacts"
+	add_child(host)
+	var result: Dictionary = host.configure(_player, preview_transport, reaction_profile, local_inertias, resolver)
+	if not result.get("ok", false):
+		host.queue_free()
+		return result
+	preview_character_impacts = host
+	return result
+
+
+var _dsh_stride_cache := -1  # DSH_STRIDE
+var _dsh_stride_tick := 0  # DSH_STRIDE
+var _dsh_stride_carry := 0.0  # DSH_STRIDE
+var _dsh_one_cache := -1  # DSH_ONEPERFRAME
+var _dsh_one_drawn := -1  # DSH_ONEPERFRAME
+var _dsh_one_carry := 0.0  # DSH_ONEPERFRAME
+
+var _dsh_loadcap_cache := -1  # DSH_LOADFAST2: --city-loadcap
+var _dsh_loadcap_orig := -1  # DSH_LOADFAST2: the engine value this run must return to
+var _dsh_loadcap_reported := false  # DSH_LOADFAST2: one line of proof
+
+# DSH_LOADFAST2: while the city is still loading, one physics tick costs 36-62 ms
+# (birth 36.6 / bind 57.8 measured), so the engine spent its whole substep budget
+# (physics/common/max_physics_steps_per_frame = 8, never set by this project) inside
+# one frame: during the load DSH_PHYS printed hz=13-24 with render_fps=1-3, i.e. 6-8
+# substeps per frame and 130-550 ms frames. Capping the substeps at the accepted value
+# while city_ready is false keeps exactly the same work in exactly the same phase order
+# and the same tick count, but each frame is one tick (42-69 ms) instead of eight.
+# The only cost is the render time that used to be amortised over eight ticks.
+# --city-loadcap=0 restores the engine value untouched.
+func _dsh_loadcap() -> int:  # DSH_LOADFAST2
+	if _dsh_loadcap_cache < 0:
+		_dsh_loadcap_cache = 1
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-loadcap="):
+				_dsh_loadcap_cache = maxi(0, int(argument.trim_prefix("--city-loadcap=")))
+	return _dsh_loadcap_cache
+
+func _dsh_apply_loadcap(ready: bool) -> void:  # DSH_LOADFAST2
+	var cap := _dsh_loadcap()
+	if cap <= 0: return
+	if _dsh_loadcap_orig < 0: _dsh_loadcap_orig = Engine.max_physics_steps_per_frame
+	var target: int = _dsh_loadcap_orig if ready else cap
+	if Engine.max_physics_steps_per_frame != target: Engine.max_physics_steps_per_frame = target
+	if not _dsh_loadcap_reported:
+		_dsh_loadcap_reported = true
+		print("DSH_LOADCAP cap=", cap, " engine_default=", _dsh_loadcap_orig, " city_ready=", ready)
+
+# DSH_STRIDE: city-simulation stride. 1 = source behaviour (every physics tick).
+func _dsh_stride() -> int:
+	if _dsh_stride_cache < 0:
+		_dsh_stride_cache = 3  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-sim-stride="):
+				_dsh_stride_cache = clampi(int(argument.trim_prefix("--city-sim-stride=")), 1, 3)
+	return _dsh_stride_cache
+
+# DSH_ONEPERFRAME: alternative city scheduler. 0 (default) keeps the stride path byte for byte.
+func _dsh_one_per_frame() -> int:
+	if _dsh_one_cache < 0:
+		_dsh_one_cache = 0
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-sim-one-per-frame="):
+				_dsh_one_cache = 1 if int(argument.trim_prefix("--city-sim-one-per-frame=")) != 0 else 0
+	return _dsh_one_cache
+
+# Only idle door animation has no use for occupant rows. All requests and every
+# moving tick still collect the current player and complete resident population.
+# Idle-door component measured on actual286; whole city frame/service acceptance remains pending.
+func _lazy_door_occupants_flag() -> int:
+	if _dsh_lazy_door_occupants < 0:
+		_dsh_lazy_door_occupants = 1
+		for argument: String in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-lazy-door-occupants="):
+				_dsh_lazy_door_occupants = 1 if argument.trim_prefix("--city-lazy-door-occupants=")=="1" else 0
+	return _dsh_lazy_door_occupants
+
+func _advance_printshop_door_motion(delta: float) -> void:
+	if not is_instance_valid(_printshop): return
+	if _lazy_door_occupants_flag()==1 and not _printshop.has_pending_motion(): return
+	_printshop.advance(delta, _current_door_occupants())
+
+func _physics_process(delta: float) -> void:
+	if Engine.get_physics_frames() == 30:
+		var scene_path := ""
+		if get_tree() != null and get_tree().current_scene != null:
+			scene_path = get_tree().current_scene.scene_file_path
+		print("DSH_SCENE_LOADED path=", scene_path, " castle_map=", castle_map,
+			" preview_castle=", is_instance_valid(preview_castle),
+			" player=", _player.global_position if is_instance_valid(_player) else Vector3.ZERO)
+	# DSH_CASTLE: the machine is installed by one boot step and the map built by another, in
+	# an order that is not guaranteed. Once both exist the machine is moved to the gate, and
+	# this cannot be missed the way a one-shot call can.
+	if not _catapult_at_castle and is_instance_valid(preview_castle) \
+			and is_instance_valid(preview_catapult) and preview_catapult.has_method("place_near_castle"):
+		_catapult_at_castle = true
+		preview_catapult.call("place_near_castle", preview_castle)
+		# The spawn is set HERE, where both the map and the machine are known to exist. The
+		# earlier copy lived in the build step, which runs before the machine is installed -
+		# so the target was never set and the city's own spawn kept the player.
+		var cart: Variant = preview_catapult.get("_cart")
+		if is_instance_valid(cart) and is_instance_valid(_player):
+			var cart_pos: Vector3 = (cart as Node3D).global_position
+			# Behind the machine, whichever way it faces.
+			var machine_yaw: float = float(preview_catapult.get("_yaw"))
+			var behind := Vector3(sin(machine_yaw), 0.0, cos(machine_yaw))
+			_castle_spawn_target = cart_pos - behind * 4.5 + Vector3.UP * 0.2
+			_castle_spawn_frames = 400
+			_player.global_position = _castle_spawn_target
+			_player.velocity = Vector3.ZERO
+			print("DSH_CASTLE_SPAWN_AT_CATAPULT player=", _player.global_position)
+			if OS.get_cmdline_user_args().has("--castle-start-outside=1"):
+				# The paved approach is clear and supported; the siege machine keeps its
+				# historical courtyard position. Startup guarding follows this spawn.
+				_castle_spawn_target = preview_castle.to_global(Vector3(0.0, 0.25,
+					float(preview_castle.call("wall_half")) + 20.0))
+				_player.global_position = _castle_spawn_target
+				_player.velocity = Vector3.ZERO
+				_player._camera_yaw = 0.0
+				_player._heading = 0.0
+				_player._visual.rotation.y = deg_to_rad(_player.visual_yaw_degrees)
+				_player._update_camera_rotation()
+				print("DSH_CASTLE_SPAWN_OUTSIDE player=", _player.global_position)
+	if _castle_spawn_frames > 0 and is_instance_valid(_player):
+		# Startup placement only guards against a stray city boot teleport. As soon
+		# as the player walks, the route away from the siege machine is intentional.
+		var move_axes := Input.get_vector(&"preview_move_left", &"preview_move_right",
+			&"preview_move_forward", &"preview_move_back")
+		if move_axes.length_squared() > 0.01:
+			_castle_spawn_frames = 0
+		else:
+			_castle_spawn_frames -= 1
+			if _player.global_position.distance_to(_castle_spawn_target) > 25.0:
+				_player.global_position = _castle_spawn_target
+				_player.velocity = Vector3.ZERO
+	if not preview_ready:
+		return
+	# Keep the test tool's help panel off this map.
+	if is_instance_valid(preview_castle) and is_instance_valid(preview_sword_prototype):
+		var castle_hint: Variant = preview_sword_prototype.get("_hint")
+		if castle_hint is CanvasItem and (castle_hint as CanvasItem).visible:
+			(castle_hint as CanvasItem).visible = false
+	_door_feedback_seconds = maxf(0.0, _door_feedback_seconds - delta)
+	_advance_printshop_door_motion(delta)
+	if preview_population != null:
+		_dsh_apply_loadcap(preview_population.get("city_ready") == true)  # DSH_LOADFAST2
+		var dsh_stride := _dsh_stride()  # DSH_STRIDE
+		# Only in the steady city state: the load phases advance one resident per tick
+		# on purpose, and stretching those would make loading N times longer.
+		# DSH_ONEPERFRAME: at most ONE whole-city step per RENDERED frame, detected with the
+		# monotone drawn-frame counter instead of a tick or a time counter. The measured
+		# 41 -> 8-14 fps oscillation is quantisation: a rendered frame can contain two
+		# 37 ms city steps, which lengthens that frame, which makes the engine run more
+		# physics substeps in the next frame, which again fits two steps. One step per
+		# drawn frame breaks that feedback. Only in the steady city state: the load
+		# phases advance one resident per tick on purpose.
+		# Real rendering is required: if Engine.get_frames_drawn() is frozen at 0
+		# (headless), fall back to the existing stride path instead of freezing the city.
+		var dsh_one: bool = _dsh_one_per_frame() != 0 and (preview_population.get("city_ready") == true) and Engine.get_frames_drawn() > 0
+		if dsh_one:
+			_dsh_one_carry += delta
+			var dsh_one_drawn := Engine.get_frames_drawn()
+			if dsh_one_drawn != _dsh_one_drawn:
+				_dsh_one_drawn = dsh_one_drawn
+				# Honest trade: the time accumulated since the previous city step is clamped
+				# to .0499 s (the resident host and the city navigation host both refuse a
+				# larger delta) and everything above the clamp is DROPPED, never queued.
+				# During a slow frame the city therefore advances a little slower than wall
+				# time instead of making that frame explode. No resident, no behaviour and
+				# no visual is removed; only the pacing is late, and the loss is bounded by
+				# (accumulated - .0499) s per city step.
+				var dsh_one_delta := minf(.0499, _dsh_one_carry)
+				_dsh_one_carry = 0.0
+				if not is_instance_valid(preview_castle): preview_population.step(dsh_one_delta)
+		elif dsh_stride > 1 and (preview_population.get("city_ready") == true):
+			_dsh_stride_tick += 1
+			_dsh_stride_carry += delta
+			# DSH_RIGCACHE: drive the stride from the physics frame counter, otherwise the
+			# city telemetry gates (frame % 30) stop coinciding with the stepped frames.
+			if Engine.get_physics_frames() % dsh_stride == 0:
+				if not is_instance_valid(preview_castle): preview_population.step(minf(.0499, _dsh_stride_carry))
+				_dsh_stride_carry = 0.0
+		else:
+			_dsh_stride_carry = 0.0
+			# DSH_CASTLE: no city on the castle map - this every-frame step was the
+			# one-per-second stall measured while walking.
+			if not is_instance_valid(preview_castle): preview_population.step(delta)
+	_update_door_hint()
+
+func _setup_preview_perf() -> void:
+	preview_perf = PreviewPerfAdapter.new()
+	preview_perf.name = "PreviewPerf"
+	add_child(preview_perf)
+	# Explicit opt-in only. The default adapter has no process callback.
+	if preview_perf_enabled or OS.get_cmdline_user_args().has("--preview-perf"):
+		begin_preview_perf_capture()
+
+func begin_preview_perf_capture(config: Dictionary = {}) -> bool:
+	# PNG readback/encoding would contaminate an otherwise identical route.
+	if not preview_ready or preview_perf == null or not _capture_path.is_empty():
+		return false
+	var supplied_context: Variant = config.get("context", {})
+	if not supplied_context is Dictionary:
+		return false
+	var settings: Dictionary = config.duplicate(true)
+	var context: Dictionary = supplied_context.duplicate(true)
+	context["scene"] = "s01_preview_quarter"
+	context["population"] = 0
+	context["vehicles"] = 0
+	context["block_data_path"] = block_data_path
+	context["water_status"] = water_status
+	context["static_batch_status"] = static_batch_status
+	context["qualification"] = "Small preview quarter; not full-city gameplay acceptance"
+	settings["context"] = context
+	return preview_perf.begin_capture(settings)
+
+func _show_load_error() -> void:
+	set_process(false)
+	var layer: CanvasLayer = CanvasLayer.new()
+	add_child(layer)
+	var label: Label = Label.new()
+	label.position = Vector2(32, 32)
+	label.text = "Не удалось загрузить квартал.\nДанные или ресурсы повреждены; сцена не запущена."
+	label.add_theme_font_size_override("font_size", 22)
+	layer.add_child(label)
+	push_error("MAFIOZI_PREVIEW_REJECTED: " + "; ".join(validation_errors))
+
+func _v3(value: Array) -> Vector3:
+	return Vector3(float(value[0]), float(value[1]), float(value[2]))
+
+func _build_lighting() -> void:
+	var world: WorldEnvironment = WorldEnvironment.new()
+	var environment: Environment = Environment.new()
+	var sky: Sky = Sky.new()
+	var atmosphere: ProceduralSkyMaterial = ProceduralSkyMaterial.new()
+	atmosphere.sky_top_color = Color("738eaf")
+	atmosphere.sky_horizon_color = Color("c6cfce")
+	atmosphere.ground_bottom_color = Color("484c46")
+	atmosphere.ground_horizon_color = Color("bec7c7")
+	sky.sky_material = atmosphere
+	environment.background_mode = Environment.BG_SKY
+	environment.sky = sky
+	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	environment.ambient_light_energy = 0.65
+	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
+	environment.tonemap_white = 6.0
+	world.environment = environment
+	add_child(world)
+	var sun: DirectionalLight3D = DirectionalLight3D.new()
+	sun.name = "AfternoonSun"
+	sun.rotation_degrees = Vector3(-48, -32, 0)
+	sun.light_color = Color("fff0d8")
+	sun.light_energy = 1.5
+	sun.shadow_enabled = true
+	sun.directional_shadow_max_distance = 100.0
+	add_child(sun)
+
+func _build_surface() -> void:
+	var surface: Dictionary = _block["surface"]
+	var grid: Array = surface["grid"]
+	var palette: Dictionary = surface["palette"]
+	var cell: float = float(surface["cellSize"])
+	var detail_water: bool = _build_water_surface()
+	var groups: Dictionary = {}
+	for row in range(grid.size()):
+		for col in range(grid[row].size()):
+			var key: String = str(int(grid[row][col]))
+			if not groups.has(key):
+				groups[key] = []
+			groups[key].append(Vector3((int(surface["startCol"]) + col + 0.5) * cell - _origin.x, float(palette[key]["heightM"]) - 0.02, (int(surface["startRow"]) + row + 0.5) * cell - _origin.z))
+	for key: String in groups:
+		if detail_water and key == "16":
+			continue # Exactly one source plane batch replaces all old water boxes.
+		var mesh: BoxMesh = BoxMesh.new()
+		mesh.size = Vector3(cell, 0.04, cell)
+		mesh.material = _surface_materials[key]
+		var multi: MultiMesh = MultiMesh.new()
+		multi.transform_format = MultiMesh.TRANSFORM_3D
+		multi.mesh = mesh
+		multi.instance_count = groups[key].size()
+		for i in range(multi.instance_count):
+			multi.set_instance_transform(i, Transform3D(Basis.IDENTITY, groups[key][i]))
+		var instance: MultiMeshInstance3D = MultiMeshInstance3D.new()
+		instance.name = "Surface_" + str(palette[key]["kind"])
+		instance.multimesh = multi
+		instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(instance)
+	# Merge consecutive dry cells into physical strips. No floor is created on water.
+	for row in range(grid.size()):
+		var col: int = 0
+		while col < grid[row].size():
+			var key: String = str(int(grid[row][col]))
+			if not bool(palette[key]["solid"]):
+				col += 1
+				continue
+			var first: int = col
+			while col < grid[row].size() and str(int(grid[row][col])) == key:
+				col += 1
+			var body: StaticBody3D = StaticBody3D.new()
+			var shape: BoxShape3D = BoxShape3D.new()
+			shape.size = Vector3((col - first) * cell, 0.16, cell)
+			var collision: CollisionShape3D = CollisionShape3D.new()
+			collision.shape = shape
+			body.position = Vector3((int(surface["startCol"]) + (first + col) * 0.5) * cell - _origin.x, float(palette[key]["heightM"]) - 0.08, (int(surface["startRow"]) + row + 0.5) * cell - _origin.z)
+			body.add_child(collision)
+			add_child(body)
+
+## DSH_CITYTOWN: resolved town mode and keep-set. The CLI form wins over the
+## scene export so one run can be changed without editing the scene.
+func city_town_active() -> bool:
+	if city_town_mode: return true
+	for argument: String in OS.get_cmdline_user_args():
+		if argument == "--city-town=1": return true
+	return false
+
+func city_town_keep_raw() -> String:
+	var raw: String = city_town_keep
+	for argument: String in OS.get_cmdline_user_args():
+		if argument.begins_with("--city-town-keep="): raw = argument.trim_prefix("--city-town-keep=")
+	if raw.strip_edges().is_empty(): raw = CITY_TOWN_DEFAULT_KEEP
+	return raw
+
+func city_town_keep_set() -> Dictionary:
+	var keep: Dictionary = {}
+	for item: String in city_town_keep_raw().split(",", false):
+		var key: String = item.strip_edges()
+		if not key.is_empty(): keep[key] = true
+	return keep
+
+## DSH_CITYTOWN: true when this source building stays OUT of the scene. Public
+## because the city world policy reuses the same rule to free its footprints.
+func city_town_skip(record: Dictionary) -> bool:
+	if not city_town_active(): return false
+	return not city_town_keep_set().has(str(record.get("assetId", "")))
+
+## DSH_CITYTOWN: the three destructible shells ported from the buildings4 packages,
+## placed next to the Palazzo frame (origins from
+## scripts/destruction/modular_buildings/PLACEMENT_HINTS.json). Off by default and
+## only reachable in town mode with --city-town-extras=1; the accepted city layout
+## and every existing benchmark keep their exact previous path.
+const TownRestaurantSite = preload("res://scripts/destruction/restaurant/restaurant_site.gd")
+const TownHospitalSite = preload("res://scripts/destruction/hospital_site/hospital_site.gd")
+const TownBankSite = preload("res://scripts/destruction/bank_site/bank_site.gd")
+const ModularPrefabLoader = preload("res://scripts/destruction/modular30/owner/expansion/modular_buildings/export/prefab_loader.gd")
+const TOWN_MODULAR30_SHA := "abfc9126737481f1bed5cc4c63095115a8f756e8c21ceb9b9209fa6a21c6c485"
+var town_extras: Array = []
+## DSH_CLONEDOOR: the real swing door owner for each palazzo copy. Off unless
+## `--city-clone-door-swing=1`; see npc_city_clone_door_swing.gd.
+const CityCloneDoorSwing = preload("res://scripts/city/runtime/npc_city_clone_door_swing.gd")
+## DSH_CLONEDOOR: last answer of a copy swing door, for QA only.
+var _dsh_clone_door_last_result: Dictionary = {}
+
+## DSH_CITYTOWN: owner's step 2 - three copies of the finished palazzo next to it, each with
+## its own sign (БОЛЬНИЦА / БАНК / РЕСТОРАН). This is a test stand: the copy carries the same
+## geometry, collision and glazing, but NO host, NO damage owner and NO resident admission, so
+## it looks like a building and behaves like scenery. Offsets: --city-clone-step=<metres>.
+func _dsh_walk(root: Node) -> Array:
+	var dsh_out: Array = [root]
+	var dsh_i := 0
+	while dsh_i < dsh_out.size():
+		for dsh_child: Node in (dsh_out[dsh_i] as Node).get_children(): dsh_out.append(dsh_child)
+		dsh_i += 1
+	return dsh_out
+
+func _dsh_sign_of(root: Node) -> Label3D:
+	for dsh_node: Node in _dsh_walk(root):
+		if dsh_node is Label3D and str((dsh_node as Label3D).text).to_upper().contains("ПАЛАЦ"):
+			return dsh_node as Label3D
+	return null
+
+func _install_palazzo_clones() -> void:
+	# DSH_CITYTOWN: the switch is read from the command line here, because an exported scene
+	# property is not set by a user argument (`--city-palazzo-clones=1`).
+	var dsh_on: bool = palazzo_clones
+	for dsh_argument: String in OS.get_cmdline_user_args():
+		if dsh_argument.begins_with("--city-palazzo-clones="): dsh_on = int(dsh_argument.trim_prefix("--city-palazzo-clones=")) != 0
+	if not dsh_on: return
+	# The "ПАЛАЦЦО" lettering is not a Label3D, so the anchor is the mesh-heaviest child of
+	# the scene: that is the palazzo block the host built (geometry + door + glazing).
+	var dsh_root: Node = null
+	var dsh_best := 0
+	for dsh_child2: Node in get_children():
+		var dsh_meshes := 0
+		for dsh_node3: Node in _dsh_walk(dsh_child2):
+			if dsh_node3 is MeshInstance3D: dsh_meshes += 1
+		if dsh_meshes > dsh_best:
+			dsh_best = dsh_meshes
+			dsh_root = dsh_child2
+	if dsh_root == null or dsh_best < 50:
+		print("CITY_TOWN_CLONE ", JSON.stringify({"ok": false, "reason": "palazzo_root_not_found", "best_meshes": dsh_best}))
+		return
+	print("CITY_TOWN_CLONE_ANCHOR ", JSON.stringify({"node": str(dsh_root.name), "meshes": dsh_best}))
+	var dsh_step := 45.0
+	for dsh_argument: String in OS.get_cmdline_user_args():
+		if dsh_argument.begins_with("--city-clone-step="): dsh_step = maxf(12.0, float(dsh_argument.trim_prefix("--city-clone-step=")))
+	var dsh_names: Array[String] = ["БОЛЬНИЦА", "БАНК", "РЕСТОРАН", "МАГАЗИН"]
+	var dsh_flags: Array[String] = ["--city-clone-hospital=", "--city-clone-bank=", "--city-clone-restaurant=", "--city-clone-shop="]
+	var dsh_enabled: Array = []
+	for dsh_flag: String in dsh_flags:
+		var dsh_value := true
+		for dsh_argument2: String in OS.get_cmdline_user_args():
+			if dsh_argument2.begins_with(dsh_flag): dsh_value = int(dsh_argument2.trim_prefix(dsh_flag)) != 0
+		dsh_enabled.append(dsh_value)
+	# The palazzo door belongs to the host, not to the site geometry, so it is looked up in the
+	# whole scene and copied per clone (the site subtree carries no door node of its own).
+	var dsh_anchor_nodes: Array = _dsh_walk(dsh_root)
+	var dsh_door_source: Node = null
+	for dsh_node4: Node in _dsh_walk(self):
+		if str(dsh_node4.name).to_lower().contains("door") and not dsh_anchor_nodes.has(dsh_node4):
+			dsh_door_source = dsh_node4
+			break
+	var dsh_base: Vector3 = (dsh_root as Node3D).position if dsh_root is Node3D else Vector3.ZERO
+	var dsh_built := 0
+	# DSH_CLONEDOOR: `--city-clone-door-swing=1` switches the copy from the owner's
+	# free-entry stub to a real openable door. Default 0 keeps the accepted stand.
+	var dsh_swing: bool = CityCloneDoorSwing.enabled()
+	var dsh_clone_keys: Array[String] = ["hospital", "bank", "restaurant", "shop"]
+	for dsh_i in dsh_names.size():
+		if not bool(dsh_enabled[dsh_i]):
+			print("CITY_TOWN_CLONE ", JSON.stringify({"ok": true, "sign": dsh_names[dsh_i], "built": false, "reason": "flag_off"}))
+			continue
+		# A built Palazzo cannot be duplicated with its live script: _ready builds
+		# the architecture a second time, including an immovable overlapping door.
+		# The flagged physical-door scene instantiates the authored site once.
+		var dsh_clone: Node
+		if dsh_swing:
+			var clone_scene: PackedScene = load("res://scripts/destruction/palazzo/palazzo_foundation12_site.tscn")
+			dsh_clone = clone_scene.instantiate()
+			dsh_clone.set("source_id", "PALAZZO-CLONE-" + dsh_clone_keys[dsh_i] + "-001")
+			(dsh_clone as Node3D).transform = (dsh_root as Node3D).transform
+		else:
+			dsh_clone = dsh_root.duplicate()
+		if dsh_clone == null: continue
+		dsh_clone.name = "TownClone_" + str(dsh_i + 1)
+		var dsh_at: Vector3 = dsh_base + Vector3(dsh_step * float(dsh_i + 1), 0.0, 0.0)
+		if dsh_clone is Node3D: (dsh_clone as Node3D).position = dsh_at
+		dsh_clone.set_meta("dsh_town_extra", true)
+		add_child(dsh_clone)
+		if dsh_swing:
+			load("res://scripts/destruction/palazzo/palazzo_access.gd").install(dsh_clone)
+		var dsh_label := Label3D.new()
+		dsh_label.name = "TownCloneSign"
+		dsh_label.text = dsh_names[dsh_i]
+		dsh_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		dsh_label.double_sided = true
+		dsh_label.no_depth_test = true
+		dsh_label.pixel_size = .02
+		dsh_label.font_size = 96
+		dsh_label.modulate = Color(1, .93, .72, 1)
+		dsh_label.outline_modulate = Color(0, 0, 0, 1)
+		dsh_label.outline_size = 18
+		dsh_label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		(dsh_clone as Node3D).add_child(dsh_label)
+		dsh_label.position = Vector3(0.0, 8.0, 0.0)
+		var dsh_door_ok := false
+		var dsh_stub_ok := false
+		if not dsh_swing and dsh_door_source != null and dsh_door_source is Node3D:
+			var dsh_door: Node = dsh_door_source.duplicate()
+			if dsh_door != null and dsh_door is Node3D:
+				(dsh_clone as Node3D).add_child(dsh_door)
+				(dsh_door as Node3D).position = (dsh_door_source as Node3D).position
+				dsh_door.set_meta("dsh_town_extra", true)
+				# Owner's step: no barriers and no thresholds - the doorway must be walkable for
+				# the player AND for the resident. The copied leaf is parked wide open and every
+				# collider under it is taken off the collision layers, so the opening is free.
+				for dsh_part: Node in _dsh_walk(dsh_door):
+					if dsh_part is CollisionObject3D: (dsh_part as CollisionObject3D).collision_layer = 0
+				(dsh_door as Node3D).rotate_y(deg_to_rad(100.0))
+				dsh_stub_ok = true
+		# DSH_CLONEDOOR: with the swing flag on, the owner's free-entry stub is NOT
+		# installed. The copy's OWN entrance panel (the palazzo door the host binds in
+		# palazzo_site.gd `_bind_door`, already inside the duplicated subtree) gets a
+		# real swing owner instead, so a closed doorway is a barrier again.
+		if dsh_swing:
+			var dsh_swing_owner: Node3D = CityCloneDoorSwing.new()
+			dsh_swing_owner.name = "CloneDoorSwing"
+			(dsh_clone as Node3D).add_child(dsh_swing_owner)
+			dsh_swing_owner.set_meta("dsh_town_extra", true)
+			var dsh_configured: bool = dsh_swing_owner.configure(self, dsh_clone_keys[dsh_i], dsh_clone as Node3D)
+			dsh_door_ok = dsh_configured
+			var dsh_leaf_name := "-"
+			var dsh_anchor: Array = []
+			if dsh_configured:
+				var dsh_leaf: Variant = dsh_swing_owner.get("leaf")
+				if dsh_leaf is Node: dsh_leaf_name = str((dsh_leaf as Node).name)
+				dsh_anchor = [dsh_swing_owner.anchor.x, dsh_swing_owner.anchor.y, dsh_swing_owner.anchor.z]
+			print("CITY_TOWN_CLONE_DOOR ", JSON.stringify({
+				"ok": dsh_configured,
+				"sign": dsh_names[dsh_i],
+				"clone": dsh_clone_keys[dsh_i],
+				"owner": "CloneDoorSwing",
+				"contract": "request_door/door_fraction/advance",
+				"mode": "real_swing_door",
+				"stub_free_entry_installed": false,
+				"leaf": dsh_leaf_name,
+				"anchor": dsh_anchor,
+			}))
+		dsh_door_ok = dsh_door_ok or dsh_stub_ok
+		dsh_built += 1
+		print("CITY_TOWN_CLONE ", JSON.stringify({"ok": true, "sign": dsh_names[dsh_i], "built": true, "sign_node": "TownCloneSign", "door_copied": dsh_door_ok, "door_source": (str(dsh_door_source.name) if dsh_door_source != null else "-"), "door_mode": ("swing" if dsh_swing else "stub_free_entry"), "origin": [dsh_at.x, dsh_at.y, dsh_at.z]}))
+	print("CITY_TOWN_CLONE_TOTAL ", JSON.stringify({"built": dsh_built, "step_m": dsh_step, "door_swing": dsh_swing}))
+
+func _install_town_extras() -> bool:
+	if not city_town_active() or not town_extras.is_empty(): return false
+	# DSH_CITYTOWN: the row is anchored to the AUTHORED SPAWN and placed INSIDE the city
+	# (+45 m along z), clear of the spawn itself and of the surface edge at z ~ -63.
+	# Origins are still overridable with --city-town-row-offset=x,y,z.
+	var dsh_row := Vector3(0.0, 0.0, 45.0)
+	for dsh_argument: String in OS.get_cmdline_user_args():
+		if dsh_argument.begins_with("--city-town-row-offset="):
+			var dsh_parts: PackedStringArray = dsh_argument.trim_prefix("--city-town-row-offset=").split(",")
+			if dsh_parts.size() == 3: dsh_row = Vector3(float(dsh_parts[0]), float(dsh_parts[1]), float(dsh_parts[2]))
+	var dsh_base: Vector3 = _v3(_block["hero"]["spawnLocalM"]) + dsh_row
+	var dsh_plan: Array = [
+		["restaurant_pizza", TownRestaurantSite, dsh_base + Vector3(0.0, 0.0, 0.0), 0.0],
+		["hospital_structural01", TownHospitalSite, dsh_base + Vector3(40.0, 0.0, 0.0), 0.0],
+		["bank_small", TownBankSite, dsh_base + Vector3(80.0, 0.0, 0.0), 0.0],
+	]
+	for dsh_entry: Array in dsh_plan:
+		# The ported instantiator is a RefCounted that adds its own site AND its own
+		# soil body to the given parent, so it must NOT be parented here. Everything
+		# it adds is marked so the city navigation capture skips the whole subtree.
+		var dsh_before: int = get_child_count()
+		var dsh_site: RefCounted = dsh_entry[1].new()
+		var dsh_result: Dictionary = dsh_site.call("prepare", self, dsh_entry[2], float(dsh_entry[3]))
+		for dsh_index in range(dsh_before, get_child_count()):
+			var dsh_added: Node = get_child(dsh_index)
+			if dsh_added != null: dsh_added.set_meta("dsh_town_extra", true)
+		town_extras.append(dsh_site)
+		print("CITY_TOWN_EXTRA ", str(dsh_entry[0]), " ", JSON.stringify({
+			"ok": bool(dsh_result.get("ok", false)),
+			"status": str(dsh_result.get("status", "")),
+			"reason": str(dsh_result.get("reason", "")),
+			"prepare_ms": dsh_result.get("prepare_ms", 0.0),
+			"origin": [dsh_entry[2].x, dsh_entry[2].y, dsh_entry[2].z]}))
+	_install_town_modular30()
+	return true
+
+## DSH_CITYTOWN: the modular30 house is placed through its own pinned prefab loader
+## instead of modular30_host.gd, because that host demands the palazzo block SHA
+## (1523f52e...) while the city loads city_block.json. Honest limitation: this places
+## the module MESH only - it has no damage owner and no compound runtime yet, so it
+## is reported as `mesh_only_no_damage_owner` rather than as a destructible site.
+func _install_town_modular30() -> void:
+	var dsh_loaded: Dictionary = ModularPrefabLoader.instantiate_prefab(
+		"res://assets/modular30/townhouse013/townhouse013.scn", TOWN_MODULAR30_SHA)
+	if not bool(dsh_loaded.get("ok", false)):
+		print("CITY_TOWN_EXTRA modular30_townhouse013 ", JSON.stringify({"ok": false, "reason": str(dsh_loaded.get("reason", ""))}))
+		return
+	var dsh_instance: Node3D = dsh_loaded.get("instance")
+	if dsh_instance == null: return
+	dsh_instance.position = _v3(_block["hero"]["spawnLocalM"]) + Vector3(120.0, 0.0, -60.0)
+	add_child(dsh_instance)
+	dsh_instance.set_meta("dsh_town_extra", true)
+	if dsh_instance.get_child_count() > 0: (dsh_instance.get_child(0) as Node).set_meta("dsh_town_extra", true)
+	var dsh_payload: Variant = dsh_loaded.get("payload")
+	var dsh_source := ""
+	if dsh_payload is Dictionary: dsh_source = str(dsh_payload.get("source_id", ""))
+	print("CITY_TOWN_EXTRA modular30_townhouse013 ", JSON.stringify({"ok": true, "status": "mesh_only_no_damage_owner", "source_id": dsh_source, "origin": [dsh_instance.position.x, dsh_instance.position.y, dsh_instance.position.z]}))
+
+func _add_asset(record: Dictionary) -> void:
+	# Every scene passed preflight before any world/physics node was created.
+	var resource: PackedScene = _resource_scenes[str(record["path"])]
+	var parent: Node3D = Node3D.new()
+	parent.name = str(record["id"]).validate_node_name() if city_block_mode else str(record["id"])
+	parent.set_meta("source_id", record["id"])
+	var transform_data: Dictionary = record["transform"]
+	parent.position = _v3(record["positionLocalM"])
+	parent.rotation.y = deg_to_rad(float(transform_data.get("yawDegrees", 0)))
+	var uniform: float = float(transform_data.get("uniformScale", 1))
+	var horizontal: Array = transform_data.get("horizontalScale", [1, 1])
+	parent.scale = Vector3(uniform * float(horizontal[0]), uniform, uniform * float(horizontal[1]))
+	var visual: Node3D = resource.instantiate() as Node3D
+	visual.position = _v3(transform_data.get("modelLocalOffsetM", [0, 0, 0]))
+	parent.add_child(visual)
+	add_child(parent)
+	_hide_helpers(visual, record.get("effectiveHiddenNodeNames", []))
+	if str(record["id"]) in STATIC_RENDER_OWNER_IDS:
+		_static_render_roots.append(parent)
+	if str(record["id"]) == PrintshopInterior.SOURCE_ID and not _printshop_data.is_empty():
+		var interior: Node3D = PrintshopInterior.new()
+		interior.name = "PrintshopInterior"
+		add_child(interior)
+		if interior.attach_existing(visual, record, _printshop_data):
+			_printshop = interior
+			printshop_status = "ready"
+			return # Only this record's exactly three validated envelope bodies.
+		printshop_errors.append_array(interior.errors)
+		interior.restore_original()
+		interior.free()
+	for data: Dictionary in record.get("collisionBodiesM", []):
+		var points: PackedVector3Array = PackedVector3Array()
+		for point: Array in data["polygonXZ"]:
+			points.append(Vector3(float(point[0]), float(data["minY"]), float(point[1])))
+			points.append(Vector3(float(point[0]), float(data["maxY"]), float(point[1])))
+		var shape: ConvexPolygonShape3D = ConvexPolygonShape3D.new()
+		shape.points = points
+		var body: StaticBody3D = StaticBody3D.new()
+		body.set_meta("source_id", record["id"])
+		body.set_meta("source_index", data["sourceIndex"])
+		var collider: CollisionShape3D = CollisionShape3D.new()
+		collider.shape = shape
+		body.add_child(collider)
+		add_child(body)
+
+func _hide_helpers(node: Node, names: Array) -> void:
+	for original: String in names:
+		if str(node.name) == original or str(node.name) == original.validate_node_name():
+			if node is Node3D:
+				node.visible = false
+	for child: Node in node.get_children():
+		_hide_helpers(child, names)
+
+func _build_hud() -> void:
+	var layer: CanvasLayer = CanvasLayer.new()
+	add_child(layer)
+	var panel: PanelContainer = PanelContainer.new()
+	panel.position = Vector2(16, 16)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style: StyleBoxFlat = StyleBoxFlat.new()
+	style.bg_color = Color(0.035, 0.055, 0.07, 0.9)
+	style.content_margin_left = 10
+	style.content_margin_right = 10
+	style.content_margin_top = 7
+	style.content_margin_bottom = 7
+	style.border_width_left = 3
+	style.border_color = Color("dfb968")
+	panel.add_theme_stylebox_override("panel", style)
+	layer.add_child(panel)
+	var stack: VBoxContainer = VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 5)
+	panel.add_child(stack)
+	var title: Label = Label.new()
+	title.text = "МАФИОЗИ · замок" if castle_map else "МАФИОЗИ · тестовый квартал"
+	title.add_theme_font_size_override("font_size", 13)
+	title.add_theme_color_override("font_color", Color("ebc77f"))
+	stack.add_child(title)
+	_stats = Label.new()
+	_stats.add_theme_color_override("font_color", Color("aabec8"))
+	_stats.add_theme_font_size_override("font_size", 12)
+	stack.add_child(_stats)
+	var controls: Label = Label.new()
+	controls.text = "Клик — управление · Esc — курсор\nWASD — идти · Shift — бег · Колесо — камера\nSpace — прыжок · 2×Space — бросок · C/Z — присесть/лечь"
+	controls.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	controls.offset_left = 470 if preview_weapons_enabled else 16
+	controls.offset_top = -70 if preview_weapons_enabled else -46
+	controls.add_theme_font_size_override("font_size", 12)
+	controls.add_theme_color_override("font_shadow_color", Color.BLACK)
+	controls.add_theme_constant_override("shadow_offset_x", 1)
+	controls.add_theme_constant_override("shadow_offset_y", 2)
+	layer.add_child(controls)
+	_door_hint_panel = PanelContainer.new()
+	_door_hint_panel.name = "DoorActionAboveEntrance"
+	_door_hint_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_door_hint_panel.visible = false
+	var door_style := StyleBoxFlat.new()
+	door_style.bg_color = Color(0.035, 0.055, 0.07, 0.95)
+	door_style.set_border_width_all(1)
+	door_style.border_color = Color("dfb968")
+	door_style.set_corner_radius_all(6)
+	door_style.content_margin_left = 8
+	door_style.content_margin_right = 8
+	door_style.content_margin_top = 4
+	door_style.content_margin_bottom = 4
+	_door_hint_panel.add_theme_stylebox_override("panel", door_style)
+	layer.add_child(_door_hint_panel)
+	if is_instance_valid(_printshop):
+		_door_hint_world = _v3(_printshop_data.doors.public.anchor)
+		for body: Dictionary in _printshop_data.doors.public.bodies:
+			_door_hint_world.y = maxf(_door_hint_world.y, float(body.maxY))
+		_door_hint_world.y += 0.25
+	var door_row := HBoxContainer.new()
+	door_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	door_row.add_theme_constant_override("separation", 6)
+	_door_hint_panel.add_child(door_row)
+	_door_hint_key = PanelContainer.new()
+	_door_hint_key.name = "InteractionKeyE"
+	_door_hint_key.custom_minimum_size = Vector2(24, 24)
+	_door_hint_key.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var key_style := StyleBoxFlat.new()
+	key_style.bg_color = Color("f7dc9c")
+	key_style.border_color = Color("a27a35")
+	key_style.set_border_width_all(1)
+	key_style.border_width_bottom = 3
+	key_style.set_corner_radius_all(5)
+	_door_hint_key.add_theme_stylebox_override("panel", key_style)
+	door_row.add_child(_door_hint_key)
+	var key_label := Label.new()
+	key_label.text = "E"
+	key_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	key_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	key_label.add_theme_color_override("font_color", Color("17202a"))
+	key_label.add_theme_font_size_override("font_size", 16)
+	key_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_door_hint_key.add_child(key_label)
+	_door_hint = Label.new()
+	_door_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_door_hint.add_theme_color_override("font_color", Color("f7dc9c"))
+	_door_hint.add_theme_font_size_override("font_size", 14)
+	_door_hint.add_theme_color_override("font_shadow_color", Color.BLACK)
+	_door_hint.add_theme_constant_override("shadow_offset_x", 1)
+	_door_hint.add_theme_constant_override("shadow_offset_y", 2)
+	door_row.add_child(_door_hint)
+	if not castle_map: _build_update_panel(layer)
+
+func _build_update_panel(layer: CanvasLayer) -> void:
+	var notes := UpdatePanel.new()
+	layer.add_child(notes)
+	notes.setup("res://data/preview_updates.json", PREVIEW_RUNTIME_REVISION)
+
+func _process(delta: float) -> void:
+	if not preview_ready or _player == null:
+		return
+	_position_door_hint()
+	if not preview_physics_fault and is_instance_valid(preview_transport) and preview_transport.character_physics != null and preview_transport.character_physics.mode == "FAULTED":
+		_show_physics_fault()
+	if not preview_dead and not preview_physics_fault and _player.global_position.y < -25.0:
+		_die_outside_world()
+	var now: int = Time.get_ticks_usec()
+	if _water_host != null:
+		_water_host.advance(float(now) / 1000000.0)
+	_samples.append(float(now - _last_frame_usec) / 1000.0)
+	_last_frame_usec = now
+	_runtime_seconds += delta
+	if not _capture_done and not _capture_path.is_empty() and _runtime_seconds > 5.0:
+		_capture_done = true
+		_save_preview_frame.call_deferred()
+	if _samples.size() > 600:
+		_samples.pop_front()
+	_clock += delta
+	if _clock < 1.0:
+		return
+	_clock = 0.0
+	var sorted: Array[float] = _samples.duplicate()
+	sorted.sort()
+	var p95: float = sorted[mini(sorted.size() - 1, int(sorted.size() * 0.95))]
+	_stats.text = "%d FPS · p95 %.1f мс" % [Engine.get_frames_per_second(), p95]
+	if not _capture_path.is_empty() and _runtime_seconds < 12.0:
+		print("PREVIEW_FRAME_SAMPLE ", JSON.stringify({"elapsed_seconds": _runtime_seconds, "fps": Engine.get_frames_per_second(), "frame_p95_ms": p95, "draw_calls": Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), "primitives": Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME), "limits": "Static small debug preview, not full gameplay or exported release benchmark"}))
+
+func _save_preview_frame() -> void:
+	await RenderingServer.frame_post_draw
+	var frame: Image = get_viewport().get_texture().get_image()
+	var result: Error = frame.save_png(_capture_path)
+	print("PREVIEW_CAPTURE ", result, " ", _capture_path)
+
+func _die_outside_world() -> void:
+	# Explicit local-preview death; never teleport a still-occupied actor away
+	# from a falling vehicle or silently grant walking authority.
+	preview_dead = true
+	if is_instance_valid(preview_transport):
+		preview_transport.mark_dead()
+	else:
+		_player.set_preview_pose_authority(&"dead")
+	_player.set_mouse_captured(false)
+	var layer := CanvasLayer.new()
+	layer.layer = 20
+	add_child(layer)
+	var shade := ColorRect.new()
+	shade.color = Color(0.03, 0.03, 0.04, .72)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(shade)
+	var label := Label.new()
+	label.text = "ВЫ ПОГИБЛИ\nПадение за пределы карты\n\nR — начать заново"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 28)
+	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.add_child(label)
+
+func _show_physics_fault() -> void:
+	preview_physics_fault = true
+	_player.set_mouse_captured(false)
+	var layer := CanvasLayer.new()
+	layer.layer = 21
+	add_child(layer)
+	var panel := PanelContainer.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	layer.add_child(panel)
+	var label := Label.new()
+	label.text = "Не удалось восстановить движение персонажа.\nR — перезапустить тестовую сцену"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 20)
+	panel.add_child(label)
+	push_error("Character physics stopped: " + preview_transport.character_physics.fault_reason)
+
+
+func _bind_final_dead_contact_port(measured_limits: Dictionary = FINAL_DEAD_CONTACT_LIMITS) -> bool:
+	if preview_population == null or not is_instance_valid(_player) or not _player.has_method("set_final_dead_contact_owner"):
+		final_dead_contact_status = "unavailable_player_or_population"
+		return false
+	var options := measured_limits.duplicate(true)
+	if _final_dead_block_requested: options["contact_schema"] = "npc_final_dead_contact/v2"
+	var registered: Dictionary = preview_population.setup_final_dead_contact(_player, options)
+	if not registered.get("ok",false):
+		final_dead_contact_status = str(registered.get("reason","owner_registration_failed"))
+		return false
+	if _final_dead_block_requested:
+		if registered.get("schema") != "npc_final_dead_contact/v2":
+			final_dead_contact_status = "v2_registration_schema_mismatch"
+			return false
+		var contract: Dictionary = preview_population.player_final_dead_block_contract()
+		var pressure_bound: bool = _player.set_final_dead_pressure_owner(Callable(preview_population,"player_final_dead_contact_ready"), Callable(preview_population,"admit_player_final_dead_contact"), contract)
+		final_dead_contact_status = "v2_bound_waiting_final_death" if pressure_bound else "v2_binding_failed_filters_unchanged"
+		final_dead_block_contract_status = "active_movement1025_support1" if pressure_bound else "activation_failed_filters_unchanged"
+		return pressure_bound
+	var bound: bool = _player.set_final_dead_contact_owner(Callable(preview_population,"player_final_dead_contact_ready"), Callable(preview_population,"admit_player_final_dead_contact"))
+	final_dead_contact_status = "bound_waiting_final_death" if bound else "binding_failed"
+	return bound
+
+
+# ── DSH_PLAYERSHOP: локальная торговая лавка ───────────────────────────────
+# Модуль живёт в scripts/shop и включается флагом --city-player-shop=1.
+# Без флага поведение прежнее: продавца в сцене нет, арсенал выдаёт все стволы.
+@export var city_player_shop_enabled: bool = false
+@export var city_player_shop_cash: int = -1
+var player_shop: Node = null
+
+## DSH_OBSERVE58: --city-observe-npcs=1 numbers above every resident, 2 adds a manual
+## camera tour (O toggles, [ and ] switch), 3 adds an automatic tour. 0 (default) is off.
+func observe_npcs_mode() -> int:  # DSH_OBSERVE58
+	for argument: String in OS.get_cmdline_user_args():
+		if argument == "--city-observe-npcs": return 1
+		if argument.begins_with("--city-observe-npcs="):
+			return clampi(int(argument.trim_prefix("--city-observe-npcs=")), 0, 3)
+	return 0
+
+func install_npc_observer() -> void:  # DSH_OBSERVE58
+	if is_instance_valid(npc_observer58): return
+	var host: Node = NpcObserve58.new()
+	host.name = "NpcObserve58"
+	add_child(host)
+	if not host.configure(self, _player, preview_population, observe_npcs_mode()):
+		host.queue_free(); return
+	npc_observer58 = host
+	print("DSH_OBSERVE58 binding=", JSON.stringify(host.report()))
+
+func player_shop_requested() -> bool:  # DSH_PLAYERSHOP
+	if city_player_shop_enabled:
+		return true
+	for argument: String in OS.get_cmdline_user_args():
+		if argument == "--city-player-shop=1" or argument == "--city-player-shop":
+			return true
+	return false
+
+## The starter ownership set comes from the same catalog the shop sells from, so a
+## purchase is the only way to grow the arsenal while the flag is on.
+func player_shop_weapon_options() -> Dictionary:  # DSH_PLAYERSHOP
+	var options: Dictionary = {}
+	if not player_shop_requested():
+		return options
+	var catalog = PlayerShopCatalog.new()
+	var opened: Dictionary = catalog.open()
+	if not opened.get("ok", false):
+		push_error("Player shop catalog: " + str(opened))
+		return options
+	options["ownedIds"] = catalog.starter_ids()
+	print("DSH_SHOP_STARTER ", JSON.stringify({"starter": catalog.starter_ids(), "items": catalog.item_count(), "cash": catalog.starting_cash()}))
+	return options
+
+func install_player_shop() -> void:  # DSH_PLAYERSHOP
+	if is_instance_valid(player_shop) or not is_instance_valid(preview_weapons):
+		return
+	var shop_script: Script = load("res://scripts/shop/player_shop_host.gd")
+	if shop_script == null:
+		push_error("Player shop module unavailable")
+		return
+	var host: Node = shop_script.new()
+	host.name = "PlayerShop"
+	add_child(host)
+	var options: Dictionary = {}
+	if city_player_shop_cash >= 0:
+		options["cash"] = city_player_shop_cash
+	for argument: String in OS.get_cmdline_user_args():
+		if argument.begins_with("--city-player-cash="):
+			options["cash"] = int(argument.trim_prefix("--city-player-cash="))
+	var installed: Dictionary = host.configure(self, _player, preview_weapons, options)
+	if not installed.get("ok", false):
+		push_error("Player shop binding: " + str(installed))
+		host.queue_free()
+		return
+	player_shop = host
+	print("DSH_SHOP_BINDING ", JSON.stringify(installed))

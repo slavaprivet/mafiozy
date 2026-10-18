@@ -1,11 +1,11 @@
 {
   "schema": "mafiozi.current-play/v1",
-  "title": "Замок и осада · общая сцена 57 · живучие противники",
-  "revision": "castle-20261019-combined57-tougher-opponents",
-  "assembly": "outputs/coordinator31_castle_current/ASSEMBLY.json",
-  "assembly_sha256": "ddf72ae597fbadc690a2d821720e58ccfa18c3557effc57eb26ab1b433192e56",
+  "title": "Замок и осада · общая сцена 59 · противник подбирает меч",
+  "revision": "castle-20261019-combined59-npc-rearm",
+  "assembly": "outputs/coordinator35_release59/ASSEMBLY.json",
+  "assembly_sha256": "ddff9f6360c9fc87fbad50d2ef781291d44dbd5f996af4a17242a227f4ffcd4d",
   "bootstrap": "outputs/coordinator31_castle_current/bootstrap_castle.gd",
   "bootstrap_sha256": "318b2fe49cf454e0f41766ac4e5aa23ea43b2a26f5fa8d5b9c2ed3a617d0858b",
   "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
-  "scope": "All56 retained; castle duelist480HP and resident270HP with stronger body parts. Weapon controls unchanged."
+  "scope": "All58 retained; living knight with an intact sword arm retrieves his dropped physical sword and resumes combat; severed arm or stolen sword cannot rearm."
 }

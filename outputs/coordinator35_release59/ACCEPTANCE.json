@@ -1,0 +1,19 @@
+{
+  "revision": "castle-20261019-combined59-npc-rearm",
+  "base_release": "castle-20261019-combined57-tougher-opponents",
+  "status": "ACCEPTED_FUNCTIONAL",
+  "source_pin_count": 1347,
+  "source_pin_mismatches": 0,
+  "checks": {
+    "f5_restarts_ready_castle_scene": "PASS (same scripts/main.gd as release 59)",
+    "living_knight_drops_and_reclaims_physical_sword": "PASS",
+    "knight_resumes_attack_after_reclaim": "PASS (3 swings)",
+    "current_pointer_and_manifest_hash": "PASS"
+  },
+  "evidence": {
+    "f5": "evidence/restart58_stdout.log",
+    "npc_rearm": "evidence/disarm59_stdout.log",
+    "npc_scheduler": "evidence/disarm59_scheduler.json"
+  },
+  "limits": "Functional headless acceptance; no full-game FPS claim."
+}

@@ -49,3 +49,7 @@
 /outputs/coordinator35_release57/game/** -text
 /outputs/coordinator35_release57/evidence/** -text
 /outputs/coordinator35_release57/ASSEMBLY.json -text
+/outputs/coordinator35_release59/game/** -text
+/outputs/coordinator35_release59/evidence/** -text
+/outputs/coordinator35_release59/ASSEMBLY.json -text
+/outputs/coordinator35_release59/ACCEPTANCE.json -text
