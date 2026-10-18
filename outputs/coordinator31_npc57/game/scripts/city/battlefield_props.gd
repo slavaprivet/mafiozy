@@ -98,15 +98,15 @@ func _make_resources() -> void:
 func _make_tent_roof() -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var ridge_l := Vector3(-2.12, 2.42, 0)
-	var ridge_r := Vector3(2.12, 2.42, 0)
+	var ridge_l := Vector3(-3.08, 3.72, 0)
+	var ridge_r := Vector3(3.08, 3.72, 0)
 	for side in [-1.0, 1.0]:
-		var eave_l := Vector3(-2.12, 0.28, side * 2.02)
-		var eave_r := Vector3(2.12, 0.28, side * 2.02)
+		var eave_l := Vector3(-3.08, 0.32, side * 2.58)
+		var eave_r := Vector3(3.08, 0.32, side * 2.58)
 		_roof_triangle(st, ridge_l, ridge_r, eave_r)
 		_roof_triangle(st, ridge_l, eave_r, eave_l)
-	for x in [-2.12, 2.12]:
-		_roof_triangle(st, Vector3(x, 2.42, 0), Vector3(x, 0.28, -2.02), Vector3(x, 0.28, 2.02))
+	for x in [-3.08, 3.08]:
+		_roof_triangle(st, Vector3(x, 3.72, 0), Vector3(x, 0.32, -2.58), Vector3(x, 0.32, 2.58))
 	st.generate_normals()
 	return st.commit()
 
@@ -128,13 +128,16 @@ func _terrain_y(x: float, z: float) -> float:
 	return 0.0
 
 func _piece(mesh: String, material: String, pos: Vector3, size: Vector3, rotation := Vector3.ZERO, group := "", no_shadow := false) -> void:
-	var cell := Vector2i(int(floor(pos.x / 95.0)), int(floor((pos.z - 80.0) / 85.0)))
+	# Looking along the assault axis spans both flanks; two depth sectors cull the
+	# distant camp while avoiding a separate draw call for each side of the road.
+	var cell := Vector2i(0, int(floor((pos.z - 80.0) / 85.0)))
 	var bucket := "vegetation_grass" if material in ["grass", "grass_dry"] else ("glow" if material == "ember" else ("detail" if no_shadow else "solid"))
 	var key := "%s|%s|%d|%d" % [mesh, bucket, cell.x, cell.y]
 	if not _pending.has(key):
 		_pending[key] = {"mesh": mesh, "bucket": bucket, "cell": cell, "no_shadow": no_shadow, "parts": []}
 	var lift := float(_groups[group]["ground_offset"]) if group != "" and _groups.has(group) else _terrain_y(pos.x, pos.z)
-	var xf := Transform3D(Basis.from_euler(rotation).scaled(size), pos + Vector3.UP * lift)
+	# Rotate *after* local scaling. Global scaling flattened wagon wheels and roof slopes.
+	var xf := Transform3D(Basis.from_euler(rotation) * Basis().scaled(size), pos + Vector3.UP * lift)
 	(_pending[key]["parts"] as Array).append({"xf": xf, "group": group, "color": (_materials[material] as StandardMaterial3D).albedo_color})
 	_stats["mesh_pieces"] += 1
 
@@ -164,7 +167,8 @@ func _flush_batches() -> void:
 		var node := MultiMeshInstance3D.new()
 		node.name = "Batched_%s" % key.replace("|", "_")
 		node.multimesh = mm
-		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if record["no_shadow"] else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		var casts_shadow: bool = record["mesh"] in ["tent_roof", "wheel"] and not record["no_shadow"]
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if casts_shadow else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		if record["bucket"] == "vegetation_grass":
 			node.set_meta("category", "vegetation_grass")
 		add_child(node)
@@ -177,7 +181,7 @@ func _flush_batches() -> void:
 
 func _group(id: String, center: Vector3, health: float, kind: String, collision_size := Vector3.ZERO) -> void:
 	var lift := _terrain_y(center.x, center.z)
-	_groups[id] = {"center": center + Vector3.UP * lift, "ground_offset": lift, "health": health, "kind": kind, "indices": [], "collider": null, "destroyed": false}
+	_groups[id] = {"center": center + Vector3.UP * lift, "ground_offset": lift, "reach": maxf(2.2, collision_size.x * 0.5), "health": health, "kind": kind, "indices": [], "collider": null, "destroyed": false}
 	if collision_size != Vector3.ZERO:
 		var body := StaticBody3D.new()
 		body.name = "Cover_%s" % id
@@ -200,12 +204,14 @@ func _build_siege_line() -> void:
 			for i in 3:
 				var p := Vector3(side * (21.0 + i * 5.0 + row * 2.0), 0, 103.0 + row * 18.0 + i * 2.1)
 				_build_barricade(p, side, "barrier_%d_%d_%d" % [int(side), row, i])
-	_build_cart(Vector3(42.0, 0, 143.0), 0.36, "cart_supply")
-	_build_cart(Vector3(-43.0, 0, 158.0), -0.44, "cart_broken", true)
-	_build_wheel(Vector3(-38.6, 0.18, 162.2), 0.76, 0.38, "")
+	_build_cart(Vector3(63.0, 0, 143.0), 0.36, "cart_supply")
+	_build_cart(Vector3(-63.0, 0, 158.0), -0.44, "cart_broken", true)
+	_build_wheel(Vector3(-58.6, 0.18, 162.2), 0.76, 0.38, "")
 	for side in [-1.0, 1.0]:
 		for i in 2:
 			_build_barricade(Vector3(side * (23.0 + i * 5.0), 0, 178.0 + i * 3.0), side, "outer_barrier_%d_%d" % [int(side), i])
+		for row in 2:
+			_build_palisade(Vector3(side * 21.0, 0, 149.0 + row * 31.0), side, "palisade_%d_%d" % [int(side), row])
 	for p in [Vector3(-36, 0, 126), Vector3(36, 0, 166), Vector3(-48, 0, 177)]:
 		_build_shield(p, _rng.randf_range(-1.0, 1.0), "")
 
@@ -215,16 +221,29 @@ func _build_barricade(p: Vector3, yaw: float, id: String) -> void:
 	for j in 3:
 		var z := (j - 1) * 0.42
 		_box("oak_edge", p + basis * Vector3(0, 0.34 + j * 0.27, z), Vector3(3.8, 0.16, 0.20), Vector3(0, yaw * 0.22, 0), id)
-	for j in 0:
-		pass
 	for x in [-1.55, 0.0, 1.55]:
 		var stake := p + basis * Vector3(x, 0, -0.65)
 		_piece("cone", "oak", stake + Vector3.UP * 0.68, Vector3(0.42, 1.36, 0.42), Vector3(1.08, 0, 0), id)
 		_box("iron", stake + Vector3(0, 0.22, 0), Vector3(0.42, 0.1, 0.43), Vector3.ZERO, id)
 	_stats["barriers"] += 1
 
+func _build_palisade(p: Vector3, side: float, id: String) -> void:
+	# Tall clustered pickets give the attackers a readable defensive line from 100 m.
+	_group(id, p, 140.0, "wood", Vector3(26.0, 2.6, 0.85))
+	for i in 23:
+		var x := (float(i) - 11.0) * 1.08
+		var height := 3.0 + 0.6 * sin(float(i) * 1.7)
+		var center := p + Vector3(x, height * 0.5, 0)
+		_piece("cone", "oak_edge" if i % 4 else "char", center, Vector3(0.42, height, 0.42), Vector3(0, 0, side * 0.08), id)
+		_piece("cone", "iron", p + Vector3(x, height + 0.14, 0), Vector3(0.14, 0.42, 0.14), Vector3.ZERO, id)
+	for height in [0.72, 1.63, 2.27]:
+		_box("oak", p + Vector3(0, height, -0.30), Vector3(25.3, 0.16, 0.18), Vector3.ZERO, id)
+	for x in [-8.4, 0.0, 8.4]:
+		_box("oak_edge", p + Vector3(x, 1.28, -0.65), Vector3(0.15, 2.6, 0.18), Vector3(-0.35, 0, 0), id)
+
 func _build_cart(p: Vector3, yaw: float, id: String, broken := false) -> void:
 	_group(id, p, 180.0, "wood", Vector3(3.9, 1.3, 2.2))
+	_piece("rock", "ash", p + Vector3.UP * 0.025, Vector3(5.3, 0.045, 3.0), Vector3.ZERO, "", true)
 	var b := Basis(Vector3.UP, yaw)
 	# Slatted bed, four distinct corner posts, iron staples and separate rolling wheels.
 	for j in 6:
@@ -239,7 +258,7 @@ func _build_cart(p: Vector3, yaw: float, id: String, broken := false) -> void:
 		for x in [-1.18, 1.18]:
 			if broken and side > 0 and x > 0:
 				continue
-			_build_wheel(p + b * Vector3(x, 0.72, side * 1.17), 0.72, yaw, id)
+			_build_wheel(p + b * Vector3(x, 0.83, side * 1.17), 0.83, yaw, id)
 	for z in [-0.66, 0.66]:
 		_box("oak_edge", p + b * Vector3(2.56, 0.83, z), Vector3(2.3, 0.14, 0.13), Vector3(0, yaw, 0), id)
 	_box("iron", p + b * Vector3(3.65, 0.70, 0), Vector3(0.14, 0.10, 1.65), Vector3(0, yaw, 0), id)
@@ -263,13 +282,15 @@ func _build_wheel(p: Vector3, radius: float, yaw: float, group: String) -> void:
 	_piece("drum", "iron", p, Vector3(0.27, 0.29, 0.27), Vector3(PI * 0.5, yaw, 0), group)
 	for i in 8:
 		var a := float(i) * TAU / 8.0
-		var radial := Vector3(cos(a), sin(a), 0)
+		var radial := Basis(Vector3.UP, yaw) * Vector3(cos(a), sin(a), 0)
 		_box("oak", p + radial * radius * 0.45, Vector3(radius * 0.95, 0.09, 0.10), Vector3(0, yaw, a), group)
 
 func _build_camp() -> void:
-	for p in [Vector3(-77, 0, 198), Vector3(-65, 0, 205), Vector3(-49, 0, 224), Vector3(-38, 0, 238), Vector3(37, 0, 238), Vector3(48, 0, 205), Vector3(65, 0, 225), Vector3(77, 0, 202)]:
+	for p in [Vector3(-77, 0, 198), Vector3(-65, 0, 205), Vector3(-33, 0, 224), Vector3(-33, 0, 240), Vector3(33, 0, 240), Vector3(33, 0, 205), Vector3(65, 0, 225), Vector3(77, 0, 202)]:
 		_build_tent(p, "tent_%d" % _stats["tents"])
 	for p in [Vector3(-53, 0, 195), Vector3(58, 0, 191), Vector3(-31, 0, 231), Vector3(31, 0, 231)]:
+		_build_banner(p)
+	for p in [Vector3(-16, 0, 157), Vector3(16, 0, 157)]:
 		_build_banner(p)
 	for p in [Vector3(-44, 0, 207), Vector3(43, 0, 221)]:
 		_build_firepit(p)
@@ -279,6 +300,11 @@ func _build_camp() -> void:
 	_build_watchtower(Vector3(79, 0, 180), "watchtower_right")
 	for p in [Vector3(-31, 0, 198), Vector3(35, 0, 220), Vector3(72, 0, 201)]:
 		_build_barrel(p, 0.56, "barrel_%d" % _stats["barrels"])
+	for p in [Vector3(-13, 0, 163), Vector3(13, 0, 171), Vector3(-15, 0, 190), Vector3(15, 0, 193)]:
+		_build_barrel(p, 0.64, "front_barrel_%d" % _stats["barrels"])
+		_build_shield(p + Vector3(1.25, 0, -0.7), 0.3, "")
+		for i in 5:
+			_box("oak_edge", p + Vector3(_rng.randf_range(-2.5, 2.5), 0.09, _rng.randf_range(-1.7, 1.7)), Vector3(_rng.randf_range(0.5, 1.6), 0.09, 0.16), Vector3(0, _rng.randf_range(0, TAU), 0), "", true)
 	for i in 10:
 		var side := -1.0 if i < 5 else 1.0
 		var p := Vector3(side * _rng.randf_range(31, 76), 0, _rng.randf_range(185, 239))
@@ -298,22 +324,24 @@ func _build_discarded_spear(p: Vector3, yaw: float) -> void:
 	_piece("cone", "iron", p + b * Vector3(0, 0.07, 1.55), Vector3(0.18, 0.48, 0.12), Vector3(PI * 0.5, yaw, 0), "", true)
 
 func _build_tent(p: Vector3, id: String) -> void:
-	_group(id, p, 95.0, "canvas", Vector3(4.2, 1.8, 4.2))
-	var yaw := _rng.randf_range(-0.28, 0.28)
+	_group(id, p, 95.0, "canvas", Vector3(6.15, 2.4, 5.15))
+	# Ridge across the field, so the triangular gable faces approaching players.
+	var yaw := PI * 0.5 + _rng.randf_range(-0.16, 0.16)
 	var b := Basis(Vector3.UP, yaw)
 	_piece("tent_roof", "canvas", p, Vector3.ONE, Vector3(0, yaw, 0), id)
 	for side in [-1.0, 1.0]:
 		# Seam and rolled eave make the continuous cloth roof read at walking distance.
-		_box("canvas_dark", p + b * Vector3(0, 0.34, side * 2.04), Vector3(4.22, 0.12, 0.10), Vector3(0, yaw, 0), id)
-		for x in [-1.95, 1.95]:
-			_box("rope", p + b * Vector3(x, 0.80, side * 2.22), Vector3(0.055, 1.70, 0.055), Vector3(side * 0.69, yaw, 0), id)
-			_piece("cone", "oak_edge", p + b * Vector3(x, 0.16, side * 2.9), Vector3(0.14, 0.32, 0.14), Vector3.ZERO, id)
-	_box("oak_edge", p + Vector3.UP * 2.40, Vector3(4.35, 0.09, 0.09), Vector3(0, yaw, 0), id)
+		_box("canvas_dark", p + b * Vector3(0, 0.36, side * 2.58), Vector3(6.12, 0.12, 0.10), Vector3(0, yaw, 0), id)
+		for x in [-2.90, 2.90]:
+			_box("rope", p + b * Vector3(x, 0.95, side * 2.98), Vector3(0.055, 2.02, 0.055), Vector3(side * 0.69, yaw, 0), id)
+			_piece("cone", "oak_edge", p + b * Vector3(x, 0.16, side * 3.55), Vector3(0.14, 0.32, 0.14), Vector3.ZERO, id)
+	_box("oak_edge", p + Vector3.UP * 3.72, Vector3(6.2, 0.09, 0.09), Vector3(0, yaw, 0), id)
 	for side in [-1.0, 1.0]:
-		_box("oak", p + b * Vector3(side * 1.91, 1.19, 0), Vector3(0.11, 2.36, 0.11), Vector3.ZERO, id)
+		_box("oak", p + b * Vector3(side * 3.02, 1.85, 0), Vector3(0.11, 3.70, 0.11), Vector3.ZERO, id)
 	# Ground cloth and folded entrance flap.
-	_box("canvas_dark", p + Vector3.UP * 0.045, Vector3(3.8, 0.065, 3.75), Vector3(0, yaw, 0), id)
-	_box("red", p + b * Vector3(1.93, 0.50, -0.53), Vector3(0.07, 0.9, 1.0), Vector3(0.15, yaw + 0.35, 0), id)
+	_box("canvas_dark", p + Vector3.UP * 0.045, Vector3(5.88, 0.065, 5.02), Vector3(0, yaw, 0), id)
+	_box("red", p + b * Vector3(3.09, 1.13, -0.62), Vector3(0.07, 2.15, 1.18), Vector3(0.15, yaw + 0.35, 0), id)
+	_piece("rock", "ash", p + Vector3.UP * 0.025, Vector3(6.3, 0.045, 5.4), Vector3.ZERO, "", true)
 	_stats["tents"] += 1
 
 func _build_watchtower(p: Vector3, id: String) -> void:
@@ -431,7 +459,7 @@ func apply_damage(world_point: Vector3, radius: float, impulse: float, damage_ty
 		var g: Dictionary = _groups[id]
 		if g["destroyed"] or (damage_type == "sword" and g["kind"] != "wood"):
 			continue
-		if (g["center"] as Vector3).distance_to(local_point) > radius + 2.2:
+		if (g["center"] as Vector3).distance_to(local_point) > radius + float(g["reach"]):
 			continue
 		g["health"] = float(g["health"]) - maxf(0.0, impulse)
 		if g["health"] <= 0.0:

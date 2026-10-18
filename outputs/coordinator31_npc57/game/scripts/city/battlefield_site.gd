@@ -6,14 +6,14 @@ const X_MIN := -90.0
 const X_MAX := 90.0
 const Z_MIN := 86.0
 const Z_MAX := 252.0
-const CHUNKS_X := 4
-const CHUNKS_Z := 4
-const STEPS_X := 18
-const STEPS_Z := 17
-const CRATER_CENTERS := [Vector2(-20.0, 157.0), Vector2(25.0, 176.0),
+const CHUNKS_X := 3
+const CHUNKS_Z := 3
+const STEPS_X := 24
+const STEPS_Z := 22
+const CRATER_CENTERS := [Vector2(-20.0, 157.0), Vector2(14.0, 158.0), Vector2(25.0, 176.0),
 	Vector2(-28.0, 216.0), Vector2(67.0, 207.0)]
 const BURN_CENTERS := [Vector2(-28.0, 151.0), Vector2(33.0, 171.0),
-	Vector2(-65.0, 206.0), Vector2(16.0, 222.0)]
+	Vector2(4.0, 166.0), Vector2(-65.0, 206.0), Vector2(16.0, 222.0)]
 
 var _built := false
 var _chunks := 0
@@ -65,7 +65,7 @@ func _make_grit_texture() -> ImageTexture:
 			var seed := sin(float(ix) * 12.9898 + float(iy) * 78.233) * 43758.5453
 			var grain := seed - floorf(seed)
 			# Keep the grain subtle: strong white noise produced distance shimmer.
-			var shade := 0.88 + 0.12 * grain
+			var shade := 0.91 + 0.09 * grain
 			image.set_pixel(ix, iy, Color(shade, shade * 0.98, shade * 0.93))
 	image.generate_mipmaps()
 	return ImageTexture.create_from_image(image)
@@ -83,7 +83,11 @@ func terrain_height(x: float, z: float) -> float:
 	var defence := exp(-pow((z - 122.0) / 7.5, 2.0))
 	var passage := minf(absf(x - _route_x(z, 0)),
 		minf(absf(x - _route_x(z, -1)), absf(x - _route_x(z, 1))))
-	var bank := 1.48 * defence * smoothstep(6.0, 16.0, passage)
+	var bank := 2.05 * defence * smoothstep(6.0, 16.0, passage)
+	# Long shoulders frame the road from player height. The middle x+-5 and both
+	# x+-47 flank lanes remain low; defenders can still cross their own field.
+	var shoulder_zone := smoothstep(116.0, 140.0, z) * (1.0 - smoothstep(209.0, 237.0, z))
+	var shoulders := 1.23 * exp(-pow((absf(x) - 17.5) / 7.4, 2.0)) * shoulder_zone
 	# Broad shoulders break the flat horizon without obstructing the three
 	# approach lanes; they are part of this same physical mesh.
 	var hill := 1.18 * exp(-pow((x + 28.0) / 13.0, 2.0) - pow((z - 177.0) / 16.0, 2.0))
@@ -96,7 +100,7 @@ func terrain_height(x: float, z: float) -> float:
 		var radius := Vector2(x - center.x, z - center.y).length()
 		craters += 0.68 * exp(-pow((radius - 6.5) / 2.7, 2.0))
 	var road := _road_weight(x, z)
-	var h := (undulation + bank + hill + craters) * (1.0 - road * 0.72)
+	var h := (undulation + bank + shoulders + hill + craters) * (1.0 - road * 0.72)
 	var rut := (1.0 - smoothstep(0.32, 0.85,
 		absf(absf(x - _route_x(z, 0)) - 2.1))) * road
 	h -= 0.035 * rut
@@ -121,7 +125,7 @@ func _road_weight(x: float, z: float) -> float:
 func _ground_color(x: float, z: float) -> Color:
 	var grass := Color(0.31, 0.37, 0.23)
 	var dirt := Color(0.39, 0.315, 0.23)
-	var road := Color(0.345, 0.295, 0.235)
+	var road := Color(0.285, 0.247, 0.195)
 	var ash := Color(0.205, 0.195, 0.18)
 	var edge := minf(smoothstep(76.0, 89.0, absf(x)), smoothstep(240.0, 251.0, z))
 	var track := _road_weight(x, z)
@@ -133,16 +137,17 @@ func _ground_color(x: float, z: float) -> Color:
 		var ellipse := Vector2((x - center.x) / 18.0, (z - center.y) / 11.0)
 		var radius := ellipse.length() + 0.19 * sin(x * 0.42 + z * 0.23)
 		scorch = maxf(scorch, 1.0 - smoothstep(0.55, 1.15, radius))
-	color = color.lerp(ash, scorch * 0.84)
 	# The ditch is cut into the existing ground only visually: the dark muddy
 	# channel lies between low banks, with wide unbroken crossings at each lane.
 	var ditch := exp(-pow((z - 134.0) / 3.4, 2.0)) * (1.0 - track)
 	color = color.lerp(Color(0.27, 0.25, 0.20), ditch * 0.64)
 	color = color.lerp(road, track * (0.83 + 0.1 * sin(x * 0.61 + z * 0.14)))
+	# Keep impact scars visible even where they cross the packed central road.
+	color = color.lerp(ash, scorch * (0.72 if track > 0.5 else 0.84))
 	# Two hoof/wheel ruts keep the road legible at a distance with zero extra meshes.
 	var rut_offset := absf(x - _route_x(z, 0))
 	var rut := (1.0 - smoothstep(0.25, 0.75, absf(rut_offset - 2.1))) * track
-	color = color.darkened(rut * 0.14)
+	color = color.darkened(rut * 0.24)
 	# Compensate for the shared terrain tint at the buried edge; its last visible
 	# vertices meet the CastleGround grass rather than outlining the mesh square.
 	return color.lerp(Color(0.43, 0.50, 0.31), edge)
