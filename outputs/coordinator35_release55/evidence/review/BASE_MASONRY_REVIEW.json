@@ -1,0 +1,353 @@
+{
+  "schema": "mafiozi.walls55-readonly-base-review/v1",
+  "reviewed_file": "D:\\MafioziCombat31\\coordinator35_walls55\\game\\scripts\\city\\castle_site.gd",
+  "sha256_at_inventory": "da6da285dc0cce47553232c12a5d8e0bb9643dc8970e3f08043e42dc6d82524c",
+  "scope": "Source-only active masonry/wall/column inventory. No game edits; no Godot launch.",
+  "permanent_masonry_mesh_gaps": [
+    {
+      "function": "_build_keep_details",
+      "lines": [
+        646,
+        656
+      ],
+      "count": 24,
+      "detail": "Keep window sills are MeshInstance3D outside cells, no collider or destruction binding."
+    },
+    {
+      "function": "_build_gatehouse",
+      "lines": [
+        1547
+      ],
+      "count": 8,
+      "detail": "Gatehouse corbels are MeshInstance3D outside cells, no collider/destruction."
+    },
+    {
+      "function": "_build_tower_platforms",
+      "lines": [
+        3187,
+        3199,
+        3210
+      ],
+      "count": "4 floors + 4 roofs",
+      "detail": "Monolithic cylinder floors have permanent collision but no cells; roofs have static mesh with no collision/destruction. Clearing wall cannot remove these."
+    }
+  ],
+  "large_center_indexed_cells": [
+    {
+      "groups": [
+        "corner_pier",
+        "gate_bypass_pier"
+      ],
+      "count": 6,
+      "size_y": 18.76,
+      "detail": "Base impact far from center; old blast center filter and center-only8m spatial index can miss whole columns."
+    },
+    {
+      "groups": [
+        "stairs_pier_*"
+      ],
+      "detail": "Stair piers use tall single cells too. Collision already bound to group/row, but spatial center/radius issue remains."
+    },
+    {
+      "groups": [
+        "gate38_gallery_rail",
+        "corner_walk",
+        "corner_parapet",
+        "room_vault",
+        "room_wall_pier"
+      ],
+      "detail": "Large spans need extent-aware broadphase as well as point-to-volume narrowphase. gallery rail is13.4m wide."
+    }
+  ],
+  "projecting_damage_cells_without_own_hit_shapes": [
+    "room_wall_pier",
+    "room_pier_cap",
+    "entrance_arch31",
+    "entrance_pier31",
+    "entrance_pier_cap31",
+    "entrance_crown31",
+    "entrance_corbel31",
+    "entrance_pediment31",
+    "entrance_bastion_quoin31",
+    "entrance_bastion_band31",
+    "curtain_trim31",
+    "wall_arcade",
+    "wall_arcade_keystone",
+    "gate38_turret_wall",
+    "gate38_slate_roof",
+    "gate38_machicolation",
+    "gate38_gallery_rail",
+    "gate38_arrow_jamb",
+    "gate38_arrow_sill",
+    "keep_window_frame",
+    "keep_window_hood",
+    "keep_band",
+    "keep_buttress",
+    "keep_quoin",
+    "*_buttress",
+    "*_plinth",
+    "*_course",
+    "*_corbel",
+    "tower_crown",
+    "gate_jamb",
+    "gate_jamb_quoin",
+    "gate_voussoir",
+    "gate_impost",
+    "gate_relief"
+  ],
+  "core_risks": [
+    "Collision broad slab currently removed whole if radius overlaps, even while deeper skin alive: physical second hit may never meet surviving skin.",
+    "Delayed support _kill_brick has no coarse-collision refresh: any new refinement must also synchronize cascades, not only initial apply_explosion.",
+    "_flush_buckets indexes only cell center. Point-to-OBB blast fix alone cannot reach a tall cell whose center is in an unvisited spatial bucket.",
+    "New projecting-collision must honor full Euler X/Y/Z, especially wall_arcade tilted arms and entrance_arch31 rotated voussoirs.",
+    "Avoid duplicate unmanaged collision for groups already bound through merlon/stair/courtyard/furniture ownership."
+  ],
+  "secondary_not_stone_wall": [
+    "GateDeck and GateOuterApron are permanent ground/deck infrastructure.",
+    "Static gate-bridge ropes, banners/masts, torches and lever fittings remain separate decorative/mechanical objects.",
+    "_add_mortar exists but has no calls: no evidence of an active permanent mortar core."
+  ],
+  "all_mesh_constructor_inventory": [
+    {
+      "function": "_build_ground",
+      "line": 327,
+      "declaration": "var slab := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_path",
+      "line": 397,
+      "declaration": "var road_mesh := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_path",
+      "line": 404,
+      "declaration": "var courtyard := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_torches",
+      "line": 464,
+      "declaration": "var plate := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_torches",
+      "line": 472,
+      "declaration": "var bracket := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_torches",
+      "line": 480,
+      "declaration": "var bowl := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_torches",
+      "line": 491,
+      "declaration": "var torch := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_gate_deck",
+      "line": 545,
+      "declaration": "var deck := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_gate_deck",
+      "line": 562,
+      "declaration": "var strip := MeshInstance3D.new()"
+    },
+    {
+      "function": "_add_gate_threshold",
+      "line": 583,
+      "declaration": "var visual := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_gate_forecourt_pavers",
+      "line": 615,
+      "declaration": "var stones := MultiMeshInstance3D.new()"
+    },
+    {
+      "function": "_build_keep_details",
+      "line": 646,
+      "declaration": "var sill_x := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_keep_details",
+      "line": 656,
+      "declaration": "var sill_z := MeshInstance3D.new()"
+    },
+    {
+      "function": "_batch_static_decoration",
+      "line": 795,
+      "declaration": "var node := MeshInstance3D.new()"
+    },
+    {
+      "function": "_merge_pivot_decoration",
+      "line": 868,
+      "declaration": "var node := MeshInstance3D.new()"
+    },
+    {
+      "function": "_flush_buckets",
+      "line": 912,
+      "declaration": "var node := MultiMeshInstance3D.new()"
+    },
+    {
+      "function": "_new_debris_body",
+      "line": 1101,
+      "declaration": "var fresh_mesh := MeshInstance3D.new()"
+    },
+    {
+      "function": "_add_mortar",
+      "line": 1245,
+      "declaration": "var mortar := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_gatehouse",
+      "line": 1547,
+      "declaration": "var corbel := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_gatehouse",
+      "line": 1597,
+      "declaration": "var boards_node := MultiMeshInstance3D.new()"
+    },
+    {
+      "function": "_build_gatehouse",
+      "line": 1624,
+      "declaration": "var seam := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_gatehouse",
+      "line": 1632,
+      "declaration": "var strip := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_gatehouse",
+      "line": 1640,
+      "declaration": "var bolt := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_gatehouse",
+      "line": 1651,
+      "declaration": "var stile := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_gatehouse",
+      "line": 1659,
+      "declaration": "var rail := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_gatehouse",
+      "line": 1667,
+      "declaration": "var hinge := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_gatehouse",
+      "line": 1675,
+      "declaration": "var plate := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_gatehouse",
+      "line": 1682,
+      "declaration": "var pull := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_gatehouse",
+      "line": 1717,
+      "declaration": "var lever_plate := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_gatehouse",
+      "line": 1727,
+      "declaration": "var stop := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_gatehouse",
+      "line": 1738,
+      "declaration": "var axle := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_gatehouse",
+      "line": 1748,
+      "declaration": "var handle := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_gatehouse",
+      "line": 1757,
+      "declaration": "var grip := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_outer_gate_lever",
+      "line": 1781,
+      "declaration": "var plate := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_outer_gate_lever",
+      "line": 1791,
+      "declaration": "var stop := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_outer_gate_lever",
+      "line": 1802,
+      "declaration": "var axle := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_outer_gate_lever",
+      "line": 1812,
+      "declaration": "var handle := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_outer_gate_lever",
+      "line": 1821,
+      "declaration": "var grip := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_inner_gate40",
+      "line": 2106,
+      "declaration": "var node := MultiMeshInstance3D.new()"
+    },
+    {
+      "function": "_add_banner_batch",
+      "line": 2696,
+      "declaration": "var node := MultiMeshInstance3D.new()"
+    },
+    {
+      "function": "_build_brick_floor",
+      "line": 2763,
+      "declaration": "var node := MultiMeshInstance3D.new()"
+    },
+    {
+      "function": "_build_ring_road",
+      "line": 2973,
+      "declaration": "var strip := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_ring_road",
+      "line": 2984,
+      "declaration": "var kerb_mesh := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_banners",
+      "line": 3136,
+      "declaration": "var mast := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_banners",
+      "line": 3145,
+      "declaration": "var flag := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_tower_platforms",
+      "line": 3199,
+      "declaration": "var floor_mesh := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_tower_platforms",
+      "line": 3210,
+      "declaration": "var roof := MeshInstance3D.new()"
+    },
+    {
+      "function": "_build_gate_bridge",
+      "line": 3243,
+      "declaration": "var rope_mesh := MeshInstance3D.new()"
+    }
+  ],
+  "status": "BASE_GAPS_IDENTIFIED_WAITING_CANDIDATE"
+}

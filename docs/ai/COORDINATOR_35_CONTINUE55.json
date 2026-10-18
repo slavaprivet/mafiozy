@@ -1,0 +1,23 @@
+{
+  "revision": "castle-20261019-combined55-destructible-walls",
+  "base_commit": "1d30d97e7a94519762caf34d48be2e079fe15f19",
+  "game": "D:\\MafioziCombat31\\coordinator35_walls55\\game",
+  "frozen": true,
+  "acceptance": "outputs/coordinator35_release55/ACCEPTANCE.json",
+  "changed": [
+    "scripts/city/castle_site.gd"
+  ],
+  "user_request": "Break remaining rear wall layers, columns and all wall masonry; publish main.",
+  "root_causes": [
+    "Centre-only blast distance and centre-only spatial index missed large members.",
+    "Whole coarse collision panels disappeared after a small breach, leaving visible rear/neighbor stones unhittable.",
+    "Some stone dressing/platforms were outside damage ownership."
+  ],
+  "optimization_handoff": "Use55, not54. Main walls retain coarse collision until locally damaged; preserve lazy refinement and geometry-aware spatial bounds. New compound hit shapes cover projecting masonry. Do not revert to centre-only queries or erase whole panel collision. Benchmark before tuning; no clean FPS acceptance here.",
+  "limits": [
+    "Clean game FPS not measured; native group timings were functional checks alongside the user game, not a clean performance benchmark.",
+    "Blast radius and power are unchanged. Stone resists ordinary sword melee as before; masonry destruction uses siege/explosion impacts.",
+    "Existing local support heuristic and capped debris physics remain; this is not a full structural engineering simulation."
+  ],
+  "instructions": "Read current_version and ASSEMBLY. Candidate/tests on D through scheduler. Preserve frozen55, foreign WIP and approved54 weapons. Old chats remain idle."
+}

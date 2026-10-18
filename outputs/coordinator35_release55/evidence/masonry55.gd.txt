@@ -1,0 +1,95 @@
+## Damage and collision use the same live masonry, including projecting stonework.
+func _wall_masonry55(cell: Dictionary) -> bool:
+	var group: String = cell.get("group", "")
+	if group.begins_with("keep_floor") or group.begins_with("keep_runner"): return false
+	if cell.get("material", "") not in ["stone", "warm", "cold", "dark", "ochre"]: return false
+	for prefix: String in ["north", "south", "east", "west", "tower", "gate", "entrance",
+			"keep", "corner", "curtain", "wall_arcade", "stairs_", "stair_landing",
+			"room_wall_pier", "room_pier_cap", "room_vault"]:
+		if group.begins_with(prefix): return true
+	return false
+
+func _cell_bounds55(cell: Dictionary) -> AABB:
+	var size: Vector3 = cell["size"]
+	return Transform3D(Basis.from_euler(cell["rotation"]), cell["at"]) * AABB(-size * 0.5, size)
+
+func _cell_distance55(cell: Dictionary, at: Vector3) -> float:
+	var local_hit: Vector3 = Basis.from_euler(cell["rotation"]).transposed() * (at - (cell["at"] as Vector3))
+	var half: Vector3 = (cell["size"] as Vector3) * 0.5
+	return (local_hit - local_hit.clamp(-half, half)).length()
+
+func _ensure_masonry_shape55(index: int) -> void:
+	if _masonry_shapes55.has(index) or _merlon_collision.has(index) or _courtyard_shapes43.has(index): return
+	var cell: Dictionary = _cells[index]
+	var group: String = cell.group
+	if _stair_step_collision.has("%s:%d" % [group, int(cell.row)]): return
+	var at: Vector3 = cell.at
+	var key := "%d|%d|%d" % [int(floor(at.x / SPATIAL_STEP)), int(floor(at.y / SPATIAL_STEP)), int(floor(at.z / SPATIAL_STEP))]
+	var body: StaticBody3D = _masonry_bodies55.get(key)
+	if not is_instance_valid(body):
+		body = StaticBody3D.new()
+		body.name = "Masonry55_%d" % _masonry_bodies55.size()
+		body.collision_layer = 1
+		body.collision_mask = 1
+		body.set_meta("castle_brick", true)
+		body.set_meta("surface", "stone")
+		add_child(body)
+		_masonry_bodies55[key] = body
+	var shape := CollisionShape3D.new()
+	shape.position = at
+	shape.rotation = cell.rotation
+	var size: Vector3 = cell.size
+	if cell.get("shape", "box") == "tower_floor55":
+		var cylinder := CylinderShape3D.new()
+		cylinder.radius = size.x * 0.5
+		cylinder.height = size.y
+		shape.shape = cylinder
+	elif cell.get("shape", "box") == "tower_roof55":
+		var mesh: Mesh = _furniture_meshes["tower_roof55"]
+		shape.shape = mesh.create_convex_shape()
+		shape.scale = size
+	else:
+		var box := BoxShape3D.new()
+		box.size = size
+		shape.shape = box
+	body.add_child(shape)
+	_masonry_shapes55[index] = shape
+
+func _build_masonry_hits55() -> void:
+	# Core walls retain their cheap coarse panels until damaged. Projecting trim
+	# and columns need real surface hits even where no panel exists behind them.
+	for index: int in _cells.size():
+		var cell: Dictionary = _cells[index]
+		if not _wall_masonry55(cell): continue
+		if cell.group in ["north", "south", "east", "west", "tower", "keep", "gatehouse", "keep_partition"]: continue
+		_ensure_masonry_shape55(index)
+
+func _sync_masonry_collision55() -> void:
+	if _masonry_changed55.is_empty(): return
+	var dirty := AABB()
+	var first := true
+	for index: int in _masonry_changed55:
+		var bounds: AABB = _cells[index].bounds55
+		dirty = bounds if first else dirty.merge(bounds)
+		first = false
+	_masonry_changed55.clear()
+	dirty = dirty.grow(0.04)
+	for section: Dictionary in _wall_collision:
+		if not section.alive: continue
+		var body: StaticBody3D = section.body
+		if not is_instance_valid(body): continue
+		if body.get_meta("castle_furnishing", false) or body.get_meta("castle_keep_floor", false): continue
+		var size: Vector3 = section.size
+		var local_transform: Transform3D = body.transform
+		var bounds: AABB = local_transform * AABB(-size * 0.5, size)
+		if not bounds.intersects(dirty): continue
+		# Keep every surviving layer hittable. A second stone must strike the rear
+		# skin instead of crossing a visual wall whose whole panel was disabled.
+		for index: int in _indices_box(bounds.position, bounds.end):
+			var cell: Dictionary = _cells[index]
+			if not cell.alive or (not _wall_masonry55(cell) and cell.group != "bridge"): continue
+			if not (cell.bounds55 as AABB).intersects(bounds): continue
+			_ensure_masonry_shape55(index)
+		section.alive = false
+		body.collision_layer = 0
+		body.collision_mask = 0

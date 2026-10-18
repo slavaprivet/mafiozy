@@ -40,3 +40,6 @@
 /outputs/coordinator35_release54/game/** -text
 /outputs/coordinator35_release54/evidence/** -text
 /outputs/coordinator35_release54/ASSEMBLY.json -text
+/outputs/coordinator35_release55/game/** -text
+/outputs/coordinator35_release55/evidence/** -text
+/outputs/coordinator35_release55/ASSEMBLY.json -text

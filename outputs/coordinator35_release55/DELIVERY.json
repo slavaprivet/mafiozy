@@ -1,0 +1,12 @@
+{
+  "revision": "castle-20261019-combined55-destructible-walls",
+  "status": "CHECK_ONLY_READY",
+  "receipt": null,
+  "source_sha256": "3a35a58a1366195b31b703cc5da8446262816787cd0c6d124224766dab7d0250",
+  "validation": "81 masonry groups, 3 real catapult shots, 4 stair climbs, gate, physical breach traversal, floor and sword contact PASS; source review and sampled visuals PASS.",
+  "prior_scene_closed_by_this_run": false,
+  "limits": [
+    "Opening receipt is an observation, not permanent process ownership.",
+    "Clean FPS not measured."
+  ]
+}

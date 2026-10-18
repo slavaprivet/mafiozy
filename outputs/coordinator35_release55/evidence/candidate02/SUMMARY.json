@@ -1,0 +1,9 @@
+{
+  "name": "candidate02",
+  "passed": true,
+  "errors": [],
+  "scheduler_errors": [],
+  "scheduler_error": null,
+  "drift": [],
+  "script_sha256": "e765e0482b5c14b71bbb1f3e9c1ebf792bd686b3865b07f18cb19108058c94ee"
+}

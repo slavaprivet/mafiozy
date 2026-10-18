@@ -1,0 +1,6 @@
+{
+  "status": "PASS",
+  "images": ["projectiles03/layered_gate_wall_before.png", "projectiles03/layered_gate_wall_after.png", "projectiles03/column_foot_after.png", "projectiles03/keep_wall_after.png"],
+  "observations": "A real catapult shot removes the inner wall skin and large bastion backing; daylight is visible through the breach. The struck full-height column leaves its original support position and falls. The keep wall also develops a visible through-opening with moving debris.",
+  "limits": "Four sampled views; temporary falling rubble can obscure the opening. HUD FPS is not a clean benchmark."
+}

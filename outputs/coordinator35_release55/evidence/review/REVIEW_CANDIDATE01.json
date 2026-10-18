@@ -1,0 +1,37 @@
+{
+  "schema": "mafiozi.walls55-source-review/v1",
+  "candidate": "01",
+  "reviewed_source_sha256": "e520b0d1b77e7fb91725e3505b06c8fe752b7ddfe249e8d7705d4a3f1d82d8bf",
+  "status": "CHANGES_REQUESTED_SOURCE",
+  "findings": [
+    {
+      "priority": "P2",
+      "function": "_cell_distance55",
+      "line": 3781,
+      "title": "Special cylindrical/tapered shapes use rectangular volume for blast distance",
+      "evidence": "tower_floor55 has radius5.25 but point local(5,0,5) is distance0 by OBB clamp and distance1.8210678 from cylinder surface. Radius1 blast falsely destroys it. tower_roof55 upper corners similarly contain no visible or physical roof.",
+      "minimal_solution": "Special narrowphase distance for cylinder and frustum: cylinder radial/y excess; roof distance from(r,y) to finite trapezoid profile. Retain AABB for broadphase."
+    },
+    {
+      "priority": "P2",
+      "function": "_spawn_falling_brick",
+      "line": 1132,
+      "title": "Destructible tower disks/roofs turn into giant box debris",
+      "evidence": "New cells with tower_floor55/tower_roof55 shapes enter existing generic pool path that always assigns BoxShape and leaves unit BoxMesh. Thus10.5m disk and12m tapered roof become square/cuboid debris with mismatching collision.",
+      "minimal_solution": "Assign shape-specific mesh and collider for these two new shapes and reset pooled mesh/shape/scale on every reuse, or split these large elements into bounded stone debris."
+    }
+  ],
+  "review_passes": [
+    "All-cells AABB extent spatial insertion visits each overlapping8m bucket; _indices_box seen dictionary deduplicates indices.",
+    "Coarse sections refine to exact shapes of all intersecting alive masonry, retaining second skin and repeat hits.",
+    "Immediate explosion and delayed support both call sync; killed mapped masonry colliders are disabled deferred.",
+    "Existing merlon, courtyard and stairs maps are exempt from duplicate shape creation.",
+    "Furniture and keep-floor coarse bodies retain original _break_collision_near path, while sync skips them. Their blast filtering remains center-based to avoid silently broadening old furnishing damage.",
+    "Tilted arcade/arch cells use full Euler basis for bounds/distance/shape, not just Y rotation."
+  ],
+  "notes": [
+    "New tower floor/roof pass through generic _brick_transform jitter rather than their prior flat Mesh transform; consider excluding these structural surfaces from jitter to preserve exact visual/physical alignment.",
+    "Direct hit/physics acceptance remains with root native harness; no Godot or tests launched by reviewer."
+  ],
+  "code_modified": false
+}

@@ -1,0 +1,179 @@
+{
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-013",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "role": "residence",
+      "path": "res://assets/buildings/old_town_narrow_townhouse_v1.fd0178400e60.glb",
+      "binding": {
+        "lod": 0,
+        "url": "/assets/maps/city_rebuild_v1/building_models/old_town_narrow_townhouse_v1/old_town_narrow_townhouse_v1.glb",
+        "sha256": "fd0178400e608c44f4c7c8841d9a308e0ae2ec4db4df36033f04401f9b135067",
+        "bytes": 267216
+      },
+      "transform": {
+        "positionM": [
+          414.09999999999997,
+          0,
+          43.05
+        ],
+        "yawDegrees": 0,
+        "uniformScale": 1,
+        "modelLocalOffsetM": [
+          -0.017499983310699463,
+          0.08999991416931152,
+          -0.039999961853027344
+        ],
+        "horizontalScale": [
+          2.152777777777791,
+          1.15
+        ]
+      },
+      "positionLocalM": [
+        18.44999999999999,
+        0,
+        -2.049999999999997
+      ],
+      "hideNodeNames": [
+        "EntranceAnchor",
+        "ServiceEntranceAnchor"
+      ],
+      "effectiveHiddenNodeNames": [
+        "EntranceAnchor",
+        "ServiceEntranceAnchor"
+      ],
+      "collision": {
+        "method": "conservative_visual_envelope_minus_public_approach_exterior_only",
+        "worldBodies": [
+          {
+            "polygonCR": [
+              [
+                100.01943597185418,
+                9.132621951219512
+              ],
+              [
+                101.98056402814582,
+                9.132621951219512
+              ],
+              [
+                101.98056402814582,
+                11.556036660264178
+              ],
+              [
+                100.01943597185418,
+                11.556036660264178
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 10.264999151229858,
+            "rectangleRC": {
+              "minC": 100.01943597185418,
+              "minR": 9.132621951219512,
+              "maxC": 101.98056402814582,
+              "maxR": 11.556036660264178
+            }
+          },
+          {
+            "polygonCR": [
+              [
+                100.01943597185418,
+                11.556036660264178
+              ],
+              [
+                100.25466633292072,
+                11.556036660264178
+              ],
+              [
+                100.25466633292072,
+                11.867378048780488
+              ],
+              [
+                100.01943597185418,
+                11.867378048780488
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 10.264999151229858,
+            "rectangleRC": {
+              "minC": 100.01943597185418,
+              "minR": 11.556036660264178,
+              "maxC": 100.25466633292072,
+              "maxR": 11.867378048780488
+            }
+          }
+        ]
+      },
+      "collisionBodiesM": [
+        {
+          "sourceIndex": 0,
+          "node": null,
+          "polygonXZ": [
+            [
+              14.429687484602141,
+              -7.65625
+            ],
+            [
+              22.470312515397836,
+              -7.65625
+            ],
+            [
+              22.470312515397836,
+              2.279750307083134
+            ],
+            [
+              14.429687484602141,
+              2.279750307083134
+            ]
+          ],
+          "minY": 0,
+          "maxY": 10.264999151229858
+        },
+        {
+          "sourceIndex": 1,
+          "node": null,
+          "polygonXZ": [
+            [
+              14.429687484602141,
+              2.279750307083134
+            ],
+            [
+              15.394131964974918,
+              2.279750307083134
+            ],
+            [
+              15.394131964974918,
+              3.5562499999999986
+            ],
+            [
+              14.429687484602141,
+              3.5562499999999986
+            ]
+          ],
+          "minY": 0,
+          "maxY": 10.264999151229858
+        }
+      ],
+      "entry": {
+        "anchorRC": {
+          "c": 101.15883299958739,
+          "r": 11.61353666026418
+        },
+        "roadProbeRC": {
+          "c": 101.15883299958739,
+          "r": 20.117378048780488
+        },
+        "authoredLocalXYZ": [
+          0.3199999928474426,
+          0,
+          4.010000228881836
+        ],
+        "evidence": "actual_glb_node:EntranceAnchor"
+      },
+      "footprint": {
+        "minC": 100.01943597185418,
+        "minR": 9.132621951219512,
+        "maxC": 101.98056402814582,
+        "maxR": 11.867378048780488
+      },
+      "gameplayId": null,
+      "gameplayActive": false,
+      "sourceGameplayActive": false
+    }

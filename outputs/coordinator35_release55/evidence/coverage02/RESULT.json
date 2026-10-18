@@ -1,0 +1,1150 @@
+{
+	"errors": [],
+	"passed": true,
+	"results": {
+		"compound_bodies": 351,
+		"cylinder_corner_distance": 1.82106781005859,
+		"dead_shapes_active_after_cascade": 0,
+		"exact_shapes": 12990,
+		"groups": [
+			{
+				"alive_after": false,
+				"apply_ms": 20.141,
+				"group": "north",
+				"index": 0,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 20,
+					"event_id": "coverage:north",
+					"ok": true,
+					"state": "committed",
+					"total": 20
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 20.443,
+				"group": "south",
+				"index": 10257,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 24,
+					"event_id": "coverage:south",
+					"ok": true,
+					"state": "committed",
+					"total": 44
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 24.992,
+				"group": "east",
+				"index": 19986,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 24,
+					"event_id": "coverage:east",
+					"ok": true,
+					"state": "committed",
+					"total": 68
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 19.901,
+				"group": "west",
+				"index": 30243,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 10,
+					"event_id": "coverage:west",
+					"ok": true,
+					"state": "committed",
+					"total": 78
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 24.78,
+				"group": "tower",
+				"index": 40500,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 27,
+					"event_id": "coverage:tower",
+					"ok": true,
+					"state": "committed",
+					"total": 105
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 25.268,
+				"group": "gatehouse",
+				"index": 47628,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 30,
+					"event_id": "coverage:gatehouse",
+					"ok": true,
+					"state": "committed",
+					"total": 135
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 11.786,
+				"group": "keep",
+				"index": 49678,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 14,
+					"event_id": "coverage:keep",
+					"ok": true,
+					"state": "committed",
+					"total": 149
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 9.52,
+				"group": "keep_partition",
+				"index": 57611,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 4,
+					"event_id": "coverage:keep_partition",
+					"ok": true,
+					"state": "committed",
+					"total": 153
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 8.381,
+				"group": "corner_pier",
+				"index": 49642,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 1,
+					"event_id": "coverage:corner_pier",
+					"ok": true,
+					"state": "committed",
+					"total": 154
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 12.296,
+				"group": "gate_bypass_pier",
+				"index": 49676,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 1,
+					"event_id": "coverage:gate_bypass_pier",
+					"ok": true,
+					"state": "committed",
+					"total": 156
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 13.231,
+				"group": "room_wall_pier",
+				"index": 57914,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 9,
+					"event_id": "coverage:room_wall_pier",
+					"ok": true,
+					"state": "committed",
+					"total": 189
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 15.987,
+				"group": "room_pier_cap",
+				"index": 57915,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 9,
+					"event_id": "coverage:room_pier_cap",
+					"ok": true,
+					"state": "committed",
+					"total": 233
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 10.343,
+				"group": "room_vault",
+				"index": 57908,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 3,
+					"event_id": "coverage:room_vault",
+					"ok": true,
+					"state": "committed",
+					"total": 292
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 15.808,
+				"group": "keep_sill55",
+				"index": 58524,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 23,
+					"event_id": "coverage:keep_sill55",
+					"ok": true,
+					"state": "committed",
+					"total": 384
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 36.77,
+				"group": "gate_corbel55",
+				"index": 48114,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 28,
+					"event_id": "coverage:gate_corbel55",
+					"ok": true,
+					"state": "committed",
+					"total": 500
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 81.873,
+				"group": "tower_floor55",
+				"index": 59144,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 33,
+					"event_id": "coverage:tower_floor55",
+					"ok": true,
+					"state": "committed",
+					"total": 592
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 33.595,
+				"group": "tower_roof55",
+				"index": 59145,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 1,
+					"event_id": "coverage:tower_roof55",
+					"ok": true,
+					"state": "committed",
+					"total": 637
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 16.199,
+				"group": "north_merlon",
+				"index": 9550,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 17,
+					"event_id": "coverage:north_merlon",
+					"ok": true,
+					"state": "committed",
+					"total": 668
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 24.184,
+				"group": "north_plinth",
+				"index": 9757,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 6,
+					"event_id": "coverage:north_plinth",
+					"ok": true,
+					"state": "committed",
+					"total": 691
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 17.837,
+				"group": "north_corbel",
+				"index": 9892,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 19,
+					"event_id": "coverage:north_corbel",
+					"ok": true,
+					"state": "committed",
+					"total": 726
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 18.302,
+				"group": "north_buttress",
+				"index": 9942,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 14,
+					"event_id": "coverage:north_buttress",
+					"ok": true,
+					"state": "committed",
+					"total": 752
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 69.174,
+				"group": "south_merlon",
+				"index": 19324,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 18,
+					"event_id": "coverage:south_merlon",
+					"ok": true,
+					"state": "committed",
+					"total": 778
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 22.319,
+				"group": "south_plinth",
+				"index": 19531,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 15,
+					"event_id": "coverage:south_plinth",
+					"ok": true,
+					"state": "committed",
+					"total": 821
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 26.655,
+				"group": "south_corbel",
+				"index": 19655,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 34,
+					"event_id": "coverage:south_corbel",
+					"ok": true,
+					"state": "committed",
+					"total": 860
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 17.321,
+				"group": "south_buttress",
+				"index": 19706,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 24,
+					"event_id": "coverage:south_buttress",
+					"ok": true,
+					"state": "committed",
+					"total": 890
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 68.237,
+				"group": "east_merlon",
+				"index": 29536,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 15,
+					"event_id": "coverage:east_merlon",
+					"ok": true,
+					"state": "committed",
+					"total": 918
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 20.101,
+				"group": "east_plinth",
+				"index": 29742,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 8,
+					"event_id": "coverage:east_plinth",
+					"ok": true,
+					"state": "committed",
+					"total": 944
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 13.964,
+				"group": "east_corbel",
+				"index": 29876,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 16,
+					"event_id": "coverage:east_corbel",
+					"ok": true,
+					"state": "committed",
+					"total": 968
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 17.038,
+				"group": "east_buttress",
+				"index": 29928,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 10,
+					"event_id": "coverage:east_buttress",
+					"ok": true,
+					"state": "committed",
+					"total": 1002
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 29.453,
+				"group": "west_merlon",
+				"index": 39795,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 29,
+					"event_id": "coverage:west_merlon",
+					"ok": true,
+					"state": "committed",
+					"total": 1049
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 17.692,
+				"group": "west_plinth",
+				"index": 39999,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 7,
+					"event_id": "coverage:west_plinth",
+					"ok": true,
+					"state": "committed",
+					"total": 1098
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 13.585,
+				"group": "west_corbel",
+				"index": 40133,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 11,
+					"event_id": "coverage:west_corbel",
+					"ok": true,
+					"state": "committed",
+					"total": 1140
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 20.677,
+				"group": "west_buttress",
+				"index": 40185,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 25,
+					"event_id": "coverage:west_buttress",
+					"ok": true,
+					"state": "committed",
+					"total": 1191
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 17.682,
+				"group": "gate_quoin",
+				"index": 48079,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 25,
+					"event_id": "coverage:gate_quoin",
+					"ok": true,
+					"state": "committed",
+					"total": 1241
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 8.142,
+				"group": "gate_merlon",
+				"index": 48113,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 7,
+					"event_id": "coverage:gate_merlon",
+					"ok": true,
+					"state": "committed",
+					"total": 1272
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 7.776,
+				"group": "tower_crown",
+				"index": 48212,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 7,
+					"event_id": "coverage:tower_crown",
+					"ok": true,
+					"state": "committed",
+					"total": 1297
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 6.698,
+				"group": "tower_crown_merlon",
+				"index": 48285,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 3,
+					"event_id": "coverage:tower_crown_merlon",
+					"ok": true,
+					"state": "committed",
+					"total": 1318
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 6.621,
+				"group": "stairs_pier_south",
+				"index": 48578,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 9,
+					"event_id": "coverage:stairs_pier_south",
+					"ok": true,
+					"state": "committed",
+					"total": 1343
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 6.883,
+				"group": "stairs_pier_east",
+				"index": 48787,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 8,
+					"event_id": "coverage:stairs_pier_east",
+					"ok": true,
+					"state": "committed",
+					"total": 1364
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 7.086,
+				"group": "stairs_pier_north",
+				"index": 48996,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 9,
+					"event_id": "coverage:stairs_pier_north",
+					"ok": true,
+					"state": "committed",
+					"total": 1390
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 7.092,
+				"group": "stairs_pier_west",
+				"index": 49205,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 9,
+					"event_id": "coverage:stairs_pier_west",
+					"ok": true,
+					"state": "committed",
+					"total": 1419
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 16.215,
+				"group": "north_parapet",
+				"index": 49419,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 5,
+					"event_id": "coverage:north_parapet",
+					"ok": true,
+					"state": "committed",
+					"total": 1444
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 20.525,
+				"group": "south_parapet",
+				"index": 49471,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 3,
+					"event_id": "coverage:south_parapet",
+					"ok": true,
+					"state": "committed",
+					"total": 1479
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 11.476,
+				"group": "east_parapet",
+				"index": 49527,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 1,
+					"event_id": "coverage:east_parapet",
+					"ok": true,
+					"state": "committed",
+					"total": 1529
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 12.877,
+				"group": "west_parapet",
+				"index": 49587,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 2,
+					"event_id": "coverage:west_parapet",
+					"ok": true,
+					"state": "committed",
+					"total": 1563
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 7.295,
+				"group": "corner_parapet",
+				"index": 49640,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 1,
+					"event_id": "coverage:corner_parapet",
+					"ok": true,
+					"state": "committed",
+					"total": 1592
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 9.606,
+				"group": "keep_quoin",
+				"index": 58250,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 14,
+					"event_id": "coverage:keep_quoin",
+					"ok": true,
+					"state": "committed",
+					"total": 1631
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 19.117,
+				"group": "keep_window",
+				"index": 58527,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 22,
+					"event_id": "coverage:keep_window",
+					"ok": true,
+					"state": "committed",
+					"total": 1665
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 10.49,
+				"group": "keep_window_z",
+				"index": 58525,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 11,
+					"event_id": "coverage:keep_window_z",
+					"ok": true,
+					"state": "committed",
+					"total": 1680
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 9.298,
+				"group": "keep_buttress",
+				"index": 58571,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 16,
+					"event_id": "coverage:keep_buttress",
+					"ok": true,
+					"state": "committed",
+					"total": 1699
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 10.112,
+				"group": "keep_merlon",
+				"index": 59035,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 4,
+					"event_id": "coverage:keep_merlon",
+					"ok": true,
+					"state": "committed",
+					"total": 1704
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 9.089,
+				"group": "gate_jamb",
+				"index": 59084,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 15,
+					"event_id": "coverage:gate_jamb",
+					"ok": true,
+					"state": "committed",
+					"total": 1723
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 11.271,
+				"group": "gate_jamb_quoin",
+				"index": 59086,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 12,
+					"event_id": "coverage:gate_jamb_quoin",
+					"ok": true,
+					"state": "committed",
+					"total": 1740
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 25.433,
+				"group": "wall_arcade",
+				"index": 60238,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 22,
+					"event_id": "coverage:wall_arcade",
+					"ok": true,
+					"state": "committed",
+					"total": 1767
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 23.911,
+				"group": "wall_arcade_keystone",
+				"index": 60242,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 22,
+					"event_id": "coverage:wall_arcade_keystone",
+					"ok": true,
+					"state": "committed",
+					"total": 1797
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 11.387,
+				"group": "keep_window_frame",
+				"index": 60388,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 10,
+					"event_id": "coverage:keep_window_frame",
+					"ok": true,
+					"state": "committed",
+					"total": 1816
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 14.838,
+				"group": "keep_window_hood",
+				"index": 60390,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 11,
+					"event_id": "coverage:keep_window_hood",
+					"ok": true,
+					"state": "committed",
+					"total": 1838
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 20.182,
+				"group": "entrance_arch31",
+				"index": 60460,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 11,
+					"event_id": "coverage:entrance_arch31",
+					"ok": true,
+					"state": "committed",
+					"total": 1864
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 8.386,
+				"group": "entrance_pier31",
+				"index": 60508,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 13,
+					"event_id": "coverage:entrance_pier31",
+					"ok": true,
+					"state": "committed",
+					"total": 1895
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 9.387,
+				"group": "entrance_pier_cap31",
+				"index": 60524,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 4,
+					"event_id": "coverage:entrance_pier_cap31",
+					"ok": true,
+					"state": "committed",
+					"total": 1913
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 8.957,
+				"group": "entrance_crown31",
+				"index": 60548,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 6,
+					"event_id": "coverage:entrance_crown31",
+					"ok": true,
+					"state": "committed",
+					"total": 1930
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 8.446,
+				"group": "entrance_corbel31",
+				"index": 60551,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 5,
+					"event_id": "coverage:entrance_corbel31",
+					"ok": true,
+					"state": "committed",
+					"total": 1959
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 7.114,
+				"group": "entrance_pediment31",
+				"index": 60606,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 2,
+					"event_id": "coverage:entrance_pediment31",
+					"ok": true,
+					"state": "committed",
+					"total": 1983
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 10.675,
+				"group": "entrance_crest31",
+				"index": 60610,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 6,
+					"event_id": "coverage:entrance_crest31",
+					"ok": true,
+					"state": "committed",
+					"total": 2002
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 13.732,
+				"group": "entrance_bastion31",
+				"index": 60612,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 3,
+					"event_id": "coverage:entrance_bastion31",
+					"ok": true,
+					"state": "committed",
+					"total": 2038
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 9.919,
+				"group": "entrance_bastion_quoin31",
+				"index": 60613,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 1,
+					"event_id": "coverage:entrance_bastion_quoin31",
+					"ok": true,
+					"state": "committed",
+					"total": 2073
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 27.274,
+				"group": "entrance_bastion_band31",
+				"index": 60642,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 4,
+					"event_id": "coverage:entrance_bastion_band31",
+					"ok": true,
+					"state": "committed",
+					"total": 2108
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 8.998,
+				"group": "entrance_bastion_merlon31",
+				"index": 60646,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 6,
+					"event_id": "coverage:entrance_bastion_merlon31",
+					"ok": true,
+					"state": "committed",
+					"total": 2147
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 5.516,
+				"group": "keep_pinnacle31",
+				"index": 60689,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 2,
+					"event_id": "coverage:keep_pinnacle31",
+					"ok": true,
+					"state": "committed",
+					"total": 2188
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 5.429,
+				"group": "keep_pinnacle_tip31",
+				"index": 60691,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 1,
+					"event_id": "coverage:keep_pinnacle_tip31",
+					"ok": true,
+					"state": "committed",
+					"total": 2208
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 14.304,
+				"group": "curtain_trim31",
+				"index": 60711,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 11,
+					"event_id": "coverage:curtain_trim31",
+					"ok": true,
+					"state": "committed",
+					"total": 2236
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 6.839,
+				"group": "gate38_machicolation",
+				"index": 61063,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 2,
+					"event_id": "coverage:gate38_machicolation",
+					"ok": true,
+					"state": "committed",
+					"total": 2252
+				}
+			},
+			{
+				"all_already_destroyed": true,
+				"group": "gate38_gallery_rail"
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 7.125,
+				"group": "gate38_gallery_merlon",
+				"index": 61071,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 2,
+					"event_id": "coverage:gate38_gallery_merlon",
+					"ok": true,
+					"state": "committed",
+					"total": 2258
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 8.122,
+				"group": "gate38_turret_wall",
+				"index": 61078,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 5,
+					"event_id": "coverage:gate38_turret_wall",
+					"ok": true,
+					"state": "committed",
+					"total": 2276
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 6.261,
+				"group": "gate38_slate_roof",
+				"index": 61117,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 6,
+					"event_id": "coverage:gate38_slate_roof",
+					"ok": true,
+					"state": "committed",
+					"total": 2290
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 6.445,
+				"group": "gate38_finial",
+				"index": 61149,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 9,
+					"event_id": "coverage:gate38_finial",
+					"ok": true,
+					"state": "committed",
+					"total": 2308
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 9.76,
+				"group": "gate38_arrow_slit",
+				"index": 61150,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 10,
+					"event_id": "coverage:gate38_arrow_slit",
+					"ok": true,
+					"state": "committed",
+					"total": 2325
+				}
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 9.378,
+				"group": "gate38_arrow_jamb",
+				"index": 61230,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 10,
+					"event_id": "coverage:gate38_arrow_jamb",
+					"ok": true,
+					"state": "committed",
+					"total": 2345
+				}
+			},
+			{
+				"all_already_destroyed": true,
+				"group": "gate38_arrow_sill"
+			},
+			{
+				"alive_after": false,
+				"apply_ms": 7.631,
+				"group": "gate38_pediment",
+				"index": 61235,
+				"owned_shape_disabled": true,
+				"response": {
+					"detached": 4,
+					"event_id": "coverage:gate38_pediment",
+					"ok": true,
+					"state": "committed",
+					"total": 2362
+				}
+			}
+		],
+		"performance_limit": "Functional run beside user game; apply times include headless scheduling and are not clean game FPS.",
+		"roof_corner_distance": 1.76004505157471,
+		"stats": {
+			"bricks": 61886,
+			"collapsed": 1522,
+			"detached": 2418,
+			"events": 24,
+			"falling": 150,
+			"gate_board_colliders_active": 92,
+			"gate_boards_broken": 4,
+			"gate_bricks": 0,
+			"gate_leaves_detached": 0,
+			"gate_open": false,
+			"gates": 2,
+			"leaf_dbg": {
+				"child": "(-4.6, 0.0, 968.0)",
+				"child_name": "GateBoards_wood",
+				"child_visible": true,
+				"mats": 14,
+				"pivot": "(-4.6, 0.0, 968.0)"
+			},
+			"ok": true,
+			"wall_collision_active": 1822
+		}
+	}
+}

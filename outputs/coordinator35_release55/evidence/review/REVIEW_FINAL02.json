@@ -1,0 +1,78 @@
+{
+  "schema": "mafiozi.walls55-source-review/v1",
+  "candidate": "02",
+  "status": "PASS_SOURCE_REVIEW",
+  "reviewed_at_utc": "2026-10-18T21:38:46.874966+00:00",
+  "source": "D:\\MafioziCombat31\\coordinator35_walls55\\game\\scripts\\city\\castle_site.gd",
+  "reviewed_source_sha256": "3a35a58a1366195b31b703cc5da8446262816787cd0c6d124224766dab7d0250",
+  "baseline_manifest": "D:\\MafioziCombat31\\coordinator35_walls55\\BASE54.json",
+  "manifest_scope": {
+    "pins_checked": 1347,
+    "missing": [],
+    "changed": [
+      {
+        "path": "scripts/city/castle_site.gd",
+        "base_sha256": "da6da285dc0cce47553232c12a5d8e0bb9643dc8970e3f08043e42dc6d82524c",
+        "candidate_sha256": "3a35a58a1366195b31b703cc5da8446262816787cd0c6d124224766dab7d0250"
+      }
+    ],
+    "all_other_pins_unchanged": true
+  },
+  "findings": [],
+  "resolved_candidate01_findings": [
+    {
+      "priority": "P2",
+      "function": "_cell_distance55",
+      "line": 3793,
+      "resolution": "Cylinder distance uses radial and vertical excess. Roof distance uses finite radial/y frustum profile. Full Euler inverse remains applied; broadphase remains AABB."
+    },
+    {
+      "priority": "P2",
+      "function": "_spawn_falling_brick",
+      "line": 1132,
+      "resolution": "tower_floor55 uses its cylinder mesh/collider; tower_roof55 uses its tapered mesh/convex collider. Every pooled reuse resets collider scale, assigns default box for other cells, and restores default debris mesh."
+    }
+  ],
+  "review_passes": [
+    {
+      "function": "_brick_transform",
+      "line": 1014,
+      "result": "tower_floor55/tower_roof55 have zero jitter, preserving flat initial visual/collision alignment."
+    },
+    {
+      "function": "_flush_buckets/_indices_box",
+      "result": "Full cell bounds are inserted in every overlapping8m bucket and candidates are deduplicated, so giant columns and long spans are discoverable away from their center."
+    },
+    {
+      "function": "_sync_masonry_collision55",
+      "line": 3860,
+      "result": "Merged dirty AABB is only broadphase; separate actual changed-cell regions gate refinement. Distant simultaneous collapses do not refine untouched intermediate sections."
+    },
+    {
+      "function": "_sync_masonry_collision55",
+      "result": "Before disabling a damaged coarse section, all alive intersecting masonry/bridge cells receive exact shapes. The surviving rear skin stays hittable; dead mapped shapes are disabled."
+    },
+    {
+      "function": "_physics_process/_schedule_support_failure",
+      "result": "Delayed support kills also invoke sync. Tall masonry adds a support hole near its upper edge and raises support search height; existing local footprint and delays remain."
+    },
+    {
+      "function": "_ensure_masonry_shape55",
+      "result": "Existing merlon, courtyard and stair-row colliders are excluded from duplicate exact-shape creation. Full Euler rotations are used for projecting arches."
+    },
+    {
+      "function": "_break_collision_near",
+      "result": "Existing furnishings and keep-floor coarse collision behavior remains in the prior path. Sync explicitly skips those bodies; nonmasonry blast distance remains center based."
+    },
+    {
+      "function": "_build_keep_details/_build_gatehouse/_build_tower_platforms",
+      "result": "Previously permanent sills, corbels, tower disks and roofs now enter destructible cells and masonry hit shapes."
+    }
+  ],
+  "validation_boundary": {
+    "reviewer_launched_godot": false,
+    "reviewer_modified_production": false,
+    "review_method": "Read-only source diff and SHA256 scope audit. Runtime behavior is not re-tested by this reviewer.",
+    "root_reported_native_result": "Parent reports prior4baseline failures pass on candidate02 with stderr0; this report is independent source review, not a new native receipt."
+  }
+}

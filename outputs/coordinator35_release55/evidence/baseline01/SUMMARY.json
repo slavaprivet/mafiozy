@@ -1,0 +1,14 @@
+{
+  "name": "baseline01",
+  "passed": false,
+  "errors": [
+    "gate_bypass_pier_foot_unbreakable",
+    "bastion_edge_unbreakable",
+    "surviving_wall_without_collision",
+    "second_skin_no_followup_hit"
+  ],
+  "scheduler_errors": [],
+  "scheduler_error": null,
+  "drift": [],
+  "script_sha256": "e765e0482b5c14b71bbb1f3e9c1ebf792bd686b3865b07f18cb19108058c94ee"
+}
