@@ -1,0 +1,9 @@
+{
+	"errors": [
+		"head_npc_not_ready",
+		"chest_npc_not_ready"
+	],
+	"passed": false,
+	"rows": [],
+	"scope": "Native spawned NPC, existing named-part wound/death path, maximum single melee wound followed by a second blow; player health untouched."
+}

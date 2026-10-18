@@ -1,0 +1,43 @@
+{
+	"errors": [],
+	"passed": true,
+	"rows": [
+		{
+			"before": 270.0,
+			"first": {
+				"dead": false,
+				"disarmed": false,
+				"hp": 110.0,
+				"part": "head",
+				"part_hp": 40.0
+			},
+			"part": "head",
+			"second": {
+				"corpse": true,
+				"dead": true,
+				"hp": 60.0,
+				"part_hp": -10.0
+			},
+			"threshold": 200.0
+		},
+		{
+			"before": 270.0,
+			"first": {
+				"dead": false,
+				"disarmed": false,
+				"hp": 110.0,
+				"part": "chest",
+				"part_hp": 128.0
+			},
+			"part": "chest",
+			"second": {
+				"corpse": true,
+				"dead": true,
+				"hp": 0.0,
+				"part_hp": 8.0
+			},
+			"threshold": 288.0
+		}
+	],
+	"scope": "Native spawned NPC, existing named-part wound/death path, maximum single melee wound followed by a second blow; player health untouched."
+}

@@ -1,0 +1,118 @@
+--- 56/sword_prototype.gd
++++ 57/sword_prototype.gd
+@@ -365,15 +365,6 @@
+ 	return clampf(2.5 * contact_speed * contact_speed * prepared * momentum * grip
+ 		* _kind_multiplier("flat" if _weapon_crush else kind), 0.0, 160.0)
+ 
+-## A committed heavy blow to an unprotected head crosses the resident's full
+-## head health in one real contact. A brush cannot earn this floor, and visible
+-## head armour keeps its ordinary protection.
+-func _npc_heavy_head_damage31(part: String, speed: float, prepared: float, kind: String, damage: float, region: String = "skin") -> float:
+-	if part != "head" or region == "plate": return damage
+-	var proper_face := (_weapon_id == "sledge" and kind == "flat") \
+-		or (_weapon_id == "axe" and kind == "slice")
+-	if not proper_face or speed * 0.6 < 2.65 or prepared < 0.8: return damage
+-	return maxf(damage, float(PART_HP["head"]) + 1.0)
+ ## Kind of the last landed blow: slice, stab or flat.
+ var _last_hit_kind := ""
+ var _last_hit_scale := 1.0
+@@ -2477,20 +2468,11 @@
+ 	var base_part := part
+ 	if base_part.ends_with("_l") or base_part.ends_with("_r"):
+ 		base_part = base_part.substr(0, base_part.length() - 2)
+-	var vital_penetration: bool = protection.region != "plate" or wound >= float(PART_HP.get(base_part, 96.0))
+-	if not _npc_dead and base_part in ["head", "chest", "pelvis"] and speed >= SPEAR_LETHAL_SPEED \
++	var vital_penetration: bool = protection.region != "plate" or wound >= float(NPC_PART_HP57.get(base_part, 288.0))
++	# A penetrating spear can still travel through a vital zone; the ordinary
++	# wound/part-health owner decides whether that contact was fatal.
++	if base_part in ["head", "chest", "pelvis"] and speed >= SPEAR_LETHAL_SPEED \
+ 		and incidence >= SPEAR_LETHAL_INCIDENCE and vital_penetration:
+-		_npc_dead = true
+-		_npc_disarmed = true
+-		_npc_engaged = false
+-		_npc_state = "wait"
+-		_npc_bleed_until_ms = Time.get_ticks_msec() + 4000
+-		_npc_bleed_at = point
+-		_spray_blood(point, direction, 36)
+-		if is_instance_valid(_npc_sword):
+-			_drop_sword(_npc_sword.global_position, direction, speed)
+-		_queue_npc_corpse31(point, direction, speed)
+-		print("DSH_SPEAR_PIERCE part=", part, " speed=", speed, " incidence=", incidence)
+ 		return SPEAR_BODY_PIERCE_DEPTH
+ 	return SPEAR_STICK_DEPTH
+ 
+@@ -3483,7 +3465,7 @@
+ ## A sparring partner with the same sword. It walks in, winds up and cuts; the
+ ## player's blade is a REAL physical guard: if the two blades meet during the
+ ## incoming cut, the blow is stopped and no health is lost.
+-const DUELIST_HP := 120.0
++const DUELIST_HP := 480.0
+ const DUELIST_SPEED := 1.7
+ const DUELIST_REACH := 1.05
+ const DUELIST_WINDUP := 0.55
+@@ -4420,7 +4402,7 @@
+ 						factor = maxf(factor, HALF_SWORD_THRUST)
+ 					elif kind != "stab":
+ 						factor *= HALF_SWORD_CUT
+-				var wound := _npc_heavy_head_damage31(npc_part, speed, strength, kind, npc_cut * factor, str(protection.region))
++				var wound := npc_cut * factor
+ 				var penetrates: bool = ArmorDamage31.tissue_penetrates(str(protection.region), attack_kind, wound)
+ 				var rang_off_plate: bool = protection.region == "plate" and not penetrates
+ 				# DSH_ANIM: a blow that bites jolts the body; one that rings off plate
+@@ -4647,7 +4629,8 @@
+ var _npc_swing_start43 := Vector3.FORWARD
+ var _npc_state := "wait"
+ var _npc_timer := 0.0
+-var _npc_hp := 90.0
++const NPC_MAX_HP57 := 270.0
++var _npc_hp := NPC_MAX_HP57
+ var _npc_engaged := false
+ var _npc_swings := 0
+ var _npc_hits := 0
+@@ -5102,7 +5085,7 @@
+ 		kind = full_key.substr(0, full_key.length() - 2)
+ 	if _npc_dead and kind in ["chest", "pelvis"]: return
+ 	if not _npc_part_hp.has(full_key):
+-		_npc_part_hp[full_key] = float(PART_HP.get(kind, 40.0))
++		_npc_part_hp[full_key] = float(NPC_PART_HP57.get(kind, 120.0))
+ 	_npc_part_hp[full_key] = float(_npc_part_hp[full_key]) - damage
+ 	_npc_receive_impulse31(kind, speed, direction, damage)
+ 	if _npc_dead: _npc_corpse_hit31(point, direction, clampf(speed * 1.5, 0.0, 32.0))
+@@ -5181,7 +5164,7 @@
+ 	if _npc_dead or _npc_severed.has(full_key) or damage <= 0.05:
+ 		return {"applied": false, "damage": 0.0, "dead": _npc_dead}
+ 	var base := full_key.trim_suffix("_l").trim_suffix("_r")
+-	_npc_part_hp[full_key] = float(_npc_part_hp.get(full_key, PART_HP.get(base, 40.0))) - damage
++	_npc_part_hp[full_key] = float(_npc_part_hp.get(full_key, NPC_PART_HP57.get(base, 120.0))) - damage
+ 	_npc_hp = maxf(0.0, _npc_hp - damage)
+ 	_npc_engaged = true
+ 	_npc_stop_attack43()
+@@ -5771,7 +5754,7 @@
+ 	_npc_mesh_cut_parts39.clear()
+ 	_npc_part_hp.clear()
+ 	_npc_dead = false
+-	_npc_hp = 90.0
++	_npc_hp = NPC_MAX_HP57
+ 	_npc_route_dir50 = Vector3.ZERO
+ 	_npc_route_request53 = Vector3.ZERO
+ 	_npc_replan_ms50 = 0
+@@ -6339,6 +6322,10 @@
+ const PART_HP := {"head": 50.0, "chest": 96.0, "pelvis": 96.0,
+ 	"upperarm": 34.0, "forearm": 30.0, "hand": 22.0,
+ 	"thigh": 44.0, "shin": 34.0, "foot": 22.0}
++## The opponent lasts several landed blows; player body-part thresholds stay intact.
++const NPC_PART_HP57 := {"head": 200.0, "chest": 288.0, "pelvis": 288.0,
++	"upperarm": 102.0, "forearm": 90.0, "hand": 66.0,
++	"thigh": 132.0, "shin": 102.0, "foot": 66.0}
+ const BLOOD_LIFETIME := 2.6
+ ## Severed pieces are permanent; the cap only stops unbounded growth.
+ const MAX_STUMPS := 48
+@@ -6386,7 +6373,7 @@
+ 	var full_key := key + side_suffix if key not in ["head", "chest", "pelvis"] else key
+ 	if _npc_severed.has(full_key): return
+ 	if not _npc_part_hp.has(full_key):
+-		_npc_part_hp[full_key] = float(PART_HP.get(key, 40.0))
++		_npc_part_hp[full_key] = float(NPC_PART_HP57.get(key, 120.0))
+ 	_npc_part_hp[full_key] = float(_npc_part_hp[full_key]) - damage
+ 	_npc_engaged = true
+ 	if damage >= 3.0:

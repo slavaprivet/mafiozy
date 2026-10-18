@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "sha256": "aa072a1e3926b91804fd2e1e312d7adadec07c8d0048bfe9fed01802d954332c",
+  "pins": 1347,
+  "changed": [
+    "scripts/weapons/sword_prototype.gd"
+  ],
+  "checks": [
+    "duelist480 and resident270 configured",
+    "NPC part thresholds raised separately from player",
+    "forced one-hit head and spear vital instant kill removed",
+    "approved weapon tuning and shared IK retained"
+  ],
+  "boundary": "Independent source pin audit; runtime evidence in duelist01 and health04."
+}

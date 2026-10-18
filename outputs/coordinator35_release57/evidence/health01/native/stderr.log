@@ -1,0 +1,4 @@
+SCRIPT ERROR: Parse Error: Cannot infer the type of "game" variable because the value doesn't have a set type.
+   at: GDScript::reload (D:/MafioziCombat31/coordinator35_health57/qa/health57.gd:16)
+ERROR: Failed to load script "D:/MafioziCombat31/coordinator35_health57/qa/health57.gd" with error "Parse error".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)
