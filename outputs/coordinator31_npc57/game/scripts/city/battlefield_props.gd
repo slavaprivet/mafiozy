@@ -107,8 +107,19 @@ func _make_tent_roof() -> ArrayMesh:
 		var eave_r := Vector3(3.08, 0.32, side * 2.58)
 		_roof_triangle(st, ridge_l, ridge_r, eave_r)
 		_roof_triangle(st, ridge_l, eave_r, eave_l)
-	for x in [-3.08, 3.08]:
-		_roof_triangle(st, Vector3(x, 3.72, 0), Vector3(x, 0.32, -2.58), Vector3(x, 0.32, 2.58))
+	# Closed rear gable; the front has a real aperture in the canvas mesh.
+	_roof_triangle(st, Vector3(-3.08, 3.72, 0), Vector3(-3.08, 0.32, -2.58), Vector3(-3.08, 0.32, 2.58))
+	var lintel_y := 2.15
+	var shoulder_z := 2.58 * (3.72 - lintel_y) / 3.4
+	for side in [-1.0, 1.0]:
+		var eave := Vector3(3.08, 0.32, side * 2.58)
+		var foot := Vector3(3.08, 0.32, side * 0.85)
+		var corner := Vector3(3.08, lintel_y, side * 0.85)
+		var shoulder := Vector3(3.08, lintel_y, side * shoulder_z)
+		_roof_triangle(st, eave, foot, corner)
+		_roof_triangle(st, eave, corner, shoulder)
+	_roof_triangle(st, Vector3(3.08, 3.72, 0),
+		Vector3(3.08, lintel_y, -shoulder_z), Vector3(3.08, lintel_y, shoulder_z))
 	st.generate_normals()
 	return st.commit()
 
@@ -390,10 +401,12 @@ func _build_smouldering_wreck(p: Vector3) -> void:
 	_stats["smoke_plumes"] += 1
 
 func _build_tent(p: Vector3, id: String) -> void:
-	_group(id, p, 95.0, "canvas", Vector3(6.15, 2.4, 5.15))
+	_group(id, p, 95.0, "canvas")
+	_groups[id]["reach"] = 3.075 # Preserve the original stone-damage reach.
 	# Ridge across the field, so the triangular gable faces approaching players.
 	var yaw := PI * 0.5 + _rng.randf_range(-0.16, 0.16)
 	var b := Basis(Vector3.UP, yaw)
+	_tent_collision(id, yaw)
 	_piece("tent_roof", "canvas", p, Vector3.ONE, Vector3(0, yaw, 0), id)
 	for side in [-1.0, 1.0]:
 		# Seam and rolled eave make the continuous cloth roof read at walking distance.
@@ -412,9 +425,46 @@ func _build_tent(p: Vector3, id: String) -> void:
 		_box("oak", p + b * Vector3(side * 3.02, 1.85, 0), Vector3(0.11, 3.70, 0.11), Vector3.ZERO, id)
 	# Ground cloth and folded entrance flap.
 	_box("canvas_dark", p + Vector3.UP * 0.045, Vector3(5.88, 0.065, 5.02), Vector3(0, yaw, 0), id)
-	_box("red", p + b * Vector3(3.09, 1.13, -0.62), Vector3(0.07, 2.15, 1.18), Vector3(0.15, yaw + 0.35, 0), id)
+	_box("red", p + b * Vector3(3.22, 1.13, -1.44), Vector3(0.07, 2.15, 1.18), Vector3(0, yaw + 0.22, 0), id)
 	_piece("rock", "ash", p + Vector3.UP * 0.025, Vector3(6.3, 0.045, 5.4), Vector3.ZERO, "", true)
 	_stats["tents"] += 1
+
+func _tent_collision(id: String, yaw: float) -> void:
+	# One static body replaces the former solid box. Canvas follows the visible mesh.
+	var body := StaticBody3D.new()
+	body.name = "Cover_%s" % id
+	body.position = _groups[id]["center"]
+	body.rotation.y = yaw
+	body.set_meta("category", "cover")
+	body.set_meta("battlefield_group", id)
+	var faces: PackedVector3Array = (_meshes["tent_roof"] as ArrayMesh).get_faces()
+	var collision_faces := PackedVector3Array()
+	# Visual mesh includes reverse triangles; physics uses one face with backface collision.
+	for i in range(0, faces.size(), 6):
+		for j in 3: collision_faces.append(faces[i + j])
+	var canvas := ConcavePolygonShape3D.new()
+	canvas.backface_collision = true
+	canvas.set_faces(collision_faces)
+	var canvas_shape := CollisionShape3D.new()
+	canvas_shape.shape = canvas
+	body.add_child(canvas_shape)
+	for side in [-1.0, 1.0]:
+		var post := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = Vector3(0.11, 3.70, 0.11)
+		post.shape = box
+		post.position = Vector3(side * 3.02, 1.85, 0)
+		body.add_child(post)
+	var flap := CollisionShape3D.new()
+	var flap_box := BoxShape3D.new()
+	flap_box.size = Vector3(0.07, 2.15, 1.18)
+	flap.shape = flap_box
+	flap.position = Vector3(3.22, 1.13, -1.44)
+	flap.rotation.y = 0.22
+	body.add_child(flap)
+	add_child(body)
+	_groups[id]["collider"] = body
+	_stats["colliders"] += 1
 
 func _build_watchtower(p: Vector3, id: String) -> void:
 	# A recognisable high silhouette at both ends of the attackers' line.
