@@ -636,19 +636,38 @@ func _spawn_splinters(center: Vector3, hit_point: Vector3, kind: String) -> void
 	var away := (origin - hit_point).normalized()
 	for i in 5:
 		var body := RigidBody3D.new()
-		body.mass = 0.6 if kind == "wood" else 1.4
+		var cloth_scrap := kind == "canvas" and i < 3
+		var canvas_slat := kind == "canvas" and i >= 3
+		if cloth_scrap:
+			body.mass = 0.16
+			body.gravity_scale = 0.55
+			body.linear_damp = 0.65
+		elif canvas_slat:
+			body.mass = 0.45
+		else:
+			body.mass = 0.6 if kind == "wood" else 1.4
 		body.position = origin + Vector3(_rng.randf_range(-0.45, 0.45), _rng.randf_range(0.1, 0.6), _rng.randf_range(-0.45, 0.45))
 		body.collision_layer = 1
 		body.collision_mask = 1
 		var shape := CollisionShape3D.new()
 		var box := BoxShape3D.new()
-		box.size = Vector3(0.36, 0.08, 0.11) if kind == "wood" else Vector3(0.18, 0.14, 0.16)
+		if cloth_scrap:
+			box.size = Vector3(0.48, 0.025, 0.34)
+		elif canvas_slat:
+			box.size = Vector3(0.45, 0.07, 0.08)
+		else:
+			box.size = Vector3(0.36, 0.08, 0.11) if kind == "wood" else Vector3(0.18, 0.14, 0.16)
 		shape.shape = box
 		body.add_child(shape)
 		var visual := MeshInstance3D.new()
 		visual.mesh = _meshes["box"]
 		visual.scale = box.size
-		visual.material_override = _materials["oak"] if kind == "wood" else _materials["stone"]
+		if cloth_scrap:
+			visual.material_override = _materials["canvas"]
+		elif canvas_slat:
+			visual.material_override = _materials["oak"]
+		else:
+			visual.material_override = _materials["oak"] if kind == "wood" else _materials["stone"]
 		body.add_child(visual)
 		add_child(body)
 		body.linear_velocity = away * _rng.randf_range(1.5, 3.2) + Vector3(_rng.randf_range(-1.5, 1.5), _rng.randf_range(2.5, 4.2), _rng.randf_range(-1.5, 1.5))
