@@ -1277,8 +1277,8 @@ func _take_sword_model(node: Node3D) -> Node3D:
 
 ## E: take the nearest sword on the ground - the player's own or a knight's. A
 ## sword already in the hand cannot be swapped for another: drop it first.
-func try_pickup_sword() -> bool:
-	if not _selected: return false
+func try_pickup_sword(allow_inactive: bool = false) -> bool:
+	if not _selected and not allow_inactive: return false
 	# Thrown away counts as empty-handed just as much as put down.
 	if not _sword_grounded and not _unarmed:
 		print("DSH_SWORD_PROTO_PICKUP_REFUSED reason=in_hand")
@@ -1292,20 +1292,24 @@ func try_pickup_sword() -> bool:
 	# DSH_MELEE_SET: a weapon of the set that was put down is picked back up AS ITSELF.
 	var stamp := _ground_weapon_of(node)
 	var pickup_id := stamp if stamp != "" else _weapon_id
+	var previous_id := _weapon_id
+	var previous_empty := _unarmed or _sword_grounded
+	var foreign_sword := pickup_id == "sword" and node == _npc_dropped_sword31
+	var arsenal: Node = _world.get("preview_weapons") if is_instance_valid(_world) else null
+	var storage: Node = arsenal.get("castle_storage_owner") if is_instance_valid(arsenal) else null
+	if is_instance_valid(storage) and storage.has_method("can_adopt_ground_melee31"):
+		var preflight: Dictionary = storage.can_adopt_ground_melee31(pickup_id, previous_id, previous_empty)
+		if not bool(preflight.get("ok", false)):
+			print("DSH_SWORD_PROTO_PICKUP_REFUSED reason=", preflight.get("reason", "storage"))
+			return false
 	if _shield_worn and WEAPONS.has(pickup_id) and str(WEAPONS[pickup_id].get("grip", "")) == "two":
 		print("DSH_SWORD_PROTO_PICKUP_REFUSED reason=shield_occupies_right_hand")
 		return false
 	_ground_swords.erase(node)
 	if stamp != "" and stamp != _weapon_id:
-		set_weapon(stamp)
-		if is_instance_valid(node) and node != _sword: node.queue_free()
-		_sword_grounded = false
-		_unarmed = false
-		_arm_ready_ms = Time.get_ticks_msec() + 450
-		if is_instance_valid(_sword): _sword.visible = true
-		_update_hint()
-		print("DSH_SWORD_PROTO_PICKED weapon=", stamp)
-		return true
+		if not set_weapon(stamp):
+			_register_ground_sword(node)
+			return false
 	if not taken_own:
 		# A knight's sword: hold its model, and leave the player's own sword lying
 		# where it fell so it can still be collected later.
@@ -1316,13 +1320,13 @@ func try_pickup_sword() -> bool:
 			return false
 		if model == node:
 			model.reparent(_world, true)
-			var cached: Node3D = _weapon_models.get(_weapon_id)
-			if is_instance_valid(cached) and cached != model: cached.queue_free()
-			_weapon_models[_weapon_id] = model
 		else:
 			node.remove_child(model)
 			_world.add_child(model)
 			node.queue_free()
+		var cached: Node3D = _weapon_models.get(_weapon_id)
+		if is_instance_valid(cached) and cached != model and not _ground_swords.has(cached): cached.queue_free()
+		_weapon_models[_weapon_id] = model
 		_sword = model
 		_dropped_at = Vector3.ZERO
 	_sword_grounded = false
@@ -1331,6 +1335,12 @@ func try_pickup_sword() -> bool:
 	if is_instance_valid(_sword):
 		_sword.visible = true
 		_sword.global_transform = _place_basis(_player.global_position + Vector3.UP * 1.2, _dir)
+	if is_instance_valid(storage) and storage.has_method("adopt_ground_melee31"):
+		var adopted: Dictionary = storage.adopt_ground_melee31(pickup_id, previous_id, previous_empty,
+			foreign_sword, _sword)
+		if not bool(adopted.get("ok", false)):
+			print("DSH_SWORD_PROTO_PICKUP_REFUSED reason=", adopted.get("reason", "adopt_failed"))
+			return false
 	_update_hint()
 	print("DSH_SWORD_PROTO_PICKED distance=", found.get("distance", 0.0), " own=", taken_own,
 		" ground_swords=", _ground_swords.size())
@@ -2113,6 +2123,7 @@ func _update_throw_preview() -> void:
 	var speed: float = _throw_speed_now()
 	var space := _player.get_world_3d().direct_space_state
 	var excluded: Array[RID] = [_player.get_rid()]
+	if is_instance_valid(_npc_corpse31): excluded.append(_npc_corpse31.get_rid())
 	var at := _sword_origin + _dir.normalized() * SPEAR_TIP_OFFSET
 	var velocity := _dir.normalized() * speed
 	var shown := 0
@@ -2230,6 +2241,7 @@ func _step_thrown(delta: float) -> void:
 	if _thrown.is_empty(): return
 	var space := _player.get_world_3d().direct_space_state
 	var excluded: Array[RID] = [_player.get_rid()]
+	if is_instance_valid(_npc_corpse31): excluded.append(_npc_corpse31.get_rid())
 	for index: int in range(_thrown.size() - 1, -1, -1):
 		var entry: Dictionary = _thrown[index]
 		var node: Node3D = entry.get("node")
@@ -2383,6 +2395,7 @@ func _thrown_spear_hit_npc(part: String, point: Vector3, normal: Vector3, veloci
 		_spray_blood(point, direction, 36)
 		if is_instance_valid(_npc_sword):
 			_drop_sword(_npc_sword.global_position, direction, speed)
+		_queue_npc_corpse31(point, direction, speed)
 		print("DSH_SPEAR_PIERCE part=", part, " speed=", speed, " incidence=", incidence)
 		return SPEAR_BODY_PIERCE_DEPTH
 	return SPEAR_STICK_DEPTH
@@ -3910,6 +3923,8 @@ func _sweep(delta: float) -> void:
 	# Tagged rig hitboxes own cuts; the broad movement hull must not hide them.
 	if is_instance_valid(_npc_body) and is_instance_valid(_npc_rig):
 		excluded.append(_npc_body.get_rid())
+	if is_instance_valid(_npc_corpse31):
+		excluded.append(_npc_corpse31.get_rid())
 	var now := Time.get_ticks_msec()
 	var touched: Dictionary = {}
 	# A cut MEETS something and stops there. Only the FIRST contact along the swing
@@ -4774,6 +4789,7 @@ func _npc_take_blade_part(full_key: String, point: Vector3, speed: float, direct
 		_npc_part_hp[full_key] = float(PART_HP.get(kind, 40.0))
 	_npc_part_hp[full_key] = float(_npc_part_hp[full_key]) - damage
 	_npc_receive_impulse31(kind, speed, direction, damage)
+	if _npc_dead: _npc_corpse_hit31(point, direction, clampf(speed * 1.5, 0.0, 32.0))
 	if not _npc_dead: _npc_engaged = true
 	if not _npc_dead and damage >= 3.0:
 		_npc_state = "recover"
@@ -4807,6 +4823,7 @@ func _npc_die_from_vital_wound31(point: Vector3, direction: Vector3, speed: floa
 		_npc_bleed_until_ms = maxi(_npc_bleed_until_ms, Time.get_ticks_msec() + 4000)
 	if is_instance_valid(_npc_sword):
 		_drop_sword(_npc_sword.global_position, direction, speed)
+	_queue_npc_corpse31(point, direction, speed)
 
 ## A projectile punctures tissue; it never calls the blade/mesh severing path.
 func _npc_take_arrow_part(full_key: String, point: Vector3, speed: float,
@@ -4858,6 +4875,7 @@ func _npc_take_puncture_part31(full_key: String, point: Vector3, speed: float,
 		_npc_engaged = false
 		_npc_state = "wait"
 		if is_instance_valid(_npc_sword): _drop_sword(_npc_sword.global_position, direction, speed)
+		_queue_npc_corpse31(point, direction, speed)
 	return {"applied": true, "damage": damage, "dead": _npc_dead}
 
 ## The wound keeps pouring for a few seconds instead of a single puff.
@@ -4872,7 +4890,85 @@ var _npc_knocked_until_ms31 := 0
 var _npc_hull31: CollisionShape3D
 var _npc_knockdowns31 := 0
 ## When he is cut down he topples over instead of standing there.
-var _npc_fall := 0.0
+var _npc_corpse31: RigidBody3D
+var _npc_corpse_pending31 := false
+var _npc_dropped_sword31: RigidBody3D
+
+## A single physical corpse carries the existing actor and rig. Keeping the
+## CharacterBody node as a disabled child preserves tagged hitbox ancestry,
+## existing wound ownership and the live skinned/armor meshes for later cuts.
+func _queue_npc_corpse31(point: Vector3, direction: Vector3, speed: float) -> void:
+	if _npc_corpse_pending31 or is_instance_valid(_npc_corpse31) or not is_instance_valid(_npc_body): return
+	_npc_corpse_pending31 = true
+	_start_npc_corpse31.call_deferred(_npc_body.get_instance_id(), point, direction, speed)
+
+func _start_npc_corpse31(life_id: int, point: Vector3, direction: Vector3, speed: float) -> void:
+	_npc_corpse_pending31 = false
+	if not _npc_dead or not is_instance_valid(_npc_body) or _npc_body.get_instance_id() != life_id or is_instance_valid(_npc_corpse31): return
+	if not point.is_finite(): point = _npc_body.global_position + Vector3.UP
+	if not direction.is_finite(): direction = _npc_body.global_basis.z
+	if not is_finite(speed): speed = 0.0
+	var corpse := RigidBody3D.new()
+	corpse.name = "SwordKnightCorpse31"
+	corpse.mass = 70.0
+	corpse.collision_layer = 1
+	corpse.collision_mask = 1
+	corpse.continuous_cd = true
+	corpse.contact_monitor = true
+	corpse.max_contacts_reported = 16
+	corpse.linear_damp = 0.8
+	corpse.angular_damp = 1.2
+	var shape := CollisionShape3D.new()
+	var capsule := CapsuleShape3D.new()
+	capsule.radius = 0.36
+	capsule.height = NPC_HEIGHT
+	shape.shape = capsule
+	corpse.add_child(shape)
+	_world.add_child(corpse)
+	# The castle paving overlaps the standing feet by a few centimetres. Give
+	# only the new proxy capsule 6 cm of clearance; the visible rig stays put.
+	corpse.global_transform = Transform3D(_npc_body.global_basis,
+		_npc_body.global_position + Vector3.UP * (NPC_HEIGHT * 0.5 + 0.06))
+	# Swap collision authority outside the physics query flush. The old walking
+	# capsule stays alive only as a transform/ownership root for postmortem cuts.
+	_npc_body.collision_layer = 0
+	_npc_body.collision_mask = 0
+	_npc_hull31.disabled = true
+	_npc_body.reparent(corpse, true)
+	for hit: Node in _npc_rig.find_children("*", "AnimatableBody3D", true, false):
+		if str(hit.get_meta("sword_npc_part", "")) != "":
+			corpse.add_collision_exception_with(hit as CollisionObject3D)
+			(hit as CollisionObject3D).add_collision_exception_with(corpse)
+	# The blade was dropped at the fist in this death tick. Its box can start
+	# inside the torso capsule, so keep their collisions separate while the blade
+	# remains its own pickable world rigid body.
+	if is_instance_valid(_npc_dropped_sword31):
+		corpse.add_collision_exception_with(_npc_dropped_sword31)
+		_npc_dropped_sword31.add_collision_exception_with(corpse)
+	_npc_corpse31 = corpse
+	var horizontal: Vector3 = _npc_body.velocity + _npc_hit_push31
+	horizontal.y = 0.0
+	corpse.linear_velocity = horizontal.limit_length(3.0)
+	var impact: Vector3 = direction.normalized() if direction.length_squared() > 0.0001 else _npc_body.global_basis.z
+	var impulse: Vector3 = impact * clampf(speed * 5.0, 18.0, 120.0)
+	_npc_corpse_hit31(point, impact, impulse.length())
+	_npc_hit_push31 = Vector3.ZERO
+	print("DSH_NPC_CORPSE31 physical=1 impulse=", impulse, " at=", point)
+
+func _npc_corpse_hit31(point: Vector3, direction: Vector3, impulse_ns: float) -> void:
+	if not is_instance_valid(_npc_corpse31) or not point.is_finite() or not direction.is_finite() or not is_finite(impulse_ns): return
+	if direction.length_squared() < 0.0001 or impulse_ns <= 0.0: return
+	var corpse: RigidBody3D = _npc_corpse31
+	var capsule_radius := 0.36
+	var impulse: Vector3 = direction.normalized() * impulse_ns
+	# In the castle transition fixture, applying an impulse before this new body
+	# completed its first physics step yielded a velocity near the impulse value
+	# despite mass 70. Transfer this measured momentum explicitly in kg, with the
+	# hit point's turning moment, so the initial result stays bounded.
+	corpse.linear_velocity += impulse / corpse.mass
+	var lever: Vector3 = point - corpse.global_position
+	var transverse_inertia: float = corpse.mass * (NPC_HEIGHT * NPC_HEIGHT + 3.0 * capsule_radius * capsule_radius) / 12.0
+	corpse.angular_velocity += (lever.cross(impulse) / transverse_inertia).limit_length(3.0)
 
 ## Transfer only measured impact momentum. The heavy head of a sledge can push
 ## a much lighter body over, while a slow brush barely moves it. The capsule
@@ -4900,17 +4996,6 @@ func _npc_receive_impulse31(part: String, speed: float, direction: Vector3, dama
 func _update_npc_bleed(delta: float) -> void:
 	if not is_instance_valid(_npc_body): return
 	var now := Time.get_ticks_msec()
-	if _npc_dead and _npc_fall < 1.0:
-		# Dead: fall over on the ground, physically.
-		_npc_fall = minf(1.0, _npc_fall + delta * 1.6)
-		var t := _npc_fall * _npc_fall
-		_npc_motion.rotation.x = -PI * 0.5 * t
-		if is_instance_valid(_npc_hull31):
-			_npc_hull31.rotation.x = -PI * 0.5 * t
-			_npc_hull31.position = Vector3(0.0, lerpf(NPC_HEIGHT * 0.5, 0.38, t), -NPC_HEIGHT * 0.5 * t)
-		var drop := _npc_body.global_position.y
-		if _npc_fall >= 1.0:
-			_npc_body.velocity = Vector3.ZERO
 	if now > _npc_bleed_until_ms: return
 	# The wound belongs to the moving body. A fixed world point left a blood fountain
 	# behind when a wounded opponent limped or hopped away.
@@ -5147,6 +5232,7 @@ func _update_npc_debris(delta: float) -> void:
 ## Builds the opponent from the game's own resident model and canonical walk gait.
 func _spawn_resident_knight(at: Vector3) -> bool:
 	if is_instance_valid(_npc_rig): return true
+	if is_instance_valid(_npc_corpse31): _npc_corpse31.queue_free()
 	var cache_bytes := FileAccess.get_file_as_bytes(NPC_MANIFEST)
 	if cache_bytes.is_empty():
 		print("DSH_SWORD_PROTO_NPC manifest_missing")
@@ -5199,6 +5285,9 @@ func _spawn_resident_knight(at: Vector3) -> bool:
 	_npc_bleed_local = Vector3.ZERO
 	_npc_bleed_accum = 0.0
 	_npc_armor_loadout31.clear()
+	_npc_corpse31 = null
+	_npc_corpse_pending31 = false
+	_npc_dropped_sword31 = null
 	if is_instance_valid(_npc_armor_visual31): _npc_armor_visual31.queue_free()
 	_npc_armor_visual31 = null
 	_npc_body = body
@@ -5244,6 +5333,12 @@ func _update_city_npc(delta: float) -> void:
 				and is_instance_valid(_duelist):
 				_duelist.visible = false
 				_duelist_hull.set_meta("sword_duelist", false)
+		return
+	if _npc_dead:
+		# Native RigidBody3D owns motion after death. Do not run the walking
+		# capsule, gait, or the old scripted tilt against the physical corpse.
+		_update_npc_bleed(delta)
+		_apply_npc_severed()
 		return
 	if not _npc_dead and now_ms() < _npc_knocked_until_ms31:
 		# A real capsule slides with the impact while the torso and collider roll
@@ -5299,8 +5394,6 @@ func _update_city_npc(delta: float) -> void:
 		_update_npc_bleed(delta)
 		if _npc_gait != null:
 			_npc_gait.update_pose(delta, _npc_body.velocity, _npc_body.is_on_floor())
-		if _npc_dead:
-			_npc_motion.position.y += 0.38 * _npc_fall
 		_apply_npc_severed()
 		if not _npc_dead:
 			_npc_motion.rotation.x = lerpf(_npc_motion.rotation.x,
@@ -5321,16 +5414,6 @@ func _update_city_npc(delta: float) -> void:
 		print("DSH_SWORD_PROTO_NPC aggro distance=", distance)
 	_npc_timer += delta
 	_update_npc_bleed(delta)
-	if _npc_dead:
-		# Cut down: he is on the ground and no longer acts.
-		_npc_engaged = false
-		_npc_body.velocity = Vector3.ZERO
-		_npc_body.move_and_slide()
-		if _npc_gait != null:
-			_npc_gait.update_pose(delta, Vector3.ZERO, _npc_body.is_on_floor())
-		_npc_motion.position.y += 0.38 * _npc_fall
-		_apply_npc_severed()
-		return
 	var want := _npc_high_guard()
 	var move := Vector3.ZERO
 	var strike_sample := false
@@ -5823,6 +5906,7 @@ func _sever_part(full_key: String, kind: String, part: Dictionary, point: Vector
 		# A dead knight lets go of his sword, and anyone may take it.
 		if is_instance_valid(_npc_sword):
 			_drop_sword(_npc_sword.global_position, direction, speed)
+		_queue_npc_corpse31(point, direction, speed)
 	print("DSH_SWORD_PROTO_SEVER part=", full_key, " kind=", kind, " disarmed=", _npc_disarmed)
 
 ## Collapses the bones of that limb (and everything under them) to nothing.
@@ -6006,6 +6090,7 @@ func _drop_sword(at: Vector3, direction: Vector3, speed: float) -> void:
 	var falling: Node3D = _npc_sword
 	_npc_sword = null
 	var body := RigidBody3D.new()
+	_npc_dropped_sword31 = body
 	body.mass = 1.2
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new(); box.size = Vector3(1.3, 0.1, 0.1)
@@ -6020,6 +6105,7 @@ func _drop_sword(at: Vector3, direction: Vector3, speed: float) -> void:
 	body.linear_velocity = direction.normalized() * clampf(speed * 0.3, 0.8, 3.0) + Vector3.UP * 0.6
 	body.angular_velocity = Vector3(randf_range(-4.0, 4.0), randf_range(-4.0, 4.0), randf_range(-4.0, 4.0))
 	# A sword on the ground can be taken by ANYONE, the player included.
+	_stamp_ground_weapon(body, "sword")
 	_register_ground_sword(body)
 
 ## Blood drops fall, and everything gore-related is cleaned up over time.
@@ -6128,7 +6214,13 @@ func snapshot() -> Dictionary:	return {
 		"armour_plates": _knight_armour.size(), "stump_count": _stumps.size(),
 		"sparks": _sparks.size(), "sparks_total": _sparks_total, "half_sword": _half_sword, "half_sword_point": _half_sword_blade_point,
 		"bleeding": Time.get_ticks_msec() < _npc_bleed_until_ms,
-		"npc_fall": _npc_fall, "npc_speed_scale": _npc_speed_scale(),
+		"npc_fall": (1.0 - absf(_npc_corpse31.global_basis.y.dot(Vector3.UP))) if is_instance_valid(_npc_corpse31) else 0.0,
+		"npc_corpse_physics31": {"active": is_instance_valid(_npc_corpse31),
+			"position": _npc_corpse31.global_position if is_instance_valid(_npc_corpse31) else Vector3.ZERO,
+			"linear_velocity": _npc_corpse31.linear_velocity if is_instance_valid(_npc_corpse31) else Vector3.ZERO,
+			"angular_velocity": _npc_corpse31.angular_velocity if is_instance_valid(_npc_corpse31) else Vector3.ZERO,
+			"sleeping": _npc_corpse31.sleeping if is_instance_valid(_npc_corpse31) else false},
+		"npc_speed_scale": _npc_speed_scale(),
 		"clav_l_x": (_rig.global_transform * _chain_global(_bone_l_clavicle).origin).x if _bone_l_clavicle >= 0 else 0.0,
 		"clav_r_x": (_rig.global_transform * _chain_global(_bone_clavicle).origin).x if _bone_clavicle >= 0 else 0.0,
 		"uparm_l_x": (_rig.global_transform * _chain_global(_bone_l_upper).origin).x if _bone_l_upper >= 0 else 0.0,
@@ -6176,6 +6268,7 @@ func _exit_tree() -> void:
 		_player.set("_sword_lock", false)
 		if _player.get("_sword_host") == self: _player.set("_sword_host", null)
 	_release_arm()
+	if is_instance_valid(_npc_corpse31): _npc_corpse31.queue_free()
 	set_physics_process(false)
 	set_process_input(false)
 
@@ -6295,5 +6388,6 @@ func apply_catapult_stone_impact31(body: Node, damage: int, point: Vector3,
 			_npc_state = "wait"
 			if is_instance_valid(_npc_sword):
 				_drop_sword(_npc_sword.global_position, direction, velocity.length())
+			_queue_npc_corpse31(point, direction, velocity.length())
 		return {"applied": true, "hp_before": before, "hp_after": _npc_hp, "dead": _npc_dead}
 	return {"applied": false, "reason": "foreign_body"}

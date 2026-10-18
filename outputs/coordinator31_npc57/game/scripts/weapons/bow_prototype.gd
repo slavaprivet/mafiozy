@@ -1800,6 +1800,11 @@ func _arrow_ray31(from: Vector3, to: Vector3) -> Dictionary:
 		var npc_body: Variant = _sword_host.get("_npc_body")
 		if is_instance_valid(npc_body) and npc_body is CollisionObject3D:
 			excluded.append(npc_body.get_rid())
+		# The dead resident's physical capsule is only a collision shell. Arrows
+		# must still meet the moving tagged rig hitboxes to identify the part.
+		var npc_corpse: Variant = _sword_host.get("_npc_corpse31")
+		if is_instance_valid(npc_corpse) and npc_corpse is CollisionObject3D:
+			excluded.append(npc_corpse.get_rid())
 	var query := PhysicsRayQueryParameters3D.create(from, to, AIM_MASK, excluded)
 	query.hit_from_inside = true
 	return space.intersect_ray(query)

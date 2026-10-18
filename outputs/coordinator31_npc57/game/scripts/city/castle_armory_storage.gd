@@ -16,6 +16,7 @@ var _busy := false
 var _rack: Dictionary = {}
 var _carried: Dictionary = {}
 var _hand_weapon := ""
+var _external_sword_model31: Node3D
 var _hand_shield := false
 var _back_bow := false
 var _bow_active := false
@@ -114,6 +115,48 @@ func _hand_reason(id: String) -> String:
 	if carried_slots() + (2 if id in TWO_HANDED else 1) > CARRY_CAPACITY: return "Нет места при себе"
 	return "Рука занята" if id == "shield" and _hand_weapon in TWO_HANDED else ""
 
+## The melee host owns dropped world models; this ledger owns carried slots and
+## the HUD. A thrown weapon leaves a free hand but can still be marked carried
+## until its first ground interaction, so count it as departing before adoption.
+func can_adopt_ground_melee31(id: String, previous_id: String, previous_empty: bool) -> Dictionary:
+	if _busy or window_open or not _usable() or id not in MEDIEVAL or id in ["bow", "shield"]:
+		return {"ok": false, "reason": "inactive"}
+	if _hand_shield and id in TWO_HANDED: return {"ok": false, "reason": "shield_occupies_right_hand"}
+	if _carried.has(id):
+		return {"ok": previous_empty and _hand_weapon == id, "reason": "duplicate_item"}
+	var departed := previous_empty and previous_id == _hand_weapon and _carried.has(previous_id)
+	var slots := carried_slots() - (2 if previous_id in TWO_HANDED else 1) if departed else carried_slots()
+	if slots + (2 if id in TWO_HANDED else 1) > CARRY_CAPACITY:
+		return {"ok": false, "reason": "carry_capacity"}
+	return {"ok": true, "departed": departed}
+
+func adopt_ground_melee31(id: String, previous_id: String, previous_empty: bool,
+		foreign_sword: bool, actual_model: Node3D) -> Dictionary:
+	var check := can_adopt_ground_melee31(id, previous_id, previous_empty)
+	if not bool(check.get("ok", false)): return check
+	var old_hand := _hand_weapon
+	var old_external := _external_sword_model31
+	var added := not _carried.has(id)
+	var departed: bool = bool(check.get("departed", false))
+	_busy = true
+	if departed:
+		_carried.erase(previous_id)
+		_hand_weapon = ""
+	if added: _carried[id] = true
+	var result: Dictionary = _activate_item(id)
+	if not bool(result.get("ok", false)):
+		if added: _carried.erase(id)
+		if departed: _carried[previous_id] = true
+		_hand_weapon = old_hand
+		_external_sword_model31 = old_external
+		_busy = false
+		return result
+	if foreign_sword: _external_sword_model31 = actual_model
+	_revision += 1
+	_busy = false
+	_refresh_ui()
+	return {"ok": true, "weaponId": id, "slots": carried_slots()}
+
 func _show_notice(message: String) -> void:
 	_notice = message
 	_notice_until = Time.get_ticks_msec() + 1800
@@ -191,6 +234,11 @@ func interact() -> bool:
 	var local_player: Vector3 = castle.to_local(weapons.player.global_position)
 	if chest_focused():
 		open_window(); return true
+	if _hand_weapon.is_empty() and is_instance_valid(weapons.scene):
+		var melee_host: Node = weapons.scene.get("preview_sword_prototype")
+		if is_instance_valid(melee_host) and melee_host.has_method("try_pickup_sword") \
+				and not (melee_host.call("_nearest_ground_sword") as Dictionary).is_empty():
+			if melee_host.try_pickup_sword(true): return true
 	var fallen := _nearest_fallen(local_player)
 	if not fallen.is_empty():
 		_claim_display(fallen, true)
@@ -614,6 +662,23 @@ func drop_held(prefer_shield: bool = false) -> Dictionary:
 	var id: String = "bow" if _bow_active else \
 		"shield" if prefer_shield or _hand_weapon.is_empty() else _hand_weapon
 	if not _carried.has(id): return {"ok": false, "reason": "empty_hand"}
+	if id == "sword" and is_instance_valid(_external_sword_model31) and is_instance_valid(weapons.scene):
+		var sword_host: Node = weapons.scene.get("preview_sword_prototype")
+		if is_instance_valid(sword_host) and sword_host.get("_sword") == _external_sword_model31:
+			_busy = true
+			if not sword_host.drop_sword_to_ground():
+				_busy = false
+				return {"ok": false, "reason": "physical_drop_failed"}
+			var stowed: Dictionary = weapons.equip("none")
+			if not bool(stowed.get("ok", false)):
+				_busy = false
+				return stowed
+			_carried.erase(id)
+			_hand_weapon = ""
+			_revision += 1
+			_busy = false
+			_refresh_ui()
+			return {"ok": true, "physical_model": true}
 	_busy = true
 	var result: Dictionary = _remove_equipped_item(id)
 	if bool(result.get("ok", false)):
