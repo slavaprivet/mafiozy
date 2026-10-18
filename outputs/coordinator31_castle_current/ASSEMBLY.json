@@ -1,8 +1,8 @@
 {
   "schema": "mafiozi.castle-assembly/v1",
-  "revision": "castle-20261018-combined53-bot-bow",
+  "revision": "castle-20261019-combined54-right-hand",
   "scene_kind": "castle",
-  "game_relative": "outputs/coordinator34_release53/game",
+  "game_relative": "outputs/coordinator35_release54/game",
   "scene": "res://scenes/castle.tscn",
   "launch_arguments": [
     "--castle=1",
@@ -1321,7 +1321,7 @@
     "scripts/weapons/rpg_flight.gd.uid": "4b5636dd1b35cb05b74e1ae0cbf3f5b9476b2b1281bf89e058fc4c52536ea5f3",
     "scripts/weapons/scope_optic.svg": "477959383b359752a578a851e9b678e498b4904cca0e76a47b4a7dd5b33395ed",
     "scripts/weapons/scope_optic.svg.import": "0081075e89bfbdcb69ea6dea5a1e021a38fa40a734c0a732cbdab2eac00fb006",
-    "scripts/weapons/sword_prototype.gd": "37461c7579289673ffd2370479c28290a66235665ddd448b49bbf31868df248d",
+    "scripts/weapons/sword_prototype.gd": "31c8949c4825e5ca05f1489fb0e0c3b63705398adf624508a85f0ae70e778dda",
     "scripts/weapons/walk_cargo_card.gd": "298f56dd73f9265a13333e5d4041b2906593c693c8aadc5cb58b32128749191e",
     "scripts/weapons/walk_cargo_card.gd.uid": "a473b69142b69ac1fef8541bdabe9424e09d59a21749589e8f15fba24a84aa04",
     "scripts/weapons/walk_trunk_window.gd": "2dc9c14005d0afab1a6d10b2940fde60ce1aaf93300e5ac76234619dfb6fa7d0",
@@ -1379,7 +1379,11 @@
     "Independent player/NPC armor mobility; respawn spacing/orbit reset.",
     "Bow facing ownership fixes reverse-motion jitter and hands facing back to locomotion on switch/drop.",
     "Bow aim preview dots no longer cast a second dotted shadow; ballistics unchanged.",
-    "bow/camera52, spear52 PASS03 and soil49/camp recovered package already present in52"
+    "bow/camera52, spear52 PASS03 and soil49/camp recovered package already present in52",
+    "Holding RMB freely steers the right-hand sword/mace with existing LMB swing/IK/contact dynamics.",
+    "Same release momentum and continuous mouse-driven stroke, no automatic repeated clicks.",
+    "Shield defense, half-sword and two-hand modes preserved; invalid half-sword mode cleared when selecting a different weapon.",
+    "Numerically stable nearly parallel RMB endpoints; primary LMB interpolation unchanged."
   ],
   "excluded_pending": [
     "articulated 16-segment corpse prototype (sleep/performance and natural lifecycle incomplete)",
@@ -1394,13 +1398,14 @@
     "combat50": "outputs/coordinator31_castle_current/evidence/combat50/EVIDENCE_INDEX.json",
     "combat51": "outputs/coordinator31_castle_current/evidence/combat51/INDEX.json",
     "combined53": "outputs/coordinator34_release53/ACCEPTANCE.json",
-    "current_scene": "outputs/coordinator34_release53/evidence/bootstrap/opened.png"
+    "current_scene": "outputs/coordinator35_release54/evidence/sword_visual01/hold_0.png",
+    "combined54": "outputs/coordinator35_release54/ACCEPTANCE.json"
   },
-  "validation": "Merged53 native real-input/contact and graphical acceptance PASS;22 root groups plus87 motion checks and14 bow visual states. No pure FPS acceptance.",
+  "validation": "13 final merged input/contact/graphical checks PASS; source review verifies LMB-only branch equivalence. One production file changed.",
   "performance_accepted": false,
   "canonical_launcher": "tools/launch_castle_latest.ps1",
   "f5_launcher": "tools/godot/launch_current_game.ps1",
-  "base_published_commit": "33b8ad5388e846752a4111caffd56d9d15935174",
+  "base_published_commit": "46c3563e4e92706ca62776c5354d75b97c2a29b6",
   "pin_scope": "Published permanent source only; local generated metadata and diagnostic artifacts excluded",
   "armory_hand_fix": "Merged native real scene PASS: rack/chest occupied hand, ground preflight, bow back, shield and one-hand compatibility",
   "combat39": {
@@ -1458,5 +1463,11 @@
     "resume": "docs/ai/COORDINATOR_34_CONTINUE53.json",
     "source_on_D": "D:\\MafioziCombat31\\coordinator34_merged53\\game",
     "prior_user_game_preserved": true
+  },
+  "combat54": {
+    "acceptance": "outputs/coordinator35_release54/ACCEPTANCE.json",
+    "source_on_D": "D:\\MafioziCombat31\\coordinator35_rmb54\\game",
+    "resume": "docs/ai/COORDINATOR_35_CONTINUE54.json",
+    "left_mouse_lock": "docs/ai/SINGLE_SWORD_LOCK52_AUDIT.json"
   }
 }

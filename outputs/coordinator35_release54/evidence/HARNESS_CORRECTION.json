@@ -1,0 +1,13 @@
+{
+  "raw_runs": [
+    "sword_right01",
+    "mace_right01"
+  ],
+  "original_harness": "qa/hold54_raw01.gd",
+  "causes": [
+    "Manifest-only source copy omits generated resource import descriptors; run full editor import before testing.",
+    "Native castle G removes equipped item and creates storage._fallen_bodies; host._sword_grounded is not authoritative for inventory-owned drops."
+  ],
+  "repair": "Require physical fallen body, fallen/carried ledger consistency, deselection and no held attack; reverse checks after E. Same motion, grip and self-clearance gates retained.",
+  "game_source_changed_for_harness_fix": false
+}

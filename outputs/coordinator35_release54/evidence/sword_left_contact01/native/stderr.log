@@ -1,0 +1,85 @@
+ERROR: The axis Vector3 (0.0, -0.972022, -0.224137) must be normalized.
+   at: set_axis_angle (core/math/basis.cpp:844)
+   GDScript backtrace (most recent call first):
+       [0] _steer (res://scripts/weapons/sword_prototype.gd:1898)
+       [1] _physics_process (res://scripts/weapons/sword_prototype.gd:2070)
+ERROR: The axis Vector3 (0.0, -0.972022, -0.224137) must be normalized.
+   at: set_axis_angle (core/math/basis.cpp:844)
+   GDScript backtrace (most recent call first):
+       [0] _steer (res://scripts/weapons/sword_prototype.gd:1898)
+       [1] _physics_process (res://scripts/weapons/sword_prototype.gd:2070)
+ERROR: The axis Vector3 (0.0, -0.972022, -0.224137) must be normalized.
+   at: set_axis_angle (core/math/basis.cpp:844)
+   GDScript backtrace (most recent call first):
+       [0] _steer (res://scripts/weapons/sword_prototype.gd:1898)
+       [1] _physics_process (res://scripts/weapons/sword_prototype.gd:2070)
+ERROR: The axis Vector3 (0.0, -0.972022, -0.224137) must be normalized.
+   at: set_axis_angle (core/math/basis.cpp:844)
+   GDScript backtrace (most recent call first):
+       [0] _steer (res://scripts/weapons/sword_prototype.gd:1898)
+       [1] _physics_process (res://scripts/weapons/sword_prototype.gd:2070)
+ERROR: The axis Vector3 (0.0, -0.972022, -0.224137) must be normalized.
+   at: set_axis_angle (core/math/basis.cpp:844)
+   GDScript backtrace (most recent call first):
+       [0] _steer (res://scripts/weapons/sword_prototype.gd:1898)
+       [1] _physics_process (res://scripts/weapons/sword_prototype.gd:2070)
+ERROR: The axis Vector3 (0.0, -0.972022, -0.224137) must be normalized.
+   at: set_axis_angle (core/math/basis.cpp:844)
+   GDScript backtrace (most recent call first):
+       [0] _steer (res://scripts/weapons/sword_prototype.gd:1898)
+       [1] _physics_process (res://scripts/weapons/sword_prototype.gd:2070)
+ERROR: The axis Vector3 (0.0, -0.972022, -0.224137) must be normalized.
+   at: set_axis_angle (core/math/basis.cpp:844)
+   GDScript backtrace (most recent call first):
+       [0] _steer (res://scripts/weapons/sword_prototype.gd:1898)
+       [1] _physics_process (res://scripts/weapons/sword_prototype.gd:2070)
+ERROR: The axis Vector3 (0.0, -0.972022, -0.224137) must be normalized.
+   at: set_axis_angle (core/math/basis.cpp:844)
+   GDScript backtrace (most recent call first):
+       [0] _steer (res://scripts/weapons/sword_prototype.gd:1898)
+       [1] _physics_process (res://scripts/weapons/sword_prototype.gd:2070)
+ERROR: The axis Vector3 (0.0, -0.972022, -0.224137) must be normalized.
+   at: set_axis_angle (core/math/basis.cpp:844)
+   GDScript backtrace (most recent call first):
+       [0] _steer (res://scripts/weapons/sword_prototype.gd:1898)
+       [1] _physics_process (res://scripts/weapons/sword_prototype.gd:2070)
+ERROR: The axis Vector3 (0.0, -0.972022, -0.224137) must be normalized.
+   at: set_axis_angle (core/math/basis.cpp:844)
+   GDScript backtrace (most recent call first):
+       [0] _steer (res://scripts/weapons/sword_prototype.gd:1898)
+       [1] _physics_process (res://scripts/weapons/sword_prototype.gd:2070)
+ERROR: The axis Vector3 (0.0, -0.972022, -0.224137) must be normalized.
+   at: set_axis_angle (core/math/basis.cpp:844)
+   GDScript backtrace (most recent call first):
+       [0] _steer (res://scripts/weapons/sword_prototype.gd:1898)
+       [1] _physics_process (res://scripts/weapons/sword_prototype.gd:2070)
+ERROR: The axis Vector3 (0.0, -0.972022, -0.224137) must be normalized.
+   at: set_axis_angle (core/math/basis.cpp:844)
+   GDScript backtrace (most recent call first):
+       [0] _steer (res://scripts/weapons/sword_prototype.gd:1898)
+       [1] _physics_process (res://scripts/weapons/sword_prototype.gd:2070)
+ERROR: The axis Vector3 (0.0, -0.972022, -0.224137) must be normalized.
+   at: set_axis_angle (core/math/basis.cpp:844)
+   GDScript backtrace (most recent call first):
+       [0] _steer (res://scripts/weapons/sword_prototype.gd:1898)
+       [1] _physics_process (res://scripts/weapons/sword_prototype.gd:2070)
+ERROR: The axis Vector3 (0.0, -0.972022, -0.224137) must be normalized.
+   at: set_axis_angle (core/math/basis.cpp:844)
+   GDScript backtrace (most recent call first):
+       [0] _steer (res://scripts/weapons/sword_prototype.gd:1898)
+       [1] _physics_process (res://scripts/weapons/sword_prototype.gd:2070)
+ERROR: The axis Vector3 (0.0, -0.972022, -0.224137) must be normalized.
+   at: set_axis_angle (core/math/basis.cpp:844)
+   GDScript backtrace (most recent call first):
+       [0] _steer (res://scripts/weapons/sword_prototype.gd:1898)
+       [1] _physics_process (res://scripts/weapons/sword_prototype.gd:2070)
+ERROR: The axis Vector3 (0.0, -0.972022, -0.224137) must be normalized.
+   at: set_axis_angle (core/math/basis.cpp:844)
+   GDScript backtrace (most recent call first):
+       [0] _steer (res://scripts/weapons/sword_prototype.gd:1898)
+       [1] _physics_process (res://scripts/weapons/sword_prototype.gd:2070)
+ERROR: The axis Vector3 (0.0, -0.972022, -0.224137) must be normalized.
+   at: set_axis_angle (core/math/basis.cpp:844)
+   GDScript backtrace (most recent call first):
+       [0] _steer (res://scripts/weapons/sword_prototype.gd:1898)
+       [1] _physics_process (res://scripts/weapons/sword_prototype.gd:2070)

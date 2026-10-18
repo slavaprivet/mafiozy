@@ -1,0 +1,42 @@
+[
+  {
+    "name": "sword_left_contact03",
+    "passed": true,
+    "errors": [],
+    "scheduler_errors": [],
+    "scheduler_error": null,
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator35_rmb54\\sword_left_contact03\\RESULT.json",
+    "script_sha256": "75e1960c4b8dbf4b459825cfbebe5727b365440fbe0ff830110d11424c05f51a"
+  },
+  {
+    "name": "sword_right_contact03",
+    "passed": true,
+    "errors": [],
+    "scheduler_errors": [],
+    "scheduler_error": null,
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator35_rmb54\\sword_right_contact03\\RESULT.json",
+    "script_sha256": "75e1960c4b8dbf4b459825cfbebe5727b365440fbe0ff830110d11424c05f51a"
+  },
+  {
+    "name": "mace_left_contact03",
+    "passed": true,
+    "errors": [],
+    "scheduler_errors": [],
+    "scheduler_error": null,
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator35_rmb54\\mace_left_contact03\\RESULT.json",
+    "script_sha256": "75e1960c4b8dbf4b459825cfbebe5727b365440fbe0ff830110d11424c05f51a"
+  },
+  {
+    "name": "mace_right_contact03",
+    "passed": true,
+    "errors": [],
+    "scheduler_errors": [],
+    "scheduler_error": null,
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator35_rmb54\\mace_right_contact03\\RESULT.json",
+    "script_sha256": "75e1960c4b8dbf4b459825cfbebe5727b365440fbe0ff830110d11424c05f51a"
+  }
+]

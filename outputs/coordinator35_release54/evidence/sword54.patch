@@ -1,0 +1,124 @@
+--- 53/sword_prototype.gd
++++ 54/sword_prototype.gd
+@@ -73,6 +73,8 @@
+ 	if id == _weapon_id: return true
+ 	_cancel_throw_aim52()
+ 	_weapon_id = id
++	# The sword-only blade grip cannot survive selection of a mace or another weapon.
++	if id != "sword": set_half_sword(false)
+ 	_sword_coast_until_ms31 = 0
+ 	_hammer_torque44 = Vector3.ZERO
+ 	_omega = Vector3.ZERO
+@@ -1182,7 +1184,8 @@
+ 		_hint.text = ""
+ 		return
+ 	var mode := "ПОЛУМЕЧ: рука на лезвии, укол в щели доспеха" if _half_sword else "ЛКМ + ПКМ — двуручный хват, удар сильнее"
+-	var text := "ТЕСТОВЫЙ МЕЧ (прототип)\nЛКМ и мышь — рубящий удар\nПКМ — БЛОК, мышь поднимает/опускает\n" + mode + "\nКолесо мыши — укол вперёд / оттянуть назад\nX — полумеч (хват за лезвие против доспеха)\nG — бросить меч"
++	var right_hint := "Удерживать ПКМ и двигать мышью — удар правой рукой" if _right_hand_weapon54() else "ПКМ — блок / щит"
++	var text := "ТЕСТОВЫЙ МЕЧ (прототип)\nЛКМ и мышь — рубящий удар\n" + right_hint + "\n" + mode + "\nКолесо мыши — укол вперёд / оттянуть назад\nX — полумеч (хват за лезвие против доспеха)\nG — бросить меч"
+ 	if reachable and not is_instance_valid(_world.get("preview_castle")):
+ 		text += "\nE — поднять оружие"
+ 	_hint.text = text
+@@ -1675,8 +1678,15 @@
+ 			_aiming_throw = button.pressed and is_throwable()
+ 			if not button.pressed and _throwing:
+ 				_throwing = false
+-			if button.pressed and not _hold_right and _weapon_id == "sword":
++			if button.pressed and not _hold_right and (_weapon_id == "sword" or _right_hand_weapon54()):
+ 				_arrow_parry_until_ms31 = now_ms() + ARROW_PARRY_WINDOW_MS31
++			if _right_hand_weapon54():
++				if button.pressed and not _hold_right:
++					_sword_coast_until_ms31 = 0
++				elif not button.pressed and _hold_right and not _hold_left:
++					_sword_coast_until_ms31 = now_ms() + 180
++					_sword_coast_target31 = _dir
++					_steer_target = _dir
+ 			_hold_right = button.pressed
+ 			_held = _hold_left or (_hold_right and not _shield_worn and str(weapon_entry().get("grip", "")) != "two")
+ 			_player.set("_sword_lock", false)
+@@ -1882,6 +1892,10 @@
+ 	# raw per-frame target is what showed up as a ripple on the blade.
+ 	if _steer_target.length_squared() < 1.0e-6:
+ 		_steer_target = target
++	elif _right_hand_weapon54() and _hold_right and not _hold_left and _steer_target.dot(target) > 0.9999:
++		# Nearly parallel RMB endpoints have no reliable slerp rotation axis.
++		# Keep the same smoothing rate; the primary LMB path is unchanged.
++		_steer_target = _steer_target.lerp(target, clampf(STEER_TARGET_SMOOTH * delta, 0.0, 1.0)).normalized()
+ 	elif _weapon_id == "spear" and _aiming_throw:
+ 		# Turning the torso across an opposite old aim can make Vector3.slerp's
+ 		# internal axis numerically non-unit. Normalized lerp stays continuous.
+@@ -1977,9 +1991,9 @@
+ 	elif _hold_right and not _hold_left and not _hand_lost31(&"right") and not _shield_worn: _carry_side = &"right"
+ 	elif _hand_lost31(_carry_side) and not _both_hands_lost():
+ 		_carry_side = &"right" if not _hand_lost31(&"right") else &"left"
+-	# RMB ALONE is the guard. LMB+RMB is the two-handed cut and must still wound,
+-	# which it could not while ANY right button counted as blocking.
+-	_blocking = _hold_right and not _hold_left and not is_throwable() and not _shield_worn
++	# Single-hand sword/mace RMB uses the approved free swing in the right hand.
++	# Shields, two-handed weapons and half-sword retain their existing controls.
++	_blocking = _hold_right and not _hold_left and not is_throwable() and not _shield_worn and not _right_hand_weapon54()
+ 	_player.set("_sword_lock", false)
+ 	var spear_pose_wanted := active and _weapon_id == "spear" and not _sword_grounded and (
+ 		(_aiming_throw and not _unarmed) or _spear_cast_pending31 or _spear_follow_left > 0.0)
+@@ -3100,9 +3114,8 @@
+ 	_pose_support(&"left", support_rig)
+ 	return fist
+ 
+-## Which hand holds the sword right now. LMB = left-hand strike, RMB = a guard in
+-## the right hand (the blade is placed where the mouse points and stops blows),
+-## both buttons = two-handed grip.
++## LMB drives the left hand; RMB drives a free right-hand sword/mace swing.
++## Both buttons keep the existing shared grip; shields retain RMB defense.
+ var _blocking := false
+ 
+ func _active_side() -> StringName:
+@@ -3318,19 +3331,19 @@
+ func _advance_swing_phase(delta: float, yaw_target: float) -> void:
+ 	_phase_t += delta
+ 	var entering := false
+-	if not _hold_left: _swing_button_latched31 = false
++	if not _swing_held54(): _swing_button_latched31 = false
+ 	match _swing_phase:
+ 		"windup":
+-			if _weapon_id == "sword" and not _hold_left:
++			if _weapon_id == "sword" and not _swing_held54():
+ 				_swing_phase = "recover"; _phase_t = 0.0
+ 			elif _phase_t >= WINDUP_TIME: _swing_phase = "strike"; _phase_t = 0.0
+ 		"strike":
+-			if (_weapon_id == "sword" and not _hold_left) or (_weapon_id != "sword" and not _held):
++			if (_weapon_id == "sword" and not _swing_held54()) or (_weapon_id != "sword" and not _held):
+ 				_swing_phase = "recover"; _phase_t = 0.0
+ 		"recover":
+ 			if _phase_t >= RECOVER_TIME: _swing_phase = "idle"; _phase_t = 0.0
+ 		_:
+-			if (_weapon_id == "sword" and _hold_left and not _swing_button_latched31) or (_weapon_id != "sword" and _held):
++			if (_weapon_id == "sword" and _swing_held54() and not _swing_button_latched31) or (_weapon_id != "sword" and _held):
+ 				_swing_phase = "windup"
+ 				_phase_t = 0.0
+ 				entering = true
+@@ -3362,8 +3375,15 @@
+ 	_impact_jolt = maxf(0.0, _impact_jolt - delta * 2.2)
+ 	_breath += delta * BREATH_RATE
+ 
++## RMB is a free right-hand swing only for these one-handed weapon modes.
++func _right_hand_weapon54() -> bool:
++	return _weapon_id in ["sword", "mace"] and not _shield_worn and not _half_sword
++
++func _swing_held54() -> bool:
++	return _hold_left or (_hold_right and _right_hand_weapon54())
++
+ func _swing_can_damage31() -> bool:
+-	return _hold_left or _sword_coasting31()
++	return _swing_held54() or _sword_coasting31()
+ 
+ ## Writes one link of the chain: it chases the link below it, never the target
+ ## directly, which is what makes the turn travel up the body.
+@@ -3436,7 +3456,7 @@
+ 	# mouse simply overpowers the wind-up and the body never reads as winding up.
+ 	var coil := -_swing_sign * WINDUP_ANTICIPATION * _anticipation
+ 	var chest_yaw := _body_yaw * (1.0 - 0.70 * maxf(0.0, _anticipation)) + coil
+-	if WEAPONS.has(_weapon_id) and _hold_left and not _aiming_throw:
++	if WEAPONS.has(_weapon_id) and _swing_held54() and not _aiming_throw:
+ 		if _weapon_id == "sledge":
+ 			chest_yaw -= clampf(_hand.x, -1.0, 1.0) * (0.48 if absf(_hand.y)<0.35 else 0.30)
+ 		else:

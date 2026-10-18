@@ -1,0 +1,369 @@
+{
+  "schema": "mafiozi.rmb54-final-source-review/v1",
+  "candidate": "03",
+  "status": "PASS_SOURCE_REVIEW",
+  "source_sha256": "31c8949c4825e5ca05f1489fb0e0c3b63705398adf624508a85f0ae70e778dda",
+  "base53_sha256": "37461c7579289673ffd2370479c28290a66235665ddd448b49bbf31868df248d",
+  "finding02_resolution": {
+    "status": "RESOLVED_IN_SOURCE",
+    "change": "set_weapon assigns new id then calls existing set_half_sword(false) for any non-sword; the existing setter clears stale mode and blade-grip point.",
+    "valid_sword_half_mode_preserved": true,
+    "runtime_case": "Root reports final native harness covers actual X sword -> RMB halfguard -> G sword -> acquire mace -> RMB free; this reviewer did not run or independently certify that runtime."
+  },
+  "changed_existing_functions": [
+    "set_weapon",
+    "_update_hint",
+    "_input",
+    "_steer",
+    "_physics_process",
+    "_advance_swing_phase",
+    "_swing_can_damage31",
+    "_lean_body"
+  ],
+  "added_functions": [
+    "_right_hand_weapon54",
+    "_swing_held54"
+  ],
+  "unchanged_all_constants": {
+    "count": 125,
+    "mapping_sha256": "a7ef68760c3a1242f8d623a4bac126412eb30576bdfd75ad4aedee7b0ee4dc5e",
+    "sha256_lf_by_name": {
+      "ModelFinish31": "65958f9b1e4204e72d1942ba33f301fcf7fe64f43ee5bf57dd046aa640155fc9",
+      "ArmorDamage31": "ea1f7b5339f9ff6e016212807ce09f34ac7b30752c9ceb2a3e41c9a86337a00f",
+      "CastleArmorVisual31": "fe5f4af84e0d21c8812f8cf74ee5128dd1dc7e0410527a8197287d54bd2db8cf",
+      "MeshSever": "f1a734ab3da7d5791730aa03cc87487ccd2dcba1ac13fb6cabc6ea35636d3fb2",
+      "CharacterPhysicsDriver31": "ed607c93cfa21f442bb5f731f018915d4a80cf95b593c846307a176ad7c5f623",
+      "WEAPONS": "b02c8e4c5a7d8fc46ae1a7f60148a2cab76e8fddfd17072649f384890aeefcd7",
+      "GRIP_CENTER_OFFSET": "f3a2d7cc19e3effd3e22e41942a2c30237356c0aff896124445642f802943778",
+      "SWEEP_SEGMENTS": "c280319de38fd77b0d8d660fbed142777b43b46146d435d62f35beddb7a920c5",
+      "MOUSE_TO_HAND": "5ffdaa33b04381519f556559192ce815818a72152d305d4fac00de6df0946ab9",
+      "HAND_SLEW_RATE": "9e025c2cfd646f3040f449f1b5e68c0a7db8ef796b8518f93118d669db2f3797",
+      "HAND_MAX_OFFSET": "7edf5a78d6f90997ca675ca83cda9c8a89bcc0bed089122db4008dd757cd5ec0",
+      "MAX_OMEGA": "4ef4a98c8d91dd1ef253f1d7979b75bf9951935d97a9c0267b1a95a0335eab48",
+      "MAX_ALPHA": "b99f4c8d73a8f2b85cfe27f03b8fdc00a1269e21e425e9df0830910901bde0d6",
+      "STEER_GAIN": "c8fb2a5fbad15da7759d5b94b829696e271b9bb3fb0b28a66d6d5107d93d34aa",
+      "STEER_DAMPING": "4057b5de6fc551ebd56ac6b98c26d7b8fa61589a8ed4ce0c5df01fc8f0df8f1a",
+      "STEER_DEADZONE": "e368a32350b5ce0124fa396c5d3fefc5d78ade19a733fe9d685b01cf0fa3093a",
+      "STEER_ANGLE_DEADZONE": "ba4e952594f43daca1c303a9b28ac88f3ca97ab23070424f09a9d41d7bb55b9b",
+      "STEER_TARGET_SMOOTH": "0904aeb6064cff33bee5ac391a087ae5eb398f0952ea78216598f9c0a1236cbf",
+      "MOUSE_NOISE_FLOOR": "6615a3b4cd221e7712f8800257adea1a78b0b9c6e5c0ae8e011c390c256e6739",
+      "MOUSE_PER_EVENT_CAP": "e65de0a5a8e1f9eae66b1488a7b95dc254b06b799a4c5d6097b9142600d25b29",
+      "FOLLOW_RATE": "ccbcb8561e190212576aa4306f8e6be869d75b3eef04d48bee6ca69e6ee3f7fd",
+      "REST_RETURN_RATE": "73110e5232b6d3923223e28da907b2db9f510a288398512e88f423585cd2c868",
+      "BODY_FOLLOW_RATE": "5af9d2fceab26c25e24a60901a64d36082495a981f43ba26f0719cf2b502596b",
+      "BODY_STIFFNESS": "0c81c4d3ef8e94277600a0d16652079bd9dfb66b5b83537c6c0b59d960ba733b",
+      "BODY_DAMPING": "daad0b95c73c66453a73caf23af696efbcf0ad7f8412824208b4be5669f475eb",
+      "BODY_YAW_STIFFNESS": "747857c8205944833ee0a9d9b210c545c63ad45bc6e3043ae64964946c1b95f6",
+      "BODY_YAW_DAMPING": "42a4d42ce7b09c67dc4216d6bd14e4c051d593a34b6376ca67b40509856add42",
+      "BODY_LEAN_GAIN": "cf1f7b39803a160e0cd13a29a4bfdfc6e9c2ad3420a7fa5cddb650caac36f4b7",
+      "BODY_LEAN_LIMIT": "d0ef835f2c0cf1a9924a987bee6e2a266ec8040107a02ff35ce9c91ccb21ac7f",
+      "BODY_PUSH_GAIN": "c972ab5ca3fe5566ac3f7cf437f261a10ced49aaf1b3d565a0f634d17f91154e",
+      "BODY_PUSH_LIMIT": "664861a0f6b2f86e6e60978e3c48054847d52dade79a81c3478d03e3567ef2df",
+      "BODY_PUSH_DECAY": "44846efbf543ad089e3acf38082d142fe97abebe48306b99a6f6773cb21e1ab0",
+      "BODY_YAW_SHARE": "80fb6dfb5a60995f92554fc734afc952a99465b1abae0df6ed2b36f2ec269350",
+      "BODY_YAW_LIMIT": "c066a7a36231a5bcab202fd83d5f13d161ea8a6cf2ff9ee84c80e03da5ebb8a1",
+      "BODY_YAW_SHARE_SWING": "986f41786db019ceed00d940414a6b73c8bc3ec0f0caecb49aa57e36d840989a",
+      "BODY_YAW_LIMIT_SWING": "6b515a58fe0312cb668cf9cd754269e923f735be751d54f5ec7c9166d01da43b",
+      "DAMAGE_SPEED_MIN": "5afd7b78ac35066c620d4c2d28583c315963fd4df3b5f7682b8996ecee04728f",
+      "DAMAGE_PER_MPS": "08b005a2e52026ce855e116b498528a14e9fbae2fcb53b00d5c2eccc4f5e8eff",
+      "DAMAGE_MAX": "0dff3baecdb146bb9515455b17e175e2942b467f29480bb5b7a80b375160b29d",
+      "MAX_SWING_TRAVEL": "61a5c18a5749c245f2d16eb08bbfa31c02836d86b76638b85c4c0ceec787785d",
+      "SWING_STRENGTH_MIN": "3bcb6d3b8458437388279a21a425fbccc787c5a1196111ae3b11d42a968e307d",
+      "SWING_STRENGTH_GAIN": "212f513a29a46db6763efc218250fe68f3c54762972bc8c529e12f8704b5cd32",
+      "SWING_STRENGTH_MAX": "9442a0937da17ff720c538c18d31320cf6a36884d86ffb632cbe90a40f5a8705",
+      "WINDUP_RATE_IDEAL": "e61d28e9887a4f684a8125ae401db4bdf36ca3f1f9334c873701df7792639c41",
+      "WINDUP_DECISION_FLOOR": "f1dd9719267f9c09783801e47a46edac85d81364ee2d79a378014f95f054becd",
+      "CONTACT_COOLDOWN_MS": "b12dd59f231f8296093c99f600bf976dc2ebf38027e0d2a22538d0c35c3df05f",
+      "CONTACT_REARM_MS": "4ea2ebc04dd46d72fc66e497b0b1e7fe500eb0121be3d780a2a16a68c252026b",
+      "SPARK_COOLDOWN_MS": "337159da26bb6f638915a3bd285a7ff2d8282803e71cad46fb1b85cd34222e45",
+      "BLOCK_SOUND_COOLDOWN_MS": "d6ce35668adeafb21a36d9d78b296c9a87dd83275dc7f474f73e72a3f8f8d0f6",
+      "DAMAGE_NUMBER_COOLDOWN_MS": "a55f746cc4b2d6f9a57be672030020d525442c91a4b467bd6a9e2ef43355fa5e",
+      "DAMAGE_NUMBER_LIMIT": "92a886143b1341829ffac77f525511e253b90b81433cec7ff95fe4af719cbf3a",
+      "DUMMY_MAX_HP": "ed35d63f66449b51115216e0b63faa6f8886f05f66fd0f13ac18acd595764c5d",
+      "DUMMY_CLEAR_RADIUS": "0fcf831dc6ac6f7200988b5b44a04d74ef5f2135fc32c73fc730a968a5d70818",
+      "POLE_CLEAR_RADIUS": "06f4e2d71f0abe730b1dd4334f75c16c1293b54aa3758f682ffc15b021052d4c",
+      "ARROW_PARRY_WINDOW_MS31": "ee78a451f25eb32f47ff49f774e1db7ef06df1a335085bb548457f601e3628cc",
+      "MAX_SPARKS": "a4a901f176f1f27b4730f4a964b1e619079a11d8265ba349a47d4f482f720a1e",
+      "SWING_ANGLE_MAX": "e10a6cc8c7fa49a5ce84b6f4509cdeb0bc2dad1549e0665f03d7f6a664db7463",
+      "SHIELD_MAX_HP": "80a9d42a274962f721991eb23a8d99c8c0bbb763917ae2a2dca0967860806a9a",
+      "SHIELD_RADIUS": "961861af033fe3c79f71bfa762e632df91e25dd26027aa42253cbde43e118d44",
+      "SHIELD_WEAR_SCALE": "1e98e0f5ac1810853a6b19414ce1a0d9ee7dbbe610d34348f3da7995e26e1197",
+      "SHIELD_RAISE_RATE": "eae075ba58eba80355ffe27dd1e26d8288b1401478f2a6f3e1651eb31fcf1a86",
+      "SHIELD_RAISE_NEEDED": "f90fbc69e52b6c4f89d98b323b992100a6728c1c2d64f6f9ed415ac34ad78217",
+      "GROUND_PICKUP_RANGE": "b7dbec50a7eca6abb98909235840297189d1313cf4cd8191667d7f469979ceee",
+      "BODY_CLEAR_RADIUS": "ae9c1d0b9f70a911149323ddc27a39b4731011b16124f93b9dcd59c514458d6e",
+      "BODY_CLEAR_MAX_STEPS": "38cf1ccf19f998e99a8051b104cfec1024f90af45cff85eef5b8d016af911684",
+      "THROW_SPEED_MIN": "eaa27ae4367fbbec9dbf132bd1c6921a98e22b29faf4f2b961db6edd4d757719",
+      "THROW_SPEED_MAX": "f55938f84621cf9c07ad2de790dfa5da4390cdee91933ce15d8fff97b43e626d",
+      "THROW_WINDUP_TIME": "5d84a9b38e287300cde0131aee72171987ef59f544831fd06ff9edb05939d6f2",
+      "THROW_GRAVITY": "d53c354993fa520d2ebf251f834987e44defa09c7d6679fee344789446065148",
+      "SPEAR_TIP_OFFSET": "a7999941546878f79cef4242c2d0e7f9a65002b7199be89bd84705c1e4f26198",
+      "SPEAR_STICK_DEPTH": "3693c49c707e4a77be474da996e7eb0f167b6d4656456b8fe878937a053fd1f2",
+      "SPEAR_BODY_PIERCE_DEPTH": "31586ff6dabb844412ed6440150744db98c95669a01985f6c37948f224afdf44",
+      "SPEAR_LETHAL_SPEED": "3ebe68ebfe6e9622a53da96c0c5d715bd3997acbb6360f7aeeb76705d40f8fb4",
+      "SPEAR_LETHAL_INCIDENCE": "742debd595836f496413dea3f4b520003974dad0fd9937b579ac3cf70e164f8b",
+      "SPEAR_FOLLOW_TIME": "c0f48a935f94f6dcde04bc223d82627bb619c15581411d77e0ff9a3ea62661c4",
+      "SPEAR_CAST_TIME31": "dbf187af43de1232d9f479447a646ace2a424cc3378ad6437b81ca1d4a8c834b",
+      "MAX_THROW_DOTS": "05f178baf8e797b9da0bdb58823606615ef3aa0c7c76165864d591a65c3a958e",
+      "THROW_PREVIEW_STEP": "4da27eb7c82cedfc5f0ee6bdc4013eb1b44c6ccdb0c0df0b7574d3833e3ba9d9",
+      "SELF_POSE_IK_BUDGET45": "3cd5959a6688b9c2f2adf1ec8175ce98569d317c71eaa803f955df9e4bc7cc55",
+      "BLADE_PULL_STEP": "512f31f8f3be778827a283a789fc2e2495c78e58dccab02dc47192efc7b284a6",
+      "BLADE_PULL_STEPS": "6964641a4d1a25a53968bbf635727b3fecd7fda3654f6543b29a13f22220e64a",
+      "TWO_HAND_LOWER_OFFSET": "03f631c1eef1de99ce8031f0849ba6d7666fc5ecf9ffc8cb86d065eb53dd5e49",
+      "TWO_HAND_DAMAGE_SCALE": "3b537450d7572b6c85dd794137965073cbde87a7b9c816c241f5bbc0d491def9",
+      "WINDUP_TIME": "00f41d0c3abd330fb08fe697acf4942f92d9225c2755e09dc74a328a8d1412b7",
+      "RECOVER_TIME": "6a913e54b303d03bb16aa8f582f41fdb9e954f8e85d5d464b8e3e85fc391ad34",
+      "WINDUP_ANTICIPATION": "de5ad31ff1bcfdc8f791b0d669a7ad9d2b03803a9c0cebbb0eac05b155ed9e7c",
+      "CHAIN_RATE": "2950b94e08de6d261f8ece34e688bd410cdff7383e9b6b36570eca7a34025184",
+      "IMPACT_JOLT_LIMIT": "17d8880511d336b4844df1d226e662f9e27616dbc76d1a93f51ef357585b3c2d",
+      "BREATH_RATE": "8715a18a42d235737b5ea6e10b3ae1083590a69671be4e82f0b115964c844d6f",
+      "BREATH_AMPLITUDE": "7c7d9758f6385d2c62115f57a8fc521a354b29f3a7261efdc29688fe67ed1a2f",
+      "DUELIST_HP": "519d16f379fec2382a4fb6c3e05db3b5e84d2a0f2f055a79cb6a503a2df13fef",
+      "DUELIST_SPEED": "31aac1a46f5ce8b2920de78854a1060c0a6237a59691e214366f202eea947578",
+      "DUELIST_REACH": "5b6c987528ff8793d390df0699e3969e7ec47f46c538170b16477811c2c15fa2",
+      "DUELIST_WINDUP": "c2b3effd8c124ea85b1fbefce692a02e4c26342a57ff0df8bc610ac0c54f6d6a",
+      "DUELIST_STRIKE": "50c752bb107f9b08186635bb5e7ba20aeb02ebd7c16ee4c216c1cc08e5e90285",
+      "DUELIST_RECOVER": "ace5396788adfec92b9b5803b3fe906124e569d2fbba5d939bbf66fab7f1e0e2",
+      "DUELIST_DAMAGE": "526117c98c75f60f0821e1ae738c5e2050f05a904c888b880dfb3801131c5020",
+      "BLOCK_RADIUS": "31dddd3c17b0e9bedc4c6f7fd55820ae34a575cd0d1d3f699b7cb8bffc1e8760",
+      "BLADE_TOUCH_RADIUS": "3585a1b8068e3a48e2a58485315dd129a5c6b87d892d1355f6ab9e84d5f3af37",
+      "NpcCache": "3913b65c0a42024ec34d36e3bc88bfc4bcf65825cae89aaabd13003ee7360dd0",
+      "NpcGait": "cae8eeb1a0fad269b94aca34b9a7389876b8c5906dde288390eb0af0d78be6e3",
+      "NPC_MANIFEST": "08d78cad02749f172189afa7fa37e15b019a782765ddcdced87d3e8b916550c5",
+      "NPC_DIRECTORY": "939e6329722fb7f4be7a51978181ec4d5582d2e6c1a72448cbb29b890ae6cb75",
+      "NPC_MANIFEST_SHA": "2e6f682a1ddd324f1713279f0606cef02344979fcf6bcc2b86d93bac929f6860",
+      "NPC_SOURCES": "8e005d8823d1b4eef84681a6e838ab9d2bb8b65da9604639c465433553f318c0",
+      "NPC_HEIGHT": "b0278812addfb7fb16a7d802a7abd0a6f2e8917994fa1696123687fd9706f35f",
+      "PLAYER_MELEE_LAYER50": "0e9c6d9936a762ef555246b526cb9ee5efb0969f32deb1fdfb2308d81a5b33d0",
+      "BLADE_PROBE_MASK": "688e78ec369017836faabd9e437b1b3b0d3285fb8177e6655517efdb47e259d2",
+      "BLADE_CLEAR_STEPS": "fd9f64b519fc01db5c1c05930772528d830194617f37eba9b00c8c60558f4b93",
+      "HALF_SWORD_GRIP": "c8ad0d527b63a00847044a48c92c20d8ada42620aa54d2a1a989054d8385ce76",
+      "HALF_SWORD_CUT": "56f873d79e8a031d849b569a93965f48ed22483586804ba4bb44405144e7992c",
+      "HALF_SWORD_THRUST": "6503ced397413d28e155ac49ff0a9fbd4b40eee4e425416b8f952e10f563219e",
+      "ARMOUR_SLICE": "1ea782d938f4b4ec95fec76833ae626c08e4b7de26cd58af26d5a78a95e90798",
+      "ARMOUR_THRUST_BONUS": "b509f275c87c2ef009924d6835c3abfa7710bf0c4f86c78f945773d9020bfd36",
+      "STEEL": "3ab6f96af4ad640a5ddf603540220a78fb6edd1d1c7b707e0b1edb56beaef395",
+      "STEEL_DARK": "4c32c39235b844d8f65a60d7e810514df2b38bb64f5f217ca37d708f80587ad9",
+      "MAIL": "801b08c9f5b5ae90a4c196a28ddc86545ff60bc25554623d4f72e47e5a148509",
+      "PEASANT_SKIN": "823d7c7f1509de5e92ae8de0f5b66648da9cf1271e77eff7b8f1b27e0001055a",
+      "PEASANT_HAIR": "4dbc9320a86fc0472c650423f1f84c423b2d3e89c2ead664eacc01827c4c904e",
+      "PEASANT_TRIM": "5e6b1dc16013e7e6acd2cf8f1f27c123c599bf1c195acdd6fbaa31f33cc711ea",
+      "PART_HP": "bf323fb01f601af8a88ebf95dbce07c4045f272deabba6dec5d8b97986204513",
+      "BLOOD_LIFETIME": "c9b3f0f22df7ee506f86595355c1f9e7aeda620ceea49a8befc8e960f91067c6",
+      "MAX_STUMPS": "b21429d10a15bfb586173d6ae8ed6e143abeb211d1e39117a43d0fbec3be8b84",
+      "BLOOD_MESH_VARIANTS": "aedcb5952814035e17b86928f2f6812774da311ae3591b70d1e6d7e40507165d",
+      "MAX_BLOOD": "5fc75bac8725727198411a742a3590e9caac6dd5e49cafc7d78952f0363168b0"
+    }
+  },
+  "unchanged_all_existing_variables": {
+    "count": 325,
+    "mapping_sha256": "f101d2df327bee59f54a943591bb4ede57d859f76ee36aea764c73fb8ad759ce"
+  },
+  "unchanged_ik_contact_functions": {
+    "_grip_origin_offset": {
+      "sha256_lf": "986c7d41316a6c95e4ba5a3c20b25b18fe5636b8ed52e4321f3183aba918b09e",
+      "line53": 2611,
+      "line54": 2625
+    },
+    "_palm_offset": {
+      "sha256_lf": "3786bd56043494b7f3e853e2765dd592a0375e6718a5dc66900ab475c0d26e9e",
+      "line53": 2615,
+      "line54": 2629
+    },
+    "_palm_position": {
+      "sha256_lf": "953de789888c81a53c0ccb7b654d9de9208ec5b804dd885ba3f14efe70f48eec",
+      "line53": 2620,
+      "line54": 2634
+    },
+    "_attach_sword_to_fist": {
+      "sha256_lf": "603f79415aa9e2be6bd1af66b98750bd6427d1671fc91a57d6c8cdcd507f49d7",
+      "line53": 2624,
+      "line54": 2638
+    },
+    "_self_begin_step45": {
+      "sha256_lf": "66fde18fa02faeb06a76d00d34c4d36a7279ec8ce1d699f1a8d23ae8340662b4",
+      "line53": 2716,
+      "line54": 2730
+    },
+    "_self_limit_step45": {
+      "sha256_lf": "8dec7de5a3a6a7327235b241e485ad7b569504388af20fe987a69c7c91499f8e",
+      "line53": 2735,
+      "line54": 2749
+    },
+    "_self_path_clear45": {
+      "sha256_lf": "079e408df7e5faaf7712c988b8bce4707c7a77482db76e31f1589755056ceb0b",
+      "line53": 2741,
+      "line54": 2755
+    },
+    "_self_evaluate_pose45": {
+      "sha256_lf": "9451305b1c2fc67b76f1178f6e55b1be39f2a278678882b6f8b7b9c6bf9dc354",
+      "line53": 2753,
+      "line54": 2767
+    },
+    "_save_safe_self_pose45": {
+      "sha256_lf": "f5f77a945eda313140793e7ed90e9d341d554187e652b800a7593f0b21abdc2f",
+      "line53": 2762,
+      "line54": 2776
+    },
+    "_restore_safe_self_pose45": {
+      "sha256_lf": "ffd480c557e96214e90347d8d696be4f7c01d1c3c19d1ba06bdb13a685e748c5",
+      "line53": 2771,
+      "line54": 2785
+    },
+    "_self_blade_clear": {
+      "sha256_lf": "8dde1a02153262f9dae0fa3190599aba0dded924510cf8f425193c84e82f12e3",
+      "line53": 2788,
+      "line54": 2802
+    },
+    "_self_blade_clear_at51": {
+      "sha256_lf": "2003c3be09c1e5cb9d1b93b278bc0311283ef6dd0d5e1a1b8036543d660edf63",
+      "line53": 2791,
+      "line54": 2805
+    },
+    "_guard_self_blade": {
+      "sha256_lf": "4ffef99080bbb33c46990c9c27f6742618a922ed2a11fbc38ce856910f532d4a",
+      "line53": 2801,
+      "line54": 2815
+    },
+    "_settle_carried_blade": {
+      "sha256_lf": "4a29b216f148901bb23cf16d985b31a5c4d72f8023164c06a655f14899f4c260",
+      "line53": 2836,
+      "line54": 2850
+    },
+    "_solve_left_arm": {
+      "sha256_lf": "10a78363ca06be662d880f3e6275646c4c605b5bf821f828807d75962f534749",
+      "line53": 2867,
+      "line54": 2881
+    },
+    "_fist_basis": {
+      "sha256_lf": "a92b0d81cd445e3eda5211d87b598d3e9f946f6e5f4f3b95b3b056e9372e800e",
+      "line53": 2888,
+      "line54": 2902
+    },
+    "_soft_body_limit": {
+      "sha256_lf": "58bdba6cb4b49e4dd9f06d816acd7938f02ca132f1720a1a753900ce572b08b2",
+      "line53": 2894,
+      "line54": 2908
+    },
+    "_constrain_forward": {
+      "sha256_lf": "970980fcdb98df4bb01fe637a6e63387ab9726c60d482a67e168227005860c4f",
+      "line53": 2900,
+      "line54": 2914
+    },
+    "_constrain_to_body": {
+      "sha256_lf": "e0dbbbdea6a4527a2e3dc4d543c91ae7bcfcaedfa3843c6c148702f37b303eb4",
+      "line53": 2910,
+      "line54": 2924
+    },
+    "_hand_target_direction": {
+      "sha256_lf": "06d55ee7ffc0e5a6c79641f273252f5574d0ad6476cedb2d91377fb376a46b49",
+      "line53": 2925,
+      "line54": 2939
+    },
+    "_solve_arm": {
+      "sha256_lf": "bea354bac32231e245ae5772f32eea6959c584fe9383eb0b6a78c9c65a416110",
+      "line53": 2941,
+      "line54": 2955
+    },
+    "_pose_shared_grip": {
+      "sha256_lf": "d96ed6cd05724fcb3f21db3cd1df81858cef6e5657554980afd09c59c3d56956",
+      "line53": 3005,
+      "line54": 3019
+    },
+    "_active_side": {
+      "sha256_lf": "d1869404e51bf979c5c8a6fcccdd2c4b431cb49047daeaad33b36a0f8e42e09a",
+      "line53": 3108,
+      "line54": 3121
+    },
+    "_hand_bone_for": {
+      "sha256_lf": "db3d3f9de0aa82f0a1c1a7073ac68995e7cab5e5aa448a31cea2c745f56c789a",
+      "line53": 3123,
+      "line54": 3136
+    },
+    "_arm_set": {
+      "sha256_lf": "e2b251c1b895b1c65b6f696fef9a9c95d89c3e7253ecec6b62f0c4763fb86578",
+      "line53": 3129,
+      "line54": 3142
+    },
+    "_pose_main": {
+      "sha256_lf": "4c46445775579b9ee76cba426484a93e6e86703d91c8100d1b4679b2439a44d8",
+      "line53": 3151,
+      "line54": 3164
+    },
+    "_pose_support": {
+      "sha256_lf": "015e86a2b77ddd7f83c60ef971fab5ccda5a1e8dc185d7bade65dbbdae828c54",
+      "line53": 3162,
+      "line54": 3175
+    },
+    "_palm_basis51": {
+      "sha256_lf": "a7f01674a39f1c0a829acb029caf480cd9626ecfa5ad3017ec0408601bf367cf",
+      "line53": 3170,
+      "line54": 3183
+    },
+    "_pose_arm_ik": {
+      "sha256_lf": "3f6618b0c9cfea34e18508369e8ef4ef6216be219b3f12c699af42ec54484fe7",
+      "line53": 3184,
+      "line54": 3197
+    },
+    "_guard_hand_in_front": {
+      "sha256_lf": "84adf94507e3da99c95e2b9795981286a354a8a5925eed7a92bacda6f9d1f07d",
+      "line53": 3245,
+      "line54": 3258
+    },
+    "_point_bone": {
+      "sha256_lf": "f8cee5ebd9ad0f6cb318b5916efd030c5f3337a0d9c97f446cf10ccaf66371db",
+      "line53": 3256,
+      "line54": 3269
+    },
+    "_chain_global": {
+      "sha256_lf": "8402c813dd6be8058a4f2303c4d12920c642223791b8e165c0bc439a866c3695",
+      "line53": 3268,
+      "line54": 3281
+    },
+    "_target_direction": {
+      "sha256_lf": "c07a435ace94466583de7c0325d538ff24134c1c6941187f178fe22797e0926a",
+      "line53": 1842,
+      "line54": 1852
+    },
+    "_impact_damage31": {
+      "sha256_lf": "296674f79700b2a86958d5fe979314dbd69fbda4e4fe15ae1bff658b61ebaf31",
+      "line53": 360,
+      "line54": 362
+    },
+    "_resolve_contact": {
+      "sha256_lf": "385eeb56a545380a75d859e321a8f873688f24b2be419d93a4f892d2d3b2944e",
+      "line53": 4301,
+      "line54": 4321
+    },
+    "_sweep": {
+      "sha256_lf": "e2f79fbbcfdc3c6ccc87dbafc72d278fdcd71eb7e2e0605e5ba6feda766175ea",
+      "line53": 4212,
+      "line54": 4232
+    },
+    "_sword_coasting31": {
+      "sha256_lf": "83d8e2f90fbb94cc52d5f106b6e2ece7e8e108ba1a74daf799f3cd274bd88d74",
+      "line53": 354,
+      "line54": 356
+    },
+    "set_half_sword": {
+      "sha256_lf": "5d11e616d83a291814b02ac20106f86d7a610a9a022a59a4d315d45df707ddf3",
+      "line53": 4740,
+      "line54": 4760
+    }
+  },
+  "lmb_only_equivalence": {
+    "input_left_button_branch_exact": true,
+    "phase_after_helper_reduces_to_hold_left": true,
+    "body_lean_after_helper_reduces_to_hold_left": true,
+    "damage_after_helper_reduces_to_hold_left": true,
+    "steer_after_inactive_rmb_only_branch_removed_exact": true,
+    "helper_proof": "When RMB=false, _swing_held54() == _hold_left. New smoothing branch requires RMB=true and LMB=false. New blocking term cannot affect LMB-only because original blocking already false while RMB=false.",
+    "coast_release": "RMB release only arms coast when LMB=false. LMB press and release branch is unchanged. set_weapon retains existing coast/omega/contact resets."
+  },
+  "other_modes": "Shield and valid sword half-sword reject RMB swing helper; axe/sledge/spear do likewise. Existing two-button grip and shield rise preserved. Only invalid stale half-sword on selecting non-sword is newly cleared.",
+  "open_findings": [],
+  "limits": [
+    "Source review only; no Godot or runtime tests started by reviewer. Runtime acceptance belongs to final harness receipts.",
+    "RMB-only near-parallel target uses normalized lerp at the existing smoothing rate; LMB-only keeps the exact previous interpolation branch."
+  ]
+}

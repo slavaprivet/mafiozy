@@ -37,3 +37,6 @@
 /outputs/coordinator32_release51/game/** -text
 /outputs/coordinator33_release52/game/** -text
 /outputs/coordinator34_release53/game/** -text
+/outputs/coordinator35_release54/game/** -text
+/outputs/coordinator35_release54/evidence/** -text
+/outputs/coordinator35_release54/ASSEMBLY.json -text

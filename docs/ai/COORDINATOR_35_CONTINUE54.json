@@ -1,0 +1,20 @@
+{
+  "revision": "castle-20261019-combined54-right-hand",
+  "base_commit": "46c3563e4e92706ca62776c5354d75b97c2a29b6",
+  "game": "D:\\MafioziCombat31\\coordinator35_rmb54\\game",
+  "frozen": true,
+  "coordinator_thread": "01a150c6-a336-72e3-9748-2446c3a8c29e",
+  "acceptance": "outputs/coordinator35_release54/ACCEPTANCE.json",
+  "changed": [
+    "scripts/weapons/sword_prototype.gd"
+  ],
+  "user_request": "Hold RMB with one-handed sword or mace and move the hand exactly as with held LMB.",
+  "left_mouse_preserved": true,
+  "authorized_lock_exception": "Only add RMB one-hand equivalence and fix invalid half-sword carryover when changing weapons. Do not retune approved LMB coefficients, IK, camera or damage.",
+  "limits": [
+    "Source review proves LMB-only code equivalence, not a new subjective approval of all play states.",
+    "Clean full-game FPS not measured.",
+    "Existing head/torso self-clearance uses proxies, not full triangle self-collision."
+  ],
+  "instructions": "Resolve current_version.json and ASSEMBLY. All future candidates/tests on D through scheduler; preserve frozen53/54 and foreign WIP. Current game PID must be freshly checked. Do not wake old chats."
+}
