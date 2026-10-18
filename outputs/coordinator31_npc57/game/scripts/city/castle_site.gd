@@ -1,4 +1,4 @@
-extends Node3D
+﻿extends Node3D
 ## DSH_CASTLE: a large mediaeval castle as its own map, built from BRICKS that come down.
 ##
 ## Every course of every curtain wall, the battlements, the gate towers and the keep's
@@ -191,8 +191,8 @@ func install(world: Node3D, origin: Vector3) -> Dictionary:
 	_build_tower_platforms()
 	if _phase_enabled: _phase("_build_gate_bridge")
 	_build_gate_bridge()
-	if _phase_enabled: _phase("_build_far_slabs")
-	_build_far_slabs()
+	# The far slabs are retired: the bricks are drawn at every distance anyway, so the
+	# slab only covered the gate opening and any breach seen from afar with intact stone.
 	if _phase_enabled: _phase("_build_string_courses")
 	_build_string_courses()
 	if _phase_enabled: _phase("_build_facade_relief")
@@ -705,8 +705,6 @@ func _add_brick(at: Vector3, size: Vector3, material_key: String, rotation: Vect
 ## thousand bricks every frame. Split into chunks of a few metres, each chunk is culled on
 ## its own and the cost follows what is on screen. Bricks that are knocked out are moved
 ## out of the chunk's mesh, and the falling body is spawned as before.
-## Bricks are drawn in detail up to this distance; past it a plain slab stands in.
-const BRICK_LOD_END := 110.0
 const CHUNK_X := 26.0
 const CHUNK_Y := 10.0
 const CHUNK_Z := 26.0
@@ -2614,28 +2612,6 @@ func _build_brick_floor() -> void:
 	node.multimesh = multi
 	node.material_override = paving
 	add_child(node)
-## ------------------------------------------------------------------ distance and detail
-## A plain slab standing in for the masonry beyond the brick-LOD distance: without it the
-## walls would vanish at a hundred metres, and with it a far view costs four boxes.
-func _build_far_slabs() -> void:
-	for side: String in ["north", "south", "east", "west"]:
-		var vertical: bool = side == "north" or side == "south"
-		var sign_z: float = 1.0 if side == "south" else -1.0
-		var sign_x: float = 1.0 if side == "east" else -1.0
-		var centre := Vector3(0.0, WALL_HEIGHT * 0.5, sign_z * WALL_HALF) if vertical \
-			else Vector3(sign_x * WALL_HALF, WALL_HEIGHT * 0.5, 0.0)
-		var size := Vector3(WALL_HALF * 2.0, WALL_HEIGHT, WALL_THICK) if vertical \
-			else Vector3(WALL_THICK, WALL_HEIGHT, WALL_HALF * 2.0)
-		var slab := MeshInstance3D.new()
-		var box := BoxMesh.new()
-		box.size = size
-		slab.mesh = box
-		slab.material_override = _materials["stone"]
-		slab.position = centre
-		slab.visibility_range_begin = BRICK_LOD_END - 4.0
-		slab.visibility_range_begin_margin = 6.0
-		slab.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-		add_child(slab)
 
 ## String courses: a band of stone standing proud of the wall at two heights, which is the
 ## cheapest way to break a flat face - one line and the wall stops being a panel.
