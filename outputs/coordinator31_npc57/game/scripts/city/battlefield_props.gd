@@ -608,7 +608,11 @@ func _destroy_group(id: String, hit_point: Vector3) -> void:
 	for ref in g["indices"]:
 		var pair: Array = ref
 		var batch: MultiMeshInstance3D = _batches[pair[0]]
-		batch.multimesh.set_instance_transform(pair[1], Transform3D(Basis().scaled(Vector3.ZERO), Vector3.ZERO))
+		# Keep the old origin when hiding an instance. Moving it to world zero
+		# expands this sector's AABB across the whole map after the first hit.
+		var hidden := batch.multimesh.get_instance_transform(pair[1])
+		hidden.basis = Basis().scaled(Vector3.ZERO)
+		batch.multimesh.set_instance_transform(pair[1], hidden)
 	var collider: StaticBody3D = g["collider"]
 	if is_instance_valid(collider):
 		collider.set_deferred("collision_layer", 0)
