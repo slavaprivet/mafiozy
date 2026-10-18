@@ -134,12 +134,15 @@ func _build_projectiles() -> void:
 			var start := Vector3(x, ground + 0.08, z)
 			var end := start + Vector3(lean.x, h, lean.z)
 			_beam(start, end, 0.035, 0.035, Color(0.25, 0.16, 0.09))
-			_add("tip", end + (end - start).normalized() * 0.085,
-				Vector3(0.13, 0.23, 0.13), Color(0.21, 0.22, 0.22),
-				Vector3(lean.z * -0.6, 0, lean.x * 0.6))
-			# A compact, colored nock reads as a fletched arrow from player height.
-			_add("box", end - Vector3(lean.x, 0.10, lean.z),
-				Vector3(0.12, 0.10, 0.04), Color(0.53, 0.44, 0.27))
+			# The arrowhead is buried at start; feathers belong at the exposed tail.
+			# Reuse the existing tip/box batches for two thin crossed feather vanes.
+			var shaft := (end - start).normalized()
+			var feather_basis := Basis(Quaternion(Vector3.UP, shaft))
+			var feather_at := end - shaft * 0.13
+			_add("tip", feather_at, Vector3(0.16, 0.24, 0.022),
+				Color(0.58, 0.50, 0.34), (feather_basis * Basis(Vector3.RIGHT, PI)).get_euler())
+			_add("box", feather_at, Vector3(0.022, 0.20, 0.14),
+				Color(0.48, 0.40, 0.27), feather_basis.get_euler())
 			_stats["arrows"] += 1
 	# A few taller attack spears break the silhouette, safely off the central lane.
 	for at in [Vector2(-16.0, 76.0), Vector2(18.0, 77.0),
@@ -267,6 +270,9 @@ func _spawn_ladder_shards(at: Vector3, impulse: float) -> void:
 		visual.scale = box.size
 		visual.material_override = _materials["shard"]
 		body.add_child(visual)
+		# The retire timer frees the body, and this signal removes its reference
+		# from the bounded array so shard_count reflects live physics objects.
+		body.tree_exiting.connect(_on_shard_exiting.bind(body))
 		add_child(body)
 		body.apply_central_impulse(Vector3(_rng.randf_range(-0.7, 0.7),
 			0.7 + _rng.randf_range(0, 0.7), 0.7 + _rng.randf_range(0, 0.4)) \
@@ -278,3 +284,6 @@ func _spawn_ladder_shards(at: Vector3, impulse: float) -> void:
 		retire.timeout.connect(body.queue_free)
 		body.add_child(retire)
 		retire.start()
+
+func _on_shard_exiting(body: RigidBody3D) -> void:
+	_shards.erase(body)
