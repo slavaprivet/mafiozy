@@ -273,6 +273,9 @@ void fragment() {
 	var grass := StandardMaterial3D.new()
 	grass.albedo_color = Color(0.33, 0.41, 0.24)
 	grass.roughness = 0.98
+	var paving := StandardMaterial3D.new()
+	paving.albedo_color = Color(0.39, 0.36, 0.31)
+	paving.roughness = 0.98
 	var dark := StandardMaterial3D.new()
 	dark.albedo_color = Color(0.03, 0.03, 0.04)
 	dark.roughness = 1.0
@@ -286,7 +289,7 @@ void fragment() {
 	_materials = {"stone": stone, "warm": stone_warm, "cold": stone_cold,
 		"wood": wood, "wood_alt": wood_alt, "floor_wood": floor_wood,
 		"linen": linen, "ochre": ochre,
-		"iron": iron, "grass": grass, "dark": dark,
+		"iron": iron, "grass": grass, "paving": paving, "dark": dark,
 		"velvet": velvet, "gold": gold}
 
 func _build_ground() -> void:
@@ -561,15 +564,13 @@ func _add_gate_threshold(at: Vector3, size: Vector3, label: String) -> void:
 	var mesh := BoxMesh.new()
 	mesh.size = size
 	visual.mesh = mesh
-	visual.material_override = _materials["stone"]
+	# Share the forecourt's existing paving material with its exposed apron rim.
+	visual.material_override = _materials["paving"]
 	body.add_child(visual)
 
 ## One batched paving draw call gives the wide stone approach a visible bond.
 ## The slab beneath, rather than hundreds of separate tiles, owns collision.
 func _build_gate_forecourt_pavers() -> void:
-	var paving := StandardMaterial3D.new()
-	paving.albedo_color = Color(0.53, 0.50, 0.45)
-	paving.roughness = 0.98
 	var tile := BoxMesh.new()
 	tile.size = Vector3(1.78, 0.035, 0.86)
 	var multi := MultiMesh.new()
@@ -585,12 +586,16 @@ func _build_gate_forecourt_pavers() -> void:
 			multi.set_instance_transform(slot, Transform3D(Basis.IDENTITY,
 				Vector3(x, 0.093, z)))
 			var tone := 0.88 + float((row * 17 + column * 29) % 11) * 0.013
+			# Blend the outer two courses into the darker approach using existing
+			# MultiMesh instance colors, with no new geometry or collision.
+			var edge := mini(mini(row, 21 - row), mini(column, 11 - column))
+			tone *= 0.82 if edge == 0 else 0.92 if edge == 1 else 1.0
 			multi.set_instance_color(slot, Color(tone, tone * 0.98, tone * 0.94))
 			slot += 1
 	var stones := MultiMeshInstance3D.new()
 	stones.name = "GateForecourtPavers"
 	stones.multimesh = multi
-	stones.material_override = paving
+	stones.material_override = _materials["paving"]
 	stones.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(stones)
 
