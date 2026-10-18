@@ -4,7 +4,7 @@ extends Node3D
 
 const X_MIN := -90.0
 const X_MAX := 90.0
-const Z_MIN := 86.0
+const Z_MIN := 76.0
 const Z_MAX := 252.0
 const CHUNKS_X := 3
 const CHUNKS_Z := 3
@@ -84,10 +84,16 @@ func _make_grit_texture() -> ImageTexture:
 func terrain_height(x: float, z: float) -> float:
 	# Near the original forecourt and at the outer edge, fade to CastleGround.
 	# The central x+-13 m at z<110 stays *below* the existing gate road.
-	var old_road := (1.0 - smoothstep(107.0, 113.0, z)) * (1.0 - smoothstep(11.5, 16.5, absf(x)))
+	# The stone forecourt narrows from pavers (x+-11.6, ending near z=90)
+	# to the older 11 m road box. Bury only the footprint actually paved;
+	# the former x+-16.5 mask exposed a green grass band alongside it.
+	var paved_half := lerpf(11.6, 5.5, smoothstep(89.5, 92.5, z))
+	var old_road := (1.0 - smoothstep(107.0, 113.0, z)) * (1.0 - smoothstep(paved_half - 0.6, paved_half + 0.4, absf(x)))
 	var edge_x := 1.0 - smoothstep(76.0, 90.0, absf(x))
 	var edge_z := 1.0 - smoothstep(240.0, 252.0, z)
-	var start_z := smoothstep(86.0, 101.0, z)
+	# Meet the paved ring road at z=79 from underneath, then emerge as packed
+	# earth. The centre remains buried below the older stone gate approach.
+	var start_z := smoothstep(76.0, 83.0, z)
 	var noise := sin(x * 0.16 + z * 0.087) * sin(z * 0.13 - x * 0.061)
 	var undulation := 0.12 + 0.09 * noise
 	# Earthen defence line is broken in three deliberate, wide walkable passages.
@@ -142,6 +148,11 @@ func _ground_color(x: float, z: float) -> Color:
 	var track := _road_weight(x, z)
 	var churn := 0.13 + 0.24 * absf(sin(x * 0.43 + z * 0.11) * sin(z * 0.29 - x * 0.07))
 	var color := grass.lerp(dirt, churn)
+	# The siege has worn away the grass along the south wall. This closes the
+	# bright green strip left between the ring road and the old terrain start.
+	var wall_trample := 1.0 - smoothstep(80.0, 111.0, z)
+	var trample_variation := 0.76 + 0.15 * sin(x * 0.31 + z * 0.23) * sin(z * 0.41 - x * 0.17)
+	color = color.lerp(dirt.darkened(0.12), wall_trample * trample_variation)
 	# Dark, irregular burn scars; the low-frequency edge is much less tiled than a decal.
 	var scorch := 0.0
 	for center: Vector2 in BURN_CENTERS:
