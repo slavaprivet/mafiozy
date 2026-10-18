@@ -27,6 +27,9 @@ const _INTERPOLATED := [
 class Cut:
 	var front_arrays: Array = []      ## surfaces that stayed in front of the plane
 	var back_arrays: Array = []       ## surfaces behind it
+	# Empty sides are omitted; preserve their original material-slot identities.
+	var front_surface_indices: Array[int] = []
+	var back_surface_indices: Array[int] = []
 	## Cap vertices for each side, as _Vertex so bone data survives the cut.
 	var front_cap: Array = []
 	var back_cap: Array = []
@@ -41,16 +44,20 @@ class Cut:
 	var boundary_segments := 0
 
 ## Cuts `source` with `plane` expressed in the mesh's own space, and returns a Cut.
-static func cut(source: ArrayMesh, plane: Plane) -> Cut:
+static func cut(source: ArrayMesh, plane: Plane, part_binds: Dictionary = {}, keep_front: bool = true) -> Cut:
 	var result := Cut.new()
 	if source == null: return result
 	var surface_count := source.get_surface_count()
 	for surface_index: int in surface_count:
 		var arrays: Array = source.surface_get_arrays(surface_index)
 		if arrays.is_empty(): continue
-		var split := _cut_surface(arrays, plane)
-		if not split.front.is_empty(): result.front_arrays.append(split.front)
-		if not split.back.is_empty(): result.back_arrays.append(split.back)
+		var split := _cut_surface(arrays, plane, part_binds, keep_front)
+		if not split.front.is_empty():
+			result.front_arrays.append(split.front)
+			result.front_surface_indices.append(surface_index)
+		if not split.back.is_empty():
+			result.back_arrays.append(split.back)
+			result.back_surface_indices.append(surface_index)
 		result.triangles_in += split.triangles_in
 		result.triangles_split += split.triangles_split
 		result.front_cap.append_array(split.front_cap)
@@ -73,7 +80,7 @@ class SurfaceSplit:
 	var triangles_split := 0
 	var boundary_segments := 0
 
-static func _cut_surface(arrays: Array, plane: Plane) -> SurfaceSplit:
+static func _cut_surface(arrays: Array, plane: Plane, part_binds: Dictionary = {}, keep_front: bool = true) -> SurfaceSplit:
 	var out := SurfaceSplit.new()
 	var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 	if vertices.is_empty(): return out
@@ -90,8 +97,8 @@ static func _cut_surface(arrays: Array, plane: Plane) -> SurfaceSplit:
 
 	var front := _Builder.new()
 	var back := _Builder.new()
-	front.source = arrays
-	back.source = arrays
+	front.set_source(arrays)
+	back.set_source(arrays)
 
 	var triangle_count: int = (indices.size() if indices.size() > 0 else vertices.size()) / 3
 	for t: int in triangle_count:
@@ -99,6 +106,13 @@ static func _cut_surface(arrays: Array, plane: Plane) -> SurfaceSplit:
 		var i1 := indices[t * 3 + 1] if indices.size() > 0 else t * 3 + 1
 		var i2 := indices[t * 3 + 2] if indices.size() > 0 else t * 3 + 2
 		out.triangles_in += 1
+		# A scoped limb cut keeps every triangle outside the limb intact, even if the
+		# infinite plane crosses the opposite leg or the torso. Bind IDs are local to
+		# this mesh's Skin and are resolved by the caller from the real skeleton.
+		if not part_binds.is_empty() and not _triangle_in_part(bones, weights, i0, i1, i2, part_binds):
+			if keep_front: front.add_source_triangle(i0, i1, i2)
+			else: back.add_source_triangle(i0, i1, i2)
+			continue
 		var d0 := plane.distance_to(vertices[i0])
 		var d1 := plane.distance_to(vertices[i1])
 		var d2 := plane.distance_to(vertices[i2])
@@ -107,14 +121,10 @@ static func _cut_surface(arrays: Array, plane: Plane) -> SurfaceSplit:
 		if d1 > 0.0: sides |= 2
 		if d2 > 0.0: sides |= 4
 		if sides == 0:
-			back.add_triangle(_v(vertices, normals, uvs, bones, weights, colors, i0, has_normals, has_uvs, has_skin, has_colors),
-				_v(vertices, normals, uvs, bones, weights, colors, i1, has_normals, has_uvs, has_skin, has_colors),
-				_v(vertices, normals, uvs, bones, weights, colors, i2, has_normals, has_uvs, has_skin, has_colors))
+			back.add_source_triangle(i0, i1, i2)
 			continue
 		if sides == 7:
-			front.add_triangle(_v(vertices, normals, uvs, bones, weights, colors, i0, has_normals, has_uvs, has_skin, has_colors),
-				_v(vertices, normals, uvs, bones, weights, colors, i1, has_normals, has_uvs, has_skin, has_colors),
-				_v(vertices, normals, uvs, bones, weights, colors, i2, has_normals, has_uvs, has_skin, has_colors))
+			front.add_source_triangle(i0, i1, i2)
 			continue
 		# The plane crosses this triangle: split it, and remember the edge that lands
 		# exactly ON the plane, because that edge is what the cap is built from.
@@ -147,6 +157,17 @@ static func _cut_surface(arrays: Array, plane: Plane) -> SurfaceSplit:
 	out.front = front.build()
 	out.back = back.build()
 	return out
+
+## Majority skin ownership keeps blend triangles near the joint with the limb,
+## while cloth or the other leg stays on the living body.
+static func _triangle_in_part(bones: PackedInt32Array, weights: PackedFloat32Array,
+		i0: int, i1: int, i2: int, part_binds: Dictionary) -> bool:
+	if bones.size() != weights.size() or bones.size() < (maxi(i0, maxi(i1, i2)) + 1) * 4: return false
+	var weight := 0.0
+	for vertex: int in [i0, i1, i2]:
+		for k: int in 4:
+			if part_binds.has(bones[vertex * 4 + k]): weight += weights[vertex * 4 + k]
+	return weight >= 1.5
 
 ## A vertex carried through the cut, with the skin data that has to survive it.
 class _Vertex:
@@ -263,6 +284,16 @@ static func _polygon_split(v0: _Vertex, v1: _Vertex, v2: _Vertex, sides: int,
 class _Builder:
 	extends RefCounted
 	var source: Array = []
+	var source_positions := PackedVector3Array()
+	var source_normals := PackedVector3Array()
+	var source_uvs := PackedVector2Array()
+	var source_colors := PackedColorArray()
+	var source_bones := PackedInt32Array()
+	var source_weights := PackedFloat32Array()
+	var source_has_normals := false
+	var source_has_uvs := false
+	var source_has_colors := false
+	var source_has_skin := false
 	var positions := PackedVector3Array()
 	var normals := PackedVector3Array()
 	var uvs := PackedVector2Array()
@@ -273,6 +304,42 @@ class _Builder:
 	var any_skin := false
 	var any_uv := false
 	var any_color := false
+
+	func set_source(arrays: Array) -> void:
+		source = arrays
+		source_positions = arrays[Mesh.ARRAY_VERTEX]
+		if arrays[Mesh.ARRAY_NORMAL] is PackedVector3Array: source_normals = arrays[Mesh.ARRAY_NORMAL]
+		if arrays[Mesh.ARRAY_TEX_UV] is PackedVector2Array: source_uvs = arrays[Mesh.ARRAY_TEX_UV]
+		if arrays[Mesh.ARRAY_COLOR] is PackedColorArray: source_colors = arrays[Mesh.ARRAY_COLOR]
+		if arrays[Mesh.ARRAY_BONES] is PackedInt32Array: source_bones = arrays[Mesh.ARRAY_BONES]
+		if arrays[Mesh.ARRAY_WEIGHTS] is PackedFloat32Array: source_weights = arrays[Mesh.ARRAY_WEIGHTS]
+		var count := source_positions.size()
+		source_has_normals = source_normals.size() == count
+		source_has_uvs = source_uvs.size() == count
+		source_has_colors = source_colors.size() == count
+		source_has_skin = source_bones.size() == count * 4 and source_weights.size() == count * 4
+
+	## A triangle wholly on one side needs no per-vertex RefCounted objects.
+	## It writes the same attributes/order as add_triangle(_v(...)) does.
+	func add_source_triangle(i0: int, i1: int, i2: int) -> void:
+		var base := positions.size()
+		_append_source_vertex(i0)
+		_append_source_vertex(i1)
+		_append_source_vertex(i2)
+		any_uv = true
+		any_color = true
+		if source_has_skin: any_skin = true
+		indices.append(base); indices.append(base + 1); indices.append(base + 2)
+
+	func _append_source_vertex(index: int) -> void:
+		positions.append(source_positions[index])
+		normals.append(source_normals[index] if source_has_normals else Vector3.ZERO)
+		uvs.append(source_uvs[index] if source_has_uvs else Vector2.ZERO)
+		colors.append(source_colors[index] if source_has_colors else Color.WHITE)
+		var offset := index * 4
+		for k: int in 4:
+			bones.append(source_bones[offset + k] if source_has_skin else 0)
+			weights.append(source_weights[offset + k] if source_has_skin else 0.0)
 
 	func add_triangle(a: _Vertex, b: _Vertex, c: _Vertex) -> void:
 		var base := positions.size()

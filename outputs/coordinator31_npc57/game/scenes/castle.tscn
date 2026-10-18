@@ -1,13 +1,9 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
-[ext_resource type="Script" path="res://scripts/quick_controls/scene_hook.gd" id="2"]
 
 [node name="MafioziCastle" type="Node3D"]
 script = ExtResource("1")
 block_data_path = "res://data/city_block.json"
 city_block_mode = true
 castle_map = true
-
-[node name="SceneHook" type="Node" parent="."]
-script = ExtResource("2")

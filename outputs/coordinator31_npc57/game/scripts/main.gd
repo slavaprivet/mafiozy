@@ -194,6 +194,9 @@ func _dsh_physics_catchup() -> void:  # DSH_WALKCHEAP
 
 func _ready() -> void:
 	GameCursor.install()
+	# The castle scene and --castle=1 are one isolated play mode. Resolve the flag
+	# before any city geometry, residents or services can be instantiated.
+	castle_map = castle_map or OS.get_cmdline_user_args().has("--castle=1")
 	# DSH_WALKCHEAP: --city-physics-catchup=N caps Engine.max_physics_steps_per_frame. The city
 	# steps inside _physics_process every third tick (main.gd:764-771), so an uncapped catch-up at
 	# 6+ ticks per rendered frame multiplies one 26 ms city step into ~52 ms of the frame; the cap
@@ -239,12 +242,13 @@ func _ready() -> void:
 		_show_load_error()
 		return
 	_build_lighting()
-	_build_surface()
-	var boundary := PreviewBoundary.new()
-	add_child(boundary)
-	PalazzoGround.install(self)
-	boundary.configure(PalazzoGround.bounds(_block.surface.boundsLocalM))
-	if city_block_mode:
+	if not castle_map:
+		_build_surface()
+		var boundary := PreviewBoundary.new()
+		add_child(boundary)
+		PalazzoGround.install(self)
+		boundary.configure(PalazzoGround.bounds(_block.surface.boundsLocalM))
+	if city_block_mode and not castle_map:
 		# The source city block keeps its printshop and all 75 buildings. Their
 		# interiors and envelopes are what the city navigation attaches to.
 		_load_printshop_data()
@@ -270,23 +274,25 @@ func _ready() -> void:
 	else:
 		# Removed buildings are never instantiated, including their interior/colliders.
 		printshop_status = "removed_by_user"
-	for record: Dictionary in _block["decor"]:
-		_add_asset(record)
+	if not castle_map:
+		for record: Dictionary in _block["decor"]:
+			_add_asset(record)
 	# Cold registration before player, transport, navigation and static batching.
 	# The old modular townhouse is also excluded from this composition.
-	preview_palazzo = load("res://scripts/destruction/palazzo/palazzo_host.gd").new()
-	preview_palazzo.name = "PalazzoHost"
-	add_child(preview_palazzo)
-	print("PALAZZO_GEOMETRY ", preview_palazzo.prepare(self))
+	if not castle_map:
+		preview_palazzo = load("res://scripts/destruction/palazzo/palazzo_host.gd").new()
+		preview_palazzo.name = "PalazzoHost"
+		add_child(preview_palazzo)
+		print("PALAZZO_GEOMETRY ", preview_palazzo.prepare(self))
 	_boot_clock = Time.get_ticks_msec()
-	_install_palazzo_clones()
+	if not castle_map: _install_palazzo_clones()
 	_boot_mark("palazzo_clones")
-	if OS.get_cmdline_user_args().has("--city-venue-sites29=1") or player_shop_requested():
+	if not castle_map and (OS.get_cmdline_user_args().has("--city-venue-sites29=1") or player_shop_requested()):
 		preview_service_sites29 = load("res://scripts/venues/npc_service_sites_host29.gd").new()
 		preview_service_sites29.name = "CompactServiceSites29"
 		add_child(preview_service_sites29)
 		print("VENUE_SITES29_GEOMETRY ", await preview_service_sites29.prepare(self, _block))
-	if city_block_mode and city_town_active():
+	if not castle_map and city_block_mode and city_town_active():
 		preview_homes58 = load("res://scripts/homes/npc_home_host58.gd").new()
 		preview_homes58.name = "ResidentHomes58"
 		add_child(preview_homes58)
@@ -298,11 +304,11 @@ func _ready() -> void:
 		print("HOME58_STREET_BENCHES ", benches_result58)
 		if not benches_result58.get("ok", false):
 			push_error("Residential street benches failed: " + str(benches_result58)); return
-	if OS.get_cmdline_user_args().has("--city-venue-staff29=1") or player_shop_requested():
+	if not castle_map and (OS.get_cmdline_user_args().has("--city-venue-staff29=1") or player_shop_requested()):
 		preview_venue_staff29 = load("res://scripts/venues/npc_venue_staff_host29.gd").new()
 		add_child(preview_venue_staff29)
 		print("VENUE_STAFF29 ", await preview_venue_staff29.prepare29(self))
-	if (preview_static_batch_enabled or OS.get_cmdline_user_args().has("--preview-static-batch")) and not OS.get_cmdline_user_args().has("--preview-static-batch-off"):
+	if not castle_map and (preview_static_batch_enabled or OS.get_cmdline_user_args().has("--preview-static-batch")) and not OS.get_cmdline_user_args().has("--preview-static-batch-off"):
 		apply_preview_static_batches()
 	_spawn = _v3(_block["hero"]["spawnLocalM"])
 	var spawn_yaw := 0.0
@@ -322,6 +328,11 @@ func _ready() -> void:
 	_player.set("_camera_yaw", spawn_yaw)
 	_player.set("_heading", spawn_yaw)
 	add_child(_player)
+	# City transport normally assigns this identity. Castle mode has no transport,
+	# but its weapon effects still bind to the player's life generation.
+	if castle_map:
+		_player.set_meta("actor_id", "player")
+		_player.set_meta("life_generation", 1)
 	_player.get_node("VisualHeading").rotation.y = spawn_yaw + deg_to_rad(_player.visual_yaw_degrees)
 	_player.set_preview_jump_surface_guard(Callable(self, "preview_jump_surface_allowed"))
 	# DSH_STEPS: footfalls that know what they are standing on.
@@ -349,7 +360,7 @@ func _ready() -> void:
 			if not contract.is_empty():
 				_final_dead_block_requested = _player.prepare_final_dead_block_contract(contract)
 				final_dead_block_contract_status = "negotiated_before_transport" if _final_dead_block_requested else "contract_rejected_legacy_v1"
-	if preview_transport_enabled or OS.get_cmdline_user_args().has("--preview-transport"):
+	if not castle_map and (preview_transport_enabled or OS.get_cmdline_user_args().has("--preview-transport")):
 		preview_transport = CityTransport.new() if city_block_mode else PreviewTransport.new()
 		preview_transport.name = "PreviewTransport"
 		add_child(preview_transport)
@@ -363,7 +374,7 @@ func _ready() -> void:
 			_player._visual.rotation.y = _player._heading + PI
 			_player._update_camera_rotation()
 	# Start beside the requested building while preserving authored source spawn data.
-	if is_instance_valid(preview_palazzo.site) and not OS.get_cmdline_user_args().has("--palazzo-start-off"):
+	if is_instance_valid(preview_palazzo) and is_instance_valid(preview_palazzo.site) and not OS.get_cmdline_user_args().has("--palazzo-start-off"):
 		_player.position = preview_palazzo.site.to_global(Vector3(1,.14,6.3))
 		_player._camera_yaw = -PI/2.0
 		_player._camera_pitch = -.12
@@ -373,9 +384,9 @@ func _ready() -> void:
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--preview-capture="):
 			_capture_path = argument.trim_prefix("--preview-capture=")
-	if preview_melee_enabled or OS.get_cmdline_user_args().has("--preview-melee"):
+	if not castle_map and (preview_melee_enabled or OS.get_cmdline_user_args().has("--preview-melee")):
 		_install_preview_melee_practice()
-	if (preview_minimap_enabled or OS.get_cmdline_user_args().has("--preview-minimap")) and not OS.get_cmdline_user_args().has("--no-minimap"):
+	if not castle_map and (preview_minimap_enabled or OS.get_cmdline_user_args().has("--preview-minimap")) and not OS.get_cmdline_user_args().has("--no-minimap"):
 		_install_preview_minimap()
 		_boot_mark("minimap")
 	if preview_weapons_enabled or OS.get_cmdline_user_args().has("--preview-weapons"):
@@ -398,7 +409,7 @@ func _ready() -> void:
 						if not cargo_result.get("ok",false):
 							push_error("Weapon cargo binding: "+str(cargo_result)); cargo_host.queue_free()
 			else: weapon_host.queue_free()
-	if player_shop_requested(): install_player_shop()  # DSH_PLAYERSHOP
+	if not castle_map and player_shop_requested(): install_player_shop()  # DSH_PLAYERSHOP
 	# DSH_SWORD_PROTO: the prototype host is always installed alongside the local
 	# arsenal, so the test sword can be picked in the existing weapon menu. It
 	# only acts while that item is equipped (no purchase, no ammo).
@@ -420,6 +431,7 @@ func _ready() -> void:
 	if castle_map or OS.get_cmdline_user_args().has("--castle=1"):
 		_build_castle_map()
 		_boot_mark("castle")
+		_install_castle_armor31()
 	if not castle_map and (preview_bow_prototype_enabled or is_instance_valid(preview_weapons) or OS.get_cmdline_user_args().has("--bow-proto=1")):
 		_install_bow_prototype()  # DSH_BOW_PROTO
 	if OS.get_cmdline_user_args().has("--bow-proto=1"):
@@ -478,7 +490,7 @@ func _ready() -> void:
 	preview_ready = true
 	if observe_npcs_mode() > 0: install_npc_observer()  # DSH_OBSERVE58
 	print("PALAZZO_READY ", is_instance_valid(preview_palazzo) and preview_palazzo.status == "ready")
-	print("PALAZZO_ONLY43_READY legacy_buildings=", _block.buildings.size(), " palazzo=", int(is_instance_valid(preview_palazzo.site)))
+	print("PALAZZO_ONLY43_READY legacy_buildings=", _block.buildings.size(), " palazzo=", int(is_instance_valid(preview_palazzo) and is_instance_valid(preview_palazzo.site)))
 	_setup_preview_perf()
 	_last_frame_usec = Time.get_ticks_usec()
 	print("MAFIOZI_PREVIEW_READY buildings=%d decor=%d source_colliders=%d renderer=%s" % [_block["counts"]["buildings"], _block["counts"]["decor"], _block["counts"]["collisionBodies"], RenderingServer.get_current_rendering_method()])
@@ -550,6 +562,25 @@ func _install_catapult() -> bool:
 ## heavy cart move faster than one man can push it. The resident knight counts, so a
 ## player with the knight beside him pushes with two men.
 ## DSH_CASTLE: builds the castle and puts the player inside it.
+func _install_castle_armor31() -> void:
+	if not is_instance_valid(preview_castle) or not is_instance_valid(preview_weapons) or not is_instance_valid(_player): return
+	var rig := _player.get("_pose_skeleton") as Skeleton3D
+	if not is_instance_valid(rig): return
+	var visual_script := load("res://scripts/combat/castle_armor_visual.gd") as Script
+	var equipment_script := load("res://scripts/city/castle_armor_equipment.gd") as Script
+	if visual_script == null or equipment_script == null: return
+	var visual := visual_script.new() as Node3D
+	visual.name = "CastleArmorVisual"
+	_player.add_child(visual)
+	var binding: Dictionary = visual.configure(rig, _player)
+	if not binding.get("ok", false):
+		visual.queue_free()
+		return
+	var equipment := equipment_script.new() as Node3D
+	equipment.name = "CastleArmorEquipment"
+	add_child(equipment)
+	equipment.configure(preview_castle, preview_weapons, visual)
+
 func _build_castle_map() -> bool:
 	if is_instance_valid(preview_castle): return false
 	var castle: Node3D = CastleSite.new()
@@ -567,6 +598,11 @@ func _build_castle_map() -> bool:
 	# control is behind a captured mouse, and a siege where you cannot move is not a test.
 	if is_instance_valid(_player):
 		_player.set_mouse_captured(true)
+		# The castle is a separate play area about 900 m from the city. Drawing the
+		# whole city behind its walls costs thousands of calls with no gate detail.
+		# Keep this distance local to the castle camera; the city camera stays at 1600 m.
+		var castle_camera := _player.get_node_or_null("CameraYaw/CameraSpringArm/PlayerCamera") as Camera3D
+		if is_instance_valid(castle_camera): castle_camera.far = 350.0
 	# DSH_CASTLE: the city has no business running on this map at all - stop the population
 	# node's own processing as well as the steps this script used to drive.
 	# A CLEAN SCREEN FOR A SIEGE. The city's control hint, the update banner and a full-size
@@ -620,10 +656,15 @@ func _build_castle_map() -> bool:
 
 func count_helpers_near(at: Vector3, radius: float) -> int:
 	var men := 0
-	var sword: Variant = preview_sword_prototype
-	if is_instance_valid(sword):
-		var knight: Variant = sword.get("_npc_body")
-		if is_instance_valid(knight) and knight.global_position.distance_to(at) <= radius:
+	for candidate: Node in get_tree().get_nodes_in_group("catapult_pushers"):
+		var helper := candidate as CharacterBody3D
+		if not is_instance_valid(helper): continue
+		var toward: Vector3 = at - helper.global_position
+		toward.y = 0.0
+		var motion: Vector3 = helper.velocity
+		motion.y = 0.0
+		if toward.length() <= radius and toward.length_squared() > 0.01 \
+				and motion.length() > 0.25 and motion.normalized().dot(toward.normalized()) > 0.35:
 			men += 1
 	return men
 
@@ -979,6 +1020,16 @@ func _current_door_action() -> Dictionary:
 	var focused: Control = get_viewport().gui_get_focus_owner()
 	if focused is LineEdit or focused is TextEdit:
 		return {}
+	if is_instance_valid(preview_castle) and is_instance_valid(preview_castle.armory_storage) \
+			and preview_castle.armory_storage.chest_focused():
+		return {"owner": "castle_chest", "label": "Открыть сундук",
+			"world": preview_castle.armory_storage.chest_hint_position()}
+	if is_instance_valid(preview_castle) and preview_castle.wants_e():
+		var inner: Vector3 = preview_castle.lever_position()
+		var outer: Vector3 = preview_castle.outer_lever_position()
+		var nearest: Vector3 = inner if _player.global_position.distance_to(inner) <= _player.global_position.distance_to(outer) else outer
+		return {"owner": "castle", "label": "Открыть ворота" if not preview_castle.gate_open() else "Закрыть ворота",
+			"world": nearest + Vector3.UP * 0.9}
 	if is_instance_valid(preview_palazzo):
 		var palazzo_action: Dictionary = preview_palazzo.door_action()
 		if not palazzo_action.is_empty(): return palazzo_action
@@ -992,7 +1043,7 @@ func _update_door_hint() -> void:
 	if _door_hint == null:
 		return
 	var action: Dictionary = _current_door_action()
-	if action.get("owner", "") in ["palazzo", "clone"]:
+	if action.get("owner", "") in ["palazzo", "clone", "castle", "castle_chest"]:
 		_door_hint_world = action.world
 	elif not _printshop_data.is_empty():
 		_door_hint_world = _v3(_printshop_data.doors.public.anchor) + Vector3.UP * 2.2
@@ -1048,6 +1099,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	var is_palazzo: bool = action.get("owner", "") == "palazzo"
 	var is_clone: bool = action.get("owner", "") == "clone"
+	if action.get("owner", "") == "castle_chest":
+		if preview_castle.armory_storage.open_window(): get_viewport().set_input_as_handled()
+		return
+	if action.get("owner", "") == "castle":
+		preview_castle.set_gate(not preview_castle.gate_open())
+		_update_door_hint()
+		get_viewport().set_input_as_handled()
+		return
 	var result: Dictionary = {}
 	if is_palazzo:
 		result = preview_palazzo.request_door()
@@ -1697,7 +1756,7 @@ func _build_hud() -> void:
 	stack.add_theme_constant_override("separation", 5)
 	panel.add_child(stack)
 	var title: Label = Label.new()
-	title.text = "МАФИОЗИ · тестовый квартал"
+	title.text = "МАФИОЗИ · замок" if castle_map else "МАФИОЗИ · тестовый квартал"
 	title.add_theme_font_size_override("font_size", 13)
 	title.add_theme_color_override("font_color", Color("ebc77f"))
 	stack.add_child(title)
@@ -1767,7 +1826,7 @@ func _build_hud() -> void:
 	_door_hint.add_theme_constant_override("shadow_offset_x", 1)
 	_door_hint.add_theme_constant_override("shadow_offset_y", 2)
 	door_row.add_child(_door_hint)
-	_build_update_panel(layer)
+	if not castle_map: _build_update_panel(layer)
 
 func _build_update_panel(layer: CanvasLayer) -> void:
 	var notes := UpdatePanel.new()

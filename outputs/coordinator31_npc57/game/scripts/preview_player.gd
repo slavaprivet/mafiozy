@@ -472,6 +472,8 @@ func _physics_process(delta: float) -> void:
 	var direction: Vector3 = Basis(Vector3.UP, _camera_yaw) * Vector3(axes.x, 0.0, axes.y)
 	var speed: float = run_speed if Input.is_action_pressed(ACTION_RUN) else walk_speed
 	if is_instance_valid(_weapon_host): speed=_weapon_host.movement_speed(speed)
+	var armor_owner := get_parent().get_node_or_null("CastleArmorEquipment") if is_instance_valid(get_parent()) else null
+	if armor_owner != null: speed *= armor_owner.speed_multiplier()
 	velocity.x = move_toward(velocity.x, direction.x * speed, acceleration * delta)
 	velocity.z = move_toward(velocity.z, direction.z * speed, acceleration * delta)
 	if direction.length_squared() > 0.001:

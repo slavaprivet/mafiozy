@@ -24,7 +24,9 @@ const MeshMerge = preload("res://scripts/weapons/mesh_merge.gd")
 
 const STONE_MASS := 92.0
 const STONE_RADIUS := 0.36
-const CART_MASS := 900.0
+const CART_MASS := 1200.0
+const CART_SCALE := 1.28
+const PUSH_FORCE_N := 1100.0
 const PUSH_RANGE := 2.35
 const CARRY_RANGE := 2.6
 const FRAME_RANGE := 2.9
@@ -47,7 +49,10 @@ var _player: CharacterBody3D
 var _ready := false
 
 var _cart: CharacterBody3D
+var _cart_body: Node3D
 var _stone: RigidBody3D
+var _stone_collision_enabled := true
+var _stone_scaled_for_hands := false
 var _wheel_nodes: Array[Node3D] = []
 var _wheel_radius := 0.42
 
@@ -75,23 +80,15 @@ var _occupied := false
 var _carrying_stone := false
 var _stone_on_spoon := false
 var _pushers := 0
-var _push_speed := 0.0
 ## The cart has its own speed: it takes time to reach and time to lose.
 var _cart_speed := 0.0
-## DSH_CATAPULT: while the arm throws, the frame is held still. It used to lunge forward on
-## every shot, and no amount of damping stopped it.
+var _cart_velocity := Vector3.ZERO
+## Briefly ignores pushing during the shot, while preserving its physical recoil.
 var _recoil_lock := 0.0
-## DSH_CATAPULT: a SHORT lurch forward at the throw - the kick the player asked for - which
-## decays in a fraction of a second. The machine is still held in place.
-var _lurch := 0.0
+var _recoil_hop_t := 0.0
+var _recoil_hop_y := 0.0
 ## DSH_OPT: pushers are counted five times a second, not every physics frame.
 var _pusher_timer := 0.0
-## DSH_CATAPULT: where the machine was put. It is restored to this transform every frame, so
-## nothing - a shove, a slope, the player leaning on it - can move it.
-var _cart_home := Transform3D()
-var _host_home := Transform3D()
-var _host_home_set := false
-var _cart_home_set := false
 var _travelled := 0.0
 ## Laying the stone in the spoon is an animation, not a teleport.
 var _loading := false
@@ -108,8 +105,12 @@ var _fly_prev := Vector3.ZERO
 var _fly_age := 0.0
 var _last_impact := {}
 var _hits := 0
+var _stone_hit_victims: Dictionary = {}
+var _unarmed_stone_hp := 100.0
+var _last_stone_damage: Dictionary = {}
 
 var _aim_dots: Array[MeshInstance3D] = []
+var _aim_visible := false
 var _aim_material: StandardMaterial3D
 var _hud: Label
 ## DSH_CATAPULT: the same prompt the car uses - a plate with a yellow E badge.
@@ -126,6 +127,9 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 		return {"ok": false, "reason": "missing_owner"}
 	_world = world
 	_player = player
+	# The player writes his animated skeleton during physics. Apply the carry pose
+	# afterwards, otherwise the next locomotion tick drops both arms again.
+	process_physics_priority = 100
 	_build_materials()
 	_build_cart()
 	_build_stone()
@@ -136,8 +140,22 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 
 func _build_materials() -> void:
 	var wood := StandardMaterial3D.new()
-	wood.albedo_color = Color(0.34, 0.22, 0.12)
-	wood.roughness = 0.85
+	wood.albedo_color = Color(0.38, 0.24, 0.125)
+	wood.roughness = 0.93
+	var oak_dark := StandardMaterial3D.new()
+	oak_dark.albedo_color = Color(0.18, 0.105, 0.052)
+	oak_dark.roughness = 0.96
+	var oak_edge := StandardMaterial3D.new()
+	oak_edge.albedo_color = Color(0.55, 0.36, 0.19)
+	oak_edge.roughness = 0.9
+	var cloth := StandardMaterial3D.new()
+	cloth.albedo_color = Color(0.42, 0.06, 0.075)
+	cloth.roughness = 1.0
+	cloth.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var gold := StandardMaterial3D.new()
+	gold.albedo_color = Color(0.72, 0.51, 0.19)
+	gold.metallic = 0.42
+	gold.roughness = 0.52
 	var iron := StandardMaterial3D.new()
 	iron.albedo_color = Color(0.30, 0.31, 0.34)
 	iron.metallic = 0.8
@@ -146,10 +164,12 @@ func _build_materials() -> void:
 	rope.albedo_color = Color(0.56, 0.46, 0.26)
 	rope.roughness = 0.95
 	var stone := StandardMaterial3D.new()
-	stone.albedo_color = Color(0.44, 0.43, 0.41)
+	stone.albedo_color = Color(0.67, 0.65, 0.60)
 	stone.roughness = 0.95
 	stone.metallic = 0.02
-	_materials = {"wood": wood, "iron": iron, "rope": rope, "stone": stone}
+	stone.vertex_color_use_as_albedo = true
+	_materials = {"wood": wood, "dark": oak_dark, "edge": oak_edge,
+		"iron": iron, "rope": rope, "stone": stone, "cloth": cloth, "gold": gold}
 
 ## A box of timber at a size, the part every frame member is made of.
 func _beam(parent: Node3D, size: Vector3, at: Vector3, material: Material,
@@ -171,6 +191,7 @@ func _build_cart() -> void:
 	_cart.collision_mask = 1
 	_cart.motion_mode = CharacterBody3D.MOTION_MODE_FLOATING
 	add_child(_cart)
+	_cart.scale = Vector3.ONE * CART_SCALE
 	# The frame the whole machine stands on.
 	var hull := CollisionShape3D.new()
 	var hull_shape := BoxShape3D.new()
@@ -181,14 +202,36 @@ func _build_cart() -> void:
 	var body := Node3D.new()
 	body.name = "CatapultBody"
 	_cart.add_child(body)
+	_cart_body = body
 	var wood: Material = _materials["wood"]
 	var iron: Material = _materials["iron"]
+	var dark: Material = _materials["dark"]
+	var edge: Material = _materials["edge"]
 	# Two long side rails and three cross members: the ladder the machine sits on.
 	for side: float in [-1.0, 1.0]:
 		_beam(body, Vector3(0.26, 0.26, 2.3), Vector3(side * 0.92, 0.34, 0.0), wood)
 	_beam(body, Vector3(2.1, 0.20, 0.24), Vector3(0.0, 0.34, -1.0), wood)
 	_beam(body, Vector3(2.1, 0.20, 0.24), Vector3(0.0, 0.34, 1.0), wood)
 	_beam(body, Vector3(2.1, 0.16, 0.20), Vector3(0.0, 0.34, 0.0), wood)
+	# Visible oak grain, corner clamps and diagonal bracing. The fixed pieces are
+	# welded below into a handful of surfaces; their detail costs no extra draw per beam.
+	for side: float in [-1.0, 1.0]:
+		for grain: int in 3:
+			_beam(body, Vector3(0.018, 0.012, 1.9),
+				Vector3(side * (0.92 + (float(grain) - 1.0) * 0.07), 0.478, 0.0), edge)
+		for z: float in [-0.92, 0.92]:
+			_beam(body, Vector3(0.31, 0.31, 0.13), Vector3(side * 0.92, 0.34, z), iron)
+		_beam(body, Vector3(0.12, 0.12, 1.55), Vector3(side * 0.62, 0.69, -0.08), dark,
+			Vector3(0.62, 0.0, 0.0))
+		_beam(body, Vector3(0.12, 0.12, 1.35), Vector3(side * 0.62, 0.71, 0.10), dark,
+			Vector3(-0.62, 0.0, 0.0))
+		# Red reinforced cheek plates protect the torsion bundle while leaving the
+		# throwing arm and winch readable from the side.
+		_beam(body, Vector3(0.075, 0.48, 1.05), Vector3(side * 1.04, 0.69, 0.12), dark)
+		_beam(body, Vector3(0.085, 0.34, 0.84), Vector3(side * 1.085, 0.70, 0.11), _materials["cloth"])
+		_beam(body, Vector3(0.10, 0.055, 0.94), Vector3(side * 1.09, 0.91, 0.11), _materials["gold"])
+		for z: float in [-0.22, 0.43]:
+			_beam(body, Vector3(0.11, 0.10, 0.10), Vector3(side * 1.14, 0.68, z), iron)
 	# The uprights: an A-frame on each side carrying the axle.
 	for side: float in [-1.0, 1.0]:
 		_beam(body, Vector3(0.20, 1.45, 0.22), Vector3(side * 0.80, 0.96, 0.30), wood,
@@ -196,6 +239,17 @@ func _build_cart() -> void:
 		_beam(body, Vector3(0.18, 1.10, 0.18), Vector3(side * 0.80, 0.86, -0.32), wood,
 			Vector3(-0.34, 0.0, 0.0))
 	_beam(body, Vector3(1.85, 0.18, 0.18), Vector3(0.0, 1.62, 0.30), iron)
+	for side: float in [-1.0, 1.0]:
+		for y: float in [0.68, 1.32]:
+			_beam(body, Vector3(0.27, 0.10, 0.30), Vector3(side * 0.80, y, 0.30), iron)
+		_beam(body, Vector3(0.14, 0.12, 1.30), Vector3(side * 0.45, 0.57, -0.46), dark)
+	# A small split pennant marks the siege crew. It is part of the carriage and
+	# travels with it; its red/gold colours make the machine identifiable at range.
+	_beam(body, Vector3(0.045, 1.35, 0.045), Vector3(-0.79, 2.17, -0.45), iron)
+	_beam(body, Vector3(0.56, 0.40, 0.035), Vector3(-0.48, 2.56, -0.45), _materials["cloth"])
+	_beam(body, Vector3(0.56, 0.045, 0.045), Vector3(-0.48, 2.77, -0.45), _materials["gold"])
+	for side: float in [-1.0, 1.0]:
+		_beam(body, Vector3(0.04, 0.28, 0.04), Vector3(-0.47 + side * 0.17, 2.29, -0.45), _materials["cloth"])
 	# The axle the arm swings on.
 	var axle := MeshInstance3D.new()
 	var axle_mesh := CylinderMesh.new()
@@ -219,33 +273,85 @@ func _build_cart() -> void:
 	drum.position = Vector3(0.0, 0.62, -0.86)
 	body.add_child(drum)
 	for side: float in [-1.0, 1.0]:
+		var cap := MeshInstance3D.new()
+		var disk := CylinderMesh.new(); disk.top_radius = 0.24; disk.bottom_radius = 0.24
+		disk.height = 0.07; disk.radial_segments = 12
+		cap.mesh = disk; cap.material_override = iron
+		cap.rotation.z = PI * 0.5
+		cap.position = Vector3(side * 0.79, 0.62, -0.86)
+		body.add_child(cap)
+	for winding: int in 7:
+		var coil := MeshInstance3D.new()
+		var ring := TorusMesh.new(); ring.inner_radius = 0.16; ring.outer_radius = 0.19
+		ring.rings = 5; ring.ring_segments = 12
+		coil.mesh = ring; coil.material_override = _materials["rope"]
+		coil.rotation.z = PI * 0.5
+		coil.position = Vector3(-0.54 + float(winding) * 0.18, 0.62, -0.86)
+		body.add_child(coil)
+	for side: float in [-1.0, 1.0]:
 		var crank := _beam(body, Vector3(0.06, 0.42, 0.06), Vector3(side * 0.78, 0.86, -0.86), iron)
 		crank.rotation = Vector3(0.0, 0.0, 0.0)
-	# Four wheels under the rails, and they turn as the machine rolls.
+	# The wheels sit OUTSIDE the side rails. A visible stub axle crosses the gap,
+	# so their mounting is readable instead of the wheels merging into the frame.
 	_wheel_radius = 0.42
-	for x: float in [-0.98, 0.98]:
+	for x: float in [-1.30, 1.30]:
 		for z: float in [-0.86, 0.86]:
+			var axle_stub := MeshInstance3D.new()
+			var stub_mesh := CylinderMesh.new()
+			stub_mesh.top_radius = 0.075
+			stub_mesh.bottom_radius = 0.075
+			stub_mesh.height = 0.50
+			stub_mesh.radial_segments = 10
+			axle_stub.mesh = stub_mesh
+			axle_stub.material_override = iron
+			axle_stub.rotation.z = PI * 0.5
+			axle_stub.position = Vector3(signf(x) * 1.17, _wheel_radius, z)
+			body.add_child(axle_stub)
 			var wheel := Node3D.new()
 			wheel.position = Vector3(x, _wheel_radius, z)
 			body.add_child(wheel)
 			var rim := MeshInstance3D.new()
-			var rim_mesh := CylinderMesh.new()
-			rim_mesh.top_radius = _wheel_radius
-			rim_mesh.bottom_radius = _wheel_radius
-			rim_mesh.height = 0.17
-			rim_mesh.radial_segments = 16
+			var rim_mesh := TorusMesh.new()
+			rim_mesh.inner_radius = 0.31
+			rim_mesh.outer_radius = 0.39
+			rim_mesh.rings = 8
+			rim_mesh.ring_segments = 24
 			rim.mesh = rim_mesh
 			rim.material_override = wood
-			rim.rotation = Vector3(0.0, 0.0, PI * 0.5)
+			rim.rotation.z = PI * 0.5
 			wheel.add_child(rim)
-			for spoke: int in 4:
-				var bar := MeshInstance3D.new()
-				var bar_mesh := BoxMesh.new()
-				bar_mesh.size = Vector3(0.06, _wheel_radius * 1.85, 0.07)
-				bar.mesh = bar_mesh
-				bar.material_override = iron
-				bar.rotation = Vector3(0.0, 0.0, TAU * float(spoke) / 4.0)
-				wheel.add_child(bar)
+			var hub := MeshInstance3D.new()
+			var hub_mesh := CylinderMesh.new()
+			hub_mesh.top_radius = 0.16; hub_mesh.bottom_radius = 0.16
+			hub_mesh.height = 0.23; hub_mesh.radial_segments = 12
+			hub.mesh = hub_mesh; hub.material_override = iron
+			hub.rotation.z = PI * 0.5
+			wheel.add_child(hub)
+			var tire := MeshInstance3D.new()
+			var tire_mesh := TorusMesh.new()
+			tire_mesh.inner_radius = 0.395
+			tire_mesh.outer_radius = 0.445
+			tire_mesh.rings = 5; tire_mesh.ring_segments = 24
+			tire.mesh = tire_mesh; tire.material_override = iron
+			tire.rotation.z = PI * 0.5
+			wheel.add_child(tire)
+			# Eight identical spokes share one draw call per wheel. The whole
+			# MultiMesh rotates with its wheel, including during recoil.
+			var spokes := MultiMesh.new()
+			spokes.transform_format = MultiMesh.TRANSFORM_3D
+			var spoke_mesh := BoxMesh.new()
+			spoke_mesh.size = Vector3(0.075, 0.28, 0.075)
+			spokes.mesh = spoke_mesh
+			spokes.instance_count = 8
+			for spoke: int in 8:
+				var angle := TAU * float(spoke) / 8.0
+				var transform := Transform3D(Basis(Vector3.RIGHT, angle),
+					Vector3(0.0, cos(angle) * 0.22, sin(angle) * 0.22))
+				spokes.set_instance_transform(spoke, transform)
+			var spoke_batch := MultiMeshInstance3D.new()
+			spoke_batch.multimesh = spokes
+			spoke_batch.material_override = edge
+			wheel.add_child(spoke_batch)
 			_wheel_nodes.append(wheel)
 	# The throwing arm, on its own pivot so it can swing.
 	_arm_pivot = Node3D.new()
@@ -254,6 +360,10 @@ func _build_cart() -> void:
 	body.add_child(_arm_pivot)
 	var arm := _beam(_arm_pivot, Vector3(0.22, 0.24, 3.15), Vector3(0.0, 0.0, -1.05), wood)
 	arm.rotation = Vector3.ZERO
+	for side: float in [-1.0, 1.0]:
+		_beam(_arm_pivot, Vector3(0.035, 0.03, 2.75), Vector3(side * 0.12, 0.11, -1.05), edge)
+		for z: float in [-1.85, -0.10]:
+			_beam(_arm_pivot, Vector3(0.29, 0.29, 0.10), Vector3(0.0, 0.0, z), iron)
 	_beam(_arm_pivot, Vector3(0.30, 0.20, 0.55), Vector3(0.0, 0.0, 0.62), wood)
 	# The spoon: a bowl at the far end that actually holds the stone.
 	_arm_spoon = Node3D.new()
@@ -297,6 +407,7 @@ func _place_cart_near_palazzo() -> void:
 	# arriving flat enough to slip through a thin panel.
 	var approach := target - Vector3(0.0, 0.0, 14.0)
 	_cart.global_position = Vector3(approach.x, 0.05, approach.z)
+	_cart_velocity = Vector3.ZERO
 	_yaw = 0.0
 	_cart.rotation.y = _yaw
 	_arm_angle = _cocked_angle
@@ -314,6 +425,7 @@ func place_near_castle(castle: Node3D) -> void:
 	# INSIDE THE COURTYARD, twenty metres back from the gate and facing it. That is where a
 	# siege engine is served, and it is where the player asked to be put with it.
 	_cart.global_position = Vector3(gate.x, 0.05, gate.z - 20.0)
+	_cart_velocity = Vector3.ZERO
 	_yaw = 0.0
 	_cart.rotation.y = _yaw
 	_arm_angle = _cocked_angle
@@ -324,10 +436,6 @@ func place_near_castle(castle: Node3D) -> void:
 		_stone.freeze = true
 		_stone.global_position = _cart.global_position + Vector3(3.2, STONE_RADIUS + 0.1, 2.4)
 		_stone.linear_velocity = Vector3.ZERO
-	_cart_home = _cart.global_transform
-	_cart_home_set = true
-	_host_home = global_transform
-	_host_home_set = true
 	print("DSH_CATAPULT_PLACED castle_gate=", gate, " cart=", _cart.global_position,
 		" stone=", _stone.global_position if is_instance_valid(_stone) else "none")
 
@@ -365,14 +473,15 @@ func _build_rock_mesh() -> ArrayMesh:
 	var sphere := SphereMesh.new()
 	sphere.radius = STONE_RADIUS
 	sphere.height = STONE_RADIUS * 2.0
-	sphere.radial_segments = 9
-	sphere.rings = 6
+	sphere.radial_segments = 12
+	sphere.rings = 8
 	var source: Array = sphere.get_mesh_arrays()
 	var vertices: PackedVector3Array = source[Mesh.ARRAY_VERTEX]
 	var indices: PackedInt32Array = source[Mesh.ARRAY_INDEX]
 	var mesh := ArrayMesh.new()
 	var out_vertices := PackedVector3Array()
 	var out_normals := PackedVector3Array()
+	var out_colors := PackedColorArray()
 	var hash := func(v: Vector3) -> float:
 		var h := int(round(v.x * 731.0)) * 73856093 ^ int(round(v.y * 977.0)) * 19349663 \
 			^ int(round(v.z * 613.0)) * 83492791
@@ -381,18 +490,28 @@ func _build_rock_mesh() -> ArrayMesh:
 		var a: Vector3 = vertices[indices[i]]
 		var b: Vector3 = vertices[indices[i + 1]]
 		var c: Vector3 = vertices[indices[i + 2]]
-		var pa := a.normalized() * (0.82 + 0.26 * float(hash.call(a.normalized())))
-		var pb := b.normalized() * (0.82 + 0.26 * float(hash.call(b.normalized())))
-		var pc := c.normalized() * (0.82 + 0.26 * float(hash.call(c.normalized())))
+		var pa := a.normalized() * (0.90 + 0.16 * float(hash.call(a.normalized())))
+		var pb := b.normalized() * (0.90 + 0.16 * float(hash.call(b.normalized())))
+		var pc := c.normalized() * (0.90 + 0.16 * float(hash.call(c.normalized())))
 		pa *= STONE_RADIUS; pb *= STONE_RADIUS; pc *= STONE_RADIUS
 		var normal: Vector3 = (pb - pa).cross(pc - pa).normalized()
 		if normal.length_squared() < 0.5: continue
 		out_vertices.append(pa); out_vertices.append(pb); out_vertices.append(pc)
 		out_normals.append(normal); out_normals.append(normal); out_normals.append(normal)
+		# Broad mineral facets make the projectile read as quarried masonry instead of
+		# a smooth grey ball. One colour per triangle keeps the mesh at one draw call.
+		var grain: float = float(hash.call(normal))
+		var tone: float = 0.83 + grain * 0.15
+		var strata: float = 0.91 if absf((pa.y + pb.y + pc.y) / 3.0) < STONE_RADIUS * 0.16 else 1.0
+		var inclusion: float = 0.79 if grain < 0.075 else 1.0
+		var face_color := Color(tone * strata * inclusion * 1.02,
+			tone * strata * inclusion, tone * strata * inclusion * 0.94)
+		out_colors.append(face_color); out_colors.append(face_color); out_colors.append(face_color)
 	var arrays: Array = []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = out_vertices
 	arrays[Mesh.ARRAY_NORMAL] = out_normals
+	arrays[Mesh.ARRAY_COLOR] = out_colors
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	return mesh
 
@@ -514,6 +633,7 @@ func _try_interact() -> bool:
 	# 2b. Standing at the SPOON with a loaded machine: E takes the stone back into his hands.
 	if _stone_on_spoon and not _flying and not _winding \
 			and player_at.distance_to(_spoon_point()) <= 1.9:
+		if not _begin_stone_carry(): return true
 		_stone_on_spoon = false
 		_carrying_stone = true
 		if is_instance_valid(_stone):
@@ -522,11 +642,21 @@ func _try_interact() -> bool:
 	# 3. Near the stone: E TAKES IT IN HIS HANDS. It is never teleported into the spoon.
 	if not _stone_on_spoon and is_instance_valid(_stone) and not _flying \
 			and player_at.distance_to(_stone.global_position) <= CARRY_RANGE:
+		if not _begin_stone_carry(): return true
 		_carrying_stone = true
 		_stone.freeze = true
 		_stone.sleeping = false
 		return true
 	return false
+
+func _begin_stone_carry() -> bool:
+	var weapons: Node = _world.get("preview_weapons") if is_instance_valid(_world) else null
+	if not is_instance_valid(weapons): return true
+	return bool(weapons.begin_catapult_stone_carry())
+
+func _end_stone_carry() -> void:
+	var weapons: Node = _world.get("preview_weapons") if is_instance_valid(_world) else null
+	if is_instance_valid(weapons): weapons.end_catapult_stone_carry()
 
 ## True when E would do something here. The sword prototype asks this before it takes
 ## the key for its own pickup, so a stone on the ground is not stolen by a dropped sword.
@@ -607,10 +737,18 @@ func _set_stone_on_spoon() -> void:
 
 func _drop_stone() -> void:
 	_carrying_stone = false
+	_end_stone_carry()
+	_stone_hit_victims.clear()
 	if is_instance_valid(_stone):
 		_stone.freeze = false
-		_stone.global_position = _player.global_position \
-			+ _player._visual.global_basis.z * 1.1 + Vector3.UP * 0.45
+		var forward: Vector3 = _player._visual.global_basis.z
+		var target: Vector3 = _player.global_position + forward * 1.1 + Vector3.UP * 0.45
+		# A pusher normally faces the carriage. Placing a dropped rock straight
+		# ahead would materialise it inside the axle and shake both rigid bodies.
+		if target.distance_to(_cart.global_position) < 1.8:
+			target = _player.global_position + _player._visual.global_basis.x * 0.95 \
+				+ Vector3.UP * 0.45
+		_stone.global_position = target
 		_stone.linear_velocity = Vector3.ZERO
 
 ## ------------------------------------------------------------------ polish
@@ -704,7 +842,7 @@ func _apply_arm() -> void:
 		_arm_pivot.rotation = Vector3(_arm_angle, 0.0, 0.0)
 	if is_instance_valid(_rope) and is_instance_valid(_arm_pivot):
 		# From the drum at the back to the arm where the rope is tied.
-		var from: Vector3 = _cart.global_position + Vector3(0.0, 0.62, -0.86)
+		var from: Vector3 = _cart.to_global(Vector3(0.0, 0.62, -0.86))
 		var to: Vector3 = _arm_pivot.to_global(Vector3(0.0, 0.0, -0.55))
 		var middle: Vector3 = (from + to) * 0.5
 		var length: float = from.distance_to(to)
@@ -721,6 +859,7 @@ func _launch_velocity() -> Vector3:
 
 func _release() -> void:
 	if not _stone_on_spoon or not is_instance_valid(_stone): return
+	_stone_hit_victims.clear()
 	_winding = false
 	_arm_wound = false
 	# The arm swings forward and lets go at its own release angle, then settles.
@@ -735,11 +874,12 @@ func _release() -> void:
 	_stone.global_position = _spoon_point() + Vector3.UP * (STONE_RADIUS * 0.55)
 	_fly_velocity = _launch_velocity()
 	_stone.linear_velocity = _fly_velocity
-	# NO TRAVEL, just a kick: the frame is held still for a moment after the throw.
-	_cart_speed = 0.0
-	_cart.velocity = Vector3.ZERO
-	_recoil_lock = 0.55
-	_lurch = 1.10
+	# The beam snaps against its stop: the heavy frame jerks forward and bounces
+	# once on its running gear. Its collider still sweeps the floor and walls.
+	var forward := Vector3(sin(_yaw), 0.0, cos(_yaw))
+	_cart_velocity += forward * 0.32
+	_recoil_hop_t = 0.32
+	_recoil_lock = 0.25
 	_fly_prev = _stone.global_position
 	_fired += 1
 	print("DSH_CATAPULT_FIRED yaw=", _yaw, " elevation=", _elevation,
@@ -748,6 +888,7 @@ func _release() -> void:
 ## DSH_CATAPULT: the rig HAS arms - upperarm_l/r and forearm_l/r - so the stone is carried by
 ## bending them around it, and no substitute geometry is needed.
 var _skeleton: Skeleton3D
+var _hand_bones: Array[int] = []
 var _arm_bones: Array[int] = []
 var _arm_rest: Array[Quaternion] = []
 var _arms_hugging := false
@@ -762,13 +903,14 @@ func _find_skeleton() -> void:
 		var bone: int = _skeleton.find_bone(bone_name)
 		_arm_bones.append(bone)
 		_arm_rest.append(_skeleton.get_bone_pose_rotation(bone) if bone >= 0 else Quaternion())
+	_hand_bones = [_skeleton.find_bone("hand_l"), _skeleton.find_bone("hand_r")]
 
 ## DSH_CATAPULT: the midpoint between the two HAND bones - the stone is carried there.
 func _hand_midpoint() -> Vector3:
 	_find_skeleton()
 	if not is_instance_valid(_skeleton): return Vector3.ZERO
-	var left: int = _skeleton.find_bone("hand_l")
-	var right: int = _skeleton.find_bone("hand_r")
+	var left: int = _hand_bones[0]
+	var right: int = _hand_bones[1]
 	if left < 0 or right < 0: return Vector3.ZERO
 	var a: Vector3 = _skeleton.to_global(_skeleton.get_bone_global_pose(left).origin)
 	var b: Vector3 = _skeleton.to_global(_skeleton.get_bone_global_pose(right).origin)
@@ -776,7 +918,7 @@ func _hand_midpoint() -> Vector3:
 
 func _hug_arms(on: bool) -> void:
 	_find_skeleton()
-	if not is_instance_valid(_skeleton) or _arms_hugging == on: return
+	if not is_instance_valid(_skeleton) or (not on and not _arms_hugging): return
 	_arms_hugging = on
 	for index: int in _arm_bones.size():
 		var bone: int = _arm_bones[index]
@@ -786,10 +928,10 @@ func _hug_arms(on: bool) -> void:
 			_skeleton.set_bone_pose_rotation(bone, rest)
 			continue
 		# A hug: upper arms swing IN and FORWARD, forearms fold up round the stone.
-		var side: float = -1.0 if index % 2 == 0 else 1.0
-		var swing := Quaternion(Vector3.UP, side * 0.55) * Quaternion(Vector3.FORWARD, 0.95)
-		var fold := Quaternion(Vector3.RIGHT, -1.35) if index < 2 else Quaternion(Vector3.RIGHT, -1.35)
-		_skeleton.set_bone_pose_rotation(bone, rest * swing if index < 2 else rest * fold)
+		var side: float = -1.0 if index < 2 else 1.0
+		var swing := Quaternion(Vector3.UP, side * 0.55) * Quaternion(Vector3.FORWARD, side * 0.95)
+		var fold := Quaternion(Vector3.RIGHT, -0.95)
+		_skeleton.set_bone_pose_rotation(bone, rest * swing if index % 2 == 0 else rest * fold)
 
 ## ------------------------------------------------------------------ rolling
 func _count_pushers() -> int:
@@ -820,69 +962,57 @@ func _push_speed_for(men: int) -> float:
 
 func _physics_process(delta: float) -> void:
 	if not _ready or not is_instance_valid(_cart): return
-	# POSITION ONLY. Restoring the whole transform fought the aiming code, which turns the
-	# machine with the player: the two wrote different rotations every frame, and the machine
-	# shook while the stone was in the air.
-	if _host_home_set:
-		# A SHORT LURCH at the throw, decaying in half a second: the kick that was asked for,
-		# with nothing left over. The machine still stands where it was put.
-		var forward := Vector3(sin(rotation.y), 0.0, cos(rotation.y))
-		_lurch = maxf(0.0, _lurch - delta * 3.2)
-		# FORWARD, the way the throw goes: the machine jolts toward what it fires at, then
-		# settles back to where it stands.
-		global_position = _host_home.origin + forward * _lurch
-	if _cart_home_set:
-		# THE LURCH LIVES ON THE CART. Applied to the host it was cancelled by this very line,
-		# which puts the frame back where it belongs - so no kick was ever seen.
-		var kick := Vector3(sin(rotation.y), 0.0, cos(rotation.y)) * _lurch
-		_cart.global_position = _cart_home.origin + kick
-		_cart.velocity = Vector3.ZERO
-	if _recoil_lock > 0.0:
-		# ROOTED for a moment after the throw: the machine kicks, it does not travel. Without
-		# this the frame lunged forward on every shot.
-		_recoil_lock = maxf(0.0, _recoil_lock - delta)
-		_cart_speed = 0.0
-		_cart.velocity = Vector3.ZERO
-		# (removed) the pin holds the frame; move_and_slide fought it every frame.
-		_apply_arm()
-		return
+	_recoil_lock = maxf(0.0, _recoil_lock - delta)
 	_pusher_timer -= delta
 	if _pusher_timer <= 0.0:
 		_pusher_timer = 0.2
 		_pushers = _count_pushers()
-		_push_speed = _push_speed_for(_pushers)
-	_push_speed = _push_speed_for(_pushers)
 	# A machine of this mass does not start or stop instantly. It is spun up towards the
 	# speed its pushers can give it and it coasts to a halt, which is the whole point of
 	# calling it heavy.
-	var push_direction := Vector3(sin(_cart.rotation.y), 0.0, cos(_cart.rotation.y))
 	var to_cart: Vector3 = _cart.global_position - _player.global_position
 	to_cart.y = 0.0
-	if to_cart.length_squared() > 1.0e-6:
-		push_direction = to_cart.normalized()
-	# THE MACHINE CAN BE PUSHED - and only pushed. It rolls when a man walks INTO it, along
-	# the way he is walking, and more men make it faster; merely standing next to it does
-	# nothing, which is what made it appear to jump on its own before.
-	var want_speed := 0.0
 	var push_dir := Vector3.ZERO
-	if not _occupied and is_instance_valid(_player):
+	if _recoil_lock <= 0.0 and not _occupied and is_instance_valid(_player):
 		var gap: float = to_cart.length()
-		var walking: float = _player.velocity.length()
-		if gap <= PUSH_RANGE and walking > 0.4:
-			var heading: Vector3 = _player.velocity.normalized()
-			if heading.dot(to_cart.normalized()) > 0.35:
-				push_dir = heading
-				# One man heaves; every extra pair of hands adds to it, with diminishing gain.
-				want_speed = PUSH_BASE_MS * (1.0 + 0.45 * float(maxi(0, _pushers - 1)))
-	_cart_speed = move_toward(_cart_speed, want_speed, (1.6 if want_speed > _cart_speed else 3.0) * delta)
-	if _cart_speed > 0.001 and push_dir != Vector3.ZERO and _cart_home_set:
-		# The HOME moves, so the pin follows the machine instead of snapping it back.
-		_cart_home.origin += push_dir * _cart_speed * delta
-	var moved: float = _cart_speed * delta
+		if gap > 0.1 and gap <= PUSH_RANGE and _pushers > 0:
+			var heading: Vector3 = _player.velocity
+			heading.y = 0.0
+			if heading.length() > 0.25 and heading.normalized().dot(to_cart.normalized()) > 0.3:
+				push_dir = heading.normalized()
+			elif Input.is_action_pressed(_player.ACTION_FORWARD):
+				var face: Vector3 = _player._visual.global_basis.z
+				face.y = 0.0
+				if face.normalized().dot(to_cart.normalized()) > 0.3:
+					push_dir = to_cart.normalized()
+	# Force and rolling resistance are applied to a 900 kg carriage. Motion uses the
+	# physics sweep, so walls, gates and people can stop it instead of a home-position pin.
+	if push_dir != Vector3.ZERO:
+		var force: float = PUSH_FORCE_N * (1.0 + 0.55 * float(maxi(0, _pushers - 1)))
+		_cart_velocity += push_dir * (force / CART_MASS) * delta
+		_cart_velocity = _cart_velocity.limit_length(_push_speed_for(_pushers))
+	else:
+		_cart_velocity = _cart_velocity.move_toward(Vector3.ZERO, 0.95 * delta)
+	var before: Vector3 = _cart.global_position
+	if _cart_velocity.length_squared() > 1.0e-6:
+		var collision: KinematicCollision3D = _cart.move_and_collide(_cart_velocity * delta)
+		if collision != null:
+			_cart_velocity = _cart_velocity.slide(collision.get_normal()) * 0.22
+	_cart_speed = _cart_velocity.length()
+	var shift: Vector3 = _cart.global_position - before
+	var moved: float = Vector2(shift.x, shift.z).length()
 	_travelled += moved
-	var spin := moved / maxf(0.05, _wheel_radius)
-	for wheel: Node3D in _wheel_nodes:
-		if is_instance_valid(wheel): wheel.rotate_x(spin)
+	# Tiny collision corrections and the vertical recoil hop cannot turn a wheel.
+	if moved > 0.002 and _cart_speed > 0.06:
+		var spin := moved / maxf(0.05, _wheel_radius * CART_SCALE)
+		for wheel: Node3D in _wheel_nodes:
+			if is_instance_valid(wheel): wheel.rotate_x(spin)
+	if _recoil_hop_t > 0.0:
+		_recoil_hop_t = maxf(0.0, _recoil_hop_t - delta)
+		_recoil_hop_y = 0.11 * sin(PI * (1.0 - _recoil_hop_t / 0.32))
+	else:
+		_recoil_hop_y = 0.0
+	if is_instance_valid(_cart_body): _cart_body.position.y = _recoil_hop_y
 	# The arm: winding pulls it back, the catch holds it, and after the release it
 	# slams forward and settles instead of stopping dead.
 	if _arm_settle > 0.0:
@@ -918,26 +1048,33 @@ func _physics_process(delta: float) -> void:
 		# A CARRIED STONE MUST NOT COLLIDE. Frozen but solid, it overlapped the player's own
 		# capsule, and the solver pushed him away every frame - which is why he wandered off
 		# the moment the stone was lifted.
-		var held: bool = _carrying_stone or _loading
-		_stone.collision_layer = 0 if held else 1
-		_stone.collision_mask = 0 if held else 1
+		# A stone seated in the cup is fixed to the arm, inside the carriage's
+		# collision envelope. Leaving its rigid collider active makes the cart
+		# repeatedly sweep into its own ammunition and jerks the pusher.
+		var held: bool = _carrying_stone or _loading or _stone_on_spoon
+		if _stone_collision_enabled == held:
+			_stone_collision_enabled = not held
+			_stone.collision_layer = 0 if held else 1
+			_stone.collision_mask = 0 if held else 1
 		# A boulder the width of his chest cannot be hugged by a low-poly rig, so while it is
 		# in his arms it is drawn at 0.72 of its size. The real stone is unchanged for the
 		# throw, the flight and the damage.
-		_stone.scale = Vector3(0.72, 0.72, 0.72) if held else Vector3.ONE
+		var scaled: bool = _carrying_stone or _loading
+		if _stone_scaled_for_hands != scaled:
+			_stone_scaled_for_hands = scaled
+			_stone.scale = Vector3.ONE * (0.62 if scaled else 1.0)
 	if _carrying_stone and is_instance_valid(_stone):
-		# HELD AGAINST THE CHEST, not floating out in front. The character has no hand bones to
-		# hang it from, so the stone is carried where his arms would be.
-		# AT THE HANDS. The rig has hand_l and hand_r, so the stone is carried between them and
-		# follows them wherever the pose puts them; the fallback is a spot in front of the chest
-		# for a model without hands.
+		# Fold the arms first, then sample the resulting hand positions. Sampling before
+		# the fold leaves the stone at the idle waist while both hands move to the chest.
+		_hug_arms(true)
 		var want: Vector3 = _hand_midpoint()
 		if want == Vector3.ZERO:
 			want = _player.global_position \
-				+ _player._visual.global_basis.z * 0.42 + Vector3.UP * 0.95
-		want += _player._visual.global_basis.z * 0.16
+				+ _player._visual.global_basis.z * 0.42 + Vector3.UP * 1.05
+		# Palms support the weight from BELOW the centre, rather than resting on
+		# its top as the previous screenshot showed.
+		want += _player._visual.global_basis.z * 0.28 + Vector3.UP * 0.28
 		_stone.global_position = _stone.global_position.lerp(want, clampf(12.0 * delta, 0.0, 1.0))
-		_hug_arms(true)
 	elif _loading and is_instance_valid(_stone):
 		_hug_arms(false)
 		_loading_t = minf(1.0, _loading_t + delta / 0.28)
@@ -947,6 +1084,7 @@ func _physics_process(delta: float) -> void:
 		if _loading_t >= 1.0:
 			_loading = false
 			_stone_on_spoon = true
+			_end_stone_carry()
 			_arm_wound = false
 			_winding = false
 			_arm_angle = _cocked_angle
@@ -964,7 +1102,11 @@ func _physics_process(delta: float) -> void:
 
 ## A real contact from the physics engine. This is the impact that counts.
 func _on_stone_body_entered(body: Node) -> void:
-	if not _flying or not is_instance_valid(_stone): return
+	if not is_instance_valid(_stone) or _carrying_stone or _loading or _stone_on_spoon: return
+	# A death can enable ragdoll collision shapes. Godot forbids shape changes while
+	# body_entered is flushing physics queries, so apply the measured hit afterward.
+	call_deferred("_apply_stone_actor_damage", body, _stone.linear_velocity)
+	if not _flying: return
 	var velocity: Vector3 = _stone.linear_velocity
 	if velocity.length() < 1.5: return
 	var direction: Vector3 = velocity.normalized()
@@ -992,6 +1134,51 @@ func _on_stone_body_entered(body: Node) -> void:
 		"normal": normal,
 		"collider": collider,
 	})
+
+## Kinetic energy of a 92 kg boulder above a harmless contact threshold.
+## Around 1 m of fall injures; roughly 5 m can kill an unarmoured adult.
+func _stone_damage_for_speed(speed: float) -> int:
+	if speed < 2.5: return 0
+	var energy_j: float = 0.5 * STONE_MASS * (speed * speed - 2.5 * 2.5)
+	return clampi(int(round(energy_j / 42.0)), 0, 160)
+
+func _apply_stone_actor_damage(body: Node, contact_velocity: Vector3 = Vector3.ZERO) -> Dictionary:
+	if not is_instance_valid(body) or not is_instance_valid(_stone): return {"applied": false}
+	var sword: Node = _world.get("preview_sword_prototype") if is_instance_valid(_world) else null
+	var target_player: bool = body == _player
+	var target_npc: bool = is_instance_valid(sword) and bool(sword.call("_is_npc_collider", body))
+	if not target_player and not target_npc: return {"applied": false, "reason": "not_actor"}
+	var id: int = body.get_instance_id()
+	if _stone_hit_victims.has(id): return {"applied": false, "reason": "already_hit"}
+	var velocity: Vector3 = contact_velocity if contact_velocity.length_squared() > 0.0 else _stone.linear_velocity
+	var relative: Vector3 = velocity - (body.velocity if body is CharacterBody3D else Vector3.ZERO)
+	var speed: float = relative.length() if _flying else maxf(-relative.y,
+		Vector2(relative.x, relative.z).length() * 0.65)
+	var damage: int = _stone_damage_for_speed(speed)
+	if damage <= 0: return {"applied": false, "reason": "slow_contact", "speed": speed}
+	var point: Vector3 = _stone.global_position - velocity.normalized() * STONE_RADIUS
+	var result: Dictionary = {"applied": false}
+	if is_instance_valid(sword):
+		result = sword.apply_catapult_stone_impact31(body, damage, point, velocity)
+	elif target_player and not bool(_world.get("preview_dead")):
+		var before: float = _unarmed_stone_hp
+		_unarmed_stone_hp = maxf(0.0, _unarmed_stone_hp - float(damage))
+		if _unarmed_stone_hp <= 0.0:
+			_world.set("preview_dead", true)
+			_player.set_preview_pose_authority(&"dead")
+			_player.set_mouse_captured(false)
+		else:
+			_player.apply_contact_melee_impulse(velocity.normalized(),
+				clampf(float(damage) * 0.22, 5.0, 30.0))
+		result = {"applied": true, "hp_before": before,
+			"hp_after": _unarmed_stone_hp, "dead": _unarmed_stone_hp <= 0.0}
+	if bool(result.get("applied", false)):
+		_stone_hit_victims[id] = true
+		_last_stone_damage = {"target": "player" if target_player else "castle_npc",
+			"mass_kg": STONE_MASS, "speed_mps": speed, "energy_j": 0.5 * STONE_MASS * speed * speed,
+			"damage": damage, "point": point, "result": result}
+		print("DSH_CATAPULT_STONE_DAMAGE ", JSON.stringify(_last_stone_damage))
+	return result
 
 func _step_flight(delta: float) -> void:
 	_fly_age += delta
@@ -1153,6 +1340,13 @@ func _vanish() -> void:
 ## ------------------------------------------------------------------ aim + HUD
 func _update_aim() -> void:
 	var show := _occupied and _stone_on_spoon and not _flying
+	if not show:
+		if _aim_visible:
+			for dot: MeshInstance3D in _aim_dots:
+				if is_instance_valid(dot): dot.visible = false
+			_aim_visible = false
+		return
+	_aim_visible = true
 	var at: Vector3 = _spoon_point()
 	var velocity := _launch_velocity()
 	var space := _world.get_world_3d().direct_space_state
@@ -1168,16 +1362,14 @@ func _update_aim() -> void:
 			if not space.intersect_ray(query).is_empty():
 				break
 		var dot: MeshInstance3D = _aim_dots[i]
-		dot.visible = show
-		if show:
-			dot.global_position = next
-			dot.scale = Vector3.ONE * clampf(1.2 - float(i) / 40.0, 0.3, 1.2)
+		dot.visible = true
+		dot.global_position = next
+		dot.scale = Vector3.ONE * clampf(1.2 - float(i) / 40.0, 0.3, 1.2)
 		shown += 1
 		at = next
 		if at.y < 0.2: break
-	if not show:
-		for dot: MeshInstance3D in _aim_dots:
-			if is_instance_valid(dot): dot.visible = false
+	for i: int in range(shown, _aim_dots.size()):
+		_aim_dots[i].visible = false
 
 func _process(delta: float) -> void:
 	if not _ready or not is_instance_valid(_prompt_panel): return
@@ -1243,6 +1435,8 @@ func snapshot() -> Dictionary:
 		"yaw": _yaw, "elevation": _elevation,
 		"speed_for_1": _push_speed_for(1), "speed_for_2": _push_speed_for(2),
 		"speed_for_5": _push_speed_for(5), "pushers": _pushers,
+		"cart_mass": CART_MASS, "cart_velocity": _cart_velocity,
+		"recoil_hop_y": _recoil_hop_y,
 		"travelled": _travelled,
 		"stone": _stone.global_position if is_instance_valid(_stone) else Vector3.ZERO,
 		"stone_on_spoon": _stone_on_spoon, "carrying": _carrying_stone,
@@ -1251,6 +1445,7 @@ func snapshot() -> Dictionary:
 		"loading": _loading, "marker": is_instance_valid(_stone_marker) and _stone_marker.visible,
 		"dust_total": _dust_total, "parts": _count_parts(),
 		"last_impact": _last_impact,
+		"last_stone_damage": _last_stone_damage,
 		"spoon": _spoon_point(),
 	}
 
@@ -1259,5 +1454,6 @@ func _count_parts() -> int:
 	return _cart.find_children("*", "MeshInstance3D", true, false).size()
 
 func _exit_tree() -> void:
+	_end_stone_carry()
 	_aim_dots.clear()
 	_wheel_nodes.clear()

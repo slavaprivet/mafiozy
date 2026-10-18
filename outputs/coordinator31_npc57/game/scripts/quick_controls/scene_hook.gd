@@ -6,6 +6,7 @@ func _ready() -> void: _attach.call_deferred()
 func _attach() -> void:
 	var world := get_parent() as Node3D
 	if not is_instance_valid(world): return
+	if world.get("castle_map") == true: return
 	for frame in 1200:
 		if not is_inside_tree() or not is_instance_valid(world): return
 		if world.get("preview_ready") == true: break

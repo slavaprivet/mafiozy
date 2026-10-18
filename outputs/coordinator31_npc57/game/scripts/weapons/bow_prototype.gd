@@ -29,7 +29,7 @@ const MAX_AIM_DOTS := 30
 ## How far the nock travels back at full draw, in metres.
 const STRING_PULL := 0.42
 ## Field of view multiplier at full draw.
-const ZOOM_FACTOR := 0.60
+const ZOOM_FACTOR := 0.86
 const ZOOM_RATE := 4.5
 ## Damage an arrow does to a body part, before armour.
 const ARROW_DAMAGE := 26.0
@@ -45,6 +45,8 @@ var _sword_host: Node = null
 var _ready := false
 var _selected := false
 var _drawing := false
+var _fire_button_down := false
+var _string_target_world := Vector3.ZERO
 ## Right button: shows the arrow's path without spending an arrow.
 var _aiming := false
 var _draw_amount := 0.0
@@ -88,6 +90,7 @@ var _feather: StandardMaterial3D
 var _steel: StandardMaterial3D
 var _string_material: StandardMaterial3D
 ## Meshes shared by every arrow and every quiver.
+var _arrow_visual_parts31: Array[Dictionary] = []
 var _shaft_mesh: CylinderMesh
 var _head_mesh: CylinderMesh
 var _collar_mesh: CylinderMesh
@@ -127,12 +130,21 @@ var _hint_layer: CanvasLayer
 
 # ---------------------------------------------------------------- diagnostics
 var _shots := 0
+var _incoming_parries31 := 0
+var _incoming_player_hits31 := 0
 var _stuck_total := 0
 var _last_hit_distance := -1.0
 var _last_flight_time := 0.0
 var _base_fov := 70.0
 ## Smoothed field-of-view multiplier handed to the shared aim camera.
 var _zoom_scale := 1.0
+var _sight_frame := -1
+var _sight_camera := Transform3D.IDENTITY
+var _sight_point := Vector3.ZERO
+var _aim_frame := -1
+var _aim_camera_transform := Transform3D.IDENTITY
+var _aim_visual_transform := Transform3D.IDENTITY
+var _frame_aim_direction := Vector3.FORWARD
 var _weapons_host: Node = null
 var _debug_tick := 0
 
@@ -165,8 +177,8 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 	if _bone_draw_upper < 0 or _bone_draw_fore < 0 or _bone_draw_hand < 0:
 		return {"ok": false, "reason": "draw_arm_bones"}
 	if _bone_bow_hand >= 0 and _bone_draw_hand >= 0:
-		var visual_left_rig: Vector3 = rig.get_bone_global_pose(_bone_draw_hand).origin
-		var visual_right_rig: Vector3 = rig.get_bone_global_pose(_bone_bow_hand).origin
+		var visual_left_rig: Vector3 = rig.get_bone_global_pose(_bone_bow_hand).origin
+		var visual_right_rig: Vector3 = rig.get_bone_global_pose(_bone_draw_hand).origin
 		_left_sign = 1.0 if (visual_left_rig.x - visual_right_rig.x) >= 0.0 else -1.0
 		if _left_sign == 0.0: _left_sign = 1.0
 	_rest_bow_upper = rig.get_bone_rest(_bone_bow_upper)
@@ -184,6 +196,7 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 	_quiver = _build_quiver(_world)
 	_ground_quiver = _build_quiver(_world)
 	_build_aim_dots()
+	_build_arrow_audio31()
 	_build_hint()
 	_sword_host = _world.get("preview_sword_prototype")
 	_weapons_host = _world.get("preview_weapons")
@@ -258,7 +271,7 @@ func _build_shared_meshes() -> void:
 	_quiver_shaft_mesh.height = 0.34
 	_quiver_shaft_mesh.radial_segments = 6
 	_quiver_fletch_mesh = BoxMesh.new()
-	_quiver_fletch_mesh.size = Vector3(0.0016, 0.030, 0.075)
+	_quiver_fletch_mesh.size = Vector3(0.0016, 0.075, 0.030)
 
 # ---------------------------------------------------------------- construction
 
@@ -333,7 +346,9 @@ func _build_limb_mesh(side: float, dark: bool) -> ArrayMesh:
 		var b := _limb_point(s1, side)
 		var thick := lerpf(0.036, 0.014, s0)
 		var size := Vector3(thick, a.distance_to(b) * 1.15, thick * 0.72)
-		var basis := Basis.from_euler(_rotation_along(b - a)).scaled(size)
+		var along := (b - a).normalized()
+		# The box length is local Y; scale its basis columns along the curved limb.
+		var basis := Basis(Vector3.RIGHT * size.x, along * size.y, Vector3.RIGHT.cross(along) * size.z)
 		tool.append_from(unit, 0, Transform3D(basis, (a + b) * 0.5))
 		placed += 1
 	if placed == 0: return null
@@ -421,12 +436,12 @@ func _update_hint() -> void:
 		state += "   достаёт стрелу из колчана"
 	var draw := ""
 	if _drawing:
-		draw = "\nНАТЯЖЕНИЕ %d%%   отпусти ЛКМ — выстрел" % int(round(_draw_amount * 100.0))
+		draw = "\nНАТЯЖЕНИЕ %d%%   ЛКМ — выстрел после готовности" % int(round(_draw_amount * 100.0))
 	var pick := ""
 	var near := _nearest_ground_item()
 	if not near.is_empty():
 		pick = "\nE — поднять " + ("лук" if str(near.get("kind", "")) == "bow" else "колчан")
-	_hint.text = "ТЕСТОВЫЙ ЛУК (прототип)\n" + state + "\nПКМ (удерживать) — ЦЕЛЬ: рисует путь стрелы, стрелу не тратит\nЛКМ (удерживать) — натянуть тетиву, вид приближается\nЛКМ (отпустить) — выстрел по дуге\nСтрела втыкается и остаётся в теле или предмете\nG — бросить лук, потом колчан" + pick + draw
+	_hint.text = state + "\nПКМ — прицел и натяжение · ЛКМ — выстрел\nG — бросить" + pick + draw
 
 # ---------------------------------------------------------------- archer pose
 
@@ -463,9 +478,39 @@ func _bow_hand_point() -> Vector3:
 
 func _aim_direction() -> Vector3:
 	if not is_instance_valid(_camera): return Vector3.FORWARD
-	var forward: Vector3 = -_camera.global_basis.z
-	if forward.length_squared() < 1.0e-8: return Vector3.FORWARD
-	return forward.normalized()
+	var raw: Vector3 = -_camera.global_basis.z.normalized()
+	if not is_instance_valid(_player) or not is_instance_valid(_player._visual): return raw
+	var frame: int = Engine.get_process_frames()
+	var visual: Node3D = _player._visual
+	if frame == _aim_frame and _aim_camera_transform.is_equal_approx(_camera.global_transform) \
+			and _aim_visual_transform.is_equal_approx(visual.global_transform):
+		return _frame_aim_direction
+	var sight_direction: Vector3 = raw
+	if _show_aim():
+		# The shoulder camera is lateral to the bow. Converge the shot on its
+		# central sight ray. Cache the world hit for all pose and preview calls in
+		# this frame; the bow is asked for its direction many times per frame.
+		if frame != _sight_frame or not _sight_camera.is_equal_approx(_camera.global_transform):
+			var sight_from: Vector3 = _camera.global_position
+			var sight_hit: Dictionary = _arrow_ray31(sight_from, sight_from + raw * 100.0)
+			_sight_point = sight_hit.position if not sight_hit.is_empty() else sight_from + raw * 100.0
+			_sight_frame = frame
+			_sight_camera = _camera.global_transform
+		# Never use the string-hand bone here. Its IK target uses this direction,
+		# so reading the bone fed its own previous result back into the next call.
+		var launch_from: Vector3 = _player.global_position + Vector3.UP * 1.35 + visual.global_basis.z.normalized() * 0.35
+		sight_direction = (_sight_point - launch_from).normalized()
+	# Keep the hands in the body's forward arc while the torso catches the camera.
+	# Bow, displayed arrow, trajectory and fired projectile all use this direction.
+	var basis: Basis = _player._visual.global_basis.orthonormalized()
+	var local: Vector3 = basis.inverse() * sight_direction
+	var yaw := clampf(atan2(local.x, local.z), -deg_to_rad(65.0), deg_to_rad(65.0))
+	var pitch := clampf(asin(clampf(local.y, -1.0, 1.0)), -deg_to_rad(65.0), deg_to_rad(65.0))
+	_frame_aim_direction = (basis * Vector3(sin(yaw)*cos(pitch), sin(pitch), cos(yaw)*cos(pitch))).normalized()
+	_aim_frame = frame
+	_aim_camera_transform = _camera.global_transform
+	_aim_visual_transform = visual.global_transform
+	return _frame_aim_direction
 
 func _active() -> bool:
 	if not _ready or not is_instance_valid(_player): return false
@@ -487,14 +532,33 @@ func _active() -> bool:
 func set_selected(value: bool) -> void:
 	if _selected == value: return
 	_selected = value
-	if is_instance_valid(_bow): _bow.visible = value
+	if is_instance_valid(_bow): _bow.visible = value or _grounded or _stowed_on_back31
 	if is_instance_valid(_hint_layer): _hint_layer.visible = value
 	if not value:
+		_aiming = false
+		_fire_button_down = false
 		_drawing = false
 		_draw_amount = 0.0
 		_hide_aim()
 		_restore_zoom()
 	_update_hint()
+
+var _stowed_on_back31 := false
+
+func set_stowed_on_back31(stowed: bool) -> void:
+	_stowed_on_back31 = stowed
+	if is_instance_valid(_bow): _bow.visible = stowed or _selected or _grounded
+	if is_instance_valid(_quiver): _quiver.visible = stowed and _quiver_worn or _selected and _quiver_worn
+
+func _place_back_equipment31() -> void:
+	if not _stowed_on_back31 or not is_instance_valid(_player): return
+	var visual: Node3D = _player._visual
+	var back: Vector3 = visual.global_basis.z
+	if is_instance_valid(_bow) and not _grounded:
+		_bow.visible = true
+		_bow.global_transform = Transform3D(visual.global_basis * Basis(Vector3.FORWARD, 0.22),
+			_player.global_position + Vector3.UP * 1.15 + back * 0.29 + visual.global_basis.x * 0.13)
+	if _quiver_worn: _place_quiver()
 
 func is_drawing() -> bool:
 	return _drawing
@@ -503,19 +567,13 @@ func is_drawing() -> bool:
 
 func _input(event: InputEvent) -> void:
 	if not _active(): return
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		if event.pressed:
-			_begin_draw()
-		else:
-			_loose()
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT:
+		_set_aiming(event.pressed)
 		get_viewport().set_input_as_handled()
 		return
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT:
-		# The right button is the AIMING aid: it draws the arrow's path without
-		# spending an arrow, so a shot can be planned before the string is pulled.
-		_aiming = event.pressed
-		if not _aiming and not _drawing: _hide_aim()
-		_update_hint()
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed and not _fire_button_down: _loose()
+		_fire_button_down = event.pressed
 		get_viewport().set_input_as_handled()
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -533,37 +591,45 @@ func _input(event: InputEvent) -> void:
 			return
 
 func _begin_draw() -> void:
-	if _drawing: return
-	if Time.get_ticks_msec() < _lock_until_ms: return
-	if _arrows_left <= 0:
-		print("DSH_BOW_PROTO_EMPTY no_arrows")
-		return
-	# No arrow on the string yet? The hand goes to the quiver first.
+	if not _aiming or _drawing or Time.get_ticks_msec() < _lock_until_ms: return
+	if _arrows_left <= 0: return
 	_ensure_nocked()
 	_drawing = true
 	_draw_amount = 0.0
 	_update_hint()
-	print("DSH_BOW_PROTO_DRAW begin nocked=", _nocked, " arrows=", _arrows_left)
 
-## Releases the string: the arrow leaves with the speed the draw earned.
-func _loose() -> void:
-	if not _drawing: return
-	_drawing = false
-	if not _nocked or _arrows_left <= 0:
+func _set_aiming(value: bool) -> void:
+	_aiming = value
+	if value:
+		_begin_draw()
+	else:
+		_drawing = false
 		_draw_amount = 0.0
 		_hide_aim()
 		_restore_zoom()
-		_update_hint()
-		return
-	var power := clampf(_draw_amount, 0.0, 1.0)
-	_fire(power)
+	_update_hint()
+
+func ready_to_fire() -> bool:
+	return _active() and not _grounded and _aiming and _drawing and _nocked and _fetch_phase == "" and _draw_amount >= 0.999 and _arrows_left > 0 and Time.get_ticks_msec() >= _lock_until_ms
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
+		_fire_button_down = false
+		if _ready: _set_aiming(false)
+
+## Releases the string: the arrow leaves with the speed the draw earned.
+func _loose() -> void:
+	# Only a new left press while the right button is aiming fires a ready arrow.
+	# Early clicks and cancellation consume nothing and queue no surprise shot.
+	if not ready_to_fire(): return
+	var shots_before := _shots
+	_fire(_draw_amount)
+	if _shots == shots_before: return
 	_draw_amount = 0.0
 	_nocked = false
-	_hide_aim()
-	_restore_zoom()
+	_drawing = false
 	_lock_until_ms = Time.get_ticks_msec() + 350
 	_update_hint()
-	print("DSH_BOW_PROTO_LOOSE power=", power, " shots=", _shots, " arrows_left=", _arrows_left)
 
 # ---------------------------------------------------------------- firing
 
@@ -571,7 +637,8 @@ func launch_speed(power: float) -> float:
 	return lerpf(ARROW_SPEED_MIN, ARROW_SPEED_MAX, clampf(power, 0.0, 1.0))
 
 func _muzzle_point() -> Vector3:
-	return _bow_hand_point() + _aim_direction() * ARROW_MUZZLE
+	var aim := _aim_direction()
+	return _string_nock_point(aim) + aim * 0.37
 
 func _fire(power: float) -> void:
 	var aim := _aim_direction()
@@ -579,22 +646,24 @@ func _fire(power: float) -> void:
 	var from := _muzzle_point()
 	var arrow := _take_arrow()
 	if arrow == null: return
-	# The arrow in the quiver is spent, and the next one has to be fetched.
 	_arrows_left = maxi(0, _arrows_left - 1)
 	arrow.visible = true
-	arrow.global_position = from
-	arrow.look_at(from + aim, Vector3.UP, true)
+	arrow.global_transform = _basis_z_along(from, aim)
 	_arrows.append({
-		"node": arrow,
-		"velocity": aim * speed,
-		"prev": from,
-		"alive": true,
-		"stuck": false,
+		"node": arrow, "velocity": aim * speed, "prev": from,
+		"prev_tip": from + aim * ARROW_TIP_OFFSET31,
+		"alive": true, "stuck": false, "age": 0.0,
 		"fired_ms": Time.get_ticks_msec(),
 	})
 	_last_fired_index = _arrows.size() - 1
 	_shots += 1
 	_impact_sound(from)
+	# The tip must not spawn beyond a nearby wall. Check from the actual bow grip.
+	var hit := _arrow_ray31(_launch_guard_point31(), from + aim * ARROW_TIP_OFFSET31)
+	if not hit.is_empty():
+		_stick(_last_fired_index, hit, aim * speed, speed)
+	else:
+		_start_arrow_flight31(arrow)
 
 ## Index of the arrow most recently loosed, so a test can follow that one.
 var _last_fired_index := -1
@@ -603,24 +672,28 @@ func last_fired_index() -> int:
 	return _last_fired_index
 
 func _take_arrow() -> Node3D:
-	for entry: Dictionary in _arrows:
-		if not bool(entry.get("alive", false)) and is_instance_valid(entry.get("node")):
-			entry["alive"] = true
-			entry["stuck"] = false
-			return entry.get("node")
-	# Free the oldest stuck arrow rather than growing without bound.
+	# Remove an old record BEFORE _fire registers the reused node, or two records
+	# would integrate the same arrow every tick. Embedded arrows persist until cap.
+	for index: int in range(_arrows.size() - 1, -1, -1):
+		var entry: Dictionary = _arrows[index]
+		var node: Node3D = entry.get("node")
+		if not is_instance_valid(node):
+			_arrows.remove_at(index)
+		elif not bool(entry.get("alive", false)):
+			_arrows.remove_at(index)
+			if node.get_parent() != _world: node.reparent(_world, true)
+			return node
+	if _arrows.size() < MAX_ARROWS: return _build_arrow(_world)
 	for index: int in _arrows.size():
 		var entry: Dictionary = _arrows[index]
-		if bool(entry.get("stuck", false)) and is_instance_valid(entry.get("node")):
-			var node: Node3D = entry["node"]
-			if node.get_parent() != _world:
-				node.get_parent().remove_child(node)
-				_world.add_child(node)
-			_arrows.remove_at(index)
-			return node
-	if _arrows.size() >= MAX_ARROWS: return null
-	# NOTE: the caller registers the flight; this only supplies a model.
-	return _build_arrow(_world)
+		if not bool(entry.get("stuck", false)): continue
+		var node: Node3D = entry.get("node")
+		if not is_instance_valid(node): continue
+		_stop_arrow_flight31(node)
+		if node.get_parent() != _world: node.reparent(_world, true)
+		_arrows.remove_at(index)
+		return node
+	return null
 
 ## A real arrow: a tapered shaft, a steel bodkin point, a nock and three vanes set
 ## at an angle so the arrow would spin in flight.
@@ -628,6 +701,14 @@ func _build_arrow(parent: Node3D) -> Node3D:
 	var root := Node3D.new()
 	root.name = "PrototypeArrow"
 	parent.add_child(root)
+	# Each arrow reuses the same four finished material meshes.
+	if not _arrow_visual_parts31.is_empty():
+		for spec: Dictionary in _arrow_visual_parts31:
+			var part := MeshInstance3D.new()
+			part.mesh = spec.mesh
+			part.material_override = spec.material
+			root.add_child(part)
+		return root
 	var shaft := MeshInstance3D.new()
 	shaft.mesh = _shaft_mesh
 	shaft.material_override = _wood_light
@@ -637,7 +718,7 @@ func _build_arrow(parent: Node3D) -> Node3D:
 	var head := MeshInstance3D.new()
 	head.mesh = _head_mesh
 	head.material_override = _steel
-	head.rotation = Vector3(-PI * 0.5, 0.0, 0.0)
+	head.rotation = Vector3(PI * 0.5, 0.0, 0.0)
 	head.position = Vector3(0.0, 0.0, 0.395)
 	root.add_child(head)
 	var collar := MeshInstance3D.new()
@@ -659,8 +740,11 @@ func _build_arrow(parent: Node3D) -> Node3D:
 		var angle := TAU * float(i) / 3.0
 		vane.position = Vector3(cos(angle) * 0.0185, sin(angle) * 0.0185, -0.295)
 		# Set at a few degrees of helix, which is what steers a real arrow.
-		vane.rotation = Vector3(deg_to_rad(6.0), 0.0, angle)
+		vane.rotation = Vector3(deg_to_rad(6.0), 0.0, angle - PI * 0.5)
 		root.add_child(vane)
+	ModelFinish31.finish(root)
+	for child: MeshInstance3D in root.get_children():
+		_arrow_visual_parts31.append({"mesh":child.mesh,"material":child.material_override})
 	return root
 
 ## The quiver: a leather tube with a stitched rim and a shoulder strap, plus the
@@ -675,14 +759,17 @@ func _build_quiver(parent: Node3D) -> Node3D:
 	tube.top_radius = 0.062
 	tube.bottom_radius = 0.052
 	tube.height = 0.56
+	tube.radial_segments = 12
+	tube.cap_top = false
 	body.mesh = tube
 	body.material_override = _leather
 	root.add_child(body)
 	var rim := MeshInstance3D.new()
-	var rim_tube := CylinderMesh.new()
-	rim_tube.top_radius = 0.068
-	rim_tube.bottom_radius = 0.068
-	rim_tube.height = 0.035
+	var rim_tube := TorusMesh.new()
+	rim_tube.inner_radius = 0.055
+	rim_tube.outer_radius = 0.070
+	rim_tube.rings = 16
+	rim_tube.ring_segments = 6
 	rim.mesh = rim_tube
 	rim.material_override = _horn
 	rim.position = Vector3(0.0, 0.27, 0.0)
@@ -737,6 +824,7 @@ func _build_quiver(parent: Node3D) -> Node3D:
 	root.add_child(fletch_node)
 	root.set_meta("shaft_multimesh", shaft_multi)
 	root.set_meta("fletch_multimesh", fletch_multi)
+	ModelFinish31.finish(root)
 	return root
 
 ## The quiver's count is the number of instances it draws: no per-arrow nodes, no
@@ -788,6 +876,11 @@ func _nearest_ground_item() -> Dictionary:
 	return best
 
 ## G: put the bow down. Once it is down, G takes the quiver off the back instead.
+func _drop_floor(at: Vector3) -> Vector3:
+	var query := PhysicsRayQueryParameters3D.create(at + Vector3.UP * 1.0, at - Vector3.UP * 3.0, 1, [_player.get_rid()])
+	var hit := _player.get_world_3d().direct_space_state.intersect_ray(query)
+	return hit.position if not hit.is_empty() else at
+
 func drop_bow_to_ground() -> bool:
 	if not _selected or _grounded or not is_instance_valid(_bow): return false
 	_grounded = true
@@ -802,7 +895,7 @@ func drop_bow_to_ground() -> bool:
 	_bow.visible = true
 	# Lying flat: the bow's own long axis along the ground.
 	var flat_basis: Basis = _basis_z_along(at, forward).basis * Basis(Vector3.RIGHT, PI * 0.5)
-	_bow.global_transform = Transform3D(flat_basis, at)
+	_bow.global_transform = ModelFinish31.resting_transform(_bow, flat_basis, _drop_floor(at))
 	_ground_items.append({"kind": "bow", "node": _bow})
 	_update_hint()
 	print("DSH_BOW_PROTO_DROPPED at=", at)
@@ -817,7 +910,7 @@ func drop_quiver_to_ground() -> bool:
 	var visual: Node3D = _player._visual
 	var at: Vector3 = _player.global_position + forward * 0.58 + visual.global_basis.x * (0.34 * _left_sign)
 	_ground_quiver.visible = true
-	_ground_quiver.global_transform = Transform3D(Basis(Vector3.RIGHT, PI * 0.5), at)
+	_ground_quiver.global_transform = ModelFinish31.resting_transform(_ground_quiver, Basis(Vector3.RIGHT, PI * 0.5), _drop_floor(at))
 	var carried_arrows := _arrows_left
 	_show_quiver_arrows(_ground_quiver, clampi(carried_arrows, 0, ARROWS_PER_QUIVER))
 	# The arrows go with the quiver: with it off his back the bow has none.
@@ -867,82 +960,112 @@ func _flat_forward() -> Vector3:
 func _physics_process(delta: float) -> void:
 	if not _ready or not is_instance_valid(_player): return
 	if _active() and not _grounded:
-		# The button state is read every frame so a missed release cannot leave the
-		# string drawn for ever.
-		var pressed: bool = Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
-		if pressed and not _drawing:
-			_begin_draw()
-		elif not pressed and _drawing:
-			_loose()
-		if _drawing:
+		if _aiming and not _drawing: _begin_draw()
+		if _drawing and _nocked and _fetch_phase == "":
 			_draw_amount = clampf(_draw_amount + delta / DRAW_TIME, 0.0, 1.0)
-		# The right button is read the same way, so a missed release cannot leave the
-		# aiming arc stuck on.
-		_aiming = Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)
+	elif _aiming or _drawing:
+		_set_aiming(false)
 	_step_arrows(delta)
 
 func _step_arrows(delta: float) -> void:
-	if _arrows.is_empty(): return
-	var space := _player.get_world_3d().direct_space_state
-	var excluded: Array[RID] = [_player.get_rid()]
+	if delta <= 0.0 or _arrows.is_empty(): return
 	for index: int in range(_arrows.size() - 1, -1, -1):
 		var entry: Dictionary = _arrows[index]
 		var node: Node3D = entry.get("node")
 		if not is_instance_valid(node):
 			_arrows.remove_at(index)
 			continue
-		if not bool(entry.get("alive", false)) or bool(entry.get("stuck", false)):
-			continue
+		if not bool(entry.get("alive", false)) or bool(entry.get("stuck", false)): continue
 		var velocity: Vector3 = entry.get("velocity", Vector3.ZERO)
 		var from: Vector3 = entry.get("prev", node.global_position)
-		velocity += Vector3.DOWN * GRAVITY * delta
-		var to: Vector3 = from + velocity * delta
-		var hit: Dictionary = {}
-		if space != null:
-			var query := PhysicsRayQueryParameters3D.create(from, to, AIM_MASK, excluded)
-			query.hit_from_inside = true
-			hit = space.intersect_ray(query)
-		entry["velocity"] = velocity
+		var from_tip: Vector3 = entry.get("prev_tip", from + velocity.normalized() * ARROW_TIP_OFFSET31)
+		# Exact constant-gravity step; the preview uses this same equation.
+		var to := _ballistic_point31(from, velocity, delta)
+		var next_velocity := velocity + Vector3.DOWN * GRAVITY * delta
+		var to_tip := to + next_velocity.normalized() * ARROW_TIP_OFFSET31
+		var incoming: bool = bool(entry.get("incoming", false))
+		var hit := _incoming_arrow_ray31(from_tip, to_tip, entry) if incoming else _arrow_ray31(from_tip, to_tip)
+		entry["velocity"] = next_velocity
 		entry["prev"] = to
+		entry["prev_tip"] = to_tip
+		entry["age"] = float(entry.get("age", 0.0)) + delta
 		_arrows[index] = entry
+		if incoming and is_instance_valid(_sword_host) and _sword_host.has_method("incoming_arrow_parry31"):
+			var sweep_end: Vector3 = hit.position if not hit.is_empty() else to_tip
+			var contact: Dictionary = _sword_host.call("incoming_arrow_parry31", from_tip, sweep_end)
+			if not contact.is_empty():
+				_deflect_incoming_arrow31(index, contact, next_velocity)
+				continue
 		if not hit.is_empty():
-			_stick(index, hit, velocity, from.distance_to(to) / maxf(delta, 1.0e-4))
+			if incoming and hit.get("collider") == _player and is_instance_valid(_sword_host):
+				_incoming_player_hits31 += 1
+				_sword_host.call("_apply_player_damage", ARROW_DAMAGE, hit.position, next_velocity.normalized())
+			_stick(index, hit, next_velocity, next_velocity.length())
 			continue
-		node.global_position = to
-		if velocity.length_squared() > 1.0e-6:
-			node.look_at(to + velocity, Vector3.UP, true)
-		# An arrow that fell out of the world is recycled.
-		if to.y < _player.global_position.y - 60.0:
+		node.global_transform = _basis_z_along(to, next_velocity)
+		_update_arrow_flight31(node, next_velocity.length())
+		if to.y < _player.global_position.y - 60.0 or float(entry["age"]) > 15.0:
 			_recycle(index)
+
+func _incoming_arrow_ray31(from: Vector3, to: Vector3, entry: Dictionary) -> Dictionary:
+	var excluded: Array[RID] = []
+	var shooter_rid: RID = entry.get("shooter_rid", RID())
+	if shooter_rid.is_valid(): excluded.append(shooter_rid)
+	var query := PhysicsRayQueryParameters3D.create(from, to, AIM_MASK | 2, excluded)
+	query.hit_from_inside = true
+	return _player.get_world_3d().direct_space_state.intersect_ray(query)
+
+func _deflect_incoming_arrow31(index: int, contact: Dictionary, velocity: Vector3) -> void:
+	var entry: Dictionary = _arrows[index]
+	var node: Node3D = entry.get("node")
+	var blade_axis: Vector3 = contact.axis
+	var across: Vector3 = velocity - blade_axis * velocity.dot(blade_axis)
+	var reflected: Vector3 = velocity.bounce(across.normalized()) if across.length_squared() > 0.000001 else -velocity
+	reflected = reflected.normalized() * velocity.length() * 0.55
+	var at: Vector3 = contact.point
+	var origin: Vector3 = at - reflected.normalized() * ARROW_TIP_OFFSET31
+	entry["velocity"] = reflected
+	entry["prev"] = origin
+	entry["prev_tip"] = at
+	entry["incoming"] = false
+	entry["deflected"] = true
+	_arrows[index] = entry
+	node.global_transform = _basis_z_along(origin, reflected)
+	_incoming_parries31 += 1
+	_sword_host.call("register_arrow_parry31", at)
+	_start_arrow_flight31(node)
 
 ## An arrow that hit something stays there, and rides along if the thing moves.
 func _stick(index: int, hit: Dictionary, velocity: Vector3, speed: float) -> void:
 	var entry: Dictionary = _arrows[index]
 	var node: Node3D = entry.get("node")
+	if not is_instance_valid(node) or bool(entry.get("stuck", false)): return
 	var point: Vector3 = hit.get("position", node.global_position)
 	var collider: Variant = hit.get("collider")
 	var direction := velocity.normalized()
-	# Back the shaft out of the surface so it reads as embedded, not swallowed.
-	var rest := point - direction * 0.22
-	node.global_position = rest
+	var surface := _arrow_surface31(collider)
+	var embed := 0.07 if surface == "wood" else (0.10 if surface in ["dirt", "flesh"] else 0.015)
+	var rest := point - direction * (ARROW_TIP_OFFSET31 - embed)
+	node.global_transform = _basis_z_along(rest, direction)
 	node.visible = true
-	if direction.length_squared() > 1.0e-6:
-		node.look_at(rest + direction, Vector3.UP, true)
+	_stop_arrow_flight31(node)
+	# Keep the entire world transform on reparent. This also supports doors,
+	# movable props and physical rubble, not only the old NPC special case.
+	if is_instance_valid(collider) and collider is Node3D and not collider.is_queued_for_deletion():
+		node.reparent(collider, true)
 	entry["stuck"] = true
 	entry["alive"] = true
 	entry["velocity"] = Vector3.ZERO
+	entry["surface"] = surface
+	entry["hit_point"] = point
 	_arrows[index] = entry
 	_stuck_total += 1
 	_last_hit_distance = _player.global_position.distance_to(point)
-	_last_flight_time = (Time.get_ticks_msec() - int(entry.get("fired_ms", 0))) * 0.001
-	if is_instance_valid(collider) and collider is Node3D and collider.has_meta("sword_npc_part"):
-		# Ride the body: parent the arrow to the part it struck.
-		var part := collider as Node3D
-		node.get_parent().remove_child(node)
-		part.add_child(node)
-		node.global_position = rest
+	_last_flight_time = float(entry.get("age", 0.0))
+	_last_arrow_surface31 = surface
+	_play_arrow_impact31(point, surface, speed)
 	_apply_arrow_damage(collider, point, speed, direction)
-	print("DSH_BOW_PROTO_STICK at=", point, " speed=", speed, " distance=", _last_hit_distance)
+	print("DSH_BOW_PROTO_STICK at=", point, " speed=", speed, " surface=", surface)
 
 ## An arrow in a body does damage through the sword prototype's own gore system, so
 ## arrow wounds and sword wounds are the same wounds.
@@ -961,9 +1084,8 @@ func _recycle(index: int) -> void:
 	var entry: Dictionary = _arrows[index]
 	var node: Node3D = entry.get("node")
 	if is_instance_valid(node):
-		if node.get_parent() != _world:
-			node.get_parent().remove_child(node)
-			_world.add_child(node)
+		_stop_arrow_flight31(node)
+		if node.get_parent() != _world: node.reparent(_world, true)
 		node.visible = false
 	entry["alive"] = false
 	entry["stuck"] = false
@@ -978,8 +1100,9 @@ func _process(delta: float) -> void:
 	# its log without guessing which branch of _process is being taken.
 	_debug_tick += 1
 	if not _active():
-		if is_instance_valid(_bow): _bow.visible = false
-		if is_instance_valid(_quiver): _quiver.visible = false
+		if is_instance_valid(_bow): _bow.visible = _grounded or _stowed_on_back31
+		if is_instance_valid(_quiver): _quiver.visible = _stowed_on_back31 and _quiver_worn
+		_place_back_equipment31()
 		_hide_aim()
 		return
 	# NOTE: arrows are stepped ONLY in _physics_process. Stepping them here as well
@@ -1015,7 +1138,9 @@ func _process(delta: float) -> void:
 func _update_zoom(delta: float) -> void:
 	_zoom_scale = lerpf(_zoom_scale, ZOOM_FACTOR if _show_aim() else 1.0, clampf(ZOOM_RATE * delta, 0.0, 1.0))
 	var aim_camera: Variant = _aim_camera()
-	if aim_camera != null: aim_camera.set("zoom_scale", _zoom_scale)
+	if aim_camera != null:
+		aim_camera.set("bow_aim_active", _show_aim())
+		aim_camera.set("zoom_scale", _zoom_scale)
 
 func _aim_camera() -> Variant:
 	if is_instance_valid(_weapons_host): return _weapons_host.get("aim_camera")
@@ -1024,7 +1149,9 @@ func _aim_camera() -> Variant:
 func _restore_zoom() -> void:
 	_zoom_scale = 1.0
 	var aim_camera: Variant = _aim_camera()
-	if aim_camera != null: aim_camera.set("zoom_scale", 1.0)
+	if aim_camera != null:
+		aim_camera.set("bow_aim_active", false)
+		aim_camera.set("zoom_scale", 1.0)
 
 ## The archer must FACE where he shoots. The bow is placed along the CAMERA, so
 ## without this the body keeps whatever facing it had, the bow is thrown out to his
@@ -1033,7 +1160,7 @@ func _face_the_aim(delta: float) -> void:
 	if not is_instance_valid(_player) or not is_instance_valid(_camera): return
 	var visual: Node3D = _player._visual
 	if not is_instance_valid(visual): return
-	var aim := _aim_direction()
+	var aim: Vector3 = -_camera.global_basis.z.normalized()
 	var flat := Vector3(aim.x, 0.0, aim.z)
 	if flat.length_squared() < 1.0e-6: return
 	# The model faces along its own +Z, so its yaw is atan2(x, z).
@@ -1048,16 +1175,30 @@ func _pose_archer(delta: float) -> void:
 	var bow_point := _bow_hand_point()
 	_pose_arm(_bone_bow_clavicle, _bone_bow_upper, _bone_bow_fore, _bone_bow_hand,
 		_rest_bow_upper, _rest_bow_fore, _rest_bow_hand, bow_point, _left_sign)
-	# The string follows the hand exactly, so keep the world point the hand reached.
-	_string_hand_world = _constrain_hand_path(_draw_hand_point(delta))
+	_string_target_world = _constrain_hand_path(_draw_hand_point(delta))
 	_pose_arm(_bone_draw_clavicle, _bone_draw_upper, _bone_draw_fore, _bone_draw_hand,
-		_rest_draw_upper, _rest_draw_fore, _rest_draw_hand, _string_hand_world, -_left_sign)
+		_rest_draw_upper, _rest_draw_fore, _rest_draw_hand, _string_target_world, -_left_sign)
+	_rig.force_update_all_bone_transforms()
+	_string_hand_world = _hand_palm(_bone_draw_hand)
+
+func _hand_offset(hand: int) -> Vector3:
+	var name := "socket_hand_l" if hand == _bone_draw_hand else "socket_hand_r"
+	var socket := _rig.find_bone(name)
+	return _rig.get_bone_rest(socket).origin if socket >= 0 else Vector3.ZERO
+
+func _hand_palm(hand: int) -> Vector3:
+	return _rig.global_transform * (_rig.get_bone_global_pose(hand) * _hand_offset(hand))
 
 ## Keeps the drawing hand OUT of the archer's own body. Whatever the fetch or the
 ## draw asks for, the hand target is pushed out of a cylinder around his spine, so
 ## the arm can never be posed through his chest or back.
 func _constrain_hand_path(point: Vector3) -> Vector3:
 	var centre: Vector3 = _player.global_position
+	if _fetch_phase == "":
+		var forward: Vector3 = _player._visual.global_basis.z
+		forward.y = 0.0
+		forward = forward.normalized()
+		point += forward * maxf(0.0, 0.10 - (point - centre).dot(forward))
 	var flat := Vector3(point.x - centre.x, 0.0, point.z - centre.z)
 	var radius: float = maxf(0.30, _draw_side().length() * 0.0 + 0.30)
 	if flat.length() >= radius: return point
@@ -1093,7 +1234,7 @@ func _string_hand_point() -> Vector3:
 	# and inside the arm's reach so the elbow can stay bent.
 	var anchor: Vector3 = _draw_shoulder() \
 		+ _draw_side() * (arm * 0.20) \
-		+ aim * (arm * 0.10) \
+		+ _player._visual.global_basis.z.normalized() * (arm * 0.30) \
 		- Vector3.UP * (arm * 0.04)
 	return braced.lerp(anchor, clampf(_draw_amount, 0.0, 1.0))
 
@@ -1131,8 +1272,9 @@ func _advance_fetch(delta: float) -> void:
 ## Starts the fetch at once, for a player who draws before the arrow is on.
 func _ensure_nocked() -> void:
 	if _nocked or _arrows_left <= 0: return
-	if _fetch_phase == "": _fetch_phase = "reach"
-	_fetch_t = 0.0
+	if _fetch_phase == "":
+		_fetch_phase = "reach"
+		_fetch_t = 0.0
 
 func _rest_hand_anchor() -> Vector3:
 	return _player.global_position + Vector3.UP * 1.20 + _aim_direction() * 0.24
@@ -1166,13 +1308,22 @@ func _pose_arm(clav: int, upper: int, fore: int, hand: int,
 	var l1 := rest_fore.origin.length()
 	var l2 := rest_hand.origin.length()
 	if l1 <= 0.01 or l2 <= 0.01: return
+	var rest_basis := (clavicle_global * rest_upper * rest_fore * rest_hand).basis.orthonormalized()
+	var grip_axis := (rest_basis * Vector3(0,0,-1)).normalized()
+	var model_up: Vector3 = _basis_z_along(Vector3.ZERO, _aim_direction()).basis.y
+	var grip_up: Vector3 = (_rig.global_basis.inverse() * model_up).normalized()
+	var palm_basis := Basis(Quaternion(grip_axis, grip_up)) * rest_basis
+	target_rig -= palm_basis * _hand_offset(hand)
 	var to_target := target_rig - joint
 	var distance := to_target.length()
 	if distance < 1.0e-4: return
 	var direction := to_target.normalized()
-	var d := clampf(distance, absf(l1 - l2) + 1.0e-3, l1 + l2 - 1.0e-3)
+	var d := clampf(distance, absf(l1 - l2) + 1.0e-3, (l1 + l2) * 0.96)
 	# The elbow hangs down and slightly back - a natural bend, never an inverted one.
-	var pole := Vector3(0.16 * pole_side, -1.0, -0.12)
+	# Explicit world-space shoulder side avoids mirrored rig-name assumptions.
+	var side: Vector3 = _draw_side() * (1.0 if hand == _bone_draw_hand else -1.0)
+	var world_pole: Vector3 = side * 0.80 - Vector3.UP * 0.60 + _player._visual.global_basis.z * 0.05
+	var pole: Vector3 = (_rig.global_basis.inverse() * world_pole).normalized()
 	pole -= direction * pole.dot(direction)
 	if pole.length_squared() < 1.0e-6:
 		pole = direction.cross(Vector3.RIGHT)
@@ -1186,9 +1337,8 @@ func _pose_arm(clav: int, upper: int, fore: int, hand: int,
 	var upper_global := clavicle_global * upper_local
 	var fore_local := _point_bone(fore, rest_fore, rest_hand.origin, upper_global.basis, fore_dir)
 	var fore_global := upper_global * fore_local
-	var wrist_dir := (target_rig - fore_global.origin)
-	if wrist_dir.length_squared() > 1.0e-8:
-		_point_bone(hand, rest_hand, rest_hand.origin, fore_global.basis, wrist_dir.normalized())
+	var hand_local := Transform3D((fore_global.basis.inverse() * palm_basis).orthonormalized(), rest_hand.origin)
+	_rig.set_bone_pose(hand, hand_local)
 
 func _point_bone(bone: int, rest: Transform3D, child_offset: Vector3, parent_global_basis: Basis, dir_rig: Vector3) -> Transform3D:
 	var rest_dir := rest.basis * child_offset
@@ -1224,7 +1374,7 @@ const FINGER_OFFSET := 0.045
 func _place_bow() -> void:
 	if not is_instance_valid(_bow): return
 	var aim := _aim_direction()
-	var fist: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_bow_hand).origin
+	var fist: Vector3 = _hand_palm(_bone_bow_hand)
 	var origin := fist - aim * BOW_GRIP_LOCAL_Z
 	_bow.global_transform = _basis_z_along(origin, aim)
 	# The tips must be the SAME points the limbs were built from, or the string hangs
@@ -1240,16 +1390,14 @@ func _place_bow() -> void:
 	_place_nocked_arrow(nock_at)
 
 ## The string is held in the fingers, a little past the wrist bone.
-func _string_nock_point(aim: Vector3) -> Vector3:
-	if not is_instance_valid(_rig) or _bone_draw_hand < 0:
-		return _string_hand_world
-	var hand: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_draw_hand).origin
-	return hand + aim * FINGER_OFFSET
+func _string_nock_point(_aim: Vector3) -> Vector3:
+	if not is_instance_valid(_rig) or _bone_draw_hand < 0: return _string_hand_world
+	return _hand_palm(_bone_draw_hand)
 
 ## How far the bow's GRIP is from the hand that is supposed to be holding it.
 func bow_grip_error() -> float:
 	if not is_instance_valid(_bow) or not is_instance_valid(_rig) or _bone_bow_hand < 0: return 99.0
-	var fist: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_bow_hand).origin
+	var fist: Vector3 = _hand_palm(_bone_bow_hand)
 	return _bow.to_global(Vector3(0.0, 0.0, BOW_GRIP_LOCAL_Z)).distance_to(fist)
 
 ## Pose metrics are CACHED at the end of our own frame. Reading the bones from
@@ -1287,22 +1435,19 @@ func pose_report() -> Dictionary:
 ## finger offset - the nock is in the fingers, not on the wrist - so the useful check
 ## is that it stays within a hand's width.
 func string_grip_error() -> float:
-	if not is_instance_valid(_rig) or _bone_draw_hand < 0: return 99.0
-	var hand: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_draw_hand).origin
-	return _string_nock_point(_aim_direction()).distance_to(hand)
+	if not is_instance_valid(_rig) or _bone_draw_hand < 0 or not is_instance_valid(_nock): return 99.0
+	return _nock.global_position.distance_to(_hand_palm(_bone_draw_hand))
 
 ## How far the drawing hand BONE ended up from the point the IK was asked to reach.
 ## A large value means the arm cannot get there and the pose is stretched or folded.
 func string_reach_error() -> float:
-	if not is_instance_valid(_rig) or _bone_draw_hand < 0 or _string_hand_world == Vector3.ZERO: return 99.0
-	var hand: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_draw_hand).origin
-	return hand.distance_to(_string_hand_world)
+	if not is_instance_valid(_rig) or _bone_draw_hand < 0: return 99.0
+	return _hand_palm(_bone_draw_hand).distance_to(_string_target_world)
 
 ## How far the bow hand BONE is from the point its IK was asked to reach.
 func bow_reach_error() -> float:
 	if not is_instance_valid(_rig) or _bone_bow_hand < 0: return 99.0
-	var hand: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_bow_hand).origin
-	return hand.distance_to(_bow_hand_point())
+	return _hand_palm(_bone_bow_hand).distance_to(_bow_hand_point())
 
 ## The arrow on the string, which is what makes a draw readable: it sits between the
 ## archer's fingers with its point toward the target.
@@ -1337,38 +1482,35 @@ func _update_aim_preview() -> void:
 		_hide_aim()
 		return
 	var aim := _aim_direction()
-	# While the string is coming back the arc is the REAL shot. While merely aiming
-	# it shows where a full draw would send the arrow, which is the useful guide.
 	var speed := launch_speed(_draw_amount if _drawing else 1.0)
-	var space := _player.get_world_3d().direct_space_state
-	var excluded: Array[RID] = [_player.get_rid()]
 	var step := clampf(0.9 / maxf(speed, 1.0), 0.012, 0.05)
 	var at := _muzzle_point()
 	var velocity := aim * speed
+	var tip := at + aim * ARROW_TIP_OFFSET31
 	var shown := 0
 	var travelled := 0.0
+	# No decorative dots beyond a nearby wall: the launch check matches _fire.
+	if not _arrow_ray31(_launch_guard_point31(), tip).is_empty():
+		_hide_aim()
+		_predicted_range = 0.0
+		return
 	for i: int in MAX_AIM_DOTS:
-		var next := at + velocity * step
+		var next := _ballistic_point31(at, velocity, step)
 		velocity += Vector3.DOWN * GRAVITY * step
-		# Stop the dotted line where the arrow would actually hit the world, but
-		# never before the arc has had a chance to be read.
-		if shown >= 4 and space != null:
-			var query := PhysicsRayQueryParameters3D.create(at, next, AIM_MASK, excluded)
-			query.hit_from_inside = true
-			if not space.intersect_ray(query).is_empty():
-				break
+		var next_tip := next + velocity.normalized() * ARROW_TIP_OFFSET31
+		var hit := _arrow_ray31(tip, next_tip)
 		var dot: MeshInstance3D = _aim_dots[i]
 		dot.visible = true
-		dot.global_position = next
+		dot.global_position = hit.position if not hit.is_empty() else next_tip
 		var fade := 1.0 - float(i) / float(MAX_AIM_DOTS)
 		dot.scale = Vector3.ONE * clampf(0.35 + fade * 0.85, 0.2, 1.2)
 		shown += 1
 		travelled += step * speed
+		if not hit.is_empty(): break
 		at = next
-	for i: int in range(shown, _aim_dots.size()):
-		_aim_dots[i].visible = false
+		tip = next_tip
+	for i: int in range(shown, _aim_dots.size()): _aim_dots[i].visible = false
 	_predicted_range = travelled
-
 var _predicted_range := 0.0
 
 func _hide_aim() -> void:
@@ -1379,13 +1521,15 @@ func _hide_aim() -> void:
 var _impact_player: AudioStreamPlayer3D
 
 func _impact_sound(at: Vector3) -> void:
+	_build_arrow_audio31()
+	_arrow_audio_counts31["release"] += 1
 	if not is_instance_valid(_impact_player):
 		_impact_player = AudioStreamPlayer3D.new()
 		_impact_player.name = "BowRelease"
-		_impact_player.stream = _pluck_stream()
+		_impact_player.stream = _arrow_audio_streams31["release"]
 		_impact_player.unit_size = 3.0
 		_impact_player.max_distance = 26.0
-		_world.add_child(_impact_player)
+		add_child(_impact_player)
 	_impact_player.global_position = at
 	_impact_player.pitch_scale = randf_range(0.92, 1.12)
 	_impact_player.play()
@@ -1412,8 +1556,9 @@ func _pluck_stream() -> AudioStreamWAV:
 # ---------------------------------------------------------------- diagnostics
 
 func snapshot() -> Dictionary:
+	if not is_inside_tree() or not is_instance_valid(_player) or not _player.is_inside_tree(): return {}
 	return {
-		"ready": _ready, "selected": _selected, "drawing": _drawing,
+		"ready": _ready, "ready_to_fire": ready_to_fire(), "selected": _selected, "drawing": _drawing,
 		"aiming": _aiming, "aim_shown": _show_aim(),
 		"draw": _draw_amount, "arrows": _arrows.size(), "shots": _shots,
 		"arrows_left": _arrows_left, "quiver_worn": _quiver_worn,
@@ -1579,11 +1724,157 @@ func _visible_aim_dots() -> int:
 
 func _bow_hand_error() -> float:
 	if not is_instance_valid(_bow) or not is_instance_valid(_rig) or _bone_bow_hand < 0: return 99.0
-	var fist: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_bow_hand).origin
-	return _bow.global_position.distance_to(fist)
+	var fist: Vector3 = _hand_palm(_bone_bow_hand)
+	return bow_grip_error()
 
 func _exit_tree() -> void:
 	for entry: Dictionary in _arrows:
 		var node: Node3D = entry.get("node")
 		if is_instance_valid(node): node.queue_free()
 	_arrows.clear()
+
+
+const ARROW_TIP_OFFSET31 := 0.4425
+const MAX_FLIGHT_AUDIO31 := 6
+var _last_arrow_surface31 := ""
+var _arrow_audio_streams31: Dictionary = {}
+var _arrow_impact_players31: Array[AudioStreamPlayer3D] = []
+var _arrow_impact_cursor31 := 0
+var _flight_audio_count31 := 0
+var _arrow_audio_counts31 := {"release": 0, "flight": 0, "wood": 0, "stone": 0, "dirt": 0, "flesh": 0}
+
+func _ballistic_point31(at: Vector3, velocity: Vector3, delta: float) -> Vector3:
+	return at + velocity * delta + Vector3.DOWN * (0.5 * GRAVITY * delta * delta)
+
+func _launch_guard_point31() -> Vector3:
+	if is_instance_valid(_bow): return _bow.to_global(Vector3(0, 0, BOW_GRIP_LOCAL_Z))
+	return _bow_hand_point()
+
+func _arrow_ray31(from: Vector3, to: Vector3) -> Dictionary:
+	if from.distance_squared_to(to) < 0.000000001: return {}
+	var space := _player.get_world_3d().direct_space_state
+	if space == null: return {}
+	var excluded: Array[RID] = [_player.get_rid()]
+	var query := PhysicsRayQueryParameters3D.create(from, to, AIM_MASK, excluded)
+	query.hit_from_inside = true
+	return space.intersect_ray(query)
+
+func _arrow_surface31(collider: Variant) -> String:
+	if not is_instance_valid(collider): return "stone"
+	if collider.has_meta("sword_npc_part"): return "flesh"
+	var current := collider as Node
+	var names := ""
+	for depth: int in 5:
+		if not is_instance_valid(current): break
+		names += " " + String(current.name).to_lower()
+		for key: String in ["surface", "surface_type", "material_type"]:
+			if not current.has_meta(key): continue
+			var value := str(current.get_meta(key)).to_lower()
+			if value in ["wood", "timber", "plank"]: return "wood"
+			if value in ["dirt", "earth", "ground", "grass", "sand", "soil"]: return "dirt"
+			if value in ["stone", "concrete", "brick", "masonry", "metal"]: return "stone"
+		current = current.get_parent()
+	if "wood" in names or "gate" in names or "plank" in names or "pole" in names: return "wood"
+	if "ground" in names or "dirt" in names or "grass" in names or "soil" in names: return "dirt"
+	return "stone"
+
+func _build_arrow_audio31() -> void:
+	if not _arrow_audio_streams31.is_empty(): return
+	_arrow_audio_streams31["release"] = _pluck_stream()
+	for kind: String in ["flight", "wood", "stone", "dirt", "flesh"]:
+		_arrow_audio_streams31[kind] = _arrow_stream31(kind)
+
+func _arrow_stream31(kind: String) -> AudioStreamWAV:
+	# Shared, deterministic mono resources. No per-shot file decode or synthesis.
+	var rate := 22050
+	var duration := 0.40 if kind == "flight" else 0.20
+	var count := int(rate * duration)
+	var bytes := PackedByteArray()
+	bytes.resize(count * 2)
+	var random := RandomNumberGenerator.new()
+	random.seed = 310718
+	var low := 0.0
+	for i: int in count:
+		var t := float(i) / float(rate)
+		var noise := random.randf_range(-1.0, 1.0)
+		low = lerpf(low, noise, 0.12)
+		var value := 0.0
+		match kind:
+			"flight": value = (noise - low) * 0.13 * (0.90 + 0.10 * cos(TAU * t / duration))
+			"wood": value = sin(TAU * 540.0 * t) * exp(-35.0 * t) * 0.65 + noise * exp(-85.0 * t) * 0.23
+			"stone": value = (sin(TAU * 2300.0 * t) + 0.4 * sin(TAU * 3750.0 * t)) * exp(-48.0 * t) * 0.28 + noise * exp(-100.0 * t) * 0.34
+			"dirt": value = low * exp(-32.0 * t) * 1.7 + sin(TAU * 105.0 * t) * exp(-50.0 * t) * 0.26
+			"flesh": value = sin(TAU * (190.0 * t - 160.0 * t * t)) * exp(-30.0 * t) * 0.62 + noise * exp(-115.0 * t) * 0.28 + low * exp(-55.0 * absf(t - 0.025)) * 0.72
+		bytes.encode_s16(i * 2, int(clampf(value, -1.0, 1.0) * 30000.0))
+	var stream := AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = rate
+	stream.stereo = false
+	stream.data = bytes
+	if kind == "flight":
+		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		stream.loop_begin = 0
+		stream.loop_end = count
+	return stream
+
+func _start_arrow_flight31(arrow: Node3D) -> void:
+	_flight_audio_count31 = _flight_voices31()
+	if _flight_audio_count31 >= MAX_FLIGHT_AUDIO31: return
+	_build_arrow_audio31()
+	var sound := arrow.get_node_or_null("FlightSound31") as AudioStreamPlayer3D
+	if sound == null:
+		sound = AudioStreamPlayer3D.new()
+		sound.name = "FlightSound31"
+		sound.stream = _arrow_audio_streams31["flight"]
+		sound.unit_size = 2.5
+		sound.max_distance = 24.0
+		sound.volume_db = -16.0
+		arrow.add_child(sound)
+	if sound.playing: return
+	sound.play()
+	_flight_audio_count31 += 1
+	_arrow_audio_counts31["flight"] += 1
+
+func _update_arrow_flight31(arrow: Node3D, speed: float) -> void:
+	var sound := arrow.get_node_or_null("FlightSound31") as AudioStreamPlayer3D
+	if sound == null or not sound.playing: return
+	sound.pitch_scale = clampf(speed / ARROW_SPEED_MAX, 0.65, 1.35)
+	sound.volume_db = lerpf(-24.0, -14.0, clampf(speed / ARROW_SPEED_MAX, 0.0, 1.0))
+
+func _stop_arrow_flight31(arrow: Node3D) -> void:
+	var sound := arrow.get_node_or_null("FlightSound31") as AudioStreamPlayer3D
+	if sound == null or not sound.playing: return
+	sound.stop()
+	_flight_audio_count31 = maxi(0, _flight_audio_count31 - 1)
+
+func _play_arrow_impact31(at: Vector3, surface: String, speed: float) -> void:
+	_build_arrow_audio31()
+	if _arrow_impact_players31.size() < 4:
+		var sound := AudioStreamPlayer3D.new()
+		sound.name = "ArrowImpact31"
+		sound.unit_size = 4.0
+		sound.max_distance = 35.0
+		add_child(sound)
+		_arrow_impact_players31.append(sound)
+	var player := _arrow_impact_players31[_arrow_impact_cursor31 % _arrow_impact_players31.size()]
+	_arrow_impact_cursor31 += 1
+	player.stream = _arrow_audio_streams31.get(surface, _arrow_audio_streams31["stone"])
+	player.global_position = at
+	player.pitch_scale = randf_range(0.94, 1.06)
+	player.volume_db = lerpf(-14.0, -3.0, clampf(speed / ARROW_SPEED_MAX, 0.0, 1.0))
+	player.play()
+	_arrow_audio_counts31[surface] = int(_arrow_audio_counts31.get(surface, 0)) + 1
+
+func arrow_audio_report31() -> Dictionary:
+	return {"events": _arrow_audio_counts31.duplicate(), "last_surface": _last_arrow_surface31,
+		"flight_voices": _flight_voices31(), "impact_voices": _arrow_impact_players31.size(),
+		"cached_streams": _arrow_audio_streams31.size()}
+
+func _flight_voices31() -> int:
+	var count := 0
+	for entry: Dictionary in _arrows:
+		var node: Node3D = entry.get("node")
+		if not is_instance_valid(node): continue
+		var sound := node.get_node_or_null("FlightSound31") as AudioStreamPlayer3D
+		if sound != null and sound.playing: count += 1
+	return count

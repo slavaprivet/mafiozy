@@ -49,6 +49,13 @@ func _run() -> void:
 	await _settle(40)
 	var near_fps: float = await _measure(2.5)
 	print("PERF_COURTYARD fps=", near_fps)
+	_camera.global_position = base + Vector3(0.0, 4.0, half + 18.0)
+	_camera.look_at(base + Vector3(0.0, 6.0, half), Vector3.UP)
+	await _settle(40)
+	var gate_fps: float = await _measure(2.5)
+	print("PERF_GATE fps=", gate_fps, " draw_calls=",
+		Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
+		" objects=", Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME))
 	_camera.global_position = base + Vector3(half + 90.0, 55.0, half + 90.0)
 	_camera.look_at(base + Vector3(0.0, 10.0, 0.0), Vector3.UP)
 	await _settle(40)
@@ -58,6 +65,7 @@ func _run() -> void:
 	print("PERF_CHUNKS ", JSON.stringify(render))
 	var failed: Array[String] = []
 	if near_fps < 90.0: failed.append("courtyard_slow")
+	if gate_fps < 90.0: failed.append("gate_slow")
 	if far_fps < 90.0: failed.append("whole_castle_slow")
 	print("PERF_RESULT ", "PASS" if failed.is_empty() else "FAIL " + str(failed))
 	quit(0)

@@ -35,6 +35,10 @@ var scene: Node3D
 var fire_state: Dictionary = {}
 var menu_open := false
 var cargo_menu_owner: Node
+var castle_storage_owner: Node
+var _catapult_stone_carry := false
+var _catapult_saved_fire_state: Dictionary = {}
+var _catapult_saved_shield := false
 var ready_for_play := false
 var _held := false
 var _pressed := false
@@ -140,10 +144,70 @@ func cargo_menu_active() -> bool:
 	return is_instance_valid(cargo_menu_owner) and cargo_menu_owner.window_open
 
 func controls_blocked() -> bool:
-	return menu_open or cargo_menu_active()
+	return menu_open or cargo_menu_active() or (is_instance_valid(castle_storage_owner) and castle_storage_owner.window_open)
+
+## Holding the one catapult stone borrows both hands. The castle inventory keeps
+## ownership and slot positions; only the active models and attacks are suspended.
+func begin_catapult_stone_carry() -> bool:
+	if _catapult_stone_carry: return false
+	if not _owner_current() or player._pose_authority != &"on_foot": return false
+	if is_instance_valid(castle_storage_owner) and castle_storage_owner.window_open:
+		castle_storage_owner.close_window()
+	set_menu(false)
+	cancel_inputs()
+	_catapult_saved_fire_state = fire_state.duplicate(true)
+	var sword_host: Node = scene.get("preview_sword_prototype")
+	_catapult_saved_shield = is_instance_valid(sword_host) and bool(sword_host.shield_status().get("worn", false))
+	if _catapult_saved_shield: sword_host.set_shield_worn(false)
+	_sword_prototype_selected(false)
+	_bow_prototype_selected(false)
+	if is_instance_valid(castle_storage_owner) and castle_storage_owner.has_back_bow():
+		castle_storage_owner._set_bow_back(true)
+	presentation.equip("none")
+	fire_state = Fire.create_state("none")
+	_catapult_stone_carry = true
+	_refresh_ui()
+	return true
+
+func end_catapult_stone_carry() -> void:
+	if not _catapult_stone_carry: return
+	_catapult_stone_carry = false
+	var id: String = str(_catapult_saved_fire_state.get("weaponId", "none"))
+	if is_instance_valid(castle_storage_owner) and id in castle_storage_owner.MEDIEVAL \
+			and not castle_storage_owner._carried.has(id): id = "none"
+	fire_state = _catapult_saved_fire_state.duplicate(true) if id != "none" else Fire.create_state("none")
+	if id in MELEE_IDS:
+		presentation.equip("none")
+		_sword_prototype_weapon(id)
+		_sword_prototype_selected(true)
+	elif id == BOW_ID:
+		presentation.equip("none")
+		_bow_prototype_selected(true)
+		if is_instance_valid(castle_storage_owner): castle_storage_owner._set_bow_back(false)
+	else:
+		presentation.equip(id)
+	if _catapult_saved_shield and is_instance_valid(castle_storage_owner) \
+			and castle_storage_owner.hand_has_shield():
+		var sword_host: Node = scene.get("preview_sword_prototype")
+		if is_instance_valid(sword_host):
+			if id == "none" and sword_host.has_method("set_shield_only31"):
+				sword_host.set_shield_only31(true)
+			sword_host.set_shield_worn(true)
+			_sword_prototype_selected(true)
+	_catapult_saved_fire_state.clear()
+	_catapult_saved_shield = false
+	cancel_inputs()
+	_refresh_ui()
 
 func equip(id: String) -> Dictionary:
+	if _catapult_stone_carry: return {"ok":false,"reason":"hands_occupied_by_stone"}
 	if not _equip_allowed(): return {"ok":false,"reason":"inactive"}
+	if is_instance_valid(castle_storage_owner) and id in castle_storage_owner.MEDIEVAL \
+			and not castle_storage_owner._busy:
+		return castle_storage_owner.acquire_or_select(id)
+	if is_instance_valid(castle_storage_owner) and id in castle_storage_owner.MEDIEVAL \
+			and not castle_storage_owner.allows_equip(id):
+		return {"ok":false,"reason":"castle_weapon_not_carried"}
 	# DSH_MELEE_SET / DSH_SWORD_PROTO: the whole melee set is always available and
 	# never consumes inventory ownership or ammunition. It disables the firearm
 	# presentation, and only one weapon host is ever selected at a time.
@@ -157,11 +221,22 @@ func equip(id: String) -> Dictionary:
 	# Prepare the real model before changing item ownership/equipment state.
 	var prepared: Dictionary = presentation.equip(id)
 	if not prepared.get("ok", false): return prepared
-	var result: Dictionary = inventory.equip(id, fire_state)
+	# Medieval prototypes live outside firearm inventory. Passing their temporary
+	# fire_state to that inventory rejects stowing them (including chest deposits).
+	var inventory_state: Dictionary = inventory.get_fire_state() if str(fire_state.get("weaponId", "none")) in MELEE_IDS or str(fire_state.get("weaponId", "none")) == BOW_ID else fire_state
+	var result: Dictionary = inventory.equip(id, inventory_state)
 	if not result.get("ok", false):
 		presentation.equip(str(fire_state.weaponId)); return result
 	fire_state = result.fireState
 	_profile = Fire.profile(id)
+	if id == "none" and is_instance_valid(castle_storage_owner):
+		castle_storage_owner.selected_none()
+	if id == "none" and is_instance_valid(castle_storage_owner) \
+			and castle_storage_owner.hand_has_shield():
+		var shield_host: Node = scene.get("preview_sword_prototype") if is_instance_valid(scene) else null
+		if is_instance_valid(shield_host) and shield_host.has_method("set_shield_only31"):
+			shield_host.set_shield_only31(true)
+			_sword_prototype_selected(true)
 	cancel_inputs()
 	if is_instance_valid(player._melee_practice): player._melee_practice.cancel("weapon_equipped")
 	set_menu(false)
@@ -181,6 +256,10 @@ func _ensure_medieval_host(property: String, installer: String) -> bool:
 func _equip_melee(id: String) -> Dictionary:
 	if not _ensure_medieval_host("preview_sword_prototype", "_install_sword_prototype"):
 		return {"ok":false,"reason":"no_prototype"}
+	var prototype: Node = scene.get("preview_sword_prototype")
+	if id in ["axe", "sledge", "spear"] and is_instance_valid(prototype) \
+			and bool(prototype.shield_status().get("worn", false)):
+		return {"ok":false,"reason":"shield_occupies_right_hand"}
 	cancel_inputs()
 	presentation.equip("none")
 	fire_state = Fire.create_state("none")
@@ -190,6 +269,8 @@ func _equip_melee(id: String) -> Dictionary:
 	_profile = {}
 	_sword_prototype_selected(true)
 	_sword_prototype_weapon(id)
+	if is_instance_valid(prototype) and prototype.has_method("set_shield_only31"):
+		prototype.set_shield_only31(false)
 	_bow_prototype_selected(false)
 	if is_instance_valid(player._melee_practice): player._melee_practice.cancel("melee_equipped")
 	set_menu(false)
@@ -203,14 +284,35 @@ func _equip_shield() -> Dictionary:
 	cancel_inputs()
 	var prototype: Node = scene.get("preview_sword_prototype") if is_instance_valid(scene) else null
 	if is_instance_valid(prototype) and prototype.has_method("set_shield_worn"):
-		var worn: bool = not bool(prototype.shield_status().get("worn", false))
-		prototype.set_shield_worn(worn)
+		var already_worn: bool = bool(prototype.shield_status().get("worn", false))
+		var worn: bool = true if is_instance_valid(castle_storage_owner) else not already_worn
+		if worn and already_worn: return {"ok":true,"weaponId":SHIELD_ID,"shield":true}
+		var shield_only: bool = str(fire_state.get("weaponId", "none")) == "none"
+		if worn and shield_only and prototype.has_method("set_shield_only31"):
+			prototype.set_shield_only31(true)
+		if worn and not bool(prototype.can_wear_shield31()):
+			if shield_only and prototype.has_method("set_shield_only31"): prototype.set_shield_only31(false)
+			return {"ok":false,"reason":"shield_needs_free_right_hand"}
+		if not bool(prototype.set_shield_worn(worn)):
+			if shield_only and prototype.has_method("set_shield_only31"): prototype.set_shield_only31(false)
+			return {"ok":false,"reason":"shield_equip_failed"}
 		if worn:
 			_sword_prototype_selected(true)
 		set_menu(false)
 		_refresh_ui()
 		return {"ok":true,"weaponId":SHIELD_ID,"shield":worn}
 	return {"ok":false,"reason":"no_prototype"}
+
+func stow_castle_shield() -> bool:
+	if not is_instance_valid(scene): return false
+	var prototype: Node = scene.get("preview_sword_prototype")
+	if not is_instance_valid(prototype) or not bool(prototype.shield_status().get("worn", false)):
+		return false
+	if not bool(prototype.set_shield_worn(false)): return false
+	if str(fire_state.get("weaponId", "none")) == "none":
+		if prototype.has_method("set_shield_only31"): prototype.set_shield_only31(false)
+		_sword_prototype_selected(false)
+	return true
 
 ## Tells the host which weapon of the set to present.
 func _sword_prototype_weapon(id: String) -> void:
@@ -321,6 +423,9 @@ func release_controls() -> void:
 	if not _menu_transition: set_menu(false)
 
 func input_event(event: InputEvent) -> bool:
+	if _catapult_stone_carry: return false
+	if is_instance_valid(castle_storage_owner) and castle_storage_owner.window_open:
+		return castle_storage_owner.window_input(event)
 	if cargo_menu_active(): return cargo_menu_owner.window_input(event)
 	if not _owner_current(): return false
 	# DSH_MELEE_SET: THE CURSOR MAY LEGITIMATELY BE FREE - at the very start of a session,
@@ -383,6 +488,16 @@ func input_event(event: InputEvent) -> bool:
 	return menu_open and event is InputEventMouseMotion
 
 func _input(event: InputEvent) -> void:
+	if _catapult_stone_carry: return
+	if is_instance_valid(castle_storage_owner) and event is InputEventKey \
+			and event.pressed and not event.echo and not castle_storage_owner.window_open:
+		var castle_code: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
+		if castle_code == KEY_Q and castle_storage_owner.has_back_bow() and castle_storage_owner.toggle_bow_selection():
+			get_viewport().set_input_as_handled()
+			return
+		if castle_code == KEY_G and bool(castle_storage_owner.drop_held(Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)).get("ok", false)):
+			get_viewport().set_input_as_handled()
+			return
 	# The visible arsenal owns keys before vehicle/building unhandled shortcuts.
 	# GUI mouse clicks still reach the actual weapon buttons.
 	if event is InputEventKey and event.pressed and not event.echo:

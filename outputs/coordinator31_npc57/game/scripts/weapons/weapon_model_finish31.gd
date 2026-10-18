@@ -123,3 +123,16 @@ static func shield_rim() -> ArrayMesh:
 	tool.generate_normals()
 	tool.generate_tangents()
 	return tool.commit()
+
+
+static func resting_transform(model: Node3D, basis: Basis, floor_point: Vector3) -> Transform3D:
+	# Rest the lowest vertex bound on the floor for every weapon silhouette.
+	var lowest := INF
+	for child in model.get_children():
+		if not child is MeshInstance3D or child.mesh == null: continue
+		var bounds: AABB = child.mesh.get_aabb()
+		for corner in 8:
+			var point := bounds.get_endpoint(corner)
+			lowest = minf(lowest, (basis * (child.transform * point)).y)
+	if not is_finite(lowest): lowest = 0.0
+	return Transform3D(basis, floor_point + Vector3.UP * (0.008 - lowest))
