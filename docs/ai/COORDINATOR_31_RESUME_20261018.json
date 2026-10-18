@@ -34,5 +34,12 @@
     "Do not restart former coordinator or his agents"
   ],
   "tool_availability": "ToolSearch and Ruflo MCP not exposed; continued with available thread and collaboration tools",
-  "acceptance": "Takeover complete; movement and joint work in progress, no new gameplay acceptance claimed"
+  "acceptance": "Takeover complete; movement and joint work in progress, no new gameplay acceptance claimed",
+  "movement_resolution": "User confirmed movement works after clicking the game window. Escape releases capture; no global movement failure reproduced.",
+  "camera_fix": "3-line synchronization of camera pivot and character heading at castle startup; separate from cursor capture complaint",
+  "camera_evidence": "D:/MafioziCombat31/resume_movement31/RESULT.json; native 7/7, graphical baseline click/escape/WASD passed",
+  "joint_resume_evidence": "D:/MafioziCastle31/qa/resume31_joint_20261018/HANDOFF.md",
+  "joint_resume_result": "Late impulse PASS; two ordinary strong arm severs confirmed; both full natural sequences FAIL at subsequent nonfatal spear. Joint remains isolated, sleep/perf pending.",
+  "latest_launch": "User explicitly requested latest scene reopened; old PID35736 closed after fresh identity check, shared castle reopened PID37204. Refresh inventory before later process actions.",
+  "castle_visual_limit": "Map author confirms no separate newer accepted castle/doors package. Shared current castle is latest available; Banner36 and joint experiments not integrated."
 }

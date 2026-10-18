@@ -667,6 +667,9 @@ func _build_castle_map() -> bool:
 			_player.global_position = cart_pos + Vector3(0.0, 0.2, 4.5)
 			_player.velocity = Vector3.ZERO
 			_player.set("_camera_yaw", PI)
+			_player._heading = PI
+			_player._visual.rotation.y = PI + deg_to_rad(_player.visual_yaw_degrees)
+			_player._update_camera_rotation()
 			# Behind the machine, whichever way it faces.
 			var machine_yaw: float = float(preview_catapult.get("_yaw"))
 			var behind := Vector3(sin(machine_yaw), 0.0, cos(machine_yaw))
