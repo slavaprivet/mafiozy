@@ -1299,15 +1299,20 @@ func _add_breakable_collision(at: Vector3, size: Vector3, rotation_y: float = 0.
 	_wall_collision.append({"body": body, "at": at, "size": size, "alive": true})
 
 func _break_collision_near(at: Vector3, radius: float) -> void:
+	var world_at: Vector3 = to_global(at)
 	for section: Dictionary in _wall_collision:
 		if not bool(section.get("alive", false)): continue
-		var size: Vector3 = section["size"]
 		var body: StaticBody3D = section["body"]
 		if not is_instance_valid(body): continue
+		var size: Vector3 = section["size"]
+		# DSH_OPT: a cheap sphere reject first. The exact test inverts a transform and
+		# clamps a point, and most of the 2k sections are nowhere near the strike.
+		var reach: float = radius + size.length() * 0.5
+		if body.global_position.distance_squared_to(world_at) > reach * reach: continue
 		# Floor tiles lose their own support when struck, leaving adjacent tiles intact.
 		if body.get_meta("castle_keep_floor", false) and section["at"].distance_to(at) > radius:
 			continue
-		var local_hit: Vector3 = body.to_local(to_global(at))
+		var local_hit: Vector3 = body.global_transform.affine_inverse() * world_at
 		var nearest := Vector3(clampf(local_hit.x, -size.x * 0.5, size.x * 0.5),
 			clampf(local_hit.y, -size.y * 0.5, size.y * 0.5),
 			clampf(local_hit.z, -size.z * 0.5, size.z * 0.5))
@@ -3272,14 +3277,15 @@ func apply_explosion(event: Dictionary) -> Dictionary:
 		# SECTION BY SECTION, where the stone struck. Each leaf has six plank columns
 		# and eight short courses; a hit opens a local hole. The hinge releases only
 		# when every section of the leaf has been destroyed.
+		# The planks are drawn through the leaf's MultiMesh, so the distance is taken
+		# in the PIVOT's space: the leaf can be swinging, and the planks swing with it.
+		# Distance to the NEAREST POINT of the board, not to its middle: a stone that
+		# strikes the top of a door is four metres from the centre of every board and was
+		# measured as a miss.
+		var pivot_hit: Vector3 = pivot.to_local(at_world)
 		for board: Dictionary in boards:
 			if bool(board.get("broken", false)): continue
-			# The planks are drawn through the leaf's MultiMesh, so the distance is taken
-			# in the PIVOT's space: the leaf can be swinging, and the planks swing with it.
-			# Distance to the NEAREST POINT of the board, not to its middle: a stone that
-			# strikes the top of a door is four metres from the centre of every board and was
-			# measured as a miss.
-			var local_hit: Vector3 = pivot.to_local(at_world)
+			var local_hit: Vector3 = pivot_hit
 			var board_at: Vector3 = board.get("at", Vector3.ZERO)
 			var board_size: Vector3 = board.get("size", Vector3(0.8, 1.4, 0.26))
 			var nearest := Vector3(

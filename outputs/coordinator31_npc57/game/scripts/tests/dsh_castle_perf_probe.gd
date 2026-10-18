@@ -14,6 +14,7 @@ var _scene: Node
 var _castle: Node3D
 var _camera: Camera3D
 var _out_dir := ""
+var _tag := "probe_"
 var _brick_nodes: Array[Node] = []
 var _decor_nodes: Array[MeshInstance3D] = []
 var _sun: DirectionalLight3D
@@ -67,7 +68,7 @@ func _shot(name: String) -> void:
 	if image == null:
 		print("PROBE_SHOT_FAIL ", name)
 		return
-	var path := _out_dir.path_join("probe_%s.png" % name)
+	var path := _out_dir.path_join("%s%s.png" % [_tag, name])
 	image.save_png(path)
 	print("PROBE_SHOT ", path)
 
@@ -121,6 +122,11 @@ func _run() -> void:
 			if size_parts.size() == 2:
 				root.size = Vector2i(int(size_parts[0]), int(size_parts[1]))
 				print("PROBE_SIZE ", size_parts[0], "x", size_parts[1])
+		if argument.begins_with("--probe-tag="):
+			_tag = argument.trim_prefix("--probe-tag=")
+		if argument == "--probe-no-msaa":
+			root.msaa_3d = Viewport.MSAA_DISABLED
+			print("PROBE_MSAA off")
 	if _out_dir == "":
 		_out_dir = "C:/Users/Слава/Documents/deepseek-harness/default-workspace"
 	var load_started := Time.get_ticks_usec()
