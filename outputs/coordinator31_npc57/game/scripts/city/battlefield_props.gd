@@ -270,15 +270,33 @@ func _build_palisade(p: Vector3, side: float, id: String) -> void:
 		var section_group: Dictionary = _groups[section_id]
 		var lift_delta := common_ground - float(section_group["ground_offset"])
 		section_group["ground_offset"] = common_ground
-		section_group["center"] = p + Vector3(mid_x, common_ground, 0)
 		var collider: StaticBody3D = section_group["collider"]
 		collider.position.y += lift_delta
+		# Keep the long top rail level, but drive every picket into the actual
+		# bank below it. The previous common footing left up to a metre of air
+		# under the end panels and an equally suspended collision box.
+		var lowest_foot := common_ground
+		var tallest_tip := 2.6
+		for i in range(first, last + 1):
+			var stake_x := p.x + (float(i) - 11.0) * 1.08
+			lowest_foot = minf(lowest_foot, _terrain_y(stake_x, p.z) - 0.25)
+			tallest_tip = maxf(tallest_tip, 3.0 + 0.6 * sin(float(i) * 1.7) + 0.35)
+		var extra_depth := common_ground - lowest_foot
+		var collider_shape: CollisionShape3D = collider.get_child(0) as CollisionShape3D
+		var grounded_box := BoxShape3D.new()
+		grounded_box.size = Vector3(width, tallest_tip + extra_depth, 0.85)
+		collider_shape.shape = grounded_box
+		collider.position.y += (tallest_tip - 2.6 - extra_depth) * 0.5
+		section_group["center"] = p + Vector3(mid_x, lowest_foot, 0)
+		section_group["height"] = grounded_box.size.y
 		for i in range(first, last + 1):
 			var x := (float(i) - 11.0) * 1.08
 			var height := 3.0 + 0.6 * sin(float(i) * 1.7)
-			var center := p + Vector3(x, height * 0.5, 0)
+			var stake_foot := _terrain_y(p.x + x, p.z) - 0.25
+			var stake_depth := maxf(0.0, common_ground - stake_foot)
+			var center := p + Vector3(x, (height - stake_depth) * 0.5, 0)
 			_piece("cone", "oak_edge" if i % 4 else "char", center,
-				Vector3(0.42, height, 0.42), Vector3(0, 0, side * 0.08), section_id)
+				Vector3(0.42, height + stake_depth, 0.42), Vector3(0, 0, side * 0.08), section_id)
 			_piece("cone", "iron", p + Vector3(x, height + 0.14, 0),
 				Vector3(0.14, 0.42, 0.14), Vector3.ZERO, section_id)
 		for height in [0.72, 1.63, 2.27]:
