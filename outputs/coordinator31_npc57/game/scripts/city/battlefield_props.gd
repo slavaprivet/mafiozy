@@ -517,6 +517,36 @@ func _tent_collision(id: String, yaw: float) -> void:
 func _build_watchtower(p: Vector3, id: String) -> void:
 	# A recognisable high silhouette at both ends of the attackers' line.
 	_group(id, p, 220.0, "wood", Vector3(3.6, 5.2, 3.6))
+	# The old full-volume box blocked stones under the visibly open tower.
+	# Reuse its StaticBody and primary shape for the platform, then bound the
+	# structural timbers. Destruction still removes the whole tower at once.
+	var body: StaticBody3D = _groups[id]["collider"]
+	var platform: CollisionShape3D = body.get_child(0) as CollisionShape3D
+	var platform_box := BoxShape3D.new()
+	platform_box.size = Vector3(3.6, 0.16, 3.65)
+	platform.shape = platform_box
+	platform.position = Vector3(0, 2.50, 0)
+	for x in [-1.55, 1.55]:
+		for z in [-1.55, 1.55]:
+			_tower_shape(body, Vector3(0.26, 5.3, 0.26), Vector3(x, 0.05, z))
+	for side in [-1.0, 1.0]:
+		for level in [1.25, 3.15]:
+			_tower_shape(body, Vector3(3.4, 0.15, 0.17), Vector3(0, level - 2.6, side * 1.54))
+			_tower_shape(body, Vector3(0.17, 0.15, 3.4), Vector3(side * 1.54, level - 2.6, 0))
+		_tower_shape(body, Vector3(0.15, 3.8, 0.17), Vector3(0, 0.02, side * 1.53),
+			Vector3(0, 0, side * 0.69))
+	var collision_brace_length := Vector2(3.1, 3.4).length()
+	var collision_brace_angle := atan2(3.1, 3.4)
+	for slope in [-1.0, 1.0]:
+		_tower_shape(body, Vector3(0.15, collision_brace_length, 0.16), Vector3(0, -0.45, 1.54),
+			Vector3(0, 0, slope * collision_brace_angle))
+	for side in [-1.0, 1.0]:
+		_tower_shape(body, Vector3(0.16, collision_brace_length, 0.15), Vector3(side * 1.54, -0.45, 0),
+			Vector3(side * collision_brace_angle, 0, 0))
+		_tower_shape(body, Vector3(0.11, 1.15, 3.62), Vector3(side * 1.70, 3.20, 0))
+		_tower_shape(body, Vector3(3.62, 1.15, 0.11), Vector3(0, 3.20, side * 1.70))
+	# A single ladder strip bounds its rungs without eleven extra physics shapes.
+	_tower_shape(body, Vector3(1.1, 5.0, 0.10), Vector3(-1.0, 0, -1.93))
 	for x in [-1.55, 1.55]:
 		for z in [-1.55, 1.55]:
 			_box("oak_edge", p + Vector3(x, 2.65, z), Vector3(0.26, 5.3, 0.26), Vector3.ZERO, id)
@@ -547,6 +577,16 @@ func _build_watchtower(p: Vector3, id: String) -> void:
 	_box("oak", p + Vector3(0, 6.48, 0), Vector3(0.12, 1.45, 0.12), Vector3.ZERO, id)
 	_box("red", p + Vector3(0.64, 6.78, 0), Vector3(1.20, 0.72, 0.04), Vector3.ZERO, id)
 	_stats["watchtowers"] += 1
+
+func _tower_shape(body: StaticBody3D, size: Vector3, local_center: Vector3,
+		rotation := Vector3.ZERO) -> void:
+	var collision := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = size
+	collision.shape = box
+	collision.position = local_center
+	collision.rotation = rotation
+	body.add_child(collision)
 
 func _build_banner(p: Vector3, cloth := "red") -> void:
 	_box("oak_edge", p + Vector3.UP * 2.1, Vector3(0.13, 4.2, 0.13))
