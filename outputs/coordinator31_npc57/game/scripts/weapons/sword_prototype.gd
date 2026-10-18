@@ -4923,6 +4923,47 @@ func _queue_npc_corpse31(point: Vector3, direction: Vector3, speed: float) -> vo
 	_npc_corpse_pending31 = true
 	_start_npc_corpse31.call_deferred(_npc_body.get_instance_id(), point, direction, speed)
 
+## Freeze the collision envelope from the same posed skin shown at death.
+## A standing capsule does not enclose bent limbs or the rig's skin offset.
+func _npc_corpse_shape31(corpse_frame: Transform3D) -> Shape3D:
+	var points := PackedVector3Array()
+	var inverse := corpse_frame.affine_inverse()
+	for child: Node in _npc_rig.get_parent().find_children("*", "MeshInstance3D", true, false):
+		var visual := child as MeshInstance3D
+		if visual.mesh == null or not visual.is_visible_in_tree(): continue
+		var binds: Array[Transform3D] = []
+		if visual.skin != null:
+			for index in visual.skin.get_bind_count():
+				var name := visual.skin.get_bind_name(index)
+				var bone := _npc_rig.find_bone(name) if name != &"" else visual.skin.get_bind_bone(index)
+				if bone < 0 or bone >= _npc_rig.get_bone_count(): return null
+				binds.append(inverse * _npc_rig.global_transform * _npc_rig.get_bone_global_pose(bone) * visual.skin.get_bind_pose(index))
+		for surface in visual.mesh.get_surface_count():
+			var arrays: Array = visual.mesh.surface_get_arrays(surface)
+			var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+			var bones = arrays[Mesh.ARRAY_BONES]
+			var weights = arrays[Mesh.ARRAY_WEIGHTS]
+			if points.size() + vertices.size() > 100000: return null
+			var skinned := not binds.is_empty() and bones != null and weights != null
+			if skinned and (bones.size() != vertices.size() * 4 or weights.size() != bones.size()): return null
+			for index in vertices.size():
+				var point: Vector3 = inverse * visual.global_transform * vertices[index]
+				if skinned:
+					point = Vector3.ZERO
+					for slot in 4:
+						var weight: float = weights[index * 4 + slot]
+						if weight <= 0.0: continue
+						var bind: int = bones[index * 4 + slot]
+						if bind < 0 or bind >= binds.size(): return null
+						point += binds[bind] * vertices[index] * weight
+				if not point.is_finite(): return null
+				points.append(point)
+	if points.size() < 4: return null
+	var hull := ConvexPolygonShape3D.new()
+	hull.points = points
+	hull.margin = 0.015
+	return hull
+
 func _start_npc_corpse31(life_id: int, point: Vector3, direction: Vector3, speed: float) -> void:
 	_npc_corpse_pending31 = false
 	if not _npc_dead or not is_instance_valid(_npc_body) or _npc_body.get_instance_id() != life_id or is_instance_valid(_npc_corpse31): return
@@ -4939,17 +4980,20 @@ func _start_npc_corpse31(life_id: int, point: Vector3, direction: Vector3, speed
 	corpse.max_contacts_reported = 16
 	corpse.linear_damp = 0.8
 	corpse.angular_damp = 1.2
+	var corpse_frame := Transform3D(_npc_body.global_basis,
+		_npc_body.global_position + Vector3.UP * (NPC_HEIGHT * 0.5 + 0.06))
 	var shape := CollisionShape3D.new()
-	var capsule := CapsuleShape3D.new()
-	capsule.radius = 0.36
-	capsule.height = NPC_HEIGHT
-	shape.shape = capsule
+	shape.shape = _npc_corpse_shape31(corpse_frame)
+	if shape.shape == null:
+		var capsule := CapsuleShape3D.new()
+		capsule.radius = 0.36
+		capsule.height = NPC_HEIGHT
+		shape.shape = capsule
 	corpse.add_child(shape)
 	_world.add_child(corpse)
 	# The castle paving overlaps the standing feet by a few centimetres. Give
 	# only the new proxy capsule 6 cm of clearance; the visible rig stays put.
-	corpse.global_transform = Transform3D(_npc_body.global_basis,
-		_npc_body.global_position + Vector3.UP * (NPC_HEIGHT * 0.5 + 0.06))
+	corpse.global_transform = corpse_frame
 	# Swap collision authority outside the physics query flush. The old walking
 	# capsule stays alive only as a transform/ownership root for postmortem cuts.
 	_npc_body.collision_layer = 0
@@ -5049,6 +5093,8 @@ func _npc_speed_scale() -> float:
 ## hand the side that comes off to the world as rigid debris - the same piece of skin
 ## that was cut away, not a stand-in.
 var _npc_cut_total := 0
+# A real head cut leaves a skinned neck cap; shrinking its bone destroys the cap.
+var _npc_head_mesh_cut31 := false
 var _npc_debris: Array[Dictionary] = []
 
 ## The knight's SKINNED mesh instances. The armour plates are attached rigidly to bones,
@@ -5106,12 +5152,14 @@ func _npc_limb_bind_ids(mesh_node: MeshInstance3D, part_key: String) -> Dictiona
 			bone = _npc_rig.get_bone_parent(bone)
 	return ids
 
-func npc_cut_body(plane_world: Plane, keep_point_world: Vector3, part_key: String = "") -> bool:
+func npc_cut_body(plane_world: Plane, keep_point_world: Vector3, part_key: String = "", preserve_head31: bool = false) -> bool:
 	var meshes := _npc_skinned_meshes()
 	if meshes.is_empty():
 		print("DSH_GORE_CUT refused=no_skinned_mesh")
 		return false
 	var any := false
+	var detached_whole31: Array[Node3D] = []
+	var debris_start31 := _npc_debris.size()
 	for entry: Variant in meshes:
 		var mesh_node: MeshInstance3D = entry
 		if not is_instance_valid(mesh_node): continue
@@ -5165,6 +5213,33 @@ func npc_cut_body(plane_world: Plane, keep_point_world: Vector3, part_key: Strin
 		_spawn_cut_debris(gone_arrays, gone_cap, mesh_node, plane_world.normal, gone_materials)
 		any = true
 		_npc_cut_total += 1
+	if any and preserve_head31:
+		# Prepared appearance hair/brows are rigid children of the head attachment.
+		# Move those exact nodes with the real removed mesh, not a replacement head.
+		for anchor: Node in _npc_rig.find_children("*", "BoneAttachment3D", true, false):
+			if str(anchor.bone_name) not in ["head", "socket_head"]: continue
+			for child: Node in anchor.get_children():
+				if not child is Node3D or child is CollisionObject3D or child is CollisionShape3D: continue
+				if not child.find_children("*", "CollisionObject3D", true, false).is_empty(): continue
+				var visuals: Array[Node] = child.find_children("*", "MeshInstance3D", true, false)
+				if child is MeshInstance3D: visuals.append(child)
+				var rigid_visuals := not visuals.is_empty()
+				for visual: Node in visuals:
+					if visual.skin != null: rigid_visuals = false
+				if rigid_visuals: detached_whole31.append(child)
+		for whole: Node3D in detached_whole31:
+			var nearest: RigidBody3D
+			var distance := INF
+			var centre: Vector3 = whole.to_global(whole.mesh.get_aabb().get_center()) if whole is MeshInstance3D else whole.global_position
+			for i: int in range(debris_start31, _npc_debris.size()):
+				var piece := _npc_debris[i].get("node") as RigidBody3D
+				if not is_instance_valid(piece): continue
+				var d: float = piece.global_position.distance_squared_to(centre)
+				if d < distance:
+					distance = d
+					nearest = piece
+			if is_instance_valid(nearest):
+				whole.reparent(nearest, true)
 	if not any:
 		print("DSH_GORE_CUT refused=nothing_crossed")
 	return any
@@ -5298,6 +5373,7 @@ func _spawn_resident_knight(at: Vector3) -> bool:
 	# A newly created actor cannot inherit wounds, missing limbs or armour
 	# from an older generation. Its mesh starts whole; equipment is explicit.
 	_npc_severed.clear()
+	_npc_head_mesh_cut31 = false
 	_npc_part_hp.clear()
 	_npc_dead = false
 	_npc_disarmed = false
@@ -5903,7 +5979,8 @@ func _sever_part(full_key: String, kind: String, part: Dictionary, point: Vector
 		var normal: Vector3 = direction.normalized()
 		if normal.length_squared() > 1.0e-6:
 			var scoped_part := full_key if kind in ["thigh", "shin", "foot"] else ""
-			cut_done = npc_cut_body(Plane(normal, normal.dot(point)), body_side, scoped_part)
+			cut_done = npc_cut_body(Plane(normal, normal.dot(point)), body_side, scoped_part, kind == "head")
+	if cut_done and kind == "head": _npc_head_mesh_cut31 = true
 	if not cut_done:
 		_hide_limb(full_key, kind, String(part.sever))
 		# The stand-in belongs only to the explicit legacy fallback. A successful
@@ -5971,7 +6048,8 @@ func _apply_npc_severed() -> void:
 			kind = full_key.substr(0, full_key.length() - 2)
 		var bones: Array[String] = []
 		match kind:
-			"head": bones = ["head", "neck"]
+			"head":
+				if not _npc_head_mesh_cut31: bones = ["head", "neck"]
 			"upperarm", "forearm", "hand", "thigh", "shin", "foot": bones = [full_key]
 			_: bones = []
 		for name: String in bones:

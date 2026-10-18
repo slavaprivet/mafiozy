@@ -246,39 +246,21 @@ static func _edge_crossing(a: _Vertex, b: _Vertex, out: Array) -> void:
 	out.append(vertex)
 
 ## Splits one crossed triangle into the pieces that belong to each side.
-static func _polygon_split(v0: _Vertex, v1: _Vertex, v2: _Vertex, sides: int,
-		crossing: Array, front: _Builder, back: _Builder) -> void:
-	var all: Array = [v0, v1, v2]
-	var front_poly: Array = []
-	var back_poly: Array = []
-	var a: _Vertex = crossing[0]
-	var b: _Vertex = crossing[1]
-	match sides:
-		1, 2, 4:
-			# One vertex alone on its side: that corner is a triangle, the rest a quad.
-			var lone: _Vertex = v0 if sides == 1 else (v1 if sides == 2 else v2)
-			var other_a: _Vertex = v1 if sides == 1 else (v2 if sides == 2 else v0)
-			var other_b: _Vertex = v2 if sides == 1 else (v0 if sides == 2 else v1)
-			var near_a: _Vertex = a if a.position.distance_squared_to(other_a.position) < a.position.distance_squared_to(other_b.position) else b
-			var near_b: _Vertex = b if near_a == a else a
-			front_poly = [lone, near_a, near_b]
-			back_poly = [near_a, other_a, other_b, near_b]
-		3, 5, 6:
-			# Two vertices on the front side, one behind.
-			var lone_back: _Vertex = v2 if sides == 3 else (v0 if sides == 5 else v1)
-			var f_a: _Vertex = v0 if sides == 3 else (v1 if sides == 5 else v2)
-			var f_b: _Vertex = v1 if sides == 3 else (v2 if sides == 5 else v0)
-			var near_a2: _Vertex = a if a.position.distance_squared_to(lone_back.position) < a.position.distance_squared_to(b.position) else b
-			var near_b2: _Vertex = b if near_a2 == a else a
-			front_poly = [near_a2, f_a, f_b, near_b2]
-			back_poly = [lone_back, near_b2, near_a2]
-		_:
-			front_poly = all
-			back_poly = []
-	for i: int in range(1, front_poly.size() - 1):
-		front.add_triangle(front_poly[0], front_poly[i], front_poly[i + 1])
-	for i: int in range(1, back_poly.size() - 1):
-		back.add_triangle(back_poly[0], back_poly[i], back_poly[i + 1])
+static func _polygon_split(v0: _Vertex, v1: _Vertex, v2: _Vertex, _sides: int,
+		_crossing: Array, front: _Builder, back: _Builder) -> void:
+	# Preserve source winding by walking its edges in order. Distance to the
+	# opposite vertex cannot identify which source edge produced an intersection.
+	for keep_front: bool in [true, false]:
+		var polygon: Array = []
+		var source_vertices: Array = [v0, v1, v2]
+		for i: int in 3:
+			var a: _Vertex = source_vertices[i]
+			var b: _Vertex = source_vertices[(i + 1) % 3]
+			if (a.distance > 0.0) == keep_front: polygon.append(a)
+			_edge_crossing(a, b, polygon)
+		var builder: _Builder = front if keep_front else back
+		for i: int in range(1, polygon.size() - 1):
+			builder.add_triangle(polygon[0], polygon[i], polygon[i + 1])
 
 ## Accumulates one side of a cut into a surface description.
 class _Builder:
@@ -445,7 +427,7 @@ static func _triangulate_cap(vertices: Array, face_normal: Vector3) -> Array:
 		# thing to a correct influence for a point inside the opening.
 		var hub := _Vertex.new()
 		hub.position = centre
-		hub.normal = face_normal
+		hub.normal = -face_normal
 		hub.has_skin = (loop[0] as _Vertex).has_skin
 		hub.bone = (loop[0] as _Vertex).bone
 		hub.weight = (loop[0] as _Vertex).weight
@@ -454,7 +436,8 @@ static func _triangulate_cap(vertices: Array, face_normal: Vector3) -> Array:
 			var b: _Vertex = loop[(i + 1) % loop.size()]
 			if a.position.distance_squared_to(b.position) < 1.0e-12: continue
 			var edge := (a.position - centre).cross(b.position - centre)
-			var normal: Vector3 = face_normal if face_normal.length_squared() > 1.0e-8 else edge.normalized()
+			a.normal = -face_normal
+			b.normal = -face_normal
 			if edge.length_squared() > 1.0e-12 and edge.normalized().dot(face_normal) < 0.0:
 				built.add_triangle(hub, b, a)
 			else:

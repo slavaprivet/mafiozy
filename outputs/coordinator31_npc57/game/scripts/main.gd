@@ -1278,6 +1278,18 @@ func _physics_process(delta: float) -> void:
 			_player.global_position = _castle_spawn_target
 			_player.velocity = Vector3.ZERO
 			print("DSH_CASTLE_SPAWN_AT_CATAPULT player=", _player.global_position)
+			if OS.get_cmdline_user_args().has("--castle-start-outside=1"):
+				# The paved approach is clear and supported; the siege machine keeps its
+				# historical courtyard position. Startup guarding follows this spawn.
+				_castle_spawn_target = preview_castle.to_global(Vector3(0.0, 0.25,
+					float(preview_castle.call("wall_half")) + 20.0))
+				_player.global_position = _castle_spawn_target
+				_player.velocity = Vector3.ZERO
+				_player._camera_yaw = 0.0
+				_player._heading = 0.0
+				_player._visual.rotation.y = deg_to_rad(_player.visual_yaw_degrees)
+				_player._update_camera_rotation()
+				print("DSH_CASTLE_SPAWN_OUTSIDE player=", _player.global_position)
 	if _castle_spawn_frames > 0 and is_instance_valid(_player):
 		# Startup placement only guards against a stray city boot teleport. As soon
 		# as the player walks, the route away from the siege machine is intentional.

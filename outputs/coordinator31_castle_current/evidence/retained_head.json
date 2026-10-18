@@ -1,0 +1,24 @@
+{
+  "scope": "Retained head/neck cap after real head mesh sever only, no collider changes",
+  "candidate_sword_sha256": "1a04abbfe36e4bac37b99b65acb7616e1237f06dbabc5d4129e9da4f9a463504",
+  "baseline_normalized_sha256": "5b2e9bd8ec1713554f682e4b7975f928aeaef45fc005c026897256c1171cee2b",
+  "candidate_normalized_sha256": "13be5b03ffd9a5c21276e665c053ad3361973c3bf2e541946426056e8968df68",
+  "patch": "sword_retained.patch",
+  "native": "headhigh_guard_run/SCHEDULER_RUN.json",
+  "visual_and_120_physics_ticks": "retained_guard_final_run/SCHEDULER_RUN.json",
+  "result": "retained_guard_final/result.json",
+  "screenshot": "retained_guard_final/retained.png",
+  "baseline_neck_area_ratio": 1e-06,
+  "candidate_neck_area_ratio": 1.0,
+  "headhigh_area_ratio": 1.0,
+  "whole_appearance_groups_attached_to_real_debris": 1,
+  "notes": [
+    "Actual castle admitted sharp part hit, not input sweep",
+    "Diagnostic screenshot temporarily hides loose pieces and blood to inspect retained neck; production effects untouched",
+    "Earlier raw neck-only candidate found insufficient and was superseded",
+    "Typed array runtime failure retained in candidate02 logs; fixed",
+    "No user process stopped; no performance claim; shared untouched"
+  ],
+  "inactive_head_hitboxes": 1,
+  "rigid_render_roots_only": true
+}

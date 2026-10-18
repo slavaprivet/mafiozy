@@ -20,6 +20,22 @@ function Resolve-CurrentFile([string]$Relative) {
 function Assert-CurrentHash([string]$Path, [string]$Expected) {
     if ((Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant() -ne $Expected) { throw "Verified release changed: $Path" }
 }
+function Get-CurrentSceneArguments($Manifest) {
+    $sceneKind = if ($Manifest.PSObject.Properties.Name -contains 'scene_kind') { [string]$Manifest.scene_kind } else { 'city' }
+    if ($sceneKind -notin @('city', 'castle')) { throw 'Unknown pinned scene kind.' }
+    $sceneArguments = @()
+    if ($Manifest.PSObject.Properties.Name -contains 'launch_arguments') {
+        foreach ($argument in $Manifest.launch_arguments) {
+            if ($argument -isnot [string]) { throw 'Invalid pinned scene launch argument.' }
+            if ($sceneKind -eq 'castle') {
+                if ($argument -cnotin @('--castle=1', '--castle-start-outside=1')) { throw 'Invalid pinned castle launch argument.' }
+            } elseif ($argument -notmatch '^--city-[a-z0-9-]+(?:=[^\s"'';]+)?$') { throw 'Invalid pinned city launch argument.' }
+            $sceneArguments += $argument
+        }
+    }
+    if ($sceneKind -eq 'castle' -and ('--castle=1' -cnotin $sceneArguments -or '--castle-start-outside=1' -cnotin $sceneArguments)) { throw 'Castle assembly must select the exterior castle scene.' }
+    return $sceneArguments
+}
 function Assert-CurrentF5Route {
     $currentProject = Resolve-CurrentFile 'godot/mafiozi_walk/project.godot'
     $currentForwardScene = Resolve-CurrentFile 'godot/mafiozi_walk/scenes/current_version_launcher.tscn'
@@ -78,19 +94,12 @@ try {
     Assert-CurrentHash $currentManifestPath $currentRelease.assembly_sha256
     $currentManifest = Get-Content -LiteralPath $currentManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($currentManifest.revision -ne $currentRelease.revision) { throw 'Current release revision mismatch.' }
-    # A pinned city assembly can specify its ordinary scene options. Older
-    # assemblies retain the exact previous launch arguments and ready timeout.
-    $currentSceneArguments = @()
-    if ($currentManifest.PSObject.Properties.Name -contains 'launch_arguments') {
-        foreach ($currentSceneArgument in $currentManifest.launch_arguments) {
-            if ($currentSceneArgument -isnot [string] -or $currentSceneArgument -notmatch '^--city-[a-z0-9-]+(?:=[^\s"'';]+)?$') { throw 'Invalid pinned city launch argument.' }
-            $currentSceneArguments += $currentSceneArgument
-        }
-    }
+    # Missing scene_kind preserves the historical city assembly contract.
+    $currentSceneArguments = @(Get-CurrentSceneArguments $currentManifest)
     $currentReadySeconds = 40
     if ($currentManifest.PSObject.Properties.Name -contains 'ready_timeout_seconds') {
         $currentReadySeconds = [int]$currentManifest.ready_timeout_seconds
-        if ($currentReadySeconds -lt 40 -or $currentReadySeconds -gt 120) { throw 'Invalid city startup deadline.' }
+        if ($currentReadySeconds -lt 40 -or $currentReadySeconds -gt 120) { throw 'Invalid scene startup deadline.' }
     }
     $currentGameDir = if ($currentManifest.PSObject.Properties.Name -contains 'game_relative') { [IO.Path]::GetFullPath((Join-Path $currentRepo $currentManifest.game_relative)) } else { [IO.Path]::GetFullPath($currentManifest.game) }
     if (-not $currentGameDir.StartsWith($currentRepo + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Unexpected game directory.' }

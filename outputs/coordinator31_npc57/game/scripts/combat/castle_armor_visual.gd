@@ -210,40 +210,123 @@ func make_ground_preview(item_id: String) -> Node3D:
 	var root_node := Node3D.new()
 	root_node.name = "ArmorPickupPreview_" + item_id
 	var p: Dictionary = PALETTE[tier]
+	var cached: ArrayMesh = _mesh_cache.get("display37:" + tier + ":" + slot)
+	if cached != null:
+		var instance := MeshInstance3D.new()
+		instance.name = "ArmorDisplay"
+		instance.mesh = cached
+		root_node.add_child(instance)
+		return root_node
 	match slot:
 		"head":
-			_preview(root_node, _hemisphere_mesh(), Vector3(0, .20, 0), Vector3(.38, .34, .36), p.main, tier)
-			_preview_box(root_node, Vector3(0, .24, .35), Vector3(.73, .035, .05), p.edge, tier)
-			for x: float in [-.34, .34]: _preview_box(root_node, Vector3(x, .12, .02), Vector3(.045, .25, .40), p.main, tier)
-			if tier == "heavy": _preview_box(root_node, Vector3(0, .09, .36), Vector3(.43, .07, .07), p.edge, tier)
+			var old_unit := _unit
+			_unit = .30
+			_build_helmet(root_node, tier)
+			_unit = old_unit
 		"torso":
-			_preview_ellipsoid(root_node, Vector3(0, .28, 0), Vector3(.40, .29, .24), p.main, tier)
-			for x: float in [-.38, .38]:
-				_preview_box(root_node, Vector3(x, .34, 0), Vector3(.09, .24, .39), p.edge, tier)
-				if tier == "heavy": _preview_ellipsoid(root_node, Vector3(x, .47, 0), Vector3(.17, .09, .21), p.main, tier)
+			# Shaped waist, chest, shoulders and an actual neck opening.
+			_display_loft(root_node, Vector3.ZERO, [Vector3(.26,.03,.13), Vector3(.24,.16,.14), Vector3(.32,.37,.18), Vector3(.30,.46,.15), Vector3(.105,.51,.095)], p.main, tier)
+			_display_loft(root_node, Vector3.ZERO, [Vector3(.265,.04,.135), Vector3(.25,.085,.14)], p.edge, tier)
+			for side: float in [-1.0,1.0]:
+				if tier != "light": _display_loft(root_node, Vector3(side*.29,0,0), [Vector3(.11,.32,.15),Vector3(.13,.43,.17),Vector3(.065,.49,.09)], p.main, tier)
+				_preview_box(root_node, Vector3(side*.16,.43,.148),Vector3(.045,.07,.022),p.edge,tier)
+				if tier == "light": _preview_box(root_node,Vector3(side*.16,.29,.17),Vector3(.035,.30,.02),p.under,tier)
 			if tier == "medium":
-				for z: float in [-.23, .23]:
-					for y: float in [.16, .25, .34, .43]: _preview_box(root_node, Vector3(0, y, z), Vector3(.62, .016, .018), p.edge, tier)
-			if tier == "light":
-				for x: float in [-.22, .22]: _preview_box(root_node, Vector3(x, .28, .25), Vector3(.035, .41, .03), p.edge, tier)
-		"hands":
-			for x: float in [-.22, .22]:
-				_preview_ellipsoid(root_node, Vector3(x, .18, .04), Vector3(.18, .11, .24), p.main, tier)
-				for finger: float in [-.10, -.03, .04, .11]: _preview_ellipsoid(root_node, Vector3(x + finger, .14, .28), Vector3(.025, .055, .12), p.edge, tier)
-				_preview_box(root_node, Vector3(x, .24, -.13), Vector3(.29, .025, .08), p.edge, tier)
+				for y: float in [.14,.21,.28,.35]: _display_loft(root_node,Vector3.ZERO,[Vector3(.27,y,.17),Vector3(.29,y+.06,.18)],p.main,tier)
+			if tier != "light":
+				for y: float in [.12,.19]:
+					_display_loft(root_node,Vector3.ZERO,[Vector3(.255,y,.15),Vector3(.25,y+.025,.15)],p.under,tier)
 		"legs":
-			for x: float in [-.21, .21]:
-				_preview_ellipsoid(root_node, Vector3(x, .26, 0), Vector3(.19, .30, .18), p.main, tier)
-				_preview_box(root_node, Vector3(x, .52, .08), Vector3(.32, .035, .14), p.edge, tier)
-				if tier == "heavy": _preview_ellipsoid(root_node, Vector3(x, .09, .13), Vector3(.19, .10, .20), p.edge, tier)
-		"feet":
-			for x: float in [-.22, .22]:
-				_preview_ellipsoid(root_node, Vector3(x, .14, .13), Vector3(.20, .13, .32), p.main, tier)
-				_preview_box(root_node, Vector3(x, .09, .13), Vector3(.39, .045, .58), p.under, tier)
-				_preview_box(root_node, Vector3(x, .26, -.07), Vector3(.34, .23, .18), p.main, tier)
+			# A single waist/seat joins two tapered legs, with a visible crotch gap.
+			_display_loft(root_node,Vector3.ZERO,[Vector3(.255,.42,.13),Vector3(.27,.53,.145),Vector3(.245,.62,.13)],p.main,tier)
+			_display_loft(root_node,Vector3.ZERO,[Vector3(.248,.59,.133),Vector3(.248,.635,.133)],p.under,tier)
+			_preview_box(root_node,Vector3(0,.611,.138),Vector3(.075,.035,.02),p.edge,tier)
+			for side: float in [-1.0,1.0]:
+				_display_loft(root_node,Vector3(side*.135,0,0),[Vector3(.082,.035,.077),Vector3(.095,.20,.085),Vector3(.11,.32,.10),Vector3(.13,.47,.13)],p.main,tier)
 				if tier != "light":
-					for z: float in [.08, .22, .35]: _preview_box(root_node, Vector3(x, .27, z), Vector3(.33, .02, .03), p.edge, tier)
+					_preview_box(root_node,Vector3(side*.135,.37,.118),Vector3(.16,.16,.025),p.under,tier)
+		"hands":
+			for side: float in [-1.0,1.0]:
+				var x := side*.135
+				_display_loft(root_node,Vector3(x,0,0),[Vector3(.08,.03,.065),Vector3(.065,.12,.055),Vector3(.085,.22,.045),Vector3(.073,.27,.04)],p.main,tier)
+				_display_loft(root_node,Vector3(x,0,0),[Vector3(.084,.03,.068),Vector3(.079,.055,.066)],p.edge,tier)
+				for finger: int in 4:
+					var fx := x + (float(finger)-1.5)*.036
+					_display_loft(root_node,Vector3(fx,0,0),[Vector3(.017,.24,.032),Vector3(.016,.32-absf(float(finger)-1.5)*.014,.029)],p.main,tier)
+				_display_loft(root_node,Vector3(x+side*.088,0,.015),[Vector3(.025,.16,.034),Vector3(.021,.24,.03)],p.main,tier)
+		"feet":
+			for side: float in [-1.0,1.0]:
+				var x := side*.135
+				_display_loft(root_node,Vector3(x,0,.055),[Vector3(.10,.025,.21),Vector3(.105,.065,.205),Vector3(.09,.12,.18)],p.main,tier)
+				_display_loft(root_node,Vector3(x,0,-.045),[Vector3(.085,.09,.10),Vector3(.08,.27,.085)],p.main,tier)
+				_display_loft(root_node,Vector3(x,0,.055),[Vector3(.105,.015,.213),Vector3(.105,.04,.213)],p.under,tier)
+				_display_loft(root_node,Vector3(x,0,-.045),[Vector3(.084,.245,.09),Vector3(.084,.275,.09)],p.edge,tier)
+	_merge_display(root_node, tier + ":" + slot)
 	return root_node
+
+func _display_loft(parent: Node3D, origin: Vector3, rings: Array, color: Color, tier: String) -> void:
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for row: int in rings.size()-1:
+		var lo: Vector3 = rings[row]
+		var hi: Vector3 = rings[row+1]
+		for col: int in 16:
+			var a := float(col)*TAU/16.0
+			var b := float(col+1)*TAU/16.0
+			var v0 := origin+Vector3(sin(a)*lo.x,lo.y,cos(a)*lo.z)
+			var v1 := origin+Vector3(sin(b)*lo.x,lo.y,cos(b)*lo.z)
+			var v2 := origin+Vector3(sin(a)*hi.x,hi.y,cos(a)*hi.z)
+			var v3 := origin+Vector3(sin(b)*hi.x,hi.y,cos(b)*hi.z)
+			for v: Vector3 in [v0,v2,v1,v1,v2,v3]: surface.add_vertex(v)
+	surface.index()
+	surface.generate_normals()
+	_preview(parent,surface.commit(),Vector3.ZERO,Vector3.ONE,color,tier)
+
+func _merge_display(parent: Node3D, key: String) -> void:
+	# Static display: share cached geometry and batch all equal materials once.
+	var cache_key := "display37:"+key
+	var merged: ArrayMesh = _mesh_cache.get(cache_key)
+	if merged == null:
+		merged = ArrayMesh.new()
+		var groups := {}
+		for part: MeshInstance3D in parent.get_children():
+			var mat: Material = part.material_override
+			if not groups.has(mat): groups[mat] = []
+			groups[mat].append(part)
+		for mat: Material in groups:
+			var st := SurfaceTool.new()
+			st.begin(Mesh.PRIMITIVE_TRIANGLES)
+			for part: MeshInstance3D in groups[mat]:
+				for index: int in part.mesh.get_surface_count(): st.append_from(part.mesh,index,part.transform)
+			st.set_material(mat)
+			st.commit(merged)
+		_mesh_cache[cache_key] = merged
+	for child: Node in parent.get_children():
+		parent.remove_child(child)
+		child.free()
+	var display := MeshInstance3D.new()
+	display.name = "ArmorDisplay"
+	display.mesh = merged
+	parent.add_child(display)
+
+func _build_helmet(head: Node3D, tier: String) -> void:
+	var p: Dictionary = PALETTE[tier]
+	# Open lower face and neck. Heavy gets a segmented brow and cheek guards.
+	_dome(head, Vector3(0, .69, -.04), Vector3(.56 if tier == "heavy" else .62, .53, .63 if tier == "heavy" else .66), p.main, tier, 1 if tier == "heavy" else 0)
+	_shell(head, Vector3(0, .69, -.04), Vector3(.57 if tier == "heavy" else .63, .035, .64 if tier == "heavy" else .67), 65 if tier == "light" else -175, 295 if tier == "light" else 175, 0, p.edge, tier)
+	if tier != "heavy":
+		for side: float in [-1.0, 1.0]:
+			var a := 57.0 if side > 0 else -123.0
+			_shell(head, Vector3(0, .44 if tier == "light" else .27, -.04), Vector3(.63, .16 if tier == "light" else .31, .62), a, a + 65.0, -.16, p.main, tier)
+			_rivet(head, Vector3(side * .58, .40, .12), p.edge, tier)
+	if tier == "heavy":
+		_face_helmet(head)
+		_helmet_side_plates(head)
+		_shell(head, Vector3(0, .38, -.04), Vector3(.55, .34, .60), 125, 235, -.26, p.main, tier)
+		_crest(head, p.under, tier)
+		_crest_ribs(head)
+	if tier == "medium": _ellipsoid(head, Vector3(0, 1.17, -.02), Vector3(.09, .12, .43), p.edge, tier)
+	if tier == "light": _shell(head, Vector3(0, -.04, -.04), Vector3(.48, .10, .43), 120, 240, 0, p.under, tier)
 
 func _preview_ellipsoid(parent: Node3D, center: Vector3, radii: Vector3, color: Color, tier: String) -> void:
 	_preview(parent, _sphere_mesh(), center, radii, color, tier)
@@ -309,27 +392,12 @@ func _build_slot(slot: String, tier: String) -> void:
 	match slot:
 		"head":
 			var head := _anchor(slot, "head")
-			# Open lower face and neck. Heavy gets a segmented brow and cheek guards.
-			_dome(head, Vector3(0, .54, -.04), Vector3(.56 if tier == "heavy" else .62, .68, .63 if tier == "heavy" else .66), p.main, tier, 4 if tier == "light" else 3)
-			_shell(head, Vector3(0, .54, -.04), Vector3(.57 if tier == "heavy" else .63, .035, .64 if tier == "heavy" else .67), 65 if tier == "light" else -175, 295 if tier == "light" else 175, 0, p.edge, tier)
-			if tier != "heavy":
-				for side: float in [-1.0, 1.0]:
-					var a := 57.0 if side > 0 else -123.0
-					_shell(head, Vector3(0, .20, -.04), Vector3(.63, .34, .67), a, a + 65.0, -.16, p.main, tier)
-					_rivet(head, Vector3(side * .58, .40, .12), p.edge, tier)
-			if tier == "heavy":
-				_face_helmet(head)
-				_helmet_side_plates(head)
-				_shell(head, Vector3(0, .38, -.04), Vector3(.55, .34, .60), 125, 235, -.26, p.main, tier)
-				_crest(head, p.under, tier)
-				_crest_ribs(head)
-			if tier == "medium": _ellipsoid(head, Vector3(0, 1.17, -.02), Vector3(.09, .12, .43), p.edge, tier)
-			if tier == "light": _shell(head, Vector3(0, -.04, -.04), Vector3(.48, .10, .43), 120, 240, 0, p.under, tier)
+			_build_helmet(head, tier)
 		"torso":
 			var torso_color: Color = Color(.085, .105, .12) if tier == "heavy" else (p.under if tier == "medium" else p.main)
-			var center_layer := _skinned_layer(slot, tier, 1.62, 3.45, .075, torso_color, "ArmorTailoredTorso", -.56, .56, "player_male_DEMO_core_FABRIC", false, "", "cuirass" if tier == "heavy" else "")
-			var left_sleeve := _skinned_layer(slot, tier, 1.62, 3.45, .075, torso_color, "ArmorTailoredSleeveL", -1.48, -.56)
-			var right_sleeve := _skinned_layer(slot, tier, 1.62, 3.45, .075, torso_color, "ArmorTailoredSleeveR", .56, 1.48)
+			var center_layer := _skinned_layer(slot, tier, 1.62, 3.45, .075, torso_color, "ArmorTailoredTorso", -.56, .56, "player_male_DEMO_core_FABRIC", false, "", "cuirass" if tier == "heavy" else tier + "_jerkin")
+			var left_sleeve := _skinned_layer(slot, tier, 1.62, 3.45, .075, torso_color, "ArmorTailoredSleeveL", -1.48, -.56, "player_male_DEMO_core_FABRIC", false, "", "cuirass" if tier == "heavy" else tier + "_jerkin")
+			var right_sleeve := _skinned_layer(slot, tier, 1.62, 3.45, .075, torso_color, "ArmorTailoredSleeveR", .56, 1.48, "player_male_DEMO_core_FABRIC", false, "", "cuirass" if tier == "heavy" else tier + "_jerkin")
 			if center_layer and left_sleeve and right_sleeve:
 				if tier == "heavy":
 					_royal_fasteners(_anchor(slot, "chest"))
@@ -340,9 +408,14 @@ func _build_slot(slot: String, tier: String) -> void:
 					var front := _anchor(slot, "chest")
 					_shell(front, Vector3(0, -.55, 0), Vector3(.84, .07, .56), -178, 178, 0, p.edge if tier == "light" else p.main, tier)
 					if tier == "medium":
-						for y: float in [.33, .53, .73]: _shell(front, Vector3(0, y, 0), Vector3(.67, .018, .57), -70, 70, 0, p.main, tier)
+						for y: float in [-.30, -.03, .24, .51, .78]:
+							_shell(front, Vector3(0, y, .015), Vector3(.62 + .025*y, .12, .59), -78, 78, .08, p.main, tier)
+							_shell(front, Vector3(0, y-.11, .015), Vector3(.625 + .025*y, .012, .60), -78, 78, 0, p.edge, tier)
 					else:
-						for y: float in [.29, .76]: _shell(front, Vector3(0, y, 0), Vector3(.61, .018, .54), -65, 65, 0, p.edge, tier)
+						for x: float in [-.34, .34]:
+							_box(front, Vector3(x, .35, .50), Vector3(.065, 1.18, .035), p.under, tier)
+							_box(front, Vector3(x, .66, .53), Vector3(.095, .10, .025), p.edge, tier)
+					_merge_display(front, "worn_jerkin:"+tier+":"+str(_unit))
 				return
 			var chest := _anchor(slot, "chest")
 			var w := 1.75 if tier == "heavy" else (1.63 if tier == "medium" else 1.48)
@@ -399,10 +472,19 @@ func _build_slot(slot: String, tier: String) -> void:
 		"legs":
 			var leg_layers := 0
 			for side: float in [-1.0, 1.0]:
-				var x_min := -.85 if side < 0 else .02
-				var x_max := -.02 if side < 0 else .85
-				if _skinned_layer(slot, tier, .48, 1.79, .075 if tier == "heavy" else .09, p.under if tier == "heavy" else p.main, "ArmorTailoredLeg", x_min, x_max): leg_layers += 1
+				var x_min := -.85 if side < 0 else 0.0
+				var x_max := 0.0 if side < 0 else .85
+				if _skinned_layer(slot, tier, .48, 1.98, .065 if tier == "heavy" else .07, Color(.105, .12, .135) if tier == "heavy" else p.main, "ArmorTailoredLeg", x_min, x_max): leg_layers += 1
 			if leg_layers == 2:
+				var waist := _anchor(slot, "pelvis")
+				_shell(waist, Vector3(0, .13, 0), Vector3(.64, .055, .40), -180, 180, 0, p.under, tier)
+				_box(waist, Vector3(0, .13, .41), Vector3(.14, .09, .035), p.edge, tier)
+				if tier != "light":
+					for suffix: String in ["_l", "_r"]:
+						var thigh := _anchor(slot, "thigh" + suffix)
+						_shell(thigh, Vector3(0, -.23, .13), Vector3(.32, .29, .29), -80, 80, .15, p.main, tier)
+						for part: Node in thigh.get_children():
+							if part is MeshInstance3D: _align_authored_to_rig(part, "thigh" + suffix)
 				if tier == "heavy":
 					for side: String in ["_l", "_r"]:
 						var greave := _anchor(slot, "shin" + side)
@@ -495,19 +577,21 @@ func _skinned_layer(slot: String, tier: String, y_min: float, y_max: float, infl
 			if label in ["ArmorTailoredTorso", "ArmorFittedBreastplate", "ArmorFittedFauld"]:
 				indices = _largest_welded_component(positions, indices)
 			arrays[Mesh.ARRAY_VERTEX] = inflated
+			arrays[Mesh.ARRAY_NORMAL] = _smooth_cloth_normals(positions, normals)
 			var compact := _compact_surface(arrays, indices, positions.size())
 			if style == "cuirass": _color_cuirass_surface(compact)
+			elif style.ends_with("_jerkin"): _color_jerkin(compact, tier)
 			generated.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, compact)
 		if generated.get_surface_count() == 0: return false
 		_mesh_cache[key] = generated
 	var overlay := MeshInstance3D.new()
-	overlay.name = label + ("L" if x_max < 0 else ("R" if x_min > 0 else ""))
+	overlay.name = label + ("L" if x_max <= 0 else ("R" if x_min >= 0 else ""))
 	overlay.mesh = generated
 	overlay.skin = source.skin
 	overlay.skeleton = source.skeleton
 	overlay.transform = source.transform
-	overlay.material_override = _cuirass_material() if style == "cuirass" else _material(color, tier)
-	overlay.set_meta("armor_side", -1 if x_max < 0 else (1 if x_min > 0 else 0))
+	overlay.material_override = _cuirass_material() if style == "cuirass" else (_jerkin_material(tier) if style.ends_with("_jerkin") else _material(color, tier))
+	overlay.set_meta("armor_side", -1 if x_max <= 0 else (1 if x_min >= 0 else 0))
 	source.get_parent().add_child(overlay)
 	if not _skinned.has(slot): _skinned[slot] = []
 	_skinned[slot].append(overlay)
@@ -638,7 +722,7 @@ func _cuirass_material() -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
 	material.vertex_color_use_as_albedo = true
 	material.metallic = .70
-	material.roughness = .47
+	material.roughness = .56
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	_material_cache["fitted_cuirass_material_v22"] = material
 	return material
@@ -716,6 +800,7 @@ func _shell(anchor: Node3D, center: Vector3, radii: Vector3, start_deg: float, e
 			var c := _shell_point(center, radii, start_deg, end_deg, taper, u0, v1)
 			var d := _shell_point(center, radii, start_deg, end_deg, taper, u1, v1)
 			for point: Vector3 in [a, c, b, b, c, d]: surface.add_vertex(point)
+	surface.index()
 	surface.generate_normals()
 	var shell := MeshInstance3D.new()
 	shell.name = "ArmorCurvedShell"
@@ -768,6 +853,7 @@ func _cuirass(anchor: Node3D) -> void:
 					for point: Vector3 in [a, b, c, b, d, c]:
 						surface.set_color(color)
 						surface.add_vertex(point)
+		surface.index()
 		surface.generate_normals()
 		_mesh_cache["anatomic_cuirass_v1"] = surface.commit()
 	plate.mesh = _mesh_cache["anatomic_cuirass_v1"]
@@ -802,6 +888,7 @@ func _pauldron_lames(anchor: Node3D) -> void:
 				for point: Vector3 in [p0, p2, p1, p1, p2, p3]:
 					surface.set_color(color)
 					surface.add_vertex(point)
+		surface.index()
 		surface.generate_normals()
 		_mesh_cache["pauldron_lames_v1"] = surface.commit()
 	plate.mesh = _mesh_cache["pauldron_lames_v1"]
@@ -830,6 +917,7 @@ func _gauntlet(anchor: Node3D) -> void:
 				for point: Vector3 in [p0, p1, p2, p1, p3, p2]:
 					surface.set_color(color)
 					surface.add_vertex(point)
+		surface.index()
 		surface.generate_normals()
 		_mesh_cache["gauntlet_v1"] = surface.commit()
 	glove.mesh = _mesh_cache["gauntlet_v1"]
@@ -846,9 +934,9 @@ func _jointed_greave(anchor: Node3D) -> void:
 		surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 		# The knee cup follows the shin bone; gaps between bands leave knee flex visible.
 		var bands := [
-			{"top": .23, "bottom": .08, "radius": .285, "color": Color(.23, .26, .28)},
-			{"top": .045, "bottom": -.20, "radius": .245, "color": Color(.16, .19, .21)},
-			{"top": -.23, "bottom": -.48, "radius": .215, "color": Color(.12, .15, .17)}
+			{"top": .23, "bottom": .08, "radius": .285, "color": Color(.09, .11, .13)},
+			{"top": .045, "bottom": -.20, "radius": .245, "color": Color(.07, .085, .10)},
+			{"top": -.23, "bottom": -.48, "radius": .215, "color": Color(.055, .07, .085)}
 		]
 		for band: Dictionary in bands:
 			for column: int in 16:
@@ -864,6 +952,7 @@ func _jointed_greave(anchor: Node3D) -> void:
 				for point: Vector3 in [p0, p2, p1, p1, p2, p3]:
 					surface.set_color(band.color)
 					surface.add_vertex(point)
+		surface.index()
 		surface.generate_normals()
 		_mesh_cache["jointed_greave_v1"] = surface.commit()
 	greave.mesh = _mesh_cache["jointed_greave_v1"]
@@ -895,6 +984,7 @@ func _boot_cap(anchor: Node3D) -> void:
 				for point: Vector3 in [p0, p2, p1, p1, p2, p3]:
 					surface.set_color(color)
 					surface.add_vertex(point)
+		surface.index()
 		surface.generate_normals()
 		_mesh_cache["articulated_boot_cap_v1"] = surface.commit()
 	cap.mesh = _mesh_cache["articulated_boot_cap_v1"]
@@ -923,7 +1013,7 @@ func _face_helmet(anchor: Node3D) -> void:
 				var x1 := x0 + .05
 				var center_x := (x0 + x1) * .5
 				# Two genuine openings, bounded by a central nose bridge and cheek plates.
-				if row == 5 and absf(center_x) > .17 and absf(center_x) < .39: continue
+				if row == 4 and absf(center_x) > .17 and absf(center_x) < .39: continue
 				if row <= 1: continue
 				# Cheek plates taper to the jaw; the central nose bridge stays narrow.
 				if row <= 3:
@@ -936,6 +1026,7 @@ func _face_helmet(anchor: Node3D) -> void:
 				var c := _face_point(x0, levels[row + 1])
 				var d := _face_point(x1, levels[row + 1])
 				for point: Vector3 in [a, b, c, b, d, c]: surface.add_vertex(point)
+		surface.index()
 		surface.generate_normals()
 		_mesh_cache["forged_face_v26"] = surface.commit()
 	face.mesh = _mesh_cache["forged_face_v26"]
@@ -956,13 +1047,14 @@ func _forged_brows(anchor: Node3D) -> void:
 				var u1 := float(column + 1) / 8.0
 				var x0 := side * lerpf(.15, .45, u0)
 				var x1 := side * lerpf(.15, .45, u1)
-				var y0 := .84 - .075 * u0
-				var y1 := .84 - .075 * u1
+				var y0 := .72 - .035 * u0
+				var y1 := .72 - .035 * u1
 				var a := _face_point(x0, y0 - .026) + Vector3(0, 0, .03)
 				var b := _face_point(x1, y1 - .026) + Vector3(0, 0, .03)
 				var c := _face_point(x0, y0 + .026) + Vector3(0, 0, .03)
 				var d := _face_point(x1, y1 + .026) + Vector3(0, 0, .03)
 				for point: Vector3 in [a, b, c, b, d, c]: surface.add_vertex(point)
+		surface.index()
 		surface.generate_normals()
 		_mesh_cache["angled_brows_v22"] = surface.commit()
 	brows.mesh = _mesh_cache["angled_brows_v22"]
@@ -973,9 +1065,9 @@ func _forged_brows(anchor: Node3D) -> void:
 func _face_point(x: float, y: float) -> Vector3:
 	var shaped_x := x * lerpf(.67, .93, smoothstep(-.13, .95, y))
 	var arc := sqrt(maxf(.02, 1.0 - pow(shaped_x / .76, 2.0)))
-	var nose := .13 * exp(-pow(shaped_x / .11, 2.0)) * smoothstep(.0, .4, y)
+	var nose := .075 * exp(-pow(shaped_x / .11, 2.0)) * smoothstep(.0, .4, y)
 	var cheek := .085 * exp(-pow((absf(shaped_x) - .31) / .11, 2.0)) * (1.0 - smoothstep(.45, .85, y))
-	return Vector3(shaped_x, y, -.04 + .73 * arc + nose + cheek)
+	return Vector3(shaped_x, y, -.04 + .66 * arc + nose + cheek)
 
 func _helmet_side_plates(anchor: Node3D) -> void:
 	var plates := MeshInstance3D.new()
@@ -995,6 +1087,7 @@ func _helmet_side_plates(anchor: Node3D) -> void:
 					var c := _helmet_side_point(side, u0, v1)
 					var d := _helmet_side_point(side, u1, v1)
 					for point: Vector3 in [a, b, c, b, d, c]: surface.add_vertex(point)
+		surface.index()
 		surface.generate_normals()
 		_mesh_cache["joined_temples_v22l"] = surface.commit()
 	plates.mesh = _mesh_cache["joined_temples_v22l"]
@@ -1010,9 +1103,9 @@ func _helmet_side_point(side: float, around: float, height: float) -> Vector3:
 	# A rounded rectangle encloses the measured ears without spherical bulges.
 	var sx := sin(angle)
 	var cz := cos(angle)
-	var width := .78 - .31 * smoothstep(.55, .98, y) - .045 * (1.0 - smoothstep(.12, .24, y))
-	var depth := .65 - .11 * smoothstep(.62, .98, y)
-	var rounded := Vector3(side * width * sqrt(absf(sx)), y,
+	var width := .72 - .25 * smoothstep(.55, .98, y) - .045 * (1.0 - smoothstep(.12, .24, y))
+	var depth := .61 - .07 * smoothstep(.62, .98, y)
+	var rounded := Vector3(side * width * pow(absf(sx), .8), y,
 		-.01 + signf(cz) * depth * sqrt(absf(cz)))
 	return front.lerp(rounded, smoothstep(.0, .16, around))
 
@@ -1041,6 +1134,7 @@ func _dome(anchor: Node3D, center: Vector3, radii: Vector3, color: Color, tier: 
 			var c := center + Vector3(sin(t0) * sin(p1) * radii.x, cos(p1) * radii.y, cos(t0) * sin(p1) * radii.z)
 			var d := center + Vector3(sin(t1) * sin(p1) * radii.x, cos(p1) * radii.y, cos(t1) * sin(p1) * radii.z)
 			for point: Vector3 in [a, c, b, b, c, d]: surface.add_vertex(point)
+	surface.index()
 	surface.generate_normals()
 	var helmet := MeshInstance3D.new()
 	helmet.name = "ArmorHollowHelmet"
@@ -1089,6 +1183,7 @@ func _crest(anchor: Node3D, color: Color, tier: String) -> void:
 			var e2 := Vector3(edge_x, edge_y, -.130)
 			var e3 := Vector3(edge_x, edge_y, .060)
 			for point: Vector3 in [e0, e2, e1, e1, e2, e3]: surface.add_vertex(point)
+	surface.index()
 	surface.generate_normals()
 	var plume := MeshInstance3D.new()
 	plume.name = "ArmorDarkFanCrest"
@@ -1112,6 +1207,7 @@ func _crest_ribs(anchor: Node3D) -> void:
 			var base := x * .65
 			var points := [Vector3(base - .008, 1.10, .105), Vector3(base + .008, 1.10, .105), Vector3(x + .006, tip - .025, .105), Vector3(x - .006, tip - .025, .105)]
 			for index: int in [0, 1, 3, 1, 2, 3]: surface.add_vertex(points[index])
+		surface.index()
 		surface.generate_normals()
 		ribs.mesh = surface.commit()
 		_mesh_cache["fan_crest_ribs_v22"] = ribs.mesh
@@ -1127,7 +1223,7 @@ func _material(color: Color, tier: String) -> StandardMaterial3D:
 	if tier == "heavy":
 		var is_padding := color == PALETTE["heavy"]["under"]
 		material.metallic = .06 if is_padding else .76
-		material.roughness = .88 if is_padding else .43
+		material.roughness = .88 if is_padding else .56
 	elif tier == "medium":
 		material.metallic = .42
 		material.roughness = .62
@@ -1157,9 +1253,53 @@ func _royal_fasteners(anchor: Node3D) -> void:
 				for point: Vector3 in [outer_a, inner_a, outer_b, outer_b, inner_a, inner_b]: surface.add_vertex(point)
 				surface.set_color(Color(.21, .14, .065) if segment % 2 == 0 else Color(.38, .29, .16))
 				for point: Vector3 in [inner_a, center + Vector3(0, 0, .032), inner_b]: surface.add_vertex(point)
+		surface.index()
 		surface.generate_normals()
 		_mesh_cache["royal_fasteners23"] = surface.commit()
 	ornaments.mesh = _mesh_cache["royal_fasteners23"]
 	ornaments.scale = Vector3.ONE * _unit
 	ornaments.material_override = _vertex_steel()
 	anchor.add_child(ornaments)
+
+func _color_jerkin(arrays: Array, tier: String) -> void:
+	var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var colors := PackedColorArray()
+	colors.resize(vertices.size())
+	for i: int in vertices.size():
+		var v := vertices[i]
+		var color: Color = PALETTE[tier].main
+		if tier == "light":
+			color = Color(.25,.105,.045)
+			if absf(absf(v.x)-.34) < .045 or absf(v.y-1.94) < .065: color = Color(.075,.038,.02)
+			elif absf(absf(v.x)-.34) < .065: color = Color(.48,.285,.12)
+		else:
+			var band := int(floor((v.y-1.65)/.24))
+			color = Color(.29,.36,.42) if band%2 == 0 else Color(.20,.27,.33)
+			if fposmod(v.y-1.65,.24) < .035: color = Color(.10,.14,.18)
+			if absf(v.x) > .46: color *= .65
+		color = color.lerp(PALETTE[tier].under, smoothstep(.46,.70,absf(v.x)))
+		colors[i] = color
+	arrays[Mesh.ARRAY_COLOR] = colors
+
+func _jerkin_material(tier: String) -> StandardMaterial3D:
+	var key := "jerkin37:"+tier
+	if _material_cache.has(key): return _material_cache[key]
+	var mat: StandardMaterial3D = _material(Color.WHITE,tier).duplicate()
+	mat.vertex_color_use_as_albedo = true
+	mat.metallic = .62 if tier == "medium" else .02
+	mat.roughness = .60 if tier == "medium" else .85
+	_material_cache[key] = mat
+	return mat
+
+func _smooth_cloth_normals(vertices: PackedVector3Array, normals: PackedVector3Array) -> PackedVector3Array:
+	var sums := {}
+	var keys: Array[String] = []
+	for i: int in vertices.size():
+		var key := str(vertices[i].snapped(Vector3.ONE*.0001))
+		keys.append(key)
+		sums[key] = Vector3(sums.get(key,Vector3.ZERO))+normals[i]
+	var result := normals.duplicate()
+	for i: int in result.size():
+		var sum: Vector3 = sums[keys[i]]
+		if sum.length_squared() > .04: result[i] = sum.normalized()
+	return result

@@ -7,7 +7,7 @@
   "previous_status_observed": "idle",
   "scope": "Castle combat and current shared castle scene; city58 handoff is historical for this task",
   "shared_game": "outputs/coordinator31_npc57/game",
-  "latest_user_defect": "Cannot walk around the map; screenshot codex-clipboard-a2d77b07-c1f4-4ec8-ae38-020aef221ec5.png",
+  "latest_user_defect": "Unified latest castle and siege map required; hollow cuts and corpse floor penetration corrected",
   "root_history": "Read all available pages to hasMore=false; latest interrupted complaint has priority",
   "prior_agents_read": [
     "01a14c15-b524-7782-97df-60a81ecf713c",
@@ -34,12 +34,91 @@
     "Do not restart former coordinator or his agents"
   ],
   "tool_availability": "ToolSearch and Ruflo MCP not exposed; continued with available thread and collaboration tools",
-  "acceptance": "Takeover complete; movement and joint work in progress, no new gameplay acceptance claimed",
+  "acceptance": "Combined graphical 11/11 and ordinary bootstrap ready PASS; full combined performance not accepted",
   "movement_resolution": "User confirmed movement works after clicking the game window. Escape releases capture; no global movement failure reproduced.",
   "camera_fix": "3-line synchronization of camera pivot and character heading at castle startup; separate from cursor capture complaint",
   "camera_evidence": "D:/MafioziCombat31/resume_movement31/RESULT.json; native 7/7, graphical baseline click/escape/WASD passed",
   "joint_resume_evidence": "D:/MafioziCastle31/qa/resume31_joint_20261018/HANDOFF.md",
   "joint_resume_result": "Late impulse PASS; two ordinary strong arm severs confirmed; both full natural sequences FAIL at subsequent nonfatal spear. Joint remains isolated, sleep/perf pending.",
-  "latest_launch": "User explicitly requested latest scene reopened; old PID35736 closed after fresh identity check, shared castle reopened PID37204. Refresh inventory before later process actions.",
-  "castle_visual_limit": "Map author confirms no separate newer accepted castle/doors package. Shared current castle is latest available; Banner36 and joint experiments not integrated."
+  "latest_launch": {
+    "pid": 34164,
+    "revision": "castle-20261018-combined31",
+    "title": "Замок и осада · единая сборка 31",
+    "source": "stable_user_launcher",
+    "run_directory": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261018T101638821Z",
+    "started_at": "2026-10-18T13:16:38.8496868+03:00",
+    "assembly_sha256": "fe17691701f23f3953014059b8fb9ef225ebd95ee730dbf66623cd8c21530ee8",
+    "ready": true,
+    "window_handle": 21694476,
+    "bootstrap": {
+      "battlefield_stats": {
+        "bounds_local": [
+          -90.0,
+          76.0,
+          90.0,
+          252.0
+        ],
+        "terrain_chunks": 9,
+        "terrain_collision_shapes": 9,
+        "terrain_draw_calls_max": 9,
+        "terrain_triangles": 9504,
+        "terrain_vertices": 5175
+      },
+      "checks": {
+        "battlefield": true,
+        "battlefield_props": true,
+        "castle_mode": true,
+        "city_population_absent": true,
+        "player_grounded": true,
+        "player_outside": true,
+        "preview_ready": true,
+        "screenshot_saved": true
+      },
+      "interactive": true,
+      "ok": true,
+      "performance_accepted": false,
+      "player_position": "(0.0, 0.080159, 988.0)",
+      "props_stats": {
+        "banners": 6,
+        "barrels": 7,
+        "barriers": 16,
+        "batches_by_z_sector": {
+          "0": 7,
+          "1": 8
+        },
+        "breakable_groups": 86,
+        "carts": 4,
+        "colliders": 86,
+        "crates": 25,
+        "firepits": 2,
+        "grass": 172,
+        "mesh_instances": 15,
+        "mesh_pieces": 1956,
+        "shields": 15,
+        "smoke_plumes": 3,
+        "stone_piles": 4,
+        "stones": 77,
+        "tents": 8,
+        "trees": 11,
+        "watchtowers": 4
+      },
+      "revision": "castle-20261018-combined31",
+      "scene": "res://scenes/castle.tscn",
+      "scene_kind": "castle",
+      "screenshot": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261018T101638821Z/opened.png",
+      "title": "Замок и осада · единая сборка 31"
+    }
+  },
+  "castle_visual_limit": "Gate38 and Interior38 integrated with Armor37; Banner36 and articulated corpse experiment excluded",
+  "canonical_assembly": "outputs/coordinator31_castle_current/ASSEMBLY.json",
+  "future_basis": "All new work/tests use current combined source; old builds only explicit regression comparison; no old ordinary launch",
+  "integrated": [
+    "Gate38",
+    "Interior38",
+    "Armor37",
+    "siege battlefield962",
+    "exterior startup",
+    "cut topology and retained head cap",
+    "skinned convex corpse collision"
+  ]
 }

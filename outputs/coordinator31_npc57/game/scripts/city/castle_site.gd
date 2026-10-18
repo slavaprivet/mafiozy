@@ -116,6 +116,10 @@ var _cells: Array[Dictionary] = []
 var _furniture_cells: Dictionary = {}
 ## One MultiMesh per material, holding every brick that is still in place.
 var _buckets: Dictionary = {}     # material_id -> {instance: MultiMeshInstance3D, indices: Array}
+## DSH_OPT: a blast is local. This grid of cell indices means it tests the stones the
+## explosion touches instead of walking all sixty thousand of them three times.
+const SPATIAL_STEP := 8.0
+var _spatial: Dictionary = {}
 var _falling: Array[Dictionary] = []
 var _gate_leaves: Array[Dictionary] = []
 var _detached := 0
@@ -140,6 +144,11 @@ func install(world: Node3D, origin: Vector3) -> Dictionary:
 			_phase_enabled = int(argument.trim_prefix("--castle-timing=")) != 0
 	_world_ref = world
 	_player = world.get("_player") as CharacterBody3D
+	# DSH_OPT: the project runs 4x MSAA and TAA at the same time. TAA already resolves
+	# the brick edges - two settings measured 0.6/255 mean difference on stills - so on
+	# the castle map the samples are spent on pixels instead. The city map keeps its own.
+	if get_viewport() != null:
+		get_viewport().msaa_3d = Viewport.MSAA_DISABLED
 	if _phase_enabled: _phase("_build_materials")
 	_build_materials()
 	_brick_mesh = BoxMesh.new()
@@ -185,14 +194,16 @@ func install(world: Node3D, origin: Vector3) -> Dictionary:
 	_build_tower_platforms()
 	if _phase_enabled: _phase("_build_gate_bridge")
 	_build_gate_bridge()
-	if _phase_enabled: _phase("_build_far_slabs")
-	_build_far_slabs()
+	# The far slabs are retired: the bricks are drawn at every distance anyway, so the
+	# slab only covered the gate opening and any breach seen from afar with intact stone.
 	if _phase_enabled: _phase("_build_string_courses")
 	_build_string_courses()
 	if _phase_enabled: _phase("_build_facade_relief")
 	_build_facade_relief()
 	if _phase_enabled: _phase("_build_entrance_layer31")
 	_build_entrance_layer31()
+	if _phase_enabled: _phase("_build_gate_art38")
+	_build_gate_art38()
 	if _phase_enabled: _phase("_build_wall_banners")
 	_build_wall_banners()
 	if _phase_enabled: _phase("_build_brick_floor")
@@ -214,6 +225,8 @@ func install(world: Node3D, origin: Vector3) -> Dictionary:
 	_batch_static_decoration()
 	if _phase_enabled: _phase("_flush_buckets")
 	_flush_buckets()
+	if _phase_enabled: _phase("_prewarm_debris_pool")
+	_prewarm_debris_pool()
 	if _phase_enabled: _phase_done()
 	_ready = true
 	if is_instance_valid(world.get("preview_weapons")):
@@ -254,9 +267,12 @@ func _build_materials() -> void:
 shader_type spatial;
 render_mode diffuse_burley;
 void fragment() {
-	float grain = sin(UV.x * 96.0 + UV.y * 3.0) * 0.045;
-	ALBEDO = vec3(0.49, 0.32, 0.19) * (1.0 + grain) * COLOR.rgb;
-	ROUGHNESS = 0.94;
+	float bend = sin(UV.y * 8.0) * 1.4 + sin(UV.y * 19.0) * 0.35;
+	float open_grain = sin(UV.x * 83.0 + bend) * 0.035;
+	float fine_grain = sin(UV.x * 217.0 + UV.y * 5.0) * 0.012;
+	float worn_edge = smoothstep(0.0, 0.10, UV.x) * (1.0 - smoothstep(0.90, 1.0, UV.x));
+	ALBEDO = vec3(0.47, 0.30, 0.175) * (0.91 + 0.09 * worn_edge + open_grain + fine_grain) * COLOR.rgb;
+	ROUGHNESS = 0.93;
 }
 """
 	floor_wood.shader = floor_grain
@@ -704,8 +720,6 @@ func _add_brick(at: Vector3, size: Vector3, material_key: String, rotation: Vect
 ## thousand bricks every frame. Split into chunks of a few metres, each chunk is culled on
 ## its own and the cost follows what is on screen. Bricks that are knocked out are moved
 ## out of the chunk's mesh, and the falling body is spawned as before.
-## Bricks are drawn in detail up to this distance; past it a plain slab stands in.
-const BRICK_LOD_END := 110.0
 const CHUNK_X := 26.0
 const CHUNK_Y := 10.0
 const CHUNK_Z := 26.0
@@ -821,11 +835,58 @@ func _under_moving_parent(node: Node) -> bool:
 		walk = walk.get_parent()
 	return false
 
+## DSH_OPT: the iron bands, studs, hinges, stiles and the seam strips of one gate leaf
+## never come apart on their own - they go when the whole leaf goes. Merged into one mesh
+## per material they still swing on the hinge, and the leaf drops from ~40 draws to 2.
+func _merge_pivot_decoration(pivot: Node3D) -> void:
+	var groups: Dictionary = {}
+	for child: Node in pivot.get_children():
+		if child is MultiMeshInstance3D: continue
+		var item := child as MeshInstance3D
+		if item == null or item.mesh == null: continue
+		var material: Variant = item.material_override
+		if material == null and item.mesh.get_surface_count() > 0:
+			material = item.mesh.surface_get_material(0)
+		if material == null: continue
+		var key: String = _material_family(material)
+		if not groups.has(key):
+			groups[key] = {"material": material, "items": []}
+		(groups[key]["items"] as Array).append(item)
+	var pivot_inverse: Transform3D = pivot.global_transform.affine_inverse()
+	for key: String in groups:
+		var items: Array = groups[key]["items"]
+		if items.size() < 2: continue
+		var tool := SurfaceTool.new()
+		tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var appended := 0
+		for item: MeshInstance3D in items:
+			if not is_instance_valid(item) or item.mesh == null: continue
+			tool.append_from(item.mesh, 0, pivot_inverse * item.global_transform)
+			appended += 1
+		if appended < 2: continue
+		var merged: Mesh = tool.commit()
+		if merged == null: continue
+		var node := MeshInstance3D.new()
+		node.name = "GateLeafFittings"
+		node.mesh = merged
+		node.material_override = groups[key]["material"]
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		pivot.add_child(node)
+		for item: MeshInstance3D in items:
+			if is_instance_valid(item):
+				item.queue_free()
+
 func _flush_buckets() -> void:
 	_buckets.clear()
+	_spatial.clear()
 	for index: int in _cells.size():
 		var cell: Dictionary = _cells[index]
 		var at: Vector3 = cell.get("at", Vector3.ZERO)
+		var spatial_key := "%d|%d|%d" % [int(floor(at.x / SPATIAL_STEP)),
+			int(floor(at.y / SPATIAL_STEP)), int(floor(at.z / SPATIAL_STEP))]
+		if not _spatial.has(spatial_key):
+			_spatial[spatial_key] = []
+		(_spatial[spatial_key] as Array).append(index)
 		var key := "%s|%s|%d|%d|%d" % [str(cell.get("material", "stone")),
 			str(cell.get("shape", "box")),
 			int(floor(at.x / CHUNK_X)), int(floor(at.y / CHUNK_Y)), int(floor(at.z / CHUNK_Z))]
@@ -869,18 +930,66 @@ var _chunk_total := 0
 
 ## How much of the castle is actually being drawn, for the optimisation to be measured
 ## rather than claimed.
+##
+## A chunk node is added at the castle's own origin and its bricks are spread along a whole
+## wall, so asking whether the NODE's position is inside the camera said every chunk was on
+## screen: all 60k stones "in frame" from any angle. The real answer is the world-space AABB
+## of the chunk's LIVE instances, tested against the camera's frustum. Dead bricks are left
+## out on purpose - a knocked-out stone is parked kilometres below the map so the engine
+## would otherwise count it again.
 func render_stats() -> Dictionary:
+	var camera: Camera3D = get_viewport().get_camera_3d() if get_viewport() != null else null
+	var planes: Array[Plane] = []
+	var inside_point := Vector3.ZERO
+	if camera != null:
+		planes = camera.get_frustum()
+		# The camera lies ON four of its six planes (the sides), so it cannot say which
+		# side of them is "inside". A metre in front of the lens can.
+		inside_point = camera.global_position - camera.global_basis.z
+	# One pass over the cells: each live brick grows the box of its own chunk, and each
+	# chunk's live count is kept for the report.
+	var bounds: Dictionary = {}
+	var live_by_chunk: Dictionary = {}
+	var alive := 0
+	for cell: Dictionary in _cells:
+		if not bool(cell.get("alive", false)): continue
+		var key: String = str(cell.get("bucket", ""))
+		if key == "": continue
+		alive += 1
+		live_by_chunk[key] = int(live_by_chunk.get(key, 0)) + 1
+		var brick_box: AABB = _brick_transform(cell) * AABB(Vector3(-0.5, -0.5, -0.5), Vector3.ONE)
+		if bounds.has(key):
+			bounds[key] = (bounds[key] as AABB).merge(brick_box)
+		else:
+			bounds[key] = brick_box
 	var visible := 0
 	var instances := 0
-	var camera: Camera3D = get_viewport().get_camera_3d() if get_viewport() != null else null
+	var live := 0
 	for key: String in _buckets.keys():
 		var node: MultiMeshInstance3D = (_buckets[key] as Dictionary).get("node")
-		if not is_instance_valid(node): continue
-		if camera != null and camera.is_position_in_frustum(node.global_position):
+		if not is_instance_valid(node) or not bounds.has(key): continue
+		live += 1
+		var world_box: AABB = global_transform * (bounds[key] as AABB)
+		if planes.is_empty() or _aabb_in_frustum(world_box, planes, inside_point):
 			visible += 1
-			instances += node.multimesh.instance_count
-	return {"chunks": _chunk_total, "chunks_in_frustum": visible,
-		"bricks_in_frustum": instances, "bricks": _cells.size()}
+			instances += int(live_by_chunk.get(key, 0))
+	return {"chunks": _chunk_total, "chunks_live": live, "chunks_in_frustum": visible,
+		"bricks_in_frustum": instances, "bricks": _cells.size(), "bricks_alive": alive,
+		"bounds_alive": bounds.size()}
+
+## Conservative frustum test against a world-space box: a box is outside when its corner
+## furthest along one plane's inward normal is still behind that plane. The inward side is
+## anchored on the camera itself, which is always inside its own frustum.
+func _aabb_in_frustum(box: AABB, planes: Array[Plane], inside_point: Vector3) -> bool:
+	for plane: Plane in planes:
+		var inward: float = 1.0 if plane.distance_to(inside_point) >= 0.0 else -1.0
+		var positive := box.position
+		if plane.normal.x >= 0.0: positive.x += box.size.x
+		if plane.normal.y >= 0.0: positive.y += box.size.y
+		if plane.normal.z >= 0.0: positive.z += box.size.z
+		if plane.distance_to(positive) * inward < 0.0:
+			return false
+	return true
 ## A brick's transform: its place, its size, and a few degrees of settling so the wall
 ## does not look machine-made.
 func _brick_transform(cell: Dictionary) -> Transform3D:
@@ -909,6 +1018,10 @@ func _brick_tint(cell: Dictionary) -> Color:
 	var at: Vector3 = cell.get("at", Vector3.ZERO)
 	var hash := int(at.x * 11317.0) ^ int(at.y * 7111.0) ^ int(at.z * 5309.0)
 	var tone := float(abs(hash) % 1000) / 1000.0
+	if str(cell.get("group", "")) == "keep_floor_board":
+		# Every board has its own oak shade; the grain is still one shared material.
+		var oak := 0.89 + tone * 0.18
+		return Color(oak * 1.035, oak, oak * 0.94)
 	# One stone in sixteen is weathered: a wall of stones all the same age is a wall of
 	# stones nobody has ever lived with.
 	var multiplier := 0.945 + tone * 0.11
@@ -965,6 +1078,34 @@ func _kill_brick(index: int, impulse: Vector3, power: float) -> void:
 	else:
 		_spawn_falling_brick(cell, impulse, power)
 
+func _new_debris_body() -> RigidBody3D:
+	var body := RigidBody3D.new()
+	body.name = "Brick"
+	body.mass = 18.0
+	var shape := CollisionShape3D.new()
+	shape.name = "Shape"
+	body.add_child(shape)
+	if _debris_mesh == null:
+		_debris_mesh = BoxMesh.new()
+		_debris_mesh.size = Vector3.ONE
+	var fresh_mesh := MeshInstance3D.new()
+	fresh_mesh.name = "Mesh"
+	fresh_mesh.mesh = _debris_mesh
+	fresh_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	body.add_child(fresh_mesh)
+	add_child(body)
+	return body
+
+## DSH_OPT: the first wall blast used to allocate every stone it throws, and 150 new
+## RigidBody3D nodes in one frame froze the game for two hundred milliseconds. The pool is
+## filled during the build instead, so a breach reuses bodies that already exist.
+func _prewarm_debris_pool() -> void:
+	var started := Time.get_ticks_usec()
+	while _debris_pool.size() < MAX_FALLING:
+		_recycle_stone(_new_debris_body())
+	print("DSH_DEBRIS_PREWARM bodies=", _debris_pool.size(), " ms=",
+		float(Time.get_ticks_usec() - started) / 1000.0)
+
 func _spawn_falling_brick(cell: Dictionary, impulse: Vector3, power: float) -> void:
 	# FROM THE POOL when there is one: a blast that reuses its stones allocates nothing.
 	var body: RigidBody3D = null
@@ -975,21 +1116,7 @@ func _spawn_falling_brick(cell: Dictionary, impulse: Vector3, power: float) -> v
 			break
 	var from_pool: bool = body != null
 	if body == null:
-		body = RigidBody3D.new()
-		body.name = "Brick"
-		body.mass = 18.0
-		var shape := CollisionShape3D.new()
-		shape.name = "Shape"
-		body.add_child(shape)
-		if _debris_mesh == null:
-			_debris_mesh = BoxMesh.new()
-			_debris_mesh.size = Vector3.ONE
-		var fresh_mesh := MeshInstance3D.new()
-		fresh_mesh.name = "Mesh"
-		fresh_mesh.mesh = _debris_mesh
-		fresh_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		body.add_child(fresh_mesh)
-		add_child(body)
+		body = _new_debris_body()
 	var size: Vector3 = cell.get("size", BRICK)
 	var material_key: String = str(cell.get("material", "stone"))
 	var volume: float = size.x * size.y * size.z
@@ -1213,15 +1340,20 @@ func _add_breakable_collision(at: Vector3, size: Vector3, rotation_y: float = 0.
 	_wall_collision.append({"body": body, "at": at, "size": size, "alive": true})
 
 func _break_collision_near(at: Vector3, radius: float) -> void:
+	var world_at: Vector3 = to_global(at)
 	for section: Dictionary in _wall_collision:
 		if not bool(section.get("alive", false)): continue
-		var size: Vector3 = section["size"]
 		var body: StaticBody3D = section["body"]
 		if not is_instance_valid(body): continue
+		var size: Vector3 = section["size"]
+		# DSH_OPT: a cheap sphere reject first. The exact test inverts a transform and
+		# clamps a point, and most of the 2k sections are nowhere near the strike.
+		var reach: float = radius + size.length() * 0.5
+		if body.global_position.distance_squared_to(world_at) > reach * reach: continue
 		# Floor tiles lose their own support when struck, leaving adjacent tiles intact.
 		if body.get_meta("castle_keep_floor", false) and section["at"].distance_to(at) > radius:
 			continue
-		var local_hit: Vector3 = body.to_local(to_global(at))
+		var local_hit: Vector3 = body.global_transform.affine_inverse() * world_at
 		var nearest := Vector3(clampf(local_hit.x, -size.x * 0.5, size.x * 0.5),
 			clampf(local_hit.y, -size.y * 0.5, size.y * 0.5),
 			clampf(local_hit.z, -size.z * 0.5, size.z * 0.5))
@@ -1427,26 +1559,49 @@ func _build_gatehouse() -> void:
 		# THE LEAF IS A GRID OF PLANKS: six columns by eight rows. A single tall board meant
 		# that knocking it out tore an eleven-metre strip out of the door; with a grid a hit
 		# opens a hole the size of the strike, which is what was asked for.
+		# DSH_OPT: the planks are drawn as TWO MultiMeshes per leaf, one per oak tone, not
+		# as forty-eight meshes. A plank still breaks on its own: the broken one is parked
+		# out of the world, exactly like a knocked-out brick, and its collider is disabled.
 		var leaf_columns := 6
 		var leaf_rows := 8
 		var board_w := leaf_width / float(leaf_columns)
 		var board_h := (GATE_HEIGHT * 0.96) / float(leaf_rows)
+		var board_box := BoxMesh.new()
+		# IN CONTACT, with a hair of overlap: at 0.98 and 0.97 the planks showed light
+		# through the joints, which read as cracks in the door.
+		board_box.size = Vector3(board_w * 1.004, board_h * 1.004, 0.62)
+		var tone_counts: Dictionary = {}
+		for column: int in leaf_columns:
+			var tone: String = "wood_alt" if column % 3 == 1 else "wood"
+			tone_counts[tone] = int(tone_counts.get(tone, 0)) + 1
+		var board_multis: Dictionary = {}
+		for tone: String in tone_counts:
+			var multi := MultiMesh.new()
+			multi.transform_format = MultiMesh.TRANSFORM_3D
+			multi.mesh = board_box
+			multi.instance_count = int(tone_counts[tone]) * leaf_rows
+			var boards_node := MultiMeshInstance3D.new()
+			boards_node.name = "GateBoards_" + tone
+			boards_node.multimesh = multi
+			boards_node.material_override = _materials[tone]
+			boards_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			pivot.add_child(boards_node)
+			board_multis[tone] = boards_node
+		var board_slots: Dictionary = {}
 		var boards: Array = []
 		for row: int in leaf_rows:
 			for column: int in leaf_columns:
-				var board_mesh := MeshInstance3D.new()
-				var board_box := BoxMesh.new()
-				# IN CONTACT, with a hair of overlap: at 0.98 and 0.97 the planks showed light
-				# through the joints, which read as cracks in the door.
-				board_box.size = Vector3(board_w * 1.004, board_h * 1.004, 0.62)
-				board_mesh.mesh = board_box
-				board_mesh.material_override = _materials["wood_alt"] if column % 3 == 1 else _materials["wood"]
-				board_mesh.position = Vector3(
+				var tone: String = "wood_alt" if column % 3 == 1 else "wood"
+				var slot: int = int(board_slots.get(tone, 0))
+				board_slots[tone] = slot + 1
+				var board_at := Vector3(
 					-side * (board_w * (float(column) + 0.5)),
 					board_h * (float(row) + 0.5) + GATE_HEIGHT * 0.02,
 					0.0)
-				pivot.add_child(board_mesh)
-				boards.append({"mesh": board_mesh, "broken": false, "size": board_box.size})
+				(board_multis[tone] as MultiMeshInstance3D).multimesh.set_instance_transform(
+					slot, Transform3D(Basis.IDENTITY, board_at))
+				boards.append({"at": board_at, "broken": false, "size": board_box.size,
+					"multi": board_multis[tone], "slot": slot})
 		# The seams between the boards: shallow dark strips on the face, not slots.
 		var seam_material := StandardMaterial3D.new()
 		seam_material.albedo_color = Color(0.24, 0.15, 0.08)
@@ -1529,15 +1684,15 @@ func _build_gatehouse() -> void:
 		# through while the sound boards continue to swing on the hinge.
 		for board_entry: Dictionary in boards:
 			var board_shape := CollisionShape3D.new()
-			var board_box := BoxShape3D.new()
-			board_box.size = board_entry["size"]
-			board_shape.shape = board_box
-			var board_visual: MeshInstance3D = board_entry["mesh"]
-			board_shape.position = board_visual.position
+			var board_shape_box := BoxShape3D.new()
+			board_shape_box.size = board_entry["size"]
+			board_shape.shape = board_shape_box
+			board_shape.position = board_entry["at"]
 			body.add_child(board_shape)
 			board_entry["shape"] = board_shape
 		body.set_meta("castle_gate", true)
 		body.set_meta("surface", "wood")
+		_merge_pivot_decoration(pivot)
 		_gate_leaves.append({"pivot": pivot, "side": side, "body": body, "detached": false,
 			"boards": boards})
 		if side < 0.0: _gate_left = pivot
@@ -1999,6 +2154,11 @@ func _build_keep_rooms() -> void:
 			_add_brick(runner + Vector3(side * 1.1, 0.008, 0.0),
 				Vector3(0.075, 0.014, 1.98), "gold", Vector3.ZERO,
 				"keep_runner_edge", section, int(side))
+		# Small woven diamonds mark each runner panel without a separate material.
+		for mark: float in [-0.58, 0.58]:
+			_add_brick(runner + Vector3(0.0, 0.016, mark),
+				Vector3(0.18, 0.012, 0.18), "gold", Vector3(0, PI * 0.25, 0),
+				"keep_runner_pattern", section, int(mark * 10.0))
 	for light_z: float in [-7.0, 6.0]:
 		var lamp := OmniLight3D.new()
 		lamp.light_color = Color(1.0, 0.72, 0.42)
@@ -2057,10 +2217,22 @@ func _build_keep_interior() -> void:
 		var sconce := base + Vector3(centre.x, 3.5, centre.y)
 		_furnish(sconce, Vector3(0.45, 0.13, 0.45), "gold", "room_lantern")
 		_furnish(sconce + Vector3.UP * 0.18, Vector3(0.24, 0.25, 0.24), "linen", "room_lantern")
-		_furnish(base + Vector3(centre.x, 0.295, centre.y),
-			Vector3(5.8, 0.025, 7.0), "velvet", "room_rug")
+		var rug := base + Vector3(centre.x, 0.295, centre.y)
+		_furnish(rug, Vector3(5.10, 0.025, 6.25), "velvet", "room_rug")
+		# A narrow woven border leaves the oak planks visible around each chamber.
+		for side: float in [-1.0, 1.0]:
+			_furnish(rug + Vector3(side * 2.45, 0.018, 0),
+				Vector3(0.060, 0.012, 6.0), "gold", "room_rug_border")
+			_furnish(rug + Vector3(0, 0.018, side * 3.00),
+				Vector3(4.96, 0.012, 0.060), "gold", "room_rug_border")
+			_furnish(rug + Vector3(side * 2.18, 0.016, 0),
+				Vector3(0.035, 0.010, 5.45), "linen", "room_rug_border")
+			_furnish(rug + Vector3(0, 0.016, side * 2.72),
+				Vector3(4.39, 0.010, 0.035), "linen", "room_rug_border")
 		var face: float = -1.0 if centre.x < 0.0 else 1.0
-		var banner := base + Vector3(face * 12.58, 2.8, centre.y)
+		# Hang the cloth in front of the inner stone face; at x=12.58 it was
+		# buried inside the thick wall and the room looked empty from the door.
+		var banner := base + Vector3(face * 11.78, 2.8, centre.y)
 		_furnish(banner, Vector3(0.08, 2.8, 2.0), "velvet", "room_banner")
 		_furnish(banner + Vector3(-face * 0.06, 0.45, 0.0),
 			Vector3(0.09, 0.48, 0.85), "gold", "room_banner_device")
@@ -2077,6 +2249,11 @@ func _build_keep_interior() -> void:
 			"wood_alt", "hall_table_edge")
 	_furnish(hall + Vector3(0, 0.48, 0), Vector3(1.85, 0.12, 0.14),
 		"wood_alt", "hall_table_brace")
+	_furnish(hall + Vector3(0, 0.31, 0), Vector3(0.18, 0.15, 3.05),
+		"wood_alt", "hall_table_brace")
+	for side: float in [-1.0, 1.0]:
+		_furnish(hall + Vector3(side * 1.08, 0.88, 0),
+			Vector3(0.12, 0.22, 3.56), "wood_alt", "hall_table_brace")
 	for sx: float in [-1.0, 1.0]:
 		_furnish(hall + Vector3(sx * 0.95, 0.52, -1.35), Vector3(0.24, 1.04, 0.24),
 			"wood_alt", "hall_table_leg", false, "turned")
@@ -2087,6 +2264,8 @@ func _build_keep_interior() -> void:
 			"wood_alt", "hall_bench_leg", false, "turned")
 		_furnish(hall + Vector3(sx * 2.05, 0.27, 1.3), Vector3(0.2, 0.54, 0.2),
 			"wood_alt", "hall_bench_leg", false, "turned")
+		_furnish(hall + Vector3(sx * 2.05, 0.25, 0), Vector3(0.10, 0.10, 2.65),
+			"wood_alt", "hall_bench_leg")
 	_furnish(hall + Vector3(0, 0.58, -3.2), Vector3(1.3, 0.16, 1.02),
 		"wood_alt", "hall_chair", true)
 	_furnish(hall + Vector3(0, 0.69, -3.2), Vector3(1.1, 0.11, 0.82),
@@ -2211,6 +2390,10 @@ func _build_keep_interior() -> void:
 			"linen", "chamber_pillow", false, "soft")
 	_furnish(chamber + Vector3(0, 1.68, -1.73), Vector3(2.7, 0.24, 0.22),
 		"wood", "chamber_headboard", true)
+	_furnish(chamber + Vector3(0, 0.77, 1.66), Vector3(2.54, 0.76, 0.18),
+		"wood_alt", "chamber_footboard")
+	_furnish(chamber + Vector3(0, 1.12, 1.75), Vector3(2.2, 0.09, 0.08),
+		"gold", "chamber_footboard_trim")
 	for x_offset: float in [-1.08, -0.36, 0.36, 1.08]:
 		_furnish(chamber + Vector3(x_offset, 1.05, -1.73), Vector3(0.2, 1.15, 0.2),
 			"wood_alt", "chamber_headboard", true, "turned")
@@ -2220,8 +2403,15 @@ func _build_keep_interior() -> void:
 		_furnish(chamber + Vector3(side * 1.18, 1.75, -1.7), Vector3(0.18, 0.45, 0.18),
 			"gold", "chamber_headboard_finial", false, "turned")
 	for sx: float in [-1.0, 1.0]:
-		_furnish(chamber + Vector3(sx * 1.25, 2.15, 0), Vector3(0.2, 4.3, 0.2),
-			"wood", "chamber_post", false, "turned")
+		for sz: float in [-1.0, 1.0]:
+			_furnish(chamber + Vector3(sx * 1.25, 2.08, sz * 1.50),
+				Vector3(0.17, 4.16, 0.17), "wood", "chamber_post", false, "turned")
+			_furnish(chamber + Vector3(sx * 1.25, 4.25, sz * 1.50),
+				Vector3(0.25, 0.26, 0.25), "gold", "chamber_post_finial", false, "soft")
+	for stripe: int in 4:
+		_furnish(chamber + Vector3(-0.81 + float(stripe) * 0.54, 1.065, 0.83),
+			Vector3(0.22, 0.020, 1.10), "gold" if stripe % 2 == 0 else "linen",
+			"chamber_cover_trim")
 	_furnish(chamber + Vector3(0, 4.2, 0), Vector3(2.65, 0.12, 3.3), "linen", "chamber_canopy")
 	_furnish(chamber + Vector3(0, 4.13, 0), Vector3(2.5, 0.03, 3.12), "velvet", "chamber_canopy_lining")
 	for side: float in [-1.0, 1.0]:
@@ -2501,28 +2691,6 @@ func _build_brick_floor() -> void:
 	node.multimesh = multi
 	node.material_override = paving
 	add_child(node)
-## ------------------------------------------------------------------ distance and detail
-## A plain slab standing in for the masonry beyond the brick-LOD distance: without it the
-## walls would vanish at a hundred metres, and with it a far view costs four boxes.
-func _build_far_slabs() -> void:
-	for side: String in ["north", "south", "east", "west"]:
-		var vertical: bool = side == "north" or side == "south"
-		var sign_z: float = 1.0 if side == "south" else -1.0
-		var sign_x: float = 1.0 if side == "east" else -1.0
-		var centre := Vector3(0.0, WALL_HEIGHT * 0.5, sign_z * WALL_HALF) if vertical \
-			else Vector3(sign_x * WALL_HALF, WALL_HEIGHT * 0.5, 0.0)
-		var size := Vector3(WALL_HALF * 2.0, WALL_HEIGHT, WALL_THICK) if vertical \
-			else Vector3(WALL_THICK, WALL_HEIGHT, WALL_HALF * 2.0)
-		var slab := MeshInstance3D.new()
-		var box := BoxMesh.new()
-		box.size = size
-		slab.mesh = box
-		slab.material_override = _materials["stone"]
-		slab.position = centre
-		slab.visibility_range_begin = BRICK_LOD_END - 4.0
-		slab.visibility_range_begin_margin = 6.0
-		slab.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-		add_child(slab)
 
 ## String courses: a band of stone standing proud of the wall at two heights, which is the
 ## cheapest way to break a flat face - one line and the wall stops being a panel.
@@ -3071,6 +3239,7 @@ func _release_furniture_dependents(group: String, at: Vector3,
 		impulse: Vector3, speed: float) -> void:
 	var dependent: Array[String] = []
 	var reach := 2.5
+	if group == "chamber_bed": reach = 4.5 # Canopy and four posts belong to this bed.
 	match group:
 		"hall_table": dependent = ["hall_table_leg", "hall_table_slats", "hall_table_edge",
 			"hall_table_brace", "hall_plate", "hall_goblet"]
@@ -3088,7 +3257,10 @@ func _release_furniture_dependents(group: String, at: Vector3,
 			"archive_books", "archive_shelf_trim"]
 		"archive_desk": dependent = ["archive_desk_slats", "archive_desk_leg", "archive_map"]
 		"chamber_bed": dependent = ["chamber_bed_rail", "chamber_mattress",
-			"chamber_cover", "chamber_pillow"]
+			"chamber_cover", "chamber_cover_trim", "chamber_pillow",
+			"chamber_post", "chamber_post_finial", "chamber_canopy",
+			"chamber_canopy_lining", "chamber_canopy_valance", "chamber_drape",
+			"chamber_footboard", "chamber_footboard_trim"]
 		"chamber_headboard": dependent = ["chamber_headboard_crest", "chamber_headboard_finial"]
 		"chamber_wardrobe": dependent = ["chamber_wardrobe_crown",
 			"chamber_wardrobe_panel", "chamber_handle"]
@@ -3118,6 +3290,29 @@ func get_stats() -> Dictionary:
 		"gate_bricks": _count_gate_bricks(),
 	}
 
+## DSH_OPT: every cell index whose grid box overlaps a cube round `at`. The boxes are
+## coarse (8 m) so a blast touches a few dozen of them, not the whole map.
+func _indices_near(at: Vector3, reach: float) -> Array[int]:
+	return _indices_box(at - Vector3.ONE * reach, at + Vector3.ONE * reach)
+
+## Every cell index whose grid box overlaps the given world box.
+func _indices_box(low: Vector3, high: Vector3) -> Array[int]:
+	var out: Array[int] = []
+	var gx0 := int(floor(low.x / SPATIAL_STEP))
+	var gx1 := int(floor(high.x / SPATIAL_STEP))
+	var gy0 := int(floor(low.y / SPATIAL_STEP))
+	var gy1 := int(floor(high.y / SPATIAL_STEP))
+	var gz0 := int(floor(low.z / SPATIAL_STEP))
+	var gz1 := int(floor(high.z / SPATIAL_STEP))
+	for gx: int in range(gx0, gx1 + 1):
+		for gy: int in range(gy0, gy1 + 1):
+			for gz: int in range(gz0, gz1 + 1):
+				var bucket: Variant = _spatial.get("%d|%d|%d" % [gx, gy, gz])
+				if bucket != null:
+					for index: int in bucket:
+						out.append(index)
+	return out
+
 ## A blast knocks out every brick inside its radius, and the courses above them come down
 ## a moment later.
 func apply_explosion(event: Dictionary) -> Dictionary:
@@ -3134,7 +3329,7 @@ func apply_explosion(event: Dictionary) -> Dictionary:
 	var power: float = maxf(1.0, float(event.get("power", 40.0)))
 	var direction: Vector3 = event.get("direction", Vector3.DOWN)
 	var killed := 0
-	for index: int in _cells.size():
+	for index: int in _indices_near(at, radius):
 		var cell: Dictionary = _cells[index]
 		if not bool(cell.get("alive", false)): continue
 		var brick_at: Vector3 = cell.get("at", Vector3.ZERO)
@@ -3148,27 +3343,36 @@ func apply_explosion(event: Dictionary) -> Dictionary:
 		# SECTION BY SECTION, where the stone struck. Each leaf has six plank columns
 		# and eight short courses; a hit opens a local hole. The hinge releases only
 		# when every section of the leaf has been destroyed.
+		# The planks are drawn through the leaf's MultiMesh, so the distance is taken
+		# in the PIVOT's space: the leaf can be swinging, and the planks swing with it.
+		# Distance to the NEAREST POINT of the board, not to its middle: a stone that
+		# strikes the top of a door is four metres from the centre of every board and was
+		# measured as a miss.
+		var pivot_hit: Vector3 = pivot.to_local(at_world)
 		for board: Dictionary in boards:
 			if bool(board.get("broken", false)): continue
-			var board_mesh: MeshInstance3D = board.get("mesh")
-			if not is_instance_valid(board_mesh): continue
-			# Distance to the NEAREST POINT of the board, not to its middle: a stone that
-			# strikes the top of a door is four metres from the centre of every board and was
-			# measured as a miss.
-			var local_hit: Vector3 = board_mesh.to_local(at_world)
+			var local_hit: Vector3 = pivot_hit
+			var board_at: Vector3 = board.get("at", Vector3.ZERO)
 			var board_size: Vector3 = board.get("size", Vector3(0.8, 1.4, 0.26))
-			var nearest := Vector3(clampf(local_hit.x, -board_size.x * 0.5, board_size.x * 0.5),
-				clampf(local_hit.y, -board_size.y * 0.5, board_size.y * 0.5),
-				clampf(local_hit.z, -board_size.z * 0.5, board_size.z * 0.5))
+			var nearest := Vector3(
+				clampf(local_hit.x, board_at.x - board_size.x * 0.5, board_at.x + board_size.x * 0.5),
+				clampf(local_hit.y, board_at.y - board_size.y * 0.5, board_at.y + board_size.y * 0.5),
+				clampf(local_hit.z, board_at.z - board_size.z * 0.5, board_at.z + board_size.z * 0.5))
 			var hole: float = clampf(0.5 + power * 0.004, 0.6, 2.0)
 			if local_hit.distance_to(nearest) > hole: continue
 			board["broken"] = true
-			board_mesh.visible = false
+			var multi: MultiMeshInstance3D = board.get("multi")
+			var slot: int = int(board.get("slot", -1))
+			if is_instance_valid(multi) and multi.multimesh != null and slot >= 0:
+				multi.multimesh.set_instance_transform(slot,
+					Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * 0.0001),
+						Vector3(0.0, -4000.0, 0.0)))
 			var board_shape: CollisionShape3D = board.get("shape")
 			if is_instance_valid(board_shape): board_shape.disabled = true
 			killed += 1
 			# The fallen plank and chips share the bounded debris pool with masonry.
-			var plank_at: Vector3 = to_local(board_mesh.global_position) + Vector3(0.0, 0.2, 0.9)
+			var plank_at: Vector3 = to_local(pivot.global_transform * board_at) \
+				+ Vector3(0.0, 0.2, 0.9)
 			_spawn_falling_brick({"at": plank_at, "size": board_size, "material": "wood",
 				"rotation": Vector3.ZERO, "row": 0, "column": 0}, direction, power * 0.45)
 			for splinter: int in 3:
@@ -3210,14 +3414,19 @@ func apply_explosion(event: Dictionary) -> Dictionary:
 func _schedule_support_failure(at: Vector3, radius: float) -> void:
 	var now := Time.get_ticks_msec()
 	var holes: Array[Dictionary] = []
-	for index: int in _cells.size():
+	for index: int in _indices_near(at, radius + 0.5):
 		var cell: Dictionary = _cells[index]
 		if bool(cell.get("alive", false)): continue
 		var brick_at: Vector3 = cell.get("at", Vector3.ZERO)
 		if brick_at.distance_to(at) > radius + 0.5: continue
 		holes.append({"x": brick_at.x, "y": brick_at.y, "z": brick_at.z})
 	if holes.is_empty(): return
-	for index: int in _cells.size():
+	# Only the box a breach can reach upward needs to be visited: a support brick is
+	# within a brick of the hole's footprint and inside the same breach height. A cube
+	# of reach radius*3.2 round the strike was five times more cells than this needs.
+	var support_low := at + Vector3(-(radius + 1.2), -radius + BRICK.y * 0.3, -(radius + 1.2))
+	var support_high := at + Vector3(radius + 1.2, radius * 3.2, radius + 1.2)
+	for index: int in _indices_box(support_low, support_high):
 		var cell: Dictionary = _cells[index]
 		if not bool(cell.get("alive", false)): continue
 		var brick_at: Vector3 = cell.get("at", Vector3.ZERO)
@@ -3279,3 +3488,69 @@ func _physics_process(_delta: float) -> void:
 ## Where the player appears: in the courtyard, with the gate behind him.
 func spawn_point() -> Vector3:
 	return global_position + Vector3(0.0, 1.2, 14.0)
+
+## Gate38: a recognisable siege entrance above the original breakable leaves.
+## Every piece uses the existing masonry batches and damage cells. There are no
+## new permanent collision bodies or materials in the clear gateway.
+func _build_gate_art38() -> void:
+	var face: float = WALL_HALF + 2.75
+	# Seven machicolations project out of the gateway. Their gaps are dark from
+	# below and the continuous rail ties the two pre-existing bastions together.
+	for bracket: int in 7:
+		var x: float = (float(bracket) - 3.0) * 1.68
+		_add_brick(Vector3(x, 20.22, face + 0.22), Vector3(0.58, 1.13, 1.52),
+			"cold", Vector3.ZERO, "gate38_machicolation", 0, bracket)
+	_add_brick(Vector3(0.0, 21.12, face + 0.44), Vector3(13.4, 0.47, 1.45),
+		"warm", Vector3.ZERO, "gate38_gallery_rail")
+	for merlon: int in 7:
+		var x: float = (float(merlon) - 3.0) * 1.86
+		_add_brick(Vector3(x, 22.08, face + 0.60), Vector3(1.05, 1.50, 1.05),
+			"stone", Vector3.ZERO, "gate38_gallery_merlon", 0, merlon)
+	# The little watch turrets break the flat curtain silhouette. Eight stone
+	# faces per course form a real octagon; stepped slate roofs carry a gold finial.
+	for side: float in [-1.0, 1.0]:
+		var cx: float = side * 14.35
+		var cz: float = WALL_HALF + 1.55
+		for course: int in 5:
+			for facet: int in 8:
+				var angle: float = TAU * float(facet) / 8.0
+				var radial := Vector3(sin(angle), 0.0, cos(angle))
+				_add_brick(Vector3(cx, 22.22 + float(course) * 1.04, cz) + radial * 2.02,
+					Vector3(1.72, 1.01, 0.40),
+					"warm" if course == 0 or course == 4 else "stone",
+					Vector3(0.0, angle, 0.0), "gate38_turret_wall", course, facet)
+		for ring: int in 4:
+			var radius: float = 1.93 - float(ring) * 0.43
+			for facet: int in 8:
+				var angle: float = TAU * float(facet) / 8.0
+				var radial := Vector3(sin(angle), 0.0, cos(angle))
+				_add_brick(Vector3(cx, 27.55 + float(ring) * 0.56, cz) + radial * radius,
+					Vector3(1.56 - float(ring) * 0.22, 0.49, 0.48), "cold",
+					Vector3(0.0, angle, 0.0), "gate38_slate_roof", ring, facet)
+		_add_brick(Vector3(cx, 29.88, cz), Vector3(0.58, 0.72, 0.58),
+			"ochre", Vector3.ZERO, "gate38_finial")
+		# A black slit, cut-stone jambs and a sill face the attackers. The slit
+		# stays well above head height and does not alter the wall collision.
+		_add_brick(Vector3(cx, 24.77, cz + 2.29), Vector3(0.27, 1.72, 0.07),
+			"dark", Vector3.ZERO, "gate38_arrow_slit")
+		for jamb_side: float in [-1.0, 1.0]:
+			_add_brick(Vector3(cx + jamb_side * 0.25, 24.77, cz + 2.32),
+				Vector3(0.19, 1.91, 0.15), "cold", Vector3.ZERO,
+				"gate38_arrow_jamb")
+		_add_brick(Vector3(cx, 23.76, cz + 2.36), Vector3(0.71, 0.18, 0.18),
+			"cold", Vector3.ZERO, "gate38_arrow_sill")
+		# Narrow burgundy standards identify the two turrets from the long approach.
+		_add_brick(Vector3(cx, 20.84, cz + 2.40), Vector3(1.42, 2.22, 0.075),
+			"velvet", Vector3.ZERO, "gate38_standard")
+		_add_brick(Vector3(cx, 20.84, cz + 2.46), Vector3(0.19, 1.60, 0.04),
+			"gold", Vector3.ZERO, "gate38_standard_device")
+	# A layered pointed pediment above the gallery reads from the siege camp.
+	for tier: int in 5:
+		_add_brick(Vector3(0.0, 23.30 + float(tier) * 0.52, face + 0.02),
+			Vector3(5.80 - float(tier) * 0.91, 0.47, 0.56),
+			"warm" if tier % 2 == 0 else "cold", Vector3.ZERO,
+			"gate38_pediment", tier, 0)
+	_add_brick(Vector3(0.0, 24.13, face + 0.36), Vector3(1.06, 1.36, 0.12),
+		"velvet", Vector3.ZERO, "gate38_heraldry")
+	_add_brick(Vector3(0.0, 24.13, face + 0.46), Vector3(0.18, 1.08, 0.07),
+		"gold", Vector3.ZERO, "gate38_heraldry_device")
