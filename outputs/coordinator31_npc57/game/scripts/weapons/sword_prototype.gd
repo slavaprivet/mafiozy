@@ -5872,6 +5872,19 @@ func _embedded_part_follows_cut31(embedded_part: String, severed_part: String) -
 		if severed_part == "shin" + side and embedded_part == "foot" + side: return true
 	return false
 
+## The original bone attachments remain in the skeleton after a mesh cut. They
+## must stop receiving hits when their skin has become detached debris.
+func _disable_severed_npc_hitboxes31(severed_part: String) -> void:
+	if not is_instance_valid(_npc_rig): return
+	for part: String in ["head", "chest", "pelvis", "upperarm_l", "upperarm_r", "forearm_l", "forearm_r", "hand_l", "hand_r", "thigh_l", "thigh_r", "shin_l", "shin_r", "foot_l", "foot_r"]:
+		if not _embedded_part_follows_cut31(part, severed_part): continue
+		var anchor := _npc_rig.get_node_or_null("Hit" + part)
+		if anchor == null: continue
+		for child: Node in anchor.get_children():
+			if child is CollisionObject3D:
+				child.collision_layer = 0
+				child.collision_mask = 0
+
 ## Takes the limb off: the mesh vanishes, the stump bleeds, a chunk is thrown.
 func _sever_part(full_key: String, kind: String, part: Dictionary, point: Vector3, direction: Vector3, speed: float) -> void:
 	# DSH_GORE: cut the ACTUAL skin first. The plane runs through the point that was
@@ -5906,6 +5919,7 @@ func _sever_part(full_key: String, kind: String, part: Dictionary, point: Vector
 		elif is_instance_valid(_npc_body):
 			embedded.reparent(_npc_body, true)
 	_npc_severed[full_key] = true
+	_disable_severed_npc_hitboxes31(full_key)
 	if is_instance_valid(_npc_armor_visual31): _npc_armor_visual31.on_severed(full_key)
 	_spray_blood(point, direction, 34)
 	_npc_bleed_until_ms = Time.get_ticks_msec() + 6500
