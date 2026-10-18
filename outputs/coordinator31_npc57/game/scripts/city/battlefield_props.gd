@@ -589,10 +589,17 @@ func _tower_shape(body: StaticBody3D, size: Vector3, local_center: Vector3,
 	body.add_child(collision)
 
 func _build_banner(p: Vector3, cloth := "red") -> void:
-	_box("oak_edge", p + Vector3.UP * 2.1, Vector3(0.13, 4.2, 0.13))
-	_box("iron", p + Vector3.UP * 4.16, Vector3(1.25, 0.08, 0.08))
-	_box(cloth, p + Vector3(0.87, 3.28, 0), Vector3(1.72, 1.74, 0.055), Vector3(0, 0, 0.08))
-	_box("red_edge", p + Vector3(0.55, 2.87, 0.035), Vector3(1.0, 0.10, 0.028))
+	var id := "banner_%d" % int(_stats.get("banners", 0))
+	# The visible pole is solid and all four parts fall with it on a hit.
+	_group(id, p, 35.0, "wood", Vector3(0.13, 4.2, 0.13))
+	# Keep blade damage on the timber pole, but release cloth and slats.
+	_groups[id]["debris_kind"] = "canvas"
+	_groups[id]["debris_cloth"] = cloth
+	_box("oak_edge", p + Vector3.UP * 2.1, Vector3(0.13, 4.2, 0.13), Vector3.ZERO, id)
+	_box("iron", p + Vector3.UP * 4.16, Vector3(1.25, 0.08, 0.08), Vector3.ZERO, id)
+	_box(cloth, p + Vector3(0.87, 3.28, 0), Vector3(1.72, 1.74, 0.055), Vector3(0, 0, 0.08), id)
+	_box("red_edge", p + Vector3(0.55, 2.87, 0.035), Vector3(1.0, 0.10, 0.028), Vector3.ZERO, id)
+	_stats["banners"] = int(_stats.get("banners", 0)) + 1
 
 func _build_crate(p: Vector3, size: float, id: String, collider := true, owner_group := "") -> void:
 	if collider:
@@ -759,9 +766,11 @@ func _destroy_group(id: String, hit_point: Vector3) -> void:
 		collider.set_deferred("collision_layer", 0)
 		collider.set_deferred("collision_mask", 0)
 		collider.queue_free()
-	_spawn_splinters(g["center"], hit_point, g["kind"])
+	_spawn_splinters(g["center"], hit_point,
+		str(g.get("debris_kind", g["kind"])), str(g.get("debris_cloth", "canvas")))
 
-func _spawn_splinters(center: Vector3, hit_point: Vector3, kind: String) -> void:
+func _spawn_splinters(center: Vector3, hit_point: Vector3, kind: String,
+		cloth_material := "canvas") -> void:
 	while _shards.size() + 5 > SHARD_LIMIT:
 		var oldest: Dictionary = _shards.pop_front()
 		if is_instance_valid(oldest["body"]):
@@ -797,7 +806,7 @@ func _spawn_splinters(center: Vector3, hit_point: Vector3, kind: String) -> void
 		visual.mesh = _meshes["box"]
 		visual.scale = box.size
 		if cloth_scrap:
-			visual.material_override = _materials["canvas"]
+			visual.material_override = _materials[cloth_material]
 		elif canvas_slat:
 			visual.material_override = _materials["oak"]
 		else:
