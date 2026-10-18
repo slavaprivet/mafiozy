@@ -4776,6 +4776,11 @@ func _add_npc_hitboxes() -> void:
 		# own walking capsule must pass through his moving arm and legs.
 		_npc_body.add_collision_exception_with(hit_body)
 		hit_body.add_collision_exception_with(_npc_body)
+		# Target volumes stay ray-queryable, but the player collides with the
+		# physical knight/corpse rather than 15 invisible bone-attached boxes.
+		if is_instance_valid(_player):
+			_player.add_collision_exception_with(hit_body)
+			hit_body.add_collision_exception_with(_player)
 		count += 1
 	print("DSH_SWORD_PROTO_HITBOXES parts=", count, " unit=", unit)
 
