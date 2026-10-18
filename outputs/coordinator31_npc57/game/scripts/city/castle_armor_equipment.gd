@@ -154,7 +154,7 @@ func focused_item_id() -> String:
 	var origin := camera.global_position
 	var forward := -camera.global_basis.z
 	var best := ""
-	var best_t := 3.4
+	var best_t := camera.global_position.distance_to(player.global_position) + 2.6
 	for id: String in ground_items:
 		var holder: Node3D = ground_items[id]
 		if not is_instance_valid(holder): continue
