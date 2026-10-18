@@ -1592,7 +1592,7 @@ func _input(event: InputEvent) -> void:
 		if code == KEY_E and try_pickup_shield31():
 			get_viewport().set_input_as_handled()
 			return
-		if code == KEY_E and _sword_grounded:
+		if code == KEY_E and (_sword_grounded or _unarmed):
 			# DSH_CATAPULT: if the siege machine claims E here - a stone to lift, a spoon to
 			# load, a frame to stand at - a dropped sword must NOT steal the key. Both
 			# prototypes listen for E, and this is exactly what made the stone impossible to
