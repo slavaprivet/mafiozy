@@ -1,0 +1,42 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+DSH_WALKCHEAP catchup=4 far_ttl=96 default_catchup=4 default_far_ttl=96 restore_catchup=0or8 restore_far_ttl=0
+DSH_CATAPULT_WELD {"merged":62,"nodes":8,"surfaces":7}
+DSH_CATAPULT {"cart":"(48.5, 0.05, -14.0)","ok":true,"stone":"(50.8, 0.46, -13.4)"}
+DSH_SHADOWS kept=86 dropped=92
+DSH_BATCH merged_nodes=13 sources_merged=111 left=205
+DSH_DEBRIS_PREWARM bodies=150 ms=2.4
+DSH_CATAPULT_PLACE_CALL castle=true cart=true half_method=true
+DSH_CATAPULT_PLACED castle_gate=(0.0, 0.0, 968.0) cart=(0.0, 0.05, 948.0) stone=(3.2, 0.51, 950.4)
+DSH_CASTLE_SPAWN_AT_CATAPULT player=(0.0, 0.25, 952.5) cart=(0.0, 0.05, 948.0)
+DSH_CASTLE {"bricks":61846,"gates":2,"ok":true,"origin":"(0.0, 0.0, 900.0)","stats":{"bricks":61846,"collapsed":0,"detached":0,"events":0,"falling":0,"gate_board_colliders_active":96,"gate_boards_broken":0,"gate_bricks":0,"gate_leaves_detached":0,"gate_open":false,"gates":2,"leaf_dbg":{"child":"(-4.6, 0.0, 968.0)","child_name":"GateBoards_wood","child_visible":true,"mats":14,"pivot":"(-4.6, 0.0, 968.0)"},"ok":true,"wall_collision_active":2115}}
+PALAZZO_READY false
+PALAZZO_ONLY43_READY legacy_buildings=75 palazzo=0
+MAFIOZI_PREVIEW_READY buildings=75 decor=159 source_colliders=353 renderer=forward_plus
+PRINTSHOP_INTERIOR_STATUS removed_by_user
+WATER_SURFACE_STATUS not_loaded
+STATIC_BATCH_STATUS disabled
+RESIDENT_POPULATION_STATUS disabled
+MELEE_PRACTICE_STATUS disabled
+MINIMAP_STATUS disabled
+SWORD_PROTOTYPE_STATUS disabled
+BOW_PROTOTYPE_STATUS disabled
+DSH_CATAPULT_PLACE_CALL castle=true cart=true half_method=true
+DSH_CATAPULT_PLACED castle_gate=(0.0, 0.0, 968.0) cart=(0.0, 0.05, 948.0) stone=(3.2, 0.51, 950.4)
+DSH_CASTLE_SPAWN_AT_CATAPULT player=(0.0, 0.25, 943.5)
+DSH_SCENE_LOADED path=res://scenes/castle.tscn castle_map=true preview_castle=true player=(0.0, 0.030271, 943.5)
+DSH_SWORD_PROTO_PLACEMENT dummy=(-1.352296, 0.03, 943.8624) pole=(-1.640104, 0.03, 941.4825) duelist=(-4.443243, 0.03, 944.6906) player=(0.0, 0.030271, 943.5)
+DSH_SWORD_PROTO_BONES right=12,13,14,15 left=7,8,9,10
+DSH_SWORD_PROTO {"dummy":true,"fore_len":0.650307655334473,"ok":true,"pole":true,"socket":"socket_weapon","upper_len":0.721387803554535}
+DSH_PLAYER_HITBOXES50 parts=15 unit=0.5900000333786
+DSH_LOADFAST session entries=3 receipts=3 builds=1 verify_us=1219 manifest_sha=3c07e72938a0 loader_sha=6e8f9c0c5e55 bridge_sha=bb4932772bfa strict=0 reuse_probe=1
+DSH_SWORD_PROTO_NPC spawned bones=28 at=(-4.6, 0.03, 939.5)
+DSH_SWORD_PROTO_TUNIC skinned=true triangles=158
+DSH_SWORD_PROTO_PEASANT_MATERIALS { "fabric": 1, "skin": 1, "hair": 8, "trim": 1 }
+DSH_SWORD_PROTO_PEASANT shirt=rough_olive plates=0
+DSH_SWORD_PROTO_HITBOXES parts=15 unit=0.5900000333786
+DSH_MELEE_THROW windup weapon=spear
+DSH_MELEE_THROW released weapon=spear power=1.0 speed=26.0
+DSH_MELEE_THROWN_LAND weapon=spear at=(-0.003432, 5.072369, 976.25) speed=24.7879314422607 distance=14.6282339096069
+DSH_SWORD_PROTO_PICKED distance=0.57622241973877 own=false ground_swords=0
+SPEAR52_RESULT {"contact":true,"contact_position":"(0.027276, 4.589085, 977.4489)","errors":[],"passed":true,"samples":[{"actual_visible_dots":10,"aim":true,"aim_error_deg":0.00784673592919087,"desired":"(-0.013736, -0.073163, -0.997225)","dir":"(-0.01379, -0.073037, -0.997234)","grip":0.0,"held":true,"pending":false,"pitch":-0.1,"self_clear":true,"support":0.0000610353599768132,"tag":"rmb_aim","throwing":false,"unresolved":0,"visible_dots":10},{"actual_visible_dots":26,"aim":true,"aim_error_deg":0.00114614401246482,"desired":"(-0.008276, 0.799518, -0.600585)","dir":"(-0.008276, 0.79953, -0.600569)","grip":0.0,"held":true,"pending":false,"pitch":0.908,"self_clear":true,"support":0.0000000745058059692383,"tag":"aim_up","throwing":false,"unresolved":0,"visible_dots":26},{"actual_visible_dots":26,"aim":true,"aim_error_deg":0.000597653537723933,"desired":"(-0.00324, 0.971941, -0.235203)","dir":"(-0.00324, 0.971938, -0.235213)","grip":0.0,"held":true,"pending":false,"pitch":1.328,"self_clear":true,"support":0.0000000596046447753906,"tag":"aim_steep","throwing":false,"unresolved":0,"visible_dots":26},{"actual_visible_dots":10,"aim":true,"aim_error_deg":0.000260063887226928,"desired":"(-0.013742, -0.073192, -0.997223)","dir":"(-0.013743, -0.073187, -0.997224)","grip":0.0,"held":true,"pending":false,"pitch":-0.1,"self_clear":true,"support":0.0000000894069671630859,"tag":"aim_down","throwing":false,"unresolved":0,"visible_dots":10},{"actual_visible_dots":0,"aim":false,"aim_error_deg":67.8483876298062,"desired":"(-0.013742, -0.073192, -0.997223)","dir":"(0.101072, 0.889901, -0.444816)","grip":0.0,"held":false,"pending":false,"pitch":-0.1,"self_clear":true,"support":0.0000000745058059692383,"tag":"drop_while_aiming","throwing":false,"unresolved":0,"visible_dots":0},{"actual_visible_dots":0,"aim":false,"aim_error_deg":67.8483193279145,"desired":"(-0.01396, -0.073165, -0.997222)","dir":"(0.101072, 0.889901, -0.444816)","grip":0.0,"held":false,"pending":false,"pitch":-0.1,"self_clear":true,"support":0.000000140577270713038,"tag":"deselected","throwing":false,"unresolved":0,"visible_dots":0},{"actual_visible_dots":20,"aim":true,"aim_error_deg":0.00119082924528292,"desired":"(-0.012941, 0.343333, -0.939125)","dir":"(-0.012939, 0.343313, -0.939132)","grip":0.0,"held":true,"pending":false,"pitch":0.32,"self_clear":true,"support":0.000000133280039449346,"tag":"precharge","throwing":false,"unresolved":0,"visible_dots":20},{"actual_visible_dots":14,"aim":true,"aim_error_deg":0.290706298010671,"desired":"(-0.011171, 0.336453, -0.941634)","dir":"(-0.012365, 0.341087, -0.93995)","grip":0.0,"held":true,"pending":false,"pitch":0.32,"self_clear":true,"support":0.160458475351334,"tag":"charged","throwing":true,"unresolved":0,"visible_dots":14},{"actual_visible_dots":0,"aim":true,"aim_error_deg":1.08345508551426,"desired":"(-0.006559, 0.358099, -0.93366)","dir":"(-0.012172, 0.341163, -0.939925)","grip":0.0,"held":false,"pending":false,"pitch":0.32,"self_clear":true,"support":0.000000190827975643515,"tag":"released","throwing":false,"unresolved":0,"visible_dots":0},{"hand":"spear","tag":"post_contact_e","unarmed":false}],"scope":"Correct viewport real input aim upward/downward, G/E, ownership selection/reset, charge/release and physical world projectile contact; no NPC damage acceptance.","thrown":1,"viewport":"(1280, 720)"}

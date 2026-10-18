@@ -1,3 +1,18 @@
+## Координатор33 — общая52, 18 октября 2026
+
+Собраны published51 (9c726d5c) + bow/camera52 READY + spear52 PASS03 + soil49 recovery.
+Актуальный состав: godot/current_version.json и outputs/coordinator31_castle_current/ASSEMBLY.json.
+1347 SHA pins; D:/MafioziCombat31/coordinator33/game frozen. Локальный release52/game — junction,
+в Git обычные файлы. Старая D:/MafioziCombat31/merged52 НЕ актуальна.
+17 групп совместной функциональной приёмки PASS: ownership/Q/G/E, высокий прицел/попадания,
+melee всех5, лук, реальный бой/NPC chase-detour-retreat, тяжёлая броня, стойки,
+грунт/трава/проход палатки/разрушения. Raw FAIL сохранены: старые горизонтальные
+замахи копья прошли выше манекена; направленный вниз удар нанёс16.114HP при
+неизменном положении цели/HP/коде/порогах. Порогов не ослаблять. Чистый FPS не принят.
+Приёмка/evidence: outputs/coordinator33_release52. Передача: docs/ai/COORDINATOR_33_CONTINUE52.json.
+Все запрошенные пакеты вошли. Пользовательскую игру не закрывать; чужой WIP сохранять.
+Новые тесты/кандидаты на D через scheduler. Старые чаты не будить.
+
 # Координация проекта
 
 ## Общая51 — свободные удары; далее копьё и лук52

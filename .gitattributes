@@ -35,3 +35,4 @@
 /godot/current_version.json -text
 
 /outputs/coordinator32_release51/game/** -text
+/outputs/coordinator33_release52/game/** -text

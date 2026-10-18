@@ -1,0 +1,37 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+DSH_WALKCHEAP catchup=4 far_ttl=96 default_catchup=4 default_far_ttl=96 restore_catchup=0or8 restore_far_ttl=0
+DSH_CATAPULT_WELD {"merged":62,"nodes":8,"surfaces":7}
+DSH_CATAPULT {"cart":"(48.5, 0.05, -14.0)","ok":true,"stone":"(50.8, 0.46, -13.4)"}
+DSH_SHADOWS kept=86 dropped=92
+DSH_BATCH merged_nodes=13 sources_merged=111 left=205
+DSH_DEBRIS_PREWARM bodies=150 ms=2.303
+DSH_CATAPULT_PLACE_CALL castle=true cart=true half_method=true
+DSH_CATAPULT_PLACED castle_gate=(0.0, 0.0, 968.0) cart=(0.0, 0.05, 948.0) stone=(3.2, 0.51, 950.4)
+DSH_CASTLE_SPAWN_AT_CATAPULT player=(0.0, 0.25, 952.5) cart=(0.0, 0.05, 948.0)
+DSH_CASTLE {"bricks":61846,"gates":2,"ok":true,"origin":"(0.0, 0.0, 900.0)","stats":{"bricks":61846,"collapsed":0,"detached":0,"events":0,"falling":0,"gate_board_colliders_active":96,"gate_boards_broken":0,"gate_bricks":0,"gate_leaves_detached":0,"gate_open":false,"gates":2,"leaf_dbg":{"child":"(-4.6, 0.0, 968.0)","child_name":"GateBoards_wood","child_visible":true,"mats":14,"pivot":"(-4.6, 0.0, 968.0)"},"ok":true,"wall_collision_active":2115}}
+PALAZZO_READY false
+PALAZZO_ONLY43_READY legacy_buildings=75 palazzo=0
+MAFIOZI_PREVIEW_READY buildings=75 decor=159 source_colliders=353 renderer=forward_plus
+PRINTSHOP_INTERIOR_STATUS removed_by_user
+WATER_SURFACE_STATUS not_loaded
+STATIC_BATCH_STATUS disabled
+RESIDENT_POPULATION_STATUS disabled
+MELEE_PRACTICE_STATUS disabled
+MINIMAP_STATUS disabled
+SWORD_PROTOTYPE_STATUS disabled
+BOW_PROTOTYPE_STATUS disabled
+DSH_CATAPULT_PLACE_CALL castle=true cart=true half_method=true
+DSH_CATAPULT_PLACED castle_gate=(0.0, 0.0, 968.0) cart=(0.0, 0.05, 948.0) stone=(3.2, 0.51, 950.4)
+DSH_CASTLE_SPAWN_AT_CATAPULT player=(0.0, 0.25, 943.5)
+DSH_SWORD_PROTO_PLACEMENT dummy=(8.400001, 0.28, 883.1625) pole=(10.50696, 0.28, 883.8943) duelist=(6.80004, 0.92, 885.9338) player=(9.1, 0.0, 881.95)
+DSH_SWORD_PROTO_BONES right=12,13,14,15 left=7,8,9,10
+DSH_SWORD_PROTO {"dummy":true,"fore_len":0.650307655334473,"ok":true,"pole":true,"socket":"socket_weapon","upper_len":0.721387803554535}
+DSH_PLAYER_HITBOXES50 parts=15 unit=0.5900000333786
+DSH_LOADFAST session entries=3 receipts=3 builds=1 verify_us=936 manifest_sha=3c07e72938a0 loader_sha=6e8f9c0c5e55 bridge_sha=bb4932772bfa strict=0 reuse_probe=1
+DSH_SWORD_PROTO_NPC spawned bones=28 at=(4.6, 0.03, 947.5)
+DSH_SWORD_PROTO_TUNIC skinned=true triangles=158
+DSH_SWORD_PROTO_PEASANT_MATERIALS { "fabric": 1, "skin": 1, "hair": 8, "trim": 1 }
+DSH_SWORD_PROTO_PEASANT shirt=rough_olive plates=0
+DSH_SWORD_PROTO_HITBOXES parts=15 unit=0.5900000333786
+{"case":"retreat","errors":[],"final_gap":1.257084608078,"first_windup_gap":1.16143870353699,"hits":0,"impacts":[],"last_impact":{},"max_lateral_m":0.000301361083984375,"passed":true,"replans":3,"samples":[{"gap":0.842578589916229,"hp":100.0,"npc":"(14.99985, 0.180954, 999.9778)","state":"approach","tick":0},{"gap":1.16143870353699,"hp":100.0,"npc":"(14.9998, 0.183819, 999.6589)","state":"approach","tick":30},{"gap":1.257084608078,"hp":100.0,"npc":"(14.9997, 0.18468, 999.5633)","state":"windup","tick":60}],"scope":"Native castle actors: initial positions and detour obstacle only. Chase auto-aggro has no held input; detour/retreat seeds alert. Real move_and_slide, no subsequent actor teleport or damage injection.","transitions":[],"wall_crossed":false}
