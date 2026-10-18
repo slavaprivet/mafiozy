@@ -233,17 +233,41 @@ func _build_barricade(p: Vector3, yaw: float, id: String) -> void:
 
 func _build_palisade(p: Vector3, side: float, id: String) -> void:
 	# Tall clustered pickets give the attackers a readable defensive line from 100 m.
-	_group(id, p, 140.0, "wood", Vector3(26.0, 2.6, 0.85))
-	for i in 23:
-		var x := (float(i) - 11.0) * 1.08
-		var height := 3.0 + 0.6 * sin(float(i) * 1.7)
-		var center := p + Vector3(x, height * 0.5, 0)
-		_piece("cone", "oak_edge" if i % 4 else "char", center, Vector3(0.42, height, 0.42), Vector3(0, 0, side * 0.08), id)
-		_piece("cone", "iron", p + Vector3(x, height + 0.14, 0), Vector3(0.14, 0.42, 0.14), Vector3.ZERO, id)
-	for height in [0.72, 1.63, 2.27]:
-		_box("oak", p + Vector3(0, height, -0.30), Vector3(25.3, 0.16, 0.18), Vector3.ZERO, id)
-	for x in [-8.4, 0.0, 8.4]:
-		_box("oak_edge", p + Vector3(x, 1.28, -0.65), Vector3(0.15, 2.6, 0.18), Vector3(-0.35, 0, 0), id)
+	# One long damage group made all 23 stakes vanish when a stone struck one end.
+	# Four touching panels keep the same batched meshes but make a local breach.
+	var common_ground := _terrain_y(p.x, p.z)
+	for section in 4:
+		var first := section * 6
+		var last: int = mini(first + 5, 22)
+		var mid_x := (float(first + last) * 0.5 - 11.0) * 1.08
+		var width := float(last - first + 1) * 1.08
+		var section_id := "%s_section_%d" % [id, section]
+		_group(section_id, p + Vector3(mid_x, 0, 0), 140.0, "wood",
+			Vector3(width, 2.6, 0.85))
+		# Preserve the original flat line across undulating ground; the new collider
+		# and all its visual pieces must share one support height.
+		var section_group: Dictionary = _groups[section_id]
+		var lift_delta := common_ground - float(section_group["ground_offset"])
+		section_group["ground_offset"] = common_ground
+		section_group["center"] = p + Vector3(mid_x, common_ground, 0)
+		var collider: StaticBody3D = section_group["collider"]
+		collider.position.y += lift_delta
+		for i in range(first, last + 1):
+			var x := (float(i) - 11.0) * 1.08
+			var height := 3.0 + 0.6 * sin(float(i) * 1.7)
+			var center := p + Vector3(x, height * 0.5, 0)
+			_piece("cone", "oak_edge" if i % 4 else "char", center,
+				Vector3(0.42, height, 0.42), Vector3(0, 0, side * 0.08), section_id)
+			_piece("cone", "iron", p + Vector3(x, height + 0.14, 0),
+				Vector3(0.14, 0.42, 0.14), Vector3.ZERO, section_id)
+		for height in [0.72, 1.63, 2.27]:
+			_box("oak", p + Vector3(mid_x, height, -0.30),
+				Vector3(width - 0.10, 0.16, 0.18), Vector3.ZERO, section_id)
+		# Bracing belongs to the section it supports and leaves with that section.
+		for brace_x in [-8.4, 0.0, 8.4]:
+			if absf(brace_x - mid_x) <= width * 0.5:
+				_box("oak_edge", p + Vector3(brace_x, 1.28, -0.65),
+					Vector3(0.15, 2.6, 0.18), Vector3(-0.35, 0, 0), section_id)
 
 func _build_cart(p: Vector3, yaw: float, id: String, broken := false) -> void:
 	_group(id, p, 180.0, "wood", Vector3(3.9, 1.3, 2.2))
