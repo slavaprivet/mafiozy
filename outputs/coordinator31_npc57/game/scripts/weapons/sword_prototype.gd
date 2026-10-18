@@ -1268,6 +1268,7 @@ func _nearest_ground_sword() -> Dictionary:
 ## so the player can hold the very same model.
 func _take_sword_model(node: Node3D) -> Node3D:
 	if node is MeshInstance3D: return node
+	if node.name == "PrototypeSpear" and _ground_weapon_of(node) == "spear": return node
 	for child: Node in node.get_children():
 		if child is CollisionShape3D: continue
 		if child is Node3D: return child as Node3D
@@ -1312,9 +1313,15 @@ func try_pickup_sword() -> bool:
 			_register_ground_sword(node)
 			print("DSH_SWORD_PROTO_PICKUP_REFUSED reason=bad_model")
 			return false
-		node.remove_child(model)
-		_world.add_child(model)
-		node.queue_free()
+		if model == node:
+			model.reparent(_world, true)
+			var cached: Node3D = _weapon_models.get(_weapon_id)
+			if is_instance_valid(cached) and cached != model: cached.queue_free()
+			_weapon_models[_weapon_id] = model
+		else:
+			node.remove_child(model)
+			_world.add_child(model)
+			node.queue_free()
 		_sword = model
 		_dropped_at = Vector3.ZERO
 	_sword_grounded = false
@@ -1668,6 +1675,7 @@ func set_selected(value: bool) -> void:
 	_reset_contact_plane()
 	if not _selected:
 		_arrow_parry_until_ms31 = -1
+		_spear_cast_pending31 = false
 		_held = false
 		_held_event = false
 		_hand = Vector2.ZERO
@@ -1874,7 +1882,8 @@ func _physics_process(delta: float) -> void:
 	# Camera lock follows the real button state and survives a momentary loss of
 	# activity, so the view can never drift while the blade is being steered.
 	_held = _hold_left or _held_event or _sword_coasting31() or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) \
-		or (_hold_right and not _shield_worn and str(weapon_entry().get("grip", "")) != "two")
+		or (_hold_right and not _shield_worn and str(weapon_entry().get("grip", "")) != "two") \
+		or _spear_cast_pending31 or _spear_follow_left > 0.0
 	# Remember which single hand is holding the sword, so releasing a button keeps
 	# the grip exactly there. Both buttons = two-handed (right hand leads).
 	if _hold_left and not _hold_right and not _hand_lost31(&"left"): _carry_side = &"left"
@@ -1886,7 +1895,7 @@ func _physics_process(delta: float) -> void:
 	_blocking = _hold_right and not _hold_left and not is_throwable() and not _shield_worn
 	_player.set("_sword_lock", false)
 	var spear_pose_wanted := active and _weapon_id == "spear" and not _sword_grounded and (
-		(_aiming_throw and not _unarmed) or _spear_follow_left > 0.0)
+		(_aiming_throw and not _unarmed) or _spear_cast_pending31 or _spear_follow_left > 0.0)
 	_spear_aim_blend = move_toward(_spear_aim_blend, 1.0 if spear_pose_wanted else 0.0, delta * 6.0)
 	# DSH_MELEE_SET: with the weapon thrown the hands are empty, so no steering and no
 	# arm IK except the brief visible follow-through after release.
@@ -1909,6 +1918,7 @@ func _physics_process(delta: float) -> void:
 		return
 	if not active:
 		_reset_contact_plane()
+		_spear_cast_pending31 = false
 		# Outside the play state (menu, free cursor, death) no button stays held:
 		# a missed release used to leave RMB stuck on and force a two-handed grip.
 		_hold_left = false
@@ -1929,7 +1939,7 @@ func _physics_process(delta: float) -> void:
 		_hold_left = Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
 		_hold_right = Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)
 		_held_event = _hold_left
-		_held = _hold_left or _hold_right or _sword_coasting31()
+		_held = _hold_left or _hold_right or _sword_coasting31() or _spear_cast_pending31
 		_player.set("_sword_lock", false)
 	if is_instance_valid(_sword): _sword.visible = true
 	if _sword_grounded:
@@ -1982,10 +1992,14 @@ func _physics_process(delta: float) -> void:
 	if _shield_worn and not _shield_broken:
 		var want_raise := 1.0 if (_hold_right or _blocking) else 0.0
 		_shield_raise = move_toward(_shield_raise, want_raise, SHIELD_RAISE_RATE * delta)
+	if _spear_cast_pending31:
+		_spear_cast_elapsed31 = minf(_spear_cast_elapsed31 + delta, SPEAR_CAST_TIME31)
 	_solve_arm(delta)
 	# The blade is never allowed to point behind the player.
 	_dir = _contact_direction(_soft_body_limit(_constrain_forward(_dir), 0.10, 0.16))
 	_advance_edge(delta)
+	if _spear_cast_pending31 and _spear_cast_elapsed31 >= SPEAR_CAST_TIME31:
+		_launch_spear_from_hand31()
 	# The opponent is a real body: his step, gravity and pose belong to the physics
 	# frame, otherwise move_and_slide() leaves him hanging in the air.
 	_update_city_npc(delta)
@@ -2010,7 +2024,11 @@ const SPEAR_BODY_PIERCE_DEPTH := 0.38
 const SPEAR_LETHAL_SPEED := 22.0
 const SPEAR_LETHAL_INCIDENCE := 0.72
 const SPEAR_FOLLOW_TIME := 0.24
+const SPEAR_CAST_TIME31 := 0.18
 var _throwing := false
+var _spear_cast_pending31 := false
+var _spear_cast_elapsed31 := 0.0
+var _spear_cast_power31 := 0.0
 ## Right button held with a throwable weapon: the aiming stance, which draws the arc.
 var _aiming_throw := false
 var _throw_windup := 0.0
@@ -2112,7 +2130,7 @@ func _hide_throw_dots() -> void:
 
 ## The speed the throw would leave at right now, which is what the arc is drawn with.
 func _throw_speed_now() -> float:
-	var power := 0.5 if not _throwing else clampf(_throw_held_seconds() / THROW_WINDUP_TIME, 0.0, 1.0)
+	var power := _spear_cast_power31 if _spear_cast_pending31 else (0.5 if not _throwing else clampf(_throw_held_seconds() / THROW_WINDUP_TIME, 0.0, 1.0))
 	return lerpf(THROW_SPEED_MIN, THROW_SPEED_MAX, power)
 
 ## How many thrown weapons are still in the air, and where the last one is.
@@ -2130,7 +2148,7 @@ func _thrown_position() -> Vector3:
 
 func _begin_throw() -> void:
 	if not _active() or _unarmed or not is_throwable(): return
-	if _throwing: return
+	if _throwing or _spear_cast_pending31: return
 	_throwing = true
 	_throw_windup = 0.0
 	# The power is measured in WALL TIME, not in accumulated physics deltas: a skipped
@@ -2151,7 +2169,17 @@ func _release_throw() -> void:
 	var held := _throw_held_seconds()
 	_throwing = false
 	if _sword_grounded or _unarmed or not is_throwable(): return
-	var power := clampf(held / THROW_WINDUP_TIME, 0.0, 1.0)
+	_spear_cast_power31 = clampf(held / THROW_WINDUP_TIME, 0.0, 1.0)
+	_spear_cast_elapsed31 = 0.0
+	_spear_cast_pending31 = true
+	# The same visible spear stays in the fist while the shoulder and elbow drive
+	# it forward. The projectile is created only at the end of that cast.
+
+func _launch_spear_from_hand31() -> void:
+	if not _spear_cast_pending31: return
+	_spear_cast_pending31 = false
+	if _sword_grounded or _unarmed or not is_throwable(): return
+	var power := _spear_cast_power31
 	if not is_instance_valid(_sword): return
 	var speed := lerpf(THROW_SPEED_MIN, THROW_SPEED_MAX, power)
 	# Input arrives between render poses. Sample the visible model itself so its
@@ -2229,6 +2257,8 @@ func _land_thrown(index: int, hit: Dictionary, velocity: Vector3) -> void:
 	var collider: Variant = hit.get("collider")
 	var direction := velocity.normalized()
 	var depth := SPEAR_STICK_DEPTH
+	var debris_before := _npc_debris.size()
+	var stumps_before := _stumps.size()
 	# Only a ray from the flying TIP into this resident's real collider can wound.
 	# The outer walking capsule may win the ray before a tagged bone hitbox does.
 	var npc_part := ""
@@ -2249,6 +2279,8 @@ func _land_thrown(index: int, hit: Dictionary, velocity: Vector3) -> void:
 	node.global_position = rest
 	if direction.length_squared() > 1.0e-6:
 		_orient_thrown_spear(node, direction)
+	if npc_part != "" and str(entry.get("weapon", "")) == "spear":
+		_embed_spear_in_npc31(node, collider, npc_part, point, debris_before, stumps_before)
 	entry["alive"] = false
 	entry["velocity"] = Vector3.ZERO
 	_thrown[index] = entry
@@ -2257,6 +2289,44 @@ func _land_thrown(index: int, hit: Dictionary, velocity: Vector3) -> void:
 	var speed := velocity.length()
 	print("DSH_MELEE_THROWN_LAND weapon=", entry.get("weapon", ""), " at=", point,
 		" speed=", speed, " distance=", _player.global_position.distance_to(point))
+
+func _embed_spear_in_npc31(node: Node3D, collider: Variant, part: String,
+		point: Vector3, debris_before: int, stumps_before: int) -> void:
+	var piece := _nearest_new_detached_piece31(point, debris_before, stumps_before)
+	if is_instance_valid(piece):
+		node.reparent(piece, true)
+		node.set_meta("spear_embedded_part31", part)
+		return
+	var anchor: Node3D = null
+	if collider is Node3D and collider != _npc_body and _is_npc_collider(collider):
+		anchor = collider as Node3D
+	elif is_instance_valid(_npc_rig):
+		anchor = _npc_rig.get_node_or_null("Hit" + part) as Node3D
+	if not is_instance_valid(anchor): anchor = _npc_body
+	if is_instance_valid(anchor):
+		node.reparent(anchor, true)
+		node.set_meta("spear_embedded_part31", part)
+
+func _nearest_new_detached_piece31(point: Vector3, debris_from: int, stumps_from: int,
+		allow_stump: bool = true) -> Node3D:
+	var best: Node3D = null
+	var best_distance := 1.6
+	for index: int in range(debris_from, _npc_debris.size()):
+		var piece: Node3D = _npc_debris[index].get("node")
+		if not is_instance_valid(piece) or not piece is RigidBody3D: continue
+		var distance := piece.global_position.distance_to(point)
+		if distance < best_distance:
+			best_distance = distance
+			best = piece
+	if is_instance_valid(best) or not allow_stump: return best
+	for index: int in range(stumps_from, _stumps.size()):
+		var stump: Node3D = _stumps[index]
+		if not is_instance_valid(stump) or not stump is RigidBody3D: continue
+		var distance := stump.global_position.distance_to(point)
+		if distance < best_distance:
+			best_distance = distance
+			best = stump
+	return best
 
 ## The ray already proved a tip impact on the resident. Intact plate over the
 ## struck bone takes the point, rings and sparks; exposed vital tissue can be
@@ -2365,6 +2435,13 @@ func _process(delta: float) -> void:
 		# Dropped: the sword stays a real object where it fell.
 		_prev_points = PackedVector3Array()
 		if is_instance_valid(_player): _player.set("_sword_lock", false)
+		return
+	if _weapon_id == "spear" and (_throwing or _spear_cast_pending31):
+		# The forward casting motion belongs to the projectile launch. It cannot
+		# also score an invisible close-range melee sweep before the spear leaves.
+		_prev_points = PackedVector3Array()
+		_update_dummy(delta)
+		_update_spark(delta)
 		return
 	if not _held:
 		# Carried blade: attached to the fist and nothing else. No limits, no
@@ -2663,6 +2740,8 @@ func _solve_arm(delta: float) -> void:
 ## Solve one rigid handle reachable by both arms. Moving the supporting hand
 ## independently breaks its contact with the handle and crosses the forearms.
 func _pose_shared_grip(want_dir: Vector3, blade_rig: Vector3) -> Vector3:
+	if _weapon_id == "spear" and _spear_aim_blend > 0.0:
+		return _pose_spear_throw31(want_dir, blade_rig)
 	var rig_to_world := _rig.global_transform
 	var world_to_rig := rig_to_world.affine_inverse()
 	var visual_basis: Basis = _player._visual.global_basis.orthonormalized()
@@ -2675,18 +2754,6 @@ func _pose_shared_grip(want_dir: Vector3, blade_rig: Vector3) -> Vector3:
 	var target_world: Vector3 = middle_world + visual_basis * Vector3(
 		clampf(local_want.x * 0.14, -0.14, 0.14),
 		clampf(local_want.y * 0.20 - 0.12, -0.30, 0.08), 0.38 + _self_pose_forward)
-	if _weapon_id == "spear" and _spear_aim_blend > 0.0:
-		# Lift the grip to the actual throwing shoulder. Charging pulls the hand
-		# behind that shoulder; after release it drives forward. Both hands still
-		# share the same shaft and the IK reach limits remain in force below.
-		var follow_phase := 1.0 - _spear_follow_left / SPEAR_FOLLOW_TIME if _spear_follow_left > 0.0 else 0.0
-		var windup := _spear_release_power if _spear_follow_left > 0.0 else clampf(_throw_held_seconds() / THROW_WINDUP_TIME, 0.0, 1.0)
-		var shoulder_world: Vector3 = rig_to_world * right_joint
-		var throw_target := shoulder_world + visual_basis * Vector3(
-			0.30 * windup, 0.09 + 0.09 * windup - 0.09 * follow_phase,
-			0.18 - 0.28 * windup + 0.58 * follow_phase)
-		var blend := _spear_aim_blend * (1.0 - follow_phase * follow_phase)
-		target_world = target_world.lerp(throw_target, blend)
 	var grip: Vector3 = world_to_rig * target_world
 	# Reach spheres belong to wrists; offset their centres to the palm anchors
 	# using the SAME wrist orientation that the final IK will apply.
@@ -2709,6 +2776,52 @@ func _pose_shared_grip(want_dir: Vector3, blade_rig: Vector3) -> Vector3:
 		right_set.hand, right_set.rest_upper, right_set.rest_fore, right_set.rest_hand,
 		right_set.offset, grip, blade_rig, 1.0, true, right_set.pole)
 	_pose_support(&"left", fist - offset)
+	return fist
+
+## One visible throwing arm rises above and behind the right shoulder while the
+## left hand lets go of the shaft. Only after a forward, accelerating cast does
+## the same model leave the hand and become the existing physical projectile.
+func _pose_spear_throw31(want_dir: Vector3, blade_rig: Vector3) -> Vector3:
+	var rig_to_world := _rig.global_transform
+	var world_to_rig := rig_to_world.affine_inverse()
+	var visual_basis: Basis = _player._visual.global_basis.orthonormalized()
+	var right_set := _arm_set(&"right")
+	var left_set := _arm_set(&"left")
+	var right_joint: Vector3 = (_chain_global(right_set.clav) * right_set.rest_upper).origin
+	var left_joint: Vector3 = (_chain_global(left_set.clav) * left_set.rest_upper).origin
+	var shoulder_world: Vector3 = rig_to_world * right_joint
+	var left_shoulder_world: Vector3 = rig_to_world * left_joint
+	var charge := clampf(_throw_held_seconds() / THROW_WINDUP_TIME, 0.0, 1.0) if _throwing else 0.0
+	var cast_phase := clampf(_spear_cast_elapsed31 / SPEAR_CAST_TIME31, 0.0, 1.0) if _spear_cast_pending31 else 0.0
+	var follow_phase := clampf(1.0 - _spear_follow_left / SPEAR_FOLLOW_TIME, 0.0, 1.0) if _spear_follow_left > 0.0 else 0.0
+	var left_release := clampf((charge - 0.12) / 0.40, 0.0, 1.0)
+	var local_hand := Vector3(0.02, 0.13, 0.25).lerp(Vector3(0.12, 0.36, -0.42), charge)
+	if _spear_cast_pending31:
+		# Squared time makes the visible wrist accelerate forward instead of
+		# jumping to a fixed launch position on mouse release.
+		var drive := cast_phase * cast_phase
+		local_hand = Vector3(0.12, 0.36, -0.42).lerp(Vector3(0.02, 0.16, 0.66), drive)
+		left_release = 1.0
+	elif _spear_follow_left > 0.0:
+		local_hand = Vector3(0.02, 0.16, 0.66).lerp(Vector3(0.00, 0.04, 0.34), follow_phase)
+		left_release = 1.0
+	var middle_world: Vector3 = rig_to_world * ((right_joint + left_joint) * 0.5)
+	var local_want: Vector3 = visual_basis.inverse() * want_dir
+	var ready_world: Vector3 = middle_world + visual_basis * Vector3(
+		clampf(local_want.x * 0.14, -0.14, 0.14),
+		clampf(local_want.y * 0.20 - 0.12, -0.30, 0.08), 0.38 + _self_pose_forward)
+	var blend := _spear_aim_blend * (1.0 - follow_phase * follow_phase)
+	var hand_world: Vector3 = ready_world.lerp(shoulder_world + visual_basis * local_hand, blend)
+	var grip: Vector3 = world_to_rig * hand_world
+	var fist: Vector3 = _pose_arm_ik(right_set.clav, right_set.upper, right_set.fore,
+		right_set.hand, right_set.rest_upper, right_set.rest_fore, right_set.rest_hand,
+		right_set.offset, grip, blade_rig, 1.0, true, right_set.pole,
+		charge > 0.12 or _spear_cast_pending31 or _spear_follow_left > 0.0)
+	if fist == Vector3.ZERO: return fist
+	var support_world: Vector3 = left_shoulder_world + visual_basis * Vector3(-0.03, -0.18, 0.25)
+	var shaft_grip: Vector3 = fist - blade_rig * _two_hand_offset_rig
+	var support_rig: Vector3 = shaft_grip.lerp(world_to_rig * support_world, left_release)
+	_pose_support(&"left", support_rig)
 	return fist
 
 ## Which hand holds the sword right now. LMB = left-hand strike, RMB = a guard in
@@ -2774,7 +2887,7 @@ func _pose_support(side: StringName, grip_rig: Vector3) -> void:
 ## Two-bone IK with a real elbow: the hand reaches the requested point (clamped
 ## to the arm's length) instead of always being fully extended. That bend is what
 ## lets the second hand reach the handle in a two-handed grip.
-func _pose_arm_ik(clav: int, upper: int, fore: int, hand: int, rest_upper: Transform3D, rest_fore: Transform3D, rest_hand: Transform3D, hand_offset: Vector3, want_rig: Vector3, blade_rig: Vector3, reach_scale: float = 1.0, want_is_point: bool = false, pole_side: float = 1.0) -> Vector3:
+func _pose_arm_ik(clav: int, upper: int, fore: int, hand: int, rest_upper: Transform3D, rest_fore: Transform3D, rest_hand: Transform3D, hand_offset: Vector3, want_rig: Vector3, blade_rig: Vector3, reach_scale: float = 1.0, want_is_point: bool = false, pole_side: float = 1.0, elbow_up: bool = false) -> Vector3:
 	if clav < 0 or upper < 0 or fore < 0 or hand < 0: return Vector3.ZERO
 	var clavicle_global := _chain_global(clav)
 	var joint := (clavicle_global * rest_upper).origin
@@ -2804,7 +2917,7 @@ func _pose_arm_ik(clav: int, upper: int, fore: int, hand: int, rest_upper: Trans
 	var d := clampf(distance, absf(l1 - l2) + 1.0e-3, (l1 + l2) * 0.96)
 	# The elbow hangs DOWN (a little to its own side and slightly back), which is
 	# what a human arm does. A sideways pole threw the elbow out into a Г shape.
-	var pole := Vector3(0.55 * pole_side, -1.0, -0.12)
+	var pole := Vector3(0.75 * pole_side, 0.82, -0.32) if elbow_up else Vector3(0.55 * pole_side, -1.0, -0.12)
 	pole -= direction * pole.dot(direction)
 	if pole.length_squared() < 1.0e-6:
 		pole = direction.cross(Vector3.RIGHT)
@@ -3383,6 +3496,10 @@ func _armor_point31(rig: Skeleton3D, bone_name: String, world_point: Vector3,
 var _last_player_hit_ms := -1000
 var _player_death_physics31: Dictionary = {}
 var _player_death_driver31: RefCounted
+func _apply_player_arrow_damage31(amount: float, at: Vector3, direction: Vector3) -> void:
+	var struck := _player_part_at(at)
+	_apply_player_damage(amount * (2.0 if str(struck.key) == "head" else 1.0), at, direction, "stab")
+
 func _apply_player_damage(amount: float, at: Vector3, direction: Vector3, kind: String = "slice") -> void:
 	if is_instance_valid(_world) and bool(_world.get("preview_dead")): return
 	# DSH_MELEE_SET: the SHIELD. A blow that lands inside its coverage is stopped by
@@ -3404,7 +3521,7 @@ func _apply_player_damage(amount: float, at: Vector3, direction: Vector3, kind: 
 	amount = float(protection.damage)
 	var penetrates: bool = protection.region in ["skin", "joint", "cloth", "mail"] or (kind == "stab" and amount >= 14.0)
 	if penetrates:
-		_player_take_blade(amount, at, direction)
+		_player_take_blade(amount, at, direction, kind == "slice")
 		_play_melee_hit31(at, "flesh", clampf(amount / DAMAGE_MAX, 0.0, 1.0))
 	elif protection.tier != "":
 		_play_melee_hit31(at, "metal", clampf(amount / DAMAGE_MAX, 0.1, 1.0))
@@ -3464,7 +3581,8 @@ func _player_part_at(point: Vector3) -> Dictionary:
 				best = {"key": part, "sever": bone_name, "distance": distance}
 	return best
 
-func _player_take_blade(amount: float, at: Vector3, direction: Vector3) -> void:
+func _player_take_blade(amount: float, at: Vector3, direction: Vector3, may_sever: bool = true) -> void:
+	if amount <= 0.05: return
 	var part := _player_part_at(at)
 	var kind: String = part.key
 	var bone_name: String = part.sever
@@ -3475,8 +3593,11 @@ func _player_take_blade(amount: float, at: Vector3, direction: Vector3) -> void:
 	if _player_severed.has(full_key): return
 	if not _player_part_hp.has(full_key):
 		_player_part_hp[full_key] = float(PART_HP.get(kind, 40.0))
-	_player_part_hp[full_key] = float(_player_part_hp[full_key]) - maxf(4.0, amount)
+	_player_part_hp[full_key] = float(_player_part_hp[full_key]) - amount
 	if float(_player_part_hp[full_key]) > 0.0: return
+	if not may_sever:
+		if kind in ["head", "chest", "pelvis"]: _kill_player(at, direction, amount)
+		return
 	# The hero has no compound torso mesh to cut.
 	if kind in ["chest", "pelvis"]:
 		_spray_blood(at, direction, 12)
@@ -3719,6 +3840,9 @@ func _sweep(delta: float) -> void:
 		return
 	var space := _player.get_world_3d().direct_space_state
 	var excluded: Array[RID] = [_player.get_rid()]
+	# Tagged rig hitboxes own cuts; the broad movement hull must not hide them.
+	if is_instance_valid(_npc_body) and is_instance_valid(_npc_rig):
+		excluded.append(_npc_body.get_rid())
 	var now := Time.get_ticks_msec()
 	var touched: Dictionary = {}
 	# A cut MEETS something and stops there. Only the FIRST contact along the swing
@@ -3916,11 +4040,11 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 					_spark_burst(position, -motion.normalized(), 8)
 					_play_melee_hit31(position, "metal", clampf(npc_cut / DAMAGE_MAX, 0.2, 1.0))
 					_scuff_knight_plate(npc_part, npc_cut)
-					if wound > 0.05: _npc_take_blade_part(npc_part, position, speed, motion, wound)
+					if wound > 0.05: _npc_take_blade_part(npc_part, position, speed, motion, wound, kind == "slice" and speed >= 3.2 and wound >= 8.0)
 				else:
 					_play_melee_hit31(position, "flesh", clampf(wound / DAMAGE_MAX, 0.0, 1.0))
 					if wound > 0.05:
-						_npc_take_blade_part(npc_part, position, speed, motion, wound)
+						_npc_take_blade_part(npc_part, position, speed, motion, wound, kind == "slice" and speed >= 3.2 and wound >= 8.0)
 			else:
 				_play_melee_hit31(position, "flesh", clampf(npc_cut / DAMAGE_MAX, 0.0, 1.0))
 				if npc_cut > 0.05:
@@ -4519,7 +4643,7 @@ func _add_npc_hitboxes() -> void:
 		# AnimatableBody3D, not StaticBody3D: a static body hung on a bone never
 		# synced its transform with the physics server, so rays missed the limbs.
 		var hit_body := AnimatableBody3D.new()
-		hit_body.sync_to_physics = true
+		hit_body.sync_to_physics = false
 		hit_body.collision_layer = 1
 		hit_body.collision_mask = 0
 		hit_body.set_meta("sword_npc_part", part)
@@ -4547,19 +4671,19 @@ func _bone_length(bone: int) -> float:
 	return 0.0
 
 ## Damage a named part directly (used by the tagged limb hit boxes).
-func _npc_take_blade_part(full_key: String, point: Vector3, speed: float, direction: Vector3, damage: float) -> void:
-	if _npc_dead: return
+func _npc_take_blade_part(full_key: String, point: Vector3, speed: float, direction: Vector3, damage: float, sever_contact: bool = false) -> void:
 	if _npc_severed.has(full_key): return
 	if damage <= 0.05: return
 	var kind := full_key
 	if full_key.ends_with("_l") or full_key.ends_with("_r"):
 		kind = full_key.substr(0, full_key.length() - 2)
+	if _npc_dead and kind in ["chest", "pelvis"]: return
 	if not _npc_part_hp.has(full_key):
 		_npc_part_hp[full_key] = float(PART_HP.get(kind, 40.0))
 	_npc_part_hp[full_key] = float(_npc_part_hp[full_key]) - damage
 	_npc_receive_impulse31(kind, speed, direction, damage)
-	_npc_engaged = true
-	if damage >= 3.0:
+	if not _npc_dead: _npc_engaged = true
+	if not _npc_dead and damage >= 3.0:
 		_npc_state = "recover"
 		_npc_timer = 0.0
 		_npc_blade_prev = PackedVector3Array()
@@ -4571,6 +4695,8 @@ func _npc_take_blade_part(full_key: String, point: Vector3, speed: float, direct
 	_npc_pain_until_ms = max(_npc_pain_until_ms, Time.get_ticks_msec() +
 		(1200 if damage >= 20.0 else (650 if damage >= 3.0 else 160)))
 	if float(_npc_part_hp[full_key]) > 0.0: return
+	# A worn-down limb still needs a fast slicing contact to separate.
+	if kind not in ["chest", "pelvis"] and not sever_contact: return
 	# The torso cannot be taken off - a cut that empties it simply drops him.
 	if kind in ["chest", "pelvis"]:
 		_npc_dead = true
@@ -4582,6 +4708,58 @@ func _npc_take_blade_part(full_key: String, point: Vector3, speed: float, direct
 		print("DSH_SWORD_PROTO_SEVER part=", full_key, " kind=cut_down")
 		return
 	_sever_part(full_key, kind, {"sever": full_key}, point, direction, speed)
+
+## A projectile punctures tissue; it never calls the blade/mesh severing path.
+func _npc_take_arrow_part(full_key: String, point: Vector3, speed: float,
+		direction: Vector3, damage: float, hit_normal: Vector3 = Vector3.ZERO) -> Dictionary:
+	var base := full_key.trim_suffix("_l").trim_suffix("_r")
+	var hit_body: CollisionObject3D = null
+	var anchor := _npc_rig.get_node_or_null("Hit" + full_key) if is_instance_valid(_npc_rig) else null
+	if anchor != null:
+		for child: Node in anchor.get_children():
+			if child is CollisionObject3D:
+				hit_body = child
+				break
+	var incidence := 1.0
+	if hit_normal.length_squared() > 0.5:
+		incidence = clampf(-direction.normalized().dot(hit_normal.normalized()), 0.0, 1.0)
+	var incoming := damage * (2.0 if base == "head" else 1.0)
+	var contact := _armor_point31(_npc_rig, full_key, point, hit_body)
+	var protection := ArmorDamage31.resolve(_npc_armor_loadout31, full_key, "stab", incoming, contact, incidence)
+	var wound := float(protection.damage)
+	var penetrates: bool = protection.region != "plate" or wound >= 14.0
+	var result := _npc_take_puncture_part31(full_key, point, speed, direction, wound, 0.06, penetrates)
+	result["region"] = protection.region
+	return result
+
+func _npc_take_puncture_part31(full_key: String, point: Vector3, speed: float,
+		direction: Vector3, damage: float, projectile_mass: float, penetrates: bool = true) -> Dictionary:
+	if _npc_dead or _npc_severed.has(full_key) or damage <= 0.05:
+		return {"applied": false, "damage": 0.0, "dead": _npc_dead}
+	var base := full_key.trim_suffix("_l").trim_suffix("_r")
+	_npc_part_hp[full_key] = float(_npc_part_hp.get(full_key, PART_HP.get(base, 40.0))) - damage
+	_npc_hp = maxf(0.0, _npc_hp - damage)
+	_npc_engaged = true
+	_npc_state = "recover"
+	_npc_timer = 0.0
+	_npc_blade_prev = PackedVector3Array()
+	# Projectile momentum uses projectile mass, never the player's held weapon.
+	var push := direction.normalized() * clampf(projectile_mass * speed / 65.0, 0.0, 3.5)
+	push.y = 0.0
+	_npc_hit_push31 = (_npc_hit_push31 + push).limit_length(5.0)
+	_npc_pain_until_ms = maxi(_npc_pain_until_ms, now_ms() + (650 if damage >= 3.0 else 160))
+	if penetrates:
+		_spray_blood(point, direction, 2 if damage < 3.0 else 12)
+		_npc_bleed_until_ms = maxi(_npc_bleed_until_ms, now_ms() + (600 if damage < 3.0 else 2600))
+		_npc_bleed_at = point
+		if is_instance_valid(_npc_body): _npc_bleed_local = _npc_body.to_local(point)
+	if _npc_hp <= 0.0 or (base in ["head", "chest", "pelvis"] and float(_npc_part_hp[full_key]) <= 0.0):
+		_npc_dead = true
+		_npc_disarmed = true
+		_npc_engaged = false
+		_npc_state = "wait"
+		if is_instance_valid(_npc_sword): _drop_sword(_npc_sword.global_position, direction, speed)
+	return {"applied": true, "damage": damage, "dead": _npc_dead}
 
 ## The wound keeps pouring for a few seconds instead of a single puff.
 var _npc_bleed_until_ms := 0
@@ -4628,6 +4806,9 @@ func _update_npc_bleed(delta: float) -> void:
 		_npc_fall = minf(1.0, _npc_fall + delta * 1.6)
 		var t := _npc_fall * _npc_fall
 		_npc_motion.rotation.x = -PI * 0.5 * t
+		if is_instance_valid(_npc_hull31):
+			_npc_hull31.rotation.x = -PI * 0.5 * t
+			_npc_hull31.position = Vector3(0.0, lerpf(NPC_HEIGHT * 0.5, 0.38, t), -NPC_HEIGHT * 0.5 * t)
 		var drop := _npc_body.global_position.y
 		if _npc_fall >= 1.0:
 			_npc_body.velocity = Vector3.ZERO
@@ -5006,6 +5187,8 @@ func _update_city_npc(delta: float) -> void:
 		_update_npc_bleed(delta)
 		if _npc_gait != null:
 			_npc_gait.update_pose(delta, _npc_body.velocity, _npc_body.is_on_floor())
+		if _npc_dead:
+			_npc_motion.position.y += 0.38 * _npc_fall
 		_apply_npc_severed()
 		if not _npc_dead:
 			_npc_motion.rotation.x = lerpf(_npc_motion.rotation.x,
@@ -5033,6 +5216,7 @@ func _update_city_npc(delta: float) -> void:
 		_npc_body.move_and_slide()
 		if _npc_gait != null:
 			_npc_gait.update_pose(delta, Vector3.ZERO, _npc_body.is_on_floor())
+		_npc_motion.position.y += 0.38 * _npc_fall
 		_apply_npc_severed()
 		return
 	var want := _npc_high_guard()
@@ -5433,10 +5617,10 @@ func _npc_part_at(point: Vector3) -> Dictionary:
 
 ## Blade lands on the resident: damage the part, and cut it off when it gives out.
 func _npc_take_blade(point: Vector3, speed: float, direction: Vector3, damage: float) -> void:
-	if _npc_dead: return
 	if damage <= 0.05: return
 	var part := _npc_part_at(point)
 	var key: String = part.key
+	if _npc_dead and key in ["chest", "pelvis"]: return
 	var side_suffix := ""
 	if String(part.sever).ends_with("_r"): side_suffix = "_r"
 	elif String(part.sever).ends_with("_l"): side_suffix = "_l"
@@ -5457,7 +5641,18 @@ func _npc_take_blade(point: Vector3, speed: float, direction: Vector3, damage: f
 	_npc_pain_until_ms = max(_npc_pain_until_ms, Time.get_ticks_msec() +
 		(1200 if damage >= 20.0 else (650 if damage >= 3.0 else 160)))
 	if float(_npc_part_hp[full_key]) > 0.0: return
+	if key not in ["chest", "pelvis"] and (speed < 3.2 or damage < 8.0): return
 	_sever_part(full_key, key, part, point, direction, speed)
+
+func _embedded_part_follows_cut31(embedded_part: String, severed_part: String) -> bool:
+	if embedded_part == severed_part: return true
+	for side: String in ["_l", "_r"]:
+		if not severed_part.ends_with(side) or not embedded_part.ends_with(side): continue
+		if severed_part == "upperarm" + side and embedded_part in ["forearm" + side, "hand" + side]: return true
+		if severed_part == "forearm" + side and embedded_part == "hand" + side: return true
+		if severed_part == "thigh" + side and embedded_part in ["shin" + side, "foot" + side]: return true
+		if severed_part == "shin" + side and embedded_part == "foot" + side: return true
+	return false
 
 ## Takes the limb off: the mesh vanishes, the stump bleeds, a chunk is thrown.
 func _sever_part(full_key: String, kind: String, part: Dictionary, point: Vector3, direction: Vector3, speed: float) -> void:
@@ -5466,6 +5661,8 @@ func _sever_part(full_key: String, kind: String, part: Dictionary, point: Vector
 	# whichever lies towards the chest - so the limb comes away as the skin it was, and
 	# the body keeps a closed, still-skinned cut face. Only when that is impossible does
 	# the old bone collapse happen.
+	var debris_before := _npc_debris.size()
+	var stumps_before := _stumps.size()
 	var cut_done := false
 	if is_instance_valid(_npc_rig):
 		var chest := _npc_rig.find_bone("chest")
@@ -5481,6 +5678,15 @@ func _sever_part(full_key: String, kind: String, part: Dictionary, point: Vector
 		# The stand-in belongs only to the explicit legacy fallback. A successful
 		# mesh cut already emitted the original cut-away surface as debris.
 		_throw_stump(kind, point, direction, speed)
+	var detached_piece := _nearest_new_detached_piece31(point, debris_before, stumps_before, not cut_done)
+	for thrown_entry: Dictionary in _thrown:
+		var embedded: Node3D = thrown_entry.get("node")
+		if not is_instance_valid(embedded) or not embedded.has_meta("spear_embedded_part31"): continue
+		if not _embedded_part_follows_cut31(str(embedded.get_meta("spear_embedded_part31")), full_key): continue
+		if is_instance_valid(detached_piece):
+			embedded.reparent(detached_piece, true)
+		elif is_instance_valid(_npc_body):
+			embedded.reparent(_npc_body, true)
 	_npc_severed[full_key] = true
 	_spray_blood(point, direction, 34)
 	_npc_bleed_until_ms = Time.get_ticks_msec() + 6500

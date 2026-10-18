@@ -436,7 +436,7 @@ func _update_hint() -> void:
 		state += "   достаёт стрелу из колчана"
 	var draw := ""
 	if _drawing:
-		draw = "\nНАТЯЖЕНИЕ %d%%   ЛКМ — выстрел после готовности" % int(round(_draw_amount * 100.0))
+		draw = "\nНАТЯЖЕНИЕ %d%%   ЛКМ — выстрел от 18%% натяжения" % int(round(_draw_amount * 100.0))
 	var pick := ""
 	var near := _nearest_ground_item()
 	if not near.is_empty():
@@ -496,9 +496,9 @@ func _aim_direction() -> Vector3:
 			_sight_point = sight_hit.position if not sight_hit.is_empty() else sight_from + raw * 100.0
 			_sight_frame = frame
 			_sight_camera = _camera.global_transform
-		# Never use the string-hand bone here. Its IK target uses this direction,
-		# so reading the bone fed its own previous result back into the next call.
-		var launch_from: Vector3 = _player.global_position + Vector3.UP * 1.35 + visual.global_basis.z.normalized() * 0.35
+		# Converge from the actual nock height. The former fixed shoulder point sat
+		# over half a metre above the arrow and drove nearby shots into the floor.
+		var launch_from: Vector3 = _string_nock_point(raw) + raw * 0.37
 		sight_direction = (_sight_point - launch_from).normalized()
 	# Keep the hands in the body's forward arc while the torso catches the camera.
 	# Bow, displayed arrow, trajectory and fired projectile all use this direction.
@@ -610,7 +610,7 @@ func _set_aiming(value: bool) -> void:
 	_update_hint()
 
 func ready_to_fire() -> bool:
-	return _active() and not _grounded and _aiming and _drawing and _nocked and _fetch_phase == "" and _draw_amount >= 0.999 and _arrows_left > 0 and Time.get_ticks_msec() >= _lock_until_ms
+	return _active() and not _grounded and _aiming and _drawing and _nocked and _fetch_phase == "" and _draw_amount >= MIN_RELEASE_DRAW31 and _arrows_left > 0 and Time.get_ticks_msec() >= _lock_until_ms
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
@@ -632,6 +632,8 @@ func _loose() -> void:
 	_update_hint()
 
 # ---------------------------------------------------------------- firing
+
+const MIN_RELEASE_DRAW31 := 0.18
 
 func launch_speed(power: float) -> float:
 	return lerpf(ARROW_SPEED_MIN, ARROW_SPEED_MAX, clampf(power, 0.0, 1.0))
@@ -975,7 +977,10 @@ func _step_arrows(delta: float) -> void:
 		if not is_instance_valid(node):
 			_arrows.remove_at(index)
 			continue
-		if not bool(entry.get("alive", false)) or bool(entry.get("stuck", false)): continue
+		if not bool(entry.get("alive", false)): continue
+		if bool(entry.get("stuck", false)):
+			_follow_severed_arrow31(index, entry, node)
+			continue
 		var velocity: Vector3 = entry.get("velocity", Vector3.ZERO)
 		var from: Vector3 = entry.get("prev", node.global_position)
 		var from_tip: Vector3 = entry.get("prev_tip", from + velocity.normalized() * ARROW_TIP_OFFSET31)
@@ -997,9 +1002,11 @@ func _step_arrows(delta: float) -> void:
 				_deflect_incoming_arrow31(index, contact, next_velocity)
 				continue
 		if not hit.is_empty():
-			if incoming and hit.get("collider") == _player and is_instance_valid(_sword_host):
+			if incoming and hit.get("collider") == _player and is_instance_valid(_sword_host) \
+					and _sword_host.has_method("_apply_player_arrow_damage31"):
 				_incoming_player_hits31 += 1
-				_sword_host.call("_apply_player_damage", ARROW_DAMAGE, hit.position, next_velocity.normalized())
+				var impact_damage := ARROW_DAMAGE * pow(clampf(next_velocity.length() / ARROW_SPEED_MAX, 0.0, 1.0), 2.0)
+				_sword_host.call("_apply_player_arrow_damage31", impact_damage, hit.position, next_velocity.normalized())
 			_stick(index, hit, next_velocity, next_velocity.length())
 			continue
 		node.global_transform = _basis_z_along(to, next_velocity)
@@ -1058,24 +1065,48 @@ func _stick(index: int, hit: Dictionary, velocity: Vector3, speed: float) -> voi
 	entry["velocity"] = Vector3.ZERO
 	entry["surface"] = surface
 	entry["hit_point"] = point
+	if is_instance_valid(collider) and collider.has_meta("sword_npc_part"):
+		entry["npc_part"] = str(collider.get_meta("sword_npc_part"))
+		entry["npc_debris_start"] = (_sword_host.get("_npc_debris") as Array).size() if is_instance_valid(_sword_host) else 0
 	_arrows[index] = entry
 	_stuck_total += 1
 	_last_hit_distance = _player.global_position.distance_to(point)
 	_last_flight_time = float(entry.get("age", 0.0))
 	_last_arrow_surface31 = surface
 	_play_arrow_impact31(point, surface, speed)
-	_apply_arrow_damage(collider, point, speed, direction)
+	_apply_arrow_damage(collider, point, speed, direction, hit.get("normal", Vector3.ZERO))
 	print("DSH_BOW_PROTO_STICK at=", point, " speed=", speed, " surface=", surface)
+
+func _follow_severed_arrow31(index: int, entry: Dictionary, node: Node3D) -> void:
+	var part: String = entry.get("npc_part", "")
+	if part == "" or not is_instance_valid(_sword_host): return
+	var severed: Dictionary = _sword_host.get("_npc_severed")
+	if not severed.has(part): return
+	var debris: Array = _sword_host.get("_npc_debris")
+	var best: RigidBody3D = null
+	var best_distance := 1.2
+	for i in range(int(entry.get("npc_debris_start", 0)), debris.size()):
+		var candidate: RigidBody3D = (debris[i] as Dictionary).get("node")
+		if not is_instance_valid(candidate): continue
+		var distance := candidate.global_position.distance_to(node.global_position)
+		if distance < best_distance:
+			best = candidate
+			best_distance = distance
+	if best == null: return
+	node.reparent(best, true)
+	entry["npc_part"] = ""
+	_arrows[index] = entry
 
 ## An arrow in a body does damage through the sword prototype's own gore system, so
 ## arrow wounds and sword wounds are the same wounds.
-func _apply_arrow_damage(collider: Variant, point: Vector3, speed: float, direction: Vector3) -> void:
+func _apply_arrow_damage(collider: Variant, point: Vector3, speed: float, direction: Vector3, normal: Vector3 = Vector3.ZERO) -> void:
 	if not is_instance_valid(collider) or not is_instance_valid(_sword_host): return
 	var part := ""
 	if collider is Node and collider.has_meta("sword_npc_part"):
 		part = str(collider.get_meta("sword_npc_part"))
-	if part != "" and _sword_host.has_method("_npc_take_blade_part"):
-		_sword_host.call("_npc_take_blade_part", part, point, speed, direction, ARROW_DAMAGE)
+	if part != "" and _sword_host.has_method("_npc_take_arrow_part"):
+		var impact_damage := ARROW_DAMAGE * pow(clampf(speed / ARROW_SPEED_MAX, 0.0, 1.0), 2.0)
+		_sword_host.call("_npc_take_arrow_part", part, point, speed, direction, impact_damage, normal)
 		return
 	if collider is Node and collider.has_meta("sword_target") and _sword_host.has_method("_damage_dummy"):
 		_sword_host.call("_damage_dummy", collider, point, speed, direction, Time.get_ticks_msec())
@@ -1755,6 +1786,12 @@ func _arrow_ray31(from: Vector3, to: Vector3) -> Dictionary:
 	var space := _player.get_world_3d().direct_space_state
 	if space == null: return {}
 	var excluded: Array[RID] = [_player.get_rid()]
+	# The NPC's movement capsule surrounds the animated limb hitboxes. Resolve
+	# arrows against the limb hitboxes, which carry the damage part identity.
+	if is_instance_valid(_sword_host):
+		var npc_body: Variant = _sword_host.get("_npc_body")
+		if is_instance_valid(npc_body) and npc_body is CollisionObject3D:
+			excluded.append(npc_body.get_rid())
 	var query := PhysicsRayQueryParameters3D.create(from, to, AIM_MASK, excluded)
 	query.hit_from_inside = true
 	return space.intersect_ray(query)
