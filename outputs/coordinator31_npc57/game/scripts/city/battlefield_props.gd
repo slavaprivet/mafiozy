@@ -846,3 +846,4 @@ func _process(delta: float) -> void:
 			_shards.remove_at(i)
 	if _shards.is_empty():
 		set_process(false)
+

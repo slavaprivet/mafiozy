@@ -27,3 +27,8 @@
 /outputs/**/game/assets/**/*.json -text
 /outputs/**/game/scripts/npc_visual/npc_visual_loader.gd -text
 /outputs/**/game/scripts/npc_visual/npc_float_color_bridge.gd -text
+
+# Exact byte pins for the current unified castle assembly.
+/outputs/coordinator31_npc57/game/** -text
+/outputs/coordinator31_castle_current/** -text
+/godot/current_version.json -text
