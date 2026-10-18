@@ -238,8 +238,18 @@ func _build_barricade(p: Vector3, yaw: float, id: String) -> void:
 		_box("oak_edge", p + basis * Vector3(0, 0.34 + j * 0.27, z), Vector3(3.8, 0.16, 0.20), Vector3(0, yaw * 0.22, 0), id)
 	for x in [-1.55, 0.0, 1.55]:
 		var stake := p + basis * Vector3(x, 0, -0.65)
-		_piece("cone", "oak", stake + Vector3.UP * 0.68, Vector3(0.42, 1.36, 0.42), Vector3(1.08, 0, 0), id)
-		_box("iron", stake + Vector3(0, 0.22, 0), Vector3(0.42, 0.1, 0.43), Vector3.ZERO, id)
+		var rotation := Vector3(1.08, yaw * 0.22, 0)
+		var stake_basis := Basis.from_euler(rotation)
+		# Fit the actual tilted vertices to sloping terrain; group lift is applied later.
+		var vertices: PackedVector3Array = _meshes["cone"].surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+		var lowest := INF
+		var group_lift := _terrain_y(p.x, p.z)
+		for vertex: Vector3 in vertices:
+			var point := stake + stake_basis * (vertex * Vector3(0.42, 1.36, 0.42))
+			lowest = minf(lowest, point.y + group_lift - _terrain_y(point.x, point.z))
+		var center := stake + Vector3.UP * (-lowest - 0.02)
+		_piece("cone", "oak", center, Vector3(0.42, 1.36, 0.42), rotation, id)
+		_box("iron", center + stake_basis * Vector3(0, -0.38, 0), Vector3(0.42, 0.1, 0.43), rotation, id)
 	_stats["barriers"] += 1
 
 func _build_palisade(p: Vector3, side: float, id: String) -> void:
