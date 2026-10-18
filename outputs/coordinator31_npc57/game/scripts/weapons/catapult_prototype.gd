@@ -1231,13 +1231,15 @@ func _impact(hit: Dictionary) -> void:
 	var direction: Vector3 = _fly_velocity.normalized()
 	_hits += 1
 	var delivered := false
+	_last_impact = {"ok": false, "point": point, "reason": "no_breakage"}
 	# Lightweight siege dressing sits outside the curtain wall. A stone hitting
 	# masonry still breaks a nearby ladder before the castle branch returns.
 	var siege_field: Variant = _world.get("preview_battlefield") if is_instance_valid(_world) else null
+	var wall_broken := 0
 	if is_instance_valid(siege_field):
 		var wall_dressing := (siege_field as Node3D).get_node_or_null("SiegeWallDressing")
 		if is_instance_valid(wall_dressing) and wall_dressing.has_method("apply_damage"):
-			wall_dressing.call("apply_damage", point, BLAST_RADIUS, BLAST_POWER)
+			wall_broken = int(wall_dressing.call("apply_damage", point, BLAST_RADIUS, BLAST_POWER))
 	# DSH_CASTLE: anything that lands INSIDE the castle's footprint is the castle's business.
 	# Asking the collider whether it belonged was too strict - the wall is a plain static
 	# body - so every stone that struck the masonry was refused by the castle and then
@@ -1253,12 +1255,19 @@ func _impact(hit: Dictionary) -> void:
 				"direction": direction, "event_id": "catapult-castle:%d" % _hits,
 			})
 			var castle_ok: bool = castle_result is Dictionary and bool(castle_result.get("ok", false))
-			_last_impact = {"ok": castle_ok, "result": castle_result, "point": point, "castle": true}
+			_last_impact = {"ok": castle_ok, "result": castle_result, "point": point,
+				"castle": true, "siege_groups": wall_broken}
 			print("DSH_CATAPULT_CASTLE delivered=", castle_ok, " result=", castle_result)
 			if castle_ok:
 				_spawn_dust(point, normal)
 				_vanish()
 				return
+	if wall_broken > 0:
+		# A ladder or shield can break even when adjacent masonry stays intact.
+		_last_impact = {"ok": true, "point": point, "siege_groups": wall_broken}
+		_spawn_dust(point, normal)
+		_vanish()
+		return
 	# The siege camp uses small, individually breakable cover groups. Forward a
 	# physical stone contact to the group under the hit before the city fallback.
 	var battlefield: Variant = _world.get("preview_battlefield") if is_instance_valid(_world) else null
