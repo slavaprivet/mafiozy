@@ -1,5 +1,11 @@
 # Castle combat checkpoint — 18 October 2026
 
+## Follow-up: vital blunt and stab wounds
+
+The sever gate previously also prevented lethal non-slicing head wounds from killing the NPC. Death now follows depleted vital-part health independently of severing. Mace/sledge contacts cannot enter the slicing sever path even when their motion is transverse. Tagged and legacy contacts share this gate.
+
+Native castle damage semantics: `D:/MafioziCombat31/vital_wounds31/baseline01` reproduced the bug; `native04` PASS exit 0/empty stderr for weak contact survival, lethal blunt/stab head wounds without debris, cumulative torso death, legacy head damage, and strong slicing head cut with 3 real debris pieces. These are post-armor damage injections, not live swing acceptance. Tested candidate and integrated source have identical Git blob `262bb03de90e353cc18899581c71a0300941a233` (raw hashes differ only by line endings).
+
 Scope: shared `outputs/coordinator31_npc57/game`, castle scene only.
 This is an incremental checkpoint, not acceptance of the complete combat system.
 

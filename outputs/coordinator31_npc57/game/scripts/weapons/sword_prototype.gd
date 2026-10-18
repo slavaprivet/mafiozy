@@ -4040,15 +4040,16 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 					_spark_burst(position, -motion.normalized(), 8)
 					_play_melee_hit31(position, "metal", clampf(npc_cut / DAMAGE_MAX, 0.2, 1.0))
 					_scuff_knight_plate(npc_part, npc_cut)
-					if wound > 0.05: _npc_take_blade_part(npc_part, position, speed, motion, wound, kind == "slice" and speed >= 3.2 and wound >= 8.0)
+					if wound > 0.05: _npc_take_blade_part(npc_part, position, speed, motion, wound, _npc_can_sever_contact31(kind, speed, wound))
 				else:
 					_play_melee_hit31(position, "flesh", clampf(wound / DAMAGE_MAX, 0.0, 1.0))
 					if wound > 0.05:
-						_npc_take_blade_part(npc_part, position, speed, motion, wound, kind == "slice" and speed >= 3.2 and wound >= 8.0)
+						_npc_take_blade_part(npc_part, position, speed, motion, wound, _npc_can_sever_contact31(kind, speed, wound))
 			else:
 				_play_melee_hit31(position, "flesh", clampf(npc_cut / DAMAGE_MAX, 0.0, 1.0))
 				if npc_cut > 0.05:
-					_npc_take_blade(position, speed, hit.get("_velocity", Vector3.ZERO), npc_cut)
+					_npc_take_blade(position, speed, hit.get("_velocity", Vector3.ZERO), npc_cut,
+						_npc_can_sever_contact31("slice" if _edge_motion(hit.get("_velocity", Vector3.ZERO)) >= 0.72 else "flat", speed, npc_cut))
 			_last_hit_kind = "slice"
 		return
 	if is_target:
@@ -4670,6 +4671,10 @@ func _bone_length(bone: int) -> float:
 			return _npc_rig.get_bone_rest(index).origin.length()
 	return 0.0
 
+## Only a fast blade edge can separate tissue. A mace or sledge always crushes.
+func _npc_can_sever_contact31(kind: String, speed: float, wound: float) -> bool:
+	return not _weapon_crush and kind == "slice" and speed >= 3.2 and wound >= 8.0
+
 ## Damage a named part directly (used by the tagged limb hit boxes).
 func _npc_take_blade_part(full_key: String, point: Vector3, speed: float, direction: Vector3, damage: float, sever_contact: bool = false) -> void:
 	if _npc_severed.has(full_key): return
@@ -4695,19 +4700,23 @@ func _npc_take_blade_part(full_key: String, point: Vector3, speed: float, direct
 	_npc_pain_until_ms = max(_npc_pain_until_ms, Time.get_ticks_msec() +
 		(1200 if damage >= 20.0 else (650 if damage >= 3.0 else 160)))
 	if float(_npc_part_hp[full_key]) > 0.0: return
-	# A worn-down limb still needs a fast slicing contact to separate.
-	if kind not in ["chest", "pelvis"] and not sever_contact: return
-	# The torso cannot be taken off - a cut that empties it simply drops him.
-	if kind in ["chest", "pelvis"]:
-		_npc_dead = true
-		_npc_disarmed = true
-		_npc_engaged = false
-		_npc_state = "wait"
-		_spray_blood(point, direction, 60)
-		_npc_bleed_until_ms = Time.get_ticks_msec() + 4000
-		print("DSH_SWORD_PROTO_SEVER part=", full_key, " kind=cut_down")
-		return
+	# Vital tissue can fail from a blunt blow, a thrust, or cumulative wounds.
+	# Separation is a separate event: only a fast slicing contact may sever.
+	if kind in ["chest", "pelvis"] or (kind == "head" and not sever_contact):
+		_npc_die_from_vital_wound31(point, direction, speed)
+	if kind in ["chest", "pelvis"] or not sever_contact: return
 	_sever_part(full_key, kind, {"sever": full_key}, point, direction, speed)
+
+func _npc_die_from_vital_wound31(point: Vector3, direction: Vector3, speed: float) -> void:
+	if _npc_dead: return
+	_npc_dead = true
+	_npc_disarmed = true
+	_npc_engaged = false
+	_npc_state = "wait"
+	_spray_blood(point, direction, 60)
+	_npc_bleed_until_ms = maxi(_npc_bleed_until_ms, Time.get_ticks_msec() + 4000)
+	if is_instance_valid(_npc_sword):
+		_drop_sword(_npc_sword.global_position, direction, speed)
 
 ## A projectile punctures tissue; it never calls the blade/mesh severing path.
 func _npc_take_arrow_part(full_key: String, point: Vector3, speed: float,
@@ -5616,7 +5625,7 @@ func _npc_part_at(point: Vector3) -> Dictionary:
 	return best
 
 ## Blade lands on the resident: damage the part, and cut it off when it gives out.
-func _npc_take_blade(point: Vector3, speed: float, direction: Vector3, damage: float) -> void:
+func _npc_take_blade(point: Vector3, speed: float, direction: Vector3, damage: float, sever_contact: bool = false) -> void:
 	if damage <= 0.05: return
 	var part := _npc_part_at(point)
 	var key: String = part.key
@@ -5641,7 +5650,9 @@ func _npc_take_blade(point: Vector3, speed: float, direction: Vector3, damage: f
 	_npc_pain_until_ms = max(_npc_pain_until_ms, Time.get_ticks_msec() +
 		(1200 if damage >= 20.0 else (650 if damage >= 3.0 else 160)))
 	if float(_npc_part_hp[full_key]) > 0.0: return
-	if key not in ["chest", "pelvis"] and (speed < 3.2 or damage < 8.0): return
+	if key in ["chest", "pelvis"] or (key == "head" and not sever_contact):
+		_npc_die_from_vital_wound31(point, direction, speed)
+	if key in ["chest", "pelvis"] or not sever_contact: return
 	_sever_part(full_key, key, part, point, direction, speed)
 
 func _embedded_part_follows_cut31(embedded_part: String, severed_part: String) -> bool:
