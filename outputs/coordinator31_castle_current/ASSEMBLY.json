@@ -1341,7 +1341,7 @@
     "scripts/weapons/weapon_surface_impacts.gd.uid": "9dcd14da5fbd29acb97c4216c6b19aa5ba94d24927407184f328f02c5711998c",
     "tools/make_steps.py": "ddbc05ca0fadae493fd06054ea6acddd7510ed4a6273b745e79f951c20552cc2"
   },
-  "source_pin_scope": "Every current game file except generated .godot and .git folders; raw SHA256",
+  "source_pin_scope": "Published permanent game files only; untracked generated metadata and local diagnostic artifacts excluded",
   "included_packages": [
     "published siege field962 (terrain, props, destruction, routes)",
     "gate38 external gatehouse details",

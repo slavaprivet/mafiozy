@@ -4,7 +4,7 @@
 
 Открыта единая castle-20261018-combined31. F5 и tools/launch_castle_latest.ps1
 ведут через godot/current_version.json в outputs/coordinator31_castle_current/ASSEMBLY.json.
-1494 source pins; общая карта/осадное поле, Gate38, Interior38, Armor37,
+1330 permanent source pins; общая карта/осадное поле, Gate38, Interior38, Armor37,
 исправления среза головы и столкновения тела с полом включены. Совместная
 графическая проверка 11/11 PASS, ordinary ready true. Полный совместный FPS
 ещё не принят. Суставной эксперимент и Banner36 не включены.
