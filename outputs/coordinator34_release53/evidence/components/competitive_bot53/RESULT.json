@@ -1,0 +1,113 @@
+{
+  "status": "READY_FOR_MERGED_VALIDATION",
+  "base_manifest": "D:\\MafioziCombat31\\competitive_bot53\\BASE.json",
+  "base_root_sword_sha256": "cca89d0120bef2b535f782cb690f138e70cf7dca3b03ffbf6bfd2a0d9643d567",
+  "source_file": "D:\\MafioziCombat31\\competitive_bot53\\game\\scripts\\weapons\\sword_prototype.gd",
+  "sha256": "591d678753ae5ba6eecef704bedf6a9d64fd76ee7b96287af08bba12df7df1ad",
+  "files_changed": [
+    "scripts/weapons/sword_prototype.gd"
+  ],
+  "diff_vs_root": "D:\\MafioziCombat31\\competitive_bot53\\vs_root53.diff",
+  "diff_vs_published52": "D:\\MafioziCombat31\\competitive_bot53\\vs_published52.diff",
+  "final_native_suite": "D:\\MafioziCombat31\\competitive_bot53\\SPACING_SUITE.json",
+  "changes": [
+    "Invalidate local route cache when desired travel direction changes materially, preserving physical corridor queries and move_and_slide.",
+    "Subtract actor translation from observed blade-tip velocity to reduce false threat caused solely by walking.",
+    "Retreat hysteresis1.08->1.25m; start windup only>=1.20m; backstep during close windup1.7m/s before armor modifier.",
+    "Preserves parent53 delayed180ms observations, counters, early commitment, shared armor; all damage, HP, severing/contact laws unchanged."
+  ],
+  "comparison": {
+    "moving_baseline52_02": {
+      "clashes": 2,
+      "errors": [],
+      "guards": 2,
+      "hits": 1,
+      "lateral": 3.4692497253418,
+      "npc_dead": false,
+      "npc_hp": 8.70925204496425,
+      "passed": true,
+      "player_dead": false,
+      "player_hp": 97.6472276387436,
+      "player_motion": 2.84334444999695,
+      "scope": "Same heavy armor both actors, same movement/real mouse attack sequence. Initial positions only, no teleport after start, no HP or damage changes. Physical clashes counted from actual register_clash timestamps.",
+      "swings": 2
+    },
+    "moving_fix02": {
+      "clashes": 3,
+      "errors": [],
+      "guards": 6,
+      "hits": 2,
+      "lateral": 0.382684707641602,
+      "npc_dead": true,
+      "npc_hp": 0.0,
+      "passed": true,
+      "player_dead": false,
+      "player_hp": 72.8338670016168,
+      "player_motion": 1.48789620399475,
+      "scope": "Same heavy armor both actors, same movement/real mouse attack sequence. Initial positions only, no teleport after start, no HP or damage changes. Physical clashes counted from actual register_clash timestamps.",
+      "swings": 2
+    },
+    "moving_spacing03": {
+      "clashes": 1,
+      "errors": [],
+      "guards": 1,
+      "hits": 1,
+      "lateral": 0.327363014221191,
+      "npc_dead": true,
+      "npc_hp": 0.0,
+      "passed": true,
+      "player_dead": false,
+      "player_hp": 79.2270399494554,
+      "player_motion": 1.0380517244339,
+      "scope": "Same heavy armor both actors, same movement/real mouse attack sequence. Initial positions only, no teleport after start, no HP or damage changes. Physical clashes counted from actual register_clash timestamps.",
+      "swings": 2
+    },
+    "retreat_spacing03": {
+      "case": "retreat",
+      "errors": [],
+      "final_gap": 1.2313266992569,
+      "first_windup_gap": 1.2313266992569,
+      "hits": 0,
+      "impacts": [],
+      "last_impact": {},
+      "max_lateral_m": 0.000311851501464844,
+      "passed": true,
+      "replans": 4,
+      "scope": "Native castle actors: initial positions and detour obstacle only. Chase auto-aggro has no held input; detour/retreat seeds alert. Real move_and_slide, no subsequent actor teleport or damage injection.",
+      "transitions": [],
+      "wall_crossed": false
+    },
+    "detour_spacing03": {
+      "case": "detour",
+      "errors": [],
+      "final_gap": 1.17131817340851,
+      "first_windup_gap": 1.50415527820587,
+      "hits": 1,
+      "impacts": [],
+      "last_impact": {
+        "damage": 29.7786372456066,
+        "edge_across": 0.669255375862122,
+        "kind": "flat",
+        "phase": 0.709777777777778,
+        "point_along": 0.345625340938568,
+        "sample": 3,
+        "speed": 5.44317662715912,
+        "zone": "upperarm_l"
+      },
+      "max_lateral_m": 2.27637481689453,
+      "passed": true,
+      "replans": 12,
+      "scope": "Native castle actors: initial positions and detour obstacle only. Chase auto-aggro has no held input; detour/retreat seeds alert. Real move_and_slide, no subsequent actor teleport or damage injection.",
+      "transitions": [],
+      "wall_crossed": false
+    }
+  },
+  "limitations": [
+    "One deterministic moving-player sequence, not a statistically established win rate or proof of human-level competitive strength.",
+    "Both53 variants legitimately lost to real vital sever. Final03 survived~210ticks vs02~550; raw defeat preserved. More damage than52 does not imply unbeatable bot.",
+    "Physical clash timestamps prove steel contact, but count includes both attacking and defending contacts; no claim all guards succeeded.",
+    "No merged bow/armor regression or graphical playthrough done by this AI-only agent.",
+    "Initial clone diagnostics missing generated import sidecars and initial moving harness API error retained; final suite all scheduler/gameplay PASS with stderr0."
+  ],
+  "frozen": true
+}

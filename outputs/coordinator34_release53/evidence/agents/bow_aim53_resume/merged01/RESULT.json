@@ -1,0 +1,936 @@
+{
+	"errors": [],
+	"input_10px_delivered": 10.0,
+	"passed": true,
+	"rows": [
+		{
+			"TAA": true,
+			"bow_dots": 8,
+			"bow_selected": true,
+			"crosshair": false,
+			"heading": -0.00000110467011538162,
+			"label": "aim_gate",
+			"npc_position": "(140.0, -0.001629, 1003.0)",
+			"pitch": -0.08,
+			"points": [
+				{
+					"screen": "(786.6913, 412.7526)",
+					"shadow": 0,
+					"world": "(-4.137326, 1.283643, 974.0779)"
+				},
+				{
+					"screen": "(742.0383, 386.8037)",
+					"shadow": 0,
+					"world": "(-4.302743, 1.33255, 973.1948)"
+				},
+				{
+					"screen": "(706.8082, 366.7328)",
+					"shadow": 0,
+					"world": "(-4.46816, 1.378732, 972.3117)"
+				},
+				{
+					"screen": "(678.3055, 350.859)",
+					"shadow": 0,
+					"world": "(-4.633576, 1.422188, 971.4286)"
+				},
+				{
+					"screen": "(654.7722, 338.085)",
+					"shadow": 0,
+					"world": "(-4.798992, 1.462919, 970.5456)"
+				},
+				{
+					"screen": "(635.0139, 327.6657)",
+					"shadow": 0,
+					"world": "(-4.964406, 1.500924, 969.6625)"
+				},
+				{
+					"screen": "(618.1907, 319.0775)",
+					"shadow": 0,
+					"world": "(-5.12982, 1.536203, 968.7795)"
+				},
+				{
+					"screen": "(614.2194, 317.1221)",
+					"shadow": 0,
+					"world": "(-5.172818, 1.544665, 968.55)"
+				}
+			],
+			"position": "(-4.0, 0.080103, 976.0)",
+			"spear_dots": 0,
+			"storage": {
+				"back_bow": true,
+				"bow_active": true,
+				"carried": {
+					"bow": true,
+					"spear": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "spear",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"sword": true
+				},
+				"revision": 2,
+				"slots": []
+			},
+			"sword_selected": false,
+			"visual_yaw": 3.14159154891968
+		},
+		{
+			"TAA": true,
+			"bow_dots": 8,
+			"bow_selected": true,
+			"crosshair": false,
+			"heading": -0.000000389414378076935,
+			"label": "back_0",
+			"npc_position": "(140.0, 0.000119, 1003.0)",
+			"pitch": -0.08,
+			"points": [
+				{
+					"screen": "(790.13, 415.2694)",
+					"shadow": 0,
+					"world": "(-4.118296, 1.269518, 974.6146)"
+				},
+				{
+					"screen": "(746.756, 390.6342)",
+					"shadow": 0,
+					"world": "(-4.273445, 1.308488, 973.7291)"
+				},
+				{
+					"screen": "(712.5551, 371.611)",
+					"shadow": 0,
+					"world": "(-4.428593, 1.344733, 972.8436)"
+				},
+				{
+					"screen": "(684.8972, 356.5905)",
+					"shadow": 0,
+					"world": "(-4.58374, 1.378252, 971.9581)"
+				},
+				{
+					"screen": "(662.0698, 344.5249)",
+					"shadow": 0,
+					"world": "(-4.738887, 1.409046, 971.0726)"
+				},
+				{
+					"screen": "(642.91, 334.7029)",
+					"shadow": 0,
+					"world": "(-4.894033, 1.437115, 970.1871)"
+				},
+				{
+					"screen": "(626.6006, 326.6246)",
+					"shadow": 0,
+					"world": "(-5.049179, 1.462458, 969.3017)"
+				},
+				{
+					"screen": "(614.5472, 320.8795)",
+					"shadow": 0,
+					"world": "(-5.180881, 1.481658, 968.55)"
+				}
+			],
+			"position": "(-4.0, 0.080103, 976.5417)",
+			"spear_dots": 0,
+			"storage": {
+				"back_bow": true,
+				"bow_active": true,
+				"carried": {
+					"bow": true,
+					"spear": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "spear",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"sword": true
+				},
+				"revision": 2,
+				"slots": []
+			},
+			"sword_selected": false,
+			"visual_yaw": 3.14159226417542
+		},
+		{
+			"TAA": true,
+			"bow_dots": 9,
+			"bow_selected": true,
+			"crosshair": false,
+			"heading": -0.000000150995798975373,
+			"label": "back_1",
+			"npc_position": "(140.0, 0.000119, 1003.0)",
+			"pitch": -0.08,
+			"points": [
+				{
+					"screen": "(791.0502, 422.0048)",
+					"shadow": 0,
+					"world": "(-4.112146, 1.232344, 975.4075)"
+				},
+				{
+					"screen": "(748.5878, 399.6616)",
+					"shadow": 0,
+					"world": "(-4.261175, 1.252485, 974.5203)"
+				},
+				{
+					"screen": "(715.1216, 382.4532)",
+					"shadow": 0,
+					"world": "(-4.410203, 1.269901, 973.6331)"
+				},
+				{
+					"screen": "(688.0668, 368.9034)",
+					"shadow": 0,
+					"world": "(-4.559229, 1.284592, 972.7458)"
+				},
+				{
+					"screen": "(665.7438, 358.0545)",
+					"shadow": 0,
+					"world": "(-4.708256, 1.296557, 971.8586)"
+				},
+				{
+					"screen": "(647.0118, 349.2547)",
+					"shadow": 0,
+					"world": "(-4.857282, 1.305797, 970.9714)"
+				},
+				{
+					"screen": "(631.0698, 342.0464)",
+					"shadow": 0,
+					"world": "(-5.006307, 1.312313, 970.0841)"
+				},
+				{
+					"screen": "(617.3383, 336.0999)",
+					"shadow": 0,
+					"world": "(-5.155331, 1.316103, 969.1969)"
+				},
+				{
+					"screen": "(612.8842, 334.2623)",
+					"shadow": 0,
+					"world": "(-5.20856, 1.316483, 968.88)"
+				}
+			],
+			"position": "(-4.0, 0.080103, 977.3419)",
+			"spear_dots": 0,
+			"storage": {
+				"back_bow": true,
+				"bow_active": true,
+				"carried": {
+					"bow": true,
+					"spear": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "spear",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"sword": true
+				},
+				"revision": 2,
+				"slots": []
+			},
+			"sword_selected": false,
+			"visual_yaw": 3.14159250259399
+		},
+		{
+			"TAA": true,
+			"bow_dots": 10,
+			"bow_selected": true,
+			"crosshair": false,
+			"heading": -0.000000150995798975373,
+			"label": "back_2",
+			"npc_position": "(140.0, 0.000119, 1003.0)",
+			"pitch": -0.08,
+			"points": [
+				{
+					"screen": "(802.9195, 420.6798)",
+					"shadow": 0,
+					"world": "(-4.048585, 1.239325, 976.2065)"
+				},
+				{
+					"screen": "(763.6609, 398.2596)",
+					"shadow": 0,
+					"world": "(-4.169248, 1.260435, 975.315)"
+				},
+				{
+					"screen": "(732.7478, 381.0056)",
+					"shadow": 0,
+					"world": "(-4.289909, 1.27882, 974.4235)"
+				},
+				{
+					"screen": "(707.777, 367.4308)",
+					"shadow": 0,
+					"world": "(-4.41057, 1.29448, 973.532)"
+				},
+				{
+					"screen": "(687.1857, 356.5666)",
+					"shadow": 0,
+					"world": "(-4.53123, 1.307415, 972.6404)"
+				},
+				{
+					"screen": "(669.9157, 347.759)",
+					"shadow": 0,
+					"world": "(-4.65189, 1.317624, 971.749)"
+				},
+				{
+					"screen": "(655.2241, 340.5471)",
+					"shadow": 0,
+					"world": "(-4.772549, 1.325108, 970.8575)"
+				},
+				{
+					"screen": "(642.574, 334.5989)",
+					"shadow": 0,
+					"world": "(-4.893208, 1.329867, 969.966)"
+				},
+				{
+					"screen": "(631.5682, 329.6682)",
+					"shadow": 0,
+					"world": "(-5.013866, 1.331902, 969.0745)"
+				},
+				{
+					"screen": "(625.7366, 327.1941)",
+					"shadow": 0,
+					"world": "(-5.084858, 1.331495, 968.55)"
+				}
+			],
+			"position": "(-4.0, 0.080103, 978.1421)",
+			"spear_dots": 0,
+			"storage": {
+				"back_bow": true,
+				"bow_active": true,
+				"carried": {
+					"bow": true,
+					"spear": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "spear",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"sword": true
+				},
+				"revision": 2,
+				"slots": []
+			},
+			"sword_selected": false,
+			"visual_yaw": 3.14159250259399
+		},
+		{
+			"TAA": true,
+			"bow_dots": 11,
+			"bow_selected": true,
+			"crosshair": false,
+			"heading": -0.000000150995798975373,
+			"label": "back_3",
+			"npc_position": "(140.0, 0.000119, 1003.0)",
+			"pitch": -0.08,
+			"points": [
+				{
+					"screen": "(806.4331, 423.5675)",
+					"shadow": 0,
+					"world": "(-4.029259, 1.22341, 977.004)"
+				},
+				{
+					"screen": "(768.3935, 402.0558)",
+					"shadow": 0,
+					"world": "(-4.139881, 1.236768, 976.111)"
+				},
+				{
+					"screen": "(738.4522, 385.5239)",
+					"shadow": 0,
+					"world": "(-4.250502, 1.247401, 975.218)"
+				},
+				{
+					"screen": "(714.2724, 372.5344)",
+					"shadow": 0,
+					"world": "(-4.361123, 1.255309, 974.3249)"
+				},
+				{
+					"screen": "(694.339, 362.1563)",
+					"shadow": 0,
+					"world": "(-4.471743, 1.260491, 973.4319)"
+				},
+				{
+					"screen": "(677.6238, 353.757)",
+					"shadow": 0,
+					"world": "(-4.582363, 1.262949, 972.5389)"
+				},
+				{
+					"screen": "(663.4064, 346.8932)",
+					"shadow": 0,
+					"world": "(-4.692982, 1.262681, 971.6459)"
+				},
+				{
+					"screen": "(651.1664, 341.2451)",
+					"shadow": 0,
+					"world": "(-4.803601, 1.259688, 970.7529)"
+				},
+				{
+					"screen": "(640.5185, 336.5757)",
+					"shadow": 0,
+					"world": "(-4.914219, 1.253971, 969.8599)"
+				},
+				{
+					"screen": "(631.1716, 332.7057)",
+					"shadow": 0,
+					"world": "(-5.024837, 1.245529, 968.9669)"
+				},
+				{
+					"screen": "(627.1884, 331.1606)",
+					"shadow": 0,
+					"world": "(-5.076477, 1.240315, 968.55)"
+				}
+			],
+			"position": "(-4.0, 0.080103, 978.9423)",
+			"spear_dots": 0,
+			"storage": {
+				"back_bow": true,
+				"bow_active": true,
+				"carried": {
+					"bow": true,
+					"spear": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "spear",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"sword": true
+				},
+				"revision": 2,
+				"slots": []
+			},
+			"sword_selected": false,
+			"visual_yaw": 3.14159250259399
+		},
+		{
+			"TAA": true,
+			"bow_dots": 0,
+			"bow_selected": false,
+			"crosshair": false,
+			"heading": 0.0000000874227801261895,
+			"label": "q_to_spear",
+			"npc_position": "(140.0, 0.000119, 1003.0)",
+			"pitch": -0.08,
+			"points": [],
+			"position": "(-4.0, 0.080103, 979.2006)",
+			"spear_dots": 0,
+			"storage": {
+				"back_bow": true,
+				"bow_active": false,
+				"carried": {
+					"bow": true,
+					"spear": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "spear",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"sword": true
+				},
+				"revision": 2,
+				"slots": []
+			},
+			"sword_selected": true,
+			"visual_yaw": 3.14159274101257
+		},
+		{
+			"TAA": true,
+			"bow_dots": 0,
+			"bow_selected": false,
+			"crosshair": false,
+			"heading": 0.0000000874227801261895,
+			"label": "spear_reaim",
+			"npc_position": "(140.0, 0.000119, 1003.0)",
+			"pitch": -0.08,
+			"points": [],
+			"position": "(-4.0, 0.080103, 979.2006)",
+			"spear_dots": 12,
+			"storage": {
+				"back_bow": true,
+				"bow_active": false,
+				"carried": {
+					"bow": true,
+					"spear": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "spear",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"sword": true
+				},
+				"revision": 2,
+				"slots": []
+			},
+			"sword_selected": true,
+			"visual_yaw": -3.14159274101257
+		},
+		{
+			"TAA": true,
+			"bow_dots": 0,
+			"bow_selected": true,
+			"crosshair": false,
+			"heading": -6.28318539460237,
+			"label": "q_to_bow",
+			"npc_position": "(140.0, 0.000119, 1003.0)",
+			"pitch": -0.08,
+			"points": [],
+			"position": "(-4.0, 0.080103, 979.2006)",
+			"spear_dots": 0,
+			"storage": {
+				"back_bow": true,
+				"bow_active": true,
+				"carried": {
+					"bow": true,
+					"spear": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "spear",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"sword": true
+				},
+				"revision": 2,
+				"slots": []
+			},
+			"sword_selected": false,
+			"visual_yaw": -3.14159274101257
+		},
+		{
+			"TAA": true,
+			"bow_dots": 11,
+			"bow_selected": true,
+			"crosshair": false,
+			"heading": -6.28318539460237,
+			"label": "bow_reaim",
+			"npc_position": "(140.0, 0.000119, 1003.0)",
+			"pitch": -0.08,
+			"points": [
+				{
+					"screen": "(804.0315, 426.0373)",
+					"shadow": 0,
+					"world": "(-4.041605, 1.209793, 977.2604)"
+				},
+				{
+					"screen": "(765.5625, 404.7857)",
+					"shadow": 0,
+					"world": "(-4.156711, 1.219887, 976.3679)"
+				},
+				{
+					"screen": "(735.2784, 388.4556)",
+					"shadow": 0,
+					"world": "(-4.271816, 1.227256, 975.4755)"
+				},
+				{
+					"screen": "(710.8192, 375.6279)",
+					"shadow": 0,
+					"world": "(-4.386921, 1.2319, 974.583)"
+				},
+				{
+					"screen": "(690.6526, 365.3811)",
+					"shadow": 0,
+					"world": "(-4.502026, 1.233819, 973.6906)"
+				},
+				{
+					"screen": "(673.7408, 357.091)",
+					"shadow": 0,
+					"world": "(-4.617129, 1.233013, 972.7981)"
+				},
+				{
+					"screen": "(659.355, 350.3195)",
+					"shadow": 0,
+					"world": "(-4.732233, 1.229482, 971.9056)"
+				},
+				{
+					"screen": "(646.9694, 344.7503)",
+					"shadow": 0,
+					"world": "(-4.847335, 1.223226, 971.0132)"
+				},
+				{
+					"screen": "(636.1944, 340.1492)",
+					"shadow": 0,
+					"world": "(-4.962438, 1.214245, 970.1207)"
+				},
+				{
+					"screen": "(626.7354, 336.339)",
+					"shadow": 0,
+					"world": "(-5.077539, 1.202539, 969.2283)"
+				},
+				{
+					"screen": "(620.2848, 333.907)",
+					"shadow": 0,
+					"world": "(-5.165023, 1.191571, 968.55)"
+				}
+			],
+			"position": "(-4.0, 0.080103, 979.2006)",
+			"spear_dots": 0,
+			"storage": {
+				"back_bow": true,
+				"bow_active": true,
+				"carried": {
+					"bow": true,
+					"spear": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "spear",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"sword": true
+				},
+				"revision": 2,
+				"slots": []
+			},
+			"sword_selected": false,
+			"visual_yaw": -3.14159274101257
+		},
+		{
+			"TAA": true,
+			"bow_dots": 15,
+			"bow_selected": true,
+			"crosshair": false,
+			"heading": -6.28318539460237,
+			"label": "high_aim",
+			"npc_position": "(140.0, 0.000119, 1003.0)",
+			"pitch": 0.64,
+			"points": [
+				{
+					"screen": "(932.1955, 509.3676)",
+					"shadow": 0,
+					"world": "(-3.989645, 2.278526, 977.6542)"
+				},
+				{
+					"screen": "(855.4651, 469.0378)",
+					"shadow": 0,
+					"world": "(-4.077483, 2.850546, 976.9683)"
+				},
+				{
+					"screen": "(802.8181, 441.8375)",
+					"shadow": 0,
+					"world": "(-4.165321, 3.419836, 976.2825)"
+				},
+				{
+					"screen": "(764.4428, 422.412)",
+					"shadow": 0,
+					"world": "(-4.253159, 3.986396, 975.5967)"
+				},
+				{
+					"screen": "(735.2177, 407.9841)",
+					"shadow": 0,
+					"world": "(-4.340996, 4.550226, 974.9108)"
+				},
+				{
+					"screen": "(712.2117, 396.9487)",
+					"shadow": 0,
+					"world": "(-4.428834, 5.111327, 974.225)"
+				},
+				{
+					"screen": "(693.6246, 388.3244)",
+					"shadow": 0,
+					"world": "(-4.516673, 5.669698, 973.5391)"
+				},
+				{
+					"screen": "(678.2896, 381.4754)",
+					"shadow": 0,
+					"world": "(-4.604511, 6.225339, 972.8533)"
+				},
+				{
+					"screen": "(665.4176, 375.9674)",
+					"shadow": 0,
+					"world": "(-4.692349, 6.778251, 972.1675)"
+				},
+				{
+					"screen": "(654.4554, 371.5076)",
+					"shadow": 0,
+					"world": "(-4.780187, 7.328433, 971.4816)"
+				},
+				{
+					"screen": "(645.0042, 367.8739)",
+					"shadow": 0,
+					"world": "(-4.868025, 7.875885, 970.7958)"
+				},
+				{
+					"screen": "(636.7688, 364.9058)",
+					"shadow": 0,
+					"world": "(-4.955864, 8.420607, 970.1099)"
+				},
+				{
+					"screen": "(629.5264, 362.4816)",
+					"shadow": 0,
+					"world": "(-5.043703, 8.962598, 969.4241)"
+				},
+				{
+					"screen": "(623.1052, 360.5049)",
+					"shadow": 0,
+					"world": "(-5.131541, 9.50186, 968.7383)"
+				},
+				{
+					"screen": "(621.4674, 360.0495)",
+					"shadow": 0,
+					"world": "(-5.155654, 9.649149, 968.55)"
+				}
+			],
+			"position": "(-4.0, 0.080103, 979.2006)",
+			"spear_dots": 0,
+			"storage": {
+				"back_bow": true,
+				"bow_active": true,
+				"carried": {
+					"bow": true,
+					"spear": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "spear",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"sword": true
+				},
+				"revision": 2,
+				"slots": []
+			},
+			"sword_selected": false,
+			"visual_yaw": -3.14159274101257
+		},
+		{
+			"TAA": true,
+			"bow_dots": 0,
+			"bow_selected": false,
+			"crosshair": false,
+			"heading": -6.28318539460237,
+			"label": "dropped",
+			"npc_position": "(140.0, 0.000119, 1003.0)",
+			"pitch": -0.08,
+			"points": [],
+			"position": "(-4.0, 0.080103, 979.2006)",
+			"spear_dots": 0,
+			"storage": {
+				"back_bow": false,
+				"bow_active": false,
+				"carried": {
+					"spear": true
+				},
+				"chest_alive": true,
+				"fallen": {
+					"bow": "(-4.150657, 1.114268, 78.46606)"
+				},
+				"hand_shield": false,
+				"hand_weapon": "spear",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"sword": true
+				},
+				"revision": 3,
+				"slots": []
+			},
+			"sword_selected": true,
+			"visual_yaw": -3.14159274101257
+		},
+		{
+			"TAA": true,
+			"bow_dots": 0,
+			"bow_selected": true,
+			"crosshair": false,
+			"heading": -6.28318539460237,
+			"label": "picked",
+			"npc_position": "(140.0, 0.000119, 1003.0)",
+			"pitch": -0.08,
+			"points": [],
+			"position": "(-4.0, 0.080103, 979.2006)",
+			"spear_dots": 0,
+			"storage": {
+				"back_bow": true,
+				"bow_active": true,
+				"carried": {
+					"bow": true,
+					"spear": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "spear",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"sword": true
+				},
+				"revision": 4,
+				"slots": []
+			},
+			"sword_selected": false,
+			"visual_yaw": -3.14159274101257
+		},
+		{
+			"TAA": true,
+			"bow_dots": 11,
+			"bow_selected": true,
+			"crosshair": false,
+			"heading": -6.28318539460237,
+			"label": "picked_reaim",
+			"npc_position": "(140.0, 0.000119, 1003.0)",
+			"pitch": -0.08,
+			"points": [
+				{
+					"screen": "(804.032, 426.0375)",
+					"shadow": 0,
+					"world": "(-4.041605, 1.209793, 977.2604)"
+				},
+				{
+					"screen": "(765.5629, 404.7859)",
+					"shadow": 0,
+					"world": "(-4.156711, 1.219887, 976.3679)"
+				},
+				{
+					"screen": "(735.2787, 388.4557)",
+					"shadow": 0,
+					"world": "(-4.271816, 1.227257, 975.4755)"
+				},
+				{
+					"screen": "(710.8194, 375.6279)",
+					"shadow": 0,
+					"world": "(-4.386921, 1.231901, 974.583)"
+				},
+				{
+					"screen": "(690.6528, 365.3811)",
+					"shadow": 0,
+					"world": "(-4.502026, 1.23382, 973.6906)"
+				},
+				{
+					"screen": "(673.7408, 357.091)",
+					"shadow": 0,
+					"world": "(-4.617129, 1.233014, 972.7981)"
+				},
+				{
+					"screen": "(659.3551, 350.3195)",
+					"shadow": 0,
+					"world": "(-4.732233, 1.229483, 971.9056)"
+				},
+				{
+					"screen": "(646.9695, 344.7502)",
+					"shadow": 0,
+					"world": "(-4.847335, 1.223227, 971.0132)"
+				},
+				{
+					"screen": "(636.1944, 340.1491)",
+					"shadow": 0,
+					"world": "(-4.962438, 1.214246, 970.1207)"
+				},
+				{
+					"screen": "(626.7354, 336.3389)",
+					"shadow": 0,
+					"world": "(-5.077539, 1.20254, 969.2283)"
+				},
+				{
+					"screen": "(620.2847, 333.9069)",
+					"shadow": 0,
+					"world": "(-5.165023, 1.191572, 968.55)"
+				}
+			],
+			"position": "(-4.0, 0.080103, 979.2006)",
+			"spear_dots": 0,
+			"storage": {
+				"back_bow": true,
+				"bow_active": true,
+				"carried": {
+					"bow": true,
+					"spear": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "spear",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"sword": true
+				},
+				"revision": 4,
+				"slots": []
+			},
+			"sword_selected": false,
+			"visual_yaw": -3.14159274101257
+		},
+		{
+			"TAA": true,
+			"bow_dots": 0,
+			"bow_selected": true,
+			"crosshair": false,
+			"heading": -6.28318539460237,
+			"label": "released",
+			"npc_position": "(140.0, 0.000119, 1003.0)",
+			"pitch": -0.08,
+			"points": [],
+			"position": "(-4.0, 0.080103, 979.2006)",
+			"spear_dots": 0,
+			"storage": {
+				"back_bow": true,
+				"bow_active": true,
+				"carried": {
+					"bow": true,
+					"spear": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "spear",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"sword": true
+				},
+				"revision": 4,
+				"slots": []
+			},
+			"sword_selected": false,
+			"visual_yaw": -3.14159274101257
+		}
+	],
+	"scope": "Native 1280x720 real input; async NPC awaited then positioned away once before input to isolate rendering. No NPC health changes. Frozen shadow proof changes only cast_shadow."
+}

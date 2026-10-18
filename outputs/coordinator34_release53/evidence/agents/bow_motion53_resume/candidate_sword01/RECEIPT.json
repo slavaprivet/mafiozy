@@ -1,0 +1,274 @@
+{
+  "passed": true,
+  "game": "D:\\MafioziCombat31\\bow_motion53\\game",
+  "weapon": "sword",
+  "harness_sha256": "cf5c52ba2f7e677e0314f5601d253029ffbf08e739dae7a1371d728a117271f9",
+  "source_before": {
+    "scripts/preview_player.gd": "b4e02c86185557fb68a9dfdbec85932f41a79f16f1d0ec55999d3a367a4cbb02",
+    "scripts/weapons/bow_prototype.gd": "84a5bc419fc72f9a7f84d1c7280d5ce97baeb0bcfb44b1e3ff3068085eb507b2",
+    "scripts/weapons/sword_prototype.gd": "f472d58b75a6924d944614c06eca60ff977fa40041d6127d2eab9b51a7a9eb8e",
+    "scripts/city/castle_armory_storage.gd": "d7d75d15049a654e0c7834fb03a15062dc2af40b32f3b01a0f7c610ee7815ca0"
+  },
+  "source_after": {
+    "scripts/preview_player.gd": "b4e02c86185557fb68a9dfdbec85932f41a79f16f1d0ec55999d3a367a4cbb02",
+    "scripts/weapons/bow_prototype.gd": "84a5bc419fc72f9a7f84d1c7280d5ce97baeb0bcfb44b1e3ff3068085eb507b2",
+    "scripts/weapons/sword_prototype.gd": "f472d58b75a6924d944614c06eca60ff977fa40041d6127d2eab9b51a7a9eb8e",
+    "scripts/city/castle_armory_storage.gd": "d7d75d15049a654e0c7834fb03a15062dc2af40b32f3b01a0f7c610ee7815ca0"
+  },
+  "source_unchanged": true,
+  "scheduler_exit_code": 0,
+  "checks": [
+    {
+      "evidence": {
+        "ammo_free": true,
+        "melee": true,
+        "ok": true,
+        "weaponId": "sword"
+      },
+      "name": "acquired_sword",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "ok": true,
+        "stowed": true,
+        "weaponId": "bow"
+      },
+      "name": "acquired_back_bow",
+      "passed": true
+    },
+    {
+      "evidence": "(1280, 720)",
+      "name": "viewport_1280x720",
+      "passed": true
+    },
+    {
+      "evidence": 10.0,
+      "name": "mouse_1to1",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 179.999990201829,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.2021484375,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "sword_back_walking",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 179.999990201829,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.2021484375,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "sword_back_ownership",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 90.0039041439854,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.000983547240481836,
+        "movement_m": 7.19305992126465,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "sword_left_walking",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 90.0039041439854,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.000983547240481836,
+        "movement_m": 7.19305992126465,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "sword_left_ownership",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 90.007852432809,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.00193977372428362,
+        "movement_m": 7.20113754272461,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "sword_right_walking",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 90.007852432809,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.00193977372428362,
+        "movement_m": 7.20113754272461,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "sword_right_ownership",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 0.00392939974721509,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.000983547240481836,
+        "movement_m": 7.15020751953125,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "sword_forward_walking",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 0.00392939974721509,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.000983547240481836,
+        "movement_m": 7.15020751953125,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "sword_forward_ownership",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 141.80276107342,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.00152996237408286,
+        "movement_m": 7.20428466796875,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "sword_back_aimed_walking",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 141.80276107342,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.00152996237408286,
+        "movement_m": 7.20428466796875,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "sword_back_aimed_ownership",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 180.0,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.00104160384842694,
+        "movement_m": 7.19886112213135,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "sword_back_turned_walking",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 180.0,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.00104160384842694,
+        "movement_m": 7.19886112213135,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "sword_back_turned_ownership",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "ok": true,
+        "weaponId": "bow"
+      },
+      "name": "select_bow",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 0.000268053536766738,
+        "max_physics_correction_degrees": 5.4641513360102e-05,
+        "max_render_step_degrees": 5.4641513360102e-05,
+        "movement_m": 7.19195413589478,
+        "ownership_mismatch": 0,
+        "samples": 132
+      },
+      "name": "sword_to_bow_back_walking",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 0.000268053536766738,
+        "max_physics_correction_degrees": 5.4641513360102e-05,
+        "max_render_step_degrees": 5.4641513360102e-05,
+        "movement_m": 7.19195413589478,
+        "ownership_mismatch": 0,
+        "samples": 132
+      },
+      "name": "sword_to_bow_back_ownership",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 0.000268053536766738,
+        "max_physics_correction_degrees": 5.4641513360102e-05,
+        "max_render_step_degrees": 5.4641513360102e-05,
+        "movement_m": 7.19195413589478,
+        "ownership_mismatch": 0,
+        "samples": 132
+      },
+      "name": "sword_to_bow_back_stable",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "ammo_free": true,
+        "melee": true,
+        "ok": true,
+        "weaponId": "sword"
+      },
+      "name": "select_melee_again",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 180.0,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.00196709448096367,
+        "movement_m": 7.1369514465332,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "sword_after_bow_back_walking",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 180.0,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.00196709448096367,
+        "movement_m": 7.1369514465332,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "sword_after_bow_back_ownership",
+      "passed": true
+    }
+  ],
+  "errors": []
+}

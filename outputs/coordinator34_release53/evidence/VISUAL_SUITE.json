@@ -1,0 +1,29 @@
+[
+  {
+    "name": "armor_visual",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator34_merged53\\armor_visual\\result.json",
+    "harness_sha256": "3f73596ac7b0f1f6faa261653b84e5758f1fd21c5e373be334d72d3d0686cb3d"
+  },
+  {
+    "name": "armor_graphical",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator34_merged53\\armor_graphical\\RESULT.json",
+    "harness_sha256": "ea9a01f224e05b67b50e3c00070d14d13736a3650d3ec53a57cb2109eb90e19f"
+  },
+  {
+    "name": "bootstrap",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator34_merged53\\bootstrap\\CURRENT_READY.json",
+    "harness_sha256": "318b2fe49cf454e0f41766ac4e5aa23ea43b2a26f5fa8d5b9c2ed3a617d0858b"
+  }
+]

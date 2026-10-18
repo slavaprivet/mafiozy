@@ -1,0 +1,261 @@
+--- published52
++++ resume04
+@@ -3777,7 +3777,7 @@
+ var _npc_armor_loadout31: Dictionary = {}
+ var _npc_armor_visual31: Node3D
+ 
+-## Equipment and rendered pieces commit together. The default peasant remains bare.
++## Equipment and rendered pieces commit together for player and opponent.
+ func set_npc_armor31(loadout: Dictionary) -> Dictionary:
+ 	if not is_instance_valid(_npc_rig) or not is_instance_valid(_npc_body):
+ 		return {"ok": false, "reason": "npc_not_spawned"}
+@@ -4640,6 +4640,7 @@
+ var _npc_swing_started_ms50 := 0
+ var _npc_edge_up50 := Vector3.UP
+ var _npc_route_dir50 := Vector3.ZERO
++var _npc_route_request53 := Vector3.ZERO
+ var _npc_replan_ms50 := 0
+ var _npc_detour_side50 := 1.0
+ var _npc_replans50 := 0
+@@ -4803,8 +4804,9 @@
+ 
+ func _dress_knight() -> void:
+ 	if not is_instance_valid(_npc_rig): return
+-	_dress_peasant()
+-	print("DSH_SWORD_PROTO_PEASANT shirt=rough_olive plates=", _knight_armour.size())
++	# Same five equipment slots, fitted meshes and protection as the player.
++	var result := set_npc_armor31({"head":"heavy_head", "torso":"heavy_torso", "hands":"heavy_hands", "legs":"heavy_legs", "feet":"heavy_feet"})
++	if not result.get("ok", false): push_error("Opponent armor binding failed: " + str(result))
+ 
+ ## Cosmetic scuff only; future armour durability needs the life/gear owner.
+ func _scuff_knight_plate(part: String, impact: float) -> void:
+@@ -5398,8 +5400,8 @@
+ 	var left_lost := _npc_leg_lost("l")
+ 	var right_lost := _npc_leg_lost("r")
+ 	if left_lost and right_lost: return 0.0
+-	if left_lost or right_lost: return 0.24
+-	return 1.0
++	if left_lost or right_lost: return 0.24 * ArmorDamage31.movement_multiplier(_npc_armor_loadout31)
++	return ArmorDamage31.movement_multiplier(_npc_armor_loadout31)
+ 
+ ## ---- DSH_GORE: real severing of the knight's own skin ----------------
+ ## The old dismemberment collapsed a limb's bones to nothing and spawned a stump that
+@@ -5775,9 +5777,18 @@
+ 	_npc_dead = false
+ 	_npc_hp = 90.0
+ 	_npc_route_dir50 = Vector3.ZERO
++	_npc_route_request53 = Vector3.ZERO
+ 	_npc_replan_ms50 = 0
+ 	_npc_omega43 = Vector3.ZERO
+ 	_npc_threat_since43 = 0
++	_npc_observations53.clear()
++	_npc_observed53.clear()
++	_npc_last_tip53 = Vector3.INF
++	_npc_threat53 = false
++	_npc_counter_until53 = 0
++	_npc_spacing_retreat53 = false
++	_npc_orbit_side53 = 1.0
++	_npc_orbit_until53 = 0
+ 	_npc_disarmed = false
+ 	_npc_bleed_until_ms = 0
+ 	_npc_bleed_at = Vector3.ZERO
+@@ -5906,7 +5917,7 @@
+ 	# He faces the player and looks passive until the fight starts.
+ 	if to_player.length_squared() > 1.0e-6:
+ 		var want_yaw := atan2(to_player.x, to_player.z)
+-		_npc_body.rotation.y = lerp_angle(_npc_body.rotation.y, want_yaw + PI, clampf(4.0 * delta, 0.0, 1.0))
++		_npc_body.rotation.y = rotate_toward(_npc_body.rotation.y, want_yaw + PI, 4.2 * delta)
+ 	# Wake up when the player swings at him from close range.
+ 	if not _npc_engaged and distance < 10.0 and not bool(_world.get("preview_dead")) and _npc_visible_player43():
+ 		_npc_engaged = true
+@@ -5916,6 +5927,7 @@
+ 		_npc_engaged = false
+ 		_npc_state = "wait"
+ 	_npc_timer += delta
++	_npc_observe53(delta)
+ 	_update_npc_bleed(delta)
+ 	var want := _npc_high_guard()
+ 	var move := Vector3.ZERO
+@@ -5926,30 +5938,24 @@
+ 		# actually moving, and the gait samples the horizontal velocity from it.
+ 		match _npc_state:
+ 			"approach":
+-				if distance < 1.05:
+-					move = _npc_navigation50(-to_player.normalized()) * 1.35 * speed_scale
+-				elif distance > 1.50 or not _npc_visible_player43():
+-					move = _npc_navigation50(to_player.normalized()) * (3.0 if distance > 3.0 else 1.9) * speed_scale
++				move = _npc_footwork53(to_player, distance, false) * speed_scale
+ 				if _npc_should_guard(distance):
+ 					_npc_state = "guard"
+ 					_npc_timer = 0.0
+ 					_npc_guard_entries += 1
+-					_npc_guard_cooldown_ms = now_ms() + 950
++					_npc_guard_cooldown_ms = now_ms() + 650
+ 				# A windup is allowed only once the real arm and blade can reach.
+ 				# This is positioning, never a damage fallback.
+-				elif _npc_timer > 0.6 and distance >= 1.05 and distance <= _npc_reach50() and _npc_visible_player43():
+-					_npc_attack_kind = _npc_choose_attack(distance)
+-					var shoulder43: Vector3 = _npc_rig.global_transform * _npc_rig.get_bone_global_pose(_npc_upper).origin
+-					_npc_aim43 = (_player.global_position + Vector3.UP * 1.05 - shoulder43).normalized()
+-					_npc_state = "windup"
+-					_npc_swing_start43 = _npc_dir
+-					_npc_swing_started_ms50 = now_ms()
+-					_npc_timer = 0.0
++				elif _npc_timer > (0.18 if now_ms() < _npc_counter_until53 else 0.36) and distance >= 1.20 and distance <= _npc_reach50() and _npc_visible_player43():
++					_npc_begin_attack53(distance)
+ 			"windup":
++				# Track the observed opponent early, then commit the swing. No late homing.
++				if _npc_timer < 0.32: _npc_update_aim53()
+ 				want = _npc_windup_direction()
+ 				# A small planted retreat loads the legs before the lunge. The capsule
+ 				# moves normally; the visual never jumps ahead of its collision body.
+-				if _npc_timer < 0.30: move = _npc_navigation50(-to_player.normalized()) * 0.34 * speed_scale
++				if distance < 1.18: move = _npc_navigation50(-to_player.normalized()) * 1.7 * speed_scale
++				elif distance > 1.45 and _npc_timer < 0.32: move = _npc_navigation50(to_player.normalized()) * 0.85 * speed_scale
+ 				if _npc_timer > 0.55:
+ 					_npc_state = "strike"
+ 					_npc_timer = 0.0
+@@ -5976,11 +5982,20 @@
+ 					_npc_timer = 0.0
+ 			"guard":
+ 				want = _npc_guard_direction()
+-				if _npc_timer > 0.38:
++				move = _npc_footwork53(to_player, distance, true) * speed_scale
++				if _npc_timer > 0.24 and not _npc_threat53 and distance >= 1.20 and distance <= _npc_reach50() and _npc_visible_player43():
++					_npc_begin_attack53(distance)
++				elif _npc_timer > 0.72:
+ 					_npc_state = "recover"
+ 					_npc_timer = 0.0
+ 			_:
+-				if _npc_timer > 0.70:
++				move = _npc_footwork53(to_player, distance, true) * speed_scale * 0.7
++				if _npc_timer > 0.22 and _npc_should_guard(distance):
++					_npc_state = "guard"
++					_npc_timer = 0.0
++					_npc_guard_entries += 1
++					_npc_guard_cooldown_ms = now_ms() + 650
++				elif _npc_timer > 0.46:
+ 					_npc_state = "approach"
+ 					_npc_timer = 0.0
+ 		if _npc_hp <= 0.0:
+@@ -6039,17 +6054,7 @@
+ 	return hit.is_empty() or hit.get("collider") == _player
+ 
+ func _npc_should_guard(distance: float) -> bool:
+-	# React to observed moving steel, not the player's input buttons or next command.
+-	if distance > 2.3 or not is_instance_valid(_sword) or not _sword.visible or _sword_grounded:
+-		_npc_threat_since43 = 0
+-		return false
+-	var blade_mid := _sword.global_position + _sword.global_basis.x.normalized() * _weapon_length * 0.5
+-	var threat := blade_mid.distance_to(_npc_body.global_position + Vector3.UP) < 2.1 and _omega.length() > 1.0
+-	if not threat or not _npc_visible_player43():
+-		_npc_threat_since43 = 0
+-		return false
+-	if _npc_threat_since43 == 0: _npc_threat_since43 = now_ms()
+-	return now_ms() - _npc_threat_since43 >= 180 and now_ms() >= _npc_guard_cooldown_ms
++	return distance < 2.7 and _npc_threat53 and now_ms() >= _npc_guard_cooldown_ms
+ 
+ func _npc_stop_attack43() -> void:
+ 	_npc_state = "recover"
+@@ -6071,12 +6076,11 @@
+ 		_npc_dir = (Quaternion(_npc_omega43.normalized(), _npc_omega43.length() * delta) * _npc_dir).normalized()
+ 
+ func _npc_guard_direction() -> Vector3:
+-	if not is_instance_valid(_sword) or not is_instance_valid(_npc_rig): return _npc_high_guard()
++	if _npc_observed53.is_empty() or not is_instance_valid(_npc_rig): return _npc_high_guard()
+ 	var shoulder: Vector3 = _npc_rig.global_transform * _npc_rig.get_bone_global_pose(_npc_upper).origin
+-	var blade_mid := _sword.global_position + _sword.global_basis.x.normalized() * _weapon_length * 0.5
+-	var toward: Vector3 = blade_mid - shoulder
+-	if toward.length_squared() < 1.0e-6: return _npc_high_guard()
+-	return (toward.normalized() + Vector3.UP * 0.13).normalized()
++	var steel: Vector3 = _npc_observed53.tip
++	var toward := steel - shoulder
++	return (toward.normalized() + Vector3.UP * 0.18).normalized() if toward.length_squared() > 0.01 else _npc_high_guard()
+ 
+ func _npc_choose_attack(distance: float) -> String:
+ 	var choices := ["left", "right", "overhead", "rising"]
+@@ -7100,10 +7104,13 @@
+ 	# Bounded local detour. Every route still goes through move_and_slide and
+ 	# stops if there is no supported, capsule-width corridor. No teleports.
+ 	var now := now_ms()
+-	if now < _npc_replan_ms50: return _npc_route_dir50
++	var forward := Vector3(desired.x,0,desired.z).normalized()
++	# A cached chase must never override a newly requested retreat or sidestep.
++	if now < _npc_replan_ms50 and forward.dot(_npc_route_request53) > 0.85:
++		return _npc_route_dir50
++	_npc_route_request53 = forward
+ 	_npc_replan_ms50 = now + 250
+ 	_npc_replans50 += 1
+-	var forward := Vector3(desired.x,0,desired.z).normalized()
+ 	if _npc_path_clear50(forward):
+ 		_npc_route_dir50 = forward
+ 		return forward
+@@ -7150,3 +7157,68 @@
+ 	else:
+ 		_player_disarmed = true
+ 		_drop_player_sword(direction)
++
++# Decisions use visible poses buffered for a human-scale reaction delay. No input reads.
++var _npc_observations53: Array[Dictionary] = []
++var _npc_observed53: Dictionary = {}
++var _npc_last_tip53 := Vector3.INF
++var _npc_threat53 := false
++var _npc_counter_until53 := 0
++var _npc_orbit_side53 := 1.0
++var _npc_orbit_until53 := 0
++var _npc_counters53 := 0
++var _npc_orbit_steps53 := 0
++var _npc_spacing_retreat53 := false
++
++func _npc_observe53(delta: float) -> void:
++	var now := now_ms()
++	var seen := _npc_visible_player43()
++	var steel := seen and is_instance_valid(_sword) and _sword.is_visible_in_tree() and not _sword_grounded and not _unarmed
++	var tip := _sword_origin + _dir * _weapon_length if steel else _player.global_position + Vector3.UP
++	var tip_velocity := (tip - _npc_last_tip53) / maxf(delta, 0.001) if steel and _npc_last_tip53.is_finite() else Vector3.ZERO
++	# Translating with a held blade is not an attack; observe motion relative to the wielder.
++	var speed := (tip_velocity - _player.velocity).length() if steel and _npc_last_tip53.is_finite() else 0.0
++	_npc_last_tip53 = tip if steel else Vector3.INF
++	_npc_observations53.append({"at":now,"position":_player.global_position,"velocity":_player.velocity,"tip":tip,"speed":speed,"steel":steel,"visible":seen})
++	while not _npc_observations53.is_empty() and now - int(_npc_observations53[0].at) >= 180:
++		_npc_observed53 = _npc_observations53.pop_front()
++	if _npc_observations53.size() > 64: _npc_observations53.pop_front()
++	var danger := false
++	if not _npc_observed53.is_empty():
++		danger = _npc_observed53.visible and _npc_observed53.steel and float(_npc_observed53.speed) > 1.7 and (_npc_observed53.tip as Vector3).distance_to(_npc_body.global_position + Vector3.UP) < 2.05
++	if _npc_threat53 and not danger: _npc_counter_until53 = now + 650
++	_npc_threat53 = danger
++
++func _npc_update_aim53() -> void:
++	if _npc_observed53.is_empty() or not _npc_observed53.visible: return
++	var shoulder: Vector3 = _npc_rig.global_transform * _npc_rig.get_bone_global_pose(_npc_upper).origin
++	var lead: Vector3 = (_npc_observed53.velocity as Vector3).limit_length(4.0) * 0.10
++	lead.y = 0.0
++	_npc_aim43 = ((_npc_observed53.position as Vector3) + Vector3.UP * 1.05 + lead - shoulder).normalized()
++
++func _npc_begin_attack53(distance: float) -> void:
++	_npc_attack_kind = _npc_choose_attack(distance)
++	_npc_update_aim53()
++	if now_ms() < _npc_counter_until53: _npc_counters53 += 1
++	_npc_counter_until53 = 0
++	_npc_state = "windup"
++	_npc_swing_start43 = _npc_dir
++	_npc_swing_started_ms50 = now_ms()
++	_npc_timer = 0.0
++
++func _npc_footwork53(to_player: Vector3, distance: float, defensive: bool) -> Vector3:
++	if distance < 0.01: return Vector3.ZERO
++	var forward := to_player.normalized()
++	# Keep opening space until the sword arm can work, rather than oscillating at one threshold.
++	if distance < 1.08: _npc_spacing_retreat53 = true
++	elif distance > 1.25: _npc_spacing_retreat53 = false
++	if _npc_spacing_retreat53: return _npc_navigation50(-forward) * 1.7
++	if distance > (1.95 if defensive else 1.52) or not _npc_visible_player43():
++		return _npc_navigation50(forward) * (3.6 if distance > 3.0 else 2.35)
++	if now_ms() >= _npc_orbit_until53:
++		_npc_orbit_side53 *= -1.0
++		_npc_orbit_until53 = now_ms() + 1100 + (_npc_attack_cursor % 3) * 170
++	var side := forward.cross(Vector3.UP) * _npc_orbit_side53
++	var direction := (side + forward * (-0.42 if defensive and _npc_threat53 else 0.10)).normalized()
++	_npc_orbit_steps53 += 1
++	return _npc_navigation50(direction) * (1.05 if defensive else 0.85)

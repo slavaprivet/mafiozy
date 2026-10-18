@@ -1,0 +1,59 @@
+{
+  "passed": true,
+  "status": "merged_passed",
+  "game": "D:\\MafioziCombat31\\coordinator34_merged53\\game",
+  "manifest_sha256": "485c4298cb76e94e690b90b3539cf2f8c9cd9a6d604de81dd71cb2538f3f2b75",
+  "pins_checked_before_and_after": 1347,
+  "all_source_unchanged": true,
+  "runs": {
+    "bow": {
+      "passed": true,
+      "checks_passed": 27,
+      "checks_total": 27,
+      "errors": [],
+      "stderr_bytes": 0,
+      "source_unchanged": true,
+      "harness_sha256": "d52195d90ef99e72376baa4805bb718f6dfd4e37507d95ee007afa699be2e3b5",
+      "max_bow_physics_correction_degrees": 1.36603783400255e-05,
+      "max_bow_render_step_degrees": 1.36603783400255e-05,
+      "receipt": "D:\\MafioziCombat31\\bow_motion53_resume\\merged_bow01\\RECEIPT.json",
+      "result_sha256": "07452905fefa539e5d2b4b64866f3235e0759f08e98175463aaead463ae2ed8a"
+    },
+    "sword": {
+      "passed": true,
+      "checks_passed": 30,
+      "checks_total": 30,
+      "errors": [],
+      "stderr_bytes": 0,
+      "source_unchanged": true,
+      "harness_sha256": "d52195d90ef99e72376baa4805bb718f6dfd4e37507d95ee007afa699be2e3b5",
+      "max_bow_physics_correction_degrees": 0.0,
+      "max_bow_render_step_degrees": 0.0,
+      "receipt": "D:\\MafioziCombat31\\bow_motion53_resume\\merged_sword01\\RECEIPT.json",
+      "result_sha256": "3f96d5bd607420c313e91781ad67e17651204b30545027c5dd5c30f86819de6a"
+    },
+    "spear": {
+      "passed": true,
+      "checks_passed": 30,
+      "checks_total": 30,
+      "errors": [],
+      "stderr_bytes": 0,
+      "source_unchanged": true,
+      "harness_sha256": "d52195d90ef99e72376baa4805bb718f6dfd4e37507d95ee007afa699be2e3b5",
+      "max_bow_physics_correction_degrees": 0.0,
+      "max_bow_render_step_degrees": 0.0,
+      "receipt": "D:\\MafioziCombat31\\bow_motion53_resume\\merged_spear01\\RECEIPT.json",
+      "result_sha256": "c532238ce8600d94a802fbd406568f8f50fe829641358052c0fc2ac0ee054fec"
+    }
+  },
+  "component_audit": "D:\\MafioziCombat31\\bow_motion53_resume\\SOURCE_AUDIT.json",
+  "original_ready_preserved": "D:/MafioziCombat31/bow_motion53/READY.json",
+  "raw_failed_harness_preserved": "D:\\MafioziCombat31\\bow_motion53_resume\\candidate_bow01",
+  "raw_explanation": "D:\\MafioziCombat31\\bow_motion53_resume\\HARNESS_CORRECTION.json",
+  "scope": "Native synthetic walking WASD, RMB aim, real 1:1 mouse turn, bow/melee handoff, menu/cursor ownership, actual G/E castle storage transfer. Gameplay production untouched by this resume task.",
+  "limits": [
+    "No FPS acceptance.",
+    "Damage/contact, shadow-arc visual proof and NPC acceptance are owned by root/other agents.",
+    "Normal idle melee facing is unchanged; bow stability gate does not redefine sword/spear control."
+  ]
+}

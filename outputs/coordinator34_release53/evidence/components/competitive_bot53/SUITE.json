@@ -1,0 +1,32 @@
+[
+  {
+    "name": "retreat_fix",
+    "scheduler": false,
+    "passed": true,
+    "errors": [],
+    "drift": [
+      "scripts/weapons/sword_prototype.gd"
+    ],
+    "result": "D:\\MafioziCombat31\\competitive_bot53\\retreat_fix\\result.json"
+  },
+  {
+    "name": "detour_fix",
+    "scheduler": false,
+    "passed": true,
+    "errors": [],
+    "drift": [
+      "scripts/weapons/sword_prototype.gd"
+    ],
+    "result": "D:\\MafioziCombat31\\competitive_bot53\\detour_fix\\result.json"
+  },
+  {
+    "name": "tactics_fix",
+    "scheduler": false,
+    "passed": true,
+    "errors": [],
+    "drift": [
+      "scripts/weapons/sword_prototype.gd"
+    ],
+    "result": "D:\\MafioziCombat31\\competitive_bot53\\tactics_fix\\result.json"
+  }
+]

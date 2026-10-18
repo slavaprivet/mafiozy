@@ -1,0 +1,118 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--path",
+    "D:\\MafioziCombat31\\competitive_bot53\\game",
+    "--script",
+    "D:\\MafioziCombat31\\competitive_bot53\\qa\\chase.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\competitive_bot53\\retreat_diag02",
+    "--case=retreat"
+  ],
+  "passed": false,
+  "lease": {
+    "id": "431347090b3c481189a248a2f47f1096",
+    "owner": {
+      "pid": 59480,
+      "creation_filetime": "134368234622420320"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\competitive_bot53\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 48248,
+        "creation_filetime": "134368234634078797",
+        "command_line": "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\competitive_bot53\\game --script D:\\MafioziCombat31\\competitive_bot53\\qa\\chase.gd -- --qa-out=D:\\MafioziCombat31\\competitive_bot53\\retreat_diag02 --case=retreat",
+        "command": [
+          "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "D:\\MafioziCombat31\\competitive_bot53\\game",
+          "--script",
+          "D:\\MafioziCombat31\\competitive_bot53\\qa\\chase.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\competitive_bot53\\retreat_diag02",
+          "--case=retreat"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "d:\\mafiozicombat31\\competitive_bot53\\game",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 1291689.8107118,
+    "queued_at": 1291569.8107118,
+    "ticket": 4117,
+    "inventory_before": [
+      {
+        "pid": 58516,
+        "parent_pid": 47168,
+        "creation_filetime": "134368230043691585",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator33_release52\\game\" --script \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_castle_current\\bootstrap_castle.gd\" -- \"--receipt-dir=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261018T185004343Z\" \"--release-title=Замок и осада · общая сцена 52 · Месси\" \"--release-revision=castle-20261018-combined52-soil49-coordinator33\" --castle=1 --castle-start-outside=1",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози — Замок и осада · общая сцена 52 · Месси (DEBUG)"
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.6222453000955284
+  },
+  "child": {
+    "pid": 48248,
+    "creation_filetime": "134368234634078797",
+    "command_line": "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\competitive_bot53\\game --script D:\\MafioziCombat31\\competitive_bot53\\qa\\chase.gd -- --qa-out=D:\\MafioziCombat31\\competitive_bot53\\retreat_diag02 --case=retreat",
+    "command": [
+      "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--path",
+      "D:\\MafioziCombat31\\competitive_bot53\\game",
+      "--script",
+      "D:\\MafioziCombat31\\competitive_bot53\\qa\\chase.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\competitive_bot53\\retreat_diag02",
+      "--case=retreat"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\competitive_bot53\\game",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 11.483317099977285,
+  "errors": [
+    "ERROR: No loader found for resource: res://audio/steps/stone_1.wav (expected type: unknown)",
+    "ERROR: No loader found for resource: res://audio/steps/stone_2.wav (expected type: unknown)",
+    "ERROR: No loader found for resource: res://audio/steps/stone_3.wav (expected type: unknown)",
+    "ERROR: No loader found for resource: res://audio/steps/stone_4.wav (expected type: unknown)",
+    "ERROR: No loader found for resource: res://audio/steps/wood_1.wav (expected type: unknown)",
+    "ERROR: No loader found for resource: res://audio/steps/wood_2.wav (expected type: unknown)",
+    "ERROR: No loader found for resource: res://audio/steps/wood_3.wav (expected type: unknown)",
+    "ERROR: No loader found for resource: res://audio/steps/wood_4.wav (expected type: unknown)",
+    "ERROR: No loader found for resource: res://audio/steps/dirt_1.wav (expected type: unknown)",
+    "ERROR: No loader found for resource: res://audio/steps/dirt_2.wav (expected type: unknown)",
+    "ERROR: No loader found for resource: res://audio/steps/dirt_3.wav (expected type: unknown)",
+    "ERROR: No loader found for resource: res://audio/steps/dirt_4.wav (expected type: unknown)",
+    "ERROR: No loader found for resource: res://audio/steps/grass_1.wav (expected type: unknown)",
+    "ERROR: No loader found for resource: res://audio/steps/grass_2.wav (expected type: unknown)",
+    "ERROR: No loader found for resource: res://audio/steps/grass_3.wav (expected type: unknown)",
+    "ERROR: No loader found for resource: res://audio/steps/grass_4.wav (expected type: unknown)",
+    "ERROR: No loader found for resource: res://assets/weapon_thumbnails/sword.png (expected type: unknown)",
+    "ERROR: No loader found for resource: res://assets/weapon_thumbnails/mace.png (expected type: unknown)",
+    "ERROR: No loader found for resource: res://assets/weapon_thumbnails/axe.png (expected type: unknown)",
+    "ERROR: No loader found for resource: res://assets/weapon_thumbnails/sledge.png (expected type: unknown)",
+    "ERROR: No loader found for resource: res://assets/weapon_thumbnails/spear.png (expected type: unknown)",
+    "ERROR: No loader found for resource: res://assets/weapon_thumbnails/bow.png (expected type: unknown)",
+    "ERROR: No loader found for resource: res://assets/weapon_thumbnails/shield.png (expected type: unknown)"
+  ],
+  "stderr_bytes": 10897,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

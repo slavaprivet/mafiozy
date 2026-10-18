@@ -1,0 +1,10 @@
+from pathlib import Path
+G=Path('D:/MafioziCombat31/bow_motion53/game')
+p=G/'scripts/preview_player.gd';s=p.read_text(encoding='utf-8-sig');s=s.replace('var _sword_host: Node = null','var _sword_host: Node = null\n## The held bow owns render-facing; locomotion still owns translation and gait.\nvar _bow_host: Node = null')
+s=s.replace('if direction.length_squared() > 0.001:\n\t\tvar target_heading:', 'var bow_facing: bool = is_instance_valid(_bow_host) and _bow_host.owns_player_facing()\n\tif direction.length_squared() > 0.001 and not bow_facing:\n\t\tvar target_heading:')
+p.write_text(s,encoding='utf-8')
+p=G/'scripts/weapons/bow_prototype.gd';s=p.read_text(encoding='utf-8-sig');s=s.replace('\t_ready = true\n\t# The shared aim camera', '\t_ready = true\n\t_player._bow_host = self\n\t# The shared aim camera')
+s=s.replace('func _face_the_aim(delta: float) -> void:', 'func owns_player_facing() -> bool:\n\treturn _ready and _active() and not _grounded\n\nfunc _face_the_aim(delta: float) -> void:')
+s=s.replace('var want := atan2(flat.x, flat.z)','var want := atan2(flat.x, flat.z) - _player.global_rotation.y')
+s=s.replace('visual.rotation.y += wrapf(want - visual.rotation.y, -PI, PI) * clampf(FACE_RATE * delta, 0.0, 1.0)','visual.rotation.y += wrapf(want - visual.rotation.y, -PI, PI) * clampf(FACE_RATE * delta, 0.0, 1.0)\n\t# Hand back the actual facing when dropping/switching; no stale travel heading.\n\t_player._heading = visual.rotation.y - deg_to_rad(_player.visual_yaw_degrees)')
+p.write_text(s,encoding='utf-8')

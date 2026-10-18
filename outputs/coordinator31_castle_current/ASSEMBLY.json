@@ -1,8 +1,8 @@
 {
   "schema": "mafiozi.castle-assembly/v1",
-  "revision": "castle-20261018-combined52-soil49-coordinator33",
+  "revision": "castle-20261018-combined53-bot-bow",
   "scene_kind": "castle",
-  "game_relative": "outputs/coordinator33_release52/game",
+  "game_relative": "outputs/coordinator34_release53/game",
   "scene": "res://scenes/castle.tscn",
   "launch_arguments": [
     "--castle=1",
@@ -648,7 +648,7 @@
     "scripts/city/runtime/npc_wait_cohort56.gd.uid": "ef54b883ed259940d3aca14d1a2f6cd3f699b7dbb44c1093e807517b03e94231",
     "scripts/city/siege_wall_dressing.gd": "872452d73dee69ffd39170eb053955755e517192eeb564f9356ffb8d24c9c791",
     "scripts/combat/armor_damage31.gd": "72cb2c906098266ae7b29f395a218c3ed0a9b4d1153e6c4da99765476ff14e0c",
-    "scripts/combat/castle_armor_visual.gd": "09f28fa5d5dcf4ab7fd2032cd89b934f2f809142682bca7b33ad00f06b8a1888",
+    "scripts/combat/castle_armor_visual.gd": "3f5ce01a57a87e419c4b1f973729e73cafa1e714f6ba384acd15973f6fca4183",
     "scripts/combat/melee_attack_source.gd": "1127d5eba2139af8b01df56c77f67dc32e66fb055252810d92b440d46e3bffc4",
     "scripts/combat/melee_attack_source.gd.uid": "fae28284d2dd37b8e6976d15331054d4116fa880e0a7cd8a66e3bdb64b45a136",
     "scripts/combat/melee_input.gd": "21b211d8a4d45347c8bdc960e1d6113bfdf8f038ceec943f0862d9cff962aac4",
@@ -1035,7 +1035,7 @@
     "scripts/preview_interior_finish.gd.uid": "491ea208d9869017ee90bee19c1da0fecc3fc707569cc751910e125bdf348b53",
     "scripts/preview_locomotion.gd": "16c934854d8ebf089c938c3914c66450e0f3b8fd97e6f075d864f3b5ee585aaf",
     "scripts/preview_locomotion.gd.uid": "5eb2bc8f618a3211a69655477ff130a95e4534a0b01d3bd704deedde5ce5c19b",
-    "scripts/preview_player.gd": "3e1e46febba29274b1fc2357bd1e06ce36ce10f0571c19458db5ba6e48408052",
+    "scripts/preview_player.gd": "b4e02c86185557fb68a9dfdbec85932f41a79f16f1d0ec55999d3a367a4cbb02",
     "scripts/preview_player.gd.uid": "1803e056f8fc526fbae9f1c598d3f713faf1fbd161acbb36b70330489d923c64",
     "scripts/preview_population.gd": "d731774a79bf78ca78cfc999f62d97156b1ea42755133347250e9dbd217bb8ba",
     "scripts/preview_population.gd.uid": "992896d1e2f7be27ac38a890bc8ac0a04055a99153d21cd556d31ac6268229a6",
@@ -1294,7 +1294,7 @@
     "scripts/weapon_visual/weapon_visual.gd.uid": "49c788d2b08b24d076db75ef2aedd54dc90fc7abfc94e860a1df8851014d054c",
     "scripts/weapon_visual/weapon_visual_catalog.gd": "5fb94f96e98f7f0d0d050529bf2763716513c8e61aae3529be3334c31543677d",
     "scripts/weapon_visual/weapon_visual_catalog.gd.uid": "abe50e06c400e08a72ebe60fb66710e4b22396c243971e3e8ee1c66003e68312",
-    "scripts/weapons/bow_prototype.gd": "2b850770790a5a1dccd4d3ef4e46039a1491903bacdaadc177022098ab76fcdc",
+    "scripts/weapons/bow_prototype.gd": "8218dee827a20382daea87927220d7d6c97841639c91a863a92ca6d28f272776",
     "scripts/weapons/cargo_aim_picker.gd": "9046edbfaf5e51d1c924f2bf93b09064c3b0bf9f2bfdd524eb9ed6099ca10731",
     "scripts/weapons/cargo_aim_picker.gd.uid": "8f3c0b3aa7081eef83299288086ba02204b0551868376ad25e191b28a70264a4",
     "scripts/weapons/catapult_prototype.gd": "6ddb5760c8048a2f3b6edcbda07f0162fa6cd39f562e425e0d2ae7a421de0cbf",
@@ -1321,7 +1321,7 @@
     "scripts/weapons/rpg_flight.gd.uid": "4b5636dd1b35cb05b74e1ae0cbf3f5b9476b2b1281bf89e058fc4c52536ea5f3",
     "scripts/weapons/scope_optic.svg": "477959383b359752a578a851e9b678e498b4904cca0e76a47b4a7dd5b33395ed",
     "scripts/weapons/scope_optic.svg.import": "0081075e89bfbdcb69ea6dea5a1e021a38fa40a734c0a732cbdab2eac00fb006",
-    "scripts/weapons/sword_prototype.gd": "f472d58b75a6924d944614c06eca60ff977fa40041d6127d2eab9b51a7a9eb8e",
+    "scripts/weapons/sword_prototype.gd": "37461c7579289673ffd2370479c28290a66235665ddd448b49bbf31868df248d",
     "scripts/weapons/walk_cargo_card.gd": "298f56dd73f9265a13333e5d4041b2906593c693c8aadc5cb58b32128749191e",
     "scripts/weapons/walk_cargo_card.gd.uid": "a473b69142b69ac1fef8541bdabe9424e09d59a21749589e8f15fba24a84aa04",
     "scripts/weapons/walk_trunk_window.gd": "2dc9c14005d0afab1a6d10b2940fde60ce1aaf93300e5ac76234619dfb6fa7d0",
@@ -1373,12 +1373,17 @@
     "combat50 shared NPC/player damage and posed mesh cuts, autonomous chase/spacing/attacks",
     "free melee50 arm loading and extension, full hilt G/E lifecycle, bounded self clearance",
     "jump50 field bounds and armed dive; matching severed-leg support limits",
-    "combat51 free lateral swing, extended arms, forearm-aligned palms, bounded body-camera follow, heavy braking and moving-anchor clearance"
+    "combat51 free lateral swing, extended arms, forearm-aligned palms, bounded body-camera follow, heavy braking and moving-anchor clearance",
+    "Competitive53 opponent: delayed180ms observed reactions, guard/counter, side steps, spacing hysteresis and physical local navigation.",
+    "Existing full heavy armor on NPC via the same five-slot visuals and protection as player; helmet hair visibility restored on removal.",
+    "Independent player/NPC armor mobility; respawn spacing/orbit reset.",
+    "Bow facing ownership fixes reverse-motion jitter and hands facing back to locomotion on switch/drop.",
+    "Bow aim preview dots no longer cast a second dotted shadow; ballistics unchanged.",
+    "bow/camera52, spear52 PASS03 and soil49/camp recovered package already present in52"
   ],
   "excluded_pending": [
     "articulated 16-segment corpse prototype (sleep/performance and natural lifecycle incomplete)",
-    "Banner36 additional crest (clean paired FPS pending)",
-    "soil49 and expanded camp: owner withdrew READY, D-only WIP"
+    "Banner36 additional crest (clean paired FPS pending)"
   ],
   "evidence": {
     "import": "D:\\MafioziCombat31\\combined_castle31_20261018\\import01\\SCHEDULER_RUN.json",
@@ -1387,13 +1392,15 @@
     "wide_screenshot": "outputs/coordinator31_castle_current/evidence/combat50/final_scene/siege_wide.png",
     "player_screenshot": "outputs/coordinator31_castle_current/evidence/combat50/final_visual/01_sword_hilt_after_pickup.png",
     "combat50": "outputs/coordinator31_castle_current/evidence/combat50/EVIDENCE_INDEX.json",
-    "combat51": "outputs/coordinator31_castle_current/evidence/combat51/INDEX.json"
+    "combat51": "outputs/coordinator31_castle_current/evidence/combat51/INDEX.json",
+    "combined53": "outputs/coordinator34_release53/ACCEPTANCE.json",
+    "current_scene": "outputs/coordinator34_release53/evidence/bootstrap/opened.png"
   },
-  "validation": "Functional/native1:1 controls and bilateral contacts verified; graphical scene/pose reviewed. User positive feedback; ranged52 issues tracked separately.",
+  "validation": "Merged53 native real-input/contact and graphical acceptance PASS;22 root groups plus87 motion checks and14 bow visual states. No pure FPS acceptance.",
   "performance_accepted": false,
   "canonical_launcher": "tools/launch_castle_latest.ps1",
   "f5_launcher": "tools/godot/launch_current_game.ps1",
-  "base_published_commit": "e2a0dc1181769a66100eba9bdcb51ae8414b4e35",
+  "base_published_commit": "33b8ad5388e846752a4111caffd56d9d15935174",
   "pin_scope": "Published permanent source only; local generated metadata and diagnostic artifacts excluded",
   "armory_hand_fix": "Merged native real scene PASS: rack/chest occupied hand, ground preflight, bow back, shield and one-hand compatibility",
   "combat39": {
@@ -1445,5 +1452,11 @@
     "source_on_D": "D:\\MafioziCombat31\\merged51\\game",
     "candidate": "03",
     "shoulder06_included": false
+  },
+  "combat53": {
+    "acceptance": "outputs/coordinator34_release53/ACCEPTANCE.json",
+    "resume": "docs/ai/COORDINATOR_34_CONTINUE53.json",
+    "source_on_D": "D:\\MafioziCombat31\\coordinator34_merged53\\game",
+    "prior_user_game_preserved": true
   }
 }

@@ -1,0 +1,20 @@
+{
+  "parent_thread": "01a1504f-aa65-7792-818a-bdf77a3a70db",
+  "coordinator": "01a15065-bc45-7b42-aff6-acc567e2c36f",
+  "base_commit": "33b8ad5388e846752a4111caffd56d9d15935174",
+  "base_revision": "castle-20261018-combined52-soil49-coordinator33",
+  "requested": [
+    "competitive opponent",
+    "existing complete armor for NPC",
+    "bow double aim",
+    "bow reverse movement flicker",
+    "merged scene to main"
+  ],
+  "original_agents": [
+    "01a1505e-ebab-7e71-9a1e-b95c3efff8b3",
+    "01a1505f-1fc0-74f1-a3c4-4d2c3165fe08",
+    "01a1505f-48fd-7c50-a537-8ad1917b195b"
+  ],
+  "user_game_preserved": 58516,
+  "stage": "preparing; AI and bow aim pending; not accepted"
+}

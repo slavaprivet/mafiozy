@@ -1,0 +1,5 @@
+SCRIPT ERROR: Invalid call to function 'set_npc_armor31' in base 'Node3D (sword_prototype.gd)'. Expected 1 argument(s).
+   at: run (D:/MafioziCombat31/competitive_bot53/qa/moving.gd:34)
+   GDScript backtrace (most recent call first):
+       [0] run (D:/MafioziCombat31/competitive_bot53/qa/moving.gd:34)
+       [1] frames (D:/MafioziCombat31/competitive_bot53/qa/moving.gd:15)

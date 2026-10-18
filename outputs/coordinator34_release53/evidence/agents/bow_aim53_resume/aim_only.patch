@@ -1,0 +1,12 @@
+--- a/scripts/weapons/bow_prototype.gd
++++ b/scripts/weapons/bow_prototype.gd
+@@ -404,6 +404,9 @@
+ 		var dot := MeshInstance3D.new()
+ 		dot.mesh = _aim_dot_mesh
+ 		dot.material_override = _aim_material
++		# The trajectory is an aiming aid, so it must not draw a second dotted
++		# path as shadows on the ground or the target behind it.
++		dot.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+ 		dot.visible = false
+ 		_world.add_child(dot)
+ 		_aim_dots.append(dot)

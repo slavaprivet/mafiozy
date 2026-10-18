@@ -1,0 +1,111 @@
+{
+  "passed": true,
+  "base_revision": "castle-20261018-combined52-soil49-coordinator33",
+  "game": "D:\\MafioziCombat31\\bow_motion53\\game",
+  "changes": [
+    {
+      "path": "scripts/preview_player.gd",
+      "base_sha256": "3e1e46febba29274b1fc2357bd1e06ce36ce10f0571c19458db5ba6e48408052",
+      "candidate_sha256": "b4e02c86185557fb68a9dfdbec85932f41a79f16f1d0ec55999d3a367a4cbb02"
+    },
+    {
+      "path": "scripts/weapons/bow_prototype.gd",
+      "base_sha256": "2b850770790a5a1dccd4d3ef4e46039a1491903bacdaadc177022098ab76fcdc",
+      "candidate_sha256": "84a5bc419fc72f9a7f84d1c7280d5ce97baeb0bcfb44b1e3ff3068085eb507b2"
+    }
+  ],
+  "metrics": {
+    "before02": {
+      "back_held": {
+        "samples_after_warmup": 140,
+        "max_physics_render_correction_degrees": 34.2000137016896,
+        "max_render_step_degrees": 16.2000065979763,
+        "mean_camera_error_degrees": 156.56142927059278,
+        "backward_metres": 4.961547851562045,
+        "max_relative_bow_step_m": 0.042266998490490426
+      },
+      "back_aimed": {
+        "samples_after_warmup": 140,
+        "max_physics_render_correction_degrees": 34.2000137016896,
+        "max_render_step_degrees": 16.2000065979763,
+        "mean_camera_error_degrees": 156.56142927059278,
+        "backward_metres": 4.961059570312045,
+        "max_relative_bow_step_m": 0.04855981237632027
+      },
+      "back_released": {
+        "samples_after_warmup": 140,
+        "max_physics_render_correction_degrees": 34.2000137016896,
+        "max_render_step_degrees": 16.2000065979763,
+        "mean_camera_error_degrees": 156.56142927059278,
+        "backward_metres": 4.961059570309999,
+        "max_relative_bow_step_m": 0.04225129459220233
+      }
+    },
+    "after": {
+      "back_held": {
+        "samples_after_warmup": 140,
+        "max_physics_render_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "mean_camera_error_degrees": 6.32929353655967e-05,
+        "backward_metres": 4.908142089843977,
+        "max_relative_bow_step_m": 0.006507490732375372
+      },
+      "back_aimed": {
+        "samples_after_warmup": 140,
+        "max_physics_render_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "mean_camera_error_degrees": 6.32929353655967e-05,
+        "backward_metres": 4.90771484375,
+        "max_relative_bow_step_m": 0.02802674242558263
+      },
+      "back_released": {
+        "samples_after_warmup": 140,
+        "max_physics_render_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "mean_camera_error_degrees": 6.32929353655967e-05,
+        "backward_metres": 4.90771484375,
+        "max_relative_bow_step_m": 0.0066565216546840295
+      }
+    },
+    "graphical": {
+      "back_held": {
+        "samples_after_warmup": 124,
+        "max_physics_render_correction_degrees": 4.09811350200765e-05,
+        "max_render_step_degrees": 4.09811350200765e-05,
+        "mean_camera_error_degrees": 1.1075926938416062e-05,
+        "backward_metres": 4.905822753906023,
+        "max_relative_bow_step_m": 0.011243209874161417
+      },
+      "back_aimed": {
+        "samples_after_warmup": 114,
+        "max_physics_render_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "mean_camera_error_degrees": 4.02540908549966e-06,
+        "backward_metres": 4.4879150390670475,
+        "max_relative_bow_step_m": 0.01326783031097639
+      },
+      "back_released": {
+        "samples_after_warmup": 120,
+        "max_physics_render_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "mean_camera_error_degrees": 4.02540908549966e-06,
+        "backward_metres": 4.487915039070003,
+        "max_relative_bow_step_m": 0.008909453907129106
+      }
+    }
+  },
+  "evidence": [
+    "before02/result.json",
+    "after/result.json",
+    "graphical/result.json",
+    "graphical/back_held0.png through back_released3.png"
+  ],
+  "before_graphical": "D:/MafioziCombat31/bow_aim53/baseline/back_0.png through back_3.png",
+  "limits": [
+    "Native synthetic S and RMB events at actual 1280x720; no mouse movement needed for this regression.",
+    "Full performance not accepted; user game preserved.",
+    "Integration must merge the narrow bow patch with bow_aim53 and rerun combined ownership/contact tests.",
+    "Failed initial harness dereferenced pre-equip null bow; raw before logs preserved, corrected before02 used.",
+    "Import completed resources then remained open; owned import process stopped; raw import receipt retained."
+  ]
+}

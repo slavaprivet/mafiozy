@@ -1,0 +1,215 @@
+{
+	"clashes": 1,
+	"errors": [],
+	"guards": 1,
+	"hits": 1,
+	"lateral": 0.327363014221191,
+	"npc_dead": true,
+	"npc_hp": 0.0,
+	"passed": true,
+	"player_dead": false,
+	"player_hp": 79.2270399494554,
+	"player_motion": 1.0380517244339,
+	"rows": [
+		{
+			"clashes": 0,
+			"gap": 2.16937446594238,
+			"guard": 0,
+			"npc_hp": 90.0,
+			"player_hp": 100.0,
+			"state": "approach",
+			"tick": 0
+		},
+		{
+			"clashes": 0,
+			"gap": 1.93733501434326,
+			"guard": 0,
+			"npc_hp": 90.0,
+			"player_hp": 100.0,
+			"state": "approach",
+			"tick": 10
+		},
+		{
+			"clashes": 0,
+			"gap": 1.84010910987854,
+			"guard": 1,
+			"npc_hp": 90.0,
+			"player_hp": 100.0,
+			"state": "guard",
+			"tick": 20
+		},
+		{
+			"clashes": 0,
+			"gap": 1.72041237354279,
+			"guard": 1,
+			"npc_hp": 90.0,
+			"player_hp": 100.0,
+			"state": "guard",
+			"tick": 30
+		},
+		{
+			"clashes": 1,
+			"gap": 1.66814780235291,
+			"guard": 1,
+			"npc_hp": 87.8293097716927,
+			"player_hp": 100.0,
+			"state": "guard",
+			"tick": 40
+		},
+		{
+			"clashes": 1,
+			"gap": 1.58642852306366,
+			"guard": 1,
+			"npc_hp": 87.8293097716927,
+			"player_hp": 100.0,
+			"state": "guard",
+			"tick": 50
+		},
+		{
+			"clashes": 1,
+			"gap": 1.45434045791626,
+			"guard": 1,
+			"npc_hp": 87.8293097716927,
+			"player_hp": 100.0,
+			"state": "windup",
+			"tick": 60
+		},
+		{
+			"clashes": 1,
+			"gap": 1.44117033481598,
+			"guard": 1,
+			"npc_hp": 87.8293097716927,
+			"player_hp": 100.0,
+			"state": "windup",
+			"tick": 70
+		},
+		{
+			"clashes": 1,
+			"gap": 1.6761177778244,
+			"guard": 1,
+			"npc_hp": 87.8293097716927,
+			"player_hp": 100.0,
+			"state": "windup",
+			"tick": 80
+		},
+		{
+			"clashes": 1,
+			"gap": 1.95840001106262,
+			"guard": 1,
+			"npc_hp": 87.8293097716927,
+			"player_hp": 100.0,
+			"state": "strike",
+			"tick": 90
+		},
+		{
+			"clashes": 1,
+			"gap": 1.97806572914124,
+			"guard": 1,
+			"npc_hp": 87.8293097716927,
+			"player_hp": 100.0,
+			"state": "strike",
+			"tick": 100
+		},
+		{
+			"clashes": 1,
+			"gap": 1.56899511814117,
+			"guard": 1,
+			"npc_hp": 87.8293097716927,
+			"player_hp": 79.2270399494554,
+			"state": "strike",
+			"tick": 110
+		},
+		{
+			"clashes": 1,
+			"gap": 1.15890431404114,
+			"guard": 1,
+			"npc_hp": 87.8293097716927,
+			"player_hp": 79.2270399494554,
+			"state": "follow",
+			"tick": 120
+		},
+		{
+			"clashes": 1,
+			"gap": 1.12754940986633,
+			"guard": 1,
+			"npc_hp": 87.8293097716927,
+			"player_hp": 79.2270399494554,
+			"state": "recover",
+			"tick": 130
+		},
+		{
+			"clashes": 1,
+			"gap": 1.24902975559235,
+			"guard": 1,
+			"npc_hp": 87.8293097716927,
+			"player_hp": 79.2270399494554,
+			"state": "recover",
+			"tick": 140
+		},
+		{
+			"clashes": 1,
+			"gap": 1.24506592750549,
+			"guard": 1,
+			"npc_hp": 87.8293097716927,
+			"player_hp": 79.2270399494554,
+			"state": "recover",
+			"tick": 150
+		},
+		{
+			"clashes": 1,
+			"gap": 1.23988115787506,
+			"guard": 1,
+			"npc_hp": 87.8293097716927,
+			"player_hp": 79.2270399494554,
+			"state": "approach",
+			"tick": 160
+		},
+		{
+			"clashes": 1,
+			"gap": 1.23915326595306,
+			"guard": 1,
+			"npc_hp": 87.8293097716927,
+			"player_hp": 79.2270399494554,
+			"state": "approach",
+			"tick": 170
+		},
+		{
+			"clashes": 1,
+			"gap": 1.23534142971039,
+			"guard": 1,
+			"npc_hp": 87.8293097716927,
+			"player_hp": 79.2270399494554,
+			"state": "windup",
+			"tick": 180
+		},
+		{
+			"clashes": 1,
+			"gap": 1.23534142971039,
+			"guard": 1,
+			"npc_hp": 87.8293097716927,
+			"player_hp": 79.2270399494554,
+			"state": "windup",
+			"tick": 190
+		},
+		{
+			"clashes": 1,
+			"gap": 1.23534142971039,
+			"guard": 1,
+			"npc_hp": 87.8293097716927,
+			"player_hp": 79.2270399494554,
+			"state": "windup",
+			"tick": 200
+		},
+		{
+			"clashes": 1,
+			"gap": 1.21551096439362,
+			"guard": 1,
+			"npc_hp": 87.8293097716927,
+			"player_hp": 79.2270399494554,
+			"state": "strike",
+			"tick": 210
+		}
+	],
+	"scope": "Same heavy armor both actors, same movement/real mouse attack sequence. Initial positions only, no teleport after start, no HP or damage changes. Physical clashes counted from actual register_clash timestamps.",
+	"swings": 2
+}

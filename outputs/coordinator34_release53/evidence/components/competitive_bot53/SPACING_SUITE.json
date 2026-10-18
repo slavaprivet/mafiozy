@@ -1,0 +1,32 @@
+[
+  {
+    "name": "moving_spacing03",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [
+      "scripts/weapons/sword_prototype.gd"
+    ],
+    "result": "D:\\MafioziCombat31\\competitive_bot53\\moving_spacing03\\result.json"
+  },
+  {
+    "name": "retreat_spacing03",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [
+      "scripts/weapons/sword_prototype.gd"
+    ],
+    "result": "D:\\MafioziCombat31\\competitive_bot53\\retreat_spacing03\\result.json"
+  },
+  {
+    "name": "detour_spacing03",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [
+      "scripts/weapons/sword_prototype.gd"
+    ],
+    "result": "D:\\MafioziCombat31\\competitive_bot53\\detour_spacing03\\result.json"
+  }
+]

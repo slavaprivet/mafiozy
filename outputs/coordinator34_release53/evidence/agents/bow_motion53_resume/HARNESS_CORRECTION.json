@@ -1,0 +1,236 @@
+{
+  "raw_run": "candidate_bow01",
+  "raw_passed": false,
+  "raw_errors": [
+    "g_drop_releases_facing"
+  ],
+  "verified_movement_checks": [
+    {
+      "evidence": {
+        "max_camera_error_degrees": 6.35126769878731e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.2021484375,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "bow_back_walking",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 6.35126769878731e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.2021484375,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "bow_back_ownership",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 6.35126769878731e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.2021484375,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "bow_back_stable",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 6.35126769878731e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.19305992126465,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "bow_left_walking",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 6.35126769878731e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.19305992126465,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "bow_left_ownership",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 6.35126769878731e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.19305992126465,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "bow_left_stable",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 6.35126769878731e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.20113754272461,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "bow_right_walking",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 6.35126769878731e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.20113754272461,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "bow_right_ownership",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 6.35126769878731e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.20113754272461,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "bow_right_stable",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 6.35126769878731e-05,
+        "max_physics_correction_degrees": 4.09811350200765e-05,
+        "max_render_step_degrees": 4.09811350200765e-05,
+        "movement_m": 7.15020751953125,
+        "ownership_mismatch": 0,
+        "samples": 128
+      },
+      "name": "bow_forward_walking",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 6.35126769878731e-05,
+        "max_physics_correction_degrees": 4.09811350200765e-05,
+        "max_render_step_degrees": 4.09811350200765e-05,
+        "movement_m": 7.15020751953125,
+        "ownership_mismatch": 0,
+        "samples": 128
+      },
+      "name": "bow_forward_ownership",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 6.35126769878731e-05,
+        "max_physics_correction_degrees": 4.09811350200765e-05,
+        "max_render_step_degrees": 4.09811350200765e-05,
+        "movement_m": 7.15020751953125,
+        "ownership_mismatch": 0,
+        "samples": 128
+      },
+      "name": "bow_forward_stable",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 2.25315419677966e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.20428466796875,
+        "ownership_mismatch": 0,
+        "samples": 131
+      },
+      "name": "bow_back_aimed_walking",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 2.25315419677966e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.20428466796875,
+        "ownership_mismatch": 0,
+        "samples": 131
+      },
+      "name": "bow_back_aimed_ownership",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 2.25315419677966e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.20428466796875,
+        "ownership_mismatch": 0,
+        "samples": 131
+      },
+      "name": "bow_back_aimed_stable",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 4.94874833263298e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.19886112213135,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "bow_back_turned_walking",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 4.94874833263298e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.19886112213135,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "bow_back_turned_ownership",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 4.94874833263298e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.19886112213135,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "bow_back_turned_stable",
+      "passed": true
+    }
+  ],
+  "cause": "Harness expected prototype._grounded after G, but preview_weapons.gd dispatches castle G to castle_armory_storage.drop_held. That method removes carried bow and spawns a real fallen RigidBody3D, while deselecting the prototype. Therefore prototype._grounded remains false even when the real drop succeeds.",
+  "evidence_source": [
+    "scripts/weapons/preview_weapons.gd:498",
+    "scripts/city/castle_armory_storage.gd:685",
+    "scripts/city/castle_armory_storage.gd:710"
+  ],
+  "repair": "Harness now requires selected=false, owns=false, actual fallen-body instance, bow in fallen ledger and absent in carried; pickup requires the reverse ledger and facing ownership.",
+  "game_source_changed": false,
+  "old_harness_preserved": "candidate_bow01/motion_regression_raw.gd",
+  "thresholds_changed": false,
+  "final_merged_check": "pending"
+}

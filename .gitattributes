@@ -1,38 +1,39 @@
-# Hash-pinned asset contracts must keep their exact authored bytes on all OSes.
-/assets/**/*.json -text
-*.glb -text
-# Native cache/export receipts pin source bytes, including line endings.
-/godot/mafiozi_walk/assets/**/*.json -text
-/godot/mafiozi_walk/data/**/*.json -text
-/godot/mafiozi_walk/scripts/**/*.gd -text
-# Transfer tools and review receipts carry exact byte hashes across Windows clones.
-/tools/godot/source_handoff.py -text
-/tools/godot/qa_isolated.py -text
-/outputs/source_handoff_validation_20261008/*.json -text
-
-# Preserve byte pins of the tested standalone minimap and its launcher.
-/godot/minimap_demo/** -text
-/tools/godot/launch_minimap_demo.ps1 -text
-
-# Preserve native and oracle pins of the standalone water input component.
-/godot/water_hero_inputs/** -text
-
-# Preserve byte pins of the native water contact FX and linked consumer.
-/godot/water_contact_fx/** -text
-
-# Preserve the exact bytes of the independently tested common hiring project.
-/godot/mercenary_demo/** -text
-
-# Prepared NPC receipts in packaged games pin JSON and these two source files.
-/outputs/**/game/assets/**/*.json -text
-/outputs/**/game/scripts/npc_visual/npc_visual_loader.gd -text
-/outputs/**/game/scripts/npc_visual/npc_float_color_bridge.gd -text
-
-# Exact byte pins for the current unified castle assembly.
-/outputs/coordinator31_npc57/game/** -text
-/outputs/coordinator32_release50/game/** -text
-/outputs/coordinator31_castle_current/** -text
-/godot/current_version.json -text
-
-/outputs/coordinator32_release51/game/** -text
+# Hash-pinned asset contracts must keep their exact authored bytes on all OSes.
+/assets/**/*.json -text
+*.glb -text
+# Native cache/export receipts pin source bytes, including line endings.
+/godot/mafiozi_walk/assets/**/*.json -text
+/godot/mafiozi_walk/data/**/*.json -text
+/godot/mafiozi_walk/scripts/**/*.gd -text
+# Transfer tools and review receipts carry exact byte hashes across Windows clones.
+/tools/godot/source_handoff.py -text
+/tools/godot/qa_isolated.py -text
+/outputs/source_handoff_validation_20261008/*.json -text
+
+# Preserve byte pins of the tested standalone minimap and its launcher.
+/godot/minimap_demo/** -text
+/tools/godot/launch_minimap_demo.ps1 -text
+
+# Preserve native and oracle pins of the standalone water input component.
+/godot/water_hero_inputs/** -text
+
+# Preserve byte pins of the native water contact FX and linked consumer.
+/godot/water_contact_fx/** -text
+
+# Preserve the exact bytes of the independently tested common hiring project.
+/godot/mercenary_demo/** -text
+
+# Prepared NPC receipts in packaged games pin JSON and these two source files.
+/outputs/**/game/assets/**/*.json -text
+/outputs/**/game/scripts/npc_visual/npc_visual_loader.gd -text
+/outputs/**/game/scripts/npc_visual/npc_float_color_bridge.gd -text
+
+# Exact byte pins for the current unified castle assembly.
+/outputs/coordinator31_npc57/game/** -text
+/outputs/coordinator32_release50/game/** -text
+/outputs/coordinator31_castle_current/** -text
+/godot/current_version.json -text
+
+/outputs/coordinator32_release51/game/** -text
 /outputs/coordinator33_release52/game/** -text
+/outputs/coordinator34_release53/game/** -text

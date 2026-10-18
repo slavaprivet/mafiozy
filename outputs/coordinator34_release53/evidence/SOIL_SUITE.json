@@ -1,0 +1,11 @@
+[
+  {
+    "name": "soil_graphical",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator34_merged53\\soil_graphical\\RESULT.json",
+    "harness_sha256": "7830852f3d8382935303f55864b0b5c2b59c828f3edfa3c13fc20fb9cd80cb49"
+  }
+]
