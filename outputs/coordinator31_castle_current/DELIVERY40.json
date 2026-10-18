@@ -1,0 +1,77 @@
+{
+  "status": "DELIVERED",
+  "source_commit": "e781190a8a9ba5ba969fe9ae7b3992ced2edb814",
+  "source_commit_verified_on_origin": true,
+  "clean_checkout_pin_count": 1330,
+  "clean_checkout_mismatches": 0,
+  "ordinary": {
+    "pid": 18616,
+    "revision": "castle-20261018-combined40-final",
+    "title": "Замок и осада · общая сборка 40",
+    "source": "stable_user_launcher",
+    "run_directory": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261018T111304925Z",
+    "started_at": "2026-10-18T14:13:04.9567705+03:00",
+    "assembly_sha256": "1b59afe7d7b4c2673549bbe44d77aa671a773b778806f1ee5a1452daf80be033",
+    "ready": true,
+    "window_handle": 6752746,
+    "bootstrap": {
+      "battlefield_stats": {
+        "bounds_local": [
+          -90.0,
+          76.0,
+          90.0,
+          252.0
+        ],
+        "terrain_chunks": 9,
+        "terrain_collision_shapes": 9,
+        "terrain_draw_calls_max": 9,
+        "terrain_triangles": 9504,
+        "terrain_vertices": 5175
+      },
+      "checks": {
+        "battlefield": true,
+        "battlefield_props": true,
+        "castle_mode": true,
+        "city_population_absent": true,
+        "player_grounded": true,
+        "player_outside": true,
+        "preview_ready": true,
+        "screenshot_saved": true
+      },
+      "interactive": true,
+      "ok": true,
+      "performance_accepted": false,
+      "player_position": "(0.0, 0.080159, 988.0)",
+      "props_stats": {
+        "banners": 6,
+        "barrels": 7,
+        "barriers": 16,
+        "batches_by_z_sector": {
+          "0": 7,
+          "1": 8
+        },
+        "breakable_groups": 86,
+        "brush": 56,
+        "carts": 4,
+        "colliders": 86,
+        "crates": 25,
+        "firepits": 2,
+        "grass": 575,
+        "mesh_instances": 15,
+        "mesh_pieces": 3960,
+        "shields": 15,
+        "smoke_plumes": 3,
+        "stone_piles": 4,
+        "stones": 77,
+        "tents": 8,
+        "trees": 11,
+        "watchtowers": 4
+      },
+      "revision": "castle-20261018-combined40-final",
+      "scene": "res://scenes/castle.tscn",
+      "scene_kind": "castle",
+      "screenshot": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261018T111304925Z/opened.png",
+      "title": "Замок и осада · общая сборка 40"
+    }
+  }
+}

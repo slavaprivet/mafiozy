@@ -139,7 +139,7 @@
     "revision": "castle-20261018-combined40-final",
     "game": "outputs/coordinator31_npc57/game",
     "scene": "res://scenes/castle.tscn",
-    "state": "All ready40 packages merged, functional and finite-view performance checked; ordinary launch next",
+    "state": "DELIVERED; ordinary40 PID18616 readytrue, preserve user window; no further QA running",
     "combat": "Weight/controlled braking sword+sledge; blunt damage classification and disarm; posed scoped mesh cuts, proximal joint side, whole layer detachment; preserved flesh caps; physical corpse stable above floor after360ticks; armor survives death reparent",
     "map": "Gate40 interior grid and threshold removed, board-owned braces; stairs40 real traversal and destruction-bound rail/merlon collision; fieldcycle1 merged; fieldcycle2 material/grass optimization merged",
     "evidence": [
@@ -151,6 +151,8 @@
       "Articulated joint corpse prototype: not accepted",
       "Banner36 WIP: not integrated"
     ],
-    "launcher": "Use pwsh tools/launch_castle_latest.ps1; CheckOnly validates1330pins. Windows PowerShell5 decodes UTF8withoutBOM incorrectly; established runtime is PowerShell7."
+    "launcher": "Use pwsh tools/launch_castle_latest.ps1; CheckOnly validates1330pins. Windows PowerShell5 decodes UTF8withoutBOM incorrectly; established runtime is PowerShell7.",
+    "source_commit": "e781190a8a9ba5ba969fe9ae7b3992ced2edb814",
+    "delivery": "outputs/coordinator31_castle_current/DELIVERY40.json"
   }
 }

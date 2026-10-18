@@ -26,9 +26,9 @@
     "Fieldcycle2 exact common base1330pins, routes/geometry/realcatapultimpacts/visualPASS; props17to15batches"
   ],
   "performance": "Map40 stationary ABBA1280x720: -2.16% field, -3.36% gate, -4.68% stairs; bounded views not full-game performance acceptance",
-  "pending": [
-    "ordinary latest launch"
-  ],
+  "pending": [],
   "no_perfection_claim": true,
-  "clean_checkout": "Verified before publication"
+  "clean_checkout": "Verified before publication",
+  "ordinary_ready": true,
+  "delivery": "DELIVERY40.json"
 }
