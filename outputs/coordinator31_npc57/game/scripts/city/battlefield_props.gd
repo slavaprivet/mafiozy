@@ -577,7 +577,11 @@ func _build_terrain_dressing() -> void:
 		var p := Vector3(x, 0.19, z)
 		var s := _rng.randf_range(0.19, 0.48)
 		for j in 2:
-			_box("grass_dry" if i % 3 else "grass", p + Vector3(j * 0.08, 0, 0), Vector3(0.035, s, 0.018), Vector3(0, _rng.randf_range(0, TAU), _rng.randf_range(-0.4, 0.4)), "", true)
+			var rotation := Vector3(0, _rng.randf_range(0, TAU), _rng.randf_range(-0.4, 0.4))
+			# Match the rotated blade's lower edge to terrain, with a small buried root.
+			var half_height := (s * absf(cos(rotation.z)) + 0.035 * absf(sin(rotation.z))) * 0.5
+			var blade := Vector3(p.x + j * 0.08, half_height - 0.015, p.z)
+			_box("grass_dry" if i % 3 else "grass", blade, Vector3(0.035, s, 0.018), rotation, "", true)
 		_stats["grass"] += 1
 
 func _build_tree(p: Vector3, id: String) -> void:
