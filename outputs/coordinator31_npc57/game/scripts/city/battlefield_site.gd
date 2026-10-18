@@ -246,9 +246,16 @@ func _build_chunk(cx: int, cz: int, x0: float, z0: float, span_x: float, span_z:
 
 func _build_landmarks() -> void:
 	_landmarks = {
-		"defender_spawn": Vector3(0.0, 0.05, 96.0),
-		"defender_left": Vector3(-28.0, terrain_height(-28.0, 103.0), 103.0),
-		"defender_right": Vector3(28.0, terrain_height(28.0, 103.0), 103.0),
+		# Defenders muster inside the south courtyard, clear of the keep, siege
+		# engine at z=48, loose stone at (3.2,50.4), and stair at x=-28.6.
+		"defender_spawn": Vector3(0.0, 0.05, 27.0),
+		"defender_left": Vector3(-18.0, 0.05, 37.0),
+		"defender_right": Vector3(18.0, 0.05, 37.0),
+		# Keep the old exterior staging points under explicit names. They are
+		# useful for sorties and artillery crews, not defender spawning.
+		"forecourt_center": Vector3(0.0, 0.05, 96.0),
+		"forecourt_left": Vector3(-28.0, terrain_height(-28.0, 103.0), 103.0),
+		"forecourt_right": Vector3(28.0, terrain_height(28.0, 103.0), 103.0),
 		"attacker_spawn": Vector3(0.0, terrain_height(0.0, 229.0), 229.0),
 		"attacker_left": Vector3(-43.0, terrain_height(-43.0, 226.0), 226.0),
 		"attacker_right": Vector3(43.0, terrain_height(43.0, 226.0), 226.0),
