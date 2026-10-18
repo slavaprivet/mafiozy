@@ -397,6 +397,15 @@ func _build_watchtower(p: Vector3, id: String) -> void:
 			_box("oak", p + Vector3(0, level, side * 1.54), Vector3(3.4, 0.15, 0.17), Vector3.ZERO, id)
 			_box("oak", p + Vector3(side * 1.54, level, 0), Vector3(0.17, 0.15, 3.4), Vector3.ZERO, id)
 		_box("oak", p + Vector3(0, 2.62, side * 1.53), Vector3(0.15, 3.8, 0.17), Vector3(0, 0, side * 0.69), id)
+	# Cross braces tie the high platform to its legs. Keep the ladder face clear.
+	var brace_length := Vector2(3.1, 3.4).length()
+	var brace_angle := atan2(3.1, 3.4)
+	for slope in [-1.0, 1.0]:
+		_box("oak_edge", p + Vector3(0, 2.15, 1.54),
+			Vector3(0.15, brace_length, 0.16), Vector3(0, 0, slope * brace_angle), id)
+	for side in [-1.0, 1.0]:
+		_box("oak_edge", p + Vector3(side * 1.54, 2.15, 0),
+			Vector3(0.16, brace_length, 0.15), Vector3(side * brace_angle, 0, 0), id)
 	for i in 9:
 		_box("oak", p + Vector3((float(i) - 4.0) * 0.39, 5.1, 0), Vector3(0.37, 0.16, 3.65), Vector3.ZERO, id)
 	for side in [-1.0, 1.0]:
