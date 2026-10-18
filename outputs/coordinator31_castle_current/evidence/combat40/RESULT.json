@@ -1,0 +1,25 @@
+{
+  "status": "FUNCTIONAL_PASS",
+  "sword_sha256": "5e24ec29640136f9adfc0d45ec736adc7968e41c0289a88e2f954423d3d2b70c",
+  "changes": [
+    "Head cuts scoped to neck descendants, preserving raised arms",
+    "Cut all skinned layers transactionally; move fully distal closed layers into physical debris",
+    "Choose proximal limb joint as retained side for bent-limb cuts"
+  ],
+  "checks": {
+    "raised_arm_head_cut": "head_scope.json",
+    "whole_distal_glove": "whole_layer.json",
+    "natural_alternating_sword": "natural_alternating.json",
+    "combined_head_caps_and_physical_floor": "combined_corpse_floor.json",
+    "combined_heavy_sledge": "combined_heavy_sledge.json",
+    "combined_armored_corpse_360_ticks": "combined_armored_corpse_floor.json",
+    "armor_lifecycle_all_tiers": "armor_lifecycle.json"
+  },
+  "raw_nonpass": "natural_same_direction_raw_fail.json: admitted damage, no sever in 16 same-direction swings; no cut path invoked. Alternating real input reaches sever on third swing. No damage thresholds relaxed.",
+  "limits": [
+    "Finite native fixture checks, not exhaustive gameplay or Half Sword equivalence",
+    "Full articulated corpse prototype remains excluded; accepted physical convex corpse retained"
+  ],
+  "settle_check_ticks": 360,
+  "legacy_field_label_note": "after_120_ticks in inherited cap reports is historical; combined_corpse_floor and combined_armored_corpse_floor both waited360physics ticks."
+}

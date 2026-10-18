@@ -1,0 +1,13 @@
+{
+	"errors": [],
+	"healthy_leg_overlays": 2,
+	"healthy_visible": 2,
+	"new_mesh_debris": 4,
+	"passed": true,
+	"protected_after": 34.5244113837662,
+	"protected_before": 34.5244114316129,
+	"scope": "Native NPC damage handler with physical sever; injected localized blade damage, not natural player swing or FPS",
+	"severed": [
+		"forearm_l"
+	]
+}

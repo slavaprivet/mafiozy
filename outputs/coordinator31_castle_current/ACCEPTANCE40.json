@@ -1,0 +1,34 @@
+{
+  "revision": "castle-20261018-combined40-final",
+  "source_pin_count": 1330,
+  "changed_files": {
+    "scripts/weapons/sword_prototype.gd": "5e24ec29640136f9adfc0d45ec736adc7968e41c0289a88e2f954423d3d2b70c",
+    "scripts/combat/castle_armor_visual.gd": "5437d480e7a77e9d364d55e265b960a488534b036d32b26bf349e6ded290b2ae",
+    "scripts/city/castle_site.gd": "6aa56f4f95e76120d513acd2bc0da3e9cb4b148f10aa2b094b37dfb972f79d47",
+    "scripts/city/battlefield_site.gd": "1b41dc8c1b5ffdf00db5446f5ad3eb0af4994bf074607b6adfceef9c2d4d8688",
+    "scripts/city/battlefield_props.gd": "27e0247ef070665a0f59b2b8d217462fcec638a4d328465e936a5c7292496fa0"
+  },
+  "functional_pass": [
+    "controller bounded acceleration/braking sword+sledge",
+    "natural alternating sword sever",
+    "natural sledge impacts without slicing",
+    "raised arm protected during scoped head cut",
+    "whole distal skinned layer follows sever",
+    "unrelated limb armor preserved",
+    "head flesh cap preserved360ticks",
+    "physical corpse visible minimumY+.021m and6floorcontacts",
+    "heavy armored corpse minimumY+.029m,6contacts,5equippedslots after360ticks",
+    "three armor tiers movement/protection/death/reset/controllercleanup",
+    "four castle stairs actual ascent/descent",
+    "296rails and939merlons collision; destruction disables shapes",
+    "gate closedblock/openpass/bidirectionalpass/board-linkedbreakage",
+    "four field routes5784physics ticks,0offfloor/0stall",
+    "Fieldcycle2 exact common base1330pins, routes/geometry/realcatapultimpacts/visualPASS; props17to15batches"
+  ],
+  "performance": "Map40 stationary ABBA1280x720: -2.16% field, -3.36% gate, -4.68% stairs; bounded views not full-game performance acceptance",
+  "pending": [
+    "ordinary latest launch"
+  ],
+  "no_perfection_claim": true,
+  "clean_checkout": "Verified before publication"
+}

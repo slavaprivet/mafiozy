@@ -61,7 +61,7 @@ func get_landmarks() -> Dictionary:
 func _make_grit_texture() -> ImageTexture:
 	# One shared world-space albedo bake: wagon wheel ruts, trampled earth and
 	# blast dust survive between the 2.5 m terrain vertices with no new meshes.
-	const SIDE := 256
+	const SIDE := 512
 	var image := Image.create(SIDE, SIDE, false, Image.FORMAT_RGB8)
 	for iy in SIDE:
 		var z := lerpf(Z_MIN, Z_MAX, (float(iy) + 0.5) / float(SIDE))
@@ -75,9 +75,36 @@ func _make_grit_texture() -> ImageTexture:
 			var wheel_rut := (1.0 - smoothstep(0.25, 1.05, rut_distance)) * track
 			var hoof_patches := pow(sin(x * 0.47 + z * 0.29) * sin(z * 0.39 - x * 0.19), 4.0) * track
 			var bombardment := exp(-pow((z - 120.0) / 25.0, 2.0)) * (1.0 - 0.32 * track)
+			# Colour, not extra meshes: irregular surviving sod between the wheel
+			# lanes, dry cut grass near camp and deeper ash around impact points.
+			var sod_noise := sin(x * 0.24 + z * 0.17) * sin(z * 0.31 - x * 0.12)
+			var surviving_sod := smoothstep(0.15, 0.66, sod_noise) * (1.0 - track)
+			surviving_sod *= smoothstep(102.0, 136.0, z)
+			var dry_stubble := smoothstep(0.45, 0.77,
+				absf(sin(x * 0.56 + z * 0.21) * sin(z * 0.37 - x * 0.33)))
+			dry_stubble *= (1.0 - track) * smoothstep(140.0, 196.0, z)
+			var burned := 0.0
+			for scar: Vector2 in BURN_CENTERS:
+				if absf(x - scar.x) > 25.0 or absf(z - scar.y) > 17.0:
+					continue
+				var falloff := Vector2((x - scar.x) / 18.0, (z - scar.y) / 11.0).length()
+				burned = maxf(burned, 1.0 - smoothstep(0.55, 1.2,
+					falloff + 0.13 * sin(x * 0.53 + z * 0.21)))
+			# Worn earth around tent entrances and parked carts is baked once into
+			# this shared texture: no decal nodes, extra lights or ground polygons.
+			var camp_wear := 0.0
+			for centre: Vector2 in [Vector2(-77,198),Vector2(-65,205),Vector2(-33,224),Vector2(-33,240),Vector2(33,240),Vector2(33,205),Vector2(65,225),Vector2(77,202),Vector2(63,143),Vector2(-63,158),Vector2(-72,227),Vector2(72,232)]:
+				if absf(x-centre.x)>6.5 or absf(z-centre.y)>5.2: continue
+				var local := Vector2((x-centre.x)/6.5,(z-centre.y)/5.2)
+				camp_wear=maxf(camp_wear,1.0-smoothstep(0.26,1.0,local.length_squared()+0.10*sin(x*2.8+z*1.7)))
+			surviving_sod *= 1.0 - 0.75 * camp_wear
+			var fine_tracks := (0.5+0.5*sin(z*4.5+x*0.2)) * wheel_rut
 			var shade := clampf(0.91 + 0.09 * grain - 0.30 * wheel_rut -
-				0.15 * hoof_patches - 0.09 * bombardment, 0.49, 1.0)
-			image.set_pixel(ix, iy, Color(shade, shade * 0.97, shade * 0.91))
+				0.15 * hoof_patches - 0.09 * bombardment - 0.15 * camp_wear - 0.04 * fine_tracks, 0.49, 1.0)
+			image.set_pixel(ix, iy, Color(
+				shade * (1.0 + 0.08 * dry_stubble - 0.17 * burned),
+				shade * (0.97 + 0.23 * surviving_sod + 0.055 * dry_stubble - 0.15 * burned),
+				shade * (0.91 + 0.035 * surviving_sod - 0.10 * burned)))
 	image.generate_mipmaps()
 	return ImageTexture.create_from_image(image)
 
@@ -140,10 +167,10 @@ func _road_weight(x: float, z: float) -> float:
 	return maxf(center, maxf(left, right))
 
 func _ground_color(x: float, z: float) -> Color:
-	var grass := Color(0.31, 0.37, 0.23)
-	var dirt := Color(0.39, 0.315, 0.23)
+	var grass := Color(0.31, 0.39, 0.235)
+	var dirt := Color(0.395, 0.305, 0.225)
 	var road := Color(0.285, 0.247, 0.195)
-	var ash := Color(0.205, 0.195, 0.18)
+	var ash := Color(0.17, 0.16, 0.145)
 	# The last visible terrain vertices are buried by CastleGround near z=248.
 	# Blend colour before that occlusion point so the soil does not end in a
 	# sharp brown line against the existing green plane.

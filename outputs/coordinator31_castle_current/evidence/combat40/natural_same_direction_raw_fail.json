@@ -1,0 +1,464 @@
+{
+	"armor_requested": false,
+	"armor_snapshot": {},
+	"before_png_error": 0,
+	"failures": [
+		"sharp_sever_missing"
+	],
+	"final": {
+		"dead": false,
+		"disarmed": false,
+		"fall": 0.0,
+		"npc_hp": 90.0,
+		"part_hp": {
+			"chest": 95.4192603351232,
+			"forearm_r": 7.66253204897852,
+			"head": 41.083433007775
+		},
+		"severed": [],
+		"sword_held": true
+	},
+	"first_contact_png_error": 0,
+	"initial": {
+		"npc_dead": false,
+		"npc_hp": 90.0,
+		"npc_pos": "(4.6, 0.03, 947.5)",
+		"npc_sword": true,
+		"part_hp": {},
+		"player_pos": "(4.6, 0.03, 946.45)"
+	},
+	"max_strokes": 16,
+	"passed": false,
+	"same_direction": true,
+	"scope": "rack equip + ordinary LMB mouse strokes, no direct damage calls or teleport after initial placement",
+	"settled_png_error": 0,
+	"stroke_dx_per_frame": 20.0,
+	"strokes": [
+		{
+			"bleeding": true,
+			"blocks_delta": 0,
+			"dead": false,
+			"disarmed": false,
+			"fall": 0.0,
+			"ground_swords": 0,
+			"hits_delta": 0,
+			"index": 0,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.71807791178501
+			},
+			"part_hp_before": {},
+			"player_npc_distance": 0.948330163955688,
+			"severed": [],
+			"sparks_delta": 0,
+			"sweep_hits_delta": 55,
+			"sword_held": true
+		},
+		{
+			"bleeding": true,
+			"blocks_delta": 0,
+			"dead": false,
+			"disarmed": false,
+			"fall": 0.0,
+			"ground_swords": 0,
+			"hits_delta": 0,
+			"index": 1,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852
+			},
+			"part_hp_before": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.71807791178501
+			},
+			"player_npc_distance": 0.948330163955688,
+			"severed": [],
+			"sparks_delta": 16,
+			"sweep_hits_delta": 29,
+			"sword_held": true
+		},
+		{
+			"bleeding": true,
+			"blocks_delta": 0,
+			"dead": false,
+			"disarmed": false,
+			"fall": 0.0,
+			"ground_swords": 0,
+			"hits_delta": 0,
+			"index": 2,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 42.0646427127162
+			},
+			"part_hp_before": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852
+			},
+			"player_npc_distance": 0.977382957935333,
+			"severed": [],
+			"sparks_delta": 16,
+			"sweep_hits_delta": 59,
+			"sword_held": true
+		},
+		{
+			"bleeding": true,
+			"blocks_delta": 0,
+			"dead": false,
+			"disarmed": false,
+			"fall": 0.0,
+			"ground_swords": 0,
+			"hits_delta": 0,
+			"index": 3,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"part_hp_before": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 42.0646427127162
+			},
+			"player_npc_distance": 0.977206826210022,
+			"severed": [],
+			"sparks_delta": 16,
+			"sweep_hits_delta": 47,
+			"sword_held": true
+		},
+		{
+			"bleeding": false,
+			"blocks_delta": 0,
+			"dead": false,
+			"disarmed": false,
+			"fall": 0.0,
+			"ground_swords": 0,
+			"hits_delta": 0,
+			"index": 4,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"part_hp_before": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"player_npc_distance": 0.977206826210022,
+			"severed": [],
+			"sparks_delta": 16,
+			"sweep_hits_delta": 35,
+			"sword_held": true
+		},
+		{
+			"bleeding": false,
+			"blocks_delta": 0,
+			"dead": false,
+			"disarmed": false,
+			"fall": 0.0,
+			"ground_swords": 0,
+			"hits_delta": 0,
+			"index": 5,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"part_hp_before": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"player_npc_distance": 0.977206826210022,
+			"severed": [],
+			"sparks_delta": 32,
+			"sweep_hits_delta": 18,
+			"sword_held": true
+		},
+		{
+			"bleeding": false,
+			"blocks_delta": 0,
+			"dead": false,
+			"disarmed": false,
+			"fall": 0.0,
+			"ground_swords": 0,
+			"hits_delta": 0,
+			"index": 6,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"part_hp_before": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"player_npc_distance": 0.977206826210022,
+			"severed": [],
+			"sparks_delta": 16,
+			"sweep_hits_delta": 35,
+			"sword_held": true
+		},
+		{
+			"bleeding": false,
+			"blocks_delta": 0,
+			"dead": false,
+			"disarmed": false,
+			"fall": 0.0,
+			"ground_swords": 0,
+			"hits_delta": 0,
+			"index": 7,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"part_hp_before": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"player_npc_distance": 0.977206826210022,
+			"severed": [],
+			"sparks_delta": 32,
+			"sweep_hits_delta": 18,
+			"sword_held": true
+		},
+		{
+			"bleeding": false,
+			"blocks_delta": 0,
+			"dead": false,
+			"disarmed": false,
+			"fall": 0.0,
+			"ground_swords": 0,
+			"hits_delta": 0,
+			"index": 8,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"part_hp_before": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"player_npc_distance": 0.977206826210022,
+			"severed": [],
+			"sparks_delta": 16,
+			"sweep_hits_delta": 34,
+			"sword_held": true
+		},
+		{
+			"bleeding": false,
+			"blocks_delta": 0,
+			"dead": false,
+			"disarmed": false,
+			"fall": 0.0,
+			"ground_swords": 0,
+			"hits_delta": 0,
+			"index": 9,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"part_hp_before": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"player_npc_distance": 0.977206826210022,
+			"severed": [],
+			"sparks_delta": 32,
+			"sweep_hits_delta": 18,
+			"sword_held": true
+		},
+		{
+			"bleeding": false,
+			"blocks_delta": 0,
+			"dead": false,
+			"disarmed": false,
+			"fall": 0.0,
+			"ground_swords": 0,
+			"hits_delta": 0,
+			"index": 10,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"part_hp_before": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"player_npc_distance": 0.977206826210022,
+			"severed": [],
+			"sparks_delta": 16,
+			"sweep_hits_delta": 34,
+			"sword_held": true
+		},
+		{
+			"bleeding": false,
+			"blocks_delta": 0,
+			"dead": false,
+			"disarmed": false,
+			"fall": 0.0,
+			"ground_swords": 0,
+			"hits_delta": 0,
+			"index": 11,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"part_hp_before": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"player_npc_distance": 0.977206826210022,
+			"severed": [],
+			"sparks_delta": 32,
+			"sweep_hits_delta": 18,
+			"sword_held": true
+		},
+		{
+			"bleeding": false,
+			"blocks_delta": 0,
+			"dead": false,
+			"disarmed": false,
+			"fall": 0.0,
+			"ground_swords": 0,
+			"hits_delta": 0,
+			"index": 12,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"part_hp_before": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"player_npc_distance": 0.977206826210022,
+			"severed": [],
+			"sparks_delta": 16,
+			"sweep_hits_delta": 34,
+			"sword_held": true
+		},
+		{
+			"bleeding": false,
+			"blocks_delta": 0,
+			"dead": false,
+			"disarmed": false,
+			"fall": 0.0,
+			"ground_swords": 0,
+			"hits_delta": 0,
+			"index": 13,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"part_hp_before": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"player_npc_distance": 0.977206826210022,
+			"severed": [],
+			"sparks_delta": 32,
+			"sweep_hits_delta": 18,
+			"sword_held": true
+		},
+		{
+			"bleeding": false,
+			"blocks_delta": 0,
+			"dead": false,
+			"disarmed": false,
+			"fall": 0.0,
+			"ground_swords": 0,
+			"hits_delta": 0,
+			"index": 14,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"part_hp_before": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"player_npc_distance": 0.977206826210022,
+			"severed": [],
+			"sparks_delta": 16,
+			"sweep_hits_delta": 35,
+			"sword_held": true
+		},
+		{
+			"bleeding": false,
+			"blocks_delta": 0,
+			"dead": false,
+			"disarmed": false,
+			"fall": 0.0,
+			"ground_swords": 0,
+			"hits_delta": 0,
+			"index": 15,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"part_hp_before": {
+				"chest": 95.4192603351232,
+				"forearm_r": 7.66253204897852,
+				"head": 41.083433007775
+			},
+			"player_npc_distance": 0.977206826210022,
+			"severed": [],
+			"sparks_delta": 32,
+			"sweep_hits_delta": 18,
+			"sword_held": true
+		}
+	],
+	"weapon_after_q": "sword",
+	"weapon_test": "sword"
+}

@@ -134,5 +134,23 @@
   "owners39": {
     "map": "01a14e94-94a5-7050-9546-880e5e927751",
     "armor": "01a14e94-9c49-7f12-a3cd-1bbc0dd2e29b"
+  },
+  "current_20261018": {
+    "revision": "castle-20261018-combined40-final",
+    "game": "outputs/coordinator31_npc57/game",
+    "scene": "res://scenes/castle.tscn",
+    "state": "All ready40 packages merged, functional and finite-view performance checked; ordinary launch next",
+    "combat": "Weight/controlled braking sword+sledge; blunt damage classification and disarm; posed scoped mesh cuts, proximal joint side, whole layer detachment; preserved flesh caps; physical corpse stable above floor after360ticks; armor survives death reparent",
+    "map": "Gate40 interior grid and threshold removed, board-owned braces; stairs40 real traversal and destruction-bound rail/merlon collision; fieldcycle1 merged; fieldcycle2 material/grass optimization merged",
+    "evidence": [
+      "outputs/coordinator31_castle_current/evidence/combat39",
+      "outputs/coordinator31_castle_current/evidence/combat40",
+      "outputs/coordinator31_castle_current/evidence/map40"
+    ],
+    "excluded": [
+      "Articulated joint corpse prototype: not accepted",
+      "Banner36 WIP: not integrated"
+    ],
+    "launcher": "Use pwsh tools/launch_castle_latest.ps1; CheckOnly validates1330pins. Windows PowerShell5 decodes UTF8withoutBOM incorrectly; established runtime is PowerShell7."
   }
 }

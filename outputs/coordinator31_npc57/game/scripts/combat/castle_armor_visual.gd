@@ -104,6 +104,18 @@ func snapshot() -> Dictionary:
 	return {"ready": _ready, "equipped": _equipped.duplicate(), "lost": _lost.keys(), "unit": _unit}
 
 func _exit_tree() -> void:
+	# Reparenting the actor into its corpse briefly exits and re-enters the tree.
+	# Keep its equipment until that synchronous ownership transfer has finished.
+	call_deferred("_cleanup_if_detached")
+
+func _cleanup_if_detached() -> void:
+	if not is_inside_tree(): _release_visuals()
+
+func _notification(what: int) -> void:
+	# A freed controller cannot receive the deferred callback.
+	if what == NOTIFICATION_PREDELETE: _release_visuals()
+
+func _release_visuals() -> void:
 	# Armor nodes live under the actor's rig, not under this controller. Release
 	# them without changing a busy parent's child list during tree exit.
 	_restore_headwear()

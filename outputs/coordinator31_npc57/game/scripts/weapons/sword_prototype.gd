@@ -5209,6 +5209,7 @@ func npc_cut_body(plane_world: Plane, keep_point_world: Vector3, part_key: Strin
 	var any := false
 	var detached_whole31: Array[Node3D] = []
 	var debris_start31 := _npc_debris.size()
+	var prepared_layers39: Array[Dictionary] = []
 	for entry: Variant in meshes:
 		var mesh_node: MeshInstance3D = entry
 		if not is_instance_valid(mesh_node): continue
@@ -5226,14 +5227,17 @@ func npc_cut_body(plane_world: Plane, keep_point_world: Vector3, part_key: Strin
 			posed.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,
 				_cut_skin_arrays39(source.surface_get_arrays(surface), skin_transforms, false))
 		var cut = MeshSever.cut(posed, local_plane, part_binds, keep_front)
-		if cut.triangles_split == 0:
-			continue
 		var kept_arrays: Array = cut.front_arrays if keep_front else cut.back_arrays
 		var gone_arrays: Array = cut.back_arrays if keep_front else cut.front_arrays
 		var kept_cap: Array = cut.front_cap_arrays if keep_front else cut.back_cap_arrays
 		var gone_cap: Array = cut.back_cap_arrays if keep_front else cut.front_cap_arrays
-		# A partial/open cut cannot replace the living mesh or create a loose piece.
-		if kept_arrays.is_empty() or gone_arrays.is_empty() or kept_cap.is_empty() or gone_cap.is_empty(): continue
+		# A closed glove/boot can lie wholly beyond the cut with no crossing edges.
+		# Move that original layer rather than leaving it on preserved bones.
+		var whole_detach39: bool = kept_arrays.is_empty() and not gone_arrays.is_empty() and cut.triangles_split == 0
+		if cut.triangles_split == 0 and not whole_detach39: continue
+		# Validate every intersecting layer before changing ANY original mesh.
+		# Partial failure must not mark the whole limb as successfully mesh-cut.
+		if not whole_detach39 and (kept_arrays.is_empty() or gone_arrays.is_empty() or kept_cap.is_empty() or gone_cap.is_empty()): return false
 		var kept_indices: Array[int] = cut.front_surface_indices if keep_front else cut.back_surface_indices
 		var gone_indices: Array[int] = cut.back_surface_indices if keep_front else cut.front_surface_indices
 		var source_materials: Array[Material] = []
@@ -5242,6 +5246,26 @@ func npc_cut_body(plane_world: Plane, keep_point_world: Vector3, part_key: Strin
 		var gone_materials: Array[Material] = []
 		for source_index: int in gone_indices:
 			gone_materials.append(source_materials[source_index])
+		prepared_layers39.append({"node":mesh_node,"source":source,"kept":kept_arrays,"gone":gone_arrays,
+			"kept_cap":kept_cap,"gone_cap":gone_cap,"kept_indices":kept_indices,
+			"materials":source_materials,"gone_materials":gone_materials,"binds":skin_transforms,"whole":whole_detach39})
+	for layer39: Dictionary in prepared_layers39:
+		var mesh_node: MeshInstance3D = layer39.node
+		var source: ArrayMesh = layer39.source
+		var kept_arrays: Array = layer39.kept
+		var gone_arrays: Array = layer39.gone
+		var kept_cap: Array = layer39.kept_cap
+		var gone_cap: Array = layer39.gone_cap
+		var kept_indices: Array[int] = layer39.kept_indices
+		var source_materials: Array[Material] = layer39.materials
+		var gone_materials: Array[Material] = layer39.gone_materials
+		var skin_transforms: Array[Transform3D] = layer39.binds
+		if layer39.whole:
+			_spawn_cut_debris(gone_arrays, [], mesh_node, plane_world.normal, gone_materials)
+			mesh_node.mesh = null
+			any = true
+			_npc_cut_total += 1
+			continue
 		# 1. The body keeps its side, with the cut face closed.
 		var body_mesh := ArrayMesh.new()
 		for arrays: Array in kept_arrays:
@@ -6032,8 +6056,17 @@ func _sever_part(full_key: String, kind: String, part: Dictionary, point: Vector
 		if chest >= 0:
 			body_side = _npc_rig.global_transform * _npc_rig.get_bone_global_pose(chest).origin
 		var normal: Vector3 = direction.normalized()
+		# Bent limbs can place the chest on the distal side of the hit plane.
+		# Preserve the joint leading into this limb, not a remote torso point.
+		if kind != "head":
+			var proximal := _npc_rig.find_bone(full_key)
+			if proximal >= 0:
+				body_side = _npc_rig.global_transform * _npc_rig.get_bone_global_pose(proximal).origin
+				if absf(normal.dot(body_side - point)) < 0.0001:
+					var parent := _npc_rig.get_bone_parent(proximal)
+					if parent >= 0: body_side = _npc_rig.global_transform * _npc_rig.get_bone_global_pose(parent).origin
 		if normal.length_squared() > 1.0e-6:
-			var scoped_part := full_key if kind in ["upperarm", "forearm", "hand", "thigh", "shin", "foot"] else ""
+			var scoped_part := "neck" if kind == "head" else full_key
 			cut_done = npc_cut_body(Plane(normal, normal.dot(point)), body_side, scoped_part, kind == "head")
 	if cut_done: _npc_mesh_cut_parts39[full_key] = true
 	if cut_done and kind == "head": _npc_head_mesh_cut31 = true

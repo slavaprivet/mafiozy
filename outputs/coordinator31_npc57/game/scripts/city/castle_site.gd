@@ -130,6 +130,7 @@ var _wall_collision: Array[Dictionary] = []
 ## Exact visual step -> ramp segment binding. A blasted step cannot leave an
 ## invisible piece of climbable deck behind, including support-cascade failures.
 var _stair_step_collision: Dictionary = {}
+var _merlon_collision: Dictionary = {}
 var _ground: StaticBody3D
 var _player: CharacterBody3D
 var _world_ref: Node3D
@@ -212,8 +213,7 @@ func install(world: Node3D, origin: Vector3) -> Dictionary:
 	_add_rubble()
 	if _phase_enabled: _phase("_build_torches")
 	_build_torches()
-	if _phase_enabled: _phase("_build_portcullis")
-	_build_portcullis()
+	# The non-colliding decorative grid across the inner gateway was removed.
 	if _phase_enabled: _phase("_build_gate_lamps")
 	_build_gate_lamps()
 	if _phase_enabled: _phase("_build_gate_deck")
@@ -615,25 +615,6 @@ func _build_gate_forecourt_pavers() -> void:
 	stones.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(stones)
 
-func _build_portcullis() -> void:
-	var at := Vector3(0.0, GATE_HEIGHT * 0.5 + 0.4, WALL_HALF - 1.6)
-	for i: int in 9:
-		var bar := MeshInstance3D.new()
-		var bar_mesh := BoxMesh.new()
-		bar_mesh.size = Vector3(0.11, GATE_HEIGHT * 0.72, 0.11)
-		bar.mesh = bar_mesh
-		bar.material_override = _materials["iron"]
-		bar.position = at + Vector3(-GATE_WIDTH * 0.45 + float(i) * GATE_WIDTH * 0.1125, 0.0, 0.0)
-		add_child(bar)
-	for j: int in 4:
-		var cross := MeshInstance3D.new()
-		var cross_mesh := BoxMesh.new()
-		cross_mesh.size = Vector3(GATE_WIDTH * 0.92, 0.10, 0.10)
-		cross.mesh = cross_mesh
-		cross.material_override = _materials["iron"]
-		cross.position = at + Vector3(0.0, -GATE_HEIGHT * 0.28 + float(j) * GATE_HEIGHT * 0.18, 0.0)
-		add_child(cross)
-
 ## Dress the keep: quoins down its corners, windows with arched heads, and a buttress at
 ## each face, so it stops being a flat dark box.
 func _build_keep_details() -> void:
@@ -711,6 +692,20 @@ func _add_brick(at: Vector3, size: Vector3, material_key: String, rotation: Vect
 		"group": group, "row": row, "column": column, "shape": shape_key,
 		"alive": true, "instance": -1,
 	})
+	if "merlon" in group:
+		var body := StaticBody3D.new()
+		body.collision_layer = 1
+		body.collision_mask = 1
+		body.position = at
+		body.rotation = rotation
+		body.set_meta("surface", "stone")
+		add_child(body)
+		var shape := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = size
+		shape.shape = box
+		body.add_child(shape)
+		_merlon_collision[index] = shape
 	return index
 
 ## DSH_OPT: bricks are drawn in CHUNKS, not as one MultiMesh for the whole castle.
@@ -1002,7 +997,7 @@ func _brick_transform(cell: Dictionary) -> Transform3D:
 		# colour variation and relief still give each course its bond.
 		size = Vector3(size.x * 0.99, size.y * 0.98, size.z * 0.995)
 	var rotation: Vector3 = cell.get("rotation", Vector3.ZERO)
-	var jitter := 0.0 if structural else 1.0
+	var jitter := 0.0 if structural or group.begins_with("stairs_") or "merlon" in group else 1.0
 	var basis := Basis.from_euler(Vector3(
 		rotation.x + jitter * float(int(at.x * 7.0 + at.y * 13.0) % 5) * 0.004,
 		rotation.y + jitter * float(int(at.z * 11.0 + at.y * 5.0) % 5) * 0.004,
@@ -1034,6 +1029,9 @@ func _kill_brick(index: int, impulse: Vector3, power: float) -> void:
 	var cell: Dictionary = _cells[index]
 	if not bool(cell.get("alive", false)): return
 	cell["alive"] = false
+	var merlon_shape: CollisionShape3D = _merlon_collision.get(index)
+	if is_instance_valid(merlon_shape):
+		merlon_shape.set_deferred("disabled", true)
 	_detached += 1
 	# Take it out of the drawing: the instance is moved far below the world, which is
 	# cheaper than rebuilding the MultiMesh.
@@ -1049,7 +1047,7 @@ func _kill_brick(index: int, impulse: Vector3, power: float) -> void:
 	# implausibly large box. The existing capped debris pool owns every piece.
 	var material_key: String = str(cell.get("material", "stone"))
 	var group: String = str(cell.get("group", ""))
-	if group.begins_with("stairs_") and not group.begins_with("stairs_rail_"):
+	if group.begins_with("stairs_"):
 		var stair_key := "%s:%d" % [group, int(cell.get("row", -1))]
 		var stair_shape: CollisionShape3D = _stair_step_collision.get(stair_key)
 		if is_instance_valid(stair_shape):
@@ -1385,6 +1383,10 @@ func _add_plinth(side: String) -> void:
 	var per_course := int((WALL_HALF * 2.0) / BRICK.x)
 	for column: int in per_course:
 		var along := (float(column) - float(per_course - 1) * 0.5) * BRICK.x
+		# The gate opening must also cut the decorative footing. These stones
+		# otherwise form a knee-high, non-colliding threshold across both leaves.
+		if side == "south" and absf(along) < GATE_WIDTH * 0.5 + BRICK.x * 0.51:
+			continue
 		var at := Vector3.ZERO
 		var size := Vector3(BRICK.x * 1.02, BRICK.y * 1.1, WALL_THICK * 1.35)
 		match side:
@@ -1692,6 +1694,7 @@ func _build_gatehouse() -> void:
 			board_entry["shape"] = board_shape
 		body.set_meta("castle_gate", true)
 		body.set_meta("surface", "wood")
+		_build_inner_gate40(pivot, boards, board_w, board_h)
 		_merge_pivot_decoration(pivot)
 		_gate_leaves.append({"pivot": pivot, "side": side, "body": body, "detached": false,
 			"boards": boards})
@@ -1970,6 +1973,8 @@ func _build_stair_flight(normal: Vector3, name: String) -> void:
 	var run := 0.36
 	var width := 2.8
 	var steps := int(ceil(WALL_HEIGHT / rise))
+	# End at the actual wall-walk height, not the next multiple of 26 cm.
+	rise = WALL_HEIGHT / float(steps)
 	var length := float(steps) * run
 	var top_height := float(steps) * rise
 	var inward: Vector3 = -normal
@@ -2008,53 +2013,110 @@ func _build_stair_flight(normal: Vector3, name: String) -> void:
 		deck_shape.position.z = deck_length * (0.5 - (float(step) + 0.5) / float(steps))
 		deck.add_child(deck_shape)
 		_stair_step_collision["stairs_%s:%d" % [name, step]] = deck_shape
+	# Piers meet the actual underside of a specific tread. All masonry and its
+	# collision share the same dimensions and destruction binding.
+	var tread_depth := 0.65
 	var stations: int = maxi(2, int(length / 2.6))
 	for station: int in stations:
-		var along: float = (float(station) + 0.5) * (length / float(stations))
-		var height: float = (along / length) * top_height
-		var post_height: float = maxf(0.4, height - deck_thickness)
-		# The two visible supports stay clear of the player's route.
-		for flank: float in [-1.0, 1.0]:
-			var at: Vector3 = bottom_centre + slope * along + lateral * (flank * width * 0.5) \
-				+ Vector3.UP * (post_height * 0.5)
-			var pillar := StaticBody3D.new()
-			pillar.collision_layer = 1
-			pillar.collision_mask = 1
-			pillar.set_meta("surface", "stone")
-			pillar.position = at
-			add_child(pillar)
-			var pillar_shape := CollisionShape3D.new()
-			var pillar_box := BoxShape3D.new()
-			pillar_box.size = Vector3(0.6, post_height, 0.6)
-			pillar_shape.shape = pillar_box
-			pillar.add_child(pillar_shape)
-			var pillar_mesh := MeshInstance3D.new()
-			var pillar_mesh_box := BoxMesh.new()
-			pillar_mesh_box.size = pillar_box.size
-			pillar_mesh.mesh = pillar_mesh_box
-			pillar_mesh.material_override = _materials["cold"]
-			pillar_mesh.position = at
-			add_child(pillar_mesh)
+		var step_index := clampi(int(round((float(station) + 0.5) * float(steps) / float(stations))), 2, steps - 2)
+		var along := float(step_index) * run
+		var underside := rise * float(step_index) - tread_depth
+		for flank: int in 2:
+			var side := -1.0 if flank == 0 else 1.0
+			var foot := bottom_centre + slope * along + lateral * (side * (width * 0.5 - 0.32))
+			var row := station * 2 + flank
+			_add_stair_masonry(foot + Vector3.UP * (underside * 0.5),
+				Vector3(0.64, underside, 0.64), "cold", "stairs_pier_" + name, row)
+			_add_stair_masonry(foot + Vector3.UP * 0.13,
+				Vector3(0.90, 0.26, 0.90), "stone", "stairs_base_" + name, row)
+			# The cap is no deeper than its tread, so it cannot protrude through
+			# the next lower tread or leave a gap beneath the flight.
+			var cap_size := Vector3(0.88, 0.24, run) if absf(slope.x) < 0.5 else Vector3(run, 0.24, 0.88)
+			_add_stair_masonry(foot + Vector3.UP * (underside - 0.12),
+				cap_size, "warm", "stairs_cap_" + name, row)
+	# The tread top at each station follows the ramp, instead of being one full
+	# riser above it. The first tread merges into the courtyard; the last riser
+	# meets the wall-walk. No raised ramp ends can block either direction.
 	# The steps, drawn but not colliding: the deck carries the man. They must climb the
 	# SAME WAY as the wedge - towards the wall - or the stone you see and the stone you walk
 	# on are two different staircases, and the end of the wedge shows as a flat grey face at
 	# the foot of the steps.
 	for i: int in steps:
-		var at: Vector3 = bottom_centre - inward * (float(i) * run) + Vector3.UP * (rise * float(i) + rise * 0.5)
+		var at: Vector3 = bottom_centre - inward * (float(i) * run) + Vector3.UP * (rise * float(i) - rise * 0.5)
 		var across_x: bool = absf(slope.x) < 0.5
-		var step_size := Vector3(width, rise, run * 1.04) if across_x \
-			else Vector3(run * 1.04, rise, width)
-		_add_brick(at, step_size, "cold", Vector3.ZERO, "stairs_" + name, i, 0)
-		_add_brick(at + lateral * (width * 0.5 + 0.16) + Vector3.UP * 0.55,
+		var step_size := Vector3(width, tread_depth, run * 1.04) if across_x \
+			else Vector3(run * 1.04, tread_depth, width)
+		_add_brick(at - Vector3.UP * ((tread_depth - rise) * 0.5), step_size, "cold", Vector3.ZERO, "stairs_" + name, i, 0)
+		_add_stair_masonry(at + lateral * (width * 0.5 + 0.16) + Vector3.UP * 0.55,
 			Vector3(0.32, 1.0, run * 1.04) if across_x \
-			else Vector3(run * 1.04, 1.0, 0.32), "stone", Vector3.ZERO, "stairs_rail_" + name, i, 0)
+			else Vector3(run * 1.04, 1.0, 0.32), "stone", "stairs_rail_" + name, i)
 	# The final step overlaps a broad landing and the wall walk. It does not end
 	# at a narrow seam in front of the inner parapet.
 	var landing_at := top_centre + normal * 1.7 + Vector3.UP * (WALL_HEIGHT - 0.12)
-	var landing_size := Vector3(width + 0.6, 0.24, 3.8) if absf(normal.z) > 0.5 \
-		else Vector3(3.8, 0.24, width + 0.6)
+	# Do not project the horizontal landing into the rising capsule's path.
+	# The wall-walk already reaches the last tread; overlap it from the top.
+	var landing_size := Vector3(width + 0.6, 0.24, 3.0) if absf(normal.z) > 0.5 \
+		else Vector3(3.0, 0.24, width + 0.6)
 	_add_brick(landing_at, landing_size, "warm", Vector3.ZERO, "stair_landing_" + name)
 	_add_breakable_collision(landing_at, landing_size)
+
+## Bind every rail/pier collision to its visible stone, including cascade removal.
+## Reverse face: three oak braces, narrow vertical joints and forged straps.
+## Every instance follows its own breakable board; no floating brace spans a hole.
+func _build_inner_gate40(pivot: Node3D, boards: Array, board_w: float, board_h: float) -> void:
+	var pieces: Dictionary = {"wood_alt": [], "iron": []}
+	for index: int in boards.size():
+		var board: Dictionary = boards[index]
+		var at: Vector3 = board.at
+		var row := index / 6
+		var column := index % 6
+		# Continuous vertical seams only: no crosshatched row grid.
+		if column > 0:
+			pieces.iron.append({"owner": index, "at": at + Vector3(board_w * 0.48, 0, -0.323),
+				"size": Vector3(0.024, board_h * 1.002, 0.018)})
+		if row in [1, 4, 6]:
+			pieces.wood_alt.append({"owner": index, "at": at + Vector3(0, 0, -0.40),
+				"size": Vector3(board_w * 1.004, 0.34, 0.18)})
+			if column in [0, 1, 4, 5]:
+				pieces.iron.append({"owner": index, "at": at + Vector3(0, 0, -0.51),
+					"size": Vector3(board_w * 1.004, 0.16, 0.06)})
+			for dx: float in [-0.25, 0.25]:
+				pieces.iron.append({"owner": index, "at": at + Vector3(board_w * dx, 0, -0.56),
+					"size": Vector3(0.075, 0.075, 0.07)})
+	for material: String in pieces:
+		var rows: Array = pieces[material]
+		var multi := MultiMesh.new()
+		multi.transform_format = MultiMesh.TRANSFORM_3D
+		var box := BoxMesh.new()
+		box.size = Vector3.ONE
+		multi.mesh = box
+		multi.instance_count = rows.size()
+		var node := MultiMeshInstance3D.new()
+		node.name = "InnerGate40_" + material
+		node.multimesh = multi
+		node.material_override = _materials[material]
+		pivot.add_child(node)
+		for slot: int in rows.size():
+			var row: Dictionary = rows[slot]
+			multi.set_instance_transform(slot, Transform3D(Basis.IDENTITY.scaled(row.size), row.at))
+			var board: Dictionary = boards[int(row.owner)]
+			if not board.has("inner40"): board.inner40 = []
+			board.inner40.append({"multi": node, "slot": slot})
+
+func _add_stair_masonry(at: Vector3, size: Vector3, material: String, group: String, row: int) -> void:
+	_add_brick(at, size, material, Vector3.ZERO, group, row, 0)
+	var body := StaticBody3D.new()
+	body.collision_layer = 1
+	body.collision_mask = 1
+	body.position = at
+	body.set_meta("surface", "stone")
+	add_child(body)
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = size
+	shape.shape = box
+	body.add_child(shape)
+	_stair_step_collision["%s:%d" % [group, row]] = shape
 
 func _build_keep() -> void:
 	var base := Vector3(0.0, 0.0, -8.0)
@@ -3367,6 +3429,10 @@ func apply_explosion(event: Dictionary) -> Dictionary:
 				multi.multimesh.set_instance_transform(slot,
 					Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * 0.0001),
 						Vector3(0.0, -4000.0, 0.0)))
+			for fitting: Dictionary in board.get("inner40", []):
+				var inner_multi: MultiMeshInstance3D = fitting.multi
+				inner_multi.multimesh.set_instance_transform(int(fitting.slot),
+					Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * 0.0001), Vector3(0, -4000, 0)))
 			var board_shape: CollisionShape3D = board.get("shape")
 			if is_instance_valid(board_shape): board_shape.disabled = true
 			killed += 1

@@ -1,0 +1,197 @@
+{
+	"armor_requested": true,
+	"armor_setup": {
+		"equipped": {
+			"feet": "heavy_feet",
+			"hands": "heavy_hands",
+			"head": "heavy_head",
+			"legs": "heavy_legs",
+			"torso": "heavy_torso"
+		},
+		"ok": true,
+		"visual": {
+			"equipped": {
+				"feet": "heavy_feet",
+				"hands": "heavy_hands",
+				"head": "heavy_head",
+				"legs": "heavy_legs",
+				"torso": "heavy_torso"
+			},
+			"lost": [],
+			"ready": true,
+			"unit": 1.00999999046326
+		}
+	},
+	"armor_snapshot": {
+		"feet": "heavy_feet",
+		"hands": "heavy_hands",
+		"head": "heavy_head",
+		"legs": "heavy_legs",
+		"torso": "heavy_torso"
+	},
+	"failures": [],
+	"final": {
+		"dead": false,
+		"disarmed": false,
+		"fall": 0.0,
+		"npc_hp": 90.0,
+		"part_hp": {
+			"shin_r": -43.564971943352
+		},
+		"severed": [],
+		"sword_held": true
+	},
+	"initial": {
+		"npc_dead": false,
+		"npc_hp": 90.0,
+		"npc_pos": "(4.6, 0.03, 947.5)",
+		"npc_sword": true,
+		"part_hp": {},
+		"player_pos": "(4.6, 0.03, 946.45)"
+	},
+	"max_strokes": 6,
+	"passed": true,
+	"same_direction": true,
+	"scope": "rack equip + ordinary LMB mouse strokes, no direct damage calls or teleport after initial placement",
+	"stroke_dx_per_frame": 20.0,
+	"strokes": [
+		{
+			"bleeding": false,
+			"blocks_delta": 0,
+			"dead": false,
+			"disarmed": false,
+			"fall": 0.0,
+			"ground_swords": 0,
+			"hits_delta": 0,
+			"index": 0,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"shin_r": -43.564971943352
+			},
+			"part_hp_before": {},
+			"player_npc_distance": 2.3995521068573,
+			"severed": [],
+			"sparks_delta": 8,
+			"sweep_hits_delta": 39,
+			"sword_held": true
+		},
+		{
+			"bleeding": false,
+			"blocks_delta": 0,
+			"dead": false,
+			"disarmed": false,
+			"fall": 0.0,
+			"ground_swords": 0,
+			"hits_delta": 0,
+			"index": 1,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"shin_r": -43.564971943352
+			},
+			"part_hp_before": {
+				"shin_r": -43.564971943352
+			},
+			"player_npc_distance": 2.14124393463135,
+			"severed": [],
+			"sparks_delta": 0,
+			"sweep_hits_delta": 0,
+			"sword_held": true
+		},
+		{
+			"bleeding": false,
+			"blocks_delta": 0,
+			"dead": false,
+			"disarmed": false,
+			"fall": 0.0,
+			"ground_swords": 0,
+			"hits_delta": 0,
+			"index": 2,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"shin_r": -43.564971943352
+			},
+			"part_hp_before": {
+				"shin_r": -43.564971943352
+			},
+			"player_npc_distance": 1.88770842552185,
+			"severed": [],
+			"sparks_delta": 0,
+			"sweep_hits_delta": 12,
+			"sword_held": true
+		},
+		{
+			"bleeding": false,
+			"blocks_delta": 0,
+			"dead": false,
+			"disarmed": false,
+			"fall": 0.0,
+			"ground_swords": 0,
+			"hits_delta": 0,
+			"index": 3,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"shin_r": -43.564971943352
+			},
+			"part_hp_before": {
+				"shin_r": -43.564971943352
+			},
+			"player_npc_distance": 1.76100623607636,
+			"severed": [],
+			"sparks_delta": 16,
+			"sweep_hits_delta": 0,
+			"sword_held": true
+		},
+		{
+			"bleeding": false,
+			"blocks_delta": 0,
+			"dead": false,
+			"disarmed": false,
+			"fall": 0.0,
+			"ground_swords": 0,
+			"hits_delta": 0,
+			"index": 4,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"shin_r": -43.564971943352
+			},
+			"part_hp_before": {
+				"shin_r": -43.564971943352
+			},
+			"player_npc_distance": 1.53931784629822,
+			"severed": [],
+			"sparks_delta": 0,
+			"sweep_hits_delta": 28,
+			"sword_held": true
+		},
+		{
+			"bleeding": false,
+			"blocks_delta": 0,
+			"dead": false,
+			"disarmed": false,
+			"fall": 0.0,
+			"ground_swords": 0,
+			"hits_delta": 0,
+			"index": 5,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"shin_r": -43.564971943352
+			},
+			"part_hp_before": {
+				"shin_r": -43.564971943352
+			},
+			"player_npc_distance": 1.53931784629822,
+			"severed": [],
+			"sparks_delta": 16,
+			"sweep_hits_delta": 0,
+			"sword_held": true
+		}
+	],
+	"weapon_after_q": "sledge",
+	"weapon_test": "sledge"
+}

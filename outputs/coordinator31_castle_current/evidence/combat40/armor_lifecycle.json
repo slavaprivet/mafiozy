@@ -1,0 +1,85 @@
+{
+  "status": "FUNCTIONAL_READY",
+  "base_revision": "castle-20261018-combined40-gates01",
+  "source_pin_count": 1330,
+  "expected_shared_sha256": "df0cd3e414a1b6ae34b62c76f09828b1f5bac41f0dac2b84cd8913b6c2751902",
+  "candidate_sha256": "5437d480e7a77e9d364d55e265b960a488534b036d32b26bf349e6ded290b2ae",
+  "production_delta": [
+    "scripts/combat/castle_armor_visual.gd"
+  ],
+  "checks": {
+    "errors": [],
+    "graphics": true,
+    "passed": true,
+    "scope": "Real NPC rig/move_and_slide; canonical crouch pose sampled onto NPC (no NPC crouch AI); injected contacts via production resolver; corpse removal+normal spawn tests new generation (no automatic respawn timer). No FPS acceptance.",
+    "tiers": [
+      {
+        "covered": {
+          "loss": 3.53493187856125,
+          "normalized": "(0.0, 0.0, -1.0)",
+          "part": "chest",
+          "point": "(7.900135, 0.864483, 947.6282)"
+        },
+        "crouch_sample_valid": true,
+        "exposed": {
+          "loss": 6.28954724308981,
+          "normalized": "(0.0, -0.9, -1.0)",
+          "part": "head",
+          "point": "(7.900135, 1.480315, 947.6619)"
+        },
+        "tier": "light",
+        "visual_count": 13,
+        "walk_distance": 0.99277400970459
+      },
+      {
+        "covered": {
+          "loss": 2.438199482145,
+          "normalized": "(0.0, 0.0, -1.0)",
+          "part": "chest",
+          "point": "(7.900135, 0.864483, 947.6282)"
+        },
+        "crouch_sample_valid": true,
+        "exposed": {
+          "loss": 6.42817721345219,
+          "normalized": "(0.0, -0.9, -1.0)",
+          "part": "head",
+          "point": "(7.900135, 1.480315, 947.6619)"
+        },
+        "tier": "medium",
+        "visual_count": 15,
+        "walk_distance": 0.99277400970459
+      },
+      {
+        "covered": {
+          "loss": 0.707219225591203,
+          "normalized": "(0.0, 0.0, -1.0)",
+          "part": "chest",
+          "point": "(7.930274, 0.864483, 947.6354)"
+        },
+        "crouch_sample_valid": true,
+        "exposed": {
+          "loss": 6.42936506242074,
+          "normalized": "(0.0, -0.9, -1.0)",
+          "part": "head",
+          "point": "(7.930274, 1.480315, 947.6691)"
+        },
+        "tier": "heavy",
+        "visual_count": 23,
+        "walk_distance": 1.02020061016083
+      }
+    ]
+  },
+  "receipt": "run03/SCHEDULER_RUN.json",
+  "defect": "Corpse reparent triggered armor _exit_tree cleanup and removed every equipped piece; reproduced on 3 tiers with screenshots",
+  "fix": "Defer detach cleanup and skip if reentered tree; PREDELETE still releases sibling armor nodes when controller is destroyed",
+  "baseline_evidence": "run02: death_visuals failed for all tiers, stderr0; crouch was an invalid fixture sample with zero delta, corrected for run03. run01 had missing swept points and is excluded",
+  "limitations": [
+    "Crouch uses canonical posture sampler on actual NPC rig, not NPC crouch AI",
+    "Contacts injected through production resolver, not natural player swing",
+    "Death observed at transition after 4 physics frames, not long corpse settle",
+    "Respawn is explicit removal plus normal spawn, not automatic timer",
+    "Functional graphical run only, no FPS acceptance",
+    "Based on combined40-gates01; newer combat02 requires coordinator merge verification"
+  ],
+  "integration": "Coordinator32 applies only armor_lifecycle40.patch, shared source untouched"
+}

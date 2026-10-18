@@ -23,7 +23,7 @@ func install(_castle: Node3D) -> Dictionary:
 	_installed = true
 	_rng.seed = SEED
 	_make_resources()
-	_stats = {"carts": 0, "tents": 0, "barriers": 0, "watchtowers": 0, "trees": 0, "crates": 0, "barrels": 0, "shields": 0, "firepits": 0, "stone_piles": 0, "smoke_plumes": 0, "stones": 0, "grass": 0, "mesh_instances": 0, "mesh_pieces": 0, "colliders": 0, "breakable_groups": 0, "batches_by_z_sector": {}}
+	_stats = {"carts": 0, "tents": 0, "barriers": 0, "watchtowers": 0, "trees": 0, "crates": 0, "barrels": 0, "shields": 0, "firepits": 0, "stone_piles": 0, "smoke_plumes": 0, "stones": 0, "grass": 0, "brush": 0, "mesh_instances": 0, "mesh_pieces": 0, "colliders": 0, "breakable_groups": 0, "batches_by_z_sector": {}}
 	_build_siege_line()
 	_build_camp()
 	_build_active_siege()
@@ -71,6 +71,23 @@ func _make_resources() -> void:
 	var box := BoxMesh.new()
 	box.size = Vector3.ONE
 	_meshes["box"] = box
+	# Six triangles form a bent, tapered leaf with both visible sides. The old
+	# thin box blades read as upright sticks and used twelve triangles each.
+	var leaf_tool := SurfaceTool.new()
+	leaf_tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var blade_left := Vector3(-0.5, 0, 0)
+	var blade_right := Vector3(0.5, 0, 0)
+	var leaf_left := Vector3(-0.26, 0.56, 0.03)
+	var leaf_right := Vector3(0.26, 0.56, 0.03)
+	var leaf_tip := Vector3(0.06, 1.0, 0.10)
+	for triangle: Array in [[blade_left, blade_right, leaf_right],
+			[blade_left, leaf_right, leaf_left], [leaf_left, leaf_right, leaf_tip]]:
+		for vertex: Vector3 in triangle:
+			leaf_tool.add_vertex(vertex)
+		for reverse_index: int in [2, 1, 0]:
+			leaf_tool.add_vertex(triangle[reverse_index])
+	leaf_tool.generate_normals()
+	_meshes["grass_blade"] = leaf_tool.commit()
 	var drum := CylinderMesh.new()
 	drum.top_radius = 0.5
 	drum.bottom_radius = 0.5
@@ -153,7 +170,15 @@ func _piece(mesh: String, material: String, pos: Vector3, size: Vector3, rotatio
 	var lift := float(_groups[group]["ground_offset"]) if group != "" and _groups.has(group) else _terrain_y(pos.x, pos.z)
 	# Rotate *after* local scaling. Global scaling flattened wagon wheels and roof slopes.
 	var xf := Transform3D(Basis.from_euler(rotation) * Basis().scaled(size), pos + Vector3.UP * lift)
-	(_pending[key]["parts"] as Array).append({"xf": xf, "group": group, "color": (_materials[material] as StandardMaterial3D).albedo_color})
+	var tint: Color = (_materials[material] as StandardMaterial3D).albedo_color
+	# Per-instance weathering preserves the shared material and draw batches.
+	if material in ["oak", "oak_edge", "char", "canvas", "canvas_dark"]:
+		var grain := sin(pos.x * 17.17 + pos.y * 3.91 + pos.z * 9.73)
+		var wear := 0.88 + 0.12 * grain
+		if group.begins_with("palisade_") or group.begins_with("tree_"):
+			wear *= 0.80
+		tint = Color(tint.r * wear, tint.g * wear, tint.b * wear, tint.a)
+	(_pending[key]["parts"] as Array).append({"xf": xf, "group": group, "color": tint})
 	_stats["mesh_pieces"] += 1
 
 func _box(material: String, pos: Vector3, size: Vector3, rotation := Vector3.ZERO, group := "", no_shadow := false) -> void:
@@ -480,12 +505,16 @@ func _build_tent(p: Vector3, id: String) -> void:
 		for x in [-2.90, 2.90]:
 			# Tie the roof slope to the existing peg instead of tilting a loose rod.
 			var roof_tie := Vector3(x, 3.72 - 3.4 * 1.95 / 2.58, side * 1.95)
-			var peg_tie := Vector3(x, 0.28, side * 3.55)
+			var peg_on_ground: Vector3 = p + b * Vector3(x, 0.0, side * 3.55)
+			var peg_offset: float = _terrain_y(peg_on_ground.x, peg_on_ground.z) - \
+				float(_groups[id]["ground_offset"]) - 0.02
+			var peg_tie := Vector3(x, 0.28 + peg_offset, side * 3.55)
 			var rope_delta := b * (roof_tie - peg_tie)
 			var rope_rotation := Basis(Quaternion(Vector3.UP, rope_delta.normalized())).get_euler()
 			_box("rope", p + b * (roof_tie + peg_tie) * 0.5,
 				Vector3(0.055, rope_delta.length(), 0.055), rope_rotation, id)
-			_piece("cone", "oak_edge", p + b * Vector3(x, 0.16, side * 3.55), Vector3(0.14, 0.32, 0.14), Vector3.ZERO, id)
+			_piece("cone", "oak_edge", p + b * Vector3(x, 0.16 + peg_offset, side * 3.55),
+				Vector3(0.14, 0.32, 0.14), Vector3.ZERO, id)
 	_box("oak_edge", p + Vector3.UP * 3.72, Vector3(6.2, 0.09, 0.09), Vector3(0, yaw, 0), id)
 	for side in [-1.0, 1.0]:
 		_box("oak", p + b * Vector3(side * 3.02, 1.85, 0), Vector3(0.11, 3.70, 0.11), Vector3.ZERO, id)
@@ -721,11 +750,58 @@ func _build_terrain_dressing() -> void:
 		var s := _rng.randf_range(0.19, 0.48)
 		for j in 2:
 			var rotation := Vector3(0, _rng.randf_range(0, TAU), _rng.randf_range(-0.4, 0.4))
-			# Match the rotated blade's lower edge to terrain, with a small buried root.
-			var half_height := (s * absf(cos(rotation.z)) + 0.035 * absf(sin(rotation.z))) * 0.5
-			var blade := Vector3(p.x + j * 0.08, half_height - 0.015, p.z)
-			_box("grass_dry" if i % 3 else "grass", blade, Vector3(0.035, s, 0.018), rotation, "", true)
+			# Use the existing tapered leaf batch, not a twelve-triangle box.
+			var blade := Vector3(p.x + j * 0.08, -0.015, p.z)
+			_piece("grass_blade", "grass_dry" if i % 3 else "grass", blade,
+				Vector3(0.07, s, 0.07), rotation, "", true)
 		_stats["grass"] += 1
+	# Surviving grass gathers in ragged patches between the three battle routes.
+	# These short crossed blades share the existing box/vegetation MultiMesh;
+	# no new colliders, shadow pass or draw family is introduced.
+	var foliage_rng := RandomNumberGenerator.new()
+	foliage_rng.seed = SEED + 528
+	for i: int in 1050:
+		var x := foliage_rng.randf_range(-86.0, 86.0)
+		var z := foliage_rng.randf_range(98.0, 244.0)
+		var side_x := absf(x)
+		if side_x < 11.5 or absf(side_x - 48.0) < 6.0:
+			continue
+		if z < 116.0 and side_x < 21.0:
+			continue
+		if z > 188.0 and side_x > 28.0 and side_x < 80.0 and foliage_rng.randf() < 0.48:
+			continue
+		var patch := 0.5 + 0.5 * sin(x * 0.18 + z * 0.15) * sin(z * 0.21 - x * 0.08)
+		if foliage_rng.randf() > 0.28 + 0.65 * patch:
+			continue
+		var tuft_size := foliage_rng.randf_range(0.28, 0.58)
+		for blade_index: int in 4:
+			var angle := foliage_rng.randf_range(0.0, TAU)
+			var height := tuft_size * foliage_rng.randf_range(0.72, 1.25)
+			var tilt := foliage_rng.randf_range(-0.38, 0.38)
+			var blade := Vector3(x + cos(angle) * 0.14, -0.025,
+				z + sin(angle) * 0.14)
+			_piece("grass_blade", "grass" if i % 4 == 0 else "grass_dry", blade,
+				Vector3(0.14, height, 0.12), Vector3(0, angle, tilt), "", true)
+		_stats["grass"] += 1
+	# Low dry scrub and cut stems give the margins an uneven player-height
+	# silhouette. They are nonblocking dressing, never placed in attack lanes.
+	for i: int in 110:
+		var x := foliage_rng.randf_range(-85.0, 85.0)
+		var z := foliage_rng.randf_range(126.0, 242.0)
+		var side_x := absf(x)
+		if side_x < 15.0 or absf(side_x - 48.0) < 8.0:
+			continue
+		if z > 190.0 and side_x > 29.0 and side_x < 80.0 and foliage_rng.randf() < 0.65:
+			continue
+		for stem_index: int in 7:
+			var angle := float(stem_index) * TAU / 7.0 + foliage_rng.randf_range(-0.18, 0.18)
+			var height := foliage_rng.randf_range(0.44, 0.87)
+			var tilt := foliage_rng.randf_range(-0.48, 0.48)
+			var stem := Vector3(x + cos(angle) * 0.23, -0.028,
+				z + sin(angle) * 0.23)
+			_piece("grass_blade", "grass_dry" if stem_index % 3 else "grass", stem,
+				Vector3(0.21, height, 0.14), Vector3(0, angle, tilt), "", true)
+		_stats["brush"] += 1
 
 func _build_tree(p: Vector3, id: String) -> void:
 	var tall := _rng.randf_range(5.8, 8.1)
