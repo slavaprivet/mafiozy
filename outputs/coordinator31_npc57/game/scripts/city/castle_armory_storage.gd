@@ -671,6 +671,7 @@ func drop_held(prefer_shield: bool = false) -> Dictionary:
 				return {"ok": false, "reason": "physical_drop_failed"}
 			var stowed: Dictionary = weapons.equip("none")
 			if not bool(stowed.get("ok", false)):
+				sword_host.cancel_ground_drop31()
 				_busy = false
 				return stowed
 			_carried.erase(id)

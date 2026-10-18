@@ -1230,6 +1230,19 @@ func drop_sword_to_ground() -> bool:
 	print("DSH_SWORD_PROTO_DROPPED at=", at, " ground_swords=", _ground_swords.size())
 	return true
 
+## Roll back a physical drop if the inventory handoff refuses to stow the item.
+## Both operations are synchronous, so no physics frame observes this state.
+func cancel_ground_drop31() -> bool:
+	if not _sword_grounded or not is_instance_valid(_sword): return false
+	_ground_swords.erase(_sword)
+	_sword_grounded = false
+	_dropped_at = Vector3.ZERO
+	if not _selected: set_selected(true)
+	_sword.visible = true
+	_reset_contact_plane()
+	_update_hint()
+	return true
+
 ## Distance at which a sword on the ground can be reached.
 const GROUND_PICKUP_RANGE := 2.4
 
@@ -1305,19 +1318,28 @@ func try_pickup_sword(allow_inactive: bool = false) -> bool:
 	if _shield_worn and WEAPONS.has(pickup_id) and str(WEAPONS[pickup_id].get("grip", "")) == "two":
 		print("DSH_SWORD_PROTO_PICKUP_REFUSED reason=shield_occupies_right_hand")
 		return false
+	# Validate the physical model before the ledger changes. Equipping through
+	# storage can fail (for example, a menu or presentation transition), so it
+	# must finish before the ground node/model is removed from world ownership.
+	var pickup_model: Node3D = _sword if taken_own else _take_sword_model(node)
+	if not is_instance_valid(pickup_model):
+		print("DSH_SWORD_PROTO_PICKUP_REFUSED reason=bad_model")
+		return false
+	if is_instance_valid(storage) and storage.has_method("adopt_ground_melee31"):
+		var adopted: Dictionary = storage.adopt_ground_melee31(pickup_id, previous_id, previous_empty,
+			foreign_sword, pickup_model)
+		if not bool(adopted.get("ok", false)):
+			print("DSH_SWORD_PROTO_PICKUP_REFUSED reason=", adopted.get("reason", "adopt_failed"))
+			return false
 	_ground_swords.erase(node)
 	if stamp != "" and stamp != _weapon_id:
-		if not set_weapon(stamp):
-			_register_ground_sword(node)
-			return false
+		# The known ID and shield policy were checked above; set_weapon is now
+		# only a local model switch after storage accepted the same weapon.
+		set_weapon(stamp)
 	if not taken_own:
 		# A knight's sword: hold its model, and leave the player's own sword lying
 		# where it fell so it can still be collected later.
-		var model := _take_sword_model(node)
-		if model == null:
-			_register_ground_sword(node)
-			print("DSH_SWORD_PROTO_PICKUP_REFUSED reason=bad_model")
-			return false
+		var model := pickup_model
 		if model == node:
 			model.reparent(_world, true)
 		else:
@@ -1335,12 +1357,6 @@ func try_pickup_sword(allow_inactive: bool = false) -> bool:
 	if is_instance_valid(_sword):
 		_sword.visible = true
 		_sword.global_transform = _place_basis(_player.global_position + Vector3.UP * 1.2, _dir)
-	if is_instance_valid(storage) and storage.has_method("adopt_ground_melee31"):
-		var adopted: Dictionary = storage.adopt_ground_melee31(pickup_id, previous_id, previous_empty,
-			foreign_sword, _sword)
-		if not bool(adopted.get("ok", false)):
-			print("DSH_SWORD_PROTO_PICKUP_REFUSED reason=", adopted.get("reason", "adopt_failed"))
-			return false
 	_update_hint()
 	print("DSH_SWORD_PROTO_PICKED distance=", found.get("distance", 0.0), " own=", taken_own,
 		" ground_swords=", _ground_swords.size())
