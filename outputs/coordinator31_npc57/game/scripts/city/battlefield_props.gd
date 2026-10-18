@@ -270,7 +270,7 @@ func _build_cart(p: Vector3, yaw: float, id: String, broken := false) -> void:
 		for i in 5:
 			var xp := _rng.randf_range(-1.35, 1.35)
 			var zp := _rng.randf_range(-0.55, 0.55)
-			_build_crate(p + b * Vector3(xp, 1.15, zp), 0.47, "cart_crate_%d" % i, false)
+			_build_crate(p + b * Vector3(xp, 1.15, zp), 0.47, "cart_crate_%d" % i, false, id)
 		_piece("drum", "canvas_dark", p + b * Vector3(-0.65, 1.54, 0.20), Vector3(0.66, 1.55, 0.66), Vector3(0, yaw, PI * 0.5), id)
 		# The rolled canvas axis is local X after the quarter-turn around Z.
 		for dx in [-0.28, 0.28]:
@@ -432,14 +432,15 @@ func _build_banner(p: Vector3, cloth := "red") -> void:
 	_box(cloth, p + Vector3(0.87, 3.28, 0), Vector3(1.72, 1.74, 0.055), Vector3(0, 0, 0.08))
 	_box("red_edge", p + Vector3(0.55, 2.87, 0.035), Vector3(1.0, 0.10, 0.028))
 
-func _build_crate(p: Vector3, size: float, id: String, collider := true) -> void:
+func _build_crate(p: Vector3, size: float, id: String, collider := true, owner_group := "") -> void:
 	if collider:
 		_group(id, p, 25.0, "wood", Vector3.ONE * size)
 	var half := size * 0.5
-	_box("oak", p + Vector3.UP * half, Vector3(size, size, size), Vector3.ZERO, id if collider else "")
+	var group := id if collider else owner_group
+	_box("oak", p + Vector3.UP * half, Vector3(size, size, size), Vector3.ZERO, group)
 	for side in [-1.0, 1.0]:
-		_box("oak_edge", p + Vector3(0, half, side * half), Vector3(size * 0.92, size * 0.09, size * 0.08), Vector3(0, 0, 0.58), id if collider else "")
-		_box("iron", p + Vector3(side * half, half, 0), Vector3(size * 0.045, size * 0.90, size * 0.045), Vector3.ZERO, id if collider else "")
+		_box("oak_edge", p + Vector3(0, half, side * half), Vector3(size * 0.92, size * 0.09, size * 0.08), Vector3(0, 0, 0.58), group)
+		_box("iron", p + Vector3(side * half, half, 0), Vector3(size * 0.045, size * 0.90, size * 0.045), Vector3.ZERO, group)
 	_stats["crates"] += 1
 
 func _build_barrel(p: Vector3, size: float, id: String) -> void:
