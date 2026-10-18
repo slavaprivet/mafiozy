@@ -41,14 +41,18 @@ static func resolve(equipment: Dictionary, part: String, kind: String,
 	var base := part
 	if base.ends_with("_l") or base.ends_with("_r"):
 		base = base.substr(0, base.length() - 2)
-	# Visor, neck, inner elbow, armpit, groin, rear knee, ankle and wrist remain
+	# Two real visor apertures, neck, inner elbow, armpit, groin, rear knee,
+	# ankle and wrist remain
 	# physical openings. The contact coordinate, not an RNG roll, selects them.
 	var seam := false
 	var skin := false
 	match base:
 		"head":
 			skin = p.y < -0.77
-			seam = p.z < -0.70 and absf(p.x) < 0.42 and absf(p.y) < 0.24
+			# Heavy helmet has a solid central nose; each eye opening lies to
+			# either side, above it, on the bone-local +Z face.
+			seam = p.z > 0.70 and absf(p.x) > 0.40 and absf(p.x) < 0.96 \
+				and p.y > 0.43 and p.y < 0.78
 		"chest":
 			seam = absf(p.x) > 0.78 or p.y < -0.75 or p.y > 0.83
 		"pelvis":
@@ -57,12 +61,15 @@ static func resolve(equipment: Dictionary, part: String, kind: String,
 		"upperarm", "forearm":
 			seam = absf(p.y) > 0.73 or p.z > 0.68
 		"hand":
-			skin = p.y < -0.78 or p.z > 0.78
-			seam = absf(p.x) > 0.80
+			# Closed gloves cover the fist and fingers on +Y. The forearm
+			# lies toward -Y in hand-local coordinates; that cuff is a joint.
+			seam = absf(p.x) > 0.80 or p.y < -0.72
 		"thigh", "shin":
 			seam = absf(p.y) > 0.76 or p.z > 0.72
 		"foot":
-			skin = p.y > 0.82
+			# Foot-local +Y points toward the toe, which the boot covers.
+			# The actual ankle is above/outside this foot box and is tested
+			# through the lower shin joint instead.
 			seam = absf(p.x) > 0.86
 	if skin:
 		result.region = "skin"
@@ -90,3 +97,13 @@ static func movement_multiplier(equipment: Dictionary) -> float:
 		var tier := tier_of(str(equipment.get(slot, "")), slot)
 		if tier != "": value += float(SLOT_WEIGHT[slot]) * (float(TIER_MOBILITY[tier]) - 1.0)
 	return clampf(value, 0.76, 1.06)
+
+## Residual trauma still reduces health when steel turns the edge. Blood and
+## severing need tissue penetration. 14 damage is a decisive point; a broad
+## edge needs twice that residual energy to break a plate seam or rivet.
+static func tissue_penetrates(region: String, kind: String, residual_damage: float) -> bool:
+	if region in ["skin", "joint", "cloth", "mail"]: return true
+	if region != "plate": return false
+	if kind == "stab": return residual_damage >= 14.0
+	if kind == "slice": return residual_damage >= 28.0
+	return false

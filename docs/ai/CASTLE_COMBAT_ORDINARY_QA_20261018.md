@@ -19,3 +19,9 @@ Exact-main plus this one-line candidate: `D:/MafioziCastle31/qa/focus_graphical0
 The scene's initial 400-frame position correction can return a player who moves more than 25 m from the spawn. The spear fixture waited for it to end naturally; the map owner is preparing a separate real-input fix. No claim of general FPS acceptance or final armor22 acceptance is made here.
 
 The ordinary sword swing generated 490 collision rays but did not hit the target; this is not body-contact acceptance. A separate medium_head stand attempt was obstructed before reaching the target and remains an armor-owner follow-up, outside the focus-distance fix. Bow ordinary-input validation is still in progress at this checkpoint.
+
+## Follow-up completed before Armor22 publication
+
+Ordinary bow input PASS: D:/MafioziCastle31/main1c4e4c60/bow_real_input09/result.json. Normal Q selections, natural NPC bind, RMB draw/LMB release; real chest hit HP100 to81.078178, arrow sticks, no repeated damage after20ticks. This sequence starts with sword selection and does not certify direct bow-first world simulation.
+
+Controlled steel-contact PASS: D:/MafioziCastle31/qa/controlled_contact01. Visible blade transformation and real sweep, without direct damage helper: weak head contact HP48.54/no sever; strong head contact lethal sever; fallen forearm cut. This supplements, but does not replace, natural mouse swing acceptance.

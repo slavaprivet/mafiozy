@@ -1,6 +1,7 @@
 extends Node3D
 const ModelFinish31 = preload("res://scripts/weapons/weapon_model_finish31.gd")
 const ArmorDamage31 = preload("res://scripts/combat/armor_damage31.gd")
+const CastleArmorVisual31 = preload("res://scripts/combat/castle_armor_visual.gd")
 ## DSH_SWORD_PROTO (prototype only): mouse-driven heavy sword play inspired by
 ## Half Sword. Hold LMB and move the mouse to steer the blade (left/right/up/down
 ## and diagonals); the camera does NOT turn while the blade is steered. The blade
@@ -2349,7 +2350,8 @@ func _thrown_spear_hit_npc(part: String, point: Vector3, normal: Vector3, veloci
 		_scuff_knight_plate(part, speed)
 	else:
 		_play_melee_hit31(point, "flesh", clampf(wound / DAMAGE_MAX, 0.0, 1.0))
-	_npc_take_blade_part(part, point, speed, direction, wound)
+	var penetrates: bool = ArmorDamage31.tissue_penetrates(str(protection.region), "stab", wound)
+	_npc_take_blade_part(part, point, speed, direction, wound, false, penetrates)
 	var base_part := part
 	if base_part.ends_with("_l") or base_part.ends_with("_r"):
 		base_part = base_part.substr(0, base_part.length() - 2)
@@ -3467,6 +3469,45 @@ func _register_clash(at: Vector3) -> void:
 ## Damage to the player: goes through the session health owner when present, so
 ## the ordinary HUD reacts, with a local sparring counter as a fallback.
 var _npc_armor_loadout31: Dictionary = {}
+var _npc_armor_visual31: Node3D
+
+## Equipment and rendered pieces commit together. The default peasant remains bare.
+func set_npc_armor31(loadout: Dictionary) -> Dictionary:
+	if not is_instance_valid(_npc_rig) or not is_instance_valid(_npc_body):
+		return {"ok": false, "reason": "npc_not_spawned"}
+	for slot: Variant in loadout:
+		if not slot is String or not ArmorDamage31.SLOT_WEIGHT.has(slot):
+			return {"ok": false, "reason": "slot", "slot": slot}
+		if ArmorDamage31.tier_of(str(loadout[slot]), str(slot)) == "":
+			return {"ok": false, "reason": "item_id", "slot": slot}
+	if not is_instance_valid(_npc_armor_visual31):
+		var visual := CastleArmorVisual31.new()
+		visual.name = "CastleArmorVisualNPC"
+		_npc_body.add_child(visual)
+		var configured: Dictionary = visual.configure(_npc_rig, _npc_body)
+		if not bool(configured.get("ok", false)):
+			visual.queue_free()
+			return {"ok": false, "reason": "visual_configure", "detail": configured}
+		visual.reset_severed()
+		_npc_armor_visual31 = visual
+	var prior: Dictionary = _npc_armor_loadout31.duplicate()
+	for slot: String in ArmorDamage31.SLOT_WEIGHT:
+		var target_id := str(loadout.get(slot, ""))
+		var applied: Dictionary = _npc_armor_visual31.set_armor(slot, target_id)
+		if not bool(applied.get("ok", false)):
+			for restore_slot: String in ArmorDamage31.SLOT_WEIGHT:
+				_npc_armor_visual31.set_armor(restore_slot, str(prior.get(restore_slot, "")))
+			return {"ok": false, "reason": "visual_set", "detail": applied}
+	for lost_part: String in _npc_severed.keys():
+		_npc_armor_visual31.on_severed(lost_part)
+	_npc_armor_loadout31 = loadout.duplicate()
+	return {"ok": true, "equipped": _npc_armor_loadout31.duplicate(),
+		"visual": _npc_armor_visual31.snapshot()}
+
+func npc_armor_snapshot31() -> Dictionary:
+	return _npc_armor_loadout31.duplicate()
+
+
 
 func _player_armor_snapshot31() -> Dictionary:
 	var controller := _world.get_node_or_null("CastleArmorEquipment") if is_instance_valid(_world) else null
@@ -3489,9 +3530,17 @@ func _armor_point31(rig: Skeleton3D, bone_name: String, world_point: Vector3,
 	var index := rig.find_bone(bone_name)
 	if index < 0: return Vector3.ZERO
 	var bone_world := rig.global_transform * rig.get_bone_global_pose(index)
-	var local := bone_world.affine_inverse() * world_point
-	var radius := maxf(0.11, rig.global_basis.get_scale().x * 0.20)
-	return local / radius
+	# The player has a broad capsule, not per-limb hitboxes. Convert the true
+	# capsule contact into an orthonormal WORLD-space bone frame; using the
+	# scaled inverse made every chest contact a phantom lower-edge seam.
+	var local := bone_world.basis.orthonormalized().inverse() * (world_point - bone_world.origin)
+	var half := Vector3(0.18, 0.22, 0.18)
+	if bone_name in ["chest", "spine_01", "pelvis"]: half = Vector3(0.43, 0.30, 0.43)
+	elif bone_name in ["head", "neck"]: half = Vector3(0.25, 0.29, 0.25)
+	elif bone_name.begins_with("thigh"): half = Vector3(0.22, 0.29, 0.22)
+	elif bone_name.begins_with("hand") or bone_name.begins_with("foot"):
+		half = Vector3(0.15, 0.18, 0.15)
+	return Vector3(local.x / half.x, local.y / half.y, local.z / half.z)
 
 var _last_player_hit_ms := -1000
 var _player_death_physics31: Dictionary = {}
@@ -3519,9 +3568,11 @@ func _apply_player_damage(amount: float, at: Vector3, direction: Vector3, kind: 
 	var contact := _armor_point31(_rig, str(struck.sever), at)
 	var protection := ArmorDamage31.resolve(_player_armor_snapshot31(), str(struck.key), kind, amount, contact)
 	amount = float(protection.damage)
-	var penetrates: bool = protection.region in ["skin", "joint", "cloth", "mail"] or (kind == "stab" and amount >= 14.0)
+	var penetrates: bool = ArmorDamage31.tissue_penetrates(str(protection.region), kind, amount)
+	# Plate still transfers trauma into the local part without making an
+	# open wound or severing a limb.
+	_player_take_blade(amount, at, direction, kind == "slice" and penetrates)
 	if penetrates:
-		_player_take_blade(amount, at, direction, kind == "slice")
 		_play_melee_hit31(at, "flesh", clampf(amount / DAMAGE_MAX, 0.0, 1.0))
 	elif protection.tier != "":
 		_play_melee_hit31(at, "metal", clampf(amount / DAMAGE_MAX, 0.1, 1.0))
@@ -4018,8 +4069,9 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 				npc_cut = _impact_damage31(speed * 0.6, strength, kind)
 				var contact := _armor_point31(_npc_rig, npc_part, position, collider)
 				var incidence := clampf(-motion.normalized().dot(normal), 0.0, 1.0)
+				var attack_kind := "blunt" if _weapon_crush else kind
 				var protection := ArmorDamage31.resolve(_npc_armor_loadout31, npc_part,
-					"blunt" if _weapon_crush else kind, npc_cut, contact, incidence)
+					attack_kind, npc_cut, contact, incidence)
 				var factor := float(protection.factor)
 				if _weapon_id == "sword" and kind == "flat": factor *= 0.12
 				if _half_sword:
@@ -4030,7 +4082,8 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 					elif kind != "stab":
 						factor *= HALF_SWORD_CUT
 				var wound := _npc_heavy_head_damage31(npc_part, speed, strength, kind, npc_cut * factor, str(protection.region))
-				var rang_off_plate: bool = protection.region == "plate" and factor < 0.9
+				var penetrates: bool = ArmorDamage31.tissue_penetrates(str(protection.region), attack_kind, wound)
+				var rang_off_plate: bool = protection.region == "plate" and not penetrates
 				# DSH_ANIM: a blow that bites jolts the body; one that rings off plate
 				# jolts it less, which is a real difference in how the two feel.
 				register_impact_jolt(0.45 if rang_off_plate else 0.8)
@@ -4040,11 +4093,14 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 					_spark_burst(position, -motion.normalized(), 8)
 					_play_melee_hit31(position, "metal", clampf(npc_cut / DAMAGE_MAX, 0.2, 1.0))
 					_scuff_knight_plate(npc_part, npc_cut)
-					if wound > 0.05: _npc_take_blade_part(npc_part, position, speed, motion, wound, _npc_can_sever_contact31(kind, speed, wound))
+					if wound > 0.05:
+						_npc_take_blade_part(npc_part, position, speed, motion, wound,
+							_npc_can_sever_contact31(attack_kind, speed, wound) and penetrates, penetrates)
 				else:
 					_play_melee_hit31(position, "flesh", clampf(wound / DAMAGE_MAX, 0.0, 1.0))
 					if wound > 0.05:
-						_npc_take_blade_part(npc_part, position, speed, motion, wound, _npc_can_sever_contact31(kind, speed, wound))
+						_npc_take_blade_part(npc_part, position, speed, motion, wound,
+							_npc_can_sever_contact31(attack_kind, speed, wound) and penetrates, penetrates)
 			else:
 				_play_melee_hit31(position, "flesh", clampf(npc_cut / DAMAGE_MAX, 0.0, 1.0))
 				if npc_cut > 0.05:
@@ -4616,9 +4672,11 @@ func _add_npc_hitboxes() -> void:
 		var box_size := Vector3.ZERO
 		var box_at := Vector3(0.0, blen * 0.5, 0.0)
 		if part == "head":
-			blen = unit * 0.55
-			radius = unit * 0.32
-			box_size = Vector3(radius * 2.1, blen * 1.15, radius * 2.1)
+			# The original thigh-derived .396 x .373 box misses the resident's
+			# visible eyes and helmet apertures. Preserve the per-bone hitbox and
+			# physics exceptions, but fit the actual head/visor silhouette.
+			box_size = Vector3(unit * 1.42, unit * 1.42, unit * 1.25)
+			box_at = Vector3(0.0, blen * 0.55, 0.0)
 		elif part == "chest":
 			# Torso: a big box centred on the chest bone, not a limb along it.
 			box_size = Vector3(unit * 1.55, unit * 1.45, unit * 0.95)
@@ -4676,7 +4734,8 @@ func _npc_can_sever_contact31(kind: String, speed: float, wound: float) -> bool:
 	return not _weapon_crush and kind == "slice" and speed >= 3.2 and wound >= 8.0
 
 ## Damage a named part directly (used by the tagged limb hit boxes).
-func _npc_take_blade_part(full_key: String, point: Vector3, speed: float, direction: Vector3, damage: float, sever_contact: bool = false) -> void:
+func _npc_take_blade_part(full_key: String, point: Vector3, speed: float, direction: Vector3,
+		damage: float, sever_contact: bool = false, penetrates: bool = true) -> void:
 	if _npc_severed.has(full_key): return
 	if damage <= 0.05: return
 	var kind := full_key
@@ -4692,29 +4751,32 @@ func _npc_take_blade_part(full_key: String, point: Vector3, speed: float, direct
 		_npc_state = "recover"
 		_npc_timer = 0.0
 		_npc_blade_prev = PackedVector3Array()
-	_spray_blood(point, direction, 2 if damage < 3.0 else (10 if damage < 20.0 else 24))
-	# A wound keeps bleeding for a while, like a stream rather than one puff.
-	_npc_bleed_until_ms = max(_npc_bleed_until_ms, Time.get_ticks_msec() + (600 if damage < 3.0 else 2600))
-	_npc_bleed_at = point
-	_npc_bleed_local = _npc_body.to_local(point)
+	if penetrates:
+		_spray_blood(point, direction, 2 if damage < 3.0 else (10 if damage < 20.0 else 24))
+		# A wound keeps bleeding for a while, like a stream rather than one puff.
+		_npc_bleed_until_ms = max(_npc_bleed_until_ms, Time.get_ticks_msec() + (600 if damage < 3.0 else 2600))
+		_npc_bleed_at = point
+		_npc_bleed_local = _npc_body.to_local(point)
 	_npc_pain_until_ms = max(_npc_pain_until_ms, Time.get_ticks_msec() +
 		(1200 if damage >= 20.0 else (650 if damage >= 3.0 else 160)))
 	if float(_npc_part_hp[full_key]) > 0.0: return
 	# Vital tissue can fail from a blunt blow, a thrust, or cumulative wounds.
 	# Separation is a separate event: only a fast slicing contact may sever.
 	if kind in ["chest", "pelvis"] or (kind == "head" and not sever_contact):
-		_npc_die_from_vital_wound31(point, direction, speed)
-	if kind in ["chest", "pelvis"] or not sever_contact: return
+		_npc_die_from_vital_wound31(point, direction, speed, penetrates)
+	if kind in ["chest", "pelvis"] or not sever_contact or not penetrates: return
 	_sever_part(full_key, kind, {"sever": full_key}, point, direction, speed)
 
-func _npc_die_from_vital_wound31(point: Vector3, direction: Vector3, speed: float) -> void:
+func _npc_die_from_vital_wound31(point: Vector3, direction: Vector3, speed: float,
+		bleeds: bool = true) -> void:
 	if _npc_dead: return
 	_npc_dead = true
 	_npc_disarmed = true
 	_npc_engaged = false
 	_npc_state = "wait"
-	_spray_blood(point, direction, 60)
-	_npc_bleed_until_ms = maxi(_npc_bleed_until_ms, Time.get_ticks_msec() + 4000)
+	if bleeds:
+		_spray_blood(point, direction, 60)
+		_npc_bleed_until_ms = maxi(_npc_bleed_until_ms, Time.get_ticks_msec() + 4000)
 	if is_instance_valid(_npc_sword):
 		_drop_sword(_npc_sword.global_position, direction, speed)
 
@@ -4736,7 +4798,7 @@ func _npc_take_arrow_part(full_key: String, point: Vector3, speed: float,
 	var contact := _armor_point31(_npc_rig, full_key, point, hit_body)
 	var protection := ArmorDamage31.resolve(_npc_armor_loadout31, full_key, "stab", incoming, contact, incidence)
 	var wound := float(protection.damage)
-	var penetrates: bool = protection.region != "plate" or wound >= 14.0
+	var penetrates: bool = ArmorDamage31.tissue_penetrates(str(protection.region), "stab", wound)
 	var result := _npc_take_puncture_part31(full_key, point, speed, direction, wound, 0.06, penetrates)
 	result["region"] = protection.region
 	return result
@@ -5098,6 +5160,19 @@ func _spawn_resident_knight(at: Vector3) -> bool:
 		print("DSH_SWORD_PROTO_NPC rig_count=", rigs.size())
 		body.queue_free()
 		return false
+	# A newly created actor cannot inherit wounds, missing limbs or armour
+	# from an older generation. Its mesh starts whole; equipment is explicit.
+	_npc_severed.clear()
+	_npc_part_hp.clear()
+	_npc_dead = false
+	_npc_disarmed = false
+	_npc_bleed_until_ms = 0
+	_npc_bleed_at = Vector3.ZERO
+	_npc_bleed_local = Vector3.ZERO
+	_npc_bleed_accum = 0.0
+	_npc_armor_loadout31.clear()
+	if is_instance_valid(_npc_armor_visual31): _npc_armor_visual31.queue_free()
+	_npc_armor_visual31 = null
 	_npc_body = body
 	_npc_motion = motion
 	_npc_hull31 = hull
@@ -5699,6 +5774,7 @@ func _sever_part(full_key: String, kind: String, part: Dictionary, point: Vector
 		elif is_instance_valid(_npc_body):
 			embedded.reparent(_npc_body, true)
 	_npc_severed[full_key] = true
+	if is_instance_valid(_npc_armor_visual31): _npc_armor_visual31.on_severed(full_key)
 	_spray_blood(point, direction, 34)
 	_npc_bleed_until_ms = Time.get_ticks_msec() + 6500
 	_npc_bleed_at = point
