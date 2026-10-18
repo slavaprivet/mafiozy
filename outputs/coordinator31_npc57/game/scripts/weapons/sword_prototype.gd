@@ -3905,7 +3905,7 @@ func _sweep(delta: float) -> void:
 	# is resolved: resolving every collider crossed in one frame let a single swing
 	# slice through an arm, a chest and both legs at once, with no resistance.
 	var best_hit: Dictionary = {}
-	var best_distance := INF
+	var best_time := INF
 	var seen: Dictionary = {}
 	# The opponent's steel is a REAL barrier: if our blade meets his anywhere along
 	# the swing, the cut stops there and nothing behind it is reached.
@@ -3917,15 +3917,27 @@ func _sweep(delta: float) -> void:
 		npc_b = npc_a + _npc_sword.global_basis.x.normalized() * (0.06 + _weapon_length)
 		npc_blade_ok = true
 	var clash := false
+	var clash_time := INF
 	var clash_at := Vector3.ZERO
 	for i: int in points.size():
 		var from := _prev_points[i]
 		var to := points[i]
 		if from.distance_squared_to(to) < 1.0e-8: continue
 		if npc_blade_ok and _segment_distance(from, to, npc_a, npc_b) <= BLADE_TOUCH_RADIUS:
-			clash = true
-			clash_at = (from + to) * 0.5
-			break
+			# The closest approach along the whole sweep can occur AFTER a body hit.
+			# Prefix distance is monotone: binary-search the first steel contact.
+			var low := 0.0
+			var high := 1.0
+			for step in 10:
+				var middle := (low + high) * 0.5
+				if _segment_distance(from, from.lerp(to, middle), npc_a, npc_b) <= BLADE_TOUCH_RADIUS:
+					high = middle
+				else:
+					low = middle
+			if high < clash_time:
+				clash = true
+				clash_time = high
+				clash_at = from.lerp(to, high)
 		var query := PhysicsRayQueryParameters3D.create(from, to, 1, excluded)
 		query.hit_from_inside = true
 		var hit := space.intersect_ray(query)
@@ -3935,15 +3947,15 @@ func _sweep(delta: float) -> void:
 		var collider: Variant = hit.get("collider")
 		if not is_instance_valid(collider): continue
 		touched[collider.get_instance_id()] = true
-		# Nearest blade point to the grip meets the surface first.
-		var reach := from.distance_to(hit.position)
-		if reach < best_distance:
-			best_distance = reach
+		# Compare when each blade sample reaches its surface during this tick.
+		var hit_time := clampf(from.distance_to(hit.position) / from.distance_to(to), 0.0, 1.0)
+		if hit_time < best_time:
+			best_time = hit_time
 			best_hit = hit
 			best_hit["_speed"] = from.distance_to(to) / delta
 			best_hit["_velocity"] = (to - from) / delta
 			best_hit["_index"] = i
-	if clash:
+	if clash and (best_hit.is_empty() or clash_time <= best_time + 0.001):
 		# Steel on steel: a small bounce for both blades, and this swing is spent.
 		_register_clash(clash_at)
 		for id: Variant in _contact_prev:
