@@ -1933,6 +1933,11 @@ func _physics_process(delta: float) -> void:
 		if is_instance_valid(_sword): _sword.visible = _sword_grounded
 		_prev_points = PackedVector3Array()
 		_block_push = _block_push.lerp(Vector3.ZERO, clampf(6.0 * delta, 0.0, 1.0))
+		# NPC and airborne weapons are world actors: keep their physics running
+		# while the menu or another weapon owns player input.
+		if not bool(_world.get("preview_dead")):
+			_update_city_npc(delta)
+			_step_thrown(delta)
 		return
 	if not _synthetic_hands:
 		# Real input: the buttons are read from the engine every frame, so a missed

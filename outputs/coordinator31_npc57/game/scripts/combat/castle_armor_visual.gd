@@ -320,8 +320,6 @@ func _build_slot(slot: String, tier: String) -> void:
 			if tier == "heavy":
 				_face_helmet(head)
 				_helmet_side_plates(head)
-				for side: float in [-1.0, 1.0]:
-					_ellipsoid(head, Vector3(side * .66, .40, .25), Vector3(.12, .22, .20), p.main, tier)
 				_shell(head, Vector3(0, .38, -.04), Vector3(.55, .34, .60), 125, 235, -.26, p.main, tier)
 				_crest(head, p.under, tier)
 				_crest_ribs(head)
@@ -334,6 +332,7 @@ func _build_slot(slot: String, tier: String) -> void:
 			var right_sleeve := _skinned_layer(slot, tier, 1.62, 3.45, .075, torso_color, "ArmorTailoredSleeveR", .56, 1.48)
 			if center_layer and left_sleeve and right_sleeve:
 				if tier == "heavy":
+					_royal_fasteners(_anchor(slot, "chest"))
 					for shoulder: String in ["upperarm_l", "upperarm_r"]:
 						var pauldron := _anchor(slot, shoulder)
 						_pauldron_lames(pauldron)
@@ -620,15 +619,18 @@ func _color_cuirass_surface(arrays: Array) -> void:
 	var colors := PackedColorArray()
 	for point: Vector3 in positions:
 		var front := smoothstep(.03, .40, point.z)
+		var pectoral := exp(-pow((absf(point.x) - .25) / .23, 2.0) - pow((point.y - 2.90) / .24, 2.0))
+		var plate := Color(.065, .085, .10).lerp(Color(.13, .16, .18), pectoral * .65)
 		var waist := smoothstep(1.78, 2.18, point.y)
-		var upper := smoothstep(2.33, 2.80, point.y)
-		var plate := Color(.105, .13, .15).lerp(Color(.17, .20, .22), upper * .45)
-		plate *= lerpf(.70, 1.0, waist)
-		var seam := absf(point.y - 2.30) < .055 or absf(point.y - 2.75) < .045
-		if seam: plate *= .58
-		var edge := smoothstep(.38, .62, absf(point.x))
-		plate *= lerpf(1.0, .65, edge)
-		colors.append(Color(.025, .031, .038).lerp(plate, front))
+		plate *= lerpf(.60, 1.0, waist)
+		var arch_y := 2.57 + .22 * pow(absf(point.x) / .55, 1.6)
+		var recess := exp(-pow((point.y - arch_y) / .042, 2.0))
+		plate *= 1.0 - .45 * recess
+		var belt := exp(-pow((point.y - 1.98) / .055, 2.0))
+		plate = plate.lerp(Color(.19, .14, .075), belt * .7)
+		var spine := exp(-pow(point.x / .07, 2.0)) * smoothstep(2.15, 2.55, point.y)
+		plate = plate.lerp(Color(.15, .18, .19), spine * .30)
+		colors.append(Color(.035, .045, .053).lerp(plate, front))
 	arrays[Mesh.ARRAY_COLOR] = colors
 
 func _cuirass_material() -> StandardMaterial3D:
@@ -789,7 +791,7 @@ func _pauldron_lames(anchor: Node3D) -> void:
 			var top := .28 - float(band) * .15
 			var bottom := top - .11
 			var radius := .43 - float(band) * .022
-			var color := Color(.23, .26, .28) if band == 0 else (Color(.17, .20, .22) if band == 1 else Color(.12, .15, .17))
+			var color := Color(.105, .13, .15) if band == 0 else (Color(.075, .095, .11) if band == 1 else Color(.05, .065, .08))
 			for column: int in 16:
 				var a0 := deg_to_rad(-135.0 + float(column) * 16.875)
 				var a1 := deg_to_rad(-135.0 + float(column + 1) * 16.875)
@@ -941,28 +943,6 @@ func _face_helmet(anchor: Node3D) -> void:
 	face.material_override = _material(Color(.075, .095, .108), "heavy")
 	anchor.add_child(face)
 	_forged_brows(anchor)
-	var seams := MeshInstance3D.new()
-	seams.name = "ArmorForgedCheekSeams"
-	if not _mesh_cache.has("forged_cheek_seams_v1"):
-		var seam_surface := SurfaceTool.new()
-		seam_surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-		for side: float in [-1.0, 1.0]:
-			for step: int in 8:
-				var y0 := -.08 + float(step) * .065
-				var y1 := y0 + .065
-				var x0 := side * lerpf(.33, .17, smoothstep(-.08, .44, y0))
-				var x1 := side * lerpf(.33, .17, smoothstep(-.08, .44, y1))
-				var a := _face_point(x0 - .009, y0) + Vector3(0, 0, .013)
-				var b := _face_point(x0 + .009, y0) + Vector3(0, 0, .013)
-				var c := _face_point(x1 - .009, y1) + Vector3(0, 0, .013)
-				var d := _face_point(x1 + .009, y1) + Vector3(0, 0, .013)
-				for point: Vector3 in [a, b, c, b, d, c]: seam_surface.add_vertex(point)
-		seam_surface.generate_normals()
-		_mesh_cache["forged_cheek_seams_v1"] = seam_surface.commit()
-	seams.mesh = _mesh_cache["forged_cheek_seams_v1"]
-	seams.scale = Vector3.ONE * _unit
-	seams.material_override = _material(Color(.045, .06, .07), "heavy")
-	anchor.add_child(seams)
 
 func _forged_brows(anchor: Node3D) -> void:
 	var brows := MeshInstance3D.new()
@@ -987,7 +967,7 @@ func _forged_brows(anchor: Node3D) -> void:
 		_mesh_cache["angled_brows_v22"] = surface.commit()
 	brows.mesh = _mesh_cache["angled_brows_v22"]
 	brows.scale = Vector3.ONE * _unit
-	brows.material_override = _material(Color(.17, .20, .22), "heavy")
+	brows.material_override = _material(Color(.22, .17, .10), "heavy")
 	anchor.add_child(brows)
 
 func _face_point(x: float, y: float) -> Vector3:
@@ -1023,17 +1003,18 @@ func _helmet_side_plates(anchor: Node3D) -> void:
 	anchor.add_child(plates)
 
 func _helmet_side_point(side: float, around: float, height: float) -> Vector3:
-	# The front edge is welded visually to the cheek; the broad middle covers
-	# the ear, and its lower rim climbs diagonally toward the occiput.
-	var lower_y := .12 + .22 * pow(around, 3.0)
+	var lower_y := .12 + .27 * smoothstep(.35, 1.0, around)
 	var y := lerpf(lower_y, .98, height)
 	var front := _face_point(side * lerpf(.50, .56, height), y)
 	var angle := lerpf(deg_to_rad(32.0), deg_to_rad(157.0), around)
-	var taper := lerpf(.82, 1.0, smoothstep(0.0, .42, height))
-	var ear_cover := .18 * exp(-pow((y - .48) / .27, 2.0))
-	var ear_flank := exp(-pow((around - .35) / .22, 2.0)) * exp(-pow((y - .42) / .24, 2.0))
-	var rounded := Vector3(side * (sin(angle) * (.56 + ear_cover) * taper + .17 * ear_flank), y, -.01 + cos(angle) * .64 * taper + .18 * ear_flank)
-	return front.lerp(rounded, smoothstep(.0, .22, around))
+	# A rounded rectangle encloses the measured ears without spherical bulges.
+	var sx := sin(angle)
+	var cz := cos(angle)
+	var width := .78 - .31 * smoothstep(.55, .98, y) - .045 * (1.0 - smoothstep(.12, .24, y))
+	var depth := .65 - .11 * smoothstep(.62, .98, y)
+	var rounded := Vector3(side * width * sqrt(absf(sx)), y,
+		-.01 + signf(cz) * depth * sqrt(absf(cz)))
+	return front.lerp(rounded, smoothstep(.0, .16, around))
 
 func _dome(anchor: Node3D, center: Vector3, radii: Vector3, color: Color, tier: String, front_cut_rows: int = 0) -> void:
 	var key := "dome:" + str(center) + ":" + str(radii) + ":" + str(front_cut_rows)
@@ -1087,14 +1068,27 @@ func _crest(anchor: Node3D, color: Color, tier: String) -> void:
 	for segment: int in 18:
 		var x0 := -.39 + float(segment) * .0433333
 		var x1 := x0 + .0433333
-		var h0 := 1.31 + .43 * sqrt(maxf(0.0, 1.0 - pow(x0 / .42, 2.0)))
-		var h1 := 1.31 + .43 * sqrt(maxf(0.0, 1.0 - pow(x1 / .42, 2.0)))
-		for z: float in [-.052, .052]:
+		var h0 := 1.31 + .68 * sqrt(maxf(0.0, 1.0 - pow(x0 / .42, 2.0)))
+		var h1 := 1.31 + .68 * sqrt(maxf(0.0, 1.0 - pow(x1 / .42, 2.0)))
+		for z: float in [-.095, .095]:
 			var a := Vector3(x0 * .65, 1.09, z)
 			var b := Vector3(x1 * .65, 1.09, z)
 			var c := Vector3(x0, h0, z - .035)
 			var d := Vector3(x1, h1, z - .035)
 			for point: Vector3 in [a, c, b, b, c, d]: surface.add_vertex(point)
+		var ca := Vector3(x0, h0, -.130)
+		var cb := Vector3(x1, h1, -.130)
+		var cc := Vector3(x0, h0, .060)
+		var cd := Vector3(x1, h1, .060)
+		for point: Vector3 in [ca, cc, cb, cb, cc, cd]: surface.add_vertex(point)
+		if segment == 0 or segment == 17:
+			var edge_x := x0 if segment == 0 else x1
+			var edge_y := h0 if segment == 0 else h1
+			var e0 := Vector3(edge_x * .65, 1.09, -.095)
+			var e1 := Vector3(edge_x * .65, 1.09, .095)
+			var e2 := Vector3(edge_x, edge_y, -.130)
+			var e3 := Vector3(edge_x, edge_y, .060)
+			for point: Vector3 in [e0, e2, e1, e1, e2, e3]: surface.add_vertex(point)
 	surface.generate_normals()
 	var plume := MeshInstance3D.new()
 	plume.name = "ArmorDarkFanCrest"
@@ -1114,15 +1108,15 @@ func _crest_ribs(anchor: Node3D) -> void:
 		surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 		for strand: int in 17:
 			var x := -.36 + float(strand) * .045
-			var tip := 1.31 + .43 * sqrt(maxf(0.0, 1.0 - pow(x / .42, 2.0)))
+			var tip := 1.31 + .68 * sqrt(maxf(0.0, 1.0 - pow(x / .42, 2.0)))
 			var base := x * .65
-			var points := [Vector3(base - .008, 1.10, .056), Vector3(base + .008, 1.10, .056), Vector3(x + .006, tip - .025, .025), Vector3(x - .006, tip - .025, .025)]
+			var points := [Vector3(base - .008, 1.10, .105), Vector3(base + .008, 1.10, .105), Vector3(x + .006, tip - .025, .105), Vector3(x - .006, tip - .025, .105)]
 			for index: int in [0, 1, 3, 1, 2, 3]: surface.add_vertex(points[index])
 		surface.generate_normals()
 		ribs.mesh = surface.commit()
 		_mesh_cache["fan_crest_ribs_v22"] = ribs.mesh
 	ribs.scale = Vector3.ONE * _unit
-	ribs.material_override = _material(Color(.20, .22, .24), "medium")
+	ribs.material_override = _material(Color(.11, .12, .13), "light")
 	anchor.add_child(ribs)
 
 func _material(color: Color, tier: String) -> StandardMaterial3D:
@@ -1132,8 +1126,8 @@ func _material(color: Color, tier: String) -> StandardMaterial3D:
 	material.albedo_color = color
 	if tier == "heavy":
 		var is_padding := color == PALETTE["heavy"]["under"]
-		material.metallic = .10 if is_padding else .58
-		material.roughness = .88 if is_padding else .59
+		material.metallic = .06 if is_padding else .76
+		material.roughness = .88 if is_padding else .43
 	elif tier == "medium":
 		material.metallic = .42
 		material.roughness = .62
@@ -1143,3 +1137,29 @@ func _material(color: Color, tier: String) -> StandardMaterial3D:
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	_material_cache[key] = material
 	return material
+
+func _royal_fasteners(anchor: Node3D) -> void:
+	var ornaments := MeshInstance3D.new()
+	ornaments.name = "ArmorBronzeFasteners"
+	if not _mesh_cache.has("royal_fasteners23"):
+		var surface := SurfaceTool.new()
+		surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+		for side: float in [-1.0, 1.0]:
+			var center := Vector3(side * .40, .74, .49)
+			for segment: int in 16:
+				var a := TAU * float(segment) / 16.0
+				var b := TAU * float(segment + 1) / 16.0
+				var outer_a := center + Vector3(cos(a) * .10, sin(a) * .10, .0)
+				var outer_b := center + Vector3(cos(b) * .10, sin(b) * .10, .0)
+				var inner_a := center + Vector3(cos(a) * .073, sin(a) * .073, .017)
+				var inner_b := center + Vector3(cos(b) * .073, sin(b) * .073, .017)
+				surface.set_color(Color(.34, .25, .13))
+				for point: Vector3 in [outer_a, inner_a, outer_b, outer_b, inner_a, inner_b]: surface.add_vertex(point)
+				surface.set_color(Color(.21, .14, .065) if segment % 2 == 0 else Color(.38, .29, .16))
+				for point: Vector3 in [inner_a, center + Vector3(0, 0, .032), inner_b]: surface.add_vertex(point)
+		surface.generate_normals()
+		_mesh_cache["royal_fasteners23"] = surface.commit()
+	ornaments.mesh = _mesh_cache["royal_fasteners23"]
+	ornaments.scale = Vector3.ONE * _unit
+	ornaments.material_override = _vertex_steel()
+	anchor.add_child(ornaments)
