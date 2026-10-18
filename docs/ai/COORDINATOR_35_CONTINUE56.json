@@ -1,0 +1,21 @@
+{
+  "revision": "castle-20261019-combined56-free-sledge",
+  "base_commit": "6f6f8199b38c60a42b7527964930860e42585cf9",
+  "frozen_source": "D:\\MafioziCombat31\\coordinator35_sledge56\\game",
+  "acceptance": "outputs/coordinator35_release56/ACCEPTANCE.json",
+  "changed": [
+    "scripts/weapons/sword_prototype.gd"
+  ],
+  "included": [
+    "Sledge uses the sword steering solver in every direction with7.6rad/s speed and28rad/s2 acceleration; heavier260ms coast and2.7 mass retained.",
+    "Removed forced shoulder offset and opposing chest rotation; shared two-hand reach follows input.",
+    "Sledge haft/head/bands extended forward20cm; reach0.92 to1.12m; rear haft and grips unchanged.",
+    "All55 masonry fixes retained; existing sword LMB/RMB behavior preserved."
+  ],
+  "limits": [
+    "Clean FPS not measured. Visual review samples discrete poses; subjective feel remains for user feedback.",
+    "Two-handed grip, blunt damage and shared real contact/body protection remain."
+  ],
+  "optimization_handoff": "Base further optimization on56. Preserve55 bounds-aware masonry destruction/collision refinement and56 sledge steering. User-approved sword LMB/RMB unchanged. Current manifest is authoritative; do not overwrite newer combined scene with54 baseline.",
+  "instructions": "New candidates/tests on D via scheduler. Preserve foreign WIP and frozen releases. Old chats remain idle."
+}

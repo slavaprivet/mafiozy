@@ -1,0 +1,122 @@
+{
+  "schema": "mafiozi.sledge56-source-review/v1",
+  "status": "PASS",
+  "reviewed_at_utc": "2026-10-18T21:58:17.126642+00:00",
+  "source": "D:\\MafioziCombat31\\coordinator35_sledge56\\game\\scripts\\weapons\\sword_prototype.gd",
+  "sha256": "2ec3dfed4a69cfaaef058ee12d54dd9d1a1b42ab7d8f977292f2ef0798571eb9",
+  "baseline_sha256": "31c8949c4825e5ca05f1489fb0e0c3b63705398adf624508a85f0ae70e778dda",
+  "pins": {
+    "checked": 1347,
+    "unchanged": 1346,
+    "changed": [
+      {
+        "path": "scripts/weapons/sword_prototype.gd",
+        "base_sha256": "31c8949c4825e5ca05f1489fb0e0c3b63705398adf624508a85f0ae70e778dda",
+        "candidate_sha256": "2ec3dfed4a69cfaaef058ee12d54dd9d1a1b42ab7d8f977292f2ef0798571eb9"
+      }
+    ],
+    "missing": [],
+    "baseline_missing": [],
+    "baseline_mismatch": []
+  },
+  "matches_previously_reviewed_plan_bytes": true,
+  "changed_function_sections": [
+    "_build_sledge_model",
+    "_steer",
+    "_pose_shared_grip",
+    "_lean_body",
+    "snapshot"
+  ],
+  "sword_lmb_rmb_scope": {
+    "result": "UNCHANGED",
+    "explanation": "Input and RMB54 helpers are byte-identical after newline normalization. Shared modified functions retain the exact former non-sledge values/expressions: sword speed9/10, acceleration40/52, gain14, shared-grip target and chest+.30. Removed branches were gated to sledge only. Other weapon values and branches remain identical."
+  },
+  "protected_function_sections": {
+    "_input": {
+      "unchanged": true,
+      "sha256_lf": "206533e49dae5b16a75e0735fcdd085628172061b4ebd0da76e8407c08a80b9c"
+    },
+    "_physics_process": {
+      "unchanged": true,
+      "sha256_lf": "831ca6c22c2cc2cafd9c61132a64bfde31b32f1b5abcd1f5fffff81f79085e7d"
+    },
+    "_solve_arm": {
+      "unchanged": true,
+      "sha256_lf": "7c58db8aaf08706e83653c83f51ee821f84ed4c65e59f949bdc836e3582d6289"
+    },
+    "_active_side": {
+      "unchanged": true,
+      "sha256_lf": "ce29fe06459b890467869388541b3b24ae0ba16b318d6d7d01bd57f2f92e180c"
+    },
+    "_right_hand_weapon54": {
+      "unchanged": true,
+      "sha256_lf": "fa2d242fa9a82cfc27bc4073f3d263de853fc54e75c93286d7705f7cb0b24480"
+    },
+    "_swing_held54": {
+      "unchanged": true,
+      "sha256_lf": "91de64788bcf9d5ea7fce27c12329fad8701f956a1f3d5dd826a23e31223fc73"
+    },
+    "_swing_can_damage31": {
+      "unchanged": true,
+      "sha256_lf": "c8594b4ada8e9fb8194bfaff6d309ec4d5062c33cdf396c1e70a1fb6f4df3eaa"
+    },
+    "_pose_main": {
+      "unchanged": true,
+      "sha256_lf": "c419c536af25b71207a9ccdc889e74a638fecac7961e648693e280cc77a5e6ea"
+    },
+    "_pose_support": {
+      "unchanged": true,
+      "sha256_lf": "0c52768df12816b3064594a576e65431eb1f2d40b74e328f7aa24211cfa26f48"
+    },
+    "_palm_basis51": {
+      "unchanged": true,
+      "sha256_lf": "dfc10ea45200047dd51eea992c14f7ebfa60542998d177fd444dfeb0907fb6ce"
+    },
+    "_pose_arm_ik": {
+      "unchanged": true,
+      "sha256_lf": "320bd6ca1607377d4fb1643d37c6acecd5fef3b811800b8f25ba7176576ced7d"
+    },
+    "_attach_sword_to_fist": {
+      "unchanged": true,
+      "sha256_lf": "d917e43ef0fd37f985298bf2bded56d06cf9091da74b48a55c962fad668edcc1"
+    },
+    "_self_blade_clear_at51": {
+      "unchanged": true,
+      "sha256_lf": "26a4d793473625f85e0cebba6b3ecb0783266123e931c206b66488055e14271a"
+    },
+    "_sweep": {
+      "unchanged": true,
+      "sha256_lf": "7c5ba335c836e8938561fe6c81a98406a08aa9936d6455d61da2d90c816a7d5c"
+    },
+    "_resolve_contact": {
+      "unchanged": true,
+      "sha256_lf": "ad7c77561636089eb2f92f72deab9a9d26a45f4504d4e7b365b02fcf39dc9509"
+    },
+    "_impact_damage31": {
+      "unchanged": true,
+      "sha256_lf": "95a00154bb0f97368062a0dfe71bd3c3c8cb4cb9dcb2a91ca58e4c3a8f49a73d"
+    },
+    "_bite_into": {
+      "unchanged": true,
+      "sha256_lf": "21b0f062fe7034ed72d1d0c8c68c622dea5854123a0259d0b6f8f86e693291b4"
+    },
+    "set_weapon": {
+      "unchanged": true,
+      "sha256_lf": "9c5f1a96ed15f998705c1eb8969926f75cfdc020bc52f56b7cf8f6a50c282664"
+    }
+  },
+  "sledge_changes": [
+    "Length0.92->1.12; forward haft endpoint/head/faces/bands+0.20m, rear haft/pommel/grip anchors unchanged.",
+    "Uniform bounded steering7.6rad/s and28rad/s^2; no lateral boost or separate torque memory.",
+    "Shared two-hand target like sword; forced shoulder high-arc removed; chest follows hand.x with+.30.",
+    "Mass2.7, blunt damage,260ms coast,4.5 coast damping and165ms contact bind unchanged."
+  ],
+  "findings": [],
+  "review_limits": {
+    "godot_launched": false,
+    "runtime_tested": false,
+    "game_source_modified": false,
+    "only_written_file": "D:\\MafioziCombat31\\coordinator35_sledge56\\REVIEW56.json",
+    "scope": "Independent read-only source and SHA audit; native/GUI acceptance remains with parent scheduler jobs."
+  }
+}

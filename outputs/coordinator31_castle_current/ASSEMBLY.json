@@ -1,8 +1,8 @@
 {
   "schema": "mafiozi.castle-assembly/v1",
-  "revision": "castle-20261019-combined55-destructible-walls",
+  "revision": "castle-20261019-combined56-free-sledge",
   "scene_kind": "castle",
-  "game_relative": "outputs/coordinator35_release55/game",
+  "game_relative": "outputs/coordinator35_release56/game",
   "scene": "res://scenes/castle.tscn",
   "launch_arguments": [
     "--castle=1",
@@ -1321,7 +1321,7 @@
     "scripts/weapons/rpg_flight.gd.uid": "4b5636dd1b35cb05b74e1ae0cbf3f5b9476b2b1281bf89e058fc4c52536ea5f3",
     "scripts/weapons/scope_optic.svg": "477959383b359752a578a851e9b678e498b4904cca0e76a47b4a7dd5b33395ed",
     "scripts/weapons/scope_optic.svg.import": "0081075e89bfbdcb69ea6dea5a1e021a38fa40a734c0a732cbdab2eac00fb006",
-    "scripts/weapons/sword_prototype.gd": "31c8949c4825e5ca05f1489fb0e0c3b63705398adf624508a85f0ae70e778dda",
+    "scripts/weapons/sword_prototype.gd": "2ec3dfed4a69cfaaef058ee12d54dd9d1a1b42ab7d8f977292f2ef0798571eb9",
     "scripts/weapons/walk_cargo_card.gd": "298f56dd73f9265a13333e5d4041b2906593c693c8aadc5cb58b32128749191e",
     "scripts/weapons/walk_cargo_card.gd.uid": "a473b69142b69ac1fef8541bdabe9424e09d59a21749589e8f15fba24a84aa04",
     "scripts/weapons/walk_trunk_window.gd": "2dc9c14005d0afab1a6d10b2940fde60ce1aaf93300e5ac76234619dfb6fa7d0",
@@ -1387,7 +1387,11 @@
     "Remaining wall layers stay collidable and can be hit again after the front layer breaks.",
     "Blast queries include full member bounds; surface hits break long columns, bastions and rotated stonework.",
     "Projecting masonry has physical hit shapes; sills, corbels and round tower platforms/roofs participate in destruction.",
-    "Destroyed cells and support cascades remove their collision while preserving adjacent intact masonry."
+    "Destroyed cells and support cascades remove their collision while preserving adjacent intact masonry.",
+    "Sledge uses the sword steering solver in every direction with7.6rad/s speed and28rad/s2 acceleration; heavier260ms coast and2.7 mass retained.",
+    "Removed forced shoulder offset and opposing chest rotation; shared two-hand reach follows input.",
+    "Sledge haft/head/bands extended forward20cm; reach0.92 to1.12m; rear haft and grips unchanged.",
+    "All55 masonry fixes retained; existing sword LMB/RMB behavior preserved."
   ],
   "excluded_pending": [
     "articulated 16-segment corpse prototype (sleep/performance and natural lifecycle incomplete)",
@@ -1402,15 +1406,16 @@
     "combat50": "outputs/coordinator31_castle_current/evidence/combat50/EVIDENCE_INDEX.json",
     "combat51": "outputs/coordinator31_castle_current/evidence/combat51/INDEX.json",
     "combined53": "outputs/coordinator34_release53/ACCEPTANCE.json",
-    "current_scene": "outputs/coordinator35_release55/evidence/projectiles03/layered_gate_wall_after.png",
+    "current_scene": "outputs/coordinator35_release56/evidence/sledge_hold01/hold_2.png",
     "combined54": "outputs/coordinator35_release54/ACCEPTANCE.json",
-    "combined55": "outputs/coordinator35_release55/ACCEPTANCE.json"
+    "combined55": "outputs/coordinator35_release55/ACCEPTANCE.json",
+    "combined56": "outputs/coordinator35_release56/ACCEPTANCE.json"
   },
-  "validation": "81 masonry groups,3 real catapult shots, repeat impacts,4 stair climbs, gate, breach traversal, floor and sword contact PASS. One production file changed.",
+  "validation": "Sledge real hold/diagonals/grip/clearance/drop-pickup and real target contact; sword LMB/RMB regressions PASS. One production file changed.",
   "performance_accepted": false,
   "canonical_launcher": "tools/launch_castle_latest.ps1",
   "f5_launcher": "tools/godot/launch_current_game.ps1",
-  "base_published_commit": "1d30d97e7a94519762caf34d48be2e079fe15f19",
+  "base_published_commit": "6f6f8199b38c60a42b7527964930860e42585cf9",
   "pin_scope": "Published permanent source only; local generated metadata and diagnostic artifacts excluded",
   "armory_hand_fix": "Merged native real scene PASS: rack/chest occupied hand, ground preflight, bow back, shield and one-hand compatibility",
   "combat39": {
@@ -1479,5 +1484,10 @@
     "acceptance": "outputs/coordinator35_release55/ACCEPTANCE.json",
     "source_on_D": "D:\\MafioziCombat31\\coordinator35_walls55\\game",
     "resume": "docs/ai/COORDINATOR_35_CONTINUE55.json"
+  },
+  "sledge56": {
+    "acceptance": "outputs/coordinator35_release56/ACCEPTANCE.json",
+    "source_on_D": "D:\\MafioziCombat31\\coordinator35_sledge56\\game",
+    "resume": "docs/ai/COORDINATOR_35_CONTINUE56.json"
   }
 }
