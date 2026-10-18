@@ -123,6 +123,9 @@ var _collapsed := 0
 var _events: Array[Dictionary] = []
 var _pending_support: Array[Dictionary] = []
 var _wall_collision: Array[Dictionary] = []
+## Exact visual step -> ramp segment binding. A blasted step cannot leave an
+## invisible piece of climbable deck behind, including support-cascade failures.
+var _stair_step_collision: Dictionary = {}
 var _ground: StaticBody3D
 var _player: CharacterBody3D
 var _world_ref: Node3D
@@ -928,6 +931,11 @@ func _kill_brick(index: int, impulse: Vector3, power: float) -> void:
 	# implausibly large box. The existing capped debris pool owns every piece.
 	var material_key: String = str(cell.get("material", "stone"))
 	var group: String = str(cell.get("group", ""))
+	if group.begins_with("stairs_") and not group.begins_with("stairs_rail_"):
+		var stair_key := "%s:%d" % [group, int(cell.get("row", -1))]
+		var stair_shape: CollisionShape3D = _stair_step_collision.get(stair_key)
+		if is_instance_valid(stair_shape):
+			stair_shape.set_deferred("disabled", true)
 	var size: Vector3 = cell.get("size", BRICK)
 	if material_key.begins_with("wood") and (group.begins_with("hall_") or
 			group.begins_with("armour_") or group.begins_with("archive_") or
@@ -1829,11 +1837,17 @@ func _build_stair_flight(normal: Vector3, name: String) -> void:
 	deck.set_meta("surface", "stone")
 	deck.transform = Transform3D(deck_basis, deck_mid)
 	add_child(deck)
-	var deck_shape := CollisionShape3D.new()
-	var deck_box := BoxShape3D.new()
-	deck_box.size = Vector3(width, deck_thickness, deck_length)
-	deck_shape.shape = deck_box
-	deck.add_child(deck_shape)
+	# Keep one physics body per flight, but split its sloped shape by visible step.
+	# Each section overlaps its neighbour slightly so the intact climb stays smooth.
+	var segment_length := deck_length / float(steps)
+	for step: int in steps:
+		var deck_shape := CollisionShape3D.new()
+		var deck_box := BoxShape3D.new()
+		deck_box.size = Vector3(width, deck_thickness, segment_length + 0.012)
+		deck_shape.shape = deck_box
+		deck_shape.position.z = deck_length * (0.5 - (float(step) + 0.5) / float(steps))
+		deck.add_child(deck_shape)
+		_stair_step_collision["stairs_%s:%d" % [name, step]] = deck_shape
 	var stations: int = maxi(2, int(length / 2.6))
 	for station: int in stations:
 		var along: float = (float(station) + 0.5) * (length / float(stations))
