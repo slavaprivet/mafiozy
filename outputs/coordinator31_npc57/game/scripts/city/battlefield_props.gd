@@ -272,8 +272,9 @@ func _build_cart(p: Vector3, yaw: float, id: String, broken := false) -> void:
 			var zp := _rng.randf_range(-0.55, 0.55)
 			_build_crate(p + b * Vector3(xp, 1.15, zp), 0.47, "cart_crate_%d" % i, false)
 		_piece("drum", "canvas_dark", p + b * Vector3(-0.65, 1.54, 0.20), Vector3(0.66, 1.55, 0.66), Vector3(0, yaw, PI * 0.5), id)
-		for dz in [-0.28, 0.28]:
-			_piece("drum", "rope", p + b * Vector3(-0.65, 1.54, 0.20 + dz), Vector3(0.69, 0.06, 0.69), Vector3(0, yaw, PI * 0.5), id)
+		# The rolled canvas axis is local X after the quarter-turn around Z.
+		for dx in [-0.28, 0.28]:
+			_piece("drum", "rope", p + b * Vector3(-0.65 + dx, 1.54, 0.20), Vector3(0.69, 0.06, 0.69), Vector3(0, yaw, PI * 0.5), id)
 	else:
 		for i in 7:
 			var offset := Vector3(_rng.randf_range(-4, -1.5), 0, _rng.randf_range(-2, 2))
