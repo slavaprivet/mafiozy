@@ -1321,7 +1321,7 @@
     "scripts/weapons/rpg_flight.gd.uid": "4b5636dd1b35cb05b74e1ae0cbf3f5b9476b2b1281bf89e058fc4c52536ea5f3",
     "scripts/weapons/scope_optic.svg": "477959383b359752a578a851e9b678e498b4904cca0e76a47b4a7dd5b33395ed",
     "scripts/weapons/scope_optic.svg.import": "0081075e89bfbdcb69ea6dea5a1e021a38fa40a734c0a732cbdab2eac00fb006",
-    "scripts/weapons/sword_prototype.gd": "2b7a9333bb60ff1d329c36bd41fc4e39aa6ea7feabd978ee97099ddc7754f6e0",
+    "scripts/weapons/sword_prototype.gd": "c8d7ea5520a38abc32c9b0d39ec4e1715d8db7cda2938cb93926f155d924ebbb",
     "scripts/weapons/walk_cargo_card.gd": "298f56dd73f9265a13333e5d4041b2906593c693c8aadc5cb58b32128749191e",
     "scripts/weapons/walk_cargo_card.gd.uid": "a473b69142b69ac1fef8541bdabe9424e09d59a21749589e8f15fba24a84aa04",
     "scripts/weapons/walk_trunk_window.gd": "2dc9c14005d0afab1a6d10b2940fde60ce1aaf93300e5ac76234619dfb6fa7d0",
@@ -1357,7 +1357,7 @@
     "scripts/weapons/weapon_surface_impacts.gd": "4adeb69f9e118d9275f6fcdf09666ffda15b6121b87986d16e1336b6761f06bc",
     "scripts/weapons/weapon_surface_impacts.gd.uid": "9dcd14da5fbd29acb97c4216c6b19aa5ba94d24927407184f328f02c5711998c",
     "tools/make_steps.py": "ddbc05ca0fadae493fd06054ea6acddd7510ed4a6273b745e79f951c20552cc2",
-    "scripts/mount/horse.gd": "d2b07bf5f06d46527cc9a1d1c3700463c2969bee9f38a97a9225917726872354",
+    "scripts/mount/horse.gd": "9c4720ec49ade37c2e04a558d1a3555c67b7719eaddfe10a87684ad22a3ad3b5",
     "scripts/mount/horse_mount_host.gd": "08ab0644ae186b8e21e1793c72600903bb3218295ac5a95a15f242ea9f237536",
     "scripts/mount/horse_rider_pose.gd": "e549c303e56afa68f356c012b62aefbeeb5b2a81032a34e6e596309012e8ff71",
     "scripts/mount/horse_blood.gd": "3e8eda4e5ba6ef0bd6f3dbae60d5470ba36618ce7b2b105ccf86615783e69c5b",
@@ -1368,7 +1368,7 @@
     "audio/horse/neigh_death.wav": "5b6021e25a4f565d23941a56c1c6ca1a32457a988bd704b1c5cc43cdee95d669",
     "scripts/balloon/siege_balloon.gd": "cf91e754e361dfc94d2bc41167d2caa4ecdc20fe7ffa2959252831554e82806f",
     "scripts/balloon/balloon_host.gd": "711cde4e8376765a8b6508d81fb20acf067cc779ca1dc312c4c93c6181db50ee",
-    "scripts/siege/powder_barrel_host.gd": "698d108f84d7e20f2bb0d46f2328113d1fe50b61d5061b444bf32c2a34b2f2d7"
+    "scripts/siege/powder_barrel_host.gd": "9a488144f42cb0b5fcc15a573fecac0981dcc2d2c475c76d14f2e2d75ca54288"
   },
   "source_pin_scope": "Published permanent game files only; untracked generated metadata and local diagnostic artifacts excluded",
   "included_packages": [
@@ -1512,5 +1512,5 @@
     "source_on_D": "D:\\MafioziCombat31\\coordinator35_health57\\game",
     "resume": "docs/ai/COORDINATOR_35_CONTINUE57.json"
   },
-  "scope": "The castle horse plus the siege airship: E prompts are world-space plaques pinned to the object (like the sword pickup plaque) with the pop animation - the horse \"Сесть на лошадь\" at the horse, the balloon \"Сесть/Покинуть/Взять бочку\" at the balloon, barrel \"Поднять/Поставить/Бросить\" at the barrel or carried at the player, so they never overlap; the balloon prompt hides while a barrel is carried. Barrels stand on free basket floor spots (up to 8), E places/picks up and G throws a metre ahead to fall physically and burst with the C4. Detailed cached-mesh barrels, free camera-relative walking/turning in the basket, occupancy flight, optimized wicker basket, holes/crash/fall damage/map clamp, weight steering, no cap, no anchor/Shift."
+  "scope": "The castle horse plus the siege airship: a barrel touched by one strong sword blow (both mouse buttons held or a double click) or by a single arrow detonates immediately with the city C4, wrecking the castle and camp. The horse only takes blade damage from that same deliberate strong strike; merely walking past it with the blade no longer wounds it. E prompts are world-space plaques pinned to their objects (horse, balloon, barrel/player), so they never overlap. Barrels stand on free basket floor spots (up to 8), E places/picks up and G throws a metre ahead to fall physically and burst. Detailed cached-mesh barrels, free camera-relative walking/turning in the basket, occupancy flight, optimized wicker basket, holes/crash/fall damage/map clamp, weight steering, no cap, no anchor/Shift."
 }

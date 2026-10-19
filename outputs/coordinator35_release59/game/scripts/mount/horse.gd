@@ -966,6 +966,12 @@ func _check_blade_hit() -> void:
 	if not is_instance_valid(sword):
 		_blade_tip_valid = false
 		return
+	# Passing the horse with the blade does nothing: only a deliberate strong
+	# strike (both mouse buttons held, or a double click) can wound it.
+	if not sword.has_method("strong_strike31") or not bool(sword.call("strong_strike31")):
+		_blade_tip_valid = true
+		_blade_tip = Vector3.ZERO
+		return
 	var segment: Array = sword.call("blade_segment31")
 	if segment.size() != 2:
 		_blade_tip_valid = false

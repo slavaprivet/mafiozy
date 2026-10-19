@@ -258,6 +258,7 @@ func _build_prompt() -> void:
 	_prompt.visible = false
 
 func _physics_process(delta: float) -> void:
+	_check_weapon_hits()
 	_place_world_prompt()
 	if not is_instance_valid(player):
 		return
@@ -511,6 +512,58 @@ func drop_carried() -> void:
 	barrel.global_position = at
 	barrels.append(barrel)
 	print("DSH_BARRELS_DROP at=", at)
+
+func _segment_distance(a: Vector3, b: Vector3, point: Vector3) -> float:
+	var ab := b - a
+	var t := clampf((point - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
+	return point.distance_to(a + ab * t)
+
+func _explode_barrel_at(index: int) -> void:
+	if index < 0 or index >= barrels.size():
+		return
+	var barrel: Node3D = barrels[index]
+	if not is_instance_valid(barrel):
+		barrels.remove_at(index)
+		return
+	var at := barrel.global_position + Vector3.UP * 0.45
+	barrels.remove_at(index)
+	barrel.queue_free()
+	explode_at(at)
+	print("DSH_BARRELS_WEAPON_HIT at=", at)
+
+## One strong sword blow (both mouse buttons or a double click) or one arrow
+## touching a barrel detonates it immediately.
+func _check_weapon_hits() -> void:
+	if not is_instance_valid(player) or barrels.is_empty():
+		return
+	var sword: Variant = player.get("_sword_host")
+	if is_instance_valid(sword) and sword.has_method("strong_strike31") and bool(sword.call("strong_strike31")) \
+			and sword.has_method("blade_segment31"):
+		var segment: Array = sword.call("blade_segment31")
+		if segment.size() == 2:
+			var blade_a: Vector3 = segment[0]
+			var blade_b: Vector3 = segment[1]
+			for index: int in range(barrels.size() - 1, -1, -1):
+				var barrel: Node3D = barrels[index]
+				if not is_instance_valid(barrel) or not barrel.visible:
+					continue
+				if _segment_distance(blade_a, blade_b, barrel.global_position + Vector3.UP * 0.45) <= 0.45:
+					_explode_barrel_at(index)
+					return
+	var bow: Variant = player.get("_bow_host")
+	if is_instance_valid(bow):
+		var arrows: Variant = bow.get("_arrows")
+		if arrows is Array:
+			for index: int in range(barrels.size() - 1, -1, -1):
+				var barrel: Node3D = barrels[index]
+				if not is_instance_valid(barrel) or not barrel.visible:
+					continue
+				var center := barrel.global_position + Vector3.UP * 0.45
+				for entry: Dictionary in arrows:
+					var node: Node3D = entry.get("node")
+					if is_instance_valid(node) and node.visible and node.global_position.distance_to(center) <= 1.0:
+						_explode_barrel_at(index)
+						return
 
 ## ---------------------------------------------------------------- throw + blast
 func throw_barrel(at: Vector3, initial_velocity: Vector3 = Vector3(0.0, -1.5, 0.0)) -> bool:

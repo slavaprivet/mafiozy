@@ -331,6 +331,8 @@ var _swing_start_ms := 0
 ## Smoothed steering target, so a raw camera/mouse target cannot ripple the blade.
 var _steer_target := Vector3.ZERO
 var _held_prev := false
+var _last_left_press_ms31 := 0
+var _double_strike_until_ms31 := 0
 var _sword_coast_until_ms31 := 0
 var _sword_coast_target31 := Vector3.FORWARD
 ## Largest wind-up angle that still counts (radians).
@@ -1652,6 +1654,10 @@ func _input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 				return
 			if button.pressed and not _hold_left and WEAPONS.has(_weapon_id):
+				var press_ms := Time.get_ticks_msec()
+				if press_ms - _last_left_press_ms31 <= 350:
+					_double_strike_until_ms31 = press_ms + 450
+				_last_left_press_ms31 = press_ms
 				_arrow_parry_until_ms31 = now_ms() + ARROW_PARRY_WINDOW_MS31
 				_sword_coast_until_ms31 = 0
 			elif not button.pressed and _hold_left and WEAPONS.has(_weapon_id):
@@ -6803,6 +6809,11 @@ func _body_blade_clearance() -> float:
 	var a: Vector3 = _sword_origin
 	var b: Vector3 = _sword_origin + _dir * (0.06 + _weapon_length)
 	return _segment_distance(a, b, chest, pelvis)
+
+## True while the player is delivering a deliberate strong blow: both mouse
+## buttons held (the two-handed grip) or a double click on the left button.
+func strong_strike31() -> bool:
+	return (_hold_left and _hold_right) or Time.get_ticks_msec() < _double_strike_until_ms31
 
 ## Read-only world blade segment for an external damage owner (the castle horse).
 ## No pose, state or hit bookkeeping is changed here.
