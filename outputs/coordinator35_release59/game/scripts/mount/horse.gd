@@ -23,7 +23,7 @@ const BODY_LENGTH := 1.95
 const BODY_CENTRE_Y := 1.24
 const FEET_RADIUS := 0.26
 const FEET_HEIGHT := 0.85
-const SEAT_Y := 1.84
+const SEAT_Y := 1.895
 const SEAT_Z := 0.02
 const RIDER_FALLBACK_HIP := 0.49
 const MAX_HP := 100.0
@@ -343,13 +343,13 @@ func _build_model() -> void:
 	_part(_rig, _box(Vector3(0.48, 0.17, 0.10)), _leather, Vector3(0.0, 1.845, 0.28), Vector3(-10.0, 0.0, 0.0))
 	_part(_rig, _box(Vector3(0.40, 0.13, 0.09)), _leather, Vector3(0.0, 1.835, -0.23), Vector3(9.0, 0.0, 0.0))
 	for side: float in [-1.0, 1.0]:
-		_part(_rig, _box(Vector3(0.040, 0.24, 0.050)), _leather, Vector3(side * 0.375, 1.70, 0.02))
-		_part(_rig, _box(Vector3(0.105, 0.030, 0.135)), _metal, Vector3(side * 0.365, 1.615, 0.01))
+		_part(_rig, _box(Vector3(0.040, 0.16, 0.050)), _leather, Vector3(side * 0.375, 1.755, 0.02))
+		_part(_rig, _box(Vector3(0.105, 0.030, 0.135)), _metal, Vector3(side * 0.365, 1.675, 0.01))
 		# Reins: bit -> over the crest -> the rider's hands, so they read as a line
 		# along the neck instead of cutting straight through it.
 		var bit := Vector3(side * 0.11, 1.93, -1.60)
 		var crest := Vector3(side * 0.10, 2.36, -0.78)
-		var hands := Vector3(side * 0.28, 2.20, -0.34)
+		var hands := Vector3(side * 0.28, 2.255, -0.34)
 		_strap(_rig, bit, crest, 0.017, _leather)
 		_strap(_rig, crest, hands, 0.017, _leather)
 
