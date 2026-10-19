@@ -1358,7 +1358,7 @@
     "scripts/weapons/weapon_surface_impacts.gd.uid": "9dcd14da5fbd29acb97c4216c6b19aa5ba94d24927407184f328f02c5711998c",
     "tools/make_steps.py": "ddbc05ca0fadae493fd06054ea6acddd7510ed4a6273b745e79f951c20552cc2",
     "scripts/mount/horse.gd": "9c4720ec49ade37c2e04a558d1a3555c67b7719eaddfe10a87684ad22a3ad3b5",
-    "scripts/mount/horse_mount_host.gd": "4cc7f39ae6c0938993e12b74bc9a51b235b7a6fa15325a18ca7f16a9d769e78f",
+    "scripts/mount/horse_mount_host.gd": "08ab0644ae186b8e21e1793c72600903bb3218295ac5a95a15f242ea9f237536",
     "scripts/mount/horse_rider_pose.gd": "e549c303e56afa68f356c012b62aefbeeb5b2a81032a34e6e596309012e8ff71",
     "scripts/mount/horse_blood.gd": "3e8eda4e5ba6ef0bd6f3dbae60d5470ba36618ce7b2b105ccf86615783e69c5b",
     "audio/horse/snort_1.wav": "95a4e0b74348e5b59226776567bdabcd0845ac70012c885eff8b0cc66fee833b",
@@ -1368,7 +1368,7 @@
     "audio/horse/neigh_death.wav": "5b6021e25a4f565d23941a56c1c6ca1a32457a988bd704b1c5cc43cdee95d669",
     "scripts/balloon/siege_balloon.gd": "cf91e754e361dfc94d2bc41167d2caa4ecdc20fe7ffa2959252831554e82806f",
     "scripts/balloon/balloon_host.gd": "024a6716c4e05419228f9d88c468539a236cde34ea632482461857474e5eef20",
-    "scripts/siege/powder_barrel_host.gd": "77578098981159242f1eedddb311fe33051ef8c6cd585d3e87e2dcb1003c11d1"
+    "scripts/siege/powder_barrel_host.gd": "5c72f746e305990e160857a2ee2a62465557e121435265b40e5fbd0cdf6f82c4"
   },
   "source_pin_scope": "Published permanent game files only; untracked generated metadata and local diagnostic artifacts excluded",
   "included_packages": [
@@ -1512,5 +1512,5 @@
     "source_on_D": "D:\\MafioziCombat31\\coordinator35_health57\\game",
     "resume": "docs/ai/COORDINATOR_35_CONTINUE57.json"
   },
-  "scope": "The castle horse plus the siege airship: the single horse barrel now rests on a wooden cradle on the saddle behind the rider instead of floating, E loads/takes it and it stays while riding; the C4 blast kills the horse nearby, G throws barrels farther, the pooled blast FX has more smoke, strong-hit barrels, world-space E plaques, barrels on basket floor, free basket walking, occupancy flight, detailed cached-mesh barrels, optimized wicker basket, holes/crash/fall damage/map clamp, weight steering, no cap, no anchor/Shift."
+  "scope": "The castle horse plus the siege airship: the horse has no barrel slot - the rider carries the barrel in his hands while mounted (the carry pose works in the saddle) and G throws it; the C4 blast still kills the horse if close, G throws farther, the pooled blast FX has more smoke, strong-hit barrels, world-space E plaques, barrels on basket floor, free basket walking, occupancy flight, detailed cached-mesh barrels, optimized wicker basket, holes/crash/fall damage/map clamp, weight steering, no cap, no anchor/Shift."
 }
