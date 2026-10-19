@@ -42,6 +42,18 @@ func install(world_in: Node3D, castle_in: Node3D) -> Dictionary:
 	body.call("moor", spawn, SPAWN_YAW)
 	process_physics_priority = 110
 	status = "ready"
+	# Optional inspection spawn: open the gate scene right at the push frame.
+	if OS.get_cmdline_user_args().has("--player-at-tower=1"):
+		player.global_position = body.to_global(Vector3(0.0, 0.15, 4.62))
+		player.velocity = Vector3.ZERO
+		player.set("_camera_yaw", 0.0)
+		player.set("_heading", 0.0)
+		var visual := player.get("_visual") as Node3D
+		if is_instance_valid(visual):
+			visual.rotation.y = deg_to_rad(float(player.get("visual_yaw_degrees")))
+		if player.has_method("_update_camera_rotation"):
+			player.call("_update_camera_rotation")
+		print("DSH_PLAYER_AT_TOWER player=", player.global_position)
 	print("DSH_TOWER_STATUS ", status, " spawn=", spawn, " parts=", built.get("parts", 0),
 		" colliders=", built.get("colliders", 0))
 	return {"ok": true, "spawn": spawn, "parts": built.get("parts", 0),
