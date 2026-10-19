@@ -3816,7 +3816,8 @@ func _apply_sail_visual() -> void:
 func _apply_lever_visual() -> void:
 	# Only the handle throws.  The pedestal/quadrant are static.
 	if is_instance_valid(_lever_pivot):
-		_lever_pivot.rotation.x = _lever_angle
+		# Positive handle angle must throw the lever toward the bow, not aft.
+		_lever_pivot.rotation.x = -_lever_angle
 
 func _process(delta: float) -> void:
 	if not _built:

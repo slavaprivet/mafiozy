@@ -639,10 +639,11 @@ func throw_carried() -> bool:
 		return false
 	var heading := float(player.get("_heading"))
 	var forward := Vector3(-sin(heading), 0.0, -cos(heading))
-	var at := player.global_position + forward * 1.0 + Vector3.UP * 0.4
-	var velocity := forward * 2.6 + Vector3.UP * 1.0
+	var at := player.global_position + forward * 1.15 + Vector3.UP * 0.72
+	var velocity := forward * 6.6 + Vector3.UP * 3.6
 	var barrel: Node3D = _barrel_model(self, false)
 	barrel.global_position = at
+	barrel.rotation = Vector3(-0.42, heading, 0.0)
 	_add_thrown_body(barrel)
 	barrels.append(barrel)
 	_falling.append({"node": barrel, "velocity": velocity, "age": 0.0})
