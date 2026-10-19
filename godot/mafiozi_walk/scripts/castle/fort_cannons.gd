@@ -29,6 +29,7 @@ var _time := 0.0
 var _wood: StandardMaterial3D
 var _iron: StandardMaterial3D
 var _stone: StandardMaterial3D
+var _brick: ShaderMaterial
 
 func install(world_in: Node3D, castle_in: Node3D, ship_host_in: Node3D) -> Dictionary:
 	world = world_in
@@ -50,6 +51,32 @@ func _materials() -> void:
 	_wood = StandardMaterial3D.new(); _wood.albedo_color = Color(0.34, 0.23, 0.13); _wood.roughness = 0.9
 	_iron = StandardMaterial3D.new(); _iron.albedo_color = Color(0.12, 0.12, 0.14); _iron.metallic = 0.7; _iron.roughness = 0.35
 	_stone = StandardMaterial3D.new(); _stone.albedo_color = Color(0.42, 0.40, 0.36); _stone.roughness = 0.96
+	# Mortared brick courses in the shader: one draw call per panel, but the
+	# wall reads as castle masonry rather than a flat grey slab.
+	var shader := Shader.new()
+	shader.code = """
+shader_type spatial;
+render_mode diffuse_lambert, specular_disabled;
+uniform vec3 brick_color = vec3(0.46, 0.28, 0.17);
+uniform vec3 mortar_color = vec3(0.23, 0.19, 0.16);
+varying vec3 local_pos;
+void vertex() { local_pos = VERTEX; }
+void fragment() {
+	float row_h = 0.29;
+	float col_w = 0.62;
+	float row = floor(local_pos.y / row_h);
+	float shifted = local_pos.z + mod(row, 2.0) * col_w * 0.5;
+	float bx = fract(shifted / col_w);
+	float by = fract(local_pos.y / row_h);
+	float mortar = step(bx, 0.055) + step(0.945, bx) + step(by, 0.09) + step(0.91, by);
+	vec3 c = mix(brick_color, mortar_color, clamp(mortar, 0.0, 1.0));
+	float shade = 0.88 + 0.12 * fract(sin(dot(floor(vec2(shifted / col_w, row)), vec2(12.9898, 78.233))) * 43758.5453);
+	ALBEDO = c * shade;
+	ROUGHNESS = 0.94;
+}
+"""
+	_brick = ShaderMaterial.new()
+	_brick.shader = shader
 
 func _mesh_box(parent: Node3D, pos: Vector3, size: Vector3, mat: Material) -> MeshInstance3D:
 	var mesh := BoxMesh.new(); mesh.size = size
@@ -71,18 +98,27 @@ func _solid_box(pos: Vector3, size: Vector3, mat: Material, hp: float = 90.0) ->
 	_wall_blocks.append({"node": root, "mesh": mi, "body": body, "hp": hp, "size": size})
 
 func _build_room() -> void:
-	# Back and side walls on the castle side, plus a roof and low front parapet
-	# with embrasure gaps.  Every block is a separate destructible body.
-	for i: int in 5:
-		_solid_box(Vector3(64.0, 1.70, 14.0 + float(i) * 14.0), Vector3(0.9, 3.2, 1.7), _stone)
-	for i: int in 3:
-		_solid_box(Vector3(66.5 + float(i) * 1.5, 1.70, 11.0), Vector3(1.7, 3.2, 0.9), _stone)
-		_solid_box(Vector3(66.5 + float(i) * 1.5, 1.70, 82.0), Vector3(1.7, 3.2, 0.9), _stone)
-		_solid_box(Vector3(66.5 + float(i) * 1.5, 3.45, 46.5), Vector3(1.7, 0.45, 72.0), _stone)
-	# Low front parapet, split so the barrels fire through the gaps.
-	for z: float in [18.0, 40.0, 62.0]:
-		_solid_box(Vector3(70.2, 1.15, z), Vector3(0.7, 1.8, 7.0), _stone)
-		_solid_box(Vector3(70.2, 2.05, z + 5.2), Vector3(0.7, 0.45, 1.6), _stone)
+	# Proper masonry room: brick courses, a back door, side walls, roof and
+	# three real embrasures cut around the guns.  Each panel is one body.
+	for seg: Array in [[12.0, 72.0], [76.0, 80.0]]:
+		var z0: float = seg[0]
+		var z1: float = seg[1]
+		_solid_box(Vector3(64.1, 1.80, (z0 + z1) * 0.5), Vector3(0.8, 3.2, z1 - z0), _brick, 160.0)
+	for side_z: float in [12.0, 80.0]:
+		_solid_box(Vector3(65.3, 1.80, side_z), Vector3(2.4, 3.2, 0.8), _brick, 160.0)
+		_solid_box(Vector3(69.7, 1.80, side_z), Vector3(1.0, 3.2, 0.8), _brick, 160.0)
+	# Water-facing wall with embrasures: solid pieces between the guns, then a
+	# sill and a lintel around each 4.8 m wide opening.
+	for seg: Array in [[12.0, 17.6], [22.4, 37.6], [42.4, 57.6], [62.4, 80.0]]:
+		var z0: float = seg[0]
+		var z1: float = seg[1]
+		_solid_box(Vector3(70.2, 1.80, (z0 + z1) * 0.5), Vector3(0.8, 3.2, z1 - z0), _brick, 160.0)
+	for gap_z: float in [20.0, 40.0, 60.0]:
+		_solid_box(Vector3(70.2, 0.65, gap_z), Vector3(0.8, 0.9, 4.8), _brick, 120.0)
+		_solid_box(Vector3(70.2, 2.85, gap_z), Vector3(0.8, 1.1, 4.8), _brick, 120.0)
+	# Roof slabs.
+	for z: float in [16.0, 30.0, 44.0, 58.0, 72.0]:
+		_solid_box(Vector3(67.2, 3.55, z), Vector3(6.4, 0.4, 13.2), _brick, 150.0)
 
 func _build_gun(base: Vector3, index: int) -> Dictionary:
 	var root := Node3D.new(); root.name = "FortGun%d" % index; add_child(root); root.global_position = base
