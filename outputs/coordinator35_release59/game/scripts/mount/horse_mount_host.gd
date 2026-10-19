@@ -299,6 +299,7 @@ func dismount_now() -> bool:
 	_mounted = false
 	player.end_mounted()
 	_restore_player_collision()
+	_clear_weapon_inputs()
 	if is_instance_valid(player.get("_spring_arm")):
 		var arm: SpringArm3D = player.get("_spring_arm") as SpringArm3D
 		arm.remove_excluded_object(horse.get_rid())
@@ -335,6 +336,14 @@ func _restore_player_collision() -> void:
 	player.collision_layer = _walking_layer
 	player.collision_mask = _walking_mask
 	_collision_owned = false
+
+## A button held while mounting/dismounting must not stay latched in the weapon
+## host: otherwise the sword thinks RMB/LMB is still down and the right hand or the
+## two-handed grip cannot be selected after the fall.
+func _clear_weapon_inputs() -> void:
+	var weapons: Node = player.get("_weapon_host") as Node
+	if is_instance_valid(weapons) and weapons.has_method("cancel_inputs"):
+		weapons.call("cancel_inputs", false)
 
 func _aim_camera_owns_distance() -> bool:
 	var weapons: Node = player.get("_weapon_host") as Node
@@ -424,6 +433,7 @@ func _force_player_off_dead_horse() -> void:
 	_mounted = false
 	player.end_mounted()
 	_restore_player_collision()
+	_clear_weapon_inputs()
 	if is_instance_valid(player.get("_spring_arm")):
 		var arm: SpringArm3D = player.get("_spring_arm") as SpringArm3D
 		arm.remove_excluded_object(horse.get_rid())
