@@ -1,4 +1,4 @@
-extends Node3D
+﻿extends Node3D
 ## SHIP104/105: castle water-side battery.  Three heavy guns face the water;
 ## the player can walk to a gun, man it with F, aim with A/D + W/S, load with E
 ## and fire with LMB.  A destructible stone room protects the crews.
@@ -48,7 +48,7 @@ func install(world_in: Node3D, castle_in: Node3D, ship_host_in: Node3D) -> Dicti
 	_door_inside = castle.to_global(Vector3(67.0, 1.2, 74.0))
 	_build_room()
 	for i: int in 3:
-		var base := castle.to_global(Vector3(69.0, 0.0, 20.0 + float(i) * 20.0))
+		var base := castle.to_global(Vector3(69.2, 0.0, 20.0 + float(i) * 20.0))
 		_guns.append(_build_gun(base, i))
 	return {"ok": true, "guns": _guns.size(), "blocks": _wall_blocks.size()}
 
@@ -114,19 +114,19 @@ func _build_room() -> void:
 		_solid_box(Vector3(64.1, 1.80, (z0 + z1) * 0.5), Vector3(0.8, 3.2, z1 - z0), _brick, 160.0)
 	for side_z: float in [12.0, 80.0]:
 		_solid_box(Vector3(65.3, 1.80, side_z), Vector3(2.4, 3.2, 0.8), _brick, 160.0)
-		_solid_box(Vector3(69.7, 1.80, side_z), Vector3(1.0, 3.2, 0.8), _brick, 160.0)
+		_solid_box(Vector3(70.0, 1.80, side_z), Vector3(1.0, 3.2, 0.8), _brick, 160.0)
 	# Water-facing wall with embrasures: solid pieces between the guns, then a
 	# sill and a lintel around each 4.8 m wide opening.
 	for seg: Array in [[12.0, 17.6], [22.4, 37.6], [42.4, 57.6], [62.4, 80.0]]:
 		var z0: float = seg[0]
 		var z1: float = seg[1]
-		_solid_box(Vector3(70.2, 1.80, (z0 + z1) * 0.5), Vector3(0.8, 3.2, z1 - z0), _brick, 160.0)
+		_solid_box(Vector3(70.6, 1.80, (z0 + z1) * 0.5), Vector3(0.8, 3.2, z1 - z0), _brick, 160.0)
 	for gap_z: float in [20.0, 40.0, 60.0]:
-		_solid_box(Vector3(70.2, 0.65, gap_z), Vector3(0.8, 0.9, 4.8), _brick, 120.0)
-		_solid_box(Vector3(70.2, 2.85, gap_z), Vector3(0.8, 1.1, 4.8), _brick, 120.0)
+		_solid_box(Vector3(70.6, 0.65, gap_z), Vector3(0.8, 0.9, 4.8), _brick, 120.0)
+		_solid_box(Vector3(70.6, 2.85, gap_z), Vector3(0.8, 1.1, 4.8), _brick, 120.0)
 	# Roof slabs.
 	for z: float in [16.0, 30.0, 44.0, 58.0, 72.0]:
-		_solid_box(Vector3(67.2, 3.55, z), Vector3(6.4, 0.4, 13.2), _brick, 150.0)
+		_solid_box(Vector3(67.4, 3.55, z), Vector3(6.4, 0.4, 13.2), _brick, 150.0)
 
 func _build_gun(base: Vector3, index: int) -> Dictionary:
 	var root := Node3D.new(); root.name = "FortGun%d" % index; add_child(root); root.global_position = base
