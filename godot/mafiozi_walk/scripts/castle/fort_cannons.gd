@@ -109,7 +109,8 @@ func _build_room() -> void:
 	# Open gun bays: a water-facing brick parapet with embrasures, short side
 	# wings, and NO door/back wall.  The player walks straight in from the open
 	# land side or through the wide side openings.
-	for seg: Array in [[12.0, 17.6], [22.4, 37.6], [42.4, 57.6], [62.4, 80.0]]:
+	for seg: Array in [[12.0, 17.6], [22.4, 28.4], [31.6, 37.6], [42.4, 48.4],
+			[51.6, 57.6], [62.4, 68.4], [71.6, 80.0]]:
 		var z0: float = seg[0]
 		var z1: float = seg[1]
 		_solid_box(Vector3(70.6, 1.80, (z0 + z1) * 0.5), Vector3(0.8, 3.2, z1 - z0), _brick, 160.0)
