@@ -1314,6 +1314,12 @@ func _recover_overboard() -> void:
 func _recover_underdeck() -> void:
 	if not is_instance_valid(preview_boat) or not is_instance_valid(player):
 		return
+	# Never rescue a swimmer back onto the ship.  The under-deck rescue is only
+	# for a body that actually fell and is standing inside the hull.
+	if _swim_state or bool(player.get("_swimming")):
+		return
+	if not player.is_on_floor():
+		return
 	# In the water the swimmer is allowed to be under the hull footprint; the
 	# under-deck rescue must not fire there or it would throw him back on deck.
 	if is_instance_valid(preview_basin) and player.global_position.y < preview_basin.water_level() + 0.10:
