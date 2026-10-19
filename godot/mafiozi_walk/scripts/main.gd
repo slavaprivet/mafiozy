@@ -38,6 +38,7 @@ const HorseMountHost = preload("res://scripts/mount/horse_mount_host.gd")  # DSH
 const BalloonHost = preload("res://scripts/balloon/balloon_host.gd")  # DSH_BALLOON
 const PowderBarrelHost = preload("res://scripts/siege/powder_barrel_host.gd")  # DSH_BARRELS
 const ShipBattleHost = preload("res://scripts/ship/ship_battle_host.gd")  # DSH_SHIP61
+const FortCannons = preload("res://scripts/castle/fort_cannons.gd")  # SHIP104
 ## DSH_CASTLE: the castle is its OWN MAP. It is built far from the city so the two never
 ## interact, and the player is put down in its courtyard.
 const CASTLE_ORIGIN := Vector3(0.0, 0.0, 900.0)
@@ -136,6 +137,7 @@ var power_barrel_status := "disabled"
 var _power_barrel_install_pending := false
 ## DSH_SHIP61: the sea battle on the castle map - water, the ship and her guns.
 var preview_ship: Node  # DSH_SHIP61
+var preview_fort: Node  # SHIP104
 var ship_status := "disabled"  # DSH_SHIP61
 var _ship_install_pending := false  # DSH_SHIP61
 var preview_melee: Node
@@ -685,6 +687,16 @@ func _install_ship_battle() -> bool:
 	preview_ship = host
 	ship_status = "ready"
 	print("DSH_SHIP_STATUS ", ship_status)
+	# SHIP104: castle water-side battery defends the east wall from ships.
+	var fort: Node3D = FortCannons.new()
+	fort.name = "FortCannons"
+	add_child(fort)
+	var fort_result: Dictionary = fort.call("install", self, preview_castle, preview_ship)
+	if bool(fort_result.get("ok", false)):
+		preview_fort = fort
+		print("DSH_FORT_STATUS ready guns=", fort_result.get("guns", 0))
+	else:
+		fort.queue_free()
 	return true
 
 func _build_castle_map() -> bool:
