@@ -1357,7 +1357,7 @@
     "scripts/weapons/weapon_surface_impacts.gd": "4adeb69f9e118d9275f6fcdf09666ffda15b6121b87986d16e1336b6761f06bc",
     "scripts/weapons/weapon_surface_impacts.gd.uid": "9dcd14da5fbd29acb97c4216c6b19aa5ba94d24927407184f328f02c5711998c",
     "tools/make_steps.py": "ddbc05ca0fadae493fd06054ea6acddd7510ed4a6273b745e79f951c20552cc2",
-    "scripts/mount/horse.gd": "7e9044dc967852233654b8ad1ec2bc311071c6dc62d9c151f8b3daf21b39e827",
+    "scripts/mount/horse.gd": "94e2864fe4d763d3737ebd19ec8eb979bee012b28d6d79c9dda9c03e43740fc0",
     "scripts/mount/horse_mount_host.gd": "24e25078802ecb325c08334b3f2a7839ebc6cf672e8f3399d1c3c033f488fa8d",
     "scripts/mount/horse_rider_pose.gd": "e549c303e56afa68f356c012b62aefbeeb5b2a81032a34e6e596309012e8ff71",
     "scripts/mount/horse_blood.gd": "3e8eda4e5ba6ef0bd6f3dbae60d5470ba36618ce7b2b105ccf86615783e69c5b"
@@ -1504,5 +1504,5 @@
     "source_on_D": "D:\\MafioziCombat31\\coordinator35_health57\\game",
     "resume": "docs/ai/COORDINATOR_35_CONTINUE57.json"
   },
-  "scope": "All 59 retained; the castle horse is rideable with E, carries the complete medieval weapon set and the bow, has 100 HP, blood on every hit and a physical corpse at zero; the prompt is a top-centre E plate and the static harness is merged by material."
+  "scope": "All 59 retained; the castle horse is rideable with E, carries the complete medieval weapon set and the bow, has 100 HP, blood on every hit and a physical corpse at zero; the prompt is a top-centre E plate, the harness is merged by material, and idle breathing, blinks and ear flicks are cached and allocation-free."
 }

@@ -66,6 +66,19 @@ var _splats: Array[MeshInstance3D] = []
 var _splat_cursor := 0
 var _splat_material: StandardMaterial3D
 var _splat_mesh: SphereMesh
+var _ear_left: Node3D
+var _ear_right: Node3D
+var _lid_left: Node3D
+var _lid_right: Node3D
+var _idle_clock := 0.0
+var _blink_age := 0.0
+var _blink_timer := 3.4
+var _blink_index := 0
+var _ear_age := 0.0
+var _ear_timer := 5.2
+var _ear_index := 0
+var _ear_side := 1
+var _lids_visible := false
 var _yaw := 0.0
 var _phase := 0.0
 var _air_time := 0.0
@@ -288,7 +301,6 @@ func _build_model() -> void:
 	_part(_head, _sphere(0.042), _eye, Vector3(0.148, 0.17, -0.38))
 	_part(_head, _sphere(0.042), _eye, Vector3(-0.148, 0.17, -0.38))
 	for side: float in [-1.0, 1.0]:
-		_part(_head, _cylinder(0.0, 0.058, 0.21, 8), _coat, Vector3(side * 0.10, 0.40, 0.02), Vector3(-14.0, 0.0, side * 11.0))
 		# Bridle: cheek strap, browband, noseband, bit and bit ring.
 		_part(_head, _box(Vector3(0.030, 0.29, 0.030)), _leather, Vector3(side * 0.146, 0.09, -0.33))
 		_part(_head, _box(Vector3(0.026, 0.026, 0.34)), _leather, Vector3(side * 0.120, 0.0, -0.49), Vector3(-24.0, 0.0, 0.0))
@@ -390,6 +402,40 @@ func _build_model() -> void:
 	_merge_static_parts(_tail, [])
 	for leg: Node3D in _legs.values():
 		_merge_static_parts(leg, [])
+	# These four stay separate because they move: the ears flick, the lids blink.
+	_build_ears()
+	_build_eyelids()
+
+## Ears on their own pivots so an idle flick costs one rotation, not a rebuild.
+func _build_ears() -> void:
+	for side: float in [-1.0, 1.0]:
+		var pivot := Node3D.new()
+		pivot.name = "EarL" if side < 0.0 else "EarR"
+		pivot.position = Vector3(side * 0.10, 0.40, 0.02)
+		pivot.rotation_degrees = Vector3(-14.0, 0.0, side * 11.0)
+		_head.add_child(pivot)
+		_part(pivot, _cylinder(0.0, 0.058, 0.21, 8), _coat, Vector3.ZERO)
+		if side < 0.0:
+			_ear_left = pivot
+		else:
+			_ear_right = pivot
+
+## A thin coat-coloured lid over each eye sphere: hidden at rest, stretched to a
+## line for ~0.16 s on blink. No skeleton and no per-blink material allocation.
+func _build_eyelids() -> void:
+	for side: float in [-1.0, 1.0]:
+		var pivot := Node3D.new()
+		pivot.name = "EyelidL" if side < 0.0 else "EyelidR"
+		pivot.position = Vector3(side * 0.148, 0.17, -0.392)
+		pivot.visible = false
+		_head.add_child(pivot)
+		var lid := _part(pivot, _sphere(0.050), _coat, Vector3.ZERO)
+		lid.scale = Vector3(1.10, 1.0, 0.55)
+		lid.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		if side < 0.0:
+			_lid_left = pivot
+		else:
+			_lid_right = pivot
 
 ## Bake every MeshInstance3D child of the same material into one surface. The
 ## transforms, meshes and materials are unchanged, so the picture is identical and
@@ -659,6 +705,9 @@ func _die(direction: Vector3) -> void:
 
 func _exit_air_pose() -> void:
 	velocity = Vector3.ZERO
+	if is_instance_valid(_lid_left): _lid_left.visible = false
+	if is_instance_valid(_lid_right): _lid_right.visible = false
+	_lids_visible = false
 	for key: String in ["fl", "fr", "rl", "rr"]:
 		var leg: Node3D = _legs.get(key) as Node3D
 		if is_instance_valid(leg):
@@ -778,6 +827,7 @@ func _rotate_leg(key: String, angle: float) -> void:
 func _animate(delta: float) -> void:
 	if not is_instance_valid(_pivot):
 		return
+	_idle_clock += delta
 	var airborne := not is_on_floor()
 	if not airborne and _was_airborne:
 		_land_absorb = 0.32
@@ -831,10 +881,13 @@ func _animate(delta: float) -> void:
 			_rotate_leg(key, lerpf(_rotate_leg_value(key), 0.0, minf(1.0, delta * 5.0)))
 		_pivot.position.y = 1.22 + sin(_phase) * 0.012
 		_pivot.rotation.x = lerpf(_pivot.rotation.x, 0.0, minf(1.0, delta * 4.0))
-		_pivot.rotation.z = lerpf(_pivot.rotation.z, 0.0, minf(1.0, delta * 8.0))
+		# A slow weight shift from one foreleg to the other, barely a degree.
+		_pivot.rotation.z = lerpf(_pivot.rotation.z, sin(_idle_clock * 0.52) * 0.007, minf(1.0, delta * 2.0))
 	if is_instance_valid(_head):
 		var nod := sin(_phase * 0.9) * (0.03 + _pace * 0.05)
 		_head.rotation.x = lerpf(_head.rotation.x, nod - 0.04 * _pace, minf(1.0, delta * 6.0))
+		var look := 0.0 if (moving or airborne) else sin(_idle_clock * 0.34) * 0.085
+		_head.rotation.y = lerpf(_head.rotation.y, look, minf(1.0, delta * 2.2))
 		if _flinch > 0.0:
 			_head.rotation.x -= 0.10 * clampf(_flinch / 0.32, 0.0, 1.0)
 	if is_instance_valid(_tail):
@@ -842,6 +895,59 @@ func _animate(delta: float) -> void:
 		_tail.rotation.x = -0.06 + sin(_phase * 0.45) * 0.04
 	if _flinch > 0.0 and is_instance_valid(_pivot):
 		_pivot.rotation.z += sin(_flinch * 55.0) * 0.02 * clampf(_flinch / 0.32, 0.0, 1.0)
+	_animate_idle_details(delta)
+	# Breathing: the barrel widens slightly on the inhale. Scaled on the visual pivot
+	# only, so physics, the saddle socket and the rider are untouched.
+	var breath_target := Vector3.ONE
+	if not airborne and not moving:
+		var breath := sin(_idle_clock * 1.55)
+		breath_target = Vector3(1.0 + 0.005 * breath, 1.0 + 0.008 * breath, 1.0 + 0.006 * breath)
+	_pivot.scale = _pivot.scale.lerp(breath_target, minf(1.0, delta * 3.0))
+
+## Blink and ear-flick clocks. Deterministic intervals, cached nodes, no allocation
+## while idle and no work at all while the horse is dead.
+func _animate_idle_details(delta: float) -> void:
+	_blink_timer -= delta
+	if _blink_age > 0.0:
+		_blink_age = maxf(0.0, _blink_age - delta)
+	if _blink_timer <= 0.0 and not dead:
+		_blink_age = 0.16
+		_blink_timer = 3.0 + fmod(float(_blink_index) * 1.73, 3.4)
+		_blink_index += 1
+	var lid := 0.0
+	if _blink_age > 0.0:
+		var t := 1.0 - _blink_age / 0.16
+		lid = sin(PI * clampf(t, 0.0, 1.0))
+	var show := lid > 0.02
+	if show != _lids_visible:
+		_lids_visible = show
+		if is_instance_valid(_lid_left): _lid_left.visible = show
+		if is_instance_valid(_lid_right): _lid_right.visible = show
+	if show:
+		var lid_scale := Vector3(1.0, maxf(0.04, lid), 0.6)
+		if is_instance_valid(_lid_left): _lid_left.scale = lid_scale
+		if is_instance_valid(_lid_right): _lid_right.scale = lid_scale
+	_ear_timer -= delta
+	if _ear_age > 0.0:
+		_ear_age = maxf(0.0, _ear_age - delta)
+	if _ear_timer <= 0.0 and not dead:
+		_ear_age = 0.36
+		_ear_timer = 4.4 + fmod(float(_ear_index) * 2.17, 5.2)
+		_ear_side = _ear_index % 2
+		_ear_index += 1
+	var flick := 0.0
+	if _ear_age > 0.0:
+		flick = sin(PI * clampf(1.0 - _ear_age / 0.36, 0.0, 1.0)) * 0.38
+	var left_active := flick > 0.0 and _ear_side == 0
+	var right_active := flick > 0.0 and _ear_side == 1
+	if is_instance_valid(_ear_left):
+		var target := Vector3(-14.0, 0.0, -11.0)
+		if left_active: target = Vector3(-14.0 - flick * 28.0, 0.0, -11.0 - flick * 18.0)
+		_ear_left.rotation_degrees = _ear_left.rotation_degrees.lerp(target, minf(1.0, delta * 9.0))
+	if is_instance_valid(_ear_right):
+		var target := Vector3(-14.0, 0.0, 11.0)
+		if right_active: target = Vector3(-14.0 - flick * 28.0, 0.0, 11.0 + flick * 18.0)
+		_ear_right.rotation_degrees = _ear_right.rotation_degrees.lerp(target, minf(1.0, delta * 9.0))
 
 func _rotate_leg_value(key: String) -> float:
 	var leg: Node3D = _legs.get(key) as Node3D
@@ -850,6 +956,14 @@ func _rotate_leg_value(key: String) -> float:
 ## ---------------------------------------------------------------- evidence
 func has_rider() -> bool:
 	return is_instance_valid(rider)
+
+## QA hooks: make the next idle detail immediate so a screenshot can catch it.
+func debug_blink() -> void:
+	_blink_age = 0.16
+
+func debug_ear_flick(side: int = 0) -> void:
+	_ear_age = 0.36
+	_ear_side = side
 
 func snapshot() -> Dictionary:
 	return {"position": global_position, "yaw": rotation.y, "speed_mps": _last_speed,
@@ -862,4 +976,6 @@ func snapshot() -> Dictionary:
 		"corpse_position": corpse.global_position if is_instance_valid(corpse) else Vector3.ZERO,
 		"corpse_sleeping": corpse.sleeping if is_instance_valid(corpse) else false,
 		"blood_active": _blood.active if _blood != null else 0,
+		"blinks": _blink_index, "ears": _ear_index, "blink_age": _blink_age, "ear_age": _ear_age,
+		"breath_scale": _pivot.scale.x if is_instance_valid(_pivot) else 1.0,
 		"below_y": global_position.y < -5.0}
