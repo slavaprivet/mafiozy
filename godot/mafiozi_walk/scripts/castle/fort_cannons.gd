@@ -106,9 +106,16 @@ func _solid_box(pos: Vector3, size: Vector3, mat: Material, hp: float = 90.0) ->
 	_wall_blocks.append({"node": root, "mesh": mi, "body": body, "hp": hp, "size": size})
 
 func _build_room() -> void:
-	# No free-standing brick work around the battery: the guns stand on their
-	# stone bastions in the open.
-	return
+	# Destructible water-side battlements with real embrasures.  The old extra
+	# side wing has been removed; the wall now only spans the gun front.
+	for seg: Array in [[12.0, 17.6], [22.4, 28.4], [31.6, 37.6], [42.4, 48.4],
+			[51.6, 57.6], [62.4, 68.4], [71.6, 80.0]]:
+		var z0: float = seg[0]
+		var z1: float = seg[1]
+		_solid_box(Vector3(70.6, 1.80, (z0 + z1) * 0.5), Vector3(0.8, 3.2, z1 - z0), _brick, 30.0)
+	for gap_z: float in [20.0, 40.0, 60.0]:
+		_solid_box(Vector3(70.6, 0.65, gap_z), Vector3(0.8, 0.9, 4.8), _brick, 25.0)
+		_solid_box(Vector3(70.6, 2.85, gap_z), Vector3(0.8, 1.1, 4.8), _brick, 25.0)
 
 func _build_gun(base: Vector3, index: int) -> Dictionary:
 	var root := Node3D.new(); root.name = "FortGun%d" % index; add_child(root); root.global_position = base
