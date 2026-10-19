@@ -725,6 +725,18 @@ func _install_siege_tower() -> bool:
 	preview_siege_tower = host
 	siege_tower_status = "ready"
 	print("DSH_TOWER_STATUS ", siege_tower_status)
+	# DSH_TOWER: inspection spawn requested on the command line; places the player
+	# at the rear push frame instead of the gate approach.
+	if OS.get_cmdline_user_args().has("--player-at-tower=1"):
+		var tower_body: Variant = preview_siege_tower.get("body")
+		if is_instance_valid(tower_body):
+			_player.global_position = (tower_body as Node3D).to_global(Vector3(0.0, 0.15, 4.62))
+			_player.velocity = Vector3.ZERO
+			_player._camera_yaw = 0.0
+			_player._heading = 0.0
+			_player._visual.rotation.y = deg_to_rad(_player.visual_yaw_degrees)
+			_player._update_camera_rotation()
+			print("DSH_PLAYER_AT_TOWER player=", _player.global_position)
 	return true
 
 func _build_castle_map() -> bool:
