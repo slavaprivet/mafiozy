@@ -6804,6 +6804,13 @@ func _body_blade_clearance() -> float:
 	var b: Vector3 = _sword_origin + _dir * (0.06 + _weapon_length)
 	return _segment_distance(a, b, chest, pelvis)
 
+## Read-only world blade segment for an external damage owner (the castle horse).
+## No pose, state or hit bookkeeping is changed here.
+func blade_segment31() -> Array:
+	if not _ready or not _active() or _unarmed or _sword_grounded or _weapon_id == "none":
+		return []
+	return [_sword_origin, _sword_origin + _dir * (0.06 + _weapon_length)]
+
 func snapshot() -> Dictionary:	return {
 		"ready": _ready, "held": _held, "hits": _hits, "blocks": _blocks,
 		"dummy_hp": _dummy_hp, "dummy_down": _dummy_down, "max_damage": _max_damage,

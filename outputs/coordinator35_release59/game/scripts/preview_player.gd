@@ -60,6 +60,15 @@ var _pose_motion: Node3D
 var _pose_authority: StringName = &"on_foot"
 var _pose_epoch: int = 0
 var _pose_revision: int = 0
+## DSH_HORSE: while a mount owns the body the player KEEPS pose authority "on_foot",
+## so every weapon path (melee hosts, bow, firearm presentation) stays live, but this
+## controller no longer moves, jumps or applies gravity. The mount supplies the base
+## seated pose and the weapon decorators are applied on top of it exactly as on foot.
+var _mount_mode := false
+var _mount_pose: RefCounted = null
+var _mount_pace := 0.0
+var _mount_phase := 0.0
+var _mount_airborne := false
 const MELEE_POSE_RECEIPT := &"melee_skin_pose"
 var _pose_affine_active := false
 var _pose_affine_globals: Array[Transform3D] = []
@@ -436,12 +445,78 @@ func _leg_support_scale50() -> float:
 	return 1.0
 
 
+## ---------------------------------------------------------------- mounted body
+## The mount host calls these three functions. Mounted play deliberately keeps the
+## ordinary "on_foot" authority: that is the single condition every weapon owner
+## already checks, so melee, the shield, the bow and the firearm presentation behave
+## exactly as they do on foot. Only translation and the base pose change.
+func begin_mounted(pose_provider: RefCounted) -> bool:
+	if _mount_mode or pose_provider == null or _pose_authority != &"on_foot":
+		return false
+	_mount_mode = true
+	_mount_pose = pose_provider
+	_jump.clear()
+	_jump_pose.clear()
+	_source_falling = false
+	_contact_dropkick.cancel("mounted")
+	_contact_impulse.clear()
+	_jump_event_consumed = true
+	_jump_key_down = false
+	if _dive != null: _dive.reset()
+	if _airborne != null: _airborne.reset()
+	if _locomotion != null: _locomotion.reset_state()
+	velocity = Vector3.ZERO
+	_mount_pace = 0.0
+	_mount_phase = 0.0
+	_mount_airborne = false
+	return true
+
+func end_mounted() -> void:
+	if not _mount_mode:
+		return
+	_mount_mode = false
+	_mount_pose = null
+	_jump_event_consumed = false
+	_jump_key_down = false
+	if _locomotion != null: _locomotion.reset_state()
+	velocity = Vector3.ZERO
+
+func set_mount_state(pace: float, phase: float, airborne: bool) -> void:
+	if not _mount_mode:
+		return
+	_mount_pace = clampf(pace, 0.0, 1.0) if is_finite(pace) else 0.0
+	_mount_phase = phase if is_finite(phase) else 0.0
+	_mount_airborne = airborne
+
+func is_mounted_player() -> bool:
+	return _mount_mode
+
+## Same decorator chain as _update_owned_pose, only the base pose is the saddle pose.
+func _update_mounted_pose(delta: float) -> void:
+	if _mount_pose == null or not is_instance_valid(_pose_skeleton) or not is_instance_valid(_pose_motion):
+		return
+	var selected: Dictionary = _mount_pose.sample(delta, _mount_pace, _mount_airborne, _mount_phase)
+	if not bool(selected.get("valid", false)):
+		return
+	if is_instance_valid(_weapon_host):
+		selected = _weapon_host.decorate(selected)
+	selected = _decorate_hit_pose(delta, selected)
+	if is_instance_valid(_weapon_host):
+		selected = _weapon_host.finish_pose(selected)
+	_apply_selected_pose(selected)
+
 func _physics_process(delta: float) -> void:
 	_ground_move_frame = -1
 	_ground_move_pressure.clear()
 	_jump_pose = {}
 	if is_instance_valid(_weapon_host): _weapon_host.advance(delta)
 	if is_instance_valid(_melee_practice): _melee_practice.advance(delta)
+	if _mount_mode:
+		_contact_impulse.clear()
+		_contact_dropkick.cancel("mounted")
+		_jump_event_consumed = false
+		_update_mounted_pose(delta)
+		return # The horse owns translation; weapons still decorate the seated pose.
 	if _pose_authority != &"on_foot":
 		_contact_impulse.clear()
 		_contact_dropkick.cancel("external_movement_owner")
@@ -644,6 +719,8 @@ func _jump_direction() -> Vector2:
 
 
 func _request_preview_jump(now_ms: float) -> bool:
+	if _mount_mode:
+		return false # Space belongs to the horse while riding.
 	if _leg_support_scale50() < 1.0: return false
 	if _contact_dropkick.active: return false
 	if is_instance_valid(_weapon_host) and _weapon_host.controls_blocked(): return false

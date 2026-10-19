@@ -1112,6 +1112,9 @@ func _follow_severed_arrow31(index: int, entry: Dictionary, node: Node3D) -> voi
 ## An arrow in a body does damage through the sword prototype's own gore system, so
 ## arrow wounds and sword wounds are the same wounds.
 func _apply_arrow_damage(collider: Variant, point: Vector3, speed: float, direction: Vector3, normal: Vector3 = Vector3.ZERO) -> void:
+	if is_instance_valid(collider) and collider is Node and collider.has_method("take_arrow_hit"):
+		collider.call("take_arrow_hit", point, speed, direction, normal)
+		return
 	if not is_instance_valid(collider) or not is_instance_valid(_sword_host): return
 	var part := ""
 	if collider is Node and collider.has_meta("sword_npc_part"):

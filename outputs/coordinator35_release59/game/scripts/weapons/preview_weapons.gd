@@ -514,6 +514,7 @@ func _input(event: InputEvent) -> void:
 
 func _request_posture(code: int) -> bool:
 	if not _owner_current() or not player._free_mouse_look or player._pose_authority!=&"on_foot" or not player._jump.is_empty(): return false
+	if player.get("_mount_mode") == true: return false
 	if bool(scene.get("preview_dead")) or controls_blocked() or player._text_control_focused(): return false
 	var requested: String="prone" if code==KEY_Z else "crouch"
 	var target: String="stand" if posture.posture_state().target==requested else requested
@@ -539,7 +540,7 @@ func advance(delta: float) -> void:
 			cargo_menu_owner.close_window(false)
 			player.set_mouse_captured(false)
 	if not is_finite(delta) or delta < 0.0 or delta > 5.0: cancel_inputs(); return
-	if player._pose_authority==&"on_foot" and player._jump.is_empty():
+	if player._pose_authority==&"on_foot" and player._jump.is_empty() and not player.get("_mount_mode"):
 		_posture_view=posture.step_posture(delta,Callable(self,"_can_occupy_posture"),Input.is_action_pressed(player.ACTION_RUN))
 		var capsule: CollisionShape3D=player.get_node("PlayerCapsule")
 		capsule.shape.height=float(_posture_view.height); capsule.position.y=float(_posture_view.height)*.5

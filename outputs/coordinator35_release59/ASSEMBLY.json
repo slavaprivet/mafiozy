@@ -1,6 +1,6 @@
 {
   "schema": "mafiozi.castle-assembly/v1",
-  "revision": "castle-20261019-combined59-npc-rearm",
+  "revision": "castle-20261019-horse",
   "scene_kind": "castle",
   "game_relative": "outputs/coordinator35_release59/game",
   "scene": "res://scenes/castle.tscn",
@@ -860,7 +860,7 @@
     "scripts/hospital/npc_treatment_pose28.gd.uid": "f1a30df4e927aabe5f1f13920f093b7d31820ed0f657c90a329dc057d190c372",
     "scripts/hospital/npc_walk_surface28.gd": "fe28870674944d9b9fc45f338a40f4ced0dfd9e312a7e44fcb3ffc6e416192b1",
     "scripts/hospital/npc_walk_surface28.gd.uid": "2a3c962c952471a91c151d6a4f745e600cf0c310855853788e74f91c4d5b8a84",
-    "scripts/main.gd": "81394499f427508791bfdb2ea8f2e83f2b8d972ba227a6e063bad5f5bceac81c",
+    "scripts/main.gd": "65f60fb4d4a26494a3038a6d69bbb3332da218e86ae5df41f2a2a8765c04a2c4",
     "scripts/main.gd.uid": "d23a61c6adedb7dd1cb111d5401f3c21de5c349b04e122e02997aaa91dd74dcc",
     "scripts/navigation/npc_avoidance_world29.gd": "7d4e5d5a628bf942723da535eedbec0d23f668495d63fa06513b29154ef7b408",
     "scripts/navigation/npc_avoidance_world29.gd.uid": "a15db70f56d2dc2655ca61221245872d520eb7f43c61583b740b5e3166b44685",
@@ -1035,7 +1035,7 @@
     "scripts/preview_interior_finish.gd.uid": "491ea208d9869017ee90bee19c1da0fecc3fc707569cc751910e125bdf348b53",
     "scripts/preview_locomotion.gd": "16c934854d8ebf089c938c3914c66450e0f3b8fd97e6f075d864f3b5ee585aaf",
     "scripts/preview_locomotion.gd.uid": "5eb2bc8f618a3211a69655477ff130a95e4534a0b01d3bd704deedde5ce5c19b",
-    "scripts/preview_player.gd": "b4e02c86185557fb68a9dfdbec85932f41a79f16f1d0ec55999d3a367a4cbb02",
+    "scripts/preview_player.gd": "f8a3a2f29d9cba75e6bf2095d1c7bcd60ad06d651f2262e1df7d914cc036adc6",
     "scripts/preview_player.gd.uid": "1803e056f8fc526fbae9f1c598d3f713faf1fbd161acbb36b70330489d923c64",
     "scripts/preview_population.gd": "d731774a79bf78ca78cfc999f62d97156b1ea42755133347250e9dbd217bb8ba",
     "scripts/preview_population.gd.uid": "992896d1e2f7be27ac38a890bc8ac0a04055a99153d21cd556d31ac6268229a6",
@@ -1294,7 +1294,7 @@
     "scripts/weapon_visual/weapon_visual.gd.uid": "49c788d2b08b24d076db75ef2aedd54dc90fc7abfc94e860a1df8851014d054c",
     "scripts/weapon_visual/weapon_visual_catalog.gd": "5fb94f96e98f7f0d0d050529bf2763716513c8e61aae3529be3334c31543677d",
     "scripts/weapon_visual/weapon_visual_catalog.gd.uid": "abe50e06c400e08a72ebe60fb66710e4b22396c243971e3e8ee1c66003e68312",
-    "scripts/weapons/bow_prototype.gd": "8218dee827a20382daea87927220d7d6c97841639c91a863a92ca6d28f272776",
+    "scripts/weapons/bow_prototype.gd": "8f2db7532163b35b861c7928691035822ca2edb8cf156d736aa6ced43f614657",
     "scripts/weapons/cargo_aim_picker.gd": "9046edbfaf5e51d1c924f2bf93b09064c3b0bf9f2bfdd524eb9ed6099ca10731",
     "scripts/weapons/cargo_aim_picker.gd.uid": "8f3c0b3aa7081eef83299288086ba02204b0551868376ad25e191b28a70264a4",
     "scripts/weapons/catapult_prototype.gd": "6ddb5760c8048a2f3b6edcbda07f0162fa6cd39f562e425e0d2ae7a421de0cbf",
@@ -1313,7 +1313,7 @@
     "scripts/weapons/player_weapon_presentation.gd.uid": "1eb82281aeb762f494b8d75f7d2c7da424e67972d82f1d418024017adef3abfc",
     "scripts/weapons/preview_weapon_cargo.gd": "6df3382191755a282d42ffac4f49097b32428144115f8dec06c9358de978a506",
     "scripts/weapons/preview_weapon_cargo.gd.uid": "06a793d70095f4ab3e71dd130a7340e8b934bb1c7eb8c5dd1f2476058ad0e193",
-    "scripts/weapons/preview_weapons.gd": "52ef362f251c02c3fd5a0adc12147218d40eea08d5c7734526ff4d22e56e8b0e",
+    "scripts/weapons/preview_weapons.gd": "163bf64d74878f9e51f3f45953026e7ca46da74cbca5e028fbdaf1c6734cd94d",
     "scripts/weapons/preview_weapons.gd.uid": "ea7ecce3f32476d18538e56db30e8490cb37dce5585cc74e1ce345312cef9afa",
     "scripts/weapons/rpg_effects.gd": "f018d96c5f6feb6afc29d671d77a094bfb261e1c2ceb0990f8fe195879bc2067",
     "scripts/weapons/rpg_effects.gd.uid": "d3a08cc364a06559bd0897038ce36c56f6ed15178c0ff3454f3cd6ec43c9a65e",
@@ -1321,7 +1321,7 @@
     "scripts/weapons/rpg_flight.gd.uid": "4b5636dd1b35cb05b74e1ae0cbf3f5b9476b2b1281bf89e058fc4c52536ea5f3",
     "scripts/weapons/scope_optic.svg": "477959383b359752a578a851e9b678e498b4904cca0e76a47b4a7dd5b33395ed",
     "scripts/weapons/scope_optic.svg.import": "0081075e89bfbdcb69ea6dea5a1e021a38fa40a734c0a732cbdab2eac00fb006",
-    "scripts/weapons/sword_prototype.gd": "00cb1d63e7e5d4562f497d77261cbdab4e2af65fe78bde8d5075182d21928609",
+    "scripts/weapons/sword_prototype.gd": "2b7a9333bb60ff1d329c36bd41fc4e39aa6ea7feabd978ee97099ddc7754f6e0",
     "scripts/weapons/walk_cargo_card.gd": "298f56dd73f9265a13333e5d4041b2906593c693c8aadc5cb58b32128749191e",
     "scripts/weapons/walk_cargo_card.gd.uid": "a473b69142b69ac1fef8541bdabe9424e09d59a21749589e8f15fba24a84aa04",
     "scripts/weapons/walk_trunk_window.gd": "2dc9c14005d0afab1a6d10b2940fde60ce1aaf93300e5ac76234619dfb6fa7d0",
@@ -1356,7 +1356,11 @@
     "scripts/weapons/weapon_projectiles.gd.uid": "c340803098c2c4deaf639927cac80a3809609d6b5e15ac7bd7409accf8f0ae00",
     "scripts/weapons/weapon_surface_impacts.gd": "4adeb69f9e118d9275f6fcdf09666ffda15b6121b87986d16e1336b6761f06bc",
     "scripts/weapons/weapon_surface_impacts.gd.uid": "9dcd14da5fbd29acb97c4216c6b19aa5ba94d24927407184f328f02c5711998c",
-    "tools/make_steps.py": "ddbc05ca0fadae493fd06054ea6acddd7510ed4a6273b745e79f951c20552cc2"
+    "tools/make_steps.py": "ddbc05ca0fadae493fd06054ea6acddd7510ed4a6273b745e79f951c20552cc2",
+    "scripts/mount/horse.gd": "68b687321979a8c89ac359d9a2d19bc2140b6478e22bd66dccff1a4120f07820",
+    "scripts/mount/horse_mount_host.gd": "059923b6e4496852726ccdecb80e9ea5bd72987fc173d8bccf93be560d80dd8d",
+    "scripts/mount/horse_rider_pose.gd": "499f345c215a02fcd6782a589a4320fbc7f317af7bc448e4d47d8eb83babe084",
+    "scripts/mount/horse_blood.gd": "adc243ac0698c3bc9f2296cb738ea63a79efcad7f69721393a5197e150d79725"
   },
   "source_pin_scope": "Published permanent game files only; untracked generated metadata and local diagnostic artifacts excluded",
   "included_packages": [
@@ -1499,5 +1503,6 @@
     "acceptance": "outputs/coordinator35_release57/ACCEPTANCE.json",
     "source_on_D": "D:\\MafioziCombat31\\coordinator35_health57\\game",
     "resume": "docs/ai/COORDINATOR_35_CONTINUE57.json"
-  }
+  },
+  "scope": "All 59 retained; the castle horse is rideable with E, carries the complete medieval weapon set and the bow, has 100 HP, blood on every hit and a physical corpse at zero; the prompt is a top-centre E plate and the static harness is merged by material."
 }
