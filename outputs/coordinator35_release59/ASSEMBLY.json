@@ -1294,7 +1294,7 @@
     "scripts/weapon_visual/weapon_visual.gd.uid": "49c788d2b08b24d076db75ef2aedd54dc90fc7abfc94e860a1df8851014d054c",
     "scripts/weapon_visual/weapon_visual_catalog.gd": "5fb94f96e98f7f0d0d050529bf2763716513c8e61aae3529be3334c31543677d",
     "scripts/weapon_visual/weapon_visual_catalog.gd.uid": "abe50e06c400e08a72ebe60fb66710e4b22396c243971e3e8ee1c66003e68312",
-    "scripts/weapons/bow_prototype.gd": "8f2db7532163b35b861c7928691035822ca2edb8cf156d736aa6ced43f614657",
+    "scripts/weapons/bow_prototype.gd": "5f2f1838ecb069a64f779b80bbb408bc8e66bb46d0236a20fe8fd33827b06510",
     "scripts/weapons/cargo_aim_picker.gd": "9046edbfaf5e51d1c924f2bf93b09064c3b0bf9f2bfdd524eb9ed6099ca10731",
     "scripts/weapons/cargo_aim_picker.gd.uid": "8f3c0b3aa7081eef83299288086ba02204b0551868376ad25e191b28a70264a4",
     "scripts/weapons/catapult_prototype.gd": "6ddb5760c8048a2f3b6edcbda07f0162fa6cd39f562e425e0d2ae7a421de0cbf",
@@ -1357,7 +1357,7 @@
     "scripts/weapons/weapon_surface_impacts.gd": "4adeb69f9e118d9275f6fcdf09666ffda15b6121b87986d16e1336b6761f06bc",
     "scripts/weapons/weapon_surface_impacts.gd.uid": "9dcd14da5fbd29acb97c4216c6b19aa5ba94d24927407184f328f02c5711998c",
     "tools/make_steps.py": "ddbc05ca0fadae493fd06054ea6acddd7510ed4a6273b745e79f951c20552cc2",
-    "scripts/mount/horse.gd": "2c5ba8943c4964d049c4aa3ee87803cc5f8b5ecf4a031d6f35f88094ed6c6c60",
+    "scripts/mount/horse.gd": "01c40e376f4374cbb73eeb661dff6f27c5c1f869b5b93cc1bdf80f2ed035769f",
     "scripts/mount/horse_mount_host.gd": "24e25078802ecb325c08334b3f2a7839ebc6cf672e8f3399d1c3c033f488fa8d",
     "scripts/mount/horse_rider_pose.gd": "e549c303e56afa68f356c012b62aefbeeb5b2a81032a34e6e596309012e8ff71",
     "scripts/mount/horse_blood.gd": "3e8eda4e5ba6ef0bd6f3dbae60d5470ba36618ce7b2b105ccf86615783e69c5b"
@@ -1504,5 +1504,5 @@
     "source_on_D": "D:\\MafioziCombat31\\coordinator35_health57\\game",
     "resume": "docs/ai/COORDINATOR_35_CONTINUE57.json"
   },
-  "scope": "All 59 retained; the castle horse is rideable with E, carries the complete medieval weapon set and the bow, has 100 HP, blood on every hit and a physical corpse at zero; the prompt is a top-centre E plate, the harness is merged by material, idle breathing, blinks and ear flicks are cached, the rider sits above the saddle and the breast-collar studs follow the chest curve."
+  "scope": "All 59 retained; the castle horse is rideable with E, carries the complete medieval weapon set and the bow, has 100 HP, blood on every hit and a physical corpse at zero; the prompt is a top-centre E plate, the harness is merged by material, idle breathing, blinks and ear flicks are cached, the rider sits above the saddle, the breast-collar studs follow the chest curve, and the rider's own weapons never wound the horse he rides."
 }

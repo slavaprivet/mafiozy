@@ -572,11 +572,16 @@ func _physics_process(delta: float) -> void:
 		global_position = Vector3.ZERO
 
 ## ---------------------------------------------------------------- damage
-## Every hit is accepted here, whether it came from the rider's blade, an arrow or
-## anything else. At zero the horse is retired and a real rigid-body corpse takes
-## over, so it falls and settles on the ground instead of hanging in the air.
-func take_hit(amount: float, point: Vector3, direction: Vector3, kind: String = "blade") -> void:
+## Every hit is accepted here, whether it came from a hostile blade, an arrow or
+## anything else. Damage attributed to the rider himself is ignored while he is in
+## the saddle, so his own sword or bow can never wound the horse under him. At zero
+## the horse is retired and a real rigid-body corpse takes over, so it falls and
+## settles on the ground instead of hanging in the air.
+func take_hit(amount: float, point: Vector3, direction: Vector3, kind: String = "blade",
+		source: Node = null) -> void:
 	if dead or not is_finite(amount) or amount <= 0.0:
+		return
+	if is_instance_valid(rider) and source == rider:
 		return
 	hp = maxf(0.0, hp - amount)
 	hits_taken += 1
@@ -600,10 +605,11 @@ func take_hit(amount: float, point: Vector3, direction: Vector3, kind: String = 
 	if hp <= 0.0:
 		_die(direction)
 
-func take_arrow_hit(point: Vector3, speed: float, direction: Vector3, _normal: Vector3) -> void:
+func take_arrow_hit(point: Vector3, speed: float, direction: Vector3, _normal: Vector3,
+		attacker: Node = null) -> void:
 	var speed_value := clampf(speed, 0.0, 90.0) if is_finite(speed) else 0.0
 	take_hit(clampf(ARROW_BASE_DAMAGE + speed_value * ARROW_SPEED_DAMAGE, 10.0, 38.0),
-		point, direction, "arrow")
+		point, direction, "arrow", attacker)
 
 func _ground_below(point: Vector3) -> float:
 	var world := get_world_3d()
@@ -623,7 +629,7 @@ func _ground_below(point: Vector3) -> float:
 ## neck. A hit needs actual blade motion, so a sword resting against the horse does
 ## not tick damage every frame.
 func _check_blade_hit() -> void:
-	if dead or not is_instance_valid(damage_owner):
+	if dead or is_instance_valid(rider) or not is_instance_valid(damage_owner):
 		return
 	var sword: Node = damage_owner.get("_sword_host") as Node
 	if not is_instance_valid(sword):
@@ -649,18 +655,15 @@ func _check_blade_hit() -> void:
 	var neck_b := to_global(Vector3(0.0, 2.10, -1.15))
 	var best := _closest_segment_points(blade_a, blade_b, neck_a, neck_b)
 	var radius := 0.36
-	# Mounted, the barrel under the rider is never a target: only the neck/head is
-	# reachable and that avoids the rider's own body registering a hit on the back.
-	if not is_instance_valid(rider):
-		var body := _closest_segment_points(blade_a, blade_b, body_a, body_b)
-		if float(body[2]) < float(best[2]):
-			best = body
-			radius = BODY_RADIUS + 0.10
+	var body := _closest_segment_points(blade_a, blade_b, body_a, body_b)
+	if float(body[2]) < float(best[2]):
+		best = body
+		radius = BODY_RADIUS + 0.10
 	if float(best[2]) > radius:
 		return
 	_next_melee_hit_ms = now + MELEE_COOLDOWN_MS
 	var contact: Vector3 = ((best[0] as Vector3) + (best[1] as Vector3)) * 0.5
-	take_hit(MELEE_DAMAGE, contact, (contact - blade_a).normalized(), "blade")
+	take_hit(MELEE_DAMAGE, contact, (contact - blade_a).normalized(), "blade", damage_owner)
 
 ## Returns [point_on_a, point_on_b, distance].
 func _closest_segment_points(a0: Vector3, a1: Vector3, b0: Vector3, b1: Vector3) -> Array:
