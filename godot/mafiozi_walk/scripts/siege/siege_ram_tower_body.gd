@@ -43,7 +43,7 @@ const PART_HP := {
 	"chassis": 620.0, "frame_left": 360.0, "frame_right": 360.0, "front_frame": 300.0,
 	"rear_frame": 280.0, "gallery_roof": 300.0, "upper_wall": 480.0, "platform": 380.0,
 	"parapet": 240.0, "roof": 300.0, "ladder": 100.0, "winch": 160.0, "ram": 320.0,
-	"stores": 80.0, "banners": 80.0,
+	"stores": 80.0, "banners": 80.0, "bridge": 220.0,
 	"wheel_0": 120.0, "wheel_1": 120.0, "wheel_2": 120.0,
 	"wheel_3": 120.0, "wheel_4": 120.0, "wheel_5": 120.0,
 }
@@ -51,7 +51,7 @@ const PART_HP := {
 const PART_DEBRIS := {
 	"chassis": 12, "frame_left": 11, "frame_right": 11, "front_frame": 10,
 	"rear_frame": 9, "gallery_roof": 14, "upper_wall": 15, "platform": 13, "parapet": 8,
-	"roof": 15, "ladder": 5, "winch": 4, "ram": 14, "stores": 4, "banners": 5,
+	"roof": 15, "ladder": 5, "winch": 4, "ram": 14, "stores": 4, "banners": 5, "bridge": 10,
 	"wheel_0": 7, "wheel_1": 7, "wheel_2": 7, "wheel_3": 7, "wheel_4": 7, "wheel_5": 7,
 }
 
@@ -702,6 +702,8 @@ func _part_center(part: String) -> Vector3:
 	return _local_of(sum / float(count))
 
 func _classify(local: Vector3) -> String:
+	if local.z < -2.95 and local.y > 9.45 and local.y < 12.75 and absf(local.x) < 1.05:
+		return "bridge"
 	if local.y > 10.05:
 		return "roof"
 	if local.y > 8.30:
@@ -771,7 +773,7 @@ func _support_ok(part: String) -> bool:
 			return false
 		"platform":
 			return not _broken.has("upper_wall")
-		"parapet", "roof":
+		"parapet", "roof", "bridge":
 			return not _broken.has("platform")
 		"ladder":
 			return not _broken.has("frame_right") or not _broken.has("platform")

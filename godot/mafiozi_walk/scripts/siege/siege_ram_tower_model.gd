@@ -68,6 +68,7 @@ func build() -> Dictionary:
 	_build_upper_body()
 	_build_platform()
 	_build_roof()
+	_build_bridge()
 	_build_ladder()
 	_build_stores()
 	_build_banners()
@@ -1028,6 +1029,60 @@ func _build_roof_shell() -> void:
 	_finish()
 	_collision.append({"part": "roof", "position": Vector3(0.0, 12.10, 0.0),
 		"size": Vector3(5.9, 0.60, 6.6), "rotation": Vector3.ZERO})
+
+# ------------------------------------------------------------------ assault bridge
+## A raised assault bridge on the front of the fighting top, held by chains, as in
+## the reference plate.  It is a real section: shoot the platform out and it falls.
+func _build_bridge() -> void:
+	_part("bridge")
+	var base_y := 9.58
+	var base_z := -2.88
+	var height := 2.95
+	var width := 1.78
+	var tilt := 0.18
+	var planks := 9
+	for i: int in planks:
+		var t := (float(i) + 0.5) / float(planks)
+		var y := base_y + t * height
+		var z := base_z - t * height * tilt
+		_box(WOOD, Vector3(0.0, y, z), Vector3(width, height / float(planks) - 0.02, 0.10),
+			_jitter(_wood_tone(i + 5), i + 190, 0.045), Basis(Vector3.RIGHT, -tilt))
+	# Side beams and iron straps.
+	for side: float in [-1.0, 1.0]:
+		_box(WOOD, Vector3(side * 0.86, base_y + height * 0.5, base_z - height * 0.5 * tilt),
+			Vector3(0.13, height, 0.13), _dark_tone(2), Basis(Vector3.RIGHT, -tilt))
+		_box(IRON, Vector3(side * 0.86, base_y + height * 0.5, base_z - height * 0.5 * tilt + 0.06),
+			Vector3(0.05, height * 0.95, 0.04), IRON_COLOR * 1.25, Basis(Vector3.RIGHT, -tilt))
+	# Cross brace on the deck face.
+	_box(WOOD, Vector3(0.0, base_y + height * 0.5, base_z - height * 0.5 * tilt - 0.07),
+		Vector3(width * 0.96, 0.10, 0.05), _dark_tone(4), Basis(Vector3.BACK, 0.62))
+	# Hinge barrel.
+	_tube(IRON, Vector3(-0.96, base_y, base_z), Vector3(0.96, base_y, base_z),
+		0.10, 0.10, 10, IRON_COLOR, true)
+	for side: float in [-1.0, 1.0]:
+		_torus(IRON, Vector3(side * 0.90, base_y, base_z), Vector3(1.0, 0.0, 0.0),
+			0.14, 0.030, IRON_COLOR * 1.2, 12, 4)
+	# Iron nose band and chains to the roof beam.
+	var nose := Vector3(0.0, base_y + height, base_z - height * tilt)
+	_box(IRON, nose, Vector3(width + 0.06, 0.12, 0.14), IRON_COLOR * 1.2)
+	for side: float in [-1.0, 1.0]:
+		var top := Vector3(side * 0.72, base_y + height - 0.12, base_z - (height - 0.1) * tilt)
+		var anchor := Vector3(side * 1.48, 11.62, -2.58)
+		_tube(IRON, top, anchor, 0.028, 0.028, 5, IRON_COLOR * 1.1, false)
+		for k: int in 6:
+			var t := (float(k) + 0.5) / 6.0
+			var axis := (anchor - top).normalized()
+			_torus(IRON, top.lerp(anchor, t), axis, 0.070, 0.020, IRON_COLOR * 1.15, 7, 4)
+	# Pulley beam above the bridge.
+	_tube(WOOD, Vector3(-1.62, 11.62, -2.58), Vector3(1.62, 11.62, -2.58),
+		0.10, 0.10, 8, _dark_tone(1), true)
+	for side: float in [-1.0, 1.0]:
+		_torus(IRON, Vector3(side * 0.95, 11.62, -2.58), Vector3(1.0, 0.0, 0.0),
+			0.17, 0.032, IRON_COLOR, 12, 4)
+	_finish()
+	_collision.append({"part": "bridge",
+		"position": Vector3(0.0, base_y + height * 0.5, base_z - height * 0.5 * tilt),
+		"size": Vector3(width + 0.10, height, 0.26), "rotation": Vector3(-tilt, 0.0, 0.0)})
 
 # ------------------------------------------------------------------ ladder
 func _build_ladder() -> void:
