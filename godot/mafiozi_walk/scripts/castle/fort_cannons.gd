@@ -1,4 +1,4 @@
-﻿extends Node3D
+extends Node3D
 ## SHIP104/105: castle water-side battery.  Three heavy guns face the water;
 ## the player can walk to a gun, man it with F, aim with A/D + W/S, load with E
 ## and fire with LMB.  A destructible stone room protects the crews.
@@ -106,21 +106,9 @@ func _solid_box(pos: Vector3, size: Vector3, mat: Material, hp: float = 90.0) ->
 	_wall_blocks.append({"node": root, "mesh": mi, "body": body, "hp": hp, "size": size})
 
 func _build_room() -> void:
-	# Open gun bays: a water-facing brick parapet with embrasures, short side
-	# wings, and NO door/back wall.  The player walks straight in from the open
-	# land side or through the wide side openings.
-	for seg: Array in [[12.0, 17.6], [22.4, 28.4], [31.6, 37.6], [42.4, 48.4],
-			[51.6, 57.6], [62.4, 68.4], [71.6, 80.0]]:
-		var z0: float = seg[0]
-		var z1: float = seg[1]
-		_solid_box(Vector3(70.6, 1.80, (z0 + z1) * 0.5), Vector3(0.8, 3.2, z1 - z0), _brick, 30.0)
-	for gap_z: float in [20.0, 40.0, 60.0]:
-		_solid_box(Vector3(70.6, 0.65, gap_z), Vector3(0.8, 0.9, 4.8), _brick, 25.0)
-		_solid_box(Vector3(70.6, 2.85, gap_z), Vector3(0.8, 1.1, 4.8), _brick, 25.0)
-	# Short side wings only at the water end; the inland half is the entrance.
-	for side_z: float in [12.0, 80.0]:
-		_solid_box(Vector3(69.4, 1.80, side_z), Vector3(2.2, 3.2, 0.8), _brick, 30.0)
-		_solid_box(Vector3(66.4, 1.10, side_z), Vector3(1.8, 1.8, 0.8), _brick, 25.0)
+	# No free-standing brick work around the battery: the guns stand on their
+	# stone bastions in the open.
+	return
 
 func _build_gun(base: Vector3, index: int) -> Dictionary:
 	var root := Node3D.new(); root.name = "FortGun%d" % index; add_child(root); root.global_position = base
