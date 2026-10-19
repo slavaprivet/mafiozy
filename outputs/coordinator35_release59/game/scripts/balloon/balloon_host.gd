@@ -225,7 +225,7 @@ func _physics_process(_delta: float) -> void:
 		if _aboard:
 			leave_now()
 		_pop_timer += _delta
-		if _pop_timer > 7.0:
+		if _pop_timer > 7.0 and (float(balloon.call("altitude")) < 0.6 or _pop_timer > 15.0):
 			_pop_timer = 0.0
 			balloon.call("respawn", _spawn_spot, _spawn_yaw)
 		_update_hud()
@@ -354,6 +354,7 @@ func _update_hud() -> void:
 	_heat_label.text = "Перегрев %d%% · %s" % [int(round(float(balloon.get("heat")) * 100.0)),
 		"ПОДЪЁМ" if lift else ("спуск" if descending else "планирование")]
 	_heat_fill.size = Vector2(maxf(0.0, _heat_track_width * clampf(float(balloon.get("heat")), 0.0, 1.0)), 7.0)
+	_heat_fill.visible = float(balloon.get("heat")) > 0.004
 	_heat_fill.color = Color(0.85, 0.46, 0.12) if float(balloon.get("heat")) < 0.82 else Color(0.92, 0.18, 0.10)
 	var crew := int(balloon.get("crew")) + (1 if _aboard else 0)
 	var total_weight := int(round(float(balloon.get("weight"))))

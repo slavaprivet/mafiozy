@@ -1366,8 +1366,8 @@
     "audio/horse/neigh_1.wav": "b76764d03010a5882893dcc3cfd30ee7904d4adaae36eda34fc77318c00db817",
     "audio/horse/neigh_2.wav": "90304c8dbdee0613ae02b0f5af52ac7e282cbee7cf9b001367de01de27223384",
     "audio/horse/neigh_death.wav": "5b6021e25a4f565d23941a56c1c6ca1a32457a988bd704b1c5cc43cdee95d669",
-    "scripts/balloon/siege_balloon.gd": "5f7a969fad1ec2eedb0aaf908cf3706b733b088365a17f1e0f40c1281626d00f",
-    "scripts/balloon/balloon_host.gd": "d47b3f38368719b96b8d0586e2532cef5be319703d88c3356440721f86228cd7"
+    "scripts/balloon/siege_balloon.gd": "20bb57a63134e82f222deab607bbb59affb3cb2c46dd9f144fd0eb690b3d74f6",
+    "scripts/balloon/balloon_host.gd": "6f4be3f6265fdfc9912fe6d05fc03527641a7c55370f5a580f9ddc00f6d43547"
   },
   "source_pin_scope": "Published permanent game files only; untracked generated metadata and local diagnostic artifacts excluded",
   "included_packages": [
@@ -1511,5 +1511,5 @@
     "source_on_D": "D:\\MafioziCombat31\\coordinator35_health57\\game",
     "resume": "docs/ai/COORDINATOR_35_CONTINUE57.json"
   },
-  "scope": "The castle horse plus the siege balloon rebuilt as a heavy, funny crowd carrier: five crew and the pilot ride in a big hanging basket, WASD walks the pilot weight around it so the basket visibly tips and steers the balloon, the load drops the ceiling to about five metres and makes lift, glide, sink and turn heavy, visible dust gusts shove it, four live Verlet ropes swing under the envelope, and holding Space overheats and bursts the balloon; the host ejects the crew and respawns it in camp."
+  "scope": "The castle horse plus the crowd balloon: five crew and the pilot in a big hanging basket, WASD walks the pilot weight around the basket so it visibly tips and steers the balloon only while airborne, the load drops the ceiling to about five metres and makes lift, glide, sink and turn heavy, visible dust gusts shove it, four live Verlet ropes swing under the envelope, and holding Space slowly overheats and bursts the balloon. A burst balloon drops straight down, settles and is respawned in camp; weight input no longer drags it along the ground."
 }

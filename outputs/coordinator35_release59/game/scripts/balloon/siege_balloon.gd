@@ -28,8 +28,8 @@ const DOWN_SPEED := -3.5
 const VERTICAL_ACCEL := 3.0
 const HORIZONTAL_ACCEL := 2.2
 const TURN_RATE := 0.9
-const HEAT_UP := 0.22
-const HEAT_COOL := 0.14
+const HEAT_UP := 0.055
+const HEAT_COOL := 0.09
 const AMBIENT_WIND := Vector3(1.2, 0.0, 0.4)
 const GUST_MIN_GAP := 7.0
 const GUST_MAX_GAP := 13.0
@@ -78,6 +78,7 @@ var _last_altitude := 0.0
 var _lean := 0.0
 var _throttle := 0.0
 var _seat := Vector2.ZERO
+var _airborne := false
 var _tilt_roll := 0.0
 var _tilt_pitch := 0.0
 var _last_velocity := Vector3.ZERO
@@ -540,7 +541,11 @@ func _physics_process(delta: float) -> void:
 	_lean = _seat.x / SEAT_HALF_X
 	_throttle = -_seat.y / SEAT_HALF_Z
 	throttle = _throttle
-	if piloted:
+	_airborne = _last_altitude > 0.6
+	# The weight only steers while the balloon is actually in the air. On the
+	# ground (or on the anchor) walking around the basket must not turn or drag
+	# the balloon across the flagstones.
+	if piloted and _airborne and not anchored:
 		rotation.y -= _lean * (TURN_RATE / load_factor) * delta
 	_ground_probe -= delta
 	if _ground_probe <= 0.0:
@@ -556,12 +561,16 @@ func _physics_process(delta: float) -> void:
 		pop()
 	if popped:
 		velocity.y = move_toward(velocity.y, -4.0, 3.0 * delta)
-		velocity.x = move_toward(velocity.x, AMBIENT_WIND.x, 1.5 * delta)
-		velocity.z = move_toward(velocity.z, AMBIENT_WIND.z, 1.5 * delta)
+		# A burst balloon drops straight down and then lies still; it must not
+		# sail along the ground with the ambient wind.
+		velocity.x = move_toward(velocity.x, 0.0, 4.0 * delta)
+		velocity.z = move_toward(velocity.z, 0.0, 4.0 * delta)
 		var before_pop := global_position
 		move_and_slide()
 		if not before_pop.is_finite():
 			global_position = Vector3(0.0, 2.0, 0.0)
+			velocity = Vector3.ZERO
+		if _last_altitude < 0.35:
 			velocity = Vector3.ZERO
 		_update_visual(delta)
 		_update_basket_tilt(delta, 0.0)
@@ -586,7 +595,7 @@ func _physics_process(delta: float) -> void:
 	var gust := gust_dir * gust_speed if _gust_left > 0.0 else Vector3.ZERO
 	var forward := Vector3(-sin(rotation.y), 0.0, -cos(rotation.y))
 	var target_h := forward * ((GLIDE_FORWARD + throttle * THROTTLE_SPEED) / load_factor) + AMBIENT_WIND + gust
-	if anchored:
+	if anchored or not _airborne:
 		target_h = Vector3.ZERO
 	velocity.x = move_toward(velocity.x, target_h.x, (HORIZONTAL_ACCEL / load_factor) * delta)
 	velocity.z = move_toward(velocity.z, target_h.z, (HORIZONTAL_ACCEL / load_factor) * delta)
@@ -635,7 +644,7 @@ func pop() -> void:
 	heat = 1.0
 	anchored = false
 	lift_on = false
-	velocity.y = -3.0
+	velocity = Vector3.ZERO
 	if is_instance_valid(_envelope): _envelope.visible = false
 	if is_instance_valid(_neck): _neck.visible = false
 	if is_instance_valid(_suspension_mm): _suspension_mm.visible = false
@@ -774,6 +783,6 @@ func snapshot() -> Dictionary:
 		"heat": heat, "popped": popped,
 		"crew": crew, "load": load, "weight": weight, "max_altitude": max_altitude,
 		"load_factor": load_factor, "lean": _lean, "tilt_roll": _tilt_roll, "tilt_pitch": _tilt_pitch,
-		"seat": _seat, "throttle": _throttle,
+		"seat": _seat, "throttle": _throttle, "airborne": _airborne,
 		"gust": gust_active, "gust_dir": gust_dir, "gust_speed": gust_speed,
 		"wind": wind_now(), "yaw": rotation.y}
