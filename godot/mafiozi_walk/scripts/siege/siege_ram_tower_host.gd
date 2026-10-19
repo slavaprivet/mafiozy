@@ -18,6 +18,17 @@ var player: CharacterBody3D = null
 var body: AnimatableBody3D = null
 var status := "disabled"
 var _last_result: Dictionary = {}
+var _visuals_optimized := false
+
+func _optimize_visuals(node: Node) -> void:
+	# The tower is visible from the ship, so it must not be hidden.  Instead turn
+	# off its shadow/GI cost on every mesh; the silhouette stays, rendering drops.
+	for child: Node in node.get_children():
+		if child is GeometryInstance3D:
+			var gi := child as GeometryInstance3D
+			gi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			gi.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+		_optimize_visuals(child)
 
 func install(world_in: Node3D, castle_in: Node3D) -> Dictionary:
 	world = world_in
@@ -42,6 +53,9 @@ func install(world_in: Node3D, castle_in: Node3D) -> Dictionary:
 	body.call("moor", spawn, SPAWN_YAW)
 	process_physics_priority = 110
 	status = "ready"
+	if not _visuals_optimized:
+		_visuals_optimized = true
+		_optimize_visuals(body)
 	# Optional inspection spawn: open the gate scene right at the push frame.
 	if OS.get_cmdline_user_args().has("--player-at-tower=1"):
 		player.global_position = body.to_global(Vector3(0.0, 0.15, 4.62))
@@ -73,13 +87,11 @@ func _ground_height(local_x: float, local_z: float) -> float:
 func _physics_process(delta: float) -> void:
 	if not is_instance_valid(body):
 		return
-	# The machine is a dense model.  Beyond 70 m (for example while sailing or
-	# standing on the far quay) its visuals cost frames for nothing: hide the
-	# body and stop simulating until the player comes back.
-	if is_instance_valid(player) and player.global_position.distance_to(body.global_position) > 70.0:
-		body.visible = false
-		return
+	# Keep the tower visible from across the map; only stop simulating its
+	# machinery when nobody can interact with it.
 	body.visible = true
+	if is_instance_valid(player) and player.global_position.distance_to(body.global_position) > 70.0:
+		return
 	body.call("simulate_step", delta)
 	if is_instance_valid(player):
 		body.call("climb_assist", player, delta)
