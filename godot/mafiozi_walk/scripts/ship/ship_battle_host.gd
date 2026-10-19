@@ -193,7 +193,7 @@ func install(world_in: Node3D, castle_in: Node3D) -> Dictionary:
 	# him in the same frame as the mooring teleport made the platform velocity fling
 	# the character a kilometre downrange.
 	_sync_ball_stock()
-	_seat_pending = 3
+	_seat_pending = 0 if OS.get_cmdline_user_args().has("--ship-no-seat=1") else 3
 	basin = preview_basin
 	model = preview_model
 	boat = preview_boat
