@@ -307,7 +307,8 @@ func action() -> Dictionary:
 	# The two crates in the cabin.  The ammo crate keeps its prompt, but the
 	# prompt shows E and the actual pickup is handled on E only.
 	var ammo_at := _crate_world("ammo")
-	if not ammo_at.is_zero_approx() and player.global_position.distance_to(ammo_at) <= REACH:
+	if not ammo_at.is_zero_approx() and player.global_position.distance_to(ammo_at) <= REACH \
+			and _cabin_action().is_empty():
 		return {"owner": "ship", "kind": "ship_ammo_hint", "label": "Взять ядро",
 			"key": "E", "world": ammo_at + Vector3.UP * 0.7}
 	var boards_at := _crate_world("boards")
@@ -918,6 +919,15 @@ func _sync_ball_props() -> void:
 func _physics_process(delta: float) -> void:
 	if not _installed or not is_instance_valid(player):
 		return
+	# Clear a stale hold left by an interrupted station/vehicle.  This runs only
+	# while the flag is actually set, so it cannot freeze normal walking.
+	if _station == "" and bool(player.get("_vehicle_hold")):
+		var balloon: Variant = world.get("preview_balloon") if is_instance_valid(world) else null
+		if not (is_instance_valid(balloon) and bool(balloon.get("_aboard"))):
+			if player.has_method("set_vehicle_hold"):
+				player.call("set_vehicle_hold", false)
+			if player.has_method("set_station_hold"):
+				player.call("set_station_hold", false)
 	if _seat_pending > 0:
 		_seat_pending -= 1
 		if _seat_pending == 0:
