@@ -378,6 +378,9 @@ func _physics_process(_delta: float) -> void:
 			# The horse died under the rider: put him down next to the body.
 			if not dismount_now():
 				_force_player_off_dead_horse()
+		# Whatever path got us here, walking collision must be back on: the corpse is
+		# solid, so the player has to collide with it instead of slipping through.
+		_restore_player_collision()
 		_update_hud(true)
 		return
 	if _mounted and not horse.has_rider():

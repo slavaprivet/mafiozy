@@ -31,6 +31,7 @@ const MELEE_DAMAGE := 16.0
 const ARROW_BASE_DAMAGE := 10.0
 const ARROW_SPEED_DAMAGE := 1.6
 const MELEE_COOLDOWN_MS := 380
+const STAINS := 10
 const BloodFx = preload("res://scripts/mount/horse_blood.gd")
 
 var rider: CharacterBody3D = null
@@ -62,7 +63,7 @@ var _sock: StandardMaterial3D
 var _eye: StandardMaterial3D
 
 var _blood: RefCounted
-var _splats: Array[MeshInstance3D] = []
+var _stain_multimesh: MultiMeshInstance3D
 var _splat_cursor := 0
 var _splat_material: StandardMaterial3D
 var _splat_mesh: SphereMesh
@@ -117,8 +118,8 @@ func setup(at: Vector3, yaw: float) -> bool:
 	_built = true
 	return true
 
-## A small recycled pool of flat stains parented to the barrel: they move with the
-## horse and stay after the hit, unlike a one-frame particle burst.
+## A small recycled pool of flat stains in one MultiMesh: they move with the
+## barrel and stay after the hit, unlike a one-frame particle burst.
 func _build_blood_splats() -> void:
 	_splat_material = _material(Color(0.34, 0.025, 0.035), 0.9)
 	_splat_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -128,18 +129,21 @@ func _build_blood_splats() -> void:
 	_splat_mesh.height = 2.0
 	_splat_mesh.radial_segments = 8
 	_splat_mesh.rings = 4
-	for index: int in 10:
-		var splat := MeshInstance3D.new()
-		splat.name = "BloodSplat%d" % index
-		splat.mesh = _splat_mesh
-		splat.material_override = _splat_material
-		splat.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		splat.visible = false
-		_rig.add_child(splat)
-		_splats.append(splat)
+	var stains := MultiMesh.new()
+	stains.transform_format = MultiMesh.TRANSFORM_3D
+	stains.mesh = _splat_mesh
+	stains.instance_count = STAINS
+	for index: int in STAINS:
+		stains.set_instance_transform(index, Transform3D(Basis().scaled(Vector3.ZERO), Vector3.ZERO))
+	_stain_multimesh = MultiMeshInstance3D.new()
+	_stain_multimesh.name = "BloodStains"
+	_stain_multimesh.multimesh = stains
+	_stain_multimesh.material_override = _splat_material
+	_stain_multimesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_rig.add_child(_stain_multimesh)
 
 func _spawn_splat(point: Vector3, normal: Vector3) -> void:
-	if _splats.is_empty() or not is_instance_valid(_rig):
+	if not is_instance_valid(_stain_multimesh) or not is_instance_valid(_rig):
 		return
 	var direction := normal.normalized() if normal.length_squared() > 0.0001 else Vector3.UP
 	var local_point: Vector3 = _rig.global_transform.affine_inverse() * (point + direction * 0.03)
@@ -150,10 +154,10 @@ func _spawn_splat(point: Vector3, normal: Vector3) -> void:
 	tangent = tangent.normalized()
 	var bitangent := tangent.cross(local_normal).normalized()
 	var size := 0.090 + float(_splat_cursor % 4) * 0.022
-	var splat: MeshInstance3D = _splats[_splat_cursor % _splats.size()]
+	var index := _splat_cursor % STAINS
 	_splat_cursor += 1
-	splat.transform = Transform3D(Basis(tangent * size, local_normal * 0.020, bitangent * size), local_point)
-	splat.visible = true
+	_stain_multimesh.multimesh.set_instance_transform(index,
+		Transform3D(Basis(tangent * size, local_normal * 0.020, bitangent * size), local_point))
 
 func _build_collision() -> void:
 	# Barrel: the part that must not pass through a wall.
@@ -631,6 +635,9 @@ func _ground_below(point: Vector3) -> float:
 func _check_blade_hit() -> void:
 	if dead or is_instance_valid(rider) or not is_instance_valid(damage_owner):
 		return
+	var owner_body: Node3D = damage_owner as Node3D
+	if owner_body != null and global_position.distance_squared_to(owner_body.global_position) > 36.0:
+		return
 	var sword: Node = damage_owner.get("_sword_host") as Node
 	if not is_instance_valid(sword):
 		_blade_tip_valid = false
@@ -761,6 +768,28 @@ func _make_corpse(direction: Vector3) -> void:
 	legs.shape = legs_shape
 	legs.position = Vector3(0.0, 0.45, 0.02)
 	rb.add_child(legs)
+	# The neck and the leg span need their own volumes: without them a player could
+	# slip between the barrel and the head or between the splayed legs.
+	var neck_shape := CapsuleShape3D.new()
+	neck_shape.radius = 0.24
+	neck_shape.height = 1.02
+	var neck := CollisionShape3D.new()
+	neck.shape = neck_shape
+	neck.position = Vector3(0.0, 1.82, -0.82)
+	neck.rotation_degrees.x = -37.0
+	rb.add_child(neck)
+	var saddle_shape := BoxShape3D.new()
+	saddle_shape.size = Vector3(0.72, 0.34, 1.02)
+	var saddle := CollisionShape3D.new()
+	saddle.shape = saddle_shape
+	saddle.position = Vector3(0.0, 1.78, 0.02)
+	rb.add_child(saddle)
+	var leg_span_shape := BoxShape3D.new()
+	leg_span_shape.size = Vector3(0.64, 0.98, 1.34)
+	var leg_span := CollisionShape3D.new()
+	leg_span.shape = leg_span_shape
+	leg_span.position = Vector3(0.0, 0.50, 0.0)
+	rb.add_child(leg_span)
 	if is_instance_valid(_model):
 		_model.reparent(rb, true)
 	# The living body stops existing for physics, but remains the stable owner the
