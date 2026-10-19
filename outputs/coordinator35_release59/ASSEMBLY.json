@@ -1297,7 +1297,7 @@
     "scripts/weapons/bow_prototype.gd": "79575236ebccc48175af922839cda12956956b77ecc3dcd59280189b101d785e",
     "scripts/weapons/cargo_aim_picker.gd": "9046edbfaf5e51d1c924f2bf93b09064c3b0bf9f2bfdd524eb9ed6099ca10731",
     "scripts/weapons/cargo_aim_picker.gd.uid": "8f3c0b3aa7081eef83299288086ba02204b0551868376ad25e191b28a70264a4",
-    "scripts/weapons/catapult_prototype.gd": "3f71f36182cf5632ccbb41e36f99ffb6b92b9a77c7300a1f56411df1a8069d4f",
+    "scripts/weapons/catapult_prototype.gd": "720d0c059131f31b7f483b86f0f7ef2c984868528c73590b3ee132db5a436d4c",
     "scripts/weapons/context_plate_layout.gd": "ec9a6f2686ffa5b40e3d73f5e12e613f985cd227d991f19514e14f4b4e0a45ca",
     "scripts/weapons/context_plate_layout.gd.uid": "4099cfc37ddf34750e51bfd74ac1a2e59dd9d9ccd459eee7a0b4eebe2706da6b",
     "scripts/weapons/directional_melee41.gd": "ac54d735aacf8de0aed4875df30e9efd271964d5bdc95d0a0624c2550fd4c41a",
