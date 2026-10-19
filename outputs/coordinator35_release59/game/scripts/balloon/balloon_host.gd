@@ -348,9 +348,8 @@ func _update_hud() -> void:
 	_panel.visible = _aboard
 	if not _aboard:
 		return
-	_altitude_label.text = "Высота %d м / макс %d м · Ветер %s %.1f м/с" % [
-		int(round(altitude)), int(round(float(balloon.get("max_altitude")))),
-		_wind_arrow(wind), wind_speed]
+	_altitude_label.text = "Высота %d м · Ветер %s %.1f м/с" % [
+		int(round(altitude)), _wind_arrow(wind), wind_speed]
 	_heat_label.text = "Перегрев %d%% · %s" % [int(round(float(balloon.get("heat")) * 100.0)),
 		"ПОДЪЁМ" if lift else "планирование"]
 	_heat_fill.size = Vector2(maxf(0.0, _heat_track_width * clampf(float(balloon.get("heat")), 0.0, 1.0)), 7.0)

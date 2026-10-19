@@ -525,7 +525,7 @@ func _physics_process(delta: float) -> void:
 	load = (1.0 if piloted else 0.0) + float(crew)
 	weight = load * PASSENGER_WEIGHT
 	load_factor = 1.0 + 0.15 * maxf(0.0, load - 1.0)
-	max_altitude = maxf(3.0, BASE_CEILING - CEILING_PER_SOUL * maxf(0.0, load - 1.0))
+	max_altitude = 100.0
 	if piloted:
 		var move := Input.get_vector(&"preview_move_left", &"preview_move_right",
 			&"preview_move_forward", &"preview_move_back")
@@ -573,9 +573,9 @@ func _physics_process(delta: float) -> void:
 		_seat_rider()
 		return
 	# Glide: lift on Space, otherwise a gentle sink; Shift drops faster. A heavy
-	# basket sinks faster, climbs slower and cannot reach the empty-balloon ceiling.
-	var ceiling_scale := clampf((max_altitude - _last_altitude) / 1.5, 0.0, 1.0)
-	var lift_speed := (LIFT_SPEED / load_factor) * (ceiling_scale if lift else 1.0)
+	# A heavy basket climbs slower, but there is no height limit: the crew can
+	# always take her higher, it just takes longer.
+	var lift_speed := LIFT_SPEED / load_factor
 	var target_vy := lift_speed if lift else (GLIDE_SINK * load_factor)
 	velocity.y = move_toward(velocity.y, target_vy, (VERTICAL_ACCEL / load_factor) * delta)
 	lift_on = lift
