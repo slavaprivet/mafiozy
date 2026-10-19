@@ -31,6 +31,7 @@ var _fall_start_y := 0.0
 var _fall_last_y := 0.0
 var _fall_max_speed := 0.0
 var _fall_timer := 0.0
+var _fall_airborne := false
 var _crash_handled := false
 var _walking_layer := 0
 var _walking_mask := 0
@@ -496,6 +497,7 @@ func _remove_cargo_visual() -> void:
 
 func _start_fall() -> void:
 	_fall_active = true
+	_fall_airborne = false
 	_fall_start_y = player.global_position.y
 	_fall_last_y = player.global_position.y
 	_fall_max_speed = 0.0
@@ -504,12 +506,16 @@ func _start_fall() -> void:
 func _update_fall(delta: float) -> void:
 	if not _fall_active or not is_instance_valid(player) or _dead:
 		return
+	if not _fall_airborne:
+		if not player.is_on_floor() or player.global_position.y < _fall_start_y - 0.6:
+			_fall_airborne = true
+		return
 	_fall_start_y = maxf(_fall_start_y, player.global_position.y)
 	var step := _fall_last_y - player.global_position.y
 	if step > 0.0:
-		_fall_max_speed = maxf(_fall_max_speed, step / maxf(delta, 0.001))
+		_fall_max_speed = minf(60.0, maxf(_fall_max_speed, step / maxf(delta, 0.001)))
 	_fall_last_y = player.global_position.y
-	_fall_max_speed = maxf(_fall_max_speed, maxf(0.0, -player.velocity.y))
+	_fall_max_speed = minf(60.0, maxf(_fall_max_speed, maxf(0.0, -player.velocity.y)))
 	_fall_timer += delta
 	if player.is_on_floor() or _fall_timer > 6.0:
 		var height := maxf(0.0, _fall_start_y - player.global_position.y)

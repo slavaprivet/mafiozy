@@ -783,6 +783,7 @@ func _crash() -> void:
 		return
 	crash_done = true
 	var burst_at := _basket_node.global_position if is_instance_valid(_basket_node) else global_position
+	if is_instance_valid(_model): _model.visible = false
 	if is_instance_valid(_basket_node): _basket_node.visible = false
 	if is_instance_valid(_envelope): _envelope.visible = false
 	if is_instance_valid(_neck): _neck.visible = false
@@ -1004,6 +1005,7 @@ func respawn(at: Vector3, yaw: float) -> void:
 	_gust_left = 0.0
 	gust_active = false
 	_gust_timer = 6.0
+	if is_instance_valid(_model): _model.visible = true
 	if is_instance_valid(_envelope):
 		_envelope.visible = true
 		_envelope.scale = Vector3.ONE
