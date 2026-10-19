@@ -1195,6 +1195,11 @@ func _current_door_action() -> Dictionary:
 		var ship_action: Dictionary = preview_ship.call("action")
 		if not ship_action.is_empty():
 			return ship_action
+	# SHIP105: castle water-side fort guns own F when the player is at them.
+	if is_instance_valid(preview_fort):
+		var fort_action: Dictionary = preview_fort.call("action")
+		if not fort_action.is_empty():
+			return fort_action
 	if is_instance_valid(preview_castle) and is_instance_valid(preview_castle.armory_storage) \
 			and preview_castle.armory_storage.chest_focused():
 		return {"owner": "castle_chest", "label": "Открыть сундук",
@@ -1316,6 +1321,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	var action: Dictionary = _current_door_action()
 	if action.is_empty():
+		return
+	if str(action.get("owner", "")) == "fort":
+		if preview_fort.call("interact", action):
+			get_viewport().set_input_as_handled()
+		_update_door_hint()
 		return
 	# DSH_SHIP61: the ship's own interactions (helm, sails, guns, stores, repairs).
 	if str(action.get("owner", "")) in ["ship", "powder"]:

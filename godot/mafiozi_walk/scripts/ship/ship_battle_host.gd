@@ -305,14 +305,7 @@ func action() -> Dictionary:
 					"label": "Встать за пушку", "world": mount + Vector3.UP * 0.9}
 				best_distance = distance
 	# The two crates in the cabin.
-	var ammo_at := _crate_world("ammo")
-	if not ammo_at.is_zero_approx() and feet.distance_to(ammo_at) <= REACH:
-		var distance := feet.distance_to(ammo_at)
-		if distance < best_distance:
-			best = {"owner": "ship", "kind": "ship_ammo",
-				"label": "Взять ядра (%d)" % CRATE_BALLS,
-				"world": ammo_at + Vector3.UP * 0.5}
-			best_distance = distance
+	# SHIP105: the ammo crate is E-only; no floating F "Взять ядра" plaque.
 	var boards_at := _crate_world("boards")
 	if not boards_at.is_zero_approx() and feet.distance_to(boards_at) <= REACH:
 		var distance := feet.distance_to(boards_at)
@@ -699,6 +692,12 @@ func _input(event: InputEvent) -> void:
 	# dead on a Cyrillic layout, which is exactly why the gun would not traverse.
 	if not _installed or _station != "cannon":
 		return
+	if event is InputEventMouseMotion and Input.is_physical_key_pressed(KEY_E):
+		# Holding E aims the gun with the mouse; the barrel itself is the sight.
+		var motion := event as InputEventMouseMotion
+		preview_cannons.call("aim", motion.relative.x * 0.0018, -motion.relative.y * 0.0012)
+		get_viewport().set_input_as_handled()
+		return
 	if not event is InputEventKey or event.echo:
 		return
 	var key := event as InputEventKey
@@ -735,6 +734,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
 	var water_key: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
+	if _station == "" and water_key == KEY_E and _near_ammo_crate():
+		_take_from_crate("ammo")
+		get_viewport().set_input_as_handled()
+		return
 	if _station == "" and water_key == KEY_E and is_instance_valid(preview_powder) \
 			and preview_powder.has_method("pick_up_nearest"):
 		if bool(preview_powder.call("pick_up_nearest")):
@@ -853,6 +856,13 @@ func _update_carried_ball(delta: float) -> void:
 	_carry_phase += delta * 4.0
 	_carried_ball_mesh.position = Vector3(0.0, 1.28 + sin(_carry_phase) * 0.035, 0.42)
 	_carried_ball_mesh.rotation.z = sin(_carry_phase * 0.6) * 0.10
+
+
+func _near_ammo_crate() -> bool:
+	if not is_instance_valid(player):
+		return false
+	var at := _crate_world("ammo")
+	return not at.is_zero_approx() and player.global_position.distance_to(at) <= REACH
 
 
 func _build_deck_balls() -> void:
