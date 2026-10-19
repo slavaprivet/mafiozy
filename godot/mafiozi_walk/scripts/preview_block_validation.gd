@@ -8,10 +8,16 @@ const SurfaceMaterials = preload("res://scripts/preview_surface_materials.gd")
 const MAX_ASSETS: int = 256
 const MAX_COLLIDERS: int = 1024
 const MAX_SIDE: int = 128
+## The authored city block crops a 200x180 source map; its own validator used 200.
+const CITY_MAX_SIDE: int = 200
+## Legacy source IDs carry a colon. They stay source identity (meta), never a node name.
+const CITY_SOURCE_IDS: Array[String] = ["REBUILD-bank:small", "REBUILD-bank:medium", "REBUILD-bank:large"]
 
 
-static func validate(data: Variant) -> PackedStringArray:
+static func validate(data: Variant, options: Dictionary = {}) -> PackedStringArray:
 	var errors: PackedStringArray = []
+	var max_side: int = int(options.get("max_side", MAX_SIDE))
+	var city_source_ids: bool = bool(options.get("city_source_ids", false))
 	if not data is Dictionary:
 		return PackedStringArray(["block: expected dictionary"])
 	if data.get("schema") != SCHEMA:
@@ -20,7 +26,7 @@ static func validate(data: Variant) -> PackedStringArray:
 		errors.append("originM: expected three finite coordinates")
 	if not _number(data.get("metresPerCell"), 0.001, 100.0):
 		errors.append("metresPerCell: expected positive finite cell size")
-	var surface_cells: int = _surface(data.get("surface"), data.get("metresPerCell"), errors)
+	var surface_cells: int = _surface(data.get("surface"), data.get("metresPerCell"), errors, max_side)
 	var ids: Dictionary = {}
 	var paths: Dictionary = {}
 	var collider_count: int = 0
@@ -35,7 +41,7 @@ static func validate(data: Variant) -> PackedStringArray:
 			errors.append("assets: total exceeds 256")
 			return errors
 		for index: int in range(records.size()):
-			collider_count += _asset(records[index], "%s[%d]" % [category, index], ids, paths, data.get("originM"), errors)
+			collider_count += _asset(records[index], "%s[%d]" % [category, index], ids, paths, data.get("originM"), errors, city_source_ids)
 			if collider_count > MAX_COLLIDERS:
 				errors.append("colliders: total exceeds 1024")
 				return errors
@@ -64,13 +70,13 @@ static func validate(data: Variant) -> PackedStringArray:
 			if records is Array and (not _integer(counts.get(key), 0, MAX_ASSETS) or int(counts[key]) != records.size()):
 				errors.append("counts." + key + ": does not match actual records")
 		for pair: Array in [["collisionBodies", collider_count], ["uniqueGlbs", paths.size()], ["surfaceCells", surface_cells]]:
-			if not _integer(counts.get(pair[0]), 0, MAX_SIDE * MAX_SIDE) or int(counts[pair[0]]) != int(pair[1]):
+			if not _integer(counts.get(pair[0]), 0, max_side * max_side) or int(counts[pair[0]]) != int(pair[1]):
 				errors.append("counts." + str(pair[0]) + ": does not match actual content")
 	return errors
 
 
-static func prepare_assets(data: Variant, scene_loader: Callable = Callable()) -> Dictionary:
-	var errors: PackedStringArray = validate(data)
+static func prepare_assets(data: Variant, scene_loader: Callable = Callable(), options: Dictionary = {}) -> Dictionary:
+	var errors: PackedStringArray = validate(data, options)
 	if not errors.is_empty():
 		return {"errors": errors, "scenes": {}}
 	var paths: Dictionary = {str(data["hero"]["path"]): true}
@@ -100,12 +106,12 @@ static func prepare_assets(data: Variant, scene_loader: Callable = Callable()) -
 	return {"errors": errors, "scenes": scenes if errors.is_empty() else {}}
 
 
-static func _asset(record: Variant, label: String, ids: Dictionary, paths: Dictionary, origin: Variant, errors: PackedStringArray) -> int:
+static func _asset(record: Variant, label: String, ids: Dictionary, paths: Dictionary, origin: Variant, errors: PackedStringArray, city_source_ids: bool = false) -> int:
 	if not record is Dictionary:
 		errors.append(label + ": expected dictionary")
 		return 0
 	var id: Variant = record.get("id")
-	if not _id(id):
+	if not _id(id, city_source_ids):
 		errors.append(label + ".id: expected stable node-safe ID")
 	elif ids.has(id):
 		errors.append(label + ".id: duplicate ID " + str(id))
@@ -158,12 +164,12 @@ static func _asset(record: Variant, label: String, ids: Dictionary, paths: Dicti
 	return bodies.size()
 
 
-static func _surface(surface: Variant, cell_size: Variant, errors: PackedStringArray) -> int:
+static func _surface(surface: Variant, cell_size: Variant, errors: PackedStringArray, max_side: int = MAX_SIDE) -> int:
 	if not surface is Dictionary:
 		errors.append("surface: expected dictionary")
 		return 0
 	for key: String in ["rows", "cols"]:
-		if not _integer(surface.get(key), 1, MAX_SIDE):
+		if not _integer(surface.get(key), 1, max_side):
 			errors.append("surface." + key + ": expected bounded dimension")
 	for key: String in ["startRow", "startCol"]:
 		if not _integer(surface.get(key), 0, 100000):
@@ -171,7 +177,7 @@ static func _surface(surface: Variant, cell_size: Variant, errors: PackedStringA
 	for axis: Array in [["startRow", "rows", "sourceMapRows"], ["startCol", "cols", "sourceMapCols"]]:
 		if not _integer(surface.get(axis[2]), 1, 100000):
 			errors.append("surface." + str(axis[2]) + ": invalid source map dimension")
-		elif _integer(surface.get(axis[0]), 0, 100000) and _integer(surface.get(axis[1]), 1, MAX_SIDE):
+		elif _integer(surface.get(axis[0]), 0, 100000) and _integer(surface.get(axis[1]), 1, max_side):
 			if int(surface[axis[0]]) + int(surface[axis[1]]) > int(surface[axis[2]]):
 				errors.append("surface: crop extends outside source map")
 	if not _number(surface.get("cellSize"), 0.001, 100.0) or not _number(cell_size, 0.001, 100.0) or absf(float(surface["cellSize"]) - float(cell_size)) > 0.000001:
@@ -198,14 +204,14 @@ static func _surface(surface: Variant, cell_size: Variant, errors: PackedStringA
 			errors.append("surface.palette: invalid sRGB colour")
 		if key == "16" and item.get("solid") != false:
 			errors.append("surface.palette: water tile 16 must not become solid land")
-	if not grid is Array or grid.is_empty() or grid.size() > MAX_SIDE:
+	if not grid is Array or grid.is_empty() or grid.size() > max_side:
 		errors.append("surface.grid: expected bounded nonempty row array")
 		return 0
 	if grid.size() != surface.get("rows"):
 		errors.append("surface.grid: row count differs from declared rows")
 	var cells: int = 0
 	for row: Variant in grid:
-		if not row is Array or row.is_empty() or row.size() > MAX_SIDE:
+		if not row is Array or row.is_empty() or row.size() > max_side:
 			errors.append("surface.grid: invalid row")
 			continue
 		if row.size() != surface.get("cols"):
@@ -308,8 +314,9 @@ static func _vector(value: Variant, size: int) -> bool:
 	return true
 
 
-static func _id(value: Variant) -> bool:
-	return value is String and not value.is_empty() and value.length() <= 128 and value == value.strip_edges() and value.validate_node_name() == value
+static func _id(value: Variant, city_source_ids: bool = false) -> bool:
+	if not (value is String and not value.is_empty() and value.length() <= 128 and value == value.strip_edges()): return false
+	return value.validate_node_name() == value or (city_source_ids and value in CITY_SOURCE_IDS)
 
 
 static func _path(value: Variant) -> bool:

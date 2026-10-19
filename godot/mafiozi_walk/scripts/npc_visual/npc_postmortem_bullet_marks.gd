@@ -29,6 +29,7 @@ var _influence_points := PackedVector3Array()
 var _influence_weights := PackedFloat32Array()
 var _pose_key: Array = []
 var _seed := 0
+static var _shared_shader: Shader
 var last_cost: Dictionary = {}
 var _batch_active:=false
 var _batch_dirty:=false
@@ -37,6 +38,25 @@ var prepare_us:=0
 var prepare_memory_delta_bytes:=0
 var _query_cache: Dictionary = {}
 var _query_bones: Array[Transform3D] = []
+
+static var _cluster_cache: Dictionary={}
+const CLUSTER_CACHE_LIMIT:=1024
+# --- DSH_MARKSFAST: session-scope strict control ----------------------------------
+# --city-load-strict=1 runs every original body below verbatim (the same flag
+# npc_visual_cache.gd and npc_local_preview_hit_owner.gd use for their holders).
+static var _marks_strict_flag := -1
+
+static func _clusters_strict() -> bool:
+	if _marks_strict_flag < 0:
+		_marks_strict_flag = 0
+		for dsh_argument in OS.get_cmdline_user_args():
+			if dsh_argument.begins_with("--city-load-strict="):
+				_marks_strict_flag = maxi(0, int(dsh_argument.trim_prefix("--city-load-strict=")))
+	return _marks_strict_flag != 0
+
+const EXTRA_BASE := 1 << 20
+const EXTRA_NEG := 1 << 21
+
 
 func configure(actor: Node3D, rig: Skeleton3D, unit: float) -> bool:
 	if _root != null or not is_instance_valid(actor) or not is_instance_valid(rig) or not actor.is_ancestor_of(rig) or not is_finite(unit) or unit <= 0: return false
@@ -75,9 +95,12 @@ func configure(actor: Node3D, rig: Skeleton3D, unit: float) -> bool:
 	_root.add_child(_mesh_node)
 	# One batched draw per actor. Fragment normals follow the actual moving wound
 	# triangles; positions alone are streamed. No full ArrayMesh rebuild per frame.
-	var shader := Shader.new()
-	shader.code = "shader_type spatial; render_mode cull_disabled, depth_draw_never; void fragment(){vec3 n=normalize(cross(dFdx(VERTEX),dFdy(VERTEX))); NORMAL=faceforward(n,VERTEX,n); ALBEDO=COLOR.rgb; ROUGHNESS=1.0;}"
-	_material = ShaderMaterial.new(); _material.shader = shader
+	# One shader resource for every NPC. The code is identical for all residents, so
+	# creating and specialising a fresh Shader per actor only added startup cost.
+	if _shared_shader == null:
+		_shared_shader = Shader.new()
+		_shared_shader.code = "shader_type spatial; render_mode cull_disabled, depth_draw_never; void fragment(){vec3 n=normalize(cross(dFdx(VERTEX),dFdy(VERTEX))); NORMAL=faceforward(n,VERTEX,n); ALBEDO=COLOR.rgb; ROUGHNESS=1.0;}"
+	_material = ShaderMaterial.new(); _material.shader = _shared_shader
 	# Prepare the exact indexed/color/dynamic material pipeline before any hit.
 	# Degenerate geometry covers no pixels, does not admit a wound or HP receipt.
 	# Keep a finite bound so render-list preparation can see the surface.
@@ -95,47 +118,262 @@ func configure(actor: Node3D, rig: Skeleton3D, unit: float) -> bool:
 	return true
 
 func _clusters(s:Dictionary)->Array[Dictionary]:
+	# The clustering depends only on geometry, bind arrays, the skin flag and the
+	# unit scale: identical for every resident sharing this prepared surface. Cache
+	# it once per surface content instead of recomputing it per resident. Every hit
+	# is re-verified by comparing the arrays, so a hash collision cannot return a
+	# wrong cluster set. The stored copy is pristine: bounds are MUTATED later by
+	# _adopt_vertices, so the caller always receives its own copy of bounds.
+	var _skinned: bool = s.skin!=null
+	var _sig: int = hash(s.vertices)
+	_sig = _sig*31 + hash(s.indices)
+	if _skinned:
+		_sig = _sig*31 + hash(s.bones)
+		_sig = _sig*31 + hash(s.weights)
+	_sig = _sig*31 + int(_unit*100000.0)
+	_sig = _sig*31 + (1 if _skinned else 0)
+	var _cached: Variant = _cluster_cache.get(_sig)
+	if _cached != null:
+		var _hit: Dictionary = _cached
+		if _hit.vertices==s.vertices and _hit.indices==s.indices and _hit.unit==_unit and _hit.skinned==_skinned and (not _skinned or (_hit.bones==s.bones and _hit.weights==s.weights)):
+			return _clone_clusters(_hit.clusters)
+	var result:Array[Dictionary]=[]
+	# DSH_MARKSFAST: same clusters, same order, same arithmetic; flat storage instead of
+	# per-triangle Dictionary work. --city-load-strict=1 selects the original body.
+	if _clusters_strict():
+		result=_clusters_build_original(s)
+	else:
+		result=_clusters_build_fast(s)
+	if _cluster_cache.size()>=CLUSTER_CACHE_LIMIT: _cluster_cache.clear()
+	_cluster_cache[_sig]={"vertices":s.vertices,"indices":s.indices,"bones":s.bones if _skinned else PackedInt32Array(),"weights":s.weights if _skinned else PackedFloat32Array(),"unit":_unit,"skinned":_skinned,"clusters":_clone_clusters(result)}
+	return result
+
+func _clusters_build_original(s:Dictionary)->Array[Dictionary]:
+	# DSH_MARKSFAST: the shipped body, verbatim, for --city-load-strict=1.
 	# Conservative bound per dominant-bone triangle group. Every contributing
 	# bone keeps its own original-point AABB, so blends remain inside their union.
-	var groups:Dictionary={};var ids:PackedInt32Array=s.indices
+	# Optimised: two-level numeric grouping (bone -> cell) instead of building a
+	# String key for every triangle, and one reusable accumulator Dictionary
+	# instead of a fresh one per triangle. Grouping, insertion order and the
+	# retained "seen" set are unchanged.
+	var by_bone:Dictionary={}
+	var result:Array[Dictionary]=[]
+	var ids:PackedInt32Array=s.indices
 	var cell_size:=.45/_unit
+	var skinned: bool = s.skin!=null
+	var accum:Dictionary={}
+	var touched:=PackedInt32Array()
+	var tri:=PackedInt32Array();tri.resize(3)
 	for i in range(0,ids.size(),3):
-		var scores:Dictionary={};var dominant:=-1;var best:=-1.0
-		if s.skin!=null:
-			for index:int in [ids[i],ids[i+1],ids[i+2]]:
+		var i0:int=ids[i]
+		var i1:int=ids[i+1]
+		var i2:int=ids[i+2]
+		tri[0]=i0;tri[1]=i1;tri[2]=i2
+		var dominant:=-1
+		var best:=-1.0
+		if skinned:
+			for index:int in tri:
+				var base:int=index*4
 				for j in 4:
-					var k:=index*4+j;var weight:float=s.weights[k];var bone:int=s.bones[k]
-					if weight>0:scores[bone]=float(scores.get(bone,0.0))+weight
-			for bone:int in scores:
-				if scores[bone]>best:best=scores[bone];dominant=bone
-		var centroid:Vector3=(s.vertices[ids[i]]+s.vertices[ids[i+1]]+s.vertices[ids[i+2]])/3.0
+					var k:int=base+j
+					var weight:float=s.weights[k]
+					if weight<=0:continue
+					var bone:int=s.bones[k]
+					if not accum.has(bone):
+						touched.append(bone);accum[bone]=0.0
+					accum[bone]=float(accum[bone])+weight
+			for item:int in touched:
+				var score:float=accum[item]
+				if score>best:best=score;dominant=item
+				accum.erase(item)
+			touched.clear()
+		var centroid:Vector3=(s.vertices[i0]+s.vertices[i1]+s.vertices[i2])/3.0
 		var cell:=Vector3i(floori(centroid.x/cell_size),floori(centroid.y/cell_size),floori(centroid.z/cell_size))
-		var group_key:=str(dominant)+":"+str(cell)
-		if not groups.has(group_key):groups[group_key]={"indices":PackedInt32Array(),"bounds":{},"seen":{}}
-		var group:Dictionary=groups[group_key]
-		for index:int in [ids[i],ids[i+1],ids[i+2]]:
+		if not by_bone.has(dominant):by_bone[dominant]={}
+		var by_cell:Dictionary=by_bone[dominant]
+		var group:Dictionary
+		if by_cell.has(cell):
+			group=by_cell[cell]
+		else:
+			group={"indices":PackedInt32Array(),"bounds":{},"seen":{}}
+			by_cell[cell]=group
+			result.append(group)
+		for index:int in tri:
 			group.indices.append(index)
 			if group.seen.has(index):continue
 			group.seen[index]=true
 			var p:Vector3=s.vertices[index]
-			if s.skin==null:
+			if not skinned:
 				group.bounds[-1]=group.bounds[-1].expand(p) if group.bounds.has(-1) else AABB(p,Vector3.ZERO)
 			else:
+				var base2:int=index*4
 				for j in 4:
-					var k:=index*4+j;var bone:int=s.bones[k]
+					var k:int=base2+j
 					if s.weights[k]<=0:continue
+					var bone:int=s.bones[k]
 					group.bounds[bone]=group.bounds[bone].expand(p) if group.bounds.has(bone) else AABB(p,Vector3.ZERO)
-	var result:Array[Dictionary]=[]
-	for group:Dictionary in groups.values():result.append(group)
 	return result
+
+func _clusters_build_fast(s:Dictionary)->Array[Dictionary]:
+	var by_bone: Dictionary = {}
+	var result: Array[Dictionary] = []
+	var ids: PackedInt32Array = s.indices
+	var weights: PackedFloat32Array = s.weights
+	var bones: PackedInt32Array = s.bones
+	var skinned: bool = s.skin != null
+	var cell_size := .45 / _unit
+	var slot_count := 1
+	if skinned:
+		slot_count = s.bindings.size() + 1
+	var accum := PackedFloat64Array()
+	accum.resize(slot_count)
+	var stamp := PackedInt32Array()
+	stamp.resize(slot_count)
+	var touched := PackedInt32Array()
+	var extra_accum: Dictionary = {}
+	var extra_stamp: Dictionary = {}
+	var tri := PackedInt32Array()
+	tri.resize(3)
+	var ordinal := 0
+	for i in range(0, ids.size(), 3):
+		var i0: int = ids[i]
+		var i1: int = ids[i + 1]
+		var i2: int = ids[i + 2]
+		tri[0] = i0
+		tri[1] = i1
+		tri[2] = i2
+		var dominant := -1
+		if skinned:
+			ordinal += 1
+			var best := -1.0
+			for index: int in tri:
+				var vbase: int = index * 4
+				for j: int in 4:
+					var k: int = vbase + j
+					var weight: float = weights[k]
+					if weight <= 0:
+						continue
+					var b: int = bones[k]
+					if b >= 0 and b < slot_count:
+						if stamp[b] != ordinal:
+							stamp[b] = ordinal
+							accum[b] = 0.0
+							touched.append(b)
+						accum[b] = accum[b] + weight
+					else:
+						var ekey: int = EXTRA_BASE + b if b >= 0 else EXTRA_NEG - b
+						if int(extra_stamp.get(ekey, -1)) != ordinal:
+							extra_stamp[ekey] = ordinal
+							extra_accum[ekey] = 0.0
+							touched.append(ekey)
+						extra_accum[ekey] = float(extra_accum[ekey]) + weight
+			for item: int in touched:
+				var score: float = accum[item] if item < EXTRA_BASE else float(extra_accum[item])
+				if score > best:
+					best = score
+					dominant = item if item < EXTRA_BASE else (item - EXTRA_BASE if item < EXTRA_NEG else -(item - EXTRA_NEG))
+			touched.clear()
+		var centroid: Vector3 = (s.vertices[i0] + s.vertices[i1] + s.vertices[i2]) / 3.0
+		var cell := Vector3i(floori(centroid.x / cell_size), floori(centroid.y / cell_size), floori(centroid.z / cell_size))
+		if not by_bone.has(dominant):
+			by_bone[dominant] = {}
+		var by_cell: Dictionary = by_bone[dominant]
+		var group_index: int
+		if by_cell.has(cell):
+			group_index = int(by_cell[cell])
+		else:
+			group_index = result.size()
+			by_cell[cell] = group_index
+			result.append({"indices": PackedInt32Array(), "bounds": {}, "seen": PackedInt32Array()})
+		result[group_index].indices.append_array(tri)
+	var vertices: PackedVector3Array = s.vertices
+	var flags := PackedInt32Array()
+	flags.resize(vertices.size())
+	var pos_arr := PackedVector3Array()
+	var size_arr := PackedVector3Array()
+	var tw := PackedByteArray()
+	pos_arr.resize(result.size() * slot_count)
+	size_arr.resize(result.size() * slot_count)
+	tw.resize(result.size() * slot_count)
+	var extras: Dictionary = {}
+	for gi: int in result.size():
+		var group: Dictionary = result[gi]
+		var marker: int = gi + 1
+		var base: int = gi * slot_count
+		for index: int in group.indices:
+			if flags[index] == marker:
+				continue
+			flags[index] = marker
+			group.seen.append(index)
+			var p: Vector3 = vertices[index]
+			if not skinned:
+				var slot: int = base
+				if tw[slot] == 0:
+					tw[slot] = 1
+					pos_arr[slot] = p
+					size_arr[slot] = Vector3.ZERO
+				else:
+					var np: Vector3 = pos_arr[slot].min(p)
+					size_arr[slot] = (size_arr[slot] + pos_arr[slot]).max(p) - np
+					pos_arr[slot] = np
+			else:
+				var vbase2: int = index * 4
+				for j: int in 4:
+					var k: int = vbase2 + j
+					if weights[k] <= 0:
+						continue
+					var b: int = bones[k]
+					if b >= 0 and b < slot_count:
+						var slot: int = base + b + 1
+						if tw[slot] == 0:
+							tw[slot] = 1
+							pos_arr[slot] = p
+							size_arr[slot] = Vector3.ZERO
+						else:
+							var np: Vector3 = pos_arr[slot].min(p)
+							size_arr[slot] = (size_arr[slot] + pos_arr[slot]).max(p) - np
+							pos_arr[slot] = np
+					else:
+						var ekey: int = EXTRA_BASE + b if b >= 0 else EXTRA_NEG - b
+						var eg: Dictionary = extras.get(gi, {})
+						eg[ekey] = eg[ekey].expand(p) if eg.has(ekey) else AABB(p, Vector3.ZERO)
+						extras[gi] = eg
+	for gi: int in result.size():
+		var entry: Dictionary = result[gi]
+		var bounds: Dictionary = entry.bounds
+		var base: int = gi * slot_count
+		for slot: int in slot_count:
+			if tw[base + slot] == 0:
+				continue
+			bounds[slot - 1] = AABB(pos_arr[base + slot], size_arr[base + slot])
+		if extras.has(gi):
+			var eg: Dictionary = extras[gi]
+			for key: Variant in eg:
+				var kk: int = int(key)
+				var real: int = kk if kk < EXTRA_BASE else (kk - EXTRA_BASE if kk < EXTRA_NEG else -(kk - EXTRA_NEG))
+				bounds[real] = eg[key]
+	return result
+
+func _clone_clusters(source: Array[Dictionary]) -> Array[Dictionary]:
+	# bounds are mutated after construction by _adopt_vertices, so each caller needs
+	# its own bounds Dictionary. indices and seen are only ever read after
+	# construction, so they are shared to keep the copy cheap.
+	var out: Array[Dictionary]=[]
+	for group: Dictionary in source:
+		out.append({"indices":group.indices,"bounds":group.bounds.duplicate(),"seen":group.seen})
+	return out
 
 func _adopt_vertices(s:Dictionary,vertices:PackedVector3Array)->void:
 	# Same topology + bind arrays: keep cluster membership and only expand old
 	# conservative bounds for changed source vertices (closed eyes alter550).
-	for i in vertices.size():
-		if vertices[i]==s.vertices[i]:continue
-		for group:Dictionary in s.clusters:
-			if not group.seen.has(i):continue
+	# DSH_MARKSFAST: cluster membership is a PackedInt32Array list of seen vertices, so
+	# the membership list drives the scan instead of re-testing every vertex against
+	# every cluster. The (cluster, vertex) pairs that expand are exactly the same set,
+	# and expand/merge is component-wise min/max, so bounds stay bit-identical.
+	for group:Dictionary in s.clusters:
+		for seen_entry:Variant in group.seen:
+			var i:int=int(seen_entry)
+			if vertices[i]==s.vertices[i]:continue
 			if s.skin==null:group.bounds[-1]=group.bounds[-1].expand(vertices[i])
 			else:
 				for j in 4:

@@ -42,10 +42,30 @@ func receive(event_id: String, point: Vector3, normal: Vector3) -> bool:
 	var damage:=float(receipt.get("hit",{}).get("damage",0))
 	var now:=float(receipt.get("source_now_ms",-1))*.001
 	if revision<=_last_revision or not is_finite(damage) or damage<=0 or not is_finite(now) or now<0: return false
+	var contact: Dictionary=_owner.last_contact
+	if contact.get("event_id")!=event_id or contact.get("point")!=point or contact.get("normal")!=normal or contact.get("source_id")!=_token.source_id or contact.get("life_generation")!=_token.life_generation: return false
+	if not contact.get("actor_transform_at_impact") is Transform3D or not contact.get("incoming_direction") is Vector3: return false
+	var before: Transform3D=contact.actor_transform_at_impact
+	if not before.is_finite() or absf(before.basis.determinant())<1e-9: return false
+	var frame: Transform3D=_token.body.global_transform*before.affine_inverse()
+	var attached_point: Vector3=frame*point
+	var attached_normal: Vector3=(frame.basis.inverse().transposed()*normal).normalized()
+	var incoming: Vector3=(frame.basis*contact.incoming_direction).normalized()
+	if _owner.marks==null or _owner.marks.renderer==null: return false
+	var surface: RefCounted=_owner.marks.renderer
+	var anchor: Dictionary={}
+	if contact.get("contact_kind")=="melee":
+		anchor={"surface_index":contact.get("surface_index"),"face_indices":contact.get("face_indices"),"barycentric":contact.get("barycentric")}
+	else:
+		anchor=surface.contact_anchor_from_ray(attached_point,incoming,renderer._height*1.5)
+	if anchor.is_empty(): return false
+	var sampled: Dictionary=surface.sample_surface_anchor(anchor)
+	if sampled.is_empty(): return false
+	if contact.get("contact_kind")=="melee" and sampled.point.distance_to(attached_point)>.15*renderer._unit: return false
 	if not _current(): retire(); return false
 	_last_revision=revision
-	# Ordinary bullets do not infer source heavy=true merely from damage.
-	renderer.accept(point,normal,now,false)
+	var heavy: bool=contact.get("contact_kind")=="melee" and receipt.hit.get("attack_type") in ["heavy","dropkick"]
+	renderer.accept(sampled.point,attached_normal,now,heavy,Callable(surface,"sample_surface_anchor"),anchor)
 	return true
 
 ## Scheduler hint only; receive/step still perform the full current lease.

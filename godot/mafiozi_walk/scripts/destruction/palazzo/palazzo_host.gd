@@ -1,7 +1,7 @@
 extends Node
 ## Single placed Palazzo. Main owns input; the site owns its original physics tick.
 const DamageBridge = preload("res://scripts/destruction/modular30/native_building_damage_bridge.gd")
-const SITE_PATH := "res://scripts/destruction/palazzo/palazzo_site.tscn"
+const SITE_PATH := "res://scripts/destruction/palazzo/palazzo_foundation12_site.tscn"
 const BINDING_PATH := "res://data/palazzo_binding.json"
 const SOURCE_ID := "PALAZZO-SHOWCASE-001"
 var source_id := SOURCE_ID

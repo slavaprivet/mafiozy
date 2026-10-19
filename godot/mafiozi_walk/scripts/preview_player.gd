@@ -23,18 +23,29 @@ const ACTION_CAPTURE: StringName = &"preview_capture_mouse"
 const LocomotionPose = preload("res://scripts/preview_locomotion.gd")
 const AirbornePose = preload("res://scripts/preview_airborne.gd")
 const DivePose = preload("res://scripts/preview_dive.gd")
+const DropkickMotion = preload("res://scripts/combat/player_dropkick_motion.gd")
+const ContactImpulse = preload("res://scripts/combat/player_contact_impulse.gd")
 const SOURCE_JUMP_RADIUS := 0.36
 
 var _visual: Node3D
 var _yaw_pivot: Node3D
 var _spring_arm: SpringArm3D
 var _camera: Camera3D
+var _camera_visual_hidden := false
 var _gravity: float = 9.8
 var _heading: float = 0.0
 var _camera_yaw: float = 0.0
 var _camera_pitch: float = -0.24
 var _right_mouse_down: bool = false
 var _free_mouse_look: bool = false
+## DSH_SWORD_PROTO: while the prototype sword is steered (LMB held) the same
+## mouse motion must not also turn the camera.
+var _sword_lock: bool = false
+## DSH_SWORD_PROTO: the prototype sword host registers itself here; while it is
+## steering the blade it owns the mouse and the view stays put.
+var _sword_host: Node = null
+## The held bow owns render-facing; locomotion still owns translation and gait.
+var _bow_host: Node = null
 var _model_loaded: bool = false
 var _model_error: String = ""
 var _source_height: float = 0.0
@@ -50,11 +61,30 @@ var _pose_motion: Node3D
 var _pose_authority: StringName = &"on_foot"
 var _pose_epoch: int = 0
 var _pose_revision: int = 0
+## DSH_HORSE: while a mount owns the body the player KEEPS pose authority "on_foot",
+## so every weapon path (melee hosts, bow, firearm presentation) stays live, but this
+## controller no longer moves, jumps or applies gravity. The mount supplies the base
+## seated pose and the weapon decorators are applied on top of it exactly as on foot.
+var _mount_mode := false
+var _vehicle_hold := false
+## At a helm/gun station the body is held but must not play the vehicle walk:
+## the wheel/gun takes the input, the man stands still.
+var _station_hold := false
+var _swimming := false
+var _swim_level := 0.0
+var _swim_phase := 0.0
+var _mount_pose: RefCounted = null
+var _mount_pace := 0.0
+var _mount_phase := 0.0
+var _mount_airborne := false
 const MELEE_POSE_RECEIPT := &"melee_skin_pose"
 var _pose_affine_active := false
 var _pose_affine_globals: Array[Transform3D] = []
 var _dive: RefCounted
 var _jump: Dictionary = {}
+var _contact_dropkick: RefCounted = DropkickMotion.new()
+var _dropkick_vertical_velocity := 0.0
+var _contact_impulse: RefCounted = ContactImpulse.new()
 var _jump_pose: Dictionary = {}
 var _jump_surface_guard: Callable
 var _jump_event_consumed: bool = false
@@ -67,6 +97,7 @@ var _jump_ceiling_ray: PhysicsRayQueryParameters3D
 var _jump_physics_visible: bool = true
 var _source_falling: bool = false
 var _hit_pose_decorator: Callable
+var _throw_pose_decorator: Callable
 var _melee_practice: Node
 var _weapon_host: Node
 var _corpse_contact_sampler: RefCounted
@@ -395,8 +426,13 @@ func _build_camera() -> void:
 	_spring_arm = SpringArm3D.new()
 	_spring_arm.name = "CameraSpringArm"
 	_spring_arm.spring_length = camera_distance
-	_spring_arm.margin = 0.16
-	_spring_arm.collision_mask = 1
+	# DSH_CASTLE: a narrow gate passage needs a bigger margin, or the arm grazes the door
+	# and the camera ends up on the wrong side of it.
+	_spring_arm.margin = 0.30
+	# SHIP92: never collapse into the character's head when a wall is close.
+	# The third-person arm ignores level collision; it may clip a wall but keeps
+	# the requested over-the-shoulder view even in a small room.
+	_spring_arm.collision_mask = 0
 	# A sphere also protects near-plane corners at oblique walls.
 	var camera_shape: SphereShape3D = SphereShape3D.new()
 	camera_shape.radius = 0.24
@@ -413,19 +449,308 @@ func _build_camera() -> void:
 	_update_camera_rotation()
 
 
+# The registered sword host owns the live actor limb state and is replaced on respawn.
+func _leg_support_scale50() -> float:
+	if is_instance_valid(_sword_host) and _sword_host.has_method("player_leg_speed_scale50"):
+		return float(_sword_host.player_leg_speed_scale50())
+	return 1.0
+
+
+## ---------------------------------------------------------------- mounted body
+## The mount host calls these three functions. Mounted play deliberately keeps the
+## ordinary "on_foot" authority: that is the single condition every weapon owner
+## already checks, so melee, the shield, the bow and the firearm presentation behave
+## exactly as they do on foot. Only translation and the base pose change.
+func begin_mounted(pose_provider: RefCounted) -> bool:
+	if _mount_mode or pose_provider == null or _pose_authority != &"on_foot":
+		return false
+	_mount_mode = true
+	_mount_pose = pose_provider
+	_jump.clear()
+	_jump_pose.clear()
+	_source_falling = false
+	_contact_dropkick.cancel("mounted")
+	_contact_impulse.clear()
+	_jump_event_consumed = true
+	_jump_key_down = false
+	if _dive != null: _dive.reset()
+	if _airborne != null: _airborne.reset()
+	if _locomotion != null: _locomotion.reset_state()
+	velocity = Vector3.ZERO
+	_mount_pace = 0.0
+	_mount_phase = 0.0
+	_mount_airborne = false
+	return true
+
+func end_mounted() -> void:
+	if not _mount_mode:
+		return
+	_mount_mode = false
+	_mount_pose = null
+	_jump_event_consumed = false
+	_jump_key_down = false
+	if _locomotion != null: _locomotion.reset_state()
+	velocity = Vector3.ZERO
+
+func set_mount_state(pace: float, phase: float, airborne: bool) -> void:
+	if not _mount_mode:
+		return
+	_mount_pace = clampf(pace, 0.0, 1.0) if is_finite(pace) else 0.0
+	_mount_phase = phase if is_finite(phase) else 0.0
+	_mount_airborne = airborne
+
+func is_mounted_player() -> bool:
+	return _mount_mode
+
+## The balloon owns translation, but unlike the horse it keeps the ordinary
+## on-foot locomotion running so the character still idles, breathes and plays
+## weapon poses while the basket moves him around.
+var _vehicle_walk_phase := 0.0
+var _vehicle_walk_base_y := 0.0
+var _vehicle_walk_base_set := false
+var _vehicle_walk_bones: Array[int] = []
+var _vehicle_walk_rest: Array[Quaternion] = []
+
+func _setup_vehicle_walk() -> void:
+	if not _vehicle_walk_bones.is_empty():
+		return
+	if not is_instance_valid(_pose_skeleton):
+		return
+	for bone_name: String in ["thigh_l", "thigh_r", "shin_l", "shin_r", "upperarm_l", "upperarm_r"]:
+		var bone: int = _pose_skeleton.find_bone(bone_name)
+		_vehicle_walk_bones.append(bone)
+		_vehicle_walk_rest.append(_pose_skeleton.get_bone_pose_rotation(bone) if bone >= 0 else Quaternion())
+
+## Procedural walk in the basket: the balloon owns translation, so the on-foot
+## locomotion is airborne and would otherwise stand still. This swings the legs
+## and counter-swings the arms from the actual WASD input.
+func _apply_vehicle_walk(delta: float, move: Vector2) -> void:
+	_setup_vehicle_walk()
+	if _vehicle_walk_bones.is_empty():
+		return
+	if not _vehicle_walk_base_set:
+		_vehicle_walk_base_set = true
+		var visual: Node3D = get("_visual") as Node3D
+		if is_instance_valid(visual):
+			_vehicle_walk_base_y = visual.position.y
+	if move.length() < 0.05:
+		# Stop the vehicle walk in an idle pose.  Previously the bones kept the
+		# last swing angle, so a passenger on a moving ship looked as if he were
+		# walking forever.
+		for index: int in _vehicle_walk_bones.size():
+			var bone: int = _vehicle_walk_bones[index]
+			if bone >= 0 and index < _vehicle_walk_rest.size():
+				_pose_skeleton.set_bone_pose_rotation(bone, _vehicle_walk_rest[index])
+		_vehicle_walk_phase = 0.0
+		var rest_visual: Node3D = get("_visual") as Node3D
+		if is_instance_valid(rest_visual):
+			rest_visual.position.y = lerpf(rest_visual.position.y, _vehicle_walk_base_y, minf(1.0, delta * 8.0))
+		return
+	_vehicle_walk_phase += delta * (6.5 + move.length() * 2.0)
+	var swing := sin(_vehicle_walk_phase) * 0.55
+	var visual_walk: Node3D = get("_visual") as Node3D
+	if is_instance_valid(visual_walk):
+		visual_walk.position.y = _vehicle_walk_base_y + absf(sin(_vehicle_walk_phase)) * 0.045
+	var angles: Array[float] = [swing, -swing, -maxf(0.0, -swing) * 0.7, -maxf(0.0, swing) * 0.7, -swing * 0.8, swing * 0.8]
+	for index: int in _vehicle_walk_bones.size():
+		var bone: int = _vehicle_walk_bones[index]
+		if bone < 0:
+			continue
+		_pose_skeleton.set_bone_pose_rotation(bone, _vehicle_walk_rest[index] * Quaternion(Vector3.RIGHT, angles[index]))
+
+func ensure_on_foot() -> void:
+	# Recovery from a stale vehicle/station hold (e.g. after leaving a gun or a
+	# balloon).  Mounted and swimming states are real and keep their own pose.
+	if _mount_mode or _swimming:
+		return
+	_vehicle_hold = false
+	_station_hold = false
+	if collision_layer == 0:
+		collision_layer = 1
+	if collision_mask == 0:
+		collision_mask = 1
+	set_preview_pose_authority(&"on_foot", true)
+	if _visual != null:
+		_visual.visible = true
+
+
+func set_vehicle_hold(hold: bool) -> void:
+	if _vehicle_hold == hold:
+		return
+	_vehicle_hold = hold
+	if hold:
+		_jump.clear()
+		_jump_pose.clear()
+		_contact_dropkick.cancel("vehicle")
+		_contact_impulse.clear()
+		_jump_event_consumed = true
+		_jump_key_down = false
+		velocity = Vector3.ZERO
+	else:
+		_jump_event_consumed = false
+
+
+## The ship calls this while the player is manning the wheel or a gun.  The
+## vehicle walk is suppressed; the pose stays a calm standing idle.
+func set_station_hold(hold: bool) -> void:
+	_station_hold = hold
+	if hold:
+		velocity = Vector3.ZERO
+
+## Same decorator chain as _update_owned_pose, only the base pose is the saddle pose.
+func _update_mounted_pose(delta: float) -> void:
+	if _mount_pose == null or not is_instance_valid(_pose_skeleton) or not is_instance_valid(_pose_motion):
+		return
+	var selected: Dictionary = _mount_pose.sample(delta, _mount_pace, _mount_airborne, _mount_phase)
+	if not bool(selected.get("valid", false)):
+		return
+	if is_instance_valid(_weapon_host):
+		selected = _weapon_host.decorate(selected)
+	selected = _decorate_hit_pose(delta, selected)
+	if is_instance_valid(_weapon_host):
+		selected = _weapon_host.finish_pose(selected)
+	_apply_selected_pose(selected)
+
+func _process(_delta: float) -> void:
+	_update_camera_occlusion()
+
+
+## In a low deckhouse the spring arm collapses to the head, filling the screen
+## with the character's hat.  Hide the body while the camera is that close;
+## the cabin itself stays visible.
+func _update_camera_occlusion() -> void:
+	if not is_instance_valid(_visual) or not is_instance_valid(_spring_arm) or not is_instance_valid(_camera):
+		return
+	if not _camera.current:
+		# The gun camera (or another external camera) owns the view; the host
+		# controls the body visibility there.
+		return
+	var close := false
+	# SHIP93: never hide the body in third person.  `get_hit_length()` is 0 with
+	# the arm's collision disabled, which made the character invisible on deck.
+	_camera_visual_hidden = close
+	_visual.visible = true
+
+
+func set_swimming(active: bool, level: float = 0.0) -> void:
+	if _swimming == active:
+		if active:
+			_swim_level = level
+		return
+	_swimming = active
+	_swim_level = level
+	if active:
+		_jump.clear()
+		_jump_pose.clear()
+		_swim_phase = 0.0
+		return
+	for index: int in _vehicle_walk_bones.size():
+		var bone: int = _vehicle_walk_bones[index]
+		if bone >= 0 and index < _vehicle_walk_rest.size():
+			_pose_skeleton.set_bone_pose_rotation(bone, _vehicle_walk_rest[index])
+	var visual: Node3D = get("_visual") as Node3D
+	if is_instance_valid(visual):
+		visual.rotation.x = 0.0
+
+
+## The Walk rig has no dedicated swim clip, so the same skeleton is driven
+## procedurally: a breaststroke for the arms and a slow kick for the legs.
+func _swim_process(delta: float) -> void:
+	var move := Input.get_vector(&"preview_move_left", &"preview_move_right",
+		&"preview_move_forward", &"preview_move_back")
+	var direction := Basis(Vector3.UP, _camera_yaw) * Vector3(move.x, 0.0, move.y)
+	velocity = Vector3(direction.x * 2.25, 0.0, direction.z * 2.25)
+	_heading = _camera_yaw
+	global_position += Vector3(velocity.x, 0.0, velocity.z) * delta
+	global_position.y = move_toward(global_position.y, _swim_level, delta * 3.0)
+	_swim_phase += delta * (4.0 + move.length() * 2.0)
+	_apply_swim_pose(delta)
+	var visual := get("_visual") as Node3D
+	if is_instance_valid(visual):
+		visual.rotation.y = _camera_yaw + PI + deg_to_rad(visual_yaw_degrees)
+		visual.rotation.x = lerpf(visual.rotation.x, 0.38, minf(1.0, delta * 6.0))
+
+
+func _apply_swim_pose(_delta: float) -> void:
+	_setup_vehicle_walk()
+	if _vehicle_walk_bones.is_empty() or not is_instance_valid(_pose_skeleton):
+		return
+	var swing := sin(_swim_phase)
+	var angles: Array[float] = [swing * 0.55, -swing * 0.55, swing * 0.40, -swing * 0.40,
+		cos(_swim_phase) * 1.05, -cos(_swim_phase) * 1.05]
+	for index: int in _vehicle_walk_bones.size():
+		var bone: int = _vehicle_walk_bones[index]
+		if bone < 0:
+			continue
+		_pose_skeleton.set_bone_pose_rotation(bone,
+			_vehicle_walk_rest[index] * Quaternion(Vector3.RIGHT, angles[index]))
+
+
 func _physics_process(delta: float) -> void:
 	_ground_move_frame = -1
 	_ground_move_pressure.clear()
 	_jump_pose = {}
 	if is_instance_valid(_weapon_host): _weapon_host.advance(delta)
 	if is_instance_valid(_melee_practice): _melee_practice.advance(delta)
+	if _swimming:
+		_swim_process(delta)
+		return
+	if _vehicle_hold:
+		# External owner (the balloon) moves this body; keep the on-foot pose and
+		# weapon presentation alive instead of freezing the character.
+		var move := Vector2.ZERO
+		if not _station_hold:
+			move = Input.get_vector(&"preview_move_left", &"preview_move_right",
+				&"preview_move_forward", &"preview_move_back")
+			velocity = Vector3(move.x, 0.0, -move.y) * 1.45
+		else:
+			velocity = Vector3.ZERO
+		_heading = _camera_yaw
+		var visual_now: Node3D = get("_visual") as Node3D
+		if is_instance_valid(visual_now):
+			visual_now.rotation.y = _heading + deg_to_rad(visual_yaw_degrees)
+		_contact_impulse.clear()
+		_contact_dropkick.cancel("vehicle")
+		_jump.clear()
+		_jump_pose.clear()
+		_jump_event_consumed = true
+		_update_owned_pose(delta)
+		if not _station_hold:
+			_apply_vehicle_walk(delta, move)
+		velocity = Vector3.ZERO
+		return
+	if _mount_mode:
+		_contact_impulse.clear()
+		_contact_dropkick.cancel("mounted")
+		_jump_event_consumed = false
+		_update_mounted_pose(delta)
+		return # The horse owns translation; weapons still decorate the seated pose.
 	if _pose_authority != &"on_foot":
+		_contact_impulse.clear()
+		_contact_dropkick.cancel("external_movement_owner")
 		_jump_event_consumed = false
 		return # External owner owns movement as well as the final pose.
+	var leg_support50 := _leg_support_scale50()
+	if leg_support50 < 1.0 and (not _jump.is_empty() or _contact_dropkick.active):
+		# Retire the authored flight, retaining its last swept velocity for gravity.
+		# A sever never moves the body or creates a fresh upward impulse.
+		var falling_velocity50 := velocity
+		if _contact_dropkick.active: _cancel_contact_dropkick("leg_support_lost")
+		_jump.clear()
+		_jump_pose.clear()
+		_source_falling = not is_on_floor()
+		velocity = falling_velocity50
+		if _dive != null: _dive.reset()
+	if _contact_dropkick.active:
+		_contact_impulse.clear()
+		_advance_contact_dropkick(delta)
+		_update_owned_pose(delta)
+		return
 	if _free_mouse_look and not _jump_event_consumed and not _text_control_focused() and not (is_instance_valid(_weapon_host) and _weapon_host.controls_blocked()) and Input.is_action_just_pressed(ACTION_JUMP):
 		_request_preview_jump(float(Time.get_ticks_msec()))
 	_jump_event_consumed = false
 	if not _jump.is_empty():
+		_contact_impulse.clear()
 		_advance_preview_jump(delta)
 		_update_owned_pose(delta)
 		return
@@ -450,16 +775,35 @@ func _physics_process(delta: float) -> void:
 	var direction: Vector3 = Basis(Vector3.UP, _camera_yaw) * Vector3(axes.x, 0.0, axes.y)
 	var speed: float = run_speed if Input.is_action_pressed(ACTION_RUN) else walk_speed
 	if is_instance_valid(_weapon_host): speed=_weapon_host.movement_speed(speed)
+	var armor_owner := get_parent().get_node_or_null("CastleArmorEquipment") if is_instance_valid(get_parent()) else null
+	if armor_owner != null: speed *= armor_owner.speed_multiplier()
+	speed *= leg_support50
 	velocity.x = move_toward(velocity.x, direction.x * speed, acceleration * delta)
 	velocity.z = move_toward(velocity.z, direction.z * speed, acceleration * delta)
-	if direction.length_squared() > 0.001:
+	var bow_facing: bool = is_instance_valid(_bow_host) and _bow_host.owns_player_facing()
+	if direction.length_squared() > 0.001 and not bow_facing:
 		var target_heading: float = atan2(-direction.x, -direction.z)
 		_heading = lerp_angle(_heading, target_heading, minf(1.0, delta * 12.0))
 		_visual.rotation.y = _heading + deg_to_rad(visual_yaw_degrees)
+	# The recoil contributes to this SAME ordinary body sweep. Keep its requested
+	# velocity separate from locomotion so it cannot compound next frame.
+	if typing or not is_on_floor(): _contact_impulse.clear()
+	var contact_push: Vector3 = _contact_impulse.sample_velocity(delta,_pose_epoch)
+	var drive_velocity := velocity
+	velocity += contact_push
 	if _final_dead_pressure_enabled: _capture_ground_pressure(direction, delta, not typing)
 	var corpse_contact_start: Dictionary = _corpse_contact_sampler.begin(self) if _corpse_contact_sampler != null and not typing else {}
 	_ground_move_start = global_position
 	move_and_slide()
+	if not contact_push.is_zero_approx():
+		# Preserve native wall response in the locomotion component too. Vertical
+		# velocity and actual displacement remain the solver's completed result.
+		for collision_index: int in mini(get_slide_collision_count(),max_slides):
+			var collision: KinematicCollision3D = get_slide_collision(collision_index)
+			for contact_index: int in mini(collision.get_collision_count(),8):
+				var normal: Vector3 = collision.get_normal(contact_index)
+				if normal.y<.7: drive_velocity=drive_velocity.slide(normal)
+		velocity.x=drive_velocity.x;velocity.z=drive_velocity.z
 	_ground_move_frame = Engine.get_physics_frames()
 	_ground_move_serial += 1
 	_ground_move_pose_epoch = _pose_epoch
@@ -474,6 +818,97 @@ func _physics_process(delta: float) -> void:
 			velocity.y = source_fall_next_velocity
 	_update_owned_pose(delta)
 
+
+## Only the validated local player-health owner calls this after consuming its
+## contact proof. No position change occurs here; next ground sweep applies it.
+func apply_contact_melee_impulse(direction: Vector3,strength_ns: float=30.0) -> bool:
+	if _pose_authority!=&"on_foot" or not is_on_floor() or not _jump.is_empty() or _contact_dropkick.active or _source_falling:return false
+	if not _free_mouse_look or _text_control_focused() or not is_inside_tree() or is_queued_for_deletion():return false
+	if is_instance_valid(_weapon_host) and _weapon_host.controls_blocked():return false
+	return _contact_impulse.add(direction,strength_ns,_pose_epoch)
+
+func contact_dropkick_active() -> bool:
+	return _contact_dropkick.active
+
+func contact_dropkick_sequence() -> int:
+	return _contact_dropkick.sequence if _contact_dropkick.active else -1
+
+## Called only after source input accepted this exact current dropkick. Space
+## still belongs to the normal jump; this hook takes it over after airborne LMB.
+func _request_contact_dropkick(start: Dictionary) -> bool:
+	if _leg_support_scale50() < 1.0: return false
+	if not is_instance_valid(_melee_practice) or _contact_dropkick.active or _jump.is_empty() or _jump.get("mode") != "normal": return false
+	if _pose_authority != &"on_foot" or not _free_mouse_look or _text_control_focused() or not _jump_frame_visible() or is_on_floor(): return false
+	if is_instance_valid(_weapon_host) and (_weapon_host.armed() or _weapon_host.controls_blocked()): return false
+	var source_start: Variant = _melee_practice._state.get("start")
+	if not source_start is Dictionary or source_start != start or start.get("type") != "dropkick": return false
+	var support: Dictionary = _jump_surfaces(global_position,global_position.y)
+	if not is_finite(float(support.floor)): return false
+	var height: float = global_position.y-float(support.floor)
+	if not _contact_dropkick.begin(start,Time.get_ticks_usec()/1000.0,_pose_epoch,_model_scale,float(support.floor),height): return false
+	_jump.clear(); _jump_pose.clear(); _source_falling = false
+	_dropkick_vertical_velocity = 0.0
+	_heading = float(start.yaw)-PI
+	_visual.rotation.y = float(start.yaw)-global_rotation.y
+	if _airborne != null: _airborne.reset()
+	if _dive != null: _dive.reset()
+	return true
+
+func _cancel_contact_dropkick(reason: String, cancel_animation: bool = true) -> void:
+	_contact_dropkick.cancel(reason)
+	_source_falling = not is_on_floor()
+	velocity = Vector3(0.0,minf(0.0,_dropkick_vertical_velocity),0.0)
+	if cancel_animation and is_instance_valid(_melee_practice): _melee_practice.cancel(reason)
+
+func _advance_contact_dropkick(delta: float) -> void:
+	if not is_finite(delta) or delta <= 0.0 or delta > .05 or not _jump_frame_visible() or not _free_mouse_look or _text_control_focused():
+		_cancel_contact_dropkick("dropkick_frame_or_controls"); return
+	if is_instance_valid(_weapon_host) and (_weapon_host.armed() or _weapon_host.controls_blocked()):
+		_cancel_contact_dropkick("dropkick_weapon_state"); return
+	# Any cancel by the existing source owner also retires root movement.
+	var accepted: Variant = _melee_practice._state.get("start") if is_instance_valid(_melee_practice) else null
+	if not accepted is Dictionary or accepted.get("seq") != _contact_dropkick.sequence:
+		var ended: Dictionary = _contact_dropkick.propose(Time.get_ticks_usec()/1000.0,_pose_epoch)
+		_cancel_contact_dropkick("dropkick_completed" if ended.get("valid",false) and ended.get("animation_done",false) else "dropkick_source_ended",false)
+		return
+	var next: Dictionary = _contact_dropkick.propose(Time.get_ticks_usec()/1000.0,_pose_epoch)
+	if not next.get("valid",false): _cancel_contact_dropkick("dropkick_clock_or_epoch"); return
+	var before := global_position
+	var requested: Vector3 = next.direction * float(next.travel)
+	# Reuse the current jump's radius-.36 capsule, world mask and source floor
+	# guard. No direct body position writes and no additional physics owner.
+	if not requested.is_zero_approx() and not _jump_horizontal_allowed(before,requested):
+		_contact_dropkick.stop_horizontal()
+		requested = Vector3.ZERO
+	var displacement_y: float
+	if _contact_dropkick.landed:
+		displacement_y = -.005
+		_dropkick_vertical_velocity = 0.0
+	elif next.gravity_fall:
+		displacement_y = _dropkick_vertical_velocity*delta-9.0*delta*delta
+		_dropkick_vertical_velocity -= 18.0*delta
+	else:
+		displacement_y = float(next.desired_y)-before.y
+		_dropkick_vertical_velocity = displacement_y/delta
+	var old_snap := floor_snap_length
+	floor_snap_length = 0.0
+	velocity = Vector3(requested.x,displacement_y,requested.z)/_body_motion_delta()
+	move_and_slide()
+	floor_snap_length = old_snap
+	var actual := global_position-before
+	_jump_actual_velocity = actual/delta
+	velocity = _jump_actual_velocity
+	if is_on_ceiling():
+		_cancel_contact_dropkick("dropkick_native_ceiling"); return
+	if Vector2(actual.x-requested.x,actual.z-requested.z).length() > .005:
+		_contact_dropkick.stop_horizontal()
+	if is_on_floor():
+		_contact_dropkick.confirm_landing()
+		_dropkick_vertical_velocity = 0.0
+		if float(next.age) < .38:
+			_cancel_contact_dropkick("dropkick_early_physical_landing"); return
+	if float(next.age) >= DropkickMotion.DURATION:
+		_cancel_contact_dropkick("dropkick_completed",false)
 
 func set_preview_jump_surface_guard(guard: Callable) -> void:
 	_jump_surface_guard = guard
@@ -492,6 +927,10 @@ func _jump_direction() -> Vector2:
 
 
 func _request_preview_jump(now_ms: float) -> bool:
+	if _mount_mode:
+		return false # Space belongs to the horse while riding.
+	if _leg_support_scale50() < 1.0: return false
+	if _contact_dropkick.active: return false
 	if is_instance_valid(_weapon_host) and _weapon_host.controls_blocked(): return false
 	if not _free_mouse_look or _pose_authority != &"on_foot" or _text_control_focused() or not _jump_physics_visible or _dive == null or not is_finite(now_ms):
 		return false
@@ -678,6 +1117,8 @@ func set_preview_pose_authority(owner: StringName, new_lifetime: bool = false) -
 	# Explicit new lifetimes cover respawn/teleport even when owner is unchanged.
 	if owner == _pose_authority and not new_lifetime:
 		return
+	_contact_impulse.clear()
+	_contact_dropkick.cancel("pose_authority")
 	if is_instance_valid(_weapon_host):
 		_weapon_host.cancel_inputs()
 		_weapon_host.invalidate_pose()
@@ -715,7 +1156,11 @@ func _update_owned_pose(delta: float) -> void:
 		var source: Dictionary = _dive.sample(float(_jump_pose.progress), float(_jump_pose.diveBlend), _visual.global_rotation.y,
 			aim_yaw, _camera_pitch, travel_yaw, _pose_authority, _pose_epoch)
 		if bool(source.get("valid", false)) and bool(source.get("active", false)):
-			_apply_selected_pose(_decorate_hit_pose(delta, source), expected_epoch)
+			set_posture_eye_height(1.64)
+			if is_instance_valid(_weapon_host): source=_weapon_host.decorate(source)
+			source=_decorate_hit_pose(delta,source)
+			if is_instance_valid(_weapon_host): source=_weapon_host.finish_pose(source)
+			_apply_selected_pose(source, expected_epoch)
 			return
 	var actual_velocity: Vector3 = get_real_velocity()
 	var grounded: bool = is_on_floor()
@@ -732,6 +1177,9 @@ func _update_owned_pose(delta: float) -> void:
 	if is_instance_valid(_melee_practice) and (not is_instance_valid(_weapon_host) or not _weapon_host.armed()): selected = _melee_practice.decorate(selected,delta)
 	selected=_decorate_hit_pose(delta, selected)
 	if is_instance_valid(_weapon_host): selected=_weapon_host.finish_pose(selected)
+	if _throw_pose_decorator.is_valid() and _pose_authority==&"on_foot":
+		var throw_pose: Variant=_throw_pose_decorator.call(delta,selected)
+		if throw_pose is Dictionary and throw_pose.get("valid",false): selected=throw_pose
 	_apply_selected_pose(selected, expected_epoch)
 
 
@@ -740,6 +1188,12 @@ func set_hit_pose_decorator(decorator: Callable) -> bool:
 	if decorator.is_valid() and _hit_pose_decorator.is_valid() and decorator != _hit_pose_decorator:
 		return false
 	_hit_pose_decorator = decorator
+	return true
+
+func set_throw_pose_decorator(decorator: Callable) -> bool:
+	if decorator.is_valid() and _throw_pose_decorator.is_valid() and decorator!=_throw_pose_decorator:
+		return false
+	_throw_pose_decorator=decorator
 	return true
 
 
@@ -867,6 +1321,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		var motion: InputEventMouseMotion = event as InputEventMouseMotion
 		if is_instance_valid(_weapon_host) and _weapon_host.controls_blocked(): return
 		if _free_mouse_look and not _text_control_focused():
+			# The prototype sword no longer freezes the view: the same motion both
+			# steers the blade and turns the camera, so the player can look around
+			# while holding LMB/RMB.
 			_camera_yaw -= motion.relative.x * mouse_sensitivity
 			var pitch_limits: Vector2=_weapon_host.aim_camera.pitch_limits() if is_instance_valid(_weapon_host) and _weapon_host.aim_camera!=null else Vector2(-1.05,.45)
 			_camera_pitch = clampf(_camera_pitch - motion.relative.y * mouse_sensitivity, pitch_limits.x, pitch_limits.y)
@@ -902,6 +1359,13 @@ func _text_control_focused() -> bool:
 	var focused: Control = get_viewport().gui_get_focus_owner()
 	return focused is LineEdit or focused is TextEdit
 
+## DSH_SWORD_PROTO: while the prototype sword is being steered it owns the mouse,
+## so the view cannot drift no matter how the input events are routed.
+func _sword_steering() -> bool:
+	var host: Variant = get("_sword_host")
+	if host == null or not is_instance_valid(host): return false
+	return host.has_method("is_steering") and host.is_steering()
+
 
 func set_mouse_captured(captured: bool) -> void:
 	if not captured and is_instance_valid(_melee_practice): _melee_practice.cancel("mouse_released")
@@ -918,6 +1382,12 @@ func set_mouse_captured(captured: bool) -> void:
 
 func get_preview_camera() -> Camera3D:
 	return _camera
+
+
+func set_posture_eye_height(height: float) -> void:
+	if not is_finite(height) or height<.4 or height>1.9 or not is_instance_valid(_yaw_pivot): return
+	var next_y: float=model_target_height*.79+height-1.64
+	if not is_equal_approx(_yaw_pivot.position.y,next_y): _yaw_pivot.position.y=next_y
 
 
 func get_preview_status() -> Dictionary:

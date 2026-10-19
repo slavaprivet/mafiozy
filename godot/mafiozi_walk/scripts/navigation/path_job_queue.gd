@@ -46,6 +46,18 @@ var _batch: Dictionary = {}
 var _batch_count := 0
 var _stats := {"admitted": 0, "deferred": 0, "expired": 0}
 var rejected_calls := 0
+# DSH_NAVPUMP: opt-in budget of one city step. The defaults are exactly today's
+# hardcoded values (8 admits / 4000 us); configure_budget() only overrides them,
+# so an unconfigured queue behaves byte-identically to the previous path.
+var _budget_us := 4000
+var _max_admits := 8
+
+## DSH_NAVPUMP: the single opt-in entry point for the per-step budget. Callers
+## that never call it keep 8 admits / 4000 us. A non-positive budget keeps the
+## time test inert, exactly like a budget that is never reached.
+func configure_budget(budget_us: int, max_admits: int) -> void:
+	_budget_us = maxi(0, budget_us)
+	_max_admits = maxi(1, max_admits)
 
 func _init(clock_usec: Callable = Callable(), native_enabled: bool = true) -> void:
 	_clock = clock_usec
@@ -145,18 +157,18 @@ func reserve(frame_id: int, owner: Owner = null) -> bool:
 		_batch.erase(head)
 		head = _head()
 	for actor: Owner in _queue:
-		if _batch_count >= 8:
+		if _batch_count >= _max_admits:
 			break
 		if not _batch.has(actor) and not _served.has(actor):
 			_batch[actor] = true
 			_batch_count += 1
-	if _count >= 8 or _used >= 4000 or (owner != null and (_served.has(owner) or not _batch.has(owner))) or (owner == null and head != null):
+	if _count >= _max_admits or _used >= _budget_us or (owner != null and (_served.has(owner) or not _batch.has(owner))) or (owner == null and head != null):
 		_stats.deferred += 1
 		_busy = false
 		return false
 	_current = owner
 	_started = now
-	_deadline = now + maxi(0, 4000 - _used)
+	_deadline = now + maxi(0, _budget_us - _used)
 	if owner != null:
 		owner.last_wait_us = maxi(0, now - owner.wait_start_us)
 		owner.admitted_us = now

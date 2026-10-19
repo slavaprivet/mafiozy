@@ -67,7 +67,13 @@ static func install(world: Node3D) -> Dictionary:
 	ground_visual.name = "Grass"
 	ground_visual.mesh = ground_mesh
 	ground_visual.material_override = grass # Read-only reuse of accepted world shader/material.
-	ground_visual.position.y = 0.06 # Body centre -0.08, visible centre -0.02, top exactly 0.
+	# DSH_GROUNDZFIX: this plate used to end at exactly y=0, the same height as the city
+	# tile tops (main.gd builds BoxMesh(cell, 0.04, cell) at heightM - 0.02 and
+	# data/city_block.json gives heightM = 0 for road/grass/sidewalk/sand/bridge), so the
+	# two flat surfaces z-fought and the grass flickered through the asphalt. 0.04 puts
+	# the visible top at -0.02; the collision body is untouched (centre -0.08, half
+	# height 0.08, top 0.0), so nothing about walking or standing changes.
+	ground_visual.position.y = 0.04 # Body centre -0.08, visible centre -0.04, top -0.02.
 	ground_visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	ground.add_child(ground_visual)
 	root.add_child(ground)

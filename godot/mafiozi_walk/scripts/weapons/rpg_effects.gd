@@ -126,10 +126,15 @@ func _impact(receipt: Dictionary) -> void:
 	_spawn_explosion(receipt.point)
 	# One outward event, only for source scorch hook and diagnostics. No HP/AoE.
 	var hit: Dictionary = receipt.hit
+	var surface_owner:Variant=hit.get("collider")
+	var surface_id:int=surface_owner.get_instance_id() if is_instance_valid(surface_owner) else 0
 	if hit.get("hit",false):
 		cosmetic_impact.emit({"weaponId":"rpg","shotId":receipt.shot_id,"point":receipt.point,"normal":receipt.normal,"direction":receipt.direction,"collider":hit.get("collider"),"projectile_kind":"rocket","explosive":true,"cosmetic_only":true})
 
 	if _live(): native_impact.emit(receipt.duplicate(true))
+	# A breach can retire that same collider's original geometry synchronously.
+	# Preserve event/authority order, then retire only its now-invalid cosmetics.
+	if _live(): _host.get_ref().surface_effects.surface_changed(surface_id)
 
 func _spawn_explosion(point: Vector3) -> void:
 	var entry: Dictionary = _explosions[_cursor%EXPLOSION_CAP]; _cursor += 1

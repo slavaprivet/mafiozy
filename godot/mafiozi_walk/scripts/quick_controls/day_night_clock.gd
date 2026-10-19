@@ -1,11 +1,12 @@
 extends RefCounted
 
-## Visual time only: no connection to NPC schedules, saving, or the economy.
+## Shared visual/routine time. Physics deadlines and transaction authority stay with their owners.
 const DAY_SECONDS_PER_HOUR := 300.0
 const NIGHT_SECONDS_PER_HOUR := 150.0
 const CYCLE_SECONDS := 5400.0
 const DAY_SECONDS := 3600.0
 
+var day_index := 0
 var hour := 17.5
 var running := true
 
@@ -23,6 +24,10 @@ func advance(delta: float) -> bool:
 		elapsed = (current - 6.0) * DAY_SECONDS_PER_HOUR
 	else:
 		elapsed = DAY_SECONDS + (current - 18.0) * NIGHT_SECONDS_PER_HOUR
+	# Midnight is 4500s on the dawn-based axis. Whole cycles count once each.
+	# Clamp only absurd >2-billion-day inputs before integer conversion.
+	var crossings: float = floorf((elapsed + delta + 900.0) / CYCLE_SECONDS) - floorf((elapsed + 900.0) / CYCLE_SECONDS)
+	day_index = mini(2147483647, day_index + int(minf(crossings, 2147483647.0)))
 	var next := fposmod(elapsed + fposmod(delta, CYCLE_SECONDS), CYCLE_SECONDS)
 	if next < DAY_SECONDS:
 		hour = 6.0 + next / DAY_SECONDS_PER_HOUR
@@ -34,6 +39,8 @@ func advance(delta: float) -> bool:
 func set_hour(value: float) -> bool:
 	if not is_finite(value):
 		return false
+	# Manual clock setting selects another time on this same day. N calls this
+	# repeatedly during its visual transition; it must not mint new daily errands.
 	hour = fposmod(value, 24.0)
 	return true
 

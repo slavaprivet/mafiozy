@@ -2,6 +2,9 @@ extends RefCounted
 ## Immutable presentation candidates. Placement and authority belong to the host.
 const Loader = preload("res://scripts/npc_visual/npc_visual_loader.gd")
 const SCHEMA := "mafiozi.npc-preview-session/v1"
+## The living city ships its own pinned session packet; the palazzo preview keeps SCHEMA.
+const CITY_SCHEMA := "mafiozi.npc-city-session/v1"
+const CITY_PACKET_SHA := "b9c810e81b8b3da6afc048a32c4fe50745f32e4b15d0fd55ff876e69c35c54a1"
 const MAX_BYTES := 8388608
 var _packet: Dictionary = {}
 
@@ -27,9 +30,11 @@ static func load_verified(bytes: PackedByteArray, trusted_sha: String, trusted_s
 	if bytes.size() > MAX_BYTES or not Loader._valid_hash(trusted_sha) or Loader._hash(bytes) != trusted_sha:
 		return _fail("packet_hash")
 	var parsed: Variant = JSON.parse_string(bytes.get_string_from_utf8())
-	if not parsed is Dictionary or not _text_is(parsed.get("schema"), SCHEMA):
+	if not parsed is Dictionary or (not _text_is(parsed.get("schema"), SCHEMA) and not _text_is(parsed.get("schema"), CITY_SCHEMA)):
 		return _fail("schema")
 	var packet: Dictionary = parsed
+	var city: bool = packet.schema == CITY_SCHEMA
+	if city and trusted_sha != CITY_PACKET_SHA: return _fail("unreviewed_city_packet")
 	if not _text_is(packet.get("mode"), "NEW_SESSION_BOOTSTRAP") or not packet.get("session_id") is String or packet.session_id.is_empty():
 		return _fail("mode_or_session")
 	# Existing saves require their separate authenticated provider, never a birth fallback.
@@ -75,7 +80,7 @@ static func load_verified(bytes: PackedByteArray, trusted_sha: String, trusted_s
 	for index in 3:
 		if not _finite(origin[index]) or float(origin[index]) != expected_origin[index]:
 			return _fail("coordinates")
-	var expected_crop := {"r_min": 0, "r_max": 31, "c_min": 76, "c_max": 107}
+	var expected_crop := {"r_min": 0, "r_max": 163, "c_min": 2, "c_max": 180} if city else {"r_min": 0, "r_max": 31, "c_min": 76, "c_max": 107}
 	for field in expected_crop:
 		if not _integer(crop.get(field), 0, 180) or int(crop[field]) != expected_crop[field]:
 			return _fail("coordinates")
@@ -95,7 +100,7 @@ static func load_verified(bytes: PackedByteArray, trusted_sha: String, trusted_s
 		var bridge: Variant = row.get("bridge_row")
 		if not raw is Dictionary or not _text_is(raw.get("id"), source_id) or not _bool_is(raw.get("_npcInitialPlacementPending"), true) or not bridge is Dictionary or not _text_is(bridge.get("id"), row.bridge_id):
 			return _fail("source_row")
-		if not _finite(raw.get("r")) or not _finite(raw.get("c")) or raw.r < 0 or raw.r >= 31 or raw.c < 76 or raw.c >= 107:
+		if not _finite(raw.get("r")) or not _finite(raw.get("c")) or raw.r < expected_crop.r_min or raw.r >= expected_crop.r_max or raw.c < expected_crop.c_min or raw.c >= expected_crop.c_max:
 			return _fail("crop")
 		if not _finite(bridge.get("r")) or not _finite(bridge.get("c")) or bridge.r != raw.r or bridge.c != raw.c or not raw.get("look") is Dictionary or not bridge.get("look") is Dictionary or bridge.look != raw.look:
 			return _fail("bridge_projection")

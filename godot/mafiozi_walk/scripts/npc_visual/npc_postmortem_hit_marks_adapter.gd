@@ -1,6 +1,6 @@
 extends RefCounted
 ## Match the completed HP receipt seam used by blood. Never accept raw rays.
-const Renderer = preload("npc_postmortem_bullet_marks.gd")
+const Renderer = preload("npc_melee_surface_marks.gd")
 var renderer: RefCounted
 var _host: RefCounted
 var _owner: RefCounted
@@ -61,6 +61,9 @@ func receive(event_id: String, point: Vector3, normal: Vector3) -> bool:
 	# Narrow only this cosmetic contact against THIS actor's original triangles
 	# along the genuine incoming ray. A capsule graze missing the mesh draws no mark.
 	# This performs no additional HP or penetration beyond the already accepted hit.
+	if contact.get("contact_kind")=="melee":
+		if receipt.get("hit",{}).get("contact_kind")!="melee" or receipt.hit.get("weapon_id")!="unarmed": return false
+		return renderer.accept_melee(event_id,attached_point,attached_normal,int(contact.get("surface_index",-1)))
 	return renderer.accept(event_id,attached_point,attached_normal,incoming,_height*1.5)
 
 func step() -> void:

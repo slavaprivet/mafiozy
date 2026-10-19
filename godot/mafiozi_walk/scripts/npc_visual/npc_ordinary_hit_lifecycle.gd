@@ -4,6 +4,7 @@ extends RefCounted
 ## All external source services are required; missing services fail before HP.
 const Rules = preload("res://scripts/weapons/weapon_hit_rules.gd")
 const REQUIRED := ["clock", "random", "admit_contact", "confirm", "bleeding", "path", "aggression", "rumor", "civilian", "panic", "fight", "surrender", "fatal_record", "murder", "respawn", "death_blood", "feedback"]
+const MELEE_DAMAGE := {"punch":12,"kick":21,"heavy":18,"dropkick":18}
 var _binding := {}
 var _current := Callable()
 var _services := {}
@@ -16,6 +17,7 @@ var _last_now := -1.0
 var _row := {}
 var _checking := false
 var _seen := {}
+var _local_survival_release := Callable()
 
 func configure(binding: Dictionary, current_owner: Callable, services: Dictionary) -> Dictionary:
 	if not _binding.is_empty() or _retired or not current_owner.is_valid(): return {"ok":false,"reason":"lifetime"}
@@ -31,6 +33,41 @@ func configure(binding: Dictionary, current_owner: Callable, services: Dictionar
 func dispose() -> void:
 	_retired=true; _epoch+=1
 	_current=Callable(); _services.clear()
+	_local_survival_release=Callable()
+
+## Explicit new local user rule, separate from the migrated Walk death policy.
+## The callback belongs to the existing owner and admits only a settled native
+## recovery that restored its original collision capsule. It grants no healing.
+func bind_local_survival_release(callback: Callable) -> bool:
+	if _local_survival_release.is_valid() or not callback.is_valid() or not _fresh(): return false
+	var callback_owner: Object=callback.get_object()
+	if not is_instance_valid(callback_owner) or callback_owner.get_instance_id()!=_binding.owner_instance_id or callback.get_argument_count()!=3: return false
+	_local_survival_release=callback
+	return true
+
+func release_local_survival(event_id: String, expected_revision: int, proof: Dictionary) -> Dictionary:
+	if _busy: _epoch+=1; return {"ok":false,"reason":"reentrant"}
+	if _retired or event_id.is_empty() or not _local_survival_release.is_valid(): return {"ok":false,"reason":"local_survival_unbound"}
+	_busy=true
+	if not _fresh() or _revision!=expected_revision: return _stop("survival_revision_or_lease")
+	if _row.get("dead",false) or not _row.get("_medicalDowned",false) or _row.hp<=0: return _stop("survival_not_living_medical")
+	var release_id:=event_id+":local-survival:"+str(expected_revision)
+	if _seen.has(release_id) or _seen.size()>=4096: return _stop("survival_duplicate_or_capacity")
+	var hp_before: float=float(_row.hp)
+	var epoch_before: int=_epoch
+	var admitted: Variant=_local_survival_release.call(event_id,expected_revision,proof.duplicate(true))
+	if admitted!=true or epoch_before!=_epoch or not _fresh() or _revision!=expected_revision: return _stop("settled_physical_release_required")
+	if _row.get("dead",false) or not _row.get("_medicalDowned",false) or float(_row.hp)!=hp_before: return _stop("survival_state_changed")
+	var now:=_time()
+	if now<0: return _stop("clock")
+	# Commit one completed state transition, without HP/dead/progress/ID writes.
+	_seen[release_id]=true
+	_row._medicalDowned=false; _row._forcedCrawl=false
+	_row._medicalDownedAt=0; _row._medicalBleedoutAt=0
+	_row._knockedAt=0; _row._knockedUntil=0; _row._deathFromDowned=false
+	_row.idleUntil=maxf(float(_row.get("idleUntil",0)),now+150.0)
+	_revision+=1
+	return _done(release_id,true,"local_survival_recovered")
 
 func _fresh() -> bool:
 	if _retired or _checking or not _current.is_valid(): return false
@@ -72,6 +109,8 @@ func _done(event_id: String, applied: bool, reason: String, hit: Dictionary = {}
 	_busy=false
 	return record
 
+## DSH_RESDIAG: the caption repaint is done by the hit owner, which owns the body node
+## (npc_local_preview_hit_owner.gd `_dsh_refresh_caption`). This cycle only owns the row.
 func hit(event_id: String, proposed: Dictionary) -> Dictionary:
 	if _busy: _epoch+=1; return {"ok":false,"reason":"reentrant"}
 	if _retired or event_id.is_empty() or _seen.has(event_id) or _seen.size()>=4096: return {"ok":false,"reason":"retired_or_duplicate"}
@@ -83,7 +122,10 @@ func hit(event_id: String, proposed: Dictionary) -> Dictionary:
 	var h: Dictionary=admitted.hit.duplicate(true)
 	for key: String in ["damage","dir_r","dir_c","player_r","player_c"]:
 		if not Rules._finite(h.get(key)): return _stop("hit_shape")
-	if h.damage<=0 or not h.get("weapon_id") is String or Rules.balance_id(h.weapon_id) in ["","rpg"]: return _stop("ordinary_bullet_required")
+	var melee: bool=h.get("contact_kind")=="melee" and h.get("weapon_id")=="unarmed" and h.get("contact_proof")=="native_swept_fist_original_surface"
+	var area: bool=h.get("contact_kind")=="throwable_area" and h.get("weapon_id") in ["grenade","molotov"] and h.get("contact_proof")=="consumed_player_throw_swept_impact" and h.damage<= (80 if h.weapon_id=="grenade" else 12)
+	if h.damage<=0 or not h.get("weapon_id") is String or (not melee and not area and Rules.balance_id(h.weapon_id) in ["","rpg"]): return _stop("admitted_bullet_melee_or_throw_required")
+	if h.get("weapon_id")=="unarmed" and (not melee or not MELEE_DAMAGE.has(h.get("attack_type")) or h.damage!=MELEE_DAMAGE[h.attack_type]): return _stop("melee_damage_contract")
 	if not h.get("source") is Dictionary or not h.source.get("kind") is String: return _stop("source_identity")
 	_seen[event_id]=true # Admission is consumed even if a later callback retires it.
 	var now:=_time()
@@ -97,7 +139,7 @@ func hit(event_id: String, proposed: Dictionary) -> Dictionary:
 		return _done(event_id,false,"invulnerable",h)
 	var was_downed: bool=bool(_row.get("_medicalDowned",false))
 	# Explicit user-requested policy, admitted by exact anatomical skin contact.
-	var fatal_head: bool=h.get("hit_zone")=="head" and h.get("head_policy")=="user_requested_headshot_final_v1"
+	var fatal_head: bool=not melee and h.get("hit_zone")=="head" and h.get("head_policy")=="user_requested_headshot_final_v1"
 	_row.hp=0 if fatal_head else maxi(0,Rules._int32(_row.hp)-Rules._int32(h.damage))
 	if _call("confirm",h)==null: return _stop("confirm_lease",true)
 	if _call("bleeding",h)==null: return _stop("bleeding_lease",true)
@@ -119,7 +161,7 @@ func hit(event_id: String, proposed: Dictionary) -> Dictionary:
 		if civilian:
 			var roll: Variant=_call("random")
 			if not Rules._finite(roll) or roll<0 or roll>=1: return _stop("random",true)
-			if _call("panic",{"now_ms":_row._lastViolentAt,"until_ms":_row._lastViolentAt+4000+roll*2000,"r":h.player_r,"c":h.player_c,"style":"bullet"})==null: return _stop("panic_lease",true)
+			if _call("panic",{"now_ms":_row._lastViolentAt,"until_ms":_row._lastViolentAt+4000+roll*2000,"r":h.player_r,"c":h.player_c,"style":"melee" if melee else "bullet"})==null: return _stop("panic_lease",true)
 		if _row.get("_formerMercenary",false) and _call("fight")==null: return _stop("fight_lease",true)
 	if _row.hp>0:
 		now=_time()

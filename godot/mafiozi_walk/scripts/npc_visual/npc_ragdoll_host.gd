@@ -101,12 +101,14 @@ func _receipt(event_id: String) -> Dictionary:
 	for key: String in IDENTITY_FIELDS:
 		if not _same(raw.binding.get(key),_binding[key]): return {}
 	var event: Dictionary = raw.event.duplicate(true)
-	if event.get("id") != event_id or not _yes(event.get("confirmed")) or event.get("kind") not in ["final_death","vehicle_knockdown","source_medical_down"]: return {}
+	if event.get("id") != event_id or not _yes(event.get("confirmed")) or event.get("kind") not in ["final_death","vehicle_knockdown","source_medical_down","source_impact_knockdown"]: return {}
 	if not event.get("already_solved_by_godot") is bool or not event.get("apply_again") is bool or event.already_solved_by_godot == event.apply_again: return {}
 	if event.kind == "final_death":
 		if not _text(event.get("death_key")): return {}
 	elif event.kind == "source_medical_down":
 		if event.get("source_id") != _binding.source_id or event.get("life_generation") != _binding.life_generation or not _yes(event.get("medical_downed")) or not event.get("local_preview_hp_revision") is int or event.local_preview_hp_revision < 1: return {}
+	elif event.kind == "source_impact_knockdown":
+		if event.get("source_id") != _binding.source_id or event.get("life_generation") != _binding.life_generation or not _yes(event.get("nonfatal_confirmed")) or not event.get("local_preview_hp_revision") is int or event.local_preview_hp_revision < 1 or not event.get("reaction_generation") is int or event.reaction_generation < 1: return {}
 	else:
 		if not _yes(event.get("contact_verified")) or not _identity(event.get("vehicle_id")): return {}
 	for key: String in ["linear_velocity", "angular_velocity", "reference_point", "impulse_ns"]:

@@ -106,7 +106,7 @@ func actions()->Dictionary:
 		if evidence.aimed_trunk:result.actions.append({"key":"G","label":"Погрузить","action":"store"})
 	if not evidence.aimed_item_uid.is_empty():
 		for entry:Dictionary in state.items:
-			if entry.item.uid==evidence.aimed_item_uid and entry.item.kind=="weapon":result.actions.append({"key":"E","label":"Взять","action":"take","uid":entry.item.uid});break
+			if entry.item.uid==evidence.aimed_item_uid and entry.item.kind=="weapon":result.actions.append({"key":"F","label":"Взять","action":"take","uid":entry.item.uid});break
 	return _finish(result if _live() else _error("owner_changed"))
 
 func store(model_aabb:AABB,current_state:Variant=OMITTED)->Dictionary:

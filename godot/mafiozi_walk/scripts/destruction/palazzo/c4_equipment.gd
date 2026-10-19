@@ -3,11 +3,16 @@ extends Node
 ## The explosion owner must synchronously consume_detonation(event) once before
 ## applying/queuing damage. These receipts are NOT native RPG or bullet receipts.
 const WeaponUI = preload("res://scripts/weapons/walk_weapon_ui.gd")
+const Visuals45 = preload("c4_visuals.gd") # Model/cache only; no pose instance.
+const PlacementQuery45 = preload("c4_placement_query45.gd")
+const SurfaceOwner45 = preload("c4_surface_owner45.gd")
+const IconCache43 = preload("c4_icon_cache43.gd")
+const DeviceIcon = preload("c4_device_icon43.gd")
 const HOLD_SECONDS := 3.0
 const REACH_M := 2.5
 const MAX_CHARGES := 8
-const DAMAGE := 480.0
-const BLAST_RADIUS_M := 2.4
+const DAMAGE := 1920.0
+const BLAST_RADIUS_M := 3.2
 const AIM_DRIFT_M := 0.065
 const ACTOR_DRIFT_M := 0.04
 
@@ -32,23 +37,6 @@ class ProgressCard extends Control:
 		draw_arc(Vector2(36,39),24,0,TAU,48,Color("4a514c"),3,true)
 		if ring and fraction>0: draw_arc(Vector2(36,39),24,-PI*.5,-PI*.5+TAU*fraction,48,Color("d8b778"),3,true)
 
-class DeviceIcon extends Control:
-	var remote := false
-	func _init() -> void:
-		custom_minimum_size=Vector2(140,76); mouse_filter=Control.MOUSE_FILTER_IGNORE
-	func _draw() -> void:
-		var c: Vector2=size*.5
-		var r:=Rect2(c-Vector2(24,22),Vector2(48,48))
-		draw_rect(Rect2(r.position+Vector2(4,4),r.size),Color(0,0,0,.25))
-		draw_rect(r,Color("343d38") if not remote else Color("283037")); draw_rect(r,Color("bba783"),false,2)
-		if remote:
-			draw_line(c+Vector2(15,-22),c+Vector2(15,-35),Color("a6b1b2"),3,true)
-			draw_circle(c+Vector2(0,9),9,Color("9a4941")); draw_rect(Rect2(c+Vector2(-16,-13),Vector2(26,12)),Color("647e72"))
-		else:
-			draw_line(c+Vector2(-17,-15),c+Vector2(-17,20),Color("bbaa77"),6)
-			draw_line(c+Vector2(17,-15),c+Vector2(17,20),Color("bbaa77"),6)
-			draw_circle(c+Vector2(0,-5),4,Color("e35d43"))
-
 class AimMark extends Control:
 	func _init() -> void:
 		mouse_filter=Control.MOUSE_FILTER_IGNORE
@@ -57,6 +45,10 @@ class AimMark extends Control:
 		for offset: Vector2 in [Vector2(-9,0),Vector2(9,0),Vector2(0,-9),Vector2(0,9)]:
 			draw_line(offset*.75,offset,Color("bda778"),1,true)
 
+var _target_query45 := PlacementQuery45.new()
+var _require_release := false
+var _owner_killed := false
+var _damage_revision := 0
 var _world: WeakRef
 var _weapons: Node
 var _player: CharacterBody3D
@@ -79,6 +71,12 @@ var _held_root: Node3D
 var _charge_tool: Node3D
 var _remote_tool: Node3D
 var _charges: Dictionary = {}
+## DSH_PLAYERSHOP: with a bound provider every placed charge is taken from the
+## player's real backpack. Without one the previous virtual C4 keeps working.
+var _charge_provider: Callable
+
+func set_charge_provider(provider: Callable) -> void:  # DSH_PLAYERSHOP
+	_charge_provider = provider if provider.is_valid() else Callable()
 var _hold: Dictionary = {}
 var _elapsed := 0.0
 var _sequence := 0
@@ -94,6 +92,8 @@ var _totals := {"placed":0,"detonated":0,"disarmed":0,"cancelled":0,"rejected":0
 
 func configure(world: Node3D, explosion_callback: Callable) -> Dictionary:
 	if _configured or _disposed or not Thread.is_main_thread() or not is_instance_valid(world) or not world.is_inside_tree() or not explosion_callback.is_valid(): return {"ok":false,"reason":"binding"}
+	# Both actual-model PNGs must be baked/imported before promoting this overlay.
+	if IconCache43.texture_for(false)==null or IconCache43.texture_for(true)==null: return {"ok":false,"reason":"c4_model_icons_not_baked"}
 	var weapons: Variant=world.get("preview_weapons")
 	if not weapons is Node or not weapons._owner_current() or not weapons.get("_walk_ui") is Control or not weapons.get("player") is CharacterBody3D: return {"ok":false,"reason":"native_arsenal_not_ready"}
 	var ui: Control=weapons.get("_walk_ui")
@@ -126,7 +126,7 @@ func _add_choice(title: String, detail: String, remote: bool, callback: Callable
 	button.add_theme_stylebox_override("normal",WeaponUI.panel_style("252e35","4f595f",5)); button.add_theme_stylebox_override("hover",WeaponUI.panel_style("30393e","b09a74",5)); button.add_theme_stylebox_override("focus",WeaponUI.panel_style("30393e","b09a74",5))
 	var margin: MarginContainer=WeaponUI.margins(10); margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); button.add_child(margin)
 	var column:=VBoxContainer.new(); column.mouse_filter=Control.MOUSE_FILTER_IGNORE; margin.add_child(column)
-	var icon:=DeviceIcon.new(); icon.remote=remote; column.add_child(icon)
+	var icon:=DeviceIcon.new(); icon.bind(remote); column.add_child(icon)
 	column.add_child(WeaponUI.label(title,12)); var description: Label=WeaponUI.label(detail,10,"9daab1"); column.add_child(description); button.set_meta("description",description)
 	button.pressed.connect(callback); _ui.grid.add_child(button)
 	return button
@@ -136,7 +136,23 @@ func _current() -> bool:
 	return _configured and not _disposed and is_instance_valid(world) and world.is_inside_tree() and not world.is_queued_for_deletion() and get_parent()==world and world.get("preview_weapons")==_weapons and is_instance_valid(_weapons) and _weapons._owner_current() and _weapons.player==_player and _player.get_meta("actor_id",null)==_actor_id and _player.get_meta("life_generation",null)==_life and is_instance_valid(_rig) and _player.get("_pose_skeleton")==_rig
 
 func _allowed() -> bool:
-	return _current() and _weapons._interaction_allowed() and _player._ground_pressure_controls_allowed() and _player.is_on_floor()
+	return _current() and not _owner_killed and not _world.get_ref().get("preview_dead") and _weapons._interaction_allowed() and _player._ground_pressure_controls_allowed() and _player.is_on_floor()
+
+## Cancellation port only. Root must call after REAL committed damage/death.
+## Accepted43 has no native incoming HP producer; no combat-ready claim.
+func interrupt_for_damage(actor_id: Variant, life_generation: Variant, damage_amount: float, killed: bool=false) -> Dictionary:
+	if not _current() or actor_id!=_actor_id or life_generation!=_life: return {"ok":false,"reason":"foreign_or_retired_actor"}
+	if not is_finite(damage_amount) or damage_amount<0 or (damage_amount<=0 and not killed): return {"ok":false,"reason":"no_committed_damage"}
+	_damage_revision+=1; _require_release=true
+	var was_holding: bool=not _hold.is_empty()
+	var point: Vector3=_hold.get("point",Vector3.ZERO)
+	_cancel_hold(false)
+	if was_holding:
+		_totals.cancelled+=1
+		_notice("Установка прервана","Получен урон · начните заново",point)
+	if killed:
+		_owner_killed=true; _leave_mode()
+	return {"ok":true,"interrupted":was_holding,"killed":_owner_killed,"damage_revision":_damage_revision,"charge_created":false}
 
 func _choose(mode: String) -> Dictionary:
 	if not _current() or not _weapons._interaction_allowed(): return {"ok":false,"reason":"inactive"}
@@ -168,6 +184,7 @@ func _leave_mode() -> void:
 
 func _input(event: InputEvent) -> void:
 	if not _current() or _mode=="off": return
+	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and not event.pressed: _require_release=false
 	if _weapons.fire_state.get("weaponId")!="none": _leave_mode(); return
 	# Q and GUI retain native ownership; E/R and other keys are never intercepted.
 	if not event is InputEventMouseButton or event.button_index not in [MOUSE_BUTTON_LEFT,MOUSE_BUTTON_RIGHT] or _weapons.controls_blocked() or not _player._free_mouse_look or _player._text_control_focused(): return
@@ -182,44 +199,56 @@ func _input(event: InputEvent) -> void:
 	else: _begin_hold()
 
 func _owner_of_wall(body: Variant) -> Node3D:
-	if not body is RigidBody3D or not is_instance_valid(body) or not body.is_inside_tree() or body.is_queued_for_deletion() or not body.freeze or body.get_meta("detached",false) or body.get_meta("fracture_active",false) or (body.collision_layer&1)==0: return null
-	var owner: Node=body.get_parent()
-	while owner!=null and owner!=_world.get_ref():
-		if owner is Node3D and owner.has_method("owns_collider") and owner.get("wall_panels") is Array and owner.get("wall_panels").has(body) and owner.owns_collider(body) and owner.get("site_ready")==true and not owner.get("rebuilding") and not owner.get("collapsing"): return owner
-		owner=owner.get_parent()
-	return null
+	# Historical diagnostic name, now a generic physical scenery owner query.
+	return SurfaceOwner45.resolve(body,_world.get_ref(),_player)
 
 func _target() -> Dictionary:
-	if not _allowed(): return {}
+	if not _allowed(): return _target_query45.reject("inactive")
 	var camera: Camera3D=_player.get_preview_camera()
-	if not is_instance_valid(camera): return {}
-	var from: Vector3=camera.global_position; var direction: Vector3=-camera.global_basis.z.normalized()
-	var query:=PhysicsRayQueryParameters3D.create(from,from+direction*30.0,1|512,[_player.get_rid()])
-	query.hit_from_inside=true
-	var hit: Dictionary=_player.get_world_3d().direct_space_state.intersect_ray(query)
-	if hit.is_empty() or not hit.get("position") is Vector3 or not hit.get("normal") is Vector3: return {}
-	var body: Variant=hit.get("collider"); var owner: Node3D=_owner_of_wall(body)
-	if owner==null: return {}
-	var point: Vector3=hit.position; var normal: Vector3=hit.normal
-	if not point.is_finite() or not normal.is_finite() or normal.length_squared()<.9 or absf(normal.normalized().y)>.25: return {}
-	var reach: Vector3=_player.global_position+Vector3.UP*1.25
-	if reach.distance_to(point)>REACH_M: return {}
-	var near_query:=PhysicsRayQueryParameters3D.create(reach,point+normal.normalized()*.005,1|512,[_player.get_rid()]); near_query.hit_from_inside=true
-	var obstruction: Dictionary=_player.get_world_3d().direct_space_state.intersect_ray(near_query)
-	if not obstruction.is_empty() and obstruction.get("collider")!=body: return {}
-	return {"body":body,"owner":owner,"point":point,"normal":normal.normalized(),"local_point":body.to_local(point),"frame":body.global_transform,"owner_generation":owner.get("rebuild_generation"),"source_id":str(owner.get("source_id"))}
+	if not is_instance_valid(camera): return _target_query45.reject("camera_missing")
+	var excluded: Array[RID]=[_player.get_rid()]
+	var target: Dictionary=_target_query45.query(_player.get_world_3d().direct_space_state,camera.global_position,-camera.global_basis.z.normalized(),_player.global_position+Vector3.UP,excluded,Callable(self,"_owner_of_wall"))
+	if target.is_empty(): return {}
+	var body: PhysicsBody3D=target.body
+	var owner: Node3D=target.owner
+	if not SurfaceOwner45.contact_current(body,target.point,_world.get_ref()): return _target_query45.reject("unsupported_surface")
+	target.local_point=body.to_local(target.point); target.frame=body.global_transform
+	target.owner_generation=SurfaceOwner45.generation(owner,_world.get_ref())
+	target.source_id=SurfaceOwner45.source_id(body,owner,_world.get_ref())
+	target.body_life_generation=(body.get_meta("life_generation") if body.has_meta("life_generation") else null)
+	target.shape_binding=SurfaceOwner45.capture_shape(body,int(target.get("shape_index",-1)))
+	if target.shape_binding.is_empty(): return _target_query45.reject("unsupported_surface")
+	return target
+
+func _target_failure_notice() -> void:
+	var reason: String=str(_target_query45.snapshot().last.reason)
+	match reason:
+		"too_far": _notice("Поверхность далеко","Подойдите ближе к выбранной точке",Vector3.ZERO)
+		"unsupported_surface": _notice("Здесь заряд не закрепить","Наведите на землю, здание или предмет",Vector3.ZERO)
+		"actor_los_blocked", "actor_los_empty", "different_surface_contact": _notice("Поверхность перекрыта","Выберите свободный участок перед собой",Vector3.ZERO)
+		"camera_inside_surface", "actor_inside_surface": _notice("Точка скрыта внутри объекта","Отойдите немного и наведите на внешнюю сторону",Vector3.ZERO)
+		_: _notice("Наведите на поверхность","Нужна близкая физическая поверхность",Vector3.ZERO)
 
 func _begin_hold() -> void:
+	if _require_release or not _allowed() or not _hold.is_empty(): return
 	if _charges.size()>=MAX_CHARGES:
 		_notice("Установлено 8 зарядов","Q → Пульт C4 для подрыва",Vector3.ZERO); return
 	var target:=_target()
-	if target.is_empty(): _notice("Нужна стена поближе","Подойдите на 2,5 м и наведите",Vector3.ZERO); return
+	if target.is_empty(): _target_failure_notice(); return
 	if Vector2(_player.velocity.x,_player.velocity.z).length()>.08: return
-	_hold=target; _hold.actor_position=_player.global_position; _elapsed=0
+	_hold=target; _hold.actor_position=_player.global_position; _hold.damage_revision=_damage_revision; _elapsed=0
+	var shape: Shape3D=_hold.shape_binding.shape.get_ref()
+	shape.changed.connect(_hold_shape_changed)
 	_notice_until=0
+
+func _hold_shape_changed() -> void:
+	_require_release=true
+	_cancel_hold(true)
 
 func _cancel_hold(show_notice: bool) -> void:
 	if _hold.is_empty(): return
+	var shape: Variant=_hold.shape_binding.shape.get_ref()
+	if is_instance_valid(shape) and shape.changed.is_connected(_hold_shape_changed): shape.changed.disconnect(_hold_shape_changed)
 	if show_notice:
 		_totals.cancelled+=1; _notice("Установка отменена","Удерживайте ЛКМ неподвижно",_hold.point)
 	_hold={}; _elapsed=0
@@ -228,45 +257,83 @@ func _physics_process(delta: float) -> void:
 	if not _configured or _disposed: return
 	if not _current(): dispose(); return
 	_maintain_charges()
+	if not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT): _require_release=false
 	if _mode!="off" and _weapons.fire_state.get("weaponId")!="none": _leave_mode()
 	if _hold.is_empty(): return
-	if not _allowed() or not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or not is_finite(delta) or delta<=0 or delta>.25:
+	if not _allowed() or _hold.damage_revision!=_damage_revision or _require_release or not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or not is_finite(delta) or delta<=0 or delta>.25:
 		_cancel_hold(true); return
 	var current:=_target()
-	if current.is_empty() or current.body!=_hold.body or current.owner!=_hold.owner or current.owner_generation!=_hold.owner_generation or current.frame!=_hold.frame or current.point.distance_to(_hold.point)>AIM_DRIFT_M or current.normal.dot(_hold.normal)<.999 or _player.global_position.distance_to(_hold.actor_position)>ACTOR_DRIFT_M or Vector2(_player.velocity.x,_player.velocity.z).length()>.08:
+	if current.is_empty() or current.body!=_hold.body or current.owner!=_hold.owner or current.owner_generation!=_hold.owner_generation or current.body_life_generation!=_hold.body_life_generation or not SurfaceOwner45.shape_current(current.body,_hold.shape_binding) or current.local_point.distance_to(_hold.local_point)>AIM_DRIFT_M or current.normal.dot(_hold.normal)<.999 or _player.global_position.distance_to(_hold.actor_position)>ACTOR_DRIFT_M or Vector2(_player.velocity.x,_player.velocity.z).length()>.08:
 		_cancel_hold(true); return
+	_hold.point=current.point; _hold.normal=current.normal; _hold.frame=current.frame
 	_elapsed+=delta
-	if _elapsed>=HOLD_SECONDS: _place_charge()
+	if _elapsed>=HOLD_SECONDS:
+		# Preserve the threshold frame for native committed-damage cancellation.
+		if not _hold.has("completion_frame"): _hold.completion_frame=Engine.get_physics_frames()
+		elif Engine.get_physics_frames()>int(_hold.completion_frame): _place_charge()
 
 func _place_charge() -> void:
-	if _hold.is_empty() or _charges.size()>=MAX_CHARGES or not _allowed(): _cancel_hold(true); return
-	var body: RigidBody3D=_hold.body; var owner: Node3D=_hold.owner
+	if _hold.is_empty() or _charges.size()>=MAX_CHARGES or not _allowed() or _require_release or _hold.damage_revision!=_damage_revision or not is_instance_valid(_hold.get("body")) or not is_instance_valid(_hold.get("owner")): _cancel_hold(true); return
+	var body: PhysicsBody3D=_hold.body; var owner: Node3D=_hold.owner
 	if _owner_of_wall(body)!=owner: _cancel_hold(true); return
+	# No direct call can bypass current geometry, original hold time or lifetime.
+	var current: Dictionary=_target()
+	if _elapsed<HOLD_SECONDS or Engine.get_physics_frames()<=int(_hold.get("completion_frame",Engine.get_physics_frames())) or not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or current.is_empty() or current.body!=body or current.owner!=owner or current.owner_generation!=_hold.owner_generation or current.body_life_generation!=_hold.body_life_generation or not SurfaceOwner45.shape_current(body,_hold.shape_binding) or current.source_id!=_hold.source_id or current.local_point.distance_to(_hold.local_point)>AIM_DRIFT_M or current.normal.dot(_hold.normal)<.999 or _player.global_position.distance_to(_hold.actor_position)>ACTOR_DRIFT_M or Vector2(_player.velocity.x,_player.velocity.z).length()>.08: _cancel_hold(true); return
+	# DSH_PLAYERSHOP: take a real backpack charge only after every placement gate.
+	if _charge_provider.is_valid():
+		var taken: Dictionary=_charge_provider.call(true)
+		if not taken.get("ok",false):
+			var blocked_point: Vector3=_hold.point
+			_cancel_hold(false); _require_release=true
+			_notice("Нет зарядов C4","Купи в оружейной лавке",blocked_point); return
+	_hold.point=current.point; _hold.normal=current.normal
 	_sequence+=1
 	var id: String="c4:%d:%d"%[get_instance_id(),_sequence]
 	var node: Node3D=_device(false); node.name="Placed_C4_%d"%_sequence
-	var z: Vector3=_hold.normal; var x: Vector3=Vector3.UP.cross(z).normalized(); var y: Vector3=z.cross(x).normalized()
-	var frame:=Transform3D(Basis(x,y,z),_hold.point+z*.045)
+	var z: Vector3=_hold.normal
+	var frame:=Transform3D(Visuals45.surface_basis(z),_hold.point+z*.045)
 	body.add_child(node); node.global_transform=frame
-	_charges[id]={"id":id,"item_uid":id+":virtual-item","node":weakref(node),"body":weakref(body),"owner":weakref(owner),"owner_generation":_hold.owner_generation,"source_id":_hold.source_id,"local_frame":node.transform,"local_normal":body.global_basis.transposed()*z,"placed_at_msec":Time.get_ticks_msec(),"actor_id":_actor_id,"life_generation":_life}
+	_charges[id]={"id":id,"item_uid":id+":virtual-item","node":weakref(node),"body":weakref(body),"owner":weakref(owner),"owner_generation":_hold.owner_generation,"source_id":_hold.source_id,"body_life_generation":_hold.body_life_generation,"local_frame":node.transform,"local_normal":body.global_basis.transposed()*z,"placed_at_msec":Time.get_ticks_msec(),"actor_id":_actor_id,"life_generation":_life}
+	# Resource mutation/removal retires this attachment instead of leaving a
+	# floating charge when a pane or prop shape is replaced/disabled in place.
+	var shape: Shape3D=current.shape_binding.shape.get_ref()
+	_charges[id].shape_binding=current.shape_binding
+	_watch_charge_shape(id,shape)
 	_totals.placed+=1
 	var at: Vector3=node.global_position
-	_hold={}; _elapsed=0; _mode="remote"
+	_cancel_hold(false); _mode="remote"
 	_notice("Заряд установлен","ЛКМ — подорвать · Q — ещё C4",at,true)
 	_update_hud()
 
 func _charge_current(row: Dictionary) -> bool:
 	var node: Variant=row.node.get_ref(); var body: Variant=row.body.get_ref(); var owner: Variant=row.owner.get_ref()
-	return is_instance_valid(node) and node.is_inside_tree() and not node.is_queued_for_deletion() and is_instance_valid(body) and _owner_of_wall(body)==owner and is_instance_valid(owner) and owner.get("rebuild_generation")==row.owner_generation and owner.get("source_id")==row.source_id and node.get_parent()==body and node.transform==row.local_frame and node.global_transform.is_finite() and row.actor_id==_actor_id and row.life_generation==_life
+	if not is_instance_valid(node) or not node.is_inside_tree() or node.is_queued_for_deletion() or not is_instance_valid(body) or not is_instance_valid(owner) or _owner_of_wall(body)!=owner: return false
+	if SurfaceOwner45.generation(owner,_world.get_ref())!=row.owner_generation or SurfaceOwner45.source_id(body,owner,_world.get_ref())!=row.source_id or (body.get_meta("life_generation") if body.has_meta("life_generation") else null)!=row.body_life_generation: return false
+	if not SurfaceOwner45.shape_current(body,row.shape_binding): return false
+	return node.get_parent()==body and node.transform==row.local_frame and node.global_transform.is_finite() and row.actor_id==_actor_id and row.life_generation==_life
 
 func _maintain_charges() -> void:
 	for id: String in _charges.keys():
 		var row: Dictionary=_charges[id]
 		if not _charge_current(row): _remove_charge(id,false)
 
+func _watch_charge_shape(id: String, shape: Shape3D) -> void:
+	# Godot signal slots compare the base callable, ignoring bind arguments.
+	# One resource owns one handler; each attachment retains one reference.
+	var changed: Callable=Callable(self,"_charge_shape_changed").bind(shape.get_instance_id())
+	_charges[id].shape_changed=changed
+	shape.changed.connect(changed,CONNECT_REFERENCE_COUNTED)
+
+func _charge_shape_changed(shape_id: int) -> void:
+	for id: String in _charges.keys():
+		var shape: Variant=_charges[id].shape_binding.shape.get_ref()
+		if is_instance_valid(shape) and shape.get_instance_id()==shape_id: _remove_charge(id,false)
+
 func _remove_charge(id: String, detonated: bool) -> void:
 	if not _charges.has(id): return
 	var row: Dictionary=_charges[id]; var node: Variant=row.node.get_ref()
+	var shape: Variant=row.shape_binding.shape.get_ref()
+	if is_instance_valid(shape) and shape.changed.is_connected(row.shape_changed): shape.changed.disconnect(row.shape_changed)
 	if is_instance_valid(node): node.visible=false; node.queue_free()
 	_charges.erase(id)
 	if detonated: _totals.detonated+=1
@@ -280,8 +347,8 @@ func _detonate_all() -> void:
 		if not _charges.has(id): continue
 		var row: Dictionary=_charges[id]
 		if not _charge_current(row): _remove_charge(id,false); continue
-		var node: Node3D=row.node.get_ref(); var body: RigidBody3D=row.body.get_ref()
-		_dispatch={"scope":"new_local_session_c4","authority":"local_c4_equipment","server_authority":false,"equipment_owner":self,"equipment_instance_id":get_instance_id(),"event_id":row.id+":detonate","placement_id":row.id,"item_uid":row.item_uid,"actor_id":_actor_id,"life_generation":_life,"world_instance_id":_world.get_ref().get_instance_id(),"collider":body,"source_id":row.source_id,"generation":row.owner_generation,"position":node.global_position,"normal":(body.global_basis*row.local_normal).normalized(),"damage":DAMAGE,"power":DAMAGE,"radius":BLAST_RADIUS_M,"weapon_id":"c4","explosive":true,"placed_at_msec":row.placed_at_msec}
+		var node: Node3D=row.node.get_ref(); var body: PhysicsBody3D=row.body.get_ref()
+		_dispatch={"scope":"new_local_session_c4","authority":"local_c4_equipment","server_authority":false,"equipment_owner":self,"equipment_instance_id":get_instance_id(),"event_id":row.id+":detonate","placement_id":row.id,"item_uid":row.item_uid,"actor_id":_actor_id,"life_generation":_life,"world_instance_id":_world.get_ref().get_instance_id(),"collider":body,"source_id":row.source_id,"generation":row.owner_generation,"position":node.global_position,"normal":SurfaceOwner45.world_normal(body,row.local_normal),"damage":DAMAGE,"power":DAMAGE,"radius":BLAST_RADIUS_M,"weapon_id":"c4","explosive":true,"placed_at_msec":row.placed_at_msec}
 		_dispatch_consumed=false
 		_explosion.call(_dispatch)
 		if _dispatch_consumed: count+=1
@@ -300,8 +367,8 @@ func consume_detonation(event: Dictionary) -> Dictionary:
 	if not _charges.has(id): return {"ok":false,"reason":"unknown_or_consumed_charge"}
 	var row: Dictionary=_charges[id]
 	if not _charge_current(row): return {"ok":false,"reason":"charge_owner_ended"}
-	var node: Node3D=row.node.get_ref(); var body: RigidBody3D=row.body.get_ref()
-	if event.get("equipment_owner")!=self or event.get("equipment_instance_id")!=get_instance_id() or event.get("event_id")!=id+":detonate" or event.get("item_uid")!=row.item_uid or event.get("actor_id")!=_actor_id or event.get("life_generation")!=_life or event.get("world_instance_id")!=_world.get_ref().get_instance_id() or event.get("position")!=node.global_position or event.get("collider")!=body or event.get("source_id")!=row.source_id or event.get("generation")!=row.owner_generation or event.get("normal")!=(body.global_basis*row.local_normal).normalized() or event.get("damage")!=DAMAGE or event.get("power")!=DAMAGE or event.get("radius")!=BLAST_RADIUS_M or event.get("weapon_id")!="c4" or event.get("explosive")!=true or event.get("authority")!="local_c4_equipment" or event.get("scope")!="new_local_session_c4" or event.get("server_authority")!=false or event.get("placed_at_msec")!=row.placed_at_msec: return {"ok":false,"reason":"changed_c4_dispatch"}
+	var node: Node3D=row.node.get_ref(); var body: PhysicsBody3D=row.body.get_ref()
+	if event.get("equipment_owner")!=self or event.get("equipment_instance_id")!=get_instance_id() or event.get("event_id")!=id+":detonate" or event.get("item_uid")!=row.item_uid or event.get("actor_id")!=_actor_id or event.get("life_generation")!=_life or event.get("world_instance_id")!=_world.get_ref().get_instance_id() or event.get("position")!=node.global_position or event.get("collider")!=body or event.get("source_id")!=row.source_id or event.get("generation")!=row.owner_generation or event.get("normal")!=SurfaceOwner45.world_normal(body,row.local_normal) or event.get("damage")!=DAMAGE or event.get("power")!=DAMAGE or event.get("radius")!=BLAST_RADIUS_M or event.get("weapon_id")!="c4" or event.get("explosive")!=true or event.get("authority")!="local_c4_equipment" or event.get("scope")!="new_local_session_c4" or event.get("server_authority")!=false or event.get("placed_at_msec")!=row.placed_at_msec: return {"ok":false,"reason":"changed_c4_dispatch"}
 	var receipt: Dictionary=event.duplicate(); receipt.erase("equipment_owner"); receipt.admitted=true; receipt.consumed=true
 	_dispatch_consumed=true; _remove_charge(id,true)
 	return {"ok":true,"receipt":receipt}
@@ -315,11 +382,14 @@ func _update_hud() -> void:
 	_remote_button.disabled=count==0
 	_remote_button.get_meta("description").text="Зарядов: %d · ЛКМ — подрыв"%count
 	_button.get_meta("description").text="ЛКМ 3 с · %d / %d установлено"%[count,MAX_CHARGES]
+	if _charge_provider.is_valid():
+		var pack: Dictionary=_charge_provider.call(false)
+		_button.get_meta("description").text="ЛКМ 3 с · %d / %d установлено · в рюкзаке %d"%[count,MAX_CHARGES,int(pack.get("count",0))]
 	if _mode!="off" and _weapons.fire_state.get("weaponId")=="none":
 		_ui.title.text="C4 · Установка" if _mode=="place" else "Пульт C4"
-		_ui.ammo.text="ЛКМ 3 с у стены · Q — арсенал" if _mode=="place" else "ЛКМ — подорвать · Зарядов: %d"%count
+		_ui.ammo.text="ЛКМ 3 с у поверхности · Q — арсенал" if _mode=="place" else "ЛКМ — подорвать · Зарядов: %d"%count
 		_ui.ammo.add_theme_color_override("font_color",Color("cbb98f"))
-		_ui.photo.texture=null
+		_ui.photo.texture=IconCache43.texture_for(_mode=="remote")
 
 func _process(_delta: float) -> void:
 	if not _current(): return
@@ -354,31 +424,14 @@ func _process(_delta: float) -> void:
 	_card.visible=true
 
 func _device(remote: bool) -> Node3D:
-	var root:=Node3D.new()
-	var body:=StandardMaterial3D.new(); body.albedo_color=Color("303a35") if not remote else Color("263039"); body.roughness=.55
-	var trim:=StandardMaterial3D.new(); trim.albedo_color=Color("b9aa7b"); trim.roughness=.6
-	var led:=StandardMaterial3D.new(); led.albedo_color=Color("ef5b43"); led.emission_enabled=true; led.emission=Color("dd4428"); led.emission_energy_multiplier=1.1
-	_box(root,Vector3(.12,.19,.07) if remote else Vector3(.23,.17,.08),Vector3.ZERO,body)
-	if remote:
-		_box(root,Vector3(.018,.12,.018),Vector3(.04,.145,0),body)
-		_box(root,Vector3(.075,.038,.006),Vector3(0,.035,.039),trim)
-		_box(root,Vector3(.035,.035,.008),Vector3(0,-.035,.041),led)
-	else:
-		for x: float in [-.075,.075]: _box(root,Vector3(.023,.176,.084),Vector3(x,0,0),trim)
-		_box(root,Vector3(.018,.018,.006),Vector3(0,.025,.044),led)
-	root.set_meta("virtual_equipment_visual",true)
-	return root
-
-func _box(parent: Node3D, dimensions: Vector3, at: Vector3, material: Material) -> void:
-	var mesh:=MeshInstance3D.new(); var box:=BoxMesh.new(); box.size=dimensions; mesh.mesh=box; mesh.position=at; mesh.material_override=material
-	mesh.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; parent.add_child(mesh)
+	return Visuals45.make_device(remote)
 
 func snapshot() -> Dictionary:
 	var placed: Array=[]
 	for row: Dictionary in _charges.values():
 		var node: Variant=row.node.get_ref()
 		placed.append({"id":row.id,"source_id":row.source_id,"valid":_charge_current(row),"world_position":node.global_position if is_instance_valid(node) else null})
-	return {"ready":_current(),"mode":_mode,"holding":not _hold.is_empty(),"elapsed_seconds":_elapsed,"placed":placed,"totals":_totals.duplicate(),"maximum_placed":MAX_CHARGES,"hold_seconds":HOLD_SECONDS,"damage":DAMAGE,"radius":BLAST_RADIUS_M,"actor_id":_actor_id,"life_generation":_life}
+	return {"ready":_current(),"mode":_mode,"holding":not _hold.is_empty(),"elapsed_seconds":_elapsed,"placed":placed,"totals":_totals.duplicate(),"maximum_placed":MAX_CHARGES,"hold_seconds":HOLD_SECONDS,"damage":DAMAGE,"radius":BLAST_RADIUS_M,"actor_id":_actor_id,"life_generation":_life,"damage_revision":_damage_revision,"requires_release":_require_release,"owner_killed":_owner_killed,"target_query":_target_query45.snapshot(),"icons":IconCache43.snapshot(),"placement_scope":"near_aimed_physical_scenery","hand_contact_animation":"pending_pose44_root_integration"}
 
 func dispose() -> void:
 	if _disposed: return

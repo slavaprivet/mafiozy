@@ -2,8 +2,9 @@ extends Node
 ## Driver presentation only. Never reads input or writes transport controls.
 ## NativeVehicleBody publishes linear_velocity in metres/second; no map scale.
 const SAMPLE_INTERVAL := 0.1
-const PANEL_SIZE := Vector2(284.0, 176.0)
-const EDGE_MARGIN := 16.0
+const PANEL_SIZE := Vector2(332.0, 72.0)
+# Leave the bottom-right minimap slot free, and clear the existing control hints.
+const BOTTOM_CLEARANCE := 88.0
 const IVORY := Color("f1e8d6")
 const BRASS := Color("dfb968")
 const MUTED := Color("99aaa9")
@@ -17,6 +18,7 @@ var _headlights: Node
 var _body: RigidBody3D
 var _generation := -1
 var _layer: CanvasLayer
+var _layout_viewport: Viewport
 var _panel: Panel
 var _speed_label: Label
 var _direction_label: Label
@@ -83,40 +85,51 @@ func _build_panel() -> void:
 	_panel = Panel.new()
 	_panel.name = "CarDashboard"
 	_passive(_panel)
-	_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	_panel.offset_left = -PANEL_SIZE.x - EDGE_MARGIN
-	_panel.offset_top = -PANEL_SIZE.y - EDGE_MARGIN
-	_panel.offset_right = -EDGE_MARGIN
-	_panel.offset_bottom = -EDGE_MARGIN
+	_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	_panel.offset_left = -PANEL_SIZE.x * 0.5
+	_panel.offset_top = -PANEL_SIZE.y - BOTTOM_CLEARANCE
+	_panel.offset_right = PANEL_SIZE.x * 0.5
+	_panel.offset_bottom = -BOTTOM_CLEARANCE
 	_panel.visible = false
 	var face := _style(Color(0.035, 0.055, 0.065, 0.93), Color(0.53, 0.47, 0.34, 0.55), 1)
 	face.border_width_top = 2
 	face.border_color = Color("b49a64")
 	face.shadow_color = Color(0.0, 0.0, 0.0, 0.26)
-	face.shadow_size = 5
+	face.shadow_size = 3
 	_panel.add_theme_stylebox_override("panel", face)
 	_layer.add_child(_panel)
-	_label(_panel, "DashboardTitle", "ЗА РУЛЁМ", Vector2(16, 11), Vector2(185, 17), 11, BRASS)
-	_line(Vector2(235, 19), Vector2(32, 1), Color(0.87, 0.73, 0.41, 0.65))
-	_speed_label = _label(_panel, "SpeedValue", "00", Vector2(14, 26), Vector2(139, 64), 50, IVORY)
+	_speed_label = _label(_panel, "SpeedValue", "00", Vector2(12, 1), Vector2(86, 50), 40, IVORY)
 	_speed_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.35))
 	_speed_label.add_theme_constant_override("shadow_offset_y", 2)
-	_direction_label = _label(_panel, "SpeedDirection", "СКОРОСТЬ", Vector2(158, 39), Vector2(109, 17), 10, MUTED)
-	_direction_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	var units := _label(_panel, "SpeedUnit", "км/ч", Vector2(191, 60), Vector2(76, 23), 16, IVORY)
+	_direction_label = _label(_panel, "SpeedDirection", "СКОРОСТЬ", Vector2(14, 51), Vector2(111, 13), 9, MUTED)
+	var units := _label(_panel, "SpeedUnit", "км/ч", Vector2(92, 27), Vector2(33, 20), 12, IVORY)
 	units.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_line(Vector2(16, 96), Vector2(252, 1), Color(0.87, 0.73, 0.41, 0.35))
+	_line(Vector2(133, 12), Vector2(1, 48), Color(0.87, 0.73, 0.41, 0.35))
 	_key_idle = _style(Color(0.13, 0.17, 0.18, 0.85), Color(0.48, 0.54, 0.53, 0.5), 1)
 	_key_lit = _style(Color(0.28, 0.24, 0.14, 0.95), BRASS, 1)
 	_key_braked = _style(Color(0.28, 0.17, 0.13, 0.95), BRAKE_COLOR, 1)
-	_light_key = _key("HeadlightKey", "F", Vector2(16, 108), 13)
-	_brake_key = _key("HandbrakeKey", "ПРОБЕЛ", Vector2(16, 139), 10)
-	_label(_panel, "HeadlightCaption", "Фары", Vector2(94, 110), Vector2(76, 21), 13, IVORY)
-	_label(_panel, "HandbrakeCaption", "Ручник", Vector2(94, 141), Vector2(76, 21), 13, IVORY)
-	_light_state = _label(_panel, "HeadlightState", "ВЫКЛ", Vector2(176, 111), Vector2(91, 19), 11, MUTED)
-	_brake_state = _label(_panel, "HandbrakeState", "ОТПУЩЕН", Vector2(176, 142), Vector2(91, 19), 10, MUTED)
+	_light_key = _key("HeadlightKey", "F", Vector2(146, 10), 12)
+	_brake_key = _key("HandbrakeKey", "ПРОБЕЛ", Vector2(146, 40), 9)
+	_label(_panel, "HeadlightCaption", "Фары", Vector2(210, 10), Vector2(47, 22), 12, IVORY)
+	_label(_panel, "HandbrakeCaption", "Ручник", Vector2(210, 40), Vector2(47, 22), 12, IVORY)
+	_light_state = _label(_panel, "HeadlightState", "ВЫКЛ", Vector2(258, 11), Vector2(62, 20), 10, MUTED)
+	_brake_state = _label(_panel, "HandbrakeState", "ОТПУЩЕН", Vector2(258, 41), Vector2(62, 20), 9, MUTED)
 	_light_state.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_brake_state.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_layout_viewport = _panel.get_viewport()
+	_layout_viewport.size_changed.connect(_layout_panel)
+	_layout_panel()
+
+func _layout_panel() -> void:
+	if not is_instance_valid(_panel) or not _panel.is_inside_tree(): return
+	var view_width := _panel.get_viewport_rect().size.x
+	var clearance := 108.0 if view_width < 1260.0 else BOTTOM_CLEARANCE
+	# On narrow views leave a12px gap before a300px minimap with16px edge margin.
+	var shift := minf(0.0, view_width * 0.5 - 328.0 - PANEL_SIZE.x * 0.5)
+	_panel.offset_left = -PANEL_SIZE.x * 0.5 + shift
+	_panel.offset_right = PANEL_SIZE.x * 0.5 + shift
+	_panel.offset_top = -PANEL_SIZE.y - clearance
+	_panel.offset_bottom = -clearance
 
 func _style(background: Color, border: Color, width: int) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
@@ -135,19 +148,20 @@ func _label(parent: Control, label_name: String, text: String, position: Vector2
 	label.name = label_name
 	label.text = text
 	label.position = position
-	label.size = box
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
 	_passive(label)
 	parent.add_child(label)
+	# Set the box after the font, so Godot does not retain the larger default-font minimum.
+	label.size = box
 	return label
 
 func _key(key_name: String, text: String, position: Vector2, font_size: int) -> Panel:
 	var key := Panel.new()
 	key.name = key_name
 	key.position = position
-	key.size = Vector2(66, 23)
+	key.size = Vector2(54, 22)
 	key.add_theme_stylebox_override("panel", _key_idle)
 	_passive(key)
 	_panel.add_child(key)
@@ -237,9 +251,12 @@ func dispose() -> void:
 	_set_visible(false)
 	if is_instance_valid(_world) and _world.tree_exiting.is_connected(dispose): _world.tree_exiting.disconnect(dispose)
 	if is_instance_valid(_layer):
+		if is_instance_valid(_layout_viewport) and _layout_viewport.size_changed.is_connected(_layout_panel):
+			_layout_viewport.size_changed.disconnect(_layout_panel)
 		_layer.hide()
 		_layer.queue_free()
 	_layer = null
+	_layout_viewport = null
 	_panel = null
 	_speed_label = null
 	_direction_label = null

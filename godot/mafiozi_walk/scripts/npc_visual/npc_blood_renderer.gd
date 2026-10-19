@@ -2,8 +2,13 @@ extends RefCounted
 ## Cosmetic port of hero_artist14_surface.mjs + wound_bleeding.mjs.
 ## Fixed 112 particles and four bone anchors per actual actor; no HP writes.
 ## User-requested readability profile: 1.65x particle radius, opacity .95.
-## Source counts 20/32, trajectories, lifetimes, wounds, idle optimization intact.
+## Walk counts20/32 are baseline; user's extra blood uses32/48 in SAME112 pool.
+## Trajectories, lifetimes, four wounds, 10drops/s and idle optimization intact.
 const CAPACITY := 112
+const SOURCE_BURST := 20
+const SOURCE_HEAVY_BURST := 32
+const READABLE_BURST := 32
+const READABLE_HEAVY_BURST := 48
 var mesh: MultiMeshInstance3D
 var _rig: Skeleton3D
 var _body: Node3D
@@ -58,9 +63,16 @@ func _emit(point: Vector3, count: int, normal: Vector3, drip: bool=false) -> voi
 		if normal.length_squared()>0: _velocity[slot]+=normal.normalized()*.6*_unit
 		emitted+=1
 
-func accept(point: Vector3, normal: Vector3, now: float, heavy: bool=false) -> void:
+func accept(point: Vector3, normal: Vector3, now: float, heavy: bool=false, sampler: Callable=Callable(), anchor: Dictionary={}) -> void:
 	if mesh==null or not point.is_finite() or not normal.is_finite() or not is_finite(now): return
-	_emit(point,32 if heavy else 20,normal)
+	_emit(point,READABLE_HEAVY_BURST if heavy else READABLE_BURST,normal)
+	# Source skin-triangle binding has priority over its bone fallback.
+	if sampler.is_valid() and not anchor.is_empty():
+		var sample: Variant=sampler.call(anchor)
+		if sample is Dictionary and sample.get("point") is Vector3 and sample.point.is_finite():
+			_wounds.append({"sampler":sampler,"anchor":anchor.duplicate(true),"expires":now+(12 if heavy else 8),"next":now+.18,"interval":.32 if heavy else .45})
+			if _wounds.size()>4: _wounds.pop_front()
+			return
 	# Source fallback: closest real bone or direct child-bone segment.
 	# Triangle skin binding is unavailable in this native hit contract.
 	var nearest:=-1
@@ -99,7 +111,13 @@ func update(delta: float, now: float, ground: float) -> void:
 		for wound in _wounds:
 			if float(wound.next)<=now and (due.is_empty() or float(wound.next)<float(due.next)): due=wound
 		if not due.is_empty():
-			var point: Vector3=(_rig.global_transform*_rig.get_bone_global_pose(int(due.bone)))*due.local
+			var point:=Vector3(INF,INF,INF)
+			if due.has("sampler"):
+				var sampler: Callable=due.sampler
+				if sampler.is_valid():
+					var sample: Variant=sampler.call(due.anchor)
+					if sample is Dictionary and sample.get("point") is Vector3: point=sample.point
+			else: point=(_rig.global_transform*_rig.get_bone_global_pose(int(due.bone)))*due.local
 			due.next=now+float(due.interval); _next_emission=now+.1
 			if point.is_finite(): _emit(point,1,Vector3.ZERO,true)
 	# Preserve clock/root/wound expiration and due-drop work above. A burst

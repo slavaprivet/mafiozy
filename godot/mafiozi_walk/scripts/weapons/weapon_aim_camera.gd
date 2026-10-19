@@ -23,6 +23,11 @@ var _optic: TextureRect
 var _scope_alpha := 0.0
 var _query := PhysicsShapeQueryParameters3D.new()
 var _query_count := 0
+## External field-of-view multiplier. 1.0 is untouched; the bow prototype lowers it
+## while the string is drawn, so the zoom needs no second writer of `fov`.
+var zoom_scale := 1.0
+## Bow owns only this presentation request. The spring arm keeps world collision.
+var bow_aim_active := false
 
 func configure(host: Node) -> bool:
 	if _ready or not is_instance_valid(host) or not host._owner_current(): return false
@@ -54,15 +59,16 @@ func _resize() -> void:
 func _live() -> bool:
 	return _ready and _host!=null and is_instance_valid(_host.get_ref()) and _host.get_ref()._owner_current() and is_instance_valid(_camera) and _camera.get_parent()==_arm and _arm.get_parent()==_pivot and not _camera.top_level
 func _on_foot(host: Node) -> bool:
-	return host._interaction_allowed() and not host.controls_blocked() and not host.player._text_control_focused()
+	return host._combat_allowed() and not host.controls_blocked() and not host.player._text_control_focused()
 func _allowed(host: Node) -> bool:
 	# Walk combatAllowed does not disable aim/scope during reload.
 	return _on_foot(host) and host.armed()
 func scoped() -> bool: return _scoped
 func owns_distance() -> bool: return _owns and (_blend>.005 or _scoped)
 func pitch_limits() -> Vector2:
-	if _live() and _allowed(_host.get_ref()) and _host.get_ref()._aiming: return Vector2(-PI*.5+.0001,PI*.42)
-	if _live() and _on_foot(_host.get_ref()): return Vector2(-PI*.5+.0001,-PI*.02)
+	# Looking up belongs to the on-foot camera, including bow and spear aim.
+	# Bow uses bow_aim_active rather than the firearm host's _aiming flag.
+	if _live() and _on_foot(_host.get_ref()): return Vector2(-PI*.5+.0001,PI*.46)
 	return Vector2(-1.05,.45)
 func _hide_geometry(node: Node) -> void:
 	if node is GeometryInstance3D:
@@ -98,26 +104,33 @@ func advance(delta: float) -> void:
 	if not is_finite(delta) or delta<0 or delta>5: reset(); return
 	var host: Node=_host.get_ref()
 	if not _on_foot(host): reset(); return
-	var desired: bool=_allowed(host) and host._aiming
+	var bow_aim: bool=bow_aim_active and _on_foot(host)
+	var desired: bool=(_allowed(host) and host._aiming) or bow_aim
 	_owns=true
 	var limits:=pitch_limits()
 	var pitch: float=clampf(host.player._camera_pitch,limits.x,limits.y)
 	if pitch!=host.player._camera_pitch: host.player._camera_pitch=pitch; host.player._update_camera_rotation()
 	_blend+=(float(desired)-_blend)*(1-exp(-14*delta))
-	var scope: bool=desired and host.fire_state.weaponId=="sniper"
+	var scope: bool=desired and host.fire_state.weaponId=="sniper" and host.player._jump.is_empty()
 	_set_scope(scope)
 	var pivot_height: float=(_pivot.global_position-host.player.global_position).y
 	var eye: float=host._posture_view.get("eyeHeight",1.64)
 	var normal_position: Vector3=_base_position+Vector3(0,eye-pivot_height,0)
-	var target: Vector3=_base_position+Vector3(0 if scope else .75,eye-pivot_height,0)
-	var distance: float=.12 if scope else 4.2
+	# Offset the bow view behind the right shoulder so the sight line stays open.
+	# _safe_arm_position sweeps the same spring-arm sphere before any lateral move.
+	# Camera to the archer's left places the archer on the right of the screen.
+	var shoulder: float=-0.92 if bow_aim else .75
+	var target: Vector3=_base_position+Vector3(0 if scope else shoulder,eye-pivot_height,0)
+	var distance: float=.12 if scope else (4.6 if bow_aim else 4.2)
 	var rate: float=1-exp(-(10 if desired else 14)*delta)
 	var position: Vector3=target if scope else _arm.position.lerp(target if desired else normal_position,rate)
 	_arm.position=_safe_arm_position(position)
 	_arm.spring_length=distance if scope else lerpf(_arm.spring_length,distance if desired else host.player.camera_distance,rate)
 	# Walk applies45 even without a weapon.65 is restored only on ownership exit.
 	var kick: float=Fire.sample_recoil(host.fire_state).weaponKick
-	_camera.fov=(14.0 if scope else lerpf(NORMAL_FOV,AIM_FOV,_blend))+kick*.15
+	# `zoom_scale` lets another presentation (the bow prototype drawing its string)
+	# tighten the view without fighting this camera for the field of view.
+	_camera.fov=((14.0 if scope else lerpf(NORMAL_FOV,AIM_FOV,_blend))+kick*.15)*zoom_scale
 	if scope: _scope_alpha=minf(1,_scope_alpha+delta/.1); _overlay.modulate.a=_scope_alpha
 	if not desired and _blend<.005:
 		_blend=0; _arm.spring_length=host.player.camera_distance
@@ -129,12 +142,21 @@ func reset(release_owner: bool = false) -> void:
 	var had_ownership: bool=_owns or _scoped
 	_set_scope(false)
 	if retain_walk or had_ownership:
-		if is_instance_valid(_arm): _arm.position=_base_position
+		if is_instance_valid(_arm):
+			# Retained Walk ownership resets directly to advance()'s normal eye
+			# target, including its collision sweep. Base height creates post-Q drift;
+			# preserving aimed Y alone can move the origin inside a central obstacle.
+			if retain_walk and _live():
+				var pivot_height: float=(_pivot.global_position-host.player.global_position).y
+				var eye: float=host._posture_view.get("eyeHeight",1.64)
+				_arm.position=_safe_arm_position(_base_position+Vector3(0,eye-pivot_height,0))
+			else:
+				_arm.position=_base_position
 		if is_instance_valid(_camera): _camera.fov=45.0 if retain_walk else _base_fov
 		if is_instance_valid(_arm) and _host!=null and is_instance_valid(_host.get_ref()) and is_instance_valid(_host.get_ref().player): _arm.spring_length=_host.get_ref().player.camera_distance
 	_blend=0; _owns=retain_walk
-func stats() -> Dictionary:
-	return {"owns":_owns,"scoped":_scoped,"blend":_blend,"base_fov":_base_fov,"hidden_geometry":_hidden.size(),"queries":_query_count,"scope_alpha":_scope_alpha}
+	if release_owner: bow_aim_active=false
+func stats() -> Dictionary:	return {"owns":_owns,"scoped":_scoped,"bow_aim_active":bow_aim_active,"blend":_blend,"base_fov":_base_fov,"hidden_geometry":_hidden.size(),"queries":_query_count,"scope_alpha":_scope_alpha}
 func dispose() -> void:
 	reset(true)
 	if _host!=null and is_instance_valid(_host.get_ref()):

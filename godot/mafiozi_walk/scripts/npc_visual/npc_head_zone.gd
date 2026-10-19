@@ -11,6 +11,11 @@ var _head_max:=Vector3(-INF,-INF,-INF)
 var _head_triangles:=PackedVector3Array()
 var _head_tree: Dictionary={}
 
+static var _tree_cache: Dictionary={}
+const TREE_CACHE_LIMIT:=256
+static var _surface_cache: Dictionary={}
+const SURFACE_CACHE_LIMIT:=512
+
 func configure(rig: Skeleton3D) -> bool:
 	if ready or not is_instance_valid(rig):return false
 	_head_bone=rig.find_bone("head")
@@ -29,6 +34,9 @@ func configure(rig: Skeleton3D) -> bool:
 				name=str(rig.get_bone_name(bone))
 			if rig.find_bone(name)<0:return false
 			binds.append(mesh.skin.get_bind_pose(b));names.append(name)
+		var is_head_bind:=PackedByteArray();is_head_bind.resize(names.size())
+		for b2 in names.size():is_head_bind[b2]=1 if names[b2]=="head" else 0
+		var anatomical_skin: bool="SKIN" in str(mesh.name).to_upper()
 		for surface in mesh.mesh.get_surface_count():
 			if mesh.mesh.surface_get_primitive_type(surface)!=Mesh.PRIMITIVE_TRIANGLES:return false
 			var arrays:=mesh.mesh.surface_get_arrays(surface)
@@ -42,6 +50,21 @@ func configure(rig: Skeleton3D) -> bool:
 			if bones.size()!=vertices.size()*4 or weights.size()!=bones.size() or indices.size()%3!=0:return false
 			total+=vertices.size()
 			if total>20000:return false
+			# The whole analysis below depends only on geometry, bind poses, counts and
+			# bind names, which are identical for every resident that shares this prepared
+			# surface. Cache it once per surface content and reuse it, instead of paying
+			# it once per resident. The key is a content hash; every hit is re-verified by
+			# comparing the arrays, so a hash collision can never return a wrong zone.
+			var sig:=_surface_signature(vertices,bones,weights,indices,binds,is_head_bind,anatomical_skin)
+			var cached: Variant=_surface_cache.get(sig)
+			if cached != null:
+				var hit: Dictionary=cached
+				if hit.vertices==vertices and hit.bones==bones and hit.weights==weights and hit.indices==indices and hit.binds==binds and hit.is_head_bind==is_head_bind and hit.anatomical_skin==anatomical_skin:
+					_surfaces.append({"node":weakref(mesh),"resource":mesh.mesh,"skin":mesh.skin,"vertices":hit.vertices,"bones":hit.bones,"weights":hit.weights,"indices":hit.indices,"head_indices":hit.head_indices,"heads":hit.heads,"binds":binds,"names":names,"dynamic_head_indices":hit.dynamic_head_indices,"clusters":hit.clusters})
+					head_faces+=int(hit.head_faces)
+					_head_min=_head_min.min(hit.head_min);_head_max=_head_max.max(hit.head_max)
+					_head_triangles.append_array(hit.head_triangles)
+					continue
 			var heads:=PackedByteArray();heads.resize(vertices.size())
 			for v in vertices.size():
 				var head_weight:=0.0
@@ -49,23 +72,24 @@ func configure(rig: Skeleton3D) -> bool:
 					var j:=v*4+k
 					if weights[j]<=0:continue
 					if bones[j]<0 or bones[j]>=names.size():return false
-					if names[bones[j]]=="head":head_weight+=weights[j]
+					if is_head_bind[bones[j]]==1:head_weight+=weights[j]
 				heads[v]=1 if head_weight>.999 else 0
 			var head_indices:=PackedInt32Array()
-			var anatomical_skin: bool="SKIN" in str(mesh.name).to_upper()
+			var local_min:=Vector3(INF,INF,INF);var local_max:=Vector3(-INF,-INF,-INF)
+			var surface_faces:=0
 			for i in range(0,indices.size(),3):
 				for n in 3:
 					if indices[i+n]<0 or indices[i+n]>=vertices.size():return false
 				if anatomical_skin and heads[indices[i]]==1 and heads[indices[i+1]]==1 and heads[indices[i+2]]==1:
-					head_indices.append_array(indices.slice(i,i+3));head_faces+=1
+					head_indices.append_array(indices.slice(i,i+3));surface_faces+=1
 			for v in head_indices:
 				var local:=Vector3.ZERO
 				for k in 4:
 					var j:=v*4+k
 					if weights[j]>0:local+=binds[bones[j]]*vertices[v]*weights[j]
-				_head_min=_head_min.min(local);_head_max=_head_max.max(local)
-			var entry: Dictionary={"node":weakref(mesh),"resource":mesh.mesh,"skin":mesh.skin,"vertices":vertices,"bones":bones,"weights":weights,"indices":indices,"head_indices":head_indices,"heads":heads,"binds":binds,"names":names}
+				local_min=local_min.min(local);local_max=local_max.max(local)
 			var dynamic_head:=PackedInt32Array()
+			var surface_triangles:=PackedVector3Array()
 			for i in range(0,head_indices.size(),3):
 				var triangle:=PackedVector3Array();var rigid:=true
 				for n in 3:
@@ -73,33 +97,75 @@ func configure(rig: Skeleton3D) -> bool:
 					for k in 4:
 						var j:=v*4+k
 						if weights[j]<=0:continue
-						if names[bones[j]]!="head":rigid=false
+						if is_head_bind[bones[j]]==0:rigid=false
 						p+=binds[bones[j]]*vertices[v]*weights[j];total_weight+=weights[j]
 					if total_weight!=1.0:rigid=false
 					triangle.append(p)
-				if rigid:_head_triangles.append_array(triangle)
+				if rigid:surface_triangles.append_array(triangle)
 				else:dynamic_head.append_array(head_indices.slice(i,i+3))
-			entry["dynamic_head_indices"]=dynamic_head
+			var entry: Dictionary={"node":weakref(mesh),"resource":mesh.mesh,"skin":mesh.skin,"vertices":vertices,"bones":bones,"weights":weights,"indices":indices,"head_indices":head_indices,"heads":heads,"binds":binds,"names":names,"dynamic_head_indices":dynamic_head}
 			entry["clusters"]=_clusters(entry)
+			if _surface_cache.size()>=SURFACE_CACHE_LIMIT:_surface_cache.clear()
+			_surface_cache[sig]={"head_indices":head_indices,"heads":heads,"dynamic_head_indices":dynamic_head,"clusters":entry.clusters,"vertices":vertices,"bones":bones,"weights":weights,"indices":indices,"binds":binds,"is_head_bind":is_head_bind,"anatomical_skin":anatomical_skin,"head_faces":surface_faces,"head_min":local_min,"head_max":local_max,"head_triangles":surface_triangles}
 			_surfaces.append(entry)
+			head_faces+=surface_faces
+			_head_min=_head_min.min(local_min);_head_max=_head_max.max(local_max)
+			_head_triangles.append_array(surface_triangles)
 	var triangle_ids:=PackedInt32Array()
 	for i in range(0,_head_triangles.size(),3):triangle_ids.append(i)
-	if not triangle_ids.is_empty():_head_tree=_build_head_tree(triangle_ids)
+	# The BVH depends only on _head_triangles, and nothing mutates it after configure.
+	# Residents that share a prepared body produce byte-identical triangles, so build
+	# the tree once per distinct triangle set. The key is a content hash, but every
+	# hit is re-verified by comparing the arrays: a hash collision can never return a
+	# tree built for different geometry.
+	if not triangle_ids.is_empty():
+		var tree_key: int = hash(_head_triangles)
+		var cached_tree: Variant = _tree_cache.get(tree_key)
+		if cached_tree != null and cached_tree.triangles == _head_triangles:
+			_head_tree = cached_tree.tree
+		else:
+			_head_tree = _build_head_tree(triangle_ids)
+			if _tree_cache.size() >= TREE_CACHE_LIMIT: _tree_cache.clear()
+			_tree_cache[tree_key] = {"triangles":_head_triangles,"tree":_head_tree}
 	ready=head_faces>0
 	return ready
 
+func _surface_signature(vertices: PackedVector3Array,bones: PackedInt32Array,weights: PackedFloat32Array,indices: PackedInt32Array,binds: Array[Transform3D],is_head_bind: PackedByteArray,anatomical_skin: bool) -> int:
+	var h:=hash(vertices)
+	h=h*31+hash(bones);h=h*31+hash(weights);h=h*31+hash(indices);h=h*31+hash(binds);h=h*31+hash(is_head_bind)
+	h=h*31+(1 if anatomical_skin else 0)
+	return h
 func _build_head_tree(ids: PackedInt32Array) -> Dictionary:
 	var bounds:=AABB(_head_triangles[ids[0]],Vector3.ZERO)
 	for id in ids:
 		for n in 3:bounds=bounds.expand(_head_triangles[id+n])
 	if ids.size()<=8:return {"bounds":bounds.grow(.000001),"ids":ids}
-	var axis:=bounds.size.max_axis_index();var order: Array=[]
-	for id in ids:order.append({"id":id,"center":(_head_triangles[id]+_head_triangles[id+1]+_head_triangles[id+2])[axis]})
-	order.sort_custom(func(a: Dictionary,b: Dictionary)->bool:return a.center<b.center)
+	# Sort triangle ids by centre on the split axis using parallel numeric arrays.
+	# The original built one Dictionary per triangle and sorted through a Dictionary
+	# lambda; that allocation dominated every configure call, including cache hits.
+	# Tree shape does not change _trace_head_tree's result: it keeps the nearest hit
+	# over every visited leaf and the bounds test is conservative.
+	var axis:=bounds.size.max_axis_index()
+	var count:=ids.size()
+	# Native sort instead of sort_custom on a script lambda. The lambda ran once per
+	# comparison at every BVH node, about 240k script calls for a 2000-triangle head
+	# and ~86% of configure. Quantise the centre into the high bits and carry the
+	# original index in the low 20 bits, so one native integer sort orders both.
+	# Quantisation and ties only choose a different valid split: _trace_head_tree
+	# always visits both children and keeps the global nearest hit, so the tree shape
+	# cannot change the result.
+	var packed:=PackedInt64Array();packed.resize(count)
+	for i in count:
+		var id:=ids[i]
+		var centre: float=(_head_triangles[id]+_head_triangles[id+1]+_head_triangles[id+2])[axis]
+		var q: int=int(round(centre*4096.0)) & 0x7FFFFF
+		packed[i]=(q<<20) | (i & 0xFFFFF)
+	packed.sort()
 	var left:=PackedInt32Array();var right:=PackedInt32Array()
-	for i in order.size():
-		if i<order.size()/2:left.append(order[i].id)
-		else:right.append(order[i].id)
+	for i in count:
+		var idx: int=packed[i] & 0xFFFFF
+		if i<count/2:left.append(ids[idx])
+		else:right.append(ids[idx])
 	return {"bounds":bounds.grow(.000001),"left":_build_head_tree(left),"right":_build_head_tree(right)}
 
 func _trace_head_tree(node: Dictionary,origin: Vector3,direction: Vector3,maximum: float) -> Dictionary:
@@ -121,29 +187,47 @@ func _trace_head_tree(node: Dictionary,origin: Vector3,direction: Vector3,maximu
 	return nearest
 
 func _clusters(s: Dictionary) -> Array[Dictionary]:
-	# Conservative dominant-bone clusters, following the marks author's method.
-	# Every positively weighted bind gets an original-position bound. Their
-	# current transformed union contains every blended point (no skin removal).
+	# Optimised: array accumulator instead of a per-triangle Dictionary, and no
+	# per-triangle Array literal allocations. Same arithmetic and the same tie
+	# order (insertion order of positively weighted binds).
 	var groups: Dictionary={}
-	for i in range(0,s.indices.size(),3):
-		var scores: Dictionary={};var dominant:=-1;var best:=-1.0
-		for index: int in [s.indices[i],s.indices[i+1],s.indices[i+2]]:
+	var accum:=PackedFloat32Array();accum.resize(s.names.size())
+	var touched:=PackedInt32Array()
+	var indices: PackedInt32Array=s.indices
+	var bones: PackedInt32Array=s.bones
+	var weights: PackedFloat32Array=s.weights
+	var heads: PackedByteArray=s.heads
+	var verts: PackedVector3Array=s.vertices
+	for i in range(0,indices.size(),3):
+		var i0: int=indices[i];var i1: int=indices[i+1];var i2: int=indices[i+2]
+		var dominant:=-1;var best:=-1.0
+		for index: int in [i0,i1,i2]:
+			var b0: int=index*4
 			for k in 4:
-				var j:=index*4+k;var bind: int=s.bones[j];var weight: float=s.weights[j]
-				if weight>0:scores[bind]=float(scores.get(bind,0.0))+weight
-		for bind: int in scores:
-			if scores[bind]>best:dominant=bind;best=scores[bind]
+				var j: int=b0+k
+				var weight: float=weights[j]
+				if weight<=0:continue
+				var bnd: int=bones[j]
+				if accum[bnd]==0.0:touched.append(bnd)
+				accum[bnd]=accum[bnd]+weight
+		for item: int in touched:
+			var score: float=accum[item]
+			if score>best:dominant=item;best=score
+			accum[item]=0.0
+		touched.clear()
 		if not groups.has(dominant):groups[dominant]={"indices":PackedInt32Array(),"bounds":{},"seen":{},"head_only":true}
 		var group: Dictionary=groups[dominant]
-		for index: int in [s.indices[i],s.indices[i+1],s.indices[i+2]]:
+		for index: int in [i0,i1,i2]:
 			group.indices.append(index)
-			if s.heads[index]!=1:group.head_only=false
+			if heads[index]!=1:group.head_only=false
 			if group.seen.has(index):continue
 			group.seen[index]=true
+			var b1: int=index*4
 			for k in 4:
-				var j:=index*4+k;var bind: int=s.bones[j]
-				if s.weights[j]<=0:continue
-				group.bounds[bind]=group.bounds[bind].expand(s.vertices[index]) if group.bounds.has(bind) else AABB(s.vertices[index],Vector3.ZERO)
+				var j: int=b1+k
+				if weights[j]<=0:continue
+				var bnd: int=bones[j]
+				group.bounds[bnd]=group.bounds[bnd].expand(verts[index]) if group.bounds.has(bnd) else AABB(verts[index],Vector3.ZERO)
 	var result: Array[Dictionary]=[]
 	for group: Dictionary in groups.values():group.erase("seen");result.append(group)
 	return result

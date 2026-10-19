@@ -24,6 +24,11 @@ var _skin_weights:=PackedFloat32Array()
 var _skin_ends:=PackedInt32Array()
 var _skin_axes:=PackedVector3Array()
 var _skin_y:=PackedFloat64Array()
+var _contact_aim_world:=Vector3.INF
+
+func set_contact_aim(point: Vector3) -> void:
+	# Optional local presentation guidance; never a contact or damage grant.
+	_contact_aim_world=point
 
 func configure(skeleton: Skeleton3D, motion: Node3D, canonical_rest: Array[Transform3D], source_scale: float, hero_root: Node3D) -> bool:
 	if _busy or _ready or not Thread.is_main_thread() or canonical_rest.size()!=28:return false
@@ -35,7 +40,7 @@ func configure(skeleton: Skeleton3D, motion: Node3D, canonical_rest: Array[Trans
 	_actor=Transform3D(_skin._to_motion.basis.scaled(Vector3.ONE/_unit),Vector3.ZERO)
 	_source_offset=_skin._to_motion.origin/_unit
 	if not _actor.basis.is_equal_approx(_actor.basis.orthonormalized()):return false
-	for name:String in ["root","pelvis","chest","upperarm_l","forearm_l","hand_l","socket_hand_l","upperarm_r","forearm_r","hand_r","socket_hand_r","thigh_l","shin_l","foot_l","thigh_r","shin_r","foot_r"]:
+	for name:String in ["root","pelvis","spine_01","chest","upperarm_l","forearm_l","hand_l","socket_hand_l","upperarm_r","forearm_r","hand_r","socket_hand_r","thigh_l","shin_l","foot_l","thigh_r","shin_r","foot_r"]:
 		if not _names.has(name):return false
 	_world.resize(28);_poses=_rest.duplicate();_update_world()
 	for name:String in _names:
@@ -170,11 +175,21 @@ func sample(base:Dictionary,action:Variant=null,posture:Dictionary={},phase:floa
 	var duration:float=DURATIONS.get(type,1.0);var time:=progress*duration;var age:=time;var p:=progress if active else 0.0
 	var peak:=.10 if attack=="heavy" else .09
 	var pulse:float=(sin(PI*p) if attack=="kick" else _smooth(age,0,peak)*(1-_smooth(age,peak,duration-.07))) if active else 0.0
+	var contact_aim:=Vector3.INF
+	if active and type=="punch" and _contact_aim_world.is_finite():
+		var rig: Skeleton3D=_skin._rig.get_ref()
+		contact_aim=_actor*(rig.global_transform.affine_inverse()*_contact_aim_world)
 	var blend:float=_smooth(age,0,.14 if attack=="kick" else .055)*(1-_smooth(age,duration-.14,duration)) if active else 0.0
 	var drop:=active and double_kick;var heavy:=active and attack=="heavy" and not drop;var kick:=active and attack=="kick"
 	var guard:=maxf(maxf(1.0 if blocking else 0.0,charge),maxf(blend,1-_smooth(p,.68,1) if heavy else 0.0))
 	var wind:=1-_smooth(age,0,.08) if heavy else 0.0;var sweep:=_smooth(age,0,.16) if heavy else 0.0;var recover:=_smooth(age,.19,.50) if heavy else 0.0
 	_rotate_add("chest",sin(time*2)*.012-(.25*sin(PI*p) if drop else 0)+( .06 if blocking else 0)+charge*.06+(wind*.06+pulse*.08 if heavy else 0),-side*charge*.20 if charging else side*(.20-1.05*sweep)*(1-recover) if heavy else 0,side*pulse*.22 if kick else 0)
+	if contact_aim.is_finite():
+		# A visible short torso lean makes the bounded arm reach useful at native
+		# capsule spacing. Feet/root stay owned by locomotion and fixed-limb retarget
+		# still clamps the authored arm solve to the original limb lengths.
+		_rotate_add("spine_01",.12*pulse,0,0)
+		_rotate_add("chest",.18*pulse,0,0)
 	for s:String in ["l","r"]:
 		var sign_side:= -1.0 if s=="l" else 1.0;var striking:=sign_side==side
 		var px:=sign_side*(.46 if blocking else .38);var py:=3.72 if blocking else 3.38;var pz:=.80 if blocking else .5
@@ -184,6 +199,7 @@ func sample(base:Dictionary,action:Variant=null,posture:Dictionary={},phase:floa
 		if heavy and striking:px=sign_side*lerpf(-.60+1.80*sweep,.38,recover);py=lerpf(3.60,3.38,recover);pz=lerpf(.75+.80*sin(PI*sweep),.50,recover)
 		var arm_blend:=guard*.16 if active and attack=="punch" and not striking and not blocking and not charging else guard
 		var palm:=Vector3(lerpf(sign_side*1.1,px,arm_blend),lerpf(1.77,py,arm_blend)-crouch*.60,lerpf(sign_side*sin(phase)*gait*.43,pz,arm_blend))
+		if contact_aim.is_finite() and striking:palm=palm.lerp(contact_aim,pulse*blend)
 		palm=palm.lerp(Vector3(sign_side*.78,.30+maxf(0,sign_side*sin(phase))*gait*.08,2.12+sign_side*sin(phase)*gait*.23),_prone)
 		if heavy and striking:
 			var shoulder:=_position("upperarm_"+s);var reach:float=_records["upperarm_"+s].length+_records["forearm_"+s].length
@@ -214,6 +230,7 @@ func sample(base:Dictionary,action:Variant=null,posture:Dictionary={},phase:floa
 	var window:Array=[.16,.38] if double_kick else [.18,.34] if attack=="kick" else [.07,.36] if attack=="heavy" else [.035,.19]
 	var result:=base.duplicate();result.poses=_poses.duplicate();result.visual_offset=offset;result.visual_rotation=rotation;result.authority_epoch=epoch
 	result.melee={"type":type,"active":active,"side":side,"age":age,"duration":duration,"contactActive":active and age>=window[0] and age<=window[1],"contactSides":["l","r"] if double_kick else ["l" if side<0 else "r"],"contactKind":"foot" if double_kick or attack=="kick" else "fist","desiredForwardDistance":travel,"locksMovement":double_kick and active,"visualLift":lift*_unit}
+	if contact_aim.is_finite():result.melee.contact_aim_world=_contact_aim_world
 	_busy=false;return result
 
 func diagnostics()->Dictionary:return {"ready":_ready,"source_scale":_unit,"source_offset":_source_offset,"bones":_rest.size(),"skin":_skin.diagnostics() if _skin!=null else {}}

@@ -196,7 +196,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if phase == "ON_FOOT" and player._pose_authority != &"on_foot":
 		_e_down = false
 		return
-	if event.physical_keycode != KEY_E and event.keycode != KEY_E:
+	if event.physical_keycode != KEY_F and event.keycode != KEY_F:
 		return
 	var focused := get_viewport().gui_get_focus_owner()
 	if focused is LineEdit or focused is TextEdit:
@@ -258,7 +258,7 @@ func _physics_process(delta: float) -> void:
 	var focused := get_viewport().gui_get_focus_owner()
 	var allow_input: bool = player._free_mouse_look and not (focused is LineEdit or focused is TextEdit) and (DisplayServer.get_name() == "headless" or get_window().has_focus())
 	if not allow_input: _e_down = false; _pending_exit = false
-	var pressed := allow_input and _e_down and Input.is_physical_key_pressed(KEY_E)
+	var pressed := allow_input and _e_down and Input.is_physical_key_pressed(KEY_F)
 	var pose_this_tick: Dictionary = {}
 	if DisplayServer.get_name() == "headless":
 		pressed = allow_input and _e_down
@@ -600,7 +600,7 @@ func _build_hint() -> void:
 	_key.custom_minimum_size = Vector2(24, 24)
 	row.add_child(_key)
 	var label := Label.new()
-	label.text = "E"
+	label.text = "F"
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.add_theme_color_override("font_color", Color("15191b"))
 	_key.add_child(label)

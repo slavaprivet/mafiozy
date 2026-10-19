@@ -1,17 +1,27 @@
 extends Node
 ## Local game-only charge consumption. Never fabricates an RPG terminal.
 const RPG_TILES_PER_HIT:=4
-const CHARGE_MULTIPLIER:=3
+const CHARGE_MULTIPLIER:=12
+const EXPECTED_POWER:=1920.0
+const EXPECTED_RADIUS:=3.2
+const BlastFX45=preload("blast_fx45.gd")
+var _fx45: Node3D
 var _world: WeakRef
 var _sites: Callable
 var _events: Array[Dictionary]=[]
 var _pending: Array[Dictionary]=[]
 var _dispatch: Dictionary={}
+var _dispatch_applied:=false
+var _throw_events: Dictionary={}
 
 func configure(world: Node3D,site_provider: Callable) -> bool:
 	if _world!=null or not is_instance_valid(world) or not world.is_inside_tree() or not site_provider.is_valid(): return false
 	_world=weakref(world); _sites=site_provider
 	world.add_child(self); name="C4BuildingBlast"
+	_fx45=BlastFX45.new()
+	var fx_ready: Dictionary=_fx45.configure(world)
+	if not fx_ready.get("ok",false):
+		_fx45.free(); _fx45=null; _world=null; _sites=Callable(); world.remove_child(self); return false
 	set_physics_process(false)
 	return true
 
@@ -20,6 +30,9 @@ func detonate(event: Dictionary) -> Dictionary:
 	var equipment: Variant=event.get("equipment_owner")
 	if not is_instance_valid(world) or not world.is_inside_tree() or not equipment is Node or not is_instance_valid(equipment) or not equipment.is_inside_tree() or world.get("preview_c4")!=equipment or not world.is_ancestor_of(equipment) or not equipment.has_method("consume_detonation"): return {"ok":false,"reason":"current_native_equipment_required"}
 	if _pending.size()>=8: return {"ok":false,"reason":"pending_charge_limit"}
+	# Numeric profile is shared with the emitted AND consumed equipment contract.
+	# Reject an incomplete root integration before consuming the physical charge.
+	if event.get("damage")!=EXPECTED_POWER or event.get("power")!=EXPECTED_POWER or event.get("radius")!=EXPECTED_RADIUS: return {"ok":false,"reason":"c4_profile45_mismatch"}
 	var consumed: Dictionary=equipment.consume_detonation(event)
 	if not consumed.get("ok",false): return consumed
 	var receipt: Dictionary=consumed.receipt
@@ -38,17 +51,24 @@ func _physics_process(_delta: float) -> void:
 	if not is_instance_valid(world) or not world.is_inside_tree(): _pending.clear(); set_physics_process(false); return
 	if _pending.is_empty(): set_physics_process(false); return
 	var pending: Dictionary=_pending.pop_front()
-	_dispatch=pending.receipt
+	_dispatch=pending.receipt; _dispatch_applied=false
 	_apply_consumed(_dispatch,pending.targets)
-	_dispatch={}
+	_dispatch={}; _dispatch_applied=false
 	if _pending.is_empty(): set_physics_process(false)
 
 func current_charge_dispatch(receipt: Dictionary) -> bool:
 	return not _dispatch.is_empty() and is_same(_dispatch,receipt) and receipt.get("consumed")==true
 
 func _apply_consumed(receipt: Dictionary,targets: Array[Dictionary]) -> Dictionary:
+	# Only the exact native dequeue owns this one-use apply. Keep dispatch current
+	# during application so the glass owner can validate its same receipt.
+	if not Thread.is_main_thread() or not current_charge_dispatch(receipt) or _dispatch_applied: return {"ok":false,"reason":"current_unapplied_consumed_dispatch_required"}
+	_dispatch_applied=true
 	var position: Vector3=receipt.position
 	var radius: float=receipt.radius
+	# Every authentic consumed charge has visible FX, including world-owned props
+	# or ground with zero nearby Palazzo bodies. Cosmetic API issues no receipts.
+	var visual: Dictionary=_fx45.emit_blast(position,receipt.normal,receipt.power,radius) if is_instance_valid(_fx45) else {"ok":false,"reason":"fx_owner_ended"}
 	var candidates: Array[Dictionary]=[]
 	for target: Dictionary in targets:
 		var site: Variant=target.site.get_ref()
@@ -74,26 +94,70 @@ func _apply_consumed(receipt: Dictionary,targets: Array[Dictionary]) -> Dictiona
 	candidates.sort_custom(func(a: Dictionary,b: Dictionary)->bool: return a.distance<b.distance)
 	var released: Array[int]=[]
 	var affected: Dictionary={}
+	var launch_evidence: Array[Dictionary]=[]
 	for target: Dictionary in candidates:
 		if released.size()>=RPG_TILES_PER_HIT*CHARGE_MULTIPLIER: break
 		if released.has(target.body.get_instance_id()) or not _intact(target.site,target.body): continue
 		var direction: Vector3=(target.body.global_position-position).normalized()
 		if direction.length_squared()<.001: direction=receipt.normal
 		var local_direction: Vector3=target.site.global_basis.inverse()*direction
-		target.site._release(target.body,position,3.8*sqrt(float(CHARGE_MULTIPLIER)),local_direction)
+		# Near field is sqrt(12/6)x frozen960 speed (2x energy for the same body).
+		# Pressure fades continuously to half-speed at the edge; no uniform kick.
+		var depth: float=clampf(1.0-target.distance/radius,0.0,1.0)
+		var speed: float=3.8*sqrt(float(CHARGE_MULTIPLIER))*lerpf(.5,1.0,depth*depth*(3.0-2.0*depth))
+		target.site._release(target.body,position,speed,local_direction)
+		launch_evidence.append({"body_id":target.body.get_instance_id(),"distance":target.distance,"initial_speed_m_s":speed})
 		released.append(target.body.get_instance_id()); affected[target.site.source_id]=target.site
 	for site: Node3D in affected.values():
 		if site.has_method("_mark_structure_dirty"): site._mark_structure_dirty()
 		elif site.get("_structure")!=null: site._structure.mark_dirty()
-	# One explosion effect, regardless of how many nearby houses received damage.
-	if not affected.is_empty():
-		var effect_site: Node3D=affected.values()[0]
-		if is_instance_valid(effect_site.get("flash")):
-			effect_site.flash.global_position=position; effect_site.flash.light_energy=7.0
-			effect_site._dust(effect_site.to_local(position))
-	var result: Dictionary={"ok":true,"committed":true,"event_id":receipt.event_id,"weapon_id":"c4","damage":480,"radius":radius,"strength_multiplier":CHARGE_MULTIPLIER,"direct_fragment_budget":12,"released":released,"affected_houses":affected.keys(),"physical_charge_consumed":true}
+	# The shared FX pool already owns flash/fire/smoke/dust once per charge.
+	var result: Dictionary={"ok":true,"committed":true,"event_id":receipt.event_id,"weapon_id":"c4","damage":receipt.damage,"power":receipt.power,"radius":radius,"strength_multiplier":CHARGE_MULTIPLIER,"direct_fragment_budget":RPG_TILES_PER_HIT*CHARGE_MULTIPLIER,"released":released,"launch_evidence":launch_evidence,"visual":visual,"affected_houses":affected.keys(),"physical_charge_consumed":true}
 	_events.append(result.duplicate(true)); if _events.size()>64: _events.pop_front()
 	return result
+
+## A separate, purchased projectile producer. It cannot claim a C4 receipt;
+## its exact impact/tick id is checked against the live throw owner instead.
+func apply_throwable(owner: Node,kind: String,at: Vector3,normal: Vector3,event_id: String) -> Dictionary:
+	var world: Variant=_world.get_ref() if _world!=null else null
+	if not is_instance_valid(world) or owner!=world.get("player_throwables") or not is_instance_valid(owner) or not owner.has_method("owns_area_event"):
+		return {"ok":false,"reason":"throw_owner"}
+	if kind not in ["grenade","molotov"] or not at.is_finite() or not normal.is_finite() or event_id.is_empty() or _throw_events.has(event_id) or not owner.owns_area_event(event_id,kind,at):
+		return {"ok":false,"reason":"unconsumed_impact"}
+	_throw_events[event_id]=true
+	if _throw_events.size()>128: _throw_events.erase(_throw_events.keys()[0])
+	var radius: float=3.1 if kind=="grenade" else 2.6
+	var budget: int=16 if kind=="grenade" else 2
+	var power: float=720.0 if kind=="grenade" else 110.0
+	var visual: Dictionary={}
+	if kind=="grenade" and is_instance_valid(_fx45): visual=_fx45.emit_blast(at,normal,power,radius)
+	var targets: Array[Dictionary]=[]
+	for site: Node3D in _sites.call():
+		if not is_instance_valid(site) or not site.site_ready or site.rebuilding or site.collapsing: continue
+		var site_radius: float=float(site.get_meta("throwable_bounds_radius",16.0))
+		if Vector2(site.global_position.x,site.global_position.z).distance_to(Vector2(at.x,at.z))>radius+site_radius: continue
+		if is_instance_valid(site.get("_glazing")) and site._glazing.has_method("apply_throwable_area"):
+			site._glazing.apply_throwable_area(owner,{"event_id":event_id,"kind":kind,"position":at,"normal":normal,"radius":radius,"power":power})
+		for body: RigidBody3D in site.pieces:
+			if not _intact(site,body): continue
+			var size: Variant=body.get_meta("section_size",Vector3.ZERO)
+			if size is Vector3 and body.global_position.distance_to(at)>radius+(size as Vector3).length()*.5+.5: continue
+			var near: Dictionary=_closest(body,at)
+			if near.ok and near.distance<=radius: targets.append({"site":site,"body":body,"distance":near.distance})
+	targets.sort_custom(func(a: Dictionary,b: Dictionary)->bool: return a.distance<b.distance)
+	var released:=0; var affected: Dictionary={}
+	for target: Dictionary in targets:
+		if released>=budget: break
+		var site: Node3D=target.site; var body: RigidBody3D=target.body
+		if not _intact(site,body): continue
+		var direction: Vector3=(body.global_position-at).normalized()
+		if direction.length_squared()<.001: direction=normal.normalized()
+		var speed: float=5.5 if kind=="grenade" else 1.7
+		site._release(body,at,speed,site.global_basis.inverse()*direction)
+		affected[site.source_id]=site; released+=1
+	for site: Node3D in affected.values():
+		if site.has_method("_mark_structure_dirty"): site._mark_structure_dirty()
+	return {"ok":true,"kind":kind,"event_id":event_id,"radius":radius,"released":released,"affected_houses":affected.keys(),"visual":visual}
 
 func _intact(site: Node3D,body: Variant) -> bool:
 	return is_instance_valid(body) and body is RigidBody3D and site.owns_collider(body) and body.freeze and (body.collision_layer&1)!=0 and not body.get_meta("detached",false)
@@ -112,8 +176,17 @@ func _closest(body: RigidBody3D,position: Vector3) -> Dictionary:
 	return {"ok":is_finite(distance),"distance":distance,"point":closest}
 
 func snapshot() -> Dictionary:
-	return {"events":_events.duplicate(true),"pending":_pending.size(),"strength_multiplier":CHARGE_MULTIPLIER}
+	return {"events":_events.duplicate(true),"pending":_pending.size(),"strength_multiplier":CHARGE_MULTIPLIER,"expected_power":EXPECTED_POWER,"expected_radius":EXPECTED_RADIUS,"fx":_fx45.snapshot() if is_instance_valid(_fx45) else {}}
 
 func dispose() -> void:
 	set_physics_process(false); _pending.clear(); _dispatch={}; _sites=Callable(); _world=null
+	_throw_events.clear()
+	_dispatch_applied=false
+	if is_instance_valid(_fx45): _fx45.dispose()
+	_fx45=null
 	if is_inside_tree(): queue_free()
+
+func _exit_tree() -> void:
+	# The pool is a world sibling for world-space smoke; keep its owner lifetime.
+	if is_instance_valid(_fx45): _fx45.dispose()
+	_fx45=null

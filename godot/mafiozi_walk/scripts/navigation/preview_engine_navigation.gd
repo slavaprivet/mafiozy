@@ -2,6 +2,7 @@ extends RefCounted
 ## Godot 4.7.2 NavigationServer backend. Produces proposals; authority + physics
 ## admit every connector and every actual movement. Does not create gameplay NPCs.
 const Queue = preload("res://scripts/navigation/path_job_queue.gd")
+const Work29 = preload("res://scripts/navigation/npc_navigation_work29.gd")
 const RADIUS := 0.36
 const HEIGHT := 1.9
 const CELL_SIZE := 0.12000000476837158 # float32 .36 / 3: avoids accidental fourth erosion voxel.
@@ -150,7 +151,8 @@ func state() -> String:
 	return _state
 
 func map_rid() -> RID:
-	return _map if state() == "READY" else RID()
+	if state()!="READY" or not Work29.bind_map(_map,_queue):return RID()
+	return _map
 
 func _owner_valid(job: Dictionary) -> bool:
 	var owner: RefCounted = job.owner.get_ref()
@@ -214,19 +216,20 @@ func pump(frame_id: int) -> void:
 	_record("pump_us", Time.get_ticks_usec() - started)
 
 func _submit_query(job: Dictionary) -> void:
+	# The caller already reserved the existing authority Queue. Failed capacity
+	# leaves QUEUED intact and consumes only this small cohort admission.
+	if not Work29.can_submit():return
 	var parameters := NavigationPathQueryParameters3D.new()
 	parameters.map = _map; parameters.start_position = job.start; parameters.target_position = job.target
 	parameters.path_search_max_polygons = 4096; parameters.path_search_max_distance = MAX_PATH_METRES
 	parameters.path_return_max_length = MAX_PATH_METRES
 	parameters.metadata_flags = NavigationPathQueryParameters3D.PATH_METADATA_INCLUDE_NONE
-	var result := NavigationPathQueryResult3D.new()
-	job.phase = "QUERY_WAIT"; job.iteration = NavigationServer3D.map_get_iteration_id(_map)
-	var started := Time.get_ticks_usec(); _stats.queries += 1
-	NavigationServer3D.query_path(parameters, result, _query_callback.bind(job.id, job.epoch, job.iteration, result))
-	_record("query_us", Time.get_ticks_usec() - started)
-
-func _query_callback(id: int, epoch: int, iteration: int, result: NavigationPathQueryResult3D) -> void:
-	_finish_query.call_deferred(id, epoch, iteration, result)
+	var iteration: int=NavigationServer3D.map_get_iteration_id(_map)
+	var started: int=Time.get_ticks_usec()
+	var ticket: int=Work29.submit(parameters,self,&"_finish_query",[job.id,job.epoch,iteration])
+	if ticket<=0:return
+	job.phase="QUERY_WAIT";job.iteration=iteration;_stats.queries+=1
+	_record("query_us",Time.get_ticks_usec()-started)
 
 func _finish_query(id: int, epoch: int, iteration: int, result: NavigationPathQueryResult3D) -> void:
 	if _disposed or not _jobs.has(id) or epoch != _epoch:

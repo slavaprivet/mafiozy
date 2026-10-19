@@ -144,7 +144,7 @@ func _project() -> void:
 func present_ground(card_title: String, magazine: int, reserve: int) -> void:
 	# Source walk_preview.mjs:665,1692. Stable nearest-item plate bottom-centre.
 	_calling_ground=true
-	present(camera,Vector3.ZERO,"%s · %d / %d" % [card_title,magazine,reserve],[{"key":"E","label":"Подобрать"}],-1,100,"")
+	present(camera,Vector3.ZERO,"%s · %d / %d" % [card_title,magazine,reserve],[{"key":"F","label":"Подобрать"}],-1,100,"")
 	_calling_ground=false
 	if not _fixed_ground: add_theme_stylebox_override("panel",_style("202629f5","ad956c",6))
 	_fixed_ground=true

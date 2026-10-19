@@ -32,7 +32,7 @@ func configure(scene: Node3D) -> bool:
 	_owner=weakref(scene); _root=Node3D.new(); _root.name="WalkSurfaceEffects"; scene.add_child(_root); _root.top_level=true
 	for i: int in MARK_CAP:
 		var mark: MeshInstance3D=builder._node(data.mark,meshes); _root.add_child(mark)
-		_marks.append({"node":mark,"edge":mark.get_child(0),"center":mark.get_child(1),"cracks":mark.get_child(2),"active":false,"life":0.0,"parent":null,"local":Transform3D.IDENTITY,"last_parent":Transform3D.IDENTITY,"glass":false})
+		_marks.append({"node":mark,"edge":mark.get_child(0),"center":mark.get_child(1),"cracks":mark.get_child(2),"active":false,"life":0.0,"parent":null,"parent_id":0,"attachment":{},"local":Transform3D.IDENTITY,"last_parent":Transform3D.IDENTITY,"glass":false})
 		_marks[-1].source_meshes=[mark.mesh,mark.get_child(0).mesh,mark.get_child(1).mesh]
 		# Prepare the normal pooled art/material features once. Keep the original
 		# meshes above for glass/explosive restores. No fake hit or hidden draw.
@@ -79,14 +79,16 @@ func hit(receipt: Dictionary) -> bool:
 	if not _owner.get_ref().is_ancestor_of(collider): return false
 	if not point is Vector3 or not point.is_finite() or not normal is Vector3 or not normal.is_finite() or normal.length_squared()<.000001: return false
 	if absf(collider.global_basis.determinant())<1e-8: return false
+	var attachment:Dictionary=_capture_attachment(collider)
+	if not _surface_current(collider,attachment):return false
 	normal=normal.normalized()
 	var surface:=classify(collider)
 	var explosive: bool=receipt.get("explosive",false)
-	_mark(collider,point,normal,surface,receipt.get("projectile_kind","")=="pellet",explosive)
+	_mark(collider,point,normal,surface,receipt.get("projectile_kind","")=="pellet",explosive,attachment)
 	if not explosive: _impact(point,normal,surface)
 	return true
 
-func _mark(collider: Node3D, point: Vector3, normal: Vector3, surface: String, pellet: bool, explosive: bool = false) -> void:
+func _mark(collider: Node3D, point: Vector3, normal: Vector3, surface: String, pellet: bool, explosive: bool = false, attachment:Dictionary={}) -> void:
 	var entry: Dictionary=_marks[_mark_cursor%MARK_CAP]; _mark_cursor+=1
 	if not entry.active: _mark_count+=1
 	entry.active=true; entry.life=5.0; entry.glass=surface=="glass"
@@ -96,10 +98,94 @@ func _mark(collider: Node3D, point: Vector3, normal: Vector3, surface: String, p
 	var world:=Transform3D(Basis(orientation).scaled(Vector3.ONE*factor),point+normal*.004)
 	entry.node.global_transform=world; entry.node.visible=true
 	entry.parent=weakref(collider); entry.local=collider.global_transform.affine_inverse()*world; entry.last_parent=collider.global_transform
+	entry.parent_id=collider.get_instance_id();entry.attachment=attachment
 	_color(entry.node,"29383c" if entry.glass else "100d0b" if explosive else "171411"); _opacity(entry.node,.30 if entry.glass else .84)
 	_color(entry.edge,"8c8f91" if surface=="metal" else "9d7951" if surface=="wood" else "99bac2" if entry.glass else "928571")
 	_opacity(entry.edge,.7); _opacity(entry.center,.22 if entry.glass else .9); _opacity(entry.cracks,.65); entry.cracks.visible=entry.glass and not explosive
 	_total_marks+=1
+
+## Palazzo's retired panel keeps its body/RID and frozen transform, while its
+## render slots and shapes are replaced by pooled tiles. Capture this exact
+## owner contract once; ordinary invisible physics helpers remain unaffected.
+func _capture_attachment(collider:Node3D)->Dictionary:
+	if collider is StaticBody3D:return _capture_glass_attachment(collider)
+	var body:RigidBody3D=collider as RigidBody3D
+	if body==null or not collider.has_meta("section_size") or not collider.has_meta("building_id"):return {}
+	var building:Node=collider.get_parent()
+	var site:Node=building.get_parent() if is_instance_valid(building) else null
+	if not is_instance_valid(site) or not site.has_method("owns_collider") or not site.has_method("apply_explosion") or not site.has_method("get_door_prompt"):return {}
+	if site.get("building")!=building or building.get_meta("building_id","")!=collider.get_meta("building_id"):return {}
+	var shapes:Array[WeakRef]=[]
+	if collider.has_meta("fracture_tiles") and collider.has_meta("pooled_fragments"):
+		for child:Node in collider.get_children():
+			if child is CollisionShape3D:shapes.append(weakref(child))
+	return {"site":weakref(site),"building":weakref(building),"generation":site.get("rebuild_generation"),"source_id":collider.get_meta("building_id"),"body_id":collider.get_instance_id(),"body_rid":body.get_rid(),"panel_shapes":shapes}
+
+func _surface_current(collider:Node3D,attachment:Dictionary)->bool:
+	if attachment.is_empty():return true
+	if attachment.get("kind","")=="palazzo_glass":return _glass_surface_current(collider,attachment)
+	var body:RigidBody3D=collider as RigidBody3D
+	if body==null:return false
+	var site:Variant=attachment.site.get_ref();var building:Variant=attachment.building.get_ref()
+	if not is_instance_valid(site) or not is_instance_valid(building) or site.is_queued_for_deletion() or building.is_queued_for_deletion() or not site.is_inside_tree():return false
+	if site.get("building")!=building or collider.get_parent()!=building or site.get("rebuilding") or site.get("site_ready")!=true:return false
+	if site.get("rebuild_generation")!=attachment.generation or site.get("source_id")!=attachment.source_id or collider.get_instance_id()!=attachment.body_id or body.get_rid()!=attachment.body_rid:return false
+	if not site.owns_collider(collider):return false
+	# Do not test original MeshInstance children: batching deliberately hides
+	# all of them. Only this complete, owner-specific retirement state counts.
+	if collider.get_meta("fracture_active",false) and not collider.visible and body.collision_layer==0 and not attachment.panel_shapes.is_empty():
+		var disabled:=true
+		for ref:WeakRef in attachment.panel_shapes:
+			var shape:Variant=ref.get_ref()
+			if is_instance_valid(shape) and not shape.disabled:disabled=false;break
+		if disabled:return false
+	# Visible detached chunks/cornices keep their real surface even on layer512.
+	return true
+
+## Finished Palazzo panes retain their StaticBody identity after Walk removes
+## the glass. Bind only this owned glazing contract, never visibility/layer alone.
+## Pending delayed fractures remain a real pane until owns_collider rejects it.
+func _capture_glass_attachment(collider:StaticBody3D)->Dictionary:
+	var glazing:Node=collider.get_parent()
+	if not is_instance_valid(glazing) or not glazing.has_method("owns_collider") or not glazing.has_method("apply_bullet") or not glazing.has_method("apply_blast") or not glazing.has_method("break_for_wall"):return {}
+	var site:Node=glazing.get_parent()
+	if not is_instance_valid(site) or not site.has_method("owns_collider") or not site.has_method("apply_explosion") or not site.has_method("get_door_prompt"):return {}
+	if collider.get_meta("breakableGlass",false)!=true or collider.get_meta("material_class","")!="glass":return {}
+	var building:Variant=site.get("building")
+	# Capture recognizable retired helpers too. The current check below rejects
+	# an old helper/reset instead of falling back to an unguarded generic mark.
+	return {"kind":"palazzo_glass","site":weakref(site),"glazing":weakref(glazing),"building":weakref(building) if is_instance_valid(building) else null,"generation":site.get("rebuild_generation"),"source_id":collider.get_meta("source_id",""),"body_id":collider.get_instance_id(),"body_rid":collider.get_rid()}
+
+func _glass_surface_current(collider:Node3D,attachment:Dictionary)->bool:
+	var body:StaticBody3D=collider as StaticBody3D
+	if body==null:return false
+	var site:Variant=attachment.site.get_ref();var glazing:Variant=attachment.glazing.get_ref()
+	var building:Variant=attachment.building.get_ref() if attachment.building!=null else null
+	if not is_instance_valid(site) or not is_instance_valid(glazing) or not is_instance_valid(building):return false
+	if site.is_queued_for_deletion() or glazing.is_queued_for_deletion() or building.is_queued_for_deletion() or not site.is_inside_tree() or not glazing.is_inside_tree():return false
+	if collider.get_parent()!=glazing or glazing.get_parent()!=site or site.get("_glazing")!=glazing or site.get("building")!=building:return false
+	if site.get("rebuilding") or site.get("site_ready")!=true or site.get("rebuild_generation")!=attachment.generation:return false
+	if site.get("source_id")!=attachment.source_id or collider.get_meta("source_id","")!=attachment.source_id or collider.get_meta("building_id","")!=attachment.source_id:return false
+	if collider.get_instance_id()!=attachment.body_id or body.get_rid()!=attachment.body_rid:return false
+	# The owner validates pane identity, generation, delayed-fracture state and
+	# its tracked moving-door frame. It is the only authority for a live pane.
+	return glazing.owns_collider(collider)
+
+func _attachment_current(entry:Dictionary)->bool:
+	var parent:Variant=entry.parent.get_ref() if entry.parent!=null else null
+	return is_instance_valid(parent) and parent is Node3D and not parent.is_queued_for_deletion() and parent.is_inside_tree() and _surface_current(parent,entry.attachment)
+
+func _retire_mark(entry:Dictionary)->void:
+	if not entry.active:return
+	entry.active=false;entry.node.visible=false;entry.parent=null;entry.parent_id=0;entry.attachment={};_mark_count-=1
+
+## Native RPG damage is emitted after cosmetic admission. Recheck only this
+## contact's marks after that synchronous callback, before a frame can render.
+## Bounded by the existing72-slot pool; no scene/triangle/raycast scan.
+func surface_changed(collider_id:int)->void:
+	if not _live() or collider_id==0 or _mark_count==0:return
+	for entry:Dictionary in _marks:
+		if entry.active and entry.parent_id==collider_id and not _attachment_current(entry):_retire_mark(entry)
 
 func _impact(point: Vector3, normal: Vector3, surface: String) -> void:
 	var entry: Dictionary=_impacts[_impact_cursor%IMPACT_CAP]; _impact_cursor+=1
@@ -126,8 +212,8 @@ func advance(delta: float) -> void:
 			if not entry.active: continue
 			entry.life=maxf(0,entry.life-delta)
 			var parent: Variant=entry.parent.get_ref() if entry.parent!=null else null
-			if entry.life<=0 or not is_instance_valid(parent) or parent.is_queued_for_deletion() or not parent.is_inside_tree():
-				entry.active=false; entry.node.visible=false; entry.parent=null; _mark_count-=1; continue
+			if entry.life<=0 or not _attachment_current(entry):
+				_retire_mark(entry);continue
 			if parent.global_transform!=entry.last_parent:
 				entry.node.global_transform=parent.global_transform*entry.local; entry.last_parent=parent.global_transform
 			if entry.life<.25:
