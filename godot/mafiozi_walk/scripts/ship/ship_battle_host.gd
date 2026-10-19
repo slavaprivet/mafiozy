@@ -304,8 +304,12 @@ func action() -> Dictionary:
 				best = {"owner": "ship", "kind": "ship_cannon", "index": index,
 					"label": "Встать за пушку", "world": mount + Vector3.UP * 0.9}
 				best_distance = distance
-	# The two crates in the cabin.
-	# SHIP105: the ammo crate is E-only; no floating F "Взять ядра" plaque.
+	# The two crates in the cabin.  The ammo crate keeps its prompt, but the
+	# prompt shows E and the actual pickup is handled on E only.
+	var ammo_at := _crate_world("ammo")
+	if not ammo_at.is_zero_approx() and player.global_position.distance_to(ammo_at) <= REACH:
+		return {"owner": "ship", "kind": "ship_ammo_hint", "label": "Взять ядро",
+			"key": "E", "world": ammo_at + Vector3.UP * 0.7}
 	var boards_at := _crate_world("boards")
 	if not boards_at.is_zero_approx() and feet.distance_to(boards_at) <= REACH:
 		var distance := feet.distance_to(boards_at)

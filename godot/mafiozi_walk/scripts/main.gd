@@ -1262,7 +1262,7 @@ func _update_door_hint() -> void:
 		_door_hint_world = _v3(_printshop_data.doors.public.anchor) + Vector3.UP * 2.2
 	var hint: String = str(action.label) if not action.is_empty() else ""
 	var owner := str(action.get("owner", ""))
-	var key_text := "F"
+	var key_text := str(action.get("key", "F"))
 	if owner == "barrel" or (owner in ["horse", "balloon"] and hint.contains("Взять")):
 		key_text = "E"
 	for child: Node in _door_hint_key.get_children():
