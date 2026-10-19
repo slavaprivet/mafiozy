@@ -300,14 +300,15 @@ func action() -> Dictionary:
 			best_distance = cabin_distance
 	# The sail winch at the mast.
 	var lever_at := _lever_world()
-	if not lever_at.is_zero_approx() and feet.distance_to(lever_at) <= REACH:
-		var distance := feet.distance_to(lever_at)
-		if distance < best_distance:
-			var open := _sails_open()
-			best = {"owner": "ship", "kind": "ship_sail",
-				"label": "Свернуть паруса" if open else "Раскрыть паруса",
-				"world": lever_at + Vector3.UP * 0.7}
-			best_distance = distance
+	if _lever_near():
+		if not lever_at.is_zero_approx():
+			var distance := feet.distance_to(lever_at)
+			if distance < best_distance:
+				var open := _sails_open()
+				best = {"owner": "ship", "kind": "ship_sail",
+					"label": "Свернуть паруса" if open else "Раскрыть паруса",
+					"world": lever_at + Vector3.UP * 0.7}
+				best_distance = distance
 	# The four guns.
 	if preview_cannons != null and preview_cannons.has_method("mount_world"):
 		for index in range(4):
@@ -765,6 +766,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
 	var water_key: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
+	if _station == "" and water_key == KEY_F and _lever_near():
+		_toggle_sails()
+		get_viewport().set_input_as_handled()
+		return
 	if _station == "" and water_key == KEY_G and is_instance_valid(_carried_ball_mesh) \
 			and _carried_ball_mesh.visible:
 		_drop_carried_ball()
@@ -1210,6 +1215,16 @@ func _helm_world() -> Vector3:
 		if is_instance_valid(node):
 			return node.global_position
 	return preview_boat.global_position if is_instance_valid(preview_boat) else Vector3.ZERO
+
+
+func _lever_near() -> bool:
+	if not is_instance_valid(player):
+		return false
+	var lever := _lever_world()
+	if lever.is_zero_approx():
+		return false
+	var flat := Vector2(player.global_position.x - lever.x, player.global_position.z - lever.z).length()
+	return flat <= 4.2 and absf(player.global_position.y - lever.y) <= 4.5
 
 
 func _lever_world() -> Vector3:
