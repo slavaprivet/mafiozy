@@ -77,6 +77,7 @@ var _last_action: Dictionary = {}
 var _cannon_messages := 0
 var _ball_props: Array[MeshInstance3D] = []
 var _carried_ball_mesh: MeshInstance3D
+var _dropped_ball: Node3D
 var _carry_phase := 0.0
 var _aim_left := false
 var _aim_right := false
@@ -739,6 +740,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
 	var water_key: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
+	if _station == "" and water_key == KEY_G and is_instance_valid(_carried_ball_mesh) \
+			and _carried_ball_mesh.visible:
+		_drop_carried_ball()
+		get_viewport().set_input_as_handled()
+		return
+	if _station == "" and water_key == KEY_E and is_instance_valid(_dropped_ball):
+		if _pickup_dropped_ball():
+			get_viewport().set_input_as_handled()
+			return
 	if _station == "" and water_key == KEY_E and _near_ammo_crate():
 		_take_from_crate("ammo")
 		get_viewport().set_input_as_handled()
@@ -864,10 +874,62 @@ func _update_carried_ball(delta: float) -> void:
 
 
 func _near_ammo_crate() -> bool:
-	if not is_instance_valid(player):
+	if not is_instance_valid(player) or not is_instance_valid(preview_boat):
+		return false
+	# The crate is inside the cabin.  Standing on the helm deck above it must
+	# not let the player take a ball through the cabin ceiling/wall.
+	var local: Vector3 = preview_boat.to_local(player.global_position)
+	if local.y > 1.35:
 		return false
 	var at := _crate_world("ammo")
 	return not at.is_zero_approx() and player.global_position.distance_to(at) <= REACH
+
+
+func _drop_carried_ball() -> void:
+	if not (is_instance_valid(_carried_ball_mesh) and _carried_ball_mesh.visible):
+		return
+	_set_carry_ball(false)
+	if is_instance_valid(_dropped_ball):
+		_dropped_ball.queue_free()
+	var body := RigidBody3D.new()
+	body.name = "DroppedCannonball"
+	body.mass = 8.0
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.24
+	mesh.height = 0.48
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.10, 0.10, 0.12)
+	mat.metallic = 0.65
+	mat.roughness = 0.38
+	mi.material_override = mat
+	body.add_child(mi)
+	var shape := CollisionShape3D.new()
+	var sphere := SphereShape3D.new()
+	sphere.radius = 0.24
+	shape.shape = sphere
+	body.add_child(shape)
+	if is_instance_valid(preview_boat):
+		preview_boat.add_child(body)
+		body.global_position = player.global_position + Vector3.UP * 0.35
+	else:
+		add_child(body)
+		body.global_position = player.global_position + Vector3.UP * 0.35
+	_dropped_ball = body
+	_message("Ядро сброшено (E — поднять)", 2.0)
+
+
+func _pickup_dropped_ball() -> bool:
+	if not is_instance_valid(_dropped_ball) or not is_instance_valid(player):
+		return false
+	if player.global_position.distance_to(_dropped_ball.global_position) > 2.4:
+		return false
+	_dropped_ball.queue_free()
+	_dropped_ball = null
+	_set_carry_ball(true)
+	_message("Поднял ядро", 1.4)
+	return true
 
 
 func _build_deck_balls() -> void:
