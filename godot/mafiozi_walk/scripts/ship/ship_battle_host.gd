@@ -78,6 +78,7 @@ var _cannon_messages := 0
 var _ball_props: Array[MeshInstance3D] = []
 var _carried_ball_mesh: MeshInstance3D
 var _dropped_ball: Node3D
+var _deck_balls: Array[Node3D] = []
 var _carry_phase := 0.0
 var _aim_left := false
 var _aim_right := false
@@ -318,6 +319,11 @@ func action() -> Dictionary:
 				best_distance = distance
 	# The two crates in the cabin.  The ammo crate keeps its prompt, but the
 	# prompt shows E and the actual pickup is handled on E only.
+	var deck_ball_hint := _nearest_deck_ball()
+	if deck_ball_hint != null and not (is_instance_valid(_carried_ball_mesh) \
+			and _carried_ball_mesh.visible) and _cabin_action().is_empty():
+		return {"owner": "ship", "kind": "ship_deck_ball", "label": "Взять ядро",
+			"key": "E", "world": deck_ball_hint.global_position + Vector3.UP * 0.6}
 	var ammo_at := _crate_world("ammo")
 	if _near_ammo_crate() and _cabin_action().is_empty() and balls > 0 \
 			and not (is_instance_valid(_carried_ball_mesh) and _carried_ball_mesh.visible):
@@ -764,6 +770,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		_drop_carried_ball()
 		get_viewport().set_input_as_handled()
 		return
+	if _station == "" and water_key == KEY_E and not (is_instance_valid(_carried_ball_mesh) \
+			and _carried_ball_mesh.visible):
+		var deck_ball := _nearest_deck_ball()
+		if deck_ball != null and _pickup_deck_ball(deck_ball):
+			get_viewport().set_input_as_handled()
+			return
 	if _station == "" and water_key == KEY_E and is_instance_valid(_dropped_ball):
 		if _pickup_dropped_ball():
 			get_viewport().set_input_as_handled()
@@ -953,32 +965,55 @@ func _pickup_dropped_ball() -> bool:
 
 func _build_deck_balls() -> void:
 	_ball_props.clear()
-	# SHIP101: the old loose deck balls are gone; one physical ball now comes
-	# out of the ammo crate and is carried to the gun.
-	return
+	_deck_balls.clear()
 	if not is_instance_valid(preview_boat) or preview_cannons == null:
 		return
-	var mesh := SphereMesh.new()
-	mesh.radius = 0.16
-	mesh.height = 0.32
-	mesh.radial_segments = 12
-	mesh.rings = 6
-	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.10, 0.10, 0.12)
-	material.metallic = 0.65
-	material.roughness = 0.38
+	var ball_mesh := SphereMesh.new()
+	ball_mesh.radius = 0.20
+	ball_mesh.height = 0.40
+	ball_mesh.radial_segments = 12
+	ball_mesh.rings = 6
+	var ball_mat := StandardMaterial3D.new()
+	ball_mat.albedo_color = Color(0.10, 0.10, 0.12)
+	ball_mat.metallic = 0.65
+	ball_mat.roughness = 0.38
 	for index in range(4):
 		var mount: Vector3 = preview_cannons.call("mount_world", index)
 		var local := preview_boat.to_local(mount)
 		var side := 1.0 if local.x >= 0.0 else -1.0
 		var ball := MeshInstance3D.new()
 		ball.name = "DeckBall%d" % index
-		ball.mesh = mesh
-		ball.material_override = material
-		ball.position = Vector3(side * 2.35, 1.92, local.z)
+		ball.mesh = ball_mesh
+		ball.material_override = ball_mat
+		ball.position = Vector3(side * 2.15, 1.99, local.z - 0.35)
 		preview_boat.add_child(ball)
-		_ball_props.append(ball)
-	_sync_ball_props()
+		_deck_balls.append(ball)
+
+
+func _nearest_deck_ball() -> Node3D:
+	if not is_instance_valid(player):
+		return null
+	var best: Node3D = null
+	var best_d := 2.2
+	for ball: Node3D in _deck_balls:
+		if not is_instance_valid(ball) or not ball.visible:
+			continue
+		var d: float = player.global_position.distance_to(ball.global_position)
+		if d < best_d:
+			best = ball
+			best_d = d
+	return best
+
+
+func _pickup_deck_ball(ball: Node3D) -> bool:
+	if not is_instance_valid(ball) or not is_instance_valid(player):
+		return false
+	if player.global_position.distance_to(ball.global_position) > 2.2:
+		return false
+	ball.queue_free()
+	_set_carry_ball(true)
+	_message("Взял ядро — E у пушки зарядить", 1.8)
+	return true
 
 
 func _sync_ball_props() -> void:

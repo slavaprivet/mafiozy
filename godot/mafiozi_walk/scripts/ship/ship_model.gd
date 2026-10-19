@@ -3307,8 +3307,9 @@ func _commit_temp(key: String, material: Material, parent: Node3D, shadows: bool
 	return mi
 
 func _build_cannonballs() -> void:
-	if _cannonball_slots.is_empty():
-		return
+	# Loose decorative balls are gone; the host places four real pickable balls
+	# beside the guns instead.
+	return
 	var mesh := SphereMesh.new()
 	mesh.radius = 0.125
 	mesh.height = 0.25
