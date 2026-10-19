@@ -860,7 +860,7 @@
     "scripts/hospital/npc_treatment_pose28.gd.uid": "f1a30df4e927aabe5f1f13920f093b7d31820ed0f657c90a329dc057d190c372",
     "scripts/hospital/npc_walk_surface28.gd": "fe28870674944d9b9fc45f338a40f4ced0dfd9e312a7e44fcb3ffc6e416192b1",
     "scripts/hospital/npc_walk_surface28.gd.uid": "2a3c962c952471a91c151d6a4f745e600cf0c310855853788e74f91c4d5b8a84",
-    "scripts/main.gd": "65f60fb4d4a26494a3038a6d69bbb3332da218e86ae5df41f2a2a8765c04a2c4",
+    "scripts/main.gd": "5788d740a7db191a79116de6d5ac4e4008fe2b476b2f15f3e68dc4d0646a8d27",
     "scripts/main.gd.uid": "d23a61c6adedb7dd1cb111d5401f3c21de5c349b04e122e02997aaa91dd74dcc",
     "scripts/navigation/npc_avoidance_world29.gd": "7d4e5d5a628bf942723da535eedbec0d23f668495d63fa06513b29154ef7b408",
     "scripts/navigation/npc_avoidance_world29.gd.uid": "a15db70f56d2dc2655ca61221245872d520eb7f43c61583b740b5e3166b44685",
@@ -1365,7 +1365,9 @@
     "audio/horse/snort_2.wav": "918e908d1c10607f17a668c6c09eb9f56aad503341919a41270da18523ba6449",
     "audio/horse/neigh_1.wav": "b76764d03010a5882893dcc3cfd30ee7904d4adaae36eda34fc77318c00db817",
     "audio/horse/neigh_2.wav": "90304c8dbdee0613ae02b0f5af52ac7e282cbee7cf9b001367de01de27223384",
-    "audio/horse/neigh_death.wav": "5b6021e25a4f565d23941a56c1c6ca1a32457a988bd704b1c5cc43cdee95d669"
+    "audio/horse/neigh_death.wav": "5b6021e25a4f565d23941a56c1c6ca1a32457a988bd704b1c5cc43cdee95d669",
+    "scripts/balloon/siege_balloon.gd": "ca77807b16d055afe6a8244018f2e58f28c4bb3d35c08ae41e2b158dcd529a99",
+    "scripts/balloon/balloon_host.gd": "fa4baee0bbcbfbc2faa4aeb292c0382af922fb8861144fbb9b9a069735098a75"
   },
   "source_pin_scope": "Published permanent game files only; untracked generated metadata and local diagnostic artifacts excluded",
   "included_packages": [
@@ -1509,5 +1511,5 @@
     "source_on_D": "D:\\MafioziCombat31\\coordinator35_health57\\game",
     "resume": "docs/ai/COORDINATOR_35_CONTINUE57.json"
   },
-  "scope": "All 59 retained; the castle horse is rideable with E, carries the complete medieval weapon set and the bow, has 100 HP, blood and a solid vaultable corpse; the reins are physical ropes, hooves play on wood/dirt/stone, the horse snorts, whinnies and screams; the E and HP plates are look-driven on foot, and an unridden horse far from the player skips idle animation, audio and rope work entirely."
+  "scope": "All 59 retained plus the castle horse and the siege hot-air balloon: E to board, burner/valve/ballast, four wind layers, anchor, visible striped envelope, hollow crew basket and a HUD for altitude, heat, wind and ballast."
 }
