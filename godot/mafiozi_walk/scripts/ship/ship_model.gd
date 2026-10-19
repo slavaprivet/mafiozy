@@ -3467,18 +3467,18 @@ func _build_parts() -> void:
 	_parts.clear()
 	_part_by_id.clear()
 	var entries := [
-		["mast", 220.0, _mast_node],
-		["bowsprit", 70.0, _bowsprit_node],
-		["rails", 80.0, _rails_node],
-		["transom", 120.0, _transom_node],
-		["helm", 60.0, _helm_node],
-		["crate_ammo", 25.0, _crate_ammo],
-		["crate_boards", 25.0, _crate_boards],
-		["cannon_0", 60.0, _cannon_nodes[0]],
-		["cannon_1", 60.0, _cannon_nodes[1]],
-		["cannon_2", 60.0, _cannon_nodes[2]],
-		["cannon_3", 60.0, _cannon_nodes[3]],
-		["upper_rail", 60.0, _upper_rail_node],
+		["mast", 80.0, _mast_node],
+		["bowsprit", 55.0, _bowsprit_node],
+		["rails", 55.0, _rails_node],
+		["transom", 85.0, _transom_node],
+		["helm", 50.0, _helm_node],
+		["crate_ammo", 20.0, _crate_ammo],
+		["crate_boards", 20.0, _crate_boards],
+		["cannon_0", 55.0, _cannon_nodes[0]],
+		["cannon_1", 55.0, _cannon_nodes[1]],
+		["cannon_2", 55.0, _cannon_nodes[2]],
+		["cannon_3", 55.0, _cannon_nodes[3]],
+		["upper_rail", 50.0, _upper_rail_node],
 		["lanterns", 10.0, _lanterns_node],
 	]
 	for entry: Array in entries:

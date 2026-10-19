@@ -41,9 +41,9 @@ const RUDDER_RATE := 1.5
 const AHEAD_SAMPLES := [9.0, 15.0, 21.0]
 const NAV_DRAFT := 1.8
 
-const MAST_HP := 220.0
-const DEFAULT_PART_HP := 120.0
-const CANNON_HP := 160.0
+const MAST_HP := 80.0
+const DEFAULT_PART_HP := 60.0
+const CANNON_HP := 90.0
 const HULL_MAX_DAMAGE := 520.0
 ## SHIP81: the hull is a coarse plank-block shell.  Integrity is the fraction of
 ## surviving blocks, not a free-floating HP number.
@@ -688,6 +688,10 @@ func toggle_sails() -> bool:
 
 func sails_open() -> bool:
 	return _sails_open
+
+
+func mast_broken() -> bool:
+	return _mast_broken
 
 
 func _apply_sails_visual() -> void:

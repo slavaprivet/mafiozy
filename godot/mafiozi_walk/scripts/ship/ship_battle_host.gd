@@ -86,6 +86,7 @@ var _aim_up := false
 var _aim_down := false
 var _fire_queued := false
 var _swim_state := false
+var _last_broken_count := 0
 var _lever_work_phase := 0.0
 var _lever_hold_pos := Vector3.ZERO
 
@@ -319,7 +320,8 @@ func action() -> Dictionary:
 	# The sail winch at the mast.  It only wins when it is actually the nearest
 	# interaction, so the gun prompt keeps priority at the gun.
 	var lever_at := _lever_world()
-	if _lever_near():
+	if _lever_near() and not (preview_boat.has_method("mast_broken") \
+			and bool(preview_boat.call("mast_broken"))):
 		if not lever_at.is_zero_approx():
 			var distance := feet.distance_to(lever_at)
 			if distance < best_distance:
@@ -487,6 +489,9 @@ func _exit_cabin() -> void:
 func _toggle_sails() -> void:
 	if not _ship_usable():
 		_message("Корабль затонул — паруса не поднять", 2.2)
+		return
+	if preview_boat.has_method("mast_broken") and bool(preview_boat.call("mast_broken")):
+		_message("Мачта сломана — паруса не действуют", 2.4)
 		return
 	if preview_boat == null or not preview_boat.has_method("toggle_sails"):
 		return
@@ -1102,6 +1107,14 @@ func _physics_process(delta: float) -> void:
 	if _station == "" and not bool(world.get("preview_dead")) and not bool(world.get("preview_physics_fault")):
 		_recover_underdeck()
 	_update_swimming(delta)
+	if is_instance_valid(preview_boat):
+		var broken: Variant = preview_boat.get("_broken_parts")
+		if broken is Array:
+			var count := (broken as Array).size()
+			if count > _last_broken_count:
+				_last_broken_count = count
+				var has_mast := (broken as Array).has("mast")
+				_message("Мачта сломана — паруса мертвы" if has_mast else "Часть корабля разрушена!", 1.8)
 	_update_carried_ball(delta)
 	_crate_timer = maxf(0.0, _crate_timer - delta)
 	_wake_timer = maxf(0.0, _wake_timer - delta)
