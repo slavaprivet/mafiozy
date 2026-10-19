@@ -533,13 +533,16 @@ func _physics_process(delta: float) -> void:
 	if _vehicle_hold:
 		# External owner (the balloon) moves this body; keep the on-foot pose and
 		# weapon presentation alive instead of freezing the character.
-		velocity = Vector3.ZERO
+		var move := Input.get_vector(&"preview_move_left", &"preview_move_right",
+			&"preview_move_forward", &"preview_move_back")
+		velocity = Vector3(move.x, 0.0, -move.y) * 1.45
 		_contact_impulse.clear()
 		_contact_dropkick.cancel("vehicle")
 		_jump.clear()
 		_jump_pose.clear()
 		_jump_event_consumed = true
 		_update_owned_pose(delta)
+		velocity = Vector3.ZERO
 		return
 	if _mount_mode:
 		_contact_impulse.clear()

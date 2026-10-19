@@ -36,6 +36,7 @@ const CastleWallDefense24 = preload("res://scripts/city/castle_wall_defense24.gd
 const FootstepsScript = preload("res://scripts/audio/footsteps.gd")  # DSH_STEPS
 const HorseMountHost = preload("res://scripts/mount/horse_mount_host.gd")  # DSH_HORSE
 const BalloonHost = preload("res://scripts/balloon/balloon_host.gd")  # DSH_BALLOON
+const PowderBarrelHost = preload("res://scripts/siege/powder_barrel_host.gd")  # DSH_BARRELS
 ## DSH_CASTLE: the castle is its OWN MAP. It is built far from the city so the two never
 ## interact, and the player is put down in its courtyard.
 const CASTLE_ORIGIN := Vector3(0.0, 0.0, 900.0)
@@ -128,6 +129,10 @@ var _horse_install_pending := false
 var preview_balloon: Node3D
 var balloon_status := "disabled"
 var _balloon_install_pending := false
+## DSH_BARRELS: powder barrels for the balloon, carried with the stone hug.
+var preview_power_barrels: Node3D
+var power_barrel_status := "disabled"
+var _power_barrel_install_pending := false
 var preview_melee: Node
 var melee_status := "disabled"
 var preview_minimap: Node
@@ -451,6 +456,7 @@ func _ready() -> void:
 		_install_castle_armor31()
 		_horse_install_pending = true
 		_balloon_install_pending = true
+		_power_barrel_install_pending = true
 	if not castle_map and (preview_bow_prototype_enabled or is_instance_valid(preview_weapons) or OS.get_cmdline_user_args().has("--bow-proto=1")):
 		_install_bow_prototype()  # DSH_BOW_PROTO
 	if OS.get_cmdline_user_args().has("--bow-proto=1"):
@@ -632,6 +638,23 @@ func _install_balloon() -> bool:
 	preview_balloon = host
 	balloon_status = "ready"
 	print("DSH_BALLOON_STATUS ", balloon_status)
+	return true
+
+## DSH_BARRELS: three powder barrels in the camp, the same two-handed hug as the
+## catapult stone, and the city C4 blast forwarded into the castle damage owner.
+func _install_power_barrels() -> bool:
+	if is_instance_valid(preview_power_barrels) or not is_instance_valid(_player): return false
+	var host: Node3D = PowderBarrelHost.new()
+	host.name = "PowerBarrelHost"
+	add_child(host)
+	var installed: Dictionary = host.install(self, _player)
+	if not installed.get("ok", false):
+		power_barrel_status = str(installed.get("reason", "install_failed"))
+		host.queue_free()
+		return false
+	preview_power_barrels = host
+	power_barrel_status = "ready"
+	print("DSH_BARRELS_STATUS ", power_barrel_status)
 	return true
 
 func _build_castle_map() -> bool:
@@ -1048,6 +1071,8 @@ func _exit_tree() -> void:
 	preview_horse_mount = null
 	if is_instance_valid(preview_balloon): preview_balloon.dispose()
 	preview_balloon = null
+	if is_instance_valid(preview_power_barrels): preview_power_barrels.dispose()
+	preview_power_barrels = null
 	if is_instance_valid(player_throwables): player_throwables.dispose()
 	player_throwables=null
 	if is_instance_valid(preview_c4): preview_c4.dispose()
@@ -1384,6 +1409,9 @@ func _physics_process(delta: float) -> void:
 	if _balloon_install_pending and Engine.get_physics_frames() > 30:
 		_balloon_install_pending = false
 		_install_balloon()
+	if _power_barrel_install_pending and Engine.get_physics_frames() > 36:
+		_power_barrel_install_pending = false
+		_install_power_barrels()
 	# Keep the test tool's help panel off this map.
 	if is_instance_valid(preview_castle) and is_instance_valid(preview_sword_prototype):
 		var castle_hint: Variant = preview_sword_prototype.get("_hint")

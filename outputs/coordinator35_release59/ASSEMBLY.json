@@ -860,7 +860,7 @@
     "scripts/hospital/npc_treatment_pose28.gd.uid": "f1a30df4e927aabe5f1f13920f093b7d31820ed0f657c90a329dc057d190c372",
     "scripts/hospital/npc_walk_surface28.gd": "fe28870674944d9b9fc45f338a40f4ced0dfd9e312a7e44fcb3ffc6e416192b1",
     "scripts/hospital/npc_walk_surface28.gd.uid": "2a3c962c952471a91c151d6a4f745e600cf0c310855853788e74f91c4d5b8a84",
-    "scripts/main.gd": "5788d740a7db191a79116de6d5ac4e4008fe2b476b2f15f3e68dc4d0646a8d27",
+    "scripts/main.gd": "c0cd38caf9ccafee3325d6e8c641770fe19b76bec01114c32b09e53bb521f98a",
     "scripts/main.gd.uid": "d23a61c6adedb7dd1cb111d5401f3c21de5c349b04e122e02997aaa91dd74dcc",
     "scripts/navigation/npc_avoidance_world29.gd": "7d4e5d5a628bf942723da535eedbec0d23f668495d63fa06513b29154ef7b408",
     "scripts/navigation/npc_avoidance_world29.gd.uid": "a15db70f56d2dc2655ca61221245872d520eb7f43c61583b740b5e3166b44685",
@@ -1035,7 +1035,7 @@
     "scripts/preview_interior_finish.gd.uid": "491ea208d9869017ee90bee19c1da0fecc3fc707569cc751910e125bdf348b53",
     "scripts/preview_locomotion.gd": "16c934854d8ebf089c938c3914c66450e0f3b8fd97e6f075d864f3b5ee585aaf",
     "scripts/preview_locomotion.gd.uid": "5eb2bc8f618a3211a69655477ff130a95e4534a0b01d3bd704deedde5ce5c19b",
-    "scripts/preview_player.gd": "d70f1c7bbe7223bf15c9ebc54a9e1b6406999a0db4dea4b3d1d1a1e3e1fd239a",
+    "scripts/preview_player.gd": "3bd9dadec421da12485bf8af04845d214ee471eb44e1a4cf414cb5ebae5b4f61",
     "scripts/preview_player.gd.uid": "1803e056f8fc526fbae9f1c598d3f713faf1fbd161acbb36b70330489d923c64",
     "scripts/preview_population.gd": "d731774a79bf78ca78cfc999f62d97156b1ea42755133347250e9dbd217bb8ba",
     "scripts/preview_population.gd.uid": "992896d1e2f7be27ac38a890bc8ac0a04055a99153d21cd556d31ac6268229a6",
@@ -1366,8 +1366,9 @@
     "audio/horse/neigh_1.wav": "b76764d03010a5882893dcc3cfd30ee7904d4adaae36eda34fc77318c00db817",
     "audio/horse/neigh_2.wav": "90304c8dbdee0613ae02b0f5af52ac7e282cbee7cf9b001367de01de27223384",
     "audio/horse/neigh_death.wav": "5b6021e25a4f565d23941a56c1c6ca1a32457a988bd704b1c5cc43cdee95d669",
-    "scripts/balloon/siege_balloon.gd": "58c6f1d322acb8e16c0c8ff9f99f7513ee1b5aee0de5417d1f93432dc2806100",
-    "scripts/balloon/balloon_host.gd": "02d779a21cdf29e2fbc12193184a447ff074bc12e51b12d9644b2a7d658bc540"
+    "scripts/balloon/siege_balloon.gd": "b0a5a099f3c7acb4ef9fa888eee699f63e1f4d77a355cd12ee8a15987b3d208c",
+    "scripts/balloon/balloon_host.gd": "dd8e5d4a642a5c6e92088d73245c8814e989af78f123e9c0b62d5a23f90fa708",
+    "scripts/siege/powder_barrel_host.gd": "8ee1b4a6987e7065df572b0aeedf2a568365202661d72eedf08c8d5144ff92cc"
   },
   "source_pin_scope": "Published permanent game files only; untracked generated metadata and local diagnostic artifacts excluded",
   "included_packages": [
@@ -1511,5 +1512,5 @@
     "source_on_D": "D:\\MafioziCombat31\\coordinator35_health57\\game",
     "resume": "docs/ai/COORDINATOR_35_CONTINUE57.json"
   },
-  "scope": "The castle horse plus the crowd balloon: five crew and the pilot in a big hanging basket whose crew idle and bob, the player keeps his on-foot idle and weapon poses while the balloon carries him, the whole balloon visibly leans toward the shifted crew even when parked on the ground, WASD walks the weight around the basket to steer only while airborne, weight only changes how fast she climbs, turns and glides, not how high she can go, visible dust gusts shove it, four live Verlet ropes swing under the envelope, and holding Space slowly overheats and bursts the balloon. Space is the only vertical control: release it to glide down. No anchor, no Shift, no height cap."
+  "scope": "The castle horse plus the siege airship: a detailed striped envelope with net, hoops, gold banner and a stern flag; five crew and the pilot in a big basket whose crew idle and bob; the player keeps his walking animation and weapon poses while the weight steering moves the whole balloon toward the shifted crew (on the ground it only leans); no height cap, weight changes climb/glide/turn rate only; visible dust gusts, four live ropes, slow overheat and a burst that settles. Three powder barrels use the catapult stone two-handed hug, E to lift, boarding loads them into the basket, G drops them and the city C4 blast is forwarded into the castle and camp damage owners, with the same destruction as the siege. No anchor, no Shift."
 }

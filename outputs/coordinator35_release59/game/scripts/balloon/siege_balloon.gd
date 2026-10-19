@@ -36,7 +36,7 @@ const GUST_MAX_GAP := 13.0
 const GUST_DURATION := 1.8
 const GUST_MIN_SPEED := 3.5
 const GUST_MAX_SPEED := 6.5
-const GUST_COUNT := 40
+const GUST_COUNT := 60
 const GUST_HALF := 9.0
 const ROPE_POINTS := 6
 const ROPE_SEGMENTS := 5
@@ -151,6 +151,7 @@ func _build_model() -> void:
 	cap_node.material_override = rim
 	cap_node.position = Vector3(0.0, 8.65, 0.0)
 	_model.add_child(cap_node)
+	_build_envelope_dressing()
 	# Hollow crew basket: big enough for a whole crowd (5 crew + the player).
 	_basket_node = Node3D.new()
 	_basket_node.name = "Basket"
@@ -168,6 +169,7 @@ func _build_model() -> void:
 	_box_part(Vector3(0.52, 0.10, 2.40), Vector3(-1.55, 0.80, 0.0), wicker, _basket_node)
 	_box_part(Vector3(0.52, 0.10, 2.40), Vector3(1.55, 0.80, 0.0), wicker, _basket_node)
 	_build_crew(_basket_node)
+	_build_basket_dressing(_basket_node)
 	# Four suspension ropes are built as live Verlet chains in _build_suspension.
 	# Burner, raised clear of the crew's heads, and a metal heat shield below it.
 	var shield := CylinderMesh.new()
@@ -265,6 +267,137 @@ func _material(colour: Color, roughness: float, metallic: float = 0.0) -> Standa
 	material.roughness = roughness
 	material.metallic = metallic
 	return material
+
+## A rope net, four hoops, a crowned load ring and a painted banner turn the
+## envelope from a striped balloon into a siege machine you can read from afar.
+func _build_envelope_dressing() -> void:
+	var rope := _material(Color(0.30, 0.22, 0.13), 0.9)
+	var metal := _material(Color(0.32, 0.30, 0.26), 0.55, 0.6)
+	var gold := _material(Color(0.72, 0.56, 0.20), 0.45, 0.7)
+	var net_mesh := BoxMesh.new()
+	net_mesh.size = Vector3(0.024, 0.024, 0.46)
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = net_mesh
+	mm.instance_count = 12 * 7
+	var slot := 0
+	for i: int in 12:
+		var lon := TAU * float(i) / 12.0
+		for j: int in 7:
+			var a0 := PI * 0.10 + (PI * 0.80) * float(j) / 7.0
+			var a1 := PI * 0.10 + (PI * 0.80) * float(j + 1) / 7.0
+			var p0 := Vector3(sin(a0) * cos(lon), 5.6 + cos(a0) * 2.9, sin(a0) * sin(lon)) * 1.012
+			var p1 := Vector3(sin(a1) * cos(lon), 5.6 + cos(a1) * 2.9, sin(a1) * sin(lon)) * 1.012
+			var segment := p1 - p0
+			var length := segment.length()
+			var y_axis := segment / length
+			var x_axis := y_axis.cross(Vector3.UP)
+			if x_axis.length_squared() < 0.0001:
+				x_axis = y_axis.cross(Vector3.RIGHT)
+			x_axis = x_axis.normalized()
+			var z_axis := x_axis.cross(y_axis).normalized()
+			mm.set_instance_transform(slot, Transform3D(Basis(x_axis, y_axis * length, z_axis), (p0 + p1) * 0.5))
+			slot += 1
+	var net := MultiMeshInstance3D.new()
+	net.name = "EnvelopeNet"
+	net.multimesh = mm
+	net.material_override = rope
+	net.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_model.add_child(net)
+	for y: float in [3.45, 4.65, 6.15, 7.35]:
+		var radius := sqrt(maxf(0.01, 2.9 * 2.9 - (y - 5.6) * (y - 5.6))) * 1.012
+		var torus := TorusMesh.new()
+		torus.inner_radius = radius - 0.028
+		torus.outer_radius = radius + 0.028
+		torus.rings = 36
+		torus.ring_segments = 6
+		var ring := MeshInstance3D.new()
+		ring.mesh = torus
+		ring.material_override = rope
+		ring.position = Vector3(0.0, y, 0.0)
+		ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_model.add_child(ring)
+	for data: Array in [[8.32, 0.45], [3.02, 0.95]]:
+		var yy: float = data[0]
+		var rr: float = data[1]
+		var torus := TorusMesh.new()
+		torus.inner_radius = rr - 0.05
+		torus.outer_radius = rr + 0.05
+		torus.rings = 28
+		torus.ring_segments = 6
+		var ring := MeshInstance3D.new()
+		ring.mesh = torus
+		ring.material_override = metal
+		ring.position = Vector3(0.0, yy, 0.0)
+		_model.add_child(ring)
+	# Painted banner on the bow face, framed in gold.
+	var border := BoxMesh.new()
+	border.size = Vector3(2.20, 1.18, 0.035)
+	var border_node := MeshInstance3D.new()
+	border_node.mesh = border
+	border_node.material_override = gold
+	border_node.position = Vector3(0.0, 5.45, 2.90)
+	_model.add_child(border_node)
+	var cloth_mesh := BoxMesh.new()
+	cloth_mesh.size = Vector3(1.98, 0.96, 0.045)
+	var cloth := MeshInstance3D.new()
+	cloth.mesh = cloth_mesh
+	cloth.material_override = _material(Color(0.48, 0.09, 0.07), 0.9)
+	cloth.position = Vector3(0.0, 5.45, 2.93)
+	_model.add_child(cloth)
+	var emblem := CylinderMesh.new()
+	emblem.top_radius = 0.20
+	emblem.bottom_radius = 0.20
+	emblem.height = 0.025
+	emblem.radial_segments = 18
+	var emblem_node := MeshInstance3D.new()
+	emblem_node.mesh = emblem
+	emblem_node.material_override = gold
+	emblem_node.rotation.x = PI * 0.5
+	emblem_node.position = Vector3(0.0, 5.45, 2.97)
+	_model.add_child(emblem_node)
+
+## Corner posts, iron bands and a stern pennant give the wicker tub some weight.
+func _build_basket_dressing(parent: Node3D) -> void:
+	var rim := _material(Color(0.22, 0.13, 0.07), 0.9)
+	var metal := _material(Color(0.32, 0.30, 0.26), 0.55, 0.6)
+	var gold := _material(Color(0.72, 0.56, 0.20), 0.45, 0.7)
+	for sx: float in [-1.0, 1.0]:
+		for sz: float in [-1.0, 1.0]:
+			_box_part(Vector3(0.16, 1.30, 0.16), Vector3(sx * 1.84, 0.65, sz * 1.34), rim, parent)
+	for y: float in [0.30, 0.92]:
+		_box_part(Vector3(3.92, 0.08, 0.15), Vector3(0.0, y, 1.36), rim, parent)
+		_box_part(Vector3(3.92, 0.08, 0.15), Vector3(0.0, y, -1.36), rim, parent)
+		_box_part(Vector3(0.15, 0.08, 3.02), Vector3(1.86, y, 0.0), rim, parent)
+		_box_part(Vector3(0.15, 0.08, 3.02), Vector3(-1.86, y, 0.0), rim, parent)
+	# Iron bands across the floor edge and a small pennant at the stern.
+	_box_part(Vector3(3.98, 0.06, 0.10), Vector3(0.0, 0.14, 1.12), metal, parent)
+	_box_part(Vector3(3.98, 0.06, 0.10), Vector3(0.0, 0.14, -1.12), metal, parent)
+	var pole_mesh := CylinderMesh.new()
+	pole_mesh.top_radius = 0.025
+	pole_mesh.bottom_radius = 0.035
+	pole_mesh.height = 2.2
+	pole_mesh.radial_segments = 6
+	var pole := MeshInstance3D.new()
+	pole.mesh = pole_mesh
+	pole.material_override = rim
+	pole.position = Vector3(1.70, 2.0, 1.15)
+	parent.add_child(pole)
+	var flag_mesh := BoxMesh.new()
+	flag_mesh.size = Vector3(0.85, 0.50, 0.025)
+	var flag := MeshInstance3D.new()
+	flag.mesh = flag_mesh
+	flag.material_override = _material(Color(0.58, 0.10, 0.08), 0.9)
+	flag.position = Vector3(2.10, 2.95, 1.15)
+	parent.add_child(flag)
+	var finial := SphereMesh.new()
+	finial.radius = 0.07
+	finial.height = 0.14
+	var finial_node := MeshInstance3D.new()
+	finial_node.mesh = finial
+	finial_node.material_override = gold
+	finial_node.position = Vector3(1.70, 3.12, 1.15)
+	parent.add_child(finial_node)
 
 func _box_part(size: Vector3, at: Vector3, material: Material, parent: Node3D = null) -> void:
 	var mesh := BoxMesh.new()
@@ -380,7 +513,7 @@ func _build_collision() -> void:
 ## ---------------------------------------------------------------- gust visual
 func _build_gust_visual() -> void:
 	var mesh := BoxMesh.new()
-	mesh.size = Vector3(0.16, 0.045, 1.60)
+	mesh.size = Vector3(0.19, 0.05, 2.10)
 	var material := _material(Color(0.93, 0.88, 0.72), 0.95)
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	material.albedo_color.a = 0.72
@@ -539,9 +672,7 @@ func _physics_process(delta: float) -> void:
 	throttle = _throttle
 	_airborne = _last_altitude > 0.6
 	# The weight only steers while the balloon is actually in the air. On the
-	# ground walking around the basket must not turn or drag the balloon.
-	if piloted and _airborne:
-		rotation.y -= _lean * (TURN_RATE / load_factor) * delta
+	# ground walking around the basket must not drag the balloon.
 	_ground_probe -= delta
 	if _ground_probe <= 0.0:
 		_ground_probe = 0.2
@@ -588,8 +719,13 @@ func _physics_process(delta: float) -> void:
 		if _gust_left <= 0.0:
 			_end_gust()
 	var gust := gust_dir * gust_speed if _gust_left > 0.0 else Vector3.ZERO
-	var forward := Vector3(-sin(rotation.y), 0.0, -cos(rotation.y))
-	var target_h := forward * ((GLIDE_FORWARD + throttle * THROTTLE_SPEED) / load_factor) + AMBIENT_WIND + gust
+	var weight := Vector3(_seat.x, 0.0, _seat.y)
+	var strength := clampf(weight.length() / 1.8, 0.0, 1.0)
+	var direction := Vector3(0.0, 0.0, -1.0)
+	if weight.length_squared() > 0.0025:
+		direction = (global_transform.basis * weight.normalized()).normalized()
+	var speed := (GLIDE_FORWARD + strength * THROTTLE_SPEED) / load_factor
+	var target_h := direction * speed + AMBIENT_WIND + gust
 	if not _airborne:
 		target_h = Vector3.ZERO
 	velocity.x = move_toward(velocity.x, target_h.x, (HORIZONTAL_ACCEL / load_factor) * delta)

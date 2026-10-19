@@ -15,7 +15,10 @@ var player: CharacterBody3D
 var status := "idle"
 var error := ""
 
+var world: Node3D
 var _aboard := false
+var _cargo := 0
+var _cargo_models: Array[Node3D] = []
 var _spawn_spot := Vector3.ZERO
 var _spawn_yaw := 0.0
 var _pop_timer := 0.0
@@ -40,12 +43,13 @@ var _hint: Label
 var _viewport_size := Vector2(1280, 720)
 var _heat_track_width := 188.0
 
-func install(world: Node3D, existing_player: CharacterBody3D) -> Dictionary:
+func install(world_in: Node3D, existing_player: CharacterBody3D) -> Dictionary:
 	if is_instance_valid(balloon):
 		return {"ok": false, "reason": "already_installed"}
-	if not is_instance_valid(world) or existing_player == null or not existing_player.is_inside_tree():
+	if not is_instance_valid(world_in) or existing_player == null or not existing_player.is_inside_tree():
 		return {"ok": false, "reason": "no_world"}
 	player = existing_player
+	self.world = world_in
 	var heading := float(player.get("_heading"))
 	var forward := Vector3(-sin(heading), 0.0, -cos(heading))
 	var right := Vector3(cos(heading), 0.0, -sin(heading))
@@ -117,6 +121,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
 	var code: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
+	if code == KEY_G:
+		if _aboard and _cargo > 0:
+			drop_cargo()
+			get_viewport().set_input_as_handled()
+		return
 	if code != KEY_E:
 		return
 	if not bool(player.get("_free_mouse_look")):
@@ -156,6 +165,10 @@ func board_now() -> bool:
 	player.set_physics_process(true)
 	player.call("set_vehicle_hold", true)
 	balloon.set("rider", player)
+	var barrels: Variant = self.world.get("preview_power_barrels") if is_instance_valid(self.world) else null
+	if is_instance_valid(barrels) and barrels.has_method("take_carried") and bool(barrels.call("take_carried")):
+		_cargo += 1
+		_add_cargo_visual(barrels)
 	var arm: SpringArm3D = player.get("_spring_arm") as SpringArm3D
 	if is_instance_valid(arm):
 		arm.add_excluded_object(balloon.get_rid())
@@ -308,7 +321,7 @@ func _build_hud() -> void:
 	_cargo_label.add_theme_color_override("font_color", Color(0.86, 0.78, 0.64))
 	column.add_child(_cargo_label)
 	_hint = Label.new()
-	_hint.text = "WASD — смещать вес по корзине · Space — подъём · E — выйти"
+	_hint.text = "WASD — смещать вес по корзине · Space — подъём · G — сбросить бочку · E — выйти"
 	_hint.add_theme_font_size_override("font_size", 11)
 	_hint.add_theme_color_override("font_color", Color(0.66, 0.62, 0.54))
 	column.add_child(_hint)
@@ -357,12 +370,13 @@ func _update_hud() -> void:
 	_heat_fill.color = Color(0.85, 0.46, 0.12) if float(balloon.get("heat")) < 0.82 else Color(0.92, 0.18, 0.10)
 	var crew := int(balloon.get("crew")) + (1 if _aboard else 0)
 	var total_weight := int(round(float(balloon.get("weight"))))
+	var cargo_text := (" · Бочки %d" % _cargo) if _cargo > 0 else ""
 	if gust:
-		_cargo_label.text = "Экипаж %d · %d кг · ПОРЫВ ВЕТРА %s %.1f м/с" % [
-			crew, total_weight, _wind_arrow(wind), wind_speed]
+		_cargo_label.text = "Экипаж %d · %d кг%s · ПОРЫВ ВЕТРА %s %.1f м/с" % [
+			crew, total_weight, cargo_text, _wind_arrow(wind), wind_speed]
 		_cargo_label.add_theme_color_override("font_color", Color(0.95, 0.52, 0.24))
 	else:
-		_cargo_label.text = "Экипаж %d · %d кг" % [crew, total_weight]
+		_cargo_label.text = "Экипаж %d · %d кг%s" % [crew, total_weight, cargo_text]
 		_cargo_label.add_theme_color_override("font_color", Color(0.86, 0.78, 0.64))
 	_layout_top_center(_panel, 70.0)
 
@@ -391,8 +405,40 @@ func snapshot() -> Dictionary:
 		"player_layer": player.collision_layer if is_instance_valid(player) else -1,
 		"player_mask": player.collision_mask if is_instance_valid(player) else -1,
 		"banner": _banner_label.text if is_instance_valid(_banner) and _banner.visible else "",
+		"cargo": _cargo,
 		"balloon": balloon_snapshot, "wants_e": wants_e()}
 
 func dispose() -> void:
 	if _aboard:
 		leave_now()
+
+func drop_cargo() -> bool:
+	if not _aboard or _cargo <= 0 or not is_instance_valid(balloon) or not is_instance_valid(world):
+		return false
+	var barrels: Variant = world.get("preview_power_barrels")
+	if not is_instance_valid(barrels):
+		return false
+	barrels.call("throw_barrel", balloon.global_position + Vector3(0.0, -1.5, 0.0))
+	_cargo -= 1
+	_remove_cargo_visual()
+	return true
+
+func _add_cargo_visual(barrels: Node) -> void:
+	if not is_instance_valid(balloon):
+		return
+	var basket: Node3D = balloon.get("_basket_node") as Node3D
+	if not is_instance_valid(basket) or not barrels.has_method("_barrel_model"):
+		return
+	var model: Node3D = barrels.call("_barrel_model", basket, false)
+	if not is_instance_valid(model):
+		return
+	var index := _cargo_models.size()
+	model.position = Vector3(-1.55 + 0.45 * float(index), 0.85, 0.0)
+	_cargo_models.append(model)
+
+func _remove_cargo_visual() -> void:
+	if _cargo_models.is_empty():
+		return
+	var model: Node3D = _cargo_models.pop_back()
+	if is_instance_valid(model):
+		model.queue_free()
