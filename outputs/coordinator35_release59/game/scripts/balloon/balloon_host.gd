@@ -6,6 +6,7 @@ extends Node3D
 ## owns suspension of the walking controller, the camera and the top-centre plates.
 
 const BalloonScript = preload("res://scripts/balloon/siege_balloon.gd")
+const MAX_CARGO := 8
 const BOARD_RANGE := 3.8
 const BOARD_ALTITUDE := 3.2
 const RIDING_CAMERA_DISTANCE := 4.6
@@ -134,7 +135,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	var code: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
 	if code == KEY_G:
-		if _aboard and _cargo > 0:
+		var barrels_g: Variant = self.world.get("preview_power_barrels") if is_instance_valid(self.world) else null
+		var holding: bool = is_instance_valid(barrels_g) and bool(barrels_g.get("carrying"))
+		if _aboard and _cargo > 0 and not holding:
 			drop_cargo()
 			get_viewport().set_input_as_handled()
 		return
@@ -146,6 +149,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	if focused is LineEdit or focused is TextEdit:
 		return
 	if _aboard:
+		var barrels_e: Variant = self.world.get("preview_power_barrels") if is_instance_valid(self.world) else null
+		if is_instance_valid(barrels_e) and bool(barrels_e.get("carrying")):
+			return
+		if take_slot_barrel():
+			get_viewport().set_input_as_handled()
+			return
 		if leave_now():
 			get_viewport().set_input_as_handled()
 		return
@@ -180,8 +189,7 @@ func board_now() -> bool:
 	balloon.set("pilot_inside", true)
 	var barrels: Variant = self.world.get("preview_power_barrels") if is_instance_valid(self.world) else null
 	if is_instance_valid(barrels) and barrels.has_method("take_carried") and bool(barrels.call("take_carried")):
-		_cargo += 1
-		_add_cargo_visual(barrels)
+		load_barrel(barrels)
 	var arm: SpringArm3D = player.get("_spring_arm") as SpringArm3D
 	if is_instance_valid(arm):
 		arm.add_excluded_object(balloon.get_rid())
@@ -396,7 +404,13 @@ func _update_hud() -> void:
 	var wind_speed := Vector2(wind.x, wind.z).length()
 	var text := ""
 	if _aboard:
-		text = "Покинуть"
+		var barrels_hud: Variant = self.world.get("preview_power_barrels") if is_instance_valid(self.world) else null
+		if is_instance_valid(barrels_hud) and bool(barrels_hud.get("carrying")):
+			text = ""
+		elif _slot_barrel_near() != null:
+			text = "Взять бочку"
+		else:
+			text = "Покинуть"
 	elif wants_e():
 		text = "Сесть"
 	var state := 0 if text.is_empty() else (1 if _aboard else 2)
@@ -422,7 +436,7 @@ func _update_hud() -> void:
 	_heat_fill.color = Color(0.85, 0.46, 0.12) if float(balloon.get("heat")) < 0.82 else Color(0.92, 0.18, 0.10)
 	var crew := int(balloon.get("crew")) + (1 if _aboard else 0)
 	var total_weight := int(round(float(balloon.get("weight"))))
-	var cargo_text := (" · Бочки %d" % _cargo) if _cargo > 0 else ""
+	var cargo_text := (" · Бочки %d/%d" % [_cargo, MAX_CARGO]) if _cargo > 0 else ""
 	var holes := int(balloon.get("holes"))
 	if holes > 0:
 		cargo_text += " · Дыры %d/4" % holes
@@ -510,9 +524,48 @@ func _add_cargo_visual(barrels: Node) -> void:
 	if not is_instance_valid(model):
 		return
 	var index := _cargo_models.size()
-	var slots: Array[Vector3] = [Vector3(-0.85, 1.34, -0.75), Vector3(0.85, 1.34, -0.75), Vector3(-0.35, 1.34, 0.35)]
+	var slots: Array[Vector3] = [
+		Vector3(-0.95, 0.12, -1.0), Vector3(0.95, 0.12, -1.0),
+		Vector3(-0.95, 0.12, 1.05), Vector3(0.95, 0.12, 1.05),
+		Vector3(-0.55, 0.12, -1.2), Vector3(0.55, 0.12, -1.2),
+		Vector3(-0.55, 0.12, 0.35), Vector3(0.55, 0.12, 0.35),
+	]
 	model.position = slots[mini(index, slots.size() - 1)]
 	_cargo_models.append(model)
+
+func load_barrel(barrels: Node) -> bool:
+	if _cargo >= MAX_CARGO:
+		return false
+	_cargo += 1
+	_add_cargo_visual(barrels)
+	return true
+
+func _slot_barrel_near(reach: float = 1.25) -> Node3D:
+	var best: Node3D = null
+	var best_distance := reach
+	for model: Node3D in _cargo_models:
+		if not is_instance_valid(model):
+			continue
+		var distance := player.global_position.distance_to(model.global_position)
+		if distance < best_distance:
+			best_distance = distance
+			best = model
+	return best
+
+func take_slot_barrel() -> bool:
+	if _cargo <= 0:
+		return false
+	var model: Node3D = _slot_barrel_near()
+	if model == null:
+		return false
+	var barrels: Variant = self.world.get("preview_power_barrels") if is_instance_valid(self.world) else null
+	if not is_instance_valid(barrels) or not barrels.has_method("carry_from_slot"):
+		return false
+	_cargo_models.erase(model)
+	_cargo = maxi(0, _cargo - 1)
+	_panel.visible = _aboard
+	_update_hud()
+	return bool(barrels.call("carry_from_slot", model))
 
 func _remove_cargo_visual() -> void:
 	if _cargo_models.is_empty():

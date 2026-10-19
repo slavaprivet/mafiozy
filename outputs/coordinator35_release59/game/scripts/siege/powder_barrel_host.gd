@@ -246,7 +246,13 @@ func _hug_arms(on: bool) -> void:
 func _update_prompt() -> void:
 	var text := ""
 	if carrying:
-		text = "Поставить"
+		var near_balloon := false
+		var balloon_host: Variant = world.get("preview_balloon") if is_instance_valid(world) else null
+		if is_instance_valid(balloon_host):
+			var balloon: Variant = balloon_host.get("balloon")
+			if is_instance_valid(balloon) and is_instance_valid(player):
+				near_balloon = player.global_position.distance_to(balloon.global_position) < 3.6
+		text = "Поставить в шар" if near_balloon else "Поставить"
 	elif _nearest_barrel() != null:
 		text = "Поднять бочку"
 	var state := 0 if text.is_empty() else (1 if carrying else 2)
@@ -305,6 +311,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
 	var code: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
+	if code == KEY_G:
+		if carrying and throw_carried():
+			get_viewport().set_input_as_handled()
+		return
 	if code != KEY_E:
 		return
 	if not bool(player.get("_free_mouse_look")):
@@ -317,7 +327,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 	if carrying:
-		drop_carried()
+		place_carried()
 		get_viewport().set_input_as_handled()
 		return
 	var barrel: Node3D = _nearest_barrel()
@@ -382,6 +392,38 @@ func throw_carried() -> bool:
 	_falling.append({"node": barrel, "velocity": velocity, "age": 0.0})
 	_end_carry()
 	return true
+
+func carry_from_slot(model: Node3D) -> bool:
+	if carrying or not is_instance_valid(model) or not is_instance_valid(player):
+		return false
+	var visual: Node3D = player.get("_visual") as Node3D
+	if not is_instance_valid(visual):
+		return false
+	model.queue_free()
+	_carried = _barrel_model(visual, true)
+	_carried.position = Vector3(0.0, 1.05, 0.42)
+	_carried.rotation.y = 0.2
+	var weapons: Node = world.get("preview_weapons") if is_instance_valid(world) else null
+	if is_instance_valid(weapons) and weapons.has_method("begin_catapult_stone_carry"):
+		weapons.call("begin_catapult_stone_carry")
+	carrying = true
+	_prompt_state = -1
+	print("DSH_BARRELS_PICKUP_FLOOR")
+	return true
+
+func place_carried() -> bool:
+	if not carrying or not is_instance_valid(world) or not is_instance_valid(player):
+		return false
+	var balloon_host: Variant = world.get("preview_balloon")
+	if is_instance_valid(balloon_host) and balloon_host.has_method("load_barrel"):
+		var balloon: Variant = balloon_host.get("balloon")
+		if is_instance_valid(balloon) and player.global_position.distance_to(balloon.global_position) < 3.6:
+			if bool(balloon_host.call("load_barrel", self)):
+				_end_carry()
+				print("DSH_BARRELS_PLACE_IN_BALLOON")
+				return true
+	drop_carried()
+	return false
 
 func drop_carried() -> void:
 	if not carrying:
