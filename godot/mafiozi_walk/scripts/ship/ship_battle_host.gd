@@ -1365,15 +1365,19 @@ func _update_swimming(delta: float) -> void:
 	if is_instance_valid(preview_boat) and preview_boat.has_method("in_boarding_zone"):
 		in_ladder = bool(preview_boat.call("in_boarding_zone", pos))
 	var swimming := _swim_state
+	var depth := 0.0
+	if preview_basin.has_method("depth_at"):
+		depth = float(preview_basin.call("depth_at", pos.x, pos.z))
 	# Hysteresis: small bobbing at the surface must not toggle stand/swim every
 	# frame (that reset the stroke phase and made the character jerk).
 	if swimming:
-		if pos.y > water + 0.55 or (player.is_on_floor() and pos.y > water + 0.02):
+		# Reaching wadeable ground ends the swim immediately, so the player walks
+		# out onto the beach instead of being held at water level.
+		if player.is_on_floor() and depth < 0.40:
+			swimming = false
+		elif pos.y > water + 0.55 or (player.is_on_floor() and pos.y > water + 0.02):
 			swimming = false
 	else:
-		var depth := 0.0
-		if preview_basin.has_method("depth_at"):
-			depth = float(preview_basin.call("depth_at", pos.x, pos.z))
 		if pos.y < water - 0.06 or (depth > 0.45 and pos.y < water + 0.42 and not _player_aboard()):
 			swimming = true
 	if in_ladder:
