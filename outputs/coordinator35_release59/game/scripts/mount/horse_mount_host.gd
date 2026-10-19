@@ -17,6 +17,7 @@ const DISMOUNT_SIDES := [Vector3(-1.0, 0.0, 0.0), Vector3(1.0, 0.0, 0.0), Vector
 const DISMOUNT_DISTANCE := 2.15
 const RIDING_CAMERA_DISTANCE := 7.2
 const HP_VISIBLE_AFTER_HIT_MS := 4200
+const HP_VISIBLE_RANGE := 8.0
 const HORSE_MAX_HP := 100.0
 
 var horse: CharacterBody3D
@@ -405,9 +406,17 @@ func _force_player_off_dead_horse() -> void:
 	if is_instance_valid(player.get("_spring_arm")):
 		var arm: SpringArm3D = player.get("_spring_arm") as SpringArm3D
 		arm.remove_excluded_object(horse.get_rid())
+		if _camera_distance_owned:
+			player.set("camera_distance", _walking_camera_distance)
+			if _aim_camera_owns_distance() == false:
+				arm.spring_length = _walking_camera_distance
+		_camera_distance_owned = false
 	player.global_transform = Transform3D(Basis(Vector3.UP, yaw), at)
 	player.velocity = Vector3.ZERO
 	player._heading = yaw
+	var visual: Node3D = player.get("_visual") as Node3D
+	if is_instance_valid(visual):
+		visual.rotation.y = yaw + deg_to_rad(float(player.get("visual_yaw_degrees")))
 	player.set_preview_pose_authority(&"on_foot", true)
 	var pivot: Node3D = player.get("_yaw_pivot") as Node3D
 	if is_instance_valid(pivot):
@@ -446,7 +455,13 @@ func _update_hud(dead: bool) -> void:
 		_hp_label.text = "ЛОШАДЬ  %d / %d" % [int(ceil(hp)), int(HORSE_MAX_HP)]
 		_hp_fill.size = Vector2(maxf(0.0, _hp_track_width * clampf(hp / HORSE_MAX_HP, 0.0, 1.0)), 7.0)
 		_hp_fill.color = Color(0.62, 0.10, 0.11) if hp > 35.0 else Color(0.78, 0.28, 0.08)
-	var show_hp := not dead and (_mounted or now < _hp_show_until)
+	# HP plate: while riding, and for a few seconds after a hit only while the horse is
+	# still close enough to be the subject of the HUD. Walking away always hides it.
+	var near_horse := is_instance_valid(player) \
+		and player.global_position.distance_to(horse.global_position) <= HP_VISIBLE_RANGE
+	if not near_horse:
+		_hp_show_until = 0
+	var show_hp := not dead and near_horse and (_mounted or now < _hp_show_until)
 	_hp_panel.visible = show_hp
 	if show_hp:
 		_layout_top_center(_hp_panel, 70.0)
