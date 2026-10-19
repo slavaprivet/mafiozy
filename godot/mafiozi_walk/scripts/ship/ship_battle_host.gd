@@ -1249,32 +1249,11 @@ func snapshot() -> Dictionary:
 
 
 func _update_lever_work(delta: float) -> void:
-	if _station != "" or not is_instance_valid(preview_model) or not is_instance_valid(player):
-		_reset_lever_work()
-		return
-	var lever := _lever_world()
-	if lever.is_zero_approx() or player.global_position.distance_to(lever) > 2.8:
-		_reset_lever_work()
-		return
-	var forward := Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)
-	var back := Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN)
-	if not forward and not back:
-		_lever_hold_pos = Vector3.ZERO
-		_reset_lever_work()
-		return
-	# Keep the operator at the winch while he pumps; otherwise W walks him away
-	# after one frame and the endless lever animation stops immediately.
-	if _lever_hold_pos.is_zero_approx():
-		_lever_hold_pos = player.global_position
-	player.global_position = _lever_hold_pos
-	player.velocity = Vector3.ZERO
-	var direction := 1.0 if forward else -1.0
-	preview_model.call("pump_lever", delta, direction)
-	_lever_work_phase += delta * 8.0
-	var visual := player.get("_visual") as Node3D
-	if is_instance_valid(visual):
-		visual.rotation.x = sin(_lever_work_phase) * 0.07
-		visual.rotation.z = cos(_lever_work_phase * 0.82) * 0.045
+	# The winch used to pin the player whenever W was held within 2.8 m, which
+	# made the deck around the mast feel frozen and killed the walk animation.
+	# Sail handling is now F-only; proximity never captures movement.
+	_reset_lever_work()
+	return
 
 
 func _reset_lever_work() -> void:
