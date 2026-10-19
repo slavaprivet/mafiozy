@@ -465,6 +465,23 @@ func _cache_anchors(build: Dictionary) -> void:
 			_cannon_mounts[index] = _vector_or(dict.get("mount", null), _cannon_mounts[index])
 
 
+func _install_hatch_cover() -> void:
+	# Invisible walkable cover over the companionway opening.  The visual
+	# grating stays open, but crossing it on deck no longer drops the player into
+	# the stair and freezes him; F still teleports down into the cabin.
+	var body := StaticBody3D.new()
+	body.name = "CompanionwayCover"
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(5.4, 0.16, 5.2)
+	shape.shape = box
+	body.add_child(shape)
+	body.position = Vector3(0.0, 1.74, 7.4)
+	body.collision_layer = 1
+	body.collision_mask = 0
+	add_child(body)
+
+
 func _install_parts(build: Dictionary) -> void:
 	_part_hp = {
 		"mast": MAST_HP,
@@ -1359,7 +1376,9 @@ func climb_assist(player: CharacterBody3D, delta: float) -> void:
 	# Explicit W only: walking through the ladder zone with W already held must
 	# not capture the player.  The first W press while standing at the ladder
 	# starts the climb; afterwards the held W keeps climbing.
-	if _in_companionway_zone(local):
+	# The companionway is entered with F at the hatch; walking over the grating
+	# must not snap the player into the stair.  Keep deck movement purely ground.
+	if false and _in_companionway_zone(local) and local.y < 1.55:
 		_climbing_ladder = false
 		_climb_companionway(player, local, axis, delta)
 		return
