@@ -942,9 +942,12 @@ func _physics_process(delta: float) -> void:
 func _update_basket_tilt(delta: float, throttle: float) -> void:
 	if not is_instance_valid(_basket_node):
 		return
-	var crowd := 1.0 + 0.08 * maxf(0.0, load - 1.0)
-	var target_roll := -_seat.x * 0.18 * crowd
-	var target_pitch := _seat.y * 0.10 * crowd
+	var target_roll := 0.0
+	var target_pitch := 0.0
+	if _airborne:
+		var crowd := 1.0 + 0.08 * maxf(0.0, load - 1.0)
+		target_roll = -_seat.x * 0.18 * crowd
+		target_pitch = _seat.y * 0.10 * crowd
 	var acceleration := (velocity - _last_velocity) / maxf(delta, 0.001)
 	_last_velocity = velocity
 	var right := global_transform.basis.x
@@ -1085,8 +1088,11 @@ func _update_visual(delta: float) -> void:
 		side = clampf(horizontal.normalized().x * -lean, -0.10, 0.10)
 	# The crowd's weight tips the whole balloon, not only the hanging basket:
 	# even parked on the flagstones it visibly leans toward the shifted crew.
-	var weight_roll := -_seat.x * 0.075
-	var weight_pitch := _seat.y * 0.045
+	var weight_roll := 0.0
+	var weight_pitch := 0.0
+	if _airborne:
+		weight_roll = -_seat.x * 0.075
+		weight_pitch = _seat.y * 0.045
 	_model.rotation.z = lerpf(_model.rotation.z, side + weight_roll, minf(1.0, delta * 3.0))
 	_model.rotation.x = lerpf(_model.rotation.x, -clampf(velocity.y * 0.008, -0.05, 0.05) + weight_pitch, minf(1.0, delta * 3.0))
 	_flame.visible = lift_on

@@ -328,10 +328,10 @@ func drop_carried() -> void:
 	print("DSH_BARRELS_DROP at=", at)
 
 ## ---------------------------------------------------------------- throw + blast
-func throw_barrel(at: Vector3) -> bool:
+func throw_barrel(at: Vector3, initial_velocity: Vector3 = Vector3(0.0, -1.5, 0.0)) -> bool:
 	var barrel: Node3D = _barrel_model(self, false)
 	barrel.global_position = at
-	_falling.append({"node": barrel, "velocity": Vector3(0.0, -1.5, 0.0), "age": 0.0})
+	_falling.append({"node": barrel, "velocity": initial_velocity, "age": 0.0})
 	return true
 
 func _update_falling(delta: float) -> void:

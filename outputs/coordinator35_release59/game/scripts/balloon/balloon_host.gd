@@ -460,8 +460,9 @@ func snapshot() -> Dictionary:
 		"balloon": balloon_snapshot, "wants_e": wants_e()}
 
 func dispose() -> void:
-	if _aboard:
+	if _aboard and is_instance_valid(balloon) and is_instance_valid(player) and is_inside_tree() and balloon.is_inside_tree():
 		leave_now()
+	_aboard = false
 
 func drop_cargo() -> bool:
 	if not _aboard or _cargo <= 0 or not is_instance_valid(balloon) or not is_instance_valid(world):
@@ -469,7 +470,11 @@ func drop_cargo() -> bool:
 	var barrels: Variant = world.get("preview_power_barrels")
 	if not is_instance_valid(barrels):
 		return false
-	barrels.call("throw_barrel", balloon.global_position + Vector3(0.0, -1.5, 0.0))
+	var forward := -balloon.global_transform.basis.z
+	var right := balloon.global_transform.basis.x
+	var origin := player.global_position + Vector3.UP * 1.25 + forward * 0.55
+	var velocity := forward * 5.5 + Vector3.UP * 1.5 + right * 0.4
+	barrels.call("throw_barrel", origin, velocity)
 	_cargo -= 1
 	_remove_cargo_visual()
 	return true
@@ -484,7 +489,8 @@ func _add_cargo_visual(barrels: Node) -> void:
 	if not is_instance_valid(model):
 		return
 	var index := _cargo_models.size()
-	model.position = Vector3(-1.55 + 0.45 * float(index), 0.85, 0.0)
+	var slots: Array[Vector3] = [Vector3(-0.85, 1.34, -0.75), Vector3(0.85, 1.34, -0.75), Vector3(-0.35, 1.34, 0.35)]
+	model.position = slots[mini(index, slots.size() - 1)]
 	_cargo_models.append(model)
 
 func _remove_cargo_visual() -> void:
@@ -509,6 +515,7 @@ func _update_fall(delta: float) -> void:
 	if not _fall_airborne:
 		if not player.is_on_floor() or player.global_position.y < _fall_start_y - 0.6:
 			_fall_airborne = true
+			_fall_last_y = player.global_position.y
 		return
 	_fall_start_y = maxf(_fall_start_y, player.global_position.y)
 	var step := _fall_last_y - player.global_position.y
