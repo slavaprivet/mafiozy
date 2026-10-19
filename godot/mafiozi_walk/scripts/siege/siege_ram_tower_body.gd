@@ -1168,6 +1168,29 @@ func _sync_transform(force_immediate: bool = false) -> void:
 	if use_physics:
 		PhysicsServer3D.body_set_state(get_rid(), PhysicsServer3D.BODY_STATE_TRANSFORM, xform)
 
+func _unstick_player(delta: float) -> void:
+	# The wheel/chassis colliders are tightly packed.  A player who walks into
+	# the gap can end up wedged with no push-out.  While he is below the deck,
+	# outside the rear push bay, and not moving, ease him sideways out of the
+	# machine instead of leaving him trapped.
+	if not is_instance_valid(player) or not player.is_on_floor():
+		return
+	if bool(player.get("_climbing_ladder")) or bool(player.get("_vehicle_hold")):
+		return
+	var local := _local_of(player.global_position)
+	if local.y > 2.55:
+		return
+	if absf(local.x) > 5.0 or local.z < -10.5 or local.z > 6.4:
+		return
+	if local.z >= 3.05 and local.z <= 6.2 and absf(local.x) < 3.3:
+		return
+	if player.velocity.length() > 0.55:
+		return
+	var dir := 1.0 if local.x >= 0.0 else -1.0
+	var push := global_transform.basis.x * dir * minf(0.10, delta * 4.0)
+	player.global_position += Vector3(push.x, 0.0, push.z)
+
+
 func _local_of(world_point: Vector3) -> Vector3:
 	return Transform3D(Basis.from_euler(Vector3(_pitch + _collapse_pitch, _yaw, _roll + _collapse_roll)),
 		_origin).affine_inverse() * world_point
@@ -1178,6 +1201,7 @@ func simulate_step(delta: float) -> void:
 	if not is_finite(delta) or delta <= 0.0:
 		return
 	delta = minf(delta, 0.1)
+	_unstick_player(delta)
 	_step_transform = Transform3D(Basis.from_euler(Vector3(_pitch, _yaw, _roll)), _origin)
 	if _destroyed:
 		# The machine tips over while its sections keep losing support and
