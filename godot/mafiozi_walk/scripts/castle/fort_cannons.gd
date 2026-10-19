@@ -109,7 +109,7 @@ func _build_room() -> void:
 	# Destructible water-side battlements with real embrasures.  The old extra
 	# side wing has been removed; the wall now only spans the gun front.
 	for seg: Array in [[12.0, 17.6], [22.4, 28.4], [31.6, 37.6], [42.4, 48.4],
-			[51.6, 57.6], [62.4, 68.4], [71.6, 80.0]]:
+			[51.6, 57.6], [62.4, 68.4]]:
 		var z0: float = seg[0]
 		var z1: float = seg[1]
 		_solid_box(Vector3(70.6, 1.80, (z0 + z1) * 0.5), Vector3(0.8, 3.2, z1 - z0), _brick, 30.0)
