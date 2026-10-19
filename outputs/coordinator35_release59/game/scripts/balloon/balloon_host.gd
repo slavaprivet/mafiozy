@@ -8,7 +8,7 @@ extends Node3D
 const BalloonScript = preload("res://scripts/balloon/siege_balloon.gd")
 const BOARD_RANGE := 3.8
 const BOARD_ALTITUDE := 3.2
-const RIDING_CAMERA_DISTANCE := 3.6
+const RIDING_CAMERA_DISTANCE := 4.6
 
 var balloon: CharacterBody3D
 var player: CharacterBody3D
@@ -16,6 +16,9 @@ var status := "idle"
 var error := ""
 
 var _aboard := false
+var _spawn_spot := Vector3.ZERO
+var _spawn_yaw := 0.0
+var _pop_timer := 0.0
 var _walking_layer := 0
 var _walking_mask := 0
 var _walking_camera_distance := 0.0
@@ -54,6 +57,8 @@ func install(world: Node3D, existing_player: CharacterBody3D) -> Dictionary:
 		body.queue_free()
 		return {"ok": false, "reason": "balloon_setup_failed"}
 	balloon = body
+	_spawn_spot = spot
+	_spawn_yaw = heading
 	_build_hud()
 	status = "ready"
 	print("DSH_BALLOON_STATUS ready at=", spot)
@@ -85,7 +90,7 @@ func _clear_spot(at: Vector3) -> bool:
 	if world == null:
 		return true
 	var shape := SphereShape3D.new()
-	shape.radius = 3.2
+	shape.radius = 4.0
 	var query := PhysicsShapeQueryParameters3D.new()
 	query.shape = shape
 	query.transform = Transform3D(Basis(), at + Vector3.UP * 3.5)
@@ -98,6 +103,8 @@ func wants_e() -> bool:
 		return false
 	if _aboard:
 		return true
+	if bool(balloon.get("popped")):
+		return false
 	if bool(player.get("_mount_mode")):
 		return false
 	if float(balloon.call("altitude")) > BOARD_ALTITUDE:
@@ -214,6 +221,15 @@ func _leave_spot(altitude: float) -> Vector3:
 func _physics_process(_delta: float) -> void:
 	if not is_instance_valid(balloon) or not is_instance_valid(player):
 		return
+	if bool(balloon.get("popped")):
+		if _aboard:
+			leave_now()
+		_pop_timer += _delta
+		if _pop_timer > 7.0:
+			_pop_timer = 0.0
+			balloon.call("respawn", _spawn_spot, _spawn_yaw)
+		_update_hud()
+		return
 	if _aboard and not is_instance_valid(balloon.get("rider")):
 		# Something removed the rider (respawn/teleport): restore the walker.
 		leave_now()
@@ -290,7 +306,7 @@ func _build_hud() -> void:
 	_cargo_label.add_theme_color_override("font_color", Color(0.86, 0.78, 0.64))
 	column.add_child(_cargo_label)
 	_hint = Label.new()
-	_hint.text = "Space — горелка · Shift — клапан · B — балласт · F — якорь · A/D — руль"
+	_hint.text = "WASD — смещать вес по корзине · Space — подъём · Shift — спуск · F — якорь · E — выйти"
 	_hint.add_theme_font_size_override("font_size", 11)
 	_hint.add_theme_color_override("font_color", Color(0.66, 0.62, 0.54))
 	column.add_child(_hint)
@@ -308,10 +324,10 @@ func _panel_style(colour: Color, radius: float) -> StyleBoxFlat:
 
 func _update_hud() -> void:
 	var altitude := float(balloon.call("altitude"))
-	var heat := float(balloon.get("heat"))
-	var ballast := int(balloon.get("ballast"))
 	var anchored := bool(balloon.get("anchored"))
-	var wind: Vector3 = balloon.call("wind_at_altitude", altitude)
+	var lift := bool(balloon.get("lift_on"))
+	var gust := bool(balloon.get("gust_active"))
+	var wind: Vector3 = balloon.call("wind_now")
 	var wind_speed := Vector2(wind.x, wind.z).length()
 	var text := ""
 	if _aboard:
@@ -331,12 +347,24 @@ func _update_hud() -> void:
 	_panel.visible = _aboard
 	if not _aboard:
 		return
-	_altitude_label.text = "Высота %d м · Ветер %s %.1f м/с" % [int(round(altitude)), _wind_arrow(wind), wind_speed]
-	_heat_label.text = "Тепло %d%% · %s" % [int(round(heat * 100.0)),
-		"ПЕРЕГРЕВ" if heat > 0.9 else ("горелка" if bool(balloon.get("burner_on")) else "клапан" if Input.is_action_pressed(&"preview_run") else "дрейф")]
-	_heat_fill.size = Vector2(maxf(0.0, _heat_track_width * clampf(heat, 0.0, 1.0)), 7.0)
-	_heat_fill.color = Color(0.85, 0.46, 0.12) if heat < 0.9 else Color(0.90, 0.18, 0.10)
-	_cargo_label.text = "Балласт %d · Якорь %s" % [ballast, "опущен" if anchored else "поднят"]
+	_altitude_label.text = "Высота %d м / макс %d м · Ветер %s %.1f м/с" % [
+		int(round(altitude)), int(round(float(balloon.get("max_altitude")))),
+		_wind_arrow(wind), wind_speed]
+	var descending := Input.is_action_pressed(&"preview_run")
+	_heat_label.text = "Перегрев %d%% · %s" % [int(round(float(balloon.get("heat")) * 100.0)),
+		"ПОДЪЁМ" if lift else ("спуск" if descending else "планирование")]
+	_heat_fill.size = Vector2(maxf(0.0, _heat_track_width * clampf(float(balloon.get("heat")), 0.0, 1.0)), 7.0)
+	_heat_fill.color = Color(0.85, 0.46, 0.12) if float(balloon.get("heat")) < 0.82 else Color(0.92, 0.18, 0.10)
+	var crew := int(balloon.get("crew")) + (1 if _aboard else 0)
+	var total_weight := int(round(float(balloon.get("weight"))))
+	if gust:
+		_cargo_label.text = "Экипаж %d · %d кг · ПОРЫВ ВЕТРА %s %.1f м/с" % [
+			crew, total_weight, _wind_arrow(wind), wind_speed]
+		_cargo_label.add_theme_color_override("font_color", Color(0.95, 0.52, 0.24))
+	else:
+		_cargo_label.text = "Экипаж %d · %d кг · Якорь %s" % [
+			crew, total_weight, "опущен" if anchored else "поднят"]
+		_cargo_label.add_theme_color_override("font_color", Color(0.86, 0.78, 0.64))
 	_layout_top_center(_panel, 70.0)
 
 func _wind_arrow(wind: Vector3) -> String:

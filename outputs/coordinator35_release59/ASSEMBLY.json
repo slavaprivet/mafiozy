@@ -1366,8 +1366,8 @@
     "audio/horse/neigh_1.wav": "b76764d03010a5882893dcc3cfd30ee7904d4adaae36eda34fc77318c00db817",
     "audio/horse/neigh_2.wav": "90304c8dbdee0613ae02b0f5af52ac7e282cbee7cf9b001367de01de27223384",
     "audio/horse/neigh_death.wav": "5b6021e25a4f565d23941a56c1c6ca1a32457a988bd704b1c5cc43cdee95d669",
-    "scripts/balloon/siege_balloon.gd": "ca77807b16d055afe6a8244018f2e58f28c4bb3d35c08ae41e2b158dcd529a99",
-    "scripts/balloon/balloon_host.gd": "fa4baee0bbcbfbc2faa4aeb292c0382af922fb8861144fbb9b9a069735098a75"
+    "scripts/balloon/siege_balloon.gd": "5f7a969fad1ec2eedb0aaf908cf3706b733b088365a17f1e0f40c1281626d00f",
+    "scripts/balloon/balloon_host.gd": "d47b3f38368719b96b8d0586e2532cef5be319703d88c3356440721f86228cd7"
   },
   "source_pin_scope": "Published permanent game files only; untracked generated metadata and local diagnostic artifacts excluded",
   "included_packages": [
@@ -1511,5 +1511,5 @@
     "source_on_D": "D:\\MafioziCombat31\\coordinator35_health57\\game",
     "resume": "docs/ai/COORDINATOR_35_CONTINUE57.json"
   },
-  "scope": "All 59 retained plus the castle horse and the siege hot-air balloon: E to board, burner/valve/ballast, four wind layers, anchor, visible striped envelope, hollow crew basket and a HUD for altitude, heat, wind and ballast."
+  "scope": "The castle horse plus the siege balloon rebuilt as a heavy, funny crowd carrier: five crew and the pilot ride in a big hanging basket, WASD walks the pilot weight around it so the basket visibly tips and steers the balloon, the load drops the ceiling to about five metres and makes lift, glide, sink and turn heavy, visible dust gusts shove it, four live Verlet ropes swing under the envelope, and holding Space overheats and bursts the balloon; the host ejects the crew and respawns it in camp."
 }
