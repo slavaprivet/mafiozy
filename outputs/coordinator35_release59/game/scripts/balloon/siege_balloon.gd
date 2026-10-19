@@ -738,8 +738,12 @@ func _update_visual(delta: float) -> void:
 	var side := 0.0
 	if horizontal.length() > 0.3:
 		side = clampf(horizontal.normalized().x * -lean, -0.10, 0.10)
-	_model.rotation.z = lerpf(_model.rotation.z, side, minf(1.0, delta * 3.0))
-	_model.rotation.x = lerpf(_model.rotation.x, -clampf(velocity.y * 0.008, -0.05, 0.05), minf(1.0, delta * 3.0))
+	# The crowd's weight tips the whole balloon, not only the hanging basket:
+	# even parked on the flagstones it visibly leans toward the shifted crew.
+	var weight_roll := -_seat.x * 0.075
+	var weight_pitch := _seat.y * 0.045
+	_model.rotation.z = lerpf(_model.rotation.z, side + weight_roll, minf(1.0, delta * 3.0))
+	_model.rotation.x = lerpf(_model.rotation.x, -clampf(velocity.y * 0.008, -0.05, 0.05) + weight_pitch, minf(1.0, delta * 3.0))
 	_flame.visible = lift_on
 	if lift_on:
 		var flicker := 0.86 + sin(_time * 23.0) * 0.14
