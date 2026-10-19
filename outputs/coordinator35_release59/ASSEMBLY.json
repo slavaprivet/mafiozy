@@ -1357,8 +1357,8 @@
     "scripts/weapons/weapon_surface_impacts.gd": "4adeb69f9e118d9275f6fcdf09666ffda15b6121b87986d16e1336b6761f06bc",
     "scripts/weapons/weapon_surface_impacts.gd.uid": "9dcd14da5fbd29acb97c4216c6b19aa5ba94d24927407184f328f02c5711998c",
     "tools/make_steps.py": "ddbc05ca0fadae493fd06054ea6acddd7510ed4a6273b745e79f951c20552cc2",
-    "scripts/mount/horse.gd": "00bac4c64cab806e38c602d1c4b12019bf379c443a298200b2153037b4b1a292",
-    "scripts/mount/horse_mount_host.gd": "6aecda12af22246b24c70ddef21675d6f5dd0325265206720344a20d96f5c883",
+    "scripts/mount/horse.gd": "d2b07bf5f06d46527cc9a1d1c3700463c2969bee9f38a97a9225917726872354",
+    "scripts/mount/horse_mount_host.gd": "1f9d9a7219ee956f7d21aea446dd17dcc8855c565aff70704ceea7ac5eaed86e",
     "scripts/mount/horse_rider_pose.gd": "e549c303e56afa68f356c012b62aefbeeb5b2a81032a34e6e596309012e8ff71",
     "scripts/mount/horse_blood.gd": "3e8eda4e5ba6ef0bd6f3dbae60d5470ba36618ce7b2b105ccf86615783e69c5b",
     "audio/horse/snort_1.wav": "95a4e0b74348e5b59226776567bdabcd0845ac70012c885eff8b0cc66fee833b",
@@ -1509,5 +1509,5 @@
     "source_on_D": "D:\\MafioziCombat31\\coordinator35_health57\\game",
     "resume": "docs/ai/COORDINATOR_35_CONTINUE57.json"
   },
-  "scope": "All 59 retained; the castle horse is rideable with E, carries the complete medieval weapon set and the bow, has 100 HP, blood and a solid corpse you can vault over; the reins are physical ropes, hooves play on wood/dirt/stone, the horse snorts, whinnies and screams; the HP plate shows by proximity; and every dismount clears latched weapon inputs so the right hand and two-handed grip work immediately."
+  "scope": "All 59 retained; the castle horse is rideable with E, carries the complete medieval weapon set and the bow, has 100 HP, blood and a solid vaultable corpse; the reins are physical ropes, hooves play on wood/dirt/stone, the horse snorts, whinnies and screams; the E and HP plates are look-driven on foot, and an unridden horse far from the player skips idle animation, audio and rope work entirely."
 }

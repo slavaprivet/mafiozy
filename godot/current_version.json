@@ -3,9 +3,9 @@
   "title": "Замок и осада · лошадь, упряжь и верховая езда",
   "revision": "castle-20261019-horse",
   "assembly": "outputs/coordinator35_release59/ASSEMBLY.json",
-  "assembly_sha256": "b94487220a9fa9ff5bbba511a9a36c6ac7be3f9ef2ae7d4241123de8f3e4cccf",
+  "assembly_sha256": "4592c3dae17a3dbccd5eacee23fcaa57a1ca2198f32e7eb9c7f504b340325733",
   "bootstrap": "outputs/coordinator31_castle_current/bootstrap_castle.gd",
   "bootstrap_sha256": "318b2fe49cf454e0f41766ac4e5aa23ea43b2a26f5fa8d5b9c2ed3a617d0858b",
   "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
-  "scope": "Castle horse: ride, mounted combat, 100 HP, solid vaultable corpse, physical reins, hoofbeats/snorts/whinnies, idle details, correct facing and weapon hand after dismount, proximity HP plate."
+  "scope": "Castle horse: ride, mounted combat, 100 HP, solid vaultable corpse, physical reins, hoofbeats/snorts/whinnies, idle details, fixed seat/collar/weapon hand, look-driven E/HP plates and far-idle LOD."
 }

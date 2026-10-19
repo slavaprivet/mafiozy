@@ -590,12 +590,24 @@ func _tick_vault(delta: float) -> void:
 	print("DSH_HORSE_VAULT_END at=", player.global_position)
 
 func _update_hud(dead: bool) -> void:
-	var now := Time.get_ticks_msec()
+	# How centred is the horse in the actual view? Both the E plate and the HP plate
+	# are look-driven on foot: turning away (or walking off) hides them, so they do
+	# not sit in front of the eyes while the player is doing something else.
+	var view_dot := -1.0
+	if is_instance_valid(horse):
+		var camera := get_viewport().get_camera_3d()
+		if camera != null:
+			var target: Vector3 = horse.global_position + Vector3.UP * 1.25
+			var to_target: Vector3 = target - camera.global_position
+			if to_target.length_squared() > 0.04:
+				view_dot = (-camera.global_transform.basis.z).dot(to_target.normalized())
+	var horse_gap := player.global_position.distance_to(horse.global_position) \
+		if is_instance_valid(player) and is_instance_valid(horse) else INF
 	var text := ""
 	if not dead:
 		if _mounted:
 			text = "Слезть с лошади"
-		elif _can_ride() and player.global_position.distance_to(horse.global_position) <= MOUNT_RANGE:
+		elif _can_ride() and horse_gap <= MOUNT_RANGE and view_dot >= 0.78:
 			text = "Сесть на лошадь"
 	var state := 0 if text.is_empty() else (1 if _mounted else 2)
 	if state != _banner_state:
@@ -607,23 +619,15 @@ func _update_hud(dead: bool) -> void:
 			_banner.visible = true
 			_banner.reset_size()
 			_layout_top_center(_banner, 26.0)
-	# HP plate: while riding and for a few seconds after any hit; a dead horse keeps
-	# its empty bar visible only while mounted (there is no rider after the fall).
-	# HP plate: while riding and for a few seconds after any hit.
+	# HP plate: while riding, or on foot only when the camera is actually centred on
+	# the horse and it is still within reach of the HUD.
 	var hp := float(horse.get("hp"))
 	if not is_equal_approx(hp, _hp_value):
 		_hp_value = hp
-		if hp < HORSE_MAX_HP:
-			_hp_show_until = now + HP_VISIBLE_AFTER_HIT_MS
 		_hp_label.text = "ЛОШАДЬ  %d / %d" % [int(ceil(hp)), int(HORSE_MAX_HP)]
 		_hp_fill.size = Vector2(maxf(0.0, _hp_track_width * clampf(hp / HORSE_MAX_HP, 0.0, 1.0)), 7.0)
 		_hp_fill.color = Color(0.62, 0.10, 0.11) if hp > 35.0 else Color(0.78, 0.28, 0.08)
-	# HP plate: whenever the horse is close enough to be the subject of the HUD, on
-	# foot or in the saddle. Walking away hides it; proximity alone shows it, so the
-	# player never has to aim at the horse to read its health.
-	var near_horse := is_instance_valid(player) \
-		and player.global_position.distance_to(horse.global_position) <= HP_VISIBLE_RANGE
-	var show_hp := not dead and near_horse
+	var show_hp := not dead and horse_gap <= HP_VISIBLE_RANGE and (_mounted or view_dot >= 0.90)
 	_hp_panel.visible = show_hp
 	if show_hp:
 		_layout_top_center(_hp_panel, 70.0)

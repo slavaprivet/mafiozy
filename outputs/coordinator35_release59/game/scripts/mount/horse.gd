@@ -36,6 +36,7 @@ const HOOF_SURFACES := ["stone", "wood", "dirt"]
 const HOOF_VARIANTS := 4
 const REIN_POINTS := 10
 const REIN_SEGMENTS := 9
+const REIN_NECK_RADII := [0.24, 0.24, 0.21]
 const BloodFx = preload("res://scripts/mount/horse_blood.gd")
 
 var rider: CharacterBody3D = null
@@ -89,6 +90,7 @@ var _rein_prev: Array[PackedVector3Array] = []
 var _rein_rest: Array[float] = []
 var _rein_ready := false
 var _rein_skeleton: Skeleton3D
+var _neck_centres: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO, Vector3.ZERO]
 var _hand_bone_l := -1
 var _hand_bone_r := -1
 var _hoof_cursor := 0
@@ -692,11 +694,9 @@ func _bezier(a: Vector3, c: Vector3, b: Vector3, t: float) -> Vector3:
 	return a * (u * u) + c * (2.0 * u * t) + b * (t * t)
 
 func _step_reins(dt: float, bits: Array, hands: Array) -> void:
-	var neck: Array = [
-		[_rig.to_global(Vector3(0.0, 1.98, -1.18)), 0.24],
-		[_rig.to_global(Vector3(0.0, 2.10, -0.95)), 0.24],
-		[_rig.to_global(Vector3(0.0, 2.22, -0.75)), 0.21],
-	]
+	_neck_centres[0] = _rig.to_global(Vector3(0.0, 1.98, -1.18))
+	_neck_centres[1] = _rig.to_global(Vector3(0.0, 2.10, -0.95))
+	_neck_centres[2] = _rig.to_global(Vector3(0.0, 2.22, -0.75))
 	for index: int in 2:
 		var pts: PackedVector3Array = _rein_points[index]
 		var prev: PackedVector3Array = _rein_prev[index]
@@ -723,9 +723,9 @@ func _step_reins(dt: float, bits: Array, hands: Array) -> void:
 			pts[0] = bit
 			pts[REIN_POINTS - 1] = hand
 		for i: int in range(1, REIN_POINTS - 1):
-			for sphere: Array in neck:
-				var centre: Vector3 = sphere[0]
-				var radius: float = float(sphere[1]) + 0.02
+			for sphere_index: int in 3:
+				var centre: Vector3 = _neck_centres[sphere_index]
+				var radius: float = float(REIN_NECK_RADII[sphere_index]) + 0.02
 				var away := pts[i] - centre
 				if away.length() < radius:
 					pts[i] = centre + (away.normalized() if away.length() > 0.001 else Vector3.UP) * radius
@@ -841,6 +841,15 @@ func _physics_process(delta: float) -> void:
 		if _blood != null:
 			_blood.update(delta)
 		return
+	# An unridden horse is cheap when it is far from its owner: no idle animation,
+	# audio, blade scan or rope work until the player comes back. It stays standing
+	# on the floor, so skipping a frame cannot drop it.
+	if not is_instance_valid(rider) and is_on_floor() and is_instance_valid(damage_owner):
+		var owner_body := damage_owner as Node3D
+		if owner_body != null and global_position.distance_squared_to(owner_body.global_position) > 2500.0:
+			_last_speed = 0.0
+			_hoof_accum = 0.0
+			return
 	var drive := _drive()
 	var target_speed := GALLOP_SPEED if _gallop_pressed() else TROT_SPEED
 	var target := drive * target_speed
