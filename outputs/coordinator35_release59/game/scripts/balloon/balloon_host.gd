@@ -258,6 +258,7 @@ func _leave_spot(altitude: float) -> Vector3:
 	return at
 
 func _physics_process(_delta: float) -> void:
+	_place_world_prompt()
 	if not is_instance_valid(balloon) or not is_instance_valid(player):
 		return
 	_update_fall(_delta)
@@ -412,7 +413,11 @@ func _update_hud() -> void:
 		else:
 			text = "Покинуть"
 	elif wants_e():
-		text = "Сесть"
+		var barrels_hold: Variant = self.world.get("preview_power_barrels") if is_instance_valid(self.world) else null
+		if is_instance_valid(barrels_hold) and bool(barrels_hold.get("carrying")):
+			text = ""
+		else:
+			text = "Сесть"
 	var state := 0 if text.is_empty() else (1 if _aboard else 2)
 	if state != _banner_state:
 		_banner_state = state
@@ -422,7 +427,7 @@ func _update_hud() -> void:
 			_banner_label.text = text
 			_banner.visible = true
 			_banner.reset_size()
-			_layout_top_center(_banner, 26.0)
+			_place_world_prompt()
 			_animate_banner(true)
 	_panel.visible = _aboard
 	if not _aboard:
@@ -473,6 +478,22 @@ func _animate_banner(show: bool) -> void:
 		_banner_tween.tween_property(_banner, "modulate:a", 0.0, 0.12)
 		_banner_tween.tween_property(_banner, "scale", Vector2(0.92, 0.92), 0.12)
 		_banner_tween.chain().tween_callback(func() -> void: _banner.visible = false)
+
+func _place_world_prompt() -> void:
+	if not is_instance_valid(_banner) or not _banner.visible or not is_instance_valid(balloon):
+		return
+	var camera := get_viewport().get_camera_3d()
+	if camera == null:
+		return
+	var at := balloon.global_position + Vector3.UP * 2.8
+	if camera.is_position_behind(at):
+		return
+	var screen := camera.unproject_position(at)
+	var view := get_viewport().get_visible_rect().size
+	_banner.reset_size()
+	_banner.position = Vector2(
+		clampf(screen.x - _banner.size.x * 0.5, 12.0, maxf(12.0, view.x - _banner.size.x - 12.0)),
+		clampf(screen.y - _banner.size.y - 12.0, 12.0, maxf(12.0, view.y - _banner.size.y - 12.0)))
 
 func _layout_top_center(control: Control, top: float) -> void:
 	var viewport := get_viewport()

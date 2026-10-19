@@ -258,6 +258,7 @@ func _build_prompt() -> void:
 	_prompt.visible = false
 
 func _physics_process(delta: float) -> void:
+	_place_world_prompt()
 	if not is_instance_valid(player):
 		return
 	_update_prompt()
@@ -321,7 +322,7 @@ func _update_prompt() -> void:
 			_prompt_label.text = text
 			_prompt.visible = true
 			_prompt.reset_size()
-			_layout_prompt()
+			_place_world_prompt()
 			_animate_prompt(true)
 
 func _animate_prompt(show: bool) -> void:
@@ -340,6 +341,26 @@ func _animate_prompt(show: bool) -> void:
 		_prompt_tween.tween_property(_prompt, "modulate:a", 0.0, 0.12)
 		_prompt_tween.tween_property(_prompt, "scale", Vector2(0.92, 0.92), 0.12)
 		_prompt_tween.chain().tween_callback(func() -> void: _prompt.visible = false)
+
+func _place_world_prompt() -> void:
+	if not is_instance_valid(_prompt) or not _prompt.visible or not is_instance_valid(player):
+		return
+	var camera := get_viewport().get_camera_3d()
+	if camera == null:
+		return
+	var at := player.global_position + Vector3.UP * 1.9
+	if not carrying:
+		var barrel: Node3D = _nearest_barrel()
+		if is_instance_valid(barrel):
+			at = barrel.global_position + Vector3.UP * 0.9
+	if camera.is_position_behind(at):
+		return
+	var screen := camera.unproject_position(at)
+	var view := get_viewport().get_visible_rect().size
+	_prompt.reset_size()
+	_prompt.position = Vector2(
+		clampf(screen.x - _prompt.size.x * 0.5, 12.0, maxf(12.0, view.x - _prompt.size.x - 12.0)),
+		clampf(screen.y - _prompt.size.y - 12.0, 12.0, maxf(12.0, view.y - _prompt.size.y - 12.0)))
 
 func _layout_prompt() -> void:
 	var viewport := get_viewport()

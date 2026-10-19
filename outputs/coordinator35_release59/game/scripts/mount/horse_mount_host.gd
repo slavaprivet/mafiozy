@@ -397,6 +397,7 @@ func is_mounted() -> bool:
 	return _mounted and is_instance_valid(horse) and horse.rider != null
 
 func _physics_process(_delta: float) -> void:
+	_place_world_banner()
 	if not is_instance_valid(horse) or not is_instance_valid(player):
 		return
 	if _vault_active:
@@ -618,7 +619,7 @@ func _update_hud(dead: bool) -> void:
 			_banner_label.text = text
 			_banner.visible = true
 			_banner.reset_size()
-			_layout_top_center(_banner, 26.0)
+			_place_world_banner()
 	# HP plate: while riding, or on foot only when the camera is actually centred on
 	# the horse and it is still within reach of the HUD.
 	var hp := float(horse.get("hp"))
@@ -631,6 +632,22 @@ func _update_hud(dead: bool) -> void:
 	_hp_panel.visible = show_hp
 	if show_hp:
 		_layout_top_center(_hp_panel, 70.0)
+
+func _place_world_banner() -> void:
+	if not is_instance_valid(_banner) or not _banner.visible or not is_instance_valid(horse):
+		return
+	var camera := get_viewport().get_camera_3d()
+	if camera == null:
+		return
+	var at := horse.global_position + Vector3.UP * 2.0
+	if camera.is_position_behind(at):
+		return
+	var screen := camera.unproject_position(at)
+	var view := get_viewport().get_visible_rect().size
+	_banner.reset_size()
+	_banner.position = Vector2(
+		clampf(screen.x - _banner.size.x * 0.5, 12.0, maxf(12.0, view.x - _banner.size.x - 12.0)),
+		clampf(screen.y - _banner.size.y - 12.0, 12.0, maxf(12.0, view.y - _banner.size.y - 12.0)))
 
 func _layout_top_center(control: Control, top: float) -> void:
 	var viewport := get_viewport()
