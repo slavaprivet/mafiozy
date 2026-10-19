@@ -84,6 +84,7 @@ var _aim_right := false
 var _aim_up := false
 var _aim_down := false
 var _fire_queued := false
+var _swim_state := false
 var _lever_work_phase := 0.0
 var _lever_hold_pos := Vector3.ZERO
 
@@ -1277,10 +1278,17 @@ func _update_swimming(delta: float) -> void:
 	var in_ladder := false
 	if is_instance_valid(preview_boat) and preview_boat.has_method("in_boarding_zone"):
 		in_ladder = bool(preview_boat.call("in_boarding_zone", pos))
-	var swimming := pos.y < water + 0.25 and not in_ladder
-	# Shallow shore: if the body can stand on the bottom, stop swimming.
-	if swimming and player.is_on_floor() and pos.y > water + 0.02:
+	var swimming := _swim_state
+	# Hysteresis: small bobbing at the surface must not toggle stand/swim every
+	# frame (that reset the stroke phase and made the character jerk).
+	if swimming:
+		if pos.y > water + 0.42 or (player.is_on_floor() and pos.y > water + 0.02):
+			swimming = false
+	elif pos.y < water - 0.06:
+		swimming = true
+	if in_ladder:
 		swimming = false
+	_swim_state = swimming
 	player.call("set_swimming", swimming, water + 0.30)
 
 

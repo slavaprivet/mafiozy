@@ -668,7 +668,7 @@ func _swim_process(delta: float) -> void:
 	var visual := get("_visual") as Node3D
 	if is_instance_valid(visual):
 		visual.rotation.y = _camera_yaw + PI + deg_to_rad(visual_yaw_degrees)
-		visual.rotation.x = lerpf(visual.rotation.x, 0.38, minf(1.0, delta * 6.0))
+		visual.rotation.x = lerpf(visual.rotation.x, 1.02, minf(1.0, delta * 6.0))
 
 
 func _apply_swim_pose(_delta: float) -> void:
@@ -676,8 +676,8 @@ func _apply_swim_pose(_delta: float) -> void:
 	if _vehicle_walk_bones.is_empty() or not is_instance_valid(_pose_skeleton):
 		return
 	var swing := sin(_swim_phase)
-	var angles: Array[float] = [swing * 0.55, -swing * 0.55, swing * 0.40, -swing * 0.40,
-		cos(_swim_phase) * 1.05, -cos(_swim_phase) * 1.05]
+	var angles: Array[float] = [swing * 0.85, -swing * 0.85, swing * 0.62, -swing * 0.62,
+		cos(_swim_phase) * 1.35, -cos(_swim_phase) * 1.35]
 	for index: int in _vehicle_walk_bones.size():
 		var bone: int = _vehicle_walk_bones[index]
 		if bone < 0:
