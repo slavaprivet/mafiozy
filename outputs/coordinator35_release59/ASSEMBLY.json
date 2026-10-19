@@ -860,7 +860,7 @@
     "scripts/hospital/npc_treatment_pose28.gd.uid": "f1a30df4e927aabe5f1f13920f093b7d31820ed0f657c90a329dc057d190c372",
     "scripts/hospital/npc_walk_surface28.gd": "fe28870674944d9b9fc45f338a40f4ced0dfd9e312a7e44fcb3ffc6e416192b1",
     "scripts/hospital/npc_walk_surface28.gd.uid": "2a3c962c952471a91c151d6a4f745e600cf0c310855853788e74f91c4d5b8a84",
-    "scripts/main.gd": "a9574f6cc0275cf5538fb19ae7e0d0c10429feac7b0a306ba3758f1b889731a2",
+    "scripts/main.gd": "7813364c635409bfcf6906606c3f3f730853865646946640f30d83edba8c6b7e",
     "scripts/main.gd.uid": "d23a61c6adedb7dd1cb111d5401f3c21de5c349b04e122e02997aaa91dd74dcc",
     "scripts/navigation/npc_avoidance_world29.gd": "7d4e5d5a628bf942723da535eedbec0d23f668495d63fa06513b29154ef7b408",
     "scripts/navigation/npc_avoidance_world29.gd.uid": "a15db70f56d2dc2655ca61221245872d520eb7f43c61583b740b5e3166b44685",
@@ -1367,7 +1367,7 @@
     "audio/horse/neigh_2.wav": "90304c8dbdee0613ae02b0f5af52ac7e282cbee7cf9b001367de01de27223384",
     "audio/horse/neigh_death.wav": "5b6021e25a4f565d23941a56c1c6ca1a32457a988bd704b1c5cc43cdee95d669",
     "scripts/balloon/siege_balloon.gd": "fd78581273c0f5bb20f53b79b843f039ed452cf93b5f52451440197984f30082",
-    "scripts/balloon/balloon_host.gd": "70ef57665d1db8762d890fe16762e3ea337e4a196e853f491ac1ece30f136de6",
+    "scripts/balloon/balloon_host.gd": "ac36ed779310c0f86ba43c262232091be7c92a5473c4e4f2ac2336a4fee0aaf4",
     "scripts/siege/powder_barrel_host.gd": "0c35677f999cd5c0b986a14a9b6bb24e5325f3ea98c07f9bcd63b271a25a7ff2"
   },
   "source_pin_scope": "Published permanent game files only; untracked generated metadata and local diagnostic artifacts excluded",
