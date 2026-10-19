@@ -1865,9 +1865,9 @@ func _build_boarding_ladders() -> void:
 		for side: float in [-1.0, 1.0]:
 			var x := side * 4.48
 			for rail_z: float in [-0.32, 0.32]:
-				_box("trim", Vector3(x, 0.72, z + rail_z), Vector3(0.11, 2.70, 0.10),
+				_box("trim", Vector3(x, 0.15, z + rail_z), Vector3(0.11, 3.90, 0.10),
 					Color(0.31, 0.20, 0.11))
-			var rung := -0.52
+			var rung := -1.55
 			while rung < 1.95:
 				_box("trim", Vector3(x, rung, z), Vector3(0.10, 0.07, 0.72),
 					Color(0.37, 0.25, 0.14))

@@ -1468,7 +1468,7 @@ func _climb_quarter_stair(player: CharacterBody3D, local: Vector3, axis: float, 
 const BOARD_LADDER_Z: Array[float] = [-3.0, 4.2]
 const BOARD_LADDER_X := 4.55
 const BOARD_LADDER_TOP := 1.88
-const BOARD_LADDER_BOTTOM := -0.55
+const BOARD_LADDER_BOTTOM := -1.65
 
 
 func _boarding_ladder_at(local: Vector3) -> Dictionary:
