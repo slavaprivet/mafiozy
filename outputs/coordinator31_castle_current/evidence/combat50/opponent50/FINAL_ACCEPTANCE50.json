@@ -1,0 +1,88 @@
+{
+  "passed": true,
+  "status": "PASS_REAL_CONTACT_BOTH_DIRECTIONS",
+  "sword_sha256": "72b043623ca3d70f27fcc5485680d2cb7780b6f97470a6e13a86295f0293146f",
+  "source_hashes": {
+    "scripts/weapons/sword_prototype.gd": "72b043623ca3d70f27fcc5485680d2cb7780b6f97470a6e13a86295f0293146f",
+    "scripts/weapons/bow_prototype.gd": "4e41a0e76b6b6ce0f09275604236fb859d2ddd39c4a3fea01b19ac877bb2ff4a",
+    "scripts/main.gd": "0a6a09d000f277b762f44df1aab42e938e46df952a7b30837120b2fab7e4b746"
+  },
+  "copy_receipt": "D:\\MafioziCombat31\\opponent50\\frozen_final50\\COPY.json",
+  "created_utc": "2026-10-18T13:54:20.871427+00:00",
+  "results": [
+    {
+      "case": "natural_player_actual_sever",
+      "fixture_passed": true,
+      "result_path": "D:\\MafioziCombat31\\opponent50\\diag02_result\\result.json",
+      "result_sha256": "c5bea7325f69a468d28516961fb2446e4851168a172f6f74758300cbfbdaffb8",
+      "scheduler_path": "D:\\MafioziCombat31\\opponent50\\diag02\\SCHEDULER_RUN.json",
+      "scheduler_sha256": "42b8626cd4978a031ed97b64036a5ea2e730ae839614bf3156913eebce3d7d75",
+      "source_path": "D:\\MafioziCombat31\\opponent50\\diag02\\SOURCE.json",
+      "source_sha256": "981926bbb1f3abbdbda9df7750d7fcf8149e82d983ea6291883aeabb0ee2dc55",
+      "stderr_bytes": 0,
+      "source_unchanged": true
+    },
+    {
+      "case": "natural_enemy_actual_sever",
+      "fixture_passed": true,
+      "result_path": "D:\\MafioziCombat31\\opponent50\\reverse_final01\\duel.json",
+      "result_sha256": "22181b6628427d78ac6d7ef113d9c09cb4c398539ccddfbed2a726a88e389146",
+      "scheduler_path": "D:\\MafioziCombat31\\opponent50\\reverse_final01\\SCHEDULER_RUN.json",
+      "scheduler_sha256": "5d9aab36fec87c553afd3aa480e88952e3aa7d7e186e924cf5f347d1adac89be",
+      "source_path": "D:\\MafioziCombat31\\opponent50\\reverse_final01\\SOURCE.json",
+      "source_sha256": "b5d96483e65c37a92f4cf8c5c93156e74c51e04727e62ceaa86ce1556e3f7aa4",
+      "stderr_bytes": 0,
+      "source_unchanged": true
+    },
+    {
+      "case": "short_horizontal_defeat",
+      "fixture_passed": false,
+      "result_path": "D:\\MafioziCombat31\\opponent50\\sharp01_result\\result.json",
+      "result_sha256": "6d5ab0a4ef845b99bb21213ccf3dda6738dfdf568c0a2385acc049f320dc14e3",
+      "scheduler_path": "D:\\MafioziCombat31\\opponent50\\sharp01\\SCHEDULER_RUN.json",
+      "scheduler_sha256": "b96c8ce05bd48681e7923c36999ff61a5f74e0a98cfc9dfd397676a6614d6967",
+      "source_path": "D:\\MafioziCombat31\\opponent50\\sharp01\\SOURCE.json",
+      "source_sha256": "a6e1b6bddc48d8f5e4046c04d08846a5c5bf75d6ca0589ff16739e5257a57164",
+      "stderr_bytes": 0,
+      "source_unchanged": true
+    },
+    {
+      "case": "short_vertical_no_sever",
+      "fixture_passed": false,
+      "result_path": "D:\\MafioziCombat31\\opponent50\\sharp_vertical02_result\\result.json",
+      "result_sha256": "06edcaa0c2d2c12539bfb5e8dba9be6272ecc4db9447a81f5cd6ca43f99b0e53",
+      "scheduler_path": "D:\\MafioziCombat31\\opponent50\\sharp_vertical02\\SCHEDULER_RUN.json",
+      "scheduler_sha256": "ff25f1cb94e7b2ef270450418371ed64ba47fbe54e4258e7c89667fa54d6a3d2",
+      "source_path": "D:\\MafioziCombat31\\opponent50\\sharp_vertical02\\SOURCE.json",
+      "source_sha256": "a6e1b6bddc48d8f5e4046c04d08846a5c5bf75d6ca0589ff16739e5257a57164",
+      "stderr_bytes": 0,
+      "source_unchanged": true
+    }
+  ],
+  "raw_original_failure": {
+    "result_path": "D:\\MafioziCombat31\\merged50\\final_player_result\\result.json",
+    "result_sha256": "7699c81fd9bcf354f3a020631085d159f1fa036cd6088f74f92f0e9474db630d",
+    "scheduler_path": "D:\\MafioziCombat31\\merged50\\final_player01\\SCHEDULER_RUN.json",
+    "scheduler_sha256": "2f7d03aa81250b2f82dbd71962f0a31e14ea910949c653412358dd421aeb8f4c",
+    "preserved": true,
+    "observed": "Eight strokes left NPC14.78147HP, thigh_l2.67598HP, no sever. Six last strokes no new damage. Original harness lacks player-death/disarm and camera-aim telemetry.",
+    "diagnosis": "Mouse motion55frames*20px=1100px rotates camera3.3rad189degrees eachstroke because same input controls camera and weapon. Target can move physically, harness does not re-aim. This invalidates an assumption that every repeated prescribed stroke stays sharp and aimed. It does not prove the sole cause of this particular raw failure. Repeating same inputs with read-only per-tick telemetry produced actual upperarm_r sever at firststroke on identical source; outcome is timing/pose dependent."
+  },
+  "proof": {
+    "player_to_enemy": "Native rack equip, mouse/LMB only after initial placement. Actual upperarm_r cut, NPC globalHP90to0 after cut, disarm/death. No damage injection or source modification.",
+    "enemy_to_player": "Automatic pursuit and5actual contacts, head sever,5original mesh layers detached, player death. Last contact slice7.46816m/s, edge_across.99579, damage37.67078.",
+    "damage_numbers": "19.2wounds in short fixtures are consistent with capped160flatdamage*.12, but exact kind/speed was not logged by player contact handler; not claimed as directly measured.",
+    "short_cases": "Short horizontal and vertical variants failed sever assertion; these are retained, not accepted as sharp strokes. Horizontal player lostupperarm_r. No promise that every attack severs or player wins."
+  },
+  "setup_failure": {
+    "path": "D:\\MafioziCombat31\\opponent50\\finaldiag01\\SCHEDULER_RUN.json",
+    "reason": "New frozen copy initially omitted .godot resource/global-class cache; native import errors. Copied original cache then subsequent tests compiled with stderr0. No gameplay source change."
+  },
+  "limits": [
+    "Scoped functional native contact proof; no broad balance or performance acceptance.",
+    "Precise exact source only; all source files unchanged across tests.",
+    "No need to lower damage thresholds or modify source based on these results."
+  ],
+  "terminal": true,
+  "active_tests": 0
+}

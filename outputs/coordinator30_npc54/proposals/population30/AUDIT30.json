@@ -1,0 +1,1464 @@
+{
+  "packet": "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator30_npc54\\game\\assets\\npc_city\\session_packet.json",
+  "packet_sha256": "b9c810e81b8b3da6afc048a32c4fe50745f32e4b15d0fd55ff876e69c35c54a1",
+  "city_rows": 287,
+  "unique_ids": 287,
+  "source_roster_count": 288,
+  "excluded_from_current_city": [
+    "resident_15"
+  ],
+  "roles": {
+    "pensioner": 49,
+    "housewife": 50,
+    "student": 51,
+    "businessman": 27,
+    "worker": 90,
+    "homeless": 20
+  },
+  "empire_boss_ids": [],
+  "police_ids": [],
+  "staff_separate": 12,
+  "identities": {
+    "resident_1": {
+      "bridge_id": "npc_resident_1",
+      "descriptor_sha256": "6f67f9d655bc66e512ec3c3eb206f5fefd3523256f075d15750a8e4af22a747e",
+      "row_sha256": "a745d6fbf8bb9adbf21ac765ba2968bdb4abbcff01536986c5eda02df12ab09e"
+    },
+    "resident_2": {
+      "bridge_id": "npc_resident_2",
+      "descriptor_sha256": "9e7857b81d25130c9acf0cd6938c85a2343a3fe31581244f25ca77beb21c08cc",
+      "row_sha256": "86a5aacf380ce0c48d4b5954edc6ae19f4dc75c9ccf107800ad8378c994ddf75"
+    },
+    "resident_3": {
+      "bridge_id": "npc_resident_3",
+      "descriptor_sha256": "d7143a3c264129933e9cec7a5526db8b38980ddfe26be7c71b3e64e27e3037b9",
+      "row_sha256": "3273d82cf89343a20bd1e128003222cf75eff466fa9e1d91d8b64a94018f2b68"
+    },
+    "resident_4": {
+      "bridge_id": "npc_resident_4",
+      "descriptor_sha256": "d001d9a696362b1dfdb0fd229493b1572dd3cce9d47a86ec804034eaa06f7629",
+      "row_sha256": "65c694f77f8270e89a7f864d1eea707d069736c41a90d33198d7dab2973f478b"
+    },
+    "resident_5": {
+      "bridge_id": "npc_resident_5",
+      "descriptor_sha256": "93fb2fa68ffd793033f81df9d0eb8b34828630d28f0a9a9798737e349344f0c4",
+      "row_sha256": "eac4993ba5c268a5c1d09e495d8f64bf8146180afbaff7c818d979d1549ce3e6"
+    },
+    "resident_6": {
+      "bridge_id": "npc_resident_6",
+      "descriptor_sha256": "3cbf65f0114ea72c8d01f9894a2ede7f0c0c99fda8e630a628404695ee2395e9",
+      "row_sha256": "c39d73bb0e6a52846dc04a1becc4e0ea4263e28c9b5121549f6a0358c067dd63"
+    },
+    "resident_7": {
+      "bridge_id": "npc_resident_7",
+      "descriptor_sha256": "17984296078d054ed64c9e9a2fe56e39fad7d4b626bbeb31d38bbeecaf3bda0b",
+      "row_sha256": "206f54853e3f128f5263cee356699e4df127b96402a4d554cfc545bc9439c0a8"
+    },
+    "resident_8": {
+      "bridge_id": "npc_resident_8",
+      "descriptor_sha256": "198e05aa81cdba3e0562c6b03367819c192f013e9feccf39cd5de1718316f7f3",
+      "row_sha256": "a6af77e659f15d2c2fd0e0b760acea9174a36e9deef98bc98fb2f84687f2a4eb"
+    },
+    "resident_9": {
+      "bridge_id": "npc_resident_9",
+      "descriptor_sha256": "002bd835e2ebf062be4a3606edeb478ca13b1029d464604bf4b8c73e2e025c26",
+      "row_sha256": "05ea1e10ce5e7ae1b04f31efc525c14ed0e45ed64507dd2ad987bb317fc9030e"
+    },
+    "resident_10": {
+      "bridge_id": "npc_resident_10",
+      "descriptor_sha256": "5bc59e0d558e0441429c301dd0b4d47baff46b750f5f1fcc32dab9f95e43dbcc",
+      "row_sha256": "a86676adaae671ca48406a53db3285350fe7e6d729f01f5966687ea2307584b4"
+    },
+    "resident_11": {
+      "bridge_id": "npc_resident_11",
+      "descriptor_sha256": "bbedbf17a3b1dd63f7d0c947857a3407c31b1851f2568e4de1eb05b38794195f",
+      "row_sha256": "98d22231b25d23ae2536be2e604c4abed121fecffe2fd0bb541bef5130e781d7"
+    },
+    "resident_12": {
+      "bridge_id": "npc_resident_12",
+      "descriptor_sha256": "191fb9f53fad1cade8a6e3c017256d2d965a8b97c99764358a8b049c06ae5e55",
+      "row_sha256": "c58e478a1cd874986398f8e038413ad9b84e925e2766db1bdce0193cb3491f02"
+    },
+    "resident_13": {
+      "bridge_id": "npc_resident_13",
+      "descriptor_sha256": "ee4e1182514972dce1bc532259f0250209205cfdcf76ee045b05707c239f8e6a",
+      "row_sha256": "95e6978791d51b01ec6278eacf65a9db802c32df1455aee1bbf7a8f5507fd247"
+    },
+    "resident_14": {
+      "bridge_id": "npc_resident_14",
+      "descriptor_sha256": "39b322394da24e8b83a8184ecb45f4035df1736ab023a8a8d31250bcb2643228",
+      "row_sha256": "f9adc5d9ffe9b9c2b61f4197bcc8c2106d27f8e2476438df865eeb7b76603b6d"
+    },
+    "resident_16": {
+      "bridge_id": "npc_resident_16",
+      "descriptor_sha256": "0ef52313dba0a94c63d2b3e0e0e8192851060c76f9b7a55b2a464c2cfaf09ebe",
+      "row_sha256": "a545b98e693b1de67f7a32b4a77988406cb698bdfe9b196d1f1eca12ff741a10"
+    },
+    "resident_17": {
+      "bridge_id": "npc_resident_17",
+      "descriptor_sha256": "11684f12dde6192f668792394ad5237a776b72da1380c100802bde4bd150134c",
+      "row_sha256": "7db581e4272994139e76d16d57f26370648cba4143cc03007d4dc1106dc013c0"
+    },
+    "resident_18": {
+      "bridge_id": "npc_resident_18",
+      "descriptor_sha256": "5e94144cbbb439cf4935d57630df8466309f2afcb7e8f5e5721d4246a0c85c95",
+      "row_sha256": "e8300d5f02a2b428d84c67e5234b11ce8ab5054d56e0d27b699a485e241b78c3"
+    },
+    "resident_19": {
+      "bridge_id": "npc_resident_19",
+      "descriptor_sha256": "3be34fd18bc19dc3b9fc5e08ac51ad30b61b1640f9a57da3655de3bbdf92db6f",
+      "row_sha256": "dccd9d94143958cc9877c5c23c5108e9ab97f7915eb4ea0763f36d4a30952ce3"
+    },
+    "resident_20": {
+      "bridge_id": "npc_resident_20",
+      "descriptor_sha256": "733ac67df064d312c3d78752b8e10bab2227260749176b1f1e5d4018353e9ca9",
+      "row_sha256": "1c89e807d8fac00bf436998c3dd970d1fbe163a47d1f477976b3bae9f02280f2"
+    },
+    "resident_21": {
+      "bridge_id": "npc_resident_21",
+      "descriptor_sha256": "613ada4ffd685372aeb8b63b7b6b4f3cabd1ca981255aaa5f7d512f32c2f47c3",
+      "row_sha256": "b9995f7db69746f1e487c266afdda50a3e054bbd76dc8788d850dacd3f971245"
+    },
+    "resident_22": {
+      "bridge_id": "npc_resident_22",
+      "descriptor_sha256": "bb16c6b18989d7daef0ee7b4fa585a5f3100f462233f9945ce57df0087206b7e",
+      "row_sha256": "468721bacd61cb5857a7e6379aa476d94ab1f9f574db4d9b2667d4145ff3f59d"
+    },
+    "resident_23": {
+      "bridge_id": "npc_resident_23",
+      "descriptor_sha256": "adfdce1c92f49ca7eba83e3adf2c646ae35d1a3f1743b68d33aad1e2df5854a5",
+      "row_sha256": "98918d26d62f9eef7c06db70360c4f4da435d663ae1e188d9439c7eb39f27f60"
+    },
+    "resident_24": {
+      "bridge_id": "npc_resident_24",
+      "descriptor_sha256": "86fe120c771722932b94e82efebd6f3919f5056d47150bf84616767a7de04b82",
+      "row_sha256": "35cd2b2c8ed69fd3b6928ddc228be3aea3b36ea2a2d7cc7f1e285403f36329d8"
+    },
+    "resident_25": {
+      "bridge_id": "npc_resident_25",
+      "descriptor_sha256": "64003bf1e7cf2b566189ae741eee7b8be01395b2bfbc6cf783fc3acfed061608",
+      "row_sha256": "09a0278130a8c8eea37b91a3f1ba03cbc9333b3507c3d26a130326c3550c1148"
+    },
+    "resident_26": {
+      "bridge_id": "npc_resident_26",
+      "descriptor_sha256": "ebd6ad6522548520c958f69b40179edf53f981f0bbc6083a1df94cd68ff4dc52",
+      "row_sha256": "24b7440ad2b833b3609a228163735ba8fc008542bad5784677103191c7b5638d"
+    },
+    "resident_27": {
+      "bridge_id": "npc_resident_27",
+      "descriptor_sha256": "86d25ee107a0b78cbea7d5090970aded698dec327f6a9acbacee94df70654303",
+      "row_sha256": "1f6197c728eb91585ee2f1033c819a9d4537a1998cee4a47a76de3b2cf8ccf62"
+    },
+    "resident_28": {
+      "bridge_id": "npc_resident_28",
+      "descriptor_sha256": "b91c5d8fcc9303ab59050110f4b03c22c29b412c389466853515535bfe1b0a06",
+      "row_sha256": "cdbb44607af40c44394b9beb6dcb06c92600d1365aa5c21c4523861c15db5d70"
+    },
+    "resident_29": {
+      "bridge_id": "npc_resident_29",
+      "descriptor_sha256": "d5b6a6abe174f52df914547d339e429a98f30bc177cb26f8df1df65f844a664e",
+      "row_sha256": "d29e3e4e352f2c2627bb9072a1578b11324d381bb922cf0cbcb37ed459cd5f28"
+    },
+    "resident_30": {
+      "bridge_id": "npc_resident_30",
+      "descriptor_sha256": "5be8fd1c796689db18b8c533f57b52f0c1596c7c98adeb452c19b1ae4483b7da",
+      "row_sha256": "24cc3fbcfc1643b6fa7323d7ba77001226e8e23ba9bea977e2a1d5a6b11bee6c"
+    },
+    "resident_31": {
+      "bridge_id": "npc_resident_31",
+      "descriptor_sha256": "b62a3a57ff78c50e70952370290e536b38ffd7a5393bc55615d1cbc905a23c97",
+      "row_sha256": "1ffeebeeccba91d0a7c4041d864e9521f48fd504502dfbfe2437adf18590a556"
+    },
+    "resident_32": {
+      "bridge_id": "npc_resident_32",
+      "descriptor_sha256": "73d319d563619fd4d90e3b670fe4b3cab835e15731c1882075445bd4e12e3748",
+      "row_sha256": "167b49cfc123c017340d52ad7b6b8054dc9754f515a68708a202eaadb714c732"
+    },
+    "resident_33": {
+      "bridge_id": "npc_resident_33",
+      "descriptor_sha256": "156163f76d1ec29ae3ff1da69104bdf9c970bc1a673f28e172c0bf80e14629f6",
+      "row_sha256": "cd9fee7cebd17b99349b626a65c6670a2c805261e718c05a70d7e00956a1a3dc"
+    },
+    "resident_34": {
+      "bridge_id": "npc_resident_34",
+      "descriptor_sha256": "909baf7d17e8564029d701f98873a2937795992216084b5cb715c6ac2d4b1510",
+      "row_sha256": "9f6dd485c1f1f2a0158583458cd5a682e978b98397532b3545473352536361e3"
+    },
+    "resident_35": {
+      "bridge_id": "npc_resident_35",
+      "descriptor_sha256": "8ae5b0ec3e52d3119eeefe9e92cd34aca7f4ed2e23d6d57ada2e90cab73e4712",
+      "row_sha256": "b7a9ae36e499a56e87ceee2fa224756d301d2eecef92941ff08cd4d194dd3698"
+    },
+    "resident_36": {
+      "bridge_id": "npc_resident_36",
+      "descriptor_sha256": "f4a1b0f86104e88f2f7be997a7913c3769002831d9b182d50cf799b6f6e33a5b",
+      "row_sha256": "6cfa863e27f89c675c610b2595612456417a5b9682d65272c09872538bfecfbb"
+    },
+    "resident_37": {
+      "bridge_id": "npc_resident_37",
+      "descriptor_sha256": "a81cec166978a6c33cde756aef1f5169b56bfd0123bbbf61a5ef14d537f90341",
+      "row_sha256": "c8420fa764b44b5ba7162f48d6e505fe54a49dac5b40f3576a57a167f37a85a9"
+    },
+    "resident_38": {
+      "bridge_id": "npc_resident_38",
+      "descriptor_sha256": "d3d18864e652394701257ebfe455248b340a8f5e98b55112c4d7fcc3ecb8b2c4",
+      "row_sha256": "d59c4a6cfa70a4684863f5bd74d84f64207edcb04811871f02e74651c8df241d"
+    },
+    "resident_39": {
+      "bridge_id": "npc_resident_39",
+      "descriptor_sha256": "d6580b1bb05abf085ed21838b9e0698874b946daf3138feda8775f7ba1911ba9",
+      "row_sha256": "7184fa8ce97184fb78e3317293ef70a70e21a62ef5ee36c612a62927e02df268"
+    },
+    "resident_40": {
+      "bridge_id": "npc_resident_40",
+      "descriptor_sha256": "95fdfbfd94e1e9b7d28560a3ae4e1c611530f393f4d9dab2d91135bba9e0b94f",
+      "row_sha256": "a40392aaf7178ba22d6fc04ecfd56bbf77c442ebaf75f59a9f18aae591c63c0c"
+    },
+    "resident_41": {
+      "bridge_id": "npc_resident_41",
+      "descriptor_sha256": "2f8666c18757cf29609420395829ed9e4b236d044ae3215f43ddb57dfa711a10",
+      "row_sha256": "e093efd82d552e88def7ada8f6d7e788bfa2ffe3291e059e7b5787be6ac63973"
+    },
+    "resident_42": {
+      "bridge_id": "npc_resident_42",
+      "descriptor_sha256": "bd151c89fba509c7a6e3c535d46b4b84c7a509bcaadf229becfb5a1f1cc597fd",
+      "row_sha256": "982f3cf817ac3e7432232604c64632a21fda79594e547721347a40d9d318c78b"
+    },
+    "resident_43": {
+      "bridge_id": "npc_resident_43",
+      "descriptor_sha256": "b3dfbb78a32de9710b595567734190352dfeafa74ecba41a5f9fdaccf8b27a41",
+      "row_sha256": "d1318be8836fd466b74d6f6c03751f6a9584003dcd8c311016d01e6330ae69c8"
+    },
+    "resident_44": {
+      "bridge_id": "npc_resident_44",
+      "descriptor_sha256": "e11e856d74f081019d00262bb48fbb251a33798527fce149f080e2cc3d045ca0",
+      "row_sha256": "32ee87289eb3652fba652517122455bcaf791b06d00a58c62446a2f04103112d"
+    },
+    "resident_45": {
+      "bridge_id": "npc_resident_45",
+      "descriptor_sha256": "b52f52e7c6778b5858e8062be189cc8560d5cd1f596c2559fca3bcb0da902dd6",
+      "row_sha256": "31624774148b999cd54e78ea282703dffae6fce5fc4c91d3a60e30d0dd3106a7"
+    },
+    "resident_46": {
+      "bridge_id": "npc_resident_46",
+      "descriptor_sha256": "a8e9191b36c6ccd4a16225db183d1180177c12dfe881a99de788404856a4b542",
+      "row_sha256": "3867d306664dac89eb6525764f7ea2db317e43a3ea3000d324b63c6a0ca02395"
+    },
+    "resident_47": {
+      "bridge_id": "npc_resident_47",
+      "descriptor_sha256": "8d5b05b674c14ece277acbb7490d003777ccb49bc69470f2b4896c740251bc44",
+      "row_sha256": "71ccca7e5967c59133e7ce48d5b6bf6cd119486e1d3954b5f2337013c5d2ce73"
+    },
+    "resident_48": {
+      "bridge_id": "npc_resident_48",
+      "descriptor_sha256": "a05fa4c3a757e715f08f7b39a7fae2e5119340129fa38fa8a19dea0ac13fb287",
+      "row_sha256": "26b0d1b0f770e974babcdfa928afe50bca0302070f6fa54c6876aa9d14f8ad07"
+    },
+    "resident_49": {
+      "bridge_id": "npc_resident_49",
+      "descriptor_sha256": "49b563d5d34d199e9a93e3016a0620adecb9c232cf1b5ec25516cef7a50f9e38",
+      "row_sha256": "22435531ac8969e56f8d7e7943d551a3c5d099b5e7ed752eddff0a947f1fd859"
+    },
+    "resident_50": {
+      "bridge_id": "npc_resident_50",
+      "descriptor_sha256": "fed9d8624030b917459d8cc0646c2bef14d50c306acea463013565e4d4f8fae0",
+      "row_sha256": "ff7de7989df7b8fdfe390bc218eaf1440bee491230cf0b4a17f36befb2a2e694"
+    },
+    "resident_51": {
+      "bridge_id": "npc_resident_51",
+      "descriptor_sha256": "86e5c0653da12c99cb4ad4b8aa64c3b50e7f0b712442bb068e2ed2778111592d",
+      "row_sha256": "3c0fae590c60cd12736f73bea5583d6e251dbfc31d38cc9942b8f9ab157339c4"
+    },
+    "resident_52": {
+      "bridge_id": "npc_resident_52",
+      "descriptor_sha256": "3a02a6c894216ed9c8e933e04791ae96cbb3590f98a9fad1b9f6a4b2869d6f7c",
+      "row_sha256": "216b979e339a1a3478000556225ee8416f9bf87cb38693886e6d8041ce6bcf85"
+    },
+    "resident_53": {
+      "bridge_id": "npc_resident_53",
+      "descriptor_sha256": "c0c5541a037cfbf2997e997f2976085396909f02bc7ec541f0fc4e70651e3f60",
+      "row_sha256": "c6d488baa226674d6fc36b872ee57fc47d8faa90d91c0e1e02227a1b2f43c188"
+    },
+    "resident_54": {
+      "bridge_id": "npc_resident_54",
+      "descriptor_sha256": "860b7c1535bf83526b96068f3a0dea32d05bca7337060c403ede215a48ef1c50",
+      "row_sha256": "2b93b339bc7de7134342b81238cf83e7d9f0258c6dfa5ec48f6a5fd5739b1ffb"
+    },
+    "resident_55": {
+      "bridge_id": "npc_resident_55",
+      "descriptor_sha256": "67aafced6fd12490c73839a2861a37409a4c3ee17ce0f19b876ac714fdba2977",
+      "row_sha256": "8949ccfc41c9cc8d4a6ae9717c1308a5615fd332ef199b744a3cfb7476e20ba9"
+    },
+    "resident_56": {
+      "bridge_id": "npc_resident_56",
+      "descriptor_sha256": "8e65f56e0880992dfea6d92d84be3cb05f0a8fbb8df3b5d5b9e280d9d1f9db49",
+      "row_sha256": "ae5dffac1c9a0364e5b418fe5e27251c920bd4fe8cc5fbfc3c8d6d705e72abee"
+    },
+    "resident_57": {
+      "bridge_id": "npc_resident_57",
+      "descriptor_sha256": "1ff8e38bfe3a11f4dc309bfe6a5a2886eba78f0fa67aa1e5227de65808ddfee8",
+      "row_sha256": "7199edb6ade8d72c70b240a3492ad4a06d6f10b60ce55a7d4137d7ae489cf084"
+    },
+    "resident_58": {
+      "bridge_id": "npc_resident_58",
+      "descriptor_sha256": "c8bbaae9020b775d2f050f7659dd044500381144f233bb0366401d47741a381d",
+      "row_sha256": "31c7ceebe4cefd069fe078a7857fac7d272bb7440e8cd4dcf79c65e83e2f3972"
+    },
+    "resident_59": {
+      "bridge_id": "npc_resident_59",
+      "descriptor_sha256": "0d51d22bf03d6496c1059107541d2bb3d51c5c720f55acc90c7a7ab97ab36e4e",
+      "row_sha256": "2dd2ef1bf43f82d5d5013c674fcada7a0d430fffc3e42284374e8ce481e6c9c6"
+    },
+    "resident_60": {
+      "bridge_id": "npc_resident_60",
+      "descriptor_sha256": "c6e7f882bfde9ddba8c0139ca430bd38c2ce456b4907a220812c4bad3bd29def",
+      "row_sha256": "c3355569d69ed9a01a084da666acb5f12d3314c9aa174f57f8b48424ae75e123"
+    },
+    "resident_61": {
+      "bridge_id": "npc_resident_61",
+      "descriptor_sha256": "fbfd2818ec67220101574371d3848a275433514d51332c4f7ad7ef24686ee718",
+      "row_sha256": "ce10f6b2a2af4c8ac1bfccb5e8cb103650d7d541bf838955cacdd1c7a31a8ec8"
+    },
+    "resident_62": {
+      "bridge_id": "npc_resident_62",
+      "descriptor_sha256": "93199609ff1aa89c62a9d650574518a23e915b077be4334538ed23f8401252e1",
+      "row_sha256": "ed32ecfed6314c437aced4872c60639ee1d7af48ccce265fbc9dbb4e82f37db6"
+    },
+    "resident_63": {
+      "bridge_id": "npc_resident_63",
+      "descriptor_sha256": "50da8601c08c2c618ace23e677097bd53bdc1ce520940fff98cd97fce8f1b39f",
+      "row_sha256": "26841c08d28bd9663e59fe6d903551b681e5c3b0b500b9baa87aaf5b2a611373"
+    },
+    "resident_64": {
+      "bridge_id": "npc_resident_64",
+      "descriptor_sha256": "b641413301720dffb1dfdb2f36a65f826be2862d350b454e88503952c398ed08",
+      "row_sha256": "2672c1752e9d20aacaf7b30a6f9f1e6d0bc3cb06246d79cc6d1dcd200c23b744"
+    },
+    "resident_65": {
+      "bridge_id": "npc_resident_65",
+      "descriptor_sha256": "d9475f065a45ea4c090ad98669a93cd9aa84365502a54fc8cfea41939255f927",
+      "row_sha256": "ee9c996cd705b9570f9fedfa480ea4735282744951259c8feb3fad7a42c07aba"
+    },
+    "resident_66": {
+      "bridge_id": "npc_resident_66",
+      "descriptor_sha256": "ef7c82687988f570474fc46fff3be595850edc66c5e530198e43be11b3744839",
+      "row_sha256": "42bd40dae25655a8020bfa2d1e60570aa741d46344762efd3de07347b913d3f1"
+    },
+    "resident_67": {
+      "bridge_id": "npc_resident_67",
+      "descriptor_sha256": "f87f8c962cd2375553a202d8bdb06e926305697e2a9d908b89e4a5eff6f867f5",
+      "row_sha256": "36be6782d6a38d7005d38892f843820c4a2abb507acf9d785b112a31be4ed251"
+    },
+    "resident_68": {
+      "bridge_id": "npc_resident_68",
+      "descriptor_sha256": "651c84348ee127c3c8504466e6f0b6e1d32bbd422dcf730e596570c0478fc0cb",
+      "row_sha256": "8a21eb92247127e5f9253b99da9cf74fb6fd9b990de064705f46b86e28571fd5"
+    },
+    "resident_69": {
+      "bridge_id": "npc_resident_69",
+      "descriptor_sha256": "84c5d844b44160218438e24eecfb6f2a08b886d5c0e8ef4ccc4ddfdb59d27a1e",
+      "row_sha256": "283e4228808cd670aa250e06d4a12a0b4a15900509f4052a257e5d8bd37b13d1"
+    },
+    "resident_70": {
+      "bridge_id": "npc_resident_70",
+      "descriptor_sha256": "4f11bca56b3e9c07692f903e1c435f974204a9faa8d38506ad862ccdb21b36c1",
+      "row_sha256": "4c63db57d55da280ca1a6a3b445fb67c1b67ea6bc35af415c2d51c0f5823eb37"
+    },
+    "resident_71": {
+      "bridge_id": "npc_resident_71",
+      "descriptor_sha256": "0d17663ff95f113ca04c8c52df8dfe2a127c41949721f951d43fe2095d8bbb8a",
+      "row_sha256": "e5330b75280063da9386add24eddd27323359c4e62ef1f935d74109a6b7b1203"
+    },
+    "resident_72": {
+      "bridge_id": "npc_resident_72",
+      "descriptor_sha256": "fb812a2fc447726dd30548edb34805295ac28e6970c2ca55a6abb18a5a4c39bd",
+      "row_sha256": "ee5cc90659599db09d7a47999edeadcce03fdd1fc7fcf24da632906e46dccd53"
+    },
+    "resident_73": {
+      "bridge_id": "npc_resident_73",
+      "descriptor_sha256": "c73a4dac13e1eb1c1d03039989b74a8b25911799370d4cf14791a80906e5d00f",
+      "row_sha256": "5ea868047a6340b5fb29d45aec4c33259369c8e84733b71030bb7363c9a5c920"
+    },
+    "resident_74": {
+      "bridge_id": "npc_resident_74",
+      "descriptor_sha256": "0b33861862e9625d8570bf44bb20cb0bfd4f7c0e1ad7787729fd3b7a2919d970",
+      "row_sha256": "852f77691eb2a9a8eeb5bc50231046253557f87a92fb393d24ae1b515525497d"
+    },
+    "resident_75": {
+      "bridge_id": "npc_resident_75",
+      "descriptor_sha256": "329ec58b87c5858aba039c18e9cd4d40257d4da2717078295aa793e0245db9cf",
+      "row_sha256": "e44b6d1b8d857817fcbfa75ec3dd769aaae605ee1b97dc00b35eb89578c73159"
+    },
+    "resident_76": {
+      "bridge_id": "npc_resident_76",
+      "descriptor_sha256": "defe4d77bc0f0a32bc3f8d17c22eb7545b275c3d15a863882043d301948e94f4",
+      "row_sha256": "91f458900a9e94cc5493c2cec60b388796d88219ce05f40d33afbf0a39883353"
+    },
+    "resident_77": {
+      "bridge_id": "npc_resident_77",
+      "descriptor_sha256": "4bf3ecf15b263ee9ec8262ee2b3d734853c2533522191cb212fc770bfa7ed26d",
+      "row_sha256": "0eefd6b78f29d09186f561fccb015973fd85c5a56c225f1301d79c1bb606624e"
+    },
+    "resident_78": {
+      "bridge_id": "npc_resident_78",
+      "descriptor_sha256": "c5d8a5f44111d82a258a47329fbb92fa8e71949a1a445246865bd8db746db4d3",
+      "row_sha256": "c9258b41222c85d2c5037e79544545ca53b7740cf1debe7e99acc2b7218f92df"
+    },
+    "resident_79": {
+      "bridge_id": "npc_resident_79",
+      "descriptor_sha256": "594885f71143e410ee0082518c39873b6d7addab4f0637afbf82516a67d12fcf",
+      "row_sha256": "229bc1dc5a24440765cd1b487ccd2ae17c08d417bf493a717e73ff11538a55ea"
+    },
+    "resident_80": {
+      "bridge_id": "npc_resident_80",
+      "descriptor_sha256": "48a35b7cfc64ba2524cad5fbcc65dba13ab0aa77b59a65d414ddc2fd172d3c82",
+      "row_sha256": "7fe40b5e9085e743a5870cb17b5362b61df543fa4e5dc9a81927d8d4e1224be3"
+    },
+    "resident_81": {
+      "bridge_id": "npc_resident_81",
+      "descriptor_sha256": "a8ec3e2f8e192038d25ab3eaa4d3f4e507a92e13d20e20e32368ce5ef4e2fb61",
+      "row_sha256": "1a23d97c1283e9eaba6d9a0aea61256df16fea4684dbdb06b1e274acffec9ed5"
+    },
+    "resident_82": {
+      "bridge_id": "npc_resident_82",
+      "descriptor_sha256": "2dbefa37696790d8c6831b846972ed9be922313555ec337de96d99ad180a2a7a",
+      "row_sha256": "8969ad178fb29cf9d7313511873f9e8aeaf4e6eb80f82f0aa24b65c7b777f18f"
+    },
+    "resident_83": {
+      "bridge_id": "npc_resident_83",
+      "descriptor_sha256": "2f99d6af1e482d792237feed70ab5afe6133522eaf1fe516faadc21ee0372b0b",
+      "row_sha256": "1cf9ab8f03e21948c7438df08515cc9c66165bcbb75657464008e7d89db48d25"
+    },
+    "resident_84": {
+      "bridge_id": "npc_resident_84",
+      "descriptor_sha256": "3d36cd8314b10a17e78762d3b756f5230e907d2cf068aadac38dd917d51988d2",
+      "row_sha256": "c9bbb81e5e2da0ae7fb8118deeca6466be3f09d9185c975e1aa9a70cb9673423"
+    },
+    "resident_85": {
+      "bridge_id": "npc_resident_85",
+      "descriptor_sha256": "b8f1ceda8b0afe000cfeff35f44c76ca4a31958c556c24fbb571795cc30cd125",
+      "row_sha256": "6fd6a78c28677e77b444934578ab6ae578a53b692b58a0f530807ee3a8302bf3"
+    },
+    "resident_86": {
+      "bridge_id": "npc_resident_86",
+      "descriptor_sha256": "b0a25ab22616e05f1dd429def9eaac8f172ebb37f49075bb1bbafaaf5e6f7c22",
+      "row_sha256": "ae13ce792830655da91baf333733f2fbea0b1c88dedbb27e285fc64f2a5b64e5"
+    },
+    "resident_87": {
+      "bridge_id": "npc_resident_87",
+      "descriptor_sha256": "16d734717937b8342511b19bfb7b1b9e32043be6b384f3ef5adc4660585a8463",
+      "row_sha256": "ea254e4bc8b84748c12e933c75b69e7a342597b95acdc92967083f74d965450b"
+    },
+    "resident_88": {
+      "bridge_id": "npc_resident_88",
+      "descriptor_sha256": "ea9cbc2fd8162ffd3826c098f7ba1de585845b1e4adedd8354afced60db89d2a",
+      "row_sha256": "91b18b567b6a77d704ff2e453298273d21acc5f089d250eb5bbc30ef98245bff"
+    },
+    "resident_89": {
+      "bridge_id": "npc_resident_89",
+      "descriptor_sha256": "1bddf0ce54e3c376e1f993bd949a90f475a2f945c4fa00ca498aaf8c3069cc9f",
+      "row_sha256": "2df6fbf18212bcfcf1b2f2a1af6da36f2481746f71e314f110f92784098703da"
+    },
+    "resident_90": {
+      "bridge_id": "npc_resident_90",
+      "descriptor_sha256": "8f0b8377b98bed1bc1606f10e17aedc685f8d84bbb031216f7edaac66b57ccbb",
+      "row_sha256": "c2ef780abe1cef146d82778f2d721713a888559b20f944606b1b6440059a1039"
+    },
+    "resident_91": {
+      "bridge_id": "npc_resident_91",
+      "descriptor_sha256": "4f45bbf82764b6ffe8c5b4b4924c7a13c41052221232237e92cf1a3d2b57199f",
+      "row_sha256": "1d681d16104ce028dba9565b4b6bec99c54934222c7378c483c3db78951bc939"
+    },
+    "resident_92": {
+      "bridge_id": "npc_resident_92",
+      "descriptor_sha256": "440940f1b8a4eb0219f84a5e05052647125b6b1db5d52b6fcc1d946f5cb567ad",
+      "row_sha256": "2ae588f59f6b51f5ab24be2bea0a1bdc05783d3a18ed3c94ff526e44c2f8450d"
+    },
+    "resident_93": {
+      "bridge_id": "npc_resident_93",
+      "descriptor_sha256": "c5144c50df787659abbae177ee3b2cd45bafc8204db8c974e677eb11860d503a",
+      "row_sha256": "759fc36a58928cb8a1762892350c6c535ef01d0cc0acb83f71c07523d1420c18"
+    },
+    "resident_94": {
+      "bridge_id": "npc_resident_94",
+      "descriptor_sha256": "8e045c5135991dad2229d258dfe79e92f36f41a100cf5d27168cb5b32b2e9cb2",
+      "row_sha256": "ad865443b5aa0598f9136648eec0893e1788dbc48472c86f096027362b163a00"
+    },
+    "resident_95": {
+      "bridge_id": "npc_resident_95",
+      "descriptor_sha256": "fc60fbfe9cb5b90430d228577f68a106fdcb934d219ddc7a618e5c606c4c1f06",
+      "row_sha256": "abccd615d714e0cb1527a71cc6c032e8cb417ee8d0bdb5707445ce95a82f87b0"
+    },
+    "resident_96": {
+      "bridge_id": "npc_resident_96",
+      "descriptor_sha256": "65facfa2a6ffaceadd3302b47a36e67c0f1b50cbfe5094691e0f55f886afe3a0",
+      "row_sha256": "9461eba18f3f611c27fbeb5265f8a26cf1a1d6605a3d0e5493c8def712fb0b6c"
+    },
+    "resident_97": {
+      "bridge_id": "npc_resident_97",
+      "descriptor_sha256": "997ae57380b16cf825beefbcfb3fe26e55dc4e29f9cfa0142a83b00cf8860018",
+      "row_sha256": "1f1ed237f27f859515fbe65de43bb674ac69170a81102d70b9d0f9a6373c5a42"
+    },
+    "resident_98": {
+      "bridge_id": "npc_resident_98",
+      "descriptor_sha256": "d5dc0c528c366c98faae931e6f05f9c206be2ae1ffca319a33ba1879fbfbd891",
+      "row_sha256": "0153611b57feaa693f7e6e1267dba58faaae2959d53138f58675db73d017b5bf"
+    },
+    "resident_99": {
+      "bridge_id": "npc_resident_99",
+      "descriptor_sha256": "d021b7ba343dc0c06e99bc50e65ee08d3c8321b2e1ee0ef3cb29256515dcb5f2",
+      "row_sha256": "081f03fae7b37f81fe7ef9c9a8a2079159656dd8e241fd10ce19649b6c779651"
+    },
+    "resident_100": {
+      "bridge_id": "npc_resident_100",
+      "descriptor_sha256": "2870d091591eb662c519c1fce7845e41baa4bd7aad74fe1923095a5183eb1b21",
+      "row_sha256": "da9945bbcb3433ba0396a0c4e8b8f0e43c65d9bf41eb0d12130bdee304706160"
+    },
+    "resident_101": {
+      "bridge_id": "npc_resident_101",
+      "descriptor_sha256": "eff8f4651eb951742e539ab4d18af76d2d2666c27ad4d5edf310f8f611e9d660",
+      "row_sha256": "0826448c6607fee74b8c62ee178b81a9124f01e58c88fcbe760a243f2b784fbb"
+    },
+    "resident_102": {
+      "bridge_id": "npc_resident_102",
+      "descriptor_sha256": "8af47c1c89177aaab0e42a47fb649dfcdc7475dbe9408e4ed4456dbdb1fb939b",
+      "row_sha256": "dcf33fb8d2ee0dc43ee1f63225bd90d11500d47cfe092b5d17b4c0ea0570d974"
+    },
+    "resident_103": {
+      "bridge_id": "npc_resident_103",
+      "descriptor_sha256": "3f2a1159e24673363bf8b29b39a7d22b2f553009b19f1ae87bc1021201f39d8a",
+      "row_sha256": "1113c863d9a3971c68fa46e46e288576ec8531db10a3bbb1af6b9f3ab4477453"
+    },
+    "resident_104": {
+      "bridge_id": "npc_resident_104",
+      "descriptor_sha256": "b0f1ab17bff9f464bd4121db8b44bccac0c88e167f601781925e9661aebe6ef0",
+      "row_sha256": "09d5cdd6031aacb9cbbdbc651bac0b37bfffdf9a9b5ab796b5c3af64d89010f0"
+    },
+    "resident_105": {
+      "bridge_id": "npc_resident_105",
+      "descriptor_sha256": "a1ab3ebcd1d4a72d7dc2f95c4d9fb3451691b5b5edf1d8d6d4843386bf656991",
+      "row_sha256": "7d35d50335faf037f1c9348acd0d71a2624f2cd1ff0685e9d9ba78b4989eaae8"
+    },
+    "resident_106": {
+      "bridge_id": "npc_resident_106",
+      "descriptor_sha256": "6f3b7c1741cdc63df9d160d415ba2a0b1ce67e313821d7208a246178ebd3879c",
+      "row_sha256": "137b66ac48e06007c38c82728689b78856bb5d199607f93f9131440c6e2885a0"
+    },
+    "resident_107": {
+      "bridge_id": "npc_resident_107",
+      "descriptor_sha256": "8e0e9a3e0cc067cb8d01ebeabfb5a04bc8be8782527462c0ee00dd854914ab1a",
+      "row_sha256": "d93ff54325b3807ad679dcb538fd13c2d3dbf14f01a20db104ca68168017516b"
+    },
+    "resident_108": {
+      "bridge_id": "npc_resident_108",
+      "descriptor_sha256": "f9a47388bebd7384aaf6e15c7bf827c41269c46b3d878d45b718a8b7b5855271",
+      "row_sha256": "0f9b116a9c7637571f4b2bac111d64e67025596c9bead32ce831cff66a5b1fe0"
+    },
+    "resident_109": {
+      "bridge_id": "npc_resident_109",
+      "descriptor_sha256": "2f2655dc4d08ab6118403df203d5eb07129070316d89c1a5f438a43822975498",
+      "row_sha256": "cc77c07ec97dd55045ea730f0384fffd307b57ce8d7e26dbda6e22812d7dbac1"
+    },
+    "resident_110": {
+      "bridge_id": "npc_resident_110",
+      "descriptor_sha256": "bccef7cda952b3912e1e9ebdab2204d34e69a2a71413e4afb68153fdd7185011",
+      "row_sha256": "c99b2d9c4440cef435fe28d2644c31204a57c3c3c0569f3b1f6b370ff7de06ec"
+    },
+    "resident_111": {
+      "bridge_id": "npc_resident_111",
+      "descriptor_sha256": "59c9373792e662d22711233b2209cf1f9cebdd5fc0450f0d5b9978370bdb8d3f",
+      "row_sha256": "f268805b4ff06337201595331f52ee386cbd8fb3af82deaba1f7b4d44c677a80"
+    },
+    "resident_112": {
+      "bridge_id": "npc_resident_112",
+      "descriptor_sha256": "724f31a2b758729fd5759f80824dc7cd4e902d301c39e67c5176a7b4b3bb95ab",
+      "row_sha256": "d70ebc5e62ac96767dbb9891db2cecbe4f674faca048d85e4cf5464f72d4188f"
+    },
+    "resident_113": {
+      "bridge_id": "npc_resident_113",
+      "descriptor_sha256": "b6cf9c470c4c49d6a66ffe87fa591bff5bbd7542cd7104366eba3847603f4c6f",
+      "row_sha256": "133a063258c8a100a498cbe47cd480e8c81fc1a33164bee34ebe211ce9731bd3"
+    },
+    "resident_114": {
+      "bridge_id": "npc_resident_114",
+      "descriptor_sha256": "6724207a7b516a620f880b487c2be2074d673451914b7216deb0da6a4cd8d7b3",
+      "row_sha256": "ff7b6169ec7bc917aff23a1eabe8115754aec8ef9704bbe5279fc5ace6ddd043"
+    },
+    "resident_115": {
+      "bridge_id": "npc_resident_115",
+      "descriptor_sha256": "31763f914bd4488cb5f97a2f83f3aa5fd1efb81e2d168558637d1d1a1338410d",
+      "row_sha256": "453039436f1aa3daa7f4ada706bca4931c8236bde484b71ffc256807c1505414"
+    },
+    "resident_116": {
+      "bridge_id": "npc_resident_116",
+      "descriptor_sha256": "be3fb5700dfe33834761eec85c2bbc07ba0c3d86163b7dc8134151342069a492",
+      "row_sha256": "cbcc52b914b4d4c769cabf7f10f326ba302fc72effcf919d643f6f89b0ae4a8c"
+    },
+    "resident_117": {
+      "bridge_id": "npc_resident_117",
+      "descriptor_sha256": "ac4cdcb68f0edb43cc0c4e9603edbea851f16a43a2f505d9737255ebf33001e4",
+      "row_sha256": "8cb74e2bdb0038b825e256119339852fcc2960623a0c9d8f2f40e9a55f0808e7"
+    },
+    "resident_118": {
+      "bridge_id": "npc_resident_118",
+      "descriptor_sha256": "e035687bd9c4d32d0bcd5e7c94e10fdb6f32957470162993ed8fdd8fa66abbfd",
+      "row_sha256": "74e49a5ac3078511d952bd4960c47639705fc7de5551e70797e677853f63461b"
+    },
+    "resident_119": {
+      "bridge_id": "npc_resident_119",
+      "descriptor_sha256": "82cdba7fc367646da1810f9deee692d5245cbeb5675f008db6b46bd1cc486163",
+      "row_sha256": "430a71af064e75816946a05afaad0d44567a0bcfa30acba870d09c94aab2c0d4"
+    },
+    "resident_120": {
+      "bridge_id": "npc_resident_120",
+      "descriptor_sha256": "cdea0ff94e51d6f8f29f1dcee63c44bf3b187532cc3310e5ef54b11e16843f75",
+      "row_sha256": "84934a0d20f572b2b68ae957115ad3fe343a310238d5d394500d3f64ed5d9984"
+    },
+    "resident_121": {
+      "bridge_id": "npc_resident_121",
+      "descriptor_sha256": "8ecd6eac3a21ec2f9e8b26f11e41f425902d8f248d2ceb82d9374eef4757bb1a",
+      "row_sha256": "7139c4c16c5645fbc64400cffb14b2a82c4decbcaeb0a426b720ac45e75c09da"
+    },
+    "resident_122": {
+      "bridge_id": "npc_resident_122",
+      "descriptor_sha256": "cd4f4c8a81646e7595b06c7a8caa8edcdc9a0726f3cd3a986e444e32c2abdb54",
+      "row_sha256": "c00f06191fda5c879ac8d72c724ae78ac742ed57f7964228f97be9a58c890b83"
+    },
+    "resident_123": {
+      "bridge_id": "npc_resident_123",
+      "descriptor_sha256": "98bb651419bb95c11bc49d818a124dabb32000651dade8bed2e00586ef778585",
+      "row_sha256": "7ab28bccf674565408e2967a44d03c7a5a0a499cc5c58f44140d7d322ea45a4c"
+    },
+    "resident_124": {
+      "bridge_id": "npc_resident_124",
+      "descriptor_sha256": "604aaa6fb7da673d397abb2e32e84a202b86b46c9a6be492a6ff4cbb2ff182d5",
+      "row_sha256": "e869696fe199324ac8010484ec9ed54fd8eff1cdb2892292702deb594b80b5f7"
+    },
+    "resident_125": {
+      "bridge_id": "npc_resident_125",
+      "descriptor_sha256": "09e1ca155afe47fc1c11693e7b8de9c4429cf46a49b952d1056739da81adfa2f",
+      "row_sha256": "658424925280198abe18e09c88053140ae4fa06c901c377119e48b74e56a9507"
+    },
+    "resident_126": {
+      "bridge_id": "npc_resident_126",
+      "descriptor_sha256": "4fdfacfde612d215de1d40fb38feaf4d030733776aa32aac49eeedc17e56bdad",
+      "row_sha256": "c60f18ec8ac223a0e8eb504258d773f75c6a277175f9f16dfebec4e500666698"
+    },
+    "resident_127": {
+      "bridge_id": "npc_resident_127",
+      "descriptor_sha256": "32eb52f3338addf534f4da02f05a7694c51d95e417c9d905c9c670b08acc3e9a",
+      "row_sha256": "21bd726eae11fcda8e1ec0b2bc299e50e37d762930c13355a85e132600242869"
+    },
+    "resident_128": {
+      "bridge_id": "npc_resident_128",
+      "descriptor_sha256": "187e625d19e7f68804b42d228fbc80969b034dd3a8bf5aeeffd4e76b7795350a",
+      "row_sha256": "da76d9ba321366d221a7b5497b0b2efb2cda14eca6454d5452bee36e88bcd450"
+    },
+    "resident_129": {
+      "bridge_id": "npc_resident_129",
+      "descriptor_sha256": "c6639169b1b22c0ae70757bfcb922696074a1d74303a1063b0b8a3239347a98d",
+      "row_sha256": "c2a3908f2bfe8d8b2c45d5814461d010d924249f301466fd556a8c0d25c75849"
+    },
+    "resident_130": {
+      "bridge_id": "npc_resident_130",
+      "descriptor_sha256": "43f8e11a7c27cd470892dc6fcba86bb7f5fec0cfa23c1c072fb27f99d9d0c8c1",
+      "row_sha256": "99cc3d863462993fd1ba501098cd9907dfe110a50fd0a88109082a63473a3e4b"
+    },
+    "resident_131": {
+      "bridge_id": "npc_resident_131",
+      "descriptor_sha256": "0b004810425f315914f130c4802aee0a0be68a75114eb0f301fa4398fbb635c5",
+      "row_sha256": "fe9828b8112edfb4b850d74def01013ca47094b8b876c7f446c5b60ef7866859"
+    },
+    "resident_132": {
+      "bridge_id": "npc_resident_132",
+      "descriptor_sha256": "1299a99f2f17a00478118ddbb0d2fa3469a6114ce57579c202f227c310e17c31",
+      "row_sha256": "b1a1fe66fc47b3dd446be8cae42fed1792a3bd8bc4dbef4648174d2a4b5328ff"
+    },
+    "resident_133": {
+      "bridge_id": "npc_resident_133",
+      "descriptor_sha256": "a86ed10529f38d3c762eae503da36c6ba6b8ba675f75a71a8460fce61c37bdd1",
+      "row_sha256": "2a7174942f02f7ab5e5ad418276d06bef877af0b67d9997d40bd94f0e4b4603d"
+    },
+    "resident_134": {
+      "bridge_id": "npc_resident_134",
+      "descriptor_sha256": "cd043cbf08afe934b93719bdba7e4f6f85739d50065d428be3f3ef1b9ed8e740",
+      "row_sha256": "b1842aec6b8d9a27b38e761bae4cea939ba818da2fbcae7e86dcddfb0cd46e5c"
+    },
+    "resident_135": {
+      "bridge_id": "npc_resident_135",
+      "descriptor_sha256": "a5b5e23b2d3ad32417f471abcf15a38f07d77f683be174b78764a3674e3e9c6c",
+      "row_sha256": "e0e375a3899cb37fb5da498dcdde0f11707273235ce83b9ff7bbbfbaa4f5fef3"
+    },
+    "resident_136": {
+      "bridge_id": "npc_resident_136",
+      "descriptor_sha256": "cfff3aa6d98fa3111e86dac5dcada493f101dcd68b7f82ac2534de8e66de4da0",
+      "row_sha256": "ffa0f16acaa728f7387615980445b2ebb240ef2acfcaefe267b0e881626a922e"
+    },
+    "resident_137": {
+      "bridge_id": "npc_resident_137",
+      "descriptor_sha256": "545c6a3b3914a9920ca5a20049952f4b4c9cafa736b7f757739e1c88df9b8324",
+      "row_sha256": "b393846385096f0a31e6667c456ed9a7971c51043af5bb67ebb25ca26bdb1697"
+    },
+    "resident_138": {
+      "bridge_id": "npc_resident_138",
+      "descriptor_sha256": "af6416e60d710f76d8fb528d1bc88d1a4194d203c51eee456a6bc4b0cc5ebfa3",
+      "row_sha256": "521244741c562fef0262ab7ac831f53e940e545ee11fb596a4bb46b53ef7a4ba"
+    },
+    "resident_139": {
+      "bridge_id": "npc_resident_139",
+      "descriptor_sha256": "9de91103b28cb7b06caae67f1a8554aabe47835840f4d56ef5b024e4b75d6768",
+      "row_sha256": "b54ca114ba8b93af48da3b277fcc0d01d2fb5b1f59ae49c3b9677375ef4f07ac"
+    },
+    "resident_140": {
+      "bridge_id": "npc_resident_140",
+      "descriptor_sha256": "f2241a5f485f83f493634f792f9a82d5fbdc0ae12b71ea2e303ac53d1a48ca24",
+      "row_sha256": "906e1eeaf235a8f44533620188b3d601c1ef38c15b8629bc5214f3b839141590"
+    },
+    "resident_141": {
+      "bridge_id": "npc_resident_141",
+      "descriptor_sha256": "be7d59697a74d28e160f5a47ea29e1e46a0a5613a17406e3c52497d697ce7077",
+      "row_sha256": "003250e241a56980ac54522d1beab9a0eef7ab2e54d6a8bae24256a47d5e5ee3"
+    },
+    "resident_142": {
+      "bridge_id": "npc_resident_142",
+      "descriptor_sha256": "bd4fef89fa68e64e54b349712aa0b1fd1b167ea7af904d3200ddd63525df0d13",
+      "row_sha256": "5b94ffb3e07dfe6a946798ebdae88716a8cd5b81fea349c7e631fdbb363a9586"
+    },
+    "resident_143": {
+      "bridge_id": "npc_resident_143",
+      "descriptor_sha256": "e21054c1120273b2f68ae6893bf334397918f84b0f657d821c38a654971a319c",
+      "row_sha256": "b2a63e2c5220124b6111465cabfdb557ab8fedddb309293cd30fd400fd14bcc3"
+    },
+    "resident_144": {
+      "bridge_id": "npc_resident_144",
+      "descriptor_sha256": "445b2e323c98db0423a9f04402c7acfadcb4746d4feb7928ff07862edd368347",
+      "row_sha256": "3838bb7a815a5992089f0370561887b8ad6b5e7128be5b39bc421e7ffb54a38c"
+    },
+    "resident_145": {
+      "bridge_id": "npc_resident_145",
+      "descriptor_sha256": "7457cab8f91f192c8e6f73fc2f7c39fec4733c1d91ca13a5e088b2a00b36cc6a",
+      "row_sha256": "c29183b3e87b5684112f778530f97ba41623c09e07e4b1483dda7887f757c32a"
+    },
+    "resident_146": {
+      "bridge_id": "npc_resident_146",
+      "descriptor_sha256": "977d57d9bd82b3ba5f7747075c8698170d01ca1358a36c44aa8f9ee5ee155612",
+      "row_sha256": "1e6be89402a4b93af43a5924b6c3d178af93f745581880b3ab2c527bd6d66138"
+    },
+    "resident_147": {
+      "bridge_id": "npc_resident_147",
+      "descriptor_sha256": "920a31277851748d27012f14868bc352d3533c57e5163d6faa30057530f788ce",
+      "row_sha256": "1ccc339eca0c1fa6f36fcbaf17036296a4f618a9fd53344733ff600d5701e787"
+    },
+    "resident_148": {
+      "bridge_id": "npc_resident_148",
+      "descriptor_sha256": "19e2bffc0e7292b456d380722418d88e87e96935752b01c86c917aec31b7edf2",
+      "row_sha256": "9aa57befe0cc2307a5793b9a2b2219e85510003957294d3168e5c10f6b762522"
+    },
+    "resident_149": {
+      "bridge_id": "npc_resident_149",
+      "descriptor_sha256": "6688db9cd69563a27b7155843f4d2999a3942683e16683d63726a4cfc71a42c8",
+      "row_sha256": "8c894f9c91a64fa36097b444b37bbf3c06cddec8996aab14af448689c6dbd043"
+    },
+    "resident_150": {
+      "bridge_id": "npc_resident_150",
+      "descriptor_sha256": "38b47d62cea40800a9c260f076ecd2be6f0e1261abc00ada4f48494b61d9ff65",
+      "row_sha256": "402ccb5db81dae418bf369dc2dd4bd448571e0c6fc3b633af6364ac1dd5cc7ec"
+    },
+    "resident_151": {
+      "bridge_id": "npc_resident_151",
+      "descriptor_sha256": "44c3dbb599024212168cef11017f4266b976a48e5976a6ac1187702e01d22ba0",
+      "row_sha256": "5f91f07f06235504e9dd6176e147741e7a45d04617f58df566df49c9e0856e7c"
+    },
+    "resident_152": {
+      "bridge_id": "npc_resident_152",
+      "descriptor_sha256": "c599543e9a1daa303accdc8642ae21fa9e4fb09d517843c598b9e9120f71ea07",
+      "row_sha256": "0b70ef6166b925c740dbd548091333911ab05a0f95812757528de46649f7d5a0"
+    },
+    "resident_153": {
+      "bridge_id": "npc_resident_153",
+      "descriptor_sha256": "47e2ec6967072fcbb358ce21d5b16d30dec07d90a848c6d5a7f599db6ed4a5b5",
+      "row_sha256": "bb5c65e0d7ad325404a8e8f26d7b849b06ef8a275c956759a778208139e05c14"
+    },
+    "resident_154": {
+      "bridge_id": "npc_resident_154",
+      "descriptor_sha256": "2092987c4a3a778187edcd36b2c76237da93728c72af560f382b84999273f0a6",
+      "row_sha256": "6bf3edbcaea8e592c6607a7aed2df9b0144ee3535324bedda24183feea69bb0f"
+    },
+    "resident_155": {
+      "bridge_id": "npc_resident_155",
+      "descriptor_sha256": "24efa4f72e41d0a98be87a800986bb9c1c729800ec2a13f87d71f9f8d35abc4a",
+      "row_sha256": "9d01d1fd2dee1391632ca3cb5e464ace0e5c4a9e0147824329ba5f69e9d231c6"
+    },
+    "resident_156": {
+      "bridge_id": "npc_resident_156",
+      "descriptor_sha256": "b389f10e79bca8cda7258609ac7d125252b5dce03da514fe62dcb52b28e5e102",
+      "row_sha256": "8759457bfe095b60aaeb859fbbe18ea0a5edccf6c02ba2cb51410a6d4e40260f"
+    },
+    "resident_157": {
+      "bridge_id": "npc_resident_157",
+      "descriptor_sha256": "5df2b317ef273409344c8842c2889bb51a66acd0e468f78e0469a394e4e6f139",
+      "row_sha256": "5d4772a67c6ec85892ef882bd24b222218c23dc2ab326a2da7c2cf97b7344c51"
+    },
+    "resident_158": {
+      "bridge_id": "npc_resident_158",
+      "descriptor_sha256": "c8e41626565a57343aa5c2ad4e5db25fbf1a8eccde9f0fb4247def49a7dc9178",
+      "row_sha256": "728e6ee43b82868e3ddb254cd10e0cb743a2f9838d92c2a4cf3284d7bb293950"
+    },
+    "resident_159": {
+      "bridge_id": "npc_resident_159",
+      "descriptor_sha256": "d3a4dd7bf5636e3cee54997a2a62bf77fa033387beb94008fa217a7f476d600a",
+      "row_sha256": "63a24bf8888d96be88e60d13fcaff23a8b214c5951c80a7e7826649f1bfad810"
+    },
+    "resident_160": {
+      "bridge_id": "npc_resident_160",
+      "descriptor_sha256": "cfcd8f4033152e1b5d5f2a9a19a1e0a3611c144ca33b9f63014483ff2b28fd11",
+      "row_sha256": "5fae28e74557b08e301561f1cd095aa6ca1f0c488026ebc0bba4ac479ee92cb5"
+    },
+    "resident_161": {
+      "bridge_id": "npc_resident_161",
+      "descriptor_sha256": "788e647f697c0877a8f291046d097b051e51265066bdf3deea8b7685e29aefb0",
+      "row_sha256": "a3685c06f6bd4e1574cfa6b83009b735f7649f4820461385152ada4558ddf7ea"
+    },
+    "resident_162": {
+      "bridge_id": "npc_resident_162",
+      "descriptor_sha256": "a0c0689a45f5477b385a74cf06409c4d8121984cd9bebc6e7f9516497c105cb7",
+      "row_sha256": "f7bc3f9d0d5f8dcad62b89b25d2a26730dcb43268c3709bd29ad065a742c473b"
+    },
+    "resident_163": {
+      "bridge_id": "npc_resident_163",
+      "descriptor_sha256": "e4ac8246b609641699e00c0ed54792040695b72fad1ab473aa6596151dbe6f2e",
+      "row_sha256": "981d5942db2605633b4622c7bdd220c41ea72d8bb89f6a2224b4150300e46886"
+    },
+    "resident_164": {
+      "bridge_id": "npc_resident_164",
+      "descriptor_sha256": "39ac23176fff47304beba06a9010917bf2c4bd896158cd71d93bacb3c133e0ea",
+      "row_sha256": "82ab6a3a64c3a117c43dd6fac076b79f67f1f3ae901c3cc0d89cc2b53895b2e5"
+    },
+    "resident_165": {
+      "bridge_id": "npc_resident_165",
+      "descriptor_sha256": "ed63473422711460eb3aeac744d447ac776da02c131676bac2adc4d7af5c4bb0",
+      "row_sha256": "2630b8be3bd5fa6d6ab9e9ffb00f65e70399bcd66675c2774e92379bdf542cf4"
+    },
+    "resident_166": {
+      "bridge_id": "npc_resident_166",
+      "descriptor_sha256": "71e37359c7f82c7de95f08e6d844045d279abfcb17dbbeb51a5cead58acf57d0",
+      "row_sha256": "d845bee1e5f8b8d27885462d0ba62370656e6bca55536fa01e343933284abab9"
+    },
+    "resident_167": {
+      "bridge_id": "npc_resident_167",
+      "descriptor_sha256": "7ce6f67a99e3c90c749336d781cd4dc38c157ecdc06483241daa122ae325bd0d",
+      "row_sha256": "71ef37295da6c95d5f5d84dc1d0250a3eec02c8b43bbe9343374b8d7505693b2"
+    },
+    "resident_168": {
+      "bridge_id": "npc_resident_168",
+      "descriptor_sha256": "ef27fc70bd27625222f6170bf3aa98329215e6f36cb6c53cae1f7509d7c23f0a",
+      "row_sha256": "c3969ee928f1cc52bea95f1aa76d6dcc898c987b9c229a9c521ebc249e367cc8"
+    },
+    "resident_169": {
+      "bridge_id": "npc_resident_169",
+      "descriptor_sha256": "95da9c8fd81bd5d0b9f68643a8b3309cff70bd9ec6989b8b2a49b97956a3d136",
+      "row_sha256": "ab01f695c6ae127cc98914faf3ab9ee101d6c6b2fda65d1388e7c2391ad9e2ec"
+    },
+    "resident_170": {
+      "bridge_id": "npc_resident_170",
+      "descriptor_sha256": "351bc6fe4a7e9b5eaf5e00919c8df99c4890a987f6c8e9c163f4dfd649f11f52",
+      "row_sha256": "154df6e29b8f60c4da448b01d11f82bbc14f093768acb6faea0a4ad28d7287f4"
+    },
+    "resident_171": {
+      "bridge_id": "npc_resident_171",
+      "descriptor_sha256": "60c728bbc7431ec356fd3dbd6aafe0b8461039e212cb9024034150af8f9c3816",
+      "row_sha256": "6a0b655140aba148d42e146a8b94b997320c3524cae905e6f3ffa081112d3c8b"
+    },
+    "resident_172": {
+      "bridge_id": "npc_resident_172",
+      "descriptor_sha256": "81af9f57bd1d2a61df30bc02f00a7312d6238a15fb2291d5be24cf7ae7483a8b",
+      "row_sha256": "1cd41cfed73871977b6e44b1bf9d4edb37f02f8b6d01ffcfc2b900a42be417e4"
+    },
+    "resident_173": {
+      "bridge_id": "npc_resident_173",
+      "descriptor_sha256": "b3cf4991b81c52839881a389afbd494fbd87a780d3f1e5fdf53008519e49c646",
+      "row_sha256": "a253887b6291547bf6206d2a06e8c4f6e93dbb48ad7c52edff4a72a6149eb193"
+    },
+    "resident_174": {
+      "bridge_id": "npc_resident_174",
+      "descriptor_sha256": "a942bad358e7259db90d1cf5eb28f48459881cced9745b9205ae70cea5fad715",
+      "row_sha256": "7aa38d0da6b2fdc581e11fa638bf5449a3051aa75346198144763b2496767ff7"
+    },
+    "resident_175": {
+      "bridge_id": "npc_resident_175",
+      "descriptor_sha256": "da312748fdab7a0c9a23db80f088c144b18396e51871dc559dbd3e1e6c1c0961",
+      "row_sha256": "edd21d27001610926d5c4a66a020b31aa3081a42bbebc00910c5592f8dd7de7d"
+    },
+    "resident_176": {
+      "bridge_id": "npc_resident_176",
+      "descriptor_sha256": "09ac1bfbcf22bad86083381cd5644147634486707b1512d5fc455b59bcf8d68f",
+      "row_sha256": "60631a98b0daad5d423a2d93801cc3cf59b89e20fe0e8e3ca25f7371832d09d7"
+    },
+    "resident_177": {
+      "bridge_id": "npc_resident_177",
+      "descriptor_sha256": "35c98f5c31e4cacbf9ed67ac2ea238836b1720f61420132b34a8ae873d51e8de",
+      "row_sha256": "2829d1947a615d3fd41a995eeb301f52b2aa2a11a66e364da7e862aa3e4da50f"
+    },
+    "resident_178": {
+      "bridge_id": "npc_resident_178",
+      "descriptor_sha256": "11d8a103b2daeaff805b331298f1b3401199220173d9ef23deedc3fa2ec05aba",
+      "row_sha256": "01e9c20169ce7dc9fb998c42d62e7dd551313a3a41b1f910f4d844a5dcb0e1a5"
+    },
+    "resident_179": {
+      "bridge_id": "npc_resident_179",
+      "descriptor_sha256": "1f082d7ab58a1893014aaf76257a4a56718f7ad7620e59d2385e11e9e0fa41bf",
+      "row_sha256": "f5a2712e621ee408486ce16493cf8f8554b3e689a92e05bf51960b45fb25abd5"
+    },
+    "resident_180": {
+      "bridge_id": "npc_resident_180",
+      "descriptor_sha256": "13903a3e3c7b7f100bfc69a13396e803ca310d8d711a08c7203930d27e3f32b4",
+      "row_sha256": "2c2222fac7cb2eb48c5484ce99547160af0d7d9f8d31e8cfba4ebab9a6d6c199"
+    },
+    "resident_181": {
+      "bridge_id": "npc_resident_181",
+      "descriptor_sha256": "21697334e2d5549b5fb0bee0890ae2912fcf8060129c753c5b84893d6fa54339",
+      "row_sha256": "84c863ae11abee4cf4015c6c2e16af27e5fa258fb902b17798c6214372407545"
+    },
+    "resident_182": {
+      "bridge_id": "npc_resident_182",
+      "descriptor_sha256": "09847139fe4c750d1f1d1330c43156e5c7badea17871bfcc61fd45849de13be7",
+      "row_sha256": "6c935b2a475575d739a92f42a734800bcb19128ffc1c4883f399acd2a4e8ab42"
+    },
+    "resident_183": {
+      "bridge_id": "npc_resident_183",
+      "descriptor_sha256": "e563c9c9b15aff9ff241663313a75f760f6bc7e45d04da7803d92599af017867",
+      "row_sha256": "5b57148977d8bbf1691855ec1b6f4bd288dc57b75c4efc7e0e8c82d957bae0d5"
+    },
+    "resident_184": {
+      "bridge_id": "npc_resident_184",
+      "descriptor_sha256": "dd7fa97746acd7b37c65494d228003a254c7e89a459f5648e1e77ed951ccc464",
+      "row_sha256": "7e4b7ee1dc1bbccfd7e293df664f0ff389dcbb3b485b94336256cfeb35f04f76"
+    },
+    "resident_185": {
+      "bridge_id": "npc_resident_185",
+      "descriptor_sha256": "b33b36d52d938c846d34f807cd01ac4ae932e200f7c87b457f30e5bbcf239f0a",
+      "row_sha256": "8b112fec5ed3d3ef4a9b0ea028b04816e6d781ee7c044527b821e73879c38ee8"
+    },
+    "resident_186": {
+      "bridge_id": "npc_resident_186",
+      "descriptor_sha256": "3ee21ff6dbd7a9d3d9d56ec57d27f1d7c32807c1760722b9ebdbdc36e1b51cb5",
+      "row_sha256": "837167edd8f7ae9cb3db69fc00219ddf269eaba69f32c38f0ec15fb56e3c3b7a"
+    },
+    "resident_187": {
+      "bridge_id": "npc_resident_187",
+      "descriptor_sha256": "3d3dac01e08748f89077c0520b662b8dec49b8c0448514af7d8ff409d6c447ba",
+      "row_sha256": "1b665a9cc935839e4d20ad0748495340d08321a0fa4be635514ab068c0886303"
+    },
+    "resident_188": {
+      "bridge_id": "npc_resident_188",
+      "descriptor_sha256": "c31fffbd9246097e6a48a59fae3812f569d633672322c2297fefe68edf321db7",
+      "row_sha256": "3698f1bcace11301f10e41a4ab203b68585381575075367da1298652b018e46b"
+    },
+    "resident_189": {
+      "bridge_id": "npc_resident_189",
+      "descriptor_sha256": "ccd016ebe60ba45af6035a0309a8e6bff0da4d4cd9685ea41c5565069c908fc7",
+      "row_sha256": "47cf4dde53ffe716e08fc321588968a46aaf8db8d9c342de4bf0c74467836445"
+    },
+    "resident_190": {
+      "bridge_id": "npc_resident_190",
+      "descriptor_sha256": "aa9657123e5651acbd7c2aefa5d934c625111cfa5637f2bf4861f37287d1e88b",
+      "row_sha256": "9d756d8b1cc800c1a0ba352802ea719da40a86a76022ec10d0a98b5f6e9dd3b1"
+    },
+    "resident_191": {
+      "bridge_id": "npc_resident_191",
+      "descriptor_sha256": "1b5d195c320b27e9b519abd0a188ff499b7a60aa6981bc2ecb1609e11c961a65",
+      "row_sha256": "614c9031bb65d149cebdca157a91fdd333e902fda03eb08d66a84fd8c95c7954"
+    },
+    "resident_192": {
+      "bridge_id": "npc_resident_192",
+      "descriptor_sha256": "329868343e7695ae3ca8898ea7bf76f20560b23355460f22a35182898623b4d2",
+      "row_sha256": "e7ddd261067edb931ec4cd65d3ef309a03ebeabb884d8eb8662662d6a0dac25f"
+    },
+    "resident_193": {
+      "bridge_id": "npc_resident_193",
+      "descriptor_sha256": "8b1e94760d17032e6440ebb3be0187fc87c8b092bfa528dd3b5a932eee6b694c",
+      "row_sha256": "54221c683b579bd6afa3587855d4dba9c70030dc7da2861e0630ad4e5c661dc6"
+    },
+    "resident_194": {
+      "bridge_id": "npc_resident_194",
+      "descriptor_sha256": "b8daf3c0bfe6f23e285b4b321b225b9685cda37e90898f892c6fafbee1276f37",
+      "row_sha256": "aa7339ee99e24b26bf8ed53bb00d812b18d4507d499f88defb8ec6cc19c23cc9"
+    },
+    "resident_195": {
+      "bridge_id": "npc_resident_195",
+      "descriptor_sha256": "1ff5db55438ca38cb6007955b458c6fca55f1fde7b6c69b001be33d5eb1bb3b9",
+      "row_sha256": "a1751bddc5fc57eb5bd7dcaa227dc0f710a420cfb873e92ace04ab2adec360c0"
+    },
+    "resident_196": {
+      "bridge_id": "npc_resident_196",
+      "descriptor_sha256": "8b405871fbf922646bdca149ddee75d0b942ede236c44bfd162310a8bc58650a",
+      "row_sha256": "59bdf556e3b2ee5c6eec3fd53aada3940ae664570c920db04dc3273b6c499b1d"
+    },
+    "resident_197": {
+      "bridge_id": "npc_resident_197",
+      "descriptor_sha256": "6754e075144f738386220352834a5198b0b7afee7f6a2c087b3fcf577672db63",
+      "row_sha256": "32d5175cfbabd407e8c199dc82f492993ff627f587f81783ccdf185c3aae211d"
+    },
+    "resident_198": {
+      "bridge_id": "npc_resident_198",
+      "descriptor_sha256": "cd8cf9dd59cc36b93205012014e174e9d33e23c07807c18c6b5bd6c460447b2d",
+      "row_sha256": "34d6f5b7d25d8018dc2fba1d254d9a939ed3a102d4193392df3bc392b3bcf76f"
+    },
+    "resident_199": {
+      "bridge_id": "npc_resident_199",
+      "descriptor_sha256": "4abb753f7d433fcc1db0b083aed0f51a233aea441f2267f88c1b9e726de19901",
+      "row_sha256": "f8c1edd6731cf03765ef003e0d7aaa55df62d123b4e079e5f052f3972299afe2"
+    },
+    "resident_200": {
+      "bridge_id": "npc_resident_200",
+      "descriptor_sha256": "7522cacc0a8991fcc2a40c812c2dd3e0d171782205b1d0197866b6f94a708268",
+      "row_sha256": "1dfc4cf8b3b6b6795be36400fb1cb1346426e14864e87fd77ec59431b9acd32a"
+    },
+    "resident_201": {
+      "bridge_id": "npc_resident_201",
+      "descriptor_sha256": "31da978e25d307cae6969f4a1fc3c33f085580d84e97eb1f29cae47f756195ad",
+      "row_sha256": "0e2cdaa53a12e2aef27c8e4a229d1838b8ba20632701f61750adfefe4d8e781d"
+    },
+    "resident_202": {
+      "bridge_id": "npc_resident_202",
+      "descriptor_sha256": "0d01dc9010d3fabbf3348f772bd4f97f0b0815aa0917d2e07aecdeee7289e048",
+      "row_sha256": "e491d417ed72f566a8e58754d8d2fe6c74d6cef089d08932a94c69ebd2d01348"
+    },
+    "resident_203": {
+      "bridge_id": "npc_resident_203",
+      "descriptor_sha256": "e50ce4f0cadcf0c4e97d78330727ecb57ddbfc5dfd360ec0488e88fc4caa0517",
+      "row_sha256": "f4848e80312664d2d2b1d9f1c28fa3a6699683a1a7b74ec7d9eebd42a8a6a960"
+    },
+    "resident_204": {
+      "bridge_id": "npc_resident_204",
+      "descriptor_sha256": "222be3d14780f89891f676287a722cc2eb69dc7ededa2797727ae541a10c77c8",
+      "row_sha256": "1862390ac7be16c13d59f6794f233c49dbee52a32afaeaff63bae6d3e3671c88"
+    },
+    "resident_205": {
+      "bridge_id": "npc_resident_205",
+      "descriptor_sha256": "4f27becbbf5c76f23286e28a654d2a8263ddbdb02f7d464fbbfe6dbaec30ea21",
+      "row_sha256": "b1c002e960d3e22ffcca754543934465516a930a3017c9d55bfd9a7fae0195ea"
+    },
+    "resident_206": {
+      "bridge_id": "npc_resident_206",
+      "descriptor_sha256": "0e8791b766c929e4d5033b67d58505b52018df14232f99ef2ee6a095ad86788e",
+      "row_sha256": "4fbebfd5ef0959b4a6bcef35a4036f5c230018a4caa154d218db8bc9ac98e694"
+    },
+    "resident_207": {
+      "bridge_id": "npc_resident_207",
+      "descriptor_sha256": "f0c2be7b65eb037f6a7f87b6e012f2eb9ff28e1e1374cd90f6ccbd5df4a54dc5",
+      "row_sha256": "7154e6d6cd3e689c85e70da9dd270bd54c27a4aa0b16a56a64103f877c39152e"
+    },
+    "resident_208": {
+      "bridge_id": "npc_resident_208",
+      "descriptor_sha256": "ac773dfafe80d23d193e3b4345071e2172c979b4880b18ecac36b63f56350550",
+      "row_sha256": "591fd038bbd3742246b9891b471de3cde2a996bbebd1fb60df3f102b2a49fa8e"
+    },
+    "resident_209": {
+      "bridge_id": "npc_resident_209",
+      "descriptor_sha256": "b4dd8760db14c0e2a3fe64b9f225542b1a0151b3ed5226a135cb0d8b977c543f",
+      "row_sha256": "5cc9d41f0567fb9da93088d820059f3d3974a264b82b2c311d6bbcc8f2afdb48"
+    },
+    "resident_210": {
+      "bridge_id": "npc_resident_210",
+      "descriptor_sha256": "65745c9ce529154bb5be9aab5af11eb49ade9f58c45397cef535bec5e4d3784b",
+      "row_sha256": "f250a6e0177d38b967563a6b32cdeb8c2c6ded055d2da18a19e449674c081993"
+    },
+    "resident_211": {
+      "bridge_id": "npc_resident_211",
+      "descriptor_sha256": "27297f9607008631a9a0c4fc53df76b6e899d06d1f0500b6d63ceb11c98c9588",
+      "row_sha256": "6be759bd95f8d383b1c4d46afee19714eb5450024c292ceadb6ef0f3814de87a"
+    },
+    "resident_212": {
+      "bridge_id": "npc_resident_212",
+      "descriptor_sha256": "be14eeb230fad2b6e850cfb7542469e05f59591ded5c70c3208d867d2c82bce0",
+      "row_sha256": "0099cc6ddc85cdda450288c1049817bd88680c53878514f17b3cc4d269285b72"
+    },
+    "resident_213": {
+      "bridge_id": "npc_resident_213",
+      "descriptor_sha256": "43192db8ec062baee8f7eb6a17cf40ccfc3dad098335927caab3613783d59862",
+      "row_sha256": "bc26fd78ad44ad3276f9024d30152d9eae311b29e41bcc48d229e0bb68490966"
+    },
+    "resident_214": {
+      "bridge_id": "npc_resident_214",
+      "descriptor_sha256": "231facda16c28ac9312df2cf263572605391f1cd81cf74d08c2359d9d01a7709",
+      "row_sha256": "2add4ffd38a20e9788ae167e98d93ccd99bd4ee16282d5e50113b89a9f92a85c"
+    },
+    "resident_215": {
+      "bridge_id": "npc_resident_215",
+      "descriptor_sha256": "44bcb2b433fc03ce50c50246e561c1f35664903fa4519b1b93e8d432ecc5af8b",
+      "row_sha256": "4022bf9eed30031f084dd20908121b36d8a0264fe0bb99ee1af4dcab31c1246a"
+    },
+    "resident_216": {
+      "bridge_id": "npc_resident_216",
+      "descriptor_sha256": "cfa4ee6d264101bc5bb54e3b21b549900b8a7eefb091a6423a7450ccf3a3e4ff",
+      "row_sha256": "448e0c85f501d2b3da18dfbc92a7731fe7da7d2a3aae6873c647b2d8ff842563"
+    },
+    "resident_217": {
+      "bridge_id": "npc_resident_217",
+      "descriptor_sha256": "1114d7a07cda2d6d70971ce93b3e5a24c5469349dfab1c4d2ba137095fa93e1b",
+      "row_sha256": "257ab2655d477423c16bff3f76aebc4ba98a57b7c544de11fd0687314542605d"
+    },
+    "resident_218": {
+      "bridge_id": "npc_resident_218",
+      "descriptor_sha256": "5deb9517db839c46c84aeb00ed9b35f8e63fa0801780506b4d9e67f5e1cef648",
+      "row_sha256": "3551d7ee93886b92344cf4a4121f79ff47bf17de5986d0eed261ec9a51803aff"
+    },
+    "resident_219": {
+      "bridge_id": "npc_resident_219",
+      "descriptor_sha256": "f024e03779c03d776c050137c9b8fe6b9a9b0389b31e1ffa605474f4c0b20753",
+      "row_sha256": "3916df7a5f2c786d0346a6038c672d2e6896559b2d6e200cd450293ec761e4d8"
+    },
+    "resident_220": {
+      "bridge_id": "npc_resident_220",
+      "descriptor_sha256": "1f1b7d3538ff00a4ec0ef99168db4c50d567532b68be6e7c2f1ad7f2bd79e751",
+      "row_sha256": "fb8b4795afa6ca09891d4f68d814923b44aaf34953a7fef3e1df2ada53822293"
+    },
+    "resident_221": {
+      "bridge_id": "npc_resident_221",
+      "descriptor_sha256": "23e6d7410c4a1b5ba148ff3ea23b614a050d360112706668f206c43ea702076a",
+      "row_sha256": "4253d4158fa94f58f98e131908bc00eae10a9c315f2895c9291b91857fadb27f"
+    },
+    "resident_222": {
+      "bridge_id": "npc_resident_222",
+      "descriptor_sha256": "378baf17b1a5298882fb7c7aa6cd8042821fc6425c5c64d1b434cce25b902ea8",
+      "row_sha256": "876c9ec3ca83286f1d0c86547a9e34e4a858ee8cdfc528daa6f4af8fd7921539"
+    },
+    "resident_223": {
+      "bridge_id": "npc_resident_223",
+      "descriptor_sha256": "c79fd0524691b70e41ed23ab20d1fae216c772271b9c36a6ad94064f6888a5ab",
+      "row_sha256": "678200e7479140d4bbf3ea35388df342ef1450a810fdf9da62fc36ca99e1b599"
+    },
+    "resident_224": {
+      "bridge_id": "npc_resident_224",
+      "descriptor_sha256": "f9551d85d0bfbe810f68aa31c5174ac8e5ea7d5e5096ebbae1a29bbf46f102bf",
+      "row_sha256": "081123004eec7be6b7be50909bcd226d2d7a87c19b5edbf6239f37969a321ace"
+    },
+    "resident_225": {
+      "bridge_id": "npc_resident_225",
+      "descriptor_sha256": "eb4d2ae2fe90b494619acac316e0b18f535b15e4b35de3bd976cf69ec89ff31e",
+      "row_sha256": "df79ff049b7821ecb3b1b3ebc22ccc773a2d4f80853961d368e95acb10e24620"
+    },
+    "resident_226": {
+      "bridge_id": "npc_resident_226",
+      "descriptor_sha256": "f7479023e61426c881a995871a220367ff8eef4f8dab60ef3e74568a3bf578be",
+      "row_sha256": "510db661bd73c970bec8b6bd33ab9447e138385fc6ecdcf93bcbc339e45d2281"
+    },
+    "resident_227": {
+      "bridge_id": "npc_resident_227",
+      "descriptor_sha256": "6cc3ed88a449f1d58632e8ddf1ee2a688d26c88a4d092831dfe4190b62ed9ab3",
+      "row_sha256": "f4af0cf43549a4a2aede26a870550ba8e1dbf8b9c24bd185733ed1920e4ce724"
+    },
+    "resident_228": {
+      "bridge_id": "npc_resident_228",
+      "descriptor_sha256": "af17c53b75314d6e8ffd4c7eed205d30463225692a57142cca0a9164f6bf7e69",
+      "row_sha256": "2a450c70828e4e3eaa1ba50ba99b59ef66e2a4d30e74a85b39087a792532a4ea"
+    },
+    "resident_229": {
+      "bridge_id": "npc_resident_229",
+      "descriptor_sha256": "0d3bb18a51f815fea8bb13690a34a1766bb87cfd517f655cb57b06b883bbc95b",
+      "row_sha256": "0a7461201c2f334050c284bf134867eebbfbc58345296401052d8b9f92886f3a"
+    },
+    "resident_230": {
+      "bridge_id": "npc_resident_230",
+      "descriptor_sha256": "68887b41c735cd61ce5f46534bd6afd68a35632b0b0509f2268439f48c320aa1",
+      "row_sha256": "0fd500f1f2cccdc7ead118ad453630937ff3874705abe748e39e67a69fc24cf1"
+    },
+    "resident_231": {
+      "bridge_id": "npc_resident_231",
+      "descriptor_sha256": "56593dd305e326fe132fd98bcdfc504a33698dab9b564009c6e6970651f2aa56",
+      "row_sha256": "4faa1d487e4dbe4b05aada868cdab87742dca1f51d3c6c437f6c42e6acdac43b"
+    },
+    "resident_232": {
+      "bridge_id": "npc_resident_232",
+      "descriptor_sha256": "9f11495168e939f3d9e6c86fc6e9e67aa6bfbb71e65b3208b8b52d4f83aaf0af",
+      "row_sha256": "b17ed360d4cf2fd4358affcd64f9161e5e11ee5f81d867f4268da15463ec6fe2"
+    },
+    "resident_233": {
+      "bridge_id": "npc_resident_233",
+      "descriptor_sha256": "32c6495172cf4a45618f2ab923805aea4a212b0fe6bd3a3ad1e8945adfabd9d9",
+      "row_sha256": "98ae144317fadf6d2fa81b54e5d0982efea61af08d2397995eefade21f7e7aef"
+    },
+    "resident_234": {
+      "bridge_id": "npc_resident_234",
+      "descriptor_sha256": "ee3435f8a8244882e76e1837be32bcc4df0639ae3a84b4cfa06a3dc45d408303",
+      "row_sha256": "dbe01dba9592cf0ffa65338f79f101481e2995001991dd862b97740d57027d19"
+    },
+    "resident_235": {
+      "bridge_id": "npc_resident_235",
+      "descriptor_sha256": "14491bc384304840de912d58dfbae84b1c580a5adde1028657ab3614a658bacf",
+      "row_sha256": "fe8dc545da5b45a68d625427f450615815d44da0387ab5867e15d0be64923f6b"
+    },
+    "resident_236": {
+      "bridge_id": "npc_resident_236",
+      "descriptor_sha256": "e847813bcc0344c9994e4ffe9dcc96a7eb0096c578405c572a98e46111924475",
+      "row_sha256": "ec776d944db0210889d63817232f80a195ebd160bfc709d4860377314c88ccd7"
+    },
+    "resident_237": {
+      "bridge_id": "npc_resident_237",
+      "descriptor_sha256": "256553a6f3136e4a0538b02307f47423b440c35f7acdaf84caae472767900370",
+      "row_sha256": "61cd46ba68757d7a252b0e73a70a1d83fcb3b52cf65f12fa13c369efc8257700"
+    },
+    "resident_238": {
+      "bridge_id": "npc_resident_238",
+      "descriptor_sha256": "f63601e3fc02c82dfb292acb7721cabf64af7f7ddeeaa244563b4911c4f39d7d",
+      "row_sha256": "9bc63743f69f08b9036d187cc6ff3cb6e05acb8fdc873088b2c96fefeb12e9a7"
+    },
+    "resident_239": {
+      "bridge_id": "npc_resident_239",
+      "descriptor_sha256": "dc810fa235573c452d08409bb0035a3095be01f966e0d9e221cadeddf72e33ed",
+      "row_sha256": "afcdf52ed351914c7620376ff899e094f5fcf578c5a3cf1803b9d89c2f7c7468"
+    },
+    "resident_240": {
+      "bridge_id": "npc_resident_240",
+      "descriptor_sha256": "22dab514f1181bfd92c9fc7d8e65ac0e858df47a52504f0cdafb22cc2808566a",
+      "row_sha256": "614ce8bfbd90984c1b63e44e3d265a82ac0f2e687361c0fdd417985b2a308aa1"
+    },
+    "resident_241": {
+      "bridge_id": "npc_resident_241",
+      "descriptor_sha256": "4cccbab34bea439d2f3bd14d62208bb453c5755426ab628d316a1068f3754da4",
+      "row_sha256": "b773e92970aaed0bdc1beb107f3335841cd6cd0cf5803c70c980eaf19cac5669"
+    },
+    "resident_242": {
+      "bridge_id": "npc_resident_242",
+      "descriptor_sha256": "e69dea5a23746c1db45d810ff38c24d3cf2e8357a1ffec14470444ad107cc567",
+      "row_sha256": "c1613349800807b39b648e1ea07bedb0d969e327334e4c4a3d5c72f4e2f8d2e7"
+    },
+    "resident_243": {
+      "bridge_id": "npc_resident_243",
+      "descriptor_sha256": "28d03931b1b78628b57c7b313908eaebb40eddb13f451af4bd7aa6244a48a864",
+      "row_sha256": "f2a9f93f9f28cc492b327be949a5d137e1efb5706ef88b9107cf3705c05a2bac"
+    },
+    "resident_244": {
+      "bridge_id": "npc_resident_244",
+      "descriptor_sha256": "465ec9aaf7294286a457dac389c4dfe6e87b7137425c8396d6152fd5d3878ddd",
+      "row_sha256": "8263d8f5d4da7356fcec3862484bd41855865c079d5da9aa927006a8c987a01e"
+    },
+    "resident_245": {
+      "bridge_id": "npc_resident_245",
+      "descriptor_sha256": "e20443540d8df0cca9ce42c613a9df9ae766c579529610a926ceff0e0c5566dc",
+      "row_sha256": "f358dd46a7c76bfd7ac4b78b0b30f1cfa0ecad52cfe9fff86045412a814e49d1"
+    },
+    "resident_246": {
+      "bridge_id": "npc_resident_246",
+      "descriptor_sha256": "7d2d3dfed65cd3833e2fc5d2642b100e72e9e38dcf49b5ab1f165cf6b0e7f9dc",
+      "row_sha256": "cab2398e5e76803a99a9ef378690bb5178c001b759dd3e944e1c382c681365a6"
+    },
+    "resident_247": {
+      "bridge_id": "npc_resident_247",
+      "descriptor_sha256": "3d76f2e2d5b616eee716e64d87c44eed0a8c9c75dd5f80a23a62fceda4d2bd7d",
+      "row_sha256": "b488f973b03c98eb186e89c4e5194e28dd6ffddb75dbfdca9a8148ccf67ce69c"
+    },
+    "resident_248": {
+      "bridge_id": "npc_resident_248",
+      "descriptor_sha256": "73407f1cb2a88a636faad31be938917fc95d7e29914058e67e902aff0f4c8193",
+      "row_sha256": "e48da2ecdc579e61cb54e8f738a6b9f1197e642ec5acd2eedbb02ab128920530"
+    },
+    "resident_249": {
+      "bridge_id": "npc_resident_249",
+      "descriptor_sha256": "4648ab1338f9f13c1b01e8e5bb1c64569312ef5f7328997baa31dafbfbe452bb",
+      "row_sha256": "c2396b23d53ca1372de9bfcecb5c6049bde398496a179dfa6b76d42572f85428"
+    },
+    "resident_250": {
+      "bridge_id": "npc_resident_250",
+      "descriptor_sha256": "ef11f52b1ec9381fca273125a5edd8da7edff3a64edbba1144369937a78f7c5f",
+      "row_sha256": "c69fd46e0a96c9157bff04f14b7852d0701cc79a1726d47a3cdcdbe30302cbf3"
+    },
+    "resident_251": {
+      "bridge_id": "npc_resident_251",
+      "descriptor_sha256": "9c9e95ccb7802f4aefe0b8aa6ab3ab8d2492847636ba924cc04c2bd2acd2375a",
+      "row_sha256": "f66f54514535e30565762c56d678dad192335d3e8aa1c68efe63b29e27da0530"
+    },
+    "resident_252": {
+      "bridge_id": "npc_resident_252",
+      "descriptor_sha256": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55",
+      "row_sha256": "5361bcddfd88a76fb408427d5ea1cddfad620b197f0849b66c36e8ddfa40711c"
+    },
+    "resident_253": {
+      "bridge_id": "npc_resident_253",
+      "descriptor_sha256": "369f6c06b26372e086a4b7e5da5eab63626662eee25ff7d602b93bec283ddc84",
+      "row_sha256": "759f2e641c4e3d0acf7655ceb9527ba99533082b8c7b86f9312fb24ee2111ee1"
+    },
+    "resident_254": {
+      "bridge_id": "npc_resident_254",
+      "descriptor_sha256": "7469961f25d4a24fb421b9cba53f95e6a07a3579bf8aed932bcf16b3e55f4109",
+      "row_sha256": "57e82394c9ac0fc3a285717509e049fa66acc94072d6c918c532dca1cd75c6f6"
+    },
+    "resident_255": {
+      "bridge_id": "npc_resident_255",
+      "descriptor_sha256": "5e00face3c83d9b337849c301d1a268e9e23da82b305ae82fe3fea72e68ad194",
+      "row_sha256": "622f90142ba322a7d0651757af8dbe7bf626ff786faaa6b74240933d5d777ed9"
+    },
+    "resident_256": {
+      "bridge_id": "npc_resident_256",
+      "descriptor_sha256": "4525ce3a5b9709b076439e1f7b408090ac7ea90aa2a6e5d55b49fed565bef2be",
+      "row_sha256": "04e0b96b1cdce0d77b21ab96a9f06849d81fd8fe53d8013df4d84b52ca7e53e6"
+    },
+    "resident_257": {
+      "bridge_id": "npc_resident_257",
+      "descriptor_sha256": "c9eae69be141f1f5bd6b92ff158729acc150dc5ec82d687835b0fd3fcd6af91c",
+      "row_sha256": "5fe5241189c9c7d967f5ad368fab0e8e7fef73b309a294ecc86b18de11615b57"
+    },
+    "resident_258": {
+      "bridge_id": "npc_resident_258",
+      "descriptor_sha256": "10dbf3fdb3800c2161f08a2e42edb929796b788147286dedb206772831b0aa14",
+      "row_sha256": "5ea6f9154253a7875358b0478f1aa80b8b15b571854c21bb6aa7a5c40f6fb5b9"
+    },
+    "resident_259": {
+      "bridge_id": "npc_resident_259",
+      "descriptor_sha256": "b930f984d0d2c65db4cd907edc362018645de2a9549d3e3710b591ecb6a816d4",
+      "row_sha256": "17fce88ea583e78ee21c9b20ede3066ac24977729878c43d3e062d264554070f"
+    },
+    "resident_260": {
+      "bridge_id": "npc_resident_260",
+      "descriptor_sha256": "e9f0c134d1beacdd5fa07c5d979a1e9d4fd0cbf89160d09b4ee11520a55b941a",
+      "row_sha256": "e3c205b8e40e18bc59cc6d83cc29ee5041ac6947ec1dae29fe18708fb7f37ca8"
+    },
+    "resident_261": {
+      "bridge_id": "npc_resident_261",
+      "descriptor_sha256": "48bb741c73ad7de6f991f760e377603835916a414bec778a87213fbf8ceba2e1",
+      "row_sha256": "535530f2dfb36890afd2e012cad65ebda43625fa2204e51b5cbf529bb428ca17"
+    },
+    "resident_262": {
+      "bridge_id": "npc_resident_262",
+      "descriptor_sha256": "7f56a74e7e03808e42c947619eaf0f4092c143dbbef615d21d37bc4ddc18bf71",
+      "row_sha256": "e7d3f74db42da99571c8ba8a9435734df3f6248c068c0122be414eb6a7048840"
+    },
+    "resident_263": {
+      "bridge_id": "npc_resident_263",
+      "descriptor_sha256": "b0ba647915c68c0c07cd0e9f1b2e990c890cfc11afd00a119ee7e6c51e2bd7fa",
+      "row_sha256": "b96708db057740c2c728913c55f46562104438eeb765b2e759ece2b51502481d"
+    },
+    "resident_264": {
+      "bridge_id": "npc_resident_264",
+      "descriptor_sha256": "fc352805804b734715003c7ddc3dfba2c5f5ea63e4837f029dcdb1a8dcab4350",
+      "row_sha256": "012ed8a571eef14e97ba2c8698cb792d9873cda9768282cabf498791cd1ea25b"
+    },
+    "resident_265": {
+      "bridge_id": "npc_resident_265",
+      "descriptor_sha256": "587f7b55228c6c9512d152ff2f88707e965c004f65424fd035dacc728d31fdc3",
+      "row_sha256": "d1582e5fee186d65357f4aa42a957cec2b5ab2ff7f0db9e1f7c9e5f57fcf677f"
+    },
+    "resident_266": {
+      "bridge_id": "npc_resident_266",
+      "descriptor_sha256": "337c152f22091419bb10b036aea893240e71f298c3e8607ac6d747da3b8ad130",
+      "row_sha256": "a10a665bb5d59a2c80ce503fde2180bf35b5f2cc37470600ec90caabc5db9ad3"
+    },
+    "resident_267": {
+      "bridge_id": "npc_resident_267",
+      "descriptor_sha256": "568c90242f6c66ed02d5dc8da298628f668fb467d1e45cf44232c02b2f4dae64",
+      "row_sha256": "40876c1f1dc859485c6e30568f557fc157aa0b7c22faa389cf51816cc1b6ae22"
+    },
+    "resident_268": {
+      "bridge_id": "npc_resident_268",
+      "descriptor_sha256": "8f63acca2ad81acf4db46b65332fa66ed4c7e581a62f471fb54f55d5c8c7bcc8",
+      "row_sha256": "a0b6a41911aaf1f10eca671cc0b4a61e815753c2b88479a4daa48fe071022f74"
+    },
+    "resident_269": {
+      "bridge_id": "npc_resident_269",
+      "descriptor_sha256": "a3f394f79b57737ec4b5356b6cfd6724ff6bdf38fccf7d209b1ec7f5008635fc",
+      "row_sha256": "5c730f0a9713806320c715ccbaf67574820e4ec660299cedf101add0bbc450ab"
+    },
+    "resident_270": {
+      "bridge_id": "npc_resident_270",
+      "descriptor_sha256": "1963e672eebdc4b14a7d57d276db7306030f7e72898e381232e3e03e6924ea3b",
+      "row_sha256": "a793681d070790c588f5e95824b3ef7a5c5e7269944801acb8f67fd9c9d99dbf"
+    },
+    "resident_271": {
+      "bridge_id": "npc_resident_271",
+      "descriptor_sha256": "335fceadc037fd40d8510bbf64d0c15aac0aaeddb09814c0445da219cc2b5c2f",
+      "row_sha256": "d7c669e0f360465b4ecb6d853b9f7bca08a525c13cd0a118fa63fbc599ce4106"
+    },
+    "resident_272": {
+      "bridge_id": "npc_resident_272",
+      "descriptor_sha256": "61065f2a2df1a4880e500fb692e66950852cad1138ff48994b3a32178e91a7ba",
+      "row_sha256": "e6826dfe524e4421e0406b960560bbb5ff3e14799c1c6c61e90f69a9cff95ddd"
+    },
+    "resident_273": {
+      "bridge_id": "npc_resident_273",
+      "descriptor_sha256": "3a387b9b4b66776e551d28253d5351ef40f2a0671a6cdadea9ca9d8071a4a5d3",
+      "row_sha256": "d35c6971cb0c84b4ad74cbca5a11036f624bd5bd754a15de02e007586fba8792"
+    },
+    "resident_274": {
+      "bridge_id": "npc_resident_274",
+      "descriptor_sha256": "cd58f4f85c38727dab85b31958d33838dd54a01ebd2afdc61b7438c024ff3dab",
+      "row_sha256": "17e84cd9bce5885ed2d21b790abf911c09d856005dfcda1b65c4be92f59fc3ff"
+    },
+    "resident_275": {
+      "bridge_id": "npc_resident_275",
+      "descriptor_sha256": "95c4399956f23efde0d4809c4bc8dae0685f509b13fefa850dc2cb4532182bfc",
+      "row_sha256": "f378251508e30e110ca11e3380c3b740b7d1d1143d685be4acc1c36bfb3fd083"
+    },
+    "resident_276": {
+      "bridge_id": "npc_resident_276",
+      "descriptor_sha256": "f6b68403b328a296130b1f975a5e5cb787b7bba9c30b0ab0eebde9fb31a908f1",
+      "row_sha256": "332cfeb5f0651d9b40d58fbe223d7de8757119e331ae7a541cc7c54039314b68"
+    },
+    "resident_277": {
+      "bridge_id": "npc_resident_277",
+      "descriptor_sha256": "d6421f09afbdbe978473f56e8044ca192467dc2f858b9ea555d6f5cb1abf78a2",
+      "row_sha256": "87976e806b0c9cde9bc1d274eb70ae293d8c9108fd66608f27e3db407b48178d"
+    },
+    "resident_278": {
+      "bridge_id": "npc_resident_278",
+      "descriptor_sha256": "e74722e603a9d487b40d58bc5b66e3a16f3a5cc983d8c97c826d72cbfb9c23e6",
+      "row_sha256": "21d50b3e6cd555e839d97da15768c125f5377b70d8566072a627aae30bef8505"
+    },
+    "resident_279": {
+      "bridge_id": "npc_resident_279",
+      "descriptor_sha256": "90e536452df71a850f2477b99b2de6a8fe31de40bae9258bcb7b7d12429ce021",
+      "row_sha256": "087406a9ec1981a051562addf229a7d70cfe800c82242364fdf9583b02f71d38"
+    },
+    "resident_280": {
+      "bridge_id": "npc_resident_280",
+      "descriptor_sha256": "1b8efb5bfb537cb28066401c2654eabcd88bba482b18add603cb9a4b29a591f1",
+      "row_sha256": "fb63a74e9d5cedd5ff78ef69945601e1a24d9e108be168aeebd607662a2ea544"
+    },
+    "resident_281": {
+      "bridge_id": "npc_resident_281",
+      "descriptor_sha256": "e37fdc0b3ececfa0fbac3aa10bed42607264ce472f55f10bc65e91f6847fd8f3",
+      "row_sha256": "f2d35c37f3b5635cf99567960c724419f2ed84f057daf21c0c1987711cd90bc0"
+    },
+    "resident_282": {
+      "bridge_id": "npc_resident_282",
+      "descriptor_sha256": "82c9544ecad5045ea70d582f6bf5adb7f089aae23599b0cc40bca560833c0241",
+      "row_sha256": "9800941a3940962141c11482bda12a73f97213ba0fec06ceda0c58922d5b4a87"
+    },
+    "resident_283": {
+      "bridge_id": "npc_resident_283",
+      "descriptor_sha256": "426b1b6d5a5bf58bac71f77bc786d17f39c400ff7fd02f468e2d4a71db1e71e7",
+      "row_sha256": "a8cfd44147cec9b0629b081af9111e318a06e981e87ac05e077d00dbca49fce3"
+    },
+    "resident_284": {
+      "bridge_id": "npc_resident_284",
+      "descriptor_sha256": "f0d448db88828b3a5a09a8324b905b506bba5ce0751ce04e734fd2ca647a0c6f",
+      "row_sha256": "87ebccf8a3a9a7e539db0c65660892262759962aa677fbf04a7e4abb8a1a9642"
+    },
+    "resident_285": {
+      "bridge_id": "npc_resident_285",
+      "descriptor_sha256": "81945bf84b51ae0d7c0cb66dbf5e09924225ed23e00e6411c3fbb1c485f41c4f",
+      "row_sha256": "572fc6486129870df289b934f70c3affa2fd22a3c150094bec001482a100639c"
+    },
+    "resident_286": {
+      "bridge_id": "npc_resident_286",
+      "descriptor_sha256": "5c04c4670f6fbd45cb45196ed32123b7a4cb34dfbf52a2d3c7e3d654bfd0f107",
+      "row_sha256": "2fcb2e450083da04ba4c1a9ca31fb764a942867dc044b5e2cc34205e9edfc80e"
+    },
+    "resident_287": {
+      "bridge_id": "npc_resident_287",
+      "descriptor_sha256": "22fc2e7579c1797c2cb51386835bc77b0629c2fe67ca99d2b401c600d2d9bafe",
+      "row_sha256": "dfa48ca6764f126cd129e317de99426932d1251d853a5064cb4a3b3f5de7ba46"
+    },
+    "resident_288": {
+      "bridge_id": "npc_resident_288",
+      "descriptor_sha256": "f0baf73f645b0e7ccc6e66050e7445930dbb2b670ee54a28435dc2396154c44f",
+      "row_sha256": "08d10f35ebef93e55253145944f9ccbf593fca89c6d46c430a304b488ca101af"
+    }
+  },
+  "limitations": [
+    "Current packet is fresh ordinary source roster; it does not contain empire bosses or police",
+    "resident_15 remains outside current loaded bounds; do not invent its placement",
+    "One-resident lifecycle cannot be activated for the whole roster without authenticated multi-life hooks",
+    "Current ceil(287/286)=2 daily polls/frame would severely understep Simple physics; elapsed delta alone cannot correct move_and_slide timing"
+  ]
+}

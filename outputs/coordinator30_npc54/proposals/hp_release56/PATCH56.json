@@ -1,0 +1,12 @@
+{
+  "base": "frozen55",
+  "base_sha256": "28953e8cfa02612ab0329b055196696694715d2e6cc236591525ed697ea51a31",
+  "changes": [
+    {
+      "file": "scripts/npc_visual/npc_resident_diag.gd",
+      "before": "\tif not body.is_inside_tree() or body.is_queued_for_deletion() or not Focus29.focused(body):\n\t\t_hp_fast30.hidden+=1;_release_focus30(body);return\n",
+      "after": "\tif not body.is_inside_tree() or body.is_queued_for_deletion():\n\t\t_hp_fast30.hidden+=1;_release_focus30(body);return\n\tif not Focus29.focused(body):\n\t\t_hp_fast30.hidden+=1\n\t\t# HP-only mode owns one focused card. Diagnostic update() also has a legacy writer.\n\t\tif diag_on() or (_focused_body30!=null and _focused_body30.get_ref()==body):\n\t\t\t_release_focus30(body)\n\t\treturn\n"
+    }
+  ],
+  "helpers": {}
+}

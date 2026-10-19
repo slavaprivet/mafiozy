@@ -1,0 +1,25 @@
+{
+  "schema": "mafiozi.map-editor-incremental-prepare-native-verification/v1",
+  "stage": "outputs/map_editor_source_assembly_R9rR7g",
+  "godot": "4.7.2.stable.official.ed1daf0bf",
+  "sourceObjects": 9901,
+  "stageBaseFiles": 1389,
+  "candidateSha256": "29100b33aa612cb006f7111241fbe07c2d2d5d5e30c2d32b548430c62becea5f",
+  "fixtureSha256": "6c6c4d8d0661b9a31c165304ea2219b443ccc0c2aa10c4d519ea1c05d2148deb",
+  "freshImportExitCode": 0,
+  "freshImportDiagnostics": [],
+  "sequentialNativeRuns": [
+    {"exitCode": 0, "checks": 20328, "failures": [], "validBatches": 582, "negativeBatches": 1884, "wrongHashBatches": 359, "validElapsedUsecIncludingFrameWaits": 4011768, "scriptErrors": []},
+    {"exitCode": 0, "checks": 20328, "failures": [], "validBatches": 474, "negativeBatches": 1821, "wrongHashBatches": 356, "validElapsedUsecIncludingFrameWaits": 3261390, "scriptErrors": []}
+  ],
+  "priorFixtureFailures": [
+    "Original fixture stopped valid and late protected-clone cases at 1000 batches of 48 units/soft 2000 usec.",
+    "An independent rerun of the first revised fixture failed only the wrong-SHA negative: its separate 1000-batch loop of 64 units/soft 2000 usec sometimes stopped before the baseline hash boundary."
+  ],
+  "fixtureFix": "All full-document cases now use one _advance loop: 96 units/soft 4000 usec per frame, 4000-batch cap with phase/progress on timeout; wrong-SHA requires the exact mismatch error.",
+  "scope": "Full source-only 9901-record paged registry and document parity; owner callbacks remain test fixtures.",
+  "gpu": false,
+  "productionWired": false,
+  "fullInstallHitchSolved": false,
+  "mainSceneFPSVerified": false
+}

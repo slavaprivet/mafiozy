@@ -1,0 +1,12 @@
+{
+  "request": {
+    "mode": "headless",
+    "project": "c:\\users\\\u0441\u043b\u0430\u0432\u0430\\desktop\\\u043c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator31_npc57\\game",
+    "access": "read",
+    "ticket": 1
+  },
+  "eligible_snapshot": true,
+  "reasons": [],
+  "scope": "Snapshot only; Lease rechecks inventory and legacy launch mutex before admission",
+  "performance_accepted": false
+}

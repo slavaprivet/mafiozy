@@ -1,0 +1,477 @@
+{
+  "created_utc": "2026-10-18T13:51:38.133730+00:00",
+  "files": [
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\FINAL_SOURCE.json",
+      "relative": "FINAL_SOURCE.json",
+      "sha256": "181e8081ecd618ddf63091776736e1545c9e870e8fad3bb0874fa45baaf59c62"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\FINAL_SELF01.json",
+      "relative": "FINAL_SELF01.json",
+      "sha256": "a09a7e2908c7661038144f6ee885d2b34f5339f3cfd6c92be542cbd61bba1d93"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\FINAL_JUMP01.json",
+      "relative": "FINAL_JUMP01.json",
+      "sha256": "0c6d13891f86da0991bd523108340553186126e86aa052a6066ed7cb5da94af0"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\MELEE02.json",
+      "relative": "MELEE02.json",
+      "sha256": "b3e5b83a1ea5ddfee372c4db3bc257d0470fccd8cf962288e3f92d3f201e55b7"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\CUT03.json",
+      "relative": "CUT03.json",
+      "sha256": "cc5a6c7d3485d75cf33656c90e8e16ca25002478e033051a0aa734a846d6b5c9"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\final_self01\\SCHEDULER_RUN.json",
+      "relative": "final_self01/SCHEDULER_RUN.json",
+      "sha256": "6f4b3805012e497dfe6aafb372d2cb3ca057deba83762272920213eb6bc0cf12"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\final_jump01\\SCHEDULER_RUN.json",
+      "relative": "final_jump01/SCHEDULER_RUN.json",
+      "sha256": "186b6d2e203e172a44c2143c8137b85f0661a06bf93b5a7d0494a3b04c38e79e"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\final_visual\\scheduler\\SCHEDULER_RUN.json",
+      "relative": "final_visual/scheduler/SCHEDULER_RUN.json",
+      "sha256": "45bb59d00b626c1b5340ef1dd8e7a45f42ff96f179cf4ee60f0af49705125f52"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\final_scene\\scheduler\\SCHEDULER_RUN.json",
+      "relative": "final_scene/scheduler/SCHEDULER_RUN.json",
+      "sha256": "9856b0ff7dc8c92d88a0217c61ad23bde1dd98f601555a41d22597684fe50a2b"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\melee02\\SCHEDULER_RUN.json",
+      "relative": "melee02/SCHEDULER_RUN.json",
+      "sha256": "75fd3c1e7c2c6a37660128708bc405a99bfd19a4db06eeeba01e5bc16528f799"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\cut03\\SCHEDULER_RUN.json",
+      "relative": "cut03/SCHEDULER_RUN.json",
+      "sha256": "61091a82943cc478661894db881c856c663649624c75f407487c43d59f029ae0"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\natural_sledge01\\SCHEDULER_RUN.json",
+      "relative": "natural_sledge01/SCHEDULER_RUN.json",
+      "sha256": "b108385673aae2057a4a9676210929fd5a4d8215014643af03036a7ba2db1b86"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\final_visual\\01_sword_hilt_after_pickup.png",
+      "relative": "final_visual/01_sword_hilt_after_pickup.png",
+      "sha256": "d424dca1f1708155c448cfa5c7c911873dea2d18041cab231495a3ad878635ba"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\final_visual\\02_sword_high.png",
+      "relative": "final_visual/02_sword_high.png",
+      "sha256": "bc89a84de4f7c57ca16f680427d6ac1739ce47156523b77ff5d0881bede961b8"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\final_visual\\03_sword_side.png",
+      "relative": "final_visual/03_sword_side.png",
+      "sha256": "5cdda395780aaf85f4e897000613fb671910fe9b878f693edf8ba044d6ebcaf5"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\final_visual\\04_sledge_high.png",
+      "relative": "final_visual/04_sledge_high.png",
+      "sha256": "9a1177a620c01d9ebbaee6dd37b0825acd3f47579ec4573cbfee241fd576b657"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\final_visual\\05_sledge_down_early.png",
+      "relative": "final_visual/05_sledge_down_early.png",
+      "sha256": "d361bd7334f2f6edb18e365ae031fdaadec5dabb6e560953a70137be8fbb74ea"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\final_visual\\06_sledge_down_late.png",
+      "relative": "final_visual/06_sledge_down_late.png",
+      "sha256": "2b6d0dc809a3a1d479deefa6c7dfa1371fda522f2be67ce173ad524e5f64d013"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\final_visual\\review50.gd",
+      "relative": "final_visual/review50.gd",
+      "sha256": "754f85239d7d622a68975c10ef9d3362b5584757df520dafc9cc4da89d2ad9c3"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\final_visual\\REVIEW_NATIVE.json",
+      "relative": "final_visual/REVIEW_NATIVE.json",
+      "sha256": "d853254d23c0983c5a3c5128832b520abce006d5b4b5e45349cdf232091451c9"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\final_scene\\gate_external.png",
+      "relative": "final_scene/gate_external.png",
+      "sha256": "433326e8075c4b4d69a2f6437f132f4dd16f88623367602e1f9d1c6c952e71fd"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\final_scene\\graphical_RESULT.json",
+      "relative": "final_scene/graphical_RESULT.json",
+      "sha256": "7a9f6a959eac4fe5054e5ac6425d3340726d6086b56bb926d4cd2e89dc2cb3e9"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\final_scene\\scene50.gd",
+      "relative": "final_scene/scene50.gd",
+      "sha256": "8e8580457f4e1b5d3c2fda337a4d843386d3c951d2735f4608e4e4cc41cb674c"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\final_scene\\siege_field.png",
+      "relative": "final_scene/siege_field.png",
+      "sha256": "bc279ca77c6dfbabfd94cc82c3e89a34c5dfacdab2a70b31a7c3579114e01835"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\final_scene\\siege_wide.png",
+      "relative": "final_scene/siege_wide.png",
+      "sha256": "7a3ae72d97f59b7fc5d3b4962013837f1ebbcb5a794d688c907a5e9723a392a5"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\sledge01\\result.json",
+      "relative": "prior_natural_sledge/result.json",
+      "sha256": "1b906f7d75ac07d909e152b5f6fb0c7cad6c40bca71efb0bdb7f3fe6ffbd9983"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\final_player_result\\result.json",
+      "relative": "raw_final_player01/result.json",
+      "sha256": "7699c81fd9bcf354f3a020631085d159f1fa036cd6088f74f92f0e9474db630d"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\merged50\\final_player01\\SCHEDULER_RUN.json",
+      "relative": "raw_final_player01/SCHEDULER_RUN.json",
+      "sha256": "2f7d03aa81250b2f82dbd71962f0a31e14ea910949c653412358dd421aeb8f4c"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\leg50\\READY.json",
+      "relative": "leg50/READY.json",
+      "sha256": "c3703cda52eecddf771323c5f0bcdfba325b29914765aef6f66cf7102ce85946"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\leg50\\NATIVE04.json",
+      "relative": "leg50/NATIVE04.json",
+      "sha256": "24e55865fde95de7192eea543b86c5198753933abfe2e3bde283375255f1bb51"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\leg50\\SOURCE_PINS.json",
+      "relative": "leg50/SOURCE_PINS.json",
+      "sha256": "1f7ab4936c73b3b1b1cce14670443fc8409bdca367085aab5aad793a5d787c04"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\leg50\\leg50.patch",
+      "relative": "leg50/leg50.patch",
+      "sha256": "ef29b789f82885e51cf128d41ba8a3eb4fa27474e742a68948cb1b5f6f22cd1e"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\leg50\\leg50.gd",
+      "relative": "leg50/leg50.gd",
+      "sha256": "45ad10b02e619e5c5371b6107bf9539dee5a0c17628e9ca9311b43e90e1117ce"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\leg50\\native04\\SCHEDULER_RUN.json",
+      "relative": "leg50/native04/SCHEDULER_RUN.json",
+      "sha256": "c29ad2758e3d10850f835df9c646b831eba71b0ab39c262f680e8fbfe97c9054"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\jump50\\READY.json",
+      "relative": "jump50/READY.json",
+      "sha256": "41d895251b8cc64e714c741b8e14245e0193bec4fd85bebb52765c745ddf0274"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\jump50\\CANDIDATE.json",
+      "relative": "jump50/CANDIDATE.json",
+      "sha256": "5afea0836bfbef9dcc44f7fbb09ada35d1a1fc53f1ee82216cd6f9e81778b345"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\jump50\\MERGED_DAMAGE02.json",
+      "relative": "jump50/MERGED_DAMAGE02.json",
+      "sha256": "5f98190353324125c5addb887b0755a0b61aec6815c8f726bc164dcf889d7136"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\jump50\\MERGED_DAMAGE03.json",
+      "relative": "jump50/MERGED_DAMAGE03.json",
+      "sha256": "279529129cc74fb3dd944102505a5e7e65b15bd4523a379cfd5c5908ded8d2a8"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\jump50\\jump_surface50.patch",
+      "relative": "jump50/jump_surface50.patch",
+      "sha256": "9bb72c297fcb4757af6aa5279981b1552b2347bac0ef5a3cdea4e513eca87b1e"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\jump50\\damage50.gd",
+      "relative": "jump50/damage50.gd",
+      "sha256": "bbdd0eb6aa9363ac688e5a4248514a33be7ed0f87fa1666510a660209a6f8a3e"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\jump50\\jump50.gd",
+      "relative": "jump50/jump50.gd",
+      "sha256": "3dad8e9af6c11aca6bb09efb076e1fdfe95e31a6f7d7d76412e4326b55f66f75"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\takeover45_self\\merged_review\\anchor05\\HANDOFF.json",
+      "relative": "self50/HANDOFF.json",
+      "sha256": "c37dea2fc4ca22950632c72c4d3f515b0db6dbb39ee13bf11fa373c0ad6e98b0"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\takeover45_self\\merged_review\\anchor05\\ANCHOR_FIRST_BOUNDED.patch",
+      "relative": "self50/ANCHOR_FIRST_BOUNDED.patch",
+      "sha256": "f3b1547b2424a29e30aa3c4dd765432f8441d82ffc76feea127d5fbc87989136"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\takeover45_self\\merged_review\\anchor05\\all_weapons.gd",
+      "relative": "self50/all_weapons.gd",
+      "sha256": "8c12a44adbe0ffb860bb22ff4a735e4f56c01e430dfc91823ef7bd6195711db4"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\ACCEPTANCE50.json",
+      "relative": "opponent50/ACCEPTANCE50.json",
+      "sha256": "add5d500f94760a738b04dc2e1b650d49497005b3fa64da02f66ddf883bc319f"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\PACKAGE.json",
+      "relative": "opponent50/PACKAGE.json",
+      "sha256": "9ff30b5452ff9cb9686032b00f092e317fbfc4ade981e461be90833d7ada4d9b"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\frozen50_duel\\duel.json",
+      "relative": "opponent50/duel/duel.json",
+      "sha256": "3204532b9dc078a99aed499ce60365b648315f714000f6cddc6d2803c5f56863"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\frozen50_duel\\SCHEDULER_RUN.json",
+      "relative": "opponent50/duel/SCHEDULER_RUN.json",
+      "sha256": "d3ba54b33ebc7bf5b620022f0f924f4acef32e2d203d84984d2c89778542c2cf"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\frozen50_duel\\SOURCE.json",
+      "relative": "opponent50/duel/SOURCE.json",
+      "sha256": "b4251ee9425a958986596f5b36f7c7e23084ba2c81faa3becbdb9a01f197191f"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\frozen50_player_result\\result.json",
+      "relative": "opponent50/player/result.json",
+      "sha256": "e1c128f81d084a05e0bffef739b5f06ea70b10b95a1c0247fbc9585a08807363"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\frozen50_player\\SCHEDULER_RUN.json",
+      "relative": "opponent50/player/SCHEDULER_RUN.json",
+      "sha256": "e6bd9565dcb884eea461c7948f2f39432c2ac1a7cc08a3e9270628246af78562"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\frozen50_player\\SOURCE.json",
+      "relative": "opponent50/player/SOURCE.json",
+      "sha256": "b0664ee215d7baeae6bec44289a8dcb3af5dd1375f56209941af9dd56b62b3fd"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\frozen50_detour\\detour.json",
+      "relative": "opponent50/detour/detour.json",
+      "sha256": "7aab5ed2516dd0a022e590d1d8f690a1da6dbd5fafb2dbab626f5bb64ed7bc91"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\frozen50_detour\\SCHEDULER_RUN.json",
+      "relative": "opponent50/detour/SCHEDULER_RUN.json",
+      "sha256": "dc2d4cd87dce17173bb432c1a47fd7928d52afd18ea4f116e4eb74af0b94ab75"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\frozen50_detour\\SOURCE.json",
+      "relative": "opponent50/detour/SOURCE.json",
+      "sha256": "62bc4c6ea4a22d3189eb975400e8b0e990effd3b5397c3c7c100e09436a49507"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\frozen50_retreat\\retreat.json",
+      "relative": "opponent50/retreat/retreat.json",
+      "sha256": "24a7e687d0ae1f38c78fe4a9db29ebc88eda96daedc5a52dd712599f2e3e7488"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\frozen50_retreat\\SCHEDULER_RUN.json",
+      "relative": "opponent50/retreat/SCHEDULER_RUN.json",
+      "sha256": "ec40d409be9c7e2c6fc8f9a9ab2896f5aa16efb8e1bc3171537763a2bed1903c"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\frozen50_retreat\\SOURCE.json",
+      "relative": "opponent50/retreat/SOURCE.json",
+      "sha256": "62bc4c6ea4a22d3189eb975400e8b0e990effd3b5397c3c7c100e09436a49507"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\frozen50_law\\LAW_PARITY.json",
+      "relative": "opponent50/law/LAW_PARITY.json",
+      "sha256": "776aecd82902cb48be40c76e56a24d163a1962861eda403298ebc0be4db3adc2"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\frozen50_law\\SCHEDULER_RUN.json",
+      "relative": "opponent50/law/SCHEDULER_RUN.json",
+      "sha256": "44c691d09c1b91737cedc7b7afae5307b8f4bc10906d476d5ae5a8f9ad136343"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\frozen50_law\\SOURCE.json",
+      "relative": "opponent50/law/SOURCE.json",
+      "sha256": "616d81f806a7ad2cd7e5903daeb994562d97af3524e5c0d61dd428110548394a"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\courtyard43\\combined01\\RESULT.json",
+      "relative": "inherited47/map44.json",
+      "sha256": "e2d3e5253b6eccfbed78e95a8440435ae7bdb43262cefcb9c421c3a183c30512"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\armor46\\check06\\RESULT.json",
+      "relative": "inherited47/armor46.json",
+      "sha256": "9163391bc3d0054555f44000d1e71a7292775e60a43b6493db9de7f88ac3eae1"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\soil47\\check04\\RESULT.json",
+      "relative": "inherited47/soil47.json",
+      "sha256": "d9bccbd44e2f25f1fdf4f1943d8a59c3baaf1d31b7d96df27dd7baa34d579bcf"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\diag02_result\\result.json",
+      "relative": "opponent50/final/natural_player_actual_sever/result.json",
+      "sha256": "c5bea7325f69a468d28516961fb2446e4851168a172f6f74758300cbfbdaffb8"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\diag02\\SCHEDULER_RUN.json",
+      "relative": "opponent50/final/natural_player_actual_sever/SCHEDULER_RUN.json",
+      "sha256": "42b8626cd4978a031ed97b64036a5ea2e730ae839614bf3156913eebce3d7d75"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\diag02\\SOURCE.json",
+      "relative": "opponent50/final/natural_player_actual_sever/SOURCE.json",
+      "sha256": "981926bbb1f3abbdbda9df7750d7fcf8149e82d983ea6291883aeabb0ee2dc55"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\reverse_final01\\duel.json",
+      "relative": "opponent50/final/natural_enemy_actual_sever/duel.json",
+      "sha256": "22181b6628427d78ac6d7ef113d9c09cb4c398539ccddfbed2a726a88e389146"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\reverse_final01\\SCHEDULER_RUN.json",
+      "relative": "opponent50/final/natural_enemy_actual_sever/SCHEDULER_RUN.json",
+      "sha256": "5d9aab36fec87c553afd3aa480e88952e3aa7d7e186e924cf5f347d1adac89be"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\reverse_final01\\SOURCE.json",
+      "relative": "opponent50/final/natural_enemy_actual_sever/SOURCE.json",
+      "sha256": "b5d96483e65c37a92f4cf8c5c93156e74c51e04727e62ceaa86ce1556e3f7aa4"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\sharp01_result\\result.json",
+      "relative": "opponent50/final/short_horizontal_defeat/result.json",
+      "sha256": "6d5ab0a4ef845b99bb21213ccf3dda6738dfdf568c0a2385acc049f320dc14e3"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\sharp01\\SCHEDULER_RUN.json",
+      "relative": "opponent50/final/short_horizontal_defeat/SCHEDULER_RUN.json",
+      "sha256": "b96c8ce05bd48681e7923c36999ff61a5f74e0a98cfc9dfd397676a6614d6967"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\sharp01\\SOURCE.json",
+      "relative": "opponent50/final/short_horizontal_defeat/SOURCE.json",
+      "sha256": "a6e1b6bddc48d8f5e4046c04d08846a5c5bf75d6ca0589ff16739e5257a57164"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\sharp_vertical02_result\\result.json",
+      "relative": "opponent50/final/short_vertical_no_sever/result.json",
+      "sha256": "06edcaa0c2d2c12539bfb5e8dba9be6272ecc4db9447a81f5cd6ca43f99b0e53"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\sharp_vertical02\\SCHEDULER_RUN.json",
+      "relative": "opponent50/final/short_vertical_no_sever/SCHEDULER_RUN.json",
+      "sha256": "ff25f1cb94e7b2ef270450418371ed64ba47fbe54e4258e7c89667fa54d6a3d2"
+    },
+    {
+      "source": "D:\\MafioziCombat31\\opponent50\\sharp_vertical02\\SOURCE.json",
+      "relative": "opponent50/final/short_vertical_no_sever/SOURCE.json",
+      "sha256": "a6e1b6bddc48d8f5e4046c04d08846a5c5bf75d6ca0589ff16739e5257a57164"
+    }
+  ],
+  "raw_failures_retained": true,
+  "all_packaged_files": {
+    "CUT03.json": "cc5a6c7d3485d75cf33656c90e8e16ca25002478e033051a0aa734a846d6b5c9",
+    "FINAL_JUMP01.json": "0c6d13891f86da0991bd523108340553186126e86aa052a6066ed7cb5da94af0",
+    "FINAL_SELF01.json": "a09a7e2908c7661038144f6ee885d2b34f5339f3cfd6c92be542cbd61bba1d93",
+    "FINAL_SOURCE.json": "181e8081ecd618ddf63091776736e1545c9e870e8fad3bb0874fa45baaf59c62",
+    "MELEE02.json": "b3e5b83a1ea5ddfee372c4db3bc257d0470fccd8cf962288e3f92d3f201e55b7",
+    "cut03/SCHEDULER_RUN.json": "61091a82943cc478661894db881c856c663649624c75f407487c43d59f029ae0",
+    "final_jump01/SCHEDULER_RUN.json": "186b6d2e203e172a44c2143c8137b85f0661a06bf93b5a7d0494a3b04c38e79e",
+    "final_scene/gate_external.png": "433326e8075c4b4d69a2f6437f132f4dd16f88623367602e1f9d1c6c952e71fd",
+    "final_scene/graphical_RESULT.json": "7a9f6a959eac4fe5054e5ac6425d3340726d6086b56bb926d4cd2e89dc2cb3e9",
+    "final_scene/scene50.gd": "8e8580457f4e1b5d3c2fda337a4d843386d3c951d2735f4608e4e4cc41cb674c",
+    "final_scene/siege_field.png": "bc279ca77c6dfbabfd94cc82c3e89a34c5dfacdab2a70b31a7c3579114e01835",
+    "final_scene/siege_wide.png": "7a3ae72d97f59b7fc5d3b4962013837f1ebbcb5a794d688c907a5e9723a392a5",
+    "final_self01/SCHEDULER_RUN.json": "6f4b3805012e497dfe6aafb372d2cb3ca057deba83762272920213eb6bc0cf12",
+    "final_visual/01_sword_hilt_after_pickup.png": "d424dca1f1708155c448cfa5c7c911873dea2d18041cab231495a3ad878635ba",
+    "final_visual/02_sword_high.png": "bc89a84de4f7c57ca16f680427d6ac1739ce47156523b77ff5d0881bede961b8",
+    "final_visual/03_sword_side.png": "5cdda395780aaf85f4e897000613fb671910fe9b878f693edf8ba044d6ebcaf5",
+    "final_visual/04_sledge_high.png": "9a1177a620c01d9ebbaee6dd37b0825acd3f47579ec4573cbfee241fd576b657",
+    "final_visual/05_sledge_down_early.png": "d361bd7334f2f6edb18e365ae031fdaadec5dabb6e560953a70137be8fbb74ea",
+    "final_visual/06_sledge_down_late.png": "2b6d0dc809a3a1d479deefa6c7dfa1371fda522f2be67ce173ad524e5f64d013",
+    "final_visual/review50.gd": "754f85239d7d622a68975c10ef9d3362b5584757df520dafc9cc4da89d2ad9c3",
+    "final_visual/REVIEW_NATIVE.json": "d853254d23c0983c5a3c5128832b520abce006d5b4b5e45349cdf232091451c9",
+    "inherited47/armor46.json": "9163391bc3d0054555f44000d1e71a7292775e60a43b6493db9de7f88ac3eae1",
+    "inherited47/map44.json": "e2d3e5253b6eccfbed78e95a8440435ae7bdb43262cefcb9c421c3a183c30512",
+    "inherited47/soil47.json": "d9bccbd44e2f25f1fdf4f1943d8a59c3baaf1d31b7d96df27dd7baa34d579bcf",
+    "jump50/CANDIDATE.json": "5afea0836bfbef9dcc44f7fbb09ada35d1a1fc53f1ee82216cd6f9e81778b345",
+    "jump50/damage50.gd": "bbdd0eb6aa9363ac688e5a4248514a33be7ed0f87fa1666510a660209a6f8a3e",
+    "jump50/jump50.gd": "3dad8e9af6c11aca6bb09efb076e1fdfe95e31a6f7d7d76412e4326b55f66f75",
+    "jump50/jump_surface50.patch": "9bb72c297fcb4757af6aa5279981b1552b2347bac0ef5a3cdea4e513eca87b1e",
+    "jump50/MERGED_DAMAGE02.json": "5f98190353324125c5addb887b0755a0b61aec6815c8f726bc164dcf889d7136",
+    "jump50/MERGED_DAMAGE03.json": "279529129cc74fb3dd944102505a5e7e65b15bd4523a379cfd5c5908ded8d2a8",
+    "jump50/READY.json": "41d895251b8cc64e714c741b8e14245e0193bec4fd85bebb52765c745ddf0274",
+    "leg50/leg50.gd": "45ad10b02e619e5c5371b6107bf9539dee5a0c17628e9ca9311b43e90e1117ce",
+    "leg50/leg50.patch": "ef29b789f82885e51cf128d41ba8a3eb4fa27474e742a68948cb1b5f6f22cd1e",
+    "leg50/NATIVE04.json": "24e55865fde95de7192eea543b86c5198753933abfe2e3bde283375255f1bb51",
+    "leg50/READY.json": "c3703cda52eecddf771323c5f0bcdfba325b29914765aef6f66cf7102ce85946",
+    "leg50/SOURCE_PINS.json": "1f7ab4936c73b3b1b1cce14670443fc8409bdca367085aab5aad793a5d787c04",
+    "melee02/SCHEDULER_RUN.json": "75fd3c1e7c2c6a37660128708bc405a99bfd19a4db06eeeba01e5bc16528f799",
+    "natural_sledge01/SCHEDULER_RUN.json": "b108385673aae2057a4a9676210929fd5a4d8215014643af03036a7ba2db1b86",
+    "opponent50/ACCEPTANCE50.json": "add5d500f94760a738b04dc2e1b650d49497005b3fa64da02f66ddf883bc319f",
+    "opponent50/FINAL_ACCEPTANCE50.json": "bdd976182fb3237e37cf28d742f1aba45f11bbb19625b5003805e1dc6cb15928",
+    "opponent50/PACKAGE.json": "9ff30b5452ff9cb9686032b00f092e317fbfc4ade981e461be90833d7ada4d9b",
+    "ordinary50/CURRENT_READY.json": "ffe639b1fa127e998e2d662901511e7734b770abf6763b8731afdfe9aa63d811",
+    "ordinary50/opened.png": "ff095c31adf6e7a2bb1ba927aa7203cfd5f4ef4830785d3b82ea8cac5d4ada09",
+    "ordinary50/RELEASE.json": "8313ac7b5682d56bfd62aff936222f4d587fa4fcda30ca52732a9210c6283399",
+    "ordinary50/STARTED.json": "01e800c87212abae644bdbb58a2727ad4e4da86f1370dd7650305fa0cd775247",
+    "prior_natural_sledge/result.json": "1b906f7d75ac07d909e152b5f6fb0c7cad6c40bca71efb0bdb7f3fe6ffbd9983",
+    "raw_final_player01/result.json": "7699c81fd9bcf354f3a020631085d159f1fa036cd6088f74f92f0e9474db630d",
+    "raw_final_player01/SCHEDULER_RUN.json": "2f7d03aa81250b2f82dbd71962f0a31e14ea910949c653412358dd421aeb8f4c",
+    "self50/all_weapons.gd": "8c12a44adbe0ffb860bb22ff4a735e4f56c01e430dfc91823ef7bd6195711db4",
+    "self50/ANCHOR_FIRST_BOUNDED.patch": "f3b1547b2424a29e30aa3c4dd765432f8441d82ffc76feea127d5fbc87989136",
+    "self50/HANDOFF.json": "c37dea2fc4ca22950632c72c4d3f515b0db6dbb39ee13bf11fa373c0ad6e98b0",
+    "sledge_dive50/DIAGNOSIS.json": "bba2ea25521ae779d6f2d034b898637f7b8d38121d6496a97ebf994296ddf3e7",
+    "sledge_dive50/FINAL_READY.json": "397f3432100369e0fca6b00d77b1414f87dba372d1d476bb7fd902d5bd04d306",
+    "sledge_dive50/FINAL_RESULT.json": "1ff42f9039d2953719a14cfd1202d32a6a331b018ba7467fa04867a613501461",
+    "sledge_dive50/RESULT.json": "7db3d038b3b3385ef25278f474c9d7510eaeb9129e4fefd75484ca84a3783186",
+    "sledge_dive50/sledge_final_trace50.gd": "bef8dc9ae3119c7a7cf04487a1dce8c48c5fe6ea67a1d56ce76fc83cbb95ac8c",
+    "sledge_dive50/SOURCE_PINS.json": "4e63bbc2bc28056bca3702f88287c29b094ca9e69fecc84c5796dd0266d9c296",
+    "sledge_dive50/native01/SCHEDULER_RUN.json": "c001662940af83c7a64345cb05c6e46701d7706fc26c8d23d3ff744bea3681b5",
+    "sledge_dive50/native02/SCHEDULER_RUN.json": "044c88a3885f9df7df0b952e4630f6944c86e437874e736db6f85cae0a8c15fd",
+    "opponent50/detour/detour.json": "7aab5ed2516dd0a022e590d1d8f690a1da6dbd5fafb2dbab626f5bb64ed7bc91",
+    "opponent50/detour/SCHEDULER_RUN.json": "dc2d4cd87dce17173bb432c1a47fd7928d52afd18ea4f116e4eb74af0b94ab75",
+    "opponent50/detour/SOURCE.json": "62bc4c6ea4a22d3189eb975400e8b0e990effd3b5397c3c7c100e09436a49507",
+    "opponent50/duel/duel.json": "3204532b9dc078a99aed499ce60365b648315f714000f6cddc6d2803c5f56863",
+    "opponent50/duel/SCHEDULER_RUN.json": "d3ba54b33ebc7bf5b620022f0f924f4acef32e2d203d84984d2c89778542c2cf",
+    "opponent50/duel/SOURCE.json": "b4251ee9425a958986596f5b36f7c7e23084ba2c81faa3becbdb9a01f197191f",
+    "opponent50/law/LAW_PARITY.json": "776aecd82902cb48be40c76e56a24d163a1962861eda403298ebc0be4db3adc2",
+    "opponent50/law/SCHEDULER_RUN.json": "44c691d09c1b91737cedc7b7afae5307b8f4bc10906d476d5ae5a8f9ad136343",
+    "opponent50/law/SOURCE.json": "616d81f806a7ad2cd7e5903daeb994562d97af3524e5c0d61dd428110548394a",
+    "opponent50/player/result.json": "e1c128f81d084a05e0bffef739b5f06ea70b10b95a1c0247fbc9585a08807363",
+    "opponent50/player/SCHEDULER_RUN.json": "e6bd9565dcb884eea461c7948f2f39432c2ac1a7cc08a3e9270628246af78562",
+    "opponent50/player/SOURCE.json": "b0664ee215d7baeae6bec44289a8dcb3af5dd1375f56209941af9dd56b62b3fd",
+    "opponent50/retreat/retreat.json": "24a7e687d0ae1f38c78fe4a9db29ebc88eda96daedc5a52dd712599f2e3e7488",
+    "opponent50/retreat/SCHEDULER_RUN.json": "ec40d409be9c7e2c6fc8f9a9ab2896f5aa16efb8e1bc3171537763a2bed1903c",
+    "opponent50/retreat/SOURCE.json": "62bc4c6ea4a22d3189eb975400e8b0e990effd3b5397c3c7c100e09436a49507",
+    "opponent50/final/natural_enemy_actual_sever/duel.json": "22181b6628427d78ac6d7ef113d9c09cb4c398539ccddfbed2a726a88e389146",
+    "opponent50/final/natural_enemy_actual_sever/SCHEDULER_RUN.json": "5d9aab36fec87c553afd3aa480e88952e3aa7d7e186e924cf5f347d1adac89be",
+    "opponent50/final/natural_enemy_actual_sever/SOURCE.json": "b5d96483e65c37a92f4cf8c5c93156e74c51e04727e62ceaa86ce1556e3f7aa4",
+    "opponent50/final/natural_player_actual_sever/result.json": "c5bea7325f69a468d28516961fb2446e4851168a172f6f74758300cbfbdaffb8",
+    "opponent50/final/natural_player_actual_sever/SCHEDULER_RUN.json": "42b8626cd4978a031ed97b64036a5ea2e730ae839614bf3156913eebce3d7d75",
+    "opponent50/final/natural_player_actual_sever/SOURCE.json": "981926bbb1f3abbdbda9df7750d7fcf8149e82d983ea6291883aeabb0ee2dc55",
+    "opponent50/final/short_horizontal_defeat/result.json": "6d5ab0a4ef845b99bb21213ccf3dda6738dfdf568c0a2385acc049f320dc14e3",
+    "opponent50/final/short_horizontal_defeat/SCHEDULER_RUN.json": "b96c8ce05bd48681e7923c36999ff61a5f74e0a98cfc9dfd397676a6614d6967",
+    "opponent50/final/short_horizontal_defeat/SOURCE.json": "a6e1b6bddc48d8f5e4046c04d08846a5c5bf75d6ca0589ff16739e5257a57164",
+    "opponent50/final/short_vertical_no_sever/result.json": "06edcaa0c2d2c12539bfb5e8dba9be6272ecc4db9447a81f5cd6ca43f99b0e53",
+    "opponent50/final/short_vertical_no_sever/SCHEDULER_RUN.json": "ff25f1cb94e7b2ef270450418371ed64ba47fbe54e4258e7c89667fa54d6a3d2",
+    "opponent50/final/short_vertical_no_sever/SOURCE.json": "a6e1b6bddc48d8f5e4046c04d08846a5c5bf75d6ca0589ff16739e5257a57164",
+    "leg50/native04/SCHEDULER_RUN.json": "c29ad2758e3d10850f835df9c646b831eba71b0ab39c262f680e8fbfe97c9054",
+    "final_visual/scheduler/SCHEDULER_RUN.json": "45bb59d00b626c1b5340ef1dd8e7a45f42ff96f179cf4ee60f0af49705125f52",
+    "final_scene/scheduler/SCHEDULER_RUN.json": "9856b0ff7dc8c92d88a0217c61ad23bde1dd98f601555a41d22597684fe50a2b"
+  }
+}

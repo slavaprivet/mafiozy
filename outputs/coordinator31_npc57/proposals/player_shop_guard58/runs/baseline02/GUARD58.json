@@ -1,0 +1,60 @@
+{
+	"checks": {
+		"cashier_invalid_now": true,
+		"city_ready": true,
+		"live_sale_positive": true,
+		"modal_closes_on_poll": true,
+		"modal_open_with_live_cashier": true,
+		"modal_still_open_before_poll": true,
+		"no_cash_debit": false,
+		"no_inventory_delivery": false,
+		"no_new_purchase_receipt": false,
+		"one_actual_cashier": true,
+		"same_physics_frame": true,
+		"shop_ready": true,
+		"stale_store_refused": false,
+		"standalone_sandbox_transaction_preserved": true
+	},
+	"detail": {
+		"answer": {
+			"cash": 4770,
+			"ok": true,
+			"receipt": {
+				"cash_after": 4770,
+				"frame": 220,
+				"item_id": "grenade",
+				"kind": "consumable",
+				"price": 50,
+				"purchase_id": "shop-purchase--9223370190421404937-grenade-3",
+				"session": -9223370190421404937
+			},
+			"replayed": false
+		},
+		"cash_after": 4770,
+		"cash_before": 4820,
+		"purchase_receipts_after": 2,
+		"purchase_receipts_before": 1,
+		"quantity_after": 1,
+		"quantity_before": 0,
+		"sandbox": {
+			"answer": {
+				"cash": 4950,
+				"ok": true,
+				"receipt": {
+					"cash_after": 4950,
+					"frame": 221,
+					"item_id": "grenade",
+					"kind": "consumable",
+					"price": 50,
+					"purchase_id": "sandbox-guard58",
+					"session": -9223369833838439090
+				},
+				"replayed": false
+			},
+			"ok": true
+		}
+	},
+	"overlay": false,
+	"passed": false,
+	"scope": "Actual city cashier lifecycle invalidated synchronously between live modal-open and real goods activation; isolated sandbox transaction uses real catalog/wallet/backpack ports."
+}

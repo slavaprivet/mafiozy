@@ -1,0 +1,546 @@
+{
+  "schema": "mafiozi.single-sword-user-lock/v1",
+  "reference": "User explicitly approved current52 single sword and ordered no changes; compare53 source without modifying game files.",
+  "reference52_commit": "33b8ad5388e846752a4111caffd56d9d15935174",
+  "comparison53_commit": "a0c7478e4bd01552566c6d6cdb0f9db5550bc6af",
+  "source_audit": {
+    "pins52": 1347,
+    "pins53": 1347,
+    "unchanged_files": 1343,
+    "all_1347_local52_local53_git53_pins_match": true,
+    "published_git53_regular_blobs": true,
+    "launcher_checkonly": "PASS",
+    "changed_files": [
+      "scripts/combat/castle_armor_visual.gd",
+      "scripts/preview_player.gd",
+      "scripts/weapons/bow_prototype.gd",
+      "scripts/weapons/sword_prototype.gd"
+    ],
+    "raw_hashes52": {
+      "scripts/combat/castle_armor_visual.gd": "09f28fa5d5dcf4ab7fd2032cd89b934f2f809142682bca7b33ad00f06b8a1888",
+      "scripts/preview_player.gd": "3e1e46febba29274b1fc2357bd1e06ce36ce10f0571c19458db5ba6e48408052",
+      "scripts/weapons/bow_prototype.gd": "2b850770790a5a1dccd4d3ef4e46039a1491903bacdaadc177022098ab76fcdc",
+      "scripts/weapons/sword_prototype.gd": "f472d58b75a6924d944614c06eca60ff977fa40041d6127d2eab9b51a7a9eb8e",
+      "scripts/weapons/weapon_aim_camera.gd": "e0f082f0c8ac7b3e1af2a580166198a6e705bfceff4ec0626a23896eb514e791"
+    },
+    "raw_hashes53": {
+      "scripts/combat/castle_armor_visual.gd": "3f5ce01a57a87e419c4b1f973729e73cafa1e714f6ba384acd15973f6fca4183",
+      "scripts/preview_player.gd": "b4e02c86185557fb68a9dfdbec85932f41a79f16f1d0ec55999d3a367a4cbb02",
+      "scripts/weapons/bow_prototype.gd": "8218dee827a20382daea87927220d7d6c97841639c91a863a92ca6d28f272776",
+      "scripts/weapons/sword_prototype.gd": "37461c7579289673ffd2370479c28290a66235665ddd448b49bbf31868df248d",
+      "scripts/weapons/weapon_aim_camera.gd": "e0f082f0c8ac7b3e1af2a580166198a6e705bfceff4ec0626a23896eb514e791"
+    }
+  },
+  "function_hash_normalization": "Remove carriage returns only; preserve remaining whitespace/comments inside declarations; omit trailing blank lines and top-level comment lines between declarations. Hash UTF-8 declaration plus one final LF. Raw full-file hashes in embedded source_audit.",
+  "direct_player_sword_source_unchanged": true,
+  "sword_changed_functions53": [
+    "_dress_knight",
+    "_npc_guard_direction",
+    "_npc_navigation50",
+    "_npc_should_guard",
+    "_npc_speed_scale",
+    "_spawn_resident_knight",
+    "_update_city_npc"
+  ],
+  "sword_added_functions53": [
+    "_npc_observe53",
+    "_npc_update_aim53",
+    "_npc_begin_attack53",
+    "_npc_footwork53"
+  ],
+  "unchanged_sword_counts": {
+    "functions": 270,
+    "constants": 125,
+    "variables": 314
+  },
+  "existing_sword_top_level_declarations_sha256": "e2a5c5b8861409637129a35eba3f647642ab97255c7b5c8cf06d93924c9b2a87",
+  "protected_player_shared_functions": {
+    "set_weapon": {
+      "sha256_lf": "9f16db188b0d000e43f77714e1d5108da16e00479a2f10f28b7c94334478f33a",
+      "line52": 70,
+      "line53": 70
+    },
+    "weapon_rear_extent": {
+      "sha256_lf": "25ba10d5aed14ad681a6b8628a92227fb367ade3a008948c17c1f2a67df40eae",
+      "line52": 110,
+      "line53": 110
+    },
+    "weapon_entry": {
+      "sha256_lf": "5b73d68059d89a0c2697f3b7600e137c2bd894998eabfe3bd77d20c1bf4b4fe2",
+      "line52": 121,
+      "line53": 121
+    },
+    "_kind_multiplier": {
+      "sha256_lf": "633a3320233141058942d6075615b27bfaf51c6ee0f0d2b2fb80b0064aa1949b",
+      "line52": 125,
+      "line53": 125
+    },
+    "_windup_angle": {
+      "sha256_lf": "d3b835becb64b03bf12b594d8d61ec0796514a3d31c83b3b3409a66a0fd7525e",
+      "line52": 339,
+      "line53": 339
+    },
+    "_strength_now": {
+      "sha256_lf": "ea931107751e947ed65608b7561d21c85a278dbbac09830079613cf7ef55c714",
+      "line52": 346,
+      "line53": 346
+    },
+    "_sword_coasting31": {
+      "sha256_lf": "83d8e2f90fbb94cc52d5f106b6e2ece7e8e108ba1a74daf799f3cd274bd88d74",
+      "line52": 354,
+      "line53": 354
+    },
+    "_impact_damage31": {
+      "sha256_lf": "296674f79700b2a86958d5fe979314dbd69fbda4e4fe15ae1bff658b61ebaf31",
+      "line52": 360,
+      "line53": 360
+    },
+    "is_steering": {
+      "sha256_lf": "405e2a135cdce9a1e1613587b03ac8d07d12812e8e4757179242fb4250a185aa",
+      "line52": 479,
+      "line53": 479
+    },
+    "_build_sword_model": {
+      "sha256_lf": "3c4f8a90177ef0fd436c1688792cfda2ee13cdc7e3c06eff9ce0b430cf3ada7d",
+      "line52": 1002,
+      "line53": 1002
+    },
+    "drop_sword_to_ground": {
+      "sha256_lf": "31c6a7035359288a6f5a3072b7d1c22b4c47aaeda9c01448520abfd114c899ab",
+      "line52": 1203,
+      "line53": 1203
+    },
+    "try_pickup_sword": {
+      "sha256_lf": "c1a44ef1b734f7a665a29811dd90a5ebfca755bf9733c661431ef7b5146be84b",
+      "line52": 1300,
+      "line53": 1300
+    },
+    "_input": {
+      "sha256_lf": "3311c14f95c8d058072e2ab574b8417a6685ad8677c6ab606e84f1fe2dd4fa4e",
+      "line52": 1599,
+      "line53": 1599
+    },
+    "_active": {
+      "sha256_lf": "a13dbae0efc4516570e803b84334f2b0b51f29813f400b006bd980b87e9e58c5",
+      "line52": 1716,
+      "line53": 1716
+    },
+    "set_selected": {
+      "sha256_lf": "4a2c085862b8a47f441b35719f6f9beb50d64df9dadb8f2de401c3aeac64d2af",
+      "line52": 1722,
+      "line53": 1722
+    },
+    "_rest_direction": {
+      "sha256_lf": "88cb7f4e568c062d8e38317c43871a4fbe638296af75b2ba701ac2cd8a831bfe",
+      "line52": 1756,
+      "line53": 1756
+    },
+    "_outward_from_body": {
+      "sha256_lf": "ef3b1e396fc18dc24f52af3ba04b4b9f1447750b3feca0e51ec6be0a14e84619",
+      "line52": 1764,
+      "line53": 1764
+    },
+    "_clear_blade_from_body": {
+      "sha256_lf": "eb0883c89d520aaa27da35f03f874deee1b9bb372d1b3ab90a897fe90301e719",
+      "line52": 1785,
+      "line53": 1785
+    },
+    "_carry_direction": {
+      "sha256_lf": "a474ecf394a89ac7dabdd837058fcf326e84bc6e07cceae95b186ae92a3b0c64",
+      "line52": 1803,
+      "line53": 1803
+    },
+    "_ready_hand_direction": {
+      "sha256_lf": "7f8534951a731fc0e2d613fde6ab6364562c1f7df151221867ebba611a5c0f4f",
+      "line52": 1815,
+      "line53": 1815
+    },
+    "_guard_direction": {
+      "sha256_lf": "238f49ec0440d3c8f81ce3eaf0c3f71f70bdedd047f7fc90f4aa920d60d5523d",
+      "line52": 1822,
+      "line53": 1822
+    },
+    "_target_direction": {
+      "sha256_lf": "c07a435ace94466583de7c0325d538ff24134c1c6941187f178fe22797e0926a",
+      "line52": 1842,
+      "line53": 1842
+    },
+    "_steer": {
+      "sha256_lf": "96b95d02a198cbc7b64657b13f9feb72ac1270347d14bc6faa82703891f9772a",
+      "line52": 1858,
+      "line53": 1858
+    },
+    "_physics_process": {
+      "sha256_lf": "13a443b23d7abb8b54ed692f631e6f6e3c3459b2469ecb9e57aa3fb047af603d",
+      "line52": 1960,
+      "line53": 1960
+    },
+    "_process": {
+      "sha256_lf": "a68d18680ae4435b2af699d9963674d70455b34d4c5299ae1ce2cb67bfab3a88",
+      "line52": 2508,
+      "line53": 2508
+    },
+    "_grip_origin_offset": {
+      "sha256_lf": "986c7d41316a6c95e4ba5a3c20b25b18fe5636b8ed52e4321f3183aba918b09e",
+      "line52": 2611,
+      "line53": 2611
+    },
+    "_palm_offset": {
+      "sha256_lf": "3786bd56043494b7f3e853e2765dd592a0375e6718a5dc66900ab475c0d26e9e",
+      "line52": 2615,
+      "line53": 2615
+    },
+    "_palm_position": {
+      "sha256_lf": "953de789888c81a53c0ccb7b654d9de9208ec5b804dd885ba3f14efe70f48eec",
+      "line52": 2620,
+      "line53": 2620
+    },
+    "_attach_sword_to_fist": {
+      "sha256_lf": "603f79415aa9e2be6bd1af66b98750bd6427d1671fc91a57d6c8cdcd507f49d7",
+      "line52": 2624,
+      "line53": 2624
+    },
+    "_self_begin_step45": {
+      "sha256_lf": "66fde18fa02faeb06a76d00d34c4d36a7279ec8ce1d699f1a8d23ae8340662b4",
+      "line52": 2716,
+      "line53": 2716
+    },
+    "_self_limit_step45": {
+      "sha256_lf": "8dec7de5a3a6a7327235b241e485ad7b569504388af20fe987a69c7c91499f8e",
+      "line52": 2735,
+      "line53": 2735
+    },
+    "_self_path_clear45": {
+      "sha256_lf": "079e408df7e5faaf7712c988b8bce4707c7a77482db76e31f1589755056ceb0b",
+      "line52": 2741,
+      "line53": 2741
+    },
+    "_self_evaluate_pose45": {
+      "sha256_lf": "9451305b1c2fc67b76f1178f6e55b1be39f2a278678882b6f8b7b9c6bf9dc354",
+      "line52": 2753,
+      "line53": 2753
+    },
+    "_save_safe_self_pose45": {
+      "sha256_lf": "f5f77a945eda313140793e7ed90e9d341d554187e652b800a7593f0b21abdc2f",
+      "line52": 2762,
+      "line53": 2762
+    },
+    "_restore_safe_self_pose45": {
+      "sha256_lf": "ffd480c557e96214e90347d8d696be4f7c01d1c3c19d1ba06bdb13a685e748c5",
+      "line52": 2771,
+      "line53": 2771
+    },
+    "_self_blade_clear": {
+      "sha256_lf": "8dde1a02153262f9dae0fa3190599aba0dded924510cf8f425193c84e82f12e3",
+      "line52": 2788,
+      "line53": 2788
+    },
+    "_self_blade_clear_at51": {
+      "sha256_lf": "2003c3be09c1e5cb9d1b93b278bc0311283ef6dd0d5e1a1b8036543d660edf63",
+      "line52": 2791,
+      "line53": 2791
+    },
+    "_guard_self_blade": {
+      "sha256_lf": "4ffef99080bbb33c46990c9c27f6742618a922ed2a11fbc38ce856910f532d4a",
+      "line52": 2801,
+      "line53": 2801
+    },
+    "_settle_carried_blade": {
+      "sha256_lf": "4a29b216f148901bb23cf16d985b31a5c4d72f8023164c06a655f14899f4c260",
+      "line52": 2836,
+      "line53": 2836
+    },
+    "_solve_left_arm": {
+      "sha256_lf": "10a78363ca06be662d880f3e6275646c4c605b5bf821f828807d75962f534749",
+      "line52": 2867,
+      "line53": 2867
+    },
+    "_fist_basis": {
+      "sha256_lf": "a92b0d81cd445e3eda5211d87b598d3e9f946f6e5f4f3b95b3b056e9372e800e",
+      "line52": 2888,
+      "line53": 2888
+    },
+    "_soft_body_limit": {
+      "sha256_lf": "58bdba6cb4b49e4dd9f06d816acd7938f02ca132f1720a1a753900ce572b08b2",
+      "line52": 2894,
+      "line53": 2894
+    },
+    "_constrain_forward": {
+      "sha256_lf": "970980fcdb98df4bb01fe637a6e63387ab9726c60d482a67e168227005860c4f",
+      "line52": 2900,
+      "line53": 2900
+    },
+    "_constrain_to_body": {
+      "sha256_lf": "e0dbbbdea6a4527a2e3dc4d543c91ae7bcfcaedfa3843c6c148702f37b303eb4",
+      "line52": 2910,
+      "line53": 2910
+    },
+    "_hand_target_direction": {
+      "sha256_lf": "06d55ee7ffc0e5a6c79641f273252f5574d0ad6476cedb2d91377fb376a46b49",
+      "line52": 2925,
+      "line53": 2925
+    },
+    "_solve_arm": {
+      "sha256_lf": "bea354bac32231e245ae5772f32eea6959c584fe9383eb0b6a78c9c65a416110",
+      "line52": 2941,
+      "line53": 2941
+    },
+    "_pose_shared_grip": {
+      "sha256_lf": "d96ed6cd05724fcb3f21db3cd1df81858cef6e5657554980afd09c59c3d56956",
+      "line52": 3005,
+      "line53": 3005
+    },
+    "_active_side": {
+      "sha256_lf": "d1869404e51bf979c5c8a6fcccdd2c4b431cb49047daeaad33b36a0f8e42e09a",
+      "line52": 3108,
+      "line53": 3108
+    },
+    "_hand_bone_for": {
+      "sha256_lf": "db3d3f9de0aa82f0a1c1a7073ac68995e7cab5e5aa448a31cea2c745f56c789a",
+      "line52": 3123,
+      "line53": 3123
+    },
+    "_arm_set": {
+      "sha256_lf": "e2b251c1b895b1c65b6f696fef9a9c95d89c3e7253ecec6b62f0c4763fb86578",
+      "line52": 3129,
+      "line53": 3129
+    },
+    "_pose_main": {
+      "sha256_lf": "4c46445775579b9ee76cba426484a93e6e86703d91c8100d1b4679b2439a44d8",
+      "line52": 3151,
+      "line53": 3151
+    },
+    "_pose_support": {
+      "sha256_lf": "015e86a2b77ddd7f83c60ef971fab5ccda5a1e8dc185d7bade65dbbdae828c54",
+      "line52": 3162,
+      "line53": 3162
+    },
+    "_palm_basis51": {
+      "sha256_lf": "a7f01674a39f1c0a829acb029caf480cd9626ecfa5ad3017ec0408601bf367cf",
+      "line52": 3170,
+      "line53": 3170
+    },
+    "_pose_arm_ik": {
+      "sha256_lf": "3f6618b0c9cfea34e18508369e8ef4ef6216be219b3f12c699af42ec54484fe7",
+      "line52": 3184,
+      "line53": 3184
+    },
+    "_guard_hand_in_front": {
+      "sha256_lf": "84adf94507e3da99c95e2b9795981286a354a8a5925eed7a92bacda6f9d1f07d",
+      "line52": 3245,
+      "line53": 3245
+    },
+    "_point_bone": {
+      "sha256_lf": "f8cee5ebd9ad0f6cb318b5916efd030c5f3337a0d9c97f446cf10ccaf66371db",
+      "line52": 3256,
+      "line53": 3256
+    },
+    "_chain_global": {
+      "sha256_lf": "8402c813dd6be8058a4f2303c4d12920c642223791b8e165c0bc439a866c3695",
+      "line52": 3268,
+      "line53": 3268
+    },
+    "_advance_swing_phase": {
+      "sha256_lf": "403dc586192974765f8f8895fbac16909cab92129b6885539662567d430b80d2",
+      "line52": 3318,
+      "line53": 3318
+    },
+    "_swing_can_damage31": {
+      "sha256_lf": "9a70ea196a4f52a9a52f82864038b941f0d7606314892a262d7d563dbad1c52b",
+      "line52": 3365,
+      "line53": 3365
+    },
+    "_chain_link": {
+      "sha256_lf": "b58299a6342adf395b3f49e6925f140d4925b348cd1f6901e9dcb00e45ee4790",
+      "line52": 3370,
+      "line53": 3370
+    },
+    "_apply_chain": {
+      "sha256_lf": "4fbf4305cb28149e8bbed64317142eb4f6fa64221bd84852179ecf36396bca75",
+      "line52": 3373,
+      "line53": 3373
+    },
+    "register_impact_jolt": {
+      "sha256_lf": "da418fb59db64dfdeb961f5c757f92afaa16cbf74b05453c52fa34f3cca4dc65",
+      "line52": 3382,
+      "line53": 3382
+    },
+    "_lean_body": {
+      "sha256_lf": "b90ef94b0c804caf7a7c5cdefe017bed11db2ea77da48af0699f247b40086ff8",
+      "line52": 3385,
+      "line53": 3385
+    },
+    "_release_arm": {
+      "sha256_lf": "c52bc03c132f56a9f7f984890ae3e845c80d0f97e16b6633ccf2202058c21e83",
+      "line52": 3482,
+      "line53": 3482
+    },
+    "_player_blade_intercepts": {
+      "sha256_lf": "921b086f8a3209fcdd240aa2cd5cddb9ecc0e2441922bc2c8c3c40cf27d418d4",
+      "line52": 3700,
+      "line53": 3700
+    },
+    "_register_clash": {
+      "sha256_lf": "590852e0f026eb0bf904106c1999b3baa29bf3b3731981dad5f678bbeb976aed",
+      "line52": 3740,
+      "line53": 3740
+    },
+    "_player_armor_snapshot31": {
+      "sha256_lf": "fc93fbd00774ebad8ef71f9b589701e3587851d8ef88cdd1ee9a99a8787b5e92",
+      "line52": 3818,
+      "line53": 3818
+    },
+    "_armor_point31": {
+      "sha256_lf": "384c2bff4a20fd01677dd479ab864d94b765d57d0023ca48b4038329ac13afcb",
+      "line52": 3822,
+      "line53": 3822
+    },
+    "_apply_player_damage": {
+      "sha256_lf": "8da15a15f97865302b7c57c280960c800c58c683b1e16573b7d5bc250757ac34",
+      "line52": 3858,
+      "line53": 3858
+    },
+    "_player_take_blade": {
+      "sha256_lf": "76121022d918504bbf72bf6df2c78ceb8a4cd5ea9c2f8bed205a6db4a51f9480",
+      "line52": 3946,
+      "line53": 3946
+    },
+    "_reset_contact_plane": {
+      "sha256_lf": "31a5e2461153d835e0fd27a6a1072f6cfea2fd30408fded23470ca151544bec9",
+      "line52": 4148,
+      "line53": 4148
+    },
+    "_contact_direction": {
+      "sha256_lf": "878fa35f1b5403a622345e118598c42a719473fa203621d05544b623965940c0",
+      "line52": 4155,
+      "line53": 4155
+    },
+    "_edge_axis": {
+      "sha256_lf": "f8b24eeac0af70238289d474c46ad95f37094c0016f5c8f4df02641793d9faf2",
+      "line52": 4179,
+      "line53": 4179
+    },
+    "_advance_edge": {
+      "sha256_lf": "944a1c7f8e4c765f44447b12aa3e75962900cec5c0cd4553ca204855ae13cfa2",
+      "line52": 4187,
+      "line53": 4187
+    },
+    "_place_sword": {
+      "sha256_lf": "f3149458a345ddd97327b7b175082580773137e25d65abe80070d4db80e2d8ef",
+      "line52": 4199,
+      "line53": 4199
+    },
+    "_edge_motion": {
+      "sha256_lf": "2cf6f10dac97c650b36a5ed87a545578c7a75444edd63c874bd81e1818405c91",
+      "line52": 4204,
+      "line53": 4204
+    },
+    "_sweep": {
+      "sha256_lf": "e2f79fbbcfdc3c6ccc87dbafc72d278fdcd71eb7e2e0605e5ba6feda766175ea",
+      "line52": 4212,
+      "line53": 4212
+    },
+    "_resolve_contact": {
+      "sha256_lf": "385eeb56a545380a75d859e321a8f873688f24b2be419d93a4f892d2d3b2944e",
+      "line52": 4301,
+      "line53": 4301
+    },
+    "_blade_shape_transform": {
+      "sha256_lf": "a71e9149abfbb2a2fe9b3219199853f0390a4d3fa63afbcb24a18a5148e7c33d",
+      "line52": 4671,
+      "line53": 4672
+    },
+    "_blade_penetrates_world": {
+      "sha256_lf": "5d00d74489f19b9254dd862e8f29235194af6701e5ba2349b8f16a4dc59ccba0",
+      "line52": 4682,
+      "line53": 4683
+    },
+    "_clear_blade_from_world": {
+      "sha256_lf": "f02d752abb95490e166a128256fb05552d7209ecc91a26fb161e60f65347d2af",
+      "line52": 4700,
+      "line53": 4701
+    },
+    "_rig_scale": {
+      "sha256_lf": "957acebfc3f48dfde921e8c49bd838edaf33daa229c19a15c2f82a8398337237",
+      "line52": 4752,
+      "line53": 4753
+    },
+    "_armour_factor": {
+      "sha256_lf": "2f0a996b135b435d395bf61766bf57870b2d651166be052ee0a8756978974d5d",
+      "line52": 4768,
+      "line53": 4769
+    },
+    "_bite_into": {
+      "sha256_lf": "ce8d36676e16090a880741578c539375cc968083f29bf8251f88ebf2b883e683",
+      "line52": 4782,
+      "line53": 4783
+    },
+    "player_leg_speed_scale50": {
+      "sha256_lf": "63c26f431cc23706c362356eb21f18e0f45206916bf79c76ec16d677af335717",
+      "line52": 5386,
+      "line53": 5388
+    },
+    "npc_cut_body": {
+      "sha256_lf": "beb8ba3f224477ad30628da52f6261a5aad5d02200180ff1814c039b95a48a9b",
+      "line52": 5520,
+      "line53": 5522
+    },
+    "_add_player_hitboxes50": {
+      "sha256_lf": "ce7c288678f18a8400235c09907f2127180c14d9cc11083beae98795fb61db46",
+      "line52": 6986,
+      "line53": 6990
+    },
+    "_ensure_player_hitboxes50": {
+      "sha256_lf": "2ef8e72493a616d6cf38e11b34f97cba476c3c72416eaa57f3f37489adbfc9ca",
+      "line52": 7067,
+      "line53": 7071
+    },
+    "_player_disable_arm50": {
+      "sha256_lf": "bcfba1970344155e96f2a98405b334c19fcb3a66d2d2aa61f70e2d1604dd4466",
+      "line52": 7141,
+      "line53": 7148
+    }
+  },
+  "unchanged_dependency_file_sha256": {
+    "scripts/weapons/weapon_model_finish31.gd": "4e3f79e1764741f6f4c69f02c9bed149e066a01f0197fa4ddd9199f9b0c95c54",
+    "scripts/combat/armor_damage31.gd": "72cb2c906098266ae7b29f395a218c3ed0a9b4d1153e6c4da99765476ff14e0c",
+    "scripts/weapons/mesh_sever.gd": "0788593db0bbf49dc38c1f5e7771ff49850438347c354c1d996145d51743f6d3",
+    "scripts/character_physics/character_physics_driver.gd": "5499d0e11279fccbde7d2949bc510c2f2e5df94696ca0284a0a53bda5637b633",
+    "scripts/npc_visual/npc_visual_cache.gd": "4dc8c1a82bc255f4c22c8dfe4cda66b5b3b1b9a3ab5ef6f11b498a1acb58829d",
+    "scripts/preview_locomotion.gd": "16c934854d8ebf089c938c3914c66450e0f3b8fd97e6f075d864f3b5ee585aaf",
+    "scripts/weapons/weapon_aim_camera.gd": "e0f082f0c8ac7b3e1af2a580166198a6e705bfceff4ec0626a23896eb514e791",
+    "scripts/weapons/weapon_pose.gd": "c728d6c875fe1fd4e8812c629c3422a2354ce5409675dee123c41eee272a334b",
+    "scripts/weapons/weapon_posture_base.gd": "540ab7bbd32ceffad430d8ee07759b8e1c0d7ce2a4c139c2da1eaf1d83157c41"
+  },
+  "changed_shared_paths": [
+    {
+      "path": "NPC armor and AI -> encounter contacts",
+      "finding": "All player input, single-sword swings, grip/hand/arm IK, inertia, self/world collision, shared damage/mesh cuts and existing constants/variables in sword_prototype retain LF-normalized function/declaration hashes. NPC positioning, timing, guard and five-piece heavy armor change combat encounter outcomes through unchanged contact and armor laws."
+    },
+    {
+      "path": "preview_player._physics_process -> bow.owns_player_facing",
+      "finding": "The sole existing function edit in preview_player adds a facing guard while bow is ready, active and held. With bow inactive/grounded the ordinary locomotion heading branch remains identical. Its speed/jump/translation code is unchanged."
+    },
+    {
+      "path": "bow._face_the_aim -> player._heading -> switching back to sword",
+      "finding": "Bow now writes current visual heading into player._heading and accounts for parent rotation. This happens only during active held bow _process. Later sword selection may inherit a different initial body heading following bow use; this is a bow handoff change, not an adjustment of sword swing or IK."
+    },
+    {
+      "path": "NPC mobility -> player mobility",
+      "finding": "_npc_speed_scale changed only for NPC armor; player_leg_speed_scale50 is unchanged and has no _npc_speed_scale call. _npc_speed_scale is used by NPC movement and snapshot telemetry only."
+    },
+    {
+      "path": "castle_armor_visual._hide_headwear",
+      "finding": "Only NPC hair-name prefixes added to the shared helmet visual hider. Existing player hair names, armor geometry, visual posing and protection logic unchanged."
+    }
+  ],
+  "limits": [
+    "Source equivalence is not a new subjective gameplay acceptance of53. No Godot process was started by this audit.",
+    "Changed NPC can physically block/hit or alter combat result; invariance claim applies to direct player sword controls/physics, not all possible gameplay trajectories.",
+    "The bow-to-sword body-heading handoff is explicitly changed as described."
+  ],
+  "detailed_local_audit": "D:/MafioziCombat31/coordinator35_delivery53/audit_source/SWORD_PRESERVATION_AUDIT.json",
+  "policy": "Freeze the approved52 single-sword input, swing freedom, inertia, grip and arm IK, camera following, self-clearance and contact/damage behavior. Do not retune or replace these while editing NPC, bow or other weapons. Changes require a new explicit user request about this sword. A source file containing NPC code must not be treated as permission to alter player sword behavior.",
+  "user_instruction": "сейчас в моей сцене одиночный меч идеально. его не менять зафиксируй.",
+  "user_approved_revision": "castle-20261018-combined52-soil49-coordinator33"
+}

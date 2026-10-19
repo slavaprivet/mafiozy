@@ -1,0 +1,21 @@
+{
+  "status": "user_requested_playable_snapshot",
+  "ready": {
+    "interactive": true,
+    "new_venues": 8,
+    "ok": true,
+    "player_position": "(40.30748, 0.090942, -1.094139)",
+    "population_ready": true,
+    "resident_count": 1,
+    "revision": "s01-20261015-residents53a",
+    "title": "15.10 · Жители и заведения · версия53a"
+  },
+  "functional_checks": "proofs; earlier cycle/death receipts name their exact source revisions",
+  "open_work": [
+    "ambient collar/pocket clipping repair and phone18",
+    "cashier/medic staff with one-client FIFO service",
+    "resident local avoidance and 286-agent scalability",
+    "comparable exclusive performance with final combined features"
+  ],
+  "previous_accepted": "48 retained unchanged; this is an active development snapshot"
+}

@@ -1,0 +1,214 @@
+{
+	"checks": [
+		{
+			"name": "daily { \"hp\": 30.0, \"max_hp\": 60.0, \"wanted\": true }",
+			"ok": true
+		},
+		{
+			"name": "hit/home/restaurant priority { \"hp\": 30.0, \"max_hp\": 60.0, \"wanted\": true }",
+			"ok": true
+		},
+		{
+			"name": "catalog { \"hp\": 30.0, \"max_hp\": 60.0, \"wanted\": true }",
+			"ok": true
+		},
+		{
+			"name": "policy preserves current health row { \"hp\": 30.0, \"max_hp\": 60.0, \"wanted\": true }",
+			"ok": true
+		},
+		{
+			"name": "daily { \"hp\": 31.0, \"max_hp\": 60.0, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "hit/home/restaurant priority { \"hp\": 31.0, \"max_hp\": 60.0, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "catalog { \"hp\": 31.0, \"max_hp\": 60.0, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "policy preserves current health row { \"hp\": 31.0, \"max_hp\": 60.0, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "daily { \"hp\": 29.0, \"max_hp\": 60.0, \"wanted\": true }",
+			"ok": true
+		},
+		{
+			"name": "hit/home/restaurant priority { \"hp\": 29.0, \"max_hp\": 60.0, \"wanted\": true }",
+			"ok": true
+		},
+		{
+			"name": "catalog { \"hp\": 29.0, \"max_hp\": 60.0, \"wanted\": true }",
+			"ok": true
+		},
+		{
+			"name": "policy preserves current health row { \"hp\": 29.0, \"max_hp\": 60.0, \"wanted\": true }",
+			"ok": true
+		},
+		{
+			"name": "daily { \"hp\": 50.0, \"max_hp\": 100.0, \"wanted\": true }",
+			"ok": true
+		},
+		{
+			"name": "hit/home/restaurant priority { \"hp\": 50.0, \"max_hp\": 100.0, \"wanted\": true }",
+			"ok": true
+		},
+		{
+			"name": "catalog { \"hp\": 50.0, \"max_hp\": 100.0, \"wanted\": true }",
+			"ok": true
+		},
+		{
+			"name": "policy preserves current health row { \"hp\": 50.0, \"max_hp\": 100.0, \"wanted\": true }",
+			"ok": true
+		},
+		{
+			"name": "daily { \"hp\": 51.0, \"max_hp\": 100.0, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "hit/home/restaurant priority { \"hp\": 51.0, \"max_hp\": 100.0, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "catalog { \"hp\": 51.0, \"max_hp\": 100.0, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "policy preserves current health row { \"hp\": 51.0, \"max_hp\": 100.0, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "daily { \"hp\": 60.0, \"max_hp\": 60.0, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "hit/home/restaurant priority { \"hp\": 60.0, \"max_hp\": 60.0, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "catalog { \"hp\": 60.0, \"max_hp\": 60.0, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "policy preserves current health row { \"hp\": 60.0, \"max_hp\": 60.0, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "daily { \"hp\": 0.0, \"max_hp\": 60.0, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "hit/home/restaurant priority { \"hp\": 0.0, \"max_hp\": 60.0, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "catalog { \"hp\": 0.0, \"max_hp\": 60.0, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "policy preserves current health row { \"hp\": 0.0, \"max_hp\": 60.0, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "daily { \"hp\": -1.0, \"max_hp\": 60.0, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "hit/home/restaurant priority { \"hp\": -1.0, \"max_hp\": 60.0, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "catalog { \"hp\": -1.0, \"max_hp\": 60.0, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "policy preserves current health row { \"hp\": -1.0, \"max_hp\": 60.0, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "daily { \"hp\": 30.0, \"max_hp\": 0.0, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "hit/home/restaurant priority { \"hp\": 30.0, \"max_hp\": 0.0, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "catalog { \"hp\": 30.0, \"max_hp\": 0.0, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "policy preserves current health row { \"hp\": 30.0, \"max_hp\": 0.0, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "daily { \"hp\": 30.0, \"max_hp\": 60.0, \"dead\": true, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "hit/home/restaurant priority { \"hp\": 30.0, \"max_hp\": 60.0, \"dead\": true, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "catalog { \"hp\": 30.0, \"max_hp\": 60.0, \"dead\": true, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "policy preserves current health row { \"hp\": 30.0, \"max_hp\": 60.0, \"dead\": true, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "daily { \"hp\": 30.0, \"max_hp\": 60.0, \"_medicalDowned\": true, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "hit/home/restaurant priority { \"hp\": 30.0, \"max_hp\": 60.0, \"_medicalDowned\": true, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "catalog { \"hp\": 30.0, \"max_hp\": 60.0, \"_medicalDowned\": true, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "policy preserves current health row { \"hp\": 30.0, \"max_hp\": 60.0, \"_medicalDowned\": true, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "daily { \"hp\": 30.0, \"max_hp\": 60.0, \"_forcedCrawl\": true, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "hit/home/restaurant priority { \"hp\": 30.0, \"max_hp\": 60.0, \"_forcedCrawl\": true, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "catalog { \"hp\": 30.0, \"max_hp\": 60.0, \"_forcedCrawl\": true, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "policy preserves current health row { \"hp\": 30.0, \"max_hp\": 60.0, \"_forcedCrawl\": true, \"wanted\": false }",
+			"ok": true
+		},
+		{
+			"name": "half-health precedes hunger",
+			"ok": true
+		},
+		{
+			"name": "existing medical retry cooldown retained",
+			"ok": true
+		},
+		{
+			"name": "cooldown cannot yield urgent priority to food",
+			"ok": true
+		},
+		{
+			"name": "non-finite health rejected",
+			"ok": true
+		}
+	],
+	"passed": true,
+	"scope": "native decision boundary and priority; physical shot/hospital cycle still pending"
+}

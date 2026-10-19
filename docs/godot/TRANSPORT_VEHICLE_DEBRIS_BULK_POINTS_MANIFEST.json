@@ -1,0 +1,53 @@
+{
+  "schema": "mafiozi.transport-vehicle-debris-bulk-points-candidate.v1",
+  "date": "2026-09-30",
+  "status": "functionally-verified-performance-rejected-do-not-adopt",
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/candidates/transport_vehicle_debris_bulk_points.gd",
+      "bytes": 16114,
+      "sha256": "069a0a72e3397c6efd9e893dc4358f80ac7b91287f81539cdcb66cb94cc5f108"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_vehicle_debris_bulk_points.gd",
+      "bytes": 11345,
+      "sha256": "e525c93c91e135d4bde4e9a86c8a7da82d4db686b4080a6123a28b64c9edcc93"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_VEHICLE_DEBRIS_BULK_POINTS_HANDOFF.md",
+      "bytes": 3084,
+      "sha256": "30fcb4ba2d4319bf14d95344df1d07c2861a7470088be83cefb36e8308cc6f27"
+    }
+  ],
+  "baseline": {
+    "path": "godot/mafiozi_walk/scripts/transport/transport_vehicle_debris.gd",
+    "bytes": 15804,
+    "sha256": "1cf791ea4890c844b8c1072cdccca647b3b8255cec718afa7e96f80b9c2bba8f"
+  },
+  "verification": {
+    "godot": "4.7.2.stable.official.ed1daf0bf",
+    "author": "74/74 PASS, exit 0, process joined",
+    "actual": "10 assemblies / 76 hulls / 142948 vertices / 76 private meshes / 76 private materials / 29 source material identities",
+    "fidelity": "all hull point bytes, support extrema, shape bindings, private identity, prewarm and launch contract match frozen"
+  },
+  "configure_us_20_alternating_pairs": {
+    "baseline_min_p50_p95_max": [106685, 112293, 126451, 136447],
+    "candidate_min_p50_p95_max": [102625, 112684, 121160, 122291]
+  },
+  "other_cost_us": {
+    "baseline_prewarm_p50_p95_max": [51.5, 98, 98],
+    "candidate_prewarm_p50_p95_max": [57.5, 71, 71],
+    "baseline_launch": 729,
+    "candidate_launch": 754
+  },
+  "decision": {
+    "result": "REJECT",
+    "reason": "The exact bulk transform is 0.35 percent slower at whole-configure median; mesh/material duplication and convex cooking dominate.",
+    "next": "Measure a separate transactional incremental-preparation candidate that exposes no partial provider."
+  },
+  "limits": [
+    "Isolated hidden headless CPU only; no GPU, FPS, full-scene or LIVE claim.",
+    "No production runtime or frozen file changed.",
+    "Candidate is retained only as reproducible negative evidence."
+  ]
+}

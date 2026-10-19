@@ -1,0 +1,57 @@
+{
+  "passed": true,
+  "raw_sha256": "11ea23d856dd334b0f266507f7da461b3d1d08eaa8df863f31b99729a6894380",
+  "run_sha256": "4ff35857f0c07176628571fc6dcde5ac0c943453d6a68214ced5c811dc7c074f",
+  "source_before_after_exact": true,
+  "native_checks_passed": 55,
+  "native_checks_count": 55,
+  "native_failures": [],
+  "actual_sleep_count": 10,
+  "actual_exit_count": 10,
+  "motion_idle_limit_s": 10,
+  "motion_idle_max_s": {
+    "resident_1": 0,
+    "resident_2": 0,
+    "resident_3": 0,
+    "resident_4": 0.992566,
+    "resident_5": 0,
+    "resident_6": 0,
+    "resident_7": 0,
+    "resident_8": 0.992566,
+    "resident_9": 0.992566,
+    "resident_10": 0.992566
+  },
+  "while_controller_active_max_s": {
+    "resident_1": 0,
+    "resident_2": 0,
+    "resident_3": 0,
+    "resident_4": 0.992566,
+    "resident_5": 0,
+    "resident_6": 0,
+    "resident_7": 0,
+    "resident_8": 0.992566,
+    "resident_9": 0.992566,
+    "resident_10": 0.992566
+  },
+  "queue_limit_s": 30,
+  "queue_max_s": {
+    "resident_1": 0,
+    "resident_2": 0,
+    "resident_3": 0,
+    "resident_4": 0,
+    "resident_5": 0,
+    "resident_6": 0,
+    "resident_7": 0,
+    "resident_8": 0,
+    "resident_9": 0,
+    "resident_10": 0
+  },
+  "queue_rationale": "Assigned-home adapter is concurrent and never enters PORTAL_WAIT. No artificial queue is inferred.",
+  "spatial_passed": true,
+  "spatial_validator_sha256": "020a88f92d3ffc88307115b8aa48a5141f765c9563768df94f0ede890ff18c2b",
+  "excluded_rest_policy": "Only current supported claimed HOME_SETTLE/SLEEP/REST with pose commit current or exactly one pre-host frame old. Inactive unsuccessful home attempt remains required motion until fixture end; successful physical exit completes the objective.",
+  "limitations": [
+    "Component intent takeover, not ordinary daily scheduling acceptance.",
+    "1Hz derived idle/spatial evidence, actual native collisions and velocity guards are in raw run."
+  ]
+}

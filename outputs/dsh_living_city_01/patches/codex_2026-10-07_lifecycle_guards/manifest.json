@@ -1,0 +1,30 @@
+{
+  "reason": "targeted guards after full-city baseline registered first-attach metadata and off-tree teardown errors",
+  "files": [
+    {
+      "current_sha256": "1CCE1281EDA2132DEEAB50E0D48028F9BA68D2452B726EF2472EC3A38544C40A",
+      "backup_sha256": "E09A05D8F321B0B3DC1B4E0779D8DB76D644652C5EB60A05F227B5A678FAABA6",
+      "path": "scripts\\city\\runtime\\npc_city_bootstrap.gd",
+      "backup": "npc_city_bootstrap.gd.pre-guard.bak"
+    },
+    {
+      "current_sha256": "29B7EE52C3E802E84FD51C75C3063DC30E2167C9974FFB8316E3501550137796",
+      "backup_sha256": "1255935BBA1AEFDCA9E1C5081C5506E83FA776BE24F3C33AAC4FC6FEFCB83FDD",
+      "path": "scripts\\hospital\\npc_daily_hospital_visit.gd",
+      "backup": "npc_daily_hospital_visit.gd.pre-guard.bak"
+    },
+    {
+      "current_sha256": "57ED4D3B76EFC46D55517669E18F20FE49CE1D90C1B6CFE1602C55FAE2DC5E7F",
+      "backup_sha256": "43C8F43E957404F5E82D75538185804CE10157F54B0CA92C58655DB1C89084C7",
+      "path": "scripts\\bank_geometry\\npc_bank_geometry.gd",
+      "backup": "npc_bank_geometry.gd.pre-guard.bak"
+    },
+    {
+      "current_sha256": "3FAD28DC6A58D922D070E25E08B97F31F19F99DF97AF5865C03E178A9C5DE00C",
+      "backup_sha256": "3FAD28DC6A58D922D070E25E08B97F31F19F99DF97AF5865C03E178A9C5DE00C",
+      "path": "scripts\\npc_daily_life.gd",
+      "backup": "npc_daily_life.gd.pre-guard.bak"
+    }
+  ],
+  "created_utc": "2026-10-07T08:36:20.2178425Z"
+}

@@ -1,4 +1,8 @@
-# RPG GPU pair — PREPARED, NOT RUN
+# RPG GPU pair v2 — PREPARED, NOT RUN
+
+V1 is preserved byte-exact as `capture_v1.gd` (SHA `802c109f5d4e4a6a6f00ef29fc07b2ee45f761b3dcb8d1b0b2a2c70843f30dc3`), with `compare_v1.py`. Root's baseline01 passed; candidate18_01 failed only the old `occupants()` content counter, which intentionally removes final-dead NPCs from its living list. Existing candidate evidence still contains all3 original IDs,16parts and28bones each,377colliders/shapes and8buildings throughout. After the first blast2NPC are dead and occupants=1; after the second3NPC are dead and occupants=0. No actual content loss is indicated.
+
+V2 now counts `npc` from each original body **and** rig being valid, still in the scene tree and not queued for deletion. It separately records `living_npc=occupants().size()`. All48 individual rigid parts must also remain in the tree. The comparator requires v2 receipts on BOTH sides and checks this stronger content accounting without requiring equal living counts after blast. Old evidence is not rewritten or relabelled PASS. Root must rerun a matched v2 pair; no engine/GPU was launched by this edit.
 
 Root-only, sequential GPU window. No engine or GPU was launched while preparing this harness. Baseline is accepted16 PCK `8051926d109704cb4f85eb46cd2af8dd5b9a84d9cc4e71480db22b699dce7741`. Candidate SHA is required explicitly, so forthcoming frozen18 can be used without editing the harness.
 

@@ -1,0 +1,92 @@
+{
+  "recovered": [
+    {
+      "request": 1085,
+      "before_frame": 14582,
+      "observed_failure_frame": 14642,
+      "same_epoch": 1,
+      "same_map_iteration": 2,
+      "body": [
+        60.83651,
+        0.000834,
+        59.67035
+      ],
+      "segment_a": [
+        60.7453,
+        0.1,
+        59.57613
+      ],
+      "segment_b": [
+        57.51823,
+        0.1,
+        56.24203
+      ],
+      "sample": 1,
+      "count": 10,
+      "reconstructed_a": [
+        60.422593,
+        0.1,
+        59.24272
+      ],
+      "reconstructed_b": [
+        60.099886,
+        0.1,
+        58.90931
+      ],
+      "body_to_a_m": 0.6033478228559367,
+      "body_to_b_m": 1.0637813189429492,
+      "a_to_target_m": 74.65715311837961,
+      "b_to_target_m": 74.19314661417026,
+      "precision": "Approximate coordinates recovered from rounded Vector3 strings, not the original float bytes. source_a/source_b/capsule refusal stage and exact rejection frame were not recorded."
+    },
+    {
+      "request": 2801,
+      "before_frame": 19998,
+      "observed_failure_frame": 20058,
+      "same_epoch": 1,
+      "same_map_iteration": 2,
+      "body": [
+        55.46566,
+        0.000937,
+        54.12139
+      ],
+      "segment_a": [
+        55.46417,
+        0.1,
+        54.11986
+      ],
+      "segment_b": [
+        55.36105,
+        0.1,
+        54.01332
+      ],
+      "sample": 0,
+      "count": 1,
+      "reconstructed_a": [
+        55.46417,
+        0.1,
+        54.11986
+      ],
+      "reconstructed_b": [
+        55.36105,
+        0.1,
+        54.01332
+      ],
+      "body_to_a_m": 0.09908601802979056,
+      "body_to_b_m": 0.18009956959693088,
+      "a_to_target_m": 67.52766132537442,
+      "b_to_target_m": 67.37938959509525,
+      "precision": "Approximate coordinates recovered from rounded Vector3 strings, not the original float bytes. source_a/source_b/capsule refusal stage and exact rejection frame were not recorded."
+    }
+  ],
+  "request558": "NO_PATH/detour occurred but one-second trace missed the terminal job; exact failed operands/reason NOT_RECOVERABLE. Micro initial connector samples are candidates only.",
+  "excluded_causes_1085_2801": [
+    "native query pathfinding failure: request_proven_route bypasses native query",
+    "stale map iteration: unchanged epoch1/iteration2 and NO_PATH rather than STALE",
+    "prefix exhaustion: VALIDATING incomplete future segment, not final edge"
+  ],
+  "unknown_past_cause": [
+    "source-admission-refused at a or b",
+    "physical-capsule-refused; historical live occupancy and access state not captured"
+  ]
+}

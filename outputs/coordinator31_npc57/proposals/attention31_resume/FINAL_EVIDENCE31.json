@@ -1,0 +1,157 @@
+{
+  "schema": "attention31_final_evidence/v1",
+  "utc": "2026-10-15T13:07:18.390937+00:00",
+  "game": "outputs/coordinator31_npc57/game",
+  "integration": "INTEGRATION_merged02.json",
+  "passed": true,
+  "source_identical_between_runs": true,
+  "harness_identical_between_runs": true,
+  "catalogue_rows": 287,
+  "active_residents": 10,
+  "staff": 12,
+  "runs": {
+    "threat": {
+      "folder": "C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/attention31_resume/runs/final_merged02_threat01",
+      "passed": true,
+      "checks": {
+        "actual_hit_reaction": true,
+        "actual_nonfatal_hp_from_native_receipt": true,
+        "after_hit_ordinary_activity_completed": true,
+        "after_hit_speed_not_accumulated": true,
+        "aimed_at": true,
+        "hit_physical_flee": true,
+        "hit_quiet_15_released": true,
+        "initial_hp_full": true,
+        "native_near_shot": true,
+        "no_fake_police_arrival": true,
+        "production_ordinary_activity_completed": true,
+        "quiet_15_released": true,
+        "real_flee": true,
+        "real_hit_chain": true,
+        "real_phone": true,
+        "visible_weapon": true
+      },
+      "exit_code": 0,
+      "wall_s": 79.10328619997017,
+      "source_drift": [],
+      "harness_drift": [],
+      "stderr_bytes": 0,
+      "artifacts": {
+        "RUN.json": "b1f45875af128e652dfb6f22fa04b04c84cddd3e6985487ecde0ea9778026086",
+        "CITY_THREAT56.json": "244f7bf38c117281e96337dfafec0c1a5bdffaedb46853fd025913f101e25f35",
+        "SOURCE.json": "e8fd3009264244f4b145944519c6555d6af69d0e213168464ed2d6e1e7d7a1a5",
+        "SOURCE_AFTER.json": "e8fd3009264244f4b145944519c6555d6af69d0e213168464ed2d6e1e7d7a1a5",
+        "HARNESS.json": "eef032571612d80310c5e6270291f51670fca55ac80cc0ea2dfebae618d459ee",
+        "HARNESS.zip": "9fd5acef6e65137532838189b9548ec3908e9218cfe7b280f3ac82acb1c567fe"
+      }
+    },
+    "visual": {
+      "folder": "C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/attention31_resume/runs/final_merged02_visual01",
+      "passed": true,
+      "checks": {
+        "actual_visible_turn": true,
+        "actual_visible_weapon": true,
+        "body_faces_known_threat": true,
+        "health_untouched": true,
+        "native_recover_returned_to_motion": true,
+        "no_attention_movement_hold": true,
+        "original_ten": true,
+        "presentation_faces_known_threat": true,
+        "recover_retry_within5s": true,
+        "skeleton_faces_known_threat": true,
+        "weapon_equipped": true
+      },
+      "exit_code": 0,
+      "wall_s": 45.571861700038426,
+      "source_drift": [],
+      "harness_drift": [],
+      "stderr_bytes": 0,
+      "artifacts": {
+        "RUN.json": "59d5a387376798aeff1751d5a183a61f71fc686d1c0ba1f4ef4f3a7bf430409d",
+        "VISUAL31.json": "78008100dd7980a58fa421b3a56b86f4efc511ebfdfc17cf209391a3bf7c544d",
+        "SOURCE.json": "e8fd3009264244f4b145944519c6555d6af69d0e213168464ed2d6e1e7d7a1a5",
+        "SOURCE_AFTER.json": "e8fd3009264244f4b145944519c6555d6af69d0e213168464ed2d6e1e7d7a1a5",
+        "HARNESS.json": "eef032571612d80310c5e6270291f51670fca55ac80cc0ea2dfebae618d459ee",
+        "HARNESS.zip": "9fd5acef6e65137532838189b9548ec3908e9218cfe7b280f3ac82acb1c567fe"
+      }
+    }
+  },
+  "actual_threat": {
+    "target": "resident_1",
+    "native_hit_hp_before": 60,
+    "native_hit_hp_after": 36,
+    "native_hit_damage": 24,
+    "flee_max_mps": 1.97994522750378,
+    "hit_flee_m": 7.88107903525815,
+    "phone_frames": 237,
+    "first_ordinary_completion": "walk",
+    "post_hit_ordinary_completion": "ambient",
+    "post_hit_walk_speed_measured_in_this_run": false,
+    "prior_same_yaw_overlay_post_hit_walk_mps": 1.80032003670931
+  },
+  "visual": {
+    "target": "resident_1",
+    "weapon": "golden_colt",
+    "event_injected": false,
+    "alert_age": 0.65,
+    "body_error_rad": 0.0152327055111527,
+    "presentation_error_rad": 0.0314989611506462,
+    "skeleton_error_rad": 0.0314989611506462,
+    "viewport_photographs": {
+      "01_neutral.png": {
+        "sha256": "e8589b33a2c54ff9bc5337872ce5c5662b03ad888e96bfe03167f123df8c66d1",
+        "viewed": true,
+        "phase": "IDLE",
+        "physics_frame": 1093
+      },
+      "02_alert_facing.png": {
+        "sha256": "08d784d9b3043dc2100954048331d8a4c7717bcb315b3b4f5aee551b4c3d44d3",
+        "viewed": true,
+        "phase": "ALERT",
+        "physics_frame": 1137
+      },
+      "03_phone.png": {
+        "sha256": "8d046681e8cd21c58de7ca464c7b948d91dec106dceee82ac689712b7bbfa15d",
+        "viewed": true,
+        "phase": "PHONE",
+        "physics_frame": 1382,
+        "limitation": "First PHONE tick, transition from locomotion still visible; not proof of committed telephone pose."
+      },
+      "04_recover_facing.png": {
+        "sha256": "f747e34ce14f398a363701e06c57ee3df5bb7df46680d1ba4360f476a2c192d3",
+        "viewed": true,
+        "phase": "RECOVER",
+        "physics_frame": 1663
+      },
+      "05_recover_return.png": {
+        "sha256": "acdf0ae0db88f9db32654b0eb8b7d3357fbb8bf8840a30ca3f25aa783088bbdb",
+        "viewed": true,
+        "phase": "FLEE",
+        "physics_frame": 1753
+      }
+    },
+    "phone_pose_visually_proven": false
+  },
+  "causal_regression": {
+    "baseline": "runs/merged_threat_diag03",
+    "candidate_overlay": "runs/yaw_threat_overlay01",
+    "baseline_capsule_scale": "(0.999981,1,0.999981)",
+    "baseline_physical_configure": false,
+    "candidate_capsule_scale": "(1,1,1)",
+    "candidate_physical_configure": true,
+    "change": "Two stationary yaw writers use a rigid Basis(UP,yaw); route capsule checks unchanged"
+  },
+  "safety_component_evidence": "runs/candidate03/NATIVE31.json (first attention package; lowHP,death,generation,quiet15,speed,unidentifiedshot,serviceownership)",
+  "npc_position_writes": false,
+  "npc_hp_writes": false,
+  "routes_replaced": false,
+  "performance_accepted": false,
+  "all287_enabled": false,
+  "new_production_edits": false,
+  "notes": [
+    "Final exact source pair proves behavior and rendered orientation. Root owns final soak and isolated performance acceptance.",
+    "Post-hit ordinary activity in final exact threat run is AMBIENT; no nonzero post-hit ordinary walk speed is claimed for that run.",
+    "Earlier setup/fixture FAILs remain preserved; only named final runs are accepted.",
+    "03_phone.png captured the first PHONE tick before stable pose. Use 02_alert/04_recover/05_return for rendered gaze/recovery proof; native phone duration comes from the threat receipt."
+  ]
+}

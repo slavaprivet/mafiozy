@@ -1,0 +1,39 @@
+{
+  "schema": "mafiozi.qa58.cached-native-observer/v4",
+  "ready": true,
+  "smoke_run": "outputs\\coordinator31_npc57\\proposals\\qa58_merged_v4\\runs\\observer58_v4_smoke01",
+  "tested_source_manifest": "outputs/coordinator31_npc57/extended31/stage58_03/CANDIDATE58.json",
+  "files": {
+    "archive_harness31.py": "37581aeb525ec65a42fddfd2f33f90a169c62f33b36c70d9a5f879166b87dbdc",
+    "audit_spatial_liveness31.py": "020a88f92d3ffc88307115b8aa48a5141f765c9563768df94f0ede890ff18c2b",
+    "entry_soak31_extended.gd": "6a0ec9166bd4ecfd2a5004cc9bcfe1196d10d3a291e0d73b3eb2beb58d369453",
+    "observer_mass_extended.gd": "9c88b4fd65649029234aa81b80867a7eb6e1e0f1946464d16bf83b874aa0c97e",
+    "observer_perf_extended.gd": "dafe00ff094035b94d8f874fd8ff7c3b975c88bc437df6e9250f3179294236dc",
+    "observer_soak31_v2.gd": "69b62f493f71bbb21b5f489bede731b85d89cd88034cbbc4110e23c00d208b1d",
+    "observer_soak31_v3.gd": "a998263e9ce60156e25f40b1977dedc73847387b2806470c4a4f9d0169e91da4",
+    "observer_soak58_v4.gd": "03c52996460343e37a4ff44cf3445ea17671242a6d12970008d5b0996acc964a",
+    "run58.py": "097d18e219cda126d422919635c87d76bec2b22b7fd0aeabce531944c68dd55a"
+  },
+  "harness_archive_sha256": "f35486a05c38071c2dab334375f9a03903100c494281d42012ba39f271703d71",
+  "native_trace_rows": 100,
+  "native_trace_complete": true,
+  "slide_rows": 100,
+  "driver_rows": 65,
+  "native_frame_elapsed_s": 10.0,
+  "native_physics_ticks": 600,
+  "max_sample_us": 1237,
+  "unchanged_gates": {
+    "motion_idle_s": 10,
+    "queue_idle_s": 30,
+    "spatial_window_s": 30,
+    "spatial_diameter_m": 1.5
+  },
+  "new_physics_queries": false,
+  "behavior_writes": false,
+  "native_trace_semantics": "Cached last move_and_slide contacts at sample time, not a collision history or a current cast. Historical query collider is labeled separately. Read-only at existing1Hz cadence.",
+  "runner_time_correction": "Physical ticks/s uses MASS frame_at_s[-1]; old serialization elapsed preserved separately.",
+  "estimated1200s_total_output_bytes": 45000000,
+  "output_hard_cap_bytes": 104857600,
+  "natural1200_acceptance": false,
+  "next_run_requires_new_reviewed_source_manifest": true
+}

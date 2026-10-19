@@ -1,0 +1,33 @@
+{
+	"after": [
+		{
+			"area": 0.13530436262954,
+			"name": "player_male_DEMO_core_SKIN",
+			"triangles": 32
+		}
+	],
+	"after_120_ticks": [
+		{
+			"area": 0.13530436262954,
+			"name": "player_male_DEMO_core_SKIN",
+			"triangles": 32
+		}
+	],
+	"armor_equipped_after_settle": 5,
+	"before": [
+		{
+			"area": 0.13530436262954,
+			"name": "player_male_DEMO_core_SKIN",
+			"triangles": 32
+		}
+	],
+	"corpse_active": true,
+	"corpse_contacts": 6,
+	"corpse_rotation": "(1.546214, 3.015192, 1.272394)",
+	"cut_count": 1,
+	"head_scale": "(1.0, 1.0, 1.0)",
+	"inactive_head_hitboxes": 1,
+	"minimum_visible_y": 0.0287574529647827,
+	"neck_scale": "(1.0, 1.0, 1.0)",
+	"whole_meshes_attached_to_real_debris": 9
+}

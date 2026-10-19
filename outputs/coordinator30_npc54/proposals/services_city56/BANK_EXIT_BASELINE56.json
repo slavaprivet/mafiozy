@@ -1,0 +1,487 @@
+{
+  "status": "CONFIRMED_PHYSICAL_EXIT_STALL_CAUSE_UNDER_DIAGNOSIS",
+  "baseline": "runs/actual10_01",
+  "bank": {
+    "completed": false,
+    "energy_restored": false,
+    "entered": true,
+    "exit": {},
+    "exterior_seen": true,
+    "geometry": {
+      "door": [
+        110.099998474121,
+        0.0,
+        186.550003051758
+      ],
+      "inward": [
+        -1.0,
+        0.0,
+        4.37113882867379e-08
+      ],
+      "key": "resident_2:body:2059436916845",
+      "outside": [
+        111.75,
+        0.00299998512491584,
+        186.550003051758
+      ],
+      "venue": "1536172304318"
+    },
+    "heal_receipts": [],
+    "health_receipts": [],
+    "id": "resident_2",
+    "kind": "bank",
+    "last_hp": 60.0,
+    "last_revision": -1,
+    "max_physics_displacement_m": 0.0307554565370083,
+    "min_hp": 60.0,
+    "money_receipts": [
+      {
+        "amount": 1000,
+        "at": 55072.508,
+        "bank_after": 0,
+        "building": "CompactService29_VENUE29-BANK-003",
+        "cash_after": 1000,
+        "cash_before": 0,
+        "dwell_ms": 2002.146,
+        "event_id": "godot-preview-new-session-20260927-01:resident_2:1:economy28:1",
+        "frame": 4446,
+        "id": "godot-preview-new-session-20260927-01:resident_2:3",
+        "inside": true,
+        "kind": "local_bank_grant28",
+        "life_generation": 1,
+        "own_bank_debit": false,
+        "planned_amount": 0,
+        "policy": "user_local_test28",
+        "saved_purchase": {},
+        "scope": "new_local_session_account",
+        "sequence": 3,
+        "server_authority": false,
+        "visit_serial": 1
+      }
+    ],
+    "outbound": true,
+    "route_events": [
+      {
+        "depth": -41.6000022888184,
+        "frame": 1207,
+        "ms": 29453,
+        "phase": "INBOUND",
+        "position": [
+          151.699996948242,
+          -1.49011611938477e-08,
+          116.849998474121
+        ],
+        "reason": "",
+        "venue": "1536172304318"
+      },
+      {
+        "depth": 2.19770050048828,
+        "frame": 4257,
+        "ms": 80275,
+        "phase": "SERVICE_WAIT",
+        "position": [
+          107.902297973633,
+          0.240134924650192,
+          187.871948242188
+        ],
+        "reason": "",
+        "venue": "1536172304318"
+      },
+      {
+        "depth": 2.19770050048828,
+        "frame": 4258,
+        "ms": 80296,
+        "phase": "SERVICE_APPROACH",
+        "position": [
+          107.902297973633,
+          0.240134924650192,
+          187.871948242188
+        ],
+        "reason": "",
+        "venue": "1536172304318"
+      },
+      {
+        "depth": 3.77023315429688,
+        "frame": 4325,
+        "ms": 81408,
+        "phase": "INSIDE",
+        "position": [
+          106.329765319824,
+          0.240134924650192,
+          186.718460083008
+        ],
+        "reason": "",
+        "venue": "1536172304318"
+      },
+      {
+        "depth": 3.77023315429688,
+        "frame": 4446,
+        "ms": 83430,
+        "phase": "OUTBOUND",
+        "position": [
+          106.329765319824,
+          0.240134924650192,
+          186.718460083008
+        ],
+        "reason": "",
+        "venue": "1536172304318"
+      }
+    ],
+    "route_id": -9223369392295671885,
+    "route_phase": "OUTBOUND",
+    "selection": {
+      "account_before": {
+        "account": {
+          "bank": 0,
+          "cash": 1000,
+          "deposit_seen": false,
+          "economy28": {
+            "bank_granted_total": 0,
+            "bank_grants": 0,
+            "cap": 1000,
+            "initial_cash": 1000,
+            "policy": "user_local_test28",
+            "source_initial_cash": 47,
+            "visit_serial": 0
+          },
+          "initial_total": 1000,
+          "inventory": {},
+          "life_generation": 1,
+          "order_serial": 0,
+          "pending_purchase": {},
+          "receipts": [
+            {
+              "amount": 953,
+              "at": 776.081,
+              "bank_after": 0,
+              "cash_after": 1000,
+              "cash_before": 47,
+              "cash_delta": 953,
+              "id": "godot-preview-new-session-20260927-01:resident_2:1",
+              "kind": "test_wallet_initialization28",
+              "policy": "user_local_test28",
+              "scope": "new_local_session_account",
+              "sequence": 1,
+              "server_authority": false
+            }
+          ],
+          "sequence": 1,
+          "session_id": "godot-preview-new-session-20260927-01",
+          "settled_visits": {},
+          "source_id": "resident_2",
+          "spent": 0
+        },
+        "bank_bound": true,
+        "conserved": true,
+        "order": {},
+        "scope": "new_local_session_account",
+        "server_authority": false
+      },
+      "body_id": 2059436916845,
+      "distance_to_nearest_outside_m": 80.3373718261719,
+      "energy_before": 100.0,
+      "generation": 1,
+      "initial_hp": 60.0,
+      "nearest_venue": {
+        "clone": "CompactService29_VENUE29-BANK-003",
+        "door": [
+          110.099998474121,
+          0.0,
+          186.550003051758
+        ],
+        "inward": [
+          -1.0,
+          0.0,
+          4.37113882867379e-08
+        ],
+        "kind": "bank",
+        "outside": [
+          111.75,
+          0.00299998512491584,
+          186.550003051758
+        ],
+        "service_point": [
+          106.099998474121,
+          0.243000015616417,
+          186.550003051758
+        ],
+        "venue": "1536172304318"
+      },
+      "owner_phase": "IDLE",
+      "position": [
+        151.699996948242,
+        -1.49011611938477e-08,
+        116.849998474121
+      ],
+      "rng_state_read_only": "-6678681657288248417",
+      "selected_ms": 29167,
+      "source_id": "resident_2"
+    },
+    "service": {
+      "distance_m": 0.284918904304504,
+      "frame": 4325,
+      "key": "resident_2:body:2059436916845",
+      "on_floor": true,
+      "position": [
+        106.329765319824,
+        0.240134924650192,
+        186.718460083008
+      ],
+      "service_point": [
+        106.099998474121,
+        0.243000015616417,
+        186.550003051758
+      ],
+      "venue": "1536172304318"
+    },
+    "service_frame": 4445,
+    "staff_serving": {
+      "customer_body_id": 2059436916845,
+      "frame": 4328,
+      "staff": {
+        "available": true,
+        "bones": 28,
+        "pose_updates": 141,
+        "position": "(104.1, 0.240278, 186.55)",
+        "resident_host": false,
+        "role": "cashier",
+        "serving": true
+      },
+      "venue": "1536172304318"
+    },
+    "start_completed": 0,
+    "travel_m": 243.962920669932,
+    "treated": false
+  },
+  "late_samples": [
+    {
+      "elapsed": 54.271,
+      "cash": 1000,
+      "completed": false,
+      "economy": "OUTBOUND",
+      "energy": 95.418664348305,
+      "goal": "bank",
+      "hospital": "",
+      "hp": 60.0,
+      "phase": "WALKING",
+      "position": [
+        106.329765319824,
+        0.240134924650192,
+        186.718460083008
+      ],
+      "route_phase": "OUTBOUND",
+      "source_id": "resident_2",
+      "travel_m": 91.6267130337656
+    },
+    {
+      "elapsed": 55.28,
+      "cash": 1000,
+      "completed": false,
+      "economy": "OUTBOUND",
+      "energy": 95.418664348305,
+      "goal": "bank",
+      "hospital": "",
+      "hp": 60.0,
+      "phase": "WALKING",
+      "position": [
+        106.329765319824,
+        0.240134924650192,
+        186.718460083008
+      ],
+      "route_phase": "OUTBOUND",
+      "source_id": "resident_2",
+      "travel_m": 91.6267130337656
+    },
+    {
+      "elapsed": 230.044,
+      "cash": 1000,
+      "completed": false,
+      "economy": "OUTBOUND",
+      "energy": 88.2106594271432,
+      "goal": "bank",
+      "hospital": "",
+      "hp": 60.0,
+      "phase": "WALKING",
+      "position": [
+        109.377182006836,
+        0.240941852331162,
+        186.231552124023
+      ],
+      "route_phase": "OUTBOUND",
+      "source_id": "resident_2",
+      "travel_m": 235.786811457016
+    },
+    {
+      "elapsed": 231.045,
+      "cash": 1000,
+      "completed": false,
+      "economy": "OUTBOUND",
+      "energy": 88.1690759659219,
+      "goal": "bank",
+      "hospital": "",
+      "hp": 60.0,
+      "phase": "WALKING",
+      "position": [
+        109.568710327148,
+        0.240941852331162,
+        186.372695922852
+      ],
+      "route_phase": "OUTBOUND",
+      "source_id": "resident_2",
+      "travel_m": 236.618480681442
+    },
+    {
+      "elapsed": 232.047,
+      "cash": 1000,
+      "completed": false,
+      "economy": "OUTBOUND",
+      "energy": 88.1287236058327,
+      "goal": "bank",
+      "hospital": "",
+      "hp": 60.0,
+      "phase": "WALKING",
+      "position": [
+        109.308288574219,
+        0.240941852331162,
+        186.180770874023
+      ],
+      "route_phase": "OUTBOUND",
+      "source_id": "resident_2",
+      "travel_m": 237.425527883228
+    },
+    {
+      "elapsed": 233.067,
+      "cash": 1000,
+      "completed": false,
+      "economy": "OUTBOUND",
+      "energy": 88.0879417193528,
+      "goal": "bank",
+      "hospital": "",
+      "hp": 60.0,
+      "phase": "WALKING",
+      "position": [
+        109.510528564453,
+        0.240941852331162,
+        186.329833984375
+      ],
+      "route_phase": "OUTBOUND",
+      "source_id": "resident_2",
+      "travel_m": 238.241165612824
+    },
+    {
+      "elapsed": 234.068,
+      "cash": 1000,
+      "completed": false,
+      "economy": "OUTBOUND",
+      "energy": 88.0458276946271,
+      "goal": "bank",
+      "hospital": "",
+      "hp": 60.0,
+      "phase": "WALKING",
+      "position": [
+        109.597694396973,
+        0.240941852331162,
+        186.394058227539
+      ],
+      "route_phase": "OUTBOUND",
+      "source_id": "resident_2",
+      "travel_m": 239.083446107339
+    },
+    {
+      "elapsed": 235.075,
+      "cash": 1000,
+      "completed": false,
+      "economy": "OUTBOUND",
+      "energy": 88.0064597170973,
+      "goal": "bank",
+      "hospital": "",
+      "hp": 60.0,
+      "phase": "WALKING",
+      "position": [
+        109.37589263916,
+        0.240941852331162,
+        186.230621337891
+      ],
+      "route_phase": "OUTBOUND",
+      "source_id": "resident_2",
+      "travel_m": 239.870805657934
+    },
+    {
+      "elapsed": 236.083,
+      "cash": 1000,
+      "completed": false,
+      "economy": "OUTBOUND",
+      "energy": 87.9632436565064,
+      "goal": "bank",
+      "hospital": "",
+      "hp": 60.0,
+      "phase": "WALKING",
+      "position": [
+        109.545845031738,
+        0.240941852331162,
+        186.355850219727
+      ],
+      "route_phase": "OUTBOUND",
+      "source_id": "resident_2",
+      "travel_m": 240.735126869753
+    },
+    {
+      "elapsed": 237.097,
+      "cash": 1000,
+      "completed": false,
+      "economy": "OUTBOUND",
+      "energy": 87.9230919804132,
+      "goal": "bank",
+      "hospital": "",
+      "hp": 60.0,
+      "phase": "WALKING",
+      "position": [
+        109.492744445801,
+        0.240941852331162,
+        186.316711425781
+      ],
+      "route_phase": "OUTBOUND",
+      "source_id": "resident_2",
+      "travel_m": 241.538160391618
+    },
+    {
+      "elapsed": 238.105,
+      "cash": 1000,
+      "completed": false,
+      "economy": "OUTBOUND",
+      "energy": 87.8812492584517,
+      "goal": "bank",
+      "hospital": "",
+      "hp": 60.0,
+      "phase": "WALKING",
+      "position": [
+        109.353034973145,
+        0.240941852331162,
+        186.213760375977
+      ],
+      "route_phase": "OUTBOUND",
+      "source_id": "resident_2",
+      "travel_m": 242.375014830846
+    },
+    {
+      "elapsed": 239.112,
+      "cash": 1000,
+      "completed": false,
+      "economy": "OUTBOUND",
+      "energy": 87.8392707156424,
+      "goal": "bank",
+      "hospital": "",
+      "hp": 60.0,
+      "phase": "WALKING",
+      "position": [
+        109.589706420898,
+        0.240941852331162,
+        186.38818359375
+      ],
+      "route_phase": "OUTBOUND",
+      "source_id": "resident_2",
+      "travel_m": 243.214585687034
+    }
+  ],
+  "shop_note": "424m physical travel in240s, still14m from doorway; extend bounded test to420, do not claim shop passed"
+}

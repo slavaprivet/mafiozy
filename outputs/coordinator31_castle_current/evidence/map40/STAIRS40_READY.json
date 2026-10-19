@@ -1,0 +1,120 @@
+{
+  "status": "READY_FUNCTIONAL",
+  "base_sha256": "a558a8dc0ccaacb663359811ebb70e295fb062c3264e64c3a411b64a2de48463",
+  "candidate_sha256": "24e62e58d2285e116126b99087899980fb3380b760616960eebbeaa8b89459c5",
+  "file": "outputs/coordinator31_npc57/game/scripts/city/castle_site.gd",
+  "candidate": "D:\\MafioziCombat31\\stairs40\\game\\scripts\\city\\castle_site.gd",
+  "patch": "D:\\MafioziCombat31\\stairs40\\STAIRS40.patch",
+  "basis": "armory01 castle_site remains exact in combat39 f28add7d",
+  "tests": {
+    "destroyed_shapes_disabled": [
+      true,
+      true
+    ],
+    "down": {
+      "end": "(-28.56, 0.030174, 38.81265)",
+      "frames": 533,
+      "input_enabled": true,
+      "min_feet_above_tread": -0.0128113627433777,
+      "reached": true,
+      "velocity": "(0.0, 0.0, -3.2)"
+    },
+    "merlons": {
+      "blocked": 939,
+      "tested": 939
+    },
+    "other_flights": [
+      {
+        "down": {
+          "end": "(38.81334, 0.031431, 28.56)",
+          "frames": 533,
+          "input_enabled": true,
+          "min_feet_above_tread": -0.0132133364677429,
+          "reached": true,
+          "velocity": "(-3.2, 0.0, 0.0)"
+        },
+        "name": "east",
+        "up": {
+          "end": "(66.23729, 19.01982, 28.56)",
+          "frames": 785,
+          "input_enabled": true,
+          "min_feet_above_tread": -0.0126163363456726,
+          "reached": true,
+          "velocity": "(3.2, 0.0, 0.0)"
+        }
+      },
+      {
+        "down": {
+          "end": "(28.56, 0.030138, -38.81671)",
+          "frames": 533,
+          "input_enabled": true,
+          "min_feet_above_tread": -0.0116989016532898,
+          "reached": true,
+          "velocity": "(-0.0, 0.0, 3.2)"
+        },
+        "name": "north",
+        "up": {
+          "end": "(28.56, 19.02023, -66.23864)",
+          "frames": 785,
+          "input_enabled": true,
+          "min_feet_above_tread": -0.012403666973114,
+          "reached": true,
+          "velocity": "(0.0, 0.0, -3.2)"
+        }
+      },
+      {
+        "down": {
+          "end": "(-38.81808, 0.030485, -28.56)",
+          "frames": 533,
+          "input_enabled": true,
+          "min_feet_above_tread": -0.0126945376396179,
+          "reached": true,
+          "velocity": "(3.2, 0.0, 0.0)"
+        },
+        "name": "west",
+        "up": {
+          "end": "(-66.23819, 19.01963, -28.56)",
+          "frames": 785,
+          "input_enabled": true,
+          "min_feet_above_tread": -0.012424647808075,
+          "reached": true,
+          "velocity": "(-3.2, 0.0, 0.0)"
+        }
+      }
+    ],
+    "pass": true,
+    "player_rail_blocked": true,
+    "rails": {
+      "blocked": 296,
+      "tested": 296
+    },
+    "up": {
+      "end": "(-28.56, 19.02101, 66.2378)",
+      "frames": 785,
+      "input_enabled": true,
+      "min_feet_above_tread": -0.0125872492790222,
+      "reached": true,
+      "velocity": "(-0.0, 0.0, 3.2)"
+    }
+  },
+  "receipts": [
+    "import01/SCHEDULER_RUN.json",
+    "run_candidate06/SCHEDULER_RUN.json",
+    "run_final07/SCHEDULER_RUN.json"
+  ],
+  "baseline": "baseline01/RESULT.json; missing rails and foot penetration -0.266m reproduced",
+  "raw_failures_preserved": [
+    "run_candidate01",
+    "run_candidate02",
+    "run_candidate03",
+    "run_candidate04",
+    "run_candidate05"
+  ],
+  "performance_accepted": false,
+  "changes": [
+    "296 rail stones and 939 merlon stones have exact destruction-bound collision",
+    "all four stairs align ramp, treads and wall-walk; shorten landing lip",
+    "80 piers with caps/bases physically meet deeper treads; breakable shapes tied to stones"
+  ],
+  "integration": "Coordinator32 only; shared source not modified by this package"
+}

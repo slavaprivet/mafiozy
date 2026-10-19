@@ -1,0 +1,12 @@
+{
+  "revision": "castle-20261018-combined50-combat-jumps",
+  "status": "ORDINARY_OPEN_READY",
+  "pid": 52880,
+  "started_at": "2026-10-18T16:57:17.7892089+03:00",
+  "assembly_sha256": "2b5871b6eddcc2ee05057a70fb50152f4193ff7e1df8727ee0494eb5f37c4bf7",
+  "replaced_old43_gracefully": true,
+  "reason": "User identified stale43 screenshot and requested current scene.",
+  "readiness": "evidence/combat50/ordinary50/CURRENT_READY.json",
+  "screenshot": "evidence/combat50/ordinary50/opened.png",
+  "performance_accepted": false
+}

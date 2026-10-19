@@ -1,0 +1,102 @@
+{
+  "schema": "mafiozi.perf.direct-pair/v1",
+  "protocol": "windowed 1920x1080, recorded fixed camera, 20 s warmup + 90 s measurement",
+  "limitation": "direct pair, no exclusive scheduler lease; no other Godot ran during the pair",
+  "baseline": {
+    "frames": 11078,
+    "mean_ms": 8.124,
+    "mean_fps": 123.1,
+    "p50": 6.385,
+    "p95": 14.63,
+    "p99": 16.015,
+    "max": 28.26,
+    "over_16_7ms": 34,
+    "over_33ms": 0,
+    "window_after": {
+      "content_scale_factor": 1.0,
+      "content_scale_mode": 2,
+      "content_scale_size": [
+        1920,
+        1080
+      ],
+      "display_window_size": [
+        1920,
+        1080
+      ],
+      "root_texture": [
+        1920,
+        1080
+      ],
+      "screen_scale": 1.0,
+      "viewport_visible": [
+        1920.0,
+        1080.0
+      ],
+      "window_mode": 0,
+      "window_size": [
+        1920,
+        1080
+      ]
+    },
+    "render_size": [
+      1920,
+      1080
+    ],
+    "physics_ms_p95": 14
+  },
+  "candidate": {
+    "frames": 11295,
+    "mean_ms": 7.968,
+    "mean_fps": 125.5,
+    "p50": 6.464,
+    "p95": 13.843,
+    "p99": 14.824,
+    "max": 31.575,
+    "over_16_7ms": 7,
+    "over_33ms": 0,
+    "window_after": {
+      "content_scale_factor": 1.0,
+      "content_scale_mode": 2,
+      "content_scale_size": [
+        1920,
+        1080
+      ],
+      "display_window_size": [
+        1920,
+        1080
+      ],
+      "root_texture": [
+        1920,
+        1080
+      ],
+      "screen_scale": 1.0,
+      "viewport_visible": [
+        1920.0,
+        1080.0
+      ],
+      "window_mode": 0,
+      "window_size": [
+        1920,
+        1080
+      ]
+    },
+    "render_size": [
+      1920,
+      1080
+    ],
+    "physics_ms_p95": 10
+  },
+  "delta": {
+    "mean_fps": 2.4,
+    "p95_ms": -0.787,
+    "p99_ms": -1.191,
+    "max_ms": 3.315,
+    "over_16_7ms": -27,
+    "over_33ms": 0
+  },
+  "gates": {
+    "mean_fps_at_least_90pct_baseline": true,
+    "mean_fps_at_least_60": true,
+    "p95_within_60fps_budget": true
+  }
+}

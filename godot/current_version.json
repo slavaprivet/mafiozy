@@ -1,11 +1,11 @@
 {
   "schema": "mafiozi.current-play/v1",
-  "title": "03.10 · Усиленный C4 · версия48",
-  "revision": "s01-20261003-c4-release48",
-  "assembly": "outputs/coordinator27_release48/ACCEPTED_ASSEMBLY.json",
-  "assembly_sha256": "51484885ce069970cecb234b7c016d5cc7e3b5611c3422ddeaa915a0d9c712b7",
-  "bootstrap": "tools/godot/current_game_bootstrap.gd",
-  "bootstrap_sha256": "0f0b3efec90d2a91fef13e18f844058f44e1310d37833d17a0b0ecde97d562d8",
+  "title": "Замок и осадный шар: дыры, падения и бочки",
+  "revision": "castle-20261019-horse",
+  "assembly": "outputs/coordinator35_release59/ASSEMBLY.json",
+  "assembly_sha256": "bd0371b75c9f49e7b145d07dc954ea221e2a316202bde4a4544429a8a11038cf",
+  "bootstrap": "outputs/coordinator31_castle_current/bootstrap_castle.gd",
+  "bootstrap_sha256": "318b2fe49cf454e0f41766ac4e5aa23ea43b2a26f5fa8d5b9c2ed3a617d0858b",
   "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
-  "scope": "Accepted C4 release48 in the current Palazzo-only quarter, original three NPC IDs/owners and current vehicles; new12-piece foundation. Not full-city or standalone EXE acceptance."
+  "scope": "Castle horse plus the siege airship: one sword-style E plaque for barrels/horse/balloon (same animation, barrel G included), horse cradle slot and hands carry, blast kills the horse nearby, G farther, improved pooled blast FX, strong-hit barrels, barrel floor spots, free basket walking, occupancy flight, detailed cached-mesh barrels, optimized basket, holes/crash/fall damage/map clamp, weight steering, no cap, no anchor/Shift."
 }

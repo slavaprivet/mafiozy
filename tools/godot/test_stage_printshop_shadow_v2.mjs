@@ -1,0 +1,25 @@
+// File-only adversarial staging checks. No engine, renderer or import process.
+import fs from 'node:fs';import path from 'node:path';import {spawnSync} from 'node:child_process';
+const root=process.cwd(),fixture=fs.mkdtempSync(path.join(root,'outputs','printshop-stage-tests-'));
+const closure=JSON.parse(fs.readFileSync(path.join(root,'tools/godot/map_editor_printshop_shadow_v2_stage_manifest.json')));
+const copy=(from,to)=>{fs.mkdirSync(path.dirname(to),{recursive:true});fs.copyFileSync(from,to);};
+for(const f of closure.files)copy(path.join(root,f.source),path.join(fixture,f.source));
+for(const f of ['stage_printshop_shadow_v2.mjs','map_editor_printshop_shadow_v2_stage_manifest.json'])copy(path.join(root,'tools/godot',f),path.join(fixture,'tools/godot',f));
+const invoke=mode=>spawnSync(process.execPath,[path.join(fixture,'tools/godot/stage_printshop_shadow_v2.mjs'),mode],{encoding:'utf8'});
+let checks=0;const check=(value,label)=>{checks++;if(!value)throw Error(label);};
+let run=invoke('--check');check(run.status===0,'Readonly check');check(!fs.existsSync(path.join(fixture,'outputs')),'Check creates no outputs');
+run=invoke('--stage');check(run.status===0,'First unique stage');const first=JSON.parse(run.stdout).stage;
+const receipt=fs.readFileSync(path.join(first,'stage_receipt.json'));
+run=invoke('--stage');check(run.status===0,'Second unique stage');check(JSON.parse(run.stdout).stage!==first,'Unique targets');check(fs.readFileSync(path.join(first,'stage_receipt.json')).equals(receipt),'Prior stage untouched');
+const helper=path.join(fixture,closure.files[3].source);fs.appendFileSync(helper,'\n# mutation\n');run=invoke('--check');check(run.status!==0&&run.stderr.includes('hash/byte count mismatch'),'Helper mutation refused');copy(path.join(root,closure.files[3].source),helper);
+const originalScripts=path.join(fixture,'godot/mafiozi_walk/scripts'),relocated=path.join(fixture,'source_scripts_real');fs.renameSync(originalScripts,relocated);fs.symlinkSync(relocated,originalScripts,'junction');
+run=invoke('--check');check(run.status!==0&&run.stderr.includes('Symlink/junction refused'),'Source junction refused');
+const fixture2=fs.mkdtempSync(path.join(root,'outputs','printshop-stage-output-tests-'));
+for(const f of closure.files)copy(path.join(root,f.source),path.join(fixture2,f.source));
+for(const f of ['stage_printshop_shadow_v2.mjs','map_editor_printshop_shadow_v2_stage_manifest.json'])copy(path.join(root,'tools/godot',f),path.join(fixture2,'tools/godot',f));
+const outside=path.join(fixture2,'unapproved_target');fs.mkdirSync(outside);
+fs.symlinkSync(outside,path.join(fixture2,'outputs'),'junction');
+run=spawnSync(process.execPath,[path.join(fixture2,'tools/godot/stage_printshop_shadow_v2.mjs'),'--stage'],{encoding:'utf8'});
+check(run.status!==0&&run.stderr.includes('Symlink/junction refused'),'Outputs junction refused');
+check(fs.readdirSync(outside).length===0,'No output escaped through junction');
+console.log(JSON.stringify({suite:'printshop-v2-safe-stager-files-only',checks,fixture,gpu:false,engine_started:false,prior_stage_untouched:true}));

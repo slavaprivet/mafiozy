@@ -1,0 +1,4333 @@
+{
+  "schema": "visual_source_audit56/v1",
+  "source_project": "outputs\\coordinator30_release55\\game",
+  "manifest_sha256": "929a5083842a5325ba5d4d823b1ac63c8b56b459ac19b414057ce6190f35f288",
+  "resident_count": 287,
+  "totals": {
+    "mesh_instances_authored": 3174,
+    "vertices_authored": 2174404,
+    "bones": 8036,
+    "animation_players_authored": 0,
+    "prepared_bytes": 159980835,
+    "binary_StandardMaterial3D": 3174,
+    "binary_ArrayMesh": 3174,
+    "binary_Skin": 2296
+  },
+  "mesh_range": [
+    6,
+    18
+  ],
+  "sexes": {
+    "female": 135,
+    "male": 152
+  },
+  "method": "Read-only manifest counts + verified pinned uncompressed RSRC files. Sized resource class record signatures are source-resource counts, not live tree/runtime draw-call measurements. ArrayMesh signature count cross-checked against every actor manifest mesh_count. Runtime staff/props/cards/pooled ragdolls are outside these catalog totals.",
+  "native_or_graphical_started": false,
+  "rows": [
+    {
+      "id": "npc_resident_1",
+      "sex": "female",
+      "mesh_instances_authored": 15,
+      "vertices_authored": 8055,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 578789,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 15,
+        "ArrayMesh": 15,
+        "Skin": 8
+      },
+      "sha256": "9651313960a2650e440c95cf5052680e7de7078e03d6e27cea295994c688e710"
+    },
+    {
+      "id": "npc_resident_2",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561841,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "07cdb650aca6fa4bc006b12852243f38df16e0eb9804cf93a3b01ca235316b45"
+    },
+    {
+      "id": "npc_resident_3",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561793,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "131ac9b45cac143629d1ba39e7a61a6d8b0691688850bc65e1e8127b5c681d04"
+    },
+    {
+      "id": "npc_resident_4",
+      "sex": "female",
+      "mesh_instances_authored": 13,
+      "vertices_authored": 7821,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 568392,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 13,
+        "ArrayMesh": 13,
+        "Skin": 8
+      },
+      "sha256": "fb2597ff355b23c9c870afd489c8769f3fb99f21ecece8d04e2b2fee57aa63be"
+    },
+    {
+      "id": "npc_resident_5",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556658,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "a3e29fe1eb5af2c9e326e1480cc3e3c9c24f83acb8d0e354dde6de4d52af4806"
+    },
+    {
+      "id": "npc_resident_6",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542362,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "64d2027184f989076dbf1fb73656402c5a2669279497949feb57d05ece50262b"
+    },
+    {
+      "id": "npc_resident_7",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542334,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "b7b8ae698a04daebd9f7a84007b9c26b80722cdc4c5e63e0fb576cfabed1efc8"
+    },
+    {
+      "id": "npc_resident_8",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542348,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "2db15be93876c95e4514d54d569da1761432b2b24df40c8be0959324f9f6b8dd"
+    },
+    {
+      "id": "npc_resident_9",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556646,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "6ea5212b930899cbdf7b81c0a28bd9f8b1b33eb5178aba41a18c96ecd4b6e240"
+    },
+    {
+      "id": "npc_resident_10",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556657,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "ba96f140a48873036d5db179f2ba016cfd06f6f4aec5643acfdcd40c8bd9eadb"
+    },
+    {
+      "id": "npc_resident_11",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556671,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "be630bda4bda4496e9797507797f15958de27b1058eb8549ed65cea649a85814"
+    },
+    {
+      "id": "npc_resident_12",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556667,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "1e522e0a29a67cca47abbb562d3465bdcd48a283ee8646c272de2b45cea45b2f"
+    },
+    {
+      "id": "npc_resident_13",
+      "sex": "female",
+      "mesh_instances_authored": 10,
+      "vertices_authored": 7470,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 552783,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 10,
+        "ArrayMesh": 10,
+        "Skin": 8
+      },
+      "sha256": "278ef094128146a82884416d87456e73333e67657f1ab39579492565bc5cf0d2"
+    },
+    {
+      "id": "npc_resident_14",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558003,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "685be58c12f04ed3da7adeda707ba9b22aea77d0a3ec198bfb8daa3c841bf993"
+    },
+    {
+      "id": "npc_resident_16",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556663,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "462a4a63c2eb1b1e14d47340c4fe988cbc9d3f1460902d6a462fc5aebd0eb185"
+    },
+    {
+      "id": "npc_resident_17",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556659,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "46f37d2e726d6256d003afc35680fefaf80071cb03eb7d33a1cc652be18564ae"
+    },
+    {
+      "id": "npc_resident_18",
+      "sex": "female",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7704,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 563171,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "db8a2adf5cd45e7dbb4c4f79e035d8249e56747dcc6a637cecc20faa2ff2f12d"
+    },
+    {
+      "id": "npc_resident_19",
+      "sex": "female",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8406,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 594403,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "a75aa060527cc6d788f58f58a4dbce43f67b8b02921d994769298a50a4d085a2"
+    },
+    {
+      "id": "npc_resident_20",
+      "sex": "male",
+      "mesh_instances_authored": 6,
+      "vertices_authored": 6848,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 527311,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 6,
+        "ArrayMesh": 6,
+        "Skin": 8
+      },
+      "sha256": "ad597184b7ad4143b0c08e39ad890a560af9e0590576395b89dced0abb50cb80"
+    },
+    {
+      "id": "npc_resident_21",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558021,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "d1976c3689e64800302ecbb3e405407de0dbf1cbc9870af0a40dee4bc2dfadc7"
+    },
+    {
+      "id": "npc_resident_22",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556663,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "632498b31b005e9f2c9f5ea15bc9a9711d5292de2f6ec88b4bf91928a2f474a2"
+    },
+    {
+      "id": "npc_resident_23",
+      "sex": "female",
+      "mesh_instances_authored": 10,
+      "vertices_authored": 7470,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 552787,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 10,
+        "ArrayMesh": 10,
+        "Skin": 8
+      },
+      "sha256": "0b8cd191c240f1bffbb83d68eb243712e424f91ec05114e49301f99f47c96e6c"
+    },
+    {
+      "id": "npc_resident_24",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542358,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "fc99809ae190f697973cf127ca204df280cd2f712cfbd7553df79ca8406671dc"
+    },
+    {
+      "id": "npc_resident_25",
+      "sex": "male",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8385,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 593043,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "e6d2294dad5efd5b76baa3fe99fcc33136ee3b8667d063a08c35b54df4181085"
+    },
+    {
+      "id": "npc_resident_26",
+      "sex": "female",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8406,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 594397,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "c0216e5b1585893f650a411da0f5bb1a064dbe7f64ef72d3b8167a04e918dea2"
+    },
+    {
+      "id": "npc_resident_27",
+      "sex": "male",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7215,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 541032,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "490cd472b1b80c6ed7ae952e459dca32fbfa303c6d32e39740de572b50675f49"
+    },
+    {
+      "id": "npc_resident_28",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556657,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "eed0de60a06d19304ed2b4ee5cbfb2c17339acd18d8d295160a2d09199696bbc"
+    },
+    {
+      "id": "npc_resident_29",
+      "sex": "female",
+      "mesh_instances_authored": 10,
+      "vertices_authored": 7470,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 552773,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 10,
+        "ArrayMesh": 10,
+        "Skin": 8
+      },
+      "sha256": "f8b9b80e5c71c507db593dfb76c7a0cb76c77c2edc4dd4fd118ee175e057f49d"
+    },
+    {
+      "id": "npc_resident_30",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542344,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "21ad7b4232355a95c19d52fcab0d3d7cca1d5ba9b453e3e3aab767fe3b7711b6"
+    },
+    {
+      "id": "npc_resident_31",
+      "sex": "female",
+      "mesh_instances_authored": 15,
+      "vertices_authored": 8055,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 578806,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 15,
+        "ArrayMesh": 15,
+        "Skin": 8
+      },
+      "sha256": "0a816616fbe685e39b269c8d2469837b510974ad017282c131429e243a159e48"
+    },
+    {
+      "id": "npc_resident_32",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561815,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "793e2415cdae9ba6c35ac32fb72f04706aaf269b87d274b0848db5801f1efa90"
+    },
+    {
+      "id": "npc_resident_33",
+      "sex": "female",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8406,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 594397,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "91922eab7df678d89586b880e30f5cf945161e952dc76c465d760981a917c4c6"
+    },
+    {
+      "id": "npc_resident_34",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556671,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "ebce8be2f983f310f30d9c85d264b2fca5fd36af2d3ea02a87f60dd97b353ef4"
+    },
+    {
+      "id": "npc_resident_35",
+      "sex": "male",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7215,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 541014,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "8d257b5d5581906bd19ecdff403b05af397da410b104aa9f47708d12491cb664"
+    },
+    {
+      "id": "npc_resident_36",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556663,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "688dedf7dda494d7959f7a4230ac407abdda50e9a47206dac9149e0e375cc508"
+    },
+    {
+      "id": "npc_resident_37",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542328,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "0419bc36f33223005faa2772cea18a2ee73b55f54ec7e52838447fd6605e170d"
+    },
+    {
+      "id": "npc_resident_38",
+      "sex": "female",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8406,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 594411,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "f90a1c891cede249666383349df431379196dd14bbf25f7a2a2e4191fc5c1dc3"
+    },
+    {
+      "id": "npc_resident_39",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558003,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "f593a82269fbd4d7a2f813f2273a881eb0ba4dd5b32852f9eeb02f315e5836d8"
+    },
+    {
+      "id": "npc_resident_40",
+      "sex": "female",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8406,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 594411,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "eac70c4f52922db8670c590d8cf0ea2eeb4c9da1fe376620d228c3ac3b0bfd70"
+    },
+    {
+      "id": "npc_resident_41",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556653,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "cb5e5abe8346597762d7b404585863e72d89d47fef55458531fca3ab9830c856"
+    },
+    {
+      "id": "npc_resident_42",
+      "sex": "male",
+      "mesh_instances_authored": 6,
+      "vertices_authored": 6848,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 527313,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 6,
+        "ArrayMesh": 6,
+        "Skin": 8
+      },
+      "sha256": "b15d3c0f9741f4189c2de465518ad0a03a230fff352bced3f9fdb38489bf9ed0"
+    },
+    {
+      "id": "npc_resident_43",
+      "sex": "female",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7704,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 563167,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "6b96ce82278cc4ff92fe2bc3b691c089b6cb0fd9a23b9986639a4c2699cd57be"
+    },
+    {
+      "id": "npc_resident_44",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542326,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "b86229bee8d6267c2dccbe5a84004f52b69c2de5fff30154c7607a19cfe3ab8c"
+    },
+    {
+      "id": "npc_resident_45",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556655,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "97b8adabe48e8d6431039a314e8dc215ccfab381e354efce8dc232fffdcb220a"
+    },
+    {
+      "id": "npc_resident_46",
+      "sex": "male",
+      "mesh_instances_authored": 7,
+      "vertices_authored": 7098,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 535800,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 7,
+        "ArrayMesh": 7,
+        "Skin": 8
+      },
+      "sha256": "b455cfcb6989e79201c61aab874e873c333042e3ca3e24ded90d978cf05b54e4"
+    },
+    {
+      "id": "npc_resident_47",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556667,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "158303ace4e8648d163108808fb8f297763074e17c889ea3f18f1cdd21c9ccc0"
+    },
+    {
+      "id": "npc_resident_48",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558003,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "60820d9967d374fdcbb71b6ab758d4f60c1d21eb13505af0a11f07847fb43a8d"
+    },
+    {
+      "id": "npc_resident_49",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558017,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "1b63a813377b22eb37a3400c361132d437b23e45e0f3c526ed809f8d8b730bdc"
+    },
+    {
+      "id": "npc_resident_50",
+      "sex": "male",
+      "mesh_instances_authored": 7,
+      "vertices_authored": 7098,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 535800,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 7,
+        "ArrayMesh": 7,
+        "Skin": 8
+      },
+      "sha256": "5316fd959d07da118274dea83cfc0a6d8e1590a49b46a37e577769e58cd7e6ea"
+    },
+    {
+      "id": "npc_resident_51",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556665,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "942242f48403886276d1cb71d957cff8567dbc703bbcc3f322d25bbd94f3404d"
+    },
+    {
+      "id": "npc_resident_52",
+      "sex": "male",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8385,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 593043,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "779964d02adc154a5795bbba7469fae0c3caded4a958061d9b8db06a34b08ddc"
+    },
+    {
+      "id": "npc_resident_53",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542358,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "ba3e1f1fe3f13a7d9f8191aae8dd1c2cd74d0ae7244b7846584b3e507e300150"
+    },
+    {
+      "id": "npc_resident_54",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556667,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "1fe7f4af61314b01328c27d2d26a8fa23ba1ade91ade9d2d430b7bbedf18ea22"
+    },
+    {
+      "id": "npc_resident_55",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542358,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "2c4ffc5f143aa969b4d3287b95b3159c6e946e2c978f348259859729eac1b67a"
+    },
+    {
+      "id": "npc_resident_56",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558013,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "12537e620b9876749c9b31f29fb40cf890da3418fb4b2818327fd83eb772623d"
+    },
+    {
+      "id": "npc_resident_57",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556659,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "9bbd6d730b3e8e756c40fcea1471db5161f04609ff3aafbfc35fe121f62ab27c"
+    },
+    {
+      "id": "npc_resident_58",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558003,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "7ff82015e35de4b7d994b12f80eef95f23f26b43935a1d7a1615f412a5bad2d3"
+    },
+    {
+      "id": "npc_resident_59",
+      "sex": "male",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8385,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 593033,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "f263f29f2aac4169b5e7d450ae3c5ffd575c6653c3d3988146df51053564c146"
+    },
+    {
+      "id": "npc_resident_60",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556665,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "bc8c96d134a39b8943d95dffc34ccb8f2a8871b5eaee07f27f64541d976b8cff"
+    },
+    {
+      "id": "npc_resident_61",
+      "sex": "female",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7704,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 563165,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "84399c14de9c5ca28e5565ee7823c7044b1e1afd350672a595d309367b5c0ae5"
+    },
+    {
+      "id": "npc_resident_62",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558003,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "2eec11d887b24c725d6c7523657ff1af54e6a25d066cab25bd79efc72f93fdc2"
+    },
+    {
+      "id": "npc_resident_63",
+      "sex": "male",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8385,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 593047,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "b9f1b4f7f8d53b129cbea3954cb426b51dfbb2d5a9bd1baca3a39bfa13c49cf5"
+    },
+    {
+      "id": "npc_resident_64",
+      "sex": "female",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7704,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 563167,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "5a264905816a9b24e23676d87f148082abec7a3a5a0990b2ca695bc2d5456443"
+    },
+    {
+      "id": "npc_resident_65",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561841,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "3e0a155851f23935d365e3a80d5836081621eeeab491f57b70cafc9118f06913"
+    },
+    {
+      "id": "npc_resident_66",
+      "sex": "female",
+      "mesh_instances_authored": 15,
+      "vertices_authored": 8055,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 578798,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 15,
+        "ArrayMesh": 15,
+        "Skin": 8
+      },
+      "sha256": "98e1b29a34d96bf9fa94c942d0690dcf6b36992c6d58d5a6c2185c4945f668c0"
+    },
+    {
+      "id": "npc_resident_67",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542344,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "76b34169e1d4184b2e1e4a62bf86aa33a311b1ead289876b10a9b72920711db3"
+    },
+    {
+      "id": "npc_resident_68",
+      "sex": "male",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7215,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 541028,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "d83c802e868bccf696d287f92fd801bf2c7de037545f0ad9de3165421fe11eb9"
+    },
+    {
+      "id": "npc_resident_69",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556665,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "997262dd387ff1f2e5a6671bee007a60024ce7b93976143f17d3968ae320707e"
+    },
+    {
+      "id": "npc_resident_70",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561847,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "519e21ea2b5aafa595feb7554e3db51c03b23ba5f74a36229c70102902a1076c"
+    },
+    {
+      "id": "npc_resident_71",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556667,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "c86d0e9e2422f2c535e63daa5070574694a9cdf3476a27ed0b9b9d419e06c1b3"
+    },
+    {
+      "id": "npc_resident_72",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556659,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "0e75068394c0a0edaa8cb1b91b62b89f8d3e5acb0a4558360710d2f61e9a4b52"
+    },
+    {
+      "id": "npc_resident_73",
+      "sex": "female",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8406,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 594415,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "bb912207fb7593b50bb2b85beac8a5f81b47fe802c65ba695bd6a7f81b3b5474"
+    },
+    {
+      "id": "npc_resident_74",
+      "sex": "female",
+      "mesh_instances_authored": 15,
+      "vertices_authored": 8055,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 578802,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 15,
+        "ArrayMesh": 15,
+        "Skin": 8
+      },
+      "sha256": "0d277003a152caff2bcf1e09d207487f26b9f07816701e2d522c9af92207a037"
+    },
+    {
+      "id": "npc_resident_75",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556653,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "d424ac34db11c8d1c71f7d02ab29b14ff1dd2ee0cbb7583c7693877a3ca51f07"
+    },
+    {
+      "id": "npc_resident_76",
+      "sex": "female",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7704,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 563171,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "81ed9d1d14c0f715f57e4d6e548a5607937aa552ee97dc59258e6ca710700b6d"
+    },
+    {
+      "id": "npc_resident_77",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542372,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "9b22b63a22d2d5a366873cce1ea5da3f3d3a1d2030cff8b4639a34342fc75f0b"
+    },
+    {
+      "id": "npc_resident_78",
+      "sex": "male",
+      "mesh_instances_authored": 7,
+      "vertices_authored": 7098,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 535800,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 7,
+        "ArrayMesh": 7,
+        "Skin": 8
+      },
+      "sha256": "5c81042cd44d91a7588f195770b5c5b2dd1ef06a3dce24678dd41ee229bfa396"
+    },
+    {
+      "id": "npc_resident_79",
+      "sex": "male",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8385,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 593047,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "c7f63e263b7f95f11d8e0df7cbbaf8ee67468c54863087a869ee17069fec3230"
+    },
+    {
+      "id": "npc_resident_80",
+      "sex": "female",
+      "mesh_instances_authored": 13,
+      "vertices_authored": 7821,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 568415,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 13,
+        "ArrayMesh": 13,
+        "Skin": 8
+      },
+      "sha256": "e368f6388b567b7e7f8b24c3c5a3f319d3446d99618b597fd47f9c1f6265f32e"
+    },
+    {
+      "id": "npc_resident_81",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561841,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "a124b04d02d92c75ac89a66beb33407de466bf029dffb469e029114545b18d5b"
+    },
+    {
+      "id": "npc_resident_82",
+      "sex": "male",
+      "mesh_instances_authored": 7,
+      "vertices_authored": 7098,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 535786,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 7,
+        "ArrayMesh": 7,
+        "Skin": 8
+      },
+      "sha256": "cefec33ef1dad1df8b5e762985b1bd3fce0a3ecc74969a394cb9058a8e6f0cee"
+    },
+    {
+      "id": "npc_resident_83",
+      "sex": "male",
+      "mesh_instances_authored": 6,
+      "vertices_authored": 6848,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 527301,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 6,
+        "ArrayMesh": 6,
+        "Skin": 8
+      },
+      "sha256": "fd9fdb0bb59e9b0144d51af63748ab0f3102c59d2feb6436ba8e472c9fb4ecaa"
+    },
+    {
+      "id": "npc_resident_84",
+      "sex": "female",
+      "mesh_instances_authored": 10,
+      "vertices_authored": 7470,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 552773,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 10,
+        "ArrayMesh": 10,
+        "Skin": 8
+      },
+      "sha256": "8c0cc6b4d1aa45abe9810afa0906708a7084cb0e192906fa353ff3d611f6ee68"
+    },
+    {
+      "id": "npc_resident_85",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542340,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "fef972ef971124d24da9b9fac870ed421d07c2108b7d470eadc5519baf9ac29b"
+    },
+    {
+      "id": "npc_resident_86",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556655,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "4b1f0135dff1731c7ed67c65bc25208124ea7ed49ce661ac14566ae6117b7f39"
+    },
+    {
+      "id": "npc_resident_87",
+      "sex": "male",
+      "mesh_instances_authored": 7,
+      "vertices_authored": 7098,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 535796,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 7,
+        "ArrayMesh": 7,
+        "Skin": 8
+      },
+      "sha256": "2bdf2df1bdc2c01897d692f0f628ef0c84c9c25fc4a5a80b2c947697ff6c9684"
+    },
+    {
+      "id": "npc_resident_88",
+      "sex": "female",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8406,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 594397,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "7061b4e0bf518322fb9de610170481c88e90da57335918b0bab625d70061194e"
+    },
+    {
+      "id": "npc_resident_89",
+      "sex": "female",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8406,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 594411,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "72e363d390ac653e6307357047b3f478219bca7a89cc5e017492c56c3e90211b"
+    },
+    {
+      "id": "npc_resident_90",
+      "sex": "female",
+      "mesh_instances_authored": 10,
+      "vertices_authored": 7470,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 552779,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 10,
+        "ArrayMesh": 10,
+        "Skin": 8
+      },
+      "sha256": "69ba2760961027efc805bf98889f770a9c576312d611af4f48406c7816284b2b"
+    },
+    {
+      "id": "npc_resident_91",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556655,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "112da76d4d61f46552d121ddaa99fc84f710c4cc8881ecff3e04236cc3493064"
+    },
+    {
+      "id": "npc_resident_92",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561855,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "3d30874e4782c4c724563fd8afa62179a0ab604ee95840e0cfd613887a0dd9c8"
+    },
+    {
+      "id": "npc_resident_93",
+      "sex": "female",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7704,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 563153,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "3decd6f88184f617723cb983ee6fc203b11911351ebdf96d518be43c4615f7c3"
+    },
+    {
+      "id": "npc_resident_94",
+      "sex": "female",
+      "mesh_instances_authored": 15,
+      "vertices_authored": 8055,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 578802,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 15,
+        "ArrayMesh": 15,
+        "Skin": 8
+      },
+      "sha256": "dc3b7c602a5d14ae55ba17b33caab8c27eb4110d259cc35ee4d7f4cd2f68c507"
+    },
+    {
+      "id": "npc_resident_95",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556667,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "ad245db36d60952598dc0c1c4d7b7bcb29a54d08c0b5921d0fdbd74204ed6526"
+    },
+    {
+      "id": "npc_resident_96",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542340,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "11e4aeeba96cdffe94f6891e41c7e3b73ad50ef3ed5d4c28361c1304d8d613d1"
+    },
+    {
+      "id": "npc_resident_97",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556671,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "b3c3b50c32db5d8d1d1fa86930dd571b1a8485fff278f4aaed6d4db05b8d6ef5"
+    },
+    {
+      "id": "npc_resident_98",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542326,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "16b0baa35acbe5c824f066dcfd4ed8604d1928220e6de7b032905c5417e6e653"
+    },
+    {
+      "id": "npc_resident_99",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542368,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "5dfb1a7e3d06cb8bbc61b2c8194b553e402a873905958f56ee91aec20e0404fa"
+    },
+    {
+      "id": "npc_resident_100",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558016,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "4a25cef99a44760319f794212e2874787191cf313b8b6627edf4706e53071c06"
+    },
+    {
+      "id": "npc_resident_101",
+      "sex": "female",
+      "mesh_instances_authored": 10,
+      "vertices_authored": 7470,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 552795,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 10,
+        "ArrayMesh": 10,
+        "Skin": 8
+      },
+      "sha256": "05118961565cfa619473617b4e904c4e2343a42429afa83383f1afde4bbd4a4a"
+    },
+    {
+      "id": "npc_resident_102",
+      "sex": "male",
+      "mesh_instances_authored": 6,
+      "vertices_authored": 6848,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 527327,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 6,
+        "ArrayMesh": 6,
+        "Skin": 8
+      },
+      "sha256": "cfa84f5414be7ea7abb58584d958f1593fc067c012dab679c722dd0c8d58788b"
+    },
+    {
+      "id": "npc_resident_103",
+      "sex": "male",
+      "mesh_instances_authored": 6,
+      "vertices_authored": 6848,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 527309,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 6,
+        "ArrayMesh": 6,
+        "Skin": 8
+      },
+      "sha256": "8a16394c738975bb08cdbff31361d15b6fc860e525b483e60817a5a8b754a57c"
+    },
+    {
+      "id": "npc_resident_104",
+      "sex": "male",
+      "mesh_instances_authored": 6,
+      "vertices_authored": 6848,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 527319,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 6,
+        "ArrayMesh": 6,
+        "Skin": 8
+      },
+      "sha256": "8ebcf7756f1d39ae98808a01d86ba35ac27949ec88bce4093a063c9ded1e7afb"
+    },
+    {
+      "id": "npc_resident_105",
+      "sex": "female",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8406,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 594427,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "64ca7bb05999032c3baa0ad2affc21ba5fc95a2031ae8cc07770ad5fc61e8a03"
+    },
+    {
+      "id": "npc_resident_106",
+      "sex": "female",
+      "mesh_instances_authored": 15,
+      "vertices_authored": 8055,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 578821,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 15,
+        "ArrayMesh": 15,
+        "Skin": 8
+      },
+      "sha256": "d08fd7f9c68b5077113e827f5b39381040da993508d5f9d1f40ac938af1aba20"
+    },
+    {
+      "id": "npc_resident_107",
+      "sex": "male",
+      "mesh_instances_authored": 6,
+      "vertices_authored": 6848,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 527323,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 6,
+        "ArrayMesh": 6,
+        "Skin": 8
+      },
+      "sha256": "7f5b03c731ae3a3024ec889d2ba7fb51dfae39b3daefd182687e39d7ec7e021a"
+    },
+    {
+      "id": "npc_resident_108",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561855,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "2ad3b69576737c64413ef17b04b6efb806d7bd12e0f73eef4139dc374a0491ee"
+    },
+    {
+      "id": "npc_resident_109",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558030,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "20b1ec6382100c17f043abb52a0704f5f49f7b0a0cf385c3d0349ca6ee3262fc"
+    },
+    {
+      "id": "npc_resident_110",
+      "sex": "female",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7704,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 563181,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "b03f7a5437dee20c196f6e0c300d0344455ebb71b8c67b3dc9f5b017a7b3d6a7"
+    },
+    {
+      "id": "npc_resident_111",
+      "sex": "male",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7215,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 541024,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "8e92160eff629663bfa2d620c1a95d84da1728bc8f809da8532cab537a53901d"
+    },
+    {
+      "id": "npc_resident_112",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556676,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "3b9f8a5c3fd7929f152bcd3c2a38e8246289227fbac273fd0af60df12567472b"
+    },
+    {
+      "id": "npc_resident_113",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556668,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "31778419bef5f8da084c5c08f4f9b710d31eb237d2358d127ab75f4e093667f2"
+    },
+    {
+      "id": "npc_resident_114",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558022,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "5a72dea34cf42fbc23265048f4b8ee290b9bb1fed3c42d89e7070d2ab057a77d"
+    },
+    {
+      "id": "npc_resident_115",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561817,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "d4719f0ae980d132602badf535b4b995b1b2f990d3710b4b84721884dafc19e6"
+    },
+    {
+      "id": "npc_resident_116",
+      "sex": "male",
+      "mesh_instances_authored": 6,
+      "vertices_authored": 6848,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 527323,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 6,
+        "ArrayMesh": 6,
+        "Skin": 8
+      },
+      "sha256": "e7521c7f90a130fee47bd33f662de39e64cd813a9f16a4f1a609bcea3f97d940"
+    },
+    {
+      "id": "npc_resident_117",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558022,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "debfc3f9a51b94702e3724f91c62f9a54689b3752027492efe9b3addc671f33b"
+    },
+    {
+      "id": "npc_resident_118",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558018,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "9e4b5179918752754a8534f9f99c734c6583d7a0660a6d3137772737c404689e"
+    },
+    {
+      "id": "npc_resident_119",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542342,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "c21c7d07270ae75384c2a2db6cb5c72d5086582f22238f83ece39745e6305b21"
+    },
+    {
+      "id": "npc_resident_120",
+      "sex": "male",
+      "mesh_instances_authored": 6,
+      "vertices_authored": 6848,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 527309,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 6,
+        "ArrayMesh": 6,
+        "Skin": 8
+      },
+      "sha256": "88274f0c777930e66bc5a30601d449695d74056ab7ebe9f6bd751e7377b0bdaf"
+    },
+    {
+      "id": "npc_resident_121",
+      "sex": "male",
+      "mesh_instances_authored": 6,
+      "vertices_authored": 6848,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 527315,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 6,
+        "ArrayMesh": 6,
+        "Skin": 8
+      },
+      "sha256": "a578b4c5dda7512f5befc1d885edabfd126d5e85b599a71cf0b5315497d0137c"
+    },
+    {
+      "id": "npc_resident_122",
+      "sex": "male",
+      "mesh_instances_authored": 7,
+      "vertices_authored": 7098,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 535809,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 7,
+        "ArrayMesh": 7,
+        "Skin": 8
+      },
+      "sha256": "c925cfef74269b9ad721dcb67666bc1e8c3c02130a3565030b319f96692db785"
+    },
+    {
+      "id": "npc_resident_123",
+      "sex": "male",
+      "mesh_instances_authored": 7,
+      "vertices_authored": 7098,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 535797,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 7,
+        "ArrayMesh": 7,
+        "Skin": 8
+      },
+      "sha256": "a18fd97a09a737ba2e2414f5e5db0a23c52badc46290b196aabee5f98fa052fd"
+    },
+    {
+      "id": "npc_resident_124",
+      "sex": "male",
+      "mesh_instances_authored": 7,
+      "vertices_authored": 7098,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 535795,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 7,
+        "ArrayMesh": 7,
+        "Skin": 8
+      },
+      "sha256": "d9e3e8958456a36a6922e4f29ea8bcef0bc530e513d1e6a836cc6a00f5118d9d"
+    },
+    {
+      "id": "npc_resident_125",
+      "sex": "male",
+      "mesh_instances_authored": 7,
+      "vertices_authored": 7098,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 535795,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 7,
+        "ArrayMesh": 7,
+        "Skin": 8
+      },
+      "sha256": "0d7f3569509790a67fb8c2929eeeb0e0ad6024d9c2470abe1dc9b72e02f561f4"
+    },
+    {
+      "id": "npc_resident_126",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542368,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "a2824eec6b47d90d683e410aaf0639f134c8f6389f5f22ba879f47e80fcfe184"
+    },
+    {
+      "id": "npc_resident_127",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561825,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "d058d3f23b80d5dcea9c0585042d86fb79a16b49ac8e90fe22401166be7b6e9d"
+    },
+    {
+      "id": "npc_resident_128",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556666,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "0b46dfef044b5c0e5b70830e8f0216ce44f874a1e5b3ccd484715b304e0d4a8a"
+    },
+    {
+      "id": "npc_resident_129",
+      "sex": "female",
+      "mesh_instances_authored": 10,
+      "vertices_authored": 7470,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 552785,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 10,
+        "ArrayMesh": 10,
+        "Skin": 8
+      },
+      "sha256": "b0a4b1ce409f0cdc9ca370122ba7d5943c5d9aab4149e60abb7bc1fe4bf0cbba"
+    },
+    {
+      "id": "npc_resident_130",
+      "sex": "male",
+      "mesh_instances_authored": 7,
+      "vertices_authored": 7098,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 535795,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 7,
+        "ArrayMesh": 7,
+        "Skin": 8
+      },
+      "sha256": "2bce6381b00c950fdc84bb57e01ccbfee54a2f67b2a9a2850535ae897559fb90"
+    },
+    {
+      "id": "npc_resident_131",
+      "sex": "male",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8385,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 593053,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "a0a3c397f1db0d31fc4f06500e3cc9ade13782b98ca55333c6939820a54e02b9"
+    },
+    {
+      "id": "npc_resident_132",
+      "sex": "female",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8406,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 594423,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "45cafe2d81cc31d5a8fdaa4f18ac7bb67c3898c28b6d18443ead6e995238bd1b"
+    },
+    {
+      "id": "npc_resident_133",
+      "sex": "male",
+      "mesh_instances_authored": 7,
+      "vertices_authored": 7098,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 535801,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 7,
+        "ArrayMesh": 7,
+        "Skin": 8
+      },
+      "sha256": "497665aaa16016434c12da24b2fa9877a8f0edc8de074dbf7f083620f10034f3"
+    },
+    {
+      "id": "npc_resident_134",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542342,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "bbc7f70824ca3a3539ed149ac02f8d7c4197ba6f2fb4f5868718a1a3f0a18ce1"
+    },
+    {
+      "id": "npc_resident_135",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558016,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "bef946e566cbb514ada7a72e38be5444a9b32319dae628e83be7f31827d5a2c8"
+    },
+    {
+      "id": "npc_resident_136",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556682,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "73c9364c1e8448295c50f2951d6d7c88b2b2ff7eb0ed41403e90f0b664fb2987"
+    },
+    {
+      "id": "npc_resident_137",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561817,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "d8195e9233520478ff67d16bc9ef2aec50d6188b7d6053ce0ccf05954cc49f1d"
+    },
+    {
+      "id": "npc_resident_138",
+      "sex": "male",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8385,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 593067,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "6defd6ffecda72338521b022225537649c649d63e847d060368a52746a734879"
+    },
+    {
+      "id": "npc_resident_139",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542382,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "94f7b3eabaee42c689dac3a7fe6f0d840ca517c0d64cbbeb4af4315400412255"
+    },
+    {
+      "id": "npc_resident_140",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558018,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "89786b43070aab31dd02061f8b1e91b3ebf607c48d2257fd35b79daadf33c934"
+    },
+    {
+      "id": "npc_resident_141",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556684,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "2fe2a7d17b3c1036dad9a864eae7a061c14a628eff926e40f6f0f3387a217215"
+    },
+    {
+      "id": "npc_resident_142",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542336,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "b1ecf649b5adb9bc9a63b47fca68ec76640f042a5c897f09c617bb16b179adf6"
+    },
+    {
+      "id": "npc_resident_143",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558028,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "fd49df4cf19c454cd95f0d594c5315c17837c2e5d6e446310973fcc677b8f697"
+    },
+    {
+      "id": "npc_resident_144",
+      "sex": "female",
+      "mesh_instances_authored": 13,
+      "vertices_authored": 7821,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 568434,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 13,
+        "ArrayMesh": 13,
+        "Skin": 8
+      },
+      "sha256": "cd886194a7dfa276b1b27a11f5db9931828e6ecda44e035b1c7f2638b338b782"
+    },
+    {
+      "id": "npc_resident_145",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561861,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "781cc6bebb620b6c909650a6afe1acb79241b46778c03426d6640c016a6fbc8e"
+    },
+    {
+      "id": "npc_resident_146",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558022,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "c0f950ed6778be4f41acb17277c44f8851cc8d749b921e7cd93a4fdbaf25d713"
+    },
+    {
+      "id": "npc_resident_147",
+      "sex": "male",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7215,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 541024,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "e1a5164f73c4c1ceb99a5e2a806b6de1d9ced9768f1c8c2300d1a5d24a07e966"
+    },
+    {
+      "id": "npc_resident_148",
+      "sex": "male",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8385,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 593071,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "514dd4a027f22873a7d3136629acb2e39eb6ee8fa122b008608aed177febd02e"
+    },
+    {
+      "id": "npc_resident_149",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556672,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "05afd3515bc623a69cd0c1e0a9a3e582045a396db30c63fd01ccb666822aa780"
+    },
+    {
+      "id": "npc_resident_150",
+      "sex": "male",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7215,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 541024,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "71ff9276650c102ad1f09f04490ecba8d647278129ce9d97ee160a4bf532bf1f"
+    },
+    {
+      "id": "npc_resident_151",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542354,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "2ff5d29bcdeaf96d2fa3c1223672c33b0d12416c053d88ac29469f2a002ae17b"
+    },
+    {
+      "id": "npc_resident_152",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558028,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "bbdf1490f2a94b393f824fa30c4cdd1811383d3eb73bfe671598f7410c44fc29"
+    },
+    {
+      "id": "npc_resident_153",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556680,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "5a30115c68a8a2721802cb7f449804eb13b8141da6c814301055e377db872091"
+    },
+    {
+      "id": "npc_resident_154",
+      "sex": "female",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7704,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 563167,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "af42e57cf12de9417ae23a9ec8283af8ea4454e20c719548e017fc5dfba4b1fd"
+    },
+    {
+      "id": "npc_resident_155",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556668,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "0f027ec024368ca0be50793a04cd6c5502b581f8198a27e556e0aea5b479d0c8"
+    },
+    {
+      "id": "npc_resident_156",
+      "sex": "male",
+      "mesh_instances_authored": 6,
+      "vertices_authored": 6848,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 527323,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 6,
+        "ArrayMesh": 6,
+        "Skin": 8
+      },
+      "sha256": "de05122db06176bf6d59ff5a31ba5c10ed86175dd14401fc021e93e73f7b260b"
+    },
+    {
+      "id": "npc_resident_157",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542368,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "ebf3aece32a331859aee1e13f05df107494c09a1132fa732bca0da910a372d49"
+    },
+    {
+      "id": "npc_resident_158",
+      "sex": "female",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7704,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 563167,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "568182408115373ac25399f14ec80263bd93549ad45599e9cd4e3cc8a19ccb4b"
+    },
+    {
+      "id": "npc_resident_159",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556678,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "980d8287482e2d4cdee3dd00eb58c78b4f6252f4de4bd969f48cf3f8d308fb96"
+    },
+    {
+      "id": "npc_resident_160",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561829,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "a4086eea245a6cbb88deecaefb1fae180e98cadfa13e8d330860f962d7f09119"
+    },
+    {
+      "id": "npc_resident_161",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556678,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "7513bd57654b328dde84bcadcf987ae26c6539b78c37123df10e86acfad1a51e"
+    },
+    {
+      "id": "npc_resident_162",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556682,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "c5e0cd4013cdce90451875e6fbfa4c99b09f5782a35546d73f84b1654f6623ae"
+    },
+    {
+      "id": "npc_resident_163",
+      "sex": "male",
+      "mesh_instances_authored": 7,
+      "vertices_authored": 7098,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 535809,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 7,
+        "ArrayMesh": 7,
+        "Skin": 8
+      },
+      "sha256": "d2963afb582e6e8465c08568f2e09311e6a0a305a32dbee23eb79a6a780c5e61"
+    },
+    {
+      "id": "npc_resident_164",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558022,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "a386fbee24e09007eb983860837846c8fc62cc5b4752187b930b05ed60551bfb"
+    },
+    {
+      "id": "npc_resident_165",
+      "sex": "male",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7215,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 541036,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "d7d83d2e7c020a126ae1d675062f43c1b4ab95222f1776f528b441d6b64befbe"
+    },
+    {
+      "id": "npc_resident_166",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556672,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "460d8c30163ee838a24bad8b40043b9c2ff29247451a4b2b04636c57a5f8405f"
+    },
+    {
+      "id": "npc_resident_167",
+      "sex": "male",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7215,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 541038,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "584f48c7c29117dc20d3e40c81b7690ed8f8959fa867071d808a62b101cfab4a"
+    },
+    {
+      "id": "npc_resident_168",
+      "sex": "male",
+      "mesh_instances_authored": 7,
+      "vertices_authored": 7098,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 535813,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 7,
+        "ArrayMesh": 7,
+        "Skin": 8
+      },
+      "sha256": "6d2b0f07b3a1d73328bf2b2ca62dae62b42401bcdad1f843aa3b89c14f642a21"
+    },
+    {
+      "id": "npc_resident_169",
+      "sex": "female",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7704,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 563177,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "bd039548767f5cfebfe4dcf45d93cab40ca7a20316bc88e9b9b94cb9bdbf55f5"
+    },
+    {
+      "id": "npc_resident_170",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556682,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "5db0de2c8dc834e235efa7ddd54e2e585117689141d1c2f41f269710271f0461"
+    },
+    {
+      "id": "npc_resident_171",
+      "sex": "female",
+      "mesh_instances_authored": 10,
+      "vertices_authored": 7470,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 552803,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 10,
+        "ArrayMesh": 10,
+        "Skin": 8
+      },
+      "sha256": "eafb09adf6e3585582f9eacea209f5546a953d9f20f873ac0850787473952df7"
+    },
+    {
+      "id": "npc_resident_172",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556680,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "9eb6dc79c5a71621041590fe4bd6a4c4cb5ed9b6a17ad79f303702428c952a59"
+    },
+    {
+      "id": "npc_resident_173",
+      "sex": "male",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7215,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 541034,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "abc9b001b5cacb56560beae64c31ee48a3ddd18f5e0a229b692ce879fa56f0dd"
+    },
+    {
+      "id": "npc_resident_174",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558028,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "53f55ebdea55c222a2793bcbd3a639f7bdd63099c99a550841d6ab1dfedfca2c"
+    },
+    {
+      "id": "npc_resident_175",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558028,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "611bcced8debafc9f1829418db810829bd3ef9e52350a33f9bc91bc702ea1a7c"
+    },
+    {
+      "id": "npc_resident_176",
+      "sex": "male",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8385,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 593063,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "889c7f0a3f84ed82f2f6c1c8ab19545870f64ef78a892beb275e86ce0c69af90"
+    },
+    {
+      "id": "npc_resident_177",
+      "sex": "female",
+      "mesh_instances_authored": 13,
+      "vertices_authored": 7821,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 568426,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 13,
+        "ArrayMesh": 13,
+        "Skin": 8
+      },
+      "sha256": "7753dbaed9e03fb3db6357c7b0b9a0d4eda22153171d83433bc99efbaae17376"
+    },
+    {
+      "id": "npc_resident_178",
+      "sex": "female",
+      "mesh_instances_authored": 15,
+      "vertices_authored": 8055,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 578809,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 15,
+        "ArrayMesh": 15,
+        "Skin": 8
+      },
+      "sha256": "634379ee6839584cb3a65c9a7b5908ffc52fd8a261c774a82621c80e8bb57809"
+    },
+    {
+      "id": "npc_resident_179",
+      "sex": "female",
+      "mesh_instances_authored": 10,
+      "vertices_authored": 7470,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 552785,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 10,
+        "ArrayMesh": 10,
+        "Skin": 8
+      },
+      "sha256": "76f112b2e445915501738b364831fec34a94031aa949d7838db4b596380b66b8"
+    },
+    {
+      "id": "npc_resident_180",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558022,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "e8914166694232a28d2655ed8db307f6d9cb91b5ac688bd1c0cb406bb23ba8b0"
+    },
+    {
+      "id": "npc_resident_181",
+      "sex": "female",
+      "mesh_instances_authored": 15,
+      "vertices_authored": 8055,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 578819,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 15,
+        "ArrayMesh": 15,
+        "Skin": 8
+      },
+      "sha256": "0232de63407f6e24aedf08390fdd840623ba3177d79aa06792c476ef30a94e48"
+    },
+    {
+      "id": "npc_resident_182",
+      "sex": "female",
+      "mesh_instances_authored": 15,
+      "vertices_authored": 8055,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 578827,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 15,
+        "ArrayMesh": 15,
+        "Skin": 8
+      },
+      "sha256": "f629d83dc9fed3f29c725e666f3276d98451f5d95b9bc020eae7156d8bd75f3b"
+    },
+    {
+      "id": "npc_resident_183",
+      "sex": "female",
+      "mesh_instances_authored": 15,
+      "vertices_authored": 8055,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 578821,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 15,
+        "ArrayMesh": 15,
+        "Skin": 8
+      },
+      "sha256": "ce843c27c487b1730972586d9b2305a6ac7fd5ef45dba99d16ea1d54ee6597ca"
+    },
+    {
+      "id": "npc_resident_184",
+      "sex": "male",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7215,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 541038,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "0c704361c9f8d1792b81bdb89fb599f3bb3d54605823ad59d75d800fe093c301"
+    },
+    {
+      "id": "npc_resident_185",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561815,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "a4f54de9cf91e6362baccbd91338beab9ae9d06e666441e2f4efb79f63e9b8a8"
+    },
+    {
+      "id": "npc_resident_186",
+      "sex": "female",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7704,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 563181,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "611dd9081ca691b2fe02371d6561359b4839679112efebd29414680e3505e9bf"
+    },
+    {
+      "id": "npc_resident_187",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542336,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "a8bade65ec59a9dffe0d159ab39cb63fd47ec0df7c7a27ffc2ee0e31534ed6b6"
+    },
+    {
+      "id": "npc_resident_188",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558016,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "43a7fbac8014f78d46973a1563269dd36c6a2e73265ef436eb684fee928bb838"
+    },
+    {
+      "id": "npc_resident_189",
+      "sex": "female",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8406,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 594417,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "2d9faeac32fd9d81e31009e19d22813971ad479ba4d50095d37ec202ea1f2ad0"
+    },
+    {
+      "id": "npc_resident_190",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542382,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "cb5a159d10ef6e35b5e7e419c4035c92a29e4a40c40620d4e2bbb2b1c7f6c143"
+    },
+    {
+      "id": "npc_resident_191",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558034,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "a993024d9164b2318b3b897d977411f1e10cb782e838efb66146f1d4af271502"
+    },
+    {
+      "id": "npc_resident_192",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556682,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "d2554751bcdad853dafbc4fd1ecf4e871e4dc1a63f4747420e1c530d151408e8"
+    },
+    {
+      "id": "npc_resident_193",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556680,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "e5eb22515dff40f8e59fd6ab0249d65509b182d5eef58d0f36429a5b756ce40b"
+    },
+    {
+      "id": "npc_resident_194",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556666,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "69c8d91795ca8ec673840720a3e6ee6354b5e2067ebbcde28db75639d19490a4"
+    },
+    {
+      "id": "npc_resident_195",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561865,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "2aed94219e6a2802cb01336bfcdd7e1f3988d58cb6e4e8a202426499604fead4"
+    },
+    {
+      "id": "npc_resident_196",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561815,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "cd0251da5805d291f447292bf48a8e7758a0ef492a53c4effbd44983d0df0d1c"
+    },
+    {
+      "id": "npc_resident_197",
+      "sex": "male",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7215,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 541034,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "b26fc8f81e4d8616f190df90fb609006c6124d4612601e5b7f57a117d741cccd"
+    },
+    {
+      "id": "npc_resident_198",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558034,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "b7575c14b5ffcc39d22bb49ea088afc8fdd96d932393502841b2565db881d67a"
+    },
+    {
+      "id": "npc_resident_199",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542342,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "42afd7e32f287e865da190722a21fd6e8b6e7b069a50e106591952a6add180fe"
+    },
+    {
+      "id": "npc_resident_200",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556666,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "6ac8679c48cc52e5e321491df02069d528f219d706e48c0a11d7bdbe7ebe39b7"
+    },
+    {
+      "id": "npc_resident_201",
+      "sex": "male",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7215,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 541030,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "d730e023bb34d7fb7e5f9c3a058f2153ce502a4c7b1b0066e1cdec973fc07041"
+    },
+    {
+      "id": "npc_resident_202",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556680,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "151f31fab239cb1c478b91d4291b10c8f79dc7bb1f8eca0f84cc3778438c6745"
+    },
+    {
+      "id": "npc_resident_203",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542350,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "92f376be027e7cae8dc27783baf4404f2daf2b7b43b5cad98a4b2d95234a40ab"
+    },
+    {
+      "id": "npc_resident_204",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561869,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "bad275f07d9c2ed1e14d083a997bfdc4408baf9fb03ed4e136237f8e96eb9d93"
+    },
+    {
+      "id": "npc_resident_205",
+      "sex": "female",
+      "mesh_instances_authored": 15,
+      "vertices_authored": 8055,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 578809,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 15,
+        "ArrayMesh": 15,
+        "Skin": 8
+      },
+      "sha256": "f726ac48cca4fd1aec9f59d81d4924b25f225a36d51d60f692aeac08485b0744"
+    },
+    {
+      "id": "npc_resident_206",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561865,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "6657b96bca98d2e3d0aa1146d8a35b572ee97e7650a1bd15e6875dcba4e841d3"
+    },
+    {
+      "id": "npc_resident_207",
+      "sex": "male",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8385,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 593053,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "1ccfcdf54f7f1ec616618f5efbcd330d1de915b1944a2ecd59e4cdb7cfbff2ef"
+    },
+    {
+      "id": "npc_resident_208",
+      "sex": "female",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7704,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 563167,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "494b1f332b742b1968d1d8b1defcaa4b7ef78f52ee11b69b556a9bf6a9da5603"
+    },
+    {
+      "id": "npc_resident_209",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542368,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "d273488fd67158903598337120b472ac1d884ee11301ddc0d75d1da30fe9700b"
+    },
+    {
+      "id": "npc_resident_210",
+      "sex": "male",
+      "mesh_instances_authored": 7,
+      "vertices_authored": 7098,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 535813,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 7,
+        "ArrayMesh": 7,
+        "Skin": 8
+      },
+      "sha256": "5943ed3cc281838d3a7cf027b65b87f040124e13d4a01198f5e6798de8aa29c1"
+    },
+    {
+      "id": "npc_resident_211",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561821,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "8b618b777197bef7907b9d23f74b75d1e9a74742050d0d7d7382e6d678a1c0fb"
+    },
+    {
+      "id": "npc_resident_212",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542354,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "e4976d6ecb14beaf711aaa1b9834de7027060e25e6a4570b9f6ecb86fe877ac2"
+    },
+    {
+      "id": "npc_resident_213",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556684,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "a3cadab5a3040cb48f4777e31d19f76608cf297fd83608ea1d598d029fd9824f"
+    },
+    {
+      "id": "npc_resident_214",
+      "sex": "male",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8385,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 593055,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "7fcb267ae3ed07bc5dbe0201c9beff9185c4cc4811df39d8d9ee96c2b8271380"
+    },
+    {
+      "id": "npc_resident_215",
+      "sex": "male",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8385,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 593053,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "fcde6542a18456cfd63b632ef2a6f24db02fec0414338952b5e3cf4236a6ed35"
+    },
+    {
+      "id": "npc_resident_216",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558030,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "a33f2ad961afa39dada47ff0eba0f041c277b2693cd9365f67665ed15d1e56e4"
+    },
+    {
+      "id": "npc_resident_217",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542338,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "74d5d803d52ac1e181d1a55581be7946e960401795cd652641d3c11899f1b524"
+    },
+    {
+      "id": "npc_resident_218",
+      "sex": "male",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8385,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 593053,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "07a0af932724eff6caa3bac3050a9ea9090ec8912822659839784359b25f0bc7"
+    },
+    {
+      "id": "npc_resident_219",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556670,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "49a5d818952d8cdf4d5245021aee2156b5e198f8d3dc411873d13342231e3d18"
+    },
+    {
+      "id": "npc_resident_220",
+      "sex": "female",
+      "mesh_instances_authored": 15,
+      "vertices_authored": 8055,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 578809,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 15,
+        "ArrayMesh": 15,
+        "Skin": 8
+      },
+      "sha256": "c33eb154e1ec2f17b3fcd110a141ce8057f49bb6872b2b36c4417b65b55148fc"
+    },
+    {
+      "id": "npc_resident_221",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561855,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "a9a62476910234509a8f8f4b1ea7c5b8ff667563b2dfda2d81bd18d678ca25ac"
+    },
+    {
+      "id": "npc_resident_222",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542350,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "c413e1e4da37555b96d5f11c26f8b22d521dfdc4146541c93174f5ea00da2db7"
+    },
+    {
+      "id": "npc_resident_223",
+      "sex": "female",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8406,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 594431,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "538042ae1c4f5219129afbe3143530cd6768b620ef898c1eab985b4add72eb92"
+    },
+    {
+      "id": "npc_resident_224",
+      "sex": "male",
+      "mesh_instances_authored": 6,
+      "vertices_authored": 6848,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 527315,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 6,
+        "ArrayMesh": 6,
+        "Skin": 8
+      },
+      "sha256": "75516a5398a7ebc11ee31ec6f84b4112970e858d8f9fef4e9a7c39c48e316d9d"
+    },
+    {
+      "id": "npc_resident_225",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561815,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "3d8984a3dc7d3bc817de2ec422ba70b99cff38a9c8f0db323f86317c36cde995"
+    },
+    {
+      "id": "npc_resident_226",
+      "sex": "male",
+      "mesh_instances_authored": 7,
+      "vertices_authored": 7098,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 535805,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 7,
+        "ArrayMesh": 7,
+        "Skin": 8
+      },
+      "sha256": "99597823e7d21cfab06d15536629adf0da15ec25b04e5b1fe923ccaed8680bdf"
+    },
+    {
+      "id": "npc_resident_227",
+      "sex": "female",
+      "mesh_instances_authored": 10,
+      "vertices_authored": 7470,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 552797,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 10,
+        "ArrayMesh": 10,
+        "Skin": 8
+      },
+      "sha256": "4eef9a814628b50db1ee5fd65d5859042b14b9f18a719a1ef0c54dbeb21a25aa"
+    },
+    {
+      "id": "npc_resident_228",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542382,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "0900b1645bab7e988c67e3a9bab71666d0084b10cf944da5305697cb54b07f33"
+    },
+    {
+      "id": "npc_resident_229",
+      "sex": "female",
+      "mesh_instances_authored": 13,
+      "vertices_authored": 7821,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 568438,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 13,
+        "ArrayMesh": 13,
+        "Skin": 8
+      },
+      "sha256": "9fa9f1e62eea39ca0297295c44668857e789e439f59c69a47d23547a36700e4d"
+    },
+    {
+      "id": "npc_resident_230",
+      "sex": "male",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7215,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 541024,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "7792d6a037f0658b111962701962c63612b6953ef33ee1184fbf86863876a793"
+    },
+    {
+      "id": "npc_resident_231",
+      "sex": "male",
+      "mesh_instances_authored": 7,
+      "vertices_authored": 7098,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 535795,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 7,
+        "ArrayMesh": 7,
+        "Skin": 8
+      },
+      "sha256": "18c9a683bcf2c75612d526154f25e244ff35579d1e8cfe9950e39db11d5f88a6"
+    },
+    {
+      "id": "npc_resident_232",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558018,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "1b0cdf92c6c493123452ebaeffad0d8ce250440ba64c8435334ef69f393a8eba"
+    },
+    {
+      "id": "npc_resident_233",
+      "sex": "male",
+      "mesh_instances_authored": 7,
+      "vertices_authored": 7098,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 535809,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 7,
+        "ArrayMesh": 7,
+        "Skin": 8
+      },
+      "sha256": "638c40a2a0fddda57caff5377330ef29e1f3fa390f617bade2fe7e9c163248e4"
+    },
+    {
+      "id": "npc_resident_234",
+      "sex": "female",
+      "mesh_instances_authored": 10,
+      "vertices_authored": 7470,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 552789,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 10,
+        "ArrayMesh": 10,
+        "Skin": 8
+      },
+      "sha256": "a401be052b447df8603c69a7b1e3ea52db986def39a0ce46be38e062d31bbe08"
+    },
+    {
+      "id": "npc_resident_235",
+      "sex": "male",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8385,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 593059,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "928379721a8da728b103ed98307e2d01fe1dc41f0fe740819ec2029632c781ad"
+    },
+    {
+      "id": "npc_resident_236",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542368,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "2d933190792b19ef98465c3d40ba07fa053818dd6a3b8d33b805194ff060e085"
+    },
+    {
+      "id": "npc_resident_237",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556666,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "3f204a844abd231869199d02a720e7464c42d2d33c7d3ec53e0132606d7fe109"
+    },
+    {
+      "id": "npc_resident_238",
+      "sex": "female",
+      "mesh_instances_authored": 13,
+      "vertices_authored": 7821,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 568432,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 13,
+        "ArrayMesh": 13,
+        "Skin": 8
+      },
+      "sha256": "7afc311c74fcdbb314ac768f49f27cbaaa22f59c4a7a252cdc8fb14558b2e464"
+    },
+    {
+      "id": "npc_resident_239",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542368,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "0baa924827211b133329e55278fde9bebe89d24e9084e632775528ef1f03b1e9"
+    },
+    {
+      "id": "npc_resident_240",
+      "sex": "female",
+      "mesh_instances_authored": 15,
+      "vertices_authored": 8055,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 578823,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 15,
+        "ArrayMesh": 15,
+        "Skin": 8
+      },
+      "sha256": "5dc82c0ff5810c70759ddf3b5a239c3537f3b56545a2153a4022e3354943886a"
+    },
+    {
+      "id": "npc_resident_241",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556678,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "b2aa544a9aea8bab36bdd60365f36368164f5b48bc645e2b76a0ae008b06757d"
+    },
+    {
+      "id": "npc_resident_242",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556666,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "d35fbc2398c873c706f9ed62eb84d78451d4323396afe8cfccbf6b2dd01c1bdf"
+    },
+    {
+      "id": "npc_resident_243",
+      "sex": "female",
+      "mesh_instances_authored": 15,
+      "vertices_authored": 8055,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 578815,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 15,
+        "ArrayMesh": 15,
+        "Skin": 8
+      },
+      "sha256": "6f60a45cdb782bb63787443939e3bbb47066c9f73068d50a292bb38003a494f5"
+    },
+    {
+      "id": "npc_resident_244",
+      "sex": "male",
+      "mesh_instances_authored": 6,
+      "vertices_authored": 6848,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 527323,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 6,
+        "ArrayMesh": 6,
+        "Skin": 8
+      },
+      "sha256": "47dcbab189522ae3fd0945a39b6eb1487e00f7c72385af2ca476e3bf5e83d20b"
+    },
+    {
+      "id": "npc_resident_245",
+      "sex": "male",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8385,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 593053,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "b8d14e548012c16f0f3617b8cf372d5d15a8dc5a4fe6a5728cf99602a5822301"
+    },
+    {
+      "id": "npc_resident_246",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561855,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "09fadb79ca4bbac82a21cc7adc23bb82500dabf8fcf85ef444216fdedf18afbe"
+    },
+    {
+      "id": "npc_resident_247",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542368,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "1d141574b93856223cbc33779df114ac2473c68fe52c5b6d2fed7430243682ea"
+    },
+    {
+      "id": "npc_resident_248",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556670,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "d2cb7cc21255722b54cb010fea3b4a7c5d1d6e925bb2bf22dbb0384db912d8cb"
+    },
+    {
+      "id": "npc_resident_249",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556672,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "9fc309814a8d40bd60a360203caed4528f6919015fa16da820ec35c3ff40973b"
+    },
+    {
+      "id": "npc_resident_250",
+      "sex": "male",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8385,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 593059,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "0bd992cab52f5adceb5f271aa250f49f2a1b179b2f3ac2035cb355a4a513c5d9"
+    },
+    {
+      "id": "npc_resident_251",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542346,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "dbacff16d99a73afe547100dc806031f7523bd245b1b322d160da75e293e2cac"
+    },
+    {
+      "id": "npc_resident_252",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561869,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "9a7002d0228f764773316b50e187c46a1740bd255969f803f94e2cfb68877b51"
+    },
+    {
+      "id": "npc_resident_253",
+      "sex": "male",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7215,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 541026,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "85639a8649faf6444f05314cd21392a59eed18b08dd69d3127bd7e19b01a0c57"
+    },
+    {
+      "id": "npc_resident_254",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542368,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "cfc3eebaecd01504056145a8affae77a8bfc0f6ab012fcdf7b1f2e05ed5ddff1"
+    },
+    {
+      "id": "npc_resident_255",
+      "sex": "female",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7704,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 563181,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "3fd7ccec5f1387d3e523fbe1fbe9e478ade2b710ba1e1640f26f043c7dfae414"
+    },
+    {
+      "id": "npc_resident_256",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542350,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "8fe95d12b0bb3eeb890483dba2e468e5c7a2a37e89c0b3e43f50b07fc0ae2a6e"
+    },
+    {
+      "id": "npc_resident_257",
+      "sex": "male",
+      "mesh_instances_authored": 6,
+      "vertices_authored": 6848,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 527323,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 6,
+        "ArrayMesh": 6,
+        "Skin": 8
+      },
+      "sha256": "45739e62267bc60e7f0a1c07d0f9608ab53fcb7e06712a2c0b75b2b4a686e801"
+    },
+    {
+      "id": "npc_resident_258",
+      "sex": "female",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8406,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 594427,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "7c3a6c97053779ab38cfc4663852823f85367108bec8e710956d85c55122ca0a"
+    },
+    {
+      "id": "npc_resident_259",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556680,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "801ec6edd6b26bbca71a29a1f1c351e41ba845d4b42b5faba5d5813cc0a0251d"
+    },
+    {
+      "id": "npc_resident_260",
+      "sex": "female",
+      "mesh_instances_authored": 15,
+      "vertices_authored": 8055,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 578809,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 15,
+        "ArrayMesh": 15,
+        "Skin": 8
+      },
+      "sha256": "19a43812888b5a5806f224e25c069baef18f68218006d83bcc225ff1464cc8c5"
+    },
+    {
+      "id": "npc_resident_261",
+      "sex": "male",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7215,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 541042,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "c09cff1c2a2d12379cc50810bab86e9555f7106a8cc885c6f8b242faf43a5476"
+    },
+    {
+      "id": "npc_resident_262",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556666,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "3e6e9724f0dd610706d4cbe90ba1da2531c2aaf3cdcc11845e649edd3069c51e"
+    },
+    {
+      "id": "npc_resident_263",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558016,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "ec9a600faea54401d316c81f3eedd97cd2083a8c4fc09eef8e6aa67d65f09e87"
+    },
+    {
+      "id": "npc_resident_264",
+      "sex": "female",
+      "mesh_instances_authored": 10,
+      "vertices_authored": 7470,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 552799,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 10,
+        "ArrayMesh": 10,
+        "Skin": 8
+      },
+      "sha256": "afe3eae09183fc0e8225584ea8eeaaa93767b767e9a2785b592e7c2905864d2d"
+    },
+    {
+      "id": "npc_resident_265",
+      "sex": "male",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8385,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 593053,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "7f0adcdc1f136e89782aa9775d2e0f046c64ff9583a03ed05b09ad4456ca5b3d"
+    },
+    {
+      "id": "npc_resident_266",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542336,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "ac587c3d6d1a82a10224435ab20793020e03d58d19fbd090f0a98654fc668863"
+    },
+    {
+      "id": "npc_resident_267",
+      "sex": "male",
+      "mesh_instances_authored": 7,
+      "vertices_authored": 7098,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 535805,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 7,
+        "ArrayMesh": 7,
+        "Skin": 8
+      },
+      "sha256": "eb165625005565d37258da8a46b6d24dd88fc2ab6864c9bfdee5618e04c72117"
+    },
+    {
+      "id": "npc_resident_268",
+      "sex": "female",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8406,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 594417,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "90d21fd5140357585213cdcefa495fd4e9de0ff094b997871f51db8036312f86"
+    },
+    {
+      "id": "npc_resident_269",
+      "sex": "female",
+      "mesh_instances_authored": 10,
+      "vertices_authored": 7470,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 552785,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 10,
+        "ArrayMesh": 10,
+        "Skin": 8
+      },
+      "sha256": "82e48e82dad883dad32413e7644df4e71754461c86ad284fb8970040a46a8a1c"
+    },
+    {
+      "id": "npc_resident_270",
+      "sex": "female",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7704,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 563167,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "79b69e47985a882894575524d95951a18fcf45cf863cc203fda1dad57d3d2c8f"
+    },
+    {
+      "id": "npc_resident_271",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561815,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "2eeff22fdb76e5949ab7796074404c3346d55d1d3aea143385106f91e06433fe"
+    },
+    {
+      "id": "npc_resident_272",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556684,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "55dcdd8f5dfc30a8a9ca34d0c6676cb6eddcc63ecffa476a0642a939a4b1960b"
+    },
+    {
+      "id": "npc_resident_273",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558026,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "77ef646997df146983e90c6b36b01278bdd3b5fc34ccbe4b08b435313f00fedf"
+    },
+    {
+      "id": "npc_resident_274",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556680,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "f6a7171ce0aa3b1024c907183367b572a4adeb6484a207632947b1411c92a0ff"
+    },
+    {
+      "id": "npc_resident_275",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542350,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "38bfc636c023d0a02427f14d1d0f5c7167265a66d02e2979f839b5241c5dc789"
+    },
+    {
+      "id": "npc_resident_276",
+      "sex": "female",
+      "mesh_instances_authored": 8,
+      "vertices_authored": 7236,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 542368,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 8,
+        "ArrayMesh": 8,
+        "Skin": 8
+      },
+      "sha256": "c51ea6fc3dc8595b977538418cd37c4c2bee8ae796ec7244c6fa202d23590178"
+    },
+    {
+      "id": "npc_resident_277",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561829,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "7f0eeb477f4285019b2c86d569855886ecb917b5d7b0dbbf16ec58fcd3327dbc"
+    },
+    {
+      "id": "npc_resident_278",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561855,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "5d36e92258f31bb10b018bbf46c62ffb7bde780fa1cd58fb392a53dfb3698798"
+    },
+    {
+      "id": "npc_resident_279",
+      "sex": "male",
+      "mesh_instances_authored": 18,
+      "vertices_authored": 8385,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 593053,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 18,
+        "ArrayMesh": 18,
+        "Skin": 8
+      },
+      "sha256": "78c9b23ac816c91dafa7a54039b43c08757425fa93d3dfe080ba336cc7c44a70"
+    },
+    {
+      "id": "npc_resident_280",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556676,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "9a599ed54993c69c484971890ff7368acd8791569751886d2485278dfb495ac2"
+    },
+    {
+      "id": "npc_resident_281",
+      "sex": "female",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7704,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 563181,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "96b2873be41388de360001af5cd2ab6dc0b1a01e78f68bbd3e653e674e82bb10"
+    },
+    {
+      "id": "npc_resident_282",
+      "sex": "male",
+      "mesh_instances_authored": 12,
+      "vertices_authored": 7683,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 561869,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 12,
+        "ArrayMesh": 12,
+        "Skin": 8
+      },
+      "sha256": "21263797be1e91a1f97221c936abcf30cfcfce6adbe1d5d7cfd3c3de6f024b1b"
+    },
+    {
+      "id": "npc_resident_283",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556678,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "3285ef257888ba9467d80061697ce93a337c27d1e0f70d0e069ee15a15103538"
+    },
+    {
+      "id": "npc_resident_284",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558018,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "273f16c56261c0289ca4d379a840559331930d3a9d2d560617dedbdbd66986f2"
+    },
+    {
+      "id": "npc_resident_285",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556668,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "c3a4b9b5d13b29a2c49cf9bb719187022415609101d2027fe6e181981794d13c"
+    },
+    {
+      "id": "npc_resident_286",
+      "sex": "female",
+      "mesh_instances_authored": 10,
+      "vertices_authored": 7470,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 552785,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 10,
+        "ArrayMesh": 10,
+        "Skin": 8
+      },
+      "sha256": "e6ddb004c0f58049a9c50f4ddd45c732e3181ba28d762ad62d95bc7b2d8726b1"
+    },
+    {
+      "id": "npc_resident_287",
+      "sex": "male",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7566,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 556668,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "725240879c3ff61413f101a17ae82e85374093c3f7954a5c69cacb4e6ae38c6f"
+    },
+    {
+      "id": "npc_resident_288",
+      "sex": "female",
+      "mesh_instances_authored": 11,
+      "vertices_authored": 7587,
+      "bones": 28,
+      "animation_players_authored": 0,
+      "prepared_bytes": 558016,
+      "binary_sized_resource_class_records": {
+        "StandardMaterial3D": 11,
+        "ArrayMesh": 11,
+        "Skin": 8
+      },
+      "sha256": "55bc25898b1e4a8d12e624b325b99c79620973e132c375a899cc7473b518ea25"
+    }
+  ]
+}

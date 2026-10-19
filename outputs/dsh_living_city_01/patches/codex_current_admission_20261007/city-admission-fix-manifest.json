@@ -1,0 +1,6 @@
+{
+  "source": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\dsh_living_city_01\\game\\scripts\\city\\runtime\\npc_city_engine_navigation.gd",
+  "before_sha256": "fc4c4cea75522c0f3199b7705b7b74fb883e258732beeaca1401448344227915",
+  "candidate_sha256": "f078f28b32667e3cc8eb06f41b5c474d13f804f309b05bbbeb8f338b46f6a2a7",
+  "scope": "Fresh source callback for each motion; all source/access TTL reuse disabled; physical swept checks unchanged."
+}

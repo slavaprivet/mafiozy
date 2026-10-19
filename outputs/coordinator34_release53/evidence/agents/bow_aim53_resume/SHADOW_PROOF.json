@@ -1,0 +1,130 @@
+{
+  "frozen_point_positions_identical": true,
+  "point_count": 12,
+  "shadow_modes": [
+    [
+      1
+    ],
+    [
+      0
+    ],
+    [
+      1
+    ]
+  ],
+  "off_brighter_pixels_gt8": 354,
+  "on1_vs_on2_pixels_difference_gt8": 294,
+  "mean_abs_on1_on2": 0.07434172453703704,
+  "mean_abs_on_off": 0.08771773726851852,
+  "maximum_shadow_darkening": 75,
+  "TAA": true,
+  "persistent_shadow_pixels_gt8": 329,
+  "persistent_shadow_components": [
+    {
+      "pixels": 96,
+      "bbox": [
+        920,
+        655,
+        939,
+        661
+      ]
+    },
+    {
+      "pixels": 58,
+      "bbox": [
+        858,
+        597,
+        872,
+        602
+      ]
+    },
+    {
+      "pixels": 52,
+      "bbox": [
+        773,
+        521,
+        786,
+        527
+      ]
+    },
+    {
+      "pixels": 37,
+      "bbox": [
+        809,
+        555,
+        822,
+        557
+      ]
+    },
+    {
+      "pixels": 23,
+      "bbox": [
+        12,
+        86,
+        34,
+        86
+      ]
+    },
+    {
+      "pixels": 18,
+      "bbox": [
+        0,
+        211,
+        17,
+        211
+      ]
+    },
+    {
+      "pixels": 17,
+      "bbox": [
+        744,
+        495,
+        752,
+        496
+      ]
+    },
+    {
+      "pixels": 8,
+      "bbox": [
+        684,
+        440,
+        688,
+        441
+      ]
+    },
+    {
+      "pixels": 7,
+      "bbox": [
+        1273,
+        338,
+        1279,
+        338
+      ]
+    },
+    {
+      "pixels": 6,
+      "bbox": [
+        703,
+        461,
+        708,
+        461
+      ]
+    }
+  ],
+  "floor_shadow_roi": {
+    "rectangle_xyxy": [
+      600,
+      430,
+      1000,
+      680
+    ],
+    "persistent_pixels_brighter_only_with_shadows_off": 274,
+    "max_darkening_rgb_units": 75,
+    "interpretation": "Seven dark groups below the white trajectory disappear on OFF and return on ON; world position and point count do not change."
+  },
+  "images_sha256": {
+    "frozen_on1.png": "8b512088a75a5dfa5d6a3659b533353c2b67b5998671ef23ccc8894cf429094a",
+    "frozen_off.png": "3db7f2f9b63414958daca274bf384fa5a876950e8ed19893ea2dbdf997561880",
+    "frozen_on2.png": "4712776fbe9a750e54baf0f8fe1d55fb182b6d31ac1614886860370f0199bf2a"
+  }
+}

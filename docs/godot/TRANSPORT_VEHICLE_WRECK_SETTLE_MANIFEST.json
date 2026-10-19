@@ -1,0 +1,68 @@
+{
+  "schema": "mafiozi.transport-vehicle-wreck-settle.v1",
+  "date": "2026-09-30",
+  "status": "additive-provider-and-orchestrator-api-verified-root-integration-pending",
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_vehicle_wreck_debris.gd",
+      "bytes": 4802,
+      "sha256": "14c32a46c80980b6a1e24298521ab44a19633673b42054a99bd1f934b8c7b0dc"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_vehicle_damage_orchestrator.gd",
+      "bytes": 13543,
+      "sha256": "5651a985bd59b95c36b834640740ce245c2c8fab5721b169c0cf95580838b810"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_vehicle_wreck_settle.gd",
+      "bytes": 8988,
+      "sha256": "41b5c8825e54c81fbf602c47c46b4427004eb6e0a4c02afcffa69d682ab52e5c"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_vehicle_damage_orchestrator_settle.gd",
+      "bytes": 12458,
+      "sha256": "9e98686e2a70ab27d0a692232d005e9d4821a860d4cd104348905f7779f5a5cc"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_VEHICLE_WRECK_SETTLE_HANDOFF.md",
+      "bytes": 3489,
+      "sha256": "35168ee6fcd600cc3825d3e7b3bdf589242fd4fcae0c482fe618e095192eb16c"
+    }
+  ],
+  "dependencies": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_vehicle_debris.gd",
+      "bytes": 15804,
+      "sha256": "1cf791ea4890c844b8c1072cdccca647b3b8255cec718afa7e96f80b9c2bba8f",
+      "role": "frozen exact visual and compound-hull provider"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_damage.mjs",
+      "bytes": 30331,
+      "sha256": "e029cb4a03dcd23bbdd0fb2f73b7780db92f24f761cf83b030991acb3c403f92",
+      "role": "source settled-part lifetime rule"
+    }
+  ],
+  "api": {
+    "provider": ["settle_wreck()", "settled_receipt()", "reset()", "stats()"],
+    "orchestrator": ["settle_wreck()"],
+    "admission": "all launched bodies must be valid, naturally sleeping, unfrozen and structurally unchanged",
+    "effect": "atomically sets FREEZE_MODE_STATIC and freeze=true while retaining all visuals and exact hulls"
+  },
+  "verification": {
+    "godot": "4.7.2 headless",
+    "provider_checks": {"1": "25/25", "3": "50/50", "10": "155/155"},
+    "orchestrator_checks": "131/131",
+    "one_provider": {"bodies": 10, "hulls": 76, "sleeping_p50_p95_ms": [1.309, 1.411], "static_p50_p95_ms": [0.145, 0.170], "static_memory_delta_bytes": -57236, "settle_frame": 291},
+    "three_providers": {"bodies": 30, "hulls": 228, "sleeping_p50_p95_ms": [0.145, 1.796], "static_p50_p95_ms": [0.3265, 0.490], "static_memory_delta_bytes": -167180, "settle_frame": 291},
+    "ten_providers": {"bodies": 100, "hulls": 760, "sleeping_p50_p95_ms": [2.697, 5.973], "static_p50_p95_ms": [0.590, 1.059], "static_memory_delta_bytes": -552096, "settle_frame": 301},
+    "orchestrator_real_hatch": {"assemblies": 10, "hulls": 76, "vertices": 142948, "settle_frame": 290, "ray_hit": true, "shape_hit": true}
+  },
+  "limits": [
+    "Static settlement is permanent until explicit reset or retirement; later impulses intentionally cannot reactivate parts.",
+    "Root owns scheduling after natural sleep and gameplay integration.",
+    "Performance.MEMORY_STATIC is Godot heap, not attributable Jolt, process RSS or GPU memory.",
+    "Configure remains the existing roughly 100-120 ms load cost and is not solved here.",
+    "No automatic removal, hull merge, geometry simplification, hidden content, Git, GPU or LIVE change."
+  ]
+}

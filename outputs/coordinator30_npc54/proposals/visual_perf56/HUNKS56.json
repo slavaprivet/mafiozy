@@ -1,0 +1,49 @@
+{
+  "schema": "scoped_exact_hunks56/v1",
+  "base_project": "outputs\\coordinator30_release55\\game",
+  "status": "READY_NATIVE36_CITY_RENDER_PERF_PENDING",
+  "edits": [
+    {
+      "path": "scripts/npc_visual/preview_resident_host.gd",
+      "name": "shadow_distance",
+      "before": "\t\tvar dsh_lod_ok: bool = dsh_camera == null or dsh_dist_sq <= dsh_lod_limit\n",
+      "after": "\t\tvar dsh_lod_ok: bool = dsh_camera == null or dsh_dist_sq <= dsh_lod_limit\n\t\t# Visual56: shadow distance is independent from action/physical pose urgency.\n\t\tvar shadow_near56: bool = dsh_lod_ok\n"
+    },
+    {
+      "path": "scripts/npc_visual/preview_resident_host.gd",
+      "name": "physical_pose_lod",
+      "before": "\t\t\tdsh_lod_ok = true # The opted-in physical actor retains its actual rig pose.\n",
+      "after": "\t\t\t# Visual56: actual physical movement supplies gait distance, not visual proximity.\n"
+    },
+    {
+      "path": "scripts/npc_visual/preview_resident_host.gd",
+      "name": "urgent_reactions",
+      "before": "\t\tif treating28 or ambient_active28 or ambient_previous28: dsh_lod_ok = true\n",
+      "after": "\t\tif treating28 or ambient_active28 or ambient_previous28 or hit_pose_active or (retaliation != null and retaliation.engaged()): dsh_lod_ok = true\n"
+    },
+    {
+      "path": "scripts/npc_visual/preview_resident_host.gd",
+      "name": "action_shadows",
+      "before": "\t\t\t\t\t_set_resident_shadows(record, true)\n",
+      "after": "\t\t\t\t\t_set_resident_shadows(record, shadow_near56)\n"
+    },
+    {
+      "path": "scripts/npc_visual/preview_resident_host.gd",
+      "name": "walk_shadows",
+      "before": "\t\t\t\tif not bool(record.get(\"shadow_on\", true)): _set_resident_shadows(record, true)\n",
+      "after": "\t\t\t\tif bool(record.get(\"shadow_on\", true)) != shadow_near56: _set_resident_shadows(record, shadow_near56)\n"
+    },
+    {
+      "path": "scripts/npc_visual/preview_resident_host.gd",
+      "name": "actual_external_distance",
+      "before": "\t\t\t\t\tif dsh_nav_skipped:\n",
+      "after": "\t\t\t\t\tif dsh_nav_skipped and external_motion51.is_empty():\n"
+    },
+    {
+      "path": "scripts/npc_visual/preview_resident_host.gd",
+      "name": "settle_previous_near_pose",
+      "before": "\t\t\t\t\t\tif dsh_far_travel <= 0.0001 and not bool(record.get(\"walk_far_on\", false)):\n",
+      "after": "\t\t\t\t\t\tif dsh_far_travel <= 0.0001 and not bool(record.get(\"walk_far_on\", false)) and record.gait.settled():\n"
+    }
+  ]
+}

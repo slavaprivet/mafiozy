@@ -1,0 +1,18 @@
+{
+  "rule": "living HP at or below50percent; includes30/60",
+  "user_choice": "При 50% здоровья и ниже",
+  "base_manifest": "outputs/coordinator31_npc57/extended31/stage58_06/CANDIDATE58.json",
+  "integration": "outputs/coordinator31_npc57/INTEGRATION_followup58_01.json",
+  "merged_manifest": "outputs/coordinator31_npc57/extended31/stage58_07/CANDIDATE58.json",
+  "component": "runs/policy02/RESULT.json",
+  "native_boundary_checks": 52,
+  "actual_shot_hospital_cycle_pending": true,
+  "preserved_failure": "policy01: harness inferred-type parse error; source not run",
+  "scope": [
+    "inclusive shared predicate for direct home/economy hit priority and needs catalogue",
+    "living finite health guard retained",
+    "cooldown and medicalDowned/forcedCrawl exclusions retained",
+    "default medical threshold0.5",
+    "gameplay caller API names unchanged"
+  ]
+}

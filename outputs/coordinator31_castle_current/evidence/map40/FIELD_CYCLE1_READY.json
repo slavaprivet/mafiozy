@@ -1,0 +1,223 @@
+{
+  "status": "READY",
+  "cycle": 1,
+  "pins": {
+    "outputs/coordinator31_npc57/game/scripts/city/battlefield_site.gd": {
+      "base_sha256": "7d0201a618460636bc2d0ffd4d8cd4272b617fe37cae7f7ee2517e156704d837",
+      "candidate_sha256": "e8c3e6c9144ab93a0f23ed21b4e239daaaf92baf2dfc938e5a54b8b487ebf8a9"
+    },
+    "outputs/coordinator31_npc57/game/scripts/city/battlefield_props.gd": {
+      "base_sha256": "ad9c37c27d0de34006fecb1c25fa5c8c85755bef28f20465652109a07b578458",
+      "candidate_sha256": "cfc9dced4db25164e50f4d34c0dbcc522b2c56280c2bfc02a35b86a9c40b94ed"
+    }
+  },
+  "patch": "D:\\MafioziCombat31\\map40\\FIELD_CYCLE1.patch",
+  "combined_project": "D:\\MafioziCombat31\\map40\\game",
+  "base_combat": "f28add7d85e71e948c67bd2d14923adaef25f980",
+  "sword_sha256": "667a1a4ef3b1aa2b659431370618a82e39cfd38d2f45fd82db8992bad8a28fe6",
+  "castle_sha256": "6aa56f4f95e76120d513acd2bc0da3e9cb4b148f10aa2b094b37dfb972f79d47",
+  "walk": {
+    "pass": true,
+    "real_player": true,
+    "reports": [
+      {
+        "end": "(-0.000004, 0.043252, 223.2351)",
+        "failures": [],
+        "frames": 2390,
+        "goal": "(0.0, 224.0)",
+        "max_feet_error": 0.00311849818625205,
+        "max_off_floor_chain": 0,
+        "max_vertical_tick": 0.00237361434847116,
+        "min_feet_error": -0.0198503308743238,
+        "off_floor_frames": 0,
+        "pass": true,
+        "route": "central_road",
+        "stalls": 0,
+        "start": "(0.0, 96.0)",
+        "start_actual": "(0.0, 0.00015, 96.0)",
+        "start_grounded": true,
+        "waypoints": 1
+      },
+      {
+        "end": "(-47.51247, 0.065366, 155.3892)",
+        "failures": [],
+        "frames": 1435,
+        "goal": "(-48.0, 156.0)",
+        "max_feet_error": 0.035211393195032,
+        "max_off_floor_chain": 0,
+        "max_vertical_tick": 0.0101190805435181,
+        "min_feet_error": -0.0787918026248706,
+        "off_floor_frames": 0,
+        "pass": true,
+        "route": "left_flank",
+        "stalls": 0,
+        "start": "(0.0, 96.0)",
+        "start_actual": "(0.0, 0.00015, 96.0)",
+        "start_grounded": true,
+        "waypoints": 1
+      },
+      {
+        "end": "(47.52722, 0.032837, 155.4076)",
+        "failures": [],
+        "frames": 1437,
+        "goal": "(48.0, 156.0)",
+        "max_feet_error": 0.0390980211780679,
+        "max_off_floor_chain": 0,
+        "max_vertical_tick": 0.012141227722168,
+        "min_feet_error": -0.0549172842748997,
+        "off_floor_frames": 0,
+        "pass": true,
+        "route": "right_flank",
+        "stalls": 0,
+        "start": "(0.0, 96.0)",
+        "start_actual": "(0.0, 0.00015, 96.0)",
+        "start_grounded": true,
+        "waypoints": 1
+      },
+      {
+        "end": "(20.00011, 1.207347, 139.2087)",
+        "failures": [],
+        "frames": 522,
+        "goal": "(20.0, 140.0)",
+        "max_feet_error": 0.031890050337529,
+        "max_off_floor_chain": 0,
+        "max_vertical_tick": 0.0123894214630127,
+        "min_feet_error": -0.0596478711836688,
+        "off_floor_frames": 0,
+        "pass": true,
+        "route": "berm_off_lane",
+        "stalls": 0,
+        "start": "(20.0, 112.0)",
+        "start_actual": "(20.0, 0.538711, 112.0)",
+        "start_grounded": true,
+        "waypoints": 1
+      }
+    ]
+  },
+  "visual": {
+    "field_node": "BattlefieldSite",
+    "pass": true,
+    "shots": 4
+  },
+  "perf": {
+    "runs": [
+      {
+        "label": "A1",
+        "views": {
+          "field": {
+            "draw_calls": 51.0,
+            "fps": 449.717456135469,
+            "frames": 2699,
+            "p95_ms": 2.911
+          },
+          "gate": {
+            "draw_calls": 309.0,
+            "fps": 220.981732176807,
+            "frames": 1326,
+            "p95_ms": 5.346
+          },
+          "stairs": {
+            "draw_calls": 556.0,
+            "fps": 195.9990200049,
+            "frames": 1176,
+            "p95_ms": 5.896
+          }
+        }
+      },
+      {
+        "label": "B1",
+        "views": {
+          "field": {
+            "draw_calls": 53.0,
+            "fps": 436.401518723941,
+            "frames": 2619,
+            "p95_ms": 3.003
+          },
+          "gate": {
+            "draw_calls": 325.0,
+            "fps": 213.637006728899,
+            "frames": 1282,
+            "p95_ms": 5.561
+          },
+          "stairs": {
+            "draw_calls": 576.0,
+            "fps": 186.657271583997,
+            "frames": 1120,
+            "p95_ms": 6.265
+          }
+        }
+      },
+      {
+        "label": "B2",
+        "views": {
+          "field": {
+            "draw_calls": 53.0,
+            "fps": 437.606131151857,
+            "frames": 2626,
+            "p95_ms": 3.013
+          },
+          "gate": {
+            "draw_calls": 325.0,
+            "fps": 212.302478706428,
+            "frames": 1274,
+            "p95_ms": 5.603
+          },
+          "stairs": {
+            "draw_calls": 576.0,
+            "fps": 185.653299629093,
+            "frames": 1114,
+            "p95_ms": 6.293
+          }
+        }
+      },
+      {
+        "label": "A2",
+        "views": {
+          "field": {
+            "draw_calls": 51.0,
+            "fps": 443.623783034307,
+            "frames": 2662,
+            "p95_ms": 2.889
+          },
+          "gate": {
+            "draw_calls": 309.0,
+            "fps": 219.757370535585,
+            "frames": 1319,
+            "p95_ms": 5.339
+          },
+          "stairs": {
+            "draw_calls": 556.0,
+            "fps": 194.576318396158,
+            "frames": 1168,
+            "p95_ms": 5.932
+          }
+        }
+      }
+    ],
+    "order": "ABBA",
+    "resolution": "1280x720",
+    "seconds_per_view": 6,
+    "scope": "All map40 changes versus combat39; finite stationary views, not full-game FPS acceptance",
+    "views": {
+      "field": {
+        "baseline_fps": 446.67061958488796,
+        "candidate_fps": 437.003824937899,
+        "delta_percent": -2.1641886041156577
+      },
+      "gate": {
+        "baseline_fps": 220.36955135619598,
+        "candidate_fps": 212.9697427176635,
+        "delta_percent": -3.357908836766532
+      },
+      "stairs": {
+        "baseline_fps": 195.287669200529,
+        "candidate_fps": 186.155285606545,
+        "delta_percent": -4.676374924935233
+      }
+    },
+    "within_5_percent": true
+  },
+  "prior_impact_geometry_proof": "D:/MafioziCombat31/battlefield_cycle1_qa/RESULT_ALREADY_RUN.json",
+  "cycle2": "Still required; do not claim both cycles complete",
+  "clean_game_launch": "Coordinator only"
+}

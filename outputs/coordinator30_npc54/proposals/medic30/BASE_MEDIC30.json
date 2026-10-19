@@ -1,0 +1,14 @@
+{
+  "scripts/venues/npc_venue_staff_actor29.gd": {
+    "base_sha256": "515c852c407676b6b347dfacf09ed223be8a51e8d445053a4da8b6ec62e15a83",
+    "proposed_sha256": "a9b28acf433972e50379950f4a692030c70717cf48c50b7fb2c775c46d262ca5"
+  },
+  "scripts/venues/npc_venue_staff_host29.gd": {
+    "base_sha256": "e07e0922d22ddc5dbaac4869b23c0327919c83b4208049e59ed8a0e15f543b46",
+    "proposed_sha256": "e3c311b0f308c8f027ab8104ed354f9c4576eb3881768c8daafbc23178947a24"
+  },
+  "scripts/venues/npc_medic_style30.gd": {
+    "base_sha256": null,
+    "proposed_sha256": "ca83bd5cbf0798302b99960e600ecb82101ac397ea64fe17cd15b80ecf1533e2"
+  }
+}

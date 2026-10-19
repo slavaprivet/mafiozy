@@ -1,0 +1,14 @@
+{
+  "schema": "mafiozi.native-transport-decor-checkpoint/v1",
+  "manifestSha256": "69ecbd14108fd151b504a41dc3d00ab5dbeca98b8c5ccd6251553fb60189546b",
+  "godot": "4.7.2.stable.official.ed1daf0bf",
+  "checks": 232229,
+  "gpuChecked": false,
+  "remainingGates": ["Exact station CanvasTexture pixel capture", "Actual train and parking runtime owner callbacks", "Combined railway native positive scene test", "GPU visual/shadow/depth parity", "General-scene p50/p95"],
+  "files": {
+    "transport_decor_factory.gd": "e9b69d138a392467d9f18e7e1b335c1f78d0a281ac5c602049f57a5179ba18c9",
+    "test_transport_decor_factory.gd": "10f5068f75bf6071e9ee18ab05b86fed6bd1a8a6a703c888c3f572d15bae73d0",
+    "project.godot": "72218fdd22bc059742f1b01ea0fb4339758912f8e7c54a829870228fdf5c4f8f",
+    "HANDOFF.md": "4cb2c32ba6e61b633e8a02710bfb07d550a2192bc11fef6ee977b651be7d8ecb"
+  }
+}

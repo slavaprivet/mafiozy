@@ -1,0 +1,41 @@
+{
+  "schema": "mafiozy.common-handoff.compile-delta.v1",
+  "status": "EXACT_THREE_TYPE_ANNOTATIONS_ONLY_NATIVE_REPEAT_PENDING",
+  "old_archive_sha256": "8e1d82ef996cd6b2375613d676931cf2556c939584a8c154f1e252ddd8af6cbf",
+  "actual_smoke": "FAIL_COMBINED_COLD_IMPORT",
+  "changes": [
+    {
+      "path": "scripts/gang/source_parked_vehicle.gd",
+      "preimage_sha256": "612b4703508ec840eedae8ed1db10142e6b04bab5b20c31282c6db8f44f476c1",
+      "sha256": "f3de4e235b0d82b74482b1cec68f3362b8fafd52a9e69e515385caca9062511e",
+      "changes": [
+        [
+          "var allowed := _intact()",
+          "var allowed: bool = _intact()"
+        ],
+        [
+          "var known := _visual != null",
+          "var known: bool = _visual != null"
+        ]
+      ],
+      "previous_crlf_lines": 0,
+      "current_crlf_lines": 0
+    },
+    {
+      "path": "scripts/gang/ui/mercenary_command_ui.gd",
+      "preimage_sha256": "542f9b735485ee2cd0dbd2213cc0e4e9d794298c75e011eddd5970165ad6b154",
+      "sha256": "7e8b7c646119bf30334d434be1a143055dad4bd45e25a85dbd27d682b42ae8fe",
+      "changes": [
+        [
+          "func _text_focus()->bool:\n\tvar focus:Control=",
+          "func _text_focus()->bool:\n\tvar focus:Node="
+        ]
+      ],
+      "previous_crlf_lines": 515,
+      "current_crlf_lines": 513
+    }
+  ],
+  "source_behavior_changed": false,
+  "frozen_packets_and_prior_failure_preserved": true,
+  "repeat_limit": "One cold import only; receiving Messi team owns further fixes/acceptance"
+}

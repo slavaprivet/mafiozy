@@ -1,0 +1,134 @@
+{
+  "status": "COMPONENT_PASS_FULL_CITY_PENDING",
+  "proof": {
+    "baseline01": {
+      "fixed": false,
+      "checks": 16,
+      "details": {
+        "active_routes_end": 286,
+        "dispatch_us_max": 49968,
+        "dispatch_us_mean": 15927.8916666667,
+        "floor_disabled_frame": 25,
+        "floor_fall_frame": 25,
+        "frames": 120,
+        "full_city_performance_accepted": false,
+        "full_life_calls": 34372,
+        "health_threat_ports": "controlled revisions/events, not a real inventory shot",
+        "lives": 287,
+        "max_call_gap_frames": 1,
+        "native_moved_m": 3.59985733032227,
+        "planner": {
+          "budget_us": 1800,
+          "frame": 123,
+          "frame_us": 1971,
+          "heap_items": 689,
+          "jobs": 285,
+          "max_frame_us": 2320,
+          "max_heap_items": 131072,
+          "max_jobs": 384,
+          "max_nodes": 65536,
+          "max_unit_us": 651,
+          "nodes": 956,
+          "rejected": 0,
+          "retired": 0,
+          "soft_deadline": true,
+          "units": 5
+        },
+        "wait": {
+          "enabled": false,
+          "max_delay_ms": 100,
+          "max_skipped_gap_frames": 0,
+          "max_skipped_gap_ms": 0,
+          "moving_delta_scaled": false,
+          "ready_wakes": 0,
+          "skipped": 0,
+          "states": 0,
+          "support_queries": 0,
+          "support_wakes": 0
+        }
+      },
+      "pins": {
+        "runs\\baseline01\\RESULT.json": "6c47d892faf39c7e09415a8f038cad9144e1e0443b0a08decc3621130a364c8f",
+        "runs\\baseline01\\RUN_CHECK.json": "bbb452d41f3cc4f2a54ee6c7484211e3d28c5e9036bf0ce6187fae87b1bbba41",
+        "runs\\baseline01\\HARNESS.json": "040ccecb03895089ba669850d4d02081a428af1cf989568ff3019c87f9271340",
+        "runs\\baseline01\\SOURCE.json": "f0ea193888c56448573b4df0e5966929480648409ce98bb691c31c90ddbe9e37",
+        "runs\\baseline01\\SOURCE.zip": "6c59ee53b4f09f5c2654baf97769aac777d8280410dc56c603cec087b4a094dc",
+        "runs\\baseline01\\fixture56.gd": "7ec636a029b45d1f881282965c2d08ab990663e91d254303e3493ba92ce0eeb0",
+        "runs\\baseline01\\engine\\SCHEDULER_RUN.json": "bdf11bd95515eabb2e66577907a75c36654009ccb09d7dbaaba62bc28aac59fb",
+        "runs\\baseline01\\engine\\stdout.log": "857a37fa4954eba80836348437ef9c6c98a3c3fa0b52b1a062316408b4f688e7",
+        "runs\\baseline01\\engine\\stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "candidate02": {
+      "fixed": true,
+      "checks": 16,
+      "details": {
+        "active_routes_end": 286,
+        "dispatch_us_max": 51815,
+        "dispatch_us_mean": 12633.8166666667,
+        "floor_disabled_frame": 25,
+        "floor_fall_frame": 25,
+        "frames": 120,
+        "full_city_performance_accepted": false,
+        "full_life_calls": 7386,
+        "health_threat_ports": "controlled revisions/events, not a real inventory shot",
+        "lives": 287,
+        "max_call_gap_frames": 6,
+        "native_moved_m": 3.59985733032227,
+        "planner": {
+          "budget_us": 1800,
+          "frame": 123,
+          "frame_us": 1850,
+          "heap_items": 679,
+          "jobs": 285,
+          "max_frame_us": 2346,
+          "max_heap_items": 131072,
+          "max_jobs": 384,
+          "max_nodes": 65536,
+          "max_unit_us": 607,
+          "nodes": 946,
+          "rejected": 0,
+          "retired": 0,
+          "soft_deadline": true,
+          "units": 6
+        },
+        "wait": {
+          "enabled": true,
+          "max_delay_ms": 100,
+          "max_skipped_gap_frames": 5,
+          "max_skipped_gap_ms": 94,
+          "moving_delta_scaled": false,
+          "ready_wakes": 1,
+          "skipped": 26986,
+          "states": 277,
+          "support_queries": 26987,
+          "support_wakes": 1
+        }
+      },
+      "pins": {
+        "runs\\candidate02\\RESULT.json": "c013d64bf52e32d57b84234a33e262812b312764dc569165d14f0d2223401988",
+        "runs\\candidate02\\RUN_CHECK.json": "bbb452d41f3cc4f2a54ee6c7484211e3d28c5e9036bf0ce6187fae87b1bbba41",
+        "runs\\candidate02\\HARNESS.json": "040ccecb03895089ba669850d4d02081a428af1cf989568ff3019c87f9271340",
+        "runs\\candidate02\\SOURCE.json": "f0ea193888c56448573b4df0e5966929480648409ce98bb691c31c90ddbe9e37",
+        "runs\\candidate02\\SOURCE.zip": "2a4792dffa664408ac96eeb888c87f3afd68a05faaa6ed2b2a1f2aeb293f665a",
+        "runs\\candidate02\\fixture56.gd": "7ec636a029b45d1f881282965c2d08ab990663e91d254303e3493ba92ce0eeb0",
+        "runs\\candidate02\\engine\\SCHEDULER_RUN.json": "89a79cf9e5d5e55e14ac232df81fcdcaf8089a9812aab716156802fcfebe9c42",
+        "runs\\candidate02\\engine\\stdout.log": "25b19aed857bfd35672d1fab9574e248795afcf697bd1c5a1881c948bc8787a0",
+        "runs\\candidate02\\engine\\stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  },
+  "frozen55_changed": false,
+  "full_city_performance_accepted": false,
+  "full_city_services_accepted": false,
+  "leak_absence_claimed": false,
+  "package_pins": {
+    "PATCH56.json": "430751c54d85c3e93e0acd17b0f741160e1c67132bbb0ece005286be78be31f2",
+    "apply56.py": "844a7a5e6b9a2c1aa2c9117441e7a49dde1b55bd2029601cbf5a530c04bc24ba",
+    "build56.py": "b80bba93e138a535b84500fb1d15de0311c3142de493e8636c35a345907db803",
+    "fixture56.gd": "7ec636a029b45d1f881282965c2d08ab990663e91d254303e3493ba92ce0eeb0",
+    "run56.py": "a1a105e83969957bdac70a640ac4749948cb78fcf031351d911ac9b7ffcfe488",
+    "HANDOFF56.md": "d8297dd247a3ab55ad44aeda7241b2d0f164707b7e4014a07bb69bfd3a5f2ffd",
+    "patch\\scripts\\city\\runtime\\npc_wait_cohort56.gd": "08e85330dd5d1128a6a56317253646cbbafed22a7bb82ea93a06451344b25710"
+  }
+}

@@ -1,0 +1,139 @@
+--- a/scripts/npc_ambient/ambient_benches28.gd
++++ b/scripts/npc_ambient/ambient_benches28.gd
+@@ -1,93 +1,68 @@
+ extends RefCounted
+-## Adds real support only to the existing, explicitly marked Palazzo benches.
+-## One persistent static body / six exact visible boxes. No replacement visuals.
+-const SUPPORT_NAME := "AmbientBenchSupport28"
+-const MAX_BENCHES := 16
+-var _benches: Array[Dictionary] = []
++## Shared inventory, one weak centre-seat claim; live physics remains per use.
++const Registry = preload("res://scripts/npc_ambient/ambient_bench_registry29.gd")
++var _registry: Node
+ 
+ func configure(scene: Node3D) -> void:
+-	_benches.clear()
+-	if not is_instance_valid(scene): return
+-	for candidate: Node in scene.find_children("OriginalBench*", "Node3D", true, false):
+-		if _benches.size() >= MAX_BENCHES: break
+-		if not candidate.get_meta("palazzo_bench", false) or not candidate.is_visible_in_tree(): continue
+-		var bench: Node3D = candidate
+-		if not bench.global_basis.is_equal_approx(bench.global_basis.orthonormalized()) or not bench.global_basis.y.is_equal_approx(Vector3.UP): continue
+-		var meshes: Array[MeshInstance3D] = []
+-		for child: Node in bench.get_children():
+-			if child is MeshInstance3D and child.has_meta("box_size") and child.is_visible_in_tree(): meshes.append(child)
+-		if meshes.size() != 6: continue
+-		var seat_count := 0
+-		var valid := true
+-		for mesh: MeshInstance3D in meshes:
+-			var size: Variant = mesh.get_meta("box_size")
+-			if not size is Vector3 or not size.is_finite() or size.x <= 0 or size.y <= 0 or size.z <= 0 or not mesh.basis.is_equal_approx(Basis.IDENTITY): valid = false; break
+-			if is_equal_approx(size.x, 1.7) and is_equal_approx(size.y, .10) and is_equal_approx(size.z, .15) and is_equal_approx(mesh.position.y, .43): seat_count += 1
+-		if not valid or seat_count != 3: continue
+-		var support: StaticBody3D = bench.get_node_or_null(SUPPORT_NAME) as StaticBody3D
+-		if support == null:
+-			support = StaticBody3D.new(); support.name = SUPPORT_NAME
+-			support.collision_layer = 1; support.collision_mask = 1
+-			support.set_meta("ambient_bench28", true)
+-			for mesh: MeshInstance3D in meshes:
+-				var shape := CollisionShape3D.new()
+-				var box := BoxShape3D.new(); box.size = mesh.get_meta("box_size")
+-				shape.shape = box; shape.transform = mesh.transform
+-				support.add_child(shape)
+-			bench.add_child(support)
+-		if not support.get_meta("ambient_bench28", false) or support.get_child_count() != 6: continue
+-		var pins: Array[Dictionary] = []
+-		for mesh: MeshInstance3D in meshes:
+-			pins.append({"mesh":weakref(mesh), "frame":mesh.transform, "size":mesh.get_meta("box_size")})
+-		_benches.append({"bench":weakref(bench), "support":weakref(support), "frame":bench.global_transform, "pins":pins})
++	if is_instance_valid(scene): _registry = Registry.for_scene(scene)
+ 
+ func _current(row: Dictionary) -> bool:
+-	var bench: Node3D = row.bench.get_ref()
+-	var support: StaticBody3D = row.support.get_ref()
+-	if not is_instance_valid(bench) or not is_instance_valid(support) or not bench.is_inside_tree() or not bench.is_visible_in_tree() or bench.is_queued_for_deletion(): return false
+-	if bench.global_transform != row.frame or support.get_parent() != bench or support.transform != Transform3D.IDENTITY or support.collision_layer != 1: return false
+-	if support.get_child_count() != row.pins.size(): return false
+-	for index: int in row.pins.size():
+-		var pin: Dictionary = row.pins[index]
+-		var mesh: MeshInstance3D = pin.mesh.get_ref()
+-		var shape: Node = support.get_child(index)
+-		if not is_instance_valid(mesh) or not mesh.is_visible_in_tree() or mesh.transform != pin.frame or mesh.get_meta("box_size") != pin.size: return false
+-		if not shape is CollisionShape3D or shape.disabled or not shape.shape is BoxShape3D or shape.shape.size != pin.size or shape.transform != pin.frame: return false
+-	return true
++	return is_instance_valid(_registry) and _registry.current(row)
+ 
+-func nearest(body: CharacterBody3D, route: RefCounted, maximum_distance: float = 18.0) -> Dictionary:
++func reserve_nearest(body: CharacterBody3D, route: RefCounted, owner: RefCounted, action_serial: int, maximum_distance: float = 8.0) -> Dictionary:
++	if not is_instance_valid(_registry): return {}
+ 	var best := {}
+ 	var best_distance := maximum_distance
+-	for row: Dictionary in _benches:
+-		if not _current(row): continue
++	for row: Dictionary in _registry.rows():
++		if not _current(row) or not _registry.available(int(row.bench_id)): continue
+ 		var bench: Node3D = row.bench.get_ref()
+-		# Seat front ends at local Z=.315; full .36 m capsule stays in front.
+-		var approach: Vector3 = bench.to_global(Vector3(0, 0, .72))
+-		var distance: float = Vector2(approach.x-body.global_position.x, approach.z-body.global_position.z).length()
++		# Pose and physical approach remain at the original central seat.
++		var approach: Vector3 = bench.to_global(Vector3(0,0,.72))
++		var distance: float = Vector2(approach.x-body.global_position.x,approach.z-body.global_position.z).length()
+ 		if distance >= best_distance: continue
+-		var floor: Variant = route.floor_at(approach, bench.global_position.y)
++		var floor: Variant = route.floor_at(approach,bench.global_position.y)
+ 		if not floor is Vector3 or not route.standing(floor): continue
+-		var seat: Vector3 = bench.to_global(Vector3(0, .48, .18))
+-		var height: float = seat.y - floor.y
++		var seat: Vector3 = bench.to_global(Vector3(0,.48,.18))
++		var height: float = seat.y-floor.y
+ 		if height < .35 or height > .65: continue
+ 		var candidate: Dictionary = row.duplicate(); candidate["approach"] = floor; candidate["seat"] = seat
+ 		candidate["face"] = bench.global_basis.z.normalized(); candidate["right"] = bench.global_basis.x.normalized()
+ 		candidate["bench_path"] = str(bench.get_path()); candidate["support_path"] = str(row.support.get_ref().get_path())
+-		if not supported(candidate, body): continue
+-		best = candidate
+-		best_distance = distance
++		if not supported(candidate,body): continue
++		best = candidate; best_distance = distance
++	if best.is_empty(): return {}
++	# Selection and acquisition are synchronous on the main thread; no await gap.
++	var lease: Dictionary = _registry.claim(best,owner,body,action_serial)
++	if lease.is_empty(): return {}
++	best["slot"] = lease
+ 	return best
++
++func renew(row: Dictionary, owner: RefCounted, body: CharacterBody3D) -> bool:
++	return is_instance_valid(_registry) and _registry.renew(row.get("slot",{}),owner,body)
++
++func occupy(row: Dictionary, owner: RefCounted, body: CharacterBody3D) -> bool:
++	return is_instance_valid(_registry) and not row.is_empty() and _registry.occupy(row.get("slot",{}),owner,body,row.approach)
++
++func matches(row: Dictionary, owner: RefCounted, body: CharacterBody3D) -> bool:
++	# Safe in the host busy section: weak identity/serial check only, no target_current.
++	return is_instance_valid(_registry) and _registry.matches(row.get("slot",{}),owner,body)
++
++func release(row: Dictionary, owner: RefCounted, body: CharacterBody3D) -> void:
++	if is_instance_valid(_registry): _registry.release(row.get("slot",{}),owner,body)
+ 
+ func supported(row: Dictionary, body: CharacterBody3D) -> bool:
+ 	if row.is_empty() or not _current(row): return false
+ 	var support: StaticBody3D = row.support.get_ref()
+ 	var space: PhysicsDirectSpaceState3D = body.get_world_3d().direct_space_state
+-	for offset: float in [-.18, 0.0, .18]:
+-		var at: Vector3 = row.seat + row.right * offset
+-		var ray := PhysicsRayQueryParameters3D.create(at + Vector3.UP * .12, at - Vector3.UP * .12, body.collision_mask, [body.get_rid()])
++	for offset: float in [-.18,0.0,.18]:
++		var at: Vector3 = row.seat+row.right*offset
++		var ray := PhysicsRayQueryParameters3D.create(at+Vector3.UP*.12,at-Vector3.UP*.12,body.collision_mask,[body.get_rid()])
+ 		var hit: Dictionary = space.intersect_ray(ray)
+-		if hit.is_empty() or hit.get("collider") != support or Vector3(hit.normal).y < .98 or absf(float(hit.position.y) - at.y) > .015: return false
++		if hit.is_empty() or hit.get("collider") != support or Vector3(hit.normal).y < .98 or absf(float(hit.position.y)-at.y) > .015: return false
+ 	return true
+ 
+ func count() -> int:
+-	return _benches.size()
++	return int(_registry.snapshot().benches) if is_instance_valid(_registry) else 0
++
++func snapshot() -> Dictionary:
++	return _registry.snapshot() if is_instance_valid(_registry) else {}

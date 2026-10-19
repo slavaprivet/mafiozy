@@ -1,0 +1,20 @@
+[
+  {
+    "project": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\staff30\\runs\\fixture01\\project",
+    "delta_bytes": 52989,
+    "changed_files": 11,
+    "all_files": 804
+  },
+  {
+    "project": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\staff30\\runs\\cycle01\\project",
+    "delta_bytes": 52989,
+    "changed_files": 11,
+    "all_files": 804
+  },
+  {
+    "project": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\staff30\\runs\\cycle03\\project",
+    "delta_bytes": 53082,
+    "changed_files": 11,
+    "all_files": 804
+  }
+]

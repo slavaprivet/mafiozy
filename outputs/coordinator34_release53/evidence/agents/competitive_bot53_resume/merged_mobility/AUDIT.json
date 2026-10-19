@@ -1,0 +1,39 @@
+{
+  "passed": true,
+  "scheduler": true,
+  "functional": true,
+  "pin_count": 1347,
+  "drift_before": [],
+  "drift_after": [],
+  "harness_sha256": "003d811af38889bcbf4a549318d9fcf59659d9adcf7fc80928b1e7901d8fd524",
+  "manifest_sha256": "485c4298cb76e94e690b90b3539cf2f8c9cd9a6d604de81dd71cb2538f3f2b75",
+  "rows": [
+    {
+      "npc_factor": 1.0,
+      "npc_gear": {},
+      "player_leg_factor": 1.0,
+      "player_motion": 2.94156360626221,
+      "start": "(14.99976, 0.156854, 1002.201)"
+    },
+    {
+      "npc_factor": 0.78,
+      "npc_gear": {
+        "feet": "heavy_feet",
+        "hands": "heavy_hands",
+        "head": "heavy_head",
+        "legs": "heavy_legs",
+        "torso": "heavy_torso"
+      },
+      "player_leg_factor": 1.0,
+      "player_motion": 2.94156551361084,
+      "start": "(14.99967, 0.157688, 1002.201)"
+    },
+    {
+      "npc_factor": 1.0,
+      "npc_gear": {},
+      "player_leg_factor": 1.0,
+      "player_motion": 2.94156169891357,
+      "start": "(14.99958, 0.157808, 1002.201)"
+    }
+  ]
+}

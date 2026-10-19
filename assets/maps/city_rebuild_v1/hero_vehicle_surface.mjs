@@ -1,8 +1,10 @@
 // Height-aware walking volumes derived from the existing authored car surfaces.
 // Owns no scene objects, materials, physics, or vehicle state.
+const EMPTY_OBJECT=Object.freeze({}),EMPTY_VEHICLES=Object.freeze([]);
+function lidOpen(spec){const lid=spec?.lid;return !!(lid&&(lid.userData.detached||lid.visible===false||(/^(Hood|Trunk)_hinge$/.test(lid.parent?.name||'')&&Math.abs(lid.parent.rotation.x)>.025)));}
 export function createHeroVehicleSurface({THREE:T,getVehicles,now=()=>performance.now()/1000,maxBuildsPerUpdate=1}={}){
- const records=new Map(),point=new T.Vector3(),up=new T.Vector3(),scale=new T.Vector3(),position=new T.Vector3(),quaternion=new T.Quaternion();
- const cell=.4,stats={builds:0,triangles:0,queries:0,triangleTests:0};let active=[],lastTime;
+ const records=new Map(),recordList=[],active=[],point=new T.Vector3(),up=new T.Vector3(),scale=new T.Vector3(),position=new T.Vector3(),quaternion=new T.Quaternion();
+ const cell=.4,stats={builds:0,triangles:0,queries:0,triangleTests:0};let lastTime,generation=0,updateTime=0,updateDt=0,updateBudget=0;
  const excluded=/Interior_|Wheel|Tyre|Tire|Mirror|Handle|Lightbar|Lamp|Ladder|RoofRail|Roof_rail|Spoiler|Taxi_|damage_effect|Engine_|Hood_support/i;
  function build(record){
   const root=record.root,bins=new Map(),sources=[],bounds=new T.Box3(),a=new T.Vector3(),b=new T.Vector3(),c=new T.Vector3(),normal=new T.Vector3(),edge=new T.Vector3();
@@ -28,30 +30,35 @@ export function createHeroVehicleSurface({THREE:T,getVehicles,now=()=>performanc
   }
   visit(root);record.bins=bins;record.bounds=bounds;record.sources=sources;record.dirty=false;stats.builds++;
  }
- function update(time=now()){
-  const dt=lastTime===undefined?0:Math.max(0,time-lastTime);lastTime=time;const seen=new Set();active=[];let budget=maxBuildsPerUpdate;
-  for(const input of getVehicles?.()||[]){
-   const actor=input.car||input.actor||input,root=actor.object||input.object;if(!root||seen.has(root))continue;seen.add(root);
-   let r=records.get(root);if(!r){r={root,actor,input,matrix:new T.Matrix4(),inverse:new T.Matrix4(),worldBounds:new T.Box3(),previous:new T.Vector3(),readyAt:time,initialized:false};records.set(root,r)}
+ function visitVehicle(input){
+   const actor=input.car||input.actor||input,root=actor.object||input.object;if(!root)return;
+   let r=records.get(root);if(r?.seenAt===generation)return;if(!r){r={root,actor,input,matrix:new T.Matrix4(),inverse:new T.Matrix4(),worldBounds:new T.Box3(),previous:new T.Vector3(),readyAt:updateTime,initialized:false,seenAt:generation};records.set(root,r);recordList.push(r)}else r.seenAt=generation;
    r.input=input;root.updateWorldMatrix(true,false);r.matrix.copy(root.matrixWorld);r.inverse.copy(r.matrix).invert();r.matrix.decompose(position,quaternion,scale);
-   const state=input.state||actor.state||{},speed=Math.max(Math.abs(state.speed||0),Math.hypot(state.vx||0,state.vz||0),r.initialized&&dt>0?position.distanceTo(r.previous)/dt:0);
+   const state=input.state||actor.state||EMPTY_OBJECT,speed=Math.max(Math.abs(state.speed||0),Math.hypot(state.vx||0,state.vz||0),r.initialized&&updateDt>0?position.distanceTo(r.previous)/updateDt:0);
    const tilted=up.set(0,1,0).applyQuaternion(quaternion).y<.99999;
-   if(speed>.08||tilted||Math.abs(state.yawRate||0)>.03)r.readyAt=time+.3;
-   const water=state.waterState||root.userData.vehicleWater||{};
-   r.stable=time>=r.readyAt&&!tilted&&speed<=.08&&!water.inWater&&!water.sinking&&!water.submerged&&!state.sunk;
+   if(speed>.08||tilted||Math.abs(state.yawRate||0)>.03)r.readyAt=updateTime+.3;
+   const water=state.waterState||root.userData.vehicleWater||EMPTY_OBJECT;
+   r.stable=updateTime>=r.readyAt&&!tilted&&speed<=.08&&!water.inWater&&!water.sinking&&!water.submerged&&!state.sunk;
    r.previous.copy(position);r.initialized=true;
-   if(r.sources?.some(s=>s.node.geometry!==s.geometry||s.geometry.attributes.position.version!==s.version))r.dirty=true;
+   if(r.sources)for(let i=0;i<r.sources.length;i++){const s=r.sources[i];if(s.node.geometry!==s.geometry||s.geometry.attributes.position.version!==s.version){r.dirty=true;break;}}
    // Opening a lid invalidates the old support shape. Keep solid fallback until
    // the caller explicitly invalidates/rebuilds after a finished geometry edit.
-   const access=[actor.hoodSpec,actor.trunkSpec];
-   const accessOpen=access.some(s=>s?.lid?.userData.detached||s?.lid?.visible===false||(/^(Hood|Trunk)_hinge$/.test(s?.lid?.parent?.name||'')&&Math.abs(s.lid.parent.rotation.x)>.025));
+   const accessOpen=lidOpen(actor.hoodSpec)||lidOpen(actor.trunkSpec);
    r.stable=r.stable&&!r.dirty&&!accessOpen;
-   if(!r.bins&&budget>0){build(r);budget--}
-   const p=actor.profile||root.userData.vehicleProfile||{};
+   if(!r.bins&&updateBudget>0){build(r);updateBudget--}
+   const p=actor.profile||root.userData.vehicleProfile||EMPTY_OBJECT;
    r.localFallback??=new T.Box3(new T.Vector3(-(p.halfWidth||1.3),0,-(p.halfLength||2.7)),new T.Vector3(p.halfWidth||1.3,p.height||2.2,p.halfLength||2.7));
    r.worldBounds.copy(r.bounds&&!r.bounds.isEmpty()?r.bounds:r.localFallback).applyMatrix4(r.matrix);r.tilted=tilted;active.push(r);
-  }
-  for(const root of records.keys())if(!seen.has(root))records.delete(root);
+ }
+ function update(time=now()){
+  updateDt=lastTime===undefined?0:Math.max(0,time-lastTime);lastTime=time;updateTime=time;updateBudget=maxBuildsPerUpdate;generation++;active.length=0;const vehicles=getVehicles?.()||EMPTY_VEHICLES;
+  if(Array.isArray(vehicles))for(let i=0;i<vehicles.length;i++)visitVehicle(vehicles[i]);else for(const input of vehicles)visitVehicle(input);
+  for(let i=recordList.length-1;i>=0;i--){const r=recordList[i];if(r.seenAt===generation)continue;records.delete(r.root);recordList.splice(i,1);}
+ }
+ function ignored(r,ignoreVehicleId){
+  if(ignoreVehicleId===null||ignoreVehicleId===undefined)return false;
+  const canonical=value=>String(value).replace(/^fleet:/,''),wanted=canonical(ignoreVehicleId),ids=[r.input?.id,r.input?.state?.id,r.actor?.id,r.actor?.state?.id,r.root?.userData?.vehicleId].filter(value=>value!==null&&value!==undefined);
+  return ids.some(id=>canonical(id)===wanted);
  }
  function column(r,x,z){
   point.set(x,r.worldBounds.max.y,z).applyMatrix4(r.inverse);const lx=point.x,lz=point.z;
@@ -65,21 +72,21 @@ export function createHeroVehicleSurface({THREE:T,getVehicles,now=()=>performanc
   if(!Number.isFinite(top))return null;
   point.set(lx,top,lz).applyMatrix4(r.matrix);return {top:point.y,minY:r.worldBounds.min.y,walkable};
  }
- function query(x,z,referenceY,stableOnly){
+ function query(x,z,referenceY,stableOnly,context={}){
   stats.queries++;let result=null;
-  for(const r of active){const b=r.worldBounds;if(x<b.min.x||x>b.max.x||z<b.min.z||z>b.max.z)continue;
+  for(const r of active){if(ignored(r,context.ignoreVehicleId))continue;const b=r.worldBounds;if(x<b.min.x||x>b.max.x||z<b.min.z||z>b.max.z)continue;
    const hit=column(r,x,z);if(!hit||hit.top>referenceY||stableOnly&&(!r.stable||!hit.walkable))continue;
    if(!result||hit.top>result.top)result={...hit,stable:r.stable&&hit.walkable,vehicle:r.input};
   }return result;
  }
- function sample(x,z,referenceY=Infinity){return query(x,z,Infinity,false)}
- function supportHeight(x,z,referenceY,fallback=-Infinity){return query(x,z,referenceY+.28,true)?.top??fallback}
- function blocks(x,z,y,height=1.9,radius=0){
+ function sample(x,z,referenceY=Infinity,context={}){return query(x,z,Infinity,false,context)}
+ function supportHeight(x,z,referenceY,fallback=-Infinity,context={}){return query(x,z,referenceY+.28,true,context)?.top??fallback}
+ function blocks(x,z,y,height=1.9,radius=0,context={}){
   // Same center + radial capsule samples as walk collision, with a height test.
   for(let i=0;i<(radius>0?9:1);i++){const a=(i-1)*Math.PI/4,px=x+(i?Math.cos(a)*radius:0),pz=z+(i?Math.sin(a)*radius:0);
-   for(const r of active){const b=r.worldBounds;if(px<b.min.x||px>b.max.x||pz<b.min.z||pz>b.max.z||y>=b.max.y-.045||y+height<=b.min.y+.03)continue;const hit=column(r,px,pz);if(hit&&y<hit.top-.045&&y+height>hit.minY+.03)return true;}
+   for(const r of active){if(ignored(r,context.ignoreVehicleId))continue;const b=r.worldBounds;if(px<b.min.x||px>b.max.x||pz<b.min.z||pz>b.max.z||y>=b.max.y-.045||y+height<=b.min.y+.03)continue;const hit=column(r,px,pz);if(hit&&y<hit.top-.045&&y+height>hit.minY+.03)return true;}
   }return false;
  }
  function invalidate(vehicle){const root=vehicle?.car?.object||vehicle?.actor?.object||vehicle?.object||vehicle;const r=records.get(root);if(r){r.bins=null;r.sources=null;r.dirty=true;}}
- return {update,sample,supportHeight,blocks,invalidate,diagnostics:()=>({...stats,vehicles:active.length,ready:active.filter(r=>r.bins&&!r.dirty).length}),dispose(){records.clear();active=[]}};
+ return {update,sample,supportHeight,blocks,invalidate,diagnostics:()=>({...stats,vehicles:active.length,ready:active.filter(r=>r.bins&&!r.dirty).length}),dispose(){records.clear();recordList.length=0;active.length=0}};
 }

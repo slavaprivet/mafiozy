@@ -1,0 +1,118 @@
+{
+  "runs": [
+    {
+      "label": "A1",
+      "views": {
+        "field": {
+          "draw_calls": 51.0,
+          "fps": 449.717456135469,
+          "frames": 2699,
+          "p95_ms": 2.911
+        },
+        "gate": {
+          "draw_calls": 309.0,
+          "fps": 220.981732176807,
+          "frames": 1326,
+          "p95_ms": 5.346
+        },
+        "stairs": {
+          "draw_calls": 556.0,
+          "fps": 195.9990200049,
+          "frames": 1176,
+          "p95_ms": 5.896
+        }
+      }
+    },
+    {
+      "label": "B1",
+      "views": {
+        "field": {
+          "draw_calls": 53.0,
+          "fps": 436.401518723941,
+          "frames": 2619,
+          "p95_ms": 3.003
+        },
+        "gate": {
+          "draw_calls": 325.0,
+          "fps": 213.637006728899,
+          "frames": 1282,
+          "p95_ms": 5.561
+        },
+        "stairs": {
+          "draw_calls": 576.0,
+          "fps": 186.657271583997,
+          "frames": 1120,
+          "p95_ms": 6.265
+        }
+      }
+    },
+    {
+      "label": "B2",
+      "views": {
+        "field": {
+          "draw_calls": 53.0,
+          "fps": 437.606131151857,
+          "frames": 2626,
+          "p95_ms": 3.013
+        },
+        "gate": {
+          "draw_calls": 325.0,
+          "fps": 212.302478706428,
+          "frames": 1274,
+          "p95_ms": 5.603
+        },
+        "stairs": {
+          "draw_calls": 576.0,
+          "fps": 185.653299629093,
+          "frames": 1114,
+          "p95_ms": 6.293
+        }
+      }
+    },
+    {
+      "label": "A2",
+      "views": {
+        "field": {
+          "draw_calls": 51.0,
+          "fps": 443.623783034307,
+          "frames": 2662,
+          "p95_ms": 2.889
+        },
+        "gate": {
+          "draw_calls": 309.0,
+          "fps": 219.757370535585,
+          "frames": 1319,
+          "p95_ms": 5.339
+        },
+        "stairs": {
+          "draw_calls": 556.0,
+          "fps": 194.576318396158,
+          "frames": 1168,
+          "p95_ms": 5.932
+        }
+      }
+    }
+  ],
+  "order": "ABBA",
+  "resolution": "1280x720",
+  "seconds_per_view": 6,
+  "scope": "All map40 changes versus combat39; finite stationary views, not full-game FPS acceptance",
+  "views": {
+    "field": {
+      "baseline_fps": 446.67061958488796,
+      "candidate_fps": 437.003824937899,
+      "delta_percent": -2.1641886041156577
+    },
+    "gate": {
+      "baseline_fps": 220.36955135619598,
+      "candidate_fps": 212.9697427176635,
+      "delta_percent": -3.357908836766532
+    },
+    "stairs": {
+      "baseline_fps": 195.287669200529,
+      "candidate_fps": 186.155285606545,
+      "delta_percent": -4.676374924935233
+    }
+  },
+  "within_5_percent": true
+}

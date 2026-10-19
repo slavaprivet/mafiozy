@@ -1,0 +1,257 @@
+{
+  "status": "READY_FOR_MERGED_VALIDATION",
+  "frozen": true,
+  "source_file": "D:\\MafioziCombat31\\competitive_bot53_resume\\game\\scripts\\weapons\\sword_prototype.gd",
+  "sha256": "37461c7579289673ffd2370479c28290a66235665ddd448b49bbf31868df248d",
+  "files_changed": [
+    "scripts/weapons/sword_prototype.gd"
+  ],
+  "base_final03": "D:/MafioziCombat31/competitive_bot53/FINAL_PINS.json",
+  "changes": [
+    "Restore player_leg_speed_scale50 to 1.0/0.24/0, independent of NPC loadout; player armor already owned by CastleArmorEquipment.",
+    "Keep NPC own heavy armor movement factor0.78.",
+    "Reset spacing retreat latch and orbit timing/direction on NPC respawn.",
+    "Retain53 observation delay180ms, guard/counter/orbit, valid local routes, windup commitment and same physical damage/severing rules."
+  ],
+  "native_checks": [
+    {
+      "name": "chase04",
+      "passed": true,
+      "scheduler": true,
+      "stderr_bytes": 0,
+      "result": "D:\\MafioziCombat31\\competitive_bot53_resume\\chase04\\result.json",
+      "scheduler_receipt": "D:\\MafioziCombat31\\competitive_bot53_resume\\chase04\\native\\SCHEDULER_RUN.json"
+    },
+    {
+      "name": "retreat04",
+      "passed": true,
+      "scheduler": true,
+      "stderr_bytes": 0,
+      "result": "D:\\MafioziCombat31\\competitive_bot53_resume\\retreat04\\result.json",
+      "scheduler_receipt": "D:\\MafioziCombat31\\competitive_bot53_resume\\retreat04\\native\\SCHEDULER_RUN.json"
+    },
+    {
+      "name": "detour04",
+      "passed": true,
+      "scheduler": true,
+      "stderr_bytes": 0,
+      "result": "D:\\MafioziCombat31\\competitive_bot53_resume\\detour04\\result.json",
+      "scheduler_receipt": "D:\\MafioziCombat31\\competitive_bot53_resume\\detour04\\native\\SCHEDULER_RUN.json"
+    },
+    {
+      "name": "mobility_lane04",
+      "passed": true,
+      "scheduler": true,
+      "stderr_bytes": 0,
+      "result": "D:\\MafioziCombat31\\competitive_bot53_resume\\mobility_lane04\\result.json",
+      "scheduler_receipt": "D:\\MafioziCombat31\\competitive_bot53_resume\\mobility_lane04\\native\\SCHEDULER_RUN.json"
+    },
+    {
+      "name": "moving_weave_04",
+      "passed": true,
+      "scheduler": true,
+      "stderr_bytes": 0,
+      "result": "D:\\MafioziCombat31\\competitive_bot53_resume\\moving_weave_04\\result.json",
+      "scheduler_receipt": "D:\\MafioziCombat31\\competitive_bot53_resume\\moving_weave_04\\native\\SCHEDULER_RUN.json"
+    },
+    {
+      "name": "moving_rush_04",
+      "passed": true,
+      "scheduler": true,
+      "stderr_bytes": 0,
+      "result": "D:\\MafioziCombat31\\competitive_bot53_resume\\moving_rush_04\\result.json",
+      "scheduler_receipt": "D:\\MafioziCombat31\\competitive_bot53_resume\\moving_rush_04\\native\\SCHEDULER_RUN.json"
+    },
+    {
+      "name": "moving_diagonal_04",
+      "passed": true,
+      "scheduler": true,
+      "stderr_bytes": 0,
+      "result": "D:\\MafioziCombat31\\competitive_bot53_resume\\moving_diagonal_04\\result.json",
+      "scheduler_receipt": "D:\\MafioziCombat31\\competitive_bot53_resume\\moving_diagonal_04\\native\\SCHEDULER_RUN.json"
+    }
+  ],
+  "comparison": {
+    "weave": {
+      "52": {
+        "clashes": 2,
+        "counters": null,
+        "errors": [],
+        "guards": 2,
+        "hits": 1,
+        "lateral": 3.15596389770508,
+        "npc_dead": false,
+        "npc_hp": 24.4249210252399,
+        "passed": true,
+        "player_dead": false,
+        "player_hp": 97.6322663448296,
+        "player_motion": 2.84334444999695,
+        "reaction180ms": true,
+        "scenario": "weave",
+        "scope": "Same heavy armor both actors, same movement/real mouse attack sequence. Initial positions only, no teleport after start, no HP or damage changes. Physical clashes counted from actual register_clash timestamps.",
+        "swings": 2,
+        "ticks": 1199
+      },
+      "04": {
+        "clashes": 2,
+        "counters": 2,
+        "errors": [],
+        "guards": 7,
+        "hits": 5,
+        "lateral": 1.72174835205078,
+        "npc_dead": false,
+        "npc_hp": 62.6439304282481,
+        "passed": true,
+        "player_dead": true,
+        "player_hp": 0.0,
+        "player_motion": 2.51360034942627,
+        "reaction180ms": true,
+        "scenario": "weave",
+        "scope": "Same heavy armor both actors, same movement/real mouse attack sequence. Initial positions only, no teleport after start, no HP or damage changes. Physical clashes counted from actual register_clash timestamps.",
+        "swings": 6,
+        "ticks": 982
+      }
+    },
+    "rush": {
+      "52": {
+        "clashes": 0,
+        "counters": null,
+        "errors": [
+          "no_attack"
+        ],
+        "guards": 0,
+        "hits": 0,
+        "lateral": 1.4560718536377,
+        "npc_dead": false,
+        "npc_hp": 32.4,
+        "passed": false,
+        "player_dead": false,
+        "player_hp": 100.0,
+        "player_motion": 2.54226660728455,
+        "reaction180ms": true,
+        "scenario": "rush",
+        "scope": "Same heavy armor both actors, same movement/real mouse attack sequence. Initial positions only, no teleport after start, no HP or damage changes. Physical clashes counted from actual register_clash timestamps.",
+        "swings": 0,
+        "ticks": 1199
+      },
+      "04": {
+        "clashes": 1,
+        "counters": 3,
+        "errors": [],
+        "guards": 6,
+        "hits": 1,
+        "lateral": 1.56591606140137,
+        "npc_dead": true,
+        "npc_hp": 0.0,
+        "passed": true,
+        "player_dead": false,
+        "player_hp": 86.3990043362389,
+        "player_motion": 2.45052647590637,
+        "reaction180ms": true,
+        "scenario": "rush",
+        "scope": "Same heavy armor both actors, same movement/real mouse attack sequence. Initial positions only, no teleport after start, no HP or damage changes. Physical clashes counted from actual register_clash timestamps.",
+        "swings": 5,
+        "ticks": 914
+      }
+    },
+    "diagonal": {
+      "52": {
+        "clashes": 1,
+        "counters": null,
+        "errors": [],
+        "guards": 2,
+        "hits": 3,
+        "lateral": 2.43219375610352,
+        "npc_dead": false,
+        "npc_hp": 72.9776949951394,
+        "passed": true,
+        "player_dead": false,
+        "player_hp": 41.9265049982492,
+        "player_motion": 4.05410003662109,
+        "reaction180ms": true,
+        "scenario": "diagonal",
+        "scope": "Same heavy armor both actors, same movement/real mouse attack sequence. Initial positions only, no teleport after start, no HP or damage changes. Physical clashes counted from actual register_clash timestamps.",
+        "swings": 7,
+        "ticks": 1199
+      },
+      "04": {
+        "clashes": 0,
+        "counters": 1,
+        "errors": [],
+        "guards": 6,
+        "hits": 1,
+        "lateral": 2.28434944152832,
+        "npc_dead": false,
+        "npc_hp": 13.0650956456438,
+        "passed": true,
+        "player_dead": false,
+        "player_hp": 96.9977818656737,
+        "player_motion": 6.09351110458374,
+        "reaction180ms": true,
+        "scenario": "diagonal",
+        "scope": "Same heavy armor both actors, same movement/real mouse attack sequence. Initial positions only, no teleport after start, no HP or damage changes. Physical clashes counted from actual register_clash timestamps.",
+        "swings": 1,
+        "ticks": 1199
+      }
+    }
+  },
+  "mobility": {
+    "errors": [],
+    "passed": true,
+    "rows": [
+      {
+        "npc_factor": 1.0,
+        "npc_gear": {},
+        "player_leg_factor": 1.0,
+        "player_motion": 2.94156360626221,
+        "start": "(14.99976, 0.156854, 1002.201)"
+      },
+      {
+        "npc_factor": 0.78,
+        "npc_gear": {
+          "feet": "heavy_feet",
+          "hands": "heavy_hands",
+          "head": "heavy_head",
+          "legs": "heavy_legs",
+          "torso": "heavy_torso"
+        },
+        "player_leg_factor": 1.0,
+        "player_motion": 2.94156551361084,
+        "start": "(14.99967, 0.157688, 1002.201)"
+      },
+      {
+        "npc_factor": 1.0,
+        "npc_gear": {},
+        "player_leg_factor": 1.0,
+        "player_motion": 2.94156169891357,
+        "start": "(14.99958, 0.157808, 1002.201)"
+      }
+    ],
+    "scope": "Player bare throughout, ordinary movement input; only NPC gear changed between trials. Initial placement once; each measurement walks the same lane and returns using input; no damage or movement injection."
+  },
+  "retained_raw_failures": {
+    "mobility04": "Second trial entered Cover_barrier_1_0_0; mobility_diag04 native collision samples prove obstacle contact, player leg/equipment factors remained1.0. Final mobility_lane04 returns via movement input and traverses same lane; original0.08m acceptance tolerance unchanged.",
+    "moving_rush_52": "Baseline52 no autonomous attack during1200ticks. No baseline PASS claimed.",
+    "moving_rush_04": "Candidate legitimately dies at914ticks after inflicting13.60099566HP by one contact; functional PASS does not mean combat win."
+  },
+  "limitations": [
+    "Three fixed real movement/mouse-attack sequences, not statistical win rate or human-level benchmark. Candidate wins one sequence, loses one, third outcome recorded verbatim.",
+    "Clashes count actual steel-contact timestamps; they do not individually prove every guard was successful.",
+    "Baseline52 ignores NPC heavy armor slowdown while04 uses shared0.78; player gear and movement input are identical.",
+    "No graphical playthrough or full gameplay FPS performed by this agent. Root must run merged acceptance."
+  ],
+  "qa_harnesses": {
+    "moving.gd": {
+      "file": "D:\\MafioziCombat31\\competitive_bot53_resume\\qa\\moving.gd",
+      "sha256": "b5dc219a177647e5fbf5d863037fbd7e5e6b9c542f1cd90590a87ccf12c92429"
+    },
+    "mobility_lane.gd": {
+      "file": "D:\\MafioziCombat31\\competitive_bot53_resume\\qa\\mobility_lane.gd",
+      "sha256": "003d811af38889bcbf4a549318d9fcf59659d9adcf7fc80928b1e7901d8fd524"
+    },
+    "chase.gd": {
+      "file": "D:\\MafioziCombat31\\competitive_bot53_resume\\qa\\chase.gd",
+      "sha256": "4c5e582d6a142d3ef63dc325d2e561c7dca2f76285bcd75c0fa511cea9bb946f"
+    }
+  }
+}

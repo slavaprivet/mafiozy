@@ -1,0 +1,563 @@
+{
+  "passed": false,
+  "mode": "perf",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--resolution",
+    "1920x1080",
+    "--path",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_release56\\game",
+    "--script",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\qa31_resume\\entry_soak31_v4.gd",
+    "--",
+    "--city-simple-hospital=1",
+    "--city-plaza-support-plate=1",
+    "--city-medical-threshold=0.5",
+    "--city-energy-drain-per-m=0.05",
+    "--city-energy-threshold=0.2",
+    "--city-palazzo-clones=1",
+    "--city-clone-step=22",
+    "--city-town=1",
+    "--city-door-free-entry=1",
+    "--city-site-door-physics=1",
+    "--city-clone-door-swing=1",
+    "--city-needs=1",
+    "--city-shop-release=1",
+    "--city-nav-pump-budget-us=4000",
+    "--city-nav-pump-every=1",
+    "--city-daily-slice=286",
+    "--city-sim-stride=1",
+    "--city-sim-one-per-frame=0",
+    "--city-walk-pose=1",
+    "--city-pose-far-cap=512",
+    "--city-clear-cache=1",
+    "--city-timing=0",
+    "--city-health-lease",
+    "--city-hospital-marker=0",
+    "--city-venue-sites29=1",
+    "--city-hp=100",
+    "--city-qa=10",
+    "--city-venue-staff29=1",
+    "--city-physical-dispatch30=1",
+    "--city-multi-lifecycle30=1",
+    "--city-threat30=1",
+    "--qa-warmup=20",
+    "--qa-samples=90",
+    "--qa-expected-staff=12",
+    "--qa-residents=10",
+    "--qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\qa31_resume\\runs\\baseline56_perf1080_04",
+    "--qa-max-motion-idle=10.0",
+    "--qa-max-queue-idle=30.0",
+    "--qa-slow-motion-threshold=5.0",
+    "--qa-render-resolution=1920x1080",
+    "--qa-fixed-camera-json={\"basis\":[[-4.37113882867379e-08,0.0,1.0],[0.119712203741074,0.992808640003204,5.23278664843474e-09],[-0.992808640003204,0.119712203741074,-4.33970441804377e-08]],\"far\":1600.0,\"fov\":45.0,\"near\":0.0799999982118607,\"position\":[37.1172485351563,2.34298133850098,0.999999463558197],\"projection\":0,\"render_size\":[1920,1080],\"rotation\":[-0.119999997317791,-1.57079637050629,0.0],\"viewport\":[1920.0,1080.0],\"window_protocol\":{\"content_scale_factor\":1.0,\"content_scale_mode\":2,\"content_scale_size\":[1920,1080],\"display_window_size\":[1920,1080],\"root_texture\":[1920,1080],\"screen_scale\":1.0,\"viewport_visible\":[1920.0,1080.0],\"window_mode\":0,\"window_size\":[1920,1080]}}"
+  ],
+  "requested_residents": 10,
+  "ordinary_rng": true,
+  "requested_resolution": "1920x1080",
+  "fixed_camera_from": "outputs\\coordinator31_npc57\\proposals\\qa31_resume\\runs\\baseline56_perf1080_03\\MASS30.json",
+  "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "scheduler_sha256": "adcb834390e476edd118f62d8e3e5b391c6ebc97925391e66beeb80430ba8373",
+  "lease": {
+    "id": "e61ceea044fd4917b216fa0c09c5fab7",
+    "owner": {
+      "pid": 28216,
+      "creation_filetime": "134365446332005382"
+    },
+    "mode": "perf",
+    "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator30_release56\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 6992,
+        "creation_filetime": "134365446359699422",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --resolution 1920x1080 --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_release56\\game --script C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\qa31_resume\\entry_soak31_v4.gd -- --city-simple-hospital=1 --city-plaza-support-plate=1 --city-medical-threshold=0.5 --city-energy-drain-per-m=0.05 --city-energy-threshold=0.2 --city-palazzo-clones=1 --city-clone-step=22 --city-town=1 --city-door-free-entry=1 --city-site-door-physics=1 --city-clone-door-swing=1 --city-needs=1 --city-shop-release=1 --city-nav-pump-budget-us=4000 --city-nav-pump-every=1 --city-daily-slice=286 --city-sim-stride=1 --city-sim-one-per-frame=0 --city-walk-pose=1 --city-pose-far-cap=512 --city-clear-cache=1 --city-timing=0 --city-health-lease --city-hospital-marker=0 --city-venue-sites29=1 --city-hp=100 --city-qa=10 --city-venue-staff29=1 --city-physical-dispatch30=1 --city-multi-lifecycle30=1 --city-threat30=1 --qa-warmup=20 --qa-samples=90 --qa-expected-staff=12 --qa-residents=10 --qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\qa31_resume\\runs\\baseline56_perf1080_04 --qa-max-motion-idle=10.0 --qa-max-queue-idle=30.0 --qa-slow-motion-threshold=5.0 --qa-render-resolution=1920x1080 --qa-fixed-camera-json={\\\"basis\\\":[[-4.37113882867379e-08,0.0,1.0],[0.119712203741074,0.992808640003204,5.23278664843474e-09],[-0.992808640003204,0.119712203741074,-4.33970441804377e-08]],\\\"far\\\":1600.0,\\\"fov\\\":45.0,\\\"near\\\":0.0799999982118607,\\\"position\\\":[37.1172485351563,2.34298133850098,0.999999463558197],\\\"projection\\\":0,\\\"render_size\\\":[1920,1080],\\\"rotation\\\":[-0.119999997317791,-1.57079637050629,0.0],\\\"viewport\\\":[1920.0,1080.0],\\\"window_protocol\\\":{\\\"content_scale_factor\\\":1.0,\\\"content_scale_mode\\\":2,\\\"content_scale_size\\\":[1920,1080],\\\"display_window_size\\\":[1920,1080],\\\"root_texture\\\":[1920,1080],\\\"screen_scale\\\":1.0,\\\"viewport_visible\\\":[1920.0,1080.0],\\\"window_mode\\\":0,\\\"window_size\\\":[1920,1080]}}",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--resolution",
+          "1920x1080",
+          "--path",
+          "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_release56\\game",
+          "--script",
+          "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\qa31_resume\\entry_soak31_v4.gd",
+          "--",
+          "--city-simple-hospital=1",
+          "--city-plaza-support-plate=1",
+          "--city-medical-threshold=0.5",
+          "--city-energy-drain-per-m=0.05",
+          "--city-energy-threshold=0.2",
+          "--city-palazzo-clones=1",
+          "--city-clone-step=22",
+          "--city-town=1",
+          "--city-door-free-entry=1",
+          "--city-site-door-physics=1",
+          "--city-clone-door-swing=1",
+          "--city-needs=1",
+          "--city-shop-release=1",
+          "--city-nav-pump-budget-us=4000",
+          "--city-nav-pump-every=1",
+          "--city-daily-slice=286",
+          "--city-sim-stride=1",
+          "--city-sim-one-per-frame=0",
+          "--city-walk-pose=1",
+          "--city-pose-far-cap=512",
+          "--city-clear-cache=1",
+          "--city-timing=0",
+          "--city-health-lease",
+          "--city-hospital-marker=0",
+          "--city-venue-sites29=1",
+          "--city-hp=100",
+          "--city-qa=10",
+          "--city-venue-staff29=1",
+          "--city-physical-dispatch30=1",
+          "--city-multi-lifecycle30=1",
+          "--city-threat30=1",
+          "--qa-warmup=20",
+          "--qa-samples=90",
+          "--qa-expected-staff=12",
+          "--qa-residents=10",
+          "--qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\qa31_resume\\runs\\baseline56_perf1080_04",
+          "--qa-max-motion-idle=10.0",
+          "--qa-max-queue-idle=30.0",
+          "--qa-slow-motion-threshold=5.0",
+          "--qa-render-resolution=1920x1080",
+          "--qa-fixed-camera-json={\"basis\":[[-4.37113882867379e-08,0.0,1.0],[0.119712203741074,0.992808640003204,5.23278664843474e-09],[-0.992808640003204,0.119712203741074,-4.33970441804377e-08]],\"far\":1600.0,\"fov\":45.0,\"near\":0.0799999982118607,\"position\":[37.1172485351563,2.34298133850098,0.999999463558197],\"projection\":0,\"render_size\":[1920,1080],\"rotation\":[-0.119999997317791,-1.57079637050629,0.0],\"viewport\":[1920.0,1080.0],\"window_protocol\":{\"content_scale_factor\":1.0,\"content_scale_mode\":2,\"content_scale_size\":[1920,1080],\"display_window_size\":[1920,1080],\"root_texture\":[1920,1080],\"screen_scale\":1.0,\"viewport_visible\":[1920.0,1080.0],\"window_mode\":0,\"window_size\":[1920,1080]}}"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "perf",
+        "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator30_release56\\game"
+      }
+    ],
+    "deadline": 1012766.9022759,
+    "queued_at": 1012736.9022759,
+    "ticket": 1736,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.49032700003590435
+  },
+  "child": {
+    "pid": 6992,
+    "creation_filetime": "134365446359699422",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --resolution 1920x1080 --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_release56\\game --script C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\qa31_resume\\entry_soak31_v4.gd -- --city-simple-hospital=1 --city-plaza-support-plate=1 --city-medical-threshold=0.5 --city-energy-drain-per-m=0.05 --city-energy-threshold=0.2 --city-palazzo-clones=1 --city-clone-step=22 --city-town=1 --city-door-free-entry=1 --city-site-door-physics=1 --city-clone-door-swing=1 --city-needs=1 --city-shop-release=1 --city-nav-pump-budget-us=4000 --city-nav-pump-every=1 --city-daily-slice=286 --city-sim-stride=1 --city-sim-one-per-frame=0 --city-walk-pose=1 --city-pose-far-cap=512 --city-clear-cache=1 --city-timing=0 --city-health-lease --city-hospital-marker=0 --city-venue-sites29=1 --city-hp=100 --city-qa=10 --city-venue-staff29=1 --city-physical-dispatch30=1 --city-multi-lifecycle30=1 --city-threat30=1 --qa-warmup=20 --qa-samples=90 --qa-expected-staff=12 --qa-residents=10 --qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\qa31_resume\\runs\\baseline56_perf1080_04 --qa-max-motion-idle=10.0 --qa-max-queue-idle=30.0 --qa-slow-motion-threshold=5.0 --qa-render-resolution=1920x1080 --qa-fixed-camera-json={\\\"basis\\\":[[-4.37113882867379e-08,0.0,1.0],[0.119712203741074,0.992808640003204,5.23278664843474e-09],[-0.992808640003204,0.119712203741074,-4.33970441804377e-08]],\\\"far\\\":1600.0,\\\"fov\\\":45.0,\\\"near\\\":0.0799999982118607,\\\"position\\\":[37.1172485351563,2.34298133850098,0.999999463558197],\\\"projection\\\":0,\\\"render_size\\\":[1920,1080],\\\"rotation\\\":[-0.119999997317791,-1.57079637050629,0.0],\\\"viewport\\\":[1920.0,1080.0],\\\"window_protocol\\\":{\\\"content_scale_factor\\\":1.0,\\\"content_scale_mode\\\":2,\\\"content_scale_size\\\":[1920,1080],\\\"display_window_size\\\":[1920,1080],\\\"root_texture\\\":[1920,1080],\\\"screen_scale\\\":1.0,\\\"viewport_visible\\\":[1920.0,1080.0],\\\"window_mode\\\":0,\\\"window_size\\\":[1920,1080]}}",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--resolution",
+      "1920x1080",
+      "--path",
+      "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_release56\\game",
+      "--script",
+      "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\qa31_resume\\entry_soak31_v4.gd",
+      "--",
+      "--city-simple-hospital=1",
+      "--city-plaza-support-plate=1",
+      "--city-medical-threshold=0.5",
+      "--city-energy-drain-per-m=0.05",
+      "--city-energy-threshold=0.2",
+      "--city-palazzo-clones=1",
+      "--city-clone-step=22",
+      "--city-town=1",
+      "--city-door-free-entry=1",
+      "--city-site-door-physics=1",
+      "--city-clone-door-swing=1",
+      "--city-needs=1",
+      "--city-shop-release=1",
+      "--city-nav-pump-budget-us=4000",
+      "--city-nav-pump-every=1",
+      "--city-daily-slice=286",
+      "--city-sim-stride=1",
+      "--city-sim-one-per-frame=0",
+      "--city-walk-pose=1",
+      "--city-pose-far-cap=512",
+      "--city-clear-cache=1",
+      "--city-timing=0",
+      "--city-health-lease",
+      "--city-hospital-marker=0",
+      "--city-venue-sites29=1",
+      "--city-hp=100",
+      "--city-qa=10",
+      "--city-venue-staff29=1",
+      "--city-physical-dispatch30=1",
+      "--city-multi-lifecycle30=1",
+      "--city-threat30=1",
+      "--qa-warmup=20",
+      "--qa-samples=90",
+      "--qa-expected-staff=12",
+      "--qa-residents=10",
+      "--qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\qa31_resume\\runs\\baseline56_perf1080_04",
+      "--qa-max-motion-idle=10.0",
+      "--qa-max-queue-idle=30.0",
+      "--qa-slow-motion-threshold=5.0",
+      "--qa-render-resolution=1920x1080",
+      "--qa-fixed-camera-json={\"basis\":[[-4.37113882867379e-08,0.0,1.0],[0.119712203741074,0.992808640003204,5.23278664843474e-09],[-0.992808640003204,0.119712203741074,-4.33970441804377e-08]],\"far\":1600.0,\"fov\":45.0,\"near\":0.0799999982118607,\"position\":[37.1172485351563,2.34298133850098,0.999999463558197],\"projection\":0,\"render_size\":[1920,1080],\"rotation\":[-0.119999997317791,-1.57079637050629,0.0],\"viewport\":[1920.0,1080.0],\"window_protocol\":{\"content_scale_factor\":1.0,\"content_scale_mode\":2,\"content_scale_size\":[1920,1080],\"display_window_size\":[1920,1080],\"root_texture\":[1920,1080],\"screen_scale\":1.0,\"viewport_visible\":[1920.0,1080.0],\"window_mode\":0,\"window_size\":[1920,1080]}}"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "perf",
+    "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator30_release56\\game"
+  },
+  "exit_code": 1,
+  "elapsed_seconds": 143.47692330006976,
+  "source_drift": [],
+  "control_drift": [],
+  "harness_drift": [],
+  "errors": [],
+  "stderr_bytes": 0,
+  "window_protocol": {
+    "after": {
+      "content_scale_factor": 1.0,
+      "content_scale_mode": 2,
+      "content_scale_size": [
+        1920,
+        1080
+      ],
+      "display_window_size": [
+        1920,
+        1080
+      ],
+      "root_texture": [
+        1920,
+        1080
+      ],
+      "screen_scale": 1.0,
+      "viewport_visible": [
+        1920.0,
+        1080.0
+      ],
+      "window_mode": 0,
+      "window_size": [
+        1920,
+        1080
+      ]
+    },
+    "before": {
+      "content_scale_factor": 1.0,
+      "content_scale_mode": 1,
+      "content_scale_size": [
+        1280,
+        720
+      ],
+      "display_window_size": [
+        1920,
+        1061
+      ],
+      "root_texture": [
+        2778,
+        1563
+      ],
+      "screen_scale": 1.0,
+      "viewport_visible": [
+        1280.0,
+        720.0
+      ],
+      "window_mode": 0,
+      "window_size": [
+        1920,
+        1061
+      ]
+    },
+    "final": {
+      "content_scale_factor": 1.0,
+      "content_scale_mode": 2,
+      "content_scale_size": [
+        1920,
+        1080
+      ],
+      "display_window_size": [
+        1920,
+        1080
+      ],
+      "root_texture": [
+        1920,
+        1080
+      ],
+      "screen_scale": 1.0,
+      "viewport_visible": [
+        1920.0,
+        1080.0
+      ],
+      "window_mode": 0,
+      "window_size": [
+        1920,
+        1080
+      ]
+    },
+    "npc_or_source_mutations": false,
+    "protocol": "Fixed native root viewport, stable3 frames before warmup and camera capture; paired runs must match full camera/window metadata.",
+    "qa_only": true,
+    "ready": true,
+    "requested": [
+      1920,
+      1080
+    ],
+    "schema": "mafiozi.qa31.window/v1"
+  },
+  "slow_planner_sample_count": 21,
+  "slow_planner_max_sample_us": 114,
+  "soak_errors": [
+    "motion_idle:resident_2:1"
+  ],
+  "resident_summaries": [
+    {
+      "anchor_ms": 142378,
+      "generation": 1,
+      "id": "resident_1",
+      "last_ms": 142378,
+      "max_motion_idle_s": 1.008,
+      "max_no_progress_s": 10.06,
+      "max_queue_idle_s": 0.0,
+      "max_threat_alert_s": 0.0,
+      "max_threat_recover_s": 0.0,
+      "motion_idle_s": 0.0,
+      "queue_idle_s": 0.0,
+      "sample_count": 90,
+      "threat_alert_s": 0.0,
+      "threat_recover_s": 0.0
+    },
+    {
+      "anchor_ms": 142378,
+      "generation": 1,
+      "id": "resident_2",
+      "last_ms": 142378,
+      "max_motion_idle_s": 25.147,
+      "max_no_progress_s": 26.158,
+      "max_queue_idle_s": 0.0,
+      "max_threat_alert_s": 0.0,
+      "max_threat_recover_s": 0.0,
+      "motion_idle_s": 0.0,
+      "queue_idle_s": 0.0,
+      "sample_count": 90,
+      "threat_alert_s": 0.0,
+      "threat_recover_s": 0.0
+    },
+    {
+      "anchor_ms": 142378,
+      "generation": 1,
+      "id": "resident_3",
+      "last_ms": 142378,
+      "max_motion_idle_s": 0.0,
+      "max_no_progress_s": 1.015,
+      "max_queue_idle_s": 0.0,
+      "max_threat_alert_s": 0.0,
+      "max_threat_recover_s": 0.0,
+      "motion_idle_s": 0.0,
+      "queue_idle_s": 0.0,
+      "sample_count": 90,
+      "threat_alert_s": 0.0,
+      "threat_recover_s": 0.0
+    },
+    {
+      "anchor_ms": 142378,
+      "generation": 1,
+      "id": "resident_4",
+      "last_ms": 142378,
+      "max_motion_idle_s": 3.012,
+      "max_no_progress_s": 6.026,
+      "max_queue_idle_s": 0.0,
+      "max_threat_alert_s": 0.0,
+      "max_threat_recover_s": 0.0,
+      "motion_idle_s": 0.0,
+      "queue_idle_s": 0.0,
+      "sample_count": 90,
+      "threat_alert_s": 0.0,
+      "threat_recover_s": 0.0
+    },
+    {
+      "anchor_ms": 142378,
+      "generation": 1,
+      "id": "resident_5",
+      "last_ms": 142378,
+      "max_motion_idle_s": 0.0,
+      "max_no_progress_s": 1.015,
+      "max_queue_idle_s": 0.0,
+      "max_threat_alert_s": 0.0,
+      "max_threat_recover_s": 0.0,
+      "motion_idle_s": 0.0,
+      "queue_idle_s": 0.0,
+      "sample_count": 90,
+      "threat_alert_s": 0.0,
+      "threat_recover_s": 0.0
+    },
+    {
+      "anchor_ms": 130305,
+      "generation": 1,
+      "id": "resident_6",
+      "last_ms": 142378,
+      "max_motion_idle_s": 4.046,
+      "max_no_progress_s": 12.073,
+      "max_queue_idle_s": 12.073,
+      "max_threat_alert_s": 0.0,
+      "max_threat_recover_s": 0.0,
+      "motion_idle_s": 0.0,
+      "queue_idle_s": 12.073,
+      "sample_count": 90,
+      "threat_alert_s": 0.0,
+      "threat_recover_s": 0.0
+    },
+    {
+      "anchor_ms": 142378,
+      "generation": 1,
+      "id": "resident_7",
+      "last_ms": 142378,
+      "max_motion_idle_s": 2.014,
+      "max_no_progress_s": 8.053,
+      "max_queue_idle_s": 0.0,
+      "max_threat_alert_s": 0.0,
+      "max_threat_recover_s": 0.0,
+      "motion_idle_s": 0.0,
+      "queue_idle_s": 0.0,
+      "sample_count": 90,
+      "threat_alert_s": 0.0,
+      "threat_recover_s": 0.0
+    },
+    {
+      "anchor_ms": 142378,
+      "generation": 1,
+      "id": "resident_8",
+      "last_ms": 142378,
+      "max_motion_idle_s": 4.03,
+      "max_no_progress_s": 9.075,
+      "max_queue_idle_s": 0.0,
+      "max_threat_alert_s": 0.0,
+      "max_threat_recover_s": 0.0,
+      "motion_idle_s": 0.0,
+      "queue_idle_s": 0.0,
+      "sample_count": 90,
+      "threat_alert_s": 0.0,
+      "threat_recover_s": 0.0
+    },
+    {
+      "anchor_ms": 142378,
+      "generation": 1,
+      "id": "resident_9",
+      "last_ms": 142378,
+      "max_motion_idle_s": 2.017,
+      "max_no_progress_s": 9.059,
+      "max_queue_idle_s": 0.0,
+      "max_threat_alert_s": 0.0,
+      "max_threat_recover_s": 0.0,
+      "motion_idle_s": 0.0,
+      "queue_idle_s": 0.0,
+      "sample_count": 90,
+      "threat_alert_s": 0.0,
+      "threat_recover_s": 0.0
+    },
+    {
+      "anchor_ms": 142378,
+      "generation": 1,
+      "id": "resident_10",
+      "last_ms": 142378,
+      "max_motion_idle_s": 2.012,
+      "max_no_progress_s": 5.026,
+      "max_queue_idle_s": 0.0,
+      "max_threat_alert_s": 0.0,
+      "max_threat_recover_s": 0.0,
+      "motion_idle_s": 0.0,
+      "queue_idle_s": 0.0,
+      "sample_count": 90,
+      "threat_alert_s": 0.0,
+      "threat_recover_s": 0.0
+    }
+  ],
+  "soak_sample_count": 90,
+  "physics_sample_count": 9676,
+  "liveness_limits_s": {
+    "motion": 10.0,
+    "queue": 30.0
+  },
+  "native_ok": false,
+  "camera": {
+    "basis": [
+      [
+        -4.37113882867379e-08,
+        0.0,
+        1.0
+      ],
+      [
+        0.119712203741074,
+        0.992808640003204,
+        5.23278664843474e-09
+      ],
+      [
+        -0.992808640003204,
+        0.119712203741074,
+        -4.33970441804377e-08
+      ]
+    ],
+    "far": 1600.0,
+    "fov": 45.0,
+    "near": 0.0799999982118607,
+    "position": [
+      37.1172485351563,
+      2.34298133850098,
+      0.999999463558197
+    ],
+    "projection": 0,
+    "render_size": [
+      1920,
+      1080
+    ],
+    "rotation": [
+      -0.119999997317791,
+      -1.57079637050629,
+      0.0
+    ],
+    "viewport": [
+      1920.0,
+      1080.0
+    ],
+    "window_protocol": {
+      "content_scale_factor": 1.0,
+      "content_scale_mode": 2,
+      "content_scale_size": [
+        1920,
+        1080
+      ],
+      "display_window_size": [
+        1920,
+        1080
+      ],
+      "root_texture": [
+        1920,
+        1080
+      ],
+      "screen_scale": 1.0,
+      "viewport_visible": [
+        1920.0,
+        1080.0
+      ],
+      "window_mode": 0,
+      "window_size": [
+        1920,
+        1080
+      ]
+    }
+  },
+  "resolution_ok": true,
+  "camera_matches_baseline": true,
+  "frame_ms": {
+    "p50": 12.231,
+    "p95": 16.069,
+    "p99": 17.465
+  },
+  "mean_fps": 107.49849437115508,
+  "moved_residents": 10,
+  "logic_cost": {
+    "logic_including_profiler_max_us": 12445,
+    "logic_including_profiler_p50_us": 5333,
+    "logic_including_profiler_p95_us": 6576,
+    "max_us": 12423,
+    "p50_us": 5316,
+    "p95_us": 6547,
+    "profiler_write_max_us": 67,
+    "profiler_write_p50_us": 17,
+    "profiler_write_p95_us": 24,
+    "profiler_write_samples": 2048,
+    "samples": 2048,
+    "scope": "NPC logic excludes profiler writes; not rendered FPS"
+  },
+  "composition_and_movement_ok": true,
+  "perf_environment_clean": true,
+  "performance_gate": false
+}

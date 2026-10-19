@@ -1,0 +1,158 @@
+{
+  "status": "FOUR_NATIVE_SERVICE_CYCLES_COMPLETED_RECEIPT_AUDIT_PASS",
+  "raw_native_run_formal_status": "FAIL_obsolete_24_damage_QA_assumption_preserved",
+  "raw_run": "runs/candidate_actual02/RUN.json",
+  "corrected_immutable_evidence_audit": "runs/candidate_actual02/RECEIPT_AUDIT56.json",
+  "elapsed_after_startup_s": 311.976,
+  "wall_s": 340.19172310002614,
+  "originals": 10,
+  "staff": 12,
+  "source_drift": [],
+  "harness_drift": [],
+  "stderr_bytes": 0,
+  "cases": [
+    {
+      "kind": "bank",
+      "source_id": "resident_2",
+      "completed": true,
+      "on_floor_exit": true,
+      "exit_depth": -1.35147094726563,
+      "outside_distance_m": 0.298530578613281,
+      "selected_claim_released": true,
+      "staff_customer_body_matches": true,
+      "real_service_point_distance_m": 0.284924477338791,
+      "door_events": [
+        {
+          "event": "fully_open_entry",
+          "fraction": 1.0,
+          "frame": 4070,
+          "position": "(111.9314, -0.00024, 186.7706)",
+          "stage": "(0.0, 0.0, 0.0)"
+        },
+        {
+          "event": "safe_stage_arrived",
+          "fraction": 0.102564102564103,
+          "frame": 4491,
+          "position": "(107.7904, 0.239625, 186.5511)",
+          "stage": "(107.8, 0.243, 186.55)"
+        },
+        {
+          "event": "fully_open_crossing",
+          "fraction": 1.0,
+          "frame": 4526,
+          "position": "(107.7904, 0.239625, 186.5511)",
+          "stage": "(107.8, 0.243, 186.55)"
+        }
+      ],
+      "tracked_total_motion_m": 413.925081701949,
+      "travel_to_exit_m": 96.758140379563,
+      "completed_elapsed_s": 58.878
+    },
+    {
+      "kind": "hospital",
+      "source_id": "resident_7",
+      "completed": true,
+      "on_floor_exit": true,
+      "exit_depth": -1.37968444824219,
+      "outside_distance_m": 0.270309448242188,
+      "selected_claim_released": true,
+      "staff_customer_body_matches": true,
+      "real_service_point_distance_m": 0.281394332647324,
+      "door_events": [
+        {
+          "event": "fully_open_entry",
+          "fraction": 1.0,
+          "frame": 5599,
+          "position": "(20.27166, -0.000434, 195.9872)",
+          "stage": "(0.0, 0.0, 0.0)"
+        },
+        {
+          "event": "safe_stage_arrived",
+          "fraction": 0.307692307692307,
+          "frame": 5991,
+          "position": "(20.49867, 0.240556, 191.8382)",
+          "stage": "(20.5, 0.243, 191.85)"
+        },
+        {
+          "event": "fully_open_crossing",
+          "fraction": 1.0,
+          "frame": 6018,
+          "position": "(20.49867, 0.240556, 191.8382)",
+          "stage": "(20.5, 0.243, 191.85)"
+        }
+      ],
+      "tracked_total_motion_m": 478.478929723846,
+      "travel_to_exit_m": 141.757740530418,
+      "completed_elapsed_s": 83.761
+    },
+    {
+      "kind": "restaurant",
+      "source_id": "resident_9",
+      "completed": true,
+      "on_floor_exit": true,
+      "exit_depth": -1.35340881347656,
+      "outside_distance_m": 0.296585083007813,
+      "selected_claim_released": true,
+      "staff_customer_body_matches": true,
+      "real_service_point_distance_m": 0.28799694776535,
+      "door_events": [
+        {
+          "event": "safe_stage_arrived",
+          "fraction": 0.153846153846154,
+          "frame": 19680,
+          "position": "(139.3991, 0.240692, 187.7422)",
+          "stage": "(139.4, 0.243, 187.75)"
+        },
+        {
+          "event": "fully_open_crossing",
+          "fraction": 1.0,
+          "frame": 19713,
+          "position": "(139.3991, 0.240692, 187.7422)",
+          "stage": "(139.4, 0.243, 187.75)"
+        }
+      ],
+      "tracked_total_motion_m": 546.338592749089,
+      "travel_to_exit_m": 546.338592749089,
+      "completed_elapsed_s": 311.975
+    },
+    {
+      "kind": "shop",
+      "source_id": "resident_6",
+      "completed": true,
+      "on_floor_exit": true,
+      "exit_depth": -1.36288452148438,
+      "outside_distance_m": 0.287109375,
+      "selected_claim_released": true,
+      "staff_customer_body_matches": true,
+      "real_service_point_distance_m": 0.282944291830063,
+      "door_events": [
+        {
+          "event": "fully_open_entry",
+          "fraction": 1.0,
+          "frame": 3243,
+          "position": "(131.8039, 0.211052, 0.729748)",
+          "stage": "(0.0, 0.0, 0.0)"
+        },
+        {
+          "event": "safe_stage_arrived",
+          "fraction": 1.0,
+          "frame": 3601,
+          "position": "(135.8, 0.300694, 1.0)",
+          "stage": "(135.8, 0.303, 1.0)"
+        },
+        {
+          "event": "fully_open_crossing",
+          "fraction": 1.0,
+          "frame": 3602,
+          "position": "(135.8, 0.300694, 1.0)",
+          "stage": "(135.8, 0.303, 1.0)"
+        }
+      ],
+      "tracked_total_motion_m": 400.551686508581,
+      "travel_to_exit_m": 70.7173230182379,
+      "completed_elapsed_s": 43.523
+    }
+  ],
+  "performance_accepted": false,
+  "merged_shared_accepted": false
+}

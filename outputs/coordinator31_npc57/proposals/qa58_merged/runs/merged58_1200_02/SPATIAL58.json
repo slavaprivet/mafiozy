@@ -1,0 +1,32 @@
+{
+  "schema": "mafiozi.qa31.spatial-liveness/v1",
+  "passed": false,
+  "source": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\qa58_merged\\runs\\merged58_1200_02\\SOAK31.json",
+  "source_sha256": "f26d10721ccadf075e951bfe864942c91bc90e377ec3f851bfe9c875080b9038",
+  "window_s": 30.0,
+  "bbox_diagonal_limit_m": 1.5,
+  "episodes": [
+    {
+      "id": "resident_7",
+      "generation": 1,
+      "start_s": 438.384,
+      "end_s": 1199.386,
+      "max_window_bbox_diagonal_m": 1.2155405361289917,
+      "first_native_phase": "WALKING",
+      "first_outer_phase": "",
+      "first_door_stage": "",
+      "sample_count": 732,
+      "last_position": [
+        134.947937011719,
+        0.380619138479233,
+        -0.00203052069991827
+      ],
+      "duration_s": 761.002
+    }
+  ],
+  "policy": "All samples require motion; intentional rest, completed walk and lifecycle boundaries reset. No route-retry reset. Maximum input gap2.5s.",
+  "limitations": [
+    "1Hz sampled positions; rapid excursions between samples can be missed.",
+    "Read-only supplementary gate, not a replacement for existing native assertions."
+  ]
+}

@@ -1,5 +1,200 @@
 # Координатор25 — действующая память
 
+## 30 сентября23:22 MSK — два дефекта от пользователя в реальном Palazzo preview
+
+Пользователь сам проверяет игру с50РПГ и прислал два скриншота:
+1. След RPG остаётся в пустоте после разрушения/выпадения фасада.
+2. Нырок Макса Пейна через визуальный пролом останавливается как у стены.
+Оба OPEN, прежние functional PASS их не закрывают. Скриншоты и точные слова
+сохранены в `outputs/coordinator25_orphan_marks37/user_evidence` и
+`outputs/coordinator25_dive_breach38/user_evidence` (полные оригиналы, безправок).
+Root не воспроизводил новым движком, показанная сцена не перезапускалась.
+
+close_ak_fix делает только isolated37 weapon mark lifetime/anchor;
+takeover_audit читает Building2 detach/reset/collider contract, не меняет owner;
+blast_latency_audit делает isolated38 player/dive/capsule/guard анализ.
+Все без Godot/headless/GPU/большого копирования, пользователь продолжает игру.
+Нельзя отключать стены/капсулу, уменьшать тело до точки или удалять все следы.
+Ожидаемое: след следует сохранившемуся обломку либо уходит с уничтоженной
+поверхностью; нырок использует корректную физическую форму и реальные препятствия.
+Причина блокировки пока гипотеза, screenshot не доказывает конкретный collider.
+Owners уведомлены через штаб, frozen292/main/player/export сохранены.
+
+## 30 сентября23:20 MSK — текущий Palazzo с 50 зарядами РПГ
+
+Пользователь попросил50зарядов для проверки и затем явно «перезапксти сцену
+с патронами». Предыдущая попытка была остановлена физическим Esc до запуска.
+После возобновления свежие inventory нашли толькоManager:47436 уже завершён.
+Root запустил единственный Palazzo с external interactive bootstrap:
+`outputs/coordinator25_palazzo_ammo50/launch.ps1`, PID29176 при запуске,
+nativewindow8913978. Frozen owner292pins/assembly2f5e3611… не менялись.
+Нормальный inventory подтвердил `AMMO_READY ok=true`: РПГ заряжен1, резерв49,
+всего50, персонаж42.2/.090107/1 перед входом. Начальный стандартный запас был1+3.
+Расход, перезарядка, попадания, урон и профиль РПГ сохранены. Bootstrap только
+для пользовательской проверки, не production изменение. Окно активировано.
+`outputs/coordinator25_palazzo_ammo50/OPENED.json` хранит текущий запуск;
+stdout/stderr и AMMO_READY в его run_directory, stderr пуст. Launcher ожидает
+выхода игры в shell session10946 и удерживает mutex; не убивать как лишнюю игру.
+Пока пользователь проверяет, никакого второго Godot/headless/GPU и перезапуска.
+
+Root подготовка без запусков: cold35 README/PREPARED35 SHA
+d5f8eb1f6570f239f76bc7aadad15a656b5a64746ac4ce1fde54282584f76d5d;
+optimization36/qa/PREPARED36.md, manifestQA SHA
+31f5c150059d128b6a8bf577299241ec2a22f1b076d00ce5f6e8e63e61fe833e.
+Оба PREPARED_NOT_RUN. Независимый review36_root25/REVIEW.md: NO_FINDING
+только по исходникам, runtime parity/ускорение не доказаны. Новые движки не
+запускались ради этих пакетов; следующий прогон только после нового окна.
+
+## 30 сентября23:13 MSK — пользователь появился у Палаццо, текущая игра47436
+
+Новое прямое: «я и так не вижу результата почти. к палацозаспавни меня я проверю».
+Это отменяет показ старой25a как достаточный ответ: owner подготовил обычный
+interactive isolated Palazzo с начальной позицией42.2/.14/1 лицом+X к входу.
+Root после свежих process/window inventories (толькоManager,18564 уже исчез)
+запустил `outputs/buildings2_palazzo_live/play.ps1` черезpwsh. Одна игра47436,
+nativewindow7997214, PALAZZO_READY/общаяготовность/NPCready, respondingtrue,
+stderr0. Окно активировано, пользователь получил Eдверь/Kобвал/Jreset/Qарсенал.
+Никакого QAскрипта: обычный `--path` ownercandidate. Production не менялась,
+full GPU/performance/export НЕ приняты; Eanchor поправлен без повторнойQA.
+Source292pins owner заморозил до осмотра. Не закрывать и не перезапускать сцену
+пока пользователь проверяет; другие Godot/headless/perf отложены.
+
+Launcher после успешногоStartProcess упал на Contains(null) при пустомstdout;
+сама игра работала и сохранена. Root исправил только явный [string] для двух
+переменных launcher, не перезапускал. Старыеbytes/diff/REPAIR и восстановленный
+OPENED: `outputs/coordinator25_delivery25a/palazzo_user_show_2313`.
+Owner `outputs/buildings2_palazzo_live/OPENED.json` теперь описывает текущую
+игру; перед следующей операцией всё равно нужен свежий inventory.
+Screenshot вернул FrameArrived timeout: не выдавать активацию/логи за просмотр
+картинки или законченную GPUприёмку. Пользователь сам проверяет этот preview.
+
+## 30 сентября23:08 MSK — пользователь смотрит игру, GPU окно отменено
+
+Прямое новое поручение «дайте посмотреть». Root уведомил Buildings2 и штаб:
+окно23:03 отменено, следующие Godot/matched QA отложены. Свежие process+native
+window inventories не нашли игры/QA, только Manager. Root guardedlauncher
+открыл ровно одну принятую25a + FINALcompactHUD: PID18564, окно7276318;
+ready4/4, respondingtrue, stderr0. Окно активировано через ComputerUse.
+Receipt `outputs/coordinator25_delivery25a/user_show_2307/OPENED.json`.
+Предыдущий owner OPENED сохранён в PREVIOUS_OWNER_OPENED.json; launcher
+обновил только текущий OPENED, finalmanifest/runtime/proof не менялись.
+Не закрывать/перезапускать игру, пока пользователь смотрит; дальнейшие
+эксклюзивные замеры требуют нового согласования. Историческое окно ниже
+больше НЕ разрешает запуск. Лёгкая source-only подготовка продолжается.
+Показанная игра пока без Palazzo/step33/closeAK33 и полного NPCгорода.
+Root main/player/export не менял. Перед любым будущим запуском свежий inventory.
+
+Heartbeat23:07: Buildings2 подтвердил отмену окна. Его native01 exit2:
+реальные W/S вход/выход без прыжка и K97/Jreset PASS, но Eclose после выхода
+и RPGaimfixture FAIL. Owner исправляет в isolated291pins, physical stone
+entrance ramp вместо playerpatch. Full GPU/export ещё не приняты. Новое
+поручение владельцу про разрушаемый город сохранено как поэтапное после Palazzo:
+production дома сейчас не сносит, обязан сохранять IDs/назначения/механику.
+
+CloseAK optimization36 подготовлен source-only: renderer SHA
+`35729ab80b760968c0313969b610737af791ab4c1ce1b33fc03657eea6b6ff56`,
+manifest `88d7ce0894804ffde60f318a41ae81ffaba800cb5d61a3783db5465f42a66e57`.
+12triangle conservative leaves + lazy posedvertices + exactposecache/fusedray;
+старые patch/runtime3/RUNs не менялись. Это NOT_RUN, новые startup/memory
+затраты возможны. takeover_audit независимо читает correctness/инвалидацию,
+close_ak_fix готовит samepose parity и fullpath performance fixture без запусков.
+Художнику24 дано конкретное source-only задание enclosing timing buckets;
+если уже подготовлены — использовать существующие. Отчёт только через штаб.
+
+## 30 сентября23:03 MSK — активное эксклюзивное окно Buildings2
+
+Root25 дал Buildings2 GO через штаб на native/matched loaded baseline+candidate,
+exact export и одну игру Palazzo2a. Все остальные CPU/GPU QUIET до явного
+owner FINAL RELEASED. Ориентир10мин, но истечение времени НЕ означает release.
+Root и три подзадачи выполняют только лёгкую подготовку исходников/receipt.
+НЕ запускать root33/cold/NPC/другой Godot/экспорт параллельно этому замеру.
+Owner candidate `outputs/buildings2_palazzo_live/candidate`, baseAssembly34,
+revision `s01-20260930-palazzo2a`, собственный участок48.5/0/0 yaw-90,
+отдельный dryground/boundary/jumpguard при сохранении исходного NPCcrop31×31.
+Owner main/notes/export+новыеPalazzo файлы, player/weapon33 не меняет.
+Root не промотит общие файлы до окончания/передачи. Требуются настоящий E/RPG,
+проход порога21см, полное разрушение, сохранение полного контента и compactHUD.
+Финальные факты принимает root только после immutable proof/RELEASED в штабе.
+
+## 30 сентября22:58 MSK — Buildings2 внедряет Palazzo; root33 проверяется изолированно
+
+По новому прямому поручению пользователя Buildings2 сам подключает Palazzo.
+Root25 прекратил параллельную интеграцию Palazzo и временно не меняет общие
+main/player/export/LIVE, пока владелец готовит scoped mainhooks/экспорт. Передан
+`outputs/coordinator25_palazzo36/PREFLIGHT.md`: участок54.05/0/5.65, полный дом,
+адаптеры и тест PREPARED_NOT_RUN; Buildings2 может использовать либо заменить.
+Это не PASS и не включённое здание. Варианты owner51PASS и original1362PASS
+не заменяют native E/RPG, реальный порог21см и loaded GPU. Нельзя урезать дом.
+
+Последний проверенный main/origin22:33:
+`a463167683dc2e9da10f0e70291c64897bd5c5c4` — принятая25a,64точных файла,
+12runtimepaths, чужие WIP сохранены, индекс после коммита пуст.
+`outputs/coordinator25_delivery25a/CHECKPOINT.json` хранит результат.
+
+По отдельному поручению пользователя street-owner уменьшил панель водителя.
+Финальная compactHUD GPU02:142PASS/0errors, реальные PNG root просмотрел;
+manifest `15d8f1d01a7df8328b916413771b21da0cd45567e4921816a4788953ff99503c`.
+Единственная runtimeдельта car_dashboard SHA
+`00f3cfe3b146ecf6e20e631cc1998ba4c622b48c397f035a47b661ac457d59da`.
+Owner FINAL RELEASED22:42, открыл25a+compact overlay36464 после штатного
+закрытия53140. Но свежий inventory22:58 показывает ТОЛЬКО Manager45268:
+36464 уже отсутствует, root его не закрывал. Исторический OPENED не является
+текущим процессом. Root не перезапускает игру параллельно работе Buildings2.
+Следующий экспорт обязан сохранить compactHUD и фразу «снизу по центру»;
+общая production25a/ярлыки пока содержат прежний размер панели.
+
+Street-owner получил новое поручение: звуки езды и реальная панель повреждений
+авто в `outputs/car_drive_20260930/preview25a`. Мини-карта отложена. Accepted25a
+не имеет vehicle HP; не рисовать выдуманное здоровье. Владелец готовит мост
+исходного damage owner, не трогает Transport3/Physics/main/player/export.
+Новых GPU от него пока не было; готовый кандидат требует root QUIET.
+
+Root step33: `fixture25a01` baseline/fixed PASS, fixed73checks/0nativeerrors.
+Персонаж действительно проходит106мм, препятствия121мм/400мм, corpse proxy,
+rigid/animatable/moving static и low ceiling сохраняют блокирование.
+120мм step не решает порогPalazzo21см и не заменяет source step38см.
+`newfixture` подготовлен на настоящем townhouse013:3native RPG160, затем
+W/S через пролом без прыжка; отдельный corpse28 finiteTT/native pressure.
+В22:58 root запустил последовательный actual25a01, результат ещё ожидается.
+Производительность, GPU и общая интеграция step33 пока не приняты.
+
+Уточнение23:01: actual25a01 завершён PASS: passage1997checks за24.84с,
+corpse2738checks за35.19с, ошибок0,279pins/fixture неизменны. W вошёл на
+пол104.6мм, S вернулся наружу;203native contact /216pressure frames.
+Настоящий corpse:272contact /353pressureframes,168blockedframes, shiftmax29мм.
+Это два отдельных сценария, corpse-in-breach не проверялся. Root RELEASED
+отправлен в штаб; никаких новых GPU/производительности этим не доказано.
+
+Root closeAK33: clean baseline25a01 29PASS и candidate25a02 50PASS,
+valid_run=true, nativeerrors0. Близкий наклонный выстрел: baseline marks0 /
+candidate marks1, postmortem1 в обоих; обычный выстрел marks1 в обоих.
+Настоящая чужая преграда перед стволом продолжает блокировать. Первый
+candidate25a01 имел ошибку typed-array в QAhelper, сохранён и не принят;
+helper исправлен с bytebackup, gameplay patch не менялся. COMPARISON/HANDOFF
+готовит close_ak_fix. Это bounded headless, не готовый экспорт/GPU/FPS.
+
+Уточнение23:01: COMPARISON25A.json SHA
+`f5f87786557c8c89dbbd145aec2f57f152bb49e413e109e55e3f0766a8c11e22`.
+Aim surface query4.352мс close /10.131мс far — существенная стоимость;
+candidate удерживать изолированным до оптимизации/сопоставимого замера.
+Не считать50PASS разрешением добавлять такую стоимость в общую игру.
+
+Художник24: run21 14PASS сохраняется, performance HOLD. Из77.957мс logic
+71.432мс ещё не атрибутированы; visit_step15.682/19.538мс также недостаточно
+детализирован. Следующий шаг владельца — enclosing buckets, затем измеримая
+оптимизация; startup287 не принят, NPC/геометрию ради PASS не сокращать.
+
+Существующие Астра1–10 сохранены. Dispatch02: Астра1 дал source-only вариант
+подготовки480материалов для coldmetal, NOT_RUN; не применён, сначала атрибуция.
+Астра3 статически проверил step33: NO_FINDING; motion>120мм/tick возвращает0,
+порог зависит от частоты, это условие не доказанный дефект. Pinned run_speed=5.8,
+то есть96.7мм/tick при60Hz;6.4 в обсуждении было гипотезой, не фактом прогона.
+Других восьмерых
+не будили пустыми поручениями; Астра8 readtimeout не обходили дубликатом.
+blast_latency_audit теперь готовит только cold35 instrumented harness без
+Godot/productionправок, причина123мс ещё не доказана. Старых координаторов
+и остановленный traversal не будить, отчёты только в штаб.
+
 ## 30 сентября22:28 MSK — unified25a включена, фонари доставлены
 
 Уточнение22:31 после вопроса пользователя «что с разрушением зданий и нпс?»:

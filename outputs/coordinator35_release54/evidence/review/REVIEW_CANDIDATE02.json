@@ -1,0 +1,36 @@
+{
+  "schema": "mafiozi.rmb54-source-review/v1",
+  "candidate": "02",
+  "reviewed_sword_sha256": "e1f2df1ef1a38289b99c635e94c2bd164aa45864c8f456b8e2071ecfa280c607",
+  "current_source_at_report_sha256": "e1f2df1ef1a38289b99c635e94c2bd164aa45864c8f456b8e2071ecfa280c607",
+  "reviewed_scope": "Read-only source review53->54; no Godot/runtime tests and no game edits",
+  "findings": [
+    {
+      "priority": "P2",
+      "title": "Stale half-sword state disables RMB mace after switching from half-sword",
+      "locations": [
+        "scripts/weapons/sword_prototype.gd:3377",
+        "scripts/weapons/sword_prototype.gd:70",
+        "scripts/weapons/sword_prototype.gd:2999"
+      ],
+      "trigger": "Equip sword; X enables half-sword; select mace through ordinary preview_weapons._sword_prototype_weapon; hold RMB.",
+      "cause": "set_weapon and set_selected preserve _half_sword. New _right_hand_weapon54 rejects all _half_sword, so mace stays blocking and RMB does not count as swing. Existing _solve_arm also sees this stale flag and selects half-sword IK.",
+      "scope": "Stale flag existed before candidate, but it now prevents the newly requested RMB mace behavior.",
+      "suggestion": "Clear invalid half-sword mode when the weapon actually changes from sword to a non-sword, preserving valid sword half-sword and LMB dynamics. Helper-only relaxation leaves half-sword IK on mace."
+    }
+  ],
+  "source_conclusions": {
+    "lmb_only": "With RMB false, _swing_held54 reduces exactly to _hold_left and the new smoothing branch is false. Existing LMB input branch/coefficients are unchanged.",
+    "rmb_sword_mace": "When shield and half-sword false, RMB leaves guard, uses shared target/torque/IK/swing phase and damage. Right-hand choice already exists.",
+    "release": "RMB release starts180ms existing momentum coast only when LMB not held; press cancels coast. Existing _sword_coasting31 excludes held RMB, so LMB release while RMB remains held does not force coasting.",
+    "shield": "_right_hand_weapon54 false with shield; existing shield control and _blocking values preserved.",
+    "other_weapons": "Helper false for axe/sledge/spear; phase/chest/damage helpers reduce to previous LMB conditions.",
+    "half_sword": "Sword half-sword helper false, preserving existing RMB guard; stale switch edge is listed.",
+    "switch_drop_menu": "Existing weapon switch resets coast/omega/contact histories; drops clear both held flags; inactive physics clears missed-release flags.",
+    "near_parallel_smoothing": "New normalized-lerp guard is restricted to eligible RMB-only and dot>0.9999. LMB-only path and all smoothing coefficients preserved; runtime stability not independently tested."
+  },
+  "limits": [
+    "Review is source-only; it does not certify mirrored arm motion, natural contacts or real-input runtime.",
+    "Finding requires native regression verification after any repair; no runtime was started here."
+  ]
+}

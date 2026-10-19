@@ -1,0 +1,35 @@
+{
+  "status": "PREPARED_NOT_ACCEPTED",
+  "utc": "2026-10-15T14:38:48.104042+00:00",
+  "cpu_checks": 36,
+  "cpu_passed": true,
+  "independent_static_review": true,
+  "freeze_executed": false,
+  "engine_launched": false,
+  "pointer_modified": false,
+  "git_invoked": false,
+  "release_accepted": false,
+  "pending": [
+    "final_cumulative_integration57_to_candidate",
+    "combined_services_threat_visual",
+    "combined1200s_soak_with_spatial_gate",
+    "new_exclusive_rendered_performance57_to_candidate",
+    "frozen_copy_and_startup",
+    "root_activation_and_visible_delivery"
+  ],
+  "files": {
+    "activate58.py": "d5c3715329e0424a2c679d8205fd4bc68ca5ee44849dcbb6bd4bc5c069d5b17f",
+    "check_tools58.py": "ec2fd3dd1f80868c9986715d8c3c9f3a0eeb7b8bb8cb957d0f88b0513056c5cc",
+    "CPU_CHECKS58.json": "c53222e447d0d2042b699a6ced6e27e05b52297676c9e6e2a18753cf82bd6dfb",
+    "freeze58.py": "052b40c97b93cb31697e40cc18354bf20ab49f21e536235cedb5de92b80db683",
+    "HANDOFF.md": "1755473e44d5de9d8a449615ada3c5e9e6b51769677a31c44a501cf15376f0e7",
+    "INDEPENDENT_REVIEW58.md": "311ac389e6209b22bb49ce925efee3a207f8f4566e516d49949f18cbf634ff1c",
+    "perf_compare58.py": "6d554658c2e82565c40f5031b762c21aeb227e0d4c89a3445239d970ccada0d0",
+    "prepare_tools58.py": "6f54aabd547f6a96d57ecbadfb74f4461193688d9839c91c97de2191688254c2",
+    "RELEASE_PLAN58.example.json": "2869b019ca1bce4580b7de05c74de07a505a6539e54b4616dbdc8225026634f3",
+    "spatial58.py": "020a88f92d3ffc88307115b8aa48a5141f765c9563768df94f0ede890ff18c2b",
+    "startup58.py": "ce09433cdab71e8644a34d8c0ccb16a70c732e41694119042205e729816ca5fb",
+    "TEMPLATE_ORIGINS.json": "da04664beada332084dd2c828626f2cc23d2279d713cac0466c15caf2fff9605",
+    "validators58.py": "963a65aaf345c3459de2c566e1e8a5622a4521fe8bb1b9634d626bb2ea0d72cd"
+  }
+}

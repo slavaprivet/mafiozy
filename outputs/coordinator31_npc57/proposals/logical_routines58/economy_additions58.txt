@@ -1,0 +1,13 @@
+func has_routine_pending58() -> bool:
+	return current() and not str(_pending.get("routine_ticket58", "")).is_empty()
+
+func routine_deferred58(now_ms: float) -> bool:
+	return not active() and has_routine_pending58() and now_ms < _routine_defer_until58
+
+func _routine_failure58(now_ms: float) -> void:
+	if not has_routine_pending58() or _committed: return
+	_routine_failures58 += 1
+	if _routine_failures58 < 3: return
+	_routine_failures58 = 0
+	_routine_defer_until58 = now_ms + 45000.0
+	_log("routine_deferred58", "three_failed_venue_attempts;ticket_and_price_retained;until=" + str(_routine_defer_until58))

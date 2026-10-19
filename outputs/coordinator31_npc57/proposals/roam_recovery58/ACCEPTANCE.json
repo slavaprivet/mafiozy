@@ -1,0 +1,231 @@
+{
+  "schema": "mafiozi.roam-recovery58.acceptance/v1",
+  "passed": true,
+  "ready_for_integration": true,
+  "full_city_acceptance": false,
+  "performance_accepted": false,
+  "production_modified": false,
+  "checks": {
+    "patch_matches_exact_stage03": true,
+    "candidate_sha_matches_patch": true,
+    "baseline_obstacle_clean_owned_native": true,
+    "baseline_obstacle_exact_source": true,
+    "baseline_obstacle_controls_preserved": true,
+    "baseline_obstacle_exact_archive": true,
+    "baseline_obstacle_60hz": true,
+    "baseline_obstacle_native_collision_contract": true,
+    "candidate_obstacle_clean_owned_native": true,
+    "candidate_obstacle_exact_source": true,
+    "candidate_obstacle_controls_preserved": true,
+    "candidate_obstacle_exact_archive": true,
+    "candidate_obstacle_60hz": true,
+    "candidate_obstacle_native_collision_contract": true,
+    "baseline_legal_clean_owned_native": true,
+    "baseline_legal_exact_source": true,
+    "baseline_legal_controls_preserved": true,
+    "baseline_legal_exact_archive": true,
+    "baseline_legal_60hz": true,
+    "baseline_legal_native_collision_contract": true,
+    "candidate_legal_clean_owned_native": true,
+    "candidate_legal_exact_source": true,
+    "candidate_legal_controls_preserved": true,
+    "candidate_legal_exact_archive": true,
+    "candidate_legal_60hz": true,
+    "candidate_legal_native_collision_contract": true,
+    "paired_obstacle_harness_exact": true,
+    "tested_candidate_byte_exact": true,
+    "same_obstacle_geometry": true,
+    "baseline_treadmill_no_replan": true,
+    "candidate_actual_arrival_under30": true,
+    "monotonic_guard_really_replanned": true,
+    "original_goal_preserved": true,
+    "cumulative_work_never_reset": true,
+    "work_counter_preserved_at_replan": true,
+    "native_speed_bound": true,
+    "legal_original12point_route_unchanged": true,
+    "legal_candidate_arrives_without_replan": true,
+    "physical_scenario_scope_explicit": true,
+    "native_recorded_guard_clean": true,
+    "recorded_existing_service_guard_results_identical": true,
+    "recorded_flat_aligned_guard_triggers": true,
+    "recorded_local_waypoint_progress_preserves_detour": true,
+    "recorded_new_path_resets_local_guard": true,
+    "recorded_new_waypoint_resets_local_guard": true,
+    "recorded_recorded_episode_has_762_samples": true,
+    "recorded_recorded_first_replan_under_10_seconds": true,
+    "recorded_recorded_guard_requests_replan": true
+  },
+  "metrics": {
+    "baseline_treadmill_s": 44.954623,
+    "candidate_arrival_s": 10.464588,
+    "candidate_physics_frames": 630,
+    "candidate_max_native_speed_mps": 1.8003666299606809,
+    "candidate_final_service_us": 70749,
+    "candidate_replans": [
+      {
+        "at_s": 4.279992,
+        "reason": "roam_waypoint_no_progress58",
+        "work_us": 17570
+      },
+      {
+        "at_s": 7.405554,
+        "reason": "physical_stall",
+        "work_us": 52984
+      }
+    ],
+    "legal_candidate_arrival_s": 2.99222,
+    "recorded_first_guard_s": 4.005
+  },
+  "evidence": {
+    "baseline_obstacle": {
+      "RUN.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_obstacle_baseline01/RUN.json",
+        "sha256": "6f8aeb736b62538f3e9f4fb2cd68410d6bf56c4147dc162a8f6162eefeb58a5d"
+      },
+      "NATIVE58.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_obstacle_baseline01/NATIVE58.json",
+        "sha256": "01598006f29640c1282ef2c8ca7eb9a4ff794cf834f929a1078b1ca87d0005f6"
+      },
+      "SOURCE.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_obstacle_baseline01/SOURCE.json",
+        "sha256": "671a7959afd972b941156e4a5b298b309cc55f0d5823eda223b39a6c48dc7dcf"
+      },
+      "SOURCE_AFTER.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_obstacle_baseline01/SOURCE_AFTER.json",
+        "sha256": "671a7959afd972b941156e4a5b298b309cc55f0d5823eda223b39a6c48dc7dcf"
+      },
+      "HARNESS.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_obstacle_baseline01/HARNESS.json",
+        "sha256": "97373c61e0f93ef876cbf8ef354d9f2c4178814d322799955d9e2a7d9d1baebe"
+      },
+      "HARNESS.zip": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_obstacle_baseline01/HARNESS.zip",
+        "sha256": "4c48514bc6f27b7be48f731bddd4994b7224fba4c5098e34763d241f156fb37c"
+      },
+      "CONTROL_PINS.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_obstacle_baseline01/CONTROL_PINS.json",
+        "sha256": "a8785fd3bd54fada88aab1276b76fa863ec283fda9e1bfb17ad25f61d940d5ed"
+      },
+      "CONTROL_PINS_AFTER.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_obstacle_baseline01/CONTROL_PINS_AFTER.json",
+        "sha256": "a8785fd3bd54fada88aab1276b76fa863ec283fda9e1bfb17ad25f61d940d5ed"
+      }
+    },
+    "candidate_obstacle": {
+      "RUN.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_obstacle_candidate01/RUN.json",
+        "sha256": "7972e933a881f1f6d370b4fab934b3114242ee8218d10c9f63d9315404253799"
+      },
+      "NATIVE58.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_obstacle_candidate01/NATIVE58.json",
+        "sha256": "ee6d16f8de15d57fbce913b5d93ea86c285ad863bcc01f15f5e6b8ad2bc1f72f"
+      },
+      "SOURCE.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_obstacle_candidate01/SOURCE.json",
+        "sha256": "671a7959afd972b941156e4a5b298b309cc55f0d5823eda223b39a6c48dc7dcf"
+      },
+      "SOURCE_AFTER.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_obstacle_candidate01/SOURCE_AFTER.json",
+        "sha256": "671a7959afd972b941156e4a5b298b309cc55f0d5823eda223b39a6c48dc7dcf"
+      },
+      "HARNESS.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_obstacle_candidate01/HARNESS.json",
+        "sha256": "97373c61e0f93ef876cbf8ef354d9f2c4178814d322799955d9e2a7d9d1baebe"
+      },
+      "HARNESS.zip": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_obstacle_candidate01/HARNESS.zip",
+        "sha256": "4c48514bc6f27b7be48f731bddd4994b7224fba4c5098e34763d241f156fb37c"
+      },
+      "CONTROL_PINS.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_obstacle_candidate01/CONTROL_PINS.json",
+        "sha256": "a8785fd3bd54fada88aab1276b76fa863ec283fda9e1bfb17ad25f61d940d5ed"
+      },
+      "CONTROL_PINS_AFTER.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_obstacle_candidate01/CONTROL_PINS_AFTER.json",
+        "sha256": "a8785fd3bd54fada88aab1276b76fa863ec283fda9e1bfb17ad25f61d940d5ed"
+      }
+    },
+    "baseline_legal": {
+      "RUN.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_replay04/RUN.json",
+        "sha256": "a578a7e163c0e2ac8527b431244cd99b4372682c8b14ba9d0585784cc845b906"
+      },
+      "NATIVE58.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_replay04/NATIVE58.json",
+        "sha256": "4e79e272b5c87d59ab2260c5942e13e14b8034caf581669f0f0b5aa7161059d2"
+      },
+      "SOURCE.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_replay04/SOURCE.json",
+        "sha256": "671a7959afd972b941156e4a5b298b309cc55f0d5823eda223b39a6c48dc7dcf"
+      },
+      "SOURCE_AFTER.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_replay04/SOURCE_AFTER.json",
+        "sha256": "671a7959afd972b941156e4a5b298b309cc55f0d5823eda223b39a6c48dc7dcf"
+      },
+      "HARNESS.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_replay04/HARNESS.json",
+        "sha256": "e0ead3a6f7a9d94de9695e1b2799b59244ec19f475128a33179f88011e17053c"
+      },
+      "HARNESS.zip": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_replay04/HARNESS.zip",
+        "sha256": "d0e5972b91de707d37ccf19a5088b87d4725425fe96abc9f55ba19eee44e7c01"
+      },
+      "CONTROL_PINS.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_replay04/CONTROL_PINS.json",
+        "sha256": "bf309a32991519d80e5612c761d9f39907d61f2c7eb414b0d3b84381736f4e59"
+      },
+      "CONTROL_PINS_AFTER.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_replay04/CONTROL_PINS_AFTER.json",
+        "sha256": "bf309a32991519d80e5612c761d9f39907d61f2c7eb414b0d3b84381736f4e59"
+      }
+    },
+    "candidate_legal": {
+      "RUN.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_legal_candidate01/RUN.json",
+        "sha256": "d94b6f9b77dd61e5510935e3a758e109b9935bb81e529dc65e72164874a3a6de"
+      },
+      "NATIVE58.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_legal_candidate01/NATIVE58.json",
+        "sha256": "f7ac7d662f25c726d7f9dcf1cfb72094e38cbcc01b6e70f0a918ff3450eb7001"
+      },
+      "SOURCE.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_legal_candidate01/SOURCE.json",
+        "sha256": "671a7959afd972b941156e4a5b298b309cc55f0d5823eda223b39a6c48dc7dcf"
+      },
+      "SOURCE_AFTER.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_legal_candidate01/SOURCE_AFTER.json",
+        "sha256": "671a7959afd972b941156e4a5b298b309cc55f0d5823eda223b39a6c48dc7dcf"
+      },
+      "HARNESS.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_legal_candidate01/HARNESS.json",
+        "sha256": "97373c61e0f93ef876cbf8ef354d9f2c4178814d322799955d9e2a7d9d1baebe"
+      },
+      "HARNESS.zip": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_legal_candidate01/HARNESS.zip",
+        "sha256": "4c48514bc6f27b7be48f731bddd4994b7224fba4c5098e34763d241f156fb37c"
+      },
+      "CONTROL_PINS.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_legal_candidate01/CONTROL_PINS.json",
+        "sha256": "a8785fd3bd54fada88aab1276b76fa863ec283fda9e1bfb17ad25f61d940d5ed"
+      },
+      "CONTROL_PINS_AFTER.json": {
+        "path": "outputs/coordinator31_npc57/proposals/roam_stall58/runs/native_legal_candidate01/CONTROL_PINS_AFTER.json",
+        "sha256": "a8785fd3bd54fada88aab1276b76fa863ec283fda9e1bfb17ad25f61d940d5ed"
+      }
+    },
+    "recorded_RUN.json": {
+      "path": "outputs/coordinator31_npc57/proposals/roam_recovery58/runs/recorded_guard01/RUN.json",
+      "sha256": "057927214cdacad4da2c17e3228db13f1e385e63694c947659394b7064ae45cf"
+    },
+    "recorded_RECORDED_GUARD58.json": {
+      "path": "outputs/coordinator31_npc57/proposals/roam_recovery58/runs/recorded_guard01/RECORDED_GUARD58.json",
+      "sha256": "a55460e0bc22a43e29819ccce19a5737222acce0834a1c21c7f9b0ef7c71fb2c"
+    },
+    "recorded_HARNESS.zip": {
+      "path": "outputs/coordinator31_npc57/proposals/roam_recovery58/runs/recorded_guard01/HARNESS.zip",
+      "sha256": "2364af007ee5f32efa264163775d9365e367439e4b631a3f043f1eafabae8ba0"
+    }
+  },
+  "required_next": "Root integrates and stages/smokes this one file. Per latest user direction, defer full natural1200 and release regressions/performance until the logical routines model is merged into the final source.",
+  "limitation": "The original 761s natural physical cause was not reconstructed: fresh exact scene arrived in3.028s. Recorded data proves the watchdog gap; a controlled new world obstacle proves real stale-route recovery, and the ordinary12point route remains unchanged."
+}

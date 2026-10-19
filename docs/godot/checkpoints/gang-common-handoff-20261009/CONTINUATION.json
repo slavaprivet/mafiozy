@@ -1,0 +1,60 @@
+{
+  "schema": "mafiozy.common-gang-handoff.continuation.v1",
+  "owner": "Messi and his subagents",
+  "entry_project": "project/project.godot",
+  "baseline_accepted_runtime": "f506451775d58c5aa0c592d7dca4dfb553df153a",
+  "archive_only_main_checkpoint": "9cf3bb7ac662ca4efe99dc9fcb83dd40cb0d0066",
+  "installation": "Extract into a separate directory, validate every MANIFEST payload before import. Preserve first-PC current project/user save and previous accepted runtime.",
+  "launch": {
+    "engine": "Godot 4.7.2 official ed1daf0bf",
+    "import": [
+      "--headless",
+      "--path",
+      "<absolute project>",
+      "--editor",
+      "--quit"
+    ],
+    "run": [
+      "--path",
+      "<absolute project>",
+      "--",
+      "--gang-save-path=<isolated absolute save.json>"
+    ]
+  },
+  "checked": "Exact source/payload hash closure, parser grammar/static bindings; smoke separate QA receipt; prior hiring551 applies only f506 runtime.",
+  "next_actions": [
+    "Inspect QA smoke and fix current Godot import/type errors if any",
+    "Fix known actual same-body post-load life row/session seam with active lease/pending retirement",
+    "Bind original civilian fear navigation/budget/daily owners; complete safe collection/wallet/E",
+    "Run ONE integrated same-five/all-eight actual target effects, medical recovery and persistence/input/visual/performance acceptance",
+    "Continue actual shared vehicle boarding/fire/driving/sinking and original city restoration using genuine first-PC source archive"
+  ],
+  "source_archive_required": {
+    "name": "SHARED946_WITH_GODOT472.zip",
+    "bytes": 158160227,
+    "sha256": "a2e07554a5e59e98b1361e5cce5a6dce6c182e8acd743c18af980b98313ec07d",
+    "first_pc_path": "D:/Mafiozy_QA_Work/2026-10-08/task-7/HANDOFF_PC2_20261008T2212Z/SHARED946_WITH_GODOT472.zip",
+    "second_pc_payload": "NOT_RECEIVED; metadata checks alone are not archive restoration"
+  },
+  "author_ownership": "Previous production owners stop new edits/jobs after snapshot; further work belongs Messi team",
+  "known_limitations": [
+    {
+      "priority": "P1",
+      "id": "LIFE_ROW_RESTORE_SEAM",
+      "trigger": "Successful gang load after actor_life cache initialized on an owned body",
+      "actual": "Persistence installs new gang row on SAME body; physical_life retains old row and requires is_same, so subsequent actor_life may reject permanently and damage reports damage_life_unavailable.",
+      "source_locations": [
+        "persistence_owner.gd:332-342,488-496",
+        "physical_life_owner.gd:256-266",
+        "main_scene.gd:_on_bindings_changed"
+      ],
+      "continuation": "Receiving owner implements explicit idle-safe life/session retirement/rebind. Never silently retarget active pose/recovery/lease tokens or old rows.",
+      "evidence": "GAMEPLAY_HANDOFF_TO_MESSI.json; static actual code inspection, native NOT_RUN"
+    }
+  ],
+  "all8": "NOT_ACCEPTED",
+  "full_goal": "ACTIVE_NOT_COMPLETE",
+  "handoff_stage": "stage03",
+  "compile_delta": "COMPILE_DELTA.json",
+  "prior_native_smoke": "Stage02 FAIL_COMBINED_COLD_IMPORT retained evidence; Stage03 exact import result separate"
+}

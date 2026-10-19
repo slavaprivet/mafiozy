@@ -1,0 +1,23 @@
+{
+	"errors": [],
+	"loadout": {
+		"feet": "heavy_feet",
+		"hands": "heavy_hands",
+		"head": "heavy_head",
+		"legs": "heavy_legs",
+		"torso": "heavy_torso"
+	},
+	"passed": true,
+	"visual": {
+		"equipped": {
+			"feet": "heavy_feet",
+			"hands": "heavy_hands",
+			"head": "heavy_head",
+			"legs": "heavy_legs",
+			"torso": "heavy_torso"
+		},
+		"lost": [],
+		"ready": true,
+		"unit": 1.00999999046326
+	}
+}

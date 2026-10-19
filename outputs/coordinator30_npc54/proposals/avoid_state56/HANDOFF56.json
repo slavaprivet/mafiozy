@@ -1,0 +1,20 @@
+{
+  "status": "one-hunk source fix ready; native regression prepared, not run because root is testing 10/20 population batches",
+  "cause_chain": [
+    "Core.steer returns State.output by reference.",
+    "Simple.step retains this reference in _avoidance29_state.",
+    "Repeated Simple.begin calls _avoidance29_state.clear(), erasing Core-owned keys.",
+    "Core cached/capped branch only writes direction and replan.",
+    "Simple.step later reads missing waiting (and would also read missing ratio)."
+  ],
+  "correction": "Detach caller reference with _avoidance29_state={} at begin; leave Core output untouched; no per-frame duplicate allocation.",
+  "apply_command": "python -B outputs/coordinator30_npc54/proposals/avoid_state56/apply56.py <candidate-game>",
+  "regression_commands": [
+    "python -B outputs/coordinator30_npc54/proposals/avoid_state56/run56.py baseline01 --baseline",
+    "python -B outputs/coordinator30_npc54/proposals/avoid_state56/run56.py candidate01"
+  ],
+  "patch_sha256": "9be931162a09f7ad6d6a39a392fbe6ee49c18c7b0416a5e34c37dcca1b3b4e65",
+  "shared_frozen_modified": false,
+  "native_pass_claimed": false,
+  "restart_required": "Use fresh engine; previous process may already have corrupted Core.output."
+}

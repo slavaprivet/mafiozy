@@ -1,0 +1,49 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+{
+  "checks": 118,
+  "failures": [],
+  "passed": true,
+  "vest_fit": {
+    "centre_ratio": 0.474418604033303,
+    "follow_m": 0.5,
+    "height_share": 0.230000007392824,
+    "model": {
+      "min": [
+        -1.37907314300537,
+        0.0300000011920929,
+        -0.634999990463257
+      ],
+      "size": [
+        2.75889492034912,
+        5.15999984741211,
+        1.31299996376038
+      ]
+    },
+    "placement": {
+      "bone": "chest",
+      "bone_index": 3,
+      "model_height_m": 5.15999984741211,
+      "ok": true,
+      "scope": "local_preview_armor_visual",
+      "size_m": [
+        1.23839998245239,
+        1.18680000305176,
+        0.82559996843338
+      ],
+      "world_per_bone": 1.0
+    },
+    "vest": {
+      "min": [
+        -0.619199991226196,
+        1.88459992408752,
+        -0.41279998421669
+      ],
+      "size": [
+        1.23839998245239,
+        1.18680000305176,
+        0.82559996843338
+      ]
+    }
+  }
+}

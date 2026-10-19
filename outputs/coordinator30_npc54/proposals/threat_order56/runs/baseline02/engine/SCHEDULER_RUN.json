@@ -1,0 +1,87 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--path",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\threat_order56\\native_project",
+    "--script",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\threat_order56\\fixture56.gd",
+    "--",
+    "--qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\threat_order56\\runs\\baseline02",
+    "--city-simple-hospital=1",
+    "--qa-baseline"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "c0fb421b8be64dc6b46698e85ba647d9",
+    "owner": {
+      "pid": 14228,
+      "creation_filetime": "134365044716301980"
+    },
+    "mode": "headless",
+    "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator30_npc54\\proposals\\threat_order56\\native_project",
+    "access": "read",
+    "children": [
+      {
+        "pid": 1616,
+        "creation_filetime": "134365044726370496",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\threat_order56\\native_project --script C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\threat_order56\\fixture56.gd -- --qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\threat_order56\\runs\\baseline02 --city-simple-hospital=1 --qa-baseline",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\threat_order56\\native_project",
+          "--script",
+          "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\threat_order56\\fixture56.gd",
+          "--",
+          "--qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\threat_order56\\runs\\baseline02",
+          "--city-simple-hospital=1",
+          "--qa-baseline"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator30_npc54\\proposals\\threat_order56\\native_project",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 972604.1717599,
+    "queued_at": 972574.1717599,
+    "ticket": 1654,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.48009309999179095
+  },
+  "child": {
+    "pid": 1616,
+    "creation_filetime": "134365044726370496",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\threat_order56\\native_project --script C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\threat_order56\\fixture56.gd -- --qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\threat_order56\\runs\\baseline02 --city-simple-hospital=1 --qa-baseline",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--path",
+      "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\threat_order56\\native_project",
+      "--script",
+      "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\threat_order56\\fixture56.gd",
+      "--",
+      "--qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\threat_order56\\runs\\baseline02",
+      "--city-simple-hospital=1",
+      "--qa-baseline"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator30_npc54\\proposals\\threat_order56\\native_project",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 1.816239699954167,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

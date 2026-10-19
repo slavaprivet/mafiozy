@@ -1,0 +1,33 @@
+{
+  "scope": "CPU syntax/pure-function checks only; no engine, leases, Git, production or pointer changes",
+  "checks": {
+    "freeze_batch56.py_syntax": true,
+    "run_ordinary_batch56.py_syntax": true,
+    "ordinary_flags_unique": true,
+    "ordinary_flags_ten_and_staff": true,
+    "ordinary_flags_match_frozen55_except_count": true,
+    "same_explicit_override_has_no_duplicate": true,
+    "reject_seed_extra": true,
+    "reject_population_extra": true,
+    "reject_global_energy_extra": true,
+    "reject_duplicate_city_evidence": true,
+    "reject_seed_evidence": true,
+    "reject_noncity_seed": true,
+    "service_schema_flags_equal_ordinary": true,
+    "old_threat_cap_mismatch_detected": true,
+    "qa_observer_options_ignored": true,
+    "services_failed_old_receipt_preserved": true,
+    "threat_failed_old_receipt_preserved": true,
+    "bootstrap55_anchors_all_found": true,
+    "bootstrap56_exact_identity_and_catalogue": true,
+    "bootstrap56_timeout_checks_stream": true,
+    "old_seeded_perf_rejected": true,
+    "freeze_batch56.py_base_unchanged": true,
+    "run_ordinary_batch56.py_base_unchanged": true,
+    "late_perf_contamination_forces_false_receipt": true,
+    "overlay_receipt_rejected_before_command_use": true,
+    "after_source_mismatch_rejected": true
+  },
+  "passed": true,
+  "patch_sha256": "74bede1d7440149e59bb931890ff36044955514839bc76d4676524deaeaa06be"
+}

@@ -1,0 +1,161 @@
+{
+  "schema": "mafiozi.coordinator-delivery/v1",
+  "coordinator_thread": "01a150c6-a336-72e3-9748-2446c3a8c29e",
+  "source_commit": "a0c7478e4bd01552566c6d6cdb0f9db5550bc6af",
+  "revision": "castle-20261018-combined53-bot-bow",
+  "user_sword_reference_commit": "33b8ad5388e846752a4111caffd56d9d15935174",
+  "sword_lock": "docs/ai/SINGLE_SWORD_LOCK52_AUDIT.json",
+  "game_source_changed_this_turn": false,
+  "old52_closed_by_user_authorization": true,
+  "old52_process": {
+    "pid": 58516,
+    "started": "2026-10-18T21:50:04.3691585+03:00",
+    "command": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator33_release52\\game\" --script \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_castle_current\\bootstrap_castle.gd\" -- \"--receipt-dir=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261018T185004343Z\" \"--release-title=Замок и осада · общая сцена 52 · Месси\" \"--release-revision=castle-20261018-combined52-soil49-coordinator33\" --castle=1 --castle-start-outside=1",
+    "title": "Мафиози — Замок и осада · общая сцена 52 · Месси (DEBUG)",
+    "user_approved_sword": true,
+    "close_authorized": true
+  },
+  "interactive53": {
+    "pid": 40912,
+    "revision": "castle-20261018-combined53-bot-bow",
+    "title": "Замок и осада · общая сцена 53 · противник и лук",
+    "source": "stable_user_launcher",
+    "run_directory": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261018T205241981Z",
+    "started_at": "2026-10-18T23:52:42.0109047+03:00",
+    "assembly_sha256": "f821f48b16b719dc7e8365e53866e822c32114273f64a799529e1d7b53ac459d",
+    "ready": true,
+    "window_handle": 7079092,
+    "bootstrap": {
+      "battlefield_stats": {
+        "bounds_local": [
+          -90.0,
+          76.0,
+          90.0,
+          252.0
+        ],
+        "terrain_chunks": 9,
+        "terrain_collision_shapes": 9,
+        "terrain_draw_calls_max": 9,
+        "terrain_triangles": 9504,
+        "terrain_vertices": 5175
+      },
+      "checks": {
+        "battlefield": true,
+        "battlefield_props": true,
+        "castle_mode": true,
+        "city_population_absent": true,
+        "player_grounded": true,
+        "player_outside": true,
+        "preview_ready": true,
+        "screenshot_saved": true
+      },
+      "interactive": true,
+      "ok": true,
+      "performance_accepted": false,
+      "player_position": "(0.0, 0.080159, 988.0)",
+      "props_stats": {
+        "banners": 6,
+        "barrels": 7,
+        "barriers": 16,
+        "batches_by_z_sector": {
+          "0": 7,
+          "1": 8
+        },
+        "breakable_groups": 86,
+        "brush": 0,
+        "carts": 4,
+        "colliders": 86,
+        "crates": 25,
+        "firepits": 2,
+        "grass": 0,
+        "legacy_grass_replaced": true,
+        "mesh_instances": 15,
+        "mesh_pieces": 1612,
+        "shields": 15,
+        "smoke_plumes": 3,
+        "stone_piles": 4,
+        "stones": 77,
+        "tents": 8,
+        "trees": 11,
+        "watchtowers": 4
+      },
+      "revision": "castle-20261018-combined53-bot-bow",
+      "scene": "res://scenes/castle.tscn",
+      "scene_kind": "castle",
+      "screenshot": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261018T205241981Z/opened.png",
+      "title": "Замок и осада · общая сцена 53 · противник и лук"
+    }
+  },
+  "acceptance_recheck": {
+    "status": "READ_ONLY_ACCEPTANCE_AUDIT_PASS_WITH_LIMITS",
+    "game": "D:/MafioziCombat31/coordinator34_merged53/game",
+    "acceptance": "outputs/coordinator34_release53/ACCEPTANCE.json",
+    "source_pins_rehashed": 1347,
+    "source_drift": [],
+    "candidate_manifest_sha256": "485c4298cb76e94e690b90b3539cf2f8c9cd9a6d604de81dd71cb2538f3f2b75",
+    "merged_group_receipts_verified": 22,
+    "all_merged_group_receipts_passed": true,
+    "all_merged_group_stderr_bytes_zero": true,
+    "additional_merged_receipts_verified": [
+      "bow motion 27/27",
+      "sword motion 30/30",
+      "spear motion 30/30",
+      "bow visual 14 states",
+      "player NPC independent mobility"
+    ],
+    "all_additional_receipts_point_to_merged_game": true,
+    "raw_failures_confirmed_in_published_evidence_and_origin_main": [
+      "bow_motion53_resume/candidate_bow01/result.json: g_drop_releases_facing",
+      "bow_aim53_resume/after/RESULT.json: pre-fix shadow assertions and missing arc",
+      "bow_aim53_resume/after02/RESULT.json: npc_not_initialized_for_isolation",
+      "competitive_bot53_resume/mobility04/result.json: obstacle-contaminated trial",
+      "competitive_bot53_resume/moving_rush_52/result.json: no_attack"
+    ],
+    "unintegrated_ready_found": false,
+    "historical_status_notes": [
+      "competitive_bot53_resume/RESULT.json still says READY_FOR_MERGED_VALIDATION; final sword hash exactly matches accepted merged file and root merged NPC suites plus merged mobility passed.",
+      "HARNESS_CORRECTION.json still has final_merged_check=pending; newer MERGED_ACCEPTANCE.json records all 87 checks passed on the identical manifest.",
+      "SOURCE_AUDIT.json requests original motion probe rerun; this audit confirms the final 87-check motion harness and 14-state graphical bow probe, not an independently identified rerun of every intermediate checklist item."
+    ],
+    "limits": [
+      "No clean full-game FPS measurement.",
+      "Finite deterministic bot scenarios include both win and loss; not win rate or universal superiority.",
+      "Diagonal disarm explanation is source-assisted inference; raw data did not record disarm/sever/part-HP flags.",
+      "Existing head/torso proxy clearance is not full mesh self-collision.",
+      "Sword source file also hosts NPC code and changed from 52; this acceptance audit does not replace separate per-function sword freeze verification."
+    ],
+    "scope": "Read only source/evidence/Git tree verification. No Godot launched, no gameplay/shared source/Git changes."
+  },
+  "source_recheck": {
+    "pins52": 1347,
+    "pins53": 1347,
+    "unchanged_files": 1343,
+    "all_1347_local52_local53_git53_pins_match": true,
+    "published_git53_regular_blobs": true,
+    "launcher_checkonly": "PASS",
+    "changed_files": [
+      "scripts/combat/castle_armor_visual.gd",
+      "scripts/preview_player.gd",
+      "scripts/weapons/bow_prototype.gd",
+      "scripts/weapons/sword_prototype.gd"
+    ],
+    "raw_hashes52": {
+      "scripts/combat/castle_armor_visual.gd": "09f28fa5d5dcf4ab7fd2032cd89b934f2f809142682bca7b33ad00f06b8a1888",
+      "scripts/preview_player.gd": "3e1e46febba29274b1fc2357bd1e06ce36ce10f0571c19458db5ba6e48408052",
+      "scripts/weapons/bow_prototype.gd": "2b850770790a5a1dccd4d3ef4e46039a1491903bacdaadc177022098ab76fcdc",
+      "scripts/weapons/sword_prototype.gd": "f472d58b75a6924d944614c06eca60ff977fa40041d6127d2eab9b51a7a9eb8e",
+      "scripts/weapons/weapon_aim_camera.gd": "e0f082f0c8ac7b3e1af2a580166198a6e705bfceff4ec0626a23896eb514e791"
+    },
+    "raw_hashes53": {
+      "scripts/combat/castle_armor_visual.gd": "3f5ce01a57a87e419c4b1f973729e73cafa1e714f6ba384acd15973f6fca4183",
+      "scripts/preview_player.gd": "b4e02c86185557fb68a9dfdbec85932f41a79f16f1d0ec55999d3a367a4cbb02",
+      "scripts/weapons/bow_prototype.gd": "8218dee827a20382daea87927220d7d6c97841639c91a863a92ca6d28f272776",
+      "scripts/weapons/sword_prototype.gd": "37461c7579289673ffd2370479c28290a66235665ddd448b49bbf31868df248d",
+      "scripts/weapons/weapon_aim_camera.gd": "e0f082f0c8ac7b3e1af2a580166198a6e705bfceff4ec0626a23896eb514e791"
+    }
+  },
+  "launcher_checkonly": "PASS",
+  "startup_screenshot_reviewed": true,
+  "test_runs_added_this_turn": 0,
+  "instructions": "Resolve current_version.json and ASSEMBLY; retain approved52 player sword behavior. All three33 subagent packages already merged in53. Do not reopen old chats or mutate frozen releases. Verify fresh process identity before future operations; the historical PIDs are not permanent ownership."
+}

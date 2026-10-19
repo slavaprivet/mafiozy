@@ -1,0 +1,23 @@
+{
+  "passed": true,
+  "source_count": 1150,
+  "source_drift": false,
+  "control_drift": false,
+  "native_path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\logical_routines58\\runs\\benches02\\BENCHES58.json",
+  "native_sha256": "7ccc1607da13a22666669d1c922aa9442c180df495a1219728e89352b833003f",
+  "checks": {
+    "four_real_benches": true,
+    "idempotent_install": true,
+    "nine_total_benches": true,
+    "real_home_bench_walk_arrival_and_seated_pose": true,
+    "resident_10_no_teleport": true,
+    "resident_3_no_teleport": true,
+    "resident_5_no_teleport": true,
+    "ten_residents_twelve_staff": true,
+    "window_complete": true
+  },
+  "engine_clean": true,
+  "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "overlay_only": true,
+  "production_changed": false
+}

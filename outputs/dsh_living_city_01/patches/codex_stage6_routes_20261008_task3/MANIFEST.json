@@ -1,0 +1,190 @@
+{
+  "schema": "mafiozi.applied-bounded-routes/v1",
+  "shared_applied": true,
+  "before": {
+    "scripts/city/runtime/npc_city_world_policy.gd": "9c46025e19f52c8b2c97b61e380b83be37745a0c085f9e1e7fd70108ae9be3f8",
+    "scripts/npc_visual/preview_resident_host.gd": "5d75b7a82aac6389d1deb3d6b4a9a77a2717de66a082e21ca4fcef2cfa084687",
+    "scripts/city/runtime/npc_city_navigation_host.gd": "b32158b641bdb0635c851f188d80ecdc81e198b1d2f017a48de4e74c2c72bc44",
+    "scripts/city/runtime/npc_city_engine_navigation.gd": "03ed6875833dd00903c013a5321602cb95fb4cfa38ce1e1b42fba7c48a4228c7",
+    "scripts/npc_daily_walk.gd": "8ae316619c456eac13bbb925a742945895d591e9b38adc425f47c3c5a8aec8eb"
+  },
+  "after": {
+    "scripts/city/runtime/npc_city_world_policy.gd": "acb8d0b0164841cf73501e44909d7408a74385a861d5f941deec9a657a0d3db3",
+    "scripts/npc_visual/preview_resident_host.gd": "c1688d3a8483429bc369430768e880e2df8d35264f8542730219c3b4d7e43c7c",
+    "scripts/city/runtime/npc_city_navigation_host.gd": "43fe4cc9bc6d6b8decbfaa92a4427e070fc021f2f7d81804780ad86237dde19a",
+    "scripts/city/runtime/npc_city_engine_navigation.gd": "d7440b58c15097399e2767f0609552c6932597a9b796b0278ade71cb018c58e7",
+    "scripts/npc_daily_walk.gd": "f6fa2dddf988742accdbc3b481ec768bdcfb7693f743d94d247a58f6f89858ab"
+  },
+  "backup": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\dsh_living_city_01\\patches\\codex_stage6_routes_20261008_task3",
+  "source_hashes": {
+    "scripts/shop/npc_daily_shop.gd": "0e22ea589129772cb6d2b15c9f41a015f5d78cc8bbcf569b1cf46655fd0011b7",
+    "scripts/shop/npc_local_shop_visit.gd": "32528e3d30177d5c3ed7668316403397b28d76132874adbd9702db66ef9adf21",
+    "scripts/shop/npc_local_account.gd": "9acdba29c8315871636b4c8b9a722d2fd54fdf6e256ac8d2d4c9fd082a60d50d",
+    "scripts/city/runtime/npc_city_engine_navigation.gd": "d7440b58c15097399e2767f0609552c6932597a9b796b0278ade71cb018c58e7",
+    "scripts/city/runtime/npc_city_world_policy.gd": "acb8d0b0164841cf73501e44909d7408a74385a861d5f941deec9a657a0d3db3",
+    "scripts/npc_daily_walk.gd": "f6fa2dddf988742accdbc3b481ec768bdcfb7693f743d94d247a58f6f89858ab",
+    "scripts/npc_visual/preview_resident_host.gd": "c1688d3a8483429bc369430768e880e2df8d35264f8542730219c3b4d7e43c7c",
+    "scripts/destruction/palazzo/palazzo_ground.gd": "6f2bc8493e5cfa75e4f7f47df6fd6609672e3196b9a0fa642912ea0d69aacec3",
+    "scripts/preview_printshop_interior.gd": "8ca46fcaa295090070bd12a4046ba31450ad6c07ce8e6341c4849fd5a64d6371",
+    "scenes/main_city.tscn": "9a252531ceda19074bc2a9ac9a674d4b26f3c2a1331821490901cadeb09d9be5",
+    "project.godot": "5e45528ade62ce0cb89aa53aa7f7d3e5f18aa1574c2555ae37cd5a972ae8bedf",
+    "scripts/city/runtime/npc_city_navigation_host.gd": "43fe4cc9bc6d6b8decbfaa92a4427e070fc021f2f7d81804780ad86237dde19a",
+    "scripts/npc_city_daily.gd": "a48f1ceaaa142ba96dc5485125c4a98f4417f2f05d51b4823f963a92752acb91",
+    "scripts/city/runtime/npc_native_obstacle_detour.gd": "db6ea93ed251ba6f47170405b95f4bbd6550eeaf913c1beef29e78dd2faaca2e",
+    "scripts/npc_visual/npc_local_printshop_visit.gd": "88605c31cd76733c3563a7dcf4cab454bc311ceea86eb69f3cf37b02f0b82ddc",
+    "scripts/npc_daily_life.gd": "f17ef8437b8fded6204dfd1ad370acf223bebd64b14667ee15c18d69f31bd41e",
+    "scripts/npc_visual/npc_local_preview_hit_owner.gd": "09703514665b3101c114d51b475f369741fea13557259d5fbbe082e12159bb58",
+    "scripts/npc_city_population.gd": "c1409ccb747326679dd1031a3da7d22185bbf0f154aaf6e8821626c9053481a9",
+    "scripts/hospital/npc_daily_hospital_visit.gd": "0dc443463add4c908e333b8badea924755ef6b851f2dafb4404d813e4c79a300"
+  },
+  "stage_sha256": "093ce96adb64a28e1ccb8aadb9f18c44054fdad02999fdca50ae22ff81e1586a",
+  "decision": {
+    "schema": "mafiozi.bounded-root-decision/v1",
+    "apply_combined": true,
+    "stage_sha256": "093ce96adb64a28e1ccb8aadb9f18c44054fdad02999fdca50ae22ff81e1586a",
+    "profile_sha256": "bcda1b42f812875761b459f8bf734a7352ffbdd8610494b5513099297b1c713d",
+    "capture_sha256": "910e3c5ed25edee87072c59bb46dbe5396b70aaa89822e021107e1455c33fb53",
+    "original_target_budget_pass": false,
+    "original_failed_checks": [
+      "each_common_steady_and_union_frame_budget"
+    ],
+    "checks": {
+      "capture_clean": true,
+      "stderr0": true,
+      "all284_bodies_start_end": true,
+      "body_life_identity_faults0": true,
+      "same_all284_source_descriptors_and_generation": true,
+      "capture_at_least270s": true,
+      "before_after_recorded_source_equal": true,
+      "recorded_source_matches_frozen_stage": true,
+      "run_stage_matches_frozen_stage": true,
+      "native_gates_pass_same_stage": true,
+      "same_camera": true,
+      "same_engine_renderer_display": true,
+      "both_actual_door_commands_accepted": true,
+      "sampled_fast_routes_at_most16": true,
+      "each_common_steady_and_union_frame_budget": false,
+      "common_moving_or_travel_increase_at_least10pct": true,
+      "resident_cpu_mean_at_most20ms": true,
+      "completed_wait_p95_common_endpoint_no_worsening": true
+    },
+    "frame_window_checks": {
+      "steady_open_50_90": {
+        "pass": false,
+        "checks": {
+          "p95_le40": true,
+          "p99_le110": false,
+          "over100_le1_5pct": false
+        },
+        "p95_ms": 38.048,
+        "p99_ms": 115.101,
+        "over100_fraction": 0.01513840830449827
+      },
+      "steady_closed_110_150": {
+        "pass": false,
+        "checks": {
+          "p95_le40": true,
+          "p99_le110": false,
+          "over100_le1_5pct": false
+        },
+        "p95_ms": 39.836,
+        "p99_ms": 126.02,
+        "over100_fraction": 0.015581524763494713
+      },
+      "common_steady_union": {
+        "pass": false,
+        "checks": {
+          "p95_le40": true,
+          "p99_le110": false,
+          "over100_le1_5pct": false
+        },
+        "p95_ms": 38.904,
+        "p99_ms": 117.499,
+        "over100_fraction": 0.015332197614991482
+      },
+      "tail_150_270": {
+        "pass": true,
+        "checks": {
+          "p95_le40": true,
+          "p99_le110": true,
+          "over100_le1_5pct": true
+        },
+        "p95_ms": 39.101,
+        "p99_ms": 80.791,
+        "over100_fraction": 0.008414453060551065
+      }
+    },
+    "movement_wait_comparisons": {
+      "common_0_150": {
+        "moving_ratio": 1.3303173017458731,
+        "travel_ratio": 1.3395212894789372,
+        "completed_wait_p95_endpoint_ratio": 0.8331274194876863,
+        "wait_p95_mean_ratio": 0.8440229720120755,
+        "raw_p95_ratio": 1.0949317520698143,
+        "raw_p99_ratio": 1.2250124338743953
+      },
+      "common_steady_union": {
+        "moving_ratio": 1.3099272629310343,
+        "travel_ratio": 1.3291797134022003,
+        "completed_wait_p95_endpoint_ratio": 0.8331274194876863,
+        "wait_p95_mean_ratio": 0.8461970598811119,
+        "raw_p95_ratio": 1.0851277474060026,
+        "raw_p99_ratio": 1.2374828857293312
+      },
+      "steady_open_50_90": {
+        "moving_ratio": 1.2584186284544523,
+        "travel_ratio": 1.260389147149084,
+        "completed_wait_p95_endpoint_ratio": 0.8011996251171509,
+        "wait_p95_mean_ratio": 0.8555677507997995,
+        "raw_p95_ratio": 1.1217642549678637,
+        "raw_p99_ratio": 2.671858678242299
+      },
+      "steady_closed_110_150": {
+        "moving_ratio": 1.3663253697383388,
+        "travel_ratio": 1.4086164929979854,
+        "completed_wait_p95_endpoint_ratio": 0.8331274194876863,
+        "wait_p95_mean_ratio": 0.8388939839448613,
+        "raw_p95_ratio": 1.0644790636774175,
+        "raw_p99_ratio": 1.1770639716802256
+      }
+    },
+    "acceptance": "Targeted throughput improvement, with explicit frame tradeoff; original frame budget NOT passed and full smooth city NOT accepted",
+    "rationale": "User asks for a practical combined route and hundreds of seconds of actual life, allowing a modest p95 tradeoff when substantial work improves. Common150 actualtravel+34%, moving+33%, completedwait−16.7%. Steady p95 remains38.904ms below40 target; p99 misses110 by7.499ms, >100 misses1.5% by0.0332 percentage points. Tail p99=80.791ms, resident13.274ms below20 target. Single651ms max retained without causal attribution. Native owner/physics/capacity and284identity proofs allpass. All ordinary life/goals/physics retained, no reduced population/freezing or fabricatedcompletion.",
+    "whole_smooth_city_accepted": false,
+    "mass_services_accepted": false,
+    "completion_totals": {
+      "bank": 0,
+      "drive": 0,
+      "hospital": 0,
+      "shop": 0,
+      "walk": 166
+    },
+    "repeatability": "One new GUI, source-identical common windows against previous150s reference; no repeat claim",
+    "default_population": 286,
+    "gui_population": 284,
+    "rollback": "--city-static-corridor=0; owner proof separately --city-policy-token-memo=0"
+  },
+  "defaults_manifest_sha256": "831242da9199b77773bdd193c3fd76bd22316e0b2fbc3fc4790cf79d844b1617",
+  "lease": {
+    "id": "fa30fd34719a4e1497d60853a7b3cc92",
+    "owner": {
+      "pid": 17888,
+      "creation_filetime": "134359098524728597"
+    },
+    "mode": "headless",
+    "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\dsh_living_city_01\\game",
+    "access": "write",
+    "children": [],
+    "deadline": 377982.3900468,
+    "queued_at": 377952.3900468,
+    "ticket": 798,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.503920899995137
+  },
+  "head_index_protected_unchanged": true,
+  "remote_changes": false,
+  "paid_deepseek": false,
+  "flags": "default same-call owner proof ON + static retained route ON + capacity16; explicit memo=0/static-corridor=0 rollback",
+  "scope": "five exact source files, all prior shared changes and every other source preserved"
+}

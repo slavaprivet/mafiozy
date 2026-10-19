@@ -1,0 +1,93 @@
+{
+  "mode": "graphical",
+  "performance_accepted": false,
+  "command": [
+    "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+    "--path",
+    "D:\\MafioziCombat31\\coordinator33\\game",
+    "--script",
+    "D:\\MafioziCombat31\\coordinator33\\qa\\armor.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\coordinator33\\armor_graphical"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "2714f1efd7324695956baed59a796a92",
+    "owner": {
+      "pid": 59820,
+      "creation_filetime": "134368227519785752"
+    },
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\coordinator33\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 60336,
+        "creation_filetime": "134368227530508174",
+        "command_line": "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --path D:\\MafioziCombat31\\coordinator33\\game --script D:\\MafioziCombat31\\coordinator33\\qa\\armor.gd -- --qa-out=D:\\MafioziCombat31\\coordinator33\\armor_graphical",
+        "command": [
+          "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+          "--path",
+          "D:\\MafioziCombat31\\coordinator33\\game",
+          "--script",
+          "D:\\MafioziCombat31\\coordinator33\\qa\\armor.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\coordinator33\\armor_graphical"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "graphical",
+        "project": "d:\\mafiozicombat31\\coordinator33\\game"
+      }
+    ],
+    "deadline": 1290979.5074808,
+    "queued_at": 1290859.5074808,
+    "ticket": 4106,
+    "inventory_before": [
+      {
+        "pid": 54868,
+        "parent_pid": 45764,
+        "creation_filetime": "134368227438603246",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\coordinator33\\game --script D:\\MafioziCombat31\\coordinator33\\qa\\matrix_spear_close.gd -- --qa-out=D:\\MafioziCombat31\\coordinator33\\matrix_spear_close\\result.json --weapon=spear",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": ""
+      },
+      {
+        "pid": 60012,
+        "parent_pid": 54088,
+        "creation_filetime": "134368227470914124",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\coordinator33\\game --script D:\\MafioziCombat31\\coordinator33\\qa\\aimed_player51.gd -- --qa-out=D:\\MafioziCombat31\\coordinator33\\player_contact --weapon=sword --strokes=8 --direction=left",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": ""
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5620450000278652
+  },
+  "child": {
+    "pid": 60336,
+    "creation_filetime": "134368227530508174",
+    "command_line": "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --path D:\\MafioziCombat31\\coordinator33\\game --script D:\\MafioziCombat31\\coordinator33\\qa\\armor.gd -- --qa-out=D:\\MafioziCombat31\\coordinator33\\armor_graphical",
+    "command": [
+      "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+      "--path",
+      "D:\\MafioziCombat31\\coordinator33\\game",
+      "--script",
+      "D:\\MafioziCombat31\\coordinator33\\qa\\armor.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\coordinator33\\armor_graphical"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\coordinator33\\game"
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 17.006513600004837,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

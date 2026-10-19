@@ -1,0 +1,7 @@
+[configuration]
+entry_symbol = "melee_skin_init"
+compatibility_minimum = "4.7.2"
+reloadable = false
+[libraries]
+windows.debug.x86_64 = "res://melee_skin.dll"
+windows.release.x86_64 = "res://melee_skin.dll"

@@ -1,0 +1,207 @@
+{
+  "passed": true,
+  "base_revision": "castle-20261018-combined52-soil49-coordinator33",
+  "game": "D:\\MafioziCombat31\\bow_aim53_resume\\game",
+  "merged_test_game": "D:\\MafioziCombat31\\coordinator34_merged53\\game",
+  "changes": [
+    {
+      "path": "scripts/preview_player.gd",
+      "base_sha256": "3e1e46febba29274b1fc2357bd1e06ce36ce10f0571c19458db5ba6e48408052",
+      "candidate_sha256": "b4e02c86185557fb68a9dfdbec85932f41a79f16f1d0ec55999d3a367a4cbb02",
+      "merged_sha256": "b4e02c86185557fb68a9dfdbec85932f41a79f16f1d0ec55999d3a367a4cbb02"
+    },
+    {
+      "path": "scripts/weapons/bow_prototype.gd",
+      "base_sha256": "2b850770790a5a1dccd4d3ef4e46039a1491903bacdaadc177022098ab76fcdc",
+      "candidate_sha256": "8218dee827a20382daea87927220d7d6c97841639c91a863a92ca6d28f272776",
+      "merged_sha256": "8218dee827a20382daea87927220d7d6c97841639c91a863a92ca6d28f272776"
+    }
+  ],
+  "diagnosis": "The single bow trajectory consisted of ordinary MeshInstance3D spheres with default shadow casting ON. Their shadows made a second dotted path on the ground/target. Visible spear dots and crosshair were already correctly suppressed.",
+  "fix": "Disable shadow casting only on bow aim-preview dots. Includes the frozen motion53 facing-ownership patch with no further motion, damage, collision or ballistic changes.",
+  "shadow_proof": {
+    "frozen_point_positions_identical": true,
+    "point_count": 12,
+    "shadow_modes": [
+      [
+        1
+      ],
+      [
+        0
+      ],
+      [
+        1
+      ]
+    ],
+    "off_brighter_pixels_gt8": 354,
+    "on1_vs_on2_pixels_difference_gt8": 294,
+    "mean_abs_on1_on2": 0.07434172453703704,
+    "mean_abs_on_off": 0.08771773726851852,
+    "maximum_shadow_darkening": 75,
+    "TAA": true,
+    "persistent_shadow_pixels_gt8": 329,
+    "persistent_shadow_components": [
+      {
+        "pixels": 96,
+        "bbox": [
+          920,
+          655,
+          939,
+          661
+        ]
+      },
+      {
+        "pixels": 58,
+        "bbox": [
+          858,
+          597,
+          872,
+          602
+        ]
+      },
+      {
+        "pixels": 52,
+        "bbox": [
+          773,
+          521,
+          786,
+          527
+        ]
+      },
+      {
+        "pixels": 37,
+        "bbox": [
+          809,
+          555,
+          822,
+          557
+        ]
+      },
+      {
+        "pixels": 23,
+        "bbox": [
+          12,
+          86,
+          34,
+          86
+        ]
+      },
+      {
+        "pixels": 18,
+        "bbox": [
+          0,
+          211,
+          17,
+          211
+        ]
+      },
+      {
+        "pixels": 17,
+        "bbox": [
+          744,
+          495,
+          752,
+          496
+        ]
+      },
+      {
+        "pixels": 8,
+        "bbox": [
+          684,
+          440,
+          688,
+          441
+        ]
+      },
+      {
+        "pixels": 7,
+        "bbox": [
+          1273,
+          338,
+          1279,
+          338
+        ]
+      },
+      {
+        "pixels": 6,
+        "bbox": [
+          703,
+          461,
+          708,
+          461
+        ]
+      }
+    ],
+    "floor_shadow_roi": {
+      "rectangle_xyxy": [
+        600,
+        430,
+        1000,
+        680
+      ],
+      "persistent_pixels_brighter_only_with_shadows_off": 274,
+      "max_darkening_rgb_units": 75,
+      "interpretation": "Seven dark groups below the white trajectory disappear on OFF and return on ON; world position and point count do not change."
+    },
+    "images_sha256": {
+      "frozen_on1.png": "8b512088a75a5dfa5d6a3659b533353c2b67b5998671ef23ccc8894cf429094a",
+      "frozen_off.png": "3db7f2f9b63414958daca274bf384fa5a876950e8ed19893ea2dbdf997561880",
+      "frozen_on2.png": "4712776fbe9a750e54baf0f8fe1d55fb182b6d31ac1614886860370f0199bf2a"
+    }
+  },
+  "merged_visual": {
+    "passed": true,
+    "errors": [],
+    "samples": 14,
+    "mouse_injected_px": 10,
+    "mouse_delivered_px": 10.0,
+    "max_simultaneous_arc_owners": 1,
+    "all_bow_dot_shadows_off": true,
+    "steps": [
+      "RMB aim at gate",
+      "S backward with four graphical captures",
+      "Q bow to spear and fresh RMB",
+      "Q spear to bow and fresh RMB",
+      "native mouse elevation",
+      "G physical drop",
+      "E pickup and Q reselect if stored on back",
+      "fresh RMB after pickup",
+      "RMB release"
+    ],
+    "stderr_bytes": 0,
+    "elapsed_seconds": 41.1006371001713
+  },
+  "files": {
+    "aim_only_patch": "D:\\MafioziCombat31\\bow_aim53_resume\\aim_only.patch",
+    "merged_bow_patch": "D:\\MafioziCombat31\\bow_aim53_resume\\bow_prototype.gd.patch",
+    "probe": "D:\\MafioziCombat31\\bow_aim53_resume\\visual_probe53.gd",
+    "probe_sha256": "038aaec43f0007d487d58ae38c496167bf79c07537cb3b477d1e3d62856e0ce8",
+    "source_audit": "D:\\MafioziCombat31\\bow_aim53_resume\\SOURCE_AUDIT.json",
+    "shadow_receipt": "D:\\MafioziCombat31\\bow_aim53_resume\\baseline_clean\\native\\SCHEDULER_RUN.json",
+    "shadow_result": "D:\\MafioziCombat31\\bow_aim53_resume\\baseline_clean\\RESULT.json",
+    "shadow_metrics": "D:\\MafioziCombat31\\bow_aim53_resume\\SHADOW_PROOF.json",
+    "merged_receipt": "D:\\MafioziCombat31\\bow_aim53_resume\\merged01\\native\\SCHEDULER_RUN.json",
+    "merged_result": "D:\\MafioziCombat31\\bow_aim53_resume\\merged01\\RESULT.json"
+  },
+  "graphical_evidence": [
+    "baseline_clean/frozen_on1.png",
+    "baseline_clean/frozen_off.png",
+    "baseline_clean/frozen_on2.png",
+    "merged01/aim_gate.png",
+    "merged01/back_0.png",
+    "merged01/back_3.png",
+    "merged01/high_aim.png",
+    "merged01/picked_reaim.png"
+  ],
+  "preserved_raw": [
+    "baseline_shadow: first cache copy lacked generated import remaps; loader errors retained",
+    "after: patch command encoding failed, so native run used pre-fix shadows; positive regression failures retained; NPC blocked launch guard after Q",
+    "after02: all gameplay assertions passed but fixture NPC isolation was attempted before async spawn; isolation assertion failed. Harness corrected to await actual NPC before one-time placement."
+  ],
+  "limits": [
+    "Functional graphics only; user process 58516 preserved; no clean performance claim.",
+    "NPC placed far away before input in merged visual run to isolate the aiming display; this probe makes no NPC combat claim.",
+    "The frozen on/off/on proof holds full world state fixed, including any actor already present. It does not rely on NPC isolation.",
+    "Motion regression and arrow damage/contact belong to separate root merged suites."
+  ]
+}

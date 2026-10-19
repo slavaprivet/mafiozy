@@ -1,0 +1,123 @@
+{
+  "status": "READY_SCOPED_NATIVE_AND_RENDERED",
+  "runtime_files": {
+    "scripts/venues/npc_venue_staff_actor29.gd": {
+      "base_sha256": "515c852c407676b6b347dfacf09ed223be8a51e8d445053a4da8b6ec62e15a83",
+      "proposed_sha256": "a9b28acf433972e50379950f4a692030c70717cf48c50b7fb2c775c46d262ca5"
+    },
+    "scripts/venues/npc_venue_staff_host29.gd": {
+      "base_sha256": "e07e0922d22ddc5dbaac4869b23c0327919c83b4208049e59ed8a0e15f543b46",
+      "proposed_sha256": "e3c311b0f308c8f027ab8104ed354f9c4576eb3881768c8daafbc23178947a24"
+    },
+    "scripts/venues/npc_medic_style30.gd": {
+      "base_sha256": null,
+      "proposed_sha256": "ca83bd5cbf0798302b99960e600ecb82101ac397ea64fe17cd15b80ecf1533e2"
+    }
+  },
+  "actual_city": true,
+  "medics": 3,
+  "cashiers_unchanged": 9,
+  "canonical_bones_each": 28,
+  "actor_colliders_each": 1,
+  "staff_checks": 637,
+  "non_color_native_buffers_preserved": true,
+  "recolored_vertices_per_medic": 1648,
+  "per_medic": {
+    "before": {
+      "bones": 28,
+      "colliders": 1,
+      "meshes": 11,
+      "nodes": 24,
+      "triangles": 11208,
+      "vertices": 7510,
+      "visible_meshes": 11,
+      "visible_triangles": 11208,
+      "visible_vertices": 7510
+    },
+    "after": {
+      "bones": 28,
+      "colliders": 1,
+      "meshes": 14,
+      "nodes": 30,
+      "triangles": 11640,
+      "vertices": 8132,
+      "visible_meshes": 9,
+      "visible_triangles": 10536,
+      "visible_vertices": 7422
+    },
+    "delta": {
+      "bones": 0,
+      "colliders": 0,
+      "meshes": 3,
+      "nodes": 6,
+      "triangles": 432,
+      "vertices": 622,
+      "visible_meshes": -2,
+      "visible_triangles": -672,
+      "visible_vertices": -88
+    }
+  },
+  "first_hospital_counter_subtree": {
+    "before": {
+      "bones": 0,
+      "colliders": 2,
+      "meshes": 5,
+      "nodes": 9,
+      "triangles": 60,
+      "vertices": 120,
+      "visible_meshes": 4,
+      "visible_triangles": 48,
+      "visible_vertices": 96
+    },
+    "after": {
+      "bones": 0,
+      "colliders": 2,
+      "meshes": 3,
+      "nodes": 7,
+      "triangles": 288,
+      "vertices": 576,
+      "visible_meshes": 2,
+      "visible_triangles": 276,
+      "visible_vertices": 552
+    },
+    "delta": {
+      "bones": 0,
+      "colliders": 0,
+      "meshes": -2,
+      "nodes": -2,
+      "triangles": 228,
+      "vertices": 456,
+      "visible_meshes": -2,
+      "visible_triangles": 228,
+      "visible_vertices": 456
+    }
+  },
+  "all_three_hospitals_delta": {
+    "bones": 0,
+    "colliders": 0,
+    "meshes": 3,
+    "nodes": 12,
+    "triangles": 1980,
+    "vertices": 3234,
+    "visible_meshes": -12,
+    "visible_triangles": -1332,
+    "visible_vertices": 1104
+  },
+  "cost_scope": "Native geometry accounting; visible means MeshInstance3D.visible, before unchanged range/occlusion culling. This is not a measured draw-call/FPS claim. First counter subtree includes its pre-existing hidden foundation mesh.",
+  "case_alone": {
+    "new_meshes": 1,
+    "new_vertices": 528,
+    "new_triangles": 264,
+    "old_meshes": 3,
+    "old_vertices": 72,
+    "old_triangles": 36
+  },
+  "apply": {
+    "first_apply_pass": true,
+    "second_apply_no_writes": true,
+    "conflict_rejected_before_any_write": true
+  },
+  "shared_game_modified": false,
+  "performance_accepted": false,
+  "remaining": "Root integrates three exact files and performs final shared scene/performance acceptance."
+}

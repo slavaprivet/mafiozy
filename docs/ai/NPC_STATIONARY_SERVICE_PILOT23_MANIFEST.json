@@ -1,0 +1,100 @@
+{
+  "status": "CPU review ready; not activated; no world/Walk changes or actor spawn",
+  "baselinePublishedByCoordinator": "4d4cd84",
+  "groups": {
+    "passiveRuntime": [
+      {
+        "path": "assets/maps/city_rebuild_v1/npc_resident_commerce_source.js",
+        "sha256": "561ca0122caf39caca7cd15999dfbebdd2257473a1bdcb6e288b18fd2e526cbe"
+      },
+      {
+        "path": "assets/maps/city_rebuild_v1/npc_stationary_service_adapter.mjs",
+        "sha256": "cc989b951a25ea5bc4f3fa69f785e0e4a42f39553df4ccba9c106622ebabe2da"
+      },
+      {
+        "path": "assets/maps/city_rebuild_v1/native_print_shop_service_station.mjs",
+        "sha256": "2cc1e9ed809d0d0b681c83f685f7a798240590dfd5086870e96db1b6fe301280"
+      }
+    ],
+    "pilotTests": [
+      {
+        "path": "assets/maps/city_rebuild_v1/test_npc_stationary_service_adapter.mjs",
+        "sha256": "77916c4c378908f68dd6c372562989eee9ba6ef25eefe0ca5328881089c444d2"
+      },
+      {
+        "path": "assets/maps/city_rebuild_v1/test_native_print_shop_service_station.mjs",
+        "sha256": "9e97a6de2c0b608ae05d4672b54d1640d71d5b0d73ceaaa86b6b3d2f00c4a88a"
+      },
+      {
+        "path": "assets/maps/city_rebuild_v1/test_npc_service_physical_lifecycle23.mjs",
+        "sha256": "459800ed68a813c36518b18c0b0eeeff730e58fc07b20139419abec1bbfcc651"
+      }
+    ],
+    "isolatedFoundationsAndRequiredTestDependency": [
+      {
+        "path": "npc_resident_needs23_candidate.mjs",
+        "sha256": "e9a8e0e01156e1f53c4b9454bec7acbeb4eaac195a5118d8fddbad34ed971c98"
+      },
+      {
+        "path": "test_npc_resident_needs23.mjs",
+        "sha256": "97f21e9220c443d90678e701b8531e784b59ac516adb2be260331e55d30a7a1f"
+      },
+      {
+        "path": "test_npc_resident_needs23_commerce.mjs",
+        "sha256": "0b403cc79f2b760d633e536d7fb1188ebd20019c81c9e53883196a6bc0675a2e"
+      },
+      {
+        "path": "npc_service_employee23_candidate.mjs",
+        "sha256": "23ce979bc1b1adb34ac5f39d8f00740a253b54d68112e2b78d1dfc40183b13cb"
+      },
+      {
+        "path": "test_npc_service_employee23.mjs",
+        "sha256": "3181773494b3419df65a3752f4086d11fe6ad3d947d6e712882cf158c6f59cca"
+      }
+    ],
+    "documentation": [
+      {
+        "path": "docs/ai/NPC_STATIONARY_SERVICE_PILOT23_HANDOFF.md",
+        "sha256": "07e3958de132e563b69c87d3568c32f6f169503e3f6a05172b784e4b77ce9e44"
+      },
+      {
+        "path": "docs/ai/NPC_SERVICE_EMPLOYEE23_HANDOFF.md",
+        "sha256": "954ec46ac88b379b1e040bb861bd3dfddf34b929b8c805399286d02504a11740"
+      },
+      {
+        "path": "docs/ai/NPC_RESIDENT_NEEDS23_CANDIDATE.md",
+        "sha256": "ad7ac682af42f133888798d65cfe12a210023389d325844783c4254eac140867"
+      },
+      {
+        "path": "docs/game-design/NPC_PERSONAL_ECONOMY_NEEDS_20260923.md",
+        "sha256": "84433326d14e84183b5de28698fef8764bccee38701899b7eb3c30ac7638cb1c"
+      }
+    ],
+    "arrivalDeltaReviewArtifacts": [
+      {
+        "path": "npc_service_arrival23_patch_candidate.mjs",
+        "sha256": "07d00b22b8116145c232ee0d19d390ada3072f84a2f6b192159fe39d6fd8e6c2"
+      },
+      {
+        "path": "assets/maps/city_rebuild_v1/test_npc_service_arrival23_candidate.mjs",
+        "sha256": "3e19c88742cd09098a8dda4ce3e1ad60bc9b9dd67db7887ec11d29dc7010acea"
+      },
+      {
+        "path": "docs/ai/NPC_SERVICE_ARRIVAL23_PROPOSAL.md",
+        "sha256": "984277f9e15f9733ae3feca0e067ad4b5b425735d5e6245b14a15af291b54df0"
+      },
+      {
+        "path": "docs/ai/NPC_SERVICE_ARRIVAL23_PROPOSAL.patch",
+        "sha256": "f2b902ecb7eb0d606c7a24b9cf6946dd9200c367dc2dc0b18986e0819e89e8d5"
+      }
+    ]
+  },
+  "existingTrackedFixture": "assets/maps/city_rebuild_v1/test_fixtures/native_static_collision19.json.gz",
+  "limitations": [
+    "Camera-hidden spawn not certified",
+    "Whole-scene performance not checked",
+    "Service arrival target requires source integration",
+    "Only print_shop001 geometry; no all-buildings claim"
+  ],
+  "approvedArrivalDeltaApplied": true
+}

@@ -1,3 +1,4 @@
+import {createStationaryServiceWalk23} from './service_pilot23_candidate/walk_host.mjs';
 import {createNpcLogicalVehicleBinding} from './npc_logical_vehicle_binding.mjs';
 import {installNativeTerrainRaycastIndex} from './native_terrain_raycast_index.mjs';
 import {installBuildingCameraTriangleIndex} from './building_camera_triangle_index.mjs';
@@ -577,7 +578,26 @@ async function initNpcPopulation(){
  }
 
 }
+let stationaryServiceWalk23=null,servicePilotBridge23=null,servicePilotAttempt23=0;
+function ensureStationaryServiceWalk23(){
+ if(stationaryServiceWalk23&&servicePilotBridge23!==npcBridge){stationaryServiceWalk23.dispose();stationaryServiceWalk23=null;}
+ if(stationaryServiceWalk23||busy||!npcPopulation||!hero||!npcBridge||!npcNativeNavigation||!walkCollisionIndex||performance.now()<servicePilotAttempt23)return;
+ if(!buildingEntries.some(e=>e.instance?.id==='REBUILD-VISUAL-print_shop-001'))return;
+ servicePilotAttempt23=performance.now()+1000;servicePilotBridge23=npcBridge;
+ try{
+  stationaryServiceWalk23=createStationaryServiceWalk23({THREE,bridge:npcBridge,siteRevision:'service23:'+buildingCameraIndexGeneration,host:{
+   ready:()=>!busy&&!!hero&&!!npcPopulation&&!!walkCollisionIndex&&npcBridge===servicePilotBridge23,
+   getEntries:()=>buildingEntries,getCollisionIndex:()=>walkCollisionIndex,invalidateNavigation:()=>npcNativeNavigation?.beginFrame(),nativeQuery:request=>npcNativeNavigation?.query(request),
+   groundHeight,ceilingHeight,waterAt,getCamera:()=>camera,getHero:()=>hero,
+   heroBody:()=>({radius:worldHealthFrame?.snapshot.dead||heroBlast||artistSurface?.state.kind==='prone'?2.5:.18*M,height:Math.max(1.9,postureMotion?.height||hero.height||1.9)}),
+   getNpcActors:()=>npcPopulation.getActors(),getNpcActor:id=>npcPopulation.getActor(id),getFleet:()=>fleet?.records||[],getTrafficActors:()=>worldTrafficPresentation?.getActors()||[]
+  }});
+  document.body.dataset.stationaryService23=stationaryServiceWalk23?'printshop-active':'waiting-for-source-hooks';
+  window.MafioziStationaryService23=Object.freeze({inspect:()=>stationaryServiceWalk23?.diagnostics()||null});
+ }catch(error){document.body.dataset.stationaryService23='hold:'+String(error.message).slice(0,160);}
+}
 function updateNpcPopulation(dt){
+ ensureStationaryServiceWalk23();
  if(!npcPopulation||!hero)return;
  npcLogicalVehicles?.beginFrame();
  npcSupportCache?.beginFrame();
@@ -1130,6 +1150,7 @@ function interactWithBuilding(){
 function updateBuildingEntries(dt){
  if(!walkCollisionIndex){walkCollisionIndex=createIncrementalWalkCollisionIndex();walkCollisionIndex.replaceGroup('world-static',bodies,{order:0});entryBodyVersions.clear()}
  updateWalkEntryCollisionGroups(walkCollisionIndex,entryBodyVersions,buildingEntries,dt,hero?.object.position);
+ stationaryServiceWalk23?.syncCollision();
  if(walkCollisionDiagnostic){const now=performance.now(),d=walkCollisionDiagnostic;if(now-d.at>=1000){const stats=walkCollisionIndex.stats,previous=d.index===walkCollisionIndex?d.stats:null;document.body.dataset.walkCollisionIndex=JSON.stringify({...stats,totalBodies:stats.bodyReferences,dirtyGroups:stats.replacements-(previous?.replacements??0),verticesVisitedDelta:stats.verticesVisited-(previous?.verticesVisited??0),bodiesVisitedDelta:stats.bodiesVisited-(previous?.bodiesVisited??0),queryCacheBuildsDelta:stats.queryCacheBuilds-(previous?.queryCacheBuilds??0),windowMs:Number.isFinite(d.at)?now-d.at:0,counterWindow:previous?'interval':'generation'});d.at=now;d.index=walkCollisionIndex;d.stats=stats}}
 }
 
@@ -1406,7 +1427,7 @@ async function template(binding){
 
  return gltf.scene;})());return templates.get(key);
 }
-function clearContent({recreate=true}={}){mercenaryShowcaseUI?.dispose();mercenaryShowcaseUI=null;mercenaryShowcase?.dispose();mercenaryShowcase=null;for(const handle of buildingCameraIndexes)handle.dispose();buildingCameraIndexes=[];buildingCameraIndexBuildMs=0;buildingCameraIndexGeneration++;document.getElementById('building-camera-index-qa')?.remove();for(const handle of nativeTerrainRaycastIndexes)handle.dispose();nativeTerrainRaycastIndexes=[];nativeTerrainPickingBuildMs=0;nativeTerrainPickingGeneration++;cityRoadNavigation?.invalidate();laneRouteJobs?.dispose();laneRouteJobs=null;cityRoadNavigation=null;cityRoadStaticWorld=null;mapRoadRouteOrigin=null;mapRoadRouteTarget=null;explorationMap?.setRoute(null);mercenaryFences?.dispose();mercenaryFences=null;mercenaryPowerPanel?.dispose();mercenaryPowerPanel=null;waterVapor?.dispose();waterVapor=null;waterEffects?.dispose();waterEffects=null;waterInputs.reset();waterImpactCapture.reset();waterInspectionDriveUntil=0;environmentVisuals?.dispose();environmentVisuals=null;verticalNavigation.reset();restoreBuildingCamera();explorationRailway?.dispose();explorationRailway=null;explorationRailPlan=null;explorationDecor?.dispose();explorationDecor=null;landscape?.dispose();landscape=null;shotRaycastIndex?.dispose();shotRaycastIndex=null;staticRenderBatches?.dispose();staticRenderBatches=null;stableEntryLights?.dispose();stableEntryLights=null;glass.dispose();while(content.children.length){const node=content.children.pop();node.parent=null;node.userData.roomReveals?.dispose();node.userData.streetLighting?.dispose();node.userData.buildingEntry?.dispose();node.userData.residentialWindows?.dispose();node.userData.doorsGlass?.dispose();if(node.userData.owned)node.traverse(x=>{x.geometry?.dispose();if(x.material){for(const m of Array.isArray(x.material)?x.material:[x.material])if(!m.userData?.environmentSurface)m.dispose()}})}streetLighting.dispose();instances=[];bodies=[];carBodies=[];buildingEntries=[];entryBodyVersions.clear();walkCollisionIndex?.clear();walkCollisionIndex=null;buildingSampleIndex=null;buildingQaMove=null;document.body.dataset.windowCacheAfterClear=JSON.stringify(residentialWindowCacheStats());if(recreate){glass=createGlassBreakage(THREE,scene,{groundHeight});streetLighting=createStreetLighting({THREE,scene,maxLights:8,maxFixtures:192,groundHeight,staticPlacement:true});for(const record of fleet?.records||[])glass.prepare(record.car.object)}}
+function clearContent({recreate=true}={}){stationaryServiceWalk23?.dispose();stationaryServiceWalk23=null;servicePilotAttempt23=0;mercenaryShowcaseUI?.dispose();mercenaryShowcaseUI=null;mercenaryShowcase?.dispose();mercenaryShowcase=null;for(const handle of buildingCameraIndexes)handle.dispose();buildingCameraIndexes=[];buildingCameraIndexBuildMs=0;buildingCameraIndexGeneration++;document.getElementById('building-camera-index-qa')?.remove();for(const handle of nativeTerrainRaycastIndexes)handle.dispose();nativeTerrainRaycastIndexes=[];nativeTerrainPickingBuildMs=0;nativeTerrainPickingGeneration++;cityRoadNavigation?.invalidate();laneRouteJobs?.dispose();laneRouteJobs=null;cityRoadNavigation=null;cityRoadStaticWorld=null;mapRoadRouteOrigin=null;mapRoadRouteTarget=null;explorationMap?.setRoute(null);mercenaryFences?.dispose();mercenaryFences=null;mercenaryPowerPanel?.dispose();mercenaryPowerPanel=null;waterVapor?.dispose();waterVapor=null;waterEffects?.dispose();waterEffects=null;waterInputs.reset();waterImpactCapture.reset();waterInspectionDriveUntil=0;environmentVisuals?.dispose();environmentVisuals=null;verticalNavigation.reset();restoreBuildingCamera();explorationRailway?.dispose();explorationRailway=null;explorationRailPlan=null;explorationDecor?.dispose();explorationDecor=null;landscape?.dispose();landscape=null;shotRaycastIndex?.dispose();shotRaycastIndex=null;staticRenderBatches?.dispose();staticRenderBatches=null;stableEntryLights?.dispose();stableEntryLights=null;glass.dispose();while(content.children.length){const node=content.children.pop();node.parent=null;node.userData.roomReveals?.dispose();node.userData.streetLighting?.dispose();node.userData.buildingEntry?.dispose();node.userData.residentialWindows?.dispose();node.userData.doorsGlass?.dispose();if(node.userData.owned)node.traverse(x=>{x.geometry?.dispose();if(x.material){for(const m of Array.isArray(x.material)?x.material:[x.material])if(!m.userData?.environmentSurface)m.dispose()}})}streetLighting.dispose();instances=[];bodies=[];carBodies=[];buildingEntries=[];entryBodyVersions.clear();walkCollisionIndex?.clear();walkCollisionIndex=null;buildingSampleIndex=null;buildingQaMove=null;document.body.dataset.windowCacheAfterClear=JSON.stringify(residentialWindowCacheStats());if(recreate){glass=createGlassBreakage(THREE,scene,{groundHeight});streetLighting=createStreetLighting({THREE,scene,maxLights:8,maxFixtures:192,groundHeight,staticPlacement:true});for(const record of fleet?.records||[])glass.prepare(record.car.object)}}
 function configureExplorationMap(all,decorPlan){
  if(!explorationMap)explorationMap=createExplorationMinimap({onExpandedChange(expanded){releaseControls();setFreeMouse(false);controls.enabled=!expanded;},onWaypointChange(point){mapRoadRouteAt=-Infinity;mapRoadRouteTarget=null;showExplorationWaypoint(point)}});
  const native=normalizeNativeInstances(all,M),features=landscape.mapFeatures.map(p=>({...p,kind:p.type==='lake'?'water':p.type})),newObjects=decorPlan.mapFeatures.map(p=>({...p,poi:decorPlan.vignettes.some(v=>v.id===p.id),kind:['pine','oak','birch','cypress'].includes(p.kind)?'tree':p.kind==='armillary'?'monument':['clock','kiosk','telescope'].includes(p.kind)?'landmark':mapKind(p.kind)==='object'?p.kind:mapKind(p.kind)}));

@@ -1,0 +1,30 @@
+{
+	"actual_revision": "s01-20261015-residents55",
+	"ambient_actions": 18,
+	"avoidance": true,
+	"current_resident_count": 287,
+	"exact_roster_complete": true,
+	"independent_lifecycle": true,
+	"interactive": true,
+	"new_venues": 8,
+	"ok": true,
+	"performance_accepted": false,
+	"physical_dispatch": {
+		"active": 9,
+		"enabled": true,
+		"life_count": 287,
+		"peak_us": 4049,
+		"physical_delta_not_scaled": true,
+		"steps": 8,
+		"us": 2959
+	},
+	"player_position": "(32.65469, 0.000944, 7.27098)",
+	"population_ready": true,
+	"requested_residents": 287,
+	"resident_count": 287,
+	"revision": "s01-20261015-residents55",
+	"staff_count": 12,
+	"threat_reactions": true,
+	"title": "15.10 · Большой город и реакции жителей · версия55",
+	"user_requested_trial_before_performance_acceptance": true
+}

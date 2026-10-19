@@ -1,0 +1,117 @@
+--- a/world.html
++++ b/world.html
+@@ -9732,14 +9732,14 @@
+ let _residentBuildingDoorsCache=null,_residentRespawnSeed=9000,_residentInvisibleSpawnCount=0;
+ const _residentDoorByBuildingTile=new Map(),_residentDoorBySource=new Map(),_activeResidentDoorVisuals=new Map();
+ let _residentDoorAnimationCount=0,_residentBuildingRouteBudget=1,_residentBuildingRouteDeferred=0;
+-let _stationaryServicePilot23=null;
++let _stationaryServicePilot23=null,_stationaryServiceExitMove23=null;
+ function _installStationaryServicePilot23(factory,station,geometryHost){
+  if(typeof factory!=='function'||!_walkRendererActive()||_stationaryServicePilot23||station?.layout?.buildingId!=='REBUILD-VISUAL-print_shop-001')return null;
+  const controller=factory({station,host:{...geometryHost,npcs:NPCS,spawnNpc,
+   canControl:(n,now)=>!_civilianPlanInterrupted(n,now)&&!n._vehicleHijackControlled&&!n._civilianTrip&&!n._civilianTripRiding&&!n._ambulanceInTransit&&!n._medicalCrewVehicleId&&!n._playerConversationOpen&&!(n._playerConversationUntil>now)&&!(n.idleUntil>now),
+   verifyDeath:(n,now)=>n.dead===true&&!n._medicalDowned&&Number.isFinite(n.deadAt)&&n.deadAt<=now&&n._deathRecord20?.confirmed===true&&n._deathRecord20.fatal===true&&n._deathRecord20.targetId===_threeNpcEntityId(n)&&n._deathRecord20.deathKey===String(n.deadAt)}});
+- _stationaryServicePilot23=controller;
+- return{controller,unregister(){if(_stationaryServicePilot23!==controller)return false;_stationaryServicePilot23=null;controller.dispose();return true;}};
++ _stationaryServicePilot23=controller;_stationaryServiceExitMove23=typeof geometryHost.advanceServiceExit==='function'?geometryHost.advanceServiceExit:null;
++ return{controller,unregister(){if(_stationaryServicePilot23!==controller)return false;_stationaryServicePilot23=null;_stationaryServiceExitMove23=null;controller.dispose();return true;}};
+ }
+ function _isRespawnableResident(npc) {
+   return !!npc&&!npc._stationaryService&&!npc._medicalCrewVehicleId&&!npc._civilianTrip&&!npc._said&&!npc._invulnerable&&!npc._guard&&!npc._cashier&&
+@@ -10746,6 +10746,61 @@
+  n.walking=moved>0;n.walkPhase=(n.walkPhase||0)+moved*8;if(moved)n._residentVisitStatus='leaving-building';return true;
+ }
+ 
++let _residentServiceVisitSerial23=0;
++function _residentServiceBeginApproach23(n,visit,now){
++ const registration=_residentCommerceServiceProviders.get(visit.door.instanceId||visit.door.id);
++ if(!registration||typeof registration.provider.getServiceArrivalTarget!=='function')return false;
++ visit.id??='service-visit:'+n.id+':'+(++_residentServiceVisitSerial23);
++ visit._serviceRoute23={registration:registration.token,started:now,stage:'await',lastReached:0,index:1,points:null,blockedAt:null};
++ visit.phase='service-approach';n._residentVisitStatus='waiting-for-seller';return true;
++}
++function _residentServiceRouteTick23(n,visit,dt,now){
++ const route=visit._serviceRoute23;if(!route)return null;
++ const registration=_residentCommerceServiceProviders.get(visit.door.instanceId||visit.door.id),provider=registration?.token===route.registration?registration.provider:null,input={npc:n,visit,now};
++ const release=()=>{try{provider?.releaseServiceVisit?.(input);}catch{};delete visit._serviceRoute23;};
++ const recover=()=>{release();visit.phase='exiting';visit.recovering=true;n.walking=false;n._residentVisitStatus='service-exit-recovery';return true;};
++ if(!provider&&(!route.points||typeof _stationaryServiceExitMove23!=='function'))return recover();
++ if(!provider)visit.phase='exiting';
++ if(route.stage==='await'){
++  if(visit.phase==='exiting'||now-route.started>=3000){visit.serviceExitAlignment={r:visit.door.r,c:visit.door.c};release();visit.phase='exiting';return null;}
++  try{
++   if(provider.acquireServiceVisit?.(input)!==true){n.walking=false;return true;}
++   const arrival=_residentCommerceArrivalTarget(n,visit,now),certificate=provider.getServiceRoute?.(input),points=certificate?.points;
++   if(!arrival||certificate?.stamp!==arrival.stamp||!Array.isArray(points)||points.length!==3||points.some(p=>!p||![p.r,p.c,p.y].every(Number.isFinite)))return recover();
++   if(points[0].r!==visit.door.inside.r||points[0].c!==visit.door.inside.c||points[2].r!==arrival.r||points[2].c!==arrival.c||points[2].y!==arrival.y)return recover();
++   if(certificate.visitId!==visit.id||certificate.buildingId!==(visit.door.instanceId||visit.door.id)||typeof certificate.siteRevision!=='string'||certificate.customerId!==String(n.id)||!Number.isSafeInteger(certificate.generation)||certificate.generation<1)return recover();
++   route.certificate=certificate;route.visitId=certificate.visitId;route.points=points.map(p=>({r:p.r,c:p.c,y:p.y}));route.stamp=arrival.stamp;route.buildingId=certificate.buildingId;route.siteRevision=certificate.siteRevision;route.customerId=certificate.customerId;route.generation=certificate.generation;route.stage='approach';
++  }catch{return recover();}
++ }
++ if(visit.phase!=='exiting')try{
++  if(provider.touchServiceVisit?.(input)!==true)visit.phase='exiting';
++  const arrival=_residentCommerceArrivalTarget(n,visit,now);if(!arrival||arrival.stamp!==route.stamp)visit.phase='exiting';
++ }catch{visit.phase='exiting';}
++ if(now-route.started>20000&&visit.phase!=='exiting')visit.phase='exiting';
++ if(visit.phase==='exiting'&&route.stage!=='reverse'){route.stage='reverse';route.index=Math.min(1,route.lastReached);route.blockedAt=null;}
++ if(route.stage==='at-counter')return null;
++ const target=route.points[route.index];let moved;
++ try{moved=route.stage==='reverse'?_stationaryServiceExitMove23?.({...input,dt,target}):provider.advanceServiceVisit?.({...input,dt,target});}catch{return recover();}
++ if(!moved||!['moving','arrived','blocked','hold'].includes(moved.status))return recover();
++ if(moved.status==='blocked'||moved.status==='hold'){
++  route.blockedAt??=now;n.walking=false;
++  if(now-route.blockedAt>=3000)return recover();
++  return true;
++ }
++ route.blockedAt=null;
++ n._residentVisitStatus=route.stage==='reverse'?'leaving-counter':'approaching-counter';
++ if(moved.status!=='arrived')return true;
++ if(route.stage==='reverse'){
++  if(route.index>0){route.index--;return true;}
++  visit.serviceExitAlignment={r:visit.door.r,c:visit.door.c};release();visit.phase='exiting';n._residentVisitStatus='leaving-building';return true;
++ }
++ route.lastReached=route.index;
++ if(++route.index<route.points.length)return true;
++ route.stage='at-counter';visit.phase='browsing';visit.since=now;visit.until=now+3700;visit.lookAngle=n.ang||0;
++ n._civilianPlan.phase='browsing';n._residentVisitStatus='visiting';
++ if(!_residentCommerceArrive(n,visit,now))visit.until=now;
++ return true;
++}
+ function _residentNativeVisitTick(n,dt,now){
+   const visit=n._residentNativeVisit;if(!visit)return false;
+   if(n.dead||n.alive===false||n._medicalDowned){if(typeof _npcActivityReleaseBuilding==='function')_npcActivityReleaseBuilding(n,null,'incapacitated');if(visit.recovering){_cancelNpcDirectedSearch(n);_clearNpcRoute(n);}n._residentNativeVisit=null;n._residentVisitStatus='interrupted';return false;}
+@@ -10763,21 +10818,25 @@
+   if(visit.phase==='entering'&&typeof _residentNativeEntryLane==='function'){_residentNativeEntryLane(n,visit);door=visit.door;}
+   if(visit.phase==='browsing'){
+     if(typeof _residentCommerceTick==='function')_residentCommerceTick(n,visit,now);
++    if(visit._serviceRoute23&&visit.commerce?.phase==='cancelled')visit.until=now;
+     if(now<visit.until){n.walking=false;n.ang=visit.lookAngle+Math.sin((now-visit.since)/900)*.22;n._residentVisitStatus='visiting';return true;}
+     visit.phase='exiting';visit.since=now;
+   }
+   if(visit.recovering&&_residentNativeRecoveryTick(n,visit,now,dt))return true;
+-  const target=visit.phase==='entering'?(visit.entryAlignment||door.inside):(visit.returnPoint||door);
++  const serviceTick=_residentServiceRouteTick23(n,visit,dt,now);if(serviceTick!==null)return serviceTick;
++  const target=visit.phase==='entering'?(visit.entryAlignment||door.inside):(visit.serviceExitAlignment||visit.returnPoint||door);
+   if(!target||!Number.isFinite(target.r)||!Number.isFinite(target.c)){n._residentVisitStatus='invalid-entry';visit.phase='exiting';visit.recovering=true;return true;}
+   const dr=target.r-n.r,dc=target.c-n.c,d=Math.hypot(dr,dc);
+   if(d<=(visit.phase==='entering'&&visit.entryAlignment ? .002 : .025)){
+     n.walking=false;n.walkPhase=0;
+     if(visit.phase==='entering'){
+       if(visit.entryAlignment){visit.entryAlignment=null;return true;}
++      if(_residentServiceBeginApproach23(n,visit,now))return true;
+       visit.phase='browsing';visit.since=now;visit.lookAngle=n.ang||0;visit.until=now+3000+Math.round(_civilianPlanUnit(n,'visit:'+n._civilianPlan?.cycle)*4000);
+       n._civilianPlan.phase='browsing';n._residentVisitStatus='visiting';
+       if(typeof _residentCommerceArrive==='function')_residentCommerceArrive(n,visit,now);
+     }else{
++      if(visit.serviceExitAlignment){delete visit.serviceExitAlignment;return true;}
+       n._residentNativeVisit=null;n._residentVisitStatus='visit-complete';
+       if(typeof _npcActivityReleaseBuilding==='function')_npcActivityReleaseBuilding(n,null,'exited');
+       if(typeof _npcAgendaComplete==='function')_npcAgendaComplete(n,'shop','finished');
+@@ -18549,6 +18608,7 @@
+       }
+     }
+   }
++  _stationaryServicePilot23?.tick(now,0);
+   const simulationFrameDt=dt;
+   for (const n of NPCS) {
+     _npcAccumulateCivilianElapsed(n,now);

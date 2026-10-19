@@ -1,0 +1,103 @@
+{
+  "schema": "mafiozi.qa58.final-services-audit/v1",
+  "passed": true,
+  "gates": {
+    "terminal_native_passed": true,
+    "all37_independent_checks": true,
+    "checks_match_original_receipt": true,
+    "exact_final_candidate": true,
+    "pinned_manifest": true,
+    "controls_unchanged": true,
+    "no_source_control_harness_drift": true,
+    "no_native_errors": true,
+    "graphical_ten_residents": true,
+    "immutable_harness_verified": true
+  },
+  "checks_passed": 37,
+  "checks_total": 37,
+  "native_reason": "complete",
+  "run": "outputs\\coordinator31_npc57\\proposals\\qa58_services_final\\runs\\merged58_services_graphical03",
+  "source_manifest": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\extended31\\stage58_03\\CANDIDATE58.json",
+  "source_count": 1135,
+  "source_manifest_sha256": "46a095bd14fdede78861d097cd5e69ad73a32c6cdf842b6944375101e84155a7",
+  "wall_s": 295.3702958000358,
+  "cases": {
+    "bank": {
+      "id": "resident_2",
+      "entered": true,
+      "completed": true,
+      "outbound": true,
+      "travel_m": 367.783847086132,
+      "max_physics_displacement_m": 0.0334916263818741,
+      "hp_after_tt": null,
+      "native_payment_receipts": 1,
+      "native_healing_receipts": 0,
+      "service_frame": 4304,
+      "exit_frame": 4641
+    },
+    "hospital": {
+      "id": "resident_7",
+      "entered": true,
+      "completed": true,
+      "outbound": true,
+      "travel_m": 374.734163743735,
+      "max_physics_displacement_m": 0.0377711392939091,
+      "hp_after_tt": 6.0,
+      "native_payment_receipts": 0,
+      "native_healing_receipts": 1,
+      "service_frame": 5856,
+      "exit_frame": 6154
+    },
+    "restaurant": {
+      "id": "resident_1",
+      "entered": true,
+      "completed": true,
+      "outbound": true,
+      "travel_m": 418.638544155285,
+      "max_physics_displacement_m": 0.0306432954967022,
+      "hp_after_tt": null,
+      "native_payment_receipts": 1,
+      "native_healing_receipts": 0,
+      "service_frame": 9472,
+      "exit_frame": 9809
+    },
+    "shop": {
+      "id": "resident_10",
+      "entered": true,
+      "completed": true,
+      "outbound": true,
+      "travel_m": 448.21573100239,
+      "max_physics_displacement_m": 0.0308756623417139,
+      "hp_after_tt": null,
+      "native_payment_receipts": 1,
+      "native_healing_receipts": 0,
+      "service_frame": 16269,
+      "exit_frame": 16571
+    }
+  },
+  "failed_checks": [],
+  "raw_evidence_sha256": {
+    "RUN.json": "4f8d5df0094436cc7228f8b9fd8e8c1d96cf8860b07968fe8a3c0f8fbe8f6850",
+    "SERVICES56.json": "3fa8221e879842785f6a4725b3ab4b5e87261dadfd3b2f3f46cee5ae2b319ced",
+    "SOURCE.json": "671a7959afd972b941156e4a5b298b309cc55f0d5823eda223b39a6c48dc7dcf",
+    "SOURCE_AFTER.json": "671a7959afd972b941156e4a5b298b309cc55f0d5823eda223b39a6c48dc7dcf",
+    "CONTROL_PINS.json": "f8bee781bfeb401122708731ba2b57c04359b81ad7d0628b502ba4e571704e54",
+    "CONTROL_PINS_AFTER.json": "f8bee781bfeb401122708731ba2b57c04359b81ad7d0628b502ba4e571704e54",
+    "HARNESS_PINS.json": "3fe443b92f33bec6e573bd9c2d20559d33e2072b637b3cfad784cb4df80f9964",
+    "HARNESS.zip": "cf1556498af97ed095edbe315da9c5eb38fe353395a7dbc520db36ddf4456de8",
+    "FLAGS.json": "e12b3d8c3a27bd03198f02765695a1ebcac4351ac5d0cae102965d4c49a55738",
+    "PROBE.json": "87d3cd9792e3335f6f8f5be1cc855d790f67a3e507ee231ec5c89dca8300a18b",
+    "stdout.log": "6051026e3e4abc3c7af959fde687560447bd9578219f62d11183a2ff328f71bf",
+    "stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "auditor_sha256": "391bf8916ab73b35ce56f10b63256d5049e456acbbdf00c5319093b00af39299",
+  "performance_accepted": false,
+  "full_soak_accepted": false,
+  "release_accepted": false,
+  "production_modified": false,
+  "user_game_preserved": true,
+  "limitations": [
+    "This is the four-service fixture, separate from the natural1200-second spatial observation.",
+    "Runs alongside the user game are functional evidence, not comparable FPS."
+  ]
+}

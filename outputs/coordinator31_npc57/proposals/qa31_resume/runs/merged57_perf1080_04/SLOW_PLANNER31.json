@@ -1,0 +1,1 @@
+{"capacity":950,"limitations":"Reads existing diagnostic fields; performs no physics queries. Shared jobs capped16, sample capacity10 per requested second. No collider paths are inferred if the planner did not record one.","max_sample_us":10,"motion_threshold_s":5.0,"queue_threshold_s":15.0,"read_only":true,"sample_count":0,"samples":[],"schema":"mafiozi.soak31.slow-planner/v1"}

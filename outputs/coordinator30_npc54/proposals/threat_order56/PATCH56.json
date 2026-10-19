@@ -1,0 +1,21 @@
+{
+  "changes": [
+    {
+      "file": "scripts/city/runtime/npc_threat_life30.gd",
+      "before": "var _last_observation := -100.0",
+      "after": "var _last_observation := -100.0\nvar _same_tick_events56: Dictionary={} # accepted event identities in one world tick only"
+    },
+    {
+      "file": "scripts/city/runtime/npc_threat_life30.gd",
+      "before": "\t# A replay, unseen stale event, or duplicate native hit cannot keep fear alive.\n\tif at<=_last_observation:return {\"accepted\":false,\"reason\":\"not_new_observation\"}\n\tvar previous_kind: String=str(_event.get(\"kind\",\"\"))\n\tvar stronger: bool=int(PRIORITY[event.kind])>int(PRIORITY.get(previous_kind,0))\n\tvar new_violent: bool=event.kind in [\"near_shot\",\"actual_hit\"] and event.event_id!=_event.get(\"event_id\")",
+      "after": "\tvar previous_kind: String=str(_event.get(\"kind\",\"\"))\n\tvar stronger: bool=int(PRIORITY[event.kind])>int(PRIORITY.get(previous_kind,0))\n\tvar new_violent: bool=event.kind in [\"near_shot\",\"actual_hit\"] and event.event_id!=_event.get(\"event_id\")\n\t# Perception and native hit can share a world tick. Preserve stronger/new violence,\n\t# but reject stale observations and exact same-tick replays.\n\tvar observation_key56: String=str(event.kind)+\":\"+str(event.event_id)\n\tif at<_last_observation or (at==_last_observation and (_same_tick_events56.has(observation_key56) or (not stronger and not new_violent))):\n\t\treturn {\"accepted\":false,\"reason\":\"not_new_observation\"}\n\tif at>_last_observation:_same_tick_events56.clear()\n\t# Hard bound for pathological same-tick bursts; normal delivery is far below this.\n\tif _same_tick_events56.size()>=64:return {\"accepted\":false,\"reason\":\"same_tick_observation_limit\"}\n\t_same_tick_events56[observation_key56]=true"
+    },
+    {
+      "file": "scripts/city/runtime/npc_threat_life30.gd",
+      "before": "\tif not active() or stronger or new_violent or event.kind==previous_kind or at-float(_event.get(\"at\",-100.0))>=QUIET_SECONDS:_event=event.duplicate()",
+      "after": "\t# A fresh nearby shot renews fear, but cannot downgrade a recent actual injury.\n\tif not active() or stronger or event.kind==previous_kind or at-float(_event.get(\"at\",-100.0))>=QUIET_SECONDS:_event=event.duplicate()"
+    }
+  ],
+  "helpers": {},
+  "reason": "same-tick confirmed hit priority and later raw near-shot downgrade"
+}

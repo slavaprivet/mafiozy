@@ -1,0 +1,257 @@
+extends RefCounted
+## Scene wiring for real admitted residents. Movement remains in population.step
+## and transport._physics_process; visit/account code alone commits services.
+const Life = preload("npc_daily_life.gd")
+const Account = preload("shop/npc_local_account.gd")
+const Drive = preload("npc_daily_drive.gd")
+var _scene: WeakRef
+var _population: RefCounted
+var _hospital: WeakRef
+var _bank: WeakRef
+var _hospital_script: Script
+var _bank_script: Script
+var _shop_script: Script
+var _entry := PackedByteArray()
+var _geometry := PackedByteArray()
+var _road_path := ""
+var _road_sha := ""
+var _lives := {}
+var _accounts := {}
+var _health := {}
+var _failures := {}
+var _disposed := false
+var _frame := -1
+var _cursor := 0
+var _samples := 0
+var _total_us := 0
+var _max_us := 0
+var _max_frame := -1
+var _life_peaks:Array[Dictionary]=[]
+
+func _init() -> void:
+	for _index in 12: _life_peaks.append({"frame":-1,"source_id":"","phase":"","kind":"","us":0})
+	_dsh_poll_ring.resize(DSH_POLL_RING)  # DSH_DAILYFX
+
+func _record_life_peak(frame: int, source_id: String, phase: String, kind: String, elapsed: int) -> void:
+	var minimum_index:=0
+	for index in range(1,_life_peaks.size()):
+		if int(_life_peaks[index]["us"])<int(_life_peaks[minimum_index]["us"]): minimum_index=index
+	if elapsed<=int(_life_peaks[minimum_index]["us"]): return
+	var peak: Dictionary=_life_peaks[minimum_index]
+	peak["frame"]=frame; peak["source_id"]=source_id; peak["phase"]=phase; peak["kind"]=kind; peak["us"]=elapsed
+
+func _life_peaks_snapshot() -> Array[Dictionary]:
+	var peaks: Array[Dictionary]=[]
+	for peak: Dictionary in _life_peaks:
+		if int(peak["frame"])>=0: peaks.append(peak.duplicate())
+	peaks.sort_custom(func(a:Dictionary,b:Dictionary)->bool:return int(a.us)>int(b.us))
+	return peaks
+
+func configure(scene: Node3D, population: RefCounted, hospital: Node3D, bank: Node3D, hospital_script: Script, bank_script: Script, shop_script: Script, entry_bytes: PackedByteArray, geometry_bytes: PackedByteArray, route_path: String, route_sha: String) -> Dictionary:
+	if _scene!=null or _disposed or not is_instance_valid(scene) or not scene.is_inside_tree() or not is_instance_valid(population) or population.get("residents")==null or population.get("policy")==null: return {"ok":false,"reason":"current_population_required"}
+	if not is_instance_valid(hospital) or not hospital.get("ready_for_use") or not is_instance_valid(bank) or not bank.get("ready_for_use"): return {"ok":false,"reason":"actual_hospital_and_bank_required"}
+	for script: Script in [hospital_script,bank_script,shop_script]:
+		if script==null or not script.can_instantiate(): return {"ok":false,"reason":"concrete_visit_scripts_required"}
+	_scene=weakref(scene); _population=population; _hospital=weakref(hospital); _bank=weakref(bank)
+	_hospital_script=hospital_script; _bank_script=bank_script; _shop_script=shop_script
+	_entry=entry_bytes.duplicate(); _geometry=geometry_bytes.duplicate(); _road_path=route_path; _road_sha=route_sha
+	scene.tree_exiting.connect(_retire_scene,CONNECT_ONE_SHOT)
+	for owner: RefCounted in population.hit_owners:
+		var token: Dictionary=owner.get("_token")
+		if not population.residents.target_current(token): continue
+		var id: String=token.source_id
+		var account:=Account.new()
+		var admitted: Dictionary=account.configure(population.residents,token,owner)
+		if not admitted.get("ok",false): _failures[id]=admitted; continue
+		var bank_bound: Dictionary=account.bind_bank(scene)
+		if not bank_bound.get("ok",false): account.dispose(); _failures[id]=bank_bound; continue
+		var life:=Life.new()
+		var active: Dictionary=life.configure(population.residents,token,owner,account,population.policy,Callable(self,"_create_visit").bind(id))
+		if not active.get("ok",false): life.dispose(); account.dispose(); _failures[id]=active; continue
+		_accounts[id]=account; _lives[id]=life; _health[id]=owner
+	return {"ok":not _lives.is_empty(),"residents":_lives.size(),"failures":_failures.duplicate(true),"scene_mechanics":"new_local_session"}
+
+func _create_visit(kind: String, goal: Dictionary, activity_owner: RefCounted, id: String) -> Dictionary:
+	if _disposed or _scene==null or not is_instance_valid(_scene.get_ref()) or not _lives.has(id) or _lives[id]!=activity_owner: return {"ok":false,"reason":"current_daily_owner_required"}
+	var host: RefCounted=_population.residents
+	var token: Dictionary=_health[id]._token
+	if not host.target_current(token): return {"ok":false,"reason":"current_walker_required"}
+	var scene: Node3D=_scene.get_ref()
+	var controller: RefCounted
+	var result: Dictionary
+	match kind:
+		"hospital":
+			controller=_hospital_script.new()
+			result=controller.configure(host,_population.policy,_health[id],_hospital.get_ref(),scene,"LOCAL_DAILY24:"+id,activity_owner)
+		"bank":
+			controller=_bank_script.new()
+			result=controller.configure(host,_population.policy,_health[id],_bank.get_ref(),scene,"LOCAL_DAILY24:"+id,activity_owner,_accounts[id],goal)
+		"shop":
+			controller=_shop_script.new()
+			result=controller.configure(host,_population.policy,_health[id],scene,activity_owner,_accounts[id],goal,_entry,_geometry)
+		"drive":
+			var transport: Node3D=scene.get("preview_transport")
+			if not is_instance_valid(transport): return {"ok":false,"reason":"native_transport_unavailable"}
+			controller=Drive.new()
+			result=controller.configure(host,token,activity_owner,transport,_road_path,_road_sha)
+		_: return {"ok":false,"reason":"unknown_activity"}
+	if not result.get("ok",false):
+		controller.dispose(); return result
+	return {"ok":true,"controller":controller}
+
+const DAILY_SLICE:=48
+# DSH_NAVDAILY (temporary): the slice cadence and the resident key order are cached.
+# _lives only changes in configure()/dispose(), so the 284-element keys() Array and
+# the per-frame element count are rebuilt only when the resident count changes;
+# polling cadence, ordering and the cursor walk are unchanged.
+# --city-daily-slice=N (default 48 = current behaviour) is an A/B cadence lever.
+var _dsh_slice := 0  # DSH_NAVDAILY: 0 = unresolved
+var _dsh_ids: Array = []  # DSH_NAVDAILY: cached _lives key order
+var _dsh_per_frame := 0  # DSH_NAVDAILY: cached ceil(count/slice)
+const DSH_POLL_RING:=64  # DSH_DAILYFX: per-poll window behind the DSH_DAILY distribution
+var _dsh_poll_ring:=PackedInt32Array()  # DSH_DAILYFX
+var _dsh_poll_cursor:=0  # DSH_DAILYFX
+var _dsh_poll_filled:=0  # DSH_DAILYFX
+var _dsh_budget_cache:=-1  # DSH_DAILYFX: --city-daily-budget-us, 0 = today's fixed count
+var _dsh_worst_us:=0  # DSH_DAILYFX: worst poll of the print window
+var _dsh_worst_id:=""  # DSH_DAILYFX
+var _dsh_worst_from:=""  # DSH_DAILYFX
+var _dsh_worst_to:=""  # DSH_DAILYFX
+var _dsh_worst_state:=""  # DSH_DAILYFX
+var _dsh_worst_reason:=""  # DSH_DAILYFX
+var _dsh_worst_parts:=""  # DSH_DAILYFX
+
+func _dsh_daily_slice() -> int:  # DSH_NAVDAILY
+	if _dsh_slice <= 0:
+		_dsh_slice = DAILY_SLICE
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-daily-slice="):
+				_dsh_slice = maxi(1, int(argument.trim_prefix("--city-daily-slice=")))
+	return _dsh_slice
+
+# DSH_DAILYFX: --city-daily-budget-us=N stops the rotating slice of ONE city step
+# once N microseconds of it are spent, and the cursor below now advances by the
+# number of residents actually polled, so the walk resumes exactly where it stopped.
+# 0 (default) never breaks: the poll count per step is today's ceil(count/slice).
+func _dsh_daily_budget() -> int:  # DSH_DAILYFX
+	if _dsh_budget_cache<0:
+		_dsh_budget_cache=0
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-daily-budget-us="):
+				_dsh_budget_cache=maxi(0,int(argument.trim_prefix("--city-daily-budget-us=")))
+	return _dsh_budget_cache
+
+# DSH_DAILYFX: one point of the per-poll distribution of the last DSH_POLL_RING polls.
+func _dsh_poll_us_at(ratio: float) -> int:  # DSH_DAILYFX
+	if _dsh_poll_filled<=0: return 0
+	var sorted:=_dsh_poll_ring.slice(0,_dsh_poll_filled)
+	sorted.sort()
+	return int(sorted[mini(sorted.size()-1,int(float(sorted.size())*ratio))])
+
+# DSH_DAILYFX: the polled resident's own profile peaks (configure / begin /
+# visit_step / visit_snapshot) so a spike names its sub-call without a new probe.
+func _dsh_poll_parts(life: RefCounted) -> String:  # DSH_DAILYFX
+	var peaks: Array=life._profile_peaks
+	var text:=""
+	for peak: Dictionary in peaks:
+		if int(peak["us"])<1000: continue
+		if not text.is_empty(): text+=","
+		text+=str(peak["part"])+":"+str(int(peak["us"]))+"@"+str(int(peak["frame"]))
+	return text
+
+func step(delta: float) -> void:
+	if _disposed or _scene==null or not is_instance_valid(_scene.get_ref()) or not is_finite(delta) or delta<=0.0 or delta>.05: return
+	var frame:=Engine.get_physics_frames()
+	if frame==_frame: return
+	_frame=frame
+	var started:=Time.get_ticks_usec()
+	# The walk and visit controllers only POLL. The native navigation host advances
+	# every actor in population.step on every frame, so polling all residents here
+	# cost about 1 ms per resident per frame at city scale and dominated the frame.
+	# Poll a rotating slice instead: every resident is still served once per
+	# DAILY_SLICE frames, so a leg or visit advance lands at most that many frames
+	# later. Decisions keep their own millisecond time base, so no work is skipped,
+	# only sampled less often.
+	# DSH_NAVDAILY: the key order is cached; a resident-count change rebuilds it. Same
+	# residents, same order, same cursor arithmetic, same polling cadence.
+	var count:=_lives.size()
+	if _dsh_ids.size()!=count:
+		_dsh_ids=_lives.keys()
+		_dsh_per_frame=maxi(1,int(ceil(float(count)/float(_dsh_daily_slice()))))
+	var ids: Array=_dsh_ids
+	var per_frame:=_dsh_per_frame
+	var stepped:=0
+	var life_total:=0
+	var dsh_budget:=_dsh_daily_budget()  # DSH_DAILYFX
+	# DSH_NAVDAILY: `phases` is read only by the DSH_DAILY print below.
+	var dsh_phases_frame:=frame%15==0
+	var phases:={}
+	for k in per_frame:
+		if count<=0: break
+		# DSH_DAILYFX: dsh_budget==0 (default) never breaks here. k>0 guarantees at
+		# least one poll per step, so no step can starve the walk.
+		if dsh_budget>0 and k>0 and Time.get_ticks_usec()-started>=dsh_budget: break
+		var index:=(_cursor+k)%count
+		var life: RefCounted=_lives[ids[index]]
+		var life_started:=Time.get_ticks_usec()
+		var life_phase:String=life._phase
+		var life_kind:String=str(life._goal.get("kind",""))
+		life.step(delta)
+		var life_us:=Time.get_ticks_usec()-life_started
+		stepped+=1; life_total+=life_us
+		if dsh_phases_frame: phases[life_phase]=int(phases.get(life_phase,0))+1
+		if life_us>=1000:
+			_record_life_peak(frame,str(ids[index]),life_phase,life_kind,life_us)
+		# DSH_DAILYFX: per-poll window sample and the worst poll of the window, with
+		# the resident's own start/end phase, reason and profile peaks.
+		_dsh_poll_ring[_dsh_poll_cursor]=life_us
+		_dsh_poll_cursor=(_dsh_poll_cursor+1)%DSH_POLL_RING
+		if _dsh_poll_filled<DSH_POLL_RING: _dsh_poll_filled+=1
+		if life_us>_dsh_worst_us:
+			_dsh_worst_us=life_us
+			_dsh_worst_id=str(ids[index])
+			_dsh_worst_from=life_phase
+			_dsh_worst_to=str(life._phase)
+			_dsh_worst_state=life_kind
+			_dsh_worst_reason=str(life._reason)
+			_dsh_worst_parts=_dsh_poll_parts(life) if life_us>=2000 else ""
+	if count>0: _cursor=(_cursor+stepped)%count
+	var elapsed:=Time.get_ticks_usec()-started
+	if frame%15==0: print("DSH_DAILY f=",frame," lives=",count," stepped=",stepped," life_us=",life_total," overhead_us=",elapsed-life_total," total_us=",elapsed," phases=",phases," polls=",_dsh_poll_filled," pmin=",_dsh_poll_us_at(0.0)," p50=",_dsh_poll_us_at(.5)," p90=",_dsh_poll_us_at(.9)," pmax=",_dsh_poll_us_at(1.0)," budget_us=",dsh_budget," worst_us=",_dsh_worst_us," worst_id=",_dsh_worst_id," worst_from=",_dsh_worst_from," worst_to=",_dsh_worst_to," worst_state=",_dsh_worst_state," worst_reason=",_dsh_worst_reason," worst_parts=",_dsh_worst_parts)
+	if frame%15==0: _dsh_poll_filled=0; _dsh_poll_cursor=0; _dsh_worst_us=0; _dsh_worst_id=""; _dsh_worst_from=""; _dsh_worst_to=""; _dsh_worst_state=""; _dsh_worst_reason=""; _dsh_worst_parts=""  # DSH_DAILYFX: the window is the print interval
+	# DSH_ECON (temporary): a time series proving the personal economy moves.
+	if frame%600==0 and not _lives.is_empty():
+		var econ_ids: Array=_lives.keys()
+		var stride: int=maxi(1,int(econ_ids.size()/3))
+		for probe_index in range(mini(3,econ_ids.size())):
+			var eid: String=str(econ_ids[mini(probe_index*stride,econ_ids.size()-1)])
+			if not _lives.has(eid): continue
+			var life_state: Dictionary=_lives[eid].snapshot()
+			var account_state: Dictionary=life_state.get("account",{})
+			var ledger: Dictionary=account_state.get("account",{})
+			print("DSH_ECON f=",frame," id=",eid," phase=",str(life_state.get("phase",""))," goal=",str(life_state.get("goal",{}).get("kind",""))," cash=",int(ledger.get("cash",-1))," bank=",int(ledger.get("bank",-1))," spent=",int(ledger.get("spent",-1))," total=",int(ledger.get("initial_total",-1))," conserved=",bool(account_state.get("conserved",false))," completed=",JSON.stringify(life_state.get("completed",{}))," events=",JSON.stringify(life_state.get("events",[]).slice(0,3)))
+	_samples+=1; _total_us+=elapsed
+	if elapsed>_max_us: _max_us=elapsed; _max_frame=frame
+func snapshot(include_details: bool=false) -> Dictionary:
+	var rows:=[]
+	for id: String in _lives:
+		var life: RefCounted=_lives[id]
+		rows.append(life.snapshot() if include_details else {"source_id":id,"phase":life._phase,"reason":life._reason,"kind":life._goal.get("kind",""),"completed":life._completed.duplicate()})
+	return {"residents":rows,"failures":_failures.duplicate(true),"scope":"local_daily_services","cost":{"samples":_samples,"total_us":_total_us,"max_us":_max_us,"max_frame":_max_frame},"life_peaks":_life_peaks_snapshot(),"native_movement_tick_added":false}
+
+func dispose() -> void:
+	if _disposed: return
+	var pending:=false
+	for life: RefCounted in _lives.values():
+		life.dispose()
+		if life._phase!="DISPOSED" and life._phase!="RETIRED": pending=true
+	if pending: return
+	for account: RefCounted in _accounts.values(): account.dispose()
+	_disposed=true; _lives.clear(); _accounts.clear(); _health.clear(); _scene=null
+
+func _retire_scene() -> void:
+	# A destroyed scene cannot physically unwind a visit. Its existing host owns
+	# body teardown; retire our goals and break factory reference cycles now.
+	for life: RefCounted in _lives.values(): life._end_life()
+	for account: RefCounted in _accounts.values(): account.dispose()
+	_disposed=true; _lives.clear(); _accounts.clear(); _health.clear(); _scene=null

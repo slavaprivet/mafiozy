@@ -1,0 +1,94 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--path",
+    "D:/MafioziCombat31/merged50/game",
+    "--script",
+    "D:/MafioziCombat31/jump50/damage50.gd",
+    "--",
+    "--qa-out=D:/MafioziCombat31/merged50/FINAL_JUMP01.json",
+    "--weapon=sword"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "47e28e6b89d34dafb5f4479372d51322",
+    "owner": {
+      "pid": 50968,
+      "creation_filetime": "134368047641815804"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\merged50\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 47620,
+        "creation_filetime": "134368047653347425",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --headless --path D:/MafioziCombat31/merged50/game --script D:/MafioziCombat31/jump50/damage50.gd -- --qa-out=D:/MafioziCombat31/merged50/FINAL_JUMP01.json --weapon=sword",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "D:/MafioziCombat31/merged50/game",
+          "--script",
+          "D:/MafioziCombat31/jump50/damage50.gd",
+          "--",
+          "--qa-out=D:/MafioziCombat31/merged50/FINAL_JUMP01.json",
+          "--weapon=sword"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "d:\\mafiozicombat31\\merged50\\game",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 1272931.4524338,
+    "queued_at": 1272871.4524338,
+    "ticket": 3994,
+    "inventory_before": [
+      {
+        "pid": 12656,
+        "parent_pid": 43696,
+        "creation_filetime": "134368008441584844",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\game\" --script \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_castle_current\\bootstrap_castle.gd\" -- \"--receipt-dir=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261018T124044131Z\" \"--release-title=Замок и осада · замах и подбор 43\" \"--release-revision=castle-20261018-combined43-raised-arms\" --castle=1 --castle-start-outside=1",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози — Замок и осада · замах и подбор 43 (DEBUG)"
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.6138227998744696
+  },
+  "child": {
+    "pid": 47620,
+    "creation_filetime": "134368047653347425",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --headless --path D:/MafioziCombat31/merged50/game --script D:/MafioziCombat31/jump50/damage50.gd -- --qa-out=D:/MafioziCombat31/merged50/FINAL_JUMP01.json --weapon=sword",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--path",
+      "D:/MafioziCombat31/merged50/game",
+      "--script",
+      "D:/MafioziCombat31/jump50/damage50.gd",
+      "--",
+      "--qa-out=D:/MafioziCombat31/merged50/FINAL_JUMP01.json",
+      "--weapon=sword"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\merged50\\game",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 19.72540570003912,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

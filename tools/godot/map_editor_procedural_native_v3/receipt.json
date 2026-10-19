@@ -1,0 +1,23 @@
+{
+  "schema": "mafiozi.native-procedural-editor-registry-checkpoint/v3",
+  "manifestSha256": "82e6ef82a824e002d0f315972ffd3d967102b7c36256371699992bcfb76220dd",
+  "godot": "4.7.2.stable.official.ed1daf0bf",
+  "sourceIds": 9394,
+  "checks": {"exploration": 448582, "roadEditAuthority": 134894, "sourceRoadVisualPolicy": 63909, "coreCompatibleRegistry": 9458, "actualNativeController": 26, "nativeEmissionOracle": 1},
+  "admittedCloneKindsFreshloaded": ["pine", "monument", "road-sign", "road-paint", "traffic-signal"],
+  "furtherWholeSaveLoadCycles": 3,
+  "immutablePolicy": "exact-original-or-exact-once-canonical-trusted-source; never caller normalization or epsilon; adjacent unadmitted ULP rejected",
+  "gpuChecked": false,
+  "realGameplayOwnerChecked": false,
+  "files": {
+    "scripts/procedural_factory.gd": "280880c927809d0d773c3175cdf43fc7534a772af286d77fbf0b50a85fe53628",
+    "scripts/road_visual_policy.gd": "82cee4f07bcd1aeca9a41b081c592a33fcd5de54a925498f3df602021922ae1a",
+    "scripts/procedural_registry.gd": "34d880d1d79b5b58f28c10fb2b797e2a1ab2b9c6a86f6927d4cd9c06e7595073",
+    "scripts/map_editor/editor_controller.gd": "0b28c6638a3120986406d7c7d0a13761725eb2c8ee3629b790ea70a8b610f6e9",
+    "scripts/map_editor/trusted_json.gd": "40e455e671f00bb130cbcdf8ce119a95ef0ef6dcfa4d8772790568efe48a7ccb",
+    "tests/test_procedural_registry.gd": "3dbb70e11f1fb4d4f7c0b8de93fd69be0fab16135c519f16d522ac5b6ac0066b",
+    "tests/test_procedural_controller.gd": "86f8da164dcf32241c19ef292a93848083c7fcde25a890590b93567dbd0e89ec",
+    "stage.mjs": "f95b2f293d5d1dbd32a7170d8df4dc1626cb457bfaaa902fc2ca6283f9d20cab"
+  },
+  "remainingGates": ["GPU visual/normal/material/depth-bias parity", "source collision/navigation/server traffic authority integration", "production unified workspace installation", "full-scene p50/p95", "spatial repartition/unused copy-slot compaction after large edits"]
+}

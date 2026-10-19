@@ -1,0 +1,112 @@
+--- a/scripts/npc_visual/npc_resident_diag.gd
++++ b/scripts/npc_visual/npc_resident_diag.gd
+@@ -32,6 +32,8 @@
+ ## poll slice. A miss simply means the immediate check does not run; the slice still does.
+ static func register_life(id: String, life: RefCounted) -> void:
+ 	if id.is_empty() or not is_instance_valid(life): return
++	var prior: RefCounted=life_of(id)
++	if prior!=null and prior!=life:unregister_life30(id,prior)
+ 	_lives[id] = weakref(life)
+ 
+ static func life_of(id: String) -> RefCounted:
+@@ -75,7 +77,11 @@
+ ## did not pick gets one.
+ static func caption_allowed(body: Node3D) -> bool:
+ 	if not is_instance_valid(body): return false
+-	if simple_vitals_on() and str(body.get_meta("source_id", "")) == "resident_1": return true
++	if simple_vitals_on():
++		var life: RefCounted=life_of(str(body.get_meta("source_id","")))
++		if life==null:return false
++		var token: Variant=life.get("_token")
++		return token is Dictionary and token.get("body")==body and str(token.get("source_id",""))==str(body.get_meta("source_id",""))
+ 	if body.has_meta("dsh_test_resident_name"): return true
+ 	var parent: Node = body.get_parent()
+ 	return parent != null and parent is Node3D and (parent as Node3D).has_meta("dsh_test_resident_name")
+@@ -85,6 +91,7 @@
+ ## that resident's turn in the daily poll slice (measured poll period ~1.6 s).
+ static func refresh_after_hit(body: Node3D, name: String, row: Dictionary) -> void:
+ 	if not hp_label_on() and not diag_on(): return
++	if simple_vitals_on():repaint_focus30(body);return
+ 	if not is_instance_valid(body) or not caption_allowed(body): return
+ 	var label := _label_for(body, true)
+ 	if label == null: return
+@@ -268,6 +275,7 @@
+ ## timer and no keep-alive of its own.
+ static func update(id: String, body: Variant, row: Dictionary, life_state: Dictionary, walk: Dictionary, name: String) -> void:
+ 	if not diag_on() and not hp_label_on(): return
++	if simple_vitals_on() and not diag_on():repaint_focus30(body);return
+ 	if not is_instance_valid(body) or not body is Node3D: return
+ 	var now_frame := Engine.get_physics_frames()
+ 	var record: Dictionary = _seen.get(id, {})
+@@ -392,3 +400,71 @@
+ 		"COMPLETE": return "complete"
+ 		"CANCELLED", "BLOCKED", "HOLD", "FAILED", "STALE": return "blocked:" + status
+ 	return ""
++
++## HP-only path: hidden actors perform no life/route snapshots, no label creation,
++## no canvas acquisition and no authority memoization. Focus's native ray is shared.
++static var _focused_body30: WeakRef
++static var _hp_fast30 := {"calls":0,"hidden":0,"current_reads":0,"paints":0,"releases":0}
++
++static func _cached_label30(body: Node3D) -> Label3D:
++	var id: String=str(body.get_instance_id())
++	var held: Variant=_labels.get(id)
++	var label: Variant=held.get_ref() if held is WeakRef else null
++	if is_instance_valid(label) and label is Label3D and body.is_ancestor_of(label):return label
++	_labels.erase(id);return null
++
++static func _release_focus30(body: Variant, retire: bool=false) -> void:
++	if not is_instance_valid(body) or not body is Node3D:return
++	var label: Label3D=_cached_label30(body)
++	if label!=null:
++		var was_visible: bool=label.visible
++		label.visible=false
++		# Releasing a hidden label must not instantiate the shared canvas.
++		if body.is_inside_tree():
++			var scene: Node=body.get_tree().current_scene
++			var held: Variant=scene.get_meta(Focus29.CanvasCard.META) if scene!=null and scene.has_meta(Focus29.CanvasCard.META) else null
++			var canvas: Variant=held.get_ref() if held is WeakRef else null
++			if is_instance_valid(canvas):canvas.release(label)
++		if was_visible:_hp_fast30.releases+=1
++	if retire:_labels.erase(str(body.get_instance_id()))
++	if _focused_body30!=null and _focused_body30.get_ref()==body:_focused_body30=null
++
++static func unregister_life30(id: String, life: RefCounted) -> void:
++	if is_instance_valid(life):
++		var token: Variant=life.get("_token")
++		if token is Dictionary:_release_focus30(token.get("body"),true)
++	# A late callback of an old life cannot erase its successor's registration.
++	if life_of(id)!=life:return
++	_lives.erase(id);_seen.erase(id);_stages.erase(id)
++
++static func repaint_focus30(body: Variant) -> void:
++	_hp_fast30.calls+=1
++	if not is_instance_valid(body) or not body is Node3D:return
++	if not body.is_inside_tree() or body.is_queued_for_deletion() or not Focus29.focused(body):
++		_hp_fast30.hidden+=1;_release_focus30(body);return
++	var id: String=str(body.get_meta("source_id",""))
++	var life: RefCounted=life_of(id)
++	if life==null or not life.has_method("_life"):_release_focus30(body);return
++	var token: Variant=life.get("_token")
++	if not token is Dictionary or token.get("body")!=body or str(token.get("source_id",""))!=id:
++		_release_focus30(body);return
++	# No frame/revision cache: hit/heal/death may change authority in this same tick.
++	_hp_fast30.current_reads+=1
++	var current: Variant=life.call("_life")
++	if not current is Dictionary or current.is_empty() or str(current.get("source_id",""))!=id or current.get("life_generation")!=token.get("life_generation") or bool(current.get("dead",false)) or float(current.get("hp",0))<=0.0:
++		_release_focus30(body);return
++	var prior: Variant=_focused_body30.get_ref() if _focused_body30!=null else null
++	if is_instance_valid(prior) and prior!=body:_release_focus30(prior)
++	var label: Label3D=_simple_label_for(body,true)
++	if label==null:return
++	var generation: int=int(token.get("life_generation",-1))
++	if label.get_meta("card30_generation",-1)!=generation or str(label.get_meta("card30_source_id",""))!=id:
++		label.remove_meta("card29_display_ratio") if label.has_meta("card29_display_ratio") else false
++		label.remove_meta("card29_paint_ms") if label.has_meta("card29_paint_ms") else false
++	label.set_meta("card30_source_id",id);label.set_meta("card30_generation",generation)
++	label.set_meta("card30_body_id",body.get_instance_id());label.set_meta("card30_session_id",str(token.get("session_id","")))
++	_paint_simple_vitals(label,current)
++	Focus29.update_visibility(body,label,current)
++	_focused_body30=weakref(body);_hp_fast30.paints+=1
++
++static func hp_fast_state30() -> Dictionary:return _hp_fast30.duplicate()

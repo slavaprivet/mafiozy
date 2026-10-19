@@ -1,0 +1,77 @@
+{
+  "status": "COMPONENT_PASS_CITY_INTEGRATION_PENDING",
+  "proof": {
+    "baseline03": {
+      "passed": true,
+      "fixed": false,
+      "checks": 15,
+      "details": {
+        "admitted": 0,
+        "baseline_rejected": 287,
+        "full_city_entry_test": false,
+        "optional_reason": "physical_route_required",
+        "optional_retry_ms": 8000.0,
+        "performance_accepted": false,
+        "protected_wallets": 287,
+        "waiting_claims": 287
+      },
+      "pins": {
+        "runs\\baseline03\\RESULT.json": "bf62ff197e7cb8e28eb04bd16e3e9955e1c02ddd23fe42420867483198f6eede",
+        "runs\\baseline03\\RUN_CHECK.json": "bbb452d41f3cc4f2a54ee6c7484211e3d28c5e9036bf0ce6187fae87b1bbba41",
+        "runs\\baseline03\\SOURCE.json": "1de6474dd0185a5c54f64012b4c3cdf1ceffebc345b3de53082aadbced19beb6",
+        "runs\\baseline03\\SOURCE.zip": "7a29114af0cac73b2c70c84a4ac7b7e7cbfd9932c304b46a3ae3a780fd5bf808",
+        "runs\\baseline03\\HARNESS.json": "c788b9c5b211ae9651b00b126cd810d2d4170ff8b150bfc4966be08276ab2a6d",
+        "runs\\baseline03\\fixture56.gd": "34c22a4e366ced4fb625bfafa1e7f36c0693ab7df075b9e2b8602c25ace93a12",
+        "runs\\baseline03\\engine\\SCHEDULER_RUN.json": "2ceed9aaac3e65504a36f0e820f62f088e12ebce0ac33bc6df9090fcc617c2f1",
+        "runs\\baseline03\\engine\\stdout.log": "e19364f50c65058440d4f4a9952daed3b594223f1a9b3cb6116e953451b1e020",
+        "runs\\baseline03\\engine\\stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "fixed03": {
+      "passed": true,
+      "fixed": true,
+      "checks": 18,
+      "details": {
+        "admitted": 287,
+        "baseline_rejected": 0,
+        "full_city_entry_test": false,
+        "optional_reason": "optional_capacity_deferred",
+        "optional_retry_ms": 9957.03820800781,
+        "performance_accepted": false,
+        "protected_wallets": 287,
+        "waiting_claims": 287
+      },
+      "pins": {
+        "runs\\fixed03\\RESULT.json": "99540c240f32ee8f740e3f54a906230b5ae35d23cb1508a25ab3348379d0a266",
+        "runs\\fixed03\\RUN_CHECK.json": "bbb452d41f3cc4f2a54ee6c7484211e3d28c5e9036bf0ce6187fae87b1bbba41",
+        "runs\\fixed03\\SOURCE.json": "91090a75ade81246888d5a96c711f6efa97889c9a79a0ff45271586d74a5913a",
+        "runs\\fixed03\\SOURCE.zip": "1910e8dc9533685a09f143ca660f64404032908858ccafcf18fc8f724986e06e",
+        "runs\\fixed03\\HARNESS.json": "c788b9c5b211ae9651b00b126cd810d2d4170ff8b150bfc4966be08276ab2a6d",
+        "runs\\fixed03\\fixture56.gd": "34c22a4e366ced4fb625bfafa1e7f36c0693ab7df075b9e2b8602c25ace93a12",
+        "runs\\fixed03\\engine\\SCHEDULER_RUN.json": "9c3aa16d035f666328ae22075917f0309bd2d9c4fe6aa59b9907aa68580d3939",
+        "runs\\fixed03\\engine\\stdout.log": "ad242015720c634b976f3e5652da891e5d3830bb420183854041330aa9034b17",
+        "runs\\fixed03\\engine\\stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  },
+  "frozen55_changed": false,
+  "full_city_services_accepted": false,
+  "287_fps_accepted": false,
+  "leak_absence_claimed": false,
+  "package_pins": {
+    "PATCH56.json": "dead440a0780f16814d28fb22df980b85e53324fec401068d91b2b6d7e6739ad",
+    "apply56.py": "a7eb0abfa08c08dc46dc168c4be0c789d467fab1ff6c56265f324c3c559e4262",
+    "build_patch56.py": "f4d6bfce54c63b41fe5a01e8ffd45d285d88125240bf48a7069ffbfced12d89d",
+    "run56.py": "706c12255f1b143d75e6c38803504a69a94575ece4ee0345774bbe69ea5d4932",
+    "fixture56.gd": "34c22a4e366ced4fb625bfafa1e7f36c0693ab7df075b9e2b8602c25ace93a12",
+    "observer_counts56.gd": "bb11b65f3745035dab811019d352bd4280aede7a006dd191824533651f9ba8b7",
+    "HANDOFF56.md": "b126c58bfa0e3fc263a1e53662cf4be85ae9c5472d8030d11e96d4544686f084",
+    "LOG_AUDIT56.json": "31c5d7fa27b3138859120e3b71c5cb6a51ae36d0feeb6c7a64285b39cc38216f",
+    "finalize56.py": "6ef1dd44dc4539f4ec901ba710804b986cf302057d3bfa820595aac3f1b74be2"
+  },
+  "failure_history": {
+    "baseline01": "Missing extends dependency in minimal fixture staging; preserved, not accepted.",
+    "fixed01": "Runner omitted --fixed; actually a baseline run. Preserved, not fixed evidence.",
+    "fixed02": "Wallet test compared reservation serial as if it were money; corrected to cash/bank/spent/inventory/receipts, preserved."
+  }
+}

@@ -1,0 +1,49 @@
+{
+	"cases": [
+		{
+			"budget": {
+				"budget_us": 1800,
+				"frame": 188,
+				"frame_us": 376,
+				"heap_items": 0,
+				"jobs": 0,
+				"max_frame_us": 1848,
+				"max_heap_items": 131072,
+				"max_jobs": 384,
+				"max_nodes": 65536,
+				"max_unit_us": 188,
+				"nodes": 0,
+				"rejected": 0,
+				"retired": 0,
+				"soft_deadline": true,
+				"units": 53
+			},
+			"frames": 66,
+			"label": "286_requests_one_body_complete",
+			"max_first_frame": 9,
+			"passed": true,
+			"ready": 286
+		},
+		{
+			"label": "all_proposals_still_physical",
+			"passed": true
+		},
+		{
+			"label": "cancel_removes_pending_physics",
+			"passed": true
+		},
+		{
+			"label": "replacement_has_one_job",
+			"passed": true
+		},
+		{
+			"label": "queue_free_prevents_any_query",
+			"passed": true
+		}
+	],
+	"fixture_bodies": 1,
+	"gameplay_performance_accepted": false,
+	"native_physics": true,
+	"passed": true,
+	"requests": 286
+}

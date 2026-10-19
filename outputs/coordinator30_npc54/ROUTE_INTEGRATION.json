@@ -1,0 +1,29 @@
+{
+  "project": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\game",
+  "mode": "apply",
+  "files": [
+    {
+      "path": "scripts/hospital/npc_long_route28.gd",
+      "before_sha256": "ffa9806c378aacd8dd4238d6d4bcedc50c7a050284f0c6aab9f874ec359916f0",
+      "after_sha256": "49681adf8f9108d53e559172fe8963ea9e20b278e69b7a03af3dae4015f78c54",
+      "package_base_match": true
+    },
+    {
+      "path": "scripts/hospital/npc_simple_hospital.gd",
+      "before_sha256": "e6731623b40d2e4a06878457f54fa7f9461a4f747e666989e1b9d89ce32bfe3f",
+      "after_sha256": "d0fc9ec4bac901225322c9b9e1d4a7ace18bf6a79b72ea82adf1221d52b9653a",
+      "package_base_match": false
+    },
+    {
+      "path": "scripts/hospital/npc_restaurant_visit28.gd",
+      "before_sha256": "b904845f2710e8486020c35d8b6d57e2eb4b879f834715e11ccb1e7b7151a29a",
+      "after_sha256": "177c6fb11c322e09047f8b77962cad530fc63999c28f152c694556f53f3a760a",
+      "package_base_match": true
+    }
+  ],
+  "passed": true,
+  "native_proof": [
+    "proposals/route30/runs/hospital08",
+    "proposals/route30/runs/local09"
+  ]
+}

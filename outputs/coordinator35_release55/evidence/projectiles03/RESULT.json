@@ -1,0 +1,63 @@
+{
+	"errors": [],
+	"passed": true,
+	"results": [
+		{
+			"after": 17,
+			"before": 20,
+			"case": "layered_gate_wall",
+			"fired": true,
+			"impact": {
+				"castle": true,
+				"ok": true,
+				"point": "(14.35, 7.908574, 967.329)",
+				"result": {
+					"detached": 33,
+					"event_id": "catapult-castle:1",
+					"ok": true,
+					"state": "committed",
+					"total": 33
+				},
+				"siege_groups": 0
+			}
+		},
+		{
+			"after": 1,
+			"before": 2,
+			"case": "column_foot",
+			"fired": true,
+			"impact": {
+				"castle": true,
+				"ok": true,
+				"point": "(-9.663298, 5.02704, 962.45)",
+				"result": {
+					"detached": 1,
+					"event_id": "catapult-castle:2",
+					"ok": true,
+					"state": "committed",
+					"total": 97
+				},
+				"siege_groups": 0
+			}
+		},
+		{
+			"after": 7201,
+			"before": 7244,
+			"case": "keep_wall",
+			"fired": true,
+			"impact": {
+				"castle": true,
+				"ok": true,
+				"point": "(13.715, 7.28708, 893.4349)",
+				"result": {
+					"detached": 15,
+					"event_id": "catapult-castle:3",
+					"ok": true,
+					"state": "committed",
+					"total": 112
+				},
+				"siege_groups": 0
+			}
+		}
+	]
+}

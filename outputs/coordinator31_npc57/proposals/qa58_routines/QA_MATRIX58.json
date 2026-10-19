@@ -1,0 +1,97 @@
+{
+  "schema": "mafiozi.routines58.qa-matrix/v1",
+  "status": "DESIGN_ONLY_NOT_EXECUTED",
+  "source_read_pins": {
+    "scripts/quick_controls/day_night_clock.gd": "5f44a68a315caaef02ee298cef75775ce1905e7315bd0c90f7f6729d5d6e65ca",
+    "scripts/quick_controls/quick_controls.gd": "4cd2207fd28e8941c719d566a9017b4fb81de12cb0c5919ab2fd8e6cca2a7714",
+    "scripts/quick_controls/scene_hook.gd": "c057a05622ce627db6e25ca54ceb3995de950b0ce2d36f687bf3f801a86bd57d",
+    "scripts/npc_daily_life.gd": "55640868c590cfe6451a3b639481f6f96d001c3d5bd79d5606a34e461c29b332",
+    "scripts/npc_city_daily.gd": "6e64b9082d152c8d926dd4813282f59a751bf2fc65c01b13fc55b1d8c5c9aef2",
+    "scripts/npc_ambient/ambient_controller28.gd": "034096d71830cd76ab117f998b4d84218b89bddf7eda671216fc24fe9c7e77c6",
+    "scripts/npc_ambient/ambient_bench_registry29.gd": "3377e33a56e4cb594063595c6bb087f9864744aa6a41eba7e1ddbcd85c72ce9e",
+    "scripts/city/runtime/npc_threat_life30.gd": "ad989e07fc03691bceca3e751f03d42496aefbc1eab5c37064eda4cc8b6d13ae",
+    "scripts/city/runtime/npc_wait_cohort56.gd": "e6943bb031c06cb26602b2cd70e83e8fe9da83e8b07e62c34c9f561194494d72"
+  },
+  "production_modified": false,
+  "cases": [
+    {
+      "id": "clock_single_owner",
+      "trigger": "All ten read the same root clock while lighting changes.",
+      "required_result": "One clock identity; NPC reads never advance it; native physics delta and health/route/quiet timers remain real time.",
+      "evidence": "Clock identity/day/hour per sample plus native physics/frame timestamps."
+    },
+    {
+      "id": "midnight_and_dawn",
+      "trigger": "Cross23:59→00:00,05:59→06:00,17:59→18:00, and a whole5400s clock cycle.",
+      "required_result": "Day increases once at midnight, never merely at dawn; daylight rates300/150s per hour preserved; full cycles not discarded.",
+      "evidence": "Bounded pure native clock checks, explicitly separate from physical passage acceptance."
+    },
+    {
+      "id": "n_jump_and_t_pause",
+      "trigger": "Use actual N day/night transition, repeat N during transition, and cancel transition with T.",
+      "required_result": "No repeated day increments after crossing24; no catch-up burst of missed purchases. T pauses schedule time only; real support/threat/death checks continue.",
+      "evidence": "Native input path or actual control method; frame-by-frame day/hour, tickets and receipts."
+    },
+    {
+      "id": "ten_distinct_schedules",
+      "trigger": "Observe morning, lunch, evening and sleep windows for all ten stable source IDs.",
+      "required_result": "Individual meal/shop/wake/sleep times and late schedules are present. No all-ten departure caused by a single shared threshold; no old random wander fallback.",
+      "evidence": "Per-ID schedule table, chosen need/reason, departures, arrivals and rests."
+    },
+    {
+      "id": "one_to_three_per_home",
+      "trigger": "Assign all ten original residents to real shared homes.",
+      "required_result": "Each home has1–3 residents, enough distinct physical beds, valid destructible building identity; one current owner per bed; no unassigned ID or duplicate bed claim.",
+      "evidence": "Home/body/bed paths, assignments and exact generation-bound lease inventory."
+    },
+    {
+      "id": "home_physical_cycle",
+      "trigger": "Resident travels home, enters through door, approaches assigned bed, sleeps, wakes and exits.",
+      "required_result": "Native movement throughout entry/exit; sleep starts only after real arrival/support and pose ownership. World/floor/door/player collision contract retained.",
+      "evidence": "Positions, phases, cached contacts, actual door fractions, native ticks and pose-commit proof."
+    },
+    {
+      "id": "need_then_rest",
+      "trigger": "Hunger, planned meal/shop and low funds select a real venue; rest follows completed activity.",
+      "required_result": "Actual bank/service transaction precedes routine completion; energy restores only through existing authenticated receipt path. Failed/cancelled request is not marked complete.",
+      "evidence": "Goal ticket, pending purpose, staff interaction, receipt identity/amount, balance before/after and physical exit."
+    },
+    {
+      "id": "clock_jump_during_service",
+      "trigger": "Jump over meal windows/day rollover while a bank/payment/entry/exit is pending.",
+      "required_result": "Active service retains original ticket until terminal release; one committed payment per ticket. Skipped windows do not enqueue a backlog; new day is reconsidered after safe unwind.",
+      "evidence": "Original and resumed ticket IDs, unique receipt IDs, account ledger and route ownership."
+    },
+    {
+      "id": "threat_injury_death",
+      "trigger": "Trigger authentic shot/hit/death during home approach, sleep and bench rest.",
+      "required_result": "Existing medical/combat/threat priorities win; home/bench movement and pose authority release; death immediately retires old generation with no stale claim or later payment.",
+      "evidence": "Native damage/shot events, frame of cancellation, lease release, threat/hospital movement, respawn generation."
+    },
+    {
+      "id": "bed_or_home_destroyed",
+      "trigger": "Remove physical bed support or destroy its house during approach and sleep, including while T is paused.",
+      "required_result": "Sleep and its pose cancel on support/identity loss; real falling/blocked exit remains physical. Bounded recovery or explicit unavailable reason; no sleeping in air or stale bed claim.",
+      "evidence": "Actual destruction event, support lifecycle, contacts, health, phase and claim snapshots."
+    },
+    {
+      "id": "ambient_bench",
+      "trigger": "Use an existing available OriginalBench, then interrupt or remove its support.",
+      "required_result": "Existing exact physical reservation, approach/dock/pose checks remain. No invented bench/seat or pose without committed support; cancellation releases exact lease.",
+      "evidence": "Bench registry lease, native approach/dock positions, pose frames and support-removal cancellation."
+    },
+    {
+      "id": "liveness_and_load",
+      "trigger": "Observe the final combined source with ten originals plus twelve staff.",
+      "required_result": "Motion idle≤10s and queue idle≤30s; required motion confined within1.5m for30s fails even through retries. Valid sleep/rest excluded only with live owner/support proof; every due journey moves. No FPS acceptance beside user game.",
+      "evidence": "Exact SOURCE/HARNESS archive, native frame-time/physics timeline, spatial audit, cached slides, memory/object counters and per-ID transitions."
+    }
+  ],
+  "execution_plan": [
+    "Pure native clock/idempotence checks first; no city instance needed.",
+    "Short targeted native component cases for homes/support/priority/time jumps through real owners.",
+    "Only after integration, ordinary ten-resident observation on the exact combined source with frozen harness and updated home-phase diagnostics.",
+    "A1200s ordinary run cannot prove a full5400s day. With current17.5start, it mainly covers evening/early night; morning/lunch require explicit controlled production-clock windows or a separately authorized full-day run."
+  ],
+  "natural_acceptance_passed": false
+}

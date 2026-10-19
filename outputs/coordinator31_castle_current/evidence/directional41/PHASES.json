@@ -1,0 +1,150 @@
+{
+	"cases": [
+		{
+			"arc": 2.19111108779907,
+			"chosen": "(1.0, 0.0)",
+			"heavy": false,
+			"motion": "(20.0, 0.0)",
+			"phases": {
+				"idle": 50,
+				"recover": 17,
+				"release": 18,
+				"windup": 15
+			}
+		},
+		{
+			"arc": 2.19111108779907,
+			"chosen": "(-1.0, 0.0)",
+			"heavy": false,
+			"motion": "(-20.0, 0.0)",
+			"phases": {
+				"idle": 50,
+				"recover": 17,
+				"release": 18,
+				"windup": 15
+			}
+		},
+		{
+			"arc": 2.19111108779907,
+			"chosen": "(0.5547, 0.83205)",
+			"heavy": false,
+			"motion": "(20.0, -30.0)",
+			"phases": {
+				"idle": 50,
+				"recover": 17,
+				"release": 18,
+				"windup": 15
+			}
+		},
+		{
+			"arc": 2.19111108779907,
+			"chosen": "(-0.5547, 0.83205)",
+			"heavy": false,
+			"motion": "(-20.0, -30.0)",
+			"phases": {
+				"idle": 50,
+				"recover": 17,
+				"release": 18,
+				"windup": 15
+			}
+		},
+		{
+			"arc": 2.19111108779907,
+			"chosen": "(0.5547, -0.83205)",
+			"heavy": false,
+			"motion": "(20.0, 30.0)",
+			"phases": {
+				"idle": 50,
+				"recover": 17,
+				"release": 18,
+				"windup": 15
+			}
+		},
+		{
+			"arc": 2.19111108779907,
+			"chosen": "(-0.5547, -0.83205)",
+			"heavy": false,
+			"motion": "(-20.0, 30.0)",
+			"phases": {
+				"idle": 50,
+				"recover": 17,
+				"release": 18,
+				"windup": 15
+			}
+		},
+		{
+			"arc": 2.25555562973022,
+			"chosen": "(1.0, 0.0)",
+			"heavy": true,
+			"motion": "(20.0, 0.0)",
+			"phases": {
+				"idle": 21,
+				"recover": 31,
+				"release": 22,
+				"windup": 26
+			}
+		},
+		{
+			"arc": 2.25555562973022,
+			"chosen": "(-1.0, 0.0)",
+			"heavy": true,
+			"motion": "(-20.0, 0.0)",
+			"phases": {
+				"idle": 21,
+				"recover": 31,
+				"release": 22,
+				"windup": 26
+			}
+		},
+		{
+			"arc": 2.25555562973022,
+			"chosen": "(0.5547, 0.83205)",
+			"heavy": true,
+			"motion": "(20.0, -30.0)",
+			"phases": {
+				"idle": 21,
+				"recover": 31,
+				"release": 22,
+				"windup": 26
+			}
+		},
+		{
+			"arc": 2.25555562973022,
+			"chosen": "(-0.5547, 0.83205)",
+			"heavy": true,
+			"motion": "(-20.0, -30.0)",
+			"phases": {
+				"idle": 21,
+				"recover": 31,
+				"release": 22,
+				"windup": 26
+			}
+		},
+		{
+			"arc": 2.25555562973022,
+			"chosen": "(0.5547, -0.83205)",
+			"heavy": true,
+			"motion": "(20.0, 30.0)",
+			"phases": {
+				"idle": 21,
+				"recover": 31,
+				"release": 22,
+				"windup": 26
+			}
+		},
+		{
+			"arc": 2.25555562973022,
+			"chosen": "(-0.5547, -0.83205)",
+			"heavy": true,
+			"motion": "(-20.0, 30.0)",
+			"phases": {
+				"idle": 21,
+				"recover": 31,
+				"release": 22,
+				"windup": 26
+			}
+		}
+	],
+	"errors": [],
+	"passed": true
+}

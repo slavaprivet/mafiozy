@@ -1,0 +1,75 @@
+{
+	"armor_requested": false,
+	"armor_snapshot": {},
+	"before_png_error": 0,
+	"death_settled": {
+		"dead": true,
+		"disarmed": true,
+		"fall": 0.774036750197411,
+		"ground_swords": 1,
+		"npc_position": "(5.126932, 0.515372, 948.4368)",
+		"npc_velocity": "(0.0, 0.0, 0.0)",
+		"sword_held": false
+	},
+	"death_settled_png_error": 0,
+	"death_start_png_error": 0,
+	"directional": {
+		"chosen": "(1.0, 0.0)",
+		"elapsed": 0.0,
+		"phase": "idle",
+		"preview": "справа",
+		"serial": 1
+	},
+	"failures": [],
+	"final": {
+		"dead": true,
+		"disarmed": true,
+		"fall": 0.765905752778053,
+		"npc_hp": 90.0,
+		"part_hp": {
+			"chest": -64.0
+		},
+		"severed": [],
+		"sword_held": false
+	},
+	"first_contact_png_error": 0,
+	"initial": {
+		"npc_dead": false,
+		"npc_hp": 90.0,
+		"npc_pos": "(4.6, 0.03, 947.5)",
+		"npc_sword": true,
+		"part_hp": {},
+		"player_pos": "(4.6, 0.03, 946.45)"
+	},
+	"max_strokes": 6,
+	"passed": true,
+	"same_direction": false,
+	"scope": "rack equip + choose mouse direction + click/release, no damage injection or teleport after initial placement",
+	"settled_png_error": 0,
+	"stroke_dx_per_frame": 20.0,
+	"strokes": [
+		{
+			"bleeding": true,
+			"blocks_delta": 0,
+			"dead": true,
+			"disarmed": true,
+			"fall": 0.732134252786636,
+			"ground_swords": 1,
+			"hits_delta": 0,
+			"index": 0,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"chest": -64.0
+			},
+			"part_hp_before": {},
+			"player_npc_distance": 1.7338809967041,
+			"severed": [],
+			"sparks_delta": 16,
+			"sweep_hits_delta": 40,
+			"sword_held": false
+		}
+	],
+	"weapon_after_q": "sledge",
+	"weapon_test": "sledge"
+}

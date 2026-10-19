@@ -1,0 +1,11 @@
+{
+  "schema": "mafiozi.current-play/v1",
+  "title": "Замок и осада · общая сцена 53 · противник и лук",
+  "revision": "castle-20261018-combined53-bot-bow",
+  "assembly": "outputs/coordinator31_castle_current/ASSEMBLY.json",
+  "assembly_sha256": "f821f48b16b719dc7e8365e53866e822c32114273f64a799529e1d7b53ac459d",
+  "bootstrap": "outputs/coordinator31_castle_current/bootstrap_castle.gd",
+  "bootstrap_sha256": "318b2fe49cf454e0f41766ac4e5aa23ea43b2a26f5fa8d5b9c2ed3a617d0858b",
+  "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "scope": "Published52 retained; competitive opponent, shared NPC armor, bow aim shadow and reverse motion fixes merged and jointly tested."
+}

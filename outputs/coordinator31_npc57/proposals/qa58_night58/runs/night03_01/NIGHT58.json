@@ -1,0 +1,125 @@
+{
+	"exited_count": 10,
+	"morning_hour": 10.75,
+	"night_hour": 3.0,
+	"ok": true,
+	"residents": {
+		"resident_1": {
+			"beds": [
+				"HOME58-001:bed:1"
+			],
+			"exit_to_move_s": 0.0,
+			"exited_home": true,
+			"longest_still_s": 8,
+			"samples": 478,
+			"sleep_pose_frames": 9011,
+			"slept_in_own_bed": true
+		},
+		"resident_10": {
+			"beds": [
+				"HOME58-004:bed:2"
+			],
+			"exit_to_move_s": 0.0,
+			"exited_home": true,
+			"longest_still_s": 104,
+			"samples": 478,
+			"sleep_pose_frames": 14266,
+			"slept_in_own_bed": true
+		},
+		"resident_2": {
+			"beds": [
+				"HOME58-002:bed:1"
+			],
+			"exit_to_move_s": 0.0,
+			"exited_home": true,
+			"longest_still_s": 110,
+			"samples": 478,
+			"sleep_pose_frames": 12929,
+			"slept_in_own_bed": true
+		},
+		"resident_3": {
+			"beds": [
+				"HOME58-003:bed:1"
+			],
+			"exit_to_move_s": 0.0,
+			"exited_home": true,
+			"longest_still_s": 152,
+			"samples": 478,
+			"sleep_pose_frames": 16245,
+			"slept_in_own_bed": true
+		},
+		"resident_4": {
+			"beds": [
+				"HOME58-004:bed:1"
+			],
+			"exit_to_move_s": 0.0,
+			"exited_home": true,
+			"longest_still_s": 169,
+			"samples": 478,
+			"sleep_pose_frames": 11167,
+			"slept_in_own_bed": true
+		},
+		"resident_5": {
+			"beds": [
+				"HOME58-003:bed:2"
+			],
+			"exit_to_move_s": 0.0,
+			"exited_home": true,
+			"longest_still_s": 152,
+			"samples": 478,
+			"sleep_pose_frames": 16319,
+			"slept_in_own_bed": true
+		},
+		"resident_6": {
+			"beds": [
+				"HOME58-002:bed:2"
+			],
+			"exit_to_move_s": 0.0,
+			"exited_home": true,
+			"longest_still_s": 168,
+			"samples": 478,
+			"sleep_pose_frames": 10796,
+			"slept_in_own_bed": true
+		},
+		"resident_7": {
+			"beds": [
+				"HOME58-002:bed:3"
+			],
+			"exit_to_move_s": 0.0,
+			"exited_home": true,
+			"longest_still_s": 103,
+			"samples": 478,
+			"sleep_pose_frames": 13438,
+			"slept_in_own_bed": true
+		},
+		"resident_8": {
+			"beds": [
+				"HOME58-001:bed:2"
+			],
+			"exit_to_move_s": 0.0,
+			"exited_home": true,
+			"longest_still_s": 8,
+			"samples": 478,
+			"sleep_pose_frames": 7875,
+			"slept_in_own_bed": true
+		},
+		"resident_9": {
+			"beds": [
+				"HOME58-001:bed:3"
+			],
+			"exit_to_move_s": 0.0,
+			"exited_home": true,
+			"longest_still_s": 169,
+			"samples": 478,
+			"sleep_pose_frames": 12724,
+			"slept_in_own_bed": true
+		}
+	},
+	"slept_count": 10,
+	"verdict": {
+		"all_ten_left_after_wake": true,
+		"all_ten_slept_in_own_bed": true,
+		"no_unexplained_still_over_10s": false
+	},
+	"worst_still_s": 169
+}

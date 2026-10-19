@@ -1,0 +1,908 @@
+{
+	"checks": {
+		"four_real_benches": true,
+		"idempotent_install": true,
+		"nine_total_benches": true,
+		"real_home_bench_walk_arrival_and_seated_pose": true,
+		"resident_10_no_teleport": true,
+		"resident_3_no_teleport": true,
+		"resident_5_no_teleport": true,
+		"ten_residents_twelve_staff": true,
+		"window_complete": true
+	},
+	"clock_override": "same shared clock at20.8 paused; no NPC position/health/money writes",
+	"installation": {
+		"built_or_reused": 4,
+		"native_arrival_and_sit": "PENDING",
+		"ok": true,
+		"placements": [
+			{
+				"home_id": "HOME58-001",
+				"leg_bottom_y": -0.0000000149011611938477,
+				"mesh_count": 6,
+				"ok": true,
+				"position": "(-145.6, 0.015, 386.55)",
+				"seat_authority": "AmbientBenchRegistry29",
+				"support": "native_ground29"
+			},
+			{
+				"home_id": "HOME58-002",
+				"leg_bottom_y": -0.0000000149011611938477,
+				"mesh_count": 6,
+				"ok": true,
+				"position": "(48.3, 0.015, 192.75)",
+				"seat_authority": "AmbientBenchRegistry29",
+				"support": "native_ground29"
+			},
+			{
+				"home_id": "HOME58-003",
+				"leg_bottom_y": -0.0000000149011611938477,
+				"mesh_count": 6,
+				"ok": true,
+				"position": "(108.7, 0.015, 527.75)",
+				"seat_authority": "AmbientBenchRegistry29",
+				"support": "native_ground29"
+			},
+			{
+				"home_id": "HOME58-004",
+				"leg_bottom_y": -0.0000000149011611938477,
+				"mesh_count": 6,
+				"ok": true,
+				"position": "(129.1, 0.015, 530.05)",
+				"seat_authority": "AmbientBenchRegistry29",
+				"support": "native_ground29"
+			}
+		],
+		"registry": {
+			"benches": 9,
+			"claims": 0,
+			"occupied": 0,
+			"scene_scans": 1,
+			"slots_per_bench": 1
+		},
+		"requested": 4
+	},
+	"passed": true,
+	"reason": "window_complete",
+	"reinstall": {
+		"built_or_reused": 4,
+		"native_arrival_and_sit": "PENDING",
+		"ok": true,
+		"placements": [
+			{
+				"home_id": "HOME58-001",
+				"ok": true,
+				"reused": true
+			},
+			{
+				"home_id": "HOME58-002",
+				"ok": true,
+				"reused": true
+			},
+			{
+				"home_id": "HOME58-003",
+				"ok": true,
+				"reused": true
+			},
+			{
+				"home_id": "HOME58-004",
+				"ok": true,
+				"reused": true
+			}
+		],
+		"registry": {
+			"benches": 9,
+			"claims": 0,
+			"occupied": 0,
+			"scene_scans": 1,
+			"slots_per_bench": 1
+		},
+		"requested": 4
+	},
+	"rows": {
+		"resident_1": {
+			"arrived": false,
+			"bench_path": "",
+			"bench_pose": false,
+			"body_id": 2101296073614,
+			"last": "(-86.1, -0.0, 137.35)",
+			"leisure_started": false,
+			"max_displacement": 0.0,
+			"max_step": 0.0,
+			"pose_first_ms": -1,
+			"start": "(-86.1, -0.0, 137.35)",
+			"travel": 0.0,
+			"walks_start": 0
+		},
+		"resident_10": {
+			"arrived": false,
+			"bench_path": "/root/MafioziWalkMigration/ResidentHome58_3_0/OriginalBenchHome58",
+			"bench_pose": false,
+			"body_id": 2140001111467,
+			"last": "(95.48702, -0.0, 583.4978)",
+			"leisure_started": true,
+			"max_displacement": 26.3495979309082,
+			"max_step": 0.0299775619059801,
+			"pose_first_ms": -1,
+			"start": "(93.69299, -0.0, 609.7863)",
+			"travel": 26.3496023025364,
+			"walks_start": 0
+		},
+		"resident_2": {
+			"arrived": false,
+			"bench_path": "/root/MafioziWalkMigration/ResidentHome58_2_0/OriginalBenchHome58",
+			"bench_pose": false,
+			"body_id": 2104701848528,
+			"last": "(49.8316, 0.000331, 193.1627)",
+			"leisure_started": true,
+			"max_displacement": 127.282333374023,
+			"max_step": 0.0333425514400005,
+			"pose_first_ms": -1,
+			"start": "(151.7, -0.0, 116.85)",
+			"travel": 147.155077654519,
+			"walks_start": 0
+		},
+		"resident_3": {
+			"arrived": true,
+			"bench_path": "/root/MafioziWalkMigration/ResidentHome58_3_0/OriginalBenchHome58",
+			"bench_pose": true,
+			"body_id": 2107604306961,
+			"last": "(109.4372, -0.000289, 527.7531)",
+			"leisure_started": true,
+			"max_displacement": 42.7508697509766,
+			"max_step": 0.0300295762717724,
+			"pose_first_ms": 88753,
+			"start": "(106.6, -0.0, 567.85)",
+			"travel": 64.6384769948199,
+			"walks_start": 0
+		},
+		"resident_4": {
+			"arrived": false,
+			"bench_path": "",
+			"bench_pose": false,
+			"body_id": 2136108797292,
+			"last": "(278.7225, -0.000243, 428.0737)",
+			"leisure_started": false,
+			"max_displacement": 148.480209350586,
+			"max_step": 0.0300899427384138,
+			"pose_first_ms": -1,
+			"start": "(266.5, -0.0, 576.05)",
+			"travel": 151.925718508894,
+			"walks_start": 0
+		},
+		"resident_5": {
+			"arrived": true,
+			"bench_path": "/root/MafioziWalkMigration/ResidentHome58_4_0/OriginalBenchHome58",
+			"bench_pose": true,
+			"body_id": 2111026831423,
+			"last": "(128.3696, -0.0, 530.0604)",
+			"leisure_started": true,
+			"max_displacement": 47.9137344360352,
+			"max_step": 0.0300230253487825,
+			"pose_first_ms": 31807,
+			"start": "(94.3, -0.0, 563.75)",
+			"travel": 47.9291846603155,
+			"walks_start": 0
+		},
+		"resident_6": {
+			"arrived": false,
+			"bench_path": "/root/MafioziWalkMigration/TownClone_1/OriginalBench",
+			"bench_pose": false,
+			"body_id": 2114298388473,
+			"last": "(110.1365, 0.273821, 1.0)",
+			"leisure_started": true,
+			"max_displacement": 60.0230331420898,
+			"max_step": 0.0307330191135406,
+			"pose_first_ms": -1,
+			"start": "(127.1, -0.0, 55.35)",
+			"travel": 77.8206576500088,
+			"walks_start": 0
+		},
+		"resident_7": {
+			"arrived": false,
+			"bench_path": "",
+			"bench_pose": false,
+			"body_id": 2117804826659,
+			"last": "(57.4, -0.0, 317.75)",
+			"leisure_started": false,
+			"max_displacement": 0.0,
+			"max_step": 0.0,
+			"pose_first_ms": -1,
+			"start": "(57.4, -0.0, 317.75)",
+			"travel": 0.0,
+			"walks_start": 0
+		},
+		"resident_8": {
+			"arrived": false,
+			"bench_path": "",
+			"bench_pose": false,
+			"body_id": 2122351450159,
+			"last": "(-217.3, -0.0, 621.15)",
+			"leisure_started": false,
+			"max_displacement": 0.0,
+			"max_step": 0.0,
+			"pose_first_ms": -1,
+			"start": "(-217.3, -0.0, 621.15)",
+			"travel": 0.0,
+			"walks_start": 0
+		},
+		"resident_9": {
+			"arrived": false,
+			"bench_path": "",
+			"bench_pose": false,
+			"body_id": 2126914882657,
+			"last": "(-291.1, -0.0, 391.55)",
+			"leisure_started": false,
+			"max_displacement": 0.0,
+			"max_step": 0.0,
+			"pose_first_ms": -1,
+			"start": "(-291.1, -0.0, 391.55)",
+			"travel": 0.0,
+			"walks_start": 0
+		}
+	},
+	"samples": [
+		{
+			"elapsed_ms": 0,
+			"residents": {
+				"resident_1": {
+					"ambient": {},
+					"goal": {},
+					"leisure": {},
+					"phase": "IDLE",
+					"position": "(-86.1, -0.0, 137.35)",
+					"route": {},
+					"routine": {
+						"clock_owner": "mafiozi_visual_clock",
+						"intent": {},
+						"leisure_retry_ms": 0.0,
+						"paid_days": {},
+						"pending": {},
+						"profile": {
+							"bedtime": 23.2156128531614,
+							"breakfast": 7.70563838308485,
+							"dinner": 18.8050015849952,
+							"home_rest": 15.4577836266491,
+							"homebody": false,
+							"late": false,
+							"lunch": 12.2591257226228,
+							"supplies": 10.3087530737408,
+							"wake": 7.50789647631057
+						},
+						"random_world_targets": false,
+						"rest_until_ms": 0.0,
+						"source_id": "resident_1"
+					}
+				},
+				"resident_10": {
+					"ambient": {},
+					"goal": {},
+					"leisure": {},
+					"phase": "IDLE",
+					"position": "(93.69299, -0.0, 609.7863)",
+					"route": {},
+					"routine": {
+						"clock_owner": "mafiozi_visual_clock",
+						"intent": {},
+						"leisure_retry_ms": 0.0,
+						"paid_days": {},
+						"pending": {},
+						"profile": {
+							"bedtime": 23.1499570501289,
+							"breakfast": 7.57851976444071,
+							"dinner": 19.0728867813397,
+							"home_rest": 15.1971144086568,
+							"homebody": true,
+							"late": false,
+							"lunch": 13.4511766464701,
+							"supplies": 11.7235608293175,
+							"wake": 7.83539649381052
+						},
+						"random_world_targets": false,
+						"rest_until_ms": 0.0,
+						"source_id": "resident_10"
+					}
+				},
+				"resident_2": {
+					"ambient": {},
+					"goal": {},
+					"leisure": {},
+					"phase": "IDLE",
+					"position": "(151.7, -0.0, 116.85)",
+					"route": {},
+					"routine": {
+						"clock_owner": "mafiozi_visual_clock",
+						"intent": {},
+						"leisure_retry_ms": 0.0,
+						"paid_days": {},
+						"pending": {},
+						"profile": {
+							"bedtime": 2.42791921624235,
+							"breakfast": 9.90710477868566,
+							"dinner": 19.7280868157396,
+							"home_rest": 15.0597388207835,
+							"homebody": true,
+							"late": true,
+							"lunch": 13.445479663561,
+							"supplies": 11.2396802809592,
+							"wake": 9.72152033543899
+						},
+						"random_world_targets": false,
+						"rest_until_ms": 0.0,
+						"source_id": "resident_2"
+					}
+				},
+				"resident_3": {
+					"ambient": {},
+					"goal": {},
+					"leisure": {},
+					"phase": "IDLE",
+					"position": "(106.6, -0.0, 567.85)",
+					"route": {},
+					"routine": {
+						"clock_owner": "mafiozi_visual_clock",
+						"intent": {},
+						"leisure_retry_ms": 0.0,
+						"paid_days": {},
+						"pending": {},
+						"profile": {
+							"bedtime": 21.6833494499516,
+							"breakfast": 7.17695446913659,
+							"dinner": 18.6511720464839,
+							"home_rest": 14.661694014918,
+							"homebody": true,
+							"late": false,
+							"lunch": 13.0634503096491,
+							"supplies": 12.1706074881775,
+							"wake": 6.93514419456742
+						},
+						"random_world_targets": false,
+						"rest_until_ms": 0.0,
+						"source_id": "resident_3"
+					}
+				},
+				"resident_4": {
+					"ambient": {},
+					"goal": {},
+					"leisure": {},
+					"phase": "IDLE",
+					"position": "(266.5, -0.0, 576.05)",
+					"route": {},
+					"routine": {
+						"clock_owner": "mafiozi_visual_clock",
+						"intent": {},
+						"leisure_retry_ms": 0.0,
+						"paid_days": {},
+						"pending": {},
+						"profile": {
+							"bedtime": 21.9628066115802,
+							"breakfast": 8.37842086473741,
+							"dinner": 19.5742572772282,
+							"home_rest": 14.2636492090524,
+							"homebody": true,
+							"late": false,
+							"lunch": 12.7498042505872,
+							"supplies": 13.1015346953959,
+							"wake": 6.71715134854595
+						},
+						"random_world_targets": false,
+						"rest_until_ms": 0.0,
+						"source_id": "resident_4"
+					}
+				},
+				"resident_5": {
+					"ambient": {},
+					"goal": {},
+					"leisure": {},
+					"phase": "IDLE",
+					"position": "(94.3, -0.0, 563.75)",
+					"route": {},
+					"routine": {
+						"clock_owner": "mafiozi_visual_clock",
+						"intent": {},
+						"leisure_retry_ms": 0.0,
+						"paid_days": {},
+						"pending": {},
+						"profile": {
+							"bedtime": 22.1510860467419,
+							"breakfast": 8.07988726033822,
+							"dinner": 18.4973425079725,
+							"home_rest": 15.9567821296536,
+							"homebody": false,
+							"late": false,
+							"lunch": 12.3677748966753,
+							"supplies": 14.0324619026143,
+							"wake": 7.93077520767438
+						},
+						"random_world_targets": false,
+						"rest_until_ms": 0.0,
+						"source_id": "resident_5"
+					}
+				},
+				"resident_6": {
+					"ambient": {},
+					"goal": {},
+					"leisure": {},
+					"phase": "IDLE",
+					"position": "(127.1, -0.0, 55.35)",
+					"route": {},
+					"routine": {
+						"clock_owner": "mafiozi_visual_clock",
+						"intent": {},
+						"leisure_retry_ms": 0.0,
+						"paid_days": {},
+						"pending": {},
+						"profile": {
+							"bedtime": 22.4305432083704,
+							"breakfast": 7.84973695078915,
+							"dinner": 19.4204277387168,
+							"home_rest": 15.558737323788,
+							"homebody": false,
+							"late": false,
+							"lunch": 12.0541288376135,
+							"supplies": 14.6898559304322,
+							"wake": 7.6443990668028
+						},
+						"random_world_targets": false,
+						"rest_until_ms": 0.0,
+						"source_id": "resident_6"
+					}
+				},
+				"resident_7": {
+					"ambient": {},
+					"goal": {},
+					"leisure": {},
+					"phase": "IDLE",
+					"position": "(57.4, -0.0, 317.75)",
+					"route": {},
+					"routine": {
+						"clock_owner": "mafiozi_visual_clock",
+						"intent": {},
+						"leisure_retry_ms": 0.0,
+						"paid_days": {},
+						"pending": {},
+						"profile": {
+							"bedtime": 1.90750027749917,
+							"breakfast": 10.05120334639,
+							"dinner": 18.3435129694611,
+							"home_rest": 15.1606925179224,
+							"homebody": false,
+							"late": true,
+							"lunch": 13.2404827785517,
+							"supplies": 15.6207831376506,
+							"wake": 9.85802292593122
+						},
+						"random_world_targets": false,
+						"rest_until_ms": 0.0,
+						"source_id": "resident_7"
+					}
+				},
+				"resident_8": {
+					"ambient": {},
+					"goal": {},
+					"leisure": {},
+					"phase": "IDLE",
+					"position": "(-217.3, -0.0, 621.15)",
+					"route": {},
+					"routine": {
+						"clock_owner": "mafiozi_visual_clock",
+						"intent": {},
+						"leisure_retry_ms": 0.0,
+						"paid_days": {},
+						"pending": {},
+						"profile": {
+							"bedtime": 22.8982798051606,
+							"breakfast": 7.25266974199077,
+							"dinner": 19.1754204737386,
+							"home_rest": 14.8538254385237,
+							"homebody": false,
+							"late": false,
+							"lunch": 12.8584534246397,
+							"supplies": 10.551710344869,
+							"wake": 7.07164678505965
+						},
+						"random_world_targets": false,
+						"rest_until_ms": 0.0,
+						"source_id": "resident_8"
+					}
+				},
+				"resident_9": {
+					"ambient": {},
+					"goal": {},
+					"leisure": {},
+					"phase": "IDLE",
+					"position": "(-291.1, -0.0, 391.55)",
+					"route": {},
+					"routine": {
+						"clock_owner": "mafiozi_visual_clock",
+						"intent": {},
+						"leisure_retry_ms": 0.0,
+						"paid_days": {},
+						"pending": {},
+						"profile": {
+							"bedtime": 23.1777369667891,
+							"breakfast": 7.0225194324417,
+							"dinner": 18.0985057044829,
+							"home_rest": 14.4557806326581,
+							"homebody": true,
+							"late": false,
+							"lunch": 12.5448073655779,
+							"supplies": 11.4826375520873,
+							"wake": 6.78527064418807
+						},
+						"random_world_targets": false,
+						"rest_until_ms": 0.0,
+						"source_id": "resident_9"
+					}
+				}
+			}
+		},
+		{
+			"elapsed_ms": 1002,
+			"residents": {
+				"resident_1": {
+					"ambient": {
+						"active": true,
+						"bench_inventory": {
+							"benches": 9,
+							"claims": 0,
+							"occupied": 0,
+							"scene_scans": 1,
+							"slots_per_bench": 1
+						},
+						"bench_slot": {},
+						"duration_s": 6.2170467376709,
+						"elapsed_s": 0.216666666666667,
+						"kind": "wipe_forehead",
+						"phase": "ACTING",
+						"pose_frames": 12,
+						"qa_seed": "randomized",
+						"reason": "",
+						"roams_completed": 0,
+						"serial": 1,
+						"title": "Протереть лоб"
+					},
+					"goal": {},
+					"leisure": {
+						"bench_id": 0,
+						"max_goal_candidates": 2,
+						"purpose": "visit_real_bench",
+						"reason": "no_real_bench_destination",
+						"seat_reserved": false
+					},
+					"phase": "AMBIENT",
+					"position": "(-86.1, -0.0, 137.35)",
+					"route": {},
+					"routine": {
+						"clock_owner": "mafiozi_visual_clock",
+						"intent": {
+							"kind": "leisure",
+							"reason": "walk_to_real_bench"
+						},
+						"leisure_retry_ms": 46750.66,
+						"paid_days": {},
+						"pending": {},
+						"profile": {
+							"bedtime": 23.2156128531614,
+							"breakfast": 7.70563838308485,
+							"dinner": 18.8050015849952,
+							"home_rest": 15.4577836266491,
+							"homebody": false,
+							"late": false,
+							"lunch": 12.2591257226228,
+							"supplies": 10.3087530737408,
+							"wake": 7.50789647631057
+						},
+						"random_world_targets": false,
+						"rest_until_ms": 0.0,
+						"source_id": "resident_1"
+					}
+				},
+				"resident_10": {
+					"ambient": {},
+					"goal": {},
+					"leisure": {},
+					"phase": "IDLE",
+					"position": "(93.69299, -0.0, 609.7863)",
+					"route": {},
+					"routine": {
+						"clock_owner": "mafiozi_visual_clock",
+						"intent": {},
+						"leisure_retry_ms": 0.0,
+						"paid_days": {},
+						"pending": {},
+						"profile": {
+							"bedtime": 23.1499570501289,
+							"breakfast": 7.57851976444071,
+							"dinner": 19.0728867813397,
+							"home_rest": 15.1971144086568,
+							"homebody": true,
+							"late": false,
+							"lunch": 13.4511766464701,
+							"supplies": 11.7235608293175,
+							"wake": 7.83539649381052
+						},
+						"random_world_targets": false,
+						"rest_until_ms": 0.0,
+						"source_id": "resident_10"
+					}
+				},
+				"resident_2": {
+					"ambient": {},
+					"goal": {
+						"goal_id": "resident_2:daily:1",
+						"kind": "restaurant"
+					},
+					"leisure": {},
+					"phase": "WALKING",
+					"position": "(151.1665, -0.0, 117.1247)",
+					"route": {},
+					"routine": {
+						"clock_owner": "mafiozi_visual_clock",
+						"intent": {
+							"day": 0,
+							"event": "dinner",
+							"kind": "restaurant",
+							"ticket": "resident_2:routine58:0:dinner"
+						},
+						"leisure_retry_ms": 0.0,
+						"paid_days": {},
+						"pending": {
+							"day": 0,
+							"event": "dinner",
+							"kind": "restaurant",
+							"ticket": "resident_2:routine58:0:dinner"
+						},
+						"profile": {
+							"bedtime": 2.42791921624235,
+							"breakfast": 9.90710477868566,
+							"dinner": 19.7280868157396,
+							"home_rest": 15.0597388207835,
+							"homebody": true,
+							"late": true,
+							"lunch": 13.445479663561,
+							"supplies": 11.2396802809592,
+							"wake": 9.72152033543899
+						},
+						"random_world_targets": false,
+						"rest_until_ms": 0.0,
+						"source_id": "resident_2"
+					}
+				},
+				"resident_3": {
+					"ambient": {},
+					"goal": {},
+					"leisure": {},
+					"phase": "IDLE",
+					"position": "(106.6, -0.0, 567.85)",
+					"route": {},
+					"routine": {
+						"clock_owner": "mafiozi_visual_clock",
+						"intent": {},
+						"leisure_retry_ms": 0.0,
+						"paid_days": {},
+						"pending": {},
+						"profile": {
+							"bedtime": 21.6833494499516,
+							"breakfast": 7.17695446913659,
+							"dinner": 18.6511720464839,
+							"home_rest": 14.661694014918,
+							"homebody": true,
+							"late": false,
+							"lunch": 13.0634503096491,
+							"supplies": 12.1706074881775,
+							"wake": 6.93514419456742
+						},
+						"random_world_targets": false,
+						"rest_until_ms": 0.0,
+						"source_id": "resident_3"
+					}
+				},
+				"resident_4": {
+					"ambient": {},
+					"goal": {},
+					"leisure": {},
+					"phase": "IDLE",
+					"position": "(266.5, -0.0, 576.05)",
+					"route": {},
+					"routine": {
+						"clock_owner": "mafiozi_visual_clock",
+						"intent": {},
+						"leisure_retry_ms": 0.0,
+						"paid_days": {},
+						"pending": {},
+						"profile": {
+							"bedtime": 21.9628066115802,
+							"breakfast": 8.37842086473741,
+							"dinner": 19.5742572772282,
+							"home_rest": 14.2636492090524,
+							"homebody": true,
+							"late": false,
+							"lunch": 12.7498042505872,
+							"supplies": 13.1015346953959,
+							"wake": 6.71715134854595
+						},
+						"random_world_targets": false,
+						"rest_until_ms": 0.0,
+						"source_id": "resident_4"
+					}
+				},
+				"resident_5": {
+					"ambient": {},
+					"goal": {},
+					"leisure": {},
+					"phase": "IDLE",
+					"position": "(94.3, -0.0, 563.75)",
+					"route": {},
+					"routine": {
+						"clock_owner": "mafiozi_visual_clock",
+						"intent": {},
+						"leisure_retry_ms": 0.0,
+						"paid_days": {},
+						"pending": {},
+						"profile": {
+							"bedtime": 22.1510860467419,
+							"breakfast": 8.07988726033822,
+							"dinner": 18.4973425079725,
+							"home_rest": 15.9567821296536,
+							"homebody": false,
+							"late": false,
+							"lunch": 12.3677748966753,
+							"supplies": 14.0324619026143,
+							"wake": 7.93077520767438
+						},
+						"random_world_targets": false,
+						"rest_until_ms": 0.0,
+						"source_id": "resident_5"
+					}
+				},
+				"resident_6": {
+					"ambient": {},
+					"goal": {},
+					"leisure": {},
+					"phase": "IDLE",
+					"position": "(127.1, -0.0, 55.35)",
+					"route": {},
+					"routine": {
+						"clock_owner": "mafiozi_visual_clock",
+						"intent": {},
+						"leisure_retry_ms": 0.0,
+						"paid_days": {},
+						"pending": {},
+						"profile": {
+							"bedtime": 22.4305432083704,
+							"breakfast": 7.84973695078915,
+							"dinner": 19.4204277387168,
+							"home_rest": 15.558737323788,
+							"homebody": false,
+							"late": false,
+							"lunch": 12.0541288376135,
+							"supplies": 14.6898559304322,
+							"wake": 7.6443990668028
+						},
+						"random_world_targets": false,
+						"rest_until_ms": 0.0,
+						"source_id": "resident_6"
+					}
+				},
+				"resident_7": {
+					"ambient": {
+						"active": true,
+						"bench_inventory": {
+							"benches": 9,
+							"claims": 0,
+							"occupied": 0,
+							"scene_scans": 1,
+							"slots_per_bench": 1
+						},
+						"bench_slot": {},
+						"duration_s": 4.54263496398926,
+						"elapsed_s": 0.0,
+						"kind": "look_around",
+						"phase": "ALIGN",
+						"pose_frames": 0,
+						"qa_seed": "randomized",
+						"reason": "",
+						"roams_completed": 0,
+						"serial": 1,
+						"title": "Осмотреться"
+					},
+					"goal": {},
+					"leisure": {
+						"bench_id": 0,
+						"max_goal_candidates": 2,
+						"purpose": "visit_real_bench",
+						"reason": "no_real_bench_destination",
+						"seat_reserved": false
+					},
+					"phase": "AMBIENT",
+					"position": "(57.4, -0.0, 317.75)",
+					"route": {},
+					"routine": {
+						"clock_owner": "mafiozi_visual_clock",
+						"intent": {
+							"kind": "leisure",
+							"reason": "walk_to_real_bench"
+						},
+						"leisure_retry_ms": 46799.77,
+						"paid_days": {},
+						"pending": {},
+						"profile": {
+							"bedtime": 1.90750027749917,
+							"breakfast": 10.05120334639,
+							"dinner": 18.3435129694611,
+							"home_rest": 15.1606925179224,
+							"homebody": false,
+							"late": true,
+							"lunch": 13.2404827785517,
+							"supplies": 15.6207831376506,
+							"wake": 9.85802292593122
+						},
+						"random_world_targets": false,
+						"rest_until_ms": 0.0,
+						"source_id": "resident_7"
+					}
+				},
+				"resident_8": {
+					"ambient": {},
+					"goal": {},
+					"leisure": {},
+					"phase": "IDLE",
+					"position": "(-217.3, -0.0, 621.15)",
+					"route": {},
+					"routine": {
+						"clock_owner": "mafiozi_visual_clock",
+						"intent": {},
+						"leisure_retry_ms": 0.0,
+						"paid_days": {},
+						"pending": {},
+						"profile": {
+							"bedtime": 22.8982798051606,
+							"breakfast": 7.25266974199077,
+							"dinner": 19.1754204737386,
+							"home_rest": 14.8538254385237,
+							"homebody": false,
+							"late": false,
+							"lunch": 12.8584534246397,
+							"supplies": 10.551710344869,
+							"wake": 7.07164678505965
+						},
+						"random_world_targets": false,
+						"rest_until_ms": 0.0,
+						"source_id": "resident_8"
+					}
+				},
+				"resident_9": {
+					"ambient": {},
+					"goal": {},
+					"leisure": {},
+					"phase": "IDLE",
+					"position": "(-291.1, -0.0, 391.55)",
+					"route": {},
+					"routine": {
+						"clock_owner": "mafiozi_visual_clock",
+						"intent": {},
+						"leisure_retry_ms": 0.0,
+						"paid_days": {},
+						"pending": {},
+						"profile": {
+							"bedtime": 23.1777369667891,
+							"breakfast": 7.0225194324417,
+							"dinner": 18.0985057044829,
+							"home_rest": 14.4557806326581,
+							"homebody": true,
+							"late": false,
+							"lunch": 12.5448073655779,
+							"supplies": 11.4826375520873,
+							"wake": 6.78527064418807
+						},
+						"random_world_targets": false,
+						"rest_until_ms": 0.0,
+						"source_id": "resident_9"
+					}
+				}
+			}
+		}
+	],
+	"scope": "Exact stage05 plus routine8 and bench helper overlays; physical home-bench arrival and committed pose. Sleep and night-walker cycle are separate checks."
+}

@@ -1,0 +1,28 @@
+{
+	"checks": {
+		"all_claims_cancelled": true,
+		"cooldown_allows_normal_decision": true,
+		"cooldown_does_not_cancel_activity": true,
+		"fifo_promotion": true,
+		"full_287_admission": true,
+		"hunger_keeps_priority": true,
+		"no_route_jobs_after_cancel": true,
+		"no_waiting_payment": true,
+		"optional_goal_money_preserved": true,
+		"optional_real_route_result": true,
+		"pending_purchase_retained": true,
+		"real_queue_retained": true
+	},
+	"details": {
+		"admitted": 0,
+		"baseline_rejected": 287,
+		"full_city_entry_test": false,
+		"optional_reason": "physical_route_required",
+		"optional_retry_ms": 8000.0,
+		"performance_accepted": false,
+		"protected_wallets": 287,
+		"waiting_claims": 287
+	},
+	"fixed": false,
+	"passed": true
+}

@@ -1,0 +1,6 @@
+{
+  "npc_service_visit_lease23_candidate.mjs": "117b76d257fab6b4cfee3f3c633ec6e2f6ffa67ef81af691675b318d9070842b",
+  "npc_service_customer_world23_patch_candidate.mjs": "967d2d99ac026dc2b15e6cf8b349feaccfe1410a3c6dcb56a0f9a6870cf06d2a",
+  "assets/maps/city_rebuild_v1/test_npc_service_customer_world23_candidate.mjs": "d57b54aa76b4d63479edd8f7316e066bb499457405aebb2dbf896f6b42ada38e",
+  "docs/ai/NPC_SERVICE_CUSTOMER23_PROPOSAL.patch": "e214c2a39c2e37653c7f1be6153dec61f2cb44f87c5c810db0643ead598171ee"
+}

@@ -1,0 +1,270 @@
+{
+	"errors": [],
+	"passed": true,
+	"rows": [
+		{
+			"bow_acquire": {
+				"ok": true,
+				"stowed": true,
+				"weaponId": "bow"
+			},
+			"input_delivered": 10.0,
+			"input_injected": 10,
+			"spear_acquire": {
+				"ammo_free": true,
+				"melee": true,
+				"ok": true,
+				"weaponId": "spear"
+			},
+			"viewport": "(1280, 720)"
+		},
+		{
+			"bow_aim": false,
+			"bow_direction": "(0.0, 0.0, -1.0)",
+			"bow_dots": 0,
+			"bow_selected": false,
+			"camera_forward": "(0.0, 0.0, -1.0)",
+			"label": "spear_rmb",
+			"pitch": 0.0,
+			"spear_direction": "(-0.009046, 0.01856, -0.999787)",
+			"storage": {
+				"back_bow": true,
+				"bow_active": false,
+				"carried": {
+					"bow": true,
+					"spear": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "spear",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"sword": true
+				},
+				"revision": 2,
+				"slots": []
+			},
+			"sword_aim": true,
+			"sword_dots": 3,
+			"sword_selected": true
+		},
+		{
+			"bow_aim": false,
+			"bow_direction": "(0.0, 0.0, -1.0)",
+			"bow_dots": 0,
+			"bow_selected": true,
+			"camera_forward": "(0.0, 0.0, -1.0)",
+			"label": "bow_after_q_while_rmb",
+			"pitch": 0.0,
+			"spear_direction": "(0.101072, 0.929862, -0.353752)",
+			"storage": {
+				"back_bow": true,
+				"bow_active": true,
+				"carried": {
+					"bow": true,
+					"spear": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "spear",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"sword": true
+				},
+				"revision": 2,
+				"slots": []
+			},
+			"sword_aim": false,
+			"sword_dots": 0,
+			"sword_selected": false
+		},
+		{
+			"bow_aim": true,
+			"bow_direction": "(-0.051977, 0.025441, -0.998324)",
+			"bow_dots": 1,
+			"bow_selected": true,
+			"camera_forward": "(0.0, 0.0, -1.0)",
+			"label": "bow_reaim",
+			"pitch": 0.0,
+			"spear_direction": "(0.101072, 0.929862, -0.353752)",
+			"storage": {
+				"back_bow": true,
+				"bow_active": true,
+				"carried": {
+					"bow": true,
+					"spear": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "spear",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"sword": true
+				},
+				"revision": 2,
+				"slots": []
+			},
+			"sword_aim": false,
+			"sword_dots": 0,
+			"sword_selected": false
+		},
+		{
+			"bow_aim": true,
+			"bow_direction": "(-0.011349, 0.992115, -0.124818)",
+			"bow_dots": 30,
+			"bow_selected": true,
+			"camera_forward": "(0.0, 0.992115, -0.125333)",
+			"label": "bow_high_up",
+			"pitch": 1.44513261318207,
+			"spear_direction": "(0.101072, 0.929862, -0.353752)",
+			"storage": {
+				"back_bow": true,
+				"bow_active": true,
+				"carried": {
+					"bow": true,
+					"spear": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "spear",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"sword": true
+				},
+				"revision": 2,
+				"slots": []
+			},
+			"sword_aim": false,
+			"sword_dots": 0,
+			"sword_selected": false
+		},
+		{
+			"high_shot": {
+				"aim": "(-0.00793, 0.992115, -0.125082)",
+				"pitch": 1.44513261318207,
+				"projectile_alive": true,
+				"projectile_velocity": "(-0.61286, 53.41069, -6.74019)",
+				"shots_delta": 1
+			}
+		},
+		{
+			"bow_aim": false,
+			"bow_direction": "(0.0, 0.992115, -0.125333)",
+			"bow_dots": 0,
+			"bow_selected": false,
+			"camera_forward": "(0.0, 0.992115, -0.125333)",
+			"label": "spear_after_q_while_rmb",
+			"pitch": 1.44513261318207,
+			"spear_direction": "(0.000062, 0.993868, -0.110576)",
+			"storage": {
+				"back_bow": true,
+				"bow_active": false,
+				"carried": {
+					"bow": true,
+					"spear": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "spear",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"sword": true
+				},
+				"revision": 2,
+				"slots": []
+			},
+			"sword_aim": false,
+			"sword_dots": 0,
+			"sword_selected": true
+		},
+		{
+			"bow_aim": false,
+			"bow_direction": "(0.0, 0.992115, -0.125333)",
+			"bow_dots": 0,
+			"bow_selected": false,
+			"camera_forward": "(0.0, 0.992115, -0.125333)",
+			"label": "spear_reaim_high",
+			"pitch": 1.44513261318207,
+			"spear_direction": "(-0.001112, 0.992318, -0.123707)",
+			"storage": {
+				"back_bow": true,
+				"bow_active": false,
+				"carried": {
+					"bow": true,
+					"spear": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "spear",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"sword": true
+				},
+				"revision": 2,
+				"slots": []
+			},
+			"sword_aim": true,
+			"sword_dots": 26,
+			"sword_selected": true
+		},
+		{
+			"bow_aim": false,
+			"bow_direction": "(0.0, 0.992115, -0.125333)",
+			"bow_dots": 0,
+			"bow_selected": false,
+			"camera_forward": "(0.0, 0.992115, -0.125333)",
+			"label": "released",
+			"pitch": 1.44513261318207,
+			"spear_direction": "(0.145904, 0.945575, -0.290862)",
+			"storage": {
+				"back_bow": true,
+				"bow_active": false,
+				"carried": {
+					"bow": true,
+					"spear": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "spear",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"sword": true
+				},
+				"revision": 2,
+				"slots": []
+			},
+			"sword_aim": false,
+			"sword_dots": 0,
+			"sword_selected": true
+		}
+	],
+	"scope": "Native Q switch/RMB/LMB/mouse inputs after rack-acquisition API setup. Actual visible geometry counts; high shot actual projectile velocity. No target contact claimed by this ownership probe."
+}

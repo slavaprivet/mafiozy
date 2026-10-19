@@ -1,0 +1,20 @@
+{
+  "captured_at": "2026-10-15T16:41:36.098251+00:00",
+  "release": "57",
+  "log_relative": "outputs\\current_game\\interactive\\20261015T134307267Z\\play.log",
+  "read_byte_count": 25903827,
+  "snapshot_sha256": "681c9ea6d17d3854fdf6165b8308b176f50db22831cbcc2c1e7d0af5d7e7cdd5",
+  "selected_event_lines": [
+    "DSH_ROWPROBE site=hit id=resident_6 row_hash=2961698888 owner_id=-9223368983787240827 body_id=2106195018004 hp_before=60 hp_after=30 frame_hit=597054 frame_apply=597056",
+    "DSH_DAMAGE id=resident_6 hp_before=60 damage=30 hp_after=30 weapon=tt_pistol zone=body applied=true frame=597056",
+    "DSH_ROWPROBE site=hit id=resident_1 row_hash=211784462 owner_id=-9223369008667878117 body_id=2094367080475 hp_before=60 hp_after=28 frame_hit=626850 frame_apply=626852",
+    "DSH_DAMAGE id=resident_1 hp_before=60 damage=32 hp_after=28 weapon=nagan zone=body applied=true frame=626852",
+    "NPC_HOSPITAL51 id=resident_1 stage=entered hp=28 reason=door_plane_and_room_floor_verified queue=[] frame=630409",
+    "NPC_HOSPITAL51 id=resident_1 stage=treated hp=60.0 reason=inside_still_1500ms queue=[] frame=630497",
+    "NPC_HOSPITAL51 id=resident_1 stage=leaving hp=60.0 reason= queue=[] frame=630497",
+    "NPC_HOSPITAL51 id=resident_1 stage=exited hp=60.0 reason= queue=[] frame=630657",
+    "NPC_HOSPITAL51 id=resident_1 stage=complete hp=60.0 reason=treated_and_physically_exited queue=[] frame=630657"
+  ],
+  "finding": "resident6 TT60->30 has no hospital event; resident1 Nagan60->28 treated60 and physically exited. Existing strict below0.5 rule explains this difference.",
+  "user_rule_choice_pending": true
+}

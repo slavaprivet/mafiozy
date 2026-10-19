@@ -1,0 +1,119 @@
+{
+  "schema": "mafiozy.city-integration-handoff/v1",
+  "captured_utc": "2026-10-07T13:00:37.933051+00:00",
+  "source_checkout": "C:\\Users\\Слава\\Desktop\\Мафиози",
+  "source_dirty_head": "d1f636da57f9446cc401437d22a161e70e733395",
+  "clean_worktree": "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city-integration-worktree",
+  "clean_commit": "620b4f0ff6f477f25205458d730097050a2da1fe",
+  "base_origin_main": "dcfb5e3d1421d9554b061d77e65f4ccf66f72d0c",
+  "commit_scope": {
+    "files": 949,
+    "path": "outputs/dsh_living_city_01",
+    "generated_godot_included": false,
+    "source_manifest": "outputs/dsh_living_city_01/SOURCE_MANIFEST.json"
+  },
+  "actual_checks": {
+    "import": "city-integration-import01/SCHEDULER_RUN.json: PASS",
+    "headless_5s": "city-integration-smoke-05s01/scheduler/SCHEDULER_RUN.json and capture/RESULT.json: PASS, 284 admitted",
+    "gui_20s": "city-integration-graphical-20s01/capture/RESULT.json: PASS, 1671 raw frame samples, p50 7.836ms, p95 30.228ms, p99 38.293ms, max 152.02ms, 284 admitted, shop/bank/hospital/drive/walk completions all zero in short window",
+    "source_changed_during_gui": false,
+    "long_life_180s": "city-long-life-180s01/capture/RESULT.json: 284 admitted, walk 182, shop/bank/hospital/drive 0, 197 shop ACTIVITY, 7 bank ACTIVITY, 2 drive ACTIVITY",
+    "incident_shots": "incident-live-run06: two committed PreviewWeapons shots, dispatcher admitted2 delivered4 duplicate1; nearby visual and farther audible witnesses; HP60 preserved",
+    "robbery": "NOT_RUN"
+  },
+  "published": false,
+  "publication_blocker": "DEFERRED_BY_USER_20261007: do not publish; prior auto-review rejection historical only",
+  "outstanding": [
+    "286 original registry source IDs unproven; source packet has 287 offline-new-session IDs and 284 health-bound",
+    "No completed non-walk visits",
+    "No direct player robbery reaction run",
+    "No accepted nav improvement; opt-in persistent route worsened 90s p99 and default stays off",
+    "godot/current_version.json still points to separate Palazzo release48; city direct launcher works"
+  ],
+  "local_navigation_followup": {
+    "captured_utc": "2026-10-07T13:35:21.110066+00:00",
+    "source_walk_sha256_restored": "311d2e84500b8e39e88682fc8d2b034d4f4b2b8a2d6ad3200102e82b189b6ef0",
+    "baseline_near_shop_70s": "city-near-shop-gui-70s01/capture/RESULT.json: 284 admitted; 8 of 12 nearest shop walkers had zero horizontal distance to next waypoint (0.1m vertical navmesh offset), 0 visits, p99 40.799ms, walk29",
+    "vertical_start_candidate": "city-dummy-first-leg-gui-70s01/capture/RESULT.json: zero horizontal next waypoint 0 of 12, 284 admitted, 0 visits, p99 54.454ms, walk34, path_pending at f5400 228 vs 215; rejected and exact bytes restored",
+    "single_resident_persistent": "city-one-persistent-shop-120s01/capture/RESULT.json: resident_230 route attempts1, fallback1, requests0, 0 visits; source not changed",
+    "refusal_proof": "city-persistent-refusal-85s01/capture/RESULT.json: resident_230 first_prefix_admission_refused, policy current_source_floor_missing at (53.3,0.1,79.95); temporary diagnostic restored by exact bytes",
+    "second_resident_canary": "city-one-persistent-shop253-180s01/capture/RESULT.json: requested 180s but QA clamps capture to 120000ms; 284 admitted, route attempts0, 0 visits; resident_253 body (84.1888,0.000831,83.79707), next (114.8,0.1,92.24999), edge0/request556/host READY, requires exact navigation target investigation",
+    "remaining_blocker": "No completed shop; per-leg admission queue stays ~200 pending. Persistent nearest candidate is refused on exact current floor support. Cannot relax floor or released guard. Need bounded architecture change and negative canaries before another full-city acceptance run.",
+    "production_source_change_accepted": false,
+    "duration_correction": {
+      "city-long-life-180s01/capture/RESULT.json": 180000,
+      "city-one-persistent-shop253-180s01/capture/RESULT.json": 120000,
+      "reason": "Different QA harness; city_near_shop_probe.gd clamps --qa-capture-ms to 120000."
+    },
+    "route_identity_proof": {
+      "default_trace": "city-route-identity-120s01/capture/RESULT.json: resident_253 ordinary legs request552 ->777 ->1024 with matching walk/nav/job targets, same nav body and owner; each pending first ~1100-1200 physics frames before 5m movement.",
+      "broad_anomaly_scan": "city-route-anomaly-120s01/capture/RESULT.json: zero cases meeting body >6m from first point with edge0 and nav READY among active shop walkers.",
+      "exact_flag_reproduction": "city-route-anomaly253-120s01/capture/RESULT.json: one case resident_253 frame5918; walk streaming=true, request554 same in claim/host/nav/job; body identity_current=true, job owner_instance equals nav owner_id; nav target/job target (8.5,0.1,5.598197), nav edge4/backend edge5 while daily walk edge0 and first original point (114.8,0.1,92.24999). Body (102.8552,0.000844,94.63263) progressed along valid streamed prefix.",
+      "conclusion": "The apparent body31m/edge0 contradiction is the intentional streaming-route cursor semantics, not a request overwrite or stale path. No production code defect proven; no code change applied."
+    }
+  },
+  "phase_admission_followup": {
+    "captured_utc": "2026-10-07T14:46:56.019330+00:00",
+    "source_files_sha256": {
+      "scripts/shop/npc_daily_shop.gd": "0e22ea589129772cb6d2b15c9f41a015f5d78cc8bbcf569b1cf46655fd0011b7",
+      "scripts/city/runtime/npc_city_engine_navigation.gd": "2d893ee2c3b02a64fb7a44a60c71977d34f28bd4733786303749a3e639a370fb",
+      "scripts/npc_daily_walk.gd": "311d2e84500b8e39e88682fc8d2b034d4f4b2b8a2d6ad3200102e82b189b6ef0",
+      "scripts/npc_visual/preview_resident_host.gd": "5d75b7a82aac6389d1deb3d6b4a9a77a2717de66a082e21ca4fcef2cfa084687",
+      "scripts/city/runtime/npc_city_world_policy.gd": "27c9949859fabf95be2f92e45ea4b9f14f2d95ae8ca612050a061e0cf3f4cc7e"
+    },
+    "patches": [
+      "Shop Visit180 starts after successful Visit.begin; unchanged cumulative Walk900/detour/stall/pause/cancel guards.",
+      "Motion source/access TTL reuse disabled for all jobs; current source callback on every step. Existing physical intersect/cast logic unchanged.",
+      "Bounded last16 validation refusal contexts saved before cleanup; exact operands/frame/owner/body; policy last_reason is labelled observation."
+    ],
+    "actual_checks": {
+      "phase_timer": "city-shop-phase-timer-canary02:19/19 PASS, scheduler exit0/stderr0; fixture owners",
+      "targeted_gui": {
+        "result": "city-shop-phase-timer-live500s01/capture/RESULT.json",
+        "duration_ms": 326140,
+        "requested_ms": 500000,
+        "stop_reason": "first_shop_aborted_before_completion",
+        "admitted": 284,
+        "completions": {
+          "bank": 0,
+          "drive": 0,
+          "hospital": 0,
+          "shop": 0,
+          "walk": 199
+        },
+        "end_reason": "native_route:NO_PATH:detour_unavailable_or_budget",
+        "host_exact_request": -1,
+        "commerce_cash": 40,
+        "commerce_spent": 0,
+        "render_intervals": {
+          "count": 23566,
+          "max_ms": 237.389,
+          "p50_ms": 7.911,
+          "p95_ms": 31.38,
+          "p99_ms": 91.05
+        },
+        "performance_qualification": "Nonexclusive graphical, not accepted benchmark. This run predates the admission fix."
+      },
+      "negative_backend": "city-backend-negative-guards01:revocation failed (source_calls4→4, next motion true). After fix guards03:14/14, guards04:18/18, guards05:20/20 PASS, actual mover positive and revoked callback stops body; map/death/cancel; source_a/b/capsule and bounded16; new dynamic start overlap rejected.",
+      "source_fragment": "city-source-fragment-probe03: config accepted5595 source floors/287 registry owners and3 static solids;6 endpoint candidates all source/floor/native square pass.5/5 negative actual-policy checks PASS: floor loss/restoration, dynamic256 overlap/removal, current access revoked."
+    },
+    "not_run": [
+      "Full-city performance after current-admission fix (cost may increase).",
+      "Fresh full-city refusal trace using newly added diagnostics.",
+      "Completed real shop service/exit/next task (targeted GUI failed before visit).",
+      "Original286 authenticated registry proof.",
+      "Robbery live reaction."
+    ],
+    "remaining_blocker": "Past traces omitted rejection reason and cleared path before capture, so exact historical source-vs-capsule/live condition cannot be recovered. Static/floor micro-proof did not reproduce a geometry defect. Do not relax guards or broaden persistent until fresh failure evidence and performance work.",
+    "clean_commit_unchanged": "620b4f0ff6f477f25205458d730097050a2da1fe",
+    "publication": "NOT_PUSHED; prior auto-review rejection unchanged",
+    "production_nav_optimization_accepted": false,
+    "correctness_patches_local_only": true
+  },
+  "ground_checkout_followup": {
+    "checkpoint": "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city-ground-checkout-checkpoint.json",
+    "sha256": "e022c4451460dfccefe3dad02fbdf713db5c33e54a016190f8bd764811e1410a",
+    "production_nav_optimization_accepted": false,
+    "full_city_shop_complete": false
+  }
+}

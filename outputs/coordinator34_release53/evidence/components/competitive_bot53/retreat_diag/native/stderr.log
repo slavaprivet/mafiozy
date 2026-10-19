@@ -1,0 +1,822 @@
+SCRIPT ERROR: Compile Error: Identifier not found: NativeVehicleProfile
+   at: GDScript::reload (res://scripts/vehicle_physics/vehicle_profile.gd:35)
+   GDScript backtrace (most recent call first):
+       [0] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+   at: GDScript::reload (res://scripts/vehicle_physics/vehicle_native_body.gd:0)
+   GDScript backtrace (most recent call first):
+       [0] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+   at: GDScript::reload (res://scripts/vehicle_physics/vehicle_body_factory.gd:0)
+   GDScript backtrace (most recent call first):
+       [0] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+   at: GDScript::reload (res://scripts/preview_transport.gd:0)
+   GDScript backtrace (most recent call first):
+       [0] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+   at: GDScript::reload (res://scripts/main.gd:0)
+   GDScript backtrace (most recent call first):
+       [0] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed to load script "res://scripts/main.gd" with error "Compilation failed".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)
+   GDScript backtrace (most recent call first):
+       [0] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/hero.glb-60b1dda00ac356d0d41e9d312bcd657c.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/hero.glb-60b1dda00ac356d0d41e9d312bcd657c.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/hero.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/hero.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/print_shop.ad7b8ef7e7e4.glb-2f9796d6c00706cbe0fd06b7ad488ffd.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/print_shop.ad7b8ef7e7e4.glb-2f9796d6c00706cbe0fd06b7ad488ffd.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/buildings/print_shop.ad7b8ef7e7e4.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/buildings/print_shop.ad7b8ef7e7e4.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/old_town_narrow_townhouse_v1.fd0178400e60.glb-51320986262831de1d5a09cd3d619fc1.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/old_town_narrow_townhouse_v1.fd0178400e60.glb-51320986262831de1d5a09cd3d619fc1.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/buildings/old_town_narrow_townhouse_v1.fd0178400e60.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/buildings/old_town_narrow_townhouse_v1.fd0178400e60.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/gun_shop.e97d6fac4097.glb-8de329855b9386dafb5ee0b3672e7308.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/gun_shop.e97d6fac4097.glb-8de329855b9386dafb5ee0b3672e7308.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/buildings/gun_shop.e97d6fac4097.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/buildings/gun_shop.e97d6fac4097.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/pawnshop.1a95f97569d9.glb-5ae0599955c699f94c733cdcbf4fdc5f.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/pawnshop.1a95f97569d9.glb-5ae0599955c699f94c733cdcbf4fdc5f.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/buildings/pawnshop.1a95f97569d9.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/buildings/pawnshop.1a95f97569d9.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/eastside_garden_walkup_v1.627e644d51f0.glb-0bb37f8683f4af5e341a53ce54938520.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/eastside_garden_walkup_v1.627e644d51f0.glb-0bb37f8683f4af5e341a53ce54938520.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/buildings/eastside_garden_walkup_v1.627e644d51f0.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/buildings/eastside_garden_walkup_v1.627e644d51f0.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/garden_lane_house_v1.c15b6c3f8360.glb-83b4fbadee951ebc954fc4a36f066c9d.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/garden_lane_house_v1.c15b6c3f8360.glb-83b4fbadee951ebc954fc4a36f066c9d.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/buildings/garden_lane_house_v1.c15b6c3f8360.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/buildings/garden_lane_house_v1.c15b6c3f8360.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/eastside_stepped_apartment_v1.5af57644b889.glb-7617e4f33150094d0839a08240f1a699.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/eastside_stepped_apartment_v1.5af57644b889.glb-7617e4f33150094d0839a08240f1a699.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/buildings/eastside_stepped_apartment_v1.5af57644b889.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/buildings/eastside_stepped_apartment_v1.5af57644b889.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/nightclub.624967d9ad8e.glb-47eb8886578e1ed7eda99f67f6a120c1.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/nightclub.624967d9ad8e.glb-47eb8886578e1ed7eda99f67f6a120c1.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/buildings/nightclub.624967d9ad8e.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/buildings/nightclub.624967d9ad8e.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/strip_club.a29f4603767b.glb-d62cca06409f24ba571932d99f951a14.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/strip_club.a29f4603767b.glb-d62cca06409f24ba571932d99f951a14.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/buildings/strip_club.a29f4603767b.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/buildings/strip_club.a29f4603767b.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/bookmaker.cf7da54c2037.glb-8771afb8c7a159d5f585cc0d9bda9458.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/bookmaker.cf7da54c2037.glb-8771afb8c7a159d5f585cc0d9bda9458.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/buildings/bookmaker.cf7da54c2037.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/buildings/bookmaker.cf7da54c2037.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/glass_pavilion_small_v1.ecae5f97bd53.glb-10446c1eef8c6abb130c2f85be7b2451.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/glass_pavilion_small_v1.ecae5f97bd53.glb-10446c1eef8c6abb130c2f85be7b2451.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/buildings/glass_pavilion_small_v1.ecae5f97bd53.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/buildings/glass_pavilion_small_v1.ecae5f97bd53.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/pine_ridge_cottage_v1.0ee0526b4389.glb-8e34a7d581326b72c98cfe3d5b7f7f6d.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/pine_ridge_cottage_v1.0ee0526b4389.glb-8e34a7d581326b72c98cfe3d5b7f7f6d.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/buildings/pine_ridge_cottage_v1.0ee0526b4389.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/buildings/pine_ridge_cottage_v1.0ee0526b4389.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/bank_small_shell_v1.ba3580e4549c.glb-76b2104ea5cfb4dc022b6eb15f7a8973.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/bank_small_shell_v1.ba3580e4549c.glb-76b2104ea5cfb4dc022b6eb15f7a8973.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/buildings/bank_small_shell_v1.ba3580e4549c.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/buildings/bank_small_shell_v1.ba3580e4549c.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/woodland_crosswing_house_v1.060efe139908.glb-b7b9c54e3fe59a892004b22b2a5decbf.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/woodland_crosswing_house_v1.060efe139908.glb-b7b9c54e3fe59a892004b22b2a5decbf.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/buildings/woodland_crosswing_house_v1.060efe139908.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/buildings/woodland_crosswing_house_v1.060efe139908.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/civic_hall.81a289dc2280.glb-4921fc1f92adece36dd39d0e7bf94da8.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/civic_hall.81a289dc2280.glb-4921fc1f92adece36dd39d0e7bf94da8.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/buildings/civic_hall.81a289dc2280.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/buildings/civic_hall.81a289dc2280.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/hospital.542b901c3bd0.glb-f3f38613189581440b942927c1fd8392.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/hospital.542b901c3bd0.glb-f3f38613189581440b942927c1fd8392.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/buildings/hospital.542b901c3bd0.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/buildings/hospital.542b901c3bd0.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/compact_podium_glass_tower_v1.caa4b79ab289.glb-a0d61a2e1942cf261dbeaf64fbc402b8.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/compact_podium_glass_tower_v1.caa4b79ab289.glb-a0d61a2e1942cf261dbeaf64fbc402b8.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/buildings/compact_podium_glass_tower_v1.caa4b79ab289.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/buildings/compact_podium_glass_tower_v1.caa4b79ab289.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/hillstep_chalet_v1.26f0868537c6.glb-85c7598b02860ee69e5af6023fdb03fa.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/hillstep_chalet_v1.26f0868537c6.glb-85c7598b02860ee69e5af6023fdb03fa.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/buildings/hillstep_chalet_v1.26f0868537c6.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/buildings/hillstep_chalet_v1.26f0868537c6.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/coastal_orchard_house_v1.ac9b33396f07.glb-14751ef471646b514db6abfc0132acf7.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/coastal_orchard_house_v1.ac9b33396f07.glb-14751ef471646b514db6abfc0132acf7.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/buildings/coastal_orchard_house_v1.ac9b33396f07.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/buildings/coastal_orchard_house_v1.ac9b33396f07.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/veranda_bungalow_v1.8adf5797cf73.glb-1a933e79e0ffb8120de2c58b1793dcc7.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/veranda_bungalow_v1.8adf5797cf73.glb-1a933e79e0ffb8120de2c58b1793dcc7.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/buildings/veranda_bungalow_v1.8adf5797cf73.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/buildings/veranda_bungalow_v1.8adf5797cf73.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/bank_large_shell_v1.8902684ddc01.glb-603056816c5483c069a41515ed15e046.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/bank_large_shell_v1.8902684ddc01.glb-603056816c5483c069a41515ed15e046.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/buildings/bank_large_shell_v1.8902684ddc01.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/buildings/bank_large_shell_v1.8902684ddc01.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/bank_medium_shell_v1.97d92c7b3aee.glb-153397e343c818397937e48d63253c4e.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/bank_medium_shell_v1.97d92c7b3aee.glb-153397e343c818397937e48d63253c4e.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/buildings/bank_medium_shell_v1.97d92c7b3aee.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/buildings/bank_medium_shell_v1.97d92c7b3aee.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/lamp_pine_v1.fe092a7d5833.glb-10790e071d9eefcef0555147333c9735.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/lamp_pine_v1.fe092a7d5833.glb-10790e071d9eefcef0555147333c9735.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/decor/lamp_pine_v1.fe092a7d5833.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/decor/lamp_pine_v1.fe092a7d5833.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/lamp_bellini_v1.81c8b123ded3.glb-b84d3d66ea234dfc25d9a30c2a0b6ecb.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/lamp_bellini_v1.81c8b123ded3.glb-b84d3d66ea234dfc25d9a30c2a0b6ecb.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/decor/lamp_bellini_v1.81c8b123ded3.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/decor/lamp_bellini_v1.81c8b123ded3.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/lamp_civic_double_v1.47ae1fe13f50.glb-6f895939033c30edbe21d44040b4da04.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/lamp_civic_double_v1.47ae1fe13f50.glb-6f895939033c30edbe21d44040b4da04.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/decor/lamp_civic_double_v1.47ae1fe13f50.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/decor/lamp_civic_double_v1.47ae1fe13f50.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/lamp_foundry_v1.efed19a8fe04.glb-694f8c1244bbd713ede79abab10f7a78.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/lamp_foundry_v1.efed19a8fe04.glb-694f8c1244bbd713ede79abab10f7a78.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/decor/lamp_foundry_v1.efed19a8fe04.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/decor/lamp_foundry_v1.efed19a8fe04.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/bench_civic.83de855700a9.glb-a0f9c50ed9022fe7780592d62dd71f09.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/bench_civic.83de855700a9.glb-a0f9c50ed9022fe7780592d62dd71f09.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/decor/bench_civic.83de855700a9.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/decor/bench_civic.83de855700a9.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/fountain_central.d1aef72399f7.glb-47ca563d4fd603538a96f6649439b18e.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/fountain_central.d1aef72399f7.glb-47ca563d4fd603538a96f6649439b18e.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/decor/fountain_central.d1aef72399f7.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/decor/fountain_central.d1aef72399f7.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/planter_round.24870a5bb4c9.glb-916e997a8d998be77fe883f140d4a967.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/planter_round.24870a5bb4c9.glb-916e997a8d998be77fe883f140d4a967.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/decor/planter_round.24870a5bb4c9.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/decor/planter_round.24870a5bb4c9.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/bin_civic.29806183182d.glb-b5fd8b5d74838a363c765d9223c84c60.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/bin_civic.29806183182d.glb-b5fd8b5d74838a363c765d9223c84c60.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/decor/bin_civic.29806183182d.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/decor/bin_civic.29806183182d.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/fountain_district.ec544301e7d9.glb-0beaceac8aab49c072fc4f268dc79f6f.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/fountain_district.ec544301e7d9.glb-0beaceac8aab49c072fc4f268dc79f6f.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/decor/fountain_district.ec544301e7d9.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/decor/fountain_district.ec544301e7d9.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Cannot open file 'res://.godot/imported/fountain_park.28487ee1d66b.glb-4b62446b1e5a20f94fce6e3a72d0049a.scn'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://.godot/imported/fountain_park.28487ee1d66b.glb-4b62446b1e5a20f94fce6e3a72d0049a.scn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Failed loading resource: res://assets/decor/fountain_park.28487ee1d66b.glb.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: Error loading resource: 'res://assets/decor/fountain_park.28487ee1d66b.glb'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] prepare_assets (res://scripts/preview_block_validation.gd:92)
+       [1] _ready (res://scripts/main.gd:224)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)
+ERROR: MAFIOZI_PREVIEW_REJECTED: resource failed PackedScene import: res://assets/hero.glb; resource failed PackedScene import: res://assets/buildings/print_shop.ad7b8ef7e7e4.glb; resource failed PackedScene import: res://assets/buildings/old_town_narrow_townhouse_v1.fd0178400e60.glb; resource failed PackedScene import: res://assets/buildings/gun_shop.e97d6fac4097.glb; resource failed PackedScene import: res://assets/buildings/pawnshop.1a95f97569d9.glb; resource failed PackedScene import: res://assets/buildings/eastside_garden_walkup_v1.627e644d51f0.glb; resource failed PackedScene import: res://assets/buildings/garden_lane_house_v1.c15b6c3f8360.glb; resource failed PackedScene import: res://assets/buildings/eastside_stepped_apartment_v1.5af57644b889.glb; resource failed PackedScene import: res://assets/buildings/nightclub.624967d9ad8e.glb; resource failed PackedScene import: res://assets/buildings/strip_club.a29f4603767b.glb; resource failed PackedScene import: res://assets/buildings/bookmaker.cf7da54c2037.glb; resource failed PackedScene import: res://assets/buildings/glass_pavilion_small_v1.ecae5f97bd53.glb; resource failed PackedScene import: res://assets/buildings/pine_ridge_cottage_v1.0ee0526b4389.glb; resource failed PackedScene import: res://assets/buildings/bank_small_shell_v1.ba3580e4549c.glb; resource failed PackedScene import: res://assets/buildings/woodland_crosswing_house_v1.060efe139908.glb; resource failed PackedScene import: res://assets/buildings/civic_hall.81a289dc2280.glb; resource failed PackedScene import: res://assets/buildings/hospital.542b901c3bd0.glb; resource failed PackedScene import: res://assets/buildings/compact_podium_glass_tower_v1.caa4b79ab289.glb; resource failed PackedScene import: res://assets/buildings/hillstep_chalet_v1.26f0868537c6.glb; resource failed PackedScene import: res://assets/buildings/coastal_orchard_house_v1.ac9b33396f07.glb; resource failed PackedScene import: res://assets/buildings/veranda_bungalow_v1.8adf5797cf73.glb; resource failed PackedScene import: res://assets/buildings/bank_large_shell_v1.8902684ddc01.glb; resource failed PackedScene import: res://assets/buildings/bank_medium_shell_v1.97d92c7b3aee.glb; resource failed PackedScene import: res://assets/decor/lamp_pine_v1.fe092a7d5833.glb; resource failed PackedScene import: res://assets/decor/lamp_bellini_v1.81c8b123ded3.glb; resource failed PackedScene import: res://assets/decor/lamp_civic_double_v1.47ae1fe13f50.glb; resource failed PackedScene import: res://assets/decor/lamp_foundry_v1.efed19a8fe04.glb; resource failed PackedScene import: res://assets/decor/bench_civic.83de855700a9.glb; resource failed PackedScene import: res://assets/decor/fountain_central.d1aef72399f7.glb; resource failed PackedScene import: res://assets/decor/planter_round.24870a5bb4c9.glb; resource failed PackedScene import: res://assets/decor/bin_civic.29806183182d.glb; resource failed PackedScene import: res://assets/decor/fountain_district.ec544301e7d9.glb; resource failed PackedScene import: res://assets/decor/fountain_park.28487ee1d66b.glb
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _show_load_error (res://scripts/main.gd:1412)
+       [1] _ready (res://scripts/main.gd:227)
+       [2] run (D:/MafioziCombat31/competitive_bot53/qa/chase.gd:15)

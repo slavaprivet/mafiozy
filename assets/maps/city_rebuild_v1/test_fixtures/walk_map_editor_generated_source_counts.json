@@ -1,0 +1,16 @@
+{
+  "road-markings": 6449,
+  "road-signs": 445,
+  "road-signals": 60,
+  "parking-lots": 39,
+  "parking-bays": 59,
+  "parking-signs": 57,
+  "parking-surfaces": 78,
+  "exploration-trees": 2036,
+  "exploration-monuments": 22,
+  "exploration-furniture": 382,
+  "railway-alignment": 1,
+  "railway-stations": 2,
+  "railway-crossings": 12,
+  "railway-signals": 17
+}

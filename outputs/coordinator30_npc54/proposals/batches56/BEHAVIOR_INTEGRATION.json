@@ -1,0 +1,16 @@
+{
+  "changes": {
+    "scripts/hospital/npc_simple_hospital.gd": {
+      "before": "22304aa6949767c7fa3daf53534aae3dbc28aa67abb9e1cf4b84f677a899fd9b",
+      "after": "ee46467d27baeb9b3e58f55b191f3f92211544734b4ebfb369eb329168b35f89"
+    },
+    "scripts/city/runtime/npc_threat_life30.gd": {
+      "before": "9108b854190f56951a6419b197d6c8bb236b6eab72b6a86b7f9542d12192e7b0",
+      "after": "b69afbc79d15419de088f4c54c01699a0d3ac1515edf304bbf5d6ee20db4605c"
+    }
+  },
+  "evidence": [
+    "services_city56/exit_patch56/COMPONENT.json",
+    "threat_order56/runs/candidate04/RESULT.json"
+  ]
+}

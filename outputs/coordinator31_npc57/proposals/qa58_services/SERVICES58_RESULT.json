@@ -1,0 +1,97 @@
+{
+  "schema": "mafiozi.services58.acceptance/v1",
+  "passed": true,
+  "graphical_run": "outputs\\coordinator31_npc57\\proposals\\qa58_services\\runs\\merged58_services_graphical02",
+  "source_count": 1135,
+  "candidate_sha256": "4a00c3c85b4d705ce917c60a7d0b92deb634d24eb57b41cff2664d24e2cfb70e",
+  "source_before_and_after_match_candidate": true,
+  "controls_unchanged": true,
+  "immutable_harness_verified": true,
+  "checks_passed": 37,
+  "checks_total": 37,
+  "native_reason": "complete",
+  "cases": {
+    "bank": {
+      "id": "resident_2",
+      "entered": true,
+      "completed": true,
+      "outbound": true,
+      "travel_m": 527.317331356928,
+      "max_physics_displacement_m": 0.0347911082208157,
+      "service_frame": 4382,
+      "exit_frame": 4718,
+      "native_payment_receipts": 1,
+      "native_healing_receipts": 0
+    },
+    "hospital": {
+      "id": "resident_7",
+      "entered": true,
+      "completed": true,
+      "outbound": true,
+      "travel_m": 642.421992407762,
+      "max_physics_displacement_m": 0.0347865521907806,
+      "service_frame": 5894,
+      "exit_frame": 6186,
+      "native_payment_receipts": 0,
+      "native_healing_receipts": 1
+    },
+    "restaurant": {
+      "id": "resident_8",
+      "entered": true,
+      "completed": true,
+      "outbound": true,
+      "travel_m": 710.054818978533,
+      "max_physics_displacement_m": 0.0305809658020735,
+      "service_frame": 25278,
+      "exit_frame": 25616,
+      "native_payment_receipts": 1,
+      "native_healing_receipts": 0
+    },
+    "shop": {
+      "id": "resident_10",
+      "entered": true,
+      "completed": true,
+      "outbound": true,
+      "travel_m": 620.181034745649,
+      "max_physics_displacement_m": 0.0307348929345608,
+      "service_frame": 16242,
+      "exit_frame": 16578,
+      "native_payment_receipts": 1,
+      "native_healing_receipts": 0
+    }
+  },
+  "failures": [],
+  "errors": [],
+  "stderr_bytes": 0,
+  "performance_accepted": false,
+  "full_soak_accepted": false,
+  "production_modified": false,
+  "user_game_preserved": true,
+  "headless_attempt": {
+    "run": "outputs\\coordinator31_npc57\\proposals\\services_regression31\\runs\\merged58_services01",
+    "passed": false,
+    "reason": "service_deadline_after_startup",
+    "failed_checks": [
+      "native_completed",
+      "restaurant_physical_service_and_staff",
+      "restaurant_actual_entry_outbound_exit",
+      "restaurant_account_conserved_at_exit",
+      "restaurant_real_authoritative_receipt",
+      "restaurant_cash_debit_and_energy",
+      "unique_transaction_events"
+    ],
+    "restaurant_travel_m": 415.24205879122,
+    "source_before_and_after_match_candidate": true,
+    "classification": "Native deadline240s preserved as FAIL; hospital/bank/shop completed, restaurant still walking inbound. Later graphical420s is a distinct run."
+  },
+  "evidence_sha256": {
+    "RUN.json": "ef4c8ded1a772af28bb68fddbf8c1d7fcb622732098fd13a84c76291073d9edd",
+    "SERVICES56.json": "7e6f2e96e14bea0d514efd0069d949ca2c1e8fd42498ee37d1ac994754707935",
+    "SOURCE.json": "bc2a403e26cda9278f03216b556b8c4635eb8d5499111bbadeee9957f46b112b",
+    "SOURCE_AFTER.json": "bc2a403e26cda9278f03216b556b8c4635eb8d5499111bbadeee9957f46b112b",
+    "CONTROL_PINS.json": "4b5dba62569169b717b30424f83dd949daa0fb17eb7cf64fff14a2d1637243c0",
+    "CONTROL_PINS_AFTER.json": "4b5dba62569169b717b30424f83dd949daa0fb17eb7cf64fff14a2d1637243c0",
+    "HARNESS_PINS.json": "4ea9f7b8e803ded3b6aad56d638ecda33f78b983fa6af834e8b1fdc2827d75da",
+    "HARNESS.zip": "fd52684438f9393c26e1e5034628ef748ee2eae8cede852ca6538c6207eeffcf"
+  }
+}

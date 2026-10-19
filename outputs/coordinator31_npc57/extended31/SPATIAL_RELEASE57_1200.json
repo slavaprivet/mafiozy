@@ -1,0 +1,49 @@
+{
+  "schema": "mafiozi.qa31.spatial-liveness/v1",
+  "passed": false,
+  "source": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\qa31_extended\\runs\\release57_1200_01\\SOAK31.json",
+  "source_sha256": "2c245672fc2db55225fc8ba1133e2ceeabc9330133a09078ab9fcfe2f843e5db",
+  "window_s": 30.0,
+  "bbox_diagonal_limit_m": 1.5,
+  "episodes": [
+    {
+      "id": "resident_2",
+      "generation": 1,
+      "start_s": 333.313,
+      "end_s": 1199.821,
+      "max_window_bbox_diagonal_m": 0.24005797449837668,
+      "first_native_phase": "WALKING",
+      "first_outer_phase": "OUTBOUND",
+      "first_door_stage": "opening",
+      "sample_count": 834,
+      "last_position": [
+        -138.205902099609,
+        0.240001082420349,
+        161.955429077148
+      ],
+      "duration_s": 866.5079999999999
+    },
+    {
+      "id": "resident_9",
+      "generation": 1,
+      "start_s": 334.314,
+      "end_s": 1199.821,
+      "max_window_bbox_diagonal_m": 0.9682202271367275,
+      "first_native_phase": "WALKING",
+      "first_outer_phase": "",
+      "first_door_stage": "",
+      "sample_count": 833,
+      "last_position": [
+        -137.739822387695,
+        0.240941882133484,
+        162.062576293945
+      ],
+      "duration_s": 865.5069999999998
+    }
+  ],
+  "policy": "All samples require motion; intentional rest, completed walk and lifecycle boundaries reset. No route-retry reset. Maximum input gap2.5s.",
+  "limitations": [
+    "1Hz sampled positions; rapid excursions between samples can be missed.",
+    "Read-only supplementary gate, not a replacement for existing native assertions."
+  ]
+}

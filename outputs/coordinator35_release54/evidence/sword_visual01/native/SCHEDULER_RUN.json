@@ -1,0 +1,87 @@
+{
+  "mode": "graphical",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--path",
+    "D:\\MafioziCombat31\\coordinator35_rmb54\\game",
+    "--script",
+    "D:\\MafioziCombat31\\coordinator35_rmb54\\qa\\hold54.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\coordinator35_rmb54\\sword_visual01",
+    "--weapon=sword"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "14d4dfc12b6e4afca379298cb8d62a6f",
+    "owner": {
+      "pid": 60696,
+      "creation_filetime": "134368314353342216"
+    },
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\coordinator35_rmb54\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 50220,
+        "creation_filetime": "134368314364654053",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --path D:\\MafioziCombat31\\coordinator35_rmb54\\game --script D:\\MafioziCombat31\\coordinator35_rmb54\\qa\\hold54.gd -- --qa-out=D:\\MafioziCombat31\\coordinator35_rmb54\\sword_visual01 --weapon=sword",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--path",
+          "D:\\MafioziCombat31\\coordinator35_rmb54\\game",
+          "--script",
+          "D:\\MafioziCombat31\\coordinator35_rmb54\\qa\\hold54.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\coordinator35_rmb54\\sword_visual01",
+          "--weapon=sword"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "graphical",
+        "project": "d:\\mafiozicombat31\\coordinator35_rmb54\\game"
+      }
+    ],
+    "deadline": 1299782.9653672,
+    "queued_at": 1299542.9653672,
+    "ticket": 4214,
+    "inventory_before": [
+      {
+        "pid": 40912,
+        "parent_pid": 49732,
+        "creation_filetime": "134368303620109047",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator34_release53\\game\" --script \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_castle_current\\bootstrap_castle.gd\" -- \"--receipt-dir=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261018T205241981Z\" \"--release-title=Замок и осада · общая сцена 53 · противник и лук\" \"--release-revision=castle-20261018-combined53-bot-bow\" --castle=1 --castle-start-outside=1",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози — Замок и осада · общая сцена 53 · противник и лук (DEBUG)"
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5905110000167042
+  },
+  "child": {
+    "pid": 50220,
+    "creation_filetime": "134368314364654053",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --path D:\\MafioziCombat31\\coordinator35_rmb54\\game --script D:\\MafioziCombat31\\coordinator35_rmb54\\qa\\hold54.gd -- --qa-out=D:\\MafioziCombat31\\coordinator35_rmb54\\sword_visual01 --weapon=sword",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--path",
+      "D:\\MafioziCombat31\\coordinator35_rmb54\\game",
+      "--script",
+      "D:\\MafioziCombat31\\coordinator35_rmb54\\qa\\hold54.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\coordinator35_rmb54\\sword_visual01",
+      "--weapon=sword"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\coordinator35_rmb54\\game"
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 24.853971999837086,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

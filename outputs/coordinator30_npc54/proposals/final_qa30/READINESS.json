@@ -1,0 +1,31 @@
+{
+  "status": "PREPARED_WAITING_ROOT_GO",
+  "native_launched": false,
+  "python_syntax": "PASS",
+  "original_cycle03_acceptance": {
+    "cycle_physically_complete": true,
+    "one_resident_twelve_staff": true,
+    "all_services_physically_reached": true,
+    "all_staff_gestures_from_real_service": true,
+    "no_heal_or_settle_without_service": true,
+    "one_bank_one_food": true,
+    "unique_receipts": true,
+    "settlement_inside_after_dwell": true,
+    "bank_restores_1000_and_price_preserved": true,
+    "hospital_healed_and_physically_exited": true,
+    "bank_and_food_physically_exited": true,
+    "energy_restored": true,
+    "released_all_claims": true,
+    "real_roam_resumed": true
+  },
+  "no_project_copy": true,
+  "read_leases_only": true,
+  "sha256": {
+    "accept_cycle14.py": "3acaea04983b287d001847d6a7b10d3873af2224b947e84bc5eead0e54c5f0ac",
+    "observer_delta.patch": "12e94880ef6d7c55845d6512d96a598bd4d7678e1c25d83986652b5d4aff56f6",
+    "PROVENANCE.json": "aa4f83e586a8220af73faff04f030176e140d84091b49e9f3b0ef164ccda4961",
+    "README.md": "553772d98b488378e83daf20785fd51cd69574fa57d99e9d07a1385d7c9a04c2",
+    "run_final30.py": "4577f7d517fe6cdf3c43ec35866807846cfca1a7bc4aa567dc9eb2dc47126621",
+    "staff_cycle_final30.gd": "3065ab105522e532af3962c03e4ab12a5e3ccdc62fe79f018e1bf942c70bb744"
+  }
+}

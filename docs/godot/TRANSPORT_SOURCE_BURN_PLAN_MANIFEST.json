@@ -1,0 +1,84 @@
+{
+  "schema": "mafiozi.transport-source-burn-plan-manifest.v1",
+  "status": "frozen",
+  "date": "2026-09-27",
+  "files": [
+    {
+      "path": "tools/godot/export_transport_source_burn_oracle.mjs",
+      "bytes": 7510,
+      "sha256": "b03fb1e4cca7f9c5f38794e3dcc5436ad74510e09c5c828b1ce9bfafccf5cc2a",
+      "role": "actual source explosion oracle exporter"
+    },
+    {
+      "path": "godot/mafiozi_walk/data/transport/source_burn_oracle.json",
+      "bytes": 6380,
+      "sha256": "625040555e6a4dcab21491e1ec6d0267e25a1db65a852a82f2da3f7019a0df9c",
+      "role": "exact Float64 and source-order oracle",
+      "test_only": true,
+      "required_runtime_export_dependency": false
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_source_burn_plan.gd",
+      "bytes": 1890,
+      "sha256": "2fd5d2f947d0bc24719292321a759ba2a6d9d808a53afd65238442f713881c70",
+      "role": "pure exact linear burn planner"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_source_burn_plan.gd",
+      "bytes": 7162,
+      "sha256": "6f0db4a5a4e0853fc6b37318e8f7441f2fb02b436dbf054a24501894d51898f1",
+      "role": "exact parity, boundary and cost test"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_SOURCE_BURN_PLAN_HANDOFF.md",
+      "bytes": 6251,
+      "sha256": "c0ddfcbc01f7653c2515349feb922511c6daf6fb5fcf3cb3c029d09136f9cd35",
+      "role": "API, source boundaries, verification and host seams"
+    }
+  ],
+  "dependencies": [
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_damage.mjs",
+      "sha256": "e029cb4a03dcd23bbdd0fb2f73b7780db92f24f761cf83b030991acb3c403f92",
+      "lines": "55-64,102-127,256-278"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_DEBRIS_BURN_PREPARATION_AUDIT.md",
+      "bytes": 11506,
+      "sha256": "aa714ae4247bea63188021e5b147b633ded3dcfc307f75fd3c93df5cbd58887d"
+    }
+  ],
+  "api": {
+    "methods": [
+      "plan(current_linear_rgb_f64, captured_opaque_eligible)",
+      "target_linear_rgb()"
+    ],
+    "input_color_space": "Linear-sRGB Float64",
+    "lerp_alpha": 0.94,
+    "burned_roughness": 0.99,
+    "owns_authority": false,
+    "creates_nodes_or_resources": false
+  },
+  "verification": {
+    "resource": "res://scripts/tests/test_transport_source_burn_plan.gd",
+    "author": "47/47 PASS",
+    "parent": "47/47 PASS",
+    "independent": "47/47 PASS",
+    "oracle_export_deterministic": true,
+    "numeric_rows": 7,
+    "semantic_rows": 8
+  },
+  "performance": {
+    "iterations": 100000,
+    "qualification": "fresh sequential parent headless run after author completion",
+    "elapsed_us": 375289,
+    "us_per_query": 3.75289,
+    "scope": "isolated headless pure CPU only; no Resource, shader, GPU, FPS, LIVE or full-scene claim"
+  },
+  "limitations": [
+    "Host supplies captured identity plus explosion-time nontransparent eligibility; it is not authority proof",
+    "Host owns current material stamps, alpha and linear-to-sRGB native conversion",
+    "Host preserves callback and detachment order",
+    "This helper alone does not solve or measure the 57 ms material preparation path"
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "files": [
+    {
+      "path": "outputs/coordinator29_npc53/proposals/navigation29_integration/scripts/hospital/npc_simple_hospital.gd",
+      "sha256": "2a95ca719fd7b7353cb18526af5d988f2cebb3cd09517e9f7506f70d25e4867d"
+    },
+    {
+      "path": "outputs/coordinator29_npc53/proposals/navigation29_integration/scripts/hospital/npc_physical_route51.gd",
+      "sha256": "6cf3bb96c1ad9875fb3e66313db9b04a518043b4977e1db4420b316d8813b761"
+    },
+    {
+      "path": "outputs/coordinator29_npc53/game/scripts/npc_visual/preview_resident_host.gd",
+      "sha256": "7790a84e1c18811384f430ed299df5e657f0e59d8fad1df50324978ff1ab93df"
+    },
+    {
+      "path": "outputs/coordinator29_npc53/game/scripts/venues/npc_venue_registry29.gd",
+      "sha256": "46f2895ae4e5a70e03b7a02126cad3ab3a9b4ddb1a7b31ca4d892c2d3b68d7a4"
+    },
+    {
+      "path": "outputs/coordinator29_npc53/game/scripts/hospital/npc_route_budget29.gd",
+      "sha256": "69d59b1bb4b8d66b7afc116c035f6eecbdc60422c5e1eb48c7dde96caf04a6ce"
+    },
+    {
+      "path": "outputs/coordinator29_npc53/game/scripts/hospital/npc_walk_surface28.gd",
+      "sha256": "fe28870674944d9b9fc45f338a40f4ced0dfd9e312a7e44fcb3ffc6e416192b1"
+    },
+    {
+      "path": "outputs/coordinator29_npc53/game/scripts/city/runtime/npc_city_clone_door_swing.gd",
+      "sha256": "24fb1ef4d35a58ab99e498dd4be1f5d739c2425c767188c9c916df0b869d6fd1"
+    },
+    {
+      "path": "outputs/coordinator29_npc53/proposals/navigation29_integration/scripts/hospital/npc_roam_wait29.gd",
+      "sha256": "b39dbce75e87c2270f0682301f73dccfcb6532cd7624db34837f83fae724f0d7"
+    },
+    {
+      "path": "outputs/coordinator29_npc53/proposals/navigation29_long/scripts/hospital/npc_long_route28.gd",
+      "sha256": "ffa9806c378aacd8dd4238d6d4bcedc50c7a050284f0c6aab9f874ec359916f0"
+    },
+    {
+      "path": "outputs/coordinator29_npc53/proposals/navigation29_long/scripts/navigation/npc_navigation_work29.gd",
+      "sha256": "f9f8267663f7fbe6de117b29f5c7fc1d8f63d2fed3007d21b06e460d534a79b8"
+    },
+    {
+      "path": "outputs/coordinator29_npc53/game/scripts/navigation/path_job_queue.gd",
+      "sha256": "03d3dfd3d05dc20b93e7b7bf0caf6efb0730d6119326416404135cf7ac2372f3"
+    },
+    {
+      "path": "tools/godot/test_scheduler.py",
+      "sha256": "adcb834390e476edd118f62d8e3e5b391c6ebc97925391e66beeb80430ba8373"
+    },
+    {
+      "path": "outputs/coordinator29_npc53/game/scripts/npc_city_population.gd",
+      "sha256": "0f10997488db61226a08cfa86bbd415d83be91fc1bc0d8ca4280430fce685b44"
+    }
+  ]
+}

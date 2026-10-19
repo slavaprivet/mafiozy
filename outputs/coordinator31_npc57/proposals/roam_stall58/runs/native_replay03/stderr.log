@@ -1,0 +1,6 @@
+SCRIPT ERROR: Invalid access to property or key 'owner' on a base object of type 'Dictionary'.
+   at: step (res://scripts/npc_visual/preview_resident_host.gd:1392)
+   GDScript backtrace (most recent call first):
+       [0] step (res://scripts/npc_visual/preview_resident_host.gd:1392)
+       [1] step (res://scripts/npc_city_population.gd:1224)
+       [2] _physics_process (res://scripts/main.gd:922)

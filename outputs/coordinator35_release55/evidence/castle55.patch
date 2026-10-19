@@ -1,0 +1,398 @@
+--- 54/castle_site.gd
++++ 55/castle_site.gd
+@@ -43,6 +43,18 @@
+ 	soft.radial_segments = 12
+ 	soft.rings = 6
+ 	_furniture_meshes = {"turned": turned, "cup": cup, "disk": disk, "soft": soft}
++	var tower_floor := CylinderMesh.new()
++	tower_floor.top_radius = 0.5
++	tower_floor.bottom_radius = 0.5
++	tower_floor.height = 1.0
++	tower_floor.radial_segments = 20
++	_furniture_meshes["tower_floor55"] = tower_floor
++	var tower_roof := CylinderMesh.new()
++	tower_roof.top_radius = 0.8 / ((TOWER_RADIUS + 0.4) * 2.0)
++	tower_roof.bottom_radius = 0.5
++	tower_roof.height = 1.0
++	tower_roof.radial_segments = 20
++	_furniture_meshes["tower_roof55"] = tower_roof
+ ## DSH_OPT: a blast must not spawn a thousand solvers. Debris is capped, its physics is
+ ## retired once it has settled, and every brick shares one mesh.
+ const MAX_FALLING := 150
+@@ -134,6 +146,10 @@
+ var _courtyard_shapes43: Dictionary = {}
+ var _courtyard_bodies43: Dictionary = {}
+ var _courtyard_dependents43: Dictionary = {}
++# Exact surviving masonry replaces coarse collision only around actual damage.
++var _masonry_shapes55: Dictionary = {}
++var _masonry_bodies55: Dictionary = {}
++var _masonry_changed55: Dictionary = {}
+ var _ground: StaticBody3D
+ var _player: CharacterBody3D
+ var _world_ref: Node3D
+@@ -229,6 +245,7 @@
+ 	_batch_static_decoration()
+ 	if _phase_enabled: _phase("_flush_buckets")
+ 	_flush_buckets()
++	_build_masonry_hits55()
+ 	if _phase_enabled: _phase("_prewarm_debris_pool")
+ 	_prewarm_debris_pool()
+ 	if _phase_enabled: _phase_done()
+@@ -643,23 +660,13 @@
+ 				var at_x := base + Vector3(side * (half_x + WALL_THICK * 0.68),
+ 					6.0 + float(storey) * 9.0, -4.6 + float(i) * 9.2)
+ 				_add_brick(at_x, Vector3(0.14, 2.4, 1.2), "dark", Vector3.ZERO, "keep_window", storey, i)
+-				var sill_x := MeshInstance3D.new()
+-				var sill_x_mesh := BoxMesh.new()
+-				sill_x_mesh.size = Vector3(0.5, 0.18, 1.5)
+-				sill_x.mesh = sill_x_mesh
+-				sill_x.material_override = _materials["stone"]
+-				sill_x.position = at_x + Vector3(side * 0.12, -1.3, 0.0)
+-				add_child(sill_x)
++				_add_brick(at_x + Vector3(side * 0.12, -1.3, 0.0),
++					Vector3(0.5, 0.18, 1.5), "stone", Vector3.ZERO, "keep_sill55")
+ 				var at_z := base + Vector3(-4.6 + float(i) * 9.2,
+ 					6.0 + float(storey) * 9.0, side * (half_z + WALL_THICK * 0.68))
+ 				_add_brick(at_z, Vector3(1.2, 2.4, 0.14), "dark", Vector3.ZERO, "keep_window_z", storey, i)
+-				var sill_z := MeshInstance3D.new()
+-				var sill_z_mesh := BoxMesh.new()
+-				sill_z_mesh.size = Vector3(1.5, 0.18, 0.5)
+-				sill_z.mesh = sill_z_mesh
+-				sill_z.material_override = _materials["stone"]
+-				sill_z.position = at_z + Vector3(0.0, -1.3, side * 0.12)
+-				add_child(sill_z)
++				_add_brick(at_z + Vector3(0.0, -1.3, side * 0.12),
++					Vector3(1.5, 0.18, 0.5), "stone", Vector3.ZERO, "keep_sill55")
+ 	# Buttresses at the corners of each face.
+ 	for side: float in [-1.0, 1.0]:
+ 		for other: float in [-1.0, 1.0]:
+@@ -881,11 +888,14 @@
+ 	for index: int in _cells.size():
+ 		var cell: Dictionary = _cells[index]
+ 		var at: Vector3 = cell.get("at", Vector3.ZERO)
+-		var spatial_key := "%d|%d|%d" % [int(floor(at.x / SPATIAL_STEP)),
+-			int(floor(at.y / SPATIAL_STEP)), int(floor(at.z / SPATIAL_STEP))]
+-		if not _spatial.has(spatial_key):
+-			_spatial[spatial_key] = []
+-		(_spatial[spatial_key] as Array).append(index)
++		var bounds := _cell_bounds55(cell)
++		cell["bounds55"] = bounds
++		for gx: int in range(int(floor(bounds.position.x / SPATIAL_STEP)), int(floor(bounds.end.x / SPATIAL_STEP)) + 1):
++			for gy: int in range(int(floor(bounds.position.y / SPATIAL_STEP)), int(floor(bounds.end.y / SPATIAL_STEP)) + 1):
++				for gz: int in range(int(floor(bounds.position.z / SPATIAL_STEP)), int(floor(bounds.end.z / SPATIAL_STEP)) + 1):
++					var spatial_key := "%d|%d|%d" % [gx, gy, gz]
++					if not _spatial.has(spatial_key): _spatial[spatial_key] = []
++					(_spatial[spatial_key] as Array).append(index)
+ 		var key := "%s|%s|%d|%d|%d" % [str(cell.get("material", "stone")),
+ 			str(cell.get("shape", "box")),
+ 			int(floor(at.x / CHUNK_X)), int(floor(at.y / CHUNK_Y)), int(floor(at.z / CHUNK_Z))]
+@@ -1001,7 +1011,7 @@
+ 		# colour variation and relief still give each course its bond.
+ 		size = Vector3(size.x * 0.99, size.y * 0.98, size.z * 0.995)
+ 	var rotation: Vector3 = cell.get("rotation", Vector3.ZERO)
+-	var jitter := 0.0 if structural or group.begins_with("stairs_") or group.begins_with("courtyard43_") or "merlon" in group else 1.0
++	var jitter := 0.0 if structural or group.begins_with("stairs_") or group.begins_with("courtyard43_") or "merlon" in group or group in ["tower_floor55", "tower_roof55"] else 1.0
+ 	var basis := Basis.from_euler(Vector3(
+ 		rotation.x + jitter * float(int(at.x * 7.0 + at.y * 13.0) % 5) * 0.004,
+ 		rotation.y + jitter * float(int(at.z * 11.0 + at.y * 5.0) % 5) * 0.004,
+@@ -1033,6 +1043,9 @@
+ 	var cell: Dictionary = _cells[index]
+ 	if not bool(cell.get("alive", false)): return
+ 	cell["alive"] = false
++	_masonry_changed55[index] = true
++	var masonry_shape: CollisionShape3D = _masonry_shapes55.get(index)
++	if is_instance_valid(masonry_shape): masonry_shape.set_deferred("disabled", true)
+ 	var courtyard_shape: CollisionShape3D = _courtyard_shapes43.get(index)
+ 	if is_instance_valid(courtyard_shape):
+ 		courtyard_shape.set_deferred("disabled", true)
+@@ -1134,12 +1147,24 @@
+ 		0.8 if material_key in ["linen", "velvet"] else 18.0
+ 	body.mass = clampf(volume * density, 0.3, 80.0)
+ 	var body_shape: CollisionShape3D = body.get_node_or_null("Shape") as CollisionShape3D
++	var shape_key: String = cell.get("shape", "box")
+ 	if body_shape != null:
+-		var box := BoxShape3D.new()
+-		box.size = size
+-		body_shape.shape = box
++		body_shape.scale = Vector3.ONE
++		if shape_key == "tower_floor55":
++			var cylinder := CylinderShape3D.new()
++			cylinder.radius = size.x * 0.5
++			cylinder.height = size.y
++			body_shape.shape = cylinder
++		elif shape_key == "tower_roof55":
++			body_shape.shape = (_furniture_meshes[shape_key] as Mesh).create_convex_shape()
++			body_shape.scale = size
++		else:
++			var box := BoxShape3D.new()
++			box.size = size
++			body_shape.shape = box
+ 	var mesh_instance: MeshInstance3D = body.get_node_or_null("Mesh") as MeshInstance3D
+ 	if mesh_instance != null:
++		mesh_instance.mesh = _furniture_meshes[shape_key] if shape_key in ["tower_floor55", "tower_roof55"] else _debris_mesh
+ 		mesh_instance.scale = size
+ 		var key: String = str(cell.get("material", "stone"))
+ 		var tint: Color = _brick_tint(cell)
+@@ -1355,6 +1380,8 @@
+ 		if not bool(section.get("alive", false)): continue
+ 		var body: StaticBody3D = section["body"]
+ 		if not is_instance_valid(body): continue
++		if not body.get_meta("castle_furnishing", false) and not body.get_meta("castle_keep_floor", false):
++			continue # Wall sections were refined to their surviving cells above.
+ 		var size: Vector3 = section["size"]
+ 		# DSH_OPT: a cheap sphere reject first. The exact test inverts a transform and
+ 		# clamps a point, and most of the 2k sections are nowhere near the strike.
+@@ -1544,14 +1571,10 @@
+ 				20.0 + BRICK.y * 0.5, 0.0), Vector3(BRICK.x, BRICK.y, WALL_THICK * 1.6),
+ 				"stone", Vector3.ZERO, "gate_merlon", 0, i)
+ 		for i: int in 4:
+-			var corbel := MeshInstance3D.new()
+-			var corbel_mesh := BoxMesh.new()
+-			corbel_mesh.size = Vector3(0.36, 0.5, WALL_THICK * 2.4)
+-			corbel.mesh = corbel_mesh
+-			corbel.material_override = _materials["cold"]
+-			corbel.position = tower_centre + Vector3(-tower_per_course * BRICK.x * 0.36
+-				+ float(i) * tower_per_course * BRICK.x * 0.24, 19.4, 0.0)
+-			add_child(corbel)	# The arch over the gate.
++			_add_brick(tower_centre + Vector3(-tower_per_course * BRICK.x * 0.36
++				+ float(i) * tower_per_course * BRICK.x * 0.24, 19.4, 0.0),
++				Vector3(0.36, 0.5, WALL_THICK * 2.4), "cold", Vector3.ZERO, "gate_corbel55")
++	# The arch over the gate.
+ 	var arch_rows := 3
+ 	for row: int in arch_rows:
+ 		var per_course := int((GATE_WIDTH + 7.0) / BRICK.x)
+@@ -3183,40 +3206,12 @@
+ func _build_tower_platforms() -> void:
+ 	for corner: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
+ 		var centre := Vector3(corner.x * WALL_HALF, 0.0, corner.y * WALL_HALF)
+-		# The floor of the upper room, at the height of the wall-walk.
+-		var floor_body := StaticBody3D.new()
+-		floor_body.collision_layer = 1
+-		floor_body.collision_mask = 1
+-		floor_body.set_meta("surface", "stone")
+-		floor_body.position = centre + Vector3.UP * (WALL_HEIGHT - 0.1)
+-		add_child(floor_body)
+-		var floor_shape := CollisionShape3D.new()
+-		var floor_cylinder := CylinderShape3D.new()
+-		floor_cylinder.radius = TOWER_RADIUS - 0.35
+-		floor_cylinder.height = 0.24
+-		floor_shape.shape = floor_cylinder
+-		floor_body.add_child(floor_shape)
+-		var floor_mesh := MeshInstance3D.new()
+-		var floor_cylinder_mesh := CylinderMesh.new()
+-		floor_cylinder_mesh.top_radius = TOWER_RADIUS - 0.35
+-		floor_cylinder_mesh.bottom_radius = TOWER_RADIUS - 0.35
+-		floor_cylinder_mesh.height = 0.24
+-		floor_cylinder_mesh.radial_segments = 20
+-		floor_mesh.mesh = floor_cylinder_mesh
+-		floor_mesh.material_override = _materials["warm"]
+-		floor_mesh.position = floor_body.position
+-		add_child(floor_mesh)
+-		# A roof ring at the top, so the room is not open to the sky in the middle.
+-		var roof := MeshInstance3D.new()
+-		var roof_mesh := CylinderMesh.new()
+-		roof_mesh.top_radius = 0.8
+-		roof_mesh.bottom_radius = TOWER_RADIUS + 0.4
+-		roof_mesh.height = 2.4
+-		roof_mesh.radial_segments = 20
+-		roof.mesh = roof_mesh
+-		roof.material_override = _materials["cold"]
+-		roof.position = centre + Vector3.UP * (TOWER_HEIGHT + 1.2)
+-		add_child(roof)
++		_add_brick(centre + Vector3.UP * (WALL_HEIGHT - 0.1),
++			Vector3((TOWER_RADIUS - 0.35) * 2.0, 0.24, (TOWER_RADIUS - 0.35) * 2.0),
++			"warm", Vector3.ZERO, "tower_floor55", 0, 0, "tower_floor55")
++		_add_brick(centre + Vector3.UP * (TOWER_HEIGHT + 1.2),
++			Vector3((TOWER_RADIUS + 0.4) * 2.0, 2.4, (TOWER_RADIUS + 0.4) * 2.0),
++			"cold", Vector3.ZERO, "tower_roof55", 0, 0, "tower_roof55")
+ 
+ ## A HANGING BRIDGE between the two gate towers, at the height of the wall-walk: planks,
+ ## two ropes, and nothing under them. The planks are bricks like everything else, so a stone
+@@ -3372,6 +3367,7 @@
+ ## Every cell index whose grid box overlaps the given world box.
+ func _indices_box(low: Vector3, high: Vector3) -> Array[int]:
+ 	var out: Array[int] = []
++	var seen := {}
+ 	var gx0 := int(floor(low.x / SPATIAL_STEP))
+ 	var gx1 := int(floor(high.x / SPATIAL_STEP))
+ 	var gy0 := int(floor(low.y / SPATIAL_STEP))
+@@ -3384,6 +3380,8 @@
+ 				var bucket: Variant = _spatial.get("%d|%d|%d" % [gx, gy, gz])
+ 				if bucket != null:
+ 					for index: int in bucket:
++						if seen.has(index): continue
++						seen[index] = true
+ 						out.append(index)
+ 	return out
+ 
+@@ -3408,7 +3406,8 @@
+ 		var cell: Dictionary = _cells[index]
+ 		if not bool(cell.get("alive", false)): continue
+ 		var brick_at: Vector3 = cell.get("at", Vector3.ZERO)
+-		if brick_at.distance_to(at) > radius: continue
++		var distance := _cell_distance55(cell, at) if _wall_masonry55(cell) else brick_at.distance_to(at)
++		if distance > radius: continue
+ 		_kill_brick(index, direction, power)
+ 		killed += 1
+ 	for entry: Dictionary in _gate_leaves:
+@@ -3476,6 +3475,7 @@
+ 		_detached += 1
+ 		killed += 1
+ 	if killed > 0:
++		_sync_masonry_collision55()
+ 		_break_collision_near(at, radius)
+ 	_schedule_support_failure(at, radius)
+ 	var result := {"ok": killed > 0, "detached": killed, "state": "committed",
+@@ -3497,7 +3497,10 @@
+ 		var cell: Dictionary = _cells[index]
+ 		if bool(cell.get("alive", false)): continue
+ 		var brick_at: Vector3 = cell.get("at", Vector3.ZERO)
+-		if brick_at.distance_to(at) > radius + 0.5: continue
++		if (_cell_distance55(cell, at) if _wall_masonry55(cell) else brick_at.distance_to(at)) > radius + 0.5: continue
++		if _wall_masonry55(cell) and (cell["size"] as Vector3).y > 3.0:
++			var top: float = (cell["bounds55"] as AABB).end.y
++			holes.append({"x": brick_at.x, "y": top - BRICK.y * 0.5, "z": brick_at.z})
+ 		holes.append({"x": brick_at.x, "y": brick_at.y, "z": brick_at.z})
+ 	if holes.is_empty(): return
+ 	# Only the box a breach can reach upward needs to be visited: a support brick is
+@@ -3505,6 +3508,8 @@
+ 	# of reach radius*3.2 round the strike was five times more cells than this needs.
+ 	var support_low := at + Vector3(-(radius + 1.2), -radius + BRICK.y * 0.3, -(radius + 1.2))
+ 	var support_high := at + Vector3(radius + 1.2, radius * 3.2, radius + 1.2)
++	for hole: Dictionary in holes:
++		support_high.y = maxf(support_high.y, float(hole.y) + radius * 2.2)
+ 	for index: int in _indices_box(support_low, support_high):
+ 		var cell: Dictionary = _cells[index]
+ 		if not bool(cell.get("alive", false)): continue
+@@ -3533,6 +3538,7 @@
+ 				_kill_brick(cell_index, Vector3.DOWN, 30.0)
+ 				_collapsed += 1
+ 			_pending_support.remove_at(index)
++	_sync_masonry_collision55()
+ 	# Falling bricks settle, and very old ones are cleaned up so a long siege does not
+ 	# fill the map with bodies.
+ 	if _falling.is_empty(): return
+@@ -3768,3 +3774,123 @@
+ 			for index: int in range(plinth + 1, _cells.size()): planter_parts.append(index)
+ 			_courtyard_dependents43[plinth] = planter_parts
+ 
++
++## Damage and collision use the same live masonry, including projecting stonework.
++func _wall_masonry55(cell: Dictionary) -> bool:
++	var group: String = cell.get("group", "")
++	if group.begins_with("keep_floor") or group.begins_with("keep_runner"): return false
++	if cell.get("material", "") not in ["stone", "warm", "cold", "dark", "ochre"]: return false
++	for prefix: String in ["north", "south", "east", "west", "tower", "gate", "entrance",
++			"keep", "corner", "curtain", "wall_arcade", "stairs_", "stair_landing",
++			"room_wall_pier", "room_pier_cap", "room_vault"]:
++		if group.begins_with(prefix): return true
++	return false
++
++func _cell_bounds55(cell: Dictionary) -> AABB:
++	var size: Vector3 = cell["size"]
++	return Transform3D(Basis.from_euler(cell["rotation"]), cell["at"]) * AABB(-size * 0.5, size)
++
++func _cell_distance55(cell: Dictionary, at: Vector3) -> float:
++	var local_hit: Vector3 = Basis.from_euler(cell["rotation"]).transposed() * (at - (cell["at"] as Vector3))
++	var half: Vector3 = (cell["size"] as Vector3) * 0.5
++	if cell.get("shape", "box") == "tower_floor55":
++		return Vector2(maxf(Vector2(local_hit.x, local_hit.z).length() - half.x, 0.0),
++			maxf(absf(local_hit.y) - half.y, 0.0)).length()
++	if cell.get("shape", "box") == "tower_roof55":
++		var p := Vector2(Vector2(local_hit.x, local_hit.z).length(), local_hit.y)
++		var top_radius := half.x * 0.8 / (TOWER_RADIUS + 0.4)
++		var radius_at_y := lerpf(half.x, top_radius, clampf((p.y + half.y) / (half.y * 2.0), 0.0, 1.0))
++		if absf(p.y) <= half.y and p.x <= radius_at_y: return 0.0
++		var profile: Array[Vector2] = [Vector2(0, -half.y), Vector2(half.x, -half.y),
++			Vector2(top_radius, half.y), Vector2(0, half.y)]
++		var distance := INF
++		for i: int in 3:
++			var segment := profile[i + 1] - profile[i]
++			var closest := profile[i] + segment * clampf((p - profile[i]).dot(segment) / segment.length_squared(), 0.0, 1.0)
++			distance = minf(distance, p.distance_to(closest))
++		return distance
++	return (local_hit - local_hit.clamp(-half, half)).length()
++
++func _ensure_masonry_shape55(index: int) -> void:
++	if _masonry_shapes55.has(index) or _merlon_collision.has(index) or _courtyard_shapes43.has(index): return
++	var cell: Dictionary = _cells[index]
++	var group: String = cell.group
++	if _stair_step_collision.has("%s:%d" % [group, int(cell.row)]): return
++	var at: Vector3 = cell.at
++	var key := "%d|%d|%d" % [int(floor(at.x / SPATIAL_STEP)), int(floor(at.y / SPATIAL_STEP)), int(floor(at.z / SPATIAL_STEP))]
++	var body: StaticBody3D = _masonry_bodies55.get(key)
++	if not is_instance_valid(body):
++		body = StaticBody3D.new()
++		body.name = "Masonry55_%d" % _masonry_bodies55.size()
++		body.collision_layer = 1
++		body.collision_mask = 1
++		body.set_meta("castle_brick", true)
++		body.set_meta("surface", "stone")
++		add_child(body)
++		_masonry_bodies55[key] = body
++	var shape := CollisionShape3D.new()
++	shape.position = at
++	shape.rotation = cell.rotation
++	var size: Vector3 = cell.size
++	if cell.get("shape", "box") == "tower_floor55":
++		var cylinder := CylinderShape3D.new()
++		cylinder.radius = size.x * 0.5
++		cylinder.height = size.y
++		shape.shape = cylinder
++	elif cell.get("shape", "box") == "tower_roof55":
++		var mesh: Mesh = _furniture_meshes["tower_roof55"]
++		shape.shape = mesh.create_convex_shape()
++		shape.scale = size
++	else:
++		var box := BoxShape3D.new()
++		box.size = size
++		shape.shape = box
++	body.add_child(shape)
++	_masonry_shapes55[index] = shape
++
++func _build_masonry_hits55() -> void:
++	# Core walls retain their cheap coarse panels until damaged. Projecting trim
++	# and columns need real surface hits even where no panel exists behind them.
++	for index: int in _cells.size():
++		var cell: Dictionary = _cells[index]
++		if not _wall_masonry55(cell): continue
++		if cell.group in ["north", "south", "east", "west", "tower", "keep", "gatehouse", "keep_partition"]: continue
++		_ensure_masonry_shape55(index)
++
++func _sync_masonry_collision55() -> void:
++	if _masonry_changed55.is_empty(): return
++	var dirty := AABB()
++	var regions: Array[AABB] = []
++	var first := true
++	for index: int in _masonry_changed55:
++		var bounds: AABB = _cells[index].bounds55
++		regions.append(bounds.grow(0.04))
++		dirty = bounds if first else dirty.merge(bounds)
++		first = false
++	_masonry_changed55.clear()
++	dirty = dirty.grow(0.04)
++	for section: Dictionary in _wall_collision:
++		if not section.alive: continue
++		var body: StaticBody3D = section.body
++		if not is_instance_valid(body): continue
++		if body.get_meta("castle_furnishing", false) or body.get_meta("castle_keep_floor", false): continue
++		var size: Vector3 = section.size
++		var local_transform: Transform3D = body.transform
++		var bounds: AABB = local_transform * AABB(-size * 0.5, size)
++		if not bounds.intersects(dirty): continue
++		# Simultaneous distant collapses must not refine every untouched wall in
++		# the large box between them. Only actual damaged volumes own this work.
++		var touched := false
++		for region: AABB in regions:
++			if bounds.intersects(region): touched = true; break
++		if not touched: continue
++		# Keep every surviving layer hittable. A second stone must strike the rear
++		# skin instead of crossing a visual wall whose whole panel was disabled.
++		for index: int in _indices_box(bounds.position, bounds.end):
++			var cell: Dictionary = _cells[index]
++			if not cell.alive or (not _wall_masonry55(cell) and cell.group != "bridge"): continue
++			if not (cell.bounds55 as AABB).intersects(bounds): continue
++			_ensure_masonry_shape55(index)
++		section.alive = false
++		body.collision_layer = 0
++		body.collision_mask = 0

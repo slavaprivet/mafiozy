@@ -1,0 +1,11 @@
+{
+  "schema": "mafiozi.current-play/v1",
+  "title": "Замок и осада · общая сцена 55 · разрушаемые стены",
+  "revision": "castle-20261019-combined55-destructible-walls",
+  "assembly": "outputs/coordinator31_castle_current/ASSEMBLY.json",
+  "assembly_sha256": "0f5216b19f709f5bdacff61e8f0329c5295ade0af43543538f72c7ed6e9103c6",
+  "bootstrap": "outputs/coordinator31_castle_current/bootstrap_castle.gd",
+  "bootstrap_sha256": "318b2fe49cf454e0f41766ac4e5aa23ea43b2a26f5fa8d5b9c2ed3a617d0858b",
+  "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "scope": "All54 retained; destructible masonry layers, columns, projecting stonework and tower platforms. Approved weapon controls unchanged."
+}

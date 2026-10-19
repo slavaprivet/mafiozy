@@ -1,0 +1,15 @@
+{
+  "root_thread": "01a14f5a-83ca-7771-b1c4-ea45592b8f18",
+  "revision": "castle-20261018-combined51-free-melee",
+  "game": "D:\\MafioziCombat31\\merged51\\game",
+  "frozen": true,
+  "acceptance": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_castle_current\\ACCEPTANCE51.json",
+  "next": "52: bow and spear aim ownership, upward camera and actual high target contacts, all weapon matrix. Shoulder06 separate pending; map49/camp owner preparing immutable package.",
+  "agents": [
+    "hilt_resume51: spear52",
+    "controls_qa51: bow/camera52",
+    "opponent_qa51: independent all-weapons52"
+  ],
+  "main_publish": "user explicitly authorized conditional ready; scoped commit from origin/main",
+  "automation": "paused, do not resume"
+}

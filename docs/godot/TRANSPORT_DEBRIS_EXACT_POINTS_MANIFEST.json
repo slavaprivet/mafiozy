@@ -1,0 +1,35 @@
+{
+  "schema": "mafiozi.transport-debris-exact-points-candidate.v1",
+  "status": "PERFORMANCE_REJECTED_DO_NOT_ADOPT",
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/candidates/transport_vehicle_debris_exact_points.gd",
+      "sha256": "bddce419c0a283e2ae45a9b31f09cf6d5c6a64d6f527b876bebccd5c557ce94e",
+      "bytes": 13572
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_vehicle_debris_exact_points.gd",
+      "sha256": "83a5a3cd711483660539a0bd3ba87ff8c34fdbec5caa81c684b4e7ef04fd066b",
+      "bytes": 21932
+    }
+  ],
+  "checks": {
+    "parent": 147,
+    "author": 147
+  },
+  "cost": {
+    "baseline_small_part_p95_sum_us": 2388,
+    "unique_hull_points": 11367,
+    "qualified_parent_baseline_us": 23669,
+    "source_vertices": 67239,
+    "exact_duplicates": 55872,
+    "candidate_small_part_p95_sum_us": 3980,
+    "qualified_parent_candidate_us": 26349
+  },
+  "limitations": [
+    "No stable performance gain; parent sequential pair regressed",
+    "Full mesh geometry retained; exact duplicates only in hull input",
+    "Single cost pair not statistical or fullsceneFPS",
+    "No main/LIVE/foreign/Git/GPU adoption"
+  ]
+}

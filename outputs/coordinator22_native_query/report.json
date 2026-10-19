@@ -1,0 +1,127 @@
+{
+	"actors": [
+		{
+			"actor": "hero",
+			"pages": 2,
+			"rows": 302,
+			"triangles": 13034,
+			"vertices": 8338
+		},
+		{
+			"actor": "npc_resident_72",
+			"pages": 5,
+			"rows": 1218,
+			"triangles": 9944,
+			"vertices": 6692
+		},
+		{
+			"actor": "npc_resident_169",
+			"pages": 6,
+			"rows": 1359,
+			"triangles": 9936,
+			"vertices": 6713
+		},
+		{
+			"actor": "npc_resident_252",
+			"pages": 6,
+			"rows": 1317,
+			"triangles": 9944,
+			"vertices": 6692
+		}
+	],
+	"adapter_sha": "f7c663fe65f03a21c41c3b73ee7df4aea3d989757b635680671205460ad614d4",
+	"checks": 77281,
+	"failures": [],
+	"measurements": [
+		{
+			"actor": "hero",
+			"cached_pose_check_us": {
+				"max": 231,
+				"p50": 133,
+				"p95": 180,
+				"samples": 48
+			},
+			"query_all_pages_us": {
+				"max": 730,
+				"p50": 418,
+				"p95": 614,
+				"samples": 48
+			},
+			"setup_us": 14905,
+			"update_capture_refit_us": {
+				"max": 1755,
+				"p50": 1166,
+				"p95": 1490,
+				"samples": 48
+			}
+		},
+		{
+			"actor": "npc_resident_72",
+			"cached_pose_check_us": {
+				"max": 310,
+				"p50": 164,
+				"p95": 278,
+				"samples": 48
+			},
+			"query_all_pages_us": {
+				"max": 1181,
+				"p50": 888,
+				"p95": 1112,
+				"samples": 48
+			},
+			"setup_us": 10679,
+			"update_capture_refit_us": {
+				"max": 1501,
+				"p50": 1123,
+				"p95": 1391,
+				"samples": 48
+			}
+		},
+		{
+			"actor": "npc_resident_169",
+			"cached_pose_check_us": {
+				"max": 298,
+				"p50": 164,
+				"p95": 252,
+				"samples": 48
+			},
+			"query_all_pages_us": {
+				"max": 1621,
+				"p50": 904,
+				"p95": 1121,
+				"samples": 48
+			},
+			"setup_us": 11063,
+			"update_capture_refit_us": {
+				"max": 1630,
+				"p50": 1063,
+				"p95": 1317,
+				"samples": 48
+			}
+		},
+		{
+			"actor": "npc_resident_252",
+			"cached_pose_check_us": {
+				"max": 290,
+				"p50": 166,
+				"p95": 248,
+				"samples": 48
+			},
+			"query_all_pages_us": {
+				"max": 1452,
+				"p50": 913,
+				"p95": 1116,
+				"samples": 48
+			},
+			"setup_us": 11157,
+			"update_capture_refit_us": {
+				"max": 1377,
+				"p50": 1072,
+				"p95": 1331,
+				"samples": 48
+			}
+		}
+	],
+	"passed": true,
+	"scope": "Isolated actual hero/prepared rig CPU; TEST_ONLY receipts/zero obstacles; no main/GPU/HP/source target authority"
+}

@@ -1,0 +1,470 @@
+{
+  "BASELINE_V3": [
+    {
+      "weapon": "sword",
+      "direction": -1.0,
+      "local_yaw_range_deg": [
+        -35.5497,
+        83.4689
+      ],
+      "body_camera_yaw_range_deg": [
+        -32.6586,
+        51.5662
+      ],
+      "local_tip_x_range": [
+        -0.931,
+        1.8173
+      ],
+      "local_dir_y_range": [
+        0.193,
+        0.7772
+      ],
+      "clear_false": 0,
+      "left_grip_max": 0.0,
+      "arms": {
+        "left": {
+          "hold_end_reach": 0.841496094138194,
+          "strike_reach_range": [
+            0.8416,
+            0.96
+          ],
+          "hold_end_forward": 0.242187529802322,
+          "strike_forward_range": [
+            0.2419,
+            0.5032
+          ],
+          "hold_end_elbow": 114.497889811887,
+          "strike_elbow_range": [
+            114.522,
+            147.4346
+          ]
+        },
+        "right": {
+          "hold_end_reach": 0.926205885648999,
+          "strike_reach_range": [
+            0.9262,
+            0.9262
+          ],
+          "hold_end_forward": 0.0227050613611937,
+          "strike_forward_range": [
+            0.0225,
+            0.061
+          ],
+          "hold_end_elbow": 135.639087481882,
+          "strike_elbow_range": [
+            135.6391,
+            135.6391
+          ]
+        }
+      }
+    },
+    {
+      "weapon": "sword",
+      "direction": 1.0,
+      "local_yaw_range_deg": [
+        -83.4574,
+        35.5499
+      ],
+      "body_camera_yaw_range_deg": [
+        -51.5662,
+        32.6586
+      ],
+      "local_tip_x_range": [
+        -1.4236,
+        1.3539
+      ],
+      "local_dir_y_range": [
+        0.1935,
+        0.7772
+      ],
+      "clear_false": 0,
+      "left_grip_max": 0.0,
+      "arms": {
+        "left": {
+          "hold_end_reach": 0.856397956462524,
+          "strike_reach_range": [
+            0.8265,
+            0.96
+          ],
+          "hold_end_forward": 0.256469696760178,
+          "strike_forward_range": [
+            0.2188,
+            0.5033
+          ],
+          "hold_end_elbow": 117.736068837012,
+          "strike_elbow_range": [
+            111.3852,
+            147.4346
+          ]
+        },
+        "right": {
+          "hold_end_reach": 0.926205972555527,
+          "strike_reach_range": [
+            0.9262,
+            0.9262
+          ],
+          "hold_end_forward": 0.0357665829360485,
+          "strike_forward_range": [
+            -0.0049,
+            0.0363
+          ],
+          "hold_end_elbow": 135.639087481882,
+          "strike_elbow_range": [
+            135.6391,
+            135.6391
+          ]
+        }
+      }
+    },
+    {
+      "weapon": "sledge",
+      "direction": -1.0,
+      "local_yaw_range_deg": [
+        -45.5263,
+        87.2166
+      ],
+      "body_camera_yaw_range_deg": [
+        -32.6586,
+        51.5662
+      ],
+      "local_tip_x_range": [
+        -0.9542,
+        1.2947
+      ],
+      "local_dir_y_range": [
+        -0.4902,
+        0.8207
+      ],
+      "clear_false": 0,
+      "left_grip_max": 6.10354254604317e-05,
+      "arms": {
+        "left": {
+          "hold_end_reach": 0.940000037369807,
+          "strike_reach_range": [
+            0.94,
+            0.94
+          ],
+          "hold_end_forward": 0.4674072265625,
+          "strike_forward_range": [
+            0.2348,
+            0.4783
+          ],
+          "hold_end_elbow": 140.047141308047,
+          "strike_elbow_range": [
+            140.0469,
+            140.0472
+          ]
+        },
+        "right": {
+          "hold_end_reach": 0.82549017128451,
+          "strike_reach_range": [
+            0.6754,
+            0.8563
+          ],
+          "hold_end_forward": 0.143066436052322,
+          "strike_forward_range": [
+            0.1449,
+            0.4147
+          ],
+          "hold_end_elbow": 111.170993459633,
+          "strike_elbow_range": [
+            84.8027,
+            117.7091
+          ]
+        }
+      }
+    },
+    {
+      "weapon": "sledge",
+      "direction": 1.0,
+      "local_yaw_range_deg": [
+        -89.1447,
+        34.5682
+      ],
+      "body_camera_yaw_range_deg": [
+        -51.5662,
+        32.6586
+      ],
+      "local_tip_x_range": [
+        -1.386,
+        0.361
+      ],
+      "local_dir_y_range": [
+        -0.8994,
+        0.8655
+      ],
+      "clear_false": 0,
+      "left_grip_max": 6.10357383266091e-05,
+      "arms": {
+        "left": {
+          "hold_end_reach": 0.795711562622389,
+          "strike_reach_range": [
+            0.5895,
+            0.8905
+          ],
+          "hold_end_forward": 0.0298461616039276,
+          "strike_forward_range": [
+            0.0292,
+            0.4016
+          ],
+          "hold_end_elbow": 105.327636851093,
+          "strike_elbow_range": [
+            72.0287,
+            125.7843
+          ]
+        },
+        "right": {
+          "hold_end_reach": 0.940000037369807,
+          "strike_reach_range": [
+            0.94,
+            0.94
+          ],
+          "hold_end_forward": 0.389343231916428,
+          "strike_forward_range": [
+            0.3377,
+            0.4628
+          ],
+          "hold_end_elbow": 140.047182289182,
+          "strike_elbow_range": [
+            140.0471,
+            140.0472
+          ]
+        }
+      }
+    }
+  ],
+  "CANDIDATE03_V3": [
+    {
+      "weapon": "sword",
+      "direction": -1.0,
+      "local_yaw_range_deg": [
+        -4.492,
+        59.8264
+      ],
+      "body_camera_yaw_range_deg": [
+        -2.4064,
+        1.7189
+      ],
+      "local_tip_x_range": [
+        -0.238,
+        1.7105
+      ],
+      "local_dir_y_range": [
+        0.1847,
+        0.7772
+      ],
+      "clear_false": 0,
+      "left_grip_max": 0.0,
+      "arms": {
+        "left": {
+          "hold_end_reach": 0.960000010428783,
+          "strike_reach_range": [
+            0.9008,
+            0.96
+          ],
+          "hold_end_forward": 0.224536195397377,
+          "strike_forward_range": [
+            0.2277,
+            0.5043
+          ],
+          "hold_end_elbow": 147.434619272819,
+          "strike_elbow_range": [
+            128.4463,
+            147.4346
+          ]
+        },
+        "right": {
+          "hold_end_reach": 0.926205885648999,
+          "strike_reach_range": [
+            0.9262,
+            0.9262
+          ],
+          "hold_end_forward": 0.0144458711147308,
+          "strike_forward_range": [
+            0.0143,
+            0.0513
+          ],
+          "hold_end_elbow": 135.639073821504,
+          "strike_elbow_range": [
+            135.6391,
+            135.6391
+          ]
+        }
+      }
+    },
+    {
+      "weapon": "sword",
+      "direction": 1.0,
+      "local_yaw_range_deg": [
+        -59.8101,
+        35.3032
+      ],
+      "body_camera_yaw_range_deg": [
+        -1.7189,
+        2.4064
+      ],
+      "local_tip_x_range": [
+        -1.2963,
+        0.6471
+      ],
+      "local_dir_y_range": [
+        0.1852,
+        0.7772
+      ],
+      "clear_false": 0,
+      "left_grip_max": 0.0,
+      "arms": {
+        "left": {
+          "hold_end_reach": 0.959999923522255,
+          "strike_reach_range": [
+            0.901,
+            0.96
+          ],
+          "hold_end_forward": 0.246115624904633,
+          "strike_forward_range": [
+            0.2499,
+            0.5041
+          ],
+          "hold_end_elbow": 147.434619272819,
+          "strike_elbow_range": [
+            128.4967,
+            147.4346
+          ]
+        },
+        "right": {
+          "hold_end_reach": 0.926205972555527,
+          "strike_reach_range": [
+            0.9262,
+            0.9262
+          ],
+          "hold_end_forward": 0.0422855168581009,
+          "strike_forward_range": [
+            0.0034,
+            0.0429
+          ],
+          "hold_end_elbow": 135.639087481882,
+          "strike_elbow_range": [
+            135.6391,
+            135.6391
+          ]
+        }
+      }
+    },
+    {
+      "weapon": "sledge",
+      "direction": -1.0,
+      "local_yaw_range_deg": [
+        5.3943,
+        77.6552
+      ],
+      "body_camera_yaw_range_deg": [
+        -2.4064,
+        1.7189
+      ],
+      "local_tip_x_range": [
+        0.1002,
+        1.1088
+      ],
+      "local_dir_y_range": [
+        0.188,
+        0.7412
+      ],
+      "clear_false": 0,
+      "left_grip_max": 6.10356510151178e-05,
+      "arms": {
+        "left": {
+          "hold_end_reach": 0.940000124276335,
+          "strike_reach_range": [
+            0.94,
+            0.94
+          ],
+          "hold_end_forward": 0.523658096790314,
+          "strike_forward_range": [
+            0.291,
+            0.5236
+          ],
+          "hold_end_elbow": 140.04719594956,
+          "strike_elbow_range": [
+            140.0471,
+            140.0473
+          ]
+        },
+        "right": {
+          "hold_end_reach": 0.799176786605931,
+          "strike_reach_range": [
+            0.7793,
+            0.8959
+          ],
+          "hold_end_forward": 0.297781437635422,
+          "strike_forward_range": [
+            0.2973,
+            0.4927
+          ],
+          "hold_end_elbow": 105.987125766404,
+          "strike_elbow_range": [
+            102.2698,
+            127.1647
+          ]
+        }
+      }
+    },
+    {
+      "weapon": "sledge",
+      "direction": 1.0,
+      "local_yaw_range_deg": [
+        -46.8467,
+        43.6216
+      ],
+      "body_camera_yaw_range_deg": [
+        -1.7189,
+        2.4064
+      ],
+      "local_tip_x_range": [
+        -0.8573,
+        0.3706
+      ],
+      "local_dir_y_range": [
+        0.3179,
+        0.7772
+      ],
+      "clear_false": 0,
+      "left_grip_max": 6.10372808296233e-05,
+      "arms": {
+        "left": {
+          "hold_end_reach": 0.70175330878137,
+          "strike_reach_range": [
+            0.6188,
+            0.8505
+          ],
+          "hold_end_forward": 0.158054083585739,
+          "strike_forward_range": [
+            0.158,
+            0.4464
+          ],
+          "hold_end_elbow": 88.9793468462357,
+          "strike_elbow_range": [
+            76.2615,
+            116.4267
+          ]
+        },
+        "right": {
+          "hold_end_reach": 0.939999776650224,
+          "strike_reach_range": [
+            0.94,
+            0.94
+          ],
+          "hold_end_forward": 0.506216287612915,
+          "strike_forward_range": [
+            0.4404,
+            0.5278
+          ],
+          "hold_end_elbow": 140.047291572209,
+          "strike_elbow_range": [
+            140.0471,
+            140.0474
+          ]
+        }
+      }
+    }
+  ]
+}

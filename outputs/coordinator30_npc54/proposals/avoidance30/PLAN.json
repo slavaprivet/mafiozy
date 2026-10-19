@@ -1,0 +1,32 @@
+{
+  "status": "isolated_candidate_not_accepted",
+  "scope": "local neighbor steering and readonly venue priority, single gameplay resident remains unchanged",
+  "caps": {
+    "actors": 384,
+    "decisions_per_physics_frame": 16,
+    "scan_per_decision": 64,
+    "neighbors_per_decision": 8,
+    "query_cells_per_decision": 75,
+    "pair_evaluations_per_decision": 24
+  },
+  "cadence": {
+    "small_population_frames": 6,
+    "286_frames": 18,
+    "384_frames": 24
+  },
+  "requested_target_total_ms": [
+    1,
+    2
+  ],
+  "target_not_yet_validated": true,
+  "full_adapter_and_gameplay_perf_not_measured": true,
+  "snapshot_owner": "population before daily.step, once per Engine physics frame",
+  "native_bodies_at_most": 3,
+  "proxy_count": 286,
+  "claims": "readonly doorway_state29; never mutate bookings/FIFO/service",
+  "pending": [
+    "final current-source native run after foreign unregistered engine clears",
+    "full native adapter gather and comparable performance acceptance",
+    "real city population acceptance remains root scope"
+  ]
+}

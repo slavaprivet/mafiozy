@@ -1,0 +1,15 @@
+﻿{
+    "schema":  "mafiozi.simplify58-before/v1",
+    "created":  "2026-10-16T00:06:59.9237881+03:00",
+    "git_head":  "f7b0a17365c390bd34f4ca108562eead5d3e3f66",
+    "worktree":  "C:/Users/Слава/Desktop/Мафиози",
+    "game":  "outputs/coordinator31_npc57/game",
+    "file_count":  1214,
+    "manifest_sha256":  "9dba0833c3a0be8ac4d6745119145e125dc03742d8c49a7f2d1966d17d267669",
+    "engine_sha256":  "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+    "assembly":  "outputs/coordinator31_unified58/ASSEMBLY.json",
+    "revision":  "s01-20261015-residents58",
+    "owned_scene":  "res://scenes/main_city.tscn",
+    "owner":  "deepseek-simplify58",
+    "note":  "Byte manifest of every game source file (no .godot cache) taken before the NPC simplification. Nothing is copied or replaced: the working tree stays as it is."
+}

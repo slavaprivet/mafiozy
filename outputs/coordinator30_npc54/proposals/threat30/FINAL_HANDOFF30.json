@@ -1,0 +1,19 @@
+{
+  "status": "HANDED_OFF_USER_REQUESTED_DELIVERY_BEFORE_FURTHER_QA",
+  "owned_engines_running": false,
+  "city03_executed": false,
+  "final_scene_accepted": false,
+  "full_population_performance_accepted": false,
+  "last_city": "runs/city02",
+  "latest_los_component": "runs/raw_far02",
+  "harness_pins": {
+    "entry_city30.gd": "4e5cc78e3841a34a8bf546009b12436a80cdcade7d8e196af745efefda462f89",
+    "observer_city30.gd": "be2f9bbde8e16ddf95f462605d91a8b3d8b359d4dbe83e2b531d82bf85cd2bc8",
+    "run_city30.py": "a979bfe36a67b9192a1754f418a83a528170d5bf97db3a4325968ebb1294d240",
+    "CURRENT_THREAT30.md": "b6b60f4d7419bd1be3921528e6609c67211211a3fba60839bafed4c964d9b96a",
+    "FIX_LOS_PENDING30.json": "f445081516849e440edf5b109bd059b47329893b9312ba256737aa051286dd91",
+    "FIX_RAW_SHOTS30.json": "b018b5817151eea0712ed716232f41f87bb0f7c0b537ecf486fec3058e5fcefd",
+    "CITY_ACCEPTANCE30.json": "27079dec334987446f7c7227d3a7ce2bb29d5acd0531058a708dbb83c24589a1"
+  },
+  "reason": "Root relayed explicit user direction to deliver trial55 now and postpone further bugs/load work; do not start a new test against their scene."
+}

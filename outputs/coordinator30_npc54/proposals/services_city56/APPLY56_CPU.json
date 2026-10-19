@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "checks": {
+    "exact_apply": true,
+    "idempotent": true,
+    "LF_candidate_sha": true,
+    "wrong_source_rejected_unchanged": true
+  },
+  "isolated_single_file_fixture_only": true
+}

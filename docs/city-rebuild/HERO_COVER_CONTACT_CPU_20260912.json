@@ -1,0 +1,31 @@
+{
+  "scope": "CPU only; same hero/car pose; alternating call order; no populated scene FPS claim",
+  "parityCases": 108,
+  "batchMembers": 1342,
+  "warmup": 30,
+  "samples": 70,
+  "kingswell": {
+    "before": [
+      5.9557,
+      6.1531
+    ],
+    "after": [
+      3.4363,
+      3.5607
+    ]
+  },
+  "city_bus": {
+    "before": [
+      58.5909,
+      61.9936
+    ],
+    "after": [
+      10.5125,
+      11.6084
+    ]
+  },
+  "metrics": [
+    "p50_ms",
+    "p95_ms"
+  ]
+}

@@ -1,0 +1,262 @@
+{
+  "actors": {
+    "npc_resident_169": {
+      "meshes": [
+        {
+          "authored_islands": [
+            {
+              "kind": "iris",
+              "max": "(-0.191, 4.3445, 0.541)",
+              "min": "(-0.269, 4.2615, 0.509)",
+              "vertices": 115
+            },
+            {
+              "kind": "pupil",
+              "max": "(-0.211454, 4.327, 0.55)",
+              "min": "(-0.248546, 4.275, 0.534)",
+              "vertices": 75
+            },
+            {
+              "kind": "iris",
+              "max": "(0.269, 4.3445, 0.541)",
+              "min": "(0.191, 4.2615, 0.509)",
+              "vertices": 115
+            },
+            {
+              "kind": "pupil",
+              "max": "(0.248546, 4.327, 0.55)",
+              "min": "(0.211454, 4.275, 0.534)",
+              "vertices": 75
+            }
+          ],
+          "changed_vertices": 380,
+          "closed_digest": "d6b275199151bc5e582455aaf2a1ae879915952e64a4cba3675e74d4c9798c91",
+          "node": "player_female_DEMO_core_HAIR",
+          "resource": "npc_resident_169_hair_closed.res",
+          "resource_sha256": "49ce7b368944d9f89c13b4ba2a595a4f43ff2f2e7497da6f68b8f6c97dc4a1b1",
+          "source_digest": "775add0092fd73fe2e19ff59df47ad5a1c7b50260f0b10b52d65ae076124456c"
+        },
+        {
+          "authored_islands": [
+            {
+              "kind": "white",
+              "max": "(-0.12, 4.35, 0.51)",
+              "min": "(-0.34, 4.25, 0.426)",
+              "vertices": 151
+            },
+            {
+              "kind": "glint",
+              "max": "(-0.236, 4.329, 0.5565)",
+              "min": "(-0.25, 4.315, 0.5475)",
+              "vertices": 61
+            },
+            {
+              "kind": "lid",
+              "max": "(-0.098249, 4.38172, 0.536879)",
+              "min": "(-0.368042, 4.301549, 0.471364)",
+              "vertices": 24
+            },
+            {
+              "kind": "white",
+              "max": "(0.34, 4.35, 0.51)",
+              "min": "(0.12, 4.25, 0.426)",
+              "vertices": 151
+            },
+            {
+              "kind": "glint",
+              "max": "(0.224, 4.329, 0.5565)",
+              "min": "(0.21, 4.315, 0.5475)",
+              "vertices": 61
+            },
+            {
+              "kind": "lid",
+              "max": "(0.361751, 4.38172, 0.536879)",
+              "min": "(0.091958, 4.301549, 0.471364)",
+              "vertices": 24
+            }
+          ],
+          "changed_vertices": 472,
+          "closed_digest": "3bbe0bdd7e6e9f91eefaca7d42be194454f56c9196a42e5763775513bc60451d",
+          "node": "player_female_DEMO_core_SKIN",
+          "resource": "npc_resident_169_skin_closed.res",
+          "resource_sha256": "59d3393889e4c14fbe38af5e777e0fc38372e52948c86ce65070e7225873614b",
+          "source_digest": "b27f00a4075388c48c1c9578d53c8a9cc3d07868117f900d1407011a0cbeb320"
+        }
+      ],
+      "prepared_sha256": "60a6809031d3d151db8ae2464c58fef48e5b853ddb607f88fe5fb1c131d33b22"
+    },
+    "npc_resident_252": {
+      "meshes": [
+        {
+          "authored_islands": [
+            {
+              "kind": "iris",
+              "max": "(-0.181, 4.3445, 0.541)",
+              "min": "(-0.259, 4.2615, 0.509)",
+              "vertices": 115
+            },
+            {
+              "kind": "pupil",
+              "max": "(-0.201454, 4.327, 0.55)",
+              "min": "(-0.238546, 4.275, 0.534)",
+              "vertices": 75
+            },
+            {
+              "kind": "iris",
+              "max": "(0.259, 4.3445, 0.541)",
+              "min": "(0.181, 4.2615, 0.509)",
+              "vertices": 115
+            },
+            {
+              "kind": "pupil",
+              "max": "(0.238546, 4.327, 0.55)",
+              "min": "(0.201454, 4.275, 0.534)",
+              "vertices": 75
+            }
+          ],
+          "changed_vertices": 380,
+          "closed_digest": "ffe44f825dfe6dc65c3196db21ff1b74faa991d5ae6add882af84aec249cbb6a",
+          "node": "player_male_DEMO_core_HAIR",
+          "resource": "npc_resident_252_hair_closed.res",
+          "resource_sha256": "f1697dd64ba5a82886defb22e0d7c93dfae33b44368264e4651c1ca17bb70956",
+          "source_digest": "1c6b36d0aae3baa29aafbe1a9336e443d3748068f0ee89089e472dcf960364b4"
+        },
+        {
+          "authored_islands": [
+            {
+              "kind": "white",
+              "max": "(-0.11, 4.35, 0.51)",
+              "min": "(-0.33, 4.25, 0.426)",
+              "vertices": 151
+            },
+            {
+              "kind": "glint",
+              "max": "(-0.226, 4.329, 0.5565)",
+              "min": "(-0.24, 4.315, 0.5475)",
+              "vertices": 61
+            },
+            {
+              "kind": "lid",
+              "max": "(-0.088249, 4.38172, 0.536879)",
+              "min": "(-0.358042, 4.301549, 0.471364)",
+              "vertices": 24
+            },
+            {
+              "kind": "white",
+              "max": "(0.33, 4.35, 0.51)",
+              "min": "(0.11, 4.25, 0.426)",
+              "vertices": 151
+            },
+            {
+              "kind": "glint",
+              "max": "(0.214, 4.329, 0.5565)",
+              "min": "(0.2, 4.315, 0.5475)",
+              "vertices": 61
+            },
+            {
+              "kind": "lid",
+              "max": "(0.351751, 4.38172, 0.536879)",
+              "min": "(0.081958, 4.301549, 0.471364)",
+              "vertices": 24
+            }
+          ],
+          "changed_vertices": 472,
+          "closed_digest": "8583ec6ae8f3f2c76e40880061e70b3de57922c51e264e646025080f26f92a9a",
+          "node": "player_male_DEMO_core_SKIN",
+          "resource": "npc_resident_252_skin_closed.res",
+          "resource_sha256": "9a330dc9dce45b62d610cd06c274cfe50d127bee26c08a0cd0623c55405acb9d",
+          "source_digest": "fa6da6f7b2a0aee41ee0f26cc7d1a24573289f7bf40eb249b9b5796d051ebb65"
+        }
+      ],
+      "prepared_sha256": "604708f30274697217d8bc0001f5610c91cb22bec68b60174bcd52b8a70053fe"
+    },
+    "npc_resident_72": {
+      "meshes": [
+        {
+          "authored_islands": [
+            {
+              "kind": "iris",
+              "max": "(-0.181, 4.3445, 0.541)",
+              "min": "(-0.259, 4.2615, 0.509)",
+              "vertices": 115
+            },
+            {
+              "kind": "pupil",
+              "max": "(-0.201454, 4.327, 0.55)",
+              "min": "(-0.238546, 4.275, 0.534)",
+              "vertices": 75
+            },
+            {
+              "kind": "iris",
+              "max": "(0.259, 4.3445, 0.541)",
+              "min": "(0.181, 4.2615, 0.509)",
+              "vertices": 115
+            },
+            {
+              "kind": "pupil",
+              "max": "(0.238546, 4.327, 0.55)",
+              "min": "(0.201454, 4.275, 0.534)",
+              "vertices": 75
+            }
+          ],
+          "changed_vertices": 380,
+          "closed_digest": "ffe44f825dfe6dc65c3196db21ff1b74faa991d5ae6add882af84aec249cbb6a",
+          "node": "player_male_DEMO_core_HAIR",
+          "resource": "npc_resident_72_hair_closed.res",
+          "resource_sha256": "896a894c664112760b950a4a454c810228609dfe51858a087e72d4ae10df05e5",
+          "source_digest": "1c6b36d0aae3baa29aafbe1a9336e443d3748068f0ee89089e472dcf960364b4"
+        },
+        {
+          "authored_islands": [
+            {
+              "kind": "white",
+              "max": "(-0.11, 4.35, 0.51)",
+              "min": "(-0.33, 4.25, 0.426)",
+              "vertices": 151
+            },
+            {
+              "kind": "glint",
+              "max": "(-0.226, 4.329, 0.5565)",
+              "min": "(-0.24, 4.315, 0.5475)",
+              "vertices": 61
+            },
+            {
+              "kind": "lid",
+              "max": "(-0.088249, 4.38172, 0.536879)",
+              "min": "(-0.358042, 4.301549, 0.471364)",
+              "vertices": 24
+            },
+            {
+              "kind": "white",
+              "max": "(0.33, 4.35, 0.51)",
+              "min": "(0.11, 4.25, 0.426)",
+              "vertices": 151
+            },
+            {
+              "kind": "glint",
+              "max": "(0.214, 4.329, 0.5565)",
+              "min": "(0.2, 4.315, 0.5475)",
+              "vertices": 61
+            },
+            {
+              "kind": "lid",
+              "max": "(0.351751, 4.38172, 0.536879)",
+              "min": "(0.081958, 4.301549, 0.471364)",
+              "vertices": 24
+            }
+          ],
+          "changed_vertices": 472,
+          "closed_digest": "629575af8da7b272e489bea5544f7fdaaa02a7f5c5c02755fe8f4660cc87204d",
+          "node": "player_male_DEMO_core_SKIN",
+          "resource": "npc_resident_72_skin_closed.res",
+          "resource_sha256": "7ffbbad4c0ad98bc8c636fced8d3c648cba095419d8f3edf96004a4daf4faf85",
+          "source_digest": "d21591e3ccea6e4c4874ec3a8f8b93587f9ba35b387aa954eb93660a84a7594d"
+        }
+      ],
+      "prepared_sha256": "31795edb36aaff3d6b21108ef7ed259979cbf882898997b24c5be9c6e6b2067f"
+    }
+  },
+  "errors": [],
+  "notes": "Original authored eyelid/eye geometry; no facial morphs or eye bones exist. Skinning/index/UV/materials retained.",
+  "version": 1
+}

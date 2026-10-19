@@ -1,0 +1,83 @@
+{
+  "schema": "mafiozi.transport-damage-mark-geometry-manifest.v1",
+  "status": "frozen",
+  "date": "2026-09-27",
+  "source": {
+    "path": "assets/maps/city_rebuild_v1/vehicle_damage.mjs",
+    "sha256": "e029cb4a03dcd23bbdd0fb2f73b7780db92f24f761cf83b030991acb3c403f92",
+    "three_revision": "180",
+    "lines": "65-78"
+  },
+  "files": [
+    {
+      "path": "tools/godot/export_transport_damage_mark_geometry.mjs",
+      "bytes": 5517,
+      "sha256": "f4dbbadf064cf4776750c1d9731af4cd461f2d04f3d34aca9e2bf8aa0927d986",
+      "role": "actual private source exporter"
+    },
+    {
+      "path": "godot/mafiozi_walk/data/transport/damage_mark_geometry.json",
+      "bytes": 14964,
+      "sha256": "d05b5114ef6ada70e8690f99752052ac00121aaf774ac6a1bae874c1edd46bf0",
+      "role": "required runtime export dependency"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_damage_mark_geometry.gd",
+      "bytes": 9695,
+      "sha256": "314c6d0483b67b600025f96d3194c8ec334532ab2ce73f9fbecd93f0ada72461",
+      "role": "SHA-bound private resource preparation factory"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_damage_mark_geometry.gd",
+      "bytes": 8344,
+      "sha256": "4d06344a1f9169dd7a557d88b0bd8c29b0f639058e189a64e7baf4db0c38cc80",
+      "role": "Godot 4.7.2 headless parity and cost test"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_DAMAGE_MARK_GEOMETRY_HANDOFF.md",
+      "bytes": 4684,
+      "sha256": "4fac540bf081aea961b8748570f12c3899156a7b5e4effad392a67282a0f48b9",
+      "role": "API, seams, verification and limitations"
+    }
+  ],
+  "api": {
+    "entry": "transport_damage_mark_geometry.gd::prepare()",
+    "resources_per_car": {
+      "array_meshes": 2,
+      "standard_materials": 2
+    },
+    "slots": {
+      "total": 32,
+      "scratch": 11,
+      "crater": 21
+    },
+    "vertices_per_car": 112,
+    "creates_nodes": false,
+    "owns_authority": false
+  },
+  "verification": {
+    "resource": "res://scripts/tests/test_transport_damage_mark_geometry.gd",
+    "author": "39/39 PASS",
+    "parent": "39/39 PASS",
+    "independent": "39/39 PASS",
+    "exporter_twice_byte_identical": true
+  },
+  "performance": {
+    "scenario": "100 sequential prepare calls after independent run completed",
+    "elapsed_us": 106056,
+    "us_per_car": 1060.56,
+    "discarded_possible_overlap_us_per_car": 969.59,
+    "qualification": "load/preparation CPU cost only; no FPS, GPU or full-scene claim"
+  },
+  "seams": {
+    "runtime_export_dependency": "res://data/transport/damage_mark_geometry.json",
+    "native_winding": "Three CCW source is converted exactly once to Godot clockwise native indices; source buffers remain unchanged",
+    "color": "source linear albedo converts to the Godot sRGB material property; vertex colors remain linear",
+    "native_storage": "ArrayMesh octahedral normals and RGBA8 colors are verified; exact source Float32 buffers are retained separately"
+  },
+  "limitations": [
+    "Three polygonOffset/polygonOffsetFactor has no exact StandardMaterial3D equivalent and needs later GPU/LIVE validation",
+    "No Nodes or runtime 32-slot pool are created",
+    "No HP, hit authority, cursor, pose application, GPU or full-scene acceptance is claimed"
+  ]
+}

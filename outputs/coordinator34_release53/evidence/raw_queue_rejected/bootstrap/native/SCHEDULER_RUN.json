@@ -1,0 +1,21 @@
+{
+  "mode": "graphical",
+  "performance_accepted": false,
+  "command": [
+    "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+    "--path",
+    "D:\\MafioziCombat31\\coordinator34_merged53\\game",
+    "--script",
+    "D:\\MafioziCombat31\\coordinator34_merged53\\qa\\bootstrap.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\coordinator34_merged53\\bootstrap\\CURRENT_READY.json",
+    "--receipt-dir=D:\\MafioziCombat31\\coordinator34_merged53\\bootstrap",
+    "--release-revision=castle-20261018-combined53-bot-bow",
+    "--release-title=Общая сцена 53",
+    "--castle-play-check=1",
+    "--castle=1",
+    "--castle-start-outside=1"
+  ],
+  "passed": false,
+  "error": "Queue wait must be in (0,600] seconds"
+}

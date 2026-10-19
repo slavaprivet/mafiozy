@@ -1,0 +1,9 @@
+{
+  "name": "sledge_hold01",
+  "passed": true,
+  "errors": [],
+  "scheduler_errors": [],
+  "scheduler_error": null,
+  "drift": [],
+  "script_sha256": "820c258f5ac6a740aa3d3351c9c3eca7466ad91b147d36be879537475970f1ec"
+}

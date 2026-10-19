@@ -1,0 +1,55 @@
+--- a/npc_stationary_service_source23_candidate.mjs
++++ b/npc_stationary_service_source23_candidate.mjs
+@@ -60,8 +60,14 @@
+    pending=result.intent;
+    if(spawn(now,pending))result=stepServiceEmployee23(state,{now,actor:view(),siteRevision:layout.revision,door:station.doorState,spawnReceipt:birth},lifecycleHost);
+   }
++  let returnMovement=null;
++  if(typeof host.advanceEmployeeReturn==='function'){
++   try{returnMovement=host.advanceEmployeeReturn({actor:body,now,dt,generation:state.generation,employeeId:employmentId,
++    controlled:owned(body)&&!sourceBusy(body,now),returning:state.phase==='returning'&&result.intent?.kind==='walk',
++    hasControl:()=>owned(body)&&!sourceBusy(body,now)&&yes(host.isCurrentSite,layout)});}catch{returnMovement={status:'hold',reason:'return-host-unavailable'};}
++  }
+   if(result.intent?.kind==='walk'&&owned(body)&&!sourceBusy(body,now)){
+-   const movement=advanceStationaryServiceActor({actor:body,target:result.intent.target,actorId:employmentId,generation:state.generation,controlToken:token,dt,metresPerCell},movementHost);
++   const movement=returnMovement||advanceStationaryServiceActor({actor:body,target:result.intent.target,actorId:employmentId,generation:state.generation,controlToken:token,dt,metresPerCell},movementHost);
+    result={...result,movement};
+   }else if(result.intent?.kind==='set-service-door'&&owned(body)&&!sourceBusy(body,now)){
+    const actorPosition=position(body),nearby=occupants();
+@@ -73,5 +79,5 @@
+  return{tick,owns:n=>owned(n),ownsCalmMovement:(n,now)=>owned(n)&&!sourceBusy(n,now),
+   serviceAccess({customer,visitId,now}){return serviceEligibility23(state,{now,actor:view(),customer,visitId,siteRevision:layout.revision},lifecycleHost);},
+   get actor(){return body;},get lifecycle(){return state;},get stats(){return{births,employmentId,sourceBodyId:body?.id,generation:state.generation,phase:state.phase};},
+-  dispose(){disposed=true;state.available=false;if(body&&!body.dead&&body._stationaryService?.employmentId===employmentId)delete body._stationaryService;}};
++  dispose(){host.advanceEmployeeReturn?.dispose?.();disposed=true;state.available=false;if(body&&!body.dead&&body._stationaryService?.employmentId===employmentId)delete body._stationaryService;}};
+ }
+--- a/world.html
++++ b/world.html
+@@ -9733,9 +9733,26 @@
+ const _residentDoorByBuildingTile=new Map(),_residentDoorBySource=new Map(),_activeResidentDoorVisuals=new Map();
+ let _residentDoorAnimationCount=0,_residentBuildingRouteBudget=1,_residentBuildingRouteDeferred=0;
+ let _stationaryServicePilot23=null,_stationaryServiceExitMove23=null;
++function _stationaryServiceReturnHost23(){
++ return{
++  entrance:layout=>{const access=_walkTrafficNavigationResolver({mode:'resident-access',action:'list'});return access?.doors?.find(d=>d.instanceId===layout.buildingId);},
++  cancelRoute:n=>{_cancelNpcDirectedSearch(n);_clearNpcRoute(n);},
++  planRoute:(n,p)=>{
++   const ready=_planNpcRouteTo(n,p.r,p.c,_residentNativeRecoveryPass,.002,768,'building_entry');
++   if(!ready)return{status:n._routeSearchPending?'pending':'blocked'};
++   const points=n._route?.map(p=>({r:p.r,c:p.c}));_cancelNpcDirectedSearch(n);_clearNpcRoute(n);
++   return{status:'ready',points};
++  },
++  openEntrance:(n,door)=>_walkTrafficNavigationResolver({mode:'resident-access',action:'open',doorId:door.id,from:{r:n.r,c:n.c}}),
++  entryLane:(n,visit)=>_residentNativeEntryLane(n,visit)
++ };
++}
+ function _installStationaryServicePilot23(factory,station,geometryHost){
+  if(typeof factory!=='function'||!_walkRendererActive()||_stationaryServicePilot23||station?.layout?.buildingId!=='REBUILD-VISUAL-print_shop-001')return null;
+- const controller=factory({station,host:{...geometryHost,npcs:NPCS,spawnNpc,
++ const returnHost={...geometryHost.employeeReturnGeometry,..._stationaryServiceReturnHost23()};
++ let advanceEmployeeReturn=null;
++ if(typeof geometryHost.createEmployeeReturn==='function')advanceEmployeeReturn=geometryHost.createEmployeeReturn({layout:station.layout,host:returnHost});
++ const controller=factory({station,host:{...geometryHost,advanceEmployeeReturn,npcs:NPCS,spawnNpc,
+   canControl:(n,now)=>!_civilianPlanInterrupted(n,now)&&!n._vehicleHijackControlled&&!n._civilianTrip&&!n._civilianTripRiding&&!n._ambulanceInTransit&&!n._medicalCrewVehicleId&&!n._playerConversationOpen&&!(n._playerConversationUntil>now)&&!(n.idleUntil>now),
+   verifyDeath:(n,now)=>n.dead===true&&!n._medicalDowned&&Number.isFinite(n.deadAt)&&n.deadAt<=now&&n._deathRecord20?.confirmed===true&&n._deathRecord20.fatal===true&&n._deathRecord20.targetId===_threeNpcEntityId(n)&&n._deathRecord20.deathKey===String(n.deadAt)}});
+  _stationaryServicePilot23=controller;_stationaryServiceExitMove23=typeof geometryHost.advanceServiceExit==='function'?geometryHost.advanceServiceExit:null;

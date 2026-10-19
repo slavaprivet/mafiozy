@@ -1,0 +1,36 @@
+--- a/assets/maps/city_rebuild_v1/hero_artist14_surface.mjs
++++ b/assets/maps/city_rebuild_v1/hero_artist14_surface.mjs
+@@ -88,5 +88,16 @@
+   const age=r.age+elapsedSeconds,duration={hit:.48,block:.30,fall:2.7}[r.kind];reaction={kind:duration&&age>=duration?'idle':r.kind,at:time-age,side:r.side,zone:r.zone};
+   return true;
+  }
+- return {receive,update,reset,dispose,snapshot,restore,performanceState:()=>({reaction:reaction.kind,...wet.diagnostics(model),activeBleedingWounds:bleed.count,particles:mesh.count}),bleedingStats:()=>({activeWounds:bleed.count,emittedDrops:bleed.emittedDrops}),model,particles:mesh,get state(){return {...reaction};},get scale(){return unit;}};
++ // The sibling particle draw can outlive its whole-body visual. Pending
++ // receive() emissions are private until update() publishes mesh.count.
++ function hasActiveContactEffects(){
++  if(bleed.count>0||wasIn||time-exitAt<5)return true;
++  for(const particle of particles)if(particle.life>0)return true;
++  return false;
++ }
++ function advanceReplacedVisualClock(now){
++  if(reaction.kind!=='dead'||!Number.isFinite(now)||now<time||hasActiveContactEffects())return false;
++  time=now;return true;
++ }
++ return {receive,update,reset,dispose,snapshot,restore,hasActiveContactEffects,advanceReplacedVisualClock,performanceState:()=>({reaction:reaction.kind,...wet.diagnostics(model),activeBleedingWounds:bleed.count,particles:mesh.count}),bleedingStats:()=>({activeWounds:bleed.count,emittedDrops:bleed.emittedDrops}),model,particles:mesh,get state(){return {...reaction};},get scale(){return unit;}};
+ }
+--- a/assets/maps/city_rebuild_v1/npc_actor.mjs
++++ b/assets/maps/city_rebuild_v1/npc_actor.mjs
+@@ -247,6 +247,13 @@
+   const recovering=sourceDown.releaseAt!==null&&time-sourceDown.releaseAt<1.15;
+   sourceFall=sourceDown.active?{kind:'fall',age:Math.min(.75,Math.max(0,time-sourceDown.at)),side:1}:recovering?{kind:'fall',age:1.55+Math.max(0,time-sourceDown.releaseAt),side:1}:null;
+   if(surface.state.kind==='dead'||surface.state.kind==='fall')sourceFall=null;
++  // Complete blast parts own this body. Keep lifecycle/receipt clocks above
++  // current, but skip bones and skin work only when no contact effect remains.
++  if(deathPresentation.isReplaced(sourceDeathKey)&&lastSurface?.reaction.kind==='dead'&&lastSurface.reaction.age>=.62&&gaitOutput.gait===0&&surface.advanceReplacedVisualClock(time)){
++   walker.object.visible=false;surface.particles.visible=false;
++   if(lastSurface?.reaction.kind==='dead'&&sourceDeathAt!==null)lastSurface.reaction.age=Math.max(0,time-sourceDeathAt);
++   return lastSurface;
++  }
+   const vehicleBinding=resolveNpcVehicleBinding(snapshot.life,getVehicle);
+   if(!hijackPose&&(snapshot.life?.vehicleHijack||snapshot.life?.hijackReaction))hijackPose=createVehicleHijackPose({THREE,walker,getVehicle});
+   extractionActive=!!hijackPose&&lifeGesture(snapshot.life||{})!=='cuffed'&&hijackPose.isActive(snapshot.life?.vehicleHijack);

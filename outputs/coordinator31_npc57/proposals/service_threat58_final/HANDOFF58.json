@@ -1,0 +1,560 @@
+{
+  "status": "FINAL_MERGED_SERVICE_INTERRUPTION_PASS",
+  "passed": true,
+  "scope": "Native shop and restaurant service interruptions in exact merged candidate58. FullHP, real inside unpaid shot, physical exit, flee, quiet15, actual saved purchase, normal walk, other9 movement.",
+  "runs": {
+    "shop_final01": {
+      "passed": true,
+      "checks": {
+        "run_passed": true,
+        "native_all_checks_passed": true,
+        "nineteen_checks": true,
+        "ordinary_source_no_overlay": true,
+        "explicit_manifest_sha": true,
+        "exact_full_source_before_after": true,
+        "full_controls_before_after": true,
+        "immutable_archive_inventory": true,
+        "immutable_archive_all_hashes": true,
+        "all_non_engine_controls_archived": true,
+        "harness_before_after": true,
+        "ordinary_entry_pin": true,
+        "native_receipt_sha": true,
+        "clean_process": true
+      },
+      "native_checks": {
+        "actual_energy_restored": true,
+        "authentic_native_shot": true,
+        "claims_released": true,
+        "conserved_account": true,
+        "initial_affordable_purchase": true,
+        "initial_full_health": true,
+        "interrupted_purchase_preserved": true,
+        "native_fire_inside_unpaid_service": true,
+        "native_service_inside": true,
+        "normal_native_walk_completed": true,
+        "other_nine_moved": true,
+        "physical_exit": true,
+        "population_preserved": true,
+        "quiet_releases_at_15s": true,
+        "real_flee": true,
+        "real_payment_once": true,
+        "resumed_purchase_completed": true,
+        "single_native_miss": true,
+        "threat_during_service": true
+      },
+      "path": "outputs\\coordinator31_npc57\\proposals\\service_threat58_final\\runs\\shop_final01",
+      "run_sha256": "2f1c8df1dbb78ebd9e52cc0d563ec066b83abc31a27e476fb49f785b65ac2008",
+      "native_sha256": "d1b885b343a8558877e8d1104e163afb8833c0f35eb5b4749cf0533d3141243d",
+      "harness_archive_sha256": "639c4e3d4737a15874de8fca67e474f0f3e7dea75df131a10299ca659b4280d7",
+      "source_count": 1135,
+      "control_count": 12,
+      "harness_count": 11,
+      "expected_source": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\extended31\\stage58_03\\CANDIDATE58.json",
+      "expected_source_sha256": "46a095bd14fdede78861d097cd5e69ad73a32c6cdf842b6944375101e84155a7",
+      "elapsed_seconds": 104.47371549997479,
+      "flee_m": 7.72143239527941,
+      "max_flee_speed": 1.98071591556072,
+      "max_step_m": 0.033011931926012,
+      "fire_sent58": {
+        "cash": 1000,
+        "frame": 3497,
+        "miss_rays": {
+          "camera_hit": "@StaticBody3D@3542:<StaticBody3D#273468631806>",
+          "camera_misses_actors": true,
+          "frame": 3497,
+          "muzzle_hit": "@StaticBody3D@3542:<StaticBody3D#273468631806>",
+          "muzzle_misses_actors": true,
+          "muzzle_ok": true
+        },
+        "ms": 36850,
+        "pitch": -0.148889958437354,
+        "receipt_count": 0,
+        "service": true
+      },
+      "interruption": {
+        "capacity_released": true,
+        "cash": 1000,
+        "depth": -1.37986755371094,
+        "outside_distance": 0.270187973976135,
+        "pending": {
+          "kind": "shop",
+          "price": 19,
+          "restore_energy": true
+        },
+        "phase": "RELEASE_SERVICE",
+        "position": "(-134.5201, 0.008771, 161.95)",
+        "receipts": 0,
+        "service_released": true
+      },
+      "payment": {
+        "cash": 981,
+        "energy": 100.0,
+        "frame": 5067,
+        "receipt": {
+          "amount": 19,
+          "at": 63895.033,
+          "bank_after": 0,
+          "building": "CompactService29_VENUE29-SHOP-002",
+          "cash_after": 981,
+          "cash_before": 1000,
+          "dwell_ms": 2000.69100000001,
+          "event_id": "godot-preview-new-session-20260927-01:resident_1:1:economy28:2",
+          "frame": 5067,
+          "id": "godot-preview-new-session-20260927-01:resident_1:2",
+          "inside": true,
+          "kind": "local_shop_purchase28",
+          "life_generation": 1,
+          "own_bank_debit": false,
+          "planned_amount": 19,
+          "policy": "user_local_test28",
+          "saved_purchase": {
+            "kind": "shop",
+            "price": 19,
+            "restore_energy": true
+          },
+          "scope": "new_local_session_account",
+          "sequence": 2,
+          "server_authority": false,
+          "visit_serial": 2
+        },
+        "service": true
+      },
+      "other_nine_distance_m": {
+        "resident_10": 82.9276300836354,
+        "resident_2": 82.3239978570491,
+        "resident_3": 78.2920271847397,
+        "resident_4": 69.3940026275814,
+        "resident_5": 95.6154692582786,
+        "resident_6": 85.7420224398375,
+        "resident_7": 104.28664255701,
+        "resident_8": 114.911554856226,
+        "resident_9": 119.475145405158
+      },
+      "flee_samples": [
+        {
+          "ms": 40468,
+          "position": "(-134.4713, 0.00169, 162.7076)",
+          "driver": {
+            "age": 0.4,
+            "fear_speed": 1.98,
+            "goal": "(-134.0053, 0.003, 169.9334)",
+            "moved_m": 0.759091686457396,
+            "multiplier": 1.1,
+            "normal_speed": 1.8,
+            "queries": 116,
+            "reason": "",
+            "selection58": [
+              {
+                "accepted": false,
+                "goal": "(-142.5035, 0.008771, 162.4649)",
+                "index": 0,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(-140.0106, 0.008771, 167.7685)",
+                "index": 1,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(-140.7124, 0.008771, 156.8849)",
+                "index": 2,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": true,
+                "goal": "(-134.0053, 0.003, 169.9334)",
+                "index": 3,
+                "reason": "direct_corridor_hint"
+              }
+            ],
+            "selection_max_us58": 185,
+            "selection_us58": 639,
+            "service_us": 1978,
+            "status": "walking",
+            "total_work_us58": 2617
+          }
+        },
+        {
+          "ms": 40973,
+          "position": "(-134.4077, 0.000348, 163.6954)",
+          "driver": {
+            "age": 0.900000000000001,
+            "fear_speed": 1.98,
+            "goal": "(-134.0053, 0.003, 169.9334)",
+            "moved_m": 1.74899277463555,
+            "multiplier": 1.1,
+            "normal_speed": 1.8,
+            "queries": 206,
+            "reason": "",
+            "selection58": [
+              {
+                "accepted": false,
+                "goal": "(-142.5035, 0.008771, 162.4649)",
+                "index": 0,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(-140.0106, 0.008771, 167.7685)",
+                "index": 1,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(-140.7124, 0.008771, 156.8849)",
+                "index": 2,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": true,
+                "goal": "(-134.0053, 0.003, 169.9334)",
+                "index": 3,
+                "reason": "direct_corridor_hint"
+              }
+            ],
+            "selection_max_us58": 185,
+            "selection_us58": 639,
+            "service_us": 1978,
+            "status": "walking",
+            "total_work_us58": 2617
+          }
+        },
+        {
+          "ms": 41477,
+          "position": "(-134.3441, 0.000348, 164.6833)",
+          "driver": {
+            "age": 1.4,
+            "fear_speed": 1.98,
+            "goal": "(-134.0053, 0.003, 169.9334)",
+            "moved_m": 2.73889386281371,
+            "multiplier": 1.1,
+            "normal_speed": 1.8,
+            "queries": 296,
+            "reason": "",
+            "selection58": [
+              {
+                "accepted": false,
+                "goal": "(-142.5035, 0.008771, 162.4649)",
+                "index": 0,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(-140.0106, 0.008771, 167.7685)",
+                "index": 1,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(-140.7124, 0.008771, 156.8849)",
+                "index": 2,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": true,
+                "goal": "(-134.0053, 0.003, 169.9334)",
+                "index": 3,
+                "reason": "direct_corridor_hint"
+              }
+            ],
+            "selection_max_us58": 185,
+            "selection_us58": 639,
+            "service_us": 1978,
+            "status": "walking",
+            "total_work_us58": 2617
+          }
+        }
+      ]
+    },
+    "restaurant_final01": {
+      "passed": true,
+      "checks": {
+        "run_passed": true,
+        "native_all_checks_passed": true,
+        "nineteen_checks": true,
+        "ordinary_source_no_overlay": true,
+        "explicit_manifest_sha": true,
+        "exact_full_source_before_after": true,
+        "full_controls_before_after": true,
+        "immutable_archive_inventory": true,
+        "immutable_archive_all_hashes": true,
+        "all_non_engine_controls_archived": true,
+        "harness_before_after": true,
+        "ordinary_entry_pin": true,
+        "native_receipt_sha": true,
+        "clean_process": true
+      },
+      "native_checks": {
+        "actual_energy_restored": true,
+        "authentic_native_shot": true,
+        "claims_released": true,
+        "conserved_account": true,
+        "initial_affordable_purchase": true,
+        "initial_full_health": true,
+        "interrupted_purchase_preserved": true,
+        "native_fire_inside_unpaid_service": true,
+        "native_service_inside": true,
+        "normal_native_walk_completed": true,
+        "other_nine_moved": true,
+        "physical_exit": true,
+        "population_preserved": true,
+        "quiet_releases_at_15s": true,
+        "real_flee": true,
+        "real_payment_once": true,
+        "resumed_purchase_completed": true,
+        "single_native_miss": true,
+        "threat_during_service": true
+      },
+      "path": "outputs\\coordinator31_npc57\\proposals\\service_threat58_final\\runs\\restaurant_final01",
+      "run_sha256": "a49a611125f42708dedcf8cafc66a687fa1c1aecece5826918160b9a06d465cf",
+      "native_sha256": "3ac336a23e9ee31087426d1b8b28833b9e3a16cc4c2ce302295bb159c61c7e9a",
+      "harness_archive_sha256": "639c4e3d4737a15874de8fca67e474f0f3e7dea75df131a10299ca659b4280d7",
+      "source_count": 1135,
+      "control_count": 12,
+      "harness_count": 11,
+      "expected_source": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\extended31\\stage58_03\\CANDIDATE58.json",
+      "expected_source_sha256": "46a095bd14fdede78861d097cd5e69ad73a32c6cdf842b6944375101e84155a7",
+      "elapsed_seconds": 208.01324169989675,
+      "flee_m": 7.72144073992968,
+      "max_flee_speed": 1.98071591556072,
+      "max_step_m": 0.033011931926012,
+      "fire_sent58": {
+        "cash": 1000,
+        "frame": 9627,
+        "miss_rays": {
+          "camera_hit": "@StaticBody3D@2764:<StaticBody3D#253889619567>",
+          "camera_misses_actors": true,
+          "frame": 9627,
+          "muzzle_hit": "@StaticBody3D@2764:<StaticBody3D#253889619567>",
+          "muzzle_misses_actors": true,
+          "muzzle_ok": true
+        },
+        "ms": 138182,
+        "pitch": -0.148889958437354,
+        "receipt_count": 0,
+        "service": true
+      },
+      "interruption": {
+        "capacity_released": true,
+        "cash": 1000,
+        "depth": -1.37947082519531,
+        "outside_distance": 0.270583361387253,
+        "pending": {
+          "kind": "restaurant",
+          "price": 33,
+          "restore_energy": true
+        },
+        "phase": "RELEASE_SERVICE",
+        "position": "(136.0795, 0.008712, 120.95)",
+        "receipts": 0,
+        "service_released": true
+      },
+      "payment": {
+        "cash": 967,
+        "energy": 100.0,
+        "frame": 11203,
+        "receipt": {
+          "amount": 33,
+          "at": 165336.352,
+          "bank_after": 0,
+          "building": "CompactService29_VENUE29-RESTAURANT-002",
+          "cash_after": 967,
+          "cash_before": 1000,
+          "dwell_ms": 2004.88600000003,
+          "event_id": "godot-preview-new-session-20260927-01:resident_1:1:economy28:2",
+          "frame": 11203,
+          "id": "godot-preview-new-session-20260927-01:resident_1:2",
+          "inside": true,
+          "kind": "local_restaurant_purchase28",
+          "life_generation": 1,
+          "own_bank_debit": false,
+          "planned_amount": 33,
+          "policy": "user_local_test28",
+          "saved_purchase": {
+            "kind": "restaurant",
+            "price": 33,
+            "restore_energy": true
+          },
+          "scope": "new_local_session_account",
+          "sequence": 2,
+          "server_authority": false,
+          "visit_serial": 2
+        },
+        "service": true
+      },
+      "other_nine_distance_m": {
+        "resident_10": 290.310499187559,
+        "resident_2": 236.167474772781,
+        "resident_3": 257.828100865707,
+        "resident_4": 275.628348497674,
+        "resident_5": 299.578460182995,
+        "resident_6": 223.594472654164,
+        "resident_7": 260.47711131908,
+        "resident_8": 276.502106927335,
+        "resident_9": 302.235511349514
+      },
+      "flee_samples": [
+        {
+          "ms": 141466,
+          "position": "(136.088, 0.008712, 121.0818)",
+          "driver": {
+            "age": 0.1,
+            "fear_speed": 1.98,
+            "goal": "(136.5942, 0.003, 128.9334)",
+            "moved_m": 0.132017269730568,
+            "multiplier": 1.1,
+            "normal_speed": 1.8,
+            "queries": 59,
+            "reason": "",
+            "selection58": [
+              {
+                "accepted": false,
+                "goal": "(128.096, 0.008712, 121.4648)",
+                "index": 0,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(130.5889, 0.008712, 126.7684)",
+                "index": 1,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(129.8872, 0.008712, 115.8848)",
+                "index": 2,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": true,
+                "goal": "(136.5942, 0.003, 128.9334)",
+                "index": 3,
+                "reason": "direct_corridor_hint"
+              }
+            ],
+            "selection_max_us58": 296,
+            "selection_us58": 804,
+            "service_us": 6406,
+            "status": "walking",
+            "total_work_us58": 7210
+          }
+        },
+        {
+          "ms": 141984,
+          "position": "(136.1537, -0.000077, 122.1027)",
+          "driver": {
+            "age": 0.616666666666667,
+            "fear_speed": 1.98,
+            "goal": "(136.5942, 0.003, 128.9334)",
+            "moved_m": 1.15505212172866,
+            "multiplier": 1.1,
+            "normal_speed": 1.8,
+            "queries": 152,
+            "reason": "",
+            "selection58": [
+              {
+                "accepted": false,
+                "goal": "(128.096, 0.008712, 121.4648)",
+                "index": 0,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(130.5889, 0.008712, 126.7684)",
+                "index": 1,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(129.8872, 0.008712, 115.8848)",
+                "index": 2,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": true,
+                "goal": "(136.5942, 0.003, 128.9334)",
+                "index": 3,
+                "reason": "direct_corridor_hint"
+              }
+            ],
+            "selection_max_us58": 296,
+            "selection_us58": 804,
+            "service_us": 6406,
+            "status": "walking",
+            "total_work_us58": 7210
+          }
+        },
+        {
+          "ms": 142502,
+          "position": "(136.2195, -0.000077, 123.1235)",
+          "driver": {
+            "age": 1.13333333333333,
+            "fear_speed": 1.98,
+            "goal": "(136.5942, 0.003, 128.9334)",
+            "moved_m": 2.17794991284609,
+            "multiplier": 1.1,
+            "normal_speed": 1.8,
+            "queries": 245,
+            "reason": "",
+            "selection58": [
+              {
+                "accepted": false,
+                "goal": "(128.096, 0.008712, 121.4648)",
+                "index": 0,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(130.5889, 0.008712, 126.7684)",
+                "index": 1,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": false,
+                "goal": "(129.8872, 0.008712, 115.8848)",
+                "index": 2,
+                "reason": "capsule_blocked"
+              },
+              {
+                "accepted": true,
+                "goal": "(136.5942, 0.003, 128.9334)",
+                "index": 3,
+                "reason": "direct_corridor_hint"
+              }
+            ],
+            "selection_max_us58": 296,
+            "selection_us58": 804,
+            "service_us": 6406,
+            "status": "walking",
+            "total_work_us58": 7210
+          }
+        }
+      ]
+    }
+  },
+  "performance_accepted": false,
+  "ordinary_release_accepted": false,
+  "limits": [
+    "These two functional runs do not replace the coordinator1200s ordinary soak, other service/health regressions, clean paired FPS or delivery."
+  ],
+  "evidence_specs": {
+    "shop_interruption": {
+      "run": "outputs/coordinator31_npc57/proposals/service_threat58_final/runs/shop_final01",
+      "harness_root": ".",
+      "entry": "outputs/coordinator31_npc57/proposals/service_threat58_final/entry58.gd",
+      "entry_sha256": "64898ff896767bceb81da3ac6d35bfc4a1b8c508b2a8f5f7e769f4c01c4ab986",
+      "pins_file": "HARNESS.json",
+      "archive": "HARNESS.zip"
+    },
+    "restaurant_interruption": {
+      "run": "outputs/coordinator31_npc57/proposals/service_threat58_final/runs/restaurant_final01",
+      "harness_root": ".",
+      "entry": "outputs/coordinator31_npc57/proposals/service_threat58_final/entry58.gd",
+      "entry_sha256": "64898ff896767bceb81da3ac6d35bfc4a1b8c508b2a8f5f7e769f4c01c4ab986",
+      "pins_file": "HARNESS.json",
+      "archive": "HARNESS.zip"
+    }
+  }
+}

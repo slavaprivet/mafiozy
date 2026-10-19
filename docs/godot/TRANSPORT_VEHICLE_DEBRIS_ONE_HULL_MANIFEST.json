@@ -1,0 +1,42 @@
+{
+  "schema": "mafiozi.transport-vehicle-debris-one-hull-experiment.v1",
+  "date": "2026-09-30",
+  "status": "collision-fidelity-rejected-do-not-adopt",
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/candidates/transport_vehicle_debris_one_hull.gd",
+      "bytes": 16140,
+      "sha256": "95e5d73771ee91c9515ef7faa5f1be7911af7475acae97e56cf3bb1150ddf91d"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_vehicle_debris_one_hull.gd",
+      "bytes": 12461,
+      "sha256": "d07119a2d8d227082f814fd7d81856b9f2e3bf14ac267542b6a84dad83d08e8b"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_VEHICLE_DEBRIS_ONE_HULL_HANDOFF.md",
+      "bytes": 3451,
+      "sha256": "61d23cfc292a0cfe9051c1e3af454a3ff94aedcce60f8d54cecf637f7986ceb7"
+    }
+  ],
+  "baseline": {
+    "path": "godot/mafiozi_walk/scripts/transport/transport_vehicle_debris.gd",
+    "sha256": "1cf791ea4890c844b8c1072cdccca647b3b8255cec718afa7e96f80b9c2bba8f"
+  },
+  "fidelity": {
+    "point_union_exact": true,
+    "sampled_support_equal": true,
+    "private_visual_meshes_materials": "76/76 unchanged",
+    "cavity_grid": "64 of 136 single-hull interior samples lie outside every original component hull (47.06 percent)",
+    "decision": "REJECT: convex envelope fills collision gaps and changes settlement"
+  },
+  "ten_provider_sample": {
+    "frozen": {"bodies": 100, "hulls": 760, "configure_us": 1034082, "memory_static_delta": 59947176, "awake_p50_p95_ms": [7.397,7.7], "settled_p50_p95_ms": [1.999,4.327], "settle_frames": 293},
+    "one_hull": {"bodies": 100, "hulls": 100, "configure_us": 875893, "memory_static_delta": 33012184, "awake_p50_p95_ms": [5.98,7.356], "settled_p50_p95_ms": [0.969,1.31], "settle_frames": 384}
+  },
+  "limits": [
+    "One fresh process sample per 1/3/10 provider mode; not a statistical loaded-scene gate.",
+    "Performance.MEMORY_STATIC is Godot heap, not process RSS or GPU memory.",
+    "No production, frozen runtime, source visual, Git, GPU or LIVE change."
+  ]
+}

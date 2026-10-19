@@ -1,0 +1,33 @@
+{
+	"errors": [
+		"player_speed_changed_with_npc_armor"
+	],
+	"passed": false,
+	"rows": [
+		{
+			"npc_factor": 1.0,
+			"npc_gear": {},
+			"player_leg_factor": 1.0,
+			"player_motion": 2.94156360626221
+		},
+		{
+			"npc_factor": 0.78,
+			"npc_gear": {
+				"feet": "heavy_feet",
+				"hands": "heavy_hands",
+				"head": "heavy_head",
+				"legs": "heavy_legs",
+				"torso": "heavy_torso"
+			},
+			"player_leg_factor": 1.0,
+			"player_motion": 1.30526852607727
+		},
+		{
+			"npc_factor": 1.0,
+			"npc_gear": {},
+			"player_leg_factor": 1.0,
+			"player_motion": 2.94173240661621
+		}
+	],
+	"scope": "Player bare throughout, ordinary movement input; only NPC gear changed between trials. Initial placement once, no damage or movement injection."
+}

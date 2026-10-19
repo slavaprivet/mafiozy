@@ -1,0 +1,34 @@
+{
+  "schema":"mafiozi.map-import-provenance-cpu-audit/v1",
+  "godot":"4.7.2.stable.official.ed1daf0bf",
+  "scene":"actual source-only 196GLB authored242 + procedural9394 + transport265 -> three editor copies",
+  "sourceObjects":9901,
+  "freshObjects":9904,
+  "checksEachRun":30718,
+  "sourceAssembly":"outputs/map_editor_source_assembly_6Ww1o1",
+  "unprofiledSequentialPairs":[
+    {"round":1,"baselineInstallUsec":14976113,"candidateInstallUsec":14333421,"baselineVerificationUsec":584797,"candidateVerificationUsec":577930},
+    {"round":2,"baselineInstallUsec":15593799,"candidateInstallUsec":13231541,"baselineVerificationUsec":578750,"candidateVerificationUsec":545194},
+    {"round":3,"baselineInstallUsec":15430803,"candidateInstallUsec":13792279,"baselineVerificationUsec":559186,"candidateVerificationUsec":603835}
+  ],
+  "medianBaselineInstallUsec":15430803,
+  "medianCandidateInstallUsec":13792279,
+  "medianSavedUsec":1638524,
+  "medianReductionPercent":10.6185,
+  "profiledVariants":[
+    {"variant":"baseline","installUsec":16460547,"controllerPrepareUsec":1684499,"compositePartitionTotalUsec":2149122,"proceduralCheckCalls":56381,"proceduralCheckTotalUsec":6320827,"proceduralApplyTotalUsec":7955660,"transportCheckCalls":1607,"transportCheckTotalUsec":303174,"proceduralPrepareCalls":20,"proceduralPrepareTotalUsec":373},
+    {"variant":"streaming-only","installUsec":14355927,"controllerPrepareUsec":1628964,"compositePartitionTotalUsec":2122346,"proceduralCheckCalls":56381,"proceduralCheckTotalUsec":4855930,"proceduralApplyTotalUsec":6618960,"transportCheckCalls":1607,"transportCheckTotalUsec":213662,"proceduralPrepareCalls":20,"proceduralPrepareTotalUsec":426},
+    {"variant":"streaming-plus-exact-nonzero-float-equality","installUsec":13758684,"controllerPrepareUsec":1510099,"compositePartitionTotalUsec":2018358,"proceduralCheckCalls":56381,"proceduralCheckTotalUsec":4556975,"proceduralApplyTotalUsec":6305793,"transportCheckCalls":1607,"transportCheckTotalUsec":211605,"proceduralPrepareCalls":20,"proceduralPrepareTotalUsec":388}
+  ],
+  "profileTimingsInclusive":true,
+  "normalComparatorOracleCases":30351,
+  "seed":72658931,
+  "mutationRollbackPrecisionChecks":9458,
+  "transportMutationRollbackChecks":852,
+  "gpu":false,
+  "productionWired":false,
+  "ownerCallbacks":"test fixtures",
+  "mainSceneFPSVerified":false,
+  "controlledMapDocument":"original stage snapshot, parent independent header optimization not included",
+  "limitations":["Only3pairs: timing noise/background CPU possible", "Inclusive profile timings overlap; not summed", "Original repeated guards retained, no admission cache", "CPU import improvement not visual/GPU/FPS acceptance"]
+}

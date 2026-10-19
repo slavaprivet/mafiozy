@@ -1,0 +1,1122 @@
+{
+	"counters": 7,
+	"errors": [],
+	"guards": 9,
+	"hits": 6,
+	"lateral": 1.13348865509033,
+	"loadout": {
+		"feet": "heavy_feet",
+		"hands": "heavy_hands",
+		"head": "heavy_head",
+		"legs": "heavy_legs",
+		"torso": "heavy_torso"
+	},
+	"npc_dead": false,
+	"passed": true,
+	"player_dead": false,
+	"reaction180ms": true,
+	"rows": [
+		{
+			"counter": 0,
+			"gap": 2.16937851905823,
+			"guard": 0,
+			"npc_hp": 90.0,
+			"player_hp": 100.0,
+			"state": "approach",
+			"threat": false,
+			"tick": 0
+		},
+		{
+			"counter": 0,
+			"gap": 1.86302649974823,
+			"guard": 0,
+			"npc_hp": 90.0,
+			"player_hp": 100.0,
+			"state": "approach",
+			"threat": false,
+			"tick": 10
+		},
+		{
+			"counter": 0,
+			"gap": 1.55661344528198,
+			"guard": 1,
+			"npc_hp": 90.0,
+			"player_hp": 100.0,
+			"state": "guard",
+			"threat": true,
+			"tick": 20
+		},
+		{
+			"counter": 0,
+			"gap": 1.33866965770721,
+			"guard": 1,
+			"npc_hp": 90.0,
+			"player_hp": 100.0,
+			"state": "guard",
+			"threat": false,
+			"tick": 30
+		},
+		{
+			"counter": 1,
+			"gap": 1.33572363853455,
+			"guard": 1,
+			"npc_hp": 90.0,
+			"player_hp": 100.0,
+			"state": "windup",
+			"threat": false,
+			"tick": 40
+		},
+		{
+			"counter": 1,
+			"gap": 1.33572363853455,
+			"guard": 1,
+			"npc_hp": 90.0,
+			"player_hp": 100.0,
+			"state": "windup",
+			"threat": true,
+			"tick": 50
+		},
+		{
+			"counter": 1,
+			"gap": 1.33572363853455,
+			"guard": 1,
+			"npc_hp": 90.0,
+			"player_hp": 100.0,
+			"state": "windup",
+			"threat": false,
+			"tick": 60
+		},
+		{
+			"counter": 1,
+			"gap": 1.27610456943512,
+			"guard": 1,
+			"npc_hp": 90.0,
+			"player_hp": 100.0,
+			"state": "strike",
+			"threat": true,
+			"tick": 70
+		},
+		{
+			"counter": 1,
+			"gap": 1.09724736213684,
+			"guard": 1,
+			"npc_hp": 90.0,
+			"player_hp": 91.5765678285576,
+			"state": "strike",
+			"threat": false,
+			"tick": 80
+		},
+		{
+			"counter": 1,
+			"gap": 1.08846628665924,
+			"guard": 1,
+			"npc_hp": 90.0,
+			"player_hp": 91.5765678285576,
+			"state": "strike",
+			"threat": false,
+			"tick": 90
+		},
+		{
+			"counter": 1,
+			"gap": 1.09359860420227,
+			"guard": 1,
+			"npc_hp": 90.0,
+			"player_hp": 91.5765678285576,
+			"state": "follow",
+			"threat": false,
+			"tick": 100
+		},
+		{
+			"counter": 1,
+			"gap": 1.14916050434113,
+			"guard": 1,
+			"npc_hp": 90.0,
+			"player_hp": 91.5765678285576,
+			"state": "recover",
+			"threat": false,
+			"tick": 110
+		},
+		{
+			"counter": 1,
+			"gap": 1.25392293930054,
+			"guard": 1,
+			"npc_hp": 90.0,
+			"player_hp": 91.5765678285576,
+			"state": "recover",
+			"threat": false,
+			"tick": 120
+		},
+		{
+			"counter": 1,
+			"gap": 1.24989867210388,
+			"guard": 1,
+			"npc_hp": 90.0,
+			"player_hp": 91.5765678285576,
+			"state": "recover",
+			"threat": false,
+			"tick": 130
+		},
+		{
+			"counter": 1,
+			"gap": 1.24437344074249,
+			"guard": 1,
+			"npc_hp": 90.0,
+			"player_hp": 91.5765678285576,
+			"state": "approach",
+			"threat": false,
+			"tick": 140
+		},
+		{
+			"counter": 1,
+			"gap": 1.24304664134979,
+			"guard": 1,
+			"npc_hp": 90.0,
+			"player_hp": 91.5765678285576,
+			"state": "approach",
+			"threat": false,
+			"tick": 150
+		},
+		{
+			"counter": 1,
+			"gap": 1.24012887477875,
+			"guard": 1,
+			"npc_hp": 90.0,
+			"player_hp": 91.5765678285576,
+			"state": "windup",
+			"threat": false,
+			"tick": 160
+		},
+		{
+			"counter": 1,
+			"gap": 1.24012887477875,
+			"guard": 1,
+			"npc_hp": 90.0,
+			"player_hp": 91.5765678285576,
+			"state": "windup",
+			"threat": false,
+			"tick": 170
+		},
+		{
+			"counter": 1,
+			"gap": 1.24012887477875,
+			"guard": 1,
+			"npc_hp": 90.0,
+			"player_hp": 91.5765678285576,
+			"state": "windup",
+			"threat": false,
+			"tick": 180
+		},
+		{
+			"counter": 1,
+			"gap": 1.20058083534241,
+			"guard": 1,
+			"npc_hp": 90.0,
+			"player_hp": 91.5765678285576,
+			"state": "strike",
+			"threat": false,
+			"tick": 190
+		},
+		{
+			"counter": 1,
+			"gap": 1.08181822299957,
+			"guard": 1,
+			"npc_hp": 90.0,
+			"player_hp": 91.5765678285576,
+			"state": "strike",
+			"threat": true,
+			"tick": 200
+		},
+		{
+			"counter": 1,
+			"gap": 1.0989146232605,
+			"guard": 1,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 89.2780228984932,
+			"state": "recover",
+			"threat": false,
+			"tick": 210
+		},
+		{
+			"counter": 1,
+			"gap": 1.11684966087341,
+			"guard": 1,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 89.2780228984932,
+			"state": "recover",
+			"threat": false,
+			"tick": 220
+		},
+		{
+			"counter": 1,
+			"gap": 1.12235462665558,
+			"guard": 2,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 89.2780228984932,
+			"state": "guard",
+			"threat": true,
+			"tick": 230
+		},
+		{
+			"counter": 1,
+			"gap": 1.128950715065,
+			"guard": 2,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 89.2780228984932,
+			"state": "guard",
+			"threat": false,
+			"tick": 240
+		},
+		{
+			"counter": 1,
+			"gap": 1.12962830066681,
+			"guard": 2,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 89.2780228984932,
+			"state": "guard",
+			"threat": true,
+			"tick": 250
+		},
+		{
+			"counter": 2,
+			"gap": 1.26054275035858,
+			"guard": 2,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 89.2780228984932,
+			"state": "windup",
+			"threat": false,
+			"tick": 260
+		},
+		{
+			"counter": 2,
+			"gap": 1.26054275035858,
+			"guard": 2,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 89.2780228984932,
+			"state": "windup",
+			"threat": false,
+			"tick": 270
+		},
+		{
+			"counter": 2,
+			"gap": 1.26054275035858,
+			"guard": 2,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 89.2780228984932,
+			"state": "windup",
+			"threat": false,
+			"tick": 280
+		},
+		{
+			"counter": 2,
+			"gap": 1.26054275035858,
+			"guard": 2,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 89.2780228984932,
+			"state": "windup",
+			"threat": false,
+			"tick": 290
+		},
+		{
+			"counter": 2,
+			"gap": 1.08224272727966,
+			"guard": 2,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 89.2780228984932,
+			"state": "strike",
+			"threat": false,
+			"tick": 300
+		},
+		{
+			"counter": 2,
+			"gap": 1.08154344558716,
+			"guard": 2,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 86.0019965540983,
+			"state": "strike",
+			"threat": false,
+			"tick": 310
+		},
+		{
+			"counter": 2,
+			"gap": 1.08914339542389,
+			"guard": 2,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 86.0019965540983,
+			"state": "follow",
+			"threat": false,
+			"tick": 320
+		},
+		{
+			"counter": 2,
+			"gap": 1.09661471843719,
+			"guard": 2,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 86.0019965540983,
+			"state": "recover",
+			"threat": false,
+			"tick": 330
+		},
+		{
+			"counter": 2,
+			"gap": 1.18161308765411,
+			"guard": 2,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 86.0019965540983,
+			"state": "recover",
+			"threat": false,
+			"tick": 340
+		},
+		{
+			"counter": 2,
+			"gap": 1.25507569313049,
+			"guard": 2,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 86.0019965540983,
+			"state": "recover",
+			"threat": false,
+			"tick": 350
+		},
+		{
+			"counter": 2,
+			"gap": 1.2531281709671,
+			"guard": 2,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 86.0019965540983,
+			"state": "approach",
+			"threat": false,
+			"tick": 360
+		},
+		{
+			"counter": 2,
+			"gap": 1.247474193573,
+			"guard": 2,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 86.0019965540983,
+			"state": "approach",
+			"threat": false,
+			"tick": 370
+		},
+		{
+			"counter": 2,
+			"gap": 1.26553761959076,
+			"guard": 3,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 86.0019965540983,
+			"state": "guard",
+			"threat": true,
+			"tick": 380
+		},
+		{
+			"counter": 2,
+			"gap": 1.32848215103149,
+			"guard": 3,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 86.0019965540983,
+			"state": "guard",
+			"threat": true,
+			"tick": 390
+		},
+		{
+			"counter": 2,
+			"gap": 1.38648998737335,
+			"guard": 3,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 86.0019965540983,
+			"state": "guard",
+			"threat": true,
+			"tick": 400
+		},
+		{
+			"counter": 2,
+			"gap": 1.4498702287674,
+			"guard": 3,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 86.0019965540983,
+			"state": "guard",
+			"threat": true,
+			"tick": 410
+		},
+		{
+			"counter": 3,
+			"gap": 1.44434237480164,
+			"guard": 3,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 86.0019965540983,
+			"state": "windup",
+			"threat": false,
+			"tick": 420
+		},
+		{
+			"counter": 3,
+			"gap": 1.44434237480164,
+			"guard": 3,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 86.0019965540983,
+			"state": "windup",
+			"threat": false,
+			"tick": 430
+		},
+		{
+			"counter": 3,
+			"gap": 1.44434237480164,
+			"guard": 3,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 86.0019965540983,
+			"state": "windup",
+			"threat": false,
+			"tick": 440
+		},
+		{
+			"counter": 3,
+			"gap": 1.36519742012024,
+			"guard": 3,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 86.0019965540983,
+			"state": "strike",
+			"threat": false,
+			"tick": 450
+		},
+		{
+			"counter": 3,
+			"gap": 1.19885456562042,
+			"guard": 3,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 84.8468565350546,
+			"state": "strike",
+			"threat": false,
+			"tick": 460
+		},
+		{
+			"counter": 3,
+			"gap": 1.08266377449036,
+			"guard": 3,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 84.8468565350546,
+			"state": "strike",
+			"threat": false,
+			"tick": 470
+		},
+		{
+			"counter": 3,
+			"gap": 1.08755743503571,
+			"guard": 3,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 84.8468565350546,
+			"state": "follow",
+			"threat": false,
+			"tick": 480
+		},
+		{
+			"counter": 3,
+			"gap": 1.08296036720276,
+			"guard": 3,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 84.8468565350546,
+			"state": "recover",
+			"threat": false,
+			"tick": 490
+		},
+		{
+			"counter": 3,
+			"gap": 1.0823792219162,
+			"guard": 3,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 84.8468565350546,
+			"state": "recover",
+			"threat": false,
+			"tick": 500
+		},
+		{
+			"counter": 3,
+			"gap": 1.17207551002502,
+			"guard": 3,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 84.8468565350546,
+			"state": "recover",
+			"threat": false,
+			"tick": 510
+		},
+		{
+			"counter": 3,
+			"gap": 1.24893343448639,
+			"guard": 3,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 84.8468565350546,
+			"state": "approach",
+			"threat": false,
+			"tick": 520
+		},
+		{
+			"counter": 3,
+			"gap": 1.24719274044037,
+			"guard": 4,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 84.8468565350546,
+			"state": "guard",
+			"threat": false,
+			"tick": 530
+		},
+		{
+			"counter": 3,
+			"gap": 1.24242842197418,
+			"guard": 4,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 84.8468565350546,
+			"state": "guard",
+			"threat": false,
+			"tick": 540
+		},
+		{
+			"counter": 4,
+			"gap": 1.24397110939026,
+			"guard": 4,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 84.8468565350546,
+			"state": "windup",
+			"threat": false,
+			"tick": 550
+		},
+		{
+			"counter": 4,
+			"gap": 1.24397110939026,
+			"guard": 4,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 84.8468565350546,
+			"state": "windup",
+			"threat": true,
+			"tick": 560
+		},
+		{
+			"counter": 4,
+			"gap": 1.24397110939026,
+			"guard": 4,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 84.8468565350546,
+			"state": "windup",
+			"threat": false,
+			"tick": 570
+		},
+		{
+			"counter": 4,
+			"gap": 1.20815682411194,
+			"guard": 4,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 84.8468565350546,
+			"state": "recover",
+			"threat": true,
+			"tick": 580
+		},
+		{
+			"counter": 4,
+			"gap": 1.24844229221344,
+			"guard": 4,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 84.8468565350546,
+			"state": "recover",
+			"threat": true,
+			"tick": 590
+		},
+		{
+			"counter": 4,
+			"gap": 1.25158882141113,
+			"guard": 5,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 84.8468565350546,
+			"state": "guard",
+			"threat": false,
+			"tick": 600
+		},
+		{
+			"counter": 4,
+			"gap": 1.26458787918091,
+			"guard": 5,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 84.8468565350546,
+			"state": "guard",
+			"threat": true,
+			"tick": 610
+		},
+		{
+			"counter": 5,
+			"gap": 1.28172469139099,
+			"guard": 5,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 84.8468565350546,
+			"state": "windup",
+			"threat": false,
+			"tick": 620
+		},
+		{
+			"counter": 5,
+			"gap": 1.28172469139099,
+			"guard": 5,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 84.8468565350546,
+			"state": "windup",
+			"threat": false,
+			"tick": 630
+		},
+		{
+			"counter": 5,
+			"gap": 1.28172469139099,
+			"guard": 5,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 84.8468565350546,
+			"state": "windup",
+			"threat": false,
+			"tick": 640
+		},
+		{
+			"counter": 5,
+			"gap": 1.22239232063293,
+			"guard": 5,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 84.8468565350546,
+			"state": "strike",
+			"threat": false,
+			"tick": 650
+		},
+		{
+			"counter": 5,
+			"gap": 1.08377015590668,
+			"guard": 5,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "strike",
+			"threat": true,
+			"tick": 660
+		},
+		{
+			"counter": 5,
+			"gap": 1.09619092941284,
+			"guard": 5,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "strike",
+			"threat": false,
+			"tick": 670
+		},
+		{
+			"counter": 5,
+			"gap": 1.09856224060059,
+			"guard": 5,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "follow",
+			"threat": true,
+			"tick": 680
+		},
+		{
+			"counter": 5,
+			"gap": 1.09507477283478,
+			"guard": 5,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "recover",
+			"threat": false,
+			"tick": 690
+		},
+		{
+			"counter": 5,
+			"gap": 1.09370863437653,
+			"guard": 5,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "recover",
+			"threat": false,
+			"tick": 700
+		},
+		{
+			"counter": 5,
+			"gap": 1.08909356594086,
+			"guard": 5,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "recover",
+			"threat": false,
+			"tick": 710
+		},
+		{
+			"counter": 5,
+			"gap": 1.11859393119812,
+			"guard": 6,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "guard",
+			"threat": false,
+			"tick": 720
+		},
+		{
+			"counter": 5,
+			"gap": 1.11931812763214,
+			"guard": 6,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "guard",
+			"threat": false,
+			"tick": 730
+		},
+		{
+			"counter": 5,
+			"gap": 1.14106357097626,
+			"guard": 6,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "guard",
+			"threat": true,
+			"tick": 740
+		},
+		{
+			"counter": 5,
+			"gap": 1.15336418151855,
+			"guard": 6,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "guard",
+			"threat": false,
+			"tick": 750
+		},
+		{
+			"counter": 5,
+			"gap": 1.14786732196808,
+			"guard": 6,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "recover",
+			"threat": true,
+			"tick": 760
+		},
+		{
+			"counter": 5,
+			"gap": 1.16538465023041,
+			"guard": 6,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "recover",
+			"threat": true,
+			"tick": 770
+		},
+		{
+			"counter": 5,
+			"gap": 1.17675268650055,
+			"guard": 7,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "guard",
+			"threat": false,
+			"tick": 780
+		},
+		{
+			"counter": 5,
+			"gap": 1.17964684963226,
+			"guard": 7,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "guard",
+			"threat": true,
+			"tick": 790
+		},
+		{
+			"counter": 6,
+			"gap": 1.21227407455444,
+			"guard": 7,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "windup",
+			"threat": false,
+			"tick": 800
+		},
+		{
+			"counter": 6,
+			"gap": 1.21227407455444,
+			"guard": 7,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "windup",
+			"threat": false,
+			"tick": 810
+		},
+		{
+			"counter": 6,
+			"gap": 1.21227407455444,
+			"guard": 7,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "windup",
+			"threat": false,
+			"tick": 820
+		},
+		{
+			"counter": 6,
+			"gap": 1.21227407455444,
+			"guard": 7,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "windup",
+			"threat": false,
+			"tick": 830
+		},
+		{
+			"counter": 6,
+			"gap": 1.09378385543823,
+			"guard": 7,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "strike",
+			"threat": false,
+			"tick": 840
+		},
+		{
+			"counter": 6,
+			"gap": 1.08914685249329,
+			"guard": 7,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "recover",
+			"threat": false,
+			"tick": 850
+		},
+		{
+			"counter": 6,
+			"gap": 1.08849060535431,
+			"guard": 8,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "guard",
+			"threat": false,
+			"tick": 860
+		},
+		{
+			"counter": 6,
+			"gap": 1.08532464504242,
+			"guard": 8,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "guard",
+			"threat": false,
+			"tick": 870
+		},
+		{
+			"counter": 6,
+			"gap": 1.08389091491699,
+			"guard": 8,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "guard",
+			"threat": false,
+			"tick": 880
+		},
+		{
+			"counter": 6,
+			"gap": 1.08934926986694,
+			"guard": 8,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "guard",
+			"threat": false,
+			"tick": 890
+		},
+		{
+			"counter": 6,
+			"gap": 1.08443021774292,
+			"guard": 8,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "guard",
+			"threat": false,
+			"tick": 900
+		},
+		{
+			"counter": 6,
+			"gap": 1.08479678630829,
+			"guard": 8,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "recover",
+			"threat": false,
+			"tick": 910
+		},
+		{
+			"counter": 6,
+			"gap": 1.08367931842804,
+			"guard": 9,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "guard",
+			"threat": false,
+			"tick": 920
+		},
+		{
+			"counter": 6,
+			"gap": 1.21261954307556,
+			"guard": 9,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "guard",
+			"threat": false,
+			"tick": 930
+		},
+		{
+			"counter": 7,
+			"gap": 1.23477566242218,
+			"guard": 9,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "windup",
+			"threat": true,
+			"tick": 940
+		},
+		{
+			"counter": 7,
+			"gap": 1.23477566242218,
+			"guard": 9,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "windup",
+			"threat": true,
+			"tick": 950
+		},
+		{
+			"counter": 7,
+			"gap": 1.23477566242218,
+			"guard": 9,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 81.6732044275757,
+			"state": "windup",
+			"threat": false,
+			"tick": 960
+		},
+		{
+			"counter": 7,
+			"gap": 1.14948058128357,
+			"guard": 9,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 79.6097765688879,
+			"state": "strike",
+			"threat": true,
+			"tick": 970
+		},
+		{
+			"counter": 7,
+			"gap": 1.09707188606262,
+			"guard": 9,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 79.6097765688879,
+			"state": "strike",
+			"threat": false,
+			"tick": 980
+		},
+		{
+			"counter": 7,
+			"gap": 1.08728134632111,
+			"guard": 9,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 79.6097765688879,
+			"state": "follow",
+			"threat": false,
+			"tick": 990
+		},
+		{
+			"counter": 7,
+			"gap": 1.08728134632111,
+			"guard": 9,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 79.6097765688879,
+			"state": "follow",
+			"threat": false,
+			"tick": 1000
+		},
+		{
+			"counter": 7,
+			"gap": 1.2115284204483,
+			"guard": 9,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 79.6097765688879,
+			"state": "recover",
+			"threat": false,
+			"tick": 1010
+		},
+		{
+			"counter": 7,
+			"gap": 1.25327730178833,
+			"guard": 9,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 79.6097765688879,
+			"state": "recover",
+			"threat": false,
+			"tick": 1020
+		},
+		{
+			"counter": 7,
+			"gap": 1.25144648551941,
+			"guard": 9,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 79.6097765688879,
+			"state": "approach",
+			"threat": false,
+			"tick": 1030
+		},
+		{
+			"counter": 7,
+			"gap": 1.24617791175842,
+			"guard": 9,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 79.6097765688879,
+			"state": "approach",
+			"threat": false,
+			"tick": 1040
+		},
+		{
+			"counter": 7,
+			"gap": 1.24314188957214,
+			"guard": 9,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 79.6097765688879,
+			"state": "approach",
+			"threat": false,
+			"tick": 1050
+		},
+		{
+			"counter": 7,
+			"gap": 1.24217653274536,
+			"guard": 9,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 79.6097765688879,
+			"state": "windup",
+			"threat": false,
+			"tick": 1060
+		},
+		{
+			"counter": 7,
+			"gap": 1.24217653274536,
+			"guard": 9,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 79.6097765688879,
+			"state": "windup",
+			"threat": false,
+			"tick": 1070
+		},
+		{
+			"counter": 7,
+			"gap": 1.24217653274536,
+			"guard": 9,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 79.6097765688879,
+			"state": "windup",
+			"threat": false,
+			"tick": 1080
+		},
+		{
+			"counter": 7,
+			"gap": 1.1633061170578,
+			"guard": 9,
+			"npc_hp": 75.1288065792934,
+			"player_hp": 79.6097765688879,
+			"state": "strike",
+			"threat": false,
+			"tick": 1090
+		}
+	],
+	"scope": "Initial positions and rack equipment only. Real mouse strokes, autonomous opponent motion, default HP/damage/armor; no health or contact injection.",
+	"swings": 9
+}

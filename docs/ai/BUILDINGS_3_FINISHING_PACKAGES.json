@@ -1,0 +1,13 @@
+{
+  "schema": "mafiozi.buildings-handoff-finishing/v1",
+  "date": "2026-10-03",
+  "source_thread_id": "01a0f45b-ed29-7883-b93a-1d6daca19bae",
+  "successor_thread_id": "01a0ff0d-b226-7e93-bef3-6af3b004db5c",
+  "new_production_tasks_in_source_thread": false,
+  "engines": "OFF_NO_SLOT",
+  "packages": [
+    {"owner": "/root/building_catalog", "path": "outputs/buildings3_modular_20261003/catalog/revision2", "status": "SOURCE_FROZEN_OWNER_IDLE", "manifest_sha256": "c706aac245aa192918cd3fa4f9b2991515af3cd76f149f221f4084cbd0970e0f", "scope": "104 IDs retained; 1831 rooms, 1599 interior doors, 3198 signs, 20 plans. 14288 source checks, sampled door SAT and floor flood clean; 103 compile at109–681 rigid bodies. Large bank35x27x3+basement BLOCKED921>768; diagnostic rejected geometry is not runtime admission. All104 placements BLOCKED for full envelope revalidation,30 depths changed. Compact-house architecture has excessive empty halls and remains QUALITY_PENDING; standalone SVG text overflow pending. Native outdoor/vertical stairs/physics/art/performance NOT_RUN; grid0.15m radius0.32m doors90 and nearest endpoint limitations in README."},
+    {"owner": "/root/modular_structure", "path": "outputs/buildings3_modular_20261003/structure/revision2", "status": "SOURCE_FROZEN_OWNER_IDLE", "manifest_sha256": "29c212bc941574ad6c4f6ce5a985af0e63adb30a0bf576b91f7ab4a85c32db2f", "scope": "Recipe preflight, bounded collapse, hinge/clearance, idle door updates; 104 old catalog profiles, 10 layout intersections remain pending catalog2; native NOT_RUN"},
+    {"owner": "/root/c4_passage", "path": "outputs/buildings3_palazzo_foundation_20261003", "status": "SOURCE_FROZEN_OWNER_IDLE", "manifest_sha256": "19883e43859707ba1a9ededbf664316f311b8f4c978f5e3929e3f49895ab02b1", "scope": "Separate future source candidate for a destructible Palazzo foundation; current47 and frozen passageQA remain unchanged; native NOT_RUN"}
+  ]
+}

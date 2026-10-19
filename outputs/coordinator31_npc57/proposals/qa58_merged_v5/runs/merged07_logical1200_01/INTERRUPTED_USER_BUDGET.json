@@ -1,0 +1,11 @@
+{
+  "pid": 28180,
+  "requested_by": "User via root: 6 percent limit, preserve combined main",
+  "scope": "Stop only exact owned native headless child. Ordinary user game untouched.",
+  "creation_filetime": "134365566463034478",
+  "status": "INTERRUPTED_USER_BUDGET",
+  "passed": false,
+  "lease_id": "81837c667cbe49dfaf82af2b4ee68f5b",
+  "parent_pid": 27968,
+  "utc": "2026-10-15T16:53:03.7341242Z"
+}

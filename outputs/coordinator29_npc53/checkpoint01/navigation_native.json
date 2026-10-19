@@ -1,0 +1,30 @@
+{
+  "variant": "candidate",
+  "import_exit": 0,
+  "source_drift": [],
+  "cases": [
+    {
+      "case": "route_fixture29",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "case": "surface_fixture28",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "case": "queue_fixture29",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "case": "physical_queue_fixture29",
+      "exit": 0,
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "gameplay_performance_accepted": false,
+  "user_processes_closed": false
+}

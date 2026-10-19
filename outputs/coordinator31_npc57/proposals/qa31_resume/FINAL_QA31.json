@@ -1,0 +1,322 @@
+{
+  "schema": "mafiozi.qa31.final-handoff/v1",
+  "final_functional_passed": true,
+  "matched_perf_gates_passed": true,
+  "performance_accepted": false,
+  "release_authority": "Root coordinator; QA reports evidence only",
+  "complete_source_matches_integration_merged02": {
+    "merged600_02": true,
+    "merged57_perf1080_03": true
+  },
+  "functional": {
+    "run": "merged600_02",
+    "passed": true,
+    "mode": "headless",
+    "seconds": 600.0,
+    "source_pin_count": 1130,
+    "source_unchanged": true,
+    "source_control_harness_drift": {
+      "source_drift": [],
+      "control_drift": [],
+      "harness_drift": []
+    },
+    "stderr_bytes": 0,
+    "moved_residents": 10,
+    "max_required_motion_idle_s": 4.029,
+    "max_queue_idle_s": 9.011,
+    "physical_ticks": 36001,
+    "render_frames": 86893,
+    "completion_deltas": {
+      "shop": 51,
+      "walk": 271,
+      "bank": 0,
+      "hospital": 0,
+      "restaurant": 0
+    },
+    "quarter_median_deltas": {
+      "os_trends": {
+        "rss_bytes": 40960.0,
+        "private_bytes": 0.0
+      },
+      "native_trends": {
+        "static_memory": 3272262.0,
+        "objects": 417.0,
+        "nodes": 0.0,
+        "orphans": 0.0,
+        "resources": 0.0,
+        "draw_calls": 0.0,
+        "primitives": 0.0,
+        "video_memory": 0.0,
+        "texture_memory": 0.0,
+        "buffer_memory": 0.0,
+        "process_ms": -0.12149999999999994,
+        "physics_ms": -0.2699999999999996,
+        "route_jobs": 0.0,
+        "route_nodes": 0.0,
+        "route_heap": 0.0,
+        "nav_pending": 0.0,
+        "nav_guides": 0.0,
+        "registry_entries": 0.0,
+        "service_keys": 1.0
+      }
+    },
+    "log_counts": {
+      "service_planning_work_limit30": 2
+    },
+    "evidence_sha256": {
+      "RUN.json": "1710b0d16376eb59c9981121d3c4b70c627e08896d35a68c427190592e6137df",
+      "SOURCE.json": "e8fd3009264244f4b145944519c6555d6af69d0e213168464ed2d6e1e7d7a1a5",
+      "SOURCE_AFTER.json": "e8fd3009264244f4b145944519c6555d6af69d0e213168464ed2d6e1e7d7a1a5",
+      "HARNESS.json": "2db37b93af918011452fd1f3059487af488f4efac50472161dc48b4d177e3c15",
+      "HARNESS.zip": "5c1e1599cc803c1ee08f5b3734ca3f2a3e9b79fa448ee56a430d74a00778d176",
+      "HARNESS_ARCHIVE.json": "4f456095185038afc25ba3453956a6c864dc45892e85bbb65ca9084da20b9791",
+      "MASS30.json": "99153daa80f147867fbb55d6558439962ef52425eff208dd4b23362191ba1576",
+      "SOAK31.json": "bcfa3697a7e8f6f8d56ab328bd8b707e2d2945a22dbca7d911cd3a579b8b3bd3",
+      "ANALYSIS.json": "30f91f81303a829f4181ecf8125637ad07e6283c3050d20103749e7cc280546d"
+    }
+  },
+  "failed_pre_fix": {
+    "run": "merged600_01",
+    "passed": false,
+    "mode": "headless",
+    "seconds": 600.0,
+    "source_pin_count": 1130,
+    "source_unchanged": true,
+    "source_control_harness_drift": {
+      "source_drift": [],
+      "control_drift": [],
+      "harness_drift": []
+    },
+    "stderr_bytes": 0,
+    "moved_residents": 10,
+    "max_required_motion_idle_s": 263.95,
+    "max_queue_idle_s": 270.962,
+    "physical_ticks": 36000,
+    "render_frames": 86821,
+    "completion_deltas": {
+      "shop": 35,
+      "walk": 232,
+      "bank": 0,
+      "hospital": 0,
+      "restaurant": 0
+    },
+    "quarter_median_deltas": {
+      "os_trends": {
+        "rss_bytes": -14602240.0,
+        "private_bytes": 0.0
+      },
+      "native_trends": {
+        "static_memory": 3514092.0,
+        "objects": 364.0,
+        "nodes": 0.0,
+        "orphans": 0.0,
+        "resources": 0.0,
+        "draw_calls": 0.0,
+        "primitives": 0.0,
+        "video_memory": 0.0,
+        "texture_memory": 0.0,
+        "buffer_memory": 0.0,
+        "process_ms": -0.19400000000000017,
+        "physics_ms": -0.6099999999999994,
+        "route_jobs": 1.0,
+        "route_nodes": 333.0,
+        "route_heap": 89.0,
+        "nav_pending": 0.0,
+        "nav_guides": 0.0,
+        "registry_entries": 0.0,
+        "service_keys": 0.0
+      }
+    },
+    "log_counts": {
+      "service_planning_work_limit30": 42,
+      "exit_blocked": 40
+    },
+    "evidence_sha256": {
+      "RUN.json": "ce2c80044365ca70d3abdb53cdfddaff0e177071bc805e29e2fce803e835e30a",
+      "SOURCE.json": "dc201f5a5bee665f31581b117ec3f60b6d5970824e0d809ca2f7dfd1554ac448",
+      "SOURCE_AFTER.json": "dc201f5a5bee665f31581b117ec3f60b6d5970824e0d809ca2f7dfd1554ac448",
+      "HARNESS.json": "c6533e4a82e21e3b1fa8d3272d5cf63c7e647e0a2c75f34a2111d16efb85eceb",
+      "HARNESS.zip": "bd2acd7aed581db2842ba5b2e615302691ce93da70a231cbbfc00994250eaf0b",
+      "HARNESS_ARCHIVE.json": "67dffa1e3fd56e36bf584292a3e564af4b1635a72fd398c767be2fd72471d2d3",
+      "MASS30.json": "4483e1d3029bba2dac8e9b4e81dfb5181c6e89d5b9d44cbf03597b7c26be0fd9",
+      "SOAK31.json": "413d458f691c37425afcadff9733c7ff67aa4e8f6674ee23917af36b2f147406",
+      "ANALYSIS.json": "0e4a48a9c1b431e1c5544c7d5d1d3c70987c50267e83ca78521f772b2458e567"
+    }
+  },
+  "baseline_perf": {
+    "run": "baseline56_perf1080_03",
+    "passed": true,
+    "mode": "perf",
+    "seconds": 90.0,
+    "source_pin_count": 1129,
+    "source_unchanged": true,
+    "source_control_harness_drift": {
+      "source_drift": [],
+      "control_drift": [],
+      "harness_drift": []
+    },
+    "stderr_bytes": 0,
+    "moved_residents": 10,
+    "max_required_motion_idle_s": 4.038,
+    "max_queue_idle_s": 0.0,
+    "physical_ticks": 5401,
+    "render_frames": 10293,
+    "completion_deltas": {
+      "shop": 2,
+      "walk": 51,
+      "bank": 0,
+      "hospital": 0,
+      "restaurant": 0
+    },
+    "quarter_median_deltas": {
+      "os_trends": {
+        "rss_bytes": 36864.0,
+        "private_bytes": -28672.0
+      },
+      "native_trends": {
+        "static_memory": 1807864.0,
+        "objects": 336.0,
+        "nodes": 1.0,
+        "orphans": 0.0,
+        "resources": 0.0,
+        "draw_calls": -47.5,
+        "primitives": -5709.0,
+        "video_memory": 1048576.0,
+        "texture_memory": 1048576.0,
+        "buffer_memory": 0.0,
+        "process_ms": 0.04949999999999921,
+        "physics_ms": 0.9260000000000019,
+        "route_jobs": 0.0,
+        "route_nodes": 0.0,
+        "route_heap": 0.0,
+        "nav_pending": 0.0,
+        "nav_guides": 0.0,
+        "registry_entries": 0.0,
+        "service_keys": 0.0
+      }
+    },
+    "log_counts": {},
+    "evidence_sha256": {
+      "RUN.json": "dd2bad6f6264a80c4ac7bb7660e64817c0793bec9e4a2a0fd4814af6e0854219",
+      "SOURCE.json": "e7275d5b3a17e88dd50186c30c1c75511e6938a7efd7c206efcc7e921447ba13",
+      "SOURCE_AFTER.json": "e7275d5b3a17e88dd50186c30c1c75511e6938a7efd7c206efcc7e921447ba13",
+      "HARNESS.json": "eb794cc8ade2cfef0a51b985ecc42b2f15660f546e5ffdd7111107074efa57a9",
+      "HARNESS.zip": "28fd50376ecffe460ed09f6af3f86a1cc3036e2062f3b5ea16f6dbbf3c617135",
+      "HARNESS_ARCHIVE.json": "890683ed2af63e651839542d37702b82f9deb21009f6d89cc96cff7339831516",
+      "MASS30.json": "9ce421f3e10990a59cf392906abdb57d10732b52551ff8789eaa4e56906fb195",
+      "SOAK31.json": "e196b6acc4a199dcc4fcbe0603d648154665bb2fa4e4551469c906f46b13d17c",
+      "ANALYSIS.json": "468105d9ebd75c77a41e995c766da3d66aad4ef9eef4464fdf15083eec30d6cd"
+    }
+  },
+  "candidate_perf": {
+    "run": "merged57_perf1080_03",
+    "passed": true,
+    "mode": "perf",
+    "seconds": 90.0,
+    "source_pin_count": 1130,
+    "source_unchanged": true,
+    "source_control_harness_drift": {
+      "source_drift": [],
+      "control_drift": [],
+      "harness_drift": []
+    },
+    "stderr_bytes": 0,
+    "moved_residents": 10,
+    "max_required_motion_idle_s": 3.032,
+    "max_queue_idle_s": 0.0,
+    "physical_ticks": 5401,
+    "render_frames": 9468,
+    "completion_deltas": {
+      "shop": 3,
+      "walk": 27,
+      "bank": 0,
+      "hospital": 0,
+      "restaurant": 0
+    },
+    "quarter_median_deltas": {
+      "os_trends": {
+        "rss_bytes": -716800.0,
+        "private_bytes": -32768.0
+      },
+      "native_trends": {
+        "static_memory": 1779535.0,
+        "objects": 251.5,
+        "nodes": 0.0,
+        "orphans": 0.0,
+        "resources": 0.0,
+        "draw_calls": -42.5,
+        "primitives": -5471.5,
+        "video_memory": 1076752.0,
+        "texture_memory": 1048576.0,
+        "buffer_memory": 28160.0,
+        "process_ms": -0.1509999999999998,
+        "physics_ms": -0.2364999999999995,
+        "route_jobs": 0.0,
+        "route_nodes": 0.0,
+        "route_heap": 0.0,
+        "nav_pending": 0.0,
+        "nav_guides": 0.0,
+        "registry_entries": 0.0,
+        "service_keys": 0.0
+      }
+    },
+    "log_counts": {},
+    "evidence_sha256": {
+      "RUN.json": "d341490945fab735e6982cc4cfdb3f2a67ab54b770224550f84b4a3c6a07f8b6",
+      "SOURCE.json": "e8fd3009264244f4b145944519c6555d6af69d0e213168464ed2d6e1e7d7a1a5",
+      "SOURCE_AFTER.json": "e8fd3009264244f4b145944519c6555d6af69d0e213168464ed2d6e1e7d7a1a5",
+      "HARNESS.json": "eb794cc8ade2cfef0a51b985ecc42b2f15660f546e5ffdd7111107074efa57a9",
+      "HARNESS.zip": "039f6d4fc92ae9c9b039eeb7cea786134e3e72faef1acb2121bcccfda9540851",
+      "HARNESS_ARCHIVE.json": "5224d5372179cc5ee936929b89904fb081f0d695c58c3d7fd35c062b3df2a95a",
+      "MASS30.json": "843d8bc10e5e1a5df86b97cacb3d6d4a0f6d2b3f7567575b9f9ff4b55a99e34c",
+      "SOAK31.json": "0898c080bf4495b12c5a2db575473b92c9ec87c43fbf20f49a4b3e439bb9e0fc",
+      "ANALYSIS.json": "e05c9d87a1dc60949664d10b76712c47cfeb0b3c8f9d2e637612591965fe0a5d"
+    }
+  },
+  "perf": {
+    "baseline": {
+      "mean_fps": 114.35776073838872,
+      "p95_ms": 15.007,
+      "p99_ms": 16.324,
+      "early_third_p95_ms": 14.704,
+      "late_third_p95_ms": 15.299
+    },
+    "candidate": {
+      "mean_fps": 105.19616852177317,
+      "p95_ms": 16.036,
+      "p99_ms": 18.094,
+      "early_third_p95_ms": 15.532,
+      "late_third_p95_ms": 16.373
+    }
+  },
+  "perf_gates": {
+    "both_native_and_liveness_passed": true,
+    "both_exclusive_perf": true,
+    "same_camera_and_resolution": true,
+    "same_harness": true,
+    "same_editor_environment": true,
+    "same_timing": true,
+    "both_ten_residents_and_twelve_staff": true,
+    "p95_no_material_regression": true,
+    "p99_no_material_regression": true,
+    "p95_within_60fps_budget": true,
+    "mean_fps_preserved": true,
+    "no_material_late_slowdown": true
+  },
+  "perf_changes_percent": {
+    "mean_fps": -8.011342787285002,
+    "p95_ms": 6.85680015992538,
+    "p99_ms": 10.842930654251415
+  },
+  "perf_comparison_sha256": "7588abe3137cdfd256e1298e51e9390db7349b6f8f60dc0e78153268e4e0eb17",
+  "presentation_contract": "V4 QA-only native Window/Display/root texture/logical viewport/content target all 1920x1080, content factor1, stable before warmup and matched camera; no game source or NPC state mutation.",
+  "limitations": [
+    "Natural RNG retained; final600 did not select the historical failing venue1559777848406. Targeted native services fixtures provide that geometry coverage separately.",
+    "Natural final600 observed shopping and walking, not bank/hospital/restaurant; targeted service acceptance remains separate.",
+    "No threat was injected by the observer; attention/threat fixtures remain separate.",
+    "Headless600 timing is functional only; only the exclusive90-second matched V4 pair is performance evidence.",
+    "Candidate mean FPS is 8 percent lower in this pair, within unchanged gates; no acceleration is claimed.",
+    "Bounded observer allocations and finite duration prevent proving absence of leaks. Node/resource counts and OS memory remain recorded.",
+    "Earlier perf1080_01 wrong resolution and perf1080_02 startup guard failures are preserved, not reclassified."
+  ]
+}

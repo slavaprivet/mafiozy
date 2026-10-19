@@ -1,0 +1,254 @@
+{
+  "source": {
+    "project.godot": "4e6002b7fce85341e22a426f08cb967cedb80f7ae44aefd1f13c88e4c6cdf87e",
+    "proof31.gd": "942c8299f4db1107f8b49db675398a118ad9f4ebb7c7b60162ebaf6dff7a372e",
+    "addons/godot_state_charts/all_of_guard.gd": "56aa2e228df9c4231af5dc36076c8a1ceab5ee9e7e66574439f479156489ab9c",
+    "addons/godot_state_charts/all_of_guard.svg": "33f1b088aa2aed794e627d6094df2ed1d88552aa5605ab4c17104806fd9e4d2b",
+    "addons/godot_state_charts/animation_player_state.gd": "0dad168250b270b4b05334da3138bafcbe4f5f7582d57d4d7ffba550b1363a37",
+    "addons/godot_state_charts/animation_player_state.svg": "d6e7b04bda3d022c1568ff4ea4d427c76bef0e96782ff00aa99c0a8e9b1806c1",
+    "addons/godot_state_charts/animation_tree_state.gd": "4cc0d9a64c00a7848379836bfafc04b5aea07730c598259fb1282a19fe37acc4",
+    "addons/godot_state_charts/animation_tree_state.svg": "5f9342f2df79f1a213821991ebdfda2cfde54b5a2be95d8004070b747381e08a",
+    "addons/godot_state_charts/any_of_guard.gd": "ec577bf96952adcdbb0b95e1c2140a9bb4c08ed7376f3bcca15dc36a6015771e",
+    "addons/godot_state_charts/any_of_guard.svg": "ee8c529e2bf874adeb3524eabbe2e71d1207667179631d282344b659aaf93efb",
+    "addons/godot_state_charts/atomic_state.gd": "6593095bb092fe2d5722777f86dfdc36e2b1798d2fd1b14bf9d8d499d5438cf7",
+    "addons/godot_state_charts/atomic_state.svg": "ef4e39a812489e6bcc3c271375aab93883096fb22e0f8bbd1685f4b5416b19e1",
+    "addons/godot_state_charts/compound_state.gd": "fd90df70a3c5237805bd206e7a1056ee14327e0ab51bb1bc64d4de977a694b1f",
+    "addons/godot_state_charts/compound_state.svg": "94369b93e952ee21de1255a356b2cc99dce88a8ccd757f017b54038c200c3583",
+    "addons/godot_state_charts/debug_util.gd": "58156b5309a4f369d4430b9a9a7112614b071f4ab6dcddb0745cb544ac492d46",
+    "addons/godot_state_charts/expression_guard.gd": "7f8d3a42d542c6decf14e0b7c63e9f7eea63fd7bdf7c4bdb89933746f4250647",
+    "addons/godot_state_charts/expression_guard.svg": "fb285879316ba733826aaa583560041484f2ef6e7b3bd19998a67c6d58a6fab3",
+    "addons/godot_state_charts/expression_util.gd": "8e2e785fb5708ae52eebf0e356f762fd9a46502aff5e9d37245f8772b9e96098",
+    "addons/godot_state_charts/godot_state_charts.gd": "c8318f994e337b17d0bf1880a7def20ae1bdec9a389464d26c5ec3ddba2d02b0",
+    "addons/godot_state_charts/guard.gd": "c20fc007c7f60ec27825d548cc37f89ba44cfbf8592aa59c73522397a7bb077d",
+    "addons/godot_state_charts/guard.svg": "f32529c83a7c67f74f011f42fafe4927f7048f64725232f67f1fc035969715c3",
+    "addons/godot_state_charts/history_state.gd": "da4d77cf5d96493ebbcd48ff0b031cc67a7bd2cd48f58e81e7d391b90f7e4a56",
+    "addons/godot_state_charts/history_state.svg": "49e585a5b46b0d185330c6b853f1c0b392a05e2b89707641de564908506b0297",
+    "addons/godot_state_charts/LICENSE": "ff750b7a35accad94d9548e5d040da6df9b328a6eaec2918d217022bcd8276d1",
+    "addons/godot_state_charts/not_guard.gd": "7751cd6bab0f246b5bace32faefe826e859b32c97e9794e563f17fe0f6298b8a",
+    "addons/godot_state_charts/not_guard.svg": "60a3f0e3172ade3b544611ef3ebed237b0aab6f1e5bddd95c8bda474bb9fc41d",
+    "addons/godot_state_charts/parallel_state.gd": "511e74419613205a55442fdf12a87b7a372b4229a396db0d3a773ee863255352",
+    "addons/godot_state_charts/parallel_state.svg": "0347d4370abdbe70c20fa7bcb9d70661b82397293879a49f93ecf583d8b6c637",
+    "addons/godot_state_charts/plugin.cfg": "9c0f473854dc0bce53d5563a73ef530949da919995451a208c827e20c5b078dd",
+    "addons/godot_state_charts/saved_state.gd": "ae56555bfb47f0f3262457f804685933f07878fa72d084904c14dc908f89b8ba",
+    "addons/godot_state_charts/serialized_state_chart.gd": "f219e38f83ec9d78b7ec0d7d29d41df4036404227f86e073ea5f86c7f4f4912f",
+    "addons/godot_state_charts/serialized_state_chart_state.gd": "8a016099ea2a00c1dd827f599068665a52c9bc134b11867c48a7fffb3095b09f",
+    "addons/godot_state_charts/state_chart.gd": "68fe24135ab890e1988fd0341995e773d711745e487d6cdefaa388aeb200bc9f",
+    "addons/godot_state_charts/state_chart.svg": "5ba066a84ebe06e3e5a89fdcc2ccb847317944cd0826b4b1bf0dc4e48f238485",
+    "addons/godot_state_charts/state_chart_serializer.gd": "ecacca97a5642570b7105fd0830017e634e1324b530bef9408879cf605ff44f7",
+    "addons/godot_state_charts/state_chart_state.gd": "de4df0b29e50e939069c3d46a9f94df5913db4e6e26d936c6594dbd360a86265",
+    "addons/godot_state_charts/state_is_active_guard.gd": "ba5d97609434ae0b25b25c81a9dea81a03656959bd2b88429224b34247a8a56c",
+    "addons/godot_state_charts/state_is_active_guard.svg": "b39cca1c5c482371e02753126f861a4bd6bc94e1d6fd9e36a121aac8fa96bc28",
+    "addons/godot_state_charts/toggle_sidebar.svg": "4531be7bbbfdcef1028f44e805e2c2e673fccb2e25fea16f097c687f41c21978",
+    "addons/godot_state_charts/transition.gd": "0628773979f2a8c5fddca7277e916fcfc254b18b7cf2ab24dfae25d37aa0f89f",
+    "addons/godot_state_charts/transition.svg": "9b110fb69ee8f74e03677af1eb68cbe13e04aed2d8497029e7333e7708bbef06",
+    "addons/godot_state_charts/utilities/debugger_history.gd": "e9db96a8e2f612ebff12adc89d2a031a83c9f427f97dd0ceeb1b0bfc5e76b397",
+    "addons/godot_state_charts/utilities/editor_sidebar.gd": "07944825a55ded21793fa4d6901692195f95f4bb8beb132609606ccb84b920cd",
+    "addons/godot_state_charts/utilities/editor_sidebar.tscn": "98f2c9715d68e880f964826d9a09865f85cca76385c71657a8d2793b82010c26",
+    "addons/godot_state_charts/utilities/ring_buffer.gd": "bac56ccaf353b17677a7dc70ed8aae840cdcd65223892ac077b45fc969989b29",
+    "addons/godot_state_charts/utilities/state_chart_debugger.gd": "eec99a1e67fadaada0ae11341e531d0cc9a1aed1035b96a94eace88f08498075",
+    "addons/godot_state_charts/utilities/state_chart_debugger.svg": "8058ee031acaca50f0642031b53c522e7d48ae6b7f65ed5096d552db77a551da",
+    "addons/godot_state_charts/utilities/state_chart_debugger.tscn": "60341919a1aa7ad8eac4db3473063ed4d0e6c47165dd93782e2fcf9daa11c145",
+    "addons/godot_state_charts/utilities/state_chart_util.gd": "af91f299549992549441217dbc93a87c8eefac150d5cf19a27bafd36c316ea56",
+    "addons/godot_state_charts/utilities/editor_debugger/editor_debugger.gd": "ee740f3c46b6df9be9e48613573cc47fa7e8dbfb720735c158ac74dd1c0663aa",
+    "addons/godot_state_charts/utilities/editor_debugger/editor_debugger.tscn": "e1e9da4a2d7578dc6c29414d2941f9df47b866cdd62546d8cf1d3db68a55bc42",
+    "addons/godot_state_charts/utilities/editor_debugger/editor_debugger_message.gd": "130c62d58fe9f9adfb5ffc720776b3bc119f5cc67d01f087a1cd673a88d70f0f",
+    "addons/godot_state_charts/utilities/editor_debugger/editor_debugger_plugin.gd": "043804c83319c5faea43a7d82854fd5cd19ebbbaa1a6a045850e7f200bc13caf",
+    "addons/godot_state_charts/utilities/editor_debugger/editor_debugger_remote.gd": "1859c5fb1caebb585ba5f1bdb24d6b73d5e06bd30b5c76567e223fd453e78c9f",
+    "addons/godot_state_charts/utilities/editor_debugger/editor_debugger_settings_propagator.gd": "133b5d1bb5b8e4113fe8c82c27efba76be9b14e9c66cb736dd6e838d6cfcc371",
+    "addons/godot_state_charts/utilities/editor_debugger/editor_debugger_state_info.gd": "6f5037f1b51e3ebe813a1b53b225e99483158b4a6c5b72577874a38dd4eb96b5",
+    "addons/godot_state_charts/utilities/event_editor/event_editor.gd": "86fade8cc02b75216dce8d45d28b6e2c10ddc9b45d863fa5a39ac1a773709a6b",
+    "addons/godot_state_charts/utilities/event_editor/event_inspector_plugin.gd": "69f8348e3ff3ba7ccea7e4239b9a4cf29b6b549c0544585b1fae38a82d723761",
+    "addons/godot_state_charts/utilities/event_refactor/event_refactor.gd": "7fc19414fbfbaab0180056b85bc799e45d408c263b575e435b5c04cc15443d8c",
+    "addons/godot_state_charts/utilities/event_refactor/event_refactor.tscn": "c5481bd10175fd7cb74cd1b055c78eab620c57abd1c5af7f1d25bec8bd2de6a7"
+  },
+  "control": {
+    "godot/current_version.json": "6742c1ca56a65f2b752e6a40c6d692382ecb4eabf088c350c84ba50b4d32da9c"
+  },
+  "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "scheduler_sha256": "adcb834390e476edd118f62d8e3e5b391c6ebc97925391e66beeb80430ba8373",
+  "harness_sha256": "b6cec095c9ad559fb76f5a328b42a82a54629c0950f531b74c83869d54967c5e",
+  "runs": [
+    {
+      "label": "import",
+      "command": [
+        "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "--headless",
+        "--path",
+        "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\project",
+        "--editor",
+        "--import",
+        "--quit"
+      ],
+      "lease": {
+        "id": "2ae1c5180b93467c86614d50f4fc3197",
+        "owner": {
+          "pid": 17704,
+          "creation_filetime": "134365479330572374"
+        },
+        "mode": "headless",
+        "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\project",
+        "access": "write",
+        "children": [
+          {
+            "pid": 3200,
+            "creation_filetime": "134365479345995417",
+            "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\project --editor --import --quit",
+            "command": [
+              "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+              "--headless",
+              "--path",
+              "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\project",
+              "--editor",
+              "--import",
+              "--quit"
+            ],
+            "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+            "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+            "mode": "headless",
+            "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\project",
+            "affinity_mask": 3,
+            "logical_cpu_limit": 2
+          }
+        ],
+        "deadline": 1016096.6006232,
+        "queued_at": 1016036.6006232,
+        "ticket": 1763,
+        "inventory_before": [
+          {
+            "pid": 15100,
+            "parent_pid": 26612,
+            "creation_filetime": "134365453872935605",
+            "name": "Godot_v4.7.2-stable_win64.exe",
+            "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_release57\\game\" --script \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_release57\\bootstrap_play57.gd\" -- \"--receipt-dir=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261015T134307267Z\" \"--release-title=15.10 · Проходы и реакции жителей · версия57\" \"--release-revision=s01-20261015-residents57\" --city-simple-hospital=1 --city-plaza-support-plate=1 --city-medical-threshold=0.5 --city-energy-drain-per-m=0.05 --city-energy-threshold=0.2 --city-palazzo-clones=1 --city-clone-step=22 --city-town=1 --city-door-free-entry=1 --city-site-door-physics=1 --city-clone-door-swing=1 --city-needs=1 --city-shop-release=1 --city-nav-pump-budget-us=4000 --city-nav-pump-every=1 --city-daily-slice=286 --city-sim-stride=1 --city-sim-one-per-frame=0 --city-walk-pose=1 --city-pose-far-cap=512 --city-clear-cache=1 --city-timing=0 --city-health-lease --city-hospital-marker=0 --city-venue-sites29=1 --city-hp=100 --city-qa=10 --city-venue-staff29=1 --city-physical-dispatch30=1 --city-multi-lifecycle30=1 --city-threat30=1",
+            "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+            "title": "Мафиози — 15.10 · Проходы и реакции жителей · версия57 (DEBUG)"
+          }
+        ],
+        "editor_identities": [],
+        "queue_wait_seconds": 0.587208200013265
+      },
+      "child": {
+        "pid": 3200,
+        "creation_filetime": "134365479345995417",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\project --editor --import --quit",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\project",
+          "--editor",
+          "--import",
+          "--quit"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\project",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      },
+      "exit_code": 0,
+      "seconds": 4.401996499975212
+    },
+    {
+      "label": "native",
+      "command": [
+        "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "--headless",
+        "--path",
+        "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\project",
+        "--script",
+        "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\project\\proof31.gd",
+        "--",
+        "--out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\runs\\native02\\NATIVE.json"
+      ],
+      "lease": {
+        "id": "c1e9ce9f76ce4357b0f3f95bae1c42d4",
+        "owner": {
+          "pid": 17704,
+          "creation_filetime": "134365479330572374"
+        },
+        "mode": "headless",
+        "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\project",
+        "access": "read",
+        "children": [
+          {
+            "pid": 3716,
+            "creation_filetime": "134365479396612160",
+            "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\project --script C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\project\\proof31.gd -- --out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\runs\\native02\\NATIVE.json",
+            "command": [
+              "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+              "--headless",
+              "--path",
+              "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\project",
+              "--script",
+              "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\project\\proof31.gd",
+              "--",
+              "--out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\runs\\native02\\NATIVE.json"
+            ],
+            "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+            "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+            "mode": "headless",
+            "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\project",
+            "affinity_mask": 3,
+            "logical_cpu_limit": 2
+          }
+        ],
+        "deadline": 1016101.6163907,
+        "queued_at": 1016041.6163907,
+        "ticket": 1764,
+        "inventory_before": [
+          {
+            "pid": 15100,
+            "parent_pid": 26612,
+            "creation_filetime": "134365453872935605",
+            "name": "Godot_v4.7.2-stable_win64.exe",
+            "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_release57\\game\" --script \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_release57\\bootstrap_play57.gd\" -- \"--receipt-dir=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261015T134307267Z\" \"--release-title=15.10 · Проходы и реакции жителей · версия57\" \"--release-revision=s01-20261015-residents57\" --city-simple-hospital=1 --city-plaza-support-plate=1 --city-medical-threshold=0.5 --city-energy-drain-per-m=0.05 --city-energy-threshold=0.2 --city-palazzo-clones=1 --city-clone-step=22 --city-town=1 --city-door-free-entry=1 --city-site-door-physics=1 --city-clone-door-swing=1 --city-needs=1 --city-shop-release=1 --city-nav-pump-budget-us=4000 --city-nav-pump-every=1 --city-daily-slice=286 --city-sim-stride=1 --city-sim-one-per-frame=0 --city-walk-pose=1 --city-pose-far-cap=512 --city-clear-cache=1 --city-timing=0 --city-health-lease --city-hospital-marker=0 --city-venue-sites29=1 --city-hp=100 --city-qa=10 --city-venue-staff29=1 --city-physical-dispatch30=1 --city-multi-lifecycle30=1 --city-threat30=1",
+            "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+            "title": "Мафиози — 15.10 · Проходы и реакции жителей · версия57 (DEBUG)"
+          }
+        ],
+        "editor_identities": [],
+        "queue_wait_seconds": 0.6275609000585973
+      },
+      "child": {
+        "pid": 3716,
+        "creation_filetime": "134365479396612160",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\project --script C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\project\\proof31.gd -- --out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\runs\\native02\\NATIVE.json",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\project",
+          "--script",
+          "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\project\\proof31.gd",
+          "--",
+          "--out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\runs\\native02\\NATIVE.json"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator31_npc57\\proposals\\godot_addons31\\project",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      },
+      "exit_code": 0,
+      "seconds": 0.7659033000236377
+    }
+  ],
+  "passed": true,
+  "native_sha256": "9b898609c86b1225f8e8b52607ece911a51fdf0874493777a9009468aca42a91",
+  "checks": {
+    "all_10_initial_opening": true,
+    "bounded_timeout_for_two_blocked": true,
+    "eight_finish_or_resume_ordinary": true,
+    "exited_state_cancels_pending_timeout": true,
+    "five_cross_after_both_conditions": true,
+    "guard_refuses_closed_door": true,
+    "guard_refuses_occupied_inner": true,
+    "threat_interrupts_wait": true,
+    "trace_all_residents": true
+  },
+  "source_drift": false,
+  "control_drift": false
+}

@@ -1,0 +1,53 @@
+{
+  "schema": "mafiozi.transport-vehicle-debris-unique-points-experiment.v1",
+  "date": "2026-09-30",
+  "status": "physics-and-performance-rejected-do-not-adopt",
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/candidates/transport_vehicle_debris_unique_points.gd",
+      "bytes": 16800,
+      "sha256": "332e145cc726390cf80b11325cd7863c87e5b2d76e52ea946e0076a53026f91b"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_vehicle_debris_unique_points.gd",
+      "bytes": 12704,
+      "sha256": "d2b1379f7e6e8fe7ca9ff65d2ba138d67b9c57f05f96373921d596a4c48f4285"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_VEHICLE_DEBRIS_UNIQUE_POINTS_HANDOFF.md",
+      "bytes": 2755,
+      "sha256": "5a718c803f7835ca35cc77c921770ec39957715e3838a932a979ac8a085edae2"
+    }
+  ],
+  "baseline": {
+    "path": "godot/mafiozi_walk/scripts/transport/transport_vehicle_debris.gd",
+    "bytes": 15804,
+    "sha256": "1cf791ea4890c844b8c1072cdccca647b3b8255cec718afa7e96f80b9c2bba8f"
+  },
+  "verification": {
+    "godot": "4.7.2.stable.official.ed1daf0bf",
+    "result": "75/76 checks pass; physical natural-sleep acceptance fails after 900 frames",
+    "actual": "10 bodies / 76 hulls / 142948 visual vertices / 76 private meshes / 76 private materials / 29 source identities",
+    "collision_points": {
+      "baseline": 142948,
+      "candidate": 27298,
+      "exact_duplicates_removed": 115650,
+      "baseline_payload_bytes": 1715376,
+      "candidate_payload_bytes": 327576
+    },
+    "fidelity": "first-occurrence exact unique arrays and sampled support match, but native physical settlement does not"
+  },
+  "configure_us_20_alternating_pairs": {
+    "baseline_min_p50_p95_max": [100002, 110511, 117202, 119553],
+    "candidate_min_p50_p95_max": [99451, 106534, 118055, 130816]
+  },
+  "decision": {
+    "result": "REJECT",
+    "reason": "Only 3.6 percent median improvement, worse p95/max, roughly 107 ms configure remains, and actual native sleep fidelity fails."
+  },
+  "limits": [
+    "Point payload bytes are measured; attributable process/Jolt cooked-shape memory is not isolated.",
+    "Isolated headless CPU/physics only; no FPS, GPU, full-scene or LIVE claim.",
+    "No frozen runtime, production, source visual, damage pipeline or Git file changed."
+  ]
+}

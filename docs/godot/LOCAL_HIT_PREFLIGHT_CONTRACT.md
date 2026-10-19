@@ -1,0 +1,11 @@
+# Pure local-hit preflight contract
+
+Root21's urgent combat host prerequisite extends only local_hit_reaction.gd and scoped tests/docs. New public can_add_hit(event,actual_world_frames) returns the same public result fields/error precedence as add_hit, including target/distance on success, without changing any spring velocity/angle, actor/epoch, rig, event replay history or caller input. It does not reserve the event ID.
+
+Both entry points share one complete preparation routine: actor/typed epoch/event replay, finite contact and bounded impulse, all28 canonical world frame scale/length checks, deterministic contact selection, current-local torque/inertia, ancestor attenuation/capped staged velocity and angular-overflow rejection. A weaker contact-only preflight would not be acceptable. Public responses expose no staged velocity dictionary/token. Only successful add_hit commits the prepared velocities and event FIFO.
+
+Repeated preflights for the same new event remain identical until a real commit; committing after many preflights yields the same state as one direct add_hit on an equivalent actor. After commit both entry points reject replay. Existing active motion must be byte-identical before/after preflight. Same-epoch/new-epoch reset and defensive128-ID semantics remain unchanged.
+
+Preflight is a synchronous observation, not a reservation or an authority/contact-currentness certificate. If frames, epoch, replay history or life/owner state change afterwards, the caller must revalidate and handle add_hit's actual result. Caller still owns authority/HP/global deduplication/current world-contact/force tuning and the single pose writer. This helper neither rolls back a source HP acknowledgement nor applies physical rigid-body impulses.
+
+Testing: preserve old actual15249 and independent241 regressions, actual3 genuine male/female rigs, repeated preflight/state/input immutability, commit equivalence, rejection parity and replay transitions. Measure preflight alone, commit alone and both explicitly; double validation has a CPU cost. Old frozen b8b9 receipts remain historical, not silently updated to new bytes. Full-scene FPS/GPU/player combat integration remain Root21's separate gates.

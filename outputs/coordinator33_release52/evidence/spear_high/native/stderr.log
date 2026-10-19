@@ -1,0 +1,4 @@
+SCRIPT ERROR: Parse Error: Invalid escape in string.
+   at: GDScript::reload (D:/MafioziCombat31/coordinator33/qa/spear52.gd:78)
+ERROR: Failed to load script "D:/MafioziCombat31/coordinator33/qa/spear52.gd" with error "Parse error".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)

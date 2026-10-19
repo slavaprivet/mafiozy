@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "base_pins": 1347,
+  "base_changed": [],
+  "changes": [
+    {
+      "path": "scripts/preview_player.gd",
+      "base_sha256": "3e1e46febba29274b1fc2357bd1e06ce36ce10f0571c19458db5ba6e48408052",
+      "candidate_sha256": "b4e02c86185557fb68a9dfdbec85932f41a79f16f1d0ec55999d3a367a4cbb02"
+    },
+    {
+      "path": "scripts/weapons/bow_prototype.gd",
+      "base_sha256": "2b850770790a5a1dccd4d3ef4e46039a1491903bacdaadc177022098ab76fcdc",
+      "candidate_sha256": "8218dee827a20382daea87927220d7d6c97841639c91a863a92ca6d28f272776"
+    }
+  ]
+}

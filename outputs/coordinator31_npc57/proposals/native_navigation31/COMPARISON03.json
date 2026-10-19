@@ -1,0 +1,493 @@
+{
+  "source_and_harness_matched": true,
+  "execution_clean": true,
+  "comparisons": [
+    {
+      "case": "open_parallel",
+      "custom": {
+        "arrived": 10,
+        "ticks": 63,
+        "sim_s": 1.05,
+        "wall_s": 1.040695,
+        "max_idle_s": 0.0,
+        "script_adapter_us_per_tick": 167.12698412698413,
+        "native_movement_us_per_tick": 809.5238095238095,
+        "engine_monitors": {
+          "TIME_NAVIGATION_PROCESS": {
+            "samples": 1,
+            "median_us": 2.0,
+            "min_us": 2.0,
+            "max_us": 2.0
+          },
+          "TIME_PHYSICS_PROCESS": {
+            "samples": 1,
+            "median_us": 521120.99999999994,
+            "min_us": 521120.99999999994,
+            "max_us": 521120.99999999994
+          },
+          "TIME_PROCESS": {
+            "samples": 1,
+            "median_us": 12.0,
+            "min_us": 12.0,
+            "max_us": 12.0
+          }
+        },
+        "core": {
+          "actors": 10,
+          "cells": 6,
+          "decisions": 0,
+          "frame": 72,
+          "max_actors": 384,
+          "max_decisions": 16,
+          "max_neighbors": 4,
+          "max_scan": 9,
+          "pair_evaluations": 0,
+          "rejected": 0,
+          "scans": 0,
+          "snapshot_us": 44,
+          "solve_us": 0,
+          "states": 10
+        }
+      },
+      "rvo": {
+        "arrived": 10,
+        "ticks": 65,
+        "sim_s": 1.08333333333333,
+        "wall_s": 1.068087,
+        "max_idle_s": 0.0166666666666667,
+        "script_adapter_us_per_tick": 127.72307692307692,
+        "native_movement_us_per_tick": 785.0461538461539,
+        "engine_monitors": {
+          "TIME_NAVIGATION_PROCESS": {
+            "samples": 1,
+            "median_us": 178.0,
+            "min_us": 178.0,
+            "max_us": 178.0
+          },
+          "TIME_PHYSICS_PROCESS": {
+            "samples": 1,
+            "median_us": 506250.0,
+            "min_us": 506250.0,
+            "max_us": 506250.0
+          },
+          "TIME_PROCESS": {
+            "samples": 1,
+            "median_us": 25.0,
+            "min_us": 25.0,
+            "max_us": 25.0
+          }
+        },
+        "core": {
+          "active_zone_bits": 0,
+          "actors": 10,
+          "cadence": "native_each_physics_frame",
+          "callback_physics_misses": 0,
+          "callbacks": 640,
+          "frame": 74,
+          "max_callback_age_frames": 1,
+          "max_snapshot_us": 119,
+          "rejected": 0,
+          "server_compute_us_included": false,
+          "snapshot_us": 42,
+          "stale_callbacks": 0,
+          "stale_output_holds": 10,
+          "submit_us": 37
+        }
+      }
+    },
+    {
+      "case": "symmetric_headon",
+      "custom": {
+        "arrived": 10,
+        "ticks": 380,
+        "sim_s": 6.33333333333333,
+        "wall_s": 6.334657,
+        "max_idle_s": 0.0,
+        "script_adapter_us_per_tick": 155.23157894736843,
+        "native_movement_us_per_tick": 782.6421052631579,
+        "engine_monitors": {
+          "TIME_NAVIGATION_PROCESS": {
+            "samples": 6,
+            "median_us": 2.5,
+            "min_us": 2.0,
+            "max_us": 19.0
+          },
+          "TIME_PHYSICS_PROCESS": {
+            "samples": 6,
+            "median_us": 2359.5,
+            "min_us": 1996.0,
+            "max_us": 4188.0
+          },
+          "TIME_PROCESS": {
+            "samples": 6,
+            "median_us": 33.0,
+            "min_us": 25.0,
+            "max_us": 68.0
+          }
+        },
+        "core": {
+          "actors": 10,
+          "cells": 10,
+          "decisions": 0,
+          "frame": 458,
+          "max_actors": 384,
+          "max_decisions": 16,
+          "max_neighbors": 4,
+          "max_scan": 8,
+          "pair_evaluations": 0,
+          "rejected": 0,
+          "scans": 0,
+          "snapshot_us": 41,
+          "solve_us": 0,
+          "states": 10
+        }
+      },
+      "rvo": {
+        "arrived": 10,
+        "ticks": 341,
+        "sim_s": 5.68333333333333,
+        "wall_s": 5.679192,
+        "max_idle_s": 0.0166666666666667,
+        "script_adapter_us_per_tick": 124.51906158357771,
+        "native_movement_us_per_tick": 786.041055718475,
+        "engine_monitors": {
+          "TIME_NAVIGATION_PROCESS": {
+            "samples": 5,
+            "median_us": 169.0,
+            "min_us": 141.0,
+            "max_us": 205.0
+          },
+          "TIME_PHYSICS_PROCESS": {
+            "samples": 5,
+            "median_us": 2088.0,
+            "min_us": 1881.0,
+            "max_us": 4442.0
+          },
+          "TIME_PROCESS": {
+            "samples": 5,
+            "median_us": 30.0,
+            "min_us": 9.0,
+            "max_us": 59.0
+          }
+        },
+        "core": {
+          "active_zone_bits": 0,
+          "actors": 10,
+          "cadence": "native_each_physics_frame",
+          "callback_physics_misses": 0,
+          "callbacks": 3400,
+          "frame": 421,
+          "max_callback_age_frames": 1,
+          "max_snapshot_us": 95,
+          "rejected": 0,
+          "server_compute_us_included": false,
+          "snapshot_us": 40,
+          "stale_callbacks": 0,
+          "stale_output_holds": 10,
+          "submit_us": 33
+        }
+      }
+    },
+    {
+      "case": "crossing10",
+      "custom": {
+        "arrived": 10,
+        "ticks": 546,
+        "sim_s": 9.1,
+        "wall_s": 9.108481,
+        "max_idle_s": 0.0,
+        "script_adapter_us_per_tick": 173.0732600732601,
+        "native_movement_us_per_tick": 776.1172161172161,
+        "engine_monitors": {
+          "TIME_NAVIGATION_PROCESS": {
+            "samples": 9,
+            "median_us": 2.0,
+            "min_us": 2.0,
+            "max_us": 24.0
+          },
+          "TIME_PHYSICS_PROCESS": {
+            "samples": 9,
+            "median_us": 2492.0,
+            "min_us": 2066.0,
+            "max_us": 4459.0
+          },
+          "TIME_PROCESS": {
+            "samples": 9,
+            "median_us": 24.0,
+            "min_us": 13.0,
+            "max_us": 55.0
+          }
+        },
+        "core": {
+          "actors": 10,
+          "cells": 10,
+          "decisions": 0,
+          "frame": 1010,
+          "max_actors": 384,
+          "max_decisions": 16,
+          "max_neighbors": 8,
+          "max_scan": 10,
+          "pair_evaluations": 0,
+          "rejected": 0,
+          "scans": 0,
+          "snapshot_us": 43,
+          "solve_us": 0,
+          "states": 10
+        }
+      },
+      "rvo": {
+        "arrived": 0,
+        "ticks": 720,
+        "sim_s": 12.0,
+        "wall_s": 12.007024,
+        "max_idle_s": 5.56666666666667,
+        "script_adapter_us_per_tick": 128.26388888888889,
+        "native_movement_us_per_tick": 833.8694444444444,
+        "engine_monitors": {
+          "TIME_NAVIGATION_PROCESS": {
+            "samples": 11,
+            "median_us": 150.0,
+            "min_us": 127.0,
+            "max_us": 185.0
+          },
+          "TIME_PHYSICS_PROCESS": {
+            "samples": 11,
+            "median_us": 2124.0,
+            "min_us": 2033.9999999999998,
+            "max_us": 4870.0
+          },
+          "TIME_PROCESS": {
+            "samples": 11,
+            "median_us": 29.0,
+            "min_us": 12.0,
+            "max_us": 38.0
+          }
+        },
+        "core": {
+          "active_zone_bits": 0,
+          "actors": 10,
+          "cadence": "native_each_physics_frame",
+          "callback_physics_misses": 0,
+          "callbacks": 7190,
+          "frame": 1147,
+          "max_callback_age_frames": 1,
+          "max_snapshot_us": 190,
+          "rejected": 0,
+          "server_compute_us_included": false,
+          "snapshot_us": 39,
+          "stale_callbacks": 0,
+          "stale_output_holds": 10,
+          "submit_us": 44
+        }
+      }
+    },
+    {
+      "case": "narrow_door_two_flows10",
+      "custom": {
+        "arrived": 10,
+        "ticks": 149,
+        "sim_s": 2.48333333333333,
+        "wall_s": 2.484716,
+        "max_idle_s": 0.0,
+        "script_adapter_us_per_tick": 154.39597315436242,
+        "native_movement_us_per_tick": 1420.1476510067114,
+        "engine_monitors": {
+          "TIME_NAVIGATION_PROCESS": {
+            "samples": 2,
+            "median_us": 2.5,
+            "min_us": 2.0,
+            "max_us": 3.0
+          },
+          "TIME_PHYSICS_PROCESS": {
+            "samples": 2,
+            "median_us": 3466.0,
+            "min_us": 3336.0,
+            "max_us": 3596.0
+          },
+          "TIME_PROCESS": {
+            "samples": 2,
+            "median_us": 115.0,
+            "min_us": 59.0,
+            "max_us": 171.0
+          }
+        },
+        "core": {
+          "actors": 10,
+          "cells": 4,
+          "decisions": 0,
+          "frame": 1206,
+          "max_actors": 384,
+          "max_decisions": 16,
+          "max_neighbors": 0,
+          "max_scan": 10,
+          "pair_evaluations": 0,
+          "rejected": 0,
+          "scans": 0,
+          "snapshot_us": 45,
+          "solve_us": 0,
+          "states": 10
+        }
+      },
+      "rvo": {
+        "arrived": 10,
+        "ticks": 150,
+        "sim_s": 2.5,
+        "wall_s": 2.50533,
+        "max_idle_s": 0.0166666666666667,
+        "script_adapter_us_per_tick": 120.07333333333334,
+        "native_movement_us_per_tick": 1274.64,
+        "engine_monitors": {
+          "TIME_NAVIGATION_PROCESS": {
+            "samples": 2,
+            "median_us": 179.0,
+            "min_us": 132.0,
+            "max_us": 226.0
+          },
+          "TIME_PHYSICS_PROCESS": {
+            "samples": 2,
+            "median_us": 2620.0,
+            "min_us": 2509.0,
+            "max_us": 2731.0
+          },
+          "TIME_PROCESS": {
+            "samples": 2,
+            "median_us": 88.5,
+            "min_us": 61.0,
+            "max_us": 116.0
+          }
+        },
+        "core": {
+          "active_zone_bits": 1,
+          "actors": 10,
+          "cadence": "native_each_physics_frame",
+          "callback_physics_misses": 0,
+          "callbacks": 1490,
+          "frame": 1344,
+          "max_callback_age_frames": 1,
+          "max_snapshot_us": 100,
+          "rejected": 0,
+          "server_compute_us_included": false,
+          "snapshot_us": 40,
+          "stale_callbacks": 0,
+          "stale_output_holds": 10,
+          "submit_us": 29
+        }
+      }
+    },
+    {
+      "case": "wall_player_debris",
+      "custom": {
+        "arrived": 7,
+        "ticks": 180,
+        "sim_s": 3.0,
+        "wall_s": 3.002164,
+        "max_idle_s": 2.23333333333333,
+        "script_adapter_us_per_tick": 147.43333333333334,
+        "native_movement_us_per_tick": 810.6666666666666,
+        "engine_monitors": {
+          "TIME_NAVIGATION_PROCESS": {
+            "samples": 2,
+            "median_us": 2.0,
+            "min_us": 2.0,
+            "max_us": 2.0
+          },
+          "TIME_PHYSICS_PROCESS": {
+            "samples": 2,
+            "median_us": 3503.5,
+            "min_us": 2822.0,
+            "max_us": 4185.0
+          },
+          "TIME_PROCESS": {
+            "samples": 2,
+            "median_us": 88.5,
+            "min_us": 53.0,
+            "max_us": 124.0
+          }
+        },
+        "core": {
+          "actors": 10,
+          "cells": 10,
+          "decisions": 0,
+          "frame": 1395,
+          "max_actors": 384,
+          "max_decisions": 16,
+          "max_neighbors": 2,
+          "max_scan": 3,
+          "pair_evaluations": 0,
+          "rejected": 0,
+          "scans": 0,
+          "snapshot_us": 43,
+          "solve_us": 0,
+          "states": 10
+        }
+      },
+      "rvo": {
+        "arrived": 7,
+        "ticks": 180,
+        "sim_s": 3.0,
+        "wall_s": 3.002362,
+        "max_idle_s": 2.28333333333333,
+        "script_adapter_us_per_tick": 124.99444444444444,
+        "native_movement_us_per_tick": 932.6111111111111,
+        "engine_monitors": {
+          "TIME_NAVIGATION_PROCESS": {
+            "samples": 2,
+            "median_us": 162.5,
+            "min_us": 159.0,
+            "max_us": 166.0
+          },
+          "TIME_PHYSICS_PROCESS": {
+            "samples": 2,
+            "median_us": 2515.5,
+            "min_us": 1981.9999999999998,
+            "max_us": 3049.0
+          },
+          "TIME_PROCESS": {
+            "samples": 2,
+            "median_us": 64.0,
+            "min_us": 51.0,
+            "max_us": 77.0
+          }
+        },
+        "core": {
+          "active_zone_bits": 0,
+          "actors": 10,
+          "cadence": "native_each_physics_frame",
+          "callback_physics_misses": 0,
+          "callbacks": 1790,
+          "frame": 1533,
+          "max_callback_age_frames": 1,
+          "max_snapshot_us": 91,
+          "rejected": 0,
+          "server_compute_us_included": false,
+          "snapshot_us": 38,
+          "stale_callbacks": 0,
+          "stale_output_holds": 10,
+          "submit_us": 37
+        }
+      }
+    }
+  ],
+  "recommendation": "Do not integrate RVO: crossing10 fails0/10 whereas current custom completes10/10 in9.1s.",
+  "performance_accepted": false,
+  "actual_city_overlay_started": false,
+  "cost_scope": "Per-tick GDScript adapter timing excludes native RVO compute; TIME_NAVIGATION_PROCESS is whole-server periodic monitor. These are concurrent functional runs, not clean FPS tests; do not sum inclusive measurements.",
+  "fixture_limitation": "custom03 wall/player final-x assertions fail after legitimate sideways evasion; those two assertions do not prove penetration. Exact movement snapshots retained. RVO crossed neither and all its physical-safety assertions passed. No whole-suite PASS claimed for custom03.",
+  "receipts": {
+    "custom": {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\native_navigation31\\runs\\custom_full03",
+      "native_sha256": "263d677fc51ea14fd6e8e034fe8ddfcb4bf7a3bcb6fce15bea7024aee20f2f82",
+      "failed_checks": [
+        "player_native_blocked",
+        "wall_native_blocked"
+      ]
+    },
+    "rvo": {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\native_navigation31\\runs\\rvo_full03",
+      "native_sha256": "e368352d664ff3cd3ca1783cfe284ec6f113081bb8f3dd1591f1480b10909a30",
+      "failed_checks": [
+        "crossing10_all10_complete"
+      ]
+    }
+  }
+}

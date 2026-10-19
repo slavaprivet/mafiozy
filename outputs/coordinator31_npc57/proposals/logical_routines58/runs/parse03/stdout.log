@@ -1,0 +1,4 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+NPC_ECONOMY28 id= kind= stage=purchase_chosen cash=1000 serial=0 reason={"kind":"restaurant","price":39,"restore_energy":true} frame=180
+NPC_ECONOMY28 id= kind= stage=routine_deferred58 cash=1000 serial=0 reason=three_failed_venue_attempts;ticket_and_price_retained;until=48000.0 frame=180

@@ -1,0 +1,15 @@
+{
+  "outputs/coordinator31_npc57/extended31/stage58_06/CANDIDATE58.json": "b11bdd02916fb37171d0e177bf529569c8d090d82212c4d87d02e6c2fee06346",
+  "outputs/coordinator31_npc57/extended31/stage58_06/RESULT.json": "430413cdf8002461677edefa0f18981063f62e77ca21cffad46f0970feac6731",
+  "tools/godot/test_scheduler.py": "adcb834390e476edd118f62d8e3e5b391c6ebc97925391e66beeb80430ba8373",
+  "docs/godot/ENGINE_LOCK.json": "9ba68019898613d923476e3db4f184bf6372558e2f3fecb07207a8f9d125246a",
+  "outputs/coordinator31_release57/ASSEMBLY.json": "6a99005e492f9372a7abc64db85fce8952a18dcd39abba65708e08a8e50c13f6",
+  "godot/current_version.json": "6742c1ca56a65f2b752e6a40c6d692382ecb4eabf088c350c84ba50b4d32da9c",
+  "outputs/coordinator31_npc57/proposals/home_approach58/entry_cycle_overlay58.gd": "0ea43d33fa2f3894222e005af732291fe7a2c5dca942908660de40eb5b600fea",
+  "outputs/coordinator31_npc57/proposals/home_approach58/observer_cycle_overlay58.gd": "0b43f9de89b7f8f891ef9204176ab51c70c9e3ac540cc14fbb2fd3e5687be244",
+  "outputs/coordinator31_npc57/proposals/homes58/observer_cycle58_v2.gd": "d2b3e3de281fbf2bf542c58efdc167d2970da3ff49150789b742b658df5d1d96",
+  "outputs/coordinator31_npc57/proposals/home_approach58/run_cycle_overlay58.py": "0402e406ba7e68ca8fa9a664e67f07f0856fcade0dab881c226d7782a25b71bb",
+  "outputs/coordinator31_npc57/proposals/home_approach58/PATCH.json": "160954f2b26170669aa6dec7a8df1365d29af862b238d094a7ae40b98dd670d6",
+  "outputs/coordinator31_npc57/proposals/home_approach58/patch/scripts/homes/npc_home_registry58.gd": "60c44ebec1812571b47834b9270bd68a0af9e981aac6b2395bb7bc4601c10b79",
+  "outputs/coordinator31_npc57/proposals/home_approach58/patch/scripts/hospital/npc_long_route28.gd": "e49d12722b859e8885561172799fc756b689792dd277858cfa950f4fe0230cf2"
+}

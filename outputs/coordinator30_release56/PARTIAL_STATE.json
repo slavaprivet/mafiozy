@@ -1,0 +1,11 @@
+{
+  "status": "FROZEN_PENDING_BOOTSTRAP_CHECK",
+  "final_target": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_release56",
+  "partial": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_release56.partial_20261015T114011Z_f4d772ec",
+  "pointer_activated": false,
+  "candidate_modified": false,
+  "copies_requested": 1,
+  "recovery": "Preserve this partial for inspection. Never activate it; retry uses a new partial directory.",
+  "source_count": 1129,
+  "source_bytes": 286920627
+}

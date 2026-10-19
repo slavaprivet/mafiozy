@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "source_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-013",
+  "replacement_scope": "root_reviewed_new_modular_exterior",
+  "active_external_owner_roots_reviewed": true,
+  "owner_receipt_path": "res://scripts/destruction/modular30/owner/RECEIPT.json",
+  "owner_receipt_sha256": "adc588b7ec0790994f722a0ab024b7d9a888379215a7813ed58b26fc30e181fb",
+  "companion_receipt_path": "res://assets/modular30/townhouse013/RECEIPT.json",
+  "companion_receipt_sha256": "437c871355cdc641e91d3d177e8454293ed94cea2d2875155e2f8b77be2dfa0a",
+  "prefab_path": "res://assets/modular30/townhouse013/townhouse013.scn",
+  "prefab_sha256": "abfc9126737481f1bed5cc4c63095115a8f756e8c21ceb9b9209fa6a21c6c485",
+  "loader_path": "res://scripts/destruction/modular30/owner/expansion/modular_buildings/export/prefab_loader.gd",
+  "runtime_path": "res://scripts/destruction/modular30/owner/expansion/compound_node/compound_runtime.gd",
+  "pending_owner_obligations": {
+    "glazing": 22,
+    "entry_connectors": 2
+  },
+  "full_house_collapse": false
+}

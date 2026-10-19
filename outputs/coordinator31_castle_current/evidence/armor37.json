@@ -1,0 +1,43 @@
+{
+  "status": "FUNCTIONAL_READY",
+  "production_delta": [
+    "outputs/coordinator31_npc57/game/scripts/combat/castle_armor_visual.gd"
+  ],
+  "expected_shared_sha256": "8046737f4c9ee5a367beaa69cb3ddc00785e4485716dd874bd03b581b535c7eb",
+  "candidate_sha256": "96fa9218196248a7b1843dfeb02038eadae159442aefb019a3a3225903b624f5",
+  "checks": {
+    "eyes08": [
+      "EYE_CLEAR37 {\"errors\":[],\"passed\":true,\"rays\":54}"
+    ],
+    "native08": [
+      "ARMOR_VISUAL_PASS combinations=15 previews=15 sever_hidden=1 remaining_anchors=8"
+    ],
+    "fit08": [
+      "FIT37 {\"equips\":15,\"errors\":[],\"passed\":true,\"removes\":5}"
+    ],
+    "combat08": [
+      "ARMOR_COMBAT_MERGED31 {\"errors\":[],\"passed\":true}"
+    ],
+    "motion09": [
+      "ARMOR_MOTION22 {\"errors\":[],\"passed\":true,\"posture\":{\"blocked\":false,\"crawl\":false,\"crouch\":1.0,\"eyeHeight\":1.4,\"height\":1.69,\"maxSpeed\":1.55,\"prone\":0.0,\"speedMultiplier\":0.33695652173913,\"target\":\"crouch\",\"value\":1.0},\"walk_distance\":1.68189930915833}"
+    ],
+    "preview08": [
+      "PREVIEW37 {\"heavy_feet\":{\"bounds\":\"[P: (-0.24, 0.015, -0.158), S: (0.48, 0.26, 0.426)]\",\"nodes\":1,\"surfaces\":3},\"heavy_hands\":{\"bounds\":\"[P: (-0.248, 0.03, -0.068), S: (0.496, 0.283, 0.136)]\",\"nodes\":1,\"surfaces\":2},\"heavy_head\":{\"bounds\":\"[P: (-0.215843, 0.012, -0.2154), S: (0.431686, 0.585, 0.423908)]\",\"nodes\":1,\"surfaces\":7},\"heavy_legs\":{\"bounds\":\"[P: (-0.27, 0.035, -0.145), S: (0.54, 0.6, 0.293)]\",\"nodes\":1,\"surfaces\":3},\"heavy_torso\":{\"bounds\":\"[P: (-0.42, 0.03, -0.18), S: (0.84, 0.48, 0.36)]\",\"nodes\":1,\"surfaces\":3},\"light_feet\":{\"bounds\":\"[P: (-0.24, 0.015, -0.158), S: (0.48, 0.26, 0.426)]\",\"nodes\":1,\"surfaces\":3},\"light_hands\":{\"bounds\":\"[P: (-0.248, 0.03, -0.068), S: (0.496, 0.283, 0.136)]\",\"nodes\":1,\"surfaces\":2},\"light_head\":{\"bounds\":\"[P: (-0.204112, -0.042, -0.213), S: (0.408224, 0.408, 0.399)]\",\"nodes\":1,\"surfaces\":3},\"light_legs\":{\"bounds\":\"[P: (-0.27, 0.035, -0.145), S: (0.54, 0.6, 0.293)]\",\"nodes\":1,\"surfaces\":3},\"light_torso\":{\"bounds\":\"[P: (-0.32, 0.03, -0.18), S: (0.64, 0.48, 0.36)]\",\"nodes\":1,\"surfaces\":3},\"medium_feet\":{\"bounds\":\"[P: (-0.24, 0.015, -0.158), S: (0.48, 0.26, 0.426)]\",\"nodes\":1,\"surfaces\":3},\"medium_hands\":{\"bounds\":\"[P: (-0.248, 0.03, -0.068), S: (0.496, 0.283, 0.136)]\",\"nodes\":1,\"surfaces\":2},\"medium_head\":{\"bounds\":\"[P: (-0.204112, -0.012, -0.212235), S: (0.408224, 0.399, 0.401235)]\",\"nodes\":1,\"surfaces\":2},\"medium_legs\":{\"bounds\":\"[P: (-0.27, 0.035, -0.145), S: (0.54, 0.6, 0.293)]\",\"nodes\":1,\"surfaces\":3},\"medium_torso\":{\"bounds\":\"[P: (-0.42, 0.03, -0.18), S: (0.84, 0.48, 0.36)]\",\"nodes\":1,\"surfaces\":3}}"
+    ]
+  },
+  "integration": "Coordinator32 applies scoped patch to common scene; no separate user launch",
+  "performance": "FPS not accepted; cached previews use 1 MeshInstance per item, shared cached meshes; global scene AA owned by map",
+  "changes": [
+    "15 compact garment previews, coherent trouser waist and crotch",
+    "Helmet eye openings match measured hero eyes; open helmet rims above eyes",
+    "Distinct leather straps, medium steel lames and black heavy armor",
+    "Fitted hip/thigh protection and slimmer helmet sides",
+    "Welded cloth normals, indexed curved surfaces, softer specular highlights",
+    "Static preview material batching and cached mesh reuse"
+  ],
+  "limitations": [
+    "Final common-scene integration and clean FPS remain coordinator gates",
+    "Eye-ray test uses canonical hero bind coordinates; animation checked separately",
+    "Whole-scene wall shimmer belongs to map owner, not changed in armor file"
+  ]
+}

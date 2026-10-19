@@ -1,0 +1,4 @@
+SCRIPT ERROR: Parse Error: Preload file "res://scripts/city/runtime/npc_threat_world30.gd" does not exist.
+   at: GDScript::reload (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator30_npc54/proposals/threat_order56/fixture56.gd:2)
+ERROR: Failed to load script "C:/Users/Слава/Desktop/Мафиози/outputs/coordinator30_npc54/proposals/threat_order56/fixture56.gd" with error "Parse error".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)

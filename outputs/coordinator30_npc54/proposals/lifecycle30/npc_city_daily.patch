@@ -1,0 +1,11 @@
+--- a/scripts/npc_city_daily.gd
++++ b/scripts/npc_city_daily.gd
+@@ -638,7 +638,7 @@
+ func retire_single_dead28(owner: Node, health: RefCounted) -> bool:
+ 	if _disposed or not _population.residents.single_lifecycle28_current(owner) or not owner.owns_health(health):return false
+ 	var id: String=str(health.get("_token").get("source_id",""))
+-	if id!="resident_1" or _health.get(id)!=health or not _lives.has(id):return false
++	if id!=str(owner.get("source_id30")) or _health.get(id)!=health or not _lives.has(id):return false
+ 	var row: Dictionary=health.get("_row")
+ 	var life: RefCounted=_lives[id]
+ 	if not row.get("dead",false) or float(row.get("hp",1))>0 or life.get("_busy")==true:return false

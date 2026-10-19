@@ -1,0 +1,84 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--path",
+    "D:\\MafioziCombat31\\resume51_opponent\\candidate03\\game",
+    "--script",
+    "D:\\MafioziCombat31\\resume51_opponent\\chase.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\resume51_opponent\\native03b\\retreat",
+    "--case=retreat"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "356cefb1eab2468081a53c6245536163",
+    "owner": {
+      "pid": 47164,
+      "creation_filetime": "134368074183517585"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\resume51_opponent\\candidate03\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 34908,
+        "creation_filetime": "134368074193915833",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\resume51_opponent\\candidate03\\game --script D:\\MafioziCombat31\\resume51_opponent\\chase.gd -- --qa-out=D:\\MafioziCombat31\\resume51_opponent\\native03b\\retreat --case=retreat",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "D:\\MafioziCombat31\\resume51_opponent\\candidate03\\game",
+          "--script",
+          "D:\\MafioziCombat31\\resume51_opponent\\chase.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\resume51_opponent\\native03b\\retreat",
+          "--case=retreat"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "d:\\mafiozicombat31\\resume51_opponent\\candidate03\\game",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 1275645.6157289,
+    "queued_at": 1275525.6157289,
+    "ticket": 4042,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5220108998473734
+  },
+  "child": {
+    "pid": 34908,
+    "creation_filetime": "134368074193915833",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\resume51_opponent\\candidate03\\game --script D:\\MafioziCombat31\\resume51_opponent\\chase.gd -- --qa-out=D:\\MafioziCombat31\\resume51_opponent\\native03b\\retreat --case=retreat",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--path",
+      "D:\\MafioziCombat31\\resume51_opponent\\candidate03\\game",
+      "--script",
+      "D:\\MafioziCombat31\\resume51_opponent\\chase.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\resume51_opponent\\native03b\\retreat",
+      "--case=retreat"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\resume51_opponent\\candidate03\\game",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 9.98352160002105,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

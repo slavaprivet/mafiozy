@@ -1,0 +1,419 @@
+{
+  "passed": true,
+  "game": "D:\\MafioziCombat31\\coordinator34_merged53\\game",
+  "weapon": "bow",
+  "harness_sha256": "d52195d90ef99e72376baa4805bb718f6dfd4e37507d95ee007afa699be2e3b5",
+  "source_before": {
+    "scripts/preview_player.gd": "b4e02c86185557fb68a9dfdbec85932f41a79f16f1d0ec55999d3a367a4cbb02",
+    "scripts/weapons/bow_prototype.gd": "8218dee827a20382daea87927220d7d6c97841639c91a863a92ca6d28f272776",
+    "scripts/weapons/sword_prototype.gd": "37461c7579289673ffd2370479c28290a66235665ddd448b49bbf31868df248d",
+    "scripts/city/castle_armory_storage.gd": "d7d75d15049a654e0c7834fb03a15062dc2af40b32f3b01a0f7c610ee7815ca0"
+  },
+  "source_after": {
+    "scripts/preview_player.gd": "b4e02c86185557fb68a9dfdbec85932f41a79f16f1d0ec55999d3a367a4cbb02",
+    "scripts/weapons/bow_prototype.gd": "8218dee827a20382daea87927220d7d6c97841639c91a863a92ca6d28f272776",
+    "scripts/weapons/sword_prototype.gd": "37461c7579289673ffd2370479c28290a66235665ddd448b49bbf31868df248d",
+    "scripts/city/castle_armory_storage.gd": "d7d75d15049a654e0c7834fb03a15062dc2af40b32f3b01a0f7c610ee7815ca0"
+  },
+  "source_unchanged": true,
+  "scheduler_exit_code": 0,
+  "checks": [
+    {
+      "evidence": {
+        "ammo_free": true,
+        "bow": true,
+        "ok": true,
+        "weaponId": "bow"
+      },
+      "name": "acquired_bow",
+      "passed": true
+    },
+    {
+      "evidence": "(1280, 720)",
+      "name": "viewport_1280x720",
+      "passed": true
+    },
+    {
+      "evidence": 10.0,
+      "name": "mouse_1to1",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 4.98522986478476e-05,
+        "max_physics_correction_degrees": 1.36603783400255e-05,
+        "max_render_step_degrees": 1.36603783400255e-05,
+        "movement_m": 7.2021484375,
+        "ownership_mismatch": 0,
+        "samples": 132
+      },
+      "name": "bow_back_walking",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 4.98522986478476e-05,
+        "max_physics_correction_degrees": 1.36603783400255e-05,
+        "max_render_step_degrees": 1.36603783400255e-05,
+        "movement_m": 7.2021484375,
+        "ownership_mismatch": 0,
+        "samples": 132
+      },
+      "name": "bow_back_ownership",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 4.98522986478476e-05,
+        "max_physics_correction_degrees": 1.36603783400255e-05,
+        "max_render_step_degrees": 1.36603783400255e-05,
+        "movement_m": 7.2021484375,
+        "ownership_mismatch": 0,
+        "samples": 132
+      },
+      "name": "bow_back_stable",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 3.61919203078221e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.19305992126465,
+        "ownership_mismatch": 0,
+        "samples": 134
+      },
+      "name": "bow_left_walking",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 3.61919203078221e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.19305992126465,
+        "ownership_mismatch": 0,
+        "samples": 134
+      },
+      "name": "bow_left_ownership",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 3.61919203078221e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.19305992126465,
+        "ownership_mismatch": 0,
+        "samples": 134
+      },
+      "name": "bow_left_stable",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 3.61919203078221e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.20113754272461,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "bow_right_walking",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 3.61919203078221e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.20113754272461,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "bow_right_ownership",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 3.61919203078221e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.20113754272461,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "bow_right_stable",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 3.61919203078221e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.15020751953125,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "bow_forward_walking",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 3.61919203078221e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.15020751953125,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "bow_forward_ownership",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 3.61919203078221e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.15020751953125,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "bow_forward_stable",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 3.61919203078221e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.20428466796875,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "bow_back_aimed_walking",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 3.61919203078221e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.20428466796875,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "bow_back_aimed_ownership",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 3.61919203078221e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.20428466796875,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "bow_back_aimed_stable",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 6.31478616663553e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.19886112213135,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "bow_back_turned_walking",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 6.31478616663553e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.19886112213135,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "bow_back_turned_ownership",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "max_camera_error_degrees": 6.31478616663553e-05,
+        "max_physics_correction_degrees": 0.0,
+        "max_render_step_degrees": 0.0,
+        "movement_m": 7.19886112213135,
+        "ownership_mismatch": 0,
+        "samples": 135
+      },
+      "name": "bow_back_turned_stable",
+      "passed": true
+    },
+    {
+      "evidence": null,
+      "name": "menu_releases_facing",
+      "passed": true
+    },
+    {
+      "evidence": null,
+      "name": "menu_close_restores_facing",
+      "passed": true
+    },
+    {
+      "evidence": null,
+      "name": "cursor_releases_facing",
+      "passed": true
+    },
+    {
+      "evidence": null,
+      "name": "cursor_capture_restores_facing",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "bow": {
+          "active": false,
+          "aim": "(0.548459, -0.237702, -0.80168)",
+          "aim_dots": 0,
+          "aim_shown": false,
+          "aiming": false,
+          "arrows": 0,
+          "arrows_left": 20,
+          "bow_grip_error": 0.0,
+          "bow_hand_forward": 0.291111081838608,
+          "bow_in_hand_error": 0.568999648094177,
+          "bow_reach_error": 6.13491356489249e-05,
+          "draw": 0.0,
+          "draw_hand_forward": 0.212621763348579,
+          "drawing": false,
+          "elbow_clearance": 0.0211930181831121,
+          "fetch_phase": "",
+          "fov": 45.0,
+          "ground_items": 0,
+          "grounded": false,
+          "hand_clearance": 0.310261130332947,
+          "last_flight_time": 0.0,
+          "last_hit_distance": -1.0,
+          "muzzle": "(-3.516208, 0.549174, 1003.123)",
+          "nocked": true,
+          "nocked_arrow_visible": true,
+          "predicted_range": 10.8,
+          "quiver_clear_of_body": true,
+          "quiver_mouth": "(-4.321917, 1.076881, 1003.38)",
+          "quiver_offset_m": 0.169846832752228,
+          "quiver_worn": true,
+          "ready": true,
+          "ready_to_fire": false,
+          "selected": false,
+          "shots": 0,
+          "speed_now": 16.0,
+          "string_grip_error": 1.65494948305422e-05,
+          "string_pull_m": 0.0808058008551598,
+          "string_reach_error": 6.97961004334502e-05,
+          "string_visible": true,
+          "stuck": 0,
+          "zoom_scale": 1.0
+        },
+        "storage": {
+          "back_bow": false,
+          "bow_active": false,
+          "carried": {},
+          "chest_alive": true,
+          "fallen": {
+            "bow": "(-3.706047, 1.138235, 102.5796)"
+          },
+          "hand_shield": false,
+          "hand_weapon": "",
+          "rack": {
+            "axe": true,
+            "mace": true,
+            "shield": true,
+            "sledge": true,
+            "spear": true,
+            "sword": true
+          },
+          "revision": 3,
+          "slots": []
+        }
+      },
+      "name": "g_drop_releases_facing",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "bow": {
+          "active": true,
+          "aim": "(0.548459, -0.237702, -0.80168)",
+          "aim_dots": 0,
+          "aim_shown": false,
+          "aiming": false,
+          "arrows": 0,
+          "arrows_left": 20,
+          "bow_grip_error": 5.96046447753906e-08,
+          "bow_hand_forward": 0.291114091873169,
+          "bow_in_hand_error": 5.96046447753906e-08,
+          "bow_reach_error": 6.50197034701705e-05,
+          "draw": 0.0,
+          "draw_hand_forward": 0.212645798921585,
+          "drawing": false,
+          "elbow_clearance": 0.0212384667247534,
+          "fetch_phase": "",
+          "fov": 45.0,
+          "ground_items": 0,
+          "grounded": false,
+          "hand_clearance": 0.310307174921036,
+          "last_flight_time": 0.0,
+          "last_hit_distance": -1.0,
+          "muzzle": "(-3.814107, 0.930241, 1002.593)",
+          "nocked": true,
+          "nocked_arrow_visible": true,
+          "predicted_range": 10.8,
+          "quiver_clear_of_body": true,
+          "quiver_mouth": "(-4.321917, 1.075225, 1003.38)",
+          "quiver_offset_m": 0.169846832752228,
+          "quiver_worn": true,
+          "ready": true,
+          "ready_to_fire": false,
+          "selected": true,
+          "shots": 0,
+          "speed_now": 16.0,
+          "string_grip_error": 6.49094290565699e-05,
+          "string_pull_m": 0.080834299325943,
+          "string_reach_error": 1.28746032714844e-05,
+          "string_visible": true,
+          "stuck": 0,
+          "zoom_scale": 1.0
+        },
+        "storage": {
+          "back_bow": true,
+          "bow_active": true,
+          "carried": {
+            "bow": true
+          },
+          "chest_alive": true,
+          "fallen": {},
+          "hand_shield": false,
+          "hand_weapon": "",
+          "rack": {
+            "axe": true,
+            "mace": true,
+            "shield": true,
+            "sledge": true,
+            "spear": true,
+            "sword": true
+          },
+          "revision": 4,
+          "slots": []
+        }
+      },
+      "name": "e_pickup_restores_facing",
+      "passed": true
+    }
+  ],
+  "errors": []
+}

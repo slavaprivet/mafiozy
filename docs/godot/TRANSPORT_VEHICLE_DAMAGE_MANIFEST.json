@@ -1,0 +1,58 @@
+{
+  "limitations": [
+    "No main/LIVE integration or loaded-scene FPS acceptance",
+    "Bindings prepare/load-only; exact oracle reread",
+    "No authority; host owns lifetime/events/cooldown",
+    "Physical debris and deformation are separate components"
+  ],
+  "checks": {
+    "independent": true,
+    "bindings": 497,
+    "launch": 15,
+    "state": 18081
+  },
+  "frozen": true,
+  "schema": "mafiozi.transport-damage-kit.v1",
+  "files": [
+    {
+      "bytes": 5469,
+      "sha256": "cca8f5c89a0941c6cd62f43b44fab237473a39d9290d4efa37c0d2c7262a4c09",
+      "path": "godot/mafiozi_walk/scripts/transport/transport_vehicle_damage_bindings.gd"
+    },
+    {
+      "bytes": 2659,
+      "sha256": "c1e25a6f6d46907fcf2d2a60d91abbbc794bef4562abb3bb90642ee6169491e9",
+      "path": "godot/mafiozi_walk/scripts/transport/transport_vehicle_damage_state.gd"
+    },
+    {
+      "bytes": 1514,
+      "sha256": "cfa09fbd15b2e4824cdcd6683254c2298d726bc1fe802e81271849bc537b55ca",
+      "path": "godot/mafiozi_walk/scripts/transport/transport_vehicle_debris_launch.gd"
+    },
+    {
+      "bytes": 4100,
+      "sha256": "c839909b7bfc2eddca9dc02936905a5b68f908473c2576260a32252efcb7aa09",
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_vehicle_damage_bindings.gd"
+    },
+    {
+      "bytes": 2787,
+      "sha256": "63c6df4341406168953801b0f67bc5129a911eaf7281d14ce6515e8f6f4abda8",
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_vehicle_damage_state.gd"
+    },
+    {
+      "bytes": 1521,
+      "sha256": "2b6d2258bcd9665eec6b887fa2c32c0edecb219905719c1c81a55e33d1dfbd71",
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_vehicle_debris_launch.gd"
+    },
+    {
+      "bytes": 178333,
+      "sha256": "8643b11808f5834445e34be6d1c2930a9cc2f5a930042dfb7edfcf4ce6d78279",
+      "path": "godot/mafiozi_walk/data/transport/damage_assemblies.json"
+    },
+    {
+      "bytes": 326564,
+      "sha256": "55ee489bae495b3815dfec11a14a6da943f00645a09805613219ab22cc88101f",
+      "path": "godot/mafiozi_walk/data/transport/damage_state_oracle.json"
+    }
+  ]
+}

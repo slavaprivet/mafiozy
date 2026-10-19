@@ -1,0 +1,64 @@
+{
+  "schema": "mafiozi.transport-burn-postfactory-geometry-source-package.v1",
+  "status": "SEVEN_ACTUAL_POSTFACTORY_EMPTY_GEOMETRIES_PROVED",
+  "files": [
+    {
+      "path": "tools/godot/export_transport_burn_postfactory_geometry.mjs",
+      "sha256": "89c99fea75a818b7b2636080261fd1fc7803e7855fee04a313e37f4120a22fb1",
+      "role": "Executed-source original-input versus actual post-factory geometry exporter"
+    },
+    {
+      "path": "godot/mafiozi_walk/data/transport/source_burn_postfactory_geometry.json",
+      "sha256": "15c89bac33c5051766fa40ed6c39b7b09d8d5da703ec98a0bd08c7c4fc8aeebd",
+      "role": "Seven-node post-factory geometry correction receipt"
+    },
+    {
+      "path": "godot/mafiozi_walk/data/transport/source_burn_identities.json",
+      "sha256": "38d370792b7e97445b56efb35b4360121157a659905216db79221f78f22c2d38",
+      "role": "Frozen 13-profile visual-key, material identity and materialRest prerequisite"
+    },
+    {
+      "path": "outputs/coordinator21_vehicle_visual/manifest.json",
+      "sha256": "10133bb94515eb41078b5b801a647fedad21b1eab4199a430b112359928fc0db",
+      "role": "Raw visual manifest"
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/vehicle_visual/manifest.json",
+      "sha256": "38598f43beb77c095879206ea5820c7fe922b227a64f77f793353f89321fee03",
+      "role": "Native visual manifest"
+    }
+  ],
+  "proof": {
+    "profiles_reconstructed": 13,
+    "visual_key_receipts_exact": 13,
+    "material_descriptor_alias_graphs_exact": 13,
+    "frozen_step1_mesh_identity_maps_exact": 13,
+    "disputed_nodes": 7,
+    "original_input_nonempty_indexed_nodes": 7,
+    "actual_postfactory_empty_position_nodes": 7,
+    "actual_postfactory_null_indices": 7,
+    "actual_postfactory_empty_groups": 7,
+    "raw_visual_glb_nonmesh_zero_child_nodes": 7,
+    "construction_material_rest_captured_nodes": 7,
+    "double_export_sha_equal": true,
+    "author_run_wall_seconds_rounded": [9.9, 10.3],
+    "fixture_bytes": 46195
+  },
+  "correction": {
+    "superseded_conclusion": "The seven native placeholders are an export/import coverage loss.",
+    "corrected_conclusion": "The original input GLBs are nonempty, but actual factory clipping leaves all seven post-factory geometries empty before visual export; zero native surfaces preserve that actual source state.",
+    "restore_original_input_geometry": false
+  },
+  "validation": [
+    "Every original input geometry matches its frozen typed-array counts and byte hashes.",
+    "Every actual post-factory geometry has zero position count, null index, empty groups and the exact draw range.",
+    "Every raw visual oracle and parsed raw visual GLB independently preserves the empty post-factory result.",
+    "All seven exact scalar material identities remain captured in actual construction materialRest.",
+    "Two sequential full exports produced byte-identical JSON."
+  ],
+  "limits": [
+    "Only the seven previously disputed nodes are covered by this correction.",
+    "Original input triangles are transition evidence and are not current source runtime content.",
+    "No native binder, production exporter, runtime mutation, material burn, callback, debris, authority, HP, physics, GPU, LIVE, or Git integration is included."
+  ]
+}

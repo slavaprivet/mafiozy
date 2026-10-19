@@ -1,0 +1,11 @@
+# Reviewed V2 safe staging
+
+Use `node tools/godot/stage_printshop_shadow_v2.mjs --check` for **read-only** source closure validation; no directories/files are created. `--stage` creates one unique `outputs/printshop-shadow-v2-<random>` directory. It never overwrites the old fixed staging location, a prior stage, or frozen V2 files.
+
+Reviewed closure manifest SHA256: `d09ec7d7a85583fb8cffeeb0160297b45ae4b30d54ad038f376e50c732f34143`. Seven exact source files are pinned by SHA and bytes: V2 receipt/runtime/test, Original printshop helper, Finish helper, reviewed TrustedJSON helper, original descriptor. Source buffer snapshots are verified before any stage is created; frozen receipt claims must match those pins. A generated minimal project and exact closure manifest are copied with exclusive writes and immediate hash/byte readback; `stage_receipt.json` records every staged dependency and generated project hash.
+
+Absolute ancestors, workspace root, outputs, sources, destinations and nested directories are inspected with lstat/realpath. Symlinks/junctions, path escape, non-regular sources, duplicates and overwrites are refused. Source open/read rechecks file identity/size/mtime and verified hashes. Source/stage paths are not accepted from user arguments. These checks target a quiescent trusted workspace: they do not claim an OS sandbox against a concurrent hostile process replacing directories between system calls. No UID/import/.godot caches are copied, and no engine/import/browser/GPU is started by either mode.
+
+`test_stage_printshop_shadow_v2.mjs` creates an isolated disposable test fixture below outputs; validates read-only behavior, unique targets, previous receipt preservation, helper mutation rejection and source junction rejection. Fixtures remain available for inspection; nothing is deleted. These file-only tests are not native storage or rendering acceptance.
+
+Original native V2 suite was independently repeated by root: 546 PASS. Unique stages record `native_rerun:false` until a separately coordinated Godot headless run; do not present old CPU checks as a newly executed stage run. Actual scene admission, source owner sealing, native instance storage proof, gameplay/nav/authority and live visual/FPS gates remain HOLD. Use the new safe stager instead of the frozen V2 legacy fixed-path stage script.

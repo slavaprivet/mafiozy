@@ -1,0 +1,186 @@
+extends "res://scripts/hospital/npc_treatment_pose28.gd"
+## Pure pose composition using the existing calibrated two-bone arm solver.
+## Only preview_resident_host commits these transforms to the actual skeleton.
+const KINDS := ["bench", "book", "look_around", "watch", "sleeves", "stretch", "rub_palms", "neck", "shoulders", "collar", "wipe_forehead", "scratch_head", "window", "look_far", "newspaper", "camera", "pocket"]
+const META := "npc_ambient28"
+var _ambient_rig: WeakRef
+var _legs_ready := false
+
+func bind(rig: Skeleton3D, canonical_rest: Array[Transform3D]) -> bool:
+	if not super.bind(rig, canonical_rest): return false
+	_ambient_rig = weakref(rig)
+	_legs_ready = true
+	for bone: String in ["thigh_l", "shin_l", "foot_l", "thigh_r", "shin_r", "foot_r"]:
+		if not _indices.has(bone): _legs_ready = false
+	return true
+
+static func sample(body: CharacterBody3D, delta: float, physical: Dictionary) -> Dictionary:
+	if not is_instance_valid(body) or not body.is_inside_tree() or not body.is_on_floor() or physical.is_empty() or delta <= 0.0: return {}
+	if not physical.get("horizontal") is Vector3 or Vector3(physical.horizontal).length()/delta > .05: return {}
+	var value: Variant = body.get_meta(META, {})
+	if not value is Dictionary or not value.get("active", false) or str(value.get("kind", "")) not in KINDS: return {}
+	if int(value.get("frame", -1)) != Engine.get_physics_frames() or int(value.get("body_id", -1)) != body.get_instance_id() or absf(float(value.get("delta", 0.0))-delta) > .00001: return {}
+	var owner: Variant = value.get("owner")
+	if not owner is WeakRef or not is_instance_valid(owner.get_ref()): return {}
+	var elapsed: float = float(value.get("elapsed_s", -1.0))
+	var duration: float = float(value.get("duration_s", 0.0))
+	if not is_finite(elapsed) or not is_finite(duration) or elapsed < 0 or duration < 4 or duration > 8 or elapsed > duration: return {}
+	if not owner.get_ref().sample_current(value): return {}
+	return value
+
+static func suppress(body: CharacterBody3D) -> void:
+	if not is_instance_valid(body): return
+	var value: Variant = body.get_meta(META, {})
+	if not value is Dictionary: return
+	var owner: Variant = value.get("owner")
+	if owner is WeakRef and is_instance_valid(owner.get_ref()): owner.get_ref().pose_suppressed()
+
+## Death/retirement owners may call this before freeing or disabling the body.
+## The same inactive owner stamp exists during APPROACH/DOCK/ALIGN as well.
+static func cancel_body(body: CharacterBody3D, reason: String = "life_ended") -> void:
+	if not is_instance_valid(body): return
+	var value: Variant = body.get_meta(META, {})
+	if not value is Dictionary: return
+	var owner: Variant = value.get("owner")
+	if owner is WeakRef and is_instance_valid(owner.get_ref()): owner.get_ref().cancel(reason)
+
+static func committed(rig: Skeleton3D, value: Dictionary) -> void:
+	var owner: Variant = value.get("owner")
+	if owner is WeakRef and is_instance_valid(owner.get_ref()): owner.get_ref().pose_committed(rig, value)
+
+func _turn_global(name: String, axis: Vector3, angle: float) -> void:
+	var index: int = _indices[name]
+	var rotation: Quaternion = Quaternion(axis, angle) * _global[index].basis.get_rotation_quaternion()
+	var parent: int = _parents[index]
+	if parent >= 0: rotation = _global[parent].basis.get_rotation_quaternion().inverse() * rotation
+	var base: Transform3D = _working[index]
+	_working[index] = Transform3D(Basis(rotation.normalized()) * Basis.from_scale(base.basis.get_scale()), base.origin)
+	_compose_globals()
+
+func _p(origin: Vector3, right: float, up: float, forward: float) -> Vector3:
+	return origin + (_right*right + _up*up + _forward*forward) * _reach
+
+func _leg(side: String, foot_target: Vector3) -> void:
+	var thigh: String = "thigh_" + side
+	var shin: String = "shin_" + side
+	var foot: String = "foot_" + side
+	var foot_rotation: Quaternion = _global[int(_indices[foot])].basis.get_rotation_quaternion()
+	var hip: Vector3 = _point(thigh)
+	var a: float = hip.distance_to(_point(shin)); var b: float = _point(shin).distance_to(_point(foot))
+	var line: Vector3 = foot_target-hip
+	if minf(a,b) < .0001 or line.length_squared() < .000001: return
+	var distance: float = clampf(line.length(), absf(a-b)+.0001, a+b-.0001)
+	line = line.normalized()
+	var bend: Vector3 = _forward-line*line.dot(_forward)
+	if bend.length_squared() < .00001: bend = _right * (-1.0 if side == "l" else 1.0)
+	bend = bend.normalized()
+	var along: float = (a*a-b*b+distance*distance)/(2.0*distance)
+	var knee: Vector3 = hip + line*along + bend*sqrt(maxf(0,a*a-along*along))
+	_aim(thigh, shin, knee); _aim(shin, foot, hip+line*distance)
+	# Keep the foot orientation from the sampled standing pose, with its sole down.
+	var index: int = _indices[foot]
+	var rotation: Quaternion = foot_rotation
+	var parent: int = _parents[index]
+	if parent >= 0: rotation = _global[parent].basis.get_rotation_quaternion().inverse()*rotation
+	var base: Transform3D = _working[index]
+	_working[index] = Transform3D(Basis(rotation.normalized())*Basis.from_scale(base.basis.get_scale()),base.origin)
+	_compose_globals()
+
+func _seat(value: Dictionary) -> bool:
+	if not _legs_ready or not value.get("seat") is Vector3 or not is_instance_valid(_ambient_rig.get_ref()): return false
+	var rig: Skeleton3D = _ambient_rig.get_ref()
+	var left_foot: Vector3 = _point("foot_l"); var right_foot: Vector3 = _point("foot_r")
+	var target: Vector3 = rig.to_local(Vector3(value.seat) + Vector3.UP*.10)
+	var pelvis: int = _indices["pelvis"]
+	var parent: int = _parents[pelvis]
+	var local: Vector3 = (_global[parent].affine_inverse()*target) if parent >= 0 else target
+	_working[pelvis] = Transform3D(_working[pelvis].basis, local)
+	_compose_globals()
+	for side: String in ["l", "r"]:
+		var hip: Vector3 = _point("thigh_" + side)
+		var leg_length: float = hip.distance_to(_point("shin_" + side)) + _point("shin_" + side).distance_to(_point("foot_" + side))
+		var foot: Vector3 = left_foot if side == "l" else right_foot
+		if hip.distance_to(foot) > leg_length-.005: return false
+	_leg("l", left_foot); _leg("r", right_foot)
+	_turn_global("chest", _right, -.07)
+	_arm("l", _point("shin_l") + _up*_reach*.08)
+	_arm("r", _point("shin_r") + _up*_reach*.08)
+	return true
+
+func compose(selected: Dictionary, value: Dictionary) -> Dictionary:
+	last_weight = 0.0
+	value["pose_weight"] = 0.0
+	if not _ready or not selected.get("valid", false) or not selected.get("poses") is Array: return selected
+	var kind: String = str(value.get("kind", ""))
+	if kind not in KINDS: return selected
+	var elapsed: float = float(value.get("elapsed_s", 0.0)); var duration: float = float(value.get("duration_s", 0.0))
+	var fade: float = .75 if kind == "bench" else .35
+	var weight: float = smoothstep(0.0, fade, elapsed) * (1.0-smoothstep(duration-fade, duration, elapsed))
+	last_weight = weight; last_elapsed = elapsed
+	if weight <= .00001: return selected
+	var poses: Array[Transform3D] = selected.poses
+	if poses.size() != _parents.size(): return selected
+	_working = poses.duplicate(); _compose_globals()
+	var shoulders: Vector3 = (_point("upperarm_l") + _point("upperarm_r"))*.5
+	var head: Vector3 = _point("head")
+	var pelvis: Vector3 = _point("pelvis")
+	var slow: float = sin(elapsed*TAU/3.6)
+	var pulse: float = sin(elapsed*TAU/.65)
+	match kind:
+		"bench":
+			if not _seat(value): last_weight = 0.0; return selected
+			_turn_global("head", _up, slow*.08)
+		"book":
+			_arm("l", _p(shoulders,-.23,-.40,.52)); _arm("r", _p(shoulders,.23,-.40+.012*pulse,.52))
+			_turn_global("head", _right, .24)
+		"look_around":
+			_turn_global("chest", _up, slow*.15); _turn_global("neck", _up, slow*.45)
+		"watch":
+			_arm("l", _p(shoulders,.12,-.26,.45)); _arm("r", _p(shoulders,.14,-.15,.46))
+			_turn_global("head", _right, .27); _turn_global("head", _up, -.12)
+		"sleeves":
+			var side: float = 1.0 if fmod(elapsed,4.0) < 2.0 else -1.0
+			_arm("l", _p(shoulders,-.30,-.38,.48)); _arm("r", _p(shoulders,.10+side*.22,-.32+.04*pulse,.37))
+			_turn_global("head", _right, .18)
+		"stretch":
+			_arm("l", _p(shoulders,-.48,.78,.14)); _arm("r", _p(shoulders,.48,.78,.14))
+			_turn_global("chest", _right, -.13-.025*slow); _turn_global("head", _right, -.12)
+		"rub_palms":
+			_arm("l", _p(shoulders,-.03,-.34+.025*pulse,.48)); _arm("r", _p(shoulders,.03,-.34-.025*pulse,.48))
+		"neck":
+			_turn_global("neck", _forward, slow*.24); _turn_global("head", _right, .12*cos(elapsed*TAU/3.6))
+		"shoulders":
+			_arm("l", _p(shoulders,-.43,-.60+.06*slow,.03+.07*cos(elapsed*2.0)))
+			_arm("r", _p(shoulders,.43,-.60+.06*slow,.03+.07*cos(elapsed*2.0)))
+			_turn_global("chest", _right, slow*.08)
+		"collar":
+			_arm("l", _p(shoulders,-.17,.03,.13)); _arm("r", _p(shoulders,.17,.03+.02*pulse,.13))
+			_turn_global("head", _up, slow*.10)
+		"wipe_forehead":
+			_arm("r", head + (_right*(.12+.15*slow) + _up*.12 + _forward*.15)*_reach)
+			_turn_global("head", _right, .08)
+		"scratch_head":
+			_arm("r", head + (_right*.24 + _up*(.22+.025*pulse))*_reach)
+			_turn_global("head", _forward, -.14)
+		"window":
+			_arm("l", _p(shoulders,-.28,-.50,.06)); _arm("r", head+(_forward*.12-_up*.28)*_reach)
+			_turn_global("chest", _right, .10); _turn_global("head", _up, slow*.15)
+		"look_far":
+			_arm("l", head+(-_right*.13+_up*.14+_forward*.24)*_reach)
+			_turn_global("head", _up, slow*.20); _turn_global("head", _right, -.08)
+		"newspaper":
+			_arm("l", _p(shoulders,-.36,-.28,.56)); _arm("r", _p(shoulders,.36,-.28,.56))
+			_turn_global("head", _right, .17); _turn_global("head", _up, slow*.08)
+		"camera":
+			_arm("l", head+(-_right*.15-_up*.12+_forward*.30)*_reach)
+			_arm("r", head+(_right*.15-_up*.12+_forward*(.30+.008*pulse))*_reach)
+			_turn_global("head", _right, -.03)
+		"pocket":
+			_arm("r", pelvis+(_right*.27+_up*.02+_forward*.17)*_reach)
+			_arm("l", _p(shoulders,-.32,-.55,.04)); _turn_global("head", _right, .26); _turn_global("head", _up, .17)
+	for index: int in poses.size():
+		var base: Transform3D = poses[index]; var target: Transform3D = _working[index]
+		var rotation: Quaternion = base.basis.get_rotation_quaternion().slerp(target.basis.get_rotation_quaternion(), weight)
+		poses[index] = Transform3D(Basis(rotation.normalized())*Basis.from_scale(base.basis.get_scale()),base.origin.lerp(target.origin,weight))
+	value["pose_weight"] = weight
+	return selected

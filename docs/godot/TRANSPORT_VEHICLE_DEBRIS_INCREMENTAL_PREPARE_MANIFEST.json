@@ -1,0 +1,68 @@
+{
+  "schema": "mafiozi.transport-vehicle-debris-incremental-prepare-candidate.v1",
+  "date": "2026-09-30",
+  "status": "functionally-verified-step-gate-pass-not-production-adopted",
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/candidates/transport_vehicle_debris_incremental_prepare.gd",
+      "bytes": 15235,
+      "sha256": "9fa78d83544ee84d2a33a810ef3577ee8542db5355f363f322d1fc7e0d4e5dd5"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_vehicle_debris_incremental_prepare.gd",
+      "bytes": 19984,
+      "sha256": "dd56fc5157947a57135dafacb33f700cee120bd944d1614caf33541bf9c05416"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_VEHICLE_DEBRIS_INCREMENTAL_PREPARE_HANDOFF.md",
+      "bytes": 5945,
+      "sha256": "161fbac21d05d0e908198ce58aa643d64ba7bc0f779a73c68dca42e0685ca15c"
+    }
+  ],
+  "baseline": {
+    "path": "godot/mafiozi_walk/scripts/transport/transport_vehicle_debris.gd",
+    "bytes": 15804,
+    "sha256": "1cf791ea4890c844b8c1072cdccca647b3b8255cec718afa7e96f80b9c2bba8f"
+  },
+  "verification": {
+    "godot": "4.7.2.stable.official.ed1daf0bf",
+    "result": "200/200 and 201/201 PASS, exit 0, processes joined, clean shutdown",
+    "actual": "10 assemblies / 76 hulls / 142948 vertices / 76 private meshes / 76 private materials / 29 source identities",
+    "fidelity": "exact hull point bytes and support across rigid vehicle motion; body physics; atomic publication; pre/post-commit revision guards; pose abort; hidden subtree parity; cancel/dispose cleanup; prewarm; launch; actual collision and natural sleep after 378 frames"
+  },
+  "qualified_samples_no_other_headless_godot": [
+    {
+      "checks": 200,
+      "frozen_configure_us": 107536,
+      "begin_us": 724,
+      "step_p50_us": 1900.5,
+      "step_p95_us": 3979,
+      "step_max_us": 4765,
+      "candidate_cpu_sum_us": 149546,
+      "wall_us": 506809
+    },
+    {
+      "checks": 201,
+      "frozen_configure_us": 115437,
+      "begin_us": 558,
+      "step_p50_us": 1941,
+      "step_p95_us": 3791,
+      "step_max_us": 4990,
+      "candidate_cpu_sum_us": 153417,
+      "wall_us": 506764,
+      "prewarm_p50_p95_max_us": [47.5, 65, 65],
+      "launch_us": 648
+    }
+  ],
+  "decision": {
+    "step_gate": "PASS: final-code p95/max 3.979/4.990 ms; earlier scheduling sample without another detected headless Godot reached 7.213/7.775 ms",
+    "production": "NOT_ADOPTED",
+    "reason": "Total CPU increases about 40 percent, readiness is about 507 ms over 76 frames, and loaded-scene FPS/frame budget is unmeasured."
+  },
+  "limits": [
+    "The interactive Godot remained open; samples only establish that no other headless Godot process was detected.",
+    "damage_revision is a caller-supplied seam and must be bound to authoritative lifetime/deformation state by the future host.",
+    "An event before READY must remain pending in the future authoritative host; the candidate neither authorizes nor queues events.",
+    "No production runtime, frozen file, content, Git, GPU window or LIVE scene changed."
+  ]
+}

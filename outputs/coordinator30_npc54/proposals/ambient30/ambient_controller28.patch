@@ -1,0 +1,96 @@
+--- a/scripts/npc_ambient/ambient_controller28.gd
++++ b/scripts/npc_ambient/ambient_controller28.gd
+@@ -7,8 +7,8 @@
+ const Windows29 = preload("res://scripts/npc_ambient/ambient_windows29.gd")
+ const Route = preload("res://scripts/hospital/npc_physical_route51.gd")
+ const Driver = preload("res://scripts/hospital/npc_simple_hospital.gd")
+-const TITLES := ["Посидеть на лавочке", "Почитать книгу", "Осмотреться", "Проверить часы", "Поправить рукава", "Потянуться", "Потереть ладони", "Размять шею", "Размять плечи", "Поправить воротник", "Протереть лоб", "Почесать голову", "Осмотреть витрину", "Посмотреть вдаль", "Почитать газету", "Сфотографировать вид", "Осмотреть карман"]
+-const MAX_APPROACH_S := 20.0
++const TITLES := ["Посидеть на лавочке", "Почитать книгу", "Осмотреться", "Проверить часы", "Поправить рукава", "Потянуться", "Потереть ладони", "Размять шею", "Размять плечи", "Поправить воротник", "Протереть лоб", "Почесать голову", "Осмотреть витрину", "Посмотреть вдаль", "Почитать газету", "Сфотографировать вид", "Осмотреть карман", "Посмотреть телефон"]
++const MAX_APPROACH_S := 6.0
+ var _host: RefCounted
+ var _token: Dictionary = {}
+ var _scene: Node3D
+@@ -86,7 +86,7 @@
+ 		_seat = {}; _window = null
+ 		_face = -_body.global_basis.z
+ 		if kind == "bench":
+-			_seat = _benches.nearest(_body, _route)
++			_seat = _benches.reserve_nearest(_body, _route, self, _serial+1)
+ 			if _seat.is_empty(): _log("unavailable", "bench_requires_real_reachable_seat"); continue
+ 			_face = _seat.face
+ 		elif kind == "window":
+@@ -103,9 +103,11 @@
+ 			_driver = Driver.new()
+ 			# Existing physical solver's ordinary outdoor path, never its medical door mode.
+ 			if not _driver.begin(_seat.approach, _body, _map, str(_token.source_id), "roam"):
+-				_driver.cancel(); _driver = null; _kind = ""; continue
++				_driver.cancel(); _driver = null
++				_benches.release(_seat,self,_body); _seat = {}; _kind = ""; continue
+ 			_phase = "APPROACH"
+ 		else: _phase = "ALIGN"
++		if not _current(): cancel("actor_life_changed_during_begin"); return false
+ 		# Owner registration is available to immediate death pruning before posing.
+ 		_body.set_meta(Pose.META,{"active":false,"owner":weakref(self),"serial":_serial,"body_id":_body.get_instance_id(),"kind":_kind})
+ 		_log("started", "random_choice")
+@@ -151,8 +153,9 @@
+ 
+ func step(delta: float) -> String:
+ 	if not active(): return "done"
++	if not _current(): cancel("actor_life_ended"); return "blocked"
++	if _kind == "bench" and not _benches.renew(_seat,self,_body): cancel("bench_lease_lost"); return "blocked"
+ 	if not is_finite(delta) or delta <= 0 or delta > .05: return "active"
+-	if not _current(): cancel("actor_life_ended"); return "blocked"
+ 	var frame: int = Engine.get_physics_frames()
+ 	if _frame == frame: return "active"
+ 	_frame = frame; _age += delta
+@@ -162,7 +165,7 @@
+ 		if result == "blocked": cancel("bench_approach_blocked"); return "blocked"
+ 		if result == "arrived":
+ 			_driver.cancel(); _driver = null
+-			if Vector2(_body.global_position.x-_seat.approach.x,_body.global_position.z-_seat.approach.z).length() > .18:
++			if Vector2(_body.global_position.x-_seat.approach.x,_body.global_position.z-_seat.approach.z).length() > .42:
+ 				cancel("bench_arrival_too_far"); return "blocked"
+ 			_phase = "DOCK"; _age = 0.0
+ 		return "active"
+@@ -175,7 +178,9 @@
+ 		direction.y = 0.0
+ 		var remaining: float = direction.length()
+ 		if remaining <= .02:
+-			_hold(delta); _phase = "ALIGN"; _age = 0.0; return "active"
++			_hold(delta)
++			if not _benches.occupy(_seat,self,_body): cancel("bench_occupancy_refused"); return "blocked"
++			_phase = "ALIGN"; _age = 0.0; return "active"
+ 		var floor: Variant = _route.floor_at(_seat.approach,_body.global_position.y)
+ 		if not floor is Vector3 or not _route.edge_clear(_body.global_position,floor): cancel("bench_precise_approach_obstructed"); return "blocked"
+ 		var before: Vector3 = _body.global_position
+@@ -208,7 +213,12 @@
+ ## Called during the host's busy section: no recursive host identity lookup here.
+ ## The host has already passed its own life/ragdoll/transport/current-frame guards.
+ func sample_current(value: Dictionary) -> bool:
++	if _kind == "bench" and not _benches.matches(_seat,self,_body): return false
+ 	return _phase == "ACTING" and is_instance_valid(_body) and int(value.get("serial",-1)) == _serial and str(value.get("kind","")) == _kind and int(value.get("frame",-1)) == _frame and _body.global_position.distance_to(_anchor) <= .05
++
++## Registry only calls this from life-side claim/renew, never from host composition.
++func bench_slot_living29(lease_serial: int) -> bool:
++	return active() and _kind == "bench" and _current() and int(_seat.get("slot",{}).get("serial",-1)) == lease_serial
+ 
+ func pose_committed(rig: Skeleton3D, value: Dictionary) -> void:
+ 	if not sample_current(value) or rig != _token.get("rig"): _props.hide(); return
+@@ -220,6 +230,7 @@
+ 	if _props != null: _props.hide()
+ 
+ func cancel(reason: String = "cancelled") -> void:
++	if _benches != null: _benches.release(_seat,self,_body)
+ 	if _props != null: _props.clear()
+ 	if _driver != null: _driver.cancel(); _driver = null
+ 	if is_instance_valid(_body):
+@@ -231,7 +242,7 @@
+ 	_last_reason = reason; _phase = "IDLE"; _seat = {}; _window = null
+ 
+ func snapshot() -> Dictionary:
+-	return {"active":active(),"phase":_phase,"kind":_kind,"title":TITLES[Pose.KINDS.find(_kind)] if _kind in Pose.KINDS else "","serial":_serial,"elapsed_s":_elapsed,"duration_s":_duration,"pose_frames":_pose_frames,"roams_completed":_roams_completed,"reason":_last_reason,"qa_seed":_seed_label}
++	return {"active":active(),"phase":_phase,"kind":_kind,"title":TITLES[Pose.KINDS.find(_kind)] if _kind in Pose.KINDS else "","serial":_serial,"elapsed_s":_elapsed,"duration_s":_duration,"pose_frames":_pose_frames,"roams_completed":_roams_completed,"reason":_last_reason,"qa_seed":_seed_label,"bench_slot":_seat.get("slot",{}),"bench_inventory":_benches.snapshot() if _benches != null else {}}
+ 
+ func _log(event: String, reason: String) -> void:
+ 	print("NPC_AMBIENT28 ",JSON.stringify({"event":event,"reason":reason,"id":_token.get("source_id",""),"generation":_token.get("life_generation",-1),"kind":_kind,"phase":_phase,"duration_s":_duration,"pose_frames":_pose_frames,"frame":Engine.get_physics_frames(),"qa_seed":_seed_label}))

@@ -1,0 +1,25 @@
+{
+  "revision": "castle-20261018-combined53-bot-bow",
+  "base_commit": "33b8ad5388e846752a4111caffd56d9d15935174",
+  "coordinator_thread": "01a15065-bc45-7b42-aff6-acc567e2c36f",
+  "previous_thread": "01a1504f-aa65-7792-818a-bdf77a3a70db",
+  "game": "D:\\MafioziCombat31\\coordinator34_merged53\\game",
+  "frozen": true,
+  "acceptance": "outputs/coordinator34_release53/ACCEPTANCE.json",
+  "evidence": "outputs/coordinator34_release53/evidence",
+  "included": [
+    "All accepted52: map, soil49/camp, armor stands, free melee51, high bow/spear aim and contacts.",
+    "Competitive53 opponent: delayed180ms observed reactions, guard/counter, side steps, spacing hysteresis and physical local navigation.",
+    "Existing full heavy armor on NPC via the same five-slot visuals and protection as player; helmet hair visibility restored on removal.",
+    "Independent player/NPC armor mobility; respawn spacing/orbit reset.",
+    "Bow facing ownership fixes reverse-motion jitter and hands facing back to locomotion on switch/drop.",
+    "Bow aim preview dots no longer cast a second dotted shadow; ballistics unchanged."
+  ],
+  "excluded_requested": [],
+  "limits": [
+    "Clean full-game FPS not measured: the existing user game was preserved.",
+    "Bot comparison is a finite set of real-input scenarios with wins and losses, not a win-rate estimate or universal superiority.",
+    "Existing head/torso proxy self-clearance is not full triangle self-collision."
+  ],
+  "instructions": "Resolve current_version.json and ASSEMBLY. Preserve user52 PID58516 after fresh identity check; it is not automatically replaced. F5/shortcut resolve53. All old sources/evidence/foreign WIP retained. New candidates on D and Godot through scheduler. Old chats/subagents are interrupted or finished; do not wake them. Only the current coordinator integrates."
+}

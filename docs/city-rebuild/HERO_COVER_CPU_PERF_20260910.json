@@ -1,0 +1,785 @@
+{
+  "scope": "CPU-only male GLB; no renderer, GPU or shared-game FPS measurement",
+  "limitation": "Other agents had concurrent CPU checks; p95 noise possible. coverPose entries are isolated synthetic pose stress, not actual host update or game frame time. Weapon helper unchanged by this optimization; another owner is finalizing continuity.",
+  "optimization": "Exact silhouette rays unchanged; cached geometry bounds + swept-body mesh broadphase reduces Kingswell query. Authored car queries still dominated by large meshes; no second optimization iteration requested under user budget economy.",
+  "before": {
+    "kind": "CPU-only; no GPU/browser/general-game FPS",
+    "node": "v26.1.0",
+    "warmupFrames": 40,
+    "normalUpdate": {
+      "samples": 120,
+      "p50Ms": 0.2793999999999812,
+      "p95Ms": 0.36019999999999186,
+      "meanMs": 0.2971775000000001,
+      "maxMs": 0.5276000000000067
+    },
+    "contact": [
+      {
+        "id": "kingswell",
+        "coldMs": 39.108400000000074,
+        "samples": 40,
+        "p50Ms": 14.266999999999825,
+        "p95Ms": 14.943199999999706,
+        "meanMs": 14.372020000000088,
+        "maxMs": 16.838999999999942,
+        "rays": 52,
+        "shift": 0.4352987739169854,
+        "meanAmortized10HzMs": 2.3953366666666813
+      },
+      {
+        "id": "city_hatchback",
+        "coldMs": 16.912900000000263,
+        "samples": 40,
+        "p50Ms": 9.949200000000019,
+        "p95Ms": 10.405300000000352,
+        "meanMs": 9.980709999999931,
+        "maxMs": 10.781100000000151,
+        "rays": 52,
+        "shift": 0.3927987340847154,
+        "meanAmortized10HzMs": 1.6634516666666552
+      },
+      {
+        "id": "compact_sedan",
+        "coldMs": 21.963000000000648,
+        "samples": 40,
+        "p50Ms": 10.269400000000132,
+        "p95Ms": 10.38799999999992,
+        "meanMs": 10.266832499999918,
+        "maxMs": 10.447400000000016,
+        "rays": 52,
+        "shift": 0.39279873455323994,
+        "meanAmortized10HzMs": 1.7111387499999864
+      },
+      {
+        "id": "family_wagon",
+        "coldMs": 13.297199999999975,
+        "samples": 40,
+        "p50Ms": 10.74290000000019,
+        "p95Ms": 10.937600000000202,
+        "meanMs": 10.710667500000046,
+        "maxMs": 11.35360000000037,
+        "rays": 52,
+        "shift": 0.3927987946264105,
+        "meanAmortized10HzMs": 1.7851112500000077
+      },
+      {
+        "id": "executive_sedan",
+        "coldMs": 13.705300000000534,
+        "samples": 40,
+        "p50Ms": 11.848699999999553,
+        "p95Ms": 15.851800000000367,
+        "meanMs": 13.032922499999994,
+        "maxMs": 20.549799999999777,
+        "rays": 52,
+        "shift": 0.39279879346655316,
+        "meanAmortized10HzMs": 2.172153749999999
+      },
+      {
+        "id": "sport_coupe",
+        "coldMs": 13.084399999999732,
+        "samples": 40,
+        "p50Ms": 10.28570000000036,
+        "p95Ms": 10.978900000000067,
+        "meanMs": 10.430212499999971,
+        "maxMs": 13.020999999998821,
+        "rays": 52,
+        "shift": 0.3927988540006118,
+        "meanAmortized10HzMs": 1.7383687499999951
+      },
+      {
+        "id": "city_suv",
+        "coldMs": 12.09860000000117,
+        "samples": 40,
+        "p50Ms": 9.48989999999867,
+        "p95Ms": 10.155099999999948,
+        "meanMs": 9.647685000000001,
+        "maxMs": 12.188599999999497,
+        "rays": 52,
+        "shift": 0.3927987955634608,
+        "meanAmortized10HzMs": 1.6079475
+      },
+      {
+        "id": "delivery_van",
+        "coldMs": 17.575999999999112,
+        "samples": 40,
+        "p50Ms": 14.792900000000373,
+        "p95Ms": 15.313200000000506,
+        "meanMs": 14.82398749999993,
+        "maxMs": 16.36330000000089,
+        "rays": 52,
+        "shift": 0.48,
+        "meanAmortized10HzMs": 2.470664583333322
+      },
+      {
+        "id": "utility_pickup",
+        "coldMs": 13.022200000001249,
+        "samples": 40,
+        "p50Ms": 11.219999999999345,
+        "p95Ms": 12.045599999999467,
+        "meanMs": 11.344179999999778,
+        "maxMs": 12.18920000000071,
+        "rays": 52,
+        "shift": 0.39279891384333737,
+        "meanAmortized10HzMs": 1.8906966666666296
+      },
+      {
+        "id": "city_bus",
+        "coldMs": 36.71169999999984,
+        "samples": 40,
+        "p50Ms": 36.658000000001266,
+        "p95Ms": 40.72029999999904,
+        "meanMs": 37.32772249999998,
+        "maxMs": 45.534999999999854,
+        "rays": 52,
+        "shift": 0.48,
+        "meanAmortized10HzMs": 6.22128708333333
+      },
+      {
+        "id": "police_interceptor",
+        "coldMs": 14.487299999998868,
+        "samples": 40,
+        "p50Ms": 11.895899999999529,
+        "p95Ms": 12.765299999999115,
+        "meanMs": 11.991212499999984,
+        "maxMs": 13.073700000000827,
+        "rays": 52,
+        "shift": 0.3927987941655224,
+        "meanAmortized10HzMs": 1.998535416666664
+      },
+      {
+        "id": "city_ambulance",
+        "coldMs": 17.775100000000748,
+        "samples": 40,
+        "p50Ms": 14.736500000000888,
+        "p95Ms": 15.752399999999398,
+        "meanMs": 14.861747499999865,
+        "maxMs": 16.16229999999996,
+        "rays": 52,
+        "shift": 0.4770570889069203,
+        "meanAmortized10HzMs": 2.476957916666644
+      },
+      {
+        "id": "fire_engine",
+        "coldMs": 18.05159999999887,
+        "samples": 40,
+        "p50Ms": 14.730499999999665,
+        "p95Ms": 16.612100000000282,
+        "meanMs": 15.03329249999988,
+        "maxMs": 21.816799999998693,
+        "rays": 52,
+        "shift": 0.48,
+        "meanAmortized10HzMs": 2.50554874999998
+      }
+    ],
+    "clearance": [
+      {
+        "id": "tt_pistol",
+        "coldMs": 6.948800000000119,
+        "clear": {
+          "samples": 120,
+          "p50Ms": 0.09549999999944703,
+          "p95Ms": 0.1573000000007596,
+          "meanMs": 0.11336333333329093,
+          "maxMs": 0.6967999999997119
+        },
+        "blockedSolver": {
+          "samples": 80,
+          "p50Ms": 2.2554999999993015,
+          "p95Ms": 2.725699999999051,
+          "meanMs": 2.308853750000071,
+          "maxMs": 2.831500000000233
+        },
+        "candidates": 217
+      },
+      {
+        "id": "shotgun",
+        "coldMs": 0.26269999999931315,
+        "clear": {
+          "samples": 120,
+          "p50Ms": 0.07539999999971769,
+          "p95Ms": 0.0930000000007567,
+          "meanMs": 0.07884499999991021,
+          "maxMs": 0.1440999999995256
+        },
+        "blockedSolver": {
+          "samples": 80,
+          "p50Ms": 2.726300000000265,
+          "p95Ms": 3.5164000000004307,
+          "meanMs": 2.857538749999958,
+          "maxMs": 4.831299999999828
+        },
+        "candidates": 217
+      },
+      {
+        "id": "ak74",
+        "coldMs": 0.5322999999989406,
+        "clear": {
+          "samples": 120,
+          "p50Ms": 0.10580000000118162,
+          "p95Ms": 0.18189999999958673,
+          "meanMs": 0.12434500000035768,
+          "maxMs": 0.7586000000010245
+        },
+        "blockedSolver": {
+          "samples": 80,
+          "p50Ms": 3.098500000000058,
+          "p95Ms": 6.032899999998335,
+          "meanMs": 3.5160562499998833,
+          "maxMs": 6.959600000001956
+        },
+        "candidates": 217
+      },
+      {
+        "id": "rpg",
+        "coldMs": 0.23460000000341097,
+        "clear": {
+          "samples": 120,
+          "p50Ms": 0.06530000000202563,
+          "p95Ms": 0.07549999999901047,
+          "meanMs": 0.06766166666669354,
+          "maxMs": 0.1389000000017404
+        },
+        "blockedSolver": {
+          "samples": 80,
+          "p50Ms": 2.4922999999980675,
+          "p95Ms": 3.8951000000015483,
+          "meanMs": 2.6545687499999078,
+          "maxMs": 4.587700000000041
+        },
+        "candidates": 217
+      }
+    ],
+    "coverPose": [
+      {
+        "id": "tt_pistol",
+        "mode": "hidden",
+        "totalHeroUpdateAndPose": {
+          "samples": 120,
+          "p50Ms": 0.5588000000007014,
+          "p95Ms": 1.1296000000002095,
+          "meanMs": 0.6331941666666807,
+          "maxMs": 1.3721000000005006
+        }
+      },
+      {
+        "id": "tt_pistol",
+        "mode": "aimed",
+        "totalHeroUpdateAndPose": {
+          "samples": 120,
+          "p50Ms": 3.2365000000008877,
+          "p95Ms": 3.602600000000166,
+          "meanMs": 3.2575724999998936,
+          "maxMs": 4.214399999998932
+        }
+      },
+      {
+        "id": "tt_pistol",
+        "mode": "blind",
+        "totalHeroUpdateAndPose": {
+          "samples": 120,
+          "p50Ms": 0.5549000000009983,
+          "p95Ms": 0.6944999999996071,
+          "meanMs": 0.5784041666666477,
+          "maxMs": 0.9844999999986612
+        }
+      },
+      {
+        "id": "shotgun",
+        "mode": "hidden",
+        "totalHeroUpdateAndPose": {
+          "samples": 120,
+          "p50Ms": 0.6539000000011583,
+          "p95Ms": 0.775100000002567,
+          "meanMs": 0.6744433333334503,
+          "maxMs": 1.129000000000815
+        }
+      },
+      {
+        "id": "shotgun",
+        "mode": "aimed",
+        "totalHeroUpdateAndPose": {
+          "samples": 120,
+          "p50Ms": 5.4233000000022,
+          "p95Ms": 6.937199999996665,
+          "meanMs": 5.615817499999896,
+          "maxMs": 8.286400000000867
+        }
+      },
+      {
+        "id": "shotgun",
+        "mode": "blind",
+        "totalHeroUpdateAndPose": {
+          "samples": 120,
+          "p50Ms": 1.6749999999992724,
+          "p95Ms": 2.8027000000001863,
+          "meanMs": 1.8634683333333972,
+          "maxMs": 3.666300000000774
+        }
+      },
+      {
+        "id": "ak74",
+        "mode": "hidden",
+        "totalHeroUpdateAndPose": {
+          "samples": 120,
+          "p50Ms": 0.667699999998149,
+          "p95Ms": 0.751299999999901,
+          "meanMs": 0.6795899999999164,
+          "maxMs": 0.9575999999979103
+        }
+      },
+      {
+        "id": "ak74",
+        "mode": "aimed",
+        "totalHeroUpdateAndPose": {
+          "samples": 120,
+          "p50Ms": 5.612499999999272,
+          "p95Ms": 7.068400000000111,
+          "meanMs": 5.865939166666339,
+          "maxMs": 11.770599999999831
+        }
+      },
+      {
+        "id": "ak74",
+        "mode": "blind",
+        "totalHeroUpdateAndPose": {
+          "samples": 120,
+          "p50Ms": 1.872800000001007,
+          "p95Ms": 2.43579999999929,
+          "meanMs": 1.9555916666666842,
+          "maxMs": 3.9588999999978114
+        }
+      },
+      {
+        "id": "rpg",
+        "mode": "hidden",
+        "totalHeroUpdateAndPose": {
+          "samples": 120,
+          "p50Ms": 0.6163999999989755,
+          "p95Ms": 0.746900000001915,
+          "meanMs": 0.640247500000108,
+          "maxMs": 1.0338000000010652
+        }
+      },
+      {
+        "id": "rpg",
+        "mode": "aimed",
+        "totalHeroUpdateAndPose": {
+          "samples": 120,
+          "p50Ms": 5.307799999998679,
+          "p95Ms": 6.370999999999185,
+          "meanMs": 5.402270833333387,
+          "maxMs": 7.3703999999997905
+        }
+      },
+      {
+        "id": "rpg",
+        "mode": "blind",
+        "totalHeroUpdateAndPose": {
+          "samples": 120,
+          "p50Ms": 1.4663999999975204,
+          "p95Ms": 1.827499999999418,
+          "meanMs": 1.5061866666664778,
+          "maxMs": 2.099500000000262
+        }
+      }
+    ],
+    "inactiveContact": {
+      "samples": 100,
+      "p50Ms": 0.02209999999999468,
+      "p95Ms": 0.041100000000000136,
+      "meanMs": 0.02777000000000072,
+      "maxMs": 0.17449999999999477,
+      "units": "1000 inactive calls per sample"
+    }
+  },
+  "after": {
+    "kind": "CPU-only; no GPU/browser/general-game FPS",
+    "node": "v26.1.0",
+    "warmupFrames": 40,
+    "normalUpdate": {
+      "samples": 120,
+      "p50Ms": 0.25970000000000937,
+      "p95Ms": 0.3271000000000015,
+      "meanMs": 0.2712683333333324,
+      "maxMs": 0.49379999999999313
+    },
+    "contact": [
+      {
+        "id": "kingswell",
+        "coldMs": 14.82379999999921,
+        "samples": 40,
+        "p50Ms": 3.371999999999389,
+        "p95Ms": 3.8276000000005297,
+        "meanMs": 3.4712500000000093,
+        "maxMs": 4.378600000000006,
+        "rays": 52,
+        "shift": 0.4352987739169854,
+        "meanAmortized10HzMs": 0.5785416666666682
+      },
+      {
+        "id": "city_hatchback",
+        "coldMs": 18.097200000000157,
+        "samples": 40,
+        "p50Ms": 9.474100000000362,
+        "p95Ms": 10.532199999999648,
+        "meanMs": 9.613442500000065,
+        "maxMs": 11.106900000000678,
+        "rays": 52,
+        "shift": 0.3927987340847154,
+        "meanAmortized10HzMs": 1.6022404166666775
+      },
+      {
+        "id": "compact_sedan",
+        "coldMs": 13.127799999999297,
+        "samples": 40,
+        "p50Ms": 10.451799999999821,
+        "p95Ms": 13.23450000000048,
+        "meanMs": 11.186602500000049,
+        "maxMs": 16.991299999999683,
+        "rays": 52,
+        "shift": 0.39279873455323994,
+        "meanAmortized10HzMs": 1.864433750000008
+      },
+      {
+        "id": "family_wagon",
+        "coldMs": 14.909999999999854,
+        "samples": 40,
+        "p50Ms": 11.034200000000055,
+        "p95Ms": 13.305699999999888,
+        "meanMs": 11.461629999999946,
+        "maxMs": 14.829899999999725,
+        "rays": 52,
+        "shift": 0.3927987946264105,
+        "meanAmortized10HzMs": 1.9102716666666577
+      },
+      {
+        "id": "executive_sedan",
+        "coldMs": 15.274500000000444,
+        "samples": 40,
+        "p50Ms": 11.94459999999981,
+        "p95Ms": 16.550600000000486,
+        "meanMs": 12.67479249999999,
+        "maxMs": 17.79070000000047,
+        "rays": 52,
+        "shift": 0.39279879346655316,
+        "meanAmortized10HzMs": 2.112465416666665
+      },
+      {
+        "id": "sport_coupe",
+        "coldMs": 13.888199999999415,
+        "samples": 40,
+        "p50Ms": 10.241600000001199,
+        "p95Ms": 10.973800000001575,
+        "meanMs": 10.348037499999919,
+        "maxMs": 11.371299999998882,
+        "rays": 52,
+        "shift": 0.3927988540006118,
+        "meanAmortized10HzMs": 1.724672916666653
+      },
+      {
+        "id": "city_suv",
+        "coldMs": 12.41479999999865,
+        "samples": 40,
+        "p50Ms": 9.295500000000175,
+        "p95Ms": 11.404000000000451,
+        "meanMs": 9.660172499999907,
+        "maxMs": 12.446099999999205,
+        "rays": 52,
+        "shift": 0.3927987955634608,
+        "meanAmortized10HzMs": 1.6100287499999846
+      },
+      {
+        "id": "delivery_van",
+        "coldMs": 12.120100000000093,
+        "samples": 40,
+        "p50Ms": 9.3195999999989,
+        "p95Ms": 9.5575000000008,
+        "meanMs": 9.373039999999992,
+        "maxMs": 10.940200000000914,
+        "rays": 52,
+        "shift": 0.48,
+        "meanAmortized10HzMs": 1.562173333333332
+      },
+      {
+        "id": "utility_pickup",
+        "coldMs": 13.51089999999931,
+        "samples": 40,
+        "p50Ms": 11.064099999999598,
+        "p95Ms": 13.26890000000094,
+        "meanMs": 11.512355000000117,
+        "maxMs": 13.640300000000934,
+        "rays": 52,
+        "shift": 0.39279891384333737,
+        "meanAmortized10HzMs": 1.9187258333333528
+      },
+      {
+        "id": "city_bus",
+        "coldMs": 19.929299999999785,
+        "samples": 40,
+        "p50Ms": 15.88590000000113,
+        "p95Ms": 22.377800000000207,
+        "meanMs": 17.041377500000046,
+        "maxMs": 28.964500000000044,
+        "rays": 52,
+        "shift": 0.48,
+        "meanAmortized10HzMs": 2.840229583333341
+      },
+      {
+        "id": "police_interceptor",
+        "coldMs": 14.64429999999993,
+        "samples": 40,
+        "p50Ms": 10.943299999998999,
+        "p95Ms": 11.45180000000073,
+        "meanMs": 11.001790000000119,
+        "maxMs": 11.665899999999965,
+        "rays": 52,
+        "shift": 0.3927987941655224,
+        "meanAmortized10HzMs": 1.8336316666666865
+      },
+      {
+        "id": "city_ambulance",
+        "coldMs": 12.120999999999185,
+        "samples": 40,
+        "p50Ms": 9.159499999999753,
+        "p95Ms": 10.380799999998999,
+        "meanMs": 9.312554999999975,
+        "maxMs": 11.194999999999709,
+        "rays": 52,
+        "shift": 0.4770570889069203,
+        "meanAmortized10HzMs": 1.5520924999999959
+      },
+      {
+        "id": "fire_engine",
+        "coldMs": 13.600400000001173,
+        "samples": 40,
+        "p50Ms": 10.832500000000437,
+        "p95Ms": 11.655000000000655,
+        "meanMs": 10.9615600000001,
+        "maxMs": 12.331900000001042,
+        "rays": 52,
+        "shift": 0.48,
+        "meanAmortized10HzMs": 1.8269266666666832
+      }
+    ],
+    "clearance": [
+      {
+        "id": "tt_pistol",
+        "coldMs": 8.475000000000364,
+        "clear": {
+          "samples": 120,
+          "p50Ms": 0.09909999999945285,
+          "p95Ms": 0.13189999999849533,
+          "meanMs": 0.10684500000000602,
+          "maxMs": 0.45610000000124273
+        },
+        "blockedSolver": {
+          "samples": 80,
+          "p50Ms": 2.221400000000358,
+          "p95Ms": 2.8981999999996333,
+          "meanMs": 2.3040524999999663,
+          "maxMs": 3.648300000000745
+        },
+        "candidates": 217
+      },
+      {
+        "id": "shotgun",
+        "coldMs": 0.2584000000006199,
+        "clear": {
+          "samples": 120,
+          "p50Ms": 0.07209999999940919,
+          "p95Ms": 0.07920000000012806,
+          "meanMs": 0.0761899999999514,
+          "maxMs": 0.4510000000009313
+        },
+        "blockedSolver": {
+          "samples": 80,
+          "p50Ms": 2.4462000000003172,
+          "p95Ms": 2.7454000000016094,
+          "meanMs": 2.4969274999999924,
+          "maxMs": 2.80199999999968
+        },
+        "candidates": 217
+      },
+      {
+        "id": "ak74",
+        "coldMs": 0.30500000000029104,
+        "clear": {
+          "samples": 120,
+          "p50Ms": 0.09159999999974389,
+          "p95Ms": 0.18169999999918218,
+          "meanMs": 0.11529166666662907,
+          "maxMs": 0.7145000000000437
+        },
+        "blockedSolver": {
+          "samples": 80,
+          "p50Ms": 3.7065999999995256,
+          "p95Ms": 6.899199999999837,
+          "meanMs": 4.2343987499999685,
+          "maxMs": 8.133900000000722
+        },
+        "candidates": 217
+      },
+      {
+        "id": "rpg",
+        "coldMs": 0.2618000000002212,
+        "clear": {
+          "samples": 120,
+          "p50Ms": 0.06260000000111177,
+          "p95Ms": 0.07560000000012224,
+          "meanMs": 0.06427833333342885,
+          "maxMs": 0.09570000000167056
+        },
+        "blockedSolver": {
+          "samples": 80,
+          "p50Ms": 2.70679999999993,
+          "p95Ms": 3.991699999998673,
+          "meanMs": 2.8274500000001352,
+          "maxMs": 6.043600000000879
+        },
+        "candidates": 217
+      }
+    ],
+    "coverPose": [
+      {
+        "id": "tt_pistol",
+        "mode": "hidden",
+        "totalHeroUpdateAndPose": {
+          "samples": 120,
+          "p50Ms": 0.5551000000014028,
+          "p95Ms": 0.6291999999994005,
+          "meanMs": 0.565963333333275,
+          "maxMs": 0.8379999999997381
+        }
+      },
+      {
+        "id": "tt_pistol",
+        "mode": "aimed",
+        "totalHeroUpdateAndPose": {
+          "samples": 120,
+          "p50Ms": 3.17699999999968,
+          "p95Ms": 4.752300000000105,
+          "meanMs": 3.422253333333386,
+          "maxMs": 6.917199999999866
+        }
+      },
+      {
+        "id": "tt_pistol",
+        "mode": "blind",
+        "totalHeroUpdateAndPose": {
+          "samples": 120,
+          "p50Ms": 0.5365000000001601,
+          "p95Ms": 0.595499999999447,
+          "meanMs": 0.5453925000000406,
+          "maxMs": 1.005699999999706
+        }
+      },
+      {
+        "id": "shotgun",
+        "mode": "hidden",
+        "totalHeroUpdateAndPose": {
+          "samples": 120,
+          "p50Ms": 0.6416999999983091,
+          "p95Ms": 0.7112999999990279,
+          "meanMs": 0.653702499999963,
+          "maxMs": 0.9540999999990163
+        }
+      },
+      {
+        "id": "shotgun",
+        "mode": "aimed",
+        "totalHeroUpdateAndPose": {
+          "samples": 120,
+          "p50Ms": 5.631900000000314,
+          "p95Ms": 7.4223000000001775,
+          "meanMs": 5.833420833333366,
+          "maxMs": 10.036000000000058
+        }
+      },
+      {
+        "id": "shotgun",
+        "mode": "blind",
+        "totalHeroUpdateAndPose": {
+          "samples": 120,
+          "p50Ms": 1.7646000000004278,
+          "p95Ms": 3.2458000000005995,
+          "meanMs": 1.9276366666666491,
+          "maxMs": 3.8052000000006956
+        }
+      },
+      {
+        "id": "ak74",
+        "mode": "hidden",
+        "totalHeroUpdateAndPose": {
+          "samples": 120,
+          "p50Ms": 1.109599999999773,
+          "p95Ms": 1.5264999999999418,
+          "meanMs": 1.1084233333335003,
+          "maxMs": 1.907999999999447
+        }
+      },
+      {
+        "id": "ak74",
+        "mode": "aimed",
+        "totalHeroUpdateAndPose": {
+          "samples": 120,
+          "p50Ms": 7.073499999998603,
+          "p95Ms": 9.706600000001345,
+          "meanMs": 7.417098333333373,
+          "maxMs": 11.33730000000287
+        }
+      },
+      {
+        "id": "ak74",
+        "mode": "blind",
+        "totalHeroUpdateAndPose": {
+          "samples": 120,
+          "p50Ms": 2.0511999999980617,
+          "p95Ms": 2.5964999999996508,
+          "meanMs": 2.1305175000001024,
+          "maxMs": 3.867000000002008
+        }
+      },
+      {
+        "id": "rpg",
+        "mode": "hidden",
+        "totalHeroUpdateAndPose": {
+          "samples": 120,
+          "p50Ms": 0.6378999999978987,
+          "p95Ms": 0.7243999999991502,
+          "meanMs": 0.6526975000000372,
+          "maxMs": 1.0336999999999534
+        }
+      },
+      {
+        "id": "rpg",
+        "mode": "aimed",
+        "totalHeroUpdateAndPose": {
+          "samples": 120,
+          "p50Ms": 5.863600000000588,
+          "p95Ms": 12.423600000001898,
+          "meanMs": 6.8597716666668624,
+          "maxMs": 13.576900000000023
+        }
+      },
+      {
+        "id": "rpg",
+        "mode": "blind",
+        "totalHeroUpdateAndPose": {
+          "samples": 120,
+          "p50Ms": 2.047599999998056,
+          "p95Ms": 2.842899999999645,
+          "meanMs": 2.1293966666666773,
+          "maxMs": 3.6340999999993073
+        }
+      }
+    ],
+    "inactiveContact": {
+      "samples": 100,
+      "p50Ms": 0.03129999999998745,
+      "p95Ms": 0.046900000000022146,
+      "meanMs": 0.03550400000000081,
+      "maxMs": 0.1314000000000135,
+      "units": "1000 inactive calls per sample"
+    }
+  }
+}

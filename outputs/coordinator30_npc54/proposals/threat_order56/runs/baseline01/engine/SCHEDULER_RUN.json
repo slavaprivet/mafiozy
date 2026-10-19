@@ -1,0 +1,35 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--path",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\threat_order56\\native_project",
+    "--script",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\threat_order56\\fixture56.gd",
+    "--",
+    "--qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\threat_order56\\runs\\baseline01",
+    "--city-simple-hospital=1",
+    "--qa-baseline"
+  ],
+  "passed": false,
+  "lease": {
+    "id": "e66e98f542c24cf29c3abe7a14a24f46",
+    "owner": {
+      "pid": 3872,
+      "creation_filetime": "134365044537440276"
+    },
+    "mode": "headless",
+    "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator30_npc54\\proposals\\threat_order56\\native_project",
+    "access": "read",
+    "children": [],
+    "deadline": 972586.2761242,
+    "queued_at": 972556.2761242,
+    "ticket": 1652,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.48620500008109957
+  },
+  "error": "Not the caller's direct child"
+}

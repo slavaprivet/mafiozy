@@ -1,0 +1,8 @@
+{
+	"checks": 2191,
+	"failures": [],
+	"index_sha256": "b39dead1b1880236d49983db70841fac7402e052801d98a94eb6d3a550c85b9b",
+	"kernel_sha256": "b8e651faa13affa83436bb59fe169c1b23d6dc0344126f78dbb6deca5586ac9b",
+	"max_original_source_point_error_m": 0.00000101152431852825,
+	"passed": true
+}

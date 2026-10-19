@@ -1,0 +1,137 @@
+{
+	"contacts": [
+		{
+			"aim": "(-0.146625, 0.172736, -0.973994)",
+			"hit_fixed_collider": true,
+			"shots": 1
+		}
+	],
+	"errors": [],
+	"lifecycle": [
+		{
+			"acquire": {
+				"ammo_free": true,
+				"bow": true,
+				"ok": true,
+				"weaponId": "bow"
+			},
+			"input_delivered": 10.0,
+			"viewport": "(1280, 720)"
+		},
+		{
+			"bow_dots": 8,
+			"bow_selected": true,
+			"label": "aim",
+			"storage": {
+				"back_bow": true,
+				"bow_active": true,
+				"carried": {
+					"bow": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"spear": true,
+					"sword": true
+				},
+				"revision": 1,
+				"slots": []
+			},
+			"sword_dots": 0,
+			"sword_selected": false
+		},
+		{
+			"bow_dots": 0,
+			"bow_selected": true,
+			"label": "release",
+			"storage": {
+				"back_bow": true,
+				"bow_active": true,
+				"carried": {
+					"bow": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"spear": true,
+					"sword": true
+				},
+				"revision": 1,
+				"slots": []
+			},
+			"sword_dots": 0,
+			"sword_selected": false
+		},
+		{
+			"bow_dots": 0,
+			"bow_selected": false,
+			"label": "drop",
+			"storage": {
+				"back_bow": false,
+				"bow_active": false,
+				"carried": {},
+				"chest_alive": true,
+				"fallen": {
+					"bow": "(-0.357627, 0.162924, 89.40814)"
+				},
+				"hand_shield": false,
+				"hand_weapon": "",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"spear": true,
+					"sword": true
+				},
+				"revision": 3,
+				"slots": []
+			},
+			"sword_dots": 0,
+			"sword_selected": false
+		},
+		{
+			"bow_dots": 0,
+			"bow_selected": true,
+			"label": "pickup",
+			"storage": {
+				"back_bow": true,
+				"bow_active": true,
+				"carried": {
+					"bow": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"sledge": true,
+					"spear": true,
+					"sword": true
+				},
+				"revision": 4,
+				"slots": []
+			},
+			"sword_dots": 0,
+			"sword_selected": false
+		}
+	],
+	"passed": true,
+	"scope": "Real input1:1 G/E aim/strike; rack API equip only. Existing native dummy placed before attacks, original HP/shape unchanged. Bow fixed collider with native arrow embedding, no HP injection.",
+	"weapon": "bow"
+}

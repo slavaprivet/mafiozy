@@ -1,0 +1,6 @@
+{
+  "status": "PASS",
+  "reviewed_images": ["sword_visual01/hold_0.png", "sword_visual01/hold_2.png", "mace_visual01/hold_0.png", "mace_visual01/hold_2.png"],
+  "observations": "Both weapons visibly remain in the right hand in horizontal and raised poses. The arm extends and follows the commanded direction. No visible separated grip or blade/body crossing in these sampled frames.",
+  "limits": "Four sampled frames inspected visually; continuous clearance and grip assertions are in the native hold receipts. No clean FPS claim."
+}

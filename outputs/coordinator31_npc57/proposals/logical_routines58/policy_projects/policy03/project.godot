@@ -1,0 +1,5 @@
+config_version=5
+[application]
+config/name="Routine58 policy check"
+[rendering]
+renderer/rendering_method="gl_compatibility"

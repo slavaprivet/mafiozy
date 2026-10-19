@@ -1,0 +1,95 @@
+{
+  "source_run": "outputs/coordinator31_npc57/proposals/qa58_merged/runs/merged58_1200_02",
+  "resident": "resident_7",
+  "start_ms": 438384,
+  "end_ms": 1199386,
+  "samples": 762,
+  "bounds_xz": [
+    [
+      134.892181396484,
+      135.169876098633
+    ],
+    [
+      -1.18636739253998,
+      0.00595704838633537
+    ]
+  ],
+  "bbox_diagonal_m": 1.2242352388458175,
+  "sampled_travel_m": 102.21408646079921,
+  "sampled_net_displacement_m": 1.186726438879961,
+  "phases": {
+    "WALKING": 762
+  },
+  "targets": {
+    "[136.218566894531, 0.303000032901764, 2.69682502746582]": 762
+  },
+  "waypoints": {
+    "[135.018569946289, 0.303000003099442, -0.903174996376038]": 1,
+    "[135.018569946289, 0.303000003099442, 0.296825021505356]": 761
+  },
+  "completed_walk_values": [
+    16
+  ],
+  "route_attempt_values": [
+    0
+  ],
+  "slow_planner": [
+    {
+      "ms": 1179388,
+      "ready_frame": 29340,
+      "service_us": 23762,
+      "queries": 423631,
+      "collider": "/root/MafioziWalkMigration/TownClone_4/Palazzo_Destructible/LobbyTable96",
+      "failure": "sweep_blocked"
+    },
+    {
+      "ms": 1180389,
+      "ready_frame": 29340,
+      "service_us": 23762,
+      "queries": 424226,
+      "collider": "/root/MafioziWalkMigration/TownClone_4/Palazzo_Destructible/LobbyTable96",
+      "failure": "sweep_blocked"
+    },
+    {
+      "ms": 1181385,
+      "ready_frame": 29340,
+      "service_us": 23762,
+      "queries": 424817,
+      "collider": "/root/MafioziWalkMigration/TownClone_4/Palazzo_Destructible/LobbyTable96",
+      "failure": "sweep_blocked"
+    },
+    {
+      "ms": 1182380,
+      "ready_frame": 29340,
+      "service_us": 23762,
+      "queries": 425391,
+      "collider": "/root/MafioziWalkMigration/TownClone_4/Palazzo_Destructible/LobbyTable96",
+      "failure": "sweep_blocked"
+    },
+    {
+      "ms": 1183382,
+      "ready_frame": 29340,
+      "service_us": 23762,
+      "queries": 425893,
+      "collider": "/root/MafioziWalkMigration/TownClone_4/Palazzo_Destructible/LobbyTable96",
+      "failure": "sweep_blocked"
+    }
+  ],
+  "raw_pins": {
+    "SOAK31.json": "f26d10721ccadf075e951bfe864942c91bc90e377ec3f851bfe9c875080b9038",
+    "SLOW_PLANNER31.json": "a8decea489827d9294ac796b61fa0111220d75af2ed9bfba0adafa9cf0fae368",
+    "SPATIAL58.json": "349d4b78fb220d7011f1ac9473cd4a5750ca8e5cf671ad96f503f44b8fc365f5",
+    "FINAL_AUDIT58.json": "d619a259a606a1897f862a3cbdf649a3598565130bb9bc3ce8f4e9c2c99b288d"
+  },
+  "source_pins": {
+    "scripts/hospital/npc_simple_hospital.gd": "0bb28b9d34ac0877c23b0737909348dcc715053739738c13f68522635f15020c",
+    "scripts/hospital/npc_roam_wait29.gd": "b39dbce75e87c2270f0682301f73dccfcb6532cd7624db34837f83fae724f0d7",
+    "scripts/hospital/npc_physical_route51.gd": "ce8bca0c9d45b88ae45ec3973544838267ef88db2d62911f781e25bed6b7168f",
+    "scripts/npc_daily_life.gd": "55640868c590cfe6451a3b639481f6f96d001c3d5bd79d5606a34e461c29b332"
+  },
+  "confirmed_code_gap": "Roam resets motion-idle after any 5mm step; the existing monotonic waypoint guard applies only to service_approach.",
+  "physical_cause": "Pending precise native slide/sweep reproduction; planner last_collider may be historical.",
+  "behavior_modified": false,
+  "source_modified": false,
+  "engine_launched": false
+}

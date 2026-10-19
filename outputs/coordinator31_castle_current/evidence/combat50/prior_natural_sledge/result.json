@@ -1,0 +1,64 @@
+{
+	"armor_requested": false,
+	"armor_snapshot": {},
+	"death_settled": {
+		"dead": true,
+		"disarmed": true,
+		"fall": 0.69331768155098,
+		"ground_swords": 1,
+		"npc_position": "(5.143339, 0.794656, 947.0311)",
+		"npc_velocity": "(0.0, 0.0, 0.0)",
+		"sword_held": false
+	},
+	"directional": null,
+	"failures": [],
+	"final": {
+		"dead": true,
+		"disarmed": true,
+		"fall": 0.9800946097821,
+		"npc_hp": 90.0,
+		"part_hp": {
+			"chest": -64.0
+		},
+		"severed": [],
+		"sword_held": false
+	},
+	"initial": {
+		"npc_dead": false,
+		"npc_hp": 90.0,
+		"npc_pos": "(4.6, 0.03, 947.5)",
+		"npc_sword": true,
+		"part_hp": {},
+		"player_pos": "(4.6, 0.03, 946.45)"
+	},
+	"max_strokes": 12,
+	"passed": true,
+	"same_direction": false,
+	"scope": "rack equip + choose mouse direction + click/release, no damage injection or teleport after initial placement",
+	"stroke_dx_per_frame": 20.0,
+	"strokes": [
+		{
+			"bleeding": true,
+			"blocks_delta": 0,
+			"dead": true,
+			"disarmed": true,
+			"fall": 0.460529029369354,
+			"ground_swords": 1,
+			"hits_delta": 0,
+			"index": 0,
+			"npc_hp_after": 90.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"chest": -64.0
+			},
+			"part_hp_before": {},
+			"player_npc_distance": 1.67697191238403,
+			"severed": [],
+			"sparks_delta": 16,
+			"sweep_hits_delta": 33,
+			"sword_held": false
+		}
+	],
+	"weapon_after_q": "sledge",
+	"weapon_test": "sledge"
+}

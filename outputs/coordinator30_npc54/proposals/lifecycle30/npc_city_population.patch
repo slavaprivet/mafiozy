@@ -1,0 +1,66 @@
+--- a/scripts/npc_city_population.gd
++++ b/scripts/npc_city_population.gd
+@@ -17,6 +17,8 @@
+ const ROAD_SHA := "dc77f6495d2657dff91106ca831cf41fb7f7c4ecb80e3211322999e74ad82f4b"
+ const SingleLifecycle28 = preload("res://scripts/hospital/npc_single_lifecycle28.gd")
+ var _single_lifecycle28: Node
++const MultiLife30=preload("res://scripts/hospital/npc_population_lifecycle30.gd")
++var _multi_lifecycle30: Node
+ 
+ ## Exact resident health lookup for perception; a metadata hint grants no authority.
+ func health_from_body30(body: CharacterBody3D) -> RefCounted:
+@@ -658,6 +660,8 @@
+ 	(lives as Dictionary)[id]=life
+ 	(accounts as Dictionary)[id]=account
+ 	(health as Dictionary)[id]=owner
++	if daily.has_method("wake_physical30"):daily.call("wake_physical30",id)
++	if is_instance_valid(_multi_lifecycle30) and not _multi_lifecycle30.bind_health30(owner):return false
+ 	return true
+ 
+ # DSH_STREAMLOAD: fade a forced (visible) admission in instead of popping it. OFF by
+@@ -794,6 +798,7 @@
+ 	_stream_ready_us = Time.get_ticks_usec()
+ 	_stream_ready_ms = Time.get_ticks_msec()
+ 	if not _configure_daily(scene, sites, true): return false
++	if MultiLife30.enabled30() and not _configure_multi_lifecycle30(scene,packet,trust):return false
+ 	_stream_phase = "streaming"
+ 	city_ready = true
+ 	status = "ready" if hit_owners.size() == _stream_total else "pending_placement"
+@@ -1109,7 +1114,9 @@
+ 		return _stream_begin(scene,parsed,qa_source_ids,packet,trust,sites,started)
+ 	if not _configure_daily(scene,sites): return false
+ 	city_ready=true; status="ready" if hit_owners.size()==parsed.rows.size() else "pending_placement"
+-	if SingleLifecycle28.enabled() and qa_source_ids==["resident_1"]:
++	if MultiLife30.enabled30():
++		if not _configure_multi_lifecycle30(scene,packet,trust):return false
++	elif SingleLifecycle28.enabled() and qa_source_ids==["resident_1"]:
+ 		_single_lifecycle28=SingleLifecycle28.new();scene.add_child(_single_lifecycle28)
+ 		if not _single_lifecycle28.configure(scene,self,packet,trust):return _fail("single_lifecycle28_configure")
+ 	# DSH_TELEMETRY (temporary A/B): measure what NPC shadow casting costs.
+@@ -1201,7 +1208,7 @@
+ 		if is_instance_valid(stream_scene): _stream_tick(stream_scene,delta)
+ 	phase_started=Time.get_ticks_usec()
+ 	# A confirmed bleedout may synchronously retire this exact one-NPC owner.
+-	var health_dispatch28: Array=hit_owners.duplicate() if _single_lifecycle28!=null else hit_owners
++	var health_dispatch28: Array=hit_owners.duplicate() if _single_lifecycle28!=null or _multi_lifecycle30!=null else hit_owners
+ 	for health: RefCounted in health_dispatch28: health.step()
+ 	if is_instance_valid(_single_lifecycle28) and _single_lifecycle28.suspended():
+ 		residents.step_single_corpse28(_single_lifecycle28);return
+@@ -1335,6 +1342,7 @@
+ 	return {"status":status,"error":error,"city_ready":city_ready,"admitted":hit_owners.size(),"startup_us":_startup_us,"startup_frames":{"first":_startup_frame_start,"last":_startup_frame_end,"navigation_ready_wait_frames":_navigation_ready_wait_frames},"startup_timing":_startup_timing.duplicate(true),"startup_progress":_startup_progress.duplicate(),"admissions":admission_results.duplicate(true),"residents":residents.snapshot() if residents!=null else {},"navigation":navigation.diagnostics() if navigation!=null else {},"policy":policy.diagnostics() if policy!=null else {},"daily_setup":daily_setup,"daily":daily.snapshot() if daily!=null else {},"incidents":incident_dispatcher.snapshot() if incident_dispatcher!=null else {},"logic_cost":cost,"logic_peaks":peaks,"logic_peak_frame":_logic_peak_frame.duplicate(),"logic_timing_buckets":_logic_buckets.duplicate(true),"logic_frame_trace":_logic_frame_trace(),"stream":city_stream_report()}
+ 
+ func dispose() -> void:
++	if is_instance_valid(_multi_lifecycle30):_multi_lifecycle30.dispose();_multi_lifecycle30=null
+ 	if is_instance_valid(_single_lifecycle28):_single_lifecycle28.dispose();_single_lifecycle28=null
+ 	if incident_dispatcher!=null: incident_dispatcher.dispose(); incident_dispatcher=null
+ 	if daily!=null:
+@@ -1343,3 +1351,9 @@
+ 	# DSH_STREAMLOAD: the streaming pass dies with the population it streams.
+ 	_stream_on=false; _stream_phase="off"; _stream_pending_ids.clear(); _stream_sorted.clear(); _stream_held.clear(); _stream_fades.clear()
+ 	super.dispose()
++
++func _configure_multi_lifecycle30(scene: Node3D, packet: PackedByteArray, trust: Dictionary) -> bool:
++	if is_instance_valid(_multi_lifecycle30):return true
++	_multi_lifecycle30=MultiLife30.new();scene.add_child(_multi_lifecycle30)
++	if not _multi_lifecycle30.configure30(scene,self,packet,trust):return _fail("multi_lifecycle30_configure")
++	return true

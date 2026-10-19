@@ -1,5 +1,99 @@
 # Координатор27 — рабочая память
 
+## 15.10 — совместная работа с DeepSeek через Linear
+
+Прямое поручение пользователя: он задаёт шаги, DeepSeek реализует, Координатор
+проверяет настоящими прогонами Godot и также исправляет после передачи файлов.
+Создана новая заметка при MAF-5:
+https://linear.app/mafiozy/document/zhiteli-deepseek-i-koordinator-zadaniya-i-progony-godot-30c6e5c9b0b6
+Document ID: 061ba02a-e247-41c7-9b0b-0791aabf68ab.
+В ней роли, один писатель на файл, сдача законченного пакета, критерии физического
+входа/поведения/нагрузки и журнал. Шаг 0 — DeepSeek подтверждает точную рабочую
+сцену, запуск/флаги, ID и сценарий, хеши/файлы и расположение полного отчёта.
+Создание заметки не подключает DeepSeek автоматически: пользователь передаёт
+ссылку; чтение/возможность ответа DeepSeek ещё не подтверждены. Автоматизация
+опроса этой заметки не создавалась. Новых игровых прогонов в этом ходе не было.
+
+## 15.10 — пользовательская передача: NPC снова ходит и достигает больницы
+
+Источник — текст отчёта, присланный пользователем 15.10.2026, с названием
+MAFIOZY_NPC_REPORT.md. Сам файл поиском в репозитории, включая ignored-файлы,
+не найден; исходные логи этого отчёта в этом ходе не проверены. Числа ниже —
+результаты автора отчёта, не новая независимая приёмка root.
+
+Главный найденный блокер штатной ходьбы: луч опоры попадал в OriginalPlaza
+(верх 0.09), отсутствующую в реестре полов. current_source_floor_missing
+отвергал и текущую клетку, и 9–11 соседних; path_pending=0. После исправления
+registered=false→true, исчерпание обходов 52→0, скорость до 20 шагов/с,
+путь 0→13.3 м, расстояние до цели 29.9→18.5 м. Следствие для диагностики:
+сначала проверять фактический collider опоры и причину отказа шага, затем очередь.
+
+Отдельный живой сценарий: выстрел → HP → приоритет больницы → движение и обход
+→ прибытие (moved_m=35.8, dist_m=1.4). Это не доказательство физического прохода
+через дверь и обслуживания внутри: открывание двери ещё указано в оставшихся
+работах. Не смешивать этот сценарий со штатной ходьбой 13.3 м.
+
+Также сообщены исправления: касание пола капсулой 2.5 см (nodes=1→FOUND 645),
+ошибочная опора на тело типографии (current_handoff_floor 90–93→0), отклонение
+точки маршрута на 1 мм, вечный HOLD/act_not_released, 291 ошибка цикла жизни,
+задержка отображения HP. Точная семантика миллиметровой ошибки и кадра 1152
+требует исходного отчёта/логов; не придумывать её по краткому пересказу.
+Настоящий C4 ресторана: сняты 23 детали, разбиты 7 стёкол; найден дефект
+самоуничтожения стекла. Разрушаемость больницы/банка остаётся открытой.
+
+Повышение бюджета очереди 4000→12000 мкс сократило ожидание 10.4→0.19 с,
+но шаг города подорожал на 35%, fps p05 упал 70→12–15: это непригодный для
+выпуска компромисс, а не принятая оптимизация. Исчерпание кадрового бюджета
+обхода (~1 native query/frame) надо отличать от доказанного отсутствия пути;
+NO_PATH 111 и длинные переходы остаются открытыми.
+
+План пользователя принят: простое физическое движение к цели, динамические
+обходы по текущей геометрии и новым проломам, ближайшее подходящее здание района,
+изолирующие флаги/сопоставимые замеры, один писатель на файл и только законченные
+файлы. Раскатка на 286 — после проверки нагрузки и сохранности поведения/IDs,
+не простое снятие двух флагов. Далее анимация/поворот/дверь, длинные переходы,
+ближайшие сайты, масштабирование, больница/банк, лавки и короткий отдых.
+
+Состояние диска 15.10: dsh_living_city_01 содержит чужие текущие правки
+npc_simple_hospital.gd, npc_daily_life.gd, npc_daily_walk.gd; root их не менял.
+current_version по-прежнему ссылается на artist24_melee_contact/merged_root48_08,
+а не dsh_living_city_01. Старые записи ниже про принятую48 не описывают новую
+экспериментальную сцену. В этом ходе игра, указатель, флаги и Git не изменены.
+
+## 03.10 08:26 — F5 readiness исправлен в общем launcher; return50 component
+
+Предыдущий goal turn PROGRESS: scheduler inventory fix и244proofs сохранены в
+main/origin cc2f4db28abe90076c36707710eee724183534ff,263scopedfiles. Текущий ход
+тоже PROGRESS: готовое исправление F5 применено в shared launcher после16 настоящих
+PowerShell file/process cases (58,412с/std0). Новый launcher SHA
+a092e2ca2802048c86a324d7668d4429db91c82e0876c7855029e9ae6af369e5, старыйbase
+3c35014e251a614641082cdc97fa8f6e0a458c7424f40328975f4fcb3764f629. Readiness poll
+перечитывает partial/locked файл до полного JSON в прежнем40с лимите; wrongcase/
+revision/okfalse и завершившийсяchild не принимаются. Root CheckOnly exit0:
+CURRENT_READY48/F5_READY, actualGodot/OSF5 не запускали. Evidence и ROOT_ACCEPTANCE:
+outputs/coordinator27_launcher_ready49. Source pin сохраняется -text в Git.
+
+Root начал недостающий synchronous pre-enable return contract41:
+outputs/coordinator27_return50/game/checked_return.gd. Native02 31PASS2,547с,
+настоящаяfullcapsule1,9/r0,3/floor/layer1024ceiling, restoringmask1025 блокирует
+препятствие, mask1 negativecontrol; послеубиранияпрепятствия samecapsule canonical
+LOCAL+intendedworld+filters commit, actual test_move floor normalUP. One-use ticket
+тотжепhysicsframe, owner/life/epoch/shape revision/transform/margin/replay проверки.
+Это COMPONENT, actualplayer/driver/transport integration и fullsceneperf OPEN;
+active APPROACH безdisabledinterval намереннонеподдержан. InitialparseFAIL сохранён.
+
+Transport3 и Physics12-13 ответили, что их работа остановлена/напаузе. Не отправлять
+им дальнейшие задания безновогопользовательскогоразрешения. Rootprivatehelper
+разрешёнобщимscope, sharedownerfilesнеизменены; действующий Cars49 получилread-only
+review fallback/callsites. Остановленныйtraversal не будили.
+
+C4pose49 revision7 GPU лично просмотрена: seam талии устранён. Near standing
+component пригоден, nativehead/hat proof и lowGPU/дальнийapproach ещёготовятся;
+нельзяурезатьaccepted48 range2,5/horizontal2м или выдаватьnearproofзавсюанимацию.
+Restaurant49 revision2 private93PASS/505pins, navaftercollapse/reset blocker
+исправляется revision3 с сохранёнными3NPC/IDs. Обычная production48/Palaццо и
+F5pointer неизменны; полныйперенос ACTIVE, не complete/blocked.
+
 ## 03.10 07:50 — checkpointv2 native127 и C4 standing57
 
 Checkpoint07:52: `b81a4ed2` pushed main, HEAD/origin/remote verified.285files, all283 staged evidence blobs byte-exact; raw CRLF preserved via -text, whitespace check with cr-at-eol PASS. Production48 unchanged.

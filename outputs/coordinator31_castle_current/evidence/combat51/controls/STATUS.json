@@ -1,0 +1,43 @@
+{
+  "status": "READY_NATIVE_COMPONENT_CANDIDATE03_VISUAL_ACCEPTANCE_SEPARATE",
+  "base_pins": 1337,
+  "candidate_changes": [
+    {
+      "path": "scripts/weapons/sword_prototype.gd",
+      "sha256": "8c1318349b4831b6d7d0626d93936da19cc5d101f1af785fd95909244717e6a6"
+    }
+  ],
+  "harness": "controls_body51_v3.gd",
+  "harness_sha256": "aa212d0ccdeb289b0f0159f8d4bd412dffce1becffe07c7ef663c8e4f8c3a124",
+  "baseline": "BASELINE_V3.json",
+  "candidate": "CANDIDATE03_V3.json",
+  "metrics": "METRICS_V2.json",
+  "baseline_scheduler": "baseline_v3/SCHEDULER_RUN.json",
+  "candidate_scheduler": "candidate03_v3/SCHEDULER_RUN.json",
+  "input_integrity": "Both receive exactly260events:60 each +/-10,70 each +/-14; mouse_sensitivity.003; root1280x720.",
+  "findings": [
+    "Sledge downward drift baseline localDirY minima-.490/-.899 becomes+.188/+.318 on candidate03 with horizontal-only input.",
+    "Body-camera yaw separation falls from51.6deg to2.41deg.",
+    "Sword held reach84/86% becomes96%; forward strike max.504m.",
+    "Sledge left-load right hand moves forward.298 to.493m; right-load left support moves forward.158 to.446m during strike.",
+    "No self_clear false samples, no detached grip in measured native cases."
+  ],
+  "limits": [
+    "Not subjective play/visual acceptance; ordinary presentation remains with root.",
+    "Local wrist quaternion magnitude is not anatomical twist measurement.",
+    "Local yaw range differs because body now follows free camera; not compared by worldX."
+  ],
+  "critical_raw_correction": "PreV3 native control fixtures used headless64px viewport and scaled10px input to200px. Those runs preserved as stress input; ordinary-input conclusions retracted.",
+  "input_probes": [
+    "INPUT_PROBE_HEADLESS.json",
+    "INPUT_PROBE_GRAPHICAL.json",
+    "INPUT_PROBE_FIXED.json"
+  ],
+  "pickup": "PICKUP_CANDIDATE03.json",
+  "pickup_scheduler": "pickup_candidate03/SCHEDULER_RUN.json",
+  "pickup_result": {
+    "passed": true,
+    "errors": [],
+    "stages": 10
+  }
+}

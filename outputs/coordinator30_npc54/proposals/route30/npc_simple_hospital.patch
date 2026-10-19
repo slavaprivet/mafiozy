@@ -1,0 +1,106 @@
+--- a/scripts/hospital/npc_simple_hospital.gd
++++ b/scripts/hospital/npc_simple_hospital.gd
+@@ -8,6 +8,11 @@
+ const TARGET_FLAG := "--city-simple-hospital-target="
+ const SPEED_MPS := 1.8
+ const ARRIVE_M := .30
++## One no-progress episode across inner replans; queue/attention hold is not motion.
++const SERVICE_PLAN_US30 := 500000
++const SERVICE_LOCAL_WAIT_MS30 := 15000.0
++const SERVICE_MOTION_MS30 := 4000.0
++const SERVICE_PROGRESS_M30 := .25
+ static var _flag := -1
+ var _id := ""
+ var _target := Vector3.ZERO
+@@ -16,6 +21,9 @@
+ var _roam_service29_us := 0
+ var _roam_step29_phase := "planning"
+ var _roam_watch29_state: Dictionary = {}
++var _service_watch30: Dictionary = {}
++var _service_anchor30 := Vector3.ZERO
++var _service_last_us30 := 0
+ var _body: CharacterBody3D
+ var _route: RefCounted
+ var _guide: RefCounted
+@@ -192,6 +200,9 @@
+ 	if _guide!=null:_guide.cancel()
+ 	_body=body;_id=id;_target=goal;_target_source=source;_guide_map=map
+ 	_roam_watch29=null;_roam_service29_us=0;_roam_watch29_state.clear()
++	_service_watch30.clear();_service_last_us30=0;_service_anchor30=body.global_position
++	if source=="service_approach":
++		_service_watch30={"blocked":false,"reason":"","planning_service_us":0,"local_wait_ms":0.0,"motion_idle_ms":0.0,"total_service_us":0,"progress_resets":0}
+ 	if source=="roam":
+ 		_roam_watch29=RoamWait.new();_roam_watch29.begin(Time.get_ticks_msec())
+ 	if _route!=null:_route.cancel()
+@@ -234,7 +245,8 @@
+ 	if _route!=null:_route.cancel()
+ 	if _guide!=null:_guide.cancel()
+ 	_guide=LongRoute.new();_guide_revision=-1
+-	return _guide.begin(_body,_guide_map,_legs[_leg])
++	var local_domain: float=LongRoute.SERVICE_LOCAL_M if _target_source=="service_approach" else LongRoute.LOCAL_ONLY_M
++	return _guide.begin(_body,_guide_map,_legs[_leg],local_domain,_route if _target_source=="service_approach" else null)
+ 
+ func _sync_guide() -> String:
+ 	if _guide==null:return "blocked"
+@@ -270,6 +282,7 @@
+ func moved_m() -> float:return _moved_m
+ func last_reason() -> String:return _last_reason
+ func roam_watch_state29() -> Dictionary:return _roam_watch29_state.duplicate()
++func service_watch_state30() -> Dictionary:return _service_watch30.duplicate()
+ static func roam_retry_delay_ms29(actor_id: String, attempt: int, reason: String) -> int:
+ 	return RoamWait.retry_delay_ms(actor_id,attempt,reason)
+ func outside_point() -> Variant:return _outside if _hospital_frame else null
+@@ -379,6 +392,32 @@
+ 	_phase="searching"
+ 	_emit("replan")
+ 
++## Only actual serviced local search and attempted motion accumulate. The guide
++## already bounds native/authority waits. Hold/dwell/attention never enter here.
++## Reset only after a real .25m displacement, never on replan or gaze resume.
++func _service_observe30(before: Vector3, delta: float) -> String:
++	if _service_watch30.is_empty():return ""
++	var serviced: int=int(_route.service_us29)
++	var work: int=maxi(0,serviced-_service_last_us30)
++	_service_last_us30=serviced
++	_service_watch30.total_service_us=int(_service_watch30.total_service_us)+work
++	_service_watch30.planning_service_us=int(_service_watch30.planning_service_us)+work
++	if _flat(_service_anchor30,_body.global_position)>=SERVICE_PROGRESS_M30:
++		_service_anchor30=_body.global_position
++		_service_watch30.planning_service_us=0;_service_watch30.local_wait_ms=0.0;_service_watch30.motion_idle_ms=0.0
++		_service_watch30.progress_resets=int(_service_watch30.progress_resets)+1
++	elif _roam_step29_phase=="walking":
++		if _flat(before,_body.global_position)<=.005:
++			_service_watch30.motion_idle_ms=float(_service_watch30.motion_idle_ms)+delta*1000.0
++	elif _guide!=null and _guide.status=="ready":
++		_service_watch30.local_wait_ms=float(_service_watch30.local_wait_ms)+delta*1000.0
++	var why:=""
++	if int(_service_watch30.planning_service_us)>=SERVICE_PLAN_US30:why="service_planning_work_limit30"
++	elif float(_service_watch30.local_wait_ms)>=SERVICE_LOCAL_WAIT_MS30:why="service_local_wait_limit30"
++	elif float(_service_watch30.motion_idle_ms)>=SERVICE_MOTION_MS30:why="service_motion_stalled30"
++	_service_watch30.blocked=not why.is_empty();_service_watch30.reason=why
++	return why
++
+ func _finish_step(before: Vector3, delta: float, result: String, idle: bool = true) -> String:
+ 	if idle:_route.hold(delta)
+ 	if _active and result=="walking" and _target_source=="roam" and _roam_watch29!=null:
+@@ -394,6 +433,14 @@
+ 			if _guide!=null:_guide.cancel()
+ 			_body.velocity.x=0.0;_body.velocity.z=0.0
+ 			result="blocked";_event="roam_watch_blocked"
++	if _active and result=="walking" and not _attention_paused29 and _target_source=="service_approach":
++		var service_reason: String=_service_observe30(before,delta)
++		if not service_reason.is_empty():
++			_last_reason=service_reason;_active=false;_phase="blocked"
++			_route.cancel()
++			if _guide!=null:_guide.cancel()
++			_body.velocity.x=0.0;_body.velocity.z=0.0
++			result="blocked";_event="service_watch_blocked30"
+ 	_publish(before,_body.global_position,delta)
+ 	_emit(_event)
+ 	return result
+@@ -502,4 +549,4 @@
+ 	var point: Variant=_route.route[_way] if _route!=null and _way<_route.route.size() else null
+ 	var floor_point: Variant=_route.floor_at(pos,pos.y) if _route!=null and alive else null
+ 	var state: Dictionary=_route.diagnostics() if _route!=null else {}
+-	print("DSH_SIMPLEHOSP ",JSON.stringify({"id":_id,"result":_event,"phase":_phase,"source":_target_source,"position":[pos.x,pos.y,pos.z],"target":[_target.x,_target.y,_target.z],"leg":_leg,"legs":_legs.size(),"way":_way,"waypoint":[point.x,point.y,point.z] if point is Vector3 else [],"dist_m":distance_m() if alive else -1.0,"moved_m":_moved_m,"attempts":_attempts,"reason":_last_reason,"door_reason":_door_reason,"on_floor":_body.is_on_floor() if alive else false,"floor":[floor_point.x,floor_point.y,floor_point.z] if floor_point is Vector3 else [],"route":state,"guide":_guide.diagnostics() if _guide!=null else {},"roam_watch":_roam_watch29_state,"frame":Engine.get_physics_frames(),"time_ms":now}))
++	print("DSH_SIMPLEHOSP ",JSON.stringify({"id":_id,"result":_event,"phase":_phase,"source":_target_source,"position":[pos.x,pos.y,pos.z],"target":[_target.x,_target.y,_target.z],"leg":_leg,"legs":_legs.size(),"way":_way,"waypoint":[point.x,point.y,point.z] if point is Vector3 else [],"dist_m":distance_m() if alive else -1.0,"moved_m":_moved_m,"attempts":_attempts,"reason":_last_reason,"door_reason":_door_reason,"on_floor":_body.is_on_floor() if alive else false,"floor":[floor_point.x,floor_point.y,floor_point.z] if floor_point is Vector3 else [],"route":state,"guide":_guide.diagnostics() if _guide!=null else {},"roam_watch":_roam_watch29_state,"service_watch30":_service_watch30,"frame":Engine.get_physics_frames(),"time_ms":now}))

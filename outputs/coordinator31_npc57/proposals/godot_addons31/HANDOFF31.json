@@ -1,0 +1,28 @@
+{
+  "status": "BOUNDED_ADDON_EVALUATION_COMPLETE",
+  "statecharts_native_pass": true,
+  "statecharts_checks": {
+    "all_10_initial_opening": true,
+    "bounded_timeout_for_two_blocked": true,
+    "eight_finish_or_resume_ordinary": true,
+    "exited_state_cancels_pending_timeout": true,
+    "five_cross_after_both_conditions": true,
+    "guard_refuses_closed_door": true,
+    "guard_refuses_occupied_inner": true,
+    "threat_interrupts_wait": true,
+    "trace_all_residents": true
+  },
+  "city_integration": false,
+  "physics_fix_claim": false,
+  "performance_accepted": false,
+  "limboai_native_tested": false,
+  "licenses": "MIT source, upstream copies preserved",
+  "native_result_sha256": "9b898609c86b1225f8e8b52607ece911a51fdf0874493777a9009468aca42a91",
+  "receipt_sha256": "9667f26c49ad3ef1b1fa5ef0ffcaae1fe79796a733c9f42efbaf78e9a2b6306b",
+  "upstream_manifest_sha256": "44c5f7aa50b19dba3081f3da1a20567f92c370c24b5df0d12178873364defde7",
+  "findings_sha256": "24e1e492e76bc424fcda16617c1884c6cc164b2e09cda42a0cd774eb6377ac3d",
+  "handoff": "FINDINGS31.md",
+  "user_game_preserved": true,
+  "frozen57_modified": false,
+  "f5_modified": false
+}

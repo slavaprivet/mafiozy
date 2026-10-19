@@ -1,0 +1,106 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--path",
+    "D:/MafioziCombat31/merged50/game",
+    "--script",
+    "D:/MafioziCombat31/opponent50/natural_player.gd",
+    "--",
+    "--qa-out=D:/MafioziCombat31/merged50/final_player_result",
+    "--weapon=sword",
+    "--strokes=8"
+  ],
+  "passed": false,
+  "lease": {
+    "id": "1a1adc273f5d4fc8babd920c4ad20d7a",
+    "owner": {
+      "pid": 50872,
+      "creation_filetime": "134368048914704969"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\merged50\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 43300,
+        "creation_filetime": "134368048926457498",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --headless --path D:/MafioziCombat31/merged50/game --script D:/MafioziCombat31/opponent50/natural_player.gd -- --qa-out=D:/MafioziCombat31/merged50/final_player_result --weapon=sword --strokes=8",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "D:/MafioziCombat31/merged50/game",
+          "--script",
+          "D:/MafioziCombat31/opponent50/natural_player.gd",
+          "--",
+          "--qa-out=D:/MafioziCombat31/merged50/final_player_result",
+          "--weapon=sword",
+          "--strokes=8"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "d:\\mafiozicombat31\\merged50\\game",
+        "affinity_mask": 12,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 1273058.742344,
+    "queued_at": 1272998.742344,
+    "ticket": 3997,
+    "inventory_before": [
+      {
+        "pid": 12656,
+        "parent_pid": 43696,
+        "creation_filetime": "134368008441584844",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\game\" --script \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_castle_current\\bootstrap_castle.gd\" -- \"--receipt-dir=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261018T124044131Z\" \"--release-title=Замок и осада · замах и подбор 43\" \"--release-revision=castle-20261018-combined43-raised-arms\" --castle=1 --castle-start-outside=1",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози — Замок и осада · замах и подбор 43 (DEBUG)"
+      },
+      {
+        "pid": 52464,
+        "parent_pid": 53736,
+        "creation_filetime": "134368048505754981",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --headless --path D:/MafioziCombat31/merged50/game --script D:/MafioziCombat31/takeover45_self/merged_review/anchor05/all_weapons.gd",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": ""
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.6352862000931054
+  },
+  "child": {
+    "pid": 43300,
+    "creation_filetime": "134368048926457498",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --headless --path D:/MafioziCombat31/merged50/game --script D:/MafioziCombat31/opponent50/natural_player.gd -- --qa-out=D:/MafioziCombat31/merged50/final_player_result --weapon=sword --strokes=8",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--path",
+      "D:/MafioziCombat31/merged50/game",
+      "--script",
+      "D:/MafioziCombat31/opponent50/natural_player.gd",
+      "--",
+      "--qa-out=D:/MafioziCombat31/merged50/final_player_result",
+      "--weapon=sword",
+      "--strokes=8"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\merged50\\game",
+    "affinity_mask": 12,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 1,
+  "elapsed_seconds": 22.534652899950743,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

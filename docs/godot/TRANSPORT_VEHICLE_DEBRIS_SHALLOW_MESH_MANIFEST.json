@@ -1,0 +1,52 @@
+{
+  "schema": "mafiozi.transport-vehicle-debris-shallow-mesh-candidate.v1",
+  "date": "2026-09-30",
+  "status": "functionally-verified-performance-rejected-no-lag-gate",
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/candidates/transport_vehicle_debris_shallow_mesh.gd",
+      "bytes": 17011,
+      "sha256": "b402026f574115bd79d5f5f7a5e6a91ba8976a4e944e32b498e276e2c3fe8f1f"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_vehicle_debris_shallow_mesh.gd",
+      "bytes": 15430,
+      "sha256": "0131159897c0405381e6ef174ab83316e48355107642545f1c2084f09d22a2fd"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_vehicle_debris_shallow_mesh_inherited.gd",
+      "bytes": 12500,
+      "sha256": "b13f1468a69004d4d03de558b471ce714594f848c58e88d71ef39f5003eb37fc"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_VEHICLE_DEBRIS_SHALLOW_MESH_HANDOFF.md",
+      "bytes": 3170,
+      "sha256": "f0a3c7701ceac194ab65e1e2ae035fcedec5e3f13fad5b4cee457d0688cae64e"
+    }
+  ],
+  "baseline": {
+    "path": "godot/mafiozi_walk/scripts/transport/transport_vehicle_debris.gd",
+    "sha256": "1cf791ea4890c844b8c1072cdccca647b3b8255cec718afa7e96f80b9c2bba8f"
+  },
+  "verification": {
+    "godot": "4.7.2.stable.official.ed1daf0bf",
+    "final_main": "83/83 PASS, exit 0, process joined",
+    "inherited_physical_lineage": "264/264 PASS before property-name lookup caching only",
+    "actual": "10 assemblies / 76 hulls / 142948 vertices / 76 private meshes / 76 private materials / 29 source identities",
+    "fidelity": "hull bytes, support, shapes, source/private geometry and material mutation isolation, prewarm and launch"
+  },
+  "configure_us_20_alternating_pairs": {
+    "baseline_min_p50_p95_max": [101913, 107598.5, 112672, 116927],
+    "candidate_min_p50_p95_max": [97875, 100745, 107220, 111784]
+  },
+  "decision": {
+    "result": "REJECT_FOR_NO_LAG",
+    "reason": "Median improves about 6.4 percent but complete configure still blocks about 101 ms.",
+    "next": "transactional incremental prepare with step p95 below 8 ms"
+  },
+  "limits": [
+    "Isolated headless CPU only; no GPU, FPS, full-scene or LIVE claim.",
+    "No production or frozen runtime file changed.",
+    "Candidate rejects any other nested Mesh Resource that shallow duplication would share."
+  ]
+}

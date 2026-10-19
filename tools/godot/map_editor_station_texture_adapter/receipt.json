@@ -1,0 +1,21 @@
+{
+  "schema": "mafiozi.native-station-texture-adapter-cpu/v1",
+  "source_manifest_sha256": "69ecbd14108fd151b504a41dc3d00ab5dbeca98b8c5ccd6251553fb60189546b",
+  "capture_receipt_sha256": "8324eabf33a71a9133137491a3bab766e04d3bb10cc4fee7ca58e9602a994fcf",
+  "godot": "4.7.2.stable.official.ed1daf0bf",
+  "checks": 524851,
+  "failures": 0,
+  "cpu_scenario": "Same two admitted original1024x192 station captures; first float32 linear-light mip build and60 warmed content-SHA cache requests",
+  "cold_build_us": [121072, 118834],
+  "warm_cache_us": {"p50": 2964, "p95": 3611, "samples": 60},
+  "levels_per_texture": 11,
+  "native_bytes_per_texture": 1048572,
+  "gpu_checked": false,
+  "general_scene_performance_checked": false,
+  "remaining_gates": ["Original driver generated mip pixel parity", "Distant/angled label trilinear/sRGB/UV appearance", "GPU renderer/material/shadow/depth visual parity", "Coordinator live font/backend comparison", "Actual runtime owners and production integration"],
+  "files": {
+    "station_texture_adapter.gd": "7adb5ce878ab7ead5f78bfff79d50218e5812063ce734218010b54aaf76ead19",
+    "test_station_texture_adapter.gd": "15ccc3c326503e2f557eecd27c36cd7ef37f20985a53398c7f790a0be179c822",
+    "project.godot": "636f51a6e99246614c8f37844f3002b20c5f9446bd74b6fe44a0eb7239e0dee7"
+  }
+}

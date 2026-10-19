@@ -1,0 +1,5 @@
+static var _damage_probe_flag30 := -1
+func _dsh_damage_probe() -> void:
+	if _dsh_probe_fired or not _ready: return
+	if _damage_probe_flag30<0:_damage_probe_flag30=1 if OS.get_cmdline_user_args().has("--city-damage-probe=1") else 0
+	if _damage_probe_flag30==0:return

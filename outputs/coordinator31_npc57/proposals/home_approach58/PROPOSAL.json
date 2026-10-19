@@ -1,0 +1,18 @@
+{
+  "status": "ISOLATED_NATIVE_COMPONENT_PASS",
+  "production_modified": false,
+  "base_source_stage": "stage58_06",
+  "confirmed_cause": "Native guide point11=[45.79949,.243,187.28670] is standing-clear inside a closed HOME58-002 while its requested staging is outside. Two full exact-source cycles stop before this checkpoint and exhaust the unchanged local search work limit.",
+  "native_diagnostic": "runs/native_guide01",
+  "scope": [
+    "Two files only: home registry geometry predicate and existing intermediate guide repair.",
+    "Existing repair radius/directions/queue/time/work bounds unchanged. Final requested endpoints never substituted.",
+    "No movement, teleport, collision, population, door claims, bed claims or sleep pose changes.",
+    "Current geometry predicate is bounded by288 catalogue entries and runs inside the already measured/limited guide prepare quantum."
+  ],
+  "required": [
+    "Native guide: exact outside endpoint retained, insidepoint rejected and existing repair returns supported outsidepoint.",
+    "Native full10 physical home cycle on one merged source: motion10/queue30/spatial30s gates, simultaneous3+3+2+2, actual9priorpasses preserved plusresident6 fixed.",
+    "Death/bed damage/reset companion remains required for final integration."
+  ]
+}

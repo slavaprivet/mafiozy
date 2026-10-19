@@ -1,0 +1,25 @@
+{
+  "schema": "mafiozi.transport-registry-native/v1",
+  "consumerStageSha256": "13e4555ed9b830726046dae00c7a44e138864f0f15f3a03239ba0f8b7c2b858a",
+  "checks": {
+    "registry": 852,
+    "controller": 26
+  },
+  "gpuChecked": false,
+  "files": {
+    "README.md": "be31cf2537ab0c6297063c202efa762b7208a07bf148b664ad90cfd7960c0b61",
+    "stage.mjs": "7c9071835e1279abc2cdcff873b519cfad8236d8d3f353ddf7d13478d87759e6",
+    "test_controller.gd": "0b8c9dd437a8eae05db0e2e8ecfbb4b3b7cae9aff9547c5ebd883f1c10dc264f",
+    "test_registry.gd": "d2bf4e97bbcf7f05404f31403f8937e61c1295977358e5a4ec3204d4df242a31",
+    "transport_registry.gd": "4008295ffadaa3815d9f640ef5c0942b6e5374651e0195da9e30f5cef1a3da4f",
+    "scripts\\frames.gd": "44bf9262ba960babff72fa1507b0432f9eb52e9f8fc8d13ac62fa51af7c6ccea",
+    "scripts\\map_editor\\editor_camera.gd": "c3c1b4216dd0abe95fca3b90e00a0d0cb2092c3cac7a3be2b0d518a3f49a017b",
+    "scripts\\map_editor\\editor_controller.gd": "0b28c6638a3120986406d7c7d0a13761725eb2c8ee3629b790ea70a8b610f6e9",
+    "scripts\\map_editor\\editor_panel.gd": "af393e8eef857e60933705dd64b4fd03131133439b6be12d5dc3d8fa909f44ce",
+    "scripts\\map_editor\\map_document.gd": "884292e7f8d16d1d646d3f41aa6639632e2b1a87e189e2537551b93c479e8496",
+    "scripts\\map_editor\\map_patch.gd": "544446223adb21591ffc0cb7450189a4e18853f43c4d577592813e68b2b538a2",
+    "scripts\\map_editor\\map_store.gd": "fd83426c9e3f4547e689211340829590e85648fec28cb0ff3d97a68a669cce75",
+    "scripts\\map_editor\\selection_outline.gd": "c22805472773d43b1ccef928b8e65a4f33dd24094df1f55522682f810200a240",
+    "scripts\\map_editor\\trusted_json.gd": "40e455e671f00bb130cbcdf8ce119a95ef0ef6dcfa4d8772790568efe48a7ccb"
+  }
+}

@@ -1,0 +1,141 @@
+--- a/scripts/npc_visual/preview_resident_host.gd
++++ b/scripts/npc_visual/preview_resident_host.gd
+@@ -89,6 +89,7 @@
+ var _busy := false
+ var _disposed := false
+ var _single_lifecycle28: WeakRef
++var _lifecycles30: Dictionary = {}
+ var _single_respawn28_shape: CapsuleShape3D
+ var _single_respawn28_local := Transform3D.IDENTITY
+ var _dispose_requested := false
+@@ -539,6 +540,9 @@
+ 		label.call("setup", self, str(record.row.source_id), _dsh_tr_name)
+ 	label.position = Vector3(0, top, 0)
+ 	body.set_meta("dsh_test_resident_name", _dsh_tr_name)
++	# The historical single-resident inspection spawn must never relocate a
++	# labelled population or overwrite a freshly validated respawn location.
++	if not OS.get_cmdline_user_args().has("--city-qa=1") or record.get("single_respawn28",false):return
+ 	# DSH_TESTRESIDENT: direct placement next to the player, AFTER admission. No candidate
+ 	# ring and no policy round trip: that search ran on the main thread during admission and
+ 	# left the owner with "Жители: запуск не завершён" instead of his test resident.
+@@ -623,16 +627,21 @@
+ ## Single sandbox resident only. New lives require an exact authenticated old
+ ## death plus a newly allocated queue Owner; immutable source/visual rows survive.
+ func bind_single_lifecycle28(owner: Node) -> bool:
+-	if _single_lifecycle28!=null or not is_instance_valid(owner) or not owner.is_inside_tree() or owner.get_script().resource_path!="res://scripts/hospital/npc_single_lifecycle28.gd":return false
++	if not is_instance_valid(owner) or not owner.is_inside_tree() or owner.get_script().resource_path!="res://scripts/hospital/npc_single_lifecycle28.gd":return false
+ 	if _disposed or not _scene_alive() or owner.get_parent()!=_scene.get_ref():return false
+-	_single_lifecycle28=weakref(owner)
++	var id: String=str(owner.get("source_id30"))
++	if not _records.has(id) or _lifecycles30.has(id):return false
++	_lifecycles30[id]=weakref(owner)
++	if owner.get("_mass_manager30")==null:_single_lifecycle28=weakref(owner)
+ 	return true
+ 
+ func single_lifecycle28_current(owner: Node) -> bool:
+-	return not _disposed and not _dispose_requested and _scene_alive() and _single_lifecycle28!=null and is_instance_valid(owner) and _single_lifecycle28.get_ref()==owner
++	if _disposed or _dispose_requested or not _scene_alive() or not is_instance_valid(owner):return false
++	var reference: WeakRef=_lifecycles30.get(str(owner.get("source_id30")))
++	return reference!=null and reference.get_ref()==owner
+ 
+ func stop_single_dead28(owner: Node, token: Dictionary) -> bool:
+-	if _busy or not single_lifecycle28_current(owner) or token.get("source_id")!="resident_1" or not physical_life_current(token):return false
++	if _busy or not single_lifecycle28_current(owner) or token.get("source_id")!=owner.get("source_id30") or not physical_life_current(token):return false
+ 	var record: Dictionary=_records[token.source_id]
+ 	if record.request>=0:_navigation.cancel(record.request);record.request=-1
+ 	_walk_preview.erase(token.source_id);_daily_activities.erase(token.source_id)
+@@ -642,10 +651,10 @@
+ 	return true
+ 
+ func step_single_corpse28(owner: Node) -> void:
+-	if _busy or not single_lifecycle28_current(owner) or not owner.suspended() or not _records.has("resident_1"):return
+-	var record: Dictionary=_records["resident_1"]
++	if _busy or not single_lifecycle28_current(owner) or not owner.suspended() or not _records.has(str(owner.get("source_id30"))):return
++	var record: Dictionary=_records[str(owner.get("source_id30"))]
+ 	if not record.get("single_dead28",false):return
+-	var rag: RefCounted=_ragdolls.get("resident_1")
++	var rag: RefCounted=_ragdolls.get(str(owner.get("source_id30")))
+ 	if rag==null or rag.mode!="ACTIVE":return
+ 	_busy=true
+ 	var physical: Dictionary=rag.advance()
+@@ -653,19 +662,20 @@
+ 		record.status="PHYSICAL_DEAD"
+ 		record["physical_anchor_world"]=physical.physical.anchor_world
+ 	else:
+-		rag.retire("physical_advance_failed");_ragdolls.erase("resident_1")
++		rag.retire("physical_advance_failed");_ragdolls.erase(str(owner.get("source_id30")))
+ 		record["physical_failed"]=true;record.status="PHYSICAL_FAILED"
+ 	_leave_busy()
+ 
+ func prepare_single_respawn28(owner: Node, token: Dictionary, successor: RefCounted) -> bool:
+-	if _busy or not single_lifecycle28_current(owner) or token.get("source_id")!="resident_1" or not physical_life_current(token):return false
++	if _busy or not single_lifecycle28_current(owner) or token.get("source_id")!=owner.get("source_id30") or not physical_life_current(token):return false
+ 	var old: Dictionary=_records[token.source_id]
+ 	if not old.owner.dead or not old.get("single_dead28",false) or not successor is Queue.Owner or successor.dead or successor.source_id!=token.source_id or successor.life_generation!=old.generation+1:return false
++	old["respawn_shape30"]=null;old["respawn_local30"]=Transform3D.IDENTITY
+ 	var body: CharacterBody3D=old.body
+ 	for child: Node in body.get_children():
+ 		if child is CollisionShape3D and child.shape is CapsuleShape3D:
+-			_single_respawn28_shape=child.shape;_single_respawn28_local=child.transform;break
+-	if _single_respawn28_shape==null:return false
++			old["respawn_shape30"]=child.shape;old["respawn_local30"]=child.transform;break
++	if old["respawn_shape30"]==null:return false
+ 	if _ragdolls.has(token.source_id):_ragdolls[token.source_id].dispose();_ragdolls.erase(token.source_id)
+ 	if old.get("activity")!=null:old.activity.dispose()
+ 	if is_instance_valid(body):body.free()
+@@ -675,12 +685,12 @@
+ 	return true
+ 
+ func admit_single_respawn28(owner: Node, successor: RefCounted, point: Vector3) -> Dictionary:
+-	if _busy or not single_lifecycle28_current(owner) or not point.is_finite() or not _records.has("resident_1"):return {"status":"REJECTED","reason":"respawn_owner"}
+-	var old: Dictionary=_records["resident_1"]
+-	if old.get("single_successor28")!=successor or is_instance_valid(old.body) or _single_respawn28_shape==null:return {"status":"REJECTED","reason":"respawn_generation"}
++	if _busy or not single_lifecycle28_current(owner) or not point.is_finite() or not _records.has(str(owner.get("source_id30"))):return {"status":"REJECTED","reason":"respawn_owner"}
++	var old: Dictionary=_records[str(owner.get("source_id30"))]
++	if old.get("single_successor28")!=successor or is_instance_valid(old.body) or old["respawn_shape30"]==null:return {"status":"REJECTED","reason":"respawn_generation"}
+ 	# Static source admission is retained; the fresh live floor and full-size
+ 	# capsule additionally reject player/vehicles/corpses on every physics layer.
+-	var source_y: Variant=_support.call(point,"resident_1",successor.life_generation)
++	var source_y: Variant=_support.call(point,str(owner.get("source_id30")),successor.life_generation)
+ 	if not (source_y is float or source_y is int) or not is_finite(float(source_y)):return {"status":"REJECTED","reason":"respawn_source_support"}
+ 	var scene: Node3D=_scene.get_ref()
+ 	var floor_query:=PhysicsRayQueryParameters3D.create(Vector3(point.x,float(source_y)+.7,point.z),Vector3(point.x,float(source_y)-.7,point.z),0xffffffff)
+@@ -690,16 +700,17 @@
+ 	if not support is StaticBody3D and not (support is RigidBody3D and support.freeze):return {"status":"REJECTED","reason":"respawn_static_support"}
+ 	point.y=float(floor_hit.position.y)+.003
+ 	var capsule:=PhysicsShapeQueryParameters3D.new()
+-	capsule.shape=_single_respawn28_shape;capsule.transform=Transform3D(Basis.IDENTITY,point)*_single_respawn28_local
++	capsule.shape=old["respawn_shape30"];capsule.transform=Transform3D(Basis.IDENTITY,point)*old["respawn_local30"]
+ 	capsule.collision_mask=0xffffffff;capsule.margin=.001
+ 	if not scene.get_world_3d().direct_space_state.intersect_shape(capsule,1).is_empty():return {"status":"REJECTED","reason":"respawn_full_capsule_occupied"}
+-	var record: Dictionary={"row":old.row,"owner":successor,"generation":successor.life_generation,"speed":old.speed,"status":"PENDING_PLACEMENT","reason":"","attempted":false,"body":null,"gait":null,"activity":null,"motion":null,"request":-1,"origin":old.origin,"single_respawn28":true,"single_successor28":successor,"single_respawn28_floor_y":point.y}
+-	if not _source_admits(point,record,"placement") or not _owned_clear(point,"resident_1"):return {"status":"REJECTED","reason":"respawn_source_or_ownership"}
+-	_records["resident_1"]=record
++	var record: Dictionary={"row":old.row,"owner":successor,"generation":successor.life_generation,"speed":old.speed,"status":"PENDING_PLACEMENT","reason":"","attempted":false,"body":null,"gait":null,"activity":null,"motion":null,"request":-1,"origin":old.origin,"single_respawn28":true,"single_successor28":successor,"single_respawn28_floor_y":point.y,"respawn_shape30":old["respawn_shape30"],"respawn_local30":old["respawn_local30"]}
++	if not _source_admits(point,record,"placement") or not _owned_clear(point,str(owner.get("source_id30"))):return {"status":"REJECTED","reason":"respawn_source_or_ownership"}
++	_records[str(owner.get("source_id30"))]=record
+ 	_active_track30(record)
+ 	_busy=true
+ 	var result: Dictionary=_admit_record(record,{}, {"r":(point.z+45.1)/4.1,"c":(point.x+395.65)/4.1})
+ 	_leave_busy()
++	if result.get("status")=="IDLE":record.erase("single_successor28")
+ 	return result
+ 
+ func _living(record: Dictionary) -> bool:
+@@ -2039,7 +2050,7 @@
+ func target_current(token: Dictionary) -> bool:
+ 	if not Thread.is_main_thread() or _busy or _disposed or token.get("ok") != true or token.get("source_authority") != false: return false
+ 	var body: Variant = token.get("body")
+-	if not body is CharacterBody3D or not is_instance_valid(body): return false
++	if not is_instance_valid(body) or not body is CharacterBody3D: return false
+ 	var fresh: Dictionary = target_from_collider(body)
+ 	if not fresh.get("ok", false): return false
+ 	for key: String in ["session_id", "source_id", "bridge_id", "render_id", "life_generation", "descriptor_sha256", "placement_mode", "body_instance_id", "body_rid", "rig", "rig_instance_id", "rig_epoch"]:
+@@ -2149,6 +2160,7 @@
+ 		if is_instance_valid(record.body): record.body.queue_free()
+ 	_records.clear(); _manifest.clear(); _admit = Callable(); _support = Callable(); _placement_current = Callable(); _placement_receipt.clear(); _navigation = null; _box = null; _overlap = null; _ray = null
+ 	_active30.clear();_active_rows30.clear();_active_dirty30=false
++	_lifecycles30.clear();_single_lifecycle28=null
+ 	_walk_preview.clear(); _walk_preview_enabled = false
+ 	var scene: Node3D = _scene.get_ref() if _scene != null else null
+ 	if is_instance_valid(scene) and scene.tree_exiting.is_connected(dispose): scene.tree_exiting.disconnect(dispose)

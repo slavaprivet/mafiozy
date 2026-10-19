@@ -1,0 +1,109 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--path",
+    "D:\\MafioziCombat31\\coordinator35_walls55\\game",
+    "--script",
+    "D:\\MafioziCombat31\\coordinator35_rmb54\\qa\\contact54.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\coordinator35_walls55\\sword_contact02\\RESULT.json",
+    "--qa-dir=D:\\MafioziCombat31\\coordinator35_walls55\\sword_contact02",
+    "--weapon=sword",
+    "--right-attack"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "4138e8892b994820b220470cb9da5c68",
+    "owner": {
+      "pid": 48476,
+      "creation_filetime": "134368333099545492"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\coordinator35_walls55\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 33012,
+        "creation_filetime": "134368333112684765",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\coordinator35_walls55\\game --script D:\\MafioziCombat31\\coordinator35_rmb54\\qa\\contact54.gd -- --qa-out=D:\\MafioziCombat31\\coordinator35_walls55\\sword_contact02\\RESULT.json --qa-dir=D:\\MafioziCombat31\\coordinator35_walls55\\sword_contact02 --weapon=sword --right-attack",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "D:\\MafioziCombat31\\coordinator35_walls55\\game",
+          "--script",
+          "D:\\MafioziCombat31\\coordinator35_rmb54\\qa\\contact54.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\coordinator35_walls55\\sword_contact02\\RESULT.json",
+          "--qa-dir=D:\\MafioziCombat31\\coordinator35_walls55\\sword_contact02",
+          "--weapon=sword",
+          "--right-attack"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "d:\\mafiozicombat31\\coordinator35_walls55\\game",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 1301657.6225241,
+    "queued_at": 1301417.6225241,
+    "ticket": 4227,
+    "inventory_before": [
+      {
+        "pid": 63332,
+        "parent_pid": 14704,
+        "creation_filetime": "134368316507951302",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator35_release54\\game\" --script \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_castle_current\\bootstrap_castle.gd\" -- \"--receipt-dir=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261018T211410768Z\" \"--release-title=Замок и осада · общая сцена 54 · свободная правая рука\" \"--release-revision=castle-20261019-combined54-right-hand\" --castle=1 --castle-start-outside=1",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози — Замок и осада · общая сцена 54 · свободная правая рука (DEBUG)"
+      },
+      {
+        "pid": 64404,
+        "parent_pid": 1592,
+        "creation_filetime": "134368333008408215",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --path D:\\MafioziCombat31\\coordinator35_walls55\\game --script D:\\MafioziCombat31\\coordinator35_walls55\\qa\\projectiles55.gd -- --qa-out=D:\\MafioziCombat31\\coordinator35_walls55\\projectiles03\\RESULT.json --qa-dir=D:\\MafioziCombat31\\coordinator35_walls55\\projectiles03",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози — перенос в Godot (DEBUG)"
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.7519749000202864
+  },
+  "child": {
+    "pid": 33012,
+    "creation_filetime": "134368333112684765",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\coordinator35_walls55\\game --script D:\\MafioziCombat31\\coordinator35_rmb54\\qa\\contact54.gd -- --qa-out=D:\\MafioziCombat31\\coordinator35_walls55\\sword_contact02\\RESULT.json --qa-dir=D:\\MafioziCombat31\\coordinator35_walls55\\sword_contact02 --weapon=sword --right-attack",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--path",
+      "D:\\MafioziCombat31\\coordinator35_walls55\\game",
+      "--script",
+      "D:\\MafioziCombat31\\coordinator35_rmb54\\qa\\contact54.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\coordinator35_walls55\\sword_contact02\\RESULT.json",
+      "--qa-dir=D:\\MafioziCombat31\\coordinator35_walls55\\sword_contact02",
+      "--weapon=sword",
+      "--right-attack"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\coordinator35_walls55\\game",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 20.73268789984286,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

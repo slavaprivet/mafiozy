@@ -1,0 +1,19 @@
+{
+	"aim_lease_ms_max": 850.0,
+	"entered": true,
+	"expectation": "release_reason aim_released58 proves the 850 ms lease expired and the pose lowered",
+	"id": "resident_1",
+	"left_phase_without_shot": true,
+	"level": "real viewport input, no damage",
+	"ok": true,
+	"phases_seen": [
+		"ALERT",
+		"SURRENDER58",
+		"IDLE"
+	],
+	"pose_at_entry": 0,
+	"pose_at_release": 223,
+	"pose_max": 223,
+	"release_reason": "aim_released58",
+	"shots_fired": 0
+}

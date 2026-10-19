@@ -1,0 +1,16 @@
+{
+  "name": "navigation02",
+  "passed": false,
+  "errors": [
+    "stairs_blocked:(0.0, 0.0, 1.0)",
+    "stairs_blocked:(1.0, 0.0, 0.0)",
+    "stairs_blocked:(0.0, 0.0, -1.0)",
+    "stairs_blocked:(-1.0, 0.0, 0.0)"
+  ],
+  "scheduler_errors": [
+    "ERROR: 1 resources still in use at exit (run with --verbose for details)."
+  ],
+  "scheduler_error": null,
+  "drift": [],
+  "script_sha256": "cc37dfa47c84c4700a5ba714abac5a234bb7e96008b6a4155cdd0b62f5480af0"
+}

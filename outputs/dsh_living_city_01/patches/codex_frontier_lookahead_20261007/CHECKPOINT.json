@@ -1,0 +1,255 @@
+{
+  "schema": "mafiozy.local-frontier-spike-handoff/v1",
+  "stopped_utc": "2026-10-07T18:28:50.445121+00:00",
+  "handoff_reason": "User requested fresh-chat continuation at natural checkpoint; all owned Godot runs finished. No second integrator active.",
+  "repo": "C:\\Users\\Слава\\Desktop\\Мафиози",
+  "local_head": "d1f636da57f9446cc401437d22a161e70e733395",
+  "dirty_repo": "Preserved existing WIP; no reset/stash/clean/push/deploy. Integration worktree remains clean620b4f0ff6f477f25205458d730097050a2da1fe.",
+  "launch_path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\dsh_living_city_01\\Играть_город.cmd",
+  "scene": "res://scenes/main_city.tscn",
+  "accepted_f5": "Unchanged release48 Palazzo-only; current_version and launcher untouched.",
+  "source_files_sha256": {
+    "scripts/shop/npc_daily_shop.gd": "0e22ea589129772cb6d2b15c9f41a015f5d78cc8bbcf569b1cf46655fd0011b7",
+    "scripts/shop/npc_local_shop_visit.gd": "32528e3d30177d5c3ed7668316403397b28d76132874adbd9702db66ef9adf21",
+    "scripts/shop/npc_local_account.gd": "9acdba29c8315871636b4c8b9a722d2fd54fdf6e256ac8d2d4c9fd082a60d50d",
+    "scripts/city/runtime/npc_city_engine_navigation.gd": "d4056050cada835c814587a3b41ca17b8e67acbe3907a5346fd3a002dff02567",
+    "scripts/city/runtime/npc_city_world_policy.gd": "9c46025e19f52c8b2c97b61e380b83be37745a0c085f9e1e7fd70108ae9be3f8",
+    "scripts/npc_daily_walk.gd": "311d2e84500b8e39e88682fc8d2b034d4f4b2b8a2d6ad3200102e82b189b6ef0",
+    "scripts/npc_visual/preview_resident_host.gd": "5d75b7a82aac6389d1deb3d6b4a9a77a2717de66a082e21ca4fcef2cfa084687",
+    "scripts/destruction/palazzo/palazzo_ground.gd": "6f2bc8493e5cfa75e4f7f47df6fd6609672e3196b9a0fa642912ea0d69aacec3",
+    "scripts/preview_printshop_interior.gd": "8ca46fcaa295090070bd12a4046ba31450ad6c07ce8e6341c4849fd5a64d6371",
+    "scenes/main_city.tscn": "9a252531ceda19074bc2a9ac9a674d4b26f3c2a1331821490901cadeb09d9be5",
+    "project.godot": "5e45528ade62ce0cb89aa53aa7f7d3e5f18aa1574c2555ae37cd5a972ae8bedf",
+    "scripts/city/runtime/npc_city_navigation_host.gd": "ae4f3f47f17b863d874f46a06e05ff39e581437e598dc842d2f90a401a91b738",
+    "scripts/npc_city_daily.gd": "a48f1ceaaa142ba96dc5485125c4a98f4417f2f05d51b4823f963a92752acb91",
+    "scripts/city/runtime/npc_native_obstacle_detour.gd": "db6ea93ed251ba6f47170405b95f4bbd6550eeaf913c1beef29e78dd2faaca2e"
+  },
+  "previous_applied_fixes": [
+    "Visit180 begins after physical visit.begin, approach retains cumulative Walk900/detour guards.",
+    "Current source admission checked every real step; source/access TTL reuse disabled.",
+    "Exact audited Palazzo duplicate RID excluded only from support rays at source height0; original pinned support required, physical geometry unchanged.",
+    "Existing BROWSING account service polled before parent switches EXITING; actual local account/life/pause/physical checks preserved."
+  ],
+  "new_applied_patch": {
+    "manifest": "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city-frontier-lookahead-manifest.json",
+    "backup": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\dsh_living_city_01\\patches\\codex_frontier_lookahead_20261007",
+    "scope": "Target-only experimental bounded path-distance lookahead, default0; actual validation sampling/budgets/permissions/collision unchanged; additive gate diagnostics",
+    "default_lookahead_m": 0,
+    "live_flags": [
+      "--city-persistent-route-id=resident_253",
+      "--city-route-lookahead-m=5.0"
+    ],
+    "public_launch_activation": "OFF; launcher untouched",
+    "checks": [
+      {
+        "path": "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\frontier-lookahead-canary03\\capture\\RESULT.json",
+        "sha256": "be53f3156e5ef650b6f27b85dd62c8c7c552276b2b392fdc1ad1e870be78bea7",
+        "scheduler_passed": true,
+        "elapsed_seconds": 6.139657600026112,
+        "scope": "Production backend/host/physics, fixture source callback and delayed service cadence; not city performance or original registry proof",
+        "checks": 20,
+        "failed": 0
+      },
+      {
+        "path": "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\frontier-backend-guards01\\capture\\RESULT.json",
+        "sha256": "190cb284ba854cbe105af1f45f80ce6a190b4f67955c42b89f421bfcfc974c43",
+        "scheduler_passed": true,
+        "elapsed_seconds": 2.4141908999881707,
+        "scope": "actual backend and physics with fixture source callback; no live host/policy or city performance claim",
+        "checks": 20,
+        "failed": null
+      }
+    ]
+  },
+  "actual_gui": {
+    "path": "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city-frontier-lookahead-live500s01\\capture\\RESULT.json",
+    "sha256": "b0b80c135a9dd624620a4ed6be17f8b198aacd3deddee66e746cb4dead4ca4a3",
+    "scheduler_passed": true,
+    "elapsed_seconds": 398.61298259999603,
+    "scope": null,
+    "checks": null,
+    "failed": null,
+    "capture_ms": 333112,
+    "requested_capture_ms": 500000,
+    "admitted": 284,
+    "stop_reason": "first_exact_target_validation_refusal",
+    "source_hashes_changed": false,
+    "raw_render_intervals": {
+      "count": 21631,
+      "max_ms": 188.365,
+      "p50_ms": 7.937,
+      "p95_ms": 34.572,
+      "p99_ms": 92.846
+    },
+    "qualification": "Nonexclusive graphical functional characterization, no paired performance acceptance; raw frame-post-draw wall intervals, not average FPS.",
+    "completed": {
+      "bank": 0,
+      "drive": 0,
+      "hospital": 0,
+      "shop": 0,
+      "walk": 205
+    },
+    "resident_status_counts": {
+      "PENDING": 215,
+      "ARRIVED": 23,
+      "PENDING_PLACEMENT": 3,
+      "IDLE": 25,
+      "READY": 20,
+      "NO_PATH": 1
+    },
+    "target": {
+      "body": "(29.35602, -0.098866, 27.14586)",
+      "distance_to_handoff_m": 29.9879188537598,
+      "life_phase": "ACTIVITY",
+      "shop_phase": "APPROACH",
+      "released": false,
+      "account": {
+        "bank": 0,
+        "cash": 40,
+        "deposit_seen": false,
+        "initial_total": 40,
+        "inventory": {},
+        "life_generation": 1,
+        "order_serial": 0,
+        "pending_purchase": {
+          "building_id": "REBUILD-VISUAL-print_shop-001",
+          "goal_id": "resident_253:daily:1",
+          "item": "newspaper",
+          "price": 3
+        },
+        "receipts": [],
+        "sequence": 0,
+        "session_id": "godot-preview-new-session-20260927-01",
+        "settled_visits": {},
+        "source_id": "resident_253",
+        "spent": 0
+      },
+      "latest_refusal": {
+        "a": "(29.35602, -0.098866, 27.14586)",
+        "b": "(29.06516, -0.059093, 26.84536)",
+        "body": "(29.35602, -0.098866, 27.14586)",
+        "body_to_a_m": 0.0,
+        "body_to_b_m": 0.420091956853867,
+        "edge": 1,
+        "epoch": 1,
+        "frame": 20886,
+        "iteration": 2,
+        "job_id": 3395,
+        "life_generation": 1,
+        "owner_instance": -9223371007908069037,
+        "policy_reason_observation": "",
+        "reason": "source-admission-refused",
+        "sample": 0,
+        "source_id": "resident_253",
+        "stage": "source_a",
+        "start": "(29.35602, -0.098866, 27.14586)",
+        "target": "(8.5, 0.1, 5.598197)"
+      }
+    },
+    "proven_frontier_branch": "During holds on_floor=true, nav.last_step_gate=prefix_frontier at verified tail, prefix queued=true and previous actual motion admitted. A fixed two-vertex request can offer only centimetres; distance lookahead preserves exact path, budgets and current proof.",
+    "separate_motion_failure": "First recorded source-refused snapshot ms357537/frame18600, actual last_motion_frame18591: body y=-.098866 at(29.35602,27.14586). DETOUR then new job3395 NO_PATH at source_a/current body, frame20886. Cause of the low body position still unproven."
+  },
+  "exact_failure_fragment": {
+    "policy_only": {
+      "path": "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city-low-body-fragment01\\capture\\RESULT.json",
+      "sha256": "943a67489513592d1699f57e6f1e64724f0b24dc16b9ba09aa67b8c99fbedc17",
+      "scheduler_passed": true,
+      "elapsed_seconds": 2.1110218000249006,
+      "scope": "exact pinned source floor/static recipes with fixture current owner; excludes past live vehicles/NPCs and does not recreate past authority state or rejection frame",
+      "checks": null,
+      "failed": null
+    },
+    "host_query": {
+      "path": "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city-low-body-host-fragment02\\capture\\RESULT.json",
+      "sha256": "53f11e176fae007204ea915b56dfc333f9d9648f70e8229dba5bcc3903b980c0",
+      "scheduler_passed": true,
+      "elapsed_seconds": 2.9162464999826625,
+      "scope": "exact pinned source floor/static recipes with fixture current owner; excludes past live vehicles/NPCs and does not recreate past authority state or rejection frame",
+      "checks": null,
+      "failed": null
+    },
+    "actual": "On exact original5595 floor strips and authored local static collision recipes, all five points pass CityPolicy static/floor/square. Shipped PreviewHost._physical_clear fails at the three low-Y points; overlap is original pinned source floor RID. SameXZ y0 passes. This is fixture-owner geometry proof, not recreation of past live actors/vehicles."
+  },
+  "same_poll_leaf_proof": {
+    "run": {
+      "path": "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city-daily-spike-live120s01\\capture\\RESULT.json",
+      "sha256": "38705078571b55696b825ff3f0da8010e65f448c36a1f73c8fe6853c81440c86",
+      "scheduler_passed": true,
+      "elapsed_seconds": 183.95082760002697,
+      "scope": null,
+      "checks": null,
+      "failed": null
+    },
+    "spikes": [
+      {
+        "frame": 5088,
+        "source_id": "resident_211",
+        "life_us": 86371,
+        "truncated": false,
+        "projection_calls": 181,
+        "projection_us": 83135,
+        "authorize_us": 84509,
+        "search_us": 1410
+      },
+      {
+        "frame": 7641,
+        "source_id": "resident_209",
+        "life_us": 71285,
+        "truncated": false,
+        "projection_calls": 144,
+        "projection_us": 67842,
+        "authorize_us": 69547,
+        "search_us": 1352
+      }
+    ],
+    "actual": "Both complete same-poll traces show ordinary DETOUR FOUND -> synchronous policy.authorize and full-tail native map_get_closest_point calls dominate. No repeated scene-cache build. Diagnostic adds overhead; its p99 is not performance acceptance.",
+    "temporary_scripts_restored": true,
+    "restore_manifest": "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city-daily-spike-probe-manifest.json",
+    "backup": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\dsh_living_city_01\\patches\\codex_daily_spike_diagnostic_20261007"
+  },
+  "ready_not_applied_candidate": {
+    "before_sha256": "311d2e84500b8e39e88682fc8d2b034d4f4b2b8a2d6ad3200102e82b189b6ef0",
+    "candidate_sha256": "393da88faf50c7274b4afbedf89f63c091a8da73b9a09c5d8dc4e6628989fb4e",
+    "scope": "Retain exact static path projection for ordinary DETOUR only; original current owner/map/version/byte-suffix guard and fresh prefix/dynamic movement unchanged",
+    "leaf_proof_run": "city-daily-spike-live120s01",
+    "applied": false,
+    "publication": "DEFERRED_BY_USER",
+    "directed_test": {
+      "path": "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city-ordinary-suffix-canary01\\capture\\RESULT.json",
+      "sha256": "a11d03ada1d9bde4e20d2623b41e9d87febc6fb926ba205e733a10ea6a92d1e8",
+      "scheduler_passed": true,
+      "elapsed_seconds": 2.212533300044015,
+      "scope": "Actual Walk/Detour/Policy with pinned original floors and fixture native map/current host; static identity and fresh dynamic proof, not city performance or original residents proof",
+      "checks": 30,
+      "failed": 0
+    },
+    "full_city_candidate": "NOT_RUN"
+  },
+  "one_next_step": "Apply only SHA393da88f ordinary-suffix Walk candidate with scoped before-backup, then run a bounded matched full-scene baseline/candidate performance+completion regression through scheduler (one engine at a time). Canary30/30 has already passed; source guard/collision budgets unchanged. Capture actual body transform/capsule/slides on first motion refusal to investigate lowY separately; never mask that failure by ignoring floors or teleporting.",
+  "not_run": [
+    "Full-city ordinary suffix candidate/performance pair; p99 improvement NOT_PROVEN.",
+    "Real purchase->exit->nextgoal still0 in city, fixture checkout43/43 is not city acceptance.",
+    "Real robbery/live near-far recovery remains pending.",
+    "286 original resident registry/authenticated identity proof still absent:287 offline NEW_SESSION_BOOTSTRAP rows,284 admitted; no count fabrication."
+  ],
+  "do_not_repeat": [
+    "No memo/queue-reorder/fair-slice/persistent-all experiment without new measured cause.",
+    "Do not remove released=false/outside_safe/exact cancel guard.",
+    "Do not broaden Palazzo duplicate support exclusion, lower population/visuals/collision or teleport bodies.",
+    "Do not restart paid DeepSeek or publish/push/main."
+  ],
+  "superseded_unused": "Own npc_daily_walk.detour_profile.candidate was only staged in scratch and never applied; helper same-poll instrumentation supersedes it. First frontier attempts had fixture path/type errors; corrected canary03 passed20/20. First helper syntax runner called can_instantiate as static; corrected parse02 passed.",
+  "scheduler_and_process_state": {
+    "active": [],
+    "pending": [],
+    "inventory": [],
+    "snapshot": "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city-frontier-spike-stop-scheduler.json"
+  },
+  "environment": "PowerShell, rg unavailable. Writable task/temp; Desktop scoped writes/scheduler require escalated tools. Current tool set has no supported ChatGPT-thread app/UI operations; do not stall or claim free chat assistance. Existing AGENT_SYNC shared file enforces one Godot and scoped backups; prior checkpoint has unchanged wider context.",
+  "prior_checkpoint": {
+    "path": "C:\\Users\\Слава\\Documents\\Codex\\2026-10-07\\task\\city-ground-checkout-checkpoint.json",
+    "sha256": "e022c4451460dfccefe3dad02fbdf713db5c33e54a016190f8bd764811e1410a"
+  },
+  "publication": "DEFERRED_BY_USER",
+  "goal_complete": false
+}

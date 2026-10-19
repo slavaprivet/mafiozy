@@ -1,0 +1,6 @@
+config_version=5
+[application]
+config/name="Walk hero water inputs component"
+run/main_scene="res://tests/native_fixture.tscn"
+[rendering]
+renderer/rendering_method="gl_compatibility"

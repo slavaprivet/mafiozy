@@ -1,0 +1,21 @@
+{
+  "checks": {
+    "armor_equipment": true,
+    "camera_alignment": true,
+    "catapult_stays_inside": true,
+    "field_present": true,
+    "gate38": true,
+    "grounded": true,
+    "guard_released": true,
+    "side_matches_flag": true,
+    "startup_target": true,
+    "still_grounded": true,
+    "walked": true
+  },
+  "end": "(0.0, 0.080159, 987.4316)",
+  "gate_z": 968.0,
+  "outside_flag": true,
+  "passed": true,
+  "start": "(0.0, 0.080159, 988.0)",
+  "walked_m": 4.4892578125
+}

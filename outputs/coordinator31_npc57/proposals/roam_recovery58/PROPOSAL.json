@@ -1,0 +1,22 @@
+{
+  "schema": "mafiozi.roam-recovery58.patch/v1",
+  "status": "READY_FOR_INTEGRATION_COMPONENT_PASS",
+  "production_modified": false,
+  "source_stage": "stage58_03",
+  "files": [
+    {
+      "path": "scripts/hospital/npc_simple_hospital.gd",
+      "before_sha256": "0bb28b9d34ac0877c23b0737909348dcc715053739738c13f68522635f15020c",
+      "after_sha256": "d1ea18fbf1740f2b0b029a28bec4b91bccb3e3506ad693b48324c71a98c0106a"
+    }
+  ],
+  "constraints": [
+    "same physical motor, geometry, masks, speed and arrival gates",
+    "same route/guide/goal and cumulative service_us29 across _restart",
+    "existing 3s / .10m current-waypoint rule; peer waits excluded",
+    "services retain their original nonzero-direction behavior"
+  ],
+  "limitation": "Historical table collider does not prove the original physical cause; fresh native replay arrived in 3.028s. Component validation and a new natural soak remain required.",
+  "acceptance": "ACCEPTANCE.json",
+  "limitations": "Original physical trigger remains unproven; recorded watchdog regression and controlled physical recovery passed. Full natural acceptance follows the new logical routines model."
+}

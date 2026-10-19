@@ -1,0 +1,292 @@
+{
+	"errors": [],
+	"passed": true,
+	"rows": [
+		{
+			"npc_factor": 1.0,
+			"npc_gear": {},
+			"player_leg_factor": 1.0,
+			"player_motion": 2.94156360626221,
+			"samples": [
+				{
+					"armor_factor": 1.0,
+					"at": "(15.00476, 0.156854, 1002.201)",
+					"collisions": [
+						{
+							"collider": "TerrainCollision_1_0:<StaticBody3D#500514709252>",
+							"normal": "(-0.00208, 0.999944, 0.010424)"
+						}
+					],
+					"equipment": {},
+					"leg": 1.0,
+					"tick": 0,
+					"velocity": "(0.3, 0.0, 0.0)"
+				},
+				{
+					"armor_factor": 1.0,
+					"at": "(15.3281, 0.157754, 1002.201)",
+					"collisions": [
+						{
+							"collider": "TerrainCollision_1_0:<StaticBody3D#500514709252>",
+							"normal": "(-0.00208, 0.999944, 0.010424)"
+						}
+					],
+					"equipment": {},
+					"leg": 1.0,
+					"tick": 10,
+					"velocity": "(3.2, 0.0, 0.0)"
+				},
+				{
+					"armor_factor": 1.0,
+					"at": "(15.86139, 0.157754, 1002.201)",
+					"collisions": [
+						{
+							"collider": "TerrainCollision_1_0:<StaticBody3D#500514709252>",
+							"normal": "(-0.00304, 0.99995, 0.009524)"
+						}
+					],
+					"equipment": {},
+					"leg": 1.0,
+					"tick": 20,
+					"velocity": "(3.2, 0.0, 0.0)"
+				},
+				{
+					"armor_factor": 1.0,
+					"at": "(16.3947, 0.15987, 1002.201)",
+					"collisions": [
+						{
+							"collider": "TerrainCollision_1_0:<StaticBody3D#500514709252>",
+							"normal": "(-0.00304, 0.99995, 0.009524)"
+						}
+					],
+					"equipment": {},
+					"leg": 1.0,
+					"tick": 30,
+					"velocity": "(3.2, 0.0, 0.0)"
+				},
+				{
+					"armor_factor": 1.0,
+					"at": "(16.92801, 0.161978, 1002.201)",
+					"collisions": [
+						{
+							"collider": "TerrainCollision_1_0:<StaticBody3D#500514709252>",
+							"normal": "(-0.00304, 0.99995, 0.009524)"
+						}
+					],
+					"equipment": {},
+					"leg": 1.0,
+					"tick": 40,
+					"velocity": "(3.2, 0.0, 0.0)"
+				},
+				{
+					"armor_factor": 1.0,
+					"at": "(17.46131, 0.164086, 1002.201)",
+					"collisions": [
+						{
+							"collider": "TerrainCollision_1_0:<StaticBody3D#500514709252>",
+							"normal": "(-0.00304, 0.99995, 0.009524)"
+						}
+					],
+					"equipment": {},
+					"leg": 1.0,
+					"tick": 50,
+					"velocity": "(3.2, 0.0, 0.0)"
+				}
+			],
+			"start": "(14.99976, 0.156854, 1002.201)"
+		},
+		{
+			"npc_factor": 0.78,
+			"npc_gear": {
+				"feet": "heavy_feet",
+				"hands": "heavy_hands",
+				"head": "heavy_head",
+				"legs": "heavy_legs",
+				"torso": "heavy_torso"
+			},
+			"player_leg_factor": 1.0,
+			"player_motion": 2.94156551361084,
+			"samples": [
+				{
+					"armor_factor": 1.0,
+					"at": "(15.00467, 0.157688, 1002.201)",
+					"collisions": [
+						{
+							"collider": "TerrainCollision_1_0:<StaticBody3D#500514709252>",
+							"normal": "(-0.00208, 0.999944, 0.010424)"
+						}
+					],
+					"equipment": {},
+					"leg": 1.0,
+					"tick": 0,
+					"velocity": "(0.3, 0.0, 0.0)"
+				},
+				{
+					"armor_factor": 1.0,
+					"at": "(15.328, 0.157688, 1002.201)",
+					"collisions": [
+						{
+							"collider": "TerrainCollision_1_0:<StaticBody3D#500514709252>",
+							"normal": "(-0.00208, 0.999944, 0.010424)"
+						}
+					],
+					"equipment": {},
+					"leg": 1.0,
+					"tick": 10,
+					"velocity": "(3.2, 0.0, 0.0)"
+				},
+				{
+					"armor_factor": 1.0,
+					"at": "(15.8613, 0.157688, 1002.201)",
+					"collisions": [
+						{
+							"collider": "TerrainCollision_1_0:<StaticBody3D#500514709252>",
+							"normal": "(-0.00304, 0.99995, 0.009524)"
+						}
+					],
+					"equipment": {},
+					"leg": 1.0,
+					"tick": 20,
+					"velocity": "(3.2, 0.0, 0.0)"
+				},
+				{
+					"armor_factor": 1.0,
+					"at": "(16.39461, 0.15972, 1002.201)",
+					"collisions": [
+						{
+							"collider": "TerrainCollision_1_0:<StaticBody3D#500514709252>",
+							"normal": "(-0.00304, 0.99995, 0.009524)"
+						}
+					],
+					"equipment": {},
+					"leg": 1.0,
+					"tick": 30,
+					"velocity": "(3.2, 0.0, 0.0)"
+				},
+				{
+					"armor_factor": 1.0,
+					"at": "(16.92792, 0.161817, 1002.201)",
+					"collisions": [
+						{
+							"collider": "TerrainCollision_1_0:<StaticBody3D#500514709252>",
+							"normal": "(-0.00304, 0.99995, 0.009524)"
+						}
+					],
+					"equipment": {},
+					"leg": 1.0,
+					"tick": 40,
+					"velocity": "(3.2, 0.0, 0.0)"
+				},
+				{
+					"armor_factor": 1.0,
+					"at": "(17.46122, 0.163924, 1002.201)",
+					"collisions": [
+						{
+							"collider": "TerrainCollision_1_0:<StaticBody3D#500514709252>",
+							"normal": "(-0.00304, 0.99995, 0.009524)"
+						}
+					],
+					"equipment": {},
+					"leg": 1.0,
+					"tick": 50,
+					"velocity": "(3.2, 0.0, 0.0)"
+				}
+			],
+			"start": "(14.99967, 0.157688, 1002.201)"
+		},
+		{
+			"npc_factor": 1.0,
+			"npc_gear": {},
+			"player_leg_factor": 1.0,
+			"player_motion": 2.94156169891357,
+			"samples": [
+				{
+					"armor_factor": 1.0,
+					"at": "(15.00458, 0.157808, 1002.201)",
+					"collisions": [
+						{
+							"collider": "TerrainCollision_1_0:<StaticBody3D#500514709252>",
+							"normal": "(-0.00208, 0.999944, 0.010424)"
+						}
+					],
+					"equipment": {},
+					"leg": 1.0,
+					"tick": 0,
+					"velocity": "(0.3, 0.0, 0.0)"
+				},
+				{
+					"armor_factor": 1.0,
+					"at": "(15.32791, 0.157808, 1002.201)",
+					"collisions": [
+						{
+							"collider": "TerrainCollision_1_0:<StaticBody3D#500514709252>",
+							"normal": "(-0.00208, 0.999944, 0.010424)"
+						}
+					],
+					"equipment": {},
+					"leg": 1.0,
+					"tick": 10,
+					"velocity": "(3.2, 0.0, 0.0)"
+				},
+				{
+					"armor_factor": 1.0,
+					"at": "(15.86121, 0.157808, 1002.201)",
+					"collisions": [
+						{
+							"collider": "TerrainCollision_1_0:<StaticBody3D#500514709252>",
+							"normal": "(-0.00304, 0.99995, 0.009524)"
+						}
+					],
+					"equipment": {},
+					"leg": 1.0,
+					"tick": 20,
+					"velocity": "(3.2, 0.0, 0.0)"
+				},
+				{
+					"armor_factor": 1.0,
+					"at": "(16.39452, 0.159876, 1002.201)",
+					"collisions": [
+						{
+							"collider": "TerrainCollision_1_0:<StaticBody3D#500514709252>",
+							"normal": "(-0.00304, 0.99995, 0.009524)"
+						}
+					],
+					"equipment": {},
+					"leg": 1.0,
+					"tick": 30,
+					"velocity": "(3.2, 0.0, 0.0)"
+				},
+				{
+					"armor_factor": 1.0,
+					"at": "(16.92783, 0.161979, 1002.201)",
+					"collisions": [
+						{
+							"collider": "TerrainCollision_1_0:<StaticBody3D#500514709252>",
+							"normal": "(-0.00304, 0.99995, 0.009524)"
+						}
+					],
+					"equipment": {},
+					"leg": 1.0,
+					"tick": 40,
+					"velocity": "(3.2, 0.0, 0.0)"
+				},
+				{
+					"armor_factor": 1.0,
+					"at": "(17.46113, 0.164086, 1002.201)",
+					"collisions": [
+						{
+							"collider": "TerrainCollision_1_0:<StaticBody3D#500514709252>",
+							"normal": "(-0.00304, 0.99995, 0.009524)"
+						}
+					],
+					"equipment": {},
+					"leg": 1.0,
+					"tick": 50,
+					"velocity": "(3.2, 0.0, 0.0)"
+				}
+			],
+			"start": "(14.99958, 0.157808, 1002.201)"
+		}
+	],
+	"scope": "Player bare throughout, ordinary movement input; only NPC gear changed between trials. Initial placement once; each measurement walks the same lane and returns using input; no damage or movement injection."
+}

@@ -1,0 +1,45 @@
+{
+	"errors": [
+		"stairs_blocked:(0.0, 0.0, 1.0)",
+		"stairs_blocked:(1.0, 0.0, 0.0)",
+		"stairs_blocked:(0.0, 0.0, -1.0)",
+		"stairs_blocked:(-1.0, 0.0, 0.0)"
+	],
+	"passed": false,
+	"results": {
+		"breach": {
+			"neighbor_still_solid": true,
+			"player_end": "(40.0, 0.030936, 73.34363)"
+		},
+		"floor": {
+			"after": 168,
+			"before": 169
+		},
+		"gate": {
+			"open_clear": true,
+			"shut_solid": true
+		},
+		"stairs": [
+			{
+				"best_y": 0.0302734375,
+				"normal": "(0.0, 0.0, 1.0)",
+				"position": "(-0.000002, 0.030273, 51.2688)"
+			},
+			{
+				"best_y": 15.1275749206543,
+				"normal": "(1.0, 0.0, 0.0)",
+				"position": "(60.20096, 15.12757, 28.56)"
+			},
+			{
+				"best_y": 15.1304416656494,
+				"normal": "(0.0, 0.0, -1.0)",
+				"position": "(28.56, 15.13044, -60.2049)"
+			},
+			{
+				"best_y": 15.1274194717407,
+				"normal": "(-1.0, 0.0, 0.0)",
+				"position": "(-60.20075, 15.12742, -28.56)"
+			}
+		]
+	}
+}

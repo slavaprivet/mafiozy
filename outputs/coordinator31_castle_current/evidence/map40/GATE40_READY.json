@@ -1,0 +1,42 @@
+{
+  "status": "READY_FUNCTIONAL",
+  "base_sha256": "24e62e58d2285e116126b99087899980fb3380b760616960eebbeaa8b89459c5",
+  "candidate_sha256": "6aa56f4f95e76120d513acd2bc0da3e9cb4b148f10aa2b094b37dfb972f79d47",
+  "candidate": "D:\\MafioziCombat31\\map40\\game\\scripts\\city\\castle_site.gd",
+  "patch": "D:\\MafioziCombat31\\map40\\GATE40.patch",
+  "requires": "STAIRS40 first; gate diff contains only inner gate, plinth cutout, board-owned fittings",
+  "checks": {
+    "blast": {
+      "detached": 6,
+      "event_id": "",
+      "ok": true,
+      "state": "committed",
+      "total": 0
+    },
+    "board_colliders_after": 90,
+    "board_colliders_before": 96,
+    "broken_fittings_hidden": 16,
+    "close_angle": 0.0,
+    "closed_blocked": true,
+    "decorative_grid_removed": true,
+    "inbound": true,
+    "inner_fittings": 212,
+    "open_angle": 1.0,
+    "outbound": true,
+    "pass": true,
+    "threshold_stones": 0
+  },
+  "receipts": [
+    "import01/SCHEDULER_RUN.json",
+    "run_gate01/SCHEDULER_RUN.json"
+  ],
+  "screenshots": [
+    "gate01/inside_closed.png",
+    "gate01/inside_open.png",
+    "gate01/inside_broken.png",
+    "gate01/outside_unchanged.png",
+    "gate01/stairs_idle.png"
+  ],
+  "performance_accepted": false,
+  "external_facade": "Exterior geometry/fittings functions unchanged by this patch; removed only inner decorative grid and non-colliding footing stones across clear doorway"
+}

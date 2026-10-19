@@ -1,0 +1,124 @@
+{
+  "passed": true,
+  "base_revision": "castle-20261018-combined52-soil49-coordinator33",
+  "pins_checked": 1347,
+  "changes": [
+    {
+      "path": "scripts/preview_player.gd",
+      "base_sha256": "3e1e46febba29274b1fc2357bd1e06ce36ce10f0571c19458db5ba6e48408052",
+      "candidate_sha256": "b4e02c86185557fb68a9dfdbec85932f41a79f16f1d0ec55999d3a367a4cbb02"
+    },
+    {
+      "path": "scripts/weapons/bow_prototype.gd",
+      "base_sha256": "2b850770790a5a1dccd4d3ef4e46039a1491903bacdaadc177022098ab76fcdc",
+      "candidate_sha256": "84a5bc419fc72f9a7f84d1c7280d5ce97baeb0bcfb44b1e3ff3068085eb507b2"
+    }
+  ],
+  "ready_sha256": "05d87f757d755784e8f3c112bc8b890a99a6c56c1acfddc5878edb41ec91e000",
+  "patch_sha256": {
+    "preview_player.gd.patch": "b4c26c7c5d1c15f6353921796c1557e4c1d94cbc4a14358db442b907f3c29b2d",
+    "bow_prototype.gd.patch": "5602acae5f5be608df5e93bf03f33b9ce1421b55f911df62186a5ead38135634"
+  },
+  "evidence": {
+    "before02": {
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "root_size": "(1280, 720)",
+      "result_sha256": "5ac23d27d7dc994926cc9948dc54622b9bfcec27ac139d3b145f67c71716fdd3",
+      "phases": {
+        "back_held": {
+          "samples": 140,
+          "max_correction_degrees": 34.2000137016896,
+          "max_step_degrees": 16.2000065979763,
+          "mean_camera_error_degrees": 156.56142927059278,
+          "backward_m": 4.961547851562045
+        },
+        "back_aimed": {
+          "samples": 140,
+          "max_correction_degrees": 34.2000137016896,
+          "max_step_degrees": 16.2000065979763,
+          "mean_camera_error_degrees": 156.56142927059278,
+          "backward_m": 4.961059570312045
+        },
+        "back_released": {
+          "samples": 140,
+          "max_correction_degrees": 34.2000137016896,
+          "max_step_degrees": 16.2000065979763,
+          "mean_camera_error_degrees": 156.56142927059278,
+          "backward_m": 4.961059570309999
+        }
+      }
+    },
+    "after": {
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "root_size": "(1280, 720)",
+      "result_sha256": "a49b4574545ab0a495798d92f572ff41562790dbc99c7b6aa56ceca2da153108",
+      "phases": {
+        "back_held": {
+          "samples": 140,
+          "max_correction_degrees": 0.0,
+          "max_step_degrees": 0.0,
+          "mean_camera_error_degrees": 6.32929353655967e-05,
+          "backward_m": 4.908142089843977
+        },
+        "back_aimed": {
+          "samples": 140,
+          "max_correction_degrees": 0.0,
+          "max_step_degrees": 0.0,
+          "mean_camera_error_degrees": 6.32929353655967e-05,
+          "backward_m": 4.90771484375
+        },
+        "back_released": {
+          "samples": 140,
+          "max_correction_degrees": 0.0,
+          "max_step_degrees": 0.0,
+          "mean_camera_error_degrees": 6.32929353655967e-05,
+          "backward_m": 4.90771484375
+        }
+      }
+    },
+    "graphical": {
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "root_size": "(1280, 720)",
+      "result_sha256": "90483ab48051d91fa8f3852121f3dbec551c65072ef43ee497059ac65f05d69a",
+      "phases": {
+        "back_held": {
+          "samples": 124,
+          "max_correction_degrees": 4.09811350200765e-05,
+          "max_step_degrees": 4.09811350200765e-05,
+          "mean_camera_error_degrees": 1.1075926938416062e-05,
+          "backward_m": 4.905822753906023
+        },
+        "back_aimed": {
+          "samples": 114,
+          "max_correction_degrees": 0.0,
+          "max_step_degrees": 0.0,
+          "mean_camera_error_degrees": 4.02540908549966e-06,
+          "backward_m": 4.4879150390670475
+        },
+        "back_released": {
+          "samples": 120,
+          "max_correction_degrees": 0.0,
+          "max_step_degrees": 0.0,
+          "mean_camera_error_degrees": 4.02540908549966e-06,
+          "backward_m": 4.487915039070003
+        }
+      }
+    }
+  },
+  "findings": [
+    "The candidate changes only two declared files; other pinned gameplay files including sword/spear, storage, damage and collision are unchanged.",
+    "Facing ownership uses the same active/not-grounded guard as the bow render update; menu, cursor, selected, pose authority, death and physics fault all release facing.",
+    "Bow render-facing synchronizes locomotion heading each frame before handoff; invalid or freed bow host is guarded by is_instance_valid.",
+    "Player root yaw is subtracted to convert the desired global facing into local visual rotation.",
+    "Sword/spear retain their existing locomotion/render interaction when bow is inactive; this audit makes no claim to fix any pre-existing melee jitter."
+  ],
+  "merged_required": [
+    "Apply preview_player.gd and merge bow init, owns_player_facing and _face_the_aim changes with bow aim53.",
+    "Run motion_regression.gd for bow, sword, spear on final merged pins.",
+    "Run original motion probe.gd on final source and combined ownership/contact/high aim tests.",
+    "No clean performance acceptance; preserve the current user game."
+  ]
+}

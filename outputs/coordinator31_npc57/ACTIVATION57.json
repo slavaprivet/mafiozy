@@ -1,0 +1,10 @@
+{
+  "validated": true,
+  "activated": true,
+  "revision": "s01-20261015-residents57",
+  "startup_run": "outputs\\coordinator31_npc57\\proposals\\services31_resume\\release_tools\\runs\\startup57_01",
+  "startup_sha256": "1f836792e98d7bf2cc5dd9ef5d4dfe13a33dc3d844d7bc0f7c50101c61e678d8",
+  "old_pointer_sha256": "ca48c8175dd59e93bd62bdf030662c1603f4f749a4a2ef4fd172f0f0edcd2421",
+  "new_pointer_sha256": "6742c1ca56a65f2b752e6a40c6d692382ecb4eabf088c350c84ba50b4d32da9c",
+  "utc": "2026-10-15T13:42:49.839062+00:00"
+}

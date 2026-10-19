@@ -1,0 +1,52 @@
+{
+  "schema": "mafiozi.injury30.result/v1",
+  "passed": true,
+  "base": "outputs/coordinator29_release53a/game",
+  "production_changed_files": [
+    "scripts/npc_visual/npc_attention29.gd"
+  ],
+  "baseline": {
+    "path": "runs/baseline02/INJURY30.json",
+    "expected_failure": "injured_gaze_freeze",
+    "hp": 12.0,
+    "focused_frames": 303,
+    "held_frames": 267
+  },
+  "candidate": {
+    "path": "runs/candidate01/INJURY30.json",
+    "checks": {
+      "authenticated_shot_terminal_health_chain": true,
+      "away_low_health_observed": true,
+      "focused_low_health_moved": true,
+      "focused_low_health_never_held": true,
+      "focused_low_health_observed": true,
+      "hospital_treated_and_physically_exited": true,
+      "initial_hp_full": true,
+      "native_nonfatal_hit_receipts": true,
+      "native_owned_projectile_hits": true,
+      "route_jobs_bounded": true
+    },
+    "hp": 12.0,
+    "focused_frames": 131,
+    "held_frames": 0,
+    "moving_focused_frames": 92,
+    "away_frames": 180,
+    "max_route_jobs": 1,
+    "max_route_nodes": 77
+  },
+  "proof_pins": {
+    "runs/baseline02/INJURY30.json": "1363eef66ab4873aa9c987c90793ea8b675e705dd040b0e133d5c12152f5a575",
+    "runs/candidate01/INJURY30.json": "7096441e4ecd8516be0d62ed578f54f000de9c28a874355efc474f9e2c55a082",
+    "runs/candidate01/RUN_CHECK.json": "ce70e1d2fce75421de4aa5113acc08ade34a755dea976ac5552fa872a14b270d",
+    "patch/scripts/npc_visual/npc_attention29.gd": "eafe8d084bc6e3f82051372c00fe83fee8c5597b3ce1e21db660fda34be064c7",
+    "observer_injury30.gd": "d0be759128d5203ee9f87ccc3c676f25962fa8202797acfdc313abab42056a82",
+    "entry_injury30.gd": "39254ce3e6d7786c01987fd93cd2ae3b5bb6519e5a2b814647cd4688d5f2e9f7",
+    "observer_death28.gd": "319dcb1006b7151a3413876f676ebbf28c65e2a480d74c69ae1da119e4ec8d67"
+  },
+  "limits": [
+    "Functional native proof, not isolated FPS acceptance.",
+    "Final shared54 assembly has not yet been tested by this packet.",
+    "Headless baseline01 lacked a confirmed gaze and is excluded."
+  ],
+  "performance_accepted": false
+}

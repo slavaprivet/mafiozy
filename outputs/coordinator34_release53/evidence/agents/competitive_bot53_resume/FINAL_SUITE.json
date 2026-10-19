@@ -1,0 +1,58 @@
+[
+  {
+    "name": "chase04",
+    "passed": true,
+    "scheduler": true,
+    "stderr_bytes": 0,
+    "result": "D:\\MafioziCombat31\\competitive_bot53_resume\\chase04\\result.json",
+    "scheduler_receipt": "D:\\MafioziCombat31\\competitive_bot53_resume\\chase04\\native\\SCHEDULER_RUN.json"
+  },
+  {
+    "name": "retreat04",
+    "passed": true,
+    "scheduler": true,
+    "stderr_bytes": 0,
+    "result": "D:\\MafioziCombat31\\competitive_bot53_resume\\retreat04\\result.json",
+    "scheduler_receipt": "D:\\MafioziCombat31\\competitive_bot53_resume\\retreat04\\native\\SCHEDULER_RUN.json"
+  },
+  {
+    "name": "detour04",
+    "passed": true,
+    "scheduler": true,
+    "stderr_bytes": 0,
+    "result": "D:\\MafioziCombat31\\competitive_bot53_resume\\detour04\\result.json",
+    "scheduler_receipt": "D:\\MafioziCombat31\\competitive_bot53_resume\\detour04\\native\\SCHEDULER_RUN.json"
+  },
+  {
+    "name": "mobility_lane04",
+    "passed": true,
+    "scheduler": true,
+    "stderr_bytes": 0,
+    "result": "D:\\MafioziCombat31\\competitive_bot53_resume\\mobility_lane04\\result.json",
+    "scheduler_receipt": "D:\\MafioziCombat31\\competitive_bot53_resume\\mobility_lane04\\native\\SCHEDULER_RUN.json"
+  },
+  {
+    "name": "moving_weave_04",
+    "passed": true,
+    "scheduler": true,
+    "stderr_bytes": 0,
+    "result": "D:\\MafioziCombat31\\competitive_bot53_resume\\moving_weave_04\\result.json",
+    "scheduler_receipt": "D:\\MafioziCombat31\\competitive_bot53_resume\\moving_weave_04\\native\\SCHEDULER_RUN.json"
+  },
+  {
+    "name": "moving_rush_04",
+    "passed": true,
+    "scheduler": true,
+    "stderr_bytes": 0,
+    "result": "D:\\MafioziCombat31\\competitive_bot53_resume\\moving_rush_04\\result.json",
+    "scheduler_receipt": "D:\\MafioziCombat31\\competitive_bot53_resume\\moving_rush_04\\native\\SCHEDULER_RUN.json"
+  },
+  {
+    "name": "moving_diagonal_04",
+    "passed": true,
+    "scheduler": true,
+    "stderr_bytes": 0,
+    "result": "D:\\MafioziCombat31\\competitive_bot53_resume\\moving_diagonal_04\\result.json",
+    "scheduler_receipt": "D:\\MafioziCombat31\\competitive_bot53_resume\\moving_diagonal_04\\native\\SCHEDULER_RUN.json"
+  }
+]

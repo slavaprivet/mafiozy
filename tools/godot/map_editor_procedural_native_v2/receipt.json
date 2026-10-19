@@ -1,0 +1,21 @@
+{
+  "schema": "mafiozi.native-procedural-visual-checkpoint/v2",
+  "manifestSha256": "82e6ef82a824e002d0f315972ffd3d967102b7c36256371699992bcfb76220dd",
+  "godot": "4.7.2.stable.official.ed1daf0bf",
+  "checks": {"exploration": 448582, "roadEditAuthority": 134894, "sourceRoadVisualPolicy": 63909, "nativeEmissionOracle": 1},
+  "sourceOracleStates": 17,
+  "sourceEquipmentChunks": 112,
+  "sourcePaintMeshes": 59,
+  "sourceSignals": 60,
+  "maxPhaseMatrixDifference": 0,
+  "sourceIds": 9394,
+  "gpuChecked": false,
+  "trafficAuthority": false,
+  "files": {
+    "scripts/procedural_factory.gd": "d419f704ca38fdef8b77643847dcb95f47903c5de55c1e0e5a5d3f289396de61",
+    "scripts/road_visual_policy.gd": "d9806642d33f32cd5b09e49699480121673d361debd5329febd156501c753c31",
+    "tests/test_road_visual_policy.gd": "34cabb1883163209b29cdddf37841bebbf4299a85fd2ef1bf910bda3d9d36b7a",
+    "stage.mjs": "542af348e44c09d2a37add2587f39b926ad88f93378e45d9178bd0a1f7dc39cd"
+  },
+  "remainingGates": ["GPU visual/depth-bias parity", "mutable-plan bucket regroup authority", "source collision/navigation/server traffic authority", "public generated editor add/save/fresh-load UI", "full-scene p50/p95"]
+}

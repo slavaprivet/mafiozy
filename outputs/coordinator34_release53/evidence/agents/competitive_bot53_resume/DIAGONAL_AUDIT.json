@@ -1,0 +1,62 @@
+{
+  "conclusion": "Weapon-arm disabling/disarm is the only source transition consistent with the recorded alive actors and wait entered during a major NPC wound. This is source-assisted inference, not a direct recorded disarm flag.",
+  "first_wait": {
+    "clashes": 0,
+    "counter": 1,
+    "gap": 0.696318805217743,
+    "guard": 6,
+    "npc_hp": 14.9384319000336,
+    "player_hp": 96.9977818656737,
+    "state": "wait",
+    "tick": 380
+  },
+  "preceding_sample": {
+    "clashes": 0,
+    "counter": 1,
+    "gap": 0.664563000202179,
+    "guard": 5,
+    "npc_hp": 88.9460285560726,
+    "player_hp": 96.9977818656737,
+    "state": "recover",
+    "tick": 370
+  },
+  "final": {
+    "npc_dead": false,
+    "npc_hp": 13.0650956456438,
+    "player_dead": false,
+    "player_hp": 96.9977818656737,
+    "gap": 8.15643692016602
+  },
+  "source_file": "D:\\MafioziCombat31\\competitive_bot53_resume\\game\\scripts\\weapons\\sword_prototype.gd",
+  "source_sha256": "37461c7579289673ffd2370479c28290a66235665ddd448b49bbf31868df248d",
+  "evidence": [
+    {
+      "line": 5135,
+      "meaning": "Destroyed right upperarm/forearm/hand without sever sets disarmed=true, engaged=false, state=wait and drops sword."
+    },
+    {
+      "line": 6489,
+      "meaning": "Severed right weapon arm sets disarmed=true, engaged=false, state=wait and drops sword."
+    },
+    {
+      "line": 5880,
+      "meaning": "When sword instance is invalid, armed AI exits and alive actor physically retreats after pain; it does not re-enter approach."
+    },
+    {
+      "line": 5926,
+      "meaning": "Other alive-NPC wait transition requires player preview_dead; raw player_dead=false and HP96.9978 exclude it."
+    },
+    {
+      "line": 5399,
+      "meaning": "Lost legs scale movement but do not set wait."
+    },
+    {
+      "line": 6048,
+      "meaning": "Visibility checks do not assign wait; target loss alone cannot produce this state."
+    }
+  ],
+  "limitations": [
+    "Raw harness did not store _npc_disarmed, _npc_severed, part HP or sword validity. Cannot distinguish severed right arm from ruined intact right arm, nor claim exact wounded segment.",
+    "No new combat series used for this diagnosis."
+  ]
+}

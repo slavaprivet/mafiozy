@@ -1,0 +1,53 @@
+{
+  "status": "PREPARED_WITH_PARTIAL_NATIVE_PROOF_NOT_ACCEPTED",
+  "utc": "2026-10-15T15:16:35.908712+00:00",
+  "source_manifest": "outputs/coordinator31_npc57/extended31/stage58_03/CANDIDATE58.json",
+  "source_manifest_sha256": "46a095bd14fdede78861d097cd5e69ad73a32c6cdf842b6944375101e84155a7",
+  "cpu_checks": 60,
+  "cpu_passed": true,
+  "perf_cpu_checks": 14,
+  "actual_completed_roles": [
+    "threat",
+    "visual",
+    "shop_interruption",
+    "restaurant_interruption"
+  ],
+  "pending": [
+    "perf_comparison",
+    "soak.run",
+    "services.run",
+    "perf_baseline.run",
+    "perf_candidate.run"
+  ],
+  "release_accepted": false,
+  "performance_accepted": false,
+  "freeze_executed": false,
+  "activation_executed": false,
+  "pointer_modified": false,
+  "git_invoked": false,
+  "source_modified": false,
+  "files": {
+    "activate58.py": "d5c3715329e0424a2c679d8205fd4bc68ca5ee44849dcbb6bd4bc5c069d5b17f",
+    "ACTUAL_ROLES58_STAGE03_01.json": "35a6eeb003918a2edb15beed4802ca2bbed06a8ad37e56cf5123b5bf35d6ebc9",
+    "ATTENTION58_STAGE03_ACCEPTANCE.json": "ffbbd8e0982941c14dba7a674c4c2ec4ae91f9690f446944526f164baa85254f",
+    "audit_available58.py": "2c45014f87592c22de0ed3e815929d1168770fe45e2907547bdf5eac3b93e38a",
+    "check_perf58.py": "b7bbb1aa06af5f2ca24df62ee60805c154ec95ebd7c4defdf5113bf4663821f0",
+    "check_tools58.py": "b0c55338f0488128f91a0f8ddf7cc087331529bc6c62230b232483a43319a6d7",
+    "CPU_CHECKS58.json": "04b2d2888085356c485997e40d7d1e9c9397a8ca38852961298f70372afd53df",
+    "finalize_attention58.py": "e2f1b8e376de75543590c9fe38913de1e2cb32ffad2a8aadb0307c09e809f2a9",
+    "freeze58.py": "3e952100cd29cfc5e068b2b1533010934e9e4f097789384080a937276d0d175e",
+    "HANDOFF.md": "c0fd129dfdd03097ba08d0e9a5dbce06448d68a3f126b341a14d45b2556e78ee",
+    "perf_compare58.py": "6d554658c2e82565c40f5031b762c21aeb227e0d4c89a3445239d970ccada0d0",
+    "PERF_CPU_CHECKS58.json": "c39e6cd1c36e85dc924075da18afc739f715f878f8dadf3b484ab507c40fdc02",
+    "PERF_PLAN58.md": "9dca6ab34f76344c71b0fd279a4d410a7177a454eeb12cdc5ca5f8ef4b00560c",
+    "prepare_tools58.py": "6f54aabd547f6a96d57ecbadfb74f4461193688d9839c91c97de2191688254c2",
+    "RELEASE_PLAN58.example.json": "0657e4b43606d724370f5a1c5ecbd0c23efb853f460f476e29f2e00330125116",
+    "RELEASE_PLAN58.partial.json": "7d23bcf6ebfec92729fd3c295ae65e08d9e637a76e51b3875dfdbb9f25bc3c49",
+    "run_attention58.py": "03223ea85bbaf2fec1021c4b561f7c704a94a64db9c6c71f85ac6b9b98b2b27e",
+    "run_perf58.py": "7aa13ac3dadc0643ffd8872a02560966f2728e5b507c5bec859e12ebcfafd1b5",
+    "SERVICE_FLEE_REVIEW58.md": "eeb8babe7ccc18d96f65620abbc65354ca9e6bc4ac7ddfbf816640e985c320da",
+    "spatial58.py": "020a88f92d3ffc88307115b8aa48a5141f765c9563768df94f0ede890ff18c2b",
+    "startup58.py": "9f4deecaae188b9b9e2ba94fd2ff9bbf173b71fcd4877d8f25576421730b4e4a",
+    "validators58.py": "963a65aaf345c3459de2c566e1e8a5622a4521fe8bb1b9634d626bb2ea0d72cd"
+  }
+}

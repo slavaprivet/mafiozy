@@ -1,0 +1,17 @@
+{
+  "status": "prepared_not_run",
+  "native_compile": "parse04/SCHEDULER_RUN.json",
+  "native_compile_passed": true,
+  "candidate_staff": 12,
+  "total_venues": 12,
+  "new_venues": 8,
+  "warmup_seconds": 20,
+  "measurement_seconds": 180,
+  "performance_accepted": false,
+  "pins": {
+    "entry_perf30.gd": "ae74a63b72795ea2d86068f03e84224ef17cd2c90fc1c55255d3380cf8b2de90",
+    "observer_perf30.gd": "a09828d40003befd3bc1e03cc7f567ac5ff3f7c4f008fb5bfc661bbba6f0e005",
+    "parse_fixture30.gd": "0baf14f68afbb87f09f01b95a2a75422e286a63d767ff7ada4588b11c791ad9c",
+    "perf_pair30.py": "76b569e4201bec2d85fcd53f538d7ae0244bd07914baba8d3a53b75607fd5652"
+  }
+}

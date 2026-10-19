@@ -1,0 +1,32 @@
+SCRIPT ERROR: Trying to assign an array of type "Array" to a variable of type "Array[float]".
+   at: _build_building (res://scripts/homes/npc_home_site58.gd:54)
+   GDScript backtrace (most recent call first):
+       [0] _build_building (res://scripts/homes/npc_home_site58.gd:54)
+       [1] _ready (res://scripts/destruction/palazzo/palazzo_site.gd:36)
+       [2] _ready (res://scripts/destruction/palazzo/palazzo_finished_site.gd:14)
+       [3] _ready (res://scripts/destruction/palazzo/palazzo_structural_site.gd:8)
+       [4] prepare (res://scripts/homes/npc_home_host58.gd:41)
+SCRIPT ERROR: Trying to assign an array of type "Array" to a variable of type "Array[float]".
+   at: _build_building (res://scripts/homes/npc_home_site58.gd:54)
+   GDScript backtrace (most recent call first):
+       [0] _build_building (res://scripts/homes/npc_home_site58.gd:54)
+       [1] _ready (res://scripts/destruction/palazzo/palazzo_site.gd:36)
+       [2] _ready (res://scripts/destruction/palazzo/palazzo_finished_site.gd:14)
+       [3] _ready (res://scripts/destruction/palazzo/palazzo_structural_site.gd:8)
+       [4] prepare (res://scripts/homes/npc_home_host58.gd:41)
+SCRIPT ERROR: Trying to assign an array of type "Array" to a variable of type "Array[float]".
+   at: _build_building (res://scripts/homes/npc_home_site58.gd:54)
+   GDScript backtrace (most recent call first):
+       [0] _build_building (res://scripts/homes/npc_home_site58.gd:54)
+       [1] _ready (res://scripts/destruction/palazzo/palazzo_site.gd:36)
+       [2] _ready (res://scripts/destruction/palazzo/palazzo_finished_site.gd:14)
+       [3] _ready (res://scripts/destruction/palazzo/palazzo_structural_site.gd:8)
+       [4] prepare (res://scripts/homes/npc_home_host58.gd:41)
+SCRIPT ERROR: Trying to assign an array of type "Array" to a variable of type "Array[float]".
+   at: _build_building (res://scripts/homes/npc_home_site58.gd:54)
+   GDScript backtrace (most recent call first):
+       [0] _build_building (res://scripts/homes/npc_home_site58.gd:54)
+       [1] _ready (res://scripts/destruction/palazzo/palazzo_site.gd:36)
+       [2] _ready (res://scripts/destruction/palazzo/palazzo_finished_site.gd:14)
+       [3] _ready (res://scripts/destruction/palazzo/palazzo_structural_site.gd:8)
+       [4] prepare (res://scripts/homes/npc_home_host58.gd:41)

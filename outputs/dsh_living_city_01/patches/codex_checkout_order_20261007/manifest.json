@@ -1,0 +1,11 @@
+{
+  "source": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\dsh_living_city_01\\game\\scripts\\shop\\npc_local_shop_visit.gd",
+  "before_sha256": "8a981573b9844fdd692b8d761b1b493c4742ee566121ebaeca11063255a0e07d",
+  "candidate_sha256": "32528e3d30177d5c3ed7668316403397b28d76132874adbd9702db66ef9adf21",
+  "baseline": "shop-completion-baseline02:3 expected failed assertions, delayed checkout CANCELLED",
+  "candidate": "shop-completion-candidate03:43/43 PASS; syntax PASS; exit0/errors0/stderr0",
+  "scope": "Actual commerce controllers after-entry with fixture route/health/host; local receipt only. No full-city purchase observed",
+  "guards": "current owner/life/clock/physical shop/pause still proved by actual account; original exit/release unchanged",
+  "publication": "DEFERRED_BY_USER",
+  "clean_620b4f0": "UNCHANGED"
+}

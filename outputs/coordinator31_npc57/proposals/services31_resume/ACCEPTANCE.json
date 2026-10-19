@@ -1,0 +1,312 @@
+{
+  "status": "PASS_NATIVE_COMPONENT_READY_FOR_ROOT_INTEGRATION",
+  "date": "2026-10-15",
+  "predecessor_thread": "01a13f76-b441-73f2-bcdb-9f85a7a648de",
+  "predecessor_status": "idle/interrupted",
+  "predecessor_code_unchanged": {
+    "scripts/hospital/npc_physical_route51.gd": {
+      "old": "ce8bca0c9d45b88ae45ec3973544838267ef88db2d62911f781e25bed6b7168f",
+      "new": "ce8bca0c9d45b88ae45ec3973544838267ef88db2d62911f781e25bed6b7168f",
+      "unchanged": true
+    },
+    "scripts/navigation/npc_avoidance_world29.gd": {
+      "old": "43d8778d5d42a769e4be3c81218d8fc891194ee42262863dd6d3b2e93ca6e1fa",
+      "new": "43d8778d5d42a769e4be3c81218d8fc891194ee42262863dd6d3b2e93ca6e1fa",
+      "unchanged": true
+    },
+    "scripts/navigation/npc_local_avoidance29.gd": {
+      "old": "eb745234cd6df1803c4d44e00535e81a27e6c9384dbff534d062efff87e0854a",
+      "new": "eb745234cd6df1803c4d44e00535e81a27e6c9384dbff534d062efff87e0854a",
+      "unchanged": true
+    },
+    "scripts/navigation/npc_passage31.gd": {
+      "old": "49ab9e218f37aac086dfe2fd3817f08b759cf2ecb1dc41091cce97c29a5b518e",
+      "new": "49ab9e218f37aac086dfe2fd3817f08b759cf2ecb1dc41091cce97c29a5b518e",
+      "unchanged": true
+    }
+  },
+  "base": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_release56\\game",
+  "patch": {
+    "scripts/hospital/npc_physical_route51.gd": {
+      "base_sha256": "6cf3bb96c1ad9875fb3e66313db9b04a518043b4977e1db4420b316d8813b761",
+      "candidate_sha256": "ce8bca0c9d45b88ae45ec3973544838267ef88db2d62911f781e25bed6b7168f"
+    },
+    "scripts/navigation/npc_avoidance_world29.gd": {
+      "base_sha256": "c9a0b6687a369c13affa652f1269f586bf73e7f8b52c40f53b2dd9ba5ec4253c",
+      "candidate_sha256": "43d8778d5d42a769e4be3c81218d8fc891194ee42262863dd6d3b2e93ca6e1fa"
+    },
+    "scripts/navigation/npc_local_avoidance29.gd": {
+      "base_sha256": "855b2e9653e39cd6491a8f601d9c5955942c0d1f204ebf76d25b4a2c3bfbccf3",
+      "candidate_sha256": "eb745234cd6df1803c4d44e00535e81a27e6c9384dbff534d062efff87e0854a"
+    },
+    "scripts/navigation/npc_passage31.gd": {
+      "base_sha256": null,
+      "candidate_sha256": "49ab9e218f37aac086dfe2fd3817f08b759cf2ecb1dc41091cce97c29a5b518e"
+    }
+  },
+  "patch_manifest_sha256": "9f130bb9089882f3067e5fb0c141257ae6dff799b770b7a8a0749bde08fb05b3",
+  "source_zip_sha256": "7d128809f444c463e9edc1b7c6cb1c126f02f2aa7557a1e99a57854cca7ebd8f",
+  "unified_diff_sha256": "235e301406a66016c423c091d1961a013e1215ff0f728ad4dad52d98e9a2237b",
+  "results": {
+    "physics_baseline06": {
+      "passed": false,
+      "execution_clean": true,
+      "checks": {
+        "actual_body_overlap_in_passage": false,
+        "actual_compact_native_site": true,
+        "bounded_exit_under_8_seconds": false,
+        "claim_released_only_after_physical_exit": false,
+        "fixed_60hz_controller_and_engine": true,
+        "head_on_actual_overlap": false,
+        "head_on_both_complete_within_8s": false,
+        "head_on_routes_started": true,
+        "native_capsule_configured": true,
+        "native_moves_in_physics_context": true,
+        "native_walk_without_teleport": true,
+        "no_world_collision_exception": true,
+        "physical_entry_then_exit": false,
+        "physical_exit_begins": true,
+        "physical_service_interior": true,
+        "service_admission": true
+      },
+      "run_sha256": "b1a09fd6953f75ebc266448be13926331449bf6da8548f95ced00dfbe327fae0",
+      "native_sha256": "0f6533b148686bf129386615cee4cec1cbf5fe4807e4de18bbcf7a2b1d0df253",
+      "source_sha256": "e7275d5b3a17e88dd50186c30c1c75511e6938a7efd7c206efcc7e921447ba13",
+      "metrics": {
+        "blocked": 3,
+        "frames": 1993,
+        "head_on_frames": 480,
+        "head_on_min_separation_m": 4.5,
+        "nearest_peer_m": 1.81138026714325,
+        "max_native_step_m": 0.0300045423209667,
+        "passage": {},
+        "physics_hz": 60,
+        "controller_delta": 0.0166666666666667,
+        "observed_delta_min": 0.0166666666666667,
+        "observed_delta_max": 0.0166666666666667,
+        "physics_context_misses": 0,
+        "exit_elapsed_s": 24.6833333333333,
+        "exit_wall_s": 24.681539,
+        "headon_elapsed_s": 8.0,
+        "headon_wall_s": 7.998541
+      }
+    },
+    "physics_candidate06": {
+      "passed": true,
+      "execution_clean": true,
+      "checks": {
+        "actual_body_overlap_in_passage": true,
+        "actual_compact_native_site": true,
+        "all_old_pairs_removed": true,
+        "bounded_exit_under_8_seconds": true,
+        "claim_released_only_after_physical_exit": true,
+        "closed_real_door_still_blocks": true,
+        "death_layer_retires_exceptions": true,
+        "exceptions_removed_on_passage_exit": true,
+        "fixed_60hz_controller_and_engine": true,
+        "freed_body_pairs_retired": true,
+        "head_on_actual_overlap": true,
+        "head_on_both_complete_within_8s": true,
+        "head_on_routes_started": true,
+        "native_capsule_configured": true,
+        "native_hit_ray_still_hits_peer": true,
+        "native_moves_in_physics_context": true,
+        "native_walk_without_teleport": true,
+        "no_world_collision_exception": true,
+        "outside_planner_keeps_peer_collision": true,
+        "physical_entry_then_exit": true,
+        "physical_exit_begins": true,
+        "physical_service_interior": true,
+        "planner_ignores_passage_peer": true,
+        "player_never_ignored": true,
+        "respawn_binds_only_new_body": true,
+        "same_frame_free_query_safe": true,
+        "second_pair_has_symmetric_exceptions": true,
+        "service_admission": true,
+        "symmetric_passage_exceptions": true,
+        "wall_still_blocks_capsule": true
+      },
+      "run_sha256": "a8ad7a7eb384f665ab5158ad99b2ecfdeea64ba33a728f86d5ae612deeead916",
+      "native_sha256": "9659b50dc0e872644a6f5bdff4a2b37fb52f8cb24a8658b7452f8a66a12ba217",
+      "source_sha256": "e7275d5b3a17e88dd50186c30c1c75511e6938a7efd7c206efcc7e921447ba13",
+      "metrics": {
+        "blocked": 0,
+        "frames": 414,
+        "head_on_frames": 154,
+        "head_on_min_separation_m": 0.0130178928375244,
+        "nearest_peer_m": 2.05039978027344e-05,
+        "max_native_step_m": 0.0306323692202568,
+        "passage": {
+          "actors": 2,
+          "in_passage": 2,
+          "max_per_zone": 32,
+          "max_refresh_us": 108,
+          "pairs": 1,
+          "zones": 1
+        },
+        "physics_hz": 60,
+        "controller_delta": 0.0166666666666667,
+        "observed_delta_min": 0.0166666666666667,
+        "observed_delta_max": 0.0166666666666667,
+        "physics_context_misses": 0,
+        "exit_elapsed_s": 2.88333333333333,
+        "exit_wall_s": 2.875394,
+        "headon_elapsed_s": 2.56666666666667,
+        "headon_wall_s": 2.566459
+      }
+    },
+    "streams_physics_baseline03": {
+      "passed": false,
+      "execution_clean": true,
+      "checks": {
+        "actual_compact_native_site": true,
+        "all_native_ground_collisions_preserved": true,
+        "all_native_masks_unchanged": true,
+        "all_nine_opposed_pairs_physically_cross": false,
+        "fixed_60hz_controller_and_engine": true,
+        "native_door_discovered": true,
+        "native_moves_in_physics_context": true,
+        "real_door_open": true,
+        "six_native_routes_started": true,
+        "six_native_walks_without_teleport": true,
+        "two_streams_all_six_complete_under_12s": false
+      },
+      "run_sha256": "3aebb41f310fd5306339bfd4d5c9d353f5787ffe80eca6177e66e5758ef52aaa",
+      "native_sha256": "f142c3ff32b275492c8db47e042574ce9c93e45b90d9ebf4e5039b99381ab3d6",
+      "source_sha256": "e7275d5b3a17e88dd50186c30c1c75511e6938a7efd7c206efcc7e921447ba13",
+      "metrics": {
+        "frames": 767,
+        "max_native_step_m": 0.00272222235798836,
+        "passage": {},
+        "movement_frames": 720,
+        "arrived": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "positions": [
+          "(0.0, 0.005118, 4.9)",
+          "(0.0, 0.000278, 5.7)",
+          "(0.0, 0.000278, 6.5)",
+          "(0.0, 0.240278, 2.1)",
+          "(0.0, 0.240278, 1.3)",
+          "(0.0, 0.240278, 0.5)"
+        ],
+        "min_cross_pair_m": {
+          "0:3": 2.80000019073486,
+          "0:4": 3.60000014305115,
+          "0:5": 4.40000009536743,
+          "1:3": 3.59999990463257,
+          "1:4": 4.39999961853027,
+          "1:5": 5.19999980926514,
+          "2:3": 4.40000009536743,
+          "2:4": 5.19999980926514,
+          "2:5": 6.0
+        },
+        "physics_hz": 60,
+        "controller_delta": 0.0166666666666667,
+        "observed_delta_min": 0.0166666666666667,
+        "observed_delta_max": 0.0166666666666667,
+        "physics_context_misses": 0,
+        "movement_elapsed_s": 12.0,
+        "movement_wall_s": 11.999764
+      }
+    },
+    "streams_physics_candidate03": {
+      "passed": true,
+      "execution_clean": true,
+      "checks": {
+        "actual_compact_native_site": true,
+        "all_native_ground_collisions_preserved": true,
+        "all_native_masks_unchanged": true,
+        "all_nine_opposed_pairs_physically_cross": true,
+        "all_six_removed_without_stale_pairs": true,
+        "fixed_60hz_controller_and_engine": true,
+        "native_door_discovered": true,
+        "native_moves_in_physics_context": true,
+        "real_door_open": true,
+        "six_native_routes_started": true,
+        "six_native_walks_without_teleport": true,
+        "two_streams_all_six_complete_under_12s": true
+      },
+      "run_sha256": "6663292ec3090d827bc24960e2442ec9b73c2bb87fd795979461bdc2fb2dac57",
+      "native_sha256": "f9b338e3a87307b9ee36c9bb2fab5151960698099dce3d8bebb302943bf2b051",
+      "source_sha256": "e7275d5b3a17e88dd50186c30c1c75511e6938a7efd7c206efcc7e921447ba13",
+      "metrics": {
+        "frames": 299,
+        "max_native_step_m": 0.0308896098285913,
+        "passage": {
+          "actors": 6,
+          "in_passage": 6,
+          "max_per_zone": 32,
+          "max_refresh_us": 323,
+          "pairs": 15,
+          "zones": 1
+        },
+        "movement_frames": 252,
+        "arrived": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "positions": [
+          "(0.0, 0.240861, 0.772259)",
+          "(0.0, 0.240128, 0.79303)",
+          "(0.0, 0.240072, 0.78297)",
+          "(0.0, 0.00019, 6.213415)",
+          "(0.0, 0.000141, 6.223044)",
+          "(0.0, 0.000234, 6.202879)"
+        ],
+        "min_cross_pair_m": {
+          "0:3": 0.0229723453521729,
+          "0:4": 0.0177419185638428,
+          "0:5": 0.0022587776184082,
+          "1:3": 0.000746965408325195,
+          "1:4": 0.0261209011077881,
+          "1:5": 0.00696945190429688,
+          "2:3": 0.0231752395629883,
+          "2:4": 0.0107607841491699,
+          "2:5": 0.0156736373901367
+        },
+        "physics_hz": 60,
+        "controller_delta": 0.0166666666666667,
+        "observed_delta_min": 0.0166666666666667,
+        "observed_delta_max": 0.0166666666666667,
+        "physics_context_misses": 0,
+        "movement_elapsed_s": 4.2,
+        "movement_wall_s": 4.186916
+      }
+    }
+  },
+  "full_city_acceptance": false,
+  "performance_accepted": false,
+  "superseded_timing_runs": {
+    "runs": [
+      "baseline05",
+      "candidate05",
+      "streams_baseline02",
+      "streams_candidate02"
+    ],
+    "reason": "Old step waited physics_frame then process_frame, so native movement occurred in process context. Retained as history; only new physics_* pairs support timing/movement acceptance. New step waits only physics_frame and asserts Engine.is_in_physics_frame plus observed 1/60 delta, Engine60/time_scale1; records simulated and wall elapsed separately."
+  },
+  "preserved_fixture_failure": {
+    "runs": [
+      "streams_candidate01",
+      "streams_baseline01"
+    ],
+    "reason": "Outbound initial poses obstructed real opening leaf sweep before measured travel. Fixture02 opens the real door before initializing the six initial poses and requests it open via native API during the streams. Production unchanged."
+  },
+  "limits": [
+    "Native compact service shop fixture; all four actual city services require merged validation.",
+    "Hit ray still reaches peer; no real weapon damage/reaction cycle in this fixture.",
+    "No city FPS claim. Initial poses/reset are allowed only between isolated test cases; measured service/head-on travel is native.",
+    "Scoped zones cover registered live service doors. World/player/door/debris masks unchanged.",
+    "No shared game, frozen release, F5, Git, or user process was changed."
+  ]
+}

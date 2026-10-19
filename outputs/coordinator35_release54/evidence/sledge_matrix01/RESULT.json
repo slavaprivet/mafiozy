@@ -1,0 +1,645 @@
+{
+	"contacts": [
+		{
+			"attempt": 0,
+			"grip_error": 0.00000000023283064365387,
+			"hits": 0,
+			"hp_after": 100.0,
+			"hp_before": 100.0,
+			"left_error": 0.0000610351853538305,
+			"target_unchanged": true,
+			"trace": [
+				{
+					"can_damage": true,
+					"omega": 0.0,
+					"origin": "(0.106262, 1.139585, 989.4824)",
+					"phase": "idle",
+					"tick": 0,
+					"tip": "(0.45483, 1.901741, 988.9744)"
+				},
+				{
+					"can_damage": true,
+					"omega": 0.166318207979202,
+					"origin": "(0.044384, 1.138477, 989.4729)",
+					"phase": "windup",
+					"tick": 3,
+					"tip": "(0.391029, 1.898993, 988.9612)"
+				},
+				{
+					"can_damage": true,
+					"omega": 0.577865362167358,
+					"origin": "(-0.018207, 1.136043, 989.4679)",
+					"phase": "windup",
+					"tick": 6,
+					"tip": "(0.318164, 1.889757, 988.9395)"
+				},
+				{
+					"can_damage": true,
+					"omega": 1.22064244747162,
+					"origin": "(-0.082313, 1.134135, 989.4732)",
+					"phase": "windup",
+					"tick": 9,
+					"tip": "(0.225929, 1.873142, 988.9082)"
+				},
+				{
+					"can_damage": true,
+					"omega": 2.0622193813324,
+					"origin": "(-0.136186, 1.132947, 989.4847)",
+					"phase": "windup",
+					"tick": 12,
+					"tip": "(0.113626, 1.846437, 988.861)"
+				},
+				{
+					"can_damage": true,
+					"omega": 3.10873651504517,
+					"origin": "(-0.016604, 1.124394, 989.4581)",
+					"phase": "windup",
+					"tick": 15,
+					"tip": "(0.130485, 1.795493, 988.7593)"
+				},
+				{
+					"can_damage": true,
+					"omega": 3.38057923316956,
+					"origin": "(0.109329, 1.113855, 989.4658)",
+					"phase": "strike",
+					"tick": 18,
+					"tip": "(0.130503, 1.707253, 988.6861)"
+				},
+				{
+					"can_damage": true,
+					"omega": 2.95094442367554,
+					"origin": "(0.237746, 1.103228, 989.5006)",
+					"phase": "strike",
+					"tick": 21,
+					"tip": "(0.194947, 1.580869, 988.6459)"
+				},
+				{
+					"can_damage": true,
+					"omega": 2.46241569519043,
+					"origin": "(0.326714, 1.103104, 989.5746)",
+					"phase": "strike",
+					"tick": 24,
+					"tip": "(0.291796, 1.467983, 988.6657)"
+				},
+				{
+					"can_damage": true,
+					"omega": 2.62305521965027,
+					"origin": "(0.277741, 1.090004, 989.5486)",
+					"phase": "strike",
+					"tick": 27,
+					"tip": "(0.318364, 1.364548, 988.6088)"
+				},
+				{
+					"can_damage": true,
+					"omega": 3.22831678390503,
+					"origin": "(0.210485, 1.087223, 989.5253)",
+					"phase": "strike",
+					"tick": 30,
+					"tip": "(0.387095, 1.308092, 988.587)"
+				},
+				{
+					"can_damage": true,
+					"omega": 1.79236721992493,
+					"origin": "(0.145783, 1.091489, 989.5019)",
+					"phase": "strike",
+					"tick": 33,
+					"tip": "(0.43081, 1.29518, 988.5867)"
+				}
+			]
+		},
+		{
+			"attempt": 1,
+			"grip_error": 0.0,
+			"hits": 1,
+			"hp_after": 75.6037075659583,
+			"hp_before": 100.0,
+			"left_error": 0.00000000931322574615479,
+			"target_unchanged": true,
+			"trace": [
+				{
+					"can_damage": true,
+					"omega": 0.0,
+					"origin": "(0.043391, 1.148, 989.5251)",
+					"phase": "recover",
+					"tick": 0,
+					"tip": "(-0.174206, 1.876625, 988.9069)"
+				},
+				{
+					"can_damage": true,
+					"omega": 0.166555985808373,
+					"origin": "(0.097262, 1.151704, 989.5389)",
+					"phase": "recover",
+					"tick": 3,
+					"tip": "(-0.118212, 1.878114, 988.9174)"
+				},
+				{
+					"can_damage": true,
+					"omega": 0.578491806983948,
+					"origin": "(0.157851, 1.15138, 989.5558)",
+					"phase": "windup",
+					"tick": 6,
+					"tip": "(-0.046691, 1.868124, 988.9195)"
+				},
+				{
+					"can_damage": true,
+					"omega": 1.21771323680878,
+					"origin": "(0.212767, 1.151168, 989.5774)",
+					"phase": "windup",
+					"tick": 9,
+					"tip": "(0.037809, 1.846487, 988.9093)"
+				},
+				{
+					"can_damage": true,
+					"omega": 2.04507374763489,
+					"origin": "(0.259246, 1.146525, 989.5925)",
+					"phase": "windup",
+					"tick": 12,
+					"tip": "(0.144834, 1.804931, 988.8757)"
+				},
+				{
+					"can_damage": true,
+					"omega": 3.06488299369812,
+					"origin": "(0.187064, 1.122591, 989.5047)",
+					"phase": "windup",
+					"tick": 15,
+					"tip": "(0.176806, 1.722934, 988.7302)"
+				},
+				{
+					"can_damage": true,
+					"omega": 3.11381936073303,
+					"origin": "(0.057942, 1.109308, 989.438)",
+					"phase": "windup",
+					"tick": 18,
+					"tip": "(0.164682, 1.617169, 988.6068)"
+				},
+				{
+					"can_damage": true,
+					"omega": 0.661422967910767,
+					"origin": "(-0.096022, 1.116767, 989.4399)",
+					"phase": "strike",
+					"tick": 21,
+					"tip": "(0.046941, 1.628509, 988.6165)"
+				},
+				{
+					"can_damage": true,
+					"omega": 1.59999990463257,
+					"origin": "(-0.21627, 1.117359, 989.4747)",
+					"phase": "strike",
+					"tick": 24,
+					"tip": "(-0.137257, 1.6112, 988.6319)"
+				},
+				{
+					"can_damage": true,
+					"omega": 1.60000002384186,
+					"origin": "(-0.154606, 1.112662, 989.4558)",
+					"phase": "strike",
+					"tick": 27,
+					"tip": "(-0.151061, 1.589946, 988.5999)"
+				},
+				{
+					"can_damage": true,
+					"omega": 2.58814239501953,
+					"origin": "(-0.085852, 1.106281, 989.4476)",
+					"phase": "strike",
+					"tick": 30,
+					"tip": "(-0.179927, 1.553949, 988.5809)"
+				},
+				{
+					"can_damage": true,
+					"omega": 1.85846018791199,
+					"origin": "(-0.019123, 1.105255, 989.4601)",
+					"phase": "strike",
+					"tick": 33,
+					"tip": "(-0.251783, 1.54695, 988.6168)"
+				}
+			]
+		},
+		{
+			"attempt": 2,
+			"grip_error": 0.00000000023283064365387,
+			"hits": 1,
+			"hp_after": 41.6037075659583,
+			"hp_before": 75.6037075659583,
+			"left_error": 0.0000610352872172371,
+			"target_unchanged": true,
+			"trace": [
+				{
+					"can_damage": true,
+					"omega": 0.0,
+					"origin": "(0.05272, 1.134541, 989.5359)",
+					"phase": "recover",
+					"tick": 0,
+					"tip": "(-0.256257, 1.864145, 988.9592)"
+				},
+				{
+					"can_damage": true,
+					"omega": 0.166331261396408,
+					"origin": "(-0.001616, 1.129339, 989.5198)",
+					"phase": "recover",
+					"tick": 3,
+					"tip": "(-0.309745, 1.856401, 988.9394)"
+				},
+				{
+					"can_damage": true,
+					"omega": 0.57208377122879,
+					"origin": "(-0.067153, 1.127461, 989.5104)",
+					"phase": "windup",
+					"tick": 6,
+					"tip": "(-0.373365, 1.842063, 988.9138)"
+				},
+				{
+					"can_damage": true,
+					"omega": 1.16170310974121,
+					"origin": "(-0.136144, 1.123154, 989.5073)",
+					"phase": "windup",
+					"tick": 9,
+					"tip": "(-0.450419, 1.806325, 988.8789)"
+				},
+				{
+					"can_damage": true,
+					"omega": 1.98351812362671,
+					"origin": "(-0.19417, 1.117733, 989.5143)",
+					"phase": "windup",
+					"tick": 12,
+					"tip": "(-0.543022, 1.741316, 988.8436)"
+				},
+				{
+					"can_damage": true,
+					"omega": 2.79673647880554,
+					"origin": "(-0.075384, 1.1081, 989.4771)",
+					"phase": "windup",
+					"tick": 15,
+					"tip": "(-0.486592, 1.635229, 988.7606)"
+				},
+				{
+					"can_damage": true,
+					"omega": 2.83712673187256,
+					"origin": "(0.068111, 1.101234, 989.4794)",
+					"phase": "windup",
+					"tick": 18,
+					"tip": "(-0.358478, 1.507961, 988.6964)"
+				},
+				{
+					"can_damage": true,
+					"omega": 0.661962151527405,
+					"origin": "(0.209906, 1.101767, 989.5251)",
+					"phase": "windup",
+					"tick": 21,
+					"tip": "(-0.182532, 1.431931, 988.69)"
+				},
+				{
+					"can_damage": true,
+					"omega": 1.0032707452774,
+					"origin": "(0.292487, 1.110812, 989.5901)",
+					"phase": "strike",
+					"tick": 24,
+					"tip": "(-0.070865, 1.427029, 988.7366)"
+				},
+				{
+					"can_damage": true,
+					"omega": 1.60000014305115,
+					"origin": "(0.259583, 1.100923, 989.5555)",
+					"phase": "strike",
+					"tick": 27,
+					"tip": "(-0.049109, 1.412519, 988.6791)"
+				},
+				{
+					"can_damage": true,
+					"omega": 1.88870561122894,
+					"origin": "(0.200462, 1.096191, 989.5291)",
+					"phase": "strike",
+					"tick": 30,
+					"tip": "(-0.035428, 1.40709, 988.6301)"
+				},
+				{
+					"can_damage": true,
+					"omega": 2.70709204673767,
+					"origin": "(0.135485, 1.092338, 989.5107)",
+					"phase": "strike",
+					"tick": 33,
+					"tip": "(0.013453, 1.398204, 988.5876)"
+				}
+			]
+		},
+		{
+			"attempt": 3,
+			"grip_error": 0.0,
+			"hits": 1,
+			"hp_after": 12.9639577521688,
+			"hp_before": 41.6037075659583,
+			"left_error": 0.0000610352071817033,
+			"target_unchanged": true,
+			"trace": [
+				{
+					"can_damage": true,
+					"omega": 0.0,
+					"origin": "(0.043977, 1.152833, 989.5375)",
+					"phase": "recover",
+					"tick": 0,
+					"tip": "(-0.191457, 1.904593, 988.9545)"
+				},
+				{
+					"can_damage": true,
+					"omega": 0.166228637099266,
+					"origin": "(0.095921, 1.156609, 989.55)",
+					"phase": "recover",
+					"tick": 3,
+					"tip": "(-0.137706, 1.906184, 988.9635)"
+				},
+				{
+					"can_damage": true,
+					"omega": 0.576163709163666,
+					"origin": "(0.154736, 1.156308, 989.5652)",
+					"phase": "windup",
+					"tick": 6,
+					"tip": "(-0.068909, 1.89657, 988.9632)"
+				},
+				{
+					"can_damage": true,
+					"omega": 1.21178781986237,
+					"origin": "(0.208604, 1.156045, 989.5847)",
+					"phase": "windup",
+					"tick": 9,
+					"tip": "(0.012828, 1.875844, 988.9492)"
+				},
+				{
+					"can_damage": true,
+					"omega": 2.03467965126038,
+					"origin": "(0.254751, 1.151428, 989.5977)",
+					"phase": "windup",
+					"tick": 12,
+					"tip": "(0.117042, 1.835946, 988.91)"
+				},
+				{
+					"can_damage": true,
+					"omega": 3.05092787742615,
+					"origin": "(0.184324, 1.127389, 989.5092)",
+					"phase": "windup",
+					"tick": 15,
+					"tip": "(0.147778, 1.755915, 988.7581)"
+				},
+				{
+					"can_damage": true,
+					"omega": 3.17828392982483,
+					"origin": "(0.057706, 1.112443, 989.4401)",
+					"phase": "windup",
+					"tick": 18,
+					"tip": "(0.13708, 1.649773, 988.6243)"
+				},
+				{
+					"can_damage": true,
+					"omega": 0.669671595096588,
+					"origin": "(-0.098301, 1.113662, 989.4342)",
+					"phase": "strike",
+					"tick": 21,
+					"tip": "(0.028002, 1.600989, 988.5934)"
+				},
+				{
+					"can_damage": true,
+					"omega": 1.60000014305115,
+					"origin": "(-0.220049, 1.11373, 989.4684)",
+					"phase": "strike",
+					"tick": 24,
+					"tip": "(-0.14926, 1.575038, 988.6066)"
+				},
+				{
+					"can_damage": true,
+					"omega": 1.60000002384186,
+					"origin": "(-0.157573, 1.108957, 989.4487)",
+					"phase": "strike",
+					"tick": 27,
+					"tip": "(-0.161768, 1.551437, 988.5743)"
+				},
+				{
+					"can_damage": true,
+					"omega": 1.94284009933472,
+					"origin": "(-0.088622, 1.109641, 989.4467)",
+					"phase": "strike",
+					"tick": 30,
+					"tip": "(-0.224256, 1.594072, 988.6057)"
+				},
+				{
+					"can_damage": true,
+					"omega": 2.19830846786499,
+					"origin": "(-0.019912, 1.10432, 989.4539)",
+					"phase": "strike",
+					"tick": 33,
+					"tip": "(-0.25762, 1.537892, 988.6077)"
+				}
+			]
+		}
+	],
+	"errors": [],
+	"lifecycle": [
+		{
+			"acquire": {
+				"ammo_free": true,
+				"melee": true,
+				"ok": true,
+				"weaponId": "sledge"
+			},
+			"input_delivered": 10.0,
+			"viewport": "(1280, 720)"
+		},
+		{
+			"bow_dots": 0,
+			"bow_selected": false,
+			"label": "aim",
+			"storage": {
+				"back_bow": false,
+				"bow_active": false,
+				"carried": {
+					"sledge": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "sledge",
+				"rack": {
+					"axe": true,
+					"bow": true,
+					"mace": true,
+					"shield": true,
+					"spear": true,
+					"sword": true
+				},
+				"revision": 1,
+				"slots": []
+			},
+			"sword_dots": 0,
+			"sword_selected": true
+		},
+		{
+			"bow_dots": 0,
+			"bow_selected": false,
+			"label": "release",
+			"storage": {
+				"back_bow": false,
+				"bow_active": false,
+				"carried": {
+					"sledge": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "sledge",
+				"rack": {
+					"axe": true,
+					"bow": true,
+					"mace": true,
+					"shield": true,
+					"spear": true,
+					"sword": true
+				},
+				"revision": 1,
+				"slots": []
+			},
+			"sword_dots": 0,
+			"sword_selected": true
+		},
+		{
+			"bow_dots": 0,
+			"bow_selected": true,
+			"label": "switch_to_bow_held_rmb",
+			"storage": {
+				"back_bow": true,
+				"bow_active": true,
+				"carried": {
+					"bow": true,
+					"sledge": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "sledge",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"spear": true,
+					"sword": true
+				},
+				"revision": 2,
+				"slots": []
+			},
+			"sword_dots": 0,
+			"sword_selected": false
+		},
+		{
+			"bow_dots": 8,
+			"bow_selected": true,
+			"label": "switch_bow_reaim",
+			"storage": {
+				"back_bow": true,
+				"bow_active": true,
+				"carried": {
+					"bow": true,
+					"sledge": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "sledge",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"spear": true,
+					"sword": true
+				},
+				"revision": 2,
+				"slots": []
+			},
+			"sword_dots": 0,
+			"sword_selected": false
+		},
+		{
+			"bow_dots": 0,
+			"bow_selected": false,
+			"label": "switch_back_held_rmb",
+			"storage": {
+				"back_bow": true,
+				"bow_active": false,
+				"carried": {
+					"bow": true,
+					"sledge": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "sledge",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"spear": true,
+					"sword": true
+				},
+				"revision": 2,
+				"slots": []
+			},
+			"sword_dots": 0,
+			"sword_selected": true
+		},
+		{
+			"bow_dots": 0,
+			"bow_selected": false,
+			"label": "drop",
+			"storage": {
+				"back_bow": true,
+				"bow_active": false,
+				"carried": {
+					"bow": true
+				},
+				"chest_alive": true,
+				"fallen": {
+					"sledge": "(-0.357628, 0.162924, 89.40814)"
+				},
+				"hand_shield": false,
+				"hand_weapon": "",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"spear": true,
+					"sword": true
+				},
+				"revision": 4,
+				"slots": []
+			},
+			"sword_dots": 0,
+			"sword_selected": false
+		},
+		{
+			"bow_dots": 0,
+			"bow_selected": false,
+			"label": "pickup",
+			"storage": {
+				"back_bow": true,
+				"bow_active": false,
+				"carried": {
+					"bow": true,
+					"sledge": true
+				},
+				"chest_alive": true,
+				"fallen": {},
+				"hand_shield": false,
+				"hand_weapon": "sledge",
+				"rack": {
+					"axe": true,
+					"mace": true,
+					"shield": true,
+					"spear": true,
+					"sword": true
+				},
+				"revision": 5,
+				"slots": []
+			},
+			"sword_dots": 0,
+			"sword_selected": true
+		}
+	],
+	"passed": true,
+	"scope": "Real input1:1 G/E aim/strike; rack API equip only. Existing native dummy placed before attacks, original HP/shape unchanged. Bow fixed collider with native arrow embedding, no HP injection.",
+	"weapon": "sledge"
+}

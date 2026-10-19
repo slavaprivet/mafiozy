@@ -1,0 +1,19 @@
+{
+  "native": "NOT_RUN",
+  "all8": "NOT_ACCEPTED",
+  "limitations": [
+    {
+      "priority": "P1",
+      "id": "LIFE_ROW_RESTORE_SEAM",
+      "trigger": "Successful gang load after actor_life cache initialized on an owned body",
+      "actual": "Persistence installs new gang row on SAME body; physical_life retains old row and requires is_same, so subsequent actor_life may reject permanently and damage reports damage_life_unavailable.",
+      "source_locations": [
+        "persistence_owner.gd:332-342,488-496",
+        "physical_life_owner.gd:256-266",
+        "main_scene.gd:_on_bindings_changed"
+      ],
+      "continuation": "Receiving owner implements explicit idle-safe life/session retirement/rebind. Never silently retarget active pose/recovery/lease tokens or old rows.",
+      "evidence": "GAMEPLAY_HANDOFF_TO_MESSI.json; static actual code inspection, native NOT_RUN"
+    }
+  ]
+}

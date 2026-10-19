@@ -1,0 +1,29 @@
+{
+  "schema":"mafiozi.authored-object-native-cpu-audit/v1",
+  "godot":"4.7.2.stable.official.ed1daf0bf",
+  "stage":"outputs/map_editor_source_assembly_EIfzbm",
+  "sourceObjects":242,
+  "admittedPaletteGLBs":196,
+  "actualPlacedGLBs":33,
+  "census":{"allMeshNodes":6820,"visibleMeshNodes":6772,"surfaceSubmissionsPotential":7065,"shadowSurfaceSubmissionsPotential":7065,"uniqueMeshes":1968,"uniqueMaterials":298,"uniqueTexturesCurrentPlacedModels":0,"sceneLocalMaterials":0,"convexBodies":355,"privateShapeResources":355,"uniqueExactPointAndFloat64MarginPayloads":293,"duplicateExactShapes":62,"specialOwnerPending":6},
+  "initialInclusiveProfile":{"configureUsec":110160,"coldLoadAndSHA33ResourcesUsec":315103,"warmMedianTotalSpawnRegisterUsec":193960,"warmMedianHelperPredicateWalkUsec":35558,"helperVisitedNodes":7946,"registryBodyVisitedNodes":9140,"registryBoundsVisitedNodes":9140},
+  "benchmark":"1 warmup + 7 complete actual batches, variant order rotated deterministically each round",
+  "warmSpawnAndRegisterSamplesUsec":{
+    "baseline":[174564,170928,186796,185018,179143,179128,181208],
+    "helperOnly":[158375,155160,159911,169824,163811,155692,159602],
+    "registryOnly":[169835,170252,168460,181061,167122,171333,163963],
+    "both":[150437,147797,145568,149355,152038,146434,149734]
+  },
+  "medianUsec":{"baseline":179143,"helperOnly":159602,"registryOnly":169835,"both":149355},
+  "p95NearestRankUsec":{"baseline":186796,"helperOnly":169824,"registryOnly":181061,"both":152038},
+  "medianBothSavedUsec":29788,
+  "medianBothReductionPercent":16.6281,
+  "checks":{"censusProfile":7484,"actualExactSceneRegistryParityAndBenchmark":8960,"atomicImport":66599,"actualControllerAssembly":12782},
+  "noColliderPooling":true,
+  "scope":"warm native creation/registration only; original shader/material/geometry/helper/convex snapshots retained",
+  "gpu":false,
+  "productionWired":false,
+  "ownerCallbacks":"unchanged explicit test fixtures",
+  "mainSceneFPSVerified":false,
+  "limitations":["Only7 warm samples, backgroundCPU may vary","Inclusive profiler timings overlap","196 resources admitted/imported, only33 currently placed; never claim196 live assets","62 shapes remain private to avoid cross-owner mutation","Potential surfaces are NOT measured GPU draw calls","Original general-scene visual/FPS and real runtime owner acceptance remain open"]
+}

@@ -1,0 +1,52 @@
+{
+  "schema": "mafiozi.transport.service-access.v1",
+  "status": "FROZEN_HEADLESS_QUERY_ONLY",
+  "tests": {
+    "checks": 553,
+    "failures": 0,
+    "profiles": 13
+  },
+  "cost": {
+    "queries": 10000,
+    "elapsed_us": 60714,
+    "scope": "isolated CPU only; loaded scene performance not measured"
+  },
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_service_access.gd",
+      "sha256": "8a5a439b49a68b9898e65bbb2cf0178182fa86f42b6eba07c8d77079230d32ec",
+      "bytes": 3306
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_service_access.gd",
+      "sha256": "63227fa4a344b7838572b0ba6270d5536cc31482a286b87b1fa66dcf05e15fcd",
+      "bytes": 3946
+    }
+  ],
+  "dependencies": [
+    {
+      "path": "godot/mafiozi_walk/assets/vehicle_visual/compartments.json",
+      "sha256": "423c09c28b0fbeac819e1d1b351087cdf2e05790254bb9e8371d4e1a2c1cbd51",
+      "bytes": 18023
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_hood.mjs",
+      "sha256": "c4acdbbf023d4e5c5245325400620c2a55a40c91d8439851bca509b5270969c8",
+      "bytes": 17976
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_trunk.mjs",
+      "sha256": "91d8575b2f52ca10b43bfe73d4a004ec4ebfef7b066835c8d1ed1a46239f5fb0",
+      "bytes": 26143
+    }
+  ],
+  "api": "query(kind, exact_access_profile, bound_vehicle_transform, actor_feet, signed_speed, external_context)",
+  "limits": [
+    "pure query, no ownership/clock/identity mutation",
+    "Root owns E/R routing and visual/profile/lifetime binding",
+    "repair availability is no damage receipt or repair commit",
+    "roll/unstable supplied as blocked context",
+    "cargo inventory and detached debris remain separate",
+    "sector_anchor_m is not a visual trunk handle: Root supplies actual cavity center/handle"
+  ]
+}

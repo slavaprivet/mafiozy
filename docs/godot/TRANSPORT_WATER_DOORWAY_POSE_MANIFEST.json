@@ -1,0 +1,40 @@
+{
+  "schema": "mafiozi.transport-water-doorway-pose.v1",
+  "scope": "pure four-door water exit spatial projection and seat blend; source presentation pose fields excluded; no Root/swim adoption",
+  "engine": "Godot 4.7.2-stable (official)",
+  "author_checks": 70,
+  "author_result": "PASS",
+  "cost": {
+    "scenario": "quiet CPU window; 20 blocks of 1000 pure pose calls",
+    "calls": 20000,
+    "percentile_method": "p50 median of samples 10/11; p95 nearest-rank sample 19",
+    "block_mean_us_p50": 13.452,
+    "block_mean_us_p95": 13.618,
+    "loaded_scene_fps": "NOT_RUN"
+  },
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_water_doorway_pose.gd",
+      "sha256": "fb61223de23c81c4317e2cf934815d9d45182aa2fc0b41d1f8ff5a2d133b03c3"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_water_doorway_pose.gd",
+      "sha256": "911796b05ff4099b59cc254677b3f81eda8f7ba119f8f1c5fc10c467e3d97a21"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_WATER_DOORWAY_POSE_HANDOFF.md",
+      "sha256": "c0a2f6d8f52521331f651e5110f7bc2040313f23387a4d205ca72e9cdfc5c3b6"
+    }
+  ],
+  "source_pins": {
+    "assets/maps/city_rebuild_v1/vehicle_water_exit.mjs": "531fc5b01dd1ad6ce2fda5b8aac76688cf5f1888fc4f05610a7ef176c259a860",
+    "assets/maps/city_rebuild_v1/vehicle_seats.mjs": "1e6b2178bee7ed6ec51ecbb5d99e13772942c8fb71a2f3cc7579ad2aa3537779",
+    "assets/maps/city_rebuild_v1/car_entry.mjs": "342a3f959cd7d82bfa5759f1706d6471bc32998fdb49be79361a2556ab3245b6",
+    "godot/mafiozi_walk/data/transport/vehicle_descriptors.v1.json": "99d328bc4a581bc65815498b265ae5eec71a25b831512b15d376e1c0f5ac031a",
+    "tools/godot/export_vehicle_visual.mjs": "7e6c2f9b23bc47e17a28da84b6279214949b729a2b49255c42fa18c45a5d4f47",
+    "tools/godot/export_transport_descriptors.mjs": "766f6df08c622565413a17e31e3b09341981455918f94c006e665e2ea0b6d53c",
+    "godot/mafiozi_walk/scripts/transport/transport_descriptor_catalog.gd": "85614568d1a4b23391618e84e8de250c9b872a9215353734d3f7e1f7638d3e97"
+  },
+  "live": "NOT_RUN",
+  "git": "NOT_TOUCHED"
+}

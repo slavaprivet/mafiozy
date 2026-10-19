@@ -1,0 +1,62 @@
+{
+  "passed": true,
+  "case": "ui",
+  "native": {
+    "checks": 118,
+    "failures": [],
+    "passed": true,
+    "vest_fit": {
+      "centre_ratio": 0.474418604033303,
+      "follow_m": 0.5,
+      "height_share": 0.230000007392824,
+      "model": {
+        "min": [
+          -1.37907314300537,
+          0.0300000011920929,
+          -0.634999990463257
+        ],
+        "size": [
+          2.75889492034912,
+          5.15999984741211,
+          1.31299996376038
+        ]
+      },
+      "placement": {
+        "bone": "chest",
+        "bone_index": 3,
+        "model_height_m": 5.15999984741211,
+        "ok": true,
+        "scope": "local_preview_armor_visual",
+        "size_m": [
+          1.23839998245239,
+          1.18680000305176,
+          0.82559996843338
+        ],
+        "world_per_bone": 1.0
+      },
+      "vest": {
+        "min": [
+          -0.619199991226196,
+          1.88459992408752,
+          -0.41279998421669
+        ],
+        "size": [
+          1.23839998245239,
+          1.18680000305176,
+          0.82559996843338
+        ]
+      }
+    }
+  },
+  "source_count": 1212,
+  "source_drift": false,
+  "control_drift": false,
+  "engine_clean": true,
+  "source_manifest": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\extended31\\stage58_06\\CANDIDATE58.json",
+  "source_manifest_sha256": "b11bdd02916fb37171d0e177bf529569c8d090d82212c4d87d02e6c2fee06346",
+  "native_test_sha256": "065db45ff370f58b4662ebd35b86371dfdd06caed34f52164ee0a8a264571796",
+  "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "production_changed": false,
+  "original_fixture_unchanged": true,
+  "scope": "Existing exact shop fixture with only delayed startup wrapper. City test calls live purchase/projectile ports; it does not prove physical walk-in/E, native mouse windup, NPC/home lifecycle, or performance."
+}

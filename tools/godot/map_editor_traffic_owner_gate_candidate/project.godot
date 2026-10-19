@@ -1,0 +1,7 @@
+config_version=5
+
+[application]
+config/name="Map Editor Traffic Owner Gate Parse"
+
+[rendering]
+renderer/rendering_method="gl_compatibility"

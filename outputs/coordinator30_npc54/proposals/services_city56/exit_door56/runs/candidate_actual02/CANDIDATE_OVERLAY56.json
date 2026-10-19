@@ -1,0 +1,21 @@
+{
+	"ordinary_merged_acceptance": false,
+	"runtime_candidate_overlay": true,
+	"scripts": [
+		{
+			"candidate": "C:/Users/Слава/Desktop/Мафиози/outputs/coordinator30_npc54/proposals/services_city56/exit_door56/npc_simple_hospital.gd",
+			"candidate_sha256": "737291ac97b210d4afbe9b490e7f5aefd32833f1ffad867f5fe9f3b677ca6a55",
+			"shared_disk_sha256": "ee46467d27baeb9b3e58f55b191f3f92211544734b4ebfb369eb329168b35f89",
+			"source_sha256": "737291ac97b210d4afbe9b490e7f5aefd32833f1ffad867f5fe9f3b677ca6a55",
+			"target": "res://scripts/hospital/npc_simple_hospital.gd"
+		},
+		{
+			"candidate": "C:/Users/Слава/Desktop/Мафиози/outputs/coordinator30_npc54/proposals/services_city56/exit_door56/npc_restaurant_visit28.gd",
+			"candidate_sha256": "63a7e4c03a11b0774f806c5f3565ca4d3c2d1c611cd2b90c5f935cd2cd90fc4f",
+			"shared_disk_sha256": "042323f35e6ad62bd40febdf20709b45a03562391ca68ebe6d43a2a08fc570e5",
+			"source_sha256": "63a7e4c03a11b0774f806c5f3565ca4d3c2d1c611cd2b90c5f935cd2cd90fc4f",
+			"target": "res://scripts/hospital/npc_restaurant_visit28.gd"
+		}
+	],
+	"shared_files_modified": false
+}

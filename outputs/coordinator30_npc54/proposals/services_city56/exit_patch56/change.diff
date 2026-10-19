@@ -1,0 +1,44 @@
+--- base/npc_simple_hospital.gd
++++ candidate/npc_simple_hospital.gd
+@@ -25,6 +25,12 @@
+ var _service_watch30: Dictionary = {}
+ var _service_anchor30 := Vector3.ZERO
+ var _service_last_us30 := 0
++# Attempted movement must get closer to its current waypoint. Sideways loops
++# around a changed door must not reset progress merely by travelling .25m.
++var _service_ready_frame56 := -1
++var _service_way56 := -1
++var _service_best_distance56 := INF
++var _service_way_idle_s56 := 0.0
+ var _body: CharacterBody3D
+ var _avoidance29: RefCounted
+ var _avoidance29_state: Dictionary = {}
+@@ -422,6 +428,18 @@
+ 	elif float(_service_watch30.motion_idle_ms)>=SERVICE_MOTION_MS30:why="service_motion_stalled30"
+ 	_service_watch30.blocked=not why.is_empty();_service_watch30.reason=why
+ 	return why
++
++# Called only on an attempted service movement, after peer/FIFO waits. This is
++# a local replan request, never arrival, service completion or a collision bypass.
++func _service_waypoint_stalled56(ready_frame: int, way: int, remaining: float, delta: float) -> bool:
++	if ready_frame != _service_ready_frame56 or way != _service_way56:
++		_service_ready_frame56 = ready_frame; _service_way56 = way
++		_service_best_distance56 = remaining; _service_way_idle_s56 = 0.0
++	elif remaining < _service_best_distance56 - .10:
++		_service_best_distance56 = remaining; _service_way_idle_s56 = 0.0
++	else:
++		_service_way_idle_s56 += delta
++	return _service_way_idle_s56 >= 3.0
+ 
+ func _finish_step(before: Vector3, delta: float, result: String, idle: bool = true) -> String:
+ 	if idle:_route.hold(delta)
+@@ -541,6 +559,9 @@
+ 			return _finish_step(before,delta,"walking")
+ 		direction=_avoidance29_state.direction
+ 		distance=minf(SPEED_MPS*float(_avoidance29_state.ratio)*delta,remaining)
++	if _target_source == "service_approach" and _service_waypoint_stalled56(int(_route._ready_frame), _way, remaining, delta):
++		_roam_step29_phase = "planning"; _restart("service_waypoint_no_progress56")
++		return _finish_step(before, delta, "walking")
+ 	# Revalidate current local edge; changed furniture/rubble cannot be traversed from a stale plan.
+ 	var ahead: Vector3=current+direction*minf(.4,remaining)
+ 	var floor: Variant=_route.floor_at(ahead,current.y)

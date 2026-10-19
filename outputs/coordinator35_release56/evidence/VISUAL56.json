@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "images": [
+    "sledge_hold01/hold_0.png",
+    "sledge_hold01/hold_2.png",
+    "sledge_hold01/hold_5.png"
+  ],
+  "observations": "Side, overhead and diagonal samples show longer haft, both hands on handle, arms following chosen direction and no visible wrist inversion. Native proxy-clearance/grip checks passed across240held frames.",
+  "limits": "Sampled poses, not continuous visual inspection or clean FPS; subjective weight remains for user feedback."
+}

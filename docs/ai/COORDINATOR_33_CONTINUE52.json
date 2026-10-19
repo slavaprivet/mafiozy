@@ -1,0 +1,15 @@
+{
+  "revision": "castle-20261018-combined52-soil49-coordinator33",
+  "base_commit": "9c726d5c05e97ef9de676977694ae84645c80ddc",
+  "game": "D:\\MafioziCombat31\\coordinator33\\game",
+  "frozen": true,
+  "acceptance": "outputs/coordinator33_release52/ACCEPTANCE.json",
+  "evidence": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator33_release52\\evidence",
+  "excluded": [],
+  "limits": [
+    "Clean full-game FPS not accepted; user game was preserved.",
+    "Steep camera retains spring-arm ground compression.",
+    "Melee axis/proxy self-clearance is not full triangle collision."
+  ],
+  "instructions": "Use current_version.json and ASSEMBLY. Preserve running user game and all foreign WIP. New candidates on D, tests through scheduler. Never use stale merged52 as current."
+}

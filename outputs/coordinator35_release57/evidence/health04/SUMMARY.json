@@ -1,0 +1,9 @@
+{
+  "name": "health04",
+  "passed": true,
+  "errors": [],
+  "scheduler_errors": [],
+  "scheduler_error": null,
+  "drift": [],
+  "script_sha256": "d5490c4237c801f2ffcd5a42fbf1115afb76e24215e0d822c9785bde4cd90f60"
+}

@@ -1,0 +1,1427 @@
+diff --git a/world.html b/world.html
+index c853c6e..022b8a9 100644
+--- a/world.html
++++ b/world.html
+@@ -9732,8 +9732,34 @@ const RESIDENTS_INDOORS=[],RESIDENT_RESPAWN_BACKLOG=[];
+ let _residentBuildingDoorsCache=null,_residentRespawnSeed=9000,_residentInvisibleSpawnCount=0;
+ const _residentDoorByBuildingTile=new Map(),_residentDoorBySource=new Map(),_activeResidentDoorVisuals=new Map();
+ let _residentDoorAnimationCount=0,_residentBuildingRouteBudget=1,_residentBuildingRouteDeferred=0;
++let _stationaryServicePilot23=null,_stationaryServiceExitMove23=null;
++function _stationaryServiceReturnHost23(){
++ return{
++  entrance:layout=>{const access=_walkTrafficNavigationResolver({mode:'resident-access',action:'list'});return access?.doors?.find(d=>d.instanceId===layout.buildingId);},
++  cancelRoute:n=>{_cancelNpcDirectedSearch(n);_clearNpcRoute(n);},
++  planRoute:(n,p)=>{
++   const ready=_planNpcRouteTo(n,p.r,p.c,_residentNativeRecoveryPass,.002,768,'building_entry');
++   if(!ready)return{status:n._routeSearchPending?'pending':'blocked'};
++   const points=n._route?.map(p=>({r:p.r,c:p.c}));_cancelNpcDirectedSearch(n);_clearNpcRoute(n);
++   return{status:'ready',points};
++  },
++  openEntrance:(n,door)=>_walkTrafficNavigationResolver({mode:'resident-access',action:'open',doorId:door.id,from:{r:n.r,c:n.c}}),
++  entryLane:(n,visit)=>_residentNativeEntryLane(n,visit)
++ };
++}
++function _installStationaryServicePilot23(factory,station,geometryHost){
++ if(typeof factory!=='function'||!_walkRendererActive()||_stationaryServicePilot23||station?.layout?.buildingId!=='REBUILD-VISUAL-print_shop-001')return null;
++ const returnHost={...geometryHost.employeeReturnGeometry,..._stationaryServiceReturnHost23()};
++ let advanceEmployeeReturn=null;
++ if(typeof geometryHost.createEmployeeReturn==='function')advanceEmployeeReturn=geometryHost.createEmployeeReturn({layout:station.layout,host:returnHost});
++ const controller=factory({station,host:{...geometryHost,advanceEmployeeReturn,npcs:NPCS,spawnNpc,
++  canControl:(n,now)=>(typeof geometryHost.canPresentServiceActor!=='function'||geometryHost.canPresentServiceActor(n)===true)&&!_civilianPlanInterrupted(n,now)&&!n._vehicleHijackControlled&&!n._civilianTrip&&!n._civilianTripRiding&&!n._ambulanceInTransit&&!n._medicalCrewVehicleId&&!n._playerConversationOpen&&!(n._playerConversationUntil>now)&&!(n.idleUntil>now),
++  verifyDeath:(n,now)=>n.dead===true&&!n._medicalDowned&&Number.isFinite(n.deadAt)&&n.deadAt<=now&&n._deathRecord20?.confirmed===true&&n._deathRecord20.fatal===true&&n._deathRecord20.targetId===_threeNpcEntityId(n)&&n._deathRecord20.deathKey===String(n.deadAt)}});
++ _stationaryServicePilot23=controller;_stationaryServiceExitMove23=typeof geometryHost.advanceServiceExit==='function'?geometryHost.advanceServiceExit:null;
++ return{controller,unregister(){if(_stationaryServicePilot23!==controller)return false;_stationaryServicePilot23=null;_stationaryServiceExitMove23=null;controller.dispose();return true;}};
++}
+ function _isRespawnableResident(npc) {
+-  return !!npc&&!npc._medicalCrewVehicleId&&!npc._civilianTrip&&!npc._said&&!npc._invulnerable&&!npc._guard&&!npc._cashier&&
++  return !!npc&&!npc._stationaryService&&!npc._medicalCrewVehicleId&&!npc._civilianTrip&&!npc._said&&!npc._invulnerable&&!npc._guard&&!npc._cashier&&
+     !npc._empireCrew&&!npc._policeCriminal&&!npc._clientOfBiz&&!npc._botCorpse&&!npc._transientCorpseId;
+ }
+ function _residentCanVisitBuilding(npc,now=performance.now()) {
+@@ -10737,10 +10763,79 @@ function _residentNativeRecoveryTick(n,visit,now,dt){
+  n.walking=moved>0;n.walkPhase=(n.walkPhase||0)+moved*8;if(moved)n._residentVisitStatus='leaving-building';return true;
+ }
+ 
++let _residentServiceVisitSerial23=0;
++function _residentServiceBeginApproach23(n,visit,now){
++ const registration=_residentCommerceServiceProviders.get(visit.door.instanceId||visit.door.id);
++ if(!registration||typeof registration.provider.getServiceArrivalTarget!=='function')return false;
++ visit.id??='service-visit:'+n.id+':'+(++_residentServiceVisitSerial23);
++ visit._serviceRoute23={registration:registration.token,started:now,stage:'await',lastReached:0,index:1,points:null,blockedAt:null};
++ visit.phase='service-approach';n._residentVisitStatus='waiting-for-seller';return true;
++}
++function _residentServiceRouteTick23(n,visit,dt,now){
++ const route=visit._serviceRoute23;if(!route)return null;
++ const registration=_residentCommerceServiceProviders.get(visit.door.instanceId||visit.door.id),provider=registration?.token===route.registration?registration.provider:null,input={npc:n,visit,now};
++ const release=()=>{try{provider?.releaseServiceVisit?.(input);}catch{};delete visit._serviceRoute23;};
++ const recover=()=>{release();visit.phase='exiting';visit.recovering=true;n.walking=false;n._residentVisitStatus='service-exit-recovery';return true;};
++ if(!provider&&(!route.points||typeof _stationaryServiceExitMove23!=='function'))return recover();
++ if(!provider)visit.phase='exiting';
++ if(route.stage==='await'){
++  if(visit.phase==='exiting'||now-route.started>=3000){visit.serviceExitAlignment={r:visit.door.r,c:visit.door.c};release();visit.phase='exiting';return null;}
++  try{
++   if(provider.acquireServiceVisit?.(input)!==true){n.walking=false;return true;}
++   const arrival=_residentCommerceArrivalTarget(n,visit,now),certificate=provider.getServiceRoute?.(input),points=certificate?.points;
++   if(!arrival||certificate?.stamp!==arrival.stamp||!Array.isArray(points)||points.length!==3||points.some(p=>!p||![p.r,p.c,p.y].every(Number.isFinite)))return recover();
++   if(points[0].r!==visit.door.inside.r||points[0].c!==visit.door.inside.c||points[2].r!==arrival.r||points[2].c!==arrival.c||points[2].y!==arrival.y)return recover();
++   if(certificate.visitId!==visit.id||certificate.buildingId!==(visit.door.instanceId||visit.door.id)||typeof certificate.siteRevision!=='string'||certificate.customerId!==String(n.id)||!Number.isSafeInteger(certificate.generation)||certificate.generation<1)return recover();
++   route.certificate=certificate;route.visitId=certificate.visitId;route.points=points.map(p=>({r:p.r,c:p.c,y:p.y}));route.stamp=arrival.stamp;route.buildingId=certificate.buildingId;route.siteRevision=certificate.siteRevision;route.customerId=certificate.customerId;route.generation=certificate.generation;route.stage='approach';
++  }catch{return recover();}
++ }
++ if(visit.phase!=='exiting')try{
++  if(provider.touchServiceVisit?.(input)!==true)visit.phase='exiting';
++  const arrival=_residentCommerceArrivalTarget(n,visit,now);if(!arrival||arrival.stamp!==route.stamp)visit.phase='exiting';
++ }catch{visit.phase='exiting';}
++ if(now-route.started>20000&&visit.phase!=='exiting')visit.phase='exiting';
++ if(visit.phase==='exiting'&&route.stage!=='reverse'){route.stage='reverse';route.index=Math.min(1,route.lastReached);route.blockedAt=null;}
++ if(route.stage==='at-counter')return null;
++ const target=route.points[route.index];let moved;
++ try{moved=route.stage==='reverse'?_stationaryServiceExitMove23?.({...input,dt,target}):provider.advanceServiceVisit?.({...input,dt,target});}catch{return recover();}
++ if(!moved||!['moving','arrived','blocked','hold'].includes(moved.status))return recover();
++ if(moved.status==='blocked'||moved.status==='hold'){
++  route.blockedAt??=now;n.walking=false;
++  if(now-route.blockedAt>=3000)return recover();
++  return true;
++ }
++ route.blockedAt=null;
++ n._residentVisitStatus=route.stage==='reverse'?'leaving-counter':'approaching-counter';
++ if(moved.status!=='arrived')return true;
++ if(route.stage==='reverse'){
++  if(route.index>0){route.index--;return true;}
++  visit.serviceExitAlignment={r:visit.door.r,c:visit.door.c};release();visit.phase='exiting';n._residentVisitStatus='leaving-building';return true;
++ }
++ route.lastReached=route.index;
++ if(++route.index<route.points.length)return true;
++ route.stage='at-counter';visit.phase='browsing';visit.since=now;visit.until=now+3700;visit.lookAngle=n.ang||0;
++ n._civilianPlan.phase='browsing';n._residentVisitStatus='visiting';
++ if(!_residentCommerceArrive(n,visit,now))visit.until=now;
++ return true;
++}
++function _residentServiceYield23(n,visit,now){
++ const route=visit?._serviceRoute23;if(!route)return false;
++ const interrupted=_civilianPlanInterrupted(n,now)||n._vehicleHijackControlled||n._civilianTripRiding||n._ambulanceInTransit||n._playerConversationOpen||n._playerConversationUntil>now;
++ if(interrupted){
++  visit.phase='exiting';route.suspended23=true;route.blockedAt=null;
++  const registration=_residentCommerceServiceProviders.get(visit.door.instanceId||visit.door.id);
++  if(registration?.token===route.registration)try{registration.provider.releaseServiceVisit?.({npc:n,visit,now});}catch{}
++  if(visit.commerce&&!visit.commerce.settled&&typeof _residentCommerceTick==='function')_residentCommerceTick(n,visit,now);
++  n._residentVisitStatus='service-interrupted';return true;
++ }
++ if(route.suspended23){route.suspended23=false;route.blockedAt=null;visit.blockedAt=0;visit.accessWaitAt=null;}
++ return false;
++}
+ function _residentNativeVisitTick(n,dt,now){
+   const visit=n._residentNativeVisit;if(!visit)return false;
+   if(n.dead||n.alive===false||n._medicalDowned){if(typeof _npcActivityReleaseBuilding==='function')_npcActivityReleaseBuilding(n,null,'incapacitated');if(visit.recovering){_cancelNpcDirectedSearch(n);_clearNpcRoute(n);}n._residentNativeVisit=null;n._residentVisitStatus='interrupted';return false;}
+   if(n._forcedCrawl||n._knockedUntil>now||n._meleeStunnedUntil>now||n._policeCuffed||n._carriedByAmbulance||n._evacuated){visit.phase='exiting';n._residentVisitStatus='interrupted';return false;}
++  if(_residentServiceYield23(n,visit,now))return false;
+   if(_civilianPlanInterrupted(n,now)&&visit.phase!=='exiting'){visit.phase='exiting';visit.blockedAt=0;}
+   let door=visit.door;if(!visit.returnPoint&&Number.isFinite(door?.r)&&Number.isFinite(door?.c))visit.returnPoint={r:door.r,c:door.c};
+   if(visit.phase!=='browsing'&&visit.commerce&&!visit.commerce.settled&&typeof _residentCommerceTick==='function')_residentCommerceTick(n,visit,now);
+@@ -10754,21 +10849,25 @@ function _residentNativeVisitTick(n,dt,now){
+   if(visit.phase==='entering'&&typeof _residentNativeEntryLane==='function'){_residentNativeEntryLane(n,visit);door=visit.door;}
+   if(visit.phase==='browsing'){
+     if(typeof _residentCommerceTick==='function')_residentCommerceTick(n,visit,now);
++    if(visit._serviceRoute23&&visit.commerce?.phase==='cancelled')visit.until=now;
+     if(now<visit.until){n.walking=false;n.ang=visit.lookAngle+Math.sin((now-visit.since)/900)*.22;n._residentVisitStatus='visiting';return true;}
+     visit.phase='exiting';visit.since=now;
+   }
+   if(visit.recovering&&_residentNativeRecoveryTick(n,visit,now,dt))return true;
+-  const target=visit.phase==='entering'?(visit.entryAlignment||door.inside):(visit.returnPoint||door);
++  const serviceTick=_residentServiceRouteTick23(n,visit,dt,now);if(serviceTick!==null)return serviceTick;
++  const target=visit.phase==='entering'?(visit.entryAlignment||door.inside):(visit.serviceExitAlignment||visit.returnPoint||door);
+   if(!target||!Number.isFinite(target.r)||!Number.isFinite(target.c)){n._residentVisitStatus='invalid-entry';visit.phase='exiting';visit.recovering=true;return true;}
+   const dr=target.r-n.r,dc=target.c-n.c,d=Math.hypot(dr,dc);
+   if(d<=(visit.phase==='entering'&&visit.entryAlignment ? .002 : .025)){
+     n.walking=false;n.walkPhase=0;
+     if(visit.phase==='entering'){
+       if(visit.entryAlignment){visit.entryAlignment=null;return true;}
++      if(_residentServiceBeginApproach23(n,visit,now))return true;
+       visit.phase='browsing';visit.since=now;visit.lookAngle=n.ang||0;visit.until=now+3000+Math.round(_civilianPlanUnit(n,'visit:'+n._civilianPlan?.cycle)*4000);
+       n._civilianPlan.phase='browsing';n._residentVisitStatus='visiting';
+       if(typeof _residentCommerceArrive==='function')_residentCommerceArrive(n,visit,now);
+     }else{
++      if(visit.serviceExitAlignment){delete visit.serviceExitAlignment;return true;}
+       n._residentNativeVisit=null;n._residentVisitStatus='visit-complete';
+       if(typeof _npcActivityReleaseBuilding==='function')_npcActivityReleaseBuilding(n,null,'exited');
+       if(typeof _npcAgendaComplete==='function')_npcAgendaComplete(n,'shop','finished');
+@@ -10825,6 +10924,12 @@ function _scheduleResidentRespawn(deadNpc,now) {
+   return _residentEnterBuilding(fresh,now,door,true);
+ }
+ function _respawnResidentImmediately(deadNpc,now=performance.now()) {
++  if(deadNpc?._stationaryService){
++    // This call follows a definitive source death, including medical bleedout.
++    // Preserve an existing bullet/blast record; do not turn downing into death.
++    if(_stationaryServicePilot23?.owns(deadNpc)&&deadNpc.dead===true&&deadNpc.hp<=0&&!deadNpc._medicalDowned&&Number.isFinite(deadNpc.deadAt)&&deadNpc.deadAt>0&&deadNpc.deadAt<=now&&typeof createNpcFatalRecord20==='function')deadNpc._deathRecord20=createNpcFatalRecord20({entity:deadNpc,targetId:_threeNpcEntityId(deadNpc),weapon:'unknown',dirR:0,dirC:0,now:deadNpc.deadAt});
++    return false;
++  }
+   if(!_isRespawnableResident(deadNpc)||deadNpc._residentReplacementScheduled)return false;
+   // Труп остаётся в NPCS и полностью обслуживается скорой. Живой житель —
+   // отдельный объект, ожидающий за дверью здания, поэтому игрок не видит spawn.
+@@ -10899,6 +11004,7 @@ function _npcFindWanderGridExit(npc,search,{edgeClear,pointClear,expired,occupie
+  return{status:state.qi<state.queue.length&&state.nodes.size<limit?'pending':'failed',expanded:state.expanded,nodes:state.nodes.size};
+ }
+ function pickNpcWaypoint(npc) {
++  if(npc?._stationaryService){npc._npcWanderSearch=null;return false;}
+   const now=performance.now(),sr=Math.floor(npc.r),sc=Math.floor(npc.c),maxDepth=npc._beach?22:18,maxVisited=520;
+   const resolver=typeof _walkNpcNavigationResolver==='function'?_walkNpcNavigationResolver:null;
+   if(npc.dead||npc.alive===false||Number.isFinite(npc.hp)&&npc.hp<=0||npc.snitching||npc._fighting||npc._fightingMelee||npc._medicalDowned||npc._knockedUntil>now||npc.panicUntil>now||npc._corpsePhoneCall||npc._hijackReaction){npc._npcWanderSearch=null;return false;}
+@@ -12500,6 +12606,7 @@ const NPC_SOCIAL_DIALOGUES={
+   ],
+ };
+ function _residentCanSocialize(n,now){
++  if(n?._stationaryService)return false;
+   if(n?._civilianActivity||n?._civilianSeat||n?._civilianTrip||n?._ambientTrafficDriver||n?._residentNativeVisit||n?._residentIndoors||n?._corpsePhoneCall||n?._hijackReaction||n?._civilianPlan?.tripDestination||n?._playerConversationOpen)return false;
+   const lifeState=n?._lifeState||'routine';
+   const lifeBusy=(n?._lifeStateUntil||0)>now&&lifeState!=='routine'&&lifeState!=='idle';
+@@ -18266,7 +18373,7 @@ function _npcAssignHelper(now){
+     if(NPCS.some(n=>n._npcHelpingTarget===patient&&n._npcHelpingUntil>now))continue;
+     const candidates=[];
+     for(const n of NPCS){
+-      if(!_npcLifeEligible(n)||n===patient||n.dead||n._medicalDowned||n.snitching||n.panicUntil>now||n._talking>now||n._fighting||n._fightingMelee)continue;
++      if(!_npcLifeEligible(n)||n._stationaryService||n===patient||n.dead||n._medicalDowned||n.snitching||n.panicUntil>now||n._talking>now||n._fighting||n._fightingMelee)continue;
+       if((n._alertUntil||0)>now||(n._npcHelpRetryAfter||0)>now)continue;
+       if((n._fear||0)>.48||n._arcKey==='bandit'||n._arcKey==='drunk')continue;
+       const d=Math.hypot(n.r-patient.r,n.c-patient.c);if(d<7)candidates.push({n,d});
+@@ -18593,6 +18700,7 @@ function updateNpcs(dt) {
+       }
+     }
+   }
++  _stationaryServicePilot23?.tick(now,0);
+   const simulationFrameDt=dt;
+   for (const n of NPCS) {
+     _npcAccumulateCivilianElapsed(n,now);
+@@ -19127,6 +19235,7 @@ function updateNpcs(dt) {
+       pickNpcWaypoint(n);
+       continue;
+     }
++    if(_stationaryServicePilot23?.ownsCalmMovement(n,now)){n.walking=false;continue;}
+     if (now < n.idleUntil) {
+       n.walkPhase = 0;
+       n.walking = false;
+@@ -19167,6 +19276,7 @@ function updateNpcs(dt) {
+       if(now-n._routeBlockedAt>900){_clearNpcRoute(n);pickNpcWaypoint(n);}
+     }
+   }
++  _stationaryServicePilot23?.tick(now,simulationFrameDt);
+   // Entries are collected after iteration so removing one resident cannot
+   // make the following resident lose an update frame.
+   _residentVisitDiagnostics(now);
+@@ -70418,7 +70528,131 @@ function _threeCustodyPassengerSeat(arrest){
+   const seatId=['rear_left','rear_right'].find(seat=>!occupied.has(seat));
+   return seatId?{carId:`service_${vehicleId}`,seatId}:null;
+ }
++function _installStationaryServiceMerchant23(factory,station,geometryHost,createProvider){
++ if(typeof createProvider!=='function'||typeof geometryHost?.canPresentServiceActor!=='function')return null;
++ let bundle=null,remove=null,disposed=false;
++ const hold=()=>({status:'hold',reason:'service-provider-not-ready'});
++ const registration=_installStationaryServicePilot23(factory,station,{...geometryHost,
++  ownsServiceSlot:q=>bundle?.provider?.ownsServiceSlot(q)===true,
++  advanceServiceExit:input=>bundle?.exitMovement?.(input)||hold()});
++ if(!registration)return null;
++ const source=Object.freeze({
++  entityId:n=>_threeNpcEntityId(n),identity:n=>({id:String(n.id),generation:1}),
++  now:()=>performance.now(),currentVisit:n=>n._residentNativeVisit,isPresent:n=>NPCS.includes(n),
++  entranceInside:()=>_walkTrafficNavigationResolver({mode:'resident-access',action:'list'})?.doors?.find(d=>d.instanceId===station.layout.buildingId)?.inside,
++  canControl:(n,visit,now)=>NPCS.includes(n)&&n._residentNativeVisit===visit&&!n.dead&&!_civilianPlanInterrupted(n,now)&&!n._vehicleHijackControlled&&!n._civilianTripRiding&&!n._ambulanceInTransit&&!n._playerConversationOpen&&!(n._playerConversationUntil>now)
++ });
++ try{
++  bundle=createProvider({controller:registration.controller,source});
++  if(typeof bundle?.exitMovement!=='function'||typeof bundle?.provider?.ownsServiceSlot!=='function')throw Error('Service lease/exit bundle required');
++  remove=_residentCommerceRegisterService(station.layout.buildingId,bundle.provider);
++ }catch(error){bundle?.provider?.disposeServiceVisits?.();registration.unregister();throw error;}
++ return{controller:registration.controller,unregister(){if(disposed)return false;disposed=true;remove?.();bundle.provider.disposeServiceVisits?.();registration.unregister();return true;}};
++}
++
++function _getWalkServicePhysicalBodies23(input={}){
++ const now=performance.now(),sourceFrame=typeof prevT==='number'?prevT:null;
++ const deny=reason=>({complete:false,reason,now,sourceFrame,space:'native-world',rows:[]});
++ if(!input||![input.r,input.c,input.radius].every(Number.isFinite)||input.radius<=0||input.radius>16)return deny('invalid-bounds');
++ if(typeof NPCS==='undefined'||!Array.isArray(NPCS))return deny('source-unavailable');
++ if(_buildingInt||_bankInt)return deny('legacy-interior-space');
++ const inside=false,fxNow=now;
++ try{
++ if(typeof MICHAEL_POS!=='undefined'&&typeof michaelGuards!=='undefined'&&michaelGuards.size===0&&typeof _michaelDecor==='function'&&typeof _michaelDecorGuards!=='undefined'&&!_michaelDecorGuards&&Math.hypot(MICHAEL_POS.r-input.r,MICHAEL_POS.c-input.c)<=input.radius+5)return deny('authored-roster-uninitialized');
++    let npcSource=_buildingInt?(_buildingInt.npcs||[]):_bankInt?(_bankInt.room==='vault'?[]:(_bankInt.npcs||[])):(typeof NPCS!=='undefined'?NPCS:[]);
++    if(!inside){
++      const combat=[];
++      if(typeof _myGang!=='undefined')for(const g of _myGang)if(g)combat.push({...g,_actionRef:g,id:`crew_${g.id}`,role:'gang_fighter',gang:true,behavior:'follows_player',name:g.name||'Боец семьи',family:_customGang?.name||g.gangName||g.faction||''});
++      if(typeof _policeBackupUnits!=='undefined')for(const cop of _policeBackupUnits)if(cop)combat.push({...cop,_actionRef:cop,id:`police_${cop.id}`,role:'police',police:true,name:cop.name||'Офицер'});
++      if(typeof worldEvent!=='undefined'&&worldEvent){
++        const boss=worldEvent.boss;
++        if(boss)combat.push({...boss,_actionRef:boss,id:`world_event_${worldEvent.id||'event'}_${boss.id}`,r:Number(boss.y),c:Number(boss.x),dead:boss.alive===false,role:'convoy_boss',gang:true,name:'Инкассатор'});
++        for(const person of (worldEvent.guards||[]))if(person)combat.push({...person,_actionRef:person,id:`world_event_${worldEvent.id||'event'}_${person.id}`,r:Number(person.y),c:Number(person.x),dead:person.alive===false,role:'convoy_guard',gang:true,name:'Охрана конвоя'});
++      }
++      if(typeof aggroZones!=='undefined')for(const zone of Object.values(aggroZones||{}))for(const bot of zone?.bots||[])if(bot&&bot.alive!==false)combat.push({...bot,_actionRef:bot,id:`aggro_${zone.id||'zone'}_${bot.id}`,sourceId:String(bot.id),hireable:!_isDistrictDefenderBot(bot),r:Number(bot.y),c:Number(bot.x),role:bot.kind||'gang_fighter',gang:true,behavior:'hostile_zone',name:bot.name||'Боец банды',family:_threeGangFamilyLabel({mafia_family:zone.mafia_family,faction:bot.faction||zone.faction})});
++      if(typeof gangNests!=='undefined')for(const nest of gangNests||[])for(const guard of nest?.guards||[])if(guard&&!guard.dead&&(+guard.hp||1)>0)combat.push({...guard,_actionRef:guard,id:`nest_${nest.id||'gang'}_${guard.id}`,r:Number((guard.r??guard.y)),c:Number((guard.c??guard.x)),role:guard.kind||'gang_guard',gang:true,behavior:'guards_nest',name:guard.name||guard.boss_name||'Боец банды',family:_threeGangFamilyLabel({mafia_family:nest.mafia_family,faction:nest.faction})});
++      if(typeof BUSINESS_POIS!=='undefined'&&typeof myBusinesses!=='undefined'&&typeof _idleBusinessGuardPose==='function')for(const biz of BUSINESS_POIS){const own=myBusinesses.get(biz.id);if(!own?.owned||_isBusinessGangOccupied(biz.id,own))continue;for(let i=0;i<Math.min(6,+own.guards||0);i++){const pose=_idleBusinessGuardPose(biz,i);combat.push({...pose,_serviceAuthored23:true,id:`biz_guard_${biz.id}_${i}`,r:Number(pose.y),c:Number(pose.x),role:'guard',name:`Охрана · ${biz.name}`,hp:100,max_hp:100});}}
++      if(typeof beachgoers!=='undefined')for(const beachNpc of beachgoers.values()){if(!beachNpc||beachNpc._evacuated)continue;const pos=_beachgoerWorldPos(beachNpc);combat.push({...beachNpc,_actionRef:beachNpc,id:`beach_${beachNpc.id}`,r:beachNpc.dead?(beachNpc._deathR??pos.r):pos.r,c:beachNpc.dead?(beachNpc._deathC??pos.c):pos.c,role:'beach_civilian',name:beachNpc.name||'Отдыхающий'});}
++      if(typeof cityCops!=='undefined')for(const cop of cityCops||[])if(cop)combat.push({...cop,_actionRef:cop,id:`city_cop_${cop.id}`,r:Number(cop.y),c:Number(cop.x),dead:cop.alive===false,role:'police',police:true,name:cop.name||'Полицейский'});
++      if(typeof worldCops!=='undefined')for(const cop of worldCops||[])if(cop&&String(cop.id)!==String(_murderPoliceArrest?.serverDriverId||''))combat.push({...cop,_actionRef:cop,id:`world_cop_${cop.id}`,r:Number((cop.y??cop.r)),c:Number((cop.x??cop.c)),dead:cop.alive===false||cop.dead===true,role:'police_response',police:true,name:cop.name||'Полиция'});
++      // When there is no authoritative aggro snapshot (plain browser launch),
++      // retain the old 2D lair population until real server fighters arrive.
++      if(typeof AGGRO_ZONES!=='undefined')for(const zoneDef of AGGRO_ZONES){
++        const liveZone=typeof aggroZones!=='undefined'?aggroZones[zoneDef.id]:null;
++        if((liveZone?.bots||[]).some(bot=>bot&&bot.alive!==false))continue;
++        for(let i=0;i<12;i++){const a=i/12*Math.PI*2+(i%3)*.17,rad=4+(i%4)*2.15;combat.push({_serviceAuthored23:true,id:`lair_fallback_${zoneDef.id}_${i}`,r:zoneDef.r+Math.sin(a)*rad,c:zoneDef.c+Math.cos(a)*rad,ang:a+Math.PI,walkPhase:0,walking:false,hp:80,max_hp:80,role:i===0?'gang_boss':'gang_fighter',gang:true,behavior:'guards_lair',faction:i%2?'yellow':'purple',name:i===0?'Главарь Логова':'Бандит Логова'});}
++      }
++      if(typeof michaelGuards!=='undefined')for(const guard of michaelGuards.values())if(guard)combat.push({...guard,_actionRef:guard,id:`michael_guard_${guard.id}`,r:Number(guard.y),c:Number(guard.x),dead:guard.alive===false,role:'guard',name:'Охрана Майкла'});
++      // Static and ambient people below have their own 2D collections, so they
++      // must be explicitly included in the 3D population snapshot.
++      if(typeof MICHAEL_POS!=='undefined')combat.push({_serviceAuthored23:true,id:'michael_dealer',r:MICHAEL_POS.r,c:MICHAEL_POS.c,ang:Math.PI,role:'quest_giver',name:'Майкл',hp:100,max_hp:100});
++      if(typeof michaelGuards!=='undefined'&&michaelGuards.size===0&&typeof _michaelDecor==='function'){
++        const michaelDecor=_michaelDecorGuards||[];
++        for(let i=0;i<michaelDecor.length;i++){const guard=michaelDecor[i];combat.push({...guard,_actionRef:guard,id:`michael_decor_${i}`,r:Number(guard.y),c:Number(guard.x),role:'guard',name:'Охрана Майкла'});}
++      }
++      if(typeof _busWaiters!=='undefined')for(let i=0;i<_busWaiters.length;i++){const person=_busWaiters[i];combat.push(_threeBusPersonView(person,'bus_waiter'));}
++      if(typeof _busRiders!=='undefined')for(let i=0;i<_busRiders.length;i++){const person=_busRiders[i];combat.push(_threeBusPersonView(person,'bus_rider'));}
++      // PARKING_NPC_SNAPSHOT_START — project existing owners, never spawn a second one.
++      if(typeof _parkingNpcs!=='undefined')for(const person of _parkingNpcs){const view=_threeParkingNpcView(person,fxNow);if(view&&!npcSource.includes(person))combat.push(view);}
++      // PARKING_NPC_SNAPSHOT_END
++      if(typeof RACE_CHEER_CREW!=='undefined')for(let i=0;i<RACE_CHEER_CREW.length;i++){const person=RACE_CHEER_CREW[i];combat.push({...person,_actionRef:person,id:`race_fan_${i}`,role:'race_fan',name:'Болельщик'});}
++      if(typeof RACE_MECHANICS!=='undefined')for(let i=0;i<RACE_MECHANICS.length;i++){const person=RACE_MECHANICS[i];combat.push({...person,_actionRef:person,id:`race_mechanic_${i}`,role:'race_mechanic',name:'Механик'});}
++      if(typeof RACE_PHOTOGRAPHER!=='undefined')combat.push({...RACE_PHOTOGRAPHER,_actionRef:RACE_PHOTOGRAPHER,id:'race_photographer',role:'race_photographer',name:'Фотограф'});
++      // Ambulance crew are persistent, damageable NPCS. Do not duplicate their
++      // presentation with synthetic HP100 scene actors, including while seated.
++      for(const npc of npcSource)combat.push(npc);
++      npcSource=combat;
++    }
++
++ // Foot-visible workers are physical independently of viewer proximity.
++ if(typeof _junkyardFootWorkers!=='undefined')for(const worker of _junkyardFootWorkers||[])if(worker?._footVisible)npcSource.push(worker);
++ const rows=[],byId=new Map(),byRef=new Map(),radius2=input.radius*input.radius;
++ for(const x of npcSource){
++  if(!x)continue;
++  const ref=x._serviceAuthored23?null:(x._actionRef||x),owner=ref||x;
++  if(owner._evacuated||owner._corpseExpired||owner._mercenaryHospital)continue;
++  const crew=!!ref&&String(x.id||'').startsWith('crew_');
++  const mercenary=crew&&typeof window!=='undefined'?window.MafioziMercenaries?.getMember?.(owner.id):null;
++  if(mercenary?.available===false)continue;
++  const downed=!!owner._medicalDowned||owner._empireDownUntil>now||owner.downed===true||owner.lifeState==='downed'||mercenary?.downed===true;
++  const rawHp=owner.hp,hasHp=(typeof rawHp==='number'||typeof rawHp==='string'&&rawHp.trim()!=='')&&Number.isFinite(Number(rawHp));
++  const dead=owner.dead===true||owner.alive===false||!downed&&hasHp&&Number(rawHp)<=0;
++  if(dead&&typeof _corpseRemovalDue==='function'&&_corpseRemovalDue(owner,now))continue;
++  const r=dead&&Number.isFinite(owner._deathR)?owner._deathR:(x.r??x.y),c=dead&&Number.isFinite(owner._deathC)?owner._deathC:(x.c??x.x);
++  if(!Number.isFinite(r)||!Number.isFinite(c))return deny('invalid-source-position');
++  if((r-input.r)**2+(c-input.c)**2>radius2)continue;
++  if(owner._npcInitialPlacementPending)return deny('local-placement-pending');
++  const id=_threeNpcEntityId(x);
++  if(typeof id!=='string'||!id)return deny('invalid-source-id');
++  const duplicate=ref&&byRef.get(ref);
++  if(duplicate){if(duplicate.r!==r||duplicate.c!==c)return deny('conflicting-source-alias');if(!duplicate.aliasIds.includes(id))duplicate.aliasIds.push(id);continue;}
++  if(byId.has(id))return deny('conflicting-source-id');
++  const hijack=owner._vehicleHijack||owner._vehicleCorpseSeat||null;
++  let vehicleId=x.parkingCarId||owner._ambientTrafficCarId||null,vehiclePhase=x.parkingState||owner._ambientTrafficPhase||null;
++  if(owner._civilianTrip&&typeof _civilianTripForNpc==='function'){const trip=_civilianTripForNpc(owner);vehicleId=trip?.carId||vehicleId;vehiclePhase=trip?.phase||vehiclePhase;}
++  if(hijack){vehicleId=hijack.carId||hijack.vehicleId||vehicleId;vehiclePhase=hijack.phase||'seated';}
++  if(owner._transportVehicleId){vehicleId='service_'+owner._transportVehicleId;vehiclePhase=owner._transportBoardPhase||'drive';}
++  if(owner.transport_vehicle_id){vehicleId='quest_'+owner.transport_vehicle_id;vehiclePhase='drive';}
++  if(owner._medicalCrewVehicleId){vehicleId='service_'+owner._medicalCrewVehicleId;vehiclePhase=owner._medicalBoardPhase||'drive';}
++  if(owner._mercenaryVehicleSeat){vehicleId=owner._mercenaryVehicleId||null;vehiclePhase=owner._mercenaryVehiclePhase||'drive';}
++  const carried=!!(owner._carriedByAmbulance||owner._ambulanceInTransit);
++  const seated=!!(owner._civilianTripRiding||owner._ambientTrafficPhase==='drive'||owner._transportBoarded||owner.transport_vehicle_id||owner._inVehicle||hijack?.phase==='seated'||owner._vehicleCorpseSeat||owner._civilianSeat||owner._mercenaryVehicleSeat);
++  const row={id,aliasIds:[id],ref,r,c,ang:Number.isFinite(x.ang)?x.ang:0,dead,downed,
++   prone:!!(owner._forcedCrawl||owner.prone||owner._knockedUntil>now||owner._meleeStunnedUntil>now||mercenary?.posture==='prone'),
++   crouching:!!(owner.crouching||owner._lifeState==='cower'||owner._panicCowerUntil>now||mercenary?.posture==='crouch'),
++   carried,seated,vehicleId,vehiclePhase,generation:owner._stationaryService?.generation??null,
++   authored:!ref,footY:null,elevation:null,poseKnown:!carried&&!seated&&!vehiclePhase&&(!crew||!!mercenary),
++   lifeState:String(owner._lifeState||owner.lifeState||''),deathAt:Number.isFinite(owner.deadAt)?owner.deadAt:null};
++  rows.push(row);byId.set(id,row);if(ref)byRef.set(ref,row);
++ }
++ return {complete:true,now,sourceFrame,space:'native-world',rows};
++ }catch(error){return deny('source-roster-unavailable');}
++}
++
+ window.Mafiozi3DBridge = Object.freeze({
++  getWalkServicePhysicalBodies23(input){return _getWalkServicePhysicalBodies23(input);},
++  installStationaryServiceMerchant23(factory,station,geometryHost,createProvider){return _installStationaryServiceMerchant23(factory,station,geometryHost,createProvider);},
++  installStationaryServicePilot23(factory,station,geometryHost){return _installStationaryServicePilot23(factory,station,geometryHost);},
+   getWalkNpcNavigationDiagnostics(){return {..._npcNavigationStats,routeWork:{..._npcRouteWorkStats},connected:!!_walkNpcNavigationResolver,initialPlacement:{..._npcInitialPlacementStats}};},
+   registerWalkNpcVehicleIncomingResolver(resolver){if(resolver!==null&&typeof resolver!=='function')return false;if(resolver!==null&&!_walkRendererActive())return false;_walkNpcVehicleIncomingResolver=resolver;return true;},
+   registerWalkVehicleOccupancyResolver(resolver){if(resolver!==null&&typeof resolver!=='function')return false;if(resolver!==null&&!_walkRendererActive())return false;_walkVehicleOccupancyResolver=resolver;return true;},
+@@ -71272,6 +71506,7 @@ window.Mafiozi3DBridge = Object.freeze({
+       npcSource=combat;
+     }
+     const npcLifePool=x=>{
++      if(_stationaryServicePilot23?.owns(x))return 'mission';
+       const role=String(x?.role||x?.type||x?._arcKey||'').toLowerCase(),behavior=String(x?.behavior||'').toLowerCase();
+       if(x?._ambientTrafficDriver||x?._civilianTripRiding)return 'mission';
+       if(x?._uniqueNpc||x?._said||x?._keyNpc||role==='said'||role==='unique_npc')return 'mission';
+@@ -71300,7 +71535,7 @@ window.Mafiozi3DBridge = Object.freeze({
+     }
+     const npcPoolMissionCount=npcPools.mission.length,npcPoolPoliceCount=npcPools.police.length,npcPoolGuardCount=npcPools.guard.length,npcPoolGangCount=npcPools.gang.length,npcPoolCivilianCount=npcPools.civilian.length;
+     const stableNpcSort=(a,b)=>{
+-      const driverOrder=Number(!!(b.source._ambientTrafficDriver||b.source._civilianTripRiding))-Number(!!(a.source._ambientTrafficDriver||a.source._civilianTripRiding));if(driverOrder)return driverOrder;
++      const serviceOrder=Number(_stationaryServicePilot23?.owns(b.source)===true)-Number(_stationaryServicePilot23?.owns(a.source)===true);if(serviceOrder)return serviceOrder;const driverOrder=Number(!!(b.source._ambientTrafficDriver||b.source._civilianTripRiding))-Number(!!(a.source._ambientTrafficDriver||a.source._civilianTripRiding));if(driverOrder)return driverOrder;
+       const ai=a.sticky?0:1,bi=b.sticky?0:1;
+       const stickyOrder=ai-bi;if(stickyOrder)return stickyOrder;
+       const squaredOrder=a.sortD2-b.sortD2;return squaredOrder||(a.sortDistance-b.sortDistance)||a.id.localeCompare(b.id);
+diff --git a/assets/maps/city_rebuild_v1/walk_preview.mjs b/assets/maps/city_rebuild_v1/walk_preview.mjs
+index 4201492..a127a37 100644
+--- a/assets/maps/city_rebuild_v1/walk_preview.mjs
++++ b/assets/maps/city_rebuild_v1/walk_preview.mjs
+@@ -1,3 +1,4 @@
++import {createStationaryServiceWalk23} from './service_pilot23_candidate/walk_host.mjs';
+ import {createNpcLogicalVehicleBinding} from './npc_logical_vehicle_binding.mjs';
+ import {installNativeTerrainRaycastIndex} from './native_terrain_raycast_index.mjs';
+ import {installBuildingCameraTriangleIndex} from './building_camera_triangle_index.mjs';
+@@ -577,7 +578,26 @@ async function initNpcPopulation(){
+  }
+ 
+ }
++let stationaryServiceWalk23=null,servicePilotBridge23=null,servicePilotAttempt23=0;
++function ensureStationaryServiceWalk23(){
++ if(stationaryServiceWalk23&&servicePilotBridge23!==npcBridge){stationaryServiceWalk23.dispose();stationaryServiceWalk23=null;}
++ if(stationaryServiceWalk23||busy||!npcPopulation||!hero||!npcBridge||!npcNativeNavigation||!walkCollisionIndex||performance.now()<servicePilotAttempt23)return;
++ if(!buildingEntries.some(e=>e.instance?.id==='REBUILD-VISUAL-print_shop-001'))return;
++ servicePilotAttempt23=performance.now()+1000;servicePilotBridge23=npcBridge;
++ try{
++  stationaryServiceWalk23=createStationaryServiceWalk23({THREE,bridge:npcBridge,siteRevision:'service23:'+buildingCameraIndexGeneration,host:{
++   ready:()=>!busy&&!!hero&&!!npcPopulation&&!!walkCollisionIndex&&npcBridge===servicePilotBridge23,
++   getEntries:()=>buildingEntries,getCollisionIndex:()=>walkCollisionIndex,invalidateNavigation:()=>npcNativeNavigation?.beginFrame(),nativeQuery:request=>npcNativeNavigation?.query(request),
++   groundHeight,ceilingHeight,waterAt,getCamera:()=>camera,getHero:()=>hero,
++   heroBody:()=>({radius:worldHealthFrame?.snapshot.dead||heroBlast||artistSurface?.state.kind==='prone'?2.5:.18*M,height:Math.max(1.9,postureMotion?.height||hero.height||1.9)}),
++   getNpcActors:()=>npcPopulation.getActors(),getNpcActor:id=>npcPopulation.getActor(id),getFleet:()=>fleet?.records||[],getTrafficActors:()=>worldTrafficPresentation?.getActors()||[]
++  }});
++  document.body.dataset.stationaryService23=stationaryServiceWalk23?'printshop-active':'waiting-for-source-hooks';
++  window.MafioziStationaryService23=Object.freeze({inspect:()=>stationaryServiceWalk23?.diagnostics()||null});
++ }catch(error){document.body.dataset.stationaryService23='hold:'+String(error.message).slice(0,160);}
++}
+ function updateNpcPopulation(dt){
++ ensureStationaryServiceWalk23();
+  if(!npcPopulation||!hero)return;
+  npcLogicalVehicles?.beginFrame();
+  npcSupportCache?.beginFrame();
+@@ -1130,6 +1150,7 @@ function interactWithBuilding(){
+ function updateBuildingEntries(dt){
+  if(!walkCollisionIndex){walkCollisionIndex=createIncrementalWalkCollisionIndex();walkCollisionIndex.replaceGroup('world-static',bodies,{order:0});entryBodyVersions.clear()}
+  updateWalkEntryCollisionGroups(walkCollisionIndex,entryBodyVersions,buildingEntries,dt,hero?.object.position);
++ stationaryServiceWalk23?.syncCollision();
+  if(walkCollisionDiagnostic){const now=performance.now(),d=walkCollisionDiagnostic;if(now-d.at>=1000){const stats=walkCollisionIndex.stats,previous=d.index===walkCollisionIndex?d.stats:null;document.body.dataset.walkCollisionIndex=JSON.stringify({...stats,totalBodies:stats.bodyReferences,dirtyGroups:stats.replacements-(previous?.replacements??0),verticesVisitedDelta:stats.verticesVisited-(previous?.verticesVisited??0),bodiesVisitedDelta:stats.bodiesVisited-(previous?.bodiesVisited??0),queryCacheBuildsDelta:stats.queryCacheBuilds-(previous?.queryCacheBuilds??0),windowMs:Number.isFinite(d.at)?now-d.at:0,counterWindow:previous?'interval':'generation'});d.at=now;d.index=walkCollisionIndex;d.stats=stats}}
+ }
+ 
+@@ -1406,7 +1427,7 @@ async function template(binding){
+ 
+  return gltf.scene;})());return templates.get(key);
+ }
+-function clearContent({recreate=true}={}){mercenaryShowcaseUI?.dispose();mercenaryShowcaseUI=null;mercenaryShowcase?.dispose();mercenaryShowcase=null;for(const handle of buildingCameraIndexes)handle.dispose();buildingCameraIndexes=[];buildingCameraIndexBuildMs=0;buildingCameraIndexGeneration++;document.getElementById('building-camera-index-qa')?.remove();for(const handle of nativeTerrainRaycastIndexes)handle.dispose();nativeTerrainRaycastIndexes=[];nativeTerrainPickingBuildMs=0;nativeTerrainPickingGeneration++;cityRoadNavigation?.invalidate();laneRouteJobs?.dispose();laneRouteJobs=null;cityRoadNavigation=null;cityRoadStaticWorld=null;mapRoadRouteOrigin=null;mapRoadRouteTarget=null;explorationMap?.setRoute(null);mercenaryFences?.dispose();mercenaryFences=null;mercenaryPowerPanel?.dispose();mercenaryPowerPanel=null;waterVapor?.dispose();waterVapor=null;waterEffects?.dispose();waterEffects=null;waterInputs.reset();waterImpactCapture.reset();waterInspectionDriveUntil=0;environmentVisuals?.dispose();environmentVisuals=null;verticalNavigation.reset();restoreBuildingCamera();explorationRailway?.dispose();explorationRailway=null;explorationRailPlan=null;explorationDecor?.dispose();explorationDecor=null;landscape?.dispose();landscape=null;shotRaycastIndex?.dispose();shotRaycastIndex=null;staticRenderBatches?.dispose();staticRenderBatches=null;stableEntryLights?.dispose();stableEntryLights=null;glass.dispose();while(content.children.length){const node=content.children.pop();node.parent=null;node.userData.roomReveals?.dispose();node.userData.streetLighting?.dispose();node.userData.buildingEntry?.dispose();node.userData.residentialWindows?.dispose();node.userData.doorsGlass?.dispose();if(node.userData.owned)node.traverse(x=>{x.geometry?.dispose();if(x.material){for(const m of Array.isArray(x.material)?x.material:[x.material])if(!m.userData?.environmentSurface)m.dispose()}})}streetLighting.dispose();instances=[];bodies=[];carBodies=[];buildingEntries=[];entryBodyVersions.clear();walkCollisionIndex?.clear();walkCollisionIndex=null;buildingSampleIndex=null;buildingQaMove=null;document.body.dataset.windowCacheAfterClear=JSON.stringify(residentialWindowCacheStats());if(recreate){glass=createGlassBreakage(THREE,scene,{groundHeight});streetLighting=createStreetLighting({THREE,scene,maxLights:8,maxFixtures:192,groundHeight,staticPlacement:true});for(const record of fleet?.records||[])glass.prepare(record.car.object)}}
++function clearContent({recreate=true}={}){stationaryServiceWalk23?.dispose();stationaryServiceWalk23=null;servicePilotAttempt23=0;mercenaryShowcaseUI?.dispose();mercenaryShowcaseUI=null;mercenaryShowcase?.dispose();mercenaryShowcase=null;for(const handle of buildingCameraIndexes)handle.dispose();buildingCameraIndexes=[];buildingCameraIndexBuildMs=0;buildingCameraIndexGeneration++;document.getElementById('building-camera-index-qa')?.remove();for(const handle of nativeTerrainRaycastIndexes)handle.dispose();nativeTerrainRaycastIndexes=[];nativeTerrainPickingBuildMs=0;nativeTerrainPickingGeneration++;cityRoadNavigation?.invalidate();laneRouteJobs?.dispose();laneRouteJobs=null;cityRoadNavigation=null;cityRoadStaticWorld=null;mapRoadRouteOrigin=null;mapRoadRouteTarget=null;explorationMap?.setRoute(null);mercenaryFences?.dispose();mercenaryFences=null;mercenaryPowerPanel?.dispose();mercenaryPowerPanel=null;waterVapor?.dispose();waterVapor=null;waterEffects?.dispose();waterEffects=null;waterInputs.reset();waterImpactCapture.reset();waterInspectionDriveUntil=0;environmentVisuals?.dispose();environmentVisuals=null;verticalNavigation.reset();restoreBuildingCamera();explorationRailway?.dispose();explorationRailway=null;explorationRailPlan=null;explorationDecor?.dispose();explorationDecor=null;landscape?.dispose();landscape=null;shotRaycastIndex?.dispose();shotRaycastIndex=null;staticRenderBatches?.dispose();staticRenderBatches=null;stableEntryLights?.dispose();stableEntryLights=null;glass.dispose();while(content.children.length){const node=content.children.pop();node.parent=null;node.userData.roomReveals?.dispose();node.userData.streetLighting?.dispose();node.userData.buildingEntry?.dispose();node.userData.residentialWindows?.dispose();node.userData.doorsGlass?.dispose();if(node.userData.owned)node.traverse(x=>{x.geometry?.dispose();if(x.material){for(const m of Array.isArray(x.material)?x.material:[x.material])if(!m.userData?.environmentSurface)m.dispose()}})}streetLighting.dispose();instances=[];bodies=[];carBodies=[];buildingEntries=[];entryBodyVersions.clear();walkCollisionIndex?.clear();walkCollisionIndex=null;buildingSampleIndex=null;buildingQaMove=null;document.body.dataset.windowCacheAfterClear=JSON.stringify(residentialWindowCacheStats());if(recreate){glass=createGlassBreakage(THREE,scene,{groundHeight});streetLighting=createStreetLighting({THREE,scene,maxLights:8,maxFixtures:192,groundHeight,staticPlacement:true});for(const record of fleet?.records||[])glass.prepare(record.car.object)}}
+ function configureExplorationMap(all,decorPlan){
+  if(!explorationMap)explorationMap=createExplorationMinimap({onExpandedChange(expanded){releaseControls();setFreeMouse(false);controls.enabled=!expanded;},onWaypointChange(point){mapRoadRouteAt=-Infinity;mapRoadRouteTarget=null;showExplorationWaypoint(point)}});
+  const native=normalizeNativeInstances(all,M),features=landscape.mapFeatures.map(p=>({...p,kind:p.type==='lake'?'water':p.type})),newObjects=decorPlan.mapFeatures.map(p=>({...p,poi:decorPlan.vignettes.some(v=>v.id===p.id),kind:['pine','oak','birch','cypress'].includes(p.kind)?'tree':p.kind==='armillary'?'monument':['clock','kiosk','telescope'].includes(p.kind)?'landmark':mapKind(p.kind)==='object'?p.kind:mapKind(p.kind)}));
+diff --git a/assets/maps/city_rebuild_v1/service_pilot23_candidate/employee.mjs b/assets/maps/city_rebuild_v1/service_pilot23_candidate/employee.mjs
+new file mode 100644
+index 0000000..c7bb3ff 100644
+--- /dev/null
++++ b/assets/maps/city_rebuild_v1/service_pilot23_candidate/employee.mjs
+@@ -0,0 +1,83 @@
++// Isolated source-state candidate. Emits intentions only: no NPC spawn, HP,
++// movement, door mutation, money, stock, renderer visibility or server authority.
++const id=x=>typeof x==='string'&&x.length>0&&x.length<=240;
++const point=p=>p&&['x','y','z'].every(k=>Number.isFinite(p[k]));
++const generation=n=>Number.isSafeInteger(n)&&n>=1;
++const clone=x=>JSON.parse(JSON.stringify(x));
++const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
++const alive=a=>a&&!a.dead&&a.alive!==false&&Number.isFinite(a.hp)&&a.hp>0;
++const occupied=a=>a.panic||a.combat||a.custody||a.medicalOwned||a.reportingCrime;
++const safeCall=(fn,...args)=>{try{return typeof fn==='function'&&fn(...args)===true}catch{return false}};
++const sameSpawn=(a,b)=>!!a&&!!b&&['accepted','requestId','buildingId','siteRevision','employeeId','generation','spawnedAt','authority'].every(k=>a[k]===b[k])&&point(a.position)&&point(b.position)&&['x','y','z'].every(k=>a.position[k]===b.position[k]);
++export function createServiceEmployee23({layout,employeeId,employeeGeneration,initialPhase='working'},host={}){
++ if(!layout||!id(layout.buildingId)||!id(layout.revision)||!id(layout.stationId)||!id(layout.roomId)||!id(layout.doorId)||!id(employeeId)||!generation(employeeGeneration)||!['working','backroom'].includes(initialPhase)||!['spawn','doorInside','doorOutside','work','customer'].every(k=>point(layout[k]))||!safeCall(host.validateLayout,layout))throw Error('Certified service layout required');
++ return{version:1,layout:clone(layout),employeeId,generation:employeeGeneration,phase:initialPhase,death:null,respawn:null,lastNow:0,available:false};
++}
++export function stepServiceEmployee23(state,snapshot,host={}){
++ state.available=false;
++ const {now,actor,door}=snapshot||{},layout=state.layout;
++ if(!Number.isFinite(now)||now<state.lastNow||snapshot.siteRevision!==layout.revision||!safeCall(host.isCurrentSite,layout))return{status:'hold',reason:'stale-site-or-clock'};
++ state.lastNow=now;
++ // The host supplies a persistent source actor record, never renderer presence.
++ if(actor&&actor.id!==state.employeeId)return{status:'hold',reason:'wrong-employee'};
++ const receipt=snapshot.spawnReceipt;
++ if(receipt&&sameSpawn(receipt,state.lastSpawn)&&!safeCall(host.verifySpawnReceipt,receipt,layout))return{status:'hold',reason:'unverified-respawn'};
++ if(receipt&&!sameSpawn(receipt,state.lastSpawn)){
++  const pending=state.respawn;
++  const diedAfterSpawn=actor&&(actor.dead===true||actor.alive===false||actor.hp===0)&&Number.isFinite(actor.deadAt)&&actor.deadAt>=receipt.spawnedAt&&actor.deadAt<=now&&id(actor.deathReceiptId)&&safeCall(host.verifyDeath,actor);
++  if(!pending||receipt.accepted!==true||receipt.requestId!==pending.requestId||receipt.buildingId!==layout.buildingId||receipt.siteRevision!==layout.revision||receipt.employeeId!==state.employeeId||receipt.generation!==state.generation+1||!generation(receipt.generation)||!Number.isFinite(receipt.spawnedAt)||receipt.spawnedAt<state.death.dueAt||receipt.spawnedAt<pending.issuedAt||receipt.spawnedAt>now||!point(receipt.position)||distance(receipt.position,layout.spawn)>.05||!alive(actor)&&!diedAfterSpawn||actor.generation!==receipt.generation||!point(actor.position)||!diedAfterSpawn&&distance(actor.position,receipt.position)>.05||!safeCall(host.verifySpawnReceipt,receipt,layout))return{status:'hold',reason:'unverified-respawn'};
++  state.generation=receipt.generation;state.phase='backroom';state.death=null;state.respawn=null;state.lastSpawn=clone(receipt);
++ }
++ if(actor&&actor.generation!==state.generation)return{status:'hold',reason:'generation-mismatch'};
++ if(actor&&!alive(actor)){
++  if(!actor.dead&&actor.alive!==false&&actor.hp!==0)return{status:'hold',reason:'invalid-health'};
++  if(!state.death){
++   if(!Number.isFinite(actor.deadAt)||actor.deadAt>now||actor.deadAt<0||!id(actor.deathReceiptId)||!safeCall(host.verifyDeath,actor))return{status:'hold',reason:'unverified-death'};
++   state.death={at:actor.deadAt,dueAt:actor.deadAt+60000,receiptId:actor.deathReceiptId};state.phase='dead';
++  }
++ }
++ if(state.death){
++  if(now<state.death.dueAt)return{status:'unavailable',reason:'employee-dead',until:state.death.dueAt,cancelService:true};
++  if(state.respawn)return{status:'pending',reason:now-state.respawn.issuedAt>5000?'respawn-confirmation-required':'respawn-pending',requestId:state.respawn.requestId,cancelService:true};
++  if(!generation(state.generation+1))return{status:'hold',reason:'generation-overflow'};
++  if(!door||door.id!==layout.doorId||!Number.isFinite(door.fraction)||door.fraction<0||door.fraction>.01||!safeCall(host.canSpawnInClosedRoom,layout,now))return{status:'unavailable',reason:'backroom-not-ready',cancelService:true};
++  state.respawn={requestId:`${layout.stationId}:${state.employeeId}:${state.generation+1}:respawn`,issuedAt:now};
++  return{status:'intent',intent:{kind:'respawn-in-backroom',...state.respawn,employeeId:state.employeeId,generation:state.generation+1,buildingId:layout.buildingId,siteRevision:layout.revision,position:clone(layout.spawn)},cancelService:true};
++ }
++ if(!alive(actor)||!point(actor.position))return{status:'hold',reason:'source-employee-unavailable'};
++ if(occupied(actor))return{status:'hold',reason:'existing-crime-or-medical-owner',cancelService:true};
++ const walk=target=>({status:'intent',intent:{kind:'walk',employeeId:state.employeeId,generation:state.generation,buildingId:layout.buildingId,siteRevision:layout.revision,target:clone(target),requireSweptMovement:true}});
++ const setDoor=open=>({status:'intent',intent:{kind:'set-service-door',doorId:layout.doorId,buildingId:layout.buildingId,siteRevision:layout.revision,open,requireClearSweep:true}});
++ if(['backroom','opening','exiting','closing'].includes(state.phase)){
++  if(!door||door.id!==layout.doorId||!Number.isFinite(door.fraction)||door.fraction<0||door.fraction>1)return{status:'hold',reason:'service-door-unavailable'};
++  if(state.phase==='backroom'){
++   if(distance(actor.position,layout.doorInside)>.12)return walk(layout.doorInside);
++   state.phase='opening';
++  }
++  if(state.phase==='opening'){
++   if(door.fraction<.95)return setDoor(true);
++   state.phase='exiting';
++  }
++  if(state.phase==='exiting'){
++   if(door.fraction<.95)return setDoor(true);
++   if(distance(actor.position,layout.doorOutside)>.12)return walk(layout.doorOutside);
++   state.phase='closing';
++  }
++  if(state.phase==='closing'){
++   if(door.fraction>.01){if(!safeCall(host.doorSweepClear,layout,actor))return{status:'hold',reason:'door-sweep-occupied'};return setDoor(false);}
++   state.phase='returning';
++  }
++ }
++ if(distance(actor.position,layout.work)>.12){state.phase='returning';return walk(layout.work);}
++ state.phase='working';state.available=true;
++ return{status:'working',available:true,employeeId:state.employeeId,generation:state.generation};
++}
++// Re-evaluate at atomic commit time as well. A prior quote is not permission to
++// spend after the employee dies, leaves, panics or is replaced by a generation.
++export function serviceEligibility23(state,{now,actor,customer,siteRevision,visitId}={},host={}){
++ const layout=state.layout;
++ if(now!==state.lastNow||siteRevision!==layout.revision||!safeCall(host.isCurrentSite,layout))return{eligible:false,reason:'fresh-source-required'};
++ if(!state.available||state.phase!=='working'||state.death||actor?.id!==state.employeeId||actor.generation!==state.generation||!alive(actor)||occupied(actor)||!point(actor.position)||distance(actor.position,layout.work)>.12)return{eligible:false,reason:'employee-unavailable'};
++ if(!id(customer?.id)||!generation(customer.generation)||!alive(customer)||occupied(customer)||!point(customer.position)||distance(customer.position,layout.customer)>.2||!id(visitId)||!safeCall(host.ownsServiceSlot,{stationId:layout.stationId,customerId:customer.id,generation:customer.generation,visitId}))return{eligible:false,reason:'customer-arrival-or-slot-required'};
++ return{eligible:true,buildingId:layout.buildingId,siteRevision:layout.revision,stationId:layout.stationId,employeeId:state.employeeId,employeeGeneration:state.generation,customerId:customer.id,customerGeneration:customer.generation,visitId};
++}
+diff --git a/assets/maps/city_rebuild_v1/service_pilot23_candidate/return.mjs b/assets/maps/city_rebuild_v1/service_pilot23_candidate/return.mjs
+new file mode 100644
+index 0000000..b0a2f73 100644
+--- /dev/null
++++ b/assets/maps/city_rebuild_v1/service_pilot23_candidate/return.mjs
+@@ -0,0 +1,80 @@
++// Isolated return executor. Public access and route planning remain source-owned.
++import {advanceStationaryServiceActor} from '../npc_stationary_service_adapter.mjs';
++const yes=(fn,...args)=>{try{return fn?.(...args)===true;}catch{return false;}};
++const point=p=>p&&Number.isFinite(p.r)&&Number.isFinite(p.c);
++export function createServiceEmployeeReturn23({layout,host,metresPerCell=4.1}){
++ if(!yes(host.validateLayout,layout)||!Number.isFinite(metresPerCell)||metresPerCell<=0)throw Error('Certified employee return host required');
++ const states=new WeakMap(),rc=p=>({r:p.z/metresPerCell,c:p.x/metresPerCell});
++ let disposed=false,lastActor=null,lastControl=null;
++ const hold=reason=>({status:'hold',reason,movedMetres:0});
++ const advance=function(input){
++  const {actor,now,dt,generation,employeeId,controlled,returning}=input;
++  if(disposed||!actor)return hold('no-source-employee');
++  lastActor=actor;lastControl=input.hasControl;
++  let state=states.get(actor);
++  if(!controlled||!returning){if(state)state.interrupted=true;return null;}
++  const allowed=()=>yes(host.isCurrentSite,layout)&&yes(input.hasControl)&&actor._stationaryService?.generation===generation&&actor._stationaryService?.employmentId===employeeId;
++  if(!allowed()||!Number.isFinite(now)||!Number.isFinite(dt)||dt<=0||dt>1)return hold('return-owner-or-clock');
++  if(state&&now<state.now)return hold('return-clock-reversed');
++  if(!state||state.interrupted||state.generation!==generation){
++   host.cancelRoute(actor);if(!allowed())return hold('return-owner-changed');
++   state={generation,now,stage:'select',points:null,index:0,retryAt:0};states.set(actor,state);
++  }
++  state.now=now;
++  const clear=(a,b)=>yes(host.canSweep,a,b,actor),here=()=>({r:actor.r,c:actor.c});
++  if(state.stage==='select'){
++   // Initial storeroom egress and a nearby interruption already on the shop floor.
++   const outside=rc(layout.doorOutside),work=rc(layout.work);
++   if(yes(host.isWorkFloor,here(),layout.work.y)&&clear(here(),outside)&&clear(outside,work)){
++    state.stage='inside';state.points=[outside,work];
++   }else{
++    let door;try{door=host.entrance(layout);}catch{}
++    if(!point(door)||!point(door.inside)||door.instanceId!==layout.buildingId)return hold('original-entrance-unavailable');
++    state.door={...door,inside:{...door.inside}};state.stage='outside';
++   }
++  }
++  if(state.stage==='outside'&&!state.points){
++   if(now<state.retryAt)return hold('return-route-retry');
++   const target={r:state.door.r,c:state.door.c};
++   if(clear(here(),target))state.points=[target];
++   else{
++    let route;try{route=host.planRoute(actor,target);}catch{}
++    if(!allowed())return hold('return-owner-changed');
++    if(route?.status==='pending')return hold('return-route-pending');
++    if(route?.status!=='ready'||!Array.isArray(route.points)||!route.points.length||route.points.length>1024||!route.points.every(point)){
++     state.retryAt=now+1000;return hold('return-route-blocked');
++    }
++    // A partial native path is not arrival. Its final edge must reach this entrance.
++    state.points=route.points.map(p=>({r:p.r,c:p.c}));state.points.push(target);
++   }
++   state.index=0;
++  }
++  if(state.stage==='door'){
++   let access;try{access=host.openEntrance(actor,state.door);}catch{}
++   if(!allowed())return hold('return-owner-changed');
++   if(access?.ready!==true)return hold('return-public-door');
++   const visit={phase:'entering',door:{...state.door,inside:{...state.door.inside}}};
++   try{host.entryLane(actor,visit);}catch{return hold('return-entry-lane');}
++   if(!allowed())return hold('return-owner-changed');
++   const aligned={r:visit.door.r,c:visit.door.c},inside=visit.door.inside;
++   const via=rc(layout.customerVia);via.r+=inside.r-state.door.inside.r;via.c+=inside.c-state.door.inside.c;
++   const route=[aligned,inside,via,rc(layout.doorOutside),rc(layout.work)];
++   if(!route.every(point)||!route.every((p,i)=>clear(i?route[i-1]:here(),p)))return hold('return-entry-obstructed');
++   state.stage='inside';state.points=route;state.index=0;
++  }
++  const target=state.points?.[state.index];if(!point(target))return hold('return-waypoint-unavailable');
++  let y;try{y=host.groundHeight(target);}catch{}
++  if(!Number.isFinite(y))return hold('return-ground-unavailable');
++  const result=advanceStationaryServiceActor({actor,target:{x:target.c*metresPerCell,y,z:target.r*metresPerCell},actorId:employeeId,generation,controlToken:layout.revision+':return',dt,metresPerCell,arrivalMetres:.005},
++   {identity:n=>({id:n._stationaryService?.employmentId,generation:n._stationaryService?.generation}),hasControl:allowed,
++    canSweep:clear,isStationFloor:p=>yes(host.hasGround,p,actor)});
++  if(result.status==='arrived'){
++   if(++state.index>=state.points.length){state.points=null;state.index=0;if(state.stage==='outside')state.stage='door';else states.delete(actor);}
++  }else if(result.status==='blocked'&&state.stage==='outside'){
++   state.points=null;state.index=0;state.retryAt=now+500;host.cancelRoute(actor);
++  }
++  return{...result,returnStage:state.stage};
++ };
++ advance.dispose=()=>{if(disposed)return;disposed=true;if(lastActor&&yes(lastControl)){try{host.cancelRoute(lastActor);}catch{}}if(lastActor)states.delete(lastActor);lastActor=null;lastControl=null;};
++ return advance;
++}
+diff --git a/assets/maps/city_rebuild_v1/service_pilot23_candidate/source.mjs b/assets/maps/city_rebuild_v1/service_pilot23_candidate/source.mjs
+new file mode 100644
+index 0000000..5293ea8 100644
+--- /dev/null
++++ b/assets/maps/city_rebuild_v1/service_pilot23_candidate/source.mjs
+@@ -0,0 +1,83 @@
++// Isolated single-printshop source activation proposal. World does not import it.
++import {createServiceEmployee23,stepServiceEmployee23,serviceEligibility23} from './employee.mjs';
++import {advanceStationaryServiceActor} from '../npc_stationary_service_adapter.mjs';
++const PILOT='REBUILD-VISUAL-print_shop-001';
++const yes=(fn,...args)=>{try{return fn?.(...args)===true;}catch{return false;}};
++export function createStationaryServiceSource23({station,host,metresPerCell=4.1}){
++ const layout=station?.layout;
++ if(layout?.buildingId!==PILOT||!Array.isArray(host?.npcs)||typeof host.spawnNpc!=='function'||!yes(host.validateLayout,layout)||!Number.isFinite(metresPerCell)||!(metresPerCell>0))throw Error('Certified single printshop source host required');
++ const employmentId=layout.stationId+':employee',token=layout.revision+':'+employmentId;
++ let body=null,sourceGeneration=0,birth=null,pending=null,death=null,lastNow=-Infinity,retryAt=0,seed=230000,disposed=false,births=0;
++ const state=createServiceEmployee23({layout,employeeId:employmentId,employeeGeneration:1,initialPhase:'backroom'}, {validateLayout:()=>true});
++ function bindingMatches(n){const m=n?._stationaryService;return n===body&&m?.employmentId===employmentId&&m.generation===sourceGeneration&&m.buildingId===layout.buildingId&&m.siteRevision===layout.revision;}
++ function owned(n){return !disposed&&bindingMatches(n)&&sourceGeneration===state.generation&&host.npcs.includes(n);}
++ function sourceBusy(n,now){return !n||!bindingMatches(n)||!host.npcs.includes(n)||!yes(host.canControl,n,now)||n.dead||n.alive===false||!Number.isFinite(n.hp)||n.hp<=0;}
++ function position(n){let y=NaN;try{y=host.groundHeight(n);}catch{}return{x:n.c*metresPerCell,y,z:n.r*metresPerCell};}
++ function occupants(){try{return host.occupants();}catch{return null;}}
++ function view(){
++  if(!body)return null;
++  const busy=sourceBusy(body,lastNow),dead=body.dead===true||body.alive===false||body.hp===0;
++  if(dead&&!death&&yes(host.verifyDeath,body,lastNow))death={sourceId:body.id,generation:sourceGeneration,at:body.deadAt,key:employmentId+':'+body.id+':'+body.deadAt};
++  return{id:employmentId,generation:sourceGeneration,hp:body.hp,dead:body.dead,alive:body.alive,deadAt:body.deadAt,deathReceiptId:death?.key,position:position(body),medicalOwned:busy&&!dead};
++ }
++ const lifecycleHost={validateLayout:()=>true,isCurrentSite:l=>yes(host.isCurrentSite,l),
++  verifyDeath:a=>!!death&&a.deathReceiptId===death.key&&a.deadAt===death.at&&a.generation===death.generation,
++  verifySpawnReceipt:r=>r===birth&&r.sourceBodyId===body?.id&&r.generation===sourceGeneration,
++  canSpawnInClosedRoom:()=>canBirth(lastNow),
++  doorSweepClear:()=>station.sweptClear(station.doorState.fraction,0,occupants()),
++  ownsServiceSlot:q=>yes(host.ownsServiceSlot,q)};
++ function canBirth(now){
++  return !disposed&&yes(host.isCurrentSite,layout)&&station.doorState.fraction<=.01&&
++   yes(host.canSpawnHidden,layout,now)&&yes(host.canOccupySpawn,layout.spawn,now);
++ }
++ function spawn(now,request=null){
++  if(now<retryAt||!canBirth(now))return false;
++  retryAt=now+500;
++  const previous=body,generation=request?.generation||1;
++  if(request&&(!death||now<death.at+60000||state.generation+1!==generation))return false;
++  let fresh;try{fresh=host.spawnNpc(++seed,{cityOnly:true});}catch{return false;}
++  // The existing factory has not published the object. Set birth coordinates
++  // only before insertion, never relocate a rendered/source resident.
++  if(!fresh||typeof fresh.id!=='string'||!fresh.id.startsWith('resident_')||host.npcs.some(n=>n===fresh||n.id===fresh.id)||!Number.isFinite(fresh.hp)||fresh.hp<=0||fresh.dead||fresh._cashier||fresh._uniqueNpc||fresh._said||fresh._invulnerable||fresh._arc?.panicMult===0)return false;
++  if(body!==previous||!canBirth(now))return false;
++  fresh.r=fresh.tr=layout.spawn.z/metresPerCell;fresh.c=fresh.tc=layout.spawn.x/metresPerCell;
++  fresh.walking=false;fresh.walkPhase=0;fresh.name='Продавец газет';
++  fresh._stationaryService={employmentId,generation,buildingId:layout.buildingId,siteRevision:layout.revision};
++  if(request)birth={accepted:true,requestId:request.requestId,buildingId:layout.buildingId,siteRevision:layout.revision,employeeId:employmentId,generation,sourceBodyId:fresh.id,spawnedAt:now,position:{...layout.spawn},authority:'session-source'};
++  body=fresh;sourceGeneration=generation;host.npcs.push(fresh);births++;pending=null;death=null;return true;
++ }
++ const movementHost={identity:n=>({id:n._stationaryService?.employmentId,generation:n._stationaryService?.generation}),
++  hasControl:({actor,controlToken})=>controlToken===token&&owned(actor)&&!sourceBusy(actor,lastNow)&&yes(host.isCurrentSite,layout),
++  canSweep:(from,to)=>yes(host.canSweep,from,to,body),
++  isStationFloor:(point,y)=>yes(host.isStationFloor,point,y,body)};
++ function tick(now,dt){
++  if(disposed||!Number.isFinite(now)||now<lastNow||!Number.isFinite(dt)||dt<0||!yes(host.isCurrentSite,layout))return{status:'hold',reason:'stale-service-source'};
++  lastNow=now;
++  if(!body&&!spawn(now))return{status:'hold',reason:'initial-backroom-not-ready'};
++  if(pending)spawn(now,pending);
++  let result=stepServiceEmployee23(state,{now,actor:view(),siteRevision:layout.revision,door:station.doorState,...(birth?{spawnReceipt:birth}:{})},lifecycleHost);
++  if(result.intent?.kind==='respawn-in-backroom'){
++   pending=result.intent;
++   if(spawn(now,pending))result=stepServiceEmployee23(state,{now,actor:view(),siteRevision:layout.revision,door:station.doorState,spawnReceipt:birth},lifecycleHost);
++  }
++  let returnMovement=null;
++  if(typeof host.advanceEmployeeReturn==='function'){
++   try{returnMovement=host.advanceEmployeeReturn({actor:body,now,dt,generation:state.generation,employeeId:employmentId,
++    controlled:owned(body)&&!sourceBusy(body,now),returning:state.phase==='returning'&&result.intent?.kind==='walk',
++    hasControl:()=>owned(body)&&!sourceBusy(body,now)&&yes(host.isCurrentSite,layout)});}catch{returnMovement={status:'hold',reason:'return-host-unavailable'};}
++  }
++  if(result.intent?.kind==='walk'&&owned(body)&&!sourceBusy(body,now)){
++   const movement=returnMovement||advanceStationaryServiceActor({actor:body,target:result.intent.target,actorId:employmentId,generation:state.generation,controlToken:token,dt,metresPerCell},movementHost);
++   result={...result,movement};
++  }else if(result.intent?.kind==='set-service-door'&&owned(body)&&!sourceBusy(body,now)){
++   const actorPosition=position(body),nearby=occupants();
++   if(owned(body)&&!sourceBusy(body,now)&&yes(host.isCurrentSite,layout))result={...result,doorRequest:station.requestDoor(result.intent.open,{actorPosition,occupants:nearby})};
++  }
++  if(station.needsUpdate){const nearby=occupants();if(yes(host.isCurrentSite,layout))if(station.update(dt,nearby))host.onServiceDoorChanged?.();}
++  return result;
++ }
++ return{tick,owns:n=>owned(n),ownsCalmMovement:(n,now)=>owned(n)&&!sourceBusy(n,now),
++  serviceAccess({customer,visitId,now}){return serviceEligibility23(state,{now,actor:view(),customer,visitId,siteRevision:layout.revision},lifecycleHost);},
++  get actor(){return body;},get lifecycle(){return state;},get stats(){return{births,employmentId,sourceBodyId:body?.id,generation:state.generation,phase:state.phase};},
++  dispose(){host.advanceEmployeeReturn?.dispose?.();disposed=true;state.available=false;if(body&&!body.dead&&body._stationaryService?.employmentId===employmentId)delete body._stationaryService;}};
++}
+diff --git a/assets/maps/city_rebuild_v1/service_pilot23_candidate/visibility.mjs b/assets/maps/city_rebuild_v1/service_pilot23_candidate/visibility.mjs
+new file mode 100644
+index 0000000..3bef34c 100644
+--- /dev/null
++++ b/assets/maps/city_rebuild_v1/service_pilot23_candidate/visibility.mjs
+@@ -0,0 +1,71 @@
++// Conservative current-camera proof for one hidden service-room birth.
++// All corners must be behind one visible opaque convex triangle/triangle pair.
++// Sparse rays against unrelated occluders are deliberately not a proof.
++export function createServiceSpawnVisibility23({THREE:T,getCamera,getOccluders,isCurrentSite,ready}={}){
++ const frustum=new T.Frustum(),matrix=new T.Matrix4(),box=new T.Box3(),raycaster=new T.Raycaster(),origin=new T.Vector3(),centre=new T.Vector3(),direction=new T.Vector3(),hitPoint=new T.Vector3(),instance=new T.Matrix4();
++ const corners=Array.from({length:8},()=>new T.Vector3()),clipPoint=new T.Vector3();let deniedUntil=-Infinity;
++ const opaque=m=>!!m&&m.onBeforeCompile===T.Material.prototype.onBeforeCompile&&m.customProgramCacheKey===T.Material.prototype.customProgramCacheKey&&m.visible!==false&&m.colorWrite!==false&&m.depthWrite!==false&&m.depthTest!==false&&m.depthFunc===T.LessEqualDepth&&!m.stencilWrite&&!m.polygonOffset&&m.blending===T.NormalBlending&&!m.wireframe&&!m.alphaHash&&!m.alphaToCoverage&&m.opacity===1&&!m.transparent&&!m.alphaMap&&!m.displacementMap&&!(m.alphaTest>0)&&!(m.transmission>0)&&!m.clippingPlanes?.length&&(m.isMeshStandardMaterial||m.isMeshBasicMaterial||m.isMeshPhongMaterial||m.isMeshLambertMaterial);
++ const visible=o=>{for(let p=o;p;p=p.parent)if(p.visible===false)return false;return true;};
++ function triangle(mesh,faceIndex,instanceId){
++  const geometry=mesh.geometry,p=geometry?.attributes?.position,index=geometry?.index;if(!p||!Number.isInteger(faceIndex)||faceIndex<0)return null;
++  const start=faceIndex*3;if(start+2>=(index?.count??p.count))return null;
++  const draw=geometry.drawRange;if(draw&&(start<draw.start||start+3>draw.start+draw.count))return null;
++  let material=mesh.material;if(Array.isArray(material)){const group=geometry.groups.find(g=>start>=g.start&&start+3<=g.start+g.count);material=material[group?.materialIndex];}if(!opaque(material))return null;
++  matrix.copy(mesh.matrixWorld);if(mesh.isInstancedMesh){if(!Number.isInteger(instanceId)||instanceId<0||instanceId>=mesh.count)return null;mesh.getMatrixAt(instanceId,instance);if(!(instance.determinant()>0))return null;matrix.multiply(instance);}
++  const points=[0,1,2].map(i=>new T.Vector3().fromBufferAttribute(p,index?index.getX(start+i):start+i).applyMatrix4(matrix));
++  points.side=material.side;points.frontSign=matrix.determinant()<0?-1:1;return points;
++ }
++ function convexPair(a,b){
++  if(!a||!b)return false;
++  const normal=new T.Vector3().subVectors(a[1],a[0]).cross(new T.Vector3().subVectors(a[2],a[0])).normalize(),other=new T.Vector3().subVectors(b[1],b[0]).cross(new T.Vector3().subVectors(b[2],b[0])).normalize();
++  if(normal.dot(other)<.999999||b.some(p=>Math.abs(new T.Vector3().subVectors(p,a[0]).dot(normal))>1e-5))return false;
++  const unique=[];for(const p of [...a,...b])if(!unique.some(q=>q.distanceToSquared(p)<1e-10))unique.push(p);
++  if(unique.length!==4)return false;
++  const shared=a.filter(p=>b.some(q=>q.distanceToSquared(p)<1e-10)),aa=a.find(p=>!shared.includes(p)),bb=b.find(p=>!shared.some(q=>q.distanceToSquared(p)<1e-10));
++  if(shared.length!==2||!aa||!bb)return false;
++  const edge=new T.Vector3().subVectors(shared[1],shared[0]);
++  if(edge.clone().cross(new T.Vector3().subVectors(aa,shared[0])).dot(normal)*edge.clone().cross(new T.Vector3().subVectors(bb,shared[0])).dot(normal)>=-1e-10)return false;
++  const mid=unique.reduce((v,p)=>v.add(p),new T.Vector3()).multiplyScalar(.25),u=new T.Vector3().subVectors(unique[0],mid).normalize(),v=new T.Vector3().crossVectors(normal,u);
++  unique.sort((p,q)=>Math.atan2(new T.Vector3().subVectors(p,mid).dot(v),new T.Vector3().subVectors(p,mid).dot(u))-Math.atan2(new T.Vector3().subVectors(q,mid).dot(v),new T.Vector3().subVectors(q,mid).dot(u)));
++  return unique.every((p,i)=>new T.Vector3().subVectors(unique[(i+1)%4],p).cross(new T.Vector3().subVectors(unique[(i+2)%4],unique[(i+1)%4])).dot(normal)>1e-8);
++ }
++ function covered(triangles,camera){
++  return corners.every(corner=>{
++   direction.subVectors(corner,origin);const distance=direction.length();if(distance<.1)return false;direction.multiplyScalar(1/distance);raycaster.ray.set(origin,direction);
++   return triangles.some(t=>{
++    const front=new T.Vector3().subVectors(t[1],t[0]).cross(new T.Vector3().subVectors(t[2],t[0])).dot(new T.Vector3().subVectors(origin,t[0]))*t.frontSign>0;
++    if(t.side===T.FrontSide&&!front||t.side===T.BackSide&&front)return false;
++    if(!raycaster.ray.intersectTriangle(t[0],t[1],t[2],false,hitPoint)||origin.distanceTo(hitPoint)>=distance-.03||origin.distanceTo(hitPoint)<=.01)return false;
++    clipPoint.copy(hitPoint).project(camera);return clipPoint.z>=-1&&clipPoint.z<=1;
++   });
++  });
++ }
++ return function canSpawnHidden(layout,now){
++  if(!Number.isFinite(now)||now<deniedUntil)return false;
++  const deny=()=>{deniedUntil=now+250;return false;};
++  try{
++   if(ready?.()!==true||isCurrentSite?.(layout)!==true||!layout?.spawn||!['x','y','z'].every(k=>Number.isFinite(layout.spawn[k])))return deny();
++   const camera=getCamera();if(!camera?.isPerspectiveCamera&&!camera?.isOrthographicCamera)return deny();
++   camera.updateMatrixWorld(true);camera.getWorldPosition(origin);
++   if(camera.coordinateSystem!==T.WebGLCoordinateSystem||!camera.projectionMatrix.elements.every(Number.isFinite)||!camera.matrixWorld.elements.every(Number.isFinite)||!camera.matrixWorldInverse.elements.every(Number.isFinite)||!Number.isFinite(camera.projectionMatrix.determinant())||Math.abs(camera.projectionMatrix.determinant())<1e-12)return deny();
++   const p=layout.spawn;box.min.set(p.x-.9,p.y-.1,p.z-.9);box.max.set(p.x+.9,p.y+2.2,p.z+.9);
++   if(box.containsPoint(origin))return deny();
++   matrix.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);frustum.setFromProjectionMatrix(matrix);
++   if(!frustum.intersectsBox(box))return true;
++   // An orthographic view uses parallel rays; this cone proof is perspective-only.
++   if(!camera.isPerspectiveCamera)return deny();
++   let i=0;for(const x of [box.min.x,box.max.x])for(const y of [box.min.y,box.max.y])for(const z of [box.min.z,box.max.z])corners[i++].set(x,y,z);
++   const roots=getOccluders();if(!Array.isArray(roots)||roots.length>8)return deny();
++   for(const root of roots)root.updateWorldMatrix(true,true);
++   box.getCenter(centre);direction.subVectors(centre,origin);const distance=direction.length();raycaster.set(origin,direction.multiplyScalar(1/distance));raycaster.near=.01;raycaster.far=distance-.03;raycaster.layers.mask=camera.layers.mask;
++   const hits=raycaster.intersectObjects(roots,true);
++   for(const hit of hits.slice(0,24)){
++    const mesh=hit.object;if(!visible(mesh)||mesh.isSkinnedMesh||mesh.morphTexture||mesh.morphTargetInfluences?.some(x=>x!==0))continue;
++    const a=triangle(mesh,hit.faceIndex,hit.instanceId);if(!a)continue;
++    if(covered([a],camera))return true;
++    for(const offset of [-1,1]){const b=triangle(mesh,hit.faceIndex+offset,hit.instanceId);if(convexPair(a,b)&&covered([a,b],camera))return true;}
++   }
++  }catch{}
++  return deny();
++ };
++}
+diff --git a/assets/maps/city_rebuild_v1/service_pilot23_candidate/visits.mjs b/assets/maps/city_rebuild_v1/service_pilot23_candidate/visits.mjs
+new file mode 100644
+index 0000000..8679379 100644
+--- /dev/null
++++ b/assets/maps/city_rebuild_v1/service_pilot23_candidate/visits.mjs
+@@ -0,0 +1,78 @@
++// Single-station customer lease/movement adapter. Not imported by world.
++import {advanceStationaryServiceActor} from '../npc_stationary_service_adapter.mjs';
++const exitCertificates=new WeakMap();
++const yes=(fn,...args)=>{try{return fn?.(...args)===true;}catch{return false;}};
++function servicePoints(layout,host,visit,metresPerCell){
++ const inside=visit?.door?.inside;let entrance;try{entrance=host.entranceInside(visit);}catch{return null;}
++ if(!inside||!entrance||![inside.r,inside.c,entrance.r,entrance.c].every(Number.isFinite))return null;
++ const point=p=>({r:p.z/metresPerCell,c:p.x/metresPerCell,y:p.y}),via=point(layout.customerVia);
++ via.r+=inside.r-entrance.r;via.c+=inside.c-entrance.c;
++ return[{r:inside.r,c:inside.c,y:layout.customer.y},via,point(layout.customer)];
++}
++// A cancelled purchase loses its service slot. The existing source visit still
++// owns physical exit, through independently current geometry/control guards.
++export function createServiceExitMovement23({layout,host,metresPerCell=4.1}){
++ if(!yes(host.validateLayout,layout))throw Error('Certified source exit required');
++ return input=>{
++  const {npc,visit,target,now,dt}=input,route=visit?._serviceRoute23,binding=exitCertificates.get(route?.certificate);
++  const allowed=()=>{
++   if(visit?.phase!=='exiting'||!route||binding?.npc!==npc||binding.visit!==visit||binding.visitId!==route.visitId||route.certificate.stamp!==route.stamp||route.buildingId!==layout.buildingId||route.siteRevision!==layout.revision||!yes(host.isCurrentSite,layout)||!yes(host.canControl,npc,visit,now))return false;
++   try{const id=host.identity(npc);return host.currentVisit(npc)===visit&&id.id===route.customerId&&id.generation===route.generation;}catch{return false;}
++  };
++  const points=servicePoints(layout,host,visit,metresPerCell);
++  if(!allowed()||!points||!Array.isArray(route.points)||route.points.length!==points.length||!points.every((p,i)=>['r','c','y'].every(k=>p[k]===route.points[i][k]))||!points.some(p=>['r','c','y'].every(k=>p[k]===target?.[k])))return{status:'hold',reason:'source-exit-owner-or-certificate'};
++  return advanceStationaryServiceActor({actor:npc,target:{x:target.c*metresPerCell,y:target.y,z:target.r*metresPerCell},actorId:route.customerId,generation:route.generation,controlToken:'exit:'+visit.id+':'+route.stamp,dt,metresPerCell,arrivalMetres:.01},
++   {identity:host.identity,hasControl:allowed,canSweep:(from,to)=>yes(host.canSweep,from,to,npc),isStationFloor:(p,y)=>yes(host.isStationFloor,p,y,npc)});
++ };
++}
++export function createServiceVisitLease23({layout,host,metresPerCell=4.1}){
++ if(!layout?.customerVia||!yes(host.validateLayout,layout)||!Number.isFinite(metresPerCell)||metresPerCell<=0)throw Error('Certified service route required');
++ const point=p=>({r:p.z/metresPerCell,c:p.x/metresPerCell,y:p.y});
++ let lease=null,serial=0,disposed=false;
++ function identity(n){try{return host.identity(n);}catch{return null;}}
++ function valid(now){
++  if(disposed||!lease||!Number.isFinite(now)||now<lease.lastNow||now>lease.until||!yes(host.isCurrentSite,layout))return false;
++  const n=lease.npc,id=identity(n);
++  let visit;try{visit=host.currentVisit(n);}catch{return false;}
++  return yes(host.isPresent,n)&&!n.dead&&n.alive!==false&&Number.isFinite(n.hp)&&n.hp>0&&id?.id===lease.customerId&&id.generation===lease.generation&&visit===lease.visit&&visit.id===lease.visitId&&yes(host.canControl,n,visit,now);
++ }
++ function owns(input){return valid(input.now)&&lease.npc===input.npc&&lease.visit===input.visit;}
++ function release(input){if(lease?.npc!==input.npc||lease.visit!==input.visit)return false;lease=null;return true;}
++ function acquire(input){
++  const {npc,visit,now}=input;if(disposed||!Number.isFinite(now)||!yes(host.isCurrentSite,layout))return false;
++  if(lease&&!valid(now))lease=null;
++  if(owns(input)){lease.lastNow=now;lease.until=now+20000;return true;}
++  if(lease||!yes(host.employeeReady,now)||!yes(host.canControl,npc,visit,now)||typeof visit?.id!=='string'||!visit.id||(visit.door?.instanceId||visit.door?.id)!==layout.buildingId)return false;
++  const id=identity(npc);
++  let current;try{current=host.currentVisit(npc);}catch{return false;}
++  if(typeof id?.id!=='string'||!id.id||!Number.isSafeInteger(id.generation)||id.generation<1||npc.dead||npc.alive===false||!Number.isFinite(npc.hp)||npc.hp<=0||current!==visit)return false;
++  const token=JSON.stringify([layout.buildingId,layout.revision,layout.stationId,id.id,id.generation,visit.id,++serial]);
++  lease={npc,visit,visitId:visit.id,customerId:id.id,generation:id.generation,token,lastNow:now,until:now+20000};return true;
++ }
++ function touch(input){if(!owns(input))return false;lease.lastNow=input.now;lease.until=input.now+20000;return true;}
++ function target(input){return owns(input)?{...point(layout.customer),stamp:lease.token}:null;}
++ function route(input){
++  if(!owns(input))return null;
++  if(lease.route)return lease.route;
++  // Preserve the actual public-door entry lane until past its open leaf.
++  // Moving sideways toward the nominal centre too early clips that leaf.
++  const points=servicePoints(layout,host,input.visit,metresPerCell);
++  if(!points||!yes(host.validateRoute,points,input.npc))return null;
++  lease.route=Object.freeze({visitId:lease.visitId,stamp:lease.token,buildingId:layout.buildingId,siteRevision:layout.revision,customerId:lease.customerId,generation:lease.generation,points:Object.freeze(points.map(p=>Object.freeze(p)))});
++  exitCertificates.set(lease.route,{npc:lease.npc,visit:lease.visit,visitId:lease.visitId});
++  return lease.route;
++ }
++ function move(input){
++  if(!owns(input)||!yes(host.canControl,input.npc,input.visit,input.now))return{status:'hold',reason:'service-visit-owner'};
++  const certificate=route(input),p=input.target;
++  if(!certificate?.points.some(q=>q.r===p?.r&&q.c===p?.c&&q.y===p?.y))return{status:'hold',reason:'uncertified-service-waypoint'};
++  const token=lease.token,generation=lease.generation,actorId=lease.customerId;
++  return advanceStationaryServiceActor({actor:input.npc,target:{x:p.c*metresPerCell,y:p.y,z:p.r*metresPerCell},actorId,generation,controlToken:token,dt:input.dt,metresPerCell,arrivalMetres:.01},
++   {identity,hasControl:()=>owns(input)&&lease.token===token&&yes(host.canControl,input.npc,input.visit,input.now),
++    canSweep:(from,to)=>yes(host.canSweep,from,to,input.npc),isStationFloor:(at,y)=>yes(host.isStationFloor,at,y,input.npc)});
++ }
++ return{acquireServiceVisit:acquire,touchServiceVisit:touch,releaseServiceVisit:release,getServiceArrivalTarget:target,getServiceRoute:route,advanceServiceVisit:move,
++  ownsServiceSlot:({customerId,generation,visitId})=>{let now;try{now=host.now();}catch{return false;}return !!lease&&valid(now)&&lease.customerId===customerId&&lease.generation===generation&&lease.visitId===visitId;},
++  disposeServiceVisits(){disposed=true;lease=null;},
++  snapshot:()=>lease?{customerId:lease.customerId,generation:lease.generation,visitId:lease.visitId,until:lease.until}:null};
++}
+diff --git a/assets/maps/city_rebuild_v1/service_pilot23_candidate/walk_host.mjs b/assets/maps/city_rebuild_v1/service_pilot23_candidate/walk_host.mjs
+new file mode 100644
+index 0000000..59c0462 100644
+--- /dev/null
++++ b/assets/maps/city_rebuild_v1/service_pilot23_candidate/walk_host.mjs
+@@ -0,0 +1,126 @@
++// Isolated real-host composition for the one approved print-shop pilot.
++import {createPrintShopServiceStation,PRINT_SHOP_SERVICE_PILOT} from '../native_print_shop_service_station.mjs';
++import {createStationaryServiceAdapter} from '../npc_stationary_service_adapter.mjs';
++import {createStationaryServiceSource23} from './source.mjs';
++import {createServiceEmployeeReturn23} from './return.mjs';
++import {createServiceVisitLease23,createServiceExitMovement23} from './visits.mjs';
++import {createServiceSpawnVisibility23} from './visibility.mjs';
++import {createNpcSweptFootprint} from '../npc_swept_footprint.mjs';
++const finite=p=>p&&['x','y','z'].every(k=>Number.isFinite(p[k]));
++const distanceSegment=(p,a,b)=>{const dx=b.x-a.x,dz=b.z-a.z,l=dx*dx+dz*dz,t=l?Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.z-a.z)*dz)/l)):0;return Math.hypot(p.x-a.x-dx*t,p.z-a.z-dz*t);};
++export function createStationaryServiceWalk23({THREE:T,bridge,host,siteRevision,sourceFactory=createStationaryServiceSource23}={}){
++ const M=4.1,R=.18*M,entry=host.getEntries().find(e=>e.instance?.id===PRINT_SHOP_SERVICE_PILOT);
++ if(!entry||typeof bridge?.installStationaryServiceMerchant23!=='function'||typeof bridge.getWalkServicePhysicalBodies23!=='function'||typeof bridge.getWalkNpcVehicleTraffic!=='function')return null;
++ let disposed=false,station=null,registration=null,lease=null,index=null,bodies=null,source=null;
++ const dynamicFootprint=createNpcSweptFootprint(),diagnostics={bodyReads:0,lastBodyCount:0,lastHold:null};
++ const bodyHold=reason=>{diagnostics.lastHold=reason;return null;};
++ const ready=()=>!disposed&&host.ready()===true&&host.getEntries().includes(entry)&&!!entry.storeys?.root?.parent;
++ const current=l=>ready()&&l?.revision===siteRevision&&l.buildingId===PRINT_SHOP_SERVICE_PILOT;
++ const floor=p=>host.groundHeight(p.c*M,p.r*M),point=n=>({x:n.c*M,y:host.groundHeight(n.c*M,n.r*M),z:n.r*M});
++ function syncCollision(){
++  if(!station||!ready())return false;
++  const next=host.getCollisionIndex(),nextBodies=station.getCollisionBodies();if(!next)return false;
++  if(index!==next){index?.removeGroup(station);index=next;bodies=null;}
++  if(bodies!==nextBodies){index.replaceGroup(station,nextBodies,{order:100000});bodies=nextBodies;host.invalidateNavigation();}
++  return true;
++ }
++ function physicalBodies(from,to,ignoreActor=null){
++  if(!ready()||!finite(from)||!finite(to))return bodyHold('physical-host-not-ready');
++  diagnostics.bodyReads++;
++  const centre={r:(from.z+to.z)/(2*M),c:(from.x+to.x)/(2*M)},radius=(Math.hypot(to.x-from.x,to.z-from.z)/2+16)/M;
++  if(radius>16)return bodyHold('physical-query-too-long');
++  let people,traffic;try{people=bridge.getWalkServicePhysicalBodies23({...centre,radius});traffic=bridge.getWalkNpcVehicleTraffic();}catch{return bodyHold('source-roster-threw');}
++  if(people?.complete!==true||!Array.isArray(people.rows)||!Array.isArray(traffic?.rows))return bodyHold('source-roster:'+String(people?.reason||'missing-traffic'));
++  const out=[],ignoredIds=new Set(),near=(p,r)=>Math.hypot(p.x-centre.c*M,p.z-centre.r*M)<=radius*M+r;
++  const push=(id,position,radius,height,ref=null,polygonCR=null)=>{if(!finite(position)||!Number.isFinite(radius)||radius<=0||!Number.isFinite(height)||height<=0)return false;if(near(position,radius))out.push({id,position,radius,height,ref,polygonCR});return true;};
++  for(const row of people.rows){
++   if(row.ref===ignoreActor&&ignoreActor){for(const id of row.aliasIds||[row.id])ignoredIds.add(id);continue;}
++   if(!Number.isFinite(row.r)||!Number.isFinite(row.c))return null;
++   const x=row.c*M,z=row.r*M,low=host.groundHeight(x,z);
++   // Unknown source storey/seat/airborne pose is a conservative vertical column.
++   // A rendered pose supplements it; it never erases an uncapped source body.
++   const known=Number.isFinite(row.footY),lying=row.dead||row.downed||row.prone;
++   if(!push(row.id,{x,y:known?row.footY:low-4,z},lying?2.5:R,known?(lying?1.0:2.3):40,row.ref))return null;
++  }
++  for(const row of host.getNpcActors()){
++   if(ignoredIds.has(row.id)||!row.object?.parent)continue;
++   const p=row.object.getWorldPosition(new T.Vector3()),s=row.source||{};
++   if(!push(row.id+':view',p,s.dead||s.downed||s.forcedCrawl?2.5:R,2.3))return null;
++  }
++  const hero=host.getHero();if(!hero?.object?.parent)return null;
++  const heroPosition=hero.object.getWorldPosition(new T.Vector3()),heroShape=host.heroBody();
++  if(!push('player',heroPosition,heroShape.radius,heroShape.height))return null;
++  for(const row of traffic.rows){
++   const x=row.c*M,z=row.r*M;if(!Number.isFinite(x+z))return null;
++   const length=Number(row.halfLength)*M,width=Number(row.halfWidth)*M;
++   if(!Number.isFinite(length+width)||length<=0||width<=0)return null;
++   if((row.helicopter||/heli|aircraft|plane|tow/i.test(String(row.model)))&&near({x,z},24))return bodyHold('unsupported-nearby-vehicle:'+String(row.id));
++   if(!Number.isFinite(row.ang))return null;
++   const cos=Math.cos(row.ang),sin=Math.sin(row.ang),polygon=[[-1,-1],[1,-1],[1,1],[-1,1]].map(([a,b])=>[(x+a*(length+.5)*cos-b*(width+.25)*sin)/M,(z+a*(length+.5)*sin+b*(width+.25)*cos)/M]);
++   if(!push(row.id+':source-car',{x,y:host.groundHeight(x,z)-2,z},Math.hypot(length,width)+.6,12,null,polygon))return null;
++  }
++  for(const row of [...host.getFleet(),...host.getTrafficActors()]){
++   const actor=row.car||row.actor||row,object=actor.object,profile=actor.profile||object?.userData?.vehicleProfile;
++   if(!object?.parent)continue;const p=object.getWorldPosition(new T.Vector3()),scale=object.getWorldScale(new T.Vector3());
++   if(!profile||![profile.halfLength,profile.halfWidth,profile.height,scale.x,scale.y,scale.z].every(Number.isFinite))return null;
++   // Transform all eight profile corners: rolled/tilted cars remain occupied.
++   object.updateWorldMatrix(true,false);const bounds=new T.Box3();
++   for(const x of [-profile.halfWidth,profile.halfWidth])for(const z of [-profile.halfLength,profile.halfLength])for(const y of [profile.bounds?.min?.[1]??-.5,profile.bounds?.max?.[1]??profile.height])bounds.expandByPoint(new T.Vector3(x,y,z).applyMatrix4(object.matrixWorld));
++   const polygon=[[bounds.min.x,bounds.min.z],[bounds.max.x,bounds.min.z],[bounds.max.x,bounds.max.z],[bounds.min.x,bounds.max.z]].map(([x,z])=>[x/M,z/M]);
++   const centre=bounds.getCenter(new T.Vector3());
++   if(!push(String(row.id)+':view-car',{x:centre.x,y:bounds.min.y,z:centre.z},Math.hypot(bounds.max.x-bounds.min.x,bounds.max.z-bounds.min.z)/2,bounds.max.y-bounds.min.y,null,polygon))return null;
++  }
++  diagnostics.lastBodyCount=out.length;return out;
++ }
++ function clearDynamic(from,to,ignoreActor){
++  const obstacles=physicalBodies(from,to,ignoreActor);if(!obstacles)return false;
++  const minY=Math.min(from.y,to.y),maxY=Math.max(from.y,to.y)+1.9;
++  dynamicFootprint.set({r:from.z/M,c:from.x/M},{r:to.z/M,c:to.x/M},.18+.02/M);
++  return obstacles.every(b=>b.position.y+b.height<=minY+.03||b.position.y>=maxY||(b.polygonCR?!dynamicFootprint.overlaps(b.polygonCR,()=>true):distanceSegment(b.position,from,to)>=b.radius+R+.02));
++ }
++ function supported(p){const y=floor(p);return Number.isFinite(y)&&host.ceilingHeight(p.c*M,p.r*M,y)>=y+1.85&&!(host.waterAt(p.c*M,p.r*M)?.depth>.05);}
++ function sweep(from,to,actor){
++  if(!syncCollision()||![from?.r,from?.c,to?.r,to?.c].every(Number.isFinite))return false;
++  const result=host.nativeQuery({mode:'sweep',from,to,radius:.18});if(result?.swept!==true||result.blocked!==false)return false;
++  const steps=Math.max(1,Math.ceil(Math.hypot(to.r-from.r,to.c-from.c)*M/.25));if(steps>400)return false;
++  for(let i=0;i<=steps;i++){
++   const p={r:from.r+(to.r-from.r)*i/steps,c:from.c+(to.c-from.c)*i/steps};if(!supported(p))return false;
++   for(const [dr,dc]of [[0,0],[.18,0],[-.18,0],[0,.18],[0,-.18]]){const q=host.nativeQuery({r:p.r+dr,c:p.c+dc});if(!q||q.blocked!==false||q.depth>.05)return false;}
++  }
++  return clearDynamic({x:from.c*M,y:floor(from),z:from.r*M},{x:to.c*M,y:floor(to),z:to.r*M},actor);
++ }
++ const visibility=createServiceSpawnVisibility23({THREE:T,getCamera:host.getCamera,getOccluders:()=>[entry.visual],isCurrentSite:current,ready});
++ function presentationReady(n){
++  const h=host.getHero()?.object?.position;if(!h)return false;
++  if(Math.hypot(n.c*M-h.x,n.r*M-h.z)>105)return true;
++  const id=source?.entityId(n),actor=id&&host.getNpcActor(id),row=id&&host.getNpcActors().find(row=>row.id===id);
++  // getActor also returns retained, streamed-out cached actors. Readiness must
++  // refer to the current selected snapshot and the same attached visible skin.
++  if(!actor?.object?.parent||row?.object!==actor.object||row.source?.id!==id||row.source.dead||row.source.carried||row.source.evacuated){diagnostics.lastHold='source-model-pending';return false;}
++  for(let object=actor.object;object;object=object.parent)if(object.visible===false){diagnostics.lastHold='source-model-hidden';return false;}
++  return true;
++ }
++ try{
++  station=createPrintShopServiceStation({THREE:T,entry,siteRevision,validateLayout:({layout})=>['spawn','doorInside','doorOutside','work','customer','customerVia'].every(k=>{const p=layout[k],r=p.z/M,c=p.x/M,q=host.nativeQuery({mode:'sweep',from:{r,c},to:{r,c},radius:.18}),ground=host.groundHeight(p.x,p.z),ok=Math.abs(ground-p.y)<.05&&q?.swept===true&&q.blocked===false;if(!ok)throw Error('Service anchor '+JSON.stringify({k,p:[p.x,p.y,p.z].map(v=>+v.toFixed(3)),g:Number.isFinite(ground)?+ground.toFixed(3):String(ground),s:q?.swept,b:q?.blocked,why:q?.reason||q?.surface||'none'}));return ok;})});
++  if(!syncCollision())throw Error('Service collision index unavailable');
++  const layout=station.layout,isFloor=(p,y)=>Math.abs(floor(p)-y)<.05&&supported(p);
++  const geometry={validateLayout:l=>l===layout,isCurrentSite:current,groundHeight:n=>point(n).y,canSweep:sweep,isStationFloor:isFloor,
++   onServiceDoorChanged:syncCollision,
++   canSpawnHidden:(l,now)=>{const hidden=visibility(l,now);if(!hidden)diagnostics.lastHold='camera-visible-or-uncertified';return hidden;},canOccupySpawn:p=>{const at={r:p.z/M,c:p.x/M};return isFloor(at,p.y)&&sweep(at,at,null);},
++   occupants:()=>{const p=layout.doorOutside,q=layout.doorInside,all=physicalBodies(p,q);if(!all)return null;return all.filter(b=>distanceSegment(b.position,p,q)<=b.radius+4);},
++   canPresentServiceActor:presentationReady,
++   createEmployeeReturn:createServiceEmployeeReturn23,
++   employeeReturnGeometry:{validateLayout:l=>l===layout,isCurrentSite:current,canSweep:sweep,isWorkFloor:isFloor,groundHeight:floor,hasGround:supported}};
++  registration=bridge.installStationaryServiceMerchant23(sourceFactory,station,geometry,({controller,source:access})=>{
++   source=access;
++   const customerHost={...access,validateLayout:l=>l===layout,isCurrentSite:current,employeeReady:now=>controller.lifecycle.available&&controller.lifecycle.lastNow===now,
++    validateRoute:(points,n)=>points.slice(1).every((p,i)=>sweep(points[i],p,n)&&sweep(p,points[i],n)),canSweep:sweep,isStationFloor:isFloor};
++   lease=createServiceVisitLease23({layout,host:customerHost});
++   const provider=createStationaryServiceAdapter({buildingId:layout.buildingId,getServiceAccess:({npc,visit,now})=>controller.serviceAccess({customer:{id:String(npc.id),generation:1,position:point(npc),hp:npc.hp,dead:npc.dead},visitId:visit.id,now})});
++   Object.assign(provider,lease);return{provider,exitMovement:createServiceExitMovement23({layout,host:customerHost})};
++  });
++  if(!registration)throw Error('Service source registration unavailable');
++ }catch(error){registration?.unregister();lease?.disposeServiceVisits();index?.removeGroup(station);station?.dispose();host.invalidateNavigation();throw error;}
++ return{station,controller:registration.controller,diagnostics:()=>({...diagnostics,...registration.controller.stats,available:registration.controller.lifecycle.available,door:station.doorState,geometry:station.stats()}),syncCollision,physicalBodies,canSweep:sweep,canSpawnHidden:visibility,
++  dispose(){if(disposed)return;registration.unregister();lease?.disposeServiceVisits();disposed=true;index?.removeGroup(station);station.dispose();host.invalidateNavigation();}};
++}
+diff --git a/assets/maps/city_rebuild_v1/npc_stationary_service_adapter.mjs b/assets/maps/city_rebuild_v1/npc_stationary_service_adapter.mjs
+new file mode 100644
+index 0000000..6b46ca2 100644
+--- /dev/null
++++ b/assets/maps/city_rebuild_v1/npc_stationary_service_adapter.mjs
+@@ -0,0 +1,64 @@
++// Opt-in stationary-service boundary for the existing resident checkout.
++// Checkout never writes money; the optional movement executor uses host-owned sweeps.
++const name=x=>typeof x==='string'&&x.length>0;
++const money=x=>Number.isSafeInteger(x)&&x>=0&&x<=0x7fffffff;
++export function createStationaryServiceAdapter({buildingId,mode='session',getServiceAccess,getNeedsBinding=()=>null}={}){
++ if(!name(buildingId)||mode!=='session'||typeof getServiceAccess!=='function'||typeof getNeedsBinding!=='function')throw Error('Session stationary service adapter required');
++ const stamp=a=>JSON.stringify([buildingId,a.siteRevision,a.stationId,a.employeeId,a.employeeGeneration,a.customerId,a.customerGeneration,a.visitId]);
++ function accessFor({npc,visit,now}){
++  const a=getServiceAccess({npc,visit,now});
++  if(a?.eligible!==true||a.buildingId!==buildingId||a.customerId!==String(npc.id)||!name(a.siteRevision)||!name(a.stationId)||!name(a.employeeId)||!Number.isSafeInteger(a.employeeGeneration)||a.employeeGeneration<1||!Number.isSafeInteger(a.customerGeneration)||a.customerGeneration<1||!name(a.visitId)||(visit.door.instanceId||visit.door.id)!==buildingId)return null;
++  return a;
++ }
++ return{
++  canServe(input){const a=accessFor(input);return a?{available:true,stamp:stamp(a)}:{available:false,reason:'employee-or-customer-unavailable'};},
++  onPurchase(input){
++   const {npc,visit,receipt,balanceBefore,balanceAfter}=input,wallet=npc._residentWallet,order=visit.commerce,a=accessFor(input);
++   // These are the actual source-owned order and receipt objects, not a UI
++   // price or a proximity event. Any intervening debit requires reconciliation.
++   if(!a||!order?.settled||order.phase!=='complete'||order.serviceStamp!==stamp(a)||!wallet?.receipts.includes(receipt)||receipt.id!==order.id||receipt.doorId!==visit.door.id||receipt.item!==order.item.item||receipt.price!==order.item.price||!money(balanceBefore)||!money(balanceAfter)||balanceBefore-receipt.price!==balanceAfter||wallet.balance!==balanceAfter)return{accepted:false,reason:'account-sync-required'};
++   const binding=getNeedsBinding(npc);if(!binding)return{accepted:true,mirrored:false};
++   const {state,applyReceipt}=binding;
++   if(state?.mode!=='session'||state.npcId!==String(npc.id)||typeof applyReceipt!=='function'||state.account.cash!==balanceBefore||state.goal?.kind!=='shop'||state.goal.placeId!==visit.door.id)return{accepted:false,reason:'account-sync-required'};
++   const event={id:'resident-commerce:'+receipt.id,npcId:state.npcId,accepted:true,sequence:state.account.sequence+1,authority:'session',kind:'purchase',goalId:state.goal.id,placeId:receipt.doorId,visitId:a.visitId,amount:receipt.price,completedAt:input.now};
++   const result=applyReceipt(state,event,{
++    verifyReceipt:r=>r===event&&wallet.receipts.includes(receipt)&&wallet.balance===balanceAfter,
++    hasPhysicalArrival:r=>r.npcId===a.customerId&&r.goalId===event.goalId&&r.placeId===event.placeId&&r.visitId===a.visitId&&accessFor(input)!==null
++   });
++   return result.accepted?{accepted:true,mirrored:true,receiptId:event.id}:{accepted:false,reason:'account-sync-required',detail:result.reason};
++  }
++ };
++}
++
++// Precise ground-floor station movement, opt-in under an existing source owner.
++// Paths come from certified station waypoints; this is not a new pathfinder.
++export function advanceStationaryServiceActor({actor,target,actorId,generation,controlToken,dt,speedMps=1.25,metresPerCell=4.1,arrivalMetres=.08}={},host={}){
++ if(!actor||!name(actorId)||!name(controlToken)||!Number.isSafeInteger(generation)||generation<1||!target||![target.x,target.y,target.z,actor.r,actor.c,dt,speedMps,metresPerCell,arrivalMetres].every(Number.isFinite)||metresPerCell<=0||speedMps<=0||speedMps>3||arrivalMetres<0||arrivalMetres>.12||dt<0)return{status:'hold',reason:'invalid-service-movement',movedMetres:0};
++ let movedMetres=0;
++ const permitted=()=>{
++  if(actor.dead||actor.alive===false||!Number.isFinite(actor.hp)||actor.hp<=0)return false;
++  try{const identity=host.identity?.(actor);return identity?.id===actorId&&identity.generation===generation&&host.hasControl?.({actor,actorId,generation,controlToken})===true;}catch{return false;}
++ };
++ if(!permitted())return{status:'hold',reason:'source-owner-or-generation',movedMetres};
++ if(dt===0||dt>1)return{status:'hold',reason:'elapsed-gap',movedMetres};
++ const goalR=target.z/metresPerCell,goalC=target.x/metresPerCell,seconds=Math.min(dt,.35),steps=Math.ceil(seconds/.05),stepTime=seconds/steps;
++ for(let i=0;i<steps;i++){
++  if(!permitted())return{status:'hold',reason:'source-owner-or-generation',movedMetres};
++  const dr=goalR-actor.r,dc=goalC-actor.c,distance=Math.hypot(dr,dc)*metresPerCell;
++  if(distance<=arrivalMetres){
++   const position={r:actor.r,c:actor.c};let safe=false;
++   try{safe=host.isStationFloor?.(position,target.y)===true&&host.canSweep?.(position,position)===true;}catch{}
++   if(!permitted())return{status:'hold',reason:'source-owner-or-generation',movedMetres};
++   actor.walking=false;
++   return safe?{status:'arrived',movedMetres}:{status:'blocked',reason:'service-arrival-occupied-or-floor',movedMetres};
++  }
++  const step=Math.min(distance,speedMps*stepTime),ratio=step/distance,next={r:actor.r+dr*ratio,c:actor.c+dc*ratio},from={r:actor.r,c:actor.c};
++  let safe=false;
++  try{safe=host.canSweep?.(from,next)===true&&host.isStationFloor?.(next,target.y)===true;}catch{}
++  if(!permitted())return{status:'hold',reason:'source-owner-or-generation',movedMetres};
++  if(!safe){actor.walking=false;return{status:'blocked',reason:'service-path-occupied',movedMetres};}
++  actor.r=next.r;actor.c=next.c;actor.ang=Math.atan2(dr,dc);actor.walking=true;actor.walkPhase=(actor.walkPhase||0)+stepTime*8;movedMetres+=step;
++ }
++ const arrived=Math.hypot(goalR-actor.r,goalC-actor.c)*metresPerCell<=arrivalMetres;if(arrived)actor.walking=false;
++ return{status:arrived?'arrived':'moving',movedMetres};
++}
+diff --git a/assets/maps/city_rebuild_v1/native_print_shop_service_station.mjs b/assets/maps/city_rebuild_v1/native_print_shop_service_station.mjs
+new file mode 100644
+index 0000000..906300d 100644
+--- /dev/null
++++ b/assets/maps/city_rebuild_v1/native_print_shop_service_station.mjs
+@@ -0,0 +1,91 @@
++import {createInteriorMeshPool} from './interior_mesh_pool.mjs';
++
++export const PRINT_SHOP_SERVICE_PILOT='REBUILD-VISUAL-print_shop-001';
++const finitePoint=p=>p&&['x','y','z'].every(k=>Number.isFinite(p[k]));
++const smooth=n=>n*n*(3-2*n);
++const stations=new WeakMap();
++// Explicit one-building addition. No generic floor plan, GLB or world registry
++// changes. The host must register returned colliders, source actors and service.
++export function createPrintShopServiceStation({THREE:T,entry,siteRevision,validateLayout,metresPerCell=4.1}={}){
++ if(entry?.instance?.id!==PRINT_SHOP_SERVICE_PILOT||entry.instance.assetId!=='print_shop'||!entry.storeys||typeof siteRevision!=='string'||!siteRevision||typeof validateLayout!=='function'||!Number.isFinite(metresPerCell)||metresPerCell<=0)throw Error('Explicit print-shop pilot required');
++ const existing=stations.get(entry);if(existing){if(existing.layout.revision!==siteRevision)throw Error('Dispose old service station before revision replacement');return existing;}
++ const room=entry.storeys.rooms.find(r=>r.level===0&&r.role==='stockroom'),hall=entry.storeys.rooms.find(r=>r.level===0&&r.role==='print_hall');
++ if(!room?.door||!hall||room.door.axis!=='x'||room.door.width<1.7||room.door.width>2.1)throw Error('Pilot stockroom geometry unavailable');
++ const d=room.door,counter={x:hall.rect[0]+4.5,y:room.y,z:d.z+3.9},local={spawn:{x:(room.rect[0]+room.rect[2])/2,y:room.y,z:(room.rect[1]+room.rect[3])/2},doorInside:{x:d.x+.08,y:room.y,z:d.z-1.15},doorOutside:{x:d.x+.08,y:room.y,z:d.z+2.55},work:{x:counter.x,y:room.y,z:counter.z-1.24},customer:{x:counter.x,y:room.y,z:counter.z+1.24}};
++ // Finish walking straight through the public doorway before turning toward
++ // the counter. A diagonal from the old inside stop clips the existing jamb.
++ const publicApproach=entry.storeys.root.worldToLocal(entry.approachPoint());
++ local.customerVia={x:publicApproach.x,y:room.y,z:local.customer.z};
++ const world=p=>{const v=entry.storeys.worldPoint(p);return{x:v.x,y:v.y,z:v.z};};
++ const layout={buildingId:PRINT_SHOP_SERVICE_PILOT,revision:siteRevision,stationId:PRINT_SHOP_SERVICE_PILOT+':news-counter',roomId:room.id,doorId:PRINT_SHOP_SERVICE_PILOT+':stockroom-service-door',...Object.fromEntries(Object.entries(local).map(([k,p])=>[k,world(p)]))};
++ const counterRect=[counter.x-.87,counter.z-.43,counter.x+.87,counter.z+.43];
++ if(validateLayout({layout,local,counter,counterRect,room,hall})!==true)throw Error('Pilot service anchors not certified');
++ const frame=entry.storeys.root,root=new T.Group();root.name='PrintShop_Service_Pilot';frame.add(root);
++ const half=(d.width-.12)/2,leafEnd=d.width-.11,pool=createInteriorMeshPool(T,root),doorHinge=new T.Group(),doorPivot=new T.Group();doorHinge.position.set(d.x,room.y,d.z);doorPivot.position.x=-half;doorHinge.add(doorPivot);root.add(doorHinge);
++ const doorPool=createInteriorMeshPool(T,doorPivot);
++ const box=(target,position,size,color,metalness=0)=>target.add({shape:'box',position,size,color,metalness});
++ // Solid counter, brass foot rail, drawer, paper stacks and a compact register.
++ box(pool,[counter.x,.46+room.y,counter.z],[1.6,.92,.7],'#594337');
++ box(pool,[counter.x,.96+room.y,counter.z],[1.74,.08,.86],'#322b27');
++ box(pool,[counter.x,.09+room.y,counter.z+.37],[1.48,.045,.035],'#b69a65',.65);
++ box(pool,[counter.x,.68+room.y,counter.z-.36],[1.42,.30,.025],'#765944');
++ box(pool,[counter.x,.68+room.y,counter.z-.39],[.25,.03,.035],'#b69a65',.65);
++ box(pool,[counter.x+.4,1.055+room.y,counter.z-.04],[.45,.11,.35],'#343c3a');
++ box(pool,[counter.x+.4,1.22+room.y,counter.z+.015],[.32,.22,.13],'#343c3a');
++ box(pool,[counter.x+.4,1.235+room.y,counter.z-.058],[.25,.09,.015],'#afc4a9');
++ for(let i=0;i<4;i++)box(pool,[counter.x-.4,1.018+room.y+i*.013,counter.z+.08],[.42,.011,.30],i%2?'#ded6c4':'#ece4d3');
++ // Opaque technical door opens outward. The staff inside anchor is outside
++ // its swept leaf; automatic closing waits until all bodies clear the sweep.
++ box(doorPool,[half,1.04,0],[d.width-.12,2.06,.065],'#5b564b');
++ for(const y of [.58,1.49])for(const sign of [-1,1])box(doorPool,[half,y,sign*.043],[d.width-.38,.7,.022],'#716b5d');
++ for(const sign of [-1,1]){box(doorPool,[leafEnd-.14,1.04,sign*.062],[.045,.19,.025],'#b69a65',.65);box(doorPool,[leafEnd-.185,1.08,sign*.084],[.13,.036,.045],'#b69a65',.65);}
++ const counterStats=pool.flush(),doorStats=doorPool.flush();
++ for(const mesh of doorPivot.children){mesh.userData.worldBlastStaticBounds=false;mesh.userData.serviceMovingDoor=true;}
++ root.updateWorldMatrix(true,true);
++ let fraction=0,target=0,disposed=false,version=0,cachedVersion=-1,cachedBodies=null;
++ const scratch=new T.Vector3(),inverse=new T.Matrix4(),worldMin=world({x:counter.x,y:room.y,z:counter.z}).y;
++ const polygon=(points,parent)=>points.map(([x,z])=>{scratch.set(x,0,z);parent.localToWorld(scratch);return[scratch.x/metresPerCell,scratch.z/metresPerCell];});
++ const counterBody={polygonCR:polygon([[counterRect[0],counterRect[1]],[counterRect[2],counterRect[1]],[counterRect[2],counterRect[3]],[counterRect[0],counterRect[3]]],frame),minYM:worldMin,maxYM:worldMin+1.34,buildingEntryId:PRINT_SHOP_SERVICE_PILOT,interiorFurniture:true,serviceStation:true};
++ function sweptClear(from,to,occupants){
++  if(!Array.isArray(occupants)||occupants.length>64)return false;
++  doorHinge.updateWorldMatrix(true,false);inverse.copy(doorHinge.matrixWorld).invert();
++  const a=-smooth(from)*Math.PI/2,b=-smooth(to)*Math.PI/2,steps=Math.max(1,Math.ceil(Math.abs(b-a)/.035));
++  for(const body of occupants){
++   if(!finitePoint(body?.position)||!Number.isFinite(body.radius)||body.radius<=0||!Number.isFinite(body.height)||body.height<=0)return false;
++   scratch.set(body.position.x,body.position.y,body.position.z).applyMatrix4(inverse);
++   if(scratch.y>=2.1||scratch.y+body.height<=0)continue;
++   for(let i=0;i<=steps;i++){
++    const angle=a+(b-a)*i/steps,c=Math.cos(angle),s=Math.sin(angle),x=c*(scratch.x+half)-s*scratch.z,z=s*(scratch.x+half)+c*scratch.z;
++    const dx=Math.max(.01-x,0,x-leafEnd),dz=Math.max(0,Math.abs(z)-.12);
++    if(Math.hypot(dx,dz)<body.radius+.03)return false;
++   }
++  }
++  return true;
++ }
++ function requestDoor(open,{actorPosition,occupants}={}){
++  if(disposed||typeof open!=='boolean'||!finitePoint(actorPosition))return{accepted:false,reason:'invalid-door-request'};
++  if(open&&Math.hypot(actorPosition.x-layout.doorInside.x,actorPosition.y-layout.doorInside.y,actorPosition.z-layout.doorInside.z)>.25)return{accepted:false,reason:'staff-not-at-door'};
++  const next=open?1:0;if(!sweptClear(fraction,next,occupants))return{accepted:false,reason:'door-sweep-occupied'};
++  target=next;return{accepted:true,open};
++ }
++ function update(dt,occupants){
++  if(disposed||fraction===target)return false;
++  if(!Number.isFinite(dt)||dt<=0)return false;
++  const next=fraction+Math.max(-Math.min(dt,.1)/.6,Math.min(Math.min(dt,.1)/.6,target-fraction));
++  if(!sweptClear(fraction,next,occupants))return false;
++  fraction=next;doorPivot.rotation.y=-smooth(fraction)*Math.PI/2;root.updateWorldMatrix(true,true);version++;return true;
++ }
++ function bodies(){
++  if(disposed)return[];if(cachedVersion===version)return cachedBodies;cachedVersion=version;
++  const descriptor={buildingEntryId:PRINT_SHOP_SERVICE_PILOT,movingDoor:true,interiorDoor:true,serviceDoorId:layout.doorId};
++  const doorBody={...descriptor,polygonCR:polygon([[0,-.055],[leafEnd,-.055],[leafEnd,.055],[0,.055]],doorPivot),minYM:worldMin,maxYM:worldMin+2.1};
++  const handles={...descriptor,polygonCR:polygon([[leafEnd-.25,-.11],[leafEnd-.075,-.11],[leafEnd-.075,.11],[leafEnd-.25,.11]],doorPivot),minYM:worldMin+.93,maxYM:worldMin+1.16};
++  cachedBodies=[counterBody,doorBody,handles];return cachedBodies;
++ }
++ const api={root,layout,local,requestDoor,update,getCollisionBodies:bodies,sweptClear,
++  get doorState(){return{id:layout.doorId,fraction,open:target===1}},get needsUpdate(){return fraction!==target},
++  stats:()=>({parts:counterStats.parts+doorStats.parts,draws:counterStats.draws+doorStats.draws,triangles:counterStats.triangles+doorStats.triangles}),
++  dispose(){if(disposed)return;disposed=true;pool.dispose();doorPool.dispose();root.removeFromParent();cachedBodies=null;stations.delete(entry);}
++ };
++ stations.set(entry,api);return api;
++}
+diff --git a/assets/maps/city_rebuild_v1/npc_resident_commerce_source.js b/assets/maps/city_rebuild_v1/npc_resident_commerce_source.js
+index bebc201..15f4409 100644
+--- a/assets/maps/city_rebuild_v1/npc_resident_commerce_source.js
++++ b/assets/maps/city_rebuild_v1/npc_resident_commerce_source.js
+@@ -6,6 +6,28 @@ const _residentShopCatalog=Object.freeze({
+  gun_shop:Object.freeze({item:'cleaning_kit',label:'набор для чистки',price:12,need:'supplies'})
+ });
+ const _residentCommerceStats={purchases:0,spent:0,insufficientFunds:0,interrupted:0};
++// Opt-in per physical building. Until a complete station is registered, existing
++// visits retain their current checkout; an unfinished pilot cannot stop the city.
++const _residentCommerceServiceProviders=new Map();
++const _residentCommerceNoService=Object.freeze({available:true,provider:null,stamp:null});
++let _residentCommerceServiceSerial=0;
++function _residentCommerceRegisterService(buildingId,provider){
++ if(typeof buildingId!=='string'||!buildingId||typeof provider?.canServe!=='function'||typeof provider?.onPurchase!=='function')throw Error('Invalid resident service provider');
++ if(_residentCommerceServiceProviders.has(buildingId))throw Error('Resident service already registered');
++ const registration={provider,token:++_residentCommerceServiceSerial};_residentCommerceServiceProviders.set(buildingId,registration);
++ return()=>{if(_residentCommerceServiceProviders.get(buildingId)===registration)_residentCommerceServiceProviders.delete(buildingId);};
++}
++function _residentCommerceServiceGate(n,visit,now){
++ const order=visit?.commerce;if(!_residentCommerceServiceProviders.size&&!order?.serviceRegistration)return _residentCommerceNoService;
++ const buildingId=visit?.door?.instanceId||visit?.door?.id,registration=_residentCommerceServiceProviders.get(buildingId),provider=registration?.provider;
++ if(!provider)return order?.serviceRegistration?{available:false,reason:'service-unregistered'}:_residentCommerceNoService;
++ if(order&&order.serviceRegistration!==registration.token)return{available:false,reason:'service-replaced'};
++ try{
++  const access=provider.canServe({npc:n,visit,now});
++  if(access?.available!==true||typeof access.stamp!=='string'||!access.stamp||order&&order.serviceStamp!==access.stamp)return{available:false,reason:access?.reason||'employee-unavailable'};
++  return{available:true,provider,registration:registration.token,stamp:access.stamp};
++ }catch{return{available:false,reason:'service-unavailable'};}
++}
+ function _residentCommerceUnit(n,salt){let h=2166136261;for(const ch of `${n.id}:${salt}`){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}return (h>>>0)/4294967296;}
+ function _residentCommerceAccount(n){
+  return n._residentWallet??=( {balance:35+Math.floor(_residentCommerceUnit(n,'wallet')*85),inventory:{},receipts:[],serial:0} );
+@@ -20,7 +42,7 @@ function _residentDoorPurpose(door){
+ }
+ function _residentAffordableShop(n,door,now){
+  const item=_residentShopCatalog[door?.assetId];if(!item)return false;
+- const wallet=_residentCommerceAccount(n);return wallet.balance>=item.price&&now>=(wallet.inventory[item.item]?.nextNeedAt||0);
++ const wallet=_residentCommerceAccount(n);return Number.isSafeInteger(wallet.balance)&&wallet.balance>=item.price&&wallet.balance<=0x7fffffff&&now>=(wallet.inventory[item.item]?.nextNeedAt||0);
+ }
+ const _residentPlaceCatalogs=new WeakMap();
+ function _residentPlaceCatalog(doors,now){
+@@ -65,26 +87,50 @@ function _residentChoosePurposeDoors(n,doors,routine,now,allDoors=doors){
+  // Unknown buildings remain visit destinations, never shops with invented stock.
+  return matching.length?matching:available;
+ }
++function _residentCommerceArrivalTarget(n,visit,now){
++ const pinned=visit?._serviceArrival,seen=visit?._serviceArrivalRegistration||pinned?.registration,buildingId=visit?.door?.instanceId||visit?.door?.id;
++ if(!_residentCommerceServiceProviders.size&&!seen)return visit?.door?.inside||null;
++ const registration=_residentCommerceServiceProviders.get(buildingId),provider=registration?.provider;
++ if(!provider||typeof provider.getServiceArrivalTarget!=='function')return seen?null:visit?.door?.inside||null;
++ if(seen&&seen!==registration.token)return null;
++ visit._serviceArrivalRegistration=registration.token;
++ try{
++  const target=provider.getServiceArrivalTarget({npc:n,visit,now});
++  if(!target||![target.r,target.c,target.y].every(Number.isFinite)||typeof target.stamp!=='string'||!target.stamp)return null;
++  if(pinned&&(pinned.stamp!==target.stamp||pinned.r!==target.r||pinned.c!==target.c||pinned.y!==target.y))return null;
++  if(!pinned)visit._serviceArrival={registration:registration.token,stamp:target.stamp,r:target.r,c:target.c,y:target.y};
++  return visit._serviceArrival;
++ }catch{return null;}
++}
+ function _residentCommerceArrive(n,visit,now){
+- const door=visit?.door;if(visit.commerce||!door?.inside||visit.phase!=='browsing'||Math.hypot(n.r-door.inside.r,n.c-door.inside.c)>.04)return false;
++ const door=visit?.door;if(visit.commerce||!door?.inside||visit.phase!=='browsing')return false;
++ const arrival=_residentCommerceArrivalTarget(n,visit,now);if(!arrival||Math.hypot(n.r-arrival.r,n.c-arrival.c)>.04)return false;
+  const purpose=_residentDoorPurpose(door);visit.purpose=purpose;
+  n._civilianPlan.purpose=purpose;
+  if(purpose!=='shop'||!_residentAffordableShop(n,door,now))return false;
++ const service=_residentCommerceServiceGate(n,visit,now);if(!service.available)return false;
+  const wallet=_residentCommerceAccount(n),item=_residentShopCatalog[door.assetId];
+  visit.commerce={id:`${n.id}:${++wallet.serial}`,item,phase:'browse',since:now,payAt:now+1800,completeAt:now+3100,settled:false};
++ if(service.provider){visit.commerce.serviceRegistration=service.registration;visit.commerce.serviceStamp=service.stamp;}
+  visit.until=Math.max(visit.until,now+3700);return true;
+ }
+ function _residentCommerceTick(n,visit,now){
+  const order=visit?.commerce;if(!order||order.settled)return false;
+- if(visit.phase!=='browsing'||n.dead||n.alive===false||Number.isFinite(n.hp)&&n.hp<=0||typeof _civilianPlanInterrupted==='function'&&_civilianPlanInterrupted(n,now)||Math.hypot(n.r-visit.door.inside.r,n.c-visit.door.inside.c)>.08){order.settled=true;order.phase='cancelled';_residentCommerceStats.interrupted++;return false;}
++ const arrival=_residentCommerceArrivalTarget(n,visit,now);
++ if(visit.phase!=='browsing'||n.dead||n.alive===false||Number.isFinite(n.hp)&&n.hp<=0||typeof _civilianPlanInterrupted==='function'&&_civilianPlanInterrupted(n,now)||!arrival||Math.hypot(n.r-arrival.r,n.c-arrival.c)>.08){order.settled=true;order.phase='cancelled';_residentCommerceStats.interrupted++;return false;}
++ const service=_residentCommerceServiceGate(n,visit,now);
++ if(!service.available){order.settled=true;order.phase='cancelled';order.serviceReason=service.reason;_residentCommerceStats.interrupted++;return false;}
+  order.phase=now<order.payAt?'browse':'pay';
+  if(now<order.completeAt)return true;
+  const wallet=_residentCommerceAccount(n),item=order.item;order.settled=true;
+- if(wallet.balance<item.price){order.phase='declined';_residentCommerceStats.insufficientFunds++;return false;}
+- wallet.balance-=item.price;
++ if(!Number.isSafeInteger(wallet.balance)||wallet.balance<item.price||wallet.balance>0x7fffffff){order.phase='declined';_residentCommerceStats.insufficientFunds++;return false;}
++ const balanceBefore=wallet.balance;wallet.balance-=item.price;
+  const old=wallet.inventory[item.item];wallet.inventory[item.item]={quantity:(old?.quantity||0)+1,nextNeedAt:now+300000};
+- wallet.receipts.push({id:order.id,doorId:visit.door.id,item:item.item,price:item.price,at:now});if(wallet.receipts.length>8)wallet.receipts.shift();
++ const receipt={id:order.id,doorId:visit.door.id,item:item.item,price:item.price,at:now};wallet.receipts.push(receipt);if(wallet.receipts.length>8)wallet.receipts.shift();
+  order.phase='complete';_residentCommerceStats.purchases++;_residentCommerceStats.spent+=item.price;
++ // Source checkout is the sole cash/inventory owner. Consume its accepted
++ // event synchronously before the next needs choice; never debit in the mirror.
++ if(service.provider)try{order.serviceResult=service.provider.onPurchase({npc:n,visit,now,receipt,balanceBefore,balanceAfter:wallet.balance});}catch{order.serviceResult={accepted:false,reason:'account-sync-required'};}
+  n.cryText=`Купил${n.gender==='female'?'а':''} ${item.label}. Спасибо!`;n.cryUntil=now+2100;
+  return false;
+ }
+diff --git a/assets/maps/city_rebuild_v1/test_npc_service_applied23.mjs b/assets/maps/city_rebuild_v1/test_npc_service_applied23.mjs
+new file mode 100644
+index 0000000..5a6248e 100644
+--- /dev/null
++++ b/assets/maps/city_rebuild_v1/test_npc_service_applied23.mjs
+@@ -0,0 +1,111 @@
++import assert from 'node:assert/strict';
++import fs from 'node:fs';
++import vm from 'node:vm';
++import {gunzipSync} from 'node:zlib';
++import {createIncrementalWalkCollisionIndex} from './incremental_walk_collision_index.mjs';
++import {createNpcNativeNavigation} from './npc_native_navigation.mjs';
++import {pointInPolygon} from './car_drive.mjs';
++import {createNpcPopulation} from './npc_population.mjs';
++import {createStationaryServiceWalk23} from './service_pilot23_candidate/walk_host.mjs';
++import {createStationaryServiceSource23} from './service_pilot23_candidate/source.mjs';
++import path from 'node:path';
++import {pathToFileURL} from 'node:url';
++import {registerHooks} from 'node:module';
++// Test dependency override only; no production/source transformation.
++const vendor=path.resolve(process.env.THREE_VENDOR_ROOT||'D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor').replaceAll('\\','/')+'/';
++assert(fs.existsSync(vendor+'build/three.module.js')&&fs.existsSync(vendor+'addons/loaders/GLTFLoader.js'),'Set THREE_VENDOR_ROOT to the Three.js 0.180 package root (build/ + addons/)');
++const nativeFixtureURL=new URL('./test_civilian_native_fixture.mjs',import.meta.url).href;
++registerHooks({load(url,context,next){if(url!==nativeFixtureURL)return next(url,context);let source=fs.readFileSync(new URL(url),'utf8');const anchor="const vendor='D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor/';";assert(source.includes(anchor),'native test fixture dependency anchor');source=source.replace(anchor,'const vendor='+JSON.stringify(vendor)+';');source=source.replace("source.indexOf('  // Entries are collected after iteration')", "(()=>{const at=source.indexOf('  _stationaryServicePilot23?.tick(now,simulationFrameDt);');return at>=0?at:source.indexOf('  // Entries are collected after iteration');})()");return{format:'module',shortCircuit:true,source};}});
++const {createCivilianNativeFixture,sourceFunction}=await import(nativeFixtureURL);
++const snapshot=JSON.parse(gunzipSync(fs.readFileSync(new URL('test_fixtures/native_static_collision19.json.gz',import.meta.url))));
++const f=await createCivilianNativeFixture({assetId:'print_shop',snapshot}),box=f.box,T=f.THREE;
++const world=f.source;assert(world.includes('function _installStationaryServiceMerchant23(')&&world.includes('function _residentServiceYield23('),'Service must already be applied to actual world.html');
++new vm.Script(sourceFunction(world,'updateNpcs'));
++const walk=fs.readFileSync(new URL('walk_preview.mjs',import.meta.url),'utf8');
++new vm.Script(sourceFunction(walk,'ensureStationaryServiceWalk23'));
++assert(walk.includes('stationaryServiceWalk23?.syncCollision();'));
++const start=world.indexOf('const NPC_ARCHETYPES ='),end=world.indexOf('// Взвешенная выборка архетипа',start);
++Object.assign(box,{getGameHour:()=>12,_buildingInt:null,_bankInt:null,_customGang:null,_murderPoliceArrest:null,CORPSE_AUTO_REMOVE_MS:300000});
++vm.runInContext(world.slice(start,end)+'\nlet _residentSerial=0;let _stationaryServicePilot23=null,_stationaryServiceExitMove23=null;const _threeNpcIds=new WeakMap();let _threeNpcIdSeq=0;',box);
++vm.runInContext('let _residentServiceVisitSerial23=0;',box);
++for(const name of ['_stationaryServiceReturnHost23','_installStationaryServiceMerchant23','_residentServiceBeginApproach23','_residentServiceRouteTick23'])vm.runInContext(sourceFunction(world,name),box);
++for(const name of ['spawnNpc','_initNpcEmotions','_pickArchetype','_installStationaryServicePilot23','_residentNativeVisitTick','_residentServiceYield23','_getWalkServicePhysicalBodies23','_threeNpcEntityId','_corpseRemovalDue','_npcLogicalVehicleRow','_getWalkNpcVehicleTraffic'])vm.runInContext(sourceFunction(world,name),box);
++const bridge={installStationaryServiceMerchant23:(...args)=>box._installStationaryServiceMerchant23(...args),getWalkServicePhysicalBodies23:q=>box._getWalkServicePhysicalBodies23(q),getWalkNpcVehicleTraffic:()=>box._getWalkNpcVehicleTraffic()};
++const index=createIncrementalWalkCollisionIndex();index.replaceGroup('fixture-world',f.bodies);
++const nav=createNpcNativeNavigation({worldScale:f.M,groundHeight:f.floor,waterAt:f.waterAt,bodiesAt:(c,r)=>index(c,r),bodiesInBounds:(...args)=>index.queryBounds(...args),containsBody:(b,r,c)=>pointInPolygon(c,r,b.polygonCR),terrainAllows:(x,z)=>f.pedestrian.query({r:z/f.M,c:x/f.M}).blocked===false});
++const door=box.nativeTrafficQuery({mode:'resident-access',action:'list'}).doors.find(d=>d.instanceId===f.item.id),hero={object:new T.Group()},camera=new T.PerspectiveCamera(55,1.6,.05,1500),actors=new Map();
++const {GLTFLoader}=await import(pathToFileURL(vendor+'addons/loaders/GLTFLoader.js').href);
++const {clone}=await import('./vendor/three_skeleton_utils.mjs');
++const originalFetch=globalThis.fetch;globalThis.fetch=async(url,options)=>String(url).startsWith('file:')?{ok:true,arrayBuffer:async()=>{const b=fs.readFileSync(new URL(url));return b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength);}}:originalFetch(url,options);
++const population=await createNpcPopulation({THREE:T,scene:f.scene,loader:new GLTFLoader(),cloneSkeleton:clone,maxActors:72,creationBudget:1,cacheSeconds:8,groundHeight:f.floor,waterAt:f.waterAt,getFocus:()=>hero.object.position});globalThis.fetch=originalFetch;
++const poolStart=world.indexOf('    const npcLifePool=x=>{'),poolEnd=world.indexOf('    _threeNpcActionRefs.clear();',poolStart);assert(poolStart>0&&poolEnd>poolStart);
++Object.assign(box,{JUNKYARD_R:0,JUNKYARD_C:0,_junkyardFootWorkers:[],_inPrisonIslandRestrictedZone:()=>false,_isPrisonStaffActor:()=>false});
++vm.runInContext('const NPC_LIFE_NPC_CAP=72,NPC_LIFE_POOL_ORDER=["mission","police","guard","gang","civilian"],_threeStickyNpcIds=new Set();\nfunction selectServiceViews23(npcSource){const inside=false,near=()=>false,fxNow=performance.now(),rad2=65**2;\n'+world.slice(poolStart,poolEnd)+'\nreturn npcSelected.map(row=>({...row.source,id:row.id,role:row.source.role||"civilian"}));}',box);
++const sourceViews=()=>box.selectServiceViews23(f.npcs);
++f.scene.add(hero.object);hero.object.position.set(door.c*f.M+20,2,door.r*f.M);camera.position.copy(hero.object.position).add(new T.Vector3(0,2,0));camera.lookAt(hero.object.position.x+30,2,hero.object.position.z);camera.updateMatrixWorld(true);
++let pilot,fleetRows=[];const baseBodies=f.entry.getCollisionBodies.bind(f.entry);f.entry.getCollisionBodies=()=>baseBodies().concat(pilot?.station.getCollisionBodies()||[]);
++const host={getEntries:()=>[f.entry],ready:()=>true,getCollisionIndex:()=>index,invalidateNavigation:()=>nav.beginFrame(),nativeQuery:nav.query,groundHeight:f.floor,ceilingHeight:(x,z,y)=>f.entry.ceilingHeight({x,y,z})??Infinity,waterAt:f.waterAt,getCamera:()=>camera,getHero:()=>hero,heroBody:()=>({radius:.738,height:1.9}),getNpcActors:()=>population.getActors(),getNpcActor:id=>population.getActor(id),getFleet:()=>fleetRows,getTrafficActors:()=>[]};
++pilot=createStationaryServiceWalk23({THREE:T,bridge,host,siteRevision:'walk-host23',sourceFactory:createStationaryServiceSource23});assert(pilot);
++function frame(dt=.05,{render=true}={}){
++ f.nextFrame(dt);f.refreshBodies();index.replaceGroup('fixture-world',f.bodies);nav.beginFrame();pilot.syncCollision();
++ if(render){population.sync(sourceViews(),f.now/1000,f.now);population.update(dt,f.now/1000);}
++ return pilot.controller.tick(f.now,dt);
++}
++for(let i=0;i<10&&!pilot.controller.actor;i++)frame(.1,{render:false});assert(pilot.controller.actor,'real source birth in hidden backroom');
++const employee=pilot.controller.actor,atBirth={r:employee.r,c:employee.c};
++for(let i=0;i<5;i++)frame(.05,{render:false});assert.deepEqual({r:employee.r,c:employee.c},atBirth,'nearby source waits for actual model admission');
++frame(.05);
++const employeeViewId=box._threeNpcEntityId(employee),actualActor=population.getActor(employeeViewId);assert(actualActor?.object.parent,'actual getActor GLB ready');
++let skinned=0,bones=0;actualActor.object.traverse(node=>{if(node.isSkinnedMesh){skinned++;bones+=node.skeleton.bones.length;}});assert(skinned>0&&bones>0,'actual skinned GLB, no Object3D replacement');
++assert(pilot.controller.ownsCalmMovement(employee,f.now),'fresh admitted skin grants movement');
++population.sync([],f.now/1000,f.now);assert(population.getActor(employeeViewId)?.object.parent,'production cache retains streamed-out actor');
++assert.equal(pilot.controller.ownsCalmMovement(employee,f.now),false,'cached streamed-out skin must not grant nearby readiness');
++population.sync(sourceViews(),f.now/1000,f.now);population.update(.05,f.now/1000);
++assert(pilot.controller.ownsCalmMovement(employee,f.now),'current skin readmitted');
++actualActor.object.visible=false;assert.equal(pilot.controller.ownsCalmMovement(employee,f.now),false,'hidden actual actor cannot certify presentation');actualActor.object.visible=true;
++f.scene.visible=false;assert.equal(pilot.controller.ownsCalmMovement(employee,f.now),false,'hidden ancestor cannot certify presentation');f.scene.visible=true;
++const savedParent=actualActor.object.parent;actualActor.object.removeFromParent();assert.equal(pilot.controller.ownsCalmMovement(employee,f.now),false,'detached actual actor denied');savedParent.add(actualActor.object);
++const ownIndex=f.npcs.indexOf(employee);f.npcs.splice(ownIndex,1);assert.equal(pilot.controller.ownsCalmMovement(employee,f.now),false,'stale actual source reference denied despite current skin');f.npcs.splice(ownIndex,0,employee);
++const originalGeneration=employee._stationaryService.generation;employee._stationaryService.generation++;assert.equal(pilot.controller.ownsCalmMovement(employee,f.now),false,'stale employment generation denied despite loaded skin');employee._stationaryService.generation=originalGeneration;
++const crowded=Array.from({length:100},(_,i)=>({id:'quota_'+i,r:employee.r+.01,c:employee.c+.01,hp:60,_said:true,_ambientTrafficDriver:true}));
++const civilians=Array.from({length:30},(_,i)=>({id:'civilian_quota_'+i,r:employee.r+.02,c:employee.c+.02,hp:60}));
++const selected=box.selectServiceViews23([...crowded,...civilians,employee]);assert.equal(selected.length,72);assert.equal(selected[0].id,employeeViewId,'real owned service precedes mission drivers');assert.equal(selected.filter(row=>row.id.includes('civilian_quota_')).length,24,'existing civilian reserve retained');
++for(let i=0;i<700&&!pilot.controller.lifecycle.available;i++)frame(.05);
++assert(pilot.controller.lifecycle.available,JSON.stringify({stats:pilot.controller.stats,position:{r:employee.r,c:employee.c},result:frame(.05)}));
++let cpu=null;
++if(process.env.SERVICE_HOST_PERF23==='1'){
++ const population=Array.from({length:384},(_,i)=>({id:'perf_body_'+i,r:100+i*.02,c:100,hp:60}));f.npcs.push(...population);
++ const at={r:pilot.station.layout.spawn.z/f.M,c:pilot.station.layout.spawn.x/f.M};
++ const measure=fn=>{for(let i=0;i<30;i++)fn();const samples=[];for(let i=0;i<120;i++){const start=performance.now();fn();samples.push(performance.now()-start);}samples.sort((a,b)=>a-b);return{p50:samples[60],p95:samples[114]};};
++ cpu={units:'ms',population:384,scenario:'warmed identical point at storeroom, all far source bodies still enumerated',nativePoint:measure(()=>host.nativeQuery({mode:'sweep',from:at,to:at,radius:.18})),composedPoint:measure(()=>pilot.canSweep(at,at,null)),idleController:measure(()=>pilot.controller.tick(f.now,0)),limits:'CPU fixture only; no renderer or whole-scene frame time'};
++ for(const body of population)f.npcs.splice(f.npcs.indexOf(body),1);
++}
++const n=box.spawnNpc(777777,{cityOnly:true});Object.assign(n,{r:door.r,c:door.c,tr:door.r,tc:door.c,_civilianPlan:{phase:'walk_to_shop',cycle:1},_residentWallet:{balance:80,serial:0,inventory:{},receipts:[]}});f.npcs.push(n);assert(box._residentEnterBuilding(n,f.now,door));
++let frames=0;while(n._residentNativeVisit){frame(1/7);pilot.controller.tick(f.now,0);box._residentNativeVisitTick(n,1/7,f.now);assert(++frames<600,JSON.stringify({status:n._residentVisitStatus,visit:n._residentNativeVisit,employee:pilot.controller.stats}));}
++assert.equal(n._residentWallet.balance,77);assert.equal(n._residentWallet.receipts.length,1);
++const spawn=pilot.station.layout.spawn,rc={r:spawn.z/f.M,c:spawn.x/f.M};
++const overflow=[];for(let i=0;i<100;i++){const body={id:'unrendered_'+i,r:rc.r,c:rc.c,hp:60};overflow.push(body);f.npcs.push(body);}
++assert.equal(pilot.canSweep(rc,rc,null),false,'body outside 72 renderer quota still blocks spawn');
++for(const body of overflow)f.npcs.splice(f.npcs.indexOf(body),1);
++const unrendered={id:'fresh-blocker',r:rc.r,c:rc.c,hp:60};f.npcs.push(unrendered);assert.equal(pilot.canSweep(rc,rc,null),false);unrendered.c+=10;assert.equal(pilot.canSweep(rc,rc,null),true,'source change between Walk frames is read fresh');f.npcs.splice(f.npcs.indexOf(unrendered),1);
++hero.object.position.set(spawn.x,spawn.y,spawn.z);assert.equal(pilot.canSweep(rc,rc,null),false,'current player body blocks');hero.object.position.y+=8;assert.equal(pilot.canSweep(rc,rc,null),true,'actual player Y avoids false floor collision');
++const originalCar={r:f.car.r,c:f.car.c};f.car.r=rc.r;f.car.c=rc.c;assert.equal(pilot.canSweep(rc,rc,null),false,'fresh unstreamed source traffic blocks between Walk frames');Object.assign(f.car,originalCar);
++fleetRows=[{id:'hidden-fleet',car:f.actor}];f.actor.object.position.set(spawn.x,spawn.y,spawn.z);f.actor.object.visible=false;assert.equal(pilot.canSweep(rc,rc,null),false,'render-hidden physical fleet vehicle still blocks');f.actor.object.visible=true;fleetRows=[];f.syncCar();
++const corpse={id:'retained-corpse',r:rc.r,c:rc.c,hp:0,dead:true,deadAt:f.now-61000,_deathR:rc.r,_deathC:rc.c};f.npcs.push(corpse);assert.equal(pilot.canSweep(rc,rc,null),false,'corpse retained after minute still occupies room');f.npcs.splice(f.npcs.indexOf(corpse),1);
++const closePoint=pilot.station.layout.doorOutside,nearDoor=[];for(let i=0;i<65;i++){const body={id:'door_crowd_'+i,r:closePoint.z/f.M,c:closePoint.x/f.M,hp:60};f.npcs.push(body);nearDoor.push(body);}
++assert.equal(pilot.station.sweptClear(0,1,pilot.physicalBodies(closePoint,pilot.station.layout.doorInside)),false,'complete door crowd over64 holds, no truncation');for(const body of nearDoor)f.npcs.splice(f.npcs.indexOf(body),1);
++// Confirmed-death boundary is injected here; actual hit/downing/bleedout is covered by the accepted source-body suite.
++employee.dead=true;employee.hp=0;employee.deadAt=f.now;employee._deathRecord20={confirmed:true,fatal:true,targetId:box._threeNpcEntityId(employee),deathKey:String(f.now)};frame(.05);assert.equal(pilot.controller.lifecycle.available,false);
++const shopper=box.spawnNpc(888888,{cityOnly:true});Object.assign(shopper,{r:door.r,c:door.c,tr:door.r,tc:door.c,_civilianPlan:{phase:'walk_to_shop',cycle:1},_residentWallet:{balance:80,serial:0,inventory:{},receipts:[]}});f.npcs.push(shopper);assert(box._residentEnterBuilding(shopper,f.now,door));let deniedFrames=0;
++while(shopper._residentNativeVisit){frame(1/7);pilot.controller.tick(f.now,0);box._residentNativeVisitTick(shopper,1/7,f.now);assert(++deniedFrames<300);}
++assert.equal(shopper._residentWallet.balance,80);assert.equal(shopper._residentWallet.receipts.length,0,'dead seller cannot sell');
++const corpseBefore=JSON.stringify(employee);frame((employee.deadAt+59000-f.now)/1000);assert.equal(pilot.controller.stats.births,1);frame(1.1);assert.equal(pilot.controller.stats.births,2);assert.notEqual(pilot.controller.actor.id,employee.id);assert.equal(JSON.stringify(employee),corpseBefore);
++assert(Math.hypot(pilot.controller.actor.c*f.M-spawn.x,pilot.controller.actor.r*f.M-spawn.z)<.01,'replacement born in same hidden storeroom');
++const replacement=pilot.controller.actor;
++frame(.05);assert(pilot.controller.ownsCalmMovement(replacement,f.now),'fresh generation gets its own actual loaded skin');
++const replacementView=population.getActor(box._threeNpcEntityId(replacement));assert(replacementView&&replacementView!==actualActor,'new source identity cannot reuse cached dead seller actor');
++population.dispose();assert.equal(pilot.controller.ownsCalmMovement(replacement,f.now),false,'disposed production population cannot grant movement');assert.equal(replacementView.object.parent,null);
++const countBefore=index.stats.bodyReferences;pilot.dispose();assert(index.stats.bodyReferences<countBefore,'service collision group removed');assert.equal(replacement._stationaryService,undefined);assert(employee._stationaryService,'corpse marker retained to prevent ambient duplicate');assert.equal(vm.runInContext('_residentCommerceServiceProviders.size',box),0);
++population.dispose();assert.equal(population.getActor(employeeViewId),undefined);assert.equal(actualActor.object.parent,null);hero.object.removeFromParent();f.entry.getCollisionBodies=baseBodies;f.entry.dispose();
++const report={pass:true,actualSkin:{meshes:skinned,bones,productionPopulation:true,missionQuota72:true,streamedOutHiddenDetachedStaleSourceDenied:true},purchase:{frames,balance:77,receipts:1},uncappedBodies:100,actualCameraFrustum:true,sourceFreshBetweenFrames:true,sourceTraffic:true,hiddenFleet:true,retainedCorpse:true,doorCrowd65:true,deadSellerPurchaseDenied:true,hiddenReplacementAfter60s:true,cpu,limits:'Composed actual source/commerce/native geometry/camera/uncapped roster. Production npcPopulation/getActor with verified real GLBs; exact source selection slice including mission quota; CPU skeletal pose, no rendered-frame observation. Actual applied source/package checked; no GPU/LIVE/FPS.'};
++console.log(JSON.stringify({...report,actualAppliedRuntime:true},null,2));
+diff --git a/assets/maps/city_rebuild_v1/test_npc_service_interruption_applied23.mjs b/assets/maps/city_rebuild_v1/test_npc_service_interruption_applied23.mjs
+new file mode 100644
+index 0000000..7aa56a6 100644
+--- /dev/null
++++ b/assets/maps/city_rebuild_v1/test_npc_service_interruption_applied23.mjs
+@@ -0,0 +1,47 @@
++import assert from 'node:assert/strict';
++import fs from 'node:fs';
++import vm from 'node:vm';
++const fixtureURL=new URL('./test_npc_service_applied23.mjs',import.meta.url);
++let prefix=fs.readFileSync(fixtureURL,'utf8');prefix=prefix.slice(0,prefix.indexOf('const n=box.spawnNpc(777777'));
++prefix=prefix.replace(/from\s+(['"])(\.[^'"]+)\1/g,(_,q,s)=>'from '+JSON.stringify(new URL(s,fixtureURL).href));
++prefix=prefix.replace(/import\((['"])(\.[^'"]+)\1\)/g,(_,q,s)=>'import('+JSON.stringify(new URL(s,fixtureURL).href)+')');
++prefix=prefix.replace(/new URL\((['"])([^'"]+)\1,import\.meta\.url\)/g,(_,q,s)=>'new URL('+JSON.stringify(new URL(s,fixtureURL).href)+')');
++prefix+='\nexport {f,box,pilot,frame,door,world,population,sourceFunction};';
++const {f,box,pilot,frame,door,world,population,sourceFunction}=await import('data:text/javascript;base64,'+Buffer.from(prefix).toString('base64'));
++vm.runInContext(sourceFunction(world,'_planNpcEscapeRoute'),box);
++const panicStart=world.indexOf('    if (n.panicUntil && now < n.panicUntil) {',world.indexOf('function updateNpcs(')),panicEnd=world.indexOf('    } else if (n.panicUntil)',panicStart);assert(panicStart>0&&panicEnd>panicStart);
++vm.runInContext('function servicePanicDispatch23(n,dt,now){for(const once of [0]){if(_npcRunActivityElapsed(n,null,dt,now,_residentNativeVisitTick))return true;\n'+world.slice(panicStart,panicEnd)+'\n}}return false;}',box);
++const results=[];let serial=880000;
++for(const scenario of ['panic-await','panic-approach','panic-counter','combat-counter','report-counter','conversation-counter']){
++ const n=box.spawnNpc(++serial,{cityOnly:true});Object.assign(n,{r:door.r,c:door.c,tr:door.r,tc:door.c,_civilianPlan:{phase:'walk_to_shop',cycle:1},_residentWallet:{balance:80,serial:0,inventory:{},receipts:[]},_arc:{...n._arc,panicMult:2.5}});f.npcs.push(n);assert(box._residentEnterBuilding(n,f.now,door));
++ const reached=()=>scenario.endsWith('await')?n._residentNativeVisit?._serviceRoute23?.stage==='await':scenario.endsWith('approach')?n._residentNativeVisit?._serviceRoute23?.stage==='approach':n._residentNativeVisit?.phase==='browsing';
++ let guard=0;while(!reached()){frame(.05);pilot.controller.tick(f.now,0);box._residentNativeVisitTick(n,.05,f.now);assert(++guard<700,'reach '+scenario);}
++ const visit=n._residentNativeVisit,certificate=visit._serviceRoute23.certificate,before={r:n.r,c:n.c};
++ if(scenario.startsWith('panic')){n.panicUntil=f.now+10000;n._panicStyle='flee';n.panicSrcR=n.r-.1;n.panicSrcC=n.c;}
++ else if(scenario.startsWith('combat'))n._fighting=true;
++ else if(scenario.startsWith('report'))n.snitching=true;
++ else n._playerConversationOpen=true;
++ n.walking=true;const ownerRoute=[{r:n.r+.01,c:n.c}];n._route=ownerRoute;n._routeKind='higher-priority-owner';
++ for(let i=0;i<20;i++){
++  frame(.1);pilot.controller.tick(f.now,0);
++  assert.equal(box._npcRunActivityElapsed(n,null,.1,f.now,box._residentNativeVisitTick),false,'visit yields existing source owner immediately');
++  assert.equal(n.walking,true,'visit does not overwrite owner walking');assert.equal(n._route,ownerRoute,'visit does not clear foreign route');assert.deepEqual({r:n.r,c:n.c},before,'visit does not move foreign owner');
++ }
++ assert.equal(n._residentNativeVisit,visit);assert.equal(visit._serviceRoute23.certificate,certificate,'exit capability retained');assert.equal(n._residentWallet.balance,80);assert.equal(n._residentWallet.receipts.length,0);if(visit.commerce)assert.equal(visit.commerce.phase,'cancelled');
++ let panicMovementM=0;
++ if(scenario==='panic-counter'){
++  const via=visit._serviceRoute23.points[1];assert(pilot.canSweep({r:n.r,c:n.c},via,n),'physical source panic leg must be clear');
++  box._setNpcRoute(n,[{r:via.r,c:via.c}],'panic');
++  assert.equal(box.servicePanicDispatch23(n,.1,f.now),false,'actual later panic branch gets control');
++  panicMovementM=Math.hypot(n.r-before.r,n.c-before.c)*f.M;assert(panicMovementM>.01,'actual existing panic route executor moves shopper');
++ }
++ // End the injected incident. Source resumes from the actual displaced point.
++ n.panicUntil=0;n._fighting=false;n.snitching=false;n._playerConversationOpen=false;
++ let exitFrames=0;while(n._residentNativeVisit){frame(.1);pilot.controller.tick(f.now,0);box._residentNativeVisitTick(n,.1,f.now);assert(++exitFrames<600,'physical interrupted exit '+scenario);}
++ assert.equal(n._residentWallet.balance,80);assert.equal(n._residentWallet.receipts.length,0);
++ assert(Math.hypot(n.r-visit.returnPoint.r,n.c-visit.returnPoint.c)<=.03,'physical return point reached without teleport');
++ results.push({scenario,yieldTicks:20,exitFrames,panicMovementM,balance:80});f.npcs.splice(f.npcs.indexOf(n),1);
++}
++pilot.dispose();population.dispose();f.entry.dispose();
++const report={pass:true,results,limits:'Actual composed source visit/commerce/elapsed arbitration, native geometry, production GLB population. Incidents injected at ownership boundary; one real original panic movement branch/route executed. No full world perception/combat/GPU/FPS claim.'};
++console.log(JSON.stringify({...report,actualAppliedRuntime:true},null,2));
+diff --git a/assets/maps/city_rebuild_v1/test_npc_service_revision23.mjs b/assets/maps/city_rebuild_v1/test_npc_service_revision23.mjs
+new file mode 100644
+index 0000000..fc6eb35 100644
+--- /dev/null
++++ b/assets/maps/city_rebuild_v1/test_npc_service_revision23.mjs
+@@ -0,0 +1,18 @@
++import assert from 'node:assert/strict';
++import fs from 'node:fs';
++import vm from 'node:vm';
++const fixtureURL=new URL('./test_npc_service_applied23.mjs',import.meta.url);
++let prefix=fs.readFileSync(fixtureURL,'utf8'),end=prefix.indexOf('pilot=createStationaryServiceWalk23(');assert(end>0);prefix=prefix.slice(0,end);
++prefix=prefix.replace(/from\s+(['"])(\.[^'"]+)\1/g,(_,q,s)=>'from '+JSON.stringify(new URL(s,fixtureURL).href));
++prefix=prefix.replace(/import\((['"])(\.[^'"]+)\1\)/g,(_,q,s)=>'import('+JSON.stringify(new URL(s,fixtureURL).href)+')');
++prefix=prefix.replace(/new URL\((['"])([^'"]+)\1,import\.meta\.url\)/g,(_,q,s)=>'new URL('+JSON.stringify(new URL(s,fixtureURL).href)+')');
++prefix+='\nexport {f,T,bridge,host,population,createStationaryServiceWalk23};';
++const {f,T,bridge,host,population,createStationaryServiceWalk23}=await import('data:text/javascript;base64,'+Buffer.from(prefix).toString('base64'));
++const revision=['a','b','c','d'].map(c=>c.repeat(64)),before=vm.runInNewContext("String(revision)+':service23:'+buildingCameraIndexGeneration",{revision,buildingCameraIndexGeneration:2}),after=vm.runInNewContext("'service23:'+buildingCameraIndexGeneration",{revision,buildingCameraIndexGeneration:2});
++assert.equal(before.length,271);assert(before.length>240);assert(after.length<240);
++assert.throws(()=>createStationaryServiceWalk23({THREE:T,bridge,host,siteRevision:before}),/Certified service layout required/,'actual composed runtime reproduces LIVE four-SHA failure');
++const controller=createStationaryServiceWalk23({THREE:T,bridge,host,siteRevision:after});assert(controller);assert.equal(controller.station.layout.revision,after);
++host.getEntries=()=>[];assert.equal(controller.controller.tick(1000,.05).reason,'stale-service-source','old entry ownership invalidation preserved');controller.dispose();
++assert.notEqual(vm.runInNewContext("'service23:'+buildingCameraIndexGeneration",{buildingCameraIndexGeneration:3}),after,'next accepted content generation cannot reuse token');
++const walk=fs.readFileSync(new URL('./walk_preview.mjs',import.meta.url),'utf8');assert(walk.includes('buildingCameraIndexGeneration++;')&&walk.includes('npcBridge===servicePilotBridge23')&&walk.includes('stationaryServiceWalk23?.dispose();stationaryServiceWalk23=null;'),'existing generation/bridge/disposal guards retained');
++population.dispose();f.entry.dispose();console.log(JSON.stringify({pass:true,beforeLength:before.length,after,actualBeforeFailure:true,actualAfterFactory:true,oldEntryInvalidated:true,nextGenerationDistinct:true,noValidationRelaxation:true,limits:'Actual applied runtime factory/GLB geometry with changed host token only. No production write or GPU.'}));

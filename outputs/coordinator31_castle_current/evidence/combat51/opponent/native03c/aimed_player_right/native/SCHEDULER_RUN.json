@@ -1,0 +1,90 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--path",
+    "D:\\MafioziCombat31\\resume51_opponent\\candidate03\\game",
+    "--script",
+    "D:\\MafioziCombat31\\resume51_opponent\\aimed_player51.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\resume51_opponent\\native03c\\aimed_player_right",
+    "--weapon=sword",
+    "--strokes=8",
+    "--direction=right"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "748755790d87457592f8982f96608f1f",
+    "owner": {
+      "pid": 48792,
+      "creation_filetime": "134368075930518102"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\resume51_opponent\\candidate03\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 40912,
+        "creation_filetime": "134368075940621839",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\resume51_opponent\\candidate03\\game --script D:\\MafioziCombat31\\resume51_opponent\\aimed_player51.gd -- --qa-out=D:\\MafioziCombat31\\resume51_opponent\\native03c\\aimed_player_right --weapon=sword --strokes=8 --direction=right",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "D:\\MafioziCombat31\\resume51_opponent\\candidate03\\game",
+          "--script",
+          "D:\\MafioziCombat31\\resume51_opponent\\aimed_player51.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\resume51_opponent\\native03c\\aimed_player_right",
+          "--weapon=sword",
+          "--strokes=8",
+          "--direction=right"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "d:\\mafiozicombat31\\resume51_opponent\\candidate03\\game",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 1275820.2989982,
+    "queued_at": 1275700.2989982,
+    "ticket": 4054,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5108341998420656
+  },
+  "child": {
+    "pid": 40912,
+    "creation_filetime": "134368075940621839",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\resume51_opponent\\candidate03\\game --script D:\\MafioziCombat31\\resume51_opponent\\aimed_player51.gd -- --qa-out=D:\\MafioziCombat31\\resume51_opponent\\native03c\\aimed_player_right --weapon=sword --strokes=8 --direction=right",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--path",
+      "D:\\MafioziCombat31\\resume51_opponent\\candidate03\\game",
+      "--script",
+      "D:\\MafioziCombat31\\resume51_opponent\\aimed_player51.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\resume51_opponent\\native03c\\aimed_player_right",
+      "--weapon=sword",
+      "--strokes=8",
+      "--direction=right"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\resume51_opponent\\candidate03\\game",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 13.396822600159794,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

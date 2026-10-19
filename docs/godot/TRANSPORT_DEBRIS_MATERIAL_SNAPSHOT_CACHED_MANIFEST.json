@@ -1,0 +1,73 @@
+{
+  "schema": "mafiozi.transport-debris-material-snapshot-cached-candidate.v1",
+  "date": "2026-09-27",
+  "status": "functionally-verified-performance-rejected",
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/candidates/transport_vehicle_debris_material_snapshot_cached.gd",
+      "bytes": 10228,
+      "sha256": "574260744b3fff8c363c3c798e4306bb82a9a7474bfb4dafb980ebabf508116c",
+      "role": "phase-local exact source Resource identity cache candidate"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_debris_material_snapshot_cached.gd",
+      "bytes": 13298,
+      "sha256": "c57698ee3f7c7b8131e903c17187adbf96462293ec3ec8fb1d85d8a58052a307",
+      "role": "actual compact, alias, no-alias, lifecycle and sequential cost suite"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_vehicle_debris_material_snapshot_cached_inherited.gd",
+      "bytes": 17420,
+      "sha256": "2728b75d8f862aed8be4b7018a0de02e021a92e3b5e15a719b1e8246aa993c03",
+      "role": "frozen 60-case suite with only the candidate preload substituted"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_DEBRIS_MATERIAL_SNAPSHOT_CACHED_HANDOFF.md",
+      "bytes": 7562,
+      "sha256": "6f2098514827bd141f232c7a8877dc716470ca4ec8d5a01ca777c138ee550fb3",
+      "role": "scope, exact results, performance rejection and limits"
+    }
+  ],
+  "dependencies": [
+    {"path":"godot/mafiozi_walk/scripts/transport/candidates/transport_vehicle_debris_material_snapshot.gd","bytes":21072,"sha256":"0e000ba7c30c463fae5ff6390323f1bb36d87c138ebd4673bdd5465102627001"},
+    {"path":"godot/mafiozi_walk/scripts/transport/candidates/transport_vehicle_debris_refresh.gd","bytes":12414,"sha256":"d2a4453901465e9310033156baefc751fc74f889bb51a3402da27bf6f34b2479"},
+    {"path":"godot/mafiozi_walk/scripts/transport/transport_vehicle_debris.gd","bytes":15804,"sha256":"1cf791ea4890c844b8c1072cdccca647b3b8255cec718afa7e96f80b9c2bba8f"},
+    {"path":"godot/mafiozi_walk/scripts/transport/transport_vehicle_damage_bindings.gd","bytes":5469,"sha256":"cca8f5c89a0941c6cd62f43b44fab237473a39d9290d4efa37c0d2c7262a4c09"},
+    {"path":"godot/mafiozi_walk/scripts/vehicle_visual/vehicle_visual.gd","bytes":8708,"sha256":"d586952de302b7ec0467b89b91ba117e3350e8a5c217f48c303f06ff88494e34"},
+    {"path":"godot/mafiozi_walk/data/transport/damage_assemblies.json","bytes":178333,"sha256":"8643b11808f5834445e34be6d1c2930a9cc2f5a930042dfb7edfcf4ce6d78279"},
+    {"path":"godot/mafiozi_walk/assets/vehicle_visual/manifest.json","bytes":4070550,"sha256":"38598f43beb77c095879206ea5820c7fe922b227a64f77f793353f89321fee03"}
+  ],
+  "verification": {
+    "cache_specific": "author 46/46 PASS; parent fresh 46/46 PASS; independent 46/46 PASS",
+    "inherited_frozen_suite": "author 60/60 PASS; parent fresh 60/60 PASS; independent 60/60 PASS",
+    "godot": "4.7.2.stable.official.ed1daf0bf",
+    "actual_compact": {"assemblies":10,"surfaces":72,"private_resources":72,"source_identities":29,"alias_hits":43},
+    "worst_distinct": {"surfaces":72,"source_identities":72,"cache_hits":0}
+  },
+  "performance_us": {
+    "samples": 8,
+    "order": "alternating frozen/cached pairs",
+    "frozen_event_min_true_median_max": [56927,58738.5,62782],
+    "cached_event_min_true_median_max": [46841,48828,53676],
+    "author_raw_upper_middle_fields": {"frozen":59233,"cached":50402},
+    "worst_distinct_frozen_single": 55735,
+    "worst_distinct_cached_single": 56376,
+    "parent_fresh_frozen_event_min_true_median_max": [57359,57784.5,69125],
+    "parent_fresh_cached_event_min_true_median_max": [46945,47530.5,54540],
+    "parent_raw_upper_middle_fields": {"frozen":57984,"cached":47537},
+    "parent_fresh_worst_distinct_frozen_single": 58324,
+    "parent_fresh_worst_distinct_cached_single": 59359,
+    "parent_fresh_inherited_cached_stage_commit": [27820,23941],
+    "independent_frozen_event_min_true_median_max": [58729,59566,64616],
+    "independent_cached_event_min_true_median_max": [46532,49494.5,55327],
+    "independent_worst_distinct_frozen_cached_single": [63203,61912],
+    "independent_inherited_cached_stage_commit": [23659,23732],
+    "qualification": "isolated headless stage+commit; empirical min/median/max only; no p95, GPU, FPS, full-scene or adoption claim"
+  },
+  "limits": [
+    "Every copied surface retains a distinct private material Resource",
+    "Caches are exact source instance identity only and never survive a synchronous phase",
+    "Callback, batch canonical identity and material authority are host dependencies",
+    "Median event cost remains 48.828 ms author, 47.5305 ms parent and 49.4945 ms independent, so the candidate is performance rejected"
+  ]
+}

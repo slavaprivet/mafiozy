@@ -1,0 +1,9 @@
+{
+	"composition": "canonical raised-arms43 + courtyard map",
+	"decor_bucket_keys": 44,
+	"fps_acceptance": false,
+	"new_pieces": 404,
+	"new_static_bodies": 19,
+	"no_new_lights": true,
+	"pass": true
+}

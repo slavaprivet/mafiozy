@@ -9732,8 +9732,34 @@ const RESIDENTS_INDOORS=[],RESIDENT_RESPAWN_BACKLOG=[];
 let _residentBuildingDoorsCache=null,_residentRespawnSeed=9000,_residentInvisibleSpawnCount=0;
 const _residentDoorByBuildingTile=new Map(),_residentDoorBySource=new Map(),_activeResidentDoorVisuals=new Map();
 let _residentDoorAnimationCount=0,_residentBuildingRouteBudget=1,_residentBuildingRouteDeferred=0;
+let _stationaryServicePilot23=null,_stationaryServiceExitMove23=null;
+function _stationaryServiceReturnHost23(){
+ return{
+  entrance:layout=>{const access=_walkTrafficNavigationResolver({mode:'resident-access',action:'list'});return access?.doors?.find(d=>d.instanceId===layout.buildingId);},
+  cancelRoute:n=>{_cancelNpcDirectedSearch(n);_clearNpcRoute(n);},
+  planRoute:(n,p)=>{
+   const ready=_planNpcRouteTo(n,p.r,p.c,_residentNativeRecoveryPass,.002,768,'building_entry');
+   if(!ready)return{status:n._routeSearchPending?'pending':'blocked'};
+   const points=n._route?.map(p=>({r:p.r,c:p.c}));_cancelNpcDirectedSearch(n);_clearNpcRoute(n);
+   return{status:'ready',points};
+  },
+  openEntrance:(n,door)=>_walkTrafficNavigationResolver({mode:'resident-access',action:'open',doorId:door.id,from:{r:n.r,c:n.c}}),
+  entryLane:(n,visit)=>_residentNativeEntryLane(n,visit)
+ };
+}
+function _installStationaryServicePilot23(factory,station,geometryHost){
+ if(typeof factory!=='function'||!_walkRendererActive()||_stationaryServicePilot23||station?.layout?.buildingId!=='REBUILD-VISUAL-print_shop-001')return null;
+ const returnHost={...geometryHost.employeeReturnGeometry,..._stationaryServiceReturnHost23()};
+ let advanceEmployeeReturn=null;
+ if(typeof geometryHost.createEmployeeReturn==='function')advanceEmployeeReturn=geometryHost.createEmployeeReturn({layout:station.layout,host:returnHost});
+ const controller=factory({station,host:{...geometryHost,advanceEmployeeReturn,npcs:NPCS,spawnNpc,
+  canControl:(n,now)=>(typeof geometryHost.canPresentServiceActor!=='function'||geometryHost.canPresentServiceActor(n)===true)&&!_civilianPlanInterrupted(n,now)&&!n._vehicleHijackControlled&&!n._civilianTrip&&!n._civilianTripRiding&&!n._ambulanceInTransit&&!n._medicalCrewVehicleId&&!n._playerConversationOpen&&!(n._playerConversationUntil>now)&&!(n.idleUntil>now),
+  verifyDeath:(n,now)=>n.dead===true&&!n._medicalDowned&&Number.isFinite(n.deadAt)&&n.deadAt<=now&&n._deathRecord20?.confirmed===true&&n._deathRecord20.fatal===true&&n._deathRecord20.targetId===_threeNpcEntityId(n)&&n._deathRecord20.deathKey===String(n.deadAt)}});
+ _stationaryServicePilot23=controller;_stationaryServiceExitMove23=typeof geometryHost.advanceServiceExit==='function'?geometryHost.advanceServiceExit:null;
+ return{controller,unregister(){if(_stationaryServicePilot23!==controller)return false;_stationaryServicePilot23=null;_stationaryServiceExitMove23=null;controller.dispose();return true;}};
+}
 function _isRespawnableResident(npc) {
-  return !!npc&&!npc._medicalCrewVehicleId&&!npc._civilianTrip&&!npc._said&&!npc._invulnerable&&!npc._guard&&!npc._cashier&&
+  return !!npc&&!npc._stationaryService&&!npc._medicalCrewVehicleId&&!npc._civilianTrip&&!npc._said&&!npc._invulnerable&&!npc._guard&&!npc._cashier&&
     !npc._empireCrew&&!npc._policeCriminal&&!npc._clientOfBiz&&!npc._botCorpse&&!npc._transientCorpseId;
 }
 function _residentCanVisitBuilding(npc,now=performance.now()) {
@@ -10737,10 +10763,79 @@ function _residentNativeRecoveryTick(n,visit,now,dt){
  n.walking=moved>0;n.walkPhase=(n.walkPhase||0)+moved*8;if(moved)n._residentVisitStatus='leaving-building';return true;
 }
 
+let _residentServiceVisitSerial23=0;
+function _residentServiceBeginApproach23(n,visit,now){
+ const registration=_residentCommerceServiceProviders.get(visit.door.instanceId||visit.door.id);
+ if(!registration||typeof registration.provider.getServiceArrivalTarget!=='function')return false;
+ visit.id??='service-visit:'+n.id+':'+(++_residentServiceVisitSerial23);
+ visit._serviceRoute23={registration:registration.token,started:now,stage:'await',lastReached:0,index:1,points:null,blockedAt:null};
+ visit.phase='service-approach';n._residentVisitStatus='waiting-for-seller';return true;
+}
+function _residentServiceRouteTick23(n,visit,dt,now){
+ const route=visit._serviceRoute23;if(!route)return null;
+ const registration=_residentCommerceServiceProviders.get(visit.door.instanceId||visit.door.id),provider=registration?.token===route.registration?registration.provider:null,input={npc:n,visit,now};
+ const release=()=>{try{provider?.releaseServiceVisit?.(input);}catch{};delete visit._serviceRoute23;};
+ const recover=()=>{release();visit.phase='exiting';visit.recovering=true;n.walking=false;n._residentVisitStatus='service-exit-recovery';return true;};
+ if(!provider&&(!route.points||typeof _stationaryServiceExitMove23!=='function'))return recover();
+ if(!provider)visit.phase='exiting';
+ if(route.stage==='await'){
+  if(visit.phase==='exiting'||now-route.started>=3000){visit.serviceExitAlignment={r:visit.door.r,c:visit.door.c};release();visit.phase='exiting';return null;}
+  try{
+   if(provider.acquireServiceVisit?.(input)!==true){n.walking=false;return true;}
+   const arrival=_residentCommerceArrivalTarget(n,visit,now),certificate=provider.getServiceRoute?.(input),points=certificate?.points;
+   if(!arrival||certificate?.stamp!==arrival.stamp||!Array.isArray(points)||points.length!==3||points.some(p=>!p||![p.r,p.c,p.y].every(Number.isFinite)))return recover();
+   if(points[0].r!==visit.door.inside.r||points[0].c!==visit.door.inside.c||points[2].r!==arrival.r||points[2].c!==arrival.c||points[2].y!==arrival.y)return recover();
+   if(certificate.visitId!==visit.id||certificate.buildingId!==(visit.door.instanceId||visit.door.id)||typeof certificate.siteRevision!=='string'||certificate.customerId!==String(n.id)||!Number.isSafeInteger(certificate.generation)||certificate.generation<1)return recover();
+   route.certificate=certificate;route.visitId=certificate.visitId;route.points=points.map(p=>({r:p.r,c:p.c,y:p.y}));route.stamp=arrival.stamp;route.buildingId=certificate.buildingId;route.siteRevision=certificate.siteRevision;route.customerId=certificate.customerId;route.generation=certificate.generation;route.stage='approach';
+  }catch{return recover();}
+ }
+ if(visit.phase!=='exiting')try{
+  if(provider.touchServiceVisit?.(input)!==true)visit.phase='exiting';
+  const arrival=_residentCommerceArrivalTarget(n,visit,now);if(!arrival||arrival.stamp!==route.stamp)visit.phase='exiting';
+ }catch{visit.phase='exiting';}
+ if(now-route.started>20000&&visit.phase!=='exiting')visit.phase='exiting';
+ if(visit.phase==='exiting'&&route.stage!=='reverse'){route.stage='reverse';route.index=Math.min(1,route.lastReached);route.blockedAt=null;}
+ if(route.stage==='at-counter')return null;
+ const target=route.points[route.index];let moved;
+ try{moved=route.stage==='reverse'?_stationaryServiceExitMove23?.({...input,dt,target}):provider.advanceServiceVisit?.({...input,dt,target});}catch{return recover();}
+ if(!moved||!['moving','arrived','blocked','hold'].includes(moved.status))return recover();
+ if(moved.status==='blocked'||moved.status==='hold'){
+  route.blockedAt??=now;n.walking=false;
+  if(now-route.blockedAt>=3000)return recover();
+  return true;
+ }
+ route.blockedAt=null;
+ n._residentVisitStatus=route.stage==='reverse'?'leaving-counter':'approaching-counter';
+ if(moved.status!=='arrived')return true;
+ if(route.stage==='reverse'){
+  if(route.index>0){route.index--;return true;}
+  visit.serviceExitAlignment={r:visit.door.r,c:visit.door.c};release();visit.phase='exiting';n._residentVisitStatus='leaving-building';return true;
+ }
+ route.lastReached=route.index;
+ if(++route.index<route.points.length)return true;
+ route.stage='at-counter';visit.phase='browsing';visit.since=now;visit.until=now+3700;visit.lookAngle=n.ang||0;
+ n._civilianPlan.phase='browsing';n._residentVisitStatus='visiting';
+ if(!_residentCommerceArrive(n,visit,now))visit.until=now;
+ return true;
+}
+function _residentServiceYield23(n,visit,now){
+ const route=visit?._serviceRoute23;if(!route)return false;
+ const interrupted=_civilianPlanInterrupted(n,now)||n._vehicleHijackControlled||n._civilianTripRiding||n._ambulanceInTransit||n._playerConversationOpen||n._playerConversationUntil>now;
+ if(interrupted){
+  visit.phase='exiting';route.suspended23=true;route.blockedAt=null;
+  const registration=_residentCommerceServiceProviders.get(visit.door.instanceId||visit.door.id);
+  if(registration?.token===route.registration)try{registration.provider.releaseServiceVisit?.({npc:n,visit,now});}catch{}
+  if(visit.commerce&&!visit.commerce.settled&&typeof _residentCommerceTick==='function')_residentCommerceTick(n,visit,now);
+  n._residentVisitStatus='service-interrupted';return true;
+ }
+ if(route.suspended23){route.suspended23=false;route.blockedAt=null;visit.blockedAt=0;visit.accessWaitAt=null;}
+ return false;
+}
 function _residentNativeVisitTick(n,dt,now){
   const visit=n._residentNativeVisit;if(!visit)return false;
   if(n.dead||n.alive===false||n._medicalDowned){if(typeof _npcActivityReleaseBuilding==='function')_npcActivityReleaseBuilding(n,null,'incapacitated');if(visit.recovering){_cancelNpcDirectedSearch(n);_clearNpcRoute(n);}n._residentNativeVisit=null;n._residentVisitStatus='interrupted';return false;}
   if(n._forcedCrawl||n._knockedUntil>now||n._meleeStunnedUntil>now||n._policeCuffed||n._carriedByAmbulance||n._evacuated){visit.phase='exiting';n._residentVisitStatus='interrupted';return false;}
+  if(_residentServiceYield23(n,visit,now))return false;
   if(_civilianPlanInterrupted(n,now)&&visit.phase!=='exiting'){visit.phase='exiting';visit.blockedAt=0;}
   let door=visit.door;if(!visit.returnPoint&&Number.isFinite(door?.r)&&Number.isFinite(door?.c))visit.returnPoint={r:door.r,c:door.c};
   if(visit.phase!=='browsing'&&visit.commerce&&!visit.commerce.settled&&typeof _residentCommerceTick==='function')_residentCommerceTick(n,visit,now);
@@ -10754,21 +10849,25 @@ function _residentNativeVisitTick(n,dt,now){
   if(visit.phase==='entering'&&typeof _residentNativeEntryLane==='function'){_residentNativeEntryLane(n,visit);door=visit.door;}
   if(visit.phase==='browsing'){
     if(typeof _residentCommerceTick==='function')_residentCommerceTick(n,visit,now);
+    if(visit._serviceRoute23&&visit.commerce?.phase==='cancelled')visit.until=now;
     if(now<visit.until){n.walking=false;n.ang=visit.lookAngle+Math.sin((now-visit.since)/900)*.22;n._residentVisitStatus='visiting';return true;}
     visit.phase='exiting';visit.since=now;
   }
   if(visit.recovering&&_residentNativeRecoveryTick(n,visit,now,dt))return true;
-  const target=visit.phase==='entering'?(visit.entryAlignment||door.inside):(visit.returnPoint||door);
+  const serviceTick=_residentServiceRouteTick23(n,visit,dt,now);if(serviceTick!==null)return serviceTick;
+  const target=visit.phase==='entering'?(visit.entryAlignment||door.inside):(visit.serviceExitAlignment||visit.returnPoint||door);
   if(!target||!Number.isFinite(target.r)||!Number.isFinite(target.c)){n._residentVisitStatus='invalid-entry';visit.phase='exiting';visit.recovering=true;return true;}
   const dr=target.r-n.r,dc=target.c-n.c,d=Math.hypot(dr,dc);
   if(d<=(visit.phase==='entering'&&visit.entryAlignment ? .002 : .025)){
     n.walking=false;n.walkPhase=0;
     if(visit.phase==='entering'){
       if(visit.entryAlignment){visit.entryAlignment=null;return true;}
+      if(_residentServiceBeginApproach23(n,visit,now))return true;
       visit.phase='browsing';visit.since=now;visit.lookAngle=n.ang||0;visit.until=now+3000+Math.round(_civilianPlanUnit(n,'visit:'+n._civilianPlan?.cycle)*4000);
       n._civilianPlan.phase='browsing';n._residentVisitStatus='visiting';
       if(typeof _residentCommerceArrive==='function')_residentCommerceArrive(n,visit,now);
     }else{
+      if(visit.serviceExitAlignment){delete visit.serviceExitAlignment;return true;}
       n._residentNativeVisit=null;n._residentVisitStatus='visit-complete';
       if(typeof _npcActivityReleaseBuilding==='function')_npcActivityReleaseBuilding(n,null,'exited');
       if(typeof _npcAgendaComplete==='function')_npcAgendaComplete(n,'shop','finished');
@@ -10825,6 +10924,12 @@ function _scheduleResidentRespawn(deadNpc,now) {
   return _residentEnterBuilding(fresh,now,door,true);
 }
 function _respawnResidentImmediately(deadNpc,now=performance.now()) {
+  if(deadNpc?._stationaryService){
+    // This call follows a definitive source death, including medical bleedout.
+    // Preserve an existing bullet/blast record; do not turn downing into death.
+    if(_stationaryServicePilot23?.owns(deadNpc)&&deadNpc.dead===true&&deadNpc.hp<=0&&!deadNpc._medicalDowned&&Number.isFinite(deadNpc.deadAt)&&deadNpc.deadAt>0&&deadNpc.deadAt<=now&&typeof createNpcFatalRecord20==='function')deadNpc._deathRecord20=createNpcFatalRecord20({entity:deadNpc,targetId:_threeNpcEntityId(deadNpc),weapon:'unknown',dirR:0,dirC:0,now:deadNpc.deadAt});
+    return false;
+  }
   if(!_isRespawnableResident(deadNpc)||deadNpc._residentReplacementScheduled)return false;
   // Труп остаётся в NPCS и полностью обслуживается скорой. Живой житель —
   // отдельный объект, ожидающий за дверью здания, поэтому игрок не видит spawn.
@@ -10899,6 +11004,7 @@ function _npcFindWanderGridExit(npc,search,{edgeClear,pointClear,expired,occupie
  return{status:state.qi<state.queue.length&&state.nodes.size<limit?'pending':'failed',expanded:state.expanded,nodes:state.nodes.size};
 }
 function pickNpcWaypoint(npc) {
+  if(npc?._stationaryService){npc._npcWanderSearch=null;return false;}
   const now=performance.now(),sr=Math.floor(npc.r),sc=Math.floor(npc.c),maxDepth=npc._beach?22:18,maxVisited=520;
   const resolver=typeof _walkNpcNavigationResolver==='function'?_walkNpcNavigationResolver:null;
   if(npc.dead||npc.alive===false||Number.isFinite(npc.hp)&&npc.hp<=0||npc.snitching||npc._fighting||npc._fightingMelee||npc._medicalDowned||npc._knockedUntil>now||npc.panicUntil>now||npc._corpsePhoneCall||npc._hijackReaction){npc._npcWanderSearch=null;return false;}
@@ -12500,6 +12606,7 @@ const NPC_SOCIAL_DIALOGUES={
   ],
 };
 function _residentCanSocialize(n,now){
+  if(n?._stationaryService)return false;
   if(n?._civilianActivity||n?._civilianSeat||n?._civilianTrip||n?._ambientTrafficDriver||n?._residentNativeVisit||n?._residentIndoors||n?._corpsePhoneCall||n?._hijackReaction||n?._civilianPlan?.tripDestination||n?._playerConversationOpen)return false;
   const lifeState=n?._lifeState||'routine';
   const lifeBusy=(n?._lifeStateUntil||0)>now&&lifeState!=='routine'&&lifeState!=='idle';
@@ -18266,7 +18373,7 @@ function _npcAssignHelper(now){
     if(NPCS.some(n=>n._npcHelpingTarget===patient&&n._npcHelpingUntil>now))continue;
     const candidates=[];
     for(const n of NPCS){
-      if(!_npcLifeEligible(n)||n===patient||n.dead||n._medicalDowned||n.snitching||n.panicUntil>now||n._talking>now||n._fighting||n._fightingMelee)continue;
+      if(!_npcLifeEligible(n)||n._stationaryService||n===patient||n.dead||n._medicalDowned||n.snitching||n.panicUntil>now||n._talking>now||n._fighting||n._fightingMelee)continue;
       if((n._alertUntil||0)>now||(n._npcHelpRetryAfter||0)>now)continue;
       if((n._fear||0)>.48||n._arcKey==='bandit'||n._arcKey==='drunk')continue;
       const d=Math.hypot(n.r-patient.r,n.c-patient.c);if(d<7)candidates.push({n,d});
@@ -18593,6 +18700,7 @@ function updateNpcs(dt) {
       }
     }
   }
+  _stationaryServicePilot23?.tick(now,0);
   const simulationFrameDt=dt;
   for (const n of NPCS) {
     _npcAccumulateCivilianElapsed(n,now);
@@ -19127,6 +19235,7 @@ function updateNpcs(dt) {
       pickNpcWaypoint(n);
       continue;
     }
+    if(_stationaryServicePilot23?.ownsCalmMovement(n,now)){n.walking=false;continue;}
     if (now < n.idleUntil) {
       n.walkPhase = 0;
       n.walking = false;
@@ -19167,6 +19276,7 @@ function updateNpcs(dt) {
       if(now-n._routeBlockedAt>900){_clearNpcRoute(n);pickNpcWaypoint(n);}
     }
   }
+  _stationaryServicePilot23?.tick(now,simulationFrameDt);
   // Entries are collected after iteration so removing one resident cannot
   // make the following resident lose an update frame.
   _residentVisitDiagnostics(now);
@@ -70418,7 +70528,131 @@ function _threeCustodyPassengerSeat(arrest){
   const seatId=['rear_left','rear_right'].find(seat=>!occupied.has(seat));
   return seatId?{carId:`service_${vehicleId}`,seatId}:null;
 }
+function _installStationaryServiceMerchant23(factory,station,geometryHost,createProvider){
+ if(typeof createProvider!=='function'||typeof geometryHost?.canPresentServiceActor!=='function')return null;
+ let bundle=null,remove=null,disposed=false;
+ const hold=()=>({status:'hold',reason:'service-provider-not-ready'});
+ const registration=_installStationaryServicePilot23(factory,station,{...geometryHost,
+  ownsServiceSlot:q=>bundle?.provider?.ownsServiceSlot(q)===true,
+  advanceServiceExit:input=>bundle?.exitMovement?.(input)||hold()});
+ if(!registration)return null;
+ const source=Object.freeze({
+  entityId:n=>_threeNpcEntityId(n),identity:n=>({id:String(n.id),generation:1}),
+  now:()=>performance.now(),currentVisit:n=>n._residentNativeVisit,isPresent:n=>NPCS.includes(n),
+  entranceInside:()=>_walkTrafficNavigationResolver({mode:'resident-access',action:'list'})?.doors?.find(d=>d.instanceId===station.layout.buildingId)?.inside,
+  canControl:(n,visit,now)=>NPCS.includes(n)&&n._residentNativeVisit===visit&&!n.dead&&!_civilianPlanInterrupted(n,now)&&!n._vehicleHijackControlled&&!n._civilianTripRiding&&!n._ambulanceInTransit&&!n._playerConversationOpen&&!(n._playerConversationUntil>now)
+ });
+ try{
+  bundle=createProvider({controller:registration.controller,source});
+  if(typeof bundle?.exitMovement!=='function'||typeof bundle?.provider?.ownsServiceSlot!=='function')throw Error('Service lease/exit bundle required');
+  remove=_residentCommerceRegisterService(station.layout.buildingId,bundle.provider);
+ }catch(error){bundle?.provider?.disposeServiceVisits?.();registration.unregister();throw error;}
+ return{controller:registration.controller,unregister(){if(disposed)return false;disposed=true;remove?.();bundle.provider.disposeServiceVisits?.();registration.unregister();return true;}};
+}
+
+function _getWalkServicePhysicalBodies23(input={}){
+ const now=performance.now(),sourceFrame=typeof prevT==='number'?prevT:null;
+ const deny=reason=>({complete:false,reason,now,sourceFrame,space:'native-world',rows:[]});
+ if(!input||![input.r,input.c,input.radius].every(Number.isFinite)||input.radius<=0||input.radius>16)return deny('invalid-bounds');
+ if(typeof NPCS==='undefined'||!Array.isArray(NPCS))return deny('source-unavailable');
+ if(_buildingInt||_bankInt)return deny('legacy-interior-space');
+ const inside=false,fxNow=now;
+ try{
+ if(typeof MICHAEL_POS!=='undefined'&&typeof michaelGuards!=='undefined'&&michaelGuards.size===0&&typeof _michaelDecor==='function'&&typeof _michaelDecorGuards!=='undefined'&&!_michaelDecorGuards&&Math.hypot(MICHAEL_POS.r-input.r,MICHAEL_POS.c-input.c)<=input.radius+5)return deny('authored-roster-uninitialized');
+    let npcSource=_buildingInt?(_buildingInt.npcs||[]):_bankInt?(_bankInt.room==='vault'?[]:(_bankInt.npcs||[])):(typeof NPCS!=='undefined'?NPCS:[]);
+    if(!inside){
+      const combat=[];
+      if(typeof _myGang!=='undefined')for(const g of _myGang)if(g)combat.push({...g,_actionRef:g,id:`crew_${g.id}`,role:'gang_fighter',gang:true,behavior:'follows_player',name:g.name||'Боец семьи',family:_customGang?.name||g.gangName||g.faction||''});
+      if(typeof _policeBackupUnits!=='undefined')for(const cop of _policeBackupUnits)if(cop)combat.push({...cop,_actionRef:cop,id:`police_${cop.id}`,role:'police',police:true,name:cop.name||'Офицер'});
+      if(typeof worldEvent!=='undefined'&&worldEvent){
+        const boss=worldEvent.boss;
+        if(boss)combat.push({...boss,_actionRef:boss,id:`world_event_${worldEvent.id||'event'}_${boss.id}`,r:Number(boss.y),c:Number(boss.x),dead:boss.alive===false,role:'convoy_boss',gang:true,name:'Инкассатор'});
+        for(const person of (worldEvent.guards||[]))if(person)combat.push({...person,_actionRef:person,id:`world_event_${worldEvent.id||'event'}_${person.id}`,r:Number(person.y),c:Number(person.x),dead:person.alive===false,role:'convoy_guard',gang:true,name:'Охрана конвоя'});
+      }
+      if(typeof aggroZones!=='undefined')for(const zone of Object.values(aggroZones||{}))for(const bot of zone?.bots||[])if(bot&&bot.alive!==false)combat.push({...bot,_actionRef:bot,id:`aggro_${zone.id||'zone'}_${bot.id}`,sourceId:String(bot.id),hireable:!_isDistrictDefenderBot(bot),r:Number(bot.y),c:Number(bot.x),role:bot.kind||'gang_fighter',gang:true,behavior:'hostile_zone',name:bot.name||'Боец банды',family:_threeGangFamilyLabel({mafia_family:zone.mafia_family,faction:bot.faction||zone.faction})});
+      if(typeof gangNests!=='undefined')for(const nest of gangNests||[])for(const guard of nest?.guards||[])if(guard&&!guard.dead&&(+guard.hp||1)>0)combat.push({...guard,_actionRef:guard,id:`nest_${nest.id||'gang'}_${guard.id}`,r:Number((guard.r??guard.y)),c:Number((guard.c??guard.x)),role:guard.kind||'gang_guard',gang:true,behavior:'guards_nest',name:guard.name||guard.boss_name||'Боец банды',family:_threeGangFamilyLabel({mafia_family:nest.mafia_family,faction:nest.faction})});
+      if(typeof BUSINESS_POIS!=='undefined'&&typeof myBusinesses!=='undefined'&&typeof _idleBusinessGuardPose==='function')for(const biz of BUSINESS_POIS){const own=myBusinesses.get(biz.id);if(!own?.owned||_isBusinessGangOccupied(biz.id,own))continue;for(let i=0;i<Math.min(6,+own.guards||0);i++){const pose=_idleBusinessGuardPose(biz,i);combat.push({...pose,_serviceAuthored23:true,id:`biz_guard_${biz.id}_${i}`,r:Number(pose.y),c:Number(pose.x),role:'guard',name:`Охрана · ${biz.name}`,hp:100,max_hp:100});}}
+      if(typeof beachgoers!=='undefined')for(const beachNpc of beachgoers.values()){if(!beachNpc||beachNpc._evacuated)continue;const pos=_beachgoerWorldPos(beachNpc);combat.push({...beachNpc,_actionRef:beachNpc,id:`beach_${beachNpc.id}`,r:beachNpc.dead?(beachNpc._deathR??pos.r):pos.r,c:beachNpc.dead?(beachNpc._deathC??pos.c):pos.c,role:'beach_civilian',name:beachNpc.name||'Отдыхающий'});}
+      if(typeof cityCops!=='undefined')for(const cop of cityCops||[])if(cop)combat.push({...cop,_actionRef:cop,id:`city_cop_${cop.id}`,r:Number(cop.y),c:Number(cop.x),dead:cop.alive===false,role:'police',police:true,name:cop.name||'Полицейский'});
+      if(typeof worldCops!=='undefined')for(const cop of worldCops||[])if(cop&&String(cop.id)!==String(_murderPoliceArrest?.serverDriverId||''))combat.push({...cop,_actionRef:cop,id:`world_cop_${cop.id}`,r:Number((cop.y??cop.r)),c:Number((cop.x??cop.c)),dead:cop.alive===false||cop.dead===true,role:'police_response',police:true,name:cop.name||'Полиция'});
+      // When there is no authoritative aggro snapshot (plain browser launch),
+      // retain the old 2D lair population until real server fighters arrive.
+      if(typeof AGGRO_ZONES!=='undefined')for(const zoneDef of AGGRO_ZONES){
+        const liveZone=typeof aggroZones!=='undefined'?aggroZones[zoneDef.id]:null;
+        if((liveZone?.bots||[]).some(bot=>bot&&bot.alive!==false))continue;
+        for(let i=0;i<12;i++){const a=i/12*Math.PI*2+(i%3)*.17,rad=4+(i%4)*2.15;combat.push({_serviceAuthored23:true,id:`lair_fallback_${zoneDef.id}_${i}`,r:zoneDef.r+Math.sin(a)*rad,c:zoneDef.c+Math.cos(a)*rad,ang:a+Math.PI,walkPhase:0,walking:false,hp:80,max_hp:80,role:i===0?'gang_boss':'gang_fighter',gang:true,behavior:'guards_lair',faction:i%2?'yellow':'purple',name:i===0?'Главарь Логова':'Бандит Логова'});}
+      }
+      if(typeof michaelGuards!=='undefined')for(const guard of michaelGuards.values())if(guard)combat.push({...guard,_actionRef:guard,id:`michael_guard_${guard.id}`,r:Number(guard.y),c:Number(guard.x),dead:guard.alive===false,role:'guard',name:'Охрана Майкла'});
+      // Static and ambient people below have their own 2D collections, so they
+      // must be explicitly included in the 3D population snapshot.
+      if(typeof MICHAEL_POS!=='undefined')combat.push({_serviceAuthored23:true,id:'michael_dealer',r:MICHAEL_POS.r,c:MICHAEL_POS.c,ang:Math.PI,role:'quest_giver',name:'Майкл',hp:100,max_hp:100});
+      if(typeof michaelGuards!=='undefined'&&michaelGuards.size===0&&typeof _michaelDecor==='function'){
+        const michaelDecor=_michaelDecorGuards||[];
+        for(let i=0;i<michaelDecor.length;i++){const guard=michaelDecor[i];combat.push({...guard,_actionRef:guard,id:`michael_decor_${i}`,r:Number(guard.y),c:Number(guard.x),role:'guard',name:'Охрана Майкла'});}
+      }
+      if(typeof _busWaiters!=='undefined')for(let i=0;i<_busWaiters.length;i++){const person=_busWaiters[i];combat.push(_threeBusPersonView(person,'bus_waiter'));}
+      if(typeof _busRiders!=='undefined')for(let i=0;i<_busRiders.length;i++){const person=_busRiders[i];combat.push(_threeBusPersonView(person,'bus_rider'));}
+      // PARKING_NPC_SNAPSHOT_START — project existing owners, never spawn a second one.
+      if(typeof _parkingNpcs!=='undefined')for(const person of _parkingNpcs){const view=_threeParkingNpcView(person,fxNow);if(view&&!npcSource.includes(person))combat.push(view);}
+      // PARKING_NPC_SNAPSHOT_END
+      if(typeof RACE_CHEER_CREW!=='undefined')for(let i=0;i<RACE_CHEER_CREW.length;i++){const person=RACE_CHEER_CREW[i];combat.push({...person,_actionRef:person,id:`race_fan_${i}`,role:'race_fan',name:'Болельщик'});}
+      if(typeof RACE_MECHANICS!=='undefined')for(let i=0;i<RACE_MECHANICS.length;i++){const person=RACE_MECHANICS[i];combat.push({...person,_actionRef:person,id:`race_mechanic_${i}`,role:'race_mechanic',name:'Механик'});}
+      if(typeof RACE_PHOTOGRAPHER!=='undefined')combat.push({...RACE_PHOTOGRAPHER,_actionRef:RACE_PHOTOGRAPHER,id:'race_photographer',role:'race_photographer',name:'Фотограф'});
+      // Ambulance crew are persistent, damageable NPCS. Do not duplicate their
+      // presentation with synthetic HP100 scene actors, including while seated.
+      for(const npc of npcSource)combat.push(npc);
+      npcSource=combat;
+    }
+
+ // Foot-visible workers are physical independently of viewer proximity.
+ if(typeof _junkyardFootWorkers!=='undefined')for(const worker of _junkyardFootWorkers||[])if(worker?._footVisible)npcSource.push(worker);
+ const rows=[],byId=new Map(),byRef=new Map(),radius2=input.radius*input.radius;
+ for(const x of npcSource){
+  if(!x)continue;
+  const ref=x._serviceAuthored23?null:(x._actionRef||x),owner=ref||x;
+  if(owner._evacuated||owner._corpseExpired||owner._mercenaryHospital)continue;
+  const crew=!!ref&&String(x.id||'').startsWith('crew_');
+  const mercenary=crew&&typeof window!=='undefined'?window.MafioziMercenaries?.getMember?.(owner.id):null;
+  if(mercenary?.available===false)continue;
+  const downed=!!owner._medicalDowned||owner._empireDownUntil>now||owner.downed===true||owner.lifeState==='downed'||mercenary?.downed===true;
+  const rawHp=owner.hp,hasHp=(typeof rawHp==='number'||typeof rawHp==='string'&&rawHp.trim()!=='')&&Number.isFinite(Number(rawHp));
+  const dead=owner.dead===true||owner.alive===false||!downed&&hasHp&&Number(rawHp)<=0;
+  if(dead&&typeof _corpseRemovalDue==='function'&&_corpseRemovalDue(owner,now))continue;
+  const r=dead&&Number.isFinite(owner._deathR)?owner._deathR:(x.r??x.y),c=dead&&Number.isFinite(owner._deathC)?owner._deathC:(x.c??x.x);
+  if(!Number.isFinite(r)||!Number.isFinite(c))return deny('invalid-source-position');
+  if((r-input.r)**2+(c-input.c)**2>radius2)continue;
+  if(owner._npcInitialPlacementPending)return deny('local-placement-pending');
+  const id=_threeNpcEntityId(x);
+  if(typeof id!=='string'||!id)return deny('invalid-source-id');
+  const duplicate=ref&&byRef.get(ref);
+  if(duplicate){if(duplicate.r!==r||duplicate.c!==c)return deny('conflicting-source-alias');if(!duplicate.aliasIds.includes(id))duplicate.aliasIds.push(id);continue;}
+  if(byId.has(id))return deny('conflicting-source-id');
+  const hijack=owner._vehicleHijack||owner._vehicleCorpseSeat||null;
+  let vehicleId=x.parkingCarId||owner._ambientTrafficCarId||null,vehiclePhase=x.parkingState||owner._ambientTrafficPhase||null;
+  if(owner._civilianTrip&&typeof _civilianTripForNpc==='function'){const trip=_civilianTripForNpc(owner);vehicleId=trip?.carId||vehicleId;vehiclePhase=trip?.phase||vehiclePhase;}
+  if(hijack){vehicleId=hijack.carId||hijack.vehicleId||vehicleId;vehiclePhase=hijack.phase||'seated';}
+  if(owner._transportVehicleId){vehicleId='service_'+owner._transportVehicleId;vehiclePhase=owner._transportBoardPhase||'drive';}
+  if(owner.transport_vehicle_id){vehicleId='quest_'+owner.transport_vehicle_id;vehiclePhase='drive';}
+  if(owner._medicalCrewVehicleId){vehicleId='service_'+owner._medicalCrewVehicleId;vehiclePhase=owner._medicalBoardPhase||'drive';}
+  if(owner._mercenaryVehicleSeat){vehicleId=owner._mercenaryVehicleId||null;vehiclePhase=owner._mercenaryVehiclePhase||'drive';}
+  const carried=!!(owner._carriedByAmbulance||owner._ambulanceInTransit);
+  const seated=!!(owner._civilianTripRiding||owner._ambientTrafficPhase==='drive'||owner._transportBoarded||owner.transport_vehicle_id||owner._inVehicle||hijack?.phase==='seated'||owner._vehicleCorpseSeat||owner._civilianSeat||owner._mercenaryVehicleSeat);
+  const row={id,aliasIds:[id],ref,r,c,ang:Number.isFinite(x.ang)?x.ang:0,dead,downed,
+   prone:!!(owner._forcedCrawl||owner.prone||owner._knockedUntil>now||owner._meleeStunnedUntil>now||mercenary?.posture==='prone'),
+   crouching:!!(owner.crouching||owner._lifeState==='cower'||owner._panicCowerUntil>now||mercenary?.posture==='crouch'),
+   carried,seated,vehicleId,vehiclePhase,generation:owner._stationaryService?.generation??null,
+   authored:!ref,footY:null,elevation:null,poseKnown:!carried&&!seated&&!vehiclePhase&&(!crew||!!mercenary),
+   lifeState:String(owner._lifeState||owner.lifeState||''),deathAt:Number.isFinite(owner.deadAt)?owner.deadAt:null};
+  rows.push(row);byId.set(id,row);if(ref)byRef.set(ref,row);
+ }
+ return {complete:true,now,sourceFrame,space:'native-world',rows};
+ }catch(error){return deny('source-roster-unavailable');}
+}
+
 window.Mafiozi3DBridge = Object.freeze({
+  getWalkServicePhysicalBodies23(input){return _getWalkServicePhysicalBodies23(input);},
+  installStationaryServiceMerchant23(factory,station,geometryHost,createProvider){return _installStationaryServiceMerchant23(factory,station,geometryHost,createProvider);},
+  installStationaryServicePilot23(factory,station,geometryHost){return _installStationaryServicePilot23(factory,station,geometryHost);},
   getWalkNpcNavigationDiagnostics(){return {..._npcNavigationStats,routeWork:{..._npcRouteWorkStats},connected:!!_walkNpcNavigationResolver,initialPlacement:{..._npcInitialPlacementStats}};},
   registerWalkNpcVehicleIncomingResolver(resolver){if(resolver!==null&&typeof resolver!=='function')return false;if(resolver!==null&&!_walkRendererActive())return false;_walkNpcVehicleIncomingResolver=resolver;return true;},
   registerWalkVehicleOccupancyResolver(resolver){if(resolver!==null&&typeof resolver!=='function')return false;if(resolver!==null&&!_walkRendererActive())return false;_walkVehicleOccupancyResolver=resolver;return true;},
@@ -71272,6 +71506,7 @@ window.Mafiozi3DBridge = Object.freeze({
       npcSource=combat;
     }
     const npcLifePool=x=>{
+      if(_stationaryServicePilot23?.owns(x))return 'mission';
       const role=String(x?.role||x?.type||x?._arcKey||'').toLowerCase(),behavior=String(x?.behavior||'').toLowerCase();
       if(x?._ambientTrafficDriver||x?._civilianTripRiding)return 'mission';
       if(x?._uniqueNpc||x?._said||x?._keyNpc||role==='said'||role==='unique_npc')return 'mission';
@@ -71300,7 +71535,7 @@ window.Mafiozi3DBridge = Object.freeze({
     }
     const npcPoolMissionCount=npcPools.mission.length,npcPoolPoliceCount=npcPools.police.length,npcPoolGuardCount=npcPools.guard.length,npcPoolGangCount=npcPools.gang.length,npcPoolCivilianCount=npcPools.civilian.length;
     const stableNpcSort=(a,b)=>{
-      const driverOrder=Number(!!(b.source._ambientTrafficDriver||b.source._civilianTripRiding))-Number(!!(a.source._ambientTrafficDriver||a.source._civilianTripRiding));if(driverOrder)return driverOrder;
+      const serviceOrder=Number(_stationaryServicePilot23?.owns(b.source)===true)-Number(_stationaryServicePilot23?.owns(a.source)===true);if(serviceOrder)return serviceOrder;const driverOrder=Number(!!(b.source._ambientTrafficDriver||b.source._civilianTripRiding))-Number(!!(a.source._ambientTrafficDriver||a.source._civilianTripRiding));if(driverOrder)return driverOrder;
       const ai=a.sticky?0:1,bi=b.sticky?0:1;
       const stickyOrder=ai-bi;if(stickyOrder)return stickyOrder;
       const squaredOrder=a.sortD2-b.sortD2;return squaredOrder||(a.sortDistance-b.sortDistance)||a.id.localeCompare(b.id);

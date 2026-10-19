@@ -1,0 +1,56 @@
+{
+	"case": "retreat",
+	"errors": [],
+	"final_gap": 1.2313266992569,
+	"first_windup_gap": 1.2313266992569,
+	"hits": 0,
+	"impacts": [],
+	"last_impact": {},
+	"max_lateral_m": 0.000311851501464844,
+	"passed": true,
+	"replans": 4,
+	"samples": [
+		{
+			"gap": 0.842151343822479,
+			"hp": 100.0,
+			"lost": {},
+			"npc": "(14.99984, 0.180951, 999.9782)",
+			"npc_hp": 90.0,
+			"pain": -9714,
+			"push": "(0.0, 0.0, 0.0)",
+			"route": "(0.000113, 0.0, -1.0)",
+			"state": "approach",
+			"tick": 0,
+			"velocity": "(0.00015, 0.0, -1.326)"
+		},
+		{
+			"gap": 1.18725764751434,
+			"hp": 100.0,
+			"lost": {},
+			"npc": "(14.99971, 0.184051, 999.6331)",
+			"npc_hp": 90.0,
+			"pain": -10167,
+			"push": "(0.0, 0.0, 0.0)",
+			"route": "(-0.000147, 0.0, -1.0)",
+			"state": "guard",
+			"tick": 30,
+			"velocity": "(-0.000195, 0.0, -1.326)"
+		},
+		{
+			"gap": 1.2313266992569,
+			"hp": 100.0,
+			"lost": {},
+			"npc": "(14.99969, 0.184448, 999.5891)",
+			"npc_hp": 90.0,
+			"pain": -10664,
+			"push": "(0.0, 0.0, 0.0)",
+			"route": "(-0.000147, 0.0, -1.0)",
+			"state": "windup",
+			"tick": 60,
+			"velocity": "(0.0, 0.0, 0.0)"
+		}
+	],
+	"scope": "Native castle actors: initial positions and detour obstacle only. Chase auto-aggro has no held input; detour/retreat seeds alert. Real move_and_slide, no subsequent actor teleport or damage injection.",
+	"transitions": [],
+	"wall_crossed": false
+}

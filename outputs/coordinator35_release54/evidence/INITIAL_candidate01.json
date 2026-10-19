@@ -1,0 +1,22 @@
+[
+  {
+    "name": "sword_right02",
+    "passed": true,
+    "errors": [],
+    "scheduler_errors": [],
+    "scheduler_error": null,
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator35_rmb54\\sword_right02\\RESULT.json",
+    "script_sha256": "3e977375f5e9f8e1e365538e0e0b4f4b99f82020be8dcae9f3e78577ce581138"
+  },
+  {
+    "name": "mace_right02",
+    "passed": true,
+    "errors": [],
+    "scheduler_errors": [],
+    "scheduler_error": null,
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator35_rmb54\\mace_right02\\RESULT.json",
+    "script_sha256": "3e977375f5e9f8e1e365538e0e0b4f4b99f82020be8dcae9f3e78577ce581138"
+  }
+]

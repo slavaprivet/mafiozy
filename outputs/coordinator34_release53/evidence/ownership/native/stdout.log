@@ -1,0 +1,42 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+DSH_WALKCHEAP catchup=4 far_ttl=96 default_catchup=4 default_far_ttl=96 restore_catchup=0or8 restore_far_ttl=0
+DSH_CATAPULT_WELD {"merged":62,"nodes":8,"surfaces":7}
+DSH_CATAPULT {"cart":"(48.5, 0.05, -14.0)","ok":true,"stone":"(50.8, 0.46, -13.4)"}
+DSH_SHADOWS kept=86 dropped=92
+DSH_BATCH merged_nodes=13 sources_merged=111 left=205
+DSH_DEBRIS_PREWARM bodies=150 ms=2.168
+DSH_CATAPULT_PLACE_CALL castle=true cart=true half_method=true
+DSH_CATAPULT_PLACED castle_gate=(0.0, 0.0, 968.0) cart=(0.0, 0.05, 948.0) stone=(3.2, 0.51, 950.4)
+DSH_CASTLE_SPAWN_AT_CATAPULT player=(0.0, 0.25, 952.5) cart=(0.0, 0.05, 948.0)
+DSH_CASTLE {"bricks":61846,"gates":2,"ok":true,"origin":"(0.0, 0.0, 900.0)","stats":{"bricks":61846,"collapsed":0,"detached":0,"events":0,"falling":0,"gate_board_colliders_active":96,"gate_boards_broken":0,"gate_bricks":0,"gate_leaves_detached":0,"gate_open":false,"gates":2,"leaf_dbg":{"child":"(-4.6, 0.0, 968.0)","child_name":"GateBoards_wood","child_visible":true,"mats":14,"pivot":"(-4.6, 0.0, 968.0)"},"ok":true,"wall_collision_active":2115}}
+PALAZZO_READY false
+PALAZZO_ONLY43_READY legacy_buildings=75 palazzo=0
+MAFIOZI_PREVIEW_READY buildings=75 decor=159 source_colliders=353 renderer=forward_plus
+PRINTSHOP_INTERIOR_STATUS removed_by_user
+WATER_SURFACE_STATUS not_loaded
+STATIC_BATCH_STATUS disabled
+RESIDENT_POPULATION_STATUS disabled
+MELEE_PRACTICE_STATUS disabled
+MINIMAP_STATUS disabled
+SWORD_PROTOTYPE_STATUS disabled
+BOW_PROTOTYPE_STATUS disabled
+DSH_CATAPULT_PLACE_CALL castle=true cart=true half_method=true
+DSH_CATAPULT_PLACED castle_gate=(0.0, 0.0, 968.0) cart=(0.0, 0.05, 948.0) stone=(3.2, 0.51, 950.4)
+DSH_CASTLE_SPAWN_AT_CATAPULT player=(0.0, 0.25, 943.5)
+DSH_SCENE_LOADED path=res://scenes/castle.tscn castle_map=true preview_castle=true player=(0.0, 0.030271, 943.5)
+DSH_SWORD_PROTO_PLACEMENT dummy=(0.0, 0.08, 988.6) pole=(2.373186, 0.08, 988.9379) duelist=(0.0, 0.08, 985.4) player=(0.0, 0.1, 990.0)
+DSH_SWORD_PROTO_BONES right=12,13,14,15 left=7,8,9,10
+DSH_SWORD_PROTO {"dummy":true,"fore_len":0.650307655334473,"ok":true,"pole":true,"socket":"socket_weapon","upper_len":0.721387803554535}
+DSH_BOW_PROTO_BONES bow=12,13,14,15 draw=7,8,9,10
+DSH_BOW_PROTO {"bow_hand":"hand_r","draw_hand":"hand_l","ok":true}
+DSH_PLAYER_HITBOXES50 parts=15 unit=0.5900000333786
+DSH_LOADFAST session entries=3 receipts=3 builds=1 verify_us=925 manifest_sha=3c07e72938a0 loader_sha=6e8f9c0c5e55 bridge_sha=bb4932772bfa strict=0 reuse_probe=1
+DSH_SWORD_PROTO_NPC spawned bones=28 at=(-4.6, 0.03, 939.5)
+DSH_SWORD_PROTO_HITBOXES parts=15 unit=0.5900000333786
+DSH_BOW_PROTO_TICK selected=true drawing=false draw=0.0 nocked=false quiver=true arrows=20 bow_visible=true bow_in_hand_error=0.0 quiver_offset_m=0.16985288262367
+DSH_BOW_PROTO_TICK selected=true drawing=true draw=0.17647058823529 nocked=true quiver=true arrows=20 bow_visible=true bow_in_hand_error=0.0 quiver_offset_m=0.16985288262367
+DSH_BOW_PROTO_TICK selected=true drawing=true draw=1.0 nocked=true quiver=true arrows=20 bow_visible=true bow_in_hand_error=0.0 quiver_offset_m=0.16985288262367
+DSH_BOW_PROTO_TICK selected=true drawing=true draw=1.0 nocked=true quiver=true arrows=20 bow_visible=true bow_in_hand_error=0.0 quiver_offset_m=0.16985288262367
+DSH_BOW_PROTO_TICK selected=true drawing=true draw=1.0 nocked=true quiver=true arrows=20 bow_visible=true bow_in_hand_error=0.0 quiver_offset_m=0.16985288262367
+{"errors":[],"passed":true,"rows":[{"bow_acquire":{"ok":true,"stowed":true,"weaponId":"bow"},"input_delivered":10.0,"input_injected":10,"spear_acquire":{"ammo_free":true,"melee":true,"ok":true,"weaponId":"spear"},"viewport":"(1280, 720)"},{"bow_aim":false,"bow_direction":"(0.0, 0.0, -1.0)","bow_dots":0,"bow_selected":false,"camera_forward":"(0.0, 0.0, -1.0)","label":"spear_rmb","pitch":0.0,"spear_direction":"(-0.009046, 0.01856, -0.999787)","storage":{"back_bow":true,"bow_active":false,"carried":{"bow":true,"spear":true},"chest_alive":true,"fallen":{},"hand_shield":false,"hand_weapon":"spear","rack":{"axe":true,"mace":true,"shield":true,"sledge":true,"sword":true},"revision":2,"slots":[]},"sword_aim":true,"sword_dots":3,"sword_selected":true},{"bow_aim":false,"bow_direction":"(0.0, 0.0, -1.0)","bow_dots":0,"bow_selected":true,"camera_forward":"(0.0, 0.0, -1.0)","label":"bow_after_q_while_rmb","pitch":0.0,"spear_direction":"(0.101072, 0.929862, -0.353752)","storage":{"back_bow":true,"bow_active":true,"carried":{"bow":true,"spear":true},"chest_alive":true,"fallen":{},"hand_shield":false,"hand_weapon":"spear","rack":{"axe":true,"mace":true,"shield":true,"sledge":true,"sword":true},"revision":2,"slots":[]},"sword_aim":false,"sword_dots":0,"sword_selected":false},{"bow_aim":true,"bow_direction":"(-0.051977, 0.025441, -0.998324)","bow_dots":1,"bow_selected":true,"camera_forward":"(0.0, 0.0, -1.0)","label":"bow_reaim","pitch":0.0,"spear_direction":"(0.101072, 0.929862, -0.353752)","storage":{"back_bow":true,"bow_active":true,"carried":{"bow":true,"spear":true},"chest_alive":true,"fallen":{},"hand_shield":false,"hand_weapon":"spear","rack":{"axe":true,"mace":true,"shield":true,"sledge":true,"sword":true},"revision":2,"slots":[]},"sword_aim":false,"sword_dots":0,"sword_selected":false},{"bow_aim":true,"bow_direction":"(-0.011349, 0.992115, -0.124818)","bow_dots":30,"bow_selected":true,"camera_forward":"(0.0, 0.992115, -0.125333)","label":"bow_high_up","pitch":1.44513261318207,"spear_direction":"(0.101072, 0.929862, -0.353752)","storage":{"back_bow":true,"bow_active":true,"carried":{"bow":true,"spear":true},"chest_alive":true,"fallen":{},"hand_shield":false,"hand_weapon":"spear","rack":{"axe":true,"mace":true,"shield":true,"sledge":true,"sword":true},"revision":2,"slots":[]},"sword_aim":false,"sword_dots":0,"sword_selected":false},{"high_shot":{"aim":"(-0.00793, 0.992115, -0.125082)","pitch":1.44513261318207,"projectile_alive":true,"projectile_velocity":"(-0.61286, 53.41069, -6.74019)","shots_delta":1}},{"bow_aim":false,"bow_direction":"(0.0, 0.992115, -0.125333)","bow_dots":0,"bow_selected":false,"camera_forward":"(0.0, 0.992115, -0.125333)","label":"spear_after_q_while_rmb","pitch":1.44513261318207,"spear_direction":"(0.000062, 0.993868, -0.110576)","storage":{"back_bow":true,"bow_active":false,"carried":{"bow":true,"spear":true},"chest_alive":true,"fallen":{},"hand_shield":false,"hand_weapon":"spear","rack":{"axe":true,"mace":true,"shield":true,"sledge":true,"sword":true},"revision":2,"slots":[]},"sword_aim":false,"sword_dots":0,"sword_selected":true},{"bow_aim":false,"bow_direction":"(0.0, 0.992115, -0.125333)","bow_dots":0,"bow_selected":false,"camera_forward":"(0.0, 0.992115, -0.125333)","label":"spear_reaim_high","pitch":1.44513261318207,"spear_direction":"(-0.001112, 0.992318, -0.123707)","storage":{"back_bow":true,"bow_active":false,"carried":{"bow":true,"spear":true},"chest_alive":true,"fallen":{},"hand_shield":false,"hand_weapon":"spear","rack":{"axe":true,"mace":true,"shield":true,"sledge":true,"sword":true},"revision":2,"slots":[]},"sword_aim":true,"sword_dots":26,"sword_selected":true},{"bow_aim":false,"bow_direction":"(0.0, 0.992115, -0.125333)","bow_dots":0,"bow_selected":false,"camera_forward":"(0.0, 0.992115, -0.125333)","label":"released","pitch":1.44513261318207,"spear_direction":"(0.145904, 0.945575, -0.290862)","storage":{"back_bow":true,"bow_active":false,"carried":{"bow":true,"spear":true},"chest_alive":true,"fallen":{},"hand_shield":false,"hand_weapon":"spear","rack":{"axe":true,"mace":true,"shield":true,"sledge":true,"sword":true},"revision":2,"slots":[]},"sword_aim":false,"sword_dots":0,"sword_selected":true}],"scope":"Native Q switch/RMB/LMB/mouse inputs after rack-acquisition API setup. Actual visible geometry counts; high shot actual projectile velocity. No target contact claimed by this ownership probe."}

@@ -1,0 +1,30 @@
+{
+  "schema": "mafiozi.visual_interior38/v1",
+  "base": "current shared C game snapshot",
+  "baseline_castle_sha256": "6912141F548B6652E4948EED42C788AA2A051B656A9E90C721CBC1D92B2086E5",
+  "candidate_castle_sha256": "DE62836A99317886453D8C2AAE8AB0B5BF42FA860EAB5E501EFBC94602526FC3",
+  "scope": "only castle_site.gd",
+  "patch": "D:\\MafioziCombat31\\visual_interior38\\visual_interior38.patch",
+  "candidate_source": "D:\\MafioziCombat31\\visual_interior38\\castle_site_candidate.gd",
+  "after_hall": "D:\\MafioziCombat31\\visual_interior38\\shots_after\\hall_door.png",
+  "before_hall": "D:\\MafioziCombat31\\visual_interior38\\shots_before\\hall_door.png",
+  "after_chamber": "D:\\MafioziCombat31\\visual_interior38\\shots_after\\chamber_door.png",
+  "before_chamber": "D:\\MafioziCombat31\\visual_interior38\\shots_before\\chamber_door.png",
+  "after_runner": "D:\\MafioziCombat31\\visual_interior38\\shots_after\\runner.png",
+  "before_runner": "D:\\MafioziCombat31\\visual_interior38\\shots_before\\runner.png",
+  "import": "PASS exit0 stderr0",
+  "graphical": "PASS 5/5 baseline and candidate",
+  "native": "PASS floor rays 5/5; hall table dependent 20->0; bed dependent 29->0",
+  "perf": {
+    "baseline_fps": 143.9949,
+    "candidate_fps": 144.0258,
+    "baseline_p95_ms": 7.983,
+    "candidate_p95_ms": 7.971,
+    "baseline_draw_calls": 982,
+    "candidate_draw_calls": 991,
+    "resolution": "1280x720",
+    "samples": 500,
+    "clean": true
+  },
+  "note": "D-only candidate, shared C/Git unchanged; paired FPS fixed runner camera, user game untouched"
+}

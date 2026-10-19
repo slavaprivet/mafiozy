@@ -1,0 +1,128 @@
+{
+	"armor_requested": false,
+	"armor_snapshot": {},
+	"directional": null,
+	"failures": [],
+	"final": {
+		"dead": true,
+		"disarmed": true,
+		"fall": 0.972789172083139,
+		"npc_hp": 0.0,
+		"part_hp": {
+			"shin_l": 30.0023105743385,
+			"thigh_l": 14.8987568221232,
+			"upperarm_r": -126.0
+		},
+		"severed": [
+			"upperarm_r"
+		],
+		"sword_held": false
+	},
+	"first_sever": {
+		"bleeding": true,
+		"blocks_delta": 0,
+		"dead": true,
+		"disarmed": true,
+		"fall": 0.55755603313446,
+		"ground_swords": 1,
+		"hits_delta": 0,
+		"index": 0,
+		"npc_hp_after": 0.0,
+		"npc_hp_before": 90.0,
+		"part_hp_after": {
+			"shin_l": 30.0023105743385,
+			"thigh_l": 14.8987568221232,
+			"upperarm_r": -126.0
+		},
+		"part_hp_before": {},
+		"player_npc_distance": 2.04402756690979,
+		"severed": [
+			"upperarm_r"
+		],
+		"sparks_delta": 0,
+		"sweep_hits_delta": 4,
+		"sword_held": false
+	},
+	"initial": {
+		"npc_dead": false,
+		"npc_hp": 90.0,
+		"npc_pos": "(4.6, 0.030936, 947.5225)",
+		"npc_sword": true,
+		"part_hp": {},
+		"player_pos": "(4.6, 0.03, 946.45)"
+	},
+	"max_strokes": 8,
+	"passed": true,
+	"player_dead": false,
+	"player_severed": [],
+	"same_direction": false,
+	"scope": "rack equip + choose mouse direction + click/release, no damage injection or teleport after initial placement",
+	"stroke_dx_per_frame": 20.0,
+	"strokes": [
+		{
+			"bleeding": true,
+			"blocks_delta": 0,
+			"dead": true,
+			"disarmed": true,
+			"fall": 0.55755603313446,
+			"ground_swords": 1,
+			"hits_delta": 0,
+			"index": 0,
+			"npc_hp_after": 0.0,
+			"npc_hp_before": 90.0,
+			"part_hp_after": {
+				"shin_l": 30.0023105743385,
+				"thigh_l": 14.8987568221232,
+				"upperarm_r": -126.0
+			},
+			"part_hp_before": {},
+			"player_npc_distance": 2.04402756690979,
+			"severed": [
+				"upperarm_r"
+			],
+			"sparks_delta": 0,
+			"sweep_hits_delta": 4,
+			"sword_held": false
+		}
+	],
+	"trace": [
+		{
+			"at_ms": 9628,
+			"blade_from": "(4.872, 1.071736, 946.7612)",
+			"blade_to": "(5.360461, 2.014161, 947.342)",
+			"distance": 1.07244908809662,
+			"hand": [
+				0.0,
+				0.0
+			],
+			"last_hit": "",
+			"npc_hp": 90.0,
+			"omega": 0.0,
+			"part_hp": {},
+			"player_dead": false,
+			"player_disarmed": false,
+			"player_severed": []
+		},
+		{
+			"at_ms": 10266,
+			"blade_from": "(4.802846, 0.799903, 946.6882)",
+			"blade_to": "(4.235893, 1.401483, 947.5718)",
+			"distance": 1.07244908809662,
+			"hand": [
+				1.42554342746735,
+				0.466718256473541
+			],
+			"last_hit": "slice",
+			"npc_hp": 0.0,
+			"omega": 0.0825882330536842,
+			"part_hp": {
+				"upperarm_r": -126.0
+			},
+			"player_dead": false,
+			"player_disarmed": false,
+			"player_severed": []
+		}
+	],
+	"weapon_after_q": "sword",
+	"weapon_test": "sword"
+}

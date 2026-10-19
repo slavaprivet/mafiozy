@@ -1,0 +1,49 @@
+{
+  "schema": "mafiozi.transport.cargo-admission.v1",
+  "status": "FROZEN_GEOMETRY_ONLY",
+  "tests": {
+    "checks": 319,
+    "failures": 0,
+    "profiles": 13
+  },
+  "cost": {
+    "queries": 10000,
+    "elapsed_us": 15308,
+    "scope": "isolated CPU only; full-scene unmeasured"
+  },
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_cargo_admission.gd",
+      "sha256": "ddc78bc1c7f0dc34e393c90a344dd4b27d004bf41cd85f452122483e863d48bc",
+      "bytes": 2413
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_cargo_admission.gd",
+      "sha256": "2417c867becefc1dbb3c096cb7d2861772dd664b0ff37cbff94c74a4d8ff20b2",
+      "bytes": 4700
+    },
+    {
+      "path": "docs/godot/TRANSPORT_CARGO_ADMISSION_HANDOFF.md",
+      "sha256": "83a6885a1bfcc3f111986354b00215464c88786f4df647a6d7589b4fb8faa792",
+      "bytes": 2093
+    }
+  ],
+  "dependencies": [
+    {
+      "path": "godot/mafiozi_walk/assets/vehicle_visual/compartments.json",
+      "sha256": "423c09c28b0fbeac819e1d1b351087cdf2e05790254bb9e8371d4e1a2c1cbd51",
+      "bytes": 18023
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_trunk.mjs",
+      "sha256": "91d8575b2f52ca10b43bfe73d4a004ec4ebfef7b066835c8d1ed1a46239f5fb0",
+      "bytes": 26143
+    }
+  ],
+  "limits": [
+    "Root provides actual floor/lid/availability snapshot; current companion insufficient alone",
+    "no inventory/item/ownership/durable mutation",
+    "pure source geometry, no new placement/transfer policy",
+    "main/player/visual/physics integration pending"
+  ]
+}

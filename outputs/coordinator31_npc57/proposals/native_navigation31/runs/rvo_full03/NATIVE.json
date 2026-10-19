@@ -1,0 +1,2564 @@
+{
+	"adapter_timing_excludes_native_server_compute": true,
+	"algorithm": "rvo",
+	"available_engine_monitors": [
+		"TIME_NAVIGATION_PROCESS",
+		"TIME_PHYSICS_PROCESS",
+		"TIME_PROCESS",
+		"TIME_FPS"
+	],
+	"case_set": "full",
+	"cases": [
+		{
+			"actors": 10,
+			"adapter_us": 8302,
+			"arrived": [
+				true,
+				true,
+				true,
+				true,
+				true,
+				true,
+				true,
+				true,
+				true,
+				true
+			],
+			"case": "open_parallel",
+			"complete_count": 10,
+			"core": {
+				"active_zone_bits": 0,
+				"actors": 10,
+				"cadence": "native_each_physics_frame",
+				"callback_physics_misses": 0,
+				"callbacks": 640,
+				"frame": 74,
+				"max_callback_age_frames": 1,
+				"max_snapshot_us": 119,
+				"rejected": 0,
+				"server_compute_us_included": false,
+				"snapshot_us": 42,
+				"stale_callbacks": 0,
+				"stale_output_holds": 10,
+				"submit_us": 37
+			},
+			"expected_complete": true,
+			"hold_calls": 27,
+			"max_idle_s": 0.0166666666666667,
+			"max_step_m": 0.0300002098083496,
+			"min_separation_m": 1.1922504901886,
+			"move_calls": 623,
+			"native_physics_us": 51028,
+			"sim_s": 1.08333333333333,
+			"snapshot_failures": 0,
+			"snapshots": [
+				{
+					"core": {
+						"active_zone_bits": 0,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 0,
+						"frame": 10,
+						"max_callback_age_frames": 0,
+						"max_snapshot_us": 119,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 119,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 31
+					},
+					"engine_monitors": {
+						"TIME_FPS": 1.0,
+						"TIME_NAVIGATION_PROCESS": 0.0,
+						"TIME_PHYSICS_PROCESS": 0.0,
+						"TIME_PROCESS": 0.0
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 0,
+						"max_per_zone": 32,
+						"max_refresh_us": 43,
+						"pairs": 0,
+						"zones": 0
+					},
+					"positions": [
+						[
+							-5.0,
+							0.000277770217508078,
+							-12.0
+						],
+						[
+							-5.0,
+							0.000277770217508078,
+							-10.8000001907349
+						],
+						[
+							-5.0,
+							0.000277770217508078,
+							-9.60000038146973
+						],
+						[
+							-5.0,
+							0.000277770217508078,
+							-8.39999961853027
+						],
+						[
+							-5.0,
+							0.000277770217508078,
+							-7.19999980926514
+						],
+						[
+							-5.0,
+							0.000277770217508078,
+							-6.0
+						],
+						[
+							-5.0,
+							0.000277770217508078,
+							-4.80000019073486
+						],
+						[
+							-5.0,
+							0.000277770217508078,
+							-3.59999990463257
+						],
+						[
+							-5.0,
+							0.000277770217508078,
+							-2.40000009536743
+						],
+						[
+							-5.0,
+							0.000277770217508078,
+							-1.20000004768372
+						]
+					],
+					"tick": 0
+				},
+				{
+					"core": {
+						"active_zone_bits": 0,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 600,
+						"frame": 70,
+						"max_callback_age_frames": 1,
+						"max_snapshot_us": 119,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 66,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 75
+					},
+					"engine_monitors": {
+						"TIME_FPS": 56.0,
+						"TIME_NAVIGATION_PROCESS": 0.000178,
+						"TIME_PHYSICS_PROCESS": 0.50625,
+						"TIME_PROCESS": 0.000025
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 0,
+						"max_per_zone": 32,
+						"max_refresh_us": 106,
+						"pairs": 0,
+						"zones": 0
+					},
+					"positions": [
+						[
+							-3.19999432563782,
+							0.000838144100271165,
+							-12.0
+						],
+						[
+							-3.19999384880066,
+							0.000841758155729622,
+							-10.8000001907349
+						],
+						[
+							-3.21331572532654,
+							0.000838097184896469,
+							-9.599440574646
+						],
+						[
+							-3.22985792160034,
+							0.000841640692669898,
+							-8.39910411834717
+						],
+						[
+							-3.19999384880066,
+							0.000316162593662739,
+							-7.19999980926514
+						],
+						[
+							-3.2133686542511,
+							0.000721930293366313,
+							-5.99943876266479
+						],
+						[
+							-3.2217869758606,
+							0.000838565872982144,
+							-4.79901456832886
+						],
+						[
+							-3.22924995422363,
+							0.000632541254162788,
+							-3.59872007369995
+						],
+						[
+							-3.21958041191101,
+							0.000841655710246414,
+							-2.39965891838074
+						],
+						[
+							-3.20766735076904,
+							0.000838130246847868,
+							-1.19847881793976
+						]
+					],
+					"tick": 60
+				}
+			],
+			"ticks": 65,
+			"travel_m": [
+				1.86000561714172,
+				1.86000609397888,
+				1.84701609425247,
+				1.86099165305495,
+				1.86000609397888,
+				1.84696423448622,
+				1.86921997927129,
+				1.86209993436933,
+				1.84084472712129,
+				1.85501885786653
+			],
+			"wall_s": 1.068087
+		},
+		{
+			"actors": 10,
+			"adapter_us": 42461,
+			"arrived": [
+				true,
+				true,
+				true,
+				true,
+				true,
+				true,
+				true,
+				true,
+				true,
+				true
+			],
+			"case": "symmetric_headon",
+			"complete_count": 10,
+			"core": {
+				"active_zone_bits": 0,
+				"actors": 10,
+				"cadence": "native_each_physics_frame",
+				"callback_physics_misses": 0,
+				"callbacks": 3400,
+				"frame": 421,
+				"max_callback_age_frames": 1,
+				"max_snapshot_us": 95,
+				"rejected": 0,
+				"server_compute_us_included": false,
+				"snapshot_us": 40,
+				"stale_callbacks": 0,
+				"stale_output_holds": 10,
+				"submit_us": 33
+			},
+			"expected_complete": true,
+			"hold_calls": 69,
+			"max_idle_s": 0.0166666666666667,
+			"max_step_m": 0.0300002098083496,
+			"min_separation_m": 0.83944445848465,
+			"move_calls": 3341,
+			"native_physics_us": 268040,
+			"sim_s": 5.68333333333333,
+			"snapshot_failures": 0,
+			"snapshots": [
+				{
+					"core": {
+						"active_zone_bits": 0,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 0,
+						"frame": 81,
+						"max_callback_age_frames": 0,
+						"max_snapshot_us": 89,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 89,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 30
+					},
+					"engine_monitors": {
+						"TIME_FPS": 56.0,
+						"TIME_NAVIGATION_PROCESS": 0.000178,
+						"TIME_PHYSICS_PROCESS": 0.50625,
+						"TIME_PROCESS": 0.000025
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 0,
+						"max_per_zone": 32,
+						"max_refresh_us": 106,
+						"pairs": 0,
+						"zones": 0
+					},
+					"positions": [
+						[
+							-5.0,
+							0.000277770217508078,
+							-8.0
+						],
+						[
+							5.0,
+							0.000277770217508078,
+							-8.0
+						],
+						[
+							-5.0,
+							0.000277770217508078,
+							-5.19999980926514
+						],
+						[
+							5.0,
+							0.000277770217508078,
+							-5.19999980926514
+						],
+						[
+							-5.0,
+							0.000277770217508078,
+							-2.40000009536743
+						],
+						[
+							5.0,
+							0.000277770217508078,
+							-2.40000009536743
+						],
+						[
+							-5.0,
+							0.000277770217508078,
+							0.400000005960464
+						],
+						[
+							5.0,
+							0.000277770217508078,
+							0.400000005960464
+						],
+						[
+							-5.0,
+							0.000277770217508078,
+							3.20000004768372
+						],
+						[
+							5.0,
+							0.000277770217508078,
+							3.20000004768372
+						]
+					],
+					"tick": 0
+				},
+				{
+					"core": {
+						"active_zone_bits": 0,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 600,
+						"frame": 141,
+						"max_callback_age_frames": 1,
+						"max_snapshot_us": 89,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 41,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 43
+					},
+					"engine_monitors": {
+						"TIME_FPS": 145.0,
+						"TIME_NAVIGATION_PROCESS": 0.000205,
+						"TIME_PHYSICS_PROCESS": 0.004442,
+						"TIME_PROCESS": 0.000033
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 0,
+						"max_per_zone": 32,
+						"max_refresh_us": 106,
+						"pairs": 0,
+						"zones": 0
+					},
+					"positions": [
+						[
+							-3.19999384880066,
+							0.000838200387079269,
+							-8.0
+						],
+						[
+							3.19999384880066,
+							0.000838200387079269,
+							-8.0
+						],
+						[
+							-3.19999432563782,
+							0.000827691052109003,
+							-5.19999980926514
+						],
+						[
+							3.19999432563782,
+							0.000827691052109003,
+							-5.19999980926514
+						],
+						[
+							-3.19999384880066,
+							0.000233097933232784,
+							-2.40000009536743
+						],
+						[
+							3.19999432563782,
+							0.000838144100271165,
+							-2.40000009536743
+						],
+						[
+							-3.19999384880066,
+							0.000841721892356873,
+							0.400000005960464
+						],
+						[
+							3.19999384880066,
+							0.000841721892356873,
+							0.400000005960464
+						],
+						[
+							-3.19999384880066,
+							0.00084066967247054,
+							3.20000004768372
+						],
+						[
+							3.19999384880066,
+							0.00073090463411063,
+							3.20000004768372
+						]
+					],
+					"tick": 60
+				},
+				{
+					"core": {
+						"active_zone_bits": 0,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 1200,
+						"frame": 201,
+						"max_callback_age_frames": 1,
+						"max_snapshot_us": 89,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 42,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 46
+					},
+					"engine_monitors": {
+						"TIME_FPS": 145.0,
+						"TIME_NAVIGATION_PROCESS": 0.000141,
+						"TIME_PHYSICS_PROCESS": 0.002088,
+						"TIME_PROCESS": 0.000059
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 0,
+						"max_per_zone": 32,
+						"max_refresh_us": 106,
+						"pairs": 0,
+						"zones": 0
+					},
+					"positions": [
+						[
+							-1.40682899951935,
+							0.000838200387079269,
+							-8.02438735961914
+						],
+						[
+							1.41636395454407,
+							0.000838200387079269,
+							-7.94172620773315
+						],
+						[
+							-1.41972935199738,
+							0.000827691052109003,
+							-5.27047300338745
+						],
+						[
+							1.40326368808746,
+							0.000827691052109003,
+							-5.18826055526733
+						],
+						[
+							-1.40670835971832,
+							0.000233097933232784,
+							-2.42397522926331
+						],
+						[
+							1.41645395755768,
+							0.000838144100271165,
+							-2.34137487411499
+						],
+						[
+							-1.40548348426819,
+							0.000841721892356873,
+							0.380375444889069
+						],
+						[
+							1.4183748960495,
+							0.000841721892356873,
+							0.465513736009598
+						],
+						[
+							-1.40384590625763,
+							0.00084066967247054,
+							3.18624663352966
+						],
+						[
+							1.41953372955322,
+							0.00073090463411063,
+							3.2695426940918
+						]
+					],
+					"tick": 120
+				},
+				{
+					"core": {
+						"active_zone_bits": 0,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 1800,
+						"frame": 261,
+						"max_callback_age_frames": 1,
+						"max_snapshot_us": 89,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 39,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 43
+					},
+					"engine_monitors": {
+						"TIME_FPS": 145.0,
+						"TIME_NAVIGATION_PROCESS": 0.000155,
+						"TIME_PHYSICS_PROCESS": 0.001963,
+						"TIME_PROCESS": 0.000023
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 0,
+						"max_per_zone": 32,
+						"max_refresh_us": 330,
+						"pairs": 0,
+						"zones": 0
+					},
+					"positions": [
+						[
+							0.32929253578186,
+							0.000838200387079269,
+							-8.20187950134277
+						],
+						[
+							-0.188915833830833,
+							0.000838200387079269,
+							-7.38235712051392
+						],
+						[
+							0.139844104647636,
+							0.000827691052109003,
+							-5.9630184173584
+						],
+						[
+							-0.380121558904648,
+							0.000827691052109003,
+							-5.14517164230347
+						],
+						[
+							0.326449453830719,
+							0.000233097933232784,
+							-2.61160111427307
+						],
+						[
+							-0.194292798638344,
+							0.000838144100271165,
+							-1.79099130630493
+						],
+						[
+							0.348066866397858,
+							0.000841721892356873,
+							0.250774800777435
+						],
+						[
+							-0.172068014740944,
+							0.000841721892356873,
+							1.07414841651917
+						],
+						[
+							0.365679353475571,
+							0.00084066967247054,
+							3.10284543037415
+						],
+						[
+							-0.151401847600937,
+							0.00073090463411063,
+							3.92254424095154
+						]
+					],
+					"tick": 180
+				},
+				{
+					"core": {
+						"active_zone_bits": 0,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 2400,
+						"frame": 321,
+						"max_callback_age_frames": 1,
+						"max_snapshot_us": 89,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 38,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 46
+					},
+					"engine_monitors": {
+						"TIME_FPS": 145.0,
+						"TIME_NAVIGATION_PROCESS": 0.000172,
+						"TIME_PHYSICS_PROCESS": 0.00219,
+						"TIME_PROCESS": 0.00003
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 0,
+						"max_per_zone": 32,
+						"max_refresh_us": 330,
+						"pairs": 0,
+						"zones": 0
+					},
+					"positions": [
+						[
+							2.12761211395264,
+							0.000838200387079269,
+							-8.12416172027588
+						],
+						[
+							-1.97426438331604,
+							0.000838200387079269,
+							-7.61155366897583
+						],
+						[
+							1.91806292533875,
+							0.000827691052109003,
+							-5.68383979797363
+						],
+						[
+							-2.17999625205994,
+							0.000827691052109003,
+							-5.16653728485107
+						],
+						[
+							2.12460780143738,
+							0.000233097933232784,
+							-2.53019070625305
+						],
+						[
+							-1.98001301288605,
+							0.000838144100271165,
+							-2.01729011535645
+						],
+						[
+							2.14714193344116,
+							0.000841721892356873,
+							0.308485209941864
+						],
+						[
+							-1.95477151870728,
+							0.000841721892356873,
+							0.82522052526474
+						],
+						[
+							2.16528344154358,
+							0.00084066967247054,
+							3.14056873321533
+						],
+						[
+							-1.9317432641983,
+							0.00073090463411063,
+							3.6572380065918
+						]
+					],
+					"tick": 240
+				},
+				{
+					"core": {
+						"active_zone_bits": 0,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 3000,
+						"frame": 381,
+						"max_callback_age_frames": 1,
+						"max_snapshot_us": 95,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 40,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 45
+					},
+					"engine_monitors": {
+						"TIME_FPS": 145.0,
+						"TIME_NAVIGATION_PROCESS": 0.000169,
+						"TIME_PHYSICS_PROCESS": 0.001881,
+						"TIME_PROCESS": 0.000009
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 0,
+						"max_per_zone": 32,
+						"max_refresh_us": 330,
+						"pairs": 0,
+						"zones": 0
+					},
+					"positions": [
+						[
+							3.92593669891357,
+							0.000838200387079269,
+							-8.04642772674561
+						],
+						[
+							-3.75961422920227,
+							0.000838200387079269,
+							-7.84075355529785
+						],
+						[
+							3.69628858566284,
+							0.000827691052109003,
+							-5.40467071533203
+						],
+						[
+							-3.97986578941345,
+							0.000827691052109003,
+							-5.18789482116699
+						],
+						[
+							3.92276072502136,
+							0.000233097933232784,
+							-2.44877552986145
+						],
+						[
+							-3.76573467254639,
+							0.000838144100271165,
+							-2.24358463287354
+						],
+						[
+							3.9462103843689,
+							0.000841721892356873,
+							0.366196185350418
+						],
+						[
+							-3.73747491836548,
+							0.000841721892356873,
+							0.576293230056763
+						],
+						[
+							3.96488118171692,
+							0.00084066967247054,
+							3.17829823493958
+						],
+						[
+							-3.71208620071411,
+							0.00073090463411063,
+							3.39192748069763
+						]
+					],
+					"tick": 300
+				}
+			],
+			"ticks": 341,
+			"travel_m": [
+				9.87676221504807,
+				10.0396289825439,
+				10.1210491787642,
+				9.8522421438247,
+				9.87448812834919,
+				10.038354344666,
+				9.85725478082895,
+				10.0770850069821,
+				9.87012288719416,
+				10.1146235764027
+			],
+			"wall_s": 5.679192
+		},
+		{
+			"actors": 10,
+			"adapter_us": 92350,
+			"arrived": [
+				false,
+				false,
+				false,
+				false,
+				false,
+				false,
+				false,
+				false,
+				false,
+				false
+			],
+			"case": "crossing10",
+			"complete_count": 0,
+			"core": {
+				"active_zone_bits": 0,
+				"actors": 10,
+				"cadence": "native_each_physics_frame",
+				"callback_physics_misses": 0,
+				"callbacks": 7190,
+				"frame": 1147,
+				"max_callback_age_frames": 1,
+				"max_snapshot_us": 190,
+				"rejected": 0,
+				"server_compute_us_included": false,
+				"snapshot_us": 39,
+				"stale_callbacks": 0,
+				"stale_output_holds": 10,
+				"submit_us": 44
+			},
+			"expected_complete": true,
+			"hold_calls": 10,
+			"max_idle_s": 5.56666666666667,
+			"max_step_m": 0.0300002135336399,
+			"min_separation_m": 0.8267942070961,
+			"move_calls": 7190,
+			"native_physics_us": 600386,
+			"sim_s": 12.0,
+			"snapshot_failures": 0,
+			"snapshots": [
+				{
+					"core": {
+						"active_zone_bits": 0,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 0,
+						"frame": 428,
+						"max_callback_age_frames": 0,
+						"max_snapshot_us": 110,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 110,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 29
+					},
+					"engine_monitors": {
+						"TIME_FPS": 145.0,
+						"TIME_NAVIGATION_PROCESS": 0.000297,
+						"TIME_PHYSICS_PROCESS": 0.002374,
+						"TIME_PROCESS": 0.000028
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 0,
+						"max_per_zone": 32,
+						"max_refresh_us": 330,
+						"pairs": 0,
+						"zones": 0
+					},
+					"positions": [
+						[
+							5.0,
+							0.000277770217508078,
+							0.0
+						],
+						[
+							4.04508495330811,
+							0.000277770217508078,
+							2.93892621994019
+						],
+						[
+							1.54508495330811,
+							0.000277770217508078,
+							4.75528240203857
+						],
+						[
+							-1.54508495330811,
+							0.000277770217508078,
+							4.75528240203857
+						],
+						[
+							-4.04508495330811,
+							0.000277770217508078,
+							2.93892621994019
+						],
+						[
+							-5.0,
+							0.000277770217508078,
+							0.000000000000000612303176911189
+						],
+						[
+							-4.04508495330811,
+							0.000277770217508078,
+							-2.93892621994019
+						],
+						[
+							-1.54508495330811,
+							0.000277770217508078,
+							-4.75528240203857
+						],
+						[
+							1.54508495330811,
+							0.000277770217508078,
+							-4.75528240203857
+						],
+						[
+							4.04508495330811,
+							0.000277770217508078,
+							-2.93892621994019
+						]
+					],
+					"tick": 0
+				},
+				{
+					"core": {
+						"active_zone_bits": 0,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 600,
+						"frame": 488,
+						"max_callback_age_frames": 1,
+						"max_snapshot_us": 110,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 41,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 49
+					},
+					"engine_monitors": {
+						"TIME_FPS": 145.0,
+						"TIME_NAVIGATION_PROCESS": 0.000167,
+						"TIME_PHYSICS_PROCESS": 0.00487,
+						"TIME_PROCESS": 0.00002
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 0,
+						"max_per_zone": 32,
+						"max_refresh_us": 330,
+						"pairs": 0,
+						"zones": 0
+					},
+					"positions": [
+						[
+							3.19999384880066,
+							0.000838200387079269,
+							0.0
+						],
+						[
+							2.59068965911865,
+							0.000702640507370234,
+							1.88551580905914
+						],
+						[
+							0.990407824516296,
+							0.000841739645693451,
+							3.05058765411377
+						],
+						[
+							-0.988852143287659,
+							0.000838200387079269,
+							3.04338121414185
+						],
+						[
+							-2.59379243850708,
+							0.000788427423685789,
+							1.88123261928558
+						],
+						[
+							-3.204585313797,
+							0.000838133797515184,
+							-0.00332474103197455
+						],
+						[
+							-2.58885288238525,
+							0.00084014650201425,
+							-1.88091099262238
+						],
+						[
+							-0.987631440162659,
+							0.000838196545373648,
+							-3.04817628860474
+						],
+						[
+							0.993432939052582,
+							0.000838133622892201,
+							-3.04672384262085
+						],
+						[
+							2.59556579589844,
+							0.000816829444374889,
+							-1.88455152511597
+						]
+					],
+					"tick": 60
+				},
+				{
+					"core": {
+						"active_zone_bits": 0,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 1200,
+						"frame": 548,
+						"max_callback_age_frames": 1,
+						"max_snapshot_us": 110,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 39,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 43
+					},
+					"engine_monitors": {
+						"TIME_FPS": 145.0,
+						"TIME_NAVIGATION_PROCESS": 0.000141,
+						"TIME_PHYSICS_PROCESS": 0.002333,
+						"TIME_PROCESS": 0.000017
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 0,
+						"max_per_zone": 32,
+						"max_refresh_us": 330,
+						"pairs": 0,
+						"zones": 0
+					},
+					"positions": [
+						[
+							2.02141356468201,
+							0.000838200387079269,
+							0.00246287975460291
+						],
+						[
+							1.63489544391632,
+							0.000702640507370234,
+							1.19088435173035
+						],
+						[
+							0.624398112297058,
+							0.000841739645693451,
+							1.92484664916992
+						],
+						[
+							-0.624416172504425,
+							0.000838200387079269,
+							1.92134761810303
+						],
+						[
+							-1.63509261608124,
+							0.000788427423685789,
+							1.18645560741425
+						],
+						[
+							-2.02008056640625,
+							0.000838133797515184,
+							-0.00226663355715573
+						],
+						[
+							-1.63178551197052,
+							0.00084014650201425,
+							-1.18786084651947
+						],
+						[
+							-0.621203422546387,
+							0.000838196545373648,
+							-1.92299032211304
+						],
+						[
+							0.628329634666443,
+							0.000838133622892201,
+							-1.92108345031738
+						],
+						[
+							1.63789105415344,
+							0.000816829444374889,
+							-1.18592131137848
+						]
+					],
+					"tick": 120
+				},
+				{
+					"core": {
+						"active_zone_bits": 0,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 1800,
+						"frame": 608,
+						"max_callback_age_frames": 1,
+						"max_snapshot_us": 110,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 38,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 43
+					},
+					"engine_monitors": {
+						"TIME_FPS": 145.0,
+						"TIME_NAVIGATION_PROCESS": 0.000127,
+						"TIME_PHYSICS_PROCESS": 0.002118,
+						"TIME_PROCESS": 0.000029
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 0,
+						"max_per_zone": 32,
+						"max_refresh_us": 330,
+						"pairs": 0,
+						"zones": 0
+					},
+					"positions": [
+						[
+							1.60110056400299,
+							0.000838200387079269,
+							0.00669879047200084
+						],
+						[
+							1.29367089271545,
+							0.000702640507370234,
+							0.944446265697479
+						],
+						[
+							0.493851542472839,
+							0.000841739645693451,
+							1.52202093601227
+						],
+						[
+							-0.492667198181152,
+							0.000838200387079269,
+							1.51999533176422
+						],
+						[
+							-1.29014158248901,
+							0.000788427423685789,
+							0.938791334629059
+						],
+						[
+							-1.59367501735687,
+							0.000838133797515184,
+							-0.000126074475701898
+						],
+						[
+							-1.2868584394455,
+							0.00084014650201425,
+							-0.937241554260254
+						],
+						[
+							-0.487868875265121,
+							0.000838196545373648,
+							-1.51642060279846
+						],
+						[
+							0.498920887708664,
+							0.000838133622892201,
+							-1.51348042488098
+						],
+						[
+							1.29528856277466,
+							0.000816829444374889,
+							-0.931151926517487
+						]
+					],
+					"tick": 180
+				},
+				{
+					"core": {
+						"active_zone_bits": 0,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 2400,
+						"frame": 668,
+						"max_callback_age_frames": 1,
+						"max_snapshot_us": 110,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 57,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 44
+					},
+					"engine_monitors": {
+						"TIME_FPS": 144.0,
+						"TIME_NAVIGATION_PROCESS": 0.000157,
+						"TIME_PHYSICS_PROCESS": 0.002163,
+						"TIME_PROCESS": 0.000031
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 0,
+						"max_per_zone": 32,
+						"max_refresh_us": 330,
+						"pairs": 0,
+						"zones": 0
+					},
+					"positions": [
+						[
+							1.452805519104,
+							0.000838200387079269,
+							0.0127332182601094
+						],
+						[
+							1.17271780967712,
+							0.000702640507370234,
+							0.860319256782532
+						],
+						[
+							0.447556018829346,
+							0.000841739645693451,
+							1.38067042827606
+						],
+						[
+							-0.444946557283401,
+							0.000838200387079269,
+							1.37844789028168
+						],
+						[
+							-1.16556310653687,
+							0.000788427423685789,
+							0.851717710494995
+						],
+						[
+							-1.43908166885376,
+							0.000838133797515184,
+							0.00207029632292688
+						],
+						[
+							-1.16134357452393,
+							0.00084014650201425,
+							-0.845953106880188
+						],
+						[
+							-0.437396228313446,
+							0.000838196545373648,
+							-1.36814653873444
+						],
+						[
+							0.455220431089401,
+							0.000838133622892201,
+							-1.36359786987305
+						],
+						[
+							1.17457616329193,
+							0.000816829444374889,
+							-0.835224390029907
+						]
+					],
+					"tick": 240
+				},
+				{
+					"core": {
+						"active_zone_bits": 0,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 3000,
+						"frame": 728,
+						"max_callback_age_frames": 1,
+						"max_snapshot_us": 110,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 38,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 43
+					},
+					"engine_monitors": {
+						"TIME_FPS": 145.0,
+						"TIME_NAVIGATION_PROCESS": 0.00015,
+						"TIME_PHYSICS_PROCESS": 0.00216,
+						"TIME_PROCESS": 0.000023
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 0,
+						"max_per_zone": 32,
+						"max_refresh_us": 330,
+						"pairs": 0,
+						"zones": 0
+					},
+					"positions": [
+						[
+							1.4023699760437,
+							0.000838200387079269,
+							0.0212752148509026
+						],
+						[
+							1.13086593151093,
+							0.000702640507370234,
+							0.836158633232117
+						],
+						[
+							0.431373745203018,
+							0.000841739645693451,
+							1.33448648452759
+						],
+						[
+							-0.427432745695114,
+							0.000838200387079269,
+							1.33075308799744
+						],
+						[
+							-1.11966371536255,
+							0.000788427423685789,
+							0.822410762310028
+						],
+						[
+							-1.38164234161377,
+							0.000838133797515184,
+							0.00450901314616203
+						],
+						[
+							-1.11377882957459,
+							0.00084014650201425,
+							-0.811402201652527
+						],
+						[
+							-0.415645301342011,
+							0.000838196545373648,
+							-1.31166136264801
+						],
+						[
+							0.443220913410187,
+							0.000838133622892201,
+							-1.3058967590332
+						],
+						[
+							1.13290894031525,
+							0.000816829444374889,
+							-0.794076383113861
+						]
+					],
+					"tick": 300
+				},
+				{
+					"core": {
+						"active_zone_bits": 0,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 3600,
+						"frame": 788,
+						"max_callback_age_frames": 1,
+						"max_snapshot_us": 110,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 42,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 45
+					},
+					"engine_monitors": {
+						"TIME_FPS": 145.0,
+						"TIME_NAVIGATION_PROCESS": 0.000185,
+						"TIME_PHYSICS_PROCESS": 0.002504,
+						"TIME_PROCESS": 0.000023
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 0,
+						"max_per_zone": 32,
+						"max_refresh_us": 330,
+						"pairs": 0,
+						"zones": 0
+					},
+					"positions": [
+						[
+							1.38784468173981,
+							0.000838200387079269,
+							0.0331716611981392
+						],
+						[
+							1.11773145198822,
+							0.000702640507370234,
+							0.835784554481506
+						],
+						[
+							0.42596697807312,
+							0.000841739645693451,
+							1.32414937019348
+						],
+						[
+							-0.420743763446808,
+							0.000838200387079269,
+							1.31750202178955
+						],
+						[
+							-1.10171747207642,
+							0.000788427423685789,
+							0.814292430877686
+						],
+						[
+							-1.35832250118256,
+							0.000838133797515184,
+							0.00738221732899547
+						],
+						[
+							-1.09328007698059,
+							0.00084014650201425,
+							-0.796781599521637
+						],
+						[
+							-0.403335124254227,
+							0.000838196545373648,
+							-1.28769290447235
+						],
+						[
+							0.443426549434662,
+							0.000838133622892201,
+							-1.27983129024506
+						],
+						[
+							1.11931252479553,
+							0.000816829444374889,
+							-0.769726097583771
+						]
+					],
+					"tick": 360
+				},
+				{
+					"core": {
+						"active_zone_bits": 0,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 4200,
+						"frame": 848,
+						"max_callback_age_frames": 1,
+						"max_snapshot_us": 110,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 39,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 45
+					},
+					"engine_monitors": {
+						"TIME_FPS": 145.0,
+						"TIME_NAVIGATION_PROCESS": 0.000165,
+						"TIME_PHYSICS_PROCESS": 0.002076,
+						"TIME_PROCESS": 0.000029
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 0,
+						"max_per_zone": 32,
+						"max_refresh_us": 330,
+						"pairs": 0,
+						"zones": 0
+					},
+					"positions": [
+						[
+							1.38752782344818,
+							0.000838200387079269,
+							0.0496686957776546
+						],
+						[
+							1.11562347412109,
+							0.000702640507370234,
+							0.847134292125702
+						],
+						[
+							0.42442524433136,
+							0.000841739645693451,
+							1.32877790927887
+						],
+						[
+							-0.417904496192932,
+							0.000838200387079269,
+							1.31769931316376
+						],
+						[
+							-1.09337615966797,
+							0.000788427423685789,
+							0.814361274242401
+						],
+						[
+							-1.34646201133728,
+							0.000838133797515184,
+							0.0108950091525912
+						],
+						[
+							-1.08161664009094,
+							0.00084014650201425,
+							-0.788790464401245
+						],
+						[
+							-0.393252521753311,
+							0.000838196545373648,
+							-1.27443742752075
+						],
+						[
+							0.449147939682007,
+							0.000838133622892201,
+							-1.26425075531006
+						],
+						[
+							1.11396777629852,
+							0.000816829444374889,
+							-0.746887564659119
+						]
+					],
+					"tick": 420
+				},
+				{
+					"core": {
+						"active_zone_bits": 0,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 4800,
+						"frame": 908,
+						"max_callback_age_frames": 1,
+						"max_snapshot_us": 110,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 42,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 46
+					},
+					"engine_monitors": {
+						"TIME_FPS": 145.0,
+						"TIME_NAVIGATION_PROCESS": 0.000148,
+						"TIME_PHYSICS_PROCESS": 0.002055,
+						"TIME_PROCESS": 0.000012
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 0,
+						"max_per_zone": 32,
+						"max_refresh_us": 330,
+						"pairs": 0,
+						"zones": 0
+					},
+					"positions": [
+						[
+							1.39398169517517,
+							0.000838200387079269,
+							0.0725942552089691
+						],
+						[
+							1.11873269081116,
+							0.000702640507370234,
+							0.867322027683258
+						],
+						[
+							0.424336344003677,
+							0.000841739645693451,
+							1.34160244464874
+						],
+						[
+							-0.416314214468002,
+							0.000838200387079269,
+							1.32385468482971
+						],
+						[
+							-1.08805048465729,
+							0.000788427423685789,
+							0.818133890628815
+						],
+						[
+							-1.33757627010345,
+							0.000838133797515184,
+							0.0151880383491516
+						],
+						[
+							-1.07219457626343,
+							0.00084014650201425,
+							-0.782687783241272
+						],
+						[
+							-0.383083701133728,
+							0.000838196545373648,
+							-1.26456618309021
+						],
+						[
+							0.457724928855896,
+							0.000838133622892201,
+							-1.25085699558258
+						],
+						[
+							1.10776245594025,
+							0.000816829444374889,
+							-0.717706441879272
+						]
+					],
+					"tick": 480
+				},
+				{
+					"core": {
+						"active_zone_bits": 0,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 5400,
+						"frame": 968,
+						"max_callback_age_frames": 1,
+						"max_snapshot_us": 190,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 39,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 42
+					},
+					"engine_monitors": {
+						"TIME_FPS": 145.0,
+						"TIME_NAVIGATION_PROCESS": 0.000141,
+						"TIME_PHYSICS_PROCESS": 0.002085,
+						"TIME_PROCESS": 0.000038
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 0,
+						"max_per_zone": 32,
+						"max_refresh_us": 330,
+						"pairs": 0,
+						"zones": 0
+					},
+					"positions": [
+						[
+							1.41115152835846,
+							0.000838200387079269,
+							0.106834925711155
+						],
+						[
+							1.12545096874237,
+							0.000702640507370234,
+							0.897314488887787
+						],
+						[
+							0.424795866012573,
+							0.000841739645693451,
+							1.36126255989075
+						],
+						[
+							-0.415005534887314,
+							0.000838200387079269,
+							1.33363580703735
+						],
+						[
+							-1.08310747146606,
+							0.000788427423685789,
+							0.824077785015106
+						],
+						[
+							-1.32854616641998,
+							0.000838133797515184,
+							0.0204642098397017
+						],
+						[
+							-1.06251287460327,
+							0.00084014650201425,
+							-0.77660858631134
+						],
+						[
+							-0.371003091335297,
+							0.000838196545373648,
+							-1.25405991077423
+						],
+						[
+							0.468903750181198,
+							0.000838133622892201,
+							-1.22927474975586
+						],
+						[
+							1.09915590286255,
+							0.000816829444374889,
+							-0.672971069812775
+						]
+					],
+					"tick": 540
+				},
+				{
+					"core": {
+						"active_zone_bits": 0,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 6000,
+						"frame": 1028,
+						"max_callback_age_frames": 1,
+						"max_snapshot_us": 190,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 38,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 42
+					},
+					"engine_monitors": {
+						"TIME_FPS": 145.0,
+						"TIME_NAVIGATION_PROCESS": 0.000165,
+						"TIME_PHYSICS_PROCESS": 0.002034,
+						"TIME_PROCESS": 0.000037
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 0,
+						"max_per_zone": 32,
+						"max_refresh_us": 330,
+						"pairs": 0,
+						"zones": 0
+					},
+					"positions": [
+						[
+							1.53607368469238,
+							0.000838200387079269,
+							0.426342904567719
+						],
+						[
+							1.13268160820007,
+							0.000702640507370234,
+							1.17401623725891
+						],
+						[
+							0.371969819068909,
+							0.000841739645693451,
+							1.60268330574036
+						],
+						[
+							-0.442453742027283,
+							0.000838200387079269,
+							1.39135253429413
+						],
+						[
+							-1.06466829776764,
+							0.000788427423685789,
+							0.827717065811157
+						],
+						[
+							-1.31692492961884,
+							0.000838133797515184,
+							0.0264959055930376
+						],
+						[
+							-0.946463227272034,
+							0.00084014650201425,
+							-0.728214204311371
+						],
+						[
+							-0.118474997580051,
+							0.000838196545373648,
+							-0.896083176136017
+						],
+						[
+							0.707233011722565,
+							0.000838133622892201,
+							-0.67520397901535
+						],
+						[
+							0.65242600440979,
+							0.000816829444374889,
+							0.176634386181831
+						]
+					],
+					"tick": 600
+				},
+				{
+					"core": {
+						"active_zone_bits": 0,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 6600,
+						"frame": 1088,
+						"max_callback_age_frames": 1,
+						"max_snapshot_us": 190,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 40,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 42
+					},
+					"engine_monitors": {
+						"TIME_FPS": 145.0,
+						"TIME_NAVIGATION_PROCESS": 0.000128,
+						"TIME_PHYSICS_PROCESS": 0.002124,
+						"TIME_PROCESS": 0.00003
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 0,
+						"max_per_zone": 32,
+						"max_refresh_us": 330,
+						"pairs": 0,
+						"zones": 0
+					},
+					"positions": [
+						[
+							0.352699041366577,
+							0.000838200387079269,
+							0.641400277614594
+						],
+						[
+							0.582393348217011,
+							0.000702640507370234,
+							1.44376361370087
+						],
+						[
+							-0.164544299244881,
+							0.000841739645693451,
+							1.8627153635025
+						],
+						[
+							-1.32040572166443,
+							0.000838200387079269,
+							1.25079655647278
+						],
+						[
+							-0.732230365276337,
+							0.000788427423685789,
+							0.142493009567261
+						],
+						[
+							-0.189423441886902,
+							0.000838133797515184,
+							-0.504414916038513
+						],
+						[
+							0.471919804811478,
+							0.00084014650201425,
+							-1.06927108764648
+						],
+						[
+							0.906924545764923,
+							0.000838196545373648,
+							0.0157394632697105
+						],
+						[
+							1.59505617618561,
+							0.000838133622892201,
+							0.541034460067749
+						],
+						[
+							-0.469976484775543,
+							0.000816829444374889,
+							0.968810677528381
+						]
+					],
+					"tick": 660
+				}
+			],
+			"ticks": 720,
+			"travel_m": [
+				7.10055823522271,
+				6.25261896253505,
+				5.87726664030924,
+				6.32197125047242,
+				6.245781516016,
+				6.72390219669614,
+				7.14533726609079,
+				7.47226968506584,
+				7.7239996601711,
+				7.92028061248129
+			],
+			"wall_s": 12.007024
+		},
+		{
+			"actors": 10,
+			"adapter_us": 18011,
+			"arrived": [
+				true,
+				true,
+				true,
+				true,
+				true,
+				true,
+				true,
+				true,
+				true,
+				true
+			],
+			"case": "narrow_door_two_flows10",
+			"complete_count": 10,
+			"core": {
+				"active_zone_bits": 1,
+				"actors": 10,
+				"cadence": "native_each_physics_frame",
+				"callback_physics_misses": 0,
+				"callbacks": 1490,
+				"frame": 1344,
+				"max_callback_age_frames": 1,
+				"max_snapshot_us": 100,
+				"rejected": 0,
+				"server_compute_us_included": false,
+				"snapshot_us": 40,
+				"stale_callbacks": 0,
+				"stale_output_holds": 10,
+				"submit_us": 29
+			},
+			"expected_complete": true,
+			"hold_calls": 38,
+			"max_idle_s": 0.0166666666666667,
+			"max_step_m": 0.0302124433219433,
+			"min_separation_m": 0.00512166460976005,
+			"move_calls": 1462,
+			"native_physics_us": 191196,
+			"sim_s": 2.5,
+			"snapshot_failures": 0,
+			"snapshots": [
+				{
+					"core": {
+						"active_zone_bits": 1,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 0,
+						"frame": 1195,
+						"max_callback_age_frames": 0,
+						"max_snapshot_us": 87,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 87,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 35
+					},
+					"engine_monitors": {
+						"TIME_FPS": 143.0,
+						"TIME_NAVIGATION_PROCESS": 0.000136,
+						"TIME_PHYSICS_PROCESS": 0.025826,
+						"TIME_PROCESS": 0.00014
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 10,
+						"max_per_zone": 32,
+						"max_refresh_us": 370,
+						"pairs": 45,
+						"zones": 1
+					},
+					"positions": [
+						[
+							-0.400000005960464,
+							0.000277770217508078,
+							5.5
+						],
+						[
+							-0.400000005960464,
+							0.240277796983719,
+							1.0
+						],
+						[
+							-0.200000002980232,
+							0.000277770217508078,
+							5.5
+						],
+						[
+							-0.200000002980232,
+							0.240277796983719,
+							1.0
+						],
+						[
+							0.0,
+							0.000277770217508078,
+							5.5
+						],
+						[
+							0.0,
+							0.240277796983719,
+							1.0
+						],
+						[
+							0.200000002980232,
+							0.000277770217508078,
+							5.5
+						],
+						[
+							0.200000002980232,
+							0.240277796983719,
+							1.0
+						],
+						[
+							0.400000005960464,
+							0.000277770217508078,
+							5.5
+						],
+						[
+							0.400000005960464,
+							0.240277796983719,
+							1.0
+						]
+					],
+					"tick": 0
+				},
+				{
+					"core": {
+						"active_zone_bits": 1,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 600,
+						"frame": 1255,
+						"max_callback_age_frames": 1,
+						"max_snapshot_us": 100,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 38,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 67
+					},
+					"engine_monitors": {
+						"TIME_FPS": 145.0,
+						"TIME_NAVIGATION_PROCESS": 0.000132,
+						"TIME_PHYSICS_PROCESS": 0.002731,
+						"TIME_PROCESS": 0.000116
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 10,
+						"max_per_zone": 32,
+						"max_refresh_us": 370,
+						"pairs": 45,
+						"zones": 1
+					},
+					"positions": [
+						[
+							-0.400000005960464,
+							0.205782771110535,
+							3.73512649536133
+						],
+						[
+							-0.32907572388649,
+							0.24082824587822,
+							2.76387786865234
+						],
+						[
+							-0.200000002980232,
+							0.205779582262039,
+							3.73512482643127
+						],
+						[
+							-0.200000002980232,
+							0.240841761231422,
+							2.79999828338623
+						],
+						[
+							0.0,
+							0.205752685666084,
+							3.73512005805969
+						],
+						[
+							0.0,
+							0.240824520587921,
+							2.79999828338623
+						],
+						[
+							0.200000002980232,
+							0.205798134207726,
+							3.73513174057007
+						],
+						[
+							0.200000002980232,
+							0.240795597434044,
+							2.79999828338623
+						],
+						[
+							0.400000005960464,
+							0.205782294273376,
+							3.73512983322144
+						],
+						[
+							0.400000005960464,
+							0.240827813744545,
+							2.79999828338623
+						]
+					],
+					"tick": 60
+				},
+				{
+					"core": {
+						"active_zone_bits": 1,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 1200,
+						"frame": 1315,
+						"max_callback_age_frames": 1,
+						"max_snapshot_us": 100,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 39,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 44
+					},
+					"engine_monitors": {
+						"TIME_FPS": 145.0,
+						"TIME_NAVIGATION_PROCESS": 0.000226,
+						"TIME_PHYSICS_PROCESS": 0.002509,
+						"TIME_PROCESS": 0.000061
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 10,
+						"max_per_zone": 32,
+						"max_refresh_us": 370,
+						"pairs": 45,
+						"zones": 1
+					},
+					"positions": [
+						[
+							-0.329059541225433,
+							0.240942269563675,
+							1.97999942302704
+						],
+						[
+							-0.366706043481827,
+							0.0630036368966103,
+							4.56448459625244
+						],
+						[
+							-0.199999943375587,
+							0.240860804915428,
+							1.94296002388
+						],
+						[
+							-0.200000032782555,
+							0.0563144870102406,
+							4.60169506072998
+						],
+						[
+							0.0,
+							0.240864291787148,
+							1.94296336174011
+						],
+						[
+							0.0,
+							0.056563775986433,
+							4.60157680511475
+						],
+						[
+							0.200000032782555,
+							0.240893840789795,
+							1.94299244880676
+						],
+						[
+							0.200000002980232,
+							0.0565826408565044,
+							4.60187005996704
+						],
+						[
+							0.400000005960464,
+							0.24089415371418,
+							1.94299125671387
+						],
+						[
+							0.400000005960464,
+							0.0563019216060638,
+							4.6017804145813
+						]
+					],
+					"tick": 120
+				}
+			],
+			"ticks": 150,
+			"travel_m": [
+				4.37364811263978,
+				4.36272547394037,
+				4.3670392036438,
+				4.35312032699585,
+				4.36703586578369,
+				4.35302543640137,
+				4.36700677871704,
+				4.35321998596191,
+				4.36700797080994,
+				4.35297822952271
+			],
+			"wall_s": 2.50533
+		},
+		{
+			"actors": 10,
+			"adapter_us": 22499,
+			"arrived": [
+				false,
+				false,
+				false,
+				true,
+				true,
+				true,
+				true,
+				true,
+				true,
+				true
+			],
+			"case": "wall_player_debris",
+			"complete_count": 7,
+			"core": {
+				"active_zone_bits": 0,
+				"actors": 10,
+				"cadence": "native_each_physics_frame",
+				"callback_physics_misses": 0,
+				"callbacks": 1790,
+				"frame": 1533,
+				"max_callback_age_frames": 1,
+				"max_snapshot_us": 91,
+				"rejected": 0,
+				"server_compute_us_included": false,
+				"snapshot_us": 38,
+				"stale_callbacks": 0,
+				"stale_output_holds": 10,
+				"submit_us": 37
+			},
+			"expected_complete": false,
+			"hold_calls": 129,
+			"max_idle_s": 2.28333333333333,
+			"max_step_m": 0.0300006866455078,
+			"min_separation_m": 3.0,
+			"move_calls": 1671,
+			"native_physics_us": 167870,
+			"sim_s": 3.0,
+			"snapshot_failures": 0,
+			"snapshots": [
+				{
+					"core": {
+						"active_zone_bits": 0,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 0,
+						"frame": 1354,
+						"max_callback_age_frames": 0,
+						"max_snapshot_us": 86,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 86,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 29
+					},
+					"engine_monitors": {
+						"TIME_FPS": 145.0,
+						"TIME_NAVIGATION_PROCESS": 0.000239,
+						"TIME_PHYSICS_PROCESS": 0.004497,
+						"TIME_PROCESS": 0.000064
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 0,
+						"max_per_zone": 32,
+						"max_refresh_us": 370,
+						"pairs": 0,
+						"zones": 1
+					},
+					"positions": [
+						[
+							12.0,
+							0.000277770217508078,
+							-30.0
+						],
+						[
+							12.0,
+							0.000277770217508078,
+							-27.0
+						],
+						[
+							12.0,
+							0.000277770217508078,
+							-24.0
+						],
+						[
+							12.0,
+							0.000277770217508078,
+							-21.0
+						],
+						[
+							12.0,
+							0.000277770217508078,
+							-18.0
+						],
+						[
+							12.0,
+							0.000277770217508078,
+							-15.0
+						],
+						[
+							12.0,
+							0.000277770217508078,
+							-12.0
+						],
+						[
+							12.0,
+							0.000277770217508078,
+							-9.0
+						],
+						[
+							12.0,
+							0.000277770217508078,
+							-6.0
+						],
+						[
+							12.0,
+							0.000277770217508078,
+							-3.0
+						]
+					],
+					"tick": 0
+				},
+				{
+					"core": {
+						"active_zone_bits": 0,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 600,
+						"frame": 1414,
+						"max_callback_age_frames": 1,
+						"max_snapshot_us": 86,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 38,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 44
+					},
+					"engine_monitors": {
+						"TIME_FPS": 145.0,
+						"TIME_NAVIGATION_PROCESS": 0.000159,
+						"TIME_PHYSICS_PROCESS": 0.001982,
+						"TIME_PROCESS": 0.000077
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 0,
+						"max_per_zone": 32,
+						"max_refresh_us": 370,
+						"pairs": 0,
+						"zones": 1
+					},
+					"positions": [
+						[
+							13.5299863815308,
+							0.000841721892356873,
+							-30.0
+						],
+						[
+							13.25998878479,
+							0.000841721892356873,
+							-27.0
+						],
+						[
+							13.3799877166748,
+							0.000838144100271165,
+							-24.0
+						],
+						[
+							13.7999839782715,
+							0.000838144100271165,
+							-21.0
+						],
+						[
+							13.7999839782715,
+							0.000838144100271165,
+							-18.0
+						],
+						[
+							13.7999839782715,
+							0.000841721892356873,
+							-15.0
+						],
+						[
+							13.7999839782715,
+							0.000838144100271165,
+							-12.0
+						],
+						[
+							13.7999839782715,
+							0.000841721892356873,
+							-9.0
+						],
+						[
+							13.7999839782715,
+							0.000838144100271165,
+							-6.0
+						],
+						[
+							13.7999839782715,
+							0.000838144100271165,
+							-3.0
+						]
+					],
+					"tick": 60
+				},
+				{
+					"core": {
+						"active_zone_bits": 0,
+						"actors": 10,
+						"cadence": "native_each_physics_frame",
+						"callback_physics_misses": 0,
+						"callbacks": 1200,
+						"frame": 1474,
+						"max_callback_age_frames": 1,
+						"max_snapshot_us": 91,
+						"rejected": 0,
+						"server_compute_us_included": false,
+						"snapshot_us": 38,
+						"stale_callbacks": 0,
+						"stale_output_holds": 10,
+						"submit_us": 47
+					},
+					"engine_monitors": {
+						"TIME_FPS": 145.0,
+						"TIME_NAVIGATION_PROCESS": 0.000166,
+						"TIME_PHYSICS_PROCESS": 0.003049,
+						"TIME_PROCESS": 0.000051
+					},
+					"passage": {
+						"actors": 10,
+						"in_passage": 0,
+						"max_per_zone": 32,
+						"max_refresh_us": 370,
+						"pairs": 0,
+						"zones": 1
+					},
+					"positions": [
+						[
+							13.5299863815308,
+							0.000841721892356873,
+							-30.0
+						],
+						[
+							13.25998878479,
+							0.000841721892356873,
+							-27.0
+						],
+						[
+							13.3799877166748,
+							0.000838144100271165,
+							-24.0
+						],
+						[
+							15.599967956543,
+							0.000838144100271165,
+							-21.0
+						],
+						[
+							15.599967956543,
+							0.000838144100271165,
+							-18.0
+						],
+						[
+							15.599967956543,
+							0.000841721892356873,
+							-15.0
+						],
+						[
+							15.599967956543,
+							0.000838144100271165,
+							-12.0
+						],
+						[
+							15.599967956543,
+							0.000841721892356873,
+							-9.0
+						],
+						[
+							15.599967956543,
+							0.000838144100271165,
+							-6.0
+						],
+						[
+							15.599967956543,
+							0.000838144100271165,
+							-3.0
+						]
+					],
+					"tick": 120
+				}
+			],
+			"ticks": 180,
+			"travel_m": [
+				1.52998638153076,
+				1.25998878479004,
+				1.3799877166748,
+				4.85998344421387,
+				4.85998344421387,
+				4.85998344421387,
+				4.85998344421387,
+				4.85998344421387,
+				4.85998344421387,
+				4.85998344421387
+			],
+			"wall_s": 3.002362
+		}
+	],
+	"checks": {
+		"closed_door_not_excluded": true,
+		"corpse512_capsule_blocked": true,
+		"crossing10_all10_complete": false,
+		"crossing10_native_no_teleport": true,
+		"crossing10_no_snapshot_failure": true,
+		"crossing10_real_server_callbacks": true,
+		"death_layer_native_exceptions_retired": true,
+		"debris512_native_blocked": true,
+		"doorway_native_overlap": true,
+		"doorway_symmetric_native_exceptions": true,
+		"fixed60hz": true,
+		"hit_ray_still_hits_npc": true,
+		"moves_in_real_physics_context": true,
+		"narrow_door_two_flows10_all10_complete": true,
+		"narrow_door_two_flows10_native_no_teleport": true,
+		"narrow_door_two_flows10_no_snapshot_failure": true,
+		"narrow_door_two_flows10_real_server_callbacks": true,
+		"native_agents_freed": true,
+		"open_parallel_all10_complete": true,
+		"open_parallel_native_no_teleport": true,
+		"open_parallel_no_snapshot_failure": true,
+		"open_parallel_real_server_callbacks": true,
+		"outside_no_peer_exceptions": true,
+		"player_native_blocked": true,
+		"real_closed_door_blocks": true,
+		"real_compact_site_bound": true,
+		"real_door_fully_open": true,
+		"real_native_door_registered": true,
+		"symmetric_headon_all10_complete": true,
+		"symmetric_headon_native_no_teleport": true,
+		"symmetric_headon_no_snapshot_failure": true,
+		"symmetric_headon_real_server_callbacks": true,
+		"wall_native_blocked": true,
+		"wall_player_debris_native_no_teleport": true,
+		"wall_player_debris_no_snapshot_failure": true,
+		"wall_player_debris_real_server_callbacks": true
+	},
+	"engine_monitor_scope": "whole NavigationServer/physics/process, periodic engine monitor values, not isolated RVO self-time",
+	"fps_comparison_valid": false,
+	"full_city_acceptance": false,
+	"max_delta": 0.0166666666666667,
+	"min_delta": 0.0166666666666667,
+	"physics_context_misses": 0,
+	"source_physics": "exact frozen57 Route/Surface/Passage",
+	"wall_s": 26.041677
+}

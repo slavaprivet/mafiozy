@@ -1,0 +1,67 @@
+{
+  "schema": "mafiozi.combined-candidate58/v1",
+  "inputs": {
+    "outputs\\coordinator31_npc57\\proposals\\player_shop58\\PATCH.json": "a7c49ae772ede64593bb0e00a9a1cac4c2791ca97bb8b5b52f6379c2d531616e",
+    "outputs\\coordinator31_npc57\\proposals\\logical_routines58\\PATCH_FOR_ROOT.json": "9ab7f1a9f73f9a5d8d08695afe4abf653a989e5c9f222167dedd7982e20706a3",
+    "outputs\\coordinator31_npc57\\proposals\\logical_routines58\\BENCH_PATCH_FOR_ROOT.json": "5b0e92fd20c54258024108012e9b549f0b4a0b20a68d327906328fc13b639f62"
+  },
+  "shop_commit": "e0958ff4e0e2fb350c24a126883ffd78abd64414",
+  "changed_paths": 68,
+  "components": [
+    "NPC doorway/recovery fixes from stage05",
+    "4 destructible shared homes and 10 personal beds from stage05",
+    "shared day/night clock and logical needs",
+    "4 nearby benches and physical leisure trips",
+    "player weapon shop, armor, ammunition, C4 and throwables",
+    "player stance and airborne combat fixes"
+  ],
+  "game_relative": "outputs/coordinator31_npc57/game",
+  "launch_arguments": [
+    "--city-simple-hospital=1",
+    "--city-plaza-support-plate=1",
+    "--city-medical-threshold=0.5",
+    "--city-energy-drain-per-m=0.05",
+    "--city-energy-threshold=0.2",
+    "--city-palazzo-clones=1",
+    "--city-clone-step=22",
+    "--city-town=1",
+    "--city-door-free-entry=1",
+    "--city-site-door-physics=1",
+    "--city-clone-door-swing=1",
+    "--city-needs=1",
+    "--city-shop-release=1",
+    "--city-nav-pump-budget-us=4000",
+    "--city-nav-pump-every=1",
+    "--city-daily-slice=286",
+    "--city-sim-stride=1",
+    "--city-sim-one-per-frame=0",
+    "--city-walk-pose=1",
+    "--city-pose-far-cap=512",
+    "--city-clear-cache=1",
+    "--city-timing=0",
+    "--city-health-lease",
+    "--city-hospital-marker=0",
+    "--city-venue-sites29=1",
+    "--city-hp=100",
+    "--city-qa=10",
+    "--city-venue-staff29=1",
+    "--city-physical-dispatch30=1",
+    "--city-multi-lifecycle30=1",
+    "--city-threat30=1",
+    "--city-player-shop=1"
+  ],
+  "baseline_manifest": "outputs/coordinator31_npc57/extended31/stage58_05/CANDIDATE58.json",
+  "baseline_manifest_sha256": "d5adfedbd8d1920b4544440928f8c5e2b0c52672e360d15be8ec1c3b3b28720d",
+  "import_pending": true,
+  "full_gameplay_acceptance_pending": true,
+  "performance_pending": true,
+  "known_open_failures": [
+    "resident_6 HOME_APPROACH local path exhausted near Home2; 9 other residents sleep/exit passed"
+  ],
+  "f5_release": "57",
+  "population": {
+    "residents": 10,
+    "staff": 12,
+    "catalog": 287
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "scope": "Temporary same-poll instrumentation; no movement or admission rule change, no performance acceptance",
+  "started_utc": "2026-10-07T18:09:54.530260+00:00",
+  "files": {
+    "scripts/npc_city_daily.gd": {
+      "base_sha256": "a48f1ceaaa142ba96dc5485125c4a98f4417f2f05d51b4823f963a92752acb91",
+      "candidate_sha256": "d9829a199720f2ce8a973405ec3ae29505a2c31c33c1b69b450d97352686c0e5",
+      "checkpoint_sha256": null
+    },
+    "scripts/npc_daily_walk.gd": {
+      "base_sha256": "311d2e84500b8e39e88682fc8d2b034d4f4b2b8a2d6ad3200102e82b189b6ef0",
+      "candidate_sha256": "3403bb020fad9a3ca29f38a139c06109323aa1362bb238dbca64715443b55df2",
+      "checkpoint_sha256": "311d2e84500b8e39e88682fc8d2b034d4f4b2b8a2d6ad3200102e82b189b6ef0"
+    },
+    "scripts/city/runtime/npc_city_world_policy.gd": {
+      "base_sha256": "9c46025e19f52c8b2c97b61e380b83be37745a0c085f9e1e7fd70108ae9be3f8",
+      "candidate_sha256": "784d7c201fcef71e978c6aa57f254173a4b18d301c1477cc08a750d705b7f4e4",
+      "checkpoint_sha256": "9c46025e19f52c8b2c97b61e380b83be37745a0c085f9e1e7fd70108ae9be3f8"
+    },
+    "scripts/city/runtime/npc_native_obstacle_detour.gd": {
+      "base_sha256": "db6ea93ed251ba6f47170405b95f4bbd6550eeaf913c1beef29e78dd2faaca2e",
+      "candidate_sha256": "a00bdafc7a4dbd9a75507312bac3f4f919177ea808ee26309e6d1bdd00d7bac6",
+      "checkpoint_sha256": null
+    }
+  },
+  "backup": "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\dsh_living_city_01\\patches\\codex_daily_spike_diagnostic_20261007",
+  "restored": true,
+  "publication": "DEFERRED_BY_USER",
+  "scheduler_exit": 0,
+  "ended_utc": "2026-10-07T18:13:00.200934+00:00"
+}

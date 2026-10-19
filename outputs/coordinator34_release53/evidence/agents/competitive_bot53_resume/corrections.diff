@@ -1,0 +1,23 @@
+--- final03
++++ resume04
+@@ -5389,8 +5389,8 @@
+ 	var left_lost := _player_severed.has("thigh_l") or _player_severed.has("shin_l") or _player_severed.has("foot_l")
+ 	var right_lost := _player_severed.has("thigh_r") or _player_severed.has("shin_r") or _player_severed.has("foot_r")
+ 	if left_lost and right_lost: return 0.0
+-	if left_lost or right_lost: return 0.24 * ArmorDamage31.movement_multiplier(_npc_armor_loadout31)
+-	return ArmorDamage31.movement_multiplier(_npc_armor_loadout31)
++	if left_lost or right_lost: return 0.24
++	return 1.0
+ 
+ func _npc_leg_lost(side: String) -> bool:
+ 	return _npc_severed.has("thigh_" + side) or _npc_severed.has("shin_" + side) \
+@@ -5786,6 +5786,9 @@
+ 	_npc_last_tip53 = Vector3.INF
+ 	_npc_threat53 = false
+ 	_npc_counter_until53 = 0
++	_npc_spacing_retreat53 = false
++	_npc_orbit_side53 = 1.0
++	_npc_orbit_until53 = 0
+ 	_npc_disarmed = false
+ 	_npc_bleed_until_ms = 0
+ 	_npc_bleed_at = Vector3.ZERO

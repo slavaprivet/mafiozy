@@ -1,0 +1,623 @@
+{
+  "status": "INTERRUPTED_USER_BUDGET",
+  "production_owner": "root only; this QA agent made no production/F5/Git edits",
+  "source07_manifest": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\extended31\\stage58_07\\CANDIDATE58.json",
+  "source07_manifest_sha256": "17f17cb0f4d9b577a68e02812c9272ec64e2cc7ec25eb0ade90e2b20a7eccaf9",
+  "source07_pins": 1212,
+  "interrupted_run": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\qa58_merged_v5\\runs\\merged07_logical1200_01",
+  "interrupted_run_sha256": "15cba8755356c68792c2dbd97f4bf5754f591e279cba3e642b32df86d45485d4",
+  "partial_engine_wall_s": 136.95716590003576,
+  "raw_preserved": [
+    "stdout.log",
+    "stderr.log",
+    "OS_MEMORY.json",
+    "SOURCE.json",
+    "SOURCE_AFTER.json",
+    "CONTROL_PINS.json",
+    "CONTROL_PINS_AFTER.json",
+    "HARNESS.json",
+    "HARNESS.zip",
+    "HARNESS_ARCHIVE.json",
+    "RUN.json",
+    "INTERRUPTED_USER_BUDGET.json"
+  ],
+  "partial_live": [
+    {
+      "actors": 10,
+      "highlights": [],
+      "measure_ms": 884
+    },
+    {
+      "actors": 10,
+      "highlights": [
+        {
+          "door_stage": "",
+          "id": "resident_1",
+          "life_phase": "AMBIENT",
+          "motion_idle_s": 0.0,
+          "no_progress_s": 30.995,
+          "outer_phase": "",
+          "position": [
+            -86.0999984741211,
+            -1.49011611938477e-08,
+            137.350006103516
+          ],
+          "queue_idle_s": 0.0,
+          "route_phase": "",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": ""
+        },
+        {
+          "door_stage": "",
+          "id": "resident_2",
+          "life_phase": "RESTING",
+          "motion_idle_s": 0.0,
+          "no_progress_s": 30.995,
+          "outer_phase": "",
+          "position": [
+            151.699996948242,
+            -1.49011611938477e-08,
+            116.849998474121
+          ],
+          "queue_idle_s": 0.0,
+          "route_phase": "",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": ""
+        },
+        {
+          "door_stage": "",
+          "id": "resident_3",
+          "life_phase": "RESTING",
+          "motion_idle_s": 0.0,
+          "no_progress_s": 30.995,
+          "outer_phase": "",
+          "position": [
+            109.419418334961,
+            -0.000154836976435035,
+            527.761169433594
+          ],
+          "queue_idle_s": 0.0,
+          "route_phase": "",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": ""
+        },
+        {
+          "door_stage": "",
+          "id": "resident_4",
+          "life_phase": "RESTING",
+          "motion_idle_s": 0.0,
+          "no_progress_s": 30.995,
+          "outer_phase": "",
+          "position": [
+            266.5,
+            -1.49011611938477e-08,
+            576.049987792969
+          ],
+          "queue_idle_s": 0.0,
+          "route_phase": "",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": ""
+        },
+        {
+          "door_stage": "",
+          "id": "resident_5",
+          "life_phase": "AMBIENT",
+          "motion_idle_s": 0.0,
+          "no_progress_s": 29.008,
+          "outer_phase": "",
+          "position": [
+            128.369552612305,
+            -1.49011611938477e-08,
+            530.060363769531
+          ],
+          "queue_idle_s": 0.0,
+          "route_phase": "",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": ""
+        },
+        {
+          "door_stage": "",
+          "id": "resident_7",
+          "life_phase": "RESTING",
+          "motion_idle_s": 0.0,
+          "no_progress_s": 30.995,
+          "outer_phase": "",
+          "position": [
+            57.4000015258789,
+            -1.49011611938477e-08,
+            317.75
+          ],
+          "queue_idle_s": 0.0,
+          "route_phase": "",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": ""
+        },
+        {
+          "door_stage": "",
+          "id": "resident_8",
+          "life_phase": "RESTING",
+          "motion_idle_s": 0.0,
+          "no_progress_s": 30.995,
+          "outer_phase": "",
+          "position": [
+            -217.300003051758,
+            -1.49011611938477e-08,
+            621.150024414063
+          ],
+          "queue_idle_s": 0.0,
+          "route_phase": "",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": ""
+        },
+        {
+          "door_stage": "",
+          "id": "resident_9",
+          "life_phase": "AMBIENT",
+          "motion_idle_s": 0.0,
+          "no_progress_s": 30.995,
+          "outer_phase": "",
+          "position": [
+            -291.100006103516,
+            -1.49011611938477e-08,
+            391.549987792969
+          ],
+          "queue_idle_s": 0.0,
+          "route_phase": "",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": ""
+        },
+        {
+          "door_stage": "",
+          "id": "resident_10",
+          "life_phase": "RESTING",
+          "motion_idle_s": 0.0,
+          "no_progress_s": 30.995,
+          "outer_phase": "",
+          "position": [
+            95.4870223999023,
+            -1.49011611938477e-08,
+            583.497802734375
+          ],
+          "queue_idle_s": 0.0,
+          "route_phase": "",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": ""
+        }
+      ],
+      "measure_ms": 31879
+    },
+    {
+      "actors": 10,
+      "highlights": [
+        {
+          "door_stage": "",
+          "id": "resident_1",
+          "life_phase": "RESTING",
+          "motion_idle_s": 0.0,
+          "no_progress_s": 60.996,
+          "outer_phase": "",
+          "position": [
+            -86.0999984741211,
+            -1.49011611938477e-08,
+            137.350006103516
+          ],
+          "queue_idle_s": 0.0,
+          "route_phase": "",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": ""
+        },
+        {
+          "door_stage": "",
+          "id": "resident_2",
+          "life_phase": "AMBIENT",
+          "motion_idle_s": 0.0,
+          "no_progress_s": 60.996,
+          "outer_phase": "",
+          "position": [
+            151.699996948242,
+            -1.49011611938477e-08,
+            116.849998474121
+          ],
+          "queue_idle_s": 0.0,
+          "route_phase": "",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": ""
+        },
+        {
+          "door_stage": "",
+          "id": "resident_3",
+          "life_phase": "RESTING",
+          "motion_idle_s": 0.0,
+          "no_progress_s": 60.996,
+          "outer_phase": "",
+          "position": [
+            109.419418334961,
+            -0.000154836976435035,
+            527.761169433594
+          ],
+          "queue_idle_s": 0.0,
+          "route_phase": "",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": ""
+        },
+        {
+          "door_stage": "",
+          "id": "resident_4",
+          "life_phase": "RESTING",
+          "motion_idle_s": 0.0,
+          "no_progress_s": 60.996,
+          "outer_phase": "",
+          "position": [
+            266.5,
+            -1.49011611938477e-08,
+            576.049987792969
+          ],
+          "queue_idle_s": 0.0,
+          "route_phase": "",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": ""
+        },
+        {
+          "door_stage": "",
+          "id": "resident_5",
+          "life_phase": "RESTING",
+          "motion_idle_s": 0.0,
+          "no_progress_s": 59.009,
+          "outer_phase": "",
+          "position": [
+            128.369552612305,
+            -1.49011611938477e-08,
+            530.060363769531
+          ],
+          "queue_idle_s": 0.0,
+          "route_phase": "",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": ""
+        },
+        {
+          "door_stage": "",
+          "id": "resident_7",
+          "life_phase": "RESTING",
+          "motion_idle_s": 0.0,
+          "no_progress_s": 60.996,
+          "outer_phase": "",
+          "position": [
+            57.4000015258789,
+            -1.49011611938477e-08,
+            317.75
+          ],
+          "queue_idle_s": 0.0,
+          "route_phase": "",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": ""
+        },
+        {
+          "door_stage": "",
+          "id": "resident_8",
+          "life_phase": "RESTING",
+          "motion_idle_s": 0.0,
+          "no_progress_s": 60.996,
+          "outer_phase": "",
+          "position": [
+            -217.300003051758,
+            -1.49011611938477e-08,
+            621.150024414063
+          ],
+          "queue_idle_s": 0.0,
+          "route_phase": "",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": ""
+        },
+        {
+          "door_stage": "",
+          "id": "resident_9",
+          "life_phase": "RESTING",
+          "motion_idle_s": 0.0,
+          "no_progress_s": 60.996,
+          "outer_phase": "",
+          "position": [
+            -291.100006103516,
+            -1.49011611938477e-08,
+            391.549987792969
+          ],
+          "queue_idle_s": 0.0,
+          "route_phase": "",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": ""
+        },
+        {
+          "door_stage": "",
+          "id": "resident_10",
+          "life_phase": "RESTING",
+          "motion_idle_s": 0.0,
+          "no_progress_s": 60.996,
+          "outer_phase": "",
+          "position": [
+            95.4870223999023,
+            -1.49011611938477e-08,
+            583.497802734375
+          ],
+          "queue_idle_s": 0.0,
+          "route_phase": "",
+          "route_reason": "",
+          "threat": {
+            "active": false,
+            "driver_status": "",
+            "kind": "",
+            "last_observation_s": 0.0,
+            "phase": "IDLE",
+            "phase_age_s": 0.0,
+            "quiet_remaining_s": 0.0,
+            "quiet_until_s": 0.0,
+            "reason": "",
+            "recover_time_s": 0.0
+          },
+          "venue": ""
+        }
+      ],
+      "measure_ms": 61880
+    }
+  ],
+  "source_control_harness_exact": true,
+  "stderr_bytes": 0,
+  "limitation": "Native arrays were buffered until normal terminal. User-requested exact-child termination leaves no MASS30/SOAK31/SLOW_PLANNER terminal exports. Existing raw RUN preserves missing-file error; interruption sidecar explains cause. No long-run PASS or final FPS claim.",
+  "own_child_gone": true,
+  "own_lease_released": true,
+  "ordinary_user_game_preserved": true,
+  "completed_evidence": [
+    {
+      "source": "stage05",
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\qa58_routines\\runs\\home_damage02",
+      "passed": true,
+      "checks": 20,
+      "summary": "Original resident3 physically reached assigned bed; native C4 hold/remote destroys support; sleep cancels2ticks, exit284ticks, oldslot invalid, newgeneration current. PNG companion home_damage01."
+    },
+    {
+      "source": "stage06",
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\qa58_routines\\runs\\startup_clock06_01",
+      "passed": true,
+      "checks": 18,
+      "summary": "Ordinary READY all components; shared clockall10; native T pause/resume/N night-noon, same day index."
+    },
+    {
+      "source": "stage06",
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\qa58_routines\\runs\\player_pose06_01",
+      "passed": true,
+      "checks": 22,
+      "summary": "Author component C/Ctrl/Z actual keys; jump/dive direct request and weapon input port, not complete physical Space input proof."
+    },
+    {
+      "source": "stage06",
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\qa58_routines\\runs\\shop_city06_01",
+      "passed": true,
+      "checks": 42,
+      "summary": "Author component real purchases/ammo/armor/consumed projectiles/physics; direct modal/launch calls, not E/walk-in/mouse throw proof."
+    },
+    {
+      "source": "stage06 + two-file home approach overlay",
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\qa58_routines\\INDEPENDENT_HOME_APPROACH58.json",
+      "passed": true,
+      "checks": "independent55native checks + source/archive/motion/budget",
+      "summary": "All10 sleep and physical exit. Resident6 work191373us monotonic,217.634m travel, maxstep.030858m."
+    }
+  ],
+  "observer_v5": {
+    "directory": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\qa58_merged_v5",
+    "frozen_harness_zip_sha256": "de7c8bf69ec5695c57ca72c9a15a80994864c0729a45606586e4f2571a90c127",
+    "scope": "HOME motion phases and current supported/claimed committed sleep; explicit routine/ambient rest evidence; unexplained IDLE/RESTING>10s gate; post-exit measured intent/motion with1Hz intervals. Old motion10/queue30/spatial30s1.5m gates intact.",
+    "native_status": "Compiled and live partial; full gates not evaluated because interrupted.",
+    "review": "godot_addons31 read-only review; fixed bounded-rest first_next_intent before seal."
+  },
+  "pending": [
+    "Fresh full1200+30 ordinary V5 exact final source07, all10 motion/queues/spatial/rest/post-exit evidence. Interrupted07 cannot replace it.",
+    "Controlled late profiles resident2/7: true home sleep, physical wake/exit, real night bench arrival/pose, later sleep and morning wake. No new night adapter created after stop request.",
+    "Actual E interaction and full mouse throwing input; graphical UI/player visual acceptance.",
+    "Native TT60→30 hospital boundary cycle owned by addons; ask root for current completion status, do not duplicate.",
+    "Clean matched performance after ordinary user game is closed by user; no FPS claims from parallel headless runs."
+  ],
+  "restart": "Only after renewed user/root authorization. Use stage manifest launch_arguments including --city-player-shop=1 and exact source pins. Old receipts remain immutable."
+}

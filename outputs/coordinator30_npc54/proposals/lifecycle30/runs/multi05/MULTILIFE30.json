@@ -1,0 +1,709 @@
+{
+	"births": [
+		{
+			"birth": {
+				"account_id": -9223368958654997140,
+				"body_id": 3075666444360,
+				"cash": 1000,
+				"continuation_empty": true,
+				"energy": 100.0,
+				"generation": 2,
+				"health_id": -9223368960819258707,
+				"hp": 60.0,
+				"life_id": -9223368958520779476,
+				"max_hp": 60.0,
+				"pending": [],
+				"position": "(-84.68578, 0.003, 138.7642)",
+				"queue_owner_id": -9223368993182481679,
+				"search_pending": false
+			},
+			"frame": 2090,
+			"id": "resident_1"
+		},
+		{
+			"birth": {
+				"account_id": -9223368945132560998,
+				"body_id": 3089239188196,
+				"cash": 1000,
+				"continuation_empty": true,
+				"energy": 100.0,
+				"generation": 2,
+				"health_id": -9223368947246464862,
+				"hp": 60.0,
+				"life_id": -9223368944998343406,
+				"max_hp": 60.0,
+				"pending": [],
+				"position": "(151.7, 0.003, 116.85)",
+				"queue_owner_id": -9223368949712742323,
+				"search_pending": false
+			},
+			"frame": 2108,
+			"id": "resident_2"
+		},
+		{
+			"birth": {
+				"account_id": -9223368842875428798,
+				"body_id": 3191445987341,
+				"cash": 1000,
+				"continuation_empty": true,
+				"energy": 100.0,
+				"generation": 3,
+				"health_id": -9223368845039665065,
+				"hp": 60.0,
+				"life_id": -9223368842741211117,
+				"max_hp": 60.0,
+				"pending": [],
+				"position": "(-86.1, 0.003, 137.35)",
+				"queue_owner_id": -9223368847858236864,
+				"search_pending": false
+			},
+			"frame": 2309,
+			"id": "resident_1"
+		},
+		{
+			"birth": {
+				"account_id": -9223368739980763093,
+				"body_id": 3294390984094,
+				"cash": 1000,
+				"continuation_empty": true,
+				"energy": 100.0,
+				"generation": 3,
+				"health_id": -9223368742094667637,
+				"hp": 60.0,
+				"life_id": -9223368739846545371,
+				"max_hp": 60.0,
+				"pending": [],
+				"position": "(151.7, 0.003, 116.85)",
+				"queue_owner_id": -9223368744560918065,
+				"search_pending": false
+			},
+			"frame": 2501,
+			"id": "resident_2"
+		}
+	],
+	"checks": {
+		"admitted_positions_preserved": true,
+		"birth_admission_one_per_frame": true,
+		"catalogue_preserved": true,
+		"dead_health_dispatch_stopped_resident_1:1": true,
+		"dead_health_dispatch_stopped_resident_1:2": true,
+		"dead_health_dispatch_stopped_resident_2:1": true,
+		"dead_health_dispatch_stopped_resident_2:2": true,
+		"duplicate_death_rejected_0": true,
+		"duplicate_death_rejected_1": true,
+		"duplicate_death_rejected_2": true,
+		"duplicate_death_rejected_3": true,
+		"fresh_objects_resident_1:1": true,
+		"fresh_objects_resident_1:2": true,
+		"fresh_objects_resident_2:1": true,
+		"fresh_objects_resident_2:2": true,
+		"full_reset_resident_1:1": true,
+		"full_reset_resident_1:2": true,
+		"full_reset_resident_2:1": true,
+		"full_reset_resident_2:2": true,
+		"initial_three_controllers": true,
+		"native_hit_chain_0": true,
+		"native_hit_chain_1": true,
+		"native_hit_chain_2": true,
+		"native_hit_chain_3": true,
+		"no_population_accumulation": true,
+		"occupied_spawn_retry_observed": true,
+		"occupied_spawn_stays_cold": true,
+		"old_health_disposed_resident_1:1": true,
+		"old_health_disposed_resident_1:2": true,
+		"old_health_disposed_resident_2:1": true,
+		"old_health_disposed_resident_2:2": true,
+		"retired_exact_daily_0": true,
+		"retired_exact_daily_1": true,
+		"retired_exact_daily_2": true,
+		"retired_exact_daily_3": true,
+		"same_source_appearance_resident_1:1": true,
+		"same_source_appearance_resident_1:2": true,
+		"same_source_appearance_resident_2:1": true,
+		"same_source_appearance_resident_2:2": true,
+		"stale_receipt_refused_resident_1:1": true,
+		"stale_receipt_refused_resident_1:2": true,
+		"stale_receipt_refused_resident_2:1": true,
+		"stale_receipt_refused_resident_2:2": true,
+		"third_continues_native_motion": true,
+		"third_identity_health_unchanged": true,
+		"two_cycles_each": true,
+		"validated_spawn_not_overwritten_resident_1:1": true,
+		"validated_spawn_not_overwritten_resident_1:2": true,
+		"validated_spawn_not_overwritten_resident_2:1": true,
+		"validated_spawn_not_overwritten_resident_2:2": true
+	},
+	"final_counts": {
+		"accounts": 3,
+		"bodies": 3,
+		"controllers": 3,
+		"health": 3,
+		"lives": 3,
+		"rag_modes": {
+			"resident_1": "IDLE",
+			"resident_2": "IDLE",
+			"resident_3": "IDLE"
+		},
+		"work_index": 3
+	},
+	"fixture_spawn_obstacle": true,
+	"initial": {
+		"resident_1": {
+			"body_id": 2057020997672,
+			"bridge": "npc_resident_1",
+			"descriptor": "6f67f9d655bc66e512ec3c3eb206f5fefd3523256f075d15750a8e4af22a747e",
+			"generation": 1,
+			"hp": 60.0,
+			"life_id": -9223369422108786240,
+			"position": "(-86.1, -0.0, 137.35)"
+		},
+		"resident_2": {
+			"body_id": 2060158337135,
+			"bridge": "npc_resident_2",
+			"descriptor": "9e7857b81d25130c9acf0cd6938c85a2343a3fe31581244f25ca77beb21c08cc",
+			"generation": 1,
+			"hp": 60.0,
+			"life_id": -9223369421756464683,
+			"position": "(151.7, -0.0, 116.85)"
+		},
+		"resident_3": {
+			"body_id": 2063010463922,
+			"bridge": "npc_resident_3",
+			"descriptor": "d7143a3c264129933e9cec7a5526db8b38980ddfe26be7c71b3e64e27e3037b9",
+			"generation": 1,
+			"hp": 60.0,
+			"life_id": -9223369421454474777,
+			"position": "(106.6, -0.0, 567.85)"
+		}
+	},
+	"npc_relocations": 0,
+	"passed": true,
+	"performance_accepted": false,
+	"player_fixture_repositions": 4,
+	"reason": "complete",
+	"samples": [
+		{
+			"bodies": 3,
+			"health_count": 3,
+			"manager": {
+				"controllers": 3,
+				"deaths": 0,
+				"max_births_per_frame": 1,
+				"per_frame_callback": false,
+				"phases": {
+					"alive": 3
+				},
+				"respawns": 0
+			},
+			"ms": 9026,
+			"nodes": 48250.0,
+			"objects": 99069.0,
+			"phase": "aim",
+			"physical": {
+				"active": 2,
+				"enabled": true,
+				"life_count": 3,
+				"peak_us": 2770,
+				"physical_delta_not_scaled": true,
+				"steps": 2,
+				"us": 1591
+			},
+			"resources": 4218.0,
+			"target": 0,
+			"third_moved_m": 9.30221212655306,
+			"third_while_dead_m": 0.0,
+			"work_index": {
+				"cached_rows": 3,
+				"catalogue": 287,
+				"dirty": false,
+				"work_records": 3
+			}
+		},
+		{
+			"bodies": 3,
+			"health_count": 3,
+			"manager": {
+				"controllers": 3,
+				"deaths": 0,
+				"max_births_per_frame": 1,
+				"per_frame_callback": false,
+				"phases": {
+					"alive": 3
+				},
+				"respawns": 0
+			},
+			"ms": 10040,
+			"nodes": 48250.0,
+			"objects": 99071.0,
+			"phase": "aim",
+			"physical": {
+				"active": 2,
+				"enabled": true,
+				"life_count": 3,
+				"peak_us": 2770,
+				"physical_delta_not_scaled": true,
+				"steps": 2,
+				"us": 1276
+			},
+			"resources": 4218.0,
+			"target": 0,
+			"third_moved_m": 10.4124734774232,
+			"third_while_dead_m": 0.0,
+			"work_index": {
+				"cached_rows": 3,
+				"catalogue": 287,
+				"dirty": false,
+				"work_records": 3
+			}
+		},
+		{
+			"bodies": 3,
+			"health_count": 2,
+			"manager": {
+				"controllers": 3,
+				"deaths": 1,
+				"max_births_per_frame": 1,
+				"per_frame_callback": false,
+				"phases": {
+					"alive": 2,
+					"corpse": 1
+				},
+				"respawns": 0
+			},
+			"ms": 11051,
+			"nodes": 48249.0,
+			"objects": 99052.0,
+			"phase": "aim",
+			"physical": {
+				"active": 1,
+				"enabled": true,
+				"life_count": 2,
+				"peak_us": 2770,
+				"physical_delta_not_scaled": true,
+				"steps": 1,
+				"us": 425
+			},
+			"resources": 4218.0,
+			"target": 1,
+			"third_moved_m": 10.4124734774232,
+			"third_while_dead_m": 0.0,
+			"work_index": {
+				"cached_rows": 3,
+				"catalogue": 287,
+				"dirty": false,
+				"work_records": 3
+			}
+		},
+		{
+			"bodies": 3,
+			"health_count": 1,
+			"manager": {
+				"controllers": 3,
+				"deaths": 2,
+				"max_births_per_frame": 1,
+				"per_frame_callback": false,
+				"phases": {
+					"alive": 1,
+					"corpse": 2
+				},
+				"respawns": 0
+			},
+			"ms": 12071,
+			"nodes": 48252.0,
+			"objects": 99028.0,
+			"phase": "wait_births",
+			"physical": {
+				"active": 0,
+				"enabled": true,
+				"life_count": 1,
+				"peak_us": 2770,
+				"physical_delta_not_scaled": true,
+				"steps": 0,
+				"us": 0
+			},
+			"resources": 4218.0,
+			"target": 1,
+			"third_moved_m": 10.4124734774232,
+			"third_while_dead_m": 0.0,
+			"work_index": {
+				"cached_rows": 3,
+				"catalogue": 287,
+				"dirty": false,
+				"work_records": 3
+			}
+		},
+		{
+			"bodies": 3,
+			"health_count": 1,
+			"manager": {
+				"controllers": 3,
+				"deaths": 2,
+				"max_births_per_frame": 1,
+				"per_frame_callback": false,
+				"phases": {
+					"alive": 1,
+					"corpse": 2
+				},
+				"respawns": 0
+			},
+			"ms": 13074,
+			"nodes": 48252.0,
+			"objects": 99029.0,
+			"phase": "wait_births",
+			"physical": {
+				"active": 1,
+				"enabled": true,
+				"life_count": 1,
+				"peak_us": 2770,
+				"physical_delta_not_scaled": true,
+				"steps": 1,
+				"us": 543
+			},
+			"resources": 4218.0,
+			"target": 1,
+			"third_moved_m": 11.8528225794435,
+			"third_while_dead_m": 1.44034910202026,
+			"work_index": {
+				"cached_rows": 3,
+				"catalogue": 287,
+				"dirty": false,
+				"work_records": 3
+			}
+		},
+		{
+			"bodies": 2,
+			"health_count": 1,
+			"manager": {
+				"controllers": 3,
+				"deaths": 2,
+				"max_births_per_frame": 1,
+				"per_frame_callback": false,
+				"phases": {
+					"alive": 1,
+					"corpse": 1,
+					"spawning": 1
+				},
+				"respawns": 0
+			},
+			"ms": 14087,
+			"nodes": 48168.0,
+			"objects": 98822.0,
+			"phase": "wait_births",
+			"physical": {
+				"active": 1,
+				"enabled": true,
+				"life_count": 1,
+				"peak_us": 2770,
+				"physical_delta_not_scaled": true,
+				"steps": 1,
+				"us": 419
+			},
+			"resources": 4218.0,
+			"target": 1,
+			"third_moved_m": 13.6832662299275,
+			"third_while_dead_m": 3.27079275250435,
+			"work_index": {
+				"cached_rows": 3,
+				"catalogue": 287,
+				"dirty": false,
+				"work_records": 3
+			}
+		},
+		{
+			"bodies": 3,
+			"health_count": 2,
+			"manager": {
+				"controllers": 3,
+				"deaths": 3,
+				"max_births_per_frame": 1,
+				"per_frame_callback": false,
+				"phases": {
+					"alive": 2,
+					"corpse": 1
+				},
+				"respawns": 2
+			},
+			"ms": 15094,
+			"nodes": 48248.0,
+			"objects": 99033.0,
+			"phase": "wait_births",
+			"physical": {
+				"active": 1,
+				"enabled": true,
+				"life_count": 2,
+				"peak_us": 2770,
+				"physical_delta_not_scaled": true,
+				"steps": 1,
+				"us": 600
+			},
+			"resources": 4218.0,
+			"target": 2,
+			"third_moved_m": 15.514062481001,
+			"third_while_dead_m": 4.50132067129016,
+			"work_index": {
+				"cached_rows": 3,
+				"catalogue": 287,
+				"dirty": false,
+				"work_records": 3
+			}
+		},
+		{
+			"bodies": 3,
+			"health_count": 2,
+			"manager": {
+				"controllers": 3,
+				"deaths": 3,
+				"max_births_per_frame": 1,
+				"per_frame_callback": false,
+				"phases": {
+					"alive": 2,
+					"corpse": 1
+				},
+				"respawns": 2
+			},
+			"ms": 16111,
+			"nodes": 48248.0,
+			"objects": 99032.0,
+			"phase": "wait_births",
+			"physical": {
+				"active": 0,
+				"enabled": true,
+				"life_count": 2,
+				"peak_us": 2770,
+				"physical_delta_not_scaled": true,
+				"steps": 0,
+				"us": 0
+			},
+			"resources": 4218.0,
+			"target": 2,
+			"third_moved_m": 15.6340686548501,
+			"third_while_dead_m": 4.62132684513927,
+			"work_index": {
+				"cached_rows": 3,
+				"catalogue": 287,
+				"dirty": false,
+				"work_records": 3
+			}
+		},
+		{
+			"bodies": 3,
+			"health_count": 2,
+			"manager": {
+				"controllers": 3,
+				"deaths": 3,
+				"max_births_per_frame": 1,
+				"per_frame_callback": false,
+				"phases": {
+					"alive": 2,
+					"corpse": 1
+				},
+				"respawns": 2
+			},
+			"ms": 17126,
+			"nodes": 48248.0,
+			"objects": 99033.0,
+			"phase": "wait_births",
+			"physical": {
+				"active": 1,
+				"enabled": true,
+				"life_count": 2,
+				"peak_us": 2770,
+				"physical_delta_not_scaled": true,
+				"steps": 1,
+				"us": 645
+			},
+			"resources": 4218.0,
+			"target": 2,
+			"third_moved_m": 16.6248921714723,
+			"third_while_dead_m": 5.61215036176145,
+			"work_index": {
+				"cached_rows": 3,
+				"catalogue": 287,
+				"dirty": false,
+				"work_records": 3
+			}
+		},
+		{
+			"bodies": 3,
+			"health_count": 2,
+			"manager": {
+				"controllers": 3,
+				"deaths": 4,
+				"max_births_per_frame": 1,
+				"per_frame_callback": false,
+				"phases": {
+					"alive": 2,
+					"corpse": 1
+				},
+				"respawns": 3
+			},
+			"ms": 18163,
+			"nodes": 48248.0,
+			"objects": 99061.0,
+			"phase": "wait_births",
+			"physical": {
+				"active": 1,
+				"enabled": true,
+				"life_count": 2,
+				"peak_us": 2770,
+				"physical_delta_not_scaled": true,
+				"steps": 1,
+				"us": 324
+			},
+			"resources": 4218.0,
+			"target": 3,
+			"third_moved_m": 18.4864393845201,
+			"third_while_dead_m": 7.14342306926847,
+			"work_index": {
+				"cached_rows": 3,
+				"catalogue": 287,
+				"dirty": false,
+				"work_records": 3
+			}
+		},
+		{
+			"bodies": 3,
+			"health_count": 2,
+			"manager": {
+				"controllers": 3,
+				"deaths": 4,
+				"max_births_per_frame": 1,
+				"per_frame_callback": false,
+				"phases": {
+					"alive": 2,
+					"corpse": 1
+				},
+				"respawns": 3
+			},
+			"ms": 19185,
+			"nodes": 48248.0,
+			"objects": 99042.0,
+			"phase": "wait_births",
+			"physical": {
+				"active": 2,
+				"enabled": true,
+				"life_count": 2,
+				"peak_us": 2770,
+				"physical_delta_not_scaled": true,
+				"steps": 2,
+				"us": 1187
+			},
+			"resources": 4218.0,
+			"target": 3,
+			"third_moved_m": 20.3480620011687,
+			"third_while_dead_m": 9.00504568591714,
+			"work_index": {
+				"cached_rows": 3,
+				"catalogue": 287,
+				"dirty": false,
+				"work_records": 3
+			}
+		},
+		{
+			"bodies": 3,
+			"health_count": 2,
+			"manager": {
+				"controllers": 3,
+				"deaths": 4,
+				"max_births_per_frame": 1,
+				"per_frame_callback": false,
+				"phases": {
+					"alive": 2,
+					"corpse": 1
+				},
+				"respawns": 3
+			},
+			"ms": 20193,
+			"nodes": 48248.0,
+			"objects": 99042.0,
+			"phase": "wait_births",
+			"physical": {
+				"active": 2,
+				"enabled": true,
+				"life_count": 2,
+				"peak_us": 2770,
+				"physical_delta_not_scaled": true,
+				"steps": 2,
+				"us": 1059
+			},
+			"resources": 4218.0,
+			"target": 3,
+			"third_moved_m": 22.149733312428,
+			"third_while_dead_m": 10.8067169971764,
+			"work_index": {
+				"cached_rows": 3,
+				"catalogue": 287,
+				"dirty": false,
+				"work_records": 3
+			}
+		}
+	],
+	"shots": [
+		{
+			"frame": 1846,
+			"muzzle": "(-88.00266, 1.245327, 149.4151)",
+			"shot_id": "sniper:1",
+			"weapon": "sniper"
+		},
+		{
+			"frame": 1925,
+			"muzzle": "(141.8943, 1.261104, 113.1868)",
+			"shot_id": "sniper:2",
+			"weapon": "sniper"
+		},
+		{
+			"frame": 2127,
+			"muzzle": "(-84.84403, 1.242979, 141.8544)",
+			"shot_id": "sniper:3",
+			"weapon": "sniper"
+		},
+		{
+			"frame": 2319,
+			"muzzle": "(151.5525, 1.253039, 119.9399)",
+			"shot_id": "sniper:4",
+			"weapon": "sniper"
+		}
+	],
+	"synthetic_damage": false,
+	"synthetic_hits": false,
+	"terminals": [
+		{
+			"collider_id": 2057020997672,
+			"frame": 1847,
+			"owned": true,
+			"point": "(-87.86021, 1.491439, 146.6874)",
+			"shot_id": "sniper:1",
+			"status": "hit",
+			"weapon": "sniper"
+		},
+		{
+			"collider_id": 2060158337135,
+			"frame": 1927,
+			"owned": true,
+			"point": "(143.5043, 1.545717, 109.0964)",
+			"shot_id": "sniper:2",
+			"status": "hit",
+			"weapon": "sniper"
+		},
+		{
+			"collider_id": 3075666444360,
+			"frame": 2128,
+			"owned": true,
+			"point": "(-84.74403, 1.500565, 139.5953)",
+			"shot_id": "sniper:3",
+			"status": "hit",
+			"weapon": "sniper"
+		},
+		{
+			"collider_id": 3089239188196,
+			"frame": 2320,
+			"owned": true,
+			"point": "(151.6785, 1.532565, 117.2094)",
+			"shot_id": "sniper:4",
+			"status": "hit",
+			"weapon": "sniper"
+		}
+	],
+	"third_moved_m": 23.9204173199832,
+	"third_while_dead_m": 12.547429587692
+}

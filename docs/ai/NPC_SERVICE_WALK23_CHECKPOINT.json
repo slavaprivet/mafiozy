@@ -1,0 +1,138 @@
+{
+  "status": "root-locally-applied-WIP-pending-LIVE14",
+  "basePublishedCommit": "3612fa62f8d3bcb6888c7028ed0791fe0c928085",
+  "scope": "one real REBUILD-VISUAL-print_shop-001; no bank/medical/citywide rollout",
+  "authorRuntimeEdits": false,
+  "rootApplied": [
+    "38d5b63a42cfae1c37cb1e06f2c204905f843f814f4faf35085e123769924cf3",
+    "4e2e7a77be0e30c39b218c1520ec329557bf2b635caa2a16779db8218096db7b",
+    "49d2a2e005a995843967fde690b1bcf51292dbfd70d6a286bf903f17713d755e"
+  ],
+  "runtime": [
+    {
+      "path": "world.html",
+      "sha256": "9f5cc5a1a80db37dbf3136ecab66c4cdba2bd679dbea03aa10800ac16d8a95b5",
+      "normalizedLfSha256": "a5c08b248bf0df93417da4fc96a1138c8e909ed38d82df67cdac3a1dc0f92a22",
+      "trackedAtBase": true,
+      "baseSha256": "c739ddb00b766b596566cb170aa311a5637b56e601b8904d933b7591129e9fb7"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/walk_preview.mjs",
+      "sha256": "e80ebf4be2d0404ad5b51d4bf28b756a9cba2b486c43c0797de748c37364dd47",
+      "normalizedLfSha256": "6ae70811194e7f8f654da06df7912bf2a34384df35d830295340b273e3f3982a",
+      "trackedAtBase": true,
+      "baseSha256": "d6775649336405342085f761f9aad6c77033b59d5ec0cb80eb19f14bcaab242b"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/service_pilot23_candidate/employee.mjs",
+      "sha256": "23ce979bc1b1adb34ac5f39d8f00740a253b54d68112e2b78d1dfc40183b13cb",
+      "normalizedLfSha256": "23ce979bc1b1adb34ac5f39d8f00740a253b54d68112e2b78d1dfc40183b13cb",
+      "trackedAtBase": false
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/service_pilot23_candidate/return.mjs",
+      "sha256": "79aec77dd986c49f1e56f83c18f9fe438c48c562f418cfedbe25b6a681b874a4",
+      "normalizedLfSha256": "79aec77dd986c49f1e56f83c18f9fe438c48c562f418cfedbe25b6a681b874a4",
+      "trackedAtBase": false
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/service_pilot23_candidate/source.mjs",
+      "sha256": "4509f96a514ab4a7b76b8ca4aa72d8aee11c49ada76f0043ed5c0700fc37cc4d",
+      "normalizedLfSha256": "4509f96a514ab4a7b76b8ca4aa72d8aee11c49ada76f0043ed5c0700fc37cc4d",
+      "trackedAtBase": false
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/service_pilot23_candidate/visibility.mjs",
+      "sha256": "0a9143fb5bbee58e986ed2f68115770ad90cefa7d7cffa1301339c9bdb334d24",
+      "normalizedLfSha256": "0a9143fb5bbee58e986ed2f68115770ad90cefa7d7cffa1301339c9bdb334d24",
+      "trackedAtBase": false
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/service_pilot23_candidate/visits.mjs",
+      "sha256": "8fa706d55c786ed2bdf58cdbe800e607a33efc490fc13b145ba1bff590d60709",
+      "normalizedLfSha256": "8fa706d55c786ed2bdf58cdbe800e607a33efc490fc13b145ba1bff590d60709",
+      "trackedAtBase": false
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/service_pilot23_candidate/walk_host.mjs",
+      "sha256": "01f5c7bccbc6ada1c45a6aab64f5e76e536246c8d2ef8dd44f5874997c29c85b",
+      "normalizedLfSha256": "956a23c538942c66b5e2c8e3640b568c1672d9af32c0612f7da8e99a6aa1bfca",
+      "trackedAtBase": false
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_stationary_service_adapter.mjs",
+      "sha256": "cc989b951a25ea5bc4f3fa69f785e0e4a42f39553df4ccba9c106622ebabe2da",
+      "normalizedLfSha256": "cc989b951a25ea5bc4f3fa69f785e0e4a42f39553df4ccba9c106622ebabe2da",
+      "trackedAtBase": false
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/native_print_shop_service_station.mjs",
+      "sha256": "2cc1e9ed809d0d0b681c83f685f7a798240590dfd5086870e96db1b6fe301280",
+      "normalizedLfSha256": "2cc1e9ed809d0d0b681c83f685f7a798240590dfd5086870e96db1b6fe301280",
+      "trackedAtBase": false
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/interior_mesh_pool.mjs",
+      "sha256": "6c4e585ed5b649cc03e76a9022728a17e002cf60599a5dc9b1cac982477b7ddd",
+      "normalizedLfSha256": "6c4e585ed5b649cc03e76a9022728a17e002cf60599a5dc9b1cac982477b7ddd",
+      "trackedAtBase": true,
+      "baseSha256": "6c4e585ed5b649cc03e76a9022728a17e002cf60599a5dc9b1cac982477b7ddd"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_swept_footprint.mjs",
+      "sha256": "918467e987c06cbdc88af5772113d8492f1d58e9198d0e86e7050b2c1c617258",
+      "normalizedLfSha256": "918467e987c06cbdc88af5772113d8492f1d58e9198d0e86e7050b2c1c617258",
+      "trackedAtBase": true,
+      "baseSha256": "918467e987c06cbdc88af5772113d8492f1d58e9198d0e86e7050b2c1c617258"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_resident_commerce_source.js",
+      "sha256": "561ca0122caf39caca7cd15999dfbebdd2257473a1bdcb6e288b18fd2e526cbe",
+      "normalizedLfSha256": "d455a7c268341e30c3ece13e299fff898e6937172fb8307d2c7819756a1069cb",
+      "trackedAtBase": true,
+      "baseSha256": "d755ff9856de1747191fe5a582aa370bc6be78b5d3ad459075ca19edfe4a8199"
+    }
+  ],
+  "tests": [
+    {
+      "path": "assets/maps/city_rebuild_v1/test_npc_service_applied23.mjs",
+      "sha256": "91afc887175a2ff3566989a4bc243e97231541b1755a3dedbc83a2d84bd7e670",
+      "normalizedLfSha256": "5ce0c8c1c1948c428398563c0e69905da9084f8c292c0ba0c2bbe00eeb7f9606",
+      "trackedAtBase": false
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/test_npc_service_interruption_applied23.mjs",
+      "sha256": "4396408e7761905bbcaf046d3e8fae7d5dca946ecf6c595eff6b2cd6fd65b0ef",
+      "normalizedLfSha256": "21d822685c6acdab6000e65c72441ea4f49f942b8c53c85212f1066b18179bad",
+      "trackedAtBase": false
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/test_npc_service_revision23.mjs",
+      "sha256": "42ab192213e524554248bbfa1e3229e0117103237084061595f9c3188a92cd9c",
+      "normalizedLfSha256": "42ab192213e524554248bbfa1e3229e0117103237084061595f9c3188a92cd9c",
+      "trackedAtBase": false
+    }
+  ],
+  "patch": {
+    "path": "docs/ai/NPC_SERVICE_WALK23_CHECKPOINT.patch",
+    "sha256": "3647647744f851cf1f1b2c949fa867202164dfa13d160b311ff64857508423f6",
+    "use": "publication/review delta from base commit; already applied locally, DO NOT reapply onto current WIP"
+  },
+  "verification": {
+    "independentComposedReview": "ACCEPT including panic fix",
+    "independentRevisionReview": "ACCEPT actual 4 current SHA layout failure/after success",
+    "actualAppliedStore": "PASS full real GLB/commerce/collider/respawn chain",
+    "actualAppliedInterruptions": "PASS six scenarios; source panic physically moved and exited",
+    "revision": "PASS before 271 chars rejects, short content-generation creates; old entry rejected",
+    "live12": "generic anchor certification hold",
+    "live13": "certified service layout rejected because four-SHA revision exceeded240",
+    "live14": "pending; root owns existing only GPU game"
+  },
+  "limits": [
+    "no LIVE merchant success claimed yet",
+    "no loaded-scene FPS acceptance",
+    "THREE_VENDOR_ROOT can supply Three build/+addons/ to portable tests; native fixture dependency is adapted in-memory only",
+    "all production changes applied by coordinator; author only outputs/tests",
+    "checkpoint tests import actual applied World/package, not prototype transforms or output-world copies"
+  ]
+}

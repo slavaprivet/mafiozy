@@ -1,0 +1,91 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--path",
+    "D:\\MafioziCombat31\\opponent50\\frozen_root50\\game",
+    "--script",
+    "D:\\MafioziCombat31\\opponent50\\chase.gd",
+    "--",
+    "--case=retreat"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "fac8208e043b41d9b52e6064e3f1ec40",
+    "owner": {
+      "pid": 26260,
+      "creation_filetime": "134368039137222307"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\opponent50\\frozen_root50\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 46392,
+        "creation_filetime": "134368039148568442",
+        "command_line": "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\opponent50\\frozen_root50\\game --script D:\\MafioziCombat31\\opponent50\\chase.gd -- --case=retreat",
+        "command": [
+          "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "D:\\MafioziCombat31\\opponent50\\frozen_root50\\game",
+          "--script",
+          "D:\\MafioziCombat31\\opponent50\\chase.gd",
+          "--",
+          "--case=retreat"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "d:\\mafiozicombat31\\opponent50\\frozen_root50\\game",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 1272140.9842948,
+    "queued_at": 1272020.9842948,
+    "ticket": 3979,
+    "inventory_before": [
+      {
+        "pid": 12656,
+        "parent_pid": 43696,
+        "creation_filetime": "134368008441584844",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\game\" --script \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_castle_current\\bootstrap_castle.gd\" -- \"--receipt-dir=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261018T124044131Z\" \"--release-title=Замок и осада · замах и подбор 43\" \"--release-revision=castle-20261018-combined43-raised-arms\" --castle=1 --castle-start-outside=1",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози — Замок и осада · замах и подбор 43 (DEBUG)"
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5990740000270307
+  },
+  "child": {
+    "pid": 46392,
+    "creation_filetime": "134368039148568442",
+    "command_line": "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\opponent50\\frozen_root50\\game --script D:\\MafioziCombat31\\opponent50\\chase.gd -- --case=retreat",
+    "command": [
+      "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--path",
+      "D:\\MafioziCombat31\\opponent50\\frozen_root50\\game",
+      "--script",
+      "D:\\MafioziCombat31\\opponent50\\chase.gd",
+      "--",
+      "--case=retreat"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\opponent50\\frozen_root50\\game",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 10.477830399991944,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

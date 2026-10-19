@@ -1,0 +1,80 @@
+{
+  "schema": "mafiozi.transport-debris-copy-event-oracle-manifest.v1",
+  "status": "FROZEN_TEST_ONLY_SOURCE_PROOF",
+  "production_adopted": false,
+  "files": [
+    {
+      "path": "tools/godot/export_transport_debris_copy_event_oracle.mjs",
+      "bytes": 26791,
+      "sha256": "bc7cf288fd898335cfd4c39ec6916710314f5bcbaf41167ddb023cd8e1a51d98",
+      "role": "SHA/sentinel-pinned executed-source exporter"
+    },
+    {
+      "path": "godot/mafiozi_walk/data/transport/source_debris_copy_event.json",
+      "bytes": 5443013,
+      "sha256": "5c748173306afb6b6acd1136f84749fe0f3196465e841849db415e76a4c59281",
+      "role": "test-only executed-source fixture"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_debris_copy_event_oracle.gd",
+      "bytes": 14727,
+      "sha256": "660709c9396c3083b2e5fe8c261bca0b5377c58e78541b499f9135e2128e9a4c",
+      "role": "Godot fixture integrity and ordering test"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_DEBRIS_COPY_EVENT_ORACLE_HANDOFF.md",
+      "bytes": 7161,
+      "sha256": "9b8071fee05652205d3f09472bbc38842a8e88e978842d66bd7bc2984fb43b79",
+      "role": "scope, evidence, limits and Root dependencies"
+    }
+  ],
+  "critical_source_pins": {
+    "assets/maps/city_rebuild_v1/vehicle_damage.mjs": "e029cb4a03dcd23bbdd0fb2f73b7780db92f24f761cf83b030991acb3c403f92",
+    "assets/maps/city_rebuild_v1/vehicle_render_batches.mjs": "a9b4c0c93652b52e29a2c29fe65748bdf451122594583d3bd455238f766df648",
+    "assets/maps/city_rebuild_v1/vehicle_fleet.mjs": "7fd414ed74da713da06ee6ea436828e3ace825edc1aa97aa33c57dee28e1e4a8",
+    "assets/maps/city_rebuild_v1/vehicle_fleet_models.mjs": "5dcec7102fc425c7828239ad5de10d4feb29ff7216610fc842333894f811545c",
+    "godot/mafiozi_walk/data/transport/source_burn_identities.json": "38d370792b7e97445b56efb35b4360121157a659905216db79221f78f22c2d38"
+  },
+  "receipt": {
+    "three_revision": "180",
+    "constructor": "actual createVehicleFleet(...).addCar(...) production order",
+    "fleet_mass_derived_hp_verified": true,
+    "char_before_after_values_verified": true,
+    "real_profiles": 13,
+    "isolated_cases": 18,
+    "ordered_events": 7464,
+    "accepted_roots": 157,
+    "rng_draws": 1099,
+    "get_state_calls": 157,
+    "recursive_visits": 1480,
+    "canonical_getter_calls": 1316,
+    "recursive_rejects": 164,
+    "top_level_skipped_roots": 1,
+    "repeat_export_sha_equal": true
+  },
+  "verification": [
+    {
+      "kind": "node_export",
+      "command": "node tools/godot/export_transport_debris_copy_event_oracle.mjs",
+      "exit_code": 0,
+      "repeat_count": 2,
+      "last_wall_seconds": 8.7
+    },
+    {
+      "kind": "godot_headless",
+      "command": "tools/godot/run_transport_test.ps1 -Resource res://scripts/tests/test_transport_debris_copy_event_oracle.gd -TimeoutSeconds 60",
+      "engine": "Godot 4.7.2.stable.official.ed1daf0bf",
+      "exit_code": 0,
+      "checks": 3540,
+      "failures": 0,
+      "parse_validate_us": 184077
+    }
+  ],
+  "limits": [
+    "Fixture is test-only and is not loaded by gameplay runtime",
+    "No native event seam, authority, HP, physics spawn, render integration, GPU, LIVE, or FPS proof",
+    "All-profile baseline plus bounded compact-sedan callback variants; no all-profile fallback claim",
+    "Source callback throw proves partial char mutation rather than native transaction authority",
+    "Future adoption requires Root-owned vehicle/profile/generation/material revision and exactly-once event binding"
+  ]
+}

@@ -1,0 +1,115 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--max-fps",
+    "90",
+    "--path",
+    "D:/MafioziCombat31/bow_motion53/game",
+    "--script",
+    "D:/MafioziCombat31/bow_motion53/probe.gd",
+    "--",
+    "--qa-out=D:/MafioziCombat31/bow_motion53/after"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "4e27f91f3d0846e18994ae9f3b4c0b79",
+    "owner": {
+      "pid": 59640,
+      "creation_filetime": "134368236530980469"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\bow_motion53\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 57560,
+        "creation_filetime": "134368236577364734",
+        "command_line": "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --headless --max-fps 90 --path D:/MafioziCombat31/bow_motion53/game --script D:/MafioziCombat31/bow_motion53/probe.gd -- --qa-out=D:/MafioziCombat31/bow_motion53/after",
+        "command": [
+          "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--max-fps",
+          "90",
+          "--path",
+          "D:/MafioziCombat31/bow_motion53/game",
+          "--script",
+          "D:/MafioziCombat31/bow_motion53/probe.gd",
+          "--",
+          "--qa-out=D:/MafioziCombat31/bow_motion53/after"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "d:\\mafiozicombat31\\bow_motion53\\game",
+        "affinity_mask": 12,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 1291880.982257,
+    "queued_at": 1291760.982257,
+    "ticket": 4131,
+    "inventory_before": [
+      {
+        "pid": 58516,
+        "parent_pid": 47168,
+        "creation_filetime": "134368230043691585",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator33_release52\\game\" --script \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_castle_current\\bootstrap_castle.gd\" -- \"--receipt-dir=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261018T185004343Z\" \"--release-title=Замок и осада · общая сцена 52 · Месси\" \"--release-revision=castle-20261018-combined52-soil49-coordinator33\" --castle=1 --castle-start-outside=1",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози — Замок и осада · общая сцена 52 · Месси (DEBUG)"
+      },
+      {
+        "pid": 53904,
+        "parent_pid": 57180,
+        "creation_filetime": "134368236207760926",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --path D:/MafioziCombat31/bow_aim53/game --script D:/MafioziCombat31/bow_aim53/visual_probe.gd -- --qa-out=D:/MafioziCombat31/bow_aim53/baseline --castle=1 --castle-start-outside=1",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози — перенос в Godot (DEBUG)"
+      },
+      {
+        "pid": 57720,
+        "parent_pid": 48988,
+        "creation_filetime": "134368236561543026",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\competitive_bot53\\game --script D:\\MafioziCombat31\\competitive_bot53\\qa\\chase.gd -- --qa-out=D:\\MafioziCombat31\\competitive_bot53\\detour_final --case=detour",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": ""
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 3.7803907999768853
+  },
+  "child": {
+    "pid": 57560,
+    "creation_filetime": "134368236577364734",
+    "command_line": "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --headless --max-fps 90 --path D:/MafioziCombat31/bow_motion53/game --script D:/MafioziCombat31/bow_motion53/probe.gd -- --qa-out=D:/MafioziCombat31/bow_motion53/after",
+    "command": [
+      "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--max-fps",
+      "90",
+      "--path",
+      "D:/MafioziCombat31/bow_motion53/game",
+      "--script",
+      "D:/MafioziCombat31/bow_motion53/probe.gd",
+      "--",
+      "--qa-out=D:/MafioziCombat31/bow_motion53/after"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\bow_motion53\\game",
+    "affinity_mask": 12,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 22.258179099997506,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

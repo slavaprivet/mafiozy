@@ -1,0 +1,24 @@
+{
+  "model": "deepseek-flash",
+  "pricing_checked_on": "2026-09-16",
+  "pricing_source": "https://api-docs.deepseek.com/quick_start/pricing/",
+  "input_usd_per_million": 0.3,
+  "output_usd_per_million": 1.2,
+  "pricing_note": "Conservative peak cache-miss estimate, not a guaranteed provider spending cap.",
+  "max_file_bytes": 100000,
+  "max_context_bytes": 180000,
+  "max_request_bytes": 220000,
+  "max_output_tokens": 8192,
+  "max_calls_per_task": 2,
+  "timeout_seconds": 30,
+  "trusted_checks": {
+    "grass-selection-parity": {
+      "entry": "assets/maps/city_rebuild_v1/test_environment_grass_selection.mjs",
+      "files": [
+        "assets/maps/city_rebuild_v1/test_environment_grass_selection.mjs",
+        "assets/maps/city_rebuild_v1/environment_grass.mjs",
+        "assets/maps/city_rebuild_v1/environment_grass_plan.mjs"
+      ]
+    }
+  }
+}

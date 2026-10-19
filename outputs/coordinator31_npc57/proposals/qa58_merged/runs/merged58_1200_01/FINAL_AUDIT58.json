@@ -1,0 +1,368 @@
+{
+  "schema": "mafiozi.qa58.final-soak-audit/v1",
+  "passed": true,
+  "gates": {
+    "terminal_native_passed": true,
+    "exact_candidate_before_after": true,
+    "unchanged_controls": true,
+    "no_source_control_harness_drift": true,
+    "no_native_errors": true,
+    "full1200_native_timeline": true,
+    "valid_native_frame_time": true,
+    "full1200_sampled_frame_duration": true,
+    "complete_physics_accounting": true,
+    "sixty_native_ticks_per_second": true,
+    "complete_1hz_population_observation": true,
+    "bounded_1hz_observation_gaps": true,
+    "spatial_recalculation_matches": true,
+    "no_confined_motion_episodes": true,
+    "all_ten_moved": true
+  },
+  "performance_accepted": false,
+  "source_manifest": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\extended31\\stage58_02\\CANDIDATE58.json",
+  "source_manifest_sha256": "4a00c3c85b4d705ce917c60a7d0b92deb634d24eb57b41cff2664d24e2cfb70e",
+  "seconds": 1200.0,
+  "native_timeline_elapsed_s": 1200.0,
+  "sampled_frame_duration_s": 1199.9989229999999,
+  "report_elapsed_including_serialization_s": 1200.583,
+  "post_observation_serialization_s": 0.5830000000000837,
+  "physical_ticks": 71994,
+  "actor_samples": 1200,
+  "render_samples": 173613,
+  "max_motion_idle_s": 7.006,
+  "max_queue_idle_s": 2.992,
+  "completion_deltas": {
+    "shop": 127,
+    "restaurant": 0,
+    "hospital": 0,
+    "bank": 0,
+    "walk": 680
+  },
+  "full_shopping_cycles": 127,
+  "native_trends": {
+    "static_memory": {
+      "first": 703950618.0,
+      "last": 716419854.0,
+      "min": 703950618.0,
+      "max": 716446606.0,
+      "median": 711560632.0,
+      "quarter_medians": [
+        707612988.0,
+        710164196.0,
+        712741682.0,
+        715268464.0
+      ],
+      "last_minus_first_quarter_median": 7655476.0
+    },
+    "objects": {
+      "first": 100759.0,
+      "last": 101378.0,
+      "min": 100740.0,
+      "max": 101532.0,
+      "median": 101328.5,
+      "quarter_medians": [
+        101117.0,
+        101266.5,
+        101358.0,
+        101382.0
+      ],
+      "last_minus_first_quarter_median": 265.0
+    },
+    "nodes": {
+      "first": 48754.0,
+      "last": 48748.0,
+      "min": 48748.0,
+      "max": 48785.0,
+      "median": 48748.0,
+      "quarter_medians": [
+        48748.0,
+        48748.0,
+        48748.0,
+        48748.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    },
+    "orphans": {
+      "first": 0.0,
+      "last": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "median": 0.0,
+      "quarter_medians": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    },
+    "resources": {
+      "first": 4203.0,
+      "last": 4203.0,
+      "min": 4203.0,
+      "max": 4203.0,
+      "median": 4203.0,
+      "quarter_medians": [
+        4203.0,
+        4203.0,
+        4203.0,
+        4203.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    },
+    "draw_calls": {
+      "first": 0.0,
+      "last": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "median": 0.0,
+      "quarter_medians": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    },
+    "primitives": {
+      "first": 0.0,
+      "last": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "median": 0.0,
+      "quarter_medians": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    },
+    "video_memory": {
+      "first": 0.0,
+      "last": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "median": 0.0,
+      "quarter_medians": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    },
+    "texture_memory": {
+      "first": 0.0,
+      "last": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "median": 0.0,
+      "quarter_medians": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    },
+    "buffer_memory": {
+      "first": 0.0,
+      "last": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "median": 0.0,
+      "quarter_medians": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    },
+    "process_ms": {
+      "first": 0.799,
+      "last": 1.296,
+      "min": 0.799,
+      "max": 22.0,
+      "median": 1.4955,
+      "quarter_medians": [
+        1.531,
+        1.5139999999999998,
+        1.478,
+        1.4675
+      ],
+      "last_minus_first_quarter_median": -0.06349999999999989
+    },
+    "physics_ms": {
+      "first": 15.826,
+      "last": 8.978,
+      "min": 7.274,
+      "max": 72.349,
+      "median": 10.488,
+      "quarter_medians": [
+        10.992,
+        10.907,
+        10.0765,
+        10.043
+      ],
+      "last_minus_first_quarter_median": -0.9490000000000016
+    },
+    "route_jobs": {
+      "first": 0.0,
+      "last": 0.0,
+      "min": 0.0,
+      "max": 3.0,
+      "median": 0.0,
+      "quarter_medians": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    },
+    "route_nodes": {
+      "first": 0.0,
+      "last": 0.0,
+      "min": 0.0,
+      "max": 1469.0,
+      "median": 0.0,
+      "quarter_medians": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    },
+    "route_heap": {
+      "first": 0.0,
+      "last": 0.0,
+      "min": 0.0,
+      "max": 186.0,
+      "median": 0.0,
+      "quarter_medians": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    },
+    "nav_pending": {
+      "first": 0.0,
+      "last": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "median": 0.0,
+      "quarter_medians": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    },
+    "nav_guides": {
+      "first": 1.0,
+      "last": 0.0,
+      "min": 0.0,
+      "max": 2.0,
+      "median": 0.0,
+      "quarter_medians": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    },
+    "registry_entries": {
+      "first": 12.0,
+      "last": 12.0,
+      "min": 12.0,
+      "max": 12.0,
+      "median": 12.0,
+      "quarter_medians": [
+        12.0,
+        12.0,
+        12.0,
+        12.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    },
+    "service_keys": {
+      "first": 0.0,
+      "last": 1.0,
+      "min": 0.0,
+      "max": 3.0,
+      "median": 0.0,
+      "quarter_medians": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "last_minus_first_quarter_median": 0.0
+    }
+  },
+  "os_trends": {
+    "rss_bytes": {
+      "first": 931815424.0,
+      "last": 942206976.0,
+      "min": 931794944.0,
+      "max": 942206976.0,
+      "median": 934436864.0,
+      "quarter_medians": [
+        932671488.0,
+        933380096.0,
+        935817216.0,
+        939798528.0
+      ],
+      "last_minus_first_quarter_median": 7127040.0
+    },
+    "private_bytes": {
+      "first": 915804160.0,
+      "last": 923594752.0,
+      "min": 915767296.0,
+      "max": 923594752.0,
+      "median": 916938752.0,
+      "quarter_medians": [
+        916238336.0,
+        916238336.0,
+        918069248.0,
+        921509888.0
+      ],
+      "last_minus_first_quarter_median": 5271552.0
+    }
+  },
+  "raw_evidence_sha256": {
+    "RUN.json": "87ffb53151580f095404ac8cf5bf37ec54c387fdd7833e075dcfd10f5f697bdc",
+    "SOURCE.json": "bc2a403e26cda9278f03216b556b8c4635eb8d5499111bbadeee9957f46b112b",
+    "SOURCE_AFTER.json": "bc2a403e26cda9278f03216b556b8c4635eb8d5499111bbadeee9957f46b112b",
+    "SOAK31.json": "15ae0edb623c4a7475cf3e44b0d6349b8554f36ccec0eca73b742306caaacc4b",
+    "MASS30.json": "dcfe3e9802892d0fcfa750542565684b8289b35621a94f518456aec02f4ff96a",
+    "SLOW_PLANNER31.json": "76e18b652f13f3f8e9756076b7ac3125bbcfb5f924e9906b323926b86f7a634a",
+    "OS_MEMORY.json": "ee8770e492e18b97b7605a32135bb1b489b0c949c8cc0f554088acbe9e5cf719",
+    "CONTROL_PINS.json": "aff0fc56eb4c567c1838e45c656e73fab3aa8939c58659b55a5a10f672c84e76",
+    "CONTROL_PINS_AFTER.json": "aff0fc56eb4c567c1838e45c656e73fab3aa8939c58659b55a5a10f672c84e76",
+    "HARNESS.json": "1faad34a44b2a1a59d6f09850683017cb89cb8261bea19cf1f87f3775a857d6e",
+    "HARNESS.zip": "98d6d54a51cd3181172a3e5ed139fa70b75660e8eee065070cf18c2ede774384",
+    "SPATIAL58.json": "e3a25554017c13dbd0f9ddc1a007d845c67f62292ad4f2c21d0628d1d33dbab5",
+    "stdout.log": "5e1faa9f3bdcf7bb93be4e2add1aeb0961e311bb69bb52c52c82b903b3d6a0af",
+    "stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "analyzer_pins": {
+    "outputs/coordinator31_npc57/proposals/qa31_resume/analyze_soak31.py": "3f0cc39ad8cf44a9f0252137edd52715a06b229be38f90ba144297a96815e696",
+    "outputs/coordinator31_npc57/proposals/qa31_extended/analyze_cycles_extended31.py": "e526ce6ce6717b118c30e9390a4128994e50bb7b69ec3b87f28703ac4b18ba4d",
+    "outputs/coordinator31_npc57/extended31/audit_spatial_liveness31.py": "020a88f92d3ffc88307115b8aa48a5141f765c9563768df94f0ede890ff18c2b",
+    "outputs/coordinator31_npc57/extended31/finalize_soak58.py": "1c963252a20a7499f67e9aeeef0af819e4cd59a9d7e79382ac9c5c264ebbbd5d"
+  },
+  "analyzer_archive_sha256": "bb0be1dcc1e014102dee296275ddc80f77dfc988e125f97d1a80e3216fd8b01b",
+  "limitations": [
+    "Natural finite observation does not cover every service or threat; separate native fixtures are required.",
+    "Headless alongside user game is functional evidence only, not comparable rendered FPS.",
+    "Memory includes bounded observer buffers; finite increases alone do not establish a leak."
+  ]
+}

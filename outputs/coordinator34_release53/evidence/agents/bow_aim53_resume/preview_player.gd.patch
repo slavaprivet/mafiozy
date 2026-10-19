@@ -1,0 +1,21 @@
+--- a/scripts/preview_player.gd
++++ b/scripts/preview_player.gd
+@@ -43,6 +43,8 @@
+ ## DSH_SWORD_PROTO: the prototype sword host registers itself here; while it is
+ ## steering the blade it owns the mouse and the view stays put.
+ var _sword_host: Node = null
++## The held bow owns render-facing; locomotion still owns translation and gait.
++var _bow_host: Node = null
+ var _model_loaded: bool = false
+ var _model_error: String = ""
+ var _source_height: float = 0.0
+@@ -495,7 +497,8 @@
+ 	speed *= leg_support50
+ 	velocity.x = move_toward(velocity.x, direction.x * speed, acceleration * delta)
+ 	velocity.z = move_toward(velocity.z, direction.z * speed, acceleration * delta)
+-	if direction.length_squared() > 0.001:
++	var bow_facing: bool = is_instance_valid(_bow_host) and _bow_host.owns_player_facing()
++	if direction.length_squared() > 0.001 and not bow_facing:
+ 		var target_heading: float = atan2(-direction.x, -direction.z)
+ 		_heading = lerp_angle(_heading, target_heading, minf(1.0, delta * 12.0))
+ 		_visual.rotation.y = _heading + deg_to_rad(visual_yaw_degrees)

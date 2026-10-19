@@ -1,0 +1,441 @@
+{
+  "status": "CPU_REGRESSION_PASS",
+  "godot_started": false,
+  "runner_sha256": "39245fe8a3d8f54f7e57a540b6b97aaecb15b1d3537bdb1646a8fa38b9248fc6",
+  "scheduler_sha256": "adcb834390e476edd118f62d8e3e5b391c6ebc97925391e66beeb80430ba8373",
+  "checks": [
+    {
+      "name": "native_timeout_direct_child_cleanup_and_lease_release",
+      "status": "PASS",
+      "receipt": {
+        "mode": "headless",
+        "performance_accepted": false,
+        "command": [
+          "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+          "-B",
+          "-c",
+          "import time; print(\"CPU_CHILD_READY\", flush=True); time.sleep(30)",
+          "--headless",
+          "--path",
+          "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project"
+        ],
+        "passed": false,
+        "timed_out": true,
+        "cleanup_verified": true,
+        "errors": [],
+        "stderr_bytes": 0,
+        "perf_environment_clean": false,
+        "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required",
+        "lease": {
+          "id": "ced374e0453a42afb45dd02896967f17",
+          "owner": {
+            "pid": 4740,
+            "creation_filetime": "134359489425920293"
+          },
+          "mode": "headless",
+          "project": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+          "access": "read",
+          "children": [
+            {
+              "pid": 20112,
+              "creation_filetime": "134359489436303485",
+              "command_line": "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe -B -c \"import time; print(\\\"CPU_CHILD_READY\\\", flush=True); time.sleep(30)\" --headless --path C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+              "command": [
+                "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+                "-B",
+                "-c",
+                "import time; print(\"CPU_CHILD_READY\", flush=True); time.sleep(30)",
+                "--headless",
+                "--path",
+                "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project"
+              ],
+              "executable": "c:\\users\\user\\appdata\\local\\programs\\python\\python314\\python.exe",
+              "executable_path": "c:\\users\\user\\appdata\\local\\programs\\python\\python314\\python.exe",
+              "mode": "headless",
+              "project": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+              "affinity_mask": 3,
+              "logical_cpu_limit": 2
+            }
+          ],
+          "deadline": 296192.50242,
+          "queued_at": 296177.50242,
+          "ticket": 1,
+          "inventory_before": [],
+          "editor_identities": [],
+          "queue_wait_seconds": 0.8565438000368886
+        },
+        "child": {
+          "pid": 20112,
+          "creation_filetime": "134359489436303485",
+          "command_line": "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe -B -c \"import time; print(\\\"CPU_CHILD_READY\\\", flush=True); time.sleep(30)\" --headless --path C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+          "command": [
+            "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+            "-B",
+            "-c",
+            "import time; print(\"CPU_CHILD_READY\", flush=True); time.sleep(30)",
+            "--headless",
+            "--path",
+            "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project"
+          ],
+          "executable": "c:\\users\\user\\appdata\\local\\programs\\python\\python314\\python.exe",
+          "executable_path": "c:\\users\\user\\appdata\\local\\programs\\python\\python314\\python.exe",
+          "mode": "headless",
+          "project": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+          "affinity_mask": 3,
+          "logical_cpu_limit": 2
+        },
+        "exit_code": 1,
+        "elapsed_seconds": 2.003008999978192,
+        "error": "Owned child watchdog timeout"
+      }
+    },
+    {
+      "name": "native_kill_fallback_preserves_unrelated_child",
+      "status": "PASS"
+    },
+    {
+      "name": "registration_uses_original_child_deadline",
+      "status": "PASS",
+      "receipt": {
+        "mode": "headless",
+        "performance_accepted": false,
+        "command": [
+          "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+          "-B",
+          "-c",
+          "import time; print(\"CPU_CHILD_READY\", flush=True); time.sleep(30)",
+          "--headless",
+          "--path",
+          "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project"
+        ],
+        "passed": false,
+        "timed_out": true,
+        "cleanup_verified": true,
+        "errors": [],
+        "stderr_bytes": 0,
+        "perf_environment_clean": false,
+        "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required",
+        "lease": {
+          "id": "68dcceddd90842d49b2bfbe2d3d198aa",
+          "owner": {
+            "pid": 4740,
+            "creation_filetime": "134359489425920293"
+          },
+          "mode": "headless",
+          "project": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+          "access": "read",
+          "children": [
+            {
+              "pid": 18360,
+              "creation_filetime": "134359489465667559",
+              "command_line": "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe -B -c \"import time; print(\\\"CPU_CHILD_READY\\\", flush=True); time.sleep(30)\" --headless --path C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+              "command": [
+                "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+                "-B",
+                "-c",
+                "import time; print(\"CPU_CHILD_READY\", flush=True); time.sleep(30)",
+                "--headless",
+                "--path",
+                "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project"
+              ],
+              "executable": "c:\\users\\user\\appdata\\local\\programs\\python\\python314\\python.exe",
+              "executable_path": "c:\\users\\user\\appdata\\local\\programs\\python\\python314\\python.exe",
+              "mode": "headless",
+              "project": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+              "affinity_mask": 3,
+              "logical_cpu_limit": 2
+            }
+          ],
+          "deadline": 296195.6359825,
+          "queued_at": 296180.6359825,
+          "ticket": 2,
+          "inventory_before": [],
+          "editor_identities": [],
+          "queue_wait_seconds": 0.6596512999967672
+        },
+        "child": {
+          "pid": 18360,
+          "creation_filetime": "134359489465667559",
+          "command_line": "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe -B -c \"import time; print(\\\"CPU_CHILD_READY\\\", flush=True); time.sleep(30)\" --headless --path C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+          "command": [
+            "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+            "-B",
+            "-c",
+            "import time; print(\"CPU_CHILD_READY\", flush=True); time.sleep(30)",
+            "--headless",
+            "--path",
+            "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project"
+          ],
+          "executable": "c:\\users\\user\\appdata\\local\\programs\\python\\python314\\python.exe",
+          "executable_path": "c:\\users\\user\\appdata\\local\\programs\\python\\python314\\python.exe",
+          "mode": "headless",
+          "project": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+          "affinity_mask": 3,
+          "logical_cpu_limit": 2
+        },
+        "exit_code": 1,
+        "elapsed_seconds": 2.2382340999902226,
+        "error": "Owned child watchdog timeout"
+      }
+    },
+    {
+      "name": "native_clean_exit",
+      "status": "PASS",
+      "receipt": {
+        "mode": "headless",
+        "performance_accepted": false,
+        "command": [
+          "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+          "-B",
+          "-c",
+          "import time; print(\"READY\", flush=True); time.sleep(2)",
+          "--headless",
+          "--path",
+          "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project"
+        ],
+        "passed": true,
+        "timed_out": false,
+        "cleanup_verified": true,
+        "errors": [],
+        "stderr_bytes": 0,
+        "perf_environment_clean": false,
+        "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required",
+        "lease": {
+          "id": "e28116e07d064403acea4ca7a367ba41",
+          "owner": {
+            "pid": 4740,
+            "creation_filetime": "134359489425920293"
+          },
+          "mode": "headless",
+          "project": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+          "access": "read",
+          "children": [
+            {
+              "pid": 14980,
+              "creation_filetime": "134359489500097163",
+              "command_line": "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe -B -c \"import time; print(\\\"READY\\\", flush=True); time.sleep(2)\" --headless --path C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+              "command": [
+                "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+                "-B",
+                "-c",
+                "import time; print(\"READY\", flush=True); time.sleep(2)",
+                "--headless",
+                "--path",
+                "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project"
+              ],
+              "executable": "c:\\users\\user\\appdata\\local\\programs\\python\\python314\\python.exe",
+              "executable_path": "c:\\users\\user\\appdata\\local\\programs\\python\\python314\\python.exe",
+              "mode": "headless",
+              "project": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+              "affinity_mask": 3,
+              "logical_cpu_limit": 2
+            }
+          ],
+          "deadline": 296198.568421,
+          "queued_at": 296183.568421,
+          "ticket": 3,
+          "inventory_before": [],
+          "editor_identities": [],
+          "queue_wait_seconds": 1.1700826000305824
+        },
+        "child": {
+          "pid": 14980,
+          "creation_filetime": "134359489500097163",
+          "command_line": "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe -B -c \"import time; print(\\\"READY\\\", flush=True); time.sleep(2)\" --headless --path C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+          "command": [
+            "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+            "-B",
+            "-c",
+            "import time; print(\"READY\", flush=True); time.sleep(2)",
+            "--headless",
+            "--path",
+            "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project"
+          ],
+          "executable": "c:\\users\\user\\appdata\\local\\programs\\python\\python314\\python.exe",
+          "executable_path": "c:\\users\\user\\appdata\\local\\programs\\python\\python314\\python.exe",
+          "mode": "headless",
+          "project": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+          "affinity_mask": 3,
+          "logical_cpu_limit": 2
+        },
+        "exit_code": 0,
+        "elapsed_seconds": 2.186368399998173
+      }
+    },
+    {
+      "name": "native_exit_zero_stderr_rejected",
+      "status": "PASS",
+      "receipt": {
+        "mode": "headless",
+        "performance_accepted": false,
+        "command": [
+          "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+          "-B",
+          "-c",
+          "import sys,time; print(\"diagnostic\", file=sys.stderr, flush=True); time.sleep(2)",
+          "--headless",
+          "--path",
+          "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project"
+        ],
+        "passed": false,
+        "timed_out": false,
+        "cleanup_verified": true,
+        "errors": [],
+        "stderr_bytes": 12,
+        "perf_environment_clean": false,
+        "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required",
+        "lease": {
+          "id": "f7d5a7701aed4ae5b20cf674bb5bc0f7",
+          "owner": {
+            "pid": 4740,
+            "creation_filetime": "134359489425920293"
+          },
+          "mode": "headless",
+          "project": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+          "access": "read",
+          "children": [
+            {
+              "pid": 12760,
+              "creation_filetime": "134359489528139199",
+              "command_line": "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe -B -c \"import sys,time; print(\\\"diagnostic\\\", file=sys.stderr, flush=True); time.sleep(2)\" --headless --path C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+              "command": [
+                "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+                "-B",
+                "-c",
+                "import sys,time; print(\"diagnostic\", file=sys.stderr, flush=True); time.sleep(2)",
+                "--headless",
+                "--path",
+                "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project"
+              ],
+              "executable": "c:\\users\\user\\appdata\\local\\programs\\python\\python314\\python.exe",
+              "executable_path": "c:\\users\\user\\appdata\\local\\programs\\python\\python314\\python.exe",
+              "mode": "headless",
+              "project": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+              "affinity_mask": 3,
+              "logical_cpu_limit": 2
+            }
+          ],
+          "deadline": 296201.9593846,
+          "queued_at": 296186.9593846,
+          "ticket": 4,
+          "inventory_before": [],
+          "editor_identities": [],
+          "queue_wait_seconds": 0.596086599980481
+        },
+        "child": {
+          "pid": 12760,
+          "creation_filetime": "134359489528139199",
+          "command_line": "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe -B -c \"import sys,time; print(\\\"diagnostic\\\", file=sys.stderr, flush=True); time.sleep(2)\" --headless --path C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+          "command": [
+            "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+            "-B",
+            "-c",
+            "import sys,time; print(\"diagnostic\", file=sys.stderr, flush=True); time.sleep(2)",
+            "--headless",
+            "--path",
+            "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project"
+          ],
+          "executable": "c:\\users\\user\\appdata\\local\\programs\\python\\python314\\python.exe",
+          "executable_path": "c:\\users\\user\\appdata\\local\\programs\\python\\python314\\python.exe",
+          "mode": "headless",
+          "project": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+          "affinity_mask": 3,
+          "logical_cpu_limit": 2
+        },
+        "exit_code": 0,
+        "elapsed_seconds": 2.107108900032472
+      }
+    },
+    {
+      "name": "native_exit_zero_error_stdout_rejected",
+      "status": "PASS",
+      "receipt": {
+        "mode": "headless",
+        "performance_accepted": false,
+        "command": [
+          "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+          "-B",
+          "-c",
+          "import time; print(\"SCRIPT ERROR: simulated fixture failure\", flush=True); time.sleep(2)",
+          "--headless",
+          "--path",
+          "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project"
+        ],
+        "passed": false,
+        "timed_out": false,
+        "cleanup_verified": true,
+        "errors": [
+          "SCRIPT ERROR: simulated fixture failure"
+        ],
+        "stderr_bytes": 0,
+        "perf_environment_clean": false,
+        "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required",
+        "lease": {
+          "id": "4c350a2b07f4477ebf242489d5725d52",
+          "owner": {
+            "pid": 4740,
+            "creation_filetime": "134359489425920293"
+          },
+          "mode": "headless",
+          "project": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+          "access": "read",
+          "children": [
+            {
+              "pid": 14568,
+              "creation_filetime": "134359489556565407",
+              "command_line": "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe -B -c \"import time; print(\\\"SCRIPT ERROR: simulated fixture failure\\\", flush=True); time.sleep(2)\" --headless --path C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+              "command": [
+                "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+                "-B",
+                "-c",
+                "import time; print(\"SCRIPT ERROR: simulated fixture failure\", flush=True); time.sleep(2)",
+                "--headless",
+                "--path",
+                "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project"
+              ],
+              "executable": "c:\\users\\user\\appdata\\local\\programs\\python\\python314\\python.exe",
+              "executable_path": "c:\\users\\user\\appdata\\local\\programs\\python\\python314\\python.exe",
+              "mode": "headless",
+              "project": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+              "affinity_mask": 3,
+              "logical_cpu_limit": 2
+            }
+          ],
+          "deadline": 296204.6835921,
+          "queued_at": 296189.6835921,
+          "ticket": 5,
+          "inventory_before": [],
+          "editor_identities": [],
+          "queue_wait_seconds": 0.7018113000085577
+        },
+        "child": {
+          "pid": 14568,
+          "creation_filetime": "134359489556565407",
+          "command_line": "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe -B -c \"import time; print(\\\"SCRIPT ERROR: simulated fixture failure\\\", flush=True); time.sleep(2)\" --headless --path C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+          "command": [
+            "C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+            "-B",
+            "-c",
+            "import time; print(\"SCRIPT ERROR: simulated fixture failure\", flush=True); time.sleep(2)",
+            "--headless",
+            "--path",
+            "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project"
+          ],
+          "executable": "c:\\users\\user\\appdata\\local\\programs\\python\\python314\\python.exe",
+          "executable_path": "c:\\users\\user\\appdata\\local\\programs\\python\\python314\\python.exe",
+          "mode": "headless",
+          "project": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\qa_runner_cpu_hj8j6tlb\\project",
+          "affinity_mask": 3,
+          "logical_cpu_limit": 2
+        },
+        "exit_code": 0,
+        "elapsed_seconds": 2.1231906000175513
+      }
+    },
+    {
+      "name": "scene_pin_valid_and_five_fail_closed_cases",
+      "status": "PASS"
+    }
+  ],
+  "game_acceptance": "NOT_RUN"
+}

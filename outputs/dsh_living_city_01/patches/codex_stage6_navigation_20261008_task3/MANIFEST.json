@@ -1,0 +1,47 @@
+{
+  "schema": "mafiozi.stage6-navigation-application/v1",
+  "shared_applied": true,
+  "files": [
+    "scripts/city/runtime/npc_city_engine_navigation.gd",
+    "scripts/city/runtime/npc_city_navigation_host.gd"
+  ],
+  "before": {
+    "scripts/city/runtime/npc_city_engine_navigation.gd": "d4056050cada835c814587a3b41ca17b8e67acbe3907a5346fd3a002dff02567",
+    "scripts/city/runtime/npc_city_navigation_host.gd": "ae4f3f47f17b863d874f46a06e05ff39e581437e598dc842d2f90a401a91b738"
+  },
+  "after": {
+    "scripts/city/runtime/npc_city_engine_navigation.gd": "03ed6875833dd00903c013a5321602cb95fb4cfa38ce1e1b42fba7c48a4228c7",
+    "scripts/city/runtime/npc_city_navigation_host.gd": "b32158b641bdb0635c851f188d80ecdc81e198b1d2f017a48de4e74c2c72bc44"
+  },
+  "source_hashes": {
+    "scripts/shop/npc_daily_shop.gd": "0e22ea589129772cb6d2b15c9f41a015f5d78cc8bbcf569b1cf46655fd0011b7",
+    "scripts/shop/npc_local_shop_visit.gd": "32528e3d30177d5c3ed7668316403397b28d76132874adbd9702db66ef9adf21",
+    "scripts/shop/npc_local_account.gd": "9acdba29c8315871636b4c8b9a722d2fd54fdf6e256ac8d2d4c9fd082a60d50d",
+    "scripts/city/runtime/npc_city_engine_navigation.gd": "03ed6875833dd00903c013a5321602cb95fb4cfa38ce1e1b42fba7c48a4228c7",
+    "scripts/city/runtime/npc_city_world_policy.gd": "9c46025e19f52c8b2c97b61e380b83be37745a0c085f9e1e7fd70108ae9be3f8",
+    "scripts/npc_daily_walk.gd": "8ae316619c456eac13bbb925a742945895d591e9b38adc425f47c3c5a8aec8eb",
+    "scripts/npc_visual/preview_resident_host.gd": "5d75b7a82aac6389d1deb3d6b4a9a77a2717de66a082e21ca4fcef2cfa084687",
+    "scripts/destruction/palazzo/palazzo_ground.gd": "6f2bc8493e5cfa75e4f7f47df6fd6609672e3196b9a0fa642912ea0d69aacec3",
+    "scripts/preview_printshop_interior.gd": "8ca46fcaa295090070bd12a4046ba31450ad6c07ce8e6341c4849fd5a64d6371",
+    "scenes/main_city.tscn": "9a252531ceda19074bc2a9ac9a674d4b26f3c2a1331821490901cadeb09d9be5",
+    "project.godot": "5e45528ade62ce0cb89aa53aa7f7d3e5f18aa1574c2555ae37cd5a972ae8bedf",
+    "scripts/city/runtime/npc_city_navigation_host.gd": "b32158b641bdb0635c851f188d80ecdc81e198b1d2f017a48de4e74c2c72bc44",
+    "scripts/npc_city_daily.gd": "a48f1ceaaa142ba96dc5485125c4a98f4417f2f05d51b4823f963a92752acb91",
+    "scripts/city/runtime/npc_native_obstacle_detour.gd": "db6ea93ed251ba6f47170405b95f4bbd6550eeaf913c1beef29e78dd2faaca2e",
+    "scripts/npc_visual/npc_local_printshop_visit.gd": "88605c31cd76733c3563a7dcf4cab454bc311ceea86eb69f3cf37b02f0b82ddc",
+    "scripts/npc_daily_life.gd": "f17ef8437b8fded6204dfd1ad370acf223bebd64b14667ee15c18d69f31bd41e",
+    "scripts/npc_visual/npc_local_preview_hit_owner.gd": "09703514665b3101c114d51b475f369741fea13557259d5fbbe082e12159bb58",
+    "scripts/npc_city_population.gd": "3ca9eb40178510b7fbe2c4bd9b5883e12a6ca2ea49d3d5c513fa1204ab4ce2f3",
+    "scripts/hospital/npc_daily_hospital_visit.gd": "0dc443463add4c908e333b8badea924755ef6b851f2dafb4404d813e4c79a300"
+  },
+  "backup": "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\dsh_living_city_01\\patches\\codex_stage6_navigation_20261008_task3",
+  "flags": "door-tiles=1 and ready-budget=1 by default; explicit0 rolls back algorithm",
+  "default_promotion": "Only defaults changed from tested explicit CLI1; all runtime branches and guards identical",
+  "native_checks": 119,
+  "native_result_sha256": "c68c5ea8d8f60f9545d091b53e6a6e207c7863efb00c46648fd60c39ea3314df",
+  "gui_result_sha256": "7f8d733acf52762095df8663770b4e100b8800f6f64df80bcf16318870cff76b",
+  "index_unchanged": true,
+  "protected_unchanged": true,
+  "city_complete": false,
+  "publication": "DEFERRED_BY_USER"
+}

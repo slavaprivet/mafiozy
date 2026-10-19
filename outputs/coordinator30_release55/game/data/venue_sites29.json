@@ -1,0 +1,257 @@
+{
+  "schema": "mafiozi.venues29.compact-sites/v1",
+  "source_sha256": "38b4b50ca06fb60172173b04c5b49ff567a84509ea01901a24306ab0d3b41dc7",
+  "source_coordinate_frame": "main local X/Z metres; world identity required",
+  "native_acceptance": "PENDING",
+  "existing_models_reintroduced": false,
+  "entries": [
+    {
+      "id": "VENUE29-HOSPITAL-002",
+      "kind": "hospital",
+      "sign": "БОЛЬНИЦА",
+      "capacity": 4,
+      "position": [
+        -61.5,
+        0,
+        -22.55
+      ],
+      "yaw": 3.141592653589793,
+      "road_point": [
+        -61.5,
+        0,
+        -30.55
+      ],
+      "source_ground": "grass, unprotected, dry",
+      "road_distance_from_centre_m": 8,
+      "footprint_xz": [
+        -66.1,
+        -26.549999999999997,
+        -56.9,
+        -18.549999999999997
+      ],
+      "apron_xz": [
+        -67.5,
+        -30.549999999999997,
+        -55.5,
+        -26.549999999999997
+      ]
+    },
+    {
+      "id": "VENUE29-BANK-002",
+      "kind": "bank",
+      "sign": "БАНК",
+      "capacity": 2,
+      "position": [
+        28.7,
+        0,
+        84.05
+      ],
+      "yaw": 1.5707963267948966,
+      "road_point": [
+        36.7,
+        0,
+        84.05
+      ],
+      "source_ground": "grass, unprotected, dry",
+      "road_distance_from_centre_m": 8,
+      "footprint_xz": [
+        24.69999999999999,
+        79.44999999999999,
+        32.69999999999999,
+        88.64999999999998
+      ],
+      "apron_xz": [
+        32.69999999999999,
+        78.04999999999998,
+        36.69999999999999,
+        90.04999999999998
+      ]
+    },
+    {
+      "id": "VENUE29-RESTAURANT-002",
+      "kind": "restaurant",
+      "sign": "РЕСТОРАН",
+      "capacity": 6,
+      "position": [
+        131.2,
+        0,
+        120.95
+      ],
+      "yaw": 1.5707963267948966,
+      "road_point": [
+        139.2,
+        0,
+        120.95
+      ],
+      "source_ground": "grass, unprotected, dry",
+      "road_distance_from_centre_m": 8,
+      "footprint_xz": [
+        127.19999999999993,
+        116.35,
+        135.19999999999993,
+        125.54999999999998
+      ],
+      "apron_xz": [
+        135.19999999999993,
+        114.94999999999999,
+        139.19999999999993,
+        126.94999999999999
+      ]
+    },
+    {
+      "id": "VENUE29-SHOP-002",
+      "kind": "shop",
+      "sign": "МАГАЗИН",
+      "capacity": 4,
+      "position": [
+        -139.4,
+        0,
+        161.95
+      ],
+      "yaw": 1.5707963267948966,
+      "road_point": [
+        -131.4,
+        0,
+        161.95
+      ],
+      "source_ground": "grass, unprotected, dry",
+      "road_distance_from_centre_m": 8,
+      "footprint_xz": [
+        -143.39999999999998,
+        157.35,
+        -135.39999999999998,
+        166.54999999999998
+      ],
+      "apron_xz": [
+        -135.39999999999998,
+        155.95,
+        -131.39999999999998,
+        167.95
+      ]
+    },
+    {
+      "id": "VENUE29-HOSPITAL-003",
+      "kind": "hospital",
+      "sign": "БОЛЬНИЦА",
+      "capacity": 4,
+      "position": [
+        20.5,
+        0,
+        190.65
+      ],
+      "yaw": 0,
+      "road_point": [
+        20.5,
+        0,
+        201.65
+      ],
+      "source_ground": "grass, unprotected, dry",
+      "road_distance_from_centre_m": 11,
+      "footprint_xz": [
+        15.9,
+        186.64999999999998,
+        25.1,
+        194.64999999999998
+      ],
+      "apron_xz": [
+        14.5,
+        194.64999999999998,
+        26.5,
+        201.64999999999998
+      ]
+    },
+    {
+      "id": "VENUE29-BANK-003",
+      "kind": "bank",
+      "sign": "БАНК",
+      "capacity": 2,
+      "position": [
+        106.6,
+        0,
+        186.55
+      ],
+      "yaw": 1.5707963267948966,
+      "road_point": [
+        114.6,
+        0,
+        186.55
+      ],
+      "source_ground": "grass, unprotected, dry",
+      "road_distance_from_centre_m": 8,
+      "footprint_xz": [
+        102.59999999999997,
+        181.95,
+        110.59999999999997,
+        191.14999999999998
+      ],
+      "apron_xz": [
+        110.59999999999997,
+        180.54999999999998,
+        114.59999999999997,
+        192.54999999999998
+      ]
+    },
+    {
+      "id": "VENUE29-RESTAURANT-003",
+      "kind": "restaurant",
+      "sign": "РЕСТОРАН",
+      "capacity": 6,
+      "position": [
+        139.4,
+        0,
+        186.55
+      ],
+      "yaw": 0,
+      "road_point": [
+        139.4,
+        0,
+        197.55
+      ],
+      "source_ground": "grass, unprotected, dry",
+      "road_distance_from_centre_m": 11,
+      "footprint_xz": [
+        134.79999999999998,
+        182.54999999999998,
+        143.99999999999997,
+        190.54999999999998
+      ],
+      "apron_xz": [
+        133.39999999999998,
+        190.54999999999998,
+        145.39999999999998,
+        197.54999999999998
+      ]
+    },
+    {
+      "id": "VENUE29-SHOP-003",
+      "kind": "shop",
+      "sign": "МАГАЗИН",
+      "capacity": 4,
+      "position": [
+        20.5,
+        0,
+        227.55
+      ],
+      "yaw": 1.5707963267948966,
+      "road_point": [
+        31.5,
+        0,
+        227.55
+      ],
+      "source_ground": "grass, unprotected, dry",
+      "road_distance_from_centre_m": 11,
+      "footprint_xz": [
+        16.5,
+        222.95,
+        24.5,
+        232.14999999999998
+      ],
+      "apron_xz": [
+        24.5,
+        221.54999999999998,
+        31.5,
+        233.54999999999998
+      ]
+    }
+  ]
+}

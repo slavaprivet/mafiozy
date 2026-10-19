@@ -1,0 +1,38 @@
+{
+  "game": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\game",
+  "changes": [
+    {
+      "path": "scripts/npc_ambient/ambient_benches28.gd",
+      "before": "ecc5bf00f2a3a96ce0a37870447e61c7bdb48acd192bed1c173dfbc3da09a386",
+      "after": "32dd50792a811328dcb731ffa03380a3008eb39be046f31e3e8647b5944cb11c",
+      "changed": true
+    },
+    {
+      "path": "scripts/npc_ambient/ambient_bench_registry29.gd",
+      "before": null,
+      "after": "3377e33a56e4cb594063595c6bb087f9864744aa6a41eba7e1ddbcd85c72ce9e",
+      "changed": true
+    },
+    {
+      "path": "scripts/npc_ambient/ambient_controller28.gd",
+      "before": "0aaf252190b9a50eda4e5a9c65ac6dea10e8bf23dbf784c04e92a5276ab3db5f",
+      "after": "034096d71830cd76ab117f998b4d84218b89bddf7eda671216fc24fe9c7e77c6",
+      "changed": true
+    },
+    {
+      "path": "scripts/npc_ambient/ambient_pose28.gd",
+      "before": "7e7c0d5413c083b3e26f91e5d68583bb47eb660022bc0e5d54043c3d0231f1d4",
+      "after": "eff44ab194903b0f82ef5023e8ba82119165c81a3d056c27eb3f84d5c5a36659",
+      "changed": true
+    },
+    {
+      "path": "scripts/npc_ambient/ambient_props28.gd",
+      "before": "1ab2c9a61301eaebd19400efa770a01e2c8aa07bab21f42aa0dcd24769ba2d01",
+      "after": "442220200fbb5994f6a4a5a023569307e98dd3e79c4dcb307808983f7315c3ae",
+      "changed": true
+    }
+  ],
+  "host_changed": false,
+  "physics_capsule_changed": false,
+  "user_game_closed": false
+}

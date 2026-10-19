@@ -1,0 +1,24 @@
+{
+  "schema": "actual-main-terrain-inventory-source/v1",
+  "ready": false,
+  "gpu": false,
+  "sourceStage": "outputs/actual-main-pause-probe-qAWF1V",
+  "sourceSnapshotSha256": "f0d57c031d63b00b4615b845372f0918def0c26fa6f7b9af6595eba5e3e232ce",
+  "mainSha256": "0916381441df9a9d111006aed2b34e4e1c2ec195ee24609757a552b388017571",
+  "files": {
+    "terrain_inventory.gd": "51f291f95e281e2fb1987f2d5211063a16dead97ae9c1fd77992bee9d4ea056c",
+    "test_actual_terrain_inventory.gd": "f74097be00bebd6cdfc4b3786875cbf09dd6858774212026d18d62df2d697114"
+  },
+  "nativeProof": {
+    "checks": 815,
+    "failures": 0,
+    "resultSha256": "dba561b5a7f712eb2e8d9b23b27c456544d0948b1010474e4f31a8d473ca69d9",
+    "cells": 961,
+    "dryCells": 658,
+    "nativeWaterCells": 303,
+    "surfaceGroups": 3,
+    "nativeFloorStrips": 169,
+    "verifiedDirectSourceConvex": 24,
+    "actualMMBufferAvailable": false
+  }
+}

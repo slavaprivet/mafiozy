@@ -1,0 +1,85 @@
+{
+  "actual_native_player_weapon": false,
+  "checks": 39,
+  "evidence": {
+    "builder": {
+      "cold_build_usec": 7646,
+      "cold_loading_only": true,
+      "loaded_scene_fps_verified": false,
+      "mesh_instances_required": 1,
+      "original_source_art_modified": false,
+      "parts": 74,
+      "subtraction_checks": 13,
+      "surfaces": 4,
+      "triangles": 888
+    },
+    "capsule_pass": true,
+    "component_states": 2,
+    "outcomes": [
+      {
+        "committed_parts": 1,
+        "failures": [],
+        "state": "completed"
+      },
+      {
+        "committed_parts": 0,
+        "failures": [],
+        "state": "completed"
+      },
+      {
+        "committed_parts": 1,
+        "failures": [],
+        "state": "completed"
+      },
+      {
+        "committed_parts": 1,
+        "failures": [],
+        "state": "completed"
+      }
+    ],
+    "render_surfaces": 7,
+    "runtime": {
+      "blocked_reason": "",
+      "collision_groups": 1,
+      "debris": 8,
+      "mass_rollout_accepted": false,
+      "max_job_usec": 6370,
+      "phase_max_usec": {
+        "commit": 6370,
+        "convex_cells": 3069,
+        "cut": 2727,
+        "resources": 2971
+      },
+      "queued": 0,
+      "registered": 1,
+      "rubble": {
+        "accepted_parity": false,
+        "active": 8,
+        "blocked_reason": "",
+        "configured": true,
+        "dynamic_slots": 64,
+        "free_slots": 56,
+        "last_prepare_usec": 8,
+        "logical_records": 8,
+        "max_prepare_usec": 613,
+        "parked_records": 0,
+        "parked_regions": 0,
+        "parked_render_surfaces": 0,
+        "parked_vertices": 0,
+        "prepared_plans": 0,
+        "queued_impacts": 0,
+        "queued_parks": 0,
+        "reservations": 0,
+        "reserved_new_records": 0,
+        "reserved_slots": 0
+      },
+      "source_parts": 1
+    }
+  },
+  "failures": [],
+  "headless": true,
+  "loaded_scene_fps_verified": false,
+  "passed": true,
+  "production_enabled": false,
+  "schema": "mafiozi.new-modular-compound-host-native-qa/v1"
+}

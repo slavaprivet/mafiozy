@@ -1,0 +1,26 @@
+{
+  "scripts/homes/npc_home_claim58.gd": {
+    "base_sha256": null,
+    "candidate_sha256": "65d40b9907b619132c9c9dbb26ff3fe72e532047b9e0be071c5b9566d740cc50"
+  },
+  "scripts/homes/npc_home_controller58.gd": {
+    "base_sha256": null,
+    "candidate_sha256": "7576af62e20f9583fea63181026741839e35ab67d78dbbb79a380d92dd2d699f"
+  },
+  "scripts/homes/npc_home_pose58.gd": {
+    "base_sha256": null,
+    "candidate_sha256": "4532a16fb9ac9748838d8b363fd9570028f607f9be33ca27af5a07481426c4f2"
+  },
+  "scripts/homes/npc_home_route58.gd": {
+    "base_sha256": null,
+    "candidate_sha256": "280b47895c9826dfec42c16f8bd975eb64b5d33b0a5bf972034ba0df498dc5fd"
+  },
+  "scripts/navigation/npc_passage31.gd": {
+    "base_sha256": "4fb0fa9f35fe030628e45a5802ca1ca12cae642f57a0ea6eff2697a25e73e4c9",
+    "candidate_sha256": "058e406a731652a36284385b8c89fcef6579414c1a35fd50e84f7aa41e094f87"
+  },
+  "scripts/npc_visual/preview_resident_host.gd": {
+    "base_sha256": "9cae435a12c8649eae8f42364225efab19255abad68463d51c47314c983d3cee",
+    "candidate_sha256": "adca5ac85d6596386d0967ca72464b598c3f19a5af990c750e618280d0bc2474"
+  }
+}

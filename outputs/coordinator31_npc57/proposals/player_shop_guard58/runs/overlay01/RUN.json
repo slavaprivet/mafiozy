@@ -1,0 +1,66 @@
+{
+  "passed": true,
+  "case": "overlay",
+  "native": {
+    "checks": {
+      "cashier_invalid_now": true,
+      "city_ready": true,
+      "live_sale_positive": true,
+      "modal_closes_on_poll": true,
+      "modal_open_with_live_cashier": true,
+      "modal_still_open_before_poll": true,
+      "no_cash_debit": true,
+      "no_inventory_delivery": true,
+      "no_new_purchase_receipt": true,
+      "one_actual_cashier": true,
+      "same_physics_frame": true,
+      "shop_ready": true,
+      "stale_store_refused": true,
+      "standalone_sandbox_transaction_preserved": true
+    },
+    "detail": {
+      "answer": {
+        "cash": 4820,
+        "ok": false,
+        "reason": "store_unavailable"
+      },
+      "cash_after": 4820,
+      "cash_before": 4820,
+      "purchase_receipts_after": 1,
+      "purchase_receipts_before": 1,
+      "quantity_after": 0,
+      "quantity_before": 0,
+      "sandbox": {
+        "answer": {
+          "cash": 4950,
+          "ok": true,
+          "receipt": {
+            "cash_after": 4950,
+            "frame": 221,
+            "item_id": "grenade",
+            "kind": "consumable",
+            "price": 50,
+            "purchase_id": "sandbox-guard58",
+            "session": -9223369834425641650
+          },
+          "replayed": false
+        },
+        "ok": true
+      }
+    },
+    "overlay": true,
+    "passed": true,
+    "scope": "Actual city cashier lifecycle invalidated synchronously between live modal-open and real goods activation; isolated sandbox transaction uses real catalog/wallet/backpack ports."
+  },
+  "source_count": 1212,
+  "source_drift": false,
+  "control_drift": false,
+  "engine_clean": true,
+  "source_manifest": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\extended31\\stage58_06\\CANDIDATE58.json",
+  "source_manifest_sha256": "b11bdd02916fb37171d0e177bf529569c8d090d82212c4d87d02e6c2fee06346",
+  "native_test_sha256": "a0e5c16192596e5d63328f97c72ae02fdc8e1e9b4efc55dfede6923b1c3818f5",
+  "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "production_changed": false,
+  "overlay_only": true,
+  "scope": "Same-frame stale-cashier negative with actual city modal transaction and standalone sandbox positive; baseline and single-file overlay on exact source. No physical player entrance or FPS claim."
+}

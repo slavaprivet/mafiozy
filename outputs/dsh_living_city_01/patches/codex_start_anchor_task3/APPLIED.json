@@ -1,0 +1,68 @@
+{
+  "schema": "mafiozy.scoped-start-anchor-applied/v1",
+  "before_sha": "393da88faf50c7274b4afbedf89f63c091a8da73b9a09c5d8dc4e6628989fb4e",
+  "candidate_sha": "3fab244bf64fdbf387aaba94536afa6007567c93cd111195458175e37fff878e",
+  "backup": "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\dsh_living_city_01\\patches\\codex_start_anchor_task3",
+  "source_path": "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\dsh_living_city_01\\game\\scripts\\npc_daily_walk.gd",
+  "source_hashes_before": {
+    "scripts/shop/npc_daily_shop.gd": "0e22ea589129772cb6d2b15c9f41a015f5d78cc8bbcf569b1cf46655fd0011b7",
+    "scripts/shop/npc_local_shop_visit.gd": "32528e3d30177d5c3ed7668316403397b28d76132874adbd9702db66ef9adf21",
+    "scripts/shop/npc_local_account.gd": "9acdba29c8315871636b4c8b9a722d2fd54fdf6e256ac8d2d4c9fd082a60d50d",
+    "scripts/city/runtime/npc_city_engine_navigation.gd": "d4056050cada835c814587a3b41ca17b8e67acbe3907a5346fd3a002dff02567",
+    "scripts/city/runtime/npc_city_world_policy.gd": "9c46025e19f52c8b2c97b61e380b83be37745a0c085f9e1e7fd70108ae9be3f8",
+    "scripts/npc_daily_walk.gd": "393da88faf50c7274b4afbedf89f63c091a8da73b9a09c5d8dc4e6628989fb4e",
+    "scripts/npc_visual/preview_resident_host.gd": "5d75b7a82aac6389d1deb3d6b4a9a77a2717de66a082e21ca4fcef2cfa084687",
+    "scripts/destruction/palazzo/palazzo_ground.gd": "6f2bc8493e5cfa75e4f7f47df6fd6609672e3196b9a0fa642912ea0d69aacec3",
+    "scripts/preview_printshop_interior.gd": "8ca46fcaa295090070bd12a4046ba31450ad6c07ce8e6341c4849fd5a64d6371",
+    "scenes/main_city.tscn": "9a252531ceda19074bc2a9ac9a674d4b26f3c2a1331821490901cadeb09d9be5",
+    "project.godot": "5e45528ade62ce0cb89aa53aa7f7d3e5f18aa1574c2555ae37cd5a972ae8bedf",
+    "scripts/city/runtime/npc_city_navigation_host.gd": "ae4f3f47f17b863d874f46a06e05ff39e581437e598dc842d2f90a401a91b738",
+    "scripts/npc_city_daily.gd": "a48f1ceaaa142ba96dc5485125c4a98f4417f2f05d51b4823f963a92752acb91",
+    "scripts/city/runtime/npc_native_obstacle_detour.gd": "db6ea93ed251ba6f47170405b95f4bbd6550eeaf913c1beef29e78dd2faaca2e",
+    "scripts/npc_visual/npc_local_printshop_visit.gd": "88605c31cd76733c3563a7dcf4cab454bc311ceea86eb69f3cf37b02f0b82ddc"
+  },
+  "source_hashes_after": {
+    "scripts/shop/npc_daily_shop.gd": "0e22ea589129772cb6d2b15c9f41a015f5d78cc8bbcf569b1cf46655fd0011b7",
+    "scripts/shop/npc_local_shop_visit.gd": "32528e3d30177d5c3ed7668316403397b28d76132874adbd9702db66ef9adf21",
+    "scripts/shop/npc_local_account.gd": "9acdba29c8315871636b4c8b9a722d2fd54fdf6e256ac8d2d4c9fd082a60d50d",
+    "scripts/city/runtime/npc_city_engine_navigation.gd": "d4056050cada835c814587a3b41ca17b8e67acbe3907a5346fd3a002dff02567",
+    "scripts/city/runtime/npc_city_world_policy.gd": "9c46025e19f52c8b2c97b61e380b83be37745a0c085f9e1e7fd70108ae9be3f8",
+    "scripts/npc_daily_walk.gd": "3fab244bf64fdbf387aaba94536afa6007567c93cd111195458175e37fff878e",
+    "scripts/npc_visual/preview_resident_host.gd": "5d75b7a82aac6389d1deb3d6b4a9a77a2717de66a082e21ca4fcef2cfa084687",
+    "scripts/destruction/palazzo/palazzo_ground.gd": "6f2bc8493e5cfa75e4f7f47df6fd6609672e3196b9a0fa642912ea0d69aacec3",
+    "scripts/preview_printshop_interior.gd": "8ca46fcaa295090070bd12a4046ba31450ad6c07ce8e6341c4849fd5a64d6371",
+    "scenes/main_city.tscn": "9a252531ceda19074bc2a9ac9a674d4b26f3c2a1331821490901cadeb09d9be5",
+    "project.godot": "5e45528ade62ce0cb89aa53aa7f7d3e5f18aa1574c2555ae37cd5a972ae8bedf",
+    "scripts/city/runtime/npc_city_navigation_host.gd": "ae4f3f47f17b863d874f46a06e05ff39e581437e598dc842d2f90a401a91b738",
+    "scripts/npc_city_daily.gd": "a48f1ceaaa142ba96dc5485125c4a98f4417f2f05d51b4823f963a92752acb91",
+    "scripts/city/runtime/npc_native_obstacle_detour.gd": "db6ea93ed251ba6f47170405b95f4bbd6550eeaf913c1beef29e78dd2faaca2e",
+    "scripts/npc_visual/npc_local_printshop_visit.gd": "88605c31cd76733c3563a7dcf4cab454bc311ceea86eb69f3cf37b02f0b82ddc"
+  },
+  "protected_pointers": {
+    "godot\\current_version.json": "39d44025a5c8b2830fd5b3dd5ec70e9388459f223cacf561700139fe54e2a16e",
+    "outputs\\dsh_living_city_01\\\u0418\u0433\u0440\u0430\u0442\u044c_\u0433\u043e\u0440\u043e\u0434.cmd": "97afce221951dc87fbac2af47298757182a6944b4f4ec28d8f244ccf2e88e485"
+  },
+  "lease": {
+    "id": "e726dbc33a1b400a935f0f829b586dcd",
+    "owner": {
+      "pid": 15632,
+      "creation_filetime": "134358837027840895"
+    },
+    "mode": "headless",
+    "project": "c:\\users\\\u0441\u043b\u0430\u0432\u0430\\desktop\\\u043c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\dsh_living_city_01\\game",
+    "access": "write",
+    "children": [],
+    "deadline": 351832.1436111,
+    "queued_at": 351802.1436111,
+    "ticket": 714,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5198502000421286
+  },
+  "native_functional_evidence": "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Documents\\Codex\\2026-10-07\\task-3\\gang-v2r2-input-city05\\RUN.json",
+  "actual_member_movement_m": 4.267787243174149,
+  "gang_shared_integrated": false,
+  "performance_accepted": false,
+  "status": "APPLIED_PENDING_SHARED_CURRENT_GUI_PROOF",
+  "rollback": "Only restore exact before bytes if shared walk SHA still equals candidate; preserve other files/WIP/index/HEAD."
+}

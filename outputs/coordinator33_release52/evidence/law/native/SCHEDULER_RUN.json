@@ -1,0 +1,81 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--path",
+    "D:\\MafioziCombat31\\coordinator33\\game",
+    "--script",
+    "D:\\MafioziCombat31\\coordinator33\\qa\\law.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\coordinator33\\law\\result.json"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "2b1f310a21c74cd3a870624f2db41ffd",
+    "owner": {
+      "pid": 57624,
+      "creation_filetime": "134368227419217415"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\coordinator33\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 58440,
+        "creation_filetime": "134368227430359873",
+        "command_line": "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\coordinator33\\game --script D:\\MafioziCombat31\\coordinator33\\qa\\law.gd -- --qa-out=D:\\MafioziCombat31\\coordinator33\\law\\result.json",
+        "command": [
+          "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "D:\\MafioziCombat31\\coordinator33\\game",
+          "--script",
+          "D:\\MafioziCombat31\\coordinator33\\qa\\law.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\coordinator33\\law\\result.json"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "d:\\mafiozicombat31\\coordinator33\\game",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 1290969.4760967,
+    "queued_at": 1290849.4760967,
+    "ticket": 4103,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5797965000383556
+  },
+  "child": {
+    "pid": 58440,
+    "creation_filetime": "134368227430359873",
+    "command_line": "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\coordinator33\\game --script D:\\MafioziCombat31\\coordinator33\\qa\\law.gd -- --qa-out=D:\\MafioziCombat31\\coordinator33\\law\\result.json",
+    "command": [
+      "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--path",
+      "D:\\MafioziCombat31\\coordinator33\\game",
+      "--script",
+      "D:\\MafioziCombat31\\coordinator33\\qa\\law.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\coordinator33\\law\\result.json"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\coordinator33\\game",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 1.6136257001198828,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

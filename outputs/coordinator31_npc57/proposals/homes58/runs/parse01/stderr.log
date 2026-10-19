@@ -1,0 +1,8 @@
+SCRIPT ERROR: Parse Error: Could not find script "res://scripts/homes/npc_home_pose58.gd".
+   at: GDScript::reload (C:\Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/homes58/patch/scripts/npc_visual/preview_resident_host.gd:16)
+   GDScript backtrace (most recent call first):
+       [0] _run (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/homes58/entry_parse58.gd:19)
+ERROR: Failed to load script "C:\Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/homes58/patch/scripts/npc_visual/preview_resident_host.gd" with error "Parse error".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)
+   GDScript backtrace (most recent call first):
+       [0] _run (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator31_npc57/proposals/homes58/entry_parse58.gd:19)

@@ -1,0 +1,97 @@
+## Routine58 emits intent; current service/home owners remain authoritative.
+func _routine58_clock() -> RefCounted:
+	var body: Node = _token.get("body")
+	if not is_instance_valid(body) or not body.is_inside_tree(): return null
+	var value: Variant = body.get_tree().root.get_meta("mafiozi_visual_clock", null)
+	return value if value is RefCounted else null
+
+func _routine58_home_active() -> bool:
+	return _home58 != null and _home58.active()
+
+func _routine58_rest_active() -> bool:
+	return _routine58 != null and _phase in ["IDLE", "RESTING"] and not _routine58_home_active() and not _economy28_active() and not _roam51_active and _visit == null and not _dsh_simple_goal_active() and not _restaurant28_active()
+
+func _routine58_hold(delta: float) -> void:
+	# Stillness retains native gravity/contact; a removed floor never suspends a
+	# resident in air until the next scheduled meal. No route is begun or reset.
+	if _walk == null or str(_walk.get("_phase")) not in ["IDLE", "CANCELLED", "COMPLETE", "BLOCKED"]: return
+	var body: CharacterBody3D = _token.body
+	if _rest_driver58 == null:
+		_rest_driver58 = PhysicalRoute51.new()
+		if not _rest_driver58.configure(body): _rest_driver58=null; return
+	var before: Vector3 = body.global_position
+	_rest_driver58.hold(delta)
+	var after: Vector3 = body.global_position
+	var velocity: Vector3 = (after-before)/delta
+	body.set_meta("npc_physical_drive51", {"frame":Engine.get_physics_frames(), "body_id":body.get_instance_id(), "from":before, "to":after, "velocity":velocity, "delta":delta, "walking":Vector2(velocity.x,velocity.z).length()>.03})
+
+func _routine58_release_home(reason: String) -> bool:
+	if not _routine58_home_active(): return true
+	_home58.request_wake(reason)
+	# Physical exit stays on the home owner's ticks before threat can own motion.
+	return not _home58.active()
+
+func _routine58_prepare_home() -> bool:
+	if _home58 != null: return _home58.available()
+	if _now < _home_retry58: return false
+	_home_retry58 = _now + 8000.0
+	var path := "res://scripts/homes/npc_home_controller58.gd"
+	if not ResourceLoader.exists(path): return false
+	var script: Script = load(path)
+	if script == null: return false
+	var candidate: RefCounted = script.new()
+	if not candidate.configure(self, _dsh_life_scene(), _dsh_simple_map()): return false
+	_home58 = candidate
+	return _home58.available()
+
+func _routine58_paid(visit: RefCounted, receipt: Dictionary) -> bool:
+	if _disposed or _routine58 == null or visit != _economy28 or not visit.current_inside() or not visit._committed: return false
+	if int(receipt.get("amount", 0)) < 5 or receipt.get("kind") not in ["local_shop_purchase28", "local_restaurant_purchase28"]: return false
+	return _routine58.note_paid(str(receipt.get("routine_ticket58", "")), str(receipt.get("event_id", "")), str(visit._kind))
+
+func _routine58_purchase_deferred() -> bool:
+	if _economy28 == null or not _economy28.has_routine_pending58(): return false
+	if dsh_energy_on() and _energy < 20.0: return false
+	if _economy28.routine_deferred58(_now): return true
+	return _routine58 != null and _routine58.home_intent(_routine58_clock()).get("kind", "") == "home_sleep"
+
+func _routine58_step_home(delta: float, row: Dictionary) -> void:
+	var clock: RefCounted = _routine58_clock()
+	var desired: Dictionary = _routine58.home_intent(clock) if _routine58 != null else {}
+	if _hospital51_below_threshold(row): _home58.request_wake("hospital")
+	elif dsh_energy_on() and _energy < 20.0: _home58.request_wake("energy")
+	elif desired.get("kind", "") != "home_sleep" and not _routine58_purchase_deferred() and _routine58 != null and not _routine58.due_purchase(clock).is_empty(): _home58.request_wake("scheduled_meal_or_supplies")
+	elif desired.is_empty(): _home58.request_wake("wake_time")
+	elif _home_intent58 != str(desired.kind): _home58.request_wake("routine_changed")
+	if _health.should_pause_walk():
+		_home58.request_wake("health_owner")
+		return
+	var result: String = _home58.step(delta, row)
+	if not _home58.active():
+		_phase="IDLE"; _goal={}; _home_intent58=""; _next_decision=_now
+		if result == "blocked": _home_retry58=_now+8000.0
+
+func _routine58_choose(row: Dictionary) -> void:
+	if _routine58 == null:
+		_phase="RESTING"; _next_decision=_now+1000.0; return
+	var clock: RefCounted = _routine58_clock()
+	var intent: Dictionary = _routine58.choose(clock, _now, _routine58_purchase_deferred())
+	var kind: String = str(intent.get("kind", ""))
+	if kind in ["shop", "restaurant"]:
+		if _economy28_prepare() and _economy28.request_routine58(kind, str(intent.ticket)):
+			if _economy28_try_begin(row): return
+	elif kind in ["home_sleep", "home_rest"] and _now >= _home_retry58:
+		if _routine58_prepare_home() and _walk.cancel().get("ok",false):
+			if _home58.begin(intent):
+				_home_intent58=kind; _phase="HOME58"; _goal=_new_goal(kind); _reason=""; return
+		_home_retry58 = _now + 8000.0
+	elif kind == "leisure":
+		if _leisure58_begin(): return
+	if _leisure_arrived58 and kind not in ["home_sleep", "home_rest", "shop", "restaurant"]:
+		_leisure_arrived58=false
+		if _ambient29_start(["bench"]): return
+	# A missing/destroyed/unreachable home is an explicit supported-stop fallback.
+	# It never certifies sleeping, claims a bed, or labels a spawn point a home.
+	if kind != "rest" and _ambient29_start(_routine58.ambient_choices(clock)): return
+	_phase="RESTING"; _goal={}; _reason="routine_waiting_for_supported_activity"
+	_next_decision=_now+1000.0

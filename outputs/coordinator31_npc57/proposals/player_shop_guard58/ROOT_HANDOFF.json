@@ -1,0 +1,114 @@
+{
+  "schema": "player_shop_guard58_handoff_v1",
+  "status": "SCOPED_NATIVE_PASS_READY_FOR_ROOT_MERGE",
+  "production_changed": false,
+  "own_engine_active": false,
+  "patch": "PATCH.json",
+  "files": 1,
+  "source_manifest": "extended31/stage58_06/CANDIDATE58.json",
+  "source_manifest_sha256": "b11bdd02916fb37171d0e177bf529569c8d090d82212c4d87d02e6c2fee06346",
+  "problem": "Physical cashier can become unavailable after modal open but before the next _process closure. Purchase._available used only item policy, so same-frame activation still debited and delivered.",
+  "fix": "Atomic live-store availability check inside existing _available callback, before wallet.spend; preserve standalone mode and display a readable closed-store message.",
+  "native_before": {
+    "passed": false,
+    "failed_checks": [
+      "no_cash_debit",
+      "no_inventory_delivery",
+      "no_new_purchase_receipt",
+      "stale_store_refused"
+    ],
+    "detail": {
+      "answer": {
+        "cash": 4770,
+        "ok": true,
+        "receipt": {
+          "cash_after": 4770,
+          "frame": 220,
+          "item_id": "grenade",
+          "kind": "consumable",
+          "price": 50,
+          "purchase_id": "shop-purchase--9223370190421404937-grenade-3",
+          "session": -9223370190421404937
+        },
+        "replayed": false
+      },
+      "cash_after": 4770,
+      "cash_before": 4820,
+      "purchase_receipts_after": 2,
+      "purchase_receipts_before": 1,
+      "quantity_after": 1,
+      "quantity_before": 0,
+      "sandbox": {
+        "answer": {
+          "cash": 4950,
+          "ok": true,
+          "receipt": {
+            "cash_after": 4950,
+            "frame": 221,
+            "item_id": "grenade",
+            "kind": "consumable",
+            "price": 50,
+            "purchase_id": "sandbox-guard58",
+            "session": -9223369833838439090
+          },
+          "replayed": false
+        },
+        "ok": true
+      }
+    }
+  },
+  "native_after": {
+    "passed": true,
+    "checks": 14,
+    "detail": {
+      "answer": {
+        "cash": 4820,
+        "ok": false,
+        "reason": "store_unavailable"
+      },
+      "cash_after": 4820,
+      "cash_before": 4820,
+      "purchase_receipts_after": 1,
+      "purchase_receipts_before": 1,
+      "quantity_after": 0,
+      "quantity_before": 0,
+      "sandbox": {
+        "answer": {
+          "cash": 4950,
+          "ok": true,
+          "receipt": {
+            "cash_after": 4950,
+            "frame": 221,
+            "item_id": "grenade",
+            "kind": "consumable",
+            "price": 50,
+            "purchase_id": "sandbox-guard58",
+            "session": -9223369834425641650
+          },
+          "replayed": false
+        },
+        "ok": true
+      }
+    }
+  },
+  "review": "Independent QA scoped review CLEAN: transaction ordering, same-frame fixture, no awaits before debit check, sandbox branch and receipt replay semantics.",
+  "preserved_harness_failure": "runs/baseline01/HARNESS_FAILURE.json; native bug was visible, wrapper after_cp failed. Baseline02 reruns with complete pinned before/after/archive evidence.",
+  "scope_limits": [
+    "Physical walk-in/E and native mouse throw windup are not proven by this fixture.",
+    "Not merged; root owns integration and subsequent common regression.",
+    "No performance claim."
+  ],
+  "pins": {
+    "PATCH.json": "a4680f1d617c760763295470c72621c7e921c79f31d27995a90139f56e4f5c8a",
+    "PATCH.diff": "e4135fe169ea1e9fc030f015097d4017648ea5cf871972a00f0df88fae179eed",
+    "patch/scripts/shop/player_shop_host.gd": "2fcdd80a9794c5af9485477831efe1b30a3f95bfe830ab05896d7f973b5095fe",
+    "entry_guard58.gd": "778ca277fb433007867592a84facb6a12a1f7e87abed3301f56beb502e4cf850",
+    "run_guard58_v2.py": "86c9a2c8792ed84b4023a79caf7e6df9149bca7f38b60500b43dc6c27b15a84a",
+    "runs/baseline02/RUN.json": "b3592c98a6fc660f7d196df914b90ca1f25fa827036294402771131669c66975",
+    "runs/baseline02/GUARD58.json": "df2e04764f96295dd964518053a52c4c4d22a87020dbc0847affcc002a66b67c",
+    "runs/baseline02/HARNESS.zip": "89e336588c654ab2cf464a8d1417bc24167824c100c8f0cac94c3011d61b2042",
+    "runs/overlay01/RUN.json": "0f198c0abca03406f11b84e8d08d6822027c7f14e784a58c82868fadb7dbc0e8",
+    "runs/overlay01/GUARD58.json": "bd9c53c6f381417fe4d4f05b909f9e0484fbea29a5c5e45033e1b2c35b63be32",
+    "runs/overlay01/HARNESS.zip": "89e336588c654ab2cf464a8d1417bc24167824c100c8f0cac94c3011d61b2042"
+  }
+}

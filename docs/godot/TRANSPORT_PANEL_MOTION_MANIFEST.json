@@ -1,0 +1,28 @@
+{
+  "schema": "mafiozi.transport.panel-motion.v1",
+  "status": "HEADLESS_VERIFIED_INTEGRATION_PENDING",
+  "source": {
+    "path": "assets/maps/city_rebuild_v1/vehicle_trunk.mjs",
+    "sha256": "91d8575b2f52ca10b43bfe73d4a004ec4ebfef7b066835c8d1ed1a46239f5fb0",
+    "function": "stepVehiclePanelMotion"
+  },
+  "checks": 14,
+  "failures": 0,
+  "cost": {
+    "iterations": 10000,
+    "elapsed_us": 13310,
+    "scope": "isolated CPU; full scene performance not measured"
+  },
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_panel_motion.gd",
+      "sha256": "dba898b3ad20f65609183912fb0074042dbf6f630de6eb3d670b9eeb0537d6f7",
+      "bytes": 928
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_panel_motion.gd",
+      "sha256": "fe3ae26c4480f11314ecf04137e3d6485683f0a54c1678aafde2efb91c217daa",
+      "bytes": 2032
+    }
+  ]
+}

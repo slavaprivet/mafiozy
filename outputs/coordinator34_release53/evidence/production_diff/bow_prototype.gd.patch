@@ -1,0 +1,42 @@
+--- 52/scripts/weapons/bow_prototype.gd
++++ 53/scripts/weapons/bow_prototype.gd
+@@ -204,6 +204,7 @@
+ 	_quiver_worn = true
+ 	_arrows_left = ARROWS_PER_QUIVER
+ 	_ready = true
++	_player._bow_host = self
+ 	# The shared aim camera rewrites the field of view every frame; running after it
+ 	# is what lets the draw zoom actually be seen.
+ 	process_priority = 200
+@@ -403,6 +404,9 @@
+ 		var dot := MeshInstance3D.new()
+ 		dot.mesh = _aim_dot_mesh
+ 		dot.material_override = _aim_material
++		# The trajectory is an aiming aid, so it must not draw a second dotted
++		# path as shadows on the ground or the target behind it.
++		dot.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+ 		dot.visible = false
+ 		_world.add_child(dot)
+ 		_aim_dots.append(dot)
+@@ -1197,6 +1201,9 @@
+ ## The archer must FACE where he shoots. The bow is placed along the CAMERA, so
+ ## without this the body keeps whatever facing it had, the bow is thrown out to his
+ ## side, and the string reads as passing through his back with the hands hidden.
++func owns_player_facing() -> bool:
++	return _ready and _active() and not _grounded
++
+ func _face_the_aim(delta: float) -> void:
+ 	if not is_instance_valid(_player) or not is_instance_valid(_camera): return
+ 	var visual: Node3D = _player._visual
+@@ -1205,8 +1212,10 @@
+ 	var flat := Vector3(aim.x, 0.0, aim.z)
+ 	if flat.length_squared() < 1.0e-6: return
+ 	# The model faces along its own +Z, so its yaw is atan2(x, z).
+-	var want := atan2(flat.x, flat.z)
++	var want := atan2(flat.x, flat.z) - _player.global_rotation.y
+ 	visual.rotation.y += wrapf(want - visual.rotation.y, -PI, PI) * clampf(FACE_RATE * delta, 0.0, 1.0)
++	# Hand back the actual facing when dropping/switching; no stale travel heading.
++	_player._heading = visual.rotation.y - deg_to_rad(_player.visual_yaw_degrees)
+ 
+ ## How fast the body swings round to face the shot.
+ const FACE_RATE := 9.0

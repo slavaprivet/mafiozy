@@ -1,0 +1,178 @@
+{
+  "passed": false,
+  "case": "modules",
+  "native": {
+    "checks": 111,
+    "failures": [
+      "worn vest meets damage first",
+      "vest loses exactly what it took"
+    ],
+    "passed": false,
+    "report": {
+      "backpack": {
+        "absorbed_total": 12,
+        "armor": {
+          "leather_jacket": {
+            "ap": 12,
+            "broken": false,
+            "max": 12,
+            "qty": 1
+          }
+        },
+        "broken_total": 1,
+        "catalog_items": 34,
+        "consumables": {
+          "grenade": 6
+        },
+        "error": "",
+        "hits": 1,
+        "purchases": 4,
+        "ready": true,
+        "scope": "local_preview_backpack",
+        "worn": ""
+      },
+      "catalog": {
+        "armor": 8,
+        "consumables": 6,
+        "items": 34,
+        "skipped": [],
+        "starter": [
+          "nagan"
+        ],
+        "weapons": 14
+      },
+      "purchase": {
+        "backpack": {
+          "absorbed_total": 0,
+          "armor": {
+            "tactical_vest": {
+              "ap": 50,
+              "broken": false,
+              "max": 50,
+              "qty": 1
+            }
+          },
+          "broken_total": 0,
+          "catalog_items": 34,
+          "consumables": {
+            "c4": 8,
+            "grenade": 1,
+            "molotov": 1
+          },
+          "error": "",
+          "hits": 0,
+          "purchases": 11,
+          "ready": true,
+          "scope": "local_preview_backpack",
+          "worn": "tactical_vest"
+        },
+        "cash": 926240,
+        "module": {
+          "catalog": {
+            "ammo": [
+              "ammo_9mm",
+              "ammo_magnum",
+              "ammo_shell",
+              "ammo_rifle",
+              "ammo_sniper",
+              "ammo_rocket"
+            ],
+            "armor": [
+              "leather_jacket",
+              "bulletproof",
+              "kevlar_vest",
+              "tactical_vest",
+              "army_armor",
+              "swat_suit",
+              "composite_armor",
+              "exo_armor"
+            ],
+            "cash": 5000,
+            "consumables": [
+              "grenade",
+              "molotov",
+              "c4",
+              "medkit_small",
+              "medkit_medium",
+              "medkit_large"
+            ],
+            "error": "",
+            "items": 34,
+            "path": "res://data/player_shop.json",
+            "ready": true,
+            "seller": {
+              "goods": "Товар",
+              "leave": "Уйти",
+              "line": "Смотри, что есть. Деньги вперёд, разговоры потом.",
+              "name": "Аркадий «Шрам» Мельников",
+              "prompt": "Поговорить",
+              "sold": "Готово. Ствол твой, патроны — отдельная история."
+            },
+            "skipped": [],
+            "starter": [
+              "nagan"
+            ],
+            "title": "Оружейная лавка",
+            "weapons": [
+              "nagan",
+              "tt_pistol",
+              "sawn_off",
+              "shotgun",
+              "uzi",
+              "tommy_gun",
+              "revolver",
+              "deagle",
+              "golden_uzi",
+              "golden_colt",
+              "sniper",
+              "ak74",
+              "m16",
+              "rpg"
+            ]
+          },
+          "error": "",
+          "purchases": 428,
+          "ready": true,
+          "receipts": 256,
+          "refusals": 8,
+          "replays": 1,
+          "wallet": {
+            "cash": 926240,
+            "earned_total": 1000000,
+            "last_spend": 180,
+            "ready": true,
+            "scope": "local_preview_wallet",
+            "spends": 428,
+            "spent_total": 78760
+          }
+        },
+        "owned": [
+          "nagan",
+          "tt_pistol"
+        ],
+        "refund_cash": 1000,
+        "start_cash": 5000
+      },
+      "wallet": {
+        "cash": 1000,
+        "earned_total": 400,
+        "last_spend": 400,
+        "ready": true,
+        "scope": "local_preview_wallet",
+        "spends": 1,
+        "spent_total": 400
+      }
+    }
+  },
+  "source_count": 1212,
+  "source_drift": false,
+  "control_drift": false,
+  "engine_clean": true,
+  "source_manifest": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\extended31\\stage58_06\\CANDIDATE58.json",
+  "source_manifest_sha256": "b11bdd02916fb37171d0e177bf529569c8d090d82212c4d87d02e6c2fee06346",
+  "native_test_sha256": "0862f02997ed5baaf207c8e6cbd2a22c7395571c4b1d4d420efe81d4bf4b77be",
+  "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "production_changed": false,
+  "original_fixture_unchanged": true,
+  "scope": "Existing exact shop fixture with only delayed startup wrapper. City test calls live purchase/projectile ports; it does not prove physical walk-in/E, native mouse windup, NPC/home lifecycle, or performance."
+}

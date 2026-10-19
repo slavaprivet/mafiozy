@@ -1,0 +1,42 @@
+{
+  "schema": "mafiozi.import-provenance-perf/v1",
+  "godot": "4.7.2.stable.official.ed1daf0bf",
+  "checks": {
+    "actualFullEach": 30718,
+    "exactComparator": 30351,
+    "proceduralMutation": 9458,
+    "transportMutation": 852
+  },
+  "medianUsec": {
+    "baseline": 15430803,
+    "candidate": 13792279
+  },
+  "gpu": false,
+  "production": false,
+  "baseSources": {
+    "tools/godot/map_editor_procedural_native_v3/scripts/procedural_registry.gd": "34d880d1d79b5b58f28c10fb2b797e2a1ab2b9c6a86f6927d4cd9c06e7595073",
+    "tools/godot/map_editor_transport_registry_candidate/transport_registry.gd": "4008295ffadaa3815d9f640ef5c0942b6e5374651e0195da9e30f5cef1a3da4f",
+    "tools/godot/map_editor_candidate/scripts/map_editor/trusted_json.gd": "40e455e671f00bb130cbcdf8ce119a95ef0ef6dcfa4d8772790568efe48a7ccb"
+  },
+  "files": {
+    "benchmark.json": "13d2de9c6f3074e9ec8db9ffa1dd24ab02cd65d434349eb346f3f8a3f2442f44",
+    "exact_equal.gd": "2906411ce93b5d8aade66b23a61ea180a9f4329b2b2219206aff04160fa3e515",
+    "instrumented_composite.gd": "8eb415b406fae4d1793d9c2feab5697af1ce286fe0be297dc0040fb9e552d550",
+    "instrumented_controller.gd": "ec9cb045a62678edfb59f4c2464f80a14ad0858e5536f93849f6540f33581ab7",
+    "instrumented_procedural.gd": "d267fe332c72ccb27657213f404cafc3bf311d3e38d9a986632067fb62315543",
+    "instrumented_transport.gd": "fcdc087833af49a8e33830430f6279365d6630111d47d02ce9399fa29f8230e9",
+    "procedural_registry_perf.gd": "380c1bb72c809181d5f0c3be1c6b67d424001b347d31878cdc61ba68168c66ae",
+    "provenance.gd": "47d491353910150bc12aedb7fca670661f4502696913c670dd2d503aeaef834d",
+    "README.md": "9600fca87ec312adc6e3459ebceefd7d473c09c8ceb6366acae8db674fcf77f3",
+    "stage.mjs": "f902b76b6628f946fec6d30ba0229b974da768a818759183da958b382f112121",
+    "test_exact_equal.gd": "bdda597740ac1a20f82af580d17196931df61ef116499e67d3ef7ff75e2eabd8",
+    "test_perf_full.gd": "bd6891aae5d41b06f9051ae730b14fdfaffba74b7b8e9bf29ebdf242f30f7d67",
+    "test_perf_procedural_regression.gd": "b6c49ad79dd637aa16e8f4be57dadaddc4265e284d24d2729109ca96c5948bc6",
+    "test_perf_transport_regression.gd": "c4c177d904b1d0aa9173ec149a039bd7484c10ea25090561c04a51eba37265f3",
+    "test_perf_unified.gd": "7bda932610cdd3b3504e396466554b372f8e896f5c229d23093197d6a95f1d30",
+    "test_profile_full.gd": "10131dfb9dd766f2a57a86d60b96601cc5ae5ae9b16ea256f02846c8fad9a54a",
+    "test_profile_unified.gd": "90aab3e75ca08a9200f58f936e5aac8d6e0ec02c86834787f5f9bc451981a005",
+    "timing.gd": "7536bee69c67cb02eb6746b6d6dd840869cd413549ac399653c94c8d51a61f11",
+    "transport_registry_perf.gd": "d48de3763e90b09c6fc9636b9af364e431b9eee2762a1b98951b56d291af4629"
+  }
+}

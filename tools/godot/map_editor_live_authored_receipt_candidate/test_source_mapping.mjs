@@ -1,0 +1,31 @@
+import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..');
+const game='outputs/coordinator22_residents_checkpoint/godot/mafiozi_walk';
+const sha=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
+const read=rel=>fs.readFileSync(path.join(root,rel));
+assert.equal(sha(read(`${game}/scripts/main.gd`)),'faac92194afdfac5efb4197a17a81d53738a91a46a6e41f96316f9c282112f53');
+const blockBytes=read(`${game}/data/block.json`);
+assert.equal(sha(blockBytes),'1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e');
+const catalogBytes=read('godot/mafiozi_walk/data/map_editor/catalog.json');
+assert.equal(sha(catalogBytes),'ae089d73eb61131bc6a38ccc6a2b9b18639f7bd8b65079f7c15c1e1cda9cde6e');
+const block=JSON.parse(blockBytes),catalog=JSON.parse(catalogBytes);
+const catalogById=new Map(catalog.objects.filter(row=>row.resourceId).map(row=>[row.id,row]));
+const live=[...block.buildings,...block.decor];
+assert.equal(live.length,16);
+assert.equal(new Set(live.map(row=>row.id)).size,16);
+const norm=t=>({positionM:t.positionM,yawDegrees:t.yawDegrees??0,uniformScale:t.uniformScale??1,modelLocalOffsetM:t.modelLocalOffsetM??[0,0,0],horizontalScale:t.horizontalScale??[1,1]});
+for(const row of live){
+ const source=catalogById.get(row.id);
+ assert.ok(source,`catalog misses actual ID ${row.id}`);
+ assert.equal(row.assetId,source.assetId);
+ assert.deepEqual(row.positionLocalM,source.positionLocalM);
+ assert.deepEqual(norm(row.transform),norm(source.transform));
+ const model=read(`${game}/${row.path.slice('res://'.length)}`);
+ assert.equal(sha(model),source.resourceId);
+}
+assert.equal(live.filter(row=>row.id==='REBUILD-VISUAL-print_shop-001').length,1);
+console.log(JSON.stringify({status:'PASS_SOURCE_MAPPING_ONLY',live:16,ordinaryStatic:15,printshopInteriorHold:1,mainSha256:'faac92194afdfac5efb4197a17a81d53738a91a46a6e41f96316f9c282112f53',blockSha256:sha(blockBytes),catalogSha256:sha(catalogBytes)}));

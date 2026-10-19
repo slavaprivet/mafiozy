@@ -1,0 +1,20 @@
+{
+	"aligned_trigger_tick": 181,
+	"checks": {
+		"existing_service_guard_results_identical": true,
+		"flat_aligned_guard_triggers": true,
+		"local_waypoint_progress_preserves_detour": true,
+		"new_path_resets_local_guard": true,
+		"new_waypoint_resets_local_guard": true,
+		"recorded_episode_has_762_samples": true,
+		"recorded_first_replan_under_10_seconds": true,
+		"recorded_guard_requests_replan": true
+	},
+	"first_recorded_trigger_after_s": 4.005,
+	"first_recorded_trigger_ms": 442389,
+	"full_city_acceptance": false,
+	"passed": true,
+	"performance_accepted": false,
+	"scope": "Native execution of the unmodified GDScript guard method; recorded observations are not a physics replay. Old roam callsite did not invoke this method. Separate native movement proof is required.",
+	"triggered_recorded_samples": 758
+}

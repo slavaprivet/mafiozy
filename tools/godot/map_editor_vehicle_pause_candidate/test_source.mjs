@@ -1,0 +1,10 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const s=fs.readFileSync(new URL('./vehicle_pause_lease.gd',import.meta.url),'utf8');
+for (const x of ['SAMPLE_COUNT := 31','MAX_HALF_SECOND_DRIFT_M := 0.01','_grounded_wheel_mask == 15','_contact_buffer.has_gap()','map_editor_vehicle_acquire','map_editor_vehicle_verify','map_editor_vehicle_release']) assert.ok(s.includes(x),x);
+for (const x of ['func _record_sample','if tick == previous_tick: return','if tick != previous_tick + 1: _samples.clear()','_record_sample(body)\n\tif not _stable_window(body)']) assert.ok(s.includes(x),x);
+assert.ok(!s.includes('collision_layer =') && !s.includes('collision_mask ='));
+assert.ok(!s.includes('body.freeze ='));
+const owner=fs.readFileSync(new URL('./transport_owner_append.gdinc',import.meta.url),'utf8');
+for(const x of ['func map_editor_vehicle_acquire','func map_editor_vehicle_verify','func map_editor_vehicle_release','body.freeze = true','body.freeze = bool(_editor_vehicle_original.freeze)','body.linear_velocity = _editor_vehicle_original.linear','body.angular_velocity = _editor_vehicle_original.angular']) assert.ok(owner.includes(x),x);
+console.log('vehicle pause lease source checks PASS');

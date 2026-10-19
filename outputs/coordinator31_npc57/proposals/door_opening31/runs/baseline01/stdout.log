@@ -1,0 +1,7 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+DSH_CLONEDOOR clone=VENUE29-SHOP-002 state=closed fraction=0.0 trigger=idle prompt=hidden frame=3 reason=install
+PASSAGE31_CHECK exact_compact_shop002_geometry true
+DSH_CLONEDOOR clone=VENUE29-SHOP-002 state=opening fraction=0.692 trigger=idle prompt=hidden frame=5 reason=state
+PASSAGE31_CHECK actual_resident2_service_route false
+PASSAGE31_CHECK actual_resident9_roam_route false

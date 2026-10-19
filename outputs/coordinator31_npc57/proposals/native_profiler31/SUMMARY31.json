@@ -1,0 +1,220 @@
+{
+  "schema": "mafiozi.native-profiler31.summary/v1",
+  "native_passed": true,
+  "engine": "Godot4.7.2 official locked binary",
+  "builtin": "LocalDebugger ScriptsProfiler via --debug --profiling / EngineDebugger.profiler_enable",
+  "measurement_before_final_dump_s": 60.001,
+  "physics_ticks": 2415,
+  "residents": 10,
+  "staff": 12,
+  "moved_residents": 10,
+  "top_production_self": [
+    {
+      "signature": "res://scripts/venues/npc_venue_staff_actor29.gd::55::_physics_process",
+      "total_s": 1.51166,
+      "self_s": 1.406944,
+      "calls": 28980,
+      "profiled_self_us_per_call": 48.5487922705314
+    },
+    {
+      "signature": "res://scripts/hospital/npc_physical_route51.gd::337::move",
+      "total_s": 1.220735,
+      "self_s": 0.834744,
+      "calls": 20443,
+      "profiled_self_us_per_call": 40.83275448808883
+    },
+    {
+      "signature": "res://scripts/npc_visual/preview_resident_host.gd::1285::step",
+      "total_s": 1.341171,
+      "self_s": 0.571697,
+      "calls": 2415,
+      "profiled_self_us_per_call": 236.72753623188405
+    },
+    {
+      "signature": "res://scripts/venues/npc_compact_service_site29.gd::121::_physics_process",
+      "total_s": 0.561586,
+      "self_s": 0.501014,
+      "calls": 19320,
+      "profiled_self_us_per_call": 25.932401656314696
+    },
+    {
+      "signature": "res://scripts/hospital/npc_walk_surface28.gd::78::check",
+      "total_s": 1.430621,
+      "self_s": 0.495102,
+      "calls": 32102,
+      "profiled_self_us_per_call": 15.422777397046913
+    },
+    {
+      "signature": "res://scripts/npc_visual/preview_resident_host.gd::2053::target_current",
+      "total_s": 1.015027,
+      "self_s": 0.46436,
+      "calls": 44645,
+      "profiled_self_us_per_call": 10.401164744092284
+    },
+    {
+      "signature": "res://scripts/hospital/npc_physical_route51.gd::73::floor_at",
+      "total_s": 2.305811,
+      "self_s": 0.432973,
+      "calls": 32102,
+      "profiled_self_us_per_call": 13.487415114323095
+    },
+    {
+      "signature": "res://scripts/city/runtime/npc_city_clone_door_swing.gd::279::_occupants",
+      "total_s": 0.431118,
+      "self_s": 0.431118,
+      "calls": 3219,
+      "profiled_self_us_per_call": 133.9291705498602
+    },
+    {
+      "signature": "res://scripts/npc_visual/preview_resident_host.gd::1883::occupants",
+      "total_s": 0.405354,
+      "self_s": 0.39706,
+      "calls": 3219,
+      "profiled_self_us_per_call": 123.3488661074868
+    },
+    {
+      "signature": "res://scripts/destruction/palazzo/palazzo_glazing.gd::238::_sync_one",
+      "total_s": 0.353538,
+      "self_s": 0.353335,
+      "calls": 340284,
+      "profiled_self_us_per_call": 1.038353257866958
+    },
+    {
+      "signature": "res://scripts/destruction/palazzo/palazzo_glazing.gd::246::sync_moving_panes",
+      "total_s": 1.78626,
+      "self_s": 0.300305,
+      "calls": 12153,
+      "profiled_self_us_per_call": 24.710359581996215
+    },
+    {
+      "signature": "res://scripts/npc_visual/preview_resident_host.gd::2109::physical_life_current",
+      "total_s": 0.594926,
+      "self_s": 0.28713,
+      "calls": 27570,
+      "profiled_self_us_per_call": 10.414581066376495
+    },
+    {
+      "signature": "res://scripts/hospital/npc_walk_surface28.gd::64::_cell",
+      "total_s": 0.354309,
+      "self_s": 0.27254,
+      "calls": 75645,
+      "profiled_self_us_per_call": 3.6028818824773614
+    },
+    {
+      "signature": "res://scripts/navigation/npc_avoidance_world29.gd::38::refresh",
+      "total_s": 0.884607,
+      "self_s": 0.268491,
+      "calls": 22858,
+      "profiled_self_us_per_call": 11.746040773470995
+    },
+    {
+      "signature": "res://scripts/destruction/palazzo/palazzo_site.gd::82::owns_collider",
+      "total_s": 0.747056,
+      "self_s": 0.215801,
+      "calls": 381571,
+      "profiled_self_us_per_call": 0.5655592275094281
+    },
+    {
+      "signature": "res://scripts/city/runtime/npc_city_navigation_host.gd::956::_proposals_current",
+      "total_s": 0.225555,
+      "self_s": 0.213524,
+      "calls": 2415,
+      "profiled_self_us_per_call": 88.41573498964803
+    },
+    {
+      "signature": "res://scripts/destruction/palazzo/building_support.gd::262::advance",
+      "total_s": 0.708538,
+      "self_s": 0.207828,
+      "calls": 31395,
+      "profiled_self_us_per_call": 6.619780219780219
+    },
+    {
+      "signature": "res://scripts/npc_visual/preview_resident_host.gd::2452::_current_record_rig",
+      "total_s": 0.291474,
+      "self_s": 0.203594,
+      "calls": 72215,
+      "profiled_self_us_per_call": 2.8192757737312193
+    },
+    {
+      "signature": "res://scripts/navigation/npc_passage31.gd::89::_zone_at",
+      "total_s": 0.306398,
+      "self_s": 0.202369,
+      "calls": 111337,
+      "profiled_self_us_per_call": 1.817625766816063
+    },
+    {
+      "signature": "res://scripts/hospital/npc_simple_hospital.gd::499::step",
+      "total_s": 3.994785,
+      "self_s": 0.177912,
+      "calls": 20744,
+      "profiled_self_us_per_call": 8.576552256074045
+    }
+  ],
+  "monitors_raw_units": {
+    "MEMORY_STATIC": {
+      "median": 608860072.0,
+      "min": 608719640.0,
+      "max": 609456364.0,
+      "first": 608719640.0,
+      "last": 609070540.0
+    },
+    "OBJECT_COUNT": {
+      "median": 100795.0,
+      "min": 100722.0,
+      "max": 100944.0,
+      "first": 100722.0,
+      "last": 100896.0
+    },
+    "OBJECT_NODE_COUNT": {
+      "median": 48747.0,
+      "min": 48747.0,
+      "max": 48765.0,
+      "first": 48747.0,
+      "last": 48765.0
+    },
+    "PHYSICS_3D_COLLISION_PAIRS": {
+      "median": 96.0,
+      "min": 90.0,
+      "max": 104.0,
+      "first": 93.0,
+      "last": 101.0
+    },
+    "TIME_NAVIGATION_PROCESS": {
+      "median": 5e-06,
+      "min": 4e-06,
+      "max": 2.8e-05,
+      "first": 6e-06,
+      "last": 2.2e-05
+    },
+    "TIME_PHYSICS_PROCESS": {
+      "median": 0.013462,
+      "min": 0.010921,
+      "max": 0.030731,
+      "first": 0.012583,
+      "last": 0.015011
+    },
+    "TIME_PROCESS": {
+      "median": 0.000651,
+      "min": 0.000413,
+      "max": 0.001272,
+      "first": 0.000514,
+      "last": 0.000736
+    }
+  },
+  "limitations": [
+    "Headless concurrent with the preserved user game; not comparable FPS or GPU acceptance.",
+    "Script profiler prints large frame/accumulated dumps. Observer reset/dump is the largest artificial self-time entry and is excluded from production ranking.",
+    "Debug warnings and instrumentation overhead are present. Function timings are diagnostic attribution, not release speed guarantees.",
+    "Inclusive totals overlap and must not be summed. C++ engine work is not fully attributed by script function self-time.",
+    "End dump took about3.85s after the60s window; only sample timestamps define measurement duration."
+  ],
+  "evidence_sha256": {
+    "RESULT.json": "6a8c4a62d59ad04d22075cec49ca140926842a7000de6e12061710e310e3287e",
+    "NATIVE.json": "641b6f5f43be9e5f3f76865f05ea26afa265092407f1afc6af1f06a8ff888a9a",
+    "PROFILE.json": "d62790729e2939b686708303a92c1968a4112e41a24620ea85ac2fd962c274e9",
+    "stdout.log": "e052920e9ba77b1dff76b1f9df0ab45b3af6109354be4435a828031708312b7f",
+    "stderr.log": "f9d394113ac82c0233676c10e5c9a742019037a0f341247c289535073e539836",
+    "SOURCE.json": "060c3d5a350d5ead58038439778327705fcb2cac8c003cba7678f1e05e27fe33",
+    "SOURCE_AFTER.json": "060c3d5a350d5ead58038439778327705fcb2cac8c003cba7678f1e05e27fe33"
+  }
+}

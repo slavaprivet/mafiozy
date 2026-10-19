@@ -1,0 +1,378 @@
+{
+  "schema": "mafiozi.player-shop57.static-integration/v1",
+  "status": "files_integrated_runtime_pending_user_scene",
+  "source_commit": "def3f4747f7185f8aa24b4206279e43a7bf51d33",
+  "baseline": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_release57\\game",
+  "candidate": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_player_shop57\\game",
+  "scene_runs_started": 0,
+  "visual_budget": {
+    "pooled_projectiles": 8,
+    "pooled_fire_fields": 6,
+    "maximum_fire_billboards": 276,
+    "maximum_fire_draw_batches": 12,
+    "maximum_molotov_lights": 2,
+    "fire_shader_updates_hz": 15,
+    "trajectory_refresh_hz": 20,
+    "per_throw_node_allocations": 0,
+    "per_impact_visual_node_allocations": 0,
+    "measured_fps": null
+  },
+  "launch_arguments_for_later_review": [
+    "--city-simple-hospital=1",
+    "--city-plaza-support-plate=1",
+    "--city-medical-threshold=0.5",
+    "--city-energy-drain-per-m=0.05",
+    "--city-energy-threshold=0.2",
+    "--city-palazzo-clones=1",
+    "--city-clone-step=22",
+    "--city-town=1",
+    "--city-door-free-entry=1",
+    "--city-site-door-physics=1",
+    "--city-clone-door-swing=1",
+    "--city-needs=1",
+    "--city-shop-release=1",
+    "--city-nav-pump-budget-us=4000",
+    "--city-nav-pump-every=1",
+    "--city-daily-slice=286",
+    "--city-sim-stride=1",
+    "--city-sim-one-per-frame=0",
+    "--city-walk-pose=1",
+    "--city-pose-far-cap=512",
+    "--city-clear-cache=1",
+    "--city-timing=0",
+    "--city-health-lease",
+    "--city-hospital-marker=0",
+    "--city-venue-sites29=1",
+    "--city-hp=100",
+    "--city-qa=10",
+    "--city-venue-staff29=1",
+    "--city-physical-dispatch30=1",
+    "--city-multi-lifecycle30=1",
+    "--city-threat30=1",
+    "--city-player-shop=1"
+  ],
+  "checks": {
+    "required_files": true,
+    "baseline_files_preserved": true,
+    "weapon_shop_site": true,
+    "shop_flag": true,
+    "cashier_behind_counter": true,
+    "all_weapon_pictures": true,
+    "all_ammo_pictures": true,
+    "shop_near_hero_spawn": true,
+    "single_intact_vest_policy": true,
+    "throw_controls_and_trajectory": true,
+    "grenade_and_molotov_sale": true,
+    "area_damage_and_destruction": true,
+    "destruction_qa_prepared": true,
+    "area_cover_and_ground_fire": true,
+    "pooled_visuals_no_impact_meshes": true,
+    "bounded_fire_and_projectiles": true,
+    "throw_pose_and_grenade_fuse": true,
+    "throw_socket_follows_right_arm": true,
+    "projectile_and_fire_shaders": true,
+    "jump_and_dive_keep_mounted_weapon": true,
+    "airborne_fire_commits_after_pose": true,
+    "stance_input_collision_camera": true,
+    "pose_runtime_qa_prepared": true,
+    "palazzo_style_sections": true
+  },
+  "missing_baseline_files": [],
+  "changed": {
+    "data/player_shop.json": {
+      "baseline_sha256": null,
+      "donor_sha256": "81ec57e273a2e62b2278d24ddb50b9f5a1bce83dafd192185baf2914134ae86d",
+      "candidate_sha256": "6743a22ed30f367b5bef9c75719133308a406cef41bb935f26ee008e9b7c6ef3"
+    },
+    "scripts/main.gd": {
+      "baseline_sha256": "c35053d29414c95b7215c5bc8099f195b5243f84637eeb3b4a73d7bf1ed194bc",
+      "donor_sha256": "721a1ba782f8f5c1eedb08e7c88fde5494e69611d45f291e1fa53a86e6a96b32",
+      "candidate_sha256": "081a82a22236f7c433246eed12f8e879cc91db88c3ac9abbe4afed2439534554"
+    },
+    "scripts/preview_player.gd": {
+      "baseline_sha256": "06ab0d392d87521adab3379ff2afb009cd9014893a8baaa28e989ee65e26c7bf",
+      "donor_sha256": "06ab0d392d87521adab3379ff2afb009cd9014893a8baaa28e989ee65e26c7bf",
+      "candidate_sha256": "d77bdd9845d15aa0898db0683edd9c62a63d2275c39132c259080b6233253b4a"
+    },
+    "scripts/npc_visual/npc_local_preview_hit_owner.gd": {
+      "baseline_sha256": "4a35f5c349ea2c8ee96abdc479b3c5369acd70834c6373e6d9b78949a9877531",
+      "donor_sha256": "6fca409b3024e98ee5d359ff1f22683a99e8957d775e9868e36c3d2b2cf3b003",
+      "candidate_sha256": "f51ae11ef81cd72b36ef0d30066a7c4ffd1e299f4a08106bcd29bf383a753e31"
+    },
+    "scripts/npc_visual/npc_melee_player_health.gd": {
+      "baseline_sha256": "c1c304c63d40f6cdc379aec93fe04959d4a253c73c53d9154087e34d60077b9a",
+      "donor_sha256": "aaa6580029df103c7b57f6afdcd29a857cd022584a1b2119623faaf935aff8a9",
+      "candidate_sha256": "a230437f8243a8b168b01ee2bfb72be6df9023b72f468e0f7f0baf71d1f8be0d"
+    },
+    "scripts/npc_visual/npc_ordinary_hit_lifecycle.gd": {
+      "baseline_sha256": "4d2464e91750a73635bbd94b7ca33d8d73e84c5729db4099a29a8cb002f6c8e1",
+      "donor_sha256": "4d2464e91750a73635bbd94b7ca33d8d73e84c5729db4099a29a8cb002f6c8e1",
+      "candidate_sha256": "62647ade2fde05dcf1ed7cbd1640c4bfb87cd0870e144b50a46d890e1a459fa5"
+    },
+    "scripts/shop/player_armor_visual.gd": {
+      "baseline_sha256": null,
+      "donor_sha256": "1098c268bf5ffdd9c41d00ba36e89552c18b630638cc16438ffa7041b2653459",
+      "candidate_sha256": "1098c268bf5ffdd9c41d00ba36e89552c18b630638cc16438ffa7041b2653459"
+    },
+    "scripts/shop/player_armor_visual.gd.uid": {
+      "baseline_sha256": null,
+      "donor_sha256": "905eadf5d9c691a98dd1dd9dcd88449f6a0e7e7e72bbde9bab3ee99fe9f78106",
+      "candidate_sha256": "905eadf5d9c691a98dd1dd9dcd88449f6a0e7e7e72bbde9bab3ee99fe9f78106"
+    },
+    "scripts/shop/player_inventory_panel.gd": {
+      "baseline_sha256": null,
+      "donor_sha256": "1f55f603cdef537ee9d8b9180b2ec2d9156a8486634c48128a367e59655fe51e",
+      "candidate_sha256": "d705e23ccde3f61e5885bfbad72694e661986ad4d13c9b9b95b8285a1deccece"
+    },
+    "scripts/shop/player_inventory_panel.gd.uid": {
+      "baseline_sha256": null,
+      "donor_sha256": "dda0c86175cbeb01925e15658536d60ade70acd86c1750d34af4d4eefc5a1f21",
+      "candidate_sha256": "dda0c86175cbeb01925e15658536d60ade70acd86c1750d34af4d4eefc5a1f21"
+    },
+    "scripts/shop/player_shopkeeper.gd": {
+      "baseline_sha256": null,
+      "donor_sha256": "d803e42646ac340ebf22fb58253e9b99aeddae7080371145972f967d332b2582",
+      "candidate_sha256": "d803e42646ac340ebf22fb58253e9b99aeddae7080371145972f967d332b2582"
+    },
+    "scripts/shop/player_shopkeeper.gd.uid": {
+      "baseline_sha256": null,
+      "donor_sha256": "59b17ee28aba38d6483baaf60ada42f00672b2bc5fcf6bcd46009af45daa5e9b",
+      "candidate_sha256": "59b17ee28aba38d6483baaf60ada42f00672b2bc5fcf6bcd46009af45daa5e9b"
+    },
+    "scripts/shop/player_shop_catalog.gd": {
+      "baseline_sha256": null,
+      "donor_sha256": "e814cb04b4fec1a14d2fb2f29de036572b47ab0b502336cf0ca306b8367bf62a",
+      "candidate_sha256": "e814cb04b4fec1a14d2fb2f29de036572b47ab0b502336cf0ca306b8367bf62a"
+    },
+    "scripts/shop/player_shop_catalog.gd.uid": {
+      "baseline_sha256": null,
+      "donor_sha256": "088803707bce9d772afac35ca9996d57f8328860952b29770c902925766d34fe",
+      "candidate_sha256": "088803707bce9d772afac35ca9996d57f8328860952b29770c902925766d34fe"
+    },
+    "scripts/shop/player_shop_dialog.gd": {
+      "baseline_sha256": null,
+      "donor_sha256": "7ed39c442678aff09fad46dad1375d1db4ffd930f5eb388fb4fe5b1cbd8243cf",
+      "candidate_sha256": "7ed39c442678aff09fad46dad1375d1db4ffd930f5eb388fb4fe5b1cbd8243cf"
+    },
+    "scripts/shop/player_shop_dialog.gd.uid": {
+      "baseline_sha256": null,
+      "donor_sha256": "e8d55a2b191067ba3d42ac7ef09e799c1259009ae7f07570c46e6703292f4337",
+      "candidate_sha256": "e8d55a2b191067ba3d42ac7ef09e799c1259009ae7f07570c46e6703292f4337"
+    },
+    "scripts/shop/player_shop_host.gd": {
+      "baseline_sha256": null,
+      "donor_sha256": "e3edaef379c671c8d5aebc723e0567836d6dc101ae061d6e2ba3f01074005cb5",
+      "candidate_sha256": "a0e5c16192596e5d63328f97c72ae02fdc8e1e9b4efc55dfede6923b1c3818f5"
+    },
+    "scripts/shop/player_shop_host.gd.uid": {
+      "baseline_sha256": null,
+      "donor_sha256": "b8dc1dfa9db6b6021d8c3d22b653d190c651d0f286d873d8b5617c0b7d1a352d",
+      "candidate_sha256": "b8dc1dfa9db6b6021d8c3d22b653d190c651d0f286d873d8b5617c0b7d1a352d"
+    },
+    "scripts/shop/player_shop_inventory.gd": {
+      "baseline_sha256": null,
+      "donor_sha256": "2e6d3754c2415bab729f8a649277cc9024d214d75256263b487a23edbee74e27",
+      "candidate_sha256": "de9391084d1030dceef2186f12a725923d1cf6f86c30b7dadaaa4e7d1fb0f11c"
+    },
+    "scripts/shop/player_shop_inventory.gd.uid": {
+      "baseline_sha256": null,
+      "donor_sha256": "797887e14969d6944a3e33ee3d6b5d6de6cd7f9213945a263c54e000dae363f1",
+      "candidate_sha256": "797887e14969d6944a3e33ee3d6b5d6de6cd7f9213945a263c54e000dae363f1"
+    },
+    "scripts/shop/player_shop_panel.gd": {
+      "baseline_sha256": null,
+      "donor_sha256": "6717a771fe11cb88fa11a6ac3f5f6c43b81ffe174cda73545c3c2c8e4877835e",
+      "candidate_sha256": "b35362ca1f3aba02e4005abab98c0faecb9cd6e98b9eda47e4f9a5150a546c52"
+    },
+    "scripts/shop/player_shop_panel.gd.uid": {
+      "baseline_sha256": null,
+      "donor_sha256": "24df8fb883c2424331bb54b1bbfde5c87f2674312f11d55df1a03207b0392848",
+      "candidate_sha256": "24df8fb883c2424331bb54b1bbfde5c87f2674312f11d55df1a03207b0392848"
+    },
+    "scripts/shop/player_shop_state.gd": {
+      "baseline_sha256": null,
+      "donor_sha256": "5684327022efd6308395caac384f8fbd2cd15ebbece80cb164427db348483a74",
+      "candidate_sha256": "5684327022efd6308395caac384f8fbd2cd15ebbece80cb164427db348483a74"
+    },
+    "scripts/shop/player_shop_state.gd.uid": {
+      "baseline_sha256": null,
+      "donor_sha256": "0ff30eaf2fafaee20f05f69e7a0c10571dc756282ce715193d5122503faeed3b",
+      "candidate_sha256": "0ff30eaf2fafaee20f05f69e7a0c10571dc756282ce715193d5122503faeed3b"
+    },
+    "scripts/shop/player_shop_theme.gd": {
+      "baseline_sha256": null,
+      "donor_sha256": "1548f0c817d2441acbacf0c812c5959fa915d0cf622a783539873003c31d91c2",
+      "candidate_sha256": "1548f0c817d2441acbacf0c812c5959fa915d0cf622a783539873003c31d91c2"
+    },
+    "scripts/shop/player_shop_theme.gd.uid": {
+      "baseline_sha256": null,
+      "donor_sha256": "33bd4674f2a81e8276199343dd8834e24288e3b39db04f268f40c3261aae009c",
+      "candidate_sha256": "33bd4674f2a81e8276199343dd8834e24288e3b39db04f268f40c3261aae009c"
+    },
+    "scripts/shop/player_shop_wallet.gd": {
+      "baseline_sha256": null,
+      "donor_sha256": "76e1237e4da310c0f732ee25acca29c90c6faddb9b61ee5d87a82a19defd8078",
+      "candidate_sha256": "76e1237e4da310c0f732ee25acca29c90c6faddb9b61ee5d87a82a19defd8078"
+    },
+    "scripts/shop/player_shop_wallet.gd.uid": {
+      "baseline_sha256": null,
+      "donor_sha256": "e320b4acdafeac6810c62e2070ba656254a5eafbc68cac3a79f57b4d8c826c79",
+      "candidate_sha256": "e320b4acdafeac6810c62e2070ba656254a5eafbc68cac3a79f57b4d8c826c79"
+    },
+    "scripts/shop/player_throwables.gd": {
+      "baseline_sha256": null,
+      "donor_sha256": null,
+      "candidate_sha256": "5187361ddfe4302923129e1a4e39111ce0c248baa9901a80c1d928b024228224"
+    },
+    "scripts/shop/README.md": {
+      "baseline_sha256": null,
+      "donor_sha256": "127b8028ad49a6394e223dde531135802907184ab413b2d34cad3eb5be641f9e",
+      "candidate_sha256": "127b8028ad49a6394e223dde531135802907184ab413b2d34cad3eb5be641f9e"
+    },
+    "scripts/shop/throwable_fire.gdshader": {
+      "baseline_sha256": null,
+      "donor_sha256": null,
+      "candidate_sha256": "99d858ef2b271e189089561ff5582b563ea48ba59eddffe472ce16d3e271f751"
+    },
+    "scripts/shop/throwable_fire_pool.gd": {
+      "baseline_sha256": null,
+      "donor_sha256": null,
+      "candidate_sha256": "e271e04c1a4e723eef35fd96b3d7aa1812b35c643311358bdcc751dd0cb7aaed"
+    },
+    "scripts/shop/throwable_projectile_pool.gd": {
+      "baseline_sha256": null,
+      "donor_sha256": null,
+      "candidate_sha256": "542737438b0c0cbb14f74dc6d925870a874da86ba5beeda1fead95032c48c050"
+    },
+    "scripts/shop/throwable_scorch.gdshader": {
+      "baseline_sha256": null,
+      "donor_sha256": null,
+      "candidate_sha256": "fcd64dbeb13f168e9e4dd6b582264cfc9d1924210ca34cfc8d9a9efb94e8b45b"
+    },
+    "scripts/venues/npc_compact_glazing29.gd": {
+      "baseline_sha256": "edbe6091d4eacc50ae89a3752b1cf1ddf5a126c8ee073c0397ccb6e9264fdf67",
+      "donor_sha256": null,
+      "candidate_sha256": "0998c2f753359c542bc3be1fa774549e7defda89c5890705cf4e14f97491d450"
+    },
+    "scripts/venues/npc_compact_service_site29.gd": {
+      "baseline_sha256": "1223dc819fc3eb193d3d802351da9870508c92316d8032731e0c4f66c258d397",
+      "donor_sha256": null,
+      "candidate_sha256": "0ed68dd724970d449c6e4ad3c830cd24d5a5ca4a813da0da44ff682acd0520fe"
+    },
+    "scripts/venues/npc_service_sites_host29.gd": {
+      "baseline_sha256": "a11c787ec36742d6772eae9e375333b67162ea5d6cefa9409a046246b76c75c0",
+      "donor_sha256": null,
+      "candidate_sha256": "9b5f30adbedb50dd4ef636a68a144254ae13e2d5aef106f8f3061073c3ee663c"
+    },
+    "scripts/venues/npc_venue_staff_actor29.gd": {
+      "baseline_sha256": "a9b28acf433972e50379950f4a692030c70717cf48c50b7fb2c775c46d262ca5",
+      "donor_sha256": null,
+      "candidate_sha256": "424584e9cf86d7ce6f5b05b92f15cf3023288bc55ac7417618acf1e7435095e2"
+    },
+    "scripts/weapons/preview_weapons.gd": {
+      "baseline_sha256": "48998eb4207d40ff3bf6c91ba19aa026f145c7bc083bd13a743b071044b1e97c",
+      "donor_sha256": "8444d790062476756b0fba3eda383b34133f8e1af5398287b3a5ffbcc714b6dd",
+      "candidate_sha256": "17a275b07af93acca7f09048d7ecd7dac99cea9ee8941238d9e674747d875a5e"
+    },
+    "scripts/weapons/walk_weapon_ui.gd": {
+      "baseline_sha256": "4e1627e44ee4a5a5e8211c0a134136174a9ff4007aca8b92d9e01853883bdf96",
+      "donor_sha256": "4e1627e44ee4a5a5e8211c0a134136174a9ff4007aca8b92d9e01853883bdf96",
+      "candidate_sha256": "dbd6da93d516c9a1b0c6b240570d3d33468b679f2aa2c2386d68ba0acee7c048"
+    },
+    "scripts/weapons/weapon_aim_camera.gd": {
+      "baseline_sha256": "948a98ebe240990f67ed248009b0c255db49a64085dad9a2d3ff27ddaf8bb00e",
+      "donor_sha256": "948a98ebe240990f67ed248009b0c255db49a64085dad9a2d3ff27ddaf8bb00e",
+      "candidate_sha256": "0cd686022a7a9288c2f364f7a890aa2a90fad36377da9857420c2c26ba6450c2"
+    },
+    "scripts/weapons/weapon_inventory.gd": {
+      "baseline_sha256": "e5d2448223b1356054c26402e2b71432facbd18b9dc89450f18501a81d5a1704",
+      "donor_sha256": "eb869a4518578ccea8ece12712c6ed73dd17b3c4225e6f4882e99b8b2b7b30d7",
+      "candidate_sha256": "eb869a4518578ccea8ece12712c6ed73dd17b3c4225e6f4882e99b8b2b7b30d7"
+    },
+    "scripts/shop/tests/test_player_pose57.gd": {
+      "baseline_sha256": null,
+      "donor_sha256": null,
+      "candidate_sha256": "82cb2ad24549160cb8328d112593ff7c675968c2b9158a1eba2daa42b90c5e42"
+    },
+    "scripts/shop/tests/test_player_shop.gd": {
+      "baseline_sha256": null,
+      "donor_sha256": "5758e504e407f517a506538ea79da1e76c68bb0ff4a7f23b34c9f5989211ed86",
+      "candidate_sha256": "0862f02997ed5baaf207c8e6cbd2a22c7395571c4b1d4d420efe81d4bf4b77be"
+    },
+    "scripts/shop/tests/test_player_shop.gd.uid": {
+      "baseline_sha256": null,
+      "donor_sha256": "b73093cefe395219009dc9d57ff238ee9affe184c49ca835ee22a993780b16c7",
+      "candidate_sha256": "b73093cefe395219009dc9d57ff238ee9affe184c49ca835ee22a993780b16c7"
+    },
+    "scripts/shop/tests/test_player_shop_defaults.gd": {
+      "baseline_sha256": null,
+      "donor_sha256": "a16cfcce2b90d43f2dcfd81aebe1ceaf838aacad6d5e6bb29fccbe114e416eac",
+      "candidate_sha256": "a16cfcce2b90d43f2dcfd81aebe1ceaf838aacad6d5e6bb29fccbe114e416eac"
+    },
+    "scripts/shop/tests/test_player_shop_defaults.gd.uid": {
+      "baseline_sha256": null,
+      "donor_sha256": "825683bff14e198d299a41e0fbd474ffd2e1c7725cf9fb516f78bcef324ed09a",
+      "candidate_sha256": "825683bff14e198d299a41e0fbd474ffd2e1c7725cf9fb516f78bcef324ed09a"
+    },
+    "scripts/shop/tests/test_player_shop_ui.gd": {
+      "baseline_sha256": null,
+      "donor_sha256": "94e67e0d9fef11c298889cf21ba6c2ae2cc28d7cc3c9e5ad966767838f809501",
+      "candidate_sha256": "065db45ff370f58b4662ebd35b86371dfdd06caed34f52164ee0a8a264571796"
+    },
+    "scripts/shop/tests/test_player_shop_ui.gd.uid": {
+      "baseline_sha256": null,
+      "donor_sha256": "1969fa6d9913938c87b01632e4d630fc61f70cc9197a60442668a4ce83cd030e",
+      "candidate_sha256": "1969fa6d9913938c87b01632e4d630fc61f70cc9197a60442668a4ce83cd030e"
+    },
+    "scripts/shop/tests/test_shop_city57.gd": {
+      "baseline_sha256": null,
+      "donor_sha256": null,
+      "candidate_sha256": "a9688e2fac4e899c5575dcc42210f63dd08fe6ebf7ff52a15b370bee8bf305b7"
+    },
+    "scripts/destruction/palazzo/c4_building_blast.gd": {
+      "baseline_sha256": "54a39ca265a692c77456e9f1e243924fc40bf9840509fa7dd6820a1d3adf2888",
+      "donor_sha256": "54a39ca265a692c77456e9f1e243924fc40bf9840509fa7dd6820a1d3adf2888",
+      "candidate_sha256": "6fe1cfca32948a39568290497bcd0a38f513fd39746c86c6673387bdd160f786"
+    },
+    "scripts/destruction/palazzo/c4_equipment.gd": {
+      "baseline_sha256": "11f9c4127d27a3349bc0e1242b3661fb9637e8f2bcd267217ade9db3c4e7cd29",
+      "donor_sha256": "018c73aae2bc9b1452efe49b218918ec83464be61bf7a1745497282cab438661",
+      "candidate_sha256": "8a4b0aa8fafda55fb5167d9c9b7f25c4c92075773b1242ff3a050d1bc1bfe5a6"
+    },
+    "scripts/destruction/palazzo/palazzo_glazing.gd": {
+      "baseline_sha256": "7187080b0bf558b21a50d94640397b1207d0dacc20af2f5f99a344704fe273a0",
+      "donor_sha256": "7187080b0bf558b21a50d94640397b1207d0dacc20af2f5f99a344704fe273a0",
+      "candidate_sha256": "35fe8f50e2b42625d564de3e5fc39fad79c529a7ff7f43fcde8688c8d7b6a8bf"
+    },
+    "assets/shop_icons/ammo_9mm.svg": {
+      "baseline_sha256": null,
+      "donor_sha256": null,
+      "candidate_sha256": "50a08268432b6822f119239124897b65290eb82ec0f97875b990e974c2f3ae86"
+    },
+    "assets/shop_icons/ammo_magnum.svg": {
+      "baseline_sha256": null,
+      "donor_sha256": null,
+      "candidate_sha256": "1de5e476a8137fbe2897d1e3517e4a7e713f80ca0e658c4fabd07985e5810c04"
+    },
+    "assets/shop_icons/ammo_rifle.svg": {
+      "baseline_sha256": null,
+      "donor_sha256": null,
+      "candidate_sha256": "48d931f8388533989d870db0ee8a0dd23e8e343341eeeb612c9545d4eb3cc4a5"
+    },
+    "assets/shop_icons/ammo_rocket.svg": {
+      "baseline_sha256": null,
+      "donor_sha256": null,
+      "candidate_sha256": "6ed5972307efbe1d65a76d47204c2ca8326f882f051cc2027826a5e5abcfff6d"
+    },
+    "assets/shop_icons/ammo_shell.svg": {
+      "baseline_sha256": null,
+      "donor_sha256": null,
+      "candidate_sha256": "ffb6a7da980e6f22d2bf639266eefa108114226f446beaf87e85045e19a7c461"
+    },
+    "assets/shop_icons/ammo_sniper.svg": {
+      "baseline_sha256": null,
+      "donor_sha256": null,
+      "candidate_sha256": "94653712f0a05a4acabd7ae4f8bc02e3be232d9cc961c50597c69cbca362c221"
+    }
+  }
+}

@@ -1,0 +1,1081 @@
+{
+  "schema": "mafiozi.coordinator30-qa-audit/v1",
+  "observed_utc": "2026-10-14T23:57:59.317155+00:00",
+  "read_only_game_audit": true,
+  "engine_started": false,
+  "processes_modified": false,
+  "f5_modified": false,
+  "release53a": {
+    "assembly_sha256": "6a692bcae66349c5e8a78425680e716cc040d28fcd40df81b8299e7263b3f24c",
+    "source_count": 1098,
+    "source_drift": [],
+    "delivery_exists": false,
+    "ordinary_flags": [
+      "--city-qa=1",
+      "--city-resident-name=Житель",
+      "--city-simple-hospital=1",
+      "--city-plaza-support-plate=1",
+      "--city-medical-threshold=0.5",
+      "--city-energy-drain-per-m=0.05",
+      "--city-energy-threshold=0.2",
+      "--city-palazzo-clones=1",
+      "--city-clone-step=22",
+      "--city-town=1",
+      "--city-door-free-entry=1",
+      "--city-site-door-physics=1",
+      "--city-clone-door-swing=1",
+      "--city-needs=1",
+      "--city-shop-release=1",
+      "--city-nav-pump-budget-us=4000",
+      "--city-nav-pump-every=1",
+      "--city-daily-slice=286",
+      "--city-sim-stride=1",
+      "--city-sim-one-per-frame=0",
+      "--city-walk-pose=1",
+      "--city-pose-far-cap=512",
+      "--city-clear-cache=1",
+      "--city-timing=0",
+      "--city-health-lease",
+      "--city-hospital-marker=0",
+      "--city-venue-sites29=1",
+      "--city-hp=100"
+    ]
+  },
+  "proof_revisions": {
+    "cycle53_02": {
+      "changed_count": 32,
+      "changed_files": [
+        "data/preview_updates.json",
+        "data/venue_sites29.json",
+        "scripts/main.gd",
+        "scripts/npc_city_daily.gd",
+        "scripts/npc_daily_life.gd",
+        "scripts/npc_daily_walk.gd",
+        "scripts/hospital/npc_long_route28.gd",
+        "scripts/hospital/npc_physical_route51.gd",
+        "scripts/hospital/npc_restaurant_visit28.gd",
+        "scripts/hospital/npc_roam_wait29.gd",
+        "scripts/hospital/npc_roam_wait29.gd.uid",
+        "scripts/hospital/npc_simple_hospital.gd",
+        "scripts/navigation/npc_navigation_work29.gd",
+        "scripts/navigation/npc_navigation_work29.gd.uid",
+        "scripts/navigation/preview_engine_navigation.gd",
+        "scripts/npc_visual/npc_attention29.gd",
+        "scripts/npc_visual/npc_attention29.gd.uid",
+        "scripts/npc_visual/npc_resident_card_canvas29.gd",
+        "scripts/npc_visual/npc_resident_card_canvas29.gd.uid",
+        "scripts/npc_visual/npc_resident_focus29.gd",
+        "scripts/npc_visual/preview_resident_host.gd",
+        "scripts/npc_visual/resident_card_canvas29.gdshader",
+        "scripts/npc_visual/resident_card_canvas29.gdshader.uid",
+        "scripts/shop/npc_money_popup28.gd",
+        "scripts/venues/npc_compact_glazing29.gd",
+        "scripts/venues/npc_compact_glazing29.gd.uid",
+        "scripts/venues/npc_compact_service_site29.gd",
+        "scripts/venues/npc_compact_service_site29.gd.uid",
+        "scripts/venues/npc_service_sites_host29.gd",
+        "scripts/venues/npc_service_sites_host29.gd.uid",
+        "scripts/venues/npc_venue_registry29.gd",
+        "scripts/city/runtime/npc_city_engine_navigation.gd"
+      ]
+    },
+    "death53_02": {
+      "changed_count": 45,
+      "changed_files": [
+        "data/preview_updates.json",
+        "data/venue_sites29.json",
+        "scripts/main.gd",
+        "scripts/npc_city_daily.gd",
+        "scripts/npc_daily_life.gd",
+        "scripts/npc_daily_walk.gd",
+        "scripts/hospital/npc_long_route28.gd",
+        "scripts/hospital/npc_physical_route51.gd",
+        "scripts/hospital/npc_restaurant_visit28.gd",
+        "scripts/hospital/npc_roam_wait29.gd",
+        "scripts/hospital/npc_roam_wait29.gd.uid",
+        "scripts/hospital/npc_route_budget29.gd",
+        "scripts/hospital/npc_route_budget29.gd.uid",
+        "scripts/hospital/npc_simple_hospital.gd",
+        "scripts/navigation/npc_navigation_work29.gd",
+        "scripts/navigation/npc_navigation_work29.gd.uid",
+        "scripts/navigation/preview_engine_navigation.gd",
+        "scripts/npc_ambient/ambient_controller28.gd",
+        "scripts/npc_ambient/ambient_windows29.gd",
+        "scripts/npc_ambient/ambient_windows29.gd.uid",
+        "scripts/npc_visual/npc_attention29.gd",
+        "scripts/npc_visual/npc_attention29.gd.uid",
+        "scripts/npc_visual/npc_resident_card_canvas29.gd",
+        "scripts/npc_visual/npc_resident_card_canvas29.gd.uid",
+        "scripts/npc_visual/npc_resident_diag.gd",
+        "scripts/npc_visual/npc_resident_focus29.gd",
+        "scripts/npc_visual/npc_resident_focus29.gd.uid",
+        "scripts/npc_visual/preview_resident_host.gd",
+        "scripts/npc_visual/resident_card29.gdshader",
+        "scripts/npc_visual/resident_card29.gdshader.uid",
+        "scripts/npc_visual/resident_card_canvas29.gdshader",
+        "scripts/npc_visual/resident_card_canvas29.gdshader.uid",
+        "scripts/shop/npc_economy_visit28.gd",
+        "scripts/shop/npc_money_popup28.gd",
+        "scripts/venues/npc_compact_glazing29.gd",
+        "scripts/venues/npc_compact_glazing29.gd.uid",
+        "scripts/venues/npc_compact_service_site29.gd",
+        "scripts/venues/npc_compact_service_site29.gd.uid",
+        "scripts/venues/npc_service_sites_host29.gd",
+        "scripts/venues/npc_service_sites_host29.gd.uid",
+        "scripts/venues/npc_venue_capacity29.gd",
+        "scripts/venues/npc_venue_capacity29.gd.uid",
+        "scripts/venues/npc_venue_registry29.gd",
+        "scripts/venues/npc_venue_registry29.gd.uid",
+        "scripts/city/runtime/npc_city_engine_navigation.gd"
+      ]
+    },
+    "attention53_02": {
+      "changed_count": 12,
+      "changed_files": [
+        "data/preview_updates.json",
+        "data/venue_sites29.json",
+        "scripts/main.gd",
+        "scripts/hospital/npc_restaurant_visit28.gd",
+        "scripts/npc_visual/preview_resident_host.gd",
+        "scripts/venues/npc_compact_glazing29.gd",
+        "scripts/venues/npc_compact_glazing29.gd.uid",
+        "scripts/venues/npc_compact_service_site29.gd",
+        "scripts/venues/npc_compact_service_site29.gd.uid",
+        "scripts/venues/npc_service_sites_host29.gd",
+        "scripts/venues/npc_service_sites_host29.gd.uid",
+        "scripts/venues/npc_venue_registry29.gd"
+      ]
+    },
+    "attention_alarm53_01": {
+      "changed_count": 3,
+      "changed_files": [
+        "data/preview_updates.json",
+        "scripts/main.gd",
+        "scripts/npc_visual/preview_resident_host.gd"
+      ]
+    },
+    "play53_01": {
+      "changed_count": 0,
+      "changed_files": []
+    }
+  },
+  "saved_opened53a": {
+    "pid": 21820,
+    "revision": "s01-20261015-residents53a",
+    "title": "15.10 · Жители и заведения · версия53a",
+    "source": "stable_user_launcher",
+    "run_directory": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261014T234409491Z",
+    "started_at": "2026-10-15T02:44:09.5212622+03:00",
+    "assembly_sha256": "6a692bcae66349c5e8a78425680e716cc040d28fcd40df81b8299e7263b3f24c",
+    "ready": true,
+    "window_handle": 10028982,
+    "bootstrap": {
+      "interactive": true,
+      "new_venues": 8,
+      "ok": true,
+      "player_position": "(40.22446, 0.090257, -3.127649)",
+      "population_ready": true,
+      "resident_count": 1,
+      "revision": "s01-20261015-residents53a",
+      "title": "15.10 · Жители и заведения · версия53a"
+    }
+  },
+  "process_observation": {
+    "observed_utc": "2026-10-14T23:55:25.0984428Z",
+    "receipt_pid": 21820,
+    "matching_process_count": 0,
+    "memory_cpu_live_samples": [],
+    "reason": "Exact receipt PID was already absent; did not substitute a different Godot process."
+  },
+  "fps_leak_audit": {
+    "log": "outputs/current_game/interactive/20261014T234409491Z/play.log",
+    "log_sha256": "6562a851ca12e4e9dcc9aeaff5531a38c418afe7739b74ba4d806d77322da629",
+    "line_count": 7554,
+    "log_bytes": 2383566,
+    "stderr_bytes": 0,
+    "windows": [
+      {
+        "frame_range": [
+          30,
+          3600
+        ],
+        "fps_min": 3.0,
+        "fps_median": 144.0,
+        "nodes_min_max": [
+          47616.0,
+          47715.0
+        ],
+        "bodies_min_max": [
+          2.0,
+          7.0
+        ],
+        "draws_median": 2144.0,
+        "prims_median": 817444.5,
+        "process_median_ms": 7.0,
+        "physics_median_ms": 7.5
+      },
+      {
+        "frame_range": [
+          3630,
+          7200
+        ],
+        "fps_min": 110.0,
+        "fps_median": 144.0,
+        "nodes_min_max": [
+          47710.0,
+          47710.0
+        ],
+        "bodies_min_max": [
+          2.0,
+          3.0
+        ],
+        "draws_median": 1571.0,
+        "prims_median": 630951.0,
+        "process_median_ms": 7.0,
+        "physics_median_ms": 7.0
+      },
+      {
+        "frame_range": [
+          7230,
+          10800
+        ],
+        "fps_min": 114.0,
+        "fps_median": 131.0,
+        "nodes_min_max": [
+          47710.0,
+          47710.0
+        ],
+        "bodies_min_max": [
+          2.0,
+          3.0
+        ],
+        "draws_median": 1770.5,
+        "prims_median": 747968.0,
+        "process_median_ms": 7.0,
+        "physics_median_ms": 7.0
+      },
+      {
+        "frame_range": [
+          10830,
+          14400
+        ],
+        "fps_min": 118.0,
+        "fps_median": 134.0,
+        "nodes_min_max": [
+          47710.0,
+          47711.0
+        ],
+        "bodies_min_max": [
+          2.0,
+          3.0
+        ],
+        "draws_median": 1643.5,
+        "prims_median": 722992.0,
+        "process_median_ms": 7.0,
+        "physics_median_ms": 7.0
+      },
+      {
+        "frame_range": [
+          14430,
+          18000
+        ],
+        "fps_min": 106.0,
+        "fps_median": 144.0,
+        "nodes_min_max": [
+          47710.0,
+          47725.0
+        ],
+        "bodies_min_max": [
+          2.0,
+          3.0
+        ],
+        "draws_median": 558.0,
+        "prims_median": 517577.0,
+        "process_median_ms": 7.0,
+        "physics_median_ms": 7.0
+      },
+      {
+        "frame_range": [
+          18030,
+          21600
+        ],
+        "fps_min": 82.0,
+        "fps_median": 114.5,
+        "nodes_min_max": [
+          47710.0,
+          47725.0
+        ],
+        "bodies_min_max": [
+          2.0,
+          3.0
+        ],
+        "draws_median": 2166.0,
+        "prims_median": 762588.0,
+        "process_median_ms": 8.0,
+        "physics_median_ms": 8.0
+      },
+      {
+        "frame_range": [
+          21630,
+          25200
+        ],
+        "fps_min": 86.0,
+        "fps_median": 106.0,
+        "nodes_min_max": [
+          47710.0,
+          47710.0
+        ],
+        "bodies_min_max": [
+          3.0,
+          3.0
+        ],
+        "draws_median": 2285.5,
+        "prims_median": 784122.0,
+        "process_median_ms": 8.0,
+        "physics_median_ms": 8.0
+      },
+      {
+        "frame_range": [
+          25230,
+          28800
+        ],
+        "fps_min": 79.0,
+        "fps_median": 105.5,
+        "nodes_min_max": [
+          47710.0,
+          47710.0
+        ],
+        "bodies_min_max": [
+          3.0,
+          3.0
+        ],
+        "draws_median": 2013.5,
+        "prims_median": 670988.0,
+        "process_median_ms": 8.0,
+        "physics_median_ms": 9.0
+      },
+      {
+        "frame_range": [
+          28830,
+          32400
+        ],
+        "fps_min": 95.0,
+        "fps_median": 109.0,
+        "nodes_min_max": [
+          47710.0,
+          47710.0
+        ],
+        "bodies_min_max": [
+          3.0,
+          3.0
+        ],
+        "draws_median": 1956.0,
+        "prims_median": 653269.0,
+        "process_median_ms": 8.0,
+        "physics_median_ms": 9.0
+      },
+      {
+        "frame_range": [
+          32430,
+          33120
+        ],
+        "fps_min": 105.0,
+        "fps_median": 115.5,
+        "nodes_min_max": [
+          47710.0,
+          47725.0
+        ],
+        "bodies_min_max": [
+          3.0,
+          18.0
+        ],
+        "draws_median": 2138.5,
+        "prims_median": 774805.0,
+        "process_median_ms": 8.0,
+        "physics_median_ms": 8.5
+      }
+    ],
+    "npc_counts": {
+      "resident_records": {
+        "min": 287.0,
+        "p50": 287.0,
+        "p95": 287.0,
+        "max": 287.0
+      },
+      "lives": {
+        "min": 1.0,
+        "p50": 1.0,
+        "p95": 1.0,
+        "max": 1.0
+      },
+      "births": {
+        "min": 1.0,
+        "p50": 1.0,
+        "p95": 1.0,
+        "max": 1.0
+      },
+      "bound": {
+        "min": 0.0,
+        "p50": 1.0,
+        "p95": 1.0,
+        "max": 1.0
+      }
+    },
+    "cpu_buckets_us": {
+      "city_daily": {
+        "min": 0.0,
+        "p50": 1285.5,
+        "p95": 3452.0,
+        "max": 35750.0
+      },
+      "city_resident_host": {
+        "min": 739.0,
+        "p50": 1259.0,
+        "p95": 1850.0,
+        "max": 11452.0
+      },
+      "host_loop": {
+        "min": 752.0,
+        "p50": 884.5,
+        "p95": 1417.0,
+        "max": 1837.0
+      },
+      "daily_life_poll": {
+        "min": 5.0,
+        "p50": 524.0,
+        "p95": 2515.0,
+        "max": 15358.0
+      }
+    },
+    "slowest_city_daily": [
+      {
+        "f": 25350.0,
+        "fps": 102.0,
+        "births": 1.0,
+        "probes": 0.0,
+        "bound": 1.0,
+        "nav": 106.0,
+        "health": 519.0,
+        "daily": 35750.0,
+        "resid": 820.0,
+        "fx": 19.0,
+        "total": 37218.0,
+        "fx_blood": 0.0,
+        "fx_marks": 0.0,
+        "fx_active": 0.0,
+        "fx_owners": 1.0,
+        "fx_idle_deferred": 0.0,
+        "fx_idle_skipped": 1.0,
+        "fx_idle_bypass": 1.0,
+        "line": 5780
+      },
+      {
+        "f": 2550.0,
+        "fps": 142.0,
+        "births": 1.0,
+        "probes": 0.0,
+        "bound": 1.0,
+        "nav": 117.0,
+        "health": 272.0,
+        "daily": 29339.0,
+        "resid": 1089.0,
+        "fx": 29.0,
+        "total": 30852.0,
+        "fx_blood": 0.0,
+        "fx_marks": 0.0,
+        "fx_active": 0.0,
+        "fx_owners": 1.0,
+        "fx_idle_deferred": 0.0,
+        "fx_idle_skipped": 1.0,
+        "fx_idle_bypass": 1.0,
+        "line": 532
+      },
+      {
+        "f": 25230.0,
+        "fps": 109.0,
+        "births": 1.0,
+        "probes": 0.0,
+        "bound": 1.0,
+        "nav": 125.0,
+        "health": 282.0,
+        "daily": 7233.0,
+        "resid": 866.0,
+        "fx": 29.0,
+        "total": 9766.0,
+        "fx_blood": 0.0,
+        "fx_marks": 0.0,
+        "fx_active": 0.0,
+        "fx_owners": 1.0,
+        "fx_idle_deferred": 0.0,
+        "fx_idle_skipped": 1.0,
+        "fx_idle_bypass": 1.0,
+        "line": 5756
+      },
+      {
+        "f": 4950.0,
+        "fps": 143.0,
+        "births": 1.0,
+        "probes": 0.0,
+        "bound": 1.0,
+        "nav": 151.0,
+        "health": 322.0,
+        "daily": 6877.0,
+        "resid": 993.0,
+        "fx": 22.0,
+        "total": 8370.0,
+        "fx_blood": 0.0,
+        "fx_marks": 0.0,
+        "fx_active": 0.0,
+        "fx_owners": 1.0,
+        "fx_idle_deferred": 0.0,
+        "fx_idle_skipped": 1.0,
+        "fx_idle_bypass": 1.0,
+        "line": 1075
+      },
+      {
+        "f": 13770.0,
+        "fps": 139.0,
+        "births": 1.0,
+        "probes": 0.0,
+        "bound": 1.0,
+        "nav": 134.0,
+        "health": 292.0,
+        "daily": 6343.0,
+        "resid": 1068.0,
+        "fx": 30.0,
+        "total": 7873.0,
+        "fx_blood": 0.0,
+        "fx_marks": 0.0,
+        "fx_active": 0.0,
+        "fx_owners": 1.0,
+        "fx_idle_deferred": 0.0,
+        "fx_idle_skipped": 1.0,
+        "fx_idle_bypass": 1.0,
+        "line": 3133
+      }
+    ],
+    "long_service_stall": {
+      "first": {
+        "attempts": 0,
+        "dist_m": 68.2657012939453,
+        "door_reason": "",
+        "floor": [
+          136.338562011719,
+          0.00299998512491584,
+          -13.8157749176025
+        ],
+        "frame": 19185,
+        "guide": {
+          "distant": false,
+          "last_retry_reason": "",
+          "local_leg_limit_m": 24.0,
+          "map_iteration": 0,
+          "metres": 0.0,
+          "phase": "cancelled",
+          "prepare_max_us": 0,
+          "progress_revision": 0,
+          "query_submit_us": 0,
+          "query_ticket": 0,
+          "query_wall_ms": 0,
+          "queue_wait_ms": 0,
+          "reason": "",
+          "requeries": 0,
+          "revision": 3,
+          "shared_work": {
+            "authority_maps": 1,
+            "cancel_keeps_native_permit": true,
+            "completed": 1,
+            "dropped_callbacks": 0,
+            "frame": 19185,
+            "guides": 0,
+            "inflight": 0,
+            "max_inflight": 1,
+            "max_prepare_items": 8,
+            "max_prepare_us": 27,
+            "max_submits_per_frame": 1,
+            "oldest_native_ms": 0,
+            "prepare_budget_us": 600,
+            "prepare_items": 0,
+            "prepare_us": 0,
+            "soft_deadline": true,
+            "started": 1,
+            "submitted_this_frame": 0
+          },
+          "stale_callbacks": 0,
+          "status": "cancelled",
+          "wait_reason": "",
+          "waypoint": 0,
+          "waypoints": 0,
+          "work_units": 0,
+          "work_us": 0
+        },
+        "id": "resident_1",
+        "leg": 0,
+        "legs": 1,
+        "moved_m": 0.0,
+        "on_floor": true,
+        "phase": "attention_paused",
+        "position": [
+          136.338562011719,
+          0.000835711718536913,
+          -13.8157749176025
+        ],
+        "reason": "",
+        "result": "begin",
+        "roam_watch": {},
+        "route": {
+          "cell_m": 0.4,
+          "coarse_fallback": false,
+          "direct_used": false,
+          "expanded": 0,
+          "last_collider": "",
+          "last_query_failure": "",
+          "max_tick_us": 0,
+          "nodes": 0,
+          "open": 0,
+          "pruned_lower_bound": 0,
+          "queries": 2,
+          "ready_frame": -1,
+          "search_phase": "cancelled",
+          "service_us29": 0,
+          "shared_budget": {
+            "budget_us": 1800,
+            "frame": 18583,
+            "frame_us": 180,
+            "heap_items": 0,
+            "jobs": 0,
+            "max_frame_us": 2522,
+            "max_heap_items": 131072,
+            "max_jobs": 384,
+            "max_nodes": 65536,
+            "max_unit_us": 985,
+            "nodes": 0,
+            "rejected": 0,
+            "retired": 0,
+            "soft_deadline": true,
+            "units": 5
+          },
+          "status": "cancelled",
+          "tick_us": 0,
+          "total_expanded": 0
+        },
+        "source": "service_approach",
+        "target": [
+          69.6999969482422,
+          0.303000003099442,
+          1.0
+        ],
+        "time_ms": 334732,
+        "way": 0,
+        "waypoint": [],
+        "line": 4376
+      },
+      "last": {
+        "attempts": 0,
+        "dist_m": 68.2657012939453,
+        "door_reason": "",
+        "floor": [
+          136.338562011719,
+          0.00299998512491584,
+          -13.8157749176025
+        ],
+        "frame": 32671,
+        "guide": {
+          "distant": false,
+          "last_retry_reason": "",
+          "local_leg_limit_m": 24.0,
+          "map_iteration": 0,
+          "metres": 0.0,
+          "phase": "cancelled",
+          "prepare_max_us": 0,
+          "progress_revision": 0,
+          "query_submit_us": 0,
+          "query_ticket": 0,
+          "query_wall_ms": 0,
+          "queue_wait_ms": 0,
+          "reason": "",
+          "requeries": 0,
+          "revision": 3,
+          "shared_work": {
+            "authority_maps": 1,
+            "cancel_keeps_native_permit": true,
+            "completed": 1,
+            "dropped_callbacks": 0,
+            "frame": 32671,
+            "guides": 0,
+            "inflight": 0,
+            "max_inflight": 1,
+            "max_prepare_items": 8,
+            "max_prepare_us": 27,
+            "max_submits_per_frame": 1,
+            "oldest_native_ms": 0,
+            "prepare_budget_us": 600,
+            "prepare_items": 0,
+            "prepare_us": 0,
+            "soft_deadline": true,
+            "started": 1,
+            "submitted_this_frame": 0
+          },
+          "stale_callbacks": 0,
+          "status": "cancelled",
+          "wait_reason": "",
+          "waypoint": 0,
+          "waypoints": 0,
+          "work_units": 0,
+          "work_us": 0
+        },
+        "id": "resident_1",
+        "leg": 0,
+        "legs": 1,
+        "moved_m": 0.0,
+        "on_floor": true,
+        "phase": "attention_paused",
+        "position": [
+          136.338562011719,
+          0.000835711718536913,
+          -13.8157749176025
+        ],
+        "reason": "live_obstacle_retry",
+        "result": "replan",
+        "roam_watch": {},
+        "route": {
+          "cell_m": 1.2,
+          "coarse_fallback": false,
+          "direct_used": false,
+          "expanded": 3,
+          "last_collider": "",
+          "last_query_failure": "",
+          "max_tick_us": 540,
+          "nodes": 0,
+          "open": 0,
+          "pruned_lower_bound": 4,
+          "queries": 143,
+          "ready_frame": -1,
+          "search_phase": "cancelled",
+          "service_us29": 23410807,
+          "shared_budget": {
+            "budget_us": 1800,
+            "frame": 32667,
+            "frame_us": 1979,
+            "heap_items": 0,
+            "jobs": 0,
+            "max_frame_us": 10150,
+            "max_heap_items": 131072,
+            "max_jobs": 384,
+            "max_nodes": 65536,
+            "max_unit_us": 9849,
+            "nodes": 0,
+            "rejected": 0,
+            "retired": 0,
+            "soft_deadline": true,
+            "units": 15
+          },
+          "status": "cancelled",
+          "tick_us": 220,
+          "total_expanded": 3
+        },
+        "source": "service_approach",
+        "target": [
+          69.6999969482422,
+          0.303000003099442,
+          1.0
+        ],
+        "time_ms": 559499,
+        "way": 0,
+        "waypoint": [],
+        "line": 7451
+      },
+      "max_route_nodes": {
+        "attempts": 0,
+        "dist_m": 68.2657012939453,
+        "door_reason": "",
+        "floor": [
+          136.338562011719,
+          0.00299998512491584,
+          -13.8157749176025
+        ],
+        "frame": 29224,
+        "guide": {
+          "distant": false,
+          "last_retry_reason": "",
+          "local_leg_limit_m": 24.0,
+          "map_iteration": 0,
+          "metres": 0.0,
+          "phase": "local",
+          "prepare_max_us": 0,
+          "progress_revision": 0,
+          "query_submit_us": 0,
+          "query_ticket": 0,
+          "query_wall_ms": 0,
+          "queue_wait_ms": 0,
+          "reason": "",
+          "requeries": 0,
+          "revision": 2,
+          "shared_work": {
+            "authority_maps": 1,
+            "cancel_keeps_native_permit": true,
+            "completed": 1,
+            "dropped_callbacks": 0,
+            "frame": 29224,
+            "guides": 0,
+            "inflight": 0,
+            "max_inflight": 1,
+            "max_prepare_items": 8,
+            "max_prepare_us": 27,
+            "max_submits_per_frame": 1,
+            "oldest_native_ms": 0,
+            "prepare_budget_us": 600,
+            "prepare_items": 0,
+            "prepare_us": 0,
+            "soft_deadline": true,
+            "started": 1,
+            "submitted_this_frame": 0
+          },
+          "stale_callbacks": 0,
+          "status": "ready",
+          "wait_reason": "",
+          "waypoint": 0,
+          "waypoints": 1,
+          "work_units": 0,
+          "work_us": 0
+        },
+        "id": "resident_1",
+        "leg": 0,
+        "legs": 1,
+        "moved_m": 0.0,
+        "on_floor": true,
+        "phase": "searching",
+        "position": [
+          136.338562011719,
+          0.000835711718536913,
+          -13.8157749176025
+        ],
+        "reason": "",
+        "result": "begin",
+        "roam_watch": {},
+        "route": {
+          "cell_m": 0.4,
+          "coarse_fallback": true,
+          "direct_used": false,
+          "expanded": 17924,
+          "last_collider": "/root/MafioziWalkMigration/TownClone_4/OriginalPlaza",
+          "last_query_failure": "standing_blocked",
+          "max_tick_us": 7462,
+          "nodes": 18585,
+          "open": 1114,
+          "pruned_lower_bound": 81267,
+          "queries": 410357,
+          "ready_frame": -1,
+          "search_phase": "neighbour",
+          "service_us29": 17271303,
+          "shared_budget": {
+            "budget_us": 1800,
+            "frame": 29224,
+            "frame_us": 1919,
+            "heap_items": 1114,
+            "jobs": 1,
+            "max_frame_us": 8219,
+            "max_heap_items": 131072,
+            "max_jobs": 384,
+            "max_nodes": 65536,
+            "max_unit_us": 7463,
+            "nodes": 18585,
+            "rejected": 0,
+            "retired": 0,
+            "soft_deadline": true,
+            "units": 58
+          },
+          "status": "searching",
+          "tick_us": 165,
+          "total_expanded": 32703
+        },
+        "source": "service_approach",
+        "target": [
+          69.6999969482422,
+          0.303000003099442,
+          1.0
+        ],
+        "time_ms": 502063,
+        "way": 0,
+        "waypoint": [],
+        "line": 6665
+      },
+      "max_service_cpu": {
+        "attempts": 0,
+        "dist_m": 68.2657012939453,
+        "door_reason": "",
+        "floor": [
+          136.338562011719,
+          0.00299998512491584,
+          -13.8157749176025
+        ],
+        "frame": 32671,
+        "guide": {
+          "distant": false,
+          "last_retry_reason": "",
+          "local_leg_limit_m": 24.0,
+          "map_iteration": 0,
+          "metres": 0.0,
+          "phase": "cancelled",
+          "prepare_max_us": 0,
+          "progress_revision": 0,
+          "query_submit_us": 0,
+          "query_ticket": 0,
+          "query_wall_ms": 0,
+          "queue_wait_ms": 0,
+          "reason": "",
+          "requeries": 0,
+          "revision": 3,
+          "shared_work": {
+            "authority_maps": 1,
+            "cancel_keeps_native_permit": true,
+            "completed": 1,
+            "dropped_callbacks": 0,
+            "frame": 32671,
+            "guides": 0,
+            "inflight": 0,
+            "max_inflight": 1,
+            "max_prepare_items": 8,
+            "max_prepare_us": 27,
+            "max_submits_per_frame": 1,
+            "oldest_native_ms": 0,
+            "prepare_budget_us": 600,
+            "prepare_items": 0,
+            "prepare_us": 0,
+            "soft_deadline": true,
+            "started": 1,
+            "submitted_this_frame": 0
+          },
+          "stale_callbacks": 0,
+          "status": "cancelled",
+          "wait_reason": "",
+          "waypoint": 0,
+          "waypoints": 0,
+          "work_units": 0,
+          "work_us": 0
+        },
+        "id": "resident_1",
+        "leg": 0,
+        "legs": 1,
+        "moved_m": 0.0,
+        "on_floor": true,
+        "phase": "attention_paused",
+        "position": [
+          136.338562011719,
+          0.000835711718536913,
+          -13.8157749176025
+        ],
+        "reason": "live_obstacle_retry",
+        "result": "replan",
+        "roam_watch": {},
+        "route": {
+          "cell_m": 1.2,
+          "coarse_fallback": false,
+          "direct_used": false,
+          "expanded": 3,
+          "last_collider": "",
+          "last_query_failure": "",
+          "max_tick_us": 540,
+          "nodes": 0,
+          "open": 0,
+          "pruned_lower_bound": 4,
+          "queries": 143,
+          "ready_frame": -1,
+          "search_phase": "cancelled",
+          "service_us29": 23410807,
+          "shared_budget": {
+            "budget_us": 1800,
+            "frame": 32667,
+            "frame_us": 1979,
+            "heap_items": 0,
+            "jobs": 0,
+            "max_frame_us": 10150,
+            "max_heap_items": 131072,
+            "max_jobs": 384,
+            "max_nodes": 65536,
+            "max_unit_us": 9849,
+            "nodes": 0,
+            "rejected": 0,
+            "retired": 0,
+            "soft_deadline": true,
+            "units": 15
+          },
+          "status": "cancelled",
+          "tick_us": 220,
+          "total_expanded": 3
+        },
+        "source": "service_approach",
+        "target": [
+          69.6999969482422,
+          0.303000003099442,
+          1.0
+        ],
+        "time_ms": 559499,
+        "way": 0,
+        "waypoint": [],
+        "line": 7451
+      }
+    },
+    "conclusions": {
+      "node_or_population_leak_demonstrated": false,
+      "heap_leak_ruled_out": false,
+      "continuous_local_search_demonstrated": true,
+      "same_camera_exclusive_fps_baseline_available": false,
+      "concurrent_functional_tests_present": true
+    },
+    "suspects": [
+      {
+        "priority": 1,
+        "file": "outputs/coordinator29_release53a/game/scripts/hospital/npc_long_route28.gd",
+        "line": 8,
+        "finding": "LOCAL_ONLY_M=75 admits a 68.2657m service leg to local A*; captured unchanged position, up to18585nodes/410357queries; repeated replans. advance also collapses precomputed guide at <=75m; patch both via shared threshold.",
+        "related_lines": [
+          93,
+          301
+        ]
+      },
+      {
+        "priority": 1,
+        "file": "outputs/coordinator29_release53a/game/scripts/hospital/npc_simple_hospital.gd",
+        "line": 375,
+        "finding": "Service approach has no accumulated planner CPU/no-progress watchdog; _restart starts same local checkpoint again and service is excluded from RoamWait."
+      },
+      {
+        "priority": 2,
+        "file": "outputs/coordinator29_release53a/game/scripts/npc_visual/preview_resident_host.gd",
+        "line": 1324,
+        "finding": "Every step loops all287 admitted records, even with one actual body; measured host loop p50~885us. Bounded overhead rather than growth."
+      }
+    ],
+    "concurrent_test_receipts": [
+      {
+        "run": "staff07",
+        "child_pid": 10964,
+        "start_msk": "2026-10-15T02:48:41.290703+03:00",
+        "elapsed_seconds": 22.183164199930616,
+        "mode": "headless",
+        "perf_environment_clean": false
+      },
+      {
+        "run": "avoidance08/avoidance_fixture29",
+        "child_pid": 25292,
+        "start_msk": "2026-10-15T02:52:37.604742+03:00",
+        "elapsed_seconds": 48.686209200066514,
+        "mode": "headless",
+        "perf_environment_clean": false
+      }
+    ]
+  },
+  "staff": {
+    "run": "outputs\\coordinator29_npc53\\proposals\\venues29_staff\\runs\\staff07\\RESULT.json",
+    "passed": true,
+    "source_drift": [],
+    "performance_accepted": false
+  },
+  "avoidance": {
+    "run": "outputs\\coordinator29_npc53\\proposals\\navigation29_avoidance\\runs\\avoidance08\\RESULT.json",
+    "passed": false,
+    "source_drift": [],
+    "performance_accepted": false
+  }
+}

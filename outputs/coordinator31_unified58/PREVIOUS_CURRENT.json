@@ -1,0 +1,11 @@
+{
+  "schema": "mafiozi.current-play/v1",
+  "title": "15.10 · Проходы и реакции жителей · версия57",
+  "revision": "s01-20261015-residents57",
+  "assembly": "outputs/coordinator31_release57/ASSEMBLY.json",
+  "assembly_sha256": "6a99005e492f9372a7abc64db85fce8952a18dcd39abba65708e08a8e50c13f6",
+  "bootstrap": "outputs/coordinator31_release57/bootstrap_play57.gd",
+  "bootstrap_sha256": "cc17a44f4714ab9ff6edb283ce859f62cb32318323f19b10c8f233c6087b751f",
+  "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "scope": "Verified batch10+12; full287 catalogue retained. Root activates only after startup57 passes."
+}

@@ -1,0 +1,922 @@
+{
+	"configured": {
+		"ok": true,
+		"owners": 287,
+		"source_floors": 5595,
+		"version": 1
+	},
+	"floor_count": 5595,
+	"ground_install": {
+		"ok": true
+	},
+	"host_bound": true,
+	"negative_checks": [
+		{
+			"name": "exact_endpoint_initial_a",
+			"ok": true
+		},
+		{
+			"name": "exact_endpoint_initial_b",
+			"ok": true
+		},
+		{
+			"name": "exact_endpoint_sample1_a",
+			"ok": true
+		},
+		{
+			"name": "exact_endpoint_sample1_b",
+			"ok": true
+		},
+		{
+			"name": "exact_endpoint_sample0_a",
+			"ok": true
+		},
+		{
+			"name": "exact_endpoint_sample0_b",
+			"ok": true
+		},
+		{
+			"name": "exact_duplicate_captured",
+			"ok": true
+		},
+		{
+			"name": "raised_slab_not_excluded_and_rejected",
+			"ok": true
+		},
+		{
+			"name": "tilted_slab_not_excluded_and_rejected",
+			"ok": true
+		},
+		{
+			"name": "resized_slab_not_excluded_and_rejected",
+			"ok": true
+		},
+		{
+			"name": "replaced_shape_identity_not_excluded",
+			"ok": true
+		},
+		{
+			"name": "changed_body_owner_not_excluded",
+			"ok": true
+		},
+		{
+			"name": "changed_root_scope_not_excluded",
+			"ok": true
+		},
+		{
+			"name": "restored_exact_duplicate_admitted",
+			"ok": true
+		},
+		{
+			"name": "current_wall_or_npc_layer_1",
+			"ok": true,
+			"reason": "current_square_overlap"
+		},
+		{
+			"name": "wall_or_npc_removed_layer_1",
+			"ok": true
+		},
+		{
+			"name": "current_wall_or_npc_layer_256",
+			"ok": true,
+			"reason": "current_square_overlap"
+		},
+		{
+			"name": "wall_or_npc_removed_layer_256",
+			"ok": true
+		},
+		{
+			"name": "real_raised_step_still_rejected",
+			"ok": true,
+			"reason": "current_source_floor_missing"
+		},
+		{
+			"name": "real_changed_slope_still_rejected",
+			"ok": true,
+			"reason": "current_source_floor_missing"
+		},
+		{
+			"name": "removed_step_restores_original_support",
+			"ok": true
+		},
+		{
+			"name": "stale_life_token_rejected",
+			"ok": true
+		},
+		{
+			"name": "lost_actual_source_floor_rejected",
+			"ok": true,
+			"reason": "current_source_floor_missing"
+		},
+		{
+			"name": "restored_source_floor_admitted",
+			"ok": true
+		},
+		{
+			"name": "current_dynamic_square_overlap_rejected",
+			"ok": true,
+			"reason": "current_square_overlap"
+		},
+		{
+			"name": "cleared_current_square_admitted",
+			"ok": true
+		},
+		{
+			"name": "actual_policy_access_revoked",
+			"ok": true
+		}
+	],
+	"negative_ok": true,
+	"ray_proof": [
+		{
+			"name": "initial_a",
+			"rays": [
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/@StaticBody3D@2270",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(114.8, 0.3, 92.25)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": true,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(0.0, 0.0)",
+					"position": "(114.8, -0.0, 92.25)",
+					"rid": "RID(9844065043566)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (108.65, -0.08, 92.25)]",
+					"shape_index": 0,
+					"shape_size": "(114.8, 0.16, 4.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(114.8, -0.3, 92.25)"
+				},
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/@StaticBody3D@2270",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(114.062, 0.3, 91.512)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": true,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(-0.738, -0.738)",
+					"position": "(114.062, -0.0, 91.512)",
+					"rid": "RID(9844065043566)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (108.65, -0.08, 92.25)]",
+					"shape_index": 0,
+					"shape_size": "(114.8, 0.16, 4.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(114.062, -0.3, 91.512)"
+				},
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/@StaticBody3D@2270",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(114.062, 0.3, 92.988)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": true,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(-0.738, 0.738)",
+					"position": "(114.062, -0.0, 92.988)",
+					"rid": "RID(9844065043566)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (108.65, -0.08, 92.25)]",
+					"shape_index": 0,
+					"shape_size": "(114.8, 0.16, 4.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(114.062, -0.3, 92.988)"
+				},
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/@StaticBody3D@2270",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(115.538, 0.3, 91.512)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": true,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(0.738, -0.738)",
+					"position": "(115.538, -0.0, 91.512)",
+					"rid": "RID(9844065043566)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (108.65, -0.08, 92.25)]",
+					"shape_index": 0,
+					"shape_size": "(114.8, 0.16, 4.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(115.538, -0.3, 91.512)"
+				},
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/@StaticBody3D@2270",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(115.538, 0.3, 92.988)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": true,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(0.738, 0.738)",
+					"position": "(115.538, -0.0, 92.988)",
+					"rid": "RID(9844065043566)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (108.65, -0.08, 92.25)]",
+					"shape_index": 0,
+					"shape_size": "(114.8, 0.16, 4.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(115.538, -0.3, 92.988)"
+				}
+			]
+		},
+		{
+			"name": "initial_b",
+			"rays": [
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/@StaticBody3D@2270",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(114.8, 0.3, 92.24999)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": true,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(0.0, 0.0)",
+					"position": "(114.8, -0.0, 92.24999)",
+					"rid": "RID(9844065043566)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (108.65, -0.08, 92.25)]",
+					"shape_index": 0,
+					"shape_size": "(114.8, 0.16, 4.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(114.8, -0.3, 92.24999)"
+				},
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/@StaticBody3D@2270",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(114.062, 0.3, 91.51199)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": true,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(-0.738, -0.738)",
+					"position": "(114.062, -0.0, 91.51199)",
+					"rid": "RID(9844065043566)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (108.65, -0.08, 92.25)]",
+					"shape_index": 0,
+					"shape_size": "(114.8, 0.16, 4.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(114.062, -0.3, 91.51199)"
+				},
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/@StaticBody3D@2270",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(114.062, 0.3, 92.98799)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": true,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(-0.738, 0.738)",
+					"position": "(114.062, -0.0, 92.98799)",
+					"rid": "RID(9844065043566)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (108.65, -0.08, 92.25)]",
+					"shape_index": 0,
+					"shape_size": "(114.8, 0.16, 4.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(114.062, -0.3, 92.98799)"
+				},
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/@StaticBody3D@2270",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(115.538, 0.3, 91.51199)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": true,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(0.738, -0.738)",
+					"position": "(115.538, -0.0, 91.51199)",
+					"rid": "RID(9844065043566)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (108.65, -0.08, 92.25)]",
+					"shape_index": 0,
+					"shape_size": "(114.8, 0.16, 4.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(115.538, -0.3, 91.51199)"
+				},
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/@StaticBody3D@2270",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(115.538, 0.3, 92.98799)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": true,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(0.738, 0.738)",
+					"position": "(115.538, -0.0, 92.98799)",
+					"rid": "RID(9844065043566)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (108.65, -0.08, 92.25)]",
+					"shape_index": 0,
+					"shape_size": "(114.8, 0.16, 4.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(115.538, -0.3, 92.98799)"
+				}
+			]
+		},
+		{
+			"name": "sample1_a",
+			"rays": [
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/@StaticBody3D@1634",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(60.42259, 0.3, 59.24272)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": true,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(0.0, 0.0)",
+					"position": "(60.42259, -0.0, 59.24272)",
+					"rid": "RID(7112465842992)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (63.55001, -0.08, 59.45)]",
+					"shape_index": 0,
+					"shape_size": "(57.4, 0.16, 4.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(60.42259, -0.3, 59.24272)"
+				},
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/@StaticBody3D@1634",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(59.68459, 0.3, 58.50472)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": true,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(-0.738, -0.738)",
+					"position": "(59.68459, -0.0, 58.50472)",
+					"rid": "RID(7112465842992)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (63.55001, -0.08, 59.45)]",
+					"shape_index": 0,
+					"shape_size": "(57.4, 0.16, 4.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(59.68459, -0.3, 58.50472)"
+				},
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/@StaticBody3D@1634",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(59.68459, 0.3, 59.98072)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": true,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(-0.738, 0.738)",
+					"position": "(59.68459, -0.0, 59.98072)",
+					"rid": "RID(7112465842992)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (63.55001, -0.08, 59.45)]",
+					"shape_index": 0,
+					"shape_size": "(57.4, 0.16, 4.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(59.68459, -0.3, 59.98072)"
+				},
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/@StaticBody3D@1634",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(61.16059, 0.3, 58.50472)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": true,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(0.738, -0.738)",
+					"position": "(61.16059, -0.0, 58.50472)",
+					"rid": "RID(7112465842992)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (63.55001, -0.08, 59.45)]",
+					"shape_index": 0,
+					"shape_size": "(57.4, 0.16, 4.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(61.16059, -0.3, 58.50472)"
+				},
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/@StaticBody3D@1634",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(61.16059, 0.3, 59.98072)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": true,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(0.738, 0.738)",
+					"position": "(61.16059, -0.0, 59.98072)",
+					"rid": "RID(7112465842992)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (63.55001, -0.08, 59.45)]",
+					"shape_index": 0,
+					"shape_size": "(57.4, 0.16, 4.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(61.16059, -0.3, 59.98072)"
+				}
+			]
+		},
+		{
+			"name": "sample1_b",
+			"rays": [
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/@StaticBody3D@1634",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(60.09989, 0.3, 58.90931)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": true,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(0.0, 0.0)",
+					"position": "(60.09989, -0.0, 58.90931)",
+					"rid": "RID(7112465842992)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (63.55001, -0.08, 59.45)]",
+					"shape_index": 0,
+					"shape_size": "(57.4, 0.16, 4.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(60.09989, -0.3, 58.90931)"
+				},
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/PalazzoGroundExtension/DryGround",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(59.36189, 0.3, 58.17131)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": false,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(-0.738, -0.738)",
+					"position": "(59.36189, -0.0, 58.17131)",
+					"rid": "RID(48172353197532)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (51.25, -0.08, 18.45)]",
+					"shape_index": 0,
+					"shape_size": "(16.4, 0.16, 127.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(59.36189, -0.3, 58.17131)"
+				},
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/PalazzoGroundExtension/DryGround",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(59.36189, 0.3, 59.64731)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": false,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(-0.738, 0.738)",
+					"position": "(59.36189, -0.0, 59.64731)",
+					"rid": "RID(48172353197532)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (51.25, -0.08, 18.45)]",
+					"shape_index": 0,
+					"shape_size": "(16.4, 0.16, 127.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(59.36189, -0.3, 59.64731)"
+				},
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/@StaticBody3D@1634",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(60.83789, 0.3, 58.17131)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": true,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(0.738, -0.738)",
+					"position": "(60.83789, -0.0, 58.17131)",
+					"rid": "RID(7112465842992)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (63.55001, -0.08, 59.45)]",
+					"shape_index": 0,
+					"shape_size": "(57.4, 0.16, 4.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(60.83789, -0.3, 58.17131)"
+				},
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/@StaticBody3D@1634",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(60.83789, 0.3, 59.64731)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": true,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(0.738, 0.738)",
+					"position": "(60.83789, -0.0, 59.64731)",
+					"rid": "RID(7112465842992)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (63.55001, -0.08, 59.45)]",
+					"shape_index": 0,
+					"shape_size": "(57.4, 0.16, 4.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(60.83789, -0.3, 59.64731)"
+				}
+			]
+		},
+		{
+			"name": "sample0_a",
+			"rays": [
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/PalazzoGroundExtension/DryGround",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(55.46417, 0.3, 54.11986)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": false,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(0.0, 0.0)",
+					"position": "(55.46417, -0.0, 54.11986)",
+					"rid": "RID(48172353197532)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (51.25, -0.08, 18.45)]",
+					"shape_index": 0,
+					"shape_size": "(16.4, 0.16, 127.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(55.46417, -0.3, 54.11986)"
+				},
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/PalazzoGroundExtension/DryGround",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(54.72617, 0.3, 53.38186)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": false,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(-0.738, -0.738)",
+					"position": "(54.72617, -0.0, 53.38186)",
+					"rid": "RID(48172353197532)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (51.25, -0.08, 18.45)]",
+					"shape_index": 0,
+					"shape_size": "(16.4, 0.16, 127.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(54.72617, -0.3, 53.38186)"
+				},
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/PalazzoGroundExtension/DryGround",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(54.72617, 0.3, 54.85786)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": false,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(-0.738, 0.738)",
+					"position": "(54.72617, -0.0, 54.85786)",
+					"rid": "RID(48172353197532)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (51.25, -0.08, 18.45)]",
+					"shape_index": 0,
+					"shape_size": "(16.4, 0.16, 127.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(54.72617, -0.3, 54.85786)"
+				},
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/PalazzoGroundExtension/DryGround",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(56.20217, 0.3, 53.38186)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": false,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(0.738, -0.738)",
+					"position": "(56.20217, -0.0, 53.38186)",
+					"rid": "RID(48172353197532)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (51.25, -0.08, 18.45)]",
+					"shape_index": 0,
+					"shape_size": "(16.4, 0.16, 127.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(56.20217, -0.3, 53.38186)"
+				},
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/PalazzoGroundExtension/DryGround",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(56.20217, 0.3, 54.85786)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": false,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(0.738, 0.738)",
+					"position": "(56.20217, -0.0, 54.85786)",
+					"rid": "RID(48172353197532)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (51.25, -0.08, 18.45)]",
+					"shape_index": 0,
+					"shape_size": "(16.4, 0.16, 127.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(56.20217, -0.3, 54.85786)"
+				}
+			]
+		},
+		{
+			"name": "sample0_b",
+			"rays": [
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/PalazzoGroundExtension/DryGround",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(55.36105, 0.3, 54.01332)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": false,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(0.0, 0.0)",
+					"position": "(55.36105, -0.0, 54.01332)",
+					"rid": "RID(48172353197532)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (51.25, -0.08, 18.45)]",
+					"shape_index": 0,
+					"shape_size": "(16.4, 0.16, 127.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(55.36105, -0.3, 54.01332)"
+				},
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/PalazzoGroundExtension/DryGround",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(54.62305, 0.3, 53.27532)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": false,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(-0.738, -0.738)",
+					"position": "(54.62305, -0.0, 53.27532)",
+					"rid": "RID(48172353197532)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (51.25, -0.08, 18.45)]",
+					"shape_index": 0,
+					"shape_size": "(16.4, 0.16, 127.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(54.62305, -0.3, 53.27532)"
+				},
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/PalazzoGroundExtension/DryGround",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(54.62305, 0.3, 54.75132)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": false,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(-0.738, 0.738)",
+					"position": "(54.62305, -0.0, 54.75132)",
+					"rid": "RID(48172353197532)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (51.25, -0.08, 18.45)]",
+					"shape_index": 0,
+					"shape_size": "(16.4, 0.16, 127.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(54.62305, -0.3, 54.75132)"
+				},
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/PalazzoGroundExtension/DryGround",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(56.09905, 0.3, 53.27532)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": false,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(0.738, -0.738)",
+					"position": "(56.09905, -0.0, 53.27532)",
+					"rid": "RID(48172353197532)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (51.25, -0.08, 18.45)]",
+					"shape_index": 0,
+					"shape_size": "(16.4, 0.16, 127.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(56.09905, -0.3, 53.27532)"
+				},
+				{
+					"collider_class": "StaticBody3D",
+					"collider_path": "/root/@Node3D@2/PalazzoGroundExtension/DryGround",
+					"empty": false,
+					"exclusions": [
+						"RID(48249662608865)"
+					],
+					"expected_y": 0.0,
+					"from": "(56.09905, 0.3, 54.75132)",
+					"height_delta": -0.0000000149011611938477,
+					"is_pinned_floor": false,
+					"mask": 1,
+					"normal": "(0.0, 1.0, 0.0)",
+					"offset": "(0.738, 0.738)",
+					"position": "(56.09905, -0.0, 54.75132)",
+					"rid": "RID(48172353197532)",
+					"shape_disabled": false,
+					"shape_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (51.25, -0.08, 18.45)]",
+					"shape_index": 0,
+					"shape_size": "(16.4, 0.16, 127.1)",
+					"shape_type": "BoxShape3D",
+					"to": "(56.09905, -0.3, 54.75132)"
+				}
+			]
+		}
+	],
+	"samples": [
+		{
+			"floor_ok": true,
+			"floor_reason": "",
+			"name": "initial_a",
+			"native_reason": "",
+			"native_square_ok": true,
+			"point": "(114.8, 0.0, 92.25)",
+			"request": 558,
+			"source_reason": "",
+			"source_static_ok": true
+		},
+		{
+			"floor_ok": true,
+			"floor_reason": "",
+			"name": "initial_b",
+			"native_reason": "",
+			"native_square_ok": true,
+			"point": "(114.8, 0.1, 92.24999)",
+			"request": 558,
+			"source_reason": "",
+			"source_static_ok": true
+		},
+		{
+			"floor_ok": true,
+			"floor_reason": "",
+			"name": "sample1_a",
+			"native_reason": "",
+			"native_square_ok": true,
+			"point": "(60.42259, 0.1, 59.24272)",
+			"request": 1085,
+			"source_reason": "",
+			"source_static_ok": true
+		},
+		{
+			"floor_ok": true,
+			"floor_reason": "",
+			"name": "sample1_b",
+			"native_reason": "",
+			"native_square_ok": true,
+			"point": "(60.09989, 0.1, 58.90931)",
+			"request": 1085,
+			"source_reason": "",
+			"source_static_ok": true
+		},
+		{
+			"floor_ok": true,
+			"floor_reason": "",
+			"name": "sample0_a",
+			"native_reason": "",
+			"native_square_ok": true,
+			"point": "(55.46417, 0.1, 54.11986)",
+			"request": 2801,
+			"source_reason": "",
+			"source_static_ok": true
+		},
+		{
+			"floor_ok": true,
+			"floor_reason": "",
+			"name": "sample0_b",
+			"native_reason": "",
+			"native_square_ok": true,
+			"point": "(55.36105, 0.1, 54.01332)",
+			"request": 2801,
+			"source_reason": "",
+			"source_static_ok": true
+		}
+	],
+	"scope": "Production policy/source floors/Ground.install, with fixture current owner; exact endpoints and mutation guards; backend map/life/mover guards are a separate canary",
+	"static_fragment_count": 3
+}

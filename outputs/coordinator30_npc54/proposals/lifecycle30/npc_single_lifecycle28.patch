@@ -1,0 +1,154 @@
+--- a/scripts/hospital/npc_single_lifecycle28.gd
++++ b/scripts/hospital/npc_single_lifecycle28.gd
+@@ -6,6 +6,8 @@
+ const Health = preload("res://scripts/npc_visual/npc_local_preview_hit_owner.gd")
+ const Queue = preload("res://scripts/navigation/path_job_queue.gd")
+ const ID := "resident_1"
++var source_id30 := ID
++var _mass_manager30: WeakRef
+ const MAX_SPAWN_ATTEMPTS := 9
+ var _population: WeakRef
+ var _scene: WeakRef
+@@ -42,17 +44,31 @@
+ 	for record: Dictionary in population.residents._records.values():
+ 		if is_instance_valid(record.body): count+=1
+ 	if count!=1: return false
+-	_population=weakref(population);_scene=weakref(scene);_packet=packet.duplicate();_trust=trust.duplicate(true)
+-	population.daily._track_single28=true
++	return configure_resident30(scene,population,packet,trust,health,null)
++
++func configure_resident30(scene: Node3D, population: RefCounted, packet: PackedByteArray, trust: Dictionary, health: RefCounted, manager: Node) -> bool:
++	set_process(false);set_physics_process(false)
++	if _phase!="unbound" or not Simple.enabled() or not is_instance_valid(scene) or population.daily==null or not is_instance_valid(health):return false
++	var token: Dictionary=health.get("_token")
++	source_id30=str(token.get("source_id",""))
++	if source_id30.is_empty() or not population.residents.target_current(token) or not population.daily._lives.has(source_id30):return false
++	if manager==null and (source_id30!=ID or population.hit_owners.size()!=1):return false
++	_mass_manager30=weakref(manager) if manager!=null else null
++	_population=weakref(population);_scene=weakref(scene);_packet=packet;_trust=trust.duplicate(true)
++	if manager==null:population.daily._track_single28=true
+ 	_health=health;_token=token.duplicate();_generation=int(token.life_generation)
+-	_spawn=population.residents._records[ID].origin
++	_spawn=population.residents._records[source_id30].origin
+ 	for arg: String in OS.get_cmdline_user_args():
+ 		if arg.begins_with("--city-respawn-seconds="):_corpse_s=clampf(float(arg.trim_prefix("--city-respawn-seconds=")),1.0,30.0)
+-	_timer=Timer.new();_timer.one_shot=true;_timer.process_callback=Timer.TIMER_PROCESS_PHYSICS
+-	add_child(_timer);_timer.timeout.connect(_on_timer)
+ 	if not population.residents.bind_single_lifecycle28(self) or not health.bind_single_lifecycle28(self):return false
+ 	_phase="alive"
+ 	return true
++
++func _schedule30(seconds: float) -> void:
++	if not is_instance_valid(_timer):
++		_timer=Timer.new();_timer.one_shot=true;_timer.process_callback=Timer.TIMER_PROCESS_PHYSICS
++		add_child(_timer);_timer.timeout.connect(_on_timer)
++	_timer.start(seconds)
+ 
+ func _pop() -> RefCounted:
+ 	var pop: RefCounted=_population.get_ref() if _population!=null else null
+@@ -76,11 +92,11 @@
+ 	_phase="corpse";_event=event_id;_death_count+=1;_death_frame=Engine.get_physics_frames()
+ 	if not pop.daily.retire_single_dead28(self,health):return _block("daily_retirement_failed")
+ 	if not pop.residents.stop_single_dead28(self,_token):return _block("host_retirement_failed")
+-	pop._queue.cancel(pop.owners[ID])
++	pop._queue.cancel(pop.owners[source_id30])
+ 	# Keep the authenticated corpse/contact owner alive, but remove periodic health,
+ 	# effects and incident-candidate dispatch. The one NPC has no active owner now.
+ 	pop.hit_owners.erase(health)
+-	_timer.start(_corpse_s)
++	_schedule30(_corpse_s)
+ 	print("DSH_DEATH28 ",JSON.stringify(snapshot()))
+ 	return true
+ 
+@@ -92,15 +108,16 @@
+ 	var pop: RefCounted=_pop()
+ 	if pop!=null:
+ 		if pop.daily!=null:
+-			if pop.daily._lives.has(ID):pop.daily._lives[ID].dispose()
+-			if pop.daily._accounts.has(ID):pop.daily._accounts[ID].dispose()
+-			pop.daily._lives.erase(ID);pop.daily._accounts.erase(ID);pop.daily._health.erase(ID)
++			if pop.daily.has_method("forget_physical30") and pop.daily._lives.has(source_id30):pop.daily.forget_physical30(source_id30,pop.daily._lives[source_id30])
++			if pop.daily._lives.has(source_id30):pop.daily._lives[source_id30].dispose()
++			if pop.daily._accounts.has(source_id30):pop.daily._accounts[source_id30].dispose()
++			pop.daily._lives.erase(source_id30);pop.daily._accounts.erase(source_id30);pop.daily._health.erase(source_id30)
+ 			pop.daily._dsh_ids.clear();pop.daily._cursor=0
+ 		if is_instance_valid(_health):
+ 			pop.hit_owners.erase(_health)
+ 			if _health.get("_row").get("dead",false):pop.residents.stop_single_dead28(self,_token)
+ 			else:_health.dispose()
+-		if pop.owners.has(ID):pop._queue.cancel(pop.owners[ID])
++		if pop.owners.has(source_id30):pop._queue.cancel(pop.owners[source_id30])
+ 	print("DSH_DEATH28 ",JSON.stringify(snapshot()))
+ 	return false
+ 
+@@ -108,18 +125,22 @@
+ 	var pop: RefCounted=_pop()
+ 	var scene: Node3D=_scene.get_ref() if _scene!=null else null
+ 	if pop==null or not is_instance_valid(scene) or not scene.is_inside_tree():dispose();return
++	var manager: Node=_mass_manager30.get_ref() if _mass_manager30!=null else null
++	if _mass_manager30!=null:
++		if not is_instance_valid(manager):dispose();return
++		if not manager.admit_respawn30(self):_schedule30(.06);return
+ 	if _phase=="corpse":
+-		if not pop.residents.physical_life_current(_token) or pop.owners.get(ID)!=pop.residents._records[ID].owner or not pop.owners[ID].dead:
++		if not pop.residents.physical_life_current(_token) or pop.owners.get(source_id30)!=pop.residents._records[source_id30].owner or not pop.owners[source_id30].dead:
+ 			_block("corpse_generation_changed");return
+-		_new_owner=Queue.Owner.new(ID,_generation+1)
+-		if not pop.policy.replace_single_dead_owner28(self,pop.residents,_token,pop.owners[ID],_new_owner):
++		_new_owner=Queue.Owner.new(source_id30,_generation+1)
++		if not pop.policy.replace_single_dead_owner28(self,pop.residents,_token,pop.owners[source_id30],_new_owner):
+ 			_block("source_generation_transfer_refused");return
+ 		# Full cold teardown before any new actor is admitted. The corpse's rigid
+ 		# bodies and walking rig are disposed by their original host, not recycled.
+ 		if not pop.residents.prepare_single_respawn28(self,_token,_new_owner):
+ 			_block("host_generation_transfer_refused");return
+ 		_health.dispose();_health=null
+-		pop.owners[ID]=_new_owner
++		pop.owners[source_id30]=_new_owner
+ 		_phase="spawning";_attempts=0
+ 	if _phase!="spawning":return
+ 	_attempts+=1
+@@ -133,9 +154,9 @@
+ 	var admission: Dictionary=pop.residents.admit_single_respawn28(self,_new_owner,proposal)
+ 	if admission.get("status")!="IDLE":
+ 		_reason="spawn_wait:"+str(admission.get("reason",""))
+-		_timer.start(2.0 if slot==MAX_SPAWN_ATTEMPTS-1 else .5)
++		_schedule30(2.0 if slot==MAX_SPAWN_ATTEMPTS-1 else .5)
+ 		return
+-	var body: CharacterBody3D=pop.residents._records[ID].body
++	var body: CharacterBody3D=pop.residents._records[source_id30].body
+ 	var token: Dictionary=pop.residents.target_from_collider(body)
+ 	var health:=Health.new()
+ 	var linked: Dictionary=health.configure(pop.residents,token,_packet,_trust,scene.preview_weapons,{"marksman":0.0,"scope":"local_new_session","session_id":token.get("session_id","")})
+@@ -143,12 +164,12 @@
+ 	_health=health;_token=token.duplicate();_generation=int(token.life_generation)
+ 	_phase="alive";_reason=""
+ 	if not health.bind_single_lifecycle28(self):_block("fresh_death_binding");return
+-	pop.residents._records[ID].walk_pause=Callable(health,"should_pause_walk")
++	pop.residents._records[source_id30].walk_pause=Callable(health,"should_pause_walk")
+ 	pop.hit_owners.append(health)
+-	if not pop._stream_register_daily(ID,health):
++	if not pop._stream_register_daily(source_id30,health):
+ 		pop.hit_owners.erase(health);_block("fresh_daily_binding");return
+-	var life: RefCounted=pop.daily._lives[ID]
+-	var account: RefCounted=pop.daily._accounts[ID]
++	var life: RefCounted=pop.daily._lives[source_id30]
++	var account: RefCounted=pop.daily._accounts[source_id30]
+ 	var hp: Dictionary=health.get("_row")
+ 	var wallet: Dictionary=account.snapshot().get("account",{})
+ 	_birth_receipt={"hp":hp.get("hp"),"max_hp":hp.get("max_hp"),"energy":life.get("_energy"),"cash":wallet.get("cash"),"pending":life.get("_dsh_task_queue").duplicate(),"body_id":body.get_instance_id(),"health_id":health.get_instance_id(),"life_id":life.get_instance_id(),"account_id":account.get_instance_id(),"generation":_generation,"position":body.global_position}
+@@ -162,12 +183,12 @@
+ 	print("DSH_RESPAWN28 ",JSON.stringify(snapshot()))
+ 
+ func snapshot() -> Dictionary:
+-	return {"phase":_phase,"reason":_reason,"id":ID,"generation":_generation,"event":_event,"death_frame":_death_frame,"respawn_frame":_respawn_frame,"death_count":_death_count,"respawn_count":_respawn_count,"corpse_seconds":_corpse_s,"spawn_attempts":_attempts,"birth":_birth_receipt.duplicate(true),"per_frame_callback":false}
++	return {"phase":_phase,"reason":_reason,"id":source_id30,"generation":_generation,"event":_event,"death_frame":_death_frame,"respawn_frame":_respawn_frame,"death_count":_death_count,"respawn_count":_respawn_count,"corpse_seconds":_corpse_s,"spawn_attempts":_attempts,"birth":_birth_receipt.duplicate(true),"per_frame_callback":false}
+ 
+ func dispose() -> void:
+ 	if _phase=="disposed":return
+ 	_phase="disposed"
+ 	if is_instance_valid(_timer):_timer.stop()
+ 	if is_instance_valid(_health) and _pop()!=null and not _pop().hit_owners.has(_health):_health.dispose()
+-	_health=null;_population=null;_scene=null;_packet.clear();_trust.clear();_token.clear()
++	_health=null;_population=null;_scene=null;_mass_manager30=null;_packet=PackedByteArray();_trust.clear();_token.clear()
+ 	queue_free()

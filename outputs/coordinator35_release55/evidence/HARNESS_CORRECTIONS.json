@@ -1,0 +1,5 @@
+{
+  "projectiles02": "The first ballistic line to the bastion was blocked by the existing gate bypass column; the real stone correctly destroyed that column. Preserve FAIL. For03 position the launcher at x14.35 before firing to clear that obstruction; target, source, damage power/radius and success threshold remain unchanged.",
+  "navigation02": "The first setup was overridden by delayed scene spawn. The three subsequent climbs reached15.13m while still moving, but620ticks were too short to reach18.5m. For03 wait150ticks before placement, allow940ticks, retain the18.5m gate, and free the scene before shutdown. Preserve original failure/logs.",
+  "navigation03": "Three stair climbs passed18.5m, south was reset to spawn by the ordinary400-process-frame startup guard. Gate, breach traversal, adjacent collision and floor scope passed.150physics ticks did not exhaust that guard. Preserve raw03 and its shutdown leak. For04 naturally wait until the guard reaches0 before fixture placement; retain940ticks and18.5m. Defer synchronous exit until the test coroutine has returned, removing harness-held coroutine resources."
+}

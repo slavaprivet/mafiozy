@@ -1,0 +1,9 @@
+{
+  "name": "sword_left01",
+  "passed": true,
+  "errors": [],
+  "scheduler_errors": [],
+  "scheduler_error": null,
+  "drift": [],
+  "script_sha256": "945fcd5f434acc30059d77fc88ff9ef6aed1f89e0fde5111a7ee35c4df850eee"
+}

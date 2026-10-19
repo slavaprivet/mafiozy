@@ -1,0 +1,21 @@
+{
+  "revision": "castle-20261019-combined57-tougher-opponents",
+  "base_commit": "3c250cab41613732fd8e4ee7c043266a8efd28e7",
+  "frozen_source": "D:\\MafioziCombat31\\coordinator35_health57\\game",
+  "acceptance": "outputs/coordinator35_release57/ACCEPTANCE.json",
+  "changed": [
+    "scripts/weapons/sword_prototype.gd"
+  ],
+  "included": [
+    "Castle duelist health increased fourfold from120 to480; four actual sledge swings left341HP.",
+    "Resident total health increased from90 to270; separate NPC head/chest/limb thresholds increased while player thresholds stay unchanged.",
+    "Removed the forced one-hit heavy-head damage floor and spear instant fatality; ordinary wound health decides death.",
+    "All56 weapon controls and55 destructible masonry retained."
+  ],
+  "limits": [
+    "Clean FPS not measured. Castle duelist was struck by real input in a repeatable test; resident head/chest thresholds were exercised through the native wound owner.",
+    "User may still tune the desired fight duration by feel after playing."
+  ],
+  "optimization_handoff": "Base further optimization on57. Preserve55 masonry destruction,56 weapon controls and57 opponent health. Current manifest is authoritative.",
+  "instructions": "New candidates/tests on D via scheduler. Preserve foreign WIP and frozen releases. Old chats remain idle."
+}

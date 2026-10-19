@@ -1,0 +1,15 @@
+{
+  "suite": "publication-materializer",
+  "checks": 65,
+  "status": "PASS",
+  "actualIntegrity": true,
+  "actualReady": false,
+  "actualHolds": 53,
+  "actualOutputWrites": 0,
+  "syntheticBlobCount": 11,
+  "syntheticSourceApprovalOnly": true,
+  "outputDirectory": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\publication-materializer-conformance-EeFjl4",
+  "nativeUsed": false,
+  "gpuUsed": false,
+  "productionRelease": false
+}

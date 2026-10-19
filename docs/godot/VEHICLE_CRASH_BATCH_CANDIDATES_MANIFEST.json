@@ -1,0 +1,176 @@
+{
+  "schema": "mafiozi.vehicle-crash-batch-candidates.v1",
+  "status": "NOT_ADOPTED",
+  "date": "2026-09-27",
+  "scope": {
+    "purpose": "Immutable handoff for isolated native vehicle crash-solver batch candidates and their evidence.",
+    "runtime_integration": false,
+    "live_validated": false,
+    "authority_changes": false,
+    "timestep_changes": false,
+    "damage_or_hp_authority": false
+  },
+  "pinned_inputs": [
+    {
+      "role": "frozen_native_crash_solver_baseline",
+      "path": "godot/mafiozi_walk/scripts/vehicle_physics/vehicle_crash_solver.gd",
+      "sha256": "3896afa6c14845c84835f1fd8221d1b0927947d716008cc2e6422991afc01129",
+      "bytes": 25920
+    },
+    {
+      "role": "source_faithful_post_factory_vehicle_profiles",
+      "path": "godot/mafiozi_walk/assets/vehicle_visual/manifest.json",
+      "sha256": "38598f43beb77c095879206ea5820c7fe922b227a64f77f793353f89321fee03",
+      "bytes": 4070550
+    }
+  ],
+  "candidates": [
+    {
+      "id": "worker_thread_pool_batch_ac553",
+      "status": "FROZEN_CANDIDATE_NOT_ADOPTED",
+      "path": "godot/mafiozi_walk/scripts/vehicle_physics/vehicle_crash_solver_batch_candidate.gd",
+      "sha256": "ac553088e34defc70969c79e97d7b92c50231566e0b2c7e25384c97148aea2bd",
+      "bytes": 10101,
+      "extends": "RefCounted",
+      "limits": {
+        "max_states": 72,
+        "default_capacity": 16,
+        "allowed_worker_limits": [1, 2, 4, 8],
+        "max_in_flight_groups": 1
+      },
+      "api": [
+        "configure(session_id, capacity=16, worker_limit=4) -> bool",
+        "bind_states([{solver, vehicle_id, life_generation}, ...]) -> bool",
+        "begin_step_batch(delta, speed, throttle, physics_tick) -> Dictionary",
+        "finish_step_batch(task_id) -> Dictionary",
+        "step_batch(delta, speed, throttle, physics_tick) -> Dictionary",
+        "reset_session_wait(next_session_id) -> bool",
+        "retire_wait() -> bool",
+        "contract() -> Dictionary"
+      ],
+      "ownership_contract": {
+        "public_consumer_calls_main_thread_only": true,
+        "binding_transfers_exclusive_solver_mutation_authority": true,
+        "caller_must_not_mutate_bound_solvers_concurrently": true,
+        "solver_and_vehicle_life_pairs_unique_within_executor": true,
+        "cross_executor_claim_key": "solver Object.instance_id",
+        "cross_executor_claims_main_thread_only": true,
+        "claim_release_operations": ["successful rebind", "reset_session_wait", "retire_wait"],
+        "explicit_retire_required": true,
+        "missing_retire_behavior": "Claim intentionally remains fail-closed; a different executor cannot bind that solver.",
+        "reset_and_retire_join_before_discard": true,
+        "workers_mutate_only": ["one bound solver per slot", "one preallocated ResultHolder per slot"],
+        "workers_may_use_scene_resource_or_server_apis": false,
+        "slot_and_holder_array_lengths_immutable_while_in_flight": true,
+        "snapshots_created_and_published_on_main_after_join": true,
+        "preflight_requires_tick_newer_than_every_bound_solver": true,
+        "unexpected_worker_rejection": "Poison session and publish no snapshots."
+      },
+      "test": {
+        "path": "godot/mafiozi_walk/scripts/tests/test_vehicle_crash_solver_batch_candidate.gd",
+        "sha256": "94fd4fd154091b0763b78dc68ede2c4c2455e89851f94dc164432affdb3d50b3",
+        "bytes": 18604,
+        "supersedes_sha256": "bb5f9b9e41d9ae42963e68fdcc2bbfe376370e2ecaacc3f50eb22df766f71671",
+        "independent_result": "Godot 4.7.2 PASS 1211/1211, exit 0",
+        "coverage": [
+          "serial state parity",
+          "main-thread API gates including real Thread adversary",
+          "typed solver method and runtime admission",
+          "unique vehicle/life identities",
+          "cross-executor claims, release, and rebind",
+          "atomic stale-tick preflight",
+          "poisoned-session no-partial-publication behavior",
+          "worker limits 1, 2, 4, and 8"
+        ]
+      }
+    },
+    {
+      "id": "heterogeneous_per_vehicle_inputs_08262",
+      "status": "FROZEN_ADDITIVE_CANDIDATE_NOT_ADOPTED",
+      "path": "godot/mafiozi_walk/scripts/vehicle_physics/vehicle_crash_solver_batch_inputs_candidate.gd",
+      "sha256": "08262b2870ce6662afba1454a76e2afd02d281552de5edf165ca75aad69d5cf9",
+      "bytes": 5253,
+      "extends_path": "godot/mafiozi_walk/scripts/vehicle_physics/vehicle_crash_solver_batch_candidate.gd",
+      "api": [
+        "begin_step_batch_rows([{vehicle_id, life_generation, delta, speed, throttle, physics_tick}, ...]) -> Dictionary",
+        "step_batch_rows([{vehicle_id, life_generation, delta, speed, throttle, physics_tick}, ...]) -> Dictionary",
+        "input_contract() -> Dictionary"
+      ],
+      "input_and_output_contract": {
+        "requires_complete_bound_identity_set": true,
+        "duplicate_unknown_or_missing_identity_rejected": true,
+        "all_rows_preflight_before_any_submit_or_slot_mutation": true,
+        "input_scalars_copied_before_submit": true,
+        "row_lookup_key": ["vehicle_id", "life_generation"],
+        "input_row_order_semantic": false,
+        "published_states_order": "Bound-slot order, not caller input-row order.",
+        "consumer_mapping_rule": "Map each published state by returned vehicle_id and life_generation.",
+        "per_state_physics_ticks_supported": true,
+        "single_state_step_batch_rows_path": "Synchronous direct solver.step fast path with the same published schema.",
+        "single_state_begin_step_batch_rows_path": "Asynchronous group path inherited from the base candidate.",
+        "multi_state_step_batch_rows_note": "Current implementation validates/maps rows once before begin and again inside begin; correct but adds avoidable main-thread allocation/work."
+      },
+      "test": {
+        "path": "godot/mafiozi_walk/scripts/tests/test_vehicle_crash_solver_batch_inputs_candidate.gd",
+        "sha256": "f7591feb9a2aed74d441ea9973fb4876bb342916d77d7bddbba97016e5dfd031",
+        "bytes": 13132,
+        "independent_result": "Godot 4.7.2 PASS 199/199, exit 0",
+        "coverage": [
+          "heterogeneous delta, speed, and throttle",
+          "reversed input rows mapped to bound-slot output order",
+          "post-begin caller mutation isolation",
+          "malformed, stale, duplicate, missing, and unknown row rejection",
+          "single-state serial semantic parity"
+        ]
+      },
+      "independent_tick_test": {
+        "path": "godot/mafiozi_walk/scripts/tests/test_vehicle_crash_solver_batch_inputs_ticks.gd",
+        "sha256": "c15d95f2d10be2c0bef2ace170e69e22d94b97eaed0cb80145e7a335b461b325",
+        "bytes": 8248,
+        "result": "Godot 4.7.2 PASS 27/27",
+        "coverage": "Three profile/lifetime clocks differ across two reversed-row batches; output equals serial full snapshots; one stale row rejects the whole batch without mutation."
+      }
+    }
+  ],
+  "combined_worker_pool_contention_stress": {
+    "status": "ISOLATED_STRESS_ONLY_NOT_LIVE",
+    "path": "outputs/test_vehicle_transport_worker_contention.gd",
+    "sha256": "4d66b50599d76e7dd30582f5fe9fb6711dc32b150501d459a37344c41c2531f5",
+    "bytes": 14449,
+    "workload": {
+      "native_solver_states": 72,
+      "worker_limit": 8,
+      "delta_seconds": 0.1,
+      "source_fixed_substeps_per_state": 24,
+      "other_concurrent_work": "Actual compact transport deformation job on the same global WorkerThreadPool."
+    },
+    "pinned_companion_inputs": [
+      {
+        "path": "godot/mafiozi_walk/scripts/transport/transport_vehicle_deformation.gd",
+        "sha256": "74e5f0f2d1973674d497edfec89803b61270eed93d700d3527185b95339e7ddd"
+      },
+      {
+        "path": "godot/mafiozi_walk/scripts/tests/test_transport_vehicle_deformation.gd",
+        "sha256": "a3e4a5c292ce9aec08965bbec091167b2f78bba5fa06ceffa0e056cf47dfa982"
+      }
+    ],
+    "independent_result": "PASS 17; source/native math and geometry parity retained in the isolated contention run.",
+    "qualification": "This deliberately distinct delta=0.1 workload measures joined wall-clock contention on the shared global worker pool. It is not the normal 120/60/30 Hz batch benchmark, not LIVE, not FPS, not aggregate CPU time, and not adoption evidence."
+  },
+  "measurement_policy": {
+    "reported_metric": "Host- and process-specific wall-clock latency around complete batch submission/join or the named stress scope.",
+    "aggregate_cpu_time_measured": false,
+    "fps_measured": false,
+    "gpu_measured": false,
+    "live_scene_measured": false,
+    "adoption_claim_permitted": false,
+    "successful_test_meaning": "Evidence for isolated API, parity, lifecycle, and race-boundary behavior only."
+  },
+  "integration_blockers": [
+    "No production body, provider, main-scene, or runtime caller is wired to either candidate.",
+    "A future owner must prove lifecycle calls always reach retire_wait so claims are released.",
+    "A future owner must serialize all solver mutation through the selected executor while bound or in flight.",
+    "A future owner must assess global WorkerThreadPool contention with other transport and navigation jobs in the actual runtime.",
+    "Passing candidate tests must not be described as LIVE adoption."
+  ]
+}

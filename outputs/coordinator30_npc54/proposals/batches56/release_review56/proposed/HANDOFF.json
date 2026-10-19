@@ -1,0 +1,36 @@
+{
+  "status": "PROPOSED_CPU_CHECKED_NOT_NATIVE_TESTED",
+  "files": {
+    "freeze_batch56.py": {
+      "target": "outputs/coordinator30_npc54/proposals/batches56/freeze_batch56.py",
+      "base_sha256": "f2fcc7be50d59da1dfb2ac4af3a7d31ed449212b5e2b385012d52c0575b674f1",
+      "proposed_sha256": "7eca267436a5a3cf05119944f271248dbbf265fa90ce957cfc2a2f62fedd31d6"
+    },
+    "run_ordinary_batch56.py": {
+      "target": "outputs/coordinator30_npc54/proposals/batches56/run_ordinary_batch56.py",
+      "base_sha256": "993e3a0eec0d8224d4dd4f13b407db3034271adbf63a1b783491994ff92a8a71",
+      "proposed_sha256": "587e1f7587dc0494220c8ff347f28d3fbe41022b93dcf7dfe5f91eab46448d5f"
+    }
+  },
+  "patch": "C:\\Users\\РЎР»Р°РІР°\\Desktop\\РњР°С„РёРѕР·Рё\\outputs\\coordinator30_npc54\\proposals\\batches56\\release_review56\\release56.patch",
+  "patch_sha256": "74bede1d7440149e59bb931890ff36044955514839bc76d4676524deaeaa06be",
+  "production_modified": false,
+  "current_pointer_modified": false,
+  "frozen55_modified": false,
+  "engine_launched": false,
+  "git_invoked": false,
+  "cpu_checks_passed": 26,
+  "install": "Root must verify each base_sha256 and merge/copy each proposal to its original target. These files resolve paths for the target directory; do not execute them from proposed/.",
+  "acceptance_contract": [
+    "Fresh ordinary perf RUN + SOURCE + SOURCE_AFTER + HARNESS + CONTROL_PINS before/after + MASS30 + PERFORMANCE_SUMMARY required. Old seeded perf01 deliberately rejected.",
+    "Fresh merged services and threat receipts must pass and SOURCE/SOURCE_AFTER must equal current candidate exactly. Overlay entries/receipts rejected.",
+    "All city arguments must match across three receipts, unique and seed-free. Only --qa-* observer options are excluded from equality. Service checker independently validates its three documented local initializations.",
+    "No changes to candidate revision/news. One copied partial is mutated; errors preserve it with PARTIAL_STATE.json. Two lease slots at most; promotion is separately locked and never overwrites final release.",
+    "Freeze creates only PROPOSED_CURRENT; bootstrap readiness, pointer activation, ordinary launch and scoped commit/push remain root steps."
+  ],
+  "runner_invocation": "python -B outputs/coordinator30_npc54/proposals/batches56/run_ordinary_batch56.py batch10_final_perf --mode perf --residents 10 --seconds 90 --warmup 15 --ordinary-rng",
+  "summary_invocation": "python -B outputs/coordinator30_npc54/proposals/batches56/summarize_batch56.py outputs/coordinator30_npc54/proposals/batches56/runs/batch10_final_perf",
+  "freeze_invocation": "python -B outputs/coordinator30_npc54/proposals/batches56/freeze_batch56.py --perf <final-perf-run> --services <merged-final-services-run> --threat <final-threat-run>",
+  "startup_invocation": "python -B outputs/coordinator30_npc54/proposals/batches56/release_review56/check_startup56.py startup01 --go",
+  "foreign_staged_files": "No Git command was invoked; root must preserve the 34 foreign staged shop files with an explicit scoped commit."
+}

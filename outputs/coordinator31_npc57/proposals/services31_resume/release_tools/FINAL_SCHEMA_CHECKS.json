@@ -1,0 +1,36 @@
+{
+  "checks": {
+    "integration_exact": true,
+    "services": {
+      "passed": true,
+      "harness_files": 5,
+      "run_sha256": "6f1729d1308920e4d780d92067fd0389138135d3be7706b318c66a01089ba093"
+    },
+    "threat": {
+      "passed": true,
+      "harness_files": 23,
+      "run_sha256": "b1f45875af128e652dfb6f22fa04b04c84cddd3e6985487ecde0ea9778026086"
+    },
+    "visual": {
+      "passed": true,
+      "harness_files": 23,
+      "run_sha256": "59d5a387376798aeff1751d5a183a61f71fc686d1c0ba1f4ef4f3a7bf430409d"
+    },
+    "soak": {
+      "passed": true,
+      "harness_files": 11,
+      "run_sha256": "1710b0d16376eb59c9981121d3c4b70c627e08896d35a68c427190592e6137df"
+    },
+    "perf_baseline": {
+      "passed": true,
+      "harness_files": 12,
+      "run_sha256": "dd2bad6f6264a80c4ac7bb7660e64817c0793bec9e4a2a0fd4814af6e0854219"
+    }
+  },
+  "freeze_main_called": false,
+  "freeze_executed": false,
+  "engine_launched": false,
+  "git_called": false,
+  "freeze_sha256": "8af379eb77808fb10f6174231c87a0624b4697ace505faef246b3a9331ab8816",
+  "scope": "Final service/threat/visual/V3soak, V4baseline window/schema and cumulative integration; paired candidate/comparison acceptance reserved for root"
+}

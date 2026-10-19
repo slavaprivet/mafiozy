@@ -1,0 +1,40 @@
+{
+  "schema": "mafiozi.transport-water-exit-surface.v1",
+  "scope": "pure submerged exit surface provider; no Root/swim adoption",
+  "engine": "Godot 4.7.2-stable (official)",
+  "author_checks": 21,
+  "author_result": "PASS",
+  "cost": {
+    "scenario": "host-supplied PhysicsDirectSpaceState3D capsule predicate; 20 blocks of 100-call means",
+    "calls_per_scenario": 2000,
+    "percentile_method": "p50 median of samples 10/11; p95 nearest-rank sample 19",
+    "settled_precondition": "grounded && !blocked before sampling",
+    "settled_block_mean_us_p50": 25.325,
+    "settled_block_mean_us_p95": 28.01,
+    "active_ascent_precondition": "fresh submerged start for every block",
+    "active_ascent_block_mean_us_p50": 24.615,
+    "active_ascent_block_mean_us_p95": 26.55,
+    "loaded_scene_fps": "NOT_RUN",
+    "root_player_collider_parity": "NOT_CLAIMED"
+  },
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_water_exit_surface.gd",
+      "sha256": "cc72286766429bfa9942961bd85f1f26457342a2981d087bbe1af93265c0f200"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_water_exit_surface.gd",
+      "sha256": "ee423ae3fbaadc804aa462d7e1bc3fa822e2b12647d240bf63005538de19e6e3"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_WATER_EXIT_SURFACE_HANDOFF.md",
+      "sha256": "a2e5f720bd2b5259f5bf1f435d95fd38b3bf803f3d7f5749b484b897cea5b70c"
+    }
+  ],
+  "source_pins": {
+    "assets/maps/city_rebuild_v1/vehicle_water_exit.mjs": "531fc5b01dd1ad6ce2fda5b8aac76688cf5f1888fc4f05610a7ef176c259a860",
+    "assets/maps/city_rebuild_v1/walk_preview.mjs": "e80ebf4be2d0404ad5b51d4bf28b756a9cba2b486c43c0797de748c37364dd47"
+  },
+  "live": "NOT_RUN",
+  "git": "NOT_TOUCHED"
+}

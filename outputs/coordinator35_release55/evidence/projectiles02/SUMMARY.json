@@ -1,0 +1,11 @@
+{
+  "name": "projectiles02",
+  "passed": false,
+  "errors": [
+    "layered_gate_wall_shot_failed"
+  ],
+  "scheduler_errors": [],
+  "scheduler_error": null,
+  "drift": [],
+  "script_sha256": "710732818f4107fb99c252838a9511be26f6608ce25ce7378078ca08d7300162"
+}

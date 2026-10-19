@@ -1,0 +1,275 @@
+{
+  "schema": "mafiozi.roam58.controlled-native-comparison/v1",
+  "passed": true,
+  "checks": {
+    "all_component_execution_receipts_clean": true,
+    "all_snapshot_memberships_valid": true,
+    "controlled_pair_harness_identical": true,
+    "controlled_pair_first_route_identical": true,
+    "controlled_baseline_stays45s_without_replan": true,
+    "controlled_baseline_confined_after10s": true,
+    "candidate_guard_actually_triggers": true,
+    "candidate_physically_arrives_under30s": true,
+    "candidate_goal_preserved_each_frame": true,
+    "candidate_cumulative_route_budget_preserved": true,
+    "legal_route_unchanged": true,
+    "legal_candidate_arrives_under5s_without_retry": true,
+    "native_physics_60hz_normal_time": true,
+    "source_identical_all_runs": true
+  },
+  "runs": {
+    "native_replay04": {
+      "terminal": "arrived",
+      "elapsed_s": 3.028277,
+      "physics_frames": 184,
+      "actual_native_motion_m": 5.1299037509718435,
+      "end_position": [
+        136.181045532227,
+        0.300851732492447,
+        2.4257128238678
+      ],
+      "goal": [
+        136.218566894531,
+        0.303000032901764,
+        2.69682502746582
+      ],
+      "end_goal_distance_xz_m": 0.2736963272843145,
+      "treadmill_bbox_after10s_m": null,
+      "max_native_motion_per_second_m": 1.8002823419210876,
+      "route_service_us_monotonic": true,
+      "route_service_us_final": 21508,
+      "reasons": {
+        "": 184
+      },
+      "reason_transitions": [
+        {
+          "frame": 1228,
+          "elapsed_s": 0.007048,
+          "reason": "",
+          "attempts": 0,
+          "service_us": 0
+        }
+      ],
+      "ready_routes": [
+        {
+          "ready_frame": 1240,
+          "points": 12
+        }
+      ],
+      "slides": {
+        "/root/MafioziWalkMigration/TownClone_4/Palazzo_Destructible/FoundationChunk105": 17,
+        "/root/MafioziWalkMigration/TownClone_4/Palazzo_Destructible/FoundationChunk106": 72,
+        "/root/MafioziWalkMigration/TownClone_4/Palazzo_Destructible/FoundationChunk107": 38,
+        "/root/MafioziWalkMigration/TownClone_4/Palazzo_Destructible/FoundationChunk103": 44,
+        "/root/MafioziWalkMigration/TownClone_4/Palazzo_Destructible/FoundationChunk104": 13
+      },
+      "debris512_blocked_samples": 0,
+      "all_diagnostic_memberships_valid": true
+    },
+    "native_obstacle_baseline01": {
+      "terminal": "bounded45s_end",
+      "elapsed_s": 44.954623,
+      "physics_frames": 2700,
+      "actual_native_motion_m": 37.53073161385393,
+      "end_position": [
+        134.929428100586,
+        0.30094239115715,
+        -0.364117503166199
+      ],
+      "goal": [
+        136.218566894531,
+        0.303000032901764,
+        2.69682502746582
+      ],
+      "end_goal_distance_xz_m": 3.321332263698698,
+      "treadmill_bbox_after10s_m": 0.37327575683599434,
+      "max_native_motion_per_second_m": 1.8002049289320867,
+      "route_service_us_monotonic": true,
+      "route_service_us_final": 18264,
+      "reasons": {
+        "": 2700
+      },
+      "reason_transitions": [
+        {
+          "frame": 1291,
+          "elapsed_s": 0.006284,
+          "reason": "",
+          "attempts": 0,
+          "service_us": 0
+        }
+      ],
+      "ready_routes": [
+        {
+          "ready_frame": 1302,
+          "points": 12
+        }
+      ],
+      "slides": {
+        "/root/MafioziWalkMigration/TownClone_4/Palazzo_Destructible/FoundationChunk105": 16,
+        "/root/MafioziWalkMigration/TownClone_4/Palazzo_Destructible/FoundationChunk106": 2274,
+        "/root/MafioziWalkMigration/QA_StaleWaypointObstacle58": 2623
+      },
+      "debris512_blocked_samples": 0,
+      "all_diagnostic_memberships_valid": true
+    },
+    "native_obstacle_candidate01": {
+      "terminal": "arrived",
+      "elapsed_s": 10.464588,
+      "physics_frames": 630,
+      "actual_native_motion_m": 12.874320256579685,
+      "end_position": [
+        136.253967285156,
+        0.30094239115715,
+        2.40465235710144
+      ],
+      "goal": [
+        136.218566894531,
+        0.303000032901764,
+        2.69682502746582
+      ],
+      "end_goal_distance_xz_m": 0.29430945782331763,
+      "treadmill_bbox_after10s_m": 0.7564809762481086,
+      "max_native_motion_per_second_m": 1.8003666299606809,
+      "route_service_us_monotonic": true,
+      "route_service_us_final": 70749,
+      "reasons": {
+        "": 258,
+        "roam_waypoint_no_progress58": 188,
+        "physical_stall": 184
+      },
+      "reason_transitions": [
+        {
+          "frame": 1319,
+          "elapsed_s": 0.006075,
+          "reason": "",
+          "attempts": 0,
+          "service_us": 0
+        },
+        {
+          "frame": 1577,
+          "elapsed_s": 4.279992,
+          "reason": "roam_waypoint_no_progress58",
+          "attempts": 1,
+          "service_us": 17570
+        },
+        {
+          "frame": 1765,
+          "elapsed_s": 7.405554,
+          "reason": "physical_stall",
+          "attempts": 2,
+          "service_us": 52984
+        }
+      ],
+      "ready_routes": [
+        {
+          "ready_frame": 1331,
+          "points": 12
+        },
+        {
+          "ready_frame": 1597,
+          "points": 19
+        },
+        {
+          "ready_frame": 1775,
+          "points": 12
+        }
+      ],
+      "slides": {
+        "/root/MafioziWalkMigration/TownClone_4/Palazzo_Destructible/FoundationChunk105": 17,
+        "/root/MafioziWalkMigration/TownClone_4/Palazzo_Destructible/FoundationChunk106": 293,
+        "/root/MafioziWalkMigration/QA_StaleWaypointObstacle58": 180,
+        "/root/MafioziWalkMigration/TownClone_4/Palazzo_Destructible/FoundationChunk102": 86,
+        "/root/MafioziWalkMigration/TownClone_4/Palazzo_Destructible/FoundationChunk101": 114,
+        "/root/MafioziWalkMigration/TownClone_4/Palazzo_Destructible/FoundationChunk103": 78,
+        "/root/MafioziWalkMigration/TownClone_4/Palazzo_Destructible/FoundationChunk104": 12
+      },
+      "debris512_blocked_samples": 69,
+      "all_diagnostic_memberships_valid": true
+    },
+    "native_legal_candidate01": {
+      "terminal": "arrived",
+      "elapsed_s": 2.99222,
+      "physics_frames": 182,
+      "actual_native_motion_m": 5.1299037509718435,
+      "end_position": [
+        136.181045532227,
+        0.300851732492447,
+        2.4257128238678
+      ],
+      "goal": [
+        136.218566894531,
+        0.303000032901764,
+        2.69682502746582
+      ],
+      "end_goal_distance_xz_m": 0.2736963272843145,
+      "treadmill_bbox_after10s_m": null,
+      "max_native_motion_per_second_m": 1.8002823419210876,
+      "route_service_us_monotonic": true,
+      "route_service_us_final": 17657,
+      "reasons": {
+        "": 182
+      },
+      "reason_transitions": [
+        {
+          "frame": 1252,
+          "elapsed_s": 0.00584,
+          "reason": "",
+          "attempts": 0,
+          "service_us": 0
+        }
+      ],
+      "ready_routes": [
+        {
+          "ready_frame": 1262,
+          "points": 12
+        }
+      ],
+      "slides": {
+        "/root/MafioziWalkMigration/TownClone_4/Palazzo_Destructible/FoundationChunk105": 15,
+        "/root/MafioziWalkMigration/TownClone_4/Palazzo_Destructible/FoundationChunk106": 72,
+        "/root/MafioziWalkMigration/TownClone_4/Palazzo_Destructible/FoundationChunk107": 38,
+        "/root/MafioziWalkMigration/TownClone_4/Palazzo_Destructible/FoundationChunk103": 44,
+        "/root/MafioziWalkMigration/TownClone_4/Palazzo_Destructible/FoundationChunk104": 13
+      },
+      "debris512_blocked_samples": 0,
+      "all_diagnostic_memberships_valid": true
+    }
+  },
+  "inputs": {
+    "runs\\native_replay04\\NATIVE58.json": "4e79e272b5c87d59ab2260c5942e13e14b8034caf581669f0f0b5aa7161059d2",
+    "runs\\native_replay04\\RUN.json": "a578a7e163c0e2ac8527b431244cd99b4372682c8b14ba9d0585784cc845b906",
+    "runs\\native_replay04\\HARNESS.json": "e0ead3a6f7a9d94de9695e1b2799b59244ec19f475128a33179f88011e17053c",
+    "runs\\native_replay04\\HARNESS.zip": "d0e5972b91de707d37ccf19a5088b87d4725425fe96abc9f55ba19eee44e7c01",
+    "runs\\native_replay04\\SOURCE.json": "671a7959afd972b941156e4a5b298b309cc55f0d5823eda223b39a6c48dc7dcf",
+    "runs\\native_replay04\\SOURCE_AFTER.json": "671a7959afd972b941156e4a5b298b309cc55f0d5823eda223b39a6c48dc7dcf",
+    "runs\\native_obstacle_baseline01\\NATIVE58.json": "01598006f29640c1282ef2c8ca7eb9a4ff794cf834f929a1078b1ca87d0005f6",
+    "runs\\native_obstacle_baseline01\\RUN.json": "6f8aeb736b62538f3e9f4fb2cd68410d6bf56c4147dc162a8f6162eefeb58a5d",
+    "runs\\native_obstacle_baseline01\\HARNESS.json": "97373c61e0f93ef876cbf8ef354d9f2c4178814d322799955d9e2a7d9d1baebe",
+    "runs\\native_obstacle_baseline01\\HARNESS.zip": "4c48514bc6f27b7be48f731bddd4994b7224fba4c5098e34763d241f156fb37c",
+    "runs\\native_obstacle_baseline01\\SOURCE.json": "671a7959afd972b941156e4a5b298b309cc55f0d5823eda223b39a6c48dc7dcf",
+    "runs\\native_obstacle_baseline01\\SOURCE_AFTER.json": "671a7959afd972b941156e4a5b298b309cc55f0d5823eda223b39a6c48dc7dcf",
+    "runs\\native_obstacle_candidate01\\NATIVE58.json": "ee6d16f8de15d57fbce913b5d93ea86c285ad863bcc01f15f5e6b8ad2bc1f72f",
+    "runs\\native_obstacle_candidate01\\RUN.json": "7972e933a881f1f6d370b4fab934b3114242ee8218d10c9f63d9315404253799",
+    "runs\\native_obstacle_candidate01\\HARNESS.json": "97373c61e0f93ef876cbf8ef354d9f2c4178814d322799955d9e2a7d9d1baebe",
+    "runs\\native_obstacle_candidate01\\HARNESS.zip": "4c48514bc6f27b7be48f731bddd4994b7224fba4c5098e34763d241f156fb37c",
+    "runs\\native_obstacle_candidate01\\SOURCE.json": "671a7959afd972b941156e4a5b298b309cc55f0d5823eda223b39a6c48dc7dcf",
+    "runs\\native_obstacle_candidate01\\SOURCE_AFTER.json": "671a7959afd972b941156e4a5b298b309cc55f0d5823eda223b39a6c48dc7dcf",
+    "runs\\native_legal_candidate01\\NATIVE58.json": "f7ac7d662f25c726d7f9dcf1cfb72094e38cbcc01b6e70f0a918ff3450eb7001",
+    "runs\\native_legal_candidate01\\RUN.json": "d94b6f9b77dd61e5510935e3a758e109b9935bb81e529dc65e72164874a3a6de",
+    "runs\\native_legal_candidate01\\HARNESS.json": "97373c61e0f93ef876cbf8ef354d9f2c4178814d322799955d9e2a7d9d1baebe",
+    "runs\\native_legal_candidate01\\HARNESS.zip": "4c48514bc6f27b7be48f731bddd4994b7224fba4c5098e34763d241f156fb37c",
+    "runs\\native_legal_candidate01\\SOURCE.json": "671a7959afd972b941156e4a5b298b309cc55f0d5823eda223b39a6c48dc7dcf",
+    "runs\\native_legal_candidate01\\SOURCE_AFTER.json": "671a7959afd972b941156e4a5b298b309cc55f0d5823eda223b39a6c48dc7dcf"
+  },
+  "candidate_driver_sha256": "d1ea18fbf1740f2b0b029a28bec4b91bccb3e3506ad693b48324c71a98c0106a",
+  "natural_failure_exact_collider_established": false,
+  "natural_acceptance_passed": false,
+  "scope": "Controlled world obstacle inserted once after a real route is accepted. Actual native capsule movement, collisions, avoidance and planner; no actor position/velocity/route/goal manipulation after initial placement. This reproduces the stale-route treadmill class, not the exact collider of the original761s incident.",
+  "historical_harness_failures": {
+    "native_replay01": "Extra actor missing global avoidance snapshot;15s planning timeout is invalid reproduction.",
+    "native_replay02": "Second snapshot in same frame returned true without including extra actor; invalid reproduction.",
+    "native_replay03": "Adapter appended to shared active_records array; host owner-key error. Exact source unchanged. Fixed by duplicate before append."
+  },
+  "production_source_modified": false,
+  "raw_evidence_modified": false
+}

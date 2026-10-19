@@ -1,0 +1,30 @@
+{
+  "schema": "mafiozi.qa58.final-services-preparation/v1",
+  "source_manifest": "outputs\\coordinator31_npc57\\extended31\\stage58_03\\CANDIDATE58.json",
+  "source_manifest_sha256": "46a095bd14fdede78861d097cd5e69ad73a32c6cdf842b6944375101e84155a7",
+  "source_count": 1135,
+  "native_files": {
+    "accept_services56.py": {
+      "sha256": "df62eda3bce3cdad6824e3ed897a331aba6545649abaf05540d2fb39213b0006",
+      "byte_identical_to_source02_harness": true
+    },
+    "entry_services56.gd": {
+      "sha256": "c43c71419ffc469cd16d1b53129728bd1bff93f673afea7f4186d039a2e5d1dc",
+      "byte_identical_to_source02_harness": true
+    },
+    "observer_counts56.gd": {
+      "sha256": "bb11b65f3745035dab811019d352bd4280aede7a006dd191824533651f9ba8b7",
+      "byte_identical_to_source02_harness": true
+    },
+    "observer_services56.gd": {
+      "sha256": "eec26d7294b7d9e6a8ab770fd65a06b149d7cb4c1a634f7b9be0b2e03a1c13ef",
+      "byte_identical_to_source02_harness": true
+    }
+  },
+  "adapter_sha256": "b03b5927dfeb43b9a3a04868b325e033ea8d7809497ff62fccfda2bd7a1f1499",
+  "base_adapter_sha256": "03339d4ba2fb4399a123b29fa855300bc4c2e7bcf235dfd54dc3f3cd962cb17f",
+  "duration_cap_s": 600,
+  "duration_rationale": "Previous exact source02 natural restaurant route694.991m needed407.701s, leaving12.299s under420. Set600 before new run; native movement/service checks and all behavior remain unchanged.",
+  "production_modified": false,
+  "historical_evidence_modified": false
+}

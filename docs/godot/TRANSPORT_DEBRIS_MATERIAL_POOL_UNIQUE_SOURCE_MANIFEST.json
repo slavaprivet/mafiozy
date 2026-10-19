@@ -1,0 +1,91 @@
+{
+  "schema": "mafiozi.transport-debris-material-pool-unique-source-candidate.v1",
+  "date": "2026-09-30",
+  "status": "functionally-verified-performance-improved-load-only-not-adopted",
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/candidates/transport_debris_material_pool_unique_source.gd",
+      "bytes": 17636,
+      "sha256": "38b1d664ea8d8943ba9d4ad93933e59d12eb270aa85ec33aaa88ba4485762aca",
+      "role": "call-local exact source identity signature-cache candidate"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_debris_material_pool_unique_source.gd",
+      "bytes": 19531,
+      "sha256": "594ca850e902ca8e0d9640720167542f04980e6d22eeb78e51a21e8299bfcff4",
+      "role": "actual compact correctness, adversarial lifecycle and 20-pair comparison suite"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_DEBRIS_MATERIAL_POOL_UNIQUE_SOURCE_HANDOFF.md",
+      "bytes": 5026,
+      "sha256": "d72c22570b0824bd88d435247ca6c2843889f8bbff4d5e5023fa4e403f018e34",
+      "role": "contract, verification, cost and adoption limits"
+    }
+  ],
+  "baseline": {
+    "path": "godot/mafiozi_walk/scripts/transport/transport_debris_material_pool.gd",
+    "bytes": 16034,
+    "sha256": "c29037e98c71cc9bed733784adf107edd58417439d721680c0a43ca0ace329d0"
+  },
+  "dependencies": [
+    {
+      "path": "godot/mafiozi_walk/scripts/vehicle_visual/vehicle_visual.gd",
+      "bytes": 8708,
+      "sha256": "d586952de302b7ec0467b89b91ba117e3350e8a5c217f48c303f06ff88494e34"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_vehicle_damage_bindings.gd",
+      "bytes": 5469,
+      "sha256": "cca8f5c89a0941c6cd62f43b44fab237473a39d9290d4efa37c0d2c7262a4c09"
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/vehicle_visual/manifest.json",
+      "bytes": 4070550,
+      "sha256": "38598f43beb77c095879206ea5820c7fe922b227a64f77f793353f89321fee03"
+    },
+    {
+      "path": "godot/mafiozi_walk/data/transport/damage_assemblies.json",
+      "bytes": 178333,
+      "sha256": "8643b11808f5834445e34be6d1c2930a9cc2f5a930042dfb7edfcf4ce6d78279"
+    }
+  ],
+  "semantics": {
+    "actual_compact": "72 ordered surfaces / 29 exact source identities / 72 independent private resources",
+    "source_validation": "one fresh signature per exact live source Resource identity per synchronous validation call, compared against every ordered per-surface admission signature",
+    "private_validation": "all 72 private resources freshly signed independently",
+    "cache_lifetime": "one _validate_contents call only; never crosses final, receipt, take, reset, generation or revision",
+    "scripted_materials": "rejected before admission and before validation signature reads"
+  },
+  "verification": {
+    "godot": "4.7.2.stable.official.ed1daf0bf",
+    "correctness_only": "200/200 PASS, 1.08 seconds, process joined",
+    "full_author": "240/240 PASS, 9.17 seconds, process joined",
+    "command": "tools/godot/run_transport_test.ps1 -Resource res://scripts/tests/test_transport_debris_material_pool_unique_source.gd -TimeoutSeconds 60"
+  },
+  "performance_us_20_alternating_pairs": {
+    "baseline": {
+      "configure_min_p50_p95_max": [23007, 24384, 29821, 33321],
+      "final_min_p50_p95_max": [43522, 45991, 68767, 76258],
+      "receipt_min_p50_p95_max": [42823, 44967, 53133, 53393],
+      "take_min_p50_p95_max": [43152, 45350.5, 48473, 54253]
+    },
+    "candidate": {
+      "configure_min_p50_p95_max": [23029, 24050.5, 28448, 28841],
+      "final_min_p50_p95_max": [30508, 32845.5, 35408, 42243],
+      "receipt_min_p50_p95_max": [30234, 31838.5, 34183, 34722],
+      "take_min_p50_p95_max": [30435, 32801.5, 34106, 34315]
+    },
+    "qualification": "isolated hidden headless load-only CPU; no event, streaming, GPU, FPS or full-scene claim"
+  },
+  "decision": {
+    "result": "IMPROVED_LOAD_ONLY_CANDIDATE",
+    "median_reduction": "about 28-29 percent for final, receipt and take",
+    "adoption_limit": "31-35 ms receipt/take remains outside event-frame and streaming budgets; production adoption requires an explicitly scheduled load/prewarm phase and owner review"
+  },
+  "limits": [
+    "No burn values, callback order, HP, authority, debris launch or event integration is implemented.",
+    "Silent mutation restored to byte-identical admitted content before a validation boundary is observationally identical; a retained difference is caught by the fresh signature.",
+    "Resource.changed is an early sticky signal only and is not treated as the content proof.",
+    "The optional fused final-and-take API is outside this candidate."
+  ]
+}

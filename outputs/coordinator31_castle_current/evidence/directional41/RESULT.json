@@ -1,0 +1,44 @@
+{
+  "status": "FUNCTIONAL_PROTOTYPE",
+  "revision": "castle-20261018-combined41-directional01",
+  "changes": [
+    "scripts/weapons/sword_prototype.gd",
+    "scripts/weapons/directional_melee41.gd",
+    "scripts/weapons/directional_melee41.gd.uid",
+    "scripts/weapons/directional_reticle41.gd"
+  ],
+  "controls": {
+    "mouse": "select attack origin, continuous120degrees per side",
+    "LMB": "one complete attack per press",
+    "RMB": "existing held guard; windup cancellation enters recovery",
+    "wheel": "camera only"
+  },
+  "timing_seconds": {
+    "sword": [
+      0.26,
+      0.3,
+      0.28
+    ],
+    "sledge": [
+      0.44,
+      0.36,
+      0.52
+    ]
+  },
+  "checks": [
+    "12 direction/weapon phase cases",
+    "real input click/hold/capture/wheel/block/physical wall",
+    "natural sword sever and physical death",
+    "natural sledge death without cutting"
+  ],
+  "limits": [
+    "Tuned prototype values, not extracted Mordhau timings",
+    "Existing held guard retained; timed parry/riposte/chamber/feints not implemented",
+    "No full performance acceptance",
+    "Read-only armor proximal sleeve and tower-floor audit41 gaps not modified in this task"
+  ],
+  "sources": [
+    "https://store.steampowered.com/news/posts/?appids=629760&enddate=1619024417&feed=steam_community_announcements",
+    "https://www.indiedb.com/games/mordhau/news/development-blog-2-melee-combat"
+  ]
+}

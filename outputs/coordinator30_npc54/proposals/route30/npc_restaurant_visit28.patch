@@ -1,0 +1,49 @@
+--- a/scripts/hospital/npc_restaurant_visit28.gd
++++ b/scripts/hospital/npc_restaurant_visit28.gd
+@@ -37,6 +37,8 @@
+ var _waiting_move := false
+ var _last_queue: Dictionary = {}
+ var _emergency_exit29 := false
++var _entry_bounds30 := AABB()
++var _entry_bounds_valid30 := false
+ 
+ static func _flat(a: Vector3, b: Vector3) -> float:
+ 	return Vector2(a.x - b.x, a.z - b.z).length()
+@@ -92,6 +94,9 @@
+ 	if slot < 0 or slot >= entry.rooms.size(): return _fail("room_slot_missing")
+ 	_door_owner = entry.owner.get_ref() as Node3D; _clone = entry.clone.get_ref() as Node3D
+ 	_door = entry.door; _inward = entry.normal; _outside = entry.outside; _inner = entry.inner; _room = entry.rooms[slot]
++	var measured: Dictionary=Registry._bounds(_clone)
++	_entry_bounds_valid30=bool(measured.get("ok",false))
++	_entry_bounds30=measured.get("box",AABB())
+ 	_venue = str(lease.venue)
+ 	var live_floor: Variant = _support.floor_at(_room, _room.y)
+ 	if not live_floor is Vector3 or absf(live_floor.y - _room.y) > .08 or not _support.standing(_room):
+@@ -100,7 +105,7 @@
+ 	_registry.ledger.touch(_key, Time.get_ticks_msec())
+ 	if _drive != null: _drive.cancel()
+ 	_drive = Drive.new(); _legs.clear()
+-	if depth_inside() < .55:
++	if not _initially_inside30():
+ 		var tangent := Vector3(-_inward.z, 0.0, _inward.x)
+ 		var side: float = -1.0 if slot % 2 == 0 else 1.0
+ 		var staged := false
+@@ -134,8 +139,17 @@
+ func depth_inside() -> float:
+ 	return (_body.global_position - _door).dot(_inward) if is_instance_valid(_body) else -INF
+ 
++## The inner half-plane extends across the whole city. A fresh admission also
++## needs this measured venue envelope and the supported interior floor level.
++## Once entered through the portal, the existing owned exit remains authoritative.
++func _inside_envelope30() -> bool:
++	return _entry_bounds_valid30 and is_instance_valid(_body) and _entry_bounds30.has_point(_body.global_position+Vector3.UP*.3) and absf(_body.global_position.y-_inner.y)<.1
++
++func _initially_inside30() -> bool:
++	return depth_inside()>.55 and _inside_envelope30() and supported(_body,_support)
++
+ func needs_exit() -> bool:
+-	return is_instance_valid(_clone) and not _clone.is_queued_for_deletion() and (_entered or depth_inside() > -.8)
++	return is_instance_valid(_clone) and not _clone.is_queued_for_deletion() and (_entered or (depth_inside()>-.8 and _inside_envelope30()))
+ 
+ func is_inside() -> bool:
+ 	return _phase == "INSIDE" and _lease_current() and _physical_inside() and (not _registry.staffed29(_venue) or _registry.service_owner29(_key, _venue, self))

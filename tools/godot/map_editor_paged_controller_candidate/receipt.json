@@ -1,0 +1,18 @@
+{
+  "schema": "mafiozi.map-editor.paged-controller-candidate/v1",
+  "files": {
+    "paged_editor_controller.gd": "186577739edae1e178d624dea685068794929f26a8c80e36777b19a93298a438",
+    "test_paged_editor_controller.gd": "887e6e9df85d51d584f99e49b47013fe49fd1c4f983c38aaa610d8c6bf3f3588"
+  },
+  "baseSources": {
+    "tools/godot/map_editor_candidate/scripts/map_editor/editor_controller.gd": "d1812cb127b6526a14e12cbf047ef2a0365aba036d031060844dfc369b5e40c4",
+    "tools/godot/map_editor_candidate/scripts/map_editor/editor_panel.gd": "af393e8eef857e60933705dd64b4fd03131133439b6be12d5dc3d8fa909f44ce",
+    "tools/godot/map_editor_paged_panel_candidate/paged_editor_panel.gd": "a77e1e11fe2cdf8dc9ffc2dffd95c9ddf2b6b35e31b5b30b588f32ba71495a2b"
+  },
+  "nativeChecks": 703,
+  "actualNativeSourceObjects": 242,
+  "actualAvailableObjects": 236,
+  "catalogObjects": 9901,
+  "GPU": false,
+  "productionInstalled": false
+}

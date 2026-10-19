@@ -1,0 +1,20 @@
+{
+  "schema": "mafiozy.common-gang-handoff.freeze.v2",
+  "status": "COMBINED_CANDIDATE_HANDOFF_NATIVE_NOT_RUN",
+  "archive": "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-build\\outputs\\gang_common_handoff_stage02.zip",
+  "bytes": 1438952,
+  "sha256": "8e1d82ef996cd6b2375613d676931cf2556c939584a8c154f1e252ddd8af6cbf",
+  "manifest_sha256": "816930a2e9bb228a5b7afb7514e2a39b5f6f7b5241d812b516758832b072a0d4",
+  "project_manifest_sha256": "9a14d1560a59650a98981377445186a3dc65b70d2e1af961d4a8bd76b126f509",
+  "members": 89,
+  "project_files": 67,
+  "evidence_files": 19,
+  "payload_crc_sha_closure": true,
+  "known_limitation_ids": [
+    "LIFE_ROW_RESTORE_SEAM"
+  ],
+  "accepted_runtime_unchanged": true,
+  "native_smoke": "PENDING_QA",
+  "all8": "NOT_ACCEPTED",
+  "full_goal": "ACTIVE_NOT_COMPLETE"
+}

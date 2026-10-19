@@ -1,0 +1,8 @@
+{
+  "file": "scripts/city/runtime/npc_threat_world30.gd",
+  "before": "\t\tvar scene: Node=weapons.get_tree().current_scene\n\t\tif scene.get_meta(META,null)==self:scene.remove_meta(META)",
+  "after": "\t\t# Main scene may dispose us after the weapon child already left the tree.\n\t\tif weapons.is_inside_tree():\n\t\t\tvar scene: Node=weapons.get_tree().current_scene\n\t\t\tif is_instance_valid(scene) and scene.get_meta(META,null)==self:scene.remove_meta(META)",
+  "base_sha256": "0e2230076498dde243a207a13e92600392be8f549c42d0a5a1f28a6afe53aab8",
+  "after_sha256": "8d12453313b7d92fddd63dbebd4309065f1282c7d79d0805e36d89f4ab48842e",
+  "reason": "city01 exit: get_tree null after weapons child exited; no tree read needed for signal disconnect"
+}

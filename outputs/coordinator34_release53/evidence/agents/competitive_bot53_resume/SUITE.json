@@ -1,0 +1,86 @@
+[
+  {
+    "name": "mobility04",
+    "scheduler": false,
+    "passed": false,
+    "errors": [
+      "player_speed_changed_with_npc_armor"
+    ],
+    "source_pin": "37461c7579289673ffd2370479c28290a66235665ddd448b49bbf31868df248d",
+    "result": "D:\\MafioziCombat31\\competitive_bot53_resume\\mobility04\\result.json"
+  },
+  {
+    "name": "chase04",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "source_pin": "37461c7579289673ffd2370479c28290a66235665ddd448b49bbf31868df248d",
+    "result": "D:\\MafioziCombat31\\competitive_bot53_resume\\chase04\\result.json"
+  },
+  {
+    "name": "retreat04",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "source_pin": "37461c7579289673ffd2370479c28290a66235665ddd448b49bbf31868df248d",
+    "result": "D:\\MafioziCombat31\\competitive_bot53_resume\\retreat04\\result.json"
+  },
+  {
+    "name": "detour04",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "source_pin": "37461c7579289673ffd2370479c28290a66235665ddd448b49bbf31868df248d",
+    "result": "D:\\MafioziCombat31\\competitive_bot53_resume\\detour04\\result.json"
+  },
+  {
+    "name": "moving_weave_52",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "source_pin": "f472d58b75a6924d944614c06eca60ff977fa40041d6127d2eab9b51a7a9eb8e",
+    "result": "D:\\MafioziCombat31\\competitive_bot53_resume\\moving_weave_52\\result.json"
+  },
+  {
+    "name": "moving_weave_04",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "source_pin": "37461c7579289673ffd2370479c28290a66235665ddd448b49bbf31868df248d",
+    "result": "D:\\MafioziCombat31\\competitive_bot53_resume\\moving_weave_04\\result.json"
+  },
+  {
+    "name": "moving_rush_52",
+    "scheduler": false,
+    "passed": false,
+    "errors": [
+      "no_attack"
+    ],
+    "source_pin": "f472d58b75a6924d944614c06eca60ff977fa40041d6127d2eab9b51a7a9eb8e",
+    "result": "D:\\MafioziCombat31\\competitive_bot53_resume\\moving_rush_52\\result.json"
+  },
+  {
+    "name": "moving_rush_04",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "source_pin": "37461c7579289673ffd2370479c28290a66235665ddd448b49bbf31868df248d",
+    "result": "D:\\MafioziCombat31\\competitive_bot53_resume\\moving_rush_04\\result.json"
+  },
+  {
+    "name": "moving_diagonal_52",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "source_pin": "f472d58b75a6924d944614c06eca60ff977fa40041d6127d2eab9b51a7a9eb8e",
+    "result": "D:\\MafioziCombat31\\competitive_bot53_resume\\moving_diagonal_52\\result.json"
+  },
+  {
+    "name": "moving_diagonal_04",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "source_pin": "37461c7579289673ffd2370479c28290a66235665ddd448b49bbf31868df248d",
+    "result": "D:\\MafioziCombat31\\competitive_bot53_resume\\moving_diagonal_04\\result.json"
+  }
+]

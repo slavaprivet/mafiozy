@@ -1,0 +1,21 @@
+{
+  "schema": "mafiozi.publication-closure-audit-receipt/v1",
+  "verifierSha256": "b5b9a630ff4bb0738b0715ebc7b1e17f2b72e14a42c106f28d9521794e65ed5b",
+  "auditSha256": "2211af44406fa9486f9ad8c3453406fdba4d27cd39c2803ab87fae4431da3a21",
+  "testSha256": "78b68c7fb317a3d281429a92ae16ff0f06847f8a48d35a49c674a34576158330",
+  "schemaSha256": "c88e6669b466c9bdc84b926fea03b9a6c1f90297a6d4acbba1d4185cc272dc12",
+  "closureSha256": "6227dae8bdc55d9b6668303450601de6c3d794f96d6a02195f7d231f94c0e661",
+  "existingDataChecks": 3345,
+  "adversarialContractChecks": 31,
+  "distinctPortableBlobs": 1660,
+  "portableResourceBytes": 71712262,
+  "integrity": true,
+  "ready": false,
+  "holdConditions": 53,
+  "mapBundleSnapshotInvented": false,
+  "materializedReleaseArchive": false,
+  "browserUsed": false,
+  "gpuUsed": false,
+  "productionChanged": false,
+  "note": "Data inventory and read-only verifier, not fresh-PC release readiness or authority admission."
+}

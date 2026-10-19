@@ -1,0 +1,96 @@
+{
+  "status": "component_and_graphical_pass",
+  "source_sha256": "f4ae9cd1a773a8bf85e8b73a7f4ea9bb9ad2bf29970decb1fbbe19e925dabfa9",
+  "baseline_sha256": "1688f24c79d490e10ac8933c68a58e4c8cb148b644a194aa972942174111fac9",
+  "changed_scope": [
+    "_attach_sword_to_fist",
+    "_self_evaluate_pose45",
+    "_restore_safe_self_pose45",
+    "new bounded direction/path helpers"
+  ],
+  "unchanged_scope": [
+    "weapon torque/steering constants",
+    "_steer",
+    "_pose_shared_grip",
+    "input/camera handling",
+    "damage paths"
+  ],
+  "fix": "Resolve new actual IK hand anchor before angular guard; try bounded forward anchors, restore verified compatible pose if needed; cap endpoint before IK to one per-physics angular budget shared across render passes. Cached pose cannot bypass cap.",
+  "metrics": {
+    "passed": true,
+    "total": 2154,
+    "penetrating_frames": 0,
+    "unresolved": 0,
+    "angular_budget_excess": 8.14596811948842e-08,
+    "max_ik_evaluations": 7,
+    "cached_pose_restores": 210,
+    "component_usec_p95": 244,
+    "component_usec_p99": 479,
+    "max_solver_usec": 1122,
+    "max_grip_error": 1.20137002568299e-07,
+    "max_support_grip_error": 6.1036305851303e-05
+  },
+  "limitations": [
+    "Axis rear-to-tip against head/torso proxy; not full triangle-to-triangle body geometry proof",
+    "210 cached pose restores in extreme input trace; movement can stop at infeasible arm/head envelope",
+    "All bones restored by inherited cache, walking while constrained not separately tested",
+    "No FPS acceptance; user game preserved",
+    "Per-frame rate cap conservative if multiple physics frames occur without a render; may need elapsed-frame scaling if low-FPS QA exposes slow motion"
+  ],
+  "patch": "ANCHOR_FIRST_BOUNDED.patch",
+  "graphical": {
+    "passed": true,
+    "max_budget_excess_radians": 1.33117040168607e-08,
+    "unsafe_samples": 0,
+    "unresolved": 0,
+    "max_ik": 7,
+    "max_grip_m": 5.96046447753906e-08,
+    "max_support_m": 6.10356291872449e-05,
+    "largest_sledge_steps": [
+      {
+        "model_frame": 580,
+        "degrees": 7.257670473008525,
+        "gap": 1,
+        "radians_per_second": 7.6002147467263805
+      },
+      {
+        "model_frame": 574,
+        "degrees": 7.257563084843861,
+        "gap": 1,
+        "radians_per_second": 7.600102290103317
+      },
+      {
+        "model_frame": 575,
+        "degrees": 7.257469786353947,
+        "gap": 1,
+        "radians_per_second": 7.600004588153148
+      },
+      {
+        "model_frame": 581,
+        "degrees": 7.257469307862199,
+        "gap": 1,
+        "radians_per_second": 7.600004087077762
+      },
+      {
+        "model_frame": 582,
+        "degrees": 7.0559086082133815,
+        "gap": 1,
+        "radians_per_second": 7.388930215988047
+      },
+      {
+        "model_frame": 583,
+        "degrees": 4.316172516647265,
+        "gap": 1,
+        "radians_per_second": 4.519885289975073
+      }
+    ]
+  },
+  "images_manually_reviewed": [
+    "01_sword_hilt_after_pickup.png",
+    "02_sword_high.png",
+    "03_sword_side.png",
+    "04_sledge_high.png",
+    "05_sledge_down_early.png",
+    "06_sledge_down_late.png"
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "schema": "mafiozi.release58.plan/v1",
+  "target_revision": "s01-20261015-residents58",
+  "baseline_revision": "s01-20261015-residents57",
+  "integration": "outputs/coordinator31_npc57/extended31/stage58_03/CANDIDATE58.json",
+  "perf_comparison": null,
+  "evidence": {
+    "soak": {
+      "run": null,
+      "harness_root": ".",
+      "entry": "outputs/coordinator31_npc57/proposals/qa58_merged/entry_soak31_extended.gd",
+      "entry_sha256": "cf9bd35da2790c2bd38ee407756787e9bd5adc6b2474891a756cf0e61eb7e4aa",
+      "archive": "HARNESS.zip",
+      "pins_file": "HARNESS.json"
+    },
+    "services": {
+      "run": "outputs/coordinator31_npc57/proposals/qa58_services_final/runs/merged58_services_graphical03",
+      "harness_root": "outputs/coordinator31_npc57/proposals/qa58_services_final",
+      "entry": "entry_services56.gd",
+      "entry_sha256": "c43c71419ffc469cd16d1b53129728bd1bff93f673afea7f4186d039a2e5d1dc",
+      "archive": "HARNESS.zip",
+      "pins_file": "HARNESS_PINS.json",
+      "checker": "accept_services56.py",
+      "checker_sha256": "df62eda3bce3cdad6824e3ed897a331aba6545649abaf05540d2fb39213b0006"
+    },
+    "threat": {
+      "run": "outputs/coordinator31_npc57/proposals/attention31_resume/runs/merged58_threat02",
+      "harness_root": ".",
+      "entry": "outputs/coordinator31_npc57/proposals/attention31_resume/regression/threat/entry56.gd",
+      "entry_sha256": "d41a842ea4d037c5d7bc769ac942d11dfe9519c35fbb64d5deb58d7b9e088981",
+      "archive": "HARNESS.zip",
+      "pins_file": "HARNESS.json"
+    },
+    "visual": {
+      "run": "outputs/coordinator31_npc57/proposals/attention31_resume/runs/merged58_visual02",
+      "harness_root": ".",
+      "entry": "outputs/coordinator31_npc57/proposals/attention31_resume/entry_visual31.gd",
+      "entry_sha256": "20ce5b016010c4df6f2ec1c0ef941e63388eb2a452b537948d2070347bf3c473",
+      "archive": "HARNESS.zip",
+      "pins_file": "HARNESS.json"
+    },
+    "perf_baseline": {
+      "run": null,
+      "harness_root": ".",
+      "entry": "outputs/coordinator31_npc57/proposals/qa31_resume/entry_soak31_v4.gd",
+      "entry_sha256": "18e2d604645e2ae55253d694db992c089684f44d60e9899a2339674519fe1e06",
+      "archive": "HARNESS.zip",
+      "pins_file": "HARNESS.json"
+    },
+    "perf_candidate": {
+      "run": null,
+      "harness_root": ".",
+      "entry": "outputs/coordinator31_npc57/proposals/qa31_resume/entry_soak31_v4.gd",
+      "entry_sha256": "18e2d604645e2ae55253d694db992c089684f44d60e9899a2339674519fe1e06",
+      "archive": "HARNESS.zip",
+      "pins_file": "HARNESS.json"
+    },
+    "shop_interruption": {
+      "run": "outputs/coordinator31_npc57/proposals/service_threat58_final/runs/shop_final01",
+      "harness_root": ".",
+      "entry": "outputs/coordinator31_npc57/proposals/service_threat58_final/entry58.gd",
+      "entry_sha256": "64898ff896767bceb81da3ac6d35bfc4a1b8c508b2a8f5f7e769f4c01c4ab986",
+      "pins_file": "HARNESS.json",
+      "archive": "HARNESS.zip"
+    },
+    "restaurant_interruption": {
+      "run": "outputs/coordinator31_npc57/proposals/service_threat58_final/runs/restaurant_final01",
+      "harness_root": ".",
+      "entry": "outputs/coordinator31_npc57/proposals/service_threat58_final/entry58.gd",
+      "entry_sha256": "64898ff896767bceb81da3ac6d35bfc4a1b8c508b2a8f5f7e769f4c01c4ab986",
+      "pins_file": "HARNESS.json",
+      "archive": "HARNESS.zip"
+    }
+  }
+}

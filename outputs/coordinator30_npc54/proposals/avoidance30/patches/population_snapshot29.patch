@@ -1,0 +1,18 @@
+--- a/scripts/npc_city_population.gd
++++ b/scripts/npc_city_population.gd
+@@ -1,6 +1,7 @@
+ extends "res://scripts/preview_population.gd"
+ ## Explicit local city bootstrap; original source rows remain immutable.
+ const CityPolicy = preload("res://scripts/city/runtime/npc_city_world_policy.gd")
++const Avoidance29 = preload("res://scripts/navigation/npc_avoidance_world29.gd")
+ const CityDaily = preload("res://scripts/npc_city_daily.gd")
+ ## The city navigation stack (city engine + city-era host) is ported into
+ ## scripts/city/runtime/; release48's preview host keeps serving main.tscn.
+@@ -1183,6 +1184,7 @@
+ 		residents.step_single_corpse28(_single_lifecycle28);return
+ 	var health_us:=Time.get_ticks_usec()-phase_started
+ 	phase_started=Time.get_ticks_usec()
++	if city_ready and _scene_ref!=null: Avoidance29.refresh_scene(_scene_ref.get_ref() as Node3D)
+ 	if city_ready and daily!=null: daily.step(delta)
+ 	if city_ready and incident_dispatcher!=null: incident_dispatcher.step(delta)
+ 	var daily_us:=Time.get_ticks_usec()-phase_started

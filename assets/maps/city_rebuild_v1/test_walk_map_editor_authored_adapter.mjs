@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import {createWalkMapAuthoredAdapter} from './walk_map_editor_authored_adapter.mjs';
+import {createWalkMapCompositeAdapter} from './walk_map_editor_generated_adapter.mjs';
+
+function vector(){return {x:0,y:0,z:0,fromArray(values){[this.x,this.y,this.z]=values},set(x,y,z){this.x=x;this.y=y;this.z=z},setScalar(value){this.x=this.y=this.z=value}}}
+const house={id:'HOUSE-1',assetId:'garden_lane_house_v1',transform:{positionM:[10,0,20],yawDegrees:0,uniformScale:1,horizontalScale:[1.4,.8],modelLocalOffsetM:[0,.25,0],preserveSiteBounds:true},entry:{id:'front'},collision:{worldBodies:[{id:'body'}]},futureField:{kept:true}};
+const lamp={id:'LAMP-1',assetId:'lamp_bellini_v1',transform:{positionM:[30,0,40],yawDegrees:0,uniformScale:1}};
+const houseGroup={userData:{instance:house},position:vector(),rotation:{y:0},scale:vector(),visible:true,updateMatrixWorld(){this.updated=true}};
+const lampGroup={userData:{instance:lamp},position:vector(),rotation:{y:0},scale:vector(),visible:true,updateMatrixWorld(){this.updated=true}};
+let suspended=0,restored=0;
+const adapter=createWalkMapAuthoredAdapter({buildingRecords:[house],decorRecords:[lamp],groups:[houseGroup,lampGroup],suspendPlacement(){suspended++;return 'token'},restorePlacement(token){assert.equal(token,'token');restored++}});
+const catalog=adapter.enumerate();
+assert.equal(catalog.length,2);assert.equal(catalog.find(item=>item.id==='HOUSE-1').label,'Дом на Садовой улице');assert.equal(catalog.find(item=>item.id==='HOUSE-1').category,'buildings');assert.equal(catalog.find(item=>item.id==='LAMP-1').category,'lights');
+const houseKey=catalog.find(item=>item.id==='HOUSE-1').key;
+const child={userData:{},parent:houseGroup};assert.equal(adapter.resolveIntersection({object:child,distance:3}).key,houseKey);
+adapter.beginPreview(houseKey);adapter.updatePreview(houseKey,{positionM:[15,0,25],yawDegrees:45,uniformScale:1.2});
+assert.deepEqual([houseGroup.position.x,houseGroup.position.y,houseGroup.position.z],[15,0,25]);assert.equal(houseGroup.rotation.y,Math.PI/4);assert.equal(house.futureField.kept,true);
+assert.deepEqual([houseGroup.scale.x,houseGroup.scale.y,houseGroup.scale.z],[1.68,1.2,.96]);
+adapter.cancelPreview(houseKey);assert.deepEqual([houseGroup.position.x,houseGroup.position.y,houseGroup.position.z],[10,0,20]);assert.deepEqual([houseGroup.scale.x,houseGroup.scale.y,houseGroup.scale.z],[1.4,1,.8]);assert.equal(suspended,1);assert.equal(restored,1);
+adapter.beginPreview(houseKey);assert.equal(adapter.disposePreview(),1);assert.equal(adapter.disposePreview(),0);assert.deepEqual([houseGroup.position.x,houseGroup.position.y,houseGroup.position.z],[10,0,20]);
+adapter.updatePreview(houseKey,{positionM:[18,0,28],yawDegrees:90,uniformScale:1});const command=adapter.commitPreview(houseKey);
+assert.equal(command.patch.action,'modify');assert.equal(command.patch.before.futureField.kept,true);assert.deepEqual(command.patch.after.transform.positionM,[18,0,28]);assert.ok(adapter.dependenciesFor(houseKey).includes('building-entry'));
+assert.deepEqual(command.patch.after.transform.horizontalScale,[1.4,.8]);assert.deepEqual(command.patch.after.transform.modelLocalOffsetM,[0,.25,0]);assert.equal(command.patch.after.transform.preserveSiteBounds,true);
+const deletion=adapter.deleteCommand(houseKey);assert.equal(deletion.patch.action,'delete');assert.equal(deletion.patch.before.futureField.kept,true);
+const authoritative={...structuredClone(house),transform:{...house.transform,positionM:[22,0,32]}};adapter.replaceRecord(houseKey,authoritative,houseGroup);assert.equal(adapter.recordFor(houseKey),authoritative);assert.equal(houseGroup.userData.instance,authoritative);
+assert.throws(()=>adapter.replaceRecord(houseKey,{...authoritative,id:'WRONG'},houseGroup),/does not match/);
+adapter.suppress(houseKey,true);assert.equal(houseGroup.visible,false);adapter.suppress(houseKey,false);assert.equal(houseGroup.visible,true);
+const composite=createWalkMapCompositeAdapter([adapter]);assert.equal(composite.hasKey(houseKey),true);assert.ok(composite.enumerate().some(item=>item.key===houseKey));
+assert.equal(composite.deactivate(houseKey),true);assert.equal(composite.hasKey(houseKey),false);assert.equal(composite.enumerate().some(item=>item.key===houseKey),false);assert.equal(houseGroup.visible,false);assert.equal(adapter.resolveIntersection({object:child,distance:3}),null);
+assert.equal(composite.deactivate(houseKey),false,'deactivation is idempotent');composite.replaceRecord(houseKey,authoritative,houseGroup);assert.equal(composite.hasKey(houseKey),true);assert.equal(composite.enumerate().some(item=>item.key===houseKey),true);assert.equal(houseGroup.visible,true);assert.equal(adapter.resolveIntersection({object:child,distance:3}).key,houseKey);
+composite.dispose();
+console.log('walk map editor authored adapter: PASS');

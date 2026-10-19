@@ -1,0 +1,8 @@
+{
+  "source": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\dsh_living_city_01\\game\\scripts\\city\\runtime\\npc_city_world_policy.gd",
+  "before_sha256": "27c9949859fabf95be2f92e45ea4b9f14f2d95ae8ca612050a061e0cf3f4cc7e",
+  "candidate_sha256": "9c46025e19f52c8b2c97b61e380b83be37745a0c085f9e1e7fd70108ae9be3f8",
+  "scope": "Exact current Palazzo coplanar duplicate excluded only from source_y=0 support rays; source pinned floors still required; physical/capsule/square masks and geometry unchanged",
+  "publication": "DEFERRED_BY_USER",
+  "clean_worktree_620b4f0": "UNCHANGED"
+}

@@ -1,0 +1,12 @@
+{
+  "passed": false,
+  "exit_code": 2,
+  "source_drift": false,
+  "source_manifest_sha256": "b11bdd02916fb37171d0e177bf529569c8d090d82212c4d87d02e6c2fee06346",
+  "patch_sha256": "7c1fe1da35abbf50739d3bd33b573b7247e89839f9bfd6f468c8fbc17062775d",
+  "overlay_sha256": "06f3d084d20f2ac1a30ffec98b3a0bf1c55dab70b3de455541b7991ebcace8b6",
+  "test_sha256": "16d8939028e42de86568ccbd72959784c07c7bf801a41c2f22fdefc3572ce5ce",
+  "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "checks": 0,
+  "scope": "native boundary/priority component; real shot/physical medical cycle pending"
+}

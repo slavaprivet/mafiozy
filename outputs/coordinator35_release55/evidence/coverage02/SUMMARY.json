@@ -1,0 +1,9 @@
+{
+  "name": "coverage02",
+  "passed": true,
+  "errors": [],
+  "scheduler_errors": [],
+  "scheduler_error": null,
+  "drift": [],
+  "script_sha256": "0ae8a3fe7d47603f9683f5141ba7d4d22e867214f37b78e815bbb06b3c1c046d"
+}

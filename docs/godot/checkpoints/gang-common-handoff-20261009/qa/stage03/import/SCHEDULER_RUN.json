@@ -1,0 +1,83 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--path",
+    "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\outputs\\gang_qa\\handoff_stage03_import\\project",
+    "--rendering-method",
+    "gl_compatibility",
+    "--headless",
+    "--editor",
+    "--import"
+  ],
+  "passed": true,
+  "timed_out": false,
+  "cleanup_verified": true,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required",
+  "lease": {
+    "id": "b2951068f3f14a83ba64b348e9ce3235",
+    "owner": {
+      "pid": 12552,
+      "creation_filetime": "134359938065837360"
+    },
+    "mode": "headless",
+    "project": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\outputs\\gang_qa\\handoff_stage03_import\\project",
+    "access": "write",
+    "children": [
+      {
+        "pid": 7744,
+        "creation_filetime": "134359938093488574",
+        "command_line": "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --path C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\outputs\\gang_qa\\handoff_stage03_import\\project --rendering-method gl_compatibility --headless --editor --import",
+        "command": [
+          "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--path",
+          "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\outputs\\gang_qa\\handoff_stage03_import\\project",
+          "--rendering-method",
+          "gl_compatibility",
+          "--headless",
+          "--editor",
+          "--import"
+        ],
+        "executable": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\outputs\\gang_qa\\handoff_stage03_import\\project",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 341058.4929228,
+    "queued_at": 341043.4929228,
+    "ticket": 198,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5972802999895066
+  },
+  "child": {
+    "pid": 7744,
+    "creation_filetime": "134359938093488574",
+    "command_line": "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --path C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\outputs\\gang_qa\\handoff_stage03_import\\project --rendering-method gl_compatibility --headless --editor --import",
+    "command": [
+      "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--path",
+      "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\mafiozi-astra-godot\\outputs\\gang_qa\\handoff_stage03_import\\project",
+      "--rendering-method",
+      "gl_compatibility",
+      "--headless",
+      "--editor",
+      "--import"
+    ],
+    "executable": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\work\\tools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "c:\\users\\user\\documents\\codex\\2026-10-08\\mafiozi-astra-godot\\outputs\\gang_qa\\handoff_stage03_import\\project",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 4.849913400015794
+}

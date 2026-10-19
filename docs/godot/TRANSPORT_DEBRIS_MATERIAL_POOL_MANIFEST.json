@@ -1,0 +1,93 @@
+{
+  "schema": "mafiozi.transport-debris-material-pool.v1",
+  "date": "2026-09-27",
+  "status": "functionally-verified-load-only-not-adopted",
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_debris_material_pool.gd",
+      "bytes": 16034,
+      "sha256": "c29037e98c71cc9bed733784adf107edd58417439d721680c0a43ca0ace329d0",
+      "role": "bounded one-shot private StandardMaterial3D preparation pool"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_debris_material_pool.gd",
+      "bytes": 12867,
+      "sha256": "1c778b9021a19f1f7967001e48f2f9ae1395f129429578f79ddf1fbbeacfd6ea",
+      "role": "actual compact, lifecycle, malformed input and load-cost suite"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_DEBRIS_MATERIAL_POOL_HANDOFF.md",
+      "bytes": 6608,
+      "sha256": "3b0f1302b93f499503b4a53009b635718f37efa2db8927c8ba1c0cf899d1d1d8",
+      "role": "API, evidence, load-only cost and integration limits"
+    }
+  ],
+  "dependencies": [
+    {
+      "path": "godot/mafiozi_walk/scripts/vehicle_visual/vehicle_visual.gd",
+      "bytes": 8708,
+      "sha256": "d586952de302b7ec0467b89b91ba117e3350e8a5c217f48c303f06ff88494e34"
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/vehicle_visual/manifest.json",
+      "bytes": 4070550,
+      "sha256": "38598f43beb77c095879206ea5820c7fe922b227a64f77f793353f89321fee03"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_vehicle_damage_bindings.gd",
+      "bytes": 5469,
+      "sha256": "cca8f5c89a0941c6cd62f43b44fab237473a39d9290d4efa37c0d2c7262a4c09"
+    },
+    {
+      "path": "godot/mafiozi_walk/data/transport/damage_assemblies.json",
+      "bytes": 178333,
+      "sha256": "8643b11808f5834445e34be6d1c2930a9cc2f5a930042dfb7edfcf4ce6d78279"
+    }
+  ],
+  "api": {
+    "configure": "exact ordered StandardMaterial3D sources + generation/revision; returns opaque preparation_token",
+    "prewarm_step": "max_count must equal 1; creates at most one independent private Resource",
+    "receipt": "complete source/private identity and signature validation",
+    "take_prepared": "one-shot complete validation and ownership transfer requiring token/generation/revision",
+    "reset": "strictly newer generation and new opaque token",
+    "dispose": "disconnects owned watchers; transferred Resources remain caller-owned"
+  },
+  "verification": {
+    "godot": "4.7.2.stable.official.ed1daf0bf",
+    "author": "187/187 PASS",
+    "parent_fresh": "187/187 PASS",
+    "independent": "187/187 PASS",
+    "actual_compact": {
+      "surfaces": 72,
+      "source_identities": 29,
+      "private_resources": 72
+    }
+  },
+  "performance_us": {
+    "author": {
+      "prewarm_min_true_median": [736, 839.5],
+      "final_validation_and_max": 47863,
+      "ready_receipt": 47728,
+      "take_prepared": 47638
+    },
+    "parent_fresh": {
+      "prewarm_min_true_median": [730, 801.5],
+      "final_validation_and_max": 49191,
+      "ready_receipt": 49581,
+      "take_prepared": 46991
+    },
+    "independent": {
+      "prewarm_true_median": 778.5,
+      "final_validation_and_max": 47117,
+      "ready_receipt": 48181,
+      "take_prepared": 48430
+    },
+    "qualification": "isolated headless load-only CPU; final step validates 72 source plus 72 private signatures; max_count=1 bounds allocations only; no event, streaming, GPU, FPS, full-scene or adoption claim"
+  },
+  "limits": [
+    "Nested non-null Resources are rejected; no deep nested Resource parity claim",
+    "Prepared storage does not authenticate callback order, opacity, burn values, HP, authority, binding or launch",
+    "Receipt and transfer each cost about 47-50 ms and must not run in an event frame",
+    "This component does not solve the rejected event-time material path"
+  ]
+}

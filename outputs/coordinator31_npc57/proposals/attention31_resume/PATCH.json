@@ -1,0 +1,10 @@
+{
+  "scripts/city/runtime/npc_threat_life30.gd": {
+    "base_sha256": "b69afbc79d15419de088f4c54c01699a0d3ac1515edf304bbf5d6ee20db4605c",
+    "candidate_sha256": "594bee9cc8a44a4ce2afe9af3cb02f53ffa9bb53429bb8bd56228e90dec92181"
+  },
+  "scripts/npc_visual/npc_attention29.gd": {
+    "base_sha256": "4e987be5884555d7c587ef485888c9312d9ebace1c821d12006bec1b4f064566",
+    "candidate_sha256": "5f1a4e0c9b3f47cc207dd45efbcf0226b7af0a504b593e80aae679839203c669"
+  }
+}

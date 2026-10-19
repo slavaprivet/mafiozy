@@ -1,0 +1,225 @@
+{
+	"errors": [],
+	"passed": true,
+	"rows": [
+		{
+			"case": "healthy",
+			"distance": 3.5123291015625,
+			"expected": 1.0,
+			"hp": {},
+			"jump_started": true,
+			"scale": 1.0,
+			"severed": {},
+			"speed": 3.20000004768372
+		},
+		{
+			"case": "hp_zero_not_severed",
+			"distance": 3.5123291015625,
+			"expected": 1.0,
+			"hp": {
+				"foot_l": -98.0
+			},
+			"jump_started": true,
+			"scale": 1.0,
+			"severed": {},
+			"speed": 3.20000004768372
+		},
+		{
+			"case": "left_foot_severed",
+			"distance": 0.79248046875,
+			"expected": 0.24,
+			"hp": {
+				"foot_l": -218.0
+			},
+			"jump_started": false,
+			"scale": 0.24,
+			"severed": {
+				"foot_l": true
+			},
+			"speed": 0.76800000667572
+		},
+		{
+			"case": "both_supports_severed",
+			"distance": 0.0,
+			"expected": 0.0,
+			"hp": {
+				"foot_l": -218.0,
+				"shin_r": -86.0
+			},
+			"jump_started": false,
+			"scale": 0.0,
+			"severed": {
+				"foot_l": true,
+				"shin_r": true
+			},
+			"speed": 0.0
+		},
+		{
+			"case": "scene_restart",
+			"distance": 3.5123291015625,
+			"expected": 1.0,
+			"hp": {},
+			"jump_started": true,
+			"scale": 1.0,
+			"severed": {},
+			"speed": 3.20000004768372
+		},
+		{
+			"case": "dive_midair_both_legs_severed",
+			"damage_did_not_teleport": true,
+			"dive_started": true,
+			"fall_seen": true,
+			"height_drop": 0.778707668185234,
+			"landed": true,
+			"max_frame_step": 0.0873820185661316,
+			"samples": [
+				{
+					"falling": true,
+					"floor": false,
+					"jump_empty": true,
+					"position": "(0.0, 0.881442, 983.6339)",
+					"tick": 0,
+					"velocity": "(0.0, 1.20708, -3.90044)"
+				},
+				{
+					"falling": true,
+					"floor": false,
+					"jump_empty": true,
+					"position": "(0.0, 0.832622, 983.2588)",
+					"tick": 10,
+					"velocity": "(0.0, -1.79292, -0.90044)"
+				},
+				{
+					"falling": true,
+					"floor": false,
+					"jump_empty": true,
+					"position": "(0.0, 0.283802, 983.2438)",
+					"tick": 20,
+					"velocity": "(0.0, -4.792921, 0.0)"
+				},
+				{
+					"falling": false,
+					"floor": true,
+					"jump_empty": true,
+					"position": "(0.0, 0.080116, 983.2438)",
+					"tick": 30,
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"falling": false,
+					"floor": true,
+					"jump_empty": true,
+					"position": "(0.0, 0.080116, 983.2438)",
+					"tick": 40,
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"falling": false,
+					"floor": true,
+					"jump_empty": true,
+					"position": "(0.0, 0.080116, 983.2438)",
+					"tick": 50,
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"falling": false,
+					"floor": true,
+					"jump_empty": true,
+					"position": "(0.0, 0.080116, 983.2438)",
+					"tick": 60,
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"falling": false,
+					"floor": true,
+					"jump_empty": true,
+					"position": "(0.0, 0.080116, 983.2438)",
+					"tick": 70,
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"falling": false,
+					"floor": true,
+					"jump_empty": true,
+					"position": "(0.0, 0.080116, 983.2438)",
+					"tick": 80,
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"falling": false,
+					"floor": true,
+					"jump_empty": true,
+					"position": "(0.0, 0.080116, 983.2438)",
+					"tick": 90,
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"falling": false,
+					"floor": true,
+					"jump_empty": true,
+					"position": "(0.0, 0.080116, 983.2438)",
+					"tick": 100,
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"falling": false,
+					"floor": true,
+					"jump_empty": true,
+					"position": "(0.0, 0.080116, 983.2438)",
+					"tick": 110,
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"falling": false,
+					"floor": true,
+					"jump_empty": true,
+					"position": "(0.0, 0.080116, 983.2438)",
+					"tick": 120,
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"falling": false,
+					"floor": true,
+					"jump_empty": true,
+					"position": "(0.0, 0.080116, 983.2438)",
+					"tick": 130,
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"falling": false,
+					"floor": true,
+					"jump_empty": true,
+					"position": "(0.0, 0.080116, 983.2438)",
+					"tick": 140,
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"falling": false,
+					"floor": true,
+					"jump_empty": true,
+					"position": "(0.0, 0.080116, 983.2438)",
+					"tick": 150,
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"falling": false,
+					"floor": true,
+					"jump_empty": true,
+					"position": "(0.0, 0.080116, 983.2438)",
+					"tick": 160,
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"falling": false,
+					"floor": true,
+					"jump_empty": true,
+					"position": "(0.0, 0.080116, 983.2438)",
+					"tick": 170,
+					"velocity": "(0.0, 0.0, 0.0)"
+				}
+			],
+			"velocity_before": "(0.0, 1.507079, -4.200439)"
+		}
+	],
+	"scope": "Native W/space/double-space movement. Limb damage calls real shared damage/sever entry directly with exact part (no collision-delivery claim). Restart uses native reload_current_scene. Tests motion/support parity, not visual limp quality or whole-game acceptance."
+}

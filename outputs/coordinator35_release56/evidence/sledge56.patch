@@ -1,0 +1,134 @@
+--- 55/sword_prototype.gd
++++ 56/sword_prototype.gd
+@@ -52,7 +52,7 @@
+ 	},
+ 	"sledge": {
+ 		"label": "Кувалда (прототип)", "category": "two_hand", "category_label": "КУВАЛДА · ДВУРУЧНОЕ",
+-		"length": 0.92, "mass": 2.7, "grip": "two",
++		"length": 1.12, "mass": 2.7, "grip": "two",
+ 		"slice": 0.18, "stab": 0.10, "flat": 1.6, "crush": true,
+ 	},
+ 	"spear": {
+@@ -913,7 +913,7 @@
+ 	var sledge := Node3D.new()
+ 	sledge.name = "PrototypeSledge"
+ 	parent.add_child(sledge)
+-	_add_haft(sledge, -0.34, 0.86, 0.034, 0.026, _mat_wood)
++	_add_haft(sledge, -0.34, 1.06, 0.034, 0.026, _mat_wood)
+ 	_add_grip(sledge, -0.33, -0.02, 0.038)
+ 	_add_grip(sledge, 0.10, 0.34, 0.036)
+ 	var butt := MeshInstance3D.new()
+@@ -930,7 +930,7 @@
+ 	head_mesh.size = Vector3(0.16, 0.32, 0.16)
+ 	head.mesh = head_mesh
+ 	head.material_override = _mat_iron
+-	head.position = Vector3(0.82, 0.0, 0.0)
++	head.position = Vector3(1.02, 0.0, 0.0)
+ 	sledge.add_child(head)
+ 	for side: float in [0.16, -0.16]:
+ 		var face := MeshInstance3D.new()
+@@ -938,10 +938,10 @@
+ 		face_mesh.size = Vector3(0.17, 0.04, 0.17)
+ 		face.mesh = face_mesh
+ 		face.material_override = _mat_dark_steel
+-		face.position = Vector3(0.82, side, 0.0)
++		face.position = Vector3(1.02, side, 0.0)
+ 		sledge.add_child(face)
+ 	# Banding either side of the eye.
+-	for at: float in [0.72, 0.88]:
++	for at: float in [0.92, 1.08]:
+ 		var band := MeshInstance3D.new()
+ 		var band_mesh := CylinderMesh.new()
+ 		band_mesh.top_radius = 0.040; band_mesh.bottom_radius = 0.040; band_mesh.height = 0.05
+@@ -1917,8 +1917,8 @@
+ 		# Mass changes acceleration and reversal, not an extra division of both
+ 		# target speed and gain that made the hammer crawl for its entire arc.
+ 		var heavy := _weapon_id == "sledge"
+-		var speed_limit := 4.8 if heavy else (9.0 if one_hand_sword else 10.0)
+-		var acceleration := 12.0 if heavy else (40.0 if one_hand_sword else 52.0)
++		var speed_limit := 7.6 if heavy else (9.0 if one_hand_sword else 10.0)
++		var acceleration := 28.0 if heavy else (40.0 if one_hand_sword else 52.0)
+ 		if _weapon_id == "mace":
+ 			speed_limit = 8.4
+ 			acceleration = 32.0
+@@ -1928,31 +1928,17 @@
+ 		elif _weapon_id == "spear":
+ 			speed_limit = 8.0
+ 			acceleration = 34.0
+-		if heavy and _hold_left:
+-			var lateral_drive := 1.0 - smoothstep(0.20, 0.70, absf(_hand.y))
+-			speed_limit = lerpf(speed_limit, 7.6, lateral_drive)
+-			acceleration = lerpf(acceleration, 30.0, lateral_drive)
++		# Sledge uses the same steering in every direction; lower acceleration
++		# and speed preserve its weight without a separate overhead constraint.
+ 		# The stopping distance grows with kinetic energy. Brake before the aimed
+ 		# endpoint, without an underdamped spring repeatedly overshooting it.
+ 		var stopping_speed := sqrt(2.0 * acceleration * angle) * 0.72
+-		var aim_speed := minf(speed_limit, minf(stopping_speed, angle * (10.0 if heavy else 14.0)))
++		var aim_speed := minf(speed_limit, minf(stopping_speed, angle * 14.0))
+ 		var aim_velocity := axis.normalized() * aim_speed if axis.length_squared() > 0.00000001 else Vector3.ZERO
+ 		var torque := ((aim_velocity - _omega) / maxf(delta, 0.001)).limit_length(acceleration)
+ 		if _sword_coasting31() and not _hold_left:
+ 			# Release spends existing momentum only: no target spring or new energy.
+ 			torque = -_omega * (4.5 if heavy else 7.0)
+-		if heavy:
+-			# Held motion changes torque gradually; release only dissipates momentum.
+-			if _sword_coasting31() and not _hold_left:
+-				_hammer_torque44 = torque
+-			else:
+-				_hammer_torque44 = _hammer_torque44.move_toward(torque, 100.0 * delta)
+-				# Braking must act now, rather than spending another half-second
+-				# accelerating along the previous vertical swing.
+-				for component in 3:
+-					if torque[component] * _omega[component] < 0.0:
+-						_hammer_torque44[component] = torque[component]
+-			torque = _hammer_torque44
+ 		_omega = (_omega + torque * delta).limit_length(speed_limit)
+ 		if Time.get_ticks_msec() < _bind_until_ms: _omega = _omega.limit_length(1.6)
+ 	else:
+@@ -3028,7 +3014,7 @@
+ 	var left_joint: Vector3 = (_chain_global(left_set.clav) * left_set.rest_upper).origin
+ 	var middle_world: Vector3 = rig_to_world * ((right_joint + left_joint) * 0.5)
+ 	var local_want: Vector3 = visual_basis.inverse() * want_dir
+-	var side_load := (1.0 - smoothstep(0.20, 0.70, absf(_hand.y))) if _weapon_id in ["sledge", "axe", "spear"] and _hold_left else 0.0
++	var side_load := (1.0 - smoothstep(0.20, 0.70, absf(_hand.y))) if _weapon_id in ["axe", "spear"] and _hold_left else 0.0
+ 	var side_reach := lerpf(0.30, 0.36, side_load)
+ 	# Live weapon momentum carries the hands away from the chest into the strike.
+ 	# Stopping the mouse leaves the loading pose; no timed attack drives the hands.
+@@ -3036,14 +3022,7 @@
+ 	var target_world: Vector3 = middle_world + visual_basis * Vector3(
+ 		clampf(local_want.x * (side_reach if _hold_left else 0.14), -side_reach, side_reach),
+ 		clampf(local_want.y * (0.64 if _hold_left else 0.20) - 0.08, -0.30, 0.48),
+-		(lerpf(0.44, 0.40, clampf(local_want.y, 0.0, 1.0)) if _weapon_id == "sledge" else lerpf(0.38, 0.25, clampf(local_want.y, 0.0, 1.0))) + arm_drive * 0.34 + _self_pose_forward)
+-	if _weapon_id == "sledge" and _hold_left:
+-		# Lift beside the leading shoulder, keeping the rear haft outside the face.
+-		var high_arc := smoothstep(0.15, 0.65, (rig_to_world.basis * blade_rig).y)
+-		var leading_side := signf((rig_to_world * right_joint - middle_world).dot(visual_basis.x))
+-		var relative: Vector3 = visual_basis.inverse() * (target_world - middle_world)
+-		relative.x = lerpf(relative.x, leading_side * 0.28, high_arc)
+-		target_world = middle_world + visual_basis * relative
++		lerpf(0.38, 0.25, clampf(local_want.y, 0.0, 1.0)) + arm_drive * 0.34 + _self_pose_forward)
+ 	var grip: Vector3 = world_to_rig * target_world
+ 	# Reach spheres belong to wrists; offset their centres to the palm anchors
+ 	# using the SAME wrist orientation that the final IK will apply.
+@@ -3457,10 +3436,7 @@
+ 	var coil := -_swing_sign * WINDUP_ANTICIPATION * _anticipation
+ 	var chest_yaw := _body_yaw * (1.0 - 0.70 * maxf(0.0, _anticipation)) + coil
+ 	if WEAPONS.has(_weapon_id) and _swing_held54() and not _aiming_throw:
+-		if _weapon_id == "sledge":
+-			chest_yaw -= clampf(_hand.x, -1.0, 1.0) * (0.48 if absf(_hand.y)<0.35 else 0.30)
+-		else:
+-			chest_yaw += clampf(_hand.x, -1.0, 1.0) * 0.30
++		chest_yaw += clampf(_hand.x, -1.0, 1.0) * 0.30
+ 	# The coil is also, and most clearly, a matter of WEIGHT: the frame settles back and
+ 	# down onto the rear leg, then drives forward through the cut. Unlike the yaw, this
+ 	# reads the same whichever way the blow is aimed, so it is the honest measure of
+@@ -6869,7 +6845,7 @@
+ 		"weapon_rear_m": weapon_rear_extent(),
+ 		"weapon_active": _active(),
+ 		"swing_phase": _swing_phase, "anticipation": _anticipation, "brace": _brace,
+-		"omega_speed": _omega.length(), "omega_cap": (7.5 if _weapon_id == "sledge" else (9.5 if _active_side() != &"both" else 11.0)) if _weapon_id in ["sword", "sledge"] else MAX_OMEGA / _weapon_mass,
++		"omega_speed": _omega.length(), "omega_cap": (7.6 if _weapon_id == "sledge" else (9.5 if _active_side() != &"both" else 11.0)) if _weapon_id in ["sword", "sledge"] else MAX_OMEGA / _weapon_mass,
+ 		"hand_cmd": _hand_cmd,
+ 		"jolt": _impact_jolt, "chain_yaw": _chain_yaw, "chain_pitch": _chain_pitch,
+ 		"rig_scale": _rig.global_transform.basis.get_scale() if is_instance_valid(_rig) else Vector3.ZERO,

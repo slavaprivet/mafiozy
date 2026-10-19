@@ -1,0 +1,15 @@
+{
+  "scope": "CPU validation of instrumentation only; not a game/performance receipt",
+  "passed": true,
+  "owned_python_child_memory": {
+    "unix_ms": 1792023362915.7817,
+    "pid": 17568,
+    "rss_bytes": 77578240,
+    "private_bytes": 73510912,
+    "peak_rss_bytes": 77582336,
+    "pagefile_bytes": 73510912,
+    "page_faults": 19074
+  },
+  "linear_trend_slope_per_minute": 120.0,
+  "percentile_check": true
+}

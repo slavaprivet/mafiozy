@@ -1,0 +1,14 @@
+{
+  "status": "READY_TWO_MODELS_NATIVE_AND_RENDERED",
+  "dispatch": "DEFERRED_BY_EXPLICIT_USER_STEERING",
+  "excluded_wip": "scripts/police/npc_police_road_plan30.gd is UNTESTED, never staged or part of runtime delivery",
+  "runtime_files": [
+    "scripts/police/npc_police_model30.gd"
+  ],
+  "runtime_world_hook": false,
+  "models": 2,
+  "native_checks": 349,
+  "proof": "runs/models02",
+  "shared_game_modified": false,
+  "performance_accepted": false
+}

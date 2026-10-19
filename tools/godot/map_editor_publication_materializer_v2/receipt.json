@@ -1,0 +1,19 @@
+{
+  "suite": "publication-materializer-v2",
+  "checks": 91,
+  "status": "PASS",
+  "actualIntegrity": true,
+  "actualReady": false,
+  "actualHolds": 53,
+  "actualOutputWrites": 0,
+  "syntheticBlobCount": 11,
+  "syntheticSourceApprovalOnly": true,
+  "proxyTrapCalls": 0,
+  "captureGetterCalls": 0,
+  "overrideCalls": 0,
+  "partialFailureRetained": true,
+  "outputDirectory": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\publication-materializer-conformance-0prBKh",
+  "nativeUsed": false,
+  "gpuUsed": false,
+  "productionRelease": false
+}

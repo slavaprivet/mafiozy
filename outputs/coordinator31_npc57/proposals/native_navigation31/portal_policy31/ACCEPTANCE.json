@@ -1,0 +1,76 @@
+{
+  "status": "SCOPED_NATIVE_PASS_NOT_INTEGRATED",
+  "patch": {
+    "scripts/venues/npc_venue_capacity29.gd": {
+      "base_sha256": "eb5d09e0fef396e7619fef29ab60783b9f0775d0549db4605cddb98099b82e66",
+      "candidate_sha256": "d830ac4a76af0f50ff6fa36f47bae0eed9d6dfd24378ddb3aa09d49eda5bf55f"
+    },
+    "scripts/venues/npc_venue_registry29.gd": {
+      "base_sha256": "234b2a336b4e7aa94789fc50b716da16b7422b3345b01b20a3254be7a72818a8",
+      "candidate_sha256": "eee16f8836df089a52fc6625938d38171de1a531c2702a2bcc00cd0bf9c33adf"
+    },
+    "scripts/navigation/npc_passage31.gd": {
+      "base_sha256": "49ab9e218f37aac086dfe2fd3817f08b759cf2ecb1dc41091cce97c29a5b518e",
+      "candidate_sha256": "4fb0fa9f35fe030628e45a5802ca1ca12cae642f57a0ea6eff2697a25e73e4c9"
+    }
+  },
+  "matched_source": true,
+  "matched_harness": true,
+  "candidate": {
+    "checks": 25,
+    "passed": true,
+    "elapsed_s": 8.76666666666667,
+    "wall_s": 8.760978,
+    "portal_owners": 4,
+    "actual_opposed_separation_m": 0.00160899176262319,
+    "max_native_step_m": 0.0307752843946218
+  },
+  "baseline": {
+    "expected_failure": true,
+    "elapsed_s": 15.0,
+    "portal_owners": 1,
+    "completed": [
+      false,
+      false,
+      false,
+      false
+    ],
+    "failed_checks": [
+      "both_inbound_physically_entered",
+      "capability_from_live_passage",
+      "concurrent_real_portal_owners",
+      "four_reserved_portal_permissions",
+      "opposed_streams_native_overlap",
+      "others_physically_exit_while_first_paused"
+    ]
+  },
+  "receipts": {
+    "candidate": {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\native_navigation31\\portal_policy31\\runs\\candidate02",
+      "run_sha256": "e75cad12f88a005199061040d4dc48d1be3c32560aaded1b723151dd302b7cf5",
+      "native_sha256": "72f3379a8171464cff843d75153d44e9d92edd769be13824328cbf9542445e12",
+      "harness_zip_sha256": "54ff07d493ed312b97e81e016f156507e12ce568eab592abfcf324a975324a39"
+    },
+    "baseline": {
+      "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\proposals\\native_navigation31\\portal_policy31\\runs\\baseline02",
+      "run_sha256": "c243a3cf899d7a50135b06e721d4d36517ff68a9b3df09ff63e77d3c30fe2f28",
+      "native_sha256": "7a1ef52d525225f9cab6a23b288544563b3e6939bfaaf5b30894ef3cf4ed0fdc",
+      "harness_zip_sha256": "54ff07d493ed312b97e81e016f156507e12ce568eab592abfcf324a975324a39"
+    }
+  },
+  "unchanged_authorities": [
+    "room capacity and lease identity",
+    "staff FIFO and service owner",
+    "payment/HP transactions",
+    "native floor/capsule/debris checks",
+    "world/player/door collisions",
+    "physical-exit claim release",
+    "restaurant visit source"
+  ],
+  "limitations": [
+    "Whole-city integration/long soak and FPS not run",
+    "Does not fix roaming NPC blocking actual door leaf arc; separate QA owner",
+    "Existing passage boundary and32-member overflow limitations retained",
+    "RVO prototype is separately rejected after crossing10 failure"
+  ]
+}

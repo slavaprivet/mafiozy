@@ -1,0 +1,451 @@
+--- a/scripts/npc_visual/preview_resident_host.gd
++++ b/scripts/npc_visual/preview_resident_host.gd
+@@ -38,6 +38,50 @@
+ var _admit: Callable
+ var _support: Callable
+ var _records: Dictionary = {}
++## Derived work index. The immutable source catalogue remains in _records.
++## Includes corpses, pending cleanup and generation replacement; not just walkers.
++var _active30: Dictionary = {}
++var _active_rows30: Array[Dictionary] = []
++var _active_dirty30 := false
++
++func _active_track30(record: Dictionary) -> void:
++	var id: String=str(record.row.source_id)
++	if not is_same(_records.get(id),record):return
++	if not _active30.has(id) or not is_same(_active30[id],record):
++		_active30[id]=record;_active_dirty30=true
++
++func _active_prune30(record: Dictionary) -> void:
++	var id: String=str(record.row.source_id)
++	if not is_same(_active30.get(id),record):return
++	if is_instance_valid(record.body) or int(record.get("request",-1))>=0 or _ragdolls.has(id) or record.get("melee_retaliation")!=null or record.get("single_dead28",false) or record.get("single_successor28")!=null:return
++	if _active30.erase(id):_active_dirty30=true
++
++## Final cold removal only. Corpse/respawn ownership must be released by its
++## authenticated lifecycle first; a late old-generation callback is harmless.
++func _cleanup_removed30(record: Dictionary) -> bool:
++	var id: String=str(record.row.source_id)
++	if not is_same(_records.get(id),record) or record.get("single_dead28",false) or record.get("single_successor28")!=null:return false
++	if int(record.get("request",-1))>=0:
++		if _navigation!=null:_navigation.cancel(record.request)
++		record.request=-1
++	if _ragdolls.has(id):_ragdolls[id].dispose();_ragdolls.erase(id)
++	if record.get("melee_retaliation")!=null:record.melee_retaliation.dispose();record.melee_retaliation=null
++	if record.get("activity")!=null:record.activity.dispose();record.activity=null
++	if is_instance_valid(record.body):record.body.queue_free()
++	record.body=null;record.gait=null;record.motion=null;record.status="REMOVED";record.attempted=true
++	_active_prune30(record)
++	return true
++
++## Read-only view for adapters; never grants physics, damage or source admission.
++func active_records30() -> Array[Dictionary]:
++	if _active_dirty30:
++		var rows: Array[Dictionary]=[]
++		for record: Dictionary in _active30.values():rows.append(record)
++		_active_rows30=rows;_active_dirty30=false
++	return _active_rows30
++
++func active_index_state30() -> Dictionary:
++	return {"catalogue":_records.size(),"work_records":_active30.size(),"cached_rows":_active_rows30.size(),"dirty":_active_dirty30}
+ var _session := ""
+ var _manifest := PackedByteArray()
+ var _manifest_sha := ""
+@@ -626,6 +670,7 @@
+ 	if old.get("activity")!=null:old.activity.dispose()
+ 	if is_instance_valid(body):body.free()
+ 	old.body=null;old.motion=null;old.gait=null;old.activity=null;old.status="RESPAWN_WAIT28"
++	_active_track30(old)
+ 	old["single_successor28"]=successor
+ 	return true
+ 
+@@ -651,6 +696,7 @@
+ 	var record: Dictionary={"row":old.row,"owner":successor,"generation":successor.life_generation,"speed":old.speed,"status":"PENDING_PLACEMENT","reason":"","attempted":false,"body":null,"gait":null,"activity":null,"motion":null,"request":-1,"origin":old.origin,"single_respawn28":true,"single_successor28":successor,"single_respawn28_floor_y":point.y}
+ 	if not _source_admits(point,record,"placement") or not _owned_clear(point,"resident_1"):return {"status":"REJECTED","reason":"respawn_source_or_ownership"}
+ 	_records["resident_1"]=record
++	_active_track30(record)
+ 	_busy=true
+ 	var result: Dictionary=_admit_record(record,{}, {"r":(point.z+45.1)/4.1,"c":(point.x+395.65)/4.1})
+ 	_leave_busy()
+@@ -894,6 +940,7 @@
+ 	# activity rig are all valid, so a rejected spawn never carries a half-built label.
+ 	_dsh_apply_resident_name(body, motion, record)
+ 	record.body = body; record.motion = motion; record.gait = gait; record.activity = activity; record.origin = point
++	_active_track30(record)
+ 	record["display_yaw"] = body.rotation.y
+ 	record["turn_from"] = body.rotation.y
+ 	record["turn_to"] = body.rotation.y
+@@ -1321,7 +1368,7 @@
+ 	# DSH_RESID4: the absent-key default for walk_pause was a freshly built Callable
+ 	# on every record; one empty Callable serves every miss.
+ 	var dsh_no_callable := Callable()
+-	for record: Dictionary in _records.values():
++	for record: Dictionary in active_records30():
+ 		dsh_records += 1
+ 		# DSH_RESID4: one read of record.body serves the validity test and the value;
+ 		# the conditional form read the same key twice on every record.
+@@ -1347,8 +1394,7 @@
+ 		if record.get("physical_failed",false):
+ 			var failed_owner: RefCounted = record.owner
+ 			if failed_owner.source_id != id or failed_owner.life_generation != record.generation:
+-				if is_instance_valid(body): body.queue_free()
+-				record.body = null; record.status = "REMOVED"
++				_cleanup_removed30(record)
+ 			continue
+ 		# DSH_RESID4: the previous form ran three independent membership tests on
+ 		# rag_mode, each allocating a two/three element Array, and every prewarmed
+@@ -1389,10 +1435,9 @@
+ 		# until the one-shot lifecycle timer performs full teardown. No walker work.
+ 		if record.get("single_dead28",false):continue
+ 		if not dsh_living:
+-			if record.request >= 0: _navigation.cancel(record.request)
+-			if is_instance_valid(body): body.queue_free()
+-			record.body = null; record.gait = null; record.motion = null; record.status = "REMOVED"; record.attempted = true; continue
+-		if not is_instance_valid(body): continue
++			_cleanup_removed30(record);continue
++		if not is_instance_valid(body):
++			_active_prune30(record);continue
+ 		if not body.is_on_floor() or record.status in DSH_STATUS_BLOCKED_OR_NO_PATH:  # DSH_RESID4
+ 			dsh_recover += 1  # DSH_QUERY_PROBE: intersect_shape per call inside
+ 			var dsh_r0 := Time.get_ticks_usec() if dsh_detail and dsh_timing else 0  # DSH_ROUND2
+@@ -1792,13 +1837,14 @@
+ 	var controller := ContactRetaliation.new()
+ 	if not controller.configure(token, record.gait._rest_poses, authority_current, confirmed_event): return null
+ 	record["melee_retaliation"] = controller
++	_active_track30(record)
+ 	return controller
+ 
+ ## Read only after step and player pose commit. No contact or damage is implied.
+ func contact_retaliation_capabilities() -> Array[Dictionary]:
+ 	var result: Array[Dictionary] = []
+ 	if not Thread.is_main_thread() or _busy or _disposed or _dispose_requested: return result
+-	for record: Dictionary in _records.values():
++	for record: Dictionary in active_records30():
+ 		var controller: RefCounted = record.get("melee_retaliation")
+ 		if controller == null: continue
+ 		if not _living(record) or record.get("physical_failed",false) or _physical_occupied(record.row.source_id):
+@@ -2050,7 +2096,8 @@
+ 			physical_options["final_dead_blocking_bit"] = 1024
+ 			physical_options["blocking_player"] = contact_player
+ 	var prepared: Dictionary = host.configure(token, _scene.get_ref(), Callable(self,"physical_life_current"), confirmed_events, physical_options)
+-	if prepared.get("ok",false) and physical_life_current(token): _ragdolls[id] = host
++	if prepared.get("ok",false) and physical_life_current(token):
++		_ragdolls[id] = host;_active_track30(_records[id])
+ 	else:
+ 		host.dispose()
+ 		if prepared.get("ok",false): prepared = {"ok":false,"error":"life_changed_during_prepare"}
+@@ -2101,6 +2148,7 @@
+ 		if record.activity != null: record.activity.dispose()
+ 		if is_instance_valid(record.body): record.body.queue_free()
+ 	_records.clear(); _manifest.clear(); _admit = Callable(); _support = Callable(); _placement_current = Callable(); _placement_receipt.clear(); _navigation = null; _box = null; _overlap = null; _ray = null
++	_active30.clear();_active_rows30.clear();_active_dirty30=false
+ 	_walk_preview.clear(); _walk_preview_enabled = false
+ 	var scene: Node3D = _scene.get_ref() if _scene != null else null
+ 	if is_instance_valid(scene) and scene.tree_exiting.is_connected(dispose): scene.tree_exiting.disconnect(dispose)
+--- a/scripts/navigation/npc_avoidance_world29.gd
++++ b/scripts/navigation/npc_avoidance_world29.gd
+@@ -6,6 +6,7 @@
+ class Entry extends RefCounted:
+ 	var body:WeakRef
+ 	var shape:WeakRef
++	var source_id:String
+ 	var generation:int
+ 	var input:Core.FrameInput
+ 	var seen:int
+@@ -13,6 +14,12 @@
+ var _entries:Dictionary={}
+ var _frame:=-1
+ var _valid:=false
++## Coarse read view of the same current-frame inputs, shared with perception.
++const QUERY_CELL30 := 16.0
++var _query_cells30: Dictionary = {}
++var _query_cursors30: Dictionary = {}
++var _query_scans30 := 0
++var _query_budget30: Dictionary = {"perception":0,"shot":0}
+ 
+ static func for_scene(scene:Node3D)->RefCounted:
+ 	if not is_instance_valid(scene):return null
+@@ -29,7 +36,8 @@
+ func refresh(scene:Node3D, fallback_actor:CharacterBody3D=null, fallback_id:String="fixture")->bool:
+ 	var frame:int=Engine.get_physics_frames()
+ 	if _frame==frame:return _valid
+-	_frame=frame;_keys.clear();_valid=false
++	_frame=frame;_keys.clear();_query_cells30.clear();_query_scans30=0;_valid=false
++	_query_budget30.perception=0;_query_budget30.shot=0
+ 	if not is_instance_valid(scene):return false
+ 	var population:Variant=scene.get("preview_population")
+ 	var residents:Variant=population.get("residents") if population!=null else null
+@@ -37,7 +45,7 @@
+ 	var inputs:Array=[]
+ 	if records is Dictionary:
+ 		if records.size()>Core.MAX_ACTORS:return false
+-		inputs=records.values()
++		inputs=residents.active_records30() if residents.has_method("active_records30") else records.values()
+ 	elif is_instance_valid(fallback_actor):inputs.append({"body":fallback_actor,"row":{"source_id":fallback_id}})
+ 	var registry:Variant=scene.get_meta("npc_venue_registry29") if scene.has_meta("npc_venue_registry29") else null
+ 	var rows:Array[Core.FrameInput]=[]
+@@ -54,6 +62,7 @@
+ 				if child is CollisionShape3D and not child.disabled and child.shape is CapsuleShape3D:shape=child;break
+ 			if shape==null:continue
+ 			entry=Entry.new();entry.body=weakref(actor);entry.shape=weakref(shape);entry.generation=generation
++			entry.source_id=str(record.get("row",{}).get("source_id",""))
+ 			entry.input=Core.FrameInput.new()
+ 			entry.input.key=str(record.get("row",{}).get("source_id","actor"))+":life:"+str(generation)+":body:"+str(id)
+ 			_entries[id]=entry
+@@ -68,10 +77,46 @@
+ 		row.priority=100 if bool(hint.get("portal_owner",false)) and str(hint.get("mode",""))=="crossing" else 0
+ 		row.waiting=bool(hint.get("controlled",false)) and str(hint.get("mode",""))=="waiting"
+ 		rows.append(row)
++		var query_cell30 := Vector2i(floori(row.position.x/QUERY_CELL30),floori(row.position.z/QUERY_CELL30))
++		if not _query_cells30.has(query_cell30):_query_cells30[query_cell30]=[]
++		_query_cells30[query_cell30].append(entry)
+ 	for id:Variant in _entries.keys():
+ 		if _entries[id].seen!=frame:_entries.erase(id)
+ 	_valid=core.snapshot(rows,frame,Time.get_ticks_msec())
+ 	return _valid
++
++## Fair bounded candidate discovery only. Consumers recheck identity/LOS/authority.
++## Each empty cell or candidate costs one scan unit; only two bounded cursors exist.
++func query_near30(origin: Vector3, radius: float, max_results: int=8, max_scan: int=64, channel: String="perception") -> Array[Dictionary]:
++	var result: Array[Dictionary]=[]
++	if not _valid or _frame!=Engine.get_physics_frames() or not origin.is_finite() or not is_finite(radius) or radius<=0 or radius>64.0 or channel not in ["perception","shot"]:return result
++	max_results=clampi(max_results,1,32);max_scan=clampi(max_scan,1,128)
++	max_scan=mini(max_scan,128-int(_query_budget30[channel]))
++	if max_scan<=0:return result
++	var lower := Vector2i(floori((origin.x-radius)/QUERY_CELL30),floori((origin.z-radius)/QUERY_CELL30))
++	var upper := Vector2i(floori((origin.x+radius)/QUERY_CELL30),floori((origin.z+radius)/QUERY_CELL30))
++	var width: int=upper.x-lower.x+1;var cells: int=width*(upper.y-lower.y+1)
++	var cursor: Dictionary=_query_cursors30.get(channel,{})
++	if cursor.is_empty() or cursor.lower!=lower or cursor.upper!=upper:
++		cursor={"lower":lower,"upper":upper,"cell":0,"member":0};_query_cursors30[channel]=cursor
++	var scanned:=0;var completed_cells:=0
++	while scanned<max_scan and result.size()<max_results and completed_cells<cells:
++		var cell := lower+Vector2i(int(cursor.cell)%width,int(cursor.cell)/width)
++		var bucket: Array=_query_cells30.get(cell,[])
++		if bucket.is_empty() or int(cursor.member)>=bucket.size():
++			scanned+=1;cursor.cell=(int(cursor.cell)+1)%cells;cursor.member=0;completed_cells+=1
++			continue
++		var entry: Entry=bucket[int(cursor.member)];cursor.member=int(cursor.member)+1;scanned+=1
++		var actor: Variant=entry.body.get_ref()
++		if not is_instance_valid(actor) or not actor.is_inside_tree() or actor.is_queued_for_deletion() or actor.collision_layer!=1 or entry.seen!=_frame:continue
++		if entry.input.position.distance_squared_to(origin)>radius*radius:continue
++		result.append({"body":actor,"source_id":entry.source_id,"life_generation":entry.generation,"position":entry.input.position})
++	_query_scans30+=scanned
++	_query_budget30[channel]=int(_query_budget30[channel])+scanned
++	return result
++
++func query_state30() -> Dictionary:
++	return {"frame":_frame,"cells":_query_cells30.size(),"cursors":_query_cursors30.size(),"scans_this_frame":_query_scans30,"entries":_entries.size()}
+ 
+ func steer(actor:CharacterBody3D,direction:Vector3,speed:float)->Dictionary:
+ 	if not _valid or _frame!=Engine.get_physics_frames() or not is_instance_valid(actor) or actor.is_queued_for_deletion() or actor.collision_layer!=1:
+--- a/scripts/npc_city_population.gd
++++ b/scripts/npc_city_population.gd
+@@ -17,6 +17,29 @@
+ const ROAD_SHA := "dc77f6495d2657dff91106ca831cf41fb7f7c4ecb80e3211322999e74ad82f4b"
+ const SingleLifecycle28 = preload("res://scripts/hospital/npc_single_lifecycle28.gd")
+ var _single_lifecycle28: Node
++
++## Exact resident health lookup for perception; a metadata hint grants no authority.
++func health_from_body30(body: CharacterBody3D) -> RefCounted:
++	if _disposed or residents==null or daily==null or not is_instance_valid(body) or body.is_queued_for_deletion():return null
++	var id: String=str(body.get_meta("source_id",""))
++	var health: RefCounted=daily._health.get(id)
++	if health==null:return null
++	var token: Dictionary=health._token
++	return health if token.get("body")==body and residents.target_current(token) else null
++
++## Reuses the authoritative avoidance input snapshot, never a second body registry.
++func query_near30(origin: Vector3, radius: float, max_results: int=8, max_scan: int=64, channel: String="perception") -> Array[Dictionary]:
++	var result: Array[Dictionary]=[]
++	if _disposed or not city_ready or _scene_ref==null:return result
++	var scene: Node3D=_scene_ref.get_ref() as Node3D
++	if not is_instance_valid(scene):return result
++	var view: RefCounted=Avoidance29.for_scene(scene)
++	if view==null or not view.refresh(scene):return result
++	for row: Dictionary in view.query_near30(origin,radius,max_results,max_scan,channel):
++		var health: RefCounted=health_from_body30(row.body)
++		if health==null or int(health._token.life_generation)!=int(row.life_generation):continue
++		row.health=health;row.token=health._token.duplicate();result.append(row)
++	return result
+ var daily: RefCounted
+ var incident_dispatcher: RefCounted
+ var admission_results := {}
+--- a/scripts/npc_city_daily.gd
++++ b/scripts/npc_city_daily.gd
+@@ -19,6 +19,76 @@
+ var _road_sha := ""
+ var _lives := {}
+ var _track_single28 := false
++## Opt-in full-population dispatch: native Simple drivers must run at physics Hz.
++## Dormant decision polls retain the existing bounded rotating queue below.
++var _physical_enabled30 := -1
++var _physical_lives30: Dictionary = {}
++var _physical_ids30: Array = []
++var _physical_dirty30 := false
++var _physical_steps30 := 0
++var _physical_us30 := 0
++var _physical_peak_us30 := 0
++
++func _physical_on30() -> bool:
++	if _physical_enabled30<0:
++		_physical_enabled30=1 if OS.get_cmdline_user_args().has("--city-physical-dispatch30=1") else 0
++	return _physical_enabled30==1
++
++func _physical_needed30(life: RefCounted) -> bool:
++	if life._disposed:return false
++	if life.has_method("threat_physics_active30") and life.threat_physics_active30():return true
++	return life._roam51_active or life._dsh_simple_goal_active() or life._economy28_active() or life._restaurant28_active() or life._attention29.active or (life._ambient29!=null and life._ambient29.active()) or life._visit!=null or life._phase=="WALKING"
++
++func _physical_refresh30(id: String) -> void:
++	if not _physical_on30():return
++	var life: RefCounted=_lives.get(id)
++	if life!=null and _physical_needed30(life):
++		if _physical_lives30.get(id)!=life:_physical_lives30[id]=life;_physical_dirty30=true
++	elif _physical_lives30.erase(id):_physical_dirty30=true
++
++## Incident/health integration may request an exact current life on the next tick.
++## No new life/body/goal is created, and the life still performs all its guards.
++func wake_physical30(id: String) -> bool:
++	if _disposed or not _physical_on30() or not _lives.has(id):return false
++	if _physical_lives30.get(id)!=_lives[id]:_physical_lives30[id]=_lives[id];_physical_dirty30=true
++	return true
++
++## Exact owner prevents an old death callback from removing a successor's tick.
++func forget_physical30(id: String, exact_life: RefCounted) -> bool:
++	if not _physical_lives30.has(id):return true
++	if _physical_lives30[id]!=exact_life:return false
++	_physical_lives30.erase(id);_physical_dirty30=true
++	return true
++
++func _physical_tick30(delta: float) -> void:
++	_physical_steps30=0;_physical_us30=0
++	if not _physical_on30():return
++	if _physical_dirty30:_physical_ids30=_physical_lives30.keys();_physical_dirty30=false
++	var started30: int=Time.get_ticks_usec();var frame30: int=Engine.get_physics_frames()
++	# Bounded by the original288 resident catalogue. Never skip a moving body's
++	# physics tick to fake performance; frame cost remains a release acceptance gate.
++	for id: String in _physical_ids30:
++		var life: RefCounted=_lives.get(id)
++		if life==null or life!=_physical_lives30.get(id):
++			if _physical_lives30.erase(id):_physical_dirty30=true
++			continue
++		if life._frame!=frame30:
++			_life_clock30(life)
++			if _track_single28:_step_calls28+=1
++			life.step(delta);_physical_steps30+=1
++		_physical_refresh30(id)
++	_physical_us30=Time.get_ticks_usec()-started30
++	_physical_peak_us30=maxi(_physical_peak_us30,_physical_us30)
++
++func _life_clock30(life: RefCounted) -> void:
++	if _dsh_life_clock_on()!=1:return
++	var now30: int=Time.get_ticks_msec();var last30: int=int(life._dsh_last_ms)
++	life._dsh_last_ms=now30
++	var paused30: bool=life._health!=null and life._health.has_method("should_pause_walk") and life._health.should_pause_walk()
++	life._dsh_elapsed=0.0 if last30<=0 or paused30 else clampf(float(now30-last30)/1000.0,0.0,_dsh_life_cap())
++
++func physical_dispatch_state30() -> Dictionary:
++	return {"enabled":_physical_on30(),"active":_physical_lives30.size(),"steps":_physical_steps30,"us":_physical_us30,"peak_us":_physical_peak_us30,"life_count":_lives.size(),"physical_delta_not_scaled":true}
+ var _step_calls28 := 0
+ var _accounts := {}
+ var _health := {}
+@@ -360,13 +430,11 @@
+ 		current._dsh_elapsed = 0.0; current._dsh_last_ms = Time.get_ticks_msec()
+ 		if _track_single28: _step_calls28 += 1
+ 		current.step(delta)
+-	# The walk and visit controllers only POLL. The native navigation host advances
+-	# every actor in population.step on every frame, so polling all residents here
+-	# cost about 1 ms per resident per frame at city scale and dominated the frame.
+-	# Poll a rotating slice instead: every resident is still served once per
+-	# DAILY_SLICE frames, so a leg or visit advance lands at most that many frames
+-	# later. Decisions keep their own millisecond time base, so no work is skipped,
+-	# only sampled less often.
++		_physical_refresh30(id)
++	_physical_tick30(delta)
++	# Dormant decisions keep the bounded rotating poll. The opt-in physical pass
++	# above advances active Simple/visit/attention/threat controllers every frame;
++	# unlike legacy native navigation, those controllers move inside life.step.
+ 	# DSH_NAVDAILY: the key order is cached; a resident-count change rebuilds it. Same
+ 	# residents, same order, same cursor arithmetic, same polling cadence.
+ 	var count:=_lives.size()
+@@ -380,18 +448,22 @@
+ 	var dsh_min_polls:=_dsh_daily_min_per_frame()
+ 	if dsh_min_polls>per_frame and count>0: per_frame=mini(count, dsh_min_polls)
+ 	var stepped:=0
++	var advanced30:=0
+ 	var life_total:=0
+ 	var dsh_budget:=_dsh_daily_budget()  # DSH_DAILYFX
+ 	# DSH_NAVDAILY: `phases` is read only by the DSH_DAILY print below.
+ 	var dsh_phases_frame:=frame%15==0
+ 	var phases:={}
++	var decision_started30: int=Time.get_ticks_usec() if _physical_on30() else started
+ 	for k in per_frame:
+ 		if count<=0: break
+ 		# DSH_DAILYFX: dsh_budget==0 (default) never breaks here. k>0 guarantees at
+ 		# least one poll per step, so no step can starve the walk.
+-		if dsh_budget>0 and k>0 and Time.get_ticks_usec()-started>=dsh_budget: break
++		if dsh_budget>0 and k>0 and Time.get_ticks_usec()-decision_started30>=dsh_budget: break
+ 		var index:=(_cursor+k)%count
+ 		var life: RefCounted=_lives[ids[index]]
++		advanced30+=1
++		if _physical_on30() and life._frame==frame:continue
+ 		var life_started:=Time.get_ticks_usec()
+ 		var life_phase:String=life._phase
+ 		var life_kind:String=str(life._goal.get("kind",""))
+@@ -414,6 +486,7 @@
+ 			else: life._dsh_elapsed = clampf(float(dsh_now - dsh_last) / 1000.0, 0.0, _dsh_life_cap())
+ 		if _track_single28:_step_calls28+=1
+ 		life.step(delta)
++		_physical_refresh30(str(ids[index]))
+ 		var life_us:=Time.get_ticks_usec()-life_started
+ 		stepped+=1; life_total+=life_us
+ 		if dsh_phases_frame: phases[life_phase]=int(phases.get(life_phase,0))+1
+@@ -432,7 +505,7 @@
+ 			_dsh_worst_state=life_kind
+ 			_dsh_worst_reason=str(life._reason)
+ 			_dsh_worst_parts=_dsh_poll_parts(life) if life_us>=2000 else ""
+-	if count>0: _cursor=(_cursor+stepped)%count
++	if count>0: _cursor=(_cursor+advanced30)%count
+ 	var elapsed:=Time.get_ticks_usec()-started
+ 	# DSH_VISITCACHE: the visit-scene cache trigger of this window. lookups = every cache decision
+ 	# (one per configured daily route), hits/builds its outcome, us the time the cache itself spent
+@@ -446,7 +519,7 @@
+ 		var dsh_cache: Dictionary=dsh_cache_value if dsh_cache_value is Dictionary else {}
+ 		dsh_cache_lookups=int(dsh_cache.get("lookups",0));dsh_cache_hits=int(dsh_cache.get("hits",0));dsh_cache_builds=int(dsh_cache.get("builds",0));dsh_cache_us=int(dsh_cache.get("us",0))
+ 		dsh_cache["lookups"]=0;dsh_cache["hits"]=0;dsh_cache["builds"]=0;dsh_cache["us"]=0
+-	if frame%15==0: print("DSH_DAILY f=",frame," lives=",count," stepped=",stepped," life_us=",life_total," overhead_us=",elapsed-life_total," total_us=",elapsed," phases=",phases," polls=",_dsh_poll_filled," pmin=",_dsh_poll_us_at(0.0)," p50=",_dsh_poll_us_at(.5)," p90=",_dsh_poll_us_at(.9)," pmax=",_dsh_poll_us_at(1.0)," budget_us=",dsh_budget," worst_us=",_dsh_worst_us," worst_id=",_dsh_worst_id," worst_from=",_dsh_worst_from," worst_to=",_dsh_worst_to," worst_state=",_dsh_worst_state," worst_reason=",_dsh_worst_reason," worst_parts=",_dsh_worst_parts," scene_cache_lookups=",dsh_cache_lookups," scene_cache_hits=",dsh_cache_hits," scene_cache_builds=",dsh_cache_builds," scene_cache_us=",dsh_cache_us)
++	if frame%15==0: print("DSH_DAILY f=",frame," lives=",count," stepped=",stepped," life_us=",life_total," overhead_us=",elapsed-life_total," total_us=",elapsed," phases=",phases," polls=",_dsh_poll_filled," pmin=",_dsh_poll_us_at(0.0)," p50=",_dsh_poll_us_at(.5)," p90=",_dsh_poll_us_at(.9)," pmax=",_dsh_poll_us_at(1.0)," budget_us=",dsh_budget," worst_us=",_dsh_worst_us," worst_id=",_dsh_worst_id," worst_from=",_dsh_worst_from," worst_to=",_dsh_worst_to," worst_state=",_dsh_worst_state," worst_reason=",_dsh_worst_reason," worst_parts=",_dsh_worst_parts," scene_cache_lookups=",dsh_cache_lookups," scene_cache_hits=",dsh_cache_hits," scene_cache_builds=",dsh_cache_builds," scene_cache_us=",dsh_cache_us," physical_steps30=",_physical_steps30," physical_us30=",_physical_us30)
+ 	if frame%15==0: _dsh_poll_filled=0; _dsh_poll_cursor=0; _dsh_worst_us=0; _dsh_worst_id=""; _dsh_worst_from=""; _dsh_worst_to=""; _dsh_worst_state=""; _dsh_worst_reason=""; _dsh_worst_parts=""  # DSH_DAILYFX: the window is the print interval
+ 	if _dsh_life_trace() > 0: _dsh_trace_line(frame)  # DSH_LIFETRACE: one line per traced resident per wall second
+ 	# DSH_LIVES (temporary): the population-wide counterpart of DSH_ECON, so one long
+@@ -548,7 +621,7 @@
+ 	for id: String in _lives:
+ 		var life: RefCounted=_lives[id]
+ 		rows.append(life.snapshot() if include_details else {"source_id":id,"phase":life._phase,"reason":life._reason,"kind":life._goal.get("kind",""),"completed":life._completed.duplicate()})
+-	return {"residents":rows,"failures":_failures.duplicate(true),"scope":"local_daily_services","cost":{"samples":_samples,"total_us":_total_us,"max_us":_max_us,"max_frame":_max_frame},"life_peaks":_life_peaks_snapshot(),"native_movement_tick_added":false}
++	return {"residents":rows,"failures":_failures.duplicate(true),"scope":"local_daily_services","cost":{"samples":_samples,"total_us":_total_us,"max_us":_max_us,"max_frame":_max_frame},"life_peaks":_life_peaks_snapshot(),"native_movement_tick_added":_physical_on30(),"physical_dispatch30":physical_dispatch_state30()}
+ 
+ func dispose() -> void:
+ 	if _disposed: return
+@@ -559,6 +632,7 @@
+ 	if pending: return
+ 	for account: RefCounted in _accounts.values(): account.dispose()
+ 	_disposed=true; _lives.clear(); _accounts.clear(); _health.clear(); _scene=null
++	_physical_lives30.clear();_physical_ids30.clear();_physical_dirty30=false
+ 
+ ## Authenticated one-shot death retirement, before the next daily dispatch.
+ func retire_single_dead28(owner: Node, health: RefCounted) -> bool:
+@@ -574,6 +648,7 @@
+ 		else:life._end_life()
+ 	if _accounts.has(id):_accounts[id].dispose()
+ 	_lives.erase(id);_accounts.erase(id);_health.erase(id)
++	forget_physical30(id,life)
+ 	_dsh_ids.clear();_cursor=0
+ 	return true
+ 
+@@ -583,3 +658,4 @@
+ 	for life: RefCounted in _lives.values(): life._end_life()
+ 	for account: RefCounted in _accounts.values(): account.dispose()
+ 	_disposed=true; _lives.clear(); _accounts.clear(); _health.clear(); _scene=null
++	_physical_lives30.clear();_physical_ids30.clear();_physical_dirty30=false

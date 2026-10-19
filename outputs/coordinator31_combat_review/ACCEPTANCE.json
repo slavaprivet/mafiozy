@@ -1,0 +1,68 @@
+{
+  "scene": "current production castle, city residents disabled for isolated combat fixture",
+  "input": "synthetic button state plus injected mouse events, not manual feel acceptance",
+  "samples": 1504,
+  "self_pose_failures": 0,
+  "body_clearance_min": 0.223074600100517,
+  "head_clearance_min": 0.233493894338608,
+  "ground_steady_omega_max": 0.0,
+  "ground_steady_probe_overlap": 0,
+  "whole_run_conservative_world_probe_overlaps": 1,
+  "engine_exit": 0,
+  "stderr_bytes": 0,
+  "visual": {
+    "axe": {
+      "parts_after": 6,
+      "parts_before": 10,
+      "triangles_after": 608,
+      "triangles_before": 2456
+    },
+    "bow": {
+      "live_strings_retained": true,
+      "parts_after": 4,
+      "parts_before": 8,
+      "triangles_after": 432,
+      "triangles_before": 432
+    },
+    "mace": {
+      "parts_after": 5,
+      "parts_before": 15,
+      "triangles_after": 768,
+      "triangles_before": 5352
+    },
+    "shield": {
+      "parts_after": 3,
+      "parts_before": 5,
+      "triangles_after": 220,
+      "triangles_before": 4332
+    },
+    "sledge": {
+      "parts_after": 5,
+      "parts_before": 12,
+      "triangles_after": 636,
+      "triangles_before": 3108
+    },
+    "spear": {
+      "parts_after": 5,
+      "parts_before": 9,
+      "triangles_after": 536,
+      "triangles_before": 2312
+    },
+    "sword": {
+      "parts_after": 4,
+      "parts_before": 15,
+      "triangles_after": 1676,
+      "triangles_before": 34756
+    },
+    "sword_blade_normals": {
+      "inward": 0,
+      "outward": 56
+    }
+  },
+  "source": {
+    "sword_prototype.gd": "7012e4ab7ef5eee9a2b3f08c3a8ef7678aaff8d4e784a9fca8c7d1dcb5289344",
+    "bow_prototype.gd": "59ebaf303e6491779549a41904a578cfbc7a62766b0685f92809e48a90691b4b",
+    "preview_weapons.gd": "b5729b92f27ea462f802fe3f84166426d53bbaa10196e66901314697e8cd470f",
+    "weapon_model_finish31.gd": "a93e093a597b7dc9e32bbe4c068a53c50e69c648143065457aca33ca61a19eef"
+  }
+}

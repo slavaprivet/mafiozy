@@ -1,0 +1,48 @@
+{
+  "status": "merged_passed",
+  "passed_source_audit": true,
+  "old_package": "D:/MafioziCombat31/bow_motion53/READY.json",
+  "ready_sha256": "05d87f757d755784e8f3c112bc8b890a99a6c56c1acfddc5878edb41ec91e000",
+  "incoming_changes": [
+    {
+      "path": "scripts/preview_player.gd",
+      "base_sha256": "3e1e46febba29274b1fc2357bd1e06ce36ce10f0571c19458db5ba6e48408052",
+      "candidate_sha256": "b4e02c86185557fb68a9dfdbec85932f41a79f16f1d0ec55999d3a367a4cbb02"
+    },
+    {
+      "path": "scripts/weapons/bow_prototype.gd",
+      "base_sha256": "2b850770790a5a1dccd4d3ef4e46039a1491903bacdaadc177022098ab76fcdc",
+      "candidate_sha256": "84a5bc419fc72f9a7f84d1c7280d5ce97baeb0bcfb44b1e3ff3068085eb507b2"
+    }
+  ],
+  "new_native_regressions": {
+    "candidate_sword01": {
+      "passed": true,
+      "checks": 23,
+      "source_unchanged": true,
+      "result": "D:\\MafioziCombat31\\bow_motion53_resume\\candidate_sword01\\RECEIPT.json"
+    },
+    "candidate_spear01": {
+      "passed": true,
+      "checks": 23,
+      "source_unchanged": true,
+      "result": "D:\\MafioziCombat31\\bow_motion53_resume\\candidate_spear01\\RECEIPT.json"
+    }
+  },
+  "bow_new_movement_checks": 18,
+  "raw_harness_correction": "HARNESS_CORRECTION.json",
+  "merged_harness": "D:\\MafioziCombat31\\bow_motion53_resume\\motion_regression.gd",
+  "harness_sha256": "d52195d90ef99e72376baa4805bb718f6dfd4e37507d95ee007afa699be2e3b5",
+  "runner": "D:\\MafioziCombat31\\bow_motion53_resume\\run_motion.py",
+  "merged_required": [
+    "Root combined ownership/contact/high aim and visual/NPC suites remain separate."
+  ],
+  "unchanged_old_evidence": true,
+  "gameplay_source_edits_by_resume_agent": [],
+  "scope_limits": [
+    "No performance claim.",
+    "Idle melee faces movement rather than camera; held/aimed melee follows its existing rules. New bow ownership does not run while melee selected.",
+    "This task did not edit current_version, ASSEMBLY, Git main or user game."
+  ],
+  "merged_acceptance": "D:\\MafioziCombat31\\bow_motion53_resume\\MERGED_ACCEPTANCE.json"
+}

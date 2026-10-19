@@ -1,0 +1,164 @@
+[
+  {
+    "name": "ownership",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator34_merged53\\ownership\\result.json",
+    "harness_sha256": "41f0fa6d51cc631d4fddbf6f58ceec427adaf257998e4fb763ef636c2f4cdd80"
+  },
+  {
+    "name": "law",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator34_merged53\\law\\result.json",
+    "harness_sha256": "5623f1c35749e41fe056df53b6747fecf2ac4b74cae4ab8b6d3c9a12df8cf61f"
+  },
+  {
+    "name": "bow_high",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator34_merged53\\bow_high\\result.json",
+    "harness_sha256": "e794cecada36af494bc1fb41277029902befa4b5de06f5bdac75b41b72123e3f"
+  },
+  {
+    "name": "spear_high",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator34_merged53\\spear_high\\RESULT.json",
+    "harness_sha256": "4374779f6e4fc274cea716bf775b7ae8ff80941ff26ac8a47a9f63f2c56af99c"
+  },
+  {
+    "name": "matrix_sword",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator34_merged53\\matrix_sword\\result.json",
+    "harness_sha256": "fcd4c17dfe727ec89e011b523a9532d384e5e74203572be9999c43173f09ec79"
+  },
+  {
+    "name": "matrix_mace",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator34_merged53\\matrix_mace\\result.json",
+    "harness_sha256": "fcd4c17dfe727ec89e011b523a9532d384e5e74203572be9999c43173f09ec79"
+  },
+  {
+    "name": "matrix_axe",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator34_merged53\\matrix_axe\\result.json",
+    "harness_sha256": "fcd4c17dfe727ec89e011b523a9532d384e5e74203572be9999c43173f09ec79"
+  },
+  {
+    "name": "matrix_sledge",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator34_merged53\\matrix_sledge\\result.json",
+    "harness_sha256": "fcd4c17dfe727ec89e011b523a9532d384e5e74203572be9999c43173f09ec79"
+  },
+  {
+    "name": "matrix_bow",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator34_merged53\\matrix_bow\\result.json",
+    "harness_sha256": "fcd4c17dfe727ec89e011b523a9532d384e5e74203572be9999c43173f09ec79"
+  },
+  {
+    "name": "matrix_spear_down",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator34_merged53\\matrix_spear_down\\result.json",
+    "harness_sha256": "abfb31c7eca3929a914238d5b4b779aea0648b02cae0ee508085b40471760736"
+  },
+  {
+    "name": "npc_chase",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator34_merged53\\npc_chase\\result.json",
+    "harness_sha256": "4b40635dd9bd26a36131c73bf4c46da0b511a0d5de56592bc1796b239941985a"
+  },
+  {
+    "name": "npc_detour",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator34_merged53\\npc_detour\\result.json",
+    "harness_sha256": "4b40635dd9bd26a36131c73bf4c46da0b511a0d5de56592bc1796b239941985a"
+  },
+  {
+    "name": "npc_retreat",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator34_merged53\\npc_retreat\\result.json",
+    "harness_sha256": "4b40635dd9bd26a36131c73bf4c46da0b511a0d5de56592bc1796b239941985a"
+  },
+  {
+    "name": "moving_weave",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator34_merged53\\moving_weave\\result.json",
+    "harness_sha256": "b5dc219a177647e5fbf5d863037fbd7e5e6b9c542f1cd90590a87ccf12c92429"
+  },
+  {
+    "name": "moving_rush",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator34_merged53\\moving_rush\\result.json",
+    "harness_sha256": "b5dc219a177647e5fbf5d863037fbd7e5e6b9c542f1cd90590a87ccf12c92429"
+  },
+  {
+    "name": "moving_diagonal",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator34_merged53\\moving_diagonal\\result.json",
+    "harness_sha256": "b5dc219a177647e5fbf5d863037fbd7e5e6b9c542f1cd90590a87ccf12c92429"
+  },
+  {
+    "name": "tactics",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator34_merged53\\tactics\\result.json",
+    "harness_sha256": "3f73596ac7b0f1f6faa261653b84e5758f1fd21c5e373be334d72d3d0686cb3d"
+  },
+  {
+    "name": "armored_contact",
+    "scheduler": true,
+    "passed": true,
+    "errors": [],
+    "drift": [],
+    "result": "D:\\MafioziCombat31\\coordinator34_merged53\\armored_contact\\result.json",
+    "harness_sha256": "e580573e583f85658559b3811b4fe87fafa1d7d4d165faa9386f90efafd683e5"
+  }
+]

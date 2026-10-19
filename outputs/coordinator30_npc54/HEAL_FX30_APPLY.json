@@ -1,0 +1,25 @@
+{
+  "game": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\game",
+  "files": [
+    {
+      "path": "scripts/npc_daily_life.gd",
+      "before": "db7181da6154da8b7579c66ace734b93971009cf7a4c8e5cd7ed70424c5f76eb",
+      "after": "4b4778be7f8e5a65f847133ce9b49582d1150d8e38c7761bacf9da140e649fa9",
+      "changed": true
+    },
+    {
+      "path": "scripts/hospital/npc_hospital_treatment_port.gd",
+      "before": "f14a46bd93a589f24206ba21b2d3030ada1f1f2473a2735662ef057c80c24200",
+      "after": "df1afd6f688d46892cde369d4de814884d771ca55ed4721f8f89cb40c78cb97b",
+      "changed": true
+    },
+    {
+      "path": "scripts/npc_visual/npc_heal_fx30.gd",
+      "before": null,
+      "after": "f504516d4e22146b7c4125348bdc86a1f684ac797d470d4c0744c5db220feb67",
+      "changed": true
+    }
+  ],
+  "physics_or_service_changed": false,
+  "cashier_appearance_changed": false
+}

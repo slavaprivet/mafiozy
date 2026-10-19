@@ -1,0 +1,19 @@
+{
+  "schema": "mafiozi.exit-door-stage56/v1",
+  "shared_modified_by_author": false,
+  "native_validation": "four_native_service_cycles_complete_candidate_actual02; immutable_receipt_reanalysis_36_of_36_PASS; raw_formal_FAIL_preserved",
+  "files": [
+    {
+      "path": "scripts/hospital/npc_simple_hospital.gd",
+      "candidate_file": "npc_simple_hospital.gd",
+      "base_sha256": "ee46467d27baeb9b3e58f55b191f3f92211544734b4ebfb369eb329168b35f89",
+      "candidate_sha256": "737291ac97b210d4afbe9b490e7f5aefd32833f1ffad867f5fe9f3b677ca6a55"
+    },
+    {
+      "path": "scripts/hospital/npc_restaurant_visit28.gd",
+      "candidate_file": "npc_restaurant_visit28.gd",
+      "base_sha256": "042323f35e6ad62bd40febdf20709b45a03562391ca68ebe6d43a2a08fc570e5",
+      "candidate_sha256": "63a7e4c03a11b0774f806c5f3565ca4d3c2d1c611cd2b90c5f935cd2cd90fc4f"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "source_count": 1135,
+  "source_drift": false,
+  "control_drift": false,
+  "native": {
+    "counter_checks": {
+      "defer_keeps_ticket_and_price": true,
+      "defer_refuses_start": true,
+      "first_two_not_deferred": true,
+      "routine_request": true,
+      "third_failure_defers_45s": true,
+      "urgent_food_clears_defer": true
+    },
+    "parsed": [
+      "scripts/city/runtime/npc_routine58.gd",
+      "scripts/city/runtime/npc_leisure58.gd",
+      "scripts/quick_controls/day_night_clock.gd",
+      "scripts/shop/npc_economy_visit28.gd",
+      "scripts/npc_ambient/ambient_controller28.gd",
+      "scripts/city/runtime/npc_threat_life30.gd",
+      "scripts/npc_daily_life.gd",
+      "scripts/npc_city_daily.gd"
+    ],
+    "passed": true,
+    "scope": "Native GDScript compile and original resource identity only; no city behavior acceptance"
+  },
+  "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "overlay_only": true,
+  "production_changed": false
+}

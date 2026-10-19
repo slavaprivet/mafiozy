@@ -1,0 +1,11 @@
+{
+  "schema": "mafiozi.current-play/v1",
+  "title": "16.10 · Один владелец действий · версия58",
+  "revision": "s01-20261016-residents58-onepass",
+  "assembly": "outputs/coordinator31_unified58/ASSEMBLY.json",
+  "assembly_sha256": "993218313ad6f657d0a8cdc4a15f1fc4f242e2cd7010aed9137eed3fccb30479",
+  "bootstrap": "outputs/coordinator31_unified58/bootstrap_play58.gd",
+  "bootstrap_sha256": "752a0d22d7c62bbd0201131eff4365f4444d2600d2647534d7ba6f0f67a0adec",
+  "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "scope": "Single unified scene: one action owner, one goal, one prepared walking route per resident; seat reserved at goal choice and held to the action; residents pass through each other so no mutual detour is produced; an unreachable goal is replaced by another available place instead of a long dead search. Player weapon shop, needs, medical care at 50% health, threat reactions, four destructible homes and ten personal beds kept. Performance acceptance pending."
+}

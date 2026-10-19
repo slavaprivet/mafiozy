@@ -1,0 +1,94 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--path",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\avoid_state56\\native_project",
+    "--script",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\avoid_state56\\fixture56.gd",
+    "--",
+    "--qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\avoid_state56\\runs\\candidate02",
+    "--city-simple-hospital=1"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "1efc95e82f9241c5b63fc16d9223fcd1",
+    "owner": {
+      "pid": 23872,
+      "creation_filetime": "134365038851842400"
+    },
+    "mode": "headless",
+    "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator30_npc54\\proposals\\avoid_state56\\native_project",
+    "access": "read",
+    "children": [
+      {
+        "pid": 12220,
+        "creation_filetime": "134365038862362608",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\avoid_state56\\native_project --script C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\avoid_state56\\fixture56.gd -- --qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\avoid_state56\\runs\\candidate02 --city-simple-hospital=1",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\avoid_state56\\native_project",
+          "--script",
+          "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\avoid_state56\\fixture56.gd",
+          "--",
+          "--qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\avoid_state56\\runs\\candidate02",
+          "--city-simple-hospital=1"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator30_npc54\\proposals\\avoid_state56\\native_project",
+        "affinity_mask": 12,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 972017.7238003,
+    "queued_at": 971987.7238003,
+    "ticket": 1647,
+    "inventory_before": [
+      {
+        "pid": 26860,
+        "parent_pid": 12576,
+        "creation_filetime": "134365038289018430",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\game --script C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\services_city56\\entry_services56.gd -- --city-simple-hospital=1 --city-plaza-support-plate=1 --city-medical-threshold=0.5 --city-energy-drain-per-m=0.05 --city-energy-threshold=0.2 --city-palazzo-clones=1 --city-clone-step=22 --city-town=1 --city-door-free-entry=1 --city-site-door-physics=1 --city-clone-door-swing=1 --city-needs=1 --city-shop-release=1 --city-nav-pump-budget-us=4000 --city-nav-pump-every=1 --city-daily-slice=286 --city-sim-stride=1 --city-sim-one-per-frame=0 --city-walk-pose=1 --city-clear-cache=1 --city-timing=0 --city-health-lease --city-hospital-marker=0 --city-venue-sites29=1 --city-hp=100 --city-venue-staff29=1 --city-physical-dispatch30=1 --city-multi-lifecycle30=1 --city-threat30=1 --city-qa=10 --city-pose-far-cap=48 --qa-duration=240 --qa-residents=10 --qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\services_city56\\runs\\actual10_01",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": ""
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5268189999042079
+  },
+  "child": {
+    "pid": 12220,
+    "creation_filetime": "134365038862362608",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\avoid_state56\\native_project --script C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\avoid_state56\\fixture56.gd -- --qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\avoid_state56\\runs\\candidate02 --city-simple-hospital=1",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--path",
+      "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\avoid_state56\\native_project",
+      "--script",
+      "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\avoid_state56\\fixture56.gd",
+      "--",
+      "--qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator30_npc54\\proposals\\avoid_state56\\runs\\candidate02",
+      "--city-simple-hospital=1"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator30_npc54\\proposals\\avoid_state56\\native_project",
+    "affinity_mask": 12,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 1.8165035999845713,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

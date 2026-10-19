@@ -1,0 +1,29 @@
+{
+  "scope": "Isolated actual geometry CPU; 77281 checks PASS; no shared native registration or gameplay authority",
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/combat/melee_native_query_adapter.gd",
+      "sha256": "f7c663fe65f03a21c41c3b73ee7df4aea3d989757b635680671205460ad614d4"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_melee_native_query_adapter.gd",
+      "sha256": "86c5ca6d781e945497fa41de28f96fb7614ec04399a696815681f9e7adf755e5"
+    },
+    {
+      "path": "docs/godot/MELEE_NATIVE_QUERY_ADAPTER_HANDOFF.md",
+      "sha256": "00dc14ec7b3c3ac97fe98ea9de1f21889022e13b471a46d6caf53fa916466107"
+    },
+    {
+      "path": "outputs/coordinator22_native_query/report.json",
+      "sha256": "6521c207d752509f3c9ba0c736ca271c6b3202ab4ab1fec01bdd1f553d5fba4b"
+    },
+    {
+      "path": "outputs/coordinator22_native_query/run.log",
+      "sha256": "87cf01b032650354d973c10bd1047ab217aef9554088eb8bab52123dbea5cbdc"
+    },
+    {
+      "path": "outputs/coordinator22_native_query/run.ps1",
+      "sha256": "ee0feeeb46d5d77191641846b0059a610d8a30c47506e1db3188c7d75717e9cd"
+    }
+  ]
+}

@@ -59,18 +59,28 @@ func actors()->Array:
 	var result:Array=[]
 	for owner:RefCounted in owners:
 		var physical:RefCounted=scene.preview_population.residents._ragdolls[owner._token.source_id]
-		var position:Vector3=owner._token.body.global_position
+		var original_body:Node3D=owner._token.body;var original_rig:Skeleton3D=owner._token.rig
+		var body_in_tree:bool=is_instance_valid(original_body) and original_body.is_inside_tree() and not original_body.is_queued_for_deletion()
+		var rig_in_tree:bool=is_instance_valid(original_rig) and original_rig.is_inside_tree() and not original_rig.is_queued_for_deletion()
+		var position:Vector3=original_body.global_position if body_in_tree else Vector3.ZERO
 		if physical.mode=="ACTIVE":position=physical._body._bodies.pelvis.global_position # QA read only; avoid a full energy/joint scan inside timing.
-		result.append({"id":owner._token.source_id,"hp":owner._row.hp,"dead":owner._row.get("dead",false),"medical":owner._row.get("_medicalDowned",false),"mode":physical.mode,"bodies":physical.owned_bodies().size(),"bones":owner._token.rig.get_bone_count(),"position":[position.x,position.y,position.z]})
+		var parts_in_tree:=0
+		for part:RigidBody3D in physical.owned_bodies():
+			if is_instance_valid(part) and part.is_inside_tree() and not part.is_queued_for_deletion():parts_in_tree+=1
+		result.append({"id":owner._token.source_id,"hp":owner._row.hp,"dead":owner._row.get("dead",false),"medical":owner._row.get("_medicalDowned",false),"mode":physical.mode,"bodies":physical.owned_bodies().size(),"parts_in_tree":parts_in_tree,"body_in_tree":body_in_tree,"rig_in_tree":rig_in_tree,"retained":body_in_tree and rig_in_tree,"bones":original_rig.get_bone_count() if rig_in_tree else 0,"position":[position.x,position.y,position.z]})
 	result.sort_custom(func(a:Dictionary,b:Dictionary)->bool:return a.id<b.id)
 	return result
 func snapshot()->Dictionary:
 	var camera:Camera3D=p.get_preview_camera()
-	return {"actors":actors(),"npc":scene.preview_population.residents.occupants().size(),"buildings":scene._block.counts.buildings,"colliders":scene.find_children("*","CollisionObject3D",true,false).size(),"shapes":scene.find_children("*","CollisionShape3D",true,false).size(),"camera_top_level":camera.top_level,"camera_position":[camera.global_position.x,camera.global_position.y,camera.global_position.z],"camera_basis":[camera.global_basis.x.x,camera.global_basis.x.y,camera.global_basis.x.z,camera.global_basis.y.x,camera.global_basis.y.y,camera.global_basis.y.z,camera.global_basis.z.x,camera.global_basis.z.y,camera.global_basis.z.z],"yaw":p._camera_yaw,"pitch":p._camera_pitch,"fov":camera.fov,"player":[p.global_position.x,p.global_position.y,p.global_position.z],"magazine":w.fire_state.magazine,"reserve":w.fire_state.reserveAmmo,"shots":shots,"impacts":impacts,"mouse_mode":Input.mouse_mode,"unfocusable":root.unfocusable}
+	var current_actors:Array=actors()
+	# Occupants enumerates living interactive NPCs, intentionally excluding final
+	# death. Retained original bodies/rigs measure scene content independently.
+	var retained_npc:int=current_actors.filter(func(v:Dictionary)->bool:return v.retained).size()
+	return {"actors":current_actors,"npc":retained_npc,"living_npc":scene.preview_population.residents.occupants().size(),"buildings":scene._block.counts.buildings,"colliders":scene.find_children("*","CollisionObject3D",true,false).size(),"shapes":scene.find_children("*","CollisionShape3D",true,false).size(),"camera_top_level":camera.top_level,"camera_position":[camera.global_position.x,camera.global_position.y,camera.global_position.z],"camera_basis":[camera.global_basis.x.x,camera.global_basis.x.y,camera.global_basis.x.z,camera.global_basis.y.x,camera.global_basis.y.y,camera.global_basis.y.z,camera.global_basis.z.x,camera.global_basis.z.y,camera.global_basis.z.z],"yaw":p._camera_yaw,"pitch":p._camera_pitch,"fov":camera.fov,"player":[p.global_position.x,p.global_position.y,p.global_position.z],"magazine":w.fire_state.magazine,"reserve":w.fire_state.reserveAmmo,"shots":shots,"impacts":impacts,"mouse_mode":Input.mouse_mode,"unfocusable":root.unfocusable}
 func content_ok(value:Dictionary,label:String)->void:
 	check(value.npc==3 and value.buildings==8 and value.colliders==377 and value.shapes==377,label+":full_original_content")
 	check(value.actors.map(func(v:Dictionary)->String:return v.id)==["resident_169","resident_252","resident_72"],label+":original_IDs")
-	check(value.actors.all(func(v:Dictionary)->bool:return v.bodies==16),label+":all_original_physical_parts_retained")
+	check(value.actors.all(func(v:Dictionary)->bool:return v.bodies==16 and v.parts_in_tree==16 and v.body_in_tree and v.rig_in_tree and v.bones==28),label+":all_original_physical_parts_and_rigs_retained")
 	check(not value.camera_top_level and value.mouse_mode==Input.MOUSE_MODE_VISIBLE and value.unfocusable,label+":attached_camera_no_OS_capture")
 func choose_fixture()->bool:
 	var center:=Vector3.ZERO
@@ -202,7 +212,7 @@ func finish()->void:
 	if done:return
 	done=true;Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
 	if is_instance_valid(p):p._free_mouse_look=false
-	var value:Dictionary={"schema":"rpg-render-pair/v1","valid":errors.is_empty(),"errors":errors,"side":side,"mode":mode,"pack_sha256":expected_sha,"harness_sha256":FileAccess.get_sha256(get_script().resource_path),"seconds":(Time.get_ticks_usec()-started)/1000000.0,"fixture":fixture_data,"phases":phases,"samples":samples,"events":events,"captures":captures,"qa_logical_reacquisitions":logical_reacquisitions,"settings":{"size":[1280,720],"taa":root.use_taa,"msaa":root.msaa_3d,"vsync":"off","fixed_fps":60,"window":"offscreen_NO_FOCUS","position":[-32000,-32000],"frames":[240,360,360]},"limits":["Baseline16 has cosmetic-only blast; candidate includes real HP/ragdoll work. Additional physics cost expected, not identical workload.","All original3NPC/8buildings/377colliders/48parts retained; no culling or HP injection.","Ordinary attached spring arm and deterministic QA placement/clinical RNG; no fake impact.","Perf mode has NO image readbacks. Visual replay image overhead is not performance evidence.","Logical QA control admission bypasses desktop focus only; OS cursor never captured.","Offscreen fixed-delta wall/GPU timings are conditional; use same cache/desktop conditions."]}
+	var value:Dictionary={"schema":"rpg-render-pair/v2","valid":errors.is_empty(),"errors":errors,"side":side,"mode":mode,"pack_sha256":expected_sha,"harness_sha256":FileAccess.get_sha256(get_script().resource_path),"seconds":(Time.get_ticks_usec()-started)/1000000.0,"fixture":fixture_data,"phases":phases,"samples":samples,"events":events,"captures":captures,"qa_logical_reacquisitions":logical_reacquisitions,"settings":{"size":[1280,720],"taa":root.use_taa,"msaa":root.msaa_3d,"vsync":"off","fixed_fps":60,"window":"offscreen_NO_FOCUS","position":[-32000,-32000],"frames":[240,360,360]},"limits":["Baseline16 has cosmetic-only blast; candidate includes real HP/ragdoll work. Additional physics cost expected, not identical workload.","All original3NPC/8buildings/377colliders/48parts retained; no culling or HP injection.","Ordinary attached spring arm and deterministic QA placement/clinical RNG; no fake impact.","Perf mode has NO image readbacks. Visual replay image overhead is not performance evidence.","Logical QA control admission bypasses desktop focus only; OS cursor never captured.","Offscreen fixed-delta wall/GPU timings are conditional; use same cache/desktop conditions."]}
 	if not out.is_empty():FileAccess.open(out.path_join("RESULT.json"),FileAccess.WRITE).store_string(JSON.stringify(value,"\t"))
 	print("RPG_PAIR_RESULT ",JSON.stringify({"valid":value.valid,"errors":errors,"seconds":value.seconds,"mode":mode}))
 	quit(0 if errors.is_empty() else 2)

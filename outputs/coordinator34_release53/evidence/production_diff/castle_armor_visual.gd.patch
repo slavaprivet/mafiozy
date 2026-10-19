@@ -1,0 +1,11 @@
+--- 52/scripts/combat/castle_armor_visual.gd
++++ 53/scripts/combat/castle_armor_visual.gd
+@@ -136,7 +136,7 @@
+ 	for node: Node in _actor.find_children("*", "MeshInstance3D", true, false):
+ 		var mesh := node as MeshInstance3D
+ 		var name := String(mesh.name)
+-		if name in ["player_male_DEMO_hair_HAIR", "player_male_DEMO_headwear_HAIR", "player_male_DEMO_headwear_FABRIC", "player_female_DEMO_core_HAIR", "npc_hair_cap"] or name.begins_with("npc_wave"):
++		if name in ["player_male_DEMO_hair_HAIR", "player_male_DEMO_headwear_HAIR", "player_male_DEMO_headwear_FABRIC", "player_female_DEMO_core_HAIR", "npc_hair_cap"] or name.begins_with("npc_wave") or name.begins_with("npc_hair") or name.begins_with("npc_combed_lock") or name.begins_with("npc_crew_top"):
+ 			if not _hidden_headwear.has(mesh): _hidden_headwear[mesh] = mesh.visible
+ 			mesh.visible = false
+ 

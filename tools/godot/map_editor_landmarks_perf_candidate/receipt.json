@@ -1,0 +1,21 @@
+{
+  "schema": "mafiozi.landmark-owner-plan-cache-perf/v1",
+  "sourceSha256": "4e459bda9cf6a9ab752667bc8a55fe36a6a6c4d7350a7d5ddc64e08c6a8c490c",
+  "frozenBaselineCodeSha256": "0538b04bb8bfcbd15506e5a7002e44136cc4afe108504daec44601a3dfa6706e",
+  "optimizedCodeSha256": "e24f6dc7b555ce050b02b95a293a7f5355c786b6b7231ddb9ab262b099882179",
+  "engine": "Godot 4.7.2.stable.official.ed1daf0bf",
+  "originalSuiteChecks": 353646,
+  "independentParityChecks": 652,
+  "sourceParts": 933,
+  "sharedMeshes": 267,
+  "originalMultiMeshes": 22,
+  "scenario": "Same manifest and resources in one headless process, 120 warmed native previews per owner, both execution orders interleaved, full returned-plan and culling AABB equality",
+  "beforeColdResourcesUs": 63733,
+  "afterColdResourcesUs": 61665,
+  "bridge": {"beforeP50Us": 1327, "beforeP95Us": 1575, "afterP50Us": 314, "afterP95Us": 400, "beforeFirstPlanUs": 1635, "afterFirstPlanUs": 1974},
+  "island": {"beforeP50Us": 5387, "beforeP95Us": 6372, "afterP50Us": 1469, "afterP95Us": 1967, "beforeFirstPlanUs": 5250, "afterFirstPlanUs": 1699},
+  "deferredOwnerCachesBuilt": 2,
+  "gpuUsed": false,
+  "sceneAdmitted": false,
+  "remainingGates": ["original38 textures and source samplers", "native IBL and normal encoding visual acceptance", "actual site authority, collider, doors/release and navigation owners", "live game frame-time measurement"]
+}

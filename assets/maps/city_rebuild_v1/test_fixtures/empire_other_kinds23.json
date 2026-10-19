@@ -1,0 +1,77 @@
+{
+  "source": "Six scalar inputs retained from empire_native_route_compare19 CPU geometry report. Four historical unsafe paths and two controls. Synthetic route kinds, not live guard jobs.",
+  "pairs": [
+    {
+      "index": 0,
+      "start": {
+        "r": 24.5,
+        "c": 22
+      },
+      "goal": {
+        "r": 28.809149866490614,
+        "c": 21.575585782373004
+      },
+      "historicalEdgeFailures": 1
+    },
+    {
+      "index": 2,
+      "start": {
+        "r": 24.5,
+        "c": 22
+      },
+      "goal": {
+        "r": 28.318719074628376,
+        "c": 19.95885212954343
+      },
+      "historicalEdgeFailures": 1
+    },
+    {
+      "index": 4,
+      "start": {
+        "r": 24.5,
+        "c": 22
+      },
+      "goal": {
+        "r": 48.384433440132725,
+        "c": 19.647588632090546
+      },
+      "historicalEdgeFailures": 6
+    },
+    {
+      "index": 5,
+      "start": {
+        "r": 24.5,
+        "c": 22
+      },
+      "goal": {
+        "r": 1.5334319424269864,
+        "c": 28.96683225410709
+      },
+      "historicalEdgeFailures": 4
+    },
+    {
+      "index": 1,
+      "start": {
+        "r": 24.5,
+        "c": 22
+      },
+      "goal": {
+        "r": 23.655258905670163,
+        "c": 17.75319973585401
+      },
+      "historicalEdgeFailures": 0
+    },
+    {
+      "index": 3,
+      "start": {
+        "r": 24.5,
+        "c": 22
+      },
+      "goal": {
+        "r": 22.094380891025125,
+        "c": 18.39973657872998
+      },
+      "historicalEdgeFailures": 0
+    }
+  ]
+}

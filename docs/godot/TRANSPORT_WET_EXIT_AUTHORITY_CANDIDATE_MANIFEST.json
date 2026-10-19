@@ -1,0 +1,104 @@
+{
+  "schema": "mafiozi.transport.wet_exit_authority_candidate.v1",
+  "status": "PROOF_ONLY_NOT_ADOPTED_WET_AUTHORITY_PENDING",
+  "generated_at": "2026-09-30",
+  "provider": "TRANSPORT_WET_EXIT_AUTHORITY_CANDIDATE_V1",
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/candidates/transport_wet_exit_authority.gd",
+      "bytes": 28280,
+      "sha256": "e9b017eb9a9c98f23cc896c69c25d229c730cfa73b304509e4d6eb991a48b241"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_wet_exit_authority.gd",
+      "bytes": 20728,
+      "sha256": "0c276fd4ce00920a2c23c0f15b825dfd2bd4c76b86d09f9a015a8af06fa52e74"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_wet_exit_authority_cost.gd",
+      "bytes": 3341,
+      "sha256": "72ad623344728d4d1c110f9e8851f24d34d2de472e97217ce174b71c4d3d5fbc"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_WET_EXIT_AUTHORITY_BRANCH_AUDIT.md",
+      "bytes": 4559,
+      "sha256": "f58a3db8aa7ed7b616f24ada9d6c64cd6f8abe2416b1ce52326f45d8061caa01"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_WET_EXIT_AUTHORITY_CANDIDATE_HANDOFF.md",
+      "bytes": 7892,
+      "sha256": "aa25b6aec264bd36a901d325a9e81dd4af5820fa9c2cc7a125edbb58191b717e"
+    }
+  ],
+  "dependencies": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_water_doorway_pose.gd",
+      "sha256": "fb61223de23c81c4317e2cf934815d9d45182aa2fc0b41d1f8ff5a2d133b03c3"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_water_exit_surface.gd",
+      "sha256": "cc72286766429bfa9942961bd85f1f26457342a2981d087bbe1af93265c0f200"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_descriptor_catalog.gd",
+      "sha256": "85614568d1a4b23391618e84e8de250c9b872a9215353734d3f7e1f7638d3e97"
+    },
+    {
+      "path": "godot/mafiozi_walk/data/transport/vehicle_descriptors.v1.json",
+      "sha256": "99d328bc4a581bc65815498b265ae5eec71a25b831512b15d376e1c0f5ac031a"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_water_exit.mjs",
+      "sha256": "531fc5b01dd1ad6ce2fda5b8aac76688cf5f1888fc4f05610a7ef176c259a860"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/car_exit.mjs",
+      "sha256": "c89df365c19659e02cd89a5ba75df1a3218808845a8154e0973ce682fb7ee263"
+    }
+  ],
+  "dry_files_unchanged": [
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_runtime.gd",
+      "sha256": "d493809fc33415ca9f0ad2204ad4fb2f458391cdcc80771311d1979f5dc9c04c"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_logical_host.gd",
+      "sha256": "5371b8561507d23334b83765d25d2d655033d3bb6f493568ff00868b779ea5ad"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_access_provider.gd",
+      "sha256": "325be57c92fca3b83aa884d47577c7e7014553850ee1806166fa67419f5cf830"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_actor_transition.gd",
+      "sha256": "c9ed1ad7205c74d1131cfda0588f8c862fb1ae6cf64d7b42c83b25f1b0df4c6f"
+    }
+  ],
+  "verification": {
+    "engine": "Godot 4.7.2 stable official ed1daf0bf",
+    "correctness": {
+      "checks": 42,
+      "failures": 0,
+      "exit_code": 0
+    },
+    "cost": {
+      "operations": 100,
+      "failures": 0,
+      "exit_code": 0,
+      "operation": "begin_hold actual Jolt capsule probes plus cancel",
+      "block_mean_us_min": 759.4,
+      "block_mean_us_p50": 844.3,
+      "block_mean_us_p95": 990.2,
+      "block_mean_us_max": 1448.4,
+      "scope": "isolated headless; no full-scene FPS"
+    }
+  },
+  "authority_boundary": {
+    "terminal": "WET_AUTHORITY_PENDING",
+    "receipt": "one_shot_consumed_lease",
+    "host_seat_mutated": false,
+    "runtime_adopted": false,
+    "trusted_adapter_provided": false,
+    "required_root_dependency": "internal Host wet claim plus sealed Root capsule/source-motion providers and real locomotion owner handoff"
+  }
+}

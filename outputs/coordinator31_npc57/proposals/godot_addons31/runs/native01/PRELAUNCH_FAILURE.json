@@ -1,0 +1,4 @@
+{
+  "engine_launched": false,
+  "reason": "Optional .vscode/launch.json was absent; failure before any Lease or child creation. Fixed only runner optional-control enumeration for native02."
+}

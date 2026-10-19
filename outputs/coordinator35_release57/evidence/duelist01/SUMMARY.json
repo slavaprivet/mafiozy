@@ -1,0 +1,9 @@
+{
+  "name": "duelist01",
+  "passed": true,
+  "errors": [],
+  "scheduler_errors": [],
+  "scheduler_error": null,
+  "drift": [],
+  "script_sha256": "845812ed70849954e12babfff92c5a53b381ef87a6de3a8a506a873b0a9929c3"
+}

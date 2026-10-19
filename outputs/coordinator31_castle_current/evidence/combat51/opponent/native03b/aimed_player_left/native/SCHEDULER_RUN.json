@@ -1,0 +1,90 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--path",
+    "D:\\MafioziCombat31\\resume51_opponent\\candidate03\\game",
+    "--script",
+    "D:\\MafioziCombat31\\resume51_opponent\\aimed_player51.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\resume51_opponent\\native03b\\aimed_player_left",
+    "--weapon=sword",
+    "--strokes=8",
+    "--direction=left"
+  ],
+  "passed": false,
+  "lease": {
+    "id": "6d61d8ccfd51415293192a6397b4a84e",
+    "owner": {
+      "pid": 52868,
+      "creation_filetime": "134368074308879694"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\resume51_opponent\\candidate03\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 40268,
+        "creation_filetime": "134368074319288660",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\resume51_opponent\\candidate03\\game --script D:\\MafioziCombat31\\resume51_opponent\\aimed_player51.gd -- --qa-out=D:\\MafioziCombat31\\resume51_opponent\\native03b\\aimed_player_left --weapon=sword --strokes=8 --direction=left",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "D:\\MafioziCombat31\\resume51_opponent\\candidate03\\game",
+          "--script",
+          "D:\\MafioziCombat31\\resume51_opponent\\aimed_player51.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\resume51_opponent\\native03b\\aimed_player_left",
+          "--weapon=sword",
+          "--strokes=8",
+          "--direction=left"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "d:\\mafiozicombat31\\resume51_opponent\\candidate03\\game",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 1275658.1547195,
+    "queued_at": 1275538.1547195,
+    "ticket": 4043,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5209988998249173
+  },
+  "child": {
+    "pid": 40268,
+    "creation_filetime": "134368074319288660",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\resume51_opponent\\candidate03\\game --script D:\\MafioziCombat31\\resume51_opponent\\aimed_player51.gd -- --qa-out=D:\\MafioziCombat31\\resume51_opponent\\native03b\\aimed_player_left --weapon=sword --strokes=8 --direction=left",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--path",
+      "D:\\MafioziCombat31\\resume51_opponent\\candidate03\\game",
+      "--script",
+      "D:\\MafioziCombat31\\resume51_opponent\\aimed_player51.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\resume51_opponent\\native03b\\aimed_player_left",
+      "--weapon=sword",
+      "--strokes=8",
+      "--direction=left"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\resume51_opponent\\candidate03\\game",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 1,
+  "elapsed_seconds": 7.866410000016913,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

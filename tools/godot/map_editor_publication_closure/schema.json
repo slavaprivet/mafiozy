@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mafiozi.portable-map-resource-closure/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "engineContract", "mapBundle_sha256", "families", "blobs"],
+  "properties": {
+    "schema": {"const": "mafiozi.portable-map-resource-closure/v1"},
+    "engineContract": {"const": "godot-native-map-importer/closure-v1"},
+    "mapBundle_sha256": {"anyOf": [{"type": "null"}, {"type": "string", "pattern": "^[a-f0-9]{64}$"}]},
+    "families": {
+      "type": "array", "minItems": 8, "maxItems": 8,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "manifest_sha256", "semanticKeys"],
+        "properties": {
+          "id": {"enum": ["catalog", "ground-topology", "ground-palette", "procedural", "transport", "landmarks", "landmark-textures", "rail-caption-capture"]},
+          "manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "semanticKeys": {"type": "array", "maxItems": 20000, "uniqueItems": true, "items": {"type": "string", "maxLength": 512}}
+        }
+      }
+    },
+    "blobs": {
+      "type": "array", "maxItems": 4096,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["sha256", "bytes", "kind", "path"],
+        "properties": {
+          "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "bytes": {"type": "integer", "minimum": 1, "maximum": 67108864},
+          "kind": {"enum": ["json", "glb", "buffer", "rgba8"]},
+          "path": {"type": "string", "pattern": "^blobs/[a-f0-9]{64}\\.(json|glb|bin|rgba)$"}
+        }
+      }
+    }
+  },
+  "$comment": "Schema structure is not authority. Runtime verifier additionally checks every exact content hash/byte count, source family admission, references, semantic identity, external GLB URIs and host-owned runtime/capture gates. Embedded original JS recipe strings in data manifests are opaque provenance, never executed. No file readiness/unlock/importer script flag exists."
+}

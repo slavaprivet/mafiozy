@@ -1,0 +1,277 @@
+--- a/scripts/hospital/npc_physical_route51.gd
++++ b/scripts/hospital/npc_physical_route51.gd
+@@ -2,9 +2,11 @@
+ ## Incremental physical A*: live full-body queries, no navigation mesh assumption.
+ ## Shared 1800us SOFT deadline per physics frame across all local searches.
+ ## Each service unit examines one neighbour or one direct-path support sample.
++const Passage31 = preload("res://scripts/navigation/npc_passage31.gd")
+ const Surface = preload("res://scripts/hospital/npc_walk_surface28.gd")
+ const Budget = preload("res://scripts/hospital/npc_route_budget29.gd")
+ var _surface: RefCounted
++var _passage31: Node
+ const CELL := 0.4
+ const STEP := 0.34
+ const CLEARANCE := 0.025
+@@ -54,6 +56,7 @@
+ 	cancel()
+ 	if not is_instance_valid(actor) or not actor.is_inside_tree(): return false
+ 	body = actor
++	_passage31 = Passage31.for_scene(actor.get_tree().current_scene)
+ 	shape = null
+ 	for child: Node in body.get_children():
+ 		if child is CollisionShape3D and child.shape is CapsuleShape3D and not child.disabled:
+@@ -67,7 +70,7 @@
+ 	return body.get_world_3d().direct_space_state
+ 
+ func floor_at(at: Vector3, reference_y: float) -> Variant:
+-	var q := PhysicsRayQueryParameters3D.create(Vector3(at.x, reference_y + STEP + .06, at.z), Vector3(at.x, reference_y - .7, at.z), body.collision_mask, [body.get_rid()])
++	var q := PhysicsRayQueryParameters3D.create(Vector3(at.x, reference_y + STEP + .06, at.z), Vector3(at.x, reference_y - .7, at.z), body.collision_mask, _exclusions31(at))
+ 	queries += 1
+ 	var hit: Dictionary = _space().intersect_ray(q)
+ 	if hit.is_empty():
+@@ -83,12 +86,15 @@
+ 		return null
+ 	return Vector3(at.x, float(hit.position.y) + .003, at.z)
+ 
++func _exclusions31(at: Vector3) -> Array[RID]:
++	return _passage31.query_exclusions(body, at) if is_instance_valid(_passage31) else [body.get_rid()]
++
+ func _query(at: Vector3) -> PhysicsShapeQueryParameters3D:
+ 	var q := PhysicsShapeQueryParameters3D.new()
+ 	q.shape = shape.shape
+ 	q.transform = Transform3D(body.global_basis, at + Vector3.UP * CLEARANCE) * shape.transform
+ 	q.collision_mask = body.collision_mask | 512
+-	q.exclude = [body.get_rid()]
++	q.exclude = _exclusions31(at)
+ 	q.margin = .001
+ 	return q
+ 
+--- a/scripts/navigation/npc_avoidance_world29.gd
++++ b/scripts/navigation/npc_avoidance_world29.gd
+@@ -1,5 +1,6 @@
+ extends RefCounted
+ ## One scene-owned snapshot adapter. No body ownership, movement or door claims.
++const Passage31 = preload("res://scripts/navigation/npc_passage31.gd")
+ const Core = preload("res://scripts/navigation/npc_local_avoidance29.gd")
+ const META := "npc_local_avoidance29"
+ var core:RefCounted=Core.new()
+@@ -48,6 +49,8 @@
+ 		inputs=residents.active_records30() if residents.has_method("active_records30") else records.values()
+ 	elif is_instance_valid(fallback_actor):inputs.append({"body":fallback_actor,"row":{"source_id":fallback_id}})
+ 	var registry:Variant=scene.get_meta("npc_venue_registry29") if scene.has_meta("npc_venue_registry29") else null
++	var passage31:Node=Passage31.for_scene(scene)
++	passage31.refresh()
+ 	var rows:Array[Core.FrameInput]=[]
+ 	for record:Dictionary in inputs:
+ 		var actor:Variant=record.get("body")
+@@ -76,6 +79,7 @@
+ 		row.position=actor.global_position;row.velocity=actor.velocity;row.radius=shape.shape.radius;row.height=shape.shape.height
+ 		row.priority=100 if bool(hint.get("portal_owner",false)) and str(hint.get("mode",""))=="crossing" else 0
+ 		row.waiting=bool(hint.get("controlled",false)) and str(hint.get("mode",""))=="waiting"
++		row.passage31=passage31.body_zone(actor)
+ 		rows.append(row)
+ 		var query_cell30 := Vector2i(floori(row.position.x/QUERY_CELL30),floori(row.position.z/QUERY_CELL30))
+ 		if not _query_cells30.has(query_cell30):_query_cells30[query_cell30]=[]
+--- a/scripts/navigation/npc_local_avoidance29.gd
++++ b/scripts/navigation/npc_local_avoidance29.gd
+@@ -23,6 +23,7 @@
+ 	var height:=1.9
+ 	var priority:=0
+ 	var waiting:=false
++	var passage31:=""
+ class Agent extends RefCounted:
+ 	var key:String
+ 	var position:Vector3
+@@ -32,6 +33,7 @@
+ 	var height:float
+ 	var priority:int
+ 	var waiting:bool
++	var passage31:String
+ 	var bucket_seed:int
+ 	var state:State
+ class State extends RefCounted:
+@@ -96,7 +98,7 @@
+ 			if (flat-agent.flat).dot(state.goal_direction)>.002:state.progress_ms=now_ms
+ 			elif state.ratio>.05:state.blocked_direction=state.direction;state.blocked_until=now_ms+700
+ 		agent.position=at;agent.flat=flat;agent.planar_velocity=Vector2(moving.x,moving.z)
+-		agent.radius=row.radius;agent.height=row.height;agent.priority=row.priority;agent.waiting=row.waiting
++		agent.radius=row.radius;agent.height=row.height;agent.priority=row.priority;agent.waiting=row.waiting;agent.passage31=row.passage31
+ 		_rows[key]=agent
+ 		var cell:Vector3i=_cell(at)
+ 		_layers[cell.y]=true
+@@ -122,6 +124,7 @@
+ 				if inspected>=SCAN_LIMIT:break
+ 				var other:Agent=bucket[(start+index)%bucket.size()];inspected+=1
+ 				if other==own:continue
++				if not own.passage31.is_empty() and own.passage31==other.passage31:continue
+ 				if other.position.y>=own.position.y+own.height or own.position.y>=other.position.y+other.height:continue
+ 				var squared:float=(other.flat-own.flat).length_squared()
+ 				if squared>RANGE_M*RANGE_M:continue
+--- /dev/null
++++ b/scripts/navigation/npc_passage31.gd
+@@ -0,0 +1,165 @@
++extends Node
++## NPC-to-NPC passage permission. World, door, player and weapon queries are unchanged.
++## The same live zone set drives symmetric native exceptions, local plans and avoidance.
++const META := "npc_passage31"
++const CELL_M := 8.0
++const MAX_ACTORS := 448
++const MAX_ZONES := 64
++const MAX_PER_ZONE := 32
++var _scene: WeakRef
++var _frame := -1
++var _next_zones := 0
++var _entry_count := -1
++var _zones: Dictionary = {}
++var _cells: Dictionary = {}
++var _actors: Dictionary = {}
++var _body_zones: Dictionary = {}
++var _members: Dictionary = {}
++var _pairs: Dictionary = {}
++var _max_refresh_us := 0
++
++static func for_scene(scene: Node3D) -> Node:
++	if not is_instance_valid(scene): return null
++	var found: Variant = scene.get_meta(META) if scene.has_meta(META) else null
++	if is_instance_valid(found) and found is Node: return found
++	var service: Node = load("res://scripts/navigation/npc_passage31.gd").new()
++	service._scene = weakref(scene); service.name = "NpcPassage31"
++	scene.set_meta(META, service); scene.add_child(service)
++	service.process_physics_priority = -100
++	return service
++
++static func _live(value: Variant) -> bool:
++	return is_instance_valid(value) and value is CharacterBody3D and value.is_inside_tree() and not value.is_queued_for_deletion() and value.collision_layer == 1
++
++func _physics_process(_delta: float) -> void:
++	refresh()
++
++func _collect(scene: Node3D) -> void:
++	_actors.clear()
++	var population: Variant = scene.get("preview_population")
++	var residents: Variant = population.get("residents") if is_instance_valid(population) else null
++	var records: Variant = residents.get("_records") if is_instance_valid(residents) else null
++	if records is Dictionary:
++		var rows: Array = residents.active_records30() if residents.has_method("active_records30") else records.values()
++		for record: Dictionary in rows:
++			var body: Variant = record.get("body")
++			if _actors.size() >= MAX_ACTORS: break
++			if _live(body): _actors[body.get_instance_id()] = body
++	var staff: Variant = scene.get("preview_venue_staff29")
++	var rows: Variant = staff.get("_rows") if is_instance_valid(staff) else null
++	if rows is Dictionary:
++		for record: Dictionary in rows.values():
++			var body: Variant = record.get("actor")
++			if _actors.size() >= MAX_ACTORS: break
++			if _live(body): _actors[body.get_instance_id()] = body
++
++func _rebuild_zones(entries: Dictionary) -> void:
++	_zones.clear(); _cells.clear()
++	for key: String in entries:
++		if _zones.size() >= MAX_ZONES: break
++		var entry: Dictionary = entries[key]
++		var owner: Variant = entry.owner.get_ref()
++		var clone: Variant = entry.clone.get_ref()
++		if not is_instance_valid(owner) or not is_instance_valid(clone) or bool(clone.get_meta("venue_closed29", false)): continue
++		var door: Vector3 = entry.door
++		var inward: Vector3 = entry.normal
++		var tangent := Vector3(-inward.z, 0, inward.x)
++		var leaf: Variant = owner.get("leaf")
++		var closed: Variant = owner.get("leaf_closed")
++		if not is_instance_valid(leaf) or not closed is Transform3D: continue
++		var width := 0.0
++		for shape: Node in leaf.get_children():
++			if not shape is CollisionShape3D or shape.disabled or not shape.shape is BoxShape3D: continue
++			var frame: Transform3D = leaf.get_parent_node_3d().global_transform * closed * shape.transform
++			var half: Vector3 = shape.shape.size * .5
++			for x: float in [-half.x, half.x]:
++				for z: float in [-half.z, half.z]: width = maxf(width, absf((frame * Vector3(x,0,z) - door).dot(tangent)))
++		if width < .25 or width > 2.5: continue
++		# Include capsule centres beside the jamb and both short staging approaches.
++		var zone: Dictionary = {"door":door,"normal":inward,"tangent":tangent,"half_width":width+.45,"depth":3.3,"owner":weakref(owner),"clone":weakref(clone)}
++		_zones[key] = zone
++		var reach: float = 3.3 + width + .45
++		for x: int in range(floori((door.x-reach)/CELL_M), floori((door.x+reach)/CELL_M)+1):
++			for z: int in range(floori((door.z-reach)/CELL_M), floori((door.z+reach)/CELL_M)+1):
++				var cell := Vector2i(x,z)
++				if not _cells.has(cell): _cells[cell] = []
++				_cells[cell].append(key)
++
++func _zone_at(at: Vector3) -> String:
++	var keys: Array = _cells.get(Vector2i(floori(at.x/CELL_M), floori(at.z/CELL_M)), [])
++	for key: String in keys:
++		var zone: Dictionary = _zones[key]
++		var owner: Variant = zone.owner.get_ref(); var clone: Variant = zone.clone.get_ref()
++		if not is_instance_valid(owner) or not is_instance_valid(clone) or bool(clone.get_meta("venue_closed29", false)): continue
++		var offset: Vector3 = at - (zone.door as Vector3)
++		if absf(offset.y) < 1.0 and absf(offset.dot(zone.normal)) <= zone.depth and absf(offset.dot(zone.tangent)) <= zone.half_width: return key
++	return ""
++
++func refresh() -> void:
++	var frame: int = Engine.get_physics_frames()
++	if frame == _frame: return
++	_frame = frame
++	var started: int = Time.get_ticks_usec()
++	var scene: Variant = _scene.get_ref() if _scene != null else null
++	if not is_instance_valid(scene): _clear_pairs(); return
++	var registry: Variant = scene.get_meta("npc_venue_registry29") if scene.has_meta("npc_venue_registry29") else null
++	var entries: Dictionary = registry._entries if is_instance_valid(registry) else {}
++	var now: int = Time.get_ticks_msec()
++	if entries.size() != _entry_count or now >= _next_zones:
++		_entry_count = entries.size(); _next_zones = now+1000; _rebuild_zones(entries)
++	_collect(scene); _body_zones.clear(); _members.clear()
++	for id: int in _actors:
++		var body: CharacterBody3D = _actors[id]
++		var zone: String = _zone_at(body.global_position)
++		if zone.is_empty(): continue
++		if not _members.has(zone): _members[zone] = []
++		if _members[zone].size() >= MAX_PER_ZONE: continue
++		_body_zones[id] = zone; _members[zone].append(body)
++	var wanted: Dictionary = {}
++	for members: Array in _members.values():
++		for a: int in range(members.size()):
++			for b: int in range(a+1, members.size()):
++				var first: CharacterBody3D = members[a]; var second: CharacterBody3D = members[b]
++				var first_id: int = first.get_instance_id(); var second_id: int = second.get_instance_id()
++				var pair: String = str(mini(first_id,second_id))+":"+str(maxi(first_id,second_id))
++				wanted[pair] = true
++				if _pairs.has(pair): continue
++				var add_first: bool = not first.get_collision_exceptions().has(second)
++				var add_second: bool = not second.get_collision_exceptions().has(first)
++				if add_first: first.add_collision_exception_with(second)
++				if add_second: second.add_collision_exception_with(first)
++				_pairs[pair] = {"first":weakref(first),"second":weakref(second),"add_first":add_first,"add_second":add_second}
++	for key: String in _pairs.keys():
++		if not wanted.has(key): _remove_pair(key)
++	_max_refresh_us = maxi(_max_refresh_us, Time.get_ticks_usec()-started)
++
++func _remove_pair(key: String) -> void:
++	var pair: Dictionary = _pairs[key]
++	var first: Variant = pair.first.get_ref(); var second: Variant = pair.second.get_ref()
++	if is_instance_valid(first) and is_instance_valid(second):
++		if pair.add_first: first.remove_collision_exception_with(second)
++		if pair.add_second: second.remove_collision_exception_with(first)
++	_pairs.erase(key)
++
++func _clear_pairs() -> void:
++	for key: String in _pairs.keys(): _remove_pair(key)
++
++func body_zone(body: CharacterBody3D) -> String:
++	refresh()
++	return str(_body_zones.get(body.get_instance_id(), "")) if _live(body) else ""
++
++func query_exclusions(body: CharacterBody3D, at: Vector3) -> Array[RID]:
++	var result: Array[RID] = [body.get_rid()]
++	refresh()
++	if not _live(body) or not _actors.has(body.get_instance_id()): return result
++	var zone: String = _zone_at(at)
++	if zone.is_empty(): return result
++	for peer: Variant in _members.get(zone, []):
++		if peer != body and _live(peer): result.append(peer.get_rid())
++	return result
++
++func diagnostics() -> Dictionary:
++	return {"actors":_actors.size(),"zones":_zones.size(),"in_passage":_body_zones.size(),"pairs":_pairs.size(),"max_refresh_us":_max_refresh_us,"max_per_zone":MAX_PER_ZONE}
++
++func _exit_tree() -> void:
++	_clear_pairs()

@@ -1,0 +1,223 @@
+{
+	"checks": [
+		{
+			"name": "natural_midnight_once",
+			"passed": true
+		},
+		{
+			"name": "dawn_not_new_day",
+			"passed": true
+		},
+		{
+			"name": "whole_cycles_counted",
+			"passed": true
+		},
+		{
+			"name": "paused_shared_clock",
+			"passed": true
+		},
+		{
+			"name": "N_transition_no_daily_replay",
+			"passed": true
+		},
+		{
+			"name": "invalid_clock_does_not_change",
+			"passed": true
+		},
+		{
+			"name": "lunch_real_restaurant_intent",
+			"passed": true
+		},
+		{
+			"name": "ticket_requires_real_owned_receipt",
+			"passed": true
+		},
+		{
+			"name": "wrong_service_cannot_complete",
+			"passed": true
+		},
+		{
+			"name": "wrong_ticket_cannot_complete",
+			"passed": true
+		},
+		{
+			"name": "night_sleep_keeps_pending_ticket",
+			"passed": true
+		},
+		{
+			"name": "interrupted_errand_resumes_after_wake",
+			"passed": true
+		},
+		{
+			"name": "receipt_completes_same_errand",
+			"passed": true
+		},
+		{
+			"name": "duplicate_receipt_rejected",
+			"passed": true
+		},
+		{
+			"name": "paid_lunch_not_repeated_same_day",
+			"passed": true
+		},
+		{
+			"name": "new_day_rearms_lunch",
+			"passed": true
+		},
+		{
+			"name": "sleep_is_intent_not_teleport_or_energy",
+			"passed": true
+		},
+		{
+			"name": "missing_clock_fails_to_supported_ambient",
+			"passed": true
+		},
+		{
+			"name": "individual_windows_not_crowd",
+			"passed": true
+		},
+		{
+			"name": "day_and_late_profiles",
+			"passed": true
+		},
+		{
+			"name": "actual_first_ten_individual_windows",
+			"passed": true
+		},
+		{
+			"name": "actual_first_ten_include_night_and_day",
+			"passed": true
+		},
+		{
+			"name": "late_resident_has_real_leisure_intent",
+			"passed": true
+		},
+		{
+			"name": "failed_leisure_has_bounded_retry",
+			"passed": true
+		},
+		{
+			"name": "ambient_pause_precedes_leisure",
+			"passed": true
+		},
+		{
+			"name": "defer_preserves_exact_ticket",
+			"passed": true
+		}
+	],
+	"first_ten": {
+		"resident_1": {
+			"bedtime": 23.2156128531614,
+			"breakfast": 7.70563838308485,
+			"dinner": 18.8050015849952,
+			"home_rest": 15.4577836266491,
+			"homebody": false,
+			"late": false,
+			"lunch": 12.2591257226228,
+			"supplies": 10.3087530737408,
+			"wake": 7.50789647631057
+		},
+		"resident_10": {
+			"bedtime": 23.1499570501289,
+			"breakfast": 7.57851976444071,
+			"dinner": 19.0728867813397,
+			"home_rest": 15.1971144086568,
+			"homebody": true,
+			"late": false,
+			"lunch": 13.4511766464701,
+			"supplies": 11.7235608293175,
+			"wake": 7.83539649381052
+		},
+		"resident_2": {
+			"bedtime": 2.42791921624235,
+			"breakfast": 9.90710477868566,
+			"dinner": 19.7280868157396,
+			"home_rest": 15.0597388207835,
+			"homebody": true,
+			"late": true,
+			"lunch": 13.445479663561,
+			"supplies": 11.2396802809592,
+			"wake": 9.72152033543899
+		},
+		"resident_3": {
+			"bedtime": 21.6833494499516,
+			"breakfast": 7.17695446913659,
+			"dinner": 18.6511720464839,
+			"home_rest": 14.661694014918,
+			"homebody": true,
+			"late": false,
+			"lunch": 13.0634503096491,
+			"supplies": 12.1706074881775,
+			"wake": 6.93514419456742
+		},
+		"resident_4": {
+			"bedtime": 21.9628066115802,
+			"breakfast": 8.37842086473741,
+			"dinner": 19.5742572772282,
+			"home_rest": 14.2636492090524,
+			"homebody": true,
+			"late": false,
+			"lunch": 12.7498042505872,
+			"supplies": 13.1015346953959,
+			"wake": 6.71715134854595
+		},
+		"resident_5": {
+			"bedtime": 22.1510860467419,
+			"breakfast": 8.07988726033822,
+			"dinner": 18.4973425079725,
+			"home_rest": 15.9567821296536,
+			"homebody": false,
+			"late": false,
+			"lunch": 12.3677748966753,
+			"supplies": 14.0324619026143,
+			"wake": 7.93077520767438
+		},
+		"resident_6": {
+			"bedtime": 22.4305432083704,
+			"breakfast": 7.84973695078915,
+			"dinner": 19.4204277387168,
+			"home_rest": 15.558737323788,
+			"homebody": false,
+			"late": false,
+			"lunch": 12.0541288376135,
+			"supplies": 14.6898559304322,
+			"wake": 7.6443990668028
+		},
+		"resident_7": {
+			"bedtime": 1.90750027749917,
+			"breakfast": 10.05120334639,
+			"dinner": 18.3435129694611,
+			"home_rest": 15.1606925179224,
+			"homebody": false,
+			"late": true,
+			"lunch": 13.2404827785517,
+			"supplies": 15.6207831376506,
+			"wake": 9.85802292593122
+		},
+		"resident_8": {
+			"bedtime": 22.8982798051606,
+			"breakfast": 7.25266974199077,
+			"dinner": 19.1754204737386,
+			"home_rest": 14.8538254385237,
+			"homebody": false,
+			"late": false,
+			"lunch": 12.8584534246397,
+			"supplies": 10.551710344869,
+			"wake": 7.07164678505965
+		},
+		"resident_9": {
+			"bedtime": 23.1777369667891,
+			"breakfast": 7.0225194324417,
+			"dinner": 18.0985057044829,
+			"home_rest": 14.4557806326581,
+			"homebody": true,
+			"late": false,
+			"lunch": 12.5448073655779,
+			"supplies": 11.4826375520873,
+			"wake": 6.78527064418807
+		}
+	},
+	"late_profiles": 20,
+	"passed": true,
+	"scope": "Pure native policy/clock only; no physical home, payment or city acceptance"
+}

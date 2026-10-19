@@ -1,0 +1,26 @@
+{
+  "status": "INTEGRATION_READY_NATIVE637_AND_REAL_CYCLE_PASS",
+  "base": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator29_release53a\\game",
+  "proposed_runtime_pins": {
+    "scripts/venues/npc_compact_service_site29.gd": "1223dc819fc3eb193d3d802351da9870508c92316d8032731e0c4f66c258d397",
+    "scripts/shop/npc_economy_visit28.gd": "a0d01d94eefbd1ea1d9fcd29ebedddd8f010fe8997829a1ddd11e580a94ce344",
+    "scripts/main.gd": "30367275a65d73fd1b011061446e942dcf5982b398001c10cb45681191263e15",
+    "scripts/venues/npc_venue_registry29.gd": "234b2a336b4e7aa94789fc50b716da16b7422b3345b01b20a3254be7a72818a8",
+    "scripts/hospital/npc_restaurant_visit28.gd": "b904845f2710e8486020c35d8b6d57e2eb4b879f834715e11ccb1e7b7151a29a",
+    "scripts/venues/npc_service_queue29.gd": "380fff0378ab6229174aa955e564dffaa2b1a81ea3e6d1edd5a6b5c2fdbe9178",
+    "scripts/venues/npc_venue_staff_actor29.gd": "515c852c407676b6b347dfacf09ed223be8a51e8d445053a4da8b6ec62e15a83",
+    "scripts/venues/npc_venue_staff_host29.gd": "e07e0922d22ddc5dbaac4869b23c0327919c83b4208049e59ed8a0e15f543b46",
+    "data/venue_staff29.json": "a14dc263ebff3574f6a58daa880509c5aee5f3b9c77a67506445e4e11fe2502f"
+  },
+  "fixture_result": "runs/fixture01/RESULT.json",
+  "fixture_checks": 637,
+  "cycle01_runtime_observed_complete": true,
+  "cycle01_test_status": "FAIL: observer counted wallet initialization and omitted final roam sample; runtime unchanged",
+  "cycle02_test_status": "BLOCKED before native launch by unregistered foreign shop UI engine",
+  "corrected_observer_sha256": "45d145152010a20daa9984f1ec3df288cba8a6272d3eed897c94d44f11647a09",
+  "performance_accepted": false,
+  "visual_verified": false,
+  "selected_cycle": "runs/cycle03/RESULT.json",
+  "selected_cycle_source": "outputs/coordinator30_npc54/game",
+  "cycle03_checks": 14
+}

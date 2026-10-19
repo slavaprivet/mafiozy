@@ -1,0 +1,11 @@
+--- a/scripts/npc_visual/npc_local_preview_hit_owner.gd
++++ b/scripts/npc_visual/npc_local_preview_hit_owner.gd
+@@ -612,7 +612,7 @@
+ 
+ func bind_single_lifecycle28(owner: Node) -> bool:
+ 	if _single_lifecycle28!=null or not is_instance_valid(owner) or not owner.is_inside_tree() or owner.get_script().resource_path!="res://scripts/hospital/npc_single_lifecycle28.gd":return false
+-	if _token.get("source_id")!="resident_1" or not _host.single_lifecycle28_current(owner) or owner.get("_health")!=self or owner.get("_token")!=_token:return false
++	if _token.get("source_id")!=owner.get("source_id30") or not _host.single_lifecycle28_current(owner) or owner.get("_health")!=self or owner.get("_token")!=_token:return false
+ 	_single_lifecycle28=weakref(owner)
+ 	return true
+ 

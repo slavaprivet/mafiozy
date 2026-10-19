@@ -1,0 +1,66 @@
+{
+  "schema": "mafiozi.transport-burn-batch-toggle-identity-source-package.v1",
+  "status": "FUNCTIONAL_DETAIL_TOGGLE_OFF_ON_AND_DISPOSE_SOURCE_PROOF",
+  "files": [
+    {
+      "path": "tools/godot/export_transport_burn_batch_toggle_identity.mjs",
+      "sha256": "56e460d2cc8788e7a35c955b22feee9862733a8e451da09c5a81f83044970a35",
+      "role": "Executed-source detail-toggle and dispose registration proof exporter"
+    },
+    {
+      "path": "godot/mafiozi_walk/data/transport/source_burn_batch_toggle_identities.json",
+      "sha256": "32ebd8a1a6c5cfbfdb121c4e1cb0b4f529a02b39615533332b5fd315c2fff372",
+      "role": "13-profile initial/body/detail-off/detail-on/dispose identity receipt"
+    },
+    {
+      "path": "godot/mafiozi_walk/data/transport/source_burn_batch_identities.json",
+      "sha256": "49a0342fb3260e3963ddfbb0446ace151028dba12fb5f7b3b3ed81290ada2da9",
+      "role": "Frozen initial/body prerequisite compared profile-for-profile"
+    },
+    {
+      "path": "docs/godot/TRANSPORT_BURN_BATCH_CANONICAL_SOURCE_AUDIT.md",
+      "sha256": "91a375b242b3696efbe56f29f999576aa57f8edfdd97405084f096ed57b96d73",
+      "role": "Source contract and remaining-scope audit"
+    }
+  ],
+  "proof": {
+    "profiles": 13,
+    "frozen_initial_body_profile_receipts_exact": 13,
+    "active_body_registrations": 1438,
+    "detail_off_registrations_persisted": 1438,
+    "detail_off_registered_current_canonical": 340,
+    "detail_off_registered_current_hidden": 1098,
+    "detail_on_exact_body_mesh_receipts_restored": 13,
+    "dispose_private_registrations": 0,
+    "dispose_remaining_proxies_under_car": 0,
+    "dispose_canonical_source_materials_restored": true,
+    "double_export_sha_equal": true,
+    "first_export_wall_ms": 8901.619,
+    "second_export_wall_ms": 8855.702,
+    "fixture_bytes": 9924084
+  },
+  "identity_scope": {
+    "canonical": "m#### profile-local frozen source identity",
+    "hidden": "h#### profile/body-lifecycle-local hidden identity",
+    "proxy": "b#### profile/body-lifecycle-local proxy identity",
+    "global_ids": false,
+    "runtime_requirements": [
+      "profile and source receipt",
+      "vehicle lifecycle generation",
+      "material revision"
+    ]
+  },
+  "validation": [
+    "The entire shared initial/body profile row is deep-equal to frozen receipt 49a0342f before any toggle.",
+    "Detail off preserves every private registration while 340 exact detail members use current canonical material and the getter still returns canonical.",
+    "Detail on restores every source mesh current/getter/registration receipt exactly to the active body phase.",
+    "Dispose removes all private registrations and proxies and restores canonical current materials for every source mesh.",
+    "Two sequential full exports produced byte-identical JSON."
+  ],
+  "limits": [
+    "Wheel optional registration, fallback mutation, explosion callback, copyPart traversal, and debris clone provenance remain pending.",
+    "Proxy member binding and geometry/layout receipts remain null/pending from the frozen prerequisite.",
+    "The unresolved production prebatch versus visual/native taillamp emissive baseline remains unchanged.",
+    "No native binder, runtime mutation, authority, HP, physics, rendering, GPU, LIVE, or Git integration is included."
+  ]
+}

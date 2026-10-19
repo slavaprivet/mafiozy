@@ -1,0 +1,12 @@
+{
+  "name": "health02",
+  "passed": false,
+  "errors": [
+    "head_npc_not_ready",
+    "chest_npc_not_ready"
+  ],
+  "scheduler_errors": [],
+  "scheduler_error": null,
+  "drift": [],
+  "script_sha256": "dcc4b0820b7b5ba9ff4aa683397519303689f5512f42e1808ed7f970555e15b3"
+}

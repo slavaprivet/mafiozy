@@ -1,0 +1,376 @@
+{
+  "status": "READY",
+  "cycle": 2,
+  "base_revision": "castle-20261018-combined40-combat02",
+  "base_pin_count": 1330,
+  "base_exact_mismatches": 0,
+  "source_pins": "D:\\MafioziCombat31\\field_cycle2\\SOURCE_PINS.json",
+  "patch": "D:\\MafioziCombat31\\field_cycle2\\FIELD_CYCLE2.patch",
+  "project": "D:\\MafioziCombat31\\field_cycle2\\game",
+  "files": {
+    "scripts/city/battlefield_props.gd": {
+      "base_sha256": "cfc9dced4db25164e50f4d34c0dbcc522b2c56280c2bfc02a35b86a9c40b94ed",
+      "candidate_sha256": "27e0247ef070665a0f59b2b8d217462fcec638a4d328465e936a5c7292496fa0"
+    },
+    "scripts/city/battlefield_site.gd": {
+      "base_sha256": "e8c3e6c9144ab93a0f23ed21b4e239daaaf92baf2dfc938e5a54b8b487ebf8a9",
+      "candidate_sha256": "1b41dc8c1b5ffdf00db5446f5ad3eb0af4994bf074607b6adfceef9c2d4d8688"
+    }
+  },
+  "combat": {
+    "scripts/weapons/sword_prototype.gd": "5e24ec29640136f9adfc0d45ec736adc7968e41c0289a88e2f954423d3d2b70c",
+    "scripts/combat/castle_armor_visual.gd": "5437d480e7a77e9d364d55e265b960a488534b036d32b26bf349e6ded290b2ae",
+    "scripts/city/castle_site.gd": "6aa56f4f95e76120d513acd2bc0da3e9cb4b148f10aa2b094b37dfb972f79d47"
+  },
+  "checks": {
+    "walk": {
+      "pass": true,
+      "real_player": true,
+      "reports": [
+        {
+          "end": "(-0.000004, 0.043252, 223.2351)",
+          "failures": [],
+          "frames": 2390,
+          "goal": "(0.0, 224.0)",
+          "max_feet_error": 0.00311849818625205,
+          "max_off_floor_chain": 0,
+          "max_vertical_tick": 0.00237361434847116,
+          "min_feet_error": -0.0198503308743238,
+          "off_floor_frames": 0,
+          "pass": true,
+          "route": "central_road",
+          "stalls": 0,
+          "start": "(0.0, 96.0)",
+          "start_actual": "(0.0, 0.00015, 96.0)",
+          "start_grounded": true,
+          "waypoints": 1
+        },
+        {
+          "end": "(-47.51247, 0.065366, 155.3892)",
+          "failures": [],
+          "frames": 1435,
+          "goal": "(-48.0, 156.0)",
+          "max_feet_error": 0.035211393195032,
+          "max_off_floor_chain": 0,
+          "max_vertical_tick": 0.0101190805435181,
+          "min_feet_error": -0.0787918026248706,
+          "off_floor_frames": 0,
+          "pass": true,
+          "route": "left_flank",
+          "stalls": 0,
+          "start": "(0.0, 96.0)",
+          "start_actual": "(0.0, 0.00015, 96.0)",
+          "start_grounded": true,
+          "waypoints": 1
+        },
+        {
+          "end": "(47.52722, 0.032837, 155.4076)",
+          "failures": [],
+          "frames": 1437,
+          "goal": "(48.0, 156.0)",
+          "max_feet_error": 0.0390980211780679,
+          "max_off_floor_chain": 0,
+          "max_vertical_tick": 0.012141227722168,
+          "min_feet_error": -0.0549172842748997,
+          "off_floor_frames": 0,
+          "pass": true,
+          "route": "right_flank",
+          "stalls": 0,
+          "start": "(0.0, 96.0)",
+          "start_actual": "(0.0, 0.00015, 96.0)",
+          "start_grounded": true,
+          "waypoints": 1
+        },
+        {
+          "end": "(20.00011, 1.207347, 139.2087)",
+          "failures": [],
+          "frames": 522,
+          "goal": "(20.0, 140.0)",
+          "max_feet_error": 0.031890050337529,
+          "max_off_floor_chain": 0,
+          "max_vertical_tick": 0.0123894214630127,
+          "min_feet_error": -0.0596478711836688,
+          "off_floor_frames": 0,
+          "pass": true,
+          "route": "berm_off_lane",
+          "stalls": 0,
+          "start": "(20.0, 112.0)",
+          "start_actual": "(20.0, 0.538711, 112.0)",
+          "start_grounded": true,
+          "waypoints": 1
+        }
+      ]
+    },
+    "visual": {
+      "field_node": "BattlefieldSite",
+      "pass": true,
+      "shots": 4
+    },
+    "geometry": {
+      "break_result": 1,
+      "colliders": 95,
+      "cover": 86,
+      "cover_released": true,
+      "cover_without_collision": [],
+      "grass_checked": 2348,
+      "grass_index_batches": 0,
+      "grass_on_road": [],
+      "grass_on_road_count": 0,
+      "instances": 4321,
+      "lights": 0,
+      "meshes": 9,
+      "multimeshes": 18,
+      "pass": true,
+      "road_probe": true
+    },
+    "impacts": {
+      "after_stats": {
+        "banners": 6,
+        "barrels": 7,
+        "barriers": 16,
+        "batches_by_z_sector": {
+          "0": 7,
+          "1": 8
+        },
+        "breakable_groups": 86,
+        "brush": 56,
+        "carts": 4,
+        "colliders": 86,
+        "crates": 25,
+        "firepits": 2,
+        "grass": 575,
+        "mesh_instances": 15,
+        "mesh_pieces": 3960,
+        "shields": 15,
+        "smoke_plumes": 3,
+        "stone_piles": 4,
+        "stones": 77,
+        "tents": 8,
+        "trees": 11,
+        "watchtowers": 4
+      },
+      "before_stats": {
+        "banners": 6,
+        "barrels": 7,
+        "barriers": 16,
+        "batches_by_z_sector": {
+          "0": 7,
+          "1": 8
+        },
+        "breakable_groups": 86,
+        "brush": 56,
+        "carts": 4,
+        "colliders": 86,
+        "crates": 25,
+        "firepits": 2,
+        "grass": 575,
+        "mesh_instances": 15,
+        "mesh_pieces": 3960,
+        "shields": 15,
+        "smoke_plumes": 3,
+        "stone_piles": 4,
+        "stones": 77,
+        "tents": 8,
+        "trees": 11,
+        "watchtowers": 4
+      },
+      "center_clear": true,
+      "errors": [],
+      "impacts": [
+        {
+          "catapult_impact": {
+            "battlefield_groups": 1,
+            "ok": true,
+            "point": "(30.72, 2.476663, 1049.0)"
+          },
+          "collider_released": true,
+          "destroyed": true,
+          "hit": "(30.72, 2.476663, 1049.0)",
+          "id": "palisade_1_0_section_3",
+          "shards_now": 5
+        },
+        {
+          "catapult_impact": {
+            "battlefield_groups": 1,
+            "ok": true,
+            "point": "(63.0, 0.851293, 1043.0)"
+          },
+          "collider_released": true,
+          "destroyed": true,
+          "hit": "(63.0, 0.851293, 1043.0)",
+          "id": "cart_supply",
+          "shards_now": 10
+        },
+        {
+          "catapult_impact": {
+            "battlefield_groups": 1,
+            "ok": true,
+            "point": "(33.0, 1.426398, 1105.0)"
+          },
+          "collider_released": true,
+          "destroyed": true,
+          "hit": "(33.0, 1.426398, 1105.0)",
+          "id": "tent_5",
+          "shards_now": 15
+        }
+      ],
+      "left_clear": true,
+      "neighbour_alive": true,
+      "palisade_after_clear": true,
+      "palisade_before_clear": false,
+      "pass": true,
+      "right_clear": true,
+      "shards_after_450_ticks": 0
+    }
+  },
+  "perf": {
+    "runs": [
+      {
+        "label": "A1",
+        "views": {
+          "camp": {
+            "draw_calls": 44.0,
+            "fps": 455.153012076304,
+            "frames": 2731,
+            "p95_ms": 2.823
+          },
+          "cart": {
+            "draw_calls": 52.0,
+            "fps": 446.761032506239,
+            "frames": 2681,
+            "p95_ms": 2.875
+          },
+          "field": {
+            "draw_calls": 53.0,
+            "fps": 439.242702922297,
+            "frames": 2636,
+            "p95_ms": 2.949
+          }
+        }
+      },
+      {
+        "label": "B1",
+        "views": {
+          "camp": {
+            "draw_calls": 43.0,
+            "fps": 457.90055926188,
+            "frames": 2748,
+            "p95_ms": 2.818
+          },
+          "cart": {
+            "draw_calls": 50.0,
+            "fps": 431.656019151528,
+            "frames": 2590,
+            "p95_ms": 2.97
+          },
+          "field": {
+            "draw_calls": 51.0,
+            "fps": 438.147607245751,
+            "frames": 2629,
+            "p95_ms": 2.974
+          }
+        }
+      },
+      {
+        "label": "B2",
+        "views": {
+          "camp": {
+            "draw_calls": 43.0,
+            "fps": 457.584377742736,
+            "frames": 2746,
+            "p95_ms": 2.902
+          },
+          "cart": {
+            "draw_calls": 50.0,
+            "fps": 432.45603363658,
+            "frames": 2595,
+            "p95_ms": 3.026
+          },
+          "field": {
+            "draw_calls": 51.0,
+            "fps": 437.373088908702,
+            "frames": 2625,
+            "p95_ms": 3.021
+          }
+        }
+      },
+      {
+        "label": "A2",
+        "views": {
+          "camp": {
+            "draw_calls": 44.0,
+            "fps": 450.137632789352,
+            "frames": 2701,
+            "p95_ms": 2.917
+          },
+          "cart": {
+            "draw_calls": 52.0,
+            "fps": 438.42897450613,
+            "frames": 2631,
+            "p95_ms": 2.978
+          },
+          "field": {
+            "draw_calls": 53.0,
+            "fps": 443.206502405895,
+            "frames": 2660,
+            "p95_ms": 2.985
+          }
+        }
+      }
+    ],
+    "order": "ABBA",
+    "resolution": "1280x720",
+    "seconds_per_view": 6,
+    "scope": "Field cycle2 only versus exact combined40-combat02 plus armor lifecycle fix; finite stationary views, not full-game FPS acceptance",
+    "views": {
+      "camp": {
+        "baseline_fps": 452.645322432828,
+        "candidate_fps": 457.74246850230804,
+        "delta_percent": 1.126079474782693
+      },
+      "cart": {
+        "baseline_fps": 442.5950035061845,
+        "candidate_fps": 432.056026394054,
+        "delta_percent": -2.3811785105213534
+      },
+      "field": {
+        "baseline_fps": 441.224602664096,
+        "candidate_fps": 437.76034807722647,
+        "delta_percent": -0.7851453808224829
+      }
+    },
+    "within_5_percent": true
+  },
+  "optimization": {
+    "props_batches_before": 17,
+    "props_batches_after": 15,
+    "legacy_box_blades": 344,
+    "triangles_saved": 2064,
+    "props_instances_before": 3960,
+    "props_instances_after": 3960,
+    "props_colliders": 86,
+    "terrain_texture_before": 256,
+    "terrain_texture_after": 512
+  },
+  "visual_changes": [
+    "Per-instance weathering of timber/canvas, no extra materials/draws",
+    "Baked trampled earth at eight tents/four carts and finer wheel ruts",
+    "Legacy grass boxes replaced with tapered leaves in existing batches"
+  ],
+  "not_claimed": [
+    "Full-game FPS acceptance",
+    "A primitive material rendering bug: explicit override experiment had no visible benefit and was discarded"
+  ],
+  "receipts": [
+    "import_final01",
+    "walk_final01",
+    "visual_final01",
+    "geometry_final01",
+    "impact_final01",
+    "perf02_A1",
+    "perf02_B1",
+    "perf02_B2",
+    "perf02_A2"
+  ],
+  "ordinary_launch_owner": "Coordinator32 only"
+}

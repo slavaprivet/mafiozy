@@ -1,0 +1,11 @@
+{
+  "schema": "mafiozi.current-play/v1",
+  "title": "15.10 · Первая партия: 10 жителей · версия56",
+  "revision": "s01-20261015-residents56",
+  "assembly": "outputs/coordinator30_release56/ASSEMBLY.json",
+  "assembly_sha256": "a16147bfcc8857bce47bad9a2ac44f7d5008ac3214c1a34a9bd291c55c28930a",
+  "bootstrap": "outputs/coordinator30_release56/bootstrap_play56.gd",
+  "bootstrap_sha256": "38b5b98f1022ab961085c6bf0e559a20c89a21d811ba88cd363a9515e5286bb8",
+  "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "scope": "First verified batch:10 original residents +12 staff. Full287 catalogue retained; further increments only after verification."
+}

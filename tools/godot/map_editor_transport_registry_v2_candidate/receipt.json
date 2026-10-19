@@ -1,0 +1,18 @@
+{
+  "schema": "mafiozi.transport-registry-native/v2",
+  "registryV1StageSha256": "7c9071835e1279abc2cdcff873b519cfad8236d8d3f353ddf7d13478d87759e6",
+  "stationStageSha256": "5707a752d46983ade73ec6d2557e64f0ca4f8a525158656881933a0924e11de2",
+  "checks": {
+    "registry": 789,
+    "controller": 29
+  },
+  "gpuChecked": false,
+  "files": {
+    "rail_fixture.gd": "6cf056a98de25077984fc84ab7da2ce9319f1d5e62a63e96897a6839f0e96243",
+    "README.md": "d95b7e1f235c9b10482e63b0b338b52744264f511c845c43ca69fdf2eae2f0e0",
+    "stage.mjs": "a5710b175ca0d1998914c30bc9be42ef3e46a97e6004d902ac23b175ac92270b",
+    "test_rail_controller.gd": "1f119d1128fb2a28440261e9a0769662a64b6496df86ca3d37df144827d10edb",
+    "test_rail_registry.gd": "c013cf630c4eec205114e659ea2372dfc46aef3bc3cc7c97e2cf256f30e785a4",
+    "transport_registry_v2.gd": "3dac8d30f8c03b7c26c1e4c003066538fa9c0f8ff527d2ef8945a02a8a8623ea"
+  }
+}

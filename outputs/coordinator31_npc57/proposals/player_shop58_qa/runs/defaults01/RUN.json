@@ -1,0 +1,34 @@
+{
+  "passed": true,
+  "case": "defaults",
+  "native": {
+    "checks": 24,
+    "failures": [],
+    "passed": true,
+    "report": {
+      "ammo_bounds": {
+        "owned": 14,
+        "reserve": 9999
+      },
+      "backpack_defaults": {
+        "absorbed": 0,
+        "worn": ""
+      },
+      "default_ownership": {
+        "firearms": 14,
+        "owned": 14
+      }
+    }
+  },
+  "source_count": 1212,
+  "source_drift": false,
+  "control_drift": false,
+  "engine_clean": true,
+  "source_manifest": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator31_npc57\\extended31\\stage58_06\\CANDIDATE58.json",
+  "source_manifest_sha256": "b11bdd02916fb37171d0e177bf529569c8d090d82212c4d87d02e6c2fee06346",
+  "native_test_sha256": "a16cfcce2b90d43f2dcfd81aebe1ceaf838aacad6d5e6bb29fccbe114e416eac",
+  "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "production_changed": false,
+  "original_fixture_unchanged": true,
+  "scope": "Existing exact shop fixture with only delayed startup wrapper. City test calls live purchase/projectile ports; it does not prove physical walk-in/E, native mouse windup, NPC/home lifecycle, or performance."
+}

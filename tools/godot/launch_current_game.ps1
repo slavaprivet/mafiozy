@@ -20,6 +20,22 @@ function Resolve-CurrentFile([string]$Relative) {
 function Assert-CurrentHash([string]$Path, [string]$Expected) {
     if ((Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant() -ne $Expected) { throw "Verified release changed: $Path" }
 }
+function Get-CurrentSceneArguments($Manifest) {
+    $sceneKind = if ($Manifest.PSObject.Properties.Name -contains 'scene_kind') { [string]$Manifest.scene_kind } else { 'city' }
+    if ($sceneKind -notin @('city', 'castle')) { throw 'Unknown pinned scene kind.' }
+    $sceneArguments = @()
+    if ($Manifest.PSObject.Properties.Name -contains 'launch_arguments') {
+        foreach ($argument in $Manifest.launch_arguments) {
+            if ($argument -isnot [string]) { throw 'Invalid pinned scene launch argument.' }
+            if ($sceneKind -eq 'castle') {
+                if ($argument -cnotin @('--castle=1', '--castle-start-outside=1')) { throw 'Invalid pinned castle launch argument.' }
+            } elseif ($argument -notmatch '^--city-[a-z0-9-]+(?:=[^\s"'';]+)?$') { throw 'Invalid pinned city launch argument.' }
+            $sceneArguments += $argument
+        }
+    }
+    if ($sceneKind -eq 'castle' -and ('--castle=1' -cnotin $sceneArguments -or '--castle-start-outside=1' -cnotin $sceneArguments)) { throw 'Castle assembly must select the exterior castle scene.' }
+    return $sceneArguments
+}
 function Assert-CurrentF5Route {
     $currentProject = Resolve-CurrentFile 'godot/mafiozi_walk/project.godot'
     $currentForwardScene = Resolve-CurrentFile 'godot/mafiozi_walk/scenes/current_version_launcher.tscn'
@@ -78,7 +94,14 @@ try {
     Assert-CurrentHash $currentManifestPath $currentRelease.assembly_sha256
     $currentManifest = Get-Content -LiteralPath $currentManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($currentManifest.revision -ne $currentRelease.revision) { throw 'Current release revision mismatch.' }
-    $currentGameDir = [IO.Path]::GetFullPath($currentManifest.game)
+    # Missing scene_kind preserves the historical city assembly contract.
+    $currentSceneArguments = @(Get-CurrentSceneArguments $currentManifest)
+    $currentReadySeconds = 40
+    if ($currentManifest.PSObject.Properties.Name -contains 'ready_timeout_seconds') {
+        $currentReadySeconds = [int]$currentManifest.ready_timeout_seconds
+        if ($currentReadySeconds -lt 40 -or $currentReadySeconds -gt 120) { throw 'Invalid scene startup deadline.' }
+    }
+    $currentGameDir = if ($currentManifest.PSObject.Properties.Name -contains 'game_relative') { [IO.Path]::GetFullPath((Join-Path $currentRepo $currentManifest.game_relative)) } else { [IO.Path]::GetFullPath($currentManifest.game) }
     if (-not $currentGameDir.StartsWith($currentRepo + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Unexpected game directory.' }
     $currentBootstrap = Resolve-CurrentFile $currentRelease.bootstrap
     Assert-CurrentHash $currentBootstrap $currentRelease.bootstrap_sha256
@@ -107,19 +130,33 @@ try {
     $currentLog = Join-Path $currentRun 'play.log'
     $currentErr = Join-Path $currentRun 'play.err'
     $currentArgs = @('--path', ('"' + $currentGameDir + '"'), '--script', ('"' + $currentBootstrap + '"'), '--', ('"--receipt-dir=' + $currentRun + '"'), ('"--release-title=' + $currentRelease.title + '"'), ('"--release-revision=' + $currentRelease.revision + '"'))
+    $currentArgs += $currentSceneArguments
     # A visible game is the explicit purpose of this user launcher.
     $currentProcess = Start-Process -FilePath $currentEngine -ArgumentList $currentArgs -WorkingDirectory $currentGameDir -WindowStyle Normal -PassThru -RedirectStandardOutput $currentLog -RedirectStandardError $currentErr
     $currentReceipt = [ordered]@{ pid=$currentProcess.Id; revision=$currentRelease.revision; title=$currentRelease.title; source='stable_user_launcher'; run_directory=$currentRun; started_at=$currentProcess.StartTime.ToString('o'); assembly_sha256=$currentRelease.assembly_sha256 }
     $currentReceipt | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $currentRun 'STARTED.json') -Encoding UTF8
-    $currentReadyUntil = [DateTime]::UtcNow.AddSeconds(40)
+    $currentReadyUntil = [DateTime]::UtcNow.AddSeconds($currentReadySeconds)
     $currentReadyPath = Join-Path $currentRun 'CURRENT_READY.json'
+    $currentReady = $null
     while ([DateTime]::UtcNow -lt $currentReadyUntil) {
         $currentProcess.Refresh()
-        if ($currentProcess.HasExited -or (Test-Path -LiteralPath $currentReadyPath)) { break }
+        if ($currentProcess.HasExited) { break }
+        if (Test-Path -LiteralPath $currentReadyPath -PathType Leaf) {
+            try {
+                $readyText = Get-Content -LiteralPath $currentReadyPath -Raw -Encoding UTF8 -ErrorAction Stop
+                if ([string]::IsNullOrWhiteSpace($readyText)) { throw [FormatException]::new('CURRENT_READY.json is incomplete') }
+                $candidateReady = $readyText | ConvertFrom-Json -ErrorAction Stop
+                if ($null -eq $candidateReady) { throw [FormatException]::new('CURRENT_READY.json parsed to null') }
+                $currentReady = $candidateReady
+                break
+            }
+            catch {
+                $currentReady = $null
+            }
+        }
         Start-Sleep -Milliseconds 200
     }
     $currentProcess.Refresh()
-    $currentReady = if (Test-Path -LiteralPath $currentReadyPath) { Get-Content -LiteralPath $currentReadyPath -Raw -Encoding UTF8 | ConvertFrom-Json } else { $null }
     [string]$currentErrorText = if (Test-Path -LiteralPath $currentErr) { Get-Content -LiteralPath $currentErr -Raw -Encoding UTF8 } else { '' }
     $currentReceipt.ready = ($null -ne $currentReady -and $currentReady.ok -eq $true -and [string]$currentReady.revision -ceq [string]$currentRelease.revision -and -not $currentProcess.HasExited -and $currentProcess.Responding -and [string]::IsNullOrWhiteSpace($currentErrorText))
     $currentReceipt.window_handle = if ($currentProcess.HasExited) { 0 } else { $currentProcess.MainWindowHandle.ToInt64() }

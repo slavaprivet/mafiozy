@@ -1,0 +1,16 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+NPC_VITALS28 id=fixture_286 hp=60.0/60.0 ratio=1.0 colour=7ee7a5 frame=8
+NPC_VITALS28 id=fixture_286 hp=19.0/60.0 ratio=0.31666666666667 colour=ffc857 frame=8
+NPC_VITALS28 id=fixture_286 hp=60.0/60.0 ratio=1.0 colour=7ee7a5 frame=8
+NPC_VITALS28 id=fixture_1 hp=60.0/60.0 ratio=1.0 colour=7ee7a5 frame=13
+NPC_VITALS28 id=fixture_2 hp=60.0/60.0 ratio=1.0 colour=7ee7a5 frame=15
+DSH_LABEL id=fixture_2 node=DshResidentName@/root/@Node3D@2/@CharacterBody3D@9/@Node3D@2:y=2.35:in_tree=true text="Житель"
+DSH_RESDIAG id=fixture_2 name="Resident" hp=60/60 energy=-1 phase=- goal=- dist_m=-1.0 walked_m=0.0 leg=1/1 native_us=0 replans=0 path_adm=- wait_s=0.00 stop=- top=нет
+NPC_VITALS28 id=fixture_4 hp=60.0/60.0 ratio=1.0 colour=7ee7a5 frame=17
+DSH_LABEL id=fixture_4 node=DshResidentName@/root/@Node3D@2/@CharacterBody3D@13/@Node3D@2:y=2.35:in_tree=true text="Житель"
+DSH_RESDIAG id=fixture_4 name="Resident" hp=60/60 energy=-1 phase=- goal=- dist_m=-1.0 walked_m=0.0 leg=1/1 native_us=0 replans=0 path_adm=- wait_s=0.00 stop=- top=нет
+NPC_VITALS28 id=fixture_5 hp=60.0/60.0 ratio=1.0 colour=7ee7a5 frame=18
+DSH_LABEL id=fixture_5 node=DshResidentName@/root/@Node3D@2/@CharacterBody3D@15/@Node3D@2:y=2.35:in_tree=true text="Житель"
+DSH_RESDIAG id=fixture_5 name="Resident" hp=60/60 energy=-1 phase=- goal=- dist_m=-1.0 walked_m=0.0 leg=1/1 native_us=0 replans=0 path_adm=- wait_s=0.00 stop=- top=нет
+HP_RELEASE56 true checks=23
