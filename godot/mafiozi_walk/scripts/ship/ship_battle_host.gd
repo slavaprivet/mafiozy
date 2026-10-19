@@ -318,8 +318,8 @@ func action() -> Dictionary:
 	# The two crates in the cabin.  The ammo crate keeps its prompt, but the
 	# prompt shows E and the actual pickup is handled on E only.
 	var ammo_at := _crate_world("ammo")
-	if not ammo_at.is_zero_approx() and player.global_position.distance_to(ammo_at) <= REACH \
-			and _cabin_action().is_empty():
+	if _near_ammo_crate() and _cabin_action().is_empty() and balls > 0 \
+			and not (is_instance_valid(_carried_ball_mesh) and _carried_ball_mesh.visible):
 		return {"owner": "ship", "kind": "ship_ammo_hint", "label": "Взять ядро",
 			"key": "E", "world": ammo_at + Vector3.UP * 0.7}
 	var boards_at := _crate_world("boards")
