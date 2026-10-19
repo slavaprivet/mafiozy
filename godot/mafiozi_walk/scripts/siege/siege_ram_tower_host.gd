@@ -8,7 +8,7 @@ extends Node3D
 
 const BodyScript = preload("res://scripts/siege/siege_ram_tower_body.gd")
 
-const SPAWN_LOCAL := Vector3(12.0, 0.0, 82.0)
+const SPAWN_LOCAL := Vector3(0.0, 0.0, 80.0)
 const SPAWN_YAW := 0.0
 const REACH := 3.2
 

@@ -18,6 +18,27 @@ func _check(name: String, ok: bool, detail: Variant = "") -> void:
 	_checks.append({"name": name, "ok": ok, "detail": detail})
 	print("DSH_TOWER_CHECK ", JSON.stringify({"name": name, "ok": ok, "detail": detail}))
 
+func _ray_local(a: Vector3, b: Vector3) -> Dictionary:
+	var body_node := _body as Node3D
+	if body_node == null:
+		return {}
+	var space := body_node.get_world_3d().direct_space_state
+	var ray := PhysicsRayQueryParameters3D.create(body_node.to_global(a), body_node.to_global(b), 1)
+	var excludes: Array[RID] = []
+	if is_instance_valid(_player):
+		excludes.append(_player.get_rid())
+	ray.exclude = excludes
+	var hit := space.intersect_ray(ray)
+	if hit.is_empty():
+		return hit
+	var collider := hit.get("collider") as CollisionObject3D
+	if collider != null:
+		var shape_index := int(hit.get("shape", 0))
+		var owner_id := collider.shape_find_owner(shape_index)
+		var shape_node := collider.shape_owner_get_owner(owner_id)
+		hit["shape_node"] = shape_node
+	return hit
+
 func _settle(frames: int, physics: bool = true) -> void:
 	for _i: int in frames:
 		if physics:
@@ -174,6 +195,108 @@ func _run() -> void:
 	await _settle(25)
 	var stand_local: Vector3 = _body.call("to_local", _player.global_position)
 	_check("platform_stands", stand_local.y > 8.40, stand_local)
+	# 3b. Collision audit: solid deck, closed parapet, open ladder gap.
+	var floor_ok := true
+	var floor_hits := 0
+	var floor_names: Array[String] = []
+	for sx: float in [-1.85, 0.0, 1.85]:
+		for sz: float in [-2.15, 0.0, 2.15]:
+			var hit := _ray_local(Vector3(sx, 10.50, sz), Vector3(sx, 8.60, sz))
+			if hit.is_empty():
+				floor_ok = false
+				continue
+			var shape_node := hit.get("shape_node") as Node
+			floor_names.append(str(shape_node.name) if shape_node != null else "null")
+			if shape_node == null or not str(shape_node.name).begins_with("Hit_platform"):
+				floor_ok = false
+			else:
+				floor_hits += 1
+	_check("deck_floor", floor_ok and floor_hits == 9, {"hits": floor_hits, "names": floor_names, "ok": floor_ok})
+	var front := _ray_local(Vector3(0.0, 9.25, -2.0), Vector3(0.0, 9.25, -3.2))
+	var rear := _ray_local(Vector3(0.0, 9.25, 2.0), Vector3(0.0, 9.25, 3.2))
+	var left := _ray_local(Vector3(-2.0, 9.25, 0.0), Vector3(-3.2, 9.25, 0.0))
+	var right := _ray_local(Vector3(2.0, 9.25, 2.0), Vector3(3.2, 9.25, 2.0))
+	var gap := _ray_local(Vector3(2.0, 9.25, 0.55), Vector3(3.5, 9.25, 0.55))
+	var parapet_ok := not front.is_empty() and not rear.is_empty() and not left.is_empty() and not right.is_empty()
+	var parapet_names: Array[String] = []
+	for side_hit: Dictionary in [front, rear, left, right]:
+		if side_hit.is_empty():
+			parapet_ok = false
+			parapet_names.append("miss")
+			continue
+		var side_col := side_hit.get("shape_node") as Node
+		parapet_names.append(str(side_col.name) if side_col != null else "null")
+		if side_col == null or not str(side_col.name).begins_with("Hit_parapet"):
+			parapet_ok = false
+	_check("parapet_walls", parapet_ok,
+		{"front": not front.is_empty(), "rear": not rear.is_empty(),
+		"left": not left.is_empty(), "right": not right.is_empty(), "names": parapet_names})
+	_check("ladder_gap_open", gap.is_empty(), gap)
+	var parapet_shapes: Array = _body.get("_part_shapes").get("parapet", [])
+	_check("parapet_shapes", parapet_shapes.size() >= 5, parapet_shapes.size())
+
+	# 3c. A real rigid prop must rest on the deck, not pass through it.
+	var ball := RigidBody3D.new()
+	ball.mass = 2.0
+	ball.collision_layer = 4
+	ball.collision_mask = 1
+	var ball_shape := CollisionShape3D.new()
+	var ball_box := BoxShape3D.new()
+	ball_box.size = Vector3(0.30, 0.30, 0.30)
+	ball_shape.shape = ball_box
+	ball.add_child(ball_shape)
+	var ball_mesh := MeshInstance3D.new()
+	var ball_mesh_res := BoxMesh.new()
+	ball_mesh_res.size = Vector3(0.30, 0.30, 0.30)
+	ball_mesh.mesh = ball_mesh_res
+	ball.add_child(ball_mesh)
+	_scene.add_child(ball)
+	ball.global_position = _body.to_global(Vector3(0.70, 9.80, -1.20))
+	await _settle(75)
+	var ball_local: Vector3 = _body.call("to_local", ball.global_position)
+	_check("platform_rigid_floor", ball_local.y > 8.70, ball_local)
+	ball.queue_free()
+
+	# 3d. A powder barrel dropped from the hands on the deck must land on the
+	# deck (not on the roof, not at the terrain below).
+	var barrel_host: Node = _scene.get("preview_power_barrels")
+	var drop_local := Vector3.ZERO
+	var drop_ok := false
+	if is_instance_valid(barrel_host):
+		var list: Array = barrel_host.get("barrels")
+		if not list.is_empty() and bool(barrel_host.call("pick_up", list[0])):
+			_player.global_position = _body.to_global(Vector3(0.0, 9.10, 0.0))
+			_player.velocity = Vector3.ZERO
+			await physics_frame
+			barrel_host.call("drop_carried")
+			var after: Array = barrel_host.get("barrels")
+			if not after.is_empty():
+				var dropped: Node3D = after[after.size() - 1]
+				if is_instance_valid(dropped):
+					drop_local = _body.call("to_local", dropped.global_position)
+					drop_ok = drop_local.y > 8.60 and drop_local.y < 9.40
+	_check("barrel_drop_on_deck", drop_ok, drop_local)
+
+	# 3e. Cargo must ride with the moving tower instead of being left behind.
+	if drop_ok and is_instance_valid(barrel_host):
+		var list2: Array = barrel_host.get("barrels")
+		var cargo: Node3D = list2[list2.size() - 1] if not list2.is_empty() else null
+		var before := _body.call("to_local", cargo.global_position) as Vector3 if is_instance_valid(cargo) else Vector3.ZERO
+		_body.call("debug_pushers", 3)
+		await _settle(55)
+		var after_pos := _body.call("to_local", cargo.global_position) as Vector3 if is_instance_valid(cargo) else Vector3.ZERO
+		_body.call("debug_pushers", -1)
+		var drift := Vector2(after_pos.x - before.x, after_pos.z - before.z).length()
+		_check("cargo_rides", is_instance_valid(cargo) and drift < 0.40,
+			{"before": before, "after": after_pos, "drift": drift, "speed": _body.call("speed")})
+		if is_instance_valid(cargo):
+			var list3: Array = barrel_host.get("barrels")
+			for i: int in range(list3.size() - 1, -1, -1):
+				if list3[i] == cargo:
+					list3.remove_at(i)
+			cargo.queue_free()
+	else:
+		_check("cargo_rides", false, "no barrel")
 	# Step onto the ladder balcony before descending, as a player would.
 	_player.global_position = _body.to_global(Vector3(2.60, 8.80, 0.55))
 	_body.call("debug_climb_axis", -1.0)

@@ -15,6 +15,7 @@ const MODEL_SCRIPT := preload("res://scripts/siege/siege_ram_tower_model.gd")
 
 const WHEEL_R := 0.78
 const WHEEL_X := 2.28
+const PLATFORM_Y := 8.85
 const WHEEL_Z: Array[float] = [-2.45, -0.05, 2.35]
 
 const MAX_SPEED := 1.85
@@ -119,6 +120,8 @@ var _dust_material: StandardMaterial3D
 var _dust_mesh: SphereMesh
 var _debris_mesh: BoxMesh
 var _ground_tick := 0
+var _cargo: Array[Node3D] = []
+var _cargo_timer := 0.0
 
 func install(world_in: Node3D, castle_in: Node3D, player_in: CharacterBody3D) -> Dictionary:
 	world = world_in
@@ -878,6 +881,7 @@ func _start_topple() -> void:
 		return
 	_toppling = true
 	_destroyed = true
+	_clear_cargo()
 	_speed = 0.0
 	_yaw_rate = 0.0
 	_ram_state = "rest"
@@ -1224,7 +1228,71 @@ func simulate_step(delta: float) -> void:
 	_update_falling(delta)
 	_update_debris(delta)
 	_sync_transform()
+	_carry_cargo(delta)
 	_carry_rider()
+
+## Cargo placed on the deck rides with the machine.  Only static props (powder
+## barrels, crates) are collected; the query is refreshed a few times a second.
+func _refresh_cargo() -> void:
+	_cargo.clear()
+	if not is_inside_tree():
+		return
+	var space := get_world_3d().direct_space_state
+	if space == null:
+		return
+	var box := BoxShape3D.new()
+	box.size = Vector3(4.30, 0.55, 5.00)
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = box
+	query.transform = Transform3D(Basis.from_euler(Vector3(_pitch, _yaw, _roll)),
+		_origin + Vector3(0.0, PLATFORM_Y + 0.30, -0.05))
+	query.collision_mask = 1
+	var excludes: Array[RID] = []
+	if is_instance_valid(player):
+		excludes.append(player.get_rid())
+	query.exclude = excludes
+	for raw: Variant in space.intersect_shape(query, 48):
+		var entry := raw as Dictionary
+		var collider := entry.get("collider") as Node
+		if not is_instance_valid(collider) or not (collider is StaticBody3D):
+			continue
+		if is_ancestor_of(collider):
+			continue
+		var root := collider.get_parent() as Node3D
+		if root == null or root == self or root == get_parent():
+			continue
+		if not root.is_visible_in_tree() or _cargo.has(root):
+			continue
+		var local := to_local(root.global_position)
+		if local.y < 8.55 or local.y > 9.55 or absf(local.x) > 2.30 or absf(local.z) > 2.70:
+			continue
+		_cargo.append(root)
+
+func _carry_cargo(delta: float) -> void:
+	if _destroyed:
+		return
+	if _cargo.is_empty() and _speed <= 0.02 and absf(_yaw_rate) <= 0.005 and _pushers <= 0:
+		return
+	_cargo_timer -= delta
+	if _cargo_timer <= 0.0:
+		_cargo_timer = 0.25
+		_refresh_cargo()
+	var now := Transform3D(Basis.from_euler(Vector3(_pitch, _yaw, _roll)), _origin)
+	var motion := now * _step_transform.affine_inverse()
+	if motion.is_equal_approx(Transform3D.IDENTITY):
+		return
+	for index: int in range(_cargo.size() - 1, -1, -1):
+		var node := _cargo[index]
+		if not is_instance_valid(node) or not node.is_inside_tree():
+			_cargo.remove_at(index)
+			continue
+		if not node.is_visible_in_tree():
+			continue
+		node.global_transform = motion * node.global_transform
+
+func _clear_cargo() -> void:
+	_cargo.clear()
+	_cargo_timer = 0.0
 
 func _carry_rider() -> void:
 	if not is_instance_valid(player):
@@ -1263,7 +1331,7 @@ func snapshot() -> Dictionary:
 		"ram_tip": ram_tip_world(), "broken_parts": _broken.keys(), "broken_wheels": _broken_wheels,
 		"falling": _falling.keys(), "toppling": _toppling, "intact_wheels": _intact_wheels(),
 		"debris": _debris.size(), "debris_pool": _debris_pool.size(), "dust": _dust.size(),
-		"part_hp": _part_hp.duplicate(true), "last_hit": _last_hit, "colliders": _collision_count(),
+		"cargo": _cargo.size(), "part_hp": _part_hp.duplicate(true), "last_hit": _last_hit, "colliders": _collision_count(),
 		"climbing": _climbing, "model_parts": _part_nodes.size(), "build_ms": _build_ms}
 
 func debug_break(part: String) -> bool:

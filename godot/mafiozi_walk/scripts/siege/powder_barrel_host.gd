@@ -63,6 +63,7 @@ func install(world_in: Node3D, player_in: CharacterBody3D) -> Dictionary:
 		var barrel: Node3D = _barrel_model(self, false)
 		barrel.name = "PowderBarrel%d" % index
 		barrel.global_position = at
+		_add_thrown_body(barrel)
 		barrels.append(barrel)
 	_fx = BlastFX.new()
 	var fx_setup: Dictionary = _fx.configure(world)
@@ -77,7 +78,7 @@ func _ground_height(at: Vector3) -> float:
 	var space := get_world_3d().direct_space_state if is_inside_tree() else null
 	if space == null:
 		return at.y
-	var ray := PhysicsRayQueryParameters3D.create(Vector3(at.x, at.y + 4.0, at.z), Vector3(at.x, at.y - 20.0, at.z), 1)
+	var ray := PhysicsRayQueryParameters3D.create(Vector3(at.x, at.y + 0.9, at.z), Vector3(at.x, at.y - 20.0, at.z), 1)
 	var excludes: Array[RID] = []
 	if is_instance_valid(player):
 		excludes.append(player.get_rid())
@@ -603,6 +604,7 @@ func pick_up(barrel: Node3D) -> bool:
 	if not is_instance_valid(visual):
 		return false
 	barrel.visible = false
+	_set_barrel_solid(barrel, false)
 	_carried = _barrel_model(visual, true)
 	_carried.position = Vector3(0.0, 1.05, 0.42)
 	_carried.rotation.y = 0.2
@@ -652,6 +654,8 @@ func throw_carried() -> bool:
 
 
 func _add_thrown_body(barrel: Node3D) -> void:
+	if barrel.get_node_or_null("PowderBody") != null:
+		return
 	var body := StaticBody3D.new()
 	body.name = "PowderBody"
 	body.set_meta("ship_powder_barrel", true)
@@ -663,6 +667,15 @@ func _add_thrown_body(barrel: Node3D) -> void:
 	shape.position.y = 0.36
 	body.add_child(shape)
 	barrel.add_child(body)
+
+func _set_barrel_solid(barrel: Node3D, solid: bool) -> void:
+	if not is_instance_valid(barrel):
+		return
+	var body := barrel.get_node_or_null("PowderBody") as StaticBody3D
+	if body == null:
+		return
+	body.collision_layer = 1 if solid else 0
+	body.collision_mask = 1 if solid else 0
 
 
 func explode_from_hit(at: Vector3, _direction: Vector3) -> Dictionary:
@@ -734,8 +747,11 @@ func _drop_clear(at: Vector3) -> bool:
 	if is_instance_valid(player):
 		excludes.append(player.get_rid())
 	for barrel: Node3D in barrels:
-		if is_instance_valid(barrel):
-			excludes.append(barrel.get_rid())
+		if not is_instance_valid(barrel):
+			continue
+		var barrel_body := barrel.get_node_or_null("PowderBody") as StaticBody3D
+		if barrel_body != null:
+			excludes.append(barrel_body.get_rid())
 	query.exclude = excludes
 	return world.direct_space_state.intersect_shape(query, 1).is_empty()
 
@@ -758,6 +774,7 @@ func drop_carried() -> void:
 			break
 	var barrel: Node3D = _barrel_model(self, false)
 	barrel.global_position = at
+	_add_thrown_body(barrel)
 	barrels.append(barrel)
 	print("DSH_BARRELS_DROP at=", at)
 
@@ -817,6 +834,7 @@ func _check_weapon_hits() -> void:
 func throw_barrel(at: Vector3, initial_velocity: Vector3 = Vector3(0.0, -1.5, 0.0)) -> bool:
 	var barrel: Node3D = _barrel_model(self, false)
 	barrel.global_position = at
+	_add_thrown_body(barrel)
 	_falling.append({"node": barrel, "velocity": initial_velocity, "age": 0.0})
 	return true
 
