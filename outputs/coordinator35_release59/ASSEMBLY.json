@@ -1366,8 +1366,8 @@
     "audio/horse/neigh_1.wav": "b76764d03010a5882893dcc3cfd30ee7904d4adaae36eda34fc77318c00db817",
     "audio/horse/neigh_2.wav": "90304c8dbdee0613ae02b0f5af52ac7e282cbee7cf9b001367de01de27223384",
     "audio/horse/neigh_death.wav": "5b6021e25a4f565d23941a56c1c6ca1a32457a988bd704b1c5cc43cdee95d669",
-    "scripts/balloon/siege_balloon.gd": "cf91e754e361dfc94d2bc41167d2caa4ecdc20fe7ffa2959252831554e82806f",
-    "scripts/balloon/balloon_host.gd": "fd071f6c7dc311774ce2668778ed27df3e0ae5ad48c2330ff71490151fb85bfe",
+    "scripts/balloon/siege_balloon.gd": "2b415b86d21a1ee79baaf921f7eba190b915db3681501d9441867c9857b79696",
+    "scripts/balloon/balloon_host.gd": "cdb2227c533c6587018fcfc62e96cc2940b5ddf43726a2d9c1bbb12962b10faa",
     "scripts/siege/powder_barrel_host.gd": "cf10fb87628789eb9a8ab16ae43ce564aaf4d2327b2f24636e430039c9b5a828"
   },
   "source_pin_scope": "Published permanent game files only; untracked generated metadata and local diagnostic artifacts excluded",
