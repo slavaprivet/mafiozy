@@ -16,6 +16,16 @@ var world: Node3D
 var player: CharacterBody3D
 var status := "disabled"
 var carrying := false
+var _barrel_wood_mesh: ArrayMesh
+var _barrel_metal_mesh: ArrayMesh
+var _barrel_white_mesh: ArrayMesh
+var _barrel_black_mesh: ArrayMesh
+var _barrel_spark_mesh: SphereMesh
+var _barrel_wood_mat: StandardMaterial3D
+var _barrel_metal_mat: StandardMaterial3D
+var _barrel_white_mat: StandardMaterial3D
+var _barrel_black_mat: StandardMaterial3D
+var _barrel_spark_mat: StandardMaterial3D
 var barrels: Array[Node3D] = []
 var last_explosion: Dictionary = {}
 
@@ -82,71 +92,115 @@ func _ground_height(at: Vector3) -> float:
 	return float(hit.position.y) + 0.02 if not hit.is_empty() else at.y
 
 ## ---------------------------------------------------------------- model
+func _ensure_barrel_assets() -> void:
+	if _barrel_wood_mesh != null:
+		return
+	_barrel_wood_mat = StandardMaterial3D.new()
+	_barrel_wood_mat.albedo_color = Color(0.34, 0.22, 0.11)
+	_barrel_wood_mat.roughness = 0.92
+	_barrel_metal_mat = StandardMaterial3D.new()
+	_barrel_metal_mat.albedo_color = Color(0.28, 0.28, 0.26)
+	_barrel_metal_mat.metallic = 0.65
+	_barrel_metal_mat.roughness = 0.45
+	_barrel_white_mat = StandardMaterial3D.new()
+	_barrel_white_mat.albedo_color = Color(0.84, 0.80, 0.68)
+	_barrel_white_mat.roughness = 0.85
+	_barrel_black_mat = StandardMaterial3D.new()
+	_barrel_black_mat.albedo_color = Color(0.06, 0.05, 0.04)
+	_barrel_black_mat.roughness = 0.8
+	_barrel_spark_mat = StandardMaterial3D.new()
+	_barrel_spark_mat.albedo_color = Color(1.0, 0.55, 0.12)
+	_barrel_spark_mat.emission_enabled = true
+	_barrel_spark_mat.emission = Color(1.0, 0.40, 0.08)
+	_barrel_spark_mat.emission_energy_multiplier = 3.0
+	var wood := SurfaceTool.new()
+	wood.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var body := CylinderMesh.new()
+	body.top_radius = 0.30
+	body.bottom_radius = 0.34
+	body.height = 0.66
+	body.radial_segments = 14
+	wood.append_from(body, 0, Transform3D(Basis(), Vector3(0.0, 0.35, 0.0)))
+	for i: int in 12:
+		var angle := TAU * float(i) / 12.0
+		var stave := BoxMesh.new()
+		stave.size = Vector3(0.10, 0.63, 0.028)
+		wood.append_from(stave, 0, Transform3D(Basis(Vector3.UP, -angle), Vector3(sin(angle) * 0.335, 0.35, cos(angle) * 0.335)))
+	_barrel_wood_mesh = wood.commit()
+	var metal := SurfaceTool.new()
+	metal.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for y: float in [0.14, 0.35, 0.56]:
+		var hoop := CylinderMesh.new()
+		hoop.top_radius = 0.35
+		hoop.bottom_radius = 0.35
+		hoop.height = 0.055
+		hoop.radial_segments = 14
+		metal.append_from(hoop, 0, Transform3D(Basis(), Vector3(0.0, y, 0.0)))
+		for i: int in 8:
+			var angle := TAU * float(i) / 8.0
+			var rivet := BoxMesh.new()
+			rivet.size = Vector3(0.032, 0.032, 0.018)
+			metal.append_from(rivet, 0, Transform3D(Basis(Vector3.UP, -angle), Vector3(sin(angle) * 0.352, y, cos(angle) * 0.352)))
+	var lid := CylinderMesh.new()
+	lid.top_radius = 0.27
+	lid.bottom_radius = 0.30
+	lid.height = 0.06
+	metal.append_from(lid, 0, Transform3D(Basis(), Vector3(0.0, 0.70, 0.0)))
+	var bung := CylinderMesh.new()
+	bung.top_radius = 0.05
+	bung.bottom_radius = 0.055
+	bung.height = 0.05
+	metal.append_from(bung, 0, Transform3D(Basis(), Vector3(0.0, 0.73, 0.0)))
+	var fuse := CylinderMesh.new()
+	fuse.top_radius = 0.018
+	fuse.bottom_radius = 0.022
+	fuse.height = 0.16
+	metal.append_from(fuse, 0, Transform3D(Basis(Vector3.RIGHT, 0.2), Vector3(0.03, 0.81, 0.0)))
+	_barrel_metal_mesh = metal.commit()
+	var white := SurfaceTool.new()
+	white.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var stripe := CylinderMesh.new()
+	stripe.top_radius = 0.347
+	stripe.bottom_radius = 0.347
+	stripe.height = 0.105
+	stripe.radial_segments = 14
+	white.append_from(stripe, 0, Transform3D(Basis(), Vector3(0.0, 0.42, 0.0)))
+	_barrel_white_mesh = white.commit()
+	var black := SurfaceTool.new()
+	black.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var emblem := BoxMesh.new()
+	emblem.size = Vector3(0.10, 0.10, 0.014)
+	black.append_from(emblem, 0, Transform3D(Basis(Vector3.BACK, PI * 0.25), Vector3(0.0, 0.42, 0.352)))
+	_barrel_black_mesh = black.commit()
+	_barrel_spark_mesh = SphereMesh.new()
+	_barrel_spark_mesh.radius = 0.035
+	_barrel_spark_mesh.height = 0.07
+
+## Detailed powder barrel: staved body, riveted iron hoops, lid with a bung,
+## fuse, a white powder stripe and a black warning emblem. All static parts are
+## merged into four cached meshes shared by every barrel; only the burning spark
+## is separate, so each barrel costs five draw calls.
 func _barrel_model(parent: Node3D, carried: bool) -> Node3D:
+	_ensure_barrel_assets()
 	var root := Node3D.new()
-	var scale := 0.62 if carried else 1.0
-	var wood := StandardMaterial3D.new()
-	wood.albedo_color = Color(0.34, 0.22, 0.11)
-	wood.roughness = 0.92
-	var metal := StandardMaterial3D.new()
-	metal.albedo_color = Color(0.28, 0.28, 0.26)
-	metal.metallic = 0.65
-	metal.roughness = 0.45
-	var body_mesh := CylinderMesh.new()
-	body_mesh.top_radius = 0.30
-	body_mesh.bottom_radius = 0.34
-	body_mesh.height = 0.66
-	body_mesh.radial_segments = 14
-	var body := MeshInstance3D.new()
-	body.mesh = body_mesh
-	body.material_override = wood
-	body.position = Vector3(0.0, 0.35, 0.0)
-	root.add_child(body)
-	for y: float in [0.14, 0.56]:
-		var band_mesh := CylinderMesh.new()
-		band_mesh.top_radius = 0.345
-		band_mesh.bottom_radius = 0.345
-		band_mesh.height = 0.055
-		band_mesh.radial_segments = 14
-		var band := MeshInstance3D.new()
-		band.mesh = band_mesh
-		band.material_override = metal
-		band.position = Vector3(0.0, y, 0.0)
-		root.add_child(band)
-	var lid_mesh := CylinderMesh.new()
-	lid_mesh.top_radius = 0.27
-	lid_mesh.bottom_radius = 0.30
-	lid_mesh.height = 0.06
-	var lid := MeshInstance3D.new()
-	lid.mesh = lid_mesh
-	lid.material_override = metal
-	lid.position = Vector3(0.0, 0.70, 0.0)
-	root.add_child(lid)
-	var fuse_mesh := CylinderMesh.new()
-	fuse_mesh.top_radius = 0.018
-	fuse_mesh.bottom_radius = 0.022
-	fuse_mesh.height = 0.16
-	var fuse := MeshInstance3D.new()
-	fuse.mesh = fuse_mesh
-	fuse.material_override = metal
-	fuse.position = Vector3(0.0, 0.80, 0.0)
-	root.add_child(fuse)
-	var spark_mesh := SphereMesh.new()
-	spark_mesh.radius = 0.035
-	spark_mesh.height = 0.07
+	var parts: Array = [
+		[_barrel_wood_mesh, _barrel_wood_mat], [_barrel_metal_mesh, _barrel_metal_mat],
+		[_barrel_white_mesh, _barrel_white_mat], [_barrel_black_mesh, _barrel_black_mat],
+	]
+	for part: Array in parts:
+		var node := MeshInstance3D.new()
+		node.mesh = part[0]
+		node.material_override = part[1]
+		root.add_child(node)
 	var spark := MeshInstance3D.new()
-	spark.mesh = spark_mesh
-	var spark_mat := StandardMaterial3D.new()
-	spark_mat.albedo_color = Color(1.0, 0.55, 0.12)
-	spark_mat.emission_enabled = true
-	spark_mat.emission = Color(1.0, 0.40, 0.08)
-	spark_mat.emission_energy_multiplier = 3.0
-	spark.material_override = spark_mat
-	spark.position = Vector3(0.0, 0.89, 0.0)
+	spark.mesh = _barrel_spark_mesh
+	spark.material_override = _barrel_spark_mat
+	spark.position = Vector3(0.03, 0.895, 0.0)
 	root.add_child(spark)
-	root.scale = Vector3.ONE * scale
+	root.scale = Vector3.ONE * (0.62 if carried else 1.0)
 	parent.add_child(root)
 	return root
+
 
 ## ---------------------------------------------------------------- prompt
 func _build_prompt() -> void:

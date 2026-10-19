@@ -3,9 +3,9 @@
   "title": "Замок и осадный шар: дыры, падения и бочки",
   "revision": "castle-20261019-horse",
   "assembly": "outputs/coordinator35_release59/ASSEMBLY.json",
-  "assembly_sha256": "9f027a7305243cf24bf391db82741d17c4eaf8e989f4e78d7cc4152100694321",
+  "assembly_sha256": "e355e2d7b696fbc0a75d7fc6cfa7fbdf4cfe7a75c65bb704e70d619b01736e20",
   "bootstrap": "outputs/coordinator31_castle_current/bootstrap_castle.gd",
   "bootstrap_sha256": "318b2fe49cf454e0f41766ac4e5aa23ea43b2a26f5fa8d5b9c2ed3a617d0858b",
   "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
-  "scope": "Castle horse plus the siege airship: barrels stand on free basket floor spots (up to 8), E places/picks up and G throws them to fall physically and explode with the C4; free walking in the basket, animated E/G banners, occupancy flight, detailed optimized basket, holes/crash/fall damage/map clamp, weight steering, no cap, no anchor/Shift."
+  "scope": "Castle horse plus the siege airship: detailed cached-mesh powder barrels (staves, riveted hoops, lid/bung, fuse, powder stripe/emblem; five draw calls each), barrels on free basket floor spots, E place/pickup and G throw to a physical C4, free walking in the basket, animated E/G banners, occupancy flight, optimized wicker basket, holes/crash/fall damage/map clamp, weight steering, no cap, no anchor/Shift."
 }

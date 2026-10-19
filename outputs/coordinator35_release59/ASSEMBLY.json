@@ -1368,7 +1368,7 @@
     "audio/horse/neigh_death.wav": "5b6021e25a4f565d23941a56c1c6ca1a32457a988bd704b1c5cc43cdee95d669",
     "scripts/balloon/siege_balloon.gd": "cf91e754e361dfc94d2bc41167d2caa4ecdc20fe7ffa2959252831554e82806f",
     "scripts/balloon/balloon_host.gd": "2884a25b6838ad1eb89692a74b309f64b91ab86feb43af89987872a35bde2a8e",
-    "scripts/siege/powder_barrel_host.gd": "9d1f26607485d00610697aa1117f4229c94f6336f1f6bb95e0b1277434061c4f"
+    "scripts/siege/powder_barrel_host.gd": "c24bfcfe41230c48f7a8374a0370b01c1981df5f98442eba500e536ff8fdf87d"
   },
   "source_pin_scope": "Published permanent game files only; untracked generated metadata and local diagnostic artifacts excluded",
   "included_packages": [
@@ -1512,5 +1512,5 @@
     "source_on_D": "D:\\MafioziCombat31\\coordinator35_health57\\game",
     "resume": "docs/ai/COORDINATOR_35_CONTINUE57.json"
   },
-  "scope": "The castle horse plus the siege airship: barrels placed in the balloon go to free spots on the basket floor and stand there (no slots, no falling under the floor); up to eight ride at once. E places a carried barrel into the balloon or picks a floor barrel back up; G throws the carried barrel a metre ahead and it falls physically to the terrain and bursts with the city C4. The G key is wired before the E branch so it actually fires. Free camera-relative walking/turning in the basket, animated E/G banners, occupancy flight, detailed optimized wicker basket, holes/crash/fall damage/map clamp, weight steering, no cap, no anchor/Shift."
+  "scope": "The castle horse plus the siege airship: barrels stand on free basket floor spots (up to 8), E places/picks up and G throws them a metre ahead to fall physically and explode with the city C4. The powder barrel is now detailed - staved body, riveted iron hoops, lid and bung, fuse, white powder stripe and black diamond emblem - with all static parts merged into four cached meshes shared by every barrel and only the spark separate (five draw calls per barrel). Free camera-relative walking/turning in the basket, animated E/G banners, occupancy flight, detailed optimized wicker basket, holes/crash/fall damage/map clamp, weight steering, no cap, no anchor/Shift."
 }
