@@ -73,6 +73,13 @@ func _ground_height(local_x: float, local_z: float) -> float:
 func _physics_process(delta: float) -> void:
 	if not is_instance_valid(body):
 		return
+	# The machine is a dense model.  Beyond 70 m (for example while sailing or
+	# standing on the far quay) its visuals cost frames for nothing: hide the
+	# body and stop simulating until the player comes back.
+	if is_instance_valid(player) and player.global_position.distance_to(body.global_position) > 70.0:
+		body.visible = false
+		return
+	body.visible = true
 	body.call("simulate_step", delta)
 	if is_instance_valid(player):
 		body.call("climb_assist", player, delta)
