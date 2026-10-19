@@ -1373,7 +1373,7 @@ func _update_swimming(delta: float) -> void:
 	if swimming:
 		# Reaching wadeable ground ends the swim immediately, so the player walks
 		# out onto the beach instead of being held at water level.
-		if player.is_on_floor() and depth < 0.40:
+		if player.is_on_floor() and (depth < 0.55 or pos.y > water - 0.35):
 			swimming = false
 		elif pos.y > water + 0.55 or (player.is_on_floor() and pos.y > water + 0.02):
 			swimming = false
