@@ -510,6 +510,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if code != KEY_E:
 		return
+	if carrying:
+		place_carried()
+		get_viewport().set_input_as_handled()
+		return
 	if not bool(player.get("_free_mouse_look")):
 		return
 	var focused: Control = get_viewport().gui_get_focus_owner()
@@ -543,6 +547,34 @@ func wants_e() -> bool:
 	return _nearest_barrel() != null
 
 ## ---------------------------------------------------------------- carry
+func action() -> Dictionary:
+	if not is_instance_valid(player):
+		return {}
+	if carrying:
+		return {"owner": "powder", "kind": "powder_place", "label": "Положить бочку",
+			"key": "E", "world": player.global_position + Vector3.UP * 1.0}
+	var barrel: Node3D = _nearest_barrel()
+	if barrel != null:
+		return {"owner": "powder", "kind": "powder_pick", "label": "Поднять бочку",
+			"key": "E", "world": barrel.global_position + Vector3.UP * 0.8}
+	return {}
+
+
+func interact(action_data: Variant) -> bool:
+	if not action_data is Dictionary:
+		return false
+	var kind := str(action_data.get("kind", ""))
+	if kind == "powder_pick":
+		return pick_up_nearest()
+	if kind == "powder_place":
+		var had := carrying
+		place_carried()
+		return had and not carrying
+	if kind == "powder_throw":
+		return throw_carried()
+	return false
+
+
 func pick_up_nearest(max_distance: float = 3.4) -> bool:
 	if carrying or not is_instance_valid(player):
 		return false
