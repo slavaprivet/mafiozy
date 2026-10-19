@@ -24,6 +24,7 @@ var _fx: Node3D
 var _prompt: PanelContainer
 var _prompt_label: Label
 var _prompt_state := -1
+var _prompt_tween: Tween
 var _events := 0
 var _falling: Array[Dictionary] = []
 var _skeleton: Skeleton3D
@@ -65,7 +66,16 @@ func _ground_height(at: Vector3) -> float:
 	if space == null:
 		return at.y
 	var ray := PhysicsRayQueryParameters3D.create(Vector3(at.x, at.y + 4.0, at.z), Vector3(at.x, at.y - 20.0, at.z), 1)
-	ray.exclude = [player.get_rid()] if is_instance_valid(player) else []
+	var excludes: Array[RID] = []
+	if is_instance_valid(player):
+		excludes.append(player.get_rid())
+	if is_instance_valid(world):
+		var balloon_host: Variant = world.get("preview_balloon")
+		if is_instance_valid(balloon_host):
+			var balloon: Variant = balloon_host.get("balloon")
+			if is_instance_valid(balloon):
+				excludes.append((balloon as CollisionObject3D).get_rid())
+	ray.exclude = excludes
 	var hit: Dictionary = space.intersect_ray(ray)
 	return float(hit.position.y) + 0.02 if not hit.is_empty() else at.y
 
@@ -223,12 +233,30 @@ func _update_prompt() -> void:
 	if state != _prompt_state:
 		_prompt_state = state
 		if text.is_empty():
-			_prompt.visible = false
+			_animate_prompt(false)
 		else:
 			_prompt_label.text = text
 			_prompt.visible = true
 			_prompt.reset_size()
 			_layout_prompt()
+			_animate_prompt(true)
+
+func _animate_prompt(show: bool) -> void:
+	if _prompt_tween and _prompt_tween.is_valid():
+		_prompt_tween.kill()
+	_prompt.pivot_offset = _prompt.size * 0.5
+	if show:
+		_prompt.visible = true
+		_prompt.modulate.a = 0.0
+		_prompt.scale = Vector2(0.86, 0.86)
+		_prompt_tween = create_tween().set_parallel(true)
+		_prompt_tween.tween_property(_prompt, "modulate:a", 1.0, 0.16)
+		_prompt_tween.tween_property(_prompt, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	else:
+		_prompt_tween = create_tween().set_parallel(true)
+		_prompt_tween.tween_property(_prompt, "modulate:a", 0.0, 0.12)
+		_prompt_tween.tween_property(_prompt, "scale", Vector2(0.92, 0.92), 0.12)
+		_prompt_tween.chain().tween_callback(func() -> void: _prompt.visible = false)
 
 func _layout_prompt() -> void:
 	var viewport := get_viewport()
@@ -348,7 +376,7 @@ func _update_falling(delta: float) -> void:
 		entry["velocity"] = velocity
 		entry["age"] = age
 		var ground := _ground_height(node.global_position)
-		if age > 1.4 or (velocity.y < 0.0 and node.global_position.y <= ground + 0.15):
+		if age > 12.0 or (velocity.y < 0.0 and node.global_position.y <= ground + 0.15):
 			explode_at(Vector3(node.global_position.x, ground + 0.1, node.global_position.z))
 			node.queue_free()
 			_falling.remove_at(index)

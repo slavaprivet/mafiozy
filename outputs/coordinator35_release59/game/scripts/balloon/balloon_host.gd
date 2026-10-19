@@ -45,6 +45,7 @@ var _hud: CanvasLayer
 var _banner: PanelContainer
 var _banner_label: Label
 var _banner_state := -1
+var _banner_tween: Tween
 var _panel: PanelContainer
 var _altitude_label: Label
 var _heat_label: Label
@@ -176,6 +177,7 @@ func board_now() -> bool:
 	player.set_physics_process(true)
 	player.call("set_vehicle_hold", true)
 	balloon.set("rider", player)
+	balloon.set("pilot_inside", true)
 	var barrels: Variant = self.world.get("preview_power_barrels") if is_instance_valid(self.world) else null
 	if is_instance_valid(barrels) and barrels.has_method("take_carried") and bool(barrels.call("take_carried")):
 		_cargo += 1
@@ -203,6 +205,7 @@ func leave_now() -> bool:
 		return false
 	var balloon_altitude := float(balloon.call("altitude"))
 	balloon.set("rider", null)
+	balloon.set("pilot_inside", false)
 	_aboard = false
 	player.set_physics_process(true)
 	player.call("set_vehicle_hold", false)
@@ -393,19 +396,20 @@ func _update_hud() -> void:
 	var wind_speed := Vector2(wind.x, wind.z).length()
 	var text := ""
 	if _aboard:
-		text = "Покинуть корзину"
+		text = "Покинуть"
 	elif wants_e():
-		text = "Сесть в корзину"
+		text = "Сесть"
 	var state := 0 if text.is_empty() else (1 if _aboard else 2)
 	if state != _banner_state:
 		_banner_state = state
 		if text.is_empty():
-			_banner.visible = false
+			_animate_banner(false)
 		else:
 			_banner_label.text = text
 			_banner.visible = true
 			_banner.reset_size()
 			_layout_top_center(_banner, 26.0)
+			_animate_banner(true)
 	_panel.visible = _aboard
 	if not _aboard:
 		return
@@ -438,6 +442,23 @@ func _wind_arrow(wind: Vector3) -> String:
 	var directions := ["Ю", "ЮВ", "В", "СВ", "С", "СЗ", "З", "ЮЗ"]
 	var index := int(round(fposmod(angle, TAU) / (TAU / 8.0))) % 8
 	return directions[index]
+
+func _animate_banner(show: bool) -> void:
+	if _banner_tween and _banner_tween.is_valid():
+		_banner_tween.kill()
+	_banner.pivot_offset = _banner.size * 0.5
+	if show:
+		_banner.visible = true
+		_banner.modulate.a = 0.0
+		_banner.scale = Vector2(0.86, 0.86)
+		_banner_tween = create_tween().set_parallel(true)
+		_banner_tween.tween_property(_banner, "modulate:a", 1.0, 0.16)
+		_banner_tween.tween_property(_banner, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	else:
+		_banner_tween = create_tween().set_parallel(true)
+		_banner_tween.tween_property(_banner, "modulate:a", 0.0, 0.12)
+		_banner_tween.tween_property(_banner, "scale", Vector2(0.92, 0.92), 0.12)
+		_banner_tween.chain().tween_callback(func() -> void: _banner.visible = false)
 
 func _layout_top_center(control: Control, top: float) -> void:
 	var viewport := get_viewport()
@@ -472,8 +493,8 @@ func drop_cargo() -> bool:
 		return false
 	var forward := -balloon.global_transform.basis.z
 	var right := balloon.global_transform.basis.x
-	var origin := player.global_position + Vector3.UP * 1.25 + forward * 0.55
-	var velocity := forward * 5.5 + Vector3.UP * 1.5 + right * 0.4
+	var origin := player.global_position + forward * 1.0 + Vector3.UP * 0.4
+	var velocity := forward * 0.5 + Vector3.UP * 0.5 + right * 0.05
 	barrels.call("throw_barrel", origin, velocity)
 	_cargo -= 1
 	_remove_cargo_visual()

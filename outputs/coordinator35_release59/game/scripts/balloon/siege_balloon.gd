@@ -54,6 +54,7 @@ var gust_dir := Vector3.ZERO
 var gust_speed := 0.0
 var heat := 0.0
 var popped := false
+var pilot_inside := false
 var crew := CREW_COUNT
 var load := 1.0
 var weight := 0.0
@@ -924,7 +925,7 @@ func _physics_process(delta: float) -> void:
 	if not is_inside_tree():
 		return
 	_time += delta
-	var piloted := is_instance_valid(rider)
+	var piloted := is_instance_valid(rider) or pilot_inside
 	var lift := piloted and (Input.is_action_pressed(&"preview_jump") or debug_lift)
 	var throttle := 0.0
 	# Weight steering: the pilot physically walks around the basket. Moving the

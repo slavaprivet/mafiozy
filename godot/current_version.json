@@ -3,9 +3,9 @@
   "title": "Замок и осадный шар: дыры, падения и бочки",
   "revision": "castle-20261019-horse",
   "assembly": "outputs/coordinator35_release59/ASSEMBLY.json",
-  "assembly_sha256": "1562dcef52f2a81416bc739fd9d4383ac22e29e3ada2908bd7556eb5f37df6ab",
+  "assembly_sha256": "61e81f5f605474a0eacfff1e7c04b05c1ba8c587d8f7233ee4c80ada179922c4",
   "bootstrap": "outputs/coordinator31_castle_current/bootstrap_castle.gd",
   "bootstrap_sha256": "318b2fe49cf454e0f41766ac4e5aa23ea43b2a26f5fa8d5b9c2ed3a617d0858b",
   "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
-  "scope": "Castle horse plus the siege airship: upright on the ground, holes/air leaks and burst, basket crash splinters, fall HP/death and map clamp; barrels sit on the basket rim, are carried with the catapult hug and thrown from the chest over the rim with the C4 blast destroying the castle and camp."
+  "scope": "Castle horse plus the siege airship: animated E banners, occupancy flight (anyone inside presses Space; E puts you there), detailed optimized basket, powder barrels thrown a metre forward to fall physically and explode with the C4, holes/crash/fall damage/map clamp, weight steering, no cap, no anchor/Shift."
 }
