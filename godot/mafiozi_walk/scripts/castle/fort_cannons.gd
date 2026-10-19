@@ -4,6 +4,7 @@ extends Node3D
 ## and fire with LMB.  A destructible stone room protects the crews.
 
 const Cannonball = preload("res://scripts/ship/ship_cannonball.gd")
+const StructuralBlockHost = preload("res://scripts/destruction/structural_block_host.gd")
 const BALL_SPEED := 40.0
 const GRAVITY := 15.0
 const RANGE := 85.0
@@ -33,6 +34,7 @@ var _wood: StandardMaterial3D
 var _iron: StandardMaterial3D
 var _stone: StandardMaterial3D
 var _brick: ShaderMaterial
+var _structural: Node3D
 
 func install(world_in: Node3D, castle_in: Node3D, ship_host_in: Node3D) -> Dictionary:
 	world = world_in
@@ -44,6 +46,10 @@ func install(world_in: Node3D, castle_in: Node3D, ship_host_in: Node3D) -> Dicti
 	if is_instance_valid(ship):
 		boat = ship
 	_materials()
+	_structural = StructuralBlockHost.new()
+	_structural.name = "FortStructure"
+	add_child(_structural)
+	_structural.call("configure", self)
 	_door_outside = castle.to_global(Vector3(64.8, 1.2, 74.0))
 	_door_inside = castle.to_global(Vector3(67.0, 1.2, 74.0))
 	_build_room()
@@ -92,7 +98,8 @@ func _mesh_box(parent: Node3D, pos: Vector3, size: Vector3, mat: Material) -> Me
 	parent.add_child(mi)
 	return mi
 
-func _solid_box(pos: Vector3, size: Vector3, mat: Material, hp: float = 90.0) -> void:
+func _solid_box(pos: Vector3, size: Vector3, mat: Material, hp: float = 90.0,
+		is_base: bool = true) -> void:
 	var root := Node3D.new()
 	add_child(root)
 	root.global_position = castle.to_global(pos)
@@ -104,6 +111,8 @@ func _solid_box(pos: Vector3, size: Vector3, mat: Material, hp: float = 90.0) ->
 	body.set_meta("fort_wall", true)
 	root.add_child(body)
 	_wall_blocks.append({"node": root, "mesh": mi, "body": body, "hp": hp, "size": size})
+	if is_instance_valid(_structural):
+		_structural.call("add_block", root, body, size, hp, is_base)
 
 func _build_room() -> void:
 	# Destructible water-side battlements with real embrasures.  The old extra
@@ -112,10 +121,16 @@ func _build_room() -> void:
 			[51.6, 57.6], [62.4, 68.4]]:
 		var z0: float = seg[0]
 		var z1: float = seg[1]
-		_solid_box(Vector3(70.6, 1.80, (z0 + z1) * 0.5), Vector3(0.8, 3.2, z1 - z0), _brick, 30.0)
+		var length: float = z1 - z0
+		# Two stacked courses: the upper course is only held up by the lower one,
+		# so shooting the lower block out drops the upper block physically.
+		_solid_box(Vector3(70.6, 0.72, (z0 + z1) * 0.5), Vector3(0.8, 1.44, length),
+			_brick, 30.0, true)
+		_solid_box(Vector3(70.6, 2.16, (z0 + z1) * 0.5), Vector3(0.8, 1.44, length),
+			_brick, 30.0, false)
 	for gap_z: float in [20.0, 40.0, 60.0]:
-		_solid_box(Vector3(70.6, 0.65, gap_z), Vector3(0.8, 0.9, 4.8), _brick, 25.0)
-		_solid_box(Vector3(70.6, 2.85, gap_z), Vector3(0.8, 1.1, 4.8), _brick, 25.0)
+		_solid_box(Vector3(70.6, 0.65, gap_z), Vector3(0.8, 0.9, 4.8), _brick, 25.0, true)
+		_solid_box(Vector3(70.6, 2.85, gap_z), Vector3(0.8, 1.1, 4.8), _brick, 25.0, true)
 
 func _build_gun(base: Vector3, index: int) -> Dictionary:
 	var root := Node3D.new(); root.name = "FortGun%d" % index; add_child(root); root.global_position = base
@@ -269,26 +284,39 @@ func _spawn_ball(from: Vector3, dir: Vector3, shot: int) -> void:
 	ball.call("launch", from, dir, BALL_SPEED, null, castle, basin, shot)
 
 func apply_hit(world_point: Vector3, damage: float, _impulse: Vector3, _kind: String) -> Dictionary:
-	var best: Dictionary = {}
-	var best_d := 4.0
-	for block: Dictionary in _wall_blocks:
-		var node: Node3D = block.get("node")
-		if not is_instance_valid(node) or not node.visible: continue
-		var d: float = node.global_position.distance_to(world_point)
-		if d < best_d: best = block; best_d = d
-	if best.is_empty():
-		return {"ok": false, "reason": "no_wall"}
-	best["hp"] = float(best.get("hp", 90.0)) - damage
-	if float(best["hp"]) <= 0.0:
-		var node: Node3D = best.get("node")
-		if is_instance_valid(node):
-			_debris(node.global_position)
-			node.visible = false
-			var body: StaticBody3D = best.get("body")
-			if is_instance_valid(body):
-				body.collision_layer = 0
-				body.collision_mask = 0
-	return {"ok": true, "zone": "fort_wall", "hp": best["hp"], "damage": damage}
+	if is_instance_valid(_structural):
+		var result: Dictionary = _structural.call("apply_hit", world_point, damage)
+		if bool(result.get("ok", false)):
+			if bool(result.get("destroyed", false)):
+				_debris(world_point)
+			return result
+	return {"ok": false, "reason": "no_wall"}
+
+
+func _spawn_falling_panel(xform: Transform3D, size: Variant) -> void:
+	if not size is Vector3:
+		return
+	var panel_size: Vector3 = size
+	var body := RigidBody3D.new()
+	body.name = "FallingMasonry"
+	body.mass = maxf(4.0, panel_size.x * panel_size.y * panel_size.z * 900.0)
+	var mesh := BoxMesh.new()
+	mesh.size = panel_size
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.material_override = _brick
+	body.add_child(mi)
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = panel_size
+	shape.shape = box
+	body.add_child(shape)
+	add_child(body)
+	body.global_transform = xform
+	body.apply_central_impulse(Vector3(randf_range(-1.0, 1.0), 0.4,
+		randf_range(-1.0, 1.0)) * body.mass * 0.8)
+	get_tree().create_timer(9.0).timeout.connect(body.queue_free)
+	_debris(xform.origin)
 
 func _debris(at: Vector3) -> void:
 	if _debris_budget <= 0:
