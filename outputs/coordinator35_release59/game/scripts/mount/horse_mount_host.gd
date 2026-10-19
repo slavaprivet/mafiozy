@@ -294,7 +294,10 @@ func dismount_now() -> bool:
 			if _aim_camera_owns_distance() == false:
 				arm.spring_length = _walking_camera_distance
 		_camera_distance_owned = false
-	player.global_transform = Transform3D(Basis(Vector3.UP, yaw), spot.position)
+	# Keep the root unrotated: the character's facing is the visual's yaw, and the
+	# movement code writes that yaw in world terms. Rotating the root as well made the
+	# body face 2*yaw after any dismount from an angled horse.
+	player.global_transform = Transform3D(Basis(), spot.position)
 	player.velocity = Vector3.ZERO
 	player._heading = yaw
 	var visual: Node3D = player.get("_visual") as Node3D
@@ -411,7 +414,7 @@ func _force_player_off_dead_horse() -> void:
 			if _aim_camera_owns_distance() == false:
 				arm.spring_length = _walking_camera_distance
 		_camera_distance_owned = false
-	player.global_transform = Transform3D(Basis(Vector3.UP, yaw), at)
+	player.global_transform = Transform3D(Basis(), at)
 	player.velocity = Vector3.ZERO
 	player._heading = yaw
 	var visual: Node3D = player.get("_visual") as Node3D

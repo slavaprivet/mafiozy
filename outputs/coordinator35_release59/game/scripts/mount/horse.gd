@@ -82,6 +82,10 @@ var _hoof_steps := 0
 var _snorts := 0
 var _neighs := 0
 var _rein_meshes: Array[MeshInstance3D] = []
+var _rein_skeleton: Skeleton3D
+var _hand_bone_l := -1
+var _hand_bone_r := -1
+var _hoof_cursor := 0
 var _ear_left: Node3D
 var _ear_right: Node3D
 var _lid_left: Node3D
@@ -565,9 +569,8 @@ func _play_hoof() -> void:
 	var surface := _surface_below()
 	var pool: Array = _hoof_players.get(surface, _hoof_players.get("stone", []))
 	if pool.is_empty(): return
-	var candidates: Array = pool.filter(func(node: AudioStreamPlayer3D) -> bool: return not node.playing)
-	if candidates.is_empty(): candidates = pool
-	var chosen: AudioStreamPlayer3D = candidates[randi() % candidates.size()]
+	_hoof_cursor += 1
+	var chosen: AudioStreamPlayer3D = pool[_hoof_cursor % pool.size()]
 	chosen.pitch_scale = randf_range(0.58, 0.74)
 	chosen.play()
 	_hoof_steps += 1
@@ -635,17 +638,18 @@ func _update_reins() -> void:
 			node.visible = false
 		return
 	var skeleton: Skeleton3D = rider.get("_pose_skeleton") as Skeleton3D
+	if skeleton != _rein_skeleton:
+		_rein_skeleton = skeleton
+		_hand_bone_l = skeleton.find_bone("hand_l") if is_instance_valid(skeleton) else -1
+		_hand_bone_r = skeleton.find_bone("hand_r") if is_instance_valid(skeleton) else -1
 	for index: int in 2:
 		var side := -1.0 if index == 0 else 1.0
 		var crest := Vector3(side * 0.165, 2.38, -0.78)
 		var hand_world := Vector3.ZERO
-		var have_hand := false
-		if is_instance_valid(skeleton):
-			var bone := skeleton.find_bone("hand_l" if side < 0.0 else "hand_r")
-			if bone >= 0:
-				hand_world = skeleton.global_transform * skeleton.get_bone_global_pose(bone).origin
-				have_hand = true
-		if not have_hand:
+		var hand_bone := _hand_bone_l if side < 0.0 else _hand_bone_r
+		if is_instance_valid(skeleton) and hand_bone >= 0:
+			hand_world = skeleton.global_transform * skeleton.get_bone_global_pose(hand_bone).origin
+		else:
 			hand_world = _rig.to_global(Vector3(side * 0.28, 2.255, -0.34))
 		_place_rein(_rein_meshes[index], crest, _rig.to_local(hand_world))
 
