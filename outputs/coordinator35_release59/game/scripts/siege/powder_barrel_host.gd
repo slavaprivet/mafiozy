@@ -25,6 +25,8 @@ var _prompt: PanelContainer
 var _prompt_label: Label
 var _prompt_state := -1
 var _prompt_tween: Tween
+var _throw_key: PanelContainer
+var _throw_label: Label
 var _events := 0
 var _falling: Array[Dictionary] = []
 var _skeleton: Skeleton3D
@@ -181,6 +183,24 @@ func _build_prompt() -> void:
 	_prompt_label.add_theme_font_size_override("font_size", 18)
 	_prompt_label.add_theme_color_override("font_color", Color(0.95, 0.90, 0.80))
 	row.add_child(_prompt_label)
+	_throw_key = PanelContainer.new()
+	var throw_style := StyleBoxFlat.new()
+	throw_style.bg_color = Color(0.95, 0.78, 0.22)
+	throw_style.set_corner_radius_all(6)
+	_throw_key.add_theme_stylebox_override("panel", throw_style)
+	row.add_child(_throw_key)
+	var g_label := Label.new()
+	g_label.text = "G"
+	g_label.add_theme_font_size_override("font_size", 18)
+	g_label.add_theme_color_override("font_color", Color(0.10, 0.08, 0.06))
+	_throw_key.add_child(g_label)
+	_throw_label = Label.new()
+	_throw_label.text = "Бросить"
+	_throw_label.add_theme_font_size_override("font_size", 18)
+	_throw_label.add_theme_color_override("font_color", Color(0.95, 0.90, 0.80))
+	row.add_child(_throw_label)
+	_throw_key.visible = false
+	_throw_label.visible = false
 	_prompt.visible = false
 
 func _physics_process(delta: float) -> void:
@@ -226,10 +246,13 @@ func _hug_arms(on: bool) -> void:
 func _update_prompt() -> void:
 	var text := ""
 	if carrying:
-		text = "Поставить бочку"
+		text = "Поставить"
 	elif _nearest_barrel() != null:
 		text = "Поднять бочку"
 	var state := 0 if text.is_empty() else (1 if carrying else 2)
+	if is_instance_valid(_throw_key):
+		_throw_key.visible = carrying
+		_throw_label.visible = carrying
 	if state != _prompt_state:
 		_prompt_state = state
 		if text.is_empty():
@@ -289,6 +312,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	var focused: Control = get_viewport().gui_get_focus_owner()
 	if focused is LineEdit or focused is TextEdit:
 		return
+	if code == KEY_G:
+		if carrying and throw_carried():
+			get_viewport().set_input_as_handled()
+		return
 	if carrying:
 		drop_carried()
 		get_viewport().set_input_as_handled()
@@ -340,6 +367,19 @@ func _end_carry() -> void:
 func take_carried() -> bool:
 	if not carrying:
 		return false
+	_end_carry()
+	return true
+
+func throw_carried() -> bool:
+	if not carrying or not is_instance_valid(player):
+		return false
+	var heading := float(player.get("_heading"))
+	var forward := Vector3(-sin(heading), 0.0, -cos(heading))
+	var at := player.global_position + forward * 1.0 + Vector3.UP * 0.4
+	var velocity := forward * 0.5 + Vector3.UP * 0.5
+	var barrel: Node3D = _barrel_model(self, false)
+	barrel.global_position = at
+	_falling.append({"node": barrel, "velocity": velocity, "age": 0.0})
 	_end_carry()
 	return true
 

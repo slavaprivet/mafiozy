@@ -581,6 +581,10 @@ func _physics_process(delta: float) -> void:
 		var move := Input.get_vector(&"preview_move_left", &"preview_move_right",
 			&"preview_move_forward", &"preview_move_back")
 		velocity = Vector3(move.x, 0.0, -move.y) * 1.45
+		_heading = _camera_yaw
+		var visual_now: Node3D = get("_visual") as Node3D
+		if is_instance_valid(visual_now):
+			visual_now.rotation.y = _heading + deg_to_rad(visual_yaw_degrees)
 		_contact_impulse.clear()
 		_contact_dropkick.cancel("vehicle")
 		_jump.clear()

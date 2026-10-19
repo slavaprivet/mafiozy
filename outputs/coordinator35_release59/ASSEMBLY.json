@@ -1035,7 +1035,7 @@
     "scripts/preview_interior_finish.gd.uid": "491ea208d9869017ee90bee19c1da0fecc3fc707569cc751910e125bdf348b53",
     "scripts/preview_locomotion.gd": "16c934854d8ebf089c938c3914c66450e0f3b8fd97e6f075d864f3b5ee585aaf",
     "scripts/preview_locomotion.gd.uid": "5eb2bc8f618a3211a69655477ff130a95e4534a0b01d3bd704deedde5ce5c19b",
-    "scripts/preview_player.gd": "156f78b82062f2437156c8a38ea667ab889ade3f85465720aba7a892dacb2686",
+    "scripts/preview_player.gd": "98e28a20b7b6189f944937db2f39e735d0cb91c9eab51c021af17b4e57c66a4d",
     "scripts/preview_player.gd.uid": "1803e056f8fc526fbae9f1c598d3f713faf1fbd161acbb36b70330489d923c64",
     "scripts/preview_population.gd": "d731774a79bf78ca78cfc999f62d97156b1ea42755133347250e9dbd217bb8ba",
     "scripts/preview_population.gd.uid": "992896d1e2f7be27ac38a890bc8ac0a04055a99153d21cd556d31ac6268229a6",
@@ -1366,9 +1366,9 @@
     "audio/horse/neigh_1.wav": "b76764d03010a5882893dcc3cfd30ee7904d4adaae36eda34fc77318c00db817",
     "audio/horse/neigh_2.wav": "90304c8dbdee0613ae02b0f5af52ac7e282cbee7cf9b001367de01de27223384",
     "audio/horse/neigh_death.wav": "5b6021e25a4f565d23941a56c1c6ca1a32457a988bd704b1c5cc43cdee95d669",
-    "scripts/balloon/siege_balloon.gd": "17279efca9744fe5a81a9670dc73410519dda5919e1771ea11588d3aaf9e46a9",
+    "scripts/balloon/siege_balloon.gd": "cf91e754e361dfc94d2bc41167d2caa4ecdc20fe7ffa2959252831554e82806f",
     "scripts/balloon/balloon_host.gd": "44bf6a0232f5947897a437bb2dcd4209a1f8feb71abe79c9acf411ef58804181",
-    "scripts/siege/powder_barrel_host.gd": "1496380eb60ae955271961c59c16758ed937e70d65f3be959767d6263cea1a69"
+    "scripts/siege/powder_barrel_host.gd": "a12eb03b5ec933e566eb7a705572dc62a2981a9c755961f8cd54643f558b0a94"
   },
   "source_pin_scope": "Published permanent game files only; untracked generated metadata and local diagnostic artifacts excluded",
   "included_packages": [
@@ -1512,5 +1512,5 @@
     "source_on_D": "D:\\MafioziCombat31\\coordinator35_health57\\game",
     "resume": "docs/ai/COORDINATOR_35_CONTINUE57.json"
   },
-  "scope": "The castle horse plus the siege airship: the whole balloon is a detailed wicker basket with slats/planks and merged optimized meshes; animated popping E banners (sword-style scale/fade) for boarding and barrels; flight is occupancy-based so anyone in the balloon holding Space flies and E simply places the pilot there; powder barrels ride the rim, G throws one a metre forward from the chest and it falls physically to the ground and bursts with the city C4, destroying the castle and camp. Holes/air leaks, basket crash splinters, measured fall HP/death, map clamp, weight steering, no cap, no anchor/Shift."
+  "scope": "The castle horse plus the siege airship: walk and turn freely inside the basket exactly like on foot (camera-relative movement, the character follows the mouse, the animated walk plays), the balloon flies whenever the pilot is aboard, and the popping E/G banners show boarding and barrels. G throws a carried barrel a metre ahead from the chest; it falls physically to the terrain and bursts with the city C4, destroying the castle and camp. Detailed optimized wicker basket, holes/air leaks, basket crash splinters, measured fall HP/death, map clamp, weight steering, no cap, no anchor/Shift."
 }

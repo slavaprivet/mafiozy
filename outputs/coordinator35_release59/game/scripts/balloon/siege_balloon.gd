@@ -938,7 +938,8 @@ func _physics_process(delta: float) -> void:
 	if piloted:
 		var move := Input.get_vector(&"preview_move_left", &"preview_move_right",
 			&"preview_move_forward", &"preview_move_back")
-		_seat += move * SEAT_MOVE_SPEED * delta
+		var camera_yaw := float(rider.get("_camera_yaw")) if is_instance_valid(rider) else rotation.y
+		_seat += move.rotated(camera_yaw - rotation.y) * SEAT_MOVE_SPEED * delta
 		_seat.x = clampf(_seat.x, -SEAT_HALF_X, SEAT_HALF_X)
 		_seat.y = clampf(_seat.y, -SEAT_HALF_Z, SEAT_HALF_Z)
 	else:
@@ -1208,10 +1209,6 @@ func _seat_rider() -> void:
 		return
 	rider.global_position = _basket_global(Vector3(_seat.x, SEAT_Y, _seat.y))
 	rider.velocity = Vector3.ZERO
-	rider._heading = rotation.y
-	var visual: Node3D = rider.get("_visual") as Node3D
-	if is_instance_valid(visual):
-		visual.rotation.y = rotation.y + deg_to_rad(float(rider.get("visual_yaw_degrees")))
 
 func _ground_below() -> float:
 	var space := get_world_3d().direct_space_state if is_inside_tree() else null
