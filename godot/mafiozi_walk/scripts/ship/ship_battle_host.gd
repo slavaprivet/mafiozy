@@ -298,18 +298,8 @@ func action() -> Dictionary:
 		if cabin_distance <= REACH and cabin_distance < best_distance:
 			best = cabin_action
 			best_distance = cabin_distance
-	# The sail winch at the mast.
-	var lever_at := _lever_world()
-	if _lever_near():
-		if not lever_at.is_zero_approx():
-			var distance := feet.distance_to(lever_at)
-			if distance < best_distance:
-				var open := _sails_open()
-				best = {"owner": "ship", "kind": "ship_sail",
-					"label": "Свернуть паруса" if open else "Раскрыть паруса",
-					"world": lever_at + Vector3.UP * 0.7}
-				best_distance = distance
-	# The four guns.
+	# The four guns.  They are evaluated before the sail winch so standing at a
+	# loaded gun cannot be stolen by the nearby lever.
 	if preview_cannons != null and preview_cannons.has_method("mount_world"):
 		for index in range(4):
 			var mount: Vector3 = preview_cannons.call("mount_world", index)
@@ -326,10 +316,22 @@ func action() -> Dictionary:
 				else:
 					continue
 				best_distance = distance
+	# The sail winch at the mast.  It only wins when it is actually the nearest
+	# interaction, so the gun prompt keeps priority at the gun.
+	var lever_at := _lever_world()
+	if _lever_near():
+		if not lever_at.is_zero_approx():
+			var distance := feet.distance_to(lever_at)
+			if distance < best_distance:
+				var open := _sails_open()
+				best = {"owner": "ship", "kind": "ship_sail",
+					"label": "Свернуть паруса" if open else "Раскрыть паруса",
+					"world": lever_at + Vector3.UP * 0.7}
+				best_distance = distance
 	# The two crates in the cabin.  The ammo crate keeps its prompt, but the
 	# prompt shows E and the actual pickup is handled on E only.
 	var deck_ball_hint := _nearest_deck_ball()
-	if deck_ball_hint != null and not (is_instance_valid(_carried_ball_mesh) \
+	if deck_ball_hint != null and best.is_empty() and not (is_instance_valid(_carried_ball_mesh) \
 			and _carried_ball_mesh.visible) and _cabin_action().is_empty():
 		return {"owner": "ship", "kind": "ship_deck_ball", "label": "Взять ядро",
 			"key": "E", "world": deck_ball_hint.global_position + Vector3.UP * 0.6}
@@ -777,10 +779,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
 	var water_key: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
-	if _station == "" and water_key == KEY_F and _lever_near():
-		_toggle_sails()
-		get_viewport().set_input_as_handled()
-		return
 	if _station == "" and water_key == KEY_G and is_instance_valid(_carried_ball_mesh) \
 			and _carried_ball_mesh.visible:
 		_drop_carried_ball()
