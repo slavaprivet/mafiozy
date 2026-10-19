@@ -3789,9 +3789,12 @@ func _apply_sail_visual() -> void:
 		_sail_hole_mm.visible = amount > 0.15 and not _sail_holes.is_empty()
 
 func _apply_lever_visual() -> void:
-	if not is_instance_valid(_lever_pivot):
-		return
-	_lever_pivot.rotation.x = _lever_angle
+	# The lever geometry is batched under SailLever, not under the empty pivot;
+	# rotate the visible node so the handle actually throws.
+	if is_instance_valid(_lever_node):
+		_lever_node.rotation.x = _lever_angle
+	if is_instance_valid(_lever_pivot):
+		_lever_pivot.rotation.x = _lever_angle
 
 func _process(delta: float) -> void:
 	if not _built:
