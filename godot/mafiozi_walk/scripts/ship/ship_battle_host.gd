@@ -252,6 +252,16 @@ func action() -> Dictionary:
 			_leave_station()
 		return {}
 	_last_action = {}
+	if _station == "" and preview_boat.has_method("boarding_ladder_at"):
+		var local: Vector3 = preview_boat.to_local(player.global_position)
+		if local.y < 1.35:
+			var ladder: Dictionary = preview_boat.call("boarding_ladder_at", player.global_position)
+			if not ladder.is_empty():
+				return {"owner": "ship", "kind": "ship_board",
+					"side": ladder.get("side", 1.0), "z": ladder.get("z", 0.0),
+					"label": "Забраться на корабль",
+					"world": preview_boat.to_global(Vector3(float(ladder.get("side", 1.0)) * 4.55, 1.2,
+						float(ladder.get("z", 0.0))))}
 	if _station == "helm":
 		_last_action = {"owner": "ship", "kind": "ship_helm", "label": "Покинуть штурвал",
 			"world": _helm_world() + Vector3.UP * 0.8}
@@ -367,6 +377,14 @@ func interact(action_data: Variant) -> bool:
 			return powder_ok
 		return false
 	match kind:
+		"ship_board":
+			var side := float(action_data.get("side", 1.0))
+			var z := float(action_data.get("z", 4.2))
+			player.global_position = preview_boat.to_global(Vector3(side * 3.15, 1.88, z))
+			player.velocity = Vector3.ZERO
+			if player.has_method("set_swimming"):
+				player.call("set_swimming", false)
+			return true
 		"ship_helm":
 			_toggle_helm()
 			return true

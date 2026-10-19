@@ -1388,10 +1388,8 @@ func climb_assist(player: CharacterBody3D, delta: float) -> void:
 		return
 	var boarding := _boarding_ladder_at(local)
 	if not boarding.is_empty():
-		if not _climbing_ladder and not just_forward:
-			return
-		_climbing_ladder = true
-		_climb_boarding(player, local, axis, boarding, delta)
+		# Boarding is explicit: F at the ladder.  W near the hull must never
+		# capture the player and freeze deck movement.
 		return
 	if not _in_ladder_zone(local):
 		_climbing_ladder = false
@@ -1505,6 +1503,10 @@ func _boarding_ladder_at(local: Vector3) -> Dictionary:
 
 func in_boarding_zone(world_position: Vector3) -> bool:
 	return not _boarding_ladder_at(_local_from_world(world_position)).is_empty()
+
+
+func boarding_ladder_at(world_position: Vector3) -> Dictionary:
+	return _boarding_ladder_at(_local_from_world(world_position))
 
 
 func _climb_boarding(player: CharacterBody3D, local: Vector3, axis: float,
