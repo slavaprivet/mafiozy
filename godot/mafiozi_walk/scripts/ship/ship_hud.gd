@@ -207,8 +207,8 @@ func update_state(state: Dictionary) -> void:
 	if is_instance_valid(_boards_value):
 		_boards_value.add_theme_color_override("font_color", _col_gold_soft if boards > 0 else _col_muted)
 	if is_instance_valid(_cannon_ammo):
-		_cannon_ammo.text = "В ЯЩИКЕ: %d ЯДЕР · %d ДОСОК" % [balls, boards]
-		_cannon_ammo.add_theme_color_override("font_color", _col_muted if balls > 0 else _col_red)
+		_cannon_ammo.text = "В ЯЩИКЕ: %d ДОСОК" % boards
+		_cannon_ammo.add_theme_color_override("font_color", _col_muted if boards > 0 else _col_red)
 
 	var sunk := bool(_first(ship, ["sunk", "is_sunk"], false))
 	var status := "ЗАТОНУЛ" if sunk else ("ТОНЕТ" if flooding >= 0.75 else "НА ХОДУ" if sails else "ДРЕЙФ")
@@ -411,7 +411,7 @@ func _build_cannon_panel() -> void:
 	column.add_child(separator)
 	_cannon_status = _label(column, "РАЗРЯЖЕНО", 20, _col_red)
 	_cannon_angle = _label(column, "УГОЛ 0° · ПРЯМО", 12, _col_text)
-	_cannon_ammo = _label(column, "В ЯЩИКЕ: 0 ЯДЕР · 0 ДОСОК", 11, _col_muted)
+	_cannon_ammo = _label(column, "В ЯЩИКЕ: 0 ДОСОК", 11, _col_muted)
 	_cannon_hint = _label(column, "F — ВСТАТЬ/ПОКИНУТЬ · E — ЗАРЯДИТЬ · ЛКМ — ВЫСТРЕЛ", 10, _col_muted)
 
 func _build_messages() -> void:
