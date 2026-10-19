@@ -1349,6 +1349,18 @@ func _impact(hit: Dictionary) -> void:
 				_spawn_dust(point, normal)
 				_vanish()
 				return
+	# DSH_TOWER: the wheeled ram tower outside the castle is a siege target too.
+	var siege_tower: Variant = _world.get("preview_siege_tower") if is_instance_valid(_world) else null
+	if is_instance_valid(siege_tower) and siege_tower.has_method("contains_point") \
+			and siege_tower.has_method("catapult_impact"):
+		if bool(siege_tower.call("contains_point", point, 2.0)):
+			var tower_ok: bool = bool(siege_tower.call("catapult_impact", point, direction))
+			_last_impact = {"ok": tower_ok, "point": point, "tower": true}
+			print("DSH_CATAPULT_TOWER delivered=", tower_ok, " point=", point)
+			if tower_ok:
+				_spawn_dust(point, normal)
+				_vanish()
+				return
 	if wall_broken > 0:
 		# A ladder or shield can break even when adjacent masonry stays intact.
 		_last_impact = {"ok": true, "point": point, "siege_groups": wall_broken}

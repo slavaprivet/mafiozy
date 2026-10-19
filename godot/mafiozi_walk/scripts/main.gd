@@ -39,6 +39,7 @@ const BalloonHost = preload("res://scripts/balloon/balloon_host.gd")  # DSH_BALL
 const PowderBarrelHost = preload("res://scripts/siege/powder_barrel_host.gd")  # DSH_BARRELS
 const ShipBattleHost = preload("res://scripts/ship/ship_battle_host.gd")  # DSH_SHIP61
 const FortCannons = preload("res://scripts/castle/fort_cannons.gd")  # SHIP104
+const SiegeRamTowerHost = preload("res://scripts/siege/siege_ram_tower_host.gd")  # DSH_TOWER
 ## DSH_CASTLE: the castle is its OWN MAP. It is built far from the city so the two never
 ## interact, and the player is put down in its courtyard.
 const CASTLE_ORIGIN := Vector3(0.0, 0.0, 900.0)
@@ -140,6 +141,10 @@ var preview_ship: Node  # DSH_SHIP61
 var preview_fort: Node  # SHIP104
 var ship_status := "disabled"  # DSH_SHIP61
 var _ship_install_pending := false  # DSH_SHIP61
+## DSH_TOWER: the wheeled siege ram tower on the battlefield outside the gate.
+var preview_siege_tower: Node  # DSH_TOWER
+var siege_tower_status := "disabled"  # DSH_TOWER
+var _tower_install_pending := false  # DSH_TOWER
 var preview_melee: Node
 var melee_status := "disabled"
 var preview_minimap: Node
@@ -467,6 +472,8 @@ func _ready() -> void:
 		# DSH_SHIP61: installed a few physics frames later, after the castle's own
 		# startup spawn guard has run, so the player can start on the quarterdeck.
 		_ship_install_pending = not OS.get_cmdline_user_args().has("--no-ship")
+		# DSH_TOWER: installed after the ship, once the castle and its terrain exist.
+		_tower_install_pending = not OS.get_cmdline_user_args().has("--no-tower")
 	if not castle_map and (preview_bow_prototype_enabled or is_instance_valid(preview_weapons) or OS.get_cmdline_user_args().has("--bow-proto=1")):
 		_install_bow_prototype()  # DSH_BOW_PROTO
 	if OS.get_cmdline_user_args().has("--bow-proto=1"):
@@ -697,6 +704,27 @@ func _install_ship_battle() -> bool:
 		print("DSH_FORT_STATUS ready guns=", fort_result.get("guns", 0))
 	else:
 		fort.queue_free()
+	return true
+
+## DSH_TOWER: the wheeled siege ram tower. One host owns the machine, its ram and
+## the ladder; the player pushes it across the battlefield by walking into its rear.
+func _install_siege_tower() -> bool:
+	if is_instance_valid(preview_siege_tower) or not is_instance_valid(preview_castle) \
+			or not is_instance_valid(_player):
+		return false
+	var host: Node3D = SiegeRamTowerHost.new()
+	host.name = "SiegeRamTower"
+	add_child(host)
+	var installed: Dictionary = host.call("install", self, preview_castle)
+	if not installed.get("ok", false):
+		siege_tower_status = str(installed.get("reason", "install_failed"))
+		preview_siege_tower = null
+		host.queue_free()
+		push_warning("Siege ram tower install failed: " + siege_tower_status)
+		return false
+	preview_siege_tower = host
+	siege_tower_status = "ready"
+	print("DSH_TOWER_STATUS ", siege_tower_status)
 	return true
 
 func _build_castle_map() -> bool:
@@ -1191,6 +1219,10 @@ func _current_door_action() -> Dictionary:
 	if focused is LineEdit or focused is TextEdit:
 		return {}
 	# DSH_SHIP61: while the player is on or near the ship, she owns the F prompt.
+	if is_instance_valid(preview_siege_tower):  # DSH_TOWER
+		var tower_action: Dictionary = preview_siege_tower.call("action")
+		if not tower_action.is_empty():
+			return tower_action
 	if is_instance_valid(preview_ship):
 		var ship_action: Dictionary = preview_ship.call("action")
 		if not ship_action.is_empty():
@@ -1256,14 +1288,14 @@ func _update_door_hint() -> void:
 	if _door_hint == null:
 		return
 	var action: Dictionary = _current_door_action()
-	if action.get("owner", "") in ["palazzo", "clone", "castle", "castle_chest", "castle_pickup", "barrel", "horse", "balloon", "ship", "powder"]:
+	if action.get("owner", "") in ["palazzo", "clone", "castle", "castle_chest", "castle_pickup", "barrel", "horse", "balloon", "ship", "powder", "tower"]:
 		_door_hint_world = action.world
 	elif not _printshop_data.is_empty():
 		_door_hint_world = _v3(_printshop_data.doors.public.anchor) + Vector3.UP * 2.2
 	var hint: String = str(action.label) if not action.is_empty() else ""
 	var owner := str(action.get("owner", ""))
 	var key_text := str(action.get("key", "F"))
-	if owner == "barrel" or (owner in ["horse", "balloon"] and hint.contains("Взять")):
+	if owner == "barrel" or owner == "tower" or (owner in ["horse", "balloon"] and hint.contains("Взять")):
 		key_text = "E"
 	for child: Node in _door_hint_key.get_children():
 		if child is Label:
@@ -1314,6 +1346,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	if palazzo_key in [KEY_K, KEY_J] and is_instance_valid(preview_palazzo):
 		var command: Dictionary = preview_palazzo.request_full_collapse() if palazzo_key == KEY_K else preview_palazzo.request_reset()
 		if command.get("ok", false): get_viewport().set_input_as_handled()
+		return
+	# DSH_TOWER: the ram is worked with E, the same key the barrel prompts show.
+	if palazzo_key == KEY_E and is_instance_valid(preview_siege_tower):
+		var tower_prompt: Dictionary = preview_siege_tower.call("action")
+		if not tower_prompt.is_empty() and bool(preview_siege_tower.call("interact", tower_prompt)):
+			get_viewport().set_input_as_handled()
 		return
 	if event.physical_keycode != KEY_F and event.keycode != KEY_F:
 		return
@@ -1528,6 +1566,9 @@ func _physics_process(delta: float) -> void:
 	if _ship_install_pending and Engine.get_physics_frames() > 44:  # DSH_SHIP61
 		_ship_install_pending = false
 		_install_ship_battle()
+	if _tower_install_pending and Engine.get_physics_frames() > 52:  # DSH_TOWER
+		_tower_install_pending = false
+		_install_siege_tower()
 	# Keep the test tool's help panel off this map.
 	if is_instance_valid(preview_castle) and is_instance_valid(preview_sword_prototype):
 		var castle_hint: Variant = preview_sword_prototype.get("_hint")

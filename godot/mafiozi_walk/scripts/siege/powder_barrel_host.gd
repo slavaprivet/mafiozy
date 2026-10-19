@@ -987,6 +987,13 @@ func explode_at(at: Vector3, normal: Vector3 = Vector3.UP) -> Dictionary:
 			last_explosion["ship"] = ship_result
 			if bool(ship_result.get("ok", false)):
 				last_explosion["ok"] = true
+	# DSH_TOWER: a barrel rolled under the siege tower tears the machine apart.
+	var tower_host: Variant = world.get("preview_siege_tower") if is_instance_valid(world) else null
+	if is_instance_valid(tower_host) and tower_host.has_method("powder_blast"):
+		var tower_ok := bool(tower_host.call("powder_blast", at))
+		last_explosion["tower"] = tower_ok
+		if tower_ok:
+			last_explosion["ok"] = true
 	print("DSH_BARRELS_EXPLODE ", JSON.stringify(last_explosion))
 	return last_explosion
 
