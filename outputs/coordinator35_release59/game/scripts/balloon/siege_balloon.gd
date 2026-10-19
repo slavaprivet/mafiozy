@@ -84,6 +84,11 @@ var _throttle := 0.0
 var _seat := Vector2.ZERO
 var _airborne := false
 var _crew_people: Array[Node3D] = []
+var _basket_surfaces: Dictionary = {}
+var _crew_bodies: MultiMeshInstance3D
+var _crew_heads: MultiMeshInstance3D
+var _crew_hats: MultiMeshInstance3D
+var _crew_spots: Array[Vector3] = []
 var holes := 0
 var crash_done := false
 var _hole_nodes: Array[Node3D] = []
@@ -184,6 +189,8 @@ func _build_model() -> void:
 	_box_part(Vector3(0.52, 0.10, 2.40), Vector3(1.55, 0.80, 0.0), wicker, _basket_node)
 	_build_crew(_basket_node)
 	_build_basket_dressing(_basket_node)
+	_commit_basket_surfaces()
+	_build_basket_weave(_basket_node)
 	# Four suspension ropes are built as live Verlet chains in _build_suspension.
 	# Burner, raised clear of the crew's heads, and a metal heat shield below it.
 	var shield := CylinderMesh.new()
@@ -414,6 +421,15 @@ func _build_basket_dressing(parent: Node3D) -> void:
 	parent.add_child(finial_node)
 
 func _box_part(size: Vector3, at: Vector3, material: Material, parent: Node3D = null) -> void:
+	if parent == _basket_node:
+		if not _basket_surfaces.has(material):
+			var st := SurfaceTool.new()
+			st.begin(Mesh.PRIMITIVE_TRIANGLES)
+			_basket_surfaces[material] = st
+		var box := BoxMesh.new()
+		box.size = size
+		(_basket_surfaces[material] as SurfaceTool).append_from(box, 0, Transform3D(Basis(), at))
+		return
 	var mesh := BoxMesh.new()
 	mesh.size = size
 	var node := MeshInstance3D.new()
@@ -422,57 +438,133 @@ func _box_part(size: Vector3, at: Vector3, material: Material, parent: Node3D = 
 	node.position = at
 	(parent if parent != null else _model).add_child(node)
 
+func _commit_basket_surfaces() -> void:
+	if not is_instance_valid(_basket_node):
+		return
+	for material: Material in _basket_surfaces:
+		var st: SurfaceTool = _basket_surfaces[material]
+		var mesh := st.commit()
+		var node := MeshInstance3D.new()
+		node.mesh = mesh
+		node.material_override = material
+		_basket_node.add_child(node)
+	_basket_surfaces.clear()
+
+## Wicker slats, floor planks and alternate wood tones in two MultiMeshes.
+func _build_basket_weave(parent: Node3D) -> void:
+	var slat_mesh := BoxMesh.new()
+	slat_mesh.size = Vector3(0.055, 1.16, 0.035)
+	var slat_mm := MultiMesh.new()
+	slat_mm.transform_format = MultiMesh.TRANSFORM_3D
+	slat_mm.use_colors = true
+	slat_mm.mesh = slat_mesh
+	var transforms: Array[Transform3D] = []
+	for zs: float in [-1.0, 1.0]:
+		for i: int in 24:
+			transforms.append(Transform3D(Basis(), Vector3(-1.76 + float(i) * 0.153, 0.65, zs * 1.405)))
+	for xs: float in [-1.0, 1.0]:
+		for i: int in 18:
+			transforms.append(Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(xs * 1.905, 0.65, -1.24 + float(i) * 0.146)))
+	slat_mm.instance_count = transforms.size()
+	var slat_colors: Array[Color] = [Color(0.37, 0.24, 0.12), Color(0.44, 0.30, 0.16), Color(0.30, 0.19, 0.10)]
+	for i: int in transforms.size():
+		slat_mm.set_instance_transform(i, transforms[i])
+		slat_mm.set_instance_color(i, slat_colors[i % slat_colors.size()])
+	var slat_mat := StandardMaterial3D.new()
+	slat_mat.vertex_color_use_as_albedo = true
+	slat_mat.roughness = 0.95
+	var slats := MultiMeshInstance3D.new()
+	slats.name = "BasketSlats"
+	slats.multimesh = slat_mm
+	slats.material_override = slat_mat
+	parent.add_child(slats)
+	var plank_mesh := BoxMesh.new()
+	plank_mesh.size = Vector3(3.72, 0.035, 0.25)
+	var plank_mm := MultiMesh.new()
+	plank_mm.transform_format = MultiMesh.TRANSFORM_3D
+	plank_mm.use_colors = true
+	plank_mm.mesh = plank_mesh
+	plank_mm.instance_count = 10
+	for i: int in 10:
+		plank_mm.set_instance_transform(i, Transform3D(Basis(), Vector3(0.0, 0.115, -1.25 + float(i) * 0.25)))
+		plank_mm.set_instance_color(i, slat_colors[(i + 1) % slat_colors.size()])
+	var planks := MultiMeshInstance3D.new()
+	planks.name = "BasketPlanks"
+	planks.multimesh = plank_mm
+	planks.material_override = slat_mat
+	parent.add_child(planks)
+
 ## Five low-poly crewmen packed into the basket. Their count is the balloon's load:
 ## every extra body lowers the ceiling and makes every control heavier.
 func _build_crew(parent: Node3D) -> void:
-	var spots: Array[Vector3] = [
-		Vector3(-1.40, 0.12, -0.85),
-		Vector3(1.40, 0.12, -0.85),
-		Vector3(-1.40, 0.12, 0.85),
-		Vector3(1.40, 0.12, 0.85),
-		Vector3(0.0, 0.12, -1.18),
+	_crew_spots = [
+		Vector3(-1.40, 0.0, -0.85), Vector3(1.40, 0.0, -0.85),
+		Vector3(-1.40, 0.0, 0.85), Vector3(1.40, 0.0, 0.85), Vector3(0.0, 0.0, -1.18),
 	]
 	var tunics: Array[Color] = [
 		Color(0.36, 0.32, 0.22), Color(0.28, 0.34, 0.24), Color(0.40, 0.24, 0.18),
 		Color(0.30, 0.28, 0.36), Color(0.46, 0.36, 0.16),
 	]
-	var skin := _material(Color(0.74, 0.58, 0.44), 0.9)
-	var hat_mat := _material(Color(0.18, 0.14, 0.10), 0.95)
-	for index: int in spots.size():
-		var person := Node3D.new()
-		person.position = spots[index]
-		parent.add_child(person)
-		_crew_people.append(person)
-		var body_mesh := CapsuleMesh.new()
-		body_mesh.radius = 0.20
-		body_mesh.height = 0.90
-		body_mesh.radial_segments = 8
-		body_mesh.rings = 4
-		var body := MeshInstance3D.new()
-		body.mesh = body_mesh
-		body.material_override = _material(tunics[index], 0.95)
-		body.position = Vector3(0.0, 0.52, 0.0)
-		person.add_child(body)
-		var head_mesh := SphereMesh.new()
-		head_mesh.radius = 0.17
-		head_mesh.height = 0.30
-		head_mesh.radial_segments = 10
-		head_mesh.rings = 6
-		var head := MeshInstance3D.new()
-		head.mesh = head_mesh
-		head.material_override = skin
-		head.position = Vector3(0.0, 1.08, 0.0)
-		person.add_child(head)
-		var hat_mesh := CylinderMesh.new()
-		hat_mesh.top_radius = 0.17
-		hat_mesh.bottom_radius = 0.22
-		hat_mesh.height = 0.10
-		hat_mesh.radial_segments = 8
-		var hat := MeshInstance3D.new()
-		hat.mesh = hat_mesh
-		hat.material_override = hat_mat
-		hat.position = Vector3(0.0, 1.24, 0.0)
-		person.add_child(hat)
+	var body_mesh := CapsuleMesh.new()
+	body_mesh.radius = 0.20
+	body_mesh.height = 0.90
+	body_mesh.radial_segments = 8
+	body_mesh.rings = 4
+	var body_mm := MultiMesh.new()
+	body_mm.transform_format = MultiMesh.TRANSFORM_3D
+	body_mm.use_colors = true
+	body_mm.mesh = body_mesh
+	body_mm.instance_count = _crew_spots.size()
+	for index: int in _crew_spots.size():
+		body_mm.set_instance_color(index, tunics[index])
+	var body_mat := StandardMaterial3D.new()
+	body_mat.vertex_color_use_as_albedo = true
+	body_mat.roughness = 0.95
+	_crew_bodies = MultiMeshInstance3D.new()
+	_crew_bodies.name = "CrewBodies"
+	_crew_bodies.multimesh = body_mm
+	_crew_bodies.material_override = body_mat
+	parent.add_child(_crew_bodies)
+	var head_mesh := SphereMesh.new()
+	head_mesh.radius = 0.17
+	head_mesh.height = 0.30
+	head_mesh.radial_segments = 10
+	head_mesh.rings = 6
+	var head_mm := MultiMesh.new()
+	head_mm.transform_format = MultiMesh.TRANSFORM_3D
+	head_mm.mesh = head_mesh
+	head_mm.instance_count = _crew_spots.size()
+	_crew_heads = MultiMeshInstance3D.new()
+	_crew_heads.name = "CrewHeads"
+	_crew_heads.multimesh = head_mm
+	_crew_heads.material_override = _material(Color(0.74, 0.58, 0.44), 0.9)
+	parent.add_child(_crew_heads)
+	var hat_mesh := CylinderMesh.new()
+	hat_mesh.top_radius = 0.17
+	hat_mesh.bottom_radius = 0.22
+	hat_mesh.height = 0.10
+	hat_mesh.radial_segments = 8
+	var hat_mm := MultiMesh.new()
+	hat_mm.transform_format = MultiMesh.TRANSFORM_3D
+	hat_mm.mesh = hat_mesh
+	hat_mm.instance_count = _crew_spots.size()
+	_crew_hats = MultiMeshInstance3D.new()
+	_crew_hats.name = "CrewHats"
+	_crew_hats.multimesh = hat_mm
+	_crew_hats.material_override = _material(Color(0.18, 0.14, 0.10), 0.95)
+	parent.add_child(_crew_hats)
+	_update_crew_meshes()
+
+func _update_crew_meshes() -> void:
+	if not is_instance_valid(_crew_bodies) or _crew_spots.is_empty():
+		return
+	for index: int in _crew_spots.size():
+		var bob := 0.12 + sin(_time * 1.8 + float(index) * 1.4) * 0.025
+		var sway := sin(_time * 1.1 + float(index) * 1.7) * 0.025
+		var person := Transform3D(Basis.from_euler(Vector3(0.0, 0.0, sway)), _crew_spots[index] + Vector3(0.0, bob, 0.0))
+		_crew_bodies.multimesh.set_instance_transform(index, person * Transform3D(Basis(), Vector3(0.0, 0.52, 0.0)))
+		_crew_heads.multimesh.set_instance_transform(index, person * Transform3D(Basis(), Vector3(0.0, 1.08, 0.0)))
+		_crew_hats.multimesh.set_instance_transform(index, person * Transform3D(Basis(), Vector3(0.0, 1.24, 0.0)))
 
 func _rope(from: Vector3, to: Vector3, width: float, material: Material) -> void:
 	var mesh := CylinderMesh.new()
@@ -961,12 +1053,7 @@ func _update_basket_tilt(delta: float, throttle: float) -> void:
 	_basket_node.transform = Transform3D(basis, pivot - basis * pivot)
 	# The crew are alive: a small idle bob and sway keeps the basket from looking
 	# like a wax museum.
-	for index: int in _crew_people.size():
-		var person: Node3D = _crew_people[index]
-		if not is_instance_valid(person):
-			continue
-		person.position.y = 0.12 + sin(_time * 1.8 + float(index) * 1.4) * 0.025
-		person.rotation.z = sin(_time * 1.1 + float(index) * 1.7) * 0.025
+	_update_crew_meshes()
 
 func _basket_global(local: Vector3) -> Vector3:
 	if is_instance_valid(_basket_node):
