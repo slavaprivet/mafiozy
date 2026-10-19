@@ -1262,7 +1262,7 @@ func _lever_near() -> bool:
 	if lever.is_zero_approx():
 		return false
 	var flat := Vector2(player.global_position.x - lever.x, player.global_position.z - lever.z).length()
-	return flat <= 4.2 and absf(player.global_position.y - lever.y) <= 4.5
+	return flat <= 2.8 and absf(player.global_position.y - lever.y) <= 3.2
 
 
 func _lever_world() -> Vector3:
