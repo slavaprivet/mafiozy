@@ -1142,6 +1142,20 @@ func _current_door_action() -> Dictionary:
 	if is_instance_valid(preview_castle) and is_instance_valid(preview_castle.armory_storage):
 		var pickup: Dictionary = preview_castle.armory_storage.pickup_action43()
 		if not pickup.is_empty(): return pickup
+	# The horse, balloon and barrel prompts use this very same panel (the sword
+	# pickup's plaque and animation) instead of their own little banners.
+	if is_instance_valid(preview_power_barrels):
+		var barrel_text: String = str(preview_power_barrels.call("prompt_text"))
+		if not barrel_text.is_empty():
+			return {"owner": "barrel", "label": barrel_text, "world": preview_power_barrels.call("prompt_world")}
+	if is_instance_valid(preview_horse_mount):
+		var horse_text: String = str(preview_horse_mount.call("banner_text"))
+		if not horse_text.is_empty():
+			return {"owner": "horse", "label": horse_text, "world": preview_horse_mount.call("banner_world")}
+	if is_instance_valid(preview_balloon):
+		var balloon_text: String = str(preview_balloon.call("banner_text"))
+		if not balloon_text.is_empty():
+			return {"owner": "balloon", "label": balloon_text, "world": preview_balloon.call("banner_world")}
 	if is_instance_valid(preview_castle) and preview_castle.wants_e():
 		var inner: Vector3 = preview_castle.lever_position()
 		var outer: Vector3 = preview_castle.outer_lever_position()
@@ -1161,7 +1175,7 @@ func _update_door_hint() -> void:
 	if _door_hint == null:
 		return
 	var action: Dictionary = _current_door_action()
-	if action.get("owner", "") in ["palazzo", "clone", "castle", "castle_chest", "castle_pickup"]:
+	if action.get("owner", "") in ["palazzo", "clone", "castle", "castle_chest", "castle_pickup", "barrel", "horse", "balloon"]:
 		_door_hint_world = action.world
 	elif not _printshop_data.is_empty():
 		_door_hint_world = _v3(_printshop_data.doors.public.anchor) + Vector3.UP * 2.2

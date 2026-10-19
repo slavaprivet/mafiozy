@@ -396,6 +396,12 @@ func _panel_style(colour: Color, radius: float) -> StyleBoxFlat:
 	style.content_margin_bottom = 7.0
 	return style
 
+func banner_text() -> String:
+	return _banner_label.text if is_instance_valid(_banner_label) else ""
+
+func banner_world() -> Vector3:
+	return balloon.global_position + Vector3.UP * 2.8 if is_instance_valid(balloon) else Vector3.ZERO
+
 func _update_hud() -> void:
 	_update_hp_label()
 	var altitude := float(balloon.call("altitude"))
@@ -429,6 +435,7 @@ func _update_hud() -> void:
 			_banner.reset_size()
 			_place_world_prompt()
 			_animate_banner(true)
+	_banner.visible = false
 	_panel.visible = _aboard
 	if not _aboard:
 		return
