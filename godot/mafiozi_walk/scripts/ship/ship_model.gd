@@ -2178,10 +2178,35 @@ func _build_lever() -> void:
 	_lever_pivot.name = "LeverPivot"
 	_lever_pivot.position = Vector3(0.0, 0.16, 0.0)
 	_lever_node.add_child(_lever_pivot)
-	_box("lever_iron", Vector3(0.0, 0.30, 0.0), Vector3(0.055, 0.62, 0.055), Color(1, 1, 1))
-	_sphere("lever_gold", Vector3(0.0, 0.63, 0.0), 0.09, Color(1, 1, 1), 4, 8)
-	_box("lever_iron", Vector3(0.0, 0.06, 0.0), Vector3(0.13, 0.10, 0.13), Color(1, 1, 1))
-	_box("lever_gold", Vector3(0.0, 0.30, 0.045), Vector3(0.09, 0.18, 0.02), Color(1, 1, 1))
+	# The handle is its own mesh hierarchy under the pivot.  The pedestal and
+	# quadrant stay batched and never move.
+	var iron_mat: Material = _materials.get("iron", null)
+	var gold_mat: Material = _materials.get("gold", null)
+	var shaft := MeshInstance3D.new()
+	var shaft_mesh := BoxMesh.new()
+	shaft_mesh.size = Vector3(0.060, 0.78, 0.060)
+	shaft.mesh = shaft_mesh
+	shaft.material_override = iron_mat
+	shaft.position = Vector3(0.0, 0.39, 0.0)
+	shaft.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	_lever_pivot.add_child(shaft)
+	var knob := MeshInstance3D.new()
+	var knob_mesh := SphereMesh.new()
+	knob_mesh.radius = 0.105
+	knob_mesh.height = 0.21
+	knob_mesh.radial_segments = 10
+	knob_mesh.rings = 6
+	knob.mesh = knob_mesh
+	knob.material_override = gold_mat
+	knob.position = Vector3(0.0, 0.80, 0.0)
+	_lever_pivot.add_child(knob)
+	var grip := MeshInstance3D.new()
+	var grip_mesh := BoxMesh.new()
+	grip_mesh.size = Vector3(0.10, 0.22, 0.035)
+	grip.mesh = grip_mesh
+	grip.material_override = gold_mat
+	grip.position = Vector3(0.0, 0.40, 0.045)
+	_lever_pivot.add_child(grip)
 
 # ----------------------------------------------------------------------------- mast, yards
 func _build_mast() -> void:
@@ -3789,10 +3814,7 @@ func _apply_sail_visual() -> void:
 		_sail_hole_mm.visible = amount > 0.15 and not _sail_holes.is_empty()
 
 func _apply_lever_visual() -> void:
-	# The lever geometry is batched under SailLever, not under the empty pivot;
-	# rotate the visible node so the handle actually throws.
-	if is_instance_valid(_lever_node):
-		_lever_node.rotation.x = _lever_angle
+	# Only the handle throws.  The pedestal/quadrant are static.
 	if is_instance_valid(_lever_pivot):
 		_lever_pivot.rotation.x = _lever_angle
 
@@ -3804,7 +3826,7 @@ func _process(delta: float) -> void:
 	if absf(_sail_amount - _sail_target) > 0.0005:
 		_sail_amount = move_toward(_sail_amount, _sail_target, delta * 0.85)
 		_apply_sail_visual()
-	var target_angle := (1.20 if _lever_on else -1.20)
+	var target_angle := (1.05 if _lever_on else 0.0)
 	_lever_pump_hold = maxf(0.0, _lever_pump_hold - delta)
 	if _lever_pump_hold <= 0.0 and absf(_lever_angle - target_angle) > 0.0005:
 		# Door-like throw: one F drives the handle forward to the open stop and
