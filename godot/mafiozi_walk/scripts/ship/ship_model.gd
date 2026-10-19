@@ -3415,6 +3415,12 @@ func _build_collision() -> void:
 	_add_collision(Vector3(0.0, UPPER_Y + 0.42, -4.13), Vector3(6.30, 0.86, 0.10))
 	# Bow platform and its two steps.
 	_add_collision(Vector3(0.0, 2.14, -12.70), Vector3(4.40, 0.08, 1.80))
+	# Bridge the small gap between the main-deck edge and the raised platform,
+	# and extend the platform toe forward so a jump on the nose cannot slip
+	# through the front edge.
+	_add_collision(Vector3(0.0, 1.86, -11.40), Vector3(4.20, 0.08, 1.10))
+	_add_collision(Vector3(0.0, 2.14, -13.95), Vector3(4.20, 0.08, 1.10))
+	_add_collision(Vector3(0.0, 2.42, -14.50), Vector3(4.20, 0.50, 0.10))
 	_add_collision(Vector3(0.0, 1.90, -11.72), Vector3(2.60, 0.10, 0.34))
 	_add_collision(Vector3(0.0, 2.04, -12.06), Vector3(2.60, 0.10, 0.34))
 	# Bow platform rail: sides and the head rail, matching the visible timber.
