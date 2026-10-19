@@ -34,6 +34,8 @@ const MELEE_COOLDOWN_MS := 380
 const STAINS := 10
 const HOOF_SURFACES := ["stone", "wood", "dirt"]
 const HOOF_VARIANTS := 4
+const REIN_POINTS := 10
+const REIN_SEGMENTS := 9
 const BloodFx = preload("res://scripts/mount/horse_blood.gd")
 
 var rider: CharacterBody3D = null
@@ -81,7 +83,11 @@ var _neigh_cooldown := 0.0
 var _hoof_steps := 0
 var _snorts := 0
 var _neighs := 0
-var _rein_meshes: Array[MeshInstance3D] = []
+var _rein_mm: MultiMeshInstance3D
+var _rein_points: Array[PackedVector3Array] = []
+var _rein_prev: Array[PackedVector3Array] = []
+var _rein_rest: Array[float] = []
+var _rein_ready := false
 var _rein_skeleton: Skeleton3D
 var _hand_bone_l := -1
 var _hand_bone_r := -1
@@ -369,13 +375,6 @@ func _build_model() -> void:
 	for side: float in [-1.0, 1.0]:
 		_part(_rig, _box(Vector3(0.040, 0.16, 0.050)), _leather, Vector3(side * 0.375, 1.755, 0.02))
 		_part(_rig, _box(Vector3(0.105, 0.030, 0.135)), _metal, Vector3(side * 0.365, 1.675, 0.01))
-		# Reins: bit -> beside the neck -> over the crest. The last stretch to the
-		# rider's hand is a live mesh, so the hands always hold something.
-		var bit := Vector3(side * 0.135, 1.93, -1.60)
-		var cheek := Vector3(side * 0.235, 2.02, -1.22)
-		var crest := Vector3(side * 0.165, 2.38, -0.78)
-		_strap(_rig, bit, cheek, 0.026, _rein)
-		_strap(_rig, cheek, crest, 0.026, _rein)
 
 	# ---------------------------------------------------------------- harness
 	# A proper medieval riding harness: girth, breast collar with a ring and
@@ -434,7 +433,7 @@ func _build_model() -> void:
 	_build_ears()
 	_build_eyelids()
 	_build_audio()
-	_build_dynamic_reins()
+	_build_rein_rope()
 
 ## Ears on their own pivots so an idle flick costs one rotation, not a rebuild.
 func _build_ears() -> void:
@@ -508,10 +507,9 @@ func _make_audio(stream: AudioStream, unit: float, distance: float, volume: floa
 	voice.volume_db = volume
 	return voice
 
-## A WAV that Godot has not imported still has to make a sound; parse raw PCM16.
+## A WAV is parsed directly as PCM16: it works in a run without the editor import
+## step and never asks ResourceLoader for a loader the exported pack does not have.
 func _load_audio(path: String) -> AudioStream:
-	var imported: AudioStream = load(path)
-	if imported != null: return imported
 	if not FileAccess.file_exists(path): return null
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null: return null
@@ -610,63 +608,152 @@ func _update_audio(delta: float) -> void:
 		_snort_timer = 6.0 + fmod(float(_snort_index) * 2.37, 7.0)
 		_snort_index += 1
 
-## The last stretch of each rein runs from the crest to the rider's real hand bone:
-## two thin cylinders rebuilt as transforms each tick, so the hands always hold
-## something even while the arms move with a weapon.
-func _build_dynamic_reins() -> void:
+## Two reins as real ropes: a Verlet chain pinned to the bit (the horse's head) and
+## the rider's hand. Gravity, inertia and a neck push-out keep them draped over the
+## horse instead of standing as a rigid line, and the whole pair is one MultiMesh.
+func _build_rein_rope() -> void:
 	var mesh := CylinderMesh.new()
-	mesh.top_radius = 0.013
-	mesh.bottom_radius = 0.016
+	mesh.top_radius = 0.012
+	mesh.bottom_radius = 0.015
 	mesh.height = 1.0
 	mesh.radial_segments = 6
 	mesh.rings = 0
-	for side: float in [-1.0, 1.0]:
-		var node := MeshInstance3D.new()
-		node.name = "ReinL" if side < 0.0 else "ReinR"
-		node.mesh = mesh
-		node.material_override = _rein
-		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		node.visible = false
-		_rig.add_child(node)
-		_rein_meshes.append(node)
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = mesh
+	mm.instance_count = REIN_SEGMENTS * 2
+	_rein_mm = MultiMeshInstance3D.new()
+	_rein_mm.name = "Reins"
+	_rein_mm.multimesh = mm
+	_rein_mm.material_override = _rein
+	_rein_mm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_rein_mm.top_level = true
+	_rein_mm.visible = false
+	add_child(_rein_mm)
+	_rein_mm.global_transform = Transform3D()
 
-func _update_reins() -> void:
-	if _rein_meshes.size() != 2:
-		return
-	if not is_instance_valid(rider) or not is_instance_valid(_rig):
-		for node: MeshInstance3D in _rein_meshes:
-			node.visible = false
-		return
-	var skeleton: Skeleton3D = rider.get("_pose_skeleton") as Skeleton3D
-	if skeleton != _rein_skeleton:
+func _rein_endpoints() -> Array:
+	var bits: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO]
+	var hands: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO]
+	var skeleton: Skeleton3D = null
+	if is_instance_valid(rider):
+		skeleton = rider.get("_pose_skeleton") as Skeleton3D
+	if is_instance_valid(skeleton) and skeleton != _rein_skeleton:
 		_rein_skeleton = skeleton
-		_hand_bone_l = skeleton.find_bone("hand_l") if is_instance_valid(skeleton) else -1
-		_hand_bone_r = skeleton.find_bone("hand_r") if is_instance_valid(skeleton) else -1
+		_hand_bone_l = skeleton.find_bone("hand_l")
+		_hand_bone_r = skeleton.find_bone("hand_r")
 	for index: int in 2:
 		var side := -1.0 if index == 0 else 1.0
-		var crest := Vector3(side * 0.165, 2.38, -0.78)
-		var hand_world := Vector3.ZERO
-		var hand_bone := _hand_bone_l if side < 0.0 else _hand_bone_r
-		if is_instance_valid(skeleton) and hand_bone >= 0:
-			hand_world = skeleton.global_transform * skeleton.get_bone_global_pose(hand_bone).origin
+		bits[index] = _head.to_global(Vector3(side * 0.135, -0.10, -0.59))
+		var bone := _hand_bone_l if side < 0.0 else _hand_bone_r
+		if is_instance_valid(skeleton) and bone >= 0:
+			hands[index] = skeleton.global_transform * skeleton.get_bone_global_pose(bone).origin
 		else:
-			hand_world = _rig.to_global(Vector3(side * 0.28, 2.255, -0.34))
-		_place_rein(_rein_meshes[index], crest, _rig.to_local(hand_world))
+			hands[index] = _rig.to_global(Vector3(side * 0.28, 2.255, -0.34))
+	return [bits, hands]
 
-func _place_rein(node: MeshInstance3D, a: Vector3, b: Vector3) -> void:
-	var delta := b - a
-	var length := delta.length()
-	if length < 0.06:
-		node.visible = false
+func _update_reins() -> void:
+	if not is_instance_valid(_rein_mm):
 		return
-	var y_axis := delta / length
-	var x_axis := y_axis.cross(Vector3.UP)
-	if x_axis.length_squared() < 0.0001:
-		x_axis = y_axis.cross(Vector3.RIGHT)
-	x_axis = x_axis.normalized()
-	var z_axis := x_axis.cross(y_axis).normalized()
-	node.transform = Transform3D(Basis(x_axis, y_axis * length, z_axis), (a + b) * 0.5)
-	node.visible = true
+	if not is_instance_valid(rider) or not is_instance_valid(_rig) or not is_instance_valid(_head):
+		_rein_mm.visible = false
+		_rein_ready = false
+		return
+	var ends := _rein_endpoints()
+	var bits: Array = ends[0]
+	var hands: Array = ends[1]
+	if not _rein_ready:
+		_init_rein_ropes(bits, hands)
+		_rein_ready = true
+	_step_reins(get_physics_process_delta_time(), bits, hands)
+	_render_reins()
+
+func _init_rein_ropes(bits: Array, hands: Array) -> void:
+	_rein_points.clear()
+	_rein_prev.clear()
+	_rein_rest.clear()
+	for index: int in 2:
+		var side := -1.0 if index == 0 else 1.0
+		var control: Vector3 = _rig.to_global(Vector3(side * 0.18, 2.44, -0.72))
+		var pts := PackedVector3Array()
+		pts.resize(REIN_POINTS)
+		var length := 0.0
+		for i: int in REIN_POINTS:
+			var t := float(i) / float(REIN_POINTS - 1)
+			pts[i] = _bezier(bits[index], control, hands[index], t)
+			if i > 0:
+				length += pts[i].distance_to(pts[i - 1])
+		_rein_points.append(pts)
+		_rein_prev.append(pts.duplicate())
+		_rein_rest.append(maxf(0.10, length / float(REIN_POINTS - 1)))
+
+func _bezier(a: Vector3, c: Vector3, b: Vector3, t: float) -> Vector3:
+	var u := 1.0 - t
+	return a * (u * u) + c * (2.0 * u * t) + b * (t * t)
+
+func _step_reins(dt: float, bits: Array, hands: Array) -> void:
+	var neck: Array = [
+		[_rig.to_global(Vector3(0.0, 1.98, -1.18)), 0.24],
+		[_rig.to_global(Vector3(0.0, 2.10, -0.95)), 0.24],
+		[_rig.to_global(Vector3(0.0, 2.22, -0.75)), 0.21],
+	]
+	for index: int in 2:
+		var pts: PackedVector3Array = _rein_points[index]
+		var prev: PackedVector3Array = _rein_prev[index]
+		var rest: float = _rein_rest[index]
+		var bit: Vector3 = bits[index]
+		var hand: Vector3 = hands[index]
+		pts[0] = bit
+		pts[REIN_POINTS - 1] = hand
+		for i: int in range(1, REIN_POINTS - 1):
+			var velocity := (pts[i] - prev[i]) * 0.86
+			prev[i] = pts[i]
+			pts[i] += velocity + Vector3.DOWN * 9.8 * dt * dt
+		for iteration: int in 2:
+			for i: int in range(REIN_POINTS - 1):
+				var delta := pts[i + 1] - pts[i]
+				var distance := delta.length()
+				if distance < 0.0001:
+					continue
+				var correction := (distance - rest) / distance * 0.5
+				if i > 0:
+					pts[i] += delta * correction
+				if i + 1 < REIN_POINTS - 1:
+					pts[i + 1] -= delta * correction
+			pts[0] = bit
+			pts[REIN_POINTS - 1] = hand
+		for i: int in range(1, REIN_POINTS - 1):
+			for sphere: Array in neck:
+				var centre: Vector3 = sphere[0]
+				var radius: float = float(sphere[1]) + 0.02
+				var away := pts[i] - centre
+				if away.length() < radius:
+					pts[i] = centre + (away.normalized() if away.length() > 0.001 else Vector3.UP) * radius
+		_rein_points[index] = pts
+		_rein_prev[index] = prev
+
+func _render_reins() -> void:
+	var mm := _rein_mm.multimesh
+	var slot := 0
+	for index: int in 2:
+		var pts: PackedVector3Array = _rein_points[index]
+		for i: int in range(REIN_POINTS - 1):
+			var a := pts[i]
+			var b := pts[i + 1]
+			var delta := b - a
+			var length := delta.length()
+			if length < 0.01:
+				mm.set_instance_transform(slot, Transform3D(Basis().scaled(Vector3.ZERO), a))
+			else:
+				var y_axis := delta / length
+				var x_axis := y_axis.cross(Vector3.UP)
+				if x_axis.length_squared() < 0.0001:
+					x_axis = y_axis.cross(Vector3.RIGHT)
+				x_axis = x_axis.normalized()
+				var z_axis := x_axis.cross(y_axis).normalized()
+				mm.set_instance_transform(slot, Transform3D(Basis(x_axis, y_axis * length, z_axis), (a + b) * 0.5))
+			slot += 1
+	_rein_mm.visible = true
 
 ## Bake every MeshInstance3D child of the same material into one surface. The
 ## transforms, meshes and materials are unchanged, so the picture is identical and
@@ -951,6 +1038,9 @@ func _exit_air_pose() -> void:
 	if is_instance_valid(_lid_left): _lid_left.visible = false
 	if is_instance_valid(_lid_right): _lid_right.visible = false
 	_lids_visible = false
+	if is_instance_valid(_rein_mm):
+		_rein_mm.visible = false
+	_rein_ready = false
 	for key: String in ["fl", "fr", "rl", "rr"]:
 		var leg: Node3D = _legs.get(key) as Node3D
 		if is_instance_valid(leg):

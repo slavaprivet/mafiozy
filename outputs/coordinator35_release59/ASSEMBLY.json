@@ -1357,8 +1357,8 @@
     "scripts/weapons/weapon_surface_impacts.gd": "4adeb69f9e118d9275f6fcdf09666ffda15b6121b87986d16e1336b6761f06bc",
     "scripts/weapons/weapon_surface_impacts.gd.uid": "9dcd14da5fbd29acb97c4216c6b19aa5ba94d24927407184f328f02c5711998c",
     "tools/make_steps.py": "ddbc05ca0fadae493fd06054ea6acddd7510ed4a6273b745e79f951c20552cc2",
-    "scripts/mount/horse.gd": "d19ef525065d084f97797e862adb786b7ea4c1190c7c71e282912950a33a98e8",
-    "scripts/mount/horse_mount_host.gd": "ad5e233ac1a1d808ad0644d7dc9b0cb982ad988734cfb437fa8073adabb6bcd7",
+    "scripts/mount/horse.gd": "00bac4c64cab806e38c602d1c4b12019bf379c443a298200b2153037b4b1a292",
+    "scripts/mount/horse_mount_host.gd": "95b6b37e72bb0e7e9e29b1d82b6a29ae4a8013f82a314ff6146b73e2cb9c0e5b",
     "scripts/mount/horse_rider_pose.gd": "e549c303e56afa68f356c012b62aefbeeb5b2a81032a34e6e596309012e8ff71",
     "scripts/mount/horse_blood.gd": "3e8eda4e5ba6ef0bd6f3dbae60d5470ba36618ce7b2b105ccf86615783e69c5b",
     "audio/horse/snort_1.wav": "95a4e0b74348e5b59226776567bdabcd0845ac70012c885eff8b0cc66fee833b",
@@ -1509,5 +1509,5 @@
     "source_on_D": "D:\\MafioziCombat31\\coordinator35_health57\\game",
     "resume": "docs/ai/COORDINATOR_35_CONTINUE57.json"
   },
-  "scope": "All 59 retained; the castle horse is rideable with E, carries the complete medieval weapon set and the bow, has 100 HP, blood and a solid corpse; the reins run visibly to the rider's hand bones; hooves play on wood, dirt and stone, the horse snorts, whinnies when hurt and screams at death; the rider sits above the saddle, the rider's own weapons never wound the horse, the HP plate hides after walking away, and every dismount keeps the player root unrotated so the character always walks facing forward."
+  "scope": "All 59 retained; the castle horse is rideable with E, carries the complete medieval weapon set and the bow, has 100 HP, blood and a solid corpse; the reins are physical Verlet ropes pinned to the bit and the rider's hands, hooves play on wood, dirt and stone, the horse snorts, whinnies when hurt and screams at death; the dead body blocks but can be stepped over with a short vault, and the HP plate is visible by proximity rather than by aim."
 }

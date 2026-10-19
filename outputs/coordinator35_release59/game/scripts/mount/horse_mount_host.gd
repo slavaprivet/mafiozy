@@ -19,6 +19,10 @@ const RIDING_CAMERA_DISTANCE := 7.2
 const HP_VISIBLE_AFTER_HIT_MS := 4200
 const HP_VISIBLE_RANGE := 8.0
 const HORSE_MAX_HP := 100.0
+const VAULT_DURATION := 0.50
+const VAULT_DISTANCE := 2.9
+const VAULT_ARC := 0.95
+const VAULT_RANGE := 2.2
 
 var horse: CharacterBody3D
 var player: CharacterBody3D
@@ -27,6 +31,15 @@ var error := ""
 
 var _pose: RefCounted
 var _mounted := false
+var _vault_active := false
+var _vault_time := 0.0
+var _vault_start := Vector3.ZERO
+var _vault_end := Vector3.ZERO
+var _vault_heading := 0.0
+var _vault_layer := 2
+var _vault_mask := 1
+var _vault_cooldown := 0.0
+var _vaults := 0
 var _walking_layer := 0
 var _walking_mask := 0
 var _collision_owned := false
@@ -377,6 +390,10 @@ func is_mounted() -> bool:
 func _physics_process(_delta: float) -> void:
 	if not is_instance_valid(horse) or not is_instance_valid(player):
 		return
+	if _vault_active:
+		_tick_vault(_delta)
+		return
+	_vault_cooldown = maxf(0.0, _vault_cooldown - _delta)
 	if bool(horse.get("dead")):
 		if _mounted:
 			# The horse died under the rider: put him down next to the body.
@@ -385,6 +402,7 @@ func _physics_process(_delta: float) -> void:
 		# Whatever path got us here, walking collision must be back on: the corpse is
 		# solid, so the player has to collide with it instead of slipping through.
 		_restore_player_collision()
+		_try_vault()
 		_update_hud(true)
 		return
 	if _mounted and not horse.has_rider():
@@ -429,6 +447,138 @@ func _force_player_off_dead_horse() -> void:
 	_last_dismount = {"player": at, "horse": horse.global_position, "forced": true, "serial": _dismounts, "horse_dead": true}
 	print("DSH_HORSE_FORCED_DISMOUNT ", JSON.stringify(_last_dismount))
 
+## The dead horse is solid; stepping over it is a short scripted vault when the
+## player walks into it. Collisions go off for the arc and come back on the far side.
+func _try_vault() -> void:
+	if _vault_active or _vault_cooldown > 0.0 or _mounted:
+		return
+	if not is_instance_valid(horse) or not is_instance_valid(player):
+		return
+	if not bool(horse.get("dead")) or not player.is_on_floor():
+		return
+	var body: Node3D = horse.get("corpse") as Node3D
+	if not is_instance_valid(body):
+		return
+	if not InputMap.has_action(&"preview_move_forward") \
+			or not Input.is_action_pressed(&"preview_move_forward"):
+		return
+	var visual: Node3D = player.get("_visual") as Node3D
+	if not is_instance_valid(visual):
+		return
+	var facing: Vector3 = visual.global_transform.basis.z
+	facing.y = 0.0
+	if facing.length_squared() < 0.01:
+		return
+	facing = facing.normalized()
+	var to_body: Vector3 = body.global_position - player.global_position
+	to_body.y = 0.0
+	var distance := to_body.length()
+	if distance > VAULT_RANGE or distance < 0.2:
+		return
+	if facing.dot(to_body.normalized()) < 0.55:
+		return
+	# Land beyond the whole body, not on top of it: the corpse AABB gives the half
+	# extent along the vault direction.
+	var extent := _corpse_extent(body, facing)
+	var end: Vector3 = body.global_position + facing * (extent + 0.75)
+	end.y = _ground_height_excluding(body, end)
+	if not is_finite(end.y):
+		return
+	# A wall in the landing zone cancels or shortens the vault; a wall right in front
+	# cancels it outright so the player does not hop into masonry.
+	var space := get_world_3d().direct_space_state
+	if space != null:
+		var query := PhysicsRayQueryParameters3D.create(
+			player.global_position + Vector3.UP * 0.9, end + Vector3.UP * 0.9, 1)
+		query.exclude = [player.get_rid(), horse.get_rid(), body.get_rid()]
+		var hit: Dictionary = space.intersect_ray(query)
+		if not hit.is_empty():
+			var wall_distance: float = player.global_position.distance_to(hit.position)
+			if wall_distance < 1.2:
+				return
+			var wall: Vector3 = hit.position - facing * 0.40
+			wall.y = _ground_height_excluding(body, wall)
+			if is_finite(wall.y):
+				end = wall
+			else:
+				return
+	_vault_active = true
+	_vault_time = 0.0
+	_vault_start = player.global_position
+	_vault_end = end
+	_vault_heading = atan2(-facing.x, -facing.z)
+	_vault_layer = player.collision_layer
+	_vault_mask = player.collision_mask
+	player.collision_layer = 0
+	player.collision_mask = 0
+	player.velocity = Vector3.ZERO
+	player.set_physics_process(false)
+	_vaults += 1
+	print("DSH_HORSE_VAULT start=", _vault_start, " end=", _vault_end, " facing=", facing)
+
+## Half extent of the corpse's collision AABB along a flat direction.
+func _corpse_extent(body: RigidBody3D, direction: Vector3) -> float:
+	var box := AABB()
+	var first := true
+	for child: Node in body.get_children():
+		if not child is CollisionShape3D:
+			continue
+		var collider := child as CollisionShape3D
+		var shape := collider.shape
+		if shape == null:
+			continue
+		var half := Vector3.ZERO
+		if shape is BoxShape3D:
+			half = (shape as BoxShape3D).size * 0.5
+		elif shape is SphereShape3D:
+			half = Vector3.ONE * (shape as SphereShape3D).radius
+		elif shape is CapsuleShape3D:
+			var capsule := shape as CapsuleShape3D
+			half = Vector3(capsule.radius, capsule.height * 0.5 + capsule.radius, capsule.radius)
+		else:
+			continue
+		var world := collider.global_transform * AABB(-half, half * 2.0)
+		box = world if first else box.merge(world)
+		first = false
+	if first:
+		return 1.2
+	var extent := absf(direction.x) * box.size.x * 0.5 + absf(direction.z) * box.size.z * 0.5
+	return maxf(0.8, extent)
+
+func _ground_height_excluding(body: Node3D, at: Vector3) -> float:
+	var world := get_world_3d()
+	if world == null:
+		return at.y
+	var ray := PhysicsRayQueryParameters3D.new()
+	ray.from = Vector3(at.x, at.y + 6.0, at.z)
+	ray.to = Vector3(at.x, at.y - 30.0, at.z)
+	ray.collision_mask = 1
+	ray.exclude = [player.get_rid(), horse.get_rid(), body.get_rid()]
+	var hit: Dictionary = world.direct_space_state.intersect_ray(ray)
+	return float(hit.position.y) + 0.02 if not hit.is_empty() else at.y
+
+func _tick_vault(delta: float) -> void:
+	_vault_time += delta / VAULT_DURATION
+	var t := clampf(_vault_time, 0.0, 1.0)
+	var eased := t * t * (3.0 - 2.0 * t)
+	var at := _vault_start.lerp(_vault_end, eased)
+	at.y = lerpf(_vault_start.y, _vault_end.y, eased) + sin(PI * t) * VAULT_ARC
+	player.global_position = at
+	if t < 1.0:
+		return
+	_vault_active = false
+	player.global_position = _vault_end
+	player.velocity = Vector3.ZERO
+	player.collision_layer = _vault_layer
+	player.collision_mask = _vault_mask
+	player.set_physics_process(true)
+	player._heading = _vault_heading
+	var visual: Node3D = player.get("_visual") as Node3D
+	if is_instance_valid(visual):
+		visual.rotation.y = _vault_heading + deg_to_rad(float(player.get("visual_yaw_degrees")))
+	_vault_cooldown = 0.6
+	print("DSH_HORSE_VAULT_END at=", player.global_position)
+
 func _update_hud(dead: bool) -> void:
 	var now := Time.get_ticks_msec()
 	var text := ""
@@ -458,13 +608,12 @@ func _update_hud(dead: bool) -> void:
 		_hp_label.text = "ЛОШАДЬ  %d / %d" % [int(ceil(hp)), int(HORSE_MAX_HP)]
 		_hp_fill.size = Vector2(maxf(0.0, _hp_track_width * clampf(hp / HORSE_MAX_HP, 0.0, 1.0)), 7.0)
 		_hp_fill.color = Color(0.62, 0.10, 0.11) if hp > 35.0 else Color(0.78, 0.28, 0.08)
-	# HP plate: while riding, and for a few seconds after a hit only while the horse is
-	# still close enough to be the subject of the HUD. Walking away always hides it.
+	# HP plate: whenever the horse is close enough to be the subject of the HUD, on
+	# foot or in the saddle. Walking away hides it; proximity alone shows it, so the
+	# player never has to aim at the horse to read its health.
 	var near_horse := is_instance_valid(player) \
 		and player.global_position.distance_to(horse.global_position) <= HP_VISIBLE_RANGE
-	if not near_horse:
-		_hp_show_until = 0
-	var show_hp := not dead and near_horse and (_mounted or now < _hp_show_until)
+	var show_hp := not dead and near_horse
 	_hp_panel.visible = show_hp
 	if show_hp:
 		_layout_top_center(_hp_panel, 70.0)
@@ -482,6 +631,7 @@ func _layout_top_center(control: Control, top: float) -> void:
 func snapshot() -> Dictionary:
 	var horse_snapshot: Dictionary = horse.snapshot() if is_instance_valid(horse) else {}
 	return {"status": status, "mounted": _mounted, "mounts": _mounts, "dismounts": _dismounts,
+		"vaults": _vaults, "vault_active": _vault_active,
 		"last_dismount": _last_dismount.duplicate(true), "horse": horse_snapshot,
 		"player": player.global_position if is_instance_valid(player) else Vector3.ZERO,
 		"mount_mode": bool(player.get("_mount_mode")) if is_instance_valid(player) else false,
