@@ -38,6 +38,10 @@ const GUST_MIN_SPEED := 3.5
 const GUST_MAX_SPEED := 6.5
 const GUST_COUNT := 60
 const GUST_HALF := 9.0
+const MAX_HOLES := 4
+const MAP_HALF_X := 125.0
+const MAP_Z_MIN := 845.0
+const MAP_Z_MAX := 1025.0
 const ROPE_POINTS := 6
 const ROPE_SEGMENTS := 5
 const ROPE_SLACK := 1.04
@@ -80,6 +84,14 @@ var _throttle := 0.0
 var _seat := Vector2.ZERO
 var _airborne := false
 var _crew_people: Array[Node3D] = []
+var holes := 0
+var crash_done := false
+var _hole_nodes: Array[Node3D] = []
+var _leak_mm: MultiMeshInstance3D
+var _leak_points: Array[Vector3] = []
+var _splinter_mm: MultiMeshInstance3D
+var _splinter_data: Array[Dictionary] = []
+var _splinter_age := 0.0
 var _tilt_roll := 0.0
 var _tilt_pitch := 0.0
 var _last_velocity := Vector3.ZERO
@@ -105,6 +117,8 @@ func setup(at: Vector3, yaw: float) -> bool:
 	_build_collision()
 	_build_gust_visual()
 	_build_suspension()
+	_build_leak_fx()
+	_build_splinter_fx()
 	_built = true
 	return true
 
@@ -644,6 +658,174 @@ func _update_suspension(delta: float) -> void:
 				mm.set_instance_transform(slot, Transform3D(Basis(x_axis, y_axis * length, z_axis), (a + b) * 0.5))
 			slot += 1
 
+func _clamp_bounds() -> void:
+	var clamped := false
+	if global_position.x < -MAP_HALF_X:
+		global_position.x = -MAP_HALF_X
+		clamped = true
+	elif global_position.x > MAP_HALF_X:
+		global_position.x = MAP_HALF_X
+		clamped = true
+	if global_position.z < MAP_Z_MIN:
+		global_position.z = MAP_Z_MIN
+		clamped = true
+	elif global_position.z > MAP_Z_MAX:
+		global_position.z = MAP_Z_MAX
+		clamped = true
+	if clamped:
+		velocity.x = 0.0
+		velocity.z = 0.0
+
+## ---------------------------------------------------------------- damage + holes
+## A hit does not erase the balloon. It punches a hole: air streams out, the
+## envelope sags, lift and steering degrade. Four holes tear it apart.
+func damage_balloon(count: int = 1) -> void:
+	if popped or crash_done:
+		return
+	holes = mini(holes + count, MAX_HOLES)
+	_add_hole()
+	if is_instance_valid(_envelope):
+		var shrink := 1.0 - 0.035 * float(holes)
+		_envelope.scale = Vector3(shrink, shrink, shrink)
+	if is_instance_valid(_leak_mm):
+		_leak_mm.visible = true
+	print("DSH_BALLOON_DAMAGE holes=", holes)
+	if holes >= MAX_HOLES:
+		pop()
+
+func _add_hole() -> void:
+	var direction := Vector3(randf_range(-1.0, 1.0), randf_range(-0.35, 0.75), randf_range(-1.0, 1.0)).normalized()
+	var at := Vector3(0.0, 5.6, 0.0) + direction * 2.92
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.19
+	mesh.height = 0.30
+	mesh.radial_segments = 10
+	mesh.rings = 5
+	var hole := MeshInstance3D.new()
+	hole.mesh = mesh
+	var dark := StandardMaterial3D.new()
+	dark.albedo_color = Color(0.035, 0.02, 0.015)
+	dark.roughness = 1.0
+	hole.material_override = dark
+	hole.position = at
+	hole.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_model.add_child(hole)
+	_hole_nodes.append(hole)
+	for index: int in 6:
+		_leak_points.append(at + Vector3(randf_range(-0.1, 0.1), randf_range(-0.1, 0.1), randf_range(-0.1, 0.1)))
+
+func _build_leak_fx() -> void:
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.07
+	mesh.height = 0.14
+	mesh.radial_segments = 6
+	mesh.rings = 3
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(0.92, 0.94, 0.96, 0.55)
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = mesh
+	mm.instance_count = 24
+	for index: int in 24:
+		mm.set_instance_transform(index, Transform3D(Basis(), global_position))
+	_leak_mm = MultiMeshInstance3D.new()
+	_leak_mm.name = "AirLeak"
+	_leak_mm.multimesh = mm
+	_leak_mm.material_override = material
+	_leak_mm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_leak_mm.top_level = true
+	_leak_mm.visible = false
+	add_child(_leak_mm)
+	_leak_mm.global_transform = Transform3D()
+
+func _update_leak_fx(delta: float) -> void:
+	if not is_instance_valid(_leak_mm):
+		return
+	if holes <= 0 or crash_done:
+		_leak_mm.visible = false
+		return
+	_leak_mm.visible = true
+	var mm := _leak_mm.multimesh
+	for index: int in mini(_leak_points.size(), 24):
+		var point: Vector3 = _leak_points[index] + Vector3(randf_range(-0.6, 0.6), randf_range(0.4, 1.2), randf_range(-0.6, 0.6)) * delta * 4.0
+		if point.length() > 4.6:
+			var home: Vector3 = _hole_nodes[mini(index / 6, _hole_nodes.size() - 1)].position if not _hole_nodes.is_empty() else Vector3(0.0, 5.6, 0.0)
+			point = home
+		_leak_points[index] = point
+		mm.set_instance_transform(index, Transform3D(Basis().scaled(Vector3.ONE * (0.6 + float(index % 3) * 0.25)), global_position + point))
+
+func _build_splinter_fx() -> void:
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(0.10, 0.06, 0.42)
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(0.34, 0.22, 0.11)
+	material.roughness = 0.95
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = mesh
+	mm.instance_count = 30
+	for index: int in 30:
+		mm.set_instance_transform(index, Transform3D(Basis().scaled(Vector3.ZERO), global_position))
+	_splinter_mm = MultiMeshInstance3D.new()
+	_splinter_mm.name = "BasketSplinters"
+	_splinter_mm.multimesh = mm
+	_splinter_mm.material_override = material
+	_splinter_mm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_splinter_mm.top_level = true
+	_splinter_mm.visible = false
+	add_child(_splinter_mm)
+	_splinter_mm.global_transform = Transform3D()
+
+func _crash() -> void:
+	if crash_done:
+		return
+	crash_done = true
+	var burst_at := _basket_node.global_position if is_instance_valid(_basket_node) else global_position
+	if is_instance_valid(_basket_node): _basket_node.visible = false
+	if is_instance_valid(_envelope): _envelope.visible = false
+	if is_instance_valid(_neck): _neck.visible = false
+	if is_instance_valid(_suspension_mm): _suspension_mm.visible = false
+	if is_instance_valid(_leak_mm): _leak_mm.visible = false
+	for hole: Node3D in _hole_nodes:
+		if is_instance_valid(hole): hole.visible = false
+	_splinter_data.clear()
+	for index: int in 30:
+		var position := burst_at + Vector3(randf_range(-1.6, 1.6), randf_range(0.2, 1.4), randf_range(-1.2, 1.2))
+		var velocity := Vector3(randf_range(-4.5, 4.5), randf_range(1.0, 7.0), randf_range(-4.5, 4.5))
+		var rotation := Vector3(randf_range(0.0, TAU), randf_range(0.0, TAU), randf_range(0.0, TAU))
+		var spin := Vector3(randf_range(-8.0, 8.0), randf_range(-8.0, 8.0), randf_range(-8.0, 8.0))
+		_splinter_data.append({"pos": position, "vel": velocity, "rot": rotation, "spin": spin})
+	_splinter_age = 0.0
+	if is_instance_valid(_splinter_mm):
+		_splinter_mm.visible = true
+	print("DSH_BALLOON_CRASH at=", burst_at)
+
+func _update_splinters(delta: float) -> void:
+	if not is_instance_valid(_splinter_mm):
+		return
+	if _splinter_age > 2.6:
+		_splinter_mm.visible = false
+		return
+	_splinter_age += delta
+	var mm := _splinter_mm.multimesh
+	for index: int in _splinter_data.size():
+		var row: Dictionary = _splinter_data[index]
+		var position: Vector3 = row["pos"]
+		var velocity: Vector3 = row["vel"]
+		var rotation: Vector3 = row["rot"]
+		var spin: Vector3 = row["spin"]
+		velocity.y -= 9.8 * delta
+		position += velocity * delta
+		rotation += spin * delta
+		row["pos"] = position
+		row["vel"] = velocity
+		row["rot"] = rotation
+		_splinter_data[index] = row
+		var basis := Basis.from_euler(rotation)
+		mm.set_instance_transform(index, Transform3D(basis, position))
+
 ## ---------------------------------------------------------------- flight
 func _physics_process(delta: float) -> void:
 	if not is_inside_tree():
@@ -684,7 +866,8 @@ func _physics_process(delta: float) -> void:
 	else:
 		heat = maxf(0.0, heat - HEAT_COOL * delta)
 	if heat >= 1.0 and not popped:
-		pop()
+		damage_balloon(1)
+		heat = 0.55
 	if popped:
 		velocity.y = move_toward(velocity.y, -4.0, 3.0 * delta)
 		# A burst balloon drops straight down and then lies still; it must not
@@ -698,7 +881,12 @@ func _physics_process(delta: float) -> void:
 			velocity = Vector3.ZERO
 		if _last_altitude < 0.35:
 			velocity = Vector3.ZERO
+		_clamp_bounds()
+		if not crash_done and velocity.y < -3.0 and _last_altitude < 0.7:
+			_crash()
 		_update_visual(delta)
+		_update_leak_fx(delta)
+		_update_splinters(delta)
 		_update_basket_tilt(delta, 0.0)
 		_update_suspension(delta)
 		_seat_rider()
@@ -706,8 +894,9 @@ func _physics_process(delta: float) -> void:
 	# Glide: lift on Space, otherwise a gentle sink; Shift drops faster. A heavy
 	# A heavy basket climbs slower, but there is no height limit: the crew can
 	# always take her higher, it just takes longer.
-	var lift_speed := LIFT_SPEED / load_factor
-	var target_vy := lift_speed if lift else (GLIDE_SINK * load_factor)
+	var leak := 1.0 - 0.12 * float(holes)
+	var lift_speed := (LIFT_SPEED / load_factor) * leak
+	var target_vy := lift_speed if lift else (GLIDE_SINK * load_factor * (1.0 + 0.10 * float(holes)))
 	velocity.y = move_toward(velocity.y, target_vy, (VERTICAL_ACCEL / load_factor) * delta)
 	lift_on = lift
 	# Visible side gusts.
@@ -724,18 +913,24 @@ func _physics_process(delta: float) -> void:
 	var direction := Vector3(0.0, 0.0, -1.0)
 	if weight.length_squared() > 0.0025:
 		direction = (global_transform.basis * weight.normalized()).normalized()
-	var speed := (GLIDE_FORWARD + strength * THROTTLE_SPEED) / load_factor
+	var speed := ((GLIDE_FORWARD + strength * THROTTLE_SPEED) / load_factor) * (1.0 - 0.12 * float(holes))
 	var target_h := direction * speed + AMBIENT_WIND + gust
 	if not _airborne:
 		target_h = Vector3.ZERO
-	velocity.x = move_toward(velocity.x, target_h.x, (HORIZONTAL_ACCEL / load_factor) * delta)
-	velocity.z = move_toward(velocity.z, target_h.z, (HORIZONTAL_ACCEL / load_factor) * delta)
+	var steer := (HORIZONTAL_ACCEL / load_factor) * (1.0 - 0.12 * float(holes))
+	velocity.x = move_toward(velocity.x, target_h.x, steer * delta)
+	velocity.z = move_toward(velocity.z, target_h.z, steer * delta)
 	var before := global_position
 	move_and_slide()
 	if not before.is_finite():
 		global_position = Vector3(0.0, 2.0, 0.0)
 		velocity = Vector3.ZERO
+	_clamp_bounds()
+	if not crash_done and velocity.y < -4.0 and _last_altitude < 0.7:
+		_crash()
 	_update_visual(delta)
+	_update_leak_fx(delta)
+	_update_splinters(delta)
 	_update_basket_tilt(delta, throttle)
 	_update_gust_visual(delta)
 	_update_suspension(delta)
@@ -792,16 +987,28 @@ func pop() -> void:
 
 func respawn(at: Vector3, yaw: float) -> void:
 	popped = false
+	crash_done = false
+	holes = 0
 	heat = 0.0
 	anchored = false
 	velocity = Vector3.ZERO
 	global_position = at
 	rotation.y = yaw
+	for hole: Node3D in _hole_nodes:
+		if is_instance_valid(hole): hole.queue_free()
+	_hole_nodes.clear()
+	_leak_points.clear()
+	_splinter_data.clear()
+	if is_instance_valid(_leak_mm): _leak_mm.visible = false
+	if is_instance_valid(_splinter_mm): _splinter_mm.visible = false
 	_gust_left = 0.0
 	gust_active = false
 	_gust_timer = 6.0
-	if is_instance_valid(_envelope): _envelope.visible = true
+	if is_instance_valid(_envelope):
+		_envelope.visible = true
+		_envelope.scale = Vector3.ONE
 	if is_instance_valid(_neck): _neck.visible = true
+	if is_instance_valid(_basket_node): _basket_node.visible = true
 	if is_instance_valid(_flame): _flame.visible = false
 	_init_suspension()
 	if is_instance_valid(_suspension_mm): _suspension_mm.visible = true
@@ -923,7 +1130,7 @@ func _ground_below() -> float:
 func snapshot() -> Dictionary:
 	return {"position": global_position, "altitude": altitude(), "anchored": anchored,
 		"rider": is_instance_valid(rider), "velocity": velocity, "lift": lift_on,
-		"heat": heat, "popped": popped,
+		"heat": heat, "popped": popped, "holes": holes, "crashed": crash_done,
 		"crew": crew, "load": load, "weight": weight, "max_altitude": max_altitude,
 		"load_factor": load_factor, "lean": _lean, "tilt_roll": _tilt_roll, "tilt_pitch": _tilt_pitch,
 		"seat": _seat, "throttle": _throttle, "airborne": _airborne,

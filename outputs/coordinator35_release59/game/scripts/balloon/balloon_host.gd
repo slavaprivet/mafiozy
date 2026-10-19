@@ -22,6 +22,16 @@ var _cargo_models: Array[Node3D] = []
 var _spawn_spot := Vector3.ZERO
 var _spawn_yaw := 0.0
 var _pop_timer := 0.0
+var player_hp := 100
+var _hp_label: Label
+var _death_layer: CanvasLayer
+var _dead := false
+var _fall_active := false
+var _fall_start_y := 0.0
+var _fall_last_y := 0.0
+var _fall_max_speed := 0.0
+var _fall_timer := 0.0
+var _crash_handled := false
 var _walking_layer := 0
 var _walking_mask := 0
 var _walking_camera_distance := 0.0
@@ -212,6 +222,8 @@ func leave_now() -> bool:
 	player.call("_update_camera_rotation")
 	var spot := _leave_spot(balloon_altitude)
 	player.global_transform = Transform3D(Basis(), spot)
+	if balloon_altitude > 2.0:
+		_start_fall()
 	var yaw := float(balloon.rotation.y)
 	player._heading = yaw
 	var visual: Node3D = player.get("_visual") as Node3D
@@ -236,12 +248,20 @@ func _leave_spot(altitude: float) -> Vector3:
 func _physics_process(_delta: float) -> void:
 	if not is_instance_valid(balloon) or not is_instance_valid(player):
 		return
+	_update_fall(_delta)
+	if bool(balloon.get("crash_done")):
+		if not _crash_handled:
+			_crash_handled = true
+			print("DSH_BALLOON_BASKET_CRASH at=", balloon.global_position)
+		if _aboard:
+			leave_now()
 	if bool(balloon.get("popped")):
 		if _aboard:
 			leave_now()
 		_pop_timer += _delta
 		if _pop_timer > 7.0 and (float(balloon.call("altitude")) < 0.6 or _pop_timer > 15.0):
 			_pop_timer = 0.0
+			_crash_handled = false
 			balloon.call("respawn", _spawn_spot, _spawn_yaw)
 		_update_hud()
 		return
@@ -326,6 +346,32 @@ func _build_hud() -> void:
 	_hint.add_theme_color_override("font_color", Color(0.66, 0.62, 0.54))
 	column.add_child(_hint)
 	_panel.visible = false
+	_hp_label = Label.new()
+	_hp_label.name = "PlayerHp"
+	_hp_label.position = Vector2(24.0, 72.0)
+	_hp_label.add_theme_font_size_override("font_size", 15)
+	_hp_label.add_theme_color_override("font_color", Color(0.94, 0.88, 0.76))
+	_hp_label.add_theme_color_override("font_outline_color", Color(0.03, 0.03, 0.03))
+	_hp_label.add_theme_constant_override("outline_size", 5)
+	_hp_label.text = "Здоровье 100"
+	_hud.add_child(_hp_label)
+	_death_layer = CanvasLayer.new()
+	_death_layer.name = "BalloonDeath"
+	_death_layer.layer = 100
+	_death_layer.visible = false
+	add_child(_death_layer)
+	var shade := ColorRect.new()
+	shade.color = Color(0.02, 0.02, 0.025, 0.78)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_death_layer.add_child(shade)
+	var death_label := Label.new()
+	death_label.text = "ВЫ ПОГИБЛИ\nРазбились при падении\n\nR — начать заново"
+	death_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	death_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	death_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	death_label.add_theme_font_size_override("font_size", 30)
+	death_label.add_theme_color_override("font_color", Color(0.94, 0.90, 0.82))
+	_death_layer.add_child(death_label)
 
 func _panel_style(colour: Color, radius: float) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
@@ -338,6 +384,7 @@ func _panel_style(colour: Color, radius: float) -> StyleBoxFlat:
 	return style
 
 func _update_hud() -> void:
+	_update_hp_label()
 	var altitude := float(balloon.call("altitude"))
 	var lift := bool(balloon.get("lift_on"))
 	var gust := bool(balloon.get("gust_active"))
@@ -371,6 +418,9 @@ func _update_hud() -> void:
 	var crew := int(balloon.get("crew")) + (1 if _aboard else 0)
 	var total_weight := int(round(float(balloon.get("weight"))))
 	var cargo_text := (" · Бочки %d" % _cargo) if _cargo > 0 else ""
+	var holes := int(balloon.get("holes"))
+	if holes > 0:
+		cargo_text += " · Дыры %d/4" % holes
 	if gust:
 		_cargo_label.text = "Экипаж %d · %d кг%s · ПОРЫВ ВЕТРА %s %.1f м/с" % [
 			crew, total_weight, cargo_text, _wind_arrow(wind), wind_speed]
@@ -442,3 +492,48 @@ func _remove_cargo_visual() -> void:
 	var model: Node3D = _cargo_models.pop_back()
 	if is_instance_valid(model):
 		model.queue_free()
+
+
+func _start_fall() -> void:
+	_fall_active = true
+	_fall_start_y = player.global_position.y
+	_fall_last_y = player.global_position.y
+	_fall_max_speed = 0.0
+	_fall_timer = 0.0
+
+func _update_fall(delta: float) -> void:
+	if not _fall_active or not is_instance_valid(player) or _dead:
+		return
+	_fall_start_y = maxf(_fall_start_y, player.global_position.y)
+	var step := _fall_last_y - player.global_position.y
+	if step > 0.0:
+		_fall_max_speed = maxf(_fall_max_speed, step / maxf(delta, 0.001))
+	_fall_last_y = player.global_position.y
+	_fall_max_speed = maxf(_fall_max_speed, maxf(0.0, -player.velocity.y))
+	_fall_timer += delta
+	if player.is_on_floor() or _fall_timer > 6.0:
+		var height := maxf(0.0, _fall_start_y - player.global_position.y)
+		var speed := _fall_max_speed
+		_fall_active = false
+		var damage := int(maxf(0.0, height - 2.0) * 7.0 + maxf(0.0, speed - 8.0) * 5.0)
+		if damage > 0:
+			player_hp = maxi(0, player_hp - damage)
+			_update_hp_label()
+			print("DSH_BALLOON_FALL height=", height, " speed=", speed, " damage=", damage, " hp=", player_hp)
+			if player_hp <= 0:
+				_die()
+
+func _update_hp_label() -> void:
+	if is_instance_valid(_hp_label):
+		_hp_label.text = "Здоровье %d" % player_hp
+
+func _die() -> void:
+	if _dead:
+		return
+	_dead = true
+	if is_instance_valid(world):
+		world.set("preview_dead", true)
+	if is_instance_valid(player):
+		player.set_physics_process(false)
+	if is_instance_valid(_death_layer):
+		_death_layer.visible = true

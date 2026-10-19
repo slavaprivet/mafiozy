@@ -361,6 +361,11 @@ func explode_at(at: Vector3, normal: Vector3 = Vector3.UP) -> Dictionary:
 	var visual: Dictionary = {}
 	if is_instance_valid(_fx):
 		visual = _fx.call("emit_blast", at, normal, BLAST_POWER, BLAST_RADIUS)
+	var balloon_host: Variant = world.get("preview_balloon") if is_instance_valid(world) else null
+	if is_instance_valid(balloon_host):
+		var balloon: Variant = balloon_host.get("balloon")
+		if is_instance_valid(balloon) and (balloon as Node3D).global_position.distance_to(at) < BLAST_RADIUS + 2.5:
+			balloon.call("damage_balloon", 1)
 	var castle_result: Dictionary = {}
 	var castle: Variant = world.get("preview_castle") if is_instance_valid(world) else null
 	if is_instance_valid(castle) and castle.has_method("apply_explosion"):

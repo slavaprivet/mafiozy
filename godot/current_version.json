@@ -1,11 +1,11 @@
 {
   "schema": "mafiozi.current-play/v1",
-  "title": "Замок и осадный воздушный шар с пороховыми бочками",
+  "title": "Замок и осадный шар: дыры, падения и бочки",
   "revision": "castle-20261019-horse",
   "assembly": "outputs/coordinator35_release59/ASSEMBLY.json",
-  "assembly_sha256": "6d640485d11e1a3d2b72afd9fbad6dc91ec9f21e543e9e724690056c5ed77920",
+  "assembly_sha256": "0856a0ffdf3d7db2e88fcb664270d04773a4bb19117506f167dbbe9e497c7e26",
   "bootstrap": "outputs/coordinator31_castle_current/bootstrap_castle.gd",
   "bootstrap_sha256": "318b2fe49cf454e0f41766ac4e5aa23ea43b2a26f5fa8d5b9c2ed3a617d0858b",
   "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
-  "scope": "Castle horse plus a detailed weight-steered airship with idle crew, visible gusts and slow overheat; three powder barrels carried with the catapult hug, loaded into the basket, dropped with G and detonated with the city C4 blast that breaks the castle and camp."
+  "scope": "Castle horse plus the siege airship: holes and air leaks degrade flight, four holes burst it; a hard crash shatters the basket into splinters; the pilot has HP, takes measured fall damage and dies with a proper overlay; the balloon stays in the map. Weight steering, no cap, no anchor/Shift, crowd, gusts, ropes and powder barrels with the C4 blast remain."
 }

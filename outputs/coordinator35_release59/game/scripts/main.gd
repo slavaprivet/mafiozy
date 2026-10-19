@@ -2038,7 +2038,7 @@ func _die_outside_world() -> void:
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	layer.add_child(shade)
 	var label := Label.new()
-	label.text = "ВЫ ПОГИБЛИ\nПадение за пределы карты\n\nR — начать заново"
+	label.text = "ВЫ ПОГИБЛИ\n\nR — начать заново"
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", 28)
