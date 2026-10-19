@@ -1100,7 +1100,6 @@ func _physics_process(delta: float) -> void:
 	if _station == "" and not bool(world.get("preview_dead")) and not bool(world.get("preview_physics_fault")):
 		_recover_underdeck()
 	_update_swimming(delta)
-	_update_lever_work(delta)
 	_update_carried_ball(delta)
 	_crate_timer = maxf(0.0, _crate_timer - delta)
 	_wake_timer = maxf(0.0, _wake_timer - delta)
