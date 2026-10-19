@@ -47,6 +47,8 @@ func _run() -> void:
 		["hero", Vector3(18.0, 3.1, -7.0), Vector3(0.0, 7.0, 0.0)],
 		["vane", Vector3(7.0, 13.5, -11.0), Vector3(0.0, 13.3, 0.0)],
 		["bridge", Vector3(0.0, 6.2, -12.5), Vector3(0.0, 10.6, -3.0)],
+		["gate", Vector3(0.0, 4.8, 13.0), Vector3(0.0, 6.5, 0.0)],
+		["gate_side", Vector3(10.0, 4.2, -2.0), Vector3(0.0, 4.5, 0.0)],
 	]
 	for view: Array in views:
 		camera.global_position = origin + basis * (view[1] as Vector3)
