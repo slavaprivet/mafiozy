@@ -3,9 +3,9 @@
   "title": "Замок и осадный шар: дыры, падения и бочки",
   "revision": "castle-20261019-horse",
   "assembly": "outputs/coordinator35_release59/ASSEMBLY.json",
-  "assembly_sha256": "e64ff80ab7ddf434152cb3ed27ab1e01aae600e891f0265ac348e1c2465b1d1c",
+  "assembly_sha256": "2999b8c0b3bf7a4ad13648b3906217127825db394f991e5919226c389ec49bb9",
   "bootstrap": "outputs/coordinator31_castle_current/bootstrap_castle.gd",
   "bootstrap_sha256": "318b2fe49cf454e0f41766ac4e5aa23ea43b2a26f5fa8d5b9c2ed3a617d0858b",
   "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
-  "scope": "Castle horse plus the siege airship: one barrel rides the horse saddle slot, E loads/takes it, blast kills the horse nearby with the C4, G throws farther, improved pooled blast FX, strong-hit barrels, world plaques, barrels on basket floor, free basket walking, occupancy flight, detailed cached-mesh barrels, optimized basket, holes/crash/fall damage/map clamp, weight steering, no cap, no anchor/Shift."
+  "scope": "Castle horse plus the siege airship: horse barrel rests on a saddle cradle (no floating), blast kills the horse nearby, G farther, improved pooled blast FX, strong-hit barrels, world plaques, barrel floor spots, free basket walking, occupancy flight, detailed cached-mesh barrels, optimized basket, holes/crash/fall damage/map clamp, weight steering, no cap, no anchor/Shift."
 }

@@ -91,6 +91,7 @@ func install(world: Node3D, existing_player: CharacterBody3D) -> Dictionary:
 		body.queue_free()
 		return {"ok": false, "reason": "horse_setup_failed"}
 	horse = body
+	_build_barrel_cradle()
 	horse.damage_owner = player
 	horse.set_meta("horse_id", "castle_horse")
 	horse.set_meta("life_generation", 1)
@@ -592,6 +593,33 @@ func _tick_vault(delta: float) -> void:
 	_vault_cooldown = 0.6
 	print("DSH_HORSE_VAULT_END at=", player.global_position)
 
+## A small wooden cradle on the rump so the barrel visibly rests instead of
+## hanging in the air.
+func _build_barrel_cradle() -> void:
+	if not is_instance_valid(horse) or horse.has_node("BarrelCradle"):
+		return
+	var cradle := Node3D.new()
+	cradle.name = "BarrelCradle"
+	horse.add_child(cradle)
+	var wood := StandardMaterial3D.new()
+	wood.albedo_color = Color(0.30, 0.19, 0.10)
+	wood.roughness = 0.95
+	for side: float in [-1.0, 1.0]:
+		var rail := BoxMesh.new()
+		rail.size = Vector3(0.05, 0.10, 0.62)
+		var rail_node := MeshInstance3D.new()
+		rail_node.mesh = rail
+		rail_node.material_override = wood
+		rail_node.position = Vector3(side * 0.28, 1.92, 0.38)
+		cradle.add_child(rail_node)
+	var back := BoxMesh.new()
+	back.size = Vector3(0.62, 0.10, 0.05)
+	var back_node := MeshInstance3D.new()
+	back_node.mesh = back
+	back_node.material_override = wood
+	back_node.position = Vector3(0.0, 1.92, 0.62)
+	cradle.add_child(back_node)
+
 func load_barrel(barrel_host: Node) -> bool:
 	if _barrel_loaded or not is_instance_valid(horse) or not is_instance_valid(barrel_host):
 		return false
@@ -600,9 +628,9 @@ func load_barrel(barrel_host: Node) -> bool:
 	var model: Node3D = barrel_host.call("_barrel_model", horse, false)
 	if not is_instance_valid(model):
 		return false
-	model.position = Vector3(0.0, 0.95, 0.65)
+	model.position = Vector3(0.0, 1.95, 0.38)
 	model.rotation.y = 0.35
-	model.scale = Vector3.ONE * 0.8
+	model.scale = Vector3.ONE * 0.75
 	_barrel_slot = model
 	_barrel_loaded = true
 	print("DSH_HORSE_BARREL_LOAD")
