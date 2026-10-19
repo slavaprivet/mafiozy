@@ -357,15 +357,19 @@ func _build_model() -> void:
 	# A proper medieval riding harness: girth, breast collar with a ring and
 	# martingale, saddlebags, a bedroll, gold trim and brass studs.
 	_part(_rig, _torus(0.330, 0.382), _leather, Vector3(0.0, 1.37, 0.03), Vector3(90.0, 0.0, 0.0))
-	# Breast collar in a shallow V across the chest, clear of the chest volume.
-	var collar_middle := Vector3(0.0, 1.30, -0.95)
+	# Breast collar: four short segments per side follow the chest curve instead of
+	# one straight strap whose outer end hovered in front of the shoulder.
+	var collar_middle := Vector3(0.0, 1.28, -0.92)
 	for side: float in [-1.0, 1.0]:
-		_strap(_rig, Vector3(side * 0.31, 1.62, -0.72), collar_middle, 0.032, _leather, 0.052)
-		_strap(_rig, Vector3(side * 0.34, 1.48, -0.34), Vector3(side * 0.31, 1.62, -0.72), 0.028, _leather, 0.045)
-		# Brass studs along the collar.
-		for step: int in 3:
-			var t: float = float(step) / 2.0
-			_part(_rig, _sphere(0.023), _gold, Vector3(side * (0.31 - 0.31 * t), 1.62 - 0.32 * t, -0.72 - 0.23 * t))
+		var shoulder := Vector3(side * 0.255, 1.60, -0.58)
+		var upper := Vector3(side * 0.240, 1.52, -0.74)
+		var lower := Vector3(side * 0.160, 1.42, -0.86)
+		_strap(_rig, Vector3(side * 0.34, 1.48, -0.34), shoulder, 0.028, _leather, 0.045)
+		_strap(_rig, shoulder, upper, 0.032, _leather, 0.052)
+		_strap(_rig, upper, lower, 0.032, _leather, 0.052)
+		_strap(_rig, lower, collar_middle, 0.030, _leather, 0.050)
+		for point: Vector3 in [shoulder, upper, lower]:
+			_part(_rig, _sphere(0.023), _gold, point)
 	_part(_rig, _torus(0.048, 0.072), _metal, collar_middle, Vector3(90.0, 0.0, 0.0))
 	# Martingale from the collar ring back under the girth.
 	_strap(_rig, collar_middle, Vector3(0.0, 1.52, -0.18), 0.024, _leather, 0.040)
