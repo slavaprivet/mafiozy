@@ -1368,14 +1368,18 @@ func _update_swimming(delta: float) -> void:
 	# Hysteresis: small bobbing at the surface must not toggle stand/swim every
 	# frame (that reset the stroke phase and made the character jerk).
 	if swimming:
-		if pos.y > water + 0.42 or (player.is_on_floor() and pos.y > water + 0.02):
+		if pos.y > water + 0.55 or (player.is_on_floor() and pos.y > water + 0.02):
 			swimming = false
-	elif pos.y < water - 0.06:
-		swimming = true
+	else:
+		var depth := 0.0
+		if preview_basin.has_method("depth_at"):
+			depth = float(preview_basin.call("depth_at", pos.x, pos.z))
+		if pos.y < water - 0.06 or (depth > 0.45 and pos.y < water + 0.42 and not _player_aboard()):
+			swimming = true
 	if in_ladder:
 		swimming = false
 	_swim_state = swimming
-	player.call("set_swimming", swimming, water + 0.30)
+	player.call("set_swimming", swimming, water - 0.10)
 
 
 func _recover_overboard() -> void:

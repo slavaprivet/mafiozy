@@ -658,17 +658,23 @@ func set_swimming(active: bool, level: float = 0.0) -> void:
 func _swim_process(delta: float) -> void:
 	var move := Input.get_vector(&"preview_move_left", &"preview_move_right",
 		&"preview_move_forward", &"preview_move_back")
-	var direction := Basis(Vector3.UP, _camera_yaw) * Vector3(move.x, 0.0, move.y)
-	velocity = Vector3(direction.x * 2.25, 0.0, direction.z * 2.25)
-	_heading = _camera_yaw
+	var basis := Basis(Vector3.UP, _camera_yaw)
+	# Camera forward is -Z; the old code added +Z, so W swam backwards.
+	var direction := (basis.x * move.x + basis.z * move.y)
+	direction.y = 0.0
+	if direction.length_squared() > 0.0001:
+		direction = direction.normalized()
+	velocity = direction * 2.25
+	if direction.length_squared() > 0.0001:
+		_heading = atan2(-direction.x, -direction.z)
 	global_position += Vector3(velocity.x, 0.0, velocity.z) * delta
 	global_position.y = move_toward(global_position.y, _swim_level, delta * 3.0)
 	_swim_phase += delta * (4.0 + move.length() * 2.0)
 	_apply_swim_pose(delta)
 	var visual := get("_visual") as Node3D
 	if is_instance_valid(visual):
-		visual.rotation.y = _camera_yaw + PI + deg_to_rad(visual_yaw_degrees)
-		visual.rotation.x = lerpf(visual.rotation.x, 1.02, minf(1.0, delta * 6.0))
+		visual.rotation.y = _heading + deg_to_rad(visual_yaw_degrees)
+		visual.rotation.x = lerpf(visual.rotation.x, 0.92, minf(1.0, delta * 6.0))
 
 
 func _apply_swim_pose(_delta: float) -> void:
