@@ -43,7 +43,7 @@ const ROPE_SEGMENTS := 5
 const ROPE_SLACK := 1.04
 
 var rider: CharacterBody3D = null
-var anchored := true
+var anchored := false
 var lift_on := false
 var gust_active := false
 var gust_dir := Vector3.ZERO
@@ -518,7 +518,6 @@ func _physics_process(delta: float) -> void:
 	_time += delta
 	var piloted := is_instance_valid(rider)
 	var lift := piloted and (Input.is_action_pressed(&"preview_jump") or debug_lift)
-	var down := piloted and Input.is_action_pressed(&"preview_run")
 	var throttle := 0.0
 	# Weight steering: the pilot physically walks around the basket. Moving the
 	# weight forward makes the balloon glide faster, sideways makes it bank and
@@ -533,21 +532,15 @@ func _physics_process(delta: float) -> void:
 		_seat += move * SEAT_MOVE_SPEED * delta
 		_seat.x = clampf(_seat.x, -SEAT_HALF_X, SEAT_HALF_X)
 		_seat.y = clampf(_seat.y, -SEAT_HALF_Z, SEAT_HALF_Z)
-		var anchor_down := Input.is_key_pressed(KEY_F)
-		if anchor_down and not _anchor_key:
-			toggle_anchor()
-		_anchor_key = anchor_down
 	else:
 		_seat = _seat.move_toward(Vector2.ZERO, delta * 1.2)
-		_anchor_key = false
 	_lean = _seat.x / SEAT_HALF_X
 	_throttle = -_seat.y / SEAT_HALF_Z
 	throttle = _throttle
 	_airborne = _last_altitude > 0.6
 	# The weight only steers while the balloon is actually in the air. On the
-	# ground (or on the anchor) walking around the basket must not turn or drag
-	# the balloon across the flagstones.
-	if piloted and _airborne and not anchored:
+	# ground walking around the basket must not turn or drag the balloon.
+	if piloted and _airborne:
 		rotation.y -= _lean * (TURN_RATE / load_factor) * delta
 	_ground_probe -= delta
 	if _ground_probe <= 0.0:
@@ -583,12 +576,12 @@ func _physics_process(delta: float) -> void:
 	# basket sinks faster, climbs slower and cannot reach the empty-balloon ceiling.
 	var ceiling_scale := clampf((max_altitude - _last_altitude) / 1.5, 0.0, 1.0)
 	var lift_speed := (LIFT_SPEED / load_factor) * (ceiling_scale if lift else 1.0)
-	var target_vy := lift_speed if lift else ((DOWN_SPEED * load_factor) if down else (GLIDE_SINK * load_factor))
+	var target_vy := lift_speed if lift else (GLIDE_SINK * load_factor)
 	velocity.y = move_toward(velocity.y, target_vy, (VERTICAL_ACCEL / load_factor) * delta)
 	lift_on = lift
 	# Visible side gusts.
 	_gust_timer -= delta
-	if _gust_left <= 0.0 and piloted and not anchored and _gust_timer <= 0.0:
+	if _gust_left <= 0.0 and piloted and _airborne and _gust_timer <= 0.0:
 		start_gust()
 	if _gust_left > 0.0:
 		_gust_left -= delta
@@ -597,7 +590,7 @@ func _physics_process(delta: float) -> void:
 	var gust := gust_dir * gust_speed if _gust_left > 0.0 else Vector3.ZERO
 	var forward := Vector3(-sin(rotation.y), 0.0, -cos(rotation.y))
 	var target_h := forward * ((GLIDE_FORWARD + throttle * THROTTLE_SPEED) / load_factor) + AMBIENT_WIND + gust
-	if anchored or not _airborne:
+	if not _airborne:
 		target_h = Vector3.ZERO
 	velocity.x = move_toward(velocity.x, target_h.x, (HORIZONTAL_ACCEL / load_factor) * delta)
 	velocity.z = move_toward(velocity.z, target_h.z, (HORIZONTAL_ACCEL / load_factor) * delta)
@@ -664,7 +657,7 @@ func pop() -> void:
 func respawn(at: Vector3, yaw: float) -> void:
 	popped = false
 	heat = 0.0
-	anchored = true
+	anchored = false
 	velocity = Vector3.ZERO
 	global_position = at
 	rotation.y = yaw

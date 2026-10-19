@@ -156,8 +156,6 @@ func board_now() -> bool:
 	player.set_physics_process(true)
 	player.call("set_vehicle_hold", true)
 	balloon.set("rider", player)
-	if bool(balloon.get("anchored")):
-		balloon.call("toggle_anchor")
 	var arm: SpringArm3D = player.get("_spring_arm") as SpringArm3D
 	if is_instance_valid(arm):
 		arm.add_excluded_object(balloon.get_rid())
@@ -199,8 +197,6 @@ func leave_now() -> bool:
 	if is_instance_valid(pivot):
 		pivot.position.y = _walking_pivot_y
 	player.call("_update_camera_rotation")
-	if balloon_altitude < 2.0:
-		balloon.set("anchored", true)
 	var spot := _leave_spot(balloon_altitude)
 	player.global_transform = Transform3D(Basis(), spot)
 	var yaw := float(balloon.rotation.y)
@@ -312,7 +308,7 @@ func _build_hud() -> void:
 	_cargo_label.add_theme_color_override("font_color", Color(0.86, 0.78, 0.64))
 	column.add_child(_cargo_label)
 	_hint = Label.new()
-	_hint.text = "WASD — смещать вес по корзине · Space — подъём · Shift — спуск · F — якорь · E — выйти"
+	_hint.text = "WASD — смещать вес по корзине · Space — подъём · E — выйти"
 	_hint.add_theme_font_size_override("font_size", 11)
 	_hint.add_theme_color_override("font_color", Color(0.66, 0.62, 0.54))
 	column.add_child(_hint)
@@ -330,7 +326,6 @@ func _panel_style(colour: Color, radius: float) -> StyleBoxFlat:
 
 func _update_hud() -> void:
 	var altitude := float(balloon.call("altitude"))
-	var anchored := bool(balloon.get("anchored"))
 	var lift := bool(balloon.get("lift_on"))
 	var gust := bool(balloon.get("gust_active"))
 	var wind: Vector3 = balloon.call("wind_now")
@@ -356,9 +351,8 @@ func _update_hud() -> void:
 	_altitude_label.text = "Высота %d м / макс %d м · Ветер %s %.1f м/с" % [
 		int(round(altitude)), int(round(float(balloon.get("max_altitude")))),
 		_wind_arrow(wind), wind_speed]
-	var descending := Input.is_action_pressed(&"preview_run")
 	_heat_label.text = "Перегрев %d%% · %s" % [int(round(float(balloon.get("heat")) * 100.0)),
-		"ПОДЪЁМ" if lift else ("спуск" if descending else "планирование")]
+		"ПОДЪЁМ" if lift else "планирование"]
 	_heat_fill.size = Vector2(maxf(0.0, _heat_track_width * clampf(float(balloon.get("heat")), 0.0, 1.0)), 7.0)
 	_heat_fill.visible = float(balloon.get("heat")) > 0.004
 	_heat_fill.color = Color(0.85, 0.46, 0.12) if float(balloon.get("heat")) < 0.82 else Color(0.92, 0.18, 0.10)
@@ -369,8 +363,7 @@ func _update_hud() -> void:
 			crew, total_weight, _wind_arrow(wind), wind_speed]
 		_cargo_label.add_theme_color_override("font_color", Color(0.95, 0.52, 0.24))
 	else:
-		_cargo_label.text = "Экипаж %d · %d кг · Якорь %s" % [
-			crew, total_weight, "опущен" if anchored else "поднят"]
+		_cargo_label.text = "Экипаж %d · %d кг" % [crew, total_weight]
 		_cargo_label.add_theme_color_override("font_color", Color(0.86, 0.78, 0.64))
 	_layout_top_center(_panel, 70.0)
 
