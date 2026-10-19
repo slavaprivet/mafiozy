@@ -49,6 +49,8 @@ var _last_dismount: Dictionary = {}
 var _walking_camera_distance := 5.119570294468082
 var _camera_distance_owned := false
 
+var _barrel_slot: Node3D
+var _barrel_loaded := false
 var _hud: CanvasLayer
 var _banner: PanelContainer
 var _banner_label: Label
@@ -589,6 +591,34 @@ func _tick_vault(delta: float) -> void:
 		visual.rotation.y = _vault_heading + deg_to_rad(float(player.get("visual_yaw_degrees")))
 	_vault_cooldown = 0.6
 	print("DSH_HORSE_VAULT_END at=", player.global_position)
+
+func load_barrel(barrel_host: Node) -> bool:
+	if _barrel_loaded or not is_instance_valid(horse) or not is_instance_valid(barrel_host):
+		return false
+	if not barrel_host.has_method("_barrel_model"):
+		return false
+	var model: Node3D = barrel_host.call("_barrel_model", horse, false)
+	if not is_instance_valid(model):
+		return false
+	model.position = Vector3(0.0, 0.95, 0.65)
+	model.rotation.y = 0.35
+	model.scale = Vector3.ONE * 0.8
+	_barrel_slot = model
+	_barrel_loaded = true
+	print("DSH_HORSE_BARREL_LOAD")
+	return true
+
+func take_barrel() -> Node3D:
+	if not _barrel_loaded or not is_instance_valid(_barrel_slot):
+		return null
+	var model := _barrel_slot
+	_barrel_slot = null
+	_barrel_loaded = false
+	print("DSH_HORSE_BARREL_TAKE")
+	return model
+
+func has_barrel() -> bool:
+	return _barrel_loaded and is_instance_valid(_barrel_slot)
 
 func _update_hud(dead: bool) -> void:
 	# How centred is the horse in the actual view? Both the E plate and the HP plate

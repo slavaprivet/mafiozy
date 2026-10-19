@@ -529,7 +529,7 @@ func drop_cargo() -> bool:
 	var forward := -balloon.global_transform.basis.z
 	var right := balloon.global_transform.basis.x
 	var origin := player.global_position + forward * 1.0 + Vector3.UP * 0.4
-	var velocity := forward * 0.5 + Vector3.UP * 0.5 + right * 0.05
+	var velocity := forward * 2.6 + Vector3.UP * 1.0 + right * 0.1
 	barrels.call("throw_barrel", origin, velocity)
 	_cargo -= 1
 	_remove_cargo_visual()

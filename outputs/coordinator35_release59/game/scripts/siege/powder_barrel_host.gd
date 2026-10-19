@@ -308,9 +308,24 @@ func _update_prompt() -> void:
 			var balloon: Variant = balloon_host.get("balloon")
 			if is_instance_valid(balloon) and is_instance_valid(player):
 				near_balloon = player.global_position.distance_to(balloon.global_position) < 3.6
-		text = "Поставить в шар" if near_balloon else "Поставить"
+		var horse_host: Variant = world.get("preview_horse_mount") if is_instance_valid(world) else null
+		var near_horse := false
+		if is_instance_valid(horse_host):
+			var horse_node: Variant = horse_host.get("horse")
+			if is_instance_valid(horse_node) and is_instance_valid(player):
+				near_horse = player.global_position.distance_to((horse_node as Node3D).global_position) < 3.6
+		if near_horse:
+			text = "Поставить на лошадь"
+		else:
+			text = "Поставить в шар" if near_balloon else "Поставить"
 	elif _nearest_barrel() != null:
 		text = "Поднять бочку"
+	else:
+		var horse_pick: Variant = world.get("preview_horse_mount") if is_instance_valid(world) else null
+		if is_instance_valid(horse_pick) and horse_pick.has_method("has_barrel") and bool(horse_pick.call("has_barrel")):
+			var horse_node_pick: Variant = horse_pick.get("horse")
+			if is_instance_valid(horse_node_pick) and is_instance_valid(player) and player.global_position.distance_to((horse_node_pick as Node3D).global_position) < 3.6:
+				text = "Взять бочку"
 	var state := 0 if text.is_empty() else (1 if carrying else 2)
 	if is_instance_valid(_throw_key):
 		_throw_key.visible = carrying
@@ -406,6 +421,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		place_carried()
 		get_viewport().set_input_as_handled()
 		return
+	var horse_host: Variant = world.get("preview_horse_mount") if is_instance_valid(world) else null
+	if is_instance_valid(horse_host) and horse_host.has_method("take_barrel"):
+		var horse_node: Variant = horse_host.get("horse")
+		if is_instance_valid(horse_node) and player.global_position.distance_to((horse_node as Node3D).global_position) < 3.6:
+			var horse_model: Variant = horse_host.call("take_barrel")
+			if is_instance_valid(horse_model) and carry_from_slot(horse_model):
+				get_viewport().set_input_as_handled()
+				return
 	var barrel: Node3D = _nearest_barrel()
 	if barrel == null:
 		return
@@ -462,7 +485,7 @@ func throw_carried() -> bool:
 	var heading := float(player.get("_heading"))
 	var forward := Vector3(-sin(heading), 0.0, -cos(heading))
 	var at := player.global_position + forward * 1.0 + Vector3.UP * 0.4
-	var velocity := forward * 0.5 + Vector3.UP * 0.5
+	var velocity := forward * 2.6 + Vector3.UP * 1.0
 	var barrel: Node3D = _barrel_model(self, false)
 	barrel.global_position = at
 	_falling.append({"node": barrel, "velocity": velocity, "age": 0.0})
@@ -490,6 +513,14 @@ func carry_from_slot(model: Node3D) -> bool:
 func place_carried() -> bool:
 	if not carrying or not is_instance_valid(world) or not is_instance_valid(player):
 		return false
+	var horse_host: Variant = world.get("preview_horse_mount")
+	if is_instance_valid(horse_host) and horse_host.has_method("load_barrel"):
+		var horse_node: Variant = horse_host.get("horse")
+		if is_instance_valid(horse_node) and player.global_position.distance_to((horse_node as Node3D).global_position) < 3.6:
+			if bool(horse_host.call("load_barrel", self)):
+				_end_carry()
+				print("DSH_BARRELS_PLACE_ON_HORSE")
+				return true
 	var balloon_host: Variant = world.get("preview_balloon")
 	if is_instance_valid(balloon_host) and balloon_host.has_method("load_barrel"):
 		var balloon: Variant = balloon_host.get("balloon")
@@ -604,6 +635,13 @@ func explode_at(at: Vector3, normal: Vector3 = Vector3.UP) -> Dictionary:
 		var balloon: Variant = balloon_host.get("balloon")
 		if is_instance_valid(balloon) and (balloon as Node3D).global_position.distance_to(at) < BLAST_RADIUS + 2.5:
 			balloon.call("damage_balloon", 1)
+	var horse_host: Variant = world.get("preview_horse_mount") if is_instance_valid(world) else null
+	if is_instance_valid(horse_host):
+		var horse_node: Variant = horse_host.get("horse")
+		if is_instance_valid(horse_node) and (horse_node as Node3D).global_position.distance_to(at) < BLAST_RADIUS + 0.8:
+			if horse_node.has_method("take_hit"):
+				horse_node.call("take_hit", 300.0, at + Vector3.UP * 1.0,
+					((horse_node as Node3D).global_position - at).normalized(), "explosion", null)
 	var castle_result: Dictionary = {}
 	var castle: Variant = world.get("preview_castle") if is_instance_valid(world) else null
 	if is_instance_valid(castle) and castle.has_method("apply_explosion"):
