@@ -22,6 +22,9 @@ var ship_host: Node3D
 var _guns: Array[Dictionary] = []
 var _wall_blocks: Array[Dictionary] = []
 var _man := -1
+var _door_outside := Vector3.ZERO
+var _door_inside := Vector3.ZERO
+var _debris_budget := 24
 var _loaded: Array[bool] = [false, false, false]
 var _balls := 6
 var _load_t := 0.0
@@ -41,6 +44,8 @@ func install(world_in: Node3D, castle_in: Node3D, ship_host_in: Node3D) -> Dicti
 	if is_instance_valid(ship):
 		boat = ship
 	_materials()
+	_door_outside = castle.to_global(Vector3(64.8, 1.2, 74.0))
+	_door_inside = castle.to_global(Vector3(67.0, 1.2, 74.0))
 	_build_room()
 	for i: int in 3:
 		var base := castle.to_global(Vector3(69.0, 0.0, 20.0 + float(i) * 20.0))
@@ -81,6 +86,9 @@ void fragment() {
 func _mesh_box(parent: Node3D, pos: Vector3, size: Vector3, mat: Material) -> MeshInstance3D:
 	var mesh := BoxMesh.new(); mesh.size = size
 	var mi := MeshInstance3D.new(); mi.mesh = mesh; mi.material_override = mat; mi.position = pos
+	if mat == _brick:
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	parent.add_child(mi)
 	return mi
 
@@ -144,6 +152,12 @@ func action() -> Dictionary:
 	if _man >= 0:
 		return {"owner": "fort", "kind": "fort_leave", "label": "Покинуть пушку",
 			"world": _guns[_man].get("station") + Vector3.UP * 1.2}
+	if player.global_position.distance_to(_door_outside) <= 3.2:
+		return {"owner": "fort", "kind": "fort_enter", "label": "Войти в форт",
+			"world": _door_outside + Vector3.UP * 0.8}
+	if player.global_position.distance_to(_door_inside) <= 2.6:
+		return {"owner": "fort", "kind": "fort_exit", "label": "Выйти из форта",
+			"world": _door_inside + Vector3.UP * 0.8}
 	var best := -1
 	var best_d := REACH
 	for i: int in _guns.size():
@@ -162,6 +176,15 @@ func interact(action_data: Variant) -> bool:
 	var kind := str(action_data.get("kind", ""))
 	if kind == "fort_leave":
 		_stop_manning()
+		return true
+	if kind == "fort_enter":
+		player.global_position = _door_inside
+		player.velocity = Vector3.ZERO
+		player.set("_camera_yaw", -PI * 0.5)
+		return true
+	if kind == "fort_exit":
+		player.global_position = _door_outside
+		player.velocity = Vector3.ZERO
 		return true
 	if kind == "fort_man":
 		var index := int(action_data.get("index", 0))
@@ -285,12 +308,40 @@ func apply_hit(world_point: Vector3, damage: float, _impulse: Vector3, _kind: St
 	if float(best["hp"]) <= 0.0:
 		var node: Node3D = best.get("node")
 		if is_instance_valid(node):
+			_debris(node.global_position)
 			node.visible = false
 			var body: StaticBody3D = best.get("body")
 			if is_instance_valid(body):
 				body.collision_layer = 0
 				body.collision_mask = 0
 	return {"ok": true, "zone": "fort_wall", "hp": best["hp"], "damage": damage}
+
+func _debris(at: Vector3) -> void:
+	if _debris_budget <= 0:
+		return
+	var count := mini(3, _debris_budget)
+	_debris_budget -= count
+	for i: int in count:
+		var body := RigidBody3D.new()
+		body.mass = 0.35
+		var mesh := BoxMesh.new()
+		mesh.size = Vector3(randf_range(0.16, 0.32), randf_range(0.12, 0.22), randf_range(0.16, 0.32))
+		var mi := MeshInstance3D.new()
+		mi.mesh = mesh
+		var brick_mat := StandardMaterial3D.new()
+		brick_mat.albedo_color = Color(0.40, 0.24, 0.15)
+		mi.material_override = brick_mat
+		body.add_child(mi)
+		var shape := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = mesh.size
+		shape.shape = box
+		body.add_child(shape)
+		add_child(body)
+		body.global_position = at + Vector3(randf_range(-0.3, 0.3), 0.2, randf_range(-0.3, 0.3))
+		body.apply_central_impulse(Vector3(randf_range(-1.4, 1.4), randf_range(0.6, 2.0), randf_range(-1.4, 1.4)))
+		get_tree().create_timer(4.0).timeout.connect(body.queue_free)
+
 
 func _pitch_for(horizontal: float, height: float) -> float:
 	var v2 := BALL_SPEED * BALL_SPEED
