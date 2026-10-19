@@ -3,9 +3,9 @@
   "title": "Замок и осада · лошадь, упряжь и верховая езда",
   "revision": "castle-20261019-horse",
   "assembly": "outputs/coordinator35_release59/ASSEMBLY.json",
-  "assembly_sha256": "3464c6d27e71b7638d61efba8953aac62bd4c7724f10f16642965c5230a61edd",
+  "assembly_sha256": "65769866603473c381b0ef3259c7eb55c618adbe4780602b4bd5e5afc1875b31",
   "bootstrap": "outputs/coordinator31_castle_current/bootstrap_castle.gd",
   "bootstrap_sha256": "318b2fe49cf454e0f41766ac4e5aa23ea43b2a26f5fa8d5b9c2ed3a617d0858b",
   "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
-  "scope": "Castle horse: E mount/dismount, higher jump, mounted combat, 100 HP, solid corpse, batched stains, idle details, fixed seat/collar, no self-damage, HP plate hides when you leave, and a clean on-foot state after the dead-horse fallback."
+  "scope": "Castle horse: ride, mounted combat, 100 HP, solid corpse, visible reins, hoofbeats on wood/dirt/stone, snorts, whinnies on damage, death cry, idle details, fixed seat/collar, no self-damage, clean fallback dismount and an HP plate that hides when you leave."
 }

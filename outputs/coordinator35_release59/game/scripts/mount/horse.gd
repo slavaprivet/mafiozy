@@ -32,6 +32,8 @@ const ARROW_BASE_DAMAGE := 10.0
 const ARROW_SPEED_DAMAGE := 1.6
 const MELEE_COOLDOWN_MS := 380
 const STAINS := 10
+const HOOF_SURFACES := ["stone", "wood", "dirt"]
+const HOOF_VARIANTS := 4
 const BloodFx = preload("res://scripts/mount/horse_blood.gd")
 
 var rider: CharacterBody3D = null
@@ -55,6 +57,7 @@ var _coat_dark: StandardMaterial3D
 var _dark: StandardMaterial3D
 var _hoof: StandardMaterial3D
 var _leather: StandardMaterial3D
+var _rein: StandardMaterial3D
 var _cloth: StandardMaterial3D
 var _linen: StandardMaterial3D
 var _metal: StandardMaterial3D
@@ -67,6 +70,18 @@ var _stain_multimesh: MultiMeshInstance3D
 var _splat_cursor := 0
 var _splat_material: StandardMaterial3D
 var _splat_mesh: SphereMesh
+var _hoof_players: Dictionary = {}
+var _snort_players: Array[AudioStreamPlayer3D] = []
+var _neigh_players: Array[AudioStreamPlayer3D] = []
+var _death_player: AudioStreamPlayer3D
+var _hoof_accum := 0.0
+var _snort_timer := 3.8
+var _snort_index := 0
+var _neigh_cooldown := 0.0
+var _hoof_steps := 0
+var _snorts := 0
+var _neighs := 0
+var _rein_meshes: Array[MeshInstance3D] = []
 var _ear_left: Node3D
 var _ear_right: Node3D
 var _lid_left: Node3D
@@ -261,6 +276,7 @@ func _build_model() -> void:
 	_dark = _material(Color(0.105, 0.075, 0.055), 0.85)
 	_hoof = _material(Color(0.12, 0.11, 0.10), 0.62)
 	_leather = _material(Color(0.19, 0.11, 0.06), 0.66)
+	_rein = _material(Color(0.52, 0.36, 0.18), 0.55)
 	_cloth = _material(Color(0.42, 0.09, 0.08), 0.9)
 	_linen = _material(Color(0.62, 0.57, 0.45), 0.95)
 	_metal = _material(Color(0.55, 0.52, 0.44), 0.38, 0.72)
@@ -349,13 +365,13 @@ func _build_model() -> void:
 	for side: float in [-1.0, 1.0]:
 		_part(_rig, _box(Vector3(0.040, 0.16, 0.050)), _leather, Vector3(side * 0.375, 1.755, 0.02))
 		_part(_rig, _box(Vector3(0.105, 0.030, 0.135)), _metal, Vector3(side * 0.365, 1.675, 0.01))
-		# Reins: bit -> over the crest -> the rider's hands, so they read as a line
-		# along the neck instead of cutting straight through it.
-		var bit := Vector3(side * 0.11, 1.93, -1.60)
-		var crest := Vector3(side * 0.10, 2.36, -0.78)
-		var hands := Vector3(side * 0.28, 2.255, -0.34)
-		_strap(_rig, bit, crest, 0.017, _leather)
-		_strap(_rig, crest, hands, 0.017, _leather)
+		# Reins: bit -> beside the neck -> over the crest. The last stretch to the
+		# rider's hand is a live mesh, so the hands always hold something.
+		var bit := Vector3(side * 0.135, 1.93, -1.60)
+		var cheek := Vector3(side * 0.235, 2.02, -1.22)
+		var crest := Vector3(side * 0.165, 2.38, -0.78)
+		_strap(_rig, bit, cheek, 0.026, _rein)
+		_strap(_rig, cheek, crest, 0.026, _rein)
 
 	# ---------------------------------------------------------------- harness
 	# A proper medieval riding harness: girth, breast collar with a ring and
@@ -413,6 +429,8 @@ func _build_model() -> void:
 	# These four stay separate because they move: the ears flick, the lids blink.
 	_build_ears()
 	_build_eyelids()
+	_build_audio()
+	_build_dynamic_reins()
 
 ## Ears on their own pivots so an idle flick costs one rotation, not a rebuild.
 func _build_ears() -> void:
@@ -444,6 +462,207 @@ func _build_eyelids() -> void:
 			_lid_left = pivot
 		else:
 			_lid_right = pivot
+
+## ---------------------------------------------------------------- audio
+## Hooves reuse the player's four-variant step bank, pitched down for a horse and
+## chosen by the surface under the barrel (wood deck, yard dirt, stone paving).
+## Snorts, whinnies and the death cry are small generated PCM buffers.
+func _build_audio() -> void:
+	for surface: String in HOOF_SURFACES:
+		var pool: Array[AudioStreamPlayer3D] = []
+		for variant: int in range(1, HOOF_VARIANTS + 1):
+			var stream := _load_audio("res://audio/steps/%s_%d.wav" % [surface, variant])
+			if stream == null: continue
+			var voice := _make_audio(stream, 6.0, 30.0, -3.0)
+			add_child(voice)
+			pool.append(voice)
+		_hoof_players[surface] = pool
+	for variant: int in range(1, 3):
+		var snort_stream := _load_audio("res://audio/horse/snort_%d.wav" % variant)
+		if snort_stream != null:
+			var snort := _make_audio(snort_stream, 4.0, 26.0, -3.0)
+			_head.add_child(snort)
+			snort.position = Vector3(0.0, 0.10, -0.30)
+			_snort_players.append(snort)
+		var neigh_stream := _load_audio("res://audio/horse/neigh_%d.wav" % variant)
+		if neigh_stream != null:
+			var neigh := _make_audio(neigh_stream, 5.0, 32.0, -2.0)
+			_head.add_child(neigh)
+			neigh.position = Vector3(0.0, 0.10, -0.30)
+			_neigh_players.append(neigh)
+	var death_stream := _load_audio("res://audio/horse/neigh_death.wav")
+	if death_stream != null:
+		_death_player = _make_audio(death_stream, 5.0, 34.0, -1.0)
+		_head.add_child(_death_player)
+		_death_player.position = Vector3(0.0, 0.10, -0.30)
+
+func _make_audio(stream: AudioStream, unit: float, distance: float, volume: float) -> AudioStreamPlayer3D:
+	var voice := AudioStreamPlayer3D.new()
+	voice.stream = stream
+	voice.unit_size = unit
+	voice.max_distance = distance
+	voice.volume_db = volume
+	return voice
+
+## A WAV that Godot has not imported still has to make a sound; parse raw PCM16.
+func _load_audio(path: String) -> AudioStream:
+	var imported: AudioStream = load(path)
+	if imported != null: return imported
+	if not FileAccess.file_exists(path): return null
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null: return null
+	var bytes := file.get_buffer(file.get_length())
+	file.close()
+	if bytes.size() < 44 or bytes.slice(0, 4).get_string_from_ascii() != "RIFF":
+		return null
+	var offset := 12
+	var rate := 22050
+	var channels := 1
+	var data := PackedByteArray()
+	while offset + 8 <= bytes.size():
+		var chunk_id := bytes.slice(offset, offset + 4).get_string_from_ascii()
+		var chunk_size := bytes.decode_u32(offset + 4)
+		var body := offset + 8
+		if body + chunk_size > bytes.size(): break
+		if chunk_id == "fmt ":
+			channels = bytes.decode_u16(body + 2)
+			rate = bytes.decode_u32(body + 4)
+		elif chunk_id == "data":
+			data = bytes.slice(body, body + chunk_size)
+		offset = body + chunk_size + (chunk_size % 2)
+	if data.is_empty(): return null
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_16_BITS
+	wav.mix_rate = rate
+	wav.stereo = channels == 2
+	wav.data = data
+	return wav
+
+func _surface_below() -> String:
+	var space := get_world_3d().direct_space_state if is_inside_tree() else null
+	if space == null: return "stone"
+	var from := global_position + Vector3.UP * 0.6
+	var query := PhysicsRayQueryParameters3D.create(from, from - Vector3.UP * 1.5, 1)
+	query.exclude = [get_rid()]
+	if is_instance_valid(corpse): query.exclude.append(corpse.get_rid())
+	if is_instance_valid(rider): query.exclude.append(rider.get_rid())
+	var hit: Dictionary = space.intersect_ray(query)
+	if hit.is_empty(): return "stone"
+	var collider: Object = hit.get("collider")
+	if not is_instance_valid(collider): return "stone"
+	if collider.has_meta("surface"):
+		var tagged := str(collider.get_meta("surface"))
+		if tagged == "grass": return "dirt"
+		if tagged in HOOF_SURFACES: return tagged
+	var name_lower := String((collider as Node).name).to_lower()
+	if name_lower.contains("gate") or name_lower.contains("wood") or name_lower.contains("plank"):
+		return "wood"
+	if name_lower.contains("ground") or name_lower.contains("grass") or name_lower.contains("dirt"):
+		return "dirt"
+	return "stone"
+
+func _play_hoof() -> void:
+	var surface := _surface_below()
+	var pool: Array = _hoof_players.get(surface, _hoof_players.get("stone", []))
+	if pool.is_empty(): return
+	var candidates: Array = pool.filter(func(node: AudioStreamPlayer3D) -> bool: return not node.playing)
+	if candidates.is_empty(): candidates = pool
+	var chosen: AudioStreamPlayer3D = candidates[randi() % candidates.size()]
+	chosen.pitch_scale = randf_range(0.58, 0.74)
+	chosen.play()
+	_hoof_steps += 1
+
+func _play_snort() -> void:
+	if _snort_players.is_empty(): return
+	var chosen := _snort_players[_snorts % _snort_players.size()]
+	chosen.pitch_scale = randf_range(0.92, 1.06)
+	chosen.play()
+	_snorts += 1
+
+func _play_neigh(death: bool) -> void:
+	if death:
+		if is_instance_valid(_death_player):
+			_death_player.play()
+			_neighs += 1
+		return
+	if _neigh_players.is_empty(): return
+	var chosen := _neigh_players[_neighs % _neigh_players.size()]
+	chosen.pitch_scale = randf_range(0.92, 1.05)
+	chosen.play()
+	_neighs += 1
+
+func _update_audio(delta: float) -> void:
+	_neigh_cooldown = maxf(0.0, _neigh_cooldown - delta)
+	if is_on_floor() and _last_speed > 0.45:
+		_hoof_accum += _last_speed * delta
+		var stride := 2.35 if _last_speed > 7.0 else 1.9
+		if _hoof_accum >= stride:
+			_hoof_accum = 0.0
+			_play_hoof()
+	else:
+		_hoof_accum = 0.0
+	_snort_timer -= delta
+	if _snort_timer <= 0.0 and is_on_floor() and _last_speed < 0.4:
+		_play_snort()
+		_snort_timer = 6.0 + fmod(float(_snort_index) * 2.37, 7.0)
+		_snort_index += 1
+
+## The last stretch of each rein runs from the crest to the rider's real hand bone:
+## two thin cylinders rebuilt as transforms each tick, so the hands always hold
+## something even while the arms move with a weapon.
+func _build_dynamic_reins() -> void:
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = 0.013
+	mesh.bottom_radius = 0.016
+	mesh.height = 1.0
+	mesh.radial_segments = 6
+	mesh.rings = 0
+	for side: float in [-1.0, 1.0]:
+		var node := MeshInstance3D.new()
+		node.name = "ReinL" if side < 0.0 else "ReinR"
+		node.mesh = mesh
+		node.material_override = _rein
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		node.visible = false
+		_rig.add_child(node)
+		_rein_meshes.append(node)
+
+func _update_reins() -> void:
+	if _rein_meshes.size() != 2:
+		return
+	if not is_instance_valid(rider) or not is_instance_valid(_rig):
+		for node: MeshInstance3D in _rein_meshes:
+			node.visible = false
+		return
+	var skeleton: Skeleton3D = rider.get("_pose_skeleton") as Skeleton3D
+	for index: int in 2:
+		var side := -1.0 if index == 0 else 1.0
+		var crest := Vector3(side * 0.165, 2.38, -0.78)
+		var hand_world := Vector3.ZERO
+		var have_hand := false
+		if is_instance_valid(skeleton):
+			var bone := skeleton.find_bone("hand_l" if side < 0.0 else "hand_r")
+			if bone >= 0:
+				hand_world = skeleton.global_transform * skeleton.get_bone_global_pose(bone).origin
+				have_hand = true
+		if not have_hand:
+			hand_world = _rig.to_global(Vector3(side * 0.28, 2.255, -0.34))
+		_place_rein(_rein_meshes[index], crest, _rig.to_local(hand_world))
+
+func _place_rein(node: MeshInstance3D, a: Vector3, b: Vector3) -> void:
+	var delta := b - a
+	var length := delta.length()
+	if length < 0.06:
+		node.visible = false
+		return
+	var y_axis := delta / length
+	var x_axis := y_axis.cross(Vector3.UP)
+	if x_axis.length_squared() < 0.0001:
+		x_axis = y_axis.cross(Vector3.RIGHT)
+	x_axis = x_axis.normalized()
+	var z_axis := x_axis.cross(y_axis).normalized()
+	node.transform = Transform3D(Basis(x_axis, y_axis * length, z_axis), (a + b) * 0.5)
+	node.visible = true
 
 ## Bake every MeshInstance3D child of the same material into one surface. The
 ## transforms, meshes and materials are unchanged, so the picture is identical and
@@ -564,10 +783,12 @@ func _physics_process(delta: float) -> void:
 	_pace = clampf(horizontal / GALLOP_SPEED, 0.0, 1.0)
 	_check_blade_hit()
 	_animate(delta)
+	_update_audio(delta)
 	if _blood != null:
 		_blood.update(delta)
 	if is_instance_valid(rider):
 		_seat_rider(delta)
+	_update_reins()
 	# Safety: a body that somehow leaves the world falls back onto the castle ground.
 	if global_position.y < -40.0:
 		global_position = Vector3(global_position.x, 0.2, global_position.z)
@@ -592,6 +813,9 @@ func take_hit(amount: float, point: Vector3, direction: Vector3, kind: String = 
 	last_hit_kind = kind
 	last_hit_at = point if point.is_finite() else global_position
 	_flinch = minf(0.32, _flinch + 0.14)
+	if hp > 0.0 and _neigh_cooldown <= 0.0:
+		_play_neigh(false)
+		_neigh_cooldown = 0.9
 	var normal := -direction if direction.length_squared() > 0.0001 else Vector3.UP
 	var burst_at := last_hit_at + normal.normalized() * 0.18
 	if _blood != null:
@@ -713,6 +937,7 @@ func _die(direction: Vector3) -> void:
 	_flinch = 0.0
 	_exit_air_pose()
 	_make_corpse(direction)
+	_play_neigh(true)
 	if _blood != null:
 		_blood.burst(seat_world(), Vector3.UP, true, _ground_below(seat_world()))
 	print("DSH_HORSE_DEAD at=", global_position, " hits=", hits_taken, " killer=", last_hit_kind)
@@ -1014,4 +1239,5 @@ func snapshot() -> Dictionary:
 		"blood_active": _blood.active if _blood != null else 0,
 		"blinks": _blink_index, "ears": _ear_index, "blink_age": _blink_age, "ear_age": _ear_age,
 		"breath_scale": _pivot.scale.x if is_instance_valid(_pivot) else 1.0,
+		"hoof_steps": _hoof_steps, "snorts": _snorts, "neighs": _neighs,
 		"below_y": global_position.y < -5.0}
