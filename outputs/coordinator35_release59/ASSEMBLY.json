@@ -1358,7 +1358,7 @@
     "scripts/weapons/weapon_surface_impacts.gd.uid": "9dcd14da5fbd29acb97c4216c6b19aa5ba94d24927407184f328f02c5711998c",
     "tools/make_steps.py": "ddbc05ca0fadae493fd06054ea6acddd7510ed4a6273b745e79f951c20552cc2",
     "scripts/mount/horse.gd": "9c4720ec49ade37c2e04a558d1a3555c67b7719eaddfe10a87684ad22a3ad3b5",
-    "scripts/mount/horse_mount_host.gd": "fb34dba4aaba5b19c7a50f02a66675147eac7313a8458cae41d0cae0c887ab70",
+    "scripts/mount/horse_mount_host.gd": "035227d1bf03012f1a990baa5bc1bc2b483af48f9b61b6d3376ebf9c5c8d9f4b",
     "scripts/mount/horse_rider_pose.gd": "e549c303e56afa68f356c012b62aefbeeb5b2a81032a34e6e596309012e8ff71",
     "scripts/mount/horse_blood.gd": "3e8eda4e5ba6ef0bd6f3dbae60d5470ba36618ce7b2b105ccf86615783e69c5b",
     "audio/horse/snort_1.wav": "95a4e0b74348e5b59226776567bdabcd0845ac70012c885eff8b0cc66fee833b",
