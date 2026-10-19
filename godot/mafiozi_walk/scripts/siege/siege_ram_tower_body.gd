@@ -28,25 +28,30 @@ const PUSH_Z_MIN := 3.30
 const PUSH_X_HALF := 3.20
 const CLIMB_SPEED := 2.15
 const RAM_COOLDOWN := 1.75
-const MAX_DEBRIS := 130
-const DEBRIS_LIFE := 26.0
-const MAX_DUST := 70
+const MAX_DEBRIS := 150
+const DEBRIS_LIFE := 30.0
+const MAX_DUST := 54
+const DEBRIS_POOL_MAX := 90
+const DEBRIS_SETTLE := 1.25
+const STRUCTURAL_PARTS: Array[String] = ["chassis", "frame_left", "frame_right", "front_frame", "rear_frame"]
+const FRAME_PARTS: Array[String] = ["frame_left", "frame_right", "front_frame", "rear_frame"]
 
 const ALLOWED_KINDS: Array[String] = ["cannonball", "catapult", "stone", "powder", "barrel",
 	"bomb", "explosion", "c4", "ram"]
 
 const PART_HP := {
-	"chassis": 380.0, "frame_left": 300.0, "frame_right": 300.0, "front_frame": 260.0,
-	"rear_frame": 240.0, "upper_wall": 420.0, "platform": 340.0, "parapet": 220.0,
-	"roof": 260.0, "ladder": 90.0, "winch": 140.0, "ram": 300.0, "stores": 60.0,
-	"wheel_0": 100.0, "wheel_1": 100.0, "wheel_2": 100.0,
-	"wheel_3": 100.0, "wheel_4": 100.0, "wheel_5": 100.0,
+	"chassis": 620.0, "frame_left": 360.0, "frame_right": 360.0, "front_frame": 300.0,
+	"rear_frame": 280.0, "gallery_roof": 300.0, "upper_wall": 480.0, "platform": 380.0,
+	"parapet": 240.0, "roof": 300.0, "ladder": 100.0, "winch": 160.0, "ram": 320.0,
+	"stores": 80.0, "banners": 80.0,
+	"wheel_0": 120.0, "wheel_1": 120.0, "wheel_2": 120.0,
+	"wheel_3": 120.0, "wheel_4": 120.0, "wheel_5": 120.0,
 }
 
 const PART_DEBRIS := {
 	"chassis": 12, "frame_left": 11, "frame_right": 11, "front_frame": 10,
-	"rear_frame": 9, "upper_wall": 15, "platform": 13, "parapet": 8,
-	"roof": 15, "ladder": 5, "winch": 4, "ram": 14, "stores": 4,
+	"rear_frame": 9, "gallery_roof": 14, "upper_wall": 15, "platform": 13, "parapet": 8,
+	"roof": 15, "ladder": 5, "winch": 4, "ram": 14, "stores": 4, "banners": 5,
 	"wheel_0": 7, "wheel_1": 7, "wheel_2": 7, "wheel_3": 7, "wheel_4": 7, "wheel_5": 7,
 }
 
@@ -69,12 +74,17 @@ var _pusher_x := 0.0
 var _blocked := false
 var _step_transform := Transform3D.IDENTITY
 var _installed := false
+var _build_ms := 0.0
 
 var _part_shapes: Dictionary = {}
 var _part_nodes: Dictionary = {}
 var _part_hp: Dictionary = {}
 var _broken: Dictionary = {}
 var _broken_wheels := 0
+var _falling: Dictionary = {}
+var _toppling := false
+var _topple_dir := 1.0
+var _topple_emit := 0.0
 var _integrity := 1.0
 var _destroyed := false
 var _collapse_t := 0.0
@@ -100,12 +110,15 @@ var _climb_override := NAN
 
 var _debris: Array[RigidBody3D] = []
 var _debris_life: Array[float] = []
+var _debris_settle: Array[float] = []
+var _debris_pool: Array[RigidBody3D] = []
 var _dust: Array[Dictionary] = []
 var _rng := RandomNumberGenerator.new()
-var _wood_debris_material: StandardMaterial3D
+var _wood_debris_materials: Array[StandardMaterial3D] = []
 var _dust_material: StandardMaterial3D
 var _dust_mesh: SphereMesh
 var _debris_mesh: BoxMesh
+var _ground_tick := 0
 
 func install(world_in: Node3D, castle_in: Node3D, player_in: CharacterBody3D) -> Dictionary:
 	world = world_in
@@ -116,9 +129,11 @@ func install(world_in: Node3D, castle_in: Node3D, player_in: CharacterBody3D) ->
 	collision_layer = 1
 	collision_mask = 1
 	_rng.seed = 0x51E6E
-	_wood_debris_material = StandardMaterial3D.new()
-	_wood_debris_material.albedo_color = Color(0.315, 0.225, 0.145)
-	_wood_debris_material.roughness = 0.94
+	for tone: Color in [Color(0.345, 0.245, 0.150), Color(0.285, 0.195, 0.120), Color(0.225, 0.152, 0.092)]:
+		var wood := StandardMaterial3D.new()
+		wood.albedo_color = tone
+		wood.roughness = 0.95
+		_wood_debris_materials.append(wood)
 	_dust_material = StandardMaterial3D.new()
 	_dust_material.albedo_color = Color(0.63, 0.575, 0.485, 0.42)
 	_dust_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -129,6 +144,7 @@ func install(world_in: Node3D, castle_in: Node3D, player_in: CharacterBody3D) ->
 	_dust_mesh.height = 0.48
 	_debris_mesh = BoxMesh.new()
 	_debris_mesh.size = Vector3.ONE
+	var build_start := Time.get_ticks_usec()
 	model = MODEL_SCRIPT.new()
 	model.name = "SiegeRamTowerModel"
 	add_child(model)
@@ -144,8 +160,12 @@ func install(world_in: Node3D, castle_in: Node3D, player_in: CharacterBody3D) ->
 	_add_ram_collider()
 	_ram_rest = _ram_pivot.position
 	_installed = true
+	_prewarm_debris(36)
+	var build_ms := float(Time.get_ticks_usec() - build_start) / 1000.0
+	_build_ms = build_ms
 	return {"ok": true, "parts": _part_nodes.size(), "collision": _part_shapes.size(),
-		"colliders": _collision_count(), "ram": is_instance_valid(_ram_pivot)}
+		"colliders": _collision_count(), "ram": is_instance_valid(_ram_pivot),
+		"build_ms": build_ms, "debris_pool": _debris_pool.size()}
 
 func _build_collision(entries: Array) -> void:
 	for raw: Variant in entries:
@@ -532,7 +552,7 @@ func player_at_ram(_unused: Vector3 = Vector3.ZERO) -> bool:
 
 # ------------------------------------------------------------------ ladder
 func climb_assist(actor: CharacterBody3D, delta: float) -> void:
-	if not _installed or _destroyed or not is_instance_valid(actor):
+	if not _installed or _destroyed or not is_instance_valid(actor) or _broken.has("ladder"):
 		return
 	if not is_finite(delta) or delta <= 0.0 or delta > 0.25:
 		return
@@ -661,6 +681,14 @@ func _recompute_integrity() -> void:
 func _part_center(part: String) -> Vector3:
 	var shapes: Array = _part_shapes.get(part, [])
 	if shapes.is_empty():
+		# Parts without their own collider still need a plausible fall position.
+		match part:
+			"ladder":
+				return Vector3(3.34, 4.40, 0.55)
+			"stores":
+				return Vector3(-0.40, 9.25, 1.55)
+			"banners":
+				return Vector3(0.0, 7.10, -1.90)
 		return Vector3(0.0, 3.0, 0.0)
 	var sum := Vector3.ZERO
 	var count := 0
@@ -708,41 +736,174 @@ func _classify(local: Vector3) -> String:
 		return "chassis"
 	return "frame_left" if local.x < 0.0 else "frame_right"
 
+func _intact_wheels() -> int:
+	var count := 0
+	for index: int in 6:
+		if not _broken.has("wheel_%d" % index):
+			count += 1
+	return count
+
+## The machine is a stack of supported sections, like the castle courses.
+## A section that loses every support is queued to fall; when it lands it is
+## removed and the sections above it are checked again - a real chain reaction.
+func _support_ok(part: String) -> bool:
+	if _broken.has(part):
+		return false
+	match part:
+		"chassis":
+			return _intact_wheels() >= 3
+		"wheel_0", "wheel_1", "wheel_2", "wheel_3", "wheel_4", "wheel_5":
+			return not _broken.has("chassis")
+		"frame_left", "frame_right", "front_frame", "rear_frame":
+			return not _broken.has("chassis")
+		"gallery_roof":
+			var frames := 0
+			for frame: String in FRAME_PARTS:
+				if not _broken.has(frame):
+					frames += 1
+			return frames >= 2
+		"upper_wall":
+			if _broken.has("gallery_roof"):
+				return false
+			for frame: String in FRAME_PARTS:
+				if not _broken.has(frame):
+					return true
+			return false
+		"platform":
+			return not _broken.has("upper_wall")
+		"parapet", "roof":
+			return not _broken.has("platform")
+		"ladder":
+			return not _broken.has("frame_right") or not _broken.has("platform")
+		"winch":
+			return not _broken.has("rear_frame")
+		"ram":
+			return not _broken.has("gallery_roof") and not _broken.has("front_frame")
+		"stores":
+			return not _broken.has("platform")
+		"banners":
+			return not _broken.has("upper_wall") or not _broken.has("parapet")
+		_:
+			return true
+
+func _propagate_support() -> void:
+	var guard := 0
+	var changed := true
+	while changed and guard < 10:
+		changed = false
+		guard += 1
+		for part: String in _part_hp.keys():
+			if _broken.has(part) or _falling.has(part):
+				continue
+			if not _support_ok(part):
+				_schedule_fall(part)
+				changed = true
+
+func _schedule_fall(part: String) -> void:
+	if _broken.has(part) or _falling.has(part):
+		return
+	var delay := 0.22 + _rng.randf() * 0.55
+	if _destroyed:
+		delay *= 0.55
+	_falling[part] = delay
+	_spawn_dust(to_global(_part_center(part)), 3, Vector3.UP)
+	print("DSH_TOWER_FALL_SCHEDULED ", part, " delay=", snappedf(delay, 0.01))
+
+func _drop_part(part: String) -> void:
+	if _broken.has(part):
+		return
+	_broken[part] = true
+	_part_hp[part] = 0.0
+	_falling.erase(part)
+	var node: Node3D = _part_nodes.get(part)
+	var center_world := to_global(_part_center(part))
+	if is_instance_valid(node):
+		node.visible = false
+	_disable_part(part)
+	_spawn_part_debris(part, center_world, true)
+	_spawn_dust(center_world, 7, Vector3.UP)
+	if part == "ram":
+		_break_ram_mechanism()
+	if part.begins_with("wheel_") and _broken_wheels < 6:
+		_broken_wheels += 1
+	_recompute_integrity()
+	if STRUCTURAL_PARTS.has(part):
+		_start_topple()
+	_propagate_support()
+
 func _break_part(part: String, point: Vector3) -> void:
 	if _broken.has(part):
 		return
 	_broken[part] = true
+	_part_hp[part] = 0.0
 	var node: Node3D = _part_nodes.get(part)
 	if is_instance_valid(node):
 		node.visible = false
 	_disable_part(part)
-	_spawn_part_debris(part, point)
+	_spawn_part_debris(part, point, false)
 	_spawn_dust(point, 8, Vector3.UP)
 	if part == "ram":
-		_ram_broken = true
-		_ram_state = "rest"
-		_ram_offset = 0.0
-		_ram_angle = 0.0
-		if is_instance_valid(_ram_pivot):
-			_ram_pivot.rotation.x = 0.55
-			_ram_pivot.position = _ram_rest + Vector3(0.0, -0.12, 0.10)
-		if is_instance_valid(_ram_body):
-			_ram_body.collision_layer = 0
-			_ram_body.collision_mask = 0
-	if part.begins_with("wheel_"):
+		_break_ram_mechanism()
+	if part.begins_with("wheel_") and _broken_wheels < 6:
 		_broken_wheels += 1
-	var collapse := false
-	if part == "chassis":
-		collapse = true
-	if _broken.has("frame_left") and _broken.has("frame_right"):
-		collapse = true
-	if _broken_wheels >= 3:
-		collapse = true
-	if collapse:
-		_collapse()
-	elif _broken_wheels >= 2 and not _broken.has("front_frame"):
-		# Two wheels gone: the machine slews and stops until it is finished off.
+	_recompute_integrity()
+	if STRUCTURAL_PARTS.has(part):
+		_start_topple()
+	_propagate_support()
+	if _broken_wheels >= 2 and not _broken.has("front_frame") and not _destroyed:
 		_speed = 0.0
+
+func _break_ram_mechanism() -> void:
+	_ram_broken = true
+	_ram_state = "rest"
+	_ram_offset = 0.0
+	_ram_angle = 0.0
+	if is_instance_valid(_ram_pivot):
+		_ram_pivot.rotation.x = 0.55
+		_ram_pivot.position = _ram_rest + Vector3(0.0, -0.12, 0.10)
+	if is_instance_valid(_ram_body):
+		_ram_body.collision_layer = 0
+		_ram_body.collision_mask = 0
+
+func _start_topple() -> void:
+	if _toppling:
+		return
+	var frames_gone := 0
+	for frame: String in FRAME_PARTS:
+		if _broken.has(frame):
+			frames_gone += 1
+	if not (_broken.has("chassis") or _intact_wheels() < 3 or frames_gone >= 3):
+		return
+	_toppling = true
+	_destroyed = true
+	_speed = 0.0
+	_yaw_rate = 0.0
+	_ram_state = "rest"
+	_collapse_t = 0.0
+	_topple_dir = 1.0 if _rng.randf() < 0.5 else -1.0
+	_topple_emit = 0.0
+	print("DSH_TOWER_TOPPLE frames_gone=", frames_gone, " wheels=", _intact_wheels(),
+		" dir=", _topple_dir)
+
+func _update_falling(delta: float) -> void:
+	if _falling.is_empty():
+		return
+	for part: Variant in _falling.keys():
+		var remaining := float(_falling[part]) - delta
+		if remaining <= 0.0:
+			_falling.erase(part)
+			_drop_part(str(part))
+		else:
+			_falling[part] = remaining
+
+func _random_intact_part() -> String:
+	var candidates: Array[String] = []
+	for part: String in _part_hp.keys():
+		if not _broken.has(part) and _part_nodes.has(part):
+			candidates.append(part)
+	if candidates.is_empty():
+		return ""
+	return candidates[_rng.randi_range(0, candidates.size() - 1)]
 
 func _disable_part(part: String) -> void:
 	var shapes: Array = _part_shapes.get(part, [])
@@ -751,88 +912,148 @@ func _disable_part(part: String) -> void:
 		if is_instance_valid(shape):
 			shape.set_deferred("disabled", true)
 
-func _spawn_part_debris(part: String, point: Vector3) -> void:
-	var count := int(PART_DEBRIS.get(part, 8))
-	var center := _part_center(part)
-	if center.is_zero_approx():
-		center = _local_of(point)
-	var pieces := clampi(count, 3, 18)
-	for i: int in pieces:
-		var at := to_global(center + Vector3(_rng.randf_range(-1.0, 1.0),
-			_rng.randf_range(-0.4, 0.8), _rng.randf_range(-1.0, 1.0)))
-		_spawn_debris(at, Vector3(_rng.randf_range(-2.5, 2.5), _rng.randf_range(1.0, 4.5),
-			_rng.randf_range(-2.5, 2.5)))
+func _spawn_part_debris(part: String, point: Vector3, big: bool) -> void:
+	var base := int(PART_DEBRIS.get(part, 8))
+	var count := clampi(base * (2 if big else 1), 4, 30)
+	var center := to_global(_part_center(part))
+	if center.distance_to(point) > 0.5 and point.is_finite():
+		center = point
+	var kind := "plank"
+	if part in ["chassis", "frame_left", "frame_right", "front_frame", "rear_frame", "ram"]:
+		kind = "beam"
+	elif part in ["wheel_0", "wheel_1", "wheel_2", "wheel_3", "wheel_4", "wheel_5"]:
+		kind = "chunk"
+	elif part in ["ladder", "winch", "stores", "banners"]:
+		kind = "splinter"
+	for i: int in count:
+		var at := center + Vector3(_rng.randf_range(-1.3, 1.3), _rng.randf_range(-0.9, 1.0),
+			_rng.randf_range(-1.3, 1.3))
+		var outward := (at - _origin)
+		outward.y = 0.0
+		if outward.length_squared() < 0.01:
+			outward = Vector3(_rng.randf_range(-1.0, 1.0), 0.0, _rng.randf_range(-1.0, 1.0))
+		var velocity := outward.normalized() * _rng.randf_range(1.2, 4.6) \
+			+ Vector3(0.0, _rng.randf_range(-1.2, 2.5), 0.0)
+		var piece_kind := kind
+		if i % 4 == 0:
+			piece_kind = "splinter"
+		_spawn_debris(at, velocity, piece_kind)
+	# One larger shattered section makes the fall readable without burying the
+	# whole wreck in beams.
+	for i: int in 1:
+		var at := center + Vector3(_rng.randf_range(-0.6, 0.6), _rng.randf_range(-0.4, 0.5),
+			_rng.randf_range(-0.6, 0.6))
+		_spawn_debris(at, Vector3(_rng.randf_range(-2.0, 2.0), _rng.randf_range(-1.0, 2.5),
+			_rng.randf_range(-2.0, 2.0)), "big")
 
 func _spawn_splinters(point: Vector3, count: int, forward: Vector3) -> void:
 	for i: int in count:
 		_spawn_debris(point + Vector3(_rng.randf_range(-0.3, 0.3), _rng.randf_range(-0.3, 0.3),
 			_rng.randf_range(-0.3, 0.3)), forward * _rng.randf_range(4.0, 8.0)
 			+ Vector3(_rng.randf_range(-2.0, 2.0), _rng.randf_range(1.0, 4.0), _rng.randf_range(-2.0, 2.0)),
-			true)
-
-func _collapse() -> void:
-	if _destroyed:
-		return
-	_destroyed = true
-	_speed = 0.0
-	_yaw_rate = 0.0
-	_ram_state = "rest"
-	_collapse_t = 0.0
-	_collapse_roll = 0.0
-	_collapse_pitch = 0.0
-	for part: String in _part_shapes.keys():
-		_disable_part(part)
-	if is_instance_valid(_ram_body):
-		_ram_body.collision_layer = 0
-		_ram_body.collision_mask = 0
-	# A burst of timber and dust across the whole frame.
-	for i: int in 78:
-		var at := to_global(Vector3(_rng.randf_range(-2.7, 2.7),
-			_rng.randf_range(0.8, 12.2), _rng.randf_range(-3.3, 3.4)))
-		_spawn_debris(at, Vector3(_rng.randf_range(-5.5, 5.5), _rng.randf_range(0.5, 6.5),
-			_rng.randf_range(-5.5, 5.5)))
-	_spawn_dust(to_global(Vector3(0.0, 5.0, 0.0)), 34, Vector3.UP)
-	_collapsed_once = true
-	print("DSH_TOWER_COLLAPSE parts=", _broken.size(), " debris=", _debris.size())
+			"splinter")
 
 # ------------------------------------------------------------------ debris / dust
-func _spawn_debris(world_point: Vector3, velocity: Vector3, splinter: bool = false) -> void:
-	while _debris.size() >= MAX_DEBRIS:
-		var old: RigidBody3D = _debris.pop_front()
-		_debris_life.pop_front()
-		if is_instance_valid(old):
-			old.queue_free()
+func _make_debris_body() -> RigidBody3D:
 	var body := RigidBody3D.new()
-	body.name = "TowerDebris_%d" % _rng.randi_range(0, 99999)
-	body.mass = 7.0
-	body.collision_layer = 4
-	body.collision_mask = 1
-	body.continuous_cd = true
-	var size := Vector3(_rng.randf_range(0.20, 0.95), _rng.randf_range(0.10, 0.26), _rng.randf_range(0.16, 0.55))
-	if splinter:
-		size = Vector3(_rng.randf_range(0.05, 0.12), _rng.randf_range(0.05, 0.10), _rng.randf_range(0.5, 1.1))
+	body.name = "TowerDebris"
+	body.mass = 6.0
+	body.collision_layer = 0
+	body.collision_mask = 0
+	body.continuous_cd = false
+	body.contact_monitor = false
+	body.max_contacts_reported = 0
+	body.can_sleep = true
+	body.freeze = true
 	var view := MeshInstance3D.new()
+	view.name = "Mesh"
 	view.mesh = _debris_mesh
-	view.scale = size
-	view.material_override = _wood_debris_material
 	view.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	body.add_child(view)
 	var shape := CollisionShape3D.new()
+	shape.name = "Shape"
 	var box := BoxShape3D.new()
-	box.size = size
 	shape.shape = box
 	body.add_child(shape)
-	var debris_root: Node = world if is_instance_valid(world) else get_parent()
-	if is_instance_valid(debris_root):
-		debris_root.add_child(body)
+	var root: Node = world if is_instance_valid(world) else get_parent()
+	if is_instance_valid(root):
+		root.add_child(body)
 	else:
 		add_child(body)
+	body.visible = false
+	return body
+
+func _prewarm_debris(count: int) -> void:
+	for _i: int in count:
+		if _debris_pool.size() >= DEBRIS_POOL_MAX:
+			break
+		_debris_pool.append(_make_debris_body())
+
+func _acquire_debris() -> RigidBody3D:
+	var body: RigidBody3D
+	if _debris_pool.is_empty():
+		body = _make_debris_body()
+	else:
+		body = _debris_pool.pop_back()
+	body.visible = true
+	body.freeze = false
+	body.sleeping = false
+	body.collision_layer = 4
+	body.collision_mask = 1
+	return body
+
+func _retire_debris(body: RigidBody3D) -> void:
+	if not is_instance_valid(body):
+		return
+	body.visible = false
+	body.freeze = true
+	body.sleeping = true
+	body.linear_velocity = Vector3.ZERO
+	body.angular_velocity = Vector3.ZERO
+	body.collision_layer = 0
+	body.collision_mask = 0
+	if _debris_pool.size() < DEBRIS_POOL_MAX:
+		_debris_pool.append(body)
+	else:
+		body.queue_free()
+
+func _spawn_debris(world_point: Vector3, velocity: Vector3, kind: String = "plank") -> void:
+	while _debris.size() >= MAX_DEBRIS:
+		var old: RigidBody3D = _debris.pop_front()
+		_debris_life.pop_front()
+		_debris_settle.pop_front()
+		_retire_debris(old)
+	var body := _acquire_debris()
+	var size := Vector3(0.28, 0.10, 1.0)
+	match kind:
+		"beam":
+			size = Vector3(_rng.randf_range(0.22, 0.38), _rng.randf_range(0.22, 0.34), _rng.randf_range(1.4, 2.6))
+		"splinter":
+			size = Vector3(_rng.randf_range(0.04, 0.10), _rng.randf_range(0.04, 0.09), _rng.randf_range(0.4, 0.9))
+		"chunk":
+			size = Vector3(_rng.randf_range(0.20, 0.50), _rng.randf_range(0.18, 0.36), _rng.randf_range(0.20, 0.50))
+		"big":
+			size = Vector3(_rng.randf_range(0.40, 0.80), _rng.randf_range(0.18, 0.32), _rng.randf_range(0.60, 1.20))
+		_:
+			size = Vector3(_rng.randf_range(0.18, 0.32), _rng.randf_range(0.06, 0.12), _rng.randf_range(0.70, 1.50))
+	var view := body.get_node("Mesh") as MeshInstance3D
+	view.scale = size
+	view.material_override = _wood_debris_materials[_rng.randi_range(0, _wood_debris_materials.size() - 1)]
+	var shape := body.get_node("Shape") as CollisionShape3D
+	var box := shape.shape as BoxShape3D
+	if box == null:
+		box = BoxShape3D.new()
+		shape.shape = box
+	box.size = size
+	body.mass = clampf(size.x * size.y * size.z * 70.0, 1.2, 40.0)
 	body.global_position = world_point
+	body.rotation = Vector3(_rng.randf_range(0.0, TAU), _rng.randf_range(0.0, TAU), _rng.randf_range(0.0, TAU))
 	body.linear_velocity = velocity
 	body.angular_velocity = Vector3(_rng.randf_range(-8.0, 8.0), _rng.randf_range(-8.0, 8.0),
 		_rng.randf_range(-8.0, 8.0))
 	_debris.append(body)
 	_debris_life.append(DEBRIS_LIFE)
+	_debris_settle.append(0.0)
 
 func _spawn_dust(at: Vector3, count: int, direction: Vector3) -> void:
 	while _dust.size() >= MAX_DUST:
@@ -857,18 +1078,32 @@ func _spawn_dust(at: Vector3, count: int, direction: Vector3) -> void:
 				+ Vector3(_rng.randf_range(-1.4, 1.4), _rng.randf_range(0.4, 1.9), _rng.randf_range(-1.4, 1.4))})
 
 func _update_debris(delta: float) -> void:
+	if _debris.is_empty() and _dust.is_empty():
+		return
 	var index := _debris.size() - 1
 	while index >= 0:
 		_debris_life[index] -= delta
+		_debris_settle[index] += delta
 		var body := _debris[index]
 		var remove := _debris_life[index] <= 0.0 or not is_instance_valid(body)
 		if not remove and body.global_position.y < -30.0:
 			remove = true
 		if remove:
 			if is_instance_valid(body):
-				body.queue_free()
+				_retire_debris(body)
 			_debris.remove_at(index)
 			_debris_life.remove_at(index)
+			_debris_settle.remove_at(index)
+			index -= 1
+			continue
+		# Settled timber becomes static and stops costing the solver; the pile
+		# stays visible until its life runs out.
+		if _debris_settle[index] > DEBRIS_SETTLE and not body.freeze:
+			if body.linear_velocity.length_squared() < 0.04 and body.angular_velocity.length_squared() < 0.36:
+				body.freeze = true
+				body.sleeping = true
+				body.collision_layer = 0
+				body.collision_mask = 0
 		index -= 1
 	var dust_index := _dust.size() - 1
 	while dust_index >= 0:
@@ -899,6 +1134,9 @@ func _update_debris(delta: float) -> void:
 
 func debris_count() -> int:
 	return _debris.size()
+
+func debris_pool_count() -> int:
+	return _debris_pool.size()
 
 # ------------------------------------------------------------------ transform / loop
 func _sync_transform(force_immediate: bool = false) -> void:
@@ -936,15 +1174,28 @@ func simulate_step(delta: float) -> void:
 	delta = minf(delta, 0.1)
 	_step_transform = Transform3D(Basis.from_euler(Vector3(_pitch, _yaw, _roll)), _origin)
 	if _destroyed:
+		# The machine tips over while its sections keep losing support and
+		# dropping one after another: a castle-like cascade, not one switch.
 		_collapse_t += delta
-		var t := clampf(_collapse_t / 1.0, 0.0, 1.0)
-		_collapse_roll = ease(t, 0.5) * 0.42
-		_collapse_pitch = ease(t, 0.5) * -0.16
-		_origin.y = maxf(_origin.y - delta * 0.55, _fallback_height(_origin.x, _origin.z) - 0.4)
-		if t >= 1.0 and _part_nodes.size() > 0:
+		var t := clampf(_collapse_t / 1.8, 0.0, 1.0)
+		var curve := ease(t, 0.55)
+		_collapse_roll = _topple_dir * curve * 1.15
+		_collapse_pitch = curve * -0.24
+		_origin.y = maxf(_fallback_height(_origin.x, _origin.z) - 0.55, _origin.y - delta * 0.80)
+		_topple_emit -= delta
+		if t < 0.95 and _topple_emit <= 0.0:
+			_topple_emit = 0.11
+			var next_part := _random_intact_part()
+			if not next_part.is_empty():
+				_drop_part(next_part)
+		_update_falling(delta)
+		if t >= 1.0:
 			for node: Variant in _part_nodes.values():
 				if is_instance_valid(node):
 					(node as Node3D).visible = false
+			for part: String in _part_shapes.keys():
+				_disable_part(part)
+			_falling.clear()
 		_update_debris(delta)
 		_sync_transform()
 		return
@@ -952,7 +1203,14 @@ func simulate_step(delta: float) -> void:
 	if _pusher_timer <= 0.0:
 		_pusher_timer = 0.2
 		_update_pushers()
-	_sample_ground()
+	# The terrain is sampled every frame only while the machine moves; on a
+	# parked tower four rays every fourth frame are enough to keep it seated.
+	if _speed > 0.03 or _pushers > 0:
+		_sample_ground()
+	else:
+		_ground_tick += 1
+		if _ground_tick % 4 == 0:
+			_sample_ground()
 	_update_motion(delta)
 	_update_ram(delta)
 	if is_instance_valid(model):
@@ -961,6 +1219,7 @@ func simulate_step(delta: float) -> void:
 			var wheel := raw as Node3D
 			if is_instance_valid(wheel):
 				wheel.rotation.x = _wheel_spin
+	_update_falling(delta)
 	_update_debris(delta)
 	_sync_transform()
 	_carry_rider()
@@ -1000,9 +1259,10 @@ func snapshot() -> Dictionary:
 		"yaw": _yaw, "speed": _speed, "pushers": _pushers, "integrity": _integrity,
 		"ram_broken": _ram_broken, "ram_state": _ram_state, "ram_hits": _ram_hits,
 		"ram_tip": ram_tip_world(), "broken_parts": _broken.keys(), "broken_wheels": _broken_wheels,
-		"debris": _debris.size(), "dust": _dust.size(), "part_hp": _part_hp.duplicate(true),
-		"last_hit": _last_hit, "colliders": _collision_count(), "climbing": _climbing,
-		"model_parts": _part_nodes.size()}
+		"falling": _falling.keys(), "toppling": _toppling, "intact_wheels": _intact_wheels(),
+		"debris": _debris.size(), "debris_pool": _debris_pool.size(), "dust": _dust.size(),
+		"part_hp": _part_hp.duplicate(true), "last_hit": _last_hit, "colliders": _collision_count(),
+		"climbing": _climbing, "model_parts": _part_nodes.size(), "build_ms": _build_ms}
 
 func debug_break(part: String) -> bool:
 	if not _part_hp.has(part) or _broken.has(part):

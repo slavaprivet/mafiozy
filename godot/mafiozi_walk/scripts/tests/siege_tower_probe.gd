@@ -184,6 +184,21 @@ func _run() -> void:
 	_check("ladder_down", bottom_local.y < 0.6, bottom_local)
 	_body.call("debug_climb_axis", NAN)
 
+	# 4b. Support chain: take the platform out and the roof/parapet above it must
+	# lose their support and fall one after another, without toppling the chassis.
+	_body.call("debug_break", "platform")
+	await _settle(8)
+	var mid_chain: Dictionary = _body.call("snapshot")
+	var scheduled: Array = mid_chain.get("falling", [])
+	_check("support_scheduled", scheduled.has("roof") or scheduled.has("parapet"), scheduled)
+	await _settle(100)
+	var after_chain: Dictionary = _body.call("snapshot")
+	var broken_after: Array = after_chain.get("broken_parts", [])
+	_check("support_chain", broken_after.has("roof") and broken_after.has("parapet")
+		and broken_after.has("stores"), broken_after)
+	_check("top_only_no_topple", not bool(after_chain.get("destroyed", true)),
+		after_chain.get("destroyed"))
+
 	# 5. Powder barrel blast and full collapse.
 	var blasts := 0
 	for _i: int in 5:
@@ -197,6 +212,8 @@ func _run() -> void:
 	var destroyed := bool(_body.get("_destroyed"))
 	_check("full_collapse", destroyed, _body.call("snapshot"))
 	_check("debris_burst", int(_body.call("debris_count")) >= 40, _body.call("debris_count"))
+	_check("debris_cap", int(_body.call("debris_count")) <= 150, _body.call("debris_count"))
+	_check("build_budget", float(body_snap.get("build_ms", 99999.0)) < 5000.0, body_snap.get("build_ms"))
 	_check("prompt_gone", (_host.call("action") as Dictionary).is_empty(), _host.call("action"))
 
 	var failed := 0

@@ -82,6 +82,7 @@ func _run() -> void:
 	results.append(await _shot("rear", Vector3(-8.2, 4.2, 11.6), Vector3(0.0, 4.8, 0.0)))
 	results.append(await _shot("ram", Vector3(3.6, 2.8, -10.4), Vector3(0.0, 2.35, -7.9)))
 	results.append(await _shot("top", Vector3(8.8, 13.8, 8.2), Vector3(0.0, 9.0, 0.0)))
+	results.append(await _shot("scorpion", Vector3(0.6, 10.15, 0.9), Vector3(-1.4, 9.55, -2.1)))
 	# The ram in motion: wind up, then catch it at the end of the strike.
 	_body.call("trigger_ram")
 	for _frame: int in 20:
@@ -92,17 +93,27 @@ func _run() -> void:
 	results.append(await _shot("ram_strike", Vector3(6.4, 3.0, -4.0), Vector3(0.0, 2.5, -6.8)))
 	# The view a bowman has from the fighting top: over the merlons at the gate.
 	results.append(await _shot("platform_view", Vector3(0.0, 10.55, 0.9), Vector3(0.0, 2.0, -30.0)))
-	# Break the machine with powder and catch the timber burst.
-	for _i: int in 4:
-		if bool(_body.get("_destroyed")):
-			break
-		_body.call("blast_at", _body.global_position + Vector3.UP * 3.2, 5.2, 3200.0, "powder")
-		for _frame: int in 4:
-			await physics_frame
-	for _frame: int in 18:
+	# 1. Support chain: remove the platform and watch the top sections lose
+	# support and drop one after another.
+	_body.call("debug_break", "platform")
+	for _frame: int in 16:
+		await physics_frame
+	results.append(await _shot("support_break", Vector3(10.6, 7.6, 10.6), Vector3(0.0, 7.2, 0.0)))
+	for _frame: int in 40:
+		await physics_frame
+	results.append(await _shot("chain_fall", Vector3(10.6, 6.2, 10.6), Vector3(0.0, 5.6, 0.0)))
+	# 2. Break the chassis: the whole machine tips over while the rest cascades.
+	_body.call("blast_at", _body.to_global(Vector3(0.0, 1.15, 0.0)), 5.2, 3200.0, "powder")
+	for _frame: int in 12:
+		await physics_frame
+	results.append(await _shot("topple_start", Vector3(18.5, 8.0, 13.0), Vector3(0.0, 5.0, 0.0)))
+	for _frame: int in 22:
+		await physics_frame
+	results.append(await _shot("topple_mid", Vector3(19.0, 7.0, 13.5), Vector3(0.0, 4.0, 0.0)))
+	for _frame: int in 45:
 		await physics_frame
 	results.append(await _shot("wreck", Vector3(10.4, 4.8, 9.8), Vector3(0.0, 2.2, 0.0)))
-	for _frame: int in 50:
+	for _frame: int in 45:
 		await physics_frame
 	results.append(await _shot("wreck_settled", Vector3(10.4, 4.8, 9.8), Vector3(0.0, 1.2, 0.0)))
 	var snapshot: Dictionary = _host.call("snapshot")

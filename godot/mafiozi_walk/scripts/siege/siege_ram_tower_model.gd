@@ -160,7 +160,10 @@ func _finish() -> void:
 		var view := MeshInstance3D.new()
 		view.name = "Mesh"
 		view.mesh = mesh
-		view.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		# Small dressing does not need to cast shadows; the big timbers do.
+		var small := _active_part in ["banners", "stores", "winch", "ladder"]
+		view.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if small \
+			else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 		root.add_child(view)
 	_surfaces = {}
 	_active_part = ""
@@ -498,6 +501,17 @@ func _build_side_frame(id: String, side: float) -> void:
 	_torus(ROPE, Vector3(x + side * 0.26, 2.10, 1.62), Vector3(side, 0.0, 0.0), 0.21, 0.038, ROPE_COLOR, 12, 4)
 	_box(WOOD, Vector3(x + side * 0.27, 1.98, 2.05), Vector3(0.06, 0.52, 0.07), _wood_tone(2))
 	_box(WOOD, Vector3(x + side * 0.27, 2.24, 2.05), Vector3(0.08, 0.16, 0.24), _dark_tone(4))
+	# Weathering: rain streaks, rust and mud splashes on the sunward boards.
+	for i: int in 14:
+		var zz := -2.42 + float(i) * 0.36
+		var yy := 1.78 + fmod(float(i) * 0.83, 2.55)
+		var streak := 0.24 + fmod(float(i) * 0.37, 0.62)
+		_box(WOOD, Vector3(x + side * 0.155, yy, zz), Vector3(0.015, streak, 0.045),
+			Color(0.075, 0.058, 0.042) if i % 3 != 0 else Color(0.165, 0.085, 0.045))
+	for i: int in 5:
+		var zz := -2.0 + float(i) * 0.92
+		_box(WOOD, Vector3(x + side * 0.165, 1.62 + fmod(float(i) * 0.27, 0.24), zz),
+			Vector3(0.018, 0.10, 0.16), Color(0.22, 0.175, 0.11))
 	_finish()
 
 func _build_front_frame() -> void:
@@ -833,6 +847,9 @@ func _build_platform() -> void:
 	# Edge beams and a heavy rim.
 	for side: float in [-1.0, 1.0]:
 		_box(WOOD, Vector3(side * 2.46, y - 0.10, 0.0), Vector3(0.22, 0.30, 5.65), _dark_tone(2))
+		for z: float in [-2.72, 2.72]:
+			_box(IRON, Vector3(side * 2.36, y + 0.02, z), Vector3(0.30, 0.10, 0.30), IRON_COLOR)
+			_box(IRON, Vector3(side * 2.48, y - 0.16, z), Vector3(0.08, 0.40, 0.30), IRON_COLOR)
 	_box(WOOD, Vector3(0.0, y - 0.10, -2.78), Vector3(5.10, 0.30, 0.22), _dark_tone(1))
 	_box(WOOD, Vector3(0.0, y - 0.10, 2.78), Vector3(5.10, 0.30, 0.22), _dark_tone(3))
 	# Support knees under the overhang.
@@ -872,6 +889,15 @@ func _build_roof() -> void:
 	_merlon_at(Vector3(2.44, PARAPET_TOP, -1.47), PI * 0.5, 0.80)
 	_merlon_at(Vector3(2.44, PARAPET_TOP, 2.02), PI * 0.5, -0.50)
 	_merlon_at(Vector3(2.44, PARAPET_TOP, 2.02), PI * 0.5, 0.50)
+	# Two round shields hung on the outer face of the front parapet.
+	for side: float in [-1.0, 1.0]:
+		var sx := side * 1.72
+		var sz := FRONT_Z - 0.12
+		_tube(WOOD, Vector3(sx, 9.20, sz + 0.08), Vector3(sx, 9.20, sz), 0.30, 0.30, 14, _dark_tone(2), true)
+		_torus(STEEL, Vector3(sx, 9.20, sz), Vector3(0.0, 0.0, 1.0), 0.30, 0.032, STEEL_COLOR * 0.75, 14, 4)
+		_box(GOLD, Vector3(sx, 9.20, sz - 0.025), Vector3(0.10, 0.42, 0.03), GOLD_COLOR)
+		_box(GOLD, Vector3(sx, 9.20, sz - 0.025), Vector3(0.42, 0.10, 0.03), GOLD_COLOR)
+		_tube(IRON, Vector3(sx, 9.20, sz - 0.03), Vector3(sx, 9.20, sz - 0.09), 0.08, 0.06, 8, IRON_COLOR, true)
 	# Roof posts and knee braces.
 	for side: float in [-1.0, 1.0]:
 		for z: float in [FRONT_Z + 0.20, REAR_Z - 0.20]:
@@ -905,7 +931,7 @@ func _parapet_wall(center: Vector3, size: Vector3, yaw: float) -> void:
 			_jitter(_wood_tone(i + 4), i + 100, 0.03), basis)
 	# Iron cap rail.
 	_box(IRON, center + Vector3(0.0, size.y * 0.5 + 0.035, 0.0), Vector3(size.x + 0.08, 0.06, size.z + 0.06),
-		IRON_COLOR * 0.9, basis)
+		IRON_COLOR * 1.30, basis)
 
 func _merlons(center: Vector3, yaw: float) -> void:
 	for i: int in 4:
@@ -916,7 +942,7 @@ func _merlon_at(center: Vector3, yaw: float, offset: float, seed_value: int = 0)
 	_box(WOOD, center + basis * Vector3(offset, 0.30, 0.0), Vector3(0.70, 0.62, 0.28),
 		_jitter(_wood_tone(seed_value + 8), seed_value + 120, 0.040), basis)
 	_box(IRON, center + basis * Vector3(offset, 0.64, 0.0), Vector3(0.78, 0.07, 0.34),
-		IRON_COLOR * 0.9, basis)
+		IRON_COLOR * 1.35, basis)
 	# A shooting loophole in each merlon.
 	_box(WOOD, center + basis * Vector3(offset, 0.26, -0.16), Vector3(0.16, 0.24, 0.03), Color(0.03, 0.028, 0.03), basis)
 
@@ -983,6 +1009,18 @@ func _build_roof_shell() -> void:
 		_box(CLOTH, Vector3(0.34 - float(i) * 0.07, ridge_y + 1.38 - float(i) * 0.13, -3.30),
 			Vector3(0.64 - float(i) * 0.10, 0.22, 0.03), CLOTH_COLOR * (1.0 - float(i) * 0.07),
 			Basis(Vector3.BACK, 0.10 * float(i)))
+	# A wrought-iron weather vane at the ridge centre.
+	var vane_z := 0.0
+	_tube(IRON, Vector3(0.0, ridge_y + 0.20, vane_z), Vector3(0.0, ridge_y + 1.34, vane_z),
+		0.035, 0.018, 6, IRON_COLOR, true)
+	_box(GOLD, Vector3(0.0, ridge_y + 1.36, vane_z), Vector3(0.09, 0.09, 0.09), GOLD_COLOR)
+	_box(IRON, Vector3(0.0, ridge_y + 1.22, vane_z), Vector3(1.08, 0.045, 0.045), IRON_COLOR)
+	_box(IRON, Vector3(0.56, ridge_y + 1.22, vane_z), Vector3(0.17, 0.19, 0.05), IRON_COLOR,
+		Basis(Vector3.BACK, 0.78))
+	_box(IRON, Vector3(-0.48, ridge_y + 1.22, vane_z), Vector3(0.28, 0.24, 0.04), IRON_COLOR,
+		Basis(Vector3.BACK, 0.28))
+	_box(IRON, Vector3(-0.62, ridge_y + 1.30, vane_z), Vector3(0.22, 0.08, 0.04), IRON_COLOR,
+		Basis(Vector3.BACK, -0.35))
 	# A lantern hanging under the ridge.
 	_tube(IRON, Vector3(0.0, ridge_y - 0.10, -1.1), Vector3(0.0, ridge_y - 0.72, -1.1), 0.022, 0.022, 4, IRON_COLOR, false)
 	_box(IRON, Vector3(0.0, ridge_y - 0.84, -1.1), Vector3(0.22, 0.28, 0.22), IRON_COLOR)
@@ -1046,6 +1084,33 @@ func _build_stores() -> void:
 		_tube(WOOD, Vector3(-1.8 + float(i) * 0.16, y + 0.02, -2.3), Vector3(-1.76 + float(i) * 0.16, y + 1.55, -2.42),
 			0.022, 0.018, 5, _wood_tone(i + 2), false)
 		_box(STEEL, Vector3(-1.76 + float(i) * 0.16, y + 1.58, -2.42), Vector3(0.05, 0.16, 0.07), STEEL_COLOR * 0.9)
+	# A scorpion (heavy bolt-thrower) on the fighting top, aimed over the gate.
+	var sx := -1.42
+	var sy := y + 0.02
+	var sz := -1.95
+	_box(WOOD, Vector3(sx, y + 0.30, sz), Vector3(0.30, 0.60, 0.30), _dark_tone(1))
+	_box(IRON, Vector3(sx, y + 0.56, sz), Vector3(0.38, 0.08, 0.38), IRON_COLOR)
+	_box(WOOD, Vector3(sx, y + 0.64, sz), Vector3(0.74, 0.12, 0.64), _wood_tone(3))
+	_box(WOOD, Vector3(sx, y + 0.76, sz - 0.05), Vector3(0.15, 0.15, 1.38), _wood_tone(1))
+	_box(IRON, Vector3(sx, y + 0.76, sz - 0.68), Vector3(0.26, 0.24, 0.12), IRON_COLOR)
+	for i: int in 2:
+		_box(IRON, Vector3(sx, y + 0.76, sz + 0.30 - float(i) * 0.55), Vector3(0.20, 0.20, 0.08), IRON_COLOR * 0.9)
+	for side: float in [-1.0, 1.0]:
+		_box(WOOD, Vector3(sx + side * 0.36, y + 0.76, sz - 0.30), Vector3(0.09, 0.09, 0.80),
+			_wood_tone(4), Basis(Vector3.UP, -side * 0.72))
+		var tip := Vector3(sx + side * 0.63, y + 0.76, sz - 0.60)
+		_box(STEEL, tip, Vector3(0.10, 0.10, 0.10), STEEL_COLOR * 0.9)
+		_tube(ROPE, tip, Vector3(sx, y + 0.76, sz + 0.62), 0.014, 0.014, 4, ROPE_COLOR, false)
+	# Bolt, winch and a bolt crate.
+	_tube(STEEL, Vector3(sx, y + 0.80, sz - 0.74), Vector3(sx, y + 0.80, sz + 0.58), 0.022, 0.018, 5, STEEL_COLOR * 0.95, false)
+	_box(STEEL, Vector3(sx, y + 0.80, sz - 0.76), Vector3(0.07, 0.07, 0.18), STEEL_COLOR * 1.05)
+	_tube(WOOD, Vector3(sx - 0.20, y + 0.72, sz + 0.66), Vector3(sx + 0.20, y + 0.72, sz + 0.66),
+		0.10, 0.10, 8, _dark_tone(2), true)
+	_box(IRON, Vector3(sx + 0.28, y + 0.64, sz + 0.66), Vector3(0.06, 0.20, 0.06), IRON_COLOR)
+	_box(WOOD, Vector3(sx + 0.62, y + 0.14, sz + 0.10), Vector3(0.48, 0.28, 0.36), _wood_tone(2))
+	for i: int in 4:
+		_tube(STEEL, Vector3(sx + 0.48 + float(i) * 0.09, y + 0.30, sz + 0.18),
+			Vector3(sx + 0.44 + float(i) * 0.09, y + 0.62, sz + 0.12), 0.012, 0.010, 4, STEEL_COLOR * 0.9, false)
 	_finish()
 
 func _build_banners() -> void:
