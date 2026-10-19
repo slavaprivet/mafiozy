@@ -613,6 +613,25 @@ func _snap_aim(gun: Dictionary) -> void:
 
 
 # ================================================================== loading
+func load_at(index: int) -> bool:
+	if not _installed or index < 0 or index >= _guns.size():
+		return false
+	var gun: Dictionary = _guns[index]
+	if bool(gun.get("loaded", false)) or bool(gun.get("loading", false)):
+		return false
+	gun["loading"] = true
+	gun["load_t"] = 0.0
+	gun["loaded"] = false
+	_set_load_visuals(gun, 0.0, true)
+	return true
+
+
+func loaded_at(index: int) -> bool:
+	if not _installed or index < 0 or index >= _guns.size():
+		return false
+	return bool(_guns[index].get("loaded", false))
+
+
 func load_ball() -> bool:
 	if not _installed or _man_index < 0:
 		return false

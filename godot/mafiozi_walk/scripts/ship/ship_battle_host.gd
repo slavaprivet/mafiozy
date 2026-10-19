@@ -315,8 +315,16 @@ func action() -> Dictionary:
 			var mount: Vector3 = preview_cannons.call("mount_world", index)
 			var distance := feet.distance_to(mount)
 			if distance <= REACH and distance < best_distance:
-				best = {"owner": "ship", "kind": "ship_cannon", "index": index,
-					"label": "Встать за пушку", "world": mount + Vector3.UP * 0.9}
+				if is_instance_valid(_carried_ball_mesh) and _carried_ball_mesh.visible:
+					best = {"owner": "ship", "kind": "ship_load_hint", "index": index,
+						"label": "Зарядить пушку", "key": "E",
+						"world": mount + Vector3.UP * 0.9}
+				elif preview_cannons.has_method("loaded_at") \
+						and bool(preview_cannons.call("loaded_at", index)):
+					best = {"owner": "ship", "kind": "ship_cannon", "index": index,
+						"label": "Встать за пушку", "world": mount + Vector3.UP * 0.9}
+				else:
+					continue
 				best_distance = distance
 	# The two crates in the cabin.  The ammo crate keeps its prompt, but the
 	# prompt shows E and the actual pickup is handled on E only.
@@ -493,6 +501,9 @@ func _toggle_cannon(index: int) -> void:
 		index = _nearest_cannon_index()
 	if _station == "cannon" and _cannon_index == index:
 		_leave_station()
+		return
+	if preview_cannons.has_method("loaded_at") and not bool(preview_cannons.call("loaded_at", index)):
+		_message("Сначала заряди пушку: E с ядром в руках", 2.2)
 		return
 	if preview_boat != null and preview_boat.has_method("steer"):
 		preview_boat.call("steer", 0.0)
@@ -781,6 +792,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		if deck_ball != null and _pickup_deck_ball(deck_ball):
 			get_viewport().set_input_as_handled()
 			return
+	if _station == "" and water_key == KEY_E and is_instance_valid(_carried_ball_mesh) \
+			and _carried_ball_mesh.visible:
+		var near_gun := _nearest_cannon_index()
+		if near_gun >= 0 and _load_cannon_at(near_gun):
+			get_viewport().set_input_as_handled()
+			return
 	if _station == "" and water_key == KEY_E and is_instance_valid(_dropped_ball):
 		if _pickup_dropped_ball():
 			get_viewport().set_input_as_handled()
@@ -829,6 +846,23 @@ func _fire_manning_cannon() -> void:
 		_message("Осечка", 1.4)
 
 
+func _load_cannon_at(index: int) -> bool:
+	if preview_cannons == null or not preview_cannons.has_method("load_at"):
+		return false
+	if index < 0 or not (is_instance_valid(_carried_ball_mesh) and _carried_ball_mesh.visible):
+		return false
+	if preview_cannons.has_method("mount_world"):
+		var mount: Vector3 = preview_cannons.call("mount_world", index)
+		if player.global_position.distance_to(mount) > 3.0:
+			return false
+	if not bool(preview_cannons.call("load_at", index)):
+		_message("Пушка уже заряжена", 1.4)
+		return false
+	_set_carry_ball(false)
+	_message("Ядро заряжено — теперь F, чтобы встать за пушку", 2.4)
+	return true
+
+
 func _load_manning_cannon() -> void:
 	if preview_cannons == null:
 		return
@@ -872,12 +906,17 @@ func _sync_ball_stock() -> void:
 ## One iron ball on the deck beside each gun.  E feeds it into the muzzle; the
 ## prop disappears with the shot, so the gun visibly eats the ball.
 func _set_carry_ball(on: bool) -> void:
+	var weapons: Variant = world.get("preview_weapons") if is_instance_valid(world) else null
 	if not on:
 		if is_instance_valid(_carried_ball_mesh):
 			_carried_ball_mesh.visible = false
+		if is_instance_valid(weapons) and (weapons as Node).has_method("end_catapult_stone_carry"):
+			(weapons as Node).call("end_catapult_stone_carry")
 		return
 	if not is_instance_valid(player):
 		return
+	if is_instance_valid(weapons) and (weapons as Node).has_method("begin_catapult_stone_carry"):
+		(weapons as Node).call("begin_catapult_stone_carry")
 	if not is_instance_valid(_carried_ball_mesh):
 		var visual := player.get("_visual") as Node3D
 		if not is_instance_valid(visual):
@@ -895,7 +934,7 @@ func _set_carry_ball(on: bool) -> void:
 		_carried_ball_mesh = MeshInstance3D.new()
 		_carried_ball_mesh.name = "CarriedCannonball"
 		_carried_ball_mesh.mesh = mesh
-		_carried_ball_mesh.position = Vector3(0.0, 1.28, 0.42)
+		_carried_ball_mesh.position = Vector3(0.0, 1.12, 0.48)
 		visual.add_child(_carried_ball_mesh)
 	_carried_ball_mesh.visible = true
 	_carry_phase = 0.0
@@ -905,7 +944,7 @@ func _update_carried_ball(delta: float) -> void:
 	if not is_instance_valid(_carried_ball_mesh) or not _carried_ball_mesh.visible:
 		return
 	_carry_phase += delta * 4.0
-	_carried_ball_mesh.position = Vector3(0.0, 1.28 + sin(_carry_phase) * 0.035, 0.42)
+	_carried_ball_mesh.position = Vector3(0.0, 1.12 + sin(_carry_phase) * 0.035, 0.48)
 	_carried_ball_mesh.rotation.z = sin(_carry_phase * 0.6) * 0.10
 
 
