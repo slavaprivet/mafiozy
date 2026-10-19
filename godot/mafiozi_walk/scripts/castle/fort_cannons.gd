@@ -35,6 +35,7 @@ var _iron: StandardMaterial3D
 var _stone: StandardMaterial3D
 var _brick: ShaderMaterial
 var _structural: Node3D
+var _falling_panels: Array[Node3D] = []
 
 func install(world_in: Node3D, castle_in: Node3D, ship_host_in: Node3D) -> Dictionary:
 	world = world_in
@@ -297,6 +298,12 @@ func _spawn_falling_panel(xform: Transform3D, size: Variant) -> void:
 	if not size is Vector3:
 		return
 	var panel_size: Vector3 = size
+	# Cap simultaneous full-size falling panels: the wall may lose many blocks in
+	# one blast, but only the newest eight stay physical.
+	while _falling_panels.size() >= 8:
+		var oldest: Node3D = _falling_panels.pop_front()
+		if is_instance_valid(oldest):
+			oldest.queue_free()
 	var body := RigidBody3D.new()
 	body.name = "FallingMasonry"
 	body.mass = maxf(4.0, panel_size.x * panel_size.y * panel_size.z * 900.0)
@@ -305,6 +312,7 @@ func _spawn_falling_panel(xform: Transform3D, size: Variant) -> void:
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
 	mi.material_override = _brick
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	body.add_child(mi)
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()
@@ -315,7 +323,12 @@ func _spawn_falling_panel(xform: Transform3D, size: Variant) -> void:
 	body.global_transform = xform
 	body.apply_central_impulse(Vector3(randf_range(-1.0, 1.0), 0.4,
 		randf_range(-1.0, 1.0)) * body.mass * 0.8)
-	get_tree().create_timer(9.0).timeout.connect(body.queue_free)
+	_falling_panels.append(body)
+	body.tree_exiting.connect(func() -> void:
+		_falling_panels.erase(body))
+	get_tree().create_timer(9.0).timeout.connect(func() -> void:
+		if is_instance_valid(body):
+			body.queue_free())
 	_debris(xform.origin)
 
 func _debris(at: Vector3) -> void:
