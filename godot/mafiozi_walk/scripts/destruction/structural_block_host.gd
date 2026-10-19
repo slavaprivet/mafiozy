@@ -42,6 +42,7 @@ func apply_hit(point: Vector3, damage: float) -> Dictionary:
 	best["hp"] = float(best.get("hp", 30.0)) - damage
 	if float(best["hp"]) <= 0.0:
 		_destroy(best, true)
+		_collapse_stacked(best)
 		_resolve_support()
 		return {"ok": true, "zone": "structure", "destroyed": true,
 			"hp": 0.0, "damage": damage}
@@ -71,6 +72,32 @@ func _destroy(block: Dictionary, spawn_panel: bool) -> void:
 	if is_instance_valid(body):
 		body.collision_layer = 0
 		body.collision_mask = 0
+
+func _collapse_stacked(block: Dictionary) -> void:
+	# A destroyed course takes the course directly above it down even if some
+	# neighbouring lower block technically overlaps.  This is the visual promise
+	# of "shoot the support, the top falls".
+	var node: Node3D = block.get("node")
+	if not is_instance_valid(node):
+		return
+	var center := node.global_position
+	var size: Vector3 = block.get("size", Vector3.ONE)
+	var top := center.y + size.y * 0.5
+	for other: Dictionary in _blocks:
+		if not bool(other.get("alive", false)) or other == block:
+			continue
+		var other_node: Node3D = other.get("node")
+		if not is_instance_valid(other_node):
+			continue
+		var oc := other_node.global_position
+		var osize: Vector3 = other.get("size", Vector3.ONE)
+		if oc.y <= top + 0.05:
+			continue
+		if absf(oc.x - center.x) > 0.18 or absf(oc.z - center.z) > 0.18:
+			continue
+		_destroy(other, true)
+		_collapse_stacked(other)
+
 
 func _resolve_support() -> void:
 	var alive: Array[Dictionary] = []
