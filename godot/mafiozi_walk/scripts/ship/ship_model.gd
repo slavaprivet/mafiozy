@@ -3801,10 +3801,12 @@ func _process(delta: float) -> void:
 	if absf(_sail_amount - _sail_target) > 0.0005:
 		_sail_amount = move_toward(_sail_amount, _sail_target, delta * 0.85)
 		_apply_sail_visual()
-	var target_angle := (0.85 if _lever_on else -0.85)
+	var target_angle := (1.20 if _lever_on else -1.20)
 	_lever_pump_hold = maxf(0.0, _lever_pump_hold - delta)
 	if _lever_pump_hold <= 0.0 and absf(_lever_angle - target_angle) > 0.0005:
-		_lever_angle = move_toward(_lever_angle, target_angle, delta * 9.0)
+		# Door-like throw: one F drives the handle forward to the open stop and
+		# it stays there; the next F drives it back to the closed stop.
+		_lever_angle = move_toward(_lever_angle, target_angle, delta * 4.0)
 		_apply_lever_visual()
 	if _shake_amount > 0.0001:
 		_shake_amount = maxf(0.0, _shake_amount - delta * 1.8)
