@@ -1305,12 +1305,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		if is_instance_valid(_melee_practice) and _melee_practice.input_event(event):
 			get_viewport().set_input_as_handled()
 			return
-		if button.pressed and _free_mouse_look and button.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
-			# Walk uses exponential wheel zoom with on-foot limits 3..16 metres.
+		if button.pressed and button.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN] \
+				and not _text_control_focused():
+			# Wheel zoom is available both while the mouse is captured and while
+			# it is merely visible, so releasing the cursor cannot disable it.
 			var steps := button.factor if button.factor > 0.0 else 1.0
 			var direction := -1.0 if button.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0
 			camera_distance = clampf(camera_distance * exp(direction * steps * 0.12), 3.0, 16.0)
-			if not is_instance_valid(_weapon_host) or _weapon_host.aim_camera==null or not _weapon_host.aim_camera.owns_distance(): _spring_arm.spring_length = camera_distance
+			if is_instance_valid(_spring_arm):
+				_spring_arm.spring_length = camera_distance
 			get_viewport().set_input_as_handled()
 			return
 		if button.button_index == MOUSE_BUTTON_RIGHT:
