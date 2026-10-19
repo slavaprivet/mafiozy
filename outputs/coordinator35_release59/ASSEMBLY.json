@@ -1297,7 +1297,7 @@
     "scripts/weapons/bow_prototype.gd": "79575236ebccc48175af922839cda12956956b77ecc3dcd59280189b101d785e",
     "scripts/weapons/cargo_aim_picker.gd": "9046edbfaf5e51d1c924f2bf93b09064c3b0bf9f2bfdd524eb9ed6099ca10731",
     "scripts/weapons/cargo_aim_picker.gd.uid": "8f3c0b3aa7081eef83299288086ba02204b0551868376ad25e191b28a70264a4",
-    "scripts/weapons/catapult_prototype.gd": "53d4b7b8aa7d0b46c3e35820d81c420364680136c0de996e2ccdebc7f88fe233",
+    "scripts/weapons/catapult_prototype.gd": "a3ff30b0fa8c584e1e433f02321a00c69c6e5c11d279383fa3520bd3fade2cc2",
     "scripts/weapons/context_plate_layout.gd": "ec9a6f2686ffa5b40e3d73f5e12e613f985cd227d991f19514e14f4b4e0a45ca",
     "scripts/weapons/context_plate_layout.gd.uid": "4099cfc37ddf34750e51bfd74ac1a2e59dd9d9ccd459eee7a0b4eebe2706da6b",
     "scripts/weapons/directional_melee41.gd": "ac54d735aacf8de0aed4875df30e9efd271964d5bdc95d0a0624c2550fd4c41a",
@@ -1368,7 +1368,7 @@
     "audio/horse/neigh_death.wav": "5b6021e25a4f565d23941a56c1c6ca1a32457a988bd704b1c5cc43cdee95d669",
     "scripts/balloon/siege_balloon.gd": "fd78581273c0f5bb20f53b79b843f039ed452cf93b5f52451440197984f30082",
     "scripts/balloon/balloon_host.gd": "dc1904ac10740b9455492cd4c11c79c3fd9572873e5c2fd7d013077a26d7fd4e",
-    "scripts/siege/powder_barrel_host.gd": "f569566646015de64df1a545d58029591591b27532754cc24d130ed4007d570d"
+    "scripts/siege/powder_barrel_host.gd": "d776af4047df4ddc2c33799a905fc14dcf51c62483587ef7a5dc0909c37ec5be"
   },
   "source_pin_scope": "Published permanent game files only; untracked generated metadata and local diagnostic artifacts excluded",
   "included_packages": [
