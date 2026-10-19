@@ -153,8 +153,11 @@ func board_now() -> bool:
 	player.collision_layer = 0
 	player.collision_mask = 0
 	player.velocity = Vector3.ZERO
-	player.set_physics_process(false)
+	player.set_physics_process(true)
+	player.call("set_vehicle_hold", true)
 	balloon.set("rider", player)
+	if bool(balloon.get("anchored")):
+		balloon.call("toggle_anchor")
 	var arm: SpringArm3D = player.get("_spring_arm") as SpringArm3D
 	if is_instance_valid(arm):
 		arm.add_excluded_object(balloon.get_rid())
@@ -180,6 +183,7 @@ func leave_now() -> bool:
 	balloon.set("rider", null)
 	_aboard = false
 	player.set_physics_process(true)
+	player.call("set_vehicle_hold", false)
 	player.collision_layer = _walking_layer
 	player.collision_mask = _walking_mask
 	player.velocity = Vector3.ZERO
@@ -195,6 +199,8 @@ func leave_now() -> bool:
 	if is_instance_valid(pivot):
 		pivot.position.y = _walking_pivot_y
 	player.call("_update_camera_rotation")
+	if balloon_altitude < 2.0:
+		balloon.set("anchored", true)
 	var spot := _leave_spot(balloon_altitude)
 	player.global_transform = Transform3D(Basis(), spot)
 	var yaw := float(balloon.rotation.y)

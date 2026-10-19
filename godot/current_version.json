@@ -1,11 +1,11 @@
 {
   "schema": "mafiozi.current-play/v1",
-  "title": "Осадный шар: вес, толпа и порывы ветра",
+  "title": "Осадный шар: вес, толпа и живые анимации",
   "revision": "castle-20261019-horse",
   "assembly": "outputs/coordinator35_release59/ASSEMBLY.json",
-  "assembly_sha256": "3cce5a02571ea8efc463ea231bbee3f699f1bb5db0be18cd3268e27081a9626b",
+  "assembly_sha256": "08c47d807eadf9f13c86e52eeb32280c164f1dc8967dc4bbbcc55f7bbc4c6977",
   "bootstrap": "outputs/coordinator31_castle_current/bootstrap_castle.gd",
   "bootstrap_sha256": "318b2fe49cf454e0f41766ac4e5aa23ea43b2a26f5fa8d5b9c2ed3a617d0858b",
   "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
-  "scope": "Castle horse plus a crowd balloon: five crew + pilot, weight steering only in the air, load lowers the ceiling and slows controls, visible gusts, live ropes, slower overheat that bursts the balloon; a burst balloon settles instead of sliding."
+  "scope": "Castle horse plus a crowd balloon: five crew + pilot, animated idle/pose on board, automatic anchor release, weight steering only airborne, load lowers the ceiling and slows controls, responsive flight, visible gusts, live ropes, slower overheat that bursts the balloon; a burst balloon settles instead of sliding."
 }

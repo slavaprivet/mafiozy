@@ -19,15 +19,15 @@ const SEAT_MOVE_SPEED := 1.4
 const CREW_COUNT := 5
 const PASSENGER_WEIGHT := 90.0
 const BASE_CEILING := 16.0
-const CEILING_PER_SOUL := 2.2
-const GLIDE_FORWARD := 1.6
+const CEILING_PER_SOUL := 2.0
+const GLIDE_FORWARD := 2.0
 const GLIDE_SINK := -0.5
-const THROTTLE_SPEED := 2.2
+const THROTTLE_SPEED := 2.8
 const LIFT_SPEED := 4.5
 const DOWN_SPEED := -3.5
 const VERTICAL_ACCEL := 3.0
-const HORIZONTAL_ACCEL := 2.2
-const TURN_RATE := 0.9
+const HORIZONTAL_ACCEL := 2.8
+const TURN_RATE := 1.1
 const HEAT_UP := 0.055
 const HEAT_COOL := 0.09
 const AMBIENT_WIND := Vector3(1.2, 0.0, 0.4)
@@ -79,6 +79,7 @@ var _lean := 0.0
 var _throttle := 0.0
 var _seat := Vector2.ZERO
 var _airborne := false
+var _crew_people: Array[Node3D] = []
 var _tilt_roll := 0.0
 var _tilt_pitch := 0.0
 var _last_velocity := Vector3.ZERO
@@ -294,6 +295,7 @@ func _build_crew(parent: Node3D) -> void:
 		var person := Node3D.new()
 		person.position = spots[index]
 		parent.add_child(person)
+		_crew_people.append(person)
 		var body_mesh := CapsuleMesh.new()
 		body_mesh.radius = 0.20
 		body_mesh.height = 0.90
@@ -523,7 +525,7 @@ func _physics_process(delta: float) -> void:
 	# turn, and the hanging basket visibly tips under the crowd.
 	load = (1.0 if piloted else 0.0) + float(crew)
 	weight = load * PASSENGER_WEIGHT
-	load_factor = 1.0 + 0.20 * maxf(0.0, load - 1.0)
+	load_factor = 1.0 + 0.15 * maxf(0.0, load - 1.0)
 	max_altitude = maxf(3.0, BASE_CEILING - CEILING_PER_SOUL * maxf(0.0, load - 1.0))
 	if piloted:
 		var move := Input.get_vector(&"preview_move_left", &"preview_move_right",
@@ -629,6 +631,14 @@ func _update_basket_tilt(delta: float, throttle: float) -> void:
 	var pivot := Vector3(0.0, 3.30, 0.0)
 	var basis := Basis.from_euler(Vector3(_tilt_pitch, 0.0, _tilt_roll))
 	_basket_node.transform = Transform3D(basis, pivot - basis * pivot)
+	# The crew are alive: a small idle bob and sway keeps the basket from looking
+	# like a wax museum.
+	for index: int in _crew_people.size():
+		var person: Node3D = _crew_people[index]
+		if not is_instance_valid(person):
+			continue
+		person.position.y = 0.12 + sin(_time * 1.8 + float(index) * 1.4) * 0.025
+		person.rotation.z = sin(_time * 1.1 + float(index) * 1.7) * 0.025
 
 func _basket_global(local: Vector3) -> Vector3:
 	if is_instance_valid(_basket_node):

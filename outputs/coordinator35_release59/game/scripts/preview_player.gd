@@ -65,6 +65,7 @@ var _pose_revision: int = 0
 ## controller no longer moves, jumps or applies gravity. The mount supplies the base
 ## seated pose and the weapon decorators are applied on top of it exactly as on foot.
 var _mount_mode := false
+var _vehicle_hold := false
 var _mount_pose: RefCounted = null
 var _mount_pace := 0.0
 var _mount_phase := 0.0
@@ -491,6 +492,24 @@ func set_mount_state(pace: float, phase: float, airborne: bool) -> void:
 func is_mounted_player() -> bool:
 	return _mount_mode
 
+## The balloon owns translation, but unlike the horse it keeps the ordinary
+## on-foot locomotion running so the character still idles, breathes and plays
+## weapon poses while the basket moves him around.
+func set_vehicle_hold(hold: bool) -> void:
+	if _vehicle_hold == hold:
+		return
+	_vehicle_hold = hold
+	if hold:
+		_jump.clear()
+		_jump_pose.clear()
+		_contact_dropkick.cancel("vehicle")
+		_contact_impulse.clear()
+		_jump_event_consumed = true
+		_jump_key_down = false
+		velocity = Vector3.ZERO
+	else:
+		_jump_event_consumed = false
+
 ## Same decorator chain as _update_owned_pose, only the base pose is the saddle pose.
 func _update_mounted_pose(delta: float) -> void:
 	if _mount_pose == null or not is_instance_valid(_pose_skeleton) or not is_instance_valid(_pose_motion):
@@ -511,6 +530,17 @@ func _physics_process(delta: float) -> void:
 	_jump_pose = {}
 	if is_instance_valid(_weapon_host): _weapon_host.advance(delta)
 	if is_instance_valid(_melee_practice): _melee_practice.advance(delta)
+	if _vehicle_hold:
+		# External owner (the balloon) moves this body; keep the on-foot pose and
+		# weapon presentation alive instead of freezing the character.
+		velocity = Vector3.ZERO
+		_contact_impulse.clear()
+		_contact_dropkick.cancel("vehicle")
+		_jump.clear()
+		_jump_pose.clear()
+		_jump_event_consumed = true
+		_update_owned_pose(delta)
+		return
 	if _mount_mode:
 		_contact_impulse.clear()
 		_contact_dropkick.cancel("mounted")

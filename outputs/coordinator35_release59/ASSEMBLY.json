@@ -1035,7 +1035,7 @@
     "scripts/preview_interior_finish.gd.uid": "491ea208d9869017ee90bee19c1da0fecc3fc707569cc751910e125bdf348b53",
     "scripts/preview_locomotion.gd": "16c934854d8ebf089c938c3914c66450e0f3b8fd97e6f075d864f3b5ee585aaf",
     "scripts/preview_locomotion.gd.uid": "5eb2bc8f618a3211a69655477ff130a95e4534a0b01d3bd704deedde5ce5c19b",
-    "scripts/preview_player.gd": "f8a3a2f29d9cba75e6bf2095d1c7bcd60ad06d651f2262e1df7d914cc036adc6",
+    "scripts/preview_player.gd": "d70f1c7bbe7223bf15c9ebc54a9e1b6406999a0db4dea4b3d1d1a1e3e1fd239a",
     "scripts/preview_player.gd.uid": "1803e056f8fc526fbae9f1c598d3f713faf1fbd161acbb36b70330489d923c64",
     "scripts/preview_population.gd": "d731774a79bf78ca78cfc999f62d97156b1ea42755133347250e9dbd217bb8ba",
     "scripts/preview_population.gd.uid": "992896d1e2f7be27ac38a890bc8ac0a04055a99153d21cd556d31ac6268229a6",
@@ -1366,8 +1366,8 @@
     "audio/horse/neigh_1.wav": "b76764d03010a5882893dcc3cfd30ee7904d4adaae36eda34fc77318c00db817",
     "audio/horse/neigh_2.wav": "90304c8dbdee0613ae02b0f5af52ac7e282cbee7cf9b001367de01de27223384",
     "audio/horse/neigh_death.wav": "5b6021e25a4f565d23941a56c1c6ca1a32457a988bd704b1c5cc43cdee95d669",
-    "scripts/balloon/siege_balloon.gd": "20bb57a63134e82f222deab607bbb59affb3cb2c46dd9f144fd0eb690b3d74f6",
-    "scripts/balloon/balloon_host.gd": "6f4be3f6265fdfc9912fe6d05fc03527641a7c55370f5a580f9ddc00f6d43547"
+    "scripts/balloon/siege_balloon.gd": "0bb4ac85f3fcdc8937d912736a42ec594f7f9705bffb9a34cd23205c71203ddb",
+    "scripts/balloon/balloon_host.gd": "c0a0421c020ba3e077fd8d51969246a6d7ce0a96314fc5106036eea9de027510"
   },
   "source_pin_scope": "Published permanent game files only; untracked generated metadata and local diagnostic artifacts excluded",
   "included_packages": [
@@ -1511,5 +1511,5 @@
     "source_on_D": "D:\\MafioziCombat31\\coordinator35_health57\\game",
     "resume": "docs/ai/COORDINATOR_35_CONTINUE57.json"
   },
-  "scope": "The castle horse plus the crowd balloon: five crew and the pilot in a big hanging basket, WASD walks the pilot weight around the basket so it visibly tips and steers the balloon only while airborne, the load drops the ceiling to about five metres and makes lift, glide, sink and turn heavy, visible dust gusts shove it, four live Verlet ropes swing under the envelope, and holding Space slowly overheats and bursts the balloon. A burst balloon drops straight down, settles and is respawned in camp; weight input no longer drags it along the ground."
+  "scope": "The castle horse plus the crowd balloon: five crew and the pilot in a big hanging basket whose crew idle and bob, the player keeps his on-foot idle and weapon poses while the balloon carries him, boarding releases the anchor automatically, WASD walks the pilot weight around the basket so it visibly tips and steers the balloon only while airborne, the load lowers the ceiling and makes lift, glide, sink and turn heavy, visible dust gusts shove it, four live Verlet ropes swing under the envelope, and holding Space slowly overheats and bursts the balloon. A burst balloon drops straight down, settles and is respawned in camp; weight input no longer drags it along the ground."
 }
