@@ -495,6 +495,51 @@ func is_mounted_player() -> bool:
 ## The balloon owns translation, but unlike the horse it keeps the ordinary
 ## on-foot locomotion running so the character still idles, breathes and plays
 ## weapon poses while the basket moves him around.
+var _vehicle_walk_phase := 0.0
+var _vehicle_walk_base_y := 0.0
+var _vehicle_walk_base_set := false
+var _vehicle_walk_bones: Array[int] = []
+var _vehicle_walk_rest: Array[Quaternion] = []
+
+func _setup_vehicle_walk() -> void:
+	if not _vehicle_walk_bones.is_empty():
+		return
+	if not is_instance_valid(_pose_skeleton):
+		return
+	for bone_name: String in ["thigh_l", "thigh_r", "shin_l", "shin_r", "upperarm_l", "upperarm_r"]:
+		var bone: int = _pose_skeleton.find_bone(bone_name)
+		_vehicle_walk_bones.append(bone)
+		_vehicle_walk_rest.append(_pose_skeleton.get_bone_pose_rotation(bone) if bone >= 0 else Quaternion())
+
+## Procedural walk in the basket: the balloon owns translation, so the on-foot
+## locomotion is airborne and would otherwise stand still. This swings the legs
+## and counter-swings the arms from the actual WASD input.
+func _apply_vehicle_walk(delta: float, move: Vector2) -> void:
+	_setup_vehicle_walk()
+	if _vehicle_walk_bones.is_empty():
+		return
+	if not _vehicle_walk_base_set:
+		_vehicle_walk_base_set = true
+		var visual: Node3D = get("_visual") as Node3D
+		if is_instance_valid(visual):
+			_vehicle_walk_base_y = visual.position.y
+	if move.length() < 0.05:
+		var rest_visual: Node3D = get("_visual") as Node3D
+		if is_instance_valid(rest_visual):
+			rest_visual.position.y = lerpf(rest_visual.position.y, _vehicle_walk_base_y, minf(1.0, delta * 8.0))
+		return
+	_vehicle_walk_phase += delta * (6.5 + move.length() * 2.0)
+	var swing := sin(_vehicle_walk_phase) * 0.55
+	var visual_walk: Node3D = get("_visual") as Node3D
+	if is_instance_valid(visual_walk):
+		visual_walk.position.y = _vehicle_walk_base_y + absf(sin(_vehicle_walk_phase)) * 0.045
+	var angles: Array[float] = [swing, -swing, -maxf(0.0, -swing) * 0.7, -maxf(0.0, swing) * 0.7, -swing * 0.8, swing * 0.8]
+	for index: int in _vehicle_walk_bones.size():
+		var bone: int = _vehicle_walk_bones[index]
+		if bone < 0:
+			continue
+		_pose_skeleton.set_bone_pose_rotation(bone, _vehicle_walk_rest[index] * Quaternion(Vector3.RIGHT, angles[index]))
+
 func set_vehicle_hold(hold: bool) -> void:
 	if _vehicle_hold == hold:
 		return
@@ -542,6 +587,7 @@ func _physics_process(delta: float) -> void:
 		_jump_pose.clear()
 		_jump_event_consumed = true
 		_update_owned_pose(delta)
+		_apply_vehicle_walk(delta, move)
 		velocity = Vector3.ZERO
 		return
 	if _mount_mode:
