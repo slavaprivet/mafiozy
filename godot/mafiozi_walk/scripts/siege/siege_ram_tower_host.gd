@@ -19,6 +19,7 @@ var body: AnimatableBody3D = null
 var status := "disabled"
 var _last_result: Dictionary = {}
 var _visuals_optimized := false
+var _far_idle := false
 
 func _optimize_visuals(node: Node) -> void:
 	# The tower is visible from the ship, so it must not be hidden.  Instead turn
@@ -91,7 +92,17 @@ func _physics_process(delta: float) -> void:
 	# machinery when nobody can interact with it.
 	body.visible = true
 	if is_instance_valid(player) and player.global_position.distance_to(body.global_position) > 70.0:
+		if not _far_idle:
+			_far_idle = true
+			body.process_mode = Node.PROCESS_MODE_DISABLED
+			body.collision_layer = 0
+			body.collision_mask = 0
 		return
+	if _far_idle:
+		_far_idle = false
+		body.process_mode = Node.PROCESS_MODE_INHERIT
+		body.collision_layer = 1
+		body.collision_mask = 1
 	body.call("simulate_step", delta)
 	if is_instance_valid(player):
 		body.call("climb_assist", player, delta)
