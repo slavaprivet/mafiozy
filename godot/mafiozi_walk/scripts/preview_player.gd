@@ -1274,7 +1274,17 @@ func _unhandled_input(event: InputEvent) -> void:
 			set_mouse_captured(false)
 			get_viewport().set_input_as_handled()
 			return
-		if not _free_mouse_look: return
+		if not _free_mouse_look:
+			# Jump is a keyboard action and must work even before the first click
+			# captures the cursor.
+			if key.pressed and not key.echo and not _text_control_focused() \
+					and key.is_action_pressed(ACTION_JUMP):
+				if not _jump_key_down:
+					_jump_key_down = true
+					_jump_event_consumed = true
+					_request_preview_jump(float(Time.get_ticks_msec()))
+					get_viewport().set_input_as_handled()
+			return
 		if key.is_action_released(ACTION_JUMP):
 			_jump_key_down = false
 		if key.pressed and not key.echo:
@@ -1296,6 +1306,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 		if button.button_index == MOUSE_BUTTON_LEFT and button.pressed and not _free_mouse_look:
 			set_mouse_captured(true)
+			# The click that captures the cursor also swings the weapon instead
+			# of being swallowed by the capture.
+			if is_instance_valid(_weapon_host):
+				_weapon_host.input_event(event)
 			get_viewport().set_input_as_handled()
 			return
 		if not _free_mouse_look: return
