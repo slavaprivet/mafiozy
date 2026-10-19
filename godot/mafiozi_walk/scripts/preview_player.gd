@@ -636,6 +636,10 @@ func set_swimming(active: bool, level: float = 0.0) -> void:
 	if _swimming == active:
 		if active:
 			_swim_level = level
+		else:
+			# Force the pose back even if the flag was already false: a stale
+			# swim tilt must never survive onto dry land.
+			_reset_swim_pose()
 		return
 	_swimming = active
 	_swim_level = level
@@ -644,10 +648,15 @@ func set_swimming(active: bool, level: float = 0.0) -> void:
 		_jump_pose.clear()
 		_swim_phase = 0.0
 		return
-	for index: int in _vehicle_walk_bones.size():
-		var bone: int = _vehicle_walk_bones[index]
-		if bone >= 0 and index < _vehicle_walk_rest.size():
-			_pose_skeleton.set_bone_pose_rotation(bone, _vehicle_walk_rest[index])
+	_reset_swim_pose()
+
+
+func _reset_swim_pose() -> void:
+	if is_instance_valid(_pose_skeleton):
+		for index: int in _vehicle_walk_bones.size():
+			var bone: int = _vehicle_walk_bones[index]
+			if bone >= 0 and index < _vehicle_walk_rest.size():
+				_pose_skeleton.set_bone_pose_rotation(bone, _vehicle_walk_rest[index])
 	var visual: Node3D = get("_visual") as Node3D
 	if is_instance_valid(visual):
 		visual.rotation.x = 0.0
@@ -667,7 +676,9 @@ func _swim_process(delta: float) -> void:
 	velocity = direction * 2.25
 	if direction.length_squared() > 0.0001:
 		_heading = atan2(-direction.x, -direction.z)
-	global_position += Vector3(velocity.x, 0.0, velocity.z) * delta
+	# Collision-aware swim: the old direct global_position step let the player
+	# pass through the hull, the shore and walls.
+	move_and_slide()
 	global_position.y = move_toward(global_position.y, _swim_level, delta * 3.0)
 	_swim_phase += delta * (4.0 + move.length() * 2.0)
 	_apply_swim_pose(delta)
