@@ -55,16 +55,36 @@ func _build_furniture_meshes() -> void:
 	tower_roof.height = 1.0
 	tower_roof.radial_segments = 20
 	_furniture_meshes["tower_roof55"] = tower_roof
-## DSH_OPT: a blast must not spawn a thousand solvers. Debris is capped, its physics is
-## retired once it has settled, and every brick shares one mesh.
+## DSH_OPT: a blast must not spawn a thousand solvers. Active debris is capped; a
+## substantial piece is baked into a static, collidable rubble batch only after a real
+## support query proves that it is resting on something. Static rubble has no solver.
 const MAX_FALLING := 150
 const BRICK_SETTLE_S := 1.4
-const BRICK_LIFE_S := 30.0
+const TINY_DEBRIS_LIFE_S := 8.0
+const RUBBLE_MIN_VOLUME := 0.030
+const RUBBLE_MIN_EXTENT := 0.20
+const SUPPORT_CONTACT_PROBE := 0.075
+const SUPPORT_PROOF_FRAMES := 3
+const DEBRIS_BACKLOG_PER_FRAME := 8
+const RUBBLE_BANK_CAPACITY := 128
+const RUBBLE_SPATIAL_CELL := 8.0
+const RUBBLE_SUPPORT_AUDITS_PER_FRAME := 16
 var _debris_mesh: BoxMesh
 var _debris_materials: Dictionary = {}
 ## DSH_OPT: dead stones come back here instead of being freed. A blast that reuses its stones
 ## allocates nothing, and allocation spikes are what a hitch is made of.
 var _debris_pool: Array[RigidBody3D] = []
+var _rubble_root: Node3D
+var _rubble_bodies: Dictionary = {}
+var _rubble_batches: Dictionary = {}
+var _persistent_rubble := 0
+var _rubble_entries: Dictionary = {}
+var _rubble_entry_ids: Array[int] = []
+var _rubble_next_id := 0
+var _rubble_audit_cursor := 0
+## A large blast can detach more cells than the bounded active-body budget. They wait as
+## lightweight records and enter physics as earlier bodies settle; none are discarded.
+var _debris_backlog: Array[Dictionary] = []
 ## DSH_OPT: the build is timed by phase when --castle-timing=1 is passed, so a slow map
 ## load is attacked where the seconds actually are.
 var _phase_us := 0
@@ -104,6 +124,269 @@ func _recycle_stone(body: RigidBody3D) -> void:
 	body.visible = false
 	_debris_pool.append(body)
 
+func _ensure_rubble_storage() -> void:
+	if is_instance_valid(_rubble_root): return
+	_rubble_root = Node3D.new()
+	_rubble_root.name = "PersistentRubble33"
+	add_child(_rubble_root)
+
+func _is_substantial_rubble(cell: Dictionary) -> bool:
+	var size: Vector3 = cell.get("size", BRICK)
+	return size.x * size.y * size.z >= RUBBLE_MIN_VOLUME \
+		and maxf(size.x, maxf(size.y, size.z)) >= RUBBLE_MIN_EXTENT
+
+func _rubble_body_at(at: Vector3) -> StaticBody3D:
+	var gx := int(floor(at.x / RUBBLE_SPATIAL_CELL))
+	var gy := int(floor(at.y / RUBBLE_SPATIAL_CELL))
+	var gz := int(floor(at.z / RUBBLE_SPATIAL_CELL))
+	var key := "%d|%d|%d" % [gx, gy, gz]
+	var existing: StaticBody3D = _rubble_bodies.get(key)
+	if is_instance_valid(existing):
+		return existing
+	var body := StaticBody3D.new()
+	body.name = "RubbleCollision33_%s" % key.replace("|", "_")
+	body.position = Vector3(float(gx), float(gy), float(gz)) * RUBBLE_SPATIAL_CELL
+	body.collision_layer = 1
+	body.collision_mask = 1
+	body.set_meta("castle_rubble", true)
+	body.set_meta("rubble_spatial_key", key)
+	body.set_meta("surface", "stone")
+	_rubble_root.add_child(body)
+	_rubble_bodies[key] = body
+	return body
+
+## MultiMesh instance storage is preallocated. Growing instance_count on every insertion
+## can reallocate the backing buffer; visible_instance_count reveals one more slot without
+## moving earlier instances. A full bank is followed by another fixed-capacity bank.
+func _rubble_visual_bank(batch_key: String, mesh: Mesh, material: Material) -> Dictionary:
+	var record: Dictionary = _rubble_batches.get(batch_key, {})
+	if record.is_empty():
+		record = {"banks": []}
+		_rubble_batches[batch_key] = record
+	for candidate: Dictionary in record["banks"]:
+		if int(candidate["count"]) < RUBBLE_BANK_CAPACITY:
+			return candidate
+	var multi := MultiMesh.new()
+	multi.transform_format = MultiMesh.TRANSFORM_3D
+	multi.mesh = mesh
+	multi.instance_count = RUBBLE_BANK_CAPACITY
+	multi.visible_instance_count = 0
+	var node := MultiMeshInstance3D.new()
+	node.name = "Rubble_%s_%d" % [batch_key.replace("|", "_"),
+		(record["banks"] as Array).size()]
+	node.multimesh = multi
+	node.material_override = material
+	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	node.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	_rubble_root.add_child(node)
+	var data := PackedFloat32Array()
+	data.resize(RUBBLE_BANK_CAPACITY * 12)
+	var bank := {"node": node, "multi": multi, "count": 0, "slots": [], "pose_buffer": data}
+	(record["banks"] as Array).append(bank)
+	return bank
+
+## A settled body is copied into static spatial collision and a fixed-capacity visual
+## bank. Persistent rubble adds no rigid solver and has no arbitrary global piece cap.
+
+## Keep the complete fixed bank on CPU. Partial instance writes can restore stale
+## motion-vector cache regions after a quiet render frame (Godot 4.7.2/TAA).
+## Updating only this 128-instance buffer preserves every surviving fragment pose.
+func _write_rubble_bank_pose(bank: Dictionary, slot: int, pose: Transform3D) -> void:
+	var data: PackedFloat32Array = bank["pose_buffer"]
+	var at := slot * 12
+	data[at] = pose.basis.x.x
+	data[at + 1] = pose.basis.y.x
+	data[at + 2] = pose.basis.z.x
+	data[at + 3] = pose.origin.x
+	data[at + 4] = pose.basis.x.y
+	data[at + 5] = pose.basis.y.y
+	data[at + 6] = pose.basis.z.y
+	data[at + 7] = pose.origin.y
+	data[at + 8] = pose.basis.x.z
+	data[at + 9] = pose.basis.y.z
+	data[at + 10] = pose.basis.z.z
+	data[at + 11] = pose.origin.z
+	bank["pose_buffer"] = data
+	(bank["multi"] as MultiMesh).buffer = data
+
+func _promote_rubble(body: RigidBody3D, cell: Dictionary) -> bool:
+	if not is_instance_valid(body):
+		return false
+	var body_shape: CollisionShape3D = body.get_node_or_null("Shape") as CollisionShape3D
+	var mesh_instance: MeshInstance3D = body.get_node_or_null("Mesh") as MeshInstance3D
+	if body_shape == null or body_shape.shape == null or mesh_instance == null or mesh_instance.mesh == null:
+		return false
+	var support_hit := _support_contact_hit(body, body_shape)
+	if support_hit.is_empty():
+		return false
+	_ensure_rubble_storage()
+	var shape_copy: Shape3D = body_shape.shape.duplicate()
+	var collision_body := _rubble_body_at(body.position)
+	var collision := CollisionShape3D.new()
+	collision.shape = shape_copy
+	var collision_xf: Transform3D = body.transform * body_shape.transform
+	collision_xf.origin -= collision_body.position
+	collision.transform = collision_xf
+	var piece_id := _rubble_next_id
+	_rubble_next_id += 1
+	collision.set_meta("rubble_piece", piece_id)
+	collision_body.add_child(collision)
+	var material_key: String = str(cell.get("material", "stone"))
+	var shape_key: String = str(cell.get("shape", "box"))
+	var material_id: int = mesh_instance.material_override.get_instance_id() \
+		if mesh_instance.material_override != null else 0
+	var spatial_key := str(collision_body.get_meta("rubble_spatial_key", ""))
+	var batch_key := "%s|%s|%d|%s" % [shape_key, material_key, material_id, spatial_key]
+	var batch := _rubble_visual_bank(batch_key, mesh_instance.mesh,
+		mesh_instance.material_override)
+	var visual := batch.get("multi") as MultiMesh
+	var slot := int(batch.get("count", 0))
+	_write_rubble_bank_pose(batch, slot, body.transform * mesh_instance.transform)
+	visual.visible_instance_count = slot + 1
+	batch["count"] = slot + 1
+	(batch["slots"] as Array).append(piece_id)
+	var support_body := support_hit.get("collider") as StaticBody3D
+	var support_shape: CollisionShape3D = null
+	var hit_shape := int(support_hit.get("shape", -1))
+	if is_instance_valid(support_body) and hit_shape >= 0:
+		var owner_id := support_body.shape_find_owner(hit_shape)
+		var owner: Object = support_body.shape_owner_get_owner(owner_id)
+		if owner is CollisionShape3D:
+			support_shape = owner as CollisionShape3D
+	_rubble_entries[piece_id] = {"id": piece_id, "collision": collision,
+		"bank": batch, "slot": slot, "support_body": support_body,
+		"support_shape": support_shape, "support_world_xf": support_shape.global_transform \
+			if is_instance_valid(support_shape) else support_body.global_transform,
+		"body_xf": body.transform,
+		"shape_xf": body_shape.transform, "shape": shape_copy,
+		"mesh_xf": mesh_instance.transform, "mesh": mesh_instance.mesh,
+		"material": mesh_instance.material_override, "cell": cell.duplicate()}
+	_rubble_entry_ids.append(piece_id)
+	_persistent_rubble += 1
+	return true
+
+## Inspect a fixed number of recorded supports each physics frame. A destroyed floor or
+## a released lower rubble shape invalidates its dependents without scanning the whole
+## rubble field in one frame.
+func _audit_persistent_rubble() -> void:
+	var remaining := mini(RUBBLE_SUPPORT_AUDITS_PER_FRAME, _rubble_entry_ids.size())
+	while remaining > 0 and not _rubble_entry_ids.is_empty():
+		if _rubble_audit_cursor >= _rubble_entry_ids.size():
+			_rubble_audit_cursor = 0
+		var piece_id := _rubble_entry_ids[_rubble_audit_cursor]
+		_rubble_audit_cursor += 1
+		remaining -= 1
+		var entry: Dictionary = _rubble_entries.get(piece_id, {})
+		if entry.is_empty():
+			continue
+		var support_body: Variant = entry.get("support_body")
+		var support_shape: Variant = entry.get("support_shape")
+		var valid_support: bool = is_instance_valid(support_body) \
+			and not support_body.is_queued_for_deletion() \
+			and (support_body.collision_layer & 1) != 0
+		if typeof(support_shape) == TYPE_OBJECT:
+			valid_support = valid_support and is_instance_valid(support_shape) \
+				and not support_shape.is_queued_for_deletion() and not support_shape.disabled
+		if valid_support:
+			var support_node: Node3D = support_shape if is_instance_valid(support_shape) else support_body
+			var previous: Transform3D = entry["support_world_xf"]
+			var current: Transform3D = support_node.global_transform
+			# Ignore sub-5mm translation and sub-0.001 basis noise; compare to promotion,
+			# so gradual motion still releases rubble. Existing audit budget bounds cost.
+			valid_support = previous.origin.distance_squared_to(current.origin) <= 0.000025 \
+				and previous.basis.x.distance_squared_to(current.basis.x) <= 0.000001 \
+				and previous.basis.y.distance_squared_to(current.basis.y) <= 0.000001 \
+				and previous.basis.z.distance_squared_to(current.basis.z) <= 0.000001
+		if not valid_support:
+			_release_persistent_rubble(piece_id, entry)
+
+func _release_persistent_rubble(piece_id: int, entry: Dictionary) -> void:
+	var bank: Dictionary = entry.get("bank", {})
+	var multi: MultiMesh = bank.get("multi")
+	var slots: Array = bank.get("slots", [])
+	var slot := int(entry.get("slot", -1))
+	var last := slots.size() - 1
+	if multi == null or slot < 0 or slot > last:
+		return
+	if slot != last:
+		var moved_id := int(slots[last])
+		var moved: Dictionary = _rubble_entries[moved_id]
+		# Use the fragment's retained pose: renderer readback during repeated bank
+		# compaction can return a cleared slot and make a surviving piece invisible.
+		var moved_xf: Transform3D = moved["body_xf"] * moved["mesh_xf"]
+		_write_rubble_bank_pose(bank, slot, moved_xf)
+		slots[slot] = moved_id
+		moved["slot"] = slot
+	slots.pop_back()
+	bank["count"] = last
+	multi.visible_instance_count = last
+	var collision: CollisionShape3D = entry.get("collision")
+	if is_instance_valid(collision):
+		collision.set_deferred("disabled", true)
+		collision.queue_free()
+	_rubble_entries.erase(piece_id)
+	var position := _rubble_entry_ids.find(piece_id)
+	if position >= 0:
+		_rubble_entry_ids.remove_at(position)
+		if position < _rubble_audit_cursor:
+			_rubble_audit_cursor -= 1
+	_persistent_rubble -= 1
+	_debris_backlog.push_front({"restore": entry,
+		"due_frame": Engine.get_physics_frames() + 2})
+
+func _restore_persistent_rubble(entry: Dictionary) -> void:
+	var body := RigidBody3D.new()
+	body.name = "RestoredCastleRubble33"
+	body.collision_layer = 1
+	body.collision_mask = 1
+	body.contact_monitor = true
+	body.max_contacts_reported = 4
+	var cell: Dictionary = entry.get("cell", {})
+	var size: Vector3 = cell.get("size", BRICK)
+	var density := 3.5 if str(cell.get("material", "stone")).begins_with("wood") else 18.0
+	body.mass = clampf(size.x * size.y * size.z * density, 0.3, 80.0)
+	var shape := CollisionShape3D.new()
+	shape.name = "Shape"
+	shape.shape = (entry.get("shape") as Shape3D).duplicate()
+	shape.transform = entry.get("shape_xf", Transform3D.IDENTITY)
+	body.add_child(shape)
+	var visual := MeshInstance3D.new()
+	visual.name = "Mesh"
+	visual.mesh = entry.get("mesh")
+	visual.material_override = entry.get("material")
+	visual.transform = entry.get("mesh_xf", Transform3D.IDENTITY)
+	body.add_child(visual)
+	body.transform = entry.get("body_xf", Transform3D.IDENTITY)
+	add_child(body)
+	body.linear_velocity = Vector3.DOWN * 0.2
+	_falling.append({"body": body, "age": 0.0, "cell": cell.duplicate(),
+		"substantial": true, "support_frames": 0})
+
+func get_rubble_snapshot() -> Dictionary:
+	var collision_shapes := 0
+	for body: StaticBody3D in _rubble_bodies.values():
+		if not is_instance_valid(body):
+			continue
+		for child: Node in body.get_children():
+			if child is CollisionShape3D and (child as CollisionShape3D).shape != null:
+				collision_shapes += 1
+	var bank_count := 0
+	var capacity := 0
+	for record: Dictionary in _rubble_batches.values():
+		for bank: Dictionary in record.get("banks", []):
+			bank_count += 1
+			capacity += int((bank.get("multi") as MultiMesh).instance_count)
+	return {
+		"persistent": _persistent_rubble,
+		"collision_shapes": collision_shapes,
+		"visual_batches": _rubble_batches.size(),
+		"visual_banks": bank_count,
+		"visual_capacity": capacity,
+		"static_rubble_bodies": _rubble_bodies.size(),
+		"active_falling": _falling.size(),
+		"debris_backlog": _debris_backlog.size(),
+	}
+
 const WALL_HEIGHT := 19.0
 const WALL_HALF := 68.0          # half of the outside square: a siege map, not a yard
 const WALL_THICK := 1.1
@@ -137,7 +420,11 @@ var _gate_leaves: Array[Dictionary] = []
 var _detached := 0
 var _collapsed := 0
 var _events: Array[Dictionary] = []
-var _pending_support: Array[Dictionary] = []
+## Indexed by cell. The dictionary gives both O(1) de-duplication and a bounded scan per
+## physics frame while a tall unsupported column is still settling.
+var _pending_support: Dictionary = {}
+var _support_ceiling55 := 0.0
+var _stair_families: Dictionary = {}
 var _wall_collision: Array[Dictionary] = []
 ## Exact visual step -> ramp segment binding. A blasted step cannot leave an
 ## invisible piece of climbable deck behind, including support-cascade failures.
@@ -153,6 +440,17 @@ var _masonry_changed55: Dictionary = {}
 var _ground: StaticBody3D
 var _player: CharacterBody3D
 var _world_ref: Node3D
+
+## Mechanical support is deliberately conservative. A cell survives a 56% loss only when
+## the remaining support straddles opposite sides, which is the useful approximation for a
+## lintel or arch. A single surviving edge is not enough for an ordinary brick course.
+const SUPPORT_VERTICAL_GAP := 0.08
+const SUPPORT_SEARCH_BELOW := 0.42
+const SUPPORT_COVERAGE_MIN := 0.56
+const SUPPORT_BALANCED_MIN := 0.18
+const SUPPORT_AUDIT_XZ_MARGIN := 2.2
+const SUPPORT_CHECKS_PER_FRAME := 48
+const SUPPORT_TIME_BUDGET_US := 1800
 
 ## ------------------------------------------------------------------ build
 func install(world: Node3D, origin: Vector3) -> Dictionary:
@@ -885,11 +1183,21 @@ func _merge_pivot_decoration(pivot: Node3D) -> void:
 func _flush_buckets() -> void:
 	_buckets.clear()
 	_spatial.clear()
+	_stair_families.clear()
+	_support_ceiling55 = 0.0
 	for index: int in _cells.size():
 		var cell: Dictionary = _cells[index]
+		var family_group := str(cell.get("group", ""))
+		if family_group.begins_with("stairs_"):
+			var family := family_group.get_slice("_",
+				family_group.get_slice_count("_") - 1)
+			if not _stair_families.has(family):
+				_stair_families[family] = []
+			(_stair_families[family] as Array).append(index)
 		var at: Vector3 = cell.get("at", Vector3.ZERO)
 		var bounds := _cell_bounds55(cell)
 		cell["bounds55"] = bounds
+		_support_ceiling55 = maxf(_support_ceiling55, bounds.end.y)
 		for gx: int in range(int(floor(bounds.position.x / SPATIAL_STEP)), int(floor(bounds.end.x / SPATIAL_STEP)) + 1):
 			for gy: int in range(int(floor(bounds.position.y / SPATIAL_STEP)), int(floor(bounds.end.y / SPATIAL_STEP)) + 1):
 				for gz: int in range(int(floor(bounds.position.z / SPATIAL_STEP)), int(floor(bounds.end.z / SPATIAL_STEP)) + 1):
@@ -1058,6 +1366,10 @@ func _kill_brick(index: int, impulse: Vector3, power: float) -> void:
 	if is_instance_valid(merlon_shape):
 		merlon_shape.set_deferred("disabled", true)
 	_detached += 1
+	# Removing any stone invalidates the support question for the cells above its
+	# footprint. The audit walks upward through what actually remains; it is not limited
+	# to a fixed blast radius or just the nearest course.
+	_queue_support_audit(index)
 	# Take it out of the drawing: the instance is moved far below the world, which is
 	# cheaper than rebuilding the MultiMesh.
 	var key: String = str(cell.get("bucket", ""))
@@ -1130,6 +1442,13 @@ func _prewarm_debris_pool() -> void:
 		float(Time.get_ticks_usec() - started) / 1000.0)
 
 func _spawn_falling_brick(cell: Dictionary, impulse: Vector3, power: float) -> void:
+	if _falling.size() >= MAX_FALLING:
+		_debris_backlog.append({"cell": cell.duplicate(), "impulse": impulse,
+			"power": power})
+		return
+	_spawn_falling_brick_now(cell, impulse, power)
+
+func _spawn_falling_brick_now(cell: Dictionary, impulse: Vector3, power: float) -> void:
 	# FROM THE POOL when there is one: a blast that reuses its stones allocates nothing.
 	var body: RigidBody3D = null
 	while not _debris_pool.is_empty():
@@ -1182,6 +1501,8 @@ func _spawn_falling_brick(cell: Dictionary, impulse: Vector3, power: float) -> v
 	body.freeze = false
 	body.collision_layer = 1
 	body.collision_mask = 1
+	body.contact_monitor = true
+	body.max_contacts_reported = 4
 	body.visible = true
 	body.position = cell.get("at", Vector3.ZERO)
 	body.rotation = cell.get("rotation", Vector3.ZERO)
@@ -1189,14 +1510,10 @@ func _spawn_falling_brick(cell: Dictionary, impulse: Vector3, power: float) -> v
 	body.linear_velocity = (direction * 0.55 + Vector3.UP * 0.55).normalized() \
 		* clampf(power * 0.35, 2.0, 26.0) * randf_range(0.7, 1.3)
 	body.angular_velocity = Vector3(randf_range(-6, 6), randf_range(-6, 6), randf_range(-6, 6))
-	_falling.append({"body": body, "age": 0.0})
+	_falling.append({"body": body, "age": 0.0, "cell": cell.duplicate(),
+		"substantial": _is_substantial_rubble(cell), "support_frames": 0})
 	if from_pool:
 		_reused_stones += 1
-	while _falling.size() > MAX_FALLING:
-		var oldest: Dictionary = _falling.pop_front()
-		var old_body: Node = oldest.get("body")
-		if is_instance_valid(old_body):
-			_recycle_stone(old_body as RigidBody3D)
 func _build_curtain_walls() -> void:
 	# Four walls round the courtyard, laid course by course with a half-brick offset on
 	# every other course, which is how a real bond looks.
@@ -3357,6 +3674,8 @@ func get_stats() -> Dictionary:
 			return bool(section.get("alive", false))).size(),
 		"falling": _falling.size(), "events": _events.size(), "leaf_dbg": _leaf_debug(),
 		"gate_bricks": _count_gate_bricks(),
+		"support_pending": _pending_support.size(),
+		"persistent_rubble": _persistent_rubble,
 	}
 
 ## DSH_OPT: every cell index whose grid box overlaps a cube round `at`. The boxes are
@@ -3488,64 +3807,427 @@ func apply_explosion(event: Dictionary) -> Dictionary:
 	if _events.size() > 24: _events.pop_front()
 	return result
 
-## Bricks left with nothing under them.
-##
-## The hole is what matters, not a distance: every brick standing in a column ABOVE a
-## brick that has just gone has lost its support, so it is scheduled to come down. This
-## walks upwards from the hole, so a hit low on a wall opens a breach that climbs instead
-## of leaving courses hanging over nothing.
+## Removing a stone invalidates support only in the vertical shadow above it. The audit
+## filters candidates by footprint, then `support_state` measures the live cells that
+## actually touch the candidate's underside. Opposite-side support preserves lintels,
+## while a single surviving edge does not keep an ordinary course floating.
 func _schedule_support_failure(at: Vector3, radius: float) -> void:
-	var now := Time.get_ticks_msec()
-	var holes: Array[Dictionary] = []
+	# Direct kills already invalidated their own shadow. This seed also covers a caller
+	# that reports a blast radius whose surviving lip now overhangs the hole.
+	if radius <= 0.0:
+		return
 	for index: int in _indices_near(at, radius + 0.5):
-		var cell: Dictionary = _cells[index]
-		if bool(cell.get("alive", false)): continue
-		var brick_at: Vector3 = cell.get("at", Vector3.ZERO)
-		if (_cell_distance55(cell, at) if _wall_masonry55(cell) else brick_at.distance_to(at)) > radius + 0.5: continue
-		if _wall_masonry55(cell) and (cell["size"] as Vector3).y > 3.0:
-			var top: float = (cell["bounds55"] as AABB).end.y
-			holes.append({"x": brick_at.x, "y": top - BRICK.y * 0.5, "z": brick_at.z})
-		holes.append({"x": brick_at.x, "y": brick_at.y, "z": brick_at.z})
-	if holes.is_empty(): return
-	# Only the box a breach can reach upward needs to be visited: a support brick is
-	# within a brick of the hole's footprint and inside the same breach height. A cube
-	# of reach radius*3.2 round the strike was five times more cells than this needs.
-	var support_low := at + Vector3(-(radius + 1.2), -radius + BRICK.y * 0.3, -(radius + 1.2))
-	var support_high := at + Vector3(radius + 1.2, radius * 3.2, radius + 1.2)
-	for hole: Dictionary in holes:
-		support_high.y = maxf(support_high.y, float(hole.y) + radius * 2.2)
-	for index: int in _indices_box(support_low, support_high):
-		var cell: Dictionary = _cells[index]
-		if not bool(cell.get("alive", false)): continue
-		var brick_at: Vector3 = cell.get("at", Vector3.ZERO)
-		for hole: Dictionary in holes:
-			var dx: float = absf(brick_at.x - float(hole.get("x", 0.0)))
-			var dz: float = absf(brick_at.z - float(hole.get("z", 0.0)))
-			var dy: float = brick_at.y - float(hole.get("y", 0.0))
-			# Above the hole, inside its footprint, and close enough to be part of the
-			# same breach rather than a different wall.
-			if dy > BRICK.y * 0.6 and dy < radius * 3.4 and dx < BRICK.x * 3.2 and dz < BRICK.x * 3.2:
-				_pending_support.append({"index": index,
-					"at": now + SUPPORT_DELAY_MS + int(dy * 55.0) + int(randf_range(0.0, 0.25) * 1000.0)})
-				break
+		if bool((_cells[index] as Dictionary).get("alive", false)):
+			_queue_support_audit(index)
+
+func _queue_support_audit(killed_index: int) -> void:
+	if killed_index < 0 or killed_index >= _cells.size():
+		return
+	var killed: Dictionary = _cells[killed_index]
+	var bounds: AABB = killed.get("bounds55", _cell_bounds55(killed))
+	var low := Vector3(bounds.position.x - SUPPORT_AUDIT_XZ_MARGIN,
+		bounds.end.y + SUPPORT_VERTICAL_GAP, bounds.position.z - SUPPORT_AUDIT_XZ_MARGIN)
+	var high := Vector3(bounds.end.x + SUPPORT_AUDIT_XZ_MARGIN,
+		_support_ceiling55 + SUPPORT_VERTICAL_GAP, bounds.end.z + SUPPORT_AUDIT_XZ_MARGIN)
+	var due := Time.get_ticks_msec() + SUPPORT_DELAY_MS
+	for candidate: int in _indices_box(low, high):
+		if candidate == killed_index or not bool((_cells[candidate] as Dictionary).get("alive", false)):
+			continue
+		var candidate_cell: Dictionary = _cells[candidate]
+		var candidate_bounds: AABB = candidate_cell.get("bounds55", _cell_bounds55(candidate_cell))
+		if candidate_bounds.position.x > bounds.end.x + SUPPORT_AUDIT_XZ_MARGIN \
+			or candidate_bounds.end.x < bounds.position.x - SUPPORT_AUDIT_XZ_MARGIN \
+			or candidate_bounds.position.z > bounds.end.z + SUPPORT_AUDIT_XZ_MARGIN \
+			or candidate_bounds.end.z < bounds.position.z - SUPPORT_AUDIT_XZ_MARGIN:
+			continue
+		var previous := int(_pending_support.get(candidate, 0x7fffffff))
+		if due < previous:
+			_pending_support[candidate] = due
+	# A removed plank or voussoir can sever a horizontal load path without leaving an
+	# empty vertical shadow. Recheck that connected plate only after it was damaged.
+	var killed_group := str(killed.get("group", ""))
+	if killed_group == "keep_roof" or killed_group == "bridge" \
+		or killed_group == "gate_voussoir":
+		for candidate: int in _cells.size():
+			var candidate_cell: Dictionary = _cells[candidate]
+			if not bool(candidate_cell.get("alive", false)) \
+				or str(candidate_cell.get("group", "")) != killed_group:
+				continue
+			var previous := int(_pending_support.get(candidate, 0x7fffffff))
+			if due < previous:
+				_pending_support[candidate] = due
+	if killed_group.begins_with("stairs_"):
+		var suffix := killed_group.get_slice("_", killed_group.get_slice_count("_") - 1)
+		for candidate: int in _stair_families.get(suffix, []):
+			var candidate_cell: Dictionary = _cells[candidate]
+			if not bool(candidate_cell.get("alive", false)):
+				continue
+			var previous := int(_pending_support.get(candidate, 0x7fffffff))
+			if due < previous:
+				_pending_support[candidate] = due
+
+func _cell_vertical_span55(cell: Dictionary) -> Vector2:
+	var basis := Basis.from_euler(cell.get("rotation", Vector3.ZERO))
+	var half: Vector3 = (cell.get("size", BRICK) as Vector3) * 0.5
+	var span := Vector2(INF, -INF)
+	for x: float in [-half.x, half.x]:
+		for y: float in [-half.y, half.y]:
+			for z: float in [-half.z, half.z]:
+				var world_y := ((cell.get("at", Vector3.ZERO) as Vector3) + basis * Vector3(x, y, z)).y
+				span.x = minf(span.x, world_y)
+				span.y = maxf(span.y, world_y)
+	return span
+
+func _cell_footprint55(cell: Dictionary) -> PackedVector2Array:
+	var at: Vector3 = cell.get("at", Vector3.ZERO)
+	var size: Vector3 = cell.get("size", BRICK)
+	var basis := Basis.from_euler(cell.get("rotation", Vector3.ZERO))
+	var points := PackedVector2Array()
+	if str(cell.get("shape", "box")) in ["tower_floor55", "tower_roof55"]:
+		for step: int in 16:
+			var angle := TAU * float(step) / 16.0
+			var local := Vector3(cos(angle) * size.x * 0.5, 0.0,
+				sin(angle) * size.z * 0.5)
+			var point := at + basis * local
+			points.append(Vector2(point.x, point.z))
+		return points
+	var corners: Array[Vector3] = [
+		Vector3(-size.x * 0.5, 0.0, -size.z * 0.5),
+		Vector3(size.x * 0.5, 0.0, -size.z * 0.5),
+		Vector3(size.x * 0.5, 0.0, size.z * 0.5),
+		Vector3(-size.x * 0.5, 0.0, size.z * 0.5),
+	]
+	for corner: Vector3 in corners:
+		var point := at + basis * corner
+		points.append(Vector2(point.x, point.z))
+	return points
+
+func _clip_polygon_edges55(subject: PackedVector2Array,
+		clipper: PackedVector2Array) -> PackedVector2Array:
+	var output := subject
+	for edge: int in clipper.size():
+		if output.is_empty():
+			return output
+		var a := clipper[edge]
+		var b := clipper[(edge + 1) % clipper.size()]
+		var edge_ab := b - a
+		var input := output
+		output = PackedVector2Array()
+		var start := input[input.size() - 1]
+		var start_inside := edge_ab.cross(start - a) >= -1.0e-6
+		for point: Vector2 in input:
+			var point_inside := edge_ab.cross(point - a) >= -1.0e-6
+			if point_inside != start_inside:
+				var segment := point - start
+				var denominator := edge_ab.cross(segment)
+				if absf(denominator) > 1.0e-8:
+					var t := edge_ab.cross(a - start) / denominator
+					output.append(start + segment * t)
+			if point_inside:
+				output.append(point)
+			start = point
+			start_inside = point_inside
+	return output
+
+func _polygon_area55(points: PackedVector2Array) -> float:
+	if points.size() < 3:
+		return 0.0
+	var area := 0.0
+	for index: int in points.size():
+		area += points[index].cross(points[(index + 1) % points.size()])
+	return absf(area) * 0.5
+
+func _footprint_overlap55(a: PackedVector2Array, b: PackedVector2Array) -> float:
+	return _polygon_area55(_clip_polygon_edges55(a, b))
+
+func _horizontal_network_supported55(index: int, cell: Dictionary) -> Dictionary:
+	var group := str(cell.get("group", ""))
+	if group not in ["keep_roof", "bridge", "gate_voussoir"]:
+		return {"supported": false, "reason": "not_plate"}
+	var anchor := func(candidate: Dictionary) -> bool:
+		if group == "keep_roof":
+			return int(candidate.get("row", -1)) in [0, 12] \
+				or int(candidate.get("column", -1)) in [0, 12]
+		if group == "bridge":
+			return absf((candidate.get("at", Vector3.ZERO) as Vector3).x) >= 6.35
+		return int(candidate.get("row", -1)) in [0, 16]
+	var seen: Dictionary = {index: true}
+	var queue: Array[int] = [index]
+	while not queue.is_empty():
+		var current: int = queue.pop_front()
+		var current_cell: Dictionary = _cells[current]
+		if bool(anchor.call(current_cell)):
+			return {"supported": true, "reason": "anchored_plate", "sources": seen.size()}
+		var current_bounds: AABB = current_cell.get("bounds55", _cell_bounds55(current_cell))
+		var low := current_bounds.position - Vector3(1.7, 0.9, 1.7)
+		var high := current_bounds.end + Vector3(1.7, 0.9, 1.7)
+		for neighbour: int in _indices_box(low, high):
+			if seen.has(neighbour):
+				continue
+			var next_cell: Dictionary = _cells[neighbour]
+			if not bool(next_cell.get("alive", false)) \
+				or str(next_cell.get("group", "")) != group:
+				continue
+			var next_span := _cell_vertical_span55(next_cell)
+			var current_span := _cell_vertical_span55(current_cell)
+			if absf((next_span.x + next_span.y) - (current_span.x + current_span.y)) > 1.8:
+				continue
+			if _footprint_overlap55(_cell_footprint55(current_cell),
+					_cell_footprint55(next_cell)) <= 0.00001 \
+				and (next_cell.get("at", Vector3.ZERO) as Vector3).distance_to(
+					current_cell.get("at", Vector3.ZERO)) > 1.9:
+				continue
+			seen[neighbour] = true
+			queue.append(neighbour)
+	return {"supported": false, "reason": "detached_plate", "sources": seen.size()}
+
+func _tower_ring_support55(index: int, cell: Dictionary) -> Dictionary:
+	if str(cell.get("shape", "box")) not in ["tower_floor55", "tower_roof55"]:
+		return {"supported": false, "reason": "not_tower_plate"}
+	var centre: Vector3 = cell.get("at", Vector3.ZERO)
+	var low := centre + Vector3(-7.0, -2.0, -7.0)
+	var high := centre + Vector3(7.0, 2.0, 7.0)
+	var quadrants := {}
+	var sources := 0
+	for source: int in _indices_box(low, high):
+		if source == index:
+			continue
+		var support: Dictionary = _cells[source]
+		if not bool(support.get("alive", false)) \
+			or not str(support.get("group", "")).begins_with("tower"):
+			continue
+		var support_at: Vector3 = support.get("at", Vector3.ZERO)
+		if absf(support_at.y - centre.y) > 2.0:
+			continue
+		var offset := Vector2(support_at.x - centre.x, support_at.z - centre.z)
+		if offset.length() < 2.0 or offset.length() > 7.0:
+			continue
+		sources += 1
+		quadrants[(int(floor((atan2(offset.y, offset.x) + PI) / (PI * 0.5))) % 4)] = true
+	var supported := sources >= 3 and quadrants.size() >= 3
+	return {"supported": supported, "reason": "curved_ring" if supported else "ring_failed",
+		"sources": sources, "quadrants": quadrants.size()}
+
+func _stair_network_supported55(index: int, cell: Dictionary) -> Dictionary:
+	var group := str(cell.get("group", ""))
+	if not group.begins_with("stairs_"):
+		return {"supported": false, "reason": "not_stairs"}
+	var suffix := group.get_slice("_", group.get_slice_count("_") - 1)
+	var seen: Dictionary = {index: true}
+	var queue: Array[int] = [index]
+	while not queue.is_empty():
+		var current: int = queue.pop_front()
+		var current_cell: Dictionary = _cells[current]
+		var current_group := str(current_cell.get("group", ""))
+		var current_span := _cell_vertical_span55(current_cell)
+		if current_span.x <= 0.16 or current_group.contains("pier") \
+			or current_group.contains("base"):
+			return {"supported": true, "reason": "stair_ground_path", "sources": seen.size()}
+		var current_at: Vector3 = current_cell.get("at", Vector3.ZERO)
+		for candidate: int in _stair_families.get(suffix, []):
+			if seen.has(candidate):
+				continue
+			var next: Dictionary = _cells[candidate]
+			if not bool(next.get("alive", false)):
+				continue
+			var next_at: Vector3 = next.get("at", Vector3.ZERO)
+			if next_at.distance_to(current_at) > 1.8:
+				continue
+			seen[candidate] = true
+			queue.append(candidate)
+	return {"supported": false, "reason": "detached_stairs", "sources": seen.size()}
+
+## A support is a live cell whose top touches this cell's underside and whose footprint
+## overlaps it. Coverage is measured in the horizontal plane. A bridge/arch remains stable
+## with less total coverage only when opposite sides are both held.
+func support_state(index: int) -> Dictionary:
+	if index < 0 or index >= _cells.size():
+		return {"supported": false, "reason": "invalid", "coverage": 0.0}
+	var cell: Dictionary = _cells[index]
+	if not bool(cell.get("alive", false)):
+		return {"supported": false, "reason": "dead", "coverage": 0.0}
+	var bounds: AABB = cell.get("bounds55", _cell_bounds55(cell))
+	var candidate_span := _cell_vertical_span55(cell)
+	if candidate_span.x <= 0.16:
+		return {"supported": true, "reason": "ground", "coverage": 1.0}
+	var low := Vector3(bounds.position.x - 0.04,
+		candidate_span.x - SUPPORT_SEARCH_BELOW, bounds.position.z - 0.04)
+	var high := Vector3(bounds.end.x + 0.04,
+		candidate_span.x + SUPPORT_VERTICAL_GAP, bounds.end.z + 0.04)
+	var centre := bounds.get_center()
+	var footprint := _cell_footprint55(cell)
+	var area := maxf(0.0001, _polygon_area55(footprint))
+	var covered := 0.0
+	var left := false
+	var right := false
+	var front := false
+	var back := false
+	var sources := 0
+	for source: int in _indices_box(low, high):
+		if source == index or not bool((_cells[source] as Dictionary).get("alive", false)):
+			continue
+		var support: Dictionary = _cells[source]
+		var support_bounds: AABB = support.get("bounds55", _cell_bounds55(support))
+		var support_span := _cell_vertical_span55(support)
+		if absf(support_span.y - candidate_span.x) > SUPPORT_VERTICAL_GAP:
+			continue
+		var overlap := _footprint_overlap55(footprint, _cell_footprint55(support))
+		if overlap <= 0.00001:
+			continue
+		sources += 1
+		covered += overlap
+		var support_centre := support_bounds.get_center()
+		if support_centre.x < centre.x: left = true
+		elif support_centre.x > centre.x: right = true
+		if support_centre.z < centre.z: front = true
+		elif support_centre.z > centre.z: back = true
+	var coverage := clampf(covered / area, 0.0, 1.0)
+	var balanced: bool = (left and right) or (front and back)
+	var supported: bool = coverage >= SUPPORT_COVERAGE_MIN \
+		or (balanced and coverage >= SUPPORT_BALANCED_MIN)
+	if not supported:
+		var ring := _tower_ring_support55(index, cell)
+		if bool(ring.get("supported", false)):
+			return {
+				"supported": true,
+				"reason": ring.get("reason", "curved_ring"),
+				"coverage": coverage,
+				"sources": int(ring.get("sources", 0)),
+				"balanced": balanced,
+			}
+		var stairs := _stair_network_supported55(index, cell)
+		if bool(stairs.get("supported", false)):
+			return {
+				"supported": true,
+				"reason": stairs.get("reason", "stair_ground_path"),
+				"coverage": coverage,
+				"sources": int(stairs.get("sources", 0)),
+				"balanced": balanced,
+			}
+		var plate := _horizontal_network_supported55(index, cell)
+		if bool(plate.get("supported", false)):
+			return {
+				"supported": true,
+				"reason": plate.get("reason", "anchored_plate"),
+				"coverage": coverage,
+				"sources": int(plate.get("sources", 0)),
+				"balanced": balanced,
+			}
+	return {
+		"supported": supported,
+		"reason": "coverage" if coverage >= SUPPORT_COVERAGE_MIN else
+			("balanced" if supported else "unsupported"),
+		"coverage": coverage,
+		"sources": sources,
+		"balanced": balanced,
+	}
+
+## Velocity alone cannot distinguish rest from the apex of a throw. Probe downward
+## from the lowest shape points and accept only an upward-facing contact surface.
+func _support_contact_hit(body: RigidBody3D, shape: CollisionShape3D) -> Dictionary:
+	if not is_instance_valid(body) or not is_instance_valid(shape) or shape.shape == null:
+		return {}
+	var world := get_world_3d()
+	if world == null:
+		return {}
+	var local_points: Array[Vector3] = []
+	if shape.shape is BoxShape3D:
+		var half: Vector3 = (shape.shape as BoxShape3D).size * 0.5
+		for sx: float in [-1.0, 1.0]:
+			for sy: float in [-1.0, 1.0]:
+				for sz: float in [-1.0, 1.0]:
+					local_points.append(Vector3(sx * half.x, sy * half.y, sz * half.z))
+	elif shape.shape is CylinderShape3D:
+		var cylinder := shape.shape as CylinderShape3D
+		for sy: float in [-1.0, 1.0]:
+			for index: int in 8:
+				var angle := TAU * float(index) / 8.0
+				local_points.append(Vector3(cos(angle) * cylinder.radius,
+					sy * cylinder.height * 0.5, sin(angle) * cylinder.radius))
+	elif shape.shape is ConvexPolygonShape3D:
+		for point: Vector3 in (shape.shape as ConvexPolygonShape3D).get_points():
+			local_points.append(point)
+	if local_points.is_empty():
+		return {}
+	var bottom := INF
+	var world_points: Array[Vector3] = []
+	for point: Vector3 in local_points:
+		var position: Vector3 = shape.global_transform * point
+		world_points.append(position)
+		bottom = minf(bottom, position.y)
+	var bottom_center := Vector3.ZERO
+	var bottom_count := 0
+	for point: Vector3 in world_points:
+		if point.y <= bottom + 0.025:
+			bottom_center += point
+			bottom_count += 1
+	if bottom_count > 0:
+		world_points.push_front(bottom_center / float(bottom_count))
+	var checked := 0
+	for point: Vector3 in world_points:
+		if point.y > bottom + 0.025:
+			continue
+		var query := PhysicsRayQueryParameters3D.create(
+			point + Vector3.UP * 0.25,
+			point + Vector3.DOWN * SUPPORT_CONTACT_PROBE, 1, [body.get_rid()])
+		var hit: Dictionary = world.direct_space_state.intersect_ray(query)
+		if hit.get("collider") is StaticBody3D \
+				and (hit.get("normal", Vector3.ZERO) as Vector3).dot(Vector3.UP) > 0.45:
+			return hit
+		checked += 1
+		if checked >= 8:
+			break
+	return {}
+
+func _has_support_contact(body: RigidBody3D, shape: CollisionShape3D) -> bool:
+	return not _support_contact_hit(body, shape).is_empty()
+
+func _drain_debris_backlog() -> void:
+	var started := 0
+	while started < DEBRIS_BACKLOG_PER_FRAME and _falling.size() < MAX_FALLING \
+		and not _debris_backlog.is_empty():
+		if int(_debris_backlog[0].get("due_frame", 0)) > Engine.get_physics_frames():
+			break
+		var next: Dictionary = _debris_backlog.pop_front()
+		if next.has("restore"):
+			_restore_persistent_rubble(next["restore"])
+		else:
+			_spawn_falling_brick_now(next.get("cell", {}), next.get("impulse", Vector3.DOWN),
+				float(next.get("power", 30.0)))
+		started += 1
+
 func _physics_process(_delta: float) -> void:
-	if not _ready: return
+	_audit_persistent_rubble()
+	if not _ready:
+		_drain_debris_backlog()
+		return
 	_advance_gate(_delta)
 	# The cascade.
 	if not _pending_support.is_empty():
 		var now := Time.get_ticks_msec()
-		for index: int in range(_pending_support.size() - 1, -1, -1):
-			var pending: Dictionary = _pending_support[index]
-			if now < int(pending.get("at", 0)): continue
-			var cell_index: int = int(pending.get("index", -1))
-			if cell_index >= 0 and bool((_cells[cell_index] as Dictionary).get("alive", false)):
+		var checks := 0
+		var started := Time.get_ticks_usec()
+		for key: Variant in _pending_support.keys():
+			if checks >= SUPPORT_CHECKS_PER_FRAME \
+				or Time.get_ticks_usec() - started >= SUPPORT_TIME_BUDGET_US:
+				break
+			var cell_index := int(key)
+			if now < int(_pending_support.get(cell_index, 0)):
+				continue
+			_pending_support.erase(cell_index)
+			checks += 1
+			if cell_index < 0 or cell_index >= _cells.size() \
+				or not bool((_cells[cell_index] as Dictionary).get("alive", false)):
+				continue
+			if not bool(support_state(cell_index).get("supported", false)):
 				_kill_brick(cell_index, Vector3.DOWN, 30.0)
 				_collapsed += 1
-			_pending_support.remove_at(index)
 	_sync_masonry_collision55()
-	# Falling bricks settle, and very old ones are cleaned up so a long siege does not
-	# fill the map with bodies.
-	if _falling.is_empty(): return
+	# Bodies enter physics in a bounded stream. A detachment larger than MAX_FALLING is
+	# deferred, never silently deleted or frozen in the air.
+	if _falling.is_empty():
+		_drain_debris_backlog()
+		return
 	for index: int in range(_falling.size() - 1, -1, -1):
 		var entry: Dictionary = _falling[index]
 		var body: RigidBody3D = entry.get("body")
@@ -3561,18 +4243,23 @@ func _physics_process(_delta: float) -> void:
 		# hanging in mid-air exactly where they were blown to.
 		var resting: bool = body.linear_velocity.length() < 0.7 \
 			and body.angular_velocity.length() < 1.6
-		if ((age > BRICK_SETTLE_S and resting) or age > 6.0) \
-				and not bool(entry.get("settled", false)):
-			entry["settled"] = true
+		var shape := body.get_node_or_null("Shape") as CollisionShape3D
+		var contact := resting and _has_support_contact(body, shape)
+		entry["support_frames"] = int(entry.get("support_frames", 0)) + 1 if contact else 0
+		if age > BRICK_SETTLE_S and int(entry["support_frames"]) >= SUPPORT_PROOF_FRAMES:
 			body.linear_velocity = Vector3.ZERO
 			body.angular_velocity = Vector3.ZERO
-			body.freeze = true
-			body.collision_layer = 0
-			body.collision_mask = 0
-		if age > BRICK_LIFE_S:
-			# Back to the pool, not to the allocator.
+			var substantial := bool(entry.get("substantial", false))
+			if substantial and _promote_rubble(body, entry.get("cell", {})):
+				_recycle_stone(body)
+				_falling.remove_at(index)
+				continue
+		if age > TINY_DEBRIS_LIFE_S and not bool(entry.get("substantial", false)) \
+			and int(entry.get("support_frames", 0)) >= SUPPORT_PROOF_FRAMES:
+			# Cosmetic chips do not form routes and are the only debris retired by time.
 			_recycle_stone(body)
 			_falling.remove_at(index)
+	_drain_debris_backlog()
 
 ## Where the player appears: in the courtyard, with the gate behind him.
 func spawn_point() -> Vector3:

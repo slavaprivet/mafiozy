@@ -714,9 +714,25 @@ func drop_held(prefer_shield: bool = false) -> Dictionary:
 		var at: Vector3 = castle.to_local(weapons.player.global_position + forward.normalized() * 0.8)
 		_fallen[id] = at
 		_spawn_fallen_display(MEDIEVAL.find(id), at)
+		_launch_balloon_drop(id, forward)
 		_revision += 1
 	_busy = false
 	return result
+
+func _launch_balloon_drop(id: String, forward: Vector3) -> void:
+	if not is_instance_valid(weapons.scene): return
+	var host: Node = weapons.scene.get("preview_balloon")
+	if not is_instance_valid(host) or not host.is_aboard(): return
+	var balloon: CharacterBody3D = host.get("balloon")
+	var body: RigidBody3D = _fallen_bodies.get(id)
+	if not is_instance_valid(balloon) or not is_instance_valid(body): return
+	# Release from above the solid basket rim, then clear it by physical flight.
+	# Keep all collisions active, including basket, envelope and nearby walls.
+	forward = forward.normalized()
+	if forward.length_squared() < 0.01: forward = -balloon.global_basis.z
+	body.global_position = weapons.player.global_position + forward * 0.8 + Vector3.UP * 1.8
+	body.linear_velocity = forward * 7.0 + Vector3.UP * 1.5 + balloon.velocity
+	_fallen[id] = body.position
 
 func _take_slot(index: int, expected_revision: int) -> Dictionary:
 	if _busy or not window_open or not _usable() or not _chest_alive() or expected_revision != _revision \

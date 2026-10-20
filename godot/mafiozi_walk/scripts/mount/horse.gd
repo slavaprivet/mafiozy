@@ -664,6 +664,14 @@ func _update_reins() -> void:
 	var ends := _rein_endpoints()
 	var bits: Array = ends[0]
 	var hands: Array = ends[1]
+	# A teleport/respawn must not leave world-space rope points behind the horse.
+	# Normal gait retains inertia; only discontinuous endpoint motion resets it.
+	if _rein_ready:
+		for index: int in 2:
+			if _rein_points[index][0].distance_squared_to(bits[index]) > 4.0 \
+					or _rein_points[index][REIN_POINTS - 1].distance_squared_to(hands[index]) > 4.0:
+				_rein_ready = false
+				break
 	if not _rein_ready:
 		_init_rein_ropes(bits, hands)
 		_rein_ready = true

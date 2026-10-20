@@ -92,8 +92,24 @@ func clear_piece(slot: String) -> Dictionary:
 	_equipped.erase(slot)
 	return {"ok": true, "slot": slot}
 
-func on_severed(full_key: String) -> void:
+func on_severed(full_key: String, real_mesh_cut: bool = false) -> void:
 	_lost[full_key] = true
+	# A successful actor cut has already partitioned every relevant surface.
+	# Preserve all currently visible proximal overlays, including an intact sleeve
+	# after a hand cut. Bind that decision to the exact mesh and missing part so
+	# re-equipping/replacing a mesh or a later legacy fallback cannot resurrect it.
+	for overlays: Array in _skinned.values():
+		for overlay: MeshInstance3D in overlays:
+			if not is_instance_valid(overlay): continue
+			var retained: Dictionary = overlay.get_meta("physical_cut_retained33", {})
+			var parts: Array = retained.get("parts", []).duplicate()
+			if real_mesh_cut and overlay.visible and overlay.mesh != null:
+				if not parts.has(full_key): parts.append(full_key)
+				overlay.set_meta("physical_cut_retained33", {"mesh":overlay.mesh.get_instance_id(), "parts":parts})
+			elif not real_mesh_cut:
+				parts.erase(full_key)
+				retained["parts"] = parts
+				overlay.set_meta("physical_cut_retained33", retained)
 	for slot: String in _roots.keys(): _apply_lost(slot)
 
 func reset_severed() -> void:
@@ -441,7 +457,13 @@ func _apply_lost(slot: String) -> void:
 				# A missing arm must not hide clothing on a healthy leg (or vice versa).
 				var parts: Array = ["upperarm", "forearm", "hand"] if slot in ["torso", "hands"] else ["thigh", "shin", "foot"]
 				for part: String in parts:
-					if _lost.has(part + suffix): hidden = true
+					if not _lost.has(part + suffix): continue
+					var retained: Dictionary = overlay.get_meta("physical_cut_retained33", {})
+					var retained_mesh := overlay as MeshInstance3D
+					var retained_cut: bool = retained_mesh != null and retained_mesh.mesh != null \
+						and int(retained.get("mesh", 0)) == retained_mesh.mesh.get_instance_id() \
+						and retained.get("parts", []).has(part + suffix)
+					if not retained_cut: hidden = true
 			overlay.visible = not hidden
 
 func _is_descendant(bone_name: String, ancestor_name: String) -> bool:

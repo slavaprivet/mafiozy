@@ -63,9 +63,10 @@ static func cut(source: ArrayMesh, plane: Plane, part_binds: Dictionary = {}, ke
 		result.front_cap.append_array(split.front_cap)
 		result.back_cap.append_array(split.back_cap)
 		result.boundary_segments += split.boundary_segments
-	# The cap is triangulated per side, from the segments the cut left on the plane.
+	# Both faces walk the same boundary in the same order. Reversing the input
+	# edges independently can partition an open/branched garment contour differently.
 	result.front_cap_arrays = _triangulate_cap(result.front_cap, plane.normal)
-	result.back_cap_arrays = _triangulate_cap(result.back_cap, -plane.normal)
+	result.back_cap_arrays = _triangulate_cap(result.front_cap, -plane.normal)
 	# Count real triangles, not array slots.
 	result.cap_triangles = _count_triangles(result.front_cap_arrays) + _count_triangles(result.back_cap_arrays)
 	return result
@@ -394,11 +395,33 @@ static func _triangulate_cap(vertices: Array, face_normal: Vector3) -> Array:
 	# places (through both arms, say) is capped in both places.
 	var built := _Builder.new()
 	var used: Dictionary = {}
-	for seed: int in edges.size():
-		if used.has(seed): continue
+	for contour: int in edges.size():
+		var seed := -1
+		for candidate: int in edges.size():
+			if not used.has(candidate):
+				seed = candidate
+				break
+		if seed < 0: break
 		var loop: Array = []
 		var current := seed
-		var start_key: String = edges[seed][0]
+		# Open garment contours start at an endpoint, so their final segment is
+		# retained rather than splitting one chain into two incomplete fans.
+		var degree: Dictionary = {}
+		for candidate: int in edges.size():
+			if used.has(candidate): continue
+			for endpoint: String in edges[candidate]:
+				degree[endpoint] = int(degree.get(endpoint, 0)) + 1
+		for candidate: int in edges.size():
+			if used.has(candidate): continue
+			var ends: Array = edges[candidate]
+			if degree[ends[0]] == 1:
+				current = candidate
+				break
+			if degree[ends[1]] == 1:
+				current = candidate
+				edges[candidate] = [ends[1], ends[0]]
+				break
+		var start_key: String = edges[current][0]
 		while true:
 			used[current] = true
 			var edge: Array = edges[current]
@@ -417,7 +440,9 @@ static func _triangulate_cap(vertices: Array, face_normal: Vector3) -> Array:
 					edges[candidate] = [other[1], other[0]]
 					found = candidate
 					break
-			if found < 0: break
+			if found < 0:
+				loop.append(by_key[next_key])
+				break
 			current = found
 		if loop.size() < 3: continue
 		var centre := Vector3.ZERO

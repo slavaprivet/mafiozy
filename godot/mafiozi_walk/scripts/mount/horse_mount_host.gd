@@ -7,8 +7,8 @@ extends Node3D
 ## controller is suspended (pose authority stays "on_foot" so every weapon stays live),
 ## the capsule is switched off and the rider is glued to the saddle by the horse.
 ##
-## E prompt and horse HP are one top-centre banner, the same keycap plate the other
-## world interactions use; no extra world-space labels are drawn.
+## Horse HP is projected above the nearby horse; the interaction prompt keeps
+## its existing owner.
 
 const HorseScript = preload("res://scripts/mount/horse.gd")
 const RiderPose = preload("res://scripts/mount/horse_rider_pose.gd")
@@ -51,6 +51,7 @@ var _walking_camera_distance := 5.119570294468082
 var _camera_distance_owned := false
 
 var _barrel_slot: Node3D
+var _barrel_cradle: Node3D
 var _barrel_loaded := false
 var _hud: CanvasLayer
 var _banner: PanelContainer
@@ -79,11 +80,13 @@ func install(world: Node3D, existing_player: CharacterBody3D) -> Dictionary:
 	var rest: Array = locomotion.get("_rest_poses")
 	if not _pose.configure(rig, motion, rest, float(player.get("_model_scale"))):
 		return {"ok": false, "reason": "rider_pose_binding"}
-	# A clear patch of ground in front of and beside the player, wherever he starts.
+	# Keep the horse outside the camp's powder row (right offsets 2.2..3.8m).
+	# The old 2.8m offset exactly shared PowderBarrel1's later spawn, trapping
+	# the horse inside its collider. Leave clearance for both full body volumes.
 	var heading := float(player.get("_heading"))
 	var forward := Vector3(-sin(heading), 0.0, -cos(heading))
 	var right := Vector3(cos(heading), 0.0, -sin(heading))
-	var spot: Vector3 = player.global_position + forward * 4.6 + right * 2.8
+	var spot: Vector3 = player.global_position + forward * 4.6 + right * 5.2
 	spot.y = _ground_height(spot)
 	var body: CharacterBody3D = HorseScript.new()
 	body.name = "CastleHorse"
@@ -598,54 +601,70 @@ func _tick_vault(delta: float) -> void:
 ## A small wooden cradle on the rump so the barrel visibly rests instead of
 ## hanging in the air.
 func _build_barrel_cradle() -> void:
-	if not is_instance_valid(horse) or horse.has_node("BarrelCradle"):
+	if not is_instance_valid(horse) or is_instance_valid(_barrel_cradle):
+		return
+	var rig: Node3D = horse.get("_rig") as Node3D
+	if not is_instance_valid(rig):
 		return
 	var cradle := Node3D.new()
 	cradle.name = "BarrelCradle"
-	horse.add_child(cradle)
+	rig.add_child(cradle)
+	cradle.position = Vector3(0.0, 1.94, 0.90)
+	_barrel_cradle = cradle
 	var wood := StandardMaterial3D.new()
 	wood.albedo_color = Color(0.30, 0.19, 0.10)
 	wood.roughness = 0.95
+	var platform := MeshInstance3D.new()
+	var board := BoxMesh.new()
+	board.size = Vector3(0.58, 0.06, 0.58)
+	platform.mesh = board
+	platform.material_override = wood
+	platform.position.y = -0.03
+	cradle.add_child(platform)
 	for side: float in [-1.0, 1.0]:
 		var rail := BoxMesh.new()
-		rail.size = Vector3(0.05, 0.10, 0.62)
+		rail.size = Vector3(0.05, 0.10, 0.58)
 		var rail_node := MeshInstance3D.new()
 		rail_node.mesh = rail
 		rail_node.material_override = wood
-		rail_node.position = Vector3(side * 0.28, 1.42, 0.35)
+		rail_node.position = Vector3(side * 0.28, 0.05, 0.0)
 		cradle.add_child(rail_node)
+		var support := MeshInstance3D.new()
+		var leg := BoxMesh.new()
+		leg.size = Vector3(0.06, 0.30, 0.12)
+		support.mesh = leg
+		support.material_override = wood
+		support.position = Vector3(side * 0.19, -0.21, -0.12)
+		cradle.add_child(support)
 	var back := BoxMesh.new()
 	back.size = Vector3(0.62, 0.10, 0.05)
 	var back_node := MeshInstance3D.new()
 	back_node.mesh = back
 	back_node.material_override = wood
-	back_node.position = Vector3(0.0, 1.42, 0.58)
+	back_node.position = Vector3(0.0, 0.05, 0.28)
 	cradle.add_child(back_node)
 
 func load_barrel(barrel_host: Node) -> bool:
 	if _barrel_loaded or not is_instance_valid(horse) or not is_instance_valid(barrel_host):
 		return false
+	if horse.get("dead") == true:
+		return false
 	if not barrel_host.has_method("_barrel_model"):
 		return false
-	var cradle: Node3D = horse.get_node_or_null("BarrelCradle") as Node3D
-	var anchor: Node3D = cradle if is_instance_valid(cradle) else horse
-	var model: Node3D = barrel_host.call("_barrel_model", anchor, false)
+	_build_barrel_cradle()
+	if not is_instance_valid(_barrel_cradle):
+		return false
+	var model: Node3D = barrel_host.call("_barrel_model", _barrel_cradle, false)
 	if not is_instance_valid(model):
 		return false
-	model.position = Vector3(0.0, 1.50, 0.0) if is_instance_valid(cradle) else Vector3(0.0, 1.50, 0.35)
+	# Model bottom is 0.02 above its origin. Rest it exactly on the board.
+	model.position = Vector3(0.0, -0.02 * 0.72, 0.0)
 	model.rotation.y = 0.35
 	model.scale = Vector3.ONE * 0.72
 	_barrel_slot = model
 	_barrel_loaded = true
 	print("DSH_HORSE_BARREL_LOAD")
 	return true
-
-func _process(_delta: float) -> void:
-	if _barrel_loaded and is_instance_valid(_barrel_slot) and is_instance_valid(horse):
-		var cradle: Node3D = horse.get_node_or_null("BarrelCradle") as Node3D
-		if is_instance_valid(cradle):
-			_barrel_slot.global_transform = cradle.global_transform * Transform3D(
-				Basis.from_euler(Vector3(0.0, 0.35, 0.0)), Vector3(0.0, 1.50, 0.0))
 
 func take_barrel() -> Node3D:
 	if not _barrel_loaded or not is_instance_valid(_barrel_slot):
@@ -703,10 +722,24 @@ func _update_hud(dead: bool) -> void:
 		_hp_label.text = "ЛОШАДЬ  %d / %d" % [int(ceil(hp)), int(HORSE_MAX_HP)]
 		_hp_fill.size = Vector2(maxf(0.0, _hp_track_width * clampf(hp / HORSE_MAX_HP, 0.0, 1.0)), 7.0)
 		_hp_fill.color = Color(0.62, 0.10, 0.11) if hp > 35.0 else Color(0.78, 0.28, 0.08)
-	var show_hp := not dead and horse_gap <= HP_VISIBLE_RANGE and (_mounted or view_dot >= 0.90)
-	_hp_panel.visible = show_hp
-	if show_hp:
-		_layout_top_center(_hp_panel, 70.0)
+	_hp_panel.visible = false
+	if dead or horse_gap > HP_VISIBLE_RANGE:
+		return
+	var camera := get_viewport().get_camera_3d()
+	var at := horse.to_global(Vector3(0.0, 2.65, 0.0))
+	if camera == null or camera.is_position_behind(at):
+		return
+	var screen := camera.unproject_position(at)
+	_hp_panel.reset_size()
+	var rectangle := Rect2(screen - Vector2(_hp_panel.size.x * 0.5, _hp_panel.size.y + 8.0), _hp_panel.size)
+	if not get_viewport().get_visible_rect().encloses(rectangle):
+		return
+	var ray := PhysicsRayQueryParameters3D.create(camera.global_position,
+		horse.to_global(Vector3(0.0, 1.6, 0.0)), 1, _excluded_rids())
+	if not get_world_3d().direct_space_state.intersect_ray(ray).is_empty():
+		return
+	_hp_panel.position = rectangle.position
+	_hp_panel.visible = true
 
 func _place_world_banner() -> void:
 	if not is_instance_valid(_banner) or not _banner.visible or not is_instance_valid(horse):

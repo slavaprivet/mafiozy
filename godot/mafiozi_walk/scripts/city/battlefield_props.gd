@@ -5,6 +5,16 @@ extends Node3D
 const SEED := 318726
 const SHARD_LIMIT := 20
 const SHARD_LIFE := 5.0
+## Broken components first fall as bounded rigid bodies. Once physics proves contact, a
+## substantial component becomes static spatial rubble with matching visible geometry.
+const DECOR_ACTIVE_LIMIT := 48
+const DECOR_CONTACT_PROBE := 0.075
+const DECOR_SUPPORT_FRAMES := 3
+const DECOR_BACKLOG_PER_FRAME := 6
+const RUBBLE_BANK_CAPACITY := 128
+const RUBBLE_SPATIAL_CELL := 8.0
+const RUBBLE_MIN_EXTENT := 0.16
+const RUBBLE_SUPPORT_AUDITS_PER_FRAME := 12
 
 var _rng := RandomNumberGenerator.new()
 var _materials: Dictionary = {}
@@ -13,9 +23,22 @@ var _meshes: Dictionary = {}
 var _pending: Dictionary = {}
 var _batches: Dictionary = {}
 var _groups: Dictionary = {}
+var _decor_supports: Dictionary = {}
+var _decor_dependents: Dictionary = {}
+var _decor_pending_support: Dictionary = {}
 var _shards: Array[Dictionary] = []
 var _stats: Dictionary = {}
 var _installed := false
+var _rubble_root: Node3D
+var _rubble_bodies: Dictionary = {}
+var _rubble_batches: Dictionary = {}
+var _structural_rubble := 0
+var _rubble_entries: Dictionary = {}
+var _rubble_entry_ids: Array[int] = []
+var _rubble_next_id := 0
+var _rubble_audit_cursor := 0
+var _falling_debris: Array[Dictionary] = []
+var _debris_backlog: Array[Dictionary] = []
 
 func install(_castle: Node3D) -> Dictionary:
 	if _installed:
@@ -37,7 +60,9 @@ func install(_castle: Node3D) -> Dictionary:
 	return get_stats()
 
 func get_stats() -> Dictionary:
-	return _stats.duplicate(true)
+	var result := _stats.duplicate(true)
+	result["persistent_rubble"] = _structural_rubble
+	return result
 
 func _make_resources() -> void:
 	_material("oak", Color(0.35, 0.20, 0.11), 0.94)
@@ -609,67 +634,74 @@ func _tent_collision(id: String, yaw: float) -> void:
 	_stats["colliders"] += 1
 
 func _build_watchtower(p: Vector3, id: String) -> void:
-	# A recognisable high silhouette at both ends of the attackers' line.
-	_group(id, p, 220.0, "wood", Vector3(3.6, 5.2, 3.6))
-	# The old full-volume box blocked stones under the visibly open tower.
-	# Reuse its StaticBody and primary shape for the platform, then bound the
-	# structural timbers. Destruction still removes the whole tower at once.
-	var body: StaticBody3D = _groups[id]["collider"]
-	var platform: CollisionShape3D = body.get_child(0) as CollisionShape3D
-	var platform_box := BoxShape3D.new()
-	platform_box.size = Vector3(3.6, 0.16, 3.65)
-	platform.shape = platform_box
-	platform.position = Vector3(0, 2.50, 0)
-	for x in [-1.55, 1.55]:
-		for z in [-1.55, 1.55]:
-			_tower_shape(body, Vector3(0.26, 5.3, 0.26), Vector3(x, 0.05, z))
+	# Four real legs carry the deck. Damage can remove one or two without dropping the
+	# intact deck; a third failed load path makes the supported silhouette collapse.
+	var deck_id := id + "_deck"
+	_group(deck_id, p + Vector3.UP * 3.2, 180.0, "wood")
+	_groups[deck_id]["height"] = 5.2
+	var support_ids: Array[String] = []
+	var support_index := 0
+	for x: float in [-1.55, 1.55]:
+		for z: float in [-1.55, 1.55]:
+			var support_id := "%s_leg_%d" % [id, support_index]
+			support_index += 1
+			support_ids.append(support_id)
+			_group(support_id, p + Vector3(x, 0.0, z), 65.0, "wood",
+				Vector3(0.26, 5.3, 0.26))
+			_box("oak_edge", p + Vector3(x, 2.65, z), Vector3(0.26, 5.3, 0.26),
+				Vector3.ZERO, support_id)
+			_box("iron", p + Vector3(x, 0.8, z), Vector3(0.32, 0.11, 0.32),
+				Vector3.ZERO, support_id)
+	_decor_supports[deck_id] = support_ids
+	for support_id: String in support_ids:
+		if not _decor_dependents.has(support_id):
+			_decor_dependents[support_id] = []
+		(_decor_dependents[support_id] as Array).append(deck_id)
+	var body := StaticBody3D.new()
+	body.name = "Cover_%s" % deck_id
+	body.position = p + Vector3.UP * _terrain_y(p.x, p.z)
+	body.set_meta("category", "cover")
+	body.set_meta("battlefield_group", deck_id)
+	add_child(body)
+	_tower_shape(body, Vector3(3.6, 0.16, 3.65), Vector3(0, 5.1, 0))
+	for side: float in [-1.0, 1.0]:
+		for level: float in [3.85, 5.75]:
+			_tower_shape(body, Vector3(3.4, 0.15, 0.17),
+				Vector3(0, level, side * 1.54))
+			_tower_shape(body, Vector3(0.17, 0.15, 3.4),
+				Vector3(side * 1.54, level, 0))
+		_tower_shape(body, Vector3(0.11, 1.15, 3.62),
+			Vector3(side * 1.70, 5.80, 0))
+		_tower_shape(body, Vector3(3.62, 1.15, 0.11),
+			Vector3(0, 5.80, side * 1.70))
+	_tower_shape(body, Vector3(1.1, 5.0, 0.10), Vector3(-1.0, 2.5, -1.93))
+	_groups[deck_id]["collider"] = body
+	_stats["colliders"] += 1
 	for side in [-1.0, 1.0]:
 		for level in [1.25, 3.15]:
-			_tower_shape(body, Vector3(3.4, 0.15, 0.17), Vector3(0, level - 2.6, side * 1.54))
-			_tower_shape(body, Vector3(0.17, 0.15, 3.4), Vector3(side * 1.54, level - 2.6, 0))
-		_tower_shape(body, Vector3(0.15, 3.8, 0.17), Vector3(0, 0.02, side * 1.53),
-			Vector3(0, 0, side * 0.69))
-	var collision_brace_length := Vector2(3.1, 3.4).length()
-	var collision_brace_angle := atan2(3.1, 3.4)
-	for slope in [-1.0, 1.0]:
-		_tower_shape(body, Vector3(0.15, collision_brace_length, 0.16), Vector3(0, -0.45, 1.54),
-			Vector3(0, 0, slope * collision_brace_angle))
-	for side in [-1.0, 1.0]:
-		_tower_shape(body, Vector3(0.16, collision_brace_length, 0.15), Vector3(side * 1.54, -0.45, 0),
-			Vector3(side * collision_brace_angle, 0, 0))
-		_tower_shape(body, Vector3(0.11, 1.15, 3.62), Vector3(side * 1.70, 3.20, 0))
-		_tower_shape(body, Vector3(3.62, 1.15, 0.11), Vector3(0, 3.20, side * 1.70))
-	# A single ladder strip bounds its rungs without eleven extra physics shapes.
-	_tower_shape(body, Vector3(1.1, 5.0, 0.10), Vector3(-1.0, 0, -1.93))
-	for x in [-1.55, 1.55]:
-		for z in [-1.55, 1.55]:
-			_box("oak_edge", p + Vector3(x, 2.65, z), Vector3(0.26, 5.3, 0.26), Vector3.ZERO, id)
-			_box("iron", p + Vector3(x, 0.8, z), Vector3(0.32, 0.11, 0.32), Vector3.ZERO, id)
-	for side in [-1.0, 1.0]:
-		for level in [1.25, 3.15]:
-			_box("oak", p + Vector3(0, level, side * 1.54), Vector3(3.4, 0.15, 0.17), Vector3.ZERO, id)
-			_box("oak", p + Vector3(side * 1.54, level, 0), Vector3(0.17, 0.15, 3.4), Vector3.ZERO, id)
-		_box("oak", p + Vector3(0, 2.62, side * 1.53), Vector3(0.15, 3.8, 0.17), Vector3(0, 0, side * 0.69), id)
+			_box("oak", p + Vector3(0, level, side * 1.54), Vector3(3.4, 0.15, 0.17), Vector3.ZERO, deck_id)
+			_box("oak", p + Vector3(side * 1.54, level, 0), Vector3(0.17, 0.15, 3.4), Vector3.ZERO, deck_id)
+		_box("oak", p + Vector3(0, 2.62, side * 1.53), Vector3(0.15, 3.8, 0.17), Vector3(0, 0, side * 0.69), deck_id)
 	# Cross braces tie the high platform to its legs. Keep the ladder face clear.
 	var brace_length := Vector2(3.1, 3.4).length()
 	var brace_angle := atan2(3.1, 3.4)
 	for slope in [-1.0, 1.0]:
 		_box("oak_edge", p + Vector3(0, 2.15, 1.54),
-			Vector3(0.15, brace_length, 0.16), Vector3(0, 0, slope * brace_angle), id)
+			Vector3(0.15, brace_length, 0.16), Vector3(0, 0, slope * brace_angle), deck_id)
 	for side in [-1.0, 1.0]:
 		_box("oak_edge", p + Vector3(side * 1.54, 2.15, 0),
-			Vector3(0.16, brace_length, 0.15), Vector3(side * brace_angle, 0, 0), id)
+			Vector3(0.16, brace_length, 0.15), Vector3(side * brace_angle, 0, 0), deck_id)
 	for i in 9:
-		_box("oak", p + Vector3((float(i) - 4.0) * 0.39, 5.1, 0), Vector3(0.37, 0.16, 3.65), Vector3.ZERO, id)
+		_box("oak", p + Vector3((float(i) - 4.0) * 0.39, 5.1, 0), Vector3(0.37, 0.16, 3.65), Vector3.ZERO, deck_id)
 	for side in [-1.0, 1.0]:
-		_box("oak_edge", p + Vector3(side * 1.70, 5.80, 0), Vector3(0.11, 1.15, 3.62), Vector3.ZERO, id)
-		_box("oak_edge", p + Vector3(0, 5.80, side * 1.7), Vector3(3.62, 1.15, 0.11), Vector3.ZERO, id)
+		_box("oak_edge", p + Vector3(side * 1.70, 5.80, 0), Vector3(0.11, 1.15, 3.62), Vector3.ZERO, deck_id)
+		_box("oak_edge", p + Vector3(0, 5.80, side * 1.7), Vector3(3.62, 1.15, 0.11), Vector3.ZERO, deck_id)
 	for i in 11:
-		_box("oak_edge", p + Vector3(-1.0, 0.35 + i * 0.43, -1.93), Vector3(1.1, 0.075, 0.12), Vector3.ZERO, id)
-	_box("oak_edge", p + Vector3(-1.52, 2.6, -1.93), Vector3(0.10, 5.0, 0.10), Vector3.ZERO, id)
-	_box("oak_edge", p + Vector3(-0.50, 2.6, -1.93), Vector3(0.10, 5.0, 0.10), Vector3.ZERO, id)
-	_box("oak", p + Vector3(0, 6.48, 0), Vector3(0.12, 1.45, 0.12), Vector3.ZERO, id)
-	_box("red", p + Vector3(0.64, 6.78, 0), Vector3(1.20, 0.72, 0.04), Vector3.ZERO, id)
+		_box("oak_edge", p + Vector3(-1.0, 0.35 + i * 0.43, -1.93), Vector3(1.1, 0.075, 0.12), Vector3.ZERO, deck_id)
+	_box("oak_edge", p + Vector3(-1.52, 2.6, -1.93), Vector3(0.10, 5.0, 0.10), Vector3.ZERO, deck_id)
+	_box("oak_edge", p + Vector3(-0.50, 2.6, -1.93), Vector3(0.10, 5.0, 0.10), Vector3.ZERO, deck_id)
+	_box("oak", p + Vector3(0, 6.48, 0), Vector3(0.12, 1.45, 0.12), Vector3.ZERO, deck_id)
+	_box("red", p + Vector3(0.64, 6.78, 0), Vector3(1.20, 0.72, 0.04), Vector3.ZERO, deck_id)
 	_stats["watchtowers"] += 1
 
 func _tower_shape(body: StaticBody3D, size: Vector3, local_center: Vector3,
@@ -891,9 +923,50 @@ func apply_damage(world_point: Vector3, radius: float, impulse: float, damage_ty
 			hit += 1
 	return hit
 
+## Decor support is a real graph. A watchtower deck remains on any two opposite legs;
+## losing a third support removes the last load path and queues the supported structure.
+func decor_support_state(id: String) -> Dictionary:
+	if not _decor_supports.has(id):
+		return {"supported": true, "reason": "self_supporting", "sources": 0}
+	var target: Dictionary = _groups.get(id, {})
+	if target.is_empty() or bool(target.get("destroyed", false)):
+		return {"supported": false, "reason": "dead", "sources": 0}
+	var target_centre: Vector3 = target.get("center", Vector3.ZERO)
+	var count := 0
+	var left := false
+	var right := false
+	var front := false
+	var back := false
+	var lowest_top := INF
+	var sources: Array[String] = []
+	for support_id: String in _decor_supports[id]:
+		var support: Dictionary = _groups.get(support_id, {})
+		if support.is_empty() or bool(support.get("destroyed", false)):
+			continue
+		count += 1
+		sources.append(support_id)
+		var centre: Vector3 = support.get("center", Vector3.ZERO)
+		lowest_top = minf(lowest_top, centre.y + float(support.get("height", 0.0)))
+		if centre.x < target_centre.x - 0.05: left = true
+		elif centre.x > target_centre.x + 0.05: right = true
+		if centre.z < target_centre.z - 0.05: front = true
+		elif centre.z > target_centre.z + 0.05: back = true
+	var balanced := (left and right) or (front and back)
+	var supported := count >= 2 and balanced
+	return {
+		"supported": supported,
+		"reason": "multiple_supports" if supported else "unsupported",
+		"sources": count,
+		"source_ids": sources,
+		"balanced": balanced,
+		"support_top": lowest_top if lowest_top < INF else 0.0,
+	}
+
 func _destroy_group(id: String, hit_point: Vector3) -> void:
 	var g: Dictionary = _groups[id]
 	g["destroyed"] = true
+	# Read the original component transforms before the batched silhouettes are hidden.
+	_spawn_group_debris(g, hit_point)
 	for ref in g["indices"]:
 		var pair: Array = ref
 		var batch: MultiMeshInstance3D = _batches[pair[0]]
@@ -909,6 +982,420 @@ func _destroy_group(id: String, hit_point: Vector3) -> void:
 		collider.queue_free()
 	_spawn_splinters(g["center"], hit_point,
 		str(g.get("debris_kind", g["kind"])), str(g.get("debris_cloth", "canvas")))
+	for dependent: String in _decor_dependents.get(id, []):
+		_decor_pending_support[dependent] = Time.get_ticks_msec() + 180
+
+func _ensure_rubble_storage() -> void:
+	if is_instance_valid(_rubble_root):
+		return
+	_rubble_root = Node3D.new()
+	_rubble_root.name = "PersistentDecorRubble33"
+	add_child(_rubble_root)
+
+func _rubble_body_at(at: Vector3) -> StaticBody3D:
+	var gx := int(floor(at.x / RUBBLE_SPATIAL_CELL))
+	var gy := int(floor(at.y / RUBBLE_SPATIAL_CELL))
+	var gz := int(floor(at.z / RUBBLE_SPATIAL_CELL))
+	var key := "%d|%d|%d" % [gx, gy, gz]
+	var existing: StaticBody3D = _rubble_bodies.get(key)
+	if is_instance_valid(existing):
+		return existing
+	var body := StaticBody3D.new()
+	body.name = "DecorRubbleCollision33_%s" % key.replace("|", "_")
+	body.position = Vector3(float(gx), float(gy), float(gz)) * RUBBLE_SPATIAL_CELL
+	body.collision_layer = 1
+	body.collision_mask = 1
+	body.set_meta("battlefield_rubble", true)
+	body.set_meta("rubble_spatial_key", key)
+	body.set_meta("surface", "stone")
+	_rubble_root.add_child(body)
+	_rubble_bodies[key] = body
+	return body
+
+func _rubble_visual_bank(batch_key: String, mesh: Mesh, material: Material) -> Dictionary:
+	var record: Dictionary = _rubble_batches.get(batch_key, {})
+	if record.is_empty():
+		record = {"banks": []}
+		_rubble_batches[batch_key] = record
+	for candidate: Dictionary in record["banks"]:
+		if int(candidate["count"]) < RUBBLE_BANK_CAPACITY:
+			return candidate
+	var multi := MultiMesh.new()
+	multi.transform_format = MultiMesh.TRANSFORM_3D
+	multi.mesh = mesh
+	multi.instance_count = RUBBLE_BANK_CAPACITY
+	multi.visible_instance_count = 0
+	var node := MultiMeshInstance3D.new()
+	node.name = "DecorRubble_%s_%d" % [batch_key.replace("|", "_"),
+		(record["banks"] as Array).size()]
+	node.multimesh = multi
+	node.material_override = material
+	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_rubble_root.add_child(node)
+	var data := PackedFloat32Array()
+	data.resize(RUBBLE_BANK_CAPACITY * 12)
+	var bank := {"multi": multi, "count": 0, "slots": [], "pose_buffer": data}
+	(record["banks"] as Array).append(bank)
+	return bank
+
+
+## Keep the complete fixed bank on CPU. Partial instance writes can restore stale
+## motion-vector cache regions after a quiet render frame (Godot 4.7.2/TAA).
+## Updating only this 128-instance buffer preserves every surviving fragment pose.
+func _write_rubble_bank_pose(bank: Dictionary, slot: int, pose: Transform3D) -> void:
+	var data: PackedFloat32Array = bank["pose_buffer"]
+	var at := slot * 12
+	data[at] = pose.basis.x.x
+	data[at + 1] = pose.basis.y.x
+	data[at + 2] = pose.basis.z.x
+	data[at + 3] = pose.origin.x
+	data[at + 4] = pose.basis.x.y
+	data[at + 5] = pose.basis.y.y
+	data[at + 6] = pose.basis.z.y
+	data[at + 7] = pose.origin.y
+	data[at + 8] = pose.basis.x.z
+	data[at + 9] = pose.basis.y.z
+	data[at + 10] = pose.basis.z.z
+	data[at + 11] = pose.origin.z
+	bank["pose_buffer"] = data
+	(bank["multi"] as MultiMesh).buffer = data
+
+func _promote_decor_rubble(body: RigidBody3D, mesh_instance: MeshInstance3D,
+		shape_instance: CollisionShape3D, material: Material) -> bool:
+	if not is_instance_valid(body) or not is_instance_valid(mesh_instance) \
+		or mesh_instance.mesh == null or not is_instance_valid(shape_instance) \
+		or shape_instance.shape == null:
+		return false
+	var support_hit := _decor_support_contact_hit(body, shape_instance)
+	if support_hit.is_empty():
+		return false
+	_ensure_rubble_storage()
+	var collision_body := _rubble_body_at(body.position)
+	var collision := CollisionShape3D.new()
+	collision.shape = shape_instance.shape.duplicate()
+	var collision_xf := body.transform * shape_instance.transform
+	collision_xf.origin -= collision_body.position
+	collision.transform = collision_xf
+	collision_body.add_child(collision)
+	var material_id := material.get_instance_id() if material != null else 0
+	var key := "%d|%d|%s" % [mesh_instance.mesh.get_instance_id(), material_id,
+		str(collision_body.get_meta("rubble_spatial_key", ""))]
+	var bank := _rubble_visual_bank(key, mesh_instance.mesh, material)
+	var multi := bank["multi"] as MultiMesh
+	var slot := int(bank["count"])
+	_write_rubble_bank_pose(bank, slot, body.transform * mesh_instance.transform)
+	multi.visible_instance_count = slot + 1
+	bank["count"] = slot + 1
+	var piece_id := _rubble_next_id
+	_rubble_next_id += 1
+	(bank["slots"] as Array).append(piece_id)
+	var support_body := support_hit.get("collider") as StaticBody3D
+	var support_shape: CollisionShape3D = null
+	var hit_shape := int(support_hit.get("shape", -1))
+	if is_instance_valid(support_body) and hit_shape >= 0:
+		var owner_id := support_body.shape_find_owner(hit_shape)
+		var owner: Object = support_body.shape_owner_get_owner(owner_id)
+		if owner is CollisionShape3D:
+			support_shape = owner as CollisionShape3D
+	_rubble_entries[piece_id] = {"id": piece_id, "collision": collision,
+		"bank": bank, "slot": slot, "support_body": support_body,
+		"support_shape": support_shape, "support_world_xf": support_shape.global_transform \
+			if is_instance_valid(support_shape) else support_body.global_transform,
+		"body_xf": body.transform,
+		"shape_xf": shape_instance.transform, "shape": shape_instance.shape.duplicate(),
+		"mesh_xf": mesh_instance.transform, "mesh": mesh_instance.mesh,
+		"material": material}
+	_rubble_entry_ids.append(piece_id)
+	_structural_rubble += 1
+	return true
+
+func _audit_persistent_decor_rubble() -> void:
+	var remaining := mini(RUBBLE_SUPPORT_AUDITS_PER_FRAME, _rubble_entry_ids.size())
+	while remaining > 0 and not _rubble_entry_ids.is_empty():
+		if _rubble_audit_cursor >= _rubble_entry_ids.size():
+			_rubble_audit_cursor = 0
+		var piece_id := _rubble_entry_ids[_rubble_audit_cursor]
+		_rubble_audit_cursor += 1
+		remaining -= 1
+		var entry: Dictionary = _rubble_entries.get(piece_id, {})
+		if entry.is_empty():
+			continue
+		var support_body: Variant = entry.get("support_body")
+		var support_shape: Variant = entry.get("support_shape")
+		var valid_support: bool = is_instance_valid(support_body) \
+			and not support_body.is_queued_for_deletion() \
+			and (support_body.collision_layer & 1) != 0
+		if typeof(support_shape) == TYPE_OBJECT:
+			valid_support = valid_support and is_instance_valid(support_shape) \
+				and not support_shape.is_queued_for_deletion() and not support_shape.disabled
+		if valid_support:
+			var support_node: Node3D = support_shape if is_instance_valid(support_shape) else support_body
+			var previous: Transform3D = entry["support_world_xf"]
+			var current: Transform3D = support_node.global_transform
+			# Ignore sub-5mm translation and sub-0.001 basis noise; compare to promotion,
+			# so gradual motion still releases rubble. Existing audit budget bounds cost.
+			valid_support = previous.origin.distance_squared_to(current.origin) <= 0.000025 \
+				and previous.basis.x.distance_squared_to(current.basis.x) <= 0.000001 \
+				and previous.basis.y.distance_squared_to(current.basis.y) <= 0.000001 \
+				and previous.basis.z.distance_squared_to(current.basis.z) <= 0.000001
+		if not valid_support:
+			_release_persistent_decor_rubble(piece_id, entry)
+
+func _release_persistent_decor_rubble(piece_id: int, entry: Dictionary) -> void:
+	var bank: Dictionary = entry.get("bank", {})
+	var multi: MultiMesh = bank.get("multi")
+	var slots: Array = bank.get("slots", [])
+	var slot := int(entry.get("slot", -1))
+	var last := slots.size() - 1
+	if multi == null or slot < 0 or slot > last:
+		return
+	if slot != last:
+		var moved_id := int(slots[last])
+		var moved: Dictionary = _rubble_entries[moved_id]
+		# Use the fragment's retained pose: renderer readback during repeated bank
+		# compaction can return a cleared slot and make a surviving piece invisible.
+		var moved_xf: Transform3D = moved["body_xf"] * moved["mesh_xf"]
+		_write_rubble_bank_pose(bank, slot, moved_xf)
+		slots[slot] = moved_id
+		moved["slot"] = slot
+	slots.pop_back()
+	bank["count"] = last
+	multi.visible_instance_count = last
+	var collision: CollisionShape3D = entry.get("collision")
+	if is_instance_valid(collision):
+		collision.set_deferred("disabled", true)
+		collision.queue_free()
+	_rubble_entries.erase(piece_id)
+	var position := _rubble_entry_ids.find(piece_id)
+	if position >= 0:
+		_rubble_entry_ids.remove_at(position)
+		if position < _rubble_audit_cursor:
+			_rubble_audit_cursor -= 1
+	_structural_rubble -= 1
+	_debris_backlog.push_front({"restore": entry,
+		"due_frame": Engine.get_physics_frames() + 2})
+
+func _restore_persistent_decor_rubble(entry: Dictionary) -> void:
+	var body := RigidBody3D.new()
+	body.name = "RestoredDecorRubble33"
+	body.collision_layer = 1
+	body.collision_mask = 1
+	body.contact_monitor = true
+	body.max_contacts_reported = 4
+	var mesh_xf: Transform3D = entry.get("mesh_xf", Transform3D.IDENTITY)
+	var size := mesh_xf.basis.get_scale().abs()
+	body.mass = clampf(size.x * size.y * size.z * 3.8, 0.35, 80.0)
+	var shape := CollisionShape3D.new()
+	shape.name = "Shape"
+	shape.shape = (entry.get("shape") as Shape3D).duplicate()
+	shape.transform = entry.get("shape_xf", Transform3D.IDENTITY)
+	body.add_child(shape)
+	var visual := MeshInstance3D.new()
+	visual.name = "Mesh"
+	visual.mesh = entry.get("mesh")
+	visual.material_override = entry.get("material")
+	visual.transform = mesh_xf
+	body.add_child(visual)
+	body.transform = entry.get("body_xf", Transform3D.IDENTITY)
+	add_child(body)
+	body.linear_velocity = Vector3.DOWN * 0.2
+	_falling_debris.append({"body": body, "age": 0.0, "support_frames": 0,
+		"material": entry.get("material")})
+
+func _decor_debris_body(xf: Transform3D, mesh: Mesh, material: Material,
+		hit_point: Vector3) -> RigidBody3D:
+	var scaled_basis := xf.basis
+	var size := scaled_basis.get_scale().abs()
+	var body := RigidBody3D.new()
+	body.name = "DecorStructuralDebris33"
+	body.position = xf.origin
+	body.rotation = scaled_basis.get_euler()
+	body.mass = clampf(size.x * size.y * size.z * (3.8 if material != null else 2.0),
+		0.35, 80.0)
+	body.collision_layer = 1
+	body.collision_mask = 1
+	body.contact_monitor = true
+	body.max_contacts_reported = 4
+	var shape_instance := CollisionShape3D.new()
+	shape_instance.name = "Shape"
+	if mesh is BoxMesh:
+		var box := BoxShape3D.new()
+		box.size = size
+		shape_instance.shape = box
+	else:
+		var convex := mesh.create_convex_shape()
+		shape_instance.shape = convex
+		shape_instance.scale = size
+	body.add_child(shape_instance)
+	var visual := MeshInstance3D.new()
+	visual.name = "Mesh"
+	visual.mesh = mesh
+	visual.scale = size
+	visual.material_override = material
+	visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	body.add_child(visual)
+	add_child(body)
+	var away := (body.position - hit_point).normalized()
+	body.linear_velocity = (away * 0.55 + Vector3.UP * 0.45).normalized() \
+		* randf_range(2.2, 5.8)
+	body.angular_velocity = Vector3(randf_range(-2.8, 2.8), randf_range(-2.8, 2.8),
+		randf_range(-2.8, 2.8))
+	return body
+
+## Destroyed silhouettes do not become invented ramps. Every substantial visual component
+## is released from its own batch transform, falls under gravity and becomes persistent
+## rubble only after the physics query proves that it is touching support.
+func _spawn_group_debris(g: Dictionary, hit_point: Vector3) -> void:
+	for ref: Variant in g.get("indices", []):
+		var pair: Array = ref
+		var batch: MultiMeshInstance3D = _batches.get(pair[0])
+		if not is_instance_valid(batch) or batch.multimesh == null:
+			continue
+		var slot := int(pair[1])
+		if slot < 0 or slot >= batch.multimesh.instance_count:
+			continue
+		var xf := batch.multimesh.get_instance_transform(slot)
+		var size := xf.basis.get_scale().abs()
+		if maxf(size.x, maxf(size.y, size.z)) < RUBBLE_MIN_EXTENT:
+			continue
+		var material := batch.material_override
+		if material == null and batch.multimesh.mesh != null \
+			and batch.multimesh.mesh.get_surface_count() > 0:
+			material = batch.multimesh.mesh.surface_get_material(0)
+		var record := {"xf": xf, "mesh": batch.multimesh.mesh, "material": material,
+			"hit": hit_point}
+		if _falling_debris.size() >= DECOR_ACTIVE_LIMIT:
+			_debris_backlog.append(record)
+		else:
+			_falling_debris.append({"body": _decor_debris_body(xf, record["mesh"],
+				record["material"], hit_point), "age": 0.0, "support_frames": 0,
+				"material": material})
+
+func rubble_snapshot() -> Dictionary:
+	var collision_shapes := 0
+	for body: StaticBody3D in _rubble_bodies.values():
+		if not is_instance_valid(body):
+			continue
+		for child: Node in body.get_children():
+			if child is CollisionShape3D and (child as CollisionShape3D).shape != null:
+				collision_shapes += 1
+	var banks := 0
+	var capacity := 0
+	for record: Dictionary in _rubble_batches.values():
+		for bank: Dictionary in record.get("banks", []):
+			banks += 1
+			capacity += int((bank.get("multi") as MultiMesh).instance_count)
+	return {
+		"persistent_pieces": _structural_rubble,
+		"collision_shapes": collision_shapes,
+		"static_rubble_bodies": _rubble_bodies.size(),
+		"batches": _rubble_batches.size(),
+		"banks": banks,
+		"visual_capacity": capacity,
+		"active_debris": _falling_debris.size(),
+		"debris_backlog": _debris_backlog.size(),
+	}
+
+func _decor_support_contact_hit(body: RigidBody3D, shape: CollisionShape3D) -> Dictionary:
+	if not is_instance_valid(body) or not is_instance_valid(shape) or shape.shape == null:
+		return {}
+	var world := get_world_3d()
+	if world == null:
+		return {}
+	var local_points: Array[Vector3] = []
+	if shape.shape is BoxShape3D:
+		var half: Vector3 = (shape.shape as BoxShape3D).size * 0.5
+		for sx: float in [-1.0, 1.0]:
+			for sy: float in [-1.0, 1.0]:
+				for sz: float in [-1.0, 1.0]:
+					local_points.append(Vector3(sx * half.x, sy * half.y, sz * half.z))
+	elif shape.shape is ConvexPolygonShape3D:
+		for point: Vector3 in (shape.shape as ConvexPolygonShape3D).get_points():
+			local_points.append(point)
+	if local_points.is_empty():
+		return {}
+	var bottom := INF
+	var world_points: Array[Vector3] = []
+	for point: Vector3 in local_points:
+		var position: Vector3 = shape.global_transform * point
+		world_points.append(position)
+		bottom = minf(bottom, position.y)
+	var bottom_center := Vector3.ZERO
+	var bottom_count := 0
+	for point: Vector3 in world_points:
+		if point.y <= bottom + 0.025:
+			bottom_center += point
+			bottom_count += 1
+	if bottom_count > 0:
+		world_points.push_front(bottom_center / float(bottom_count))
+	var checked := 0
+	for point: Vector3 in world_points:
+		if point.y > bottom + 0.025:
+			continue
+		var query := PhysicsRayQueryParameters3D.create(
+			point + Vector3.UP * 0.25,
+			point + Vector3.DOWN * DECOR_CONTACT_PROBE, 1, [body.get_rid()])
+		var hit: Dictionary = world.direct_space_state.intersect_ray(query)
+		if hit.get("collider") is StaticBody3D \
+				and (hit.get("normal", Vector3.ZERO) as Vector3).dot(Vector3.UP) > 0.45:
+			return hit
+		checked += 1
+		if checked >= 8:
+			break
+	return {}
+
+func _has_decor_support_contact(body: RigidBody3D, shape: CollisionShape3D) -> bool:
+	return not _decor_support_contact_hit(body, shape).is_empty()
+
+func _drain_decor_backlog() -> void:
+	var moved := 0
+	while moved < DECOR_BACKLOG_PER_FRAME and _falling_debris.size() < DECOR_ACTIVE_LIMIT \
+		and not _debris_backlog.is_empty():
+		if int(_debris_backlog[0].get("due_frame", 0)) > Engine.get_physics_frames():
+			break
+		var next: Dictionary = _debris_backlog.pop_front()
+		if next.has("restore"):
+			_restore_persistent_decor_rubble(next["restore"])
+		else:
+			var body := _decor_debris_body(next["xf"], next["mesh"], next["material"], next["hit"])
+			_falling_debris.append({"body": body, "age": 0.0, "support_frames": 0,
+				"material": next["material"]})
+		moved += 1
+
+func _physics_process(delta: float) -> void:
+	_audit_persistent_decor_rubble()
+	if not _decor_pending_support.is_empty():
+		var now := Time.get_ticks_msec()
+		for id: String in _decor_pending_support.keys():
+			if now < int(_decor_pending_support.get(id, 0)):
+				continue
+			_decor_pending_support.erase(id)
+			if bool(_groups.get(id, {}).get("destroyed", false)):
+				continue
+			if not bool(decor_support_state(id).get("supported", false)):
+				_destroy_group(id, _groups[id].get("center", Vector3.ZERO))
+	for index: int in range(_falling_debris.size() - 1, -1, -1):
+		var entry: Dictionary = _falling_debris[index]
+		var body: RigidBody3D = entry.get("body")
+		if not is_instance_valid(body):
+			_falling_debris.remove_at(index)
+			continue
+		var age := float(entry.get("age", 0.0)) + delta
+		entry["age"] = age
+		var resting := body.linear_velocity.length() < 0.55 \
+			and body.angular_velocity.length() < 1.25
+		var shape_instance := body.get_node_or_null("Shape") as CollisionShape3D
+		var contact := resting and _has_decor_support_contact(body, shape_instance)
+		entry["support_frames"] = int(entry.get("support_frames", 0)) + 1 if contact else 0
+		if age < 0.9 or int(entry["support_frames"]) < DECOR_SUPPORT_FRAMES:
+			continue
+		body.linear_velocity = Vector3.ZERO
+		body.angular_velocity = Vector3.ZERO
+		var visual := body.get_node_or_null("Mesh") as MeshInstance3D
+		if _promote_decor_rubble(body, visual, shape_instance, entry.get("material")):
+			_falling_debris.remove_at(index)
+			body.queue_free()
+	_drain_decor_backlog()
 
 func _spawn_splinters(center: Vector3, hit_point: Vector3, kind: String,
 		cloth_material := "canvas") -> void:

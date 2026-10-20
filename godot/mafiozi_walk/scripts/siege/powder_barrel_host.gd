@@ -74,12 +74,14 @@ func install(world_in: Node3D, player_in: CharacterBody3D) -> Dictionary:
 	print("DSH_BARRELS_STATUS ready count=", barrels.size(), " fx=", bool(fx_setup.get("ok", false)))
 	return {"ok": true, "count": barrels.size(), "fx": bool(fx_setup.get("ok", false))}
 
-func _ground_height(at: Vector3) -> float:
+func _ground_height(at: Vector3, excluded_body: RID = RID(), no_hit_height: float = NAN) -> float:
 	var space := get_world_3d().direct_space_state if is_inside_tree() else null
 	if space == null:
 		return at.y
 	var ray := PhysicsRayQueryParameters3D.create(Vector3(at.x, at.y + 0.9, at.z), Vector3(at.x, at.y - 20.0, at.z), 1)
 	var excludes: Array[RID] = []
+	if excluded_body.is_valid():
+		excludes.append(excluded_body)
 	if is_instance_valid(player):
 		excludes.append(player.get_rid())
 	if is_instance_valid(world):
@@ -90,7 +92,7 @@ func _ground_height(at: Vector3) -> float:
 				excludes.append((balloon as CollisionObject3D).get_rid())
 	ray.exclude = excludes
 	var hit: Dictionary = space.intersect_ray(ray)
-	return float(hit.position.y) - 0.02 if not hit.is_empty() else at.y
+	return float(hit.position.y) - 0.02 if not hit.is_empty() else (at.y if is_nan(no_hit_height) else no_hit_height)
 
 ## ---------------------------------------------------------------- model
 func _ensure_barrel_assets() -> void:
@@ -343,7 +345,7 @@ func _update_prompt() -> void:
 			var cart: Variant = catapult_host.get("_cart")
 			if is_instance_valid(cart) and is_instance_valid(player):
 				near_catapult = player.global_position.distance_to((cart as Node3D).global_position) < 4.0
-		if near_catapult:
+		if near_catapult and not _prefer_horse_over_catapult():
 			text = "Зарядить катапульту"
 		elif near_horse:
 			text = "Люлька занята" if horse_has else "Поставить на лошадь"
@@ -642,7 +644,9 @@ func throw_carried() -> bool:
 	var heading := float(player.get("_heading"))
 	var forward := Vector3(-sin(heading), 0.0, -cos(heading))
 	var at := player.global_position + forward * 1.15 + Vector3.UP * 0.72
-	var velocity := forward * 6.6 + Vector3.UP * 3.6
+	# Native displacement includes moving-deck motion as well as walking/jumping.
+	# Preserve it once at release; the throw remains relative to the carrier.
+	var velocity := forward * 6.6 + Vector3.UP * 3.6 + player.get_real_velocity()
 	var barrel: Node3D = _barrel_model(self, false)
 	barrel.global_position = at
 	barrel.rotation = Vector3(-0.42, heading, 0.0)
@@ -699,11 +703,29 @@ func carry_from_slot(model: Node3D) -> bool:
 	print("DSH_BARRELS_PICKUP_FLOOR")
 	return true
 
+func _prefer_horse_over_catapult() -> bool:
+	if not is_instance_valid(world) or not is_instance_valid(player):
+		return false
+	var horse_host: Variant = world.get("preview_horse_mount")
+	if not is_instance_valid(horse_host):
+		return false
+	var horse_node := horse_host.get("horse") as Node3D
+	if not is_instance_valid(horse_node):
+		return false
+	var horse_distance := player.global_position.distance_to(horse_node.global_position)
+	if horse_distance >= 3.0:
+		return false
+	var catapult: Variant = world.get("preview_catapult")
+	if not is_instance_valid(catapult):
+		return true
+	var cart := catapult.get("_cart") as Node3D
+	return not is_instance_valid(cart) or horse_distance <= player.global_position.distance_to(cart.global_position)
+
 func place_carried() -> bool:
 	if not carrying or not is_instance_valid(world) or not is_instance_valid(player):
 		return false
 	var catapult: Variant = world.get("preview_catapult")
-	if is_instance_valid(catapult) and catapult.has_method("load_barrel"):
+	if is_instance_valid(catapult) and catapult.has_method("load_barrel") and not _prefer_horse_over_catapult():
 		var cart: Variant = catapult.get("_cart")
 		if is_instance_valid(cart) and player.global_position.distance_to((cart as Node3D).global_position) < 4.0:
 			if bool(catapult.call("load_barrel", self)):
@@ -881,7 +903,10 @@ func _update_falling(delta: float) -> void:
 		var space: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
 		var query := PhysicsRayQueryParameters3D.create(from, to)
 		query.collision_mask = 1
-		var excluded: Array[RID] = _machine_excluded()
+		var excluded: Array[RID] = _machine_excluded().duplicate()
+		var own_body := node.get_node_or_null("PowderBody") as CollisionObject3D
+		if is_instance_valid(own_body):
+			excluded.append(own_body.get_rid())
 		if is_instance_valid(player):
 			excluded.append(player.get_rid())
 		query.exclude = excluded
@@ -903,8 +928,11 @@ func _update_falling(delta: float) -> void:
 			continue
 		node.global_position = to
 		entry["velocity"] = velocity
-		var ground := _ground_height(node.global_position)
-		if age > 12.0 or (velocity.y < 0.0 and node.global_position.y <= ground + 0.15):
+		# The barrel's own shell is not ground. A missing ground ray also means
+		# free fall, not an impact at the current altitude.
+		var ground := _ground_height(node.global_position,
+			own_body.get_rid() if is_instance_valid(own_body) else RID(), -INF)
+		if velocity.y < 0.0 and node.global_position.y <= ground + 0.15:
 			explode_at(Vector3(node.global_position.x, ground + 0.1, node.global_position.z))
 			barrels.erase(node)
 			node.queue_free()

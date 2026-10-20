@@ -818,7 +818,7 @@ func _physics_process(delta: float) -> void:
 	velocity.x = move_toward(velocity.x, direction.x * speed, acceleration * delta)
 	velocity.z = move_toward(velocity.z, direction.z * speed, acceleration * delta)
 	var bow_facing: bool = is_instance_valid(_bow_host) and _bow_host.owns_player_facing()
-	if direction.length_squared() > 0.001 and not bow_facing:
+	if direction.length_squared() > 0.001 and not bow_facing and not _sword_steering():
 		var target_heading: float = atan2(-direction.x, -direction.z)
 		_heading = lerp_angle(_heading, target_heading, minf(1.0, delta * 12.0))
 		_visual.rotation.y = _heading + deg_to_rad(visual_yaw_degrees)
@@ -832,6 +832,7 @@ func _physics_process(delta: float) -> void:
 	var corpse_contact_start: Dictionary = _corpse_contact_sampler.begin(self) if _corpse_contact_sampler != null and not typing else {}
 	_ground_move_start = global_position
 	move_and_slide()
+	_push_melee_corpse33(drive_velocity + contact_push, delta)
 	if not contact_push.is_zero_approx():
 		# Preserve native wall response in the locomotion component too. Vertical
 		# velocity and actual displacement remain the solver's completed result.
@@ -855,6 +856,30 @@ func _physics_process(delta: float) -> void:
 			velocity.y = source_fall_next_velocity
 	_update_owned_pose(delta)
 
+
+## CharacterBody sweeps stop at rigid corpses but do not transfer momentum.
+## Use only contacts returned by this sweep, once per body, along its surface.
+func _push_melee_corpse33(requested_velocity: Vector3, delta: float) -> void:
+	if not requested_velocity.is_finite() or delta <= 0.0: return
+	var pushed: Dictionary = {}
+	for slide_index: int in get_slide_collision_count():
+		var collision := get_slide_collision(slide_index)
+		for contact_index: int in collision.get_collision_count():
+			var corpse := collision.get_collider(contact_index) as RigidBody3D
+			if not is_instance_valid(corpse) or corpse.freeze or not corpse.get_meta("melee_corpse33", false): continue
+			if pushed.has(corpse.get_instance_id()): continue
+			var normal := collision.get_normal(contact_index)
+			if absf(normal.y) > 0.7: continue
+			var push := Vector3(-normal.x, 0.0, -normal.z).normalized()
+			var body_speed := corpse.linear_velocity.dot(push)
+			var closing := maxf(0.0, requested_velocity.dot(push) - body_speed)
+			closing = minf(closing, maxf(0.0, 1.5 - body_speed))
+			if closing < 0.001: continue
+			# Finite 80 kg player / corpse reduced mass, bounded acceleration.
+			var reduced_mass := 80.0 * corpse.mass / (80.0 + corpse.mass)
+			var impulse := minf(closing * reduced_mass, corpse.mass * 12.0 * delta)
+			corpse.apply_impulse(push * impulse, collision.get_position(contact_index) - corpse.global_position)
+			pushed[corpse.get_instance_id()] = true
 
 ## Only the validated local player-health owner calls this after consuming its
 ## contact proof. No position change occurs here; next ground sweep applies it.
@@ -1375,9 +1400,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		var motion: InputEventMouseMotion = event as InputEventMouseMotion
 		if is_instance_valid(_weapon_host) and _weapon_host.controls_blocked(): return
 		if _free_mouse_look and not _text_control_focused():
-			# The prototype sword no longer freezes the view: the same motion both
-			# steers the blade and turns the camera, so the player can look around
-			# while holding LMB/RMB.
+			# Held melee owns angular input; translation and camera follow remain live.
+			if _sword_steering(): return
 			_camera_yaw -= motion.relative.x * mouse_sensitivity
 			var pitch_limits: Vector2=_weapon_host.aim_camera.pitch_limits() if is_instance_valid(_weapon_host) and _weapon_host.aim_camera!=null else Vector2(-1.05,.45)
 			_camera_pitch = clampf(_camera_pitch - motion.relative.y * mouse_sensitivity, pitch_limits.x, pitch_limits.y)

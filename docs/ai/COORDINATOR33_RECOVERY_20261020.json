@@ -1,0 +1,1385 @@
+{
+  "schema": "mafiozi.coordinator33.recovery-checkpoint/v1",
+  "created_utc": "2026-10-20T16:34:48.002516+00:00",
+  "root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+  "baseline": "17b17704b4510bae65117207c50505b655d9fff2",
+  "status": "Recovery checkpoint, before latest raised-arm reference refinement; not a new accepted release",
+  "source_pins": {
+    "godot/mafiozi_walk/scripts/city/battlefield_props.gd": "91b26d745ed4f67c61d7bb9f44fdf8f8406b958322e964aac6513063496c95ea",
+    "godot/mafiozi_walk/scripts/city/castle_armory_storage.gd": "29d2198434764f20a375a9ba8d9466d13a9ec33166a07363b4c3bc8d271ba73f",
+    "godot/mafiozi_walk/scripts/city/castle_site.gd": "654c9b09cf21a270d2e8e9898fde769f3c40a73d150f15d375de65798bfe9aa4",
+    "godot/mafiozi_walk/scripts/combat/castle_armor_visual.gd": "33f513047445bb73111da453e7524684c8a1f1d5dce03b5f156c70ad26aa6b66",
+    "godot/mafiozi_walk/scripts/mount/horse.gd": "25e0a386b853b45862a9ec86d5109daa629f8c2698365e583799b56bded74990",
+    "godot/mafiozi_walk/scripts/mount/horse_mount_host.gd": "bcf779f2ae7a0678ab5b03cfabf8b70c904a62ac01e4d13f0bb49d7761771c15",
+    "godot/mafiozi_walk/scripts/preview_player.gd": "2e7f522a956abe8528fd736e535f6531a004f7bff57b4b4939719c0619636ca4",
+    "godot/mafiozi_walk/scripts/ship/ship_battle_host.gd": "74d575d1ed0283833f5f9a4554188d5ab2a501c0d80b9ad717aa95425431fe8a",
+    "godot/mafiozi_walk/scripts/ship/ship_boat.gd": "f41ff96e2f0121b985b2bf03edfce1924151d2f81ed59cca605f0cfd4f8b8fd8",
+    "godot/mafiozi_walk/scripts/ship/ship_model.gd": "688c2fdd522112703b12751bef6c6515008b7f91563578e7ffe2596019a1145f",
+    "godot/mafiozi_walk/scripts/siege/powder_barrel_host.gd": "7afb295db13934640d1da78c70180d6c07e910ce5afd564a43d90c14554fe726",
+    "godot/mafiozi_walk/scripts/siege/siege_ram_tower_body.gd": "12ad13be254d115065f9b69059516f2e47feaaa67cb93418244e1906fef10431",
+    "godot/mafiozi_walk/scripts/weapons/catapult_prototype.gd": "53c1deac2649e2ada0476d12b516dd0cec23808bf264280e54ef7d1d83a5ef54",
+    "godot/mafiozi_walk/scripts/weapons/mesh_sever.gd": "cb34fda96a053a6eb815d8430d0b9495788dda6a98f79cad057579c28c25f88f",
+    "godot/mafiozi_walk/scripts/weapons/sword_prototype.gd": "a3a2d36a306f3ca4c73eb78278d4c200c48c2c9363be6d93d518225bd354e9cd"
+  },
+  "preservation": {
+    "previous_descendants": 11,
+    "active_previous_descendants": 0,
+    "final_answers": 24,
+    "handoff_reports": 33,
+    "original_tasks_exact": 2,
+    "original_tasks_encrypted": 9,
+    "local_registry": "D:\\MafioziCombat31\\c33_coordination\\agents\\task_preservation3\\REGISTRY.json"
+  },
+  "continuation_tasks": {
+    "schema": "mafiozi.continuation-tasks/v1",
+    "task_count": 27,
+    "groups": {
+      "S": 10,
+      "P": 7,
+      "C": 5,
+      "D": 3,
+      "I": 2
+    },
+    "PLAN_source": "D:\\MafioziCombat31\\c33_coordination\\PLAN.json",
+    "PLAN_sha256": "6ab5dea14f5897496d21b110fdef38da519ecf1ceeec7384e91ed497b8c968e5",
+    "note": "В фактическом PLAN27 требований, не31. Исходные статусы сохранены как исторические; latest статусы ограничены evidence и не означают release acceptance.",
+    "tasks": [
+      {
+        "id": "S01",
+        "requirement_verbatim": "Две физические лестницы к штурвалу",
+        "legacy_owner_verbatim": "ship",
+        "legacy_PLAN_status_stale_snapshot": "native_verified_gui_pending",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/world_acceptance3",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a159a2-6a49-7553-a93b-39948e6ef04d",
+          "01a15992-2c9c-7e82-8389-88aeff9bce09"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "PASS_NATIVE_AND_RENDERED",
+        "latest_world_matrix_entry": {
+          "requirement": "S01",
+          "status": "PASS_NATIVE_AND_RENDERED",
+          "receipt": {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\route_run\\SCHEDULER_RUN.json",
+            "sha256": "c478dbb6fdd47f43c524747b44c175d70206bee0fabcaeeebae116c0c4732cbe",
+            "passed": true,
+            "exit_code": 0,
+            "stderr_bytes": 0
+          },
+          "checks": 17,
+          "bounds": "Both port/starboard physical stairs ascended/descended with player movement actions. Images inspected."
+        },
+        "remaining_work": "Сохранить scoped границы и exact pins; итоговая совместная приёмка и публикация root.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\ship\\REPORT.json",
+            "exists": true,
+            "sha256": "fd0d1f71320ac20fec7f2196d9a1dd768376f9bae2b5513ad0d0617b32d8e645"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\ship\\routes04\\SCHEDULER_RUN.json",
+            "exists": true,
+            "sha256": "7cdf41e3bf6aa165ea3cd7a33a8f7dc7c8808649ab22ef150cd3d03b3400f31f"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\RESULT.json",
+            "exists": true,
+            "sha256": "d6d669d539d9d2fd012d6ef4b64ac5bd30e14ae3c169d4dc642ac2f4253744ad"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\HANDOFF.md",
+            "exists": true,
+            "sha256": "eed3b1edfe474a8236a8540fd48808bf763c0234785c6b72ce385b93b3164621"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "27cb666e3187f63fbd3e8cf3550c9b99576d84e0d0a1b341b22402d69a728aa6"
+          }
+        ]
+      },
+      {
+        "id": "S02",
+        "requirement_verbatim": "Физический вход и выход из каюты",
+        "legacy_owner_verbatim": "ship",
+        "legacy_PLAN_status_stale_snapshot": "native_verified_gui_pending",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/world_acceptance3",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a159a2-6a49-7553-a93b-39948e6ef04d",
+          "01a15992-2c9c-7e82-8389-88aeff9bce09"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "PASS_NATIVE_AND_RENDERED",
+        "latest_world_matrix_entry": {
+          "requirement": "S02",
+          "status": "PASS_NATIVE_AND_RENDERED",
+          "receipt": {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\route_run\\SCHEDULER_RUN.json",
+            "sha256": "c478dbb6fdd47f43c524747b44c175d70206bee0fabcaeeebae116c0c4732cbe",
+            "passed": true,
+            "exit_code": 0,
+            "stderr_bytes": 0
+          },
+          "checks": 17,
+          "bounds": "Cabin entry and exit; physical positions and inspected views. Routes use initial player positioning before actions."
+        },
+        "remaining_work": "Сохранить scoped границы и exact pins; итоговая совместная приёмка и публикация root.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\ship\\REPORT.json",
+            "exists": true,
+            "sha256": "fd0d1f71320ac20fec7f2196d9a1dd768376f9bae2b5513ad0d0617b32d8e645"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\ship\\routes04\\SCHEDULER_RUN.json",
+            "exists": true,
+            "sha256": "7cdf41e3bf6aa165ea3cd7a33a8f7dc7c8808649ab22ef150cd3d03b3400f31f"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\RESULT.json",
+            "exists": true,
+            "sha256": "d6d669d539d9d2fd012d6ef4b64ac5bd30e14ae3c169d4dc642ac2f4253744ad"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\HANDOFF.md",
+            "exists": true,
+            "sha256": "eed3b1edfe474a8236a8540fd48808bf763c0234785c6b72ce385b93b3164621"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "27cb666e3187f63fbd3e8cf3550c9b99576d84e0d0a1b341b22402d69a728aa6"
+          }
+        ]
+      },
+      {
+        "id": "S03",
+        "requirement_verbatim": "Перенос ядра по образцу камня катапульты",
+        "legacy_owner_verbatim": "ship",
+        "legacy_PLAN_status_stale_snapshot": "current_source_native_cycle_verified",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/world_acceptance3",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a159a2-6a49-7553-a93b-39948e6ef04d",
+          "01a15992-2c9c-7e82-8389-88aeff9bce09"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "PASS_SCOPED_REUSED",
+        "latest_world_matrix_entry": {
+          "requirement": "S03",
+          "status": "PASS_SCOPED_REUSED",
+          "receipt": {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\ship\\resume_carry01\\SCHEDULER_RUN.json",
+            "sha256": "bf0a6ce5b00bfd902a654eb85a7e199c8ad3595ee12804a69c8cb344748aba9f",
+            "passed": true,
+            "exit_code": 0,
+            "stderr_bytes": 0
+          },
+          "checks": 7,
+          "bounds": "E pickup→walk carrying→G drop→E repickup→E load on moving deck; ship source unchanged. Carry front image inspected; prior player differs, fresh P03 separately exercises G item dispatch."
+        },
+        "remaining_work": "Сохранить scoped границы и exact pins; итоговая совместная приёмка и публикация root.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\ship\\S07_S03_REPORT.json",
+            "exists": true,
+            "sha256": "54e28e72dcfd87c7c9aa210090ad43c93cd4a0a2bd09ca4b8191ab3b23327049"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\ship\\carry_chain03\\SCHEDULER_RUN.json",
+            "exists": true,
+            "sha256": "5c6a077ccc518e591c856719b38cffbf027906459b738fb419913027841740f0"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\RESULT.json",
+            "exists": true,
+            "sha256": "d6d669d539d9d2fd012d6ef4b64ac5bd30e14ae3c169d4dc642ac2f4253744ad"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\HANDOFF.md",
+            "exists": true,
+            "sha256": "eed3b1edfe474a8236a8540fd48808bf763c0234785c6b72ce385b93b3164621"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "27cb666e3187f63fbd3e8cf3550c9b99576d84e0d0a1b341b22402d69a728aa6"
+          }
+        ]
+      },
+      {
+        "id": "S04",
+        "requirement_verbatim": "Визуальное улучшение корабля",
+        "legacy_owner_verbatim": "ship",
+        "legacy_PLAN_status_stale_snapshot": "in_progress",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/world_acceptance3",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a159a2-6a49-7553-a93b-39948e6ef04d",
+          "01a15992-2c9c-7e82-8389-88aeff9bce09"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "PASS_SCOPED_REUSED",
+        "latest_world_matrix_entry": {
+          "requirement": "S04",
+          "status": "PASS_SCOPED_REUSED",
+          "receipt": {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\model\\integrated_gui01\\SCHEDULER_RUN.json",
+            "sha256": "0626b8d47d4a6bec847bf1fd49439e8218097619c8040230a9a387e323f52420",
+            "passed": true,
+            "exit_code": 0,
+            "stderr_bytes": 0
+          },
+          "checks": 41,
+          "bounds": "Integrated furled/under-sail/attachment views inspected. Model styling objectively present; user subjective approval not assumed."
+        },
+        "remaining_work": "Сохранить scoped границы и exact pins; итоговая совместная приёмка и публикация root.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\RESULT.json",
+            "exists": true,
+            "sha256": "d6d669d539d9d2fd012d6ef4b64ac5bd30e14ae3c169d4dc642ac2f4253744ad"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\HANDOFF.md",
+            "exists": true,
+            "sha256": "eed3b1edfe474a8236a8540fd48808bf763c0234785c6b72ce385b93b3164621"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "27cb666e3187f63fbd3e8cf3550c9b99576d84e0d0a1b341b22402d69a728aa6"
+          }
+        ]
+      },
+      {
+        "id": "S05",
+        "requirement_verbatim": "Поэлементное разрушение корпуса и сегментов мачт",
+        "legacy_owner_verbatim": "ship",
+        "legacy_PLAN_status_stale_snapshot": "current_source_native_verified_graphical_evidence_audit",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/world_acceptance3",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a159a2-6a49-7553-a93b-39948e6ef04d",
+          "01a15992-2c9c-7e82-8389-88aeff9bce09"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "PASS_CURRENT_NATIVE_AND_RENDERED",
+        "latest_world_matrix_entry": {
+          "requirement": "S05",
+          "status": "PASS_CURRENT_NATIVE_AND_RENDERED",
+          "receipt": {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\mast_run\\SCHEDULER_RUN.json",
+            "sha256": "df1e84f84cd57f7a624eb330a63f446c1c15a30de677013c67b6e75d56fcef82",
+            "passed": true,
+            "exit_code": 0,
+            "stderr_bytes": 0
+          },
+          "checks": 34,
+          "bounds": "Real projectile hits independent upper/lower convex segment colliders; HP100/80; upper falling with lower intact; lower cascade detaches two rigid bodies. Current-source GUI closes older boat84f8 gap."
+        },
+        "remaining_work": "Сохранить scoped границы и exact pins; итоговая совместная приёмка и публикация root.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\qa\\mast_current01\\SCHEDULER_RUN.json",
+            "exists": true,
+            "sha256": "f2b67ae21a7a0f7607455d062f2e5252a8c95ab4199dac6ce9ba1a4d3f8e4180"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\mast_integration\\HANDOFF.json",
+            "exists": true,
+            "sha256": "e93387e407ef298ff554ac525f91a1a2a36a128f243f30630a3eb9da40761726"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\RESULT.json",
+            "exists": true,
+            "sha256": "d6d669d539d9d2fd012d6ef4b64ac5bd30e14ae3c169d4dc642ac2f4253744ad"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\HANDOFF.md",
+            "exists": true,
+            "sha256": "eed3b1edfe474a8236a8540fd48808bf763c0234785c6b72ce385b93b3164621"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "27cb666e3187f63fbd3e8cf3550c9b99576d84e0d0a1b341b22402d69a728aa6"
+          }
+        ]
+      },
+      {
+        "id": "S06",
+        "requirement_verbatim": "Проверенное затопление после пробоин",
+        "legacy_owner_verbatim": "ship",
+        "legacy_PLAN_status_stale_snapshot": "target_and_player_sink_native_verified",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/world_acceptance3",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a159a2-6a49-7553-a93b-39948e6ef04d",
+          "01a15992-2c9c-7e82-8389-88aeff9bce09"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "PASS_SCOPED_REUSED",
+        "latest_world_matrix_entry": {
+          "requirement": "S06",
+          "status": "PASS_SCOPED_REUSED",
+          "receipt": {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\ship_sink_gui\\scheduler02\\SCHEDULER_RUN.json",
+            "sha256": "f17a272239cf4bc6f40be2f4b2dbb1c1bffeba2e8e52fd4f60197a8a8310990e",
+            "passed": true,
+            "exit_code": 0,
+            "stderr_bytes": 0
+          },
+          "checks": 25,
+          "bounds": "Exact current five ship/powder sources; four actual barrel blasts, flooding/sunk transform/body alignment, unusable ship. Three stage images inspected."
+        },
+        "remaining_work": "Сохранить scoped границы и exact pins; итоговая совместная приёмка и публикация root.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\qa\\target_current01\\SCHEDULER_RUN.json",
+            "exists": true,
+            "sha256": "8927820c23176848ce9b69cd578f64f2d6b955840aced9ef9f8f5b420e3bd3a3"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\qa\\player_sink02\\SCHEDULER_RUN.json",
+            "exists": true,
+            "sha256": "2f1ab712b777c7becb2408682ec635d7f3976ba0f5213bfb8c35db66c9a1717e"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\RESULT.json",
+            "exists": true,
+            "sha256": "d6d669d539d9d2fd012d6ef4b64ac5bd30e14ae3c169d4dc642ac2f4253744ad"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\HANDOFF.md",
+            "exists": true,
+            "sha256": "eed3b1edfe474a8236a8540fd48808bf763c0234785c6b72ce385b93b3164621"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "27cb666e3187f63fbd3e8cf3550c9b99576d84e0d0a1b341b22402d69a728aa6"
+          }
+        ]
+      },
+      {
+        "id": "S07",
+        "requirement_verbatim": "Прицел и реальные выстрелы пушек без просмотра через корпус",
+        "legacy_owner_verbatim": "ship",
+        "legacy_PLAN_status_stale_snapshot": "current_source_20shots_and_rendered_gunports_verified",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/world_acceptance3",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a159a2-6a49-7553-a93b-39948e6ef04d",
+          "01a15992-2c9c-7e82-8389-88aeff9bce09"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "PASS_SCOPED_REUSED",
+        "latest_world_matrix_entry": {
+          "requirement": "S07",
+          "status": "PASS_SCOPED_REUSED",
+          "receipt": {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\ship\\cannon_fire_strict03\\SCHEDULER_RUN.json",
+            "sha256": "efd9a670ff38f0aff9cbe17e51df97ad4166cd1c423121be79c0601ea4be979e",
+            "passed": true,
+            "exit_code": 0,
+            "stderr_bytes": 0
+          },
+          "checks": 20,
+          "bounds": "Four actual guns × five aim poses, 20 shots, own_ship_hits0. Current ship/test pins match. Neutral actual gun camera and isolated port view inspected."
+        },
+        "remaining_work": "Сохранить scoped границы и exact pins; итоговая совместная приёмка и публикация root.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\ship\\S07_S03_REPORT.json",
+            "exists": true,
+            "sha256": "54e28e72dcfd87c7c9aa210090ad43c93cd4a0a2bd09ca4b8191ab3b23327049"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\model\\PORTS_ACCEPTANCE.json",
+            "exists": true,
+            "sha256": "0dba7acb461e4d1aa28be3cae9432ca23f3cd579a09c66cba28ab5fba0c27860"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\RESULT.json",
+            "exists": true,
+            "sha256": "d6d669d539d9d2fd012d6ef4b64ac5bd30e14ae3c169d4dc642ac2f4253744ad"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\HANDOFF.md",
+            "exists": true,
+            "sha256": "eed3b1edfe474a8236a8540fd48808bf763c0234785c6b72ce385b93b3164621"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "27cb666e3187f63fbd3e8cf3550c9b99576d84e0d0a1b341b22402d69a728aa6"
+          }
+        ]
+      },
+      {
+        "id": "S08",
+        "requirement_verbatim": "Прыжок на движущемся корабле с сохранением движения",
+        "legacy_owner_verbatim": "ship",
+        "legacy_PLAN_status_stale_snapshot": "native_verified",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/world_acceptance3",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a159a2-6a49-7553-a93b-39948e6ef04d",
+          "01a15992-2c9c-7e82-8389-88aeff9bce09"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "PASS_NATIVE_AND_RENDERED",
+        "latest_world_matrix_entry": {
+          "requirement": "S08",
+          "status": "PASS_NATIVE_AND_RENDERED",
+          "receipt": {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\jump_run\\SCHEDULER_RUN.json",
+            "sha256": "660cb5d623de9e31d2924dfd250f6afaa21c778c5266141be3972b322f34b09d",
+            "passed": true,
+            "exit_code": 0,
+            "stderr_bytes": 0
+          },
+          "checks": 8,
+          "bounds": "Space synthetic input; main/upper decks airborne and landing while sailing. Images inspected; inherited motion numerical checks passed."
+        },
+        "remaining_work": "Сохранить scoped границы и exact pins; итоговая совместная приёмка и публикация root.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\ship\\S08_REPORT.json",
+            "exists": true,
+            "sha256": "ca19809b0d411d506789d7c4c818a6032aa952893b5137ad9966cc881f01949b"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\RESULT.json",
+            "exists": true,
+            "sha256": "d6d669d539d9d2fd012d6ef4b64ac5bd30e14ae3c169d4dc642ac2f4253744ad"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\HANDOFF.md",
+            "exists": true,
+            "sha256": "eed3b1edfe474a8236a8540fd48808bf763c0234785c6b72ce385b93b3164621"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "27cb666e3187f63fbd3e8cf3550c9b99576d84e0d0a1b341b22402d69a728aa6"
+          }
+        ]
+      },
+      {
+        "id": "S09",
+        "requirement_verbatim": "Разрушение от ядра, катапульты и пороховой бочки",
+        "legacy_owner_verbatim": "ship",
+        "legacy_PLAN_status_stale_snapshot": "current_source_real_impacts_verified",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/world_acceptance3",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a159a2-6a49-7553-a93b-39948e6ef04d",
+          "01a15992-2c9c-7e82-8389-88aeff9bce09"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "PASS_CURRENT_NATIVE_REUSED",
+        "latest_world_matrix_entry": {
+          "requirement": "S09",
+          "status": "PASS_CURRENT_NATIVE_REUSED",
+          "receipt": {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\qa\\siege_final01\\SCHEDULER_RUN.json",
+            "sha256": "46b4246268fbd37d367c8858fa86b6c647bfa741e4aca1919950fc06481061e1",
+            "passed": true,
+            "exit_code": 0,
+            "stderr_bytes": 0
+          },
+          "checks": null,
+          "bounds": "Exact current catapult/ship/powder pins. Real catapult hull hole; thrown barrel hull hole/flood. Separate rail_fix01 proves rail120→0 without adjacent cannon damage. No fresh impact animation GUI claim."
+        },
+        "remaining_work": "Сохранить scoped границы и exact pins; итоговая совместная приёмка и публикация root.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\qa\\rail_fix01\\SCHEDULER_RUN.json",
+            "exists": true,
+            "sha256": "7da09b3f2610c81463ec390581dfda93346205152d59556b395e72a2bf0630b5"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\qa\\siege_final01\\SCHEDULER_RUN.json",
+            "exists": true,
+            "sha256": "46b4246268fbd37d367c8858fa86b6c647bfa741e4aca1919950fc06481061e1"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\RESULT.json",
+            "exists": true,
+            "sha256": "d6d669d539d9d2fd012d6ef4b64ac5bd30e14ae3c169d4dc642ac2f4253744ad"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\HANDOFF.md",
+            "exists": true,
+            "sha256": "eed3b1edfe474a8236a8540fd48808bf763c0234785c6b72ce385b93b3164621"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "27cb666e3187f63fbd3e8cf3550c9b99576d84e0d0a1b341b22402d69a728aa6"
+          }
+        ]
+      },
+      {
+        "id": "S10",
+        "requirement_verbatim": "Прикрепленные динамические канаты парусов",
+        "legacy_owner_verbatim": "ship",
+        "legacy_PLAN_status_stale_snapshot": "model_dynamics_verified_integrated_gui_in_progress",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/world_acceptance3",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a159a2-6a49-7553-a93b-39948e6ef04d",
+          "01a15992-2c9c-7e82-8389-88aeff9bce09"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "PASS_SCOPED_REUSED",
+        "latest_world_matrix_entry": {
+          "requirement": "S10",
+          "status": "PASS_SCOPED_REUSED",
+          "receipt": {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\model\\integrated_gui01\\SCHEDULER_RUN.json",
+            "sha256": "0626b8d47d4a6bec847bf1fd49439e8218097619c8040230a9a387e323f52420",
+            "passed": true,
+            "exit_code": 0,
+            "stderr_bytes": 0
+          },
+          "checks": 41,
+          "bounds": "Current host/boat/model; 12 visual Verlet rope chains, 72 segments, attached endpoints and wind/motion changes. Three inspected integrated views. Severed ropes hide; no physical rope remnants."
+        },
+        "remaining_work": "Сохранить scoped границы и exact pins; итоговая совместная приёмка и публикация root.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\model\\PORTS_ACCEPTANCE.json",
+            "exists": true,
+            "sha256": "0dba7acb461e4d1aa28be3cae9432ca23f3cd579a09c66cba28ab5fba0c27860"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\RESULT.json",
+            "exists": true,
+            "sha256": "d6d669d539d9d2fd012d6ef4b64ac5bd30e14ae3c169d4dc642ac2f4253744ad"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\HANDOFF.md",
+            "exists": true,
+            "sha256": "eed3b1edfe474a8236a8540fd48808bf763c0234785c6b72ce385b93b3164621"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "27cb666e3187f63fbd3e8cf3550c9b99576d84e0d0a1b341b22402d69a728aa6"
+          }
+        ]
+      },
+      {
+        "id": "P01",
+        "requirement_verbatim": "Анимация плавания из walk",
+        "legacy_owner_verbatim": "physics_swim",
+        "legacy_PLAN_status_stale_snapshot": "native_pose_verified_gui_pending",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/world_acceptance3",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [],
+        "legacy_external_owner_note": "Вода/первый ship owner — отдельные user-owned чаты за пределами данного11-child graph; их результаты присутствуют в world matrix.",
+        "latest_status_bounded": "PASS_NATIVE_AND_RENDERED",
+        "latest_world_matrix_entry": {
+          "requirement": "P01",
+          "status": "PASS_NATIVE_AND_RENDERED",
+          "receipt": {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\swim_run\\SCHEDULER_RUN.json",
+            "sha256": "39b36754539d170a1eb32e59af77c1b7405212745d24f3233ee50c987ed33a2b",
+            "passed": true,
+            "exit_code": 0,
+            "stderr_bytes": 0
+          },
+          "checks": 17,
+          "bounds": "Current player2e7f52: two swimming stroke phases visibly differ; walk→swim→shore standing inspected."
+        },
+        "remaining_work": "Сохранить scoped границы и exact pins; итоговая совместная приёмка и публикация root.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\water\\REPORT.md",
+            "exists": true,
+            "sha256": "3cfd6591e75086469436c9092df1029cac3570acd9b06c94a2616e90be39c95e"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\water\\player_pose_probe04\\SCHEDULER_RUN.json",
+            "exists": true,
+            "sha256": "197e3abe47c5d0f389e1eb76aadfe4c14543ebc3add0bf8d9a40adb83b5fa67a"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\RESULT.json",
+            "exists": true,
+            "sha256": "d6d669d539d9d2fd012d6ef4b64ac5bd30e14ae3c169d4dc642ac2f4253744ad"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\HANDOFF.md",
+            "exists": true,
+            "sha256": "eed3b1edfe474a8236a8540fd48808bf763c0234785c6b72ce385b93b3164621"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "27cb666e3187f63fbd3e8cf3550c9b99576d84e0d0a1b341b22402d69a728aa6"
+          }
+        ]
+      },
+      {
+        "id": "P02",
+        "requirement_verbatim": "Коллизии при плавании и физический выход на берег",
+        "legacy_owner_verbatim": "physics_swim",
+        "legacy_PLAN_status_stale_snapshot": "shore_verified_obstacle_checks_pending",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/world_acceptance3",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [],
+        "legacy_external_owner_note": "Вода/первый ship owner — отдельные user-owned чаты за пределами данного11-child graph; их результаты присутствуют в world matrix.",
+        "latest_status_bounded": "PASS_NATIVE_AND_RENDERED",
+        "latest_world_matrix_entry": {
+          "requirement": "P02",
+          "status": "PASS_NATIVE_AND_RENDERED",
+          "receipt": {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\swim_run\\SCHEDULER_RUN.json",
+            "sha256": "39b36754539d170a1eb32e59af77c1b7405212745d24f3233ee50c987ed33a2b",
+            "passed": true,
+            "exit_code": 0,
+            "stderr_bytes": 0
+          },
+          "checks": 17,
+          "bounds": "Current player: physical shore exit plus wall, low-overhead slab and actual ship hull blocking, slide collision and swimming state checks."
+        },
+        "remaining_work": "Сохранить scoped границы и exact pins; итоговая совместная приёмка и публикация root.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\water\\player_pose_probe04\\SCHEDULER_RUN.json",
+            "exists": true,
+            "sha256": "197e3abe47c5d0f389e1eb76aadfe4c14543ebc3add0bf8d9a40adb83b5fa67a"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\RESULT.json",
+            "exists": true,
+            "sha256": "d6d669d539d9d2fd012d6ef4b64ac5bd30e14ae3c169d4dc642ac2f4253744ad"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\HANDOFF.md",
+            "exists": true,
+            "sha256": "eed3b1edfe474a8236a8540fd48808bf763c0234785c6b72ce385b93b3164621"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "27cb666e3187f63fbd3e8cf3550c9b99576d84e0d0a1b341b22402d69a728aa6"
+          }
+        ]
+      },
+      {
+        "id": "P03",
+        "requirement_verbatim": "Выброс бочек G с корабля, падение и плавучесть",
+        "legacy_owner_verbatim": "physics_swim",
+        "legacy_PLAN_status_stale_snapshot": "G_throw_inherited_velocity_native_verified_gui_pending",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/world_acceptance3",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a159a2-91c1-7b32-839b-5b3a5ce03909"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "PASS_ENGINE_INPUT_AND_RENDERED",
+        "latest_world_matrix_entry": {
+          "requirement": "P03",
+          "status": "PASS_ENGINE_INPUT_AND_RENDERED",
+          "receipt": {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\throw_run\\SCHEDULER_RUN.json",
+            "sha256": "29b2367fe019599d54dfab341f6d9ba36d88a62c60dadc142e3c9b65ea456647",
+            "passed": true,
+            "exit_code": 0,
+            "stderr_bytes": 0
+          },
+          "checks": 24,
+          "bounds": "Full-tree synthetic G from sailing deck; inherited ship component2.245m/s at ship2.2m/s; live130 physics ticks to float. Five observer-camera PNGs inspected, visible release/flight/float."
+        },
+        "remaining_work": "Сохранить scoped границы и exact pins; итоговая совместная приёмка и публикация root.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\verification\\BARREL_FIX_PROGRESS.json",
+            "exists": true,
+            "sha256": "68823815e1410c1c08ec21cedd9bb5c1105e3a2d4549dd6dddf43adcb8bde4c7"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\verification\\barrels_nearest02\\SCHEDULER_RUN.json",
+            "exists": true,
+            "sha256": "d8137640fbc61e69826cf05a7e8447ebbbffdb7458d94af155eeda77126b4e3b"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\powder_velocity\\REPORT.json",
+            "exists": true,
+            "sha256": "02429c462b489d08423d1eabca7373e9acf91f4012965675bf1fa4523d730211"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\RESULT.json",
+            "exists": true,
+            "sha256": "d6d669d539d9d2fd012d6ef4b64ac5bd30e14ae3c169d4dc642ac2f4253744ad"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\HANDOFF.md",
+            "exists": true,
+            "sha256": "eed3b1edfe474a8236a8540fd48808bf763c0234785c6b72ce385b93b3164621"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "27cb666e3187f63fbd3e8cf3550c9b99576d84e0d0a1b341b22402d69a728aa6"
+          }
+        ]
+      },
+      {
+        "id": "P04",
+        "requirement_verbatim": "Падение всех выброшенных предметов с воздушного шара",
+        "legacy_owner_verbatim": "armory_drop + combat_controls_resume + water",
+        "legacy_PLAN_status_stale_snapshot": "armory_scope28_PASS_independent_rerun_pending",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/combat_resume3 + /root",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a159f8-104e-7bd3-b8df-3db6693655b4",
+          "01a159c9-c99b-7113-922b-9dea665f6825",
+          "01a159ca-3d93-7ff2-8ca0-2a8554ad1444",
+          "01a159ca-0770-7ae3-84aa-17798e7d276f"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "SUCCESSOR_OWNS_FINAL_ACCEPTANCE_PENDING_ROOT_FREEZE",
+        "latest_world_matrix_entry": {
+          "requirement": "P04",
+          "status": "ROOT_OTHER_OWNER_ACCEPTANCE",
+          "receipt": null,
+          "checks": null,
+          "bounds": "Armory_drop + combat owners provide final balloon drops; this agent does not replace their final-source acceptance. Throw fixture balloon/powder tail is component evidence only."
+        },
+        "remaining_work": "Продолжить по текущему combat_resume3 состоянию, проверить финальные production pins и затронутые native/GUI зависимости; P04 финальная совместная приёмка у root.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\armory_drop\\HANDOFF.md",
+            "exists": true,
+            "sha256": "7c33ff50a3ecf97851a55ab326bfbf5979fa5893715001f3970e0f3134151947"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "6920fc798d65d7d858b70cba1627586cc46bf067b77efbee487b21deab9e75e9"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume3\\INHERITED_EVIDENCE_AUDIT.json",
+            "exists": true,
+            "sha256": "d7eeca3bec37f9e05e28141fad1babf5f558b1ce50ac02b8414e6c50a55279ba"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume3\\PATCH_PINS.json",
+            "exists": true,
+            "sha256": "39db56c880c871c9cf5695a88ad4b2b1589f605a1c9ac4ab0901965b8442a165"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume2\\HANDOFF.json",
+            "exists": true,
+            "sha256": "c485c981f1b42e5baca7a73bdeff321c10fcf4b2bf1d92801ae2a40c8890657c"
+          }
+        ]
+      },
+      {
+        "id": "P05",
+        "requirement_verbatim": "Слот бочки на лошади без проникновения и зависания",
+        "legacy_owner_verbatim": "physics_swim",
+        "legacy_PLAN_status_stale_snapshot": "horse_scope_verified",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/world_acceptance3",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a1598f-eab4-7511-a436-380b1bf517ef"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "PASS_SCOPED_REUSED",
+        "latest_world_matrix_entry": {
+          "requirement": "P05",
+          "status": "PASS_SCOPED_REUSED",
+          "receipt": {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\horse\\final_integration2\\run01\\SCHEDULER_RUN.json",
+            "sha256": "2017884b568025b631189e9c649f39cd2eb72635912632474e3f719a9e95a131",
+            "passed": true,
+            "exit_code": 0,
+            "stderr_bytes": 0
+          },
+          "checks": 15,
+          "bounds": "Current horse/powder five pins exact; naturally spawned collision clearance, mount, input-driven7.5m, cargo follows rump, retrieve to hand. Existing start/finish GUI inspected."
+        },
+        "remaining_work": "Сохранить scoped границы и exact pins; итоговая совместная приёмка и публикация root.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\horse\\START_ACCEPTANCE.json",
+            "exists": true,
+            "sha256": "8f3f2eaf0ce459fa42508bb2b009074703223891d59e88192d49a5bbd9ea3dc3"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\RESULT.json",
+            "exists": true,
+            "sha256": "d6d669d539d9d2fd012d6ef4b64ac5bd30e14ae3c169d4dc642ac2f4253744ad"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\HANDOFF.md",
+            "exists": true,
+            "sha256": "eed3b1edfe474a8236a8540fd48808bf763c0234785c6b72ce385b93b3164621"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "27cb666e3187f63fbd3e8cf3550c9b99576d84e0d0a1b341b22402d69a728aa6"
+          }
+        ]
+      },
+      {
+        "id": "P06",
+        "requirement_verbatim": "HP лошади над ней и только вблизи",
+        "legacy_owner_verbatim": "physics_swim",
+        "legacy_PLAN_status_stale_snapshot": "horse_scope_verified",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/world_acceptance3",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a1598f-eab4-7511-a436-380b1bf517ef"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "PASS_SCOPED_REUSED",
+        "latest_world_matrix_entry": {
+          "requirement": "P06",
+          "status": "PASS_SCOPED_REUSED",
+          "receipt": {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\horse\\regression05\\SCHEDULER_RUN.json",
+            "sha256": "3400c4dafea19cc3945c8587a06683dd1e3cb6a8e91e1b14680309e762c3bc22",
+            "passed": true,
+            "exit_code": 0,
+            "stderr_bytes": 0
+          },
+          "checks": 24,
+          "bounds": "Owned horse pins exact; near/projected/occluded HP tests, visible overhead health bar in inspected GUI. No new HP rendering changes."
+        },
+        "remaining_work": "Сохранить scoped границы и exact pins; итоговая совместная приёмка и публикация root.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\horse\\START_ACCEPTANCE.json",
+            "exists": true,
+            "sha256": "8f3f2eaf0ce459fa42508bb2b009074703223891d59e88192d49a5bbd9ea3dc3"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\RESULT.json",
+            "exists": true,
+            "sha256": "d6d669d539d9d2fd012d6ef4b64ac5bd30e14ae3c169d4dc642ac2f4253744ad"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\HANDOFF.md",
+            "exists": true,
+            "sha256": "eed3b1edfe474a8236a8540fd48808bf763c0234785c6b72ce385b93b3164621"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "27cb666e3187f63fbd3e8cf3550c9b99576d84e0d0a1b341b22402d69a728aa6"
+          }
+        ]
+      },
+      {
+        "id": "P07",
+        "requirement_verbatim": "Проверка и при необходимости улучшение конских канатов",
+        "legacy_owner_verbatim": "physics_swim",
+        "legacy_PLAN_status_stale_snapshot": "horse_scope_verified",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/world_acceptance3",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a1598f-eab4-7511-a436-380b1bf517ef"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "PASS_SCOPED_REUSED",
+        "latest_world_matrix_entry": {
+          "requirement": "P07",
+          "status": "PASS_SCOPED_REUSED",
+          "receipt": {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\horse\\final_integration2\\run01\\SCHEDULER_RUN.json",
+            "sha256": "2017884b568025b631189e9c649f39cd2eb72635912632474e3f719a9e95a131",
+            "passed": true,
+            "exit_code": 0,
+            "stderr_bytes": 0
+          },
+          "checks": 15,
+          "bounds": "Current horse/powder; animated reins bounded and attached, hidden on dismount. Existing GUI inspected; no additional rope visual edit needed."
+        },
+        "remaining_work": "Сохранить scoped границы и exact pins; итоговая совместная приёмка и публикация root.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\horse\\START_ACCEPTANCE.json",
+            "exists": true,
+            "sha256": "8f3f2eaf0ce459fa42508bb2b009074703223891d59e88192d49a5bbd9ea3dc3"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\RESULT.json",
+            "exists": true,
+            "sha256": "d6d669d539d9d2fd012d6ef4b64ac5bd30e14ae3c169d4dc642ac2f4253744ad"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\HANDOFF.md",
+            "exists": true,
+            "sha256": "eed3b1edfe474a8236a8540fd48808bf763c0234785c6b72ce385b93b3164621"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "27cb666e3187f63fbd3e8cf3550c9b99576d84e0d0a1b341b22402d69a728aa6"
+          }
+        ]
+      },
+      {
+        "id": "C01",
+        "requirement_verbatim": "Разумная атака, дистанция, попадания, защита и реакция NPC",
+        "legacy_owner_verbatim": "npc_acceptance + combat_controls_resume",
+        "legacy_PLAN_status_stale_snapshot": "scoped26_native_PASS",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/combat_resume3 + /root",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a159f8-104e-7bd3-b8df-3db6693655b4",
+          "01a159c9-c99b-7113-922b-9dea665f6825",
+          "01a159ca-3d93-7ff2-8ca0-2a8554ad1444"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "SUCCESSOR_OWNS_FINAL_ACCEPTANCE_PENDING_ROOT_FREEZE",
+        "latest_world_matrix_entry": null,
+        "remaining_work": "Продолжить по текущему combat_resume3 состоянию, проверить финальные production pins и затронутые native/GUI зависимости; P04 финальная совместная приёмка у root.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\npc_acceptance\\MATRIX.md",
+            "exists": true,
+            "sha256": "7eef92c85779bcc1792451a61e758898f937f3c1d9770a89eff369a40e03e050"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "6920fc798d65d7d858b70cba1627586cc46bf067b77efbee487b21deab9e75e9"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume3\\INHERITED_EVIDENCE_AUDIT.json",
+            "exists": true,
+            "sha256": "d7eeca3bec37f9e05e28141fad1babf5f558b1ce50ac02b8414e6c50a55279ba"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume3\\PATCH_PINS.json",
+            "exists": true,
+            "sha256": "39db56c880c871c9cf5695a88ad4b2b1589f605a1c9ac4ab0901965b8442a165"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume2\\HANDOFF.json",
+            "exists": true,
+            "sha256": "c485c981f1b42e5baca7a73bdeff321c10fcf4b2bf1d92801ae2a40c8890657c"
+          }
+        ]
+      },
+      {
+        "id": "C02",
+        "requirement_verbatim": "Умеренная физическая реакция на касание и удар",
+        "legacy_owner_verbatim": "/root/combat_takeover_audit + root",
+        "legacy_PLAN_status_stale_snapshot": "graded_real_hits_and_knockdown_recovery_verified_scoped",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/combat_resume3 + /root",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a159f8-104e-7bd3-b8df-3db6693655b4",
+          "01a159c9-c99b-7113-922b-9dea665f6825",
+          "01a159ca-3d93-7ff2-8ca0-2a8554ad1444"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "SUCCESSOR_OWNS_FINAL_ACCEPTANCE_PENDING_ROOT_FREEZE",
+        "latest_world_matrix_entry": null,
+        "remaining_work": "Продолжить по текущему combat_resume3 состоянию, проверить финальные production pins и затронутые native/GUI зависимости; P04 финальная совместная приёмка у root.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\npc_acceptance\\MATRIX.md",
+            "exists": true,
+            "sha256": "7eef92c85779bcc1792451a61e758898f937f3c1d9770a89eff369a40e03e050"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "6920fc798d65d7d858b70cba1627586cc46bf067b77efbee487b21deab9e75e9"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume3\\INHERITED_EVIDENCE_AUDIT.json",
+            "exists": true,
+            "sha256": "d7eeca3bec37f9e05e28141fad1babf5f558b1ce50ac02b8414e6c50a55279ba"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume3\\PATCH_PINS.json",
+            "exists": true,
+            "sha256": "39db56c880c871c9cf5695a88ad4b2b1589f605a1c9ac4ab0901965b8442a165"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume2\\HANDOFF.json",
+            "exists": true,
+            "sha256": "c485c981f1b42e5baca7a73bdeff321c10fcf4b2bf1d92801ae2a40c8890657c"
+          }
+        ]
+      },
+      {
+        "id": "C03",
+        "requirement_verbatim": "Расчленение без воздушных щелей",
+        "legacy_owner_verbatim": "/root/combat_takeover_audit + root",
+        "legacy_PLAN_status_stale_snapshot": "headcap_component_PASS_other_limbs_GUI_pending",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/combat_resume3 + /root",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a159f8-104e-7bd3-b8df-3db6693655b4",
+          "01a159c9-c99b-7113-922b-9dea665f6825",
+          "01a159ca-3d93-7ff2-8ca0-2a8554ad1444"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "SUCCESSOR_OWNS_FINAL_ACCEPTANCE_PENDING_ROOT_FREEZE",
+        "latest_world_matrix_entry": null,
+        "remaining_work": "Продолжить по текущему combat_resume3 состоянию, проверить финальные production pins и затронутые native/GUI зависимости; P04 финальная совместная приёмка у root.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\npc_acceptance\\MATRIX.md",
+            "exists": true,
+            "sha256": "7eef92c85779bcc1792451a61e758898f937f3c1d9770a89eff369a40e03e050"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "6920fc798d65d7d858b70cba1627586cc46bf067b77efbee487b21deab9e75e9"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume3\\INHERITED_EVIDENCE_AUDIT.json",
+            "exists": true,
+            "sha256": "d7eeca3bec37f9e05e28141fad1babf5f558b1ce50ac02b8414e6c50a55279ba"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume3\\PATCH_PINS.json",
+            "exists": true,
+            "sha256": "39db56c880c871c9cf5695a88ad4b2b1589f605a1c9ac4ab0901965b8442a165"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume2\\HANDOFF.json",
+            "exists": true,
+            "sha256": "c485c981f1b42e5baca7a73bdeff321c10fcf4b2bf1d92801ae2a40c8890657c"
+          }
+        ]
+      },
+      {
+        "id": "C04",
+        "requirement_verbatim": "Падение и сдвигание останков при проходе игрока",
+        "legacy_owner_verbatim": "/root/combat_takeover_audit + root",
+        "legacy_PLAN_status_stale_snapshot": "real_corpse_contact_FAIL_fix_in_progress",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/combat_resume3 + /root",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a159f8-104e-7bd3-b8df-3db6693655b4",
+          "01a159c9-c99b-7113-922b-9dea665f6825",
+          "01a159ca-3d93-7ff2-8ca0-2a8554ad1444"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "SUCCESSOR_OWNS_FINAL_ACCEPTANCE_PENDING_ROOT_FREEZE",
+        "latest_world_matrix_entry": null,
+        "remaining_work": "Продолжить по текущему combat_resume3 состоянию, проверить финальные production pins и затронутые native/GUI зависимости; P04 финальная совместная приёмка у root.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\npc_acceptance\\anatomy01\\RESULT.json",
+            "exists": true,
+            "sha256": "fdc83caf06e018e5ecf21c30b463a4c26bdf8e00f6041feac0a89c3eeebe3155"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "6920fc798d65d7d858b70cba1627586cc46bf067b77efbee487b21deab9e75e9"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume3\\INHERITED_EVIDENCE_AUDIT.json",
+            "exists": true,
+            "sha256": "d7eeca3bec37f9e05e28141fad1babf5f558b1ce50ac02b8414e6c50a55279ba"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume3\\PATCH_PINS.json",
+            "exists": true,
+            "sha256": "39db56c880c871c9cf5695a88ad4b2b1589f605a1c9ac4ab0901965b8442a165"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume2\\HANDOFF.json",
+            "exists": true,
+            "sha256": "c485c981f1b42e5baca7a73bdeff321c10fcf4b2bf1d92801ae2a40c8890657c"
+          }
+        ]
+      },
+      {
+        "id": "C05",
+        "requirement_verbatim": "Прогоны разных оружий и сохранение утвержденного меча",
+        "legacy_owner_verbatim": "/root/combat_takeover_audit + root",
+        "legacy_PLAN_status_stale_snapshot": "resumed_latest_user_request",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/combat_resume3 + /root",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a159f8-104e-7bd3-b8df-3db6693655b4",
+          "01a159c9-c99b-7113-922b-9dea665f6825",
+          "01a159ca-3d93-7ff2-8ca0-2a8554ad1444"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "SUCCESSOR_OWNS_FINAL_ACCEPTANCE_PENDING_ROOT_FREEZE",
+        "latest_world_matrix_entry": null,
+        "remaining_work": "Продолжить по текущему combat_resume3 состоянию, проверить финальные production pins и затронутые native/GUI зависимости; P04 финальная совместная приёмка у root.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "6920fc798d65d7d858b70cba1627586cc46bf067b77efbee487b21deab9e75e9"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume3\\INHERITED_EVIDENCE_AUDIT.json",
+            "exists": true,
+            "sha256": "d7eeca3bec37f9e05e28141fad1babf5f558b1ce50ac02b8414e6c50a55279ba"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume3\\PATCH_PINS.json",
+            "exists": true,
+            "sha256": "39db56c880c871c9cf5695a88ad4b2b1589f605a1c9ac4ab0901965b8442a165"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume2\\HANDOFF.json",
+            "exists": true,
+            "sha256": "c485c981f1b42e5baca7a73bdeff321c10fcf4b2bf1d92801ae2a40c8890657c"
+          }
+        ]
+      },
+      {
+        "id": "D01",
+        "requirement_verbatim": "Каскад разрушений по реальным опорам замка",
+        "legacy_owner_verbatim": "root+DeepSeek",
+        "legacy_PLAN_status_stale_snapshot": "current_GUI_FAIL_freed_support_patch_testing",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/destruction_resume3",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a159f7-d659-7130-95f2-590ad50ba9c8"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "CURRENT_SOURCE_COMPONENT_AUDIT_PASS",
+        "latest_world_matrix_entry": null,
+        "remaining_work": "68 новых assertions и54 прежних GUI pinexact; полная игра/FPS/публикация остаются root. D02 не является исчерпывающей проверкой каждой ступени.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\destruction_resume3\\RESULT.json",
+            "exists": true,
+            "sha256": "2bdb01d77fd0e6d332f19b9daeae6f0b2f0cbc5584e1c6460f152d548ef732e0"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\destruction_resume3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "17cb26c0d4171d8faaa99f01fb8d01e083c9822f0280879b4eb0e3ef70330c62"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\destruction_resume2\\HANDOFF.json",
+            "exists": true,
+            "sha256": "a38002773a93f3231e37578e22be4bee49cb93c3501af5daf52a3096ecc64cb6"
+          }
+        ]
+      },
+      {
+        "id": "D02",
+        "requirement_verbatim": "Разрушаемость декора, башен, полов и лестниц",
+        "legacy_owner_verbatim": "root+DeepSeek",
+        "legacy_PLAN_status_stale_snapshot": "in_progress",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/destruction_resume3",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a159f7-d659-7130-95f2-590ad50ba9c8"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "CURRENT_SOURCE_COMPONENT_AUDIT_PASS",
+        "latest_world_matrix_entry": null,
+        "remaining_work": "68 новых assertions и54 прежних GUI pinexact; полная игра/FPS/публикация остаются root. D02 не является исчерпывающей проверкой каждой ступени.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\destruction_resume3\\RESULT.json",
+            "exists": true,
+            "sha256": "2bdb01d77fd0e6d332f19b9daeae6f0b2f0cbc5584e1c6460f152d548ef732e0"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\destruction_resume3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "17cb26c0d4171d8faaa99f01fb8d01e083c9822f0280879b4eb0e3ef70330c62"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\destruction_resume2\\HANDOFF.json",
+            "exists": true,
+            "sha256": "a38002773a93f3231e37578e22be4bee49cb93c3501af5daf52a3096ecc64cb6"
+          }
+        ]
+      },
+      {
+        "id": "D03",
+        "requirement_verbatim": "Сохраняющиеся физические обломки и новые проходимые маршруты",
+        "legacy_owner_verbatim": "root+DeepSeek",
+        "legacy_PLAN_status_stale_snapshot": "moved_static_support_FAIL_patch_testing",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root/destruction_resume3",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a159f7-d659-7130-95f2-590ad50ba9c8"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "CURRENT_SOURCE_COMPONENT_AUDIT_PASS",
+        "latest_world_matrix_entry": null,
+        "remaining_work": "68 новых assertions и54 прежних GUI pinexact; полная игра/FPS/публикация остаются root. D02 не является исчерпывающей проверкой каждой ступени.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\qa\\support_motion02\\SCHEDULER_RUN.json",
+            "exists": true,
+            "sha256": "ac79d2c6bef53e771f0b064c53bbe7426e98f83a38bf5a92e8f0e4a9f5bfeb48"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\destruction\\resume_audit\\HANDOFF.json",
+            "exists": true,
+            "sha256": "223ff0efb38f97ab0d837bb7ccd77debbd9e3fb2ef14eff12f703c93a94512af"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\destruction_resume3\\RESULT.json",
+            "exists": true,
+            "sha256": "2bdb01d77fd0e6d332f19b9daeae6f0b2f0cbc5584e1c6460f152d548ef732e0"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\destruction_resume3\\SOURCE_PINS.json",
+            "exists": true,
+            "sha256": "17cb26c0d4171d8faaa99f01fb8d01e083c9822f0280879b4eb0e3ef70330c62"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\destruction_resume2\\HANDOFF.json",
+            "exists": true,
+            "sha256": "a38002773a93f3231e37578e22be4bee49cb93c3501af5daf52a3096ecc64cb6"
+          }
+        ]
+      },
+      {
+        "id": "I01",
+        "requirement_verbatim": "Совместная native/GUI проверка актуального состава",
+        "legacy_owner_verbatim": "root",
+        "legacy_PLAN_status_stale_snapshot": "in_progress",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a159f8-4253-7b42-a398-0bf6603b6001"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "ROOT_INTEGRATION_PUBLICATION_PENDING",
+        "latest_world_matrix_entry": null,
+        "remaining_work": "Заморозить полный актуальный состав, завершить общую native/GUI приёмку, новый неизменяемый пакет и launcher/pins; чужой perf WIP сохранять.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\root_resume3\\TAKEOVER.json",
+            "exists": true,
+            "sha256": "a80724e395c6abfe04c5b79d49b13163e0d96e87d47a82c425861625e14a65ba"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\root_resume3\\BASELINE_SOURCE.json",
+            "exists": true,
+            "sha256": "f5a7f8f9a0e1b289419b850ccf32706c10827b8162101e15cdda049a7b3b3c27"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\integration_resume2\\HANDOFF.md",
+            "exists": true,
+            "sha256": "40ee39958f3e34a466575e2b86dcb682927c68fe6a42cdccbe5e09994d345240"
+          }
+        ]
+      },
+      {
+        "id": "I02",
+        "requirement_verbatim": "Проверенные commits в origin/main и инструкции запуска",
+        "legacy_owner_verbatim": "root",
+        "legacy_PLAN_status_stale_snapshot": "in_progress",
+        "current_root_thread": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+        "current_owner": "/root",
+        "owner_mapping_basis": "Current root takeover/delegated scopes plus current successor reports; not a claim of old-chat ownership transfer by tool.",
+        "legacy_subagent_ids": [
+          "01a159f8-4253-7b42-a398-0bf6603b6001"
+        ],
+        "legacy_external_owner_note": null,
+        "latest_status_bounded": "ROOT_INTEGRATION_PUBLICATION_PENDING",
+        "latest_world_matrix_entry": null,
+        "remaining_work": "Заморозить полный актуальный состав, завершить общую native/GUI приёмку, новый неизменяемый пакет и launcher/pins; чужой perf WIP сохранять.",
+        "evidence": [
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\root_resume3\\TAKEOVER.json",
+            "exists": true,
+            "sha256": "a80724e395c6abfe04c5b79d49b13163e0d96e87d47a82c425861625e14a65ba"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\root_resume3\\BASELINE_SOURCE.json",
+            "exists": true,
+            "sha256": "f5a7f8f9a0e1b289419b850ccf32706c10827b8162101e15cdda049a7b3b3c27"
+          },
+          {
+            "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\integration_resume2\\HANDOFF.md",
+            "exists": true,
+            "sha256": "40ee39958f3e34a466575e2b86dcb682927c68fe6a42cdccbe5e09994d345240"
+          }
+        ]
+      }
+    ]
+  },
+  "next_user_requirement": {
+    "schema": "mafiozi.combat-reference-requirements/v1",
+    "authority": "Direct current user instruction, 2026-10-20",
+    "reference_images": [
+      "C:/Users/Слава/Desktop/images (3).jpg",
+      "C:/Users/Слава/Desktop/images (2).jpg"
+    ],
+    "requirements": [
+      "Clearly raised hands and elbows in side wind-up, matching the user's Half Sword reference posture",
+      "Both hands above the head in the overhead two-handed wind-up",
+      "Holding LMB or RMB freezes camera angular input while mouse steering rotates the body and weapon",
+      "Continue intelligent opponent work with plausible reaction, distance, defense and counterattack",
+      "DeepSeek participates in bounded implementation and review, checked against code and native/GUI evidence"
+    ],
+    "previous_acceptance": "combat_resume3/RESULT.json, sword a3a2d36a306f3ca4c73eb78278d4c200c48c2c9363be6d93d518225bd354e9cd; preserved as the pre-reference-update checkpoint",
+    "owners": {
+      "raised_arms_and_controls": "combat_resume3, sole sword writer; scratch before root approval",
+      "npc_review": "destruction_resume3, read-only production, baseline scenarios and separate patch proposals",
+      "integration": "root"
+    },
+    "preserve": [
+      "health57 constants and thresholds",
+      "weapon inertia, grip, self collision and actual hit contacts unless an identified change is needed for the requested posture",
+      "foreign WIP, old tasks, original failed evidence and frozen releases"
+    ]
+  },
+  "evidence": {
+    "combat": "D:\\MafioziCombat31\\c33_coordination\\agents\\combat_resume3\\RESULT.json",
+    "world": "D:\\MafioziCombat31\\c33_coordination\\agents\\world_acceptance3\\RESULT.json",
+    "destruction": "D:\\MafioziCombat31\\c33_coordination\\agents\\destruction_resume3\\RESULT.json",
+    "integrated": "D:\\MafioziCombat31\\c33_coordination\\agents\\root_resume3\\integrated01\\RESULT.json"
+  },
+  "limits": [
+    "Original100tick corpse displacement0.07635m FAIL preserved; continuous200tick separate0.09495m PASS",
+    "No universal FPS acceptance or user subjective gameplay acceptance",
+    "Current_version remains59 until new assembly passes final checks",
+    "Foreign perf/castle-90fps working tree untouched"
+  ]
+}

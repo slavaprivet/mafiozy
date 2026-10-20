@@ -1,0 +1,63 @@
+{
+  "schema": "mafiozi.coordinator33.resume5-checkpoint/v1",
+  "created_utc": "2026-10-20T17:14:13.971975+00:00",
+  "root_thread": "01a15a40-fe56-7881-a7c2-45991bc8fe7b",
+  "predecessor": "01a15a0b-6f8e-71e0-92e6-d850eb52f837",
+  "authority": "User explicitly requested taking over predecessor and descendants, continuously continuing, and immediately pushing verified successes to main without overwriting others",
+  "status": "RECOVERY_CHECKPOINT_NOT_FINAL_RELEASE",
+  "upstream_preserved": "14338830508bb20a6d5a5dceac26f7677e23b78b network foundation, all12non-overlapping Git blobs exact and four net functions preserved in merged player",
+  "recovered_checkpoint": "1a72911b23f8456446e401d2c914b1067d823b6c",
+  "accepted_scope": [
+    "Ship routes/cannons/mast structural segments and sink mechanics; existing independent scoped evidence preserved",
+    "Horse/barrel transfers and inherited velocity; castle persistent debris/supports",
+    "Physical cuts and armor retention; actual-contact corpse and severed-part pushes",
+    "Pre-reference controls with held melee camera angle ownership"
+  ],
+  "inherited_validation": {
+    "combat": "45five-weapon checks;92GUIcuts+15component assertions; controls and corpse/wall contact scope recorded in predecessor recovery doc",
+    "world": "100scoped graphical assertions; ship route/mast destruction does not imply mast climbing animation",
+    "destruction": "scoped native/GUI tests retained in recovery registry",
+    "merge_audit": "COORDINATOR33_RESUME5_MAIN_MERGE_AUDIT.json"
+  },
+  "new_validation": {
+    "merge": "No conflict markers; upstream net source blobs/functions preserved; new integrated engine import queued through scheduler",
+    "limitation": "This checkpoint does not claim new network+combat runtime acceptance or user acceptance of raised arms"
+  },
+  "remaining": [
+    {
+      "task": "Raised hands/side and overhead Half Sword reference poses, held LMB/RMB camera/body",
+      "owner": "combat_resume5",
+      "status": "scratch and native/GUI tests; not merged in checkpoint"
+    },
+    {
+      "task": "NPC delayed-observation attack opening choice",
+      "owner": "combat_resume5 + root",
+      "status": "two-function scoped patch verified54component+4native scenarios, merge after arms"
+    },
+    {
+      "task": "P04 real G drops from balloon",
+      "owner": "preserve_tasks_resume5/world_drops_resume5",
+      "status": "predecessor raw FAIL kept; fresh per-category cases distinguish fixture state from production"
+    },
+    {
+      "task": "Continuous cabin enter/exit and deck/mast route/animation",
+      "owner": "ship_routes_resume5",
+      "status": "new cabin exit snag reproduced; narrow scratch fix in test; mast climbing animation not yet accepted"
+    },
+    {
+      "task": "Final integrated scene source freeze and unique durable release",
+      "owner": "root",
+      "status": "do after exact merged verification; do not change current play pointer from this checkpoint"
+    }
+  ],
+  "local_state": "D:/MafioziCombat31/c33_coordination/agents/helper_01a15a40/STATUS.json",
+  "successor_game": "D:/MafioziCombat31/coordinator33_resume5/game",
+  "constraints": [
+    "Do not reset, clean, checkout or cherry-pick Desktop foreign perf/castle-90fps WIP",
+    "Use isolated D integration and normal fast-forward pushes; never force-push main",
+    "Godot through scheduler; preserve raw FAIL and exact before/after source pins",
+    "Keep graphical windows visible centered; preserve user processes",
+    "No parallel writers; old agents interrupted, task/evidence registry preserved",
+    "Current manifest/frozen releases unchanged until a final accepted release exists"
+  ]
+}

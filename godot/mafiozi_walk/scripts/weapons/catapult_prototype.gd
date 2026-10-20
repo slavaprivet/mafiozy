@@ -1205,6 +1205,7 @@ func _on_stone_body_entered(body: Node) -> void:
 	var point: Vector3 = centre - direction * STONE_RADIUS
 	var normal: Vector3 = -direction
 	var collider: Object = body
+	var hit_shape := -1
 	var space := _world.get_world_3d().direct_space_state
 	if space != null:
 		var query := PhysicsRayQueryParameters3D.create(centre - direction * (STONE_RADIUS * 2.2),
@@ -1216,10 +1217,12 @@ func _on_stone_body_entered(body: Node) -> void:
 			point = found.get("position", point)
 			normal = found.get("normal", normal)
 			collider = found.get("collider", body)
+			hit_shape = int(found.get("shape", -1))
 	_impact({
 		"position": point,
 		"normal": normal,
 		"collider": collider,
+		"shape": hit_shape,
 	})
 
 ## Kinetic energy of a 92 kg boulder above a harmless contact threshold.
@@ -1319,6 +1322,27 @@ func _impact(hit: Dictionary) -> void:
 	_hits += 1
 	var delivered := false
 	_last_impact = {"ok": false, "point": point, "reason": "no_breakage"}
+	# Route the actual collider to its boat before the broad land-target fallbacks.
+	# This also covers the second ship and nested hull/rigging collision bodies.
+	var ship_owner: Node = collider as Node if is_instance_valid(collider) else null
+	var ship_depth := 0
+	while is_instance_valid(ship_owner) and ship_depth < 64:
+		if ship_owner.has_method("hull_integrity") and ship_owner.has_method("apply_hit"):
+			var ship_result: Variant
+			if ship_owner.has_method("apply_surface_hit"):
+				ship_result = ship_owner.call("apply_surface_hit", hit, BLAST_POWER,
+					_fly_velocity * STONE_MASS, "catapult")
+			else:
+				ship_result = ship_owner.call("apply_hit", point, BLAST_POWER,
+					_fly_velocity * STONE_MASS, "catapult")
+			var ship_ok: bool = ship_result is Dictionary and bool(ship_result.get("ok", false))
+			_last_impact = {"ok": ship_ok, "result": ship_result, "point": point, "ship": true}
+			print("DSH_CATAPULT_SHIP delivered=", ship_ok, " result=", ship_result)
+			_spawn_dust(point, normal)
+			_vanish()
+			return
+		ship_owner = ship_owner.get_parent()
+		ship_depth += 1
 	# Lightweight siege dressing sits outside the curtain wall. A stone hitting
 	# masonry still breaks a nearby ladder before the castle branch returns.
 	var siege_field: Variant = _world.get("preview_battlefield") if is_instance_valid(_world) else null

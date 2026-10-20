@@ -274,6 +274,8 @@ var _hull_damage := 0.0
 var _destroyed_blocks: Dictionary = {}
 var _mast_hp := MAST_HP
 var _mast_broken := false
+var _mast_segments: Dictionary = {}
+var _mast_step_delta := 0.0
 var _sunk := false
 var _sink_t := 0.0
 var _holes: Array[Dictionary] = []
@@ -291,11 +293,12 @@ var _debris_life: Array[float] = []
 var _rng := RandomNumberGenerator.new()
 
 var _step_transform := Transform3D.IDENTITY
-var _carry_compensation := false
+var _carry_compensation := true
 
 var _climb_input_bound := false
 var _climb_input := 0.0
 var _climbing_ladder := false
+var _climbing_companionway := false
 
 ## Wake / bow wave / spray (built once by `_install_wake`).
 var _wake_enabled := true
@@ -374,6 +377,7 @@ func install(world: Node3D, basin: Object, player: CharacterBody3D, model: Node3
 	else:
 		add_child(_debris_container)
 	_install_parts(build)
+	shapes += _install_mast_segments(build)
 	_water_level = _basin_water_level()
 	_install_wake()
 	_installed = true
@@ -607,8 +611,8 @@ func _build_rails() -> int:
 	var rail_center_z := -3.3
 	var rail_size_z := 18.4
 	_rail_shapes.clear()
-	_rail_shapes.append(_add_box("RailPort", Vector3(-(half_beam - 0.10), rail_y, rail_center_z), Vector3(0.16, 1.2, rail_size_z), 0.0))
-	_rail_shapes.append(_add_box("RailStarboard", Vector3(half_beam - 0.10, rail_y, rail_center_z), Vector3(0.16, 1.2, rail_size_z), 0.0))
+	_rail_shapes.append(_add_box("RailPort", Vector3(-(half_beam - 0.10), rail_y, rail_center_z), Vector3(0.16, 1.2, rail_size_z), 0.0, "rail"))
+	_rail_shapes.append(_add_box("RailStarboard", Vector3(half_beam - 0.10, rail_y, rail_center_z), Vector3(0.16, 1.2, rail_size_z), 0.0, "rail"))
 	return _rail_shapes.size()
 
 
@@ -663,6 +667,7 @@ func moor(world_position: Vector3, yaw: float) -> void:
 	_reset_wake()
 	_sync_transform(true)
 	_step_transform = _world_transform()
+	_mast_step_delta = 0.0
 
 
 func set_sails(open: bool) -> void:
@@ -888,6 +893,7 @@ func simulate_step(delta: float) -> void:
 	if not is_finite(delta) or delta <= 0.0:
 		return
 	delta = minf(delta, 0.1)
+	_mast_step_delta = delta
 	_step_transform = _world_transform()
 	_time += delta
 	_update_obstacles()
@@ -1100,7 +1106,39 @@ func _hole_severity_sum() -> float:
 
 ## ------------------------------------------------------------------ damage
 
-func apply_hit(world_point: Vector3, damage: float, impulse: Vector3, kind: String) -> Dictionary:
+## Physical projectile entry point. A real shape owner takes precedence over
+## proximity guesses (a rail beside a cannon is still a rail).
+func apply_surface_hit(hit: Dictionary, damage: float, impulse: Vector3, kind: String) -> Dictionary:
+	var collider := hit.get("collider") as CollisionObject3D
+	if not is_instance_valid(collider) or (collider != self and not is_ancestor_of(collider)):
+		return {"ok": false, "reason": "foreign_surface"}
+	var shape_index := int(hit.get("shape", -1))
+	var part := ""
+	var surface_name := ""
+	# Resolve only an index present on this body, including compound bodies.
+	for owner_id: int in collider.get_shape_owners():
+		for index in collider.shape_owner_get_shape_count(owner_id):
+			if collider.shape_owner_get_shape_index(owner_id, index) != shape_index:
+				continue
+			var owner: Object = collider.shape_owner_get_owner(owner_id)
+			if owner is CollisionShape3D:
+				if (owner as CollisionShape3D).disabled:
+					return {"ok": false, "reason": "surface_disabled"}
+				part = str(owner.get_meta("ship_part", ""))
+				surface_name = str((owner as Node).name)
+			break
+		if not surface_name.is_empty():
+			break
+	if not part.is_empty() and _broken_parts.has(part):
+		return {"ok": false, "reason": "surface_already_broken", "part": part}
+	var result := apply_hit(hit.get("position", global_position), damage, impulse, kind, part)
+	result["surface"] = surface_name
+	result["shape_index"] = shape_index
+	return result
+
+
+func apply_hit(world_point: Vector3, damage: float, impulse: Vector3, kind: String,
+		surface_part: String = "") -> Dictionary:
 	var result := {
 		"ok": false,
 		"zone": "",
@@ -1124,7 +1162,7 @@ func apply_hit(world_point: Vector3, damage: float, impulse: Vector3, kind: Stri
 		hit_damage = 0.0
 	hit_damage = minf(hit_damage, 500.0)
 	var local := _local_from_world(world_point)
-	var zone := _classify_zone(local)
+	var zone := surface_part if not surface_part.is_empty() else _classify_zone(local)
 	var part_id := ""
 	var hole := false
 	var hole_world := Vector3.ZERO
@@ -1146,6 +1184,14 @@ func apply_hit(world_point: Vector3, damage: float, impulse: Vector3, kind: Stri
 		if _model != null and is_instance_valid(_model) and _model.has_method("punch_sail_hole"):
 			var punched: Variant = _model.call("punch_sail_hole", local, sail_radius)
 			sail_hole = punched is Dictionary and bool((punched as Dictionary).get("ok", false))
+	elif zone == "mast_lower" or zone == "mast_upper":
+		part_id = zone
+		_part_hp[part_id] = maxf(0.0, part_health(part_id) - hit_damage)
+		if part_id == "mast_upper":
+			_mast_hp = part_health(part_id)
+			_part_hp["mast"] = _mast_hp
+		if part_health(part_id) <= 0.0:
+			_break_mast_segment(part_id, world_point, impulse)
 	elif zone == "mast":
 		part_id = "mast"
 		_mast_hp = maxf(0.0, _mast_hp - hit_damage)
@@ -1176,9 +1222,19 @@ func apply_hit(world_point: Vector3, damage: float, impulse: Vector3, kind: Stri
 
 
 func _classify_zone(local: Vector3) -> String:
+	# The contact comes from actual convex wood geometry; resolve its segment
+	# using the mesh-local bounds, with a small surface tolerance. The surviving lower mast
+	# remains a target after the upper part (and propulsion) has failed.
+	for id: String in ["mast_lower", "mast_upper"]:
+		if not _mast_segments.has(id) or _broken_parts.has(id):
+			continue
+		var shape: CollisionShape3D = _mast_segments[id]["shape"]
+		if is_instance_valid(shape) and not shape.disabled and (_mast_segments[id]["bounds"] as AABB).grow(0.06).has_point(
+				shape.transform.affine_inverse() * local):
+			return id
 	var mast_base: Vector3 = _anchors.get("mast_base", Vector3(0.0, 1.75, -1.0))
 	var mast_top: Vector3 = _anchors.get("mast_top", Vector3(0.0, 17.7, -1.0))
-	if not _mast_broken and local.y >= mast_base.y - 0.4 and local.y <= mast_top.y + 1.0:
+	if _mast_segments.is_empty() and not _mast_broken and local.y >= mast_base.y - 0.4 and local.y <= mast_top.y + 1.0:
 		if Vector2(local.x - mast_base.x, local.z - mast_base.z).length() <= 1.25:
 			return "mast"
 	# Canvas above the bulwark, at the mast and on the forestay.  The model owns
@@ -1253,7 +1309,142 @@ func _add_hole(local: Vector3, radius: float) -> Vector3:
 	return world
 
 
+func _install_mast_segments(build: Dictionary) -> int:
+	_mast_segments.clear()
+	for entry: Dictionary in build.get("parts", []):
+		var id := str(entry.get("id", ""))
+		if id != "mast_lower" and id != "mast_upper":
+			continue
+		var node := entry.get("node") as Node3D
+		if not is_instance_valid(node):
+			continue
+		var mesh_node := node.get_node_or_null("M_" + id) as MeshInstance3D
+		if not is_instance_valid(mesh_node) or mesh_node.mesh == null:
+			continue
+		var convex := mesh_node.mesh.create_convex_shape()
+		if convex == null or convex.points.size() < 4:
+			continue
+		var shape := CollisionShape3D.new()
+		shape.name = "Hit_" + id
+		shape.shape = convex
+		shape.transform = global_transform.affine_inverse() * mesh_node.global_transform
+		shape.set_meta("ship_part", id)
+		add_child(shape)
+		_mast_segments[id] = {"node": node, "mesh": mesh_node, "shape": shape, "bounds": mesh_node.mesh.get_aabb()}
+	return _mast_segments.size()
+
+
+func _break_mast_segment(id: String, world_point: Vector3, impulse: Vector3) -> void:
+	if _broken_parts.has(id) or not _mast_segments.has(id):
+		return
+	# Detach the upper portion while its original visuals are still present.
+	if id == "mast_lower":
+		# Loss of support is not a second projectile impulse on the upper segment.
+		_break_mast_segment("mast_upper", world_point, Vector3.ZERO)
+	_spawn_mast_segment(id, world_point, impulse)
+	_broken_parts.append(id)
+	_part_hp[id] = 0.0
+	_disable_part_collision(id)
+	_mast_broken = true
+	_mast_hp = 0.0
+	_part_hp["mast"] = 0.0
+	if not _broken_parts.has("mast"):
+		_broken_parts.append("mast")
+	_sails_open = false
+	if is_instance_valid(_model) and _model.has_method("break_part"):
+		_model.call("break_part", id)
+		# The model's legacy static wreck would duplicate our falling real mesh.
+		var static_wreck := _model.find_child("Wreck_mast", true, false) as Node3D
+		if is_instance_valid(static_wreck):
+			static_wreck.visible = false
+	_apply_sails_visual()
+	print("SHIP33_MAST_SEGMENT_BROKEN id=", id, " at=", world_point)
+
+
+func _spawn_mast_segment(id: String, world_point: Vector3, impulse: Vector3) -> void:
+	var entry: Dictionary = _mast_segments[id]
+	var node: Node3D = entry["node"]
+	var mesh_node: MeshInstance3D = entry["mesh"]
+	var original_shape: CollisionShape3D = entry["shape"]
+	if not is_instance_valid(node) or not is_instance_valid(mesh_node):
+		return
+	var local_mesh := global_transform.affine_inverse() * mesh_node.global_transform
+	var local_node := global_transform.affine_inverse() * node.global_transform
+	var center: Vector3 = local_mesh * mesh_node.mesh.get_aabb().get_center()
+	var now := _world_transform()
+	var body := RigidBody3D.new()
+	body.name = "Falling_" + id
+	body.mass = 180.0 if id == "mast_lower" else 95.0
+	body.collision_layer = 4
+	body.collision_mask = 1 | 4
+	body.continuous_cd = true
+	var visual := node.duplicate() as Node3D
+	visual.visible = true
+	body.add_child(visual)
+	visual.transform = Transform3D(Basis.IDENTITY, -center) * local_node
+	var shape := CollisionShape3D.new()
+	shape.shape = original_shape.shape
+	shape.transform = Transform3D(Basis.IDENTITY, -center) * original_shape.transform
+	body.add_child(shape)
+	_debris_root().add_child(body)
+	body.global_transform = now * Transform3D(Basis.IDENTITY, center)
+	var inherited := Vector3(-sin(_yaw), 0.0, -cos(_yaw)) * _speed
+	var angular := Vector3.UP * _yaw_rate
+	if _mast_step_delta > 0.0:
+		inherited = ((now * center) - (_step_transform * center)) / _mast_step_delta
+		var rotation_delta := (now.basis * _step_transform.basis.inverse()).get_rotation_quaternion().normalized()
+		if rotation_delta.w < 0.0:
+			rotation_delta = -rotation_delta
+		if rotation_delta.get_angle() > 0.00001:
+			angular = rotation_delta.get_axis() * rotation_delta.get_angle() / _mast_step_delta
+	body.linear_velocity = inherited
+	body.angular_velocity = angular
+	body.set_meta("ship_mast_segment", id)
+	body.set_meta("inherited_linear_velocity", inherited)
+	body.set_meta("inherited_angular_velocity", angular)
+	if impulse.is_finite():
+		body.apply_impulse(impulse.limit_length(1200.0), world_point - body.global_position)
+	# Short joint-overlap grace; afterwards the actual trunk can land on the deck.
+	body.add_collision_exception_with(self)
+	_release_mast_collision_grace(body)
+	for other: Node3D in _debris_nodes:
+		if is_instance_valid(other) and other is RigidBody3D and other.has_meta("ship_mast_segment"):
+			body.add_collision_exception_with(other)
+			_release_mast_pair_grace(body, other as RigidBody3D)
+	while _debris_nodes.size() >= MAX_DEBRIS:
+		var old := _debris_nodes.pop_front() as Node3D
+		_debris_life.pop_front()
+		if is_instance_valid(old):
+			old.queue_free()
+	_debris_nodes.append(body)
+	_debris_life.append(DEBRIS_LIFE)
+
+
+func _release_mast_collision_grace(body: RigidBody3D) -> void:
+	await get_tree().create_timer(0.20, false, true).timeout
+	if is_instance_valid(body) and is_instance_valid(self):
+		body.remove_collision_exception_with(self)
+
+
+func _release_mast_pair_grace(body: RigidBody3D, other: RigidBody3D) -> void:
+	await get_tree().create_timer(0.20, false, true).timeout
+	if is_instance_valid(body) and is_instance_valid(other):
+		body.remove_collision_exception_with(other)
+
+
+func _exit_tree() -> void:
+	# Debris lives beside the boat in world space; lifecycle cleanup belongs to
+	# the boat, independent of the host guessing Godot's auto-renamed node name.
+	if is_instance_valid(_debris_container) and not _debris_container.is_queued_for_deletion():
+		_debris_container.queue_free()
+	_debris_nodes.clear()
+	_debris_life.clear()
+
+
 func _break_mast(local: Vector3) -> void:
+	if _mast_segments.has("mast_upper"):
+		_break_mast_segment("mast_upper", _world_from_local(local), Vector3.ZERO)
+		return
 	_mast_broken = true
 	_mast_hp = 0.0
 	_part_hp["mast"] = 0.0
@@ -1376,19 +1567,31 @@ func climb_assist(player: CharacterBody3D, delta: float) -> void:
 		return
 	var local := _local_from_world(player.global_position)
 	var axis := _climb_axis()
-	var just_forward := Input.is_action_just_pressed(&"preview_move_forward")
+	var just_forward := InputMap.has_action(&"preview_move_forward") and Input.is_action_just_pressed(&"preview_move_forward")
+	var just_back := InputMap.has_action(&"preview_move_back") and Input.is_action_just_pressed(&"preview_move_back")
 	# Explicit W only: walking through the ladder zone with W already held must
 	# not capture the player.  The first W press while standing at the ladder
 	# starts the climb; afterwards the held W keeps climbing.
-	# The companionway is entered with F at the hatch; walking over the grating
-	# must not snap the player into the stair.  Keep deck movement purely ground.
-	if false and _in_companionway_zone(local) and local.y < 1.55:
+	# Follow the open companionway in both directions.  Only the centred stair
+	# mouth accepts the descent, so walking across the neighbouring deck stays
+	# on the deck; climbing out from below remains possible without F.
+	var on_companionway := _in_companionway_zone(local)
+	var leaving_cabin := local.y < 1.55 and axis > 0.0
+	var entering_cabin := local.y >= 1.55 and local.z >= 4.30 and local.z <= 4.90 and axis < 0.0
+	if not on_companionway:
+		_climbing_companionway = false
+	if on_companionway and (_climbing_companionway or leaving_cabin or entering_cabin):
 		_climbing_ladder = false
+		_climbing_companionway = true
 		_climb_companionway(player, local, axis, delta)
 		return
 	if _in_quarter_stair_zone(local):
 		_climbing_ladder = false
 		_climb_quarter_stair(player, local, axis, delta)
+		return
+	if _in_bow_stair_zone(local):
+		_climbing_ladder = false
+		_climb_bow_stair(player, local, axis, delta)
 		return
 	var boarding := _boarding_ladder_at(local)
 	if not boarding.is_empty():
@@ -1398,7 +1601,7 @@ func climb_assist(player: CharacterBody3D, delta: float) -> void:
 	if not _in_ladder_zone(local):
 		_climbing_ladder = false
 		return
-	if not _climbing_ladder and not just_forward:
+	if not _climbing_ladder and not (just_forward or (just_back and local.y > 4.50)):
 		return
 	_climbing_ladder = true
 	if is_zero_approx(axis):
@@ -1414,8 +1617,10 @@ func climb_assist(player: CharacterBody3D, delta: float) -> void:
 	if axis > 0.0 and next_y >= top.y - 0.001:
 		# Step off the ladder onto the fighting top; the next frame is normal walking.
 		next_local.z = minf(next_local.z, 1.40)
+		_climbing_ladder = false
 	if axis < 0.0 and next_y <= base.y + 0.001:
 		next_local.z = maxf(next_local.z, base.z + 0.20)
+		_climbing_ladder = false
 	player.global_position = _world_from_local(next_local)
 	player.velocity = Vector3(0.0, CLIMB_SPEED * axis, 0.0)
 
@@ -1450,9 +1655,11 @@ func _climb_companionway(player: CharacterBody3D, local: Vector3, axis: float, d
 	if axis > 0.0 and next_y >= 1.77:
 		next_local.y = 1.78
 		next_local.z = 4.30
+		_climbing_companionway = false
 	elif axis < 0.0 and next_y <= 0.53:
 		next_local.y = 0.52
 		next_local.z = 6.02
+		_climbing_companionway = false
 	player.global_position = _world_from_local(next_local)
 	player.velocity = Vector3(0.0, CLIMB_SPEED * 1.35 * axis, 0.0)
 
@@ -1460,7 +1667,7 @@ func _climb_companionway(player: CharacterBody3D, local: Vector3, axis: float, d
 func _in_quarter_stair_zone(local: Vector3) -> bool:
 	if absf(local.x) < 1.95 or absf(local.x) > 3.48:
 		return false
-	if local.z < 4.98 or local.z > 6.16:
+	if local.z < 4.75 or local.z > 6.16:
 		return false
 	return local.y >= 1.60 and local.y <= 3.18
 
@@ -1468,18 +1675,40 @@ func _in_quarter_stair_zone(local: Vector3) -> bool:
 func _climb_quarter_stair(player: CharacterBody3D, local: Vector3, axis: float, delta: float) -> void:
 	if is_zero_approx(axis):
 		return
-	var next_y := clampf(local.y + CLIMB_SPEED * axis * delta, 1.78, 3.03)
-	var z_target := 6.10 if axis > 0.0 else 5.24
+	# The quarterdeck lies aft (+Z), so S climbs it and W descends.
+	var rise := -axis
+	var next_y := clampf(local.y + CLIMB_SPEED * rise * delta, 1.78, 3.03)
+	var z_target := 6.10 if rise > 0.0 else 5.24
 	var grab := minf(1.0, delta * 8.0)
 	var next_local := Vector3(local.x, next_y, lerpf(local.z, z_target, grab))
-	if axis > 0.0 and next_y >= 3.02:
+	if rise > 0.0 and next_y >= 3.02:
 		next_local.y = 3.03
 		next_local.z = 6.10
-	elif axis < 0.0 and next_y <= 1.79:
+	elif rise < 0.0 and next_y <= 1.79:
 		next_local.y = 1.78
 		next_local.z = 5.24
 	player.global_position = _world_from_local(next_local)
-	player.velocity = Vector3(0.0, CLIMB_SPEED * axis, 0.0)
+	player.velocity = Vector3(0.0, CLIMB_SPEED * rise, 0.0)
+
+
+func _in_bow_stair_zone(local: Vector3) -> bool:
+	return absf(local.x) < 1.30 and local.z >= -12.50 and local.z <= -11.25 \
+		and local.y >= 1.60 and local.y <= 2.42
+
+
+func _climb_bow_stair(player: CharacterBody3D, local: Vector3, axis: float, delta: float) -> void:
+	if is_zero_approx(axis):
+		return
+	var next_y := clampf(local.y + CLIMB_SPEED * 0.45 * axis * delta, 1.78, 2.18)
+	var z_target := -12.38 if axis > 0.0 else -11.20
+	var grab := minf(1.0, delta * 8.0)
+	var next_local := Vector3(local.x, next_y, lerpf(local.z, z_target, grab))
+	if axis > 0.0 and next_y >= 2.17:
+		next_local = Vector3(local.x, 2.18, -12.38)
+	elif axis < 0.0 and next_y <= 1.79:
+		next_local = Vector3(local.x, 1.78, -11.20)
+	player.global_position = _world_from_local(next_local)
+	player.velocity = Vector3(0.0, CLIMB_SPEED * 0.45 * axis, 0.0)
 
 
 ## ------------------------------------------------------------------ boarding ladders
@@ -1544,6 +1773,10 @@ func _carry_riders() -> void:
 		return
 	if _player == null or not is_instance_valid(_player):
 		return
+	# Godot already follows a moving floor.  During the authored jump the body
+	# leaves that floor, so add only the deck's own motion while it is airborne.
+	if _player.is_on_floor():
+		return
 	var now := _world_transform()
 	var motion := now * _step_transform.affine_inverse()
 	if motion.is_equal_approx(Transform3D.IDENTITY):
@@ -1554,7 +1787,9 @@ func _carry_riders() -> void:
 
 
 func _on_deck_local(local: Vector3) -> bool:
-	if local.y < _deck_y - 0.5 or local.y > _deck_y + 4.2:
+	# The fighting top is 3.45 m above the main deck.  Keep its full jump arc
+	# aboard too, including the 1.1 m rise above that upper floor.
+	if local.y < _deck_y - 0.5 or local.y > _deck_y + 5.2:
 		return false
 	return absf(local.x) <= _beam * 0.5 + 0.35 and absf(local.z) <= _length * 0.5 + 0.60
 

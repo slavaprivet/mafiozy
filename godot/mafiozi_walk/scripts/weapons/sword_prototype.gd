@@ -471,8 +471,12 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 	return {"ok": true, "socket": rig.get_bone_name(_bone_socket), "upper_len": _upper_len, "fore_len": _fore_len, "dummy": placed.dummy, "pole": placed.pole}
 
 ## True while the player is actively steering the blade (LMB held).
+var _melee_heading33: float = NAN
+
 func is_steering() -> bool:
-	return _ready and _selected and _held
+	return _active() and (_hold_left or _hold_right) and not _sword_grounded and not _unarmed \
+		and not _aiming_throw and not _throwing and not bool(_world.get("preview_dead")) \
+		and not _player._mount_mode and not _player._swimming and not _player._vehicle_hold
 
 # ---------------------------------------------------------------- construction
 
@@ -1709,8 +1713,10 @@ func _input(event: InputEvent) -> void:
 		# noise is what made the blade ripple. Anything below the floor is ignored.
 		if absf(motion.relative.x) + absf(motion.relative.y) < MOUSE_NOISE_FLOOR:
 			return
-		# The SAME motion also turns the camera: the event is deliberately NOT
-		# consumed here, so the view stays free while the blade is steered.
+		# Keep events available to the camera predicate; only melee changes facing.
+		if is_steering():
+			if not is_finite(_melee_heading33): _melee_heading33 = _player._visual.global_rotation.y
+			_melee_heading33 -= motion.relative.x * _player.mouse_sensitivity
 		# A single violent flick is DAMPED: one event may only move the target so far,
 		# so a hard wrist snap cannot teleport the blade through a whole arc in one
 		# frame. The arm still gets there - it just has to travel for it.
@@ -2136,13 +2142,15 @@ func is_throwable() -> bool:
 	return bool(weapon_entry().get("throwable", false))
 
 func _face_spear_aim31(delta: float) -> void:
+	if not is_steering(): _melee_heading33 = NAN
+	elif not is_finite(_melee_heading33): _melee_heading33 = _player._visual.global_rotation.y
 	if _held and WEAPONS.has(_weapon_id) and not _aiming_throw and is_instance_valid(_player):
 		# Mouse look and free weapon aim share one facing frame. Without this,
 		# the camera/front-body constraints fought and sent side cuts vertically.
 		var melee_visual: Node3D = _player._visual
 		var view_forward: Vector3 = -_camera.global_basis.z
 		if is_instance_valid(melee_visual) and Vector2(view_forward.x, view_forward.z).length_squared() > 0.01:
-			var wanted_yaw := atan2(view_forward.x, view_forward.z)
+			var wanted_yaw := _melee_heading33 if is_steering() and is_finite(_melee_heading33) else atan2(view_forward.x, view_forward.z)
 			var yaw_error := wrapf(wanted_yaw - melee_visual.global_rotation.y, -PI, PI)
 			melee_visual.rotation.y += clampf(yaw_error, -8.0 * delta, 8.0 * delta)
 			_player._heading = melee_visual.rotation.y - deg_to_rad(_player.visual_yaw_degrees)
@@ -2917,7 +2925,8 @@ func _hand_target_direction() -> Vector3:
 	var yaw_off := hx * 1.30
 	# The whole vertical arc is open, and now a real wind-up is possible too: the
 	# fist can swing from below the hip right up over the head.
-	var pitch_off := clampf(0.10 + hy * 1.42 - _thrust * 0.30, -1.00, 1.48)
+	var side_lift := 0.30 * smoothstep(0.15, 0.85, absf(hx)) * (1.0 - smoothstep(0.0, 0.55, absf(hy))) if is_steering() else 0.0
+	var pitch_off := clampf(0.10 + hy * 1.42 + side_lift - _thrust * 0.30, -1.00, 1.48)
 	var flat := (-basis.z).rotated(Vector3.UP, -yaw_off).normalized()
 	return (flat * cos(pitch_off) + Vector3.UP * sin(pitch_off)).normalized()
 
@@ -3192,6 +3201,9 @@ func _pose_arm_ik(clav: int, upper: int, fore: int, hand: int, rest_upper: Trans
 	# The elbow hangs DOWN (a little to its own side and slightly back), which is
 	# what a human arm does. A sideways pole threw the elbow out into a Г shape.
 	var pole := Vector3(0.75 * pole_side, 0.82, -0.32) if elbow_up else Vector3(0.55 * pole_side, -1.0, -0.12)
+	if not elbow_up and is_steering():
+		var lift := smoothstep(0.12, 0.75, maxf(_hand.y, absf(_hand.x) * 0.65))
+		pole = pole.normalized().slerp(Vector3(0.75 * pole_side, 0.82, -0.32).normalized(), lift)
 	pole -= direction * pole.dot(direction)
 	if pole.length_squared() < 1.0e-6:
 		pole = direction.cross(Vector3.RIGHT)
@@ -3953,8 +3965,8 @@ func _player_take_blade(amount: float, at: Vector3, direction: Vector3, may_seve
 	var old_grip := _active_side()
 	_player_severed[full_key] = true
 	var armor_visual := _player.get_node_or_null("CastleArmorVisual") if is_instance_valid(_player) else null
-	if armor_visual != null: armor_visual.on_severed(full_key)
 	var cut_done50: bool = _hide_player_limb(full_key, kind, bone_name, at, direction, contact_speed50)
+	if armor_visual != null: armor_visual.on_severed(full_key, cut_done50)
 	_spray_blood(at, direction, 30)
 	if not cut_done50: _throw_stump(kind, at, direction, 3.0)
 	if kind in ["upperarm", "forearm", "hand"]:
@@ -5267,6 +5279,7 @@ func _start_npc_corpse31(life_id: int, point: Vector3, direction: Vector3, speed
 	if not is_finite(speed): speed = 0.0
 	var corpse := RigidBody3D.new()
 	corpse.name = "SwordKnightCorpse31"
+	corpse.set_meta("melee_corpse33", true)
 	corpse.mass = 70.0
 	corpse.collision_layer = 1
 	corpse.collision_mask = 1
@@ -5539,10 +5552,14 @@ func npc_cut_body(plane_world: Plane, keep_point_world: Vector3, part_key: Strin
 		# A closed glove/boot can lie wholly beyond the cut with no crossing edges.
 		# Move that original layer rather than leaving it on preserved bones.
 		var whole_detach39: bool = kept_arrays.is_empty() and not gone_arrays.is_empty() and cut.triangles_split == 0
-		if cut.triangles_split == 0 and not whole_detach39: continue
+		# Disconnected skin islands can share one surface: a fist is entirely distal
+		# while the face and opposite hand stay proximal. They need partitioning even
+		# when no triangle crosses the plane; there is no new opening to cap.
+		var disconnected_detach33: bool = cut.triangles_split == 0 and not gone_arrays.is_empty()
+		if cut.triangles_split == 0 and not disconnected_detach33: continue
 		# Validate every intersecting layer before changing ANY original mesh.
 		# Partial failure must not mark the whole limb as successfully mesh-cut.
-		if not whole_detach39 and (kept_arrays.is_empty() or gone_arrays.is_empty() or kept_cap.is_empty() or gone_cap.is_empty()): return false
+		if not disconnected_detach33 and (kept_arrays.is_empty() or gone_arrays.is_empty() or kept_cap.is_empty() or gone_cap.is_empty()): return false
 		var kept_indices: Array[int] = cut.front_surface_indices if keep_front else cut.back_surface_indices
 		var gone_indices: Array[int] = cut.back_surface_indices if keep_front else cut.front_surface_indices
 		var source_materials: Array[Material] = []
@@ -5711,6 +5728,7 @@ func _update_npc_debris(delta: float) -> void:
 
 ## Builds the opponent from the game's own resident model and canonical walk gait.
 func _spawn_resident_knight(at: Vector3) -> bool:
+	if not at.is_finite(): return false
 	if is_instance_valid(_npc_rig): return true
 	if is_instance_valid(_npc_corpse31): _npc_corpse31.queue_free()
 	var cache_bytes := FileAccess.get_file_as_bytes(NPC_MANIFEST)
@@ -5821,13 +5839,15 @@ func _update_city_npc(delta: float) -> void:
 		_npc_bind_timer += delta
 		if _npc_bind_timer >= 0.5 and _npc_bind_attempts < 20:
 			_npc_bind_timer = 0.0
-			_npc_bind_attempts += 1
 			var knight_spawn: Vector3 = _player.global_position + _player._visual.global_basis.z * 4.6
 			if bool(_world.get("castle_map")):
 				var castle_target: Vector3 = _world.get("_castle_spawn_target")
 				if castle_target.is_finite() and not castle_target.is_zero_approx():
 					knight_spawn = castle_target + _player._visual.global_basis.x * 4.6 + _player._visual.global_basis.z * 4.0
-			if _spawn_resident_knight(_grounded(knight_spawn)) \
+			var grounded_spawn := _grounded(knight_spawn)
+			if not grounded_spawn.is_finite(): return
+			_npc_bind_attempts += 1
+			if _spawn_resident_knight(grounded_spawn) \
 				and is_instance_valid(_duelist):
 				_duelist.visible = false
 				_duelist_hull.set_meta("sword_duelist", false)
@@ -6488,7 +6508,7 @@ func _sever_part(full_key: String, kind: String, part: Dictionary, point: Vector
 			embedded.reparent(_npc_body, true)
 	_npc_severed[full_key] = true
 	_disable_severed_npc_hitboxes31(full_key)
-	if is_instance_valid(_npc_armor_visual31): _npc_armor_visual31.on_severed(full_key)
+	if is_instance_valid(_npc_armor_visual31): _npc_armor_visual31.on_severed(full_key, cut_done)
 	_spray_blood(point, direction, 34)
 	_npc_bleed_until_ms = Time.get_ticks_msec() + 6500
 	_npc_bleed_at = point
@@ -6762,35 +6782,20 @@ func _update_gore(delta: float) -> void:
 					continue
 		index += 1
 
-## Walking into a severed piece kicks it along the ground. The pieces live on their
-## own layer so they never block the player, but a real nudge still rolls them.
-## The kick is ONE impulse per approach with a cooldown: applying it every frame
-## used to accelerate a piece away across the map.
-func _update_stumps(delta: float) -> void:
-	if not is_instance_valid(_player) or _stumps.is_empty(): return
-	var now := Time.get_ticks_msec()
-	var player_pos: Vector3 = _player.global_position + Vector3.UP * 0.45
+## All severed rigid bodies use the player's actual slide contacts, just like
+## the settled corpse. Register pieces here; proximity alone never applies force.
+func _update_stumps(_delta: float) -> void:
 	for index: int in range(_stumps.size() - 1, -1, -1):
 		var body: Node3D = _stumps[index]
 		if not is_instance_valid(body):
 			_stumps.remove_at(index)
 			continue
-		if not body is RigidBody3D: continue
-		var rig_body := body as RigidBody3D
-		var to_body := rig_body.global_position - player_pos
-		to_body.y = 0.0
-		var distance := to_body.length()
-		if distance > 0.9 or distance < 0.02: continue
-		# One nudge per approach, and never on a piece that is already rolling.
-		if now - int(rig_body.get_meta("kick_ms", -10000)) < 500: continue
-		if rig_body.linear_velocity.length() > 1.6: continue
-		rig_body.set_meta("kick_ms", now)
-		var away := to_body / distance
-		rig_body.apply_central_impulse(away * 0.30 + Vector3.UP * 0.05)
-		rig_body.apply_torque_impulse(Vector3(away.z, 0.0, -away.x) * 0.22)
-		# Hard caps: a severed piece rolls, it never launches.
-		rig_body.linear_velocity = rig_body.linear_velocity.limit_length(2.2)
-		rig_body.angular_velocity = rig_body.angular_velocity.limit_length(7.0)
+		if body is RigidBody3D:
+			body.set_meta("melee_corpse33", true)
+	for entry: Dictionary in _npc_debris:
+		var body: Node3D = entry.get("node")
+		if is_instance_valid(body) and body is RigidBody3D:
+			body.set_meta("melee_corpse33", true)
 ## Shortest distance from the character's OWN head to the blade line. The "sword is
 ## stuck through his face" pose is measurable this way instead of argued about.
 func _head_blade_clearance() -> float:

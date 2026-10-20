@@ -1175,7 +1175,7 @@ func _unstick_player(delta: float) -> void:
 	# machine instead of leaving him trapped.
 	if not is_instance_valid(player) or not player.is_on_floor():
 		return
-	if bool(player.get("_climbing_ladder")) or bool(player.get("_vehicle_hold")):
+	if player.get("_climbing_ladder") == true or player.get("_vehicle_hold") == true:
 		return
 	var local := _local_of(player.global_position)
 	if local.y > 2.55:

@@ -79,7 +79,6 @@ var _ball_props: Array[MeshInstance3D] = []
 var _carried_ball_mesh: MeshInstance3D
 var _dropped_ball: Node3D
 var _deck_balls: Array[Node3D] = []
-var _carry_phase := 0.0
 var _aim_left := false
 var _aim_right := false
 var _aim_up := false
@@ -646,8 +645,7 @@ func _set_cannon_camera(on: bool) -> void:
 			player_camera.current = true
 
 
-## A gunner looks straight down his own barrel: the camera follows the aimed
-## muzzle, so the HUD crosshair is where the ball will go.
+## The gunner sights over the moving barrel, through the actual gunport.
 func _update_gun_camera() -> void:
 	if not _cannon_camera_on or not is_instance_valid(_gun_camera) or preview_cannons == null:
 		return
@@ -657,27 +655,20 @@ func _update_gun_camera() -> void:
 		var value: Variant = preview_cannons.call("_muzzle_world", _cannon_index)
 		if value is Vector3:
 			muzzle = value
-	var direction := muzzle - mount
-	if direction.length_squared() < 0.04 and is_instance_valid(preview_boat):
-		direction = mount - preview_boat.global_position
-	direction = direction.normalized()
-	# First-person gunner: use the cannon's own outward firing direction (the
-	# muzzle-mount vector points inboard on the port battery).  Camera sits
-	# behind the breech and above the barrel, looking over it at the target.
-	var forward := direction
-	if preview_cannons.has_method("state"):
-		var gun_state: Dictionary = preview_cannons.call("state")
-		var state_dir: Variant = gun_state.get("direction", null)
-		if state_dir is Vector3 and (state_dir as Vector3).length_squared() > 0.01:
-			forward = (state_dir as Vector3).normalized()
-	forward.y = 0.0
+	var forward := muzzle - mount
+	if preview_cannons.has_method("_gun_direction"):
+		var aimed_direction: Variant = preview_cannons.call("_gun_direction", _cannon_index)
+		if aimed_direction is Vector3 and (aimed_direction as Vector3).length_squared() > 0.01:
+			forward = aimed_direction as Vector3
 	if forward.length_squared() < 0.01:
-		forward = direction
+		return
 	forward = forward.normalized()
-	var eye := mount - forward * 2.35 + Vector3.UP * 1.35
+	var up := preview_boat.global_basis.y.normalized() if is_instance_valid(preview_boat) else Vector3.UP
+	# The eye is close to the bore.  A camera behind the carriage and above the
+	# rail sees the outside of the hull even when the projectile clears the port.
+	var eye := muzzle - forward * 1.45 + up * 0.32
 	_gun_camera.global_position = eye
-	var look := muzzle + forward * 35.0 + Vector3.UP * 0.10
-	_gun_camera.look_at(look, Vector3.UP)
+	_gun_camera.look_at(eye + forward * 35.0, up)
 
 
 func _hold_player(hold: bool) -> void:
@@ -939,18 +930,23 @@ func _set_carry_ball(on: bool) -> void:
 		_carried_ball_mesh = MeshInstance3D.new()
 		_carried_ball_mesh.name = "CarriedCannonball"
 		_carried_ball_mesh.mesh = mesh
-		_carried_ball_mesh.position = Vector3(0.0, 1.12, 0.48)
+		_carried_ball_mesh.position = Vector3.ZERO
 		visual.add_child(_carried_ball_mesh)
 	_carried_ball_mesh.visible = true
-	_carry_phase = 0.0
 
 
-func _update_carried_ball(delta: float) -> void:
+func _update_carried_ball(_delta: float) -> void:
 	if not is_instance_valid(_carried_ball_mesh) or not _carried_ball_mesh.visible:
 		return
-	_carry_phase += delta * 4.0
-	_carried_ball_mesh.position = Vector3(0.0, 1.12 + sin(_carry_phase) * 0.035, 0.48)
-	_carried_ball_mesh.rotation.z = sin(_carry_phase * 0.6) * 0.10
+	var rig := player.get("_pose_skeleton") as Skeleton3D
+	if not is_instance_valid(rig):
+		return
+	var hand := rig.find_bone("socket_hand_r")
+	if hand < 0:
+		return
+	var palm: Transform3D = rig.global_transform * rig.get_bone_global_pose(hand)
+	# The palm touches the lower hemisphere, with the ball resting in the hand.
+	_carried_ball_mesh.global_position = palm.origin + Vector3.UP * 0.13
 
 
 func _near_ammo_crate() -> bool:

@@ -46,6 +46,9 @@ const RIG_ROPE_COUNT := 12
 const WET_BAND_M := 0.30
 
 const PORT_Z: Array[float] = [-4.2, 3.4]
+const PORT_HALF_WIDTH := 0.80
+const PORT_BOTTOM := 1.82
+const PORT_TOP := 3.40
 ## Companionway treads (main deck -> cabin floor).  Six shallow treads in a longer
 ## opening instead of four steep ones: a 1.9 m character has to get his head below
 ## the quarterdeck slab (2.955 m) before its front edge at z=6.05, and the old
@@ -95,6 +98,7 @@ var _anchors_cache: Dictionary = {}
 var _visual: Node3D
 var _static: Node3D
 var _mast_node: Node3D
+var _mast_lower: Node3D
 var _mast_upper: Node3D
 var _mast_stump: Node3D
 var _sails_node: Node3D
@@ -234,6 +238,9 @@ func _make_nodes() -> void:
 	_mast_node.name = "Mast"
 	_mast_node.position = MAST_BASE
 	_visual.add_child(_mast_node)
+	_mast_lower = Node3D.new()
+	_mast_lower.name = "MastLower"
+	_mast_node.add_child(_mast_lower)
 	_mast_upper = Node3D.new()
 	_mast_upper.name = "MastUpper"
 	_mast_upper.position = Vector3(0.0, 7.2, 0.0)
@@ -245,11 +252,13 @@ func _make_nodes() -> void:
 	_mast_node.add_child(_mast_stump)
 	_rig_upper = Node3D.new()
 	_rig_upper.name = "RiggingUpper"
-	_visual.add_child(_rig_upper)
+	_mast_upper.add_child(_rig_upper)
+	_rig_upper.position = -(MAST_BASE + _mast_upper.position)
 
 	_sails_node = Node3D.new()
 	_sails_node.name = "Sails"
-	_visual.add_child(_sails_node)
+	_mast_upper.add_child(_sails_node)
+	_sails_node.position = -(MAST_BASE + _mast_upper.position)
 
 	_bowsprit_node = Node3D.new()
 	_bowsprit_node.name = "Bowsprit"
@@ -623,9 +632,9 @@ func _register_batches() -> void:
 	_register("cabin_paint", "paint", _static, true)
 	_register("cabin_glass", "glass_dark", _static, false)
 	# Mast.
-	_register("mast_lower", "wood", _mast_node, true)
+	_register("mast_lower", "wood", _mast_lower, true)
 	_register("mast_upper", "wood", _mast_upper, true)
-	_register("mast_iron", "iron", _mast_node, false)
+	_register("mast_iron", "iron", _mast_lower, false)
 	_register("mast_stump", "wood_dark", _mast_stump, true)
 	# Yards and rigging above the break.
 	_register("yard", "wood", _rig_upper, true)
@@ -896,7 +905,7 @@ func _section_factor(t: float) -> float:
 ## clamps, which is exactly what the bulwark panels want for their top edge.
 func _hull_gunport_cut(z0: float, z1: float, y0: float, y1: float) -> bool:
 	for pz: float in PORT_Z:
-		if z1 > pz - 0.86 and z0 < pz + 0.86 and y1 > 1.72 and y0 < 2.92:
+		if z1 > pz - PORT_HALF_WIDTH and z0 < pz + PORT_HALF_WIDTH and y1 > PORT_BOTTOM and y0 < PORT_TOP:
 			return true
 	return false
 
@@ -1134,8 +1143,8 @@ func _build_bulwarks() -> void:
 	breaks.append(12.95)
 	breaks.append(6.0)
 	for pz: float in PORT_Z:
-		breaks.append(pz - 0.46)
-		breaks.append(pz + 0.46)
+		breaks.append(pz - PORT_HALF_WIDTH)
+		breaks.append(pz + PORT_HALF_WIDTH)
 	breaks.sort()
 	for i: int in range(breaks.size() - 1):
 		var z0: float = breaks[i]
@@ -1145,7 +1154,7 @@ func _build_bulwarks() -> void:
 		var mid := (z0 + z1) * 0.5
 		var opening := false
 		for pz: float in PORT_Z:
-			if mid > pz - 0.47 and mid < pz + 0.47:
+			if absf(mid - pz) < PORT_HALF_WIDTH:
 				opening = true
 		for side: float in [1.0, -1.0]:
 			_bulwark_panel(side, z0, z1, opening)
@@ -1164,12 +1173,17 @@ func _build_cap_rails() -> void:
 		z += 0.62
 	stations.append(6.0)
 	stations.append(12.95)
+	for pz: float in PORT_Z:
+		stations.append(pz - PORT_HALF_WIDTH)
+		stations.append(pz + PORT_HALF_WIDTH)
 	stations.sort()
 	for side: float in [1.0, -1.0]:
 		for i: int in range(stations.size() - 1):
 			var za: float = stations[i]
 			var zb: float = stations[i + 1]
 			if zb - za < 0.02:
+				continue
+			if _hull_gunport_cut(za, zb, 2.0, 3.0):
 				continue
 			var ya := _rail_top(za) + 0.04
 			var yb := _rail_top(zb) + 0.04
@@ -1242,6 +1256,9 @@ func _bulwark_panel(side: float, z0: float, z1: float, opening: bool) -> void:
 	if mid >= 6.0:
 		y_sill = deck + 0.34
 		y_head = minf(deck + 0.64, minf(rail0, rail1) - 0.10)
+	if opening:
+		y_sill = PORT_BOTTOM
+		y_head = PORT_TOP
 	var bands := [[deck, y_sill], [y_sill, y_head], [y_head, minf(rail0, rail1)]]
 	for bi: int in bands.size():
 		if opening and bi == 1:
@@ -1268,7 +1285,7 @@ func _bulwark_panel(side: float, z0: float, z1: float, opening: bool) -> void:
 		if bi == bands.size() - 1:
 			_quad("trim", o10, i10, i11, o11, Color(0.24, 0.155, 0.085), Vector3(side, 0.0, 0.0))
 	# Inner frames / ribs on the visible bulwark.
-	if int((z0 + 12.9) / 1.24) != int((z1 + 12.9) / 1.24):
+	if not opening and int((z0 + 12.9) / 1.24) != int((z1 + 12.9) / 1.24):
 		var rib_h := _rail_top(mid) - deck - 0.06
 		var rib_x := side * (_hull_x_at(mid, deck + 0.4) - thickness - 0.055)
 		_box("cabin_dark", Vector3(rib_x, deck + rib_h * 0.5 + 0.02, mid),
@@ -1306,17 +1323,15 @@ func _build_gunport_frames() -> void:
 		for side: float in [1.0, -1.0]:
 			var x_out := side * (_hull_x_at(pz, 2.15) + 0.01)
 			var x_in := side * (_hull_x_at(pz, 2.15) + 0.10)
-			# Enlarged gunport: the barrel needs room for its short traverse and
-			# must not visually cut through the bulwark.
-			# Black port face sits just OUTSIDE the planking, so it actually
-			# covers the hull instead of being hidden behind it.  The barrel
-			# emerges through this dark opening.
-			_box("static_tar", Vector3(x_out + side * 0.035, 2.30, pz), Vector3(0.06, 1.12, 1.76), Color(1, 1, 1))
-			_box("trim", Vector3(x_in, 2.84, pz), Vector3(0.13, 0.10, 1.75), Color(0.25, 0.16, 0.09))
-			_box("trim", Vector3(x_in, 1.76, pz), Vector3(0.13, 0.10, 1.75), Color(0.25, 0.16, 0.09))
-			_box("trim", Vector3(x_in, 2.30, pz - 0.80), Vector3(0.13, 1.12, 0.10), Color(0.25, 0.16, 0.09))
-			_box("trim", Vector3(x_in, 2.30, pz + 0.80), Vector3(0.13, 1.12, 0.10), Color(0.25, 0.16, 0.09))
-			var hinge := Vector3(x_out + side * 0.02, 2.84, pz)
+			# A real empty opening, shared with both skins, ribs and cap rail.
+			# No dark backing plane: it would seal the gunner's sightline.
+			var mid_y := (PORT_BOTTOM + PORT_TOP) * 0.5
+			var height := PORT_TOP - PORT_BOTTOM + 0.20
+			_box("trim", Vector3(x_in, PORT_TOP + 0.05, pz), Vector3(0.13, 0.10, 1.80), Color(0.25, 0.16, 0.09))
+			_box("trim", Vector3(x_in, PORT_BOTTOM - 0.05, pz), Vector3(0.13, 0.10, 1.80), Color(0.25, 0.16, 0.09))
+			_box("trim", Vector3(x_in, mid_y, pz - PORT_HALF_WIDTH - 0.05), Vector3(0.13, height, 0.10), Color(0.25, 0.16, 0.09))
+			_box("trim", Vector3(x_in, mid_y, pz + PORT_HALF_WIDTH + 0.05), Vector3(0.13, height, 0.10), Color(0.25, 0.16, 0.09))
+			var hinge := Vector3(x_out + side * 0.02, PORT_TOP + 0.05, pz)
 			var lid := Basis(Vector3.RIGHT, 0.0) * Basis(Vector3.UP, 0.0) * Basis(Vector3.FORWARD, side * deg_to_rad(-74.0))
 			_box("trim", hinge + Vector3(side * 0.16, 0.30, 0.0), Vector3(0.07, 0.88, 1.58),
 				Color(0.24, 0.155, 0.085), lid)
@@ -1865,14 +1880,15 @@ func _build_boarding_ladders() -> void:
 		for side: float in [-1.0, 1.0]:
 			var x := side * 4.48
 			for rail_z: float in [-0.32, 0.32]:
-				_box("trim", Vector3(x, 0.15, z + rail_z), Vector3(0.11, 3.90, 0.10),
+				_box("trim", Vector3(x, -0.01, z + rail_z), Vector3(0.11, 3.58, 0.10),
 					Color(0.31, 0.20, 0.11))
 			var rung := -1.55
-			while rung < 1.95:
+			while rung < 1.75:
 				_box("trim", Vector3(x, rung, z), Vector3(0.10, 0.07, 0.72),
 					Color(0.37, 0.25, 0.14))
 				rung += 0.27
-			_box("iron", Vector3(x - side * 0.16, 1.98, z), Vector3(0.34, 0.06, 0.80),
+			# Finish at deck level, below the neighbouring gun's depressed barrel.
+			_box("iron", Vector3(x - side * 0.16, 1.75, z), Vector3(0.34, 0.06, 0.80),
 				Color(1, 1, 1))
 
 
@@ -1920,7 +1936,7 @@ func _build_bulwark_carvings() -> void:
 	# gold end-beads and a rosette.  Every piece is a box/sphere in the existing
 	# trim/static_gold batches, so the whole carved run costs no extra draw call.
 	for side: float in [-1.0, 1.0]:
-		for z: float in [-10.4, -7.6, -4.8, -2.0, 0.8, 3.6]:
+		for z: float in [-10.4, -7.6, -6.0, -2.0, 0.8, 2.0]:
 			var y := 2.40
 			var x := side * (_hull_x_at(z, y) + 0.025)
 			_box("trim", Vector3(x, y, z), Vector3(0.035, 0.62, 0.86), Color(0.23, 0.15, 0.085))
@@ -2003,7 +2019,7 @@ func _build_upper_deck() -> void:
 	# Diagonal knees from the bulwark up to the platform: the fighting top must
 	# look carried, not floating.
 	for side: float in [-1.0, 1.0]:
-		for z: float in [-3.80, 1.40]:
+		for z: float in [-2.80, 1.40]:
 			_tube("trim", Vector3(side * 3.48, 2.58, z), Vector3(side * 2.95, 5.10, z),
 				0.13, 0.09, 6, Color(0.27, 0.175, 0.10))
 			_box("trim", Vector3(side * 2.92, 4.80, z), Vector3(0.18, 0.55, 0.50), Color(0.26, 0.17, 0.10),
@@ -2630,82 +2646,32 @@ func _sail_vertex(st: SurfaceTool, p: Vector3, n: Vector3, uv: Vector2, color: C
 
 # ----------------------------------------------------------------------------- rigging
 func _build_rigging() -> void:
-	var lower: Array = []
-	var upper: Array = []
-	# Chainplates and deadeyes on both sides.  The shrouds are split at the
-	# fighting-top edge: a shroud running straight from rail to masthead would
-	# pass through the platform and look like a stick growing out of the grating.
-	var shroud_z := [-3.20, -2.55, -1.90, -1.25, -0.60]
-	var platform_y := UPPER_Y + 0.03
-	for side: float in [-1.0, 1.0]:
-		var hull_x := side * 3.92
-		var edge_x := side * 3.20
-		var top_x := side * 0.30
-		var t_edge := (platform_y - 2.62) / (8.35 - 2.62)
-		for i: int in shroud_z.size():
-			var z: float = shroud_z[i]
-			var top_z := -1.0 + float(i) * 0.03
-			var edge_z := lerpf(z, top_z, t_edge)
-			# Two shrouds per side are simulated live (see _build_live_rigging);
-			# the remaining three stay as static MultiMesh lines so the ratline
-			# ladder keeps its full width.
-			var live_lower := i == 1 or i == 3
-			var live_upper := i == 1
-			if not live_lower:
-				lower.append({"a": Vector3(hull_x, 2.62, z), "b": Vector3(edge_x, platform_y, edge_z), "r": 0.019})
-			if not live_upper:
-				lower.append({"a": Vector3(edge_x, platform_y, edge_z), "b": Vector3(top_x, 8.35, top_z), "r": 0.022})
-			_tube("static_iron", Vector3(hull_x, 2.44, z), Vector3(hull_x, 2.68, z), 0.055, 0.045, 6, Color(1, 1, 1))
-		# Ratlines below the platform.
-		for r: int in 4:
-			var y := 3.15 + float(r) * 0.42
-			var t := (y - 2.62) / (platform_y - 2.62)
-			var x := side * lerpf(3.92, 3.20, t)
-			for i: int in shroud_z.size() - 1:
-				var e0 := lerpf(shroud_z[i], -1.0 + float(i) * 0.03, t_edge)
-				var e1 := lerpf(shroud_z[i + 1], -1.0 + float(i + 1) * 0.03, t_edge)
-				var z0 := lerpf(shroud_z[i], e0, t)
-				var z1 := lerpf(shroud_z[i + 1], e1, t)
-				lower.append({"a": Vector3(x, y, z0), "b": Vector3(x, y, z1), "r": 0.008})
-		# Ratlines on the futtock shrouds above the platform.
-		for r: int in 5:
-			var y := platform_y + 0.35 + float(r) * 0.48
-			var tt := (y - platform_y) / (8.35 - platform_y)
-			var x := side * lerpf(3.20, 0.30, tt)
-			for i: int in shroud_z.size() - 1:
-				var t_edge0 := (platform_y - 2.62) / (8.35 - 2.62)
-				var e0 := lerpf(shroud_z[i], -1.0 + float(i) * 0.03, t_edge0)
-				var e1 := lerpf(shroud_z[i + 1], -1.0 + float(i + 1) * 0.03, t_edge0)
-				var z0 := lerpf(e0, -1.0 + float(i) * 0.03, tt)
-				var z1 := lerpf(e1, -1.0 + float(i + 1) * 0.03, tt)
-				lower.append({"a": Vector3(x, y, z0), "b": Vector3(x, y, z1), "r": 0.008})
-		# Upper shrouds spreading from the masthead to the topmast doubling.
-		for i: int in 3:
-			var z := -2.25 + float(i) * 0.62
-			upper.append({"a": Vector3(side * 0.30, 9.05, z), "b": Vector3(side * 1.15, 14.20, -1.0 + float(i) * 0.20), "r": 0.015})
-	# The topmast backstays, the inner stay and the yard braces are all live
-	# ropes now.  Keeping the static copies as well left a fan of long lines
-	# that read as a hedgehog from above, so they are deliberately not batched.
-	# Bowsprit rigging is modelled with the spar itself (bowsprit node); the
-	# bobstay and martingale there replace the former lines that ended in mid-air.
-	# Stays from the lower masthead down to the rails.
-	for side: float in [-1.0, 1.0]:
-		lower.append({"a": Vector3(side * 0.22, 8.30, -1.0), "b": Vector3(side * 3.60, 2.60, 5.20), "r": 0.022})
-	# Halyards and sheets on the deck.
-	lower.append({"a": Vector3(0.0, 8.30, -1.0), "b": Vector3(0.0, 3.55, 4.72), "r": 0.020})
-	lower.append({"a": Vector3(0.0, 10.35, -1.0), "b": Vector3(1.05, 3.10, 4.55), "r": 0.018})
-	lower.append({"a": Vector3(0.0, 14.15, -1.0), "b": Vector3(-1.05, 3.10, 4.55), "r": 0.016})
-	# SHIP66: the static shrouds, ratline ladders, halyards and duplicate stays
-	# were the "lines hanging in the air".  Everything that supports the masts
-	# is now the twelve simulated ropes below; remove the static batches.
-	lower.clear()
-	upper.clear()
-	_make_ropes(lower, "RiggingLower", _visual, false)
-	_make_ropes(upper, "RiggingUpper", _rig_upper, true)
-	# SHIP84: no free-floating rigging.  The upper shroud batch is hidden too;
-	# it read as thin lines hanging in the air over the deck.
-	if is_instance_valid(_rig_upper):
-		_rig_upper.visible = false
+	# Only owner-bound chains; do not restore the obsolete floating static lines.
+	_build_live_rigging()
+
+# Resolve in Visual space, including when build() runs before entering the tree.
+func _rig_owner_transform(node: Node3D) -> Transform3D:
+	var result := Transform3D.IDENTITY
+	var current := node
+	while current != _visual and is_instance_valid(current):
+		result = current.transform * result
+		current = current.get_parent() as Node3D
+	return result
+
+func _rig_definition(a_node: Node3D, a: Vector3, b_node: Node3D, b: Vector3, radius: float) -> Dictionary:
+	return {"a_node": a_node, "a_local": _rig_owner_transform(a_node).affine_inverse() * a,
+		"b_node": b_node, "b_local": _rig_owner_transform(b_node).affine_inverse() * b,
+		"a": a, "b": b, "r": radius, "slack": 1.035}
+
+func _rig_owner_visible(node: Variant) -> bool:
+	if not is_instance_valid(node) or not node is Node3D:
+		return false
+	var current: Node3D = node
+	while is_instance_valid(current) and current != _visual:
+		if not current.visible or current.is_queued_for_deletion():
+			return false
+		current = current.get_parent() as Node3D
+	return current == _visual
 
 ## Build the twelve simulated ropes.  Everything is preallocated here: the
 ## per-frame update only writes into PackedVector3Array slots and MultiMesh
@@ -2729,36 +2695,20 @@ func _build_live_rigging() -> void:
 	_visual.add_child(_rig_live_mm)
 
 	var defs: Array[Dictionary] = []
-	var platform_y := UPPER_Y + 0.03
-	var t_edge := (platform_y - 2.62) / (8.35 - 2.62)
 	for side: float in [-1.0, 1.0]:
-		var hull_x := side * 3.92
-		var edge_x := side * 3.20
-		var top_x := side * 0.30
-		# Two live shrouds per side.  The forward one keeps its futtock half
-		# live as well; the aft one hands that half back to the static batch.
-		for spec: Dictionary in [
-				{"z": -2.55, "top": -2.97, "futtock": true},
-				{"z": -1.25, "top": -2.91, "futtock": false},
-		]:
-			var z: float = spec["z"]
-			var top_z: float = spec["top"]
-			var edge_z := lerpf(z, top_z, t_edge)
-			defs.append({"a": Vector3(hull_x, 2.62, z), "b": Vector3(edge_x, platform_y, edge_z),
-				"r": 0.023, "slack": 1.035, "upper": false, "bow": false})
-			if bool(spec["futtock"]):
-				defs.append({"a": Vector3(edge_x, platform_y, edge_z), "b": Vector3(top_x, 8.35, top_z),
-					"r": 0.020, "slack": 1.035, "upper": false, "bow": false})
-		# Topmast backstay and the main-yard brace.
-		defs.append({"a": Vector3(side * 0.24, 16.10, -1.0), "b": Vector3(side * 3.45, 3.42, 11.40),
-			"r": 0.019, "slack": 1.04, "upper": true, "bow": false})
-		defs.append({"a": Vector3(side * 5.80, 10.35, -1.0), "b": Vector3(side * 3.60, 2.70, 5.80),
-			"r": 0.017, "slack": 1.045, "upper": true, "bow": false})
-	# Fore stay to the bowsprit tip and the inner stay to the bow platform.
-	defs.append({"a": Vector3(0.0, 17.05, -1.05), "b": Vector3(0.0, 4.55, -17.75),
-		"r": 0.026, "slack": 1.03, "upper": true, "bow": true})
-	defs.append({"a": Vector3(0.0, 14.95, -1.05), "b": Vector3(0.0, 3.05, -13.55),
-		"r": 0.022, "slack": 1.035, "upper": true, "bow": false})
+		for z: float in [-2.55, -1.25]:
+			defs.append(_rig_definition(_static, Vector3(side * 3.50, 1.78, z),
+				_static, Vector3(side * 3.08, 5.16, z), 0.023))
+		defs.append(_rig_definition(_static, Vector3(side * 3.08, 5.16, -2.55),
+			_mast_lower, Vector3(side * 0.225, 8.35, -1.0), 0.020))
+		defs.append(_rig_definition(_mast_upper, Vector3(side * 0.08, 16.10, -1.0),
+			_static, Vector3(side * 3.0, 3.03, 11.40), 0.019))
+		defs.append(_rig_definition(_rig_upper, Vector3(side * 5.80, 10.35, -1.0),
+			_static, Vector3(side * 3.40, 1.78, 1.80), 0.017))
+	defs.append(_rig_definition(_mast_upper, Vector3(0.0, 17.05, -1.07),
+		_bowsprit_node, Vector3(0.0, 4.45, -18.0), 0.026))
+	defs.append(_rig_definition(_mast_upper, Vector3(0.0, 14.95, -1.10),
+		_static, Vector3(0.0, 1.78, -10.0), 0.022))
 
 	var count := defs.size()
 	_rig_meta = defs
@@ -2790,12 +2740,7 @@ func _build_live_rigging() -> void:
 		_rig_rest[r] = maxf(0.12, straight * slack)
 		_rig_solve[r] = maxf(0.12, straight + minf(straight * (slack - 1.0), 0.0006))
 		_rig_radius[r] = float(def["r"])
-		var bits := 0
-		if bool(def["upper"]):
-			bits |= 1
-		if bool(def["bow"]):
-			bits |= 2
-		_rig_flags[r] = bits
+		_rig_flags[r] = 0
 		var base := r * RIG_POINTS
 		for p: int in RIG_POINTS:
 			var point := a.lerp(b, float(p) / float(RIG_POINTS - 1))
@@ -2810,21 +2755,15 @@ func _build_live_rigging() -> void:
 		_update_live_rigging(1.0 / 60.0)
 
 func _rope_visible(r: int) -> bool:
-	var bits := _rig_flags[r]
-	if (bits & 1) != 0 and _mast_broken:
-		return false
-	if (bits & 2) != 0:
-		var entry: Variant = _part_by_id.get("bowsprit")
-		if entry is Dictionary and float((entry as Dictionary).get("hp", 1.0)) <= 0.0:
-			return false
-	return true
+	var def := _rig_meta[r]
+	return _rig_owner_visible(def["a_node"]) and _rig_owner_visible(def["b_node"])
 
 func _update_live_rigging(delta: float) -> void:
 	if not is_instance_valid(_rig_live_mm) or _rig_points.is_empty():
 		return
 	var dt := clampf(delta, 0.0, 0.05)
 	_rig_time += dt
-	var gt := global_transform if is_inside_tree() else transform
+	var gt := _visual.global_transform if is_inside_tree() else transform * _visual.transform
 	var inv_basis := gt.basis.inverse()
 	var gravity := inv_basis * Vector3.DOWN * 9.8
 	var speed := 0.0
@@ -2840,7 +2779,7 @@ func _update_live_rigging(delta: float) -> void:
 		inertia = inv_basis * (_rig_accel * -0.90)
 		inertia = inertia.limit_length(9.0)
 		var rel := _rig_prev_basis.inverse() * gt.basis
-		var q := rel.get_rotation_quaternion()
+		var q := rel.orthonormalized().get_rotation_quaternion()
 		var angle := q.get_angle()
 		if angle > PI:
 			angle -= TAU
@@ -2872,9 +2811,19 @@ func _update_live_rigging(delta: float) -> void:
 	var mm := _rig_live_mm.multimesh
 	for r: int in _rig_meta.size():
 		var base := r * RIG_POINTS
+		var def := _rig_meta[r]
+		var visible := _rope_visible(r)
 		var a := _rig_a[r]
 		var b := _rig_b[r]
-		var visible := _rope_visible(r)
+		# Broken/removed owners must be checked before dereferencing their transforms.
+		if visible:
+			a = _rig_owner_transform(def["a_node"]) * def["a_local"]
+			b = _rig_owner_transform(def["b_node"]) * def["b_local"]
+		var straight := a.distance_to(b) / float(RIG_SEGMENTS)
+		_rig_rest[r] = maxf(0.12, straight * _rig_slack[r])
+		_rig_solve[r] = maxf(0.12, straight + minf(straight * (_rig_slack[r] - 1.0), 0.0006))
+		_rig_a[r] = a
+		_rig_b[r] = b
 		if not visible or dt <= 0.0:
 			for p: int in RIG_POINTS:
 				var rest_point := a.lerp(b, float(p) / float(RIG_POINTS - 1))
@@ -2949,7 +2898,7 @@ func _update_live_rigging(delta: float) -> void:
 				x_axis = y_axis.cross(Vector3.RIGHT)
 			x_axis = x_axis.normalized()
 			var z_axis := x_axis.cross(y_axis).normalized()
-			var basis := Basis(x_axis, y_axis, z_axis).scaled(Vector3(radius, length, radius))
+			var basis := Basis(x_axis * radius, y_axis * length, z_axis * radius)
 			mm.set_instance_transform(slot, Transform3D(basis, (pa + pb) * 0.5))
 
 
@@ -3094,7 +3043,7 @@ func _register_flag(kind: String, node: MeshInstance3D, upper: bool, bow: bool) 
 func _live_flag_count() -> int:
 	var count := 0
 	for entry: Dictionary in _flags:
-		var node: Node3D = entry["node"]
+		var node: Variant = entry["node"]
 		if is_instance_valid(node) and node.is_visible_in_tree():
 			count += 1
 	return count
@@ -3468,6 +3417,8 @@ func _build_parts() -> void:
 	_part_by_id.clear()
 	var entries := [
 		["mast", 80.0, _mast_node],
+		["mast_lower", 100.0, _mast_lower],
+		["mast_upper", 80.0, _mast_upper],
 		["bowsprit", 55.0, _bowsprit_node],
 		["rails", 55.0, _rails_node],
 		["transom", 85.0, _transom_node],
@@ -3763,7 +3714,12 @@ func break_part(id: String) -> bool:
 		if not _part_by_id.has(id):
 			return false
 	var entry: Dictionary = _part_by_id[id]
-	if id == "mast":
+	if id == "mast_lower":
+		entry["hp"] = 0.0
+		_mast_lower.visible = false
+		_apply_mast_broken(true)
+		return true
+	if id == "mast" or id == "mast_upper":
 		entry["hp"] = 0.0
 		_apply_mast_broken(true)
 		return true
@@ -3777,11 +3733,14 @@ func break_part(id: String) -> bool:
 		for light: OmniLight3D in _lantern_lights:
 			if is_instance_valid(light):
 				light.visible = false
+	_update_live_rigging(0.0)
 	return true
 
 ## The public version is kept separate from the internal visual switch so that
 ## restoring the mast never restores its hit points.
 func _apply_mast_broken(broken: bool) -> void:
+	# Missing lower support cannot be repaired by toggling the upper visual.
+	broken = broken or (is_instance_valid(_mast_lower) and not _mast_lower.visible)
 	_mast_broken = broken
 	if is_instance_valid(_mast_upper):
 		_mast_upper.visible = not broken
@@ -3790,11 +3749,13 @@ func _apply_mast_broken(broken: bool) -> void:
 	if is_instance_valid(_sails_node):
 		_sails_node.visible = not broken
 	if is_instance_valid(_mast_stump):
-		_mast_stump.visible = broken
+		_mast_stump.visible = broken and _mast_lower.visible
 	if _debris.has("mast"):
 		(_debris["mast"] as Node3D).visible = broken
 	if broken and _part_by_id.has("mast"):
 		_part_by_id["mast"]["hp"] = 0.0
+		_part_by_id["mast_upper"]["hp"] = 0.0
+	_update_live_rigging(0.0)
 
 func _apply_sail_visual() -> void:
 	var amount := clampf(_sail_amount, 0.0, 1.0)
