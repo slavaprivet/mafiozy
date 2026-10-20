@@ -44,6 +44,10 @@ var _stats_every: float = 0.0
 var _selftest_clock: float = 0.0
 var _next_stats_at: float = 0.0
 var _blast_sent: bool = false
+## `--net-shot-at=СЕК` — через столько секунд выстрелить из корабельной пушки,
+## чтобы вторая сторона подняла снаряд-дубль (tests/net/net_projectile_test.ps1).
+var _shot_after: float = -1.0
+var _shot_sent: bool = false
 
 
 func install(world_root: Node3D, player: CharacterBody3D) -> void:
@@ -69,6 +73,8 @@ func _read_test_args() -> void:
 			_blast_after = float(argument.substr("--net-blast-at=".length()))
 		elif argument.begins_with("--net-castle-stats="):
 			_stats_every = maxf(0.5, float(argument.substr("--net-castle-stats=".length())))
+		elif argument.begins_with("--net-shot-at="):
+			_shot_after = float(argument.substr("--net-shot-at=".length()))
 
 
 func avatar_for(id: int) -> CharacterBody3D:
@@ -101,12 +107,15 @@ func _physics_process(delta: float) -> void:
 ## Тестовый сценарий разрушения: клиент просит хост взорвать стену, оба печатают
 ## счётчики кладки. Нужен, чтобы этап 3 проверялся без ручного участия.
 func _selftest(delta: float) -> void:
-	if _blast_after < 0.0 and _stats_every <= 0.0:
+	if _blast_after < 0.0 and _stats_every <= 0.0 and _shot_after < 0.0:
 		return
 	_selftest_clock += delta
 	if _blast_after >= 0.0 and not _blast_sent and _selftest_clock >= _blast_after:
 		_blast_sent = true
 		_blast_wall()
+	if _shot_after >= 0.0 and not _shot_sent and _selftest_clock >= _shot_after:
+		_shot_sent = true
+		_fire_test_shot()
 	if _stats_every > 0.0 and _selftest_clock >= _next_stats_at:
 		_next_stats_at = _selftest_clock + _stats_every
 		_print_castle_stats()
@@ -128,6 +137,26 @@ func _blast_wall() -> void:
 		Net.send_event_to_host("destruction_request", {"site": "castle", "e": event})
 	else:
 		print("NET_BLAST host point=", point, " result=", castle.call("apply_explosion", event))
+
+
+## Выстрел из корабельной пушки для проверки снарядов-дублей. `debug_fire_at`
+## сам наводит, заряжает и стреляет — участие игрока не нужно.
+func _fire_test_shot() -> void:
+	if world == null:
+		return
+	var ship: Variant = world.get("preview_ship")
+	if ship == null or not (ship is Object) or not is_instance_valid(ship as Object):
+		print("NET_SHOT skipped=no_ship")
+		return
+	var aim: Vector3 = Vector3.ZERO
+	var castle: Node = castle_node()
+	if castle != null:
+		var half: float = float(castle.call("wall_half")) if castle.has_method("wall_half") else 68.0
+		aim = (castle as Node3D).to_global(Vector3(12.0, 5.0, half))
+	else:
+		aim = (ship as Node3D).global_position + Vector3(0.0, 0.0, -40.0)
+	var result: Variant = ship.call("debug_fire_at", aim)
+	print("NET_SHOT role=", Net.role_name(), " aim=", aim, " result=", result)
 
 
 func _print_castle_stats() -> void:

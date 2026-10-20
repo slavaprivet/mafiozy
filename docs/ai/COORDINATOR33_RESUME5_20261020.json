@@ -21,7 +21,7 @@
   },
   "new_validation": {
     "import": "main_checkpoint_import01 PASS109.92s,stderr0 before latest network destruction merge",
-    "merged_runtime": "main_checkpoint_smoke03 PASS20assertions,stderr0; all9scene systems ready; offline network autoload/API, physical20cell destruction, finite player",
+    "merged_runtime": "main_checkpoint_smoke04 PASS20assertions,stderr0 after network projectile merge; all9scene systems ready, physical20cell blast",
     "evidence": "COORDINATOR33_RESUME5_MERGED_SMOKE.json",
     "network_resolution_audit": "COORDINATOR33_RESUME5_NETWORK_MERGE_AUDIT.json",
     "limitation": "No fresh multiplayer pair acceptance; reference raised-arm update remains scratch. Early smoke01/02 failed due test fixture typing/autoload startup, raw preserved locally."
@@ -63,5 +63,6 @@
     "No parallel writers; old agents interrupted, task/evidence registry preserved",
     "Current manifest/frozen releases unchanged until a final accepted release exists"
   ],
-  "updated_utc": "2026-10-20T17:19:06.320674+00:00"
+  "updated_utc": "2026-10-20T17:19:06.320674+00:00",
+  "additional_upstream_preserved": "befaa364: network cannon projectiles, all upstream blobs adopted unchanged; merged offline runtime rechecked20PASS in smoke04,stderr0"
 }

@@ -60,6 +60,9 @@ var velocity := Vector3.ZERO
 var age := 0.0
 var launch_from := Vector3.ZERO
 var shot_id := 0
+## DSH_NET: снаряд-дубль, рождённый из чужого сетевого события. Летит и даёт
+## эффекты, но НЕ наносит урон: урон и разрушение уже посчитал владелец выстрела.
+var net_proxy := false
 var owner_boat: Node3D = null
 var castle: Node3D = null
 var basin: Node = null
@@ -84,8 +87,10 @@ func _ready() -> void:
 ## Called by ShipCannons when the ball leaves the muzzle.  `event_index` is the running
 ## shot number used in the castle event id ("ship-cannon:<n>").
 func launch(from: Vector3, direction: Vector3, speed: float, boat: Node3D,
-		castle_node: Node3D, basin_node: Node, event_index: int = 0) -> void:
+		castle_node: Node3D, basin_node: Node, event_index: int = 0,
+		proxy: bool = false) -> void:
 	_ensure_mesh()
+	net_proxy = proxy
 	global_position = from
 	launch_from = from
 	var dir: Vector3 = direction
@@ -185,6 +190,22 @@ func _react(hit: Dictionary) -> Dictionary:
 	var collider: Variant = hit.get("collider")
 	var direction: Vector3 = velocity.normalized()
 	global_position = point
+	# DSH_NET: дубль чужого выстрела доходит до поверхности и рисует эффект, но
+	# ничего не ломает: пробоину, урон и разрушение уже применил владелец выстрела.
+	if net_proxy:
+		if _is_water_point(point):
+			return _finish_water(point, direction)
+		if _is_castle(point, collider):
+			return _finish({"type": "castle", "position": point, "direction": direction,
+				"detached": 0, "net_proxy": true,
+				"event_id": "ship-cannon:%d" % shot_id})
+		if is_instance_valid(_hit_owner(collider)):
+			return _finish({"type": "ship", "position": point, "direction": direction,
+				"target_type": "net_proxy", "net_proxy": true,
+				"event_id": "ship-cannon:%d" % shot_id})
+		return _finish({"type": "land", "position": point, "direction": direction,
+			"normal": hit.get("normal", Vector3.UP), "net_proxy": true,
+			"event_id": "ship-cannon:%d" % shot_id})
 	# 0. a powder barrel: the prop carries the `ship_powder_barrel` meta (agent P).  The
 	#    cargo that owns it is asked to blow up and the ball is spent there, before the
 	#    hull under the barrel is considered: a barrel must explode, not leak.

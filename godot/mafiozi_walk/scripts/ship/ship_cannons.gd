@@ -134,6 +134,10 @@ func install(world: Node3D, boat: Node3D, model: Node3D, player: CharacterBody3D
 		basin: Node) -> Dictionary:
 	if _installed:
 		return {"ok": false, "reason": "already_installed", "cannons": _guns.size()}
+	# DSH_NET: слушаем чужие выстрелы. Подключение не зависит от того, успела ли
+	# сеть подняться — обработчик сам проверяет роль.
+	if not Net.event_received.is_connected(_on_net_event):
+		Net.event_received.connect(_on_net_event)
 	if not is_instance_valid(model):
 		return {"ok": false, "reason": "no_model", "cannons": 0}
 	if not model.has_method("build"):
@@ -728,10 +732,42 @@ func fire() -> Dictionary:
 	_apply_gun_pose(gun, true)
 	_set_load_visuals(gun, 0.0, false)
 	ball.call("launch", from, direction, BALL_SPEED, _boat, _castle, _basin, _shots)
+	_announce_shot(from, direction, _shots)
 	_flash_gun(gun, from, direction)
 	_kick_boat(gun, direction)
 	return {"ok": true, "from": from, "direction": direction, "speed": BALL_SPEED,
 		"index": _man_index, "side": str(gun.get("side", "port")), "shot": _shots}
+
+
+# ================================================================== DSH_NET
+## Сообщаем остальным о выстреле. По сети идёт ОДНО событие запуска, а не поток
+## позиций ядра: каждый клиент ведёт свой снаряд-дубль тем же кодом.
+func _announce_shot(from: Vector3, direction: Vector3, shot: int) -> void:
+	if not Net.online():
+		return
+	print("DSH_NET_SHOT_SENT shot=", shot, " from=", from)
+	Net.send_event("projectile", {"k": "cannon", "o": from, "d": direction,
+		"s": BALL_SPEED, "id": shot})
+
+
+## Чужой выстрел: поднимаем снаряд-дубль из своего пула. Дубль летит и даёт
+## эффекты, но урон не наносит — его уже посчитал владелец выстрела.
+func _on_net_event(kind: String, data: Dictionary, from_id: int) -> void:
+	if kind != "projectile" or from_id == Net.local_id:
+		return
+	if str(data.get("k", "")) != "cannon":
+		return
+	var origin: Variant = data.get("o")
+	var direction: Variant = data.get("d")
+	if not (origin is Vector3) or not (direction is Vector3):
+		return
+	var ball: Variant = _take_ball()
+	if ball == null:
+		return
+	ball.call("launch", origin, direction, float(data.get("s", BALL_SPEED)),
+		_boat, _castle, _basin, int(data.get("id", 0)), true)
+	print("DSH_NET_SHOT_PROXY from=", from_id, " shot=", data.get("id", 0),
+		" at=", origin)
 
 
 func _take_ball() -> Variant:
