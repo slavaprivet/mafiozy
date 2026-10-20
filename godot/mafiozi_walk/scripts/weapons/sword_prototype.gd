@@ -2018,7 +2018,7 @@ func _physics_process(delta: float) -> void:
 		_prev_points = PackedVector3Array()
 		_update_city_npc(delta)
 		_step_thrown(delta)
-	_step_net_thrown(delta)
+		_step_net_thrown(delta)
 		return
 	if not active:
 		_reset_contact_plane()
@@ -2041,7 +2041,7 @@ func _physics_process(delta: float) -> void:
 		if not bool(_world.get("preview_dead")):
 			_update_city_npc(delta)
 			_step_thrown(delta)
-	_step_net_thrown(delta)
+			_step_net_thrown(delta)
 		return
 	if not _synthetic_hands:
 		# Real input: the buttons are read from the engine every frame, so a missed
@@ -2437,6 +2437,23 @@ func _step_net_thrown(delta: float) -> void:
 
 ## Тест/отладка: бросить оружие без анимации замаха.
 func debug_throw() -> Dictionary:
+	# Тест/отладка: бросаемое оружие в наборе только копьё, поэтому переключаемся
+	# на него и ставим модель перед игроком, если она ещё не в руке.
+	if not is_throwable():
+		_weapon_id = "spear"
+		_sword_grounded = false
+		_unarmed = false
+		if not is_instance_valid(_sword):
+			_sword = _build_weapon_model(_world, "spear")
+		if not is_instance_valid(_sword):
+			return {"ok": false, "reason": "no_spear_model"}
+		var dir: Vector3 = -_player.global_transform.basis.z
+		dir.y = 0.0
+		if dir.length_squared() < 1.0e-6:
+			dir = Vector3.FORWARD
+		dir = dir.normalized()
+		var basis := Basis(dir, Vector3.UP, dir.cross(Vector3.UP)).orthonormalized()
+		_sword.global_transform = Transform3D(basis, _player.global_position + Vector3.UP * 1.4)
 	if _unarmed or not is_throwable():
 		return {"ok": false, "reason": "not_armed", "weapon": _weapon_id}
 	_spear_cast_power31 = 1.0

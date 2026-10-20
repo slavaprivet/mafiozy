@@ -460,7 +460,10 @@ func _ready() -> void:
 	# DSH_OPT: on the castle map the weapon prototype, its help panel and the city population
 	# are never used - the panel is hidden and the population is switched off anyway - and
 	# building them costs about two seconds of the map load. They are skipped there only.
-	if not castle_map and (preview_sword_prototype_enabled or is_instance_valid(preview_weapons) or OS.get_cmdline_user_args().has("--sword-proto=1")):
+	# DSH_NET: с явным --sword-proto=1 прототип ставится и на карте замка — это
+	# нужно сетевой проверке броска (tests/net/net_throw_test.ps1). Без флага
+	# поведение карты замка прежнее.
+	if (not castle_map or OS.get_cmdline_user_args().has("--sword-proto=1")) and (preview_sword_prototype_enabled or is_instance_valid(preview_weapons) or OS.get_cmdline_user_args().has("--sword-proto=1")):
 		_install_sword_prototype()  # DSH_SWORD_PROTO
 		_boot_mark("sword_pair")
 	# DSH_BOW_PROTO: the bow prototype rides along with the same arsenal, so it can

@@ -14,9 +14,9 @@
 
 param(
     [int]$Port = 7931,
-    [string]$Scene = "res://scenes/main_city.tscn",
+    [string]$Scene = "res://scenes/castle.tscn",
     [double]$ThrowAt = 12.0,
-    [double]$Settle = 12.0,
+    [double]$Settle = 40.0,
     [string]$Engine = "$env:LOCALAPPDATA\MafioziTools\Godot-4.7.2\Godot_v4.7.2-stable_win64_console.exe"
 )
 
@@ -35,15 +35,15 @@ $hostProcess = Start-Process -FilePath $Engine -NoNewWindow -PassThru `
     -RedirectStandardOutput $hostLog -RedirectStandardError "$hostLog.err" `
     -ArgumentList @('--headless', '--path', $project, $Scene, '--',
         '--net-host', "--net-port=$Port", '--net-name=host', '--sword-proto=1',
-        "--net-throw-at=$ThrowAt")
+        "--net-throw-at=$ThrowAt", "--net-quit-at=$($ThrowAt + 10)")
 Start-Sleep -Seconds 10
 $clientProcess = Start-Process -FilePath $Engine -NoNewWindow -PassThru `
     -RedirectStandardOutput $clientLog -RedirectStandardError "$clientLog.err" `
     -ArgumentList @('--headless', '--path', $project, $Scene, '--',
         "--net-join=127.0.0.1:$Port", '--net-name=guest', '--sword-proto=1',
-        "--net-throw-at=$ThrowAt")
+        "--net-throw-at=$ThrowAt", "--net-quit-at=$($ThrowAt + 26)")
 
-$deadline = (Get-Date).AddSeconds($ThrowAt + $Settle + 30)
+$deadline = (Get-Date).AddSeconds($ThrowAt + $Settle + 50)
 while ((Get-Date) -lt $deadline) {
     if ($hostProcess.HasExited -and $clientProcess.HasExited) { break }
     Start-Sleep -Milliseconds 500
