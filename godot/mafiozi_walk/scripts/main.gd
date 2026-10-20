@@ -1273,15 +1273,15 @@ func _current_door_action() -> Dictionary:
 	if is_instance_valid(preview_power_barrels):
 		var barrel_text: String = str(preview_power_barrels.call("prompt_text"))
 		if not barrel_text.is_empty():
-			candidates.append({"owner": "barrel", "label": barrel_text, "world": preview_power_barrels.call("prompt_world")})
+			candidates.append({"owner": "barrel", "key": "E", "label": barrel_text, "world": preview_power_barrels.call("prompt_world")})
 	if is_instance_valid(preview_horse_mount):
 		var horse_text: String = str(preview_horse_mount.call("banner_text"))
 		if not horse_text.is_empty():
-			candidates.append({"owner": "horse", "label": horse_text, "world": preview_horse_mount.call("banner_world")})
+			candidates.append({"owner": "horse", "key": "E" if horse_text.contains("Взять") else "F", "label": horse_text, "world": preview_horse_mount.call("banner_world")})
 	if is_instance_valid(preview_balloon):
 		var balloon_text: String = str(preview_balloon.call("banner_text"))
 		if not balloon_text.is_empty():
-			candidates.append({"owner": "balloon", "label": balloon_text, "world": preview_balloon.call("banner_world")})
+			candidates.append({"owner": "balloon", "key": "E" if balloon_text.contains("Взять") else "F", "label": balloon_text, "world": preview_balloon.call("banner_world")})
 	if not candidates.is_empty() and is_instance_valid(_player):
 		var best: Dictionary = candidates[0]
 		var best_distance: float = _player.global_position.distance_to(best["world"] as Vector3)
@@ -1372,16 +1372,21 @@ func _unhandled_input(event: InputEvent) -> void:
 	# DSH_TOWER: the ram is worked with E, the same key the barrel prompts show.
 	if palazzo_key == KEY_E and is_instance_valid(preview_siege_tower):
 		var tower_prompt: Dictionary = preview_siege_tower.call("action")
-		if not tower_prompt.is_empty() and bool(preview_siege_tower.call("interact", tower_prompt)):
-			get_viewport().set_input_as_handled()
-		return
-	if event.physical_keycode != KEY_F and event.keycode != KEY_F:
+		if not tower_prompt.is_empty():
+			if bool(preview_siege_tower.call("interact", tower_prompt)):
+				get_viewport().set_input_as_handled()
+			return
+	if palazzo_key not in [KEY_E, KEY_F]:
 		return
 	if not is_instance_valid(_player) or _player._pose_authority != &"on_foot":
 		return
 	var action: Dictionary = _current_door_action()
 	if action.is_empty():
 		return
+	# The key printed on a pickup is its only activation key.
+	var action_key := KEY_E if str(action.get("key", "F")) == "E" else KEY_F
+	if palazzo_key != action_key: return
+	if str(action.get("owner", "")) in ["barrel", "horse", "balloon"]: return # Their hosts own the transaction.
 	if str(action.get("owner", "")) == "fort":
 		if preview_fort.call("interact", action):
 			get_viewport().set_input_as_handled()

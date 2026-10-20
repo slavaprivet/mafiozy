@@ -347,7 +347,7 @@ func action() -> Dictionary:
 	if not boards_at.is_zero_approx() and feet.distance_to(boards_at) <= REACH:
 		var distance := feet.distance_to(boards_at)
 		if distance < best_distance:
-			best = {"owner": "ship", "kind": "ship_boards",
+			best = {"owner": "ship", "kind": "ship_boards", "key": "E",
 				"label": "Взять доски (%d)" % CRATE_BOARDS,
 				"world": boards_at + Vector3.UP * 0.5}
 			best_distance = distance
@@ -777,6 +777,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
 	var water_key: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
+	if water_key == KEY_E and _station == "" and is_instance_valid(world) and world.has_method("_current_door_action"):
+		var primary: Dictionary = world.call("_current_door_action")
+		if str(primary.get("key", "F")) == "E" and str(primary.get("owner", "")) not in ["ship", "powder"]: return
 	if _station == "" and water_key == KEY_G and is_instance_valid(_carried_ball_mesh) \
 			and _carried_ball_mesh.visible:
 		_drop_carried_ball()

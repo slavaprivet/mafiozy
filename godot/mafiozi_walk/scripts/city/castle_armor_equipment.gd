@@ -364,6 +364,15 @@ func focused_item_id() -> String:
 				excluded.append(_stands[stand_key].body.get_rid())
 			query.exclude = excluded
 			var obstruction: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
+			# A third-person camera can see the item through the owner's combat hitboxes.
+			# Skip only this player's bone shapes; walls and other actors still block focus.
+			for own_shape in 16:
+				var collider: Node = obstruction.get("collider") as Node
+				if not is_instance_valid(collider) or not player.is_ancestor_of(collider): break
+				if not collider is CollisionObject3D or not collider.has_meta("sword_player_part50"): break
+				excluded.append((collider as CollisionObject3D).get_rid())
+				query.exclude = excluded
+				obstruction = get_world_3d().direct_space_state.intersect_ray(query)
 			if not obstruction.is_empty() and origin.distance_to(obstruction.position) < origin.distance_to(target) - 0.08: continue
 			best = id; best_t = aim_error
 	return best
@@ -382,8 +391,11 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 	elif code == KEY_ESCAPE and _menu_open:
 		_close_menu(); get_viewport().set_input_as_handled()
-	elif code == KEY_F and interact():
-		get_viewport().set_input_as_handled()
+	elif code == KEY_E:
+		if is_instance_valid(weapons) and is_instance_valid(weapons.scene) and weapons.scene.has_method("_current_door_action"):
+			var primary: Dictionary = weapons.scene.call("_current_door_action")
+			if str(primary.get("key", "F")) == "E": return
+		if interact(): get_viewport().set_input_as_handled()
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(_hint): return
@@ -391,6 +403,9 @@ func _process(delta: float) -> void:
 	if _hint_clock < 0.08: return
 	_hint_clock = 0.0
 	_focus = focused_item_id()
+	if not _focus.is_empty() and is_instance_valid(weapons) and is_instance_valid(weapons.scene) and weapons.scene.has_method("_current_door_action"):
+		var primary: Dictionary = weapons.scene.call("_current_door_action")
+		if str(primary.get("key", "F")) == "E": _focus = ""
 	var next_text: String = "E — надеть %s" % item_name(_focus) if not _focus.is_empty() else "U — снять броню" if not equipped_by_slot.is_empty() and _usable() else ""
 	if _hint.text != next_text:
 		_hint.text = next_text

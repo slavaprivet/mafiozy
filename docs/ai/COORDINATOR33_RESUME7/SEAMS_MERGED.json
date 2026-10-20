@@ -1,0 +1,206 @@
+{
+  "schema": "mafiozi.npc-helper-seams/v1",
+  "generated_utc": "2026-10-20T18:07:59.606595+00:00",
+  "task": "C03 dismemberment without air gaps / floating fists",
+  "status": "SCOPED_EXACT_MERGED_NATIVE_PASS_NO_PATCH_NEEDED",
+  "project": "D:\\MafioziCombat31\\coordinator33_resume7_main\\godot\\mafiozi_walk",
+  "source_before": {
+    "res://scripts/combat/castle_armor_visual.gd": "33f513047445bb73111da453e7524684c8a1f1d5dce03b5f156c70ad26aa6b66",
+    "res://scripts/preview_player.gd": "938c596c1de633e20733aace61ac7745c9ad09a99592f167400e589e643bb450",
+    "res://scripts/weapons/mesh_sever.gd": "cb34fda96a053a6eb815d8430d0b9495788dda6a98f79cad057579c28c25f88f",
+    "res://scripts/weapons/sword_prototype.gd": "87e9a1b50822ba83c2da4ae3072f45e1df3a58473ec0bf83f88cf11661e869c3"
+  },
+  "source_after": {
+    "res://scripts/combat/castle_armor_visual.gd": "33f513047445bb73111da453e7524684c8a1f1d5dce03b5f156c70ad26aa6b66",
+    "res://scripts/preview_player.gd": "938c596c1de633e20733aace61ac7745c9ad09a99592f167400e589e643bb450",
+    "res://scripts/weapons/mesh_sever.gd": "cb34fda96a053a6eb815d8430d0b9495788dda6a98f79cad057579c28c25f88f",
+    "res://scripts/weapons/sword_prototype.gd": "87e9a1b50822ba83c2da4ae3072f45e1df3a58473ec0bf83f88cf11661e869c3"
+  },
+  "source_stable": true,
+  "fixture_sha256": "b64421c686b1dc1586781086fceab293c36cfbde2b4f157c71c9fcf32631599a",
+  "raw_result": "D:\\MafioziCombat31\\c33_coordination\\agents\\npc_helper_seams\\cuts_exact01\\RESULT.json",
+  "raw_result_sha256": "7eccd3dc38530e01cc188bd0b09f09ebcb6c0a5897d80997ce653dc477b8b5f0",
+  "scheduler_receipt": "D:\\MafioziCombat31\\c33_coordination\\agents\\npc_helper_seams\\cuts_exact01\\SCHEDULER_RUN.json",
+  "scheduler_passed": true,
+  "stderr_bytes": 0,
+  "checks_passed": 66,
+  "checks_total": 66,
+  "failed_checks": [],
+  "part_count": 13,
+  "maximum_symmetric_cap_gap_m": 7.40592004149221e-05,
+  "maximum_posthide_cap_delta_m": 2.65208527707728e-05,
+  "total_eligible_distal_triangles_left_anchored": 0,
+  "rows": [
+    {
+      "part": "upperarm_l",
+      "actual_mesh_cut": true,
+      "attached_cap_vertices": 345,
+      "removed_cap_vertices": 345,
+      "symmetric_gap_m": 4.05648024752736e-05,
+      "posthide_delta_m": 1.41954187711235e-05,
+      "eligible_distal_triangles_left_anchored": 0
+    },
+    {
+      "part": "upperarm_r",
+      "actual_mesh_cut": true,
+      "attached_cap_vertices": 348,
+      "removed_cap_vertices": 348,
+      "symmetric_gap_m": 7.27551814634353e-05,
+      "posthide_delta_m": 1.96373566723196e-05,
+      "eligible_distal_triangles_left_anchored": 0
+    },
+    {
+      "part": "forearm_l",
+      "actual_mesh_cut": true,
+      "attached_cap_vertices": 342,
+      "removed_cap_vertices": 342,
+      "symmetric_gap_m": 3.69510344171431e-05,
+      "posthide_delta_m": 2.64644622802734e-05,
+      "eligible_distal_triangles_left_anchored": 0
+    },
+    {
+      "part": "forearm_r",
+      "actual_mesh_cut": true,
+      "attached_cap_vertices": 324,
+      "removed_cap_vertices": 324,
+      "symmetric_gap_m": 3.74005721823778e-05,
+      "posthide_delta_m": 2.00955182663165e-05,
+      "eligible_distal_triangles_left_anchored": 0
+    },
+    {
+      "part": "hand_l",
+      "actual_mesh_cut": true,
+      "attached_cap_vertices": 288,
+      "removed_cap_vertices": 288,
+      "symmetric_gap_m": 2.64644622802734e-05,
+      "posthide_delta_m": 2.50035627686884e-05,
+      "eligible_distal_triangles_left_anchored": 0
+    },
+    {
+      "part": "hand_r",
+      "actual_mesh_cut": true,
+      "attached_cap_vertices": 288,
+      "removed_cap_vertices": 288,
+      "symmetric_gap_m": 2.67465511569753e-05,
+      "posthide_delta_m": 2.65208527707728e-05,
+      "eligible_distal_triangles_left_anchored": 0
+    },
+    {
+      "part": "thigh_l",
+      "actual_mesh_cut": true,
+      "attached_cap_vertices": 324,
+      "removed_cap_vertices": 324,
+      "symmetric_gap_m": 6.14893797319382e-05,
+      "posthide_delta_m": 2.62260437011719e-05,
+      "eligible_distal_triangles_left_anchored": 0
+    },
+    {
+      "part": "thigh_r",
+      "actual_mesh_cut": true,
+      "attached_cap_vertices": 324,
+      "removed_cap_vertices": 324,
+      "symmetric_gap_m": 6.15263415966183e-05,
+      "posthide_delta_m": 2.62260437011719e-05,
+      "eligible_distal_triangles_left_anchored": 0
+    },
+    {
+      "part": "shin_l",
+      "actual_mesh_cut": true,
+      "attached_cap_vertices": 216,
+      "removed_cap_vertices": 216,
+      "symmetric_gap_m": 1.58548355102539e-05,
+      "posthide_delta_m": 1.19209289550781e-05,
+      "eligible_distal_triangles_left_anchored": 0
+    },
+    {
+      "part": "shin_r",
+      "actual_mesh_cut": true,
+      "attached_cap_vertices": 216,
+      "removed_cap_vertices": 216,
+      "symmetric_gap_m": 1.58548355102539e-05,
+      "posthide_delta_m": 1.19209289550781e-05,
+      "eligible_distal_triangles_left_anchored": 0
+    },
+    {
+      "part": "foot_l",
+      "actual_mesh_cut": true,
+      "attached_cap_vertices": 144,
+      "removed_cap_vertices": 144,
+      "symmetric_gap_m": 1.54227018356323e-05,
+      "posthide_delta_m": 1.1935830116272e-05,
+      "eligible_distal_triangles_left_anchored": 0
+    },
+    {
+      "part": "foot_r",
+      "actual_mesh_cut": true,
+      "attached_cap_vertices": 144,
+      "removed_cap_vertices": 144,
+      "symmetric_gap_m": 1.53928995132446e-05,
+      "posthide_delta_m": 1.19507312774658e-05,
+      "eligible_distal_triangles_left_anchored": 0
+    },
+    {
+      "part": "chest",
+      "actual_mesh_cut": true,
+      "attached_cap_vertices": 1386,
+      "removed_cap_vertices": 1386,
+      "symmetric_gap_m": 7.40592004149221e-05,
+      "posthide_delta_m": 4.17232513427734e-06,
+      "eligible_distal_triangles_left_anchored": 0
+    }
+  ],
+  "historical_defect_adjudication": {
+    "REV2_59_83_12_28mm_caps": "Superseded by combat_resume2 deterministic cap traversal; exact merged canonical matrix no longer reproduces.",
+    "REV2_disconnected_SKIN_ghost_fists": "Superseded by combat_resume2 zero-crossing mixed-island partition; all12 limb rows have0eligible distal triangles anchored on exact merged source.",
+    "REV2_hidden_sleeve_caps": "Superseded by armor preservation metadata; surviving caps visible for13rows; maximum sampled posthide cap delta0.026521mm (gate<1mm).",
+    "legacy_matrix_status": "MATRIX.md top revision is historical, not current C03 failure."
+  },
+  "source_provenance": {
+    "_sever_part": {
+      "equal": true,
+      "current_sha": "199738d7366c239830191602973c8dc734e761e7a3a64714dabd6dc3fc42e512",
+      "previous_sha": "199738d7366c239830191602973c8dc734e761e7a3a64714dabd6dc3fc42e512"
+    },
+    "npc_cut_body": {
+      "equal": true,
+      "current_sha": "b8fb9952454084711300f52bb3b2e4189d3611dea518000cb3c4afbcc59bab17",
+      "previous_sha": "b8fb9952454084711300f52bb3b2e4189d3611dea518000cb3c4afbcc59bab17"
+    },
+    "_apply_npc_severed": {
+      "equal": true,
+      "current_sha": "3aaf741338ed84f1aa9ea3b500362ba9e764ea8cdf272714863374eae4a11e86",
+      "previous_sha": "3aaf741338ed84f1aa9ea3b500362ba9e764ea8cdf272714863374eae4a11e86"
+    },
+    "_cut_skin_arrays39": {
+      "equal": true,
+      "current_sha": "ba1a8f7099580861dfb10d085bb7eb381284e1eb6ad9a2b9e88f55775e5ca784",
+      "previous_sha": "ba1a8f7099580861dfb10d085bb7eb381284e1eb6ad9a2b9e88f55775e5ca784"
+    },
+    "_cut_skin_transforms39": {
+      "equal": true,
+      "current_sha": "52db35f366b210a63b7d1d009e9d91d5299dfc5000ca6d14aa552cfee240290d",
+      "previous_sha": "52db35f366b210a63b7d1d009e9d91d5299dfc5000ca6d14aa552cfee240290d"
+    },
+    "_npc_limb_bind_ids": {
+      "equal": true,
+      "current_sha": "a7963fe48e7196869fdee2253c48794dc5329accba4b98331a213abb7f0e176f",
+      "previous_sha": "a7963fe48e7196869fdee2253c48794dc5329accba4b98331a213abb7f0e176f"
+    }
+  },
+  "gameplay_patch_created": false,
+  "production_modified": false,
+  "GUI_opened": false,
+  "natural_hit_claim": false,
+  "limits": [
+    "Component injection via _sever_part on posed canonical NPC; no 13 natural attack/sever claims.",
+    "Explicit upperarm->forearm->hand and thigh->shin->foot anatomical links; real idle gait initialized before additive pose.",
+    "Chest is direct mesh geometry stress cut, not gameplay torso sever.",
+    "Symmetric cap vertex+centroid to opposite triangle surface gate unchanged <1mm.",
+    "Distal oracle retains unchanged production triangle limb-majority >=1.5 and original raw diagnostics; not exhaustive all topology/pose/armor proof.",
+    "No new GUI or subjective visual acceptance; inherited 26 before/after GUI images remain pinned to earlier a3 source.",
+    "Source functions relevant to C03 match old fixed project; player controls/IK/gameplay were not edited.",
+    "No performance acceptance."
+  ],
+  "all_raw_failures_preserved": "Historical raw failures retained in npc_acceptance/combat_resume2/combat_resume3; no failures or receipts changed.",
+  "own_engine_jobs_active": false
+}

@@ -1184,7 +1184,7 @@ func _update_hint() -> void:
 	var right_hint := "Удерживать ПКМ и двигать мышью — удар правой рукой" if _right_hand_weapon54() else "ПКМ — блок / щит"
 	var text := "ТЕСТОВЫЙ МЕЧ (прототип)\nЛКМ и мышь — рубящий удар\n" + right_hint + "\n" + mode + "\nКолесо мыши — укол вперёд / оттянуть назад\nX — полумеч (хват за лезвие против доспеха)\nG — бросить меч"
 	if reachable and not is_instance_valid(_world.get("preview_castle")):
-		text += "\nF — поднять оружие"
+		text += "\nE — поднять оружие"
 	_hint.text = text
 
 ## True while some sword lies within reach, so the hint can be refreshed cheaply.
@@ -1616,7 +1616,7 @@ func _input(event: InputEvent) -> void:
 			if is_instance_valid(storage):
 				var stored: Dictionary = storage.snapshot()
 				var prefer_shield: bool = _shield_worn and _hold_right
-				var item_id: String = 'shield' if prefer_shield else str(stored.get('hand_weapon', ''))
+				var item_id: String = 'shield' if prefer_shield or str(stored.get('hand_weapon', '')).is_empty() else str(stored.get('hand_weapon', ''))
 				if stored.get('carried', {}).has(item_id):
 					if bool(storage.drop_held(prefer_shield).get('ok', false)):
 						get_viewport().set_input_as_handled()
@@ -1627,10 +1627,13 @@ func _input(event: InputEvent) -> void:
 			if released:
 				get_viewport().set_input_as_handled()
 				return
-		if code == KEY_F and try_pickup_shield31():
+		if code == KEY_E and is_instance_valid(_world) and _world.has_method("_current_door_action"):
+			var primary: Dictionary = _world.call("_current_door_action")
+			if str(primary.get("key", "F")) == "E" and str(primary.get("owner", "")) != "castle_pickup": return
+		if code == KEY_E and try_pickup_shield31():
 			get_viewport().set_input_as_handled()
 			return
-		if code == KEY_F and (_sword_grounded or _unarmed):
+		if code == KEY_E and (_sword_grounded or _unarmed):
 			# DSH_CATAPULT: if the siege machine claims E here - a stone to lift, a spoon to
 			# load, a frame to stand at - a dropped sword must NOT steal the key. Both
 			# prototypes listen for E, and this is exactly what made the stone impossible to
@@ -1865,6 +1868,13 @@ func _target_direction() -> Vector3:
 	# blade never points below the horizon.
 	if _hand.y > -0.25 and target.y < 0.05:
 		target = Vector3(target.x, 0.05, target.z).normalized()
+	# In a two-handed overhead load the shaft lies across the raised fists,
+	# like the reference axe. The existing angular spring still carries it
+	# continuously through this requested orientation and down into the cut.
+	if _active_side() == &"both" and _hold_left and not _aiming_throw:
+		var overhead_load := smoothstep(0.55, 0.95, _hand.y)
+		var across := (basis.x + -basis.z * 0.18 + basis.y * 0.04).normalized()
+		target = target.slerp(across, overhead_load).normalized()
 	if not target.is_finite(): return _rest_dir
 	return target
 
@@ -2150,7 +2160,13 @@ func _face_spear_aim31(delta: float) -> void:
 		var melee_visual: Node3D = _player._visual
 		var view_forward: Vector3 = -_camera.global_basis.z
 		if is_instance_valid(melee_visual) and Vector2(view_forward.x, view_forward.z).length_squared() > 0.01:
-			var wanted_yaw := _melee_heading33 if is_steering() and is_finite(_melee_heading33) else atan2(view_forward.x, view_forward.z)
+			var camera_yaw := atan2(view_forward.x, view_forward.z)
+			var wanted_yaw := _melee_heading33 if is_steering() and is_finite(_melee_heading33) else camera_yaw
+			# A stationary view must not accumulate whole revolutions of foot facing.
+			# Reuse the existing authored swing excursion; discard saturated heading
+			# so reversing the mouse immediately unloads the stance.
+			wanted_yaw = camera_yaw + clampf(wrapf(wanted_yaw - camera_yaw, -PI, PI), -BODY_YAW_LIMIT_SWING, BODY_YAW_LIMIT_SWING)
+			if is_steering(): _melee_heading33 = wanted_yaw
 			var yaw_error := wrapf(wanted_yaw - melee_visual.global_rotation.y, -PI, PI)
 			melee_visual.rotation.y += clampf(yaw_error, -8.0 * delta, 8.0 * delta)
 			_player._heading = melee_visual.rotation.y - deg_to_rad(_player.visual_yaw_degrees)
@@ -3007,6 +3023,17 @@ func _pose_shared_grip(want_dir: Vector3, blade_rig: Vector3) -> Vector3:
 	var visual_basis: Basis = _player._visual.global_basis.orthonormalized()
 	var right_set := _arm_set(&"right")
 	var left_set := _arm_set(&"left")
+	# Raising a weapon above the crown includes the shoulder girdle. Rotate
+	# the authored clavicles toward elevation, keeping every bone length.
+	var shoulder_lift := smoothstep(0.10, 0.90, maxf(0.0, _hand.y)) if _hold_left else 0.0
+	var up_rig: Vector3 = (rig_to_world.basis.inverse() * Vector3.UP).normalized()
+	for arm: Dictionary in [right_set, left_set]:
+		var clav_rest := _rig.get_bone_rest(arm.clav)
+		var parent := _rig.get_bone_parent(arm.clav)
+		var parent_basis := _chain_global(parent).basis if parent >= 0 else Basis.IDENTITY
+		var rest_direction: Vector3 = (parent_basis * clav_rest.basis * arm.rest_upper.origin).normalized()
+		var elevated := rest_direction.slerp(up_rig, shoulder_lift * 0.85).normalized()
+		_point_bone(arm.clav, clav_rest, arm.rest_upper.origin, parent_basis, elevated)
 	var right_joint: Vector3 = (_chain_global(right_set.clav) * right_set.rest_upper).origin
 	var left_joint: Vector3 = (_chain_global(left_set.clav) * left_set.rest_upper).origin
 	var middle_world: Vector3 = rig_to_world * ((right_joint + left_joint) * 0.5)
@@ -3015,11 +3042,13 @@ func _pose_shared_grip(want_dir: Vector3, blade_rig: Vector3) -> Vector3:
 	var side_reach := lerpf(0.30, 0.36, side_load)
 	# Live weapon momentum carries the hands away from the chest into the strike.
 	# Stopping the mouse leaves the loading pose; no timed attack drives the hands.
-	var arm_drive := 1.0 if _hold_left else 0.0
+	var arm_drive := smoothstep(0.6, 4.5, _omega.length()) if _hold_left else 0.0
+	var overhead := smoothstep(0.10, 0.90, maxf(0.0, _hand.y)) if _hold_left else 0.0
+	var target_lift := lerpf(lerpf(0.04, 0.24, smoothstep(0.15, 0.90, absf(_hand.x))), 0.90, overhead) if _hold_left and _hand.y >= 0.0 else clampf(local_want.y * (0.64 if _hold_left else 0.20) - 0.08, -0.30, 0.48)
 	var target_world: Vector3 = middle_world + visual_basis * Vector3(
-		clampf(local_want.x * (side_reach if _hold_left else 0.14), -side_reach, side_reach),
-		clampf(local_want.y * (0.64 if _hold_left else 0.20) - 0.08, -0.30, 0.48),
-		lerpf(0.38, 0.25, clampf(local_want.y, 0.0, 1.0)) + arm_drive * 0.34 + _self_pose_forward)
+		lerpf(-clampf(_hand.x, -1.0, 1.0) * 0.28, 0.0, overhead) - sin(overhead * PI) * 0.40 if _hold_left else clampf(local_want.x * 0.14, -side_reach, side_reach),
+		target_lift,
+		(lerpf(0.30, 0.05, overhead) + arm_drive * 0.42 * (1.0 - overhead) if _hold_left else lerpf(0.38, 0.25, clampf(local_want.y, 0.0, 1.0))) + _self_pose_forward)
 	var grip: Vector3 = world_to_rig * target_world
 	# Reach spheres belong to wrists; offset their centres to the palm anchors
 	# using the SAME wrist orientation that the final IK will apply.
@@ -3139,10 +3168,31 @@ func _arm_set(side: StringName) -> Dictionary:
 ## here and nowhere else.
 func _pose_main(side: StringName, want_rig: Vector3, blade_rig: Vector3, reach_scale: float = 1.0) -> Vector3:
 	var set := _arm_set(side)
-	# The hand loads near the shoulder, then extends with real weapon momentum.
-	# Mouse direction and angular dynamics remain free; this only solves the arm.
-	if _hold_left and not _aiming_throw and not _half_sword and reach_scale > 0.99:
-		reach_scale *= 1.0
+	# The active shoulder participates in the explicitly requested high loading
+	# pose. The authored bone lengths, blade direction and angular spring stay.
+	if is_steering() and not _aiming_throw and not _half_sword and reach_scale > 0.99:
+		var shoulder_lift := smoothstep(0.10, 0.90, maxf(0.0, _hand.y))
+		var up_rig: Vector3 = (_rig.global_basis.inverse() * Vector3.UP).normalized()
+		var clav_rest := _rig.get_bone_rest(set.clav)
+		var parent := _rig.get_bone_parent(set.clav)
+		var parent_basis := _chain_global(parent).basis if parent >= 0 else Basis.IDENTITY
+		var rest_direction: Vector3 = (parent_basis * clav_rest.basis * set.rest_upper.origin).normalized()
+		var elevated := rest_direction.slerp(up_rig, shoulder_lift * 0.85).normalized()
+		_point_bone(set.clav, clav_rest, set.rest_upper.origin, parent_basis, elevated)
+		if shoulder_lift > 0.0:
+			# The raised shoulder puts the reach origin above the chest. Keeping
+			# the chest-height 24cm forward clamp here spends the arm on forward
+			# reach and leaves the wrist below the crown. Blend to a vertical
+			# overhead reach, with the existing self-clearance still added.
+			var joint: Vector3 = (_chain_global(set.clav) * set.rest_upper).origin
+			var length: float = set.rest_fore.origin.length() + set.rest_hand.origin.length()
+			var target_world: Vector3 = _rig.global_transform * (joint + want_rig * length)
+			var chest_world: Vector3 = _rig.global_transform * _chain_global(_bone_chest).origin
+			var visual_basis: Basis = _player._visual.global_basis.orthonormalized()
+			var relative: Vector3 = visual_basis.inverse() * (target_world - chest_world)
+			relative.z = maxf(relative.z, lerpf(0.24, 0.10, shoulder_lift) + _self_pose_forward)
+			var target: Vector3 = _rig.global_transform.affine_inverse() * (chest_world + visual_basis * relative)
+			return _pose_arm_ik(set.clav, set.upper, set.fore, set.hand, set.rest_upper, set.rest_fore, set.rest_hand, set.offset, target, blade_rig, reach_scale, true, set.pole)
 	return _pose_arm_ik(set.clav, set.upper, set.fore, set.hand, set.rest_upper, set.rest_fore, set.rest_hand, set.offset, want_rig, blade_rig, reach_scale, false, set.pole)
 
 ## Supporting hand closes on the lower part of the handle (two-handed grip).
@@ -6112,11 +6162,35 @@ func _npc_choose_attack(distance: float) -> String:
 	var choices := ["left", "right", "overhead", "rising"]
 	var pick: String = choices[_npc_attack_cursor % choices.size()]
 	_npc_attack_cursor += 1
-	# A little context changes the beat, while the cycle prevents one repeated swing.
+	# Only a settled, previously visible weapon can expose a useful opening.
+	# This snapshot passed the same 180ms observation buffer as aim and defense.
+	var seen := _npc_observed53
+	var age := now_ms() - int(seen.get("at", -10000))
+	var valid := not seen.is_empty() and bool(seen.get("visible", false)) \
+		and bool(seen.get("steel", false)) and age >= 180 and age <= 500
+	if valid and is_instance_valid(_npc_body):
+		var position: Vector3 = seen.get("position", Vector3.INF)
+		var tip: Vector3 = seen.get("tip", Vector3.INF)
+		if position.is_finite() and tip.is_finite():
+			var forward := position - _npc_body.global_position
+			forward.y = 0.0
+			if forward.length_squared() > 0.01:
+				forward = forward.normalized()
+				var across := forward.cross(Vector3.UP).normalized()
+				var offset := tip - position
+				if int(seen.get("steady_ms", 0)) >= 160 and float(seen.get("speed", INF)) <= 0.65:
+					# A rising cut enters from below; preserve its existing close-range limit.
+					if offset.y >= 1.70 and distance <= 1.48: return "rising"
+					if offset.y <= 0.80: return "overhead"
+					var occupied_side := offset.dot(across)
+					if absf(occupied_side) >= 0.45:
+						# left winds up at -across, right at +across: enter opposite the steel.
+						return "left" if occupied_side > 0.0 else "right"
+				# Retain the old side context, using the observed position rather than live input.
+				var player_side := _npc_body.global_basis.x.dot(forward)
+				if absf(player_side) > 0.32 and pick in ["overhead", "rising"]:
+					return "left" if player_side > 0.0 else "right"
 	if distance > 1.48 and pick == "rising": return "overhead"
-	var player_side: float = _npc_body.global_basis.x.dot((_player.global_position - _npc_body.global_position).normalized())
-	if absf(player_side) > 0.32 and pick in ["overhead", "rising"]:
-		return "left" if player_side > 0.0 else "right"
 	return pick
 
 func _npc_strike_duration() -> float:
@@ -7228,7 +7302,19 @@ func _npc_observe53(delta: float) -> void:
 	# Translating with a held blade is not an attack; observe motion relative to the wielder.
 	var speed := (tip_velocity - _player.velocity).length() if steel and _npc_last_tip53.is_finite() else 0.0
 	_npc_last_tip53 = tip if steel else Vector3.INF
-	_npc_observations53.append({"at":now,"position":_player.global_position,"velocity":_player.velocity,"tip":tip,"speed":speed,"steel":steel,"visible":seen})
+	# Stability is recorded at capture time, then delayed with the whole snapshot.
+	# No newer sample can make an older observation retrospectively look settled.
+	var steady_ms := 0
+	var previous: Dictionary = _npc_observations53.back() if not _npc_observations53.is_empty() else _npc_observed53
+	if steel and speed <= 0.65 and not previous.is_empty() \
+			and bool(previous.get("steel", false)) and bool(previous.get("visible", false)) \
+			and float(previous.get("speed", INF)) <= 0.65:
+		var elapsed := now - int(previous.at)
+		var offset := tip - _player.global_position
+		var prior_offset: Vector3 = (previous.tip as Vector3) - (previous.position as Vector3)
+		if elapsed > 0 and elapsed <= 80 and offset.distance_to(prior_offset) <= 0.08:
+			steady_ms = mini(1000, int(previous.get("steady_ms", 0)) + elapsed)
+	_npc_observations53.append({"at":now,"position":_player.global_position,"velocity":_player.velocity,"tip":tip,"speed":speed,"steel":steel,"visible":seen,"steady_ms":steady_ms})
 	while not _npc_observations53.is_empty() and now - int(_npc_observations53[0].at) >= 180:
 		_npc_observed53 = _npc_observations53.pop_front()
 	if _npc_observations53.size() > 64: _npc_observations53.pop_front()

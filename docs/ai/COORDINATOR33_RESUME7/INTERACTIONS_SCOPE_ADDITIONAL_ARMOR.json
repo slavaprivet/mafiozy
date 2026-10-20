@@ -1,0 +1,17 @@
+{
+  "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\interactions_resume7\\armor_candidate\\game",
+  "total_files_pinned": 3063,
+  "unchanged_files": 3062,
+  "changed_files": [
+    "scripts/city/castle_armor_equipment.gd"
+  ],
+  "changed_functions": [
+    "focused_item_id"
+  ],
+  "all_other_functions_globals_bytes_unchanged": true,
+  "original_function_sha256": "652d82d9e39a51debd3bab74726c851c0fb3fe16bedee938e6b73e4c6df0636f",
+  "candidate_function_sha256": "b79d5668f33aaf2aaaaea5de40863ce7878dde68f35c98a65cc5459a8f1d099e",
+  "candidate_file_sha256": "9855b74ae247f67526f04592935babc1e2d21c039631c1187d41bb4e567a31c2",
+  "candidate_native_run": "armor_candidate01",
+  "world_and_foreign_combat_layer_occlusion_preserved": true
+}

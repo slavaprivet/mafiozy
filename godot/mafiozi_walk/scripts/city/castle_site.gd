@@ -2285,10 +2285,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not _ready or not is_instance_valid(_player): return
 	if not (event is InputEventKey) or not event.pressed or event.echo: return
 	var code: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
-	if code != KEY_F: return
+	if code not in [KEY_E, KEY_F]: return
 	if not bool(_player.get("_free_mouse_look")): return
-	if is_instance_valid(armory_storage) and armory_storage.interact():
-		get_viewport().set_input_as_handled()
+	# Taking rack/floor items uses E; F still works the gate and opens the chest.
+	if code == KEY_E:
+		if is_instance_valid(_world_ref) and _world_ref.has_method("_current_door_action"):
+			var primary: Dictionary = _world_ref.call("_current_door_action")
+			if str(primary.get("key", "F")) == "E" and str(primary.get("owner", "")) != "castle_pickup": return
+		if is_instance_valid(armory_storage) and not armory_storage.chest_focused() and armory_storage.interact():
+			get_viewport().set_input_as_handled()
 		return
 	if not wants_e(): return
 	set_gate(not _gate_open_state)

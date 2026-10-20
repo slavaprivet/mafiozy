@@ -235,10 +235,16 @@ func pickup_action43() -> Dictionary:
 	if is_instance_valid(host):
 		var ground: Dictionary = host._nearest_ground_sword()
 		if not ground.is_empty():
-			return {"owner":"castle_pickup", "label":"Поднять оружие", "world":ground.node.global_position + Vector3.UP * 0.45}
+			return {"owner":"castle_pickup", "key":"E", "label":"Поднять оружие", "world":ground.node.global_position + Vector3.UP * 0.45}
 	var id := _nearest_fallen(castle.to_local(at))
 	if not id.is_empty():
-		return {"owner":"castle_pickup", "label":"Поднять: %s" % weapons.LABELS.get(id,id), "world":castle.to_global(_fallen[id]) + Vector3.UP * 0.45}
+		return {"owner":"castle_pickup", "key":"E", "label":"Поднять: %s" % weapons.LABELS.get(id,id), "world":castle.to_global(_fallen[id]) + Vector3.UP * 0.45}
+	var rack := _nearest_rack(castle.to_local(at))
+	if rack >= 0:
+		var rack_id: String = MEDIEVAL[rack]
+		if _rack.has(rack_id):
+			return {"owner":"castle_pickup", "key":"E", "label":"Взять: %s" % weapons.LABELS.get(rack_id, rack_id),
+				"world":castle.to_global(_rack_points[rack]) + Vector3.UP * 0.45}
 	return {}
 
 func interaction_label() -> String:
@@ -547,7 +553,7 @@ func window_input(event: InputEvent) -> bool:
 	if event is InputEventKey and event.pressed and not event.echo:
 		var code: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
 		if code in [KEY_ESCAPE, KEY_Q]: close_window()
-		elif code == KEY_F and _hovered_slot >= 0:
+		elif code == KEY_E and _hovered_slot >= 0:
 			_take_slot(_hovered_slot, _revision)
 		elif code == KEY_G: store_held()
 		elif code == KEY_H: store_held("shield")
@@ -699,6 +705,34 @@ func drop_held(prefer_shield: bool = false) -> Dictionary:
 				sword_host.cancel_ground_drop31()
 				_busy = false
 				return stowed
+			# A recovered physical sword keeps its actual model when dropped from the balloon.
+			# The ordinary ground path and failed-stow rollback above stay unchanged.
+			var balloon_host: Node = weapons.scene.get("preview_balloon")
+			if is_instance_valid(balloon_host) and balloon_host.is_aboard():
+				var balloon_body: CharacterBody3D = balloon_host.get("balloon")
+				if is_instance_valid(balloon_body):
+					var model: Node3D = _external_sword_model31
+					var body := RigidBody3D.new()
+					body.name = "DroppedPhysicalSwordBalloon"
+					body.mass = 1.2
+					body.collision_layer = 1; body.collision_mask = 1
+					body.continuous_cd = true
+					var collision := CollisionShape3D.new()
+					var box := BoxShape3D.new(); box.size = Vector3(1.3, 0.1, 0.1)
+					collision.shape = box; body.add_child(collision)
+					weapons.scene.add_child(body)
+					body.global_transform = Transform3D(model.global_basis.orthonormalized(), model.global_position)
+					model.reparent(body, true)
+					sword_host._ground_swords.erase(model)
+					sword_host._weapon_models.erase("sword")
+					sword_host._register_ground_sword(body)
+					sword_host._stamp_ground_weapon(body, "sword")
+					var airborne_forward: Vector3 = weapons.player._visual.global_basis.z
+					airborne_forward.y = 0.0; airborne_forward = airborne_forward.normalized()
+					if airborne_forward.length_squared() < 0.01: airborne_forward = -balloon_body.global_basis.z
+					body.global_position = weapons.player.global_position + airborne_forward * 0.8 + Vector3.UP * 1.8
+					body.linear_velocity = airborne_forward * 7.0 + Vector3.UP * 1.5 + balloon_body.velocity
+					body.angular_velocity = Vector3(1.7, 0.9, -1.1)
 			_carried.erase(id)
 			_hand_weapon = ""
 			_revision += 1

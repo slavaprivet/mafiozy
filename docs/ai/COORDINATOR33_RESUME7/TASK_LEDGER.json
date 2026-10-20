@@ -1,0 +1,287 @@
+{
+  "schema": "mafiozi.resume7.task-ledger/v1",
+  "generated_utc": "2026-10-20T17:59:34.436767+00:00",
+  "source_plan": "D:\\MafioziCombat31\\c33_coordination\\PLAN.json",
+  "source_plan_sha256": "6ab5dea14f5897496d21b110fdef38da519ecf1ceeec7384e91ed497b8c968e5",
+  "inherited_tasks": [
+    {
+      "id": "S01",
+      "owner": "ship",
+      "requirement": "Р”РІРµ С„РёР·РёС‡РµСЃРєРёРµ Р»РµСЃС‚РЅРёС†С‹ Рє С€С‚СѓСЂРІР°Р»Сѓ",
+      "status": "native_verified_gui_pending",
+      "evidence": [
+        "agents/ship/REPORT.json",
+        "agents/ship/routes04/SCHEDULER_RUN.json"
+      ]
+    },
+    {
+      "id": "S02",
+      "owner": "ship",
+      "requirement": "Р¤РёР·РёС‡РµСЃРєРёР№ РІС…РѕРґ Рё РІС‹С…РѕРґ РёР· РєР°СЋС‚С‹",
+      "status": "native_verified_gui_pending",
+      "evidence": [
+        "agents/ship/REPORT.json",
+        "agents/ship/routes04/SCHEDULER_RUN.json"
+      ]
+    },
+    {
+      "id": "S03",
+      "owner": "ship",
+      "requirement": "РџРµСЂРµРЅРѕСЃ СЏРґСЂР° РїРѕ РѕР±СЂР°Р·С†Сѓ РєР°РјРЅСЏ РєР°С‚Р°РїСѓР»СЊС‚С‹",
+      "status": "current_source_native_cycle_verified",
+      "evidence": [
+        "agents/ship/S07_S03_REPORT.json",
+        "agents/ship/carry_chain03/SCHEDULER_RUN.json"
+      ]
+    },
+    {
+      "id": "S04",
+      "owner": "ship",
+      "requirement": "Р’РёР·СѓР°Р»СЊРЅРѕРµ СѓР»СѓС‡С€РµРЅРёРµ РєРѕСЂР°Р±Р»СЏ",
+      "status": "in_progress",
+      "evidence": []
+    },
+    {
+      "id": "S05",
+      "owner": "ship",
+      "requirement": "РџРѕСЌР»РµРјРµРЅС‚РЅРѕРµ СЂР°Р·СЂСѓС€РµРЅРёРµ РєРѕСЂРїСѓСЃР° Рё СЃРµРіРјРµРЅС‚РѕРІ РјР°С‡С‚",
+      "status": "current_source_native_verified_graphical_evidence_audit",
+      "evidence": [
+        "agents/qa/mast_current01/SCHEDULER_RUN.json",
+        "agents/mast_integration/HANDOFF.json"
+      ]
+    },
+    {
+      "id": "S06",
+      "owner": "ship",
+      "requirement": "РџСЂРѕРІРµСЂРµРЅРЅРѕРµ Р·Р°С‚РѕРїР»РµРЅРёРµ РїРѕСЃР»Рµ РїСЂРѕР±РѕРёРЅ",
+      "status": "target_and_player_sink_native_verified",
+      "evidence": [
+        "agents/qa/target_current01/SCHEDULER_RUN.json",
+        "agents/qa/player_sink02/SCHEDULER_RUN.json"
+      ]
+    },
+    {
+      "id": "S07",
+      "owner": "ship",
+      "requirement": "РџСЂРёС†РµР» Рё СЂРµР°Р»СЊРЅС‹Рµ РІС‹СЃС‚СЂРµР»С‹ РїСѓС€РµРє Р±РµР· РїСЂРѕСЃРјРѕС‚СЂР° С‡РµСЂРµР· РєРѕСЂРїСѓСЃ",
+      "status": "current_source_20shots_and_rendered_gunports_verified",
+      "evidence": [
+        "agents/ship/S07_S03_REPORT.json",
+        "agents/model/PORTS_ACCEPTANCE.json"
+      ]
+    },
+    {
+      "id": "S08",
+      "owner": "ship",
+      "requirement": "РџСЂС‹Р¶РѕРє РЅР° РґРІРёР¶СѓС‰РµРјСЃСЏ РєРѕСЂР°Р±Р»Рµ СЃ СЃРѕС…СЂР°РЅРµРЅРёРµРј РґРІРёР¶РµРЅРёСЏ",
+      "status": "native_verified",
+      "evidence": [
+        "agents/ship/S08_REPORT.json"
+      ]
+    },
+    {
+      "id": "S09",
+      "owner": "ship",
+      "requirement": "Р Р°Р·СЂСѓС€РµРЅРёРµ РѕС‚ СЏРґСЂР°, РєР°С‚Р°РїСѓР»СЊС‚С‹ Рё РїРѕСЂРѕС…РѕРІРѕР№ Р±РѕС‡РєРё",
+      "status": "current_source_real_impacts_verified",
+      "evidence": [
+        "agents/qa/rail_fix01/SCHEDULER_RUN.json",
+        "agents/qa/siege_final01/SCHEDULER_RUN.json"
+      ]
+    },
+    {
+      "id": "S10",
+      "owner": "ship",
+      "requirement": "РџСЂРёРєСЂРµРїР»РµРЅРЅС‹Рµ РґРёРЅР°РјРёС‡РµСЃРєРёРµ РєР°РЅР°С‚С‹ РїР°СЂСѓСЃРѕРІ",
+      "status": "model_dynamics_verified_integrated_gui_in_progress",
+      "evidence": [
+        "agents/model/PORTS_ACCEPTANCE.json"
+      ]
+    },
+    {
+      "id": "P01",
+      "owner": "physics_swim",
+      "requirement": "РђРЅРёРјР°С†РёСЏ РїР»Р°РІР°РЅРёСЏ РёР· walk",
+      "status": "native_pose_verified_gui_pending",
+      "evidence": [
+        "agents/water/REPORT.md",
+        "agents/water/player_pose_probe04/SCHEDULER_RUN.json"
+      ]
+    },
+    {
+      "id": "P02",
+      "owner": "physics_swim",
+      "requirement": "РљРѕР»Р»РёР·РёРё РїСЂРё РїР»Р°РІР°РЅРёРё Рё С„РёР·РёС‡РµСЃРєРёР№ РІС‹С…РѕРґ РЅР° Р±РµСЂРµРі",
+      "status": "shore_verified_obstacle_checks_pending",
+      "evidence": [
+        "agents/water/player_pose_probe04/SCHEDULER_RUN.json"
+      ]
+    },
+    {
+      "id": "P03",
+      "owner": "physics_swim",
+      "requirement": "Р’С‹Р±СЂРѕСЃ Р±РѕС‡РµРє G СЃ РєРѕСЂР°Р±Р»СЏ, РїР°РґРµРЅРёРµ Рё РїР»Р°РІСѓС‡РµСЃС‚СЊ",
+      "status": "G_throw_inherited_velocity_native_verified_gui_pending",
+      "evidence": [
+        "verification/BARREL_FIX_PROGRESS.json",
+        "verification/barrels_nearest02/SCHEDULER_RUN.json",
+        "agents/powder_velocity/REPORT.json"
+      ]
+    },
+    {
+      "id": "P04",
+      "owner": "armory_drop + combat_controls_resume + water",
+      "requirement": "РџР°РґРµРЅРёРµ РІСЃРµС… РІС‹Р±СЂРѕС€РµРЅРЅС‹С… РїСЂРµРґРјРµС‚РѕРІ СЃ РІРѕР·РґСѓС€РЅРѕРіРѕ С€Р°СЂР°",
+      "status": "armory_scope28_PASS_independent_rerun_pending",
+      "evidence": [
+        "agents/armory_drop/HANDOFF.md"
+      ]
+    },
+    {
+      "id": "P05",
+      "owner": "physics_swim",
+      "requirement": "РЎР»РѕС‚ Р±РѕС‡РєРё РЅР° Р»РѕС€Р°РґРё Р±РµР· РїСЂРѕРЅРёРєРЅРѕРІРµРЅРёСЏ Рё Р·Р°РІРёСЃР°РЅРёСЏ",
+      "status": "horse_scope_verified",
+      "evidence": [
+        "agents/horse/START_ACCEPTANCE.json"
+      ]
+    },
+    {
+      "id": "P06",
+      "owner": "physics_swim",
+      "requirement": "HP Р»РѕС€Р°РґРё РЅР°Рґ РЅРµР№ Рё С‚РѕР»СЊРєРѕ РІР±Р»РёР·Рё",
+      "status": "horse_scope_verified",
+      "evidence": [
+        "agents/horse/START_ACCEPTANCE.json"
+      ]
+    },
+    {
+      "id": "P07",
+      "owner": "physics_swim",
+      "requirement": "РџСЂРѕРІРµСЂРєР° Рё РїСЂРё РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚Рё СѓР»СѓС‡С€РµРЅРёРµ РєРѕРЅСЃРєРёС… РєР°РЅР°С‚РѕРІ",
+      "status": "horse_scope_verified",
+      "evidence": [
+        "agents/horse/START_ACCEPTANCE.json"
+      ]
+    },
+    {
+      "id": "C01",
+      "owner": "npc_acceptance + combat_controls_resume",
+      "requirement": "Р Р°Р·СѓРјРЅР°СЏ Р°С‚Р°РєР°, РґРёСЃС‚Р°РЅС†РёСЏ, РїРѕРїР°РґР°РЅРёСЏ, Р·Р°С‰РёС‚Р° Рё СЂРµР°РєС†РёСЏ NPC",
+      "status": "scoped26_native_PASS",
+      "evidence": [
+        "agents/npc_acceptance/MATRIX.md"
+      ]
+    },
+    {
+      "id": "C02",
+      "owner": "/root/combat_takeover_audit + root",
+      "requirement": "РЈРјРµСЂРµРЅРЅР°СЏ С„РёР·РёС‡РµСЃРєР°СЏ СЂРµР°РєС†РёСЏ РЅР° РєР°СЃР°РЅРёРµ Рё СѓРґР°СЂ",
+      "status": "graded_real_hits_and_knockdown_recovery_verified_scoped",
+      "evidence": [
+        "agents/npc_acceptance/MATRIX.md"
+      ]
+    },
+    {
+      "id": "C03",
+      "owner": "/root/combat_takeover_audit + root",
+      "requirement": "Р Р°СЃС‡Р»РµРЅРµРЅРёРµ Р±РµР· РІРѕР·РґСѓС€РЅС‹С… С‰РµР»РµР№",
+      "status": "headcap_component_PASS_other_limbs_GUI_pending",
+      "evidence": [
+        "agents/npc_acceptance/MATRIX.md"
+      ]
+    },
+    {
+      "id": "C04",
+      "owner": "/root/combat_takeover_audit + root",
+      "requirement": "РџР°РґРµРЅРёРµ Рё СЃРґРІРёРіР°РЅРёРµ РѕСЃС‚Р°РЅРєРѕРІ РїСЂРё РїСЂРѕС…РѕРґРµ РёРіСЂРѕРєР°",
+      "status": "real_corpse_contact_FAIL_fix_in_progress",
+      "evidence": [
+        "agents/npc_acceptance/anatomy01/RESULT.json"
+      ]
+    },
+    {
+      "id": "C05",
+      "owner": "/root/combat_takeover_audit + root",
+      "requirement": "РџСЂРѕРіРѕРЅС‹ СЂР°Р·РЅС‹С… РѕСЂСѓР¶РёР№ Рё СЃРѕС…СЂР°РЅРµРЅРёРµ СѓС‚РІРµСЂР¶РґРµРЅРЅРѕРіРѕ РјРµС‡Р°",
+      "status": "resumed_latest_user_request",
+      "evidence": []
+    },
+    {
+      "id": "D01",
+      "owner": "root+DeepSeek",
+      "requirement": "РљР°СЃРєР°Рґ СЂР°Р·СЂСѓС€РµРЅРёР№ РїРѕ СЂРµР°Р»СЊРЅС‹Рј РѕРїРѕСЂР°Рј Р·Р°РјРєР°",
+      "status": "current_GUI_FAIL_freed_support_patch_testing",
+      "evidence": []
+    },
+    {
+      "id": "D02",
+      "owner": "root+DeepSeek",
+      "requirement": "Р Р°Р·СЂСѓС€Р°РµРјРѕСЃС‚СЊ РґРµРєРѕСЂР°, Р±Р°С€РµРЅ, РїРѕР»РѕРІ Рё Р»РµСЃС‚РЅРёС†",
+      "status": "in_progress",
+      "evidence": []
+    },
+    {
+      "id": "D03",
+      "owner": "root+DeepSeek",
+      "requirement": "РЎРѕС…СЂР°РЅСЏСЋС‰РёРµСЃСЏ С„РёР·РёС‡РµСЃРєРёРµ РѕР±Р»РѕРјРєРё Рё РЅРѕРІС‹Рµ РїСЂРѕС…РѕРґРёРјС‹Рµ РјР°СЂС€СЂСѓС‚С‹",
+      "status": "moved_static_support_FAIL_patch_testing",
+      "evidence": [
+        "agents/qa/support_motion02/SCHEDULER_RUN.json",
+        "agents/destruction/resume_audit/HANDOFF.json"
+      ]
+    },
+    {
+      "id": "I01",
+      "owner": "root",
+      "requirement": "РЎРѕРІРјРµСЃС‚РЅР°СЏ native/GUI РїСЂРѕРІРµСЂРєР° Р°РєС‚СѓР°Р»СЊРЅРѕРіРѕ СЃРѕСЃС‚Р°РІР°",
+      "status": "in_progress",
+      "evidence": []
+    },
+    {
+      "id": "I02",
+      "owner": "root",
+      "requirement": "РџСЂРѕРІРµСЂРµРЅРЅС‹Рµ commits РІ origin/main Рё РёРЅСЃС‚СЂСѓРєС†РёРё Р·Р°РїСѓСЃРєР°",
+      "status": "in_progress",
+      "evidence": []
+    }
+  ],
+  "note": "Historical statuses retained verbatim for preservation; final acceptance requires newer pinned evidence.",
+  "latest_requirements": [
+    "Physically climb normally to ship helm",
+    "Actual ladder climbing animation with hand grip; temporarily stow weapon while climbing and restore on exit",
+    "Cabin entrance fits normal full player capsule and permits continuous roundtrip",
+    "Natural torso movement instead of spinning around own axis in melee",
+    "Take weapons and other pickable objects on E instead of F",
+    "Finish inherited integrated castle/ship/horse/balloon/combat tasks and preserve all predecessor results"
+  ],
+  "new_evidence": [
+    {
+      "scope": "combat6func",
+      "path": "agents/combat_resume7/HANDOFF.json",
+      "status": "native functional ready, GUI pending"
+    },
+    {
+      "scope": "P04",
+      "path": "agents/world_drops_resume5/HANDOFF.md",
+      "status": "native scratch ready, final merged repeat pending"
+    },
+    {
+      "scope": "gentle brush",
+      "path": "agents/npc_helper_01a15a6b/HANDOFF.json",
+      "status": "scoped real native weak contact; final merged repeat pending"
+    }
+  ],
+  "resume7_updates": {
+    "S01_S02": "Reopened by latest user photos; ship_direct7 implementing physical routes and actual climbing pose",
+    "P04": "Final merged21 external E +9 barrel +8 balloon PASS; broaderE matrix78/80, armor focus diagnostic pending",
+    "C01_C05": "Final merged89checks PASS with natural losses retained; raised grip and bounded torso ready",
+    "C02": "Exact merged weak-contact12checks PASS,4 real native surface entries <1mps no damage/push/kd",
+    "C03": "Independent current exact merged13posed parts66native capchecksPASS; component synthetic sever, naturalhit/GUI not claimed",
+    "C04": "Historical anatomy_walkthrough01 actual162playercorpsecontacts,9.49cm movement under human-speed bounds PASS; prior100tick7.63cm rawFAIL preserved",
+    "D01_D03": "destruction_resume3 current productionaudit+mixedbanks+supportmotion PASS; no new gameplay patch; networkd204 main integration finalsmoke pending",
+    "I01_I02": "Final release packaging and clean import/launcher/GUI still pending"
+  },
+  "updated_utc": "2026-10-20T18:09:26.729912+00:00"
+}

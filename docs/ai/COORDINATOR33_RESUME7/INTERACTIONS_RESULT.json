@@ -1,0 +1,157 @@
+{
+  "schema": "mafiozi.interactions-resume7/result-v1",
+  "status": "SCRATCH_NATIVE_PASS_MERGED_RUNNING",
+  "scratch": [
+    {
+      "run": "interactions05",
+      "passed": true,
+      "checks": 80,
+      "fixture": "D:/MafioziCombat31/c33_coordination/agents/interactions_resume7/fixtures/interactions05.gd",
+      "fixture_sha256": "f82adc7c2a98eb683456f4a5f36fe4dde893474c335da2b5cb1333ea0186f337",
+      "source_files_pinned": 3161,
+      "sword_sha256": "98151f2e803950e64117469f98df0b14df0e60027ca1e2d6771dfa37b6d07aa9",
+      "source_stable": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "result_sha256": "b2fe135cc358e0e00b8a2e0aaa4a74d8f85e4ca2d0404dd6335856be82e8c0e5",
+      "scheduler_receipt_sha256": "c0cc0674d4123a3c2b4b0818a233f9b686a379b3dfb57e966326d4f731475b12",
+      "meta_sha256": "a9287a80b5c195f71a33100862ac4166492cb2fa64ed4112ff22c7d68bb93b27"
+    },
+    {
+      "run": "external_input01",
+      "passed": true,
+      "checks": 21,
+      "fixture": "D:/MafioziCombat31/c33_coordination/agents/interactions_resume7/fixtures/external_input01.gd",
+      "fixture_sha256": "602f433d24348dfb24741bbb2273b20005d13ec8717504906b9758e6e826f92d",
+      "source_files_pinned": 3161,
+      "sword_sha256": "98151f2e803950e64117469f98df0b14df0e60027ca1e2d6771dfa37b6d07aa9",
+      "source_stable": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "result_sha256": "fbdb3c6a53d45646971cad00d5a417889687d035af1f73e85f14f26a4538f925",
+      "scheduler_receipt_sha256": "8a5cd8ed2bf845a5ebc050a3b1ae84bd5057242d5cf4dcfa068aadbd20a16736",
+      "meta_sha256": "243407059874156c437d3486f9c6f3ebf8d3b0bdcaec8395848c01ef7a0ad23d"
+    },
+    {
+      "run": "barrel_final01",
+      "passed": true,
+      "checks": 9,
+      "fixture": "D:/MafioziCombat31/c33_coordination/agents/interactions_resume7/fixtures/barrel_final01.gd",
+      "fixture_sha256": "f99d1c04c7d546acd2f301f90b4ae0eb5a923b8683b03413dc4e6dd26dfacd48",
+      "source_files_pinned": 3161,
+      "sword_sha256": "98151f2e803950e64117469f98df0b14df0e60027ca1e2d6771dfa37b6d07aa9",
+      "source_stable": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "result_sha256": "1b195371240a380a545e13753cae38ea421028db70bf32a79da77ee09ec6be47",
+      "scheduler_receipt_sha256": "f8362e620437f1101995197db6db4aa807dda0061b7a43399e691056e09877d0",
+      "meta_sha256": "2da58ac757b1f7e0a2ea7b99d2f3f011f054fceee8a45e3e01c5b9f26efaed10"
+    },
+    {
+      "run": "balloon_input01",
+      "passed": true,
+      "checks": 8,
+      "fixture": "D:/MafioziCombat31/c33_coordination/agents/interactions_resume7/fixtures/balloon_input01.gd",
+      "fixture_sha256": "c78bf6ed7ba2abfdf58e5ada86a94b7ec9a4a9a536d7bc772aa82131e429c9ac",
+      "source_files_pinned": 3161,
+      "sword_sha256": "98151f2e803950e64117469f98df0b14df0e60027ca1e2d6771dfa37b6d07aa9",
+      "source_stable": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "result_sha256": "7c5eb2a46cc96ca16c03f5d8d72e7574137f0cdec9175c85f66fd967c967161c",
+      "scheduler_receipt_sha256": "64daf67a24ba43ff6ec08a17b4d2b5dca438f1c020f9cf7f48437875380c7d60",
+      "meta_sha256": "83fb41007d0759448809127547d36ecd39284065c17a569c3f59109a4fd0e247"
+    }
+  ],
+  "scratch_checks": 118,
+  "merged": [
+    {
+      "run": "merged_external01",
+      "passed": true,
+      "checks": 21,
+      "fixture": "D:/MafioziCombat31/c33_coordination/agents/interactions_resume7/fixtures/merged_external01.gd",
+      "fixture_sha256": "602f433d24348dfb24741bbb2273b20005d13ec8717504906b9758e6e826f92d",
+      "source_files_pinned": 3063,
+      "sword_sha256": "87e9a1b50822ba83c2da4ae3072f45e1df3a58473ec0bf83f88cf11661e869c3",
+      "source_stable": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "result_sha256": "e12e80d81346d7c46a79bdc81cfd01e3d8e5f6fecd149db789474ef3b4793a92",
+      "scheduler_receipt_sha256": "79bae8aa810ffa80cd582eb00b79af5d8a3288b0fb32b3cd2c231eb77533eaaa",
+      "meta_sha256": "0bc4551a7627cef7e1092360e0e9b55840a2f4edbfa58975995cf3026ba9087b"
+    },
+    {
+      "run": "merged_barrel01",
+      "passed": true,
+      "checks": 9,
+      "fixture": "D:/MafioziCombat31/c33_coordination/agents/interactions_resume7/fixtures/merged_barrel01.gd",
+      "fixture_sha256": "f99d1c04c7d546acd2f301f90b4ae0eb5a923b8683b03413dc4e6dd26dfacd48",
+      "source_files_pinned": 3063,
+      "sword_sha256": "87e9a1b50822ba83c2da4ae3072f45e1df3a58473ec0bf83f88cf11661e869c3",
+      "source_stable": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "result_sha256": "6e60cfa616140d47bfcdc611be4d342d988f609bc87d691895d4b196825edda2",
+      "scheduler_receipt_sha256": "9f5219164514ed07bd6ac2d8e5f93ddd8ccb10465374d6e107d03847f91c9bb0",
+      "meta_sha256": "764b5e1e20e4b92c0fb86e62481998db9aab0a69d96e5b20d486bd7a88c85fb7"
+    },
+    {
+      "run": "merged_balloon01",
+      "passed": true,
+      "checks": 8,
+      "fixture": "D:/MafioziCombat31/c33_coordination/agents/interactions_resume7/fixtures/merged_balloon01.gd",
+      "fixture_sha256": "c78bf6ed7ba2abfdf58e5ada86a94b7ec9a4a9a536d7bc772aa82131e429c9ac",
+      "source_files_pinned": 3063,
+      "sword_sha256": "87e9a1b50822ba83c2da4ae3072f45e1df3a58473ec0bf83f88cf11661e869c3",
+      "source_stable": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "result_sha256": "7c5eb2a46cc96ca16c03f5d8d72e7574137f0cdec9175c85f66fd967c967161c",
+      "scheduler_receipt_sha256": "1ded70e80998c73b94ce97722932a6b149ab56b46703e145615c4acb639c022f",
+      "meta_sha256": "46ea6aeeb0712d0f195965892eb289918fa2f2a3638022f6f12bc3659b0f3f9e"
+    }
+  ],
+  "merged_checks": 38,
+  "armor_candidate": [
+    {
+      "run": "armor_candidate01",
+      "passed": true,
+      "checks": 85,
+      "fixture": "D:/MafioziCombat31/c33_coordination/agents/interactions_resume7/fixtures/armor_candidate01.gd",
+      "fixture_sha256": "4c2a71d48f50017c3cbc9e4e46c6883f01705be732eda9db722ce622f851e0c5",
+      "source_files_pinned": 3063,
+      "sword_sha256": "87e9a1b50822ba83c2da4ae3072f45e1df3a58473ec0bf83f88cf11661e869c3",
+      "source_stable": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "result_sha256": "a426b640e160bc7f0acc18c550c63537a95335abc08f778c5a50215f2b223706",
+      "scheduler_receipt_sha256": "8814d2748971181c70f0806937aeee849bd1716f15b362cf83d68d01b85415b7",
+      "meta_sha256": "d935b316e09328b2d9c158e19bf64ab2c51a835c243c4cf938f615fd555cd450"
+    }
+  ],
+  "additional_focus_patch": {
+    "path": "D:/MafioziCombat31/c33_coordination/agents/interactions_resume7/ARMOR_FOCUS_PATCH.json",
+    "sha256": "6ca43836d9fe4ee54f843d0f3721e7d161bc0bfb227c646064cee977f07c2734",
+    "functions": 1,
+    "actual_defect": "Own player head combat shape occluded armor interaction ray after pose settled."
+  },
+  "patches": {
+    "path": "D:/MafioziCombat31/c33_coordination/agents/interactions_resume7/FUNCTION_PATCHES.json",
+    "sha256": "6cf4222dab88e2bfaa857791bdfcead3ef2ef7932c96f8c72475d6ecaf0c36e5",
+    "files": 9,
+    "functions": 17
+  },
+  "inheritance": {
+    "P04_exact_function_preserved": true,
+    "registry": "D:/MafioziCombat31/c33_coordination/agents/interactions_resume7/REQUIREMENTS_PRESERVED.json",
+    "previous_raw_failure_index": "D:/MafioziCombat31/c33_coordination/agents/world_drops_resume5/RAW_FAILURES.json"
+  },
+  "limits": [
+    "Engine synthetic full-tree input, not physical desktop key input.",
+    "Initial fixtures place player/items and use supported acquire/board callbacks; no walking-route or ascent acceptance.",
+    "Native trajectories after release use production physics without post-release item transforms.",
+    "Headless only; final merged GUI/model rendering deferred to root per no-new-window instruction.",
+    "No subjective Half Sword equivalence or performance claim.",
+    "No shared production/manifest/Git/user-window mutations by this worker."
+  ]
+}

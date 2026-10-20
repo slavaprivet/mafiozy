@@ -1,0 +1,62 @@
+{
+  "schema": "mafiozi.coordinator33.resume7-checkpoint/v1",
+  "root_thread": "01a15a5e-0b89-7811-9ee3-2a2bdddfa358",
+  "supersedes_root": "01a15a40-fe56-7881-a7c2-45991bc8fe7b",
+  "user_authority": "Take over the frozen first pinned chat and continue its tasks and subagent tasks here; validated progress normal pushes previously authorized.",
+  "base": "d2042438",
+  "integration_repo": "D:\\MafioziCombat31\\coordinator33_resume7_main",
+  "status": "validated_scoped_source_checkpoint_ship_and_final_release_pending",
+  "combat": {
+    "six_functions": "Raised weapon grip/shoulders and bounded torso heading, delayed settled-open-zone NPC selection",
+    "unchanged": "NPC health and damage/cut thresholds, existing weapon angular spring constants, network APIs",
+    "sword_sha256": "87e9a1b50822ba83c2da4ae3072f45e1df3a58473ec0bf83f88cf11661e869c3",
+    "gui_subjective_accepted": false,
+    "final_merged": {
+      "passed": true,
+      "checks": 89,
+      "report": "COMBAT_MERGED.json",
+      "stderr_bytes": 0,
+      "natural_loss_preserved": true
+    }
+  },
+  "interactions": {
+    "files": 9,
+    "functions": 17,
+    "behavior": "E takes weapons, shields, bow, arrows, armor, balls and board pickups; one prompt owner per E. F retains vehicle/ship controls. Recovered real physical sword receives gravity when released from balloon."
+  },
+  "ship": "Scratch implementation: cabin capsule roundtrip and actual ladder pose/weapon stow/restore still pending",
+  "preservation": [
+    "Foreign Desktop perf/castle-90fps remains untouched",
+    "Frozen user project resume5 unchanged; root did not close its window",
+    "All raw failures and old27-task ledger retained",
+    "New upstream network d204 changes retained; function-only patch into castle_site"
+  ],
+  "task_ledger": "TASK_LEDGER.json",
+  "merge_receipt": "MERGE_RECEIPT.json",
+  "not_accepted": [
+    "Ideal Half Sword equivalence",
+    "First-hand Half Sword computer control/gameplay: node_repl required by computer-use skill unavailable",
+    "Full clean FPS",
+    "Final release/F5 route and subjective animation acceptance"
+  ],
+  "automation": "Former automation4 disappeared in app and filesystem; no replacement created",
+  "updated_utc": "2026-10-20T18:07:30.445296+00:00",
+  "weak_contact": {
+    "report": "WEAK_CONTACT_MERGED.json",
+    "checks": 12,
+    "surface_entries": 4,
+    "passed": true
+  },
+  "armor_occlusion_fix": {
+    "function": "focused_item_id",
+    "root_sha256": "9855b74ae247f67526f04592935babc1e2d21c039631c1187d41bb4e567a31c2",
+    "candidate_checks": 85,
+    "candidate_passed": true,
+    "negative_cases": [
+      "Real world wall occludes",
+      "Nonchild actor with combat layer and meta occludes"
+    ],
+    "cause": "Ray selecting visible helmet was blocked by own Hithead AnimatableBody3D; skip only own descendant combat hitbox RIDs.",
+    "final_merged_repeat": "Pending after ship merge"
+  }
+}

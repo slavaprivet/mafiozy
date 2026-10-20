@@ -1,0 +1,114 @@
+{
+  "merged_utc": "2026-10-20T18:02:53.429393+00:00",
+  "upstream_base": "d2042438",
+  "functions": [
+    {
+      "file": "scripts/weapons/sword_prototype.gd",
+      "function": "_target_direction"
+    },
+    {
+      "file": "scripts/weapons/sword_prototype.gd",
+      "function": "_face_spear_aim31"
+    },
+    {
+      "file": "scripts/weapons/sword_prototype.gd",
+      "function": "_pose_shared_grip"
+    },
+    {
+      "file": "scripts/weapons/sword_prototype.gd",
+      "function": "_pose_main"
+    },
+    {
+      "file": "scripts/weapons/sword_prototype.gd",
+      "function": "_npc_choose_attack"
+    },
+    {
+      "file": "scripts/weapons/sword_prototype.gd",
+      "function": "_npc_observe53"
+    },
+    {
+      "file": "scripts/main.gd",
+      "function": "_current_door_action"
+    },
+    {
+      "file": "scripts/main.gd",
+      "function": "_unhandled_input"
+    },
+    {
+      "file": "scripts/city/castle_site.gd",
+      "function": "_unhandled_input"
+    },
+    {
+      "file": "scripts/city/castle_armory_storage.gd",
+      "function": "pickup_action43"
+    },
+    {
+      "file": "scripts/city/castle_armory_storage.gd",
+      "function": "window_input"
+    },
+    {
+      "file": "scripts/city/castle_armory_storage.gd",
+      "function": "drop_held"
+    },
+    {
+      "file": "scripts/city/castle_armor_equipment.gd",
+      "function": "_input"
+    },
+    {
+      "file": "scripts/city/castle_armor_equipment.gd",
+      "function": "_process"
+    },
+    {
+      "file": "scripts/weapons/sword_prototype.gd",
+      "function": "_input"
+    },
+    {
+      "file": "scripts/weapons/sword_prototype.gd",
+      "function": "_update_hint"
+    },
+    {
+      "file": "scripts/weapons/bow_prototype.gd",
+      "function": "_input"
+    },
+    {
+      "file": "scripts/weapons/bow_prototype.gd",
+      "function": "_update_hint"
+    },
+    {
+      "file": "scripts/ship/ship_battle_host.gd",
+      "function": "action"
+    },
+    {
+      "file": "scripts/ship/ship_battle_host.gd",
+      "function": "_unhandled_input"
+    },
+    {
+      "file": "scripts/siege/powder_barrel_host.gd",
+      "function": "_unhandled_input"
+    },
+    {
+      "file": "scripts/balloon/balloon_host.gd",
+      "function": "_unhandled_input"
+    },
+    {
+      "file": "scripts/balloon/balloon_host.gd",
+      "function": "_update_hud"
+    },
+    {
+      "file": "scripts/city/castle_armor_equipment.gd",
+      "function": "focused_item_id",
+      "kind": "additional_own_head_occlusion_fix"
+    }
+  ],
+  "files": {
+    "scripts\\weapons\\sword_prototype.gd": "87e9a1b50822ba83c2da4ae3072f45e1df3a58473ec0bf83f88cf11661e869c3",
+    "scripts\\main.gd": "10b57ad207cfa60fc62bf423d2f14e957ae0206f9c6140bd411a04bba4341734",
+    "scripts\\city\\castle_site.gd": "d66c2c88364a75cd0ec93a022831aabb53b5e295e416aa6d2745f7c6a6ae940a",
+    "scripts\\city\\castle_armory_storage.gd": "0dceddca0bc70ad932b722fa21c79d9e80857ea0dadee83ba90ce97f0988400e",
+    "scripts\\city\\castle_armor_equipment.gd": "9855b74ae247f67526f04592935babc1e2d21c039631c1187d41bb4e567a31c2",
+    "scripts\\weapons\\bow_prototype.gd": "52cda49a291291887e9bea5337e48f9046eac6894e6c1214863cd7451bbb9551",
+    "scripts\\ship\\ship_battle_host.gd": "0b4d848dc62f3b0835a6bd6198a05623e4ad980764a50a53b1d2fa0d054e0bc2",
+    "scripts\\siege\\powder_barrel_host.gd": "b6fa10a89539dacf8f8545241226faf709c73090b010f63c431b49c7d905f56c",
+    "scripts\\balloon\\balloon_host.gd": "5d9cce5a3b36e55623568dc578ba4b8e7a8124032c0e8a8956a3103f4b828832"
+  }
+}

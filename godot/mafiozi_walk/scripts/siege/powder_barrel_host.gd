@@ -513,6 +513,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if code != KEY_E:
 		return
+	if is_instance_valid(world) and world.has_method("_current_door_action"):
+		var primary: Dictionary = world.call("_current_door_action")
+		if str(primary.get("key", "F")) == "E" and str(primary.get("owner", "")) not in ["barrel", "powder", "horse"]: return
 	if carrying:
 		place_carried()
 		get_viewport().set_input_as_handled()

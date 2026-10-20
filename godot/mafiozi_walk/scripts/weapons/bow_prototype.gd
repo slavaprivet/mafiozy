@@ -444,7 +444,7 @@ func _update_hint() -> void:
 	var pick := ""
 	var near := _nearest_ground_item()
 	if not near.is_empty():
-		pick = "\nF — поднять " + ("лук" if str(near.get("kind", "")) == "bow" else "колчан")
+		pick = "\nE — поднять " + ("лук" if str(near.get("kind", "")) == "bow" else "колчан")
 	_hint.text = state + "\nПКМ — прицел и натяжение · ЛКМ — выстрел\nG — бросить" + pick + draw
 
 # ---------------------------------------------------------------- archer pose
@@ -598,7 +598,10 @@ func _input(event: InputEvent) -> void:
 			if drop_quiver_to_ground():
 				get_viewport().set_input_as_handled()
 				return
-		if code == KEY_F and try_pickup_ground():
+		if code == KEY_E and is_instance_valid(_world) and _world.has_method("_current_door_action"):
+			var primary: Dictionary = _world.call("_current_door_action")
+			if str(primary.get("key", "F")) == "E" and str(primary.get("owner", "")) != "castle_pickup": return
+		if code == KEY_E and try_pickup_ground():
 			get_viewport().set_input_as_handled()
 			return
 

@@ -158,6 +158,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if focused is LineEdit or focused is TextEdit:
 		return
 	if code == KEY_E:
+		if is_instance_valid(self.world) and self.world.has_method("_current_door_action"):
+			var primary: Dictionary = self.world.call("_current_door_action")
+			if str(primary.get("key", "F")) == "E" and str(primary.get("owner", "")) != "balloon": return
 		if take_slot_barrel():
 			get_viewport().set_input_as_handled()
 		return
@@ -165,14 +168,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		var barrels_e: Variant = self.world.get("preview_power_barrels") if is_instance_valid(self.world) else null
 		if is_instance_valid(barrels_e) and bool(barrels_e.get("carrying")):
 			return
-		if take_slot_barrel():
-			get_viewport().set_input_as_handled()
-			return
 		if leave_now():
 			get_viewport().set_input_as_handled()
-		return
-	if take_slot_barrel():
-		get_viewport().set_input_as_handled()
 		return
 	if not wants_e():
 		return
@@ -455,6 +452,8 @@ func _update_hud() -> void:
 			text = ""
 		else:
 			text = "Сесть в шар"
+	# Cargo can change while the rider remains aboard: update text without replaying the animation.
+	_banner_label.text = text
 	var state := 0 if text.is_empty() else (1 if _aboard else 2)
 	if state != _banner_state:
 		_banner_state = state
