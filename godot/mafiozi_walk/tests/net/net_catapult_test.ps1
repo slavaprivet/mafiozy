@@ -113,9 +113,12 @@ function Get-ImpactPoint([string]$line) {
 $hostImpactPoint = Get-ImpactPoint $hostImpact
 $clientImpactPoint = Get-ImpactPoint $clientImpact
 
-# Сколько взрывов реально применено (NET_EXPLOSION), а не счётчик в статистике:
-$hostAppliedCount = @(Get-Content $hostLog | Where-Object { $_ -match 'NET_EXPLOSION' }).Count
-$guestAppliedCount = @(Get-Content $clientLog | Where-Object { $_ -match 'NET_EXPLOSION' }).Count
+# Дубль не нанёс урона. Число строк NET_EXPLOSION ничего не доказывало:
+# лишний взрыв от дубля уравновешивался расхождением с другой стороны, а
+# повтор события считался двумя событиями. Сверяем события по path/killed/
+# dead/at - разбор и критерии в net_catapult_damage_check.ps1.
+. (Join-Path $PSScriptRoot 'net_catapult_damage_check.ps1')
+$damage = Test-ProxyNoDamage -HostLog $hostLog -GuestLog $clientLog
 $checks = [ordered]@{
     'host launched'            = $null -ne $hostSent
     'guest launched'           = $null -ne $clientSent
@@ -126,13 +129,15 @@ $checks = [ordered]@{
     'guest proxy hit world'    = $null -ne $clientImpactPoint
     'host proxy hit world'     = $null -ne $hostImpactPoint
     'impact points identical'  = Same-Point $hostImpactPoint $clientImpactPoint 0.05
-    'proxy dealt no damage'    = ($hostAppliedCount -gt 0) -and ($hostAppliedCount -eq $guestAppliedCount)
+    'proxy dealt no damage'    = ($damage.Verdict -eq 'PASS')
 }
 $failed = @()
 foreach ($name in $checks.Keys) {
     if ($checks[$name]) { Write-Host ("PASS  " + $name) }
     else { Write-Host ("FAIL  " + $name); $failed += $name }
 }
+Write-Host ("damage check: " + $damage.Verdict)
+foreach ($reason in $damage.Reasons) { Write-Host ("  " + $reason) }
 
 Write-Host ""
 Write-Host "host launch:  $hostSent"
