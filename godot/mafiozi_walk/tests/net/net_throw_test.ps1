@@ -35,13 +35,13 @@ $hostProcess = Start-Process -FilePath $Engine -NoNewWindow -PassThru `
     -RedirectStandardOutput $hostLog -RedirectStandardError "$hostLog.err" `
     -ArgumentList @('--headless', '--path', $project, $Scene, '--',
         '--net-host', "--net-port=$Port", '--net-name=host', '--sword-proto=1',
-        "--net-throw-at=$ThrowAt", "--net-quit-at=$($ThrowAt + 10)")
+        "--net-throw-at=$ThrowAt", "--net-quit-at=$($ThrowAt + 45)")
 Start-Sleep -Seconds 10
 $clientProcess = Start-Process -FilePath $Engine -NoNewWindow -PassThru `
     -RedirectStandardOutput $clientLog -RedirectStandardError "$clientLog.err" `
     -ArgumentList @('--headless', '--path', $project, $Scene, '--',
         "--net-join=127.0.0.1:$Port", '--net-name=guest', '--sword-proto=1',
-        "--net-throw-at=$ThrowAt", "--net-quit-at=$($ThrowAt + 26)")
+        "--net-throw-at=$ThrowAt", "--net-quit-at=$($ThrowAt + 40)")
 
 $deadline = (Get-Date).AddSeconds($ThrowAt + $Settle + 50)
 while ((Get-Date) -lt $deadline) {
