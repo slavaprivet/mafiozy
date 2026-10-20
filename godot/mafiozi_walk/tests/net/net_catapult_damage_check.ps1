@@ -1,24 +1,25 @@
-﻿# DSH_NET - разбор NET_EXPLOSION и доказательство «дубль не нанёс урона».
+﻿# DSH_NET - разбор NET_EXPLOSION и проверка «дубль не нанёс урона».
 #
-# Раньше проверка сравнивала только ЧИСЛО строк NET_EXPLOSION у двух сторон.
-# Равные агрегаты ничего не доказывают: лишний взрыв от кинематического дубля
-# на приёмной стороне уравновешивался любым другим расхождением, а повтор
-# одного и того же события считался двумя событиями.
+# ПОЧЕМУ FAIL-CLOSED. В строке NET_EXPLOSION печатаются только path, killed,
+# dead и at. Идентификатора события в логе нет. Поэтому совпадение точек и
+# счётчиков НЕ доказывает ни однократность применения, ни отсутствие урона от
+# кинематического дубля: одинаковый повтор на обеих сторонах выглядит точно так
+# же, как одно честное событие. Такой вывод - NOT_PROVEN, не PASS.
 #
-# Здесь взрывы сопоставляются ПО СОБЫТИЮ: у каждой строки берутся path, killed,
-# dead и точка at=. Условия PASS:
-#   * обе стороны прислали разбираемые строки, взрывы есть у обеих;
-#   * на приёмной стороне нет ни одного path=local - локальный урон от дубля;
-#   * число событий совпадает у обеих сторон;
-#   * события совпадают попарно в порядке применения: точка (<= 0.05 м),
-#     dead= и killed=.
-# Нет данных (нет лога, нет строк, строка обрезана) - NOT_PROVEN, не PASS.
-# Явное противоречие (локальный урон у гостя, лишнее/другое событие) - FAIL.
+# Что проверка делает:
+#   * FAIL - явное противоречие по имеющимся данным: у гостя есть path=local
+#     (локальный урон дубля), число событий разное, события не совпали попарно
+#     (at > 0.05 м, dead=, killed=);
+#   * NOT_PROVEN - доказать нечем: нет лога, нет строк, строка обрезана,
+#     счётчик отрицательный, событие повторяется (неотличимо от двукратного
+#     применения) или у строк нет идентификатора события;
+#   * Consistency - отдельно, только про имеющиеся строки: MATCH (совпали
+#     попарно), MISMATCH (не совпали), UNKNOWN (сравнивать нечего). Это
+#     согласованность данных, а НЕ доказательство отсутствия двойного урона.
 #
-# Ограничение: в лог печатается только path/killed/dead/at, без event_id,
-# поэтому «ровно один раз на событие» доказывается попарным сопоставлением,
-# а не идентификатором. Для полного доказательства нужно печатать event_id
-# (см. отчёт OPT-20261020-001) - это отдельное изменение runtime.
+# PASS здесь не выдаётся принципиально: до появления event_id/kind в
+# NET_EXPLOSION корректный вердикт - NOT_PROVEN. Нужные поля перечислены в
+# отчёте OPT-20261020-001 (GAP), их добавление - отдельный ID на runtime.
 #
 # Проверка самого разбора: `powershell -File net_catapult_damage_check.ps1 -SelfTest`.
 
@@ -63,7 +64,24 @@ function Get-NetEventDistance($a, $b) {
     return [math]::Sqrt($dx * $dx + $dy * $dy + $dz * $dz)
 }
 
-# Возвращает [pscustomobject] с Verdict = PASS | FAIL | NOT_PROVEN и Reasons.
+function Get-NetEventSignature($record) {
+    if ($null -eq $record.At) { return 'no-at' }
+    return ('{0:F3},{1:F3},{2:F3}|d{3}|k{4}' -f $record.At[0], $record.At[1], $record.At[2], $record.Dead, $record.Killed)
+}
+
+function New-ProxyDamageResult {
+    param([string]$Verdict, [string]$Consistency, [string[]]$Reasons, $HostEvents, $GuestEvents, $Pairs)
+    return [pscustomobject]@{
+        Verdict     = $Verdict
+        Consistency = $Consistency
+        Reasons     = $Reasons
+        HostEvents  = $HostEvents
+        GuestEvents = $GuestEvents
+        Pairs       = $Pairs
+    }
+}
+
+# Возвращает [pscustomobject]: Verdict = FAIL | NOT_PROVEN, Consistency = MATCH | MISMATCH | UNKNOWN.
 function Test-ProxyNoDamage {
     param(
         [string]$HostLog,
@@ -85,39 +103,37 @@ function Test-ProxyNoDamage {
     # PSCustomObject, у которого .Count в Windows PowerShell 5.1 пуст.
     $malformed = @(@($hostEvents) + @($guestEvents) | Where-Object { $_.Malformed })
 
-    $result = [pscustomobject]@{
-        Verdict     = 'NOT_PROVEN'
-        Reasons     = $reasons
-        HostEvents  = $hostEvents
-        GuestEvents = $guestEvents
-        Pairs       = @()
+    if ($malformed.Count -gt 0) {
+        $reasons += ("не разобрано строк NET_EXPLOSION: " + $malformed.Count +
+            " (первая: " + $malformed[0].Raw + ")")
+        return New-ProxyDamageResult 'NOT_PROVEN' 'UNKNOWN' $reasons $hostEvents $guestEvents @()
     }
 
-    if ($malformed.Count -gt 0) {
-        $result.Reasons += ("не разобрано строк NET_EXPLOSION: " + $malformed.Count +
-            " (первая: " + $malformed[0].Raw + ")")
-        return $result
+    $invalid = @(@($hostEvents) + @($guestEvents) | Where-Object { ($_.Killed -lt 0) -or ($_.Dead -lt 0) })
+    if ($invalid.Count -gt 0) {
+        $reasons += ("невалидные счётчики (killed/dead < 0): " + $invalid.Count +
+            " (первая: " + $invalid[0].Raw + ")")
+        return New-ProxyDamageResult 'NOT_PROVEN' 'UNKNOWN' $reasons $hostEvents $guestEvents @()
     }
+
     if ($hostEvents.Count -eq 0) {
-        $result.Reasons += 'host: ни одного применённого взрыва - сверять не с чем'
-        return $result
+        $reasons += 'host: ни одного применённого взрыва - сверять не с чем'
+        return New-ProxyDamageResult 'NOT_PROVEN' 'UNKNOWN' $reasons $hostEvents $guestEvents @()
     }
     if ($guestEvents.Count -eq 0) {
-        $result.Reasons += 'guest: ни одного применённого взрыва - отсутствие данных не PASS'
-        return $result
+        $reasons += 'guest: ни одного применённого взрыва - отсутствие данных не PASS'
+        return New-ProxyDamageResult 'NOT_PROVEN' 'UNKNOWN' $reasons $hostEvents $guestEvents @()
     }
 
     $guestLocal = @($guestEvents | Where-Object { $_.Path -eq 'local' })
     if ($guestLocal.Count -gt 0) {
-        $result.Verdict = 'FAIL'
-        $result.Reasons += ("guest применил урон локально (path=local): " + $guestLocal.Count + " соб." +
+        $reasons += ("guest применил урон локально (path=local): " + $guestLocal.Count + " соб." +
             " - это урон кинематического дубля")
-        return $result
+        return New-ProxyDamageResult 'FAIL' 'MISMATCH' $reasons $hostEvents $guestEvents @()
     }
     if ($hostEvents.Count -ne $guestEvents.Count) {
-        $result.Verdict = 'FAIL'
-        $result.Reasons += ("число взрывов не совпало: host=" + $hostEvents.Count + " guest=" + $guestEvents.Count)
-        return $result
+        $reasons += ("число взрывов не совпало: host=" + $hostEvents.Count + " guest=" + $guestEvents.Count)
+        return New-ProxyDamageResult 'FAIL' 'MISMATCH' $reasons $hostEvents $guestEvents @()
     }
 
     $mismatch = @()
@@ -134,47 +150,96 @@ function Test-ProxyNoDamage {
                 ") d=" + [math]::Round($distance, 3))
         }
     }
-    $result.Pairs = $pairs
     if ($mismatch.Count -gt 0) {
-        $result.Verdict = 'FAIL'
-        $result.Reasons += ('события не совпали по событию: ' + ($mismatch -join '; '))
-        return $result
+        $reasons += ('события не совпали по событию: ' + ($mismatch -join '; '))
+        return New-ProxyDamageResult 'FAIL' 'MISMATCH' $reasons $hostEvents $guestEvents $pairs
     }
 
-    $result.Verdict = 'PASS'
-    $result.Reasons += ("события совпали попарно: " + $hostEvents.Count)
-    return $result
+    # Строки согласованы, но доказательства однократности нет.
+    # Повтор ищем ВНУТРИ каждой стороны: одна и та же строка у хоста и у гостя -
+    # это норма (событие и его реплика), а две одинаковые строки на одной
+    # стороне уже неотличимы от двукратного применения.
+    $repeated = @()
+    foreach ($side in @($hostEvents, $guestEvents)) {
+        $counts = @{}
+        foreach ($record in $side) {
+            $key = Get-NetEventSignature $record
+            if (-not $counts.ContainsKey($key)) { $counts[$key] = 0 }
+            $counts[$key] = $counts[$key] + 1
+        }
+        foreach ($key in @($counts.Keys)) {
+            if ($counts[$key] -gt 1) { $repeated += $key }
+        }
+    }
+    $repeated = @($repeated | Select-Object -Unique)
+    if ($repeated.Count -gt 0) {
+        $reasons += ("событие повторяется (" + ($repeated -join '; ') + "): одинаковый повтор" +
+            " на одной стороне неотличим от двукратного применения")
+        $reasons += 'нужен event_id (или kind+порядковый номер) в строке NET_EXPLOSION - GAP'
+        return New-ProxyDamageResult 'NOT_PROVEN' 'MATCH' $reasons $hostEvents $guestEvents $pairs
+    }
+
+    $reasons += ("строки согласованы попарно (" + $hostEvents.Count + "), но в NET_EXPLOSION нет" +
+        " идентификатора события и отметки применения: однократность не доказана")
+    $reasons += 'нужны поля event_id (или kind+id), shot/order и признак применения в NET_EXPLOSION - GAP'
+    return New-ProxyDamageResult 'NOT_PROVEN' 'MATCH' $reasons $hostEvents $guestEvents $pairs
 }
 
 if ($SelfTest) {
+    # Синтетические логи, не игра. Сценарии - по разбору OPT-20261020-001.
     $fixtures = @(
-        @{ Name = 'valid_one_event'; Host = @('NET_EXPLOSION path=local killed=1 dead=1 at=(0.0, 0.03, 911.9525)');
-           Guest = @('NET_EXPLOSION path=dead killed=1 dead=1 at=(0.0, 0.03, 911.9525)'); Want = 'PASS' },
-        @{ Name = 'valid_two_events'; Host = @(
+        @{ Name = 'one_event_consistent'; Host = @('NET_EXPLOSION path=local killed=1 dead=1 at=(0.0, 0.03, 911.9525)');
+           Guest = @('NET_EXPLOSION path=dead killed=1 dead=1 at=(0.0, 0.03, 911.9525)');
+           Expect = 'NOT_PROVEN'; Consistency = 'MATCH' },
+        @{ Name = 'two_events_consistent'; Host = @(
                 'NET_EXPLOSION path=local killed=1 dead=1 at=(0.0, 0.03, 911.9525)',
                 'NET_EXPLOSION path=local killed=0 dead=0 at=(0.0, 0.03, 911.9525)');
            Guest = @(
                 'NET_EXPLOSION path=dead killed=1 dead=1 at=(0.0, 0.03, 911.9525)',
-                'NET_EXPLOSION path=dead killed=0 dead=0 at=(0.0, 0.03, 911.9525)'); Want = 'PASS' },
+                'NET_EXPLOSION path=dead killed=0 dead=0 at=(0.0, 0.03, 911.9525)');
+           Expect = 'NOT_PROVEN'; Consistency = 'MATCH'; Reason = 'согласованы' },
+        @{ Name = 'identical_repeat_both_sides'; Host = @(
+                'NET_EXPLOSION path=local killed=1 dead=1 at=(0.0, 0.03, 911.9525)',
+                'NET_EXPLOSION path=local killed=1 dead=1 at=(0.0, 0.03, 911.9525)');
+           Guest = @(
+                'NET_EXPLOSION path=dead killed=1 dead=1 at=(0.0, 0.03, 911.9525)',
+                'NET_EXPLOSION path=dead killed=1 dead=1 at=(0.0, 0.03, 911.9525)');
+           Expect = 'NOT_PROVEN'; Consistency = 'MATCH'; Reason = 'повтор' },
+        @{ Name = 'negative_counters_both_sides'; Host = @('NET_EXPLOSION path=local killed=-1 dead=-1 at=(0.0, 0.03, 911.9525)');
+           Guest = @('NET_EXPLOSION path=dead killed=-1 dead=-1 at=(0.0, 0.03, 911.9525)');
+           Expect = 'NOT_PROVEN'; Consistency = 'UNKNOWN'; Reason = 'невалидные' },
+        @{ Name = 'negative_killed_one_side'; Host = @('NET_EXPLOSION path=local killed=1 dead=1 at=(0.0, 0.03, 911.9525)');
+           Guest = @('NET_EXPLOSION path=dead killed=-1 dead=1 at=(0.0, 0.03, 911.9525)');
+           Expect = 'NOT_PROVEN'; Consistency = 'UNKNOWN'; Reason = 'невалидные' },
         @{ Name = 'guest_has_no_events'; Host = @('NET_EXPLOSION path=local killed=1 dead=1 at=(0.0, 0.03, 911.9525)');
-           Guest = @('NET_CASTLE t=20 role=guest detached=1'); Want = 'NOT_PROVEN' },
+           Guest = @('NET_CASTLE t=20 role=guest detached=1'); Expect = 'NOT_PROVEN'; Consistency = 'UNKNOWN' },
         @{ Name = 'host_has_no_events'; Host = @('NET_CASTLE t=20 role=host detached=0');
-           Guest = @('NET_EXPLOSION path=dead killed=1 dead=1 at=(0.0, 0.03, 911.9525)'); Want = 'NOT_PROVEN' },
-        @{ Name = 'empty_logs'; Host = @(); Guest = @(); Want = 'NOT_PROVEN' },
-        @{ Name = 'equal_aggregates_wrong_place'; Host = @('NET_EXPLOSION path=local killed=2 dead=2 at=(0.0, 0.03, 911.9525)');
-           Guest = @('NET_EXPLOSION path=dead killed=2 dead=2 at=(0.0, 0.03, 950.0)'); Want = 'FAIL' },
+           Guest = @('NET_EXPLOSION path=dead killed=1 dead=1 at=(0.0, 0.03, 911.9525)');
+           Expect = 'NOT_PROVEN'; Consistency = 'UNKNOWN' },
+        @{ Name = 'empty_logs'; Host = @(); Guest = @(); Expect = 'NOT_PROVEN'; Consistency = 'UNKNOWN' },
+        @{ Name = 'wrong_place'; Host = @('NET_EXPLOSION path=local killed=2 dead=2 at=(0.0, 0.03, 911.9525)');
+           Guest = @('NET_EXPLOSION path=dead killed=2 dead=2 at=(0.0, 0.03, 950.0)');
+           Expect = 'FAIL'; Consistency = 'MISMATCH' },
         @{ Name = 'duplicate_event_on_guest'; Host = @('NET_EXPLOSION path=local killed=1 dead=1 at=(0.0, 0.03, 911.9525)');
            Guest = @(
                 'NET_EXPLOSION path=dead killed=1 dead=1 at=(0.0, 0.03, 911.9525)',
-                'NET_EXPLOSION path=dead killed=1 dead=1 at=(0.0, 0.03, 911.9525)'); Want = 'FAIL' },
+                'NET_EXPLOSION path=dead killed=1 dead=1 at=(0.0, 0.03, 911.9525)');
+           Expect = 'FAIL'; Consistency = 'MISMATCH' },
         @{ Name = 'proxy_dealt_local_damage'; Host = @('NET_EXPLOSION path=local killed=1 dead=1 at=(0.0, 0.03, 911.9525)');
            Guest = @(
                 'NET_EXPLOSION path=dead killed=1 dead=1 at=(0.0, 0.03, 911.9525)',
-                'NET_EXPLOSION path=local killed=1 dead=1 at=(0.0, 0.03, 900.0)'); Want = 'FAIL' },
+                'NET_EXPLOSION path=local killed=1 dead=1 at=(0.0, 0.03, 900.0)');
+           Expect = 'FAIL'; Consistency = 'MISMATCH' },
         @{ Name = 'truncated_line'; Host = @('NET_EXPLOSION path=local killed=1 dead=1 at=(0.0, 0.03, 911.9525)');
-           Guest = @('NET_EXPLOSION path=dead killed='); Want = 'NOT_PROVEN' },
+           Guest = @('NET_EXPLOSION path=dead killed='); Expect = 'NOT_PROVEN'; Consistency = 'UNKNOWN' },
         @{ Name = 'killed_differs'; Host = @('NET_EXPLOSION path=local killed=1 dead=1 at=(0.0, 0.03, 911.9525)');
-           Guest = @('NET_EXPLOSION path=dead killed=0 dead=1 at=(0.0, 0.03, 911.9525)'); Want = 'FAIL' }
+           Guest = @('NET_EXPLOSION path=dead killed=0 dead=1 at=(0.0, 0.03, 911.9525)');
+           Expect = 'FAIL'; Consistency = 'MISMATCH' },
+        @{ Name = 'host_has_extra_event'; Host = @(
+                'NET_EXPLOSION path=local killed=1 dead=1 at=(0.0, 0.03, 911.9525)',
+                'NET_EXPLOSION path=local killed=1 dead=1 at=(0.0, 0.03, 940.0)');
+           Guest = @('NET_EXPLOSION path=dead killed=1 dead=1 at=(0.0, 0.03, 911.9525)');
+           Expect = 'FAIL'; Consistency = 'MISMATCH' }
     )
 
     $temp = Join-Path ([System.IO.Path]::GetTempPath()) ('dsh_cat_fixture_' + [guid]::NewGuid().ToString('N'))
@@ -186,12 +251,17 @@ if ($SelfTest) {
         if ($null -ne $fixture.Host) { Set-Content -Path $hostPath -Value $fixture.Host -Encoding UTF8 }
         if ($null -ne $fixture.Guest) { Set-Content -Path $guestPath -Value $fixture.Guest -Encoding UTF8 }
         $check = Test-ProxyNoDamage -HostLog $hostPath -GuestLog $guestPath
-        if ($check.Verdict -eq $fixture.Want) {
-            Write-Host ("PASS  fixture " + $fixture.Name + " -> " + $check.Verdict)
-        } else {
-            Write-Host ("FAIL  fixture " + $fixture.Name + " -> " + $check.Verdict + " (ожидалось " + $fixture.Want + ")")
-            $failures += $fixture.Name
+        $ok = ($check.Verdict -eq $fixture.Expect)
+        if ($null -ne $fixture.Consistency -and $check.Consistency -ne $fixture.Consistency) { $ok = $false }
+        if ($fixture.ContainsKey('Reason')) {
+            $joined = ($check.Reasons -join ' | ')
+            if ($joined -notmatch [regex]::Escape($fixture.Reason)) { $ok = $false }
         }
+        $line = ("{0}  fixture {1} -> verdict={2} consistency={3}" -f $(if ($ok) { 'PASS' } else { 'FAIL' }), $fixture.Name, $check.Verdict, $check.Consistency)
+        Write-Host $line
+        Write-Host ("      expected " + $fixture.Expect + " / " + $fixture.Consistency + $(if ($fixture.ContainsKey('Reason')) { " / " + $fixture.Reason } else { '' }))
+        Write-Host ("      actual   " + $check.Verdict + " / " + $check.Consistency + " :: " + (($check.Reasons) -join ' | '))
+        if (-not $ok) { $failures += $fixture.Name }
     }
     Remove-Item -Recurse -Force $temp -ErrorAction SilentlyContinue
 

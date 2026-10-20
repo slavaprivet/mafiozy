@@ -115,28 +115,29 @@ $clientImpactPoint = Get-ImpactPoint $clientImpact
 
 # Дубль не нанёс урона. Число строк NET_EXPLOSION ничего не доказывало:
 # лишний взрыв от дубля уравновешивался расхождением с другой стороны, а
-# повтор события считался двумя событиями. Сверяем события по path/killed/
-# dead/at - разбор и критерии в net_catapult_damage_check.ps1.
+# повтор события считался двумя событиями. Разбор и критерии -
+# net_catapult_damage_check.ps1. Вердикт fail-closed: без event_id в строке
+# NET_EXPLOSION корректный результат - NOT_PROVEN, а не PASS.
 . (Join-Path $PSScriptRoot 'net_catapult_damage_check.ps1')
 $damage = Test-ProxyNoDamage -HostLog $hostLog -GuestLog $clientLog
 $checks = [ordered]@{
-    'host launched'            = $null -ne $hostSent
-    'guest launched'           = $null -ne $clientSent
-    'host got guest stone'     = $null -ne $hostProxy
-    'guest got host stone'     = $null -ne $clientProxy
-    'guest proxy matches own'  = Same-Point $hostOwnPoint $clientProxyPoint 0.5
-    'host proxy matches own'   = Same-Point $clientOwnPoint $hostProxyPoint 0.5
-    'guest proxy hit world'    = $null -ne $clientImpactPoint
-    'host proxy hit world'     = $null -ne $hostImpactPoint
-    'impact points identical'  = Same-Point $hostImpactPoint $clientImpactPoint 0.05
-    'proxy dealt no damage'    = ($damage.Verdict -eq 'PASS')
+    'host launched'             = $null -ne $hostSent
+    'guest launched'            = $null -ne $clientSent
+    'host got guest stone'      = $null -ne $hostProxy
+    'guest got host stone'      = $null -ne $clientProxy
+    'guest proxy matches own'   = Same-Point $hostOwnPoint $clientProxyPoint 0.5
+    'host proxy matches own'    = Same-Point $clientOwnPoint $hostProxyPoint 0.5
+    'guest proxy hit world'     = $null -ne $clientImpactPoint
+    'host proxy hit world'      = $null -ne $hostImpactPoint
+    'impact points identical'   = Same-Point $hostImpactPoint $clientImpactPoint 0.05
+    'double damage excluded'    = ($damage.Verdict -eq 'PASS')
 }
 $failed = @()
 foreach ($name in $checks.Keys) {
     if ($checks[$name]) { Write-Host ("PASS  " + $name) }
     else { Write-Host ("FAIL  " + $name); $failed += $name }
 }
-Write-Host ("damage check: " + $damage.Verdict)
+Write-Host ("damage check: " + $damage.Verdict + " (consistency: " + $damage.Consistency + ")")
 foreach ($reason in $damage.Reasons) { Write-Host ("  " + $reason) }
 
 Write-Host ""
