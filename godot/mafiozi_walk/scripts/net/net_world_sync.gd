@@ -37,6 +37,10 @@ var _publish_clock: float = 0.0
 var _applied_frames: int = 0
 ## Сколько снапшотов подряд сервер считает нас в другом месте.
 var _correction_streak: int = 0
+# DSH_NET: клиент сообщает, что его замок построен; хост ждёт этого перед
+# собственным выстрелом, иначе взрыв случится до готовности клиента и потеряется.
+var _client_ready_sent := false
+var _clients_ready := 0
 ## До какого момента (мс) публикуем поддельную позицию в тесте авторитета.
 var _forge_until_ms: int = 0
 
@@ -169,6 +173,10 @@ func _physics_process(delta: float) -> void:
 	else:
 		Net.publish_state(_local_state())
 	_sync_avatars()
+	if Net.is_client() and not _client_ready_sent and castle_node() != null:
+		_client_ready_sent = true
+		Net.send_event_to_host("client_ready", {})
+		print("DSH_NET_CLIENT_READY")
 	if Net.is_client():
 		_apply_own_correction()
 
@@ -603,6 +611,10 @@ func _on_event(kind: String, data: Dictionary, from_id: int) -> void:
 	if event_log.size() > 64:
 		event_log.pop_front()
 	match kind:
+		"client_ready":
+			if Net.is_host():
+				_clients_ready += 1
+				print("DSH_NET_CLIENT_READY from=", from_id, " total=", _clients_ready)
 		"destruction":
 			# Хост уже применил удар у себя и разослал его. Клиент повторяет тот
 			# же удар с флагом from_network, чтобы не отправить запрос по кругу.

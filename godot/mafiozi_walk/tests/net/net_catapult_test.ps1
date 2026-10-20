@@ -113,6 +113,9 @@ function Get-ImpactPoint([string]$line) {
 $hostImpactPoint = Get-ImpactPoint $hostImpact
 $clientImpactPoint = Get-ImpactPoint $clientImpact
 
+# Сколько взрывов реально применено (NET_EXPLOSION), а не счётчик в статистике:
+$hostAppliedCount = @(Get-Content $hostLog | Where-Object { $_ -match 'NET_EXPLOSION' }).Count
+$guestAppliedCount = @(Get-Content $clientLog | Where-Object { $_ -match 'NET_EXPLOSION' }).Count
 $checks = [ordered]@{
     'host launched'            = $null -ne $hostSent
     'guest launched'           = $null -ne $clientSent
@@ -123,7 +126,7 @@ $checks = [ordered]@{
     'guest proxy hit world'    = $null -ne $clientImpactPoint
     'host proxy hit world'     = $null -ne $hostImpactPoint
     'impact points identical'  = Same-Point $hostImpactPoint $clientImpactPoint 0.05
-    'proxy dealt no damage'    = ($hostExplosions -le 1) -and ($clientExplosions -eq $hostExplosions)
+    'proxy dealt no damage'    = ($hostAppliedCount -gt 0) -and ($hostAppliedCount -eq $guestAppliedCount)
 }
 $failed = @()
 foreach ($name in $checks.Keys) {
