@@ -138,6 +138,8 @@ func install(world: Node3D, boat: Node3D, model: Node3D, player: CharacterBody3D
 	# сеть подняться — обработчик сам проверяет роль.
 	if not Net.event_received.is_connected(_on_net_event):
 		Net.event_received.connect(_on_net_event)
+	# DSH_NET: трассировка ядер для проверки совпадения траекторий у обеих сторон.
+	_trace_balls = OS.get_cmdline_user_args().has("--net-ball-trace")
 	if not is_instance_valid(model):
 		return {"ok": false, "reason": "no_model", "cannons": 0}
 	if not model.has_method("build"):
@@ -770,6 +772,24 @@ func _on_net_event(kind: String, data: Dictionary, from_id: int) -> void:
 		" at=", origin)
 
 
+var _trace_balls := false
+var _trace_seen: Dictionary = {}
+
+
+## Печатает положение ядра четыре раза в секунду. По этим точкам тест сравнивает
+## траекторию своего выстрела и дубля на другой стороне.
+func _trace_ball(ball: Variant) -> void:
+	var age: float = float(ball.get("age"))
+	var bucket: int = int(age * 4.0)
+	var key: int = (ball as Node).get_instance_id()
+	if int(_trace_seen.get(key, -1)) >= bucket:
+		return
+	_trace_seen[key] = bucket
+	print("NET_BALL_TRACE shot=", int(ball.get("shot_id")),
+		" proxy=", bool(ball.get("net_proxy")), " bucket=", bucket,
+		" pos=", (ball as Node3D).global_position)
+
+
 func _take_ball() -> Variant:
 	for ball: Variant in _balls:
 		if ball == null:
@@ -1335,6 +1355,8 @@ func _physics_process(delta: float) -> void:
 			continue
 		var ball_id: int = (ball as Node).get_instance_id()
 		_advance_trail(ball, ball_id, delta)
+		if _trace_balls:
+			_trace_ball(ball)
 		var result: Variant = ball.call("advance", delta)
 		if not (result is Dictionary):
 			continue

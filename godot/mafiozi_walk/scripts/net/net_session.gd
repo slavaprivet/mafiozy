@@ -469,6 +469,26 @@ func _on_snapshot(message: Dictionary) -> void:
 	snapshot_received.emit(states)
 
 
+## Виды событий, которые вправе рассылать ТОЛЬКО хост: это уже принятые решения
+## (разрушение, урон), а не запросы. Если такое событие приходит от клиента — это
+## попытка подделать решение сервера, и оно не применяется и не пересылается.
+const HOST_ONLY_EVENTS := ["destruction", "melee_hit"]
+## События, которые клиент вправе инициировать и которые хост пересылает другим:
+## запуск снаряда, бросок, чат, действия с транспортом. Урона они не наносят —
+## урон всегда идёт отдельным решением хоста.
+const CLIENT_RELAY_EVENTS := ["projectile", "throw", "chat", "vehicle", "npc_emote"]
+
+
+## Может ли клиент отправлять событие такого вида. Запросы (`*_request`)
+## обслуживает хост; перечисленные выше пересылаются; всё остальное — отказ.
+func _client_may_send(kind: String) -> bool:
+	if HOST_ONLY_EVENTS.has(kind):
+		return false
+	if kind.ends_with("_request"):
+		return true
+	return CLIENT_RELAY_EVENTS.has(kind)
+
+
 func _on_event(message: Dictionary, sender: int) -> void:
 	var kind: String = str(message.get("e", ""))
 	var data: Variant = message.get("d", {})
@@ -477,6 +497,12 @@ func _on_event(message: Dictionary, sender: int) -> void:
 	events_received += 1
 	if role == Role.HOST:
 		var from_id: int = sender if sender > 0 else local_id
+		# DSH_NET: авторитет. От клиента принимаются только запросы и явно
+		# разрешённые пересылаемые события. Подделанное «destruction» от гостя
+		# отклоняется, иначе один клиент ломал бы замок у других в обход хоста.
+		if sender != 1 and not _client_may_send(kind):
+			print("DSH_NET_REJECT_EVENT kind=", kind, " from=", from_id)
+			return
 		event_received.emit(kind, data, from_id)
 		# Запросы вида `*_request` обслуживает только хост — остальным они не нужны.
 		if not kind.ends_with("_request"):

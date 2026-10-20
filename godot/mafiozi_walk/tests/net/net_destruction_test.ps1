@@ -63,6 +63,23 @@ $clientText = if (Test-Path $clientLog) { Get-Content $clientLog -Raw } else { '
 $hostDetached = Get-LastDetached $hostLog
 $clientDetached = Get-LastDetached $clientLog
 
+# Мгновенно выбитые кирпичи по каждому взрыву. Поле `detached` в статистике
+# растёт ещё и от каскада опор, который идёт во времени, поэтому сравнивать его
+# в конце прогона нельзя: процессы останавливаются в разные моменты.
+function Get-ExplosionKills([string]$path) {
+    if (-not (Test-Path $path)) { return @() }
+    $kills = @()
+    foreach ($line in (Get-Content $path | Where-Object { $_ -match 'NET_EXPLOSION ' })) {
+        if ($line -match 'killed=(\d+)') { $kills += [int]$Matches[1] }
+    }
+    return $kills
+}
+
+$hostKills = @(Get-ExplosionKills $hostLog)
+$clientKills = @(Get-ExplosionKills $clientLog)
+$hostKillsSorted = ($hostKills | Sort-Object) -join ','
+$clientKillsSorted = ($clientKills | Sort-Object) -join ','
+
 $checks = [ordered]@{
     'host built castle'        = $hostText -match 'DSH_SCENE_LOADED.*castle_map=true'
     'guest built castle'       = $clientText -match 'DSH_SCENE_LOADED.*castle_map=true'
@@ -70,7 +87,8 @@ $checks = [ordered]@{
     'host applied blast'       = $hostText -match 'NET_DESTRUCTION_APPLIED'
     'host broke masonry'       = ($hostDetached -gt 0)
     'guest applied host blast' = $clientText -match 'NET_DESTRUCTION_APPLIED'
-    'guest broke same masonry' = ($clientDetached -eq $hostDetached) -and ($clientDetached -gt 0)
+    'one explosion per side'   = ($hostKills.Count -eq 1) -and ($clientKills.Count -eq 1)
+    'guest broke same masonry' = ($hostKills.Count -gt 0) -and ($hostKillsSorted -eq $clientKillsSorted)
 }
 $failed = @()
 foreach ($name in $checks.Keys) {
@@ -78,7 +96,8 @@ foreach ($name in $checks.Keys) {
     else { Write-Host ("FAIL  " + $name); $failed += $name }
 }
 
-Write-Host "`nhost detached=$hostDetached guest detached=$clientDetached"
+Write-Host "`ninstant kills host=[$hostKillsSorted] guest=[$clientKillsSorted]"
+Write-Host "detached at stop host=$hostDetached guest=$clientDetached (каскад опор идёт во времени)"
 Write-Host "--- host tail ---"
 (Get-Content $hostLog | Where-Object { $_ -match 'NET_BLAST|NET_CASTLE|NET_DESTRUCTION|PEER_JOINED' } | Select-Object -Last 6) | ForEach-Object { Write-Host $_.Trim() }
 Write-Host "--- guest tail ---"

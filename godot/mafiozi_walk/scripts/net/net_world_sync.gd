@@ -48,6 +48,18 @@ var _blast_sent: bool = false
 ## чтобы вторая сторона подняла снаряд-дубль (tests/net/net_projectile_test.ps1).
 var _shot_after: float = -1.0
 var _shot_sent: bool = false
+## `--net-melee-at=СЕК` — ударить мечом по кладке, чтобы проверить сетевой удар.
+var _melee_after: float = -1.0
+var _melee_sent: bool = false
+## `--net-inject-at=СЕК` — отрицательный тест авторитета: клиент шлёт поддельное
+## событие `destruction`, которого не имеет права отправлять. Хост обязан его
+## отклонить и НЕ пересылать другим (tests/net/net_authority_test.ps1).
+var _inject_after: float = -1.0
+var _inject_sent: bool = false
+## `--net-heartbeat=СЕК` — периодическая строка «я жив» с ролью и числом игроков.
+## Тест по ней доказывает, что клиент остался в сети к концу прогона.
+var _heartbeat_every: float = 0.0
+var _next_heartbeat_at: float = 0.0
 
 
 func install(world_root: Node3D, player: CharacterBody3D) -> void:
@@ -75,6 +87,12 @@ func _read_test_args() -> void:
 			_stats_every = maxf(0.5, float(argument.substr("--net-castle-stats=".length())))
 		elif argument.begins_with("--net-shot-at="):
 			_shot_after = float(argument.substr("--net-shot-at=".length()))
+		elif argument.begins_with("--net-melee-at="):
+			_melee_after = float(argument.substr("--net-melee-at=".length()))
+		elif argument.begins_with("--net-inject-at="):
+			_inject_after = float(argument.substr("--net-inject-at=".length()))
+		elif argument.begins_with("--net-heartbeat="):
+			_heartbeat_every = maxf(0.5, float(argument.substr("--net-heartbeat=".length())))
 
 
 func avatar_for(id: int) -> CharacterBody3D:
@@ -107,15 +125,26 @@ func _physics_process(delta: float) -> void:
 ## Тестовый сценарий разрушения: клиент просит хост взорвать стену, оба печатают
 ## счётчики кладки. Нужен, чтобы этап 3 проверялся без ручного участия.
 func _selftest(delta: float) -> void:
-	if _blast_after < 0.0 and _stats_every <= 0.0 and _shot_after < 0.0:
+	if _blast_after < 0.0 and _stats_every <= 0.0 and _shot_after < 0.0 \
+			and _melee_after < 0.0 and _inject_after < 0.0 and _heartbeat_every <= 0.0:
 		return
 	_selftest_clock += delta
+	if _heartbeat_every > 0.0 and _selftest_clock >= _next_heartbeat_at:
+		_next_heartbeat_at = _selftest_clock + _heartbeat_every
+		print("NET_HEARTBEAT role=", Net.role_name(), " t=", int(_selftest_clock),
+			" players=", Net.players.size(), " rtt=", Net.rtt_ms)
 	if _blast_after >= 0.0 and not _blast_sent and _selftest_clock >= _blast_after:
 		_blast_sent = true
 		_blast_wall()
 	if _shot_after >= 0.0 and not _shot_sent and _selftest_clock >= _shot_after:
 		_shot_sent = true
 		_fire_test_shot()
+	if _melee_after >= 0.0 and not _melee_sent and _selftest_clock >= _melee_after:
+		_melee_sent = true
+		_melee_test()
+	if _inject_after >= 0.0 and not _inject_sent and _selftest_clock >= _inject_after:
+		_inject_sent = true
+		_inject_cheat_event()
 	if _stats_every > 0.0 and _selftest_clock >= _next_stats_at:
 		_next_stats_at = _selftest_clock + _stats_every
 		_print_castle_stats()
@@ -152,18 +181,63 @@ func _fire_test_shot() -> void:
 	var castle: Node = castle_node()
 	if castle != null:
 		var half: float = float(castle.call("wall_half")) if castle.has_method("wall_half") else 68.0
-		aim = (castle as Node3D).to_global(Vector3(12.0, 5.0, half))
+		# Стреляем в БОКОВУЮ стену: она ближе корабельной стоянки и попадает в
+		# дальность ядра. Разные z у хоста и гостя — чтобы траектории отличались и
+		# сравнение «свой выстрел против дубля» было осмысленным.
+		var z_offset: float = 12.0 if Net.is_host() else 40.0
+		aim = (castle as Node3D).to_global(Vector3(half, 5.0, z_offset))
 	else:
 		aim = (ship as Node3D).global_position + Vector3(0.0, 0.0, -40.0)
 	var result: Variant = ship.call("debug_fire_at", aim)
 	print("NET_SHOT role=", Net.role_name(), " aim=", aim, " result=", result)
 
 
+## Удар мечом по кладке: клиент бьёт "у себя", но настоящий урон считает хост и
+## рассылает его. Проверяется равенством числа живых секций кладки с двух сторон.
+func _melee_test() -> void:
+	var castle: Node = castle_node()
+	if castle == null:
+		print("NET_MELEE skipped=no_castle")
+		return
+	var before: int = int(castle_stats().get("wall_collision_active", -1))
+	var points: Array = castle.call("wall_section_points")
+	if points.is_empty():
+		print("NET_MELEE skipped=no_sections")
+		return
+	var key: Vector3 = points[0] as Vector3
+	var collider: Node = castle.call("section_collider_at", key)
+	if collider == null:
+		print("NET_MELEE skipped=no_collider")
+		return
+	var impulse := Vector3(0.0, 0.3, -1.0)
+	for hit: int in 3:
+		castle.call("apply_melee_hit", collider, key, 8.0, impulse)
+	var after: int = int(castle_stats().get("wall_collision_active", -1))
+	print("NET_MELEE role=", Net.role_name(), " before=", before, " after=", after)
+
+
+## Отрицательный тест авторитета: клиент шлёт `destruction` напрямую, как это
+## сделал бы модифицированный клиент. Хост обязан отклонить событие и не
+## пересылать его другим; у гостя не должно появиться ни одной новой пробоины.
+func _inject_cheat_event() -> void:
+	var castle: Node = castle_node()
+	if castle == null:
+		print("NET_INJECT skipped=no_castle")
+		return
+	var half: float = float(castle.call("wall_half")) if castle.has_method("wall_half") else 68.0
+	var point: Vector3 = (castle as Node3D).to_global(Vector3(-12.0, 5.0, half))
+	var event: Dictionary = {"position": point, "radius": 3.0, "power": 120.0,
+		"direction": Vector3(0.0, 0.4, -1.0), "kind": "net_cheat"}
+	Net.send_event("destruction", {"site": "castle", "e": event})
+	print("NET_INJECT kind=destruction role=", Net.role_name(), " at=", point)
+
+
 func _print_castle_stats() -> void:
 	var stats: Dictionary = castle_stats()
 	print("NET_CASTLE t=", int(_selftest_clock), " role=", Net.role_name(),
 		" detached=", stats.get("detached", -1), " bricks=", stats.get("bricks", -1),
-		" falling=", stats.get("falling", -1), " gates=", stats.get("gate_boards_broken", -1))
+		" falling=", stats.get("falling", -1), " gates=", stats.get("gate_boards_broken", -1),
+		" explosions=", stats.get("explosions", -1))
 
 
 func castle_node() -> Node:
@@ -305,6 +379,12 @@ func _on_event(kind: String, data: Dictionary, from_id: int) -> void:
 			# `apply_explosion` сам разошлёт `destruction` (см. castle_site.gd).
 			if Net.is_host():
 				_apply_network_explosion(data, false)
+		"melee_hit":
+			if Net.is_client():
+				_apply_network_melee_hit(data, true)
+		"melee_hit_request":
+			if Net.is_host():
+				_apply_network_melee_hit(data, false)
 		Protocol.EV_PROJECTILE, Protocol.EV_THROW, Protocol.EV_MELEE:
 			print("DSH_NET_EVENT kind=", kind, " from=", from_id, " data=", data)
 
@@ -321,9 +401,38 @@ func _apply_network_explosion(data: Dictionary, as_replay: bool) -> void:
 	# и ничего не рассылать. Без флага вызов идёт по хостовой ветке и рассылает
 	# результат всем.
 	event["from_network"] = as_replay
-	var result: Variant = castle.call("apply_explosion", event)
+	var result: Variant
+	if as_replay and data.get("dead") is Array:
+		# Хост прислал точный список выбитых кирпичей — бьём ровно их, без
+		# локального пересчёта радиуса (иначе кладка расходится на проценты).
+		result = castle.call("apply_dead_cells", data.get("dead"), event)
+	else:
+		result = castle.call("apply_explosion", event)
 	var detached: int = -1
 	if result is Dictionary:
 		detached = int((result as Dictionary).get("detached", -1))
 	print("NET_DESTRUCTION_APPLIED site=", data.get("site", "?"), " replay=", as_replay,
 		" detached=", detached)
+
+
+## Удар мечом/кувалдой по кладке: секция адресуется мировой точкой, потому что
+## Node-коллайдер по сети не передать.
+func _apply_network_melee_hit(data: Dictionary, as_replay: bool) -> void:
+	var castle: Node = castle_node()
+	if castle == null:
+		return
+	var key: Variant = data.get("k")
+	if not (key is Vector3):
+		return
+	var collider: Node = castle.call("section_collider_at", key)
+	if collider == null:
+		return
+	var point: Variant = data.get("p", key)
+	var impulse: Variant = data.get("i", Vector3.DOWN)
+	if as_replay:
+		collider.set_meta("net_replay", true)
+	var result: Variant = castle.call("apply_melee_hit", collider, point,
+		float(data.get("s", 6.0)), impulse)
+	if as_replay and is_instance_valid(collider):
+		collider.remove_meta("net_replay")
+	print("NET_MELEE_APPLIED replay=", as_replay, " result=", result)

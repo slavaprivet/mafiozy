@@ -418,6 +418,9 @@ var _spatial: Dictionary = {}
 var _falling: Array[Dictionary] = []
 var _gate_leaves: Array[Dictionary] = []
 var _detached := 0
+## DSH_NET: сколько взрывов реально применено к кладке. Проверка «нет двойного
+## урона» сравнивает этот счётчик у обеих сторон.
+var _explosions := 0
 var _collapsed := 0
 var _events: Array[Dictionary] = []
 ## Indexed by cell. The dictionary gives both O(1) de-duplication and a bounded scan per
@@ -3569,7 +3572,72 @@ func owns_collider(body: Node) -> bool:
 
 ## A blade can splinter timber furnishings, but cannot fracture masonry, iron or
 ## the oak gate. The caller supplies the exact physics collider and contact point.
+## DSH_NET: удар мечом по кладке. По сети нельзя передать Node-коллайдер,
+## поэтому секция адресуется своей мировой точкой, а повтор помечается meta
+## `net_replay`, чтобы он не ушёл обратно в сеть.
 func apply_melee_hit(collider: Node, point: Vector3, speed: float,
+		impulse: Vector3) -> Dictionary:
+	if Net.online() and not (is_instance_valid(collider) and collider.get_meta("net_replay", false)):
+		var key: Variant = section_world_of(collider)
+		if key == null:
+			return {"ok": false, "reason": "no_section"}
+		if not Net.is_host():
+			Net.send_event_to_host("melee_hit_request", {"site": "castle", "k": key,
+				"p": point, "s": speed, "i": impulse})
+			return {"ok": false, "reason": "requested"}
+		var applied: Dictionary = _apply_melee_hit_local(collider, point, speed, impulse)
+		Net.broadcast_event("melee_hit", {"site": "castle", "k": key, "p": point,
+			"s": speed, "i": impulse})
+		return applied
+	return _apply_melee_hit_local(collider, point, speed, impulse)
+
+
+## Мировая точка секции, которой принадлежит коллайдер (адрес для сети).
+func section_world_of(collider: Node) -> Variant:
+	if not is_instance_valid(collider):
+		return null
+	for candidate: Dictionary in _wall_collision:
+		if candidate.get("body") == collider:
+			return to_global(candidate.get("at", Vector3.ZERO))
+	return null
+
+
+## Коллайдер живой секции по её мировой точке (приём сетевого удара).
+## `only_furnishing` — только те секции, которые меч вообще может рубить:
+## обычная кладка помечена как blade_resistant и по сети не адресуется.
+func section_collider_at(world_at: Vector3, only_furnishing: bool = true) -> Node:
+	var best: Node = null
+	var best_distance := 0.8
+	for candidate: Dictionary in _wall_collision:
+		if not bool(candidate.get("alive", false)):
+			continue
+		var body: Variant = candidate.get("body")
+		if not is_instance_valid(body):
+			continue
+		if only_furnishing and not bool((body as Node).get_meta("castle_furnishing", false)):
+			continue
+		var distance: float = to_global(candidate.get("at", Vector3.ZERO)).distance_to(world_at)
+		if distance < best_distance:
+			best_distance = distance
+			best = body as Node
+	return best
+
+
+func wall_section_points(only_furnishing: bool = true) -> Array:
+	var points: Array = []
+	for candidate: Dictionary in _wall_collision:
+		if not bool(candidate.get("alive", false)):
+			continue
+		var body: Variant = candidate.get("body")
+		if not is_instance_valid(body):
+			continue
+		if only_furnishing and not bool((body as Node).get_meta("castle_furnishing", false)):
+			continue
+		points.append(to_global(candidate.get("at", Vector3.ZERO)))
+	return points
+
+
+func _apply_melee_hit_local(collider: Node, point: Vector3, speed: float,
 		impulse: Vector3) -> Dictionary:
 	if not _ready or not is_instance_valid(collider) or collider.get_parent() != self:
 		return {"ok": false, "reason": "foreign_or_unready"}
@@ -3665,6 +3733,7 @@ func wall_half() -> float:
 func get_stats() -> Dictionary:
 	return {
 		"ok": _ready, "bricks": _cells.size(), "detached": _detached,
+		"explosions": _explosions,
 		"collapsed": _collapsed, "gates": _gate_leaves.size(),
 		"gate_open": _gate_leaves.size() > 0 and bool(_gate_leaves[0].get("detached", false)),
 		"gate_leaves_detached": _gate_leaves_detached(),
@@ -3718,13 +3787,15 @@ func apply_explosion(event: Dictionary) -> Dictionary:
 			Net.send_event_to_host("destruction_request", {"site": "castle", "e": event})
 			return {"ok": false, "reason": "requested", "detached": 0, "state": "requested"}
 		var applied: Dictionary = _apply_explosion_local(event)
-		Net.broadcast_event("destruction", {"site": "castle", "e": event})
+		Net.broadcast_event("destruction", {"site": "castle", "e": event,
+			"dead": applied.get("dead", [])})
 		return applied
 	return _apply_explosion_local(event)
 
 
 func _apply_explosion_local(event: Dictionary) -> Dictionary:
 	if not _ready: return {"ok": false, "reason": "not_ready"}
+	_explosions += 1
 	# The strike arrives in WORLD coordinates - a catapult stone knows nothing of this
 	# node - while the bricks are laid in local ones.
 	# The strike arrives in WORLD coordinates - a catapult stone knows nothing of this
@@ -3738,6 +3809,9 @@ func _apply_explosion_local(event: Dictionary) -> Dictionary:
 	var direction: Vector3 = event.get("direction", Vector3.DOWN)
 	get_tree().call_group("castle_armor_displays", "receive_castle_explosion", self, event)
 	var killed := 0
+	## DSH_NET: точный список выбитых кирпичей уходит клиентам, чтобы они били
+	## ровно те же, а не пересчитывали радиус у себя (иначе стены расходятся).
+	var dead: Array = []
 	for index: int in _indices_near(at, radius):
 		var cell: Dictionary = _cells[index]
 		if not bool(cell.get("alive", false)): continue
@@ -3745,6 +3819,7 @@ func _apply_explosion_local(event: Dictionary) -> Dictionary:
 		var distance := _cell_distance55(cell, at) if _wall_masonry55(cell) else brick_at.distance_to(at)
 		if distance > radius: continue
 		_kill_brick(index, direction, power)
+		dead.append(index)
 		killed += 1
 	for entry: Dictionary in _gate_leaves:
 		var pivot: Node3D = entry.get("pivot")
@@ -3819,9 +3894,48 @@ func _apply_explosion_local(event: Dictionary) -> Dictionary:
 	var support_radius: float = clampf(float(event.get("support_radius", radius)), 0.20, radius)
 	_schedule_support_failure(at, support_radius)
 	var result := {"ok": killed > 0, "detached": killed, "state": "committed",
-		"event_id": str(event.get("event_id", "")), "total": _detached}
+		"event_id": str(event.get("event_id", "")), "total": _detached, "dead": dead}
 	_events.append(result.duplicate())
 	if _events.size() > 24: _events.pop_front()
+	# DSH_NET: счётчик мгновенно выбитых кирпичей. По нему тест доказывает, что
+	# дубль не нанёс второй урон: значения обязаны совпасть у обеих сторон.
+	print("NET_EXPLOSION path=local killed=", killed, " dead=", dead.size(), " at=", at_world)
+	return result
+
+
+## DSH_NET: клиент применяет РОВНО тот набор кирпичей, который выбил хост.
+## Свой радиальный пересчёт не делается: разный порядок обхода и разный момент
+## каскада давали расхождение в пару процентов кладки. Обломки и опоры после
+## этого считаются локально — они косметика.
+func apply_dead_cells(indices: Array, event: Dictionary) -> Dictionary:
+	if not _ready:
+		return {"ok": false, "reason": "not_ready"}
+	_explosions += 1
+	var at_world: Vector3 = event.get("position", Vector3.ZERO)
+	var at: Vector3 = to_local(at_world)
+	var radius: float = maxf(1.0, float(event.get("radius", 3.0)))
+	var power: float = maxf(1.0, float(event.get("power", 40.0)))
+	var direction: Vector3 = event.get("direction", Vector3.DOWN)
+	var killed := 0
+	for value: Variant in indices:
+		var index: int = int(value)
+		if index < 0 or index >= _cells.size():
+			continue
+		var cell: Dictionary = _cells[index]
+		if not bool(cell.get("alive", false)):
+			continue
+		_kill_brick(index, direction, power)
+		killed += 1
+	if killed > 0:
+		_sync_masonry_collision55()
+		_break_collision_near(at, radius)
+	var support_radius: float = clampf(float(event.get("support_radius", radius)), 0.20, radius)
+	_schedule_support_failure(at, support_radius)
+	var result := {"ok": killed > 0, "detached": killed, "state": "network",
+		"total": _detached, "dead": []}
+	_events.append(result.duplicate())
+	if _events.size() > 24: _events.pop_front()
+	print("NET_EXPLOSION path=dead killed=", killed, " wanted=", indices.size(), " at=", at_world)
 	return result
 
 ## Removing a stone invalidates support only in the vertical shadow above it. The audit
