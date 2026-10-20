@@ -1,0 +1,234 @@
+{
+  "schema": "mafiozi.enemy-knight-acceptance/v1",
+  "revision": "castle-20261021-enemy-knight-gate",
+  "scene": "res://scenes/castle.tscn",
+  "spawn": {
+    "player": "(0.0, 0.25, 979.2)",
+    "knight": "(0.0, 0.08, 969.2)",
+    "distance_m": 10.0,
+    "layout": "knight 1.2 m outside the main gate, player 11.2 m outside on the approach"
+  },
+  "command": [
+    "--headless",
+    "--path",
+    "outputs/coordinator35_release59/game",
+    "--script",
+    "res://scripts/tests/dsh_enemy_knight_accept.gd",
+    "--",
+    "--castle=1",
+    "--castle-start-outside=1"
+  ],
+  "result": "PASS",
+  "checks_total": 22,
+  "checks_passed": 22,
+  "checks_failed": 0,
+  "passed": [
+    "host_ready",
+    "city_resident_spawned",
+    "city_walk_gait_bound",
+    "city_resident_28_bones bones=28",
+    "city_skin_meshes_present meshes=2",
+    "medium_harness_all_slots {\"feet\":\"medium_feet\",\"hands\":\"medium_hands\",\"head\":\"medium_head\",\"legs\":\"medium_legs\",\"torso\":\"medium_torso\"}",
+    "medium_tier",
+    "medium_harness_rendered meshes=18",
+    "medium_mobility speed_scale=1.000000",
+    "medium_protection_between_skin_and_heavy medium=63.000000 heavy=36.000000",
+    "enemy_engaged_on_sight",
+    "attacks_unprovoked swings=2",
+    "lands_a_real_hit_on_player hits=2",
+    "attack_lane_variety {\"left\":1,\"overhead\":1,\"right\":1,\"rising\":1,\"thrust\":0}",
+    "no_teleport_max_step max_step=0.014190",
+    "clash_registered",
+    "clash_pushes_knight npc_push=1.350000",
+    "clash_pushes_player player_speed=0.336227",
+    "clash_push_recorded",
+    "low_health_press_state hp=54.000000",
+    "reads_blade_and_evades state=evade",
+    "evade_returns_to_stance state=guard"
+  ],
+  "failed": [],
+  "summary": {
+    "armor": {
+      "feet": "medium_feet",
+      "hands": "medium_hands",
+      "head": "medium_head",
+      "legs": "medium_legs",
+      "torso": "medium_torso"
+    },
+    "clashes": 1,
+    "evades": 0,
+    "fails": [],
+    "hits": 4,
+    "max_step": 0.0141902137547731,
+    "notes": [],
+    "player_push_speed": 0.336227029561996,
+    "swings": 4
+  },
+  "clash": {
+    "after": {
+      "enemy_attack_counts": {
+        "left": 1,
+        "overhead": 1,
+        "right": 1,
+        "rising": 1,
+        "thrust": 0
+      },
+      "enemy_clashes": 1,
+      "enemy_combo_left": 0,
+      "enemy_enraged": false,
+      "enemy_evades": 0,
+      "npc_armor": {
+        "feet": "medium_feet",
+        "hands": "medium_hands",
+        "head": "medium_head",
+        "legs": "medium_legs",
+        "torso": "medium_torso"
+      },
+      "npc_armor_tier": "medium",
+      "npc_blocked": 0,
+      "npc_bound": true,
+      "npc_engaged": true,
+      "npc_hits": 4,
+      "npc_hp": 270.0,
+      "npc_position": "(-0.331936, 0.080839, 978.2918)",
+      "npc_speed_scale": 1.0,
+      "npc_state": "recover",
+      "npc_swings": 4,
+      "npc_walk_gait": true,
+      "player_position": "(0.043629, 0.080159, 979.3323)"
+    },
+    "before": {
+      "enemy_attack_counts": {
+        "left": 1,
+        "overhead": 1,
+        "right": 1,
+        "rising": 1,
+        "thrust": 0
+      },
+      "enemy_clashes": 0,
+      "enemy_combo_left": 0,
+      "enemy_enraged": false,
+      "enemy_evades": 0,
+      "npc_armor": {
+        "feet": "medium_feet",
+        "hands": "medium_hands",
+        "head": "medium_head",
+        "legs": "medium_legs",
+        "torso": "medium_torso"
+      },
+      "npc_armor_tier": "medium",
+      "npc_blocked": 0,
+      "npc_bound": true,
+      "npc_engaged": true,
+      "npc_hits": 4,
+      "npc_hp": 270.0,
+      "npc_position": "(-0.331936, 0.080839, 978.2918)",
+      "npc_speed_scale": 1.0,
+      "npc_state": "approach",
+      "npc_swings": 4,
+      "npc_walk_gait": true,
+      "player_position": "(0.043629, 0.080159, 979.3323)"
+    },
+    "npc_push": "(-0.03796, -0.000325, 1.349466)",
+    "player_push_speed": 0.336227029561996
+  },
+  "auto_spawn": {
+    "result": "PASS",
+    "snapshot": {
+      "armor": {
+        "feet": "medium_feet",
+        "hands": "medium_hands",
+        "head": "medium_head",
+        "legs": "medium_legs",
+        "torso": "medium_torso"
+      },
+      "engaged": false,
+      "gait": true,
+      "npc": true,
+      "npc_pos": "(0.0, 0.03, 969.2)",
+      "player": "(0.0, 0.080159, 979.2)",
+      "selected": false,
+      "state": "hunt",
+      "weapon": "sword"
+    },
+    "fight": {
+      "clashes": 0,
+      "distance": 1.20526695251465,
+      "engaged": true,
+      "hits": 2,
+      "npc_hp": 270.0,
+      "player_hp": 71.8228801387889,
+      "state": "recover",
+      "swings": 2
+    }
+  },
+  "real_flow": {
+    "result": "PASS",
+    "snapshot": {
+      "armor": {
+        "feet": "medium_feet",
+        "hands": "medium_hands",
+        "head": "medium_head",
+        "legs": "medium_legs",
+        "torso": "medium_torso"
+      },
+      "gait": true,
+      "hp": 270.0,
+      "npc": true,
+      "npc_pos": "(0.0, 0.03, 969.2)",
+      "player_pos": "(0.0, 0.080159, 979.2)",
+      "selected": true,
+      "state": "hunt",
+      "weapon": "sword"
+    },
+    "fight": {
+      "clashes": 1,
+      "engaged": true,
+      "evades": 0,
+      "hits": 1,
+      "npc_hp": 270.0,
+      "player_hp": 62.61777508428,
+      "state": "follow",
+      "swings": 2
+    }
+  },
+  "natural_clash": {
+    "result": "PASS",
+    "data": {
+      "clashes": 2,
+      "evades": 0,
+      "hits": 4,
+      "npc_blocked": 2,
+      "npc_hp": 270.0,
+      "npc_moved": 9.09267330169678,
+      "npc_push": 1.35,
+      "npc_state": "strike",
+      "player_blocks": 2,
+      "player_moved": 0.165147677063942,
+      "swings": 6
+    }
+  },
+  "limits": [
+    "Functional headless acceptance only; no clean FPS claim.",
+    "Evade entry was driven through the same _enemy_try_evade path the live AI calls; a real player swing is also required for it to trigger naturally."
+  ],
+  "severed_hands": {
+    "result": "PASS",
+    "checks_passed": 10,
+    "checks_failed": 0,
+    "passed": [
+      "sword_hand_severed bone=hand_r",
+      "carry_side_not_severed carry=right",
+      "sword_on_ground",
+      "one_handed_sword_picked_up",
+      "held_in_intact_hand carry=right active=right",
+      "not_held_by_stump",
+      "two_handed_refused_one_hand",
+      "no_sword_with_no_hands",
+      "no_pickup_with_no_hands",
+      "no_weapon_select_with_no_hands"
+    ],
+    "failed": []
+  },
+  "armor_visual": "REVERTED to the original byte-identical castle_armor_visual.gd; no form/render experiment remains."
+}

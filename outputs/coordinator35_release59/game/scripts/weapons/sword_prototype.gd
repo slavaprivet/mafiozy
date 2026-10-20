@@ -70,6 +70,12 @@ func weapon_ids() -> Array:
 func set_weapon(id: String) -> bool:
 	if not WEAPONS.has(id): return false
 	if _shield_worn and str(WEAPONS[id].get("grip", "")) == "two": return false
+	# A severed hand can never take a two-handed weapon, and a man with no hands
+	# cannot take any weapon at all. One-handed weapons remain usable in the
+	# surviving hand.
+	if not _can_wield_weapon(id):
+		print("DSH_SWORD_PROTO_WEAPON_REFUSED reason=severed_hands id=", id)
+		return false
 	if id == _weapon_id: return true
 	_cancel_throw_aim52()
 	_weapon_id = id
@@ -293,6 +299,12 @@ var _selected := false
 ## the Input singleton does not mirror (script-driven checks).
 var _held_event := false
 var _ready := false
+## On the castle map the host exists for the enemy knight, not for the city test
+## range: no dummy, no pole, no crude fallback duelist.
+var _castle_enemy_only := false
+
+func set_castle_enemy_only(value: bool) -> void:
+	_castle_enemy_only = value
 var _rest_dir := Vector3.FORWARD
 var _last_block_ms := -1000
 ## Only a fresh sword input can catch a fast projectile. Holding RMB forever
@@ -455,7 +467,11 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 	_sword = _weapon_models.get(_weapon_id)
 	_build_impacts()
 	_build_hint()
-	var placed := _place_targets()
+	var placed := {"dummy": false, "pole": false}
+	if not _castle_enemy_only:
+		placed = _place_targets()
+	else:
+		print("DSH_SWORD_PROTO_ENEMY_ONLY player=", _player.global_position)
 	_rest_dir = _rest_direction()
 	_dir = _rest_dir
 	_sword_origin = _rig.global_transform * _rig.get_bone_global_pose(_bone_hand).origin
@@ -1315,6 +1331,11 @@ func try_pickup_sword(allow_inactive: bool = false) -> bool:
 	# DSH_MELEE_SET: a weapon of the set that was put down is picked back up AS ITSELF.
 	var stamp := _ground_weapon_of(node)
 	var pickup_id := stamp if stamp != "" else _weapon_id
+	# A two-handed weapon cannot be taken when one hand is gone, and no weapon can
+	# be taken with no hands. The surviving hand can still take a one-handed sword.
+	if not _can_wield_weapon(pickup_id):
+		print("DSH_SWORD_PROTO_PICKUP_REFUSED reason=severed_hand grip=", str(WEAPONS.get(pickup_id, {}).get("grip", "")))
+		return false
 	var previous_id := _weapon_id
 	var previous_empty := _unarmed or _sword_grounded or castle_empty
 	var foreign_sword := pickup_id == "sword" and node == _npc_dropped_sword31
@@ -3749,6 +3770,22 @@ func _register_clash(at: Vector3) -> void:
 		_npc_recoil_until_ms = now + 220
 		if _npc_state == "strike":
 			_npc_stop_attack43()
+	# Steel on steel pushes BOTH men, not only the swords. The player gets the
+	# existing bounded ground impulse (at most .30 m, no launch); the knight gets a
+	# body push through his own CharacterBody3D. Neither is a teleport.
+	var player_pushed := false
+	if is_instance_valid(_player):
+		player_pushed = _player.apply_contact_melee_impulse(away, ENEMY_CLASH_PLAYER_PUSH_NS)
+	if is_instance_valid(_npc_body):
+		_npc_hit_push31 = (_npc_hit_push31 + push_back * ENEMY_CLASH_BODY_PUSH).limit_length(5.0)
+		_enemy_last_clash_push = ENEMY_CLASH_BODY_PUSH
+		_enemy_clashes += 1
+		_enemy_clash_lock_until_ms = now + ENEMY_CLASH_LOCK_MS
+		# The clash interrupts whatever beat he was in; both recover visibly.
+		if _npc_state in ["windup", "strike", "follow", "evade"] or _npc_sword.visible:
+			_npc_stop_attack43()
+		print("DSH_ENEMY_KNIGHT_CLASH count=", _enemy_clashes, " player_pushed=", player_pushed,
+			" npc_push=", ENEMY_CLASH_BODY_PUSH, " at=", at)
 	_play_melee_hit31(at, "metal", clampf(_omega.length() / 7.0, 0.35, 1.0))
 	_show_spark(at)
 	# Real sparks off the steel, thrown away from the point of contact.
@@ -3796,6 +3833,18 @@ func set_npc_armor31(loadout: Dictionary) -> Dictionary:
 
 func npc_armor_snapshot31() -> Dictionary:
 	return _npc_armor_loadout31.duplicate()
+
+## Read-only presentation proof: the equipped IDs plus how many visible armour
+## meshes are actually attached to the resident rig.
+func npc_armor_visual_snapshot31() -> Dictionary:
+	if not is_instance_valid(_npc_armor_visual31) or not is_instance_valid(_npc_rig): return {}
+	var snap: Dictionary = _npc_armor_visual31.call("snapshot")
+	var meshes := 0
+	for node: Node in _npc_rig.find_children("*", "MeshInstance3D", true, false):
+		if String(node.name).begins_with("Armor"):
+			meshes += 1
+	snap["meshes"] = meshes
+	return snap
 
 
 
@@ -3893,6 +3942,16 @@ func _hand_lost31(side: StringName) -> bool:
 	return _player_severed.has("hand" + suffix) or _player_severed.has("forearm" + suffix) \
 		or _player_severed.has("upperarm" + suffix) or _player_disabled_parts50.has("hand" + suffix) \
 		or _player_disabled_parts50.has("forearm" + suffix) or _player_disabled_parts50.has("upperarm" + suffix)
+
+## A weapon can be held only if there is a hand for every grip it needs. A
+## two-handed axe/sledge/spear requires both hands; one-handed weapons still work
+## in the surviving hand. No weapon is held by a stump.
+func _can_wield_weapon(id: String) -> bool:
+	if _both_hands_lost(): return false
+	var grip := str(WEAPONS.get(id, {}).get("grip", ""))
+	if grip == "two" and (_hand_lost31(&"left") or _hand_lost31(&"right")):
+		return false
+	return true
 
 ## Player dismemberment: which part was hit, how much it can take, and what is
 ## lost when it comes off.
@@ -4642,6 +4701,49 @@ var _npc_swings := 0
 var _npc_hits := 0
 var _npc_blocked := 0
 var _npc_blade_prev: PackedVector3Array = PackedVector3Array()
+
+## ---------------------------------------------------------- enemy knight
+## The castle opponent is the enemy knight: a hostile, medium-armoured swordsman
+## built from the city resident's own skin and canonical walk gait. He follows the
+## same enemy-NPC rules the population uses, with no invisible shortcuts:
+##   1. sight: real line of sight, a frontal cone and a 180 ms confirmation;
+##   2. chase: the same local navigation/detour the residents use, never a teleport;
+##   3. measure: he keeps sword distance, retreats when crowded and circles sideways;
+##   4. defence: he reads the visible player blade, guards and counters after 180 ms;
+##   5. attack: a windup only at a reachable, visible distance, with no late homing;
+##   6. variety: left/right/overhead/rising/thrust chosen from the actual geometry;
+##   7. pressure: a landed cut may chain into a second beat, a low-HP knight presses;
+##   8. steel: a blade-on-blade clash stops BOTH cuts and physically pushes both men;
+##   9. damage: only the swept visible blade deals damage, through the shared armour law;
+##  10. death: the same real hitboxes, severing, blood and corpse ownership as the player.
+## Medium harness = the lightest tier that still turns an edge, but a thrust and the
+## joints get through; he is faster than the old plate duelist because of it.
+const ENEMY_KNIGHT_ARMOR := {
+	"head": "medium_head", "torso": "medium_torso", "hands": "medium_hands",
+	"legs": "medium_legs", "feet": "medium_feet",
+}
+const ENEMY_SIGHT_RANGE := 24.0
+## cos(~78 deg): a man watching his front, not a radar.
+const ENEMY_SIGHT_DOT := 0.20
+const ENEMY_REACTION_MS := 180
+const ENEMY_LOST_SIGHT_MS := 2400
+## Clash response: the player gets a bounded physical shove, the knight a body push.
+const ENEMY_CLASH_PLAYER_PUSH_NS := 22.0
+const ENEMY_CLASH_BODY_PUSH := 1.35
+const ENEMY_CLASH_LOCK_MS := 220
+const ENEMY_COMBO_GAP := 0.14
+const ENEMY_ENRAGE_FRACTION := 0.35
+var _enemy_seen_since_ms := 0
+var _enemy_last_seen := Vector3.ZERO
+var _enemy_lost_since_ms := 0
+var _enemy_spotted_once := false
+var _enemy_combo_left := 0
+var _enemy_clashes := 0
+var _enemy_last_clash_push := 0.0
+var _enemy_clash_lock_until_ms := 0
+var _enemy_evade_cooldown_ms := 0
+var _enemy_evades := 0
+var _enemy_armor_tier := "medium"
 ## Deliberate castle duel beats. The arm and visible steel perform every motion;
 ## damage still belongs exclusively to the swept blade ray below.
 var _npc_attack_kind := "left"
@@ -4789,9 +4891,13 @@ var _knight_armour: Array[Node3D] = []
 
 func _dress_knight() -> void:
 	if not is_instance_valid(_npc_rig): return
-	# Same five equipment slots, fitted meshes and protection as the player.
-	var result := set_npc_armor31({"head":"heavy_head", "torso":"heavy_torso", "hands":"heavy_hands", "legs":"heavy_legs", "feet":"heavy_feet"})
-	if not result.get("ok", false): push_error("Opponent armor binding failed: " + str(result))
+	# The enemy knight wears the existing MEDIUM harness on all five slots: an open
+	# helmet and mail rather than the old black plate. The same fitted meshes and the
+	# same ArmorDamage31 protection apply, so an edge is turned but a point or a joint
+	# still finds him, and his mobility is the medium tier (1.0) instead of heavy 0.78.
+	var result := set_npc_armor31(ENEMY_KNIGHT_ARMOR)
+	if not result.get("ok", false): push_error("Enemy knight armor binding failed: " + str(result))
+	_enemy_armor_tier = "medium"
 
 ## Cosmetic scuff only; future armour durability needs the life/gear owner.
 func _scuff_knight_plate(part: String, impact: float) -> void:
@@ -5729,10 +5835,11 @@ func _spawn_resident_knight(at: Vector3) -> bool:
 		print("DSH_SWORD_PROTO_NPC appearance_failed ", appearance.get("error", ""))
 		return false
 	var body := CharacterBody3D.new()
-	body.name = "SwordKnight"
+	body.name = "EnemyKnight"
 	body.collision_layer = 1
 	body.collision_mask = 1
 	body.floor_snap_length = 0.25
+	body.set_meta("enemy_knight", true)
 	var capsule := CapsuleShape3D.new(); capsule.radius = 0.36; capsule.height = NPC_HEIGHT
 	var hull := CollisionShape3D.new(); hull.shape = capsule; hull.position.y = NPC_HEIGHT * 0.5
 	body.add_child(hull)
@@ -5762,6 +5869,20 @@ func _spawn_resident_knight(at: Vector3) -> bool:
 	_npc_part_hp.clear()
 	_npc_dead = false
 	_npc_hp = NPC_MAX_HP57
+	_npc_engaged = false
+	_npc_state = "hunt"
+	_npc_timer = 0.0
+	_enemy_seen_since_ms = 0
+	_enemy_last_seen = at
+	_enemy_lost_since_ms = 0
+	_enemy_spotted_once = false
+	_enemy_combo_left = 0
+	_enemy_clashes = 0
+	_enemy_last_clash_push = 0.0
+	_enemy_clash_lock_until_ms = 0
+	_enemy_evade_cooldown_ms = 0
+	_enemy_evades = 0
+	_enemy_armor_tier = "medium"
 	_npc_route_dir50 = Vector3.ZERO
 	_npc_route_request53 = Vector3.ZERO
 	_npc_replan_ms50 = 0
@@ -5824,9 +5945,15 @@ func _update_city_npc(delta: float) -> void:
 			_npc_bind_attempts += 1
 			var knight_spawn: Vector3 = _player.global_position + _player._visual.global_basis.z * 4.6
 			if bool(_world.get("castle_map")):
-				var castle_target: Vector3 = _world.get("_castle_spawn_target")
-				if castle_target.is_finite() and not castle_target.is_zero_approx():
-					knight_spawn = castle_target + _player._visual.global_basis.x * 4.6 + _player._visual.global_basis.z * 4.0
+				# The knight guards the gate; main.gd places the player ten metres in
+				# front of the same threshold.
+				var gate_target: Vector3 = _world.get("_castle_enemy_spawn_target")
+				if gate_target.is_finite() and not gate_target.is_zero_approx():
+					knight_spawn = gate_target
+				else:
+					var castle_target: Vector3 = _world.get("_castle_spawn_target")
+					if castle_target.is_finite() and not castle_target.is_zero_approx():
+						knight_spawn = castle_target + _player._visual.global_basis.x * 4.6 + _player._visual.global_basis.z * 4.0
 			if _spawn_resident_knight(_grounded(knight_spawn)) \
 				and is_instance_valid(_duelist):
 				_duelist.visible = false
@@ -5920,18 +6047,24 @@ func _update_city_npc(delta: float) -> void:
 	var to_player := _player.global_position - _npc_body.global_position
 	to_player.y = 0.0
 	var distance := to_player.length()
-	# He faces the player and looks passive until the fight starts.
-	if to_player.length_squared() > 1.0e-6:
-		var want_yaw := atan2(to_player.x, to_player.z)
+	# He faces the player (or the last place he saw him while searching).
+	var face_at: Vector3 = _player.global_position
+	if _npc_state == "search" and _enemy_last_seen.is_finite():
+		face_at = _enemy_last_seen
+	var face_delta := face_at - _npc_body.global_position
+	face_delta.y = 0.0
+	if face_delta.length_squared() > 1.0e-6:
+		var want_yaw := atan2(face_delta.x, face_delta.z)
 		_npc_body.rotation.y = rotate_toward(_npc_body.rotation.y, want_yaw + PI, 4.2 * delta)
-	# Wake up when the player swings at him from close range.
-	if not _npc_engaged and distance < 10.0 and not bool(_world.get("preview_dead")) and _npc_visible_player43():
-		_npc_engaged = true
-		_npc_state = "approach"
-		print("DSH_SWORD_PROTO_NPC aggro distance=", distance)
 	if bool(_world.get("preview_dead")):
 		_npc_engaged = false
 		_npc_state = "wait"
+	elif not _npc_engaged:
+		# A real enemy does not wait to be hit: he watches his front arc, confirms
+		# the player through a real line of sight for 180 ms, then hunts.
+		_enemy_acquire(distance, to_player)
+	else:
+		_enemy_update_memory()
 	_npc_timer += delta
 	_npc_observe53(delta)
 	_update_npc_bleed(delta)
@@ -5939,10 +6072,24 @@ func _update_city_npc(delta: float) -> void:
 	var move := Vector3.ZERO
 	var strike_sample := false
 	var speed_scale := _npc_speed_scale()
+	if not _npc_engaged and _npc_state != "wait":
+		move = _enemy_search_move() * speed_scale
 	if _npc_engaged:
+		# A lost player turns the duel into a search for the last seen position; the
+		# knight does not keep swinging at a memory through a wall.
+		if _enemy_lost_since_ms > 0 and now_ms() - _enemy_lost_since_ms > ENEMY_LOST_SIGHT_MS:
+			_npc_state = "search"
 		# Walk in, wind up, cut - the walk animation plays because his own body is
 		# actually moving, and the gait samples the horizontal velocity from it.
 		match _npc_state:
+			"search":
+				move = _enemy_search_move() * speed_scale
+				want = _npc_guard_direction()
+				if _npc_visible_player43() and distance <= ENEMY_SIGHT_RANGE:
+					_enemy_seen_since_ms = now_ms()
+					_enemy_lost_since_ms = 0
+					_npc_state = "approach"
+					_npc_timer = 0.0
 			"approach":
 				move = _npc_footwork53(to_player, distance, false) * speed_scale
 				if _npc_should_guard(distance):
@@ -5951,8 +6098,9 @@ func _update_city_npc(delta: float) -> void:
 					_npc_guard_entries += 1
 					_npc_guard_cooldown_ms = now_ms() + 650
 				# A windup is allowed only once the real arm and blade can reach.
-				# This is positioning, never a damage fallback.
-				elif _npc_timer > (0.18 if now_ms() < _npc_counter_until53 else 0.36) and distance >= 1.20 and distance <= _npc_reach50() and _npc_visible_player43():
+				# This is positioning, never a damage fallback. A counter after a
+				# parry starts 180 ms earlier, exactly like the residents.
+				elif _npc_timer > _enemy_attack_delay() and distance >= 1.20 and distance <= _npc_reach50() and _npc_visible_player43():
 					_npc_begin_attack53(distance)
 			"windup":
 				# Track the observed opponent early, then commit the swing. No late homing.
@@ -5962,6 +6110,11 @@ func _update_city_npc(delta: float) -> void:
 				# moves normally; the visual never jumps ahead of its collision body.
 				if distance < 1.18: move = _npc_navigation50(-to_player.normalized()) * 1.7 * speed_scale
 				elif distance > 1.45 and _npc_timer < 0.32: move = _npc_navigation50(to_player.normalized()) * 0.85 * speed_scale
+				# He reads the real incoming steel and may abort the windup into a
+				# sidestep. This is the same buffered 180 ms observation, not input
+				# reading; it has a cooldown and a visible 260 ms evade.
+				if _npc_timer > 0.24 and _npc_timer < 0.55:
+					_enemy_try_evade(distance)
 				if _npc_timer > 0.55:
 					_npc_state = "strike"
 					_npc_timer = 0.0
@@ -5979,6 +6132,10 @@ func _update_city_npc(delta: float) -> void:
 					_npc_follow_dir = _npc_dir
 					_npc_state = "follow"
 					_npc_timer = 0.0
+					# A landed cut earns pressure: every other clean hit can chain a
+					# second beat after a short, visible recovery.
+					if _npc_strike_had_hit and _enemy_combo_left <= 0 and _npc_hits % 2 == 1:
+						_enemy_combo_left = 1
 			"follow":
 				want = _npc_follow_dir
 				if distance > 1.10:
@@ -5986,6 +6143,18 @@ func _update_city_npc(delta: float) -> void:
 				if _npc_timer > 0.19:
 					_npc_state = "recover"
 					_npc_timer = 0.0
+			"evade":
+				# A real sidestep away from the player's blade, then guard and counter.
+				var evade_forward := to_player.normalized()
+				var evade_side := evade_forward.cross(Vector3.UP) * _npc_orbit_side53
+				var evade_dir := (evade_side - evade_forward * 0.55).normalized()
+				move = _npc_navigation50(evade_dir) * 3.0 * speed_scale
+				want = _npc_guard_direction()
+				if _npc_timer > 0.26:
+					_npc_state = "guard"
+					_npc_timer = 0.0
+					_npc_guard_entries += 1
+					_npc_guard_cooldown_ms = now_ms() + 650
 			"guard":
 				want = _npc_guard_direction()
 				move = _npc_footwork53(to_player, distance, true) * speed_scale
@@ -5995,15 +6164,24 @@ func _update_city_npc(delta: float) -> void:
 					_npc_state = "recover"
 					_npc_timer = 0.0
 			_:
-				move = _npc_footwork53(to_player, distance, true) * speed_scale * 0.7
-				if _npc_timer > 0.22 and _npc_should_guard(distance):
-					_npc_state = "guard"
-					_npc_timer = 0.0
-					_npc_guard_entries += 1
-					_npc_guard_cooldown_ms = now_ms() + 650
-				elif _npc_timer > 0.46:
-					_npc_state = "approach"
-					_npc_timer = 0.0
+				# A clean hit chains one more beat before the normal recovery. The
+				# combo still needs a reachable, visible target and real blade contact.
+				if _enemy_combo_left > 0 and now_ms() >= _enemy_clash_lock_until_ms \
+						and _npc_timer > ENEMY_COMBO_GAP and distance <= _npc_reach50() + 0.15 \
+						and _npc_visible_player43():
+					_enemy_combo_left -= 1
+					print("DSH_ENEMY_KNIGHT_COMBO distance=", distance)
+					_npc_begin_attack53(distance)
+				else:
+					move = _npc_footwork53(to_player, distance, true) * speed_scale * 0.7
+					if _npc_timer > 0.22 and _npc_should_guard(distance):
+						_npc_state = "guard"
+						_npc_timer = 0.0
+						_npc_guard_entries += 1
+						_npc_guard_cooldown_ms = now_ms() + 650
+					elif _npc_timer > _enemy_recover_delay():
+						_npc_state = "approach"
+						_npc_timer = 0.0
 		if _npc_hp <= 0.0:
 			_npc_engaged = false
 			_npc_state = "wait"
@@ -6062,6 +6240,82 @@ func _npc_visible_player43() -> bool:
 func _npc_should_guard(distance: float) -> bool:
 	return distance < 2.7 and _npc_threat53 and now_ms() >= _npc_guard_cooldown_ms
 
+## ------------------------------------------------------------ enemy knight
+## Perception: a frontal cone, a real ray and a 180 ms confirmation. Being very
+## close bypasses the cone (he hears the man), but a wall still blocks sight.
+func _enemy_acquire(distance: float, to_player: Vector3) -> void:
+	if distance <= 0.01 or not is_instance_valid(_player): return
+	var visible := _npc_visible_player43()
+	var forward := -_npc_body.global_basis.z
+	var facing := forward.dot(to_player.normalized()) if to_player.length_squared() > 1.0e-6 else -1.0
+	var in_cone := distance <= ENEMY_SIGHT_RANGE and (facing >= ENEMY_SIGHT_DOT or distance < 1.6)
+	if visible and in_cone:
+		var now := now_ms()
+		if _enemy_seen_since_ms == 0:
+			_enemy_seen_since_ms = now
+			print("DSH_ENEMY_KNIGHT_SPOTS distance=", distance, " facing=", facing)
+		_enemy_last_seen = _player.global_position
+		if now - _enemy_seen_since_ms >= ENEMY_REACTION_MS:
+			_npc_engaged = true
+			_enemy_spotted_once = true
+			_enemy_lost_since_ms = 0
+			_npc_state = "approach"
+			_npc_timer = 0.0
+			print("DSH_ENEMY_KNIGHT_ALERT distance=", distance,
+				" reaction_ms=", now - _enemy_seen_since_ms)
+	else:
+		_enemy_seen_since_ms = 0
+
+## Once engaged, keeps the last position at which the player was actually seen.
+## Losing the line of sight starts a search instead of tracking through geometry.
+func _enemy_update_memory() -> void:
+	if not is_instance_valid(_player): return
+	# At sword distance a man is not lost because a limb hitbox crossed the ray;
+	# the line-of-sight test matters for the approach/search, not for two men in
+	# contact. This keeps the search from cancelling a live exchange.
+	var close := _npc_body.global_position.distance_to(_player.global_position) < 2.2
+	if _npc_visible_player43() or close:
+		_enemy_last_seen = _player.global_position
+		_enemy_lost_since_ms = 0
+	elif _enemy_lost_since_ms == 0:
+		_enemy_lost_since_ms = now_ms()
+		print("DSH_ENEMY_KNIGHT_LOST_AT ", _enemy_last_seen)
+
+## Walks to the last seen position using the population's own navigation/detour.
+func _enemy_search_move() -> Vector3:
+	if not _enemy_spotted_once or not _enemy_last_seen.is_finite(): return Vector3.ZERO
+	var target := _enemy_last_seen - _npc_body.global_position
+	target.y = 0.0
+	if target.length() <= 1.2: return Vector3.ZERO
+	return _npc_navigation50(target.normalized()) * 2.4
+
+func _enemy_is_enraged() -> bool:
+	return _npc_hp > 0.0 and _npc_hp <= NPC_MAX_HP57 * ENEMY_ENRAGE_FRACTION
+
+func _enemy_attack_delay() -> float:
+	if now_ms() < _npc_counter_until53: return 0.18
+	if _enemy_combo_left > 0: return 0.12
+	return 0.20 if _enemy_is_enraged() else 0.36
+
+func _enemy_recover_delay() -> float:
+	return 0.28 if _enemy_is_enraged() else 0.46
+
+## Reading the visible incoming blade: abort a windup into a real sidestep. The
+## observation is already buffered 180 ms; the cooldown keeps it from becoming a
+## perfect dodge and the evade itself is a 260 ms, collider-driven move.
+func _enemy_try_evade(distance: float) -> bool:
+	if not _npc_threat53 or distance > 2.3: return false
+	if now_ms() < _enemy_evade_cooldown_ms: return false
+	if _npc_attack_cursor % 2 != 0: return false
+	_enemy_evade_cooldown_ms = now_ms() + 1600
+	_enemy_evades += 1
+	_npc_state = "evade"
+	_npc_timer = 0.0
+	_npc_strike_had_hit = true
+	_npc_blade_prev = PackedVector3Array()
+	print("DSH_ENEMY_KNIGHT_EVADE distance=", distance)
+	return true
+
 func _npc_stop_attack43() -> void:
 	_npc_state = "recover"
 	_npc_timer = 0.0
@@ -6089,9 +6343,16 @@ func _npc_guard_direction() -> Vector3:
 	return (toward.normalized() + Vector3.UP * 0.18).normalized() if toward.length_squared() > 0.01 else _npc_high_guard()
 
 func _npc_choose_attack(distance: float) -> String:
+	_npc_attack_cursor += 1
+	# At the edge of measure the point is the honest answer: it reaches farther than
+	# an edge and goes through the mail instead of sliding off it.
+	if distance > 1.42 and _npc_attack_cursor % 4 == 3:
+		return "thrust"
 	var choices := ["left", "right", "overhead", "rising"]
 	var pick: String = choices[_npc_attack_cursor % choices.size()]
-	_npc_attack_cursor += 1
+	# Wounded and close, he stops fencing for points and drives a heavy overhead.
+	if _enemy_is_enraged() and distance <= 1.55:
+		pick = "overhead" if _npc_attack_cursor % 2 == 0 else "left"
 	# A little context changes the beat, while the cycle prevents one repeated swing.
 	if distance > 1.48 and pick == "rising": return "overhead"
 	var player_side: float = _npc_body.global_basis.x.dot((_player.global_position - _npc_body.global_position).normalized())
@@ -6851,6 +7112,13 @@ func snapshot() -> Dictionary:	return {
 		"blade_in_world": _blade_penetrates_world(_dir, _sword_origin),
 		"body_clearance": _body_blade_clearance(),
 		"armour_plates": _knight_armour.size(), "stump_count": _stumps.size(),
+		"npc_armor": _npc_armor_loadout31.duplicate(), "npc_armor_tier": _enemy_armor_tier,
+		"npc_walk_gait": is_instance_valid(_npc_gait),
+		"enemy_hunting": _npc_engaged, "enemy_enraged": _enemy_is_enraged(),
+		"enemy_clashes": _enemy_clashes, "enemy_last_clash_push": _enemy_last_clash_push,
+		"enemy_combo_left": _enemy_combo_left, "enemy_evades": _enemy_evades,
+		"enemy_attack_counts": _npc_attack_counts.duplicate(),
+		"enemy_last_seen": _enemy_last_seen, "enemy_lost_ms": _enemy_lost_since_ms,
 		"sparks": _sparks.size(), "sparks_total": _sparks_total, "half_sword": _half_sword, "half_sword_point": _half_sword_blade_point,
 		"bleeding": Time.get_ticks_msec() < _npc_bleed_until_ms,
 		"npc_fall": (1.0 - absf(_npc_corpse31.global_basis.y.dot(Vector3.UP))) if is_instance_valid(_npc_corpse31) else 0.0,
@@ -7241,6 +7509,9 @@ func _npc_update_aim53() -> void:
 	_npc_aim43 = ((_npc_observed53.position as Vector3) + Vector3.UP * 1.05 + lead - shoulder).normalized()
 
 func _npc_begin_attack53(distance: float) -> void:
+	# A combo is one follow-up beat. If the target left reach, the stored beat has
+	# expired; it must not shorten every later approach.
+	_enemy_combo_left = 0
 	_npc_attack_kind = _npc_choose_attack(distance)
 	_npc_update_aim53()
 	if now_ms() < _npc_counter_until53: _npc_counters53 += 1

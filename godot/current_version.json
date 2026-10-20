@@ -1,11 +1,11 @@
 {
   "schema": "mafiozi.current-play/v1",
-  "title": "Замок и осадный шар: дыры, падения и бочки",
-  "revision": "castle-20261019-horse",
+  "title": "Мафиози — Замок и осадный шар: вражеский рыцарь у ворот",
+  "revision": "castle-20261021-enemy-knight-gate",
   "assembly": "outputs/coordinator35_release59/ASSEMBLY.json",
-  "assembly_sha256": "bd0371b75c9f49e7b145d07dc954ea221e2a316202bde4a4544429a8a11038cf",
+  "assembly_sha256": "e54200c161f28fb3ae0e9bd6913844df4deccacd0ba6734bac1e8d57529a3553",
   "bootstrap": "outputs/coordinator31_castle_current/bootstrap_castle.gd",
   "bootstrap_sha256": "318b2fe49cf454e0f41766ac4e5aa23ea43b2a26f5fa8d5b9c2ed3a617d0858b",
   "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
-  "scope": "Castle horse plus the siege airship: one sword-style E plaque for barrels/horse/balloon (same animation, barrel G included), horse cradle slot and hands carry, blast kills the horse nearby, G farther, improved pooled blast FX, strong-hit barrels, barrel floor spots, free basket walking, occupancy flight, detailed cached-mesh barrels, optimized basket, holes/crash/fall damage/map clamp, weight steering, no cap, no anchor/Shift."
+  "scope": "Castle enemy knight at the main gate: the knight guards the threshold 1.2 m outside it, the player starts on the approach exactly 10 m in front of him. The host is installed enemy-only at castle boot (no dummy/pole), so the resident swordsman is already present and hunts before the player draws. He uses the city NPC skin and canonical walk gait, wears the existing medium harness in all five slots, spots the player through a 180 ms line-of-sight confirmation, searches the last seen position, keeps sword measure, guards/counters, may feint into a sidestep, chains a second beat, presses below 35% HP, and chooses left/right/overhead/rising/thrust from the real geometry. Blade-on-blade clashes stop both cuts and physically push both men. All existing horse/siege/weapon/destruction content is retained."
 }
