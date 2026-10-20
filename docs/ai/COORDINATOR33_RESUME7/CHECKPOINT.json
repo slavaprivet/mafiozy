@@ -40,7 +40,7 @@
     "Final release/F5 route and subjective animation acceptance"
   ],
   "automation": "Former automation4 disappeared in app and filesystem; no replacement created",
-  "updated_utc": "2026-10-20T18:07:30.445296+00:00",
+  "updated_utc": "2026-10-20T18:20:52.210707+00:00",
   "weak_contact": {
     "report": "WEAK_CONTACT_MERGED.json",
     "checks": 12,
@@ -58,5 +58,14 @@
     ],
     "cause": "Ray selecting visible helmet was blocked by own Hithead AnimatableBody3D; skip only own descendant combat hitbox RIDs.",
     "final_merged_repeat": "Pending after ship merge"
+  },
+  "preserved_upstream_network": "e9f00587 (6d6d7531,48d63725,e9f00587), merged without conflict",
+  "checkpoint_smoke": {
+    "checks": 23,
+    "passed": true,
+    "stderr_bytes": 0,
+    "all_source_files_stable": 3065,
+    "report": "CHECKPOINT_SMOKE.json",
+    "multiplayer_accepted": false
   }
 }

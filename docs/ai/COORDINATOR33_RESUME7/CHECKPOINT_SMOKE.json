@@ -1,0 +1,150 @@
+{
+	"checks": [
+		{
+			"detail": null,
+			"label": "world_ready",
+			"passed": true
+		},
+		{
+			"detail": null,
+			"label": "preview_castle_installed",
+			"passed": true
+		},
+		{
+			"detail": null,
+			"label": "preview_battlefield_installed",
+			"passed": true
+		},
+		{
+			"detail": null,
+			"label": "preview_ship_installed",
+			"passed": true
+		},
+		{
+			"detail": null,
+			"label": "preview_horse_mount_installed",
+			"passed": true
+		},
+		{
+			"detail": null,
+			"label": "preview_balloon_installed",
+			"passed": true
+		},
+		{
+			"detail": null,
+			"label": "preview_power_barrels_installed",
+			"passed": true
+		},
+		{
+			"detail": null,
+			"label": "preview_sword_prototype_installed",
+			"passed": true
+		},
+		{
+			"detail": null,
+			"label": "preview_catapult_installed",
+			"passed": true
+		},
+		{
+			"detail": null,
+			"label": "preview_siege_tower_installed",
+			"passed": true
+		},
+		{
+			"detail": null,
+			"label": "network_autoload_preserved",
+			"passed": true
+		},
+		{
+			"detail": null,
+			"label": "default_offline",
+			"passed": true
+		},
+		{
+			"detail": null,
+			"label": "corpse_contact_function_preserved",
+			"passed": true
+		},
+		{
+			"detail": null,
+			"label": "network_avatar_function_preserved",
+			"passed": true
+		},
+		{
+			"detail": null,
+			"label": "local_player_not_remote_avatar",
+			"passed": true
+		},
+		{
+			"detail": null,
+			"label": "network_destruction_wrapper_preserved",
+			"passed": true
+		},
+		{
+			"detail": null,
+			"label": "network_melee_wrapper_preserved",
+			"passed": true
+		},
+		{
+			"detail": null,
+			"label": "network_exact_dead_cells_preserved",
+			"passed": true
+		},
+		{
+			"detail": null,
+			"label": "network_section_lookup_preserved",
+			"passed": true
+		},
+		{
+			"detail": null,
+			"label": "destructible_cell_exists",
+			"passed": true
+		},
+		{
+			"detail": {
+				"dead": [
+					9754,
+					9755,
+					39997,
+					0,
+					1,
+					136,
+					137,
+					272,
+					273,
+					4775,
+					4776,
+					4911,
+					4912,
+					5047,
+					30243,
+					30379,
+					30515,
+					35018,
+					35154,
+					60710
+				],
+				"detached": 20,
+				"event_id": "",
+				"ok": true,
+				"state": "committed",
+				"total": 20
+			},
+			"label": "offline_explosion_uses_local_physics",
+			"passed": true
+		},
+		{
+			"detail": null,
+			"label": "no_world_physics_fault",
+			"passed": true
+		},
+		{
+			"detail": null,
+			"label": "player_position_finite",
+			"passed": true
+		}
+	],
+	"failures": [],
+	"passed": true,
+	"scope": "Offline integrated checkpoint startup, network API preservation and actual local explosion; no multiplayer acceptance or reference pose acceptance"
+}
