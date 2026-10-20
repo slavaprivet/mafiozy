@@ -232,6 +232,25 @@ func send_event(kind: String, data: Dictionary = {}) -> void:
 		_send_to(1, Protocol.make(Protocol.MSG_EVENT, {"e": kind, "d": data}))
 
 
+## Запрос, который обслуживает только хост. Не пересылается другим клиентам и
+## не вызывает обработчик у отправителя: клиент ждёт результата отдельным
+## событием (`destruction` и т.п.).
+func send_event_to_host(kind: String, data: Dictionary = {}) -> void:
+	if role != Role.CLIENT:
+		return
+	events_sent += 1
+	_send_to(1, Protocol.make(Protocol.MSG_EVENT, {"e": kind, "d": data}))
+
+
+## Результат, который хост уже применил у себя. Без локального эха, иначе хост
+## применил бы одно и то же дважды.
+func broadcast_event(kind: String, data: Dictionary = {}) -> void:
+	if role != Role.HOST:
+		return
+	events_sent += 1
+	_broadcast(Protocol.make(Protocol.MSG_EVENT, {"e": kind, "d": data}))
+
+
 # ------------------------------------------------------------------ аргументы CLI
 
 func _read_cmdline() -> void:
@@ -459,7 +478,9 @@ func _on_event(message: Dictionary, sender: int) -> void:
 	if role == Role.HOST:
 		var from_id: int = sender if sender > 0 else local_id
 		event_received.emit(kind, data, from_id)
-		_broadcast(Protocol.make(Protocol.MSG_EVENT, {"e": kind, "d": data, "f": from_id}))
+		# Запросы вида `*_request` обслуживает только хост — остальным они не нужны.
+		if not kind.ends_with("_request"):
+			_broadcast(Protocol.make(Protocol.MSG_EVENT, {"e": kind, "d": data, "f": from_id}))
 	else:
 		event_received.emit(kind, data, int(message.get("f", sender)))
 

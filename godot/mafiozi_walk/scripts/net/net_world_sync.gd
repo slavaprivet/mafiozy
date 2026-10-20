@@ -36,6 +36,15 @@ var _hud: Node = null
 var _publish_clock: float = 0.0
 var _applied_frames: int = 0
 
+## Самопроверка разрушений (tests/net/net_destruction_test.ps1):
+## `--net-blast-at=СЕК` — через столько секунд клиент просит хост взорвать
+## участок стены; `--net-castle-stats=СЕК` — как часто печатать счётчики кладки.
+var _blast_after: float = -1.0
+var _stats_every: float = 0.0
+var _selftest_clock: float = 0.0
+var _next_stats_at: float = 0.0
+var _blast_sent: bool = false
+
 
 func install(world_root: Node3D, player: CharacterBody3D) -> void:
 	world = world_root
@@ -47,10 +56,19 @@ func install(world_root: Node3D, player: CharacterBody3D) -> void:
 	Net.peer_left.connect(_on_peer_left)
 	Net.role_changed.connect(_on_role_changed)
 	Net.event_received.connect(_on_event)
+	_read_test_args()
 	if Net.online():
 		_on_role_changed(Net.role)
 	set_physics_process(true)
 	print("DSH_NET_SYNC_INSTALLED role=", Net.status_line())
+
+
+func _read_test_args() -> void:
+	for argument: String in OS.get_cmdline_user_args():
+		if argument.begins_with("--net-blast-at="):
+			_blast_after = float(argument.substr("--net-blast-at=".length()))
+		elif argument.begins_with("--net-castle-stats="):
+			_stats_every = maxf(0.5, float(argument.substr("--net-castle-stats=".length())))
 
 
 func avatar_for(id: int) -> CharacterBody3D:
@@ -70,11 +88,69 @@ func send_event(kind: String, data: Dictionary = {}) -> void:
 
 # ------------------------------------------------------------------ кадры
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if not Net.online() or not is_instance_valid(local_player):
 		return
+	_selftest(delta)
 	Net.publish_state(_local_state())
 	_sync_avatars()
+
+
+# ------------------------------------------------------------------ самопроверка
+
+## Тестовый сценарий разрушения: клиент просит хост взорвать стену, оба печатают
+## счётчики кладки. Нужен, чтобы этап 3 проверялся без ручного участия.
+func _selftest(delta: float) -> void:
+	if _blast_after < 0.0 and _stats_every <= 0.0:
+		return
+	_selftest_clock += delta
+	if _blast_after >= 0.0 and not _blast_sent and _selftest_clock >= _blast_after:
+		_blast_sent = true
+		_blast_wall()
+	if _stats_every > 0.0 and _selftest_clock >= _next_stats_at:
+		_next_stats_at = _selftest_clock + _stats_every
+		_print_castle_stats()
+
+
+func _blast_wall() -> void:
+	var castle: Node = castle_node()
+	if castle == null:
+		print("NET_BLAST skipped=no_castle")
+		return
+	var half: float = float(castle.call("wall_half")) if castle.has_method("wall_half") else 68.0
+	# Точка СБОКУ от ворот: по центру стены (x = 0) находится проём, там кирпичей
+	# нет, и взрыв не выбивает ничего.
+	var point: Vector3 = (castle as Node3D).to_global(Vector3(12.0, 5.0, half))
+	var event: Dictionary = {"position": point, "radius": 3.0, "power": 120.0,
+		"direction": Vector3(0.0, 0.4, -1.0), "kind": "net_test"}
+	if Net.is_client():
+		print("NET_BLAST request point=", point)
+		Net.send_event_to_host("destruction_request", {"site": "castle", "e": event})
+	else:
+		print("NET_BLAST host point=", point, " result=", castle.call("apply_explosion", event))
+
+
+func _print_castle_stats() -> void:
+	var stats: Dictionary = castle_stats()
+	print("NET_CASTLE t=", int(_selftest_clock), " role=", Net.role_name(),
+		" detached=", stats.get("detached", -1), " bricks=", stats.get("bricks", -1),
+		" falling=", stats.get("falling", -1), " gates=", stats.get("gate_boards_broken", -1))
+
+
+func castle_node() -> Node:
+	if world == null:
+		return null
+	var castle: Variant = world.get("preview_castle")
+	if castle == null or not (castle is Object) or not is_instance_valid(castle as Object):
+		return null
+	return castle as Node
+
+
+func castle_stats() -> Dictionary:
+	var castle: Node = castle_node()
+	if castle == null or not castle.has_method("get_stats"):
+		return {}
+	return castle.call("get_stats")
 
 
 func _local_state() -> Dictionary:
@@ -189,8 +265,36 @@ func _on_event(kind: String, data: Dictionary, from_id: int) -> void:
 	event_log.append({"k": kind, "f": from_id, "t": Time.get_ticks_msec()})
 	if event_log.size() > 64:
 		event_log.pop_front()
-	# Следующие этапы подключаются здесь: разрушения, снаряды, бросок, транспорт.
-	# Пока печатаем, чтобы тест и лог подтверждали, что шина живая.
 	match kind:
-		Protocol.EV_DESTRUCTION, Protocol.EV_PROJECTILE, Protocol.EV_THROW, Protocol.EV_MELEE:
+		"destruction":
+			# Хост уже применил удар у себя и разослал его. Клиент повторяет тот
+			# же удар с флагом from_network, чтобы не отправить запрос по кругу.
+			if Net.is_client():
+				_apply_network_explosion(data, true)
+		"destruction_request":
+			# Запрос клиента: применяет хост, после чего рассылает результат.
+			# `apply_explosion` сам разошлёт `destruction` (см. castle_site.gd).
+			if Net.is_host():
+				_apply_network_explosion(data, false)
+		Protocol.EV_PROJECTILE, Protocol.EV_THROW, Protocol.EV_MELEE:
 			print("DSH_NET_EVENT kind=", kind, " from=", from_id, " data=", data)
+
+
+func _apply_network_explosion(data: Dictionary, as_replay: bool) -> void:
+	var castle: Node = castle_node()
+	if castle == null:
+		return
+	var payload: Variant = data.get("e", {})
+	if not (payload is Dictionary):
+		return
+	var event: Dictionary = (payload as Dictionary).duplicate(true)
+	# `from_network = true` — это повтор уже принятого решения: применить локально
+	# и ничего не рассылать. Без флага вызов идёт по хостовой ветке и рассылает
+	# результат всем.
+	event["from_network"] = as_replay
+	var result: Variant = castle.call("apply_explosion", event)
+	var detached: int = -1
+	if result is Dictionary:
+		detached = int((result as Dictionary).get("detached", -1))
+	print("NET_DESTRUCTION_APPLIED site=", data.get("site", "?"), " replay=", as_replay,
+		" detached=", detached)
