@@ -12,6 +12,16 @@ extends CharacterBody3D
 @export var jump_speed: float = 5.2
 @export var mouse_sensitivity: float = 0.003
 @export var camera_distance: float = 5.119570294468082 # Walk world initial orbit: Vector3(3,1.1,4).length().
+## DSH_NET: тело чужого игрока. Камера не становится текущей, Input не читается,
+## позиция и heading приходят из сети, а поза считается из присланной скорости —
+## поэтому чужая ходьба выглядит так же, как своя, без синхронизации костей.
+@export var net_avatar: bool = false
+var _net_target := Vector3.ZERO
+var _net_yaw: float = 0.0
+var _net_aim: float = 0.0
+var _net_velocity := Vector3.ZERO
+var _net_grounded: bool = true
+var _net_have_state: bool = false
 
 const ACTION_LEFT: StringName = &"preview_move_left"
 const ACTION_RIGHT: StringName = &"preview_move_right"
@@ -277,7 +287,10 @@ func _ready() -> void:
 	_jump_ceiling_ray = PhysicsRayQueryParameters3D.new()
 	_jump_ceiling_ray.collision_mask = collision_mask
 	_jump_ceiling_ray.exclude = [get_rid()]
-	set_process_unhandled_input(true)
+	# DSH_NET: аватар не должен ни перехватывать мышь, ни требовать фокуса окна.
+	set_process_unhandled_input(not net_avatar)
+	if net_avatar:
+		set_process(false)
 	set_mouse_captured(false)
 
 
@@ -445,7 +458,9 @@ func _build_camera() -> void:
 	_camera.near = 0.08
 	_camera.far = 1600.0
 	_spring_arm.add_child(_camera)
-	_camera.make_current()
+	# DSH_NET: у чужого игрока камера существует, но никогда не становится текущей.
+	if not net_avatar:
+		_camera.make_current()
 	_update_camera_rotation()
 
 
@@ -704,6 +719,11 @@ func _apply_swim_pose(_delta: float) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# DSH_NET: тело под управлением сети не считает локальную физику — его ведёт
+	# `NetWorldSync`. Одиночная игра (net_avatar == false) идёт прежним путём.
+	if net_avatar:
+		_net_step(delta)
+		return
 	_ground_move_frame = -1
 	_ground_move_pressure.clear()
 	_jump_pose = {}
@@ -1179,8 +1199,8 @@ func _update_owned_pose(delta: float) -> void:
 			if is_instance_valid(_weapon_host): source=_weapon_host.finish_pose(source)
 			_apply_selected_pose(source, expected_epoch)
 			return
-	var actual_velocity: Vector3 = get_real_velocity()
-	var grounded: bool = is_on_floor()
+	var actual_velocity: Vector3 = _net_velocity if net_avatar else get_real_velocity()
+	var grounded: bool = _net_grounded if net_avatar else is_on_floor()
 	var selected: Dictionary = _locomotion.sample(delta, actual_velocity, grounded)
 	if not bool(selected.get("valid", false)):
 		return
@@ -1453,6 +1473,58 @@ func get_preview_status() -> Dictionary:
 		"source_falling": _source_falling,
 		"jump_surface_guard_bound": _jump_surface_guard.is_valid(),
 	}
+
+
+## ---------------------------------------------------------------- DSH_NET аватар
+## Единственная точка входа для сети: `NetWorldSync` зовёт её на каждом снапшоте.
+## Принимает позицию, направление тела и взгляда, скорость и признак опоры.
+func net_apply_state(position: Vector3, yaw: float, aim: float, velocity: Vector3,
+		grounded: bool) -> void:
+	if not net_avatar or not position.is_finite():
+		return
+	_net_target = position
+	if is_finite(yaw):
+		_net_yaw = yaw
+	if is_finite(aim):
+		_net_aim = aim
+	_net_velocity = velocity if velocity.is_finite() else Vector3.ZERO
+	_net_grounded = grounded
+	if not _net_have_state:
+		_net_have_state = true
+		global_position = position
+		_heading = _net_yaw
+		_camera_yaw = _net_aim
+		_apply_net_facing()
+
+
+func net_state_received() -> bool:
+	return _net_have_state
+
+
+## Плавное догоняние последнего снапшота на 20 Гц до 60 Гц физики.
+## Дальний скачок (респавн, телепорт хоста) применяется мгновенно, чтобы тело
+## не проезжало сквозь полкарты.
+func _net_step(delta: float) -> void:
+	if not _net_have_state:
+		return
+	var offset := _net_target - global_position
+	offset.y = clampf(offset.y, -3.0, 3.0)
+	if offset.length() > 12.0:
+		global_position = _net_target
+	elif offset.length_squared() > 0.000001:
+		var alpha: float = 1.0 - exp(-maxf(delta, 0.0) * 22.0)
+		global_position += offset * alpha
+	_apply_net_facing()
+	# Поза процедурная: она строится из присланной скорости и признака опоры,
+	# поэтому чужая походка совпадает с собственной без обмена костями.
+	_update_owned_pose(delta)
+
+
+func _apply_net_facing() -> void:
+	_heading = _net_yaw
+	_camera_yaw = _net_aim
+	if is_instance_valid(_visual):
+		_visual.rotation.y = _net_yaw + deg_to_rad(visual_yaw_degrees)
 
 
 func _ensure_input_actions() -> void:

@@ -202,6 +202,9 @@ var _surface_materials: Dictionary = {}
 var _block: Dictionary = {}
 var _origin: Vector3
 var _player: CharacterBody3D
+## DSH_NET: узел сетевой синхронизации. Создаётся только при --net-* аргументах,
+## поэтому одиночная игра остаётся ровно такой, какой была.
+var _net_sync: Node = null
 var _spawn: Vector3
 var _stats: Label
 var _clock: float = 0.0
@@ -228,6 +231,9 @@ func _dsh_physics_catchup() -> void:  # DSH_WALKCHEAP
 
 func _ready() -> void:
 	GameCursor.install()
+	# DSH_NET: тег сборки уходит хосту при подключении, чтобы гость и хост играли
+	# один и тот же мир; расхождение печатается предупреждением, а не молчит.
+	Net.build_tag = PREVIEW_RUNTIME_REVISION
 	# The castle scene and --castle=1 are one isolated play mode. Resolve the flag
 	# before any city geometry, residents or services can be instantiated.
 	castle_map = castle_map or OS.get_cmdline_user_args().has("--castle=1")
@@ -367,6 +373,10 @@ func _ready() -> void:
 	if castle_map:
 		_player.set_meta("actor_id", "player")
 		_player.set_meta("life_generation", 1)
+	# DSH_NET: сеть ставится сразу после появления локального тела — раньше аватары
+	# чужих игроков некуда было бы привязывать. Без --net-* этот блок не выполняется.
+	if Net.requested():
+		_install_net_sync()
 	_player.get_node("VisualHeading").rotation.y = spawn_yaw + deg_to_rad(_player.visual_yaw_degrees)
 	_player.set_preview_jump_surface_guard(Callable(self, "preview_jump_surface_allowed"))
 	# DSH_STEPS: footfalls that know what they are standing on.
@@ -1510,6 +1520,16 @@ func _advance_printshop_door_motion(delta: float) -> void:
 	if not is_instance_valid(_printshop): return
 	if _lazy_door_occupants_flag()==1 and not _printshop.has_pending_motion(): return
 	_printshop.advance(delta, _current_door_occupants())
+
+func _install_net_sync() -> void:
+	if _net_sync != null or not is_instance_valid(_player):
+		return
+	_net_sync = load("res://scripts/net/net_world_sync.gd").new()
+	_net_sync.name = "NetWorldSync"
+	add_child(_net_sync)
+	_net_sync.call("install", self, _player)
+	print("DSH_NET_SYNC ready=", _net_sync != null, " ", Net.status_line())
+
 
 func _physics_process(delta: float) -> void:
 	if Engine.get_physics_frames() == 30:
