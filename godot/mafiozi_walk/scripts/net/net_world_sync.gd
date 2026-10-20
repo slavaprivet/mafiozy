@@ -35,6 +35,10 @@ var event_log: Array[Dictionary] = []
 var _hud: Node = null
 var _publish_clock: float = 0.0
 var _applied_frames: int = 0
+## Сколько снапшотов подряд сервер считает нас в другом месте.
+var _correction_streak: int = 0
+## До какого момента (мс) публикуем поддельную позицию в тесте авторитета.
+var _forge_until_ms: int = 0
 
 ## Самопроверка разрушений (tests/net/net_destruction_test.ps1):
 ## `--net-blast-at=СЕК` — через столько секунд клиент просит хост взорвать
@@ -66,11 +70,19 @@ var _gate_sent: bool = false
 ## `--net-catapult-at=СЕК` — выстрел из катапульты (камень-дубль у второй стороны).
 var _catapult_after: float = -1.0
 var _catapult_sent: bool = false
-## `--net-ship-at=СЕК` — хост двигает корабль; клиент обязан повторить трансформ.
+## `--net-ship-at=СЕК` — хост открывает паруса; клиент проверяет получение
+## трансформа корабля.
 var _ship_after: float = -1.0
 var _ship_sent: bool = false
 var _ship_stats_every: float = 0.0
 var _next_ship_stats_at: float = 0.0
+## `--net-teleport-at=СЕК` — клиент пытается телепортироваться на 500 м:
+## проверка, что хост отклоняет скачок, а клиент возвращается на место.
+var _teleport_after: float = -1.0
+var _teleport_sent: bool = false
+## `--net-player-stats=СЕК` — печатать свою позицию (для этого же теста).
+var _player_stats_every: float = 0.0
+var _next_player_stats_at: float = 0.0
 
 
 func install(world_root: Node3D, player: CharacterBody3D) -> void:
@@ -108,6 +120,10 @@ func _read_test_args() -> void:
 			_gate_after = float(argument.substr("--net-gate-at=".length()))
 		elif argument.begins_with("--net-catapult-at="):
 			_catapult_after = float(argument.substr("--net-catapult-at=".length()))
+		elif argument.begins_with("--net-teleport-at="):
+			_teleport_after = float(argument.substr("--net-teleport-at=".length()))
+		elif argument.begins_with("--net-player-stats="):
+			_player_stats_every = maxf(0.5, float(argument.substr("--net-player-stats=".length())))
 		elif argument.begins_with("--net-ship-at="):
 			_ship_after = float(argument.substr("--net-ship-at=".length()))
 		elif argument.begins_with("--net-ship-stats="):
@@ -135,8 +151,44 @@ func _physics_process(delta: float) -> void:
 	if not Net.online() or not is_instance_valid(local_player):
 		return
 	_selftest(delta)
-	Net.publish_state(_local_state())
+	if Time.get_ticks_msec() < _forge_until_ms:
+		# Тест авторитета: держим поддельную позицию несколько кадров, иначе она
+		# живёт один кадр и до отправки по сети (20 Гц) не доживает.
+		var forged: Dictionary = _local_state()
+		forged["p"] = Vector3(500.0, 30.0, 500.0)
+		Net.publish_state(forged)
+	else:
+		Net.publish_state(_local_state())
 	_sync_avatars()
+	if Net.is_client():
+		_apply_own_correction()
+
+
+## Клиент ведёт своё тело сам, но если хост считает его позицию совсем другой
+## (например, отклонил телепорт), принимаем серверную: иначе подделка остаётся
+## без последствий. Порог 3 м — чтобы обычный лаг не дёргал игрока.
+func _apply_own_correction() -> void:
+	var state: Dictionary = Net.authoritative_self
+	if state.is_empty():
+		return
+	var target: Variant = state.get("p")
+	if not (target is Vector3) or not (target as Vector3).is_finite():
+		return
+	var aim: Vector3 = target
+	if aim.length() < 1.0:
+		return
+	if local_player.global_position.distance_to(aim) <= 3.0:
+		_correction_streak = 0
+		return
+	# Одна «старая» посылка снапшота не должна дёргать игрока: правим только если
+	# расхождение держится несколько снапшотов подряд (это уже решение хоста).
+	_correction_streak += 1
+	if _correction_streak < 3:
+		return
+	_correction_streak = 0
+	local_player.global_position = aim
+	local_player.velocity = Vector3.ZERO
+	print("NET_CORRECTION to=", aim)
 
 
 # ------------------------------------------------------------------ самопроверка
@@ -147,7 +199,8 @@ func _selftest(delta: float) -> void:
 	if _blast_after < 0.0 and _stats_every <= 0.0 and _shot_after < 0.0 \
 			and _melee_after < 0.0 and _inject_after < 0.0 and _heartbeat_every <= 0.0 \
 			and _gate_after < 0.0 and _catapult_after < 0.0 and _ship_after < 0.0 \
-			and _ship_stats_every <= 0.0:
+			and _ship_stats_every <= 0.0 and _teleport_after < 0.0 \
+			and _player_stats_every <= 0.0:
 		return
 	_selftest_clock += delta
 	if _heartbeat_every > 0.0 and _selftest_clock >= _next_heartbeat_at:
@@ -169,6 +222,13 @@ func _selftest(delta: float) -> void:
 	if _ship_stats_every > 0.0 and _selftest_clock >= _next_ship_stats_at:
 		_next_ship_stats_at = _selftest_clock + _ship_stats_every
 		_ship_stats()
+	if _teleport_after >= 0.0 and not _teleport_sent and _selftest_clock >= _teleport_after:
+		_teleport_sent = true
+		_teleport_test()
+	if _player_stats_every > 0.0 and _selftest_clock >= _next_player_stats_at:
+		_next_player_stats_at = _selftest_clock + _player_stats_every
+		_player_stats()
+		_peer_stats()
 	if _shot_after >= 0.0 and not _shot_sent and _selftest_clock >= _shot_after:
 		_shot_sent = true
 		_fire_test_shot()
@@ -239,6 +299,39 @@ func _catapult_test() -> void:
 		return
 	var result: Variant = catapult.call("debug_launch")
 	print("NET_CATAPULT role=", Net.role_name(), " result=", result)
+
+
+## Отрицательный тест авторитета движения: клиент публикует поддельную позицию
+## в 500 м (так поступил бы модифицированный клиент). Хост обязан отклонить
+## скачок и оставить прежнюю точку.
+func _teleport_test() -> void:
+	if not Net.is_client():
+		print("NET_TELEPORT skipped=", Net.role_name())
+		return
+	var forged: Dictionary = _local_state()
+	var forged_target := Vector3(500.0, 30.0, 500.0)
+	forged["p"] = forged_target
+	_forge_until_ms = Time.get_ticks_msec() + 900
+	print("NET_TELEPORT forged=", forged_target, " real=", local_player.global_position)
+
+
+func _player_stats() -> void:
+	var position: Vector3 = local_player.global_position if is_instance_valid(local_player) else Vector3.ZERO
+	print("NET_PLAYER t=", int(_selftest_clock), " role=", Net.role_name(), " pos=", position)
+
+
+## Позиция, которую хост принял от удалённого игрока (для проверки отклонения).
+func _peer_stats() -> void:
+	if not Net.is_host():
+		return
+	for id: Variant in Net.states:
+		if int(id) == Net.local_id:
+			continue
+		var state: Variant = Net.states[id]
+		if not (state is Dictionary):
+			continue
+		print("NET_PEER_STATE id=", int(id), " pos=", (state as Dictionary).get("p", Vector3.ZERO))
+		return
 
 
 func _ship_node() -> Node3D:

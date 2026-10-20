@@ -44,6 +44,16 @@ enum Role { OFFLINE, HOST, CLIENT }
 
 const ROLE_NAMES := ["offline", "host", "client"]
 const CONNECT_TIMEOUT_S := 12.0
+## Максимальный скачок позиции игрока за один пакет состояния, метров.
+## Порог намеренно огромный: это грубая защита от «переезда на полкарты», а не
+## античит. Респавн, вход в интерьер и телепорт по сюжету должны проходить.
+const MAX_STATE_JUMP_M := 250.0
+## Сколько миллисекунд после подключения не проверять позицию игрока.
+const STATE_WARMUP_MS := 8000
+## Последняя позиция, которую хост считает правильной для нашего игрока.
+## Клиент публикует своё состояние каждую секунду, поэтому в `states` его тут же
+## перетирает — серверный взгляд нужен отдельно, для коррекции.
+var authoritative_self: Dictionary = {}
 
 var role: int = Role.OFFLINE
 ## Клиентская сторона: этот id выдал хост (у хоста всегда 1).
@@ -468,8 +478,31 @@ func _on_state(message: Dictionary, sender: int) -> void:
 	if role != Role.HOST or not players.has(sender):
 		return
 	var state: Variant = message.get("s", {})
-	if state is Dictionary:
-		states[sender] = state
+	if not (state is Dictionary):
+		return
+	var incoming: Dictionary = state
+	# DSH_NET: грубая проверка на телепорт. Клиент вправе прислать свою позицию,
+	# но скачок в сотни метров за один пакет — это не движение, а подделка.
+	# Первые секунды после подключения не проверяем: игрок ещё ставится на карту,
+	# и его «переезд» в замок — не телепорт.
+	var joined: int = 0
+	var info: Variant = players.get(sender, {})
+	if info is Dictionary:
+		joined = int((info as Dictionary).get("joined_ms", 0))
+	var warming: bool = joined > 0 and Time.get_ticks_msec() - joined < STATE_WARMUP_MS
+	var previous: Variant = states.get(sender, {})
+	if not warming and previous is Dictionary and not (previous as Dictionary).is_empty():
+		var was: Variant = (previous as Dictionary).get("p")
+		var now: Variant = incoming.get("p")
+		if was is Vector3 and now is Vector3:
+			var jump: float = (now as Vector3).distance_to(was as Vector3)
+			if jump > MAX_STATE_JUMP_M:
+				print("DSH_NET_STATE_REJECT from=", sender, " jump=", jump)
+				var corrected: Dictionary = incoming.duplicate(true)
+				corrected["p"] = was
+				states[sender] = corrected
+				return
+	states[sender] = incoming
 
 
 func _on_snapshot(message: Dictionary) -> void:
@@ -482,6 +515,10 @@ func _on_snapshot(message: Dictionary) -> void:
 	var snapshot: Dictionary = incoming
 	for id: Variant in snapshot:
 		states[int(id)] = snapshot[id]
+		if int(id) == local_id:
+			var mine: Variant = snapshot[id]
+			if mine is Dictionary:
+				authoritative_self = mine
 	for id: Variant in states:
 		if not players.has(int(id)):
 			players[int(id)] = _player_entry("player")
