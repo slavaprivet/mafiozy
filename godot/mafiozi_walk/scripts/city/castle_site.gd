@@ -3788,9 +3788,118 @@ func apply_explosion(event: Dictionary) -> Dictionary:
 			return {"ok": false, "reason": "requested", "detached": 0, "state": "requested"}
 		var applied: Dictionary = _apply_explosion_local(event)
 		Net.broadcast_event("destruction", {"site": "castle", "e": event,
-			"dead": applied.get("dead", [])})
+			"dead": applied.get("dead", []), "gate": gate_state()})
 		return applied
 	return _apply_explosion_local(event)
+
+
+## Сломать одну доску створки: визуал, коллизия и падающая щепка.
+## Вынесено из взрыва, чтобы тот же эффект можно было повторить по сети.
+func _break_gate_board(entry: Dictionary, board: Dictionary, direction: Vector3,
+		power: float) -> void:
+	board["broken"] = true
+	var multi: MultiMeshInstance3D = board.get("multi")
+	var slot: int = int(board.get("slot", -1))
+	if is_instance_valid(multi) and multi.multimesh != null and slot >= 0:
+		multi.multimesh.set_instance_transform(slot,
+			Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * 0.0001),
+				Vector3(0.0, -4000.0, 0.0)))
+	for fitting: Dictionary in board.get("inner40", []):
+		var inner_multi: MultiMeshInstance3D = fitting.multi
+		inner_multi.multimesh.set_instance_transform(int(fitting.slot),
+			Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * 0.0001), Vector3(0, -4000, 0)))
+	var board_shape: CollisionShape3D = board.get("shape")
+	if is_instance_valid(board_shape): board_shape.disabled = true
+	var board_at: Vector3 = board.get("at", Vector3.ZERO)
+	var board_size: Vector3 = board.get("size", Vector3(0.8, 1.4, 0.26))
+	var pivot: Node3D = entry.get("pivot")
+	var plank_at: Vector3 = to_local(pivot.global_transform * board_at) \
+		+ Vector3(0.0, 0.2, 0.9) if is_instance_valid(pivot) else board_at
+	# The fallen plank and chips share the bounded debris pool with masonry.
+	_spawn_falling_brick({"at": plank_at, "size": board_size, "material": "wood",
+		"rotation": Vector3.ZERO, "row": 0, "column": 0}, direction, power * 0.45)
+	for splinter: int in 3:
+		_spawn_falling_brick({"at": plank_at + Vector3(randf_range(-0.3, 0.3),
+			randf_range(-0.4, 0.4), 0.1), "size": Vector3(randf_range(0.05, 0.10),
+			randf_range(0.20, 0.48), randf_range(0.04, 0.08)),
+			"material": "wood", "rotation": Vector3.ZERO, "row": 0, "column": splinter},
+			direction, power * 0.4)
+
+
+## Снять створку с петель, когда все её доски разбиты.
+func _detach_gate_leaf(entry: Dictionary) -> void:
+	if bool(entry.get("detached", false)):
+		return
+	entry["detached"] = true
+	_gate_open_state = false
+	_gate_angle = 0.0
+	var pivot: Node3D = entry.get("pivot")
+	if is_instance_valid(pivot):
+		pivot.visible = false
+		for child: Node in pivot.get_children():
+			var child_body := child as StaticBody3D
+			if is_instance_valid(child_body):
+				child_body.collision_layer = 0
+				child_body.collision_mask = 0
+	_detached += 1
+
+
+## DSH_NET: состояние створок для сети — какие доски разбиты и какие створки
+## сняты. Список кирпичей по сети уже приходит, а ворота считались отдельно и
+## расходились: у гостя они оставались целыми.
+func gate_state() -> Array:
+	var state: Array = []
+	for entry: Dictionary in _gate_leaves:
+		var flags: Array = []
+		for board: Dictionary in entry.get("boards", []):
+			flags.append(bool(board.get("broken", false)))
+		state.append({"b": flags, "d": bool(entry.get("detached", false))})
+	return state
+
+
+## Мировые центры ещё целых досок створок (для сети и тестов).
+func gate_board_points() -> Array:
+	var points: Array = []
+	for entry: Dictionary in _gate_leaves:
+		var pivot: Node3D = entry.get("pivot")
+		if not is_instance_valid(pivot):
+			continue
+		for board: Dictionary in entry.get("boards", []):
+			if bool(board.get("broken", false)):
+				continue
+			points.append(pivot.global_transform * (board.get("at", Vector3.ZERO)))
+	return points
+
+
+## Применить присланное хостом состояние створок. Возвращает число изменений.
+func apply_gate_state(state: Array) -> int:
+	if not _ready or not (state is Array):
+		return 0
+	var changed := 0
+	var leaves: int = mini(state.size(), _gate_leaves.size())
+	for leaf: int in leaves:
+		var entry: Dictionary = _gate_leaves[leaf]
+		var incoming: Variant = state[leaf]
+		if not (incoming is Dictionary):
+			continue
+		var flags: Variant = (incoming as Dictionary).get("b", [])
+		if flags is Array:
+			var boards: Array = entry.get("boards", [])
+			var count: int = mini((flags as Array).size(), boards.size())
+			for index: int in count:
+				if not bool((flags as Array)[index]):
+					continue
+				var board: Dictionary = boards[index]
+				if bool(board.get("broken", false)):
+					continue
+				_break_gate_board(entry, board, Vector3(0.0, 0.4, -1.0), 80.0)
+				changed += 1
+		if bool((incoming as Dictionary).get("d", false)) and not bool(entry.get("detached", false)):
+			_detach_gate_leaf(entry)
+			changed += 1
+	if changed > 0:
+		print("NET_GATE_APPLIED changed=", changed)
+	return changed
 
 
 func _apply_explosion_local(event: Dictionary) -> Dictionary:
@@ -3845,45 +3954,13 @@ func _apply_explosion_local(event: Dictionary) -> Dictionary:
 				clampf(local_hit.z, board_at.z - board_size.z * 0.5, board_at.z + board_size.z * 0.5))
 			var hole: float = clampf(0.5 + power * 0.004, 0.6, 2.0)
 			if local_hit.distance_to(nearest) > hole: continue
-			board["broken"] = true
-			var multi: MultiMeshInstance3D = board.get("multi")
-			var slot: int = int(board.get("slot", -1))
-			if is_instance_valid(multi) and multi.multimesh != null and slot >= 0:
-				multi.multimesh.set_instance_transform(slot,
-					Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * 0.0001),
-						Vector3(0.0, -4000.0, 0.0)))
-			for fitting: Dictionary in board.get("inner40", []):
-				var inner_multi: MultiMeshInstance3D = fitting.multi
-				inner_multi.multimesh.set_instance_transform(int(fitting.slot),
-					Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * 0.0001), Vector3(0, -4000, 0)))
-			var board_shape: CollisionShape3D = board.get("shape")
-			if is_instance_valid(board_shape): board_shape.disabled = true
+			_break_gate_board(entry, board, direction, power)
 			killed += 1
-			# The fallen plank and chips share the bounded debris pool with masonry.
-			var plank_at: Vector3 = to_local(pivot.global_transform * board_at) \
-				+ Vector3(0.0, 0.2, 0.9)
-			_spawn_falling_brick({"at": plank_at, "size": board_size, "material": "wood",
-				"rotation": Vector3.ZERO, "row": 0, "column": 0}, direction, power * 0.45)
-			for splinter: int in 3:
-				_spawn_falling_brick({"at": plank_at + Vector3(randf_range(-0.3, 0.3),
-					randf_range(-0.4, 0.4), 0.1), "size": Vector3(randf_range(0.05, 0.10),
-					randf_range(0.20, 0.48), randf_range(0.04, 0.08)),
-					"material": "wood", "rotation": Vector3.ZERO, "row": 0, "column": splinter},
-					direction, power * 0.4)
 		var remaining := 0
 		for board: Dictionary in boards:
 			if not bool(board.get("broken", false)): remaining += 1
 		if remaining > 0 or bool(entry.get("detached", false)): continue
-		entry["detached"] = true
-		_gate_open_state = false
-		_gate_angle = 0.0
-		pivot.visible = false
-		for child: Node in pivot.get_children():
-			var child_body := child as StaticBody3D
-			if is_instance_valid(child_body):
-				child_body.collision_layer = 0
-				child_body.collision_mask = 0
-		_detached += 1
+		_detach_gate_leaf(entry)
 		killed += 1
 	if killed > 0:
 		_sync_masonry_collision55()
@@ -3935,7 +4012,7 @@ func apply_dead_cells(indices: Array, event: Dictionary) -> Dictionary:
 		"total": _detached, "dead": []}
 	_events.append(result.duplicate())
 	if _events.size() > 24: _events.pop_front()
-	print("NET_EXPLOSION path=dead killed=", killed, " wanted=", indices.size(), " at=", at_world)
+	print("NET_EXPLOSION path=dead killed=", killed, " dead=", indices.size(), " at=", at_world)
 	return result
 
 ## Removing a stone invalidates support only in the vertical shadow above it. The audit

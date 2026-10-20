@@ -60,6 +60,9 @@ var _inject_sent: bool = false
 ## Тест по ней доказывает, что клиент остался в сети к концу прогона.
 var _heartbeat_every: float = 0.0
 var _next_heartbeat_at: float = 0.0
+## `--net-gate-at=СЕК` — взрыв у ворот: проверяет перенос состояния створок.
+var _gate_after: float = -1.0
+var _gate_sent: bool = false
 
 
 func install(world_root: Node3D, player: CharacterBody3D) -> void:
@@ -93,6 +96,8 @@ func _read_test_args() -> void:
 			_inject_after = float(argument.substr("--net-inject-at=".length()))
 		elif argument.begins_with("--net-heartbeat="):
 			_heartbeat_every = maxf(0.5, float(argument.substr("--net-heartbeat=".length())))
+		elif argument.begins_with("--net-gate-at="):
+			_gate_after = float(argument.substr("--net-gate-at=".length()))
 
 
 func avatar_for(id: int) -> CharacterBody3D:
@@ -126,7 +131,8 @@ func _physics_process(delta: float) -> void:
 ## счётчики кладки. Нужен, чтобы этап 3 проверялся без ручного участия.
 func _selftest(delta: float) -> void:
 	if _blast_after < 0.0 and _stats_every <= 0.0 and _shot_after < 0.0 \
-			and _melee_after < 0.0 and _inject_after < 0.0 and _heartbeat_every <= 0.0:
+			and _melee_after < 0.0 and _inject_after < 0.0 and _heartbeat_every <= 0.0 \
+			and _gate_after < 0.0:
 		return
 	_selftest_clock += delta
 	if _heartbeat_every > 0.0 and _selftest_clock >= _next_heartbeat_at:
@@ -136,6 +142,9 @@ func _selftest(delta: float) -> void:
 	if _blast_after >= 0.0 and not _blast_sent and _selftest_clock >= _blast_after:
 		_blast_sent = true
 		_blast_wall()
+	if _gate_after >= 0.0 and not _gate_sent and _selftest_clock >= _gate_after:
+		_gate_sent = true
+		_gate_test()
 	if _shot_after >= 0.0 and not _shot_sent and _selftest_clock >= _shot_after:
 		_shot_sent = true
 		_fire_test_shot()
@@ -170,6 +179,31 @@ func _blast_wall() -> void:
 
 ## Выстрел из корабельной пушки для проверки снарядов-дублей. `debug_fire_at`
 ## сам наводит, заряжает и стреляет — участие игрока не нужно.
+## Взрыв у ворот: доски створок считаются отдельно от кирпичей, поэтому их
+## состояние хост присылает списком (gate_state / apply_gate_state).
+func _gate_test() -> void:
+	var castle: Node = castle_node()
+	if castle == null:
+		print("NET_GATE skipped=no_castle")
+		return
+	var half: float = float(castle.call("wall_half")) if castle.has_method("wall_half") else 68.0
+	var point: Vector3 = (castle as Node3D).to_global(Vector3(0.0, 4.0, half + 2.75))
+	# Целимся в настоящую доску створки: геометрия ворот зависит от сборки, и
+	# «примерно в центр» давало ноль попаданий.
+	var boards: Array = castle.call("gate_board_points")
+	if not boards.is_empty():
+		point = boards[0] as Vector3
+		print("NET_GATE boards=", boards.size(), " aim=", point)
+	var event: Dictionary = {"position": point, "radius": 2.0, "power": 90.0,
+		"direction": Vector3(0.0, 0.0, -1.0), "kind": "net_gate_test"}
+	if Net.is_client():
+		print("NET_GATE request point=", point)
+		Net.send_event_to_host("destruction_request", {"site": "castle", "e": event})
+	else:
+		castle.call("apply_explosion", event)
+		print("NET_GATE host point=", point)
+
+
 func _fire_test_shot() -> void:
 	if world == null:
 		return
@@ -408,6 +442,9 @@ func _apply_network_explosion(data: Dictionary, as_replay: bool) -> void:
 		result = castle.call("apply_dead_cells", data.get("dead"), event)
 	else:
 		result = castle.call("apply_explosion", event)
+	# Створки ворот считаются отдельно от кирпичей — переносим их состояние.
+	if as_replay and data.get("gate") is Array:
+		castle.call("apply_gate_state", data.get("gate"))
 	var detached: int = -1
 	if result is Dictionary:
 		detached = int((result as Dictionary).get("detached", -1))

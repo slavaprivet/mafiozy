@@ -1,19 +1,15 @@
-# DSH_NET — проверка этапа 2: снаряд-дубль чужого выстрела (усиленная).
+# DSH_NET - проверка этапа 2: снаряд-дубль чужого выстрела (усиленная).
 #
 # Хост и гость поднимают настоящий замок с кораблём и стреляют из корабельной
 # пушки в БОКОВУЮ стену замка. Цели разные (хост z=12, гость z=40), поэтому
-# сравнение «свой выстрел против дубля» действительно что-то доказывает.
+# сравнение "свой выстрел против дубля" действительно что-то доказывает.
 #
-# Проверяется не только наличие строк в логе:
+# Проверяется не наличие строк в логе, а результат:
 #   1) траектории: точки своего ядра и дубля на чужой стороне совпадают по
 #      одинаковым возрастным отсечкам (0.25 с) с допуском 0.35 м;
-#   2) двойного урона нет: счётчик применённых взрывов (`explosions`) и число
-#      выбитых кирпичей (`detached`) совпадают у обеих сторон, взрывов ровно два
-#      (по одному выстрелу с каждой стороны);
-#   3) клиент остался онлайн: последний NET_HEARTBEAT далеко от начала прогона,
-#      роль client, и в логе нет обрыва связи.
-#
-#   pwsh -File tests/net/net_projectile_test.ps1
+#   2) двойного урона нет: мгновенный урон каждого взрыва (`dead=` из
+#      NET_EXPLOSION) совпадает у обеих сторон, взрывов ровно два;
+#   3) клиент остался онлайн: heartbeat идёт до конца прогона, обрыва нет.
 
 param(
     [int]$Port = 7881,
@@ -75,7 +71,6 @@ function Get-Traces([string]$path) {
 $hostTraces = Get-Traces $hostLog
 $clientTraces = Get-Traces $clientLog
 
-# Хост-свой против гость-дубль и наоборот: у каждого выстрела есть две копии.
 $pairs = @(
     @{ Own = $hostTraces['shot1-proxyfalse']; Proxy = $clientTraces['shot1-proxytrue'] },
     @{ Own = $clientTraces['shot1-proxyfalse']; Proxy = $hostTraces['shot1-proxytrue'] }
@@ -106,10 +101,22 @@ function Get-LastStat([string]$path, [string]$name) {
     return -1
 }
 
+function Get-ExplosionBricks([string]$path) {
+    if (-not (Test-Path $path)) { return @() }
+    $counts = @()
+    foreach ($line in (Get-Content $path | Where-Object { $_ -match 'NET_EXPLOSION ' })) {
+        if ($line -match 'dead=(\d+)') { $counts += [int]$Matches[1] }
+    }
+    return $counts
+}
+
+$hostBricks = @(Get-ExplosionBricks $hostLog)
+$clientBricks = @(Get-ExplosionBricks $clientLog)
+$hostSorted = ($hostBricks | Sort-Object) -join ','
+$clientSorted = ($clientBricks | Sort-Object) -join ','
 $hostExplosions = Get-LastStat $hostLog 'explosions'
 $clientExplosions = Get-LastStat $clientLog 'explosions'
 $hostDetached = Get-LastStat $hostLog 'detached'
-$clientDetached = Get-LastStat $clientLog 'detached'
 
 # --- клиент остался онлайн --------------------------------------------------
 $clientHeartbeats = @()
@@ -118,32 +125,12 @@ if (Test-Path $clientLog) {
 }
 $lastHeartbeatT = -1
 if ($clientHeartbeats.Count -gt 0 -and $clientHeartbeats[-1] -match 't=(\d+)') { $lastHeartbeatT = [int]$Matches[1] }
-# Последняя строка статистики замка идёт с того же часов, что и heartbeat, и
-# печатается только пока Net.online(). Значит «клиент жив до конца» — это
-# heartbeat не старше последней статистики.
 $lastCastleT = -1
 if (Test-Path $clientLog) {
     $castleLines = Get-Content $clientLog | Where-Object { $_ -match 'NET_CASTLE' }
     if ($castleLines.Count -gt 0 -and $castleLines[-1] -match 't=(\d+)') { $lastCastleT = [int]$Matches[1] }
 }
 $heartbeatCount = $clientHeartbeats.Count
-
-# Мгновенно выбитые кирпичи по каждому взрыву. Поле `detached` в статистике
-# растёт ещё и от каскада опор, который идёт во времени, поэтому сравнивать его
-# в конце прогона нельзя — сравниваем именно мгновенный урон каждого взрыва.
-function Get-ExplosionKills([string]$path) {
-    if (-not (Test-Path $path)) { return @() }
-    $kills = @()
-    foreach ($line in (Get-Content $path | Where-Object { $_ -match 'NET_EXPLOSION ' })) {
-        if ($line -match 'killed=(\d+)') { $kills += [int]$Matches[1] }
-    }
-    return $kills
-}
-
-$hostKills = @(Get-ExplosionKills $hostLog)
-$clientKills = @(Get-ExplosionKills $clientLog)
-$hostKillsSorted = ($hostKills | Sort-Object) -join ','
-$clientKillsSorted = ($clientKills | Sort-Object) -join ','
 
 $checks = [ordered]@{
     'host fired'                = $hostText -match 'DSH_NET_SHOT_SENT'
@@ -154,8 +141,8 @@ $checks = [ordered]@{
     'trajectories match'        = ($bestMatched -ge 3) -and ($bestWorstDelta -le $Tolerance)
     'ball actually hit masonry' = ($hostDetached -gt 0)
     'explosions equal'          = ($hostExplosions -gt 0) -and ($hostExplosions -eq $clientExplosions)
-    'two explosions only'       = ($hostKills.Count -eq 2) -and ($clientKills.Count -eq 2)
-    'same instant damage'       = ($hostKills.Count -gt 0) -and ($hostKillsSorted -eq $clientKillsSorted)
+    'two explosions only'       = ($hostBricks.Count -eq 2) -and ($clientBricks.Count -eq 2)
+    'same instant damage'       = ($hostBricks.Count -gt 0) -and ($hostSorted -eq $clientSorted)
     'client stayed online'      = ($heartbeatCount -ge 5) -and ($lastHeartbeatT -ge ($lastCastleT - 6)) -and ($lastCastleT -gt 0) -and ($clientText -notmatch 'DSH_NET_SERVER_DISCONNECTED')
 }
 $failed = @()
@@ -164,15 +151,16 @@ foreach ($name in $checks.Keys) {
     else { Write-Host ("FAIL  " + $name); $failed += $name }
 }
 
-Write-Host "`ntrace points matched=$bestMatched worst_delta=$([math]::Round($bestWorstDelta,3)) m"
-Write-Host "explosions host=$hostExplosions guest=$clientExplosions  instant kills host=[$hostKillsSorted] guest=[$clientKillsSorted]"
-Write-Host "detached at end host=$hostDetached guest=$clientDetached (каскад опор идёт во времени, не сравнивается)"
-Write-Host "last guest heartbeat t=$lastHeartbeatT s"
+Write-Host ""
+Write-Host "trace points matched=$bestMatched worst_delta=$([math]::Round($bestWorstDelta,3)) m"
+Write-Host "explosions host=$hostExplosions guest=$clientExplosions; bricks per explosion host=[$hostSorted] guest=[$clientSorted]"
+Write-Host "last guest heartbeat t=$lastHeartbeatT s; detached at stop host=$hostDetached"
 Write-Host "--- host ---"
-(Get-Content $hostLog | Where-Object { $_ -match 'NET_SHOT|NET_BALL_TRACE shot=1 proxy=false bucket=[48]|NET_CASTLE' } | Select-Object -Last 5) | ForEach-Object { Write-Host $_.Trim() }
+(Get-Content $hostLog | Where-Object { $_ -match 'NET_SHOT|NET_EXPLOSION|NET_CASTLE' } | Select-Object -Last 4) | ForEach-Object { Write-Host $_.Trim() }
 Write-Host "--- guest ---"
-(Get-Content $clientLog | Where-Object { $_ -match 'NET_SHOT|NET_BALL_TRACE shot=1 proxy=true bucket=[48]|NET_CASTLE' } | Select-Object -Last 5) | ForEach-Object { Write-Host $_.Trim() }
-Write-Host "`nlogs: $runs"
+(Get-Content $clientLog | Where-Object { $_ -match 'NET_SHOT|NET_EXPLOSION|NET_CASTLE' } | Select-Object -Last 4) | ForEach-Object { Write-Host $_.Trim() }
+Write-Host ""
+Write-Host "logs: $runs"
 
 if ($failed.Count -gt 0) {
     Write-Host ("DSH_NET projectile test FAILED: " + ($failed -join ', '))
