@@ -79,6 +79,8 @@ var _next_ship_stats_at: float = 0.0
 ## `--net-throw-at=СЕК` — бросок меча/копья (видимый дубль у второй стороны).
 var _throw_after: float = -1.0
 var _throw_sent: bool = false
+## `--net-quit-at=СЕК` — корректно выйти по таймеру (чтобы stdout успел сброситься).
+var _quit_after: float = -1.0
 ## `--net-teleport-at=СЕК` — клиент пытается телепортироваться на 500 м:
 ## проверка, что хост отклоняет скачок, а клиент возвращается на место.
 var _teleport_after: float = -1.0
@@ -133,6 +135,8 @@ func _read_test_args() -> void:
 			_ship_stats_every = maxf(0.5, float(argument.substr("--net-ship-stats=".length())))
 		elif argument.begins_with("--net-throw-at="):
 			_throw_after = float(argument.substr("--net-throw-at=".length()))
+		elif argument.begins_with("--net-quit-at="):
+			_quit_after = float(argument.substr("--net-quit-at=".length()))
 
 
 func avatar_for(id: int) -> CharacterBody3D:
@@ -205,9 +209,16 @@ func _selftest(delta: float) -> void:
 			and _melee_after < 0.0 and _inject_after < 0.0 and _heartbeat_every <= 0.0 \
 			and _gate_after < 0.0 and _catapult_after < 0.0 and _ship_after < 0.0 \
 			and _ship_stats_every <= 0.0 and _teleport_after < 0.0 \
-			and _player_stats_every <= 0.0 and _throw_after < 0.0:
+			and _player_stats_every <= 0.0 and _throw_after < 0.0 and _quit_after < 0.0:
 		return
 	_selftest_clock += delta
+	# DSH_NET: корректный выход по таймеру. Нужен тестам: убитый процесс теряет
+	# буферизованный stdout, и проверка «в логе пусто» врёт.
+	if _quit_after >= 0.0 and _selftest_clock >= _quit_after:
+		print("NET_QUIT role=", Net.role_name(), " t=", int(_selftest_clock))
+		Net.leave("selftest_done")
+		get_tree().quit(0)
+		return
 	if _heartbeat_every > 0.0 and _selftest_clock >= _next_heartbeat_at:
 		_next_heartbeat_at = _selftest_clock + _heartbeat_every
 		print("NET_HEARTBEAT role=", Net.role_name(), " t=", int(_selftest_clock),
