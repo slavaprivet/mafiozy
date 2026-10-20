@@ -74,6 +74,7 @@ var _gate_sent: bool = false
 ## `--net-catapult-at=СЕК` — выстрел из катапульты (камень-дубль у второй стороны).
 var _catapult_after: float = -1.0
 var _catapult_sent: bool = false
+var _catapult_wait_logged: bool = false
 ## `--net-ship-at=СЕК` — хост открывает паруса; клиент проверяет получение
 ## трансформа корабля.
 var _ship_after: float = -1.0
@@ -174,9 +175,14 @@ func _physics_process(delta: float) -> void:
 		Net.publish_state(_local_state())
 	_sync_avatars()
 	if Net.is_client() and not _client_ready_sent and castle_node() != null:
-		_client_ready_sent = true
-		Net.send_event_to_host("client_ready", {})
-		print("DSH_NET_CLIENT_READY")
+		# `Net.online()` истинно уже на старте соединения, когда пира-хоста ещё
+		# нет: первый `client_ready` уходил в пустоту, а флаг запрещал повтор, и
+		# хост навсегда оставался с `_clients_ready = 0`. Ждём появления хоста
+		# в составе, как это делает обычная отправка состояния.
+		if Net.players.has(1):
+			_client_ready_sent = true
+			Net.send_event_to_host("client_ready", {})
+			print("DSH_NET_CLIENT_READY")
 	if Net.is_client():
 		_apply_own_correction()
 
@@ -237,9 +243,19 @@ func _selftest(delta: float) -> void:
 	if _gate_after >= 0.0 and not _gate_sent and _selftest_clock >= _gate_after:
 		_gate_sent = true
 		_gate_test()
+	# Раньше здесь был только таймер: хост стрелял, не зная, поднялась ли сцена у
+	# гостя, и тест «камень-дубль» мог пройти на выстреле в пустоту. Теперь ждём
+	# `client_ready`; если его нет — выстрела нет, и проверка честно падает.
 	if _catapult_after >= 0.0 and not _catapult_sent and _selftest_clock >= _catapult_after:
-		_catapult_sent = true
-		_catapult_test()
+		# Ждём готовности гостя только на хосте: у самого клиента счётчик всегда
+		# нулевой, и общее условие гасило его собственный выстрел.
+		if Net.is_host() and _clients_ready <= 0:
+			if not _catapult_wait_logged:
+				_catapult_wait_logged = true
+				print("DSH_NET_CATAPULT waiting=client_ready")
+		else:
+			_catapult_sent = true
+			_catapult_test()
 	if _ship_after >= 0.0 and not _ship_sent and _selftest_clock >= _ship_after:
 		_ship_sent = true
 		_ship_test()

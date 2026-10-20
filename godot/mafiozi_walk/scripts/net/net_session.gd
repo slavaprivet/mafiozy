@@ -537,6 +537,11 @@ const HOST_ONLY_EVENTS := ["destruction", "melee_hit"]
 ## запуск снаряда, бросок, чат, действия с транспортом. Урона они не наносят —
 ## урон всегда идёт отдельным решением хоста.
 const CLIENT_RELAY_EVENTS := ["projectile", "throw", "chat", "vehicle", "npc_emote"]
+## Служебные сообщения готовности клиента: это не запрос и не игровое событие,
+## но хост обязан их видеть — иначе он стреляет, не зная, поднялась ли сцена у
+## гостя. Раньше `client_ready` отсекался фильтром ниже и до `_on_event` не
+## доходил, а счётчик `_clients_ready` оставался нулём.
+const CLIENT_CONTROL_EVENTS := ["client_ready"]
 
 
 ## Может ли клиент отправлять событие такого вида. Запросы (`*_request`)
@@ -544,6 +549,8 @@ const CLIENT_RELAY_EVENTS := ["projectile", "throw", "chat", "vehicle", "npc_emo
 func _client_may_send(kind: String) -> bool:
 	if HOST_ONLY_EVENTS.has(kind):
 		return false
+	if CLIENT_CONTROL_EVENTS.has(kind):
+		return true
 	if kind.ends_with("_request"):
 		return true
 	return CLIENT_RELAY_EVENTS.has(kind)
@@ -565,7 +572,8 @@ func _on_event(message: Dictionary, sender: int) -> void:
 			return
 		event_received.emit(kind, data, from_id)
 		# Запросы вида `*_request` обслуживает только хост — остальным они не нужны.
-		if not kind.ends_with("_request"):
+		# Служебная готовность тоже остаётся у хоста: гостю она ничего не сообщает.
+		if not kind.ends_with("_request") and not CLIENT_CONTROL_EVENTS.has(kind):
 			_broadcast(Protocol.make(Protocol.MSG_EVENT, {"e": kind, "d": data, "f": from_id}))
 	else:
 		event_received.emit(kind, data, int(message.get("f", sender)))
