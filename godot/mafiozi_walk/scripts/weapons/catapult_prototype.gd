@@ -109,6 +109,8 @@ var _fly_age := 0.0
 var _last_impact := {}
 var _hits := 0
 var _stone_hit_victims: Dictionary = {}
+## DSH_NET: кинематические дубли чужих камней (визуал, без урона).
+var _net_stones: Array[Dictionary] = []
 var _unarmed_stone_hp := 100.0
 var _last_stone_damage: Dictionary = {}
 
@@ -131,6 +133,10 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 		return {"ok": false, "reason": "missing_owner"}
 	_world = world
 	_player = player
+	# DSH_NET: чужие камни слушаем с момента установки машины; обработчик сам
+	# проверяет, включена ли сеть и не наш ли это выстрел.
+	if not Net.event_received.is_connected(_on_net_event):
+		Net.event_received.connect(_on_net_event)
 	# The player writes his animated skeleton during physics. Apply the carry pose
 	# afterwards, otherwise the next locomotion tick drops both arms again.
 	process_physics_priority = 100
@@ -971,6 +977,89 @@ func _release() -> void:
 	_fired += 1
 	print("DSH_CATAPULT_FIRED yaw=", _yaw, " elevation=", _elevation,
 		" speed=", _fly_velocity.length(), " shots=", _fired)
+	_announce_stone(_fly_prev, _fly_velocity, _fired)
+
+
+# ------------------------------------------------------------------ DSH_NET
+## Камень — RigidBody3D, его траектория между машинами не повторяется. По сети
+## идёт ОДНО событие запуска, а вторая сторона ведёт кинематический дубль:
+## он летит по той же баллистике и даёт пыль, но урона не наносит. Урон и
+## разрушение остаются за владельцем выстрела (через destruction_request).
+func _announce_stone(origin: Vector3, velocity: Vector3, shot: int) -> void:
+	if not Net.online():
+		return
+	print("DSH_CATAPULT_NET_SENT shot=", shot, " from=", origin, " v=", velocity)
+	Net.send_event("projectile", {"k": "catapult", "o": origin, "v": velocity, "id": shot})
+
+
+func _on_net_event(kind: String, data: Dictionary, from_id: int) -> void:
+	if kind != "projectile" or from_id == Net.local_id:
+		return
+	if str(data.get("k", "")) != "catapult":
+		return
+	var origin: Variant = data.get("o")
+	var velocity: Variant = data.get("v")
+	if not (origin is Vector3) or not (velocity is Vector3):
+		return
+	_spawn_net_stone(origin, velocity, int(data.get("id", 0)))
+
+
+func _spawn_net_stone(origin: Vector3, velocity: Vector3, shot: int) -> void:
+	var node := MeshInstance3D.new()
+	node.mesh = _build_rock_mesh()
+	if _materials.has("stone"):
+		node.material_override = _materials["stone"]
+	add_child(node)
+	node.global_position = origin
+	_net_stones.append({"node": node, "v": velocity, "age": 0.0})
+	print("DSH_CATAPULT_PROXY shot=", shot, " from=", origin, " v=", velocity)
+
+
+func _step_net_stones(delta: float) -> void:
+	if _net_stones.is_empty():
+		return
+	for index: int in range(_net_stones.size() - 1, -1, -1):
+		var entry: Dictionary = _net_stones[index]
+		var node: Variant = entry.get("node")
+		if not is_instance_valid(node):
+			_net_stones.remove_at(index)
+			continue
+		var age: float = float(entry.get("age", 0.0)) + delta
+		entry["age"] = age
+		var velocity: Vector3 = entry.get("v", Vector3.ZERO)
+		var from: Vector3 = (node as Node3D).global_position
+		velocity += Vector3.DOWN * GRAVITY * delta
+		entry["v"] = velocity
+		var to: Vector3 = from + velocity * delta
+		var hit: Dictionary = {}
+		if is_inside_tree():
+			var space: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
+			if space != null:
+				var query := PhysicsRayQueryParameters3D.create(from, to, 1)
+				query.hit_from_inside = true
+				hit = space.intersect_ray(query)
+		if not hit.is_empty():
+			_spawn_dust(hit.get("position", to), hit.get("normal", Vector3.UP))
+			print("DSH_CATAPULT_PROXY_IMPACT at=", hit.get("position", to), " age=", age)
+			(node as Node3D).queue_free()
+			_net_stones.remove_at(index)
+			continue
+		(node as Node3D).global_position = to
+		_net_stones[index] = entry
+		if age > 8.0:
+			(node as Node3D).queue_free()
+			_net_stones.remove_at(index)
+
+
+## DSH_NET/тесты: положить камень на ложе и выстрелить без анимации замаха.
+func debug_launch() -> Dictionary:
+	if not is_instance_valid(_stone):
+		return {"ok": false, "reason": "no_stone"}
+	_carrying_stone = false
+	_loading = false
+	_stone_on_spoon = true
+	_release()
+	return {"ok": true, "from": _fly_prev, "velocity": _fly_velocity, "shots": _fired}
 
 ## DSH_CATAPULT: the rig HAS arms - upperarm_l/r and forearm_l/r - so the stone is carried by
 ## bending them around it, and no substitute geometry is needed.
@@ -1049,6 +1138,7 @@ func _push_speed_for(men: int) -> float:
 
 func _physics_process(delta: float) -> void:
 	if not _ready or not is_instance_valid(_cart): return
+	_step_net_stones(delta)
 	_recoil_lock = maxf(0.0, _recoil_lock - delta)
 	_pusher_timer -= delta
 	if _pusher_timer <= 0.0:

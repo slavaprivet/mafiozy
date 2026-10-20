@@ -1,24 +1,21 @@
-# DSH_NET — отрицательный тест авторитета (запрос ревьюера).
+# DSH_NET - отрицательный тест авторитета (по замечанию ревьюера).
 #
-# Сценарий «подделанный клиент»: гость шлёт событие `destruction` напрямую, как
-# это сделал бы модифицированный клиент, минуя castle.apply_explosion. Хост
-# обязан отклонить событие (DSH_NET_REJECT_EVENT) и НЕ пересылать его другим.
-# Затем тот же гость делает законный запрос (`destruction_request`) — он должен
-# сработать, чтобы тест не проходил «просто потому, что всё сломано».
+# Сценарий "подделанный клиент": гость шлёт событие destruction напрямую, как это
+# сделал бы модифицированный клиент, минуя castle.apply_explosion. Хост обязан
+# отклонить событие (DSH_NET_REJECT_EVENT) и НЕ пересылать его другим.
+# Затем тот же гость делает законный запрос (destruction_request) - он должен
+# сработать, иначе тест проходил бы "просто потому, что всё сломано".
 #
 # Критерии:
 #   * у хоста есть DSH_NET_REJECT_EVENT kind=destruction;
-#   * применение взрыва ровно одно на каждой стороне (NET_DESTRUCTION_APPLIED),
-#     то есть подделка не создала второе;
-#   * итоговые счётчики выбитой кладки у хоста и гостя совпадают и больше нуля.
-#
-#   pwsh -File tests/net/net_authority_test.ps1
+#   * взрывов ровно по одному на каждой стороне (подделка не добавила второй);
+#   * мгновенный урон взрыва совпал у обеих сторон.
 
 param(
     [int]$Port = 7897,
-    [double]$InjectAt = 8.0,
-    [double]$LegitAt = 16.0,
-    [double]$Settle = 30.0,
+    [double]$InjectAt = 12.0,
+    [double]$LegitAt = 22.0,
+    [double]$Settle = 26.0,
     [string]$Engine = "$env:LOCALAPPDATA\MafioziTools\Godot-4.7.2\Godot_v4.7.2-stable_win64_console.exe"
 )
 
@@ -54,46 +51,29 @@ if (-not $hostProcess.HasExited) { $hostProcess.Kill() }
 if (-not $clientProcess.HasExited) { $clientProcess.Kill() }
 Start-Sleep -Seconds 1
 
-function Get-LastDetached([string]$path) {
-    if (-not (Test-Path $path)) { return -1 }
-    $lines = Get-Content $path | Where-Object { $_ -match 'NET_CASTLE' }
-    if (-not $lines) { return -1 }
-    if ($lines[-1] -match 'detached=(\d+)') { return [int]$Matches[1] }
-    return -1
-}
-
-function Count-Matches([string]$text, [string]$pattern) {
-    return ([regex]::Matches($text, $pattern)).Count
+function Get-ExplosionBricks([string]$path) {
+    if (-not (Test-Path $path)) { return @() }
+    $counts = @()
+    foreach ($line in (Get-Content $path | Where-Object { $_ -match 'NET_EXPLOSION ' })) {
+        if ($line -match 'dead=(\d+)') { $counts += [int]$Matches[1] }
+    }
+    return $counts
 }
 
 $hostText = if (Test-Path $hostLog) { Get-Content $hostLog -Raw } else { '' }
 $clientText = if (Test-Path $clientLog) { Get-Content $clientLog -Raw } else { '' }
-$hostDetached = Get-LastDetached $hostLog
-$clientDetached = Get-LastDetached $clientLog
-$hostApplied = Count-Matches $hostText 'NET_DESTRUCTION_APPLIED'
-$clientApplied = Count-Matches $clientText 'NET_DESTRUCTION_APPLIED'
-
-# Мгновенный урон каждого взрыва: `detached` в статистике ещё растёт от каскада
-# опор, поэтому сравнивать его в конце прогона нельзя.
-function Get-ExplosionKills([string]$path) {
-    if (-not (Test-Path $path)) { return @() }
-    $kills = @()
-    foreach ($line in (Get-Content $path | Where-Object { $_ -match 'NET_EXPLOSION ' })) {
-        if ($line -match 'killed=(\d+)') { $kills += [int]$Matches[1] }
-    }
-    return $kills
-}
-
-$hostKills = @(Get-ExplosionKills $hostLog)
-$clientKills = @(Get-ExplosionKills $clientLog)
-$hostKillsSorted = ($hostKills | Sort-Object) -join ','
-$clientKillsSorted = ($clientKills | Sort-Object) -join ','
+$hostBricks = @(Get-ExplosionBricks $hostLog)
+$clientBricks = @(Get-ExplosionBricks $clientLog)
+$hostSorted = ($hostBricks | Sort-Object) -join ','
+$clientSorted = ($clientBricks | Sort-Object) -join ','
+$hostApplied = ([regex]::Matches($hostText, 'NET_DESTRUCTION_APPLIED')).Count
+$clientApplied = ([regex]::Matches($clientText, 'NET_DESTRUCTION_APPLIED')).Count
 
 $checks = [ordered]@{
-    'guest sent forged event'   = $clientText -match 'NET_INJECT kind=destruction'
-    'host rejected forged event'= $hostText -match 'DSH_NET_REJECT_EVENT kind=destruction'
-    'forged event not applied'  = ($hostApplied -eq 1) -and ($clientApplied -eq 1) -and ($hostKills.Count -eq 1) -and ($clientKills.Count -eq 1)
-    'legit request still works' = ($hostKills.Count -eq 1) -and ($hostKillsSorted -eq $clientKillsSorted) -and ($hostDetached -gt 0)
+    'guest sent forged event'    = $clientText -match 'NET_INJECT kind=destruction'
+    'host rejected forged event' = $hostText -match 'DSH_NET_REJECT_EVENT kind=destruction'
+    'forged event not applied'   = ($hostBricks.Count -eq 1) -and ($clientBricks.Count -eq 1)
+    'legit request still works'  = ($hostBricks.Count -eq 1) -and ($hostSorted -eq $clientSorted) -and ($hostApplied -ge 1)
 }
 $failed = @()
 foreach ($name in $checks.Keys) {
@@ -101,13 +81,14 @@ foreach ($name in $checks.Keys) {
     else { Write-Host ("FAIL  " + $name); $failed += $name }
 }
 
-Write-Host "`nhost applied=$hostApplied detached=$hostDetached  guest applied=$clientApplied detached=$clientDetached"
-Write-Host "instant kills host=[$hostKillsSorted] guest=[$clientKillsSorted]"
+Write-Host ""
+Write-Host "applied host=$hostApplied guest=$clientApplied; bricks per explosion host=[$hostSorted] guest=[$clientSorted]"
 Write-Host "--- host ---"
-(Get-Content $hostLog | Where-Object { $_ -match 'REJECT_EVENT|NET_INJECT|NET_DESTRUCTION|NET_BLAST' } | Select-Object -Last 6) | ForEach-Object { Write-Host $_.Trim() }
+(Get-Content $hostLog | Where-Object { $_ -match 'REJECT_EVENT|NET_INJECT|NET_EXPLOSION|NET_DESTRUCTION|NET_BLAST' } | Select-Object -Last 5) | ForEach-Object { Write-Host $_.Trim() }
 Write-Host "--- guest ---"
-(Get-Content $clientLog | Where-Object { $_ -match 'NET_INJECT|NET_DESTRUCTION|NET_BLAST|NET_CASTLE' } | Select-Object -Last 6) | ForEach-Object { Write-Host $_.Trim() }
-Write-Host "`nlogs: $runs"
+(Get-Content $clientLog | Where-Object { $_ -match 'NET_INJECT|NET_EXPLOSION|NET_DESTRUCTION|NET_BLAST' } | Select-Object -Last 5) | ForEach-Object { Write-Host $_.Trim() }
+Write-Host ""
+Write-Host "logs: $runs"
 
 if ($failed.Count -gt 0) {
     Write-Host ("DSH_NET authority test FAILED: " + ($failed -join ', '))

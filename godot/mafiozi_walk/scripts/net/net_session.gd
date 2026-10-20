@@ -54,6 +54,8 @@ var player_name: String = "player"
 var players: Dictionary = {}
 ## id -> последнее известное состояние (позиция, скорость, флаги).
 var states: Dictionary = {}
+## Ключ объекта -> состояние. Хост ведёт: "ship", "balloon", "horse", "tower".
+var world_states: Dictionary = {}
 var rtt_ms: int = 0
 var last_error: String = ""
 var events_sent: int = 0
@@ -141,6 +143,7 @@ func start_host(host_port: int = Protocol.DEFAULT_PORT, host_name: String = "") 
 	local_id = 1
 	players = {1: _player_entry(player_name)}
 	states = {}
+	world_states = {}
 	_known_peers = []
 	_rtt_reset()
 	print("DSH_NET_HOST port=", host_port, " max_clients=", Protocol.MAX_CLIENTS,
@@ -169,6 +172,7 @@ func start_client(address: String, join_port: int = Protocol.DEFAULT_PORT, join_
 	local_id = 0
 	players = {}
 	states = {}
+	world_states = {}
 	_known_peers = []
 	_handshake_sent = false
 	_connect_clock = 0.0
@@ -192,6 +196,7 @@ func leave(reason: String = "left") -> void:
 	local_id = 0
 	players = {}
 	states = {}
+	world_states = {}
 	_known_peers = []
 	_handshake_sent = false
 	rtt_ms = 0
@@ -209,6 +214,20 @@ func publish_state(state: Dictionary) -> void:
 
 func state_for(id: int) -> Dictionary:
 	var state: Variant = states.get(id)
+	return state if state is Dictionary else {}
+
+
+# ------------------------------------------------------------------ мир
+## Состояние объектов мира, которые ведёт хост: корабль, дирижабль, лошадь и т.п.
+## Отдельно от `states`, потому что это не игроки. Ключ — строка ("ship").
+func publish_world(key: String, state: Dictionary) -> void:
+	if role == Role.OFFLINE:
+		return
+	world_states[key] = state
+
+
+func world_state(key: String) -> Dictionary:
+	var state: Variant = world_states.get(key)
 	return state if state is Dictionary else {}
 
 
@@ -398,7 +417,7 @@ func _on_hello(message: Dictionary, sender: int) -> void:
 	}))
 	_broadcast_roster()
 	if not states.is_empty():
-		_send_to(sender, Protocol.make(Protocol.MSG_SNAPSHOT, {"t": _tick, "s": states}))
+		_send_to(sender, Protocol.make(Protocol.MSG_SNAPSHOT, {"t": _tick, "s": states, "w": world_states}))
 	print("DSH_NET_PEER_JOINED id=", sender, " name=", name, " total=", players.size())
 	peer_joined.emit(sender, players[sender])
 	_report_status()
@@ -466,6 +485,10 @@ func _on_snapshot(message: Dictionary) -> void:
 	for id: Variant in states:
 		if not players.has(int(id)):
 			players[int(id)] = _player_entry("player")
+	# Объекты мира (корабль и прочее) едут тем же снапшотом отдельным словарём.
+	var incoming_world: Variant = message.get("w", {})
+	if incoming_world is Dictionary:
+		world_states = (incoming_world as Dictionary).duplicate(true)
 	snapshot_received.emit(states)
 
 
@@ -591,7 +614,7 @@ func _process(delta: float) -> void:
 		if _snapshot_clock >= interval:
 			_snapshot_clock = fmod(_snapshot_clock, interval)
 			if not states.is_empty():
-				_broadcast(Protocol.make(Protocol.MSG_SNAPSHOT, {"t": _tick, "s": states}))
+				_broadcast(Protocol.make(Protocol.MSG_SNAPSHOT, {"t": _tick, "s": states, "w": world_states}))
 				snapshots_sent += 1
 		_check_timeouts()
 	else:

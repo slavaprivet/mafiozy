@@ -60,6 +60,17 @@ var _inject_sent: bool = false
 ## Тест по ней доказывает, что клиент остался в сети к концу прогона.
 var _heartbeat_every: float = 0.0
 var _next_heartbeat_at: float = 0.0
+## `--net-gate-at=СЕК` — взрыв у ворот: проверяет перенос состояния створок.
+var _gate_after: float = -1.0
+var _gate_sent: bool = false
+## `--net-catapult-at=СЕК` — выстрел из катапульты (камень-дубль у второй стороны).
+var _catapult_after: float = -1.0
+var _catapult_sent: bool = false
+## `--net-ship-at=СЕК` — хост двигает корабль; клиент обязан повторить трансформ.
+var _ship_after: float = -1.0
+var _ship_sent: bool = false
+var _ship_stats_every: float = 0.0
+var _next_ship_stats_at: float = 0.0
 
 
 func install(world_root: Node3D, player: CharacterBody3D) -> void:
@@ -93,6 +104,14 @@ func _read_test_args() -> void:
 			_inject_after = float(argument.substr("--net-inject-at=".length()))
 		elif argument.begins_with("--net-heartbeat="):
 			_heartbeat_every = maxf(0.5, float(argument.substr("--net-heartbeat=".length())))
+		elif argument.begins_with("--net-gate-at="):
+			_gate_after = float(argument.substr("--net-gate-at=".length()))
+		elif argument.begins_with("--net-catapult-at="):
+			_catapult_after = float(argument.substr("--net-catapult-at=".length()))
+		elif argument.begins_with("--net-ship-at="):
+			_ship_after = float(argument.substr("--net-ship-at=".length()))
+		elif argument.begins_with("--net-ship-stats="):
+			_ship_stats_every = maxf(0.5, float(argument.substr("--net-ship-stats=".length())))
 
 
 func avatar_for(id: int) -> CharacterBody3D:
@@ -126,7 +145,9 @@ func _physics_process(delta: float) -> void:
 ## счётчики кладки. Нужен, чтобы этап 3 проверялся без ручного участия.
 func _selftest(delta: float) -> void:
 	if _blast_after < 0.0 and _stats_every <= 0.0 and _shot_after < 0.0 \
-			and _melee_after < 0.0 and _inject_after < 0.0 and _heartbeat_every <= 0.0:
+			and _melee_after < 0.0 and _inject_after < 0.0 and _heartbeat_every <= 0.0 \
+			and _gate_after < 0.0 and _catapult_after < 0.0 and _ship_after < 0.0 \
+			and _ship_stats_every <= 0.0:
 		return
 	_selftest_clock += delta
 	if _heartbeat_every > 0.0 and _selftest_clock >= _next_heartbeat_at:
@@ -136,6 +157,18 @@ func _selftest(delta: float) -> void:
 	if _blast_after >= 0.0 and not _blast_sent and _selftest_clock >= _blast_after:
 		_blast_sent = true
 		_blast_wall()
+	if _gate_after >= 0.0 and not _gate_sent and _selftest_clock >= _gate_after:
+		_gate_sent = true
+		_gate_test()
+	if _catapult_after >= 0.0 and not _catapult_sent and _selftest_clock >= _catapult_after:
+		_catapult_sent = true
+		_catapult_test()
+	if _ship_after >= 0.0 and not _ship_sent and _selftest_clock >= _ship_after:
+		_ship_sent = true
+		_ship_test()
+	if _ship_stats_every > 0.0 and _selftest_clock >= _next_ship_stats_at:
+		_next_ship_stats_at = _selftest_clock + _ship_stats_every
+		_ship_stats()
 	if _shot_after >= 0.0 and not _shot_sent and _selftest_clock >= _shot_after:
 		_shot_sent = true
 		_fire_test_shot()
@@ -170,6 +203,82 @@ func _blast_wall() -> void:
 
 ## Выстрел из корабельной пушки для проверки снарядов-дублей. `debug_fire_at`
 ## сам наводит, заряжает и стреляет — участие игрока не нужно.
+## Взрыв у ворот: доски створок считаются отдельно от кирпичей, поэтому их
+## состояние хост присылает списком (gate_state / apply_gate_state).
+func _gate_test() -> void:
+	var castle: Node = castle_node()
+	if castle == null:
+		print("NET_GATE skipped=no_castle")
+		return
+	var half: float = float(castle.call("wall_half")) if castle.has_method("wall_half") else 68.0
+	var point: Vector3 = (castle as Node3D).to_global(Vector3(0.0, 4.0, half + 2.75))
+	# Целимся в настоящую доску створки: геометрия ворот зависит от сборки, и
+	# «примерно в центр» давало ноль попаданий.
+	var boards: Array = castle.call("gate_board_points")
+	if not boards.is_empty():
+		point = boards[0] as Vector3
+		print("NET_GATE boards=", boards.size(), " aim=", point)
+	var event: Dictionary = {"position": point, "radius": 2.0, "power": 90.0,
+		"direction": Vector3(0.0, 0.0, -1.0), "kind": "net_gate_test"}
+	if Net.is_client():
+		print("NET_GATE request point=", point)
+		Net.send_event_to_host("destruction_request", {"site": "castle", "e": event})
+	else:
+		castle.call("apply_explosion", event)
+		print("NET_GATE host point=", point)
+
+
+## Выстрел из катапульты: камень — RigidBody3D, поэтому вторая сторона ведёт
+## кинематический дубль по событию запуска (проверка tests/net/net_catapult_test.ps1).
+func _catapult_test() -> void:
+	if world == null:
+		return
+	var catapult: Variant = world.get("preview_catapult")
+	if catapult == null or not (catapult is Object) or not is_instance_valid(catapult as Object):
+		print("NET_CATAPULT skipped=no_machine")
+		return
+	var result: Variant = catapult.call("debug_launch")
+	print("NET_CATAPULT role=", Net.role_name(), " result=", result)
+
+
+func _ship_node() -> Node3D:
+	if world == null:
+		return null
+	var host: Variant = world.get("preview_ship")
+	if host != null and host is Object and is_instance_valid(host as Object):
+		var boat: Variant = (host as Object).get("preview_boat")
+		if boat != null and boat is Object and is_instance_valid(boat as Object):
+			return boat as Node3D
+	# Хост корабля мог быть пересобран — ищем узел по имени.
+	var found: Node = world.find_child("ShipBoat", true, false)
+	return found as Node3D
+
+
+## Хост сдвигает корабль: клиент обязан повторить трансформ из снапшота.
+func _ship_test() -> void:
+	var boat: Node3D = _ship_node()
+	if boat == null:
+		print("NET_SHIP skipped=no_boat")
+		return
+	var before: Vector3 = boat.global_position
+	# Открываем паруса: корабль стоит на стоянке и сам возвращается туда, поэтому
+	# телепорт симуляция отменяет. Паруса дают настоящее движение, которое и
+	# должен повторить клиент.
+	if boat.has_method("set_sails"):
+		boat.call("set_sails", true)
+	print("NET_SHIP start pos=", before, " sails=", boat.call("sails_open") if boat.has_method("sails_open") else "?")
+
+
+func _ship_stats() -> void:
+	var boat: Node3D = _ship_node()
+	var position: Vector3 = boat.global_position if boat != null else Vector3.ZERO
+	print("NET_SHIP t=", int(_selftest_clock), " role=", Net.role_name(), " pos=", position,
+		" keys=", Net.world_states.keys(), " online=", Net.online(),
+		" boat=", boat != null,
+		" ship_host=", world.get("preview_ship") != null if world != null else false,
+		" state_pos=", (Net.world_state("ship").get("p") if not Net.world_state("ship").is_empty() else "none"))
+
+
 func _fire_test_shot() -> void:
 	if world == null:
 		return
@@ -408,6 +517,9 @@ func _apply_network_explosion(data: Dictionary, as_replay: bool) -> void:
 		result = castle.call("apply_dead_cells", data.get("dead"), event)
 	else:
 		result = castle.call("apply_explosion", event)
+	# Створки ворот считаются отдельно от кирпичей — переносим их состояние.
+	if as_replay and data.get("gate") is Array:
+		castle.call("apply_gate_state", data.get("gate"))
 	var detached: int = -1
 	if result is Dictionary:
 		detached = int((result as Dictionary).get("detached", -1))

@@ -128,6 +128,10 @@ func install(world_in: Node3D, castle_in: Node3D) -> Dictionary:
 	# 3. The hull: an AnimatableBody3D platform with buoyancy, sailing and flooding.
 	preview_boat = ShipBoat.new()
 	preview_boat.name = "ShipBoat"
+	# DSH_NET: помечаем ИМЕННО корабль игрока. В сцене есть второй корабль-цель
+	# (ship_target), у него тоже включён автопилот, и без метки он публиковал бы
+	# свой трансформ в тот же сетевой ключ "ship".
+	preview_boat.set_meta("net_authority", true)
 	add_child(preview_boat)
 	var boat_result: Dictionary = preview_boat.install(world, preview_basin, player, preview_model)
 	if not bool(boat_result.get("ok", false)):
