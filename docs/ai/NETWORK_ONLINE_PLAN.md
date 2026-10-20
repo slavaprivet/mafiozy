@@ -288,6 +288,15 @@ castle.apply_gate_state(gate)
 карте замка флагом `--sword-proto=1` привела к тому, что клиент умирал сразу
 после `WELCOME` (лог обрывался, stderr пуст), поэтому изменение откатано.
 
+**Уточнение 21.10.2026 (важно для следующего агента):** в headless-прогоне
+`res://scenes/main_city.tscn` корневой узел `MafioziWalkMigration` ведёт себя как
+обычный `Node3D` — скрипт `main.gd` на нём фактически не работает, из-за чего
+`npc_city_bootstrap.gd::_set_status` падает на `_scene.preview_population`
+(«Invalid access to property ... on a base object of type 'Node3D'»), а вывод
+обрывается сразу после `CITY_BOOTSTRAP_FAILED`. Городская сцена в таком виде
+годится только для живой проверки. Замок (`scenes/castle.tscn`) в headless
+работает штатно — все остальные сетевые тесты идут на нём.
+
 Следующий шаг: поднять городскую сцену в headless (найти её bootstrap-флаги)
 или прогнать бросок на живом окне; до этого код считать непроверенным.
 `tests/net/net_throw_test.ps1` готов, но упадёт по этой же причине.
