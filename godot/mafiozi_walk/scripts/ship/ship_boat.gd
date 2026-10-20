@@ -910,6 +910,14 @@ func simulate_step(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	if not _autopilot:
 		return
+	# DSH_NET: корпус ведёт хост. Клиент не симулирует корабль, а повторяет
+	# присланный трансформ: иначе у двух игроков корабль стоит в разных местах и
+	# палуба с пушками оказывается не там, где её видят.
+	if Net.online() and Net.is_host() and has_meta("net_authority"):
+		simulate_step(delta)
+		Net.publish_world("ship", {"p": global_position,
+			"q": global_basis.get_rotation_quaternion()})
+		return
 	simulate_step(delta)
 
 
