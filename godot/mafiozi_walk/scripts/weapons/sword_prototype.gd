@@ -388,6 +388,9 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 	if _ready or not is_instance_valid(world) or not is_instance_valid(player): return {"ok": false, "reason": "binding"}
 	_world = world
 	_player = player
+	# DSH_NET: чужие броски слушаем с момента установки оружия.
+	if not Net.event_received.is_connected(_on_net_event):
+		Net.event_received.connect(_on_net_event)
 	var rig: Skeleton3D = player.get("_pose_skeleton") as Skeleton3D
 	if rig == null: return {"ok": false, "reason": "skeleton"}
 	_rig = rig
@@ -2015,6 +2018,7 @@ func _physics_process(delta: float) -> void:
 		_prev_points = PackedVector3Array()
 		_update_city_npc(delta)
 		_step_thrown(delta)
+	_step_net_thrown(delta)
 		return
 	if not active:
 		_reset_contact_plane()
@@ -2037,6 +2041,7 @@ func _physics_process(delta: float) -> void:
 		if not bool(_world.get("preview_dead")):
 			_update_city_npc(delta)
 			_step_thrown(delta)
+	_step_net_thrown(delta)
 		return
 	if not _synthetic_hands:
 		# Real input: the buttons are read from the engine every frame, so a missed
@@ -2110,6 +2115,7 @@ func _physics_process(delta: float) -> void:
 	_update_city_npc(delta)
 	# DSH_MELEE_SET: a thrown weapon flies on its own, once per physics tick.
 	_step_thrown(delta)
+	_step_net_thrown(delta)
 	# The wind-up runs on the physics clock so a missed release cannot leave it stuck.
 	if _throwing:
 		_throw_windup = minf(_throw_windup + delta, THROW_WINDUP_TIME)
@@ -2145,6 +2151,8 @@ var _spear_aim_heading_active31 := false
 var _spear_follow_left := 0.0
 var _spear_release_power := 0.0
 var _thrown: Array[Dictionary] = []
+## DSH_NET: видимые дубли чужих бросков (летят, втыкаются, урона не наносят).
+var _net_thrown: Array[Dictionary] = []
 var _unarmed := false
 var _thrown_total := 0
 
@@ -2339,6 +2347,7 @@ func _launch_spear_from_hand31() -> void:
 	_spear_release_power = power
 	_spear_follow_left = SPEAR_FOLLOW_TIME
 	_thrown_total += 1
+	_announce_throw(_weapon_id, from, direction * speed)
 	_prev_points = PackedVector3Array()
 	# A fresh model is built for the next time the player picks something up.
 	# DSH_MELEE_SET: every weapon of the set is built NOW, at install time, so choosing
@@ -2351,6 +2360,90 @@ func _launch_spear_from_hand31() -> void:
 	_sword = _weapon_models.get(_weapon_id)
 	_sword.visible = false
 	print("DSH_MELEE_THROW released weapon=", _weapon_id, " power=", power, " speed=", speed)
+
+# ------------------------------------------------------------------ DSH_NET
+## Бросок меча/копья. Оружие уже летит как снаряд с ручной интеграцией, поэтому по
+## сети идёт одно событие: какое оружие, откуда, с какой скоростью. Вторая сторона
+## строит такой же видимый снаряд и ведёт его тем же шагом, но урона не наносит:
+## урон остаётся за владельцем броска.
+func _announce_throw(weapon_id: String, origin: Vector3, velocity: Vector3) -> void:
+	if not Net.online():
+		return
+	print("DSH_NET_THROW_SENT weapon=", weapon_id, " from=", origin, " v=", velocity)
+	Net.send_event("throw", {"w": weapon_id, "o": origin, "v": velocity})
+
+
+func _on_net_event(kind: String, data: Dictionary, from_id: int) -> void:
+	if kind != "throw" or from_id == Net.local_id:
+		return
+	var origin: Variant = data.get("o")
+	var velocity: Variant = data.get("v")
+	if not (origin is Vector3) or not (velocity is Vector3):
+		return
+	_spawn_net_thrown(str(data.get("w", "sword")), origin, velocity, from_id)
+
+
+func _spawn_net_thrown(weapon_id: String, origin: Vector3, velocity: Vector3, from_id: int) -> void:
+	var model: Node3D = _build_weapon_model(_world, weapon_id)
+	if not is_instance_valid(model):
+		return
+	model.visible = true
+	model.global_position = origin
+	_net_thrown.append({"node": model, "v": velocity, "age": 0.0, "stuck": false})
+	print("DSH_NET_THROW_PROXY weapon=", weapon_id, " from=", from_id, " at=", origin)
+
+
+func _step_net_thrown(delta: float) -> void:
+	if _net_thrown.is_empty():
+		return
+	for index: int in range(_net_thrown.size() - 1, -1, -1):
+		var entry: Dictionary = _net_thrown[index]
+		var node: Variant = entry.get("node")
+		if not is_instance_valid(node):
+			_net_thrown.remove_at(index)
+			continue
+		var age: float = float(entry.get("age", 0.0)) + delta
+		entry["age"] = age
+		if bool(entry.get("stuck", false)):
+			_net_thrown[index] = entry
+			if age > 12.0:
+				(node as Node3D).queue_free()
+				_net_thrown.remove_at(index)
+			continue
+		var velocity: Vector3 = entry.get("v", Vector3.ZERO)
+		var from: Vector3 = (node as Node3D).global_position
+		velocity += Vector3.DOWN * THROW_GRAVITY * delta
+		entry["v"] = velocity
+		var to: Vector3 = from + velocity * delta
+		var hit: Dictionary = {}
+		if is_inside_tree():
+			var space: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
+			if space != null:
+				var query := PhysicsRayQueryParameters3D.create(from, to, 1)
+				query.hit_from_inside = true
+				hit = space.intersect_ray(query)
+		if not hit.is_empty():
+			(node as Node3D).global_position = hit.get("position", to)
+			entry["stuck"] = true
+			_net_thrown[index] = entry
+			print("DSH_NET_THROW_LAND at=", hit.get("position", to))
+			continue
+		(node as Node3D).global_position = to
+		_net_thrown[index] = entry
+		if age > 12.0:
+			(node as Node3D).queue_free()
+			_net_thrown.remove_at(index)
+
+
+## Тест/отладка: бросить оружие без анимации замаха.
+func debug_throw() -> Dictionary:
+	if _unarmed or not is_throwable():
+		return {"ok": false, "reason": "not_armed", "weapon": _weapon_id}
+	_spear_cast_power31 = 1.0
+	_spear_cast_pending31 = true
+	_launch_spear_from_hand31()
+	return {"ok": true, "weapon": _weapon_id, "thrown": _thrown_total}
+
 
 func _step_thrown(delta: float) -> void:
 	if _thrown.is_empty(): return

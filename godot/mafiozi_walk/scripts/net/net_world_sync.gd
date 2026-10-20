@@ -76,6 +76,9 @@ var _ship_after: float = -1.0
 var _ship_sent: bool = false
 var _ship_stats_every: float = 0.0
 var _next_ship_stats_at: float = 0.0
+## `--net-throw-at=СЕК` — бросок меча/копья (видимый дубль у второй стороны).
+var _throw_after: float = -1.0
+var _throw_sent: bool = false
 ## `--net-teleport-at=СЕК` — клиент пытается телепортироваться на 500 м:
 ## проверка, что хост отклоняет скачок, а клиент возвращается на место.
 var _teleport_after: float = -1.0
@@ -128,6 +131,8 @@ func _read_test_args() -> void:
 			_ship_after = float(argument.substr("--net-ship-at=".length()))
 		elif argument.begins_with("--net-ship-stats="):
 			_ship_stats_every = maxf(0.5, float(argument.substr("--net-ship-stats=".length())))
+		elif argument.begins_with("--net-throw-at="):
+			_throw_after = float(argument.substr("--net-throw-at=".length()))
 
 
 func avatar_for(id: int) -> CharacterBody3D:
@@ -200,7 +205,7 @@ func _selftest(delta: float) -> void:
 			and _melee_after < 0.0 and _inject_after < 0.0 and _heartbeat_every <= 0.0 \
 			and _gate_after < 0.0 and _catapult_after < 0.0 and _ship_after < 0.0 \
 			and _ship_stats_every <= 0.0 and _teleport_after < 0.0 \
-			and _player_stats_every <= 0.0:
+			and _player_stats_every <= 0.0 and _throw_after < 0.0:
 		return
 	_selftest_clock += delta
 	if _heartbeat_every > 0.0 and _selftest_clock >= _next_heartbeat_at:
@@ -225,6 +230,9 @@ func _selftest(delta: float) -> void:
 	if _teleport_after >= 0.0 and not _teleport_sent and _selftest_clock >= _teleport_after:
 		_teleport_sent = true
 		_teleport_test()
+	if _throw_after >= 0.0 and not _throw_sent and _selftest_clock >= _throw_after:
+		_throw_sent = true
+		_throw_test()
 	if _player_stats_every > 0.0 and _selftest_clock >= _next_player_stats_at:
 		_next_player_stats_at = _selftest_clock + _player_stats_every
 		_player_stats()
@@ -290,6 +298,19 @@ func _gate_test() -> void:
 
 ## Выстрел из катапульты: камень — RigidBody3D, поэтому вторая сторона ведёт
 ## кинематический дубль по событию запуска (проверка tests/net/net_catapult_test.ps1).
+## Бросок меча/копья (проверка tests/net/net_throw_test.ps1). Работает в сцене,
+## где установлен sword_prototype (город с --sword-proto=1).
+func _throw_test() -> void:
+	if world == null:
+		return
+	var sword: Variant = world.get("preview_sword_prototype")
+	if sword == null or not (sword is Object) or not is_instance_valid(sword as Object):
+		print("NET_THROW skipped=no_sword")
+		return
+	var result: Variant = sword.call("debug_throw")
+	print("NET_THROW role=", Net.role_name(), " result=", result)
+
+
 func _catapult_test() -> void:
 	if world == null:
 		return
