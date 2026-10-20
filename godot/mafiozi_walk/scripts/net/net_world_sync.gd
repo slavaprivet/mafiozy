@@ -63,6 +63,9 @@ var _next_heartbeat_at: float = 0.0
 ## `--net-gate-at=СЕК` — взрыв у ворот: проверяет перенос состояния створок.
 var _gate_after: float = -1.0
 var _gate_sent: bool = false
+## `--net-catapult-at=СЕК` — выстрел из катапульты (камень-дубль у второй стороны).
+var _catapult_after: float = -1.0
+var _catapult_sent: bool = false
 
 
 func install(world_root: Node3D, player: CharacterBody3D) -> void:
@@ -98,6 +101,8 @@ func _read_test_args() -> void:
 			_heartbeat_every = maxf(0.5, float(argument.substr("--net-heartbeat=".length())))
 		elif argument.begins_with("--net-gate-at="):
 			_gate_after = float(argument.substr("--net-gate-at=".length()))
+		elif argument.begins_with("--net-catapult-at="):
+			_catapult_after = float(argument.substr("--net-catapult-at=".length()))
 
 
 func avatar_for(id: int) -> CharacterBody3D:
@@ -132,7 +137,7 @@ func _physics_process(delta: float) -> void:
 func _selftest(delta: float) -> void:
 	if _blast_after < 0.0 and _stats_every <= 0.0 and _shot_after < 0.0 \
 			and _melee_after < 0.0 and _inject_after < 0.0 and _heartbeat_every <= 0.0 \
-			and _gate_after < 0.0:
+			and _gate_after < 0.0 and _catapult_after < 0.0:
 		return
 	_selftest_clock += delta
 	if _heartbeat_every > 0.0 and _selftest_clock >= _next_heartbeat_at:
@@ -145,6 +150,9 @@ func _selftest(delta: float) -> void:
 	if _gate_after >= 0.0 and not _gate_sent and _selftest_clock >= _gate_after:
 		_gate_sent = true
 		_gate_test()
+	if _catapult_after >= 0.0 and not _catapult_sent and _selftest_clock >= _catapult_after:
+		_catapult_sent = true
+		_catapult_test()
 	if _shot_after >= 0.0 and not _shot_sent and _selftest_clock >= _shot_after:
 		_shot_sent = true
 		_fire_test_shot()
@@ -202,6 +210,19 @@ func _gate_test() -> void:
 	else:
 		castle.call("apply_explosion", event)
 		print("NET_GATE host point=", point)
+
+
+## Выстрел из катапульты: камень — RigidBody3D, поэтому вторая сторона ведёт
+## кинематический дубль по событию запуска (проверка tests/net/net_catapult_test.ps1).
+func _catapult_test() -> void:
+	if world == null:
+		return
+	var catapult: Variant = world.get("preview_catapult")
+	if catapult == null or not (catapult is Object) or not is_instance_valid(catapult as Object):
+		print("NET_CATAPULT skipped=no_machine")
+		return
+	var result: Variant = catapult.call("debug_launch")
+	print("NET_CATAPULT role=", Net.role_name(), " result=", result)
 
 
 func _fire_test_shot() -> void:
