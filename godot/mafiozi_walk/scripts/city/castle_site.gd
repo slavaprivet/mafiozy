@@ -3706,7 +3706,24 @@ func _indices_box(low: Vector3, high: Vector3) -> Array[int]:
 
 ## A blast knocks out every brick inside its radius, and the courses above them come down
 ## a moment later.
+## DSH_NET: разрушение решает только хост.
+##
+## Клиент НЕ ломает кладку у себя: он просит хоста, хост применяет удар и
+## рассылает его всем. Так два игрока не «убивают» один кирпич по-разному, и
+## у гостя не появляется дыра, которой нет у хоста.
+## Одиночная игра и повтор с флагом `from_network` идут прямо в локальную ветку.
 func apply_explosion(event: Dictionary) -> Dictionary:
+	if Net.online() and not bool(event.get("from_network", false)):
+		if not Net.is_host():
+			Net.send_event_to_host("destruction_request", {"site": "castle", "e": event})
+			return {"ok": false, "reason": "requested", "detached": 0, "state": "requested"}
+		var applied: Dictionary = _apply_explosion_local(event)
+		Net.broadcast_event("destruction", {"site": "castle", "e": event})
+		return applied
+	return _apply_explosion_local(event)
+
+
+func _apply_explosion_local(event: Dictionary) -> Dictionary:
 	if not _ready: return {"ok": false, "reason": "not_ready"}
 	# The strike arrives in WORLD coordinates - a catapult stone knows nothing of this
 	# node - while the bricks are laid in local ones.

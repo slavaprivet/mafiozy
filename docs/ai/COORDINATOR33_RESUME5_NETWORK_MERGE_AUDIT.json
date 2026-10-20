@@ -1,0 +1,7 @@
+{
+  "normalized_threeway_conflicts": 0,
+  "network_wrapper_exact": true,
+  "recovered_destruction_function_preserved_exactly_except_name": true,
+  "preserved_upstream": "a8948e62",
+  "raw_conflict_retained_locally": true
+}
