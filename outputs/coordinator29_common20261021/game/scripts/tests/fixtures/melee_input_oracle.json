@@ -1,0 +1,4467 @@
+{
+  "source": "assets/maps/city_rebuild_v1/world_walk_melee_input.mjs",
+  "source_sha256": "c2d819825128c421b3a14cd773b39f59fbb0327c50eec155f41b54252f42154e",
+  "bridge": "TEST_ONLY scripted replies, not source admission implementation",
+  "scenarios": [
+    {
+      "name": "click_and_expiry",
+      "initial": {},
+      "operations": [
+        {
+          "method": "press",
+          "now": 0,
+          "options": {
+            "time": 0,
+            "yaw": 0.7,
+            "airHeight": -3
+          }
+        },
+        {
+          "method": "press",
+          "now": 0.1,
+          "options": {
+            "time": 0.1
+          }
+        },
+        {
+          "method": "step",
+          "now": 0.17,
+          "options": {
+            "time": 0.17
+          }
+        },
+        {
+          "method": "release",
+          "now": 0.2,
+          "options": {
+            "time": 0.2
+          }
+        },
+        {
+          "method": "step",
+          "now": 0.34,
+          "options": {
+            "time": 0.34
+          }
+        },
+        {
+          "method": "press",
+          "now": 0.5,
+          "options": {
+            "time": 0.5
+          }
+        },
+        {
+          "method": "cancel"
+        },
+        {
+          "method": "cancel"
+        }
+      ],
+      "expected": [
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 0,
+              "sourceStartAt": 17,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0.7,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 0.8707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0.29411764705882354,
+              "side": -1,
+              "blocking": false,
+              "charge": 0.08333333333333334
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 0,
+              "sourceStartAt": 17,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0.7,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": false,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0.5,
+              "side": -1,
+              "blocking": false,
+              "charge": 0.1416666666666667
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 0,
+              "sourceStartAt": 17,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0.7,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": false,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0.5882352941176471,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 0,
+              "sourceStartAt": 17,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0.7,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 2,
+              "seq": 2,
+              "type": "punch",
+              "time": 0.5,
+              "sourceStartAt": 517,
+              "duration": 0.34,
+              "side": 1,
+              "yaw": 0.7,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 0.8707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ],
+            [
+              "block",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "block",
+              false
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "auto_heavy_reserved",
+      "initial": {},
+      "operations": [
+        {
+          "method": "press",
+          "now": 0,
+          "options": {
+            "time": 0
+          }
+        },
+        {
+          "method": "step",
+          "now": 0.34,
+          "options": {
+            "time": 0.34
+          }
+        },
+        {
+          "method": "step",
+          "now": 1.199,
+          "options": {
+            "time": 1.199
+          }
+        },
+        {
+          "method": "step",
+          "now": 1.2,
+          "options": {
+            "time": 1.2
+          }
+        },
+        {
+          "method": "release",
+          "now": 1.21,
+          "options": {
+            "time": 1.21
+          }
+        },
+        {
+          "method": "press",
+          "now": 1.3,
+          "options": {
+            "time": 1.3
+          }
+        },
+        {
+          "method": "step",
+          "now": 1.7,
+          "options": {
+            "time": 1.7
+          }
+        },
+        {
+          "method": "release",
+          "now": 1.8,
+          "options": {
+            "time": 1.8
+          }
+        },
+        {
+          "method": "cancel"
+        }
+      ],
+      "expected": [
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 0,
+              "sourceStartAt": 17,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0.2833333333333334
+            },
+            "start": null,
+            "started": false,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0.9991666666666668
+            },
+            "start": null,
+            "started": false,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "heavy",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 2,
+              "seq": 2,
+              "type": "heavy",
+              "time": 1.2,
+              "sourceStartAt": 1217,
+              "duration": 0.5,
+              "side": 1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                70,
+                360
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": true
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "heavy",
+              "progress": 0.020000000000000018,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 2,
+              "seq": 2,
+              "type": "heavy",
+              "time": 1.2,
+              "sourceStartAt": 1217,
+              "duration": 0.5,
+              "side": 1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                70,
+                360
+              ]
+            },
+            "started": false,
+            "held": false,
+            "sequence": 2
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "heavy",
+              "progress": 0.20000000000000018,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 2,
+              "seq": 2,
+              "type": "heavy",
+              "time": 1.2,
+              "sourceStartAt": 1217,
+              "duration": 0.5,
+              "side": 1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                70,
+                360
+              ]
+            },
+            "started": false,
+            "held": true,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0.33333333333333326
+            },
+            "start": null,
+            "started": false,
+            "held": true,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "block",
+              false
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "release_heavy",
+      "initial": {},
+      "operations": [
+        {
+          "method": "press",
+          "now": 2,
+          "options": {
+            "time": 2
+          }
+        },
+        {
+          "method": "release",
+          "now": 3.2,
+          "options": {
+            "time": 3.2
+          }
+        },
+        {
+          "method": "step",
+          "now": 3.4,
+          "options": {
+            "time": 3.4
+          }
+        },
+        {
+          "method": "step",
+          "now": 3.7,
+          "options": {
+            "time": 3.7
+          }
+        },
+        {
+          "method": "cancel"
+        }
+      ],
+      "expected": [
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 2,
+              "sourceStartAt": 2017,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "heavy",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 2,
+              "seq": 2,
+              "type": "heavy",
+              "time": 3.2,
+              "sourceStartAt": 3217,
+              "duration": 0.5,
+              "side": 1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                70,
+                360
+              ]
+            },
+            "started": true,
+            "held": false,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": true
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "heavy",
+              "progress": 0.39999999999999947,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 2,
+              "seq": 2,
+              "type": "heavy",
+              "time": 3.2,
+              "sourceStartAt": 3217,
+              "duration": 0.5,
+              "side": 1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                70,
+                360
+              ]
+            },
+            "started": false,
+            "held": false,
+            "sequence": 2
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "block",
+              false
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "release_cancelled",
+      "initial": {},
+      "operations": [
+        {
+          "method": "press",
+          "now": 0,
+          "options": {
+            "time": 0
+          }
+        },
+        {
+          "method": "release",
+          "now": 1.5,
+          "options": {
+            "time": 1.5,
+            "cancelled": true
+          }
+        },
+        {
+          "method": "press",
+          "now": 2,
+          "options": {
+            "time": 2
+          }
+        },
+        {
+          "method": "step",
+          "now": 3.2,
+          "options": {
+            "time": 3.2
+          }
+        },
+        {
+          "method": "cancel"
+        },
+        {
+          "method": "release",
+          "now": 3.4,
+          "options": {
+            "time": 3.4
+          }
+        }
+      ],
+      "expected": [
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 0,
+              "sourceStartAt": 17,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 2,
+              "seq": 2,
+              "type": "punch",
+              "time": 2,
+              "sourceStartAt": 2017,
+              "duration": 0.34,
+              "side": 1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "heavy",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 3,
+              "seq": 3,
+              "type": "heavy",
+              "time": 3.2,
+              "sourceStartAt": 3217,
+              "duration": 0.5,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                70,
+                360
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 3
+          },
+          "calls": [
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": true
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 3
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ],
+            [
+              "charge",
+              false
+            ],
+            [
+              "block",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 3
+          },
+          "calls": []
+        }
+      ]
+    },
+    {
+      "name": "source_reject_then_heavy",
+      "initial": {},
+      "operations": [
+        {
+          "method": "press",
+          "now": 0,
+          "options": {
+            "time": 0
+          },
+          "bridge": {
+            "accepted": false
+          }
+        },
+        {
+          "method": "step",
+          "now": 1.2,
+          "options": {
+            "time": 1.2
+          }
+        },
+        {
+          "method": "step",
+          "now": 1.3,
+          "options": {
+            "time": 1.3
+          }
+        },
+        {
+          "method": "release",
+          "now": 1.4,
+          "options": {
+            "time": 1.4
+          }
+        },
+        {
+          "method": "press",
+          "now": 2,
+          "options": {
+            "time": 2
+          },
+          "bridge": {
+            "accepted": true
+          }
+        },
+        {
+          "method": "release",
+          "now": 2.1,
+          "options": {
+            "time": 2.1
+          }
+        }
+      ],
+      "expected": [
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": true,
+            "sequence": 0
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": true,
+            "sequence": 0
+          },
+          "calls": [
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": true
+              }
+            ],
+            [
+              "charge",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": true,
+            "sequence": 0
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 0
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 3,
+              "seq": 3,
+              "type": "punch",
+              "time": 2,
+              "sourceStartAt": 2017,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 3
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0.29411764705882376,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 3,
+              "seq": 3,
+              "type": "punch",
+              "time": 2,
+              "sourceStartAt": 2017,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": false,
+            "held": false,
+            "sequence": 3
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "heavy_rejection_release",
+      "initial": {},
+      "operations": [
+        {
+          "method": "press",
+          "now": 0,
+          "options": {
+            "time": 0
+          }
+        },
+        {
+          "method": "release",
+          "now": 1.3,
+          "options": {
+            "time": 1.3
+          },
+          "bridge": {
+            "accepted": false
+          }
+        },
+        {
+          "method": "cancel"
+        }
+      ],
+      "expected": [
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 0,
+              "sourceStartAt": 17,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": true
+              }
+            ],
+            [
+              "charge",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "block",
+              false
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "block_interrupt",
+      "initial": {},
+      "operations": [
+        {
+          "method": "press",
+          "now": 0,
+          "options": {
+            "time": 0
+          }
+        },
+        {
+          "method": "block",
+          "value": true
+        },
+        {
+          "method": "press",
+          "now": 0.2,
+          "options": {
+            "time": 0.2
+          }
+        },
+        {
+          "method": "block",
+          "value": false
+        },
+        {
+          "method": "press",
+          "now": 1,
+          "options": {
+            "time": 1
+          }
+        },
+        {
+          "method": "step",
+          "now": 2.2,
+          "options": {
+            "time": 2.2
+          }
+        },
+        {
+          "method": "block",
+          "value": true
+        },
+        {
+          "method": "block",
+          "value": false
+        },
+        {
+          "method": "cancel"
+        }
+      ],
+      "expected": [
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 0,
+              "sourceStartAt": 17,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": true,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "block",
+              true
+            ],
+            [
+              "charge",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": true,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "block",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 2,
+              "seq": 2,
+              "type": "punch",
+              "time": 1,
+              "sourceStartAt": 1017,
+              "duration": 0.34,
+              "side": 1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "heavy",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 3,
+              "seq": 3,
+              "type": "heavy",
+              "time": 2.2,
+              "sourceStartAt": 2217,
+              "duration": 0.5,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                70,
+                360
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 3
+          },
+          "calls": [
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": true
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": true,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 3
+          },
+          "calls": [
+            [
+              "block",
+              true
+            ],
+            [
+              "charge",
+              false
+            ],
+            [
+              "charge",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 3
+          },
+          "calls": [
+            [
+              "block",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 3
+          },
+          "calls": [
+            [
+              "block",
+              false
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "block_denied",
+      "initial": {
+        "blockAccept": false
+      },
+      "operations": [
+        {
+          "method": "block",
+          "value": true
+        },
+        {
+          "method": "press",
+          "now": 0,
+          "options": {
+            "time": 0
+          }
+        },
+        {
+          "method": "block",
+          "value": true
+        },
+        {
+          "method": "block",
+          "value": false
+        },
+        {
+          "method": "step",
+          "now": 1.3,
+          "options": {
+            "time": 1.3
+          }
+        },
+        {
+          "method": "cancel"
+        }
+      ],
+      "expected": [
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 0
+          },
+          "calls": [
+            [
+              "block",
+              true
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 0,
+              "sourceStartAt": 17,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 0,
+              "sourceStartAt": 17,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": false,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "block",
+              true
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 0,
+              "sourceStartAt": 17,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": false,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "block",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "heavy",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 2,
+              "seq": 2,
+              "type": "heavy",
+              "time": 1.3,
+              "sourceStartAt": 1317,
+              "duration": 0.5,
+              "side": 1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                70,
+                360
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": true
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ],
+            [
+              "charge",
+              false
+            ],
+            [
+              "block",
+              false
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "airborne_edges",
+      "initial": {},
+      "operations": [
+        {
+          "method": "press",
+          "now": 0,
+          "options": {
+            "time": 0,
+            "airborne": true
+          }
+        },
+        {
+          "method": "press",
+          "now": 0.1,
+          "options": {
+            "time": 0.1
+          }
+        },
+        {
+          "method": "step",
+          "now": 0.3,
+          "options": {
+            "time": 0.3
+          }
+        },
+        {
+          "method": "release",
+          "now": 0.4,
+          "options": {
+            "time": 0.4
+          }
+        },
+        {
+          "method": "press",
+          "now": 1.3,
+          "options": {
+            "time": 1.3
+          }
+        },
+        {
+          "method": "step",
+          "now": 1.4,
+          "options": {
+            "time": 1.4,
+            "airborne": false
+          }
+        },
+        {
+          "method": "press",
+          "now": 1.5,
+          "options": {
+            "time": 1.5
+          }
+        },
+        {
+          "method": "step",
+          "now": 2.6,
+          "options": {
+            "time": 2.6
+          }
+        },
+        {
+          "method": "cancel"
+        }
+      ],
+      "expected": [
+        {
+          "snapshot": {
+            "action": {
+              "type": "dropkick",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "dropkick",
+              "time": 0,
+              "sourceStartAt": 17,
+              "duration": 1.25,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                160,
+                380
+              ]
+            },
+            "started": true,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": true,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "dropkick",
+              "progress": 0.08,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "dropkick",
+              "time": 0,
+              "sourceStartAt": 17,
+              "duration": 1.25,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                160,
+                380
+              ]
+            },
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "dropkick",
+              "progress": 0.24,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "dropkick",
+              "time": 0,
+              "sourceStartAt": 17,
+              "duration": 1.25,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                160,
+                380
+              ]
+            },
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "dropkick",
+              "progress": 0.32,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "dropkick",
+              "time": 0,
+              "sourceStartAt": 17,
+              "duration": 1.25,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                160,
+                380
+              ]
+            },
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "dropkick",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 2,
+              "seq": 2,
+              "type": "dropkick",
+              "time": 1.3,
+              "sourceStartAt": 1317,
+              "duration": 1.25,
+              "side": 1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                160,
+                380
+              ]
+            },
+            "started": true,
+            "held": false,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": true,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "dropkick",
+              "progress": 0.07999999999999989,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 2,
+              "seq": 2,
+              "type": "dropkick",
+              "time": 1.3,
+              "sourceStartAt": 1317,
+              "duration": 1.25,
+              "side": 1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                160,
+                380
+              ]
+            },
+            "started": false,
+            "held": false,
+            "sequence": 2
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "dropkick",
+              "progress": 0.15999999999999998,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 2,
+              "seq": 2,
+              "type": "dropkick",
+              "time": 1.3,
+              "sourceStartAt": 1317,
+              "duration": 1.25,
+              "side": 1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                160,
+                380
+              ]
+            },
+            "started": false,
+            "held": true,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0.9166666666666667
+            },
+            "start": null,
+            "started": false,
+            "held": true,
+            "sequence": 2
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ],
+            [
+              "block",
+              false
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ground_to_air",
+      "initial": {},
+      "operations": [
+        {
+          "method": "press",
+          "now": 0,
+          "options": {
+            "time": 0
+          }
+        },
+        {
+          "method": "step",
+          "now": 1.3,
+          "options": {
+            "time": 1.3,
+            "airborne": true
+          }
+        },
+        {
+          "method": "release",
+          "now": 1.4,
+          "options": {
+            "time": 1.4
+          }
+        },
+        {
+          "method": "press",
+          "now": 1.5,
+          "options": {
+            "time": 1.5,
+            "airborne": false
+          }
+        },
+        {
+          "method": "cancel"
+        }
+      ],
+      "expected": [
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 0,
+              "sourceStartAt": 17,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 2,
+              "seq": 2,
+              "type": "punch",
+              "time": 1.5,
+              "sourceStartAt": 1517,
+              "duration": 0.34,
+              "side": 1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ],
+            [
+              "block",
+              false
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "locks_sticky",
+      "initial": {},
+      "operations": [
+        {
+          "method": "press",
+          "now": 0,
+          "options": {
+            "time": 0
+          }
+        },
+        {
+          "method": "step",
+          "now": 0.1,
+          "options": {
+            "time": 0.1,
+            "blocked": true
+          }
+        },
+        {
+          "method": "press",
+          "now": 1,
+          "options": {
+            "time": 1
+          }
+        },
+        {
+          "method": "block",
+          "value": true
+        },
+        {
+          "method": "press",
+          "now": 2,
+          "options": {
+            "time": 2,
+            "allowed": true
+          }
+        },
+        {
+          "method": "step",
+          "now": 2.2,
+          "options": {
+            "time": 2.2,
+            "armed": true
+          }
+        },
+        {
+          "method": "press",
+          "now": 3,
+          "options": {
+            "time": 3,
+            "armed": false
+          }
+        },
+        {
+          "method": "release",
+          "now": 3.1,
+          "options": {
+            "time": 3.1
+          }
+        },
+        {
+          "method": "cancel"
+        }
+      ],
+      "expected": [
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 0,
+              "sourceStartAt": 17,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ],
+            [
+              "block",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "block",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 2,
+              "seq": 2,
+              "type": "punch",
+              "time": 2,
+              "sourceStartAt": 2017,
+              "duration": 0.34,
+              "side": 1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ],
+            [
+              "block",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 3,
+              "seq": 3,
+              "type": "punch",
+              "time": 3,
+              "sourceStartAt": 3017,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 3
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0.29411764705882376,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 3,
+              "seq": 3,
+              "type": "punch",
+              "time": 3,
+              "sourceStartAt": 3017,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": false,
+            "held": false,
+            "sequence": 3
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 3
+          },
+          "calls": [
+            [
+              "block",
+              false
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "buttons",
+      "initial": {},
+      "operations": [
+        {
+          "method": "press",
+          "now": 0,
+          "options": {
+            "time": 0
+          }
+        },
+        {
+          "method": "step",
+          "now": 0.1,
+          "options": {
+            "time": 0.1,
+            "buttons": 1
+          }
+        },
+        {
+          "method": "step",
+          "now": 0.2,
+          "options": {
+            "time": 0.2,
+            "buttons": 1.5
+          }
+        },
+        {
+          "method": "step",
+          "now": 0.3,
+          "options": {
+            "time": 0.3,
+            "buttons": 2
+          }
+        },
+        {
+          "method": "step",
+          "now": 1.3,
+          "options": {
+            "time": 1.3
+          }
+        },
+        {
+          "method": "press",
+          "now": 2,
+          "options": {
+            "time": 2
+          }
+        },
+        {
+          "method": "step",
+          "now": 3.2,
+          "options": {
+            "time": 3.2,
+            "buttons": -1
+          }
+        },
+        {
+          "method": "step",
+          "now": 3.3,
+          "options": {
+            "time": 3.3,
+            "buttons": 0
+          }
+        },
+        {
+          "method": "cancel"
+        }
+      ],
+      "expected": [
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 0,
+              "sourceStartAt": 17,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0.29411764705882354,
+              "side": -1,
+              "blocking": false,
+              "charge": 0.08333333333333334
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 0,
+              "sourceStartAt": 17,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": false,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0.5882352941176471,
+              "side": -1,
+              "blocking": false,
+              "charge": 0.16666666666666669
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 0,
+              "sourceStartAt": 17,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": false,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0.8823529411764705,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 0,
+              "sourceStartAt": 17,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 2,
+              "seq": 2,
+              "type": "punch",
+              "time": 2,
+              "sourceStartAt": 2017,
+              "duration": 0.34,
+              "side": 1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "heavy",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 3,
+              "seq": 3,
+              "type": "heavy",
+              "time": 3.2,
+              "sourceStartAt": 3217,
+              "duration": 0.5,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                70,
+                360
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 3
+          },
+          "calls": [
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": true
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "heavy",
+              "progress": 0.1999999999999993,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 3,
+              "seq": 3,
+              "type": "heavy",
+              "time": 3.2,
+              "sourceStartAt": 3217,
+              "duration": 0.5,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                70,
+                360
+              ]
+            },
+            "started": false,
+            "held": false,
+            "sequence": 3
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 3
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ],
+            [
+              "block",
+              false
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "clock_monotonic",
+      "initial": {},
+      "operations": [
+        {
+          "method": "press",
+          "now": 4,
+          "options": {
+            "time": 4
+          }
+        },
+        {
+          "method": "step",
+          "now": 3,
+          "options": {
+            "time": 3
+          }
+        },
+        {
+          "method": "step",
+          "now": 4.5,
+          "options": {}
+        },
+        {
+          "method": "release",
+          "now": 2,
+          "options": {
+            "time": 2
+          }
+        },
+        {
+          "method": "step",
+          "now": 8,
+          "options": {
+            "time": 8
+          }
+        },
+        {
+          "method": "cancel"
+        }
+      ],
+      "expected": [
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 4,
+              "sourceStartAt": 4017,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 4,
+              "sourceStartAt": 4017,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": false,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0.4166666666666667
+            },
+            "start": null,
+            "started": false,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "block",
+              false
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "source_metadata",
+      "initial": {},
+      "operations": [
+        {
+          "method": "press",
+          "now": 0,
+          "options": {
+            "time": 0
+          },
+          "bridge": {
+            "type": "source-custom",
+            "duration": 2,
+            "seq": 79,
+            "side": 0,
+            "startAt": 9876,
+            "contactWindow": [
+              31,
+              77
+            ]
+          }
+        },
+        {
+          "method": "step",
+          "now": 1.3,
+          "options": {
+            "time": 1.3
+          }
+        },
+        {
+          "method": "release",
+          "now": 1.4,
+          "options": {
+            "time": 1.4
+          }
+        },
+        {
+          "method": "step",
+          "now": 2,
+          "options": {
+            "time": 2
+          }
+        },
+        {
+          "method": "cancel"
+        }
+      ],
+      "expected": [
+        {
+          "snapshot": {
+            "action": {
+              "type": "source-custom",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 79,
+              "seq": 79,
+              "type": "source-custom",
+              "time": 0,
+              "sourceStartAt": 9876,
+              "duration": 2,
+              "side": 1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                31,
+                77
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 79
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "source-custom",
+              "progress": 0.65,
+              "side": 1,
+              "blocking": false,
+              "charge": 1
+            },
+            "start": {
+              "id": 79,
+              "seq": 79,
+              "type": "source-custom",
+              "time": 0,
+              "sourceStartAt": 9876,
+              "duration": 2,
+              "side": 1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                31,
+                77
+              ]
+            },
+            "started": false,
+            "held": true,
+            "sequence": 79
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "source-custom",
+              "progress": 0.7,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 79,
+              "seq": 79,
+              "type": "source-custom",
+              "time": 0,
+              "sourceStartAt": 9876,
+              "duration": 2,
+              "side": 1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                31,
+                77
+              ]
+            },
+            "started": false,
+            "held": false,
+            "sequence": 79
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 79
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 79
+          },
+          "calls": [
+            [
+              "block",
+              false
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "bad_duration_is_rejection",
+      "initial": {},
+      "operations": [
+        {
+          "method": "press",
+          "now": 0,
+          "options": {
+            "time": 0
+          },
+          "bridge": {
+            "duration": 0
+          }
+        },
+        {
+          "method": "step",
+          "now": 1.2,
+          "options": {
+            "time": 1.2
+          }
+        },
+        {
+          "method": "release",
+          "now": 1.3,
+          "options": {
+            "time": 1.3
+          }
+        },
+        {
+          "method": "press",
+          "now": 2,
+          "options": {
+            "time": 2
+          },
+          "bridge": {
+            "duration": -1
+          }
+        },
+        {
+          "method": "cancel"
+        }
+      ],
+      "expected": [
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": true,
+            "sequence": 0
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": true,
+            "sequence": 0
+          },
+          "calls": [
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": true
+              }
+            ],
+            [
+              "charge",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 0
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": true,
+            "sequence": 0
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 0
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ],
+            [
+              "block",
+              false
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "empty_reply",
+      "initial": {},
+      "operations": [
+        {
+          "method": "press",
+          "now": 0,
+          "options": {
+            "time": 0
+          },
+          "bridge": {
+            "nullReply": true
+          }
+        },
+        {
+          "method": "release",
+          "now": 0.5,
+          "options": {
+            "time": 0.5
+          }
+        },
+        {
+          "method": "cancel"
+        }
+      ],
+      "expected": [
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": true,
+            "sequence": 0
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 0
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 0
+          },
+          "calls": [
+            [
+              "block",
+              false
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cancel_reserved_while_held",
+      "initial": {},
+      "operations": [
+        {
+          "method": "press",
+          "now": 0,
+          "options": {
+            "time": 0
+          }
+        },
+        {
+          "method": "step",
+          "now": 1.2,
+          "options": {
+            "time": 1.2
+          }
+        },
+        {
+          "method": "cancel"
+        },
+        {
+          "method": "step",
+          "now": 1.3,
+          "options": {
+            "time": 1.3
+          }
+        },
+        {
+          "method": "block",
+          "value": false
+        }
+      ],
+      "expected": [
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 0,
+              "sourceStartAt": 17,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "heavy",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 2,
+              "seq": 2,
+              "type": "heavy",
+              "time": 1.2,
+              "sourceStartAt": 1217,
+              "duration": 0.5,
+              "side": 1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                70,
+                360
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": true
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ],
+            [
+              "charge",
+              false
+            ],
+            [
+              "block",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 2
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "block",
+              false
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "zero_clock_and_empty_window",
+      "initial": {},
+      "operations": [
+        {
+          "method": "press",
+          "now": -1,
+          "options": {
+            "time": -1,
+            "yaw": 0,
+            "airHeight": 2
+          },
+          "bridge": {
+            "contactWindow": [],
+            "side": -1
+          }
+        },
+        {
+          "method": "step",
+          "now": -0.5,
+          "options": {
+            "time": -0.5
+          }
+        },
+        {
+          "method": "step",
+          "now": 0.2,
+          "options": {
+            "time": 0.2
+          }
+        },
+        {
+          "method": "release",
+          "now": 0.3,
+          "options": {
+            "time": 0.3
+          }
+        },
+        {
+          "method": "cancel"
+        }
+      ],
+      "expected": [
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 0,
+              "sourceStartAt": -983,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 2,
+              "contactWindow": []
+            },
+            "started": true,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 0,
+              "sourceStartAt": -983,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 2,
+              "contactWindow": []
+            },
+            "started": false,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0.5882352941176471,
+              "side": -1,
+              "blocking": false,
+              "charge": 0.16666666666666669
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 0,
+              "sourceStartAt": -983,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 2,
+              "contactWindow": []
+            },
+            "started": false,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0.8823529411764705,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 0,
+              "sourceStartAt": -983,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 2,
+              "contactWindow": []
+            },
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "block",
+              false
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "large_integer_buttons",
+      "initial": {},
+      "operations": [
+        {
+          "method": "press",
+          "now": 0,
+          "options": {
+            "time": 0
+          }
+        },
+        {
+          "method": "step",
+          "now": 0.1,
+          "options": {
+            "time": 0.1,
+            "buttons": 100000000000000000000
+          }
+        },
+        {
+          "method": "step",
+          "now": 1.3,
+          "options": {
+            "time": 1.3
+          }
+        },
+        {
+          "method": "press",
+          "now": 2,
+          "options": {
+            "time": 2
+          }
+        },
+        {
+          "method": "step",
+          "now": 2.1,
+          "options": {
+            "time": 2.1,
+            "buttons": -1e+100
+          }
+        },
+        {
+          "method": "cancel"
+        }
+      ],
+      "expected": [
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 0,
+              "sourceStartAt": 17,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0.29411764705882354,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 1,
+              "seq": 1,
+              "type": "punch",
+              "time": 0,
+              "sourceStartAt": 17,
+              "duration": 0.34,
+              "side": -1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": -1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 1
+          },
+          "calls": []
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 2,
+              "seq": 2,
+              "type": "punch",
+              "time": 2,
+              "sourceStartAt": 2017,
+              "duration": 0.34,
+              "side": 1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": true,
+            "held": true,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "charge",
+              true
+            ],
+            [
+              "begin",
+              {
+                "angle": 1.5707963267948966,
+                "airborne": false,
+                "heavy": false
+              }
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "punch",
+              "progress": 0.29411764705882376,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": {
+              "id": 2,
+              "seq": 2,
+              "type": "punch",
+              "time": 2,
+              "sourceStartAt": 2017,
+              "duration": 0.34,
+              "side": 1,
+              "yaw": 0,
+              "airHeight": 0,
+              "contactWindow": [
+                35,
+                190
+              ]
+            },
+            "started": false,
+            "held": false,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "charge",
+              false
+            ]
+          ]
+        },
+        {
+          "snapshot": {
+            "action": {
+              "type": "none",
+              "progress": 0,
+              "side": 1,
+              "blocking": false,
+              "charge": 0
+            },
+            "start": null,
+            "started": false,
+            "held": false,
+            "sequence": 2
+          },
+          "calls": [
+            [
+              "block",
+              false
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}
