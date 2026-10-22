@@ -5,6 +5,11 @@ game=root.parent/'game'
 name,fixture=sys.argv[1:3]
 fixture=str((root/fixture).resolve()) if not Path(fixture).is_absolute() else fixture
 extra=sys.argv[3:]
+queue_wait=90
+for item in list(extra):
+    if item.startswith('--queue-wait='):
+        queue_wait=int(item.split('=',1)[1]);extra.remove(item)
+assert 0<queue_wait<=600
 verbose='--verbose-engine' in extra
 extra=[a for a in extra if a!='--verbose-engine']
 perf='--perf' in extra
@@ -17,7 +22,7 @@ out=root/'results'/name;out.mkdir(parents=True,exist_ok=False)
 def pins():
     return {p.relative_to(game).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in (game/'scripts').rglob('*') if p.suffix in ('.gd','.gdshader')}
 before=pins()
-cmd=[sys.executable,str(root.parents[2]/'tools/godot/test_scheduler.py'),'run','--mode','perf' if perf else ('graphical' if graphical else 'headless'),'--project',str(game),'--access','read','--wait-seconds','90','--timeout','180','--out',str(out/'run'),'--',str(Path.home()/'AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe'),*(['--verbose'] if verbose else []),*(['--windowed','--resolution','1280x720','--max-fps','60'] if graphical else ['--headless','--max-fps','60']),'--path',str(game),'--script',fixture,'--','--qa-out='+str(out),'--lab-out='+str(out),*extra]
+cmd=[sys.executable,str(root.parents[2]/'tools/godot/test_scheduler.py'),'run','--mode','perf' if perf else ('graphical' if graphical else 'headless'),'--project',str(game),'--access','read','--wait-seconds',str(queue_wait),'--timeout','180','--out',str(out/'run'),'--',str(Path.home()/'AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe'),*(['--verbose'] if verbose else []),*(['--windowed','--resolution','1280x720','--max-fps','60'] if graphical else ['--headless','--max-fps','60']),'--path',str(game),'--script',fixture,'--','--qa-out='+str(out),'--lab-out='+str(out),*extra]
 (out/'COMMAND.json').write_text(json.dumps(cmd,ensure_ascii=False,indent=2),encoding='utf-8')
 with (out/'launcher.log').open('wb') as log: rc=subprocess.call(cmd,stdout=log,stderr=log)
 result=json.loads((out/'RESULT.json').read_text(encoding='utf-8')) if (out/'RESULT.json').exists() else {}

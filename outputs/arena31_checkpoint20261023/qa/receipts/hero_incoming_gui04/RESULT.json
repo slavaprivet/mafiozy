@@ -1,0 +1,179 @@
+{
+  "checks": {
+    "bare_actual_projectile_contact": true,
+    "bare_arrow_hp_damage": true,
+    "bare_arrow_on_visible_upper_surface": true,
+    "bare_arrow_surface_wound": true,
+    "bare_blade_surface_wound": true,
+    "bare_hidden_templates_excluded": true,
+    "bare_injured_toggle_cannot_heal": true,
+    "bare_injury_notice_4194341": true,
+    "bare_injury_notice_4194342": true,
+    "bare_original_template_hidden": true,
+    "bare_ready": true,
+    "bare_real_mesh_sever": true,
+    "bare_wound_material_survives_cut": true,
+    "blocked_plate_no_open_wound": true,
+    "gambeson_actual_projectile_contact": true,
+    "gambeson_arrow_hp_damage": true,
+    "gambeson_arrow_on_visible_upper_surface": true,
+    "gambeson_arrow_surface_wound": true,
+    "gambeson_blade_surface_wound": true,
+    "gambeson_hidden_templates_excluded": true,
+    "gambeson_injured_toggle_cannot_heal": true,
+    "gambeson_injury_notice_4194341": true,
+    "gambeson_injury_notice_4194342": true,
+    "gambeson_original_template_hidden": true,
+    "gambeson_ready": true,
+    "gambeson_real_mesh_sever": true,
+    "gambeson_wound_material_survives_cut": true,
+    "heavy_ready": true,
+    "res://scripts/character/hero_medieval31.gd": true,
+    "res://scripts/character/hero_wound31.gd": true,
+    "res://scripts/weapons/sword_prototype.gd": true,
+    "uv2_cut_interpolates_original_coordinates": true
+  },
+  "passed": true,
+  "scope": "Existing accepted blade damage and real MeshSever API; optional incoming mode launches a real simulated arrow and awaits actual player collision. Not a natural enemy melee acceptance.",
+  "states": [
+    {
+      "arrow_state": {
+        "actual_skin31": false,
+        "age": 0.05,
+        "alive": true,
+        "damage_result31": {},
+        "embed_depth31": 0.015,
+        "fired_ms": 9632,
+        "hit_point": "(9.000138, 0.802555, 9.7)",
+        "incoming": true,
+        "node": "<Freed Object>",
+        "prev": "(9.000138, 0.81608, 9.282133)",
+        "prev_tip": "(9.000138, 0.801698, 9.7244)",
+        "stuck": true,
+        "surface": "stone",
+        "velocity": "(0.0, 0.0, 0.0)"
+      },
+      "mode": "bare",
+      "projectile_parent": "PreviewPlayer",
+      "projectile_position": "(9.000138, 0.81645, 9.272726)"
+    },
+    {
+      "hero": {
+        "armor_tier": "",
+        "body_visible": true,
+        "damage_locked": true,
+        "gambeson_requested": false,
+        "gambeson_visible": false,
+        "last_wound": {
+          "candidate_triangles": 5248,
+          "candidate_vertices": 2774,
+          "count": 2,
+          "distance": 0.0,
+          "elapsed_usec": 5959,
+          "kind": "slice",
+          "motion": "(1.0, 0.0, 0.0)",
+          "node": "HeroBareBody31",
+          "point": "(9.000138, 0.81934, 9.882292)",
+          "triangle": "(704, 768, 705)"
+        },
+        "ready": true,
+        "report": {
+          "base_vertices": 4208,
+          "body_bounds": "[P: (-1.266735, 1.67, -0.360365), S: (2.533471, 1.75, 0.784656)]",
+          "gambeson_vertices": 4211,
+          "model_scale": 0.368217065152222,
+          "ok": true,
+          "original_mesh_unchanged": true,
+          "rig_bones": 28,
+          "skin_bind_count": 28,
+          "source_bounds": "[P: (-1.379073, 0.22, -0.426099), S: (2.758895, 3.22, 0.968599)]"
+        },
+        "wound_hits": 2
+      },
+      "hp": 92.0037820268308,
+      "mode": "bare"
+    },
+    {
+      "arrow_state": {
+        "actual_skin31": false,
+        "age": 0.05,
+        "alive": true,
+        "damage_result31": {},
+        "embed_depth31": 0.015,
+        "fired_ms": 11927,
+        "hit_point": "(9.000138, 0.784378, 9.7)",
+        "incoming": true,
+        "node": "<Freed Object>",
+        "prev": "(9.000138, 0.798181, 9.27424)",
+        "prev_tip": "(9.000138, 0.783798, 9.716507)",
+        "stuck": true,
+        "surface": "stone",
+        "velocity": "(0.0, 0.0, 0.0)"
+      },
+      "mode": "gambeson",
+      "projectile_parent": "PreviewPlayer",
+      "projectile_position": "(9.000138, 0.798273, 9.272726)"
+    },
+    {
+      "hero": {
+        "armor_tier": "",
+        "body_visible": false,
+        "damage_locked": true,
+        "gambeson_requested": true,
+        "gambeson_visible": true,
+        "last_wound": {
+          "candidate_triangles": 5152,
+          "candidate_vertices": 2777,
+          "count": 2,
+          "distance": 0.0,
+          "elapsed_usec": 5732,
+          "kind": "slice",
+          "motion": "(1.0, 0.0, 0.0)",
+          "node": "HeroGambeson31",
+          "point": "(9.000138, 0.801441, 9.874398)",
+          "triangle": "(640, 704, 641)"
+        },
+        "ready": true,
+        "report": {
+          "base_vertices": 4208,
+          "body_bounds": "[P: (-1.266735, 1.67, -0.360365), S: (2.533471, 1.75, 0.784656)]",
+          "gambeson_vertices": 4211,
+          "model_scale": 0.368217065152222,
+          "ok": true,
+          "original_mesh_unchanged": true,
+          "rig_bones": 28,
+          "skin_bind_count": 28,
+          "source_bounds": "[P: (-1.379073, 0.22, -0.426099), S: (2.758895, 3.22, 0.968599)]"
+        },
+        "wound_hits": 2
+      },
+      "hp": 92.0037820268308,
+      "mode": "gambeson"
+    },
+    {
+      "hero": {
+        "armor_tier": "heavy",
+        "body_visible": false,
+        "damage_locked": false,
+        "gambeson_requested": false,
+        "gambeson_visible": true,
+        "last_wound": {},
+        "ready": true,
+        "report": {
+          "base_vertices": 4208,
+          "body_bounds": "[P: (-1.266735, 1.67, -0.360365), S: (2.533471, 1.75, 0.784656)]",
+          "gambeson_vertices": 4211,
+          "model_scale": 0.368217065152222,
+          "ok": true,
+          "original_mesh_unchanged": true,
+          "rig_bones": 28,
+          "skin_bind_count": 28,
+          "source_bounds": "[P: (-1.379073, 0.22, -0.426099), S: (2.758895, 3.22, 0.968599)]"
+        },
+        "wound_hits": 0
+      },
+      "hp": 99.8488,
+      "mode": "heavy"
+    }
+  ]
+}

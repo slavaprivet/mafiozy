@@ -1,4 +1,4 @@
-extends "D:/MafioziCombat31/c33_coordination/agents/perf_qa31/gui_profile_nofocus.gd"
+extends "gui_profile_nofocus.gd"
 func run():
  root.size=Vector2i(1280,720);root.title="QA31 isolated rendered cut commit profile"
  RenderingServer.frame_post_draw.connect(draw_sample)

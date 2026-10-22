@@ -2,6 +2,10 @@ extends SceneTree
 var out:String
 var tier:="none"
 var shot_count:=1
+var aim_up:=0.0
+var plate_target31:=false
+var target_point31:=Vector3.INF
+var tissue_impacts31:Array=[]
 var checks:Dictionary={}
 var rows:Array=[]
 var scene:Node
@@ -14,6 +18,8 @@ func _initialize():
 		if arg.begins_with("--qa-out="):out=arg.trim_prefix("--qa-out=")
 		if arg.begins_with("--tier="):tier=arg.trim_prefix("--tier=")
 		if arg.begins_with("--shots="):shot_count=int(arg.trim_prefix("--shots="))
+		if arg.begins_with("--aim-up="):aim_up=float(arg.trim_prefix("--aim-up="))
+		if arg=="--plate":plate_target31=true
 	run.call_deferred()
 func ticks(n:int):
 	for i in n:await physics_frame;await create_timer(0).timeout
@@ -25,7 +31,8 @@ func key(code:int):
 func aim():
 	for i in 18:
 		var rig:Skeleton3D=host._npc_rig
-		var target:Vector3=rig.global_transform*rig.get_bone_global_pose(rig.find_bone("chest")).origin
+		var target:Vector3=rig.global_transform*rig.get_bone_global_pose(rig.find_bone("chest")).origin+Vector3.UP*aim_up
+		if target_point31.is_finite():target=target_point31
 		var camera:Camera3D=player.get_preview_camera()
 		var direction:Vector3=(target-camera.global_position).normalized()
 		var yaw:=atan2(-direction.x,-direction.z)
@@ -49,6 +56,31 @@ func run():
 	host.lab_armored=tier!="none";host.lab_armor_tier30=tier;host.set_npc_armor31(equipment)
 	player.global_position=Vector3(0,.05,2.5);player.velocity=Vector3.ZERO;player._camera_yaw=0.;player._camera_pitch=-.1;player._update_camera_rotation();player.set_mouse_captured(true)
 	await ticks(20)
+	if plate_target31:
+		var armor=load("res://scripts/combat/armor_damage31.gd")
+		var rig:Skeleton3D=host._npc_rig
+		var best:=INF
+		for xi in range(-3,4):
+			for yi in range(8,17):
+				var from:=Vector3(float(xi)*.075,float(yi)*.10,-.8)
+				var hits:Array[Dictionary]=host._solid_weapon29.skin_hits(host,from,from+Vector3.FORWARD*2.,"")
+				if hits.is_empty():continue
+				var hit:Dictionary=hits[0];var bone:=int(hit.bone)
+				if bone<0:continue
+				var part:=str(rig.get_bone_name(bone))
+				if part.begins_with("spine"):part="chest"
+				if part=="neck":part="head"
+				var proxy:CollisionObject3D=null
+				var anchor:=rig.get_node_or_null("Hit"+part)
+				if anchor!=null:
+					for child in anchor.get_children():
+						if child is CollisionObject3D:proxy=child;break
+				var incoming:=26.*(2. if part=="head" else 1.)
+				var coverage:Dictionary=armor.resolve(equipment,part,"stab",incoming,host._armor_point31(rig,part,hit.point,proxy),1.)
+				if str(coverage.region)!="plate" or armor.tissue_penetrates("plate","stab",float(coverage.damage)):continue
+				var score:float=absf(float(xi))*.02+absf(float(yi)*.1-1.25)
+				if score<best:best=score;target_point31=hit.point;rows.append({"phase":"plate_aim_candidate","point":hit.point,"part":part,"coverage":coverage})
+		checks["actual_protected_plate_target"]=target_point31.is_finite()
 	var arsenal:Node=scene.get("preview_weapons")
 	key(KEY_Q);await ticks(3)
 	var button:Button=arsenal.get("_buttons")["bow"]
@@ -75,11 +107,20 @@ func run():
 		checks["ready_%s"%shot]=bow.ready_to_fire()
 		rows.append({"phase":"before_shot","camera":player.get_preview_camera().global_transform,"yaw":player._camera_yaw,"pitch":player._camera_pitch,"muzzle":bow._muzzle_point(),"direction":bow._aim_direction(),"sight":bow._sight_point})
 		mouse(MOUSE_BUTTON_LEFT,true);await ticks(1);mouse(MOUSE_BUTTON_LEFT,false);mouse(MOUSE_BUTTON_RIGHT,false)
-		await ticks(35)
+		var recorded:=false
+		for tick in 35:
+			await ticks(1)
+			var observed:Dictionary=bow.arrow_state(bow.last_fired_index())
+			if not recorded and bool(observed.get("actual_skin",false)) and not observed.get("damage_result",{}).is_empty():
+				tissue_impacts31.append(observed);recorded=true
 		checks["single_shot_%s"%shot]=int(bow._shots)==shots_before+shot+1 and int(bow._arrows_left)==ammo-1
 		rows.append({"shot":shot,"arrow":bow.arrow_state(bow.last_fired_index()),"hp":host._npc_hp,"dead":host._npc_dead,"audio":host.melee_audio_report31()})
 		await ticks(30)
 	var actual:=false;var embedded:=false;var rejected:=false;var max_anchor_error:=0.0
+	# A rejected arrow can subsequently hit the floor/wall. Preserve the observed
+	# tissue collision instead of asking its later world collision to prove it.
+	for impact:Dictionary in tissue_impacts31:
+		actual=actual or bool(impact.get("actual_skin",false))
 	for entry:Dictionary in bow._arrows:
 		actual=actual or bool(entry.get("actual_skin31",false))
 		embedded=embedded or (bool(entry.get("stuck",false)) and float(entry.get("embed_depth31",0))>0)
@@ -93,6 +134,12 @@ func run():
 	checks["real_damage"]=float(host._npc_hp)<hp_before
 	checks["finite_tissue_embed_or_armor_rejection"]=embedded or rejected
 	checks["bone_anchor_follows"]=max_anchor_error<.001
+	if plate_target31:
+		var plate_rejected:=false
+		for impact:Dictionary in tissue_impacts31:
+			plate_rejected=plate_rejected or (str(impact.damage_result.get("region",""))=="plate" and bool(impact.armor_rejected) and not bool(impact.stuck))
+		checks["actual_covered_plate_rejection"]=plate_rejected
+	rows.append({"tissue_impacts31":tissue_impacts31})
 	rows.append({"final_dead":host._npc_dead,"max_anchor_error":max_anchor_error,"arrows":bow._arrows.size(),"rejected":rejected})
 	if DisplayServer.get_name()!="headless":await RenderingServer.frame_post_draw;root.get_texture().get_image().save_png(out+"/bow_result.png")
 	finish()
