@@ -18,7 +18,16 @@ extends Node3D
 
 const BRICK := Vector3(1.00, 0.54, 0.58)
 const ArmoryStorage = preload("res://scripts/city/castle_armory_storage.gd")
+## DSH_GATEDEF: the three working mechanisms above and beside the gate.
+const GateGallery = preload("res://scripts/siege/gate_gallery.gd")
+const StoneHatch = preload("res://scripts/siege/stone_hatch.gd")
+const GateCauldron = preload("res://scripts/siege/gate_cauldron.gd")
+const SallyPort = preload("res://scripts/siege/sally_port.gd")
 var armory_storage: Node
+var _gate_gallery: Node3D
+var _stone_hatch: Node3D
+var _gate_cauldron: Node3D
+var _sally_port: Node3D
 
 func _build_furniture_meshes() -> void:
 	# Unit sized profiles use the same chunked MultiMesh/damage path as brick cells.
@@ -513,10 +522,8 @@ func install(world: Node3D, origin: Vector3) -> Dictionary:
 	_build_ring_road()
 	if _phase_enabled: _phase("_build_tower_platforms")
 	_build_tower_platforms()
-	if _phase_enabled: _phase("_build_gate_bridge")
-	_build_gate_bridge()
-	# The far slabs are retired: the bricks are drawn at every distance anyway, so the
-	# slab only covered the gate opening and any breach seen from afar with intact stone.
+	# The old rope bridge sat buried inside the merlons at the gate head and had no
+	# collision. The gate hoarding replaces it with a deck that can be walked and fought on.
 	if _phase_enabled: _phase("_build_string_courses")
 	_build_string_courses()
 	if _phase_enabled: _phase("_build_facade_relief")
@@ -547,6 +554,8 @@ func install(world: Node3D, origin: Vector3) -> Dictionary:
 	if _phase_enabled: _phase("_flush_buckets")
 	_flush_buckets()
 	_build_masonry_hits55()
+	if _phase_enabled: _phase("_build_gate_defenses")
+	_build_gate_defenses()
 	if _phase_enabled: _phase("_prewarm_debris_pool")
 	_prewarm_debris_pool()
 	if _phase_enabled: _phase_done()
@@ -629,6 +638,11 @@ void fragment() {
 		"linen": linen, "ochre": ochre,
 		"iron": iron, "grass": grass, "paving": paving, "dark": dark,
 		"velvet": velvet, "gold": gold}
+
+## Shared palette for the gate mechanisms, so a new prop is cut from the same stone.
+func shared_material(key: String) -> Material:
+	var material: Variant = _materials.get(key)
+	return material as Material
 
 func _build_ground() -> void:
 	_ground = StaticBody3D.new()
@@ -1547,6 +1561,11 @@ func _build_wall(side: String) -> void:
 				if side == "south" and row * BRICK.y < GATE_HEIGHT \
 					and absf(along) < GATE_WIDTH * 0.5 + BRICK.x * 0.5:
 					continue
+				# DSH_GATEDEF: the postern pierces both curtain skins as well, or the
+				# opened leaf would reveal a wall of bricks behind it.
+				if side == "south" and row * BRICK.y < 2.70 \
+					and absf(along + 8.20) < 1.10:
+					continue
 				var height := (float(row) + 0.5) * BRICK.y
 				var at := Vector3.ZERO
 				var size := BRICK
@@ -1570,9 +1589,16 @@ func _build_wall(side: String) -> void:
 		# The wall is solid EXCEPT at the gate: two piers and a lintel, so the opening can
 		# be walked through and the masonry either side of it is still a wall.
 		var pier: float = (WALL_HALF * 2.0 - GATE_WIDTH) * 0.5
-		for pier_side: float in [-1.0, 1.0]:
-			_add_wall_collision(Vector3(pier_side * (GATE_WIDTH * 0.5 + pier * 0.5), WALL_HEIGHT * 0.5, WALL_HALF),
-				Vector3(pier, WALL_HEIGHT, WALL_THICK), "south")
+		# DSH_GATEDEF: the left curtain pier is also split around the postern, otherwise
+		# its coarse collision would fill the dressed passage in the gatehouse.
+		_add_wall_collision(Vector3(-38.6, WALL_HEIGHT * 0.5, WALL_HALF),
+			Vector3(58.8, WALL_HEIGHT, WALL_THICK), "south")
+		_add_wall_collision(Vector3(-5.9, WALL_HEIGHT * 0.5, WALL_HALF),
+			Vector3(2.6, WALL_HEIGHT, WALL_THICK), "south")
+		_add_wall_collision(Vector3(-8.2, (2.7 + WALL_HEIGHT) * 0.5, WALL_HALF),
+			Vector3(2.0, WALL_HEIGHT - 2.7, WALL_THICK), "south")
+		_add_wall_collision(Vector3(GATE_WIDTH * 0.5 + pier * 0.5, WALL_HEIGHT * 0.5, WALL_HALF),
+			Vector3(pier, WALL_HEIGHT, WALL_THICK), "south")
 		_add_wall_collision(Vector3(0.0, (WALL_HEIGHT + GATE_HEIGHT) * 0.5, WALL_HALF),
 			Vector3(GATE_WIDTH, WALL_HEIGHT - GATE_HEIGHT, WALL_THICK), "south")
 	elif side == "north":
@@ -1726,6 +1752,9 @@ func _add_battlements(side: String) -> void:
 		for column: int in per_course:
 			if column % 2 == 1: continue
 			var along := (float(column) - float(per_course - 1) * 0.5) * BRICK.x
+			# DSH_GATEDEF: a crenel-wide gap opens the wall head onto the gate hoarding.
+			if side == "south" and absf(along) < 5.20:
+				continue
 			var height := WALL_HEIGHT + (float(row) + 0.5) * BRICK.y
 			var at := Vector3.ZERO
 			var size := BRICK
@@ -1744,7 +1773,8 @@ func _add_plinth(side: String) -> void:
 		var along := (float(column) - float(per_course - 1) * 0.5) * BRICK.x
 		# The gate opening must also cut the decorative footing. These stones
 		# otherwise form a knee-high, non-colliding threshold across both leaves.
-		if side == "south" and absf(along) < GATE_WIDTH * 0.5 + BRICK.x * 0.51:
+		if side == "south" and (absf(along) < GATE_WIDTH * 0.5 + BRICK.x * 0.51 \
+				or absf(along + 8.2) < 1.25):
 			continue
 		var at := Vector3.ZERO
 		var size := Vector3(BRICK.x * 1.02, BRICK.y * 1.1, WALL_THICK * 1.35)
@@ -1866,14 +1896,28 @@ func _build_gatehouse() -> void:
 		var centre := at + Vector3(side * (GATE_WIDTH * 0.5 + 3.6), 0.0, 0.0)
 		var courses := int(20.0 / BRICK.y)
 		var per_course := 6
+		# DSH_GATEDEF: the left pier carries the sally port. Two brick columns and five
+		# courses are left out for a real passage; the stone frame and the leaf fill it.
+		var sally := side < 0.0
 		for row: int in courses:
 			for column: int in per_course:
+				if sally and row < 5 and column in [2, 3]:
+					continue
 				var along := (float(column) - float(per_course - 1) * 0.5) * BRICK.x
 				_add_brick(centre + Vector3(along, (float(row) + 0.5) * BRICK.y, 0.0),
 					Vector3(BRICK.x, BRICK.y, WALL_THICK * 1.6),
 					"warm" if (row / 4) % 2 == 0 else "stone", Vector3.ZERO, "gatehouse", row, column)
-		_add_wall_collision(centre + Vector3.UP * 10.0,
-			Vector3(per_course * BRICK.x, 20.0, WALL_THICK * 1.6))
+		if sally:
+			# Solid either side of the postern and above it: the opening stays walkable.
+			_add_wall_collision(centre + Vector3(-2.0, 10.0, 0.0),
+				Vector3(2.0, 20.0, WALL_THICK * 1.6))
+			_add_wall_collision(centre + Vector3(2.0, 10.0, 0.0),
+				Vector3(2.0, 20.0, WALL_THICK * 1.6))
+			_add_wall_collision(centre + Vector3(0.0, 11.35, 0.0),
+				Vector3(2.0, 17.3, WALL_THICK * 1.6))
+		else:
+			_add_wall_collision(centre + Vector3.UP * 10.0,
+				Vector3(per_course * BRICK.x, 20.0, WALL_THICK * 1.6))
 	# Quoins down the outer corners, battlements on top, and corbels carrying them: a
 	# gatehouse is the part of a castle a lord pays to have look expensive.
 	for side: float in [-1.0, 1.0]:
@@ -2295,6 +2339,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		if is_instance_valid(armory_storage) and not armory_storage.chest_focused() and armory_storage.interact():
 			get_viewport().set_input_as_handled()
 		return
+	# The postern and the stone hatch are worked with the same F as the gate. A gate
+	# hint is left to the existing path below so its behaviour is unchanged.
+	if code == KEY_F:
+		var special: Dictionary = interaction_action()
+		if str(special.get("owner", "")) in ["castle_sally", "castle_hatch"]:
+			if interact_castle(special):
+				get_viewport().set_input_as_handled()
+			return
 	if not wants_e(): return
 	set_gate(not _gate_open_state)
 	get_viewport().set_input_as_handled()
@@ -3735,6 +3787,93 @@ func _release_furniture_dependents(group: String, at: Vector3,
 func wall_half() -> float:
 	return WALL_HALF
 
+## DSH_GATEDEF: build the three working defences above and beside the gate. They are
+## created after the static decoration has been batched, because two of them move.
+func _build_gate_defenses() -> void:
+	_gate_gallery = GateGallery.new() as Node3D
+	add_child(_gate_gallery)
+	var gallery_result: Dictionary = _gate_gallery.call("install", self)
+	if not bool(gallery_result.get("ok", false)):
+		push_warning("Gate gallery install failed: " + str(gallery_result))
+	_stone_hatch = StoneHatch.new() as Node3D
+	add_child(_stone_hatch)
+	var hatch_result: Dictionary = _stone_hatch.call("install", self, _player, _world_ref)
+	if not bool(hatch_result.get("ok", false)):
+		push_warning("Stone hatch install failed: " + str(hatch_result))
+	_gate_cauldron = GateCauldron.new() as Node3D
+	add_child(_gate_cauldron)
+	var cauldron_result: Dictionary = _gate_cauldron.call("install", self, _player, _world_ref)
+	if not bool(cauldron_result.get("ok", false)):
+		push_warning("Gate cauldron install failed: " + str(cauldron_result))
+	_sally_port = SallyPort.new() as Node3D
+	add_child(_sally_port)
+	var sally_result: Dictionary = _sally_port.call("install", self, _player, _world_ref)
+	if not bool(sally_result.get("ok", false)):
+		push_warning("Sally port install failed: " + str(sally_result))
+	print("DSH_GATE_DEFENSES ", JSON.stringify({
+		"gallery": gallery_result.get("stats", {}),
+		"hatch": hatch_result.get("stats", {}),
+		"cauldron": cauldron_result.get("stats", {}),
+		"sally": sally_result.get("stats", {})}))
+
+
+## The nearest mechanism the player can work. The gate keeps the old "castle" owner,
+## so existing hints and tests are not renamed; the two new mechanisms have their own.
+func interaction_action() -> Dictionary:
+	if not is_instance_valid(_player):
+		return {}
+	var candidates: Array[Dictionary] = []
+	if is_instance_valid(_sally_port):
+		var sally: Dictionary = _sally_port.call("interaction_action")
+		if not sally.is_empty():
+			candidates.append(sally)
+	if is_instance_valid(_stone_hatch):
+		var hatch: Dictionary = _stone_hatch.call("interaction_action")
+		if not hatch.is_empty():
+			candidates.append(hatch)
+	if wants_e():
+		var inner: Vector3 = lever_position()
+		var outer: Vector3 = outer_lever_position()
+		var nearest: Vector3 = inner if _player.global_position.distance_to(inner) \
+			<= _player.global_position.distance_to(outer) else outer
+		candidates.append({"owner": "castle", "key": "F",
+			"label": "Открыть ворота" if not gate_open() else "Закрыть ворота",
+			"world": nearest + Vector3.UP * 0.9})
+	if candidates.is_empty():
+		return {}
+	var best: Dictionary = candidates[0]
+	var best_distance: float = _player.global_position.distance_to(best["world"] as Vector3)
+	for candidate: Dictionary in candidates:
+		var distance: float = _player.global_position.distance_to(candidate["world"] as Vector3)
+		if distance < best_distance:
+			best_distance = distance
+			best = candidate
+	return best
+
+
+func interact_castle(action: Dictionary) -> bool:
+	match str(action.get("owner", "")):
+		"castle":
+			set_gate(not gate_open())
+			return true
+		"castle_sally":
+			return bool(_sally_port.call("interact")) if is_instance_valid(_sally_port) else false
+		"castle_hatch":
+			return bool(_stone_hatch.call("interact")) if is_instance_valid(_stone_hatch) else false
+	return false
+
+
+func gate_defenses_snapshot() -> Dictionary:
+	var result := {}
+	if is_instance_valid(_stone_hatch):
+		result["hatch"] = _stone_hatch.call("get_stats")
+	if is_instance_valid(_gate_cauldron):
+		result["cauldron"] = _gate_cauldron.call("get_stats")
+	if is_instance_valid(_sally_port):
+		result["sally"] = _sally_port.call("get_stats")
+	return result
+
+
 func get_stats() -> Dictionary:
 	return {
 		"ok": _ready, "bricks": _cells.size(), "detached": _detached,
@@ -3750,6 +3889,7 @@ func get_stats() -> Dictionary:
 		"gate_bricks": _count_gate_bricks(),
 		"support_pending": _pending_support.size(),
 		"persistent_rubble": _persistent_rubble,
+		"gate_defenses": gate_defenses_snapshot(),
 	}
 
 ## DSH_OPT: every cell index whose grid box overlaps a cube round `at`. The boxes are
@@ -4482,19 +4622,8 @@ func spawn_point() -> Vector3:
 ## Every piece uses the existing masonry batches and damage cells. There are no
 ## new permanent collision bodies or materials in the clear gateway.
 func _build_gate_art38() -> void:
-	var face: float = WALL_HALF + 2.75
-	# Seven machicolations project out of the gateway. Their gaps are dark from
-	# below and the continuous rail ties the two pre-existing bastions together.
-	for bracket: int in 7:
-		var x: float = (float(bracket) - 3.0) * 1.68
-		_add_brick(Vector3(x, 20.22, face + 0.22), Vector3(0.58, 1.13, 1.52),
-			"cold", Vector3.ZERO, "gate38_machicolation", 0, bracket)
-	_add_brick(Vector3(0.0, 21.12, face + 0.44), Vector3(13.4, 0.47, 1.45),
-		"warm", Vector3.ZERO, "gate38_gallery_rail")
-	for merlon: int in 7:
-		var x: float = (float(merlon) - 3.0) * 1.86
-		_add_brick(Vector3(x, 22.08, face + 0.60), Vector3(1.05, 1.50, 1.05),
-			"stone", Vector3.ZERO, "gate38_gallery_merlon", 0, merlon)
+	# DSH_GATEDEF: the decorative machicolation bay that used to sit here is replaced by
+	# the working hoarding. Keeping both put a stone bracket inside the cauldron.
 	# The little watch turrets break the flat curtain silhouette. Eight stone
 	# faces per course form a real octagon; stepped slate roofs carry a gold finial.
 	for side: float in [-1.0, 1.0]:
@@ -4534,15 +4663,8 @@ func _build_gate_art38() -> void:
 		_add_brick(Vector3(cx, 20.84, cz + 2.46), Vector3(0.19, 1.60, 0.04),
 			"gold", Vector3.ZERO, "gate38_standard_device")
 	# A layered pointed pediment above the gallery reads from the siege camp.
-	for tier: int in 5:
-		_add_brick(Vector3(0.0, 23.30 + float(tier) * 0.52, face + 0.02),
-			Vector3(5.80 - float(tier) * 0.91, 0.47, 0.56),
-			"warm" if tier % 2 == 0 else "cold", Vector3.ZERO,
-			"gate38_pediment", tier, 0)
-	_add_brick(Vector3(0.0, 24.13, face + 0.36), Vector3(1.06, 1.36, 0.12),
-		"velvet", Vector3.ZERO, "gate38_heraldry")
-	_add_brick(Vector3(0.0, 24.13, face + 0.46), Vector3(0.18, 1.08, 0.07),
-		"gold", Vector3.ZERO, "gate38_heraldry_device")
+	# DSH_GATEDEF: retired together with the decorative gallery; it would float above
+	# the working deck with nothing under it.
 
 ## Street-scale landmarks: open supply shelters outside the gate, a courtyard well,
 ## rest benches and connected paving. All solids use the existing masonry batches

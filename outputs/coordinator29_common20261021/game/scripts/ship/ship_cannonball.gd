@@ -248,10 +248,21 @@ func _react(hit: Dictionary) -> Dictionary:
 		var castle_result: Dictionary = {"ok": false}
 		if castle.has_method("apply_explosion"):
 			castle_result = castle.call("apply_explosion", event)
+		# The assault ladders stand outside the curtain and are not part of the castle
+		# collider, so the same ball is handed to the siege dressing piece by piece.
+		var ladder_parts := 0
+		var castle_world: Node = castle.get_parent()
+		if castle_world != null:
+			var siege_field: Variant = castle_world.get("preview_battlefield")
+			if is_instance_valid(siege_field):
+				var dressing: Node = (siege_field as Node).get_node_or_null("SiegeWallDressing")
+				if is_instance_valid(dressing) and dressing.has_method("apply_damage"):
+					ladder_parts = int(dressing.call("apply_damage", point, 1.55, CASTLE_POWER, 34.0))
 		var detached: int = int(castle_result.get("detached", 0))
 		return _finish({"type": "castle", "position": point, "direction": direction,
 			"collider": _collider_name(collider), "event": event, "result": castle_result,
-			"detached": detached, "event_id": "ship-cannon:%d" % shot_id})
+			"detached": detached, "ladder_parts": ladder_parts,
+			"event_id": "ship-cannon:%d" % shot_id})
 	# 3. water (a bank / quay collider under the surface still counts as a splash)
 	if _is_water_point(point):
 		return _finish_water(point, direction)

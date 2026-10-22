@@ -49,6 +49,11 @@ func sample(player: CharacterBody3D, state: Dictionary) -> Dictionary:
 	var skeleton: Skeleton3D = player.get("_pose_skeleton")
 	if not is_instance_valid(ship) or not is_instance_valid(skeleton): return {"valid":false}
 	var local: Vector3 = state.local
+	# Defaults are the ship's own ladder. A wall ladder passes its own base/top/rung
+	# count, so the same crawl pose drives both without a second provider.
+	var base: Vector3 = state.get("base", Vector3(0,1.77,2.34))
+	var top: Vector3 = state.get("top", Vector3(0,5.21,1.86))
+	var rung_count: int = maxi(2, int(state.get("rung_count", 12)))
 	# Face the ladder while mouse look remains independent.
 	var visual: Node3D = player.get("_visual")
 	visual.global_rotation.y = ship.global_rotation.y + PI
@@ -60,7 +65,7 @@ func sample(player: CharacterBody3D, state: Dictionary) -> Dictionary:
 	for i: int in poses.size():
 		names[skeleton.get_bone_name(i)] = i
 		parents.append(skeleton.get_bone_parent(i))
-	var top_out := clampf((local.y-4.25)/.95,0.0,1.0)
+	var top_out := clampf((local.y - (top.y - 0.96)) / 0.96, 0.0, 1.0)
 	var crouch := sin(top_out*PI*.72)*.48
 	var offset := Vector3(0,-crouch,0)
 	var motion: Node3D = player.get("_pose_motion")
@@ -80,18 +85,16 @@ func sample(player: CharacterBody3D, state: Dictionary) -> Dictionary:
 			records[pair[0]]={"basis":a.basis,"length":a.origin.distance_to(b.origin),"direction":(b.origin-a.origin).normalized()}
 		records["hand_"+side]={"basis":world[names["hand_"+side]].basis}
 	var contacts: Dictionary = {}
-	var base := Vector3(0,1.77,2.34)
-	var top := Vector3(0,5.21,1.86)
-	var spacing := (top.y-base.y)/12.0
+	var spacing := (top.y-base.y)/float(rung_count)
 	for side: String in ["l","r"]:
 		var shoulder: Vector3 = ship.to_local(world[names["upperarm_"+side]].origin)
 		var phase := (local.y-base.y)/spacing + (0.0 if side=="l" else .5)
-		var rung := clampi(roundi((shoulder.y+.12-base.y)/spacing-.5),0,11)
-		var t := (float(rung)+.5)/12.0
+		var rung := clampi(roundi((shoulder.y+.12-base.y)/spacing-.5),0,rung_count-1)
+		var t := (float(rung)+.5)/float(rung_count)
 		var target := base.lerp(top,t)+Vector3(clampf(shoulder.x,-.30,.30),0,0)
 		var contact_kind := "rung"
-		if local.y>4.25:
-			target = Vector3(clampf(shoulder.x,-.30,.30),5.22,1.77)
+		if local.y > top.y - 0.96:
+			target = Vector3(clampf(shoulder.x,-.30,.30), top.y, top.z - 0.09)
 			contact_kind = "platform_lip"
 		# Each hand releases on the opposite half cycle and reaches the next rung.
 		var swing := sin(phase*PI)*.035
@@ -99,7 +102,7 @@ func sample(player: CharacterBody3D, state: Dictionary) -> Dictionary:
 		var target_world := ship.to_global(target)
 		arm(side,target_world,ship.global_basis.x.normalized())
 		var actual: Vector3 = world[names["socket_hand_"+side]].origin
-		contacts[side]={"target":target_world,"actual":actual,"error_m":actual.distance_to(target_world),"rung":rung,"loaded":(swing<=.005 if contact_kind=="rung" else local.y<5.02),"kind":contact_kind}
+		contacts[side]={"target":target_world,"actual":actual,"error_m":actual.distance_to(target_world),"rung":rung,"loaded":(swing<=.005 if contact_kind=="rung" else local.y<top.y-0.22),"kind":contact_kind}
 	# Alternating feet clear the rungs. Bone translations and scale stay canonical.
 	for side: String in ["l","r"]:
 		var cycle := sin((local.y-base.y)/spacing*PI)*(1.0 if side=="l" else -1.0)

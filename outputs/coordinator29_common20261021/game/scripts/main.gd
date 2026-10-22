@@ -1265,14 +1265,12 @@ func _current_door_action() -> Dictionary:
 	if is_instance_valid(preview_castle) and is_instance_valid(preview_castle.armory_storage):
 		var pickup: Dictionary = preview_castle.armory_storage.pickup_action43()
 		if not pickup.is_empty(): return pickup
-	# The horse, balloon and barrel prompts use this very same panel (the sword
-	# pickup's plaque and animation) instead of their own little banners.
-	if is_instance_valid(preview_castle) and preview_castle.wants_e():
-		var inner: Vector3 = preview_castle.lever_position()
-		var outer: Vector3 = preview_castle.outer_lever_position()
-		var nearest: Vector3 = inner if _player.global_position.distance_to(inner) <= _player.global_position.distance_to(outer) else outer
-		return {"owner": "castle", "label": "Открыть ворота" if not preview_castle.gate_open() else "Закрыть ворота",
-			"world": nearest + Vector3.UP * 0.9}
+	# DSH_GATEDEF: one owner reports the nearest castle mechanism - gate, postern or
+	# stone hatch. The gate keeps its old owner id, so the existing prompt is unchanged.
+	if is_instance_valid(preview_castle):
+		var castle_action: Dictionary = preview_castle.interaction_action()
+		if not castle_action.is_empty():
+			return castle_action
 	var candidates: Array = []
 	if is_instance_valid(preview_power_barrels):
 		var barrel_text: String = str(preview_power_barrels.call("prompt_text"))
@@ -1295,12 +1293,6 @@ func _current_door_action() -> Dictionary:
 				best_distance = distance
 				best = candidate
 		return best
-	if is_instance_valid(preview_castle) and preview_castle.wants_e():
-		var inner: Vector3 = preview_castle.lever_position()
-		var outer: Vector3 = preview_castle.outer_lever_position()
-		var nearest: Vector3 = inner if _player.global_position.distance_to(inner) <= _player.global_position.distance_to(outer) else outer
-		return {"owner": "castle", "label": "Открыть ворота" if not preview_castle.gate_open() else "Закрыть ворота",
-			"world": nearest + Vector3.UP * 0.9}
 	if is_instance_valid(preview_palazzo):
 		var palazzo_action: Dictionary = preview_palazzo.door_action()
 		if not palazzo_action.is_empty(): return palazzo_action
@@ -1314,7 +1306,8 @@ func _update_door_hint() -> void:
 	if _door_hint == null:
 		return
 	var action: Dictionary = _current_door_action()
-	if action.get("owner", "") in ["palazzo", "clone", "castle", "castle_chest", "castle_pickup", "barrel", "horse", "balloon", "ship", "powder", "tower"]:
+	if action.get("owner", "") in ["palazzo", "clone", "castle", "castle_sally", "castle_hatch",
+			"castle_chest", "castle_pickup", "barrel", "horse", "balloon", "ship", "powder", "tower"]:
 		_door_hint_world = action.world
 	elif not _printshop_data.is_empty():
 		_door_hint_world = _v3(_printshop_data.doors.public.anchor) + Vector3.UP * 2.2
@@ -1390,6 +1383,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	# The key printed on a pickup is its only activation key.
 	var action_key := KEY_E if str(action.get("key", "F")) == "E" else KEY_F
 	if palazzo_key != action_key: return
+	# The postern and the stone hatch are driven by the castle itself; leave the event
+	# unhandled here so its own input path receives it.
+	if str(action.get("owner", "")) in ["castle_sally", "castle_hatch"]:
+		return
 	if str(action.get("owner", "")) in ["barrel", "horse", "balloon"]: return # Their hosts own the transaction.
 	if str(action.get("owner", "")) == "fort":
 		if preview_fort.call("interact", action):
