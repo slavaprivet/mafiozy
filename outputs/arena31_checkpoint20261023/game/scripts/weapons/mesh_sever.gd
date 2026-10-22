@@ -109,6 +109,7 @@ static func _cut_surface(arrays: Array, plane: Plane, part_binds: Dictionary = {
 	if vertices.is_empty(): return out
 	var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL] if arrays[Mesh.ARRAY_NORMAL] != null else PackedVector3Array()
 	var uvs: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV] if arrays[Mesh.ARRAY_TEX_UV] != null else PackedVector2Array()
+	var uv2s: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV2] if arrays[Mesh.ARRAY_TEX_UV2] != null else PackedVector2Array()
 	var bones: PackedInt32Array = arrays[Mesh.ARRAY_BONES] if arrays[Mesh.ARRAY_BONES] != null else PackedInt32Array()
 	var weights: PackedFloat32Array = arrays[Mesh.ARRAY_WEIGHTS] if arrays[Mesh.ARRAY_WEIGHTS] != null else PackedFloat32Array()
 	var colors: PackedColorArray = arrays[Mesh.ARRAY_COLOR] if arrays[Mesh.ARRAY_COLOR] != null else PackedColorArray()
@@ -187,6 +188,9 @@ static func _cut_surface(arrays: Array, plane: Plane, part_binds: Dictionary = {
 		var v0 := _v(vertices, normals, uvs, bones, weights, colors, i0, has_normals, has_uvs, has_skin, has_colors)
 		var v1 := _v(vertices, normals, uvs, bones, weights, colors, i1, has_normals, has_uvs, has_skin, has_colors)
 		var v2 := _v(vertices, normals, uvs, bones, weights, colors, i2, has_normals, has_uvs, has_skin, has_colors)
+		if uv2s.size() == vertices.size():
+			v0.uv2=uv2s[i0];v1.uv2=uv2s[i1];v2.uv2=uv2s[i2]
+			v0.has_uv2=true;v1.has_uv2=true;v2.has_uv2=true
 		v0.distance = d0; v1.distance = d1; v2.distance = d2
 		var crossing: Array = []
 		_edge_crossing(v0, v1, crossing)
@@ -239,6 +243,8 @@ class _Vertex:
 	var position: Vector3
 	var normal: Vector3
 	var uv: Vector2
+	var uv2: Vector2
+	var has_uv2 := false
 	var color: Color = Color.WHITE
 	var bone := PackedInt32Array([0, 0, 0, 0])
 	var weight := PackedFloat32Array([0.0, 0.0, 0.0, 0.0])
@@ -270,6 +276,8 @@ static func _edge_crossing(a: _Vertex, b: _Vertex, out: Array) -> void:
 	vertex.position = a.position.lerp(b.position, t)
 	vertex.normal = a.normal.lerp(b.normal, t).normalized()
 	vertex.uv = a.uv.lerp(b.uv, t)
+	vertex.uv2 = a.uv2.lerp(b.uv2, t)
+	vertex.has_uv2 = a.has_uv2 or b.has_uv2
 	vertex.color = a.color.lerp(b.color, t)
 	vertex.distance = 0.0
 	vertex.has_skin = a.has_skin or b.has_skin
@@ -341,22 +349,26 @@ class _Builder:
 	var source_positions := PackedVector3Array()
 	var source_normals := PackedVector3Array()
 	var source_uvs := PackedVector2Array()
+	var source_uv2s := PackedVector2Array()
 	var source_colors := PackedColorArray()
 	var source_bones := PackedInt32Array()
 	var source_weights := PackedFloat32Array()
 	var source_has_normals := false
 	var source_has_uvs := false
+	var source_has_uv2s := false
 	var source_has_colors := false
 	var source_has_skin := false
 	var positions := PackedVector3Array()
 	var normals := PackedVector3Array()
 	var uvs := PackedVector2Array()
+	var uv2s := PackedVector2Array()
 	var colors := PackedColorArray()
 	var bones := PackedInt32Array()
 	var weights := PackedFloat32Array()
 	var indices := PackedInt32Array()
 	var any_skin := false
 	var any_uv := false
+	var any_uv2 := false
 	var any_color := false
 	# Original vertices keep exact attributes and can share an output index.
 	var source_remap: Dictionary = {}
@@ -366,12 +378,14 @@ class _Builder:
 		source_positions = arrays[Mesh.ARRAY_VERTEX]
 		if arrays[Mesh.ARRAY_NORMAL] is PackedVector3Array: source_normals = arrays[Mesh.ARRAY_NORMAL]
 		if arrays[Mesh.ARRAY_TEX_UV] is PackedVector2Array: source_uvs = arrays[Mesh.ARRAY_TEX_UV]
+		if arrays[Mesh.ARRAY_TEX_UV2] is PackedVector2Array: source_uv2s = arrays[Mesh.ARRAY_TEX_UV2]
 		if arrays[Mesh.ARRAY_COLOR] is PackedColorArray: source_colors = arrays[Mesh.ARRAY_COLOR]
 		if arrays[Mesh.ARRAY_BONES] is PackedInt32Array: source_bones = arrays[Mesh.ARRAY_BONES]
 		if arrays[Mesh.ARRAY_WEIGHTS] is PackedFloat32Array: source_weights = arrays[Mesh.ARRAY_WEIGHTS]
 		var count := source_positions.size()
 		source_has_normals = source_normals.size() == count
 		source_has_uvs = source_uvs.size() == count
+		source_has_uv2s = source_uv2s.size() == count
 		source_has_colors = source_colors.size() == count
 		source_has_skin = source_bones.size() == count * 4 and source_weights.size() == count * 4
 
@@ -384,6 +398,7 @@ class _Builder:
 		any_uv = true
 		any_color = true
 		if source_has_skin: any_skin = true
+		if source_has_uv2s: any_uv2 = true
 
 	func _source_index29(index: int) -> int:
 		if source_remap.has(index): return int(source_remap[index])
@@ -396,6 +411,7 @@ class _Builder:
 		positions.append(source_positions[index])
 		normals.append(source_normals[index] if source_has_normals else Vector3.ZERO)
 		uvs.append(source_uvs[index] if source_has_uvs else Vector2.ZERO)
+		uv2s.append(source_uv2s[index] if source_has_uv2s else Vector2.ZERO)
 		colors.append(source_colors[index] if source_has_colors else Color.WHITE)
 		var offset := index * 4
 		for k: int in 4:
@@ -408,6 +424,8 @@ class _Builder:
 			positions.append(vertex.position)
 			normals.append(vertex.normal)
 			uvs.append(vertex.uv)
+			uv2s.append(vertex.uv2)
+			if vertex.has_uv2: any_uv2 = true
 			colors.append(vertex.color)
 			for k: int in 4:
 				bones.append(vertex.bone[k])
@@ -426,6 +444,7 @@ class _Builder:
 		arrays[Mesh.ARRAY_VERTEX] = positions
 		arrays[Mesh.ARRAY_NORMAL] = normals
 		if any_uv: arrays[Mesh.ARRAY_TEX_UV] = uvs
+		if any_uv2: arrays[Mesh.ARRAY_TEX_UV2] = uv2s
 		if any_color: arrays[Mesh.ARRAY_COLOR] = colors
 		if any_skin:
 			arrays[Mesh.ARRAY_BONES] = bones

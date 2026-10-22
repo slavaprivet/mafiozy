@@ -219,13 +219,16 @@ func _input(event: InputEvent) -> void:
 		lab.lab_armored = lab.lab_armor_tier30 != "none"
 		lab.lab_reset()
 	elif key == KEY_F10:
-		hero_visual31.set_gambeson(not hero_visual31.gambeson_enabled)
-		lab_notice="Камзол надет" if hero_visual31.gambeson_enabled else "Камзол снят"
+		if hero_visual31.damage_locked:
+			lab_notice="После ранения смена одежды доступна после сброса героя: F5"
+		else:
+			hero_visual31.set_gambeson(not hero_visual31.gambeson_enabled)
+			lab_notice="Камзол надет" if hero_visual31.gambeson_enabled else ("Камзол остаётся под бронёй" if not hero_visual31.armor_tier.is_empty() else "Камзол снят")
 	elif key == KEY_F11:
 		var tiers:Array[String]=["","light","medium","heavy"]
 		var next:String=tiers[(tiers.find(hero_visual31.armor_tier)+1)%tiers.size()]
-		hero_visual31.set_armor_tier(next)
-		lab_notice="Броня героя: "+{"":"снята","light":"лёгкая","medium":"средняя","heavy":"тяжёлая"}[next]
+		var equipped:Dictionary=hero_visual31.set_armor_tier(next)
+		lab_notice="Броня героя: "+{"":"снята","light":"лёгкая","medium":"средняя","heavy":"тяжёлая"}[next] if equipped.get("ok",false) else "После ранения смена брони доступна после сброса героя: F5"
 	elif key == KEY_F6: lab.lab_reset()
 	elif key == KEY_F7: _lab_capture()
 	elif key == KEY_F8: lab.lab_clear_debris()

@@ -1,0 +1,115 @@
+{
+  "bow_actual03": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "actual_posed_skin_hit": true,
+      "bone_anchor_follows": true,
+      "cancel_does_not_fire": true,
+      "early_click_not_fired": true,
+      "finite_tissue_embed_or_armor_rejection": true,
+      "q_actual_bow": true,
+      "ready_0": true,
+      "real_damage": true,
+      "single_shot_0": true,
+      "startup": true
+    },
+    "scope": "See fixture; this is individual scenario evidence, not full gameplay acceptance.",
+    "original_evidence": "D:\\MafioziCombat31\\c33_coordination\\agents\\contact_perf31\\bow_actual03"
+  },
+  "hero_damage02": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "bare_arrow_hp_damage": true,
+      "bare_arrow_surface_wound": true,
+      "bare_blade_surface_wound": true,
+      "bare_hidden_templates_excluded": true,
+      "bare_injured_toggle_cannot_heal": true,
+      "bare_original_template_hidden": true,
+      "bare_ready": true,
+      "bare_real_mesh_sever": true,
+      "bare_wound_material_survives_cut": true,
+      "blocked_plate_no_open_wound": true,
+      "gambeson_arrow_hp_damage": true,
+      "gambeson_arrow_surface_wound": true,
+      "gambeson_blade_surface_wound": true,
+      "gambeson_hidden_templates_excluded": true,
+      "gambeson_injured_toggle_cannot_heal": true,
+      "gambeson_original_template_hidden": true,
+      "gambeson_ready": true,
+      "gambeson_real_mesh_sever": true,
+      "gambeson_wound_material_survives_cut": true,
+      "heavy_ready": true,
+      "res://scripts/character/hero_medieval31.gd": true,
+      "res://scripts/character/hero_wound31.gd": true,
+      "res://scripts/weapons/sword_prototype.gd": true,
+      "shield_with_gambeson_clear": true,
+      "shield_with_gambeson_equipped": true,
+      "shield_with_gambeson_grip": true,
+      "uv2_cut_interpolates_original_coordinates": true
+    },
+    "scope": "Existing accepted blade damage and real MeshSever API; optional incoming mode launches a real simulated arrow and awaits actual player collision. Not a natural enemy melee acceptance.",
+    "original_evidence": "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_qa31\\hero_damage02"
+  },
+  "shield_hero_final30": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "aim_clear": true,
+      "equipped": true,
+      "grip_attached": true,
+      "guard_steers": true,
+      "horizontal_turn": true,
+      "new_gambeson_visible": true,
+      "no_sword_attack": true,
+      "release_stops_steering": true,
+      "released_clear": true,
+      "rest_clear": true,
+      "vertical_aim": true
+    },
+    "scope": "Actual shield equip and RMB/mouse InputEvents, final displayed shield bounds vs head/chest/spine proxies, exact hand attachment, horizontal body turn and vertical guard steering. Graphical captures supplement proxies.",
+    "original_evidence": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\shield_hero_final30"
+  },
+  "bow_regrab_parse02": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "res://scripts/clay_target.gd": true,
+      "res://scripts/combat/arrow_contact31.gd": true,
+      "res://scripts/combat/embedded_drop31.gd": true,
+      "res://scripts/combat/sword_puncture_resistance29.gd": true,
+      "res://scripts/weapons/bow_prototype.gd": true
+    },
+    "scope": "See fixture; this is individual scenario evidence, not full gameplay acceptance.",
+    "original_evidence": "D:\\MafioziCombat31\\c33_coordination\\agents\\contact_perf31\\bow_regrab_parse02"
+  },
+  "collar_geometry02": {
+    "passed": true,
+    "source_unchanged": false,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "actual_posed_entry_triangle": true,
+      "bounded_collar_rejected": true,
+      "empty_preview_rejected": true,
+      "front_exterior_rejected": true,
+      "nearby_disconnected_triangle_rejected": true,
+      "non_surface_point_rejected": true,
+      "opposite_entry_face_rejected": true,
+      "replaced_mesh_rejected": true,
+      "stale_generation_rejected": true,
+      "unrelated_mesh_rejected": true
+    },
+    "scope": "Focused exact posed ArrayMesh collar geometry/property oracle. No native wound/input claim; strict600 real input is separate.",
+    "original_evidence": "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_qa31\\collar_geometry02"
+  }
+}

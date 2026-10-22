@@ -1,5 +1,7 @@
 extends Node3D
 const ModelFinish31 = preload("res://scripts/weapons/weapon_model_finish31.gd")
+var _arrow_contact31 = preload("res://scripts/combat/arrow_contact31.gd").new()
+var _trace31:bool=OS.get_cmdline_user_args().has("--lab-trace=1")
 ## DSH_BOW_PROTO
 ##
 ## A physical bow for the Mafiozi build, built the same way as the sword
@@ -8,7 +10,7 @@ const ModelFinish31 = preload("res://scripts/weapons/weapon_model_finish31.gd")
 ##
 ## What it does:
 ##   * the bow is held in the archer's LEFT hand, the string is drawn with the
-##     RIGHT one - hold the RIGHT mouse button to draw, release to loose;
+##     RIGHT one - hold RIGHT to draw, press LEFT while ready to loose;
 ##   * drawing pulls the string, brings the draw hand to the anchor and zooms the
 ##     view in, and a dotted arc shows where the arrow will actually fly;
 ##   * the arrow is a real ballistic projectile: it drops under gravity along its
@@ -47,6 +49,7 @@ var _selected := false
 var _drawing := false
 var _fire_button_down := false
 var _string_target_world := Vector3.ZERO
+var _posed_nock_valid31 := false
 ## Right button: shows the arrow's path without spending an arrow.
 var _aiming := false
 var _draw_amount := 0.0
@@ -211,8 +214,9 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 	set_process_input(true)
 	set_process(true)
 	set_physics_process(true)
-	print("DSH_BOW_PROTO_BONES bow=", _bone_bow_clavicle, ",", _bone_bow_upper, ",", _bone_bow_fore, ",", _bone_bow_hand,
-		" draw=", _bone_draw_clavicle, ",", _bone_draw_upper, ",", _bone_draw_fore, ",", _bone_draw_hand)
+	if _trace31:
+		print("DSH_BOW_PROTO_BONES bow=", _bone_bow_clavicle, ",", _bone_bow_upper, ",", _bone_bow_fore, ",", _bone_bow_hand,
+			" draw=", _bone_draw_clavicle, ",", _bone_draw_upper, ",", _bone_draw_fore, ",", _bone_draw_hand)
 	return {"ok": true, "bow_hand": rig.get_bone_name(_bone_bow_hand), "draw_hand": rig.get_bone_name(_bone_draw_hand)}
 
 func _build_materials() -> void:
@@ -502,7 +506,11 @@ func _aim_direction() -> Vector3:
 			_sight_camera = _camera.global_transform
 		# Converge from the actual nock height. The former fixed shoulder point sat
 		# over half a metre above the arrow and drove nearby shots into the floor.
-		var launch_from: Vector3 = _string_nock_point(raw) + raw * 0.37
+		# The base WALK animation runs before bow IK. Its transient hand is not
+		# the nock the player saw. Use the last solved palm, refreshed below by
+		# _pose_archer, rather than caching that transient pose for the frame.
+		var solved_nock:Vector3=_string_hand_world if _posed_nock_valid31 else _string_nock_point(raw)
+		var launch_from: Vector3 = solved_nock + raw * 0.37
 		sight_direction = (_sight_point - launch_from).normalized()
 	# Keep the hands in the body's forward arc while the torso catches the camera.
 	# Bow, displayed arrow, trajectory and fired projectile all use this direction.
@@ -655,12 +663,16 @@ func launch_speed(power: float) -> float:
 
 func _muzzle_point() -> Vector3:
 	var aim := _aim_direction()
-	return _string_nock_point(aim) + aim * 0.37
+	return (_string_hand_world if _posed_nock_valid31 else _string_nock_point(aim)) + aim * 0.37
 
 func _fire(power: float) -> void:
 	var aim := _aim_direction()
 	var speed := launch_speed(power)
 	var from := _muzzle_point()
+	# Input can arrive between the base animation and the bow process. Launch
+	# the actual displayed arrow, not a second pose reconstructed in that gap.
+	if is_instance_valid(_nocked_arrow) and _nocked_arrow.is_visible_in_tree():
+		from=_nocked_arrow.global_position;aim=_nocked_arrow.global_basis.z.normalized()
 	var arrow := _take_arrow()
 	if arrow == null: return
 	_arrows_left = maxi(0, _arrows_left - 1)
@@ -916,7 +928,7 @@ func drop_bow_to_ground() -> bool:
 	ModelFinish31.make_ground_drop28(_bow, _world, forward)
 	_ground_items.append({"kind": "bow", "node": _bow})
 	_update_hint()
-	print("DSH_BOW_PROTO_DROPPED at=", at)
+	if _trace31:print("DSH_BOW_PROTO_DROPPED at=", at)
 	return true
 
 ## G again: the quiver comes off the back with whatever arrows are left in it.
@@ -938,7 +950,7 @@ func drop_quiver_to_ground() -> bool:
 	_nocked = false
 	_fetch_phase = ""
 	_update_hint()
-	print("DSH_BOW_PROTO_QUIVER_DROPPED at=", at, " arrows_gone_with_it=", carried_arrows)
+	if _trace31:print("DSH_BOW_PROTO_QUIVER_DROPPED at=", at, " arrows_gone_with_it=", carried_arrows)
 	return true
 
 ## E: take the nearest bow or quiver. A bow already in hand cannot be swapped, but
@@ -955,7 +967,7 @@ func try_pickup_ground() -> bool:
 		_ground_items.erase(found)
 		_lock_until_ms = Time.get_ticks_msec() + 450
 		_update_hint()
-		print("DSH_BOW_PROTO_PICKED kind=bow")
+		if _trace31:print("DSH_BOW_PROTO_PICKED kind=bow")
 		return true
 	if kind == "quiver":
 		ModelFinish31.recover_ground_drop28(node, _world)
@@ -965,7 +977,7 @@ func try_pickup_ground() -> bool:
 		_quiver_worn = true
 		_arrows_left = maxi(_arrows_left, carried)
 		_update_hint()
-		print("DSH_BOW_PROTO_PICKED kind=quiver arrows=", _arrows_left)
+		if _trace31:print("DSH_BOW_PROTO_PICKED kind=quiver arrows=", _arrows_left)
 		return true
 	return false
 
@@ -998,11 +1010,14 @@ func _step_arrows(delta: float) -> void:
 			continue
 		if not bool(entry.get("alive", false)): continue
 		if bool(entry.get("stuck", false)):
+			_arrow_contact31.follow(entry,node)
 			_follow_severed_arrow31(index, entry, node)
 			continue
 		var velocity: Vector3 = entry.get("velocity", Vector3.ZERO)
 		var from: Vector3 = entry.get("prev", node.global_position)
 		var from_tip: Vector3 = entry.get("prev_tip", from + velocity.normalized() * ARROW_TIP_OFFSET31)
+		var guard:Dictionary=entry.get("armor_guard31",{})
+		if not guard.is_empty() and from_tip.distance_to(_arrow_contact31.guard_point(guard))>.03:entry.erase("armor_guard31")
 		# Exact constant-gravity step; the preview uses this same equation.
 		var to := _ballistic_point31(from, velocity, delta)
 		var next_velocity := velocity + Vector3.DOWN * GRAVITY * delta
@@ -1071,7 +1086,30 @@ func _stick(index: int, hit: Dictionary, velocity: Vector3, speed: float) -> voi
 	var collider: Variant = hit.get("collider")
 	var direction := velocity.normalized()
 	var surface := _arrow_surface31(collider)
+	if bool(hit.get("actual_skin31",false)):surface="flesh"
+	var guard:Dictionary=entry.get("armor_guard31",{})
+	var repeated:bool=_arrow_contact31.same_guard(guard,hit)
+	var damage_result:Dictionary=guard.result if repeated else _apply_arrow_damage(collider,point,speed,direction,hit.get("normal",Vector3.ZERO),str(hit.get("part31","")))
+	entry["damage_result31"]=damage_result
+	entry["actual_skin31"]=bool(hit.get("actual_skin31",false))
+	if damage_result.has("penetrates") and not bool(damage_result.penetrates):
+		# A plate rejection transfers its ordinary trauma once, then the same
+		# physical projectile leaves the surface. It is never planted in flesh.
+		var normal:Vector3=hit.get("normal",-direction)
+		if normal.length_squared()<.5:normal=-direction
+		var reflected:=velocity.bounce(normal.normalized())*.25
+		var at:=point+normal.normalized()*.002
+		var arrow_origin:=at-reflected.normalized()*ARROW_TIP_OFFSET31
+		entry["velocity"]=reflected;entry["prev"]=arrow_origin;entry["prev_tip"]=at
+		entry["armor_rejected31"]=true;entry["incoming"]=false
+		if not repeated:entry["armor_guard31"]=_arrow_contact31.contact_guard(hit,damage_result)
+		_arrows[index]=entry;node.global_transform=_basis_z_along(arrow_origin,reflected)
+		return
 	var embed := 0.07 if surface == "wood" else (0.10 if surface in ["dirt", "flesh"] else 0.015)
+	if surface=="flesh":
+		var raw_damage:=ARROW_DAMAGE*pow(clampf(speed/ARROW_SPEED_MAX,0.0,1.0),2.0)
+		var residual:=clampf(float(damage_result.get("residual_damage",damage_result.get("damage",raw_damage)))/maxf(raw_damage,.001),.05,1.0)
+		embed=_arrow_contact31.embed_depth(_sword_host,hit,direction,.10*clampf(speed/ARROW_SPEED_MAX,.05,1.0)*residual)
 	var rest := point - direction * (ARROW_TIP_OFFSET31 - embed)
 	node.global_transform = _basis_z_along(rest, direction)
 	node.visible = true
@@ -1085,6 +1123,13 @@ func _stick(index: int, hit: Dictionary, velocity: Vector3, speed: float) -> voi
 	entry["velocity"] = Vector3.ZERO
 	entry["surface"] = surface
 	entry["hit_point"] = point
+	entry["embed_depth31"]=embed
+	if bool(hit.get("actual_skin31",false)):
+		var skin:Skeleton3D=hit.rig31.get_ref()
+		var bone:=int(hit.bone31)
+		entry["skin_rig31"]=hit.rig31;entry["skin_bone31"]=bone
+		entry["skin_local31"]=(skin.global_transform*skin.get_bone_global_pose(bone)).affine_inverse()*node.global_transform
+		entry["skin_hit_local31"]=(skin.global_transform*skin.get_bone_global_pose(bone)).affine_inverse()*point
 	if is_instance_valid(collider) and collider.has_meta("sword_npc_part"):
 		entry["npc_part"] = str(collider.get_meta("sword_npc_part"))
 		entry["npc_debris_start"] = (_sword_host.get("_npc_debris") as Array).size() if is_instance_valid(_sword_host) else 0
@@ -1093,11 +1138,13 @@ func _stick(index: int, hit: Dictionary, velocity: Vector3, speed: float) -> voi
 	_last_hit_distance = _player.global_position.distance_to(point)
 	_last_flight_time = float(entry.get("age", 0.0))
 	_last_arrow_surface31 = surface
-	_play_arrow_impact31(point, surface, speed)
-	_apply_arrow_damage(collider, point, speed, direction, hit.get("normal", Vector3.ZERO))
-	print("DSH_BOW_PROTO_STICK at=", point, " speed=", speed, " surface=", surface)
+	if not str(damage_result.get("region","")) in ["cloth","mail","plate"]:_play_arrow_impact31(point, surface, speed)
+	if _trace31:print("DSH_BOW_PROTO_STICK at=", point, " speed=", speed, " surface=", surface)
 
 func _follow_severed_arrow31(index: int, entry: Dictionary, node: Node3D) -> void:
+	# Exact laboratory arrows transfer atomically with their actual cut piece.
+	# The old nearest-piece heuristic remains only for legacy collider arrows.
+	if entry.has("skin_rig31"):return
 	var part: String = entry.get("npc_part", "")
 	if part == "" or not is_instance_valid(_sword_host): return
 	var severed: Dictionary = _sword_host.get("_npc_severed")
@@ -1115,24 +1162,41 @@ func _follow_severed_arrow31(index: int, entry: Dictionary, node: Node3D) -> voi
 	if best == null: return
 	node.reparent(best, true)
 	entry["npc_part"] = ""
+	entry.erase("skin_rig31")
 	_arrows[index] = entry
+
+func adopt_cut_piece31(host: Node, body: RigidBody3D, cut: Dictionary) -> int:
+	if host!=_sword_host or not is_instance_valid(body):return 0
+	var rig:Skeleton3D=host.get("_npc_rig")
+	if not is_instance_valid(rig):return 0
+	var transferred:=0
+	for entry:Dictionary in _arrows:
+		var ref:WeakRef=entry.get("skin_rig31")
+		var node:Node3D=entry.get("node")
+		if not bool(entry.get("stuck",false)) or not is_instance_valid(node) or ref==null or ref.get_ref()!=rig:continue
+		if not _arrow_contact31.detached_by_cut(entry,rig,cut):continue
+		_arrow_contact31.follow(entry,node)
+		node.reparent(body,true)
+		entry.erase("skin_rig31");entry["npc_part"]="";entry["cut_piece31"]=body.get_instance_id()
+		transferred+=1
+	return transferred
 
 ## An arrow in a body does damage through the sword prototype's own gore system, so
 ## arrow wounds and sword wounds are the same wounds.
-func _apply_arrow_damage(collider: Variant, point: Vector3, speed: float, direction: Vector3, normal: Vector3 = Vector3.ZERO) -> void:
+func _apply_arrow_damage(collider: Variant, point: Vector3, speed: float, direction: Vector3, normal: Vector3 = Vector3.ZERO, actual_part: String = "") -> Dictionary:
 	if is_instance_valid(collider) and collider is Node and collider.has_method("take_arrow_hit"):
-		collider.call("take_arrow_hit", point, speed, direction, normal, _player)
-		return
-	if not is_instance_valid(collider) or not is_instance_valid(_sword_host): return
-	var part := ""
+		var result:Variant=collider.call("take_arrow_hit", point, speed, direction, normal, _player)
+		return result if result is Dictionary else {}
+	if not is_instance_valid(collider) or not is_instance_valid(_sword_host): return {}
+	var part := actual_part
 	if collider is Node and collider.has_meta("sword_npc_part"):
 		part = str(collider.get_meta("sword_npc_part"))
 	if part != "" and _sword_host.has_method("_npc_take_arrow_part"):
 		var impact_damage := ARROW_DAMAGE * pow(clampf(speed / ARROW_SPEED_MAX, 0.0, 1.0), 2.0)
-		_sword_host.call("_npc_take_arrow_part", part, point, speed, direction, impact_damage, normal)
-		return
+		return _sword_host.call("_npc_take_arrow_part", part, point, speed, direction, impact_damage, normal)
 	if collider is Node and collider.has_meta("sword_target") and _sword_host.has_method("_damage_dummy"):
 		_sword_host.call("_damage_dummy", collider, point, speed, direction, Time.get_ticks_msec())
+	return {}
 
 func _recycle(index: int) -> void:
 	var entry: Dictionary = _arrows[index]
@@ -1181,7 +1245,7 @@ func _process(delta: float) -> void:
 	# Reported AFTER the pose and the bow placement, so the numbers describe the
 	# frame that is actually drawn instead of the state left by the physics step.
 	_debug_tick += 1
-	if _debug_tick % 240 == 0:
+	if _trace31 and _debug_tick % 240 == 0:
 		print("DSH_BOW_PROTO_TICK selected=", _selected, " drawing=", _drawing,
 			" draw=", _draw_amount, " nocked=", _nocked, " quiver=", _quiver_worn,
 			" arrows=", _arrows_left, " bow_visible=", is_instance_valid(_bow) and _bow.visible,
@@ -1241,6 +1305,8 @@ func _pose_archer(delta: float) -> void:
 		_rest_draw_upper, _rest_draw_fore, _rest_draw_hand, _string_target_world, -_left_sign)
 	_rig.force_update_all_bone_transforms()
 	_string_hand_world = _hand_palm(_bone_draw_hand)
+	_posed_nock_valid31=true
+	_aim_frame=-1
 
 func _hand_offset(hand: int) -> Vector3:
 	var name := "socket_hand_l" if hand == _bone_draw_hand else "socket_hand_r"
@@ -1674,6 +1740,10 @@ func arrow_state(index: int) -> Dictionary:
 		"position": node.global_position if is_instance_valid(node) else Vector3.ZERO,
 		"velocity": entry.get("velocity", Vector3.ZERO),
 		"fired_ms": int(entry.get("fired_ms", 0)),
+		"actual_skin":bool(entry.get("actual_skin31",false)),
+		"embed_depth":float(entry.get("embed_depth31",0.0)),
+		"armor_rejected":bool(entry.get("armor_rejected31",false)),
+		"damage_result":entry.get("damage_result31",{}),
 	}
 
 ## Only used by diagnostics: how far above the straight line the arrow is, which is
@@ -1829,6 +1899,9 @@ func _arrow_ray31(from: Vector3, to: Vector3) -> Dictionary:
 			excluded.append(npc_corpse.get_rid())
 	var query := PhysicsRayQueryParameters3D.create(from, to, AIM_MASK, excluded)
 	query.hit_from_inside = true
+	if is_instance_valid(_sword_host) and _sword_host.get("_solid_weapon29")!=null:
+		var exact:Dictionary=_arrow_contact31.ray(_sword_host,space,from,to,AIM_MASK,excluded)
+		if bool(exact.get("supported",false)):return exact.hit
 	return space.intersect_ray(query)
 
 func _arrow_surface31(collider: Variant) -> String:

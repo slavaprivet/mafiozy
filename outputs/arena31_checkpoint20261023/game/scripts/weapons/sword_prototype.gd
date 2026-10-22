@@ -4212,6 +4212,9 @@ func _apply_player_damage(amount: float, at: Vector3, direction: Vector3, kind: 
 		combat_audio_event30("armor_"+str(protection.tier),at,clampf(amount/160.0,.08,1.0),"player:"+str(struck.sever)+":"+str(protection.region))
 	amount = float(protection.damage) * (0.12 if speed50 >= 0.0 and kind == "flat" else 1.0)
 	var penetrates: bool = ArmorDamage31.tissue_penetrates(str(protection.region), kind, amount)
+	var hero_appearance31 := _world.get_node_or_null("CastleArmorEquipment") if is_instance_valid(_world) else null
+	if penetrates and amount > 0.05 and hero_appearance31 != null and hero_appearance31.has_method("apply_wound31"):
+		hero_appearance31.apply_wound31(self, at, direction, kind, amount, str(struck.sever))
 	# Plate still transfers trauma into the local part without making an
 	# open wound or severing a limb.
 	_player_take_blade(amount, at, direction, kind == "slice" and penetrates and (speed50 < 0.0 or (speed50 >= 3.2 and amount >= 8.0)), full_key50, maxf(speed50, 0.0))
@@ -4315,6 +4318,8 @@ func _player_take_blade(amount: float, at: Vector3, direction: Vector3, may_seve
 	var old_grip := _active_side()
 	_player_severed[full_key] = true
 	var armor_visual := _player.get_node_or_null("CastleArmorVisual") if is_instance_valid(_player) else null
+	var hero_appearance31 := _world.get_node_or_null("CastleArmorEquipment") if is_instance_valid(_world) else null
+	if hero_appearance31 != null and hero_appearance31.has_method("on_severed"): armor_visual = hero_appearance31
 	var cut_done50: bool = _hide_player_limb(full_key, kind, bone_name, at, direction, contact_speed50)
 	if armor_visual != null: armor_visual.on_severed(full_key, cut_done50)
 	_spray_blood(at, direction, 30)
@@ -5588,6 +5593,8 @@ func _npc_take_arrow_part(full_key: String, point: Vector3, speed: float,
 	var penetrates: bool = ArmorDamage31.tissue_penetrates(str(protection.region), "stab", wound)
 	var result := _npc_take_puncture_part31(full_key, point, speed, direction, wound, 0.06, penetrates)
 	result["region"] = protection.region
+	result["penetrates"] = penetrates
+	result["residual_damage"] = wound
 	return result
 
 func _npc_take_puncture_part31(full_key: String, point: Vector3, speed: float,
@@ -5899,6 +5906,7 @@ func _npc_skinned_meshes(target_rig: Skeleton3D = null) -> Array:
 	if visual == null: return out
 	for node: Node in visual.find_children("*", "MeshInstance3D", true, false):
 		var mesh_node := node as MeshInstance3D
+		if cut_rig == _rig and not mesh_node.is_visible_in_tree(): continue
 		if mesh_node.mesh == null or not (mesh_node.mesh is ArrayMesh): continue
 		var mesh: ArrayMesh = mesh_node.mesh
 		for s: int in mesh.get_surface_count():
@@ -6075,8 +6083,11 @@ func npc_cut_body(plane_world: Plane, keep_point_world: Vector3, part_key: Strin
 			continue
 		# 1. The body keeps its side, with the cut face closed.
 		var body_mesh := ArrayMesh.new()
+		var hero_first_arrays31: Array = []
 		for arrays: Array in kept_arrays:
-			body_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, _cut_skin_arrays39(arrays, skin_transforms, true))
+			var restored_arrays31: Array = _cut_skin_arrays39(arrays, skin_transforms, true)
+			if hero_first_arrays31.is_empty(): hero_first_arrays31 = restored_arrays31
+			body_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, restored_arrays31)
 		for i: int in body_mesh.get_surface_count():
 			var material: Material = source_materials[kept_indices[i]]
 			if material != null: body_mesh.surface_set_material(i, material)
@@ -6091,6 +6102,8 @@ func npc_cut_body(plane_world: Plane, keep_point_world: Vector3, part_key: Strin
 			for surface_index: int in source.get_surface_count():
 				mesh_node.set_surface_override_material(surface_index, null)
 			mesh_node.mesh = body_mesh
+			if mesh_node.has_meta("hero_medieval31"):
+				mesh_node.set_meta("hero_wound_arrays31", {"mesh":body_mesh,"arrays":hero_first_arrays31})
 			# The old mail override hid the flesh cap. Surface materials preserve mail
 			# on the exterior while the new cap shows its own flesh material.
 			mesh_node.material_override = null
@@ -6125,6 +6138,10 @@ func npc_cut_body(plane_world: Plane, keep_point_world: Vector3, part_key: Strin
 					nearest = piece
 			if is_instance_valid(nearest):
 				whole.reparent(nearest, true)
+	if any and cut_rig == _rig:
+		var hero_appearance31 := _world.get_node_or_null("CastleArmorEquipment") if is_instance_valid(_world) else null
+		if hero_appearance31 != null and hero_appearance31.has_method("after_cut31") and _npc_debris.size() > debris_start31:
+			hero_appearance31.after_cut31({"plane":plane_world,"keep":keep_point_world,"scope":part_key,"head_gone":preserve_head31}, _npc_debris[debris_start31].get("node"))
 	if not any:
 		print("DSH_GORE_CUT refused=nothing_crossed")
 	return any

@@ -11,6 +11,8 @@ var armor:Node3D
 var gambeson_enabled:bool=false
 var armor_tier:String=""
 var report:Dictionary={}
+var damage_locked:bool=false
+var wounds=preload("res://scripts/character/hero_wound31.gd").new()
 var _source:MeshInstance3D
 var _binds:Dictionary={}
 var _v:=PackedVector3Array()
@@ -43,6 +45,7 @@ func configure(actor:Node3D)->Dictionary:
  trousers=_instance("HeroBrownTrousers31",cached.trousers)
  gambeson=_instance("HeroGambeson31",cached.gambeson)
  gambeson.visible=false
+ for surface:MeshInstance3D in [body,gambeson,trousers]:wounds.prepare(surface)
  _source.visible=false
  for node:Node in actor.get("_visual").find_children("*","MeshInstance3D",true,false):
   if str(node.name) in ["player_male_DEMO_core_TRIM","player_male_DEMO_headwear_FABRIC","player_male_DEMO_headwear_HAIR"]:node.visible=false
@@ -53,12 +56,14 @@ func configure(actor:Node3D)->Dictionary:
  return report
 
 func set_gambeson(enabled:bool)->void:
+ if damage_locked:return
  gambeson_enabled=enabled
  if is_instance_valid(gambeson):
   gambeson.visible=enabled or not armor_tier.is_empty()
   if is_instance_valid(body):body.visible=not gambeson.visible
 
 func set_armor_tier(tier:String)->Dictionary:
+ if damage_locked:return {"ok":false,"reason":"injured_wardrobe_locked_until_reset"}
  if tier not in ["","light","medium","heavy"]:return {"ok":false,"reason":"tier"}
  armor_tier=tier
  for slot:String in ["head","torso","hands","legs","feet"]:
@@ -77,7 +82,7 @@ func speed_multiplier()->float:
  return preload("res://scripts/combat/armor_damage31.gd").movement_multiplier(equipped_snapshot())
 
 func snapshot()->Dictionary:
- return {"ready":report.get("ok",false),"gambeson_requested":gambeson_enabled,"gambeson_visible":is_instance_valid(gambeson) and gambeson.visible,"armor_tier":armor_tier,"body_visible":is_instance_valid(body) and body.visible,"report":report}
+ return {"damage_locked":damage_locked,"wound_hits":wounds.hits,"last_wound":wounds.last,"ready":report.get("ok",false),"gambeson_requested":gambeson_enabled,"gambeson_visible":is_instance_valid(gambeson) and gambeson.visible,"armor_tier":armor_tier,"body_visible":is_instance_valid(body) and body.visible,"report":report}
 
 func _instance(label:String,mesh:ArrayMesh)->MeshInstance3D:
  var node:=MeshInstance3D.new();node.name=label;node.mesh=mesh;node.skin=_source.skin
@@ -308,3 +313,17 @@ func _commit()->ArrayMesh:
  var material:=StandardMaterial3D.new();material.vertex_color_use_as_albedo=true;material.vertex_color_is_srgb=false;material.roughness=.88;material.cull_mode=BaseMaterial3D.CULL_DISABLED
  mesh.surface_set_material(0,material)
  return mesh
+
+func apply_wound31(host:Node,point:Vector3,direction:Vector3,kind:String,amount:float,part:String)->bool:
+ var surface:MeshInstance3D=trousers if part.begins_with("thigh") or part.begins_with("shin") or part=="pelvis" else (gambeson if gambeson.visible else body)
+ var accepted:bool=wounds.apply(host,surface,point,direction,kind,amount,part)
+ if accepted:damage_locked=true
+ return accepted
+
+func on_severed(full_key:String,real_mesh_cut:bool=false)->void:
+ damage_locked=true
+ if is_instance_valid(armor):armor.on_severed(full_key,real_mesh_cut)
+
+func after_cut31(context:Dictionary,debris:Node3D)->void:
+ damage_locked=true
+ if is_instance_valid(armor) and is_instance_valid(debris):armor.cut_rigid31(context,{},debris)

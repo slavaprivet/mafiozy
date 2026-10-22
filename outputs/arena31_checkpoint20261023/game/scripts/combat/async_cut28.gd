@@ -128,6 +128,11 @@ func _begin_now31(host: Node, next_context: Dictionary) -> bool:
 	grounded_token = bool(host.get("_sword_grounded"))
 	rig_poses.clear()
 	for i in rig.get_bone_count(): rig_poses.append(rig.get_bone_global_pose(i))
+	# Projectile ownership is decided in the same material pose as the cut,
+	# even when the living actor moves while its geometry worker runs.
+	context["rig_snapshot31"]=rig.global_transform
+	context["bone_poses31"]=rig_poses.duplicate()
+	context["branches31"]=Dictionary(host.get("_clay_branches")).duplicate()
 	metadata.clear(); prepared.clear(); operations.clear(); operation_index=0
 	rigid_metadata31.clear();rigid_prepared31.clear();rigid_owner31=null
 	canceled=""; staging_usec=0; peak_stage_usec=0
@@ -426,6 +431,9 @@ func _commit(host: Node) -> void:
 		report["actor_moved_during_job"]=host.get("_npc_body").global_transform!=actor_transform
 	report["commit_build_usec"]=Time.get_ticks_usec()-commit_phase;commit_phase=Time.get_ticks_usec()
 	host.get("_world").add_child(body);body.global_transform=world_body
+	var bow:Node=host.get("_world").get("preview_bow_prototype")
+	if is_instance_valid(bow) and bow.has_method("adopt_cut_piece31"):
+		bow.call("adopt_cut_piece31",host,body,context)
 	if not rigid_prepared31.is_empty():
 		report["rigid_armor31"]=rigid_owner31.get_ref().get("_rigid_cut31").commit(rigid_prepared31,rigid_metadata31,body)
 	host.call("_lab_debris_ignore_owner28",body)
