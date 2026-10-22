@@ -1,0 +1,32 @@
+{
+  "status": "saved work checkpoint; not final tested release",
+  "created_utc": "2026-10-22T23:10:21.730715+00:00",
+  "source": "D:\\MafioziCombat31\\c33_coordination\\arena31_optimization\\game",
+  "file_count": 3316,
+  "production_pointer_changed": false,
+  "latest_user_request": "Save work to main; continue bow firing/arrow embedding and penetration plus new hero gambeson wounds; run all changes for errors afterward.",
+  "completed_evidence": {
+    "hero": "hero_arena04:13 PASS stable stderr0; F10/F11 and actual movement",
+    "contact_worker": "topology_worker_verbose28:8 PASS stable stderr0;483 exact rays max error0",
+    "menu": "menu_regression29:98 PASS before latest embedded changes",
+    "embedded_alive_spear": "independent_drop_spear13:14 PASS stable stderr0",
+    "aim_extract": "aim_alive01 and aim_dead01:7 PASS each"
+  },
+  "pending_checks": [
+    "Compile current collar surface and sword regrab adoption changes",
+    "Same instance G/E alive/dead sword/spear, corpse mass/shape reclaim",
+    "600-frame embedded spear hold and actual S withdrawal",
+    "Bow actual firing, arrow body impact/embedding/penetration/armor and reset",
+    "Player bare torso and new gambeson wounds, cuts, blood and attached details under armor",
+    "Q/G/Q/E all seven weapons after merge",
+    "Matched graphical performance and post-cut profile",
+    "Full error-log audit then open final scene"
+  ],
+  "limitations": [
+    "Current collar/regrab source updates untested because external Godot probe blocks scheduler; user explicitly asked to wait for it, preserve process.",
+    "Prior600-frame hold failed involuntary extraction; do not claim fixed before regression.",
+    "No full50v50AI plus destructible castle FPS acceptance.",
+    "Live embedded drop uses kinematic bone anchor; corpse uses native rigid compound shape/mass."
+  ],
+  "repository_checkpoint": "outputs/arena31_checkpoint20261023"
+}

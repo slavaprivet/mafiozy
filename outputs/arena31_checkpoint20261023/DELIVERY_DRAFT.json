@@ -1,0 +1,45 @@
+{
+  "status": "candidate; final embedded ownership and graphical performance verification in progress",
+  "game": "D:\\MafioziCombat31\\c33_coordination\\arena31_optimization\\game",
+  "launcher": "D:\\MafioziCombat31\\c33_coordination\\arena31_optimization\\launch.ps1",
+  "production_manifest_unchanged": "castle-20261021-combined25",
+  "hero": {
+    "default": "bare torso with brown trousers; player only",
+    "controls": {
+      "F10": "gambeson toggle",
+      "F11": "player armor none/light/medium/heavy",
+      "F4": "target armor",
+      "F6": "new target"
+    },
+    "evidence": "../agents/perf_qa31/HERO31_HANDOFF.json"
+  },
+  "post_cut_contact": {
+    "change": "Build retained exact contact topology and BVH in pure-array cut worker; publish immutable cache only on main thread before commit. No collision triangle reduction.",
+    "evidence": "../agents/optimization31/topology_worker_verbose28/RESULT.json",
+    "checks": 8,
+    "ray_count": 483,
+    "max_intersection_error_m": 0,
+    "contact_prepare_worker_usec": 34167,
+    "snapshot_usec": 2143,
+    "commit_usec": 3467,
+    "limitation": "Functional geometry oracle, not a complete battle FPS measurement"
+  },
+  "menu": {
+    "evidence": "../agents/optimization31/menu_regression29/CHECK.json",
+    "checks": 98,
+    "source_stable": true,
+    "stderr_bytes": 0,
+    "note": "Later Q shield/anchored extents changes require final narrow regression"
+  },
+  "pending": [
+    "same-instance G/E on alive and dead sword/spear",
+    "RMB+LMB only after actual extraction",
+    "600-frame spear hold",
+    "final matched performance and interactive launch"
+  ],
+  "limitations": [
+    "No full 50v50 AI plus destructible castle acceptance yet.",
+    "100-job load is a geometry worker scheduling check, not 100 live fighting NPCs.",
+    "Full volume cavity anatomy is stylized procedural geometry."
+  ]
+}
