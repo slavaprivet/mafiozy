@@ -6,6 +6,7 @@ var aim_up:=0.0
 var plate_target31:=false
 var target_point31:=Vector3.INF
 var tissue_impacts31:Array=[]
+var rebound_geometry31:Array=[]
 var checks:Dictionary={}
 var rows:Array=[]
 var scene:Node
@@ -113,6 +114,19 @@ func run():
 			var observed:Dictionary=bow.arrow_state(bow.last_fired_index())
 			if not recorded and bool(observed.get("actual_skin",false)) and not observed.get("damage_result",{}).is_empty():
 				tissue_impacts31.append(observed);recorded=true
+				if plate_target31 and bool(observed.get("armor_rejected",false)):
+					var item:Dictionary=bow._arrows[bow.last_fired_index()]
+					var node:Node3D=item.node
+					var normal:Vector3=item.get("rebound_normal31",Vector3.ZERO)
+					var rebound_point:Vector3=item.get("rebound_point31",Vector3.ZERO)
+					var lowest:=INF
+					for mesh:MeshInstance3D in node.find_children("*","MeshInstance3D",true,false):
+						for vertex:Vector3 in mesh.mesh.get_faces():lowest=minf(lowest,(mesh.global_transform*vertex-rebound_point).dot(normal))
+					rebound_geometry31.append({"basis":node.global_basis,"origin":node.global_position,"point":rebound_point,"normal":normal,"minimum_exterior_m":lowest,"stuck":item.get("stuck",false)})
+			if plate_target31 and not rebound_geometry31.is_empty() and not rebound_geometry31[-1].has("following_axis_dot"):
+				var item:Dictionary=bow._arrows[bow.last_fired_index()]
+				if bool(item.get("stuck",false)) or item.node.global_position.distance_to(rebound_geometry31[-1].origin)>.001:
+					rebound_geometry31[-1]["following_axis_dot"]=Basis(rebound_geometry31[-1].basis).z.dot(item.node.global_basis.z)
 		checks["single_shot_%s"%shot]=int(bow._shots)==shots_before+shot+1 and int(bow._arrows_left)==ammo-1
 		rows.append({"shot":shot,"arrow":bow.arrow_state(bow.last_fired_index()),"hp":host._npc_hp,"dead":host._npc_dead,"audio":host.melee_audio_report31()})
 		await ticks(30)
@@ -139,6 +153,14 @@ func run():
 		for impact:Dictionary in tissue_impacts31:
 			plate_rejected=plate_rejected or (str(impact.damage_result.get("region",""))=="plate" and bool(impact.armor_rejected) and not bool(impact.stuck))
 		checks["actual_covered_plate_rejection"]=plate_rejected
+	if plate_target31:
+		var exterior:=not rebound_geometry31.is_empty();var continuous:=exterior;var world_stop:=false
+		for event:Dictionary in rebound_geometry31:
+			exterior=exterior and float(event.minimum_exterior_m)>=-.001
+			continuous=continuous and float(event.get("following_axis_dot",0.0))>.99999
+		for item:Dictionary in bow._arrows:world_stop=world_stop or bool(item.get("rebound_world_contact31",false))
+		checks["rebound_shaft_exterior"]=exterior;checks["rebound_axis_continuous"]=continuous;checks["rebound_world_contact"]=world_stop
+		rows.append({"rebound_geometry31":rebound_geometry31})
 	rows.append({"tissue_impacts31":tissue_impacts31})
 	rows.append({"final_dead":host._npc_dead,"max_anchor_error":max_anchor_error,"arrows":bow._arrows.size(),"rejected":rejected})
 	if DisplayServer.get_name()!="headless":await RenderingServer.frame_post_draw;root.get_texture().get_image().save_png(out+"/bow_result.png")

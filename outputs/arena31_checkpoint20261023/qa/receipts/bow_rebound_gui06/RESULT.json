@@ -1,0 +1,157 @@
+{
+  "checks": {
+    "actual_covered_plate_rejection": true,
+    "actual_posed_skin_hit": true,
+    "actual_protected_plate_target": true,
+    "bone_anchor_follows": true,
+    "cancel_does_not_fire": true,
+    "early_click_not_fired": true,
+    "finite_tissue_embed_or_armor_rejection": true,
+    "q_actual_bow": true,
+    "ready_0": true,
+    "real_damage": true,
+    "rebound_axis_continuous": true,
+    "rebound_shaft_exterior": true,
+    "rebound_world_contact": true,
+    "single_shot_0": true,
+    "startup": true
+  },
+  "passed": true,
+  "rows": [
+    {
+      "coverage": {
+        "damage": 7.28,
+        "factor": 0.28,
+        "region": "plate",
+        "slot": "torso",
+        "tier": "heavy"
+      },
+      "part": "chest",
+      "phase": "plate_aim_candidate",
+      "point": "(-0.075, 0.8, -1.845154)"
+    },
+    {
+      "coverage": {
+        "damage": 7.28,
+        "factor": 0.28,
+        "region": "plate",
+        "slot": "torso",
+        "tier": "heavy"
+      },
+      "part": "chest",
+      "phase": "plate_aim_candidate",
+      "point": "(-0.075, 0.9, -1.848184)"
+    },
+    {
+      "coverage": {
+        "damage": 7.28,
+        "factor": 0.28,
+        "region": "plate",
+        "slot": "torso",
+        "tier": "heavy"
+      },
+      "part": "chest",
+      "phase": "plate_aim_candidate",
+      "point": "(0.0, 0.9, -1.846162)"
+    },
+    {
+      "camera": "[X: (0.977339, -0.0, 0.211681), Y: (0.036363, 0.985135, -0.167889), Z: (-0.208534, 0.171782, 0.962811), O: (-1.858409, 2.43088, 6.734181)]",
+      "direction": "(-0.079295, -0.036784, -0.996172)",
+      "muzzle": "(0.195269, 1.089932, 1.932541)",
+      "phase": "before_shot",
+      "pitch": -0.172638170079909,
+      "sight": "(-0.0, 0.899998, -1.846163)",
+      "yaw": -0.213294478806958
+    },
+    {
+      "arrow": {
+        "actual_skin": true,
+        "alive": true,
+        "armor_rejected": true,
+        "damage_result": {
+          "applied": true,
+          "damage": 7.21433771443367,
+          "dead": false,
+          "penetrates": false,
+          "region": "plate",
+          "residual_damage": 7.21433771443367
+        },
+        "embed_depth": 0.0,
+        "fired_ms": 13263,
+        "position": "(-0.684701, 0.021289, 1.094151)",
+        "stuck": true,
+        "velocity": "(0.0, 0.0, 0.0)"
+      },
+      "audio": {
+        "bus": "Combat30",
+        "events": {
+          "armor_heavy": 1
+        },
+        "recent": [
+          {
+            "gain_db": -9.35641957619102,
+            "key": "arrow:chest:plate",
+            "kind": "armor_heavy",
+            "ms": 13297,
+            "physics_frame": 225,
+            "pitch": 0.994924545288086,
+            "point": "(-0.105571, 0.926221, -1.846877)",
+            "strength": 0.1625,
+            "variant": 1,
+            "weapon": "sword"
+          }
+        ],
+        "rejected": {},
+        "seed": 300712,
+        "variant_sets": 11,
+        "voice_scope": "scene_shared",
+        "voices": 32
+      },
+      "dead": false,
+      "hp": 262.785662285566,
+      "shot": 0
+    },
+    {
+      "rebound_geometry31": [
+        {
+          "basis": "[X: (-0.996847, 0.0, 0.079349), Y: (-0.003638, 0.998948, -0.045705), Z: (-0.079265, -0.04585, -0.995799)]",
+          "following_axis_dot": 1.0,
+          "minimum_exterior_m": 0.00199983897618949,
+          "normal": "(-0.077125, -0.115621, 0.990295)",
+          "origin": "(-0.070651, 0.946279, -1.404255)",
+          "point": "(-0.105571, 0.926221, -1.846877)",
+          "stuck": false
+        }
+      ]
+    },
+    {
+      "tissue_impacts31": [
+        {
+          "actual_skin": true,
+          "alive": true,
+          "armor_rejected": true,
+          "damage_result": {
+            "applied": true,
+            "damage": 7.21433771443367,
+            "dead": false,
+            "penetrates": false,
+            "region": "plate",
+            "residual_damage": 7.21433771443367
+          },
+          "embed_depth": 0.0,
+          "fired_ms": 13263,
+          "position": "(-0.070651, 0.946279, -1.404255)",
+          "stuck": false,
+          "velocity": "(-3.100253, -3.702981, 12.6141)"
+        }
+      ]
+    },
+    {
+      "arrows": 1,
+      "final_dead": false,
+      "max_anchor_error": 0.0,
+      "rejected": true
+    }
+  ],
+  "tier": "heavy"
+}

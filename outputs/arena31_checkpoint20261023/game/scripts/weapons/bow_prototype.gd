@@ -1021,7 +1021,27 @@ func _step_arrows(delta: float) -> void:
 		# Exact constant-gravity step; the preview uses this same equation.
 		var to := _ballistic_point31(from, velocity, delta)
 		var next_velocity := velocity + Vector3.DOWN * GRAVITY * delta
-		var to_tip := to + next_velocity.normalized() * ARROW_TIP_OFFSET31
+		var flight_axis:Vector3=Basis(entry.rebound_basis31).z if entry.has("rebound_basis31") else next_velocity.normalized()
+		var to_tip := to + flight_axis * ARROW_TIP_OFFSET31
+		# A rejected point flies tail-first without rotating through the plate.
+		if entry.has("rebound_basis31"):
+			var nearest:Dictionary={}
+			var fraction:=INF
+			for offset:float in [_arrow_rear31(node),0.0,ARROW_TIP_OFFSET31]:
+				var start:=from+flight_axis*offset
+				var finish:=to+flight_axis*offset
+				var rebound_hit:=_arrow_ray31(start,finish)
+				if rebound_hit.is_empty():continue
+				var amount:float=start.distance_to(rebound_hit.position)/maxf(.000001,start.distance_to(finish))
+				if amount<fraction:
+					fraction=amount;nearest=rebound_hit;nearest["shaft_offset31"]=offset
+			entry["velocity"]=next_velocity;entry["prev"]=to;entry["prev_tip"]=to_tip
+			entry["age"]=float(entry.get("age",0.0))+delta;_arrows[index]=entry
+			if not nearest.is_empty():
+				_settle_rebound31(index,nearest);continue
+			node.global_transform=Transform3D(entry.rebound_basis31,to)
+			if to.y<_player.global_position.y-60.0 or float(entry.age)>15.0:_recycle(index)
+			continue
 		var incoming: bool = bool(entry.get("incoming", false))
 		var hit := _incoming_arrow_ray31(from_tip, to_tip, entry) if incoming else _arrow_ray31(from_tip, to_tip)
 		entry["velocity"] = next_velocity
@@ -1048,6 +1068,32 @@ func _step_arrows(delta: float) -> void:
 		if to.y < _player.global_position.y - 60.0 or float(entry["age"]) > 15.0:
 			_recycle(index)
 
+func _arrow_rear31(node:Node3D)->float:
+	if node.has_meta("arrow_rear31"):return float(node.get_meta("arrow_rear31"))
+	var rear:=0.0
+	for child:Node in node.get_children():
+		if not child is MeshInstance3D or child.mesh==null:continue
+		var bounds:AABB=child.mesh.get_aabb()
+		for i in 8:rear=minf(rear,(child.transform*bounds.get_endpoint(i)).z)
+	node.set_meta("arrow_rear31",rear)
+	return rear
+
+func _settle_rebound31(index:int,hit:Dictionary)->void:
+	var entry:Dictionary=_arrows[index]
+	var node:Node3D=entry.node
+	var basis:Basis=entry.rebound_basis31
+	var normal:Vector3=hit.get("normal",Vector3.UP)
+	var at:Vector3=hit.position+normal*.001
+	node.global_transform=Transform3D(basis,at-basis.z*float(hit.shaft_offset31))
+	var collider:Node=hit.get("collider")
+	if is_instance_valid(collider) and collider is Node3D:node.reparent(collider,true)
+	# A tail/shaft stop is not a second sharp impact and cannot plant the point.
+	entry["stuck"]=true;entry["velocity"]=Vector3.ZERO
+	entry["embed_depth31"]=0.0;entry["rebound_world_contact31"]=true
+	entry["surface"]=_arrow_surface31(collider);entry["hit_point"]=hit.position
+	_arrows[index]=entry;_stop_arrow_flight31(node)
+	_stuck_total+=1
+
 func _incoming_arrow_ray31(from: Vector3, to: Vector3, entry: Dictionary) -> Dictionary:
 	var excluded: Array[RID] = []
 	var shooter_rid: RID = entry.get("shooter_rid", RID())
@@ -1065,14 +1111,16 @@ func _deflect_incoming_arrow31(index: int, contact: Dictionary, velocity: Vector
 	var reflected: Vector3 = velocity.bounce(normal)
 	reflected = reflected.normalized() * velocity.length() * 0.55
 	var at: Vector3 = contact.point
-	var origin: Vector3 = at - reflected.normalized() * ARROW_TIP_OFFSET31
+	var impact_basis:Basis=node.global_basis.orthonormalized()
+	var origin:Vector3=at-impact_basis.z*ARROW_TIP_OFFSET31
+	entry["rebound_basis31"]=impact_basis
 	entry["velocity"] = reflected
 	entry["prev"] = origin
 	entry["prev_tip"] = at
 	entry["incoming"] = false
 	entry["deflected"] = true
 	_arrows[index] = entry
-	node.global_transform = _basis_z_along(origin, reflected)
+	node.global_transform=Transform3D(impact_basis,origin)
 	_incoming_parries31 += 1
 	_sword_host.call("register_arrow_parry31", at)
 	_start_arrow_flight31(node)
@@ -1099,11 +1147,14 @@ func _stick(index: int, hit: Dictionary, velocity: Vector3, speed: float) -> voi
 		if normal.length_squared()<.5:normal=-direction
 		var reflected:=velocity.bounce(normal.normalized())*.25
 		var at:=point+normal.normalized()*.002
-		var arrow_origin:=at-reflected.normalized()*ARROW_TIP_OFFSET31
+		var impact_basis:Basis=node.global_basis.orthonormalized()
+		var arrow_origin:=at-impact_basis.z*ARROW_TIP_OFFSET31
+		entry["rebound_basis31"]=impact_basis
+		entry["rebound_point31"]=point;entry["rebound_normal31"]=normal.normalized()
 		entry["velocity"]=reflected;entry["prev"]=arrow_origin;entry["prev_tip"]=at
 		entry["armor_rejected31"]=true;entry["incoming"]=false
 		if not repeated:entry["armor_guard31"]=_arrow_contact31.contact_guard(hit,damage_result)
-		_arrows[index]=entry;node.global_transform=_basis_z_along(arrow_origin,reflected)
+		_arrows[index]=entry;node.global_transform=Transform3D(impact_basis,arrow_origin)
 		return
 	var embed := 0.07 if surface == "wood" else (0.10 if surface in ["dirt", "flesh"] else 0.015)
 	if surface=="flesh":

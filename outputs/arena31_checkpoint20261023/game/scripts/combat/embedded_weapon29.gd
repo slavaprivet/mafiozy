@@ -172,9 +172,15 @@ func _brace_corpse31(host:Node,current_entry:Vector3,current_axis:Vector3)->void
 		_corpse_brace_frame=-1
 	var frame:=Engine.get_physics_frames()
 	if frame==_corpse_brace_frame:return
+	var elapsed_frames:int=maxi(1,frame-_corpse_brace_frame) if _corpse_brace_frame>=0 else 1
+	var elapsed:float=float(elapsed_frames)/float(Engine.physics_ticks_per_second)
 	_corpse_brace_frame=frame
 	var axis:=_corpse_brace_axis.normalized()
 	var holder_step:Vector3=player.global_position-_corpse_brace_player
+	# This sample follows actual swept motion. Holder accommodation adjusts the
+	# saved position separately, and cannot drive axial tissue friction. The
+	# player velocity property here may still contain the pre-constraint request.
+	var holder_velocity:Vector3=holder_step/elapsed
 	_corpse_brace_entry+=holder_step-axis*holder_step.dot(axis)
 	_corpse_brace_player=player.global_position
 	var error:=_corpse_brace_entry-current_entry
@@ -188,8 +194,9 @@ func _brace_corpse31(host:Node,current_entry:Vector3,current_axis:Vector3)->void
 	var force:Vector3=((error*1600.0-velocity*55.0+gravity)*segment.mass).limit_length(minf(900.0,segment.mass*60.0))
 	# Finite axial tissue friction acts on relative native motion; it never
 	# holds depth at a prescribed value or treats gravity settling as extraction.
-	var relative_axial:float=(point_velocity-Vector3(player.get("velocity"))).dot(axis)
-	force-=axis*clampf(relative_axial*segment.mass*10.0,-segment.mass*300.0/70.0,segment.mass*300.0/70.0)
+	var relative_axial:float=(point_velocity-holder_velocity).dot(axis)
+	var axial_force:float=-clampf(relative_axial*segment.mass*10.0,-segment.mass*300.0/70.0,segment.mass*300.0/70.0)
+	force+=axis*axial_force
 	var angular:=segment.angular_velocity-axis*segment.angular_velocity.dot(axis)
 	# Angular damping uses the actual inertia tensor, not linear mass (which
 	# would over-damp a thin segment into alternating impulses at 60 Hz).
@@ -197,7 +204,7 @@ func _brace_corpse31(host:Node,current_entry:Vector3,current_axis:Vector3)->void
 	var inertia:=inverse_inertia.inverse() if absf(inverse_inertia.determinant())>1e-12 else Basis.IDENTITY
 	var torque:Vector3=(inertia*(current_axis.cross(axis)*400.0-angular*30.0)-lever.cross(force)).limit_length(minf(240.0,segment.mass*16.0))
 	segment.apply_force(force,lever);segment.apply_torque(torque)
-	corpse_brace={"body":segment.get_instance_id(),"frame":frame,"force":force,"torque":torque,"error_m":error.length(),"axis_error_rad":current_axis.angle_to(axis),"mass":segment.mass}
+	corpse_brace={"body":segment.get_instance_id(),"frame":frame,"force":force,"torque":torque,"error_m":error.length(),"axis_error_rad":current_axis.angle_to(axis),"mass":segment.mass,"holder_velocity":holder_velocity,"requested_velocity":player.get("velocity"),"point_velocity":point_velocity,"relative_axial":relative_axial,"axial_force":axial_force,"axial_power":axial_force*relative_axial}
 
 func constrain_target_velocity(host:Node,value:Vector3)->Vector3:
 	# The living target can withdraw under its own native movement, with the same

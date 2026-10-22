@@ -74,7 +74,7 @@ func regrab_diagnostic(model:Node3D)->Dictionary:
 		var desired:Vector3=grip-axis*float(helper.get("support_offset"))*rig.global_basis.get_scale().x if side==&"left" else grip
 		var reach:float=(Transform3D(arm.rest_fore).origin.length()+Transform3D(arm.rest_hand).origin.length())*rig.global_basis.get_scale().x
 		arms.append({"side":side,"desired":desired,"shoulder":shoulder,"distance":desired.distance_to(shoulder),"reach":reach})
-	return {"can_regrab":helper.can_regrab(host),"self_clear":host._self_blade_clear_at51(axis,model.global_position),"arms":arms,"player":host._player.global_position,"nearest":host._nearest_ground_sword(),"menu":current_scene.preview_weapons.menu_open,"active":host._active()}
+	return {"can_regrab":helper.can_regrab(host),"regrab_status":helper.status(),"self_clear":host._self_blade_clear_at51(axis,model.global_position),"arms":arms,"player":host._player.global_position,"nearest":host._nearest_ground_sword(),"menu":current_scene.preview_weapons.menu_open,"active":host._active()}
 func sample(phase:String,model:Node):
 	var c:=channel()
 	rows.append({"phase":phase,"dead":host._npc_dead,"channel_id":wound_id(c),"channel_valid":c.get("valid",false),"channel_active":c.get("active",false),"withdrawn":c.get("withdrawn",false),"release_reason":c.get("release_reason",""),"current_depth":c.get("current_depth",0),"cut_depth":c.get("cut_depth",0),"model_id":model.get_instance_id() if is_instance_valid(model) else -1,"held_id":host._sword.get_instance_id() if is_instance_valid(host._sword) else -1,"ground_count":host.ground_sword_count(),"same_model_ground_count":count_id(model),"grounded":host._sword_grounded,"attachment":attachment(model),"aiming":host._aiming_throw,"throwing":host._throwing,"cast_pending":host._spear_cast_pending31,"thrown_total":host._thrown_total,"embedded":host._embedded29.status(),"player":host._player.global_position,"model_transform":model.global_transform if is_instance_valid(model) else null})
@@ -182,6 +182,53 @@ func run():
 			checks["distant_E_atomic_refusal"]=host._sword_grounded and count_id(model)==1 and bool(attachment(model).get("active",false)) and actual_depth(saved_channel,model,P.tip_local(host))>.0001
 			sample("distant_regrab_refused",model);await screenshot("distant_regrab_refused")
 			await finish(scene);return
+		if corpse:
+			button(MOUSE_BUTTON_LEFT,false)
+			var approach_start:Vector3=player.global_position
+			var reachable:=false
+			for tick_index in 150:
+				var diagnostic:=regrab_diagnostic(model)
+				var nearest:Dictionary=host._nearest_ground_sword()
+				if bool(diagnostic.get("can_regrab",false)) and nearest.get("node")==model:
+					reachable=true;break
+				var drop_helper:Node=model.get_meta("embedded_drop31",null)
+				if not is_instance_valid(drop_helper):break
+				var axis:Vector3=model.global_basis.x.normalized()
+				var grip:Vector3=model.global_position-axis*float(drop_helper.get("grip_offset"))
+				var desired:Vector3=grip-axis*.35
+				var delta:Vector3=desired-player.global_position;delta.y=0.0
+				if delta.length()>.05:
+					var yaw:float=atan2(-delta.x,-delta.z)
+					var turn:float=wrapf(yaw-player._camera_yaw,-PI,PI)
+					motion(Vector2(clampf(-turn/float(player.mouse_sensitivity),-60.0,60.0),0))
+					action("preview_move_forward",.6)
+				else:action("preview_move_forward",0.0)
+				await tick()
+				if tick_index%5==0:rows.append({"phase":"corpse_native_approach","tick":tick_index,"grip":grip,"diagnostic":regrab_diagnostic(model)})
+				if player.global_position.distance_to(approach_start)>3.0:break
+			action("preview_move_forward",0.0)
+			if not reachable and is_instance_valid(model):
+				var drop_helper:Node=model.get_meta("embedded_drop31",null)
+				if is_instance_valid(drop_helper):
+					var axis:Vector3=model.global_basis.x.normalized()
+					var grip:Vector3=model.global_position-axis*float(drop_helper.get("grip_offset"))
+					# A falling body can leave the impaled shaft standing above the
+					# player's shoulders. One actual jump, never a forced pickup.
+					if grip.y>player.global_position.y+1.35:
+						key(KEY_SPACE)
+						for jump_tick in 45:
+							var nearest:Dictionary=host._nearest_ground_sword()
+							if bool(regrab_diagnostic(model).get("can_regrab",false)) and nearest.get("node")==model:
+								reachable=true;break
+							var to_grip:Vector3=grip-player.global_position;to_grip.y=0.0
+							action("preview_move_forward",.6 if to_grip.length()>.15 else 0.0)
+							await tick()
+							rows.append({"phase":"corpse_native_jump","tick":jump_tick,"diagnostic":regrab_diagnostic(model)})
+						action("preview_move_forward",0.0)
+			checks["corpse_regrab_reachable_same_nearest"]=reachable
+			if not reachable:
+				sample("corpse_E_unreachable_no_wrong_pickup",model)
+				await finish(scene);return
 		rows.append({"phase":"before_E","diagnostic":regrab_diagnostic(model)})
 		var grab_before:=regrab_diagnostic(model)
 		if not bool(grab_before.get("can_regrab",false)):
@@ -204,9 +251,9 @@ func run():
 				action("preview_move_forward",0.)
 		host.set_meta("debug_bore31",true)
 		key(KEY_E)
-		rows.append({"phase":"E_immediate","actual_depth":actual_depth(saved_channel,model,P.tip_local(host)),"model":model.global_transform,"tip":P.tip_world(host),"channel":channel().get("current_depth",0),"embedded":host._embedded29.status(),"last_good":host._solid_weapon29._last_good_transform,"solid_ready":host._solid_weapon29._ready,"publish_safe":host._solid_weapon29._publish_safe,"bore_reject":host._solid_weapon29.bore_reject31.duplicate(true),"player":host._player.global_position,"velocity":host._player.velocity})
+		rows.append({"phase":"E_immediate","actual_depth":actual_depth(saved_channel,model,P.tip_local(host)),"model":model.global_transform,"tip":P.tip_world(host),"channel":channel().get("current_depth",0),"embedded":host._embedded29.status(),"last_good":host._solid_weapon29._last_good_transform,"solid_ready":host._solid_weapon29._ready,"publish_safe":host._solid_weapon29._publish_safe,"bore_reject":host._solid_weapon29.bore_reject31.duplicate(true),"resistance":host._sword_puncture_resistance29.last.duplicate(true),"omega":host._omega,"player":host._player.global_position,"velocity":host._player.velocity})
 		for i in 3:
-			await tick();rows.append({"phase":"E_final_pose","tick":i,"actual_depth":actual_depth(saved_channel,model,P.tip_local(host)),"model":model.global_transform,"tip":P.tip_world(host),"channel":channel().get("current_depth",0),"embedded":host._embedded29.status(),"solid":host._solid_weapon29.last_contact.duplicate(),"last_good":host._solid_weapon29._last_good_transform,"solid_ready":host._solid_weapon29._ready,"publish_safe":host._solid_weapon29._publish_safe,"bore_reject":host._solid_weapon29.bore_reject31.duplicate(true),"player":host._player.global_position,"velocity":host._player.velocity})
+			await tick();rows.append({"phase":"E_final_pose","tick":i,"actual_depth":actual_depth(saved_channel,model,P.tip_local(host)),"model":model.global_transform,"tip":P.tip_world(host),"channel":channel().get("current_depth",0),"embedded":host._embedded29.status(),"solid":host._solid_weapon29.last_contact.duplicate(),"last_good":host._solid_weapon29._last_good_transform,"solid_ready":host._solid_weapon29._ready,"publish_safe":host._solid_weapon29._publish_safe,"bore_reject":host._solid_weapon29.bore_reject31.duplicate(true),"resistance":host._sword_puncture_resistance29.last.duplicate(true),"omega":host._omega,"player":host._player.global_position,"velocity":host._player.velocity})
 		checks["E_regrabs_same_instance"]=host._sword==model and not host._sword_grounded and count_id(model)==0
 		checks["E_preserves_original_wound"]=wound_id(channel())==wid and bool(channel().get("valid",false)) and not bool(channel().get("withdrawn",false)) and actual_depth(saved_channel,model,P.tip_local(host))>0.0001
 		if corpse:checks["E_restores_only_owned_mass_shape"]=is_instance_valid(corpse_segment) and absf(corpse_segment.mass-original_mass)<.0001 and body_shape_count(corpse_segment)==original_shapes

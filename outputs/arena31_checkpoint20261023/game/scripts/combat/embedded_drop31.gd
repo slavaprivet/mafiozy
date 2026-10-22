@@ -18,6 +18,8 @@ var bone_weapon_local:=Transform3D.IDENTITY
 var grip_offset:=0.0
 var support_offset:=0.0
 var two_handed:=false
+var grip_side:StringName=&"right"
+var regrab_ik31:Dictionary={}
 var tip_local:=Vector3.ZERO
 var rear_extent:=0.0
 var forward_extent:=0.0
@@ -56,6 +58,8 @@ func start(host:Node)->bool:
 	tip_local=Puncture.tip_local(host)
 	rear_extent=float(host.call("weapon_rear_extent"));forward_extent=.06+float(host.get("_weapon_length"))
 	grip_offset=float(host.call("_grip_origin_offset"))
+	grip_side=host.call("_active_side")
+	if grip_side==&"both":grip_side=&"right"
 	two_handed=str(host.get("_weapon_id")) in ["spear","axe","sledge"] or bool(host.get("_half_sword"))
 	support_offset=float(host.get("_two_hand_offset_rig"));weapon_mass=maxf(.3,float(host.get("_weapon_mass")))
 	active=true;_bind(host)
@@ -170,14 +174,35 @@ func can_regrab(host:Node)->bool:
 	var rear:=model.global_position-axis*rear_extent
 	var tip:=model.global_position+axis*forward_extent
 	if float(host.call("_segment_distance",rear,tip,chest,pelvis))<.20 or float(host.call("_segment_distance",rear,tip,head,head))<.18:return false
-	for side:StringName in ([&"right",&"left"] if two_handed else [&"right"]):
+	for side:StringName in ([&"right",&"left"] if two_handed else [grip_side]):
 		var arm:Dictionary=host.call("_arm_set",side)
 		var shoulder:Vector3=rig.global_transform*rig.get_bone_global_pose(int(arm.upper)).origin
-		var desired:=grip-axis*support_offset*rig.global_basis.get_scale().x if side==&"left" else grip
+		var desired:=grip-axis*support_offset*rig.global_basis.get_scale().x if two_handed and side==&"left" else grip
 		var reach:float=(Transform3D(arm.rest_fore).origin.length()+Transform3D(arm.rest_hand).origin.length())*rig.global_basis.get_scale().x
 		if desired.distance_to(shoulder)>reach+.04:return false
 	if not _regrab_world_clear(host,axis):return false
-	return true
+	return _regrab_ik_clear31(host,axis,grip)
+
+func _regrab_ik_clear31(host:Node,axis:Vector3,grip:Vector3)->bool:
+	# Probe the real palm solver without changing ledger, model or skeleton.
+	# The saved active hand matters: LMB sword may be held on the left.
+	var rig:Skeleton3D=host.get("_rig")
+	var poses:Array[Transform3D]=[]
+	for bone in rig.get_bone_count():poses.append(rig.get_bone_pose(bone))
+	var inverse:=rig.global_transform.affine_inverse()
+	var blade:Vector3=(rig.global_basis.inverse()*axis).normalized()
+	var error:=0.0
+	for side:StringName in ([&"right",&"left"] if two_handed else [grip_side]):
+		var arm:Dictionary=host.call("_arm_set",side)
+		var desired:=grip-axis*support_offset*rig.global_basis.get_scale().x if two_handed and side==&"left" else grip
+		host.call("_pose_arm_ik",arm.clav,arm.upper,arm.fore,arm.hand,arm.rest_upper,arm.rest_fore,arm.rest_hand,arm.offset,inverse*desired,blade,1.0,true,arm.pole)
+		rig.force_update_all_bone_transforms()
+		error=maxf(error,Vector3(host.call("_palm_position",side)).distance_to(desired))
+	for bone in poses.size():rig.set_bone_pose(bone,poses[bone])
+	rig.force_update_all_bone_transforms()
+	regrab_ik31={"side":grip_side,"error":error,"accepted":error<=.003}
+	# Reserve 2mm within the final 5mm gate for the next locomotion pose.
+	return error<=.003
 
 func _regrab_world_clear(host:Node,axis:Vector3)->bool:
 	# Preflight the existing held-spear world envelope before ledger mutation.
@@ -217,11 +242,12 @@ func restore(host:Node)->bool:
 	var original:Dictionary=channel.duplicate();original.valid=true;original.active=true;original.withdrawn=false;original.held=true
 	model.global_transform=saved_pose
 	host.set_meta("puncture29_channel",original)
+	host.set("_carry_side",grip_side)
 	host.set("_sword_origin",saved_pose.origin);host.set("_dir",saved_pose.basis.x.normalized());host.set("_edge_direction",saved_pose.basis.y.normalized());host.set("_arm_ready_ms",0)
 	if str(original.weapon)=="spear":host.get("_embedded29").pose(host)
 	else:
 		var rig:Skeleton3D=host.get("_rig")
-		var arm:Dictionary=host.call("_arm_set",&"right")
+		var arm:Dictionary=host.call("_arm_set",grip_side)
 		var grip:Vector3=rig.global_transform.affine_inverse()*(saved_pose.origin-saved_pose.basis.x*grip_offset)
 		var axis:Vector3=(rig.global_basis.inverse()*saved_pose.basis.x).normalized()
 		host.call("_pose_arm_ik",arm.clav,arm.upper,arm.fore,arm.hand,arm.rest_upper,arm.rest_fore,arm.rest_hand,arm.offset,grip,axis,1.0,true,arm.pole)
@@ -265,4 +291,4 @@ func status()->Dictionary:
 	var wound_ref:WeakRef=channel.get("node_ref")
 	var wound:Node=wound_ref.get_ref() if wound_ref!=null else null
 	var depth:float=((model.global_transform*tip_local)-anchor*Vector3(channel.get("entry_local",Vector3.ZERO))).dot(model.global_basis.x.normalized()) if is_instance_valid(model) and anchor.origin.is_finite() else 0.0
-	return {"active":active,"held":held,"weapon_id":channel.get("weapon",""),"depth":depth,"target_id":wound.get_instance_id() if is_instance_valid(wound) else -1,"owner_body_id":body.get_instance_id() if is_instance_valid(body) else -1,"holder_grace":holder_grace,"holder_grace_cleared":holder_grace_cleared,"compound":not owns_body,"mass_added":mass_added,"reason":release_reason}
+	return {"active":active,"held":held,"regrab_ik31":regrab_ik31,"weapon_id":channel.get("weapon",""),"depth":depth,"target_id":wound.get_instance_id() if is_instance_valid(wound) else -1,"owner_body_id":body.get_instance_id() if is_instance_valid(body) else -1,"holder_grace":holder_grace,"holder_grace_cleared":holder_grace_cleared,"compound":not owns_body,"mass_added":mass_added,"reason":release_reason}

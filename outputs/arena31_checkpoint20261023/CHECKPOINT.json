@@ -159,7 +159,8 @@
         "uv2_cut_interpolates_original_coordinates": true
       },
       "scope": "Existing accepted blade damage and real MeshSever API; optional incoming mode launches a real simulated arrow and awaits actual player collision. Not a natural enemy melee acceptance.",
-      "original_evidence": "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_qa31\\hero_incoming_gui04"
+      "original_evidence": "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_qa31\\hero_incoming_gui04",
+      "perf_environment_clean": false
     },
     "menu_merged31": {
       "passed": true,
@@ -267,7 +268,8 @@
         "sword_same_model": true
       },
       "scope": "Real InputEvent Q opens actual GUI, mouse clicks visible arsenal cards, G drops. No direct equip or weapon writes in fixture. ScrollContainer ensures card visible before click; selected model identity/visibility/owner recorded.",
-      "original_evidence": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\menu_merged31"
+      "original_evidence": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\menu_merged31",
+      "perf_environment_clean": false
     },
     "bow_cut02": {
       "passed": true,
@@ -292,14 +294,230 @@
         "startup": true
       },
       "scope": "Individual scenario; see saved fixture and original receipt.",
-      "original_evidence": "D:\\MafioziCombat31\\c33_coordination\\agents\\contact_perf31\\bow_cut02"
+      "original_evidence": "D:\\MafioziCombat31\\c33_coordination\\agents\\contact_perf31\\bow_cut02",
+      "perf_environment_clean": false
+    },
+    "bow_rebound_gui06": {
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_covered_plate_rejection": true,
+        "actual_posed_skin_hit": true,
+        "actual_protected_plate_target": true,
+        "bone_anchor_follows": true,
+        "cancel_does_not_fire": true,
+        "early_click_not_fired": true,
+        "finite_tissue_embed_or_armor_rejection": true,
+        "q_actual_bow": true,
+        "ready_0": true,
+        "real_damage": true,
+        "rebound_axis_continuous": true,
+        "rebound_shaft_exterior": true,
+        "rebound_world_contact": true,
+        "single_shot_0": true,
+        "startup": true
+      },
+      "scope": "Individual scenario; see saved fixture and original receipt.",
+      "original_evidence": "D:\\MafioziCombat31\\c33_coordination\\agents\\contact_perf31\\bow_rebound_gui06",
+      "perf_environment_clean": false
+    },
+    "rebound_defense07": {
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "axe_accepted_metal_sound": true,
+        "axe_actual_npc_strike_intercepted": true,
+        "axe_authored_metal_face_found": true,
+        "axe_authored_near_miss": true,
+        "axe_drop_not_guard": true,
+        "axe_idle_actual_arrow_deflected": true,
+        "axe_near_miss_arrow_not_parried": true,
+        "axe_nearer_wall_priority": true,
+        "axe_npc_clash_material_audio_once": true,
+        "axe_one_parry_event": true,
+        "axe_outgoing_actual_mesh_sweep_clash": true,
+        "axe_wall_fixture_between_launch_and_weapon": true,
+        "bow_ready": true,
+        "mace_accepted_metal_sound": true,
+        "mace_actual_npc_strike_intercepted": true,
+        "mace_authored_metal_face_found": true,
+        "mace_authored_near_miss": true,
+        "mace_drop_not_guard": true,
+        "mace_idle_actual_arrow_deflected": true,
+        "mace_near_miss_arrow_not_parried": true,
+        "mace_nearer_wall_priority": true,
+        "mace_npc_clash_material_audio_once": true,
+        "mace_one_parry_event": true,
+        "mace_outgoing_actual_mesh_sweep_clash": true,
+        "mace_wall_fixture_between_launch_and_weapon": true,
+        "real_player_body_before_weapon_fixture": true,
+        "real_player_body_wins_before_weapon": true,
+        "sledge_accepted_metal_sound": true,
+        "sledge_actual_npc_strike_intercepted": true,
+        "sledge_authored_metal_face_found": true,
+        "sledge_authored_near_miss": true,
+        "sledge_drop_not_guard": true,
+        "sledge_idle_actual_arrow_deflected": true,
+        "sledge_near_miss_arrow_not_parried": true,
+        "sledge_nearer_wall_priority": true,
+        "sledge_npc_clash_material_audio_once": true,
+        "sledge_one_parry_event": true,
+        "sledge_outgoing_actual_mesh_sweep_clash": true,
+        "sledge_wall_fixture_between_launch_and_weapon": true,
+        "spear_accepted_metal_sound": true,
+        "spear_actual_npc_strike_intercepted": true,
+        "spear_authored_metal_face_found": true,
+        "spear_authored_near_miss": true,
+        "spear_drop_not_guard": true,
+        "spear_idle_actual_arrow_deflected": true,
+        "spear_near_miss_arrow_not_parried": true,
+        "spear_nearer_wall_priority": true,
+        "spear_npc_clash_material_audio_once": true,
+        "spear_one_parry_event": true,
+        "spear_outgoing_actual_mesh_sweep_clash": true,
+        "spear_wall_fixture_between_launch_and_weapon": true,
+        "sword_accepted_metal_sound": true,
+        "sword_actual_npc_strike_intercepted": true,
+        "sword_authored_metal_face_found": true,
+        "sword_authored_near_miss": true,
+        "sword_drop_not_guard": true,
+        "sword_idle_actual_arrow_deflected": true,
+        "sword_near_miss_arrow_not_parried": true,
+        "sword_nearer_wall_priority": true,
+        "sword_npc_clash_material_audio_once": true,
+        "sword_one_parry_event": true,
+        "sword_outgoing_actual_mesh_sweep_clash": true,
+        "sword_wall_fixture_between_launch_and_weapon": true
+      },
+      "scope": "Native engine actual authored weapon models, real arrow pool + ballistic integrator + nearest physics ray and accepted parry callback. Deterministic projectile initial conditions; no forced contact or audio. Native G drop. Controlled actual NPC sword translation resolved by production strike callback, previous samples from actual prior pose; not natural AI or OS input. Geometry oracle used only to choose a metal face before launch. Not a player-aim skill test or OS input.",
+      "original_evidence": "D:\\MafioziCombat31\\c33_coordination\\agents\\contact_perf31\\rebound_defense07",
+      "perf_environment_clean": false
+    },
+    "independent_drop_sword18": {
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "E_preserves_original_wound": true,
+        "E_regrabs_same_instance": true,
+        "G_follows_original_bone": true,
+        "G_one_ground_owner": true,
+        "G_remains_attached_45_ticks": true,
+        "G_same_weapon_no_teleport": true,
+        "Q_menu_no_duplicate": true,
+        "actual_entry": true,
+        "channel_valid_before_G": true,
+        "real_S_withdrawal": true,
+        "repeat_G_no_duplicate": true,
+        "requested_life_state": true
+      },
+      "scope": "Actual input only after initial scene placement. Same weapon/wound IDs; no direct wound creation, forced death, teleport during strike or API drop/pickup. Sandbox ownership only, production storage needs separate coverage. Nondefault hold_ticks denotes a separate early-regrab scenario, not long-hold acceptance.",
+      "original_evidence": "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_qa31\\independent_drop_sword18",
+      "perf_environment_clean": false
+    },
+    "independent_drop_dead_sword19": {
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "E_preserves_original_wound": true,
+        "E_regrabs_same_instance": true,
+        "E_restores_only_owned_mass_shape": true,
+        "G_corpse_owned_mass_shape": true,
+        "G_follows_original_bone": true,
+        "G_one_ground_owner": true,
+        "G_remains_attached_0_ticks": true,
+        "G_same_weapon_no_teleport": true,
+        "Q_menu_no_duplicate": true,
+        "actual_entry": true,
+        "channel_valid_before_G": true,
+        "corpse_regrab_reachable_same_nearest": true,
+        "real_S_withdrawal": true,
+        "repeat_G_no_duplicate": true,
+        "requested_life_state": true
+      },
+      "scope": "Actual input only after initial scene placement. Same weapon/wound IDs; no direct wound creation, forced death, teleport during strike or API drop/pickup. Sandbox ownership only, production storage needs separate coverage. Nondefault hold_ticks denotes a separate early-regrab scenario, not long-hold acceptance.",
+      "original_evidence": "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_qa31\\independent_drop_dead_sword19",
+      "perf_environment_clean": false
+    },
+    "independent_drop_dead_spear20": {
+      "passed": false,
+      "source_unchanged": true,
+      "scheduler_passed": false,
+      "stderr_bytes": 0,
+      "checks": {
+        "G_corpse_owned_mass_shape": true,
+        "G_follows_original_bone": true,
+        "G_one_ground_owner": true,
+        "G_remains_attached_0_ticks": true,
+        "G_same_weapon_no_teleport": true,
+        "Q_menu_no_duplicate": true,
+        "actual_entry": true,
+        "channel_valid_before_G": true,
+        "corpse_regrab_reachable_same_nearest": false,
+        "repeat_G_no_duplicate": true,
+        "requested_life_state": true
+      },
+      "scope": "Actual input only after initial scene placement. Same weapon/wound IDs; no direct wound creation, forced death, teleport during strike or API drop/pickup. Sandbox ownership only, production storage needs separate coverage. Nondefault hold_ticks denotes a separate early-regrab scenario, not long-hold acceptance.",
+      "original_evidence": "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_qa31\\independent_drop_dead_spear20",
+      "perf_environment_clean": false
+    },
+    "spear_hold600_gui15": {
+      "passed": false,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "spear_F5_no_embedded_orphan": true,
+        "spear_F5_old_weapon_freed": true,
+        "spear_F5_replaced_scene": true,
+        "spear_actual_death90": true,
+        "spear_actual_entry": true,
+        "spear_bounded_native_reaction": true,
+        "spear_continued_insertion": true,
+        "spear_held120_until_S": true,
+        "spear_held_self_world_clear": true,
+        "spear_ragdoll_active": true,
+        "spear_same_anchor": true,
+        "spear_withdraw": false
+      },
+      "scope": "Individual scenario; see saved fixture and original receipt.",
+      "original_evidence": "D:\\MafioziCombat31\\c33_coordination\\agents\\contact_perf31\\spear_hold600_gui15",
+      "perf_environment_clean": false
+    },
+    "load100_final33": {
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "all_100_real_cut_jobs": true,
+        "all_geometry_valid": true,
+        "global_threads_at_most_two": true,
+        "queue_drained": true
+      },
+      "scope": "100 simultaneous real full-body sever geometry jobs on one immutable authored NPC snapshot, including cut caps/rigid fittings and exact retained contact topology/BVH; shared two-job admission while arena renders. Does not upload/commit100 meshes, simulate100 AI actors, or destructible castle.",
+      "original_evidence": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\load100_final33",
+      "profile": {
+        "elapsed_ms": 8034.27,
+        "frames": 482,
+        "max_ms": 17.727,
+        "p95_ms": 17.039,
+        "p99_ms": 17.295
+      },
+      "perf_environment_clean": true
     }
   },
   "pending_checks": [
-    "Bow protected plate actual shot final receipt (first observation fixture sampled too late after ricochet)",
-    "G/E sword and corpse variants: preserve actual gripping side and exact reachable hand pose",
-    "Strict600-frame spear hold: wait for normal equip readiness before input; no forced entry",
-    "Matched graphical performance/postcut and100worker load",
+    "Corpse spear G/shape/mass verified; E positive case not reached because grip was physically unreachable; keep honest scope",
+    "Strict600-frame spear hold passed; subsequent S withdrawal regression under repair using actual swept holder velocity",
+    "Matched graphical performance/postcut;100worker load already passed separately",
     "Final error audit, save subsequent fixes and scene opening"
   ],
   "limitations": [
@@ -310,12 +528,15 @@
     "Changing injured hero clothing/armor is locked until F5 reset to prevent restoring removed geometry.",
     "Live embedded drop uses kinematic bone anchor; corpse uses native rigid compound shape/mass."
   ],
-  "updated_utc": "2026-10-22T23:36:44.178770+00:00",
+  "updated_utc": "2026-10-22T23:46:32.164307+00:00",
   "latest_changes": [
     "Bow aim is derived from actual solved nock rather than pre-IK walking pose; same native shot now hits exact skin.",
     "Armor result controls arrow rebound/finite embedding; embedded arrows follow bone and transfer to committed cut piece.",
     "Hero bare torso/gambeson get bounded per-part surface wounds; immutable UV/UV2 rest coordinates follow animation and cuts.",
     "Hidden clothing templates excluded from hero cuts; rigid armor fittings follow cut; injured wardrobe cannot restore severed geometry.",
-    "F10/F11 report injured wardrobe refusal honestly; F5 resets hero."
+    "F10/F11 report injured wardrobe refusal honestly; F5 resets hero.",
+    "Embedded G/E stores the actual gripping hand and runs reversible real IK preflight before changing ownership.",
+    "Rejected and parried arrows preserve shaft orientation while reflecting velocity; tail/center/tip sweep retains world collision during backward travel.",
+    "Corpse axial friction follows measured swept holder velocity rather than the pre-resistance movement request; force limits unchanged."
   ]
 }

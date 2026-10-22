@@ -30,8 +30,12 @@ func frames(n:int):
 func sample(host:Node,label:String,phase:String,tick:int):
 	draw_phase=phase
 	var channel:Dictionary=host.get_meta("puncture29_channel",{})
+	var collar_seeded:bool=channel.has("entry_collar31")
 	rows.append({"weapon":label,"phase":phase,"tick":tick,"dead":host._npc_dead,"depth":channel.get("current_depth",0),"cut_depth":channel.get("cut_depth",0),"valid":channel.get("valid",false),"withdrawn":channel.get("withdrawn",false),"release":channel.get("release_reason",""),"tip":P.tip_world(host),"node":channel.node_ref.get_ref().get_instance_id() if channel.get("node_ref")!=null and is_instance_valid(channel.node_ref.get_ref()) else -1,"embedded":host._embedded29.status(),"solid_safe":host._solid_weapon29._publish_safe})
-	if phase!="approach":
+	rows[-1]["entry_collar_seeded31"]=collar_seeded
+	rows[-1]["entry_collar_admissions31"]=int(host._solid_weapon29.entry_collar_admissions31)
+	rows[-1]["input_state31"]={"selected":host._selected,"grounded":host._sword_grounded,"unarmed":host._unarmed,"weapon":host._weapon_id,"left":host._hold_left,"right":host._hold_right,"mouse":host._player._free_mouse_look,"dir":host._dir,"player":host._player.global_position,"origin":host._sword.global_position,"arm_ready":host._arm_ready_ms,"now":Time.get_ticks_msec()}
+	if phase!="approach" and not phase.begins_with("setup"):
 		rows[-1].player=host._player.global_position;rows[-1].origin=host._sword.global_position;rows[-1].axis=host._dir
 		rows[-1].entry=channel.get("entry_world");rows[-1].bore_axis=channel.get("axis_world")
 		rows[-1].contact=host._solid_weapon29.last_contact.duplicate()
@@ -46,7 +50,9 @@ func scenario(label:String,weapon:int):
 	host.set_meta("debug_bore31",true)
 	var player:Node=scene._player
 	player.global_position=Vector3(.2 if weapon==0 else 0.,.05,1.3);player.velocity=Vector3.ZERO;player._camera_yaw=0.;player._camera_pitch=-.00814;player._update_camera_rotation();player.set_mouse_captured(true)
-	await frames(30);button(true);motion(Vector2(0,100))
+	await frames(30)
+	while Time.get_ticks_msec()<=host._arm_ready_ms:await physics_frame
+	sample(host,label,"setup_before",0);button(true);sample(host,label,"setup_button",0);motion(Vector2(0,100))
 	for i in 60:await physics_frame
 	var rig:Skeleton3D=host._npc_rig;var rig_id:=rig.get_instance_id()
 	move("preview_move_forward",.6)
