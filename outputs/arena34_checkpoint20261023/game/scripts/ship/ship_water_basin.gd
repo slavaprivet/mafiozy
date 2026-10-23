@@ -1,0 +1,1786 @@
+extends Node3D
+## SHIP61 / agent A — the castle sea basin.
+##
+## One 2 m heightfield (single draw call) replaces CastleGround: flat y=0 land
+## around the castle, a rounded-rectangle basin down to y=-7.55, a sandy/gravel
+## shoreline and a dark silty bottom. Collision is a HeightMapShape3D whose
+## 1-unit samples are scaled by 2 on X/Z (verified with downward raycasts by
+## scripts/tests/ship61_water_probe.gd).
+##
+## The water sheet is a single ArrayMesh over the union of R1..R4 with CUSTOM0
+## depth, using the exact city shader/palette through preview_water_material.gd.
+##
+## Everything here is procedural. No per-frame scene scans, no per-frame
+## allocations apart from the fixed 8-slot ripple pool, no disk writes.
+
+const WaterFactory = preload("res://scripts/preview_water_material.gd")
+
+const WATER_LEVEL := -0.55
+const MAX_DEPTH := 7.0
+const BOTTOM_LEVEL := -7.55
+const SHORE_RUN := 2.6
+const DEEP_RUN := 10.0
+const GRID_STEP := 2.0
+const WATER_STEP := 2.5
+
+## SHIP62 / agent O — far LOD and shore foam.
+##
+## The heightfield keeps its authored 2 m grid: `depth_at`, `is_navigable`,
+## `shore_respawn` and the HeightMapShape3D must not change. Only the rendered
+## index buffers are merged, and only across cells that are provably flat, so
+## merged quads reproduce the same surface (no cracks, no T-junctions: every
+## merged edge lies on the original grid and both sides share the exact height).
+const GROUND_MERGE_MARGIN := 8.0       ## keep 2 m detail this close to the waterline
+const GROUND_MERGE_LAND_CELLS := 4     ## 8 m blocks on the flat dry land
+const GROUND_MERGE_BED_CELLS := 6      ## 12 m blocks on the flat deep seabed
+const GROUND_BED_FIELD := 12.0         ## distance field beyond which the bed is flat
+const WATER_MERGE_CELLS := 4           ## 10 m blocks where the depth saturates
+const WATER_FLAT_DEPTH := 6.99
+const FOAM_WIDTH := 1.7
+const FOAM_EDGE_DEPTH := 0.04
+const FOAM_VISIBLE_RANGE := 260.0
+const RIPPLE_MERGE_RADIUS := 3.0
+const RIPPLE_MERGE_AGE := 0.55
+
+## Contract section 2 polygons, world XZ, rounded rectangle radius included.
+const WATER_RECTS := [
+	{"x0": 100.0, "x1": 340.0, "z0": 620.0, "z1": 1180.0, "r": 26.0},
+	{"x0": 76.0, "x1": 112.0, "z0": 815.0, "z1": 975.0, "r": 12.0},
+	{"x0": 24.0, "x1": 104.0, "z0": 974.0, "z1": 1014.0, "r": 12.0},
+	{"x0": 76.0, "x1": 140.0, "z0": 700.0, "z1": 820.0, "r": 16.0},
+]
+
+## The slab that CastleGround used to draw; the heightfield keeps dry ground at
+## least this wide, plus the whole R1 gulf (which reaches x=340) and a margin so
+## the far shore is real land rather than the end of the world.
+const FIELD_MIN := Vector2(-300.0, 560.0)
+const FIELD_MAX := Vector2(400.0, 1240.0)
+
+const SHORE_RESPAWNS: Array[Vector3] = [
+	Vector3(2.0, 0.05, 978.0),
+	Vector3(8.0, 0.05, 1018.0),
+	Vector3(21.0, 0.05, 1032.0),
+	Vector3(73.0, 0.05, 1035.0),
+	Vector3(66.0, 0.05, 790.0),
+	Vector3(112.0, 0.05, 606.0),
+	Vector3(348.0, 0.05, 900.0),
+	Vector3(0.0, 0.05, 988.0),
+]
+
+const GROUND_SHADER := """
+shader_type spatial;
+render_mode diffuse_burley, specular_disabled;
+uniform sampler2D soil_detail : filter_linear_mipmap_anisotropic, repeat_enable;
+uniform float water_level = -0.55;
+uniform bool far_lod = true;
+varying vec2 ground_xz;
+varying float ground_above;
+void vertex() {
+	ground_xz = VERTEX.xz;
+	ground_above = VERTEX.y - water_level;
+}
+void fragment() {
+	float cam_distance = length(VERTEX);
+	float submerged = clamp(1.0 - COLOR.a, 0.0, 1.0);
+	// The beach ramp crosses the sea plane inside the first 2.6 m, so the damp
+	// strip is the first ~30 cm of height above the water. Inland ground is
+	// always 0.55 m above the sea, so this band cannot leak onto flat land.
+	float damp = (1.0 - smoothstep(0.06, 0.52, ground_above)) * smoothstep(-0.06, 0.03, ground_above);
+	float wet = max(submerged, damp);
+	if (far_lod && cam_distance > 95.0) {
+		// Past the detail range the tiling texture and the normal warp have long
+		// faded to nothing: skipping the fetch is invisible and saves far fill.
+		ALBEDO = COLOR.rgb * (0.97 * mix(1.0, 0.74, wet) * mix(1.0, 0.86, damp));
+	} else {
+		float distance_fade = 1.0 - smoothstep(24.0, 95.0, cam_distance);
+		vec4 detail = texture(soil_detail, ground_xz / 3.8);
+		vec2 fine_slope = detail.gb * 2.0 - 1.0;
+		vec2 broad_slope = vec2(0.0);
+		vec4 broad = detail;
+		// One fetch per pixel beyond the near shore keeps the 238k-triangle field
+		// cheap while the distant tiling stops mattering.
+		if (cam_distance < 58.0) {
+			vec2 rotated = vec2(ground_xz.y, -ground_xz.x) / 6.3 + vec2(0.17, 0.41);
+			broad = texture(soil_detail, rotated);
+			broad_slope = broad.gb * 2.0 - 1.0;
+			broad_slope = vec2(-broad_slope.y, broad_slope.x);
+		}
+		float relief = mix(0.42, 1.52, detail.r) * mix(0.86, 1.12, broad.r);
+		relief = mix(0.97, relief, distance_fade);
+		vec2 slope = (fine_slope * 0.57 + broad_slope * 0.16) * distance_fade;
+		NORMAL = normalize(NORMAL + (VIEW_MATRIX * vec4(slope.x, 0.0, slope.y, 0.0)).xyz);
+		// Wet sand keeps its grain but loses the dry lift and darkens a little.
+		float grain = mix(1.0, 0.88 + 0.12 * detail.r, damp);
+		ALBEDO = COLOR.rgb * relief * grain * mix(1.0, 0.74, wet) * mix(1.0, 0.86, damp);
+		// The last wave leaves a thin, broken foam line on the sand. It follows the
+		// waterline (height), not the terrain grid, so it never stair-steps.
+		float residue = (1.0 - smoothstep(0.02, 0.14, abs(ground_above - 0.045)))
+			* smoothstep(0.26, 0.58, detail.r + 0.12 * detail.g);
+		ALBEDO = mix(ALBEDO, vec3(0.76, 0.80, 0.76), residue * 0.36);
+	}
+	ROUGHNESS = mix(0.97, 0.66, wet);
+}
+"""
+
+## SHIP62 / O: the deep flat seabed is only ever seen through roughly 7 m of
+## 92 % opaque water, so it gets a flat, shadowless tint instead of the shore
+## shader's texture fetch and normal warp. The near shelf keeps the full shader.
+const BED_SHADER := """
+shader_type spatial;
+render_mode diffuse_burley, specular_disabled, shadows_disabled;
+void fragment() {
+	ALBEDO = COLOR.rgb * 0.97;
+	ROUGHNESS = 0.97;
+}
+"""
+
+## SHIP62 / O: thin surf ribbon along the true waterline (the FOAM_EDGE_DEPTH
+## contour of the heightfield, not the recessed SDF boundary). One draw call,
+## additive-free alpha, animated entirely in the shader.
+const FOAM_SHADER := """
+shader_type spatial;
+render_mode blend_mix, depth_draw_never, cull_disabled, diffuse_lambert, specular_disabled;
+uniform float foam_time = 0.0;
+uniform vec4 foam_color : source_color = vec4(0.87, 0.91, 0.87, 1.0);
+varying vec2 foam_xz;
+varying float foam_inner;
+float foam_hash(vec2 p) {
+	vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
+	p3 += dot(p3, p3.yzx + 33.33);
+	return fract((p3.x + p3.y) * p3.z);
+}
+float foam_noise(vec2 p) {
+	vec2 i = floor(p), f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(foam_hash(i), foam_hash(i + vec2(1.0, 0.0)), f.x),
+		mix(foam_hash(i + vec2(0.0, 1.0)), foam_hash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+void vertex() {
+	foam_xz = VERTEX.xz;
+	foam_inner = UV.x;
+	NORMAL = vec3(0.0, 1.0, 0.0);
+}
+void fragment() {
+	float inward = clamp(foam_inner, 0.0, 1.0);
+	// Two lace layers: a bright edge line plus broken streaks running up the
+	// wash. World-space noise keeps the pattern from sliding with the mesh.
+	float n1 = foam_noise(foam_xz * 1.7 + vec2(foam_time * 0.35, -foam_time * 0.22));
+	float n2 = foam_noise(foam_xz * 4.3 + vec2(-foam_time * 0.55, foam_time * 0.41));
+	float lace = n1 * 0.62 + n2 * 0.38;
+	// The surf grows over the first few centimetres off the sand (no hard
+	// polygon edge at the waterline) and thins out towards deeper water.
+	float band = smoothstep(0.0, 0.10, inward) * (1.0 - smoothstep(0.45, 1.0, inward));
+	float bright_edge = (1.0 - smoothstep(0.10, 0.55, inward))
+		* smoothstep(0.22, 0.60, lace + 0.18);
+	float pulse = 0.68 + 0.32 * sin(dot(foam_xz, vec2(0.23, 0.19)) - foam_time * 1.1 + n2 * 2.2);
+	float alpha = band * (0.28 + 0.42 * smoothstep(0.35, 0.72, lace)) + bright_edge * 0.26 * pulse;
+	ALBEDO = foam_color.rgb * mix(0.94, 1.04, n2);
+	ALPHA = clamp(alpha, 0.0, 0.80);
+	ROUGHNESS = 0.55;
+}
+"""
+
+
+const REED_SHADER := """
+shader_type spatial;
+render_mode cull_disabled, diffuse_burley, specular_disabled;
+varying float blade_height;
+void vertex() {
+	blade_height = UV.y;
+	vec3 root = MODEL_MATRIX[3].xyz;
+	float phase = TIME * 1.25 + root.x * 0.37 + root.z * 0.29;
+	float tip = blade_height * blade_height;
+	VERTEX.x += sin(phase) * 0.11 * tip;
+	VERTEX.z += cos(phase * 0.81) * 0.08 * tip;
+}
+void fragment() {
+	ALBEDO = COLOR.rgb * mix(0.54, 1.16, blade_height);
+	ROUGHNESS = 0.95;
+	BACKLIGHT = ALBEDO * 0.22;
+}
+"""
+
+var _installed := false
+var _world: Node3D
+var _castle: Node3D
+var _factory: RefCounted
+var _time := 0.0
+
+var _ground_material: ShaderMaterial
+var _bed_material: ShaderMaterial
+var _foam_material: ShaderMaterial
+var _stone_material: StandardMaterial3D
+var _wood_material: StandardMaterial3D
+var _rock_material: StandardMaterial3D
+var _reed_material: ShaderMaterial
+
+var _ground_vertices := 0
+var _ground_triangles := 0
+var _ground_full_triangles := 0
+var _ground_merged_blocks := 0
+var _bed_triangles := 0
+var _water_vertices := 0
+var _water_triangles := 0
+var _water_full_triangles := 0
+var _water_merged_blocks := 0
+var _water_cells := 0
+var _foam_segments := 0
+var _foam_triangles := 0
+## Last water/ground frame cost recorded by the perf probe (-1 = never measured).
+var _water_ms := -1.0
+var _ground_ms := -1.0
+var _quay_pieces := 0
+var _pier_pieces := 0
+var _shore_rocks := 0
+var _shore_reeds := 0
+var _battlefield_chunks := 0
+var _battlefield_sunk := 0
+var _castle_ground_removed := false
+var _quay_built := false
+var _pier_built := false
+## True distance to the union boundary, baked once on the heightfield grid.
+## The analytic min() of rectangle SDFs under-estimates this inside the seams
+## where R1..R4 overlap, which would leave shallow sills blocking the ship
+## between the bay and the channel. Two-pass chamfer distance fixes that.
+var _distance_field := PackedFloat32Array()
+var _distance_nx := 0
+var _distance_nz := 0
+
+## Fixed ripple pool. Dictionaries are mutated in place; no per-frame allocation.
+var _ripples: Array = []
+var _ripple_dirty := false
+var _ripple_merged := 0
+var _ripple_restarted := 0
+var _ripple_dropped := 0
+
+func install(world: Node3D, castle: Node3D) -> Dictionary:
+	if _installed:
+		return {"ok": false, "reason": "already_installed", "water_level": WATER_LEVEL,
+			"vertices": _ground_vertices + _water_vertices,
+			"triangles": _ground_triangles + _water_triangles,
+			"quay": _quay_built, "pier": _pier_built, "ground": "heightfield"}
+	if not is_instance_valid(world) or not is_instance_valid(castle):
+		return {"ok": false, "reason": "missing_world_or_castle", "water_level": WATER_LEVEL,
+			"vertices": 0, "triangles": 0, "quay": false, "pier": false, "ground": ""}
+	if get_parent() != world:
+		if get_parent() != null:
+			get_parent().remove_child(self)
+		world.add_child(self)
+	global_transform = Transform3D.IDENTITY
+	name = "ShipWaterBasin"
+	set_meta("ship61_water", true)
+	set_meta("water_level", WATER_LEVEL)
+	_world = world
+	_castle = castle
+	_init_ripples()
+	_make_materials()
+	_remove_castle_ground(castle)
+	_build_ground()
+	_clear_battlefield_water(world)
+	_build_water()
+	_build_shore_foam()
+	_build_quay()
+	_build_pier()
+	_build_shore()
+	_installed = true
+	set_process(true)
+	var result := {
+		"ok": true,
+		"water_level": WATER_LEVEL,
+		"vertices": _ground_vertices + _water_vertices,
+		"triangles": _ground_triangles + _water_triangles,
+		"quay": _quay_built,
+		"pier": _pier_built,
+		"ground": "heightfield_700x680_2m",
+		"ground_vertices": _ground_vertices,
+		"ground_triangles": _ground_triangles,
+		"ground_full_triangles": _ground_full_triangles,
+		"ground_merged_blocks": _ground_merged_blocks,
+		"ground_bed_triangles": _bed_triangles,
+		"water_vertices": _water_vertices,
+		"water_triangles": _water_triangles,
+		"water_full_triangles": _water_full_triangles,
+		"water_merged_blocks": _water_merged_blocks,
+		"foam_segments": _foam_segments,
+		"foam_triangles": _foam_triangles,
+		"castle_ground_removed": _castle_ground_removed,
+		"battlefield_chunks_rebuilt": _battlefield_chunks,
+		"battlefield_instances_sunk": _battlefield_sunk,
+		"shore_rocks": _shore_rocks,
+		"shore_reeds": _shore_reeds,
+	}
+	print("SHIP61_WATER_INSTALL ", JSON.stringify({
+		"vertices": result.vertices, "triangles": result.triangles,
+		"ground_triangles": _ground_triangles, "ground_full": _ground_full_triangles,
+		"bed_triangles": _bed_triangles, "water_triangles": _water_triangles,
+		"water_full": _water_full_triangles, "foam_segments": _foam_segments,
+		"quay": result.quay, "pier": result.pier,
+		"castle_ground_removed": _castle_ground_removed,
+		"battlefield_chunks": _battlefield_chunks,
+		"battlefield_sunk": _battlefield_sunk,
+		"shore_rocks": _shore_rocks, "shore_reeds": _shore_reeds}))
+	return result
+
+func _init_ripples() -> void:
+	_ripples.resize(8)
+	for i in range(_ripples.size()):
+		_ripples[i] = {"x": 0.0, "z": 0.0, "age": -1.0, "strength": 0.0}
+	_ripple_dirty = true
+
+# --------------------------------------------------------------------- public
+func water_level() -> float:
+	return WATER_LEVEL
+
+func depth_at(x: float, z: float) -> float:
+	if not is_finite(x) or not is_finite(z):
+		return 0.0
+	return clampf(WATER_LEVEL - _floor_y_at(x, z), 0.0, MAX_DEPTH)
+
+func water_height_at(x: float, z: float) -> float:
+	if not is_finite(x) or not is_finite(z):
+		return WATER_LEVEL
+	var wave := 0.032 * sin(x * 0.31 + _time * 1.05)
+	wave += 0.021 * sin(z * 0.23 - _time * 0.83 + 1.7)
+	wave += 0.012 * sin((x + z) * 0.47 + _time * 1.63)
+	return WATER_LEVEL + clampf(wave, -0.06, 0.06)
+
+func is_navigable(x: float, z: float, draft: float = 1.8) -> bool:
+	if not is_finite(draft):
+		draft = 1.8
+	return depth_at(x, z) >= maxf(0.6, draft + 0.35)
+
+## SHIP62 / O: the shader has exactly eight ripple slots. A moving ship sends a
+## stern and a bow event every 0.35 s, so naively filling the pool would recycle
+## rings before they can be seen (they blink). The pool now:
+##   * uses a genuinely free slot whenever one exists;
+##   * fuses an event into a live ring within RIPPLE_MERGE_RADIUS that is younger
+##     than RIPPLE_MERGE_AGE (keeping its age, so the ring keeps growing instead
+##     of restarting — a continuous wake) and tops its strength up;
+##   * otherwise replaces only the weakest, oldest ring, and drops the event when
+##     every slot holds a stronger, younger ring.
+func add_ripple(world_position: Vector3, strength: float = 1.0) -> void:
+	if not world_position.is_finite():
+		return
+	var value := clampf(strength, 0.08, 2.0)
+	var free := -1
+	var fuse := -1
+	var fuse_distance := RIPPLE_MERGE_RADIUS * RIPPLE_MERGE_RADIUS
+	var weakest := -1
+	var weakest_score := INF
+	for index in range(_ripples.size()):
+		var event: Dictionary = _ripples[index]
+		var age: float = event.age
+		if age < 0.0:
+			if free < 0:
+				free = index
+			continue
+		var delta_x := float(event.x) - world_position.x
+		var delta_z := float(event.z) - world_position.z
+		var distance := delta_x * delta_x + delta_z * delta_z
+		if age <= RIPPLE_MERGE_AGE and distance < fuse_distance:
+			fuse_distance = distance
+			fuse = index
+		var score := float(event.strength) * (1.0 - clampf(age / WaterFactory.RIPPLE_MAX_AGE, 0.0, 1.0))
+		if score < weakest_score:
+			weakest_score = score
+			weakest = index
+	if free >= 0:
+		var event: Dictionary = _ripples[free]
+		event.x = world_position.x
+		event.z = world_position.z
+		event.age = 0.0
+		event.strength = value
+		_ripple_dirty = true
+		return
+	if fuse >= 0:
+		var event: Dictionary = _ripples[fuse]
+		# Pull the centre a little towards the new splash but keep the age: the
+		# ring keeps expanding from where it was born.
+		event.x = lerpf(float(event.x), world_position.x, 0.34)
+		event.z = lerpf(float(event.z), world_position.z, 0.34)
+		event.strength = maxf(float(event.strength), value)
+		_ripple_merged += 1
+		_ripple_dirty = true
+		return
+	if weakest >= 0 and weakest_score < value * 1.05:
+		var event: Dictionary = _ripples[weakest]
+		event.x = world_position.x
+		event.z = world_position.z
+		event.age = 0.0
+		event.strength = value
+		_ripple_restarted += 1
+		_ripple_dirty = true
+		return
+	_ripple_dropped += 1
+
+func shore_respawn(from: Vector3) -> Vector3:
+	var best := SHORE_RESPAWNS[SHORE_RESPAWNS.size() - 1]
+	var best_distance := INF
+	for point: Vector3 in SHORE_RESPAWNS:
+		if depth_at(point.x, point.z) > 0.0:
+			continue
+		var distance := Vector2(point.x - from.x, point.z - from.z).length()
+		if distance < best_distance:
+			best_distance = distance
+			best = point
+	return Vector3(best.x, _floor_y_at(best.x, best.z) + 0.05, best.z)
+
+func snapshot() -> Dictionary:
+	return {
+		"water_level": WATER_LEVEL,
+		"depth_land": depth_at(0.0, 988.0),
+		"depth_bay": depth_at(62.0, 988.0),
+		"depth_channel": depth_at(95.0, 900.0),
+		"depth_gulf": depth_at(200.0, 900.0),
+		"navigable_bay": is_navigable(62.0, 988.0, 1.8),
+		"navigable_land": is_navigable(0.0, 988.0, 1.8),
+		"water_height": water_height_at(62.0, 988.0),
+		"castle_ground_removed": _castle_ground_removed,
+		"quay": _quay_built,
+		"pier": _pier_built,
+		"ground": "heightfield_700x680_2m",
+		# SHIP62 / O live render counters (cheap: two engine queries).
+		"fps": Engine.get_frames_per_second(),
+		"draw_calls": int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
+		"water_ms": _water_ms,
+		"ground_ms": _ground_ms,
+		"water_triangles": _water_triangles,
+		"ground_triangles": _ground_triangles,
+		"foam_segments": _foam_segments,
+	}
+
+## The perf probe records its measured water/ground frame cost here so a later
+## snapshot()/stats() call reports real numbers instead of a placeholder.
+func record_frame_costs(water_ms: float, ground_ms: float) -> void:
+	if is_finite(water_ms):
+		_water_ms = water_ms
+	if is_finite(ground_ms):
+		_ground_ms = ground_ms
+
+func stats() -> Dictionary:
+	var active := 0
+	for event: Dictionary in _ripples:
+		if float(event.age) >= 0.0:
+			active += 1
+	return {
+		"ok": _installed,
+		"water_level": WATER_LEVEL,
+		"fps": Engine.get_frames_per_second(),
+		"draw_calls": int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
+		"primitives": int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)),
+		"objects": int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)),
+		"frame_ms": snappedf(Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, 0.01),
+		"water_ms": _water_ms,
+		"ground_ms": _ground_ms,
+		"ground_vertices": _ground_vertices,
+		"ground_triangles": _ground_triangles,
+		"ground_full_triangles": _ground_full_triangles,
+		"ground_merged_blocks": _ground_merged_blocks,
+		"ground_bed_triangles": _bed_triangles,
+		"water_vertices": _water_vertices,
+		"water_triangles": _water_triangles,
+		"water_full_triangles": _water_full_triangles,
+		"water_merged_blocks": _water_merged_blocks,
+		"water_cells": _water_cells,
+		"foam_segments": _foam_segments,
+		"foam_triangles": _foam_triangles,
+		"ground_draw_calls": 1,
+		"water_draw_calls": 1,
+		"foam_draw_calls": 1 if _foam_segments > 0 else 0,
+		"quay_pieces": _quay_pieces,
+		"pier_pieces": _pier_pieces,
+		"shore_rocks": _shore_rocks,
+		"shore_reeds": _shore_reeds,
+		"battlefield_chunks_rebuilt": _battlefield_chunks,
+		"battlefield_instances_sunk": _battlefield_sunk,
+		"ripple_pool": _ripples.size(),
+		"ripples_active": active,
+		"ripples_merged": _ripple_merged,
+		"ripples_restarted": _ripple_restarted,
+		"ripples_dropped": _ripple_dropped,
+		"castle_ground_removed": _castle_ground_removed,
+		"quay": _quay_built,
+		"pier": _pier_built,
+		"time": _time,
+	}
+
+# ------------------------------------------------------------------ geometry
+func _rect_sdf(x: float, z: float, rect: Dictionary) -> float:
+	var cx: float = (rect.x0 + rect.x1) * 0.5
+	var cz: float = (rect.z0 + rect.z1) * 0.5
+	var hx: float = (rect.x1 - rect.x0) * 0.5 - float(rect.r)
+	var hz: float = (rect.z1 - rect.z0) * 0.5 - float(rect.r)
+	var qx := absf(x - cx) - hx
+	var qz := absf(z - cz) - hz
+	var outside_x := maxf(qx, 0.0)
+	var outside_z := maxf(qz, 0.0)
+	var outside := sqrt(outside_x * outside_x + outside_z * outside_z)
+	return outside + minf(maxf(qx, qz), 0.0) - float(rect.r)
+
+func _shore_sdf(x: float, z: float) -> float:
+	var best := INF
+	for rect: Dictionary in WATER_RECTS:
+		var distance := _rect_sdf(x, z, rect)
+		if distance < best:
+			best = distance
+	return best
+
+func _inside_distance(x: float, z: float) -> float:
+	if _distance_field.is_empty() or _distance_nx < 2 or _distance_nz < 2:
+		return maxf(0.0, -_shore_sdf(x, z))
+	var gx := (x - FIELD_MIN.x) / GRID_STEP
+	var gz := (z - FIELD_MIN.y) / GRID_STEP
+	if gx < 0.0 or gz < 0.0 or gx > float(_distance_nx - 2) or gz > float(_distance_nz - 2):
+		return maxf(0.0, -_shore_sdf(x, z))
+	var ix := int(gx)
+	var iz := int(gz)
+	var fx := gx - float(ix)
+	var fz := gz - float(iz)
+	var row := iz * _distance_nx + ix
+	var next_row := row + _distance_nx
+	var a := lerpf(_distance_field[row], _distance_field[row + 1], fx)
+	var b := lerpf(_distance_field[next_row], _distance_field[next_row + 1], fx)
+	return lerpf(a, b, fz)
+
+func _floor_from_distance(distance: float) -> float:
+	if distance <= 0.0:
+		return 0.0
+	if distance < SHORE_RUN:
+		return -0.55 * smoothstep(0.0, SHORE_RUN, distance)
+	return -0.55 - 7.0 * smoothstep(SHORE_RUN, DEEP_RUN, distance)
+
+func _floor_y_at(x: float, z: float) -> float:
+	return _floor_from_distance(_inside_distance(x, z))
+
+# ----------------------------------------------------------------- materials
+func _make_materials() -> void:
+	_stone_material = StandardMaterial3D.new()
+	_stone_material.resource_name = "Ship61 quay stone"
+	_stone_material.albedo_color = Color.WHITE
+	_stone_material.vertex_color_use_as_albedo = true
+	_stone_material.roughness = 0.94
+	_stone_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	_wood_material = StandardMaterial3D.new()
+	_wood_material.resource_name = "Ship61 pier timber"
+	_wood_material.albedo_color = Color.WHITE
+	_wood_material.vertex_color_use_as_albedo = true
+	_wood_material.roughness = 0.91
+	_wood_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	_rock_material = StandardMaterial3D.new()
+	_rock_material.resource_name = "Ship61 shore stone"
+	_rock_material.albedo_color = Color.WHITE
+	_rock_material.vertex_color_use_as_albedo = true
+	_rock_material.roughness = 0.98
+
+	var ground_shader := Shader.new()
+	ground_shader.code = GROUND_SHADER
+	_ground_material = ShaderMaterial.new()
+	_ground_material.shader = ground_shader
+	_ground_material.resource_name = "Ship61 shore heightfield"
+	_ground_material.set_shader_parameter("soil_detail",
+		load("res://assets/terrain/soil_detail47.png"))
+	_ground_material.set_shader_parameter("water_level", WATER_LEVEL)
+
+	# SHIP62 / O: flat deep bed behind the 92 % opaque water sheet.
+	var bed_shader := Shader.new()
+	bed_shader.code = BED_SHADER
+	_bed_material = ShaderMaterial.new()
+	_bed_material.shader = bed_shader
+	_bed_material.resource_name = "Ship62 deep seabed (flat)"
+
+	# SHIP62 / O: surf and wet-edge foam ribbon along the waterline.
+	var foam_shader := Shader.new()
+	foam_shader.code = FOAM_SHADER
+	_foam_material = ShaderMaterial.new()
+	_foam_material.shader = foam_shader
+	_foam_material.resource_name = "Ship62 shore surf"
+	_foam_material.render_priority = 2
+	_foam_material.set_shader_parameter("foam_time", 0.0)
+
+	var reed_shader := Shader.new()
+	reed_shader.code = REED_SHADER
+	_reed_material = ShaderMaterial.new()
+	_reed_material.shader = reed_shader
+	_reed_material.resource_name = "Ship61 shore reeds"
+
+func _tint(base: Color, factor: float) -> Color:
+	var value := Color(base.r * factor, base.g * factor, base.b * factor, 1.0)
+	return value.srgb_to_linear()
+
+func _ground_color(x: float, z: float, sdf: float, distance: float, height: float) -> Color:
+	var inside := distance
+	var outside := maxf(sdf, 0.0)
+	var n1 := sin(x * 0.37 + sin(z * 0.19) * 1.7) * sin(z * 0.23 - x * 0.11)
+	var n2 := sin(x * 0.071 + z * 0.053 + 1.3)
+	var n3 := sin(x * 0.61 - z * 0.44 + sin(x * 0.13) * 2.0)
+	var grass := Color(0.315, 0.405, 0.235).srgb_to_linear()
+	var dry_grass := Color(0.44, 0.42, 0.26).srgb_to_linear()
+	var dirt := Color(0.365, 0.30, 0.215).srgb_to_linear()
+	var sand := Color(0.56, 0.485, 0.355).srgb_to_linear()
+	var gravel := Color(0.45, 0.425, 0.375).srgb_to_linear()
+	var wet_sand := Color(0.37, 0.325, 0.245).srgb_to_linear()
+	var silt := Color(0.205, 0.195, 0.16).srgb_to_linear()
+	var seabed := Color(0.135, 0.155, 0.145).srgb_to_linear()
+	var land := grass.lerp(dry_grass, clampf(0.5 + 0.5 * n1, 0.0, 1.0) * 0.62)
+	land = land.lerp(dirt, clampf(0.5 + 0.5 * n2, 0.0, 1.0) * 0.34)
+	var edge := sand.lerp(gravel, clampf(0.42 + 0.36 * n3, 0.0, 1.0))
+	var shore_weight := 1.0 - smoothstep(0.0, 6.5, absf(sdf))
+	var color := land.lerp(edge, shore_weight)
+	if sdf < 0.0:
+		color = color.lerp(wet_sand, smoothstep(0.5, 3.4, inside) * 0.55)
+		var wet_line := smoothstep(1.05, 2.15, inside) * (1.0 - smoothstep(2.75, 4.4, inside))
+		color = color.lerp(wet_sand.darkened(0.34), wet_line * 0.78)
+		var gravel_patch := smoothstep(0.66, 0.94, 0.5 + 0.5 * n3) * (1.0 - smoothstep(2.0, 6.5, inside))
+		color = color.lerp(gravel.darkened(0.12), gravel_patch * 0.5)
+		color = color.lerp(silt, smoothstep(3.0, 9.0, inside) * 0.72)
+		color = color.lerp(seabed, smoothstep(8.5, 15.0, inside))
+	else:
+		var dry_patch := smoothstep(0.55, 0.92, 0.5 + 0.5 * n2)
+		color = color.lerp(dirt, dry_patch * 0.20 * (1.0 - smoothstep(3.0, 12.0, outside)))
+	var wet := 0.0
+	if height < WATER_LEVEL + 0.08:
+		wet = clampf((WATER_LEVEL + 0.08 - height) / 1.4, 0.0, 1.0)
+	color.a = 1.0 - wet * 0.62
+	return color
+
+# --------------------------------------------------------------------- ground
+func _build_ground() -> void:
+	var nx := int(round((FIELD_MAX.x - FIELD_MIN.x) / GRID_STEP)) + 1
+	var nz := int(round((FIELD_MAX.y - FIELD_MIN.y) / GRID_STEP)) + 1
+	var count := nx * nz
+	var edges := PackedFloat32Array()
+	edges.resize(count)
+	var inside := PackedByteArray()
+	inside.resize(count)
+	var field := PackedFloat32Array()
+	field.resize(count)
+	for iz in range(nz):
+		var z := FIELD_MIN.y + float(iz) * GRID_STEP
+		var row := iz * nx
+		for ix in range(nx):
+			var x := FIELD_MIN.x + float(ix) * GRID_STEP
+			var index := row + ix
+			var sdf := _shore_sdf(x, z)
+			edges[index] = sdf
+			if sdf < 0.0:
+				inside[index] = 1
+				field[index] = INF
+			else:
+				inside[index] = 0
+				field[index] = 0.0
+	# Seed cells that touch the shoreline, then run a two-pass chamfer. The
+	# result is the distance to the *union* boundary instead of the analytic
+	# min() that dips at the internal seams of overlapping rectangles.
+	for iz in range(1, nz - 1):
+		var row := iz * nx
+		for ix in range(1, nx - 1):
+			var index := row + ix
+			if inside[index] == 0:
+				continue
+			if inside[index - 1] == 0 or inside[index + 1] == 0 \
+					or inside[index - nx] == 0 or inside[index + nx] == 0:
+				field[index] = 1.0
+	var diagonal := GRID_STEP * 1.41421356
+	for iz in range(1, nz):
+		var row := iz * nx
+		for ix in range(1, nx):
+			var index := row + ix
+			if inside[index] == 0:
+				continue
+			var best := field[index]
+			best = minf(best, field[index - 1] + GRID_STEP)
+			best = minf(best, field[index - nx] + GRID_STEP)
+			best = minf(best, field[index - nx - 1] + diagonal)
+			best = minf(best, field[index - nx + 1] + diagonal)
+			field[index] = best
+	for iz in range(nz - 2, -1, -1):
+		var row := iz * nx
+		for ix in range(nx - 2, -1, -1):
+			var index := row + ix
+			if inside[index] == 0:
+				continue
+			var best := field[index]
+			best = minf(best, field[index + 1] + GRID_STEP)
+			best = minf(best, field[index + nx] + GRID_STEP)
+			best = minf(best, field[index + nx + 1] + diagonal)
+			best = minf(best, field[index + nx - 1] + diagonal)
+			field[index] = best
+	_distance_field = field
+	_distance_nx = nx
+	_distance_nz = nz
+	var heights := PackedFloat32Array()
+	heights.resize(count)
+	for iz in range(nz):
+		var row := iz * nx
+		for ix in range(nx):
+			heights[row + ix] = _floor_from_distance(field[row + ix])
+	var vertices := PackedVector3Array()
+	vertices.resize(count)
+	var normals := PackedVector3Array()
+	normals.resize(count)
+	var colors := PackedColorArray()
+	colors.resize(count)
+	for iz in range(nz):
+		var z := FIELD_MIN.y + float(iz) * GRID_STEP
+		var row := iz * nx
+		for ix in range(nx):
+			var index := row + ix
+			var x := FIELD_MIN.x + float(ix) * GRID_STEP
+			var height := heights[index]
+			vertices[index] = Vector3(x, height, z)
+			var left := heights[row + maxi(ix - 1, 0)]
+			var right := heights[row + mini(ix + 1, nx - 1)]
+			var near := heights[maxi(iz - 1, 0) * nx + ix]
+			var far := heights[mini(iz + 1, nz - 1) * nx + ix]
+			normals[index] = Vector3(left - right, 2.0 * GRID_STEP, near - far).normalized()
+			colors[index] = _ground_color(x, z, edges[index], field[index], height)
+	# --------------------------------------------------------------- far LOD
+	# A cell may be merged only when its four corners share the exact height and
+	# it is clear of the shoreline (the sand/gravel band keeps its 2 m colours).
+	# A merged quad reuses the original grid corners, so the 2 m cells next to it
+	# meet along the same grid lines: no T-junctions, no cracks, identical surface.
+	var quads := (nx - 1) * (nz - 1)
+	var merge_limit := PackedByteArray()
+	merge_limit.resize(quads)
+	var bed_cell := PackedByteArray()
+	bed_cell.resize(quads)
+	for iz in range(nz - 1):
+		var row := iz * nx
+		var next_row := row + nx
+		for ix in range(nx - 1):
+			var cell := iz * (nx - 1) + ix
+			var a := row + ix
+			var b := a + 1
+			var c := next_row + ix
+			var d := c + 1
+			var height := heights[a]
+			if absf(heights[b] - height) > 0.0005 or absf(heights[c] - height) > 0.0005 \
+					or absf(heights[d] - height) > 0.0005:
+				continue
+			if absf(edges[a]) < GROUND_MERGE_MARGIN or absf(edges[b]) < GROUND_MERGE_MARGIN \
+					or absf(edges[c]) < GROUND_MERGE_MARGIN or absf(edges[d]) < GROUND_MERGE_MARGIN:
+				continue
+			var deep := minf(minf(field[a], field[b]), minf(field[c], field[d])) > GROUND_BED_FIELD
+			bed_cell[cell] = 1 if deep else 0
+			merge_limit[cell] = GROUND_MERGE_BED_CELLS if deep else GROUND_MERGE_LAND_CELLS
+	var indices := PackedInt32Array()
+	var bed_indices := PackedInt32Array()
+	var used := PackedByteArray()
+	used.resize(quads)
+	var merged_blocks := 0
+	for iz in range(nz - 1):
+		var row := iz * nx
+		var cell_row := iz * (nx - 1)
+		for ix in range(nx - 1):
+			var cell := cell_row + ix
+			if used[cell] == 1:
+				continue
+			var limit := int(merge_limit[cell])
+			# Packed arrays are reference types in Godot 4, so `target` appends
+			# straight into the surface buffer it aliases.
+			var target := bed_indices if bed_cell[cell] == 1 else indices
+			if limit == 0:
+				var a := row + ix
+				var b := a + 1
+				var c := a + nx
+				var d := c + 1
+				used[cell] = 1
+				target.append(a)
+				target.append(b)
+				target.append(c)
+				target.append(b)
+				target.append(d)
+				target.append(c)
+				continue
+			var width := 1
+			while width < limit and ix + width < nx - 1:
+				var next := cell_row + ix + width
+				if used[next] == 1 or int(merge_limit[next]) != limit:
+					break
+				width += 1
+			var depth := 1
+			while depth < limit and iz + depth < nz - 1:
+				var ok := true
+				var check_row := (iz + depth) * (nx - 1)
+				for dx in range(width):
+					var check := check_row + ix + dx
+					if used[check] == 1 or int(merge_limit[check]) != limit:
+						ok = false
+						break
+				if not ok:
+					break
+				depth += 1
+			for dz in range(depth):
+				var used_row := (iz + dz) * (nx - 1)
+				for dx in range(width):
+					used[used_row + ix + dx] = 1
+			var a := row + ix
+			var b := a + width
+			var c := a + depth * nx
+			var d := c + width
+			target.append(a)
+			target.append(b)
+			target.append(c)
+			target.append(b)
+			target.append(d)
+			target.append(c)
+			merged_blocks += 1
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_COLOR] = colors
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.resource_name = "Ship61 shore heightfield"
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	mesh.surface_set_material(0, _ground_material)
+	_ground_triangles = indices.size() / 3
+	if bed_indices.is_empty():
+		_bed_triangles = 0
+	else:
+		# The flat deep bed is only ever seen through ~7 m of 92 % opaque water:
+		# the cheap shadowless tint is indistinguishable there and keeps the bed
+		# fill small.
+		var bed_arrays := []
+		bed_arrays.resize(Mesh.ARRAY_MAX)
+		bed_arrays[Mesh.ARRAY_VERTEX] = vertices
+		bed_arrays[Mesh.ARRAY_NORMAL] = normals
+		bed_arrays[Mesh.ARRAY_COLOR] = colors
+		bed_arrays[Mesh.ARRAY_INDEX] = bed_indices
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, bed_arrays)
+		mesh.surface_set_material(1, _bed_material)
+		_bed_triangles = bed_indices.size() / 3
+	var visual := MeshInstance3D.new()
+	visual.name = "ShipShoreGround"
+	visual.mesh = mesh
+	visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	visual.set_meta("surface", "ground")
+	visual.set_meta("ship61_ground", true)
+	add_child(visual)
+	_ground_vertices = count
+	_ground_full_triangles = quads * 2
+	_ground_merged_blocks = merged_blocks
+
+	var body := StaticBody3D.new()
+	body.name = "ShipShoreGroundBody"
+	body.collision_layer = 1
+	body.collision_mask = 1
+	body.set_meta("surface", "ground")
+	body.set_meta("ship61_ground", true)
+	add_child(body)
+	var shape := HeightMapShape3D.new()
+	shape.map_width = nx
+	shape.map_depth = nz
+	shape.map_data = heights
+	var collision := CollisionShape3D.new()
+	collision.name = "ShipHeightMap"
+	collision.shape = shape
+	collision.position = Vector3((FIELD_MIN.x + FIELD_MAX.x) * 0.5, 0.0,
+		(FIELD_MIN.y + FIELD_MAX.y) * 0.5)
+	## HeightMapShape3D samples are one metre apart; scale X/Z to the 2 m grid
+	## while keeping the authored Y values in metres. Verified by raycasts.
+	collision.scale = Vector3(GRID_STEP, 1.0, GRID_STEP)
+	body.add_child(collision)
+	set_meta("heightfield_samples", Vector2i(nx, nz))
+
+func _remove_castle_ground(castle: Node3D) -> void:
+	var slab := castle.get_node_or_null("CastleGround")
+	if slab == null:
+		for child: Node in castle.get_children():
+			if child.name == "CastleGround":
+				slab = child
+				break
+	_castle_ground_removed = slab != null
+	if slab == null:
+		return
+	if slab is CollisionObject3D:
+		(slab as CollisionObject3D).collision_layer = 0
+		(slab as CollisionObject3D).collision_mask = 0
+	var parent := slab.get_parent()
+	if parent != null:
+		parent.remove_child(slab)
+	slab.queue_free()
+
+# ------------------------------------------------- battlefield cleanup in water
+func _clear_battlefield_water(world: Node3D) -> void:
+	var field: Node3D = null
+	var candidate: Variant = world.get("preview_battlefield")
+	if candidate is Node3D and is_instance_valid(candidate):
+		field = candidate as Node3D
+	if field == null:
+		for child: Node in world.get_children():
+			if child is Node3D and child.has_method("terrain_height"):
+				field = child as Node3D
+				break
+	if field == null:
+		return
+	var chunks := 0
+	for child: Node in field.get_children():
+		if not (child is MeshInstance3D):
+			continue
+		var visual := child as MeshInstance3D
+		if not str(visual.name).begins_with("Terrain_"):
+			continue
+		var mesh := visual.mesh as ArrayMesh
+		if mesh == null or mesh.get_surface_count() == 0:
+			continue
+		var arrays := mesh.surface_get_arrays(0)
+		if arrays.size() != Mesh.ARRAY_MAX or not arrays[Mesh.ARRAY_VERTEX] is PackedVector3Array:
+			continue
+		var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var field_xf := field.global_transform
+		var inverse := field_xf.affine_inverse()
+		var changed := 0
+		for index in range(vertices.size()):
+			var point: Vector3 = field_xf * vertices[index]
+			var sdf := _shore_sdf(point.x, point.z)
+			if sdf >= -0.03:
+				continue
+			var floor_world := Vector3(point.x, _floor_y_at(point.x, point.z) - 0.08, point.z)
+			vertices[index].y = (inverse * floor_world).y
+			changed += 1
+		if changed == 0:
+			continue
+		arrays[Mesh.ARRAY_VERTEX] = vertices
+		mesh.clear_surfaces()
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		chunks += 1
+		var suffix := str(visual.name).trim_prefix("Terrain_")
+		var collision_body := field.get_node_or_null("TerrainCollision_%s" % suffix)
+		if collision_body != null:
+			var trimesh := mesh.create_trimesh_shape()
+			trimesh.backface_collision = true
+			for shape_node: Node in collision_body.get_children():
+				if shape_node is CollisionShape3D:
+					(shape_node as CollisionShape3D).shape = trimesh
+	_battlefield_chunks = chunks
+	_battlefield_sunk = _sink_battlefield_dressing(field)
+
+func _sink_battlefield_dressing(field: Node3D) -> int:
+	var sunk := 0
+	var multimeshes := field.find_children("*", "MultiMeshInstance3D", true, false)
+	for node: Node in multimeshes:
+		var visual := node as MultiMeshInstance3D
+		var multimesh := visual.multimesh
+		if multimesh == null:
+			continue
+		var node_xf := visual.global_transform
+		for index in range(multimesh.instance_count):
+			var instance := multimesh.get_instance_transform(index)
+			var point := node_xf * instance.origin
+			if _shore_sdf(point.x, point.z) < -1.0:
+				instance.origin.y -= 40.0
+				multimesh.set_instance_transform(index, instance)
+				sunk += 1
+	var bodies := field.find_children("*", "StaticBody3D", true, false)
+	for node: Node in bodies:
+		var body := node as StaticBody3D
+		if not body.has_meta("battlefield_group") and not str(body.name).begins_with("Cover_"):
+			continue
+		if _shore_sdf(body.global_position.x, body.global_position.z) < -0.5:
+			body.collision_layer = 0
+			body.collision_mask = 0
+			body.visible = false
+	return sunk
+
+# ---------------------------------------------------------------------- water
+func _build_water() -> void:
+	_factory = WaterFactory.new()
+	var material: ShaderMaterial = _factory.material_for(Vector3.ZERO, true)
+	if material == null:
+		return
+	material.render_priority = 1
+	var x_min := 20.0
+	var x_max := 344.0
+	var z_min := 616.0
+	var z_max := 1184.0
+	var cells_x := int(ceil((x_max - x_min) / WATER_STEP))
+	var cells_z := int(ceil((z_max - z_min) / WATER_STEP))
+	var cell_count := cells_x * cells_z
+	# Four corner depths per 2.5 m cell. The shader reads depth per vertex, so a
+	# cell with depth already clamped at MAX_DEPTH everywhere shades exactly like
+	# the 10 m quad that replaces it: the surface is one plane.
+	var cell_depth := PackedFloat32Array()
+	cell_depth.resize(cell_count * 4)
+	var cell_wet := PackedByteArray()
+	cell_wet.resize(cell_count)
+	var cell_flat := PackedByteArray()
+	cell_flat.resize(cell_count)
+	var wet_cells := 0
+	for iz in range(cells_z):
+		var z0 := z_min + float(iz) * WATER_STEP
+		var z1 := z0 + WATER_STEP
+		for ix in range(cells_x):
+			var x0 := x_min + float(ix) * WATER_STEP
+			var x1 := x0 + WATER_STEP
+			var d00 := depth_at(x0, z0)
+			var d10 := depth_at(x1, z0)
+			var d01 := depth_at(x0, z1)
+			var d11 := depth_at(x1, z1)
+			# The shader fades alpha to zero at depth zero, so the sheet must be
+			# generated over the whole shallow shelf or a gap opens at the quay.
+			if maxf(maxf(d00, d10), maxf(d01, d11)) < 0.05:
+				continue
+			var cell := iz * cells_x + ix
+			var base := cell * 4
+			cell_depth[base] = d00
+			cell_depth[base + 1] = d10
+			cell_depth[base + 2] = d01
+			cell_depth[base + 3] = d11
+			cell_wet[cell] = 1
+			if minf(minf(d00, d10), minf(d01, d11)) >= WATER_FLAT_DEPTH:
+				cell_flat[cell] = 1
+			wet_cells += 1
+	if wet_cells == 0:
+		return
+	var positions := PackedVector3Array()
+	var normals := PackedVector3Array()
+	var depths := PackedFloat32Array()
+	var indices := PackedInt32Array()
+	var used := PackedByteArray()
+	used.resize(cell_count)
+	var merged_blocks := 0
+	for iz in range(cells_z):
+		for ix in range(cells_x):
+			var cell := iz * cells_x + ix
+			if cell_wet[cell] == 0 or used[cell] == 1:
+				continue
+			var width := 1
+			var depth := 1
+			if cell_flat[cell] == 1:
+				while width < WATER_MERGE_CELLS and ix + width < cells_x:
+					var probe := iz * cells_x + ix + width
+					if cell_flat[probe] == 0 or used[probe] == 1:
+						break
+					width += 1
+				while depth < WATER_MERGE_CELLS and iz + depth < cells_z:
+					var ok := true
+					var probe_row := (iz + depth) * cells_x
+					for dx in range(width):
+						var probe := probe_row + ix + dx
+						if cell_flat[probe] == 0 or used[probe] == 1:
+							ok = false
+							break
+					if not ok:
+						break
+					depth += 1
+				for dz in range(depth):
+					var used_row := (iz + dz) * cells_x
+					for dx in range(width):
+						used[used_row + ix + dx] = 1
+				merged_blocks += 1
+			else:
+				used[cell] = 1
+			var base := cell * 4
+			var d00 := cell_depth[base]
+			var d10 := cell_depth[base + 1]
+			var d01 := cell_depth[base + 2]
+			var d11 := cell_depth[base + 3]
+			var x0 := x_min + float(ix) * WATER_STEP
+			var x1 := x0 + float(width) * WATER_STEP
+			var z0 := z_min + float(iz) * WATER_STEP
+			var z1 := z0 + float(depth) * WATER_STEP
+			var first := positions.size()
+			positions.append(Vector3(x0, WATER_LEVEL, z0))
+			positions.append(Vector3(x1, WATER_LEVEL, z0))
+			positions.append(Vector3(x0, WATER_LEVEL, z1))
+			positions.append(Vector3(x1, WATER_LEVEL, z1))
+			normals.append(Vector3.UP)
+			normals.append(Vector3.UP)
+			normals.append(Vector3.UP)
+			normals.append(Vector3.UP)
+			depths.append(d00)
+			depths.append(d10)
+			depths.append(d01)
+			depths.append(d11)
+			indices.append(first)
+			indices.append(first + 1)
+			indices.append(first + 2)
+			indices.append(first + 1)
+			indices.append(first + 3)
+			indices.append(first + 2)
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = positions
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_CUSTOM0] = depths
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.resource_name = "Ship61 basin water"
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, WaterFactory.DEPTH_FLAGS)
+	mesh.surface_set_material(0, material)
+	var visual := MeshInstance3D.new()
+	visual.name = "ShipWater"
+	visual.mesh = mesh
+	visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	visual.set_meta("source_scope", "ship basin water; vertex depth; no collision")
+	visual.set_meta("water_shader_revision", 6)
+	add_child(visual)
+	_water_vertices = positions.size()
+	_water_triangles = indices.size() / 3
+	_water_full_triangles = wet_cells * 2
+	_water_merged_blocks = merged_blocks
+	_water_cells = wet_cells
+
+# ------------------------------------------------------------------ shore foam
+## SHIP62 / O: a thin surf ribbon along the real waterline.
+##
+## The SDF zero is *not* the waterline: the beach ramp meets the sea plane about
+## 2.6 m inside it. The ribbon is therefore built on the 10 cm depth iso-line of
+## the heightfield, extruded 1.7 m towards deeper water, and animated in the
+## shader (world-space noise, so the pattern does not slide with the mesh).
+func _build_shore_foam() -> void:
+	var nx := _distance_nx
+	var nz := _distance_nz
+	if nx < 3 or nz < 3 or _foam_material == null:
+		return
+	var positions := PackedVector3Array()
+	var normals := PackedVector3Array()
+	var uvs := PackedVector2Array()
+	var indices := PackedInt32Array()
+	var segments := 0
+	for iz in range(nz - 1):
+		var az := FIELD_MIN.y + float(iz) * GRID_STEP
+		var bz := az + GRID_STEP
+		for ix in range(nx - 1):
+			var ax := FIELD_MIN.x + float(ix) * GRID_STEP
+			var bx := ax + GRID_STEP
+			var da := depth_at(ax, az)
+			var db := depth_at(bx, az)
+			var dc := depth_at(bx, bz)
+			var dd := depth_at(ax, bz)
+			if maxf(maxf(da, db), maxf(dc, dd)) < FOAM_EDGE_DEPTH:
+				continue
+			var crossings: Array = []
+			var e0: Variant = _depth_contour(ax, az, da, bx, az, db)
+			if e0 != null:
+				crossings.append(e0)
+			var e1: Variant = _depth_contour(bx, az, db, bx, bz, dc)
+			if e1 != null:
+				crossings.append(e1)
+			var e2: Variant = _depth_contour(bx, bz, dc, ax, bz, dd)
+			if e2 != null:
+				crossings.append(e2)
+			var e3: Variant = _depth_contour(ax, bz, dd, ax, az, da)
+			if e3 != null:
+				crossings.append(e3)
+			if crossings.size() < 2:
+				continue
+			var pair := 0
+			while pair * 2 + 1 < crossings.size():
+				var pa: Vector2 = crossings[pair * 2]
+				var pb: Vector2 = crossings[pair * 2 + 1]
+				if pa.distance_squared_to(pb) > 0.0009:
+					var inward := _depth_inward((pa + pb) * 0.5)
+					if inward != Vector2.ZERO:
+						segments += _append_foam_quad(positions, normals, uvs, indices,
+							pa, pb, inward, FOAM_WIDTH)
+				pair += 1
+	# The quay wall and the pier head are vertical faces: there is no depth
+	# contour to follow, yet their waterline is the shore the player looks at
+	# from the helm. Two straight strips give them the same surf treatment
+	# without touching the quay or pier geometry.
+	segments += _append_foam_strip(positions, normals, uvs, indices,
+		Vector2(82.55, 814.0), Vector2(82.55, 976.0), Vector2(-1.0, 0.0), 1.05)
+	segments += _append_foam_strip(positions, normals, uvs, indices,
+		Vector2(24.6, 1006.3), Vector2(46.0, 1006.3), Vector2(0.0, 1.0), 0.9)
+	segments += _append_foam_strip(positions, normals, uvs, indices,
+		Vector2(46.0, 997.7), Vector2(24.6, 997.7), Vector2(0.0, -1.0), 0.9)
+	if segments == 0:
+		return
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = positions
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.resource_name = "Ship62 shore surf"
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	mesh.surface_set_material(0, _foam_material)
+	var visual := MeshInstance3D.new()
+	visual.name = "ShipShoreFoam"
+	visual.mesh = mesh
+	visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# At 260 m the ribbon is thinner than a pixel: dropping it there removes
+	# shimmer without a visible pop.
+	visual.visibility_range_end = FOAM_VISIBLE_RANGE
+	visual.visibility_range_end_margin = 24.0
+	visual.set_meta("surface", "foam")
+	visual.set_meta("ship62_foam", true)
+	add_child(visual)
+	_foam_segments = segments
+	_foam_triangles = indices.size() / 3
+
+func _depth_contour(ax: float, az: float, da: float, bx: float, bz: float, db: float) -> Variant:
+	var a_wet := da >= FOAM_EDGE_DEPTH
+	if a_wet == (db >= FOAM_EDGE_DEPTH):
+		return null
+	var lo := 0.0
+	var hi := 1.0
+	for step in range(8):
+		var mid := (lo + hi) * 0.5
+		if (depth_at(lerpf(ax, bx, mid), lerpf(az, bz, mid)) >= FOAM_EDGE_DEPTH) == a_wet:
+			lo = mid
+		else:
+			hi = mid
+	var t := (lo + hi) * 0.5
+	return Vector2(lerpf(ax, bx, t), lerpf(az, bz, t))
+
+func _depth_inward(point: Vector2) -> Vector2:
+	var epsilon := 0.4
+	var gradient := Vector2(
+		depth_at(point.x + epsilon, point.y) - depth_at(point.x - epsilon, point.y),
+		depth_at(point.x, point.y + epsilon) - depth_at(point.x, point.y - epsilon))
+	if gradient.length_squared() < 1e-7:
+		return Vector2.ZERO
+	return gradient.normalized()
+
+func _append_foam_strip(positions: PackedVector3Array, normals: PackedVector3Array,
+		uvs: PackedVector2Array, indices: PackedInt32Array,
+		from: Vector2, to: Vector2, inward: Vector2, width: float) -> int:
+	var length := from.distance_to(to)
+	if length < 0.5:
+		return 0
+	var steps := maxi(1, int(ceil(length / 2.0)))
+	var made := 0
+	for step in range(steps):
+		var t0 := float(step) / float(steps)
+		var t1 := float(step + 1) / float(steps)
+		made += _append_foam_quad(positions, normals, uvs, indices,
+			from.lerp(to, t0), from.lerp(to, t1), inward, width)
+	return made
+
+func _append_foam_quad(positions: PackedVector3Array, normals: PackedVector3Array,
+		uvs: PackedVector2Array, indices: PackedInt32Array,
+		a: Vector2, b: Vector2, inward: Vector2, width: float) -> int:
+	var tangent := b - a
+	var length := tangent.length()
+	if length < 0.06 or length > 4.5:
+		return 0
+	# Overlap neighbours by 6 cm so the ribbon has no pinholes at cell seams.
+	var overlap := tangent / length * 0.06
+	var outer_a := a - overlap
+	var outer_b := b + overlap
+	var inner_a := outer_a + inward * width
+	var inner_b := outer_b + inward * width
+	var y := WATER_LEVEL + 0.012
+	var first := positions.size()
+	positions.append(Vector3(outer_a.x, y, outer_a.y))
+	positions.append(Vector3(outer_b.x, y, outer_b.y))
+	positions.append(Vector3(inner_a.x, y, inner_a.y))
+	positions.append(Vector3(inner_b.x, y, inner_b.y))
+	for index in range(4):
+		normals.append(Vector3.UP)
+	uvs.append(Vector2(0.0, 0.0))
+	uvs.append(Vector2(0.0, 1.0))
+	uvs.append(Vector2(1.0, 0.0))
+	uvs.append(Vector2(1.0, 1.0))
+	indices.append(first)
+	indices.append(first + 1)
+	indices.append(first + 2)
+	indices.append(first + 1)
+	indices.append(first + 3)
+	indices.append(first + 2)
+	return 1
+
+# ----------------------------------------------------------------------- quay
+func _build_quay() -> void:
+	var stone := SurfaceTool.new()
+	stone.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var body := StaticBody3D.new()
+	body.name = "ShipQuayBody"
+	body.collision_layer = 1
+	body.collision_mask = 1
+	body.set_meta("surface", "stone")
+	body.set_meta("ship61_quay", true)
+	add_child(body)
+	var deck_x0 := 76.0
+	var deck_x1 := 82.6
+	var deck_top := 0.16
+	var z0 := 812.0
+	var z1 := 978.0
+	var base_color := Color(0.565, 0.545, 0.50)
+	var dark_color := Color(0.505, 0.495, 0.455)
+	var cap_color := Color(0.635, 0.615, 0.56)
+	# Deck slabs, split so the surface reads as laid stone rather than one plate.
+	var segment := 10.4
+	var z := z0
+	var segment_index := 0
+	while z < z1 - 0.05:
+		var length := minf(segment, z1 - z)
+		var center := Vector3((deck_x0 + deck_x1) * 0.5, deck_top - 0.18, z + length * 0.5)
+		var shade := 0.92 + 0.10 * sin(float(segment_index) * 2.1)
+		_add_box(stone, center, Vector3(deck_x1 - deck_x0, 0.36, length - 0.07),
+			_tint(base_color, shade))
+		segment_index += 1
+		z += length
+	_quay_pieces += segment_index
+	_add_box(stone, Vector3((deck_x0 + deck_x1) * 0.5, deck_top - 0.18, (z0 + z1) * 0.5),
+		Vector3(deck_x1 - deck_x0, 0.02, z1 - z0), _tint(cap_color, 0.9))
+	# Paved apron tying the quay deck to the foot of the east curtain wall.
+	var apron_z := z0
+	while apron_z < z1 - 0.05:
+		var apron_length := minf(8.2, z1 - apron_z)
+		_add_box(stone, Vector3(72.4, 0.02, apron_z + apron_length * 0.5),
+			Vector3(7.2, 0.20, apron_length - 0.075),
+			_tint(Color(0.54, 0.52, 0.475), 0.94 + 0.04 * float(int(apron_z) % 3)))
+		apron_z += apron_length
+		_quay_pieces += 1
+	_add_box(stone, Vector3(72.4, 0.02, (z0 + z1) * 0.5),
+		Vector3(7.2, 0.03, z1 - z0), _tint(Color(0.50, 0.49, 0.45), 0.88))
+	_add_shape(body, Vector3(72.4, 0.02, (z0 + z1) * 0.5),
+		Vector3(7.2, 0.20, z1 - z0))
+	# Retaining wall down to the seabed, plus its cap course.
+	var wall_color := Color(0.555, 0.54, 0.495)
+	_add_box(stone, Vector3(83.25, -4.0, (z0 + z1) * 0.5),
+		Vector3(1.3, 8.4, z1 - z0), _tint(wall_color, 0.94))
+	_add_box(stone, Vector3(83.25, deck_top - 0.09, (z0 + z1) * 0.5),
+		Vector3(1.55, 0.22, z1 - z0), _tint(cap_color, 1.0))
+	# Three proud string courses break the tall shadowed face into masonry.
+	for course_y: float in [-1.5, -3.3, -5.1]:
+		_add_box(stone, Vector3(83.35, course_y, (z0 + z1) * 0.5),
+			Vector3(1.42, 0.20, z1 - z0), _tint(cap_color, 0.82))
+		_quay_pieces += 1
+	_quay_pieces += 2
+	_add_shape(body, Vector3((deck_x0 + deck_x1) * 0.5, deck_top - 0.18, (z0 + z1) * 0.5),
+		Vector3(deck_x1 - deck_x0, 0.36, z1 - z0))
+	_add_shape(body, Vector3(83.25, -4.0, (z0 + z1) * 0.5), Vector3(1.3, 8.4, z1 - z0))
+	# Buttresses standing in the channel.
+	var buttress_z := z0 + 7.0
+	while buttress_z < z1 - 3.0:
+		_add_box(stone, Vector3(84.15, -3.4, buttress_z), Vector3(0.85, 7.0, 1.25),
+			_tint(dark_color, 0.88))
+		_quay_pieces += 1
+		buttress_z += 12.5
+	# Parapet, with two stair openings.
+	var parapet_runs := [[z0 + 0.4, 857.6], [862.4, 927.6], [932.4, z1 - 0.4]]
+	for run: Array in parapet_runs:
+		var run_z0: float = run[0]
+		var run_z1: float = run[1]
+		var run_length := run_z1 - run_z0
+		if run_length <= 0.2:
+			continue
+		var run_center := (run_z0 + run_z1) * 0.5
+		_add_box(stone, Vector3(82.35, deck_top + 0.44, run_center),
+			Vector3(0.72, 0.88, run_length), _tint(base_color, 1.0))
+		_add_box(stone, Vector3(82.35, deck_top + 0.92, run_center),
+			Vector3(0.88, 0.14, run_length), _tint(cap_color, 1.02))
+		_quay_pieces += 2
+		_add_shape(body, Vector3(82.35, deck_top + 0.5, run_center),
+			Vector3(0.72, 0.96, run_length))
+		for post_z: float in [run_z0 + 0.35, run_z1 - 0.35]:
+			_add_box(stone, Vector3(82.35, deck_top + 0.62, post_z),
+				Vector3(0.98, 1.28, 0.42), _tint(cap_color, 0.94))
+			_quay_pieces += 1
+	# Stairs into the channel.
+	for stair_z: float in [860.0, 930.0]:
+		for step in range(8):
+			var step_top := deck_top - 0.135 * float(step + 1)
+			var step_x := 82.9 + 0.55 * float(step)
+			_add_box(stone, Vector3(step_x, (step_top - 8.2) * 0.5, stair_z),
+				Vector3(0.58, step_top + 8.2, 3.6), _tint(base_color, 0.86 + 0.03 * float(step % 3)))
+			_quay_pieces += 1
+		_add_shape(body, Vector3(85.0, -3.6, stair_z), Vector3(4.7, 7.6, 3.6))
+	# Mooring bollards.
+	var bollard_z := z0 + 14.0
+	while bollard_z < z1 - 8.0:
+		_add_cylinder(stone, Vector3(81.9, deck_top + 0.24, bollard_z), 0.17, 0.52,
+			_tint(Color(0.25, 0.26, 0.26), 1.0), 8)
+		_add_cylinder(stone, Vector3(81.9, deck_top + 0.52, bollard_z), 0.23, 0.09,
+			_tint(Color(0.22, 0.23, 0.23), 1.0), 8)
+		_quay_pieces += 2
+		bollard_z += 19.0
+	var mesh := stone.commit()
+	if mesh != null:
+		mesh.surface_set_material(0, _stone_material)
+		var visual := MeshInstance3D.new()
+		visual.name = "ShipQuayStone"
+		visual.mesh = mesh
+		visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		visual.set_meta("surface", "stone")
+		add_child(visual)
+		_quay_built = true
+
+# ----------------------------------------------------------------------- pier
+func _build_pier() -> void:
+	var wood := SurfaceTool.new()
+	wood.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var body := StaticBody3D.new()
+	body.name = "ShipPierBody"
+	body.collision_layer = 1
+	body.collision_mask = 1
+	body.set_meta("surface", "wood")
+	body.set_meta("ship61_pier", true)
+	add_child(body)
+	var x0 := 24.5
+	var x1 := 46.0
+	var z_center := 1002.0
+	var half_z := 4.5
+	var deck_top := 0.55
+	var wood_base := Color(0.475, 0.335, 0.195)
+	var wood_dark := Color(0.355, 0.245, 0.145)
+	# Planks across the walkway.
+	var plank_count := int((x1 - x0) / 0.95)
+	var plank_width := (x1 - x0) / float(plank_count)
+	for plank in range(plank_count):
+		var center_x := x0 + plank_width * (float(plank) + 0.5)
+		var shade := 0.87 + 0.18 * absf(sin(float(plank) * 1.73 + 0.4))
+		_add_box(wood, Vector3(center_x, deck_top - 0.045, z_center),
+			Vector3(plank_width - 0.035, 0.09, half_z * 2.0 - 0.18),
+			_tint(wood_base, shade), 0.0)
+	_pier_pieces += plank_count
+	# Stringers and cross beams.
+	for stringer_z: float in [z_center - half_z + 0.55, z_center + half_z - 0.55]:
+		_add_box(wood, Vector3((x0 + x1) * 0.5, 0.40, stringer_z),
+			Vector3(x1 - x0, 0.22, 0.26), _tint(wood_dark, 1.0))
+		_pier_pieces += 1
+	for row in range(5):
+		var pile_x := x0 + 1.5 + float(row) * ((x1 - x0 - 3.0) / 4.0)
+		_add_box(wood, Vector3(pile_x, 0.30, z_center),
+			Vector3(0.30, 0.26, half_z * 2.0 - 0.4), _tint(wood_dark, 0.97))
+		_pier_pieces += 1
+		for pile_z: float in [z_center - half_z + 0.65, z_center + half_z - 0.65]:
+			var floor_y := _floor_y_at(pile_x, pile_z)
+			var bottom := floor_y - 0.35
+			var top := 0.34
+			var height := top - bottom
+			_add_cylinder(wood, Vector3(pile_x, (top + bottom) * 0.5, pile_z),
+				0.175, height, _tint(wood_dark, 0.9 + 0.05 * float(row % 2)), 9)
+			_pier_pieces += 1
+	# Cross bracing on the south face.
+	for row in range(4):
+		var ax := x0 + 1.5 + float(row) * ((x1 - x0 - 3.0) / 4.0)
+		var bx := x0 + 1.5 + float(row + 1) * ((x1 - x0 - 3.0) / 4.0)
+		var z_edge := z_center + half_z - 0.65
+		var y_low := maxf(_floor_y_at(ax, z_edge), -4.5) + 0.5
+		var y_high := maxf(_floor_y_at(bx, z_edge), -4.5) + 0.5
+		_add_beam(wood, Vector3(ax, y_low, z_edge), Vector3(bx, y_high, z_edge), 0.10, 0.10,
+			_tint(wood_dark, 0.86))
+		_pier_pieces += 1
+	# Railings on both long sides.
+	for rail_z: float in [z_center - half_z + 0.18, z_center + half_z - 0.18]:
+		var post_count := 9
+		for post in range(post_count):
+			var post_x := x0 + 0.6 + float(post) * ((x1 - x0 - 1.2) / float(post_count - 1))
+			_add_box(wood, Vector3(post_x, deck_top + 0.52, rail_z),
+				Vector3(0.13, 1.04, 0.13), _tint(wood_dark, 0.95))
+			_pier_pieces += 1
+		_add_box(wood, Vector3((x0 + x1) * 0.5, deck_top + 0.99, rail_z),
+			Vector3(x1 - x0 - 0.5, 0.10, 0.10), _tint(wood_base, 1.02))
+		_add_box(wood, Vector3((x0 + x1) * 0.5, deck_top + 0.55, rail_z),
+			Vector3(x1 - x0 - 0.5, 0.07, 0.07), _tint(wood_dark, 1.0))
+		_pier_pieces += 2
+		_add_shape(body, Vector3((x0 + x1) * 0.5, deck_top + 0.55, rail_z),
+			Vector3(x1 - x0 - 0.5, 1.1, 0.12))
+	# Three steps from the beach up to the deck.
+	for step in range(3):
+		var step_top := 0.14 + 0.135 * float(step)
+		_add_box(wood, Vector3(22.9 + 1.05 * float(step), step_top - 0.5, z_center),
+			Vector3(1.05, step_top + 1.0, half_z * 2.0 - 0.4), _tint(wood_base, 0.92))
+		_add_shape(body, Vector3(22.9 + 1.05 * float(step), step_top - 0.5, z_center),
+			Vector3(1.05, step_top + 1.0, half_z * 2.0 - 0.4))
+		_pier_pieces += 1
+	# Deck and railing collision.
+	_add_shape(body, Vector3((x0 + x1) * 0.5, deck_top - 0.14, z_center),
+		Vector3(x1 - x0, 0.28, half_z * 2.0))
+	# Handrail posts at the pier head.
+	for post_z: float in [z_center - half_z + 0.18, z_center + half_z - 0.18]:
+		_add_box(wood, Vector3(x1 - 0.25, deck_top + 0.54, post_z),
+			Vector3(0.24, 1.08, 0.24), _tint(wood_dark, 1.0))
+		_pier_pieces += 1
+	# SHIP91: the old gangway ended in mid-air when the ship was not moored at
+	# the pier (it is 60+ m away in the battle).  Keep the pier deck and rails,
+	# drop the floating ramp/rails entirely.
+	"""
+	var gang_a := Vector3(46.1, deck_top + 0.06, 1001.3)
+	var gang_b := Vector3(51.9, deck_top + 0.78, 994.7)
+	_add_beam(wood, gang_a, gang_b, 1.45, 0.12, _tint(wood_base, 0.98))
+	_add_beam(wood, gang_a + Vector3(0, 0.10, -0.66), gang_b + Vector3(0, 0.95, -0.66),
+		0.10, 0.10, _tint(wood_dark, 0.96))
+	_add_beam(wood, gang_a + Vector3(0, 0.10, 0.66), gang_b + Vector3(0, 0.95, 0.66),
+		0.10, 0.10, _tint(wood_dark, 0.96))
+	for side: float in [-0.66, 0.66]:
+		_add_box(wood, gang_a + Vector3(0.4, 0.55, side), Vector3(0.10, 1.0, 0.10),
+			_tint(wood_dark, 0.95))
+		_add_box(wood, gang_b + Vector3(-0.2, 0.55, side), Vector3(0.10, 1.0, 0.10),
+			_tint(wood_dark, 0.95))
+	_pier_pieces += 7
+	"""
+	# A crate and a barrel on the deck dressing.
+	_add_box(wood, Vector3(43.4, deck_top + 0.36, 1004.6), Vector3(0.72, 0.72, 0.72),
+		_tint(wood_base, 1.08))
+	_add_box(wood, Vector3(43.4, deck_top + 0.36, 1004.6), Vector3(0.78, 0.10, 0.78),
+		_tint(wood_dark, 1.0))
+	_add_cylinder(wood, Vector3(44.6, deck_top + 0.40, 999.6), 0.30, 0.78,
+		_tint(wood_base, 0.95), 10)
+	_add_cylinder(wood, Vector3(44.6, deck_top + 0.72, 999.6), 0.315, 0.07,
+		_tint(Color(0.28, 0.28, 0.27), 1.0), 10)
+	_pier_pieces += 4
+	var mesh := wood.commit()
+	if mesh != null:
+		mesh.surface_set_material(0, _wood_material)
+		var visual := MeshInstance3D.new()
+		visual.name = "ShipPierTimber"
+		visual.mesh = mesh
+		visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		visual.set_meta("surface", "wood")
+		add_child(visual)
+		_pier_built = true
+
+# ---------------------------------------------------------------------- shore
+func _build_shore() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 61812
+	var rock_transforms: Array[Transform3D] = []
+	var rock_colors: Array[Color] = []
+	var plant_transforms: Array[Transform3D] = []
+	var plant_colors: Array[Color] = []
+	# Pebbles and boulders: rejection sample a margin around each rectangle.
+	for rect: Dictionary in WATER_RECTS:
+		var x0: float = rect.x0 - 7.0
+		var x1: float = rect.x1 + 7.0
+		var z0: float = rect.z0 - 7.0
+		var z1: float = rect.z1 + 7.0
+		var attempts := clampi(int((x1 - x0) * (z1 - z0) / 18.0), 320, 6500)
+		for attempt in range(attempts):
+			var x := rng.randf_range(x0, x1)
+			var z := rng.randf_range(z0, z1)
+			var sdf := _shore_sdf(x, z)
+			if sdf < -7.5 or sdf > 4.5:
+				continue
+			var floor_y := _floor_y_at(x, z)
+			var size := rng.randf_range(0.06, 0.26)
+			if rng.randf() < 0.06:
+				size = rng.randf_range(0.42, 0.98)
+			if rng.randf() < 0.58:
+				var basis := Basis(Vector3.UP, rng.randf() * TAU).scaled(
+					Vector3(size, size * rng.randf_range(0.52, 0.82),
+						size * rng.randf_range(0.7, 1.05)))
+				rock_transforms.append(Transform3D(basis,
+					Vector3(x, floor_y + size * 0.24, z)))
+				var shade := rng.randf_range(0.70, 1.18)
+				var stone_color := Color(0.42, 0.40, 0.36).lerp(
+					Color(0.29, 0.27, 0.225), rng.randf())
+				rock_colors.append(_tint(stone_color, shade))
+	# Reeds and dry shore grass follow the actual waterline of each straight edge.
+	for rect: Dictionary in WATER_RECTS:
+		var x0: float = rect.x0
+		var x1: float = rect.x1
+		var z0: float = rect.z0
+		var z1: float = rect.z1
+		var edges := [
+			[Vector2(x0 + 6.0, z0), Vector2(x1 - 6.0, z0), Vector2(0.0, 1.0)],
+			[Vector2(x0 + 6.0, z1), Vector2(x1 - 6.0, z1), Vector2(0.0, -1.0)],
+			[Vector2(x0, z0 + 6.0), Vector2(x0, z1 - 6.0), Vector2(1.0, 0.0)],
+			[Vector2(x1, z0 + 6.0), Vector2(x1, z1 - 6.0), Vector2(-1.0, 0.0)]]
+		for edge: Array in edges:
+			var a: Vector2 = edge[0]
+			var b: Vector2 = edge[1]
+			var inward: Vector2 = edge[2]
+			var edge_length := a.distance_to(b)
+			var steps := maxi(2, int(edge_length / 1.5))
+			for step in range(steps):
+				var t := (float(step) + rng.randf_range(0.1, 0.9)) / float(steps)
+				var point := a.lerp(b, t)
+				var offset := rng.randf_range(2.7, 4.6)
+				var x := point.x + inward.x * offset + rng.randf_range(-0.55, 0.55)
+				var z := point.y + inward.y * offset + rng.randf_range(-0.55, 0.55)
+				var sdf := _shore_sdf(x, z)
+				var water_depth := maxf(0.0, WATER_LEVEL - _floor_y_at(x, z))
+				if sdf < -0.2 and water_depth > 0.08 and water_depth < 1.45:
+					if rng.randf() > 0.72:
+						continue
+					var height := rng.randf_range(0.62, 1.6)
+					var basis := Basis(Vector3.UP, rng.randf() * TAU).scaled(
+						Vector3(rng.randf_range(0.75, 1.35), height,
+							rng.randf_range(0.75, 1.35)))
+					plant_transforms.append(Transform3D(basis,
+						Vector3(x, _floor_y_at(x, z) - 0.02, z)))
+					var reed_color := Color(0.22, 0.33, 0.09).lerp(Color(0.47, 0.41, 0.19),
+						rng.randf() * 0.85)
+					plant_colors.append(_tint(reed_color, rng.randf_range(0.80, 1.14)))
+				elif sdf > -3.0 and sdf < 13.0 and rng.randf() < 0.20:
+					var height := rng.randf_range(0.26, 0.62)
+					var basis := Basis(Vector3.UP, rng.randf() * TAU).scaled(
+						Vector3(rng.randf_range(0.85, 1.25), height,
+							rng.randf_range(0.85, 1.25)))
+					plant_transforms.append(Transform3D(basis,
+						Vector3(x, _floor_y_at(x, z) - 0.02, z)))
+					var grass_color := Color(0.26, 0.35, 0.10).lerp(Color(0.49, 0.43, 0.21),
+						rng.randf())
+					plant_colors.append(_tint(grass_color, rng.randf_range(0.85, 1.12)))
+	if not rock_transforms.is_empty():
+		_shore_rocks = rock_transforms.size()
+		_add_multimesh("ShipShoreRocks", _make_rock_mesh(), _rock_material,
+			rock_transforms, rock_colors, 190.0)
+	if not plant_transforms.is_empty():
+		_shore_reeds = plant_transforms.size()
+		_add_multimesh("ShipShorePlants", _make_reed_mesh(), _reed_material,
+			plant_transforms, plant_colors, 150.0)
+
+func _make_rock_mesh() -> SphereMesh:
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.5
+	mesh.height = 1.0
+	mesh.radial_segments = 7
+	mesh.rings = 4
+	return mesh
+
+func _make_reed_mesh() -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for blade in range(9):
+		var angle := float(blade) * TAU / 9.0 + 0.37 * sin(float(blade) * 2.7)
+		var direction := Vector3(cos(angle), 0.0, sin(angle))
+		var side := Vector3(-sin(angle), 0.0, cos(angle))
+		var root := direction * (0.05 + 0.09 * absf(sin(float(blade) * 1.9)))
+		var height := 0.55 + 0.38 * absf(sin(float(blade) * 1.37 + 0.6))
+		var lean := 0.10 + 0.16 * absf(sin(float(blade) * 2.1))
+		var width := 0.028
+		var p0 := root - side * width
+		var p1 := root + side * width
+		var p2 := root + direction * lean * 0.55 + Vector3.UP * height * 0.55
+		var p3 := root + direction * lean + Vector3.UP * height
+		for vertex: Vector3 in [p0, p1, p2, p1, p3, p2]:
+			st.set_color(Color.WHITE)
+			st.set_uv(Vector2(0.5, clampf(vertex.y / maxf(height, 0.01), 0.0, 1.0)))
+			st.add_vertex(vertex)
+	st.generate_normals()
+	return st.commit()
+
+func _add_multimesh(node_name: String, mesh: Mesh, material: Material,
+		transforms: Array[Transform3D], colors: Array[Color],
+		visible_range: float = 0.0) -> void:
+	var multimesh := MultiMesh.new()
+	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.use_colors = true
+	multimesh.mesh = mesh
+	multimesh.instance_count = transforms.size()
+	for index in range(transforms.size()):
+		multimesh.set_instance_transform(index, transforms[index])
+		multimesh.set_instance_color(index, colors[index])
+	var node := MultiMeshInstance3D.new()
+	node.name = node_name
+	node.multimesh = multimesh
+	node.material_override = material
+	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# Pebbles and reed blades are sub-pixel long before this range; culling them
+	# removes ~40k triangles from every distant bay/gulf view at no visible cost.
+	if visible_range > 0.0:
+		node.visibility_range_end = visible_range
+		node.visibility_range_end_margin = 16.0
+	node.set_meta("surface", "shore")
+	add_child(node)
+
+# ------------------------------------------------------------------- helpers
+func _add_box(st: SurfaceTool, center: Vector3, size: Vector3, color: Color,
+		yaw: float = 0.0) -> void:
+	_add_box_basis(st, center, size, Basis(Vector3.UP, yaw), color)
+
+func _add_box_basis(st: SurfaceTool, center: Vector3, size: Vector3, basis: Basis,
+		color: Color) -> void:
+	var hx := size.x * 0.5
+	var hy := size.y * 0.5
+	var hz := size.z * 0.5
+	var points := [
+		center + basis * Vector3(-hx, -hy, -hz), center + basis * Vector3(hx, -hy, -hz),
+		center + basis * Vector3(-hx, hy, -hz), center + basis * Vector3(hx, hy, -hz),
+		center + basis * Vector3(-hx, -hy, hz), center + basis * Vector3(hx, -hy, hz),
+		center + basis * Vector3(-hx, hy, hz), center + basis * Vector3(hx, hy, hz)]
+	var faces := [[0, 1, 3, 2], [4, 6, 7, 5], [0, 4, 5, 1],
+		[2, 3, 7, 6], [0, 2, 6, 4], [1, 5, 7, 3]]
+	for face: Array in faces:
+		var a: Vector3 = points[face[0]]
+		var b: Vector3 = points[face[1]]
+		var c: Vector3 = points[face[2]]
+		var d: Vector3 = points[face[3]]
+		var normal := (b - a).cross(c - a).normalized()
+		if normal.dot((a + c) * 0.5 - center) < 0.0:
+			normal = -normal
+			var swap := b
+			b = d
+			d = swap
+		# Godot treats clockwise (cross == -normal) as front-facing. Reversing
+		# the quad keeps the explicit outward normal unflipped by the backface
+		# normal flip that cull_disabled would otherwise apply.
+		for vertex: Vector3 in [a, c, b, a, d, c]:
+			st.set_normal(normal)
+			st.set_color(color)
+			st.add_vertex(vertex)
+
+func _add_beam(st: SurfaceTool, a: Vector3, b: Vector3, width: float, thickness: float,
+		color: Color) -> void:
+	var delta := b - a
+	var length := delta.length()
+	if length < 0.01:
+		return
+	var basis := Basis(Quaternion(Vector3.UP, delta / length))
+	_add_box_basis(st, (a + b) * 0.5, Vector3(width, length, thickness), basis, color)
+
+func _add_cylinder(st: SurfaceTool, center: Vector3, radius: float, height: float,
+		color: Color, segments: int = 9) -> void:
+	var half := height * 0.5
+	for segment in range(segments):
+		var a0 := float(segment) / float(segments) * TAU
+		var a1 := float(segment + 1) / float(segments) * TAU
+		var p00 := center + Vector3(cos(a0) * radius, -half, sin(a0) * radius)
+		var p10 := center + Vector3(cos(a1) * radius, -half, sin(a1) * radius)
+		var p01 := center + Vector3(cos(a0) * radius, half, sin(a0) * radius)
+		var p11 := center + Vector3(cos(a1) * radius, half, sin(a1) * radius)
+		var normal := Vector3(cos((a0 + a1) * 0.5), 0.0, sin((a0 + a1) * 0.5)).normalized()
+		for vertex: Vector3 in [p00, p10, p11, p00, p11, p01]:
+			st.set_normal(normal)
+			st.set_color(color)
+			st.add_vertex(vertex)
+	var top_center := center + Vector3.UP * half
+	var bottom_center := center - Vector3.UP * half
+	for segment in range(segments):
+		var a0 := float(segment) / float(segments) * TAU
+		var a1 := float(segment + 1) / float(segments) * TAU
+		var p0 := center + Vector3(cos(a0) * radius, half, sin(a0) * radius)
+		var p1 := center + Vector3(cos(a1) * radius, half, sin(a1) * radius)
+		for vertex: Vector3 in [top_center, p0, p1]:
+			st.set_normal(Vector3.UP)
+			st.set_color(color)
+			st.add_vertex(vertex)
+		var q0 := center + Vector3(cos(a0) * radius, -half, sin(a0) * radius)
+		var q1 := center + Vector3(cos(a1) * radius, -half, sin(a1) * radius)
+		for vertex: Vector3 in [bottom_center, q1, q0]:
+			st.set_normal(Vector3.DOWN)
+			st.set_color(color)
+			st.add_vertex(vertex)
+
+func _add_shape(body: StaticBody3D, center: Vector3, size: Vector3, yaw: float = 0.0) -> void:
+	var collision := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = size
+	collision.shape = box
+	collision.position = center
+	collision.rotation.y = yaw
+	body.add_child(collision)
+
+# --------------------------------------------------------------------- frames
+func _process(delta: float) -> void:
+	if _factory == null:
+		return
+	_time += delta
+	_factory.update(_time)
+	if _foam_material != null:
+		_foam_material.set_shader_parameter("foam_time", _time)
+	var active := false
+	for event: Dictionary in _ripples:
+		var age: float = event.age
+		if age >= 0.0:
+			age += delta
+			if age > WaterFactory.RIPPLE_MAX_AGE:
+				event.age = -1.0
+			else:
+				event.age = age
+				active = true
+	if active or _ripple_dirty:
+		_factory.set_water_ripples(_ripples)
+		_ripple_dirty = active

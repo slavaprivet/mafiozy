@@ -1,0 +1,39 @@
+{
+  "status": "implemented source review approve; owner actual guard matrix pending",
+  "failure": "3cm point samples can miss exact edge crossing; static authorededge detects it but resets motion0/kindblunt, removing strong momentum.",
+  "narrow_requirements": [
+    "Promotion only normal constrain_pose staticfallback before dispatch, never general query_static or recovery/IKcandidate calls",
+    "Previous transform is published accepted pose with same weapon/generation, no equip/teleport/discontinuity/interruption",
+    "Point belongs to exact authored \u00b1Y,z0 longitudinal sword diamond ridges, including tapered finalsegment; materialsharp or arbitrarytriangleedge insufficient",
+    "Finite materialpoint swept segment previous*localpoint\u2192current*localpoint must hit same current source+face at actualpoint through existingexactkernel; endpointfraction1 valid; no rayextension or tolerancewidening",
+    "Actual weaponpoint motion nonzero, actual physicalincoming nonzero/capped; stationaryweapon,target-only motion,coldoverlap and recovery no promotion",
+    "Preservefresh/consumption/armor/edgealignment/3.2speed/.04travel gates; strong dispatch does not grant intactskin passage before asynccommit"
+  ],
+  "negative_tests": [
+    "Same static overlap with identical previous/current:blunt0motion",
+    "Nonridge diagonal or bladeflat crosses atsamephysicalspeed:noedgepromotion",
+    "Nearby separate source/face point-ray hit:reject samepatch permission",
+    "Targetmovesintostationaryblade:no weaponstrike",
+    "Recovery/static candidate probes do notdispatchdamage or mutateledger",
+    "Actualtip axial crossing remains puncturepath,guard/hilt remainsblunt",
+    "Trace10 exactridge sameface594 fraction1 replay yields edge andactualtorso cut when allothergatespass"
+  ],
+  "geometry_reference": "weapon_model_finish31.sword_blade stations (.155,.030,.010),(.62,.025,.008),(1.05,.016,.005),(1.21,0,0); \u00b1Y,z0 longitudinal edges only",
+  "reviewed_current_guards": [
+    "Only normal collisionempty\u2192staticfallback calls promotion; query_static remains blunt0 and no dispatch side effects.",
+    "ready and !resolving_overlap, before==last_good, emptyhold, upstreamcontact/selfinterrupt checks, current sword held, exactridge metadata",
+    "recent free ledger immediatelypreviousphysicsframe endingexactlyatbefore; no cold/equip/reset continuity",
+    "nonzero actual materialpoint motion and nativeProfile edgealignment",
+    "Exact finite _segment(from,to), same source andface; noendpoint extension",
+    "contacttimes reject repeated edge; returnedactualhit fraction/normal/position preserved",
+    "Existing dispatch caps actualrawspeed byphysicalangular+relativevelocity before damage; armor/travel/fresh laws unchanged."
+  ],
+  "target_only_analysis": "Stationary blade (before==current) exits before segmentquery, even if target velocity would make physicalcap nonzero. No new target-only stronghit from scalar cap alone. Scalar cap does not compare directions, but this is inherited general dispatch law; no evidenced promotion-specific real gap warrants broader change.",
+  "ridge_analysis": "Predicate applies to actual authored topology edges. For current sword model \u00b1Y,z0 longitudinal edges are genuine cutting ridges. Ricasso/guard x<.155, basecrossedge dx0, face-spine diagonals z!=0 rejected. Arbitrary synthetic coordinates are not used to synthesize edges.",
+  "pins": {
+    "scripts/combat/weapon_solid_contact29.gd": "4268f06b3a37cbd134fec2d4440edfd3e06349477e3eb98032a80a8eab7f40fe",
+    "scripts/clay_target.gd": "b4182f7e2a8bd491cbbcebcb0160b9b07436dc3ffefb1e091ce36205245e9968"
+  },
+  "independent_engine_run": false,
+  "not_duplicating_owner": "Owner prepares test-only guard matrix on actual recovered static contact including stationary,targetvelocity,source/face,ready/recovery/epoch/weapon/ridge. Existing torso_fixed11 actualtorso cut reported PASS stable0; reviewer did not run or relabel it."
+}

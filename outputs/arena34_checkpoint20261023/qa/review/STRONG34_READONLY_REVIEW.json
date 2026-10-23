@@ -1,0 +1,42 @@
+{
+  "scope": "Read-only source diagnosis, no runtime acceptance or game edits",
+  "root_cause": "Strong gate combines pre-response physical capped speed with only current first-contact clipped travel; free swing before contact is absent from per-part history. Solid then projects inward omega and held fraction can become zero, preventing remaining travel.",
+  "numbers": {
+    "speed_gate_m_s": 3.2,
+    "travel_gate_m": 0.04,
+    "edge_alignment_gate": 0.55,
+    "history_gap_ms": 150,
+    "at120Hz_maxstep_atthreshold_m": 0.02666666666666667,
+    "at60Hz_required_hitfraction_atthreshold": 0.75
+  },
+  "flow": [
+    "solid._dispatch computes raw requested displacement/dt, caps magnitude by omega\u00d7lever + holdervelocity\u2212targetvelocity; first callback occurs before solid response",
+    "accepted travel is only sweep displacement times firsthitfraction, transverse to blade axis",
+    "clay._solid_contact builds points using approach_to, _resolve_contact adds this distance to per-part history",
+    "armor.evaluate uses incoming motion; respond changes hostomega but does not change local motion copy; effective cutting speed uses sqrt armor residual factor",
+    "requires armor.penetrates AND effective transverse3.2 AND edgealignment.55 AND historytravel40mm",
+    "solid thereafter removes inwardomega and reverts acceptedpose; heldcollisionfraction0 cannot mint new acceptedtravel"
+  ],
+  "recommendation": "Track a bounded, continuous, genuine accepted collision-free precontact trajectory of the same actual material sample; consume once on real hit, preserve speed/edge/armor gates. Do not credit attempted overlap, recovery/GAP correction, standing pressure, stale entries, reversal/equip/reset or duplicate parts as reusable energy. Exact final geometry remains mandatory while cut job pending.",
+  "tests": [
+    "Same native strong swing with different initial surface gaps and cadence should not depend on one frame containing40mm before surface.",
+    "Slow continuous pressure/repeated attempted overlap and small reversals must not build a sever credit.",
+    "Protected plate without residual penetration still refuses; wrong edge/flat hit stays blunt.",
+    "Precontact path interrupted by wall/selfcontact or equip/reset must not transfer to subsequent body hit."
+  ],
+  "DeepSeek": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 202,
+    "completion_tokens": 1264,
+    "reasoning_tokens": 1068,
+    "total_tokens": 1466,
+    "response_nonempty": true,
+    "accepted": "Deadlock diagnosis and no GAP/repeated desired credit; legitimate actual slide only.",
+    "not_adopted": "Proposed firstcontact+postresponse tangent-only integral cannot solve direct normal fast strike with no tangent; precontact travel still needs explicit accounting."
+  },
+  "pins": {
+    "scripts/clay_target.gd": "14ea4a37104f7a38f95a64e7bcc6dc65813beaae5804dcca0f100ecd68cab15c",
+    "scripts/combat/weapon_solid_contact29.gd": "981c360382fbbc830018e9419ebc04631a3c12187efdf34ab3904e7cf54f4600",
+    "scripts/combat/armor_contact31.gd": "ecce06f170f12731a095831d04e744739abe7e1e4959db4ae43d746b31818570"
+  }
+}

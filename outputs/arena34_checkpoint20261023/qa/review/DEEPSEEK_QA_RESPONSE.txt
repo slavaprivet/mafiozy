@@ -1,0 +1,29 @@
+**Вердикт:** как release/final QA — **не пропускать**. Как локальный polygon checkpoint — только с явной маркировкой WIP/open gaps. Для статуса «QA-accepted checkpoint» нужны два targeted теста на final SHA: **actual weak sharp contact** и **actual heavy plate negative**, плюс закрытая проверка packaging/load. Broad rerun для этого scope не обязателен, если SHA не меняется и proof gaps закрыты именно этими тестами.
+
+### Минимальные гейты для честного publishing checkpoint
+1. **Exact final SHA + неизменность gameplay.** Все evidence должны быть на указанных SHA `weapon_solid_contact29.gd` и `clay_target.gd`. Любая gameplay-правка после evidence обнуляет final-доказательства.
+2. **Packaging честно закрыт.** `capture34.py` должен дать требуемые CHECK PASS/stability/scheduler/stderr и два finalgameplay SHA; `expected_changed` финализирован, `final13/light07` добавлены в evidence. Отдельно проверить isolated main worktree после замены absolute paths на relative: риск `load(".../static_negative.gd") -> load("static_negative.gd")` реален. Если это меняет resource-root/script-directory resolution — это уже не «ничего»: нужен запуск packaged tree и повтор затронутых тестов; если меняется gameplay/runtime behavior — новый SHA и повтор evidence.
+3. **Final negative matrix уже заявлен — не терять.** 17 native negative probes (stale/missing ledger, stationary/targetvelocity, cold equip, held, recovery, nonridge, source/face mismatch, spear), 19 native bore regressions, actual InputEvent bare/light torso 8 PASS, strongnear/far real GUI commits1, torso actual GUI cut tick14. Всё это должно быть в манифесте на final SHA; stale/missing — перезапуск.
+4. **Новый actual weak SHARP contact.** Должен быть фактический контакт, не zero-contact PASS. Обязательно: accepted previous pose, fresh continuous ledger ≤100 ms, same-sample sword swing toward unchanged 40 mm gate, фактическое попадание в пределах 40 мм, максимум один кредит, корректная очистка contacts/walls/self/clashes/lifecycle/reversal, для static fallback — finite sweep того же material point в same source/face. Если это native, а не GUI/InputEvent — так и называть.
+5. **Actual heavy PLATE negative.** Попадание именно в armor plate, не в unprotected joint. Проверить blunt zero-motion/no sever, static/recovery/equipment остаются blunt, armor unchanged, fallback не активируется. Предыдущий joint-hit — не доказательство.
+6. **Visual claim только если доказан.** Текущий saved image плохой по framing и поздний; он не доказывает отсутствие orphan hair/clothes. Либо убрать claim, либо нужен нормальный кадр.
+7. **Known limitations в публикации.** Full 50v50 FPS не принят; rare 180/406 ms recovery stalls и synchronous baseNPC/player sever остаются; game33 open/nonexclusive; production pointer combined25 не менять; preserved user33 window не заменять без явного agreement.
+
+### Evidence vs inference
+**Evidence:** matched torso actual GUI cut tick14; 17 native negative probes; 19 bore regressions; actual InputEvent bare/light torso 8 PASS; strongnear/far real GUI commits1; weaknear PASS имеет zero actual contacts; final weak sharp contact pending; heavy plate negative pending; packaging path rewrite risk; pre-static 601 sidecontacts/0 cuts и wall189/6 PASS — это **pre-static**, не final, не sharp-edge proof; poor framing не позволяет утверждать отсутствие orphan.  
+**Inference / не доказано:** что weak-pressure sharp path реально срабатывает при фактическом контакте; что heavy plate реально негативен; что packaging load resolution не сломан; что нет orphan hair/clothes; что нет broad regression вне перечисленных проб.
+
+### Достаточно ли pending weak sharp + plate вместо broad rerun?
+**Да, для узкого локального checkpoint-claim** — при условии: exact SHA не менялся, два теста прошли на final SHA, packaging/load проверен, evidence manifest полный. Они закрывают именно два открытых proof gap: weak sharp actual contact и armor plate negative.  
+**Нет**, если после этого меняется gameplay или resource loading; тогда evidence stale, нужен новый SHA и повтор затронутых тестов, при существенных изменениях — broad rerun. Также этих двух тестов недостаточно для общих claim’ов про full FPS, all weapons, general armor, orphan cleanup, production readiness.
+
+### Запрещённые формулировки
+- «QA passed», «final accepted», «release-ready», «production ready».
+- «Weak-pressure sharp edge sever доказан», пока нет actual weak sharp contact; zero-contact weaknear — не proof.
+- «Heavy armor plate negative проверен», пока был hit в joint.
+- «Static fallback безопасен для всех sharp/recovery/equipment» — только authored longitudinal ridge + условия; остальное blunt.
+- «Нет orphan hair/clothes/debris» по текущему изображению.
+- «FPS/50v50 performance accepted», «no stalls», «timings exclusive» — full50 не принят, stalls и sync sever остаются.
+- «Packaging/isolated worktree verified» до фикса и проверки relative load.
+- «Все оружие/guards/extraction/protectedplate без регрессий» шире фактически проверенного.
+- Замена preserved user33 window / production pointer combined25 без agreement.

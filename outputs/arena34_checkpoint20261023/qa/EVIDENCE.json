@@ -1,0 +1,320 @@
+{
+  "weapon34_strong_before01": {
+    "passed": false,
+    "source_unchanged": true,
+    "scheduler_passed": false,
+    "stderr_bytes": 0,
+    "checks": {
+      "strong_far_expected_cut": false,
+      "strong_near_expected_cut": true,
+      "weak_near_no_cut": true
+    },
+    "original_path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_strong_before01",
+    "scope": "Matched actual mouse baseline: strong_far failed the travel gate. Raw failure retained.",
+    "final_gameplay": false
+  },
+  "weapon34_torso05": {
+    "passed": false,
+    "source_unchanged": true,
+    "scheduler_passed": false,
+    "stderr_bytes": 0,
+    "checks": {
+      "actual_torso_cut": false
+    },
+    "original_path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_torso05",
+    "scope": "Actual torso baseline: static fallback removed motion before cutting. Raw failure retained.",
+    "final_gameplay": false
+  },
+  "weapon34_static_trace10": {
+    "passed": false,
+    "source_unchanged": true,
+    "scheduler_passed": false,
+    "stderr_bytes": 0,
+    "checks": {
+      "actual_torso_cut": false
+    },
+    "original_path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_static_trace10",
+    "scope": "Diagnostic copying exact solver state: same authored ridge point finite ray hits same face594 at fraction1; not final acceptance.",
+    "final_gameplay": false
+  },
+  "weapon34_strong_final04": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "strong_far_expected_cut": true,
+      "strong_near_expected_cut": true,
+      "weak_near_no_cut": true
+    },
+    "original_path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_strong_final04",
+    "scope": "First ledger fix matched real-input head and limb cuts; weak case no sever. Pre static-promotion revision.",
+    "final_gameplay": false
+  },
+  "weapon34_lifecycle06": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "actual_free_air_path": true,
+      "air_no_damage_or_cuts": true,
+      "clash_hook_consumes_existing_path": true,
+      "clash_hook_cooldown_still_blocks_epoch": true,
+      "native_equipment_drops_sword_credit": true,
+      "native_reset_drops_old_generation": true,
+      "real_reversal_observed": true,
+      "released_air_path_cleared": true,
+      "reversal_starts_new_epoch": true
+    },
+    "original_path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_lifecycle06",
+    "scope": "Ledger epoch resets and air path, reversal, release, equipment and clashes including cooldown. Pre static-promotion revision.",
+    "final_gameplay": false
+  },
+  "wall_ledger01": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "actual_world_sweep": true,
+      "free_motion_was_recorded": true,
+      "no_body_cut_behind_wall": true,
+      "real_contact_interrupt_observed": true,
+      "sustained_actual_wall_contact": true,
+      "wall_never_banks_free_credit": true
+    },
+    "original_path": "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review34\\wall_ledger01",
+    "scope": "Actual wall contacts erase free swing credit; no cuts through wall. Pre static-promotion revision.",
+    "final_gameplay": false
+  },
+  "weapon34_torso_fixed11": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "actual_torso_cut": true
+    },
+    "original_path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_torso_fixed11",
+    "scope": "Matched final source: actual same tick14 torso cut, canonical chest mesh committed; no unresolved pose.",
+    "final_gameplay": true
+  },
+  "weapon34_static_negative12": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "actual_torso_cut": true,
+      "broad_face_diagonal_not_ridge": true,
+      "cross_section_not_ridge": true,
+      "external_contact_stays_static": true,
+      "held_contact_stays_static": true,
+      "initial_equip_stays_static": true,
+      "negative_exercised": true,
+      "no_validated_path_stays_static": true,
+      "nonridge_stays_static": true,
+      "real_ridge_includes_tip": true,
+      "recovery_stays_static": true,
+      "ricasso_not_ridge": true,
+      "spear_stays_static": true,
+      "stale_frame_stays_static": true,
+      "stationary_target_only_stays_static": true,
+      "unrelated_face_stays_static": true,
+      "unrelated_source_stays_static": true
+    },
+    "original_path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_static_negative12",
+    "scope": "Real contact capture plus isolated guard probes:17 checks for exact ridge, finite surface identity, stationary, equipment, held, recovery and stale states.",
+    "final_gameplay": true
+  },
+  "merged34_bore_final02": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "heavy_actual_protected_contact": true,
+      "heavy_low_speed_no_penetration": true,
+      "spear_lateral_outside_remains_solid": true,
+      "spear_mouse_axis_locked": true,
+      "spear_mouse_does_not_extract": true,
+      "spear_native_backward_extracts": true,
+      "spear_other_part_solid": true,
+      "spear_real_shallow_entry": true,
+      "spear_same_bore_accepts_steel": true,
+      "spear_shallow_survives": true,
+      "spear_wound_persists": true,
+      "sword_guard_stops": true,
+      "sword_lateral_outside_remains_solid": true,
+      "sword_native_backward_extracts": true,
+      "sword_other_part_solid": true,
+      "sword_real_shallow_entry": true,
+      "sword_same_bore_accepts_steel": true,
+      "sword_shallow_survives": true,
+      "sword_wound_persists": true
+    },
+    "original_path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\merged34_bore_final02",
+    "scope": "Root final source19 native checks: sword/spear entry, solid guards, lateral bore resistance, backward extraction, protected plate.",
+    "final_gameplay": true
+  },
+  "final_sword_torso06": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "actual_torso_sever": true,
+      "async_job_drained": true,
+      "canonical_torso_geometry_commit": true,
+      "metadata_selection_after_sever": true,
+      "startup": true,
+      "strong_actual_sever": true,
+      "strong_grip_attached": true,
+      "strong_no_invalid_pose": true
+    },
+    "original_path": "D:\\MafioziCombat31\\c33_coordination\\agents\\strong_cut34\\final_sword_torso06",
+    "scope": "Independent real graphical LMB/mouse: bare canonical chest queued and geometry committed;8 checks.",
+    "final_gameplay": true
+  },
+  "weapon34_strong_final13": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "strong_far_expected_cut": true,
+      "strong_near_expected_cut": true,
+      "weak_near_no_cut": true
+    },
+    "original_path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_strong_final13",
+    "scope": "Final graphical real-input strong near/far actual cuts; weak_near zero cuts but no confirmed contact, not weak-pressure acceptance.",
+    "final_gameplay": true
+  },
+  "final_sword_light07": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "actual_torso_sever": true,
+      "async_job_drained": true,
+      "canonical_torso_geometry_commit": true,
+      "metadata_selection_after_sever": true,
+      "startup": true,
+      "strong_actual_sever": true,
+      "strong_grip_attached": true,
+      "strong_no_invalid_pose": true
+    },
+    "original_path": "D:\\MafioziCombat31\\c33_coordination\\agents\\strong_cut34\\final_sword_light07",
+    "scope": "Independent final graphical light-armored chest joint cut and actual canonical torso geometry/debris commit; not a plate penetration claim.",
+    "final_gameplay": true
+  },
+  "final_sword_heavy08": {
+    "passed": false,
+    "source_unchanged": true,
+    "scheduler_passed": false,
+    "stderr_bytes": 0,
+    "checks": {
+      "actual_nonpenetrating_plate_contact": false,
+      "actual_solid_plate_contact": false,
+      "async_job_drained": true,
+      "committed_armor_attribution": true,
+      "metadata_selection_after_sever": true,
+      "no_nonpenetrating_plate_bypass": true,
+      "startup": true,
+      "strong_grip_attached": true,
+      "strong_no_invalid_pose": true
+    },
+    "original_path": "D:\\MafioziCombat31\\c33_coordination\\agents\\strong_cut34\\final_sword_heavy08",
+    "scope": "Raw failed aim: heavy chest joint cut, zero plate contacts. Not plate acceptance; physics unchanged.",
+    "final_gameplay": true
+  },
+  "final_sword_heavy09": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "actual_nonpenetrating_plate_contact": true,
+      "actual_solid_plate_contact": true,
+      "async_job_drained": true,
+      "committed_armor_attribution": true,
+      "metadata_selection_after_sever": true,
+      "no_nonpenetrating_plate_bypass": true,
+      "startup": true,
+      "strong_grip_attached": true,
+      "strong_no_invalid_pose": true
+    },
+    "original_path": "D:\\MafioziCombat31\\c33_coordination\\agents\\strong_cut34\\final_sword_heavy09",
+    "scope": "Graphical heavy helmet plate negative:25 distinct contact observations,101 observed frames, physical peak2.784m/s; zero cuts.",
+    "final_gameplay": true
+  },
+  "final_sword_heavy10": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "actual_nonpenetrating_plate_contact": true,
+      "actual_solid_plate_contact": true,
+      "async_job_drained": true,
+      "committed_armor_attribution": true,
+      "metadata_selection_after_sever": true,
+      "no_nonpenetrating_plate_bypass": true,
+      "startup": true,
+      "strong_grip_attached": true,
+      "strong_no_invalid_pose": true
+    },
+    "original_path": "D:\\MafioziCombat31\\c33_coordination\\agents\\strong_cut34\\final_sword_heavy10",
+    "scope": "Graphical strong heavy helmet plate negative: edge3.949m/s, alignment.9999, actual travel31.116mm+free40mm, protection reduces effective speed1.310m/s; no penetration or cuts.",
+    "final_gameplay": true
+  },
+  "weak_edge01": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "actual_weak_sharp_edge": true,
+      "async_job_drained": true,
+      "metadata_selection_after_sever": true,
+      "startup": true,
+      "strong_grip_attached": true,
+      "strong_no_invalid_pose": true,
+      "weak_edge_zero_sever": true,
+      "weak_effective_speed_below_gate": true
+    },
+    "original_path": "D:\\MafioziCombat31\\c33_coordination\\agents\\release34_review30\\weak_edge01",
+    "scope": "Final graphical actual sharp edge: fresh head contact effective.945m/s alignment.9301 with40mm free credit; held next frame credit0; peak effective2.313m/s, six local_wound events (not a claim of six distinct persistent wounds), cuts0, safe grip/pose.",
+    "final_gameplay": true
+  },
+  "packaged_static_negative12": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "actual_torso_cut": true,
+      "broad_face_diagonal_not_ridge": true,
+      "cross_section_not_ridge": true,
+      "external_contact_stays_static": true,
+      "held_contact_stays_static": true,
+      "initial_equip_stays_static": true,
+      "negative_exercised": true,
+      "no_validated_path_stays_static": true,
+      "nonridge_stays_static": true,
+      "real_ridge_includes_tip": true,
+      "recovery_stays_static": true,
+      "ricasso_not_ridge": true,
+      "spear_stays_static": true,
+      "stale_frame_stays_static": true,
+      "stationary_target_only_stays_static": true,
+      "unrelated_face_stays_static": true,
+      "unrelated_source_stays_static": true
+    },
+    "original_path": "D:\\MafioziCombat31\\c33_coordination\\agents\\strong_cut34\\packaged_static_negative12",
+    "scope": "Published QA runtime load/extends smoke with17 passing native negative guard+actual torso checks, using final gameplay source and title34. Confirms relocated packaged fixture resolves its helper.",
+    "final_gameplay": true
+  }
+}

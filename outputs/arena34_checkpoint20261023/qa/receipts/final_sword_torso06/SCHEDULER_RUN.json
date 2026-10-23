@@ -1,0 +1,132 @@
+{
+  "mode": "graphical",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--windowed",
+    "--resolution",
+    "1280x720",
+    "--max-fps",
+    "60",
+    "--path",
+    "D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game",
+    "--script",
+    "D:/MafioziCombat31/c33_coordination/agents/strong_cut34/strong_input34.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\strong_cut34\\final_sword_torso06",
+    "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\strong_cut34\\final_sword_torso06",
+    "--tier=none",
+    "--weapon=0",
+    "--x=0",
+    "--z=-0.45",
+    "--pitch=-0.1",
+    "--sword-torso",
+    "--expected-cut-family=torso"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "9d8b068028b74d138f78c9ea151889b9",
+    "owner": {
+      "pid": 54464,
+      "creation_filetime": "134372471149385279"
+    },
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena34_strong_cuts\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 52988,
+        "creation_filetime": "134372471160260568",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game --script D:/MafioziCombat31/c33_coordination/agents/strong_cut34/strong_input34.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\strong_cut34\\final_sword_torso06 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\strong_cut34\\final_sword_torso06 --tier=none --weapon=0 --x=0 --z=-0.45 --pitch=-0.1 --sword-torso --expected-cut-family=torso",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--windowed",
+          "--resolution",
+          "1280x720",
+          "--max-fps",
+          "60",
+          "--path",
+          "D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game",
+          "--script",
+          "D:/MafioziCombat31/c33_coordination/agents/strong_cut34/strong_input34.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\strong_cut34\\final_sword_torso06",
+          "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\strong_cut34\\final_sword_torso06",
+          "--tier=none",
+          "--weapon=0",
+          "--x=0",
+          "--z=-0.45",
+          "--pitch=-0.1",
+          "--sword-torso",
+          "--expected-cut-family=torso"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "graphical",
+        "project": "d:\\mafiozicombat31\\c33_coordination\\arena34_strong_cuts\\game"
+      }
+    ],
+    "deadline": 263909.8349468,
+    "queued_at": 263309.8349468,
+    "ticket": 6082,
+    "inventory_before": [
+      {
+        "pid": 40212,
+        "parent_pid": 57684,
+        "creation_filetime": "134372393255837801",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game\" res://scenes/arena27.tscn --windowed --resolution 1440x900 --max-fps 60 -- \"--lab-out=D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\interactive\\20261023T142845558Z\"",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози · Полигон 33 · проколы и контакт (DEBUG)"
+      },
+      {
+        "pid": 8572,
+        "parent_pid": 46260,
+        "creation_filetime": "134372470975143595",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game --script D:/MafioziCombat31/c33_coordination/agents/weapon33/bore_regression.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\merged34_bore_final02 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\merged34_bore_final02",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": ""
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5537863999488764
+  },
+  "child": {
+    "pid": 52988,
+    "creation_filetime": "134372471160260568",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game --script D:/MafioziCombat31/c33_coordination/agents/strong_cut34/strong_input34.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\strong_cut34\\final_sword_torso06 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\strong_cut34\\final_sword_torso06 --tier=none --weapon=0 --x=0 --z=-0.45 --pitch=-0.1 --sword-torso --expected-cut-family=torso",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--windowed",
+      "--resolution",
+      "1280x720",
+      "--max-fps",
+      "60",
+      "--path",
+      "D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game",
+      "--script",
+      "D:/MafioziCombat31/c33_coordination/agents/strong_cut34/strong_input34.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\strong_cut34\\final_sword_torso06",
+      "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\strong_cut34\\final_sword_torso06",
+      "--tier=none",
+      "--weapon=0",
+      "--x=0",
+      "--z=-0.45",
+      "--pitch=-0.1",
+      "--sword-torso",
+      "--expected-cut-family=torso"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena34_strong_cuts\\game"
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 11.983496500004549,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

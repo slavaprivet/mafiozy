@@ -1,0 +1,45 @@
+{
+  "status": "CHECKPOINT_QA_CLOSED",
+  "date": "2026-10-23",
+  "thread": "01a169e2-9535-75b3-90bd-a1b70dda1484",
+  "gameplay_sha_unchanged": true,
+  "resolved_review_actions": [
+    "final13/light07/actual weak-edge and heavy plate evidence included",
+    "Runtime load paths anchored to containing script; relative extends preserved",
+    "Original receipt FIXTURE.gd preserved alongside current reusable QA fixtures",
+    "Relocated static_negative_run17 checks passed on final gameplay source",
+    "Title changed to34 in exactly two UI strings"
+  ],
+  "plate_proof": {
+    "run": "final_sword_heavy10",
+    "physical_speed": 3.94900059700012,
+    "effective_cutting_speed": 1.3097350904904,
+    "edge_alignment": 0.999915599822998,
+    "free_travel_m": 0.04,
+    "strike_travel_m": 0.0711159808188677,
+    "region": "plate",
+    "penetrates": false,
+    "cuts": 0,
+    "observed_plate_frames": 106,
+    "note": "Frames are not distinct impacts; skin-hit armor coverage, not exact decorative armor mesh contact."
+  },
+  "weak_proof": {
+    "run": "weak_edge01",
+    "local_wound_events": 6,
+    "cuts": 0,
+    "max_effective_speed": 2.31310749053955,
+    "distinct_persistent_wounds": "not separately counted"
+  },
+  "raw_not_acceptance": [
+    "heavy08 hit a joint, not plate; raw failed test retained",
+    "packaged_static_negative11 wrapper attempted before capture completed: fixture not present, no engine launched; empty private output retained"
+  ],
+  "opening": "Preserve user33; request agreement to replace only after verified commit/push.",
+  "remaining": [
+    "Full50v50 FPS unaccepted",
+    "Rare deep-contact stalls remain",
+    "BaseNPC/player sever synchronous",
+    "Orphan clothing/hair visuals not accepted"
+  ],
+  "production_pointer_changed": false
+}

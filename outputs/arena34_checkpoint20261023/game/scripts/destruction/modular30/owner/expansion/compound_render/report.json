@@ -1,0 +1,730 @@
+{
+  "GPU_texture_parity_verified": false,
+  "cases": [
+    {
+      "case": "synthetic_retained_false",
+      "cold_binding_usec": 635,
+      "completion_wall_usec": 2121,
+      "counts": {
+        "components": 2,
+        "input_packed_bytes": 2064,
+        "new_mesh_instances": 0,
+        "original_surfaces": 2,
+        "original_triangles": 24,
+        "output_packed_bytes": 2880,
+        "output_surfaces": 1,
+        "output_triangles": 24,
+        "replaced_components": 0,
+        "replaced_source_triangles": 0,
+        "retained_triangles": 24
+      },
+      "diagnostics": {
+        "begin_usec": 30,
+        "budget_overruns": 0,
+        "calls": 10,
+        "cooperative_budget_usec": 1000,
+        "hard_deadline_guaranteed": false,
+        "items": 296,
+        "loaded_scene_fps_verified": false,
+        "max_advance_usec": 655,
+        "max_item_usec": 91,
+        "max_items": 32,
+        "max_upload_usec": 18,
+        "stage_usec": {
+          "descriptors": 7,
+          "emit": 501,
+          "final_validate": 28,
+          "inputs": 87,
+          "material_validate": 753,
+          "release": 9,
+          "replacement_snapshot": 2,
+          "selectors": 2,
+          "upload": 91,
+          "validate": 32
+        },
+        "total_advance_usec": 2027
+      },
+      "groups": {
+        "groups": [
+          {
+            "compressed": false,
+            "format": 34359738431,
+            "material_id": -9223372009742793266,
+            "roles": [
+              "authored"
+            ],
+            "surface": 0,
+            "triangles": 24
+          }
+        ],
+        "rule": "effective material identity + exact format + compressed AABB/UV decode domain + authored/reveal separation",
+        "same_draw_count_guaranteed": false
+      }
+    },
+    {
+      "case": "synthetic_replacement_false",
+      "cold_binding_usec": 635,
+      "completion_wall_usec": 2077,
+      "counts": {
+        "components": 2,
+        "input_packed_bytes": 3174,
+        "new_mesh_instances": 0,
+        "original_surfaces": 2,
+        "original_triangles": 24,
+        "output_packed_bytes": 2844,
+        "output_surfaces": 2,
+        "output_triangles": 24,
+        "replaced_components": 1,
+        "replaced_source_triangles": 12,
+        "retained_triangles": 12
+      },
+      "diagnostics": {
+        "begin_usec": 28,
+        "budget_overruns": 0,
+        "calls": 11,
+        "cooperative_budget_usec": 1000,
+        "hard_deadline_guaranteed": false,
+        "items": 347,
+        "loaded_scene_fps_verified": false,
+        "max_advance_usec": 463,
+        "max_item_usec": 56,
+        "max_items": 32,
+        "max_upload_usec": 17,
+        "stage_usec": {
+          "descriptors": 8,
+          "emit": 614,
+          "final_validate": 34,
+          "inputs": 93,
+          "material_validate": 550,
+          "release": 18,
+          "replacement_snapshot": 13,
+          "selectors": 128,
+          "upload": 44,
+          "validate": 27
+        },
+        "total_advance_usec": 2014
+      },
+      "groups": {
+        "groups": [
+          {
+            "compressed": false,
+            "format": 34359738431,
+            "material_id": -9223372009742793266,
+            "roles": [
+              "authored",
+              "authored_cut"
+            ],
+            "surface": 0,
+            "triangles": 23
+          },
+          {
+            "compressed": false,
+            "format": 34359738391,
+            "material_id": -9223372009591798319,
+            "roles": [
+              "reveal"
+            ],
+            "surface": 1,
+            "triangles": 1
+          }
+        ],
+        "rule": "effective material identity + exact format + compressed AABB/UV decode domain + authored/reveal separation",
+        "same_draw_count_guaranteed": false
+      }
+    },
+    {
+      "case": "synthetic_retained_true",
+      "cold_binding_usec": 533,
+      "completion_wall_usec": 1653,
+      "counts": {
+        "components": 2,
+        "input_packed_bytes": 1296,
+        "new_mesh_instances": 0,
+        "original_surfaces": 2,
+        "original_triangles": 24,
+        "output_packed_bytes": 1728,
+        "output_surfaces": 2,
+        "output_triangles": 24,
+        "replaced_components": 0,
+        "replaced_source_triangles": 0,
+        "retained_triangles": 24
+      },
+      "diagnostics": {
+        "begin_usec": 27,
+        "budget_overruns": 0,
+        "calls": 10,
+        "cooperative_budget_usec": 1000,
+        "hard_deadline_guaranteed": false,
+        "items": 297,
+        "loaded_scene_fps_verified": false,
+        "max_advance_usec": 624,
+        "max_item_usec": 45,
+        "max_items": 32,
+        "max_upload_usec": 16,
+        "stage_usec": {
+          "descriptors": 8,
+          "emit": 521,
+          "final_validate": 29,
+          "inputs": 50,
+          "material_validate": 513,
+          "release": 9,
+          "replacement_snapshot": 1,
+          "selectors": 1,
+          "upload": 43,
+          "validate": 28
+        },
+        "total_advance_usec": 1600
+      },
+      "groups": {
+        "groups": [
+          {
+            "compressed": true,
+            "format": 34896609343,
+            "material_id": -9223372009742793266,
+            "roles": [
+              "authored"
+            ],
+            "surface": 0,
+            "triangles": 12
+          },
+          {
+            "compressed": true,
+            "format": 34896609343,
+            "material_id": -9223372009742793266,
+            "roles": [
+              "authored"
+            ],
+            "surface": 1,
+            "triangles": 12
+          }
+        ],
+        "rule": "effective material identity + exact format + compressed AABB/UV decode domain + authored/reveal separation",
+        "same_draw_count_guaranteed": false
+      }
+    },
+    {
+      "case": "synthetic_replacement_true",
+      "cold_binding_usec": 533,
+      "completion_wall_usec": 2050,
+      "counts": {
+        "components": 2,
+        "input_packed_bytes": 2022,
+        "new_mesh_instances": 0,
+        "original_surfaces": 2,
+        "original_triangles": 24,
+        "output_packed_bytes": 1740,
+        "output_surfaces": 3,
+        "output_triangles": 24,
+        "replaced_components": 1,
+        "replaced_source_triangles": 12,
+        "retained_triangles": 12
+      },
+      "diagnostics": {
+        "begin_usec": 33,
+        "budget_overruns": 0,
+        "calls": 11,
+        "cooperative_budget_usec": 1000,
+        "hard_deadline_guaranteed": false,
+        "items": 348,
+        "loaded_scene_fps_verified": false,
+        "max_advance_usec": 418,
+        "max_item_usec": 47,
+        "max_items": 32,
+        "max_upload_usec": 21,
+        "stage_usec": {
+          "descriptors": 10,
+          "emit": 565,
+          "final_validate": 31,
+          "inputs": 102,
+          "material_validate": 580,
+          "release": 13,
+          "replacement_snapshot": 11,
+          "selectors": 124,
+          "upload": 47,
+          "validate": 33
+        },
+        "total_advance_usec": 1988
+      },
+      "groups": {
+        "groups": [
+          {
+            "compressed": true,
+            "format": 34896609343,
+            "material_id": -9223372009742793266,
+            "roles": [
+              "authored"
+            ],
+            "surface": 0,
+            "triangles": 12
+          },
+          {
+            "compressed": true,
+            "format": 34896609343,
+            "material_id": -9223372009742793266,
+            "roles": [
+              "authored_cut"
+            ],
+            "surface": 1,
+            "triangles": 11
+          },
+          {
+            "compressed": false,
+            "format": 34359738391,
+            "material_id": -9223372009138813478,
+            "roles": [
+              "reveal"
+            ],
+            "surface": 2,
+            "triangles": 1
+          }
+        ],
+        "rule": "effective material identity + exact format + compressed AABB/UV decode domain + authored/reveal separation",
+        "same_draw_count_guaranteed": false
+      }
+    },
+    {
+      "case": "valid_effective_override",
+      "cold_binding_usec": 899,
+      "completion_wall_usec": 2396,
+      "counts": {
+        "components": 1,
+        "input_packed_bytes": 1032,
+        "new_mesh_instances": 0,
+        "original_surfaces": 1,
+        "original_triangles": 12,
+        "output_packed_bytes": 1440,
+        "output_surfaces": 1,
+        "output_triangles": 12,
+        "replaced_components": 0,
+        "replaced_source_triangles": 0,
+        "retained_triangles": 12
+      },
+      "diagnostics": {
+        "begin_usec": 25,
+        "budget_overruns": 0,
+        "calls": 17,
+        "cooperative_budget_usec": 1000,
+        "hard_deadline_guaranteed": false,
+        "items": 532,
+        "loaded_scene_fps_verified": false,
+        "max_advance_usec": 470,
+        "max_item_usec": 109,
+        "max_items": 32,
+        "max_upload_usec": 26,
+        "stage_usec": {
+          "descriptors": 7,
+          "emit": 335,
+          "final_validate": 23,
+          "inputs": 33,
+          "material_validate": 1135,
+          "release": 13,
+          "replacement_snapshot": 1,
+          "selectors": 2,
+          "upload": 61,
+          "validate": 19
+        },
+        "total_advance_usec": 2310
+      },
+      "groups": {
+        "groups": [
+          {
+            "compressed": false,
+            "format": 34359738431,
+            "material_id": -9223372008803269161,
+            "roles": [
+              "authored"
+            ],
+            "surface": 0,
+            "triangles": 12
+          }
+        ],
+        "rule": "effective material identity + exact format + compressed AABB/UV decode domain + authored/reveal separation",
+        "same_draw_count_guaranteed": false
+      }
+    },
+    {
+      "case": "townhouse69_untouched",
+      "cold_binding_usec": 8461,
+      "completion_wall_usec": 78332,
+      "counts": {
+        "components": 69,
+        "input_packed_bytes": 121752,
+        "new_mesh_instances": 0,
+        "original_surfaces": 10,
+        "original_triangles": 3012,
+        "output_packed_bytes": 144576,
+        "output_surfaces": 10,
+        "output_triangles": 3012,
+        "replaced_components": 0,
+        "replaced_source_triangles": 0,
+        "retained_triangles": 3012
+      },
+      "diagnostics": {
+        "begin_usec": 61,
+        "budget_overruns": 0,
+        "calls": 176,
+        "cooperative_budget_usec": 1000,
+        "hard_deadline_guaranteed": false,
+        "items": 5593,
+        "loaded_scene_fps_verified": false,
+        "max_advance_usec": 849,
+        "max_item_usec": 168,
+        "max_items": 32,
+        "max_upload_usec": 71,
+        "stage_usec": {
+          "descriptors": 58,
+          "emit": 62431,
+          "final_validate": 614,
+          "inputs": 686,
+          "material_validate": 5009,
+          "release": 28,
+          "replacement_snapshot": 3,
+          "selectors": 2,
+          "upload": 128,
+          "validate": 619
+        },
+        "total_advance_usec": 77423
+      },
+      "groups": {
+        "groups": [
+          {
+            "compressed": true,
+            "format": 34896609303,
+            "material_id": -9223372006320241071,
+            "roles": [
+              "authored"
+            ],
+            "surface": 0,
+            "triangles": 124
+          },
+          {
+            "compressed": true,
+            "format": 34896609303,
+            "material_id": -9223372006303463854,
+            "roles": [
+              "authored"
+            ],
+            "surface": 1,
+            "triangles": 44
+          },
+          {
+            "compressed": true,
+            "format": 34896609303,
+            "material_id": -9223372006286686637,
+            "roles": [
+              "authored"
+            ],
+            "surface": 2,
+            "triangles": 924
+          },
+          {
+            "compressed": true,
+            "format": 34896609303,
+            "material_id": -9223372006269909420,
+            "roles": [
+              "authored"
+            ],
+            "surface": 3,
+            "triangles": 616
+          },
+          {
+            "compressed": true,
+            "format": 34896609303,
+            "material_id": -9223372006253132203,
+            "roles": [
+              "authored"
+            ],
+            "surface": 4,
+            "triangles": 572
+          },
+          {
+            "compressed": true,
+            "format": 34896609303,
+            "material_id": -9223372006236354986,
+            "roles": [
+              "authored"
+            ],
+            "surface": 5,
+            "triangles": 264
+          },
+          {
+            "compressed": true,
+            "format": 34896609303,
+            "material_id": -9223372006219577769,
+            "roles": [
+              "authored"
+            ],
+            "surface": 6,
+            "triangles": 176
+          },
+          {
+            "compressed": true,
+            "format": 34896609303,
+            "material_id": -9223372006202800552,
+            "roles": [
+              "authored"
+            ],
+            "surface": 7,
+            "triangles": 88
+          },
+          {
+            "compressed": true,
+            "format": 34896609303,
+            "material_id": -9223372006186023335,
+            "roles": [
+              "authored"
+            ],
+            "surface": 8,
+            "triangles": 160
+          },
+          {
+            "compressed": true,
+            "format": 34896609303,
+            "material_id": -9223372006169246118,
+            "roles": [
+              "authored"
+            ],
+            "surface": 9,
+            "triangles": 44
+          }
+        ],
+        "rule": "effective material identity + exact format + compressed AABB/UV decode domain + authored/reveal separation",
+        "same_draw_count_guaranteed": false
+      }
+    },
+    {
+      "case": "townhouse69_replace_two",
+      "cold_binding_usec": 8461,
+      "completion_wall_usec": 75568,
+      "counts": {
+        "components": 69,
+        "input_packed_bytes": 126126,
+        "new_mesh_instances": 0,
+        "original_surfaces": 10,
+        "original_triangles": 3012,
+        "output_packed_bytes": 142500,
+        "output_surfaces": 11,
+        "output_triangles": 2968,
+        "replaced_components": 2,
+        "replaced_source_triangles": 88,
+        "retained_triangles": 2924
+      },
+      "diagnostics": {
+        "begin_usec": 94,
+        "budget_overruns": 0,
+        "calls": 182,
+        "cooperative_budget_usec": 1000,
+        "hard_deadline_guaranteed": false,
+        "items": 5791,
+        "loaded_scene_fps_verified": false,
+        "max_advance_usec": 817,
+        "max_item_usec": 205,
+        "max_items": 32,
+        "max_upload_usec": 64,
+        "stage_usec": {
+          "descriptors": 72,
+          "emit": 59280,
+          "final_validate": 621,
+          "inputs": 688,
+          "material_validate": 4870,
+          "release": 31,
+          "replacement_snapshot": 20,
+          "selectors": 434,
+          "upload": 112,
+          "validate": 743
+        },
+        "total_advance_usec": 74721
+      },
+      "groups": {
+        "groups": [
+          {
+            "compressed": true,
+            "format": 34896609303,
+            "material_id": -9223372006320241071,
+            "roles": [
+              "authored",
+              "authored_cut"
+            ],
+            "surface": 0,
+            "triangles": 79
+          },
+          {
+            "compressed": true,
+            "format": 34896609303,
+            "material_id": -9223372006303463854,
+            "roles": [
+              "authored"
+            ],
+            "surface": 1,
+            "triangles": 44
+          },
+          {
+            "compressed": true,
+            "format": 34896609303,
+            "material_id": -9223372006286686637,
+            "roles": [
+              "authored"
+            ],
+            "surface": 2,
+            "triangles": 924
+          },
+          {
+            "compressed": true,
+            "format": 34896609303,
+            "material_id": -9223372006269909420,
+            "roles": [
+              "authored"
+            ],
+            "surface": 3,
+            "triangles": 616
+          },
+          {
+            "compressed": true,
+            "format": 34896609303,
+            "material_id": -9223372006253132203,
+            "roles": [
+              "authored"
+            ],
+            "surface": 4,
+            "triangles": 572
+          },
+          {
+            "compressed": true,
+            "format": 34896609303,
+            "material_id": -9223372006236354986,
+            "roles": [
+              "authored"
+            ],
+            "surface": 5,
+            "triangles": 264
+          },
+          {
+            "compressed": true,
+            "format": 34896609303,
+            "material_id": -9223372006219577769,
+            "roles": [
+              "authored"
+            ],
+            "surface": 6,
+            "triangles": 176
+          },
+          {
+            "compressed": true,
+            "format": 34896609303,
+            "material_id": -9223372006202800552,
+            "roles": [
+              "authored"
+            ],
+            "surface": 7,
+            "triangles": 88
+          },
+          {
+            "compressed": true,
+            "format": 34896609303,
+            "material_id": -9223372006186023335,
+            "roles": [
+              "authored"
+            ],
+            "surface": 8,
+            "triangles": 160
+          },
+          {
+            "compressed": true,
+            "format": 34896609303,
+            "material_id": -9223372006169246118,
+            "roles": [
+              "authored"
+            ],
+            "surface": 9,
+            "triangles": 44
+          },
+          {
+            "compressed": false,
+            "format": 34359738391,
+            "material_id": -9223372005112281471,
+            "roles": [
+              "reveal"
+            ],
+            "surface": 10,
+            "triangles": 1
+          }
+        ],
+        "rule": "effective material identity + exact format + compressed AABB/UV decode domain + authored/reveal separation",
+        "same_draw_count_guaranteed": false
+      }
+    },
+    {
+      "case": "known_generated_lifetime512",
+      "cold_binding_usec": 1544,
+      "completion_wall_usec": 50975,
+      "counts": {
+        "components": 512,
+        "input_packed_bytes": 86016,
+        "new_mesh_instances": 0,
+        "original_surfaces": 1,
+        "original_triangles": 512,
+        "output_packed_bytes": 43008,
+        "output_surfaces": 1,
+        "output_triangles": 512,
+        "replaced_components": 512,
+        "replaced_source_triangles": 512,
+        "retained_triangles": 0
+      },
+      "diagnostics": {
+        "begin_usec": 32,
+        "budget_overruns": 0,
+        "calls": 233,
+        "cooperative_budget_usec": 1000,
+        "hard_deadline_guaranteed": false,
+        "items": 7436,
+        "loaded_scene_fps_verified": false,
+        "max_advance_usec": 778,
+        "max_item_usec": 106,
+        "max_items": 32,
+        "max_upload_usec": 31,
+        "stage_usec": {
+          "descriptors": 24,
+          "emit": 14318,
+          "final_validate": 106,
+          "inputs": 9383,
+          "material_validate": 676,
+          "release": 1425,
+          "replacement_snapshot": 2700,
+          "selectors": 11417,
+          "upload": 69,
+          "validate": 83
+        },
+        "total_advance_usec": 49917
+      },
+      "groups": {
+        "groups": [
+          {
+            "compressed": false,
+            "format": 34359738391,
+            "material_id": -9223372004860623256,
+            "roles": [
+              "authored_cut"
+            ],
+            "surface": 0,
+            "triangles": 512
+          }
+        ],
+        "rule": "effective material identity + exact format + compressed AABB/UV decode domain + authored/reveal separation",
+        "same_draw_count_guaranteed": false
+      }
+    },
+    {
+      "all_work_buffers_released": true,
+      "cancel_usec": 731,
+      "case": "cancel512"
+    }
+  ],
+  "checks": 210546,
+  "elapsed_usec": 1198441,
+  "errors": [],
+  "loaded_scene_fps_verified": false,
+  "native_source_channels_bit_exact": true,
+  "passed": true,
+  "production_enabled": false,
+  "schema": "mafiozi.compound-render-native-qa/v1"
+}

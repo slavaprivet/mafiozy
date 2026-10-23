@@ -1,0 +1,6786 @@
+{
+  "schema": "mafiozi.transport-damage-source-assemblies.v1",
+  "source": "Actual Walk artist factory + hood + trunk, same bootstrap and traversal as tools/godot/export_vehicle_visual.mjs",
+  "native_manifest": {
+    "path": "outputs/coordinator21_vehicle_visual/manifest.json",
+    "sha256": "10133bb94515eb41078b5b801a647fedad21b1eab4199a430b112359928fc0db",
+    "schema": "mafiozi.vehicle-visual.v1"
+  },
+  "source_files": [
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_crash_mechanics.mjs",
+      "sha256": "3faeed3b6bea790396c7676958100bd5520105d452a61a14c45977d38095a166"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_crash.mjs",
+      "sha256": "cceffb5b6e65a1d180e8860d471351bf04340439ad605a66d6143daf53b20e44"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_damage.mjs",
+      "sha256": "e029cb4a03dcd23bbdd0fb2f73b7780db92f24f761cf83b030991acb3c403f92"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_fleet_body.mjs",
+      "sha256": "a21d786f932030f0da4bb98c2df4717347c21815df87335f9c5cc34ad44a41bf"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_fleet_models.mjs",
+      "sha256": "5dcec7102fc425c7828239ad5de10d4feb29ff7216610fc842333894f811545c"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_hood.mjs",
+      "sha256": "c4acdbbf023d4e5c5245325400620c2a55a40c91d8439851bca509b5270969c8"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_interior_colors.mjs",
+      "sha256": "b2f36e1460896dc75e727e00909ecda557ad7af5fd13156691ebf75ac8023b44"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_taxi.mjs",
+      "sha256": "684dfe7879a96215dc06f625d5fe9ea062722e6607999804cff6f14c9c47fcde"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_trunk.mjs",
+      "sha256": "91d8575b2f52ca10b43bfe73d4a004ec4ebfef7b066835c8d1ed1a46239f5fb0"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_wheels.mjs",
+      "sha256": "c792b2c51d198e4d098946b6df6f83c01e143413b85b20df52f7ef2b95417bbf"
+    },
+    {
+      "path": "tools/godot/export_transport_damage_oracle.mjs",
+      "sha256": "556abcd91030d5f82b1b24c4da2d1438180fd28b2ced5e789531d3938225f39a"
+    },
+    {
+      "path": "tools/vehicle_fleet_qa/RoundedBoxGeometry.mjs",
+      "sha256": "c1b7c9bd2cddff2e3f3a0723f618a3d364a47450e3d25771d21faed88410bec8"
+    }
+  ],
+  "rng_contract": {
+    "per_successful_explosion_copy": 7,
+    "order": [
+      "angle",
+      "strength",
+      "vertical_velocity",
+      "landing_yaw",
+      "spin_x",
+      "spin_y",
+      "spin_z"
+    ],
+    "rejected_copy_draws": 0
+  },
+  "rows": [
+    {
+      "profile_id": "city_hatchback",
+      "source_profile_id": "city_hatchback",
+      "input_glb": {
+        "path": "assets/maps/city_rebuild_v1/models/artist_vehicle_pack/city_hatchback.glb",
+        "sha256": "2b8f1e5a319556b67b1322f3bab55de521f3855e8894e82e1166c8ef5870772e",
+        "expected_sha256": "2b8f1e5a319556b67b1322f3bab55de521f3855e8894e82e1166c8ef5870772e"
+      },
+      "native_visual": {
+        "path": "outputs/coordinator21_vehicle_visual/city_hatchback.bd8f755516c8.glb",
+        "file": "city_hatchback.bd8f755516c8.glb",
+        "sha256": "bd8f755516c88b94df7193d5af45b9770f8466ab318fd31440bcf5afc8fee353",
+        "bytes": 4188360
+      },
+      "wrapper": {
+        "key": "v0000",
+        "source_name": "VehicleVisual",
+        "rotation_y_rad": 3.141592653589793,
+        "native_basis": "RY(pi)"
+      },
+      "profile_source_metadata": {
+        "vehicleModelId": "city_hatchback",
+        "massKg": 1150,
+        "vehicleProfile": {
+          "id": "city_hatchback",
+          "label": "Brooklyn SX",
+          "family": "hatch",
+          "width": 1.74,
+          "length": 3.82,
+          "height": 2.1226238568977855,
+          "wheelRadius": 0.32,
+          "cabinWidth": 1.7748,
+          "cabinLength": 2.72,
+          "cabinHeight": 1.0024790841186941,
+          "massKg": 1150,
+          "maxSpeed": 28,
+          "reverseSpeed": 6,
+          "acceleration": 7.2,
+          "seatCount": 4,
+          "sha256": "2b8f1e5a319556b67b1322f3bab55de521f3855e8894e82e1166c8ef5870772e",
+          "wheelBase": 2.3684,
+          "halfWidth": 1.1573999881744386,
+          "halfLength": 2.1482,
+          "modelFile": "city_hatchback.glb",
+          "physicsTuning": "gameplay engineering estimates, not manufacturer specifications",
+          "seatRecline": 0.8,
+          "bounds": {
+            "min": [
+              -1.0573999881744385,
+              0.0008290449424244173,
+              -2.0303399562835693
+            ],
+            "max": [
+              1.0573999881744385,
+              2.12345290184021,
+              2.0012400150299072
+            ]
+          },
+          "wheelPositions": {
+            "front_left": {
+              "x": 0.8873999714851379,
+              "y": 0.31999999678568614,
+              "z": 1.1842000186443329
+            },
+            "front_right": {
+              "x": -0.8873999714851379,
+              "y": 0.31999999678568614,
+              "z": 1.1842000186443329
+            },
+            "rear_left": {
+              "x": 0.8873999714851379,
+              "y": 0.31999999678568614,
+              "z": -1.1842000186443329
+            },
+            "rear_right": {
+              "x": -0.8873999714851379,
+              "y": 0.31999999678568614,
+              "z": -1.1842000186443329
+            }
+          },
+          "componentPoints": {
+            "engine": {
+              "x": 0,
+              "y": 0.5250003200000001,
+              "z": 1.5173588
+            },
+            "radiator": {
+              "x": 0,
+              "y": 0.5471481600000001,
+              "z": 1.7271094
+            }
+          },
+          "partPoints": {
+            "hood": {
+              "x": 0,
+              "y": 0.9161440000000001,
+              "z": 1.55812
+            },
+            "trunk": {
+              "x": 0,
+              "y": 1.1120966190929862,
+              "z": -1.58548
+            },
+            "wheel_front_left": {
+              "x": 0.8873999714851379,
+              "y": 0.31999999678568614,
+              "z": 1.1842000186443329
+            },
+            "wheel_front_right": {
+              "x": -0.8873999714851379,
+              "y": 0.31999999678568614,
+              "z": 1.1842000186443329
+            },
+            "wheel_rear_left": {
+              "x": 0.8873999714851379,
+              "y": 0.31999999678568614,
+              "z": -1.1842000186443329
+            },
+            "wheel_rear_right": {
+              "x": -0.8873999714851379,
+              "y": 0.31999999678568614,
+              "z": -1.1842000186443329
+            },
+            "door_front_left": {
+              "x": 0.8351999999999999,
+              "y": 0.6124480000000001,
+              "z": 0.65
+            },
+            "door_rear_left": {
+              "x": 0.8351999999999999,
+              "y": 0.6124480000000001,
+              "z": -0.65
+            },
+            "door_front_right": {
+              "x": -0.8351999999999999,
+              "y": 0.6124480000000001,
+              "z": 0.65
+            },
+            "door_rear_right": {
+              "x": -0.8351999999999999,
+              "y": 0.6124480000000001,
+              "z": -0.65
+            }
+          }
+        },
+        "mapColor": "#dd8150",
+        "bodyAssemblyVersion": 2,
+        "interiorPalette": {
+          "id": "city_hatchback",
+          "label": "Серый",
+          "seat": "#657078",
+          "insert": "#7c868a"
+        }
+      },
+      "explosion": [
+        {
+          "source_index": 0,
+          "key": "v0010",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 1,
+          "key": "v0025",
+          "source_name": "Door_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 2,
+          "key": "v0038",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 3,
+          "key": "v0053",
+          "source_name": "Door_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 4,
+          "key": "v0235",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 5,
+          "key": "v0225",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {},
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 6,
+          "key": "v0066",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 7,
+          "key": "v0073",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 8,
+          "key": "v0080",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 9,
+          "key": "v0087",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        }
+      ],
+      "explosion_rng_draw_count": 70,
+      "structural": [
+        {
+          "id": "hood",
+          "key": "v0235",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          }
+        },
+        {
+          "id": "trunk",
+          "key": "v0225",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {}
+        },
+        {
+          "id": "door_front_left",
+          "key": "v0010",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          }
+        },
+        {
+          "id": "door_front_right",
+          "key": "v0038",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          }
+        },
+        {
+          "id": "door_rear_left",
+          "key": "v0025",
+          "source_name": "Door_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_left"
+          }
+        },
+        {
+          "id": "door_rear_right",
+          "key": "v0053",
+          "source_name": "Door_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_right"
+          }
+        },
+        {
+          "id": "bumper_front",
+          "key": "v0002",
+          "source_name": "LOD0_city_hatchback_FrontBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_city_hatchback_FrontBumper",
+            "artistSourceNode": "LOD0_city_hatchback_FrontBumper"
+          }
+        },
+        {
+          "id": "bumper_rear",
+          "key": "v0006",
+          "source_name": "LOD0_city_hatchback_RearBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_city_hatchback_RearBumper",
+            "artistSourceNode": "LOD0_city_hatchback_RearBumper"
+          }
+        },
+        {
+          "id": "wheel_front_left",
+          "key": "v0066",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          }
+        },
+        {
+          "id": "wheel_front_right",
+          "key": "v0073",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          }
+        },
+        {
+          "id": "wheel_rear_left",
+          "key": "v0080",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          }
+        },
+        {
+          "id": "wheel_rear_right",
+          "key": "v0087",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          }
+        }
+      ],
+      "missing_structural_ids": []
+    },
+    {
+      "profile_id": "compact_sedan",
+      "source_profile_id": "compact_sedan",
+      "input_glb": {
+        "path": "assets/maps/city_rebuild_v1/models/artist_vehicle_pack/compact_sedan.glb",
+        "sha256": "08cf5677dec9ebdbbca329610be9e210e91185f976d3cdc307f87ff7345233f5",
+        "expected_sha256": "08cf5677dec9ebdbbca329610be9e210e91185f976d3cdc307f87ff7345233f5"
+      },
+      "native_visual": {
+        "path": "outputs/coordinator21_vehicle_visual/compact_sedan.f2b7d7884d48.glb",
+        "file": "compact_sedan.f2b7d7884d48.glb",
+        "sha256": "f2b7d7884d486e08e66a7fb25cf4fe58900814efaabe9dcee42b408c21353783",
+        "bytes": 4112896
+      },
+      "wrapper": {
+        "key": "v0000",
+        "source_name": "VehicleVisual",
+        "rotation_y_rad": 3.141592653589793,
+        "native_basis": "RY(pi)"
+      },
+      "profile_source_metadata": {
+        "vehicleModelId": "compact_sedan",
+        "massKg": 1320,
+        "vehicleProfile": {
+          "id": "compact_sedan",
+          "label": "Easton S",
+          "family": "sedan",
+          "width": 1.8,
+          "length": 4.42,
+          "height": 1.9659721119020948,
+          "wheelRadius": 0.33,
+          "cabinWidth": 1.836,
+          "cabinLength": 2.72,
+          "cabinHeight": 1.018549084118694,
+          "massKg": 1320,
+          "maxSpeed": 31,
+          "reverseSpeed": 6,
+          "acceleration": 7,
+          "seatCount": 4,
+          "sha256": "08cf5677dec9ebdbbca329610be9e210e91185f976d3cdc307f87ff7345233f5",
+          "wheelBase": 2.7403999999999997,
+          "halfWidth": 1.1879999399185182,
+          "halfLength": 2.4542,
+          "modelFile": "compact_sedan.glb",
+          "physicsTuning": "gameplay engineering estimates, not manufacturer specifications",
+          "seatRecline": 0.8,
+          "bounds": {
+            "min": [
+              -1.087999939918518,
+              0.0008549722911048718,
+              -2.322540044784546
+            ],
+            "max": [
+              1.087999939918518,
+              1.9668270841931996,
+              2.290440082550049
+            ]
+          },
+          "wheelPositions": {
+            "front_left": {
+              "x": 0.9179999828338623,
+              "y": 0.3300000163794685,
+              "z": 1.3702000379562378
+            },
+            "front_right": {
+              "x": -0.9179999828338623,
+              "y": 0.3300000163794685,
+              "z": 1.3702000379562378
+            },
+            "rear_left": {
+              "x": 0.9179999828338623,
+              "y": 0.3300000163794685,
+              "z": -1.3702000379562378
+            },
+            "rear_right": {
+              "x": -0.9179999828338623,
+              "y": 0.3300000163794685,
+              "z": -1.3702000379562378
+            }
+          },
+          "componentPoints": {
+            "engine": {
+              "x": 0,
+              "y": 0.5211845199999999,
+              "z": 1.6243628
+            },
+            "radiator": {
+              "x": 0,
+              "y": 0.54293276,
+              "z": 1.9975113999999998
+            }
+          },
+          "partPoints": {
+            "hood": {
+              "x": 0,
+              "y": 0.906534,
+              "z": 1.7027200000000002
+            },
+            "trunk": {
+              "x": 0,
+              "y": 0.9519730000000001,
+              "z": -1.73765
+            },
+            "wheel_front_left": {
+              "x": 0.9179999828338623,
+              "y": 0.3300000163794685,
+              "z": 1.3702000379562378
+            },
+            "wheel_front_right": {
+              "x": -0.9179999828338623,
+              "y": 0.3300000163794685,
+              "z": 1.3702000379562378
+            },
+            "wheel_rear_left": {
+              "x": 0.9179999828338623,
+              "y": 0.3300000163794685,
+              "z": -1.3702000379562378
+            },
+            "wheel_rear_right": {
+              "x": -0.9179999828338623,
+              "y": 0.3300000163794685,
+              "z": -1.3702000379562378
+            },
+            "door_front_left": {
+              "x": 0.864,
+              "y": 0.6128279999999999,
+              "z": 0.65
+            },
+            "door_rear_left": {
+              "x": 0.864,
+              "y": 0.6128279999999999,
+              "z": -0.65
+            },
+            "door_front_right": {
+              "x": -0.864,
+              "y": 0.6128279999999999,
+              "z": 0.65
+            },
+            "door_rear_right": {
+              "x": -0.864,
+              "y": 0.6128279999999999,
+              "z": -0.65
+            }
+          }
+        },
+        "mapColor": "#61a6ce",
+        "bodyAssemblyVersion": 2,
+        "interiorPalette": {
+          "id": "compact_sedan",
+          "label": "Графитовый",
+          "seat": "#353b40",
+          "insert": "#515a60"
+        }
+      },
+      "explosion": [
+        {
+          "source_index": 0,
+          "key": "v0010",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 1,
+          "key": "v0025",
+          "source_name": "Door_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 2,
+          "key": "v0038",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 3,
+          "key": "v0053",
+          "source_name": "Door_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 4,
+          "key": "v0232",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 5,
+          "key": "v0227",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {},
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 6,
+          "key": "v0066",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 7,
+          "key": "v0073",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 8,
+          "key": "v0080",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 9,
+          "key": "v0087",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        }
+      ],
+      "explosion_rng_draw_count": 70,
+      "structural": [
+        {
+          "id": "hood",
+          "key": "v0232",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          }
+        },
+        {
+          "id": "trunk",
+          "key": "v0227",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {}
+        },
+        {
+          "id": "door_front_left",
+          "key": "v0010",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          }
+        },
+        {
+          "id": "door_front_right",
+          "key": "v0038",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          }
+        },
+        {
+          "id": "door_rear_left",
+          "key": "v0025",
+          "source_name": "Door_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_left"
+          }
+        },
+        {
+          "id": "door_rear_right",
+          "key": "v0053",
+          "source_name": "Door_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_right"
+          }
+        },
+        {
+          "id": "bumper_front",
+          "key": "v0002",
+          "source_name": "LOD0_compact_sedan_FrontBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_compact_sedan_FrontBumper",
+            "artistSourceNode": "LOD0_compact_sedan_FrontBumper"
+          }
+        },
+        {
+          "id": "bumper_rear",
+          "key": "v0006",
+          "source_name": "LOD0_compact_sedan_RearBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_compact_sedan_RearBumper",
+            "artistSourceNode": "LOD0_compact_sedan_RearBumper"
+          }
+        },
+        {
+          "id": "wheel_front_left",
+          "key": "v0066",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          }
+        },
+        {
+          "id": "wheel_front_right",
+          "key": "v0073",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          }
+        },
+        {
+          "id": "wheel_rear_left",
+          "key": "v0080",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          }
+        },
+        {
+          "id": "wheel_rear_right",
+          "key": "v0087",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          }
+        }
+      ],
+      "missing_structural_ids": []
+    },
+    {
+      "profile_id": "family_wagon",
+      "source_profile_id": "family_wagon",
+      "input_glb": {
+        "path": "assets/maps/city_rebuild_v1/models/artist_vehicle_pack/family_wagon.glb",
+        "sha256": "8357e3cba37673c565b3d289f8437afc4b140eeb963841c2aed6915a056761ce",
+        "expected_sha256": "8357e3cba37673c565b3d289f8437afc4b140eeb963841c2aed6915a056761ce"
+      },
+      "native_visual": {
+        "path": "outputs/coordinator21_vehicle_visual/family_wagon.a4220ed6be23.glb",
+        "file": "family_wagon.a4220ed6be23.glb",
+        "sha256": "a4220ed6be23de6112bfe352a44e7916fe8d36097a2799d95a612c7ca15404e2",
+        "bytes": 4233940
+      },
+      "wrapper": {
+        "key": "v0000",
+        "source_name": "VehicleVisual",
+        "rotation_y_rad": 3.141592653589793,
+        "native_basis": "RY(pi)"
+      },
+      "profile_source_metadata": {
+        "vehicleModelId": "family_wagon",
+        "massKg": 1540,
+        "vehicleProfile": {
+          "id": "family_wagon",
+          "label": "Brooklyn LX",
+          "family": "wagon",
+          "width": 1.86,
+          "length": 4.7,
+          "height": 1.9731461845534108,
+          "wheelRadius": 0.34,
+          "cabinWidth": 1.8972000000000002,
+          "cabinLength": 2.72,
+          "cabinHeight": 0.9742350841186938,
+          "massKg": 1540,
+          "maxSpeed": 30,
+          "reverseSpeed": 6,
+          "acceleration": 6.2,
+          "seatCount": 4,
+          "sha256": "8357e3cba37673c565b3d289f8437afc4b140eeb963841c2aed6915a056761ce",
+          "wheelBase": 2.914,
+          "halfWidth": 1.2186000108718873,
+          "halfLength": 2.5970000000000004,
+          "modelFile": "family_wagon.glb",
+          "physicsTuning": "gameplay engineering estimates, not manufacturer specifications",
+          "seatRecline": 0.8,
+          "bounds": {
+            "min": [
+              -1.1186000108718872,
+              0.0008808996397888791,
+              -2.458899974822998
+            ],
+            "max": [
+              1.1186000108718872,
+              1.9740270841931997,
+              2.4254000186920166
+            ]
+          },
+          "wheelPositions": {
+            "front_left": {
+              "x": 0.9486000239849091,
+              "y": 0.34000000617093207,
+              "z": 1.4570000171661377
+            },
+            "front_right": {
+              "x": -0.9486000239849091,
+              "y": 0.34000000617093207,
+              "z": 1.4570000171661377
+            },
+            "rear_left": {
+              "x": 0.9486000239849091,
+              "y": 0.34000000617093207,
+              "z": -1.4570000171661377
+            },
+            "rear_right": {
+              "x": -0.9486000239849091,
+              "y": 0.34000000617093207,
+              "z": -1.4570000171661377
+            }
+          },
+          "componentPoints": {
+            "engine": {
+              "x": 0,
+              "y": 0.5615792800000001,
+              "z": 1.6742979999999998
+            },
+            "radiator": {
+              "x": 0,
+              "y": 0.5842066400000001,
+              "z": 2.123699
+            }
+          },
+          "partPoints": {
+            "hood": {
+              "x": 0,
+              "y": 0.9596760000000002,
+              "z": 1.7702
+            },
+            "trunk": {
+              "x": 0,
+              "y": 1.1288128271120144,
+              "z": -1.7957999999999998
+            },
+            "wheel_front_left": {
+              "x": 0.9486000239849091,
+              "y": 0.34000000617093207,
+              "z": 1.4570000171661377
+            },
+            "wheel_front_right": {
+              "x": -0.9486000239849091,
+              "y": 0.34000000617093207,
+              "z": 1.4570000171661377
+            },
+            "wheel_rear_left": {
+              "x": 0.9486000239849091,
+              "y": 0.34000000617093207,
+              "z": -1.4570000171661377
+            },
+            "wheel_rear_right": {
+              "x": -0.9486000239849091,
+              "y": 0.34000000617093207,
+              "z": -1.4570000171661377
+            },
+            "door_front_left": {
+              "x": 0.8928,
+              "y": 0.6439920000000001,
+              "z": 0.65
+            },
+            "door_rear_left": {
+              "x": 0.8928,
+              "y": 0.6439920000000001,
+              "z": -0.65
+            },
+            "door_front_right": {
+              "x": -0.8928,
+              "y": 0.6439920000000001,
+              "z": 0.65
+            },
+            "door_rear_right": {
+              "x": -0.8928,
+              "y": 0.6439920000000001,
+              "z": -0.65
+            }
+          }
+        },
+        "mapColor": "#76b899",
+        "bodyAssemblyVersion": 2,
+        "interiorPalette": {
+          "id": "family_wagon",
+          "label": "Серый тканевый",
+          "seat": "#586268",
+          "insert": "#758086"
+        }
+      },
+      "explosion": [
+        {
+          "source_index": 0,
+          "key": "v0009",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 1,
+          "key": "v0024",
+          "source_name": "Door_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 2,
+          "key": "v0037",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 3,
+          "key": "v0052",
+          "source_name": "Door_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 4,
+          "key": "v0232",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 5,
+          "key": "v0222",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {},
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 6,
+          "key": "v0065",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 7,
+          "key": "v0072",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 8,
+          "key": "v0079",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 9,
+          "key": "v0086",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        }
+      ],
+      "explosion_rng_draw_count": 70,
+      "structural": [
+        {
+          "id": "hood",
+          "key": "v0232",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          }
+        },
+        {
+          "id": "trunk",
+          "key": "v0222",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {}
+        },
+        {
+          "id": "door_front_left",
+          "key": "v0009",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          }
+        },
+        {
+          "id": "door_front_right",
+          "key": "v0037",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          }
+        },
+        {
+          "id": "door_rear_left",
+          "key": "v0024",
+          "source_name": "Door_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_left"
+          }
+        },
+        {
+          "id": "door_rear_right",
+          "key": "v0052",
+          "source_name": "Door_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_right"
+          }
+        },
+        {
+          "id": "bumper_front",
+          "key": "v0002",
+          "source_name": "LOD0_family_wagon_FrontBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_family_wagon_FrontBumper",
+            "artistSourceNode": "LOD0_family_wagon_FrontBumper"
+          }
+        },
+        {
+          "id": "bumper_rear",
+          "key": "v0006",
+          "source_name": "LOD0_family_wagon_RearBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_family_wagon_RearBumper",
+            "artistSourceNode": "LOD0_family_wagon_RearBumper"
+          }
+        },
+        {
+          "id": "wheel_front_left",
+          "key": "v0065",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          }
+        },
+        {
+          "id": "wheel_front_right",
+          "key": "v0072",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          }
+        },
+        {
+          "id": "wheel_rear_left",
+          "key": "v0079",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          }
+        },
+        {
+          "id": "wheel_rear_right",
+          "key": "v0086",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          }
+        }
+      ],
+      "missing_structural_ids": []
+    },
+    {
+      "profile_id": "executive_sedan",
+      "source_profile_id": "executive_sedan",
+      "input_glb": {
+        "path": "assets/maps/city_rebuild_v1/models/artist_vehicle_pack/executive_sedan.glb",
+        "sha256": "08f8c863152eda4edfdd2262d93857a6f0e3476d7046fb4d105f2f7ead42b3d7",
+        "expected_sha256": "08f8c863152eda4edfdd2262d93857a6f0e3476d7046fb4d105f2f7ead42b3d7"
+      },
+      "native_visual": {
+        "path": "outputs/coordinator21_vehicle_visual/executive_sedan.51db79d3b3f3.glb",
+        "file": "executive_sedan.51db79d3b3f3.glb",
+        "sha256": "51db79d3b3f39a0f530177a246645ed532903ea3e3ab8adabc52025854347c26",
+        "bytes": 4268428
+      },
+      "wrapper": {
+        "key": "v0000",
+        "source_name": "VehicleVisual",
+        "rotation_y_rad": 3.141592653589793,
+        "native_basis": "RY(pi)"
+      },
+      "profile_source_metadata": {
+        "vehicleModelId": "executive_sedan",
+        "massKg": 1810,
+        "vehicleProfile": {
+          "id": "executive_sedan",
+          "label": "Bellhaven V8",
+          "family": "executive",
+          "width": 1.95,
+          "length": 5.05,
+          "height": 1.987494359658369,
+          "wheelRadius": 0.36,
+          "cabinWidth": 1.9889999999999999,
+          "cabinLength": 2.72,
+          "cabinHeight": 1.002601084118694,
+          "massKg": 1810,
+          "maxSpeed": 36,
+          "reverseSpeed": 6,
+          "acceleration": 7.8,
+          "seatCount": 4,
+          "sha256": "08f8c863152eda4edfdd2262d93857a6f0e3476d7046fb4d105f2f7ead42b3d7",
+          "wheelBase": 3.131,
+          "halfWidth": 1.2644999980926515,
+          "halfLength": 2.7755,
+          "modelFile": "executive_sedan.glb",
+          "physicsTuning": "gameplay engineering estimates, not manufacturer specifications",
+          "seatRecline": 0.8,
+          "bounds": {
+            "min": [
+              -1.1644999980926514,
+              0.0009327245348309532,
+              -2.629349946975708
+            ],
+            "max": [
+              1.1644999980926514,
+              1.9884270841932,
+              2.594099998474121
+            ]
+          },
+          "wheelPositions": {
+            "front_left": {
+              "x": 0.9945000112056732,
+              "y": 0.360000015556178,
+              "z": 1.565500020980835
+            },
+            "front_right": {
+              "x": -0.9945000112056732,
+              "y": 0.360000015556178,
+              "z": 1.565500020980835
+            },
+            "rear_left": {
+              "x": 0.9945000112056732,
+              "y": 0.360000015556178,
+              "z": -1.565500020980835
+            },
+            "rear_right": {
+              "x": -0.9945000112056732,
+              "y": 0.360000015556178,
+              "z": -1.565500020980835
+            }
+          },
+          "componentPoints": {
+            "engine": {
+              "x": 0,
+              "y": 0.55671084,
+              "z": 1.736717
+            },
+            "radiator": {
+              "x": 0,
+              "y": 0.57861892,
+              "z": 2.2814334999999994
+            }
+          },
+          "partPoints": {
+            "hood": {
+              "x": 0,
+              "y": 0.944378,
+              "z": 1.8545499999999997
+            },
+            "trunk": {
+              "x": 0,
+              "y": 0.9898910000000001,
+              "z": -1.884125
+            },
+            "wheel_front_left": {
+              "x": 0.9945000112056732,
+              "y": 0.360000015556178,
+              "z": 1.565500020980835
+            },
+            "wheel_front_right": {
+              "x": -0.9945000112056732,
+              "y": 0.360000015556178,
+              "z": 1.565500020980835
+            },
+            "wheel_rear_left": {
+              "x": 0.9945000112056732,
+              "y": 0.360000015556178,
+              "z": -1.565500020980835
+            },
+            "wheel_rear_right": {
+              "x": -0.9945000112056732,
+              "y": 0.360000015556178,
+              "z": -1.565500020980835
+            },
+            "door_front_left": {
+              "x": 0.9359999999999999,
+              "y": 0.646676,
+              "z": 0.65
+            },
+            "door_rear_left": {
+              "x": 0.9359999999999999,
+              "y": 0.646676,
+              "z": -0.65
+            },
+            "door_front_right": {
+              "x": -0.9359999999999999,
+              "y": 0.646676,
+              "z": 0.65
+            },
+            "door_rear_right": {
+              "x": -0.9359999999999999,
+              "y": 0.646676,
+              "z": -0.65
+            }
+          }
+        },
+        "mapColor": "#817c90",
+        "bodyAssemblyVersion": 2,
+        "interiorPalette": {
+          "id": "executive_sedan",
+          "label": "Тёмно-бордовый",
+          "seat": "#502c37",
+          "insert": "#743842"
+        }
+      },
+      "explosion": [
+        {
+          "source_index": 0,
+          "key": "v0015",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 1,
+          "key": "v0030",
+          "source_name": "Door_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 2,
+          "key": "v0043",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 3,
+          "key": "v0058",
+          "source_name": "Door_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 4,
+          "key": "v0237",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 5,
+          "key": "v0232",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {},
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 6,
+          "key": "v0071",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 7,
+          "key": "v0078",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 8,
+          "key": "v0085",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 9,
+          "key": "v0092",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        }
+      ],
+      "explosion_rng_draw_count": 70,
+      "structural": [
+        {
+          "id": "hood",
+          "key": "v0237",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          }
+        },
+        {
+          "id": "trunk",
+          "key": "v0232",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {}
+        },
+        {
+          "id": "door_front_left",
+          "key": "v0015",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          }
+        },
+        {
+          "id": "door_front_right",
+          "key": "v0043",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          }
+        },
+        {
+          "id": "door_rear_left",
+          "key": "v0030",
+          "source_name": "Door_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_left"
+          }
+        },
+        {
+          "id": "door_rear_right",
+          "key": "v0058",
+          "source_name": "Door_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_right"
+          }
+        },
+        {
+          "id": "bumper_front",
+          "key": "v0002",
+          "source_name": "LOD0_executive_sedan_FrontBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_executive_sedan_FrontBumper",
+            "artistSourceNode": "LOD0_executive_sedan_FrontBumper"
+          }
+        },
+        {
+          "id": "bumper_rear",
+          "key": "v0011",
+          "source_name": "LOD0_executive_sedan_RearBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_executive_sedan_RearBumper",
+            "artistSourceNode": "LOD0_executive_sedan_RearBumper"
+          }
+        },
+        {
+          "id": "wheel_front_left",
+          "key": "v0071",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          }
+        },
+        {
+          "id": "wheel_front_right",
+          "key": "v0078",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          }
+        },
+        {
+          "id": "wheel_rear_left",
+          "key": "v0085",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          }
+        },
+        {
+          "id": "wheel_rear_right",
+          "key": "v0092",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          }
+        }
+      ],
+      "missing_structural_ids": []
+    },
+    {
+      "profile_id": "sport_coupe",
+      "source_profile_id": "sport_coupe",
+      "input_glb": {
+        "path": "assets/maps/city_rebuild_v1/models/artist_vehicle_pack/sport_coupe.glb",
+        "sha256": "764576c6919bdd03f79e6b2f9738e9c9862b59b03f23d88893d8f35b0dbff158",
+        "expected_sha256": "764576c6919bdd03f79e6b2f9738e9c9862b59b03f23d88893d8f35b0dbff158"
+      },
+      "native_visual": {
+        "path": "outputs/coordinator21_vehicle_visual/sport_coupe.a378db174e0a.glb",
+        "file": "sport_coupe.a378db174e0a.glb",
+        "sha256": "a378db174e0a391c403dfdc15b3c5e48febb16d6a83a5cb60a188cb9ca95ac07",
+        "bytes": 4137112
+      },
+      "wrapper": {
+        "key": "v0000",
+        "source_name": "VehicleVisual",
+        "rotation_y_rad": 3.141592653589793,
+        "native_basis": "RY(pi)"
+      },
+      "profile_source_metadata": {
+        "vehicleModelId": "sport_coupe",
+        "massKg": 1380,
+        "vehicleProfile": {
+          "id": "sport_coupe",
+          "label": "Ravelli GT",
+          "family": "coupe",
+          "width": 1.91,
+          "length": 4.55,
+          "height": 1.8895308494381808,
+          "wheelRadius": 0.36,
+          "cabinWidth": 1.9482,
+          "cabinLength": 1.68,
+          "cabinHeight": 0.977363573898506,
+          "massKg": 1380,
+          "maxSpeed": 43,
+          "reverseSpeed": 6,
+          "acceleration": 10,
+          "seatCount": 2,
+          "sha256": "764576c6919bdd03f79e6b2f9738e9c9862b59b03f23d88893d8f35b0dbff158",
+          "wheelBase": 2.8209999999999997,
+          "halfWidth": 1.244100069999695,
+          "halfLength": 2.5205,
+          "modelFile": "sport_coupe.glb",
+          "physicsTuning": "gameplay engineering estimates, not manufacturer specifications",
+          "seatRecline": 1,
+          "bounds": {
+            "min": [
+              -1.1441000699996948,
+              0.0009327245348309532,
+              -2.385849952697754
+            ],
+            "max": [
+              1.1441000699996948,
+              1.8904635739730118,
+              2.353100061416626
+            ]
+          },
+          "wheelPositions": {
+            "front_left": {
+              "x": 0.9740999937057495,
+              "y": 0.360000015556178,
+              "z": 1.4105000495910645
+            },
+            "front_right": {
+              "x": -0.9740999937057495,
+              "y": 0.360000015556178,
+              "z": 1.4105000495910645
+            },
+            "rear_left": {
+              "x": 0.9740999937057495,
+              "y": 0.360000015556178,
+              "z": -1.4105000495910645
+            },
+            "rear_right": {
+              "x": -0.9740999937057495,
+              "y": 0.360000015556178,
+              "z": -1.4105000495910645
+            }
+          },
+          "componentPoints": {
+            "engine": {
+              "x": 0,
+              "y": 0.5034639999999999,
+              "z": 1.319947
+            },
+            "radiator": {
+              "x": 0,
+              "y": 0.523832,
+              "z": 2.0222984999999998
+            }
+          },
+          "partPoints": {
+            "hood": {
+              "x": 0,
+              "y": 0.8687999999999999,
+              "z": 1.47405
+            },
+            "trunk": {
+              "x": 0,
+              "y": 0.9136000000000001,
+              "z": -1.5583749999999998
+            },
+            "wheel_front_left": {
+              "x": 0.9740999937057495,
+              "y": 0.360000015556178,
+              "z": 1.4105000495910645
+            },
+            "wheel_front_right": {
+              "x": -0.9740999937057495,
+              "y": 0.360000015556178,
+              "z": 1.4105000495910645
+            },
+            "wheel_rear_left": {
+              "x": 0.9740999937057495,
+              "y": 0.360000015556178,
+              "z": -1.4105000495910645
+            },
+            "wheel_rear_right": {
+              "x": -0.9740999937057495,
+              "y": 0.360000015556178,
+              "z": -1.4105000495910645
+            },
+            "door_front_left": {
+              "x": 0.9168,
+              "y": 0.6095999999999999,
+              "z": 0
+            },
+            "door_front_right": {
+              "x": -0.9168,
+              "y": 0.6095999999999999,
+              "z": 0
+            }
+          }
+        },
+        "mapColor": "#dd503c",
+        "bodyAssemblyVersion": 2,
+        "interiorPalette": {
+          "id": "sport_coupe",
+          "label": "Красный",
+          "seat": "#8b303a",
+          "insert": "#ac4045"
+        }
+      },
+      "explosion": [
+        {
+          "source_index": 0,
+          "key": "v0010",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 1,
+          "key": "v0026",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 2,
+          "key": "v0184",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 3,
+          "key": "v0179",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {},
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 4,
+          "key": "v0042",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 5,
+          "key": "v0049",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 6,
+          "key": "v0056",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 7,
+          "key": "v0063",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        }
+      ],
+      "explosion_rng_draw_count": 56,
+      "structural": [
+        {
+          "id": "hood",
+          "key": "v0184",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          }
+        },
+        {
+          "id": "trunk",
+          "key": "v0179",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {}
+        },
+        {
+          "id": "door_front_left",
+          "key": "v0010",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          }
+        },
+        {
+          "id": "door_front_right",
+          "key": "v0026",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          }
+        },
+        {
+          "id": "door_rear_left",
+          "key": null,
+          "source_name": null,
+          "visible": null,
+          "source_metadata": null
+        },
+        {
+          "id": "door_rear_right",
+          "key": null,
+          "source_name": null,
+          "visible": null,
+          "source_metadata": null
+        },
+        {
+          "id": "bumper_front",
+          "key": "v0002",
+          "source_name": "LOD0_sport_coupe_FrontBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_sport_coupe_FrontBumper",
+            "artistSourceNode": "LOD0_sport_coupe_FrontBumper"
+          }
+        },
+        {
+          "id": "bumper_rear",
+          "key": "v0007",
+          "source_name": "LOD0_sport_coupe_RearBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_sport_coupe_RearBumper",
+            "artistSourceNode": "LOD0_sport_coupe_RearBumper"
+          }
+        },
+        {
+          "id": "wheel_front_left",
+          "key": "v0042",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          }
+        },
+        {
+          "id": "wheel_front_right",
+          "key": "v0049",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          }
+        },
+        {
+          "id": "wheel_rear_left",
+          "key": "v0056",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          }
+        },
+        {
+          "id": "wheel_rear_right",
+          "key": "v0063",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          }
+        }
+      ],
+      "missing_structural_ids": [
+        "door_rear_left",
+        "door_rear_right"
+      ]
+    },
+    {
+      "profile_id": "city_suv",
+      "source_profile_id": "city_suv",
+      "input_glb": {
+        "path": "assets/maps/city_rebuild_v1/models/artist_vehicle_pack/city_suv.glb",
+        "sha256": "9e194b2b0fae7b1443743a47dbf97389e151f8c2d5e96c42e796a64640b42cb3",
+        "expected_sha256": "9e194b2b0fae7b1443743a47dbf97389e151f8c2d5e96c42e796a64640b42cb3"
+      },
+      "native_visual": {
+        "path": "outputs/coordinator21_vehicle_visual/city_suv.2e756583142a.glb",
+        "file": "city_suv.2e756583142a.glb",
+        "sha256": "2e756583142a051418527d504ca5bf9cdc7df268ccea7a6578b0b2e7a116dc03",
+        "bytes": 4181180
+      },
+      "wrapper": {
+        "key": "v0000",
+        "source_name": "VehicleVisual",
+        "rotation_y_rad": 3.141592653589793,
+        "native_basis": "RY(pi)"
+      },
+      "profile_source_metadata": {
+        "vehicleModelId": "city_suv",
+        "massKg": 2020,
+        "vehicleProfile": {
+          "id": "city_suv",
+          "label": "Blackridge",
+          "family": "suv",
+          "width": 1.98,
+          "length": 4.68,
+          "height": 2.1650908603724233,
+          "wheelRadius": 0.4,
+          "cabinWidth": 2.0196,
+          "cabinLength": 2.72,
+          "cabinHeight": 0.9463390892346822,
+          "massKg": 2020,
+          "maxSpeed": 31,
+          "reverseSpeed": 6,
+          "acceleration": 6.3,
+          "seatCount": 4,
+          "sha256": "9e194b2b0fae7b1443743a47dbf97389e151f8c2d5e96c42e796a64640b42cb3",
+          "wheelBase": 2.9015999999999997,
+          "halfWidth": 1.279800033569336,
+          "halfLength": 2.5868,
+          "modelFile": "city_suv.glb",
+          "physicsTuning": "gameplay engineering estimates, not manufacturer specifications",
+          "seatRecline": 0.55,
+          "bounds": {
+            "min": [
+              -1.179800033569336,
+              0.0010363445225962664,
+              -2.449160099029541
+            ],
+            "max": [
+              1.179800033569336,
+              2.1661272048950195,
+              2.415760040283203
+            ]
+          },
+          "wheelPositions": {
+            "front_left": {
+              "x": 1.0097999274730682,
+              "y": 0.400000004524351,
+              "z": 1.4507999420166016
+            },
+            "front_right": {
+              "x": -1.0097999274730682,
+              "y": 0.400000004524351,
+              "z": 1.4507999420166016
+            },
+            "rear_left": {
+              "x": 1.0097999274730682,
+              "y": 0.400000004524351,
+              "z": -1.4507999420166016
+            },
+            "rear_right": {
+              "x": -1.0097999274730682,
+              "y": 0.400000004524351,
+              "z": -1.4507999420166016
+            }
+          },
+          "componentPoints": {
+            "engine": {
+              "x": 0,
+              "y": 0.69065828,
+              "z": 1.6707311999999999
+            },
+            "radiator": {
+              "x": 0,
+              "y": 0.71528364,
+              "z": 2.1146855999999996
+            }
+          },
+          "partPoints": {
+            "hood": {
+              "x": 0,
+              "y": 1.117726,
+              "z": 1.76538
+            },
+            "trunk": {
+              "x": 0,
+              "y": 1.2155535367512122,
+              "z": -1.79102
+            },
+            "wheel_front_left": {
+              "x": 1.0097999274730682,
+              "y": 0.400000004524351,
+              "z": 1.4507999420166016
+            },
+            "wheel_front_right": {
+              "x": -1.0097999274730682,
+              "y": 0.400000004524351,
+              "z": 1.4507999420166016
+            },
+            "wheel_rear_left": {
+              "x": 1.0097999274730682,
+              "y": 0.400000004524351,
+              "z": -1.4507999420166016
+            },
+            "wheel_rear_right": {
+              "x": -1.0097999274730682,
+              "y": 0.400000004524351,
+              "z": -1.4507999420166016
+            },
+            "door_front_left": {
+              "x": 0.9503999999999999,
+              "y": 0.752092,
+              "z": 0.65
+            },
+            "door_rear_left": {
+              "x": 0.9503999999999999,
+              "y": 0.752092,
+              "z": -0.65
+            },
+            "door_front_right": {
+              "x": -0.9503999999999999,
+              "y": 0.752092,
+              "z": 0.65
+            },
+            "door_rear_right": {
+              "x": -0.9503999999999999,
+              "y": 0.752092,
+              "z": -0.65
+            }
+          }
+        },
+        "mapColor": "#c8c0aa",
+        "bodyAssemblyVersion": 2,
+        "interiorPalette": {
+          "id": "city_suv",
+          "label": "Чёрный",
+          "seat": "#252c2c",
+          "insert": "#3b4645"
+        }
+      },
+      "explosion": [
+        {
+          "source_index": 0,
+          "key": "v0011",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 1,
+          "key": "v0026",
+          "source_name": "Door_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 2,
+          "key": "v0039",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 3,
+          "key": "v0054",
+          "source_name": "Door_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 4,
+          "key": "v0238",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 5,
+          "key": "v0228",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {},
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 6,
+          "key": "v0067",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 7,
+          "key": "v0074",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 8,
+          "key": "v0081",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 9,
+          "key": "v0088",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        }
+      ],
+      "explosion_rng_draw_count": 70,
+      "structural": [
+        {
+          "id": "hood",
+          "key": "v0238",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          }
+        },
+        {
+          "id": "trunk",
+          "key": "v0228",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {}
+        },
+        {
+          "id": "door_front_left",
+          "key": "v0011",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          }
+        },
+        {
+          "id": "door_front_right",
+          "key": "v0039",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          }
+        },
+        {
+          "id": "door_rear_left",
+          "key": "v0026",
+          "source_name": "Door_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_left"
+          }
+        },
+        {
+          "id": "door_rear_right",
+          "key": "v0054",
+          "source_name": "Door_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_right"
+          }
+        },
+        {
+          "id": "bumper_front",
+          "key": "v0002",
+          "source_name": "LOD0_city_suv_FrontBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_city_suv_FrontBumper",
+            "artistSourceNode": "LOD0_city_suv_FrontBumper"
+          }
+        },
+        {
+          "id": "bumper_rear",
+          "key": "v0006",
+          "source_name": "LOD0_city_suv_RearBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_city_suv_RearBumper",
+            "artistSourceNode": "LOD0_city_suv_RearBumper"
+          }
+        },
+        {
+          "id": "wheel_front_left",
+          "key": "v0067",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          }
+        },
+        {
+          "id": "wheel_front_right",
+          "key": "v0074",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          }
+        },
+        {
+          "id": "wheel_rear_left",
+          "key": "v0081",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          }
+        },
+        {
+          "id": "wheel_rear_right",
+          "key": "v0088",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          }
+        }
+      ],
+      "missing_structural_ids": []
+    },
+    {
+      "profile_id": "delivery_van",
+      "source_profile_id": "delivery_van",
+      "input_glb": {
+        "path": "assets/maps/city_rebuild_v1/models/artist_vehicle_pack/delivery_van.glb",
+        "sha256": "42abb4ee66d11850e7d2dfe13f449cb68f9b67e770c50a6e9ad0505a96ebe438",
+        "expected_sha256": "42abb4ee66d11850e7d2dfe13f449cb68f9b67e770c50a6e9ad0505a96ebe438"
+      },
+      "native_visual": {
+        "path": "outputs/coordinator21_vehicle_visual/delivery_van.36ecba518304.glb",
+        "file": "delivery_van.36ecba518304.glb",
+        "sha256": "36ecba5183043cf4f5b1836b0911bcf6569dc84c6189bcd80c636ff3fbb9a2f9",
+        "bytes": 3937892
+      },
+      "wrapper": {
+        "key": "v0000",
+        "source_name": "VehicleVisual",
+        "rotation_y_rad": 3.141592653589793,
+        "native_basis": "RY(pi)"
+      },
+      "profile_source_metadata": {
+        "vehicleModelId": "delivery_van",
+        "massKg": 2390,
+        "vehicleProfile": {
+          "id": "delivery_van",
+          "label": "Union Van",
+          "family": "van",
+          "width": 2.05,
+          "length": 5.05,
+          "height": 2.6020680597162076,
+          "wheelRadius": 0.38,
+          "cabinWidth": 2.0909999999999997,
+          "cabinLength": 1.65,
+          "cabinHeight": 1.468400579269256,
+          "massKg": 2390,
+          "maxSpeed": 26,
+          "reverseSpeed": 6,
+          "acceleration": 4.8,
+          "seatCount": 2,
+          "sha256": "42abb4ee66d11850e7d2dfe13f449cb68f9b67e770c50a6e9ad0505a96ebe438",
+          "wheelBase": 3.131,
+          "halfWidth": 1.3645000238418579,
+          "halfLength": 2.7755,
+          "modelFile": "delivery_van.glb",
+          "physicsTuning": "gameplay engineering estimates, not manufacturer specifications",
+          "seatRecline": 0.7,
+          "bounds": {
+            "min": [
+              -1.2645000238418578,
+              0.0009845196275541923,
+              -2.629349946975708
+            ],
+            "max": [
+              1.2645000238418578,
+              2.6030525793437618,
+              2.594099998474121
+            ]
+          },
+          "wheelPositions": {
+            "front_left": {
+              "x": 1.045500010251999,
+              "y": 0.3799999951391051,
+              "z": 1.565500020980835
+            },
+            "front_right": {
+              "x": -1.045500010251999,
+              "y": 0.3799999951391051,
+              "z": 1.565500020980835
+            },
+            "rear_left": {
+              "x": 1.045500010251999,
+              "y": 0.3799999951391051,
+              "z": -1.565500020980835
+            },
+            "rear_right": {
+              "x": -1.045500010251999,
+              "y": 0.3799999951391051,
+              "z": -1.565500020980835
+            }
+          },
+          "componentPoints": {
+            "engine": {
+              "x": 0,
+              "y": 0.84076752,
+              "z": 2.101487
+            },
+            "radiator": {
+              "x": 0,
+              "y": 0.85369776,
+              "z": 2.3190684999999998
+            }
+          },
+          "partPoints": {
+            "hood": {
+              "x": 0,
+              "y": 1.0570059994039536,
+              "z": 2.206550003749132
+            },
+            "trunk": {
+              "x": 0,
+              "y": 1.37,
+              "z": -2.2666500010430815
+            },
+            "wheel_front_left": {
+              "x": 1.045500010251999,
+              "y": 0.3799999951391051,
+              "z": 1.565500020980835
+            },
+            "wheel_front_right": {
+              "x": -1.045500010251999,
+              "y": 0.3799999951391051,
+              "z": 1.565500020980835
+            },
+            "wheel_rear_left": {
+              "x": 1.045500010251999,
+              "y": 0.3799999951391051,
+              "z": -1.565500020980835
+            },
+            "wheel_rear_right": {
+              "x": -1.045500010251999,
+              "y": 0.3799999951391051,
+              "z": -1.565500020980835
+            },
+            "door_front_left": {
+              "x": 0.9839999999999999,
+              "y": 0.7323520000000001,
+              "z": 1.114
+            },
+            "door_front_right": {
+              "x": -0.9839999999999999,
+              "y": 0.7323520000000001,
+              "z": 1.114
+            }
+          }
+        },
+        "mapColor": "#d7dad1",
+        "bodyAssemblyVersion": 2,
+        "interiorPalette": {
+          "id": "delivery_van",
+          "label": "Серый служебный",
+          "seat": "#626a6d",
+          "insert": "#7e8585"
+        }
+      },
+      "explosion": [
+        {
+          "source_index": 0,
+          "key": "v0011",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 1,
+          "key": "v0026",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 2,
+          "key": "v0189",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 3,
+          "key": "v0181",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {},
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 4,
+          "key": "v0041",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 5,
+          "key": "v0048",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 6,
+          "key": "v0055",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 7,
+          "key": "v0062",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        }
+      ],
+      "explosion_rng_draw_count": 56,
+      "structural": [
+        {
+          "id": "hood",
+          "key": "v0189",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          }
+        },
+        {
+          "id": "trunk",
+          "key": "v0181",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {}
+        },
+        {
+          "id": "door_front_left",
+          "key": "v0011",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          }
+        },
+        {
+          "id": "door_front_right",
+          "key": "v0026",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          }
+        },
+        {
+          "id": "door_rear_left",
+          "key": null,
+          "source_name": null,
+          "visible": null,
+          "source_metadata": null
+        },
+        {
+          "id": "door_rear_right",
+          "key": null,
+          "source_name": null,
+          "visible": null,
+          "source_metadata": null
+        },
+        {
+          "id": "bumper_front",
+          "key": "v0004",
+          "source_name": "LOD0_delivery_van_FrontBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_delivery_van_FrontBumper",
+            "artistSourceNode": "LOD0_delivery_van_FrontBumper"
+          }
+        },
+        {
+          "id": "bumper_rear",
+          "key": "v0008",
+          "source_name": "LOD0_delivery_van_RearBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_delivery_van_RearBumper",
+            "artistSourceNode": "LOD0_delivery_van_RearBumper"
+          }
+        },
+        {
+          "id": "wheel_front_left",
+          "key": "v0041",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          }
+        },
+        {
+          "id": "wheel_front_right",
+          "key": "v0048",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          }
+        },
+        {
+          "id": "wheel_rear_left",
+          "key": "v0055",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          }
+        },
+        {
+          "id": "wheel_rear_right",
+          "key": "v0062",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          }
+        }
+      ],
+      "missing_structural_ids": [
+        "door_rear_left",
+        "door_rear_right"
+      ]
+    },
+    {
+      "profile_id": "utility_pickup",
+      "source_profile_id": "utility_pickup",
+      "input_glb": {
+        "path": "assets/maps/city_rebuild_v1/models/artist_vehicle_pack/utility_pickup.glb",
+        "sha256": "bad6a8f7d857f85edda09131ade16af1695e60fff5516d046f6e9f9ddb41f92e",
+        "expected_sha256": "bad6a8f7d857f85edda09131ade16af1695e60fff5516d046f6e9f9ddb41f92e"
+      },
+      "native_visual": {
+        "path": "outputs/coordinator21_vehicle_visual/utility_pickup.5edc5d7f0f98.glb",
+        "file": "utility_pickup.5edc5d7f0f98.glb",
+        "sha256": "5edc5d7f0f987f14b5cbca8bbf90b21ad2e7431eaa75011879e0724de455a0ff",
+        "bytes": 4117484
+      },
+      "wrapper": {
+        "key": "v0000",
+        "source_name": "VehicleVisual",
+        "rotation_y_rad": 3.141592653589793,
+        "native_basis": "RY(pi)"
+      },
+      "profile_source_metadata": {
+        "vehicleModelId": "utility_pickup",
+        "massKg": 2160,
+        "vehicleProfile": {
+          "id": "utility_pickup",
+          "label": "Ironvale",
+          "family": "pickup",
+          "width": 2.02,
+          "length": 5.2,
+          "height": 2.0550162348211654,
+          "wheelRadius": 0.4,
+          "cabinWidth": 2.0604,
+          "cabinLength": 1.65,
+          "cabinHeight": 0.920780579269256,
+          "massKg": 2160,
+          "maxSpeed": 29,
+          "reverseSpeed": 6,
+          "acceleration": 5.8,
+          "seatCount": 2,
+          "sha256": "bad6a8f7d857f85edda09131ade16af1695e60fff5516d046f6e9f9ddb41f92e",
+          "wheelBase": 3.224,
+          "halfWidth": 1.3002000808715821,
+          "halfLength": 2.8520000000000003,
+          "modelFile": "utility_pickup.glb",
+          "physicsTuning": "gameplay engineering estimates, not manufacturer specifications",
+          "seatRecline": 0.7,
+          "bounds": {
+            "min": [
+              -1.200200080871582,
+              0.0010363445225962664,
+              -2.702399969100952
+            ],
+            "max": [
+              1.200200080871582,
+              2.0560525793437616,
+              2.6663999557495117
+            ]
+          },
+          "wheelPositions": {
+            "front_left": {
+              "x": 1.0301999747753143,
+              "y": 0.400000004524351,
+              "z": 1.612000048160553
+            },
+            "front_right": {
+              "x": -1.0301999747753143,
+              "y": 0.400000004524351,
+              "z": 1.612000048160553
+            },
+            "rear_left": {
+              "x": 1.0301999747753143,
+              "y": 0.400000004524351,
+              "z": -1.612000048160553
+            },
+            "rear_right": {
+              "x": -1.0301999747753143,
+              "y": 0.400000004524351,
+              "z": -1.612000048160553
+            }
+          },
+          "componentPoints": {
+            "engine": {
+              "x": 0,
+              "y": 0.67684248,
+              "z": 1.426418
+            },
+            "radiator": {
+              "x": 0,
+              "y": 0.7010682400000001,
+              "z": 2.314259
+            }
+          },
+          "partPoints": {
+            "hood": {
+              "x": 0,
+              "y": 1.098116,
+              "z": 1.6231999999999998
+            },
+            "trunk": {
+              "x": 0,
+              "y": 1.192471981048584,
+              "z": -2.3919999599456787
+            },
+            "wheel_front_left": {
+              "x": 1.0301999747753143,
+              "y": 0.400000004524351,
+              "z": 1.612000048160553
+            },
+            "wheel_front_right": {
+              "x": -1.0301999747753143,
+              "y": 0.400000004524351,
+              "z": 1.612000048160553
+            },
+            "wheel_rear_left": {
+              "x": 1.0301999747753143,
+              "y": 0.400000004524351,
+              "z": -1.612000048160553
+            },
+            "wheel_rear_right": {
+              "x": -1.0301999747753143,
+              "y": 0.400000004524351,
+              "z": -1.612000048160553
+            },
+            "door_front_left": {
+              "x": 0.9696,
+              "y": 0.742472,
+              "z": 0
+            },
+            "door_front_right": {
+              "x": -0.9696,
+              "y": 0.742472,
+              "z": 0
+            }
+          }
+        },
+        "mapColor": "#7c9eb5",
+        "bodyAssemblyVersion": 2,
+        "interiorPalette": {
+          "id": "utility_pickup",
+          "label": "Тёмно-серый",
+          "seat": "#3e4444",
+          "insert": "#626a65"
+        }
+      },
+      "explosion": [
+        {
+          "source_index": 0,
+          "key": "v0012",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 1,
+          "key": "v0028",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 2,
+          "key": "v0184",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 3,
+          "key": "v0179",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {},
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 4,
+          "key": "v0044",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 5,
+          "key": "v0051",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 6,
+          "key": "v0058",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 7,
+          "key": "v0065",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        }
+      ],
+      "explosion_rng_draw_count": 56,
+      "structural": [
+        {
+          "id": "hood",
+          "key": "v0184",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          }
+        },
+        {
+          "id": "trunk",
+          "key": "v0179",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {}
+        },
+        {
+          "id": "door_front_left",
+          "key": "v0012",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          }
+        },
+        {
+          "id": "door_front_right",
+          "key": "v0028",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          }
+        },
+        {
+          "id": "door_rear_left",
+          "key": null,
+          "source_name": null,
+          "visible": null,
+          "source_metadata": null
+        },
+        {
+          "id": "door_rear_right",
+          "key": null,
+          "source_name": null,
+          "visible": null,
+          "source_metadata": null
+        },
+        {
+          "id": "bumper_front",
+          "key": "v0005",
+          "source_name": "LOD0_utility_pickup_FrontBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_utility_pickup_FrontBumper",
+            "artistSourceNode": "LOD0_utility_pickup_FrontBumper"
+          }
+        },
+        {
+          "id": "bumper_rear",
+          "key": "v0009",
+          "source_name": "LOD0_utility_pickup_RearBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_utility_pickup_RearBumper",
+            "artistSourceNode": "LOD0_utility_pickup_RearBumper"
+          }
+        },
+        {
+          "id": "wheel_front_left",
+          "key": "v0044",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          }
+        },
+        {
+          "id": "wheel_front_right",
+          "key": "v0051",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          }
+        },
+        {
+          "id": "wheel_rear_left",
+          "key": "v0058",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          }
+        },
+        {
+          "id": "wheel_rear_right",
+          "key": "v0065",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          }
+        }
+      ],
+      "missing_structural_ids": [
+        "door_rear_left",
+        "door_rear_right"
+      ]
+    },
+    {
+      "profile_id": "city_bus",
+      "source_profile_id": "city_bus",
+      "input_glb": {
+        "path": "assets/maps/city_rebuild_v1/models/artist_vehicle_pack/city_bus.glb",
+        "sha256": "9735522832f8b314a93cbef116d51916eca633861178a5d6a5c1d94b2402a01f",
+        "expected_sha256": "9735522832f8b314a93cbef116d51916eca633861178a5d6a5c1d94b2402a01f"
+      },
+      "native_visual": {
+        "path": "outputs/coordinator21_vehicle_visual/city_bus.a7c922603eb9.glb",
+        "file": "city_bus.a7c922603eb9.glb",
+        "sha256": "a7c922603eb97451ac124b7005c9c9f6cbcf88689701d05a40ddefb5f6b40c78",
+        "bytes": 4042508
+      },
+      "wrapper": {
+        "key": "v0000",
+        "source_name": "VehicleVisual",
+        "rotation_y_rad": 3.141592653589793,
+        "native_basis": "RY(pi)"
+      },
+      "profile_source_metadata": {
+        "vehicleModelId": "city_bus",
+        "massKg": 9800,
+        "vehicleProfile": {
+          "id": "city_bus",
+          "label": "Metroline 90",
+          "family": "bus",
+          "width": 2.55,
+          "length": 10.8,
+          "height": 3.3337823511952074,
+          "wheelRadius": 0.47,
+          "cabinWidth": 2.3,
+          "cabinLength": 9.4,
+          "cabinHeight": 2.15,
+          "massKg": 9800,
+          "maxSpeed": 23,
+          "reverseSpeed": 4,
+          "acceleration": 2.7,
+          "seatCount": 2,
+          "sha256": "9735522832f8b314a93cbef116d51916eca633861178a5d6a5c1d94b2402a01f",
+          "wheelBase": 7.128000000000001,
+          "halfWidth": 1.6093717546463011,
+          "halfLength": 5.708000000000001,
+          "modelFile": "city_bus.glb",
+          "physicsTuning": "gameplay engineering estimates, not manufacturer specifications",
+          "seatRecline": 0.3,
+          "bounds": {
+            "min": [
+              -1.509371754646301,
+              0.0012176869517652733,
+              -5.429600238800049
+            ],
+            "max": [
+              1.509371754646301,
+              3.3350000381469727,
+              5.365600109100342
+            ]
+          },
+          "wheelPositions": {
+            "front_left": {
+              "x": 1.3005000352859497,
+              "y": 0.46999999266923354,
+              "z": 3.4560000896453857
+            },
+            "front_right": {
+              "x": -1.3005000352859497,
+              "y": 0.46999999266923354,
+              "z": 3.4560000896453857
+            },
+            "rear_left": {
+              "x": 1.3005000352859497,
+              "y": 0.46999999266923354,
+              "z": -3.6719998121261597
+            },
+            "rear_right": {
+              "x": -1.3005000352859497,
+              "y": 0.46999999266923354,
+              "z": -3.6719998121261597
+            }
+          },
+          "componentPoints": {
+            "engine": {
+              "x": 0,
+              "y": 0.7372,
+              "z": -4.27356
+            },
+            "radiator": {
+              "x": 0,
+              "y": 0.8366,
+              "z": -4.944780000000001
+            }
+          },
+          "partPoints": {
+            "hood": {
+              "x": 0,
+              "y": 0.865,
+              "z": -5.2596
+            },
+            "trunk": {
+              "x": 0,
+              "y": 2.17,
+              "z": -4.756400001043081
+            },
+            "wheel_front_left": {
+              "x": 1.3005000352859497,
+              "y": 0.46999999266923354,
+              "z": 3.4560000896453857
+            },
+            "wheel_front_right": {
+              "x": -1.3005000352859497,
+              "y": 0.46999999266923354,
+              "z": 3.4560000896453857
+            },
+            "wheel_rear_left": {
+              "x": 1.3005000352859497,
+              "y": 0.46999999266923354,
+              "z": -3.6719998121261597
+            },
+            "wheel_rear_right": {
+              "x": -1.3005000352859497,
+              "y": 0.46999999266923354,
+              "z": -3.6719998121261597
+            },
+            "door_front_left": {
+              "x": 1.224,
+              "y": 0.9330080000000001,
+              "z": 3.9914
+            },
+            "door_front_right": {
+              "x": -1.224,
+              "y": 0.9330080000000001,
+              "z": 3.9914
+            }
+          }
+        },
+        "mapColor": "#dfc250",
+        "bodyAssemblyVersion": 2,
+        "interiorPalette": {
+          "id": "city_bus",
+          "label": "Серо-синий",
+          "seat": "#3c515d",
+          "insert": "#587381"
+        }
+      },
+      "explosion": [
+        {
+          "source_index": 0,
+          "key": "v0030",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 1,
+          "key": "v0043",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 2,
+          "key": "v0196",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 3,
+          "key": "v0188",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {},
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 4,
+          "key": "v0058",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 5,
+          "key": "v0065",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 6,
+          "key": "v0072",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 7,
+          "key": "v0079",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        }
+      ],
+      "explosion_rng_draw_count": 56,
+      "structural": [
+        {
+          "id": "hood",
+          "key": "v0196",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          }
+        },
+        {
+          "id": "trunk",
+          "key": "v0188",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {}
+        },
+        {
+          "id": "door_front_left",
+          "key": "v0030",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          }
+        },
+        {
+          "id": "door_front_right",
+          "key": "v0043",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          }
+        },
+        {
+          "id": "door_rear_left",
+          "key": null,
+          "source_name": null,
+          "visible": null,
+          "source_metadata": null
+        },
+        {
+          "id": "door_rear_right",
+          "key": null,
+          "source_name": null,
+          "visible": null,
+          "source_metadata": null
+        },
+        {
+          "id": "bumper_front",
+          "key": "v0002",
+          "source_name": "LOD0_city_bus_FrontBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_city_bus_FrontBumper",
+            "artistSourceNode": "LOD0_city_bus_FrontBumper"
+          }
+        },
+        {
+          "id": "bumper_rear",
+          "key": "v0009",
+          "source_name": "LOD0_city_bus_RearBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_city_bus_RearBumper",
+            "artistSourceNode": "LOD0_city_bus_RearBumper"
+          }
+        },
+        {
+          "id": "wheel_front_left",
+          "key": "v0058",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          }
+        },
+        {
+          "id": "wheel_front_right",
+          "key": "v0065",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          }
+        },
+        {
+          "id": "wheel_rear_left",
+          "key": "v0072",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          }
+        },
+        {
+          "id": "wheel_rear_right",
+          "key": "v0079",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          }
+        }
+      ],
+      "missing_structural_ids": [
+        "door_rear_left",
+        "door_rear_right"
+      ]
+    },
+    {
+      "profile_id": "police_interceptor",
+      "source_profile_id": "police_interceptor",
+      "input_glb": {
+        "path": "assets/maps/city_rebuild_v1/models/artist_vehicle_pack/police_interceptor.glb",
+        "sha256": "07374fcdaa792fb2b8933a420b71be9567c5df130f63bb353791a79edfca8c6e",
+        "expected_sha256": "07374fcdaa792fb2b8933a420b71be9567c5df130f63bb353791a79edfca8c6e"
+      },
+      "native_visual": {
+        "path": "outputs/coordinator21_vehicle_visual/police_interceptor.4f6d8a8e668a.glb",
+        "file": "police_interceptor.4f6d8a8e668a.glb",
+        "sha256": "4f6d8a8e668a172a9ba307afab0a6e2e489dd090ac190c808e97d399cf4dee53",
+        "bytes": 4501764
+      },
+      "wrapper": {
+        "key": "v0000",
+        "source_name": "VehicleVisual",
+        "rotation_y_rad": 3.141592653589793,
+        "native_basis": "RY(pi)"
+      },
+      "profile_source_metadata": {
+        "vehicleModelId": "police_interceptor",
+        "massKg": 1830,
+        "vehicleProfile": {
+          "id": "police_interceptor",
+          "label": "Patrol LX",
+          "family": "police",
+          "width": 1.96,
+          "length": 4.92,
+          "height": 2.1439945387250567,
+          "wheelRadius": 0.36,
+          "cabinWidth": 1.9992,
+          "cabinLength": 2.72,
+          "cabinHeight": 0.987505084118694,
+          "massKg": 1830,
+          "maxSpeed": 39,
+          "reverseSpeed": 6,
+          "acceleration": 8.9,
+          "seatCount": 4,
+          "sha256": "07374fcdaa792fb2b8933a420b71be9567c5df130f63bb353791a79edfca8c6e",
+          "wheelBase": 3.0504,
+          "halfWidth": 1.269600009918213,
+          "halfLength": 2.7092,
+          "modelFile": "police_interceptor.glb",
+          "physicsTuning": "gameplay engineering estimates, not manufacturer specifications",
+          "seatRecline": 0.8,
+          "bounds": {
+            "min": [
+              -1.169600009918213,
+              0.0009327245348309532,
+              -2.5660400390625
+            ],
+            "max": [
+              1.169600009918213,
+              2.1449272632598877,
+              2.531440019607544
+            ]
+          },
+          "wheelPositions": {
+            "front_left": {
+              "x": 0.9996000230312347,
+              "y": 0.360000015556178,
+              "z": 1.5252000093460083
+            },
+            "front_right": {
+              "x": -0.9996000230312347,
+              "y": 0.360000015556178,
+              "z": 1.5252000093460083
+            },
+            "rear_left": {
+              "x": 0.9996000230312347,
+              "y": 0.360000015556178,
+              "z": -1.5252000093460083
+            },
+            "rear_right": {
+              "x": -0.9996000230312347,
+              "y": 0.360000015556178,
+              "z": -1.5252000093460083
+            }
+          },
+          "componentPoints": {
+            "engine": {
+              "x": 0,
+              "y": 0.56776348,
+              "z": 1.7135328
+            },
+            "radiator": {
+              "x": 0,
+              "y": 0.58999124,
+              "z": 2.2228463999999994
+            }
+          },
+          "partPoints": {
+            "hood": {
+              "x": 0,
+              "y": 0.960066,
+              "z": 1.82322
+            },
+            "trunk": {
+              "x": 0,
+              "y": 1.005727,
+              "z": -1.8539000000000003
+            },
+            "wheel_front_left": {
+              "x": 0.9996000230312347,
+              "y": 0.360000015556178,
+              "z": 1.5252000093460083
+            },
+            "wheel_front_right": {
+              "x": -0.9996000230312347,
+              "y": 0.360000015556178,
+              "z": 1.5252000093460083
+            },
+            "wheel_rear_left": {
+              "x": 0.9996000230312347,
+              "y": 0.360000015556178,
+              "z": -1.5252000093460083
+            },
+            "wheel_rear_right": {
+              "x": -0.9996000230312347,
+              "y": 0.360000015556178,
+              "z": -1.5252000093460083
+            },
+            "door_front_left": {
+              "x": 0.9408,
+              "y": 0.654372,
+              "z": 0.65
+            },
+            "door_rear_left": {
+              "x": 0.9408,
+              "y": 0.654372,
+              "z": -0.65
+            },
+            "door_front_right": {
+              "x": -0.9408,
+              "y": 0.654372,
+              "z": 0.65
+            },
+            "door_rear_right": {
+              "x": -0.9408,
+              "y": 0.654372,
+              "z": -0.65
+            }
+          }
+        },
+        "mapColor": "#616f81",
+        "bodyAssemblyVersion": 2,
+        "interiorPalette": {
+          "id": "police_interceptor",
+          "label": "Чёрный служебный",
+          "seat": "#23292e",
+          "insert": "#363e47"
+        }
+      },
+      "explosion": [
+        {
+          "source_index": 0,
+          "key": "v0013",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 1,
+          "key": "v0028",
+          "source_name": "Door_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 2,
+          "key": "v0041",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 3,
+          "key": "v0056",
+          "source_name": "Door_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 4,
+          "key": "v0237",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 5,
+          "key": "v0232",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {},
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 6,
+          "key": "v0069",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 7,
+          "key": "v0076",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 8,
+          "key": "v0083",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 9,
+          "key": "v0090",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        }
+      ],
+      "explosion_rng_draw_count": 70,
+      "structural": [
+        {
+          "id": "hood",
+          "key": "v0237",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          }
+        },
+        {
+          "id": "trunk",
+          "key": "v0232",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {}
+        },
+        {
+          "id": "door_front_left",
+          "key": "v0013",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          }
+        },
+        {
+          "id": "door_front_right",
+          "key": "v0041",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          }
+        },
+        {
+          "id": "door_rear_left",
+          "key": "v0028",
+          "source_name": "Door_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_left"
+          }
+        },
+        {
+          "id": "door_rear_right",
+          "key": "v0056",
+          "source_name": "Door_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_right"
+          }
+        },
+        {
+          "id": "bumper_front",
+          "key": "v0002",
+          "source_name": "LOD0_police_interceptor_FrontBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_police_interceptor_FrontBumper",
+            "artistSourceNode": "LOD0_police_interceptor_FrontBumper"
+          }
+        },
+        {
+          "id": "bumper_rear",
+          "key": "v0009",
+          "source_name": "LOD0_police_interceptor_RearBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_police_interceptor_RearBumper",
+            "artistSourceNode": "LOD0_police_interceptor_RearBumper"
+          }
+        },
+        {
+          "id": "wheel_front_left",
+          "key": "v0069",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          }
+        },
+        {
+          "id": "wheel_front_right",
+          "key": "v0076",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          }
+        },
+        {
+          "id": "wheel_rear_left",
+          "key": "v0083",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          }
+        },
+        {
+          "id": "wheel_rear_right",
+          "key": "v0090",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          }
+        }
+      ],
+      "missing_structural_ids": []
+    },
+    {
+      "profile_id": "city_ambulance",
+      "source_profile_id": "city_ambulance",
+      "input_glb": {
+        "path": "assets/maps/city_rebuild_v1/models/artist_vehicle_pack/city_ambulance.glb",
+        "sha256": "49306bfb80af503a36bf2c3f88ca7561d2433b587d638aa12136c05842a26933",
+        "expected_sha256": "49306bfb80af503a36bf2c3f88ca7561d2433b587d638aa12136c05842a26933"
+      },
+      "native_visual": {
+        "path": "outputs/coordinator21_vehicle_visual/city_ambulance.a986c0525921.glb",
+        "file": "city_ambulance.a986c0525921.glb",
+        "sha256": "a986c05259215bddf6ef98b328d937501ad8dc803365376c2f0372a2ea07e233",
+        "bytes": 4023648
+      },
+      "wrapper": {
+        "key": "v0000",
+        "source_name": "VehicleVisual",
+        "rotation_y_rad": 3.141592653589793,
+        "native_basis": "RY(pi)"
+      },
+      "profile_source_metadata": {
+        "vehicleModelId": "city_ambulance",
+        "massKg": 3500,
+        "vehicleProfile": {
+          "id": "city_ambulance",
+          "label": "Union Medic",
+          "family": "ambulance",
+          "width": 2.18,
+          "length": 5.92,
+          "height": 2.8384645012995975,
+          "wheelRadius": 0.42,
+          "cabinWidth": 2.2236000000000002,
+          "cabinLength": 1.65,
+          "cabinHeight": 1.4227205792692557,
+          "massKg": 3500,
+          "maxSpeed": 29,
+          "reverseSpeed": 6,
+          "acceleration": 4.9,
+          "seatCount": 2,
+          "sha256": "49306bfb80af503a36bf2c3f88ca7561d2433b587d638aa12136c05842a26933",
+          "wheelBase": 3.6704,
+          "halfWidth": 1.4281999791383744,
+          "halfLength": 3.4260001182556152,
+          "modelFile": "city_ambulance.glb",
+          "physicsTuning": "gameplay engineering estimates, not manufacturer specifications",
+          "seatRecline": 0.7,
+          "bounds": {
+            "min": [
+              -1.3281999791383743,
+              0.0010881396153195055,
+              -3.4260001182556152
+            ],
+            "max": [
+              1.3281999791383743,
+              2.839552640914917,
+              3.0134401321411133
+            ]
+          },
+          "wheelPositions": {
+            "front_left": {
+              "x": 1.111799955368042,
+              "y": 0.4199999841072781,
+              "z": 1.8351999521255493
+            },
+            "front_right": {
+              "x": -1.111799955368042,
+              "y": 0.4199999841072781,
+              "z": 1.8351999521255493
+            },
+            "rear_left": {
+              "x": 1.111799955368042,
+              "y": 0.4199999841072781,
+              "z": -1.8351999521255493
+            },
+            "rear_right": {
+              "x": -1.111799955368042,
+              "y": 0.4199999841072781,
+              "z": -1.8351999521255493
+            }
+          },
+          "componentPoints": {
+            "engine": {
+              "x": 0,
+              "y": 0.94136432,
+              "z": 2.4101108
+            },
+            "radiator": {
+              "x": 0,
+              "y": 0.95625616,
+              "z": 2.7269854
+            }
+          },
+          "partPoints": {
+            "hood": {
+              "x": 0,
+              "y": 1.1860459994039538,
+              "z": 2.5380200028526785
+            },
+            "trunk": {
+              "x": 0,
+              "y": 1.54,
+              "z": -2.6433600010430816
+            },
+            "wheel_front_left": {
+              "x": 1.111799955368042,
+              "y": 0.4199999841072781,
+              "z": 1.8351999521255493
+            },
+            "wheel_front_right": {
+              "x": -1.111799955368042,
+              "y": 0.4199999841072781,
+              "z": 1.8351999521255493
+            },
+            "wheel_rear_left": {
+              "x": 1.111799955368042,
+              "y": 0.4199999841072781,
+              "z": -1.8351999521255493
+            },
+            "wheel_rear_right": {
+              "x": -1.111799955368042,
+              "y": 0.4199999841072781,
+              "z": -1.8351999521255493
+            },
+            "door_front_left": {
+              "x": 1.0464,
+              "y": 0.8160320000000001,
+              "z": 1.3576000000000001
+            },
+            "door_front_right": {
+              "x": -1.0464,
+              "y": 0.8160320000000001,
+              "z": 1.3576000000000001
+            }
+          }
+        },
+        "mapColor": "#e5e6e2",
+        "bodyAssemblyVersion": 2,
+        "interiorPalette": {
+          "id": "city_ambulance",
+          "label": "Светло-серый",
+          "seat": "#747f82",
+          "insert": "#a2abad"
+        }
+      },
+      "explosion": [
+        {
+          "source_index": 0,
+          "key": "v0016",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 1,
+          "key": "v0031",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 2,
+          "key": "v0196",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 3,
+          "key": "v0188",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {},
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 4,
+          "key": "v0046",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 5,
+          "key": "v0053",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 6,
+          "key": "v0060",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 7,
+          "key": "v0067",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        }
+      ],
+      "explosion_rng_draw_count": 56,
+      "structural": [
+        {
+          "id": "hood",
+          "key": "v0196",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          }
+        },
+        {
+          "id": "trunk",
+          "key": "v0188",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {}
+        },
+        {
+          "id": "door_front_left",
+          "key": "v0016",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          }
+        },
+        {
+          "id": "door_front_right",
+          "key": "v0031",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          }
+        },
+        {
+          "id": "door_rear_left",
+          "key": null,
+          "source_name": null,
+          "visible": null,
+          "source_metadata": null
+        },
+        {
+          "id": "door_rear_right",
+          "key": null,
+          "source_name": null,
+          "visible": null,
+          "source_metadata": null
+        },
+        {
+          "id": "bumper_front",
+          "key": "v0003",
+          "source_name": "LOD0_city_ambulance_FrontBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_city_ambulance_FrontBumper",
+            "artistSourceNode": "LOD0_city_ambulance_FrontBumper"
+          }
+        },
+        {
+          "id": "bumper_rear",
+          "key": "v0010",
+          "source_name": "LOD0_city_ambulance_RearBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_city_ambulance_RearBumper",
+            "artistSourceNode": "LOD0_city_ambulance_RearBumper"
+          }
+        },
+        {
+          "id": "wheel_front_left",
+          "key": "v0046",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          }
+        },
+        {
+          "id": "wheel_front_right",
+          "key": "v0053",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          }
+        },
+        {
+          "id": "wheel_rear_left",
+          "key": "v0060",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          }
+        },
+        {
+          "id": "wheel_rear_right",
+          "key": "v0067",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          }
+        }
+      ],
+      "missing_structural_ids": [
+        "door_rear_left",
+        "door_rear_right"
+      ]
+    },
+    {
+      "profile_id": "fire_engine",
+      "source_profile_id": "fire_engine",
+      "input_glb": {
+        "path": "assets/maps/city_rebuild_v1/models/artist_vehicle_pack/fire_engine.glb",
+        "sha256": "967118f3763671e68c34b33fc0a7a8da2adf9f8eae564662af63f9a41f8ef55f",
+        "expected_sha256": "967118f3763671e68c34b33fc0a7a8da2adf9f8eae564662af63f9a41f8ef55f"
+      },
+      "native_visual": {
+        "path": "outputs/coordinator21_vehicle_visual/fire_engine.a1b624c76214.glb",
+        "file": "fire_engine.a1b624c76214.glb",
+        "sha256": "a1b624c7621491ada3f4064ca9c177d48287e496f31b260f376d5e9ab03e20ab",
+        "bytes": 3980816
+      },
+      "wrapper": {
+        "key": "v0000",
+        "source_name": "VehicleVisual",
+        "rotation_y_rad": 3.141592653589793,
+        "native_basis": "RY(pi)"
+      },
+      "profile_source_metadata": {
+        "vehicleModelId": "fire_engine",
+        "massKg": 10500,
+        "vehicleProfile": {
+          "id": "fire_engine",
+          "label": "Ironvale F",
+          "family": "fire",
+          "width": 2.48,
+          "length": 7.1,
+          "height": 3.002737290517132,
+          "wheelRadius": 0.48,
+          "cabinWidth": 2.5296,
+          "cabinLength": 1.8,
+          "cabinHeight": 1.4357570892346823,
+          "massKg": 10500,
+          "maxSpeed": 25,
+          "reverseSpeed": 6,
+          "acceleration": 3,
+          "seatCount": 2,
+          "sha256": "967118f3763671e68c34b33fc0a7a8da2adf9f8eae564662af63f9a41f8ef55f",
+          "wheelBase": 4.686,
+          "halfWidth": 1.5752000536441804,
+          "halfLength": 3.821,
+          "modelFile": "fire_engine.glb",
+          "physicsTuning": "gameplay engineering estimates, not manufacturer specifications",
+          "seatRecline": 0.55,
+          "bounds": {
+            "min": [
+              -1.4752000536441803,
+              0.0012435844981268929,
+              -3.627700090408325
+            ],
+            "max": [
+              1.4752000536441803,
+              3.003980875015259,
+              3.582200050354004
+            ]
+          },
+          "wheelPositions": {
+            "front_left": {
+              "x": 1.264799952507019,
+              "y": 0.4799999824606971,
+              "z": 2.2720000743865967
+            },
+            "front_right": {
+              "x": -1.264799952507019,
+              "y": 0.4799999824606971,
+              "z": 2.2720000743865967
+            },
+            "rear_left": {
+              "x": 1.264799952507019,
+              "y": 0.4799999824606971,
+              "z": -2.4140000343322754
+            },
+            "rear_right": {
+              "x": -1.264799952507019,
+              "y": 0.4799999824606971,
+              "z": -2.4140000343322754
+            }
+          },
+          "componentPoints": {
+            "engine": {
+              "x": 0,
+              "y": 1.07605424,
+              "z": 3.0101439999999995
+            },
+            "radiator": {
+              "x": 0,
+              "y": 1.09234512,
+              "z": 3.2989719999999996
+            }
+          },
+          "partPoints": {
+            "hood": {
+              "x": 0,
+              "y": 1.3410219994039538,
+              "z": 3.131600002819299
+            },
+            "trunk": {
+              "x": 0,
+              "y": 1.4579000000000004,
+              "z": -3.1543000010430813
+            },
+            "wheel_front_left": {
+              "x": 1.264799952507019,
+              "y": 0.4799999824606971,
+              "z": 2.2720000743865967
+            },
+            "wheel_front_right": {
+              "x": -1.264799952507019,
+              "y": 0.4799999824606971,
+              "z": 2.2720000743865967
+            },
+            "wheel_rear_left": {
+              "x": 1.264799952507019,
+              "y": 0.4799999824606971,
+              "z": -2.4140000343322754
+            },
+            "wheel_rear_right": {
+              "x": -1.264799952507019,
+              "y": 0.4799999824606971,
+              "z": -2.4140000343322754
+            },
+            "door_front_left": {
+              "x": 1.1904,
+              "y": 0.9226240000000001,
+              "z": 1.9009999999999998
+            },
+            "door_front_right": {
+              "x": -1.1904,
+              "y": 0.9226240000000001,
+              "z": 1.9009999999999998
+            }
+          }
+        },
+        "mapColor": "#d4352c",
+        "bodyAssemblyVersion": 2,
+        "interiorPalette": {
+          "id": "fire_engine",
+          "label": "Бордово-серый",
+          "seat": "#65353a",
+          "insert": "#8f4348"
+        }
+      },
+      "explosion": [
+        {
+          "source_index": 0,
+          "key": "v0029",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 1,
+          "key": "v0042",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 2,
+          "key": "v0212",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 3,
+          "key": "v0204",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {},
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 4,
+          "key": "v0055",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 5,
+          "key": "v0062",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 6,
+          "key": "v0069",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 7,
+          "key": "v0076",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        }
+      ],
+      "explosion_rng_draw_count": 56,
+      "structural": [
+        {
+          "id": "hood",
+          "key": "v0212",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          }
+        },
+        {
+          "id": "trunk",
+          "key": "v0204",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {}
+        },
+        {
+          "id": "door_front_left",
+          "key": "v0029",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          }
+        },
+        {
+          "id": "door_front_right",
+          "key": "v0042",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          }
+        },
+        {
+          "id": "door_rear_left",
+          "key": null,
+          "source_name": null,
+          "visible": null,
+          "source_metadata": null
+        },
+        {
+          "id": "door_rear_right",
+          "key": null,
+          "source_name": null,
+          "visible": null,
+          "source_metadata": null
+        },
+        {
+          "id": "bumper_front",
+          "key": "v0003",
+          "source_name": "LOD0_fire_engine_FrontBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_fire_engine_FrontBumper",
+            "artistSourceNode": "LOD0_fire_engine_FrontBumper"
+          }
+        },
+        {
+          "id": "bumper_rear",
+          "key": "v0024",
+          "source_name": "LOD0_fire_engine_RearBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_fire_engine_RearBumper",
+            "artistSourceNode": "LOD0_fire_engine_RearBumper"
+          }
+        },
+        {
+          "id": "wheel_front_left",
+          "key": "v0055",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          }
+        },
+        {
+          "id": "wheel_front_right",
+          "key": "v0062",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          }
+        },
+        {
+          "id": "wheel_rear_left",
+          "key": "v0069",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          }
+        },
+        {
+          "id": "wheel_rear_right",
+          "key": "v0076",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          }
+        }
+      ],
+      "missing_structural_ids": [
+        "door_rear_left",
+        "door_rear_right"
+      ]
+    },
+    {
+      "profile_id": "city_taxi",
+      "source_profile_id": "compact_sedan",
+      "input_glb": {
+        "path": "assets/maps/city_rebuild_v1/models/artist_vehicle_pack/compact_sedan.glb",
+        "sha256": "08cf5677dec9ebdbbca329610be9e210e91185f976d3cdc307f87ff7345233f5",
+        "expected_sha256": "08cf5677dec9ebdbbca329610be9e210e91185f976d3cdc307f87ff7345233f5"
+      },
+      "native_visual": {
+        "path": "outputs/coordinator21_vehicle_visual/city_taxi.4a044ed6cffc.glb",
+        "file": "city_taxi.4a044ed6cffc.glb",
+        "sha256": "4a044ed6cffc10d2da3e9b010c40dda23977c66fc8b9b93cde93d9661d99c9d6",
+        "bytes": 4362132
+      },
+      "wrapper": {
+        "key": "v0000",
+        "source_name": "VehicleVisual",
+        "rotation_y_rad": 3.141592653589793,
+        "native_basis": "RY(pi)"
+      },
+      "profile_source_metadata": {
+        "vehicleModelId": "city_taxi",
+        "massKg": 1320,
+        "vehicleProfile": {
+          "id": "city_taxi",
+          "label": "Easton Taxi",
+          "family": "sedan",
+          "width": 1.8,
+          "length": 4.42,
+          "height": 1.9659721119020948,
+          "wheelRadius": 0.33,
+          "cabinWidth": 1.836,
+          "cabinLength": 2.72,
+          "cabinHeight": 1.018549084118694,
+          "massKg": 1320,
+          "maxSpeed": 31,
+          "reverseSpeed": 6,
+          "acceleration": 7,
+          "seatCount": 4,
+          "sha256": "08cf5677dec9ebdbbca329610be9e210e91185f976d3cdc307f87ff7345233f5",
+          "wheelBase": 2.7403999999999997,
+          "halfWidth": 1.1879999399185182,
+          "halfLength": 2.4542,
+          "modelFile": "compact_sedan.glb",
+          "physicsTuning": "gameplay engineering estimates, not manufacturer specifications",
+          "wheelDesignId": "city_taxi",
+          "seatRecline": 0.8,
+          "bounds": {
+            "min": [
+              -1.087999939918518,
+              0.0008549722911048718,
+              -2.322540044784546
+            ],
+            "max": [
+              1.087999939918518,
+              1.9668270841931996,
+              2.290440082550049
+            ]
+          },
+          "wheelPositions": {
+            "front_left": {
+              "x": 0.9179999828338623,
+              "y": 0.3300000163794685,
+              "z": 1.3702000379562378
+            },
+            "front_right": {
+              "x": -0.9179999828338623,
+              "y": 0.3300000163794685,
+              "z": 1.3702000379562378
+            },
+            "rear_left": {
+              "x": 0.9179999828338623,
+              "y": 0.3300000163794685,
+              "z": -1.3702000379562378
+            },
+            "rear_right": {
+              "x": -0.9179999828338623,
+              "y": 0.3300000163794685,
+              "z": -1.3702000379562378
+            }
+          },
+          "componentPoints": {
+            "engine": {
+              "x": 0,
+              "y": 0.5211845199999999,
+              "z": 1.6243628
+            },
+            "radiator": {
+              "x": 0,
+              "y": 0.54293276,
+              "z": 1.9975113999999998
+            }
+          },
+          "partPoints": {
+            "hood": {
+              "x": 0,
+              "y": 0.906534,
+              "z": 1.7027200000000002
+            },
+            "trunk": {
+              "x": 0,
+              "y": 0.9519730000000001,
+              "z": -1.73765
+            },
+            "wheel_front_left": {
+              "x": 0.9179999828338623,
+              "y": 0.3300000163794685,
+              "z": 1.3702000379562378
+            },
+            "wheel_front_right": {
+              "x": -0.9179999828338623,
+              "y": 0.3300000163794685,
+              "z": 1.3702000379562378
+            },
+            "wheel_rear_left": {
+              "x": 0.9179999828338623,
+              "y": 0.3300000163794685,
+              "z": -1.3702000379562378
+            },
+            "wheel_rear_right": {
+              "x": -0.9179999828338623,
+              "y": 0.3300000163794685,
+              "z": -1.3702000379562378
+            },
+            "door_front_left": {
+              "x": 0.864,
+              "y": 0.6128279999999999,
+              "z": 0.65
+            },
+            "door_rear_left": {
+              "x": 0.864,
+              "y": 0.6128279999999999,
+              "z": -0.65
+            },
+            "door_front_right": {
+              "x": -0.864,
+              "y": 0.6128279999999999,
+              "z": 0.65
+            },
+            "door_rear_right": {
+              "x": -0.864,
+              "y": 0.6128279999999999,
+              "z": -0.65
+            }
+          },
+          "mapColor": "#f4bd22"
+        },
+        "mapColor": "#f4bd22",
+        "bodyAssemblyVersion": 2,
+        "interiorPalette": {
+          "id": "city_taxi",
+          "label": "Чёрный износостойкий",
+          "seat": "#262b2e",
+          "insert": "#3a4044"
+        },
+        "service": "taxi"
+      },
+      "explosion": [
+        {
+          "source_index": 0,
+          "key": "v0010",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 1,
+          "key": "v0026",
+          "source_name": "Door_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 2,
+          "key": "v0040",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 3,
+          "key": "v0056",
+          "source_name": "Door_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 4,
+          "key": "v0241",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 5,
+          "key": "v0236",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {},
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 6,
+          "key": "v0070",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 7,
+          "key": "v0077",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 8,
+          "key": "v0084",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        },
+        {
+          "source_index": 9,
+          "key": "v0091",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          },
+          "copy_eligible": true,
+          "rng_draw_indices": [
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70
+          ],
+          "rng_slots": [
+            "angle",
+            "strength",
+            "vertical_velocity",
+            "landing_yaw",
+            "spin_x",
+            "spin_y",
+            "spin_z"
+          ]
+        }
+      ],
+      "explosion_rng_draw_count": 70,
+      "structural": [
+        {
+          "id": "hood",
+          "key": "v0241",
+          "source_name": "Hood_lid",
+          "visible": true,
+          "source_metadata": {
+            "assembledBody": true
+          }
+        },
+        {
+          "id": "trunk",
+          "key": "v0236",
+          "source_name": "Trunk_lid",
+          "visible": true,
+          "source_metadata": {}
+        },
+        {
+          "id": "door_front_left",
+          "key": "v0010",
+          "source_name": "Door_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_left"
+          }
+        },
+        {
+          "id": "door_front_right",
+          "key": "v0040",
+          "source_name": "Door_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "front_right"
+          }
+        },
+        {
+          "id": "door_rear_left",
+          "key": "v0026",
+          "source_name": "Door_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_left"
+          }
+        },
+        {
+          "id": "door_rear_right",
+          "key": "v0056",
+          "source_name": "Door_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleDoorId": "rear_right"
+          }
+        },
+        {
+          "id": "bumper_front",
+          "key": "v0002",
+          "source_name": "LOD0_compact_sedan_FrontBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_compact_sedan_FrontBumper",
+            "artistSourceNode": "LOD0_compact_sedan_FrontBumper"
+          }
+        },
+        {
+          "id": "bumper_rear",
+          "key": "v0006",
+          "source_name": "LOD0_compact_sedan_RearBumper",
+          "visible": true,
+          "source_metadata": {
+            "name": "LOD0_compact_sedan_RearBumper",
+            "artistSourceNode": "LOD0_compact_sedan_RearBumper"
+          }
+        },
+        {
+          "id": "wheel_front_left",
+          "key": "v0070",
+          "source_name": "Wheel_attachment_front_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_left"
+          }
+        },
+        {
+          "id": "wheel_front_right",
+          "key": "v0077",
+          "source_name": "Wheel_attachment_front_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "front_right"
+          }
+        },
+        {
+          "id": "wheel_rear_left",
+          "key": "v0084",
+          "source_name": "Wheel_attachment_rear_left",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_left"
+          }
+        },
+        {
+          "id": "wheel_rear_right",
+          "key": "v0091",
+          "source_name": "Wheel_attachment_rear_right",
+          "visible": true,
+          "source_metadata": {
+            "vehicleWheelId": "rear_right"
+          }
+        }
+      ],
+      "missing_structural_ids": []
+    }
+  ]
+}
