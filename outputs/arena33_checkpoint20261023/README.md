@@ -1,3 +1,3 @@
-Polygon33 wound-query optimization checkpoint.
+Polygon33: verified wound lookup, exact contact-query acceleration and sword/spear entry fixes.
 
-Exact body surface and normals preserved. First scratch lookup ~32 ms to1.2 ms; observed creation frame43.2 to20.6 ms. These are component measurements with another game active. Deep puncture/death and full100actor castle performance remain unaccepted. See ACCEPTANCE.json and qa/cut_perf33/HANDOFF33.json.
+See ACCEPTANCE.json for before/after component measurements, source pins and live graphical checks. These measurements are not full 50v50 FPS acceptance. Rare deep-contact recovery stalls and synchronous base NPC/player cuts still require work. Production pointer and the open user32 game are preserved.

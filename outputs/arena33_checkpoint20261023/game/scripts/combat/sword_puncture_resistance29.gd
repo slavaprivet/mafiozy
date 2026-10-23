@@ -72,12 +72,16 @@ func _eligible29(host: Node) -> bool:
 
 func _channel(host: Node) -> Dictionary:
 	if not _eligible29(host):return {}
-	if str(host.get("_weapon_id"))!="sword" or bool(host.get("_unarmed")) or bool(host.get("_sword_grounded")):return {}
+	if str(host.get("_weapon_id")) not in ["sword","spear"] or bool(host.get("_unarmed")) or bool(host.get("_sword_grounded")):return {}
+	# Before its first committed entry, the spear still needs a reachable hand
+	# alignment on the verified tip path. Once embedded, its own bilateral lock
+	# is the sole pose owner; this guide must not alter extraction or tissue drag.
+	if str(host.get("_weapon_id"))=="spear" and bool(host.get("_embedded29").status().active):return {}
 	var weapon:Node3D=host.get("_sword")
 	if not is_instance_valid(weapon) or not weapon.visible:return {}
 	var row:Dictionary=host.get_meta("puncture29_channel",{})
 	if not row.get("valid",false) or not row.get("actual_hit",false) or row.get("withdrawn",false):return {}
-	if str(row.get("weapon",""))!="sword" or int(row.get("weapon_instance_id",-1))!=weapon.get_instance_id() or int(row.get("generation",-1))!=int(host.get("lab_resets")):return {}
+	if str(row.get("weapon",""))!=str(host.get("_weapon_id")) or int(row.get("weapon_instance_id",-1))!=weapon.get_instance_id() or int(row.get("generation",-1))!=int(host.get("lab_resets")):return {}
 	var ref:WeakRef=row.get("rig_ref")
 	var rig:Skeleton3D=ref.get_ref() if ref!=null else null
 	var bone:=int(row.get("bone",-1))
@@ -132,6 +136,7 @@ func _world_blocked(host: Node, data: Dictionary, direction: Vector3, origin: Ve
 # withdrawal, fast impact or free locomotion are changed. Unlike finite hand
 # compliance this remains effective throughout a continuous tissue contact.
 func constrain_walk_velocity(host: Node, value: Vector3, delta: float) -> Vector3:
+	if str(host.get("_weapon_id"))!="sword":return value
 	var player:CharacterBody3D=host.get("_player")
 	if not is_instance_valid(player) or not player.is_on_floor() or delta<=0.0:
 		last_walk29={"active":false,"reason":"not_grounded"};return value
@@ -227,7 +232,11 @@ func constrain_pose(host: Node, delta: float) -> void:
 	var frame:=Engine.get_physics_frames()
 	if str(data.identity)!=_identity:
 		clear("new_channel");_identity=data.identity;_requested_tip=tip;_requested_origin=origin;_entry=entry;_axis=axis;_frame=frame
-		return
+		if str(host.get("_weapon_id"))!="spear":return
+		# The new spear channel is still only a preview. Correct this first
+		# requested hand pose now, before the final solid check cancels it; the
+		# zero sampled step above cannot fabricate penetration speed or damage.
+		_frame=frame-1
 	if frame!=_frame:
 		var step:=tip-_requested_tip-(entry-_entry)
 		if data.kind=="cut":step=origin-_requested_origin-(entry-_entry)
@@ -239,7 +248,7 @@ func constrain_pose(host: Node, delta: float) -> void:
 		var speed:=step.length()/elapsed
 		var guide_target:=Vector3.ZERO
 		var guide_reason:="outside_or_cut"
-		if data.kind=="puncture" and bool(data.row.get("active",false)) and float(data.row.get("cut_depth",0.0))>0.0 and depth>0.0:
+		if data.kind=="puncture" and bool(data.row.get("active",false)) and (float(data.row.get("cut_depth",0.0))>0.0 or str(host.get("_weapon_id"))=="spear") and depth>0.0:
 			if direction.dot(axis)<0.985 or Vector3(host.get("_omega")).length()>2.0:
 				# Deliberate transverse steering keeps the native cutting response.
 				_guide_correction29=Vector3.ZERO;guide_reason="transverse"
@@ -249,7 +258,7 @@ func constrain_pose(host: Node, delta: float) -> void:
 				_guide_correction29=Vector3.ZERO;guide_reason="outside_reach"
 		_guide_correction29=_guide_correction29.move_toward(guide_target,GUIDE_RATE29*elapsed)
 		if data.kind=="cut":speed=maxf(speed,float(data.speed))
-		lag=next_lag29(lag,advance,speed,data.kind=="puncture" and depth<=0.0,elapsed)
+		lag=next_lag29(lag,advance,speed,data.kind=="puncture" and depth<=0.0,elapsed) if str(host.get("_weapon_id"))=="sword" else 0.0
 		_requested_tip=tip;_requested_origin=origin;_entry=entry;_axis=axis;_frame=frame
 		last={"active":lag>0.0,"kind":data.kind,"requested_advance":advance,"speed":speed,"lag":lag,"withdrawing":advance<0.0,"at_limit":lag>=MAX_LAG-0.000001}
 		last["guide_correction"]=_guide_correction29;last["guide_radial"]=radial;last["guide_reason"]=guide_reason

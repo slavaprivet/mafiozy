@@ -2,6 +2,9 @@ extends RefCounted
 ## Immutable authored topology, with actor-local lazy exact skinning caches.
 ## Build uses only arrays; no scene objects or renderer readback on workers.
 const Segment = preload("res://scripts/combat/segment_triangle29.gd")
+# Queries are synchronous, without callbacks. Each actor pose owns its stack;
+# immutable worker topology and other actors never share this mutable buffer.
+var _stack33:=PackedInt32Array()
 var points := PackedVector3Array()
 var bones := PackedInt32Array()
 var weights := PackedFloat32Array()
@@ -53,6 +56,7 @@ func build(data: Dictionary, group: Dictionary, bindings: int) -> void:
 	_allocate_pose()
 
 func _allocate_pose() -> void:
+	_stack33.resize(left.size())
 	_world_points.resize(points.size()); _posed.resize(points.size())
 	_world_boxes.resize(left.size()); _box_ready.resize(left.size())
 	_triangle_boxes.resize(orders.size()); _triangle_normals.resize(orders.size())
@@ -180,15 +184,18 @@ func intersections(from: Vector3, to: Vector3, all_hits: bool=false) -> Array[Di
 	var hits: Array[Dictionary]=[]
 	var squared_length:=from.distance_squared_to(to)
 	if left.is_empty() or not _has_pose or squared_length<=0.0: return hits
-	var stack: Array[int]=[0]; var closest:=INF; var closest_order:=2147483647
-	while not stack.is_empty():
-		var node: int=stack.pop_back(); visits+=1
+	var stack_count:int=1; _stack33[0]=0; var closest:=INF; var closest_order:=2147483647
+	while stack_count>0:
+		stack_count-=1
+		var node: int=_stack33[stack_count]; visits+=1
 		# A changed bind count is malformed for this topology: exact fallback.
 		if _leaf_ready[node]!=0:
 			if _leaf_finite[node]!=0 and not _leaf_boxes[node].intersects_segment(from,to): continue
-		elif safe[node]!=0 and _binds.size()==bind_count and not _bounds(node).intersects_segment(from,to): continue
+		elif safe[node]!=0 and _binds.size()==bind_count:
+			var node_box:AABB=_world_boxes[node] if _box_ready[node]!=0 else _bounds(node)
+			if not node_box.intersects_segment(from,to):continue
 		if left[node]>=0:
-			stack.append(right[node]); stack.append(left[node]); continue
+			_stack33[stack_count]=right[node]; _stack33[stack_count+1]=left[node]; stack_count+=2; continue
 		_prepare_leaf(node)
 		if _leaf_finite[node]!=0 and not _leaf_boxes[node].intersects_segment(from,to): continue
 		for cursor in range(first[node],first[node]+count[node]):

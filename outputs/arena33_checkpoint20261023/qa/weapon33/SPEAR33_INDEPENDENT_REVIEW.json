@@ -1,0 +1,42 @@
+{
+  "verdict": "approve narrow merge with normal merged regression; no broad collision bypass found",
+  "source_pins": {
+    "scripts/combat/sword_puncture_resistance29.gd": {
+      "shared": "455205e569c583471bb5d1f6b3fd2e45240194a44feba95d9a7c429a47b043ed",
+      "private": "455205e569c583471bb5d1f6b3fd2e45240194a44feba95d9a7c429a47b043ed",
+      "shared_matches_expected": false,
+      "private_matches_receipt": true
+    },
+    "scripts/combat/weapon_solid_contact29.gd": {
+      "shared": "981c360382fbbc830018e9419ebc04631a3c12187efdf34ab3904e7cf54f4600",
+      "private": "981c360382fbbc830018e9419ebc04631a3c12187efdf34ab3904e7cf54f4600",
+      "shared_matches_expected": false,
+      "private_matches_receipt": true
+    }
+  },
+  "reasoning": [
+    "Exterior collar accepts only exact current triangle from original bounded2hop/max32face entry patch, same source/mesh/skin/generation/weapon, normaldot>=.5 and +/-0.25mm local actualsurface probe. It is a surface permission, not a volume extending to arbitrary front-z.",
+    "Larger steel profile only selected for that verified surface hit. Other target parts/layers use their existing collision/ellipse path. Profile is finite authored metal geometry, not constant arbitrary widened radius.",
+    "Pending tip must be behind entry plane, physicalhand correction remains60mm/ratebounded and actualself/world/IK/finalsolid checks remain. Existing embedded owner takes over; spear walkfriction and sword lag are not newly applied."
+  ],
+  "evidence_reviewed": [
+    "oracle_final22 12PASS",
+    "visual21 10PASS actualshallow entry/withdraw",
+    "regression_final23 19PASS sword+spear+heavy armor",
+    "fullGUI final18 actual145mm entry andsamephysicalattachment afterfall"
+  ],
+  "remaining_cases": [
+    "Connected folded triangle within2hops, same normal but separate lobe: current exact topology bound is finite, not exhaustive against every authored fold. Worth a later targeted negative, not evidence of a present falsepassage.",
+    "Maximum allowed blade/bore angular mismatch near dot .985 plus surface normal threshold .5: test exact actual steel corner at nonzero roll; existing profile is enclosingellipse, not exact trianglevolume. This approximation predates the patch."
+  ],
+  "DeepSeek03": {
+    "total_tokens": 10650,
+    "prompt_tokens": 2458,
+    "completion_tokens": 8192,
+    "reasoning_tokens": 8192,
+    "response_bytes": 0,
+    "status": "budget consumed entirely by model reasoning; no final advice returned, not cited as validation"
+  },
+  "game_source_edited": false,
+  "handoff_stale_limit_fixed": "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\QUERY_REPLAY_HANDOFF.json"
+}

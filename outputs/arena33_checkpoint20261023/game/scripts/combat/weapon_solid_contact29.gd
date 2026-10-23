@@ -385,7 +385,9 @@ func _seed_entry_collar31(host:Node,channel:Dictionary,frame:Transform3D)->void:
 	channel.entry_collar31={"source_key":hit.source_key,"mesh_id":source.mesh_id,"skin_id":source.skin_id,"patch":patch,"normal_sign":sign_normal,"generation":channel.generation,"weapon_instance_id":channel.weapon_instance_id}
 
 func _entry_surface_collar31(channel:Dictionary,frame:Transform3D,point:Vector3,world_hit:Vector3,known_hit:Dictionary={})->bool:
-	if float(channel.get("cut_depth",0))<=.0001 or point.z<=.006 or point.z>.012:return false
+	if point.z<=.006:return false
+	var real_spear_entry:=str(channel.get("weapon",""))=="spear" and bool(channel.get("actual_hit",false))
+	if not real_spear_entry and (float(channel.get("cut_depth",0))<=.0001 or point.z>.012):return false
 	var collar:Dictionary=channel.get("entry_collar31",{})
 	if collar.is_empty() or collar.generation!=channel.generation or collar.weapon_instance_id!=channel.weapon_instance_id:return false
 	var key:String=collar.source_key
@@ -406,7 +408,7 @@ func _entry_surface_collar31(channel:Dictionary,frame:Transform3D,point:Vector3,
 	var local:Vector3=frame.affine_inverse()*Vector3(actual)
 	# Only the current entry surface grants this exterior collar. An endpoint
 	# farther outside it still collides; no lateral/deep lane or damage grows.
-	if local.z<.006 or local.z>.012 or point.z>local.z+.00025:return false
+	if local.z<.006 or (not real_spear_entry and local.z>.012) or point.z>local.z+.00025:return false
 	entry_collar_admissions31+=1
 	return true
 
@@ -440,11 +442,20 @@ func _channel_allows(host:Node,from:Vector3,to:Vector3,transform:Transform3D,mov
 	# Prospective steel may open this already verified axial path, but injury
 	# depth is committed only after the complete final pose is accepted.
 	var local_tip:=frame.affine_inverse()*(transform*Puncture.tip_local(host))
+	# A tentative swept entry is only usable while the requested real tip is
+	# behind that same surface. An uncommitted tip outside opens no side passage.
+	if str(host.get("_weapon_id"))=="spear" and float(channel.get("cut_depth",0))<=.0001 and local_tip.z>=-0.000001:return false
 	if Vector2(local_tip.x,local_tip.y).length()>maxf(width,.004)+.012:return _bore_rejected31(host,"tip_radial",{"tip":local_tip,"width":width})
 	# Current posed steel defines prospective axial depth; initial rest-skin
 	# thickness cannot block the exit of a deforming, already verified bore.
 	var depth:=maxf(0.0,-local_tip.z)
-	var profile:=_tip_profile(host,depth)
+	# A tapered point meets an oblique entry surface behind the plane through
+	# its centre. Use the actual steel section at that same connected surface,
+	# not a larger arbitrary radial allowance. Other layers/parts retain collision.
+	var surface_point:=frame.affine_inverse()*to
+	var spear_entry_surface:=str(host.get("_weapon_id"))=="spear" and surface_point.z>.006 and _entry_surface_collar31(channel,frame,surface_point,to,surface_hit)
+	var profile_depth:=depth+surface_point.z if spear_entry_surface else depth
+	var profile:=_tip_profile(host,profile_depth)
 	width=maxf(width,profile.x);height=maxf(height,profile.y)
 	# The airborne approach can be oblique. Only the trajectory behind the entry
 	# plane must stay within the finite, verified aperture; target co-motion is
@@ -460,7 +471,7 @@ func _channel_allows(host:Node,from:Vector3,to:Vector3,transform:Transform3D,mov
 	# The full relative segment was checked above in both bore frames.
 	var point:=relative_to if moving else frame.affine_inverse()*to
 	var front_clear:=point.z<=.006
-	if not front_clear and point.z<=.012:
+	if not front_clear and (point.z<=.012 or spear_entry_surface):
 		front_clear=_entry_surface_collar31(channel,frame,point,to,surface_hit)
 	var permitted:=pow(point.x/maxf(width+.002,.004),2)+pow(point.y/maxf(height+.002,.004),2)<=1.0 and front_clear and -point.z<=maxf(depth,float(channel.get("cut_depth",0)))+.006
 	if not permitted:return _bore_rejected31(host,"point",{"point":point,"width":width,"height":height,"tip":local_tip,"depth":depth,"cut_depth":channel.get("cut_depth",0),"moving":moving})

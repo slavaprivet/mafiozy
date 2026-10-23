@@ -1,0 +1,107 @@
+extends SceneTree
+const COUNTERS=["geometry_usec","sweep_usec","static_usec","ik_usec","prepare_usec","world_usec","geometry_builds","triangle_candidates","walk_usec","solver_usec","skin_hits_usec31","segment_calls","grid_visits"]
+var out:String
+var phase:String=""
+var host:Node
+var solid:RefCounted
+var samples:Array=[]
+var outcomes:Array=[]
+var physics_samples:Array=[]
+var physics_previous:Array=[]
+var previous_physics_usec:=0
+var checks:Dictionary={}
+var previous_usec:int=0
+var previous_counters:Array=[]
+var max_depth:float=0.0
+var max_ratio:float=0.0
+var observed_entry:bool=false
+var observer_usec:int=0
+func _initialize():
+ if DisplayServer.get_name()!="headless":DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_NO_FOCUS,true)
+ for a in OS.get_cmdline_user_args():
+  if a.begins_with("--qa-out="):out=a.trim_prefix("--qa-out=")
+ run.call_deferred()
+func button(value:bool):
+ var e:=InputEventMouseButton.new();e.button_index=MOUSE_BUTTON_LEFT;e.pressed=value;Input.parse_input_event(e);Input.flush_buffered_events()
+func motion(value:Vector2):
+ var e:=InputEventMouseMotion.new();e.relative=value;e.screen_relative=value;Input.parse_input_event(e);Input.flush_buffered_events()
+func move(action:StringName,value:float):
+ var e:=InputEventAction.new();e.action=action;e.pressed=value>0;e.strength=value;Input.parse_input_event(e);Input.flush_buffered_events()
+func ticks(count:int):
+ for i in count:await physics_frame
+func frames(count:int):
+ for i in count:await process_frame
+func draw_sample():
+ if phase.is_empty() or not is_instance_valid(host):previous_usec=0;return
+ var begin:=Time.get_ticks_usec()
+ var channel:Dictionary=host.get_meta("puncture29_channel",{})
+ var depth:float=float(channel.get("cut_depth",0.0))
+ var thickness:float=float(channel.get("max_depth",0.0))
+ max_depth=maxf(max_depth,depth);max_ratio=maxf(max_ratio,depth/maxf(.001,thickness))
+ observed_entry=observed_entry or (channel.get("actual_hit",false) and depth>.001)
+ var row:Array=[phase,begin,begin-previous_usec if previous_usec>0 else 0,Engine.get_physics_frames(),solid.get("last_solver_usec"),depth,host.clay_cuts,solid.get("unresolved"),Performance.get_monitor(Performance.TIME_PROCESS),Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)]
+ for i in COUNTERS.size():
+  var current:int=solid.get(COUNTERS[i]);row.append(current-int(previous_counters[i]) if previous_counters.size()==COUNTERS.size() else 0)
+  if previous_counters.size()==COUNTERS.size():previous_counters[i]=current
+ if previous_counters.is_empty():
+  for field in COUNTERS:previous_counters.append(solid.get(field))
+ samples.append(row);previous_usec=begin
+ observer_usec+=Time.get_ticks_usec()-begin
+func physics_sample():
+ if phase.is_empty() or not is_instance_valid(host):previous_physics_usec=0;physics_previous.clear();return
+ var now:=Time.get_ticks_usec()
+ var channel:Dictionary=host.get_meta("puncture29_channel",{})
+ var player:Node3D=current_scene.get("_player")
+ var row:Array=[phase,now,now-previous_physics_usec if previous_physics_usec>0 else 0,Engine.get_physics_frames(),float(channel.get("cut_depth",0)),float(channel.get("max_depth",0)),player.position.x,player.position.y,player.position.z,player.velocity.x,player.velocity.y,player.velocity.z,solid.last_solver_usec]
+ for i in COUNTERS.size():
+  var value:int=solid.get(COUNTERS[i])
+  row.append(value-int(physics_previous[i]) if physics_previous.size()==COUNTERS.size() else 0)
+  if physics_previous.size()==COUNTERS.size():physics_previous[i]=value
+ if physics_previous.is_empty():
+  for field in COUNTERS:physics_previous.append(solid.get(field))
+ physics_samples.append(row);previous_physics_usec=now
+func set_phase(value:String):
+ phase=value;previous_usec=0;previous_counters.clear();previous_physics_usec=0;physics_previous.clear()
+func start_scene(weapon:int,x:float,z:float,pitch:float):
+ set_phase("")
+ if is_instance_valid(current_scene):
+  var old:=current_scene;current_scene=null;host=null;solid=null;old.queue_free();await frames(4)
+ var scene:Node=load("res://scenes/arena27.tscn").instantiate();root.add_child(scene);current_scene=scene
+ while not scene.get("lab_ready"):await physics_frame
+ host=scene.get("lab");host.lab_regrow=false;scene.call("_lab_equip",weapon);solid=host.get("_solid_weapon29")
+ var player:Node=scene.get("_player")
+ player.global_position=Vector3(x,.05,z);player.velocity=Vector3.ZERO;player._camera_yaw=0.;player._camera_pitch=pitch;player._update_camera_rotation();player.set_mouse_captured(true)
+ max_depth=0.;max_ratio=0.;observed_entry=false
+ await frames(30)
+func probe(label:String,weapon:int,pitch:float,aim:Vector2,strength:float):
+ await start_scene(weapon,.2 if weapon==0 else 0.,1.3,pitch)
+ host.set_meta("debug_bore31",false)
+ button(true);motion(aim);await ticks(45)
+ move("preview_move_forward",strength)
+ var peak:=0.0
+ var rows:Array=[]
+ for i in 60:
+  await physics_frame
+  var channel:Dictionary=host.get_meta("puncture29_channel",{})
+  peak=maxf(peak,float(channel.get("cut_depth",0)))
+  if true:
+   var contact:Dictionary=solid.last_contact
+   rows.append({"tick":i,"depth":channel.get("cut_depth",0),"active":channel.get("active",false),"axis":host._dir,"omega":host._omega,"position":host._player.position,"velocity":host._player.velocity,"last_wound":host.clay_last_contact28.duplicate(true),"kind":contact.get("kind"),"part":contact.get("part"),"bore_reject":solid.bore_reject31.duplicate(true),"guide":host._sword_puncture_resistance29.last.duplicate(true),"world":solid._world_obstruction.duplicate(true),"embedded":host._embedded29.status().duplicate(true),"offset":host._embedded29._entry_offset_local,"tip_local":preload("res://scripts/combat/puncture29.gd").tip_local(host),"edge_dir":host._edge_direction,"sword_pose":host._sword.global_transform,"grounded":host._sword_grounded,"selected":host._selected})
+ move("preview_move_forward",0.);button(false)
+ if DisplayServer.get_name()!="headless":
+  await RenderingServer.frame_post_draw;root.get_texture().get_image().save_png(out+"/spear_end.png")
+ checks.actual_spear_penetration=peak>.1
+ var attachment:Node=preload("res://scripts/combat/embedded_drop31.gd").attachment(host._sword)
+ var physical_drop:bool=is_instance_valid(attachment) and attachment.active and is_instance_valid(attachment.body) and is_instance_valid(attachment.owned_shape) and attachment.model==host._sword
+ checks.spear_remains_physical=(not host._sword_grounded and solid._publish_safe) or (host._sword_grounded and physical_drop)
+ if physical_drop:outcomes.append({"stage":"physical_handoff_after_fall","attachment":attachment.status(),"model_id":host._sword.get_instance_id()})
+ outcomes.append({"scenario":label,"peak":peak,"rows":rows})
+func run():
+ root.size=Vector2i(1280,720);root.title="QA33 spear oblique diagnosis"
+ await probe("spear_side",4,-.1,Vector2(30,100),1.)
+ FileAccess.open(out+"/RESULT.json",FileAccess.WRITE).store_string(JSON.stringify({"passed":not checks.values().has(false),"checks":checks,"outcomes":outcomes},"  "))
+ host=null;solid=null
+ if is_instance_valid(current_scene):
+  var old:=current_scene;current_scene=null;old.queue_free()
+ await frames(4);quit(0 if not checks.values().has(false) else 1)
+
