@@ -2,6 +2,7 @@ extends RefCounted
 ## Actor-owned surface wounds; no extra draw geometry and no shared-mesh mutation.
 const ShaderSource=preload("res://scripts/character/hero_wound31.gdshader")
 const LIMIT:=8
+const BloodFlow32=preload("res://scripts/combat/blood_flow32.gd")
 var surfaces:Dictionary={}
 var hits:int=0
 var last:Dictionary={}
@@ -85,6 +86,7 @@ func apply(host:Node,node:MeshInstance3D,point:Vector3,motion:Vector3,kind:Strin
  row.material.set_shader_parameter("wound_normal",padded_n)
  row.material.set_shader_parameter("wound_count",centers.size())
  hits+=1;last={"node":str(node.name),"kind":kind,"distance":sqrt(best),"triangle":tri,"count":centers.size(),"point":point,"motion":motion,"candidate_vertices":group.vertices.size(),"candidate_triangles":group.triangles.size(),"elapsed_usec":Time.get_ticks_usec()-started}
+ BloodFlow32.track_skin(host,"hero_"+str(node.get_instance_id())+"_"+str(hits),node,host._rig,arrays,tri,bary,clampf((radius*scale-0.012)/0.04,0.15,0.8),8.0)
  return true
 
 static func _closest_bary(p:Vector3,a:Vector3,b:Vector3,c:Vector3)->Vector3:

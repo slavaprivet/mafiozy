@@ -6,6 +6,7 @@ extends Node3D
 const CUTOUT = preload("res://scripts/combat/local_wound28.gdshader")
 const Anatomy = preload("res://scripts/combat/cut_anatomy28.gd")
 const Puncture29 = preload("res://scripts/combat/puncture29.gd")
+const BloodFlow32 = preload("res://scripts/combat/blood_flow32.gd")
 const MAX_WOUNDS := 8
 const BLOOD_WINDOW_MS := 3000
 const DRIP_INTERVAL_MS := 140
@@ -101,6 +102,7 @@ static func finish_full_cut(owner: Node, ok: bool) -> void:
 	if is_instance_valid(controller): controller.finish_cut(ok)
 
 func suspend_wounds() -> void:
+	BloodFlow32.clear_host(host)
 	_sync_actor()
 	_invalidate_channel29()
 	if suspended:return
@@ -141,6 +143,7 @@ func _owns_material_row(row: Dictionary) -> bool:
 	return int(row.generation) == int(host.get("lab_resets")) and node.mesh == row.mesh.get_ref()
 
 func clear_wounds(restore_materials: bool = true) -> void:
+	BloodFlow32.clear_host(host)
 	_invalidate_channel29()
 	for material: ShaderMaterial in puncture_materials29:
 		material.set_shader_parameter("puncture_count29" if material.shader == Anatomy.CUT_SHADER else "wound_count",0)
@@ -465,11 +468,26 @@ func _process(delta: float) -> void:
 				var tip := Puncture29.tip_world(host)
 				if tip.distance_to(Vector3(wound.last_tip)) < 0.40: _advance_puncture29(wound,tip)
 				wound.last_tip = tip
-		if _visible_injury29(wound) and now<int(wound.emit_until) and now>=int(wound.emit_at) and host.has_method("_clay_wound_burst28"):
+		var flowing32 := _flow32(wound,now)
+		if not flowing32 and _visible_injury29(wound) and now<int(wound.emit_until) and now>=int(wound.emit_at) and host.has_method("_clay_wound_burst28"):
 			_emit_drip(wound,now)
 			wound.emit_at=now+_drip_interval29(wound)
 	_tick_bleeding29(delta)
 	_update_uniforms()
+
+func _flow32(wound: Dictionary, now: int) -> bool:
+	if not _visible_injury29(wound) or now>=int(wound.emit_until): return false
+	var area := 4.0*float(wound.get("mouth_length29",wound.length))*float(wound.get("mouth_width29",wound.width))
+	var severity := clampf(sqrt(maxf(0.0,area)/0.003)*clampf(float(wound.depth)/0.02,0.0,1.0),0.0,1.0)
+	if severity<0.25: return false
+	var remaining := float(int(wound.emit_until)-now)/1000.0
+	var local := _lower_lip29(wound)
+	var point: Vector3=wound.node.to_global(local)
+	var normal: Vector3=wound.node.global_basis.z
+	var accepted := BloodFlow32.touch(host,"local_"+str(wound.node.get_instance_id()),point,normal,severity*minf(1.0,remaining),generation,wound.node)
+	wound["flow_point32"]=point
+	wound["flow_strength32"]=severity
+	return accepted
 
 static func _drip_interval29(wound: Dictionary) -> int:
 	if not wound.get("puncture",false): return DRIP_INTERVAL_MS

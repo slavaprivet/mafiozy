@@ -1,4 +1,5 @@
 extends "res://scripts/arena27_target.gd"
+const BloodFlow32 = preload("res://scripts/combat/blood_flow32.gd")
 const ClayAnatomy28 = preload("res://scripts/combat/cut_anatomy28.gd")
 const Puncture29 = preload("res://scripts/combat/puncture29.gd")
 const PunctureWound29 = preload("res://scripts/combat/local_wound28.gd")
@@ -513,6 +514,10 @@ func set_selected(value: bool) -> void:
 	super.set_selected(value)
 
 func _lab_reset_now() -> void:
+	var axes:Node = get("_hatchet32") if "_hatchet32" in self else null
+	if is_instance_valid(axes): axes.before_target_reset32()
+	BloodFlow32.clear_host(self)
+	_clay_wounds.clear()
 	# The base reset can free the corpse synchronously. Detach only this
 	# actor's registered embedded weapons before their parent bodies disappear.
 	# dispose preserves each model and inventory entry as a physical world drop.
@@ -688,14 +693,38 @@ func _clay_register_wounds(first: int, normal: Vector3) -> void:
 		wound["body_point"] = body.to_local(site.world)
 		wound["body_normal"] = body.global_basis.inverse() * normal
 		wound["normal"] = normal
+		var source_mesh:MeshInstance3D = site.mesh.get_ref()
+		if is_instance_valid(source_mesh):
+			var basis32 := _clay_wound_basis32(wound,_cut_skin_transforms39(source_mesh))
+			if absf(basis32.determinant()) > 0.000001:
+				wound["normal_rest32"] = basis32.transposed()*normal
 		wound["generation"] = lab_resets
-		wound["expires"] = Time.get_ticks_msec()+3000
+		wound["started"] = Time.get_ticks_msec()
+		wound["expires"] = Time.get_ticks_msec()+12000
+		wound["flow_key32"] = str(body.get_instance_id())+"_"+str(_clay_wounds.size())
 		_clay_wounds.append(wound)
+
+func _clay_wound_basis32(wound:Dictionary, binds:Array) -> Basis:
+	var blended := Basis(Vector3.ZERO,Vector3.ZERO,Vector3.ZERO)
+	for slot:int in wound.bones.size():
+		var bone:int = wound.bones[slot]
+		var weight:float = wound.weights[slot]
+		if weight <= 0.0 or bone < 0 or bone >= binds.size(): continue
+		var basis32:Basis = Transform3D(binds[bone]).basis
+		blended.x += basis32.x*weight
+		blended.y += basis32.y*weight
+		blended.z += basis32.z*weight
+	var mesh:MeshInstance3D = wound.mesh.get_ref()
+	return mesh.global_basis*blended if is_instance_valid(mesh) else Basis(Vector3.ZERO,Vector3.ZERO,Vector3.ZERO)
 
 func _clay_retained_wound(wound: Dictionary) -> Vector3:
 	var mesh: MeshInstance3D = wound.mesh.get_ref()
 	if not is_instance_valid(mesh) or mesh.mesh == null or mesh.mesh != wound.kept_mesh.get_ref(): return Vector3.INF
 	var binds := _cut_skin_transforms39(mesh)
+	if wound.has("normal_rest32"):
+		var basis32 := _clay_wound_basis32(wound,binds)
+		if absf(basis32.determinant()) > 0.000001:
+			wound.normal = (basis32.inverse().transposed()*Vector3(wound.normal_rest32)).normalized()
 	var point := Vector3.ZERO
 	var total := 0.0
 	for slot: int in wound.bones.size():
@@ -707,24 +736,28 @@ func _clay_retained_wound(wound: Dictionary) -> Vector3:
 	return mesh.to_global(point) if total > 0.99 else Vector3.INF
 
 func _update_npc_bleed(delta: float) -> void:
-	# The generic damage timer has no authority to create a wound in clay mode.
+	# Only committed cuts own these streams; contact/HP timers cannot create one.
 	_clay_emit_accum += delta
-	var emit := _clay_emit_accum >= 0.065
-	if emit: _clay_emit_accum = 0.0
+	if _clay_emit_accum < 0.04: return
+	_clay_emit_accum = 0.0
+	var now := Time.get_ticks_msec()
 	for index: int in range(_clay_wounds.size()-1,-1,-1):
 		var wound: Dictionary = _clay_wounds[index]
-		var body: RigidBody3D = wound.body.get_ref()
-		if Time.get_ticks_msec() >= wound.expires or not is_instance_valid(body):
+		if now >= int(wound.expires) or int(wound.generation) != lab_resets:
 			_clay_wounds.remove_at(index)
 			continue
-		if not emit: continue
-		_clay_blood_allowed = true
-		_blood_kind_resume29 = "drip"
-		var retained := _clay_retained_wound(wound) if wound.generation == lab_resets else Vector3.INF
-		if retained.is_finite(): _spray_blood(retained, wound.normal, 2)
-		_spray_blood(body.to_global(wound.body_point), -(body.global_basis * Vector3(wound.body_normal)).normalized(), 2)
-		_clay_blood_allowed = false
-		_blood_kind_resume29 = "cut"
+		var age := float(now-int(wound.started))*0.001
+		var strength := 1.0-clampf((age-2.0)/10.0,0.0,1.0)*0.85
+		var retained := _clay_retained_wound(wound)
+		var mesh:MeshInstance3D = wound.mesh.get_ref()
+		var key:String = str(wound.flow_key32)
+		if retained.is_finite() and is_instance_valid(mesh):
+			BloodFlow32.touch(self,"cap_keep_"+key,retained,wound.normal,strength,lab_resets,mesh)
+		# The detached piece has its own finite physical lifetime. Its removal must
+		# not also stop bleeding at the retained stump.
+		var body:RigidBody3D = wound.body.get_ref()
+		if is_instance_valid(body):
+			BloodFlow32.touch(self,"cap_piece_"+key,body.to_global(wound.body_point),-(body.global_basis*Vector3(wound.body_normal)).normalized(),strength*0.65,lab_resets,body)
 
 
 # Called only by the finite wound controller at an actual wound-surface site.

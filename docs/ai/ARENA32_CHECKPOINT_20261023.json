@@ -1,15 +1,17 @@
 {
-  "stage": "injuries",
+  "stage": "injuries-blood",
   "base_commit": "d7af2e989c075a8dee1dae5b470ba02e1857201d",
   "game_relative": "outputs/arena32_checkpoint20261023/game",
-  "acceptance": "outputs/arena32_checkpoint20261023/qa/injuries/all_gui04/CHECK.json",
-  "graphical_checks": 44,
-  "source_pins": 3322,
+  "source_pins": 3323,
+  "merged_acceptance": [
+    "qa/blood/merged_blood32_gui01/CHECK.json",
+    "qa/blood/merged_blood32_injuries01/CHECK.json"
+  ],
+  "merged_checks": 60,
   "production_pointer_changed": false,
   "full_50v50_accepted": false,
   "pending": [
     "throwing_hatchet",
-    "blood_streams",
     "both_legs_gravity_settle"
   ]
 }

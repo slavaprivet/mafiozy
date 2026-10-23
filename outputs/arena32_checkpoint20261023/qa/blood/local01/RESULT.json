@@ -1,0 +1,30 @@
+{
+  "actual_incision": {
+    "ok": false,
+    "reason": "no_actual_surface"
+  },
+  "checks": {
+    "actual_skin_incision": false,
+    "clear_wounds_no_orphans": true,
+    "local_wound_flows": false,
+    "startup": true,
+    "suspension_removes_flow": true,
+    "visual_disable_does_not_damage": true,
+    "zero_depth_preview_no_flow": true
+  },
+  "passed": false,
+  "pool": {
+    "active": 0,
+    "capacity": 256,
+    "emitted": 0,
+    "last_update_usec": 0,
+    "max_frame_rays": 0,
+    "max_frame_spawns": 0,
+    "max_update_usec": 0,
+    "peak_active": 0,
+    "source_limit": 24,
+    "sources": 0,
+    "spawn_limit": 48
+  },
+  "scope": "Real LocalWound surface-validation API; no forced wound flags or weapon-input acceptance claim."
+}

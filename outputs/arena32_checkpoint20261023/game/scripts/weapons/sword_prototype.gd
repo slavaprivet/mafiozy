@@ -6201,6 +6201,8 @@ func _spawn_cut_debris(gone_arrays: Array, gone_cap: Array, from: MeshInstance3D
 		"visual": piece,
 		"age": 0.0,
 	})
+	if owner_body == _player and not gone_cap.is_empty():
+		preload("res://scripts/combat/blood_flow32.gd").register_player_cap(self, from, piece, gone_cap)
 
 ## Drops the cut pieces under gravity, spins them, and lets them settle.
 func _update_npc_debris(delta: float) -> void:

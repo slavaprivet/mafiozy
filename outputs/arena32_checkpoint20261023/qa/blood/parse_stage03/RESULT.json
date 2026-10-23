@@ -1,0 +1,10 @@
+{
+	"checks": {
+		"res://scripts/arena27.gd": true,
+		"res://scripts/character/hero_wound31.gd": true,
+		"res://scripts/clay_target.gd": true,
+		"res://scripts/combat/blood_flow32.gd": true,
+		"res://scripts/combat/local_wound28.gd": true
+	},
+	"passed": true
+}

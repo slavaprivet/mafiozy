@@ -1,0 +1,36 @@
+{
+  "model": "deepseek-flash",
+  "design": {
+    "prompt_tokens": 571,
+    "completion_tokens": 2616,
+    "reasoning_tokens": 2062,
+    "total_tokens": 3187
+  },
+  "final_review": {
+    "prompt_tokens": 595,
+    "completion_tokens": 2243,
+    "reasoning_tokens": 1873,
+    "total_tokens": 2838
+  },
+  "total_tokens": 6025,
+  "accepted": [
+    "Hard global source/particle/spawn/ray budgets; no per-particle rays",
+    "Exact accepted skin/cap anchors and authored normals; stale mesh/generation/tree invalidation",
+    "Finite cosmetic lifetimes and HP independence",
+    "Fractional simulated-time carry with bounded catchup",
+    "Per-source/host caps, roundrobin admission/spawn, stronger real wound can replace weakest cosmetic source",
+    "Layered disconnected axe exit caution forwarded to weapon owner"
+  ],
+  "limitations": [
+    "24 visible stream sources is a cosmetic cap, not proof of 100fighter performance",
+    "No fluid simulation or medical blood-volume claims",
+    "Source-level cached world ray checks, not exact per-drop world collision",
+    "Existing incision HP behavior kept; only existing puncture bleed budgets drain HP"
+  ],
+  "raw_findings_retained": [
+    "pool01 rate90vs100 fixed carry; pool04 rates100/100/100",
+    "actual_gui01 visual winding inward despite functionalPASS; corrected authorednormal sign",
+    "actual_gui02 functional16PASS but F5 detached-rig stderr; fixed tree-membership guards",
+    "local01 no_actual_surface seeded point refused correctly; local02 uses actual posed skin intersection"
+  ]
+}

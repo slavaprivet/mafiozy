@@ -1,0 +1,38 @@
+{
+  "checks": {
+    "clear_empties_pool": true,
+    "mesh_replacement_retires_source": true,
+    "moves_follow_source": true,
+    "no_perframe_mesh_nodes": true,
+    "particles_bounded": true,
+    "probes_bounded": true,
+    "rate_near_invariant": false,
+    "reset_all_owners": true,
+    "skin_actual_point": true,
+    "skin_registered": true,
+    "sources_bounded": true,
+    "spawn_bounded": true,
+    "stall_no_catchup": true,
+    "teleport_clears_previous": true
+  },
+  "passed": false,
+  "pool": {
+    "active": 256,
+    "capacity": 256,
+    "emitted": 1326,
+    "last_update_usec": 775,
+    "max_frame_rays": 8,
+    "max_frame_spawns": 24,
+    "max_update_usec": 823,
+    "peak_active": 256,
+    "source_limit": 24,
+    "sources": 24,
+    "spawn_limit": 48
+  },
+  "rates": [
+    90,
+    100,
+    100
+  ],
+  "scope": "Pool/lifecycle and exact skin-anchor unit QA, not combat-input acceptance."
+}

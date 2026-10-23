@@ -153,6 +153,7 @@ func _start_lab() -> void:
 	_lab_equip(0,true)
 	lab._solid_weapon29.warm_contact31(lab)
 	preview_ready = true
+	preload("res://scripts/combat/blood_flow32.gd").prepare(lab)
 	lab_ready = true
 	_player.set_mouse_captured(false)
 	_build_lab_rack()
