@@ -1,15 +1,11 @@
 {
-  "captured_utc": "2026-10-23T01:08:19.383139+00:00",
-  "stage": "injuries-blood",
-  "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\arena32_qa\\merged_blood\\game",
+  "captured_utc": "2026-10-23T01:20:06.618347+00:00",
+  "stage": "injuries-blood-settling",
+  "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\arena32_qa\\merged_injury_blood\\game",
   "files": 3323,
   "changed": [
-    "scripts/arena27.gd",
-    "scripts/character/hero_wound31.gd",
-    "scripts/clay_target.gd",
-    "scripts/combat/blood_flow32.gd",
-    "scripts/combat/local_wound28.gd",
-    "scripts/weapons/sword_prototype.gd"
+    "scripts/character/injury_locomotion32.gd",
+    "scripts/preview_player.gd"
   ],
   "source_stable": true,
   "exact_bytes": true,

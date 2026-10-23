@@ -735,6 +735,9 @@ func _physics_process(delta: float) -> void:
 	_jump_pose = {}
 	_injury32.refresh(self)
 	if is_instance_valid(_weapon_host): _weapon_host.advance(delta)
+	# Posture writes the base capsule each tick. Injury support must own the
+	# shape used by this same physical sweep, as well as the final posed shape.
+	_injury32.sync_collision(self)
 	if is_instance_valid(_melee_practice): _melee_practice.advance(delta)
 	if _swimming:
 		_swim_process(delta)

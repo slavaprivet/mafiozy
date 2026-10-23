@@ -1,5 +1,5 @@
 {
-  "stage": "injuries-blood",
+  "stage": "injuries-blood-settling",
   "base_commit": "d7af2e989c075a8dee1dae5b470ba02e1857201d",
   "game_relative": "outputs/arena32_checkpoint20261023/game",
   "source_pins": 3323,
@@ -11,7 +11,10 @@
   "production_pointer_changed": false,
   "full_50v50_accepted": false,
   "pending": [
-    "throwing_hatchet",
-    "both_legs_gravity_settle"
+    "throwing_hatchet"
+  ],
+  "settling_acceptance": [
+    "qa/settling/merged_settle32_gui01/CHECK.json",
+    "qa/settling/merged_settle32_injury01/CHECK.json"
   ]
 }
