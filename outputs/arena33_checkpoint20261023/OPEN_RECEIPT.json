@@ -1,0 +1,14 @@
+{
+  "checkpoint_commit": "08af27e1b09e5a749193942843fc22d8352cfe36",
+  "opened": {
+    "pid": 40212,
+    "game": "D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game",
+    "scene": "res://scenes/arena27.tscn",
+    "output": "D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\interactive\\20261023T142845558Z",
+    "started": "2026-10-23T17:28:45.5837801+03:00"
+  },
+  "ready_ok": true,
+  "stderr_bytes_at_open": 0,
+  "previous_user_window_preserved": 54284,
+  "performance_acceptance": false
+}

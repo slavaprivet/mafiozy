@@ -1,0 +1,225 @@
+{
+  "status": "D_ONLY_WIP_NOT_ACCEPTED_DO_NOT_MERGE",
+  "scope": "Cached authored model-local convex hull for embedded G/drop; no shared or published source edited. Root shipped accepted main33 without this candidate. No more engine runs planned.",
+  "private_game": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\hull33\\game",
+  "owned_files": {
+    "scripts/combat/embedded_hull33.gd": {
+      "private_path": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\hull33\\game\\scripts\\combat\\embedded_hull33.gd",
+      "expected_before_sha256": null,
+      "candidate_sha256": "5c687fa7faad3507951f47876bcf89c03c3b6de8adf6afcc8509162338761b5b"
+    },
+    "scripts/combat/embedded_drop31.gd": {
+      "private_path": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\hull33\\game\\scripts\\combat\\embedded_drop31.gd",
+      "expected_before_sha256": "39a99a3b5df4f2704e7ccd708c96c9e1a0ae89bf006be2084f3289431442afa6",
+      "candidate_sha256": "e24626ef3ab86d8bb7fc0ee6a1584c64ccdcac7f8c1611e68e0fd689509bc079"
+    },
+    "scripts/weapons/weapon_model_finish31.gd": {
+      "private_path": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\hull33\\game\\scripts\\weapons\\weapon_model_finish31.gd",
+      "expected_before_sha256": "8817849b8488497f7ce7e5e5ddaf5f6c97b85a3bdbacae22c5f086cb870b2402",
+      "candidate_sha256": "1ac002fef4719180781433ecaa3b0fee62e98b8b7a3793f97fdf16721993261e"
+    }
+  },
+  "contact_refresh": {
+    "scripts/combat/contact_mixed_bvh31.gd": {
+      "before": "51ed0cd1ba64eac9dd0921c4c518c88de886dffb5a3605c48759d5ee3cf9c1cd",
+      "after": "f3a0b5c1a957a67dd5d6983f4a6e126b3e5ddd4265d32ee7027b85fee5004e0f"
+    },
+    "scripts/combat/sword_puncture_resistance29.gd": {
+      "before": "dac6b0b46383025fe8a282aab357a1878316de84408d58141ac431cd0354645f",
+      "after": "455205e569c583471bb5d1f6b3fd2e45240194a44feba95d9a7c429a47b043ed"
+    },
+    "scripts/combat/weapon_solid_contact29.gd": {
+      "before": "57c7811e12a0819f7550ebc4a6093fd3d45510794f2563067ab3b42c778524d1",
+      "after": "981c360382fbbc830018e9419ebc04631a3c12187efdf34ab3904e7cf54f4600"
+    }
+  },
+  "runs": {
+    "hull_oracle01": {
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\hull_oracle01",
+      "passed": true,
+      "passed_checks": 19,
+      "checks": 19,
+      "failed_checks": [],
+      "source_stable": true,
+      "stderr_bytes": 0
+    },
+    "hull_oracle02": {
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\hull_oracle02",
+      "passed": false,
+      "passed_checks": 30,
+      "checks": 34,
+      "failed_checks": [
+        "axe_native_collision_matches",
+        "sledge_native_collision_matches",
+        "spear_native_collision_matches",
+        "sword_native_collision_matches"
+      ],
+      "source_stable": true,
+      "stderr_bytes": 0
+    },
+    "hull_oracle04": {
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\hull_oracle04",
+      "passed": true,
+      "passed_checks": 34,
+      "checks": 34,
+      "failed_checks": [],
+      "source_stable": true,
+      "stderr_bytes": 0
+    },
+    "hull_sword_alive03": {
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\hull_sword_alive03",
+      "passed": false,
+      "passed_checks": 13,
+      "checks": 14,
+      "failed_checks": [
+        "real_S_withdrawal"
+      ],
+      "source_stable": true,
+      "stderr_bytes": 0
+    },
+    "hull_sword_corpse05": {
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\hull_sword_corpse05",
+      "passed": false,
+      "passed_checks": 13,
+      "checks": 17,
+      "failed_checks": [
+        "E_preserves_original_wound",
+        "E_regrabs_same_instance",
+        "E_restores_only_owned_mass_shape",
+        "real_S_withdrawal"
+      ],
+      "source_stable": true,
+      "stderr_bytes": 0
+    },
+    "hull_corpse_old_control06": {
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\hull_corpse_old_control06",
+      "passed": false,
+      "passed_checks": 16,
+      "checks": 17,
+      "failed_checks": [
+        "real_S_withdrawal"
+      ],
+      "source_stable": true,
+      "stderr_bytes": 0
+    },
+    "hull_final_old07": {
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\hull_final_old07",
+      "passed": false,
+      "passed_checks": 16,
+      "checks": 17,
+      "failed_checks": [
+        "real_S_withdrawal"
+      ],
+      "source_stable": true,
+      "stderr_bytes": 0
+    },
+    "hull_final_cached08": {
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\hull_final_cached08",
+      "passed": false,
+      "passed_checks": 1,
+      "checks": 4,
+      "failed_checks": [
+        "actual_entry",
+        "channel_valid_before_G",
+        "requested_life_state"
+      ],
+      "source_stable": true,
+      "stderr_bytes": 0
+    }
+  },
+  "geometry": [
+    {
+      "cached_attach_usec": 535,
+      "native_tolerance_basis": "Half the unchanged 1mm convex margin; exact authored support independently <=10um. Raw 0.1mm comparison retained in oracle02.",
+      "native_tolerance_m": 0.0005,
+      "old_build_usec": 1591,
+      "old_full_read_build_usec": 2465,
+      "old_vs_old_frame_error": 0.000142698350828141,
+      "owner_support_error": 1.19209289550781e-07,
+      "ray_error": 0.000142765013151802,
+      "ray_hits": 70,
+      "ray_mismatch": 0,
+      "source_read_usec": 874,
+      "weapon_native": "sword"
+    },
+    {
+      "cached_attach_usec": 527,
+      "native_tolerance_basis": "Half the unchanged 1mm convex margin; exact authored support independently <=10um. Raw 0.1mm comparison retained in oracle02.",
+      "native_tolerance_m": 0.0005,
+      "old_build_usec": 1109,
+      "old_full_read_build_usec": 1555,
+      "old_vs_old_frame_error": 6.59824872855097e-05,
+      "owner_support_error": 8.94069671630859e-08,
+      "ray_error": 6.59526267554611e-05,
+      "ray_hits": 70,
+      "ray_mismatch": 0,
+      "source_read_usec": 446,
+      "weapon_native": "mace"
+    },
+    {
+      "cached_attach_usec": 263,
+      "native_tolerance_basis": "Half the unchanged 1mm convex margin; exact authored support independently <=10um. Raw 0.1mm comparison retained in oracle02.",
+      "native_tolerance_m": 0.0005,
+      "old_build_usec": 694,
+      "old_full_read_build_usec": 1100,
+      "old_vs_old_frame_error": 0.000316560210194439,
+      "owner_support_error": 1.78813934326172e-07,
+      "ray_error": 0.000316902529448271,
+      "ray_hits": 70,
+      "ray_mismatch": 0,
+      "source_read_usec": 406,
+      "weapon_native": "axe"
+    },
+    {
+      "cached_attach_usec": 274,
+      "native_tolerance_basis": "Half the unchanged 1mm convex margin; exact authored support independently <=10um. Raw 0.1mm comparison retained in oracle02.",
+      "native_tolerance_m": 0.0005,
+      "old_build_usec": 831,
+      "old_full_read_build_usec": 1182,
+      "old_vs_old_frame_error": 0.000121112345368601,
+      "owner_support_error": 1.78813934326172e-07,
+      "ray_error": 0.000120990596769843,
+      "ray_hits": 70,
+      "ray_mismatch": 0,
+      "source_read_usec": 351,
+      "weapon_native": "sledge"
+    },
+    {
+      "cached_attach_usec": 273,
+      "native_tolerance_basis": "Half the unchanged 1mm convex margin; exact authored support independently <=10um. Raw 0.1mm comparison retained in oracle02.",
+      "native_tolerance_m": 0.0005,
+      "old_build_usec": 774,
+      "old_full_read_build_usec": 1063,
+      "old_vs_old_frame_error": 0.000166118261404336,
+      "owner_support_error": 3.57627868652344e-07,
+      "ray_error": 0.000166058613103814,
+      "ray_hits": 70,
+      "ray_mismatch": 0,
+      "source_read_usec": 289,
+      "weapon_native": "spear"
+    }
+  ],
+  "findings": [
+    "350 native ray hit/miss results match old hull. Exact authored support error <=0.36 micrometres. Cooking coordinates introduce0.066–0.317mm ray-position differences; independent old-vs-old coordinate control reproduces these within0.35micrometres. Raw0.1mm assertion failures retained; later0.5mm scalar threshold is bounded by half unchanged1mm margin and independently measured baseline cooking error.",
+    "Warmed isolated readback+old build1.06–2.47ms versus cached attach0.26–0.54ms. Actual corpse G cached attach571us, second release85us. These are constructor components, not whole-frame FPS or an explanation of original unlocalized406ms.",
+    "Alive GUI03 G45, Q/repeatG, same-instance/wound E passed. Old S flag assertion failed after physical tip exited and current channel became pending_tip_outside. Fixture follow-up measures actual saved-channel depth and real S path.",
+    "Corpse GUI05 adds correct own shape/mass but releases after E; control06 old constructor holds E then fails later S. They are not equivalent evidence.",
+    "Final fixed-seed33023/current-contact old07 holds E then fails S. Cached08 never reaches entry: player remains initial position, hull attach never invoked. Therefore the bounded final pair cannot establish G/E equivalence; no further retries under root instruction.",
+    "Final tiny robustness changes top_level descendant transform/root-mesh exclusion/non-unit-scale baked fallback compiled in finalcached08 but did not receive full oracle coverage. They remain unaccepted."
+  ],
+  "assumptions_and_fallbacks": [
+    "Authored melee models have ordinary Node3D roots and rigid unit-scale body/model transforms. Root pose/reparent/equipment-hidden state does not invalidate model-local geometry. Descendant visibility and local transforms are exact stamp inputs.",
+    "Mesh.changed queues deferred rebuild; unexpected local-transform/visibility/geometry changes discovered at acquire trigger synchronous correctness fallback. No promise of zero hitch for runtime geometry mutation.",
+    "Top-level child geometry is represented in model-local coordinates using actual global transform; its stamp changes when model/global relation changes. Root MeshInstance itself is excluded to match original find_children behavior.",
+    "Non-orthonormal owner-to-model basis falls back to a newly baked owner-local convex with unchanged1mm margin, preserving scaled/sheared authored geometry. Normal authored rigid frames reuse preparedshape.",
+    "Startup isolated PhysicsServer space native overlap was verified onall5weapons; all5readybeforecontact and no coldacquire in realG. Hatchet/menu8 regression remains unrun because root capped final experiments."
+  ],
+  "visual_review": [
+    "Viewed hull_sword_alive03/dropped.png and hull_sword_corpse05/dropped.png. Functional states visible; camera behind player occludes steel/wound. These images are not a closeup geometry/bleeding acceptance. Native point/ray tests are geometry evidence."
+  ],
+  "remaining": [
+    "Reliable same-input corpse E and actual withdrawal equivalence, plus hatchet/menu8, before any merge.",
+    "No causal claim that cached hull resolves unexplained cold406ms.",
+    "User windows preserved; PID54284 and laterPID40212 owned by user/root, no process closure by this agent."
+  ]
+}
