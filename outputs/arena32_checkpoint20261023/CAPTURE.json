@@ -1,11 +1,10 @@
 {
-  "captured_utc": "2026-10-23T01:20:06.618347+00:00",
-  "stage": "injuries-blood-settling",
-  "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\arena32_qa\\merged_injury_blood\\game",
-  "files": 3323,
+  "captured_utc": "2026-10-23T01:36:03.888587+00:00",
+  "stage": "final-injuries-blood-hatchet",
+  "source": "D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game",
+  "files": 3433,
   "changed": [
-    "scripts/character/injury_locomotion32.gd",
-    "scripts/preview_player.gd"
+    "scripts/weapons/throwing_axe32.gd"
   ],
   "source_stable": true,
   "exact_bytes": true,

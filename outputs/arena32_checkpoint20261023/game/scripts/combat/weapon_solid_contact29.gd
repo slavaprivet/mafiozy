@@ -80,7 +80,7 @@ var _surface_sources31:Dictionary={}
 var entry_collar_admissions31:=0
 
 func _enabled(host:Node)->bool:
-	return str(host.get("_weapon_id")) in ["sword","axe","mace","sledge","spear"] and not host.get("_sword_grounded") and not host.get("_unarmed") and host.get("_selected") and not host.get("_throwing") and not host.get("_spear_cast_pending31") and not bool(host.get("_world").get("preview_dead"))
+	return str(host.get("_weapon_id")) in ["sword","axe","mace","sledge","spear","hatchet"] and not host.get("_sword_grounded") and not host.get("_unarmed") and host.get("_selected") and not host.get("_throwing") and not host.get("_spear_cast_pending31") and not bool(host.get("_world").get("preview_dead"))
 
 func owns_body_contacts(host:Node)->bool:
 	return _enabled(host)
@@ -967,4 +967,40 @@ func status()->Dictionary:
 	result.pose_safe=_publish_safe;result.last_contact=last_contact
 	result.rigid_triangles31=rigid_triangles31;result.mixed_triangles31=mixed_triangles31
 	result.bvh_builds31=bvh_builds31;result.bvh_build_usec31=bvh_build_usec31;result.skin_hits_usec31=skin_hits_usec31
+	return result
+
+# Synchronous projectile rays share one exact snapshot. The caller ends the
+# batch before applying impact/damage, so no pose or topology mutation is hidden.
+func begin_projectile_queries32()->Array:
+	var previous:Array=[_phase_running,_phase_prepared]
+	_phase_running=true;_phase_prepared=false
+	return previous
+func end_projectile_queries32(previous:Array)->void:
+	_phase_running=bool(previous[0]);_phase_prepared=false
+
+# Hatchet insertion needs authored source/face and unflipped winding, unlike
+# contact normals which deliberately face the incoming segment. Ordinary
+# skin_hits keeps its original keys, ordering and duplicate law.
+func skin_hits_detailed32(host:Node,from:Vector3,to:Vector3,part:String="")->Array[Dictionary]:
+	var result:Array[Dictionary]=[]
+	if from.distance_squared_to(to)<=1e-20:return result
+	_prepare(host,AABB(from,Vector3.ZERO).expand(to).grow(.0001))
+	var family:=Puncture._family(part)
+	var raw:Array[Dictionary]=[]
+	for view_index:int in _view_bvh31.candidates(from,to):
+		var view:Dictionary=_rigid_views[view_index]
+		if not part.is_empty() and str(view.family)!=family:continue
+		for hit:Dictionary in view.tree.intersections(from,to,true):
+			var source:Dictionary=_surface_sources31.get(view.source_key,{})
+			var face:int=int(hit.get("face",hit.order))
+			var triangle:=_collar_triangle31(source,face)
+			if triangle.size()!=3:continue
+			raw.append({"point":hit.position,"bone":view.bone,"normal":hit.normal,"raw_normal":(triangle[1]-triangle[0]).cross(triangle[2]-triangle[0]).normalized(),"source_key":view.source_key,"source":source,"face":face,"order":int(view.order)+int(hit.order)})
+	raw.sort_custom(func(a:Dictionary,b:Dictionary)->bool:return int(a.order)<int(b.order))
+	for hit:Dictionary in raw:
+		var duplicate:=false
+		for old:Dictionary in result:
+			if old.source_key==hit.source_key and Vector3(old.point).distance_to(hit.point)<.000001:duplicate=true;break
+		if not duplicate:result.append(hit)
+	result.sort_custom(func(a:Dictionary,b:Dictionary)->bool:return from.distance_squared_to(a.point)<from.distance_squared_to(b.point))
 	return result

@@ -1,0 +1,91 @@
+{
+  "checks": {
+    "forearm_l_actual_mesh_sever": true,
+    "forearm_l_charge_rule": true,
+    "forearm_l_survives": true,
+    "forearm_l_throw_hand_rule": true,
+    "forearm_r_actual_mesh_sever": true,
+    "forearm_r_charge_rule": true,
+    "forearm_r_survives": true,
+    "forearm_r_throw_hand_rule": true
+  },
+  "passed": true,
+  "rows": [
+    {
+      "axes": {
+        "aiming": false,
+        "capacity": 3,
+        "casting": false,
+        "charges": 3,
+        "events": [],
+        "last": {},
+        "launched": 0,
+        "picked": 0,
+        "states": [
+          {
+            "id": 229260663291,
+            "ray_max_usec": 0,
+            "state": "held"
+          },
+          {
+            "id": 237313727211,
+            "ray_max_usec": 0,
+            "state": "reserve"
+          },
+          {
+            "id": 237632494330,
+            "ray_max_usec": 0,
+            "state": "reserve"
+          }
+        ]
+      },
+      "lost_left": false,
+      "lost_right": true,
+      "part": "forearm_l"
+    },
+    {
+      "axes": {
+        "aiming": false,
+        "capacity": 3,
+        "casting": false,
+        "charges": 2,
+        "events": [
+          {
+            "charges": 2,
+            "event": "launch",
+            "serial": 0,
+            "speed": 22.9997272491455
+          }
+        ],
+        "last": {
+          "charges": 2,
+          "event": "launch",
+          "serial": 0,
+          "speed": 22.9997272491455
+        },
+        "launched": 1,
+        "picked": 0,
+        "states": [
+          {
+            "id": 432600520626,
+            "ray_max_usec": 2673,
+            "state": "flying"
+          },
+          {
+            "id": 438355106811,
+            "ray_max_usec": 0,
+            "state": "held"
+          },
+          {
+            "id": 438673873641,
+            "ray_max_usec": 0,
+            "state": "reserve"
+          }
+        ]
+      },
+      "lost_left": true,
+      "lost_right": false,
+      "part": "forearm_r"
+    }
+  ]
+}

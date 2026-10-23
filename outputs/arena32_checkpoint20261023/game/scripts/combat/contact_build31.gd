@@ -46,7 +46,9 @@ static func surfaces(inputs:Array,bind_bones:PackedInt32Array,bone_names:PackedS
 static func _entry_topology31(data:Dictionary)->void:
 	# Pure-array immutable adjacency follows partition face order. Rebuilt cut
 	# topology prepares this in the same worker as the BVH, not during commit.
-	if data.has("entry_faces31"):return
+	if data.has("entry_faces31"):
+		if not data.has("hatchet_volume32"):data.hatchet_volume32=preload("res://scripts/weapons/hatchet_volume32.gd").build_topology(data)
+		return
 	var faces:Array[Vector3i]=[];var neighbors:Array=[];var edges:Dictionary={}
 	for group:Dictionary in data.groups.values():
 		for i in range(0,group.indices.size(),3):
@@ -58,6 +60,7 @@ static func _entry_topology31(data:Dictionary)->void:
 				if not edges.has(key):edges[key]=[]
 				edges[key].append(index)
 	data.entry_faces31=faces;data.entry_neighbors31=neighbors
+	data.hatchet_volume32=preload("res://scripts/weapons/hatchet_volume32.gd").build_topology(data)
 
 static func partition(data:Dictionary,bind_count:int)->Dictionary:
 	_entry_topology31(data)

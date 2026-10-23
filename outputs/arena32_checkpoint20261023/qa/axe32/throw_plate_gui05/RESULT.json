@@ -1,0 +1,225 @@
+{
+  "checks": {
+    "actual_protected_plate_target": true,
+    "actual_skin_contact": true,
+    "appropriate_contact": true,
+    "bone_follow": true,
+    "consumed_charges": true,
+    "damage_law": true,
+    "launch_0": true,
+    "q_actual_hatchet": true,
+    "startup": true,
+    "three_unique_instances": true
+  },
+  "passed": true,
+  "rows": [
+    {
+      "coverage": {
+        "damage": 7.28,
+        "factor": 0.28,
+        "region": "plate",
+        "slot": "torso",
+        "tier": "heavy"
+      },
+      "part": "chest",
+      "phase": "plate_aim_candidate",
+      "point": "(-0.075, 0.8, -1.845154)"
+    },
+    {
+      "coverage": {
+        "damage": 7.28,
+        "factor": 0.28,
+        "region": "plate",
+        "slot": "torso",
+        "tier": "heavy"
+      },
+      "part": "chest",
+      "phase": "plate_aim_candidate",
+      "point": "(-0.075, 0.9, -1.848184)"
+    },
+    {
+      "coverage": {
+        "damage": 7.28,
+        "factor": 0.28,
+        "region": "plate",
+        "slot": "torso",
+        "tier": "heavy"
+      },
+      "part": "chest",
+      "phase": "plate_aim_candidate",
+      "point": "(0.0, 0.9, -1.846162)"
+    },
+    {
+      "camera": "[X: (1.0, 0.0, 0.0), Y: (0.0, 0.982635, -0.18555), Z: (0.0, 0.18555, 0.982635), O: (0.0, 2.271555, 5.840959)]",
+      "phase": "aim",
+      "pose": "[X: (0.002953, 0.998466, 0.055289), Y: (-0.053255, 0.055367, -0.997045), Z: (-0.998577, -0.0, 0.053337), O: (0.235314, 1.678016, 2.560982)]",
+      "state": {
+        "aiming": true,
+        "capacity": 3,
+        "casting": false,
+        "charges": 3,
+        "events": [],
+        "last": {},
+        "launched": 0,
+        "picked": 0,
+        "states": [
+          {
+            "id": 244511152607,
+            "ray_max_usec": 0,
+            "state": "held"
+          },
+          {
+            "id": 253570849487,
+            "ray_max_usec": 0,
+            "state": "reserve"
+          },
+          {
+            "id": 253889616606,
+            "ray_max_usec": 0,
+            "state": "reserve"
+          }
+        ]
+      }
+    },
+    {
+      "hp": 270.0,
+      "phase": "shot",
+      "state": {
+        "aiming": false,
+        "capacity": 3,
+        "casting": false,
+        "charges": 2,
+        "events": [
+          {
+            "charges": 2,
+            "event": "launch",
+            "serial": 0,
+            "speed": 22.9999980926514
+          },
+          {
+            "actual_skin": true,
+            "edge": true,
+            "event": "bounce",
+            "point": "(0.001503, 0.920816, -1.844586)",
+            "protection": {
+              "damage": 0.0,
+              "factor": 0.21385030743029,
+              "penetrates": false,
+              "region": "plate",
+              "slot": "torso",
+              "tier": "heavy"
+            },
+            "serial": 0,
+            "speed": 23.3380451202393
+          }
+        ],
+        "last": {
+          "actual_skin": true,
+          "edge": true,
+          "event": "bounce",
+          "point": "(0.001503, 0.920816, -1.844586)",
+          "protection": {
+            "damage": 0.0,
+            "factor": 0.21385030743029,
+            "penetrates": false,
+            "region": "plate",
+            "slot": "torso",
+            "tier": "heavy"
+          },
+          "serial": 0,
+          "speed": 23.3380451202393
+        },
+        "launched": 1,
+        "picked": 0,
+        "states": [
+          {
+            "id": 244511152607,
+            "ray_max_usec": 7751,
+            "state": "ground"
+          },
+          {
+            "id": 253570849487,
+            "ray_max_usec": 0,
+            "state": "held"
+          },
+          {
+            "id": 253889616606,
+            "ray_max_usec": 0,
+            "state": "reserve"
+          }
+        ]
+      }
+    },
+    {
+      "anchor_error": 0.0,
+      "final": {
+        "aiming": false,
+        "capacity": 3,
+        "casting": false,
+        "charges": 2,
+        "events": [
+          {
+            "charges": 2,
+            "event": "launch",
+            "serial": 0,
+            "speed": 22.9999980926514
+          },
+          {
+            "actual_skin": true,
+            "edge": true,
+            "event": "bounce",
+            "point": "(0.001503, 0.920816, -1.844586)",
+            "protection": {
+              "damage": 0.0,
+              "factor": 0.21385030743029,
+              "penetrates": false,
+              "region": "plate",
+              "slot": "torso",
+              "tier": "heavy"
+            },
+            "serial": 0,
+            "speed": 23.3380451202393
+          }
+        ],
+        "last": {
+          "actual_skin": true,
+          "edge": true,
+          "event": "bounce",
+          "point": "(0.001503, 0.920816, -1.844586)",
+          "protection": {
+            "damage": 0.0,
+            "factor": 0.21385030743029,
+            "penetrates": false,
+            "region": "plate",
+            "slot": "torso",
+            "tier": "heavy"
+          },
+          "serial": 0,
+          "speed": 23.3380451202393
+        },
+        "launched": 1,
+        "picked": 0,
+        "states": [
+          {
+            "id": 244511152607,
+            "ray_max_usec": 7751,
+            "state": "ground"
+          },
+          {
+            "id": 253570849487,
+            "ray_max_usec": 0,
+            "state": "held"
+          },
+          {
+            "id": 253889616606,
+            "ray_max_usec": 0,
+            "state": "reserve"
+          }
+        ]
+      },
+      "hp_after": 270.0,
+      "hp_before": 270.0
+    }
+  ],
+  "tier": "heavy"
+}

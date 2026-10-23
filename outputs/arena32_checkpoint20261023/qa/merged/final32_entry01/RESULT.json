@@ -1,0 +1,51 @@
+{
+  "checks": {
+    "actual_skin_interval": true,
+    "positive_crossing_0.0002": true,
+    "positive_crossing_0.0005": true,
+    "positive_crossing_0.001": true,
+    "positive_crossing_0.002": true
+  },
+  "origin": "(-0.000142, 0.853548, -2.021549)",
+  "passed": true,
+  "path": {
+    "bone": 3,
+    "entry": "(-0.000142, 0.853548, -1.846489)",
+    "exit": "(-0.000142, 0.853548, -2.196379)",
+    "intersections": 8,
+    "length": 0.349889993667603,
+    "normal": "(-0.01345, 0.056613, 0.998306)",
+    "ok": true
+  },
+  "rows": [
+    {
+      "depth": 0.00019991397857666,
+      "penetration_m": 0.0002,
+      "reason": "",
+      "result_ok": true,
+      "usec": 1732
+    },
+    {
+      "depth": 0.000499844551086426,
+      "penetration_m": 0.0005,
+      "reason": "",
+      "result_ok": true,
+      "usec": 1885
+    },
+    {
+      "depth": 0.000999927520751953,
+      "penetration_m": 0.001,
+      "reason": "",
+      "result_ok": true,
+      "usec": 1948
+    },
+    {
+      "depth": 0.00199985504150391,
+      "penetration_m": 0.002,
+      "reason": "",
+      "result_ok": true,
+      "usec": 1773
+    }
+  ],
+  "scope": "Isolated real posed-mesh entry gate: supplied continuous tip segments across measured surface, no input claim; final physical acceptance independently required."
+}

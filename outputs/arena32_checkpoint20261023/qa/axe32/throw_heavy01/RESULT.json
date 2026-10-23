@@ -1,0 +1,175 @@
+{
+  "checks": {
+    "actual_skin_contact": true,
+    "appropriate_contact": false,
+    "bone_follow": true,
+    "consumed_charges": true,
+    "damage_law": false,
+    "launch_0": true,
+    "q_actual_hatchet": true,
+    "startup": true,
+    "three_unique_instances": true
+  },
+  "passed": false,
+  "rows": [
+    {
+      "camera": "[X: (1.0, 0.0, -0.000032), Y: (-0.000005, 0.985183, -0.171506), Z: (0.000031, 0.171506, 0.985183), O: (0.000106, 2.223804, 5.849623)]",
+      "phase": "aim",
+      "pose": "[X: (0.003722, 0.997567, 0.069611), Y: (-0.053261, 0.06971, -0.996144), Z: (-0.998574, -0.0, 0.053391), O: (0.235794, 1.677287, 2.565619)]",
+      "state": {
+        "aiming": true,
+        "capacity": 3,
+        "casting": false,
+        "charges": 3,
+        "events": [],
+        "last": {},
+        "launched": 0,
+        "picked": 0,
+        "states": [
+          {
+            "id": 229059336699,
+            "state": "held"
+          },
+          {
+            "id": 237095623402,
+            "state": "reserve"
+          },
+          {
+            "id": 237397613304,
+            "state": "reserve"
+          }
+        ]
+      }
+    },
+    {
+      "hp": 231.846558903076,
+      "phase": "shot",
+      "state": {
+        "aiming": false,
+        "capacity": 3,
+        "casting": false,
+        "charges": 2,
+        "events": [
+          {
+            "charges": 2,
+            "event": "launch",
+            "serial": 0,
+            "speed": 23.0
+          },
+          {
+            "depth": 0.0572301616453856,
+            "event": "embed",
+            "part": "chest",
+            "protection": {
+              "damage": 38.1534410969237,
+              "factor": 0.78,
+              "penetrates": true,
+              "region": "joint",
+              "slot": "torso",
+              "tier": "heavy"
+            },
+            "serial": 0,
+            "speed": 23.3130073547363
+          }
+        ],
+        "last": {
+          "depth": 0.0572301616453856,
+          "event": "embed",
+          "part": "chest",
+          "protection": {
+            "damage": 38.1534410969237,
+            "factor": 0.78,
+            "penetrates": true,
+            "region": "joint",
+            "slot": "torso",
+            "tier": "heavy"
+          },
+          "serial": 0,
+          "speed": 23.3130073547363
+        },
+        "launched": 1,
+        "picked": 0,
+        "states": [
+          {
+            "id": 229059336699,
+            "state": "embedded"
+          },
+          {
+            "id": 237095623402,
+            "state": "held"
+          },
+          {
+            "id": 237397613304,
+            "state": "reserve"
+          }
+        ]
+      }
+    },
+    {
+      "anchor_error": 0.0,
+      "final": {
+        "aiming": false,
+        "capacity": 3,
+        "casting": false,
+        "charges": 2,
+        "events": [
+          {
+            "charges": 2,
+            "event": "launch",
+            "serial": 0,
+            "speed": 23.0
+          },
+          {
+            "depth": 0.0572301616453856,
+            "event": "embed",
+            "part": "chest",
+            "protection": {
+              "damage": 38.1534410969237,
+              "factor": 0.78,
+              "penetrates": true,
+              "region": "joint",
+              "slot": "torso",
+              "tier": "heavy"
+            },
+            "serial": 0,
+            "speed": 23.3130073547363
+          }
+        ],
+        "last": {
+          "depth": 0.0572301616453856,
+          "event": "embed",
+          "part": "chest",
+          "protection": {
+            "damage": 38.1534410969237,
+            "factor": 0.78,
+            "penetrates": true,
+            "region": "joint",
+            "slot": "torso",
+            "tier": "heavy"
+          },
+          "serial": 0,
+          "speed": 23.3130073547363
+        },
+        "launched": 1,
+        "picked": 0,
+        "states": [
+          {
+            "id": 229059336699,
+            "state": "embedded"
+          },
+          {
+            "id": 237095623402,
+            "state": "held"
+          },
+          {
+            "id": 237397613304,
+            "state": "reserve"
+          }
+        ]
+      },
+      "hp_after": 231.846558903076,
+      "hp_before": 270.0
+    }
+  ],
+  "tier": "heavy"
+}

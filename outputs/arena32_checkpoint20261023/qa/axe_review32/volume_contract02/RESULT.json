@@ -1,0 +1,24 @@
+{
+  "checks": {
+    "actual_world_caps_requested_depth": true,
+    "disconnected_exit_refused": true,
+    "nearest_coherent_exit_not_far_shell": true,
+    "open_connected_fold_not_proven_volume": true,
+    "open_plane_no_exit": true
+  },
+  "details": {
+    "open_fold_depth": 0.0,
+    "world_depth": 0.0330000001490116,
+    "world_report": {
+      "depth": 0.0330000001490116,
+      "face": 0,
+      "reason": "connected_exit",
+      "requested": 0.08,
+      "source": "wallcase",
+      "thickness": 0.100000001490116,
+      "world_blocked": true
+    }
+  },
+  "passed": true,
+  "scope": "isolated volume contract; actual native wall ray, synthetic exact topology/hit DTOs; not a gameplay collision claim"
+}

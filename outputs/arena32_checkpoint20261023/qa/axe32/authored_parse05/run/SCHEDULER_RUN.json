@@ -1,0 +1,90 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--max-fps",
+    "60",
+    "--path",
+    "D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game",
+    "--script",
+    "D:/MafioziCombat31/c33_coordination/agents/axe32/parse.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\authored_parse05",
+    "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\authored_parse05"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "33f7231f327143f8910c4c82df8bf88f",
+    "owner": {
+      "pid": 58448,
+      "creation_filetime": "134371924032724795"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena32_injuries_axes\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 56444,
+        "creation_filetime": "134371924043133964",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game --script D:/MafioziCombat31/c33_coordination/agents/axe32/parse.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\authored_parse05 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\authored_parse05",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--max-fps",
+          "60",
+          "--path",
+          "D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game",
+          "--script",
+          "D:/MafioziCombat31/c33_coordination/agents/axe32/parse.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\authored_parse05",
+          "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\authored_parse05"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "d:\\mafiozicombat31\\c33_coordination\\arena32_injuries_axes\\game",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 209197.2009738,
+    "queued_at": 208597.2009738,
+    "ticket": 5975,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5315339000080712
+  },
+  "child": {
+    "pid": 56444,
+    "creation_filetime": "134371924043133964",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game --script D:/MafioziCombat31/c33_coordination/agents/axe32/parse.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\authored_parse05 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\authored_parse05",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--max-fps",
+      "60",
+      "--path",
+      "D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game",
+      "--script",
+      "D:/MafioziCombat31/c33_coordination/agents/axe32/parse.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\authored_parse05",
+      "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\authored_parse05"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena32_injuries_axes\\game",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 1.918212200020207,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

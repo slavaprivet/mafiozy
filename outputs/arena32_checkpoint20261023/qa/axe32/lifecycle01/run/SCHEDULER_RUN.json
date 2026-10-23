@@ -1,0 +1,36 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--max-fps",
+    "60",
+    "--path",
+    "D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game",
+    "--script",
+    "D:/MafioziCombat31/c33_coordination/agents/axe32/lifecycle.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\lifecycle01",
+    "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\lifecycle01"
+  ],
+  "passed": false,
+  "lease": {
+    "id": "1107a551dc1a492d870a338ecbcc136d",
+    "owner": {
+      "pid": 54820,
+      "creation_filetime": "134371908312491169"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena32_injuries_axes\\game",
+    "access": "read",
+    "children": [],
+    "deadline": 207625.1742432,
+    "queued_at": 207025.1742432,
+    "ticket": 5933,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5372407000104431
+  },
+  "error": "Not the caller's direct child"
+}

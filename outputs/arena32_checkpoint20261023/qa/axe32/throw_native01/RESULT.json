@@ -1,0 +1,192 @@
+{
+  "checks": {
+    "actual_skin_contact": false,
+    "appropriate_contact": false,
+    "bone_follow": true,
+    "consumed_charges": true,
+    "damage_law": false,
+    "launch_0": true,
+    "q_actual_hatchet": true,
+    "startup": true,
+    "three_unique_instances": true
+  },
+  "passed": false,
+  "rows": [
+    {
+      "camera": "[X: (1.0, 0.0, -0.000032), Y: (-0.000005, 0.985183, -0.171506), Z: (0.000031, 0.171506, 0.985183), O: (0.000106, 2.223804, 5.849623)]",
+      "phase": "aim",
+      "pose": "[X: (0.003538, 0.998005, 0.063029), Y: (-0.055932, 0.063128, -0.996437), Z: (-0.998428, 0.0, 0.056043), O: (0.235782, 1.677642, 2.562853)]",
+      "state": {
+        "aiming": true,
+        "capacity": 3,
+        "casting": false,
+        "charges": 3,
+        "events": [
+          {
+            "charges": 2,
+            "event": "launch",
+            "serial": 0,
+            "speed": 23.0000019073486
+          },
+          {
+            "actual_skin": false,
+            "edge": true,
+            "event": "bounce",
+            "point": "(0.001372, 1.026174, -1.640003)",
+            "protection": {
+              "damage": 0.0,
+              "penetrates": false,
+              "region": "world",
+              "tier": ""
+            },
+            "serial": 0,
+            "speed": 23.3173427581787
+          }
+        ],
+        "last": {},
+        "launched": 0,
+        "picked": 0,
+        "states": [
+          {
+            "id": 229059336699,
+            "state": "held"
+          },
+          {
+            "id": 237095623402,
+            "state": "reserve"
+          },
+          {
+            "id": 237397613304,
+            "state": "reserve"
+          }
+        ]
+      }
+    },
+    {
+      "hp": 270.0,
+      "phase": "shot",
+      "state": {
+        "aiming": false,
+        "capacity": 3,
+        "casting": false,
+        "charges": 2,
+        "events": [
+          {
+            "charges": 2,
+            "event": "launch",
+            "serial": 0,
+            "speed": 23.0000019073486
+          },
+          {
+            "actual_skin": false,
+            "edge": true,
+            "event": "bounce",
+            "point": "(0.001372, 1.026174, -1.640003)",
+            "protection": {
+              "damage": 0.0,
+              "penetrates": false,
+              "region": "world",
+              "tier": ""
+            },
+            "serial": 0,
+            "speed": 23.3173427581787
+          }
+        ],
+        "last": {
+          "actual_skin": false,
+          "edge": true,
+          "event": "bounce",
+          "point": "(0.001372, 1.026174, -1.640003)",
+          "protection": {
+            "damage": 0.0,
+            "penetrates": false,
+            "region": "world",
+            "tier": ""
+          },
+          "serial": 0,
+          "speed": 23.3173427581787
+        },
+        "launched": 1,
+        "picked": 0,
+        "states": [
+          {
+            "id": 229059336699,
+            "state": "ground"
+          },
+          {
+            "id": 237095623402,
+            "state": "held"
+          },
+          {
+            "id": 237397613304,
+            "state": "reserve"
+          }
+        ]
+      }
+    },
+    {
+      "anchor_error": 0.0,
+      "final": {
+        "aiming": false,
+        "capacity": 3,
+        "casting": false,
+        "charges": 2,
+        "events": [
+          {
+            "charges": 2,
+            "event": "launch",
+            "serial": 0,
+            "speed": 23.0000019073486
+          },
+          {
+            "actual_skin": false,
+            "edge": true,
+            "event": "bounce",
+            "point": "(0.001372, 1.026174, -1.640003)",
+            "protection": {
+              "damage": 0.0,
+              "penetrates": false,
+              "region": "world",
+              "tier": ""
+            },
+            "serial": 0,
+            "speed": 23.3173427581787
+          }
+        ],
+        "last": {
+          "actual_skin": false,
+          "edge": true,
+          "event": "bounce",
+          "point": "(0.001372, 1.026174, -1.640003)",
+          "protection": {
+            "damage": 0.0,
+            "penetrates": false,
+            "region": "world",
+            "tier": ""
+          },
+          "serial": 0,
+          "speed": 23.3173427581787
+        },
+        "launched": 1,
+        "picked": 0,
+        "states": [
+          {
+            "id": 229059336699,
+            "state": "ground"
+          },
+          {
+            "id": 237095623402,
+            "state": "held"
+          },
+          {
+            "id": 237397613304,
+            "state": "reserve"
+          }
+        ]
+      },
+      "hp_after": 270.0,
+      "hp_before": 270.0
+    }
+  ],
+  "tier": "none"
+}

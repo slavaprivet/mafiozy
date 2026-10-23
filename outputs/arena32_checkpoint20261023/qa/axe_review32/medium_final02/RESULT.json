@@ -1,0 +1,243 @@
+{
+  "charge_ticks": 40,
+  "checks": {
+    "actual_protected_plate_target": true,
+    "actual_skin_contact": true,
+    "appropriate_contact": false,
+    "bone_follow": true,
+    "consumed_charges": true,
+    "damage_law": false,
+    "launch_0": true,
+    "q_actual_hatchet": true,
+    "startup": true,
+    "three_unique_instances": true,
+    "wood_outside": true
+  },
+  "passed": false,
+  "rows": [
+    {
+      "coverage": {
+        "damage": 38.7881481481481,
+        "factor": 0.745925925925926,
+        "region": "mail",
+        "slot": "head",
+        "tier": "medium"
+      },
+      "part": "head",
+      "phase": "plate_aim_candidate",
+      "point": "(-0.225, 1.6, -1.99122)"
+    },
+    {
+      "coverage": {
+        "damage": 38.7881481481481,
+        "factor": 0.745925925925926,
+        "region": "mail",
+        "slot": "head",
+        "tier": "medium"
+      },
+      "part": "head",
+      "phase": "plate_aim_candidate",
+      "point": "(-0.15, 1.5, -1.891267)"
+    },
+    {
+      "coverage": {
+        "damage": 38.7881481481481,
+        "factor": 0.745925925925926,
+        "region": "mail",
+        "slot": "head",
+        "tier": "medium"
+      },
+      "part": "head",
+      "phase": "plate_aim_candidate",
+      "point": "(-0.075, 1.5, -1.850896)"
+    },
+    {
+      "coverage": {
+        "damage": 38.7881481481481,
+        "factor": 0.745925925925926,
+        "region": "mail",
+        "slot": "head",
+        "tier": "medium"
+      },
+      "part": "head",
+      "phase": "plate_aim_candidate",
+      "point": "(0.0, 1.5, -1.838411)"
+    },
+    {
+      "camera": "[X: (1.0, 0.0, 0.0), Y: (0.0, 0.998709, -0.050802), Z: (0.0, 0.050802, 0.998709), O: (0.0, 1.81341, 5.89561)]",
+      "phase": "aim",
+      "pose": "[X: (0.010128, 0.981631, 0.190521), Y: (-0.052112, 0.19079, -0.980247), Z: (-0.99859, -0.0, 0.053087), O: (0.238202, 1.671216, 2.603634)]",
+      "state": {
+        "aiming": true,
+        "capacity": 3,
+        "casting": false,
+        "charges": 3,
+        "events": [],
+        "last": {},
+        "launched": 0,
+        "picked": 0,
+        "states": [
+          {
+            "id": 229931751932,
+            "ray_max_usec": 0,
+            "state": "held"
+          },
+          {
+            "id": 238001593069,
+            "ray_max_usec": 0,
+            "state": "reserve"
+          },
+          {
+            "id": 238320360188,
+            "ray_max_usec": 0,
+            "state": "reserve"
+          }
+        ]
+      }
+    },
+    {
+      "hp": 270.0,
+      "phase": "shot",
+      "state": {
+        "aiming": false,
+        "capacity": 3,
+        "casting": false,
+        "charges": 2,
+        "events": [
+          {
+            "charges": 2,
+            "event": "launch",
+            "serial": 0,
+            "speed": 23.0
+          },
+          {
+            "actual_skin": true,
+            "edge": true,
+            "event": "bounce",
+            "point": "(0.003605, 1.5244, -1.837105)",
+            "protection": {
+              "damage": 0.0,
+              "factor": 0.476941472860377,
+              "penetrates": false,
+              "region": "mail",
+              "slot": "head",
+              "tier": "medium"
+            },
+            "reason": "no_head_insertion_volume",
+            "serial": 0,
+            "speed": 23.114953994751
+          }
+        ],
+        "last": {
+          "actual_skin": true,
+          "edge": true,
+          "event": "bounce",
+          "point": "(0.003605, 1.5244, -1.837105)",
+          "protection": {
+            "damage": 0.0,
+            "factor": 0.476941472860377,
+            "penetrates": false,
+            "region": "mail",
+            "slot": "head",
+            "tier": "medium"
+          },
+          "reason": "no_head_insertion_volume",
+          "serial": 0,
+          "speed": 23.114953994751
+        },
+        "launched": 1,
+        "picked": 0,
+        "states": [
+          {
+            "id": 229931751932,
+            "ray_max_usec": 5329,
+            "state": "ground"
+          },
+          {
+            "id": 238001593069,
+            "ray_max_usec": 0,
+            "state": "held"
+          },
+          {
+            "id": 238320360188,
+            "ray_max_usec": 0,
+            "state": "reserve"
+          }
+        ]
+      }
+    },
+    {
+      "anchor_error": 0.0,
+      "final": {
+        "aiming": false,
+        "capacity": 3,
+        "casting": false,
+        "charges": 2,
+        "events": [
+          {
+            "charges": 2,
+            "event": "launch",
+            "serial": 0,
+            "speed": 23.0
+          },
+          {
+            "actual_skin": true,
+            "edge": true,
+            "event": "bounce",
+            "point": "(0.003605, 1.5244, -1.837105)",
+            "protection": {
+              "damage": 0.0,
+              "factor": 0.476941472860377,
+              "penetrates": false,
+              "region": "mail",
+              "slot": "head",
+              "tier": "medium"
+            },
+            "reason": "no_head_insertion_volume",
+            "serial": 0,
+            "speed": 23.114953994751
+          }
+        ],
+        "last": {
+          "actual_skin": true,
+          "edge": true,
+          "event": "bounce",
+          "point": "(0.003605, 1.5244, -1.837105)",
+          "protection": {
+            "damage": 0.0,
+            "factor": 0.476941472860377,
+            "penetrates": false,
+            "region": "mail",
+            "slot": "head",
+            "tier": "medium"
+          },
+          "reason": "no_head_insertion_volume",
+          "serial": 0,
+          "speed": 23.114953994751
+        },
+        "launched": 1,
+        "picked": 0,
+        "states": [
+          {
+            "id": 229931751932,
+            "ray_max_usec": 5329,
+            "state": "ground"
+          },
+          {
+            "id": 238001593069,
+            "ray_max_usec": 0,
+            "state": "held"
+          },
+          {
+            "id": 238320360188,
+            "ray_max_usec": 0,
+            "state": "reserve"
+          }
+        ]
+      },
+      "hp_after": 270.0,
+      "hp_before": 270.0
+    }
+  ],
+  "tier": "medium"
+}

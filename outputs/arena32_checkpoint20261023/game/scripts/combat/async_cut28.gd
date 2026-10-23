@@ -434,6 +434,10 @@ func _commit(host: Node) -> void:
 	var bow:Node=host.get("_world").get("preview_bow_prototype")
 	if is_instance_valid(bow) and bow.has_method("adopt_cut_piece31"):
 		bow.call("adopt_cut_piece31",host,body,context)
+	# A thrown axe belongs to the same cut surface as its wound.
+	var axes:Node=host.get("_hatchet32") if "_hatchet32" in host else null
+	if is_instance_valid(axes) and axes.has_method("adopt_cut_piece32"):
+		axes.call("adopt_cut_piece32",host,body,context)
 	if not rigid_prepared31.is_empty():
 		report["rigid_armor31"]=rigid_owner31.get_ref().get("_rigid_cut31").commit(rigid_prepared31,rigid_metadata31,body)
 	host.call("_lab_debris_ignore_owner28",body)

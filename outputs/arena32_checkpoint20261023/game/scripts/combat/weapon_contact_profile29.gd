@@ -57,6 +57,9 @@ static func build(host: Node) -> Array[Dictionary]:
 			var a:=node.mesh.surface_get_arrays(surface)
 			var vertices:PackedVector3Array=a[Mesh.ARRAY_VERTEX]
 			var axe_ridge:=_axe_ridge31(vertices,transform) if id=="axe" and sharp_material else PackedVector3Array()
+			var hatchet_top:=-INF
+			if id=="hatchet" and sharp_material:
+				for vertex:Vector3 in vertices:hatchet_top=maxf(hatchet_top,(transform*vertex).y)
 			var indices:PackedInt32Array=a[Mesh.ARRAY_INDEX] if a[Mesh.ARRAY_INDEX]!=null else PackedInt32Array()
 			if indices.is_empty():
 				for i in vertices.size():indices.append(i)
@@ -70,6 +73,7 @@ static func build(host: Node) -> Array[Dictionary]:
 						var key:=Vector3i(roundi(p.x/.030),roundi(p.y/.030),roundi(p.z/.030))
 						var edge_point:=false
 						if id=="sword":edge_point=p.x>=.155 and absf(p.z)<.002 and absf(p.y)>.002
+						elif id=="hatchet":edge_point=sharp_material and absf(p.y-hatchet_top)<.000001
 						elif id=="axe" and axe_ridge.size()==2:
 							var ridge_delta:=axe_ridge[1]-axe_ridge[0]
 							var nearest:=axe_ridge[0]+ridge_delta*clampf((p-axe_ridge[0]).dot(ridge_delta)/maxf(ridge_delta.length_squared(),1e-12),0,1)

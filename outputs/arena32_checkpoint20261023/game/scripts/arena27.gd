@@ -1,8 +1,8 @@
 extends "res://scripts/main.gd"
 ## Separate scene; the release pointer and frozen gameplay scripts stay intact.
 const LabTarget = preload("res://scripts/clay_target.gd")
-const LAB_IDS := ["sword", "mace", "axe", "sledge", "spear", "bow", "shield"]
-const LAB_NAMES := ["Меч", "Булава", "Топор", "Кувалда", "Копьё", "Лук", "Щит"]
+const LAB_IDS := ["sword", "mace", "axe", "sledge", "spear", "bow", "shield", "hatchet"]
+const LAB_NAMES := ["Меч", "Булава", "Топор", "Кувалда", "Копьё", "Лук", "Щит", "Метательный топорик"]
 var hero_visual31: Node
 var lab: Node3D
 var lab_status: Label
@@ -14,7 +14,7 @@ var lab_notice := ""
 var _lab_restart_pending := false
 
 func _ready() -> void:
-	get_window().title = "Мафиози · Полигон 31 · контакт и производительность"
+	get_window().title = "Мафиози · Полигон 32 · ранения и метательные топоры"
 	for arg: String in OS.get_cmdline_user_args():
 		if arg.begins_with("--lab-out="): lab_out = arg.trim_prefix("--lab-out=")
 	castle_map = false
@@ -50,11 +50,11 @@ func _build_lab() -> void:
 	_lab_box(Vector3(-18,1,0),Vector3(0.4,2,36),Color("3b4858"),true)
 	_lab_box(Vector3(18,1,0),Vector3(0.4,2,36),Color("3b4858"),true)
 	_lab_box(Vector3(0,1,18),Vector3(36,2,0.4),Color("3b4858"),true)
-	_lab_label("ПОЛИГОН 31 · КОНТАКТ И ПРОИЗВОДИТЕЛЬНОСТЬ", Vector3(0,3,-12), 40)
+	_lab_label("ПОЛИГОН 32 · РАНЕНИЯ И МЕТАТЕЛЬНЫЕ ТОПОРЫ", Vector3(0,3,-12), 40)
 	_lab_label("F4 · ЛЁГКАЯ / СРЕДНЯЯ / ТЯЖЁЛАЯ БРОНЯ     F6 · НОВАЯ МИШЕНЬ", Vector3(0,2.5,-12), 22)
 	_lab_label("F10 · КАМЗОЛ ГЕРОЯ     F11 · БРОНЯ ГЕРОЯ", Vector3(0,2.15,-12), 20)
 	_build_surface_gallery30()
-	_lab_label("ОРУЖИЕ  1–7  /  Q", Vector3(-6,2,0), 34)
+	_lab_label("ОРУЖИЕ  1–8  /  Q", Vector3(-6,2,0), 34)
 	# A step and wall allow repeatable ground, jump and weapon contact checks.
 	_lab_box(Vector3(7,0.2,-4),Vector3(3,0.4,3),Color("6a737b"),true)
 	_lab_box(Vector3(7,1.2,-7),Vector3(4,2.4,0.5),Color("8a9299"),true)
@@ -166,12 +166,13 @@ func _start_lab() -> void:
 	if OS.get_cmdline_user_args().has("--lab-check=1"): await _lab_check()
 
 func _build_lab_rack() -> void:
-	for i: int in 5:
+	for rack_index: int in 6:
+		var i: int = rack_index if rack_index < 5 else 7
 		var model: Node3D = lab.call("_build_weapon_model", self, LAB_IDS[i])
-		model.position = Vector3(-6,0.9,-2.6 + i*1.3)
+		model.position = Vector3(-6,0.9,-2.6 + rack_index*1.3)
 		model.rotation.z = PI*0.5
-		_lab_box(Vector3(-6,0.38,-2.6+i*1.3),Vector3(2,0.76,0.9),Color("313d4a"),true)
-		_lab_label(str(i+1)+" · "+LAB_NAMES[i],Vector3(-6,1.55,-2.6+i*1.3),28)
+		_lab_box(Vector3(-6,0.38,-2.6+rack_index*1.3),Vector3(2,0.76,0.9),Color("313d4a"),true)
+		_lab_label(str(i+1)+" · "+("Топорик" if LAB_IDS[i]=="hatchet" else LAB_NAMES[i]),Vector3(-6,1.55,-2.6+rack_index*1.3),28)
 
 func _build_lab_ui() -> void:
 	var layer := CanvasLayer.new()
@@ -195,7 +196,7 @@ func _build_lab_ui() -> void:
 	lab_status.add_theme_font_size_override("font_size",19)
 	rows.add_child(lab_status)
 	lab_controls = Label.new()
-	lab_controls.text = "1 Меч   2 Булава   3 Топор   4 Кувалда   5 Копьё   6 Лук   7 Щит\nQ — весь арсенал   G — бросить   E — подобрать\nF2 — восстановление   F3 — мишень / бой   F4 — броня\nF5 — вернуться на полигон   F6 — новый NPC\nF7 — кадр и запись   F8 — убрать остатки\nF9 — начать заново   Esc — курсор   щелчок — управление"
+	lab_controls.text = "1 Меч   2 Булава   3 Топор   4 Кувалда   5 Копьё   6 Лук   7 Щит   8 Топорик\nQ — весь арсенал   G — бросить   E — подобрать\nF2 — восстановление   F3 — мишень / бой   F4 — броня\nF5 — вернуться на полигон   F6 — новый NPC\nF7 — кадр и запись   F8 — убрать остатки\nF9 — начать заново   Esc — курсор   щелчок — управление"
 	lab_controls.add_theme_font_size_override("font_size",15)
 	rows.add_child(lab_controls)
 
@@ -209,7 +210,7 @@ func _lab_equip(index: int, startup: bool = false) -> void:
 func _input(event: InputEvent) -> void:
 	if not lab_ready or not event is InputEventKey or not event.pressed or event.echo: return
 	var key: int = event.physical_keycode if event.physical_keycode else event.keycode
-	if key >= KEY_1 and key <= KEY_7: _lab_equip(key-KEY_1)
+	if key >= KEY_1 and key <= KEY_8: _lab_equip(key-KEY_1)
 	elif key == KEY_F2: lab.lab_regrow = not lab.lab_regrow
 	elif key == KEY_F3:
 		lab.lab_fixed = not lab.lab_fixed

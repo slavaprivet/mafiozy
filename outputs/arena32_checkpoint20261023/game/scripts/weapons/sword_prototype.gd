@@ -36,6 +36,7 @@ const CharacterPhysicsDriver31 = preload("res://scripts/character_physics/charac
 ##   crush   true for blunt weapons: they do NOT get stopped by plate, they dent it
 ##   category  how the arsenal groups it
 const WEAPONS := {
+	"hatchet": {"label":"Метательный топорик", "category":"one_hand", "category_label":"ТОПОРИК · МЕТАНИЕ", "length":.42, "mass":.72, "grip":"one", "slice":1.15, "stab":.1, "flat":.5, "crush":false},
 	"sword": {
 		"label": "Тестовый меч (прототип)", "category": "blade", "category_label": "МЕЧ · БЛИЖНИЙ БОЙ",
 		"length": 1.15, "mass": 1.0, "grip": "both_optional",
@@ -64,6 +65,7 @@ const WEAPONS := {
 }
 ## The weapon this host is currently presenting.
 var _weapon_id := "sword"
+var _hatchet32:Node
 
 func weapon_ids() -> Array:
 	return WEAPONS.keys()
@@ -77,8 +79,11 @@ func set_weapon(id: String) -> bool:
 	if not _can_wield_weapon(id):
 		print("DSH_SWORD_PROTO_WEAPON_REFUSED reason=severed_hands id=", id)
 		return false
-	if id == _weapon_id: return true
+	if id == _weapon_id:
+		if id=="hatchet" and is_instance_valid(_hatchet32):_hatchet32.selected()
+		return true
 	_cancel_throw_aim52()
+	if is_instance_valid(_hatchet32):_hatchet32.cancel()
 	_weapon_id = id
 	# The sword-only blade grip cannot survive selection of a mace or another weapon.
 	if id != "sword": set_half_sword(false)
@@ -108,6 +113,7 @@ func set_weapon(id: String) -> bool:
 	_sword = model
 	_sword_grounded = _ground_swords.has(model)
 	if is_instance_valid(_sword): _sword.visible = true
+	if id=="hatchet" and is_instance_valid(_hatchet32):_hatchet32.selected()
 	if is_instance_valid(_hint): _update_hint()
 	return true
 
@@ -481,6 +487,7 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 	_dir = _rest_dir
 	_sword_origin = _rig.global_transform * _rig.get_bone_global_pose(_bone_hand).origin
 	_ready = true
+	_hatchet32=preload("res://scripts/weapons/throwing_axe32.gd").new();add_child(_hatchet32);_hatchet32.initialize(self)
 	set_process_input(true)
 	set_physics_process(true)
 	set_process(true)
@@ -789,6 +796,7 @@ func _shatter_shield31() -> void:
 ## sweep, the IK and the placement maths all assume.
 func _build_weapon_model(parent: Node3D, id: String) -> Node3D:
 	match id:
+		"hatchet":return preload("res://scripts/weapons/hatchet_model32.gd").build(self,parent)
 		"mace": return _build_mace_model(parent)
 		"axe": return _build_axe_model(parent)
 		"sledge": return _build_sledge_model(parent)
@@ -1244,6 +1252,7 @@ func is_sword_grounded() -> bool:
 
 ## G: leave the sword as a real 3D object lying on the ground.
 func drop_sword_to_ground(require_embedded31:bool=false) -> bool:
+	if _weapon_id=="hatchet" and is_instance_valid(_hatchet32) and _sword==_hatchet32.empty:return false
 	if not _selected or _sword_grounded or not is_instance_valid(_sword): return false
 	var embedded_drop:Node=_embedded29.make_drop31(self)
 	if require_embedded31 and not is_instance_valid(embedded_drop):return false
@@ -1279,6 +1288,7 @@ func drop_sword_to_ground(require_embedded31:bool=false) -> bool:
 		_dropped_at=_sword.global_position
 	_register_ground_sword(_sword)
 	_stamp_ground_weapon(_sword, _weapon_id)
+	if _weapon_id=="hatchet" and is_instance_valid(_hatchet32):_hatchet32.mark_ground32(_sword)
 	_update_hint()
 	print("DSH_SWORD_PROTO_DROPPED at=", at, " ground_swords=", _ground_swords.size())
 	return true
@@ -1353,6 +1363,7 @@ func _take_sword_model(node: Node3D) -> Node3D:
 ## E: take the nearest sword on the ground - the player's own or a knight's. A
 ## sword already in the hand cannot be swapped for another: drop it first.
 func try_pickup_sword(allow_inactive: bool = false) -> bool:
+	if is_instance_valid(_hatchet32) and _hatchet32.pickup_near():return true
 	if not _selected and not allow_inactive: return false
 	var arsenal: Node = _world.get("preview_weapons") if is_instance_valid(_world) else null
 	var storage: Node = arsenal.get("castle_storage_owner") if is_instance_valid(arsenal) else null
@@ -1664,6 +1675,8 @@ func _build_pole(at: Vector3) -> StaticBody3D:
 # ---------------------------------------------------------------------- input
 
 func _input(event: InputEvent) -> void:
+	if is_instance_valid(_hatchet32) and _hatchet32.input(event):
+		get_viewport().set_input_as_handled();return
 	# Death restart must work even with the cursor released and the host inactive.
 	if event is InputEventKey and event.pressed and not event.echo:
 		var code: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
@@ -2023,6 +2036,7 @@ func _steer(delta: float) -> void:
 			if _weapon_id in ["sledge", "axe"]:
 				speed_limit *= 1.35
 				acceleration *= 1.80
+		if _weapon_id=="hatchet":speed_limit=10.2;acceleration=46.0
 		if _weapon_id in ["axe","sledge"] and has_method("_lab_melee_limits29"):
 			var laboratory_limits:Vector2=call("_lab_melee_limits29",speed_limit,acceleration)
 			speed_limit=laboratory_limits.x
@@ -2841,6 +2855,7 @@ func _palm_position(side: StringName) -> Vector3:
 	return _rig.global_transform * (_rig.get_bone_global_pose(bone) * _palm_offset(bone))
 
 func _attach_sword_to_fist() -> void:
+	if is_instance_valid(_hatchet32) and _hatchet32.pose(get_process_delta_time()):return
 	if _embedded29.pose(self): return
 	var bone := _hand_bone_for(_active_side())
 	if bone < 0: return
@@ -2983,6 +2998,7 @@ func _self_begin_step45() -> void:
 	elif _weapon_id == "mace": rate = 8.4
 	elif _weapon_id == "axe": rate = 7.4
 	elif _weapon_id == "spear": rate = 8.0
+	elif _weapon_id == "hatchet": rate = 10.2
 	elif _weapon_id == "sword" and _active_side() != &"both": rate = 9.0
 	if _weapon_id in ["axe", "sledge"]: rate *= 1.35
 	if _weapon_id in ["axe","sledge"] and has_method("_lab_melee_rate29"):
@@ -6201,8 +6217,7 @@ func _spawn_cut_debris(gone_arrays: Array, gone_cap: Array, from: MeshInstance3D
 		"visual": piece,
 		"age": 0.0,
 	})
-	if owner_body == _player and not gone_cap.is_empty():
-		preload("res://scripts/combat/blood_flow32.gd").register_player_cap(self, from, piece, gone_cap)
+	if owner_body == _player and not gone_cap.is_empty(): preload("res://scripts/combat/blood_flow32.gd").register_player_cap(self, from, piece, gone_cap)
 
 ## Drops the cut pieces under gravity, spins them, and lets them settle.
 func _update_npc_debris(delta: float) -> void:

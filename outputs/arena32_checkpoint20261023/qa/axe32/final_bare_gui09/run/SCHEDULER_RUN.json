@@ -1,0 +1,95 @@
+{
+  "mode": "graphical",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--windowed",
+    "--resolution",
+    "1280x720",
+    "--max-fps",
+    "60",
+    "--path",
+    "D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game",
+    "--script",
+    "D:/MafioziCombat31/c33_coordination/agents/axe32/throw.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\final_bare_gui09",
+    "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\final_bare_gui09",
+    "--tier=none"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "e9a035f78f1044aca6f189cf81afde4e",
+    "owner": {
+      "pid": 57816,
+      "creation_filetime": "134371925040969629"
+    },
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena32_injuries_axes\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 58392,
+        "creation_filetime": "134371925051414259",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game --script D:/MafioziCombat31/c33_coordination/agents/axe32/throw.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\final_bare_gui09 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\final_bare_gui09 --tier=none",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--windowed",
+          "--resolution",
+          "1280x720",
+          "--max-fps",
+          "60",
+          "--path",
+          "D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game",
+          "--script",
+          "D:/MafioziCombat31/c33_coordination/agents/axe32/throw.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\final_bare_gui09",
+          "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\final_bare_gui09",
+          "--tier=none"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "graphical",
+        "project": "d:\\mafiozicombat31\\c33_coordination\\arena32_injuries_axes\\game"
+      }
+    ],
+    "deadline": 209298.0305712,
+    "queued_at": 208698.0305712,
+    "ticket": 5978,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5303712999739219
+  },
+  "child": {
+    "pid": 58392,
+    "creation_filetime": "134371925051414259",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game --script D:/MafioziCombat31/c33_coordination/agents/axe32/throw.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\final_bare_gui09 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\final_bare_gui09 --tier=none",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--windowed",
+      "--resolution",
+      "1280x720",
+      "--max-fps",
+      "60",
+      "--path",
+      "D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game",
+      "--script",
+      "D:/MafioziCombat31/c33_coordination/agents/axe32/throw.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\final_bare_gui09",
+      "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\final_bare_gui09",
+      "--tier=none"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena32_injuries_axes\\game"
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 13.279919799999334,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

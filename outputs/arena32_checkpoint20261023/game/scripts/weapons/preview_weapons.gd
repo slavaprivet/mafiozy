@@ -16,7 +16,7 @@ const Projectiles = preload("res://scripts/weapons/weapon_projectiles.gd")
 const SurfaceImpacts = preload("res://scripts/weapons/weapon_surface_impacts.gd")
 const Posture = preload("res://scripts/weapons/weapon_posture_base.gd")
 signal shot_emitted(shot: Dictionary, muzzle: Dictionary, camera_origin: Vector3, camera_direction: Vector3)
-const LABELS := {"none":"Без оружия", "sword":"Тестовый меч (прототип)", "bow":"Тестовый лук (прототип)", "mace":"Булава (прототип)", "axe":"Двуручный топор (прототип)", "sledge":"Кувалда (прототип)", "spear":"Копьё (прототип)", "shield":"Щит (прототип)", "nagan":"Наган", "tt_pistol":"ТТ", "revolver":"Револьвер", "deagle":"Desert Eagle", "golden_colt":"Золотой Colt", "sawn_off":"Обрез", "shotgun":"Дробовик", "uzi":"Uzi", "golden_uzi":"Золотой Uzi", "ak74":"АК-74", "m16":"M16", "tommy_gun":"Томпсон", "sniper":"Снайперская винтовка", "rpg":"РПГ"}
+const LABELS := {"hatchet":"Метательный топорик", "none":"Без оружия", "sword":"Тестовый меч (прототип)", "bow":"Тестовый лук (прототип)", "mace":"Булава (прототип)", "axe":"Двуручный топор (прототип)", "sledge":"Кувалда (прототип)", "spear":"Копьё (прототип)", "shield":"Щит (прототип)", "nagan":"Наган", "tt_pistol":"ТТ", "revolver":"Револьвер", "deagle":"Desert Eagle", "golden_colt":"Золотой Colt", "sawn_off":"Обрез", "shotgun":"Дробовик", "uzi":"Uzi", "golden_uzi":"Золотой Uzi", "ak74":"АК-74", "m16":"M16", "tommy_gun":"Томпсон", "sniper":"Снайперская винтовка", "rpg":"РПГ"}
 ## DSH_SWORD_PROTO: the prototype sword is a melee item, not a firearm. It is
 ## always available in the existing arsenal menu (no purchase, no ammo) and it
 ## only routes input to the prototype host while it is the equipped item.
@@ -24,7 +24,7 @@ const SWORD_ID := "sword"
 ## DSH_BOW_PROTO: the test bow, always available like the test sword.
 const BOW_ID := "bow"
 ## DSH_MELEE_SET: every melee weapon of the set, always available and free of charge.
-const MELEE_IDS := ["sword", "mace", "axe", "sledge", "spear"]
+const MELEE_IDS := ["hatchet", "sword", "mace", "axe", "sledge", "spear"]
 ## DSH_MELEE_SET: the shield is worn, not held, so it has its own equip path.
 const SHIELD_ID := "shield"
 var aim_camera: RefCounted
@@ -290,7 +290,7 @@ func _equip_melee(id: String) -> Dictionary:
 	# different HUD/fire-state weapon while the physical host retains its old one.
 	if not bool(prototype.set_weapon(id)):
 		return {"ok":false,"reason":"melee_selection_refused"}
-	if sandbox_reselect29 and not SandboxArsenal29.reclaim_melee(prototype):
+	if sandbox_reselect29 and id!="hatchet" and not SandboxArsenal29.reclaim_melee(prototype):
 		return {"ok":false,"reason":"sandbox_ground_item_missing"}
 	cancel_inputs()
 	presentation.equip("none")
@@ -366,7 +366,7 @@ func arsenal_display_id29()->String:
 	if not sandbox_reselect29:return id
 	var melee:Node=scene.get("preview_sword_prototype")
 	if _sandbox_choice29=="shield" and is_instance_valid(melee) and bool(melee.get("_shield_worn")):return "shield"
-	if id in MELEE_IDS and (bool(melee.get("_sword_grounded")) or bool(melee.get("_unarmed"))):return "none"
+	if id in MELEE_IDS and id!="hatchet" and (bool(melee.get("_sword_grounded")) or bool(melee.get("_unarmed"))):return "none"
 	if id=="bow":
 		var bow:Node=scene.get("preview_bow_prototype")
 		if is_instance_valid(bow) and bool(bow.get("_grounded")):return "none"
@@ -793,6 +793,7 @@ func _build_ui() -> void:
 	for id: String in LABELS:
 		var path := "res://assets/weapon_thumbnails/"+id+".png"
 		if ResourceLoader.exists(path): textures[id]=load(path)
+	textures["hatchet"]=load("res://assets/weapon_thumbnails/hatchet.svg")
 	_walk_ui.configure(self,textures)
 	_menu=_walk_ui.menu; _crosshair=_walk_ui.crosshair; _hud=_walk_ui.title
 	for id: String in _walk_ui.choices: _buttons[id]=_walk_ui.choices[id].button

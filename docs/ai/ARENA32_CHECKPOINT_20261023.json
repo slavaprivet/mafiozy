@@ -1,20 +1,31 @@
 {
-  "stage": "injuries-blood-settling",
-  "base_commit": "d7af2e989c075a8dee1dae5b470ba02e1857201d",
+  "stage": "injuries-blood-throwing-hatchets",
   "game_relative": "outputs/arena32_checkpoint20261023/game",
-  "source_pins": 3323,
-  "merged_acceptance": [
-    "qa/blood/merged_blood32_gui01/CHECK.json",
-    "qa/blood/merged_blood32_injuries01/CHECK.json"
+  "source_pins": 3433,
+  "candidate": "D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game",
+  "owner_acceptance": [
+    "qa/axe32/HANDOFF.json",
+    "qa/axe_review32/HANDOFF.json",
+    "qa/settling/FINAL_HANDOFF.json",
+    "qa/blood/HANDOFF.json"
   ],
-  "merged_checks": 60,
+  "merged_checks": {
+    "final32_menu01": 98,
+    "final32_menu02": 98,
+    "final32_blood01": 16,
+    "final32_blood02": 16,
+    "final32_entry01": 5,
+    "final32_injury01": 44
+  },
   "production_pointer_changed": false,
   "full_50v50_accepted": false,
-  "pending": [
-    "throwing_hatchet"
-  ],
-  "settling_acceptance": [
-    "qa/settling/merged_settle32_gui01/CHECK.json",
-    "qa/settling/merged_settle32_injury01/CHECK.json"
-  ]
+  "controls": {
+    "select": "Q or 8",
+    "throw": "hold RMB, press LMB",
+    "melee": "hold LMB and move mouse",
+    "drop": "G",
+    "pickup": "E (+1)",
+    "capacity": 3
+  },
+  "verification_scope": "Graphical Godot InputEvents plus actual MeshSever/damage receiver fixtures. Individual receipts preserve exact source pins and raw failures. Final narrow rigid-face mapping and embedded material anchor fixes are covered by independent axe final runs, not by a claim all earlier runs had identical full-source pins."
 }
