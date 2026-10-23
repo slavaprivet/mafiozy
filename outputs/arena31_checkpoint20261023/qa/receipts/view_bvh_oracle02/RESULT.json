@@ -1,0 +1,28 @@
+{
+  "checks": {
+    "all_safe": true,
+    "all_unsafe": true,
+    "empty_after_nonempty": true,
+    "exact_repeat_no_rebuild": true,
+    "first_actor_unchanged": true,
+    "identity_reorder": true,
+    "moving_refit": true,
+    "nonfinite_unsafe": true,
+    "pose_change_no_topology_rebuild": true,
+    "reorder_rebuilds_once": true,
+    "restore_after_empty": true,
+    "safe_membership_changes": true,
+    "second_actor": true
+  },
+  "counters": {
+    "builds": 4,
+    "refits": 8,
+    "returned": 39009,
+    "view_tests": 7934,
+    "visits": 25076
+  },
+  "errors": [],
+  "passed": true,
+  "rays": 2200,
+  "scope": "Independent exhaustive AABB selection. No scene, skin, triangle or gameplay behavior assertion."
+}

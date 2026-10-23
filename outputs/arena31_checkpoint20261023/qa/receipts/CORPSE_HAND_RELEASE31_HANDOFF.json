@@ -1,0 +1,47 @@
+{
+  "status": "frozen_functional_gui_pass_native_timing_fail_preserved",
+  "files": {
+    "scripts/combat/weapon_solid_contact29.gd": "6584baaf9464b9cf6f60b4105efc1eb29ee9bd90e705506503e29266adc443bf",
+    "scripts/combat/sword_puncture_resistance29.gd": "6085164b2c726897913ee81fcad8dbea7d5197d4166f0f9efaa4ea74d0d8d19e",
+    "scripts/weapons/sword_prototype.gd": "71fd4d133644991e06bac07359501e7b549effc53a18bad64e41d4d70fc8c2e0",
+    "scripts/clay_target.gd": "890be356d035544ea7cea75d8f72e4a9048762c73ab21ed350a162c25eb2d3fa"
+  },
+  "behavior": "If actual corpse-bore depth requires >existing5mm axial reach slip or final grip unreachable, reject before holder IK. Reconstruct same accepted bone-local weapon pose, exact static/sweep/self/world validation, atomic required embedded drop. No holder recovery translation or fictitious manual withdrawal. Reset detaches registered same-host compound weapons before synchronous corpse free.",
+  "receipts": {
+    "native04": "D:\\MafioziCombat31\\c33_coordination\\agents\\contact_perf31\\corpse_release_native04\\CHECK.json",
+    "native_reset06": "D:\\MafioziCombat31\\c33_coordination\\agents\\contact_perf31\\corpse_reset_native06\\CHECK.json",
+    "gui_reset07": "D:\\MafioziCombat31\\c33_coordination\\agents\\contact_perf31\\corpse_reset_gui07\\CHECK.json",
+    "compile": "D:\\MafioziCombat31\\c33_coordination\\agents\\contact_perf31\\corpse_release_parse04\\CHECK.json"
+  },
+  "gui07": {
+    "checks": 33,
+    "all_pass": true,
+    "stable": true,
+    "stderr_bytes": 0,
+    "retained_depth_m": 0.355067521333694,
+    "depth_error_m": 3.57627868652344e-07,
+    "bone_anchor_error_m": 4.9712741656549e-07,
+    "holder_jump_m": 0,
+    "max_solver_usec": 37346,
+    "screenshot_reviewed": "D:\\MafioziCombat31\\c33_coordination\\agents\\contact_perf31\\corpse_reset_gui07\\sword_end.png"
+  },
+  "native06": {
+    "functional_pass": 32,
+    "timing_fail": "long_hold_under50ms; release solver58151us",
+    "stable": true,
+    "stderr_bytes": 0
+  },
+  "limits": [
+    "This is intentional automatic HAND release into same embedded object, not successful manual S extraction; original strict S raw failure retained.",
+    "Exact retained-pose collision failure still follows prior safety fallback; no claim all corpse configurations solved.",
+    "GUI37.3ms vs native58.2ms release timing variable; whole battle FPS not accepted.",
+    "Corpse spear E high-handle reach remains previously unverified."
+  ],
+  "raw_failures": [
+    "native01 QA last_contact expected position but release event has no position; fixed fixture guard",
+    "native02 demonstrated analytical slip bypass before corrective guard",
+    "native03 source comment missing # parse cascade; two comment-only lines fixed",
+    "gui05 actual F6 freed same embedded model; fixed reset order in clay",
+    "guide_strict_integrated02 meaningful pre-S automatic extraction failure, not relabeled PASS"
+  ]
+}

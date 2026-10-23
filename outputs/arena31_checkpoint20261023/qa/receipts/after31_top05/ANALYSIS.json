@@ -1,0 +1,214 @@
+{
+  "comparison": {
+    "baseline30_02": {
+      "sword_approach": {
+        "n": 188,
+        "p95_ms": 63.26,
+        "max_ms": 206.249,
+        "over50": 12
+      },
+      "spear_approach": {
+        "n": 232,
+        "p95_ms": 20.787,
+        "max_ms": 54.998,
+        "over50": 2
+      },
+      "spear_hold": {
+        "n": 174,
+        "p95_ms": 21.503,
+        "max_ms": 35.37,
+        "over50": 0
+      }
+    },
+    "after31_refit04": {
+      "sword_approach": {
+        "n": 219,
+        "p95_ms": 29.414,
+        "max_ms": 53.333,
+        "over50": 1
+      },
+      "spear_approach": {
+        "n": 99,
+        "p95_ms": 101.62,
+        "max_ms": 114.872,
+        "over50": 29
+      },
+      "spear_hold": {
+        "n": 41,
+        "p95_ms": 102.484,
+        "max_ms": 104.119,
+        "over50": 29
+      }
+    },
+    "after31_top05": {
+      "sword_approach": {
+        "n": 208,
+        "p95_ms": 32.582,
+        "max_ms": 89.006,
+        "over50": 4
+      },
+      "spear_approach": {
+        "n": 105,
+        "p95_ms": 92.128,
+        "max_ms": 104.028,
+        "over50": 32
+      },
+      "spear_hold": {
+        "n": 161,
+        "p95_ms": 17.452,
+        "max_ms": 110.213,
+        "over50": 2
+      }
+    }
+  },
+  "top_frames": {
+    "sword_approach": [
+      {
+        "phase": "sword_approach",
+        "wall_usec": 17926211,
+        "frame_interval_usec": 89006,
+        "physics_frame": 526,
+        "last_solver_usec": 48690,
+        "committed_depth": 0.0,
+        "cuts": 0,
+        "unresolved": 0,
+        "engine_process_sec": 0.021296,
+        "engine_physics_sec": 0.014663,
+        "geometry_usec": 7920,
+        "sweep_usec": 43794,
+        "static_usec": 19181,
+        "ik_usec": 23373,
+        "prepare_usec": 9545,
+        "world_usec": 2722,
+        "geometry_builds": 4,
+        "triangle_candidates": 627,
+        "walk_usec": 31904,
+        "solver_usec": 48690
+      },
+      {
+        "phase": "sword_approach",
+        "wall_usec": 17837205,
+        "frame_interval_usec": 61188,
+        "physics_frame": 523,
+        "last_solver_usec": 29942,
+        "committed_depth": 0.0,
+        "cuts": 0,
+        "unresolved": 0,
+        "engine_process_sec": 0.021296,
+        "engine_physics_sec": 0.014663,
+        "geometry_usec": 7379,
+        "sweep_usec": 34005,
+        "static_usec": 3244,
+        "ik_usec": 9585,
+        "prepare_usec": 8646,
+        "world_usec": 2719,
+        "geometry_builds": 4,
+        "triangle_candidates": 616,
+        "walk_usec": 21456,
+        "solver_usec": 29942
+      }
+    ],
+    "spear_approach": [
+      {
+        "phase": "spear_approach",
+        "wall_usec": 37415750,
+        "frame_interval_usec": 104028,
+        "physics_frame": 1588,
+        "last_solver_usec": 31239,
+        "committed_depth": 0.368075609207153,
+        "cuts": 0,
+        "unresolved": 0,
+        "engine_process_sec": 0.039874,
+        "engine_physics_sec": 0.01246,
+        "geometry_usec": 6658,
+        "sweep_usec": 60349,
+        "static_usec": 20176,
+        "ik_usec": 0,
+        "prepare_usec": 7460,
+        "world_usec": 0,
+        "geometry_builds": 7,
+        "triangle_candidates": 1796,
+        "walk_usec": 59904,
+        "solver_usec": 31239
+      },
+      {
+        "phase": "spear_approach",
+        "wall_usec": 35119893,
+        "frame_interval_usec": 99830,
+        "physics_frame": 1451,
+        "last_solver_usec": 30328,
+        "committed_depth": 0.368075609207153,
+        "cuts": 0,
+        "unresolved": 0,
+        "engine_process_sec": 0.005483,
+        "engine_physics_sec": 0.004465,
+        "geometry_usec": 8106,
+        "sweep_usec": 58300,
+        "static_usec": 17893,
+        "ik_usec": 0,
+        "prepare_usec": 9045,
+        "world_usec": 0,
+        "geometry_builds": 7,
+        "triangle_candidates": 1343,
+        "walk_usec": 55256,
+        "solver_usec": 30328
+      }
+    ],
+    "spear_hold": [
+      {
+        "phase": "spear_hold",
+        "wall_usec": 37638457,
+        "frame_interval_usec": 110213,
+        "physics_frame": 1601,
+        "last_solver_usec": 27354,
+        "committed_depth": 0.368075609207153,
+        "cuts": 0,
+        "unresolved": 0,
+        "engine_process_sec": 0.039874,
+        "engine_physics_sec": 0.01246,
+        "geometry_usec": 7775,
+        "sweep_usec": 72251,
+        "static_usec": 16495,
+        "ik_usec": 0,
+        "prepare_usec": 8667,
+        "world_usec": 0,
+        "geometry_builds": 8,
+        "triangle_candidates": 2142,
+        "walk_usec": 70347,
+        "solver_usec": 27354
+      },
+      {
+        "phase": "spear_hold",
+        "wall_usec": 37742583,
+        "frame_interval_usec": 104126,
+        "physics_frame": 1608,
+        "last_solver_usec": 25889,
+        "committed_depth": 0.368075609207153,
+        "cuts": 0,
+        "unresolved": 0,
+        "engine_process_sec": 0.039874,
+        "engine_physics_sec": 0.01246,
+        "geometry_usec": 8041,
+        "sweep_usec": 67429,
+        "static_usec": 9641,
+        "ik_usec": 11498,
+        "prepare_usec": 9198,
+        "world_usec": 1478,
+        "geometry_builds": 8,
+        "triangle_candidates": 3264,
+        "walk_usec": 62758,
+        "solver_usec": 25889
+      }
+    ]
+  },
+  "raw_checks": {
+    "sever_first_actual_cut": false,
+    "spear_actual_entry": true,
+    "sword_actual_entry": true
+  },
+  "actual_repeat_cuts": 1,
+  "source_stable": true,
+  "stderr_bytes": 0,
+  "environment_clean": true,
+  "acceptance": "Spear still slower than30; overallFPS notaccepted. No phantomgravity; no safe floorfastpath change justified."
+}

@@ -1,0 +1,655 @@
+{
+  "checks": {
+    "axe_drop_has_physical_owner": true,
+    "axe_drop_hud_clear": true,
+    "axe_g_drops": true,
+    "axe_initial_hud_matches_model": true,
+    "axe_initial_no_stale_held": true,
+    "axe_initial_q_open": true,
+    "axe_initial_selected": true,
+    "axe_native_e_same_model": true,
+    "axe_reselect_hud_matches_model": true,
+    "axe_reselect_no_stale_held": true,
+    "axe_reselect_q_open": true,
+    "axe_reselect_selected": true,
+    "axe_return_removes_drop_ledger": true,
+    "axe_same_model": true,
+    "bow_drop_has_physical_owner": true,
+    "bow_drop_hud_clear": true,
+    "bow_g_drops": true,
+    "bow_initial_hud_matches_model": true,
+    "bow_initial_no_stale_held": true,
+    "bow_initial_q_open": true,
+    "bow_initial_selected": true,
+    "bow_native_e_same_model": true,
+    "bow_reselect_hud_matches_model": true,
+    "bow_reselect_no_stale_held": true,
+    "bow_reselect_q_open": true,
+    "bow_reselect_selected": true,
+    "bow_return_removes_drop_ledger": true,
+    "bow_same_model": true,
+    "mace_drop_has_physical_owner": true,
+    "mace_drop_hud_clear": true,
+    "mace_g_drops": true,
+    "mace_initial_hud_matches_model": true,
+    "mace_initial_no_stale_held": true,
+    "mace_initial_q_open": true,
+    "mace_initial_selected": true,
+    "mace_native_e_same_model": true,
+    "mace_reselect_hud_matches_model": true,
+    "mace_reselect_no_stale_held": true,
+    "mace_reselect_q_open": true,
+    "mace_reselect_selected": true,
+    "mace_return_removes_drop_ledger": true,
+    "mace_same_model": true,
+    "shield_drop_has_physical_owner": true,
+    "shield_drop_hud_clear": true,
+    "shield_g_drops": true,
+    "shield_initial_hud_matches_model": true,
+    "shield_initial_no_stale_held": true,
+    "shield_initial_q_open": true,
+    "shield_initial_selected": true,
+    "shield_native_e_same_model": true,
+    "shield_reselect_hud_matches_model": true,
+    "shield_reselect_no_stale_held": true,
+    "shield_reselect_q_open": true,
+    "shield_reselect_selected": true,
+    "shield_return_removes_drop_ledger": true,
+    "shield_same_model": true,
+    "sledge_drop_has_physical_owner": true,
+    "sledge_drop_hud_clear": true,
+    "sledge_g_drops": true,
+    "sledge_initial_hud_matches_model": true,
+    "sledge_initial_no_stale_held": true,
+    "sledge_initial_q_open": true,
+    "sledge_initial_selected": true,
+    "sledge_native_e_same_model": true,
+    "sledge_reselect_hud_matches_model": true,
+    "sledge_reselect_no_stale_held": true,
+    "sledge_reselect_q_open": true,
+    "sledge_reselect_selected": true,
+    "sledge_return_removes_drop_ledger": true,
+    "sledge_same_model": true,
+    "spear_drop_has_physical_owner": true,
+    "spear_drop_hud_clear": true,
+    "spear_g_drops": true,
+    "spear_initial_hud_matches_model": true,
+    "spear_initial_no_stale_held": true,
+    "spear_initial_q_open": true,
+    "spear_initial_selected": true,
+    "spear_native_e_same_model": true,
+    "spear_reselect_hud_matches_model": true,
+    "spear_reselect_no_stale_held": true,
+    "spear_reselect_q_open": true,
+    "spear_reselect_selected": true,
+    "spear_return_removes_drop_ledger": true,
+    "spear_same_model": true,
+    "sword_drop_has_physical_owner": true,
+    "sword_drop_hud_clear": true,
+    "sword_g_drops": true,
+    "sword_initial_hud_matches_model": true,
+    "sword_initial_no_stale_held": true,
+    "sword_initial_q_open": true,
+    "sword_initial_selected": true,
+    "sword_native_e_same_model": true,
+    "sword_reselect_hud_matches_model": true,
+    "sword_reselect_no_stale_held": true,
+    "sword_reselect_q_open": true,
+    "sword_reselect_selected": true,
+    "sword_return_removes_drop_ledger": true,
+    "sword_same_model": true
+  },
+  "failures": [],
+  "passed": true,
+  "rows": [
+    {
+      "label": "sword_initial",
+      "point": "(359.0, 238.7)",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "sword",
+        "fire_id": "sword",
+        "ground_models": 0,
+        "ground_owned": false,
+        "held": true,
+        "id": "sword",
+        "menu_open": false,
+        "node": 235485010366,
+        "parent": "CombatLaboratory27",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": [
+          "sword"
+        ]
+      }
+    },
+    {
+      "label": "sword_dropped",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "none",
+        "fire_id": "sword",
+        "ground_models": 1,
+        "ground_owned": true,
+        "held": false,
+        "id": "sword",
+        "menu_open": false,
+        "node": 235485010366,
+        "parent": "DroppedWeaponVisual28",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": []
+      }
+    },
+    {
+      "label": "sword_reselect",
+      "point": "(359.0, 238.7)",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "sword",
+        "fire_id": "sword",
+        "ground_models": 0,
+        "ground_owned": false,
+        "held": true,
+        "id": "sword",
+        "menu_open": false,
+        "node": 235485010366,
+        "parent": "CombatLaboratory27",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": [
+          "sword"
+        ]
+      }
+    },
+    {
+      "label": "sword_E_pickup",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "sword",
+        "fire_id": "sword",
+        "ground_models": 0,
+        "ground_owned": false,
+        "held": true,
+        "id": "sword",
+        "menu_open": false,
+        "node": 235485010366,
+        "parent": "CombatLaboratory27",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": [
+          "sword"
+        ]
+      }
+    },
+    {
+      "label": "mace_initial",
+      "point": "(579.0, 238.7)",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "mace",
+        "fire_id": "mace",
+        "ground_models": 0,
+        "ground_owned": false,
+        "held": true,
+        "id": "mace",
+        "menu_open": false,
+        "node": 236407757275,
+        "parent": "CombatLaboratory27",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": [
+          "mace"
+        ]
+      }
+    },
+    {
+      "label": "mace_dropped",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "none",
+        "fire_id": "mace",
+        "ground_models": 1,
+        "ground_owned": true,
+        "held": false,
+        "id": "mace",
+        "menu_open": false,
+        "node": 236407757275,
+        "parent": "DroppedWeaponVisual28",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": []
+      }
+    },
+    {
+      "label": "mace_reselect",
+      "point": "(579.0, 238.7)",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "mace",
+        "fire_id": "mace",
+        "ground_models": 0,
+        "ground_owned": false,
+        "held": true,
+        "id": "mace",
+        "menu_open": false,
+        "node": 236407757275,
+        "parent": "CombatLaboratory27",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": [
+          "mace"
+        ]
+      }
+    },
+    {
+      "label": "mace_E_pickup",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "mace",
+        "fire_id": "mace",
+        "ground_models": 0,
+        "ground_owned": false,
+        "held": true,
+        "id": "mace",
+        "menu_open": false,
+        "node": 236407757275,
+        "parent": "CombatLaboratory27",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": [
+          "mace"
+        ]
+      }
+    },
+    {
+      "label": "axe_initial",
+      "point": "(139.0, 387.7)",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "axe",
+        "fire_id": "axe",
+        "ground_models": 0,
+        "ground_owned": false,
+        "held": true,
+        "id": "axe",
+        "menu_open": false,
+        "node": 237179509232,
+        "parent": "CombatLaboratory27",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": [
+          "axe"
+        ]
+      }
+    },
+    {
+      "label": "axe_dropped",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "none",
+        "fire_id": "axe",
+        "ground_models": 1,
+        "ground_owned": true,
+        "held": false,
+        "id": "axe",
+        "menu_open": false,
+        "node": 237179509232,
+        "parent": "DroppedWeaponVisual28",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": []
+      }
+    },
+    {
+      "label": "axe_reselect",
+      "point": "(139.0, 387.7)",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "axe",
+        "fire_id": "axe",
+        "ground_models": 0,
+        "ground_owned": false,
+        "held": true,
+        "id": "axe",
+        "menu_open": false,
+        "node": 237179509232,
+        "parent": "CombatLaboratory27",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": [
+          "axe"
+        ]
+      }
+    },
+    {
+      "label": "axe_E_pickup",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "axe",
+        "fire_id": "axe",
+        "ground_models": 0,
+        "ground_owned": false,
+        "held": true,
+        "id": "axe",
+        "menu_open": false,
+        "node": 237179509232,
+        "parent": "CombatLaboratory27",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": [
+          "axe"
+        ]
+      }
+    },
+    {
+      "label": "sledge_initial",
+      "point": "(359.0, 387.7)",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "sledge",
+        "fire_id": "sledge",
+        "ground_models": 0,
+        "ground_owned": false,
+        "held": true,
+        "id": "sledge",
+        "menu_open": false,
+        "node": 237833820627,
+        "parent": "CombatLaboratory27",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": [
+          "sledge"
+        ]
+      }
+    },
+    {
+      "label": "sledge_dropped",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "none",
+        "fire_id": "sledge",
+        "ground_models": 1,
+        "ground_owned": true,
+        "held": false,
+        "id": "sledge",
+        "menu_open": false,
+        "node": 237833820627,
+        "parent": "DroppedWeaponVisual28",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": []
+      }
+    },
+    {
+      "label": "sledge_reselect",
+      "point": "(359.0, 387.7)",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "sledge",
+        "fire_id": "sledge",
+        "ground_models": 0,
+        "ground_owned": false,
+        "held": true,
+        "id": "sledge",
+        "menu_open": false,
+        "node": 237833820627,
+        "parent": "CombatLaboratory27",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": [
+          "sledge"
+        ]
+      }
+    },
+    {
+      "label": "sledge_E_pickup",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "sledge",
+        "fire_id": "sledge",
+        "ground_models": 0,
+        "ground_owned": false,
+        "held": true,
+        "id": "sledge",
+        "menu_open": false,
+        "node": 237833820627,
+        "parent": "CombatLaboratory27",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": [
+          "sledge"
+        ]
+      }
+    },
+    {
+      "label": "spear_initial",
+      "point": "(579.0, 387.7)",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "spear",
+        "fire_id": "spear",
+        "ground_models": 0,
+        "ground_owned": false,
+        "held": true,
+        "id": "spear",
+        "menu_open": false,
+        "node": 238504909306,
+        "parent": "CombatLaboratory27",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": [
+          "spear"
+        ]
+      }
+    },
+    {
+      "label": "spear_dropped",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "none",
+        "fire_id": "spear",
+        "ground_models": 1,
+        "ground_owned": true,
+        "held": false,
+        "id": "spear",
+        "menu_open": false,
+        "node": 238504909306,
+        "parent": "DroppedWeaponVisual28",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": []
+      }
+    },
+    {
+      "label": "spear_reselect",
+      "point": "(579.0, 387.7)",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "spear",
+        "fire_id": "spear",
+        "ground_models": 0,
+        "ground_owned": false,
+        "held": true,
+        "id": "spear",
+        "menu_open": false,
+        "node": 238504909306,
+        "parent": "CombatLaboratory27",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": [
+          "spear"
+        ]
+      }
+    },
+    {
+      "label": "spear_E_pickup",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "spear",
+        "fire_id": "spear",
+        "ground_models": 0,
+        "ground_owned": false,
+        "held": true,
+        "id": "spear",
+        "menu_open": false,
+        "node": 238504909306,
+        "parent": "CombatLaboratory27",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": [
+          "spear"
+        ]
+      }
+    },
+    {
+      "label": "bow_initial",
+      "point": "(139.0, 499.7)",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "bow",
+        "fire_id": "bow",
+        "ground_models": 0,
+        "ground_owned": false,
+        "held": true,
+        "id": "bow",
+        "menu_open": false,
+        "node": 253688290308,
+        "parent": "CombatLaboratory27",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": []
+      }
+    },
+    {
+      "label": "bow_dropped",
+      "state": {
+        "bow_ground": 1,
+        "display_id": "none",
+        "fire_id": "bow",
+        "ground_models": 0,
+        "ground_owned": true,
+        "held": false,
+        "id": "bow",
+        "menu_open": false,
+        "node": 253688290308,
+        "parent": "DroppedWeaponVisual28",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": []
+      }
+    },
+    {
+      "label": "bow_reselect",
+      "point": "(139.0, 499.7)",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "bow",
+        "fire_id": "bow",
+        "ground_models": 0,
+        "ground_owned": false,
+        "held": true,
+        "id": "bow",
+        "menu_open": false,
+        "node": 253688290308,
+        "parent": "CombatLaboratory27",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": []
+      }
+    },
+    {
+      "label": "bow_E_pickup",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "bow",
+        "fire_id": "bow",
+        "ground_models": 0,
+        "ground_owned": false,
+        "held": true,
+        "id": "bow",
+        "menu_open": false,
+        "node": 253688290308,
+        "parent": "CombatLaboratory27",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": []
+      }
+    },
+    {
+      "label": "shield_initial",
+      "point": "(359.0, 499.7)",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "shield",
+        "fire_id": "none",
+        "ground_models": 0,
+        "ground_owned": false,
+        "held": true,
+        "id": "shield",
+        "menu_open": false,
+        "node": 482999279104,
+        "parent": "CombatLaboratory27",
+        "shield_worn": true,
+        "visible": true,
+        "visible_melee": []
+      }
+    },
+    {
+      "label": "shield_dropped",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "none",
+        "fire_id": "none",
+        "ground_models": 0,
+        "ground_owned": true,
+        "held": false,
+        "id": "none",
+        "menu_open": false,
+        "node": 482999279104,
+        "parent": "DroppedWeaponVisual28",
+        "shield_worn": false,
+        "visible": true,
+        "visible_melee": []
+      }
+    },
+    {
+      "label": "shield_reselect",
+      "point": "(359.0, 499.7)",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "shield",
+        "fire_id": "none",
+        "ground_models": 0,
+        "ground_owned": false,
+        "held": true,
+        "id": "shield",
+        "menu_open": false,
+        "node": 482999279104,
+        "parent": "CombatLaboratory27",
+        "shield_worn": true,
+        "visible": true,
+        "visible_melee": []
+      }
+    },
+    {
+      "label": "shield_E_pickup",
+      "state": {
+        "bow_ground": 0,
+        "display_id": "shield",
+        "fire_id": "none",
+        "ground_models": 0,
+        "ground_owned": false,
+        "held": true,
+        "id": "shield",
+        "menu_open": false,
+        "node": 482999279104,
+        "parent": "CombatLaboratory27",
+        "shield_worn": true,
+        "visible": true,
+        "visible_melee": []
+      }
+    }
+  ],
+  "scope": "Real InputEvent Q opens actual GUI, mouse clicks visible arsenal cards, G drops. No direct equip or weapon writes in fixture. ScrollContainer ensures card visible before click; selected model identity/visibility/owner recorded."
+}

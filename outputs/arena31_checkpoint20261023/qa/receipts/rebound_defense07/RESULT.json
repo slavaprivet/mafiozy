@@ -1,0 +1,355 @@
+{
+  "checks": {
+    "axe_accepted_metal_sound": true,
+    "axe_actual_npc_strike_intercepted": true,
+    "axe_authored_metal_face_found": true,
+    "axe_authored_near_miss": true,
+    "axe_drop_not_guard": true,
+    "axe_idle_actual_arrow_deflected": true,
+    "axe_near_miss_arrow_not_parried": true,
+    "axe_nearer_wall_priority": true,
+    "axe_npc_clash_material_audio_once": true,
+    "axe_one_parry_event": true,
+    "axe_outgoing_actual_mesh_sweep_clash": true,
+    "axe_wall_fixture_between_launch_and_weapon": true,
+    "bow_ready": true,
+    "mace_accepted_metal_sound": true,
+    "mace_actual_npc_strike_intercepted": true,
+    "mace_authored_metal_face_found": true,
+    "mace_authored_near_miss": true,
+    "mace_drop_not_guard": true,
+    "mace_idle_actual_arrow_deflected": true,
+    "mace_near_miss_arrow_not_parried": true,
+    "mace_nearer_wall_priority": true,
+    "mace_npc_clash_material_audio_once": true,
+    "mace_one_parry_event": true,
+    "mace_outgoing_actual_mesh_sweep_clash": true,
+    "mace_wall_fixture_between_launch_and_weapon": true,
+    "real_player_body_before_weapon_fixture": true,
+    "real_player_body_wins_before_weapon": true,
+    "sledge_accepted_metal_sound": true,
+    "sledge_actual_npc_strike_intercepted": true,
+    "sledge_authored_metal_face_found": true,
+    "sledge_authored_near_miss": true,
+    "sledge_drop_not_guard": true,
+    "sledge_idle_actual_arrow_deflected": true,
+    "sledge_near_miss_arrow_not_parried": true,
+    "sledge_nearer_wall_priority": true,
+    "sledge_npc_clash_material_audio_once": true,
+    "sledge_one_parry_event": true,
+    "sledge_outgoing_actual_mesh_sweep_clash": true,
+    "sledge_wall_fixture_between_launch_and_weapon": true,
+    "spear_accepted_metal_sound": true,
+    "spear_actual_npc_strike_intercepted": true,
+    "spear_authored_metal_face_found": true,
+    "spear_authored_near_miss": true,
+    "spear_drop_not_guard": true,
+    "spear_idle_actual_arrow_deflected": true,
+    "spear_near_miss_arrow_not_parried": true,
+    "spear_nearer_wall_priority": true,
+    "spear_npc_clash_material_audio_once": true,
+    "spear_one_parry_event": true,
+    "spear_outgoing_actual_mesh_sweep_clash": true,
+    "spear_wall_fixture_between_launch_and_weapon": true,
+    "sword_accepted_metal_sound": true,
+    "sword_actual_npc_strike_intercepted": true,
+    "sword_authored_metal_face_found": true,
+    "sword_authored_near_miss": true,
+    "sword_drop_not_guard": true,
+    "sword_idle_actual_arrow_deflected": true,
+    "sword_near_miss_arrow_not_parried": true,
+    "sword_nearer_wall_priority": true,
+    "sword_npc_clash_material_audio_once": true,
+    "sword_one_parry_event": true,
+    "sword_outgoing_actual_mesh_sweep_clash": true,
+    "sword_wall_fixture_between_launch_and_weapon": true
+  },
+  "passed": true,
+  "rows": [
+    {
+      "current_frame": 73,
+      "edge_usec": 14673,
+      "eligible": true,
+      "mesh_transform": "[X: (-0.354204, 0.779201, -0.517093), Y: (-0.100933, 0.517857, 0.849492), Z: (0.929706, 0.353085, -0.10478), O: (14.6725, 0.992366, 5.607607)]",
+      "npc_transform": "[X: (0.193218, 0.0, -0.981156), Y: (0.492444, -0.864925, 0.096976), Z: (-0.848626, -0.501902, -0.167119), O: (14.54337, 1.28422, 5.960073)]",
+      "outgoing_weapon": "sword",
+      "previous_points": "[(14.81771, 1.135112, 5.606332), (14.7655, 1.225338, 5.532436), (14.71329, 1.315563, 5.458539), (14.66108, 1.405788, 5.384643), (14.60887, 1.496013, 5.310747), (14.55666, 1.586238, 5.23685), (14.50445, 1.676463, 5.162954), (14.45224, 1.766688, 5.089057), (14.40003, 1.856913, 5.015161), (14.34782, 1.947138, 4.941265)]",
+      "prior": {
+        "frame": 73,
+        "generation": 0,
+        "transform": "[X: (-0.354204, 0.779201, -0.517093), Y: (-0.100933, 0.517857, 0.849492), Z: (0.929706, 0.353085, -0.10478), O: (14.84223, 1.092746, 5.641031)]"
+      },
+      "query": {
+        "axis": "(0.193218, 0.0, -0.981156)",
+        "feature": "edge_edge",
+        "fraction": 0.440653268505937,
+        "material": "metal",
+        "mesh_instance": 236105767711,
+        "normal": "(0.95912, 0.214414, 0.184703)",
+        "point": "(14.64819, 1.288483, 5.465846)",
+        "surface": 0
+      },
+      "shield_resume_frame": -1,
+      "sword_origin": "(14.6725, 0.992366, 5.607607)"
+    },
+    {
+      "audio": {
+        "blunt": 1,
+        "metal": 2
+      },
+      "near_miss": {
+        "deflected": false,
+        "incoming": true,
+        "parried": false,
+        "parries": 0,
+        "stuck": false,
+        "velocity": "(37.30447, 13.70082, -4.019544)"
+      },
+      "projectile": {
+        "deflected": true,
+        "incoming": false,
+        "parried": true,
+        "parries": 1,
+        "stuck": false,
+        "velocity": "(-13.92736, 4.814424, 16.27564)"
+      },
+      "wall": {
+        "deflected": false,
+        "incoming": true,
+        "parried": false,
+        "parries": 0,
+        "stuck": true,
+        "velocity": "(0.0, 0.0, 0.0)"
+      },
+      "weapon": "sword"
+    },
+    {
+      "current_frame": 125,
+      "edge_usec": 6813,
+      "eligible": true,
+      "mesh_transform": "[X: (-0.3564, 0.775449, -0.521209), Y: (-0.10544, 0.520896, 0.847083), Z: (0.928365, 0.356856, -0.103884), O: (14.82542, 1.114904, 5.77787)]",
+      "npc_transform": "[X: (-0.877322, 0.0, 0.479901), Y: (0.302116, -0.77697, 0.552307), Z: (0.372869, 0.629537, 0.681653), O: (14.98544, 1.478807, 5.217827)]",
+      "outgoing_weapon": "mace",
+      "previous_points": "[(14.72503, 1.03116, 5.607545), (14.69634, 1.078007, 5.569775), (14.66765, 1.124855, 5.532004), (14.63896, 1.171703, 5.494234), (14.61027, 1.21855, 5.456463), (14.58158, 1.265398, 5.418692), (14.55289, 1.312246, 5.380921), (14.5242, 1.359094, 5.343151), (14.49551, 1.405941, 5.30538), (14.46682, 1.452789, 5.26761)]",
+      "prior": {
+        "frame": 125,
+        "generation": 0,
+        "transform": "[X: (-0.3564, 0.775449, -0.521209), Y: (-0.10544, 0.520896, 0.847083), Z: (0.928365, 0.356856, -0.103884), O: (14.75085, 0.988997, 5.641539)]"
+      },
+      "query": {
+        "axis": "(-0.877323, 0.0, 0.479901)",
+        "feature": "edge_edge",
+        "fraction": 0.152600557453583,
+        "material": "metal",
+        "mesh_instance": 236105767711,
+        "normal": "(-0.266644, -0.836381, -0.478923)",
+        "point": "(14.62047, 1.473208, 5.409592)",
+        "surface": 0
+      },
+      "shield_resume_frame": -1,
+      "sword_origin": "(14.82542, 1.114904, 5.77787)"
+    },
+    {
+      "audio": {
+        "blunt": 1,
+        "metal": 4
+      },
+      "near_miss": {
+        "deflected": false,
+        "incoming": true,
+        "parried": false,
+        "parries": 0,
+        "stuck": false,
+        "velocity": "(37.13979, 14.09949, -4.147699)"
+      },
+      "projectile": {
+        "deflected": true,
+        "incoming": false,
+        "parried": true,
+        "parries": 1,
+        "stuck": false,
+        "velocity": "(8.207217, 13.91503, 15.01756)"
+      },
+      "wall": {
+        "deflected": false,
+        "incoming": true,
+        "parried": false,
+        "parries": 0,
+        "stuck": true,
+        "velocity": "(0.0, 0.0, 0.0)"
+      },
+      "weapon": "mace"
+    },
+    {
+      "current_frame": 177,
+      "edge_usec": 5702,
+      "eligible": true,
+      "mesh_transform": "[X: (-0.355971, 0.775422, -0.521542), Y: (-0.111167, 0.518998, 0.847516), Z: (0.927861, 0.35967, -0.098547), O: (15.16439, 1.059711, 5.760204)]",
+      "npc_transform": "[X: (0.105615, 0.0, 0.994407), Y: (0.357658, -0.93308, -0.037986), Z: (0.927861, 0.35967, -0.098547), O: (14.68058, 1.802216, 4.751985)]",
+      "outgoing_weapon": "axe",
+      "previous_points": "[(14.95501, 1.029963, 5.744508), (14.90872, 1.111991, 5.675664), (14.86243, 1.194019, 5.60682), (14.81614, 1.276048, 5.537975), (14.76985, 1.358076, 5.469131), (14.72355, 1.440104, 5.400287), (14.67726, 1.522133, 5.331442), (14.63097, 1.604161, 5.262598), (14.58468, 1.68619, 5.193753), (14.53839, 1.768218, 5.124909)]",
+      "prior": {
+        "frame": 177,
+        "generation": 0,
+        "transform": "[X: (-0.355971, 0.775422, -0.521542), Y: (-0.111167, 0.518998, 0.847516), Z: (0.927861, 0.35967, -0.098547), O: (14.97882, 0.987777, 5.779914)]"
+      },
+      "query": {
+        "axis": "(0.105615, 0.0, 0.994407)",
+        "feature": "edge_edge",
+        "fraction": 0.453793602637973,
+        "material": "metal",
+        "mesh_instance": 236105767711,
+        "normal": "(-0.774273, -0.626933, 0.086354)",
+        "point": "(14.70699, 1.798892, 5.082339)",
+        "surface": 0
+      },
+      "shield_resume_frame": -1,
+      "sword_origin": "(15.16439, 1.059711, 5.760204)"
+    },
+    {
+      "audio": {
+        "blunt": 1,
+        "metal": 6
+      },
+      "near_miss": {
+        "deflected": false,
+        "incoming": true,
+        "parried": false,
+        "parries": 0,
+        "stuck": false,
+        "velocity": "(37.13853, 14.17078, -3.906107)"
+      },
+      "projectile": {
+        "deflected": true,
+        "incoming": false,
+        "parried": true,
+        "parries": 1,
+        "stuck": false,
+        "velocity": "(20.48603, 7.817023, -2.154649)"
+      },
+      "wall": {
+        "deflected": false,
+        "incoming": true,
+        "parried": false,
+        "parries": 0,
+        "stuck": true,
+        "velocity": "(0.0, 0.0, 0.0)"
+      },
+      "weapon": "axe"
+    },
+    {
+      "current_frame": 229,
+      "edge_usec": 5932,
+      "eligible": true,
+      "mesh_transform": "[X: (-0.35773, 0.778978, -0.514997), Y: (-0.10951, 0.512692, 0.85156), Z: (0.927382, 0.361026, -0.098099), O: (15.05979, 0.987939, 5.898171)]",
+      "npc_transform": "[X: (-0.105194, 0.0, -0.994452), Y: (0.359023, -0.932556, -0.037978), Z: (-0.927382, -0.361026, 0.098099), O: (14.76975, 1.796288, 5.927288)]",
+      "outgoing_weapon": "sledge",
+      "previous_points": "[(15.21941, 1.102482, 5.844801), (15.16579, 1.190295, 5.774799), (15.11217, 1.278109, 5.704798), (15.05855, 1.365922, 5.634797), (15.00493, 1.453735, 5.564795), (14.95131, 1.541548, 5.494794), (14.89769, 1.629361, 5.424793), (14.84407, 1.717174, 5.354792), (14.79045, 1.804987, 5.28479), (14.73683, 1.892801, 5.214789)]",
+      "prior": {
+        "frame": 229,
+        "generation": 0,
+        "transform": "[X: (-0.35773, 0.778978, -0.514997), Y: (-0.10951, 0.512692, 0.85156), Z: (0.927382, 0.361026, -0.098099), O: (15.24527, 1.060144, 5.878551)]"
+      },
+      "query": {
+        "axis": "(-0.105194, 0.0, -0.994452)",
+        "feature": "edge_edge",
+        "fraction": 0.430139292831146,
+        "material": "metal",
+        "mesh_instance": 236105767711,
+        "normal": "(0.992243, 0.059629, -0.10908)",
+        "point": "(14.73663, 1.799527, 5.534697)",
+        "surface": 0
+      },
+      "shield_resume_frame": -1,
+      "sword_origin": "(15.05979, 0.987939, 5.898171)"
+    },
+    {
+      "audio": {
+        "blunt": 1,
+        "metal": 8
+      },
+      "near_miss": {
+        "deflected": false,
+        "incoming": true,
+        "parried": false,
+        "parries": 0,
+        "stuck": false,
+        "velocity": "(37.08646, 14.29672, -3.936559)"
+      },
+      "projectile": {
+        "deflected": true,
+        "incoming": false,
+        "parried": true,
+        "parries": 1,
+        "stuck": false,
+        "velocity": "(-20.33727, -8.019547, 2.158708)"
+      },
+      "wall": {
+        "deflected": false,
+        "incoming": true,
+        "parried": false,
+        "parries": 0,
+        "stuck": true,
+        "velocity": "(0.0, 0.0, 0.0)"
+      },
+      "weapon": "sledge"
+    },
+    {
+      "current_frame": 281,
+      "edge_usec": 5509,
+      "eligible": true,
+      "mesh_transform": "[X: (-0.356846, 0.777328, -0.518095), Y: (-0.115329, 0.513707, 0.850179), Z: (0.927017, 0.363135, -0.093666), O: (15.15469, 0.987696, 6.00998)]",
+      "npc_transform": "[X: (-0.100528, 0.0, -0.994934), Y: (0.361295, -0.931737, -0.036505), Z: (-0.927017, -0.363135, 0.093666), O: (14.70316, 2.295196, 5.649342)]",
+      "outgoing_weapon": "spear",
+      "previous_points": "[(15.31583, 1.102536, 5.956188), (15.23673, 1.240117, 5.841924), (15.15762, 1.377698, 5.72766), (15.07852, 1.51528, 5.613396), (14.99942, 1.652861, 5.499132), (14.92032, 1.790443, 5.384868), (14.84122, 1.928024, 5.270604), (14.76212, 2.065605, 5.15634), (14.68301, 2.203187, 5.042076), (14.60391, 2.340768, 4.927812)]",
+      "prior": {
+        "frame": 281,
+        "generation": 0,
+        "transform": "[X: (-0.356846, 0.777328, -0.518095), Y: (-0.115329, 0.513707, 0.850179), Z: (0.927017, 0.363135, -0.093666), O: (15.3401, 1.060323, 5.991247)]"
+      },
+      "query": {
+        "axis": "(-0.100528, 0.0, -0.994934)",
+        "fraction": 0.435006193247963,
+        "material": "metal",
+        "mesh_instance": 236105767711,
+        "normal": "(0.993349, 0.049858, -0.103785)",
+        "point": "(14.66386, 2.273696, 5.166352)",
+        "surface": 0
+      },
+      "shield_resume_frame": -1,
+      "sword_origin": "(15.15469, 0.987696, 6.00998)"
+    },
+    {
+      "audio": {
+        "blunt": 1,
+        "metal": 10
+      },
+      "near_miss": {
+        "deflected": false,
+        "incoming": true,
+        "parried": false,
+        "parries": 0,
+        "stuck": false,
+        "velocity": "(37.08506, 14.35231, -3.74029)"
+      },
+      "projectile": {
+        "deflected": true,
+        "incoming": false,
+        "parried": true,
+        "parries": 1,
+        "stuck": false,
+        "velocity": "(-20.33627, -8.049943, 2.051046)"
+      },
+      "wall": {
+        "deflected": false,
+        "incoming": true,
+        "parried": false,
+        "parries": 0,
+        "stuck": true,
+        "velocity": "(0.0, 0.0, 0.0)"
+      },
+      "weapon": "spear"
+    }
+  ],
+  "scope": "Native engine actual authored weapon models, real arrow pool + ballistic integrator + nearest physics ray and accepted parry callback. Deterministic projectile initial conditions; no forced contact or audio. Native G drop. Controlled actual NPC sword translation resolved by production strike callback, previous samples from actual prior pose; not natural AI or OS input. Geometry oracle used only to choose a metal face before launch. Not a player-aim skill test or OS input."
+}

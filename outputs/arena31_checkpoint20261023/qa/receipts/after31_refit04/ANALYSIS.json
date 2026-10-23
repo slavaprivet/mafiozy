@@ -1,0 +1,254 @@
+{
+  "comparison": {
+    "baseline30_02": {
+      "sword_approach": {
+        "n": 188,
+        "p95_ms": 63.26,
+        "max_ms": 206.249,
+        "over50": 12
+      },
+      "spear_approach": {
+        "n": 232,
+        "p95_ms": 20.787,
+        "max_ms": 54.998,
+        "over50": 2
+      },
+      "spear_hold": {
+        "n": 174,
+        "p95_ms": 21.503,
+        "max_ms": 35.37,
+        "over50": 0
+      }
+    },
+    "after31_final01": {
+      "sword_approach": {
+        "n": 168,
+        "p95_ms": 96.5,
+        "max_ms": 415.986,
+        "over50": 16
+      },
+      "spear_approach": {
+        "n": 86,
+        "p95_ms": 113.625,
+        "max_ms": 124.102,
+        "over50": 30
+      },
+      "spear_hold": {
+        "n": 147,
+        "p95_ms": 17.504,
+        "max_ms": 118.532,
+        "over50": 4
+      }
+    },
+    "after31_mixed02": {
+      "sword_approach": {
+        "n": 165,
+        "p95_ms": 73.791,
+        "max_ms": 255.687,
+        "over50": 10
+      },
+      "spear_approach": {
+        "n": 111,
+        "p95_ms": 261.791,
+        "max_ms": 327.178,
+        "over50": 21
+      },
+      "spear_hold": {
+        "n": 179,
+        "p95_ms": 17.35,
+        "max_ms": 18.57,
+        "over50": 0
+      }
+    },
+    "after31_leaf03": {
+      "sword_approach": {
+        "n": 160,
+        "p95_ms": 66.516,
+        "max_ms": 282.929,
+        "over50": 11
+      },
+      "spear_approach": {
+        "n": 125,
+        "p95_ms": 176.88,
+        "max_ms": 205.81,
+        "over50": 19
+      },
+      "spear_hold": {
+        "n": 179,
+        "p95_ms": 17.153,
+        "max_ms": 17.335,
+        "over50": 0
+      }
+    },
+    "after31_refit04": {
+      "sword_approach": {
+        "n": 219,
+        "p95_ms": 29.414,
+        "max_ms": 53.333,
+        "over50": 1
+      },
+      "spear_approach": {
+        "n": 99,
+        "p95_ms": 101.62,
+        "max_ms": 114.872,
+        "over50": 29
+      },
+      "spear_hold": {
+        "n": 41,
+        "p95_ms": 102.484,
+        "max_ms": 104.119,
+        "over50": 29
+      }
+    }
+  },
+  "top_frames": {
+    "sword_approach": [
+      {
+        "phase": "sword_approach",
+        "wall_usec": 19171381,
+        "frame_interval_usec": 53333,
+        "physics_frame": 592,
+        "last_solver_usec": 37743,
+        "committed_depth": 0.0,
+        "cuts": 0,
+        "unresolved": 0,
+        "engine_process_sec": 0.007841,
+        "engine_physics_sec": 0.005857,
+        "geometry_usec": 3012,
+        "sweep_usec": 12569,
+        "static_usec": 31720,
+        "ik_usec": 0,
+        "prepare_usec": 3423,
+        "world_usec": 0,
+        "geometry_builds": 3,
+        "triangle_candidates": 0,
+        "walk_usec": 10181,
+        "solver_usec": 37743
+      },
+      {
+        "phase": "sword_approach",
+        "wall_usec": 17940142,
+        "frame_interval_usec": 43299,
+        "physics_frame": 519,
+        "last_solver_usec": 25072,
+        "committed_depth": 0.0,
+        "cuts": 0,
+        "unresolved": 0,
+        "engine_process_sec": 0.012235,
+        "engine_physics_sec": 0.010198,
+        "geometry_usec": 5021,
+        "sweep_usec": 24946,
+        "static_usec": 1930,
+        "ik_usec": 5873,
+        "prepare_usec": 6091,
+        "world_usec": 1945,
+        "geometry_builds": 3,
+        "triangle_candidates": 887,
+        "walk_usec": 11821,
+        "solver_usec": 25072
+      }
+    ],
+    "spear_approach": [
+      {
+        "phase": "spear_approach",
+        "wall_usec": 34825886,
+        "frame_interval_usec": 114872,
+        "physics_frame": 1446,
+        "last_solver_usec": 36761,
+        "committed_depth": 0.368184208869934,
+        "cuts": 0,
+        "unresolved": 0,
+        "engine_process_sec": 0.022024,
+        "engine_physics_sec": 0.013935,
+        "geometry_usec": 8466,
+        "sweep_usec": 69731,
+        "static_usec": 19369,
+        "ik_usec": 0,
+        "prepare_usec": 9572,
+        "world_usec": 0,
+        "geometry_builds": 7,
+        "triangle_candidates": 1341,
+        "walk_usec": 62289,
+        "solver_usec": 36761
+      },
+      {
+        "phase": "spear_approach",
+        "wall_usec": 34934686,
+        "frame_interval_usec": 108800,
+        "physics_frame": 1453,
+        "last_solver_usec": 25010,
+        "committed_depth": 0.368184208869934,
+        "cuts": 0,
+        "unresolved": 0,
+        "engine_process_sec": 0.022024,
+        "engine_physics_sec": 0.013935,
+        "geometry_usec": 8604,
+        "sweep_usec": 65488,
+        "static_usec": 16056,
+        "ik_usec": 0,
+        "prepare_usec": 9723,
+        "world_usec": 0,
+        "geometry_builds": 8,
+        "triangle_candidates": 1474,
+        "walk_usec": 68789,
+        "solver_usec": 25010
+      }
+    ],
+    "spear_hold": [
+      {
+        "phase": "spear_hold",
+        "wall_usec": 37738182,
+        "frame_interval_usec": 104119,
+        "physics_frame": 1622,
+        "last_solver_usec": 28908,
+        "committed_depth": 0.368184208869934,
+        "cuts": 0,
+        "unresolved": 0,
+        "engine_process_sec": 0.033613,
+        "engine_physics_sec": 0.016117,
+        "geometry_usec": 7073,
+        "sweep_usec": 62419,
+        "static_usec": 18480,
+        "ik_usec": 0,
+        "prepare_usec": 8026,
+        "world_usec": 0,
+        "geometry_builds": 7,
+        "triangle_candidates": 1810,
+        "walk_usec": 60385,
+        "solver_usec": 28908
+      },
+      {
+        "phase": "spear_hold",
+        "wall_usec": 38976084,
+        "frame_interval_usec": 103814,
+        "physics_frame": 1697,
+        "last_solver_usec": 29325,
+        "committed_depth": 0.368184208869934,
+        "cuts": 0,
+        "unresolved": 0,
+        "engine_process_sec": 0.035115,
+        "engine_physics_sec": 0.012824,
+        "geometry_usec": 7511,
+        "sweep_usec": 61175,
+        "static_usec": 18152,
+        "ik_usec": 0,
+        "prepare_usec": 8514,
+        "world_usec": 0,
+        "geometry_builds": 7,
+        "triangle_candidates": 1632,
+        "walk_usec": 58959,
+        "solver_usec": 29325
+      }
+    ]
+  },
+  "raw_checks": {
+    "sever_first_actual_cut": false,
+    "spear_actual_entry": true,
+    "sword_actual_entry": true
+  },
+  "actual_repeat_cuts": 1,
+  "source_stable": true,
+  "stderr_bytes": 0,
+  "environment_clean": true,
+  "acceptance": "Sworddeep strongly improved; spear remains overloaded with native held corpse. OverallFPS notaccepted. No further source edits by QA."
+}

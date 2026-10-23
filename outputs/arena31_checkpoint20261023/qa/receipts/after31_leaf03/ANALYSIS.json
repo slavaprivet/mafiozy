@@ -1,0 +1,164 @@
+{
+  "comparison": {
+    "baseline30_02": {
+      "sword_approach": {
+        "n": 188,
+        "p95_ms": 63.26,
+        "max_ms": 206.249,
+        "over50": 12
+      },
+      "spear_approach": {
+        "n": 232,
+        "p95_ms": 20.787,
+        "max_ms": 54.998,
+        "over50": 2
+      }
+    },
+    "after31_final01": {
+      "sword_approach": {
+        "n": 168,
+        "p95_ms": 96.5,
+        "max_ms": 415.986,
+        "over50": 16
+      },
+      "spear_approach": {
+        "n": 86,
+        "p95_ms": 113.625,
+        "max_ms": 124.102,
+        "over50": 30
+      }
+    },
+    "after31_mixed02": {
+      "sword_approach": {
+        "n": 165,
+        "p95_ms": 73.791,
+        "max_ms": 255.687,
+        "over50": 10
+      },
+      "spear_approach": {
+        "n": 111,
+        "p95_ms": 261.791,
+        "max_ms": 327.178,
+        "over50": 21
+      }
+    },
+    "after31_leaf03": {
+      "sword_approach": {
+        "n": 160,
+        "p95_ms": 66.516,
+        "max_ms": 282.929,
+        "over50": 11
+      },
+      "spear_approach": {
+        "n": 125,
+        "p95_ms": 176.88,
+        "max_ms": 205.81,
+        "over50": 19
+      }
+    }
+  },
+  "top_frames": {
+    "sword_approach": [
+      {
+        "phase": "sword_approach",
+        "wall_usec": 18025298,
+        "frame_interval_usec": 282929,
+        "physics_frame": 514,
+        "last_solver_usec": 160654,
+        "committed_depth": 0.356884121894836,
+        "cuts": 0,
+        "unresolved": 1,
+        "engine_process_sec": 0.019832,
+        "engine_physics_sec": 0.015572,
+        "geometry_usec": 9841,
+        "sweep_usec": 121402,
+        "static_usec": 123787,
+        "ik_usec": 126178,
+        "prepare_usec": 11599,
+        "world_usec": 190,
+        "geometry_builds": 9,
+        "triangle_candidates": 4467,
+        "walk_usec": 102036,
+        "solver_usec": 160654
+      },
+      {
+        "phase": "sword_approach",
+        "wall_usec": 18281943,
+        "frame_interval_usec": 256645,
+        "physics_frame": 522,
+        "last_solver_usec": 129473,
+        "committed_depth": 0.356884121894836,
+        "cuts": 0,
+        "unresolved": 2,
+        "engine_process_sec": 0.019832,
+        "engine_physics_sec": 0.015572,
+        "geometry_usec": 10364,
+        "sweep_usec": 105393,
+        "static_usec": 110784,
+        "ik_usec": 112703,
+        "prepare_usec": 12130,
+        "world_usec": 151,
+        "geometry_builds": 9,
+        "triangle_candidates": 3960,
+        "walk_usec": 109571,
+        "solver_usec": 129473
+      }
+    ],
+    "spear_approach": [
+      {
+        "phase": "spear_approach",
+        "wall_usec": 36507437,
+        "frame_interval_usec": 205810,
+        "physics_frame": 1494,
+        "last_solver_usec": 66781,
+        "committed_depth": 0.368075013160706,
+        "cuts": 0,
+        "unresolved": 0,
+        "engine_process_sec": 0.060706,
+        "engine_physics_sec": 0.01991,
+        "geometry_usec": 8550,
+        "sweep_usec": 141975,
+        "static_usec": 34099,
+        "ik_usec": 0,
+        "prepare_usec": 9842,
+        "world_usec": 1497,
+        "geometry_builds": 9,
+        "triangle_candidates": 2220,
+        "walk_usec": 122596,
+        "solver_usec": 66781
+      },
+      {
+        "phase": "spear_approach",
+        "wall_usec": 36301627,
+        "frame_interval_usec": 190963,
+        "physics_frame": 1486,
+        "last_solver_usec": 49561,
+        "committed_depth": 0.368075013160706,
+        "cuts": 0,
+        "unresolved": 0,
+        "engine_process_sec": 0.052354,
+        "engine_physics_sec": 0.018392,
+        "geometry_usec": 9199,
+        "sweep_usec": 129357,
+        "static_usec": 33152,
+        "ik_usec": 0,
+        "prepare_usec": 10500,
+        "world_usec": 0,
+        "geometry_builds": 9,
+        "triangle_candidates": 1712,
+        "walk_usec": 124738,
+        "solver_usec": 49561
+      }
+    ]
+  },
+  "source_stable": true,
+  "stderr_bytes": 0,
+  "environment_clean": true,
+  "raw_checks": {
+    "sever_first_actual_cut": false,
+    "spear_actual_entry": true,
+    "sword_actual_entry": true
+  },
+  "actual_repeat_severs": 2,
+  "acceptance": "NOT ACCEPTED: partial improvement vs mixed02, still much slower than30 for spear; sword nearbaselinep95 butmax worse."
+}

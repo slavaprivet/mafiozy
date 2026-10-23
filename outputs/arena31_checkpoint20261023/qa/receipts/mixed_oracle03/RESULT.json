@@ -1,0 +1,253 @@
+{
+  "cases": [
+    {
+      "a_posed_vertices": 300,
+      "b_posed_vertices": 300,
+      "label": "synthetic_mixed_abnormal_unbound_duplicates",
+      "new_errors": 0,
+      "rays": 365,
+      "triangles": 21
+    },
+    {
+      "a_posed_vertices": 848,
+      "b_posed_vertices": 357,
+      "label": "actual_uncut:player_male_DEMO_core_HAIR:0",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 1200
+    },
+    {
+      "a_posed_vertices": 491,
+      "b_posed_vertices": 142,
+      "label": "actual_uncut:player_male_DEMO_core_SKIN:0",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 4684
+    },
+    {
+      "a_posed_vertices": 326,
+      "b_posed_vertices": 151,
+      "label": "actual_uncut:ArmorTailoredTorso:0",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 457
+    },
+    {
+      "a_posed_vertices": 342,
+      "b_posed_vertices": 131,
+      "label": "actual_uncut:ArmorTailoredSleeveLL:0",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 738
+    },
+    {
+      "a_posed_vertices": 507,
+      "b_posed_vertices": 48,
+      "label": "actual_uncut:ArmorTailoredSleeveRR:0",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 766
+    },
+    {
+      "a_posed_vertices": 338,
+      "b_posed_vertices": 346,
+      "label": "actual_uncut:ArmorOriginalLowerGarment:0",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 474
+    },
+    {
+      "a_posed_vertices": 526,
+      "b_posed_vertices": 338,
+      "label": "actual_uncut:ArmorTailoredGloveL:0",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 276
+    },
+    {
+      "a_posed_vertices": 514,
+      "b_posed_vertices": 274,
+      "label": "actual_uncut:ArmorTailoredGloveR:0",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 276
+    },
+    {
+      "a_posed_vertices": 428,
+      "b_posed_vertices": 428,
+      "label": "actual_uncut:ArmorTailoredLegL:0",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 318
+    },
+    {
+      "a_posed_vertices": 314,
+      "b_posed_vertices": 256,
+      "label": "actual_uncut:ArmorTailoredLegR:0",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 307
+    },
+    {
+      "a_posed_vertices": 90,
+      "b_posed_vertices": 90,
+      "label": "actual_uncut:ArmorTailoredBootL:0",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 38
+    },
+    {
+      "a_posed_vertices": 90,
+      "b_posed_vertices": 90,
+      "label": "actual_uncut:ArmorTailoredBootR:0",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 38
+    },
+    {
+      "label": "actual_uncut",
+      "surfaces": 12
+    },
+    {
+      "a_posed_vertices": 420,
+      "b_posed_vertices": 357,
+      "label": "actual_postcut:player_male_DEMO_core_HAIR:0",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 664
+    },
+    {
+      "a_posed_vertices": 444,
+      "b_posed_vertices": 339,
+      "label": "actual_postcut:ArmorTailoredTorso:0",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 144
+    },
+    {
+      "a_posed_vertices": 270,
+      "b_posed_vertices": 222,
+      "label": "actual_postcut:ArmorTailoredTorso:1",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 30
+    },
+    {
+      "a_posed_vertices": 252,
+      "b_posed_vertices": 198,
+      "label": "actual_postcut:ArmorTailoredSleeveLL:0",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 67
+    },
+    {
+      "a_posed_vertices": 189,
+      "b_posed_vertices": 189,
+      "label": "actual_postcut:ArmorTailoredSleeveLL:1",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 21
+    },
+    {
+      "a_posed_vertices": 393,
+      "b_posed_vertices": 198,
+      "label": "actual_postcut:ArmorTailoredSleeveRR:0",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 71
+    },
+    {
+      "a_posed_vertices": 207,
+      "b_posed_vertices": 207,
+      "label": "actual_postcut:ArmorTailoredSleeveRR:1",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 23
+    },
+    {
+      "a_posed_vertices": 675,
+      "b_posed_vertices": 400,
+      "label": "actual_postcut:ArmorOriginalLowerGarment:0",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 445
+    },
+    {
+      "a_posed_vertices": 315,
+      "b_posed_vertices": 306,
+      "label": "actual_postcut:ArmorOriginalLowerGarment:1",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 35
+    },
+    {
+      "a_posed_vertices": 589,
+      "b_posed_vertices": 550,
+      "label": "actual_postcut:ArmorTailoredLegL:0",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 267
+    },
+    {
+      "a_posed_vertices": 297,
+      "b_posed_vertices": 198,
+      "label": "actual_postcut:ArmorTailoredLegL:1",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 33
+    },
+    {
+      "a_posed_vertices": 529,
+      "b_posed_vertices": 333,
+      "label": "actual_postcut:ArmorTailoredLegR:0",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 269
+    },
+    {
+      "a_posed_vertices": 288,
+      "b_posed_vertices": 288,
+      "label": "actual_postcut:ArmorTailoredLegR:1",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 32
+    },
+    {
+      "a_posed_vertices": 90,
+      "b_posed_vertices": 90,
+      "label": "actual_postcut:ArmorTailoredBootL:0",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 38
+    },
+    {
+      "a_posed_vertices": 90,
+      "b_posed_vertices": 90,
+      "label": "actual_postcut:ArmorTailoredBootR:0",
+      "new_errors": 0,
+      "rays": 99,
+      "triangles": 38
+    },
+    {
+      "label": "actual_postcut",
+      "surfaces": 15
+    }
+  ],
+  "checks": {
+    "actual_cut_committed": true,
+    "actual_cut_queued": true,
+    "actual_postcut_actual_surfaces": true,
+    "actual_uncut_actual_surfaces": true,
+    "exhaustive_all_hit_count_position_normal_face_order": true,
+    "nontrivial_ray_coverage": true,
+    "startup": true
+  },
+  "errors": [],
+  "hits": 7972,
+  "max_normal_error": 0.0,
+  "max_point_error_m": 0.0,
+  "passed": true,
+  "rays": 3038,
+  "scope": "Independent exhaustive exact weighted vertices and triangle traversal; same final robust Segment primitive; no optimized bounds or posed cache used as expected results. Real skinned surfaces before/after actual API cut, real bone pose changes, node matrices, seams, misses, abnormal/unbound weights, duplicate order and two independent actor pose objects.",
+  "surface_triangles": 11770
+}

@@ -1,0 +1,108 @@
+{
+	"checks": {
+		"pending_contact_boundary_cancellation": true,
+		"pending_contact_boundary_injury_unchanged": true,
+		"pending_contact_boundary_not_cancelled_or_withdrawn": true,
+		"spear_empty_exit_cancellation": true,
+		"spear_empty_exit_inactive_not_withdrawn": true,
+		"spear_empty_exit_injury_unchanged": true,
+		"spear_empty_exit_pending_removed": true,
+		"stale_generation_cancellation": true,
+		"stale_generation_injury_unchanged": true,
+		"stale_generation_not_cancelled_or_withdrawn": true,
+		"subvisible_exit_cancellation": true,
+		"subvisible_exit_inactive_not_withdrawn": true,
+		"subvisible_exit_injury_unchanged": true,
+		"subvisible_exit_pending_removed": true,
+		"sword_empty_exit_cancellation": true,
+		"sword_empty_exit_inactive_not_withdrawn": true,
+		"sword_empty_exit_injury_unchanged": true,
+		"sword_empty_exit_pending_removed": true,
+		"uncommitted_probe_cancellation": true,
+		"uncommitted_probe_injury_unchanged": true,
+		"uncommitted_probe_not_cancelled_or_withdrawn": true,
+		"visible_spear_owner_unchanged_cancellation": true,
+		"visible_spear_owner_unchanged_injury_unchanged": true,
+		"visible_spear_owner_unchanged_not_cancelled_or_withdrawn": true,
+		"visible_sword_exit_cancellation": true,
+		"visible_sword_exit_injury_retained": true,
+		"visible_sword_exit_injury_unchanged": true,
+		"visible_sword_exit_visible_sword_withdrawal_preserved": true
+	},
+	"observations": [
+		{
+			"active": false,
+			"cancelled": true,
+			"depth": -0.0199999995529652,
+			"injury": 0.0,
+			"label": "sword_empty_exit",
+			"valid": false,
+			"withdrawn": false
+		},
+		{
+			"active": false,
+			"cancelled": true,
+			"depth": -0.0199999995529652,
+			"injury": 0.0,
+			"label": "spear_empty_exit",
+			"valid": false,
+			"withdrawn": false
+		},
+		{
+			"active": false,
+			"cancelled": true,
+			"depth": -0.0199999995529652,
+			"injury": 0.00005,
+			"label": "subvisible_exit",
+			"valid": false,
+			"withdrawn": false
+		},
+		{
+			"active": true,
+			"cancelled": false,
+			"depth": -0.0000499999987368938,
+			"injury": 0.0,
+			"label": "pending_contact_boundary",
+			"valid": true,
+			"withdrawn": false
+		},
+		{
+			"active": true,
+			"cancelled": false,
+			"depth": 0.0,
+			"injury": 0.0,
+			"label": "uncommitted_probe",
+			"valid": true,
+			"withdrawn": false
+		},
+		{
+			"active": true,
+			"cancelled": false,
+			"depth": 0.0,
+			"injury": 0.0,
+			"label": "stale_generation",
+			"valid": true,
+			"withdrawn": false
+		},
+		{
+			"active": false,
+			"cancelled": false,
+			"depth": -0.0199999995529652,
+			"injury": 0.02,
+			"label": "visible_sword_exit",
+			"valid": false,
+			"withdrawn": true
+		},
+		{
+			"active": true,
+			"cancelled": false,
+			"depth": -0.0199999995529652,
+			"injury": 0.02,
+			"label": "visible_spear_owner_unchanged",
+			"valid": true,
+			"withdrawn": false
+		}
+	],
+	"passed": true,
+	"script": "res://scripts/combat/local_wound28.gd"
+}

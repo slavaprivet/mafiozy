@@ -1,0 +1,3692 @@
+{
+	"checks": {
+		"G_corpse_owned_mass_shape": true,
+		"G_follows_original_bone": true,
+		"G_one_ground_owner": true,
+		"G_remains_attached_0_ticks": true,
+		"G_same_weapon_no_teleport": true,
+		"Q_menu_no_duplicate": true,
+		"actual_entry": true,
+		"channel_valid_before_G": true,
+		"corpse_regrab_reachable_same_nearest": false,
+		"repeat_G_no_duplicate": true,
+		"requested_life_state": true
+	},
+	"corpse": true,
+	"hold_ticks": 0,
+	"passed": false,
+	"rows": [
+		{
+			"aiming": false,
+			"attachment": {},
+			"cast_pending": false,
+			"channel_active": true,
+			"channel_id": 349754629605,
+			"channel_valid": true,
+			"current_depth": 0.346445322036743,
+			"cut_depth": 0.346445322036743,
+			"dead": true,
+			"embedded": {
+				"active": true,
+				"axis": "(-0.000004, -0.000002, -1.0)",
+				"begins": 1,
+				"corpse_brace": {},
+				"depth": 0.346445429076751,
+				"ends": 0,
+				"entry": "(0.00605, 0.99422, -1.836608)",
+				"holder_reaction_m": 0.0,
+				"last_reason": "",
+				"max_crouch_m": 0.000000774860382080078,
+				"max_foot_error_m": 0.00593989342451096,
+				"max_grip_error_m": 0.00285622128285468,
+				"max_holder_reaction_step_m": 0.0,
+				"max_support_error_m": 0.000000239421012793173,
+				"rejected_lateral_m": 0.0139727176842219,
+				"self_clear": true,
+				"world_clear": true
+			},
+			"ground_count": 1,
+			"grounded": false,
+			"held_id": 228052703766,
+			"model_id": 228052703766,
+			"model_transform": "[X: (-0.000004, -0.000002, -1.0), Y: (-0.400086, 0.916478, -0.0), Z: (0.916478, 0.400086, -0.000005), O: (0.006284, 0.992311, -0.343053)]",
+			"phase": "entry",
+			"player": "(-0.000001, 0.000043, 0.158581)",
+			"release_reason": "",
+			"same_model_ground_count": 0,
+			"throwing": false,
+			"thrown_total": 0,
+			"withdrawn": false
+		},
+		{
+			"model": "[X: (-0.000004, -0.000002, -1.0), Y: (-0.400086, 0.916478, -0.0), Z: (0.916478, 0.400086, -0.000005), O: (0.006284, 0.992311, -0.343053)]",
+			"phase": "drop_immediate",
+			"physics": {
+				"angular_velocity": "(0.0, 0.0, 0.0)",
+				"body": "[X: (-1.0, 0.0, -0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, -1.0), O: (-0.000441, 1.116687, -2.013603)]",
+				"joint": null,
+				"live_anchor": null,
+				"model_local": "[X: (0.000004, -0.000002, 1.0), Y: (0.400086, 0.916478, 0.0), Z: (-0.916478, 0.400086, 0.000005), O: (-0.006725, -0.124376, -1.67055)]",
+				"node_a": "",
+				"node_b": "",
+				"server_body": "[X: (-1.0, 0.0, -0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, -1.0), O: (-0.000441, 1.116687, -2.013603)]",
+				"server_target": null,
+				"target_node": null,
+				"velocity": "(0.0, 0.0, 0.0)"
+			}
+		},
+		{
+			"model": "[X: (0.000004, -0.00011, -1.0), Y: (-0.40012, 0.916463, -0.000102), Z: (0.916463, 0.40012, -0.00004), O: (0.006256, 0.990891, -0.344641)]",
+			"phase": "drop_tick1",
+			"physics": {
+				"angular_velocity": "(-0.006445, -0.000496, 0.002256)",
+				"body": "[X: (-1.0, -0.000038, -0.000008), Y: (-0.000038, 1.0, -0.000107), Z: (0.000008, -0.000107, -1.0), O: (-0.00046, 1.115087, -2.015205)]",
+				"joint": null,
+				"live_anchor": null,
+				"model_local": "[X: (0.000004, -0.000002, 1.0), Y: (0.400086, 0.916478, 0.0), Z: (-0.916478, 0.400086, 0.000005), O: (-0.006725, -0.124376, -1.67055)]",
+				"node_a": "",
+				"node_b": "",
+				"server_body": "[X: (-1.0, -0.000217, -0.000025), Y: (-0.000217, 1.0, 0.000111), Z: (0.000025, 0.000111, -1.0), O: (-0.000459, 1.119597, -2.016946)]",
+				"server_target": null,
+				"target_node": null,
+				"velocity": "(-0.001127, -0.095986, -0.096093)"
+			}
+		},
+		{
+			"max_anchor_error_m": 0.0,
+			"phase": "attachment_error"
+		},
+		{
+			"aiming": false,
+			"attachment": {
+				"active": true,
+				"compound": true,
+				"depth": 0.346445292234421,
+				"held": false,
+				"holder_grace": false,
+				"holder_grace_cleared": false,
+				"mass_added": 1.15,
+				"owner_body_id": 239494765497,
+				"reason": "",
+				"regrab_ik31": {},
+				"target_id": 349754629605,
+				"weapon_id": "spear"
+			},
+			"cast_pending": false,
+			"channel_active": false,
+			"channel_id": 349754629605,
+			"channel_valid": false,
+			"current_depth": 0.346445322036743,
+			"cut_depth": 0.346445322036743,
+			"dead": true,
+			"embedded": {
+				"active": false,
+				"axis": "(-0.000004, -0.000002, -1.0)",
+				"begins": 1,
+				"corpse_brace": {},
+				"depth": 0.346445429076751,
+				"ends": 0,
+				"entry": "(0.00605, 0.99422, -1.836608)",
+				"holder_reaction_m": 0.0,
+				"last_reason": "released_hands_embedded",
+				"max_crouch_m": 0.000000774860382080078,
+				"max_foot_error_m": 0.00593989342451096,
+				"max_grip_error_m": 0.00285622128285468,
+				"max_holder_reaction_step_m": 0.0,
+				"max_support_error_m": 0.000000239421012793173,
+				"rejected_lateral_m": 0.0139727176842219,
+				"self_clear": true,
+				"world_clear": true
+			},
+			"ground_count": 2,
+			"grounded": true,
+			"held_id": 228052703766,
+			"model_id": 228052703766,
+			"model_transform": "[X: (0.000004, -0.00011, -1.0), Y: (-0.40012, 0.916463, -0.000102), Z: (0.916463, 0.40012, -0.00004), O: (0.006256, 0.990891, -0.344641)]",
+			"phase": "dropped_hold",
+			"player": "(-0.000001, 0.000442, 0.366278)",
+			"release_reason": "",
+			"same_model_ground_count": 1,
+			"throwing": false,
+			"thrown_total": 0,
+			"withdrawn": false
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(0.006041, 1.002721, -0.295795)",
+						"distance": 0.708304822444916,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.208647, 1.134468, 0.370005)",
+						"side": "right"
+					},
+					{
+						"desired": "(0.006027, 1.002215, -0.185796)",
+						"distance": 0.607669591903687,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.203746, 1.136846, 0.368399)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 1.23407983779907,
+					"node": "PrototypeSpear:<Node3D#228052703766>",
+					"own": true
+				},
+				"player": "(0.000518, 0.000442, 0.361278)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445709466934,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(0.006069, 1.006358, -0.293542)",
+			"phase": "corpse_native_approach",
+			"tick": 0
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(0.005919, 0.960922, -0.312782)",
+						"distance": 0.715248763561249,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.209825, 1.133352, 0.350747)",
+						"side": "right"
+					},
+					{
+						"desired": "(0.005895, 0.958134, -0.202817)",
+						"distance": 0.613217830657959,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.202543, 1.135674, 0.345881)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 1.19987797737122,
+					"node": "PrototypeSpear:<Node3D#228052703766>",
+					"own": true
+				},
+				"player": "(0.001814, -0.00059, 0.340375)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445709466934,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(0.005935, 0.973885, -0.308428)",
+			"phase": "corpse_native_approach",
+			"tick": 5
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(0.005889, 0.84775, -0.343288)",
+						"distance": 0.756784677505493,
+						"reach": 0.505081615902553,
+						"shoulder": "(0.210861, 1.133556, 0.326805)",
+						"side": "right"
+					},
+					{
+						"desired": "(0.005861, 0.839598, -0.233591)",
+						"distance": 0.662964403629303,
+						"reach": 0.505081615902553,
+						"shoulder": "(-0.201507, 1.135978, 0.321998)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 1.1175274848938,
+					"node": "PrototypeSpear:<Node3D#228052703766>",
+					"own": true
+				},
+				"player": "(0.002771, -0.000531, 0.316462)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445590257645,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(0.005888, 0.87704, -0.336203)",
+			"phase": "corpse_native_approach",
+			"tick": 10
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(0.005962, 0.757956, -0.360471)",
+						"distance": 0.787052392959595,
+						"reach": 0.505081697661973,
+						"shoulder": "(0.210959, 1.13238, 0.300766)",
+						"side": "right"
+					},
+					{
+						"desired": "(0.005938, 0.749202, -0.25082)",
+						"distance": 0.70065575838089,
+						"reach": 0.505081697661973,
+						"shoulder": "(-0.201423, 1.133884, 0.296848)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 1.04422891139984,
+					"node": "PrototypeSpear:<Node3D#228052703766>",
+					"own": true
+				},
+				"player": "(0.003551, 0.000624, 0.290878)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445381641388,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(0.005938, 0.767936, -0.359854)",
+			"phase": "corpse_native_approach",
+			"tick": 15
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(0.006096, 0.671534, -0.362454)",
+						"distance": 0.829366683959961,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.211162, 1.130478, 0.297218)",
+						"side": "right"
+					},
+					{
+						"desired": "(0.006082, 0.666393, -0.252574)",
+						"distance": 0.747160971164703,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.201224, 1.13192, 0.293831)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.981802225112915,
+					"node": "PrototypeSpear:<Node3D#228052703766>",
+					"own": true
+				},
+				"player": "(0.003788, -0.001044, 0.287598)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445798873901,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(0.006069, 0.691804, -0.36251)",
+			"phase": "corpse_native_approach",
+			"tick": 20
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(0.006313, 0.584571, -0.366055)",
+						"distance": 0.879786133766174,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.211411, 1.129514, 0.293486)",
+						"side": "right"
+					},
+					{
+						"desired": "(0.006307, 0.585433, -0.256058)",
+						"distance": 0.799265384674072,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.200979, 1.130679, 0.290352)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.921859800815582,
+					"node": "PrototypeSpear:<Node3D#228052703766>",
+					"own": true
+				},
+				"player": "(0.004244, -0.00081, 0.283995)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445351839066,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(0.00621, 0.595993, -0.360479)",
+			"phase": "corpse_native_approach",
+			"tick": 25
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(0.00993, 0.607274, -0.43322)",
+						"distance": 0.87391471862793,
+						"reach": 0.505081697661973,
+						"shoulder": "(0.213294, 1.125565, 0.240387)",
+						"side": "right"
+					},
+					{
+						"desired": "(0.009979, 0.609608, -0.323244)",
+						"distance": 0.790431320667267,
+						"reach": 0.505081697661973,
+						"shoulder": "(-0.1991, 1.125816, 0.237646)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.945856511592865,
+					"node": "PrototypeSpear:<Node3D#228052703766>",
+					"own": true
+				},
+				"player": "(0.006819, 0.000645, 0.231098)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445262432098,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(0.008649, 0.595677, -0.416942)",
+			"phase": "corpse_native_approach",
+			"tick": 30
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(0.011715, 0.626522, -0.518306)",
+						"distance": 0.863346099853516,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.218282, 1.131572, 0.150739)",
+						"side": "right"
+					},
+					{
+						"desired": "(0.011574, 0.628981, -0.408334)",
+						"distance": 0.777670919895172,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.194117, 1.130469, 0.149316)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.955415546894073,
+					"node": "PrototypeSpear:<Node3D#228052703766>",
+					"own": true
+				},
+				"player": "(0.012819, 0.000441, 0.142113)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445441246033,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(0.009874, 0.627098, -0.501745)",
+			"phase": "corpse_native_approach",
+			"tick": 35
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(0.017684, 0.647931, -0.597813)",
+						"distance": 0.843156397342682,
+						"reach": 0.505081697661973,
+						"shoulder": "(0.217234, 1.137331, 0.059135)",
+						"side": "right"
+					},
+					{
+						"desired": "(0.017359, 0.653799, -0.48797)",
+						"distance": 0.758056342601776,
+						"reach": 0.505081697661973,
+						"shoulder": "(-0.19516, 1.134724, 0.058103)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.959366083145142,
+					"node": "PrototypeSpear:<Node3D#228052703766>",
+					"own": true
+				},
+				"player": "(0.012921, 0.000441, 0.050707)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445620059967,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(0.01538, 0.624971, -0.582345)",
+			"phase": "corpse_native_approach",
+			"tick": 40
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(0.00058, 0.844242, -0.675326)",
+						"distance": 0.749512016773224,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.224479, 1.13668, -0.022549)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.000462, 0.863155, -0.566969)",
+						"distance": 0.64385598897934,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.187797, 1.132758, -0.013101)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 1.09600591659546,
+					"node": "PrototypeSpear:<Node3D#228052703766>",
+					"own": true
+				},
+				"player": "(0.021032, -0.000284, -0.025805)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445232629776,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(0.007337, 0.803226, -0.658518)",
+			"phase": "corpse_native_approach",
+			"tick": 45
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.026482, 1.063891, -0.784644)",
+						"distance": 0.729419589042664,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.200309, 1.134289, -0.094961)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.027376, 1.098539, -0.680247)",
+						"distance": 0.635099768638611,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.211487, 1.129199, -0.073193)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 1.2860141992569,
+					"node": "PrototypeSpear:<Node3D#228052703766>",
+					"own": true
+				},
+				"player": "(-0.002242, 0.001086, -0.092182)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445888280869,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(-0.017793, 1.017749, -0.758268)",
+			"phase": "corpse_native_approach",
+			"tick": 50
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.068118, 1.311785, -0.957211)",
+						"distance": 0.788523852825165,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.185152, 1.127375, -0.233597)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.069636, 1.364626, -0.860746)",
+						"distance": 0.724862039089203,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.225493, 1.1209, -0.196117)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 1.50645220279694,
+					"node": "PrototypeSpear:<Node3D#228052703766>",
+					"own": true
+				},
+				"player": "(-0.016076, -0.000623, -0.22318)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445351839066,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(-0.060334, 1.256768, -0.916245)",
+			"phase": "corpse_native_approach",
+			"tick": 55
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.1096, 1.649963, -1.255146)",
+						"distance": 1.06399238109589,
+						"reach": 0.505081615902553,
+						"shoulder": "(0.165792, 1.124452, -0.371926)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.112011, 1.725575, -1.17529)",
+						"distance": 1.05656635761261,
+						"reach": 0.505081615902553,
+						"shoulder": "(-0.243455, 1.117185, -0.321524)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 1.4150984287262,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(-0.034398, -0.000623, -0.355247)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445500850677,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(-0.102156, 1.577644, -1.181554)",
+			"phase": "corpse_native_approach",
+			"tick": 60
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.145137, 1.938214, -1.67889)",
+						"distance": 1.46012103557587,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.150106, 1.123997, -0.503375)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.148996, 2.03353, -1.624117)",
+						"distance": 1.48995184898376,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.259372, 1.116622, -0.454906)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 1.28357565402985,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(-0.050077, -0.000623, -0.487652)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445381641388,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(-0.13898, 1.900467, -1.604079)",
+			"phase": "corpse_native_approach",
+			"tick": 65
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.182682, 2.013137, -1.820936)",
+						"distance": 1.51415681838989,
+						"reach": 0.505081697661973,
+						"shoulder": "(0.13541, 1.126293, -0.635611)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.1883, 2.11208, -1.7732)",
+						"distance": 1.54853117465973,
+						"reach": 0.505081697661973,
+						"shoulder": "(-0.274146, 1.119502, -0.587718)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 1.15236949920654,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(-0.065245, -0.000623, -0.620117)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445471048355,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(-0.175461, 2.010315, -1.813268)",
+			"phase": "corpse_native_approach",
+			"tick": 70
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.170484, 2.011456, -1.887545)",
+						"distance": 1.45315980911255,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.119413, 1.129994, -0.769216)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.174767, 2.111129, -1.84121)",
+						"distance": 1.49886512756348,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.289862, 1.124421, -0.71882)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 1.02207934856415,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(-0.082082, -0.000623, -0.752382)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445560455322,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(-0.181288, 2.014597, -1.874626)",
+			"phase": "corpse_native_approach",
+			"tick": 75
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.131211, 2.038863, -2.028663)",
+						"distance": 1.4688777923584,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.111009, 1.13648, -0.895245)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.132814, 2.141144, -1.988214)",
+						"distance": 1.52311134338379,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.299789, 1.132647, -0.859091)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.891199290752411,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(-0.09229, -0.000623, -0.8853)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445500850677,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(-0.135925, 2.031361, -1.997872)",
+			"phase": "corpse_native_approach",
+			"tick": 80
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.083242, 2.052109, -2.144458)",
+						"distance": 1.46515762805939,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.109585, 1.13367, -1.019303)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.082009, 2.15581, -2.10779)",
+						"distance": 1.52310025691986,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.302448, 1.131934, -1.001933)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.759750664234161,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(-0.095571, -0.000623, -1.018578)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445590257645,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(-0.097393, 2.052934, -2.12312)",
+			"phase": "corpse_native_approach",
+			"tick": 85
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.002657, 2.024517, -2.232818)",
+						"distance": 1.42124629020691,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.117928, 1.12615, -1.138133)",
+						"side": "right"
+					},
+					{
+						"desired": "(0.003806, 2.128579, -2.197758)",
+						"distance": 1.48047852516174,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.294322, 1.126674, -1.149367)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.62744140625,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(-0.088521, -0.000623, -1.151678)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445262432098,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(-0.019102, 2.032372, -2.217681)",
+			"phase": "corpse_native_approach",
+			"tick": 90
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(0.069106, 1.975955, -2.310808)",
+						"distance": 1.35393178462982,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.136802, 1.133741, -1.252875)",
+						"side": "right"
+					},
+					{
+						"desired": "(0.080552, 2.079754, -2.276243)",
+						"distance": 1.40412449836731,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.273102, 1.136476, -1.298122)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.494560420513153,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(-0.069506, -0.000623, -1.283613)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445322036743,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(0.055996, 1.987425, -2.294668)",
+			"phase": "corpse_native_approach",
+			"tick": 95
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(0.077672, 1.927397, -2.428715)",
+						"distance": 1.33050608634949,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.163909, 1.129575, -1.367448)",
+						"side": "right"
+					},
+					{
+						"desired": "(0.090543, 2.031906, -2.396902)",
+						"distance": 1.35105764865875,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.241434, 1.134266, -1.443282)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.362015575170517,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(-0.040982, -0.000623, -1.413834)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445590257645,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(0.123563, 1.920729, -2.386013)",
+			"phase": "corpse_native_approach",
+			"tick": 100
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.016033, 1.959781, -2.664085)",
+						"distance": 1.43815219402313,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.178415, 1.144913, -1.495127)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.007972, 2.067486, -2.643237)",
+						"distance": 1.45154738426209,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.231486, 1.150923, -1.540086)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.248132646083832,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(-0.030397, 0.021548, -1.525994)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445620059967,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(-0.015115, 1.959729, -2.659898)",
+			"phase": "corpse_native_approach",
+			"tick": 105
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.08298, 1.948682, -2.662562)",
+						"distance": 1.32053697109222,
+						"reach": 0.505081615902553,
+						"shoulder": "(0.181023, 1.196439, -1.609827)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.078412, 2.056235, -2.639945)",
+						"distance": 1.33549952507019,
+						"reach": 0.505081615902553,
+						"shoulder": "(-0.231089, 1.203276, -1.623722)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.155811712145805,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(-0.030151, 0.076526, -1.624868)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445351839066,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(-0.083499, 1.948721, -2.659992)",
+			"phase": "corpse_native_approach",
+			"tick": 110
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.070745, 1.946525, -2.664211)",
+						"distance": 1.20270550251007,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.178269, 1.20782, -1.748346)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.065223, 2.054021, -2.641537)",
+						"distance": 1.23890936374664,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.234059, 1.215205, -1.745558)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.0729896351695061,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(-0.033757, 0.090628, -1.754829)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445441246033,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(-0.071685, 1.946315, -2.663439)",
+			"phase": "corpse_native_approach",
+			"tick": 115
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.069113, 1.946644, -2.664878)",
+						"distance": 1.1255122423172,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.178342, 1.218973, -1.842662)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.063512, 2.05414, -2.642223)",
+						"distance": 1.16786849498749,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.233945, 1.226348, -1.836227)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.111924171447754,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(-0.033725, 0.101727, -1.84727)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445590257645,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(-0.069554, 1.946633, -2.664938)",
+			"phase": "corpse_native_approach",
+			"tick": 120
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.068612, 1.946635, -2.665077)",
+						"distance": 1.12702739238739,
+						"reach": 0.505081697661973,
+						"shoulder": "(0.199776, 1.214565, -1.851301)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.062981, 2.054134, -2.642443)",
+						"distance": 1.16635882854462,
+						"reach": 0.505081697661973,
+						"shoulder": "(-0.21238, 1.221887, -1.839051)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.105692833662033,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(-0.012295, 0.097045, -1.852918)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445381641388,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(-0.067834, 1.946807, -2.665576)",
+			"phase": "corpse_native_approach",
+			"tick": 125
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.069628, 1.946303, -2.664017)",
+						"distance": 1.13211119174957,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225348, 1.208344, -1.857741)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.064059, 2.053791, -2.641313)",
+						"distance": 1.16960966587067,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.186353, 1.215582, -1.834816)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.0988351404666901,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.013371, 0.090385, -1.853866)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445441246033,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(-0.068822, 1.946456, -2.664452)",
+			"phase": "corpse_native_approach",
+			"tick": 130
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.069048, 1.946249, -2.663864)",
+						"distance": 1.12857258319855,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.230057, 1.212243, -1.860466)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.063446, 2.053733, -2.641154)",
+						"distance": 1.17233645915985,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.180939, 1.218431, -1.827005)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.0960929542779922,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019044, 0.089552, -1.851229)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445500850677,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(-0.0694, 1.946225, -2.663761)",
+			"phase": "corpse_native_approach",
+			"tick": 135
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.069614, 1.946147, -2.664214)",
+						"distance": 1.1221399307251,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.228585, 1.22179, -1.860733)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.064049, 2.053633, -2.641503)",
+						"distance": 1.16981530189514,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.182107, 1.225821, -1.823422)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.0945025905966759,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019302, 0.08906, -1.849669)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.34644541144371,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(-0.070009, 1.946064, -2.663837)",
+			"phase": "corpse_native_approach",
+			"tick": 140
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.073296, 1.944564, -2.661757)",
+						"distance": 1.11962223052979,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.226616, 1.220969, -1.861747)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.067918, 2.05201, -2.63881)",
+						"distance": 1.17039382457733,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.183801, 1.222461, -1.82135)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.0942914411425591,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019354, 0.089256, -1.849301)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445471048355,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"grip": "(-0.07544, 1.945045, -2.662246)",
+			"phase": "corpse_native_approach",
+			"tick": 145
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.06989, 1.943242, -2.66087)",
+						"distance": 1.12193834781647,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 1.21252, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.064232, 2.050655, -2.637838)",
+						"distance": 1.17741572856903,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.18473, 1.21252, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.0940710455179214,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019408, 0.089461, -1.848918)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445679664612,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 0
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.070107, 1.943205, -2.661005)",
+						"distance": 1.07282853126526,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 1.29065, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.064458, 2.05062, -2.637978)",
+						"distance": 1.1231940984726,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 1.29065, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.150750726461411,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.167871, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445351839066,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 1
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.070408, 1.94318, -2.660936)",
+						"distance": 1.02785921096802,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 1.367598, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.064774, 2.050594, -2.637905)",
+						"distance": 1.07251977920532,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 1.367598, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.220956012606621,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.246094, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.34644541144371,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 2
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.070947, 1.943078, -2.660649)",
+						"distance": 0.98932945728302,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 1.43938, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.065338, 2.050489, -2.637597)",
+						"distance": 1.02792608737946,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 1.43938, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.291869163513184,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.320833, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445441246033,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 3
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.071281, 1.943081, -2.660705)",
+						"distance": 0.957529842853546,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 1.505458, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.065676, 2.050493, -2.637654)",
+						"distance": 0.990076720714569,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 1.505458, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.36075958609581,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.391927, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445381641388,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 4
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.071137, 1.943087, -2.660758)",
+						"distance": 0.931441962718964,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 1.565945, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.065524, 2.050498, -2.637708)",
+						"distance": 0.958178579807281,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 1.565945, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.426785707473755,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.459375, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445530653,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 5
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.069878, 1.943306, -2.661378)",
+						"distance": 0.91057813167572,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 1.621501, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.064195, 2.050722, -2.638366)",
+						"distance": 0.932169497013092,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 1.621501, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.489599794149399,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.523177, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445500850677,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 6
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.070198, 1.943199, -2.661002)",
+						"distance": 0.893333733081818,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 1.673268, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.064535, 2.05061, -2.637967)",
+						"distance": 0.909044146537781,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 1.673268, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.549033164978027,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.583333, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445500850677,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 7
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.070488, 1.943145, -2.660893)",
+						"distance": 0.879644691944122,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 1.722704, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.064842, 2.050556, -2.63785)",
+						"distance": 0.889492392539978,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 1.722704, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.604994773864746,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.639844, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445500850677,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 8
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.070341, 1.943121, -2.660852)",
+						"distance": 0.868636190891266,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 1.771363, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.064687, 2.050531, -2.637806)",
+						"distance": 0.872702777385712,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 1.771363, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.65743088722229,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.692708, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445351839066,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 9
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.069321, 1.943304, -2.661449)",
+						"distance": 0.860570728778839,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 1.82, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.063609, 2.050719, -2.638439)",
+						"distance": 0.859186708927155,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 1.82, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.70630818605423,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.741927, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445500850677,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 10
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.069587, 1.943226, -2.661265)",
+						"distance": 0.855144143104553,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 1.865573, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.063891, 2.050639, -2.638243)",
+						"distance": 0.847839176654816,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 1.865573, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.751604616641998,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.7875, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445590257645,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 11
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.070089, 1.943124, -2.660977)",
+						"distance": 0.852259695529938,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 1.9075, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.064422, 2.050535, -2.637936)",
+						"distance": 0.839291751384735,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 1.9075, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.793305337429047,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.829427, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445590257645,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 12
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.069886, 1.943123, -2.660974)",
+						"distance": 0.851445436477661,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 1.945781, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.064208, 2.050533, -2.637932)",
+						"distance": 0.833648025989532,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 1.945781, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.83139979839325,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.867708, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445500850677,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 13
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.068926, 1.943271, -2.661406)",
+						"distance": 0.852324485778809,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 1.980417, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.063194, 2.050684, -2.638392)",
+						"distance": 0.830621421337128,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 1.980417, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.86588042974472,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.902344, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445620059967,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 14
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.069374, 1.94316, -2.661116)",
+						"distance": 0.854128181934357,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 2.011406, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.063669, 2.05057, -2.638083)",
+						"distance": 0.828195691108704,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 2.011406, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.896741628646851,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.933333, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445500850677,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 15
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.070223, 1.942994, -2.660637)",
+						"distance": 0.856611907482147,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 2.03875, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.064565, 2.0504, -2.637575)",
+						"distance": 0.826717674732208,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 2.03875, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.923979222774506,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.960677, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445500850677,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 16
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.070139, 1.942994, -2.660666)",
+						"distance": 0.859581828117371,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 2.062448, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.064477, 2.0504, -2.637605)",
+						"distance": 0.826765894889832,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 2.062448, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.947590112686157,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.984375, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445530653,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 17
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.06928, 1.94314, -2.661082)",
+						"distance": 0.862663686275482,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 2.0825, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.063569, 2.05055, -2.638047)",
+						"distance": 0.827864289283752,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 2.0825, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.96757185459137,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 1.004427, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.34644541144371,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 18
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.069625, 1.943055, -2.660836)",
+						"distance": 0.865371823310852,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 2.098907, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.063934, 2.050462, -2.637786)",
+						"distance": 0.828353822231293,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 2.098907, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.983922719955444,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 1.020833, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445471048355,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 19
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.070167, 1.942933, -2.660469)",
+						"distance": 0.867630898952484,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 2.111667, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.064504, 2.050337, -2.637396)",
+						"distance": 0.828739881515503,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 2.111667, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.996641278266907,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 1.033594, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445679664612,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 20
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.069912, 1.942955, -2.660557)",
+						"distance": 0.869439244270325,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 2.120781, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.064236, 2.05036, -2.63749)",
+						"distance": 0.829593122005463,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 2.120781, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 1.00572657585144,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 1.042708, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445679664612,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 21
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.068954, 1.943119, -2.661048)",
+						"distance": 0.870665490627289,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 2.12625, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.063223, 2.050528, -2.638012)",
+						"distance": 0.830721914768219,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 2.12625, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 1.01117813587189,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 1.048177, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445471048355,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 22
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.069334, 1.943029, -2.660815)",
+						"distance": 0.870985448360443,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 2.128073, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.063626, 2.050435, -2.637765)",
+						"distance": 0.830596625804901,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 2.128073, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 1.01299524307251,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 1.05, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445471048355,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 23
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.069977, 1.9429, -2.66045)",
+						"distance": 0.870509266853333,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 2.12625, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.0643, 2.050303, -2.637375)",
+						"distance": 0.829958379268646,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 2.12625, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 1.01117813587189,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 1.048177, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445441246033,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 24
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.069923, 1.942898, -2.660496)",
+						"distance": 0.869399011135101,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 2.120781, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.064244, 2.050301, -2.637424)",
+						"distance": 0.829532384872437,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 2.120781, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 1.00572657585144,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 1.042708, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445441246033,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 25
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.069252, 1.943013, -2.660821)",
+						"distance": 0.867628693580627,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 2.111667, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.063535, 2.050418, -2.63777)",
+						"distance": 0.829243361949921,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 2.111667, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.996641278266907,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 1.033594, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445500850677,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 26
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.06966, 1.942913, -2.660527)",
+						"distance": 0.865124225616455,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 2.098907, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.063967, 2.050315, -2.637457)",
+						"distance": 0.828033030033112,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 2.098907, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.983922719955444,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 1.020833, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445620059967,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 27
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.070365, 1.942775, -2.660134)",
+						"distance": 0.862217307090759,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 2.0825, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.064706, 2.050175, -2.637039)",
+						"distance": 0.826716840267181,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 2.0825, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.96757185459137,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 1.004427, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.34644541144371,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 28
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.070419, 1.942775, -2.660306)",
+						"distance": 0.859373211860657,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 2.062448, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.064763, 2.050176, -2.637218)",
+						"distance": 0.826345086097717,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 2.062448, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.947590112686157,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.984375, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445351839066,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 29
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.069739, 1.942906, -2.660727)",
+						"distance": 0.85653829574585,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 2.03875, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.064046, 2.05031, -2.637664)",
+						"distance": 0.826879978179932,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 2.03875, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.923979222774506,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.960677, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445530653,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 30
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.070176, 1.942803, -2.660428)",
+						"distance": 0.853790879249573,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 2.011406, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.064509, 2.050204, -2.637344)",
+						"distance": 0.827325642108917,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 2.011406, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.896741628646851,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.933333, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.34644541144371,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 31
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.070921, 1.942682, -2.660185)",
+						"distance": 0.851897418498993,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 1.980417, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.065289, 2.050081, -2.637082)",
+						"distance": 0.828975200653076,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 1.980417, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.86588042974472,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.902344, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.34644541144371,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 32
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.071277, 1.942634, -2.660249)",
+						"distance": 0.851252138614655,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 1.945781, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.065668, 2.050034, -2.637146)",
+						"distance": 0.832604050636292,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 1.945781, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.83139979839325,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.867708, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445560455322,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 33
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.070961, 1.942704, -2.660496)",
+						"distance": 0.852094173431396,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 1.9075, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.065335, 2.050105, -2.637403)",
+						"distance": 0.838568210601807,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 1.9075, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.793305337429047,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.829427, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445381641388,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 34
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.071514, 1.942581, -2.660128)",
+						"distance": 0.854691326618195,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 1.865573, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.065922, 2.049979, -2.637009)",
+						"distance": 0.846216559410095,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 1.865573, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.751604616641998,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.7875, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445351839066,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 35
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.072585, 1.942405, -2.659783)",
+						"distance": 0.860021471977234,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225458, 1.82, -1.862397)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.067045, 2.049799, -2.636638)",
+						"distance": 0.856745183467865,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184731, 1.82, -1.81972)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.70630818605423,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.741927, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445620059967,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 36
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.07317, 1.942324, -2.659776)",
+						"distance": 0.868044018745422,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.225383, 1.769955, -1.863123)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.067665, 2.049719, -2.636624)",
+						"distance": 0.870710015296936,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.184806, 1.769955, -1.820446)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.65743088722229,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.692708, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.34644541144371,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 37
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.072781, 1.94242, -2.660109)",
+						"distance": 0.87685239315033,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.224823, 1.710769, -1.868503)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.067257, 2.049817, -2.636972)",
+						"distance": 0.887051403522491,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.185366, 1.710769, -1.825826)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.604994773864746,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.639844, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445500850677,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 38
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.073298, 1.942303, -2.65976)",
+						"distance": 0.888074636459351,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.223818, 1.643131, -1.878163)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.067806, 2.049696, -2.636596)",
+						"distance": 0.906162917613983,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.186371, 1.643131, -1.835486)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.549033164978027,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.583333, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445530653,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 39
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.074193, 1.942202, -2.659778)",
+						"distance": 0.905055940151215,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.222489, 1.568047, -1.890938)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.068744, 2.049595, -2.636605)",
+						"distance": 0.931410610675812,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.1877, 1.568047, -1.848261)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.489599794149399,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.523177, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445471048355,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 40
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.074866, 1.942086, -2.659684)",
+						"distance": 0.930161476135254,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.220958, 1.484791, -1.905648)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.069459, 2.049478, -2.636497)",
+						"distance": 0.965173125267029,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.189231, 1.484791, -1.862971)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.426785707473755,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.459375, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445590257645,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 41
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.07464, 1.94216, -2.659997)",
+						"distance": 0.965608358383179,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.21935, 1.394431, -1.921105)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.069223, 2.049554, -2.636821)",
+						"distance": 1.00952291488647,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.190839, 1.394431, -1.878428)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.36075958609581,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.391927, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445441246033,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 42
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.075673, 1.941952, -2.659507)",
+						"distance": 1.01146245002747,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.217786, 1.298774, -1.936139)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.070318, 2.04934, -2.63629)",
+						"distance": 1.06303727626801,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.192403, 1.298774, -1.893462)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.291869163513184,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.320833, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445560455322,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 43
+		},
+		{
+			"diagnostic": {
+				"active": true,
+				"arms": [
+					{
+						"desired": "(-0.075973, 1.941956, -2.659729)",
+						"distance": 1.06765842437744,
+						"reach": 0.505081656782263,
+						"shoulder": "(0.216383, 1.200218, -1.949625)",
+						"side": "right"
+					},
+					{
+						"desired": "(-0.070626, 2.049346, -2.636518)",
+						"distance": 1.12626123428345,
+						"reach": 0.505081656782263,
+						"shoulder": "(-0.193806, 1.200218, -1.906948)",
+						"side": "left"
+					}
+				],
+				"can_regrab": false,
+				"menu": false,
+				"nearest": {
+					"distance": 0.220956161618233,
+					"node": "@RigidBody3D@1486:<RigidBody3D#380574375463>",
+					"own": false
+				},
+				"player": "(0.019407, 0.246094, -1.848919)",
+				"regrab_status": {
+					"active": true,
+					"compound": true,
+					"depth": 0.346445590257645,
+					"held": false,
+					"holder_grace": false,
+					"holder_grace_cleared": false,
+					"mass_added": 1.15,
+					"owner_body_id": 239494765497,
+					"reason": "",
+					"regrab_ik31": {},
+					"target_id": 349754629605,
+					"weapon_id": "spear"
+				},
+				"self_clear": true
+			},
+			"phase": "corpse_native_jump",
+			"tick": 44
+		},
+		{
+			"aiming": false,
+			"attachment": {
+				"active": true,
+				"compound": true,
+				"depth": 0.346445590257645,
+				"held": false,
+				"holder_grace": false,
+				"holder_grace_cleared": false,
+				"mass_added": 1.15,
+				"owner_body_id": 239494765497,
+				"reason": "",
+				"regrab_ik31": {},
+				"target_id": 349754629605,
+				"weapon_id": "spear"
+			},
+			"cast_pending": false,
+			"channel_active": false,
+			"channel_id": 349754629605,
+			"channel_valid": false,
+			"current_depth": 0.346445322036743,
+			"cut_depth": 0.346445322036743,
+			"dead": true,
+			"embedded": {
+				"active": false,
+				"axis": "(-0.000004, -0.000002, -1.0)",
+				"begins": 1,
+				"corpse_brace": {},
+				"depth": 0.346445429076751,
+				"ends": 0,
+				"entry": "(0.00605, 0.99422, -1.836608)",
+				"holder_reaction_m": 0.0,
+				"last_reason": "released_hands_embedded",
+				"max_crouch_m": 0.000000774860382080078,
+				"max_foot_error_m": 0.00593989342451096,
+				"max_grip_error_m": 0.00285622128285468,
+				"max_holder_reaction_step_m": 0.0,
+				"max_support_error_m": 0.000000239421012793173,
+				"rejected_lateral_m": 0.0139727176842219,
+				"self_clear": true,
+				"world_clear": true
+			},
+			"ground_count": 2,
+			"grounded": true,
+			"held_id": 228052703766,
+			"model_id": 228052703766,
+			"model_transform": "[X: (-0.048609, -0.976275, -0.211009), Y: (-0.590765, 0.198446, -0.782059), Z: (0.805378, 0.086641, -0.586395), O: (-0.079011, 1.880939, -2.672917)]",
+			"phase": "corpse_E_unreachable_no_wrong_pickup",
+			"player": "(0.019407, 0.246094, -1.848919)",
+			"release_reason": "",
+			"same_model_ground_count": 1,
+			"throwing": false,
+			"thrown_total": 0,
+			"withdrawn": false
+		}
+	],
+	"scope": "Actual input only after initial scene placement. Same weapon/wound IDs; no direct wound creation, forced death, teleport during strike or API drop/pickup. Sandbox ownership only, production storage needs separate coverage. Nondefault hold_ticks denotes a separate early-regrab scenario, not long-hold acceptance.",
+	"weapon": 4
+}
