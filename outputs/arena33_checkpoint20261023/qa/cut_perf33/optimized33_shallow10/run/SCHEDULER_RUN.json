@@ -1,0 +1,102 @@
+{
+  "mode": "graphical",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--windowed",
+    "--resolution",
+    "1280x720",
+    "--max-fps",
+    "60",
+    "--path",
+    "D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game",
+    "--script",
+    "D:/MafioziCombat31/c33_coordination/agents/cut_perf33/shallow_profile33.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\optimized33_shallow10",
+    "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\optimized33_shallow10"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "ef5d8fb495b64029acffa6a11e1d8634",
+    "owner": {
+      "pid": 54768,
+      "creation_filetime": "134372120988274429"
+    },
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena33_contact_performance\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 42800,
+        "creation_filetime": "134372120998648383",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game --script D:/MafioziCombat31/c33_coordination/agents/cut_perf33/shallow_profile33.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\optimized33_shallow10 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\optimized33_shallow10",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--windowed",
+          "--resolution",
+          "1280x720",
+          "--max-fps",
+          "60",
+          "--path",
+          "D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game",
+          "--script",
+          "D:/MafioziCombat31/c33_coordination/agents/cut_perf33/shallow_profile33.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\optimized33_shallow10",
+          "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\optimized33_shallow10"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "graphical",
+        "project": "d:\\mafiozicombat31\\c33_coordination\\arena33_contact_performance\\game"
+      }
+    ],
+    "deadline": 228893.2233646,
+    "queued_at": 228293.2233646,
+    "ticket": 6005,
+    "inventory_before": [
+      {
+        "pid": 54284,
+        "parent_pid": 45600,
+        "creation_filetime": "134371930274875675",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game\" res://scenes/arena27.tscn --windowed --resolution 1440x900 --max-fps 60 -- \"--lab-out=D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\interactive\\20261023T013707462Z\"",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози · Полигон 32 · ранения и метательные топоры (DEBUG)"
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5298076999897603
+  },
+  "child": {
+    "pid": 42800,
+    "creation_filetime": "134372120998648383",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game --script D:/MafioziCombat31/c33_coordination/agents/cut_perf33/shallow_profile33.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\optimized33_shallow10 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\optimized33_shallow10",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--windowed",
+      "--resolution",
+      "1280x720",
+      "--max-fps",
+      "60",
+      "--path",
+      "D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game",
+      "--script",
+      "D:/MafioziCombat31/c33_coordination/agents/cut_perf33/shallow_profile33.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\optimized33_shallow10",
+      "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\optimized33_shallow10"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena33_contact_performance\\game"
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 42.637172099988675,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

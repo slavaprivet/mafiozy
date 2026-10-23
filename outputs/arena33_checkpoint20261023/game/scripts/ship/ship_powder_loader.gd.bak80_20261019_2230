@@ -1,0 +1,317 @@
+extends Node3D
+## SHIP63: load the EXISTING powder barrels onto the ship.
+##
+## There are no new barrels here. The three charges built by
+## `scripts/siege/powder_barrel_host.gd` are reused: this node only moves them
+## between the camp and a cargo slot on the deck, keeps them riding with the
+## hull, and exposes a single F action at the cargo station.
+##
+## When such a barrel explodes, `powder_barrel_host.explode_at()` calls
+## `ship_battle_host.apply_powder_blast()`, which puts a real 260-point hole in
+## the player's hull.  Two or three charges end a ship.
+
+const SLOTS := [
+	Vector3(-2.55, 1.90, -6.6),
+	Vector3(2.35, 1.90, -9.2),
+	Vector3(0.0, 1.90, -7.9),
+]
+const REACH := 2.8
+const LOAD_POINT := Vector3(0.0, 1.90, -6.0)
+
+var world: Node3D
+var boat: Node3D
+var player: CharacterBody3D
+var basin: Node3D
+var host: Node3D
+
+var barrels: Array[Node3D] = []
+var loaded: Array[bool] = []
+var loaded_barrel: Array[Node3D] = []
+var slot_of: Array[int] = []
+var _original_parent: Array[Node] = []
+var _original_transform: Array[Transform3D] = []
+var _body_by_index: Dictionary = {}
+var _installed := false
+var _status := "disabled"
+var _events := 0
+var _last: Dictionary = {}
+
+
+func install(world_in: Node3D, boat_in: Node3D, player_in: CharacterBody3D, basin_in: Node3D) -> Dictionary:
+	if _installed:
+		return {"ok": false, "reason": "already_installed"}
+	if not is_instance_valid(world_in) or not is_instance_valid(boat_in) or not is_instance_valid(player_in):
+		return {"ok": false, "reason": "missing_owner"}
+	world = world_in
+	boat = boat_in
+	player = player_in
+	basin = basin_in
+	host = world.get("preview_power_barrels") as Node3D
+	if not is_instance_valid(host):
+		# The barrel host installs a few frames before the ship; if it is not in
+		# the world yet, the loader waits for it in `_physics_process`.
+		_status = "waiting_for_barrels"
+	else:
+		_adopt_barrels()
+	_installed = true
+	return {"ok": true, "barrels": barrels.size(), "slots": SLOTS.size(), "status": _status}
+
+
+func _adopt_barrels() -> void:
+	barrels.clear()
+	loaded.clear()
+	loaded_barrel.clear()
+	slot_of.clear()
+	_original_parent.clear()
+	_original_transform.clear()
+	_body_by_index.clear()
+	var source: Variant = host.get("barrels")
+	if source is Array:
+		for entry: Variant in source:
+			var barrel := entry as Node3D
+			if not is_instance_valid(barrel):
+				continue
+			var index := barrels.size()
+			barrels.append(barrel)
+			loaded.append(false)
+			loaded_barrel.append(null)
+			slot_of.append(-1)
+			_original_parent.append(barrel.get_parent())
+			_original_transform.append(barrel.global_transform)
+			_ensure_barrel_body(barrel, index)
+	_status = "ready" if not barrels.is_empty() else "empty"
+	if not barrels.is_empty():
+		_load(0)
+
+
+## The existing barrels are plain Node3D props.  A small cylindrical body with
+## the SHIP63 meta lets a cannonball find and detonate the charge; no new barrel
+## mesh or texture is created, only a collider on the existing prop.
+func _ensure_barrel_body(barrel: Node3D, index: int) -> void:
+	if barrel.has_node("ShipPowderBody"):
+		return
+	var body := StaticBody3D.new()
+	body.name = "ShipPowderBody"
+	body.collision_layer = 1
+	body.collision_mask = 1
+	body.position = Vector3(0.0, 0.62, 0.0)
+	var shape := CylinderShape3D.new()
+	shape.radius = 0.48
+	shape.height = 1.15
+	var collider := CollisionShape3D.new()
+	collider.shape = shape
+	body.add_child(collider)
+	body.set_meta("ship_powder_barrel", true)
+	body.set_meta("powder_owner", self)
+	body.set_meta("powder_index", index)
+	barrel.add_child(body)
+	_body_by_index[index] = body
+
+
+## F's cannonball calls this when its swept hit lands on a barrel collider.
+func explode_from_hit(point: Vector3, direction: Vector3 = Vector3.ZERO) -> Dictionary:
+	var index := -1
+	for key: Variant in _body_by_index:
+		var body := _body_by_index[key] as Node3D
+		if is_instance_valid(body) and body.global_position.distance_to(point) < 1.2:
+			index = int(key)
+			break
+	if index < 0:
+		return {"ok": false, "reason": "no_barrel"}
+	return debug_explode(index, direction)
+
+
+func debug_explode(index: int, direction: Vector3 = Vector3.ZERO) -> Dictionary:
+	if index < 0 or index >= barrels.size() or not is_instance_valid(barrels[index]):
+		return {"ok": false, "reason": "bad_index"}
+	var barrel := barrels[index]
+	var at := barrel.global_position
+	if is_instance_valid(host) and host.has_method("_explode_barrel_at"):
+		host.call("_explode_barrel_at", index)
+	elif is_instance_valid(host) and host.has_method("explode_at"):
+		host.call("explode_at", at, -direction if direction.length_squared() > 0.0 else Vector3.UP)
+	else:
+		return {"ok": false, "reason": "no_host"}
+	# The existing host removes the charge from its own array; keep this
+	# loader's parallel arrays in step so the next barrel is still indexable.
+	barrels.remove_at(index)
+	loaded.remove_at(index)
+	loaded_barrel.remove_at(index)
+	slot_of.remove_at(index)
+	if index < _original_parent.size():
+		_original_parent.remove_at(index)
+	if index < _original_transform.size():
+		_original_transform.remove_at(index)
+	_body_by_index.erase(index)
+	_events += 1
+	_last = {"event": "explode", "index": index, "at": at}
+	return {"ok": true, "index": index, "at": at, "explosions": _events}
+
+
+func _physics_process(_delta: float) -> void:
+	if not _installed:
+		return
+	if barrels.is_empty():
+		if not is_instance_valid(host):
+			host = world.get("preview_power_barrels") as Node3D
+		if is_instance_valid(host):
+			_adopt_barrels()
+
+
+## Called by the host's central prompt dispatcher.
+func action() -> Dictionary:
+	if not _installed or not is_instance_valid(boat) or not is_instance_valid(player):
+		return {}
+	if barrels.is_empty():
+		return {}
+	var at := boat.to_global(LOAD_POINT)
+	if player.global_position.distance_to(at) > REACH:
+		return {}
+	var free_index := _first_free()
+	var has_loaded := _loaded_count() > 0
+	var label := ""
+	var index := -1
+	if free_index >= 0:
+		label = "Погрузить бочку (%d)" % _available_count()
+		index = free_index
+	elif has_loaded:
+		label = "Выгрузить бочку"
+		index = _first_loaded()
+	if label.is_empty():
+		return {}
+	return {"owner": "powder", "kind": "powder_toggle", "index": index,
+		"label": label, "world": at + Vector3.UP * 0.7}
+
+
+func interact(action_data: Variant) -> bool:
+	if not _installed:
+		return false
+	var index := -1
+	if action_data is Dictionary:
+		index = int(action_data.get("index", -1))
+	if index < 0 or index >= barrels.size():
+		index = _first_free()
+		if index < 0:
+			index = _first_loaded()
+	if index < 0:
+		return false
+	if loaded[index]:
+		return _unload(index)
+	return _load(index)
+
+
+func _load(index: int) -> bool:
+	if not is_instance_valid(barrels[index]):
+		return false
+	if _loaded_count() >= SLOTS.size():
+		return false
+	var slot := _free_slot()
+	if slot < 0:
+		return false
+	var barrel := barrels[index]
+	var parent := barrel.get_parent()
+	if is_instance_valid(parent):
+		parent.remove_child(barrel)
+	boat.add_child(barrel)
+	barrel.position = SLOTS[slot]
+	barrel.rotation = Vector3.ZERO
+	loaded[index] = true
+	loaded_barrel[index] = barrel
+	slot_of[index] = slot
+	_events += 1
+	_last = {"event": "load", "index": index, "slot": slot, "at": barrel.global_position}
+	return true
+
+
+func _unload(index: int) -> bool:
+	if not loaded[index] or not is_instance_valid(barrels[index]):
+		return false
+	var barrel := barrels[index]
+	var parent := barrel.get_parent()
+	if is_instance_valid(parent):
+		parent.remove_child(barrel)
+	var original := _original_parent[index]
+	if is_instance_valid(original):
+		original.add_child(barrel)
+		barrel.global_transform = _original_transform[index]
+	else:
+		world.add_child(barrel)
+		barrel.global_position = _original_transform[index].origin
+	loaded[index] = false
+	loaded_barrel[index] = null
+	slot_of[index] = -1
+	_events += 1
+	_last = {"event": "unload", "index": index, "at": barrel.global_position}
+	return true
+
+
+func _free_slot() -> int:
+	for slot in range(SLOTS.size()):
+		var used := false
+		for value: int in slot_of:
+			if value == slot:
+				used = true
+				break
+		if not used:
+			return slot
+	return -1
+
+
+func _first_free() -> int:
+	for i in range(barrels.size()):
+		if not loaded[i] and is_instance_valid(barrels[i]):
+			return i
+	return -1
+
+
+func _first_loaded() -> int:
+	for i in range(barrels.size()):
+		if loaded[i] and is_instance_valid(barrels[i]):
+			return i
+	return -1
+
+
+func _loaded_count() -> int:
+	var count := 0
+	for value: bool in loaded:
+		if value:
+			count += 1
+	return count
+
+
+func _available_count() -> int:
+	var count := 0
+	for i in range(barrels.size()):
+		if not loaded[i] and is_instance_valid(barrels[i]):
+			count += 1
+	return count
+
+
+func snapshot() -> Dictionary:
+	var slots: Array = []
+	for i in range(SLOTS.size()):
+		var occupied := -1
+		for j in range(slot_of.size()):
+			if slot_of[j] == i:
+				occupied = j
+				break
+		slots.append({"index": i, "local": SLOTS[i], "loaded": occupied >= 0,
+			"occupied_by": occupied})
+	return {
+		"ok": _installed,
+		"status": _status,
+		"barrels": barrels.size(),
+		"loaded": _loaded_count(),
+		"available": _available_count(),
+		"slots": slots,
+		"events": _events,
+		"last": _last,
+		"source": "existing_powder_barrel_host",
+	}
+
+
+func dispose() -> void:
+	for i in range(barrels.size()):
+		if loaded[i] and is_instance_valid(barrels[i]):
+			_unload(i)
+	_installed = false

@@ -1,0 +1,20 @@
+{
+  "checks": {
+    "actual_hits": true,
+    "exhaustive_match": true,
+    "no_cold_fallback": true,
+    "ready": true
+  },
+  "failures": [],
+  "fallbacks": 0,
+  "hits": 151,
+  "max_new_usec": 2892,
+  "max_normal_error": 0.0,
+  "max_old_usec": 27016,
+  "max_point_error": 0.0,
+  "new_usec": 311807,
+  "old_usec": 3757697,
+  "passed": true,
+  "queries": 216,
+  "scope": "Exact unchanged legacy exhaustive nearest surface law versus BVH on actual loaded surfaces, four body parts, three explicit skeletal poses; not native combat."
+}

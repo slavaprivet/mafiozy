@@ -1,0 +1,40 @@
+{
+  "status": "VERIFIED_WOUND_OPTIMIZATION_CHECKPOINT",
+  "base_commit": "127637e392ea61051ce9760c41ec5479405e4fad",
+  "source_files": 3434,
+  "changed_game_files": {
+    "scripts/combat/contact_build31.gd": "e81b44db5b39c563896502fbb646314fb839ec8f031736f43df1c320db7afdaa",
+    "scripts/combat/local_wound28.gd": "1456475f1367cbf8e3d23b2925cecdbf0b29209a4eec5020f58f44a5392e8c43",
+    "scripts/combat/wound_surface_query33.gd": "e54f88e6ef2347a9b102db38384882453afdf96d07854d0e7e1b67f2a01fdead"
+  },
+  "measurements": {
+    "scratch_before": {
+      "apply_ms": 36.005,
+      "surface_ms": 32.254,
+      "draw_ms": 43.191
+    },
+    "scratch_after": {
+      "apply_ms": 2.88,
+      "surface_ms": 1.207,
+      "draw_ms": 20.574
+    },
+    "final_async_cut": {
+      "snapshot_ms": 2.225,
+      "peak_poll_ms": 4.881,
+      "peak_stage_ms": 2.056,
+      "atomic_commit_ms": 3.127,
+      "worker_background_ms": 214.53,
+      "queue_window_maxdraw_ms": 22.405,
+      "post60_maxdraw_ms": 17.144
+    },
+    "shallow_puncture": "Existing local generation is already small: sword/spear create about1.1/.88ms; mesh upload maximum .213/.125ms. Left unchanged.",
+    "exact_oracles": "216 posed queries on intact and216 on actual postcut meshes. Point/normal max error0, fallback0. Both source stable stderr0."
+  },
+  "production_pointer_changed": false,
+  "full_50v50_fps_accepted": false,
+  "remaining": [
+    "Deep puncture death stall and corpse contact hold still under investigation",
+    "Difficult entry correction not yet included"
+  ],
+  "scope": "Same exact nearest wound surface law with startup/worker BVHs; native graphical component attribution with user game present, not isolated FPS. Other unfinished33 changes excluded."
+}

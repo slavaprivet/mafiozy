@@ -1,0 +1,9 @@
+{
+	"checks": {
+		"res://scripts/combat/async_cut28.gd": true,
+		"res://scripts/combat/contact_build31.gd": true,
+		"res://scripts/combat/local_wound28.gd": true,
+		"res://scripts/combat/wound_surface_query33.gd": true
+	},
+	"passed": true
+}
