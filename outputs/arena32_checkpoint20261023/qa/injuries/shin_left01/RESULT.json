@@ -1,0 +1,219 @@
+{
+	"checks": {
+		"shin_l_actual_gravity_hops": true,
+		"shin_l_actual_sever": true,
+		"shin_l_alive_preserved": true,
+		"shin_l_no_air_double_jump": true,
+		"shin_l_ready": true,
+		"shin_l_slow": true,
+		"shin_l_space_hop": true
+	},
+	"failures": [],
+	"passed": true,
+	"rows": [
+		{
+			"airborne_frames": 88,
+			"alive": true,
+			"case": "shin_l",
+			"distance": 1.21018981933594,
+			"injury": {
+				"active": true,
+				"arms": "(0, 0)",
+				"hop_count": 6,
+				"jump_count": 1,
+				"last": {},
+				"legs": "(1, 0)",
+				"split_collision": false
+			},
+			"mesh_cut_parts": {
+				"shin_l": true
+			},
+			"peak_speed": 0.76800000667572,
+			"trajectory": [
+				{
+					"frame": 0,
+					"grounded": false,
+					"injury": {
+						"active": true,
+						"arms": "(0, 0)",
+						"hop_count": 1,
+						"jump_count": 0,
+						"last": {},
+						"legs": "(1, 0)",
+						"split_collision": false
+					},
+					"position": "(7.0, 0.02674, 6.994957)",
+					"velocity": "(0.0, 1.55, -0.3)"
+				},
+				{
+					"frame": 10,
+					"grounded": false,
+					"injury": {
+						"active": true,
+						"arms": "(0, 0)",
+						"hop_count": 1,
+						"jump_count": 0,
+						"last": {},
+						"legs": "(1, 0)",
+						"split_collision": false
+					},
+					"position": "(7.0, 0.135352, 6.869755)",
+					"velocity": "(0.0, -0.083333, -0.768)"
+				},
+				{
+					"frame": 20,
+					"grounded": true,
+					"injury": {
+						"active": true,
+						"arms": "(0, 0)",
+						"hop_count": 1,
+						"jump_count": 0,
+						"last": {},
+						"legs": "(1, 0)",
+						"split_collision": false
+					},
+					"position": "(7.0, 0.000819, 6.741753)",
+					"velocity": "(0.0, 0.0, -0.768)"
+				},
+				{
+					"frame": 30,
+					"grounded": false,
+					"injury": {
+						"active": true,
+						"arms": "(0, 0)",
+						"hop_count": 2,
+						"jump_count": 0,
+						"last": {},
+						"legs": "(1, 0)",
+						"split_collision": false
+					},
+					"position": "(7.0, 0.070259, 6.692574)",
+					"velocity": "(0.0, 1.223333, -0.768)"
+				},
+				{
+					"frame": 40,
+					"grounded": false,
+					"injury": {
+						"active": true,
+						"arms": "(0, 0)",
+						"hop_count": 2,
+						"jump_count": 0,
+						"last": {},
+						"legs": "(1, 0)",
+						"split_collision": false
+					},
+					"position": "(7.0, 0.124426, 6.564572)",
+					"velocity": "(0.0, -0.41, -0.768)"
+				},
+				{
+					"frame": 50,
+					"grounded": true,
+					"injury": {
+						"active": true,
+						"arms": "(0, 0)",
+						"hop_count": 2,
+						"jump_count": 0,
+						"last": {},
+						"legs": "(1, 0)",
+						"split_collision": false
+					},
+					"position": "(7.0, 0.0008, 6.45157)",
+					"velocity": "(0.0, 0.0, -0.168)"
+				},
+				{
+					"frame": 60,
+					"grounded": false,
+					"injury": {
+						"active": true,
+						"arms": "(0, 0)",
+						"hop_count": 3,
+						"jump_count": 0,
+						"last": {},
+						"legs": "(1, 0)",
+						"split_collision": false
+					},
+					"position": "(7.0, 0.102867, 6.387387)",
+					"velocity": "(0.0, 0.896667, -0.768)"
+				},
+				{
+					"frame": 70,
+					"grounded": false,
+					"injury": {
+						"active": true,
+						"arms": "(0, 0)",
+						"hop_count": 3,
+						"jump_count": 0,
+						"last": {},
+						"legs": "(1, 0)",
+						"split_collision": false
+					},
+					"position": "(7.0, 0.102589, 6.259385)",
+					"velocity": "(0.0, -0.736667, -0.768)"
+				},
+				{
+					"frame": 80,
+					"grounded": true,
+					"injury": {
+						"active": true,
+						"arms": "(0, 0)",
+						"hop_count": 3,
+						"jump_count": 0,
+						"last": {},
+						"legs": "(1, 0)",
+						"split_collision": false
+					},
+					"position": "(7.0, 0.000743, 6.168912)",
+					"velocity": "(0.0, 0.0, -0.09216)"
+				},
+				{
+					"frame": 90,
+					"grounded": false,
+					"injury": {
+						"active": true,
+						"arms": "(0, 0)",
+						"hop_count": 4,
+						"jump_count": 0,
+						"last": {},
+						"legs": "(1, 0)",
+						"split_collision": false
+					},
+					"position": "(7.0, 0.124579, 6.082188)",
+					"velocity": "(0.0, 0.57, -0.768)"
+				},
+				{
+					"frame": 100,
+					"grounded": false,
+					"injury": {
+						"active": true,
+						"arms": "(0, 0)",
+						"hop_count": 4,
+						"jump_count": 0,
+						"last": {},
+						"legs": "(1, 0)",
+						"split_collision": false
+					},
+					"position": "(7.0, 0.069857, 5.954186)",
+					"velocity": "(0.0, -1.063333, -0.768)"
+				},
+				{
+					"frame": 110,
+					"grounded": true,
+					"injury": {
+						"active": true,
+						"arms": "(0, 0)",
+						"hop_count": 4,
+						"jump_count": 0,
+						"last": {},
+						"legs": "(1, 0)",
+						"split_collision": false
+					},
+					"position": "(7.0, 0.000842, 5.886242)",
+					"velocity": "(0.0, 0.0, -0.09216)"
+				}
+			],
+			"vertical_max": 1.54999995231628,
+			"y_span": 0.136407947167754
+		}
+	],
+	"scope": "Real accepted blade sever API, then native movement and jump input; not a natural enemy swing fixture."
+}
