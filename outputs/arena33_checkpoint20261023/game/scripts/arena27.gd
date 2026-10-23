@@ -14,7 +14,7 @@ var lab_notice := ""
 var _lab_restart_pending := false
 
 func _ready() -> void:
-	get_window().title = "Мафиози · Полигон 32 · ранения и метательные топоры"
+	get_window().title = "Мафиози · Полигон 33 · проколы и контакт"
 	for arg: String in OS.get_cmdline_user_args():
 		if arg.begins_with("--lab-out="): lab_out = arg.trim_prefix("--lab-out=")
 	castle_map = false
@@ -50,7 +50,7 @@ func _build_lab() -> void:
 	_lab_box(Vector3(-18,1,0),Vector3(0.4,2,36),Color("3b4858"),true)
 	_lab_box(Vector3(18,1,0),Vector3(0.4,2,36),Color("3b4858"),true)
 	_lab_box(Vector3(0,1,18),Vector3(36,2,0.4),Color("3b4858"),true)
-	_lab_label("ПОЛИГОН 32 · РАНЕНИЯ И МЕТАТЕЛЬНЫЕ ТОПОРЫ", Vector3(0,3,-12), 40)
+	_lab_label("ПОЛИГОН 33 · ПРОКОЛЫ И КОНТАКТ", Vector3(0,3,-12), 40)
 	_lab_label("F4 · ЛЁГКАЯ / СРЕДНЯЯ / ТЯЖЁЛАЯ БРОНЯ     F6 · НОВАЯ МИШЕНЬ", Vector3(0,2.5,-12), 22)
 	_lab_label("F10 · КАМЗОЛ ГЕРОЯ     F11 · БРОНЯ ГЕРОЯ", Vector3(0,2.15,-12), 20)
 	_build_surface_gallery30()

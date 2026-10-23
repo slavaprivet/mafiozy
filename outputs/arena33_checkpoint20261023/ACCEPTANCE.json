@@ -1,5 +1,5 @@
 {
-  "status": "VERIFIED_WOUND_CONTACT_AND_ENTRY_CHECKPOINT",
+  "status": "VERIFIED_POLYGON33_CHECKPOINT",
   "base_commit": "127637e392ea61051ce9760c41ec5479405e4fad",
   "source_files": 3434,
   "changed_game_files": {
@@ -8,7 +8,8 @@
     "scripts/combat/wound_surface_query33.gd": "e54f88e6ef2347a9b102db38384882453afdf96d07854d0e7e1b67f2a01fdead",
     "scripts/combat/sword_puncture_resistance29.gd": "455205e569c583471bb5d1f6b3fd2e45240194a44feba95d9a7c429a47b043ed",
     "scripts/combat/contact_mixed_bvh31.gd": "f3a0b5c1a957a67dd5d6983f4a6e126b3e5ddd4265d32ee7027b85fee5004e0f",
-    "scripts/combat/weapon_solid_contact29.gd": "981c360382fbbc830018e9419ebc04631a3c12187efdf34ab3904e7cf54f4600"
+    "scripts/combat/weapon_solid_contact29.gd": "981c360382fbbc830018e9419ebc04631a3c12187efdf34ab3904e7cf54f4600",
+    "scripts/arena27.gd": "d3dd251856192799d44cbedb510a1e05fbdd78335c24ccd1bd0505e227d9f917"
   },
   "measurements": {
     "scratch_before": {
@@ -74,5 +75,13 @@
     "merged_gui_checks": 10,
     "merged_weapon_checks": 19,
     "scope": "Actual same connected entry surface; finite pre-entry hand alignment. Lateral extraction remains blocked and backward extraction tested."
-  }
+  },
+  "launch": "launch.ps1",
+  "source": "D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game",
+  "private_not_shipped": [
+    "Exact per-segment memoization: low real hit ratio, no demonstrated benefit",
+    "Embedded hull prewarm: lifecycle comparison remains uncertain; keep old constructor",
+    "Recovery caching: measured benefit and invalidation not established"
+  ],
+  "live_checks": "Graphical native Godot InputEvents and saved rendered frames; not external desktop manual play or exclusive FPS measurement."
 }

@@ -1285,7 +1285,7 @@
   "scenes/vehicle_physics/native_vehicle_headless_fixture.tscn": "14c60babfa0762b2c38d912b9cf9bbb4e56665474c29dd7c697cad3da06dbb62",
   "scripts/accepted/resident_host_weapons23.gd": "018e0ab089384e44d62fd855c0d13c5573d662ccba330c2136b04add1503a4d5",
   "scripts/accepted/resident_host_weapons23.gd.uid": "5c631fb1039b76fe004af8245dce518276e17108477ac5d114cad38b29e71648",
-  "scripts/arena27.gd": "dbd2b2334ef70c0747c1768899a50b88c63aa415a5f0f9562495282420035a62",
+  "scripts/arena27.gd": "d3dd251856192799d44cbedb510a1e05fbdd78335c24ccd1bd0505e227d9f917",
   "scripts/arena27.gd.uid": "29399d3c1f0d6c29d798a4dd4ea6d6d35e4bd234ca00f51e2c1676fed1610d63",
   "scripts/arena27_target.gd": "732fa6606daebd6a4ba65c001635d26e87d519f6bebb31a703b4a90925271f1d",
   "scripts/arena27_target.gd.uid": "c6174024063a2b2341be136edecc89b71d0bf7f7ccfc7064aa772ed03836f2f8",

@@ -1,0 +1,59 @@
+{
+  "scope": "Read-only investigation requested by root; no game edits and no engine runs",
+  "source": "D:/MafioziCombat31/c33_coordination/arena33_contact_performance/game",
+  "decision": "Do not ship speculative recovery caching. One conditional duplicate is identifiable, but its measured contribution to the residual stall is unknown.",
+  "residual": {
+    "root_report": "Approximately 180 ms baseline recovery residual; original 406 ms callback was not reproduced in matched checks.",
+    "limits": "This audit does not independently reproduce 180 ms. Existing nonexclusive GUI timings include the preserved user game and do not establish 50-vs-50 performance. No no-lag claim is supported.",
+    "inspected_receipts": [
+      "agents/perf_review33/hold_cached01/ANALYSIS.json",
+      "agents/perf_review33/hold_uncached01/ANALYSIS.json",
+      "agents/perf_review33/hold_combined33_01/ANALYSIS.json"
+    ],
+    "examples": [
+      "hold_cached01 physics hold: solver max107.985ms, apply-pose/ik max97.385ms, static max74.328ms, sweep max30.198ms, recovery attempts4; maxima are not necessarily the same frame and timings overlap.",
+      "hold_combined33_01 recovery attempts0, apply-pose max27.736ms. This run cannot prove a fix to the worst recovery branch."
+    ]
+  },
+  "findings": [
+    {
+      "file": "scripts/combat/weapon_solid_contact29.gd",
+      "lines": [720, 721, 883],
+      "finding": "ik_usec covers all of _apply_pose: skeleton changes, static/swept target queries, self/world tests and holder recovery. It is not pure arm IK and must not be added to its nested static/sweep/world timings."
+    },
+    {
+      "file": "scripts/combat/weapon_solid_contact29.gd",
+      "lines": [744, 759, 774],
+      "finding": "Conditional exact duplicate: early safe-bones fallback restores clav/upper/fore/hand; the IK loop changes upper/fore/hand only; final safe-bones fallback restores the same saved poses again. With unchanged holder/rig ancestors/target/channel, its transform and rejection may repeat exactly.",
+      "support": "spear_contact_resume29.gd:43-51 records both arms clav/upper/fore/hand. sword_prototype.gd:3496-3556 and3573-3581 only set upper/fore/hand in this invocation.",
+      "safe_plan": "Instrument candidate label, exact transform equality and target/channel/holder state. Only if proved identical, reuse the earlier negative result within this one _apply_pose call, while still restoring the actual bones. Preserve obstruction data. Never reuse an accepted result; never carry results between frames or dispatches.",
+      "risk": "Same weapon transform alone is insufficient for self collision; current rig/body state matters. query_static also orients its response normal using holder position. Restore metadata consistently. At most one candidate rejection is removed by this narrow shortcut; it is not a demonstrated cure for180ms."
+    },
+    {
+      "file": "scripts/combat/weapon_solid_contact29.gd",
+      "lines": [759, 768, 813, 852],
+      "finding": "Most expensive attempts are not duplicates: 5/28 IK attempts change origin/axis, then recovery tries7 distances and up to8 different directions. Different candidates require fresh validation. Directions may occasionally coincide exactly, but no observed exact-duplicate count is available.",
+      "safe_plan": "Measure branch-specific call counts and exact duplicate transforms before considering exact direction deduplication. Do not quantize positions, normals, geometry or channel keys; narrow bores make approximate reuse unsafe."
+    },
+    {
+      "file": "scripts/combat/weapon_solid_contact29.gd",
+      "lines": [873, 874],
+      "finding": "Unresolved diagnostic unconditionally performs fresh static/sweep/self/world queries. This affects diagnostics, not acceptance, and may repeat a rejected pose. However recovery has just restored holder start, so it is not automatically identical to the last attempted recovery candidate.",
+      "safe_plan": "Measure this diagnostic separately. If material, preserve cheap rejection metadata and run expanded diagnostics only under explicit tracing, or reuse a matching stored rejection with correct snapshot identity. Existing inspected hold receipts have unresolved0; this path does not explain their stalls."
+    },
+    {
+      "file": "scripts/combat/weapon_solid_contact29.gd",
+      "lines": [890, 894, 898, 908],
+      "finding": "World exclusion RID list is reconstructed per candidate, including scene traversal. A per-invocation immutable exclusion snapshot could avoid construction, but not actual ray/shape tests.",
+      "risk": "Exclusion ownership must remain correct after corpse/attachment/topology changes. Inspected world-query timings are small compared with target static/swept queries; this is lower priority and not currently justified."
+    }
+  ],
+  "next_measurements": [
+    "Replay a frozen failing corpse-recovery trajectory; record actual per-physics-frame deltas rather than stale last_solver_usec or accumulated end counters.",
+    "For each _candidate_clear, record stage label, static/sweep/self/world duration, exact transform and success/failure stage. Record full-pose/safe-bones restores and exact repeats separately.",
+    "Split pure _pose_arm_ik and skeleton force-update timing from the encompassing apply-pose timer.",
+    "Record target mesh/skin/generation/pose and channel revision at invocation boundaries; prove no dispatch or ownership change occurs within the proposed reuse interval.",
+    "Only implement a bounded shortcut after measured savings; compare raw rejection/success decisions, final transform, grip errors, channel depth, corpse ownership and world/self blockers against uncached replay. Run live repeated entry/death/withdraw, severed-piece overlap, native movement obstruction and strict bore negatives."
+  ],
+  "implementation": "None. Root requested evidence-only audit; current release retains only proven changes."
+}
