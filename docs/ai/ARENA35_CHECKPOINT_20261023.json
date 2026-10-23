@@ -10,7 +10,8 @@
     "Hatchet grip is oriented edge-forward when first selected; true release pose and angular flight are retained; wall and target contacts are bounded.",
     "Hatchet topology interning reduced matched worker and end-to-end contact latency.",
     "Sword/sledge horizontal presentation fixes retain the actual hand/grip solver.",
-    "Bow far-distance arrow rendering and lifecycle fixes preserve ballistic inputs."
+    "Bow far-distance arrow rendering and lifecycle fixes preserve ballistic inputs.",
+    "Merged health matrix passed37/37: head hit deals2x the matched limb HP damage; shallow/severe wound bleed accounting differs by depth; head and torso 89% remain alive and 90.5% cause death by measured posed-mesh thickness; weak input does not sever, strong input structurally severs."
   ],
   "verification_summary": {
     "merged_spear_hold11": true,
@@ -22,20 +23,29 @@
     "continuous_plate_resists": true,
     "weak_edge_no_sever": true,
     "full_50v50_fps_accepted": false,
-    "external_manual_desktop_acceptance": false
+    "external_manual_desktop_acceptance": false,
+    "merged_health_matrix37": true
   },
   "performance_scope": "Single-cut clean matched profile only: topology worker217.719 to182.994ms, contact worker172.438 to137.102ms, end-to-end latency234.099 to200.070ms. Draw p95 18.556 to18.746ms, so no full frame/FPS improvement claim. Rare recovery stalls remain open.",
   "remaining": [
     "Wood and metal shield variants with different durability are not implemented.",
-    "A direct merged HP/bleeding/head-puncture/sever damage matrix remains to be completed.",
     "RMB off-hand hatchet throw is not yet proven or implemented; weak/medium/strong throw categories are not separately characterized.",
     "Rare deep-contact recovery stalls and overall50x50 FPS remain unresolved.",
-    "User-facing manual desktop acceptance remains outstanding; keep window33 preserved and do not open a new live game without agreement."
+    "User-facing manual desktop acceptance remains outstanding; keep window33 preserved and do not open a new live game without agreement.",
+    "A strong real mouse cut severed two parts and created debris but applied0 numeric HP in this branch; numeric damage scaling for actual strong cuts is not satisfied. Bleed-rate accounting and the lethal-depth callback passed with measured geometry but remain short of a full physical weapon-entry integration test."
   ],
   "production_pointer_changed": false,
   "full_50v50_fps_accepted": false,
   "external_manual_desktop_acceptance": false,
   "opening": "Interactive candidate not opened; existing user window preserved.",
+  "health_matrix_scope": {
+    "receipt": "outputs/arena35_checkpoint20261023/qa/review/root35/health_matrix_candidate01/RECEIPT.json",
+    "assertions": "37/37 graphical PASS; scheduler exit0; stderr0",
+    "head_vs_limb": "same10 input damage -> head20 HP, upperarm10 HP",
+    "bleed": "synthetic accepted-wound runtime accounting over100ms: 0.0375 vs0.14375 HP; not physical sword/spear entry",
+    "vital_depth": "posed mesh thickness measured; 89% survives, 90.5% marks death for head and torso via exact collapse callback",
+    "actual_swing": "weak0 HP/0 cuts; strong2 real limb sever+debris, target alive,0 numeric HP loss"
+  },
   "checkpoint": "outputs/arena35_checkpoint20261023",
   "source_files": 3435,
   "changed_game_files": {
@@ -55,5 +65,5 @@
   },
   "source_stable": true,
   "checkpoint_exact_bytes": true,
-  "utc": "2026-10-23T19:24:58.727399+00:00"
+  "utc": "2026-10-23T19:30:06.105830+00:00"
 }

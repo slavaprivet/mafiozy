@@ -1,0 +1,89 @@
+{
+  "mode": "graphical",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--windowed",
+    "--resolution",
+    "1280x720",
+    "--max-fps",
+    "60",
+    "--path",
+    "D:\\MafioziCombat31\\c33_coordination\\arena35_soft_tissue\\game",
+    "--script",
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\health_matrix_candidate01\\health_matrix35.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\health_matrix_candidate01"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "d0c8d2758f0a487b930596dcf1a62464",
+    "owner": {
+      "pid": 66304,
+      "creation_filetime": "134372572511264785"
+    },
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena35_soft_tissue\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 62952,
+        "creation_filetime": "134372572521183014",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena35_soft_tissue\\game --script D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\health_matrix_candidate01\\health_matrix35.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\health_matrix_candidate01",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--windowed",
+          "--resolution",
+          "1280x720",
+          "--max-fps",
+          "60",
+          "--path",
+          "D:\\MafioziCombat31\\c33_coordination\\arena35_soft_tissue\\game",
+          "--script",
+          "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\health_matrix_candidate01\\health_matrix35.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\health_matrix_candidate01"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "graphical",
+        "project": "d:\\mafiozicombat31\\c33_coordination\\arena35_soft_tissue\\game"
+      }
+    ],
+    "deadline": 274046.0789433,
+    "queued_at": 273446.0789433,
+    "ticket": 6179,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.4954530000104569
+  },
+  "child": {
+    "pid": 62952,
+    "creation_filetime": "134372572521183014",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena35_soft_tissue\\game --script D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\health_matrix_candidate01\\health_matrix35.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\health_matrix_candidate01",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--windowed",
+      "--resolution",
+      "1280x720",
+      "--max-fps",
+      "60",
+      "--path",
+      "D:\\MafioziCombat31\\c33_coordination\\arena35_soft_tissue\\game",
+      "--script",
+      "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\health_matrix_candidate01\\health_matrix35.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\health_matrix_candidate01"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena35_soft_tissue\\game"
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 19.54944470000919,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

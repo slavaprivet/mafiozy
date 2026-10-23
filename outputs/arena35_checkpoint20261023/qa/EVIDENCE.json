@@ -925,5 +925,171 @@
     "scope": "Raw fixture-selection run retained: older held600 fixture did not establish spear entry; replaced by exact prepared held_trace fixture in merged_spear_held_candidate02. No source error and not used as acceptance.",
     "exact_files": [],
     "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\merged_spear_held_candidate01"
+  },
+  "root35/health_matrix_candidate01": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": [
+      {
+        "name": "armor_disabled",
+        "passed": true
+      },
+      {
+        "name": "graphical_scene_ready",
+        "passed": true
+      },
+      {
+        "name": "head_arrow_applies",
+        "passed": true
+      },
+      {
+        "name": "head_at_90_percent_dies",
+        "passed": true
+      },
+      {
+        "name": "head_below_90_percent_survives",
+        "passed": true
+      },
+      {
+        "name": "head_sever_marks_death",
+        "passed": true
+      },
+      {
+        "name": "head_skin_thickness_measured",
+        "passed": true
+      },
+      {
+        "name": "limb_arrow_applies",
+        "passed": true
+      },
+      {
+        "name": "limb_sever_does_not_kill",
+        "passed": true
+      },
+      {
+        "name": "limb_sever_fixture_notes_actual_policy",
+        "passed": true
+      },
+      {
+        "name": "limb_sever_records_named_part",
+        "passed": true
+      },
+      {
+        "name": "limb_skin_thickness_measured",
+        "passed": true
+      },
+      {
+        "name": "matched_head_hit_damages_more_than_limb",
+        "passed": true
+      },
+      {
+        "name": "reset_after_head_arrow",
+        "passed": true
+      },
+      {
+        "name": "reset_before_bleed",
+        "passed": true
+      },
+      {
+        "name": "reset_before_head_depth",
+        "passed": true
+      },
+      {
+        "name": "reset_before_head_sever",
+        "passed": true
+      },
+      {
+        "name": "reset_before_limb_sever",
+        "passed": true
+      },
+      {
+        "name": "reset_before_strong_swing",
+        "passed": true
+      },
+      {
+        "name": "reset_before_torso_depth",
+        "passed": true
+      },
+      {
+        "name": "reset_before_weak_swing",
+        "passed": true
+      },
+      {
+        "name": "reset_between_bleed_rates",
+        "passed": true
+      },
+      {
+        "name": "severe_bleed_record_accounted",
+        "passed": true
+      },
+      {
+        "name": "severe_limb_bleeds_faster_than_shallow",
+        "passed": true
+      },
+      {
+        "name": "shallow_bleed_record_accounted",
+        "passed": true
+      },
+      {
+        "name": "strong_async_drained",
+        "passed": true
+      },
+      {
+        "name": "strong_input_commits_cut",
+        "passed": true
+      },
+      {
+        "name": "strong_input_has_edge_contact",
+        "passed": true
+      },
+      {
+        "name": "strong_sever_creates_substantial_effect",
+        "passed": true
+      },
+      {
+        "name": "strong_weak_hp_scope_documented",
+        "passed": true
+      },
+      {
+        "name": "torso_at_90_percent_dies",
+        "passed": true
+      },
+      {
+        "name": "torso_below_90_percent_survives",
+        "passed": true
+      },
+      {
+        "name": "torso_skin_thickness_measured",
+        "passed": true
+      },
+      {
+        "name": "weak_async_drained",
+        "passed": true
+      },
+      {
+        "name": "weak_input_does_not_sever",
+        "passed": true
+      },
+      {
+        "name": "weak_input_has_edge_contact",
+        "passed": true
+      },
+      {
+        "name": "weak_input_negligible_numeric_hp_loss",
+        "passed": true
+      }
+    ],
+    "scope": "37/37 graphical merged health assertions: head versus limb numeric HP, shallow versus severe accepted-wound bleed accounting, actual mesh thickness at head/torso thresholds, head/limb death policy, and actual weak/strong mouse cuts. Bleed accounting and deep-collapse callback are not full physical weapon-entry tests; actual strong severing cut produced two severed parts/debris with 0 numeric HP loss.",
+    "exact_files": [
+      "scripts/weapons/sword_prototype.gd",
+      "scripts/combat/local_wound28.gd",
+      "scripts/combat/puncture29.gd",
+      "scripts/combat/deep_puncture29.gd",
+      "scripts/clay_target.gd",
+      "scripts/arena27_target.gd"
+    ],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\health_matrix_candidate01"
   }
 }
