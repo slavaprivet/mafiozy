@@ -1491,7 +1491,7 @@
   "scripts/combat/shield_control31.gd.uid": "a7017475683ba5757bb8c1c625b3afef47e9fb2cf3583dde55202723539b64b4",
   "scripts/combat/spear_contact_resume29.gd": "674f0c784093135ba1af091a131e1ad44562ad03b1b299b0317abe9a480543ea",
   "scripts/combat/spear_contact_resume29.gd.uid": "9a33498d4a9a303c1880b1a058aa47ed9970224ac3c8858aa6f8be75a4cdb313",
-  "scripts/combat/sword_puncture_resistance29.gd": "6085164b2c726897913ee81fcad8dbea7d5197d4166f0f9efaa4ea74d0d8d19e",
+  "scripts/combat/sword_puncture_resistance29.gd": "dac6b0b46383025fe8a282aab357a1878316de84408d58141ac431cd0354645f",
   "scripts/combat/sword_puncture_resistance29.gd.uid": "e5b8e971eaa32d4815a0825105052d194b8abfb2f731231acca920d3b930461d",
   "scripts/combat/weapon_contact_profile29.gd": "1e1b2c71e5df6f3495918e40aad72279a4a90efc6812d2d8cbc784266c9fc36c",
   "scripts/combat/weapon_contact_profile29.gd.uid": "5ebb048f3d81d61ba13896d40209f0300fa153101550377b21b044ef96ca390a",

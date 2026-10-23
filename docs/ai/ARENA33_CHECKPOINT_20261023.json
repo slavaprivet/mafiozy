@@ -1,11 +1,12 @@
 {
-  "status": "VERIFIED_WOUND_OPTIMIZATION_CHECKPOINT",
+  "status": "VERIFIED_WOUND_AND_SWORD_GUIDE_CHECKPOINT",
   "base_commit": "127637e392ea61051ce9760c41ec5479405e4fad",
   "source_files": 3434,
   "changed_game_files": {
     "scripts/combat/contact_build31.gd": "e81b44db5b39c563896502fbb646314fb839ec8f031736f43df1c320db7afdaa",
     "scripts/combat/local_wound28.gd": "1456475f1367cbf8e3d23b2925cecdbf0b29209a4eec5020f58f44a5392e8c43",
-    "scripts/combat/wound_surface_query33.gd": "e54f88e6ef2347a9b102db38384882453afdf96d07854d0e7e1b67f2a01fdead"
+    "scripts/combat/wound_surface_query33.gd": "e54f88e6ef2347a9b102db38384882453afdf96d07854d0e7e1b67f2a01fdead",
+    "scripts/combat/sword_puncture_resistance29.gd": "dac6b0b46383025fe8a282aab357a1878316de84408d58141ac431cd0354645f"
   },
   "measurements": {
     "scratch_before": {
@@ -33,8 +34,17 @@
   "production_pointer_changed": false,
   "full_50v50_fps_accepted": false,
   "remaining": [
-    "Deep puncture death stall and corpse contact hold still under investigation",
-    "Difficult entry correction not yet included"
+    "Deep contact stalls and corpse hold under investigation",
+    "Oblique spear entry still needs correction",
+    "Full100actor castle FPS not accepted"
   ],
-  "scope": "Same exact nearest wound surface law with startup/worker BVHs; native graphical component attribution with user game present, not isolated FPS. Other unfinished33 changes excluded."
+  "scope": "Same exact nearest wound surface law with startup/worker BVHs; native graphical component attribution with user game present, not isolated FPS. Other unfinished33 changes excluded.",
+  "sword_guide": {
+    "before_oblique_depth_m": 0.09432,
+    "after_oblique_depth_m": 0.20894,
+    "gui_checks": 4,
+    "native_checks": 19,
+    "geometry_aperture_unchanged": true,
+    "scope": "Finite hand correction within existing actual wound; deliberate transverse steering releases guide."
+  }
 }

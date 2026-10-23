@@ -7,8 +7,8 @@ const Puncture = preload("res://scripts/combat/puncture29.gd")
 const Resistance = preload("res://scripts/combat/blade_resistance28.gd")
 const MAX_LAG := 0.035
 const SLOW_FRACTION := 0.20
-const GUIDE_LIMIT29 := 0.025
-const GUIDE_RATE29 := 0.35
+const GUIDE_LIMIT29 := 0.060
+const GUIDE_RATE29 := 1.20
 var _guide_correction29 := Vector3.ZERO
 var lag := 0.0
 var last: Dictionary = {}
@@ -193,7 +193,13 @@ func constrain_pose(host: Node, delta: float) -> void:
 		var check_offset:Vector3=check_tip-Vector3(data.entry)
 		var check_depth:=check_offset.dot(Vector3(data.axis))
 		var check_radial:float=(check_offset-Vector3(data.axis)*check_depth).length()
-		if Vector3(host.get("_dir")).dot(Vector3(data.axis))<0.80 or check_radial>(INF if follows_corpse else maxf(0.03,float(data.row.get("radius",0.01))+0.02)):
+		# Native walking need not coincide exactly with the blade axis. An aligned
+		# hand can accommodate this finite offset without widening the tissue bore.
+		# Deliberate steering keeps the original transverse-cut release threshold.
+		var steady_axis:=Vector3(host.get("_dir")).dot(Vector3(data.axis))>=0.985 and Vector3(host.get("_omega")).length()<=2.0
+		var radial_limit:=maxf(0.03,float(data.row.get("radius",0.01))+0.02)
+		if steady_axis:radial_limit=maxf(radial_limit,GUIDE_LIMIT29)
+		if Vector3(host.get("_dir")).dot(Vector3(data.axis))<0.80 or check_radial>(INF if follows_corpse else radial_limit):
 			if bool(host.get("_npc_dead")):
 				var rejection:={"radial":check_radial,"dot":Vector3(host.get("_dir")).dot(Vector3(data.axis)),"omega":Vector3(host.get("_omega")).length(),"follows":follows_corpse}
 				clear("corpse_guide_outside");last.merge(rejection);return
