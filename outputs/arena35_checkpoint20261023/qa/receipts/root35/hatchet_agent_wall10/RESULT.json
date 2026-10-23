@@ -1,0 +1,65 @@
+{
+  "checks": {
+    "exact_displayed_release_pose": true,
+    "native_rotating_release": true,
+    "rotated_in_real_flight": true,
+    "thin_4mm_wall_no_tunnel": true,
+    "world_collision_stopped": true
+  },
+  "events": [
+    {
+      "angular_velocity35": "(5.584041, 0.000224, 0.000673)",
+      "charges": 2,
+      "event": "launch",
+      "release_transform35": "[X: (-0.000022, -0.528964, -0.848644), Y: (0.000036, 0.848644, -0.528964), Z: (1.0, -0.000042, -0.0), O: (-0.205593, 0.920083, -6.511518)]",
+      "serial": 0,
+      "speed": 6.01843309402466,
+      "velocity35": "(-0.003512, 5.496236, -2.452125)"
+    },
+    {
+      "actual_skin": false,
+      "edge": false,
+      "event": "bounce",
+      "point": "(-0.207197, 0.999534, -7.048)",
+      "protection": {
+        "damage": 0.0,
+        "penetrates": false,
+        "region": "world",
+        "tier": ""
+      },
+      "serial": 0,
+      "speed": 6.62197542190552
+    }
+  ],
+  "passed": true,
+  "rows": [
+    {
+      "age": 0.0166666666666667,
+      "flight_last_usec35": 23640,
+      "flight_max_usec35": -1,
+      "flight_total_usec35": -1,
+      "frame_ms": 2.247,
+      "min_z": -7.02818965911865,
+      "physics_ms": 1.294,
+      "position": "(-0.205651, 0.981886, -6.545233)",
+      "ray_max_usec": 15778,
+      "state": "flying",
+      "tick": 0
+    },
+    {
+      "age": 0.0277777777777778,
+      "flight_last_usec35": 10520,
+      "flight_max_usec35": -1,
+      "flight_total_usec35": -1,
+      "frame_ms": 2.247,
+      "min_z": -7.02797889709473,
+      "physics_ms": 1.294,
+      "position": "(-0.205687, 1.02818, -6.543654)",
+      "ray_max_usec": 15778,
+      "state": "ground",
+      "tick": 1
+    }
+  ],
+  "samples": [],
+  "scope": "Real mouse swing/release/ballistic impacts. Only player initial position is fixture setup; no weapon/contact/velocity injection."
+}

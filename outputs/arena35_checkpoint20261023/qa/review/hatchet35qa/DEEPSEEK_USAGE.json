@@ -1,0 +1,25 @@
+{
+  "model": "deepseek-flash",
+  "client": "C:/Users/\u0421\u043b\u0430\u0432\u0430/.codex/deepseek/ask.ps1",
+  "consultations": [
+    {
+      "prompt": "DEEPSEEK_RELEASE35_PROMPT.txt",
+      "response": "DEEPSEEK_RELEASE35_RESPONSE.txt",
+      "status": "TRUNCATED_EMPTY_FINAL",
+      "prompt_tokens": 1182,
+      "completion_tokens": 8192,
+      "reasoning_tokens": 8192,
+      "total_tokens": 9374
+    },
+    {
+      "prompt": "DEEPSEEK_TIMING35_PROMPT.txt",
+      "response": "DEEPSEEK_TIMING35_RESPONSE.txt",
+      "status": "COMPLETED_FINAL_RESPONSE",
+      "prompt_tokens": 222,
+      "completion_tokens": 4297,
+      "reasoning_tokens": 4171,
+      "total_tokens": 4519
+    }
+  ],
+  "source": "Exact counts returned by protected client; credentials never read/copied."
+}

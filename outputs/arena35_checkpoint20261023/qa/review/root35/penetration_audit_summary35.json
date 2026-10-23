@@ -1,0 +1,14 @@
+{
+  "reviewer": "penetration_audit",
+  "mode": "read-only",
+  "key_finding": "Candidate omitted verified false-floor hold guard in embedded_weapon29.gd; restored exact owner source SHA 4bf32c3a8da49e4825b9462e73784c461b362cb0fac4165d36076621eedc0f07.",
+  "candidate_followup_sha_tests": [
+    "merged_spear_held_candidate02",
+    "merged_spear_jump_candidate01",
+    "merged_spear_deep_hold_candidate01"
+  ],
+  "limits": [
+    "head armor exact visible rigid head geometry only; body/limb masks remain deterministic normalized coverage",
+    "free-hand restoration checked through real grip and front-of-chest conditions, not a broad extreme-pose guarantee"
+  ]
+}

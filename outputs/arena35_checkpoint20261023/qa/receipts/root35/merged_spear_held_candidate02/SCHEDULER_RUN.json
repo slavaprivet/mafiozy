@@ -1,0 +1,92 @@
+{
+  "mode": "graphical",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--windowed",
+    "--resolution",
+    "1280x720",
+    "--max-fps",
+    "60",
+    "--path",
+    "D:\\MafioziCombat31\\c33_coordination\\arena35_soft_tissue\\game",
+    "--script",
+    "D:/MafioziCombat31/c33_coordination/agents/penetration35/held_trace.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\merged_spear_held_candidate02",
+    "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\merged_spear_held_candidate02"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "30dcc6d8a62b42459a6c3eb7f91ac0c9",
+    "owner": {
+      "pid": 63452,
+      "creation_filetime": "134372565303343279"
+    },
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena35_soft_tissue\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 59784,
+        "creation_filetime": "134372565313502749",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena35_soft_tissue\\game --script D:/MafioziCombat31/c33_coordination/agents/penetration35/held_trace.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\merged_spear_held_candidate02 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\merged_spear_held_candidate02",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--windowed",
+          "--resolution",
+          "1280x720",
+          "--max-fps",
+          "60",
+          "--path",
+          "D:\\MafioziCombat31\\c33_coordination\\arena35_soft_tissue\\game",
+          "--script",
+          "D:/MafioziCombat31/c33_coordination/agents/penetration35/held_trace.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\merged_spear_held_candidate02",
+          "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\merged_spear_held_candidate02"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "graphical",
+        "project": "d:\\mafiozicombat31\\c33_coordination\\arena35_soft_tissue\\game"
+      }
+    ],
+    "deadline": 273325.2875698,
+    "queued_at": 272725.2875698,
+    "ticket": 6167,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5125177000300027
+  },
+  "child": {
+    "pid": 59784,
+    "creation_filetime": "134372565313502749",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena35_soft_tissue\\game --script D:/MafioziCombat31/c33_coordination/agents/penetration35/held_trace.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\merged_spear_held_candidate02 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\merged_spear_held_candidate02",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--windowed",
+      "--resolution",
+      "1280x720",
+      "--max-fps",
+      "60",
+      "--path",
+      "D:\\MafioziCombat31\\c33_coordination\\arena35_soft_tissue\\game",
+      "--script",
+      "D:/MafioziCombat31/c33_coordination/agents/penetration35/held_trace.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\merged_spear_held_candidate02",
+      "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\merged_spear_held_candidate02"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena35_soft_tissue\\game"
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 25.085801900015213,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

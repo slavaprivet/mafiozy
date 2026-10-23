@@ -1,0 +1,31 @@
+{
+  "checks": {
+    "_fire": true,
+    "_step_arrows": true,
+    "_stick": true,
+    "_arrow_rear31": true,
+    "_settle_rebound31": true,
+    "_incoming_arrow_ray31": true,
+    "_deflect_incoming_arrow31": true,
+    "_take_arrow": true,
+    "_recycle": true,
+    "_build_arrow": true,
+    "_physics_process": true,
+    "_loose": true,
+    "_muzzle_point": true,
+    "launch_speed": true,
+    "_follow_severed_arrow31": true,
+    "_apply_arrow_damage": true,
+    "_arrow_ray31": true
+  },
+  "all_unchanged": true,
+  "changed_existing_functions": [
+    "_process",
+    "_start_arrow_flight31",
+    "_stop_arrow_flight31"
+  ],
+  "added_functions": [
+    "_set_arrow_readability35",
+    "_update_arrow_readability35"
+  ]
+}

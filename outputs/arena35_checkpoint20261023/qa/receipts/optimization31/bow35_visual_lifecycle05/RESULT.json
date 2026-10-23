@@ -1,0 +1,116 @@
+{
+  "checks": {
+    "actual_ballistic_error_under_mm": true,
+    "all_distance_frames": true,
+    "all_local_vertex_z_exactly_unchanged": true,
+    "already_stopped_audio_also_resets": true,
+    "baked_mesh_identity_0": true,
+    "baked_mesh_identity_1": true,
+    "baked_mesh_identity_2": true,
+    "baked_mesh_identity_3": true,
+    "bow_selected": true,
+    "flight_readability_after_switch": true,
+    "fully_drawn": true,
+    "impact_audio_independent_reset": true,
+    "physical_rear_exactly_unchanged": true,
+    "readability44_p95_under_half_ms": true,
+    "real_input_single_shot": true,
+    "root_remains_unscaled": true,
+    "same_node_reuse_near_scale": true,
+    "startup": true,
+    "visual_root_exactly_unchanged": true
+  },
+  "max_ballistic_error_m": 0.0000137809238367481,
+  "note": "Graphical native InputEvents; concurrent user game means not exclusive FPS acceptance.",
+  "passed": true,
+  "rows": [
+    {
+      "age": 0.0833333333333333,
+      "depth_m": 8.87047576904297,
+      "distance_m": 8.94595336914063,
+      "fov": 41.5239028930664,
+      "physics_ms": 1.357,
+      "position": [
+        3.1211256980896,
+        2.30307626724243,
+        -2.45274877548218
+      ],
+      "process_ms": 48.748,
+      "requested_m": 8.0,
+      "root_scale": "(1.0, 1.0, 1.0)",
+      "scale_xy": 1.0,
+      "screen_max": "(534.0155, 416.3089)",
+      "screen_min": "(520.7553, 407.3321)",
+      "screen_size": "(13.26019, 8.976837)",
+      "shaft_base_px": 1.28466796875,
+      "shaft_visual_px": 1.28466796875,
+      "velocity": "(-0.624211, 12.86098, -52.23514)"
+    },
+    {
+      "age": 0.233333333333333,
+      "depth_m": 16.1311302185059,
+      "distance_m": 16.4233932495117,
+      "fov": 44.5743293762207,
+      "physics_ms": 31.381,
+      "position": [
+        3.02749300003052,
+        4.12186098098755,
+        -10.2880182266235
+      ],
+      "process_ms": 48.921,
+      "requested_m": 16.0,
+      "root_scale": "(1.0, 1.0, 1.0)",
+      "scale_xy": 1.22434258460999,
+      "screen_max": "(478.7303, 398.919)",
+      "screen_min": "(473.9557, 393.5018)",
+      "screen_size": "(4.774597, 5.417175)",
+      "shaft_base_px": 0.653411865234375,
+      "shaft_visual_px": 0.799999971895886,
+      "velocity": "(-0.624211, 11.38948, -52.23514)"
+    },
+    {
+      "age": 0.5,
+      "depth_m": 29.7918758392334,
+      "distance_m": 30.5219650268555,
+      "fov": 45.0,
+      "physics_ms": 31.381,
+      "position": [
+        2.86103487014771,
+        6.8102593421936,
+        -24.2173938751221
+      ],
+      "process_ms": 48.921,
+      "requested_m": 28.0,
+      "root_scale": "(1.0, 1.0, 1.0)",
+      "scale_xy": 2.28507661819458,
+      "screen_max": "(452.7227, 403.507)",
+      "screen_min": "(448.2998, 397.9614)",
+      "screen_size": "(4.422943, 5.545563)",
+      "shaft_base_px": 0.35009765625,
+      "shaft_visual_px": 0.799999968381599,
+      "velocity": "(-0.624211, 8.773485, -52.23514)"
+    },
+    {
+      "age": 0.683333333333334,
+      "depth_m": 39.1354064941406,
+      "distance_m": 40.1945571899414,
+      "fov": 45.0,
+      "physics_ms": 31.381,
+      "position": [
+        2.74659490585327,
+        8.25386905670166,
+        -33.7938423156738
+      ],
+      "process_ms": 48.921,
+      "requested_m": 40.0,
+      "root_scale": "(1.0, 1.0, 1.0)",
+      "scale_xy": 3.0,
+      "screen_max": "(444.7312, 413.5547)",
+      "screen_min": "(440.3575, 407.9944)",
+      "screen_size": "(4.373718, 5.560394)",
+      "shaft_base_px": 0.266510009765625,
+      "shaft_visual_px": 0.799530029296875,
+      "velocity": "(-0.624211, 6.974987, -52.23514)"
+    }
+  ]
+}

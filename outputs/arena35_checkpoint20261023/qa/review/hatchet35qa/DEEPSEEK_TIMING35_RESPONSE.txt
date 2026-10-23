@@ -1,0 +1,3 @@
+- Coherent in principle: physics-frame-gated sampling and `dt=(frame-prevframe)*physics_delta` remove the render-rate aliasing; holding last velocity on duplicate render frames is appropriate.
+- Verify invalidation also clears retained velocity/timestamp, so firstsample/equip/reset/jump states cannot pass the `<=100ms` release gate on repeated render frames.
+- Remaining edge case: low render FPS or skipped physics frames can make legitimate fast motion exceed the fixed `>45cm` jump check; confirm whether that threshold should scale with `dt` or be per physics step.

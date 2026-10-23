@@ -1,0 +1,1329 @@
+{
+  "checks": {
+    "jump_reason": true,
+    "native_entry": true,
+    "native_jump_releases": true,
+    "native_jump_rose": true,
+    "native_jump_started": true,
+    "pre_jump_on_floor": true,
+    "probe_gap20mm_not_support": true,
+    "probe_low_floor_state_false": true,
+    "probe_real_floor_three_mm": true,
+    "rising_velocity_releases": true
+  },
+  "outcomes": [
+    {
+      "before": -0.00127969891764224,
+      "max_y": 0.0289442092180252,
+      "rows": [
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.000000611289921910914,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 0,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.000000867786102768756,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 1,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.0000011242822836266,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 2,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000138077846448444,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 3,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000163727464534228,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 4,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000189377082620012,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 5,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000215026700705797,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 6,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000240676318791581,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 7,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000266325936877365,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 8,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000291975554963149,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 9,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000317625173048934,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 10,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000343274791134718,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 11,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000368924409220502,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 12,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000394574027306286,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 13,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.0000042022364539207,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 14,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000445873263477855,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 15,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000471522881563639,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 16,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000497172499649423,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 17,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000522822117735207,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 18,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000548471735820991,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 19,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000574121353906776,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 20,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.0000059977097199256,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 21,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000625420590078344,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 22,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000651070208164128,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 23,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000676719826249912,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 24,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000702369444335697,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 25,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000728019062421481,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 26,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000753668680507265,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 27,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000779318298593049,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 28,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000804967916678834,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 29,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000245932653797354,
+            "rejected_lateral_m": 0.00000830617534764618,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 30,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000267709481249767,
+            "rejected_lateral_m": 0.0000121536180605138,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 45,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 208,
+            "position": "(-0.0, 0.000745, 0.379706)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": true,
+            "velocity": "(0.0, -0.301933, -0.351832)"
+          },
+          "embed": {
+            "active": true,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.157317802864127,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "",
+            "max_crouch_m": 0.0122910381760448,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000267709481249767,
+            "rejected_lateral_m": 0.0000160010607733814,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": false,
+          "tick": 60,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": -0.00127969891764224
+        },
+        {
+          "airborne35": {
+            "frame": 356,
+            "position": "(-0.0, 0.001854, 0.315882)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": false,
+            "velocity": "(0.0, 1.625405, -4.2)"
+          },
+          "embed": {
+            "active": false,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.160506530433195,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "released_hands_airborne_grip_release",
+            "max_crouch_m": 0.0157173983752728,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000267709481249767,
+            "rejected_lateral_m": 0.0000180530302202442,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": true,
+          "tick": 75,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": 0.0
+        },
+        {
+          "airborne35": {
+            "frame": 356,
+            "position": "(-0.0, 0.001854, 0.315882)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": false,
+            "velocity": "(0.0, 1.625405, -4.2)"
+          },
+          "embed": {
+            "active": false,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.160506530433195,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "released_hands_airborne_grip_release",
+            "max_crouch_m": 0.0157173983752728,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000267709481249767,
+            "rejected_lateral_m": 0.0000180530302202442,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": true,
+          "tick": 90,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": 0.0
+        },
+        {
+          "airborne35": {
+            "frame": 356,
+            "position": "(-0.0, 0.001854, 0.315882)",
+            "probe": {
+              "normal": "(0.0, 1.0, 0.0)",
+              "travel": "(0.0, -0.001946, 0.0)",
+              "velocity": "(0.0, -0.301933, -0.351832)"
+            },
+            "supported": false,
+            "velocity": "(0.0, 1.625405, -4.2)"
+          },
+          "embed": {
+            "active": false,
+            "axis": "(-0.000004, -0.091735, -0.995784)",
+            "begins": 1,
+            "corpse_brace": {},
+            "depth": 0.160506530433195,
+            "ends": 0,
+            "entry": "(0.022634, 0.790454, -1.872015)",
+            "holder_reaction_m": 0.0,
+            "last_reason": "released_hands_airborne_grip_release",
+            "max_crouch_m": 0.0157173983752728,
+            "max_foot_error_m": 0.0145461652427912,
+            "max_grip_error_m": 0.0170435961335897,
+            "max_holder_reaction_step_m": 0.0,
+            "max_support_error_m": 0.000000267709481249767,
+            "rejected_lateral_m": 0.0000180530302202442,
+            "self_clear": true,
+            "world_clear": true
+          },
+          "grounded_weapon": true,
+          "tick": 105,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "y": 0.0
+        }
+      ],
+      "scenario": "native_jump_from_actual_entry"
+    },
+    {
+      "far_position": "(0.0, 0.02, 1.3)",
+      "near": {
+        "normal": "(0.0, 1.0, 0.0)",
+        "travel": "(0.0, -0.002953, 0.0)",
+        "velocity": "(0.0, 0.0, 0.0)"
+      },
+      "scenario": "controlled_native_floor_distance_probe"
+    }
+  ],
+  "passed": true
+}

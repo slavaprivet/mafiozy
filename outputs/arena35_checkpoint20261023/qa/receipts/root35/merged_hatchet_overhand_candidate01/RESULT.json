@@ -1,0 +1,180 @@
+{
+  "checks": {
+    "E_reclaims_charge": true,
+    "accepted_pose_sample": true,
+    "actual_edge_embedded": true,
+    "exact_release_pose": true,
+    "exact_release_velocity": true,
+    "held_in_body": true,
+    "real_release": true,
+    "reset_drops_same_model": true,
+    "same_object_reclaimed": true,
+    "startup": true
+  },
+  "events": [
+    {
+      "angular_velocity35": "(-1.533302, -0.030037, 0.007716)",
+      "charges": 2,
+      "event": "launch",
+      "release_transform35": "[X: (0.000047, 0.971917, -0.235326), Y: (-0.00054, -0.235326, -0.971916), Z: (-1.0, 0.000173, 0.000513), O: (-0.004797, 1.56678, -1.164472)]",
+      "serial": 0,
+      "speed": 5.23479747772217,
+      "velocity35": "(-0.005656, -3.024244, -4.272823)"
+    },
+    {
+      "depth": 0.008,
+      "entry": "(-0.003595, 1.586233, -1.764309)",
+      "event": "embed",
+      "normal": "(-0.22699, -0.006452, 0.973876)",
+      "part": "head",
+      "protection": {
+        "damage": 3.12120153068755,
+        "factor": 1.0,
+        "penetrates": true,
+        "region": "skin",
+        "slot": "head",
+        "tier": ""
+      },
+      "serial": 0,
+      "speed": 5.8889741897583,
+      "volume": {
+        "depth": 0.008,
+        "face": 4303,
+        "reason": "connected_exit",
+        "requested": 0.008,
+        "source": "257614158669:-9223371779056067758:0",
+        "thickness": 0.0755524784326553,
+        "world_blocked": false
+      },
+      "wood_exterior_m": 0.126024767756462
+    },
+    {
+      "charges": 3,
+      "event": "pickup",
+      "serial": 0
+    }
+  ],
+  "passed": true,
+  "rows": [
+    {
+      "edge_dot": 0.929264783859253,
+      "player": "(0.2, 0.000684, -0.85)",
+      "release": "[X: (0.000047, 0.971917, -0.235326), Y: (-0.00054, -0.235326, -0.971916), Z: (-1.0, 0.000173, 0.000513), O: (-0.004797, 1.56678, -1.164472)]",
+      "target": "(-0.000142, 0.853548, -2.021549)",
+      "velocity": "(-0.005656, -3.024244, -4.272823)"
+    },
+    {
+      "distance": 1.09118402004242,
+      "edge": "(-0.00492, 1.801618, -1.481343)",
+      "state": "flying",
+      "tick": 0,
+      "velocity": "(-0.005656, -3.187577, -4.272823)"
+    },
+    {
+      "distance": 1.00561559200287,
+      "edge": "(-0.004967, 1.743278, -1.552914)",
+      "state": "flying",
+      "tick": 1,
+      "velocity": "(-0.005656, -3.350911, -4.272823)"
+    },
+    {
+      "distance": 0.918919146060944,
+      "edge": "(-0.005014, 1.682208, -1.624421)",
+      "state": "flying",
+      "tick": 2,
+      "velocity": "(-0.005656, -3.514244, -4.272823)"
+    },
+    {
+      "distance": 0.831328630447388,
+      "edge": "(-0.005061, 1.618409, -1.695864)",
+      "state": "flying",
+      "tick": 3,
+      "velocity": "(-0.005656, -3.677578, -4.272823)"
+    },
+    {
+      "distance": 0.750429928302765,
+      "edge": "(-0.005102, 1.557404, -1.761343)",
+      "state": "embedded",
+      "tick": 4,
+      "velocity": "(0.0, 0.0, 0.0)"
+    },
+    {
+      "embed": {
+        "depth": 0.008,
+        "entry": "(-0.003595, 1.586233, -1.764309)",
+        "event": "embed",
+        "normal": "(-0.22699, -0.006452, 0.973876)",
+        "part": "head",
+        "protection": {
+          "damage": 3.12120153068755,
+          "factor": 1.0,
+          "penetrates": true,
+          "region": "skin",
+          "slot": "head",
+          "tier": ""
+        },
+        "serial": 0,
+        "speed": 5.8889741897583,
+        "volume": {
+          "depth": 0.008,
+          "face": 4303,
+          "reason": "connected_exit",
+          "requested": 0.008,
+          "source": "257614158669:-9223371779056067758:0",
+          "thickness": 0.0755524784326553,
+          "world_blocked": false
+        },
+        "wood_exterior_m": 0.126024767756462
+      },
+      "hold_position": "(-0.005491, 1.299397, -1.48218)",
+      "identity": 245970770405
+    }
+  ],
+  "samples": [
+    {
+      "delta": 0.0166643333333333,
+      "edge_dot": 0.977881789207459,
+      "frame": 92,
+      "physics_frame": 128,
+      "point": "(-0.00362, 1.91238, -1.210692)",
+      "sample_error": 0.0,
+      "sample_point": "(-0.00362, 1.91238, -1.210692)",
+      "speed": 0.224256157875061,
+      "velocity": "(-0.011436, -0.087683, -0.206087)"
+    },
+    {
+      "delta": 0.0166666666666667,
+      "edge_dot": 0.980636417865753,
+      "frame": 93,
+      "physics_frame": 129,
+      "point": "(-0.003788, 1.909261, -1.218192)",
+      "sample_error": 0.0,
+      "sample_point": "(-0.003788, 1.909261, -1.218192)",
+      "speed": 0.4874467253685,
+      "velocity": "(-0.010114, -0.187132, -0.449982)"
+    },
+    {
+      "delta": 0.0166653333333333,
+      "edge_dot": 0.887503445148468,
+      "frame": 94,
+      "physics_frame": 130,
+      "point": "(-0.004731, 1.889933, -1.241609)",
+      "sample_error": 0.0,
+      "sample_point": "(-0.004731, 1.889933, -1.241609)",
+      "speed": 1.82272326946259,
+      "velocity": "(-0.056593, -1.159723, -1.405048)"
+    },
+    {
+      "delta": 0.0166666666666667,
+      "edge_dot": 0.929264783859253,
+      "frame": 95,
+      "physics_frame": 131,
+      "point": "(-0.004826, 1.839529, -1.312823)",
+      "sample_error": 0.0,
+      "sample_point": "(-0.004826, 1.839529, -1.312823)",
+      "speed": 5.23479747772217,
+      "velocity": "(-0.005656, -3.024244, -4.272823)"
+    }
+  ],
+  "scope": "Real mouse swing/release/ballistic impacts. Only player initial position is fixture setup; no weapon/contact/velocity injection."
+}

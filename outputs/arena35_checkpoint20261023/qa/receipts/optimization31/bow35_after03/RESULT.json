@@ -1,0 +1,104 @@
+{
+  "checks": {
+    "actual_ballistic_error_under_mm": true,
+    "all_distance_frames": true,
+    "bow_selected": true,
+    "fully_drawn": true,
+    "real_input_single_shot": true,
+    "root_remains_unscaled": true,
+    "startup": true
+  },
+  "max_ballistic_error_m": 0.0000135731179398135,
+  "note": "Graphical native InputEvents; concurrent user game means not exclusive FPS acceptance.",
+  "passed": true,
+  "rows": [
+    {
+      "age": 0.0833333333333333,
+      "depth_m": 8.87047576904297,
+      "distance_m": 8.94595146179199,
+      "fov": 41.5239028930664,
+      "physics_ms": 1.228,
+      "position": [
+        3.1211256980896,
+        2.30307626724243,
+        -2.45274829864502
+      ],
+      "process_ms": 52.306,
+      "requested_m": 8.0,
+      "root_scale": "(1.0, 1.0, 1.0)",
+      "scale_xy": 1.0,
+      "screen_max": "(534.0156, 416.3089)",
+      "screen_min": "(520.7553, 407.3321)",
+      "screen_size": "(13.26025, 8.976837)",
+      "shaft_base_px": 1.28460693359375,
+      "shaft_visual_px": 1.28460693359375,
+      "velocity": "(-0.624211, 12.86098, -52.23514)"
+    },
+    {
+      "age": 0.25,
+      "depth_m": 16.9789695739746,
+      "distance_m": 17.2971935272217,
+      "fov": 44.662914276123,
+      "physics_ms": 1.228,
+      "position": [
+        3.01708936691284,
+        4.3103232383728,
+        -11.1586036682129
+      ],
+      "process_ms": 52.306,
+      "requested_m": 16.0,
+      "root_scale": "(1.0, 1.0, 1.0)",
+      "scale_xy": 1.29154062271118,
+      "screen_max": "(475.9384, 398.449)",
+      "screen_min": "(471.2742, 393.0129)",
+      "screen_size": "(4.664154, 5.436127)",
+      "shaft_base_px": 0.619415283203125,
+      "shaft_visual_px": 0.800000000584987,
+      "velocity": "(-0.624211, 11.22598, -52.23514)"
+    },
+    {
+      "age": 0.466666666666667,
+      "depth_m": 28.0843162536621,
+      "distance_m": 28.7571926116943,
+      "fov": 45.0,
+      "physics_ms": 1.228,
+      "position": [
+        2.88184213638306,
+        6.51235961914063,
+        -22.4762210845947
+      ],
+      "process_ms": 52.306,
+      "requested_m": 28.0,
+      "root_scale": "(1.0, 1.0, 1.0)",
+      "scale_xy": 2.154372215271,
+      "screen_max": "(454.695, 402.035)",
+      "screen_min": "(450.2575, 396.4946)",
+      "screen_size": "(4.437469, 5.540405)",
+      "shaft_base_px": 0.371337890625,
+      "shaft_visual_px": 0.80000003403984,
+      "velocity": "(-0.624211, 9.100485, -52.23514)"
+    },
+    {
+      "age": 0.683333333333334,
+      "depth_m": 39.1354064941406,
+      "distance_m": 40.1945571899414,
+      "fov": 45.0,
+      "physics_ms": 1.228,
+      "position": [
+        2.74659490585327,
+        8.25386905670166,
+        -33.7938423156738
+      ],
+      "process_ms": 52.306,
+      "requested_m": 40.0,
+      "root_scale": "(1.0, 1.0, 1.0)",
+      "scale_xy": 3.0,
+      "screen_max": "(444.7312, 413.5547)",
+      "screen_min": "(440.3575, 407.9944)",
+      "screen_size": "(4.373718, 5.560394)",
+      "shaft_base_px": 0.266510009765625,
+      "shaft_visual_px": 0.799530029296875,
+      "velocity": "(-0.624211, 6.974987, -52.23514)"
+    }
+  ]
+}

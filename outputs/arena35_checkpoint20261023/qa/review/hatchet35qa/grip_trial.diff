@@ -1,0 +1,25 @@
+--- a/scripts/weapons/throwing_axe32.gd
++++ b/scripts/weapons/throwing_axe32.gd
+@@ -28,6 +28,7 @@
+ var sample_msec35:=0
+ var sample_physics_frame35:=-1
+ var sampled_model35:Node3D
++var edge_grip_model35:Node3D
+ const MASS_POINT35:=Vector3(.30,.08,0.)
+ var world_shapes32:Array[Dictionary]=[]
+ func initialize(owner:Node)->void:
+@@ -70,6 +71,14 @@
+ 	return empty
+ func selected()->void:
+ 	var model:=select();host._weapon_models["hatchet"]=model;host._sword=model
++	# A one-edged hatchet is taken with its cutting side facing forward.
++	# Thereafter ordinary free-swing edge evolution and physical spin own it.
++	if model!=empty and model!=edge_grip_model35:
++		var direction:Vector3=host._dir.normalized()
++		var forward:Vector3=-host._camera.global_basis.z
++		var edge:Vector3=forward-direction*forward.dot(direction)
++		if edge.length_squared()>.000001:host._edge_direction=edge.normalized()
++		edge_grip_model35=model
+ 	host._sword_grounded=false;host._unarmed=model==empty;model.visible=model!=empty
+ 	for item in pool:
+ 		if item.state in ["held","reserve"]:

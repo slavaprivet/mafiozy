@@ -1,0 +1,92 @@
+{
+  "mode": "graphical",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--windowed",
+    "--resolution",
+    "1280x720",
+    "--max-fps",
+    "60",
+    "--path",
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\hatchet35qa\\game",
+    "--script",
+    "D:/MafioziCombat31/c33_coordination/agents/hatchet35qa/wall35.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\hatchet_agent_wall10",
+    "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\hatchet_agent_wall10"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "eed072c4c88d4d1ebb4b35a6a3334ba2",
+    "owner": {
+      "pid": 59928,
+      "creation_filetime": "134372554655028242"
+    },
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\agents\\hatchet35qa\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 62272,
+        "creation_filetime": "134372554665450669",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\agents\\hatchet35qa\\game --script D:/MafioziCombat31/c33_coordination/agents/hatchet35qa/wall35.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\hatchet_agent_wall10 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\hatchet_agent_wall10",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--windowed",
+          "--resolution",
+          "1280x720",
+          "--max-fps",
+          "60",
+          "--path",
+          "D:\\MafioziCombat31\\c33_coordination\\agents\\hatchet35qa\\game",
+          "--script",
+          "D:/MafioziCombat31/c33_coordination/agents/hatchet35qa/wall35.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\hatchet_agent_wall10",
+          "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\hatchet_agent_wall10"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "graphical",
+        "project": "d:\\mafiozicombat31\\c33_coordination\\agents\\hatchet35qa\\game"
+      }
+    ],
+    "deadline": 272260.447445,
+    "queued_at": 271660.447445,
+    "ticket": 6150,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5379507999750786
+  },
+  "child": {
+    "pid": 62272,
+    "creation_filetime": "134372554665450669",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\agents\\hatchet35qa\\game --script D:/MafioziCombat31/c33_coordination/agents/hatchet35qa/wall35.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\hatchet_agent_wall10 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\hatchet_agent_wall10",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--windowed",
+      "--resolution",
+      "1280x720",
+      "--max-fps",
+      "60",
+      "--path",
+      "D:\\MafioziCombat31\\c33_coordination\\agents\\hatchet35qa\\game",
+      "--script",
+      "D:/MafioziCombat31/c33_coordination/agents/hatchet35qa/wall35.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\hatchet_agent_wall10",
+      "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\hatchet_agent_wall10"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\agents\\hatchet35qa\\game"
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 11.577162300003693,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

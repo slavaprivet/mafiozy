@@ -1,0 +1,22 @@
+{
+  "reviewer": "release_scope_audit",
+  "mode": "read-only",
+  "key_finding": "Existing code has part HP, bleeding, head/torso lethal puncture at90% measured thickness, but no single merged receipt proves the full per-part damage matrix. Shield remains one wood panel with steel rim/boss and one130HP pool.",
+  "performance": {
+    "worker_before_ms": 217.719,
+    "worker_after_ms": 182.994,
+    "latency_before_ms": 234.099,
+    "latency_after_ms": 200.07,
+    "main_commit_before_ms": 0.935,
+    "main_commit_after_ms": 0.887,
+    "draw_p95_before_ms": 18.556,
+    "draw_p95_after_ms": 18.746,
+    "full_fps_accepted": false
+  },
+  "remaining": [
+    "short merged HP/bleed/sever/head-puncture matrix",
+    "wood/metal shield variants and different durability not implemented",
+    "rare deep-contact spikes not fully fixed",
+    "overall50x50 FPS unaccepted"
+  ]
+}

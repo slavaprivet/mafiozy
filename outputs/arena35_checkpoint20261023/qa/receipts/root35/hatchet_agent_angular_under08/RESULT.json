@@ -1,0 +1,196 @@
+{
+  "checks": {
+    "E_reclaims_charge": true,
+    "accepted_pose_sample": true,
+    "actual_edge_embedded": true,
+    "exact_release_pose": true,
+    "exact_release_velocity": true,
+    "held_in_body": true,
+    "real_release": true,
+    "reset_drops_same_model": true,
+    "same_object_reclaimed": true,
+    "startup": true
+  },
+  "events": [
+    {
+      "angular_velocity35": "(5.584048, 0.000216, 0.000671)",
+      "charges": 2,
+      "event": "launch",
+      "release_transform35": "[X: (-0.000022, -0.528964, -0.848645), Y: (0.000036, 0.848644, -0.528964), Z: (1.0, -0.000042, -0.0), O: (-0.005594, 0.920078, -1.361224)]",
+      "serial": 0,
+      "speed": 6.01814937591553,
+      "velocity35": "(-0.003512, 5.496196, -2.451517)"
+    },
+    {
+      "depth": 0.008,
+      "entry": "(-0.007138, 0.895852, -1.864867)",
+      "event": "embed",
+      "normal": "(0.016733, -0.057693, 0.998194)",
+      "part": "chest",
+      "protection": {
+        "damage": 4.13689264501453,
+        "factor": 1.0,
+        "penetrates": true,
+        "region": "skin",
+        "slot": "torso",
+        "tier": ""
+      },
+      "serial": 0,
+      "speed": 6.77978420257568,
+      "volume": {
+        "depth": 0.008,
+        "face": 1186,
+        "reason": "connected_exit",
+        "requested": 0.008,
+        "source": "257161173827:-9223371779274171576:0",
+        "thickness": 0.011109933257103,
+        "world_blocked": false
+      },
+      "wood_exterior_m": 0.154874235391617
+    },
+    {
+      "charges": 3,
+      "event": "pickup",
+      "serial": 0
+    }
+  ],
+  "passed": true,
+  "rows": [
+    {
+      "edge_dot": 0.990517139434814,
+      "player": "(0.2, 0.000684, -0.85)",
+      "release": "[X: (-0.000022, -0.528964, -0.848645), Y: (0.000036, 0.848644, -0.528964), Z: (1.0, -0.000042, -0.0), O: (-0.005594, 0.920078, -1.361224)]",
+      "target": "(-0.000142, 0.853548, -2.021549)",
+      "velocity": "(-0.003512, 5.496196, -2.451517)"
+    },
+    {
+      "distance": 0.275627583265305,
+      "edge": "(-0.005639, 0.957907, -1.7665)",
+      "state": "embedded",
+      "tick": 0,
+      "velocity": "(0.0, 0.0, 0.0)"
+    },
+    {
+      "embed": {
+        "depth": 0.008,
+        "entry": "(-0.007138, 0.895852, -1.864867)",
+        "event": "embed",
+        "normal": "(0.016733, -0.057693, 0.998194)",
+        "part": "chest",
+        "protection": {
+          "damage": 4.13689264501453,
+          "factor": 1.0,
+          "penetrates": true,
+          "region": "skin",
+          "slot": "torso",
+          "tier": ""
+        },
+        "serial": 0,
+        "speed": 6.77978420257568,
+        "volume": {
+          "depth": 0.008,
+          "face": 1186,
+          "reason": "connected_exit",
+          "requested": 0.008,
+          "source": "257161173827:-9223371779274171576:0",
+          "thickness": 0.011109933257103,
+          "world_blocked": false
+        },
+        "wood_exterior_m": 0.154874235391617
+      },
+      "hold_position": "(-0.005637, 0.969647, -1.38655)",
+      "identity": 245652003299
+    }
+  ],
+  "samples": [
+    {
+      "delta": 0.0166643333333333,
+      "edge_dot": 0.986332416534424,
+      "frame": 92,
+      "physics_frame": 128,
+      "point": "(-0.004857, 0.440189, -1.354945)",
+      "sample_error": 0.0,
+      "sample_point": "(-0.004857, 0.440189, -1.354945)",
+      "speed": 0.267004698514938,
+      "velocity": "(0.040648, 0.158191, -0.211222)"
+    },
+    {
+      "delta": 0.016666,
+      "edge_dot": 0.998486220836639,
+      "frame": 93,
+      "physics_frame": 129,
+      "point": "(-0.005042, 0.445675, -1.362138)",
+      "sample_error": 0.0,
+      "sample_point": "(-0.005042, 0.445675, -1.362138)",
+      "speed": 0.542863726615906,
+      "velocity": "(-0.011068, 0.329184, -0.431528)"
+    },
+    {
+      "delta": 0.0166666666666667,
+      "edge_dot": 0.998955726623535,
+      "frame": 94,
+      "physics_frame": 130,
+      "point": "(-0.005178, 0.466356, -1.387467)",
+      "sample_error": 0.0,
+      "sample_point": "(-0.005178, 0.466356, -1.387467)",
+      "speed": 1.96201264858246,
+      "velocity": "(-0.008161, 1.240851, -1.519775)"
+    },
+    {
+      "delta": 0.0166653333333333,
+      "edge_dot": 0.999110102653503,
+      "frame": 95,
+      "physics_frame": 131,
+      "point": "(-0.005286, 0.522721, -1.450134)",
+      "sample_error": 0.0,
+      "sample_point": "(-0.005286, 0.522721, -1.450134)",
+      "speed": 5.05715036392212,
+      "velocity": "(-0.006471, 3.381899, -3.759985)"
+    },
+    {
+      "delta": 0.016666,
+      "edge_dot": 0.999741435050964,
+      "frame": 96,
+      "physics_frame": 132,
+      "point": "(-0.005385, 0.58254, -1.510973)",
+      "sample_error": 0.0,
+      "sample_point": "(-0.005385, 0.58254, -1.510973)",
+      "speed": 5.1193060874939,
+      "velocity": "(-0.005972, 3.589149, -3.650379)"
+    },
+    {
+      "delta": 0.016666,
+      "edge_dot": 0.997281193733215,
+      "frame": 97,
+      "physics_frame": 133,
+      "point": "(-0.005467, 0.654204, -1.567301)",
+      "sample_error": 0.0,
+      "sample_point": "(-0.005467, 0.654204, -1.567301)",
+      "speed": 5.46908473968506,
+      "velocity": "(-0.00493, 4.29986, -3.379655)"
+    },
+    {
+      "delta": 0.0166666666666667,
+      "edge_dot": 0.993847608566284,
+      "frame": 98,
+      "physics_frame": 134,
+      "point": "(-0.005539, 0.737677, -1.617276)",
+      "sample_error": 0.0,
+      "sample_point": "(-0.005539, 0.737677, -1.617276)",
+      "speed": 5.83738994598389,
+      "velocity": "(-0.004292, 5.008385, -2.998531)"
+    },
+    {
+      "delta": 0.0166663333333333,
+      "edge_dot": 0.990517139434814,
+      "frame": 99,
+      "physics_frame": 135,
+      "point": "(-0.005597, 0.829281, -1.658135)",
+      "sample_error": 0.0,
+      "sample_point": "(-0.005597, 0.829281, -1.658135)",
+      "speed": 6.01814937591553,
+      "velocity": "(-0.003512, 5.496196, -2.451517)"
+    }
+  ],
+  "scope": "Real mouse swing/release/ballistic impacts. Only player initial position is fixture setup; no weapon/contact/velocity injection."
+}

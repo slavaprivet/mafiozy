@@ -1,0 +1,2 @@
+Saved response to D:/MafioziCombat31/c33_coordination/agents/swing35/DEEPSEEK_FINAL35_RESPONSE.txt
+{"prompt_tokens":511,"completion_tokens":2808,"total_tokens":3319,"prompt_tokens_details":{"cached_tokens":0},"completion_tokens_details":{"reasoning_tokens":2268},"prompt_cache_hit_tokens":0,"prompt_cache_miss_tokens":511}
