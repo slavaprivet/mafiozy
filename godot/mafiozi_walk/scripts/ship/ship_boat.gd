@@ -302,6 +302,10 @@ var _climb_input_bound := false
 var _climb_input := 0.0
 var _climbing_ladder := false
 var _climb_idle := 0.0
+## Last deck footing the player stood on, and how long he has been stuck below
+## the main deck while asking to move.
+var _safe_deck_local := Vector3.INF
+var _stuck_below := 0.0
 var _climbing_companionway := false
 
 ## Wake / bow wave / spray (built once by `_install_wake`).
@@ -1568,6 +1572,7 @@ func _climb_axis() -> float:
 
 func climb_assist(player: CharacterBody3D, delta: float) -> void:
 	_climb_assist_motion(player, delta)
+	_recover_stuck_player(player, delta)
 	if not is_instance_valid(player) or not player.has_method("set_ship_climb_pose"): return
 	var active := _climbing_ladder and _installed and _in_ladder_zone(_local_from_world(player.global_position))
 	if active:
@@ -2484,6 +2489,48 @@ func _step_off_ladder(player: CharacterBody3D, local: Vector3, base: Vector3, to
 		next_local.z = base.z + 0.35
 	player.global_position = _world_from_local(next_local)
 	player.velocity = Vector3.ZERO
+
+
+## A body that falls into the hold, the cabin or a companionway well cannot climb
+## back out through the opening above it, and it then stands in place looking
+## hung. Instead of patching every hole in the hull, one rule covers them all: a
+## body below the main deck that stays put while its owner pushes movement is put
+## back on the last deck it stood on, and its pose authority is refreshed so the
+## walk, the camera and the weapon come back with it.
+const STUCK_RECOVERY_S := 1.2
+
+func _recover_stuck_player(player: CharacterBody3D, delta: float) -> void:
+	if not is_instance_valid(player):
+		return
+	var local := _local_from_world(player.global_position)
+	if local.y >= 1.45:
+		_stuck_below = 0.0
+		# Remember the last honest deck footing, so the rescue lands on wood.
+		if player.is_on_floor() and not _climbing_ladder and not _climbing_companionway:
+			_safe_deck_local = local
+		return
+	if _climbing_ladder or _climbing_companionway:
+		_stuck_below = 0.0
+		return
+	var pushing := Input.is_action_pressed(&"preview_move_forward") \
+		or Input.is_action_pressed(&"preview_move_back") \
+		or Input.is_action_pressed(&"preview_move_left") \
+		or Input.is_action_pressed(&"preview_move_right")
+	if not pushing or player.velocity.length() > 0.30:
+		_stuck_below = 0.0
+		return
+	_stuck_below += delta
+	if _stuck_below < STUCK_RECOVERY_S:
+		return
+	_stuck_below = 0.0
+	var target: Vector3 = _safe_deck_local
+	if target == Vector3.INF:
+		target = Vector3(0.0, 1.85, -2.0)
+	player.global_position = _world_from_local(target)
+	player.velocity = Vector3.ZERO
+	if player.has_method("set_preview_pose_authority"):
+		player.call("set_preview_pose_authority", &"on_foot", true)
+	print("SHIP_RESCUE_DECK from=", local, " to=", target)
 
 
 func _hull_motion_test(from: Transform3D, motion: Vector3, recovery: bool = false) -> PhysicsTestMotionResult3D:

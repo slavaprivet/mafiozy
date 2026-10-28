@@ -1310,6 +1310,10 @@ func _build_break_bulkhead() -> void:
 	for side: float in [-1.0, 1.0]:
 		_box("gold", Vector3(side * 1.23, 1.63, 5.93), Vector3(0.10, 2.24, 0.12), Color(1, 1, 1))
 	_box("gold", Vector3(0.0, 2.72, 5.93), Vector3(2.56, 0.10, 0.12), Color(1, 1, 1))
+	# Two oak treads inside the doorway: the sill is on the main deck, the cabin
+	# floor is 1.26 m lower, and an open ledge there read as a hole in the ship.
+	_box("trim", Vector3(0.0, 0.88, 6.24), Vector3(2.26, 0.80, 0.46), Color(0.30, 0.19, 0.105))
+	_box("trim", Vector3(0.0, 0.69, 6.72), Vector3(2.26, 0.42, 0.46), Color(0.27, 0.175, 0.098))
 	_box("trim", Vector3(1.98, 1.62, 6.02), Vector3(1.02, 2.02, 0.06), Color(0.30, 0.19, 0.105),
 		Basis(Vector3.UP, deg_to_rad(-92.0)))
 	_box("iron", Vector3(1.98, 1.62, 6.10), Vector3(0.05, 0.20, 0.05), Color(1, 1, 1))
@@ -3330,6 +3334,11 @@ func _build_collision() -> void:
 	# Quarterdeck and cabin.
 	_add_collision(Vector3(0.0, 2.995, 9.25), Vector3(6.86, 0.08, 6.4))
 	_add_collision(Vector3(0.0, 0.48, 9.20), Vector3(6.40, 0.08, 6.2))
+	# The cabin doorway sits at deck level (1.74) while the cabin floor is at 0.48.
+	# Walking through the opening used to drop the player 1.26 m onto the cabin
+	# floor with no way back up: two solid steps turn that ledge into a stair.
+	_add_collision(Vector3(0.0, 0.88, 6.24), Vector3(2.30, 0.80, 0.46))
+	_add_collision(Vector3(0.0, 0.69, 6.72), Vector3(2.30, 0.42, 0.46))
 	for side: float in [-1.0, 1.0]:
 		_add_collision(Vector3(side * 3.33, 1.72, 9.20), Vector3(0.14, 2.40, 6.2))
 		_add_collision(Vector3(side * 2.25, 1.72, 6.00), Vector3(2.10, 2.40, 0.16))

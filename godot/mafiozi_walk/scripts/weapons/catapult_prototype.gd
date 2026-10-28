@@ -924,8 +924,11 @@ func _apply_arm() -> void:
 			_rope.look_at(to, Vector3.UP, true)
 
 ## Where the stone would go from here: a real ballistic solution, not a guess.
+## The yaw convention is the one `aim_at()` and the cart's own rotation use: 0 rad
+## faces +Z, so the forward vector is (sin, 0, cos). It used to be (-sin, 0, -cos),
+## which fired every shot into the courtyard behind the machine.
 func _launch_velocity() -> Vector3:
-	var forward := Vector3(-sin(_yaw), 0.0, -cos(_yaw)).normalized()
+	var forward := Vector3(sin(_yaw), 0.0, cos(_yaw)).normalized()
 	var direction := (forward * cos(_elevation) + Vector3.UP * sin(_elevation)).normalized()
 	return direction * POWER_MS
 
@@ -1617,17 +1620,17 @@ func _update_aim() -> void:
 
 func _process(delta: float) -> void:
 	if not _ready or not is_instance_valid(_prompt_panel): return
-	# Aiming is looking: the machine turns with the player while he stands at it.
+	# Aiming is looking: the machine turns to where the camera points, which is
+	# the same convention aim_at() uses (0 rad faces +Z, the gate).
 	if _occupied and is_instance_valid(_player):
-		var facing: Vector3 = _player._visual.global_basis.z
-		var flat := Vector3(facing.x, 0.0, facing.z)
-		if flat.length_squared() > 1.0e-6:
-			_yaw = lerp_angle(_yaw, atan2(flat.x, flat.z), clampf(9.0 * delta, 0.0, 1.0))
-		# Elevation comes from where the camera is LOOKING, mapped onto the machine's own
-		# range: look at the foot of the wall for a flat shot, at its top for a high one.
 		var camera: Camera3D = _player.get_preview_camera()
 		if is_instance_valid(camera):
 			var look: Vector3 = -camera.global_basis.z
+			var flat_look := Vector3(look.x, 0.0, look.z)
+			if flat_look.length_squared() > 1.0e-6:
+				_yaw = lerp_angle(_yaw, atan2(flat_look.x, flat_look.z), clampf(9.0 * delta, 0.0, 1.0))
+			# Elevation comes from where the camera is LOOKING, mapped onto the machine's own
+			# range: look at the foot of the wall for a flat shot, at its top for a high one.
 			var pitch: float = asin(clampf(look.y, -1.0, 1.0))
 			var matched: float = clampf((pitch + 0.45) / 0.90, 0.0, 1.0)
 			var from_look: float = lerpf(ELEV_MIN, ELEV_MAX, matched)
