@@ -1520,9 +1520,15 @@ func _spawn_falling_brick_now(cell: Dictionary, impulse: Vector3, power: float) 
 	body.position = cell.get("at", Vector3.ZERO)
 	body.rotation = cell.get("rotation", Vector3.ZERO)
 	var direction: Vector3 = impulse.normalized() if impulse.length_squared() > 1.0e-6 else Vector3.DOWN
-	body.linear_velocity = (direction * 0.55 + Vector3.UP * 0.55).normalized() \
-		* clampf(power * 0.35, 2.0, 26.0) * randf_range(0.7, 1.3)
+	# Mostly OUTWARD, only slightly up. The old mix was 0.55 up at up to 26 m/s, so a
+	# blast launched its stones almost vertically and they hung in the air for
+	# seconds, then hopped around the wall: it read as zero gravity. A siege stone
+	# now throws the masonry sideways and lets gravity take it down.
+	body.linear_velocity = (direction * 0.88 + Vector3.UP * 0.28).normalized() \
+		* clampf(power * 0.22, 1.6, 13.0) * randf_range(0.72, 1.28)
 	body.angular_velocity = Vector3(randf_range(-6, 6), randf_range(-6, 6), randf_range(-6, 6))
+	body.linear_damp = 0.05
+	body.angular_damp = 0.35
 	_falling.append({"body": body, "age": 0.0, "cell": cell.duplicate(),
 		"substantial": _is_substantial_rubble(cell), "support_frames": 0})
 	if from_pool:

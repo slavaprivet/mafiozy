@@ -11,11 +11,11 @@ const FireShader = preload("res://scripts/fire/fire_spread.gdshader")
 const ScorchShader = preload("res://scripts/shop/throwable_scorch.gdshader")
 
 const CAPACITY := 8
-const FLAMES := 14
+const FLAMES := 16
 const FlameTexture = preload("res://assets/fire/flame.png")
 const SMOKE := 0
 const EMBERS := 8
-const GLOW := 0
+const GLOW := 3
 const FIELD_MAX_SCALE := 4.2
 ## The field is nudged out of the burning body towards the camera: a gate leaf's
 ## centre is inside a 1.1 m wall, and flames drawn there are buried in the wood. The
@@ -76,7 +76,7 @@ func _build_slot(index: int) -> Dictionary:
 		var kind := 0 if particle < FLAMES else (1 if particle < FLAMES + SMOKE else (2 if particle < FLAMES + SMOKE + EMBERS else 3))
 		# Flames live inside the field radius; smoke and embers start from the middle,
 		# the glow hugs the ground under the fire.
-		var radius: float = sqrt(variant) * 0.90 if kind == 0 else 0.25 * variant if kind == 1 else 0.10 if kind == 2 else 0.45 * variant
+		var radius: float = sqrt(variant) * 0.90 if kind == 0 else 0.25 * variant if kind == 1 else 0.10 if kind == 2 else 0.35 * variant
 		var angle := TAU * seed
 		var height: float = 0.08 if kind == 0 else 0.55 + variant * 0.45 if kind == 1 else 0.12 if kind == 2 else 0.05
 		multimesh.set_instance_transform(particle,
@@ -167,6 +167,9 @@ func update_field(index: int, age: float, intensity: float, camera_position: Vec
 		# Keep the flames on the side of the burning body the player is looking at.
 		var anchor: Vector3 = slot.get("anchor", root.global_position)
 		var push := camera_position - anchor
+		# Horizontal only: pushing towards a camera above the fire lifted the whole
+		# field off the ground and the flames floated a metre above the door sill.
+		push.y = 0.0
 		if push.length_squared() > 0.04:
 			root.global_position = anchor + push.normalized() * SURFACE_PUSH
 		var distance := root.global_position.distance_squared_to(camera_position)

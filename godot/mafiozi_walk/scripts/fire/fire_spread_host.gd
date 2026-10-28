@@ -35,7 +35,7 @@ func configure(world: Node3D) -> bool:
 		return false
 	_world = world
 	_char_material = StandardMaterial3D.new()
-	_char_material.albedo_color = Color(0.055, 0.048, 0.045)
+	_char_material.albedo_color = Color(0.115, 0.082, 0.062)
 	_char_material.roughness = 1.0
 	_char_material.metallic = 0.0
 	return true
@@ -195,7 +195,7 @@ func _fuel_centre(node: Node3D) -> Vector3:
 		else:
 			merged = merged.merge(box)
 	if not found:
-		return node.global_position + Vector3.UP * 0.5
+		return node.global_position + Vector3.UP * 0.15
 	var centre := merged.get_center()
 	# Never start the flames underground on a wall-anchored prop.
 	return Vector3(centre.x, maxf(centre.y, node.global_position.y + 0.4), centre.z)
@@ -216,7 +216,7 @@ func _char(item: Dictionary) -> void:
 	# are not deleted, so the castle and the ship keep their shape after the fire.
 	if _char_material == null:
 		_char_material = StandardMaterial3D.new()
-		_char_material.albedo_color = Color(0.055, 0.048, 0.045)
+		_char_material.albedo_color = Color(0.115, 0.082, 0.062)
 		_char_material.roughness = 1.0
 	for found: Node in node.find_children("*", "MeshInstance3D", true, false):
 		var mesh_instance := found as MeshInstance3D

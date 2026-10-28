@@ -41,7 +41,7 @@ void vertex() {
 		vec2 size = vec2((0.34 + variant * 0.22) * scale * wobble, reach * scale * wobble);
 		vec3 world = center + right * VERTEX.x * size.x + up * (VERTEX.y + 0.5) * size.y;
 		VERTEX = (VIEW_MATRIX * vec4(world, 1.0)).xyz;
-	} else {
+	} else if (kind < 2.5) {
 		// Embers: small hot specks thrown out of the fire and pulled down.
 		float flight = min(age_seconds, 0.7);
 		center += vec3(cos(angle) * (1.6 + variant), 1.6 + variant * 1.8, sin(angle) * (1.6 + variant))
@@ -49,6 +49,14 @@ void vertex() {
 		center.y -= 3.2 * flight * flight * scale * 0.4;
 		vec2 size = vec2(0.05, 0.05);
 		vec3 world = center + right * VERTEX.x * size.x + up * VERTEX.y * size.y;
+		VERTEX = (VIEW_MATRIX * vec4(world, 1.0)).xyz;
+	} else {
+		// Ember bed: one wide, low sprite at the root, reading as the glowing base of
+		// the fire instead of a row of separate tongues.
+		center.xz += vec2(cos(angle), sin(angle)) * 0.35 * scale;
+		center.y += 0.04 * scale;
+		vec2 size = vec2((1.55 + variant * 0.45) * scale, (0.42 + variant * 0.20) * scale);
+		vec3 world = center + right * VERTEX.x * size.x + up * (VERTEX.y + 0.5) * size.y;
 		VERTEX = (VIEW_MATRIX * vec4(world, 1.0)).xyz;
 	}
 	NORMAL = vec3(0.0, 0.0, 1.0);
@@ -65,9 +73,15 @@ void fragment() {
 		ALBEDO = tex.rgb * tint;
 		EMISSION = tex.rgb * tint * 1.35;
 		ALPHA = tex.a * fade * (0.55 + 0.45 * intensity);
-	} else {
+	} else if (kind < 2.5) {
 		ALBEDO = mix(vec3(1.00, 0.52, 0.10), vec3(1.00, 0.88, 0.55), step(0.55, seed));
 		EMISSION = ALBEDO * 1.6;
 		ALPHA = 1.0 - smoothstep(0.15, 0.70, age_seconds);
+	} else {
+		// Ember bed: the hot lower band of the same sprite, stretched wide and flat.
+		vec4 tex = texture(flame_texture, vec2(UV.x, 0.52 - UV.y * 0.46));
+		ALBEDO = tex.rgb * vec3(1.0, 0.62, 0.30);
+		EMISSION = ALBEDO * 0.85;
+		ALPHA = tex.a * 0.55 * fade;
 	}
 }
