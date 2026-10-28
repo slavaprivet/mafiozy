@@ -1,4 +1,5 @@
 extends Node3D
+const Interception31 = preload("res://scripts/combat/weapon_interception31.gd")
 const ModelFinish31 = preload("res://scripts/weapons/weapon_model_finish31.gd")
 const ArmorDamage31 = preload("res://scripts/combat/armor_damage31.gd")
 const CastleArmorVisual31 = preload("res://scripts/combat/castle_armor_visual.gd")
@@ -35,6 +36,7 @@ const CharacterPhysicsDriver31 = preload("res://scripts/character_physics/charac
 ##   crush   true for blunt weapons: they do NOT get stopped by plate, they dent it
 ##   category  how the arsenal groups it
 const WEAPONS := {
+	"hatchet": {"label":"Метательный топорик", "category":"one_hand", "category_label":"ТОПОРИК · МЕТАНИЕ", "length":.42, "mass":.72, "grip":"one", "slice":1.15, "stab":.1, "flat":.5, "crush":false},
 	"sword": {
 		"label": "Тестовый меч (прототип)", "category": "blade", "category_label": "МЕЧ · БЛИЖНИЙ БОЙ",
 		"length": 1.15, "mass": 1.0, "grip": "both_optional",
@@ -63,6 +65,7 @@ const WEAPONS := {
 }
 ## The weapon this host is currently presenting.
 var _weapon_id := "sword"
+var _hatchet32:Node
 
 func weapon_ids() -> Array:
 	return WEAPONS.keys()
@@ -70,8 +73,17 @@ func weapon_ids() -> Array:
 func set_weapon(id: String) -> bool:
 	if not WEAPONS.has(id): return false
 	if _shield_worn and str(WEAPONS[id].get("grip", "")) == "two": return false
-	if id == _weapon_id: return true
+	# A severed hand can never take a two-handed weapon, and a man with no hands
+	# cannot take any weapon at all. One-handed weapons remain usable in the
+	# surviving hand.
+	if not _can_wield_weapon(id):
+		print("DSH_SWORD_PROTO_WEAPON_REFUSED reason=severed_hands id=", id)
+		return false
+	if id == _weapon_id:
+		if id=="hatchet" and is_instance_valid(_hatchet32):_hatchet32.selected()
+		return true
 	_cancel_throw_aim52()
+	if is_instance_valid(_hatchet32):_hatchet32.cancel()
 	_weapon_id = id
 	# The sword-only blade grip cannot survive selection of a mace or another weapon.
 	if id != "sword": set_half_sword(false)
@@ -100,7 +112,9 @@ func set_weapon(id: String) -> bool:
 		if is_instance_valid(node): node.visible = (other == id) or _ground_swords.has(node)
 	_sword = model
 	_sword_grounded = _ground_swords.has(model)
+	if id == "sledge" and _ready: _begin_sledge_swing35()
 	if is_instance_valid(_sword): _sword.visible = true
+	if id=="hatchet" and is_instance_valid(_hatchet32):_hatchet32.selected()
 	if is_instance_valid(_hint): _update_hint()
 	return true
 
@@ -260,6 +274,7 @@ var _pole: StaticBody3D
 var _hand := Vector2.ZERO          # commanded hand offset in camera plane (x right, y up)
 ## Raw mouse command and the slewed value that actually drives the arm.
 var _hand_cmd := Vector2.ZERO
+var _sledge_swing_bias35 := Vector2.ZERO
 var _sword_origin := Vector3.ZERO
 var _dir := Vector3.FORWARD
 var _omega := Vector3.ZERO
@@ -293,6 +308,12 @@ var _selected := false
 ## the Input singleton does not mirror (script-driven checks).
 var _held_event := false
 var _ready := false
+## On the castle map the host exists for the enemy knight, not for the city test
+## range: no dummy, no pole, no crude fallback duelist.
+var _castle_enemy_only := false
+
+func set_castle_enemy_only(value: bool) -> void:
+	_castle_enemy_only = value
 var _rest_dir := Vector3.FORWARD
 var _last_block_ms := -1000
 ## Only a fresh sword input can catch a fast projectile. Holding RMB forever
@@ -334,6 +355,7 @@ var _held_prev := false
 var _last_left_press_ms31 := 0
 var _double_strike_until_ms31 := 0
 var _sword_coast_until_ms31 := 0
+var _arm_release_blend29 := 0.0
 var _sword_coast_target31 := Vector3.FORWARD
 ## Largest wind-up angle that still counts (radians).
 const SWING_ANGLE_MAX := 2.4
@@ -458,11 +480,16 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 	_sword = _weapon_models.get(_weapon_id)
 	_build_impacts()
 	_build_hint()
-	var placed := _place_targets()
+	var placed := {"dummy": false, "pole": false}
+	if not _castle_enemy_only:
+		placed = _place_targets()
+	else:
+		print("DSH_SWORD_PROTO_ENEMY_ONLY player=", _player.global_position)
 	_rest_dir = _rest_direction()
 	_dir = _rest_dir
 	_sword_origin = _rig.global_transform * _rig.get_bone_global_pose(_bone_hand).origin
 	_ready = true
+	_hatchet32=preload("res://scripts/weapons/throwing_axe32.gd").new();add_child(_hatchet32);_hatchet32.initialize(self)
 	set_process_input(true)
 	set_physics_process(true)
 	set_process(true)
@@ -476,7 +503,11 @@ func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
 ## True while the player is actively steering the blade (LMB held).
 var _melee_heading33: float = NAN
 
+var _embedded29 = preload("res://scripts/combat/embedded_weapon29.gd").new()
+
 func is_steering() -> bool:
+	if _embedded29.active(self): return false
+	if _shield_guard_active29(): return false
 	return _active() and (_hold_left or _hold_right) and not _sword_grounded and not _unarmed \
 		and not _aiming_throw and not _throwing and not bool(_world.get("preview_dead")) \
 		and not _player._mount_mode and not _player._swimming and not _player._vehicle_hold
@@ -503,9 +534,41 @@ var _shield_drop_body31: RigidBody3D
 var _shield_blocks_total := 0
 var _shield_absorbed := 0.0
 var _bone_shield_hand := -1
+const SHIELD_GRIP_LOCAL29 := Vector3(0.0, 0.20, -0.12)
+const SHIELD_FOREARM_STRAP_LOCAL29 := Vector3(0.0, -0.10, -0.12)
+var _shield_guard_previous29 := false
+var _shield_resume_frame29 := -1
 
 ## The shield is worn on the RIGHT hand, as asked. On this mirrored rig `_arm_set` maps
 ## the string "right" to the bones that RENDER on the character's right.
+
+## Guard intent wins over attack, even when both buttons arrive in one frame.
+func _shield_guard_active29() -> bool:
+	return _shield_worn and not _shield_broken and (_hold_right or (not _synthetic_hands and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)))
+
+func _sync_shield_guard29() -> void:
+	var guarding := _shield_guard_active29()
+	if guarding != _shield_guard_previous29:
+		_shield_guard_previous29 = guarding
+		_prev_points = PackedVector3Array()
+		_contact_prev.clear(); _contact_gap.clear()
+		_sword_coast_until_ms31 = 0
+		_omega = Vector3.ZERO
+		_held_prev = false
+		_hand_cmd = _hand
+		_steer_target = _dir
+		_shield_resume_frame29 = Engine.get_physics_frames() + 1
+		if has_method("_clay_invalidate_motion28"):
+			call("_clay_invalidate_motion28")
+			if guarding: get("_async_cut28").cancel("shield_guard")
+	if guarding:
+		_held = false
+		_held_event = false
+		_blocking = true
+		_sword_coast_until_ms31 = 0
+		_omega = Vector3.ZERO
+		_prev_points = PackedVector3Array()
+
 func _shield_side() -> StringName:
 	return &"right"
 
@@ -532,7 +595,7 @@ func _shield_centre() -> Vector3:
 
 ## A blow landing inside the shield is stopped by it, not by the body.
 func _shield_blocks(at: Vector3) -> bool:
-	if not _shield_worn or _shield_broken or _shield_raise < SHIELD_RAISE_NEEDED: return false
+	if not _shield_guard_active29() or _shield_raise < SHIELD_RAISE_NEEDED: return false
 	return _shield_centre().distance_to(at) <= _shield_coverage()
 
 ## Takes the wear of a stopped blow. Returns true when the shield has just failed.
@@ -590,35 +653,42 @@ func _build_shield_model(parent: Node3D) -> Node3D:
 ## Places the shield in its hand and raises it as the right button is held.
 func _place_shield() -> void:
 	if not _shield_worn: return
-	if not is_instance_valid(_shield):
-		_shield = _build_shield_model(_world)
-	if not is_instance_valid(_shield): return
+	if not is_instance_valid(_shield): _shield = _build_shield_model(_world)
+	if not is_instance_valid(_shield) or not is_instance_valid(_rig): return
 	var arm := _arm_set(_shield_side())
-	if not is_instance_valid(_rig) or arm.hand < 0:
+	if arm.hand < 0 or arm.upper < 0 or arm.fore < 0:
 		_shield.visible = false
 		return
 	_shield.visible = not _shield_broken
-	var aim: Vector3 = _player._visual.global_basis.z.normalized()
-	var hand: Vector3 = (_rig.global_transform * _rig.get_bone_global_pose(int(arm.hand))).origin
-	# Raised: the shield comes up and across, covering the chest and the leading side.
-	# Stowed: it hangs at the side, face down.
-	var up_amount := clampf(_shield_raise, 0.0, 1.0)
-	var raised: Vector3 = _player.global_position + Vector3.UP * 1.22 + aim * 0.46 \
-		+ _player._visual.global_basis.x * (_left_sign * -0.16)
-	var stowed: Vector3 = hand - aim * 0.06 - Vector3.UP * 0.10
-	var place: Vector3 = stowed.lerp(raised, up_amount)
-	_shield.global_position = place
-	# The face looks where the danger comes from; while stowed it hangs.
-	var face_dir: Vector3 = aim if up_amount > 0.05 else (-Vector3.UP)
-	if face_dir.length_squared() > 1.0e-6:
-		# A lowered shield faces down; using UP as look_at's up vector there is
-		# colinear and produces unstable roll plus a warning every draw frame.
-		var up_axis := Vector3.FORWARD if absf(face_dir.dot(Vector3.UP)) > 0.95 else Vector3.UP
-		_shield.look_at(place + face_dir, up_axis, true)
-	# Beaten-down shields sit lower and tilt away, which is what shrinking coverage
-	# looks like from outside.
-	if _shield_broken:
-		_shield.visible = false
+	if _shield_broken: return
+	var body_basis: Basis = _player._visual.global_basis.orthonormalized()
+	var shoulder: Vector3 = _rig.global_transform * (_chain_global(arm.clav) * arm.rest_upper).origin
+	var chest: Vector3 = _rig.global_transform * _chain_global(_bone_chest).origin
+	var side := signf((body_basis.inverse() * (shoulder - chest)).x)
+	var raised := clampf(_shield_raise, 0.0, 1.0)
+	var want: Vector3 = shoulder + body_basis * Vector3(side * 0.025, lerpf(-0.38, -0.10, raised), lerpf(0.18, 0.28, raised))
+	var want_rig: Vector3 = _rig.global_transform.affine_inverse() * want
+	var grip_axis: Vector3 = (_rig.global_basis.inverse() * body_basis.x).normalized()
+	_pose_arm_ik(arm.clav, arm.upper, arm.fore, arm.hand, arm.rest_upper, arm.rest_fore,
+		arm.rest_hand, arm.offset, want_rig, grip_axis, 1.0, true, arm.pole)
+	_rig.force_update_all_bone_transforms()
+	# The back straps lie along the actual forearm; the handle crosses the palm.
+	# Place the shield only after the arm solve, using the final displayed hand.
+	var elbow: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(arm.fore).origin
+	var wrist: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(arm.hand).origin
+	var up: Vector3 = (wrist - elbow).normalized()
+	var right: Vector3 = up.cross(body_basis.z).normalized()
+	if right.length_squared() < 0.5: right = body_basis.x
+	var front: Vector3 = right.cross(up).normalized()
+	if front.dot(body_basis.z) < 0.0: right = -right; front = -front
+	var shield_basis := Basis(right, up, front).orthonormalized()
+	var palm_world := Basis(front, up, -right).orthonormalized()
+	var fore_global: Transform3D = _chain_global(arm.fore)
+	var palm_rig: Basis = _rig.global_basis.inverse() * palm_world
+	_rig.set_bone_pose(arm.hand, Transform3D((fore_global.basis.inverse() * palm_rig).orthonormalized(), arm.rest_hand.origin))
+	_rig.force_update_all_bone_transforms()
+	var palm: Vector3 = _palm_position(_shield_side())
+	_shield.global_transform = Transform3D(shield_basis, palm - shield_basis * SHIELD_GRIP_LOCAL29)
 
 ## What the shield is doing, for the HUD and for the checks.
 func shield_status() -> Dictionary:
@@ -628,6 +698,9 @@ func shield_status() -> Dictionary:
 		"raise": _shield_raise, "coverage_m": _shield_coverage(),
 		"blocks": _shield_blocks_total, "absorbed": _shield_absorbed,
 		"centre": _shield_centre(),
+		"guard_intent": _shield_guard_active29(),
+		"grip_local": SHIELD_GRIP_LOCAL29,
+		"forearm_strap_local": SHIELD_FOREARM_STRAP_LOCAL29,
 	}
 
 ## Equips or stows the shield, and puts it on the ground with the weapon when dropped.
@@ -666,24 +739,11 @@ func drop_shield_to_ground31() -> bool:
 	if not _shield_worn: return false
 	_place_shield()
 	if not is_instance_valid(_shield): return false
-	var wrapper := RigidBody3D.new()
-	wrapper.name = "DroppedShield31"
-	wrapper.mass = 2.6
-	wrapper.collision_layer = 1
-	wrapper.collision_mask = 1
-	_world.add_child(wrapper)
-	wrapper.global_transform = _shield.global_transform
-	_shield.reparent(wrapper, true)
-	var collision := CollisionShape3D.new()
-	var shape := BoxShape3D.new()
-	shape.size = Vector3(0.55, 0.65, 0.10)
-	collision.shape = shape
-	wrapper.add_child(collision)
+	var wrapper := ModelFinish31.make_ground_drop28(_shield, _world, _player._visual.global_basis.z, 2.6, 0.0)
 	_shield_drop_body31 = wrapper
 	_shield_worn = false
 	_shield_raise = 0.0
 	_shield = null
-	wrapper.apply_central_impulse(_player._visual.global_basis.z.normalized() * 2.0 + Vector3.UP)
 	return true
 
 func try_pickup_shield31() -> bool:
@@ -738,6 +798,7 @@ func _shatter_shield31() -> void:
 ## sweep, the IK and the placement maths all assume.
 func _build_weapon_model(parent: Node3D, id: String) -> Node3D:
 	match id:
+		"hatchet":return preload("res://scripts/weapons/hatchet_model32.gd").build(self,parent)
 		"mace": return _build_mace_model(parent)
 		"axe": return _build_axe_model(parent)
 		"sledge": return _build_sledge_model(parent)
@@ -1094,23 +1155,12 @@ func _build_impacts() -> void:
 
 ## Throws a burst of sparks from `at`, away along `normal`.
 func _spark_burst(at: Vector3, normal: Vector3, count: int) -> void:
-	if not is_instance_valid(_world) or count <= 0: return
-	var away: Vector3 = normal
-	if away.length_squared() < 1.0e-6: away = Vector3.UP
-	away = away.normalized()
-	for i: int in count:
-		if _sparks.size() >= MAX_SPARKS: return
-		_sparks_total += 1
-		var node := MeshInstance3D.new()
-		node.mesh = _spark_mesh
-		node.material_override = _spark_material
-		_world.add_child(node)
-		node.global_position = at + Vector3(randf_range(-0.03, 0.03), randf_range(-0.03, 0.03), randf_range(-0.03, 0.03))
-		var spread := Vector3(randf_range(-1.0, 1.0), randf_range(0.2, 1.4), randf_range(-1.0, 1.0))
-		var velocity: Vector3 = away * randf_range(2.4, 6.2) + spread * 1.7
-		var life: float = randf_range(0.22, 0.42)
-		_sparks.append({"node": node, "velocity": velocity, "life": life, "max_life": life})
-		_node_aim_along(node, velocity)
+	var kind := "metal"
+	var context: Dictionary = get_meta("contact_fx31",{})
+	if int(context.get("frame",-100)) == Engine.get_physics_frames() and Vector3(context.get("point",Vector3.INF)).distance_squared_to(at)<.0025:
+		kind=str(context.get("kind","metal"))
+	_sparks_total += _ensure_contact_sparks31().burst(at,normal,count,kind,self)
+
 
 ## Points a spark's long axis (local +Z) along its travel, so it reads as a streak.
 func _node_aim_along(node: Node3D, direction: Vector3) -> void:
@@ -1203,8 +1253,11 @@ func is_sword_grounded() -> bool:
 	return _sword_grounded
 
 ## G: leave the sword as a real 3D object lying on the ground.
-func drop_sword_to_ground() -> bool:
+func drop_sword_to_ground(require_embedded31:bool=false) -> bool:
+	if _weapon_id=="hatchet" and is_instance_valid(_hatchet32) and _sword==_hatchet32.empty:return false
 	if not _selected or _sword_grounded or not is_instance_valid(_sword): return false
+	var embedded_drop:Node=_embedded29.make_drop31(self)
+	if require_embedded31 and not is_instance_valid(embedded_drop):return false
 	_sword_grounded = true
 	_reset_contact_plane()
 	_held = false
@@ -1230,9 +1283,14 @@ func drop_sword_to_ground() -> bool:
 	# Lying flat: the blade runs along the ground with the flat face down.
 	_sword.visible = true
 	var flat := (_place_basis(at, forward) * Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3.ZERO)).basis
-	_sword.global_transform = ModelFinish31.resting_transform(_sword, flat, ground if ground.is_finite() else at - Vector3.UP * 0.05)
+	if not is_instance_valid(embedded_drop):
+		_sword.global_transform = ModelFinish31.resting_transform(_sword, flat, ground if ground.is_finite() else at - Vector3.UP * 0.05)
+		ModelFinish31.make_ground_drop28(_sword, _world, forward, 1.2 if _weapon_id == "sledge" else 0.65)
+	else:
+		_dropped_at=_sword.global_position
 	_register_ground_sword(_sword)
 	_stamp_ground_weapon(_sword, _weapon_id)
+	if _weapon_id=="hatchet" and is_instance_valid(_hatchet32):_hatchet32.mark_ground32(_sword)
 	_update_hint()
 	print("DSH_SWORD_PROTO_DROPPED at=", at, " ground_swords=", _ground_swords.size())
 	return true
@@ -1241,13 +1299,19 @@ func drop_sword_to_ground() -> bool:
 ## Both operations are synchronous, so no physics frame observes this state.
 func cancel_ground_drop31() -> bool:
 	if not _sword_grounded or not is_instance_valid(_sword): return false
+	var attachment:Node=_embedded29.dropped_attachment31(_sword)
+	if is_instance_valid(attachment):
+		if not attachment.can_regrab(self):return false
+		attachment.prepare_regrab(self)
 	_ground_swords.erase(_sword)
+	ModelFinish31.recover_ground_drop28(_sword, _world)
 	_sword_grounded = false
 	_dropped_at = Vector3.ZERO
 	if not _selected: set_selected(true)
 	_sword.visible = true
 	_reset_contact_plane()
 	_update_hint()
+	_embedded29.restore_regrab31(self)
 	return true
 
 ## Distance at which a sword on the ground can be reached.
@@ -1301,6 +1365,7 @@ func _take_sword_model(node: Node3D) -> Node3D:
 ## E: take the nearest sword on the ground - the player's own or a knight's. A
 ## sword already in the hand cannot be swapped for another: drop it first.
 func try_pickup_sword(allow_inactive: bool = false) -> bool:
+	if is_instance_valid(_hatchet32) and _hatchet32.pickup_near():return true
 	if not _selected and not allow_inactive: return false
 	var arsenal: Node = _world.get("preview_weapons") if is_instance_valid(_world) else null
 	var storage: Node = arsenal.get("castle_storage_owner") if is_instance_valid(arsenal) else null
@@ -1310,7 +1375,7 @@ func try_pickup_sword(allow_inactive: bool = false) -> bool:
 		and str(storage.get("_hand_weapon")).is_empty() \
 		and str(arsenal.fire_state.get("weaponId", "none")) == "none"
 	# Thrown away counts as empty-handed just as much as put down.
-	if not _sword_grounded and not _unarmed and not castle_empty:
+	if not _sword_grounded and not _unarmed and not castle_empty and not is_instance_valid(storage):
 		print("DSH_SWORD_PROTO_PICKUP_REFUSED reason=in_hand")
 		return false
 	var found := _nearest_ground_sword()
@@ -1322,6 +1387,11 @@ func try_pickup_sword(allow_inactive: bool = false) -> bool:
 	# DSH_MELEE_SET: a weapon of the set that was put down is picked back up AS ITSELF.
 	var stamp := _ground_weapon_of(node)
 	var pickup_id := stamp if stamp != "" else _weapon_id
+	# A two-handed weapon cannot be taken when one hand is gone, and no weapon can
+	# be taken with no hands. The surviving hand can still take a one-handed sword.
+	if not _can_wield_weapon(pickup_id):
+		print("DSH_SWORD_PROTO_PICKUP_REFUSED reason=severed_hand grip=", str(WEAPONS.get(pickup_id, {}).get("grip", "")))
+		return false
 	var previous_id := _weapon_id
 	var previous_empty := _unarmed or _sword_grounded or castle_empty
 	var foreign_sword := pickup_id == "sword" and node == _npc_dropped_sword31
@@ -1330,7 +1400,7 @@ func try_pickup_sword(allow_inactive: bool = false) -> bool:
 		if not bool(preflight.get("ok", false)):
 			print("DSH_SWORD_PROTO_PICKUP_REFUSED reason=", preflight.get("reason", "storage"))
 			return false
-	if _shield_worn and WEAPONS.has(pickup_id) and str(WEAPONS[pickup_id].get("grip", "")) == "two":
+	if _shield_worn and not is_instance_valid(storage) and WEAPONS.has(pickup_id) and str(WEAPONS[pickup_id].get("grip", "")) == "two":
 		print("DSH_SWORD_PROTO_PICKUP_REFUSED reason=shield_occupies_right_hand")
 		return false
 	# Validate the physical model before the ledger changes. Equipping through
@@ -1340,12 +1410,16 @@ func try_pickup_sword(allow_inactive: bool = false) -> bool:
 	if not is_instance_valid(pickup_model):
 		print("DSH_SWORD_PROTO_PICKUP_REFUSED reason=bad_model")
 		return false
+	var embedded_pickup:Node=_embedded29.dropped_attachment31(pickup_model)
+	if is_instance_valid(embedded_pickup) and not bool(embedded_pickup.call("can_regrab",self)):
+		return false
 	if is_instance_valid(storage) and storage.has_method("adopt_ground_melee31"):
 		var adopted: Dictionary = storage.adopt_ground_melee31(pickup_id, previous_id, previous_empty,
 			foreign_sword, pickup_model)
 		if not bool(adopted.get("ok", false)):
 			print("DSH_SWORD_PROTO_PICKUP_REFUSED reason=", adopted.get("reason", "adopt_failed"))
 			return false
+	if is_instance_valid(embedded_pickup):embedded_pickup.call("prepare_regrab",self)
 	_ground_swords.erase(node)
 	if stamp != "" and stamp != _weapon_id:
 		# The known ID and shield policy were checked above; set_weapon is now
@@ -1356,7 +1430,8 @@ func try_pickup_sword(allow_inactive: bool = false) -> bool:
 		# where it fell so it can still be collected later.
 		var model := pickup_model
 		if model == node:
-			model.reparent(_world, true)
+			ModelFinish31.recover_ground_drop28(model, _world)
+			if model.get_parent() != _world: model.reparent(_world, true)
 		else:
 			node.remove_child(model)
 			_world.add_child(model)
@@ -1366,12 +1441,14 @@ func try_pickup_sword(allow_inactive: bool = false) -> bool:
 		_weapon_models[_weapon_id] = model
 		_sword = model
 		_dropped_at = Vector3.ZERO
+	ModelFinish31.recover_ground_drop28(_sword, _world)
 	_sword_grounded = false
 	_unarmed = false
 	_arm_ready_ms = Time.get_ticks_msec() + 450
 	if is_instance_valid(_sword):
 		_sword.visible = true
-		_sword.global_transform = _place_basis(_player.global_position + Vector3.UP * 1.2, _dir)
+		_sword.global_transform = embedded_pickup.get("saved_pose") if is_instance_valid(embedded_pickup) else _place_basis(_player.global_position + Vector3.UP * 1.2, _dir)
+	if not bool(get_meta("defer_embedded_restore31",false)):_embedded29.restore_regrab31(self)
 	_update_hint()
 	print("DSH_SWORD_PROTO_PICKED distance=", found.get("distance", 0.0), " own=", taken_own,
 		" ground_swords=", _ground_swords.size())
@@ -1600,6 +1677,8 @@ func _build_pole(at: Vector3) -> StaticBody3D:
 # ---------------------------------------------------------------------- input
 
 func _input(event: InputEvent) -> void:
+	if is_instance_valid(_hatchet32) and _hatchet32.input(event):
+		get_viewport().set_input_as_handled();return
 	# Death restart must work even with the cursor released and the host inactive.
 	if event is InputEventKey and event.pressed and not event.echo:
 		var code: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
@@ -1654,7 +1733,18 @@ func _input(event: InputEvent) -> void:
 			return
 	if event is InputEventMouseButton:
 		var button := event as InputEventMouseButton
+		if button.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT] and _embedded29.active(self):
+			if button.button_index == MOUSE_BUTTON_LEFT: _hold_left = button.pressed
+			else: _hold_right = button.pressed
+			_aiming_throw = false
+			get_viewport().set_input_as_handled()
+			return
 		if button.button_index == MOUSE_BUTTON_LEFT:
+			if _shield_guard_active29():
+				_hold_left = button.pressed
+				_sync_shield_guard29()
+				get_viewport().set_input_as_handled()
+				return
 			# Aimed throw: hold RMB to see the arc, then hold and release LMB.
 			# Without RMB, LMB keeps the spear's ordinary melee strike.
 			if is_throwable() and not _unarmed and not _sword_grounded and (
@@ -1664,6 +1754,7 @@ func _input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 				return
 			if button.pressed and not _hold_left and WEAPONS.has(_weapon_id):
+				if _weapon_id == "sledge": _begin_sledge_swing35()
 				var press_ms := Time.get_ticks_msec()
 				if press_ms - _last_left_press_ms31 <= 350:
 					_double_strike_until_ms31 = press_ms + 450
@@ -1671,7 +1762,7 @@ func _input(event: InputEvent) -> void:
 				_arrow_parry_until_ms31 = now_ms() + ARROW_PARRY_WINDOW_MS31
 				_sword_coast_until_ms31 = 0
 			elif not button.pressed and _hold_left and WEAPONS.has(_weapon_id):
-				_sword_coast_until_ms31 = now_ms() + (260 if _weapon_id == "sledge" else 180)
+				_sword_coast_until_ms31 = now_ms() + (180 if _weapon_id == "sword" else int(180.0 * sqrt(_weapon_mass)))
 				_sword_coast_target31 = _dir
 				_steer_target = _dir
 			_held_event = button.pressed
@@ -1681,6 +1772,14 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 		if button.button_index == MOUSE_BUTTON_RIGHT:
+			if _shield_worn:
+				_hold_right = button.pressed
+				_aiming_throw = false
+				_sync_shield_guard29()
+				_blocking = _shield_guard_active29()
+				_held = _hold_left and not _blocking
+				get_viewport().set_input_as_handled()
+				return
 			# Holding RMB enters aim; releasing it cancels an unfinished wind-up.
 			_aiming_throw = button.pressed and is_throwable()
 			if not button.pressed and _throwing:
@@ -1699,14 +1798,7 @@ func _input(event: InputEvent) -> void:
 			_player.set("_sword_lock", false)
 			get_viewport().set_input_as_handled()
 			return
-		if button.pressed and button.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
-			# Wheel = pull back / drive the point forward (thrust), the missing
-			# axis that lets the player stab as well as cut.
-			var step := 0.22 if button.button_index == MOUSE_BUTTON_WHEEL_UP else -0.22
-			_thrust = clampf(_thrust + step, 0.0, 1.0)
-			_player.set("_sword_lock", false)
-			get_viewport().set_input_as_handled()
-			return
+		# Wheel belongs to preview_player camera zoom, including while steering.
 		if button.button_index == MOUSE_BUTTON_RIGHT:
 			_hold_right = button.pressed
 			_held = _hold_left or _hold_right
@@ -1714,6 +1806,8 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 	if event is InputEventMouseMotion and (Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or _held_event or _held):
+		if _embedded29.active(self): return
+		if _shield_guard_active29(): return
 		var motion := event as InputEventMouseMotion
 		# Mouse sensors keep reporting a pixel or two while the hand is still; that
 		# noise is what made the blade ripple. Anything below the floor is ignored.
@@ -1723,14 +1817,11 @@ func _input(event: InputEvent) -> void:
 		if is_steering():
 			if not is_finite(_melee_heading33): _melee_heading33 = _player._visual.global_rotation.y
 			_melee_heading33 -= motion.relative.x * _player.mouse_sensitivity
-		# A single violent flick is DAMPED: one event may only move the target so far,
-		# so a hard wrist snap cannot teleport the blade through a whole arc in one
-		# frame. The arm still gets there - it just has to travel for it.
-		var mouse_x := clampf(motion.relative.x, -MOUSE_PER_EVENT_CAP, MOUSE_PER_EVENT_CAP)
-		var mouse_y := clampf(motion.relative.y, -MOUSE_PER_EVENT_CAP, MOUSE_PER_EVENT_CAP)
-		_hand_cmd.x += mouse_x * MOUSE_TO_HAND
-		_hand_cmd.y -= mouse_y * MOUSE_TO_HAND
-		_hand_cmd = _hand_cmd.limit_length(HAND_MAX_OFFSET)
+		# Preserve mouse travel even on fast devices. The command saturates at the
+		# same range the arm uses, so reversing never spends 161px unloading an
+		# invisible command reserve. Slew, torque and swept collisions bound motion.
+		_hand_cmd.x = clampf(_hand_cmd.x + motion.relative.x * MOUSE_TO_HAND, -1.0, 1.0)
+		_hand_cmd.y = clampf(_hand_cmd.y - motion.relative.y * MOUSE_TO_HAND, -1.0, 1.0)
 
 func _active() -> bool:
 	return _ready and _selected and is_instance_valid(_player) and _player.is_inside_tree() \
@@ -1858,31 +1949,50 @@ func _spear_aim_direction52() -> Vector3:
 	var direction := target - _sword_origin
 	return direction.normalized() if direction.length_squared() > 0.01 else forward
 
+func _begin_sledge_swing35() -> void:
+	# Keep the accepted carried direction when a free swing starts. Store the
+	# angular origin separately: changing _hand here also lifts the two-hand IK.
+	var forward := Vector3(-_camera.global_basis.z.x, 0.0, -_camera.global_basis.z.z)
+	if forward.length_squared() < 0.000001 or not _dir.is_finite(): return
+	forward = forward.normalized()
+	var right := forward.cross(Vector3.UP).normalized()
+	var camera_pitch := asin(clampf(-_camera.global_basis.z.y, -1.0, 1.0))
+	var neutral_pitch := atan2(0.35, 0.55 + _thrust * 1.10)
+	_sledge_swing_bias35 = Vector2(atan2(_dir.dot(right), _dir.dot(forward)) - _hand.x * 2.05,
+		asin(clampf(_dir.y, -1.0, 1.0)) - camera_pitch - neutral_pitch - _hand.y * 1.35)
+	_steer_target = _dir
+
 func _target_direction() -> Vector3:
 	if is_throwable() and (_aiming_throw or _spear_cast_pending31): return _spear_aim_direction52()
 	var basis := _camera.global_basis
-	var steer := basis.x * (_hand.x * 1.30) + basis.y * (_hand.y * 2.10)
-	# A wheel thrust pushes the point straight forward (a stab); otherwise the
-	# ready bias keeps the point up-forward so a low cut only happens when the
-	# player actually drives the mouse down.
-	var forward_bias := 0.55 + _thrust * 1.10
-	var target := (-basis.z * forward_bias + steer + basis.y * 0.35).normalized()
-	# Guard against a default low cut: without a deliberate downward command the
-	# blade never points below the horizon.
-	if _hand.y > -0.25 and target.y < 0.05:
-		target = Vector3(target.x, 0.05, target.z).normalized()
-	# In a two-handed overhead load the shaft lies across the raised fists,
-	# like the reference axe. The existing angular spring still carries it
-	# continuously through this requested orientation and down into the cut.
-	if _active_side() == &"both" and _hold_left and not _aiming_throw:
-		var overhead_load := smoothstep(0.55, 0.95, _hand.y)
-		var across := (basis.x + -basis.z * 0.18 + basis.y * 0.04).normalized()
-		target = target.slerp(across, overhead_load).normalized()
+	# Angular steering gives the full requested lateral arc independently of
+	# vertical aim. A linear vector plus fixed forward bias compressed side cuts.
+	var yaw := clampf(_hand.x, -1.0, 1.0) * (2.05 if _weapon_id in ["axe", "sledge"] else 1.48)
+	var neutral_pitch := atan2(0.35, 0.55 + _thrust * 1.10)
+	var pitch := clampf(neutral_pitch + clampf(_hand.y, -1.0, 1.0) * 1.35, -1.10, 1.48)
+	if _weapon_id == "sledge":
+		yaw += _sledge_swing_bias35.x
+		pitch = neutral_pitch + clampf(_hand.y, -1.0, 1.0) * 1.35 + _sledge_swing_bias35.y
+	if _weapon_id in ["sword", "axe", "sledge"]:
+		# Rotate a lateral stroke around world up. Mixing a pitched camera forward
+		# vector with its right vector changed elevation as yaw crossed the front.
+		var forward := Vector3(-basis.z.x, 0.0, -basis.z.z)
+		if forward.length_squared() < 0.000001: forward = Vector3.FORWARD
+		forward = forward.normalized()
+		var right := forward.cross(Vector3.UP).normalized()
+		var elevation := clampf(asin(clampf(-basis.z.y, -1.0, 1.0)) + pitch, -1.10, 1.48)
+		return ((forward * cos(yaw) + right * sin(yaw)) * cos(elevation) + Vector3.UP * sin(elevation)).normalized()
+	var flat := -basis.z * cos(yaw) + basis.x * sin(yaw)
+	var target := (flat * cos(pitch) + basis.y * sin(pitch)).normalized()
 	if not target.is_finite(): return _rest_dir
 	return target
 
 func _steer(delta: float) -> void:
-	if _blocking and not _hold_left:
+	if _embedded29.active(self):
+		_dir = _embedded29.status().axis
+		_omega = Vector3.ZERO
+		return
+	if _blocking and (not _hold_left or _shield_guard_active29()):
 		_hammer_torque44 = Vector3.ZERO
 		# GUARD (RMB): the blade is placed where the mouse points and simply stays
 		# there - a real, physical barrier for incoming blows, not a swing.
@@ -1903,14 +2013,15 @@ func _steer(delta: float) -> void:
 	# target behind the actual pose limit and fed torque into that limit forever.
 	# Only existing blade momentum travels after release; no timed phase turns it.
 	var target := _sword_coast_target31 if _sword_coasting31() else _target_direction()
-	target = _constrain_to_body(_constrain_forward(target), 0.10).normalized()
+	if _weapon_id not in ["axe", "sledge"]:
+		target = _constrain_to_body(_constrain_forward(target), 0.10).normalized()
 	# Smooth the target itself: the camera basis and the mouse both feed it, and a
 	# raw per-frame target is what showed up as a ripple on the blade.
 	if _steer_target.length_squared() < 1.0e-6:
 		_steer_target = target
-	elif _right_hand_weapon54() and _hold_right and not _hold_left and _steer_target.dot(target) > 0.9999:
-		# Nearly parallel RMB endpoints have no reliable slerp rotation axis.
-		# Keep the same smoothing rate; the primary LMB path is unchanged.
+	elif _steer_target.dot(target) > 0.9999:
+		# Nearly parallel endpoints have no reliable slerp rotation axis.
+		# Normalized lerp keeps the same smoothing rate at this numerical limit.
 		_steer_target = _steer_target.lerp(target, clampf(STEER_TARGET_SMOOTH * delta, 0.0, 1.0)).normalized()
 	elif _weapon_id == "spear" and _aiming_throw:
 		# Turning the torso across an opposite old aim can make Vector3.slerp's
@@ -1935,15 +2046,20 @@ func _steer(delta: float) -> void:
 		var heavy := _weapon_id == "sledge"
 		var speed_limit := 7.6 if heavy else (9.0 if one_hand_sword else 10.0)
 		var acceleration := 28.0 if heavy else (40.0 if one_hand_sword else 52.0)
-		if _weapon_id == "mace":
-			speed_limit = 8.4
-			acceleration = 32.0
-		elif _weapon_id == "axe":
-			speed_limit = 7.4
-			acceleration = 26.0
-		elif _weapon_id == "spear":
-			speed_limit = 8.0
-			acceleration = 34.0
+		if _weapon_id != "sword":
+			# Sword-equivalent steering with one weight scale for all other melee.
+			# The authored mass affects acceleration, reversal and maximum speed;
+			# the two-hand IK adds a support hand without changing the mouse target.
+			speed_limit = 9.0 / pow(_weapon_mass, 0.18)
+			acceleration = 40.0 / sqrt(_weapon_mass)
+			if _weapon_id in ["sledge", "axe"]:
+				speed_limit *= 1.35
+				acceleration *= 1.80
+		if _weapon_id=="hatchet":speed_limit=10.2;acceleration=46.0
+		if _weapon_id in ["axe","sledge"] and has_method("_lab_melee_limits29"):
+			var laboratory_limits:Vector2=call("_lab_melee_limits29",speed_limit,acceleration)
+			speed_limit=laboratory_limits.x
+			acceleration=laboratory_limits.y
 		# Sledge uses the same steering in every direction; lower acceleration
 		# and speed preserve its weight without a separate overhead constraint.
 		# The stopping distance grows with kinetic energy. Brake before the aimed
@@ -1951,10 +2067,13 @@ func _steer(delta: float) -> void:
 		var stopping_speed := sqrt(2.0 * acceleration * angle) * 0.72
 		var aim_speed := minf(speed_limit, minf(stopping_speed, angle * 14.0))
 		var aim_velocity := axis.normalized() * aim_speed if axis.length_squared() > 0.00000001 else Vector3.ZERO
-		var torque := ((aim_velocity - _omega) / maxf(delta, 0.001)).limit_length(acceleration)
+		# A reversal first brakes the old swing, then accelerates with the weapon's
+		# weight. This removes the long uncontrolled tail without adding top speed.
+		var reversing := aim_velocity.dot(_omega) < 0.0
+		var torque := ((aim_velocity - _omega) / maxf(delta, 0.001)).limit_length(acceleration * (1.65 if reversing else 1.0))
 		if _sword_coasting31() and not _hold_left:
 			# Release spends existing momentum only: no target spring or new energy.
-			torque = -_omega * (4.5 if heavy else 7.0)
+			torque = -_omega * (7.0 if _weapon_id == "sword" else 7.0 / sqrt(_weapon_mass))
 		_omega = (_omega + torque * delta).limit_length(speed_limit)
 		if Time.get_ticks_msec() < _bind_until_ms: _omega = _omega.limit_length(1.6)
 	else:
@@ -1996,6 +2115,7 @@ func _physics_process(delta: float) -> void:
 	# Single-hand sword/mace RMB uses the approved free swing in the right hand.
 	# Shields, two-handed weapons and half-sword retain their existing controls.
 	_blocking = _hold_right and not _hold_left and not is_throwable() and not _shield_worn and not _right_hand_weapon54()
+	_sync_shield_guard29()
 	_player.set("_sword_lock", false)
 	var spear_pose_wanted := active and _weapon_id == "spear" and not _sword_grounded and (
 		(_aiming_throw and not _unarmed) or _spear_cast_pending31 or _spear_follow_left > 0.0)
@@ -2050,6 +2170,7 @@ func _physics_process(delta: float) -> void:
 		_hold_right = Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)
 		_held_event = _hold_left
 		_held = _hold_left or _hold_right or _sword_coasting31() or _spear_cast_pending31
+		_sync_shield_guard29()
 		_player.set("_sword_lock", false)
 	if is_instance_valid(_sword): _sword.visible = true
 	if _sword_grounded:
@@ -2065,14 +2186,16 @@ func _physics_process(delta: float) -> void:
 		if is_instance_valid(_player): _player.set("_sword_lock", false)
 		_update_city_npc(delta)
 		return
+	_arm_release_blend29 = 1.0 if _held else (0.0 if _weapon_id == "spear" else move_toward(_arm_release_blend29, 0.0, delta * 3.0))
 	_face_spear_aim31(delta)
-	_dir = _contact_direction(_soft_body_limit(_constrain_forward(_dir), 0.10, 0.16))
+	_dir = _contact_direction(_melee_axis_envelope29(_dir))
 	if not _held:
 		# Released: the mouse command decays so the blade returns to rest.
 		_hand_cmd = _hand_cmd.lerp(Vector2.ZERO, clampf(REST_RETURN_RATE * delta, 0.0, 1.0))
 	# Slew the driving value toward the mouse command at a bounded rate.
 	var to_command := _hand_cmd - _hand
 	var max_step := HAND_SLEW_RATE * delta
+	if _weapon_id in ["axe", "sledge"]: max_step *= 1.35
 	if to_command.length() > max_step and to_command.length() > 1.0e-6:
 		to_command = to_command.normalized() * max_step
 	_hand += to_command
@@ -2106,7 +2229,7 @@ func _physics_process(delta: float) -> void:
 		_spear_cast_elapsed31 = minf(_spear_cast_elapsed31 + delta, SPEAR_CAST_TIME31)
 	_solve_arm(delta)
 	# The blade is never allowed to point behind the player.
-	_dir = _contact_direction(_soft_body_limit(_constrain_forward(_dir), 0.10, 0.16))
+	_dir = _contact_direction(_melee_axis_envelope29(_dir))
 	_advance_edge(delta)
 	if _spear_cast_pending31 and _spear_cast_elapsed31 >= SPEAR_CAST_TIME31:
 		_launch_spear_from_hand31()
@@ -2160,6 +2283,7 @@ func is_throwable() -> bool:
 	return bool(weapon_entry().get("throwable", false))
 
 func _face_spear_aim31(delta: float) -> void:
+	if _embedded29.active(self): return
 	if not is_steering(): _melee_heading33 = NAN
 	elif not is_finite(_melee_heading33): _melee_heading33 = _player._visual.global_rotation.y
 	if _held and WEAPONS.has(_weapon_id) and not _aiming_throw and is_instance_valid(_player):
@@ -2297,6 +2421,7 @@ func _thrown_position() -> Vector3:
 	return Vector3.ZERO
 
 func _begin_throw() -> void:
+	if _embedded29.active(self):_cancel_throw_aim52();return
 	if not _active() or _unarmed or not is_throwable(): return
 	if _throwing or _spear_cast_pending31: return
 	_throwing = true
@@ -2315,6 +2440,7 @@ func _throw_held_seconds() -> float:
 
 ## Lets the weapon go: it becomes a projectile and the hands are empty.
 func _release_throw() -> void:
+	if _embedded29.active(self):_cancel_throw_aim52();return
 	if not _throwing: return
 	var held := _throw_held_seconds()
 	_throwing = false
@@ -2326,6 +2452,7 @@ func _release_throw() -> void:
 	# it forward. The projectile is created only at the end of that cast.
 
 func _launch_spear_from_hand31() -> void:
+	if _embedded29.active(self):_cancel_throw_aim52();return
 	if not _spear_cast_pending31: return
 	_spear_cast_pending31 = false
 	if _sword_grounded or _unarmed or not is_throwable(): return
@@ -2596,6 +2723,8 @@ func _thrown_spear_hit_npc(part: String, point: Vector3, normal: Vector3, veloci
 		incidence = clampf(-direction.dot(normal.normalized()), 0.0, 1.0)
 	var contact := _armor_point31(_npc_rig, part, point)
 	var protection := ArmorDamage31.resolve(_npc_armor_loadout31, part, "stab", cut, contact, incidence)
+	if str(protection.region) in ["cloth","mail","plate"] and str(protection.tier) in ["light","medium","heavy"]:
+		combat_audio_event30("armor_"+str(protection.tier),point,clampf(cut/160.0,.08,1.0),"thrown:"+part+":"+str(protection.region))
 	var wound := float(protection.damage)
 	if protection.region == "plate":
 		_spark_burst(point, normal, 12)
@@ -2702,10 +2831,11 @@ func _process(delta: float) -> void:
 	_sweep(delta)
 	# A contact may deflect the blade; put it back into the allowed front space
 	# immediately so it can never be shown behind the character.
-	_dir = _contact_direction(_soft_body_limit(_constrain_forward(_dir), 0.10, 0.16))
+	_dir = _contact_direction(_melee_axis_envelope29(_dir))
 	# Display and next sweep begin at the RESOLVED pose, never the penetrated
 	# pre-contact blade. This removes the render/physics tug of war at rest.
 	_attach_sword_to_fist()
+	_place_shield()
 	_prev_points = PackedVector3Array()
 	for i in SWEEP_SEGMENTS + 1:
 		_prev_points.append(_sword_origin + _dir * (0.06 + _weapon_length * float(i) / SWEEP_SEGMENTS))
@@ -2744,6 +2874,8 @@ func _palm_position(side: StringName) -> Vector3:
 	return _rig.global_transform * (_rig.get_bone_global_pose(bone) * _palm_offset(bone))
 
 func _attach_sword_to_fist() -> void:
+	if is_instance_valid(_hatchet32) and _hatchet32.pose(get_process_delta_time()):return
+	if _embedded29.pose(self): return
 	var bone := _hand_bone_for(_active_side())
 	if bone < 0: return
 	var started := Time.get_ticks_usec()
@@ -2753,19 +2885,40 @@ func _attach_sword_to_fist() -> void:
 	var incoming_bones: Array[Transform3D] = []
 	for index in _rig.get_bone_count(): incoming_bones.append(_rig.get_bone_pose(index))
 	_self_pose_evaluations45 = 0
+	var previous_forward := _self_pose_forward
 	if _self_model_frame45 != Engine.get_physics_frames():
-		_self_pose_forward = maxf(0.0, _self_pose_forward - 0.06 * _self_elapsed_steps51)
+		_self_pose_forward = maxf(0.0, _self_pose_forward - (0.008 if _weapon_id == "sword" and _held else 0.06) * _self_elapsed_steps51)
 	_self_evaluate_pose45(_dir)
 	if not _held: _settle_carried_blade()
 	var requested := _dir
 	# Resolve the hand anchor before changing weapon orientation. The old
 	# anchor can make an otherwise reachable downstroke appear to hit the head.
-	var resolved := _self_path_clear45(requested)
+	var resolved := _self_anchor_clear29(requested)
+	if not resolved and _self_pose_forward < previous_forward:
+		# Retraction is a trial, not a new anchor. If it collides, first retry the
+		# exact previously accepted reach. Adding 12 cm after a failed 6 cm
+		# retraction made a still, downward weapon alternate between two grips.
+		_self_pose_forward = previous_forward
+		_self_evaluate_pose45(requested)
+		resolved = _self_anchor_clear29(requested)
 	for attempt in 6:
 		if resolved: break
+		var rejected_forward := _self_pose_forward
 		_self_pose_forward = minf(0.80, _self_pose_forward + 0.12)
 		_self_evaluate_pose45(requested)
-		resolved = _self_path_clear45(requested)
+		resolved = _self_anchor_clear29(requested)
+		if resolved and _weapon_id == "sword" and _held:
+			# The 12 cm search bracket is not a pose step. Find the first reachable
+			# anchor inside that bracket instead of snapping both wrists outward.
+			var accepted_forward := _self_pose_forward
+			for refine in 6:
+				_self_pose_forward = (rejected_forward + accepted_forward) * 0.5
+				_self_evaluate_pose45(requested)
+				if _self_anchor_clear29(requested): accepted_forward = _self_pose_forward
+				else: rejected_forward = _self_pose_forward
+			_self_pose_forward = accepted_forward
+			_self_evaluate_pose45(requested)
+			resolved = _self_anchor_clear29(requested)
 	if not resolved:
 		# A known pose is safer than rotating the weapon abruptly around the
 		# head. Restore it only after validating it against this frame's body.
@@ -2814,6 +2967,19 @@ func _attach_sword_to_fist() -> void:
 	_self_pose_evaluations_max45 = maxi(_self_pose_evaluations_max45, _self_pose_evaluations45)
 	_self_pose_usec_max45 = maxi(_self_pose_usec_max45, _self_pose_usec45)
 
+func _self_anchor_clear29(direction: Vector3) -> bool:
+	if not _self_path_clear45(direction): return false
+	if _weapon_id != "sword" or not _held: return true
+	# A solver parked exactly on the body boundary becomes invalid as breathing
+	# moves the body on the next frame. Keep a small clearance reserve; the swept
+	# guard itself remains unchanged and still validates every transition.
+	var chest: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_chest).origin
+	var pelvis: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_pelvis).origin
+	var head: Vector3 = _rig.global_transform * _rig.get_bone_global_pose(_bone_head).origin
+	var rear := _sword_origin - direction * weapon_rear_extent()
+	var tip := _sword_origin + direction * (0.06 + _weapon_length)
+	return _segment_distance(rear,tip,chest,pelvis)>=0.208 and _segment_distance(rear,tip,head,head)>=0.188
+
 const SELF_POSE_IK_BUDGET45 := 24
 var _self_pose_evaluations45 := 0
 var _self_pose_evaluations_max45 := 0
@@ -2851,7 +3017,11 @@ func _self_begin_step45() -> void:
 	elif _weapon_id == "mace": rate = 8.4
 	elif _weapon_id == "axe": rate = 7.4
 	elif _weapon_id == "spear": rate = 8.0
+	elif _weapon_id == "hatchet": rate = 10.2
 	elif _weapon_id == "sword" and _active_side() != &"both": rate = 9.0
+	if _weapon_id in ["axe", "sledge"]: rate *= 1.35
+	if _weapon_id in ["axe","sledge"] and has_method("_lab_melee_rate29"):
+		rate=float(call("_lab_melee_rate29",rate))
 	_self_motion_budget45 = rate * get_physics_process_delta_time() * _self_elapsed_steps51
 
 func _self_limit_step45(direction: Vector3) -> Vector3:
@@ -2869,7 +3039,8 @@ func _self_path_clear45(direction: Vector3) -> bool:
 	var steps := maxi(1, maxi(ceili(old_direction.angle_to(direction) / deg_to_rad(3.0)), ceili(old_origin.distance_to(_sword_origin) / 0.025)))
 	for step in range(steps + 1):
 		var t := float(step) / steps
-		if not _self_blade_clear_at51(old_direction.slerp(direction, t).normalized(), old_origin.lerp(_sword_origin, t)): return false
+		var between := old_direction.lerp(direction, t).normalized() if old_direction.dot(direction) > 0.9999 else old_direction.slerp(direction, t).normalized()
+		if not _self_blade_clear_at51(between, old_origin.lerp(_sword_origin, t)): return false
 	return true
 
 func _self_evaluate_pose45(direction: Vector3) -> bool:
@@ -2879,6 +3050,16 @@ func _self_evaluate_pose45(direction: Vector3) -> bool:
 	_solve_arm(0.0)
 	_rig.force_update_all_bone_transforms()
 	_sword_origin = _palm_position(_active_side()) + _dir * _grip_origin_offset()
+	if _held: _probe_blade_contact29()
+	# Moving the shared grip changes the plane clearance after steering. Resolve
+	# the existing world-contact plane against this actual IK origin as well.
+	for contact_step in 4:
+		var constrained := _contact_direction(_dir)
+		if constrained.distance_squared_to(_dir) < 1.0e-10: break
+		_dir = constrained
+		_solve_arm(0.0)
+		_rig.force_update_all_bone_transforms()
+		_sword_origin = _palm_position(_active_side()) + _dir * _grip_origin_offset()
 	return _self_blade_clear(_dir)
 
 func _save_safe_self_pose45() -> void:
@@ -3019,6 +3200,12 @@ func _soft_body_limit(direction: Vector3, min_forward: float, weight: float) -> 
 	return direction.slerp(limited, weight).normalized()
 
 ## Keeps a direction inside the player's forward half space (never behind).
+func _melee_axis_envelope29(direction: Vector3) -> Vector3:
+	# Shoulder wind-up uses the same swept body checks as the forward strike;
+	# the former camera hemisphere alone prevented this reachable pose.
+	if _held and _weapon_id in ["axe", "sledge"]: return direction
+	return _soft_body_limit(_constrain_forward(direction), 0.10, 0.16)
+
 func _constrain_forward(direction: Vector3) -> Vector3:
 	var forward := -_camera.global_basis.z
 	var cast := direction.dot(forward)
@@ -3048,11 +3235,10 @@ func _hand_target_direction() -> Vector3:
 	var basis := _camera.global_basis
 	var hx := clampf(_hand.x, -1.0, 1.0)
 	var hy := clampf(_hand.y, -1.0, 1.0)
-	var yaw_off := hx * 1.30
+	var yaw_off := hx * 1.48
 	# The whole vertical arc is open, and now a real wind-up is possible too: the
 	# fist can swing from below the hip right up over the head.
-	var side_lift := 0.30 * smoothstep(0.15, 0.85, absf(hx)) * (1.0 - smoothstep(0.0, 0.55, absf(hy))) if is_steering() else 0.0
-	var pitch_off := clampf(0.10 + hy * 1.42 + side_lift - _thrust * 0.30, -1.00, 1.48)
+	var pitch_off := clampf(0.10 + hy * 1.42 - _thrust * 0.30, -1.00, 1.48)
 	var flat := (-basis.z).rotated(Vector3.UP, -yaw_off).normalized()
 	return (flat * cos(pitch_off) + Vector3.UP * sin(pitch_off)).normalized()
 
@@ -3062,6 +3248,7 @@ func _hand_target_direction() -> Vector3:
 ## authority. The arm is extended toward the commanded direction, the wrist
 ## follows the blade, and the torso turns toward the target.
 func _solve_arm(delta: float) -> void:
+	if _embedded29.active(self): return
 	var rig_basis := _rig.global_transform.basis
 	if not _held:
 		# Carried but READY: the sword hand keeps a light, bent grip on the raised
@@ -3076,6 +3263,8 @@ func _solve_arm(delta: float) -> void:
 		# hand as well is what folded the arm across the chest. The reach stays well
 		# short of full extension: a nearly straight arm is both ugly and unstable.
 		var want_dir := _constrain_forward(_ready_hand_direction())
+		if _arm_release_blend29 > 0.0:
+			want_dir = want_dir.slerp(_constrain_forward(_hand_target_direction()), _arm_release_blend29).normalized()
 		want_dir = _constrain_to_body(want_dir, 0.34)
 		var want_rig := (rig_basis.inverse() * want_dir).normalized()
 		var blade_rig := (rig_basis.inverse() * _dir).normalized()
@@ -3084,7 +3273,8 @@ func _solve_arm(delta: float) -> void:
 		# If the carried sword had to be drawn out of a wall, the arm comes in with
 		# it, so the fist keeps holding the grip instead of being left behind.
 		var pulled := clampf(_carry_pull / 0.55, 0.0, 1.0)
-		var grip_rig := _pose_shared_grip(want_dir, blade_rig) if side == &"both" else _pose_main(side, want_rig, blade_rig, lerpf(0.70, 0.40, pulled))
+		var carry_reach := lerpf(lerpf(0.70, 0.40, pulled), 1.0, _arm_release_blend29)
+		var grip_rig := _pose_shared_grip(want_dir, blade_rig) if side == &"both" else _pose_main(side, want_rig, blade_rig, carry_reach)
 		if grip_rig != Vector3.ZERO:
 			_sword_origin = (_rig.global_transform * grip_rig) + _dir * _grip_origin_offset()
 		# The carried blade is never shown inside the character or inside the world:
@@ -3096,7 +3286,7 @@ func _solve_arm(delta: float) -> void:
 	want_dir = _constrain_to_body(want_dir, 0.10)
 	# The GUARD keeps the same diagonal arm as the carried pose, just lifted or
 	# lowered by the mouse, so blocking always reads as the same guard.
-	if _blocking and not _hold_left:
+	if _blocking and (not _hold_left or _shield_guard_active29()):
 		var lift := clampf(_hand.y, -1.0, 1.0)
 		want_dir = _constrain_forward((_ready_hand_direction() + Vector3.UP * (lift * 0.45)).normalized())
 		want_dir = _constrain_to_body(want_dir, 0.34)
@@ -3133,40 +3323,49 @@ func _pose_shared_grip(want_dir: Vector3, blade_rig: Vector3) -> Vector3:
 	var visual_basis: Basis = _player._visual.global_basis.orthonormalized()
 	var right_set := _arm_set(&"right")
 	var left_set := _arm_set(&"left")
-	# Raising a weapon above the crown includes the shoulder girdle. Rotate
-	# the authored clavicles toward elevation, keeping every bone length.
-	var shoulder_lift := smoothstep(0.10, 0.90, maxf(0.0, _hand.y)) if _hold_left else 0.0
-	var up_rig: Vector3 = (rig_to_world.basis.inverse() * Vector3.UP).normalized()
-	for arm: Dictionary in [right_set, left_set]:
-		var clav_rest := _rig.get_bone_rest(arm.clav)
-		var parent := _rig.get_bone_parent(arm.clav)
-		var parent_basis := _chain_global(parent).basis if parent >= 0 else Basis.IDENTITY
-		var rest_direction: Vector3 = (parent_basis * clav_rest.basis * arm.rest_upper.origin).normalized()
-		var elevated := rest_direction.slerp(up_rig, shoulder_lift * 0.85).normalized()
-		_point_bone(arm.clav, clav_rest, arm.rest_upper.origin, parent_basis, elevated)
 	var right_joint: Vector3 = (_chain_global(right_set.clav) * right_set.rest_upper).origin
 	var left_joint: Vector3 = (_chain_global(left_set.clav) * left_set.rest_upper).origin
 	var middle_world: Vector3 = rig_to_world * ((right_joint + left_joint) * 0.5)
 	var local_want: Vector3 = visual_basis.inverse() * want_dir
-	var side_load := (1.0 - smoothstep(0.20, 0.70, absf(_hand.y))) if _weapon_id in ["axe", "spear"] and _hold_left else 0.0
+	var side_load := (1.0 - smoothstep(0.20, 0.70, absf(_hand.y))) if _weapon_id in ["sledge", "axe", "spear"] and _hold_left else 0.0
 	var side_reach := lerpf(0.30, 0.36, side_load)
 	# Live weapon momentum carries the hands away from the chest into the strike.
 	# Stopping the mouse leaves the loading pose; no timed attack drives the hands.
-	var arm_drive := smoothstep(0.6, 4.5, _omega.length()) if _hold_left else 0.0
-	var overhead := smoothstep(0.10, 0.90, maxf(0.0, _hand.y)) if _hold_left else 0.0
-	var target_lift := lerpf(lerpf(0.04, 0.24, smoothstep(0.15, 0.90, absf(_hand.x))), 0.90, overhead) if _hold_left and _hand.y >= 0.0 else clampf(local_want.y * (0.64 if _hold_left else 0.20) - 0.08, -0.30, 0.48)
+	var arm_drive := 1.0 if _hold_left else 0.0
 	var target_world: Vector3 = middle_world + visual_basis * Vector3(
-		lerpf(-clampf(_hand.x, -1.0, 1.0) * 0.28, 0.0, overhead) - sin(overhead * PI) * 0.40 if _hold_left else clampf(local_want.x * 0.14, -side_reach, side_reach),
-		target_lift,
-		(lerpf(0.30, 0.05, overhead) + arm_drive * 0.42 * (1.0 - overhead) if _hold_left else lerpf(0.38, 0.25, clampf(local_want.y, 0.0, 1.0))) + _self_pose_forward)
+		clampf(local_want.x * (side_reach if _hold_left else 0.14), -side_reach, side_reach),
+		clampf(local_want.y * (0.64 if _hold_left else 0.20) - 0.08, -0.30, 0.48),
+		lerpf(0.38, 0.25, clampf(local_want.y, 0.0, 1.0)) + arm_drive * 0.34 + _self_pose_forward)
+	var lateral_extension := _lateral_extension29()
+	var reach_fraction := lerpf(0.94, 0.9995, lateral_extension)
+	if (_held or _arm_release_blend29 > 0.0) and not _blocking:
+		# Follow the requested arm direction on a reachable arc instead of a
+		# narrow X box at fixed forward extension. Both palms are solved below.
+		var reach_world := minf(right_set.rest_fore.origin.length() + right_set.rest_hand.origin.length(), left_set.rest_fore.origin.length() + left_set.rest_hand.origin.length()) * _rig_scale() * reach_fraction
+		var visible_axis: Vector3 = visual_basis.inverse() * (rig_to_world.basis * blade_rig).normalized()
+		var reach_axis := (visible_axis - Vector3.UP * 0.30).normalized()
+		var arm_target := reach_axis * reach_world
+		arm_target.z = maxf(0.24, arm_target.z) + _self_pose_forward
+		if _weapon_id in ["axe", "sledge"]:
+			# A real blade moving past the shoulder loads the handle close to that
+			# shoulder. Moving forward opens the same continuous arc into extension.
+			var shoulder_load := 1.0 - smoothstep(0.25, 0.65, visible_axis.z)
+			# The same vertical command owns loading and extension; a purely lateral
+			# stroke must not drop the hands when it leaves the shoulder pose.
+			var swing_height := clampf(0.20 + _hand.y * 0.45, -0.30, 0.48)
+			arm_target.y = swing_height
+			var shoulder_target := Vector3(signf(visible_axis.x) * 0.22, swing_height, 0.24 + _self_pose_forward)
+			arm_target = arm_target.lerp(shoulder_target, shoulder_load)
+		var extended_target := middle_world + visual_basis * arm_target
+		target_world = extended_target if _weapon_id == "spear" else target_world.lerp(extended_target, _arm_release_blend29)
 	var grip: Vector3 = world_to_rig * target_world
 	# Reach spheres belong to wrists; offset their centres to the palm anchors
 	# using the SAME wrist orientation that the final IK will apply.
 	var right_rest_basis: Basis = (_chain_global(right_set.clav) * right_set.rest_upper * right_set.rest_fore * right_set.rest_hand).basis.orthonormalized()
 	var left_rest_basis: Basis = (_chain_global(left_set.clav) * left_set.rest_upper * left_set.rest_fore * left_set.rest_hand).basis.orthonormalized()
 	var offset := blade_rig * _two_hand_offset_rig
-	var right_reach: float = (right_set.rest_fore.origin.length() + right_set.rest_hand.origin.length()) * 0.94
-	var left_reach: float = (left_set.rest_fore.origin.length() + left_set.rest_hand.origin.length()) * 0.94
+	var right_reach: float = (right_set.rest_fore.origin.length() + right_set.rest_hand.origin.length()) * reach_fraction
+	var left_reach: float = (left_set.rest_fore.origin.length() + left_set.rest_hand.origin.length()) * reach_fraction
 	for iteration in 10:
 		var right_basis := _palm_basis51(right_joint, grip, blade_rig, right_rest_basis)
 		var right_center: Vector3 = right_joint + right_basis * _palm_offset(right_set.hand)
@@ -3276,33 +3475,16 @@ func _arm_set(side: StringName) -> Dictionary:
 ## Poses the arm that holds the sword in the main grip; returns the fist in
 ## rig space. `side` is the VISUAL side, so the rig's mirrored names are handled
 ## here and nowhere else.
+func _lateral_extension29() -> float:
+	if _weapon_id == "spear" or _blocking or _half_sword or _aiming_throw: return 0.0
+	return smoothstep(0.45, 0.85, absf(_hand.x)) * _arm_release_blend29
+
 func _pose_main(side: StringName, want_rig: Vector3, blade_rig: Vector3, reach_scale: float = 1.0) -> Vector3:
 	var set := _arm_set(side)
-	# The active shoulder participates in the explicitly requested high loading
-	# pose. The authored bone lengths, blade direction and angular spring stay.
-	if is_steering() and not _aiming_throw and not _half_sword and reach_scale > 0.99:
-		var shoulder_lift := smoothstep(0.10, 0.90, maxf(0.0, _hand.y))
-		var up_rig: Vector3 = (_rig.global_basis.inverse() * Vector3.UP).normalized()
-		var clav_rest := _rig.get_bone_rest(set.clav)
-		var parent := _rig.get_bone_parent(set.clav)
-		var parent_basis := _chain_global(parent).basis if parent >= 0 else Basis.IDENTITY
-		var rest_direction: Vector3 = (parent_basis * clav_rest.basis * set.rest_upper.origin).normalized()
-		var elevated := rest_direction.slerp(up_rig, shoulder_lift * 0.85).normalized()
-		_point_bone(set.clav, clav_rest, set.rest_upper.origin, parent_basis, elevated)
-		if shoulder_lift > 0.0:
-			# The raised shoulder puts the reach origin above the chest. Keeping
-			# the chest-height 24cm forward clamp here spends the arm on forward
-			# reach and leaves the wrist below the crown. Blend to a vertical
-			# overhead reach, with the existing self-clearance still added.
-			var joint: Vector3 = (_chain_global(set.clav) * set.rest_upper).origin
-			var length: float = set.rest_fore.origin.length() + set.rest_hand.origin.length()
-			var target_world: Vector3 = _rig.global_transform * (joint + want_rig * length)
-			var chest_world: Vector3 = _rig.global_transform * _chain_global(_bone_chest).origin
-			var visual_basis: Basis = _player._visual.global_basis.orthonormalized()
-			var relative: Vector3 = visual_basis.inverse() * (target_world - chest_world)
-			relative.z = maxf(relative.z, lerpf(0.24, 0.10, shoulder_lift) + _self_pose_forward)
-			var target: Vector3 = _rig.global_transform.affine_inverse() * (chest_world + visual_basis * relative)
-			return _pose_arm_ik(set.clav, set.upper, set.fore, set.hand, set.rest_upper, set.rest_fore, set.rest_hand, set.offset, target, blade_rig, reach_scale, true, set.pole)
+	# The hand loads near the shoulder, then extends with real weapon momentum.
+	# Mouse direction and angular dynamics remain free; this only solves the arm.
+	if _hold_left and not _aiming_throw and not _half_sword and reach_scale > 0.99:
+		reach_scale *= 1.0
 	return _pose_arm_ik(set.clav, set.upper, set.fore, set.hand, set.rest_upper, set.rest_fore, set.rest_hand, set.offset, want_rig, blade_rig, reach_scale, false, set.pole)
 
 ## Supporting hand closes on the lower part of the handle (two-handed grip).
@@ -3354,16 +3536,18 @@ func _pose_arm_ik(clav: int, upper: int, fore: int, hand: int, rest_upper: Trans
 	var palm_offset := _palm_offset(hand)
 	target -= palm_basis * palm_offset
 	var to_target := target - joint
+	var lateral_extension := _lateral_extension29()
+	# The target above is a palm anchor; subtracting its offset must not shorten
+	# the requested wrist reach during a lateral strike. Keep a small IK epsilon.
+	if not want_is_point and reach_scale > 0.70 and lateral_extension > 0.0:
+		to_target = to_target.normalized() * lerpf(to_target.length(), (l1 + l2) * 0.9995, lateral_extension)
 	var distance := to_target.length()
 	if distance < 1.0e-4: return Vector3.ZERO
 	var direction := to_target.normalized()
-	var d := clampf(distance, absf(l1 - l2) + 1.0e-3, (l1 + l2) * 0.96)
+	var d := clampf(distance, absf(l1 - l2) + 1.0e-3, (l1 + l2) * lerpf(0.96, 0.9995, lateral_extension))
 	# The elbow hangs DOWN (a little to its own side and slightly back), which is
 	# what a human arm does. A sideways pole threw the elbow out into a Г shape.
 	var pole := Vector3(0.75 * pole_side, 0.82, -0.32) if elbow_up else Vector3(0.55 * pole_side, -1.0, -0.12)
-	if not elbow_up and is_steering():
-		var lift := smoothstep(0.12, 0.75, maxf(_hand.y, absf(_hand.x) * 0.65))
-		pole = pole.normalized().slerp(Vector3(0.75 * pole_side, 0.82, -0.32).normalized(), lift)
 	pole -= direction * pole.dot(direction)
 	if pole.length_squared() < 1.0e-6:
 		pole = direction.cross(Vector3.RIGHT)
@@ -3473,25 +3657,25 @@ func _advance_swing_phase(delta: float, yaw_target: float) -> void:
 	if not _swing_held54(): _swing_button_latched31 = false
 	match _swing_phase:
 		"windup":
-			if _weapon_id == "sword" and not _swing_held54():
+			if not _swing_held54():
 				_swing_phase = "recover"; _phase_t = 0.0
 			elif _phase_t >= WINDUP_TIME: _swing_phase = "strike"; _phase_t = 0.0
 		"strike":
-			if (_weapon_id == "sword" and not _swing_held54()) or (_weapon_id != "sword" and not _held):
+			if not _swing_held54():
 				_swing_phase = "recover"; _phase_t = 0.0
 		"recover":
 			if _phase_t >= RECOVER_TIME: _swing_phase = "idle"; _phase_t = 0.0
 		_:
-			if (_weapon_id == "sword" and _swing_held54() and not _swing_button_latched31) or (_weapon_id != "sword" and _held):
+			if _swing_held54() and not _swing_button_latched31:
 				_swing_phase = "windup"
 				_phase_t = 0.0
 				entering = true
-				if _weapon_id == "sword": _swing_button_latched31 = true
+				_swing_button_latched31 = true
 	# The direction the cut will go. Captured as the coil STARTS, because that is when
 	# the body has to decide which way to wind up against.
 	if entering:
 		var sign_now := signf(yaw_target)
-		if _weapon_id == "sword" and absf(_hand_cmd.x) > 0.02:
+		if absf(_hand_cmd.x) > 0.02:
 			sign_now = signf(_hand_cmd.x)
 		if absf(sign_now) < 0.01: sign_now = signf(_omega.dot(Vector3.UP))
 		if absf(sign_now) < 0.01: sign_now = 1.0
@@ -3519,9 +3703,11 @@ func _right_hand_weapon54() -> bool:
 	return _weapon_id in ["sword", "mace"] and not _shield_worn and not _half_sword
 
 func _swing_held54() -> bool:
+	if _shield_guard_active29(): return false
 	return _hold_left or (_hold_right and _right_hand_weapon54())
 
 func _swing_can_damage31() -> bool:
+	if _shield_guard_active29() or Engine.get_physics_frames() <= _shield_resume_frame29: return false
 	return _swing_held54() or _sword_coasting31()
 
 ## Writes one link of the chain: it chases the link below it, never the target
@@ -3634,6 +3820,29 @@ func _lean_body(want_dir: Vector3, delta: float) -> void:
 		var head_turn := Quaternion(axis_up, -_chain_yaw.z * 0.45 + _anticipation * WINDUP_ANTICIPATION * 0.5 * _swing_sign)
 		var head_local := _rig.get_bone_pose(_bone_head)
 		_rig.set_bone_pose(_bone_head, Transform3D((Basis(head_turn) * head_local.basis).orthonormalized(), head_local.origin))
+
+## During locomotion the gait follows travel while the weapon keeps its existing
+## aiming frame. Counter-turn at the spine retains the upper-body orientation;
+## all authored bone offsets and scale remain unchanged.
+func _align_melee_gait27() -> void:
+	if not _held or not is_steering() or _aiming_throw: return
+	if _bone_pelvis < 0 or _bone_spine < 0: return
+	var axes := Input.get_vector(&"preview_move_left", &"preview_move_right", &"preview_move_forward", &"preview_move_back")
+	var travel: Vector3 = _player.velocity
+	travel.y = 0.0
+	if axes.length_squared() < 0.001 or travel.length_squared() < 0.04: return
+	var turn: float = wrapf(atan2(travel.x, travel.z) - _player._visual.global_rotation.y, -PI, PI)
+	var spine_before := _chain_global(_bone_spine).basis
+	var pelvis_parent := _rig.get_bone_parent(_bone_pelvis)
+	var pelvis_parent_basis := _chain_global(pelvis_parent).basis if pelvis_parent >= 0 else Basis.IDENTITY
+	var axis := (pelvis_parent_basis.inverse() * _rig.global_basis.inverse() * Vector3.UP).normalized()
+	var pelvis := _rig.get_bone_pose(_bone_pelvis)
+	pelvis.basis = (Basis(axis, turn) * pelvis.basis).orthonormalized()
+	_rig.set_bone_pose(_bone_pelvis, pelvis)
+	var spine_parent := _rig.get_bone_parent(_bone_spine)
+	var spine := _rig.get_bone_pose(_bone_spine)
+	spine.basis = (_chain_global(spine_parent).basis.inverse() * spine_before).orthonormalized()
+	_rig.set_bone_pose(_bone_spine, spine)
 
 func _release_arm() -> void:
 	# Nothing to undo: the pose authority rewrites every bone on its next pass as
@@ -3854,39 +4063,16 @@ func _duelist_resolve_strike(delta: float) -> void:
 
 ## True when the segment of the opponent's cut crosses the player's blade.
 func _player_blade_intercepts(from: Vector3, to: Vector3) -> bool:
-	# A sword on the ground can remain visible while the old hand anchor is stale.
-	# Only the selected weapon in the player's hand can make a steel parry.
-	if _unarmed or _sword_grounded or not _selected or not is_instance_valid(_sword) or not _sword.visible:
-		return false
-	# Use the displayed blade's actual transform at this frame, not the desired
-	# hand direction, so the clang and sparks require two visible steels to meet.
-	var mine_a: Vector3 = _sword.global_position
-	var mine_b: Vector3 = mine_a + _sword.global_basis.x.normalized() * (0.06 + _weapon_length)
-	return _segment_distance(from, to, mine_a, mine_b) <= BLOCK_RADIUS
+	return not Interception31.player_segment(self,from,to).is_empty()
+
 
 ## Incoming arrow tip sweep against the displayed metal, not the player's
 ## broad body capsule. Caller clips this sweep to the first world/body hit.
 func incoming_arrow_parry31(from: Vector3, to: Vector3) -> Dictionary:
-	if not _active() or _weapon_id != "sword" or _sword_grounded or _unarmed:
-		return {}
-	if now_ms() > _arrow_parry_until_ms31 or not (_hold_left or _hold_right):
-		return {}
-	if not is_instance_valid(_sword) or not _sword.visible:
-		return {}
-	var blade_a: Vector3 = _sword.global_transform * Vector3(0.155, 0, 0)
-	var blade_b: Vector3 = _sword.global_transform * Vector3(1.21, 0, 0)
-	var closest := Geometry3D.get_closest_points_between_segments(from, to, blade_a, blade_b)
-	if closest.size() != 2: return {}
-	var on_arrow: Vector3 = closest[0]
-	var on_blade: Vector3 = closest[1]
-	var local: Vector3 = _sword.to_local(on_arrow)
-	# The actual sword mesh is a tapered diamond section. Include only the
-	# arrowhead's 12 mm radius; a pass beside the blade must reach the body.
-	var half_y: float = 0.03 if local.x <= 0.62 else (0.025 if local.x <= 1.05 else lerpf(0.016, 0.0, clampf((local.x-1.05)/0.16, 0.0, 1.0)))
-	var half_z: float = 0.010 if local.x <= 0.62 else (0.008 if local.x <= 1.05 else lerpf(0.005, 0.0, clampf((local.x-1.05)/0.16, 0.0, 1.0)))
-	if local.x < 0.155 or local.x > 1.21 or absf(local.y) > half_y + 0.012 or absf(local.z) > half_z + 0.012:
-		return {}
-	return {"point":on_arrow,"blade_point":on_blade,"axis":_sword.global_basis.x.normalized()}
+	# Held steel/wood remains solid even between swings. The caller already
+	# clipped the real arrow tip path to the nearest world/body obstruction.
+	if not _active():return {}
+	return Interception31.player_segment(self,from,to)
 
 func register_arrow_parry31(at: Vector3) -> void:
 	_arrow_parries31 += 1
@@ -3921,6 +4107,22 @@ func _register_clash(at: Vector3) -> void:
 		_npc_recoil_until_ms = now + 220
 		if _npc_state == "strike":
 			_npc_stop_attack43()
+	# Steel on steel pushes BOTH men, not only the swords. The player gets the
+	# existing bounded ground impulse (at most .30 m, no launch); the knight gets a
+	# body push through his own CharacterBody3D. Neither is a teleport.
+	var player_pushed := false
+	if is_instance_valid(_player):
+		player_pushed = _player.apply_contact_melee_impulse(away, ENEMY_CLASH_PLAYER_PUSH_NS)
+	if is_instance_valid(_npc_body):
+		_npc_hit_push31 = (_npc_hit_push31 + push_back * ENEMY_CLASH_BODY_PUSH).limit_length(5.0)
+		_enemy_last_clash_push = ENEMY_CLASH_BODY_PUSH
+		_enemy_clashes += 1
+		_enemy_clash_lock_until_ms = now + ENEMY_CLASH_LOCK_MS
+		# The clash interrupts whatever beat he was in; both recover visibly.
+		if _npc_state in ["windup", "strike", "follow", "evade"] or _npc_sword.visible:
+			_npc_stop_attack43()
+		print("DSH_ENEMY_KNIGHT_CLASH count=", _enemy_clashes, " player_pushed=", player_pushed,
+			" npc_push=", ENEMY_CLASH_BODY_PUSH, " at=", at)
 	_play_melee_hit31(at, "metal", clampf(_omega.length() / 7.0, 0.35, 1.0))
 	_show_spark(at)
 	# Real sparks off the steel, thrown away from the point of contact.
@@ -3968,6 +4170,18 @@ func set_npc_armor31(loadout: Dictionary) -> Dictionary:
 
 func npc_armor_snapshot31() -> Dictionary:
 	return _npc_armor_loadout31.duplicate()
+
+## Read-only presentation proof: the equipped IDs plus how many visible armour
+## meshes are actually attached to the resident rig.
+func npc_armor_visual_snapshot31() -> Dictionary:
+	if not is_instance_valid(_npc_armor_visual31) or not is_instance_valid(_npc_rig): return {}
+	var snap: Dictionary = _npc_armor_visual31.call("snapshot")
+	var meshes := 0
+	for node: Node in _npc_rig.find_children("*", "MeshInstance3D", true, false):
+		if String(node.name).begins_with("Armor"):
+			meshes += 1
+	snap["meshes"] = meshes
+	return snap
 
 
 
@@ -4030,8 +4244,13 @@ func _apply_player_damage(amount: float, at: Vector3, direction: Vector3, kind: 
 	var contact := _armor_point31(_rig, str(struck.sever), at, hit_body50)
 	var incidence := clampf(-direction.normalized().dot(normal50.normalized()), 0.0, 1.0) if normal50.length_squared() > 0.5 else 1.0
 	var protection := ArmorDamage31.resolve(_player_armor_snapshot31(), str(struck.sever), kind, amount, contact, incidence)
+	if str(protection.region) in ["cloth","mail","plate"] and str(protection.tier) in ["light","medium","heavy"]:
+		combat_audio_event30("armor_"+str(protection.tier),at,clampf(amount/160.0,.08,1.0),"player:"+str(struck.sever)+":"+str(protection.region))
 	amount = float(protection.damage) * (0.12 if speed50 >= 0.0 and kind == "flat" else 1.0)
 	var penetrates: bool = ArmorDamage31.tissue_penetrates(str(protection.region), kind, amount)
+	var hero_appearance31 := _world.get_node_or_null("CastleArmorEquipment") if is_instance_valid(_world) else null
+	if penetrates and amount > 0.05 and hero_appearance31 != null and hero_appearance31.has_method("apply_wound31"):
+		hero_appearance31.apply_wound31(self, at, direction, kind, amount, str(struck.sever))
 	# Plate still transfers trauma into the local part without making an
 	# open wound or severing a limb.
 	_player_take_blade(amount, at, direction, kind == "slice" and penetrates and (speed50 < 0.0 or (speed50 >= 3.2 and amount >= 8.0)), full_key50, maxf(speed50, 0.0))
@@ -4065,6 +4284,16 @@ func _hand_lost31(side: StringName) -> bool:
 	return _player_severed.has("hand" + suffix) or _player_severed.has("forearm" + suffix) \
 		or _player_severed.has("upperarm" + suffix) or _player_disabled_parts50.has("hand" + suffix) \
 		or _player_disabled_parts50.has("forearm" + suffix) or _player_disabled_parts50.has("upperarm" + suffix)
+
+## A weapon can be held only if there is a hand for every grip it needs. A
+## two-handed axe/sledge/spear requires both hands; one-handed weapons still work
+## in the surviving hand. No weapon is held by a stump.
+func _can_wield_weapon(id: String) -> bool:
+	if _both_hands_lost(): return false
+	var grip := str(WEAPONS.get(id, {}).get("grip", ""))
+	if grip == "two" and (_hand_lost31(&"left") or _hand_lost31(&"right")):
+		return false
+	return true
 
 ## Player dismemberment: which part was hit, how much it can take, and what is
 ## lost when it comes off.
@@ -4125,6 +4354,8 @@ func _player_take_blade(amount: float, at: Vector3, direction: Vector3, may_seve
 	var old_grip := _active_side()
 	_player_severed[full_key] = true
 	var armor_visual := _player.get_node_or_null("CastleArmorVisual") if is_instance_valid(_player) else null
+	var hero_appearance31 := _world.get_node_or_null("CastleArmorEquipment") if is_instance_valid(_world) else null
+	if hero_appearance31 != null and hero_appearance31.has_method("on_severed"): armor_visual = hero_appearance31
 	var cut_done50: bool = _hide_player_limb(full_key, kind, bone_name, at, direction, contact_speed50)
 	if armor_visual != null: armor_visual.on_severed(full_key, cut_done50)
 	_spray_blood(at, direction, 30)
@@ -4308,15 +4539,53 @@ func _reset_contact_plane() -> void:
 	_contact_anchor = Vector3.ZERO
 	_ground_touch_ms = -10000
 
+func _probe_blade_contact29() -> void:
+	if not is_instance_valid(_player) or not is_instance_valid(_world): return
+	var space := _player.get_world_3d().direct_space_state
+	if space == null: return
+	var reach := 0.06 + _weapon_length
+	var capsule := CapsuleShape3D.new()
+	capsule.radius = 0.030
+	capsule.height = reach
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = capsule
+	query.transform = _blade_shape_transform(_dir, _sword_origin + _dir * reach * 0.5)
+	query.collision_mask = BLADE_PROBE_MASK
+	# Match the strike sweep: rig hitboxes own flesh contact; movement hulls
+	# must never become a world plane that prevents reaching those hitboxes.
+	var excluded: Array[RID] = [_player.get_rid()]
+	if is_instance_valid(_npc_body) and is_instance_valid(_npc_rig):
+		excluded.append(_npc_body.get_rid())
+	if is_instance_valid(_npc_corpse31):
+		excluded.append(_npc_corpse31.get_rid())
+	query.exclude = excluded
+	var hit := space.get_rest_info(query)
+	if hit.is_empty(): return
+	var collider = instance_from_id(int(hit.get("collider_id", 0)))
+	if not is_instance_valid(collider) or collider.has_meta("sword_target") or collider.has_meta("sword_duelist") or collider.has_meta("sword_npc_part"): return
+	var normal: Vector3 = hit.normal
+	if not normal.is_finite() or normal.length_squared() < 0.5: return
+	_contact_plane = Plane(normal.normalized(), hit.point)
+	_contact_rid = hit.get("rid", RID())
+	_contact_anchor = _sword_origin
+	_contact_plane_active = true
+
 func _contact_direction(wanted: Vector3, allow_release: bool = false) -> Vector3:
 	if not _contact_plane_active: return wanted
 	var reach := 0.06 + _weapon_length
 	var distance := _contact_plane.distance_to(_sword_origin)
 	var clearance := distance + wanted.dot(_contact_plane.normal) * reach
-	if _sword_origin.distance_to(_contact_anchor) > 0.55 or (allow_release and clearance > 0.10):
+	# A requested upward flick does not mean the heavy blade has already left
+	# the floor. Keep the contact until the visible axis is clear too; outward
+	# steering remains unrestricted by the plane while momentum catches up.
+	var actual_clearance := distance + _dir.dot(_contact_plane.normal) * reach
+	if _sword_origin.distance_to(_contact_anchor) > 0.55 or (allow_release and clearance > 0.10 and actual_clearance > 0.05):
 		_reset_contact_plane()
 		return wanted
-	var minimum := clampf((0.018 - distance) / reach, -1.0, 1.0)
+	
+	# The blade probe is a 3 cm capsule, whose far sphere is centered one
+	# radius before its endpoint. Keep its support, not just its centerline, clear.
+	var minimum := clampf(maxf((0.018 - distance) / reach, (0.031 - distance) / (reach - 0.030)), -1.0, 1.0)
 	if wanted.dot(_contact_plane.normal) < minimum + 0.015:
 		# Project angular velocity onto the contact constraint at EVERY step,
 		# including frames without a new collision. Otherwise torque accumulates
@@ -4366,7 +4635,14 @@ func _edge_motion(motion: Vector3) -> float:
 # -------------------------------------------------------------- blade sweeping
 
 func _sweep(delta: float) -> void:
+	if _embedded29.active(self):
+		_prev_points = PackedVector3Array()
+		return
+	if _shield_guard_active29() or Engine.get_physics_frames() <= _shield_resume_frame29:
+		_prev_points = PackedVector3Array()
+		return
 	if delta <= 0.0: return
+	var authored_clash := Interception31.outgoing(self,delta)
 	var points := PackedVector3Array()
 	for i: int in SWEEP_SEGMENTS + 1:
 		var t := float(i) / float(SWEEP_SEGMENTS)
@@ -4391,35 +4667,13 @@ func _sweep(delta: float) -> void:
 	var seen: Dictionary = {}
 	# The opponent's steel is a REAL barrier: if our blade meets his anywhere along
 	# the swing, the cut stops there and nothing behind it is reached.
-	var npc_blade_ok := false
-	var npc_a := Vector3.ZERO
-	var npc_b := Vector3.ZERO
-	if is_instance_valid(_npc_sword) and _npc_sword.visible:
-		npc_a = _npc_sword.global_position
-		npc_b = npc_a + _npc_sword.global_basis.x.normalized() * (0.06 + float(WEAPONS["sword"]["length"]))
-		npc_blade_ok = true
-	var clash := false
-	var clash_time := INF
-	var clash_at := Vector3.ZERO
+	var clash := not authored_clash.is_empty()
+	var clash_time: float = float(authored_clash.get("fraction",INF))
+	var clash_at: Vector3 = authored_clash.get("point",Vector3.ZERO)
 	for i: int in points.size():
 		var from := _prev_points[i]
 		var to := points[i]
 		if from.distance_squared_to(to) < 1.0e-8: continue
-		if npc_blade_ok and _segment_distance(from, to, npc_a, npc_b) <= BLADE_TOUCH_RADIUS:
-			# The closest approach along the whole sweep can occur AFTER a body hit.
-			# Prefix distance is monotone: binary-search the first steel contact.
-			var low := 0.0
-			var high := 1.0
-			for step in 10:
-				var middle := (low + high) * 0.5
-				if _segment_distance(from, from.lerp(to, middle), npc_a, npc_b) <= BLADE_TOUCH_RADIUS:
-					high = middle
-				else:
-					low = middle
-			if high < clash_time:
-				clash = true
-				clash_time = high
-				clash_at = from.lerp(to, high)
 		var query := PhysicsRayQueryParameters3D.create(from, to, 1, excluded)
 		query.hit_from_inside = true
 		var hit := space.intersect_ray(query)
@@ -4491,8 +4745,7 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 			_ground_touch_ms = now
 			if fresh and speed > DAMAGE_SPEED_MIN and now - _last_block_sound_ms >= BLOCK_SOUND_COOLDOWN_MS:
 				_last_block_sound_ms = now
-				_impact_player.global_position = position
-				_impact_player.play()
+				_combat_audio_surface30(collider,position,speed)
 			return
 	# Hitting a body stops the blade just like masonry does: it never sinks in and
 	# stays there. The push is applied on a fresh touch and blended, so the sword
@@ -4562,7 +4815,8 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 				# is what makes a knight in plate different from a bare body.
 				var motion: Vector3 = hit.get("_velocity", Vector3.ZERO)
 				if motion.length_squared() < 1.0e-8: motion = _dir * speed
-				var along := absf(motion.normalized().dot(_dir))
+				var contact_axis: Vector3 = call("_production_axis29") if has_method("_production_axis29") else _dir
+				var along := absf(motion.normalized().dot(contact_axis))
 				var across := _edge_motion(motion)
 				var kind := "flat" if _weapon_crush else ("slice" if across >= 0.72 else ("stab" if along >= 0.72 else "flat"))
 				npc_cut = _impact_damage31(speed * 0.6, strength, kind)
@@ -4571,6 +4825,8 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 				var attack_kind := "blunt" if _weapon_crush else kind
 				var protection := ArmorDamage31.resolve(_npc_armor_loadout31, npc_part,
 					attack_kind, npc_cut, contact, incidence)
+				if str(protection.region) in ["cloth","mail","plate"] and str(protection.tier) in ["light","medium","heavy"]:
+					combat_audio_event30("armor_"+str(protection.tier),position,clampf(npc_cut/160.0,.08,1.0),npc_part+":"+str(protection.region))
 				var factor := float(protection.factor)
 				if _weapon_id == "sword" and kind == "flat": factor *= 0.12
 				if _half_sword:
@@ -4629,9 +4885,7 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 			var result: Dictionary = site.call("apply_melee_hit", collider, position,
 				speed, hit.get("_velocity", Vector3.ZERO))
 			if bool(result.get("ok", false)):
-				_impact_player.global_position = position
-				_impact_player.pitch_scale = 0.72
-				_impact_player.play()
+				_combat_audio_surface30(collider,position,speed)
 		return
 	# Wall/pole: the visible blade stops and slides along the surface instead
 	# of passing through. Pulling the mouse back releases it immediately. The
@@ -4640,9 +4894,7 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 	if first_touch and now - _last_block_sound_ms >= BLOCK_SOUND_COOLDOWN_MS:
 		_last_block_sound_ms = now
 		_blocks += 1
-		_impact_player.global_position = position
-		_impact_player.pitch_scale = 1.15
-		_impact_player.play()
+		_combat_audio_surface30(collider,position,speed)
 	if first_touch and now - _last_spark_ms >= SPARK_COOLDOWN_MS:
 		_last_spark_ms = now
 		_show_spark(position)
@@ -4683,17 +4935,10 @@ func _damage_dummy(dummy: StaticBody3D, position: Vector3, speed: float, velocit
 	_hit_ms[key] = now
 	if damage <= 0.05:
 		# A light or flat touch is felt but does not remove health.
-		_impact_player.global_position = position
-		_impact_player.pitch_scale = 1.45
-		_impact_player.volume_db = -12.0
-		_impact_player.play()
+		combat_audio_event30("wood",position,.10,str(key))
 		_dummy_tilt = maxf(_dummy_tilt, 0.05)
 		return
-	_impact_player.volume_db = 0.0
-	_impact_player.global_position = position
-	# A slice rings higher and sharper than a stab.
-	_impact_player.pitch_scale = (1.35 + randf() * 0.25) if kind == "slice" else (0.85 + randf() * 0.15)
-	_impact_player.play()
+	combat_audio_event30("wood",position,clampf(damage/DAMAGE_MAX,.1,1.0),str(key))
 	# A landed blow pushes the body back through the arm.
 	_body_push += -_dir * clampf(speed, 0.0, 4.0) * 0.05
 	_body_push = _body_push.limit_length(BODY_PUSH_LIMIT)
@@ -4725,10 +4970,8 @@ func _update_dummy(delta: float) -> void:
 	_dummy_pivot.rotation = _dummy_tilt_axis * _dummy_tilt
 
 func _show_spark(at: Vector3) -> void:
-	if not is_instance_valid(_spark): return
-	_spark.global_position = at
-	_spark.visible = true
-	_spark_left = 0.09
+	# Shared helper merges the legacy flash+burst pair into one finite event.
+	_spark_burst(at,-_dir,10)
 
 func _update_spark(delta: float) -> void:
 	if not is_instance_valid(_spark) or not _spark.visible: return
@@ -4814,6 +5057,49 @@ var _npc_swings := 0
 var _npc_hits := 0
 var _npc_blocked := 0
 var _npc_blade_prev: PackedVector3Array = PackedVector3Array()
+
+## ---------------------------------------------------------- enemy knight
+## The castle opponent is the enemy knight: a hostile, medium-armoured swordsman
+## built from the city resident's own skin and canonical walk gait. He follows the
+## same enemy-NPC rules the population uses, with no invisible shortcuts:
+##   1. sight: real line of sight, a frontal cone and a 180 ms confirmation;
+##   2. chase: the same local navigation/detour the residents use, never a teleport;
+##   3. measure: he keeps sword distance, retreats when crowded and circles sideways;
+##   4. defence: he reads the visible player blade, guards and counters after 180 ms;
+##   5. attack: a windup only at a reachable, visible distance, with no late homing;
+##   6. variety: left/right/overhead/rising/thrust chosen from the actual geometry;
+##   7. pressure: a landed cut may chain into a second beat, a low-HP knight presses;
+##   8. steel: a blade-on-blade clash stops BOTH cuts and physically pushes both men;
+##   9. damage: only the swept visible blade deals damage, through the shared armour law;
+##  10. death: the same real hitboxes, severing, blood and corpse ownership as the player.
+## Medium harness = the lightest tier that still turns an edge, but a thrust and the
+## joints get through; he is faster than the old plate duelist because of it.
+const ENEMY_KNIGHT_ARMOR := {
+	"head": "medium_head", "torso": "medium_torso", "hands": "medium_hands",
+	"legs": "medium_legs", "feet": "medium_feet",
+}
+const ENEMY_SIGHT_RANGE := 24.0
+## cos(~78 deg): a man watching his front, not a radar.
+const ENEMY_SIGHT_DOT := 0.20
+const ENEMY_REACTION_MS := 180
+const ENEMY_LOST_SIGHT_MS := 2400
+## Clash response: the player gets a bounded physical shove, the knight a body push.
+const ENEMY_CLASH_PLAYER_PUSH_NS := 22.0
+const ENEMY_CLASH_BODY_PUSH := 1.35
+const ENEMY_CLASH_LOCK_MS := 220
+const ENEMY_COMBO_GAP := 0.14
+const ENEMY_ENRAGE_FRACTION := 0.35
+var _enemy_seen_since_ms := 0
+var _enemy_last_seen := Vector3.ZERO
+var _enemy_lost_since_ms := 0
+var _enemy_spotted_once := false
+var _enemy_combo_left := 0
+var _enemy_clashes := 0
+var _enemy_last_clash_push := 0.0
+var _enemy_clash_lock_until_ms := 0
+var _enemy_evade_cooldown_ms := 0
+var _enemy_evades := 0
+var _enemy_armor_tier := "medium"
 ## Deliberate castle duel beats. The arm and visible steel perform every motion;
 ## damage still belongs exclusively to the swept blade ray below.
 var _npc_attack_kind := "left"
@@ -4961,9 +5247,13 @@ var _knight_armour: Array[Node3D] = []
 
 func _dress_knight() -> void:
 	if not is_instance_valid(_npc_rig): return
-	# Same five equipment slots, fitted meshes and protection as the player.
-	var result := set_npc_armor31({"head":"heavy_head", "torso":"heavy_torso", "hands":"heavy_hands", "legs":"heavy_legs", "feet":"heavy_feet"})
-	if not result.get("ok", false): push_error("Opponent armor binding failed: " + str(result))
+	# The enemy knight wears the existing MEDIUM harness on all five slots: an open
+	# helmet and mail rather than the old black plate. The same fitted meshes and the
+	# same ArmorDamage31 protection apply, so an edge is turned but a point or a joint
+	# still finds him, and his mobility is the medium tier (1.0) instead of heavy 0.78.
+	var result := set_npc_armor31(ENEMY_KNIGHT_ARMOR)
+	if not result.get("ok", false): push_error("Enemy knight armor binding failed: " + str(result))
+	_enemy_armor_tier = "medium"
 
 ## Cosmetic scuff only; future armour durability needs the life/gear owner.
 func _scuff_knight_plate(part: String, impact: float) -> void:
@@ -5276,10 +5566,12 @@ func _npc_take_blade_part(full_key: String, point: Vector3, speed: float, direct
 		_spray_blood(point, direction, 2 if damage < 3.0 else (10 if damage < 20.0 else 24))
 		# A wound keeps bleeding for a while, like a stream rather than one puff.
 		_npc_bleed_until_ms = max(_npc_bleed_until_ms, Time.get_ticks_msec() + (600 if damage < 3.0 else 2600))
-		_npc_bleed_at = point
-		_npc_bleed_local = _npc_body.to_local(point)
-	_npc_pain_until_ms = max(_npc_pain_until_ms, Time.get_ticks_msec() +
-		(1200 if damage >= 20.0 else (650 if damage >= 3.0 else 160)))
+		_npc_anchor_wound27(full_key, point)
+	# Small melee scratches flinch visually; only deep wounds interrupt combat.
+	if damage >= 3.0:
+		_npc_pain_until_ms = maxi(_npc_pain_until_ms, Time.get_ticks_msec() + (1200 if damage >= 20.0 else 650))
+	else:
+		_npc_flinch_until_ms31 = maxi(_npc_flinch_until_ms31, Time.get_ticks_msec() + 160)
 	if float(_npc_part_hp[full_key]) > 0.0:
 		_npc_apply_health_wound50(damage, point, direction, speed, penetrates)
 		return
@@ -5331,10 +5623,14 @@ func _npc_take_arrow_part(full_key: String, point: Vector3, speed: float,
 	var incoming := damage * (2.0 if base == "head" else 1.0)
 	var contact := _armor_point31(_npc_rig, full_key, point, hit_body)
 	var protection := ArmorDamage31.resolve(_npc_armor_loadout31, full_key, "stab", incoming, contact, incidence)
+	if str(protection.region) in ["cloth","mail","plate"] and str(protection.tier) in ["light","medium","heavy"]:
+		combat_audio_event30("armor_"+str(protection.tier),point,clampf(incoming/160.0,.08,1.0),"arrow:"+full_key+":"+str(protection.region))
 	var wound := float(protection.damage)
 	var penetrates: bool = ArmorDamage31.tissue_penetrates(str(protection.region), "stab", wound)
 	var result := _npc_take_puncture_part31(full_key, point, speed, direction, wound, 0.06, penetrates)
 	result["region"] = protection.region
+	result["penetrates"] = penetrates
+	result["residual_damage"] = wound
 	return result
 
 func _npc_take_puncture_part31(full_key: String, point: Vector3, speed: float,
@@ -5354,8 +5650,7 @@ func _npc_take_puncture_part31(full_key: String, point: Vector3, speed: float,
 	if penetrates:
 		_spray_blood(point, direction, 2 if damage < 3.0 else 12)
 		_npc_bleed_until_ms = maxi(_npc_bleed_until_ms, now_ms() + (600 if damage < 3.0 else 2600))
-		_npc_bleed_at = point
-		if is_instance_valid(_npc_body): _npc_bleed_local = _npc_body.to_local(point)
+		_npc_anchor_wound27(full_key, point)
 	if _npc_hp <= 0.0 or (base in ["head", "chest", "pelvis"] and float(_npc_part_hp[full_key]) <= 0.0):
 		_npc_dead = true
 		_npc_disarmed = true
@@ -5369,13 +5664,18 @@ func _npc_take_puncture_part31(full_key: String, point: Vector3, speed: float,
 var _npc_bleed_until_ms := 0
 var _npc_bleed_at := Vector3.ZERO
 var _npc_bleed_local := Vector3.ZERO
+var _npc_bleed_bone27 := -1
+var _npc_bleed_bone_local27 := Vector3.ZERO
 var _npc_bleed_accum := 0.0
 var _npc_pain_until_ms := 0
+var _npc_flinch_until_ms31: int = 0
 var _npc_hop_wait := 0.0
 var _npc_hit_push31 := Vector3.ZERO
 var _npc_knocked_until_ms31 := 0
 var _npc_hull31: CollisionShape3D
 var _npc_knockdowns31 := 0
+var _npc_knock_pose_active27 := false
+var _npc_knock_roll_speed27 := 0.0
 ## When he is cut down he topples over instead of standing there.
 var _npc_corpse31: RigidBody3D
 var _npc_corpse_pending31 := false
@@ -5440,13 +5740,18 @@ func _start_npc_corpse31(life_id: int, point: Vector3, direction: Vector3, speed
 	var corpse := RigidBody3D.new()
 	corpse.name = "SwordKnightCorpse31"
 	corpse.set_meta("melee_corpse33", true)
-	corpse.mass = 70.0
+	corpse.mass = 7.0
+	# Lightweight remains yield to real foot contacts without excessive friction.
+	var contact_material := PhysicsMaterial.new()
+	contact_material.friction = 0.25
+	contact_material.bounce = 0.0
+	corpse.physics_material_override = contact_material
 	corpse.collision_layer = 1
 	corpse.collision_mask = 1
 	corpse.continuous_cd = true
 	corpse.contact_monitor = true
 	corpse.max_contacts_reported = 16
-	corpse.linear_damp = 0.8
+	corpse.linear_damp = 0.25
 	corpse.angular_damp = 1.2
 	var corpse_frame := Transform3D(_npc_body.global_basis,
 		_npc_body.global_position + Vector3.UP * (NPC_HEIGHT * 0.5 + 0.06))
@@ -5483,7 +5788,7 @@ func _start_npc_corpse31(life_id: int, point: Vector3, direction: Vector3, speed
 	horizontal.y = 0.0
 	corpse.linear_velocity = horizontal.limit_length(3.0)
 	var impact: Vector3 = direction.normalized() if direction.length_squared() > 0.0001 else _npc_body.global_basis.z
-	var impulse: Vector3 = impact * clampf(speed * 5.0, 18.0, 120.0)
+	var impulse: Vector3 = impact * clampf(speed * 5.0, 18.0, 120.0) * (corpse.mass / 70.0)
 	_npc_corpse_hit31(point, impact, impulse.length())
 	_npc_hit_push31 = Vector3.ZERO
 	print("DSH_NPC_CORPSE31 physical=1 impulse=", impulse, " at=", point)
@@ -5491,6 +5796,10 @@ func _start_npc_corpse31(life_id: int, point: Vector3, direction: Vector3, speed
 func _npc_corpse_hit31(point: Vector3, direction: Vector3, impulse_ns: float) -> void:
 	if not is_instance_valid(_npc_corpse31) or not point.is_finite() or not direction.is_finite() or not is_finite(impulse_ns): return
 	if direction.length_squared() < 0.0001 or impulse_ns <= 0.0: return
+	if _npc_corpse31.has_meta("ragdoll31"):
+		if int(get_meta("solid_impulse_frame31",-1))==Engine.get_physics_frames():return
+		_npc_corpse31.get_meta("ragdoll31").impact(point,direction,impulse_ns)
+		return
 	var corpse: RigidBody3D = _npc_corpse31
 	var capsule_radius := 0.36
 	var impulse: Vector3 = direction.normalized() * impulse_ns
@@ -5514,31 +5823,80 @@ func _npc_receive_impulse31(part: String, speed: float, direction: Vector3, dama
 		horizontal = _npc_body.global_position - _player.global_position
 		horizontal.y = 0.0
 	if horizontal.length_squared() < 0.0001: return
-	var impulse := clampf(sqrt(maxf(0.4, _weapon_mass)) * maxf(0.0, speed - 1.0) \
+	var balance_impact := clampf(sqrt(maxf(0.4, _weapon_mass)) * maxf(0.0, speed - 1.0) \
 		* maxf(0.0, damage) * 0.0072, 0.0, 5.0)
-	_npc_hit_push31 = (_npc_hit_push31 + horizontal.normalized() * impulse).limit_length(5.0)
-	if part in ["head", "chest", "pelvis"] and impulse >= 2.7 \
+	# Wound severity can break balance, but it is not translational momentum.
+	# Use the same 65 kg body mass as the projectile path. Multiplying damage
+	# by speed used to launch a standing fighter at 5 m/s for several metres.
+	var impulse := maxf(0.4, _weapon_mass) * maxf(0.0, speed - 1.0) / 65.0
+	_npc_hit_push31 = (_npc_hit_push31 + horizontal.normalized() * impulse).limit_length(1.25)
+	if part in ["head", "chest", "pelvis"] and balance_impact >= 2.7 \
 			and _npc_state != "guard" and now_ms() >= _npc_knocked_until_ms31:
 		_npc_knocked_until_ms31 = now_ms() + 1900
 		_npc_knockdowns31 += 1
+		_npc_knock_pose_active27 = true
+		_npc_knock_roll_speed27 = 0.0
 		_npc_state = "recover"
 		_npc_timer = 0.0
 		_npc_blade_prev = PackedVector3Array()
 
 ## Runs the open wound: a steady stream of drops from the cut.
+func _npc_advance_knock_pose27(delta: float, down: bool) -> void:
+	# Start from rest and accelerate into the fall. Exponential pose lerp applied
+	# its largest rotation in the first tick, moving the chest by 16cm instantly.
+	var target := -PI * 0.48 if down else 0.0
+	var angle := _npc_motion.rotation.x
+	var remaining := target - angle
+	var acceleration := 9.0
+	var desired := signf(remaining) * minf(3.0, sqrt(2.0 * acceleration * absf(remaining)) * 0.80)
+	_npc_knock_roll_speed27 = move_toward(_npc_knock_roll_speed27, desired, acceleration * delta)
+	var step := _npc_knock_roll_speed27 * delta
+	if absf(step) > absf(remaining) and signf(step) == signf(remaining):
+		step = remaining
+		_npc_knock_roll_speed27 = 0.0
+	angle += step
+	_npc_motion.rotation.x = angle
+	var fraction := clampf(angle / (-PI * 0.48), 0.0, 1.0)
+	if is_instance_valid(_npc_hull31):
+		_npc_hull31.rotation.x = -PI * 0.5 * fraction
+		_npc_hull31.position = Vector3(0.0, NPC_HEIGHT * 0.5, 0.0).lerp(Vector3(0.0, 0.38, -0.70), fraction)
+	if not down and absf(angle) < 0.001 and absf(_npc_knock_roll_speed27) < 0.02:
+		_npc_motion.rotation.x = 0.0
+		_npc_knock_roll_speed27 = 0.0
+		_npc_knock_pose_active27 = false
+
+func _npc_anchor_wound27(part: String, point: Vector3, stump: bool = false) -> void:
+	_npc_bleed_at = point
+	_npc_bleed_bone27 = -1
+	if is_instance_valid(_npc_body): _npc_bleed_local = _npc_body.to_local(point)
+	if not is_instance_valid(_npc_rig): return
+	var bone := _npc_rig.find_bone(part)
+	# A stump belongs to the remaining proximal joint, never the hidden distal bone.
+	if stump and bone >= 0: bone = _npc_rig.get_bone_parent(bone)
+	if bone < 0: return
+	var frame := _npc_rig.global_transform * _npc_rig.get_bone_global_pose(bone)
+	if absf(frame.basis.determinant()) < 0.000001: return
+	_npc_bleed_bone27 = bone
+	_npc_bleed_bone_local27 = frame.affine_inverse() * point
+
+func _npc_wound_position27() -> Vector3:
+	if is_instance_valid(_npc_rig) and _npc_bleed_bone27 >= 0 and _npc_bleed_bone27 < _npc_rig.get_bone_count():
+		return _npc_rig.global_transform * _npc_rig.get_bone_global_pose(_npc_bleed_bone27) * _npc_bleed_bone_local27
+	return _npc_body.to_global(_npc_bleed_local) if is_instance_valid(_npc_body) else _npc_bleed_at
+
 func _update_npc_bleed(delta: float) -> void:
 	if not is_instance_valid(_npc_body): return
 	var now := Time.get_ticks_msec()
 	if now > _npc_bleed_until_ms: return
 	# The wound belongs to the moving body. A fixed world point left a blood fountain
 	# behind when a wounded opponent limped or hopped away.
-	_npc_bleed_at = _npc_body.to_global(_npc_bleed_local)
+	_npc_bleed_at = _npc_wound_position27()
 	_npc_bleed_accum += delta
 	if _npc_bleed_accum < 0.035: return
 	_npc_bleed_accum = 0.0
 	var drop_dir := (Vector3.UP * 0.30 + _npc_body.global_basis.x * randf_range(-0.65, 0.65)
 		+ _npc_body.global_basis.z * randf_range(0.35, 0.8)).normalized()
-	_spray_blood(_npc_bleed_at + Vector3(randf_range(-0.06, 0.06), randf_range(-0.06, 0.06), randf_range(-0.06, 0.06)),
+	_spray_blood(_npc_bleed_at + Vector3(randf_range(-0.012, 0.012), randf_range(-0.012, 0.012), randf_range(-0.012, 0.012)),
 		drop_dir, 4)
 
 ## A lost foot or leg leaves one support leg for a slow hop. Losing both removes
@@ -5584,6 +5942,7 @@ func _npc_skinned_meshes(target_rig: Skeleton3D = null) -> Array:
 	if visual == null: return out
 	for node: Node in visual.find_children("*", "MeshInstance3D", true, false):
 		var mesh_node := node as MeshInstance3D
+		if cut_rig == _rig and not mesh_node.is_visible_in_tree(): continue
 		if mesh_node.mesh == null or not (mesh_node.mesh is ArrayMesh): continue
 		var mesh: ArrayMesh = mesh_node.mesh
 		for s: int in mesh.get_surface_count():
@@ -5705,6 +6064,7 @@ func npc_cut_body(plane_world: Plane, keep_point_world: Vector3, part_key: Strin
 			posed.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,
 				_cut_skin_arrays39(source.surface_get_arrays(surface), skin_transforms, false))
 		var cut = MeshSever.cut(posed, local_plane, part_binds, keep_front)
+		if cut.body_contour_invalid: return false
 		var kept_arrays: Array = cut.front_arrays if keep_front else cut.back_arrays
 		var gone_arrays: Array = cut.back_arrays if keep_front else cut.front_arrays
 		var kept_cap: Array = cut.front_cap_arrays if keep_front else cut.back_cap_arrays
@@ -5719,7 +6079,16 @@ func npc_cut_body(plane_world: Plane, keep_point_world: Vector3, part_key: Strin
 		if cut.triangles_split == 0 and not disconnected_detach33: continue
 		# Validate every intersecting layer before changing ANY original mesh.
 		# Partial failure must not mark the whole limb as successfully mesh-cut.
-		if not disconnected_detach33 and (kept_arrays.is_empty() or gone_arrays.is_empty() or kept_cap.is_empty() or gone_cap.is_empty()): return false
+		if not disconnected_detach33:
+			if kept_arrays.is_empty() or gone_arrays.is_empty(): return false
+			if kept_cap.is_empty() or gone_cap.is_empty():
+				# Clay-only garment sheets can have an original open edge. Slice the
+				# real sheet without inventing a flesh cap; closed body layers still
+				# require both caps, and branch-created gaps do not qualify.
+				var verified_sheet28: bool = part_key == "_clay_torso" and str(mesh_node.name).begins_with("Armor") and cut.open_boundary_verified
+				if not verified_sheet28: return false
+				kept_cap = []
+				gone_cap = []
 		var kept_indices: Array[int] = cut.front_surface_indices if keep_front else cut.back_surface_indices
 		var gone_indices: Array[int] = cut.back_surface_indices if keep_front else cut.front_surface_indices
 		var source_materials: Array[Material] = []
@@ -5750,8 +6119,11 @@ func npc_cut_body(plane_world: Plane, keep_point_world: Vector3, part_key: Strin
 			continue
 		# 1. The body keeps its side, with the cut face closed.
 		var body_mesh := ArrayMesh.new()
+		var hero_first_arrays31: Array = []
 		for arrays: Array in kept_arrays:
-			body_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, _cut_skin_arrays39(arrays, skin_transforms, true))
+			var restored_arrays31: Array = _cut_skin_arrays39(arrays, skin_transforms, true)
+			if hero_first_arrays31.is_empty(): hero_first_arrays31 = restored_arrays31
+			body_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, restored_arrays31)
 		for i: int in body_mesh.get_surface_count():
 			var material: Material = source_materials[kept_indices[i]]
 			if material != null: body_mesh.surface_set_material(i, material)
@@ -5766,6 +6138,8 @@ func npc_cut_body(plane_world: Plane, keep_point_world: Vector3, part_key: Strin
 			for surface_index: int in source.get_surface_count():
 				mesh_node.set_surface_override_material(surface_index, null)
 			mesh_node.mesh = body_mesh
+			if mesh_node.has_meta("hero_medieval31"):
+				mesh_node.set_meta("hero_wound_arrays31", {"mesh":body_mesh,"arrays":hero_first_arrays31})
 			# The old mail override hid the flesh cap. Surface materials preserve mail
 			# on the exterior while the new cap shows its own flesh material.
 			mesh_node.material_override = null
@@ -5800,6 +6174,10 @@ func npc_cut_body(plane_world: Plane, keep_point_world: Vector3, part_key: Strin
 					nearest = piece
 			if is_instance_valid(nearest):
 				whole.reparent(nearest, true)
+	if any and cut_rig == _rig:
+		var hero_appearance31 := _world.get_node_or_null("CastleArmorEquipment") if is_instance_valid(_world) else null
+		if hero_appearance31 != null and hero_appearance31.has_method("after_cut31") and _npc_debris.size() > debris_start31:
+			hero_appearance31.after_cut31({"plane":plane_world,"keep":keep_point_world,"scope":part_key,"head_gone":preserve_head31}, _npc_debris[debris_start31].get("node"))
 	if not any:
 		print("DSH_GORE_CUT refused=nothing_crossed")
 	return any
@@ -5820,7 +6198,12 @@ func _spawn_cut_debris(gone_arrays: Array, gone_cap: Array, from: MeshInstance3D
 	if bounds.size.length_squared() < 1.0e-8: return
 	var body := RigidBody3D.new()
 	body.name = "KnightCutLimb"
-	body.mass = 0.8
+	body.mass = 0.08
+	# Lightweight remains yield to real foot contacts without excessive friction.
+	var contact_material := PhysicsMaterial.new()
+	contact_material.friction = 0.25
+	contact_material.bounce = 0.0
+	body.physics_material_override = contact_material
 	body.continuous_cd = true
 	# The player masks layer 1. Both player and world can now push the cut limb.
 	body.collision_layer = 1
@@ -5853,6 +6236,7 @@ func _spawn_cut_debris(gone_arrays: Array, gone_cap: Array, from: MeshInstance3D
 		"visual": piece,
 		"age": 0.0,
 	})
+	if owner_body == _player and not gone_cap.is_empty(): preload("res://scripts/combat/blood_flow32.gd").register_player_cap(self, from, piece, gone_cap)
 
 ## Drops the cut pieces under gravity, spins them, and lets them settle.
 func _update_npc_debris(delta: float) -> void:
@@ -5907,10 +6291,11 @@ func _spawn_resident_knight(at: Vector3) -> bool:
 		print("DSH_SWORD_PROTO_NPC appearance_failed ", appearance.get("error", ""))
 		return false
 	var body := CharacterBody3D.new()
-	body.name = "SwordKnight"
+	body.name = "EnemyKnight"
 	body.collision_layer = 1
 	body.collision_mask = 1
 	body.floor_snap_length = 0.25
+	body.set_meta("enemy_knight", true)
 	var capsule := CapsuleShape3D.new(); capsule.radius = 0.36; capsule.height = NPC_HEIGHT
 	var hull := CollisionShape3D.new(); hull.shape = capsule; hull.position.y = NPC_HEIGHT * 0.5
 	body.add_child(hull)
@@ -5940,6 +6325,20 @@ func _spawn_resident_knight(at: Vector3) -> bool:
 	_npc_part_hp.clear()
 	_npc_dead = false
 	_npc_hp = NPC_MAX_HP57
+	_npc_engaged = false
+	_npc_state = "hunt"
+	_npc_timer = 0.0
+	_enemy_seen_since_ms = 0
+	_enemy_last_seen = at
+	_enemy_lost_since_ms = 0
+	_enemy_spotted_once = false
+	_enemy_combo_left = 0
+	_enemy_clashes = 0
+	_enemy_last_clash_push = 0.0
+	_enemy_clash_lock_until_ms = 0
+	_enemy_evade_cooldown_ms = 0
+	_enemy_evades = 0
+	_enemy_armor_tier = "medium"
 	_npc_route_dir50 = Vector3.ZERO
 	_npc_route_request53 = Vector3.ZERO
 	_npc_replan_ms50 = 0
@@ -5954,9 +6353,14 @@ func _spawn_resident_knight(at: Vector3) -> bool:
 	_npc_orbit_side53 = 1.0
 	_npc_orbit_until53 = 0
 	_npc_disarmed = false
+	_npc_knock_pose_active27 = false
+	_npc_knock_roll_speed27 = 0.0
+	_npc_knocked_until_ms31 = 0
 	_npc_bleed_until_ms = 0
 	_npc_bleed_at = Vector3.ZERO
 	_npc_bleed_local = Vector3.ZERO
+	_npc_bleed_bone27 = -1
+	_npc_bleed_bone_local27 = Vector3.ZERO
 	_npc_bleed_accum = 0.0
 	_npc_armor_loadout31.clear()
 	_npc_corpse31 = null
@@ -6001,9 +6405,15 @@ func _update_city_npc(delta: float) -> void:
 			_npc_bind_timer = 0.0
 			var knight_spawn: Vector3 = _player.global_position + _player._visual.global_basis.z * 4.6
 			if bool(_world.get("castle_map")):
-				var castle_target: Vector3 = _world.get("_castle_spawn_target")
-				if castle_target.is_finite() and not castle_target.is_zero_approx():
-					knight_spawn = castle_target + _player._visual.global_basis.x * 4.6 + _player._visual.global_basis.z * 4.0
+				# The knight guards the gate; main.gd places the player ten metres in
+				# front of the same threshold.
+				var gate_target: Vector3 = _world.get("_castle_enemy_spawn_target")
+				if gate_target.is_finite() and not gate_target.is_zero_approx():
+					knight_spawn = gate_target
+				else:
+					var castle_target: Vector3 = _world.get("_castle_spawn_target")
+					if castle_target.is_finite() and not castle_target.is_zero_approx():
+						knight_spawn = castle_target + _player._visual.global_basis.x * 4.6 + _player._visual.global_basis.z * 4.0
 			var grounded_spawn := _grounded(knight_spawn)
 			if not grounded_spawn.is_finite(): return
 			_npc_bind_attempts += 1
@@ -6018,18 +6428,16 @@ func _update_city_npc(delta: float) -> void:
 		_update_npc_bleed(delta)
 		_apply_npc_severed()
 		return
-	if not _npc_dead and now_ms() < _npc_knocked_until_ms31:
+	if not _npc_dead and (now_ms() < _npc_knocked_until_ms31 or _npc_knock_pose_active27):
 		# A real capsule slides with the impact while the torso and collider roll
 		# onto the ground. Movement and attacks pause until the fighter gets up.
 		var vertical := _npc_body.velocity.y
 		_npc_body.velocity = _npc_hit_push31
 		_npc_body.velocity.y = -0.5 if _npc_body.is_on_floor() else vertical - 9.8 * delta
+		_npc_body.velocity = _embedded29.constrain_target_velocity(self, _npc_body.velocity)
 		_npc_body.move_and_slide()
 		_npc_hit_push31 = _npc_hit_push31.move_toward(Vector3.ZERO, 2.6 * delta)
-		_npc_motion.rotation.x = lerpf(_npc_motion.rotation.x, -PI * 0.48, clampf(8.0 * delta, 0.0, 1.0))
-		if is_instance_valid(_npc_hull31):
-			_npc_hull31.rotation.x = lerpf(_npc_hull31.rotation.x, -PI * 0.5, clampf(8.0 * delta, 0.0, 1.0))
-			_npc_hull31.position = _npc_hull31.position.lerp(Vector3(0.0, 0.38, -0.70), clampf(8.0 * delta, 0.0, 1.0))
+		_npc_advance_knock_pose27(delta, now_ms() < _npc_knocked_until_ms31)
 		_update_npc_bleed(delta)
 		if _npc_gait != null: _npc_gait.update_pose(delta, Vector3.ZERO, _npc_body.is_on_floor())
 		_apply_npc_severed()
@@ -6087,6 +6495,7 @@ func _update_city_npc(delta: float) -> void:
 		else:
 			_npc_body.velocity.y = retreat_vertical - 9.8 * delta
 		_npc_hop_wait = maxf(0.0, _npc_hop_wait - delta)
+		_npc_body.velocity = _embedded29.constrain_target_velocity(self, _npc_body.velocity)
 		_npc_body.move_and_slide()
 		_update_npc_bleed(delta)
 		if _npc_gait != null:
@@ -6094,24 +6503,30 @@ func _update_city_npc(delta: float) -> void:
 		_apply_npc_severed()
 		if not _npc_dead:
 			_npc_motion.rotation.x = lerpf(_npc_motion.rotation.x,
-				0.42 if now_ms() < _npc_pain_until_ms else 0.16, clampf(5.0 * delta, 0.0, 1.0))
+				0.42 if now_ms() < maxi(_npc_pain_until_ms, _npc_flinch_until_ms31) else 0.16, clampf(5.0 * delta, 0.0, 1.0))
 		return
 	_npc_sword.visible = _npc_hp > 0.0
 	var to_player := _player.global_position - _npc_body.global_position
 	to_player.y = 0.0
 	var distance := to_player.length()
-	# He faces the player and looks passive until the fight starts.
-	if to_player.length_squared() > 1.0e-6:
-		var want_yaw := atan2(to_player.x, to_player.z)
+	# He faces the player (or the last place he saw him while searching).
+	var face_at: Vector3 = _player.global_position
+	if _npc_state == "search" and _enemy_last_seen.is_finite():
+		face_at = _enemy_last_seen
+	var face_delta := face_at - _npc_body.global_position
+	face_delta.y = 0.0
+	if face_delta.length_squared() > 1.0e-6:
+		var want_yaw := atan2(face_delta.x, face_delta.z)
 		_npc_body.rotation.y = rotate_toward(_npc_body.rotation.y, want_yaw + PI, 4.2 * delta)
-	# Wake up when the player swings at him from close range.
-	if not _npc_engaged and distance < 10.0 and not bool(_world.get("preview_dead")) and _npc_visible_player43():
-		_npc_engaged = true
-		_npc_state = "approach"
-		print("DSH_SWORD_PROTO_NPC aggro distance=", distance)
 	if bool(_world.get("preview_dead")):
 		_npc_engaged = false
 		_npc_state = "wait"
+	elif not _npc_engaged:
+		# A real enemy does not wait to be hit: he watches his front arc, confirms
+		# the player through a real line of sight for 180 ms, then hunts.
+		_enemy_acquire(distance, to_player)
+	else:
+		_enemy_update_memory()
 	_npc_timer += delta
 	_npc_observe53(delta)
 	_update_npc_bleed(delta)
@@ -6119,10 +6534,24 @@ func _update_city_npc(delta: float) -> void:
 	var move := Vector3.ZERO
 	var strike_sample := false
 	var speed_scale := _npc_speed_scale()
+	if not _npc_engaged and _npc_state != "wait":
+		move = _enemy_search_move() * speed_scale
 	if _npc_engaged:
+		# A lost player turns the duel into a search for the last seen position; the
+		# knight does not keep swinging at a memory through a wall.
+		if _enemy_lost_since_ms > 0 and now_ms() - _enemy_lost_since_ms > ENEMY_LOST_SIGHT_MS:
+			_npc_state = "search"
 		# Walk in, wind up, cut - the walk animation plays because his own body is
 		# actually moving, and the gait samples the horizontal velocity from it.
 		match _npc_state:
+			"search":
+				move = _enemy_search_move() * speed_scale
+				want = _npc_guard_direction()
+				if _npc_visible_player43() and distance <= ENEMY_SIGHT_RANGE:
+					_enemy_seen_since_ms = now_ms()
+					_enemy_lost_since_ms = 0
+					_npc_state = "approach"
+					_npc_timer = 0.0
 			"approach":
 				move = _npc_footwork53(to_player, distance, false) * speed_scale
 				if _npc_should_guard(distance):
@@ -6131,8 +6560,9 @@ func _update_city_npc(delta: float) -> void:
 					_npc_guard_entries += 1
 					_npc_guard_cooldown_ms = now_ms() + 650
 				# A windup is allowed only once the real arm and blade can reach.
-				# This is positioning, never a damage fallback.
-				elif _npc_timer > (0.18 if now_ms() < _npc_counter_until53 else 0.36) and distance >= 1.20 and distance <= _npc_reach50() and _npc_visible_player43():
+				# This is positioning, never a damage fallback. A counter after a
+				# parry starts 180 ms earlier, exactly like the residents.
+				elif _npc_timer > _enemy_attack_delay() and distance >= 1.20 and distance <= _npc_reach50() and _npc_visible_player43():
 					_npc_begin_attack53(distance)
 			"windup":
 				# Track the observed opponent early, then commit the swing. No late homing.
@@ -6142,6 +6572,11 @@ func _update_city_npc(delta: float) -> void:
 				# moves normally; the visual never jumps ahead of its collision body.
 				if distance < 1.18: move = _npc_navigation50(-to_player.normalized()) * 1.7 * speed_scale
 				elif distance > 1.45 and _npc_timer < 0.32: move = _npc_navigation50(to_player.normalized()) * 0.85 * speed_scale
+				# He reads the real incoming steel and may abort the windup into a
+				# sidestep. This is the same buffered 180 ms observation, not input
+				# reading; it has a cooldown and a visible 260 ms evade.
+				if _npc_timer > 0.24 and _npc_timer < 0.55:
+					_enemy_try_evade(distance)
 				if _npc_timer > 0.55:
 					_npc_state = "strike"
 					_npc_timer = 0.0
@@ -6159,6 +6594,10 @@ func _update_city_npc(delta: float) -> void:
 					_npc_follow_dir = _npc_dir
 					_npc_state = "follow"
 					_npc_timer = 0.0
+					# A landed cut earns pressure: every other clean hit can chain a
+					# second beat after a short, visible recovery.
+					if _npc_strike_had_hit and _enemy_combo_left <= 0 and _npc_hits % 2 == 1:
+						_enemy_combo_left = 1
 			"follow":
 				want = _npc_follow_dir
 				if distance > 1.10:
@@ -6166,6 +6605,18 @@ func _update_city_npc(delta: float) -> void:
 				if _npc_timer > 0.19:
 					_npc_state = "recover"
 					_npc_timer = 0.0
+			"evade":
+				# A real sidestep away from the player's blade, then guard and counter.
+				var evade_forward := to_player.normalized()
+				var evade_side := evade_forward.cross(Vector3.UP) * _npc_orbit_side53
+				var evade_dir := (evade_side - evade_forward * 0.55).normalized()
+				move = _npc_navigation50(evade_dir) * 3.0 * speed_scale
+				want = _npc_guard_direction()
+				if _npc_timer > 0.26:
+					_npc_state = "guard"
+					_npc_timer = 0.0
+					_npc_guard_entries += 1
+					_npc_guard_cooldown_ms = now_ms() + 650
 			"guard":
 				want = _npc_guard_direction()
 				move = _npc_footwork53(to_player, distance, true) * speed_scale
@@ -6175,15 +6626,24 @@ func _update_city_npc(delta: float) -> void:
 					_npc_state = "recover"
 					_npc_timer = 0.0
 			_:
-				move = _npc_footwork53(to_player, distance, true) * speed_scale * 0.7
-				if _npc_timer > 0.22 and _npc_should_guard(distance):
-					_npc_state = "guard"
-					_npc_timer = 0.0
-					_npc_guard_entries += 1
-					_npc_guard_cooldown_ms = now_ms() + 650
-				elif _npc_timer > 0.46:
-					_npc_state = "approach"
-					_npc_timer = 0.0
+				# A clean hit chains one more beat before the normal recovery. The
+				# combo still needs a reachable, visible target and real blade contact.
+				if _enemy_combo_left > 0 and now_ms() >= _enemy_clash_lock_until_ms \
+						and _npc_timer > ENEMY_COMBO_GAP and distance <= _npc_reach50() + 0.15 \
+						and _npc_visible_player43():
+					_enemy_combo_left -= 1
+					print("DSH_ENEMY_KNIGHT_COMBO distance=", distance)
+					_npc_begin_attack53(distance)
+				else:
+					move = _npc_footwork53(to_player, distance, true) * speed_scale * 0.7
+					if _npc_timer > 0.22 and _npc_should_guard(distance):
+						_npc_state = "guard"
+						_npc_timer = 0.0
+						_npc_guard_entries += 1
+						_npc_guard_cooldown_ms = now_ms() + 650
+					elif _npc_timer > _enemy_recover_delay():
+						_npc_state = "approach"
+						_npc_timer = 0.0
 		if _npc_hp <= 0.0:
 			_npc_engaged = false
 			_npc_state = "wait"
@@ -6192,6 +6652,9 @@ func _update_city_npc(delta: float) -> void:
 		move *= 0.12
 		strike_sample = false
 		if _npc_state in ["windup", "strike", "follow"]: _npc_stop_attack43()
+		_npc_motion.rotation.x = lerpf(_npc_motion.rotation.x, 0.38, clampf(8.0 * delta, 0.0, 1.0))
+	elif now_ms() < _npc_flinch_until_ms31 and not _npc_dead:
+		# Preserve the short visible reaction without cancelling a committed attack.
 		_npc_motion.rotation.x = lerpf(_npc_motion.rotation.x, 0.38, clampf(8.0 * delta, 0.0, 1.0))
 	elif not _npc_dead:
 		_npc_motion.rotation.x = lerpf(_npc_motion.rotation.x, 0.0, clampf(4.0 * delta, 0.0, 1.0))
@@ -6208,6 +6671,7 @@ func _update_city_npc(delta: float) -> void:
 	else:
 		_npc_body.velocity.y = vertical_speed - 9.8 * delta
 	_npc_hop_wait = maxf(0.0, _npc_hop_wait - delta)
+	_npc_body.velocity = _embedded29.constrain_target_velocity(self, _npc_body.velocity)
 	_npc_body.move_and_slide()
 	# The canonical walk gait plays FIRST, so his legs really step while he moves;
 	# the sword arm is then written over it, exactly like the player's own arm.
@@ -6242,6 +6706,82 @@ func _npc_visible_player43() -> bool:
 func _npc_should_guard(distance: float) -> bool:
 	return distance < 2.7 and _npc_threat53 and now_ms() >= _npc_guard_cooldown_ms
 
+## ------------------------------------------------------------ enemy knight
+## Perception: a frontal cone, a real ray and a 180 ms confirmation. Being very
+## close bypasses the cone (he hears the man), but a wall still blocks sight.
+func _enemy_acquire(distance: float, to_player: Vector3) -> void:
+	if distance <= 0.01 or not is_instance_valid(_player): return
+	var visible := _npc_visible_player43()
+	var forward := -_npc_body.global_basis.z
+	var facing := forward.dot(to_player.normalized()) if to_player.length_squared() > 1.0e-6 else -1.0
+	var in_cone := distance <= ENEMY_SIGHT_RANGE and (facing >= ENEMY_SIGHT_DOT or distance < 1.6)
+	if visible and in_cone:
+		var now := now_ms()
+		if _enemy_seen_since_ms == 0:
+			_enemy_seen_since_ms = now
+			print("DSH_ENEMY_KNIGHT_SPOTS distance=", distance, " facing=", facing)
+		_enemy_last_seen = _player.global_position
+		if now - _enemy_seen_since_ms >= ENEMY_REACTION_MS:
+			_npc_engaged = true
+			_enemy_spotted_once = true
+			_enemy_lost_since_ms = 0
+			_npc_state = "approach"
+			_npc_timer = 0.0
+			print("DSH_ENEMY_KNIGHT_ALERT distance=", distance,
+				" reaction_ms=", now - _enemy_seen_since_ms)
+	else:
+		_enemy_seen_since_ms = 0
+
+## Once engaged, keeps the last position at which the player was actually seen.
+## Losing the line of sight starts a search instead of tracking through geometry.
+func _enemy_update_memory() -> void:
+	if not is_instance_valid(_player): return
+	# At sword distance a man is not lost because a limb hitbox crossed the ray;
+	# the line-of-sight test matters for the approach/search, not for two men in
+	# contact. This keeps the search from cancelling a live exchange.
+	var close := _npc_body.global_position.distance_to(_player.global_position) < 2.2
+	if _npc_visible_player43() or close:
+		_enemy_last_seen = _player.global_position
+		_enemy_lost_since_ms = 0
+	elif _enemy_lost_since_ms == 0:
+		_enemy_lost_since_ms = now_ms()
+		print("DSH_ENEMY_KNIGHT_LOST_AT ", _enemy_last_seen)
+
+## Walks to the last seen position using the population's own navigation/detour.
+func _enemy_search_move() -> Vector3:
+	if not _enemy_spotted_once or not _enemy_last_seen.is_finite(): return Vector3.ZERO
+	var target := _enemy_last_seen - _npc_body.global_position
+	target.y = 0.0
+	if target.length() <= 1.2: return Vector3.ZERO
+	return _npc_navigation50(target.normalized()) * 2.4
+
+func _enemy_is_enraged() -> bool:
+	return _npc_hp > 0.0 and _npc_hp <= NPC_MAX_HP57 * ENEMY_ENRAGE_FRACTION
+
+func _enemy_attack_delay() -> float:
+	if now_ms() < _npc_counter_until53: return 0.18
+	if _enemy_combo_left > 0: return 0.12
+	return 0.20 if _enemy_is_enraged() else 0.36
+
+func _enemy_recover_delay() -> float:
+	return 0.28 if _enemy_is_enraged() else 0.46
+
+## Reading the visible incoming blade: abort a windup into a real sidestep. The
+## observation is already buffered 180 ms; the cooldown keeps it from becoming a
+## perfect dodge and the evade itself is a 260 ms, collider-driven move.
+func _enemy_try_evade(distance: float) -> bool:
+	if not _npc_threat53 or distance > 2.3: return false
+	if now_ms() < _enemy_evade_cooldown_ms: return false
+	if _npc_attack_cursor % 2 != 0: return false
+	_enemy_evade_cooldown_ms = now_ms() + 1600
+	_enemy_evades += 1
+	_npc_state = "evade"
+	_npc_timer = 0.0
+	_npc_strike_had_hit = true
+	_npc_blade_prev = PackedVector3Array()
+	print("DSH_ENEMY_KNIGHT_EVADE distance=", distance)
+	return true
+
 func _npc_stop_attack43() -> void:
 	_npc_state = "recover"
 	_npc_timer = 0.0
@@ -6268,7 +6808,26 @@ func _npc_guard_direction() -> Vector3:
 	var toward := steel - shoulder
 	return (toward.normalized() + Vector3.UP * 0.18).normalized() if toward.length_squared() > 0.01 else _npc_high_guard()
 
+var _npc_mix_cursor27 := 0
+
 func _npc_choose_attack(distance: float) -> String:
+	var pick := _npc_attack_opening27(distance)
+	if distance > 1.42 and _npc_attack_cursor % 4 == 3:
+		return "thrust"
+	if _enemy_is_enraged() and distance <= 1.55:
+		return "overhead" if _npc_attack_cursor % 2 == 0 else "left"
+	# A low passive guard used to replace every choice with overhead, even after
+	# repeated misses. Keep the observed opening, but vary the next committed cut.
+	if pick == _npc_attack_kind:
+		var alternatives := ["left", "right", "overhead", "rising"]
+		for offset in alternatives.size():
+			var candidate: String = alternatives[(_npc_mix_cursor27 + offset) % alternatives.size()]
+			if candidate == pick or (candidate == "rising" and distance > 1.48): continue
+			_npc_mix_cursor27 = (_npc_mix_cursor27 + offset + 1) % alternatives.size()
+			return candidate
+	return pick
+
+func _npc_attack_opening27(distance: float) -> String:
 	var choices := ["left", "right", "overhead", "rising"]
 	var pick: String = choices[_npc_attack_cursor % choices.size()]
 	_npc_attack_cursor += 1
@@ -6535,9 +7094,7 @@ func _damage_npc(amount: float, position: Vector3, now: int) -> void:
 	if _npc_state == "wait":
 		_npc_state = "approach"
 		_npc_timer = 0.0
-	_impact_player.global_position = position
-	_impact_player.pitch_scale = 1.25
-	_impact_player.play()
+	combat_audio_event30("blunt",position,clampf(amount/DAMAGE_MAX,.1,1.0))
 	_show_spark(position)
 
 ## True when the collider belongs to the resident we armed.
@@ -6613,10 +7170,12 @@ func _npc_take_blade(point: Vector3, speed: float, direction: Vector3, damage: f
 		_npc_blade_prev = PackedVector3Array()
 	_spray_blood(point, direction, 2 if damage < 3.0 else (8 if damage < 20.0 else 16))
 	_npc_bleed_until_ms = max(_npc_bleed_until_ms, Time.get_ticks_msec() + (600 if damage < 3.0 else 2600))
-	_npc_bleed_at = point
-	_npc_bleed_local = _npc_body.to_local(point)
-	_npc_pain_until_ms = max(_npc_pain_until_ms, Time.get_ticks_msec() +
-		(1200 if damage >= 20.0 else (650 if damage >= 3.0 else 160)))
+	_npc_anchor_wound27(full_key, point)
+	# Small melee scratches flinch visually; only deep wounds interrupt combat.
+	if damage >= 3.0:
+		_npc_pain_until_ms = maxi(_npc_pain_until_ms, Time.get_ticks_msec() + (1200 if damage >= 20.0 else 650))
+	else:
+		_npc_flinch_until_ms31 = maxi(_npc_flinch_until_ms31, Time.get_ticks_msec() + 160)
 	if float(_npc_part_hp[full_key]) > 0.0: return
 	if key in ["chest", "pelvis"] or (key == "head" and not sever_contact):
 		_npc_die_from_vital_wound31(point, direction, speed)
@@ -6695,8 +7254,7 @@ func _sever_part(full_key: String, kind: String, part: Dictionary, point: Vector
 	if is_instance_valid(_npc_armor_visual31): _npc_armor_visual31.on_severed(full_key, cut_done)
 	_spray_blood(point, direction, 34)
 	_npc_bleed_until_ms = Time.get_ticks_msec() + 6500
-	_npc_bleed_at = point
-	_npc_bleed_local = _npc_body.to_local(point)
+	_npc_anchor_wound27(full_key, point, true)
 	_npc_pain_until_ms = Time.get_ticks_msec() + 2200
 	# The accepted melee/arrow hit owns wound audio; severing does not double it.
 	# Losing the sword arm means losing the sword.
@@ -6761,6 +7319,7 @@ func _apply_npc_severed() -> void:
 var _blood_material: StandardMaterial3D
 var _blood_meshes: Array[SphereMesh] = []
 const BLOOD_MESH_VARIANTS := 5
+const BloodBudget31 = preload("res://scripts/combat/blood_budget31.gd")
 
 func _ensure_blood_resources() -> void:
 	if _blood_material == null:
@@ -6770,6 +7329,8 @@ func _ensure_blood_resources() -> void:
 	if _blood_meshes.is_empty():
 		for i: int in BLOOD_MESH_VARIANTS:
 			var sphere := SphereMesh.new()
+			sphere.radial_segments = 12
+			sphere.rings = 6
 			sphere.radius = lerpf(0.020, 0.050, float(i) / float(BLOOD_MESH_VARIANTS - 1))
 			sphere.height = sphere.radius * 2.0
 			_blood_meshes.append(sphere)
@@ -6782,11 +7343,13 @@ func _spray_blood(at: Vector3, direction: Vector3, count: int) -> void:
 	_ensure_blood_resources()
 	for i: int in count:
 		if _blood_count >= MAX_BLOOD: return
+		if not BloodBudget31.available(_world):return
 		var drop := MeshInstance3D.new()
 		drop.mesh = _blood_meshes[_blood_mesh_cursor % _blood_meshes.size()]
 		_blood_mesh_cursor += 1
 		drop.material_override = _blood_material
 		_world.add_child(drop)
+		BloodBudget31.track(_world,drop)
 		drop.global_position = at + Vector3(randf_range(-0.07, 0.07), randf_range(-0.05, 0.09), randf_range(-0.07, 0.07))
 		var spread := Vector3(randf_range(-1.0, 1.0), randf_range(-0.4, 1.4), randf_range(-1.0, 1.0))
 		var velocity := (direction.normalized() * randf_range(1.6, 4.2) + spread * 1.1)
@@ -6805,7 +7368,12 @@ const MAX_BLOOD := 260
 ## the part that came off (arm, leg, head with helm) and the cut end is bloody.
 func _throw_stump(kind: String, at: Vector3, direction: Vector3, speed: float) -> void:
 	var body := RigidBody3D.new()
-	body.mass = 1.2
+	body.mass = 0.12
+	# Lightweight remains yield to real foot contacts without excessive friction.
+	var contact_material := PhysicsMaterial.new()
+	contact_material.friction = 0.25
+	contact_material.bounce = 0.0
+	body.physics_material_override = contact_material
 	body.gravity_scale = 1.35
 	# The player masks layer 1, so the fallback piece can also be stepped into and
 	# pushed instead of becoming non-interactive decoration.
@@ -7040,6 +7608,13 @@ func snapshot() -> Dictionary:	return {
 		"blade_in_world": _blade_penetrates_world(_dir, _sword_origin),
 		"body_clearance": _body_blade_clearance(),
 		"armour_plates": _knight_armour.size(), "stump_count": _stumps.size(),
+		"npc_armor": _npc_armor_loadout31.duplicate(), "npc_armor_tier": _enemy_armor_tier,
+		"npc_walk_gait": is_instance_valid(_npc_gait),
+		"enemy_hunting": _npc_engaged, "enemy_enraged": _enemy_is_enraged(),
+		"enemy_clashes": _enemy_clashes, "enemy_last_clash_push": _enemy_last_clash_push,
+		"enemy_combo_left": _enemy_combo_left, "enemy_evades": _enemy_evades,
+		"enemy_attack_counts": _npc_attack_counts.duplicate(),
+		"enemy_last_seen": _enemy_last_seen, "enemy_lost_ms": _enemy_lost_since_ms,
 		"sparks": _sparks.size(), "sparks_total": _sparks_total, "half_sword": _half_sword, "half_sword_point": _half_sword_blade_point,
 		"bleeding": Time.get_ticks_msec() < _npc_bleed_until_ms,
 		"npc_fall": (1.0 - absf(_npc_corpse31.global_basis.y.dot(Vector3.UP))) if is_instance_valid(_npc_corpse31) else 0.0,
@@ -7101,77 +7676,52 @@ func _exit_tree() -> void:
 	set_process_input(false)
 
 
-var _melee_streams31: Dictionary = {}
-var _melee_players31: Array[AudioStreamPlayer3D] = []
-var _melee_audio_last31: Dictionary = {}
-var _melee_audio_cursor31 := 0
-var _melee_audio_events31 := {"flesh": 0, "metal": 0}
+var _combat_audio_node30: Node3D
+
+func _ensure_combat_audio30() -> Node3D:
+	if not is_instance_valid(_combat_audio_node30):
+		_combat_audio_node30=preload("res://scripts/audio/combat_audio30.gd").new()
+		_combat_audio_node30.name="CombatAudio30"
+		add_child(_combat_audio_node30)
+	return _combat_audio_node30
 
 func _build_melee_audio31() -> void:
-	if not _melee_streams31.is_empty(): return
-	for kind: String in ["flesh", "metal"]:
-		var variants: Array[AudioStreamWAV] = []
-		for variant: int in 3: variants.append(_melee_stream31(kind, variant))
-		_melee_streams31[kind] = variants
+	_ensure_combat_audio30()
 
 func _melee_stream31(kind: String, variant: int) -> AudioStreamWAV:
-	var rate := 22050
-	var duration := 0.24 if kind == "flesh" else 0.38
-	var count := int(duration * rate)
-	var bytes := PackedByteArray()
-	bytes.resize(count * 2)
-	var random := RandomNumberGenerator.new()
-	random.seed = 31000 + variant * 97
-	var low := 0.0
-	var tune := 0.92 + variant * 0.08
-	for i: int in count:
-		var t := float(i) / rate
-		var noise := random.randf_range(-1.0, 1.0)
-		low = lerpf(low, noise, 0.18)
-		var value := 0.0
-		if kind == "flesh":
-			# Short attack, low body impact and delayed damp tissue/cloth texture.
-			value = sin(TAU * tune * (180.0 * t - 130.0 * t * t)) * exp(-27.0 * t) * 0.60
-			value += noise * exp(-120.0 * t) * 0.27 + low * exp(-50.0 * absf(t - 0.024)) * 0.75
-		else:
-			# Steel has sustained inharmonic partials; no flesh layer on a shield.
-			value = (sin(TAU * 1450.0 * tune * t) * 0.40 + sin(TAU * 2633.0 * tune * t) * 0.22) * exp(-15.0 * t)
-			value += noise * exp(-90.0 * t) * 0.27
-		bytes.encode_s16(i * 2, int(clampf(value, -1.0, 1.0) * 30000.0))
-	var stream := AudioStreamWAV.new()
-	stream.format = AudioStreamWAV.FORMAT_16_BITS
-	stream.mix_rate = rate
-	stream.stereo = false
-	stream.data = bytes
-	return stream
+	var audio := _ensure_combat_audio30()
+	var bank: String="blunt" if kind=="flesh" else kind
+	return audio.banks[bank][posmod(variant,4)]
 
 func _play_melee_hit31(at: Vector3, kind: String, strength: float) -> void:
-	var now := Time.get_ticks_msec()
-	# Called only by accepted hits/parries, never by continuous contact. This
-	# short debounce also merges simultaneous limb reports from the same blow.
-	if now - int(_melee_audio_last31.get(kind, -10000)) < 90: return
-	_melee_audio_last31[kind] = now
-	_build_melee_audio31()
-	if _melee_players31.size() < 4:
-		var sound := AudioStreamPlayer3D.new()
-		sound.name = "MeleeImpact31"
-		sound.unit_size = 4.0
-		sound.max_distance = 30.0
-		add_child(sound)
-		_melee_players31.append(sound)
-	var sound := _melee_players31[_melee_audio_cursor31 % _melee_players31.size()]
-	_melee_audio_cursor31 += 1
-	var variants: Array = _melee_streams31[kind]
-	sound.stream = variants[randi() % variants.size()]
-	sound.global_position = at
-	sound.pitch_scale = randf_range(0.76, 0.84) if _weapon_id == "sledge" else randf_range(0.94, 1.06)
-	sound.volume_db = lerpf(-13.0, -1.0, clampf(strength, 0.0, 1.0))
-	sound.play()
-	_melee_audio_events31[kind] = int(_melee_audio_events31.get(kind, 0)) + 1
+	combat_audio_event30(kind,at,strength)
+
+func combat_audio_event30(kind: String, at: Vector3, strength: float, event_key: String="") -> void:
+	if kind=="metal":
+		var contact:Dictionary=get_meta("interception_contact31",{})
+		if int(contact.get("frame",-100))==Engine.get_physics_frames() and Vector3(contact.get("point",Vector3.INF)).distance_squared_to(at)<.0025:
+			kind=str(contact.get("material","metal"))
+	var fx_kind:=kind
+	if kind=="armor_light":fx_kind="flesh"
+	elif kind in ["armor_medium","armor_heavy"]:fx_kind="metal"
+	set_meta("contact_fx31",{"kind":fx_kind,"point":at,"frame":Engine.get_physics_frames()})
+	_ensure_combat_audio30().emit_event(self,kind,at,strength,event_key)
+
+func _combat_audio_surface30(collider: Node, at: Vector3, speed: float) -> void:
+	if speed<0.15:return
+	var audio := _ensure_combat_audio30()
+	var kind:String=audio.material_kind(collider)
+	set_meta("contact_fx31",{"kind":kind,"point":at,"frame":Engine.get_physics_frames()})
+	audio.emit_event(self,kind,at,clampf(speed/7.0,.08,1.0),str(collider.get_instance_id()) if is_instance_valid(collider) else "world")
+
+func _combat_audio_tick30(delta: float) -> void:
+	_ensure_combat_audio30().tick(self,delta)
+
+func combat_audio_reset30() -> void:
+	if is_instance_valid(_combat_audio_node30):_combat_audio_node30.reset()
 
 func melee_audio_report31() -> Dictionary:
-	return {"events": _melee_audio_events31.duplicate(), "voices": _melee_players31.size(),
-		"variant_sets": _melee_streams31.size()}
+	return _ensure_combat_audio30().report()
 
 ## A falling catapult stone is a blunt impact, not a sword cut. The catapult
 ## supplies one measured contact and the damage calculated from its 92 kg mass
@@ -7442,6 +7992,9 @@ func _npc_update_aim53() -> void:
 	_npc_aim43 = ((_npc_observed53.position as Vector3) + Vector3.UP * 1.05 + lead - shoulder).normalized()
 
 func _npc_begin_attack53(distance: float) -> void:
+	# A combo is one follow-up beat. If the target left reach, the stored beat has
+	# expired; it must not shorten every later approach.
+	_enemy_combo_left = 0
 	_npc_attack_kind = _npc_choose_attack(distance)
 	_npc_update_aim53()
 	if now_ms() < _npc_counter_until53: _npc_counters53 += 1
@@ -7467,3 +8020,19 @@ func _npc_footwork53(to_player: Vector3, distance: float, defensive: bool) -> Ve
 	var direction := (side + forward * (-0.42 if defensive and _npc_threat53 else 0.10)).normalized()
 	_npc_orbit_steps53 += 1
 	return _npc_navigation50(direction) * (1.05 if defensive else 0.85)
+
+func _ensure_contact_sparks31() -> Node3D:
+	var scene:Node=get_tree().current_scene
+	if not is_instance_valid(scene):scene=get_tree().root
+	var helper:Node3D=scene.get_meta("contact_sparks31") if scene.has_meta("contact_sparks31") else null
+	if not is_instance_valid(helper):
+		helper=preload("res://scripts/combat/contact_sparks31.gd").new()
+		helper.name="ContactSparks31";helper.host=self;scene.add_child(helper);scene.set_meta("contact_sparks31",helper)
+	set_meta("contact_sparks31",helper)
+	return helper
+
+func _prepare_contact31() -> Dictionary:
+	for model:Node3D in _weapon_models.values():Interception31.warm(model)
+	Interception31.warm(_npc_sword)
+	var helper:=_ensure_contact_sparks31()
+	return await helper.warm_render()

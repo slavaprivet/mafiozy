@@ -1,5 +1,9 @@
 extends Node
 const WalkWeaponUI = preload("res://scripts/weapons/walk_weapon_ui.gd")
+const SandboxArsenal29=preload("res://scripts/weapons/sandbox_arsenal29.gd")
+var sandbox_reselect29:=false
+var _sandbox_choice29:=""
+var _sandbox_display29:=""
 var _walk_ui: Control
 var cargo_reticle_requested := false
 ## Local new-session arsenal. Authenticated ownership and target HP stay separate.
@@ -12,7 +16,7 @@ const Projectiles = preload("res://scripts/weapons/weapon_projectiles.gd")
 const SurfaceImpacts = preload("res://scripts/weapons/weapon_surface_impacts.gd")
 const Posture = preload("res://scripts/weapons/weapon_posture_base.gd")
 signal shot_emitted(shot: Dictionary, muzzle: Dictionary, camera_origin: Vector3, camera_direction: Vector3)
-const LABELS := {"none":"Без оружия", "sword":"Тестовый меч (прототип)", "bow":"Тестовый лук (прототип)", "mace":"Булава (прототип)", "axe":"Двуручный топор (прототип)", "sledge":"Кувалда (прототип)", "spear":"Копьё (прототип)", "shield":"Щит (прототип)", "nagan":"Наган", "tt_pistol":"ТТ", "revolver":"Револьвер", "deagle":"Desert Eagle", "golden_colt":"Золотой Colt", "sawn_off":"Обрез", "shotgun":"Дробовик", "uzi":"Uzi", "golden_uzi":"Золотой Uzi", "ak74":"АК-74", "m16":"M16", "tommy_gun":"Томпсон", "sniper":"Снайперская винтовка", "rpg":"РПГ"}
+const LABELS := {"hatchet":"Метательный топорик", "none":"Без оружия", "sword":"Тестовый меч (прототип)", "bow":"Тестовый лук (прототип)", "mace":"Булава (прототип)", "axe":"Двуручный топор (прототип)", "sledge":"Кувалда (прототип)", "spear":"Копьё (прототип)", "shield":"Щит (прототип)", "nagan":"Наган", "tt_pistol":"ТТ", "revolver":"Револьвер", "deagle":"Desert Eagle", "golden_colt":"Золотой Colt", "sawn_off":"Обрез", "shotgun":"Дробовик", "uzi":"Uzi", "golden_uzi":"Золотой Uzi", "ak74":"АК-74", "m16":"M16", "tommy_gun":"Томпсон", "sniper":"Снайперская винтовка", "rpg":"РПГ"}
 ## DSH_SWORD_PROTO: the prototype sword is a melee item, not a firearm. It is
 ## always available in the existing arsenal menu (no purchase, no ammo) and it
 ## only routes input to the prototype host while it is the equipped item.
@@ -20,7 +24,7 @@ const SWORD_ID := "sword"
 ## DSH_BOW_PROTO: the test bow, always available like the test sword.
 const BOW_ID := "bow"
 ## DSH_MELEE_SET: every melee weapon of the set, always available and free of charge.
-const MELEE_IDS := ["sword", "mace", "axe", "sledge", "spear"]
+const MELEE_IDS := ["hatchet", "sword", "mace", "axe", "sledge", "spear"]
 ## DSH_MELEE_SET: the shield is worn, not held, so it has its own equip path.
 const SHIELD_ID := "shield"
 var aim_camera: RefCounted
@@ -36,6 +40,10 @@ var fire_state: Dictionary = {}
 var menu_open := false
 var cargo_menu_owner: Node
 var castle_storage_owner: Node
+var _ship_climb := false
+var _ship_saved_fire_state: Dictionary = {}
+var _ship_saved_shield := false
+var _ship_climb_epoch := -1
 var _catapult_stone_carry := false
 var _catapult_saved_fire_state: Dictionary = {}
 var _catapult_saved_shield := false
@@ -70,6 +78,7 @@ var cosmetic_impacts := 0
 func configure(world: Node3D, actor: CharacterBody3D, options: Dictionary = {}) -> Dictionary:
 	if ready_for_play or not is_instance_valid(world) or not is_instance_valid(actor) or not actor.is_inside_tree(): return {"ok":false,"reason":"binding"}
 	scene = world; player = actor
+	sandbox_reselect29=bool(options.get("sandbox_reselect29",false))
 	inventory = Inventory.new()
 	var inventory_options: Dictionary = {}
 	# DSH_PLAYERSHOP: starter ownership is supplied only when the shop is enabled.
@@ -108,12 +117,14 @@ func _owner_current() -> bool:
 	return ready_for_play and is_inside_tree() and not is_queued_for_deletion() and is_instance_valid(player) and player.is_inside_tree() and not player.is_queued_for_deletion() and is_instance_valid(scene) and scene.is_inside_tree() and not scene.is_queued_for_deletion()
 
 func _interaction_allowed() -> bool:
+	if _ship_climb: return false
 	return _owner_current() and player._free_mouse_look and player._pose_authority == &"on_foot" and player._jump.is_empty() and not bool(scene.get("preview_dead")) and not bool(scene.get("preview_physics_fault"))
 
 ## DSH_MELEE_SET: the arsenal OWNS the cursor, so choosing a weapon has to be allowed
 ## while it is open even though the mouse is not captured. Requiring capture here is
 ## what made pressing a weapon card do nothing at all.
 func _equip_allowed() -> bool:
+	if _ship_climb: return false
 	if not _owner_current(): return false
 	if bool(scene.get("preview_dead")) or bool(scene.get("preview_physics_fault")): return false
 	if player._pose_authority != &"on_foot": return false
@@ -122,11 +133,13 @@ func _equip_allowed() -> bool:
 ## The arsenal may be opened from a captured mouse OR while it is already open, but
 ## never while the player is dead, mid-air or not in control of his body.
 func _menu_allowed() -> bool:
+	if _ship_climb: return false
 	if not _owner_current(): return false
 	if bool(scene.get("preview_dead")) or bool(scene.get("preview_physics_fault")): return false
 	return player._pose_authority == &"on_foot"
 
 func _combat_allowed() -> bool:
+	if _ship_climb: return false
 	if not _owner_current(): return false
 	if bool(scene.get("preview_dead")) or bool(scene.get("preview_physics_fault")): return false
 	if player._pose_authority != &"on_foot": return false
@@ -149,7 +162,7 @@ func controls_blocked() -> bool:
 ## Holding the one catapult stone borrows both hands. The castle inventory keeps
 ## ownership and slot positions; only the active models and attacks are suspended.
 func begin_catapult_stone_carry() -> bool:
-	if _catapult_stone_carry: return false
+	if _catapult_stone_carry or _ship_climb: return false
 	if not _owner_current() or player._pose_authority != &"on_foot": return false
 	if is_instance_valid(castle_storage_owner) and castle_storage_owner.window_open:
 		castle_storage_owner.close_window()
@@ -228,6 +241,10 @@ func equip(id: String) -> Dictionary:
 	if not result.get("ok", false):
 		presentation.equip(str(fire_state.weaponId)); return result
 	fire_state = result.fireState
+	_sandbox_choice29=id
+	if sandbox_reselect29 and id=="none":
+		var prototype:Node=scene.get("preview_sword_prototype")
+		if is_instance_valid(prototype):prototype.set_shield_worn(false)
 	_profile = Fire.profile(id)
 	if id == "none" and is_instance_valid(castle_storage_owner):
 		castle_storage_owner.selected_none()
@@ -257,9 +274,24 @@ func _equip_melee(id: String) -> Dictionary:
 	if not _ensure_medieval_host("preview_sword_prototype", "_install_sword_prototype"):
 		return {"ok":false,"reason":"no_prototype"}
 	var prototype: Node = scene.get("preview_sword_prototype")
+	var models:Dictionary=prototype.get("_weapon_models")
+	var candidate:Node=models.get(id)
+	var attachment:Node=prototype.get("_embedded29").dropped_attachment31(candidate)
+	if is_instance_valid(attachment) and not bool(attachment.call("can_regrab",prototype)):
+		return {"ok":false,"reason":"embedded_weapon_out_of_reach"}
+	if str(prototype.get("_weapon_id"))!=id and preload("res://scripts/combat/embedded_drop31.gd").candidate(prototype):
+		if not bool(prototype.call("drop_sword_to_ground")):return {"ok":false,"reason":"embedded_release_refused"}
+	if sandbox_reselect29 and id in ["axe","sledge","spear"]:
+		prototype.set_shield_worn(false)
 	if id in ["axe", "sledge", "spear"] and is_instance_valid(prototype) \
 			and bool(prototype.shield_status().get("worn", false)):
 		return {"ok":false,"reason":"shield_occupies_right_hand"}
+	# Selection can be refused (lost hands, shield, invalid id). Do not publish a
+	# different HUD/fire-state weapon while the physical host retains its old one.
+	if not bool(prototype.set_weapon(id)):
+		return {"ok":false,"reason":"melee_selection_refused"}
+	if sandbox_reselect29 and id!="hatchet" and not SandboxArsenal29.reclaim_melee(prototype):
+		return {"ok":false,"reason":"sandbox_ground_item_missing"}
 	cancel_inputs()
 	presentation.equip("none")
 	fire_state = Fire.create_state("none")
@@ -268,10 +300,10 @@ func _equip_melee(id: String) -> Dictionary:
 	fire_state.reserveAmmo = 0
 	_profile = {}
 	_sword_prototype_selected(true)
-	_sword_prototype_weapon(id)
 	if is_instance_valid(prototype) and prototype.has_method("set_shield_only31"):
 		prototype.set_shield_only31(false)
 	_bow_prototype_selected(false)
+	_sandbox_choice29=id
 	if is_instance_valid(player._melee_practice): player._melee_practice.cancel("melee_equipped")
 	set_menu(false)
 	_refresh_ui()
@@ -283,6 +315,8 @@ func _equip_shield() -> Dictionary:
 		return {"ok":false,"reason":"no_prototype"}
 	cancel_inputs()
 	var prototype: Node = scene.get("preview_sword_prototype") if is_instance_valid(scene) else null
+	if sandbox_reselect29:
+		return _equip_sandbox_shield29(prototype)
 	if is_instance_valid(prototype) and prototype.has_method("set_shield_worn"):
 		var already_worn: bool = bool(prototype.shield_status().get("worn", false))
 		var worn: bool = true if is_instance_valid(castle_storage_owner) else not already_worn
@@ -302,6 +336,41 @@ func _equip_shield() -> Dictionary:
 		_refresh_ui()
 		return {"ok":true,"weaponId":SHIELD_ID,"shield":worn}
 	return {"ok":false,"reason":"no_prototype"}
+
+func _equip_sandbox_shield29(prototype:Node)->Dictionary:
+	if bool(prototype.get("_shield_broken")) or bool(prototype.call("_hand_lost31",&"right")):
+		return {"ok":false,"reason":"shield_unavailable"}
+	if not SandboxArsenal29.reclaim_shield(prototype):
+		return {"ok":false,"reason":"sandbox_shield_missing"}
+	var current:=str(fire_state.get("weaponId","none"))
+	# Bow/two-handed steel needs both hands. Selecting shield stows that weapon;
+	# a one-handed weapon may retain its existing paired shield configuration.
+	if current not in ["sword","mace"]:
+		if preload("res://scripts/combat/embedded_drop31.gd").candidate(prototype):
+			if not prototype.drop_sword_to_ground():return {"ok":false,"reason":"embedded_release_failed"}
+		_bow_prototype_selected(false)
+		_sword_prototype_selected(false)
+		prototype.set_shield_only31(true)
+		fire_state=Fire.create_state("none")
+		_profile={}
+	if not bool(prototype.set_shield_worn(true)):
+		return {"ok":false,"reason":"shield_equip_failed"}
+	_sword_prototype_selected(true)
+	_sandbox_choice29="shield"
+	set_menu(false)
+	_refresh_ui()
+	return {"ok":true,"weaponId":"shield","shield":true}
+
+func arsenal_display_id29()->String:
+	var id:=str(fire_state.get("weaponId","none"))
+	if not sandbox_reselect29:return id
+	var melee:Node=scene.get("preview_sword_prototype")
+	if _sandbox_choice29=="shield" and is_instance_valid(melee) and bool(melee.get("_shield_worn")):return "shield"
+	if id in MELEE_IDS and id!="hatchet" and (bool(melee.get("_sword_grounded")) or bool(melee.get("_unarmed"))):return "none"
+	if id=="bow":
+		var bow:Node=scene.get("preview_bow_prototype")
+		if is_instance_valid(bow) and bool(bow.get("_grounded")):return "none"
+	return id
 
 func stow_castle_shield() -> bool:
 	if not is_instance_valid(scene): return false
@@ -340,6 +409,13 @@ func sword_selected() -> bool:
 func _equip_bow_prototype() -> Dictionary:
 	if not _ensure_medieval_host("preview_sword_prototype", "_install_sword_prototype") or not _ensure_medieval_host("preview_bow_prototype", "_install_bow_prototype"):
 		return {"ok":false,"reason":"no_prototype"}
+	var melee_host:Node=scene.get("preview_sword_prototype")
+	if preload("res://scripts/combat/embedded_drop31.gd").candidate(melee_host):
+		if not melee_host.drop_sword_to_ground():return {"ok":false,"reason":"embedded_release_failed"}
+	if sandbox_reselect29:
+		if not SandboxArsenal29.reclaim_bow(scene.get("preview_bow_prototype")):
+			return {"ok":false,"reason":"sandbox_bow_missing"}
+		scene.get("preview_sword_prototype").set_shield_worn(false)
 	cancel_inputs()
 	presentation.equip("none")
 	fire_state = Fire.create_state("none")
@@ -349,6 +425,7 @@ func _equip_bow_prototype() -> Dictionary:
 	_profile = {}
 	_sword_prototype_selected(false)
 	_bow_prototype_selected(true)
+	_sandbox_choice29="bow"
 	if is_instance_valid(player._melee_practice): player._melee_practice.cancel("bow_equipped")
 	set_menu(false)
 	_refresh_ui()
@@ -487,8 +564,22 @@ func input_event(event: InputEvent) -> bool:
 			_aiming = event.pressed; return true
 	return menu_open and event is InputEventMouseMotion
 
+func sandbox_drop_input29(event:InputEvent)->bool:
+	if _catapult_stone_carry:return false
+	if sandbox_reselect29 and not controls_blocked() and _interaction_allowed() and event is InputEventKey and event.pressed and not event.echo:
+		var sandbox_code:int=event.physical_keycode if event.physical_keycode!=0 else event.keycode
+		if sandbox_code==KEY_G and _sandbox_choice29=="shield":
+			var shield_host:Node=scene.get("preview_sword_prototype")
+			shield_host.drop_shield_to_ground31()
+			_refresh_ui()
+			return true
+	return false
+
 func _input(event: InputEvent) -> void:
 	if _catapult_stone_carry: return
+	if sandbox_drop_input29(event):
+		get_viewport().set_input_as_handled()
+		return
 	if is_instance_valid(castle_storage_owner) and event is InputEventKey \
 			and event.pressed and not event.echo and not castle_storage_owner.window_open:
 		var castle_code: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
@@ -524,6 +615,11 @@ func _request_posture(code: int) -> bool:
 func advance(delta: float) -> void:
 	_combat_active=false
 	if not _owner_current(): return
+	if sandbox_reselect29:
+		var displayed:=arsenal_display_id29()
+		if displayed!=_sandbox_display29:
+			_sandbox_display29=displayed
+			_refresh_ui()
 	_settle_pending(false)
 	effects.advance(delta)
 	surface_effects.advance(delta)
@@ -697,6 +793,7 @@ func _build_ui() -> void:
 	for id: String in LABELS:
 		var path := "res://assets/weapon_thumbnails/"+id+".png"
 		if ResourceLoader.exists(path): textures[id]=load(path)
+	textures["hatchet"]=load("res://assets/weapon_thumbnails/hatchet.svg")
 	_walk_ui.configure(self,textures)
 	_menu=_walk_ui.menu; _crosshair=_walk_ui.crosshair; _hud=_walk_ui.title
 	for id: String in _walk_ui.choices: _buttons[id]=_walk_ui.choices[id].button
@@ -721,3 +818,60 @@ func _exit_tree() -> void:
 	if posture != null: posture.dispose()
 	if presentation != null: presentation.dispose()
 	if inventory != null: inventory.dispose()
+
+func begin_ship_climb() -> bool:
+	if not _owner_current() or bool(scene.get("preview_dead")) or bool(scene.get("preview_physics_fault")): return false
+	if _ship_climb or _catapult_stone_carry: return false
+	if not _owner_current() or player._pose_authority != &"on_foot": return false
+	if is_instance_valid(castle_storage_owner) and castle_storage_owner.window_open:
+		castle_storage_owner.close_window()
+	set_menu(false)
+	cancel_inputs()
+	_ship_climb_epoch = player._pose_epoch
+	_ship_saved_fire_state = fire_state.duplicate(true)
+	var sword_host: Node = scene.get("preview_sword_prototype")
+	_ship_saved_shield = is_instance_valid(sword_host) and bool(sword_host.shield_status().get("worn", false))
+	if _ship_saved_shield: sword_host.set_shield_worn(false)
+	_sword_prototype_selected(false)
+	_bow_prototype_selected(false)
+	if is_instance_valid(castle_storage_owner) and castle_storage_owner.has_back_bow():
+		castle_storage_owner._set_bow_back(true)
+	presentation.equip("none")
+	fire_state = Fire.create_state("none")
+	_ship_climb = true
+	_refresh_ui()
+	return true
+
+func end_ship_climb(restore: bool = true) -> void:
+	if not _ship_climb: return
+	_ship_climb = false
+	if not restore or not _owner_current() or bool(scene.get("preview_dead")) or bool(scene.get("preview_physics_fault")) or player._pose_epoch != _ship_climb_epoch or str(fire_state.get("weaponId", "none")) != "none":
+		_ship_saved_fire_state.clear()
+		_ship_saved_shield = false
+		return
+	var id: String = str(_ship_saved_fire_state.get("weaponId", "none"))
+	if is_instance_valid(castle_storage_owner) and id in castle_storage_owner.MEDIEVAL \
+			and not castle_storage_owner._carried.has(id): id = "none"
+	fire_state = _ship_saved_fire_state.duplicate(true) if id != "none" else Fire.create_state("none")
+	if id in MELEE_IDS:
+		presentation.equip("none")
+		_sword_prototype_weapon(id)
+		_sword_prototype_selected(true)
+	elif id == BOW_ID:
+		presentation.equip("none")
+		_bow_prototype_selected(true)
+		if is_instance_valid(castle_storage_owner): castle_storage_owner._set_bow_back(false)
+	else:
+		presentation.equip(id)
+	if _ship_saved_shield and is_instance_valid(castle_storage_owner) \
+			and castle_storage_owner.hand_has_shield():
+		var sword_host: Node = scene.get("preview_sword_prototype")
+		if is_instance_valid(sword_host):
+			if id == "none" and sword_host.has_method("set_shield_only31"):
+				sword_host.set_shield_only31(true)
+			sword_host.set_shield_worn(true)
+			_sword_prototype_selected(true)
+	_ship_saved_fire_state.clear()
+	_ship_saved_shield = false
+	cancel_inputs()
+	_refresh_ui()

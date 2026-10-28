@@ -136,3 +136,59 @@ static func resting_transform(model: Node3D, basis: Basis, floor_point: Vector3)
 			lowest = minf(lowest, (basis * (child.transform * point)).y)
 	if not is_finite(lowest): lowest = 0.0
 	return Transform3D(basis, floor_point + Vector3.UP * (0.008 - lowest))
+
+
+static func add_drop_collision27(body: RigidBody3D, model: Node3D) -> void:
+	# The rigid drop rotates freely: its collision must contain the actual model
+	# in every orientation, not only the initial flat resting height.
+	var points := PackedVector3Array()
+	var meshes: Array[Node] = model.find_children("*", "MeshInstance3D", true, false)
+	if model is MeshInstance3D: meshes.push_front(model)
+	for node: Node in meshes:
+		var mesh_node := node as MeshInstance3D
+		if mesh_node.mesh == null or not mesh_node.visible: continue
+		var relative := body.global_transform.affine_inverse() * mesh_node.global_transform
+		for vertex: Vector3 in mesh_node.mesh.get_faces():
+			points.append(relative * vertex)
+	if points.size() < 4: return
+	# A 20mm contact skin absorbs the solver's normal penetration tolerance.
+	# Keep the silhouette hull rather than a wide box spanning empty bow space.
+	var padded := PackedVector3Array()
+	var unique: Dictionary = {}
+	for point: Vector3 in points: unique[point] = true
+	for point: Vector3 in unique:
+		for corner: int in 8:
+			padded.append(point + Vector3(0.02 if corner & 1 else -0.02,
+				0.02 if corner & 2 else -0.02, 0.02 if corner & 4 else -0.02))
+	var hull := ConvexPolygonShape3D.new()
+	hull.points = padded
+	var collision := CollisionShape3D.new()
+	collision.name = "WeaponVisualHull27"
+	collision.shape = hull
+	body.add_child(collision)
+	if body.has_method("set_drop_shape27"): body.call("set_drop_shape27", collision)
+
+
+## Wrap the same ground model so the generic prototypes retain their identity
+## and nearest-item bookkeeping while the native body owns its falling motion.
+static func make_ground_drop28(model: Node3D, world: Node3D, forward: Vector3, mass_value: float = 0.65, lift: float = 1.15) -> RigidBody3D:
+	var body: RigidBody3D = preload("res://scripts/weapons/weapon_drop_body27.gd").new()
+	body.name = "DroppedWeaponVisual28"
+	body.set_meta("weapon_ground_drop28", true)
+	body.mass = mass_value
+	body.collision_layer = 1
+	body.collision_mask = 1
+	body.continuous_cd = true
+	world.add_child(body)
+	body.global_position = model.global_position + Vector3.UP * lift
+	model.global_position += Vector3.UP * lift
+	model.reparent(body, true)
+	add_drop_collision27(body, model)
+	body.linear_velocity = forward.normalized() * 0.8 + Vector3.UP * 0.8
+	return body
+
+static func recover_ground_drop28(model: Node3D, world: Node3D) -> void:
+	var body := model.get_parent()
+	if not body is RigidBody3D or not body.has_meta("weapon_ground_drop28"): return
+	model.reparent(world, true)
+	body.queue_free()

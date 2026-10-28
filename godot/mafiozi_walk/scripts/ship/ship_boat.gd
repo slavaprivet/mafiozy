@@ -602,18 +602,10 @@ func _punch_fallback_hull() -> void:
 
 
 func _build_rails() -> int:
-	## Invisible bulwark boxes so a player does not simply walk overboard. The stern
-	## quarter (z > 6) stays open on both sides: that is where the pier gangway meets the
-	## hull, and a rail there would block boarding. `set_railings_enabled(false)` removes
-	## them entirely if the host builds its own barriers.
-	var half_beam := _beam * 0.5
-	var rail_y := _deck_y + 0.60
-	var rail_center_z := -3.3
-	var rail_size_z := 18.4
+	# The model already supplies the actual bulwark shapes. An extra rectangle
+	# above them used to imprison the player even when jumping clear of wood.
 	_rail_shapes.clear()
-	_rail_shapes.append(_add_box("RailPort", Vector3(-(half_beam - 0.10), rail_y, rail_center_z), Vector3(0.16, 1.2, rail_size_z), 0.0, "rail"))
-	_rail_shapes.append(_add_box("RailStarboard", Vector3(half_beam - 0.10, rail_y, rail_center_z), Vector3(0.16, 1.2, rail_size_z), 0.0, "rail"))
-	return _rail_shapes.size()
+	return 0
 
 
 func set_railings_enabled(enabled: bool) -> void:
@@ -1005,12 +997,14 @@ func _update_motion(delta: float) -> void:
 	if _speed < 0.05:
 		# A ship that is not moving through the water does not answer the helm.
 		_yaw_rate = 0.0
+	var previous_yaw := _yaw
 	_yaw = wrapf(_yaw + _yaw_rate * delta, -PI, PI)
 	var forward := Vector3(-sin(_yaw), 0.0, -cos(_yaw))
-	_origin += forward * _speed * delta
+	_sweep_hull_motion(forward * _speed * delta, previous_yaw, delta)
 
 
 ## ------------------------------------------------------------------ buoyancy
+
 
 func _update_buoyancy(delta: float) -> void:
 	var xform := _world_transform()
@@ -1569,68 +1563,13 @@ func _climb_axis() -> float:
 
 
 func climb_assist(player: CharacterBody3D, delta: float) -> void:
-	if not _installed or player == null or not is_instance_valid(player):
-		return
-	if not is_finite(delta) or delta <= 0.0 or delta > 0.25:
-		return
-	var local := _local_from_world(player.global_position)
-	var axis := _climb_axis()
-	var just_forward := InputMap.has_action(&"preview_move_forward") and Input.is_action_just_pressed(&"preview_move_forward")
-	var just_back := InputMap.has_action(&"preview_move_back") and Input.is_action_just_pressed(&"preview_move_back")
-	# Explicit W only: walking through the ladder zone with W already held must
-	# not capture the player.  The first W press while standing at the ladder
-	# starts the climb; afterwards the held W keeps climbing.
-	# Follow the open companionway in both directions.  Only the centred stair
-	# mouth accepts the descent, so walking across the neighbouring deck stays
-	# on the deck; climbing out from below remains possible without F.
-	var on_companionway := _in_companionway_zone(local)
-	var leaving_cabin := local.y < 1.55 and axis > 0.0
-	var entering_cabin := local.y >= 1.55 and local.z >= 4.30 and local.z <= 4.90 and axis < 0.0
-	if not on_companionway:
-		_climbing_companionway = false
-	if on_companionway and (_climbing_companionway or leaving_cabin or entering_cabin):
-		_climbing_ladder = false
-		_climbing_companionway = true
-		_climb_companionway(player, local, axis, delta)
-		return
-	if _in_quarter_stair_zone(local):
-		_climbing_ladder = false
-		_climb_quarter_stair(player, local, axis, delta)
-		return
-	if _in_bow_stair_zone(local):
-		_climbing_ladder = false
-		_climb_bow_stair(player, local, axis, delta)
-		return
-	var boarding := _boarding_ladder_at(local)
-	if not boarding.is_empty():
-		# Boarding is explicit: F at the ladder.  W near the hull must never
-		# capture the player and freeze deck movement.
-		return
-	if not _in_ladder_zone(local):
-		_climbing_ladder = false
-		return
-	if not _climbing_ladder and not (just_forward or (just_back and local.y > 4.50)):
-		return
-	_climbing_ladder = true
-	if is_zero_approx(axis):
-		return
-	var base: Vector3 = _anchors.get("ladder_base", Vector3(0.0, 1.75, 2.3))
-	var top: Vector3 = _anchors.get("ladder_top", Vector3(0.0, 5.2, 2.0))
-	var next_y := clampf(local.y + CLIMB_SPEED * axis * delta, base.y, top.y)
-	var span := maxf(0.01, top.y - base.y)
-	var t := clampf((next_y - base.y) / span, 0.0, 1.0)
-	var z_target := lerpf(base.z, top.z, t)
-	var grab := minf(1.0, delta * 6.0)
-	var next_local := Vector3(lerpf(local.x, 0.0, grab), next_y, lerpf(local.z, z_target, grab))
-	if axis > 0.0 and next_y >= top.y - 0.001:
-		# Step off the ladder onto the fighting top; the next frame is normal walking.
-		next_local.z = minf(next_local.z, 1.40)
-		_climbing_ladder = false
-	if axis < 0.0 and next_y <= base.y + 0.001:
-		next_local.z = maxf(next_local.z, base.z + 0.20)
-		_climbing_ladder = false
-	player.global_position = _world_from_local(next_local)
-	player.velocity = Vector3(0.0, CLIMB_SPEED * axis, 0.0)
+	_climb_assist_motion(player, delta)
+	if not is_instance_valid(player) or not player.has_method("set_ship_climb_pose"): return
+	var active := _climbing_ladder and _installed and _in_ladder_zone(_local_from_world(player.global_position))
+	if active:
+		player.call("set_ship_climb_pose", {"active":true,"ship":self,"local":_local_from_world(player.global_position),"axis":_climb_axis(),"frame":Engine.get_physics_frames()})
+	else:
+		player.call("set_ship_climb_pose", {})
 
 
 func _in_ladder_zone(local: Vector3) -> bool:
@@ -1648,7 +1587,7 @@ func _in_ladder_zone(local: Vector3) -> bool:
 func _in_companionway_zone(local: Vector3) -> bool:
 	if absf(local.x) > 1.28:
 		return false
-	if local.z < 4.30 or local.z > 6.08:
+	if local.z < 4.30 or local.z > 6.35:
 		return false
 	return local.y >= 0.45 and local.y <= 1.95
 
@@ -1691,10 +1630,10 @@ func _climb_quarter_stair(player: CharacterBody3D, local: Vector3, axis: float, 
 	var next_local := Vector3(local.x, next_y, lerpf(local.z, z_target, grab))
 	if rise > 0.0 and next_y >= 3.02:
 		next_local.y = 3.03
-		next_local.z = 6.10
+		next_local.z = 6.50
 	elif rise < 0.0 and next_y <= 1.79:
 		next_local.y = 1.78
-		next_local.z = 5.24
+		next_local.z = 4.65
 	player.global_position = _world_from_local(next_local)
 	player.velocity = Vector3(0.0, CLIMB_SPEED * rise, 0.0)
 
@@ -2442,3 +2381,165 @@ func _vector_or(value: Variant, fallback: Vector3) -> Vector3:
 		if as_vector.is_finite():
 			return as_vector
 	return fallback
+
+func _climb_assist_motion(player: CharacterBody3D, delta: float) -> void:
+	if not _installed or player == null or not is_instance_valid(player):
+		return
+	if not is_finite(delta) or delta <= 0.0 or delta > 0.25:
+		return
+	var local := _local_from_world(player.global_position)
+	var axis := _climb_axis()
+	if not _climb_input_bound and player.get("_camera_yaw") is float:
+		var axes := Input.get_vector(&"preview_move_left", &"preview_move_right", &"preview_move_forward", &"preview_move_back")
+		var intended := Basis(Vector3.UP, float(player.get("_camera_yaw"))) * Vector3(axes.x, 0.0, axes.y)
+		axis = clampf(intended.dot(-global_basis.z.normalized()), -1.0, 1.0)
+	var just_forward := InputMap.has_action(&"preview_move_forward") and Input.is_action_just_pressed(&"preview_move_forward")
+	var just_back := InputMap.has_action(&"preview_move_back") and Input.is_action_just_pressed(&"preview_move_back")
+	# Explicit W only: walking through the ladder zone with W already held must
+	# not capture the player.  The first W press while standing at the ladder
+	# starts the climb; afterwards the held W keeps climbing.
+	# Follow the open companionway in both directions.  Only the centred stair
+	# mouth accepts the descent, so walking across the neighbouring deck stays
+	# on the deck; climbing out from below remains possible without F.
+	var on_companionway := _in_companionway_zone(local)
+	var leaving_cabin := local.y < 1.55 and axis > 0.0
+	var entering_cabin := local.y >= 1.55 and local.z >= 4.30 and local.z <= 4.90 and axis < 0.0
+	if not on_companionway:
+		_climbing_companionway = false
+	if on_companionway and (_climbing_companionway or leaving_cabin or entering_cabin):
+		_climbing_ladder = false
+		_climbing_companionway = true
+		_climb_companionway(player, local, axis, delta)
+		return
+	if _in_quarter_stair_zone(local):
+		_climbing_ladder = false
+		_climb_quarter_stair(player, local, axis, delta)
+		return
+	if _in_bow_stair_zone(local):
+		_climbing_ladder = false
+		_climb_bow_stair(player, local, axis, delta)
+		return
+	var boarding := _boarding_ladder_at(local)
+	if not boarding.is_empty():
+		# Boarding is explicit: F at the ladder.  W near the hull must never
+		# capture the player and freeze deck movement.
+		return
+	if not _in_ladder_zone(local):
+		_climbing_ladder = false
+		return
+	if not _climbing_ladder and not (just_forward or (just_back and local.y > 4.50)):
+		return
+	if player.has_method("ship_climb_hands_available") and not player.call("ship_climb_hands_available"):
+		_climbing_ladder = false
+		return
+	_climbing_ladder = true
+	if is_zero_approx(axis):
+		return
+	var base: Vector3 = _anchors.get("ladder_base", Vector3(0.0, 1.75, 2.3))
+	var top: Vector3 = _anchors.get("ladder_top", Vector3(0.0, 5.2, 2.0))
+	var next_y := clampf(local.y + CLIMB_SPEED * axis * delta, base.y, top.y)
+	var span := maxf(0.01, top.y - base.y)
+	var t := clampf((next_y - base.y) / span, 0.0, 1.0)
+	var z_target := lerpf(base.z, top.z, t)
+	var grab := minf(1.0, delta * 6.0)
+	var next_local := Vector3(lerpf(local.x, 0.0, grab), next_y, lerpf(local.z, z_target, grab))
+	if axis > 0.0 and next_y >= top.y - 0.001:
+		# Step off the ladder onto the fighting top; the next frame is normal walking.
+		next_local.z = minf(next_local.z, 1.40)
+		_climbing_ladder = false
+	if axis < 0.0 and next_y <= base.y + 0.001:
+		next_local.z = maxf(next_local.z, base.z + 0.20)
+		_climbing_ladder = false
+	player.global_position = _world_from_local(next_local)
+	player.velocity = Vector3(0.0, CLIMB_SPEED * axis, 0.0)
+
+
+func _hull_motion_test(from: Transform3D, motion: Vector3, recovery: bool = false) -> PhysicsTestMotionResult3D:
+	var query := PhysicsTestMotionParameters3D.new()
+	query.from = from
+	query.motion = motion
+	query.margin = 0.02
+	query.recovery_as_collision = recovery
+	query.max_collisions = 8
+	# Attached guns/cargo and deck passengers belong to this moving platform.
+	# Ignore only those bodies; another ship's physical wood remains blocking.
+	var excluded: Array[RID] = []
+	for node in find_children("*", "CollisionObject3D", true, false):
+		excluded.append((node as CollisionObject3D).get_rid())
+	if is_instance_valid(_player):
+		excluded.append(_player.get_rid())
+	query.exclude_bodies = excluded
+	var result := PhysicsTestMotionResult3D.new()
+	if PhysicsServer3D.body_test_motion(get_rid(), query, result):
+		return result
+	return null
+
+
+func _sweep_hull_motion(motion: Vector3, previous_yaw: float, delta: float) -> void:
+	if not is_inside_tree() or _collision_disabled:
+		_origin += motion
+		return
+	var start := _world_transform()
+	# Rotation is checked too: the stern cannot rotate through the next hull.
+	if not is_equal_approx(previous_yaw, _yaw):
+		var rotation_hit := _hull_motion_test(start, Vector3.ZERO, true)
+		if rotation_hit != null:
+			_yaw = previous_yaw
+			_yaw_rate = 0.0
+			start = _world_transform()
+	if motion.is_zero_approx():
+		return
+	var hit := _hull_motion_test(start, motion)
+	if hit == null:
+		_origin += motion
+		return
+	# The engine sweeps the real surviving compound hull shapes, not centre rays.
+	_origin += motion * hit.get_collision_safe_fraction()
+	var incoming := motion / maxf(delta, 0.0001)
+	var closing_speed := 0.0
+	var contact_index := 0
+	for index in hit.get_collision_count():
+		var relative := incoming - hit.get_collider_velocity(index)
+		var closing := maxf(0.0, -relative.dot(hit.get_collision_normal(index)))
+		if closing > closing_speed:
+			closing_speed = closing
+			contact_index = index
+	var other := hit.get_collider(contact_index) as Node
+	while is_instance_valid(other) and not other.has_method("_sweep_hull_motion"):
+		other = other.get_parent()
+	# Inelastic wooden hull contact removes sailing drive for this tick. The
+	# same pair cannot drill through each other while the helm is held forward.
+	_speed = 0.0
+	_yaw_rate = 0.0
+	if is_instance_valid(other):
+		other.set("_speed", 0.0)
+		other.set("_yaw_rate", 0.0)
+	var point := hit.get_collision_point(contact_index)
+	var damage := 0.0
+	if closing_speed > 1.4:
+		damage = minf(240.0, 8.0 * closing_speed * closing_speed)
+		var normal := hit.get_collision_normal(contact_index)
+		_apply_ship_collision_damage({"collider":self,"shape":hit.get_collision_local_shape(contact_index),"position":point}, damage, normal * closing_speed)
+		if is_instance_valid(other) and other.has_method("apply_surface_hit"):
+			other.call("_apply_ship_collision_damage", {"collider":hit.get_collider(contact_index),"shape":hit.get_collider_shape(contact_index),"position":point}, damage, -normal * closing_speed)
+	set_meta("ship_collision_receipt", {"closing_speed":closing_speed,"damage":damage,"point":point,"other":str(other.name) if is_instance_valid(other) else "world","time":_time,"safe_fraction":hit.get_collision_safe_fraction()})
+
+
+
+func _apply_ship_collision_damage(hit: Dictionary, damage: float, impulse: Vector3) -> Dictionary:
+	var collider := hit.get("collider") as CollisionObject3D
+	if is_instance_valid(collider):
+		for owner_id: int in collider.get_shape_owners():
+			for index in collider.shape_owner_get_shape_count(owner_id):
+				if collider.shape_owner_get_shape_index(owner_id, index) != int(hit.get("shape", -1)):
+					continue
+				var owner := collider.shape_owner_get_owner(owner_id) as CollisionShape3D
+				if not is_instance_valid(owner) or not str(owner.get_meta("ship_part", "")).is_empty():
+					break
+				# A tall continuous lower hull plank box is actual hull contact.
+				# Do not redirect it to a nearby cannon by the legacy proximity rule.
+				if owner.shape is BoxShape3D and owner.position.y < 1.6 and (owner.shape as BoxShape3D).size.y >= 2.0:
+					return apply_hit(hit.get("position", global_position), damage, impulse, "ship_collision", "hull")
+	return apply_surface_hit(hit, damage, impulse, "ship_collision")
+
+

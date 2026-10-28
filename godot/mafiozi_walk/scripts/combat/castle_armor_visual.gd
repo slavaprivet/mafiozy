@@ -1,4 +1,5 @@
 extends Node3D
+const Surface30 = preload("res://scripts/combat/armor_surface30.gd")
 ## Presentation-only modular castle armor. The combat owner decides absorption.
 ## The five slots can be mixed freely. Each piece follows the existing 28-bone rig.
 
@@ -11,9 +12,9 @@ const BONES := {
 	"feet": ["foot_l", "foot_r"]
 }
 const PALETTE := {
-	"light": {"main": Color(0.31, 0.19, 0.105), "edge": Color(0.59, 0.38, 0.19), "under": Color(0.13, 0.09, 0.065)},
-	"medium": {"main": Color(0.39, 0.42, 0.45), "edge": Color(0.63, 0.60, 0.48), "under": Color(0.25, 0.28, 0.31)},
-	"heavy": {"main": Color(0.055, 0.073, 0.085), "edge": Color(0.38, 0.34, 0.25), "under": Color(0.025, 0.028, 0.033)}
+	"light": {"main": Color(0.26, 0.125, 0.055), "edge": Color(0.48, 0.29, 0.12), "under": Color(0.13, 0.09, 0.065)},
+	"medium": {"main": Color(0.30, 0.38, 0.43), "edge": Color(0.46, 0.37, 0.22), "under": Color(0.105, 0.135, 0.15)},
+	"heavy": {"main": Color(0.16, 0.21, 0.25), "edge": Color(0.49, 0.37, 0.19), "under": Color(0.025, 0.028, 0.033)}
 }
 static var _mesh_cache: Dictionary = {}
 static var _material_cache: Dictionary = {}
@@ -29,6 +30,7 @@ var _ready := false
 var _hidden_headwear: Dictionary = {}
 var _hidden_torso_trim: Dictionary = {}
 var _hidden_fabric: Dictionary = {}
+var _rigid_cut31 = preload("res://scripts/combat/armor_cut31.gd").new()
 
 func configure(rig: Skeleton3D, actor: Node3D) -> Dictionary:
 	if _ready: return {"ok": false, "reason": "already_configured"}
@@ -58,6 +60,7 @@ func set_armor(slot: String, item_id: String) -> Dictionary:
 	_roots[slot] = []
 	_equipped[slot] = item_id
 	_build_slot(slot, tier)
+	_rigid_cut31.warm(self)
 	if slot == "head": _hide_headwear()
 	if slot == "torso":
 		_hide_torso_trim()
@@ -113,11 +116,15 @@ func on_severed(full_key: String, real_mesh_cut: bool = false) -> void:
 	for slot: String in _roots.keys(): _apply_lost(slot)
 
 func reset_severed() -> void:
+	_rigid_cut31.restore()
 	_lost.clear()
 	for slot: String in _roots.keys(): _apply_lost(slot)
 
 func snapshot() -> Dictionary:
 	return {"ready": _ready, "equipped": _equipped.duplicate(), "lost": _lost.keys(), "unit": _unit}
+
+func cut_rigid31(context:Dictionary,branches:Dictionary,body:Node3D)->Dictionary:
+	return _rigid_cut31.synchronous(self,context,branches,body)
 
 func _exit_tree() -> void:
 	# Reparenting the actor into its corpse briefly exits and re-enters the tree.
@@ -331,7 +338,7 @@ func _detail_display47(parent: Node3D, slot: String, tier: String) -> void:
 			elif tier == "medium" and color == p.main: material.albedo_color = Color(.49,.53,.56)
 			if tier != "light" and color != p.under:
 				material.metallic = .38
-				material.roughness = .42
+				material.roughness = .58
 			_material_cache[key] = material
 		part.material_override = _material_cache[key]
 
@@ -411,14 +418,14 @@ func _preview_ellipsoid(parent: Node3D, center: Vector3, radii: Vector3, color: 
 	_preview(parent, _sphere_mesh(), center, radii, color, tier)
 
 func _hemisphere_mesh() -> SphereMesh:
-	if _mesh_cache.has("hemisphere16x8"): return _mesh_cache["hemisphere16x8"]
+	if _mesh_cache.has("hemisphere32x16"): return _mesh_cache["hemisphere32x16"]
 	var dome := SphereMesh.new()
 	dome.radius = 1.0
 	dome.height = 2.0
 	dome.is_hemisphere = true
-	dome.radial_segments = 16
-	dome.rings = 8
-	_mesh_cache["hemisphere16x8"] = dome
+	dome.radial_segments = 32
+	dome.rings = 16
+	_mesh_cache["hemisphere32x16"] = dome
 	return dome
 
 func _preview_box(parent: Node3D, center: Vector3, size: Vector3, color: Color, tier: String) -> void:
@@ -447,6 +454,9 @@ func _apply_lost(slot: String) -> void:
 				for part: String in ["upperarm", "forearm", "hand", "thigh", "shin", "foot"]:
 					if _lost.has(part + side) and (bone_name == part + side or _is_descendant(bone_name, part + side)):
 						hidden = true
+			if hidden:
+				for child:MeshInstance3D in anchor.find_children("*","MeshInstance3D",true,false):
+					if child.mesh!=null and int(child.get_meta("armor_cut_retained31",0))==child.mesh.get_instance_id():hidden=false;break
 			anchor.visible = not hidden
 	if _skinned.has(slot):
 		for overlay: Node in _skinned[slot]:
@@ -487,7 +497,9 @@ func _build_slot(slot: String, tier: String) -> void:
 			var right_sleeve := _skinned_layer(slot, tier, 1.62, 3.45, .075, torso_color, "ArmorTailoredSleeveR", .56, 1.48, "player_male_DEMO_core_FABRIC", false, "", "cuirass" if tier == "heavy" else tier + "_jerkin")
 			if center_layer and left_sleeve and right_sleeve:
 				if tier == "heavy":
-					_royal_fasteners(_anchor(slot, "chest"))
+					var breast := _anchor(slot, "chest")
+					_cuirass(breast)
+					_royal_fasteners(breast)
 					for shoulder: String in ["upperarm_l", "upperarm_r"]:
 						var pauldron := _anchor(slot, shoulder)
 						_pauldron_lames(pauldron)
@@ -497,7 +509,7 @@ func _build_slot(slot: String, tier: String) -> void:
 					if tier == "medium":
 						for y: float in [-.30, -.03, .24, .51, .78]:
 							_shell(front, Vector3(0, y, .015), Vector3(.62 + .025*y, .12, .59), -78, 78, .08, p.main, tier)
-							_shell(front, Vector3(0, y-.11, .015), Vector3(.625 + .025*y, .012, .60), -78, 78, 0, p.edge, tier)
+							_shell(front, Vector3(0, y-.11, .015), Vector3(.625 + .025*y, .018, .60), -78, 78, 0, p.main.lerp(p.edge,.35), tier)
 					else:
 						for x: float in [-.34, .34]:
 							_box(front, Vector3(x, .35, .50), Vector3(.065, 1.18, .035), p.under, tier)
@@ -538,13 +550,17 @@ func _build_slot(slot: String, tier: String) -> void:
 				for side: String in ["_l", "_r"]:
 					var glove := _anchor(slot, "hand" + side)
 					_gauntlet(glove)
+					_tailored_cuff30(glove,tier)
 				return
 			var hand_layers := 0
 			for side: float in [-1.0, 1.0]:
 				var x_min := -1.6 if side < 0 else .72
 				var x_max := -.72 if side < 0 else 1.6
 				if _skinned_layer(slot, tier, 1.53, 2.72, .075, p.main, "ArmorTailoredGlove", x_min, x_max, "player_male_DEMO_core_SKIN"): hand_layers += 1
-			if hand_layers == 2: return
+			if hand_layers == 2:
+				for suffix:String in ["_l","_r"]:
+					_tailored_cuff30(_anchor(slot,"hand"+suffix),tier)
+				return
 			for side: String in ["_l", "_r"]:
 				var fore := _anchor(slot, "forearm" + side)
 				_shell(fore, Vector3(0, -.17, .04), Vector3(.21, .28, .19), -145, 145, .22, p.main, tier)
@@ -564,8 +580,12 @@ func _build_slot(slot: String, tier: String) -> void:
 				if _skinned_layer(slot, tier, .48, 1.98, .065 if tier == "heavy" else .07, Color(.105, .12, .135) if tier == "heavy" else p.main, "ArmorTailoredLeg", x_min, x_max): leg_layers += 1
 			if leg_layers == 2:
 				var waist := _anchor(slot, "pelvis")
-				_shell(waist, Vector3(0, .13, 0), Vector3(.64, .055, .40), -180, 180, 0, p.under, tier)
-				_box(waist, Vector3(0, .13, .41), Vector3(.14, .09, .035), p.edge, tier)
+				# In this rig pelvis is the low locomotion root. Place the belt at
+				# the measured hip sockets in bind space, still owned by pelvis.
+				var hips:Vector3=(_rig.get_bone_global_rest(_rig.find_bone("thigh_l")).origin+_rig.get_bone_global_rest(_rig.find_bone("thigh_r")).origin)*.5
+				var waist_center:Vector3=(_rig.get_bone_global_rest(_rig.find_bone("pelvis")).affine_inverse()*(hips+Vector3.UP*.13*_unit))/_unit
+				_shell(waist, waist_center, Vector3(.64, .055, .40), -180, 180, 0, p.under, tier)
+				_box(waist, waist_center+Vector3(0,0,.41), Vector3(.14, .09, .035), p.edge, tier)
 				if tier != "light":
 					for suffix: String in ["_l", "_r"]:
 						var thigh := _anchor(slot, "thigh" + suffix)
@@ -643,6 +663,8 @@ func _skinned_layer(slot: String, tier: String, y_min: float, y_max: float, infl
 							break
 						bone = _rig.get_bone_parent(bone)
 			if positions.is_empty() or normals.size() != positions.size() or original_indices.size() % 3 != 0: return false
+			# Preserve exact baseline contact/cut positions; shading is presentation-only.
+			var smooth := Surface30.smooth_normals(positions, original_indices)
 			var inflated := _welded_inflated_positions(positions, normals, inflation)
 			var indices := PackedInt32Array()
 			for triangle: int in original_indices.size() / 3:
@@ -664,7 +686,7 @@ func _skinned_layer(slot: String, tier: String, y_min: float, y_max: float, infl
 			if label in ["ArmorTailoredTorso", "ArmorFittedBreastplate", "ArmorFittedFauld"]:
 				indices = _largest_welded_component(positions, indices)
 			arrays[Mesh.ARRAY_VERTEX] = inflated
-			arrays[Mesh.ARRAY_NORMAL] = _smooth_cloth_normals(positions, normals)
+			arrays[Mesh.ARRAY_NORMAL] = smooth
 			var compact := _compact_surface(arrays, indices, positions.size())
 			if style == "cuirass": _color_cuirass_surface(compact)
 			elif style.ends_with("_jerkin"): _color_jerkin(compact, tier)
@@ -791,7 +813,7 @@ func _color_cuirass_surface(arrays: Array) -> void:
 	for point: Vector3 in positions:
 		var front := smoothstep(.03, .40, point.z)
 		var pectoral := exp(-pow((absf(point.x) - .25) / .23, 2.0) - pow((point.y - 2.90) / .24, 2.0))
-		var plate := Color(.065, .085, .10).lerp(Color(.13, .16, .18), pectoral * .65)
+		var plate := Color(.16, .205, .24).lerp(Color(.24, .29, .32), pectoral * .65)
 		var waist := smoothstep(1.78, 2.18, point.y)
 		plate *= lerpf(.60, 1.0, waist)
 		var arch_y := 2.57 + .22 * pow(absf(point.x) / .55, 1.6)
@@ -801,15 +823,15 @@ func _color_cuirass_surface(arrays: Array) -> void:
 		plate = plate.lerp(Color(.19, .14, .075), belt * .7)
 		var spine := exp(-pow(point.x / .07, 2.0)) * smoothstep(2.15, 2.55, point.y)
 		plate = plate.lerp(Color(.15, .18, .19), spine * .30)
-		colors.append(Color(.035, .045, .053).lerp(plate, front))
+		colors.append(Color(.12, .155, .18).lerp(plate, front))
 	arrays[Mesh.ARRAY_COLOR] = colors
 
 func _cuirass_material() -> StandardMaterial3D:
 	if _material_cache.has("fitted_cuirass_material_v22"): return _material_cache["fitted_cuirass_material_v22"]
 	var material := StandardMaterial3D.new()
 	material.vertex_color_use_as_albedo = true
-	material.metallic = .70
-	material.roughness = .56
+	material.metallic = .55
+	material.roughness = .64
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	_material_cache["fitted_cuirass_material_v22"] = material
 	return material
@@ -842,22 +864,21 @@ func _ellipsoid(anchor: Node3D, local_center: Vector3, radii: Vector3, color: Co
 	mesh.scale = radii * _unit
 	anchor.add_child(mesh)
 
-func _box_mesh(size: Vector3) -> BoxMesh:
+func _box_mesh(size: Vector3) -> ArrayMesh:
 	var key := "box:" + str(size)
 	if _mesh_cache.has(key): return _mesh_cache[key]
-	var box := BoxMesh.new()
-	box.size = size
+	var box := Surface30.rounded_box(size)
 	_mesh_cache[key] = box
 	return box
 
 func _sphere_mesh() -> SphereMesh:
-	if _mesh_cache.has("sphere16x8"): return _mesh_cache["sphere16x8"]
+	if _mesh_cache.has("sphere32x16"): return _mesh_cache["sphere32x16"]
 	var sphere := SphereMesh.new()
 	sphere.radius = 1.0
 	sphere.height = 2.0
-	sphere.radial_segments = 16
-	sphere.rings = 8
-	_mesh_cache["sphere16x8"] = sphere
+	sphere.radial_segments = 32
+	sphere.rings = 16
+	_mesh_cache["sphere32x16"] = sphere
 	return sphere
 
 ## A curved open sheet, rather than a solid primitive. Angular gaps become real
@@ -874,7 +895,7 @@ func _shell(anchor: Node3D, center: Vector3, radii: Vector3, start_deg: float, e
 		return
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var columns := 18
+	var columns := 36
 	var rows := 6
 	for row: int in rows:
 		var v0 := float(row) / float(rows)
@@ -886,9 +907,12 @@ func _shell(anchor: Node3D, center: Vector3, radii: Vector3, start_deg: float, e
 			var b := _shell_point(center, radii, start_deg, end_deg, taper, u1, v0)
 			var c := _shell_point(center, radii, start_deg, end_deg, taper, u0, v1)
 			var d := _shell_point(center, radii, start_deg, end_deg, taper, u1, v1)
-			for point: Vector3 in [a, c, b, b, c, d]: surface.add_vertex(point)
+			for uv:Vector2 in [Vector2(u0,v0),Vector2(u0,v1),Vector2(u1,v0),Vector2(u1,v0),Vector2(u0,v1),Vector2(u1,v1)]:
+				var du:=_shell_point(center,radii,start_deg,end_deg,taper,uv.x+.0001,uv.y)-_shell_point(center,radii,start_deg,end_deg,taper,uv.x-.0001,uv.y)
+				var dv:=_shell_point(center,radii,start_deg,end_deg,taper,uv.x,uv.y+.0001)-_shell_point(center,radii,start_deg,end_deg,taper,uv.x,uv.y-.0001)
+				surface.set_normal(du.cross(dv).normalized())
+				surface.add_vertex(_shell_point(center,radii,start_deg,end_deg,taper,uv.x,uv.y))
 	surface.index()
-	surface.generate_normals()
 	var shell := MeshInstance3D.new()
 	shell.name = "ArmorCurvedShell"
 	shell.mesh = surface.commit()
@@ -898,7 +922,12 @@ func _shell(anchor: Node3D, center: Vector3, radii: Vector3, start_deg: float, e
 	anchor.add_child(shell)
 
 func _shell_point(center: Vector3, radii: Vector3, start_deg: float, end_deg: float, taper: float, u: float, v: float) -> Vector3:
-	var angle := deg_to_rad(lerpf(start_deg, end_deg, u))
+	var rounded_u:=u
+	if end_deg-start_deg<355.0:
+		# Broad corner easing, so the lamella is not a razor-edged trapezoid.
+		var end_round:=.018*pow(absf(v-.5)*2.0,6.0)
+		rounded_u=lerpf(end_round,1.0-end_round,u)
+	var angle := deg_to_rad(lerpf(start_deg, end_deg, rounded_u))
 	var width := 1.0 + taper * (v - .5)
 	return center + Vector3(sin(angle) * radii.x * width, (v - .5) * radii.y * 2.0, cos(angle) * radii.z * width)
 
@@ -906,8 +935,8 @@ func _vertex_steel() -> StandardMaterial3D:
 	if _material_cache.has("vertex_steel"): return _material_cache["vertex_steel"]
 	var material := StandardMaterial3D.new()
 	material.vertex_color_use_as_albedo = true
-	material.metallic = .54
-	material.roughness = .59
+	material.metallic = .55
+	material.roughness = .64
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	_material_cache["vertex_steel"] = material
 	return material
@@ -919,29 +948,32 @@ func _cuirass(anchor: Node3D) -> void:
 		var surface := SurfaceTool.new()
 		surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 		var segments := [
-			{"levels": [-.34, -.22, -.07, .12, .36], "base": Color(.10, .13, .15)},
-			{"levels": [.42, .55, .72, .89, 1.02], "base": Color(.20, .23, .25)}
+			{"levels": [-.34, -.22, -.07, .12, .36], "base": Color(.15, .20, .24)},
+			{"levels": [.42, .55, .72, .89, 1.02], "base": Color(.24, .29, .33)}
 		]
 		for segment: Dictionary in segments:
-			var levels: Array = segment.levels
+			var levels: Array[float] = []
+			var authored:Array=segment.levels
+			for interval in authored.size()-1:
+				for step in 4:levels.append(lerpf(authored[interval],authored[interval+1],float(step)/4.0))
+			levels.append(authored[-1])
 			for row: int in levels.size() - 1:
-				for column: int in 20:
-					var u0 := -1.0 + float(column) * .10
-					var u1 := u0 + .10
+				for column: int in 40:
+					var u0 := -1.0 + float(column) * .05
+					var u1 := u0 + .05
 					var y0: float = levels[row]
 					var y1: float = levels[row + 1]
 					var a := _cuirass_point(u0, y0)
 					var b := _cuirass_point(u1, y0)
 					var c := _cuirass_point(u0, y1)
 					var d := _cuirass_point(u1, y1)
-					var edge := .75 if absf((u0 + u1) * .5) > .84 else 1.0
-					var band := 1.16 if row == 0 or row == levels.size() - 2 else 1.0
-					var color: Color = segment.base * edge * band
-					for point: Vector3 in [a, b, c, b, d, c]:
-						surface.set_color(color)
-						surface.add_vertex(point)
+					for uv:Vector2 in [Vector2(u0,y0),Vector2(u0,y1),Vector2(u1,y0),Vector2(u1,y0),Vector2(u0,y1),Vector2(u1,y1)]:
+						var du:=_cuirass_point(uv.x+.001,uv.y)-_cuirass_point(uv.x-.001,uv.y)
+						var dy:=_cuirass_point(uv.x,uv.y+.001)-_cuirass_point(uv.x,uv.y-.001)
+						surface.set_normal(du.cross(dy).normalized())
+						surface.set_color(segment.base)
+						surface.add_vertex(_cuirass_point(uv.x,uv.y))
 		surface.index()
-		surface.generate_normals()
 		_mesh_cache["anatomic_cuirass_v1"] = surface.commit()
 	plate.mesh = _mesh_cache["anatomic_cuirass_v1"]
 	plate.scale = Vector3.ONE * _unit
@@ -949,40 +981,22 @@ func _cuirass(anchor: Node3D) -> void:
 	anchor.add_child(plate)
 
 func _cuirass_point(u: float, y: float) -> Vector3:
-	var width := (.59 + .075 * smoothstep(.08, .84, y)) * (1.0 - .08 * smoothstep(.84, 1.04, y))
+	var width := (.64 + .09 * smoothstep(.08, .84, y)) * (1.0 - .08 * smoothstep(.84, 1.04, y))
 	var curve := sqrt(maxf(.05, 1.0 - pow(u * .73, 2.0)))
 	var chest := .08 * exp(-pow(y - .78, 2.0) / .14) * (1.0 - pow(u, 2.0))
-	return Vector3(u * width, y, .07 + .65 * curve + chest)
+	var hem := .09*u*u*(1.0-smoothstep(-.34,-.18,y))
+	var neckline := .11*(1.0-u*u)*smoothstep(.83,1.02,y)
+	return Vector3(u * width, y+hem-neckline, .07 + .65 * curve + chest)
 
 func _pauldron_lames(anchor: Node3D) -> void:
-	var plate := MeshInstance3D.new()
-	plate.name = "ArmorJointedPauldron"
-	if not _mesh_cache.has("pauldron_lames_v1"):
-		var surface := SurfaceTool.new()
-		surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-		for band: int in 3:
-			var top := .28 - float(band) * .15
-			var bottom := top - .11
-			var radius := .43 - float(band) * .022
-			var color := Color(.105, .13, .15) if band == 0 else (Color(.075, .095, .11) if band == 1 else Color(.05, .065, .08))
-			for column: int in 16:
-				var a0 := deg_to_rad(-135.0 + float(column) * 16.875)
-				var a1 := deg_to_rad(-135.0 + float(column + 1) * 16.875)
-				var p0 := Vector3(sin(a0) * radius, bottom, cos(a0) * radius + .13)
-				var p1 := Vector3(sin(a1) * radius, bottom, cos(a1) * radius + .13)
-				var p2 := Vector3(sin(a0) * (radius - .018), top, cos(a0) * (radius - .018) + .13)
-				var p3 := Vector3(sin(a1) * (radius - .018), top, cos(a1) * (radius - .018) + .13)
-				for point: Vector3 in [p0, p2, p1, p1, p2, p3]:
-					surface.set_color(color)
-					surface.add_vertex(point)
-		surface.index()
-		surface.generate_normals()
-		_mesh_cache["pauldron_lames_v1"] = surface.commit()
-	plate.mesh = _mesh_cache["pauldron_lames_v1"]
-	plate.scale = Vector3.ONE * _unit
-	plate.material_override = _vertex_steel()
-	_align_authored_to_rig(plate, String(anchor.get_meta("armor_bone", "")))
-	anchor.add_child(plate)
+	var before:=anchor.get_child_count()
+	# Rounded shoulder crown and broad overlapping skirt, carried by the same
+	# upper-arm attachment as the former angular lames.
+	_dome(anchor,Vector3(0,.07,.015),Vector3(.38,.23,.36),Color(.22,.27,.30),"heavy")
+	_shell(anchor,Vector3(0,-.025,.015),Vector3(.38,.115,.36),-165,165,-.08,Color(.19,.24,.28),"heavy")
+	_shell(anchor,Vector3(0,-.13,.015),Vector3(.39,.025,.37),-165,165,0,PALETTE.heavy.edge,"heavy")
+	for i in range(before,anchor.get_child_count()):
+		_align_authored_to_rig(anchor.get_child(i),String(anchor.get_meta("armor_bone","")))
 
 func _gauntlet(anchor: Node3D) -> void:
 	var glove := MeshInstance3D.new()
@@ -994,9 +1008,9 @@ func _gauntlet(anchor: Node3D) -> void:
 		var radii := [.17, .21, .22, .18, .10]
 		for row: int in y_levels.size() - 1:
 			var color := Color(.23, .26, .28) if row == 0 else (Color(.13, .16, .18) if row == 2 else Color(.18, .21, .23))
-			for column: int in 12:
-				var a0 := TAU * float(column) / 12.0
-				var a1 := TAU * float(column + 1) / 12.0
+			for column: int in 32:
+				var a0 := TAU * float(column) / 32.0
+				var a1 := TAU * float(column + 1) / 32.0
 				var p0 := Vector3(cos(a0) * radii[row], y_levels[row], sin(a0) * radii[row] * .82 + .055)
 				var p1 := Vector3(cos(a1) * radii[row], y_levels[row], sin(a1) * radii[row] * .82 + .055)
 				var p2 := Vector3(cos(a0) * radii[row + 1], y_levels[row + 1], sin(a0) * radii[row + 1] * .82 + .07)
@@ -1021,14 +1035,14 @@ func _jointed_greave(anchor: Node3D) -> void:
 		surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 		# The knee cup follows the shin bone; gaps between bands leave knee flex visible.
 		var bands := [
-			{"top": .23, "bottom": .08, "radius": .285, "color": Color(.09, .11, .13)},
-			{"top": .045, "bottom": -.20, "radius": .245, "color": Color(.07, .085, .10)},
-			{"top": -.23, "bottom": -.48, "radius": .215, "color": Color(.055, .07, .085)}
+			{"top": .23, "bottom": .08, "radius": .285, "color": Color(.22, .27, .30)},
+			{"top": .045, "bottom": -.20, "radius": .245, "color": Color(.18, .23, .27)},
+			{"top": -.23, "bottom": -.48, "radius": .215, "color": Color(.15, .195, .23)}
 		]
 		for band: Dictionary in bands:
-			for column: int in 16:
-				var a0 := deg_to_rad(-125.0 + float(column) * 15.625)
-				var a1 := deg_to_rad(-125.0 + float(column + 1) * 15.625)
+			for column: int in 32:
+				var a0 := deg_to_rad(-125.0 + float(column) * 7.8125)
+				var a1 := deg_to_rad(-125.0 + float(column + 1) * 7.8125)
 				var top: float = band.top
 				var bottom: float = band.bottom
 				var radius: float = band.radius
@@ -1061,9 +1075,9 @@ func _boot_cap(anchor: Node3D) -> void:
 			var r0 := .175 + .075 * sin(float(row) / 5.0 * PI)
 			var r1 := .175 + .075 * sin(float(row + 1) / 5.0 * PI)
 			var color := Color(.16, .19, .21) if row % 2 == 0 else Color(.23, .26, .28)
-			for column: int in 8:
-				var a0 := PI * float(column) / 8.0
-				var a1 := PI * float(column + 1) / 8.0
+			for column: int in 16:
+				var a0 := PI * float(column) / 16.0
+				var a1 := PI * float(column + 1) / 16.0
 				var p0 := Vector3(cos(a0) * r0, -.045 + sin(a0) * .15, z0)
 				var p1 := Vector3(cos(a1) * r0, -.045 + sin(a1) * .15, z0)
 				var p2 := Vector3(cos(a0) * r1, -.045 + sin(a0) * .15, z1)
@@ -1118,8 +1132,15 @@ func _face_helmet(anchor: Node3D) -> void:
 		_mesh_cache["forged_face_v26"] = surface.commit()
 	face.mesh = _mesh_cache["forged_face_v26"]
 	face.scale = Vector3.ONE * _unit
-	face.material_override = _material(Color(.075, .095, .108), "heavy")
+	face.material_override = _material(Color(.18, .23, .27), "heavy")
 	anchor.add_child(face)
+	var rim:=MeshInstance3D.new()
+	rim.name="ArmorRolledVisorEdge"
+	if not _mesh_cache.has("visor_rim30"):_mesh_cache["visor_rim30"]=Surface30.rolled_boundary(face.mesh,.012)
+	rim.mesh=_mesh_cache["visor_rim30"]
+	rim.scale=Vector3.ONE*_unit
+	rim.material_override=_material(Color(.20,.25,.29),"heavy")
+	anchor.add_child(rim)
 	_forged_brows(anchor)
 
 func _forged_brows(anchor: Node3D) -> void:
@@ -1129,9 +1150,9 @@ func _forged_brows(anchor: Node3D) -> void:
 		var surface := SurfaceTool.new()
 		surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 		for side: float in [-1.0, 1.0]:
-			for column: int in 8:
-				var u0 := float(column) / 8.0
-				var u1 := float(column + 1) / 8.0
+			for column: int in 16:
+				var u0 := float(column) / 16.0
+				var u1 := float(column + 1) / 16.0
 				var x0 := side * lerpf(.15, .45, u0)
 				var x1 := side * lerpf(.15, .45, u1)
 				var y0 := .72 - .035 * u0
@@ -1179,7 +1200,7 @@ func _helmet_side_plates(anchor: Node3D) -> void:
 		_mesh_cache["joined_temples_v22l"] = surface.commit()
 	plates.mesh = _mesh_cache["joined_temples_v22l"]
 	plates.scale = Vector3.ONE * _unit
-	plates.material_override = _material(Color(.088, .11, .125), "heavy")
+	plates.material_override = _material(Color(.18, .23, .27), "heavy")
 	anchor.add_child(plates)
 
 func _helmet_side_point(side: float, around: float, height: float) -> Vector3:
@@ -1208,14 +1229,14 @@ func _dome(anchor: Node3D, center: Vector3, radii: Vector3, color: Color, tier: 
 		return
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for row: int in 8:
-		var p0 := float(row) / 8.0 * PI * .5
-		var p1 := float(row + 1) / 8.0 * PI * .5
-		for column: int in 24:
-			var t0 := float(column) / 24.0 * TAU
-			var t1 := float(column + 1) / 24.0 * TAU
+	for row: int in 12:
+		var p0 := float(row) / 12.0 * PI * .5
+		var p1 := float(row + 1) / 12.0 * PI * .5
+		for column: int in 40:
+			var t0 := float(column) / 40.0 * TAU
+			var t1 := float(column + 1) / 40.0 * TAU
 			var middle_angle := (t0 + t1) * .5
-			if front_cut_rows > 0 and row >= 8 - front_cut_rows and (middle_angle < deg_to_rad(70.0) or middle_angle > TAU - deg_to_rad(70.0)): continue
+			if front_cut_rows > 0 and row >= 12 - int(ceil(float(front_cut_rows)*1.5)) and (middle_angle < deg_to_rad(70.0) or middle_angle > TAU - deg_to_rad(70.0)): continue
 			var a := center + Vector3(sin(t0) * sin(p0) * radii.x, cos(p0) * radii.y, cos(t0) * sin(p0) * radii.z)
 			var b := center + Vector3(sin(t1) * sin(p0) * radii.x, cos(p0) * radii.y, cos(t1) * sin(p0) * radii.z)
 			var c := center + Vector3(sin(t0) * sin(p1) * radii.x, cos(p1) * radii.y, cos(t0) * sin(p1) * radii.z)
@@ -1309,13 +1330,13 @@ func _material(color: Color, tier: String) -> StandardMaterial3D:
 	material.albedo_color = color
 	if tier == "heavy":
 		var is_padding := color == PALETTE["heavy"]["under"]
-		material.metallic = .06 if is_padding else .76
-		material.roughness = .88 if is_padding else .56
+		material.metallic = .0 if is_padding else .58
+		material.roughness = .90 if is_padding else .62
 	elif tier == "medium":
-		material.metallic = .42
-		material.roughness = .62
+		material.metallic = .48
+		material.roughness = .64
 	else:
-		material.metallic = .06
+		material.metallic = .0
 		material.roughness = .83
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	_material_cache[key] = material
@@ -1351,21 +1372,19 @@ func _royal_fasteners(anchor: Node3D) -> void:
 func _color_jerkin(arrays: Array, tier: String) -> void:
 	var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 	var colors := PackedColorArray()
-	colors.resize(vertices.size())
-	for i: int in vertices.size():
-		var v := vertices[i]
-		var color: Color = PALETTE[tier].main
+	for point: Vector3 in vertices:
+		var front := smoothstep(.02,.42,point.z)
+		var side := smoothstep(.43,.72,absf(point.x))
+		var color: Color = Color(.24,.115,.05) if tier == "light" else Color(.24,.31,.36)
+		var seam := exp(-pow((absf(point.x)-.34)/.035,2.0))
+		var waist := exp(-pow((point.y-1.94)/.055,2.0))
 		if tier == "light":
-			color = Color(.25,.105,.045)
-			if absf(absf(v.x)-.34) < .045 or absf(v.y-1.94) < .065: color = Color(.075,.038,.02)
-			elif absf(absf(v.x)-.34) < .065: color = Color(.48,.285,.12)
+			color = color.lerp(Color(.105,.055,.03),maxf(seam*.7,waist*.8)*front)
 		else:
-			var band := int(floor((v.y-1.65)/.24))
-			color = Color(.29,.36,.42) if band%2 == 0 else Color(.20,.27,.33)
-			if fposmod(v.y-1.65,.24) < .035: color = Color(.10,.14,.18)
-			if absf(v.x) > .46: color *= .65
-		color = color.lerp(PALETTE[tier].under, smoothstep(.46,.70,absf(v.x)))
-		colors[i] = color
+			# Wide shading gradient: no binary vertex-color stripes on coarse fabric.
+			color = color.lerp(Color(.32,.39,.43),front*.22)
+		color = color.lerp(PALETTE[tier].under,side*.75)
+		colors.append(color)
 	arrays[Mesh.ARRAY_COLOR] = colors
 
 func _jerkin_material(tier: String) -> StandardMaterial3D:
@@ -1390,3 +1409,11 @@ func _smooth_cloth_normals(vertices: PackedVector3Array, normals: PackedVector3A
 		var sum: Vector3 = sums[keys[i]]
 		if sum.length_squared() > .04: result[i] = sum.normalized()
 	return result
+
+func _tailored_cuff30(anchor:Node3D,tier:String)->void:
+	var p:Dictionary=PALETTE[tier]
+	var before:=anchor.get_child_count()
+	_shell(anchor,Vector3(0,.245,.035),Vector3(.245,.085,.225),-180,180,0,p.main,tier)
+	_shell(anchor,Vector3(0,.32,.035),Vector3(.251,.025,.231),-180,180,0,p.edge,tier)
+	for i in range(before,anchor.get_child_count()):
+		_align_authored_to_rig(anchor.get_child(i),String(anchor.get_meta("armor_bone","")))

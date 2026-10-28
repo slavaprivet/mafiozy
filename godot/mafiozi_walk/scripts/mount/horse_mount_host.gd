@@ -667,6 +667,8 @@ func load_barrel(barrel_host: Node) -> bool:
 	return true
 
 func take_barrel() -> Node3D:
+	var climb_weapons: Variant = player.get("_weapon_host") if is_instance_valid(player) else null
+	if is_instance_valid(climb_weapons) and climb_weapons.get("_ship_climb") == true: return null
 	if not _barrel_loaded or not is_instance_valid(_barrel_slot):
 		return null
 	var model := _barrel_slot

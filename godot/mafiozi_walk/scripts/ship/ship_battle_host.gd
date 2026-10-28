@@ -690,6 +690,8 @@ func _hold_player(hold: bool) -> void:
 
 
 func _take_from_crate(kind: String) -> void:
+	var climb_weapons: Variant = world.get("preview_weapons") if is_instance_valid(world) else null
+	if kind == "ammo" and is_instance_valid(climb_weapons) and climb_weapons.get("_ship_climb") == true: return
 	if _crate_timer > 0.0:
 		_message("Ящик ещё открыт", 1.0)
 		return
@@ -909,6 +911,8 @@ func _sync_ball_stock() -> void:
 ## One iron ball on the deck beside each gun.  E feeds it into the muzzle; the
 ## prop disappears with the shot, so the gun visibly eats the ball.
 func _set_carry_ball(on: bool) -> void:
+	var climb_weapons: Variant = world.get("preview_weapons") if is_instance_valid(world) else null
+	if on and is_instance_valid(climb_weapons) and climb_weapons.get("_ship_climb") == true: return
 	var weapons: Variant = world.get("preview_weapons") if is_instance_valid(world) else null
 	if not on:
 		if is_instance_valid(_carried_ball_mesh):
@@ -1004,6 +1008,8 @@ func _drop_carried_ball() -> void:
 
 
 func _pickup_dropped_ball() -> bool:
+	var climb_weapons: Variant = world.get("preview_weapons") if is_instance_valid(world) else null
+	if is_instance_valid(climb_weapons) and climb_weapons.get("_ship_climb") == true: return false
 	if not is_instance_valid(_dropped_ball) or not is_instance_valid(player):
 		return false
 	if player.global_position.distance_to(_dropped_ball.global_position) > 2.4:
@@ -1058,6 +1064,8 @@ func _nearest_deck_ball() -> Node3D:
 
 
 func _pickup_deck_ball(ball: Node3D) -> bool:
+	var climb_weapons: Variant = world.get("preview_weapons") if is_instance_valid(world) else null
+	if is_instance_valid(climb_weapons) and climb_weapons.get("_ship_climb") == true: return false
 	if not is_instance_valid(ball) or not is_instance_valid(player):
 		return false
 	if player.global_position.distance_to(ball.global_position) > 2.2:
@@ -1234,15 +1242,12 @@ func _on_ship_sunk() -> void:
 
 
 func _rescue_player() -> void:
-	if preview_basin == null or not preview_basin.has_method("shore_respawn"):
-		return
-	var shore: Vector3 = preview_basin.call("shore_respawn", player.global_position)
-	player.global_position = shore
-	player.velocity = Vector3.ZERO
-	_message("Вас выбросило на берег", 2.4)
+	# Leaving the hull, a deck opening or a sinking ship is normal physical
+	# movement. The player controller owns falling, swimming and shore exit.
+	# Never teleport a free player back to a station or onto the shore.
+	pass
 
 
-## ------------------------------------------------------------------ helpers
 func _water_level() -> float:
 	if preview_basin != null and preview_basin.has_method("water_level"):
 		return float(preview_basin.call("water_level"))
@@ -1362,13 +1367,9 @@ func _update_lever_work(delta: float) -> void:
 
 
 func _reset_lever_work() -> void:
-	if not is_instance_valid(player):
-		return
+	# The old automatic winch pose is disabled. This owner must not reset
+	# the swimmer or walking/melee pose on every ship frame.
 	_lever_hold_pos = Vector3.ZERO
-	var visual := player.get("_visual") as Node3D
-	if is_instance_valid(visual):
-		visual.rotation.x = 0.0
-		visual.rotation.z = 0.0
 
 
 func _update_swimming(delta: float) -> void:
@@ -1407,51 +1408,17 @@ func _update_swimming(delta: float) -> void:
 
 
 func _recover_overboard() -> void:
-	if not is_instance_valid(preview_boat) or not is_instance_valid(player) or not is_instance_valid(preview_basin):
-		return
-	# A player on a boarding ladder is deliberately between shore/water and the
-	# deck; do not teleport him away from the ladder he is climbing.
-	if preview_boat.has_method("in_boarding_zone") and bool(preview_boat.call(
-			"in_boarding_zone", player.global_position)):
-		return
-	var water: float = preview_basin.water_level()
-	if player.global_position.y >= water + 0.10:
-		return
-	if player.global_position.distance_to(preview_boat.global_position) > 22.0:
-		return
-	var safe: Vector3 = preview_boat.to_global(HELM_STAND)
-	player.global_position = safe
-	player.velocity = Vector3.ZERO
-	_message("Поднят из-за борта на палубу", 2.6)
+	# Leaving the hull, a deck opening or a sinking ship is normal physical
+	# movement. The player controller owns falling, swimming and shore exit.
+	# Never teleport a free player back to a station or onto the shore.
+	pass
 
 
 func _recover_underdeck() -> void:
-	if not is_instance_valid(preview_boat) or not is_instance_valid(player):
-		return
-	# Never rescue a swimmer back onto the ship.  The under-deck rescue is only
-	# for a body that actually fell and is standing inside the hull.
-	if _swim_state or bool(player.get("_swimming")):
-		return
-	if not player.is_on_floor():
-		return
-	# In the water the swimmer is allowed to be under the hull footprint; the
-	# under-deck rescue must not fire there or it would throw him back on deck.
-	if is_instance_valid(preview_basin) and player.global_position.y < preview_basin.water_level() + 0.10:
-		return
-	var local: Vector3 = preview_boat.to_local(player.global_position)
-	# Inside the hull footprint but below the walking deck: the player has
-	# fallen through a deck opening (and may be resting on the new safety sole
-	# at y≈1.06).  The cabin well z>4.3 is a legitimate low surface, so it is
-	# excluded; everything else below 1.35 is a fall.
-	if absf(local.x) > 4.2 or absf(local.z) > 13.6:
-		return
-	var in_cabin_well := local.z > 4.30 and local.z < 12.40
-	if local.y >= 1.35 or in_cabin_well:
-		return
-	var safe: Vector3 = preview_boat.to_global(HELM_STAND)
-	player.global_position = safe
-	player.velocity = Vector3.ZERO
-	_message("Поднят на палубу — не проваливайтесь", 2.6)
+	# Leaving the hull, a deck opening or a sinking ship is normal physical
+	# movement. The player controller owns falling, swimming and shore exit.
+	# Never teleport a free player back to a station or onto the shore.
+	pass
 
 
 func _player_aboard() -> bool:

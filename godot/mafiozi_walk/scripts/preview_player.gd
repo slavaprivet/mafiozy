@@ -35,6 +35,7 @@ const AirbornePose = preload("res://scripts/preview_airborne.gd")
 const DivePose = preload("res://scripts/preview_dive.gd")
 const DropkickMotion = preload("res://scripts/combat/player_dropkick_motion.gd")
 const ContactImpulse = preload("res://scripts/combat/player_contact_impulse.gd")
+const InjuryLocomotion32 = preload("res://scripts/character/injury_locomotion32.gd")
 const SOURCE_JUMP_RADIUS := 0.36
 
 var _visual: Node3D
@@ -109,6 +110,8 @@ var _source_falling: bool = false
 var _hit_pose_decorator: Callable
 var _throw_pose_decorator: Callable
 var _melee_practice: Node
+var _ship_climb_state: Dictionary = {}
+var _ship_climb_provider: RefCounted
 var _weapon_host: Node
 var _corpse_contact_sampler: RefCounted
 var _ground_move_frame: int = -1
@@ -119,6 +122,7 @@ var _ground_move_end := Vector3.ZERO
 var _ground_move_pressure: Dictionary = {}
 var _final_dead_block_contract: Dictionary = {}
 var _final_dead_pressure_enabled := false
+var _injury32: RefCounted = InjuryLocomotion32.new()
 
 
 ## Only the actual completed normal movement path can publish this receipt.
@@ -651,19 +655,21 @@ func set_swimming(active: bool, level: float = 0.0) -> void:
 	if _swimming == active:
 		if active:
 			_swim_level = level
-		else:
-			# Force the pose back even if the flag was already false: a stale
-			# swim tilt must never survive onto dry land.
-			_reset_swim_pose()
+		# Dry notifications arrive every ship frame. They must not rewrite the
+		# locomotion bones or restart the animation lifetime.
 		return
 	_swimming = active
 	_swim_level = level
 	if active:
-		_jump.clear()
-		_jump_pose.clear()
+		# Reuse the existing authority boundary: it suspends weapon IK/input
+		# while the swimmer owns the skeleton and hides carried melee models.
+		set_preview_pose_authority(&"swimming")
 		_swim_phase = 0.0
 		return
-	_reset_swim_pose()
+	# A later death/vehicle owner must not be overwritten by shore cleanup.
+	if _pose_authority == &"swimming":
+		_reset_swim_pose()
+		set_preview_pose_authority(&"on_foot")
 
 
 func _reset_swim_pose() -> void:
@@ -693,7 +699,7 @@ func _swim_process(delta: float) -> void:
 		_heading = atan2(-direction.x, -direction.z)
 	# Collision-aware swim: the old direct global_position step let the player
 	# pass through the hull, the shore and walls.
-	move_and_slide()
+	_move_with_embedded29()
 	global_position.y = move_toward(global_position.y, _swim_level, delta * 3.0)
 	_swim_phase += delta * (4.0 + move.length() * 2.0)
 	_apply_swim_pose(delta)
@@ -727,7 +733,11 @@ func _physics_process(delta: float) -> void:
 	_ground_move_frame = -1
 	_ground_move_pressure.clear()
 	_jump_pose = {}
+	_injury32.refresh(self)
 	if is_instance_valid(_weapon_host): _weapon_host.advance(delta)
+	# Posture writes the base capsule each tick. Injury support must own the
+	# shape used by this same physical sweep, as well as the final posed shape.
+	_injury32.sync_collision(self)
 	if is_instance_valid(_melee_practice): _melee_practice.advance(delta)
 	if _swimming:
 		_swim_process(delta)
@@ -767,6 +777,13 @@ func _physics_process(delta: float) -> void:
 		_contact_dropkick.cancel("external_movement_owner")
 		_jump_event_consumed = false
 		return # External owner owns movement as well as the final pose.
+	if not _ship_climb_state.is_empty():
+		if Engine.get_physics_frames() - int(_ship_climb_state.get("frame", -10)) > 2:
+			set_ship_climb_pose({})
+		else:
+			velocity = Vector3.ZERO
+			_update_owned_pose(delta)
+			return
 	var leg_support50 := _leg_support_scale50()
 	if leg_support50 < 1.0 and (not _jump.is_empty() or _contact_dropkick.active):
 		# Retire the authored flight, retaining its last swept velocity for gravity.
@@ -815,10 +832,12 @@ func _physics_process(delta: float) -> void:
 	var armor_owner := get_parent().get_node_or_null("CastleArmorEquipment") if is_instance_valid(get_parent()) else null
 	if armor_owner != null: speed *= armor_owner.speed_multiplier()
 	speed *= leg_support50
+	speed *= _injury32.speed_scale()
+	speed *= _injury32.drive(self,direction,delta)
 	velocity.x = move_toward(velocity.x, direction.x * speed, acceleration * delta)
 	velocity.z = move_toward(velocity.z, direction.z * speed, acceleration * delta)
 	var bow_facing: bool = is_instance_valid(_bow_host) and _bow_host.owns_player_facing()
-	if direction.length_squared() > 0.001 and not bow_facing and not _sword_steering():
+	if direction.length_squared() > 0.001 and not bow_facing and not _sword_steering() and not _embedded_active29():
 		var target_heading: float = atan2(-direction.x, -direction.z)
 		_heading = lerp_angle(_heading, target_heading, minf(1.0, delta * 12.0))
 		_visual.rotation.y = _heading + deg_to_rad(visual_yaw_degrees)
@@ -831,7 +850,7 @@ func _physics_process(delta: float) -> void:
 	if _final_dead_pressure_enabled: _capture_ground_pressure(direction, delta, not typing)
 	var corpse_contact_start: Dictionary = _corpse_contact_sampler.begin(self) if _corpse_contact_sampler != null and not typing else {}
 	_ground_move_start = global_position
-	move_and_slide()
+	_move_with_embedded29()
 	_push_melee_corpse33(drive_velocity + contact_push, delta)
 	if not contact_push.is_zero_approx():
 		# Preserve native wall response in the locomotion component too. Vertical
@@ -955,7 +974,7 @@ func _advance_contact_dropkick(delta: float) -> void:
 	var old_snap := floor_snap_length
 	floor_snap_length = 0.0
 	velocity = Vector3(requested.x,displacement_y,requested.z)/_body_motion_delta()
-	move_and_slide()
+	_move_with_embedded29()
 	floor_snap_length = old_snap
 	var actual := global_position-before
 	_jump_actual_velocity = actual/delta
@@ -991,11 +1010,12 @@ func _jump_direction() -> Vector2:
 func _request_preview_jump(now_ms: float) -> bool:
 	if _mount_mode:
 		return false # Space belongs to the horse while riding.
-	if _leg_support_scale50() < 1.0: return false
 	if _contact_dropkick.active: return false
 	if is_instance_valid(_weapon_host) and _weapon_host.controls_blocked(): return false
 	if not _free_mouse_look or _pose_authority != &"on_foot" or _text_control_focused() or not _jump_physics_visible or _dive == null or not is_finite(now_ms):
 		return false
+	if _leg_support_scale50() < 1.0:
+		return _injury32.request_jump(self) if _jump_surface_allowed(global_position) else false
 	var direction := _jump_direction()
 	if not _jump.is_empty():
 		if direction.is_zero_approx():
@@ -1126,7 +1146,7 @@ func _advance_preview_jump(delta: float) -> void:
 		if float(next.elapsed) >= flight and absf(desired_y - before.y) < 0.005 and is_on_floor():
 			desired_y -= 0.005 # Real contact probe; collider, not a timer, holds feet.
 		velocity = Vector3(horizontal.x, desired_y - before.y, horizontal.z) / engine_step
-		move_and_slide() # Every physical displacement is swept, never teleported.
+		_move_with_embedded29() # Every physical displacement is swept, never teleported.
 		var actual := (global_position - before) / dt
 		_jump.elapsed = next.elapsed
 		_jump.progress = next.progress
@@ -1139,7 +1159,7 @@ func _advance_preview_jump(delta: float) -> void:
 			_jump.fall_y = global_position.y - 9.0 * dt * dt
 			_jump.fall_velocity -= 18.0 * dt
 			velocity = Vector3(0, float(_jump.fall_y) - global_position.y, 0) / engine_step
-			move_and_slide() # Conservative shape-edge ceiling missed by centre ray.
+			_move_with_embedded29() # Conservative shape-edge ceiling missed by centre ray.
 		if is_on_floor() and bool(_jump.falling):
 			_jump.falling = false
 			if not cinematic:
@@ -1179,6 +1199,7 @@ func set_preview_pose_authority(owner: StringName, new_lifetime: bool = false) -
 	# Explicit new lifetimes cover respawn/teleport even when owner is unchanged.
 	if owner == _pose_authority and not new_lifetime:
 		return
+	set_ship_climb_pose({}, false)
 	_contact_impulse.clear()
 	_contact_dropkick.cancel("pose_authority")
 	if is_instance_valid(_weapon_host):
@@ -1211,6 +1232,13 @@ func _update_owned_pose(delta: float) -> void:
 	if _pose_authority != &"on_foot" or _locomotion == null or not is_instance_valid(_pose_skeleton):
 		return
 	var expected_epoch := _pose_epoch
+	if not _ship_climb_state.is_empty():
+		if _ship_climb_provider == null: _ship_climb_provider = preload("res://scripts/ship/ship_climb_pose.gd").new()
+		var climb: Dictionary = _ship_climb_provider.sample(self, _ship_climb_state)
+		if climb.get("valid", false):
+			_apply_selected_pose(climb, expected_epoch)
+			set_meta("ship_climb_receipt", climb.get("ship_climb", {}))
+			return
 	if not _jump_pose.is_empty() and _dive != null:
 		var direction: Vector2 = _jump_pose.direction
 		var aim_yaw := _camera_yaw + PI
@@ -1219,6 +1247,7 @@ func _update_owned_pose(delta: float) -> void:
 			aim_yaw, _camera_pitch, travel_yaw, _pose_authority, _pose_epoch)
 		if bool(source.get("valid", false)) and bool(source.get("active", false)):
 			set_posture_eye_height(1.64)
+			source=_injury32.decorate(self,source)
 			if is_instance_valid(_weapon_host): source=_weapon_host.decorate(source)
 			source=_decorate_hit_pose(delta,source)
 			if is_instance_valid(_weapon_host): source=_weapon_host.finish_pose(source)
@@ -1234,6 +1263,8 @@ func _update_owned_pose(delta: float) -> void:
 			selected["poses"], selected["visual_offset"], _pose_authority, _pose_epoch)
 		if bool(air.get("valid", false)):
 			selected = air
+	if _ship_climb_provider != null: selected = _ship_climb_provider.blend_release(selected, delta)
+	selected=_injury32.decorate(self,selected)
 	if is_instance_valid(_weapon_host):
 		selected = _weapon_host.decorate(selected)
 	if is_instance_valid(_melee_practice) and (not is_instance_valid(_weapon_host) or not _weapon_host.armed()): selected = _melee_practice.decorate(selected,delta)
@@ -1285,7 +1316,7 @@ func _apply_selected_pose(selected: Dictionary, expected_epoch: int = -1) -> boo
 		if not frame is Transform3D or not frame.is_finite(): return false
 	var poses: Array[Transform3D] = []
 	poses.assign(selected["poses"])
-	var affine := selected.has("melee") or selected.has("weapon") or selected.has("weapon_posture")
+	var affine := selected.has("ship_climb") or selected.has("melee") or selected.has("weapon") or selected.has("weapon_posture")
 	if not affine: _clear_affine_pose()
 	for bone: int in range(poses.size()):
 		_pose_skeleton.set_bone_pose(bone, poses[bone])
@@ -1301,6 +1332,7 @@ func _apply_selected_pose(selected: Dictionary, expected_epoch: int = -1) -> boo
 		_pose_affine_active = true
 	_pose_motion.position = selected["visual_offset"]
 	_pose_motion.quaternion = selected.get("visual_rotation", Quaternion.IDENTITY)
+	_injury32.sync_collision(self)
 	_pose_revision += 1
 	# A receipt describes the completed displayed pose, never a proposed pose.
 	# External vehicle/physical writers need their own publication integration.
@@ -1374,15 +1406,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				_weapon_host.input_event(event)
 			get_viewport().set_input_as_handled()
 			return
-		if not _free_mouse_look: return
-		if is_instance_valid(_weapon_host) and _weapon_host.input_event(event):
-			get_viewport().set_input_as_handled()
-			return
-		if is_instance_valid(_melee_practice) and _melee_practice.input_event(event):
-			get_viewport().set_input_as_handled()
-			return
 		if button.pressed and button.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN] \
-				and not _text_control_focused():
+				and not _text_control_focused() \
+				and (not is_instance_valid(_weapon_host) or not _weapon_host.controls_blocked()):
 			# Wheel zoom is available both while the mouse is captured and while
 			# it is merely visible, so releasing the cursor cannot disable it.
 			var steps := button.factor if button.factor > 0.0 else 1.0
@@ -1390,6 +1416,13 @@ func _unhandled_input(event: InputEvent) -> void:
 			camera_distance = clampf(camera_distance * exp(direction * steps * 0.12), 3.0, 16.0)
 			if is_instance_valid(_spring_arm):
 				_spring_arm.spring_length = camera_distance
+			get_viewport().set_input_as_handled()
+			return
+		if not _free_mouse_look: return
+		if is_instance_valid(_weapon_host) and _weapon_host.input_event(event):
+			get_viewport().set_input_as_handled()
+			return
+		if is_instance_valid(_melee_practice) and _melee_practice.input_event(event):
 			get_viewport().set_input_as_handled()
 			return
 		if button.button_index == MOUSE_BUTTON_RIGHT:
@@ -1569,3 +1602,45 @@ func _ensure_keys(action: StringName, key_codes: Array) -> void:
 		var key: InputEventKey = InputEventKey.new()
 		key.physical_keycode = code as Key
 		InputMap.action_add_event(action, key)
+
+func set_ship_climb_pose(state: Dictionary, restore: bool = true) -> void:
+	var was_active := not _ship_climb_state.is_empty()
+	var active := bool(state.get("active", false)) and _pose_authority == &"on_foot"
+	if active and is_instance_valid(_weapon_host): active = not bool(_weapon_host.scene.get("preview_dead")) and not bool(_weapon_host.scene.get("preview_physics_fault"))
+	if active and not was_active:
+		if is_instance_valid(_weapon_host) and not _weapon_host.begin_ship_climb(): return
+		_jump.clear()
+		_jump_pose.clear()
+		_contact_impulse.clear()
+		_contact_dropkick.cancel("ship_climb")
+	_ship_climb_state = state.duplicate() if active else {}
+	if not active and was_active:
+		if is_instance_valid(_weapon_host): _weapon_host.end_ship_climb(restore)
+		if _ship_climb_provider != null:
+			if restore: _ship_climb_provider.start_release()
+			else: _ship_climb_provider.release_time = 0.0
+		if has_meta("ship_climb_receipt"): remove_meta("ship_climb_receipt")
+	if active: _update_owned_pose(0.0)
+
+func ship_climb_hands_available() -> bool:
+	if not is_instance_valid(_weapon_host): return true
+	if bool(_weapon_host.get("_catapult_stone_carry")): return false
+	var world: Node = _weapon_host.scene
+	var barrels: Variant = world.get("preview_power_barrels")
+	if is_instance_valid(barrels) and bool(barrels.get("carrying")): return false
+	return true
+
+## A live puncture owns only motion perpendicular to its shaft. The ordinary
+## native body sweep still owns collision, floor response and displacement.
+func _embedded_active29() -> bool:
+	var constraint:RefCounted=get_meta("embedded_weapon29") if has_meta("embedded_weapon29") else null
+	var host:Node=get("_sword_host")
+	return constraint!=null and is_instance_valid(host) and constraint.active(host)
+
+func _move_with_embedded29() -> bool:
+	var constraint:RefCounted=get_meta("embedded_weapon29") if has_meta("embedded_weapon29") else null
+	if constraint!=null: velocity=constraint.constrain_velocity(velocity,_body_motion_delta())
+	var contact_host:Node=get("_sword_host")
+	if is_instance_valid(contact_host) and contact_host.has_method("constrain_contact_walk29"):
+		velocity=contact_host.constrain_contact_walk29(velocity,_body_motion_delta())
+	return move_and_slide()

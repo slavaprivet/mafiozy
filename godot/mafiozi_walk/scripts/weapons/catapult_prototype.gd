@@ -707,6 +707,8 @@ func _fire_barrel() -> bool:
 	return true
 
 func take_barrel() -> bool:
+	var climb_weapons: Variant = _world.get("preview_weapons") if is_instance_valid(_world) else null
+	if is_instance_valid(climb_weapons) and climb_weapons.get("_ship_climb") == true: return false
 	if not _barrel_on_spoon or not is_instance_valid(_barrel_host) or not is_instance_valid(_barrel_model):
 		return false
 	var host: Node = _barrel_host

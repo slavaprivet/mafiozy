@@ -1,0 +1,182 @@
+{
+  "license": "CC0-1.0; source assets Kenney, original sound design edits CC0-1.0",
+  "source_pages": [
+    "https://kenney.nl/assets/impact-sounds",
+    "https://kenney.nl/assets/rpg-audio"
+  ],
+  "source_license_files": [
+    "KENNEY_IMPACT_LICENSE.txt",
+    "KENNEY_RPG_LICENSE.txt"
+  ],
+  "note": "All12 variants precomputed48kmonoPCM16. No runtime generation. Designed foley, not field recordings.",
+  "assets": [
+    {
+      "file": "armor_light_0.wav",
+      "sources": [
+        "impactSoft_medium_000.ogg",
+        "dropLeather.ogg",
+        "cloth1.ogg"
+      ],
+      "design": "Damped leather/cloth thud",
+      "duration": 0.34,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -26.325398104228682,
+      "spectral_centroid_hz": 1068.0499985287063,
+      "sha256": "c2172a76fc5ca3ed69cfeea75f4d5cc926d749a572795097d51076bd4a34eefb"
+    },
+    {
+      "file": "armor_medium_0.wav",
+      "sources": [
+        "impactMetal_light_000.ogg",
+        "metalLatch.ogg",
+        "impactSoft_medium_000.ogg"
+      ],
+      "design": "Designed short multi-transient mail rattle; not a recorded chainmail strike",
+      "duration": 0.43,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -28.007374819327456,
+      "spectral_centroid_hz": 5823.439280442766,
+      "sha256": "e1c41c6009c58a8f95104cf0268273e1c8e288ccda577c4918688697941485f0"
+    },
+    {
+      "file": "armor_heavy_0.wav",
+      "sources": [
+        "impactPlate_heavy_000.ogg",
+        "metalPot1.ogg",
+        "impactSoft_medium_000.ogg"
+      ],
+      "design": "Low plate impact with restrained metallic resonance",
+      "duration": 0.78,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -30.169661354908435,
+      "spectral_centroid_hz": 1827.536158269004,
+      "sha256": "80563eb301ba60b5707e6238339b50ce58cb87994be862e550f2d1ecf2b097fd"
+    },
+    {
+      "file": "armor_light_1.wav",
+      "sources": [
+        "impactSoft_medium_001.ogg",
+        "handleSmallLeather2.ogg",
+        "cloth2.ogg"
+      ],
+      "design": "Damped leather/cloth thud",
+      "duration": 0.34,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -25.730523490794628,
+      "spectral_centroid_hz": 1332.0923831595153,
+      "sha256": "90f487db1f086adeedf263084c16d843531690614dc951b2294b91ab375a1174"
+    },
+    {
+      "file": "armor_medium_1.wav",
+      "sources": [
+        "impactMetal_light_001.ogg",
+        "metalLatch.ogg",
+        "impactSoft_medium_001.ogg"
+      ],
+      "design": "Designed short multi-transient mail rattle; not a recorded chainmail strike",
+      "duration": 0.43,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -29.38030818946974,
+      "spectral_centroid_hz": 5723.399399631883,
+      "sha256": "d4821643a02b20f7a870659c32e1d7b82a76f3c8594574d2b74a5c98fd98f07e"
+    },
+    {
+      "file": "armor_heavy_1.wav",
+      "sources": [
+        "impactPlate_heavy_001.ogg",
+        "metalPot2.ogg",
+        "impactSoft_medium_001.ogg"
+      ],
+      "design": "Low plate impact with restrained metallic resonance",
+      "duration": 0.78,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -28.613624264875185,
+      "spectral_centroid_hz": 1634.813430522236,
+      "sha256": "a0fc2f3f685c8c6c355eab6259047e03e2a745fbbd4f457ec80fe7b8f03f0993"
+    },
+    {
+      "file": "armor_light_2.wav",
+      "sources": [
+        "impactSoft_medium_002.ogg",
+        "dropLeather.ogg",
+        "cloth3.ogg"
+      ],
+      "design": "Damped leather/cloth thud",
+      "duration": 0.34,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -25.64759591840529,
+      "spectral_centroid_hz": 1085.550377642865,
+      "sha256": "8116ed9da904e9d3d359240f8d1e0fca104a1b3def058de39c51e848dcec94e8"
+    },
+    {
+      "file": "armor_medium_2.wav",
+      "sources": [
+        "impactMetal_light_002.ogg",
+        "metalLatch.ogg",
+        "impactSoft_medium_002.ogg"
+      ],
+      "design": "Designed short multi-transient mail rattle; not a recorded chainmail strike",
+      "duration": 0.43,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -29.7792828409641,
+      "spectral_centroid_hz": 6010.682954667872,
+      "sha256": "144cb8d263f93d7f628b35ccac8019b8830662aede3cae2dd44f29d3050526f3"
+    },
+    {
+      "file": "armor_heavy_2.wav",
+      "sources": [
+        "impactPlate_heavy_002.ogg",
+        "metalPot3.ogg",
+        "impactSoft_medium_002.ogg"
+      ],
+      "design": "Low plate impact with restrained metallic resonance",
+      "duration": 0.78,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -29.658612953807225,
+      "spectral_centroid_hz": 1999.772383722738,
+      "sha256": "fce980da0f66e4fceb6a8503b110ab6f2c16689f21dab75d5016e9a159573f19"
+    },
+    {
+      "file": "armor_light_3.wav",
+      "sources": [
+        "impactSoft_medium_003.ogg",
+        "handleSmallLeather2.ogg",
+        "cloth4.ogg"
+      ],
+      "design": "Damped leather/cloth thud",
+      "duration": 0.34,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -26.33141975024263,
+      "spectral_centroid_hz": 1983.544141439944,
+      "sha256": "6ea979d5e63ba54d0f4f202c537b4271b1465cbfb293a29e4b48e1cb5fb06943"
+    },
+    {
+      "file": "armor_medium_3.wav",
+      "sources": [
+        "impactMetal_light_003.ogg",
+        "metalLatch.ogg",
+        "impactSoft_medium_003.ogg"
+      ],
+      "design": "Designed short multi-transient mail rattle; not a recorded chainmail strike",
+      "duration": 0.43,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -28.305947272849437,
+      "spectral_centroid_hz": 5791.427119623204,
+      "sha256": "3d80129d2942337370557a56b30fbe7c8e2e38be731985c8559e951c958adb0f"
+    },
+    {
+      "file": "armor_heavy_3.wav",
+      "sources": [
+        "impactPlate_heavy_003.ogg",
+        "metalPot1.ogg",
+        "impactSoft_medium_003.ogg"
+      ],
+      "design": "Low plate impact with restrained metallic resonance",
+      "duration": 0.78,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -28.390547751049287,
+      "spectral_centroid_hz": 1440.9127505033184,
+      "sha256": "05e84f2d353a6779fbeb082b12e041490622afd839aafe70b637e76e99c8d4ed"
+    }
+  ]
+}

@@ -1,0 +1,535 @@
+{
+  "creator": "Kenney (source recordings/assets); project sound design and procedural layers by Codex",
+  "license": "CC0-1.0 for Kenney source assets. Newly synthesized layers and edits dedicated CC0-1.0.",
+  "official_pages": [
+    "https://kenney.nl/assets/impact-sounds",
+    "https://kenney.nl/assets/rpg-audio"
+  ],
+  "note": "Designed game foley, not field recordings of weapon/body impacts. Mono48k16bit, bounded peak; source archive SHA and exact reproduction script retained in agents/audio30.",
+  "assets": [
+    {
+      "file": "wood_0.wav",
+      "kind": "wood",
+      "variant": 0,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.47972916666666665,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -27.370142168041333,
+      "sources": [
+        "impactWood_medium_000.ogg",
+        "impactPlank_medium_000.ogg"
+      ],
+      "original_synthesis": "none",
+      "sha256": "4fd0e70739d79e91cfa347d242531211128e84a96cd6b35d6a859c67624c5201"
+    },
+    {
+      "file": "stone_0.wav",
+      "kind": "stone",
+      "variant": 0,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.8104791666666666,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -29.31559385225844,
+      "sources": [
+        "impactMining_000.ogg",
+        "impactGeneric_light_000.ogg"
+      ],
+      "original_synthesis": "none",
+      "sha256": "e0700a3780f8a6022ae6f8dfe26a7757e4a91979c334046a93da40006d2714c9"
+    },
+    {
+      "file": "metal_0.wav",
+      "kind": "metal",
+      "variant": 0,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.5342708333333334,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -29.568286833179975,
+      "sources": [
+        "impactMetal_medium_000.ogg",
+        "impactPlate_light_000.ogg"
+      ],
+      "original_synthesis": "none",
+      "sha256": "b1699519b64f0a698861d8b67d79e3141d0a267f819809fd2861d6e8b5158b5c"
+    },
+    {
+      "file": "blunt_0.wav",
+      "kind": "blunt",
+      "variant": 0,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.45,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -24.397701160653344,
+      "sources": [
+        "impactPunch_heavy_000.ogg",
+        "impactSoft_medium_000.ogg"
+      ],
+      "original_synthesis": "none",
+      "sha256": "ba8139a57bb2cc68e8a442bcd2b8e5223f5bf38df05bf7d2e5a780abcbc00592"
+    },
+    {
+      "file": "slice_0.wav",
+      "kind": "slice",
+      "variant": 0,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.48,
+      "peak_dbfs": -8.995432938898118,
+      "rms_dbfs": -26.394052276133916,
+      "sources": [
+        "impactPunch_heavy_000.ogg",
+        "knifeSlice.ogg",
+        "impactSoft_medium_000.ogg"
+      ],
+      "original_synthesis": "short filtered noise tissue texture; no recorded biological material",
+      "sha256": "b3fc712991a80dd3e8b4928410dd20041a75263894e0ec37b3d6368e2c0ba819"
+    },
+    {
+      "file": "stab_0.wav",
+      "kind": "stab",
+      "variant": 0,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.34,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -25.04808690112611,
+      "sources": [
+        "impactSoft_medium_000.ogg",
+        "impactPunch_heavy_000.ogg",
+        "knifeSlice.ogg"
+      ],
+      "original_synthesis": "short filtered noise tissue texture",
+      "sha256": "ecbcb6f0cfd7e5db02b27f22f632270cb1d93c88d45c8129e45bbe79bb3307bd"
+    },
+    {
+      "file": "sever_0.wav",
+      "kind": "sever",
+      "variant": 0,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.64,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -27.569420031898694,
+      "sources": [
+        "chop.ogg",
+        "impactPunch_heavy_000.ogg",
+        "impactSoft_medium_000.ogg",
+        "knifeSlice.ogg"
+      ],
+      "original_synthesis": "restrained filtered noise separation texture",
+      "sha256": "bcdd856241756bc12fcda389ec728b426d78e0ae58c66abe22e0eeaf16af82f4"
+    },
+    {
+      "file": "swish_0.wav",
+      "kind": "swish",
+      "variant": 0,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.3,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -23.702934277710895,
+      "sources": [
+        "cloth1.ogg"
+      ],
+      "original_synthesis": "original broadband filtered airflow envelope",
+      "sha256": "bf5a6eb010fbe3dd75c58a6e30dd1fb6e647195a3d3ea1d18d1aa17781a6f94b"
+    },
+    {
+      "file": "wood_1.wav",
+      "kind": "wood",
+      "variant": 1,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.5149166666666667,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -27.07813354065167,
+      "sources": [
+        "impactWood_medium_001.ogg",
+        "impactPlank_medium_001.ogg"
+      ],
+      "original_synthesis": "none",
+      "sha256": "d488d343edf42c999fe37ec0b805ea4154d75291ee94ceee7cd9bd876138cad5"
+    },
+    {
+      "file": "stone_1.wav",
+      "kind": "stone",
+      "variant": 1,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.7371666666666666,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -28.659604812683366,
+      "sources": [
+        "impactMining_001.ogg",
+        "impactGeneric_light_001.ogg"
+      ],
+      "original_synthesis": "none",
+      "sha256": "f0b30ea9f269d0a56abc928a4743fa3be640d0a6f7681e70d5ed845e1c94358a"
+    },
+    {
+      "file": "metal_1.wav",
+      "kind": "metal",
+      "variant": 1,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.6352708333333333,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -31.15067730591668,
+      "sources": [
+        "impactMetal_medium_001.ogg",
+        "impactPlate_light_001.ogg"
+      ],
+      "original_synthesis": "none",
+      "sha256": "a5a32cc3fa5d0b27687d5ba2142c2678536817ed6fb242149c94ed06972b7d0b"
+    },
+    {
+      "file": "blunt_1.wav",
+      "kind": "blunt",
+      "variant": 1,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.45,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -25.080339891830683,
+      "sources": [
+        "impactPunch_heavy_001.ogg",
+        "impactSoft_medium_001.ogg"
+      ],
+      "original_synthesis": "none",
+      "sha256": "2e4b518a3063c2a7883851c654f83acf20b286771beb3c4e545f11c84cb63e22"
+    },
+    {
+      "file": "slice_1.wav",
+      "kind": "slice",
+      "variant": 1,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.48,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -28.90582154435354,
+      "sources": [
+        "impactPunch_heavy_001.ogg",
+        "knifeSlice2.ogg",
+        "impactSoft_medium_001.ogg"
+      ],
+      "original_synthesis": "short filtered noise tissue texture; no recorded biological material",
+      "sha256": "d85cfc3fc34feccb0e31f1aa5277628948a872407d20f4b73ab6a4d19b47d934"
+    },
+    {
+      "file": "stab_1.wav",
+      "kind": "stab",
+      "variant": 1,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.34,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -24.198601611147485,
+      "sources": [
+        "impactSoft_medium_001.ogg",
+        "impactPunch_heavy_001.ogg",
+        "knifeSlice2.ogg"
+      ],
+      "original_synthesis": "short filtered noise tissue texture",
+      "sha256": "861034e97e8dade4dd55a5b03cc32af9fe9d798bc01b815d4a6684b1baf711d1"
+    },
+    {
+      "file": "sever_1.wav",
+      "kind": "sever",
+      "variant": 1,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.64,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -30.346502705148957,
+      "sources": [
+        "chop.ogg",
+        "impactPunch_heavy_001.ogg",
+        "impactSoft_medium_001.ogg",
+        "knifeSlice2.ogg"
+      ],
+      "original_synthesis": "restrained filtered noise separation texture",
+      "sha256": "aa9794a6b9686f80c94cfe34c8d0f9b802f3927a0972b2a489e22876e2c170d8"
+    },
+    {
+      "file": "swish_1.wav",
+      "kind": "swish",
+      "variant": 1,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.318,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -24.411958804247128,
+      "sources": [
+        "cloth2.ogg"
+      ],
+      "original_synthesis": "original broadband filtered airflow envelope",
+      "sha256": "6cd4831d9434fa4a30276049429b4ea9a81b3ce29363b99206fdc710958982ff"
+    },
+    {
+      "file": "wood_2.wav",
+      "kind": "wood",
+      "variant": 2,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.48564583333333333,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -28.917496023881824,
+      "sources": [
+        "impactWood_medium_002.ogg",
+        "impactPlank_medium_002.ogg"
+      ],
+      "original_synthesis": "none",
+      "sha256": "851f17298e8b35b57033d839cf7bb7ce215534218a83dd56f3024a95c2a5d1a1"
+    },
+    {
+      "file": "stone_2.wav",
+      "kind": "stone",
+      "variant": 2,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.7089583333333334,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -30.731585985870854,
+      "sources": [
+        "impactMining_002.ogg",
+        "impactGeneric_light_002.ogg"
+      ],
+      "original_synthesis": "none",
+      "sha256": "b19a2f34dfdf8cb39718729bfa17cd3a63f63ec29817a670cea6112f90d33f8a"
+    },
+    {
+      "file": "metal_2.wav",
+      "kind": "metal",
+      "variant": 2,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.47889583333333335,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -30.36615786048258,
+      "sources": [
+        "impactMetal_medium_002.ogg",
+        "impactPlate_light_002.ogg"
+      ],
+      "original_synthesis": "none",
+      "sha256": "fc8fb96cd6a07271171bde08eebebe85ebd3c289513d651d7363a8ab4693ac2e"
+    },
+    {
+      "file": "blunt_2.wav",
+      "kind": "blunt",
+      "variant": 2,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.45,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -25.614073131977943,
+      "sources": [
+        "impactPunch_heavy_002.ogg",
+        "impactSoft_medium_002.ogg"
+      ],
+      "original_synthesis": "none",
+      "sha256": "7a37cedd8980ae8fba2813518df7daa096ad5d504bcc4395e7de69e91cd34e75"
+    },
+    {
+      "file": "slice_2.wav",
+      "kind": "slice",
+      "variant": 2,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.48,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -26.563735159997158,
+      "sources": [
+        "impactPunch_heavy_002.ogg",
+        "knifeSlice.ogg",
+        "impactSoft_medium_002.ogg"
+      ],
+      "original_synthesis": "short filtered noise tissue texture; no recorded biological material",
+      "sha256": "75eda839982e9291a72c95c91f455fcbb2ef124af0a9d449f462c978700d271d"
+    },
+    {
+      "file": "stab_2.wav",
+      "kind": "stab",
+      "variant": 2,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.34,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -25.179218727718396,
+      "sources": [
+        "impactSoft_medium_002.ogg",
+        "impactPunch_heavy_002.ogg",
+        "knifeSlice.ogg"
+      ],
+      "original_synthesis": "short filtered noise tissue texture",
+      "sha256": "42655ce833c576c610c25e36f3ce440f0c922b7b827c9d81bef5ad4545b124e3"
+    },
+    {
+      "file": "sever_2.wav",
+      "kind": "sever",
+      "variant": 2,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.64,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -27.576298733472278,
+      "sources": [
+        "chop.ogg",
+        "impactPunch_heavy_002.ogg",
+        "impactSoft_medium_002.ogg",
+        "knifeSlice.ogg"
+      ],
+      "original_synthesis": "restrained filtered noise separation texture",
+      "sha256": "c6f5c7057838263a7d01af84e5bcbe6cb6d721c5d4d9f29a1d73c343a4c9024f"
+    },
+    {
+      "file": "swish_2.wav",
+      "kind": "swish",
+      "variant": 2,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.33597916666666666,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -25.580973142580753,
+      "sources": [
+        "cloth3.ogg"
+      ],
+      "original_synthesis": "original broadband filtered airflow envelope",
+      "sha256": "aaa00d03a7f5d9c357414d60868895c6d1f67e373807904b89d392d316874c9c"
+    },
+    {
+      "file": "wood_3.wav",
+      "kind": "wood",
+      "variant": 3,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.4809583333333333,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -27.503402646372066,
+      "sources": [
+        "impactWood_medium_003.ogg",
+        "impactPlank_medium_003.ogg"
+      ],
+      "original_synthesis": "none",
+      "sha256": "4f3e330fcd62511fc5b501ce31d45fac269d7a221dcbf02c1927b65d625af78b"
+    },
+    {
+      "file": "stone_3.wav",
+      "kind": "stone",
+      "variant": 3,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.7512916666666667,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -30.54077701761324,
+      "sources": [
+        "impactMining_003.ogg",
+        "impactGeneric_light_003.ogg"
+      ],
+      "original_synthesis": "none",
+      "sha256": "8920eacb59678f100248f6ca4736c3572a4cb354ff1d065c57f4bd83e2342a03"
+    },
+    {
+      "file": "metal_3.wav",
+      "kind": "metal",
+      "variant": 3,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.529375,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -28.845385060978934,
+      "sources": [
+        "impactMetal_medium_003.ogg",
+        "impactPlate_light_003.ogg"
+      ],
+      "original_synthesis": "none",
+      "sha256": "ed53e2122231060f20abb779f3eb504adcddd0c422ab98d317a6f71a5b900362"
+    },
+    {
+      "file": "blunt_3.wav",
+      "kind": "blunt",
+      "variant": 3,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.45,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -25.63839877789272,
+      "sources": [
+        "impactPunch_heavy_003.ogg",
+        "impactSoft_medium_003.ogg"
+      ],
+      "original_synthesis": "none",
+      "sha256": "27a534e30865c3d9afbaf054d5e5d6270e7382ccc5e3d909b33cc90255c774ee"
+    },
+    {
+      "file": "slice_3.wav",
+      "kind": "slice",
+      "variant": 3,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.48,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -27.898492487626193,
+      "sources": [
+        "impactPunch_heavy_003.ogg",
+        "knifeSlice2.ogg",
+        "impactSoft_medium_003.ogg"
+      ],
+      "original_synthesis": "short filtered noise tissue texture; no recorded biological material",
+      "sha256": "53524f32580221208c1e3eb0e4f4f9d7d755591ab07b4ba060594778aec7b577"
+    },
+    {
+      "file": "stab_3.wav",
+      "kind": "stab",
+      "variant": 3,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.34,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -25.04467116041473,
+      "sources": [
+        "impactSoft_medium_003.ogg",
+        "impactPunch_heavy_003.ogg",
+        "knifeSlice2.ogg"
+      ],
+      "original_synthesis": "short filtered noise tissue texture",
+      "sha256": "dc27788489eccc597086414a571254351d9641246a826130b6b180e9fe4a0ef6"
+    },
+    {
+      "file": "sever_3.wav",
+      "kind": "sever",
+      "variant": 3,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.64,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -28.707476630836855,
+      "sources": [
+        "chop.ogg",
+        "impactPunch_heavy_003.ogg",
+        "impactSoft_medium_003.ogg",
+        "knifeSlice2.ogg"
+      ],
+      "original_synthesis": "restrained filtered noise separation texture",
+      "sha256": "1241cae032cd393fe21b986fc52882ab1e440723647b06054d60338f8315eb8f"
+    },
+    {
+      "file": "swish_3.wav",
+      "kind": "swish",
+      "variant": 3,
+      "sample_rate": 48000,
+      "channels": 1,
+      "duration": 0.354,
+      "peak_dbfs": -8.99543293889812,
+      "rms_dbfs": -24.34289861865272,
+      "sources": [
+        "cloth4.ogg"
+      ],
+      "original_synthesis": "original broadband filtered airflow envelope",
+      "sha256": "c2baaf8308d88984157db75da9b43d0b227908a1d336653b9834a9c9cbd2354a"
+    }
+  ]
+}

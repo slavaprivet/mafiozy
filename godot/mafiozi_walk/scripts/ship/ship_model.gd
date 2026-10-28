@@ -3404,13 +3404,8 @@ func _build_collision() -> void:
 	# never becomes an invisible floor outside the hull.  The companionway
 	# coaming is the raised well-wall pair above (no extra boxes).
 	_add_collision(Vector3(0.0, 1.02, -2.225), Vector3(7.70, 0.08, 13.55))
-	# SHIP73 perimeter safety: continuous invisible rail caps on the main deck
-	# and quarterdeck edges.  The visual bulwark has small gaps at the stair and
-	# gangway; these boxes keep a walking or jumping player inside the hull.
-	_add_collision(Vector3(4.05, 2.35, -1.00), Vector3(0.12, 1.20, 10.00))
-	_add_collision(Vector3(-4.05, 2.35, -1.00), Vector3(0.12, 1.20, 10.00))
-	_add_collision(Vector3(3.45, 3.62, 9.20), Vector3(0.12, 1.20, 6.40))
-	_add_collision(Vector3(-3.45, 3.62, 9.20), Vector3(0.12, 1.20, 6.40))
+	# Real bulwark collision above follows visible timber. Extra invisible
+	# perimeter caps prevented intentional jumps overboard and are omitted.
 
 func _build_parts() -> void:
 	_parts.clear()

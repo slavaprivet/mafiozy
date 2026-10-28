@@ -87,18 +87,35 @@ func _set_scope(value: bool) -> void:
 			if is_instance_valid(node) and node.layers==0: node.layers=entry.layers
 		_hidden.clear()
 	if is_instance_valid(_overlay): _overlay.visible=value; _overlay.modulate.a=0
+func _normal_shoulder29(_host: Node) -> float:
+	# Keep the player's ordinary melee view centred, including spear attacks
+	# and throws. Bow/firearm aiming still owns its separate presentation below.
+	return 0.0
+
 func _safe_arm_position(desired: Vector3) -> Vector3:
 	if desired.is_equal_approx(_base_position): return desired
 	var host: Node=_host.get_ref()
 	var from: Vector3=_pivot.global_transform*_base_position
 	var motion: Vector3=_pivot.global_basis*(desired-_base_position)
-	_query.transform=Transform3D(Basis.IDENTITY,from); _query.collision_mask=_arm.collision_mask; _query.margin=_arm.margin; _query.motion=Vector3.ZERO
+	# Keep the wall sweep throughout the smooth return after button release.
+	var melee_offset: bool=not bow_aim_active and desired.x<_base_position.x-.0001
+	_query.transform=Transform3D(Basis.IDENTITY,from); _query.collision_mask=1 if melee_offset else _arm.collision_mask; _query.margin=_arm.margin; _query.motion=Vector3.ZERO
 	_query_count+=1
 	var space: PhysicsDirectSpaceState3D=host.player.get_world_3d().direct_space_state
 	if not space.intersect_shape(_query,1).is_empty(): return _base_position
 	_query.motion=motion; _query_count+=1
 	var travel: PackedFloat32Array=space.cast_motion(_query)
-	return _base_position+(desired-_base_position)*clampf(travel[0],0,1)
+	var fraction := clampf(travel[0],0,1)
+	if melee_offset:
+		# The historical arm ignores level collision. Check the lateral camera
+		# endpoint too, so this extra shoulder move cannot push it through a wall.
+		_query.transform.origin=_camera.global_position+_pivot.global_basis*(_base_position-_arm.position)
+		_query.motion=Vector3.ZERO; _query_count+=1
+		if not space.intersect_shape(_query,1).is_empty(): return _base_position
+		_query.motion=motion; _query_count+=1
+		var camera_travel := space.cast_motion(_query)
+		fraction=minf(fraction,clampf(camera_travel[0],0,1))
+	return _base_position+(desired-_base_position)*fraction
 func advance(delta: float) -> void:
 	if not _live(): reset(); return
 	if not is_finite(delta) or delta<0 or delta>5: reset(); return
@@ -115,7 +132,7 @@ func advance(delta: float) -> void:
 	_set_scope(scope)
 	var pivot_height: float=(_pivot.global_position-host.player.global_position).y
 	var eye: float=host._posture_view.get("eyeHeight",1.64)
-	var normal_position: Vector3=_base_position+Vector3(0,eye-pivot_height,0)
+	var normal_position: Vector3=_base_position+Vector3(_normal_shoulder29(host),eye-pivot_height,0)
 	# Offset the bow view behind the right shoulder so the sight line stays open.
 	# _safe_arm_position sweeps the same spring-arm sphere before any lateral move.
 	# Camera to the archer's left places the archer on the right of the screen.
@@ -149,7 +166,7 @@ func reset(release_owner: bool = false) -> void:
 			if retain_walk and _live():
 				var pivot_height: float=(_pivot.global_position-host.player.global_position).y
 				var eye: float=host._posture_view.get("eyeHeight",1.64)
-				_arm.position=_safe_arm_position(_base_position+Vector3(0,eye-pivot_height,0))
+				_arm.position=_safe_arm_position(_base_position+Vector3(_normal_shoulder29(host),eye-pivot_height,0))
 			else:
 				_arm.position=_base_position
 		if is_instance_valid(_camera): _camera.fov=45.0 if retain_walk else _base_fov

@@ -25,7 +25,7 @@ const CityMinimapHost = preload("res://scripts/city/runtime/npc_city_minimap_hos
 const SimpleHospital = preload("res://scripts/hospital/npc_simple_hospital.gd")
 const PlayerShopCatalog = preload("res://scripts/shop/player_shop_catalog.gd")  # DSH_PLAYERSHOP
 const NpcObserve58 = preload("res://scripts/ui/npc_observe_host.gd")  # DSH_OBSERVE58
-const SwordPrototype = preload("res://scripts/weapons/sword_prototype.gd")  # DSH_SWORD_PROTO
+const SwordPrototype = preload("res://scripts/combined_combat29.gd")  # DSH_SWORD_PROTO
 const BowPrototype = preload("res://scripts/weapons/bow_prototype.gd")  # DSH_BOW_PROTO
 const CatapultPrototype = preload("res://scripts/weapons/catapult_prototype.gd")  # DSH_CATAPULT
 const CastleSite = preload("res://scripts/city/castle_site.gd")  # DSH_CASTLE
@@ -120,6 +120,8 @@ var _catapult_at_castle := false
 var _boot_clock := 0
 var _boot_last := 0
 var _castle_spawn_target := Vector3.ZERO
+## The enemy knight guards the gate; the player starts ten metres in front of him.
+var _castle_enemy_spawn_target := Vector3.ZERO
 var _castle_spawn_frames := 0
 var castle_status := "disabled"
 ## DSH_HORSE: the saddled castle horse. Installed a few physics frames after the
@@ -454,16 +456,12 @@ func _ready() -> void:
 							push_error("Weapon cargo binding: "+str(cargo_result)); cargo_host.queue_free()
 			else: weapon_host.queue_free()
 	if not castle_map and player_shop_requested(): install_player_shop()  # DSH_PLAYERSHOP
-	# DSH_SWORD_PROTO: the prototype host is always installed alongside the local
-	# arsenal, so the test sword can be picked in the existing weapon menu. It
-	# only acts while that item is equipped (no purchase, no ammo).
-	# DSH_OPT: on the castle map the weapon prototype, its help panel and the city population
-	# are never used - the panel is hidden and the population is switched off anyway - and
-	# building them costs about two seconds of the map load. They are skipped there only.
-	# DSH_NET: с явным --sword-proto=1 прототип ставится и на карте замка — это
-	# нужно сетевой проверке броска (tests/net/net_throw_test.ps1). Без флага
-	# поведение карты замка прежнее.
-	if (not castle_map or OS.get_cmdline_user_args().has("--sword-proto=1")) and (preview_sword_prototype_enabled or is_instance_valid(preview_weapons) or OS.get_cmdline_user_args().has("--sword-proto=1")):
+	# DSH_SWORD_PROTO: the host is installed alongside the local arsenal, so the
+	# test sword can be picked in the existing weapon menu. It only acts while that
+	# item is equipped (no purchase, no ammo). On the castle map the host is
+	# enemy-only: it builds no dummy/pole, and its resident knight is alive before
+	# the player draws a weapon.
+	if preview_sword_prototype_enabled or is_instance_valid(preview_weapons) or OS.get_cmdline_user_args().has("--sword-proto=1"):
 		_install_sword_prototype()  # DSH_SWORD_PROTO
 		_boot_mark("sword_pair")
 	# DSH_BOW_PROTO: the bow prototype rides along with the same arsenal, so it can
@@ -569,6 +567,7 @@ func _install_sword_prototype() -> bool:
 	if is_instance_valid(preview_sword_prototype) or not is_instance_valid(_player): return false
 	var host: Node3D = SwordPrototype.new()
 	host.name = "SwordPrototype"
+	host.call("set_castle_enemy_only", castle_map)
 	add_child(host)
 	var installed: Dictionary = host.install(self, _player)
 	if not installed.get("ok", false):
@@ -764,6 +763,8 @@ func _build_castle_map() -> bool:
 		castle.queue_free()
 		return false
 	preview_castle = castle
+	# Bind the enemy gate before its first update; player placement runs later.
+	_castle_enemy_spawn_target = castle.to_global(Vector3(0.0,0.08,float(castle.call("wall_half"))+1.2))
 	var wall_defense := CastleWallDefense24.new() as Node3D
 	var defense_result: Dictionary = wall_defense.install(castle)
 	if not defense_result.get("ok", false):
@@ -1569,17 +1570,20 @@ func _physics_process(delta: float) -> void:
 			_player.velocity = Vector3.ZERO
 			print("DSH_CASTLE_SPAWN_AT_CATAPULT player=", _player.global_position)
 			if OS.get_cmdline_user_args().has("--castle-start-outside=1"):
-				# The paved approach is clear and supported; the siege machine keeps its
-				# historical courtyard position. Startup guarding follows this spawn.
-				_castle_spawn_target = preview_castle.to_global(Vector3(0.0, 0.25,
-					float(preview_castle.call("wall_half")) + 20.0))
+				# The player and the enemy knight both start at the main gate, exactly
+				# ten metres apart. Offset the approach by six metres to clear the
+				# siege tower; its original central gate lane remains unchanged.
+				var wall := float(preview_castle.call("wall_half"))
+				_castle_enemy_spawn_target = preview_castle.to_global(Vector3(0.0, 0.08, wall + 1.2))
+				_castle_spawn_target = preview_castle.to_global(Vector3(6.0, 0.25, wall + 9.2))
 				_player.global_position = _castle_spawn_target
 				_player.velocity = Vector3.ZERO
-				_player._camera_yaw = 0.0
-				_player._heading = 0.0
-				_player._visual.rotation.y = deg_to_rad(_player.visual_yaw_degrees)
+				_player._camera_yaw = atan2(6.0,8.0)
+				_player._heading = _player._camera_yaw
+				_player._visual.rotation.y = _player._heading + deg_to_rad(_player.visual_yaw_degrees)
 				_player._update_camera_rotation()
-				print("DSH_CASTLE_SPAWN_OUTSIDE player=", _player.global_position)
+				print("DSH_CASTLE_SPAWN_OUTSIDE player=", _player.global_position,
+					" enemy=", _castle_enemy_spawn_target)
 	if _castle_spawn_frames > 0 and is_instance_valid(_player):
 		# Startup placement only guards against a stray city boot teleport. As soon
 		# as the player walks, the route away from the siege machine is intentional.

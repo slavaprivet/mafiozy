@@ -23,15 +23,15 @@ var _hud_signature := ""
 var _menu_signature := ""
 var _inventory_revision := 0
 var _previous_id := ""
-const FAMILIES := {"none":"УБРАТЬ ОРУЖИЕ","sword":"МЕЧ · БЛИЖНИЙ БОЙ","mace":"БУЛАВА · ОДНОРУЧНОЕ","axe":"ТОПОР · ДВУРУЧНОЕ","sledge":"КУВАЛДА · ДВУРУЧНОЕ","spear":"КОПЬЁ · КОЛЮЩЕЕ","bow":"ЛУК · ДАЛЬНИЙ БОЙ","shield":"ЩИТ · БЛОК (ПКМ)","nagan":"РЕВОЛЬВЕР","tt_pistol":"ПИСТОЛЕТ","revolver":"РЕВОЛЬВЕР","deagle":"ТЯЖЁЛЫЙ ПИСТОЛЕТ","golden_colt":"ПИСТОЛЕТ","sawn_off":"ДРОБОВИК","shotgun":"ДРОБОВИК","uzi":"ПИСТОЛЕТ-ПУЛЕМЁТ","golden_uzi":"ПИСТОЛЕТ-ПУЛЕМЁТ","ak74":"АВТОМАТ","m16":"АВТОМАТ","tommy_gun":"ПИСТОЛЕТ-ПУЛЕМЁТ","sniper":"ВИНТОВКА","rpg":"ГРАНАТОМЁТ"}
+const FAMILIES := {"hatchet":"ТОПОРИК · МЕТАНИЕ", "none":"УБРАТЬ ОРУЖИЕ","sword":"МЕЧ · БЛИЖНИЙ БОЙ","mace":"БУЛАВА · ОДНОРУЧНОЕ","axe":"ТОПОР · ДВУРУЧНОЕ","sledge":"КУВАЛДА · ДВУРУЧНОЕ","spear":"КОПЬЁ · КОЛЮЩЕЕ","bow":"ЛУК · ДАЛЬНИЙ БОЙ","shield":"ЩИТ · БЛОК (ПКМ)","nagan":"РЕВОЛЬВЕР","tt_pistol":"ПИСТОЛЕТ","revolver":"РЕВОЛЬВЕР","deagle":"ТЯЖЁЛЫЙ ПИСТОЛЕТ","golden_colt":"ПИСТОЛЕТ","sawn_off":"ДРОБОВИК","shotgun":"ДРОБОВИК","uzi":"ПИСТОЛЕТ-ПУЛЕМЁТ","golden_uzi":"ПИСТОЛЕТ-ПУЛЕМЁТ","ak74":"АВТОМАТ","m16":"АВТОМАТ","tommy_gun":"ПИСТОЛЕТ-ПУЛЕМЁТ","sniper":"ВИНТОВКА","rpg":"ГРАНАТОМЁТ"}
 ## DSH_SWORD_PROTO: the prototype sword is always available in the arsenal menu.
 const SWORD_ID := "sword"
 ## DSH_BOW_PROTO: the test bow, shown with its quiver count on the weapon card.
 const BOW_ID := "bow"
 ## DSH_MELEE_SET: every melee weapon of the set, shown with its own category.
-const MELEE_IDS := {"shield":"ЩИТ · БЛОК (ПКМ)", "sword":"МЕЧ · БЛИЖНИЙ БОЙ", "mace":"БУЛАВА · ОДНОРУЧНОЕ", "axe":"ТОПОР · ДВУРУЧНОЕ", "sledge":"КУВАЛДА · ДВУРУЧНОЕ", "spear":"КОПЬЁ · КОЛЮЩЕЕ"}
+const MELEE_IDS := {"hatchet":"ТОПОРИК · МЕТАНИЕ", "shield":"ЩИТ · БЛОК (ПКМ)", "sword":"МЕЧ · БЛИЖНИЙ БОЙ", "mace":"БУЛАВА · ОДНОРУЧНОЕ", "axe":"ТОПОР · ДВУРУЧНОЕ", "sledge":"КУВАЛДА · ДВУРУЧНОЕ", "spear":"КОПЬЁ · КОЛЮЩЕЕ"}
 const TWO_SLOT_IDS := ["axe", "sledge", "spear", "bow", "sawn_off", "shotgun", "ak74", "m16", "tommy_gun", "sniper", "rpg"]
-const CARD_NAMES := {"none":"Свободные руки", "sword":"Меч", "mace":"Булава", "axe":"Двуручный топор", "sledge":"Кувалда", "spear":"Копьё", "bow":"Лук", "shield":"Щит"}
+const CARD_NAMES := {"hatchet":"Метательный топорик", "none":"Свободные руки", "sword":"Меч", "mace":"Булава", "axe":"Двуручный топор", "sledge":"Кувалда", "spear":"Копьё", "bow":"Лук", "shield":"Щит"}
 
 static func panel_style(background: String, border: String, radius: int = 6) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
@@ -168,7 +168,7 @@ func _process(_delta: float) -> void:
 func refresh() -> void:
 	if not is_instance_valid(host): return
 	var state: Dictionary = host.fire_state
-	var id: String = str(state.get("weaponId","none"))
+	var id: String = host.arsenal_display_id29()
 	var reload := float(state.get("reloadRemaining",0))
 	var magazine := int(state.get("magazine",0)); var reserve := int(state.get("reserveAmmo",0))
 	var hud_signature := "%s:%d:%d:%.1f" % [id,magazine,reserve,reload]
@@ -179,11 +179,15 @@ func refresh() -> void:
 		var bow_node: Node = host.scene.get("preview_bow_prototype") if is_instance_valid(host.scene) else null
 		if is_instance_valid(bow_node): bow_now = bow_node.call("snapshot")
 		hud_signature = "%s:%d:%s" % [id, int(bow_now.get("arrows_left", 0)), str(bow_now.get("quiver_worn", false))]
+	var hatchet_count:=0
+	if id=="hatchet" and is_instance_valid(host.scene.preview_sword_prototype):
+		hatchet_count=host.scene.preview_sword_prototype._hatchet32.count();hud_signature="hatchet:%d"%hatchet_count
 	if hud_signature != _hud_signature:
 		_hud_signature = hud_signature
 		if id != _previous_id:
 			_previous_id=id; title.text=host.LABELS.get(id,id); photo.texture=textures.get(id)
-		if MELEE_IDS.has(id):
+		if id=="hatchet":ammo.text="ТОПОРИКИ %d / 3"%hatchet_count
+		elif MELEE_IDS.has(id):
 			ammo.text = str(MELEE_IDS[id])
 		elif id == BOW_ID:
 			# DSH_BOW_PROTO: the quiver is the bow's ammunition, so the card shows the
@@ -199,8 +203,7 @@ func refresh() -> void:
 		ammo.add_theme_color_override("font_color",Color("bda879" if reload>0 else ("d99b94" if id!="none" and not MELEE_IDS.has(id) and id!=BOW_ID and magazine==0 else "adb8be")))
 	if menu.visible != host.menu_open: menu.visible = host.menu_open
 	if is_instance_valid(_arsenal_status):
-		var arsenal_state: Dictionary = host.fire_state
-		_arsenal_status.text = "выбрано: %s%s" % [str(arsenal_state.get("weaponId", "none")),
+		_arsenal_status.text = "выбрано: %s%s" % [id,
 			"" if host.menu_open else "  ·  меню закрыто"]
 	var scoped:bool=host.aim_camera!=null and host.aim_camera.scoped()
 	var allowed:bool=host._combat_allowed() and not host.controls_blocked() and not host.player._text_control_focused()
@@ -224,19 +227,17 @@ func refresh() -> void:
 	var menu_signature := "%s|%s|%d|%d" % [",".join(owned),hud_signature,_inventory_revision,int(castle_bag.get("revision", -1))]
 	if menu_signature == _menu_signature: return
 	_menu_signature=menu_signature
-	var used_slots: int = int(castle_storage.carried_slots()) if is_instance_valid(castle_storage) else owned.size()
-	var count_text := "ПРИ СЕБЕ: %d / 4 СЛОТА · НАЖМИТЕ НА ОРУЖИЕ" % used_slots if is_instance_valid(castle_storage) and carried.is_empty() else \
-		"ПРИ СЕБЕ: %d / 4 СЛОТА · ВЫБЕРИТЕ ОРУЖИЕ" % used_slots if is_instance_valid(castle_storage) else \
+	var count_text := "ВЫБЕРИТЕ ОСНОВНОЕ ОРУЖИЕ" if is_instance_valid(castle_storage) else \
 		"ПРИ СЕБЕ: %d · ВЫБЕРИТЕ ОРУЖИЕ" % owned.size()
 	if count.text != count_text: count.text=count_text
 	for key: String in choices:
 		var choice: Dictionary = choices[key]; var selected := key == id
 		var medieval := MELEE_IDS.has(key) or key == BOW_ID
 		var on_rack: bool = is_instance_valid(castle_storage) and medieval and rack.has(key)
-		var slot_cost := 2 if key in TWO_SLOT_IDS else 1
-		var room_for_item := used_slots + slot_cost <= int(castle_storage.CARRY_CAPACITY) if is_instance_valid(castle_storage) else true
-		var available := key == "none" or ((carried.has(key) or (on_rack and room_for_item)) if is_instance_valid(castle_storage) and medieval else medieval or owned.has(key))
-		# Show items still on the rack so their slot cost and pickup requirement are clear.
+		var available := key == "none" or ((carried.has(key) or on_rack) if is_instance_valid(castle_storage) and medieval else medieval or owned.has(key))
+		var shield_blocked := is_instance_valid(castle_storage) and key == "shield" and id != "sword"
+		if shield_blocked: available = false
+		# Rack cards select that real weapon immediately, replacing the active one.
 		var shown := (key == "none" or medieval) if is_instance_valid(castle_storage) else available
 		if choice.button.visible != shown: choice.button.visible = shown
 		if choice.button.disabled == available: choice.button.disabled = not available
@@ -246,14 +247,13 @@ func refresh() -> void:
 			choice.detail.add_theme_color_override("font_color",Color("86551e" if selected else "67533c"))
 		if not available:
 			if medieval and shown:
-				choice.detail.text = ("НЕТ МЕСТА" if on_rack and not room_for_item else "НЕТ В АРСЕНАЛЕ") + " · %d %s" % [slot_cost, "СЛОТА" if slot_cost == 2 else "СЛОТ"]
+				choice.detail.text = "ТОЛЬКО С МЕЧОМ" if shield_blocked else "НЕТ В АРСЕНАЛЕ"
 			continue
 		var rounds: Variant = state if selected else host.inventory.get_fire_state(key)
 		var detail: String = ("РУКИ СВОБОДНЫ" if selected else "УБРАТЬ ОРУЖИЕ") if key=="none" else ("В РУКАХ" if selected else FAMILIES[key])
 		if medieval:
-			var slots := 2 if key in TWO_SLOT_IDS else 1
 			var status := "В РУКАХ" if selected else "ЛКМ ВЗЯТЬ" if on_rack else "ПРИ СЕБЕ"
-			detail = "%s · %d %s" % [status, slots, "СЛОТА" if slots == 2 else "СЛОТ"]
+			detail = status
 		elif key != "none" and rounds is Dictionary:
 			detail += " · %d / %d" % [int(rounds.magazine),int(rounds.reserveAmmo)]
 		if choice.detail.text != detail: choice.detail.text = detail

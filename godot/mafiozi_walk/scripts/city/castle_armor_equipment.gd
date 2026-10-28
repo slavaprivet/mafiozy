@@ -333,7 +333,7 @@ func _usable() -> bool:
 	if not is_instance_valid(site) or not is_instance_valid(weapons) or not is_instance_valid(player): return false
 	if not weapons._owner_current() or not (bool(player.get("_free_mouse_look")) or _menu_open): return false
 	if weapons.has_method("controls_blocked") and weapons.controls_blocked(): return false
-	if bool(weapons.get("_catapult_stone_carry")): return false
+	if bool(weapons.get("_catapult_stone_carry")) or bool(weapons.get("_ship_climb")): return false
 	if player.get("_pose_authority") != &"on_foot" or bool(weapons.scene.get("preview_dead")): return false
 	if bool(weapons.scene.get("preview_physics_fault")): return false
 	if is_instance_valid(site.get("armory_storage")) and bool(site.armory_storage.window_open): return false

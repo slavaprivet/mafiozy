@@ -81,15 +81,19 @@ static func resolve(equipment: Dictionary, part: String, kind: String,
 		# Mail or cloth fills some gaps, but a point can still find its links.
 		factor = maxf(factor, 0.78 if attack == "slice" else 0.90)
 	else:
-		result.region = "plate" if tier == "heavy" else ("mail" if tier == "medium" else "cloth")
-		# A grazing thrust transfers less energy than a square hit. The blade's
-		# speed, mass and preparation have already set the incoming damage.
-		if attack == "stab":
-			factor *= 0.65 + 0.35 * clampf(incidence, 0.0, 1.0)
-		factor += clampf((incoming - 35.0) / 135.0, 0.0, 0.25)
+		result.merge(covered_response35(tier,attack,incoming,incidence),true)
+		return result
 	result.factor = clampf(factor, 0.05, 1.0)
 	result.damage = incoming * result.factor
 	return result
+
+static func covered_response35(tier:String,kind:String,incoming:float,incidence:float)->Dictionary:
+	var attack:=kind if kind in ["slice","stab","blunt"] else "blunt"
+	var factor:=float(PROTECTION[tier][attack])
+	if attack=="stab":factor*=.65+.35*clampf(incidence,0.0,1.0)
+	factor+=clampf((incoming-35.0)/135.0,0.0,.25)
+	factor=clampf(factor,.05,1.0)
+	return {"region":"plate" if tier=="heavy" else ("mail" if tier=="medium" else "cloth"),"factor":factor,"damage":incoming*factor}
 
 static func movement_multiplier(equipment: Dictionary) -> float:
 	var value := 1.0
@@ -98,12 +102,7 @@ static func movement_multiplier(equipment: Dictionary) -> float:
 		if tier != "": value += float(SLOT_WEIGHT[slot]) * (float(TIER_MOBILITY[tier]) - 1.0)
 	return clampf(value, 0.76, 1.06)
 
-## Residual trauma still reduces health when steel turns the edge. Blood and
-## severing need tissue penetration. 14 damage is a decisive point; a broad
-## edge needs twice that residual energy to break a plate seam or rivet.
+## Residual blunt trauma can reduce health. Only uncovered tissue and actual
+## openings admit steel; impact speed cannot turn intact armour into tissue.
 static func tissue_penetrates(region: String, kind: String, residual_damage: float) -> bool:
-	if region in ["skin", "joint", "cloth", "mail"]: return true
-	if region != "plate": return false
-	if kind == "stab": return residual_damage >= 14.0
-	if kind == "slice": return residual_damage >= 28.0
-	return false
+	return region in ["skin", "joint"]

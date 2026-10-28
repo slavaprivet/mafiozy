@@ -1,4 +1,5 @@
 extends Node
+const DropBody27 = preload("res://scripts/weapons/weapon_drop_body27.gd")
 ## One local owner for the six medieval display weapons, the player's castle
 ## gear, and the separate chest slots. Each ID exists in exactly one place.
 const MEDIEVAL := ["sword", "mace", "axe", "sledge", "spear", "bow", "shield"]
@@ -112,15 +113,8 @@ func has_back_bow() -> bool: return _back_bow
 
 func _hand_reason(id: String) -> String:
 	if _carried.has(id): return "Уже при себе"
-	# A bow can be carried on the back while another item occupies the hands.
-	# Every other newly claimed weapon needs its weapon hand free; a shield may
-	# share only with a one-handed weapon.
-	if id == "shield":
-		if _hand_weapon in TWO_HANDED: return "Рука занята"
-	elif id != "bow":
-		if not _hand_weapon.is_empty() or (_hand_shield and id in TWO_HANDED):
-			return "Рука занята"
-	if carried_slots() + (2 if id in TWO_HANDED else 1) > CARRY_CAPACITY: return "Нет места при себе"
+	if id == "shield" and (_bow_active or _hand_weapon != "sword"):
+		return "Щит можно взять только с одноручным мечом"
 	return ""
 
 ## The melee host owns dropped world models; this ledger owns carried slots and
@@ -129,17 +123,9 @@ func _hand_reason(id: String) -> String:
 func can_adopt_ground_melee31(id: String, previous_id: String, previous_empty: bool) -> Dictionary:
 	if _busy or window_open or not _usable() or id not in MEDIEVAL or id in ["bow", "shield"]:
 		return {"ok": false, "reason": "inactive"}
-	if _hand_shield and id in TWO_HANDED: return {"ok": false, "reason": "shield_occupies_right_hand"}
-	if _carried.has(id):
-		return {"ok": previous_empty and _hand_weapon == id, "reason": "duplicate_item"}
-	var departed := previous_empty and previous_id == _hand_weapon and _carried.has(previous_id)
-	# A thrown/grounded previous weapon has left the hand. Otherwise a ground
-	# pickup follows the same one-weapon-in-hand rule as racks and chest slots.
-	if not _hand_weapon.is_empty() and not departed:
-		return {"ok": false, "reason": "hand_occupied"}
-	var slots := carried_slots() - (2 if previous_id in TWO_HANDED else 1) if departed else carried_slots()
-	if slots + (2 if id in TWO_HANDED else 1) > CARRY_CAPACITY:
-		return {"ok": false, "reason": "carry_capacity"}
+	# Picking a weapon replaces the active weapon. Carried items have one ID each,
+	# so neither occupied hands nor a weighted slot budget reject the selection.
+	var departed := previous_empty and previous_id != id and previous_id == _hand_weapon and _carried.has(previous_id)
 	return {"ok": true, "departed": departed}
 
 func adopt_ground_melee31(id: String, previous_id: String, previous_empty: bool,
@@ -265,7 +251,7 @@ func interact() -> bool:
 	var local_player: Vector3 = castle.to_local(weapons.player.global_position)
 	if chest_focused():
 		open_window(); return true
-	if _hand_weapon.is_empty() and is_instance_valid(weapons.scene):
+	if is_instance_valid(weapons.scene):
 		var melee_host: Node = weapons.scene.get("preview_sword_prototype")
 		if is_instance_valid(melee_host) and melee_host.has_method("try_pickup_sword") \
 				and not (melee_host.call("_nearest_ground_sword") as Dictionary).is_empty():
@@ -314,28 +300,26 @@ func _set_bow_back(stowed: bool) -> void:
 		host.set_stowed_on_back31(stowed)
 
 func _activate_item(id: String) -> Dictionary:
-	if id == "bow":
-		if not _hand_weapon.is_empty() or _hand_shield:
-			if not weapons._ensure_medieval_host("preview_sword_prototype", "_install_sword_prototype") \
-					or not weapons._ensure_medieval_host("preview_bow_prototype", "_install_bow_prototype"):
-				return {"ok": false, "reason": "no_prototype"}
-			_back_bow = true; _bow_active = false; _set_bow_back(true)
-			return {"ok": true, "weaponId": "bow", "stowed": true}
-		var bow_result: Dictionary = weapons.equip("bow")
-		if bool(bow_result.get("ok", false)):
-			_back_bow = true; _bow_active = true; _set_bow_back(false)
-		return bow_result
-	if _bow_active and id == "shield":
-		var away: Dictionary = weapons.equip("none")
-		if not bool(away.get("ok", false)): return away
-		_bow_active = false; _set_bow_back(true)
+	# The shield augments a one-handed weapon; it never replaces a two-handed one.
+	if id == "shield" and (_bow_active or _hand_weapon != "sword"):
+		return {"ok": false, "reason": "shield_needs_free_right_hand"}
+	var stowed_shield := _hand_shield and id not in ["sword", "shield"]
+	if stowed_shield:
+		if not weapons.stow_castle_shield():
+			return {"ok": false, "reason": "shield_stow_failed"}
 	var result: Dictionary = weapons.equip(id)
-	if bool(result.get("ok", false)):
-		if id == "shield": _hand_shield = true
-		else: _hand_weapon = id
+	if not bool(result.get("ok", false)):
+		if stowed_shield: weapons.equip("shield")
+		return result
+	if stowed_shield: _hand_shield = false
+	if id == "shield":
+		_hand_shield = true
+	elif id == "bow":
+		_back_bow = true; _bow_active = true; _set_bow_back(false)
+	else:
+		_hand_weapon = id
 		if _bow_active:
 			_bow_active = false; _set_bow_back(true)
-			if _hand_shield: weapons.equip("shield")
 	return result
 
 func toggle_bow_selection() -> bool:
@@ -343,16 +327,9 @@ func toggle_bow_selection() -> bool:
 	_busy = true
 	var result: Dictionary
 	if _bow_active:
-		result = weapons.equip(_hand_weapon if not _hand_weapon.is_empty() else "none")
-		if bool(result.get("ok", false)):
-			_bow_active = false; _set_bow_back(true)
-			if _hand_shield: weapons.equip("shield")
+		result = _activate_item(_hand_weapon) if not _hand_weapon.is_empty() else weapons.equip("none")
 	else:
-		if _hand_shield: weapons.stow_castle_shield()
-		result = weapons.equip("bow")
-		if bool(result.get("ok", false)):
-			_bow_active = true; _set_bow_back(false)
-		elif _hand_shield: weapons.equip("shield")
+		result = _activate_item("bow")
 	_busy = false
 	return bool(result.get("ok", false))
 
@@ -360,13 +337,14 @@ func _build_ui() -> void:
 	if not is_instance_valid(weapons._layer): return
 	_modal = Control.new(); _modal.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_modal.mouse_filter = Control.MOUSE_FILTER_STOP; _modal.visible = false
-	weapons._layer.add_child(_modal)
+	var chest_layer := CanvasLayer.new(); chest_layer.layer = 40
+	add_child(chest_layer); chest_layer.add_child(_modal)
 	_panel = PanelContainer.new(); _panel.set_anchors_preset(Control.PRESET_CENTER)
 	_panel.custom_minimum_size = Vector2(770, 620); _panel.position = Vector2(-385, -310)
 	_panel.add_theme_stylebox_override("panel", _chest_style(Color("dcc5a0"), Color("76502f"), 4, 16))
 	_modal.add_child(_panel)
 	var box := VBoxContainer.new(); box.add_theme_constant_override("separation", 9); _panel.add_child(box)
-	var title := Label.new(); title.text = "ОРУЖЕЙНЫЙ СУНДУК · %d СЛОТОВ" % CAPACITY
+	var title := Label.new(); title.text = "ОРУЖЕЙНЫЙ СУНДУК"
 	title.add_theme_color_override("font_color", Color("50311e"))
 	title.add_theme_font_size_override("font_size", 24)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; box.add_child(title)
@@ -470,8 +448,9 @@ func _display_scale(id: String) -> float:
 func _refresh_ui() -> void:
 	if not is_instance_valid(_grid): return
 	_hovered_slot = -1
-	for child: Node in _grid.get_children(): child.queue_free()
-	for index: int in CAPACITY:
+	for child: Node in _grid.get_children():
+		_grid.remove_child(child); child.queue_free()
+	for index: int in _slots.size():
 		var button := Button.new(); button.custom_minimum_size = Vector2(170, 108)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_style_chest_button(button, true)
@@ -480,31 +459,33 @@ func _refresh_ui() -> void:
 		content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		content.add_theme_constant_override("separation", 0)
 		button.add_child(content)
-		if index < _slots.size():
-			var item: Dictionary = _slots[index]
-			var blocked: String = _hand_reason(str(item.id))
-			var full_name: String = weapons.LABELS.get(item.id, item.id)
-			button.tooltip_text = "%d · %s\n%s" % [index + 1, full_name,
-				"Взять" if blocked.is_empty() else blocked]
-			var image := TextureRect.new()
-			image.texture = _icons.get(str(item.id))
-			image.custom_minimum_size = Vector2(0, 63)
-			image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			image.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			content.add_child(image)
-			button.mouse_entered.connect(_set_chest_icon_hover.bind(image, true))
-			button.mouse_exited.connect(_set_chest_icon_hover.bind(image, false))
-			content.add_child(_chest_card_label("%d · %s" % [index + 1, CARD_NAMES.get(str(item.id), full_name)], 12))
-			content.add_child(_chest_card_label("Взять" if blocked.is_empty() else blocked, 11))
-			button.pressed.connect(_take_slot.bind(index, _revision))
-			button.mouse_entered.connect(_set_hovered_slot.bind(index))
-			button.mouse_exited.connect(_clear_hovered_slot.bind(index))
-		else:
-			button.disabled = true
-			content.add_child(_chest_card_label("%d · пусто" % (index + 1), 12))
+		var item: Dictionary = _slots[index]
+		var blocked: String = _hand_reason(str(item.id))
+		var full_name: String = weapons.LABELS.get(item.id, item.id)
+		button.tooltip_text = "%s\n%s" % [full_name,
+			"Взять" if blocked.is_empty() else blocked]
+		var image := TextureRect.new()
+		image.texture = _icons.get(str(item.id))
+		image.custom_minimum_size = Vector2(0, 63)
+		image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		image.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		content.add_child(image)
+		button.mouse_entered.connect(_set_chest_icon_hover.bind(image, true))
+		button.mouse_exited.connect(_set_chest_icon_hover.bind(image, false))
+		content.add_child(_chest_card_label(CARD_NAMES.get(str(item.id), full_name), 12))
+		content.add_child(_chest_card_label("Взять" if blocked.is_empty() else blocked, 11))
+		button.pressed.connect(_take_slot.bind(index, _revision))
+		button.mouse_entered.connect(_set_hovered_slot.bind(index))
+		button.mouse_exited.connect(_clear_hovered_slot.bind(index))
 		_grid.add_child(button)
-	_status.text = "Занято: %d / %d   %s" % [_slots.size(), CAPACITY, _feedback]
+	if _slots.is_empty():
+		var empty := _chest_card_label("Сундук пуст", 20)
+		empty.custom_minimum_size = Vector2(720, 180)
+		empty.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		empty.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		_grid.add_child(empty)
+	_status.text = "Предметов: %d   %s" % [_slots.size(), _feedback]
 	var left: String = weapons.LABELS.get(_hand_weapon, _hand_weapon) if not _hand_weapon.is_empty() else "Пусто"
 	var right: String = "Щит" if _hand_shield else "Пусто"
 	if _hand_weapon in TWO_HANDED: right = weapons.LABELS.get(_hand_weapon, _hand_weapon)
@@ -582,19 +563,13 @@ func _spawn_fallen_display(index: int, at: Vector3) -> void:
 	var id: String = MEDIEVAL[index]
 	if _fallen_bodies.has(id): return
 	var holder: Node3D = _displays[index]
-	var body := RigidBody3D.new()
+	var body := DropBody27.new()
 	body.name = "DroppedCastleWeapon_" + id
 	body.mass = 1.2 if id == "sledge" else 0.65
 	body.collision_layer = 1; body.collision_mask = 1
 	body.continuous_cd = true
 	castle.add_child(body)
 	body.position = at + Vector3(0, 1.15, 0)
-	var shape := CollisionShape3D.new()
-	var box := BoxShape3D.new()
-	box.size = Vector3(0.78, 0.16, 0.68) if id == "shield" else \
-		Vector3(1.35 if id == "spear" else 0.9, 0.16, 0.2)
-	shape.shape = box; shape.position.y = 0.09
-	body.add_child(shape)
 	holder.reparent(body, false)
 	holder.position = Vector3.ZERO; holder.rotation = Vector3.ZERO
 	_display_tags[index].visible = false
@@ -602,6 +577,7 @@ func _spawn_fallen_display(index: int, at: Vector3) -> void:
 		Basis(Vector3.RIGHT, PI * 0.5) if id == "shield" else Basis.IDENTITY
 	_display_models[index].transform = ModelFinish.resting_transform(_display_models[index],
 		flat.scaled(Vector3.ONE * _display_scale(id)), Vector3.ZERO)
+	ModelFinish.add_drop_collision27(body, _display_models[index])
 	body.linear_velocity = Vector3(0.5 if index % 2 == 0 else -0.5, 0.8, 0.4)
 	body.angular_velocity = Vector3(1.7, 0.9, -1.1)
 	_fallen_bodies[id] = body
@@ -693,6 +669,26 @@ func drop_held(prefer_shield: bool = false) -> Dictionary:
 	var id: String = "bow" if _bow_active else \
 		"shield" if prefer_shield or _hand_weapon.is_empty() else _hand_weapon
 	if not _carried.has(id): return {"ok": false, "reason": "empty_hand"}
+	# An actual embedded model stays on its native wound joint. Do this before
+	# the generic inventory display path, which creates a separate ground mesh.
+	if id in MEDIEVAL and is_instance_valid(weapons.scene):
+		var embedded_host: Node = weapons.scene.get("preview_sword_prototype")
+		if is_instance_valid(embedded_host) and str(embedded_host.get("_weapon_id")) == id and preload("res://scripts/combat/embedded_drop31.gd").candidate(embedded_host):
+			_busy = true
+			if not embedded_host.drop_sword_to_ground():
+				_busy = false
+				return {"ok": false, "reason": "physical_drop_failed"}
+			var stowed_embedded: Dictionary = weapons.equip("none")
+			if not bool(stowed_embedded.get("ok", false)):
+				embedded_host.cancel_ground_drop31()
+				_busy = false
+				return stowed_embedded
+			_carried.erase(id)
+			_hand_weapon = ""
+			_revision += 1
+			_busy = false
+			_refresh_ui()
+			return {"ok": true, "physical_model": true, "embedded": true}
 	if id == "sword" and is_instance_valid(_external_sword_model31) and is_instance_valid(weapons.scene):
 		var sword_host: Node = weapons.scene.get("preview_sword_prototype")
 		if is_instance_valid(sword_host) and sword_host.get("_sword") == _external_sword_model31:
@@ -748,6 +744,15 @@ func drop_held(prefer_shield: bool = false) -> Dictionary:
 		var at: Vector3 = castle.to_local(weapons.player.global_position + forward.normalized() * 0.8)
 		_fallen[id] = at
 		_spawn_fallen_display(MEDIEVAL.find(id), at)
+		var dropped: RigidBody3D = _fallen_bodies.get(id)
+		var drop_balloon: Node = weapons.scene.get("preview_balloon") if is_instance_valid(weapons.scene) else null
+		if is_instance_valid(dropped) and not (is_instance_valid(drop_balloon) and drop_balloon.is_aboard()):
+			# Eject away from the actor instead of the old fixed world +Z toss,
+			# which could trap a large weapon between the capsule and the floor.
+			dropped.linear_velocity = forward.normalized() * 0.8 + Vector3.UP * 0.8
+			# G releases the item without adding an arbitrary spinning impulse.
+			# Contact torques still rotate the free rigid body naturally.
+			dropped.angular_velocity = Vector3.ZERO
 		_launch_balloon_drop(id, forward)
 		_revision += 1
 	_busy = false

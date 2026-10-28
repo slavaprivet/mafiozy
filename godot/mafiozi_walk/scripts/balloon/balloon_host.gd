@@ -651,6 +651,8 @@ func _slot_barrel_near(reach: float = 0.85) -> Node3D:
 	return best_view if best_view != null else best
 
 func take_slot_barrel() -> bool:
+	var climb_weapons: Variant = world.get("preview_weapons") if is_instance_valid(world) else null
+	if is_instance_valid(climb_weapons) and climb_weapons.get("_ship_climb") == true: return false
 	if _cargo <= 0:
 		return false
 	var model: Node3D = _slot_barrel_near()
