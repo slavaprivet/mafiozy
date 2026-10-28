@@ -1722,11 +1722,17 @@ func _break_collision_near(at: Vector3, radius: float) -> void:
 
 func _add_battlements(side: String) -> void:
 	var per_course := int((WALL_HALF * 2.0) / BRICK.x)
+	# The wall is laid in whole courses, so it ends at courses * BRICK.y (18.90 for
+	# a 19.0 m wall), not at WALL_HEIGHT. The crenellations used to start from the
+	# nominal height and floated a course above the masonry; they now sit on the
+	# last real course, and they are still ordinary bricks that fall when hit.
+	var courses := int(WALL_HEIGHT / BRICK.y)
+	var laid_top := float(courses) * BRICK.y
 	for row: int in 3:
 		for column: int in per_course:
 			if column % 2 == 1: continue
 			var along := (float(column) - float(per_course - 1) * 0.5) * BRICK.x
-			var height := WALL_HEIGHT + (float(row) + 0.5) * BRICK.y
+			var height := laid_top + (float(row) + 0.5) * BRICK.y
 			var at := Vector3.ZERO
 			var size := BRICK
 			match side:
