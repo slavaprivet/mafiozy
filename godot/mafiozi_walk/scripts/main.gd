@@ -1590,14 +1590,19 @@ func _physics_process(delta: float) -> void:
 					" enemy=", _castle_enemy_spawn_target)
 	if _castle_spawn_frames > 0 and is_instance_valid(_player):
 		# Startup placement only guards against a stray city boot teleport. As soon
-		# as the player walks, the route away from the siege machine is intentional.
+		# as the player walks, the route away from the gate is intentional.
+		# The ship seats its gunner three frames after boot, which used to undo the
+		# castle start and leave the player at the wheel; while this guard runs, the
+		# seat is cancelled and any displacement is corrected.
+		if is_instance_valid(preview_ship) and preview_ship.get("_seat_pending") != null:
+			preview_ship.set("_seat_pending", 0)
 		var move_axes := Input.get_vector(&"preview_move_left", &"preview_move_right",
 			&"preview_move_forward", &"preview_move_back")
 		if move_axes.length_squared() > 0.01:
 			_castle_spawn_frames = 0
 		else:
 			_castle_spawn_frames -= 1
-			if _player.global_position.distance_to(_castle_spawn_target) > 25.0:
+			if _player.global_position.distance_to(_castle_spawn_target) > 2.0:
 				_player.global_position = _castle_spawn_target
 				_player.velocity = Vector3.ZERO
 	if not preview_ready:

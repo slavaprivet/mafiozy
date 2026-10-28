@@ -195,8 +195,12 @@ func install(world_in: Node3D, castle_in: Node3D) -> Dictionary:
 	# 6. Put the player on the quarterdeck after the platform has settled: placing
 	# him in the same frame as the mooring teleport made the platform velocity fling
 	# the character a kilometre downrange.
+	# On the castle map the session starts at the gate, so the ship must not claim
+	# the player at boot: the seat put him 112 m away at the wheel, and the castle
+	# spawn guard could not win against it. Boarding stays available with F.
 	_sync_ball_stock()
-	_seat_pending = 0 if OS.get_cmdline_user_args().has("--ship-no-seat=1") else 3
+	var castle_start: bool = is_instance_valid(world) and bool(world.get("castle_map"))
+	_seat_pending = 0 if castle_start or OS.get_cmdline_user_args().has("--ship-no-seat=1") else 3
 	basin = preview_basin
 	model = preview_model
 	boat = preview_boat
