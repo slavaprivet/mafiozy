@@ -1,0 +1,102 @@
+{
+  "mode": "graphical",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--windowed",
+    "--resolution",
+    "1280x720",
+    "--max-fps",
+    "60",
+    "--path",
+    "D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game",
+    "--script",
+    "D:/MafioziCombat31/c33_coordination/agents/weapon34/strong_input.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_strong_final13",
+    "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_strong_final13"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "8d3a0738d54b43a5ba7506c3ad77c128",
+    "owner": {
+      "pid": 40860,
+      "creation_filetime": "134372472775571571"
+    },
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena34_strong_cuts\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 48780,
+        "creation_filetime": "134372472786179428",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game --script D:/MafioziCombat31/c33_coordination/agents/weapon34/strong_input.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_strong_final13 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_strong_final13",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--windowed",
+          "--resolution",
+          "1280x720",
+          "--max-fps",
+          "60",
+          "--path",
+          "D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game",
+          "--script",
+          "D:/MafioziCombat31/c33_coordination/agents/weapon34/strong_input.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_strong_final13",
+          "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_strong_final13"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "graphical",
+        "project": "d:\\mafiozicombat31\\c33_coordination\\arena34_strong_cuts\\game"
+      }
+    ],
+    "deadline": 264072.4345282,
+    "queued_at": 263472.4345282,
+    "ticket": 6084,
+    "inventory_before": [
+      {
+        "pid": 40212,
+        "parent_pid": 57684,
+        "creation_filetime": "134372393255837801",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game\" res://scenes/arena27.tscn --windowed --resolution 1440x900 --max-fps 60 -- \"--lab-out=D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\interactive\\20261023T142845558Z\"",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози · Полигон 33 · проколы и контакт (DEBUG)"
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5478743999847211
+  },
+  "child": {
+    "pid": 48780,
+    "creation_filetime": "134372472786179428",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game --script D:/MafioziCombat31/c33_coordination/agents/weapon34/strong_input.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_strong_final13 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_strong_final13",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--windowed",
+      "--resolution",
+      "1280x720",
+      "--max-fps",
+      "60",
+      "--path",
+      "D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game",
+      "--script",
+      "D:/MafioziCombat31/c33_coordination/agents/weapon34/strong_input.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_strong_final13",
+      "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_strong_final13"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena34_strong_cuts\\game"
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 27.709762699960265,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

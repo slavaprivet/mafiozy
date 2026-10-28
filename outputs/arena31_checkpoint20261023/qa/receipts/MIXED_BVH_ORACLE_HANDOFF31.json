@@ -1,0 +1,38 @@
+{
+  "status": "EXHAUSTIVE_MIXED_BVH_LEAF_TRIANGLE_CACHE_ORACLE_PASS",
+  "fixture": "D:\\MafioziCombat31\\c33_coordination\\agents\\contact_perf31\\mixed_oracle31.gd",
+  "result": "D:\\MafioziCombat31\\c33_coordination\\agents\\contact_perf31\\mixed_oracle03\\RESULT.json",
+  "check": "D:\\MafioziCombat31\\c33_coordination\\agents\\contact_perf31\\mixed_oracle03\\CHECK.json",
+  "source_unchanged": true,
+  "stderr_bytes": 0,
+  "game_edits_by_this_agent": "None for this optimization; QA ownership only. Root/cut own implementation.",
+  "tested_pins": {
+    "scripts/combat/contact_mixed_bvh31.gd": "981063fc7500a7ec43ba9af3ceb6983c5900a6e34a997c0c3d30d853d3ff12b7",
+    "scripts/combat/contact_build31.gd": "d8dcaa8603d9125745621eaac5de1b03ff0443cf6c20deb7943950c98ad9f0d9",
+    "scripts/combat/weapon_solid_contact29.gd": "0246327cf8790353e49aea7f5d458f7fa29efe53750c910dec82cba48a852aff",
+    "scripts/combat/segment_triangle29.gd": "c545a7e41c44f1f0c15c2974b99e9e61eab9b5a9223c95a7211f3c5c3c9663fb"
+  },
+  "counts": {
+    "rays": 3038,
+    "hits": 7972,
+    "surface_triangles": 11770,
+    "max_point_error_m": 0.0,
+    "max_normal_error": 0.0
+  },
+  "coverage": [
+    "12 actual visible skinned surfaces before cut;15 after actual asynchronous API geometry cut.",
+    "Independent exhaustive valid-positive4-weight vertex transforms followed by unchanged robust final intersection primitive; no optimized bounds or cached vertices in expected result.",
+    "Actual chest/upperarm/thigh bone changes, node transform/shear/scale, duplicate seam/vertex/edge/centre rays and misses.",
+    "All raw hit counts, exact position/normal, authored face order and deterministic nearest tie.",
+    "Repeated exact pose avoids new vertex skinning; two independent actor pose objects share immutable tree without contaminating eachother.",
+    "Nearunit Float32 sums0.99999/1.00001 under opposing±5000 translations, non-normalized>1, NaN-weight legacy fallback, invalid/zero/unbound influences and changed bindcount."
+  ],
+  "limits": [
+    "Maintains existing4-slotlaw; no new8-slot support claimed.",
+    "This tests exact mixedBVH geometry and posed cache; root existing fullsolid integration483-ray oracle remains separate.",
+    "Not a performance measurement or100actorbattle acceptance."
+  ],
+  "raw": "mixed_oracle01 fixture typed-inference parsefailure retained; no game defect or threshold change.",
+  "previous_result": "D:\\MafioziCombat31\\c33_coordination\\agents\\contact_perf31\\mixed_oracle02\\RESULT.json",
+  "fixture_sha256": "88047f652e49c316f2169776224f4bcce52bf7b1fb7ded7695470e962318d18c"
+}

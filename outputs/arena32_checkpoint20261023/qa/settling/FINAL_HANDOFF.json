@@ -1,0 +1,126 @@
+{
+  "status": "FINAL_STAGED_COLLECTION_VERIFIED_FROZEN",
+  "previous_published_commit": "05bcaf24b2a08cd49f261a7cdef4b1d574cc6d7d",
+  "shared_game": "D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game",
+  "isolated_acceptance_game": "D:\\MafioziCombat31\\c33_coordination\\agents\\injuries32\\stage\\game",
+  "owned_files": [
+    "scripts/preview_player.gd",
+    "scripts/character/injury_locomotion32.gd"
+  ],
+  "pins": {
+    "scripts/preview_player.gd": "2449579c460a46a971755ffdbd3149626e69918b1515bc96e3053bc4bef8eac5",
+    "scripts/character/injury_locomotion32.gd": "a7a13e3adc4d8bc4192c3bb999536b0f1c239b3c332914c41c724e384c55da97"
+  },
+  "proofs": [
+    {
+      "run": "staged_parse18",
+      "checks": 2,
+      "CHECK": "D:\\MafioziCombat31\\c33_coordination\\agents\\injuries32\\staged_parse18\\CHECK.json",
+      "RESULT": "D:\\MafioziCombat31\\c33_coordination\\agents\\injuries32\\staged_parse18\\RESULT.json"
+    },
+    {
+      "run": "staged_native19",
+      "checks": 30,
+      "CHECK": "D:\\MafioziCombat31\\c33_coordination\\agents\\injuries32\\staged_native19\\CHECK.json",
+      "RESULT": "D:\\MafioziCombat31\\c33_coordination\\agents\\injuries32\\staged_native19\\RESULT.json"
+    },
+    {
+      "run": "staged_gui20",
+      "checks": 30,
+      "CHECK": "D:\\MafioziCombat31\\c33_coordination\\agents\\injuries32\\staged_gui20\\CHECK.json",
+      "RESULT": "D:\\MafioziCombat31\\c33_coordination\\agents\\injuries32\\staged_gui20\\RESULT.json"
+    },
+    {
+      "run": "staged_regression21",
+      "checks": 44,
+      "CHECK": "D:\\MafioziCombat31\\c33_coordination\\agents\\injuries32\\staged_regression21\\CHECK.json",
+      "RESULT": "D:\\MafioziCombat31\\c33_coordination\\agents\\injuries32\\staged_regression21\\RESULT.json"
+    }
+  ],
+  "changes": [
+    "Surface collection staged to1 surface per physics tick; coherent bone/mesh frame captured once, mesh bind transforms cached once. Then vertex processing256/tick. No new render resource or full snapshot per ordinary frame.",
+    "Both-leg loss computes actual retained visible skinned-vertex lower bound once per cut generation, at most256 vertices per physics tick. Pending stale mesh/generation scan is discarded.",
+    "Capsule support lower edge follows retained stump; zero snap and ordinary gravity/move_and_slide settle the living actor without teleportation or walking/jumping.",
+    "Injury collider is reapplied after weapon posture resets its capsule, BEFORE the native movement sweep, and again after final pose.",
+    "Upper torso capsule is created only for arm lean, disabled before entering tree; its lower sphere cannot retain support below the remaining stump.",
+    "Existing one-leg hopping, arm speed/lean/wall collision, intact controls and F5 reset preserved. Diagnostic gameplay instrumentation removed."
+  ],
+  "settling_rows": [
+    {
+      "end": "(7.0, -0.172725, 7.0)",
+      "kind": "shin",
+      "max_step": 0.027222216129303,
+      "minimum_velocity": -1.63333320617676,
+      "offset": 0.172928407788277,
+      "scan_max_usec": 5480,
+      "scan_total_usec": 22118,
+      "scan_vertices": 10038,
+      "start": "(7.0, 0.000684, 7.0)"
+    },
+    {
+      "end": "(7.0, -0.445484, 7.0)",
+      "kind": "thigh",
+      "max_step": 0.046277791261673,
+      "minimum_velocity": -2.77666687965393,
+      "offset": 0.445542633533478,
+      "scan_max_usec": 5373,
+      "scan_total_usec": 21649,
+      "scan_vertices": 9786,
+      "start": "(7.0, 0.000684, 7.0)"
+    },
+    {
+      "end": "(7.0, -0.445293, 7.0)",
+      "kind": "thigh_arm",
+      "max_step": 0.046277791261673,
+      "minimum_velocity": -2.77666687965393,
+      "offset": 0.445542633533478,
+      "scan_max_usec": 5248,
+      "scan_total_usec": 21442,
+      "scan_vertices": 9581,
+      "start": "(7.0, 0.000684, 7.0)"
+    }
+  ],
+  "screenshots": [
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\injuries32\\staged_gui20\\shin_settled.png",
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\injuries32\\staged_gui20\\thigh_settled.png",
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\injuries32\\staged_gui20\\thigh_arm_settled.png"
+  ],
+  "raw_failures": {
+    "settling07/08/diag09/10/trace11/lazy13/query14": "Native movement still used standing capsule because weapon_host.advance rewrote it before movement; post-pose snapshots misleadingly showed the injury shape. Direct shape/body queries and constraint velocity traces isolated ordering.",
+    "settling_lazy12": "Fixture diagnostic called nonexistent get_local_shape_index; owned run stopped and raw stderr preserved."
+  },
+  "limits": [
+    "Accepted blade sever API followed by actual input, not a natural incoming NPC swing.",
+    "Player locomotion/support scope only; no NPC changes or new ragdoll simulation.",
+    "Scan bounds snapshot assumes stationary remaining body during staged both-leg scan; new cut/resource invalidates it.",
+    "No overall FPS or100-actor performance claim; per-tick scan timing recorded in RESULT.",
+    "The largest single surface readback remains indivisible: measured GUI5.248–5.480ms maximum preparation call, not a strict2ms budget or whole-frame FPS claim."
+  ],
+  "previous_accepted_checkpoint": "D:\\MafioziCombat31\\c33_coordination\\agents\\injuries32\\accepted_settling17",
+  "scan_performance": [
+    {
+      "case": "shin",
+      "before_max_usec": 10311,
+      "after_max_usec": 5480,
+      "before_total_usec": 24170,
+      "after_total_usec": 22118,
+      "same_support_offset": true
+    },
+    {
+      "case": "thigh",
+      "before_max_usec": 9886,
+      "after_max_usec": 5373,
+      "before_total_usec": 23666,
+      "after_total_usec": 21649,
+      "same_support_offset": true
+    },
+    {
+      "case": "thigh_arm",
+      "before_max_usec": 9421,
+      "after_max_usec": 5248,
+      "before_total_usec": 23124,
+      "after_total_usec": 21442,
+      "same_support_offset": true
+    }
+  ]
+}

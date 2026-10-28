@@ -1,0 +1,38 @@
+{
+  "actual_incision": {
+    "bone_sections": 24,
+    "count": 1,
+    "created": true,
+    "depth": 0.16,
+    "emitter_node": "LocalIncision28:<Node3D#256523640329>",
+    "handles_blood": true,
+    "ok": true,
+    "surface_distance": 0.000000119210568527706,
+    "visible_wound": true,
+    "world_point": "(-0.000142, 0.853548, -1.846489)"
+  },
+  "checks": {
+    "actual_skin_incision": true,
+    "clear_wounds_no_orphans": true,
+    "local_wound_flows": true,
+    "startup": true,
+    "suspension_removes_flow": true,
+    "visual_disable_does_not_damage": true,
+    "zero_depth_preview_no_flow": true
+  },
+  "passed": true,
+  "pool": {
+    "active": 0,
+    "capacity": 256,
+    "emitted": 27,
+    "last_update_usec": 24,
+    "max_frame_rays": 2,
+    "max_frame_spawns": 2,
+    "max_update_usec": 97,
+    "peak_active": 19,
+    "source_limit": 24,
+    "sources": 0,
+    "spawn_limit": 48
+  },
+  "scope": "Real LocalWound surface-validation API; no forced wound flags or weapon-input acceptance claim."
+}

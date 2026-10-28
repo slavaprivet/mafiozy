@@ -1,0 +1,69 @@
+{
+  "status": "VERIFIED_POLYGON35_CHECKPOINT",
+  "title": "Polygon35 soft tissue, stable spear hold, merged hatchet flight and combat presentation checkpoint",
+  "source": "D:\\MafioziCombat31\\c33_coordination\\arena35_soft_tissue\\game",
+  "base_commit": "04e52bdf82f9ead054aaf49c2fcf170ee69c4f63",
+  "behavior": [
+    "Moderate actual sharp-edge movement can cut open soft tissue while weak contacts remain local wounds; hard plate still blocks penetration/severing.",
+    "Sword/spear soft tissue entry and head surface admission use the existing finite channel and actual armor coverage gate.",
+    "Spear remains held through measured false-floor jitter and releases on real jump, gap, or backward withdrawal.",
+    "Hatchet grip is oriented edge-forward when first selected; true release pose and angular flight are retained; wall and target contacts are bounded.",
+    "Hatchet topology interning reduced matched worker and end-to-end contact latency.",
+    "Sword/sledge horizontal presentation fixes retain the actual hand/grip solver.",
+    "Bow far-distance arrow rendering and lifecycle fixes preserve ballistic inputs.",
+    "Merged health matrix passed37/37: head hit deals2x the matched limb HP damage; shallow/severe wound bleed accounting differs by depth; head and torso 89% remain alive and 90.5% cause death by measured posed-mesh thickness; weak input does not sever, strong input structurally severs."
+  ],
+  "verification_summary": {
+    "merged_spear_hold11": true,
+    "merged_spear_jump10": true,
+    "merged_spear_deep_hold8": true,
+    "merged_hatchet_overhand10": true,
+    "merged_hatchet_wall5": true,
+    "merged_hatchet_timing11": true,
+    "continuous_plate_resists": true,
+    "weak_edge_no_sever": true,
+    "full_50v50_fps_accepted": false,
+    "external_manual_desktop_acceptance": false,
+    "merged_health_matrix37": true
+  },
+  "performance_scope": "Single-cut clean matched profile only: topology worker217.719 to182.994ms, contact worker172.438 to137.102ms, end-to-end latency234.099 to200.070ms. Draw p95 18.556 to18.746ms, so no full frame/FPS improvement claim. Rare recovery stalls remain open.",
+  "remaining": [
+    "Wood and metal shield variants with different durability are not implemented.",
+    "RMB off-hand hatchet throw is not yet proven or implemented; weak/medium/strong throw categories are not separately characterized.",
+    "Rare deep-contact recovery stalls and overall50x50 FPS remain unresolved.",
+    "User-facing manual desktop acceptance remains outstanding; keep window33 preserved and do not open a new live game without agreement.",
+    "A strong real mouse cut severed two parts and created debris but applied0 numeric HP in this branch; numeric damage scaling for actual strong cuts is not satisfied. Bleed-rate accounting and the lethal-depth callback passed with measured geometry but remain short of a full physical weapon-entry integration test."
+  ],
+  "production_pointer_changed": false,
+  "full_50v50_fps_accepted": false,
+  "external_manual_desktop_acceptance": false,
+  "opening": "Interactive candidate not opened; existing user window preserved.",
+  "health_matrix_scope": {
+    "receipt": "outputs/arena35_checkpoint20261023/qa/review/root35/health_matrix_candidate01/RECEIPT.json",
+    "assertions": "37/37 graphical PASS; scheduler exit0; stderr0",
+    "head_vs_limb": "same10 input damage -> head20 HP, upperarm10 HP",
+    "bleed": "synthetic accepted-wound runtime accounting over100ms: 0.0375 vs0.14375 HP; not physical sword/spear entry",
+    "vital_depth": "posed mesh thickness measured; 89% survives, 90.5% marks death for head and torso via exact collapse callback",
+    "actual_swing": "weak0 HP/0 cuts; strong2 real limb sever+debris, target alive,0 numeric HP loss"
+  },
+  "checkpoint": "outputs/arena35_checkpoint20261023",
+  "source_files": 3435,
+  "changed_game_files": {
+    "scripts/arena27.gd": "acc183774882379feb2e6bd78eaf91579bdba4b3fbbe110767a0f2c2cdfedb84",
+    "scripts/clay_target.gd": "60c14f522e37c1d2bc1e437c1dd9a523be290f3289afc763f4f2b5ad594e0c8c",
+    "scripts/combat/armor_contact31.gd": "9239c699041a27e55eba64bdf4b1be1407c8f6a8877ada27ad44bec8175f10b2",
+    "scripts/combat/armor_damage31.gd": "21fd593bb460d3b302a38b8a439bbd55ad81cc241fc01990febbfacea9ddc37b",
+    "scripts/combat/armor_head_surface35.gd": "303f78053e0c8d2abd5fbc609beb5de439d7bfd5bddef65ba5d63b2b2479f84b",
+    "scripts/combat/blade_resistance28.gd": "21b8d63255d9e4b721e7eb58e17faba1e386a3fc5b20992d8dac3ce4a71e95f5",
+    "scripts/combat/embedded_weapon29.gd": "4bf32c3a8da49e4825b9462e73784c461b362cb0fac4165d36076621eedc0f07",
+    "scripts/combat/sword_puncture_resistance29.gd": "8a6067ac60c75578a1d622a71c17bfd976bfe4b70b41519b012cdb786a39543d",
+    "scripts/combat/weapon_solid_contact29.gd": "8402a1489d77daea487fd795c48b43751f072323bd9afedea860a38d96c771b8",
+    "scripts/weapons/bow_prototype.gd": "da5ee913c54c6ea14e9fb4d87033f85a1f10f98524956e9936576925033d5777",
+    "scripts/weapons/hatchet_volume32.gd": "0c4300feb69521ce0fda1b80fdd980a5cb24a38ceadab2ac30d9c57d5d7124ed",
+    "scripts/weapons/sword_prototype.gd": "49fcd5d1f0c9de216214e474699c73bedb7f58cce8a18be027596f397d46f14c",
+    "scripts/weapons/throwing_axe32.gd": "be8d60f7312b45960c6df8f71f305f7475aa4960e87e70a18237a3e3f2063b4a"
+  },
+  "source_stable": true,
+  "checkpoint_exact_bytes": true,
+  "utc": "2026-10-23T19:30:06.105830+00:00"
+}

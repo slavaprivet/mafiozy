@@ -1,0 +1,108 @@
+{
+  "mode": "graphical",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--windowed",
+    "--resolution",
+    "1280x720",
+    "--max-fps",
+    "60",
+    "--path",
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\bow35\\game",
+    "--script",
+    "D:/MafioziCombat31/c33_coordination/agents/contact_perf31/bow_input31.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\bow35_plate04",
+    "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\bow35_plate04",
+    "--tier=heavy",
+    "--plate"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "53578ea40dc440a3b55a6b2007e06a13",
+    "owner": {
+      "pid": 58148,
+      "creation_filetime": "134372540858509070"
+    },
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\agents\\bow35\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 39764,
+        "creation_filetime": "134372541755223945",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\agents\\bow35\\game --script D:/MafioziCombat31/c33_coordination/agents/contact_perf31/bow_input31.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\bow35_plate04 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\bow35_plate04 --tier=heavy --plate",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--windowed",
+          "--resolution",
+          "1280x720",
+          "--max-fps",
+          "60",
+          "--path",
+          "D:\\MafioziCombat31\\c33_coordination\\agents\\bow35\\game",
+          "--script",
+          "D:/MafioziCombat31/c33_coordination/agents/contact_perf31/bow_input31.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\bow35_plate04",
+          "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\bow35_plate04",
+          "--tier=heavy",
+          "--plate"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "graphical",
+        "project": "d:\\mafiozicombat31\\c33_coordination\\agents\\bow35\\game"
+      }
+    ],
+    "deadline": 270880.8947609,
+    "queued_at": 270280.8947609,
+    "ticket": 6099,
+    "inventory_before": [
+      {
+        "pid": 40212,
+        "parent_pid": 57684,
+        "creation_filetime": "134372393255837801",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game\" res://scenes/arena27.tscn --windowed --resolution 1440x900 --max-fps 60 -- \"--lab-out=D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\interactive\\20261023T142845558Z\"",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози · Полигон 33 · проколы и контакт (DEBUG)"
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 89.05479349999223
+  },
+  "child": {
+    "pid": 39764,
+    "creation_filetime": "134372541755223945",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\agents\\bow35\\game --script D:/MafioziCombat31/c33_coordination/agents/contact_perf31/bow_input31.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\bow35_plate04 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\bow35_plate04 --tier=heavy --plate",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--windowed",
+      "--resolution",
+      "1280x720",
+      "--max-fps",
+      "60",
+      "--path",
+      "D:\\MafioziCombat31\\c33_coordination\\agents\\bow35\\game",
+      "--script",
+      "D:/MafioziCombat31/c33_coordination/agents/contact_perf31/bow_input31.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\bow35_plate04",
+      "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\bow35_plate04",
+      "--tier=heavy",
+      "--plate"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\agents\\bow35\\game"
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 15.623378399992362,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

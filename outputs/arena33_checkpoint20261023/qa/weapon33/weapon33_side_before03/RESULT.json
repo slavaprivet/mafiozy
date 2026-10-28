@@ -1,0 +1,1017 @@
+{
+  "checks": {
+    "sword_level50_entered_through_tissue": true,
+    "sword_level50_solid_safe": true,
+    "sword_side40_entered_through_tissue": false,
+    "sword_side40_solid_safe": true
+  },
+  "outcomes": [
+    {
+      "peak": 0.0943222045898438,
+      "rows": [
+        {
+          "active": false,
+          "axis": "(0.181506, -0.08818, -0.979428)",
+          "bore_reject": [],
+          "depth": 0,
+          "guide": {
+            "active": false,
+            "reason": "equipment"
+          },
+          "kind": null,
+          "last_wound": {},
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": null,
+          "position": "(0.2, -0.000781, 1.295)",
+          "tick": 0,
+          "velocity": "(0.0, 0.0, -0.3)",
+          "world": {}
+        },
+        {
+          "active": false,
+          "axis": "(0.181965, -0.089064, -0.979263)",
+          "bore_reject": [],
+          "depth": 0,
+          "guide": {
+            "active": false,
+            "reason": "equipment"
+          },
+          "kind": null,
+          "last_wound": {},
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": null,
+          "position": "(0.2, -0.000781, 1.16)",
+          "tick": 6,
+          "velocity": "(0.0, 0.0, -2.1)",
+          "world": {}
+        },
+        {
+          "active": false,
+          "axis": "(0.182209, -0.089534, -0.979175)",
+          "bore_reject": [],
+          "depth": 0,
+          "guide": {
+            "active": false,
+            "reason": "equipment"
+          },
+          "kind": null,
+          "last_wound": {},
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": null,
+          "position": "(0.2, -0.000781, 0.865)",
+          "tick": 12,
+          "velocity": "(0.0, 0.0, -3.2)",
+          "world": {}
+        },
+        {
+          "active": false,
+          "axis": "(0.182339, -0.089784, -0.979128)",
+          "bore_reject": [],
+          "depth": 0,
+          "guide": {
+            "active": false,
+            "reason": "equipment"
+          },
+          "kind": null,
+          "last_wound": {},
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": null,
+          "position": "(0.2, -0.000781, 0.545)",
+          "tick": 18,
+          "velocity": "(0.0, 0.0, -3.2)",
+          "world": {}
+        },
+        {
+          "active": false,
+          "axis": "(0.182407, -0.089916, -0.979103)",
+          "bore_reject": [],
+          "depth": 0,
+          "guide": {
+            "active": false,
+            "reason": "equipment"
+          },
+          "kind": null,
+          "last_wound": {},
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": null,
+          "position": "(0.2, -0.000781, 0.225)",
+          "tick": 24,
+          "velocity": "(0.0, 0.0, -3.2)",
+          "world": {}
+        },
+        {
+          "active": false,
+          "axis": "(0.182444, -0.089987, -0.97909)",
+          "bore_reject": [],
+          "depth": 0,
+          "guide": {
+            "active": false,
+            "reason": "equipment"
+          },
+          "kind": null,
+          "last_wound": {},
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": null,
+          "position": "(0.2, -0.000781, -0.095)",
+          "tick": 30,
+          "velocity": "(0.0, 0.0, -3.2)",
+          "world": {}
+        },
+        {
+          "active": true,
+          "axis": "(0.182464, -0.090024, -0.979083)",
+          "bore_reject": [],
+          "depth": 0.0440609455108643,
+          "guide": {
+            "active": true,
+            "actual_lag": 0.00645031966269016,
+            "at_limit": false,
+            "grip_error": 0.000000124894484088145,
+            "guide_correction": "(0.011866, -0.001076, 0.00231)",
+            "guide_radial": 0.0121361808851361,
+            "guide_reason": "bone_bore",
+            "kind": "puncture",
+            "lag": 0.00645046376102055,
+            "requested_advance": 0.00569505291059613,
+            "speed": 0.351772490460672,
+            "support_error": 0.0,
+            "withdrawing": false
+          },
+          "kind": null,
+          "last_wound": {
+            "actual_tip": true,
+            "puncture": true,
+            "result": {
+              "actual_skin_intersections": 3,
+              "count": 1,
+              "created": true,
+              "depth": 0.0,
+              "exit_world": "(0.344195, 0.769008, -2.107203)",
+              "handles_blood": true,
+              "ok": true,
+              "puncture": true,
+              "reseeded_preview": false,
+              "skin_depth": 0.208959877490997,
+              "through": false,
+              "world_point": "(0.30607, 0.787815, -1.902614)"
+            },
+            "solid_contact": true
+          },
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": null,
+          "position": "(0.198592, -0.000781, -0.288005)",
+          "tick": 36,
+          "velocity": "(-0.015461, 0.0, -0.346273)",
+          "world": {}
+        },
+        {
+          "active": true,
+          "axis": "(0.182474, -0.090044, -0.979079)",
+          "bore_reject": [],
+          "depth": 0.0844848155975342,
+          "guide": {
+            "active": true,
+            "actual_lag": 0.0165563598275185,
+            "at_limit": false,
+            "grip_error": 0.0000000702886353565191,
+            "guide_correction": "(0.023977, -0.000811, 0.004543)",
+            "guide_radial": 0.02441699616611,
+            "guide_reason": "bone_bore",
+            "kind": "puncture",
+            "lag": 0.0165564404096493,
+            "requested_advance": 0.00994962174445391,
+            "speed": 0.614594554824351,
+            "support_error": 0.0,
+            "withdrawing": false
+          },
+          "kind": null,
+          "last_wound": {
+            "actual_tip": true,
+            "puncture": true,
+            "result": {
+              "actual_skin_intersections": 3,
+              "count": 1,
+              "created": true,
+              "depth": 0.0,
+              "exit_world": "(0.344195, 0.769008, -2.107203)",
+              "handles_blood": true,
+              "ok": true,
+              "puncture": true,
+              "reseeded_preview": false,
+              "skin_depth": 0.208959877490997,
+              "through": false,
+              "world_point": "(0.30607, 0.787815, -1.902614)"
+            },
+            "solid_contact": true
+          },
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": null,
+          "position": "(0.196305, -0.000781, -0.339221)",
+          "tick": 42,
+          "velocity": "(-0.026995, 0.0, -0.604596)",
+          "world": {}
+        },
+        {
+          "active": true,
+          "axis": "(0.182475, -0.090047, -0.979078)",
+          "bore_reject": [],
+          "depth": 0.0923151969909668,
+          "guide": {
+            "active": false,
+            "reason": "inactive"
+          },
+          "kind": "blunt",
+          "last_wound": {
+            "actual_tip": true,
+            "puncture": true,
+            "result": {
+              "actual_skin_intersections": 3,
+              "count": 1,
+              "created": true,
+              "depth": 0.0,
+              "exit_world": "(0.344195, 0.769008, -2.107203)",
+              "handles_blood": true,
+              "ok": true,
+              "puncture": true,
+              "reseeded_preview": false,
+              "skin_depth": 0.208959877490997,
+              "through": false,
+              "world_point": "(0.30607, 0.787815, -1.902614)"
+            },
+            "solid_contact": true
+          },
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": "spine_01",
+          "position": "(0.1937, -0.000781, -0.397559)",
+          "tick": 48,
+          "velocity": "(-0.011332, 0.0, -0.253801)",
+          "world": {}
+        },
+        {
+          "active": true,
+          "axis": "(0.182476, -0.090047, -0.979078)",
+          "bore_reject": [],
+          "depth": 0.0943222045898438,
+          "guide": {
+            "active": false,
+            "reason": "inactive"
+          },
+          "kind": "blunt",
+          "last_wound": {
+            "actual_tip": true,
+            "puncture": true,
+            "result": {
+              "actual_skin_intersections": 3,
+              "count": 1,
+              "created": true,
+              "depth": 0.0,
+              "exit_world": "(0.344195, 0.769008, -2.107203)",
+              "handles_blood": true,
+              "ok": true,
+              "puncture": true,
+              "reseeded_preview": false,
+              "skin_depth": 0.208959877490997,
+              "through": false,
+              "world_point": "(0.30607, 0.787815, -1.902614)"
+            },
+            "solid_contact": true
+          },
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": "spine_01",
+          "position": "(0.225393, 0.000833, -0.366031)",
+          "tick": 54,
+          "velocity": "(0.0, 0.0, -0.383564)",
+          "world": {}
+        },
+        {
+          "active": true,
+          "axis": "(0.182476, -0.090047, -0.979078)",
+          "bore_reject": [],
+          "depth": 0.0943222045898438,
+          "guide": {
+            "active": true,
+            "actual_lag": 0.000744805496651679,
+            "at_limit": false,
+            "grip_error": 0.0000000954139878217575,
+            "guide_correction": "(0.00403, 0.011688, -0.000324)",
+            "guide_radial": 0.0139435892924666,
+            "guide_reason": "bone_bore",
+            "kind": "puncture",
+            "lag": 0.000744892645161599,
+            "requested_advance": 0.000828481977805495,
+            "speed": 0.451972197795363,
+            "support_error": 0.0,
+            "withdrawing": false
+          },
+          "kind": "blunt",
+          "last_wound": {
+            "actual_tip": true,
+            "puncture": true,
+            "result": {
+              "created": false,
+              "depth": 0.0943222045898438,
+              "handles_blood": true,
+              "ok": true,
+              "puncture": true,
+              "through": false,
+              "world_point": "(0.30607, 0.787815, -1.902614)"
+            },
+            "solid_contact": true
+          },
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": "spine_01",
+          "position": "(0.225393, 0.000833, -0.378716)",
+          "tick": 60,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "world": {}
+        },
+        {
+          "active": true,
+          "axis": "(0.182476, -0.090047, -0.979078)",
+          "bore_reject": [],
+          "depth": 0.0943222045898438,
+          "guide": {
+            "active": false,
+            "reason": "inactive"
+          },
+          "kind": "blunt",
+          "last_wound": {
+            "actual_tip": true,
+            "puncture": true,
+            "result": {
+              "created": false,
+              "depth": 0.0943222045898438,
+              "handles_blood": true,
+              "ok": true,
+              "puncture": true,
+              "through": false,
+              "world_point": "(0.30607, 0.787815, -1.902614)"
+            },
+            "solid_contact": true
+          },
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": "spine_01",
+          "position": "(0.225393, 0.000833, -0.378716)",
+          "tick": 66,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "world": {}
+        },
+        {
+          "active": true,
+          "axis": "(0.182476, -0.090047, -0.979078)",
+          "bore_reject": [],
+          "depth": 0.0943222045898438,
+          "guide": {
+            "active": false,
+            "reason": "inactive"
+          },
+          "kind": "blunt",
+          "last_wound": {
+            "actual_tip": true,
+            "puncture": true,
+            "result": {
+              "created": false,
+              "depth": 0.0943222045898438,
+              "handles_blood": true,
+              "ok": true,
+              "puncture": true,
+              "through": false,
+              "world_point": "(0.30607, 0.787815, -1.902614)"
+            },
+            "solid_contact": true
+          },
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": "spine_01",
+          "position": "(0.225393, 0.000833, -0.378716)",
+          "tick": 72,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "world": {}
+        },
+        {
+          "active": true,
+          "axis": "(0.182476, -0.090047, -0.979078)",
+          "bore_reject": [],
+          "depth": 0.0943222045898438,
+          "guide": {
+            "active": false,
+            "actual_lag": -0.0000000521540641784668,
+            "at_limit": false,
+            "grip_error": 0.0000000842936955791629,
+            "guide_correction": "(0.004055, -0.001836, 0.000924)",
+            "guide_radial": 0.00454611098393798,
+            "guide_reason": "bone_bore",
+            "kind": "puncture",
+            "lag": 0.0,
+            "requested_advance": -0.00295555545017123,
+            "speed": 0.178642782987194,
+            "support_error": 0.0,
+            "withdrawing": true
+          },
+          "kind": "blunt",
+          "last_wound": {
+            "actual_tip": true,
+            "puncture": true,
+            "result": {
+              "created": false,
+              "depth": 0.0943222045898438,
+              "handles_blood": true,
+              "ok": true,
+              "puncture": true,
+              "through": false,
+              "world_point": "(0.30607, 0.787815, -1.902614)"
+            },
+            "solid_contact": true
+          },
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": "spine_01",
+          "position": "(0.225393, 0.000833, -0.378716)",
+          "tick": 78,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "world": {}
+        },
+        {
+          "active": true,
+          "axis": "(0.182476, -0.090047, -0.979078)",
+          "bore_reject": [],
+          "depth": 0.0943222045898438,
+          "guide": {
+            "active": true,
+            "actual_lag": 0.0000496578868478537,
+            "at_limit": false,
+            "grip_error": 0.000000112501297167,
+            "guide_correction": "(0.003873, -0.001284, 0.00084)",
+            "guide_radial": 0.00416533229872584,
+            "guide_reason": "bone_bore",
+            "kind": "puncture",
+            "lag": 0.0000496558706799988,
+            "requested_advance": 0.0000634336538496427,
+            "speed": 0.0061066314196888,
+            "support_error": 0.0,
+            "withdrawing": false
+          },
+          "kind": "blunt",
+          "last_wound": {
+            "actual_tip": true,
+            "puncture": true,
+            "result": {
+              "created": false,
+              "depth": 0.0943222045898438,
+              "handles_blood": true,
+              "ok": true,
+              "puncture": true,
+              "through": false,
+              "world_point": "(0.30607, 0.787815, -1.902614)"
+            },
+            "solid_contact": true
+          },
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": "spine_01",
+          "position": "(0.225393, 0.000833, -0.378716)",
+          "tick": 84,
+          "velocity": "(0.0, 0.0, 0.0)",
+          "world": {}
+        }
+      ],
+      "scenario": "sword_side40"
+    },
+    {
+      "peak": 0.206900835037231,
+      "rows": [
+        {
+          "active": false,
+          "axis": "(-0.000603, 0.118313, -0.992976)",
+          "bore_reject": [],
+          "depth": 0,
+          "guide": {
+            "active": false,
+            "reason": "equipment"
+          },
+          "kind": null,
+          "last_wound": {},
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": null,
+          "position": "(0.2, -0.000781, 1.295)",
+          "tick": 0,
+          "velocity": "(0.0, 0.0, -0.3)",
+          "world": {}
+        },
+        {
+          "active": false,
+          "axis": "(-0.00032, 0.117748, -0.993043)",
+          "bore_reject": [],
+          "depth": 0,
+          "guide": {
+            "active": false,
+            "reason": "equipment"
+          },
+          "kind": null,
+          "last_wound": {},
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": null,
+          "position": "(0.2, -0.000781, 1.16)",
+          "tick": 6,
+          "velocity": "(0.0, 0.0, -2.1)",
+          "world": {}
+        },
+        {
+          "active": false,
+          "axis": "(-0.00017, 0.117448, -0.993079)",
+          "bore_reject": [],
+          "depth": 0,
+          "guide": {
+            "active": false,
+            "reason": "equipment"
+          },
+          "kind": null,
+          "last_wound": {},
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": null,
+          "position": "(0.2, -0.000781, 0.865)",
+          "tick": 12,
+          "velocity": "(0.0, 0.0, -3.2)",
+          "world": {}
+        },
+        {
+          "active": false,
+          "axis": "(-0.000091, 0.117289, -0.993098)",
+          "bore_reject": [],
+          "depth": 0,
+          "guide": {
+            "active": false,
+            "reason": "equipment"
+          },
+          "kind": null,
+          "last_wound": {},
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": null,
+          "position": "(0.2, -0.000781, 0.545)",
+          "tick": 18,
+          "velocity": "(0.0, 0.0, -3.2)",
+          "world": {}
+        },
+        {
+          "active": false,
+          "axis": "(-0.000048, 0.117204, -0.993108)",
+          "bore_reject": [],
+          "depth": 0,
+          "guide": {
+            "active": false,
+            "reason": "equipment"
+          },
+          "kind": null,
+          "last_wound": {},
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": null,
+          "position": "(0.2, -0.000781, 0.225)",
+          "tick": 24,
+          "velocity": "(0.0, 0.0, -3.2)",
+          "world": {}
+        },
+        {
+          "active": false,
+          "axis": "(-0.000026, 0.117159, -0.993113)",
+          "bore_reject": [],
+          "depth": 0,
+          "guide": {
+            "active": false,
+            "reason": "equipment"
+          },
+          "kind": null,
+          "last_wound": {},
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": null,
+          "position": "(0.2, -0.000781, -0.095)",
+          "tick": 30,
+          "velocity": "(0.0, 0.0, -3.2)",
+          "world": {}
+        },
+        {
+          "active": true,
+          "axis": "(-0.000014, 0.117135, -0.993116)",
+          "bore_reject": [],
+          "depth": 0.158470869064331,
+          "guide": {
+            "active": true,
+            "actual_lag": 0.00675422232598066,
+            "at_limit": false,
+            "grip_error": 0.00000021812344641603,
+            "guide_correction": "(0.001924, 0.011795, 0.001391)",
+            "guide_radial": 0.0120317908003926,
+            "guide_reason": "bone_bore",
+            "kind": "puncture",
+            "lag": 0.00675443873205705,
+            "requested_advance": 0.0091685252264142,
+            "speed": 0.5536231957376,
+            "support_error": 0.0,
+            "withdrawing": false
+          },
+          "kind": null,
+          "last_wound": {
+            "actual_tip": true,
+            "puncture": true,
+            "result": {
+              "actual_skin_intersections": 2,
+              "count": 1,
+              "created": true,
+              "depth": 0.0,
+              "exit_world": "(-0.001559, 1.182353, -2.204527)",
+              "handles_blood": true,
+              "ok": true,
+              "puncture": true,
+              "reseeded_preview": false,
+              "skin_depth": 0.371961772441864,
+              "through": false,
+              "world_point": "(-0.001549, 1.138775, -1.835127)"
+            },
+            "solid_contact": true
+          },
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": null,
+          "position": "(0.2, -0.000781, -0.288858)",
+          "tick": 36,
+          "velocity": "(0.000004, 0.0, -0.549257)",
+          "world": {}
+        },
+        {
+          "active": true,
+          "axis": "(-0.00001, 0.117128, -0.993117)",
+          "bore_reject": [],
+          "depth": 0.19406270980835,
+          "guide": {
+            "active": true,
+            "actual_lag": 0.0209263656288385,
+            "at_limit": false,
+            "grip_error": 0.000000059610215430439,
+            "guide_correction": "(0.002786, 0.01896, 0.002237)",
+            "guide_radial": 0.0192935187369585,
+            "guide_reason": "bone_bore",
+            "kind": "puncture",
+            "lag": 0.0209264633435898,
+            "requested_advance": -0.011894840747118,
+            "speed": 0.730628874152899,
+            "support_error": 0.0,
+            "withdrawing": true
+          },
+          "kind": "blunt",
+          "last_wound": {
+            "actual_tip": true,
+            "puncture": true,
+            "result": {
+              "actual_skin_intersections": 2,
+              "count": 1,
+              "created": true,
+              "depth": 0.0,
+              "exit_world": "(-0.001559, 1.182353, -2.204527)",
+              "handles_blood": true,
+              "ok": true,
+              "puncture": true,
+              "reseeded_preview": false,
+              "skin_depth": 0.371961772441864,
+              "through": false,
+              "world_point": "(-0.001549, 1.138775, -1.835127)"
+            },
+            "solid_contact": true
+          },
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": "clavicle_r",
+          "position": "(0.200001, 0.000412, -0.347778)",
+          "tick": 42,
+          "velocity": "(0.000002, 0.065495, -0.243866)",
+          "world": {}
+        },
+        {
+          "active": true,
+          "axis": "(-0.00001, 0.117128, -0.993117)",
+          "bore_reject": [],
+          "depth": 0.202682971954346,
+          "guide": {
+            "active": true,
+            "actual_lag": 0.0285636484622955,
+            "at_limit": false,
+            "grip_error": 0.0000000539002940058708,
+            "guide_correction": "(0.002876, 0.022811, 0.002691)",
+            "guide_radial": 0.0231484211981297,
+            "guide_reason": "bone_bore",
+            "kind": "puncture",
+            "lag": 0.0285635504130416,
+            "requested_advance": 0.00883647054433823,
+            "speed": 0.559533108025789,
+            "support_error": 0.0,
+            "withdrawing": false
+          },
+          "kind": "blunt",
+          "last_wound": {
+            "actual_tip": true,
+            "puncture": true,
+            "result": {
+              "actual_skin_intersections": 2,
+              "count": 1,
+              "created": true,
+              "depth": 0.0,
+              "exit_world": "(-0.001559, 1.182353, -2.204527)",
+              "handles_blood": true,
+              "ok": true,
+              "puncture": true,
+              "reseeded_preview": false,
+              "skin_depth": 0.371961772441864,
+              "through": false,
+              "world_point": "(-0.001549, 1.138775, -1.835127)"
+            },
+            "solid_contact": true
+          },
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": "clavicle_r",
+          "position": "(0.200001, 0.001289, -0.365111)",
+          "tick": 48,
+          "velocity": "(0.012473, -0.091632, 0.005756)",
+          "world": {}
+        },
+        {
+          "active": true,
+          "axis": "(-0.00001, 0.117128, -0.993117)",
+          "bore_reject": [],
+          "depth": 0.206900835037231,
+          "guide": {
+            "active": true,
+            "actual_lag": 0.0297295060008764,
+            "at_limit": false,
+            "grip_error": 0.000000143164200494539,
+            "guide_correction": "(0.002921, 0.02244, 0.002647)",
+            "guide_radial": 0.022783862426877,
+            "guide_reason": "bone_bore",
+            "kind": "puncture",
+            "lag": 0.0297296249614239,
+            "requested_advance": 0.000814430182799697,
+            "speed": 0.161717548035085,
+            "support_error": 0.0,
+            "withdrawing": false
+          },
+          "kind": "blunt",
+          "last_wound": {
+            "actual_tip": true,
+            "puncture": true,
+            "result": {
+              "actual_skin_intersections": 2,
+              "count": 1,
+              "created": true,
+              "depth": 0.0,
+              "exit_world": "(-0.001559, 1.182353, -2.204527)",
+              "handles_blood": true,
+              "ok": true,
+              "puncture": true,
+              "reseeded_preview": false,
+              "skin_depth": 0.371961772441864,
+              "through": false,
+              "world_point": "(-0.001549, 1.138775, -1.835127)"
+            },
+            "solid_contact": true
+          },
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": "clavicle_r",
+          "position": "(0.200001, 0.001611, -0.36913)",
+          "tick": 54,
+          "velocity": "(0.006853, 0.019838, -0.001464)",
+          "world": {}
+        },
+        {
+          "active": true,
+          "axis": "(-0.00001, 0.117128, -0.993117)",
+          "bore_reject": [],
+          "depth": 0.206900835037231,
+          "guide": {
+            "active": true,
+            "actual_lag": 0.0303084440529346,
+            "at_limit": false,
+            "grip_error": 0.000000134344745106318,
+            "guide_correction": "(0.002922, 0.021241, 0.002506)",
+            "guide_radial": 0.021587086841464,
+            "guide_reason": "bone_bore",
+            "kind": "puncture",
+            "lag": 0.0303083513005778,
+            "requested_advance": 0.000964061007834971,
+            "speed": 0.0980379106476903,
+            "support_error": 0.0,
+            "withdrawing": false
+          },
+          "kind": "blunt",
+          "last_wound": {
+            "actual_tip": true,
+            "puncture": true,
+            "result": {
+              "actual_skin_intersections": 2,
+              "count": 1,
+              "created": true,
+              "depth": 0.0,
+              "exit_world": "(-0.001559, 1.182353, -2.204527)",
+              "handles_blood": true,
+              "ok": true,
+              "puncture": true,
+              "reseeded_preview": false,
+              "skin_depth": 0.371961772441864,
+              "through": false,
+              "world_point": "(-0.001549, 1.138775, -1.835127)"
+            },
+            "solid_contact": true
+          },
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": "clavicle_r",
+          "position": "(0.200001, 0.001611, -0.36913)",
+          "tick": 60,
+          "velocity": "(0.006853, 0.01984, -0.001464)",
+          "world": {}
+        },
+        {
+          "active": true,
+          "axis": "(-0.00001, 0.117128, -0.993117)",
+          "bore_reject": [],
+          "depth": 0.206900835037231,
+          "guide": {
+            "active": true,
+            "actual_lag": 0.030885249376297,
+            "at_limit": false,
+            "grip_error": 0.000000169575244512998,
+            "guide_correction": "(0.002923, 0.021288, 0.002511)",
+            "guide_radial": 0.0216338466852903,
+            "guide_reason": "bone_bore",
+            "kind": "puncture",
+            "lag": 0.0308851137365356,
+            "requested_advance": 0.000959771103225648,
+            "speed": 0.0978733599185944,
+            "support_error": 0.0,
+            "withdrawing": false
+          },
+          "kind": "blunt",
+          "last_wound": {
+            "actual_tip": true,
+            "puncture": true,
+            "result": {
+              "actual_skin_intersections": 2,
+              "count": 1,
+              "created": true,
+              "depth": 0.0,
+              "exit_world": "(-0.001559, 1.182353, -2.204527)",
+              "handles_blood": true,
+              "ok": true,
+              "puncture": true,
+              "reseeded_preview": false,
+              "skin_depth": 0.371961772441864,
+              "through": false,
+              "world_point": "(-0.001549, 1.138775, -1.835127)"
+            },
+            "solid_contact": true
+          },
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": "clavicle_r",
+          "position": "(0.200001, 0.001611, -0.36913)",
+          "tick": 66,
+          "velocity": "(0.006853, 0.01984, -0.001464)",
+          "world": {}
+        },
+        {
+          "active": true,
+          "axis": "(-0.00001, 0.117128, -0.993117)",
+          "bore_reject": [],
+          "depth": 0.206900835037231,
+          "guide": {
+            "active": true,
+            "actual_lag": 0.0314584858715534,
+            "at_limit": false,
+            "grip_error": 0.000000124252679256642,
+            "guide_correction": "(0.002924, 0.021332, 0.002517)",
+            "guide_radial": 0.0216779466718435,
+            "guide_reason": "bone_bore",
+            "kind": "puncture",
+            "lag": 0.0314583523039848,
+            "requested_advance": 0.000952834729105234,
+            "speed": 0.0976184522733092,
+            "support_error": 0.0,
+            "withdrawing": false
+          },
+          "kind": "blunt",
+          "last_wound": {
+            "actual_tip": true,
+            "puncture": true,
+            "result": {
+              "actual_skin_intersections": 2,
+              "count": 1,
+              "created": true,
+              "depth": 0.0,
+              "exit_world": "(-0.001559, 1.182353, -2.204527)",
+              "handles_blood": true,
+              "ok": true,
+              "puncture": true,
+              "reseeded_preview": false,
+              "skin_depth": 0.371961772441864,
+              "through": false,
+              "world_point": "(-0.001549, 1.138775, -1.835127)"
+            },
+            "solid_contact": true
+          },
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": "clavicle_r",
+          "position": "(0.200001, 0.001611, -0.36913)",
+          "tick": 72,
+          "velocity": "(0.006853, 0.01984, -0.001464)",
+          "world": {}
+        },
+        {
+          "active": true,
+          "axis": "(-0.00001, 0.117128, -0.993117)",
+          "bore_reject": [],
+          "depth": 0.206900835037231,
+          "guide": {
+            "active": true,
+            "actual_lag": 0.032026581466198,
+            "at_limit": false,
+            "grip_error": 0.0000000903275605423914,
+            "guide_correction": "(0.002924, 0.021372, 0.002521)",
+            "guide_radial": 0.0217176955193281,
+            "guide_reason": "bone_bore",
+            "kind": "puncture",
+            "lag": 0.0320266547453732,
+            "requested_advance": 0.00094407401047647,
+            "speed": 0.0972611317411065,
+            "support_error": 0.0,
+            "withdrawing": false
+          },
+          "kind": "blunt",
+          "last_wound": {
+            "actual_tip": true,
+            "puncture": true,
+            "result": {
+              "actual_skin_intersections": 2,
+              "count": 1,
+              "created": true,
+              "depth": 0.0,
+              "exit_world": "(-0.001559, 1.182353, -2.204527)",
+              "handles_blood": true,
+              "ok": true,
+              "puncture": true,
+              "reseeded_preview": false,
+              "skin_depth": 0.371961772441864,
+              "through": false,
+              "world_point": "(-0.001549, 1.138775, -1.835127)"
+            },
+            "solid_contact": true
+          },
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": "clavicle_r",
+          "position": "(0.200001, 0.001611, -0.36913)",
+          "tick": 78,
+          "velocity": "(0.006853, 0.01984, -0.001464)",
+          "world": {}
+        },
+        {
+          "active": true,
+          "axis": "(-0.00001, 0.117128, -0.993117)",
+          "bore_reject": [],
+          "depth": 0.206900835037231,
+          "guide": {
+            "active": true,
+            "actual_lag": 0.0325888395309448,
+            "at_limit": false,
+            "grip_error": 0.000000137016883172691,
+            "guide_correction": "(0.002924, 0.021407, 0.002525)",
+            "guide_radial": 0.0217524543404579,
+            "guide_reason": "bone_bore",
+            "kind": "puncture",
+            "lag": 0.032588873368609,
+            "requested_advance": 0.000933377188630402,
+            "speed": 0.0968446000479162,
+            "support_error": 0.0,
+            "withdrawing": false
+          },
+          "kind": "blunt",
+          "last_wound": {
+            "actual_tip": true,
+            "puncture": true,
+            "result": {
+              "actual_skin_intersections": 2,
+              "count": 1,
+              "created": true,
+              "depth": 0.0,
+              "exit_world": "(-0.001559, 1.182353, -2.204527)",
+              "handles_blood": true,
+              "ok": true,
+              "puncture": true,
+              "reseeded_preview": false,
+              "skin_depth": 0.371961772441864,
+              "through": false,
+              "world_point": "(-0.001549, 1.138775, -1.835127)"
+            },
+            "solid_contact": true
+          },
+          "omega": "(0.0, 0.0, 0.0)",
+          "part": "clavicle_r",
+          "position": "(0.200001, 0.001611, -0.36913)",
+          "tick": 84,
+          "velocity": "(0.006853, 0.01984, -0.001464)",
+          "world": {}
+        }
+      ],
+      "scenario": "sword_level50"
+    }
+  ],
+  "passed": false,
+  "scope": "Native Godot graphical InputEvents; setup before each scenario, same W1 and LMB motion, no midstrike transforms or forced wounds."
+}

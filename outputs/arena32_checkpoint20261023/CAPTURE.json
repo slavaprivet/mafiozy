@@ -1,0 +1,13 @@
+{
+  "captured_utc": "2026-10-23T01:36:03.888587+00:00",
+  "stage": "final-injuries-blood-hatchet",
+  "source": "D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game",
+  "files": 3433,
+  "changed": [
+    "scripts/weapons/throwing_axe32.gd"
+  ],
+  "source_stable": true,
+  "exact_bytes": true,
+  "production_pointer_changed": false,
+  "full_50v50_accepted": false
+}

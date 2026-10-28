@@ -1,0 +1,460 @@
+{
+	"checks": {
+		"forearm_l_finite_pose": true,
+		"forearm_l_ready": true,
+		"forearm_l_real_cut": true,
+		"forearm_r_finite_pose": true,
+		"forearm_r_ready": true,
+		"forearm_r_real_cut": true,
+		"shin_l_finite_pose": true,
+		"shin_l_ready": true,
+		"shin_l_real_cut": true,
+		"shin_r_finite_pose": true,
+		"shin_r_ready": true,
+		"shin_r_real_cut": true
+	},
+	"passed": true,
+	"rows": [
+		{
+			"case": "shin_l",
+			"injury": {
+				"active": true,
+				"arms": "(0, 0)",
+				"hop_count": 4,
+				"jump_count": 0,
+				"last": {},
+				"legs": "(1, 0)",
+				"split_collision": false
+			},
+			"samples": [
+				{
+					"floor": false,
+					"hops": 1,
+					"position": "(7.0, 0.115074, 6.933756)",
+					"tick": 4,
+					"velocity": "(0.0, 0.733333, -0.768)"
+				},
+				{
+					"floor": false,
+					"hops": 1,
+					"position": "(7.0, 0.124407, 6.844154)",
+					"tick": 8,
+					"velocity": "(0.0, -0.41, -0.768)"
+				},
+				{
+					"floor": false,
+					"hops": 1,
+					"position": "(7.0, 0.02624, 6.767353)",
+					"tick": 12,
+					"velocity": "(0.0, -1.39, -0.768)"
+				},
+				{
+					"floor": true,
+					"hops": 1,
+					"position": "(7.0, 0.000819, 6.728081)",
+					"tick": 16,
+					"velocity": "(0.0, 0.0, -0.09216)"
+				},
+				{
+					"floor": false,
+					"hops": 2,
+					"position": "(7.0, 0.070259, 6.692574)",
+					"tick": 20,
+					"velocity": "(0.0, 1.223333, -0.768)"
+				},
+				{
+					"floor": false,
+					"hops": 2,
+					"position": "(7.0, 0.135426, 6.615773)",
+					"tick": 24,
+					"velocity": "(0.0, 0.243333, -0.768)"
+				},
+				{
+					"floor": false,
+					"hops": 2,
+					"position": "(7.0, 0.102593, 6.538971)",
+					"tick": 28,
+					"velocity": "(0.0, -0.736667, -0.768)"
+				},
+				{
+					"floor": true,
+					"hops": 2,
+					"position": "(7.0, 0.0008, 6.46217)",
+					"tick": 32,
+					"velocity": "(0.0, 0.0, -0.768)"
+				},
+				{
+					"floor": true,
+					"hops": 2,
+					"position": "(7.0, 0.0008, 6.445426)",
+					"tick": 36,
+					"velocity": "(0.0, 0.0, -0.09216)"
+				},
+				{
+					"floor": false,
+					"hops": 3,
+					"position": "(7.0, 0.102867, 6.387387)",
+					"tick": 40,
+					"velocity": "(0.0, 0.896667, -0.768)"
+				},
+				{
+					"floor": false,
+					"hops": 3,
+					"position": "(7.0, 0.102589, 6.259385)",
+					"tick": 48,
+					"velocity": "(0.0, -0.736667, -0.768)"
+				},
+				{
+					"floor": true,
+					"hops": 3,
+					"position": "(7.0, 0.000743, 6.168912)",
+					"tick": 56,
+					"velocity": "(0.0, 0.0, -0.09216)"
+				},
+				{
+					"floor": false,
+					"hops": 4,
+					"position": "(7.0, 0.115079, 6.094988)",
+					"tick": 64,
+					"velocity": "(0.0, 0.733333, -0.768)"
+				}
+			]
+		},
+		{
+			"case": "shin_r",
+			"injury": {
+				"active": true,
+				"arms": "(0, 0)",
+				"hop_count": 4,
+				"jump_count": 0,
+				"last": {},
+				"legs": "(0, 1)",
+				"split_collision": false
+			},
+			"samples": [
+				{
+					"floor": false,
+					"hops": 1,
+					"position": "(7.0, 0.115074, 6.933756)",
+					"tick": 4,
+					"velocity": "(0.0, 0.733333, -0.768)"
+				},
+				{
+					"floor": false,
+					"hops": 1,
+					"position": "(7.0, 0.124407, 6.844154)",
+					"tick": 8,
+					"velocity": "(0.0, -0.41, -0.768)"
+				},
+				{
+					"floor": false,
+					"hops": 1,
+					"position": "(7.0, 0.02624, 6.767353)",
+					"tick": 12,
+					"velocity": "(0.0, -1.39, -0.768)"
+				},
+				{
+					"floor": true,
+					"hops": 1,
+					"position": "(7.0, 0.000819, 6.728081)",
+					"tick": 16,
+					"velocity": "(0.0, 0.0, -0.09216)"
+				},
+				{
+					"floor": false,
+					"hops": 2,
+					"position": "(7.0, 0.070259, 6.692574)",
+					"tick": 20,
+					"velocity": "(0.0, 1.223333, -0.768)"
+				},
+				{
+					"floor": false,
+					"hops": 2,
+					"position": "(7.0, 0.131371, 6.628573)",
+					"tick": 24,
+					"velocity": "(0.0, 0.406667, -0.768)"
+				},
+				{
+					"floor": false,
+					"hops": 2,
+					"position": "(7.0, 0.114871, 6.551772)",
+					"tick": 28,
+					"velocity": "(0.0, -0.573333, -0.768)"
+				},
+				{
+					"floor": false,
+					"hops": 2,
+					"position": "(7.0, 0.000371, 6.47497)",
+					"tick": 32,
+					"velocity": "(0.0, -1.553333, -0.768)"
+				},
+				{
+					"floor": true,
+					"hops": 2,
+					"position": "(7.0, 0.0008, 6.446962)",
+					"tick": 36,
+					"velocity": "(0.0, 0.0, -0.09216)"
+				},
+				{
+					"floor": false,
+					"hops": 3,
+					"position": "(7.0, 0.087923, 6.400187)",
+					"tick": 40,
+					"velocity": "(0.0, 1.06, -0.768)"
+				},
+				{
+					"floor": false,
+					"hops": 3,
+					"position": "(7.0, 0.114867, 6.272185)",
+					"tick": 48,
+					"velocity": "(0.0, -0.573333, -0.768)"
+				},
+				{
+					"floor": true,
+					"hops": 3,
+					"position": "(7.0, 0.000743, 6.170448)",
+					"tick": 56,
+					"velocity": "(0.0, 0.0, -0.09216)"
+				},
+				{
+					"floor": false,
+					"hops": 4,
+					"position": "(7.0, 0.102857, 6.107789)",
+					"tick": 64,
+					"velocity": "(0.0, 0.896667, -0.768)"
+				}
+			]
+		},
+		{
+			"case": "forearm_l",
+			"injury": {
+				"active": true,
+				"arms": "(1, 0)",
+				"hop_count": 0,
+				"jump_count": 0,
+				"last": {
+					"active": true,
+					"arms": "(1, 0)",
+					"hop_count": 0,
+					"jump_count": 0,
+					"legs": "(0, 0)",
+					"lower_height": 0.7,
+					"support_overlap": 0.458725225925446,
+					"upper_height": 1.51639628410339,
+					"upper_transform": "[X: (0.994571, -0.104064, 0.0), Y: (0.104064, 0.994571, 0.0), Z: (0.0, 0.0, 1.0), O: (0.04782, 0.996985, 0.007916)]"
+				},
+				"legs": "(0, 0)",
+				"split_collision": true
+			},
+			"samples": [
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 6.82)",
+					"tick": 4,
+					"velocity": "(0.0, 0.0, -2.4)"
+				},
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 6.540334)",
+					"tick": 8,
+					"velocity": "(0.0, 0.0, -2.816)"
+				},
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 6.258735)",
+					"tick": 12,
+					"velocity": "(0.0, 0.0, -2.816)"
+				},
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 5.977136)",
+					"tick": 16,
+					"velocity": "(0.0, 0.0, -2.816)"
+				},
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 5.695537)",
+					"tick": 20,
+					"velocity": "(0.0, 0.0, -2.816)"
+				},
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 5.413938)",
+					"tick": 24,
+					"velocity": "(0.0, 0.0, -2.816)"
+				},
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 5.132339)",
+					"tick": 28,
+					"velocity": "(0.0, 0.0, -2.816)"
+				},
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 4.803806)",
+					"tick": 32,
+					"velocity": "(0.0, 0.0, -2.816)"
+				},
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 4.70494)",
+					"tick": 36,
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 4.70494)",
+					"tick": 40,
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 4.70494)",
+					"tick": 48,
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 4.70494)",
+					"tick": 56,
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 4.70494)",
+					"tick": 64,
+					"velocity": "(0.0, 0.0, 0.0)"
+				}
+			]
+		},
+		{
+			"case": "forearm_r",
+			"injury": {
+				"active": true,
+				"arms": "(0, 1)",
+				"hop_count": 0,
+				"jump_count": 0,
+				"last": {
+					"active": true,
+					"arms": "(0, 1)",
+					"hop_count": 0,
+					"jump_count": 0,
+					"legs": "(0, 0)",
+					"lower_height": 0.7,
+					"support_overlap": 0.458725643157959,
+					"upper_height": 1.51639628410339,
+					"upper_transform": "[X: (0.994571, 0.10406, 0.0), Y: (-0.10406, 0.994571, 0.0), Z: (0.0, 0.0, 1.0), O: (-0.047542, 0.996985, 0.007916)]"
+				},
+				"legs": "(0, 0)",
+				"split_collision": true
+			},
+			"samples": [
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 6.895)",
+					"tick": 4,
+					"velocity": "(0.0, 0.0, -1.8)"
+				},
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 6.540334)",
+					"tick": 8,
+					"velocity": "(0.0, 0.0, -2.816)"
+				},
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 6.258735)",
+					"tick": 12,
+					"velocity": "(0.0, 0.0, -2.816)"
+				},
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 5.977136)",
+					"tick": 16,
+					"velocity": "(0.0, 0.0, -2.816)"
+				},
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 5.648603)",
+					"tick": 20,
+					"velocity": "(0.0, 0.0, -2.816)"
+				},
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 5.367004)",
+					"tick": 24,
+					"velocity": "(0.0, 0.0, -2.816)"
+				},
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 5.085405)",
+					"tick": 28,
+					"velocity": "(0.0, 0.0, -2.816)"
+				},
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 4.803806)",
+					"tick": 32,
+					"velocity": "(0.0, 0.0, -2.816)"
+				},
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 4.70494)",
+					"tick": 36,
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 4.70494)",
+					"tick": 40,
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 4.70494)",
+					"tick": 48,
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 4.70494)",
+					"tick": 56,
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"floor": true,
+					"hops": 0,
+					"position": "(7.0, 0.000684, 4.70494)",
+					"tick": 64,
+					"velocity": "(0.0, 0.0, 0.0)"
+				}
+			]
+		}
+	],
+	"scope": "Post-debris-TTL native movement, camera established before input and attached to body, no camera reset between captures."
+}

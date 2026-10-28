@@ -1,0 +1,95 @@
+{
+  "mode": "graphical",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--windowed",
+    "--resolution",
+    "1280x720",
+    "--max-fps",
+    "60",
+    "--path",
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\swing35\\game",
+    "--script",
+    "D:/MafioziCombat31/c33_coordination/agents/swing35/final35.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\swing35\\final08",
+    "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\swing35\\final08",
+    "--pitch=-0.55"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "b51fe782f3bf400eb0bb866c0aed04ee",
+    "owner": {
+      "pid": 56392,
+      "creation_filetime": "134372550352607010"
+    },
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\agents\\swing35\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 62496,
+        "creation_filetime": "134372550532789649",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\agents\\swing35\\game --script D:/MafioziCombat31/c33_coordination/agents/swing35/final35.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\swing35\\final08 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\swing35\\final08 --pitch=-0.55",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--windowed",
+          "--resolution",
+          "1280x720",
+          "--max-fps",
+          "60",
+          "--path",
+          "D:\\MafioziCombat31\\c33_coordination\\agents\\swing35\\game",
+          "--script",
+          "D:/MafioziCombat31/c33_coordination/agents/swing35/final35.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\swing35\\final08",
+          "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\swing35\\final08",
+          "--pitch=-0.55"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "graphical",
+        "project": "d:\\mafiozicombat31\\c33_coordination\\agents\\swing35\\game"
+      }
+    ],
+    "deadline": 271830.2323622,
+    "queued_at": 271230.2323622,
+    "ticket": 6135,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 17.482746399997268
+  },
+  "child": {
+    "pid": 62496,
+    "creation_filetime": "134372550532789649",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\agents\\swing35\\game --script D:/MafioziCombat31/c33_coordination/agents/swing35/final35.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\swing35\\final08 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\swing35\\final08 --pitch=-0.55",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--windowed",
+      "--resolution",
+      "1280x720",
+      "--max-fps",
+      "60",
+      "--path",
+      "D:\\MafioziCombat31\\c33_coordination\\agents\\swing35\\game",
+      "--script",
+      "D:/MafioziCombat31/c33_coordination/agents/swing35/final35.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\swing35\\final08",
+      "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\swing35\\final08",
+      "--pitch=-0.55"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\agents\\swing35\\game"
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 45.2397163999849,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

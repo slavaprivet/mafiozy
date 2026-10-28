@@ -1,0 +1,109 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--max-fps",
+    "60",
+    "--path",
+    "D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game",
+    "--script",
+    "D:/MafioziCombat31/c33_coordination/agents/weapon34/ledger_lifecycle.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_lifecycle06",
+    "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_lifecycle06"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "3abad247185144998085c9c19ed4de5a",
+    "owner": {
+      "pid": 45604,
+      "creation_filetime": "134372463467497876"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena34_strong_cuts\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 49256,
+        "creation_filetime": "134372463478477047",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game --script D:/MafioziCombat31/c33_coordination/agents/weapon34/ledger_lifecycle.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_lifecycle06 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_lifecycle06",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--max-fps",
+          "60",
+          "--path",
+          "D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game",
+          "--script",
+          "D:/MafioziCombat31/c33_coordination/agents/weapon34/ledger_lifecycle.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_lifecycle06",
+          "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_lifecycle06"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "d:\\mafiozicombat31\\c33_coordination\\arena34_strong_cuts\\game",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 263141.6265616,
+    "queued_at": 262541.6265616,
+    "ticket": 6072,
+    "inventory_before": [
+      {
+        "pid": 40212,
+        "parent_pid": 57684,
+        "creation_filetime": "134372393255837801",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game\" res://scenes/arena27.tscn --windowed --resolution 1440x900 --max-fps 60 -- \"--lab-out=D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\interactive\\20261023T142845558Z\"",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози · Полигон 33 · проколы и контакт (DEBUG)"
+      },
+      {
+        "pid": 57860,
+        "parent_pid": 50048,
+        "creation_filetime": "134372463394750704",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game --script D:/MafioziCombat31/c33_coordination/agents/strong_cut34/weak_input34.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\strong_cut34\\weak_light02 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\strong_cut34\\weak_light02 --tier=light",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": ""
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5770472000003792
+  },
+  "child": {
+    "pid": 49256,
+    "creation_filetime": "134372463478477047",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game --script D:/MafioziCombat31/c33_coordination/agents/weapon34/ledger_lifecycle.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_lifecycle06 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_lifecycle06",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--max-fps",
+      "60",
+      "--path",
+      "D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game",
+      "--script",
+      "D:/MafioziCombat31/c33_coordination/agents/weapon34/ledger_lifecycle.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_lifecycle06",
+      "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_lifecycle06"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena34_strong_cuts\\game",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 16.420471500023268,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

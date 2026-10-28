@@ -1,0 +1,854 @@
+{
+  "render": {
+    "spear_level_aim": {
+      "frame_interval_usec": {
+        "n": 44,
+        "p50": 16.637,
+        "p95": 17.148,
+        "max": 17.454
+      },
+      "last_solver_usec": {
+        "n": 45,
+        "p50": 0.666,
+        "p95": 0.996,
+        "max": 1.178
+      },
+      "geometry_usec": {
+        "n": 45,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 0.0
+      },
+      "sweep_usec": {
+        "n": 45,
+        "p50": 0.372,
+        "p95": 0.558,
+        "max": 0.658
+      },
+      "static_usec": {
+        "n": 45,
+        "p50": 0.101,
+        "p95": 0.157,
+        "max": 0.233
+      },
+      "ik_usec": {
+        "n": 45,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 0.0
+      },
+      "prepare_usec": {
+        "n": 45,
+        "p50": 0.134,
+        "p95": 0.199,
+        "max": 0.22
+      },
+      "world_usec": {
+        "n": 45,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 0.0
+      },
+      "walk_usec": {
+        "n": 45,
+        "p50": 0.006,
+        "p95": 0.007,
+        "max": 0.008
+      },
+      "solver_usec": {
+        "n": 45,
+        "p50": 0.665,
+        "p95": 0.996,
+        "max": 1.178
+      },
+      "counter_totals": {
+        "geometry_builds": 0,
+        "triangle_candidates": 0,
+        "segment_calls": 19668,
+        "grid_visits": 0,
+        "recovery_attempts": 0,
+        "recovery_moves": 0,
+        "exact_checks": 0,
+        "segment_cache_hits33": 0
+      },
+      "active_channel_samples": 0,
+      "dead_samples": 0,
+      "max_unresolved": 0
+    },
+    "spear_level_approach": {
+      "frame_interval_usec": {
+        "n": 46,
+        "p50": 16.7175,
+        "p95": 19.906,
+        "max": 43.552
+      },
+      "last_solver_usec": {
+        "n": 47,
+        "p50": 0.707,
+        "p95": 9.218,
+        "max": 31.409
+      },
+      "geometry_usec": {
+        "n": 47,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 0.0
+      },
+      "sweep_usec": {
+        "n": 47,
+        "p50": 0.746,
+        "p95": 4.067,
+        "max": 8.024
+      },
+      "static_usec": {
+        "n": 47,
+        "p50": 0.145,
+        "p95": 6.551,
+        "max": 24.037
+      },
+      "ik_usec": {
+        "n": 47,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 27.736
+      },
+      "prepare_usec": {
+        "n": 47,
+        "p50": 0.252,
+        "p95": 0.385,
+        "max": 0.446
+      },
+      "world_usec": {
+        "n": 47,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 2.167
+      },
+      "walk_usec": {
+        "n": 47,
+        "p50": 0.532,
+        "p95": 2.266,
+        "max": 5.337
+      },
+      "solver_usec": {
+        "n": 47,
+        "p50": 0.707,
+        "p95": 9.218,
+        "max": 31.409
+      },
+      "counter_totals": {
+        "geometry_builds": 0,
+        "triangle_candidates": 16102,
+        "segment_calls": 48438,
+        "grid_visits": 110999,
+        "recovery_attempts": 0,
+        "recovery_moves": 0,
+        "exact_checks": 1929,
+        "segment_cache_hits33": 0
+      },
+      "active_channel_samples": 15,
+      "dead_samples": 1,
+      "max_unresolved": 0
+    },
+    "spear_level_hold": {
+      "frame_interval_usec": {
+        "n": 103,
+        "p50": 19.431,
+        "p95": 23.047,
+        "max": 24.967
+      },
+      "last_solver_usec": {
+        "n": 104,
+        "p50": 15.244,
+        "p95": 18.124,
+        "max": 18.792
+      },
+      "geometry_usec": {
+        "n": 104,
+        "p50": 1.054,
+        "p95": 1.282,
+        "max": 2.061
+      },
+      "sweep_usec": {
+        "n": 104,
+        "p50": 4.2155000000000005,
+        "p95": 5.556,
+        "max": 6.001
+      },
+      "static_usec": {
+        "n": 104,
+        "p50": 9.785499999999999,
+        "p95": 11.72,
+        "max": 12.427
+      },
+      "ik_usec": {
+        "n": 104,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 0.0
+      },
+      "prepare_usec": {
+        "n": 104,
+        "p50": 1.1760000000000002,
+        "p95": 1.414,
+        "max": 2.297
+      },
+      "world_usec": {
+        "n": 104,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 0.0
+      },
+      "walk_usec": {
+        "n": 104,
+        "p50": 0.005,
+        "p95": 0.01,
+        "max": 4.018
+      },
+      "solver_usec": {
+        "n": 104,
+        "p50": 15.244,
+        "p95": 18.124,
+        "max": 18.792
+      },
+      "counter_totals": {
+        "geometry_builds": 105,
+        "triangle_candidates": 99747,
+        "segment_calls": 68254,
+        "grid_visits": 1872522,
+        "recovery_attempts": 0,
+        "recovery_moves": 0,
+        "exact_checks": 15701,
+        "segment_cache_hits33": 0
+      },
+      "active_channel_samples": 104,
+      "dead_samples": 104,
+      "max_unresolved": 0
+    },
+    "spear_level_idle": {
+      "frame_interval_usec": {
+        "n": 89,
+        "p50": 16.658,
+        "p95": 17.055,
+        "max": 17.682
+      },
+      "last_solver_usec": {
+        "n": 90,
+        "p50": 0.6635,
+        "p95": 0.915,
+        "max": 1.279
+      },
+      "geometry_usec": {
+        "n": 90,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 0.0
+      },
+      "sweep_usec": {
+        "n": 90,
+        "p50": 0.37,
+        "p95": 0.481,
+        "max": 0.666
+      },
+      "static_usec": {
+        "n": 90,
+        "p50": 0.108,
+        "p95": 0.179,
+        "max": 0.302
+      },
+      "ik_usec": {
+        "n": 90,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 0.0
+      },
+      "prepare_usec": {
+        "n": 90,
+        "p50": 0.132,
+        "p95": 0.202,
+        "max": 0.288
+      },
+      "world_usec": {
+        "n": 90,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 0.0
+      },
+      "walk_usec": {
+        "n": 90,
+        "p50": 0.006,
+        "p95": 0.008,
+        "max": 0.008
+      },
+      "solver_usec": {
+        "n": 90,
+        "p50": 0.6625000000000001,
+        "p95": 0.915,
+        "max": 1.279
+      },
+      "counter_totals": {
+        "geometry_builds": 0,
+        "triangle_candidates": 0,
+        "segment_calls": 39783,
+        "grid_visits": 0,
+        "recovery_attempts": 0,
+        "recovery_moves": 0,
+        "exact_checks": 0,
+        "segment_cache_hits33": 0
+      },
+      "active_channel_samples": 0,
+      "dead_samples": 0,
+      "max_unresolved": 0
+    },
+    "spear_level_withdraw": {
+      "frame_interval_usec": {
+        "n": 88,
+        "p50": 16.698,
+        "p95": 18.556,
+        "max": 46.85
+      },
+      "last_solver_usec": {
+        "n": 89,
+        "p50": 7.719,
+        "p95": 9.981,
+        "max": 11.471
+      },
+      "geometry_usec": {
+        "n": 89,
+        "p50": 1.983,
+        "p95": 2.179,
+        "max": 2.342
+      },
+      "sweep_usec": {
+        "n": 89,
+        "p50": 4.482,
+        "p95": 6.381,
+        "max": 7.407
+      },
+      "static_usec": {
+        "n": 89,
+        "p50": 4.093,
+        "p95": 5.925,
+        "max": 7.51
+      },
+      "ik_usec": {
+        "n": 89,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 0.0
+      },
+      "prepare_usec": {
+        "n": 89,
+        "p50": 2.212,
+        "p95": 2.431,
+        "max": 2.623
+      },
+      "world_usec": {
+        "n": 89,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 0.0
+      },
+      "walk_usec": {
+        "n": 89,
+        "p50": 3.412,
+        "p95": 4.247,
+        "max": 4.811
+      },
+      "solver_usec": {
+        "n": 89,
+        "p50": 7.711,
+        "p95": 9.954,
+        "max": 11.471
+      },
+      "counter_totals": {
+        "geometry_builds": 115,
+        "triangle_candidates": 20830,
+        "segment_calls": 61222,
+        "grid_visits": 666798,
+        "recovery_attempts": 0,
+        "recovery_moves": 0,
+        "exact_checks": 3561,
+        "segment_cache_hits33": 0
+      },
+      "active_channel_samples": 59,
+      "dead_samples": 89,
+      "max_unresolved": 0
+    }
+  },
+  "physics": {
+    "spear_level_aim": {
+      "interval_usec": {
+        "n": 44,
+        "p50": 16.6655,
+        "p95": 16.681,
+        "max": 16.722
+      },
+      "last_solver_usec": {
+        "n": 45,
+        "p50": 0.666,
+        "p95": 0.996,
+        "max": 1.178
+      },
+      "geometry_usec": {
+        "n": 45,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 0.0
+      },
+      "sweep_usec": {
+        "n": 45,
+        "p50": 0.372,
+        "p95": 0.558,
+        "max": 0.658
+      },
+      "static_usec": {
+        "n": 45,
+        "p50": 0.101,
+        "p95": 0.157,
+        "max": 0.233
+      },
+      "ik_usec": {
+        "n": 45,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 0.0
+      },
+      "prepare_usec": {
+        "n": 45,
+        "p50": 0.134,
+        "p95": 0.199,
+        "max": 0.22
+      },
+      "world_usec": {
+        "n": 45,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 0.0
+      },
+      "walk_usec": {
+        "n": 45,
+        "p50": 0.006,
+        "p95": 0.007,
+        "max": 0.008
+      },
+      "solver_usec": {
+        "n": 45,
+        "p50": 0.665,
+        "p95": 0.996,
+        "max": 1.178
+      },
+      "counter_totals": {
+        "geometry_builds": 0,
+        "triangle_candidates": 0,
+        "segment_calls": 19668,
+        "grid_visits": 0,
+        "recovery_attempts": 0,
+        "recovery_moves": 0,
+        "exact_checks": 0,
+        "segment_cache_hits33": 0
+      },
+      "active_channel_samples": 0,
+      "dead_samples": 0,
+      "max_unresolved": 0
+    },
+    "spear_level_approach": {
+      "interval_usec": {
+        "n": 47,
+        "p50": 16.665,
+        "p95": 16.695,
+        "max": 35.933
+      },
+      "last_solver_usec": {
+        "n": 48,
+        "p50": 0.7104999999999999,
+        "p95": 9.274,
+        "max": 31.409
+      },
+      "geometry_usec": {
+        "n": 48,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 0.0
+      },
+      "sweep_usec": {
+        "n": 48,
+        "p50": 0.7464999999999999,
+        "p95": 3.803,
+        "max": 8.024
+      },
+      "static_usec": {
+        "n": 48,
+        "p50": 0.144,
+        "p95": 6.551,
+        "max": 24.037
+      },
+      "ik_usec": {
+        "n": 48,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 27.736
+      },
+      "prepare_usec": {
+        "n": 48,
+        "p50": 0.251,
+        "p95": 0.352,
+        "max": 0.446
+      },
+      "world_usec": {
+        "n": 48,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 2.167
+      },
+      "walk_usec": {
+        "n": 48,
+        "p50": 0.533,
+        "p95": 2.25,
+        "max": 5.337
+      },
+      "solver_usec": {
+        "n": 48,
+        "p50": 0.7055,
+        "p95": 9.218,
+        "max": 31.409
+      },
+      "counter_totals": {
+        "geometry_builds": 0,
+        "triangle_candidates": 16102,
+        "segment_calls": 48438,
+        "grid_visits": 110999,
+        "recovery_attempts": 0,
+        "recovery_moves": 0,
+        "exact_checks": 1929,
+        "segment_cache_hits33": 0
+      },
+      "active_channel_samples": 16,
+      "dead_samples": 1,
+      "max_unresolved": 0
+    },
+    "spear_level_hold": {
+      "interval_usec": {
+        "n": 119,
+        "p50": 18.513,
+        "p95": 22.166,
+        "max": 23.571
+      },
+      "last_solver_usec": {
+        "n": 120,
+        "p50": 15.727,
+        "p95": 18.362,
+        "max": 18.792
+      },
+      "geometry_usec": {
+        "n": 120,
+        "p50": 1.0430000000000001,
+        "p95": 1.282,
+        "max": 2.061
+      },
+      "sweep_usec": {
+        "n": 120,
+        "p50": 3.925,
+        "p95": 5.556,
+        "max": 6.001
+      },
+      "static_usec": {
+        "n": 120,
+        "p50": 9.517,
+        "p95": 11.785,
+        "max": 13.353
+      },
+      "ik_usec": {
+        "n": 120,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 0.0
+      },
+      "prepare_usec": {
+        "n": 120,
+        "p50": 1.17,
+        "p95": 1.414,
+        "max": 2.297
+      },
+      "world_usec": {
+        "n": 120,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 0.0
+      },
+      "walk_usec": {
+        "n": 120,
+        "p50": 0.005,
+        "p95": 0.006,
+        "max": 4.018
+      },
+      "solver_usec": {
+        "n": 120,
+        "p50": 14.9085,
+        "p95": 18.124,
+        "max": 18.792
+      },
+      "counter_totals": {
+        "geometry_builds": 105,
+        "triangle_candidates": 99747,
+        "segment_calls": 68254,
+        "grid_visits": 1872522,
+        "recovery_attempts": 0,
+        "recovery_moves": 0,
+        "exact_checks": 15701,
+        "segment_cache_hits33": 0
+      },
+      "active_channel_samples": 120,
+      "dead_samples": 120,
+      "max_unresolved": 0
+    },
+    "spear_level_idle": {
+      "interval_usec": {
+        "n": 89,
+        "p50": 16.666,
+        "p95": 16.68,
+        "max": 16.721
+      },
+      "last_solver_usec": {
+        "n": 90,
+        "p50": 0.6635,
+        "p95": 0.915,
+        "max": 1.279
+      },
+      "geometry_usec": {
+        "n": 90,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 0.0
+      },
+      "sweep_usec": {
+        "n": 90,
+        "p50": 0.37,
+        "p95": 0.481,
+        "max": 0.666
+      },
+      "static_usec": {
+        "n": 90,
+        "p50": 0.108,
+        "p95": 0.179,
+        "max": 0.302
+      },
+      "ik_usec": {
+        "n": 90,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 0.0
+      },
+      "prepare_usec": {
+        "n": 90,
+        "p50": 0.132,
+        "p95": 0.202,
+        "max": 0.288
+      },
+      "world_usec": {
+        "n": 90,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 0.0
+      },
+      "walk_usec": {
+        "n": 90,
+        "p50": 0.006,
+        "p95": 0.008,
+        "max": 0.008
+      },
+      "solver_usec": {
+        "n": 90,
+        "p50": 0.6625000000000001,
+        "p95": 0.915,
+        "max": 1.279
+      },
+      "counter_totals": {
+        "geometry_builds": 0,
+        "triangle_candidates": 0,
+        "segment_calls": 39783,
+        "grid_visits": 0,
+        "recovery_attempts": 0,
+        "recovery_moves": 0,
+        "exact_checks": 0,
+        "segment_cache_hits33": 0
+      },
+      "active_channel_samples": 0,
+      "dead_samples": 0,
+      "max_unresolved": 0
+    },
+    "spear_level_withdraw": {
+      "interval_usec": {
+        "n": 89,
+        "p50": 16.668,
+        "p95": 18.569,
+        "max": 40.036
+      },
+      "last_solver_usec": {
+        "n": 90,
+        "p50": 7.715,
+        "p95": 10.372,
+        "max": 11.471
+      },
+      "geometry_usec": {
+        "n": 90,
+        "p50": 1.981,
+        "p95": 2.179,
+        "max": 2.342
+      },
+      "sweep_usec": {
+        "n": 90,
+        "p50": 4.4425,
+        "p95": 6.381,
+        "max": 7.407
+      },
+      "static_usec": {
+        "n": 90,
+        "p50": 4.047499999999999,
+        "p95": 5.998,
+        "max": 8.726
+      },
+      "ik_usec": {
+        "n": 90,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 0.0
+      },
+      "prepare_usec": {
+        "n": 90,
+        "p50": 2.213,
+        "p95": 2.431,
+        "max": 2.623
+      },
+      "world_usec": {
+        "n": 90,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 0.0
+      },
+      "walk_usec": {
+        "n": 90,
+        "p50": 3.4005,
+        "p95": 4.247,
+        "max": 4.811
+      },
+      "solver_usec": {
+        "n": 90,
+        "p50": 7.6725,
+        "p95": 9.981,
+        "max": 12.77
+      },
+      "counter_totals": {
+        "geometry_builds": 115,
+        "triangle_candidates": 20830,
+        "segment_calls": 61222,
+        "grid_visits": 666798,
+        "recovery_attempts": 0,
+        "recovery_moves": 0,
+        "exact_checks": 3561,
+        "segment_cache_hits33": 0
+      },
+      "active_channel_samples": 59,
+      "dead_samples": 90,
+      "max_unresolved": 0
+    }
+  },
+  "outcomes": [
+    {
+      "actual_entry": true,
+      "cuts": 0,
+      "dead": true,
+      "last_async": {},
+      "max_depth": 0.370320320129395,
+      "max_ratio": 0.902515186215038,
+      "scenario": "spear_level",
+      "solid": {
+        "blade_contacts": 0,
+        "bvh_build_usec31": 185704,
+        "bvh_builds31": 24,
+        "contacts": 1,
+        "dynamic_egress": 0,
+        "early_safe_fallbacks": 0,
+        "exact_checks": 21417,
+        "geometry_builds": 224,
+        "geometry_usec": 423337,
+        "grid_visits": 2684350,
+        "holder_rollbacks": 1,
+        "ik_usec": 27736,
+        "last_contact": {
+          "accepted_gap": 0.0266591068357229,
+          "accepted_travel": 0.0,
+          "approach_to": "(-0.009935, 1.040632, -1.831571)",
+          "bone": 3,
+          "collider": "@AnimatableBody3D@1236:<AnimatableBody3D#254829140887>",
+          "current_sample": "(-0.009935, 1.040632, -1.831571)",
+          "current_transform": "[X: (-0.000023, 0.00004, -1.0), Y: (-0.409825, 0.912164, 0.000046), Z: (0.912164, 0.409825, -0.000005), O: (-0.001383, 0.997217, -0.278471)]",
+          "delta": 0.0166666666666667,
+          "exact_skin": true,
+          "face": 121,
+          "fraction": 0.0,
+          "fresh": true,
+          "from": "(-0.009935, 1.040632, -1.831571)",
+          "generation": 0,
+          "kind": "blunt",
+          "motion": "(0.0, 0.0, 0.0)",
+          "normal": "(0.0082, -0.022356, 0.999716)",
+          "order": 121,
+          "overlap": true,
+          "part": "chest",
+          "physical_speed": 1.60000014305115,
+          "pose_safe": true,
+          "position": "(-0.009935, 1.040632, -1.831571)",
+          "previous_sample": "(-0.009935, 1.040632, -1.831571)",
+          "previous_transform": "[X: (-0.000023, 0.00004, -1.0), Y: (-0.409825, 0.912164, 0.000046), Z: (0.912164, 0.409825, -0.000005), O: (-0.001383, 0.997216, -0.251804)]",
+          "raw_motion": "(0.0, 0.0, 0.0)",
+          "response": {
+            "accepted": false
+          },
+          "sample_local": "(1.553103, 0.043035, 0.01)",
+          "sample_x": 1.55310261249542,
+          "source_key": "253755399013:-9223371783116154012:0",
+          "to": "(-0.009935, 1.040632, -1.831571)",
+          "travel": 0.0,
+          "weapon": "spear",
+          "weapon_instance_id": 244024613414
+        },
+        "last_solver_usec": 7,
+        "last_unresolved": {},
+        "max_grip_error": 0.0,
+        "max_solver_usec": 31409,
+        "max_support_error": 1.49789968872938e-07,
+        "mixed_triangles31": 2423,
+        "pose_safe": false,
+        "prepare_usec": 531524,
+        "profile_samples": 0,
+        "recovery_attempts": 0,
+        "recovery_moves": 0,
+        "recovery_native_blocks": 0,
+        "rejected_fallbacks": 0,
+        "rigid_triangles31": 7149,
+        "safe_fallbacks": 1,
+        "segment_calls": 254674,
+        "self_clear": true,
+        "shaft_contacts": 0,
+        "skin_hits_usec31": 285,
+        "solver_calls": 413,
+        "solver_usec": 2219937,
+        "static_edges": 816,
+        "static_usec": 1283223,
+        "sweep_usec": 834720,
+        "trace": [],
+        "triangle_candidates": 138491,
+        "unresolved": 0,
+        "walk_blocks": 0,
+        "walk_calls": 457,
+        "walk_usec": 285885,
+        "world_clear": true,
+        "world_usec": 7335,
+        "wounds": 0
+      }
+    }
+  ],
+  "observer_usec": 10992,
+  "timing_units": "milliseconds; nested counters must not be summed"
+}

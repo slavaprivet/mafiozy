@@ -1,0 +1,67 @@
+{
+  "status": "approve revised source; actual graphical wall negative passed",
+  "safe_invariants": [
+    "credit swordedge+fresh only; body/tip/bluntcontact consumes ring",
+    "duplicate dispatch frame clears ring before return; conservative lostcredit possible but no gain",
+    "<=100ms elapsed and12sample ring bound",
+    "exact adjacent transform continuity and physics-frame continuity",
+    "same material sample evaluated retroactively at all stored actualposes",
+    "distance capped by physical transversevelocity*dt",
+    "contact-direction reversal stops backward integration",
+    "clay max(historytravel,currenttravel+free) never writes freecredit into persistenthistory",
+    "existing3.2/.04/.55/armor gates unchanged"
+  ],
+  "identified_gap": "NPC-body collisionempty does not establish world/self/weapon-contact-free motion. Base world/contact/selfresponse occurs in super._process before solid. No initial ledger reset marker exists in reviewed source. Old ring can survive a tangential hardimpact because before remains lastacceptedpose.",
+  "suggested_minimal_signals": [
+    "clear before outerclay world _resolve_contact and whenever _contact_plane_active",
+    "clear in clay _register_clash before super cooldown branch",
+    "clear when actual selfcorrection occurred; investigate _self_pose_evaluations45>1 and !_self_pose_clear rather than infer from final clearpose alone"
+  ],
+  "meaningful_tests": [
+    "Accepted freepath followed by actual wall/steelhit then bodyhit within100ms: only NEW postseparation accepted path counts, oldcredit0. Worldcontact may be tangential so do not relyon directionreversal clearing.",
+    "Longactual weakhold300ticks with sustaineddesiredinput: no sever, ringempty aftercontact; nofreecredit carried into contacthistory.",
+    "Freepath thenpause>100ms andfreshcontact: expiredrowsnotcounted. A zero-motion pausedframe mustclear ratherthan bank.",
+    "Continuouspositivefreepath thenreverseactualdirection: oldforwardpath excluded, both recorder and consumptionper-sample directioncheck.",
+    "Call identicalrecord/dispatch twicewithinphysicsframe: credit atmostonce; explicit allowedfalse-negative notdoublecount.",
+    "Same physical strong trajectory atdifferent initialsurfacegaps/cadences; use measuredfirstmotion/fraction/path ratherthan inputpixelsasenergy. Compare3.2speed/.04travel gates beforeandafter while preservinggeometry.",
+    "Equip/reset/teleport or>1framegap invalidatesring, currentimpact cannotclaimpreviousweaponpath."
+  ],
+  "game_edited": false,
+  "engines_started": true,
+  "source_review_after_hooks": [
+    "interrupt clears history and blocks re-record in same physics frame",
+    "dispatch andrecord both respect contactplane/selfclear/selfcorrection guards",
+    "clash hook clears before cooldown earlyreturn",
+    "outer nonNPC worldcontact clears before base response",
+    "selfguard corrected direction clears",
+    "freecredit capped at40mm and neverbankedinto persistenthistory"
+  ],
+  "prepared_actual_wall_fixture": "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review34\\wall_ledger34.gd",
+  "pins_after_hooks": {
+    "scripts/clay_target.gd": "b4182f7e2a8bd491cbbcebcb0160b9b07436dc3ffefb1e091ce36205245e9968",
+    "scripts/combat/weapon_solid_contact29.gd": "01f46a7b912e693fea0e6457c44f9377be6a9371a7179f22238b69e93fe77d22"
+  },
+  "world_test": {
+    "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review34\\wall_ledger01",
+    "checks": {
+      "actual_world_sweep": true,
+      "free_motion_was_recorded": true,
+      "no_body_cut_behind_wall": true,
+      "real_contact_interrupt_observed": true,
+      "sustained_actual_wall_contact": true,
+      "wall_never_banks_free_credit": true
+    },
+    "prior_free_rows_max": 12,
+    "wall_contact_draw_frames": 189,
+    "invalid_banked_rows": 0,
+    "source_unchanged": true,
+    "stderr_bytes": 0,
+    "scheduler_passed": true,
+    "scope": "Actual mouse/walking InputEvents into pre-existing wall; native world sweep/material audio and RID-identified contact plane. No contact injection, no midstrike teleport; no general FPS claim."
+  },
+  "final_pins": {
+    "scripts/clay_target.gd": "b4182f7e2a8bd491cbbcebcb0160b9b07436dc3ffefb1e091ce36205245e9968",
+    "scripts/combat/weapon_solid_contact29.gd": "01f46a7b912e693fea0e6457c44f9377be6a9371a7179f22238b69e93fe77d22"
+  },
+  "verdict": "Approve narrow ledger implementation after upstream world/self/steel interruption fix. Full release still requires owner matched strong/weak and contract results; independent wall6PASS closes reviewed upstream gap. No broad geometry bypass or banked free-travel history found."
+}

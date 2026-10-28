@@ -1,0 +1,1095 @@
+{
+  "root35/moderate_before03": {
+    "passed": false,
+    "source_unchanged": true,
+    "scheduler_passed": false,
+    "stderr_bytes": 0,
+    "checks": {
+      "async_job_drained": true,
+      "metadata_selection_after_sever": true,
+      "startup": true,
+      "strong_actual_sever": false,
+      "strong_grip_attached": true,
+      "strong_no_invalid_pose": true
+    },
+    "scope": "Historical baseline FAIL: same moderate real sharp-edge input does not sever under previous3.2 gate. Not final source.",
+    "exact_files": [],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\moderate_before03"
+  },
+  "root35/moderate_after04": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "async_job_drained": true,
+      "metadata_selection_after_sever": true,
+      "startup": true,
+      "strong_actual_sever": true,
+      "strong_grip_attached": true,
+      "strong_no_invalid_pose": true
+    },
+    "scope": "Soft-tissue component PASS6 on same moderate input; speed gate2.6 with unchanged travel40mm/edge.55. Historical other source.",
+    "exact_files": [
+      "scripts/clay_target.gd",
+      "scripts/combat/blade_resistance28.gd"
+    ],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\moderate_after04"
+  },
+  "root35/profile_baseline05": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "async_job_drained": true,
+      "metadata_selection_after_sever": true,
+      "startup": true,
+      "strong_actual_sever": true,
+      "strong_grip_attached": true,
+      "strong_no_invalid_pose": true
+    },
+    "scope": "Exclusive clean matched performance baseline: real upperarm_l cut, worker217.719ms,total234.099ms,main.935ms; drawp95 18.556ms. Historical topology.",
+    "exact_files": [],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\profile_baseline05"
+  },
+  "root35/profile_after07": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "async_job_drained": true,
+      "metadata_selection_after_sever": true,
+      "startup": true,
+      "strong_actual_sever": true,
+      "strong_grip_attached": true,
+      "strong_no_invalid_pose": true
+    },
+    "scope": "Exclusive clean matched performance after topology interning: same upperarm_l cut, worker182.994ms,total200.070ms,main.887ms,drawp95 18.746ms. No overall FPS improvement claim.",
+    "exact_files": [
+      "scripts/weapons/hatchet_volume32.gd"
+    ],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\profile_after07"
+  },
+  "root35/topology_equivalence06": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "after_cut_all_components_identical": true,
+      "after_cut_has_real_topology": true,
+      "async_job_drained": true,
+      "before_cut_all_components_identical": true,
+      "before_cut_has_real_topology": true,
+      "metadata_selection_after_sever": true,
+      "startup": true,
+      "strong_actual_sever": true,
+      "strong_grip_attached": true,
+      "strong_no_invalid_pose": true
+    },
+    "scope": "Topology10 assertions across27 matched builds before/after real cut: exact component labels/closed/main equivalence. Internal old implementation loaded as oracle. Component-only.",
+    "exact_files": [
+      "scripts/weapons/hatchet_volume32.gd"
+    ],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\topology_equivalence06"
+  },
+  "root35/merged_weak09": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "actual_weak_sharp_edge": true,
+      "async_job_drained": true,
+      "metadata_selection_after_sever": true,
+      "startup": true,
+      "strong_grip_attached": true,
+      "strong_no_invalid_pose": true,
+      "weak_edge_zero_sever": true,
+      "weak_effective_speed_below_gate": true
+    },
+    "scope": "Combined35 real weak sharp-edge contacts remain local wounds without sever;8PASS. Excludes pending embedded/hatchet flight acceptance.",
+    "exact_files": [
+      "scripts/clay_target.gd",
+      "scripts/combat/blade_resistance28.gd",
+      "scripts/weapons/sword_prototype.gd",
+      "scripts/combat/armor_contact31.gd",
+      "scripts/combat/armor_damage31.gd",
+      "scripts/combat/armor_head_surface35.gd",
+      "scripts/combat/sword_puncture_resistance29.gd",
+      "scripts/combat/weapon_solid_contact29.gd"
+    ],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\merged_weak09"
+  },
+  "root35/merged_plate10": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "actual_nonpenetrating_plate_contact": true,
+      "actual_solid_plate_contact": true,
+      "async_job_drained": true,
+      "committed_armor_attribution": true,
+      "metadata_selection_after_sever": true,
+      "no_nonpenetrating_plate_bypass": true,
+      "startup": true,
+      "strong_grip_attached": true,
+      "strong_no_invalid_pose": true
+    },
+    "scope": "Combined35 actual continuous plate impacts resist penetration/sever;9PASS. Excludes pending embedded/hatchet flight acceptance.",
+    "exact_files": [
+      "scripts/clay_target.gd",
+      "scripts/combat/blade_resistance28.gd",
+      "scripts/weapons/sword_prototype.gd",
+      "scripts/combat/armor_contact31.gd",
+      "scripts/combat/armor_damage31.gd",
+      "scripts/combat/armor_head_surface35.gd",
+      "scripts/combat/sword_puncture_resistance29.gd",
+      "scripts/combat/weapon_solid_contact29.gd"
+    ],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\merged_plate10"
+  },
+  "root35/hatchet_agent_lifecycle03": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "final_solver_sample_exact": true,
+      "hero_reset_no_stale_release": true,
+      "hero_reset_replaces_helper": true,
+      "menu_cancels": true,
+      "menu_duplicate_release_no_throw": true,
+      "menu_release_no_throw": true,
+      "real_release_120": true,
+      "real_release_60": true
+    },
+    "scope": "TIMING120 BEHAVIORAL BASELINE FAIL in raw samples: repeated render frame yielded zero/double speed. CHECK historically PASS8 because old gates omitted this condition. Preserve both facts; not a forged CHECK failure.",
+    "exact_files": [],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\hatchet_agent_lifecycle03"
+  },
+  "root35/hatchet_agent_timingfixed06": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "final_solver_sample_exact": true,
+      "hero_reset_no_stale_release": true,
+      "hero_reset_replaces_helper": true,
+      "menu_cancels": true,
+      "menu_duplicate_release_no_throw": true,
+      "menu_release_no_throw": true,
+      "multiple_renders_per_physics_observed": true,
+      "no_double_speed_at_120": true,
+      "real_release_120": true,
+      "real_release_60": true,
+      "repeat_render_retains_velocity": true
+    },
+    "scope": "Historical timing fix PASS11 adds repeated-physics-pose/no2x gates: max120fps4.957 vs60fps4.821. Pending final flight/orientation changes mean no final throwing_axe exact assertion.",
+    "exact_files": [],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\hatchet_agent_timingfixed06"
+  },
+  "root35/hatchet_agent_angular_over09": {
+    "passed": false,
+    "source_unchanged": true,
+    "scheduler_passed": false,
+    "stderr_bytes": 0,
+    "checks": {
+      "accepted_pose_sample": true,
+      "actual_edge_embedded": false,
+      "exact_release_pose": true,
+      "exact_release_velocity": true,
+      "real_release": true,
+      "startup": true
+    },
+    "scope": "Important raw FAIL: overhead spin release hits actual leg blunt, fails desired edge embedding. Finite COM/angular capture works but this trajectory is not edge-embed acceptance.",
+    "exact_files": [],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\hatchet_agent_angular_over09"
+  },
+  "root35/hatchet_agent_angular_under08": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "E_reclaims_charge": true,
+      "accepted_pose_sample": true,
+      "actual_edge_embedded": true,
+      "exact_release_pose": true,
+      "exact_release_velocity": true,
+      "held_in_body": true,
+      "real_release": true,
+      "reset_drops_same_model": true,
+      "same_object_reclaimed": true,
+      "startup": true
+    },
+    "scope": "Historical angular underhand PASS10: bare chest8mm embedding,90frame attachment,F6/E. Pending grip/orientation source not final.",
+    "exact_files": [],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\hatchet_agent_angular_under08"
+  },
+  "root35/hatchet_agent_wall10": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "exact_displayed_release_pose": true,
+      "native_rotating_release": true,
+      "rotated_in_real_flight": true,
+      "thin_4mm_wall_no_tunnel": true,
+      "world_collision_stopped": true
+    },
+    "scope": "Historical rotating-hatchet world wall PASS5; whole-flight maximum23.64/10.52ms reported, not FPS acceptance. Pending orientation/final merged proof.",
+    "exact_files": [],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\hatchet_agent_wall10"
+  },
+  "root35/hatchet_agent_overearly11": {
+    "passed": false,
+    "source_unchanged": true,
+    "scheduler_passed": false,
+    "stderr_bytes": 0,
+    "checks": {
+      "accepted_pose_sample": true,
+      "actual_edge_embedded": false,
+      "exact_release_pose": true,
+      "exact_release_velocity": true,
+      "real_release": true,
+      "startup": true
+    },
+    "scope": "Matched overhead4 raw FAIL before initial grip orientation trial: actual head blunt contact, no edge embedding. Required baseline for grip_over12; pending final source.",
+    "exact_files": [],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\hatchet_agent_overearly11"
+  },
+  "root35/hatchet_agent_grip_over12": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "E_reclaims_charge": true,
+      "accepted_pose_sample": true,
+      "actual_edge_embedded": true,
+      "exact_release_pose": true,
+      "exact_release_velocity": true,
+      "held_in_body": true,
+      "real_release": true,
+      "reset_drops_same_model": true,
+      "same_object_reclaimed": true,
+      "startup": true
+    },
+    "scope": "Grip trial component PASS10 on same overhead4: edge dot+.929,head embed8mm,release5.235m/s,exact pose/velocity,90frames,F6/E. Root flight perf helper still changing; no final helper SHA assertion.",
+    "exact_files": [],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\hatchet_agent_grip_over12"
+  },
+  "root35/hatchet_agent_open_profile13": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "exact_displayed_release_pose": true,
+      "native_rotating_release": true,
+      "rotated_in_real_flight": true,
+      "world_collision_stopped": true
+    },
+    "scope": "Historical open-flight profiling PASS4 but whole-flight peak25.468ms,steady8-9ms before pending batching optimization. Evidence of remaining cost, not final FPS acceptance.",
+    "exact_files": [],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\hatchet_agent_open_profile13"
+  },
+  "optimization31/bow35_before02": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "actual_ballistic_error_under_mm": true,
+      "all_distance_frames": true,
+      "bow_selected": true,
+      "fully_drawn": true,
+      "real_input_single_shot": true,
+      "root_remains_unscaled": true,
+      "startup": true
+    },
+    "scope": "Matched arrow visual baseline at28.8m, same physical pose/velocity as after03; shaft.371px, original ballistics. Historical visual source.",
+    "exact_files": [],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\bow35_before02"
+  },
+  "optimization31/bow35_after03": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "actual_ballistic_error_under_mm": true,
+      "all_distance_frames": true,
+      "bow_selected": true,
+      "fully_drawn": true,
+      "real_input_single_shot": true,
+      "root_remains_unscaled": true,
+      "startup": true
+    },
+    "scope": "Bow component PASS7: projected shaft target.8px, transverse scaling capped3x; ballistic inputs and z length unchanged.",
+    "exact_files": [
+      "scripts/weapons/bow_prototype.gd"
+    ],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\bow35_after03"
+  },
+  "optimization31/bow35_visual_lifecycle05": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "actual_ballistic_error_under_mm": true,
+      "all_distance_frames": true,
+      "all_local_vertex_z_exactly_unchanged": true,
+      "already_stopped_audio_also_resets": true,
+      "baked_mesh_identity_0": true,
+      "baked_mesh_identity_1": true,
+      "baked_mesh_identity_2": true,
+      "baked_mesh_identity_3": true,
+      "bow_selected": true,
+      "flight_readability_after_switch": true,
+      "fully_drawn": true,
+      "impact_audio_independent_reset": true,
+      "physical_rear_exactly_unchanged": true,
+      "readability44_p95_under_half_ms": true,
+      "real_input_single_shot": true,
+      "root_remains_unscaled": true,
+      "same_node_reuse_near_scale": true,
+      "startup": true,
+      "visual_root_exactly_unchanged": true
+    },
+    "scope": "Bow component PASS19: light background, baked identity children, every vertexZ/rear/root invariant, inactive switch/recycle/audio reset,1/44arrow loop. Bright sky still subtle; no full FPS.",
+    "exact_files": [
+      "scripts/weapons/bow_prototype.gd"
+    ],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\bow35_visual_lifecycle05"
+  },
+  "optimization31/bow35_plate04": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "actual_covered_plate_rejection": true,
+      "actual_posed_skin_hit": true,
+      "actual_protected_plate_target": true,
+      "bone_anchor_follows": true,
+      "cancel_does_not_fire": true,
+      "early_click_not_fired": true,
+      "finite_tissue_embed_or_armor_rejection": true,
+      "q_actual_bow": true,
+      "ready_0": true,
+      "real_damage": true,
+      "rebound_axis_continuous": true,
+      "rebound_shaft_exterior": true,
+      "rebound_world_contact": true,
+      "single_shot_0": true,
+      "startup": true
+    },
+    "scope": "Bow component actual shot/plate regression PASS15.",
+    "exact_files": [
+      "scripts/weapons/bow_prototype.gd"
+    ],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\bow35_plate04"
+  },
+  "optimization31/bow35_embed_cut06": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "actual_posed_skin_hit": true,
+      "bone_anchor_follows": true,
+      "cancel_does_not_fire": true,
+      "detached_follow_stable": true,
+      "early_click_not_fired": true,
+      "finite_tissue_embed_or_armor_rejection": true,
+      "old_bone_follow_retired": true,
+      "q_actual_bow": true,
+      "ready_0": true,
+      "real_cut_api_queued": true,
+      "real_damage": true,
+      "real_geometry_committed": true,
+      "same_arrow_exact_piece": true,
+      "single_shot_0": true,
+      "startup": true
+    },
+    "scope": "Bow component embed/cut transfer PASS15: real input shot then direct real cut API, not mouse-cut acceptance.",
+    "exact_files": [
+      "scripts/weapons/bow_prototype.gd"
+    ],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\bow35_embed_cut06"
+  },
+  "swing35/horizontal_downview03": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "sledge_air_finite": true,
+      "sledge_air_grip": true,
+      "sledge_air_scope": true,
+      "sledge_contact_finite": true,
+      "sledge_contact_grip": true,
+      "sledge_contact_scope": true,
+      "sword_air_finite": true,
+      "sword_air_grip": true,
+      "sword_air_scope": true,
+      "sword_contact_finite": true,
+      "sword_contact_grip": true,
+      "sword_contact_scope": true
+    },
+    "scope": "Matched34 baseline diagnostic PASS12; sword horizontal targetY drift-.123..+.218, sledge press falls from carry toward-.117 at camera-.55. PASS does not mean absence of reported drift.",
+    "exact_files": [],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\swing35\\horizontal_downview03"
+  },
+  "swing35/horizontal_presentation_off02": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "sledge_air_finite": true,
+      "sledge_air_grip": true,
+      "sledge_air_scope": true,
+      "sledge_contact_finite": true,
+      "sledge_contact_grip": true,
+      "sledge_contact_scope": true,
+      "sword_air_finite": true,
+      "sword_air_grip": true,
+      "sword_air_scope": true,
+      "sword_contact_finite": true,
+      "sword_contact_grip": true,
+      "sword_contact_scope": true
+    },
+    "scope": "Diagnostic presentation-off baseline: air trajectories match, excluding presentation layer as cause. Snapshot predates an unused --pitch option added while queued; default semantics unchanged.",
+    "exact_files": [],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\swing35\\horizontal_presentation_off02"
+  },
+  "swing35/horizontal_fixed04": {
+    "passed": false,
+    "source_unchanged": true,
+    "scheduler_passed": false,
+    "stderr_bytes": 0,
+    "checks": {
+      "sledge_air_finite": true,
+      "sledge_air_grip": true,
+      "sledge_air_scope": true,
+      "sledge_contact_finite": true,
+      "sledge_contact_grip": true,
+      "sledge_contact_scope": false,
+      "sword_air_finite": true,
+      "sword_air_grip": true,
+      "sword_air_scope": true,
+      "sword_contact_finite": true,
+      "sword_contact_grip": true,
+      "sword_contact_scope": true
+    },
+    "scope": "Rejected inverse-hand prototype raw FAIL: preserves sledge axis but raises IK origin12cm and same-input contact misses above target. Source never integrated.",
+    "exact_files": [],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\swing35\\horizontal_fixed04"
+  },
+  "swing35/final08": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "sledge_air_finite": true,
+      "sledge_air_grip": true,
+      "sledge_air_horizontal_target_height": true,
+      "sledge_air_press_preserves_axis": true,
+      "sledge_air_scope": true,
+      "sledge_air_vertical_down": true,
+      "sledge_air_vertical_up": true,
+      "sledge_contact_actual_horizontal_contacts": true,
+      "sledge_contact_finite": true,
+      "sledge_contact_grip": true,
+      "sledge_contact_horizontal_target_height": true,
+      "sledge_contact_press_preserves_axis": true,
+      "sledge_contact_scope": true,
+      "sledge_repress_recaptures": true,
+      "sledge_switch_finite": true,
+      "sledge_switch_recaptures": true,
+      "switch_sledge_held": true,
+      "switch_sword_held": true,
+      "sword_air_finite": true,
+      "sword_air_grip": true,
+      "sword_air_horizontal_target_height": true,
+      "sword_air_scope": true,
+      "sword_air_vertical_down": true,
+      "sword_air_vertical_up": true,
+      "sword_contact_actual_horizontal_contacts": true,
+      "sword_contact_finite": true,
+      "sword_contact_grip": true,
+      "sword_contact_horizontal_target_height": true,
+      "sword_contact_scope": true
+    },
+    "scope": "Swing component PASS29: world-up sword yaw, sledge initial-direction bias independent of IK hand, re-press/held weapon switch, real horizontal contacts and up/down. Includes deliberate sledge lower input before contact.",
+    "exact_files": [
+      "scripts/weapons/sword_prototype.gd"
+    ],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\swing35\\final08"
+  },
+  "review35/combined_swing01": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "sledge_air_finite": true,
+      "sledge_air_grip": true,
+      "sledge_air_horizontal_target_height": true,
+      "sledge_air_press_preserves_axis": true,
+      "sledge_air_scope": true,
+      "sledge_air_vertical_down": true,
+      "sledge_air_vertical_up": true,
+      "sledge_contact_actual_horizontal_contacts": true,
+      "sledge_contact_finite": true,
+      "sledge_contact_grip": true,
+      "sledge_contact_horizontal_target_height": true,
+      "sledge_contact_press_preserves_axis": true,
+      "sledge_contact_scope": true,
+      "sledge_repress_recaptures": true,
+      "sledge_switch_finite": true,
+      "sledge_switch_recaptures": true,
+      "switch_sledge_held": true,
+      "switch_sword_held": true,
+      "sword_air_finite": true,
+      "sword_air_grip": true,
+      "sword_air_horizontal_target_height": true,
+      "sword_air_scope": true,
+      "sword_air_vertical_down": true,
+      "sword_air_vertical_up": true,
+      "sword_contact_actual_horizontal_contacts": true,
+      "sword_contact_finite": true,
+      "sword_contact_grip": true,
+      "sword_contact_horizontal_target_height": true,
+      "sword_contact_scope": true
+    },
+    "scope": "Combined source at3435pins PASS29: sword138contacts/cut1, sledge163contacts; actual horizontal contact/targetheight/vertical/press/switch. Pending embedded/hatchet changes explicitly outside exact-file assertion.",
+    "exact_files": [
+      "scripts/weapons/sword_prototype.gd",
+      "scripts/combat/armor_contact31.gd",
+      "scripts/combat/armor_damage31.gd",
+      "scripts/combat/armor_head_surface35.gd",
+      "scripts/combat/sword_puncture_resistance29.gd",
+      "scripts/combat/weapon_solid_contact29.gd",
+      "scripts/clay_target.gd",
+      "scripts/combat/blade_resistance28.gd"
+    ],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\review35\\combined_swing01"
+  },
+  "penetration35/face_before01": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {},
+    "scope": "Historical baseline graphical trace, no formal assertions: lower-face sword W1 depth6.259cm; shared head box falsely covers exposed cap face. Not a PASS acceptance claim.",
+    "exact_files": [],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\penetration35\\face_before01"
+  },
+  "penetration35/face_after03": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {},
+    "scope": "Earlier component graphical trace, no formal assertions: matched sword W1 depth31.620cm after guide/actual cover fixes; prior to final collar patch.",
+    "exact_files": [],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\penetration35\\face_after03"
+  },
+  "penetration35/strong_final13": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "spear_actual_deep_entry": true,
+      "spear_embed_released": true,
+      "spear_hands_not_behind": true,
+      "sword_actual_deep_entry": true,
+      "sword_embed_released": true,
+      "sword_hands_not_behind": true
+    },
+    "scope": "Final five-file component PASS6 actual sword/spear deep entry and release/hand placement; sword depth35.49cm, spear10.85cm. Full600hold not established here.",
+    "exact_files": [
+      "scripts/combat/armor_contact31.gd",
+      "scripts/combat/armor_damage31.gd",
+      "scripts/combat/armor_head_surface35.gd",
+      "scripts/combat/sword_puncture_resistance29.gd",
+      "scripts/combat/weapon_solid_contact29.gd"
+    ],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\penetration35\\strong_final13"
+  },
+  "penetration35/collar_negative14": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "actual_lip_collar": true,
+      "actual_sprint_deep_entry": true,
+      "actual_underlying_skin_exists": true,
+      "armor_gate_is_mandatory": true,
+      "collar_probe_ran": true,
+      "no_buried_layer": true,
+      "no_changed_mesh": true,
+      "no_extended_collar": true,
+      "no_other_bone": true,
+      "no_stale_generation": true,
+      "no_uncommitted_lip": true,
+      "no_widened_bore": true
+    },
+    "scope": "Component PASS12 real lip admission plus existing underlying skin rejection, mesh/bone/generation/uncommitted/width negative tests. Mandatory armor gate uses explicitly synthetic HardArmor injection.",
+    "exact_files": [
+      "scripts/combat/armor_contact31.gd",
+      "scripts/combat/armor_damage31.gd",
+      "scripts/combat/armor_head_surface35.gd",
+      "scripts/combat/sword_puncture_resistance29.gd",
+      "scripts/combat/weapon_solid_contact29.gd"
+    ],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\penetration35\\collar_negative14"
+  },
+  "penetration35/held_trace22": {
+    "passed": false,
+    "source_unchanged": true,
+    "scheduler_passed": false,
+    "stderr_bytes": 0,
+    "checks": {
+      "spear_free_aim_after_withdrawal": false,
+      "spear_real_shallow_entry": false,
+      "spear_retained600": false
+    },
+    "scope": "Important raw FAIL of600hold before pending embedded fix: transient descending floor support loss caused release; preserves nativeY/floor-travel trace. NOT fixed by the five-file component.",
+    "exact_files": [],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\penetration35\\held_trace22"
+  },
+  "penetration35/held_final23": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "spear_free_aim_after_withdrawal": true,
+      "spear_lateral_outside_remains_solid": true,
+      "spear_mouse_axis_locked": true,
+      "spear_mouse_does_not_extract": true,
+      "spear_native_backward_extracts": true,
+      "spear_other_part_solid": true,
+      "spear_real_shallow_entry": true,
+      "spear_retained600": true,
+      "spear_same_bore_accepts_steel": true,
+      "spear_shallow_survives": true,
+      "spear_wound_persists": true
+    },
+    "scope": "Pending sixth-file component PASS11 actual600frames+S/freeaim16.66cm alive; this run did not exercise newly added floor-support branch. Not final embedded/jump acceptance and no exact embedded assertion.",
+    "exact_files": [],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\penetration35\\held_final23"
+  },
+  "review35/combined_armor02": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "cloth_slice_hard_even_at_high_energy": true,
+      "cloth_stab_hard_even_at_high_energy": true,
+      "heavy_crown_coverage": true,
+      "heavy_crown_penetration": true,
+      "heavy_eye_coverage": true,
+      "heavy_eye_penetration": true,
+      "heavy_face_coverage": true,
+      "heavy_face_penetration": true,
+      "heavy_mouth_coverage": true,
+      "heavy_mouth_penetration": true,
+      "light_crown_coverage": true,
+      "light_crown_penetration": true,
+      "light_eye_coverage": true,
+      "light_eye_penetration": true,
+      "light_face_coverage": true,
+      "light_face_penetration": true,
+      "light_mouth_coverage": true,
+      "light_mouth_penetration": true,
+      "mail_slice_hard_even_at_high_energy": true,
+      "mail_stab_hard_even_at_high_energy": true,
+      "medium_crown_coverage": true,
+      "medium_crown_penetration": true,
+      "medium_eye_coverage": true,
+      "medium_eye_penetration": true,
+      "medium_face_coverage": true,
+      "medium_face_penetration": true,
+      "medium_mouth_coverage": true,
+      "medium_mouth_penetration": true,
+      "plate_slice_hard_even_at_high_energy": true,
+      "plate_stab_hard_even_at_high_energy": true
+    },
+    "scope": "Combined native PASS30 actual visible head geometry cover/openings for light/medium/heavy and hard cloth/mail/plate at high energy. Non-head normalized coverage unchanged.",
+    "exact_files": [
+      "scripts/combat/armor_contact31.gd",
+      "scripts/combat/armor_damage31.gd",
+      "scripts/combat/armor_head_surface35.gd"
+    ],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\review35\\combined_armor02"
+  },
+  "review35/combined_collar03": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "actual_lip_collar": true,
+      "actual_sprint_deep_entry": true,
+      "actual_underlying_skin_exists": true,
+      "armor_gate_is_mandatory": true,
+      "collar_probe_ran": true,
+      "no_buried_layer": true,
+      "no_changed_mesh": true,
+      "no_extended_collar": true,
+      "no_other_bone": true,
+      "no_stale_generation": true,
+      "no_uncommitted_lip": true,
+      "no_widened_bore": true
+    },
+    "scope": "Combined native PASS12 actual sprint/deep lip plus local collar negatives; synthetic mandatory armor gate injection distinct from actual geometry armor30.",
+    "exact_files": [
+      "scripts/combat/armor_contact31.gd",
+      "scripts/combat/armor_damage31.gd",
+      "scripts/combat/armor_head_surface35.gd",
+      "scripts/combat/sword_puncture_resistance29.gd",
+      "scripts/combat/weapon_solid_contact29.gd"
+    ],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\review35\\combined_collar03"
+  },
+  "root35/merged_spear_held_candidate02": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "spear_free_aim_after_withdrawal": true,
+      "spear_lateral_outside_remains_solid": true,
+      "spear_mouse_axis_locked": true,
+      "spear_mouse_does_not_extract": true,
+      "spear_native_backward_extracts": true,
+      "spear_other_part_solid": true,
+      "spear_real_shallow_entry": true,
+      "spear_retained600": true,
+      "spear_same_bore_accepts_steel": true,
+      "spear_shallow_survives": true,
+      "spear_wound_persists": true
+    },
+    "scope": "Merged candidate graphical PASS11: actual shallow spear entry,600-frame hold, lateral/mouse restraint, native backward extraction, persistent wound, same-bore steel, and free aim after withdrawal; the exact integrated false-floor guard is active.",
+    "exact_files": [
+      "scripts/combat/embedded_weapon29.gd",
+      "scripts/combat/weapon_solid_contact29.gd",
+      "scripts/combat/armor_contact31.gd",
+      "scripts/combat/armor_damage31.gd",
+      "scripts/combat/sword_puncture_resistance29.gd"
+    ],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\merged_spear_held_candidate02"
+  },
+  "root35/merged_spear_jump_candidate01": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "jump_reason": true,
+      "native_entry": true,
+      "native_jump_releases": true,
+      "native_jump_rose": true,
+      "native_jump_started": true,
+      "pre_jump_on_floor": true,
+      "probe_gap20mm_not_support": true,
+      "probe_low_floor_state_false": true,
+      "probe_real_floor_three_mm": true,
+      "rising_velocity_releases": true
+    },
+    "scope": "Merged candidate graphical PASS10: native jump from actual spear entry releases; real 3mm floor support holds and20mm gap rejects support.",
+    "exact_files": [
+      "scripts/combat/embedded_weapon29.gd"
+    ],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\merged_spear_jump_candidate01"
+  },
+  "root35/merged_spear_deep_hold_candidate01": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "alive_after600": true,
+      "final_grip": true,
+      "native_backward_reason": true,
+      "spear_actual_deep_entry": true,
+      "spear_embed_released": true,
+      "spear_hands_not_behind": true,
+      "sprint_retained600": true,
+      "weapon_still_held": true
+    },
+    "scope": "Merged candidate graphical PASS8: deep spear entry,600-frame retention, hands not left behind, native backward withdrawal and release.",
+    "exact_files": [
+      "scripts/combat/embedded_weapon29.gd",
+      "scripts/combat/weapon_solid_contact29.gd",
+      "scripts/combat/armor_contact31.gd",
+      "scripts/combat/armor_damage31.gd"
+    ],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\merged_spear_deep_hold_candidate01"
+  },
+  "root35/merged_hatchet_overhand_candidate01": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "E_reclaims_charge": true,
+      "accepted_pose_sample": true,
+      "actual_edge_embedded": true,
+      "exact_release_pose": true,
+      "exact_release_velocity": true,
+      "held_in_body": true,
+      "real_release": true,
+      "reset_drops_same_model": true,
+      "same_object_reclaimed": true,
+      "startup": true
+    },
+    "scope": "Merged candidate graphical PASS10: exact release pose/velocity, real edge embed in target, held in body, E reclaims same object and F6 drops it.",
+    "exact_files": [
+      "scripts/weapons/throwing_axe32.gd",
+      "scripts/weapons/hatchet_volume32.gd",
+      "scripts/combat/armor_damage31.gd",
+      "scripts/combat/weapon_solid_contact29.gd"
+    ],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\merged_hatchet_overhand_candidate01"
+  },
+  "root35/merged_hatchet_wall_candidate01": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "exact_displayed_release_pose": true,
+      "native_rotating_release": true,
+      "rotated_in_real_flight": true,
+      "thin_4mm_wall_no_tunnel": true,
+      "world_collision_stopped": true
+    },
+    "scope": "Merged candidate graphical PASS5: rotating projectile hits thin wall and stops without tunneling on exact merged source.",
+    "exact_files": [
+      "scripts/weapons/throwing_axe32.gd",
+      "scripts/weapons/hatchet_volume32.gd"
+    ],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\merged_hatchet_wall_candidate01"
+  },
+  "root35/merged_hatchet_timing_candidate01": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": {
+      "final_solver_sample_exact": true,
+      "hero_reset_no_stale_release": true,
+      "hero_reset_replaces_helper": true,
+      "menu_cancels": true,
+      "menu_duplicate_release_no_throw": true,
+      "menu_release_no_throw": true,
+      "multiple_renders_per_physics_observed": true,
+      "no_double_speed_at_120": true,
+      "real_release_120": true,
+      "real_release_60": true,
+      "repeat_render_retains_velocity": true
+    },
+    "scope": "Merged candidate graphical PASS11: genuine LMB throws at60/120Hz; repeated render frames retain velocity; no double speed; menu/reset cancels stale release.",
+    "exact_files": [
+      "scripts/weapons/throwing_axe32.gd"
+    ],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\merged_hatchet_timing_candidate01"
+  },
+  "root35/merged_spear_held_candidate01": {
+    "passed": false,
+    "source_unchanged": true,
+    "scheduler_passed": false,
+    "stderr_bytes": 0,
+    "checks": {
+      "spear_free_aim_after_withdrawal": true,
+      "spear_real_shallow_entry": false,
+      "spear_retained600": false
+    },
+    "scope": "Raw fixture-selection run retained: older held600 fixture did not establish spear entry; replaced by exact prepared held_trace fixture in merged_spear_held_candidate02. No source error and not used as acceptance.",
+    "exact_files": [],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\merged_spear_held_candidate01"
+  },
+  "root35/health_matrix_candidate01": {
+    "passed": true,
+    "source_unchanged": true,
+    "scheduler_passed": true,
+    "stderr_bytes": 0,
+    "checks": [
+      {
+        "name": "armor_disabled",
+        "passed": true
+      },
+      {
+        "name": "graphical_scene_ready",
+        "passed": true
+      },
+      {
+        "name": "head_arrow_applies",
+        "passed": true
+      },
+      {
+        "name": "head_at_90_percent_dies",
+        "passed": true
+      },
+      {
+        "name": "head_below_90_percent_survives",
+        "passed": true
+      },
+      {
+        "name": "head_sever_marks_death",
+        "passed": true
+      },
+      {
+        "name": "head_skin_thickness_measured",
+        "passed": true
+      },
+      {
+        "name": "limb_arrow_applies",
+        "passed": true
+      },
+      {
+        "name": "limb_sever_does_not_kill",
+        "passed": true
+      },
+      {
+        "name": "limb_sever_fixture_notes_actual_policy",
+        "passed": true
+      },
+      {
+        "name": "limb_sever_records_named_part",
+        "passed": true
+      },
+      {
+        "name": "limb_skin_thickness_measured",
+        "passed": true
+      },
+      {
+        "name": "matched_head_hit_damages_more_than_limb",
+        "passed": true
+      },
+      {
+        "name": "reset_after_head_arrow",
+        "passed": true
+      },
+      {
+        "name": "reset_before_bleed",
+        "passed": true
+      },
+      {
+        "name": "reset_before_head_depth",
+        "passed": true
+      },
+      {
+        "name": "reset_before_head_sever",
+        "passed": true
+      },
+      {
+        "name": "reset_before_limb_sever",
+        "passed": true
+      },
+      {
+        "name": "reset_before_strong_swing",
+        "passed": true
+      },
+      {
+        "name": "reset_before_torso_depth",
+        "passed": true
+      },
+      {
+        "name": "reset_before_weak_swing",
+        "passed": true
+      },
+      {
+        "name": "reset_between_bleed_rates",
+        "passed": true
+      },
+      {
+        "name": "severe_bleed_record_accounted",
+        "passed": true
+      },
+      {
+        "name": "severe_limb_bleeds_faster_than_shallow",
+        "passed": true
+      },
+      {
+        "name": "shallow_bleed_record_accounted",
+        "passed": true
+      },
+      {
+        "name": "strong_async_drained",
+        "passed": true
+      },
+      {
+        "name": "strong_input_commits_cut",
+        "passed": true
+      },
+      {
+        "name": "strong_input_has_edge_contact",
+        "passed": true
+      },
+      {
+        "name": "strong_sever_creates_substantial_effect",
+        "passed": true
+      },
+      {
+        "name": "strong_weak_hp_scope_documented",
+        "passed": true
+      },
+      {
+        "name": "torso_at_90_percent_dies",
+        "passed": true
+      },
+      {
+        "name": "torso_below_90_percent_survives",
+        "passed": true
+      },
+      {
+        "name": "torso_skin_thickness_measured",
+        "passed": true
+      },
+      {
+        "name": "weak_async_drained",
+        "passed": true
+      },
+      {
+        "name": "weak_input_does_not_sever",
+        "passed": true
+      },
+      {
+        "name": "weak_input_has_edge_contact",
+        "passed": true
+      },
+      {
+        "name": "weak_input_negligible_numeric_hp_loss",
+        "passed": true
+      }
+    ],
+    "scope": "37/37 graphical merged health assertions: head versus limb numeric HP, shallow versus severe accepted-wound bleed accounting, actual mesh thickness at head/torso thresholds, head/limb death policy, and actual weak/strong mouse cuts. Bleed accounting and deep-collapse callback are not full physical weapon-entry tests; actual strong severing cut produced two severed parts/debris with 0 numeric HP loss.",
+    "exact_files": [
+      "scripts/weapons/sword_prototype.gd",
+      "scripts/combat/local_wound28.gd",
+      "scripts/combat/puncture29.gd",
+      "scripts/combat/deep_puncture29.gd",
+      "scripts/clay_target.gd",
+      "scripts/arena27_target.gd"
+    ],
+    "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\health_matrix_candidate01"
+  }
+}

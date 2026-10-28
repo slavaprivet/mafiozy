@@ -1,0 +1,122 @@
+{
+  "status": "READY_FOR_ROOT_INTEGRATION",
+  "candidate": "D:\\MafioziCombat31\\c33_coordination\\agents\\bow35\\game",
+  "base": "D:/MafioziCombat31/c33_coordination/arena34_strong_cuts/game",
+  "base_published_main": "04e52bdf",
+  "ownership": "One bow visual file only. Root integrates; no commit/push or user-window changes by agent.",
+  "changed": {
+    "scripts/weapons/bow_prototype.gd": {
+      "before": "267e9c08060ec4b3f2af70536a5b840ff61bb5790e922099f9c7d6ea6a3c8b1e",
+      "after": "da5ee913c54c6ea14e9fb4d87033f85a1f10f98524956e9936576925033d5777"
+    }
+  },
+  "source_pin_count": 3434,
+  "change": "Existing baked arrow material meshes expand transversely only while in flight, to an approximate 0.8px shaft target capped at 3x. Length, geometry vertices, arrow root, native ballistics, input/aim, collision/damage and materials unchanged. Updates run before inactive-bow returns; impact/recycle/reuse reset before audio early return.",
+  "tests": {
+    "bow35_before01": {
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\bow35_before01",
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": 7
+    },
+    "bow35_before02": {
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\bow35_before02",
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": 7
+    },
+    "bow35_after03": {
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\bow35_after03",
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": 7
+    },
+    "bow35_plate04": {
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\bow35_plate04",
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": 15
+    },
+    "bow35_visual_lifecycle05": {
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\bow35_visual_lifecycle05",
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": 19
+    },
+    "bow35_embed_cut06": {
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\bow35_embed_cut06",
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": 15
+    }
+  },
+  "physics_source_invariants": "D:\\MafioziCombat31\\c33_coordination\\agents\\bow35\\PHYSICS_SOURCE_INVARIANTS.json",
+  "screenshots": {
+    "before_dark": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\bow35_before02",
+    "after_dark": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\bow35_after03",
+    "after_light": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\bow35_visual_lifecycle05",
+    "comparison_8x_labelled": "D:\\MafioziCombat31\\c33_coordination\\agents\\bow35\\FLIGHT_BEFORE_AFTER_8X.png"
+  },
+  "measured": {
+    "before_28_8m_shaft_px": 0.371368408203125,
+    "after_28_8m_shaft_px": 0.80000003403984,
+    "before_28_8m_wh_px": [
+      2.130341,
+      2.620544
+    ],
+    "after_28_8m_wh_px": [
+      4.437469,
+      5.540405
+    ],
+    "before_41_1m_wh_px": [
+      1.473358,
+      1.964813
+    ],
+    "after_40_2m_wh_px": [
+      4.373718,
+      5.560394
+    ],
+    "ballistic_error_max_m": 1.6752192095737e-05,
+    "isolated_new_loop": {
+      "1": {
+        "max_us": 4.35,
+        "median_us": 2.35,
+        "p95_us": 3.3
+      },
+      "44": {
+        "max_us": 118.9,
+        "median_us": 73.9,
+        "p95_us": 79.1
+      }
+    }
+  },
+  "fixtures": {
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\bow35\\flight35.gd": "db5348626e773799fb9d40cc631a39e39a147ff460f6ade4d0f0a22e1d9e7791",
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\bow35\\visual_lifecycle35.gd": "1d2c7f1e4ae629324949f61e4c639b937b0a5c5fc0bdd777e441bd56880378f4",
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\contact_perf31\\bow_input31.gd": "4e60a57143e5f9d6e6140693a33050d7edad1ba450911e4a481b6123eb2d106f",
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\contact_perf31\\bow_cut31.gd": "baa32e0c1adc71f46dded3a44492586e6fd9e69cbbbfe1a396e918d1e1e98ca4"
+  },
+  "review": "release34_review read-only APPROVE exact da5ee913 SHA; root managed real DeepSeek response in agents/review35. Ruflo discovery returned no tools.",
+  "limits": [
+    "Graphical Godot native InputEvents and actual render captures, not external manual Windows acceptance.",
+    "50v50 FPS not accepted; user33 remained open throughout, no exclusive perf. Timer measures only new presentation loop on 1/44 real arrow nodes.",
+    "Arrow intentionally remains subtle against very bright sky due to original materials/TAA. Visibility at every background/extreme distance is not claimed.",
+    "Initial baseline01 frame arrow partially occluded by hero head; baseline02/after03 use same slight real mouse turn after release to expose actual flight.",
+    "Before/after40m samples differ by one physics tick; exact28.8m samples match physical position and velocity.",
+    "Cross-section-only invariant depends on current ModelFinish31 identity-baked arrow meshes; future rotated primitive fallback would require preserving authored transforms.",
+    "Embed/cut test fires through real input then invokes real geometry cut API directly; it is not mouse-cut acceptance."
+  ],
+  "raw_failures": []
+}

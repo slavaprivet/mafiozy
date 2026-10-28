@@ -1,0 +1,258 @@
+{
+  "charge_ticks": 0,
+  "checks": {
+    "actual_skin_contact": true,
+    "appropriate_contact": true,
+    "bone_follow": true,
+    "consumed_charges": true,
+    "damage_law": true,
+    "launch_0": true,
+    "q_actual_hatchet": true,
+    "startup": true,
+    "three_unique_instances": true,
+    "wood_outside": true
+  },
+  "passed": true,
+  "rows": [
+    {
+      "camera": "[X: (1.0, 0.0, -0.000032), Y: (-0.000005, 0.985183, -0.171506), Z: (0.000031, 0.171506, 0.985183), O: (0.000106, 2.223804, 5.849623)]",
+      "phase": "aim",
+      "pose": "[X: (0.004911, 0.995748, 0.091993), Y: (-0.053081, 0.092124, -0.994332), Z: (-0.998578, -0.0, 0.053308), O: (0.236732, 1.676371, 2.572546)]",
+      "state": {
+        "aiming": true,
+        "capacity": 3,
+        "casting": false,
+        "charges": 3,
+        "events": [],
+        "last": {},
+        "launched": 0,
+        "picked": 0,
+        "states": [
+          {
+            "id": 229931751932,
+            "ray_max_usec": 0,
+            "state": "held"
+          },
+          {
+            "id": 238001593069,
+            "ray_max_usec": 0,
+            "state": "reserve"
+          },
+          {
+            "id": 238320360188,
+            "ray_max_usec": 0,
+            "state": "reserve"
+          }
+        ]
+      }
+    },
+    {
+      "hp": 230.817994407866,
+      "phase": "shot",
+      "state": {
+        "aiming": false,
+        "capacity": 3,
+        "casting": false,
+        "charges": 2,
+        "events": [
+          {
+            "charges": 2,
+            "event": "launch",
+            "serial": 0,
+            "speed": 20.5206604003906
+          },
+          {
+            "depth": 0.0587730083882013,
+            "entry": "(0.003137, 0.993814, -1.83101)",
+            "event": "embed",
+            "normal": "(0.02181, -0.113713, 0.993274)",
+            "part": "chest",
+            "protection": {
+              "damage": 39.1820055921342,
+              "factor": 1.0,
+              "penetrates": true,
+              "region": "skin",
+              "slot": "torso",
+              "tier": ""
+            },
+            "serial": 0,
+            "speed": 20.865177154541,
+            "volume": {
+              "accessory_only32": false,
+              "body_bone32": 3,
+              "body_component32": 0,
+              "body_entry32": "(0.001279, 0.985362, -1.866201)",
+              "body_entry_gap32": 0.0362392142415047,
+              "body_face32": 1119,
+              "depth": 0.0587730083882013,
+              "face": 1729,
+              "reason": "connected_exit",
+              "requested": 0.0587730083882013,
+              "source": "240434289500:-9223371796001055903:0",
+              "thickness": 0.347881145775318,
+              "world_blocked": false
+            },
+            "wood_exterior_m": 0.111769050359726
+          }
+        ],
+        "last": {
+          "depth": 0.0587730083882013,
+          "entry": "(0.003137, 0.993814, -1.83101)",
+          "event": "embed",
+          "normal": "(0.02181, -0.113713, 0.993274)",
+          "part": "chest",
+          "protection": {
+            "damage": 39.1820055921342,
+            "factor": 1.0,
+            "penetrates": true,
+            "region": "skin",
+            "slot": "torso",
+            "tier": ""
+          },
+          "serial": 0,
+          "speed": 20.865177154541,
+          "volume": {
+            "accessory_only32": false,
+            "body_bone32": 3,
+            "body_component32": 0,
+            "body_entry32": "(0.001279, 0.985362, -1.866201)",
+            "body_entry_gap32": 0.0362392142415047,
+            "body_face32": 1119,
+            "depth": 0.0587730083882013,
+            "face": 1729,
+            "reason": "connected_exit",
+            "requested": 0.0587730083882013,
+            "source": "240434289500:-9223371796001055903:0",
+            "thickness": 0.347881145775318,
+            "world_blocked": false
+          },
+          "wood_exterior_m": 0.111769050359726
+        },
+        "launched": 1,
+        "picked": 0,
+        "states": [
+          {
+            "id": 229931751932,
+            "ray_max_usec": 13872,
+            "state": "embedded"
+          },
+          {
+            "id": 238001593069,
+            "ray_max_usec": 0,
+            "state": "held"
+          },
+          {
+            "id": 238320360188,
+            "ray_max_usec": 0,
+            "state": "reserve"
+          }
+        ]
+      }
+    },
+    {
+      "anchor_error": 0.0,
+      "final": {
+        "aiming": false,
+        "capacity": 3,
+        "casting": false,
+        "charges": 2,
+        "events": [
+          {
+            "charges": 2,
+            "event": "launch",
+            "serial": 0,
+            "speed": 20.5206604003906
+          },
+          {
+            "depth": 0.0587730083882013,
+            "entry": "(0.003137, 0.993814, -1.83101)",
+            "event": "embed",
+            "normal": "(0.02181, -0.113713, 0.993274)",
+            "part": "chest",
+            "protection": {
+              "damage": 39.1820055921342,
+              "factor": 1.0,
+              "penetrates": true,
+              "region": "skin",
+              "slot": "torso",
+              "tier": ""
+            },
+            "serial": 0,
+            "speed": 20.865177154541,
+            "volume": {
+              "accessory_only32": false,
+              "body_bone32": 3,
+              "body_component32": 0,
+              "body_entry32": "(0.001279, 0.985362, -1.866201)",
+              "body_entry_gap32": 0.0362392142415047,
+              "body_face32": 1119,
+              "depth": 0.0587730083882013,
+              "face": 1729,
+              "reason": "connected_exit",
+              "requested": 0.0587730083882013,
+              "source": "240434289500:-9223371796001055903:0",
+              "thickness": 0.347881145775318,
+              "world_blocked": false
+            },
+            "wood_exterior_m": 0.111769050359726
+          }
+        ],
+        "last": {
+          "depth": 0.0587730083882013,
+          "entry": "(0.003137, 0.993814, -1.83101)",
+          "event": "embed",
+          "normal": "(0.02181, -0.113713, 0.993274)",
+          "part": "chest",
+          "protection": {
+            "damage": 39.1820055921342,
+            "factor": 1.0,
+            "penetrates": true,
+            "region": "skin",
+            "slot": "torso",
+            "tier": ""
+          },
+          "serial": 0,
+          "speed": 20.865177154541,
+          "volume": {
+            "accessory_only32": false,
+            "body_bone32": 3,
+            "body_component32": 0,
+            "body_entry32": "(0.001279, 0.985362, -1.866201)",
+            "body_entry_gap32": 0.0362392142415047,
+            "body_face32": 1119,
+            "depth": 0.0587730083882013,
+            "face": 1729,
+            "reason": "connected_exit",
+            "requested": 0.0587730083882013,
+            "source": "240434289500:-9223371796001055903:0",
+            "thickness": 0.347881145775318,
+            "world_blocked": false
+          },
+          "wood_exterior_m": 0.111769050359726
+        },
+        "launched": 1,
+        "picked": 0,
+        "states": [
+          {
+            "id": 229931751932,
+            "ray_max_usec": 13872,
+            "state": "embedded"
+          },
+          {
+            "id": 238001593069,
+            "ray_max_usec": 0,
+            "state": "held"
+          },
+          {
+            "id": 238320360188,
+            "ray_max_usec": 0,
+            "state": "reserve"
+          }
+        ]
+      },
+      "hp_after": 230.817994407866,
+      "hp_before": 270.0
+    }
+  ],
+  "tier": "none"
+}

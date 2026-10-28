@@ -1,0 +1,160 @@
+{
+  "ready_for_root_review": true,
+  "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\weapon33\\spear_candidate\\game",
+  "merge_only_files": [
+    "scripts/combat/sword_puncture_resistance29.gd",
+    "scripts/combat/weapon_solid_contact29.gd"
+  ],
+  "pins": {
+    "scripts/combat/sword_puncture_resistance29.gd": "455205e569c583471bb5d1f6b3fd2e45240194a44feba95d9a7c429a47b043ed",
+    "scripts/combat/weapon_solid_contact29.gd": "981c360382fbbc830018e9419ebc04631a3c12187efdf34ab3904e7cf54f4600"
+  },
+  "expected_shared_before_pins": {
+    "scripts/combat/sword_puncture_resistance29.gd": "dac6b0b46383025fe8a282aab357a1878316de84408d58141ac431cd0354645f",
+    "scripts/combat/weapon_solid_contact29.gd": "57c7811e12a0819f7550ebc4a6093fd3d45510794f2563067ab3b42c778524d1"
+  },
+  "diff": "D:\\MafioziCombat31\\c33_coordination\\agents\\weapon33\\spear_final.diff",
+  "root_cause": [
+    "At oblique first spear entry the requested tip drifts laterally before the embedded owner exists; the exact solid check correctly refuses that off-centre steel. A late centering change inside embedded_weapon29 was unsuitable and remains reverted.",
+    "After actual hands are centred, a tapered spear meets the same sloped entry surface ~19mm in front of the plane through its central tip entry. Old 12mm collar limit and centre-plane steel profile under-estimated that real surface section, rejecting legitimate first entry."
+  ],
+  "changes": [
+    "Extend existing bounded hand IK guide only to spear before embedded ownership. It uses an actually swept verified entry preview, applies no sword drag/lag to the spear, and relinquishes control when embedded becomes active. Actual full geometry acceptance remains mandatory before wounds/depth/HP.",
+    "For spear only, exact same connected entry triangle patch permits the real exterior surface rather than a fixed 12mm centre-plane limit. Tapered metal profile is evaluated at actual hit section depth. Same source/mesh/skin/weapon/generation, triangle identity, orientation and exact surface intersection remain checked. No generic larger radial tolerance.",
+    "Uncommitted spear tip still outside the original entry plane opens no passage. Ordinary sword collar rule remains unchanged."
+  ],
+  "matched_gui": {
+    "before_committed_depth_m": 0.0,
+    "after_committed_depth_m": 0.14540034532547,
+    "native_input": "first scenario spear, player (0,.05,1.3), pitch-.1, LMB+mouse(30,100), W1 for60ticks. Both runs have same gameplay input; corrected final assertion follows actual ownership after hand release.",
+    "after_fall": {
+      "attachment": {
+        "active": true,
+        "compound": true,
+        "depth": 0.138294458389282,
+        "held": false,
+        "holder_grace": false,
+        "holder_grace_cleared": false,
+        "mass_added": 1.15,
+        "owner_body_id": 257010179066,
+        "reason": "",
+        "regrab_ik31": {},
+        "target_id": 369350417856,
+        "weapon_id": "spear"
+      },
+      "model_id": 244225940006,
+      "stage": "physical_handoff_after_fall"
+    },
+    "scope": "Native graphical Godot InputEvents; user game remained open. Not external desktop manual QA or isolated FPS."
+  },
+  "tests": {
+    "weapon33_spear_gui_before12": {
+      "exit_code": 2,
+      "passed": false,
+      "source_unchanged": true,
+      "scheduler_passed": false,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_spear_penetration": false,
+        "spear_remains_physical": true
+      },
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon33_spear_gui_before12"
+    },
+    "weapon33_spear_gui_final18": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_spear_penetration": true,
+        "spear_remains_physical": true
+      },
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon33_spear_gui_final18"
+    },
+    "weapon33_spear_visual21": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "spear_oblique_lateral_outside_remains_solid": true,
+        "spear_oblique_mouse_axis_locked": true,
+        "spear_oblique_mouse_does_not_extract": true,
+        "spear_oblique_native_backward_extracts": true,
+        "spear_oblique_other_part_solid": true,
+        "spear_oblique_real_shallow_entry": true,
+        "spear_oblique_same_bore_accepts_steel": true,
+        "spear_oblique_shallow_survives": true,
+        "spear_oblique_uncommitted_outside_tip_no_passage": true,
+        "spear_oblique_wound_persists": true
+      },
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon33_spear_visual21"
+    },
+    "weapon33_spear_oracle_final22": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_posed_entry_triangle": true,
+        "bounded_collar_rejected": true,
+        "front_exterior_rejected": true,
+        "nearby_disconnected_triangle_rejected": true,
+        "non_surface_point_rejected": true,
+        "opposite_entry_face_rejected": true,
+        "replaced_mesh_rejected": true,
+        "stale_generation_rejected": true,
+        "sword_collar_limit_unchanged": true,
+        "unrelated_mesh_rejected": true,
+        "unverified_preview_rejected": true,
+        "verified_tip_preview_admits_actual_entry_triangle": true
+      },
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon33_spear_oracle_final22"
+    },
+    "weapon33_spear_regression_final23": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "heavy_actual_protected_contact": true,
+        "heavy_low_speed_no_penetration": true,
+        "spear_lateral_outside_remains_solid": true,
+        "spear_mouse_axis_locked": true,
+        "spear_mouse_does_not_extract": true,
+        "spear_native_backward_extracts": true,
+        "spear_other_part_solid": true,
+        "spear_real_shallow_entry": true,
+        "spear_same_bore_accepts_steel": true,
+        "spear_shallow_survives": true,
+        "spear_wound_persists": true,
+        "sword_guard_stops": true,
+        "sword_lateral_outside_remains_solid": true,
+        "sword_native_backward_extracts": true,
+        "sword_other_part_solid": true,
+        "sword_real_shallow_entry": true,
+        "sword_same_bore_accepts_steel": true,
+        "sword_shallow_survives": true,
+        "sword_wound_persists": true
+      },
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon33_spear_regression_final23"
+    }
+  },
+  "visual": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon33_spear_visual21\\actual_oblique_entry.png",
+  "raw_failures_retained": [
+    "spear centering trial: earlier grip release, rejected/reverted",
+    "trace07baseline: zero entry plus teardown-only ObjectDB warning, later GUIbaseline12 zero entry clean stderr reproduces",
+    "after14: old held-only _publish_safe final assertion invalid after expected physical attachment transition; after17/18 verify same model, active attachment, physical body and shape",
+    "after16: fixture type inference parse error, fixed explicit bool only",
+    "lock19/visual20: shallow fixture W1 deceleration sometimes deepened to death before lock assertion; finalvisual21 uses real W0.35/10mm stop and preserves the full-W lethal scenario separately"
+  ],
+  "limitations": [
+    "No full 50x50/destructible castle FPS acceptance.",
+    "Geometry oracle covers source/face/island/back-normal, non-surface/front-exterior, stale generation/mesh and unverified-preview rejection; not exhaustive all authored clothing folds.",
+    "Shared candidate untouched by this follow-up; root must integrate only two exact files/diff and do merged acceptance."
+  ]
+}

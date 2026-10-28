@@ -1,0 +1,148 @@
+{
+  "status": "saved work checkpoint; not final tested release",
+  "created_utc": "2026-10-22T23:10:21.730715+00:00",
+  "source": "D:\\MafioziCombat31\\c33_coordination\\arena31_optimization\\game",
+  "file_count": 3319,
+  "production_pointer_changed": false,
+  "latest_user_request": "Save work to main; continue bow firing/arrow embedding and penetration plus new hero gambeson wounds; run all changes for errors afterward.",
+  "completed_evidence": {
+    "bow_actual03": {
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_posed_skin_hit": true,
+        "bone_anchor_follows": true,
+        "cancel_does_not_fire": true,
+        "early_click_not_fired": true,
+        "finite_tissue_embed_or_armor_rejection": true,
+        "q_actual_bow": true,
+        "ready_0": true,
+        "real_damage": true,
+        "single_shot_0": true,
+        "startup": true
+      },
+      "scope": "See fixture; this is individual scenario evidence, not full gameplay acceptance.",
+      "original_evidence": "D:\\MafioziCombat31\\c33_coordination\\agents\\contact_perf31\\bow_actual03"
+    },
+    "hero_damage02": {
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "bare_arrow_hp_damage": true,
+        "bare_arrow_surface_wound": true,
+        "bare_blade_surface_wound": true,
+        "bare_hidden_templates_excluded": true,
+        "bare_injured_toggle_cannot_heal": true,
+        "bare_original_template_hidden": true,
+        "bare_ready": true,
+        "bare_real_mesh_sever": true,
+        "bare_wound_material_survives_cut": true,
+        "blocked_plate_no_open_wound": true,
+        "gambeson_arrow_hp_damage": true,
+        "gambeson_arrow_surface_wound": true,
+        "gambeson_blade_surface_wound": true,
+        "gambeson_hidden_templates_excluded": true,
+        "gambeson_injured_toggle_cannot_heal": true,
+        "gambeson_original_template_hidden": true,
+        "gambeson_ready": true,
+        "gambeson_real_mesh_sever": true,
+        "gambeson_wound_material_survives_cut": true,
+        "heavy_ready": true,
+        "res://scripts/character/hero_medieval31.gd": true,
+        "res://scripts/character/hero_wound31.gd": true,
+        "res://scripts/weapons/sword_prototype.gd": true,
+        "shield_with_gambeson_clear": true,
+        "shield_with_gambeson_equipped": true,
+        "shield_with_gambeson_grip": true,
+        "uv2_cut_interpolates_original_coordinates": true
+      },
+      "scope": "Existing accepted blade damage and real MeshSever API; optional incoming mode launches a real simulated arrow and awaits actual player collision. Not a natural enemy melee acceptance.",
+      "original_evidence": "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_qa31\\hero_damage02"
+    },
+    "shield_hero_final30": {
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "aim_clear": true,
+        "equipped": true,
+        "grip_attached": true,
+        "guard_steers": true,
+        "horizontal_turn": true,
+        "new_gambeson_visible": true,
+        "no_sword_attack": true,
+        "release_stops_steering": true,
+        "released_clear": true,
+        "rest_clear": true,
+        "vertical_aim": true
+      },
+      "scope": "Actual shield equip and RMB/mouse InputEvents, final displayed shield bounds vs head/chest/spine proxies, exact hand attachment, horizontal body turn and vertical guard steering. Graphical captures supplement proxies.",
+      "original_evidence": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\shield_hero_final30"
+    },
+    "bow_regrab_parse02": {
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "res://scripts/clay_target.gd": true,
+        "res://scripts/combat/arrow_contact31.gd": true,
+        "res://scripts/combat/embedded_drop31.gd": true,
+        "res://scripts/combat/sword_puncture_resistance29.gd": true,
+        "res://scripts/weapons/bow_prototype.gd": true
+      },
+      "scope": "See fixture; this is individual scenario evidence, not full gameplay acceptance.",
+      "original_evidence": "D:\\MafioziCombat31\\c33_coordination\\agents\\contact_perf31\\bow_regrab_parse02"
+    },
+    "collar_geometry02": {
+      "passed": true,
+      "source_unchanged": false,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_posed_entry_triangle": true,
+        "bounded_collar_rejected": true,
+        "empty_preview_rejected": true,
+        "front_exterior_rejected": true,
+        "nearby_disconnected_triangle_rejected": true,
+        "non_surface_point_rejected": true,
+        "opposite_entry_face_rejected": true,
+        "replaced_mesh_rejected": true,
+        "stale_generation_rejected": true,
+        "unrelated_mesh_rejected": true
+      },
+      "scope": "Focused exact posed ArrayMesh collar geometry/property oracle. No native wound/input claim; strict600 real input is separate.",
+      "original_evidence": "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_qa31\\collar_geometry02"
+    }
+  },
+  "pending_checks": [
+    "Actual flying arrow on gambeson graphical retest; first second-shot scene was obstructed by dropped shield",
+    "Bow heavy armor and arrow-to-cut ownership",
+    "G/E sword and corpse variants after adoption fix",
+    "Strict600-frame spear hold after entry surface collar fix",
+    "Final Q/G/Q/E menu run",
+    "Matched graphical performance/postcut and100worker load",
+    "Final error audit and scene opening"
+  ],
+  "limitations": [
+    "This is an individually tested working checkpoint, not final merged gameplay acceptance; pending_checks remain mandatory.",
+    "No full50v50AI plus destructible castle FPS acceptance.",
+    "Exact arrow tissue geometry currently targets the laboratory NPC; generic custom receiver and through-and-through projectile model are not claimed.",
+    "Hero wounds are bounded surface blood/slit marks plus existing real sever geometry, not a new volumetric player puncture model.",
+    "Changing injured hero clothing/armor is locked until F5 reset to prevent restoring removed geometry.",
+    "Live embedded drop uses kinematic bone anchor; corpse uses native rigid compound shape/mass."
+  ],
+  "updated_utc": "2026-10-22T23:25:52.164876+00:00",
+  "latest_changes": [
+    "Bow aim is derived from actual solved nock rather than pre-IK walking pose; same native shot now hits exact skin.",
+    "Armor result controls arrow rebound/finite embedding; embedded arrows follow bone and transfer to committed cut piece.",
+    "Hero bare torso/gambeson get bounded per-part surface wounds; immutable UV/UV2 rest coordinates follow animation and cuts.",
+    "Hidden clothing templates excluded from hero cuts; rigid armor fittings follow cut; injured wardrobe cannot restore severed geometry.",
+    "F10/F11 report injured wardrobe refusal honestly; F5 resets hero."
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "checks": {
+    "accessory_only": true,
+    "actual_clothing_contact": true,
+    "no_claimed_body_penetration": true,
+    "no_hp_from_unreached_body": true,
+    "no_reported_tissue_damage": true
+  },
+  "passed": true,
+  "rows": [
+    {
+      "after_hp": 270.0,
+      "before_hp": 270.0,
+      "event": {
+        "depth": 0.00259611415863037,
+        "entry": "(0.0, 1.0, -1.830237)",
+        "event": "embed",
+        "normal": "(0.026638, -0.110507, 0.993518)",
+        "part": "chest",
+        "protection": {
+          "damage": 0.0,
+          "factor": 1.0,
+          "penetrates": false,
+          "region": "skin",
+          "slot": "torso",
+          "tier": ""
+        },
+        "serial": 0,
+        "speed": 8.0,
+        "volume": {
+          "accessory_only32": true,
+          "body_bone32": 3,
+          "body_component32": 0,
+          "body_entry32": "(0.0, 1.0, -1.86457)",
+          "body_entry_gap32": 0.0343335866928101,
+          "body_face32": 1119,
+          "depth": 0.00259611415863037,
+          "face": 1728,
+          "reason": "connected_exit",
+          "requested": 0.00864,
+          "source": "240434289500:-9223371796001055903:0",
+          "thickness": 0.00459611415863037,
+          "world_blocked": false
+        },
+        "wood_exterior_m": 0.141665235161781
+      },
+      "scope": "direct actual-impact API at measured garment surface, 8m/s; not a native throw-speed claim",
+      "volume": {
+        "accessory_only32": true,
+        "body_bone32": 3,
+        "body_component32": 0,
+        "body_entry32": "(0.0, 1.0, -1.86457)",
+        "body_entry_gap32": 0.0343335866928101,
+        "body_face32": 1119,
+        "depth": 0.00259611415863037,
+        "face": 1728,
+        "reason": "connected_exit",
+        "requested": 0.00864,
+        "source": "240434289500:-9223371796001055903:0",
+        "thickness": 0.00459611415863037,
+        "world_blocked": false
+      }
+    }
+  ]
+}

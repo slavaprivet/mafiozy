@@ -1,0 +1,100 @@
+{
+  "status": "READY_FROZEN",
+  "candidate": "D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game",
+  "own_files": {
+    "scripts/combat/blood_flow32.gd": "fd9b8233b681fd6dc1cd77a80aced45400fbd6659e2b74bf5c744eab1a03fe7d",
+    "scripts/combat/local_wound28.gd": "cda0d10c067beb8007a2aaa9f8d86e04d9df8cabec71639ccb7b6fb4ce6e2e96",
+    "scripts/character/hero_wound31.gd": "afab0f7f7c7c2524034ddbb284ff349baab2cb7dbb1d4366feb8fc9c938dde7f"
+  },
+  "integration_hooks": {
+    "arena27": "BloodFlow32.prepare(lab) before READY",
+    "clay_target": "actual retained cap and physical piece touch; current skinned normal; finite12s retained; generation/reset clear",
+    "sword_prototype": "At end _spawn_cut_debris, only owner_body==_player and nonempty actual gone_cap: register_player_cap(self,from,piece,gone_cap)"
+  },
+  "behavior": [
+    "Large accepted wounds form tapered coherent gravity-driven flow, small wounds remain droplets",
+    "World-space old samples stay ballistic; only newest link follows exact current wound point",
+    "Hero accepted skin triangle/bary cached influences and mesh identity; player retained/detached actual cap triangle",
+    "No new per-frame mesh nodes; one preallocated world MultiMesh",
+    "Actual wounds only: pending puncture depth0 produces no flow",
+    "Strong new wound can replace weakest local cosmetic source when host slots full",
+    "F5/F6, generation, suspension, mesh replacement, outside-tree and teleport lifecycle guards"
+  ],
+  "budgets": {
+    "live_elements": 256,
+    "sources": 24,
+    "sources_per_host": 4,
+    "live_per_source": 24,
+    "spawns_per_frame": 48,
+    "source_world_rays_per_frame": 8,
+    "instance_buffer_bytes": 12288,
+    "max_radius_metres": 0.0068,
+    "large_lateral_speed_max_mps": 0.015,
+    "legacy_drop_budget_separate": {
+      "live": 384,
+      "spawn_per_frame": 48
+    },
+    "note": "New stream cap is cosmetic; existing legacy drops retain their separate cap. Not all100actors receive streams."
+  },
+  "validation": {
+    "parse_stage03": {
+      "checks": 5,
+      "passed": true,
+      "source_stable": true,
+      "stderr_bytes": 0,
+      "result": "D:\\MafioziCombat31\\c33_coordination\\agents\\blood32\\parse_stage03\\RESULT.json"
+    },
+    "pool04": {
+      "checks": 18,
+      "passed": true,
+      "source_stable": true,
+      "stderr_bytes": 0,
+      "result": "D:\\MafioziCombat31\\c33_coordination\\agents\\blood32\\pool04\\RESULT.json"
+    },
+    "local02": {
+      "checks": 7,
+      "passed": true,
+      "source_stable": true,
+      "stderr_bytes": 0,
+      "result": "D:\\MafioziCombat31\\c33_coordination\\agents\\blood32\\local02\\RESULT.json"
+    },
+    "actual_gui05": {
+      "checks": 16,
+      "passed": true,
+      "source_stable": true,
+      "stderr_bytes": 0,
+      "result": "D:\\MafioziCombat31\\c33_coordination\\agents\\blood32\\actual_gui05\\RESULT.json"
+    }
+  },
+  "timings": {
+    "gui_max_helper_usec": 377,
+    "unit_saturated_max_helper_usec": 1654,
+    "unit_saturated_last_helper_usec": 893,
+    "scope": "Helper CPU observations only, not full game/50v50 FPS acceptance."
+  },
+  "hp_scope": "_advance_puncture29 and _tick_bleeding29 remain byte-equivalent. Existing finite puncture HP bleeding and3HP/s aggregate cap unchanged; no new HP damage for cosmetic flow/incisions/player wounds.",
+  "screenshots": [
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\blood32\\actual_gui05\\small_player_wound.png",
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\blood32\\actual_gui05\\large_player_wound.png",
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\blood32\\actual_gui05\\moving_player_wound.png",
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\blood32\\actual_gui05\\retained_flow_after_detached_ttl.png",
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\blood32\\actual_gui05\\player_sever_flow.png",
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\blood32\\actual_gui05\\player_sever_retained.png",
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\blood32\\actual_gui05\\reset_clean.png"
+  ],
+  "deepseek_receipt": "D:\\MafioziCombat31\\c33_coordination\\agents\\blood32\\DEEPSEEK_RECEIPT.json",
+  "deepseek_tokens": 6025,
+  "raw_failures_preserved": [
+    "pool01 fractional carry rate failure",
+    "actual_gui01 visual inward flow despite functionalPASS",
+    "actual_gui02 detached-tree F5 runtime errors despite16functionalPASS",
+    "local01 guessed point refused no_actual_surface; local02 uses actual posed intersection",
+    "parse_stage02 root Basis+= unsupported, root corrected"
+  ],
+  "scope_limits": [
+    "Accepted damage/wound API + actual MeshSever with native walk/reset and real GUI rendering; not natural weapon-hit acceptance for every scenario",
+    "Cosmetic cached world probes, not liquid simulation or per-drop exact collision",
+    "Overall100fighters and fullcastle FPS not accepted",
+    "Isolated blood stage based on3321verified baseline31 pins; root must integrate with injury/hatchet final package"
+  ]
+}

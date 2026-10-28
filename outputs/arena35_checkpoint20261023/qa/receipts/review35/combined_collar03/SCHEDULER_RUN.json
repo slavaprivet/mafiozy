@@ -1,0 +1,109 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--max-fps",
+    "60",
+    "--path",
+    "D:\\MafioziCombat31\\c33_coordination\\arena35_soft_tissue\\game",
+    "--script",
+    "D:/MafioziCombat31/c33_coordination/agents/penetration35/collar_negative.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\review35\\combined_collar03",
+    "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\review35\\combined_collar03"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "e8ab78621762445fa6cb1269a163f0d9",
+    "owner": {
+      "pid": 45628,
+      "creation_filetime": "134372552622301797"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena35_soft_tissue\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 58128,
+        "creation_filetime": "134372552642523044",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena35_soft_tissue\\game --script D:/MafioziCombat31/c33_coordination/agents/penetration35/collar_negative.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\review35\\combined_collar03 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\review35\\combined_collar03",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--max-fps",
+          "60",
+          "--path",
+          "D:\\MafioziCombat31\\c33_coordination\\arena35_soft_tissue\\game",
+          "--script",
+          "D:/MafioziCombat31/c33_coordination/agents/penetration35/collar_negative.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\review35\\combined_collar03",
+          "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\review35\\combined_collar03"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "d:\\mafiozicombat31\\c33_coordination\\arena35_soft_tissue\\game",
+        "affinity_mask": 12,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 272057.2501995,
+    "queued_at": 271457.2501995,
+    "ticket": 6148,
+    "inventory_before": [
+      {
+        "pid": 62052,
+        "parent_pid": 44136,
+        "creation_filetime": "134372552594712150",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena35_soft_tissue\\game --script D:/MafioziCombat31/c33_coordination/agents/root35/weak_edge35.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\merged_weak09 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\root35\\merged_weak09 --tier=none --weapon=0 --z=-0.75 --pitch=-0.1 --amplitude=0.3 --weak-edge",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": ""
+      },
+      {
+        "pid": 62988,
+        "parent_pid": 62584,
+        "creation_filetime": "134372552634311736",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena35_soft_tissue\\game --script D:/MafioziCombat31/c33_coordination/agents/penetration35/armor_surface.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\review35\\combined_armor02 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\review35\\combined_armor02",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": ""
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 1.4384908999782056
+  },
+  "child": {
+    "pid": 58128,
+    "creation_filetime": "134372552642523044",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena35_soft_tissue\\game --script D:/MafioziCombat31/c33_coordination/agents/penetration35/collar_negative.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\review35\\combined_collar03 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\review35\\combined_collar03",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--max-fps",
+      "60",
+      "--path",
+      "D:\\MafioziCombat31\\c33_coordination\\arena35_soft_tissue\\game",
+      "--script",
+      "D:/MafioziCombat31/c33_coordination/agents/penetration35/collar_negative.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\review35\\combined_collar03",
+      "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\review35\\combined_collar03"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena35_soft_tissue\\game",
+    "affinity_mask": 12,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 11.075135799997952,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

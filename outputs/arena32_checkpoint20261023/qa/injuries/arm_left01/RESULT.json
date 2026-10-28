@@ -1,0 +1,350 @@
+{
+	"checks": {
+		"forearm_l_actual_sever": true,
+		"forearm_l_alive_preserved": true,
+		"forearm_l_physical_torso_shape": true,
+		"forearm_l_ready": true,
+		"forearm_l_speed_reduced": true,
+		"forearm_l_torso_leans": false
+	},
+	"failures": [
+		"forearm_l_torso_leans"
+	],
+	"passed": false,
+	"rows": [
+		{
+			"airborne_frames": 0,
+			"alive": true,
+			"case": "forearm_l",
+			"distance": 2.3000602722168,
+			"injury": {
+				"active": true,
+				"arms": "(1, 0)",
+				"hop_count": 0,
+				"jump_count": 0,
+				"last": {
+					"active": true,
+					"arms": "(1, 0)",
+					"hop_count": 0,
+					"jump_count": 0,
+					"legs": "(0, 0)",
+					"lower_height": 0.7,
+					"support_overlap": 0.946934503316879,
+					"upper_height": 1.99612402915955,
+					"upper_transform": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (0.000138, 0.751128, 0.007916)]"
+				},
+				"legs": "(0, 0)",
+				"split_collision": true
+			},
+			"mesh_cut_parts": {
+				"forearm_l": true
+			},
+			"peak_speed": 2.81599998474121,
+			"trajectory": [
+				{
+					"frame": 0,
+					"grounded": true,
+					"injury": {
+						"active": true,
+						"arms": "(1, 0)",
+						"hop_count": 0,
+						"jump_count": 0,
+						"last": {
+							"active": true,
+							"arms": "(1, 0)",
+							"hop_count": 0,
+							"jump_count": 0,
+							"legs": "(0, 0)",
+							"lower_height": 0.7,
+							"support_overlap": 0.931377944350243,
+							"upper_height": 1.99277591705322,
+							"upper_transform": "[X: (0.998431, -0.055992, 0.0), Y: (0.055992, 0.998431, 0.0), Z: (0.0, 0.0, 1.0), O: (0.03913, 0.763918, 0.007916)]"
+						},
+						"legs": "(0, 0)",
+						"split_collision": true
+					},
+					"position": "(7.0, 0.237836, 6.995)",
+					"velocity": "(0.0, 0.0, -0.3)"
+				},
+				{
+					"frame": 10,
+					"grounded": true,
+					"injury": {
+						"active": true,
+						"arms": "(1, 0)",
+						"hop_count": 0,
+						"jump_count": 0,
+						"last": {
+							"active": true,
+							"arms": "(1, 0)",
+							"hop_count": 0,
+							"jump_count": 0,
+							"legs": "(0, 0)",
+							"lower_height": 0.7,
+							"support_overlap": 0.932430532574654,
+							"upper_height": 1.99279510974884,
+							"upper_transform": "[X: (0.99844, -0.055832, 0.0), Y: (0.055832, 0.99844, 0.0), Z: (0.0, 0.0, 1.0), O: (0.039019, 0.762881, 0.007916)]"
+						},
+						"legs": "(0, 0)",
+						"split_collision": true
+					},
+					"position": "(7.0, 0.229541, 6.681133)",
+					"velocity": "(0.0, 0.0, -2.816)"
+				},
+				{
+					"frame": 20,
+					"grounded": true,
+					"injury": {
+						"active": true,
+						"arms": "(1, 0)",
+						"hop_count": 0,
+						"jump_count": 0,
+						"last": {
+							"active": true,
+							"arms": "(1, 0)",
+							"hop_count": 0,
+							"jump_count": 0,
+							"legs": "(0, 0)",
+							"lower_height": 0.7,
+							"support_overlap": 0.933853429555893,
+							"upper_height": 1.99350821971893,
+							"upper_transform": "[X: (0.998774, -0.0495, 0.0), Y: (0.0495, 0.998774, 0.0), Z: (0.0, 0.0, 1.0), O: (0.034627, 0.762047, 0.007916)]"
+						},
+						"legs": "(0, 0)",
+						"split_collision": true
+					},
+					"position": "(7.0, 0.232255, 6.211802)",
+					"velocity": "(0.0, 0.0, -2.816)"
+				},
+				{
+					"frame": 30,
+					"grounded": true,
+					"injury": {
+						"active": true,
+						"arms": "(1, 0)",
+						"hop_count": 0,
+						"jump_count": 0,
+						"last": {
+							"active": true,
+							"arms": "(1, 0)",
+							"hop_count": 0,
+							"jump_count": 0,
+							"legs": "(0, 0)",
+							"lower_height": 0.7,
+							"support_overlap": 0.935935643315315,
+							"upper_height": 1.99356889724731,
+							"upper_transform": "[X: (0.998803, -0.048922, 0.0), Y: (0.048922, 0.998803, 0.0), Z: (0.0, 0.0, 1.0), O: (0.034226, 0.760015, 0.007916)]"
+						},
+						"legs": "(0, 0)",
+						"split_collision": true
+					},
+					"position": "(7.0, 0.237251, 5.74247)",
+					"velocity": "(0.0, 0.0, -2.816)"
+				},
+				{
+					"frame": 40,
+					"grounded": true,
+					"injury": {
+						"active": true,
+						"arms": "(1, 0)",
+						"hop_count": 0,
+						"jump_count": 0,
+						"last": {
+							"active": true,
+							"arms": "(1, 0)",
+							"hop_count": 0,
+							"jump_count": 0,
+							"legs": "(0, 0)",
+							"lower_height": 0.7,
+							"support_overlap": 0.936728236079216,
+							"upper_height": 1.99288129806519,
+							"upper_transform": "[X: (0.99848, -0.055107, 0.0), Y: (0.055107, 0.99848, 0.0), Z: (0.0, 0.0, 1.0), O: (0.038516, 0.758654, 0.007916)]"
+						},
+						"legs": "(0, 0)",
+						"split_collision": true
+					},
+					"position": "(7.0, 0.231538, 5.273138)",
+					"velocity": "(0.0, 0.0, -2.816)"
+				},
+				{
+					"frame": 50,
+					"grounded": true,
+					"injury": {
+						"active": true,
+						"arms": "(1, 0)",
+						"hop_count": 0,
+						"jump_count": 0,
+						"last": {
+							"active": true,
+							"arms": "(1, 0)",
+							"hop_count": 0,
+							"jump_count": 0,
+							"legs": "(0, 0)",
+							"lower_height": 0.7,
+							"support_overlap": 0.935770687460899,
+							"upper_height": 1.99209570884705,
+							"upper_transform": "[X: (0.998113, -0.061407, 0.0), Y: (0.061407, 0.998113, 0.0), Z: (0.0, 0.0, 1.0), O: (0.04288, 0.758964, 0.007916)]"
+						},
+						"legs": "(0, 0)",
+						"split_collision": true
+					},
+					"position": "(7.0, 0.233146, 4.803806)",
+					"velocity": "(0.0, 0.0, -2.816)"
+				},
+				{
+					"frame": 60,
+					"grounded": true,
+					"injury": {
+						"active": true,
+						"arms": "(1, 0)",
+						"hop_count": 0,
+						"jump_count": 0,
+						"last": {
+							"active": true,
+							"arms": "(1, 0)",
+							"hop_count": 0,
+							"jump_count": 0,
+							"legs": "(0, 0)",
+							"lower_height": 0.7,
+							"support_overlap": 0.924576190114021,
+							"upper_height": 1.99252879619598,
+							"upper_transform": "[X: (0.998316, -0.058017, 0.0), Y: (0.058017, 0.998316, 0.0), Z: (0.0, 0.0, 1.0), O: (0.040533, 0.770515, 0.007916)]"
+						},
+						"legs": "(0, 0)",
+						"split_collision": true
+					},
+					"position": "(7.0, 0.225094, 4.69994)",
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"frame": 70,
+					"grounded": true,
+					"injury": {
+						"active": true,
+						"arms": "(1, 0)",
+						"hop_count": 0,
+						"jump_count": 0,
+						"last": {
+							"active": true,
+							"arms": "(1, 0)",
+							"hop_count": 0,
+							"jump_count": 0,
+							"legs": "(0, 0)",
+							"lower_height": 0.7,
+							"support_overlap": 0.933734399080276,
+							"upper_height": 1.99281704425812,
+							"upper_transform": "[X: (0.99845, -0.055647, 0.0), Y: (0.055647, 0.99845, 0.0), Z: (0.0, 0.0, 1.0), O: (0.038891, 0.761595, 0.007916)]"
+						},
+						"legs": "(0, 0)",
+						"split_collision": true
+					},
+					"position": "(7.0, 0.233149, 4.69994)",
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"frame": 80,
+					"grounded": true,
+					"injury": {
+						"active": true,
+						"arms": "(1, 0)",
+						"hop_count": 0,
+						"jump_count": 0,
+						"last": {
+							"active": true,
+							"arms": "(1, 0)",
+							"hop_count": 0,
+							"jump_count": 0,
+							"legs": "(0, 0)",
+							"lower_height": 0.7,
+							"support_overlap": 0.936978203058243,
+							"upper_height": 1.99286544322968,
+							"upper_transform": "[X: (0.998473, -0.055239, 0.0), Y: (0.055239, 0.998473, 0.0), Z: (0.0, 0.0, 1.0), O: (0.038608, 0.758391, 0.007916)]"
+						},
+						"legs": "(0, 0)",
+						"split_collision": true
+					},
+					"position": "(7.0, 0.237057, 4.69994)",
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"frame": 90,
+					"grounded": true,
+					"injury": {
+						"active": true,
+						"arms": "(1, 0)",
+						"hop_count": 0,
+						"jump_count": 0,
+						"last": {
+							"active": true,
+							"arms": "(1, 0)",
+							"hop_count": 0,
+							"jump_count": 0,
+							"legs": "(0, 0)",
+							"lower_height": 0.7,
+							"support_overlap": 0.93740628361702,
+							"upper_height": 1.99287152290344,
+							"upper_transform": "[X: (0.998476, -0.055188, 0.0), Y: (0.055188, 0.998476, 0.0), Z: (0.0, 0.0, 1.0), O: (0.038573, 0.757968, 0.007916)]"
+						},
+						"legs": "(0, 0)",
+						"split_collision": true
+					},
+					"position": "(7.0, 0.237622, 4.69994)",
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"frame": 100,
+					"grounded": true,
+					"injury": {
+						"active": true,
+						"arms": "(1, 0)",
+						"hop_count": 0,
+						"jump_count": 0,
+						"last": {
+							"active": true,
+							"arms": "(1, 0)",
+							"hop_count": 0,
+							"jump_count": 0,
+							"legs": "(0, 0)",
+							"lower_height": 0.7,
+							"support_overlap": 0.937407654523849,
+							"upper_height": 1.99287188053131,
+							"upper_transform": "[X: (0.998476, -0.055186, 0.0), Y: (0.055186, 0.998476, 0.0), Z: (0.0, 0.0, 1.0), O: (0.038571, 0.757967, 0.007916)]"
+						},
+						"legs": "(0, 0)",
+						"split_collision": true
+					},
+					"position": "(7.0, 0.237622, 4.69994)",
+					"velocity": "(0.0, 0.0, 0.0)"
+				},
+				{
+					"frame": 110,
+					"grounded": true,
+					"injury": {
+						"active": true,
+						"arms": "(1, 0)",
+						"hop_count": 0,
+						"jump_count": 0,
+						"last": {
+							"active": true,
+							"arms": "(1, 0)",
+							"hop_count": 0,
+							"jump_count": 0,
+							"legs": "(0, 0)",
+							"lower_height": 0.7,
+							"support_overlap": 0.937403124570847,
+							"upper_height": 1.99287164211273,
+							"upper_transform": "[X: (0.998476, -0.055187, 0.0), Y: (0.055187, 0.998476, 0.0), Z: (0.0, 0.0, 1.0), O: (0.038572, 0.757971, 0.007916)]"
+						},
+						"legs": "(0, 0)",
+						"split_collision": true
+					},
+					"position": "(7.0, 0.237622, 4.69994)",
+					"velocity": "(0.0, 0.0, 0.0)"
+				}
+			],
+			"vertical_max": 0.0,
+			"y_span": 0.0146490633487701
+		}
+	],
+	"scope": "Real accepted blade sever API, then native movement and jump input; not a natural enemy swing fixture."
+}

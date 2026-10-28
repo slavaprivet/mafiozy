@@ -1,0 +1,22 @@
+{
+  "changed_local_functions": [
+    "suspend_wounds",
+    "clear_wounds",
+    "_process"
+  ],
+  "added_local_functions": [
+    "_flow32"
+  ],
+  "changed_hero_functions": [
+    "apply"
+  ],
+  "puncture_advance_byte_equivalent": true,
+  "bleed_health_budget_byte_equivalent": true,
+  "own_pins": {
+    "scripts/combat/blood_flow32.gd": "fd9b8233b681fd6dc1cd77a80aced45400fbd6659e2b74bf5c744eab1a03fe7d",
+    "scripts/combat/local_wound28.gd": "cda0d10c067beb8007a2aaa9f8d86e04d9df8cabec71639ccb7b6fb4ce6e2e96",
+    "scripts/character/hero_wound31.gd": "afab0f7f7c7c2524034ddbb284ff349baab2cb7dbb1d4366feb8fc9c938dde7f"
+  },
+  "stage_own_files_byte_identical": true,
+  "scope": "Only cosmetic hooks; wounds physics/HP/damage/protection unchanged. Root owns clay and startup hooks; weapon owns exact playercap hook."
+}

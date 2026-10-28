@@ -1,0 +1,7 @@
+{
+	"checks": {
+		"res://scripts/character/injury_locomotion32.gd": true,
+		"res://scripts/preview_player.gd": true
+	},
+	"passed": true
+}

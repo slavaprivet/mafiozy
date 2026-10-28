@@ -1,0 +1,960 @@
+{
+  "charge_ticks": 40,
+  "checks": {
+    "actual_skin_contact": true,
+    "appropriate_contact": true,
+    "bone_follow": true,
+    "consumed_charges": true,
+    "damage_law": true,
+    "f6_all_three_same_ground": true,
+    "fourth_empty_attempt_no_launch": true,
+    "launch_0": true,
+    "launch_1": true,
+    "launch_2": true,
+    "no_negative_ammo": true,
+    "q_actual_hatchet": true,
+    "startup": true,
+    "three_original_instances": true,
+    "three_unique_instances": true,
+    "wood_outside": true
+  },
+  "passed": true,
+  "rows": [
+    {
+      "camera": "[X: (1.0, 0.0, -0.000032), Y: (-0.000005, 0.985183, -0.171506), Z: (0.000031, 0.171506, 0.985183), O: (0.000106, 2.223804, 5.849623)]",
+      "phase": "aim",
+      "pose": "[X: (0.003736, 0.99753, 0.070149), Y: (-0.053046, 0.070248, -0.996118), Z: (-0.998585, -0.0, 0.053177), O: (0.235795, 1.677258, 2.565844)]",
+      "state": {
+        "aiming": true,
+        "capacity": 3,
+        "casting": false,
+        "charges": 3,
+        "events": [],
+        "last": {},
+        "launched": 0,
+        "picked": 0,
+        "states": [
+          {
+            "id": 229864643068,
+            "ray_max_usec": 0,
+            "state": "held"
+          },
+          {
+            "id": 237934484205,
+            "ray_max_usec": 0,
+            "state": "reserve"
+          },
+          {
+            "id": 238253251324,
+            "ray_max_usec": 0,
+            "state": "reserve"
+          }
+        ]
+      }
+    },
+    {
+      "hp": 221.08685265352,
+      "phase": "shot",
+      "state": {
+        "aiming": false,
+        "capacity": 3,
+        "casting": false,
+        "charges": 2,
+        "events": [
+          {
+            "charges": 2,
+            "event": "launch",
+            "serial": 0,
+            "speed": 23.0
+          },
+          {
+            "depth": 0.00284756333753467,
+            "entry": "(0.00314, 0.994314, -1.830953)",
+            "event": "embed",
+            "normal": "(0.026638, -0.110507, 0.993518)",
+            "part": "chest",
+            "protection": {
+              "damage": 48.9131473464804,
+              "factor": 1.0,
+              "penetrates": true,
+              "region": "skin",
+              "slot": "torso",
+              "tier": ""
+            },
+            "serial": 0,
+            "speed": 23.3126449584961,
+            "volume": {
+              "depth": 0.00284756333753467,
+              "face": 1728,
+              "reason": "connected_exit",
+              "requested": 0.0733697210197206,
+              "source": "240367180636:-9223371796068164767:0",
+              "thickness": 0.00484756333753467,
+              "world_blocked": false
+            },
+            "wood_exterior_m": 0.164636194705963
+          }
+        ],
+        "last": {
+          "depth": 0.00284756333753467,
+          "entry": "(0.00314, 0.994314, -1.830953)",
+          "event": "embed",
+          "normal": "(0.026638, -0.110507, 0.993518)",
+          "part": "chest",
+          "protection": {
+            "damage": 48.9131473464804,
+            "factor": 1.0,
+            "penetrates": true,
+            "region": "skin",
+            "slot": "torso",
+            "tier": ""
+          },
+          "serial": 0,
+          "speed": 23.3126449584961,
+          "volume": {
+            "depth": 0.00284756333753467,
+            "face": 1728,
+            "reason": "connected_exit",
+            "requested": 0.0733697210197206,
+            "source": "240367180636:-9223371796068164767:0",
+            "thickness": 0.00484756333753467,
+            "world_blocked": false
+          },
+          "wood_exterior_m": 0.164636194705963
+        },
+        "launched": 1,
+        "picked": 0,
+        "states": [
+          {
+            "id": 229864643068,
+            "ray_max_usec": 11255,
+            "state": "embedded"
+          },
+          {
+            "id": 237934484205,
+            "ray_max_usec": 0,
+            "state": "held"
+          },
+          {
+            "id": 238253251324,
+            "ray_max_usec": 0,
+            "state": "reserve"
+          }
+        ]
+      }
+    },
+    {
+      "camera": "[X: (1.0, 0.0, -0.000032), Y: (-0.000005, 0.985183, -0.171506), Z: (0.000031, 0.171506, 0.985183), O: (0.000106, 2.223804, 5.849623)]",
+      "phase": "aim",
+      "pose": "[X: (0.003735, 0.997529, 0.070156), Y: (-0.053034, 0.070255, -0.996118), Z: (-0.998586, -0.0, 0.053166), O: (0.235744, 1.677231, 2.565867)]",
+      "state": {
+        "aiming": true,
+        "capacity": 3,
+        "casting": false,
+        "charges": 2,
+        "events": [
+          {
+            "charges": 2,
+            "event": "launch",
+            "serial": 0,
+            "speed": 23.0
+          },
+          {
+            "depth": 0.00284756333753467,
+            "entry": "(0.00314, 0.994314, -1.830953)",
+            "event": "embed",
+            "normal": "(0.026638, -0.110507, 0.993518)",
+            "part": "chest",
+            "protection": {
+              "damage": 48.9131473464804,
+              "factor": 1.0,
+              "penetrates": true,
+              "region": "skin",
+              "slot": "torso",
+              "tier": ""
+            },
+            "serial": 0,
+            "speed": 23.3126449584961,
+            "volume": {
+              "depth": 0.00284756333753467,
+              "face": 1728,
+              "reason": "connected_exit",
+              "requested": 0.0733697210197206,
+              "source": "240367180636:-9223371796068164767:0",
+              "thickness": 0.00484756333753467,
+              "world_blocked": false
+            },
+            "wood_exterior_m": 0.164636194705963
+          }
+        ],
+        "last": {
+          "depth": 0.00284756333753467,
+          "entry": "(0.00314, 0.994314, -1.830953)",
+          "event": "embed",
+          "normal": "(0.026638, -0.110507, 0.993518)",
+          "part": "chest",
+          "protection": {
+            "damage": 48.9131473464804,
+            "factor": 1.0,
+            "penetrates": true,
+            "region": "skin",
+            "slot": "torso",
+            "tier": ""
+          },
+          "serial": 0,
+          "speed": 23.3126449584961,
+          "volume": {
+            "depth": 0.00284756333753467,
+            "face": 1728,
+            "reason": "connected_exit",
+            "requested": 0.0733697210197206,
+            "source": "240367180636:-9223371796068164767:0",
+            "thickness": 0.00484756333753467,
+            "world_blocked": false
+          },
+          "wood_exterior_m": 0.164636194705963
+        },
+        "launched": 1,
+        "picked": 0,
+        "states": [
+          {
+            "id": 229864643068,
+            "ray_max_usec": 11255,
+            "state": "embedded"
+          },
+          {
+            "id": 237934484205,
+            "ray_max_usec": 0,
+            "state": "held"
+          },
+          {
+            "id": 238253251324,
+            "ray_max_usec": 0,
+            "state": "reserve"
+          }
+        ]
+      }
+    },
+    {
+      "hp": 172.173705307039,
+      "phase": "shot",
+      "state": {
+        "aiming": false,
+        "capacity": 3,
+        "casting": false,
+        "charges": 1,
+        "events": [
+          {
+            "charges": 2,
+            "event": "launch",
+            "serial": 0,
+            "speed": 23.0
+          },
+          {
+            "depth": 0.00284756333753467,
+            "entry": "(0.00314, 0.994314, -1.830953)",
+            "event": "embed",
+            "normal": "(0.026638, -0.110507, 0.993518)",
+            "part": "chest",
+            "protection": {
+              "damage": 48.9131473464804,
+              "factor": 1.0,
+              "penetrates": true,
+              "region": "skin",
+              "slot": "torso",
+              "tier": ""
+            },
+            "serial": 0,
+            "speed": 23.3126449584961,
+            "volume": {
+              "depth": 0.00284756333753467,
+              "face": 1728,
+              "reason": "connected_exit",
+              "requested": 0.0733697210197206,
+              "source": "240367180636:-9223371796068164767:0",
+              "thickness": 0.00484756333753467,
+              "world_blocked": false
+            },
+            "wood_exterior_m": 0.164636194705963
+          },
+          {
+            "charges": 1,
+            "event": "launch",
+            "serial": 1,
+            "speed": 23.0
+          },
+          {
+            "depth": 0.002847576841712,
+            "entry": "(0.00314, 0.994313, -1.830953)",
+            "event": "embed",
+            "normal": "(0.026638, -0.110507, 0.993518)",
+            "part": "chest",
+            "protection": {
+              "damage": 48.9131473464804,
+              "factor": 1.0,
+              "penetrates": true,
+              "region": "skin",
+              "slot": "torso",
+              "tier": ""
+            },
+            "serial": 1,
+            "speed": 23.3126449584961,
+            "volume": {
+              "depth": 0.002847576841712,
+              "face": 1728,
+              "reason": "connected_exit",
+              "requested": 0.0733697210197206,
+              "source": "240367180636:-9223371796068164767:0",
+              "thickness": 0.004847576841712,
+              "world_blocked": false
+            },
+            "wood_exterior_m": 0.164636194705963
+          }
+        ],
+        "last": {
+          "depth": 0.002847576841712,
+          "entry": "(0.00314, 0.994313, -1.830953)",
+          "event": "embed",
+          "normal": "(0.026638, -0.110507, 0.993518)",
+          "part": "chest",
+          "protection": {
+            "damage": 48.9131473464804,
+            "factor": 1.0,
+            "penetrates": true,
+            "region": "skin",
+            "slot": "torso",
+            "tier": ""
+          },
+          "serial": 1,
+          "speed": 23.3126449584961,
+          "volume": {
+            "depth": 0.002847576841712,
+            "face": 1728,
+            "reason": "connected_exit",
+            "requested": 0.0733697210197206,
+            "source": "240367180636:-9223371796068164767:0",
+            "thickness": 0.004847576841712,
+            "world_blocked": false
+          },
+          "wood_exterior_m": 0.164636194705963
+        },
+        "launched": 2,
+        "picked": 0,
+        "states": [
+          {
+            "id": 229864643068,
+            "ray_max_usec": 11255,
+            "state": "embedded"
+          },
+          {
+            "id": 237934484205,
+            "ray_max_usec": 10294,
+            "state": "embedded"
+          },
+          {
+            "id": 238253251324,
+            "ray_max_usec": 0,
+            "state": "held"
+          }
+        ]
+      }
+    },
+    {
+      "camera": "[X: (1.0, 0.0, -0.000032), Y: (-0.000005, 0.985183, -0.171506), Z: (0.000031, 0.171506, 0.985183), O: (0.000106, 2.223804, 5.849623)]",
+      "phase": "aim",
+      "pose": "[X: (0.003737, 0.997531, 0.070122), Y: (-0.053085, 0.070222, -0.996118), Z: (-0.998583, -0.0, 0.053216), O: (0.235962, 1.677351, 2.565744)]",
+      "state": {
+        "aiming": true,
+        "capacity": 3,
+        "casting": false,
+        "charges": 1,
+        "events": [
+          {
+            "charges": 2,
+            "event": "launch",
+            "serial": 0,
+            "speed": 23.0
+          },
+          {
+            "depth": 0.00284756333753467,
+            "entry": "(0.00314, 0.994314, -1.830953)",
+            "event": "embed",
+            "normal": "(0.026638, -0.110507, 0.993518)",
+            "part": "chest",
+            "protection": {
+              "damage": 48.9131473464804,
+              "factor": 1.0,
+              "penetrates": true,
+              "region": "skin",
+              "slot": "torso",
+              "tier": ""
+            },
+            "serial": 0,
+            "speed": 23.3126449584961,
+            "volume": {
+              "depth": 0.00284756333753467,
+              "face": 1728,
+              "reason": "connected_exit",
+              "requested": 0.0733697210197206,
+              "source": "240367180636:-9223371796068164767:0",
+              "thickness": 0.00484756333753467,
+              "world_blocked": false
+            },
+            "wood_exterior_m": 0.164636194705963
+          },
+          {
+            "charges": 1,
+            "event": "launch",
+            "serial": 1,
+            "speed": 23.0
+          },
+          {
+            "depth": 0.002847576841712,
+            "entry": "(0.00314, 0.994313, -1.830953)",
+            "event": "embed",
+            "normal": "(0.026638, -0.110507, 0.993518)",
+            "part": "chest",
+            "protection": {
+              "damage": 48.9131473464804,
+              "factor": 1.0,
+              "penetrates": true,
+              "region": "skin",
+              "slot": "torso",
+              "tier": ""
+            },
+            "serial": 1,
+            "speed": 23.3126449584961,
+            "volume": {
+              "depth": 0.002847576841712,
+              "face": 1728,
+              "reason": "connected_exit",
+              "requested": 0.0733697210197206,
+              "source": "240367180636:-9223371796068164767:0",
+              "thickness": 0.004847576841712,
+              "world_blocked": false
+            },
+            "wood_exterior_m": 0.164636194705963
+          }
+        ],
+        "last": {
+          "depth": 0.002847576841712,
+          "entry": "(0.00314, 0.994313, -1.830953)",
+          "event": "embed",
+          "normal": "(0.026638, -0.110507, 0.993518)",
+          "part": "chest",
+          "protection": {
+            "damage": 48.9131473464804,
+            "factor": 1.0,
+            "penetrates": true,
+            "region": "skin",
+            "slot": "torso",
+            "tier": ""
+          },
+          "serial": 1,
+          "speed": 23.3126449584961,
+          "volume": {
+            "depth": 0.002847576841712,
+            "face": 1728,
+            "reason": "connected_exit",
+            "requested": 0.0733697210197206,
+            "source": "240367180636:-9223371796068164767:0",
+            "thickness": 0.004847576841712,
+            "world_blocked": false
+          },
+          "wood_exterior_m": 0.164636194705963
+        },
+        "launched": 2,
+        "picked": 0,
+        "states": [
+          {
+            "id": 229864643068,
+            "ray_max_usec": 11255,
+            "state": "embedded"
+          },
+          {
+            "id": 237934484205,
+            "ray_max_usec": 10294,
+            "state": "embedded"
+          },
+          {
+            "id": 238253251324,
+            "ray_max_usec": 0,
+            "state": "held"
+          }
+        ]
+      }
+    },
+    {
+      "hp": 123.260557960559,
+      "phase": "shot",
+      "state": {
+        "aiming": false,
+        "capacity": 3,
+        "casting": false,
+        "charges": 0,
+        "events": [
+          {
+            "charges": 2,
+            "event": "launch",
+            "serial": 0,
+            "speed": 23.0
+          },
+          {
+            "depth": 0.00284756333753467,
+            "entry": "(0.00314, 0.994314, -1.830953)",
+            "event": "embed",
+            "normal": "(0.026638, -0.110507, 0.993518)",
+            "part": "chest",
+            "protection": {
+              "damage": 48.9131473464804,
+              "factor": 1.0,
+              "penetrates": true,
+              "region": "skin",
+              "slot": "torso",
+              "tier": ""
+            },
+            "serial": 0,
+            "speed": 23.3126449584961,
+            "volume": {
+              "depth": 0.00284756333753467,
+              "face": 1728,
+              "reason": "connected_exit",
+              "requested": 0.0733697210197206,
+              "source": "240367180636:-9223371796068164767:0",
+              "thickness": 0.00484756333753467,
+              "world_blocked": false
+            },
+            "wood_exterior_m": 0.164636194705963
+          },
+          {
+            "charges": 1,
+            "event": "launch",
+            "serial": 1,
+            "speed": 23.0
+          },
+          {
+            "depth": 0.002847576841712,
+            "entry": "(0.00314, 0.994313, -1.830953)",
+            "event": "embed",
+            "normal": "(0.026638, -0.110507, 0.993518)",
+            "part": "chest",
+            "protection": {
+              "damage": 48.9131473464804,
+              "factor": 1.0,
+              "penetrates": true,
+              "region": "skin",
+              "slot": "torso",
+              "tier": ""
+            },
+            "serial": 1,
+            "speed": 23.3126449584961,
+            "volume": {
+              "depth": 0.002847576841712,
+              "face": 1728,
+              "reason": "connected_exit",
+              "requested": 0.0733697210197206,
+              "source": "240367180636:-9223371796068164767:0",
+              "thickness": 0.004847576841712,
+              "world_blocked": false
+            },
+            "wood_exterior_m": 0.164636194705963
+          },
+          {
+            "charges": 0,
+            "event": "launch",
+            "serial": 2,
+            "speed": 23.0
+          },
+          {
+            "depth": 0.00284756333753467,
+            "entry": "(0.00314, 0.994313, -1.830953)",
+            "event": "embed",
+            "normal": "(0.026638, -0.110507, 0.993518)",
+            "part": "chest",
+            "protection": {
+              "damage": 48.9131473464804,
+              "factor": 1.0,
+              "penetrates": true,
+              "region": "skin",
+              "slot": "torso",
+              "tier": ""
+            },
+            "serial": 2,
+            "speed": 23.3126449584961,
+            "volume": {
+              "depth": 0.00284756333753467,
+              "face": 1728,
+              "reason": "connected_exit",
+              "requested": 0.0733697210197206,
+              "source": "240367180636:-9223371796068164767:0",
+              "thickness": 0.00484756333753467,
+              "world_blocked": false
+            },
+            "wood_exterior_m": 0.164636179804802
+          }
+        ],
+        "last": {
+          "depth": 0.00284756333753467,
+          "entry": "(0.00314, 0.994313, -1.830953)",
+          "event": "embed",
+          "normal": "(0.026638, -0.110507, 0.993518)",
+          "part": "chest",
+          "protection": {
+            "damage": 48.9131473464804,
+            "factor": 1.0,
+            "penetrates": true,
+            "region": "skin",
+            "slot": "torso",
+            "tier": ""
+          },
+          "serial": 2,
+          "speed": 23.3126449584961,
+          "volume": {
+            "depth": 0.00284756333753467,
+            "face": 1728,
+            "reason": "connected_exit",
+            "requested": 0.0733697210197206,
+            "source": "240367180636:-9223371796068164767:0",
+            "thickness": 0.00484756333753467,
+            "world_blocked": false
+          },
+          "wood_exterior_m": 0.164636179804802
+        },
+        "launched": 3,
+        "picked": 0,
+        "states": [
+          {
+            "id": 229864643068,
+            "ray_max_usec": 11255,
+            "state": "embedded"
+          },
+          {
+            "id": 237934484205,
+            "ray_max_usec": 10294,
+            "state": "embedded"
+          },
+          {
+            "id": 238253251324,
+            "ray_max_usec": 10539,
+            "state": "embedded"
+          }
+        ]
+      }
+    },
+    {
+      "anchor_error": 0.0,
+      "final": {
+        "aiming": false,
+        "capacity": 3,
+        "casting": false,
+        "charges": 0,
+        "events": [
+          {
+            "charges": 2,
+            "event": "launch",
+            "serial": 0,
+            "speed": 23.0
+          },
+          {
+            "depth": 0.00284756333753467,
+            "entry": "(0.00314, 0.994314, -1.830953)",
+            "event": "embed",
+            "normal": "(0.026638, -0.110507, 0.993518)",
+            "part": "chest",
+            "protection": {
+              "damage": 48.9131473464804,
+              "factor": 1.0,
+              "penetrates": true,
+              "region": "skin",
+              "slot": "torso",
+              "tier": ""
+            },
+            "serial": 0,
+            "speed": 23.3126449584961,
+            "volume": {
+              "depth": 0.00284756333753467,
+              "face": 1728,
+              "reason": "connected_exit",
+              "requested": 0.0733697210197206,
+              "source": "240367180636:-9223371796068164767:0",
+              "thickness": 0.00484756333753467,
+              "world_blocked": false
+            },
+            "wood_exterior_m": 0.164636194705963
+          },
+          {
+            "charges": 1,
+            "event": "launch",
+            "serial": 1,
+            "speed": 23.0
+          },
+          {
+            "depth": 0.002847576841712,
+            "entry": "(0.00314, 0.994313, -1.830953)",
+            "event": "embed",
+            "normal": "(0.026638, -0.110507, 0.993518)",
+            "part": "chest",
+            "protection": {
+              "damage": 48.9131473464804,
+              "factor": 1.0,
+              "penetrates": true,
+              "region": "skin",
+              "slot": "torso",
+              "tier": ""
+            },
+            "serial": 1,
+            "speed": 23.3126449584961,
+            "volume": {
+              "depth": 0.002847576841712,
+              "face": 1728,
+              "reason": "connected_exit",
+              "requested": 0.0733697210197206,
+              "source": "240367180636:-9223371796068164767:0",
+              "thickness": 0.004847576841712,
+              "world_blocked": false
+            },
+            "wood_exterior_m": 0.164636194705963
+          },
+          {
+            "charges": 0,
+            "event": "launch",
+            "serial": 2,
+            "speed": 23.0
+          },
+          {
+            "depth": 0.00284756333753467,
+            "entry": "(0.00314, 0.994313, -1.830953)",
+            "event": "embed",
+            "normal": "(0.026638, -0.110507, 0.993518)",
+            "part": "chest",
+            "protection": {
+              "damage": 48.9131473464804,
+              "factor": 1.0,
+              "penetrates": true,
+              "region": "skin",
+              "slot": "torso",
+              "tier": ""
+            },
+            "serial": 2,
+            "speed": 23.3126449584961,
+            "volume": {
+              "depth": 0.00284756333753467,
+              "face": 1728,
+              "reason": "connected_exit",
+              "requested": 0.0733697210197206,
+              "source": "240367180636:-9223371796068164767:0",
+              "thickness": 0.00484756333753467,
+              "world_blocked": false
+            },
+            "wood_exterior_m": 0.164636179804802
+          }
+        ],
+        "last": {
+          "depth": 0.00284756333753467,
+          "entry": "(0.00314, 0.994313, -1.830953)",
+          "event": "embed",
+          "normal": "(0.026638, -0.110507, 0.993518)",
+          "part": "chest",
+          "protection": {
+            "damage": 48.9131473464804,
+            "factor": 1.0,
+            "penetrates": true,
+            "region": "skin",
+            "slot": "torso",
+            "tier": ""
+          },
+          "serial": 2,
+          "speed": 23.3126449584961,
+          "volume": {
+            "depth": 0.00284756333753467,
+            "face": 1728,
+            "reason": "connected_exit",
+            "requested": 0.0733697210197206,
+            "source": "240367180636:-9223371796068164767:0",
+            "thickness": 0.00484756333753467,
+            "world_blocked": false
+          },
+          "wood_exterior_m": 0.164636179804802
+        },
+        "launched": 3,
+        "picked": 0,
+        "states": [
+          {
+            "id": 229864643068,
+            "ray_max_usec": 11255,
+            "state": "embedded"
+          },
+          {
+            "id": 237934484205,
+            "ray_max_usec": 10294,
+            "state": "embedded"
+          },
+          {
+            "id": 238253251324,
+            "ray_max_usec": 10539,
+            "state": "embedded"
+          }
+        ]
+      },
+      "hp_after": 123.260557960559,
+      "hp_before": 270.0
+    },
+    {
+      "phase": "three_throw_f6",
+      "state": {
+        "aiming": false,
+        "capacity": 3,
+        "casting": false,
+        "charges": 0,
+        "events": [
+          {
+            "charges": 2,
+            "event": "launch",
+            "serial": 0,
+            "speed": 23.0
+          },
+          {
+            "depth": 0.00284756333753467,
+            "entry": "(0.00314, 0.994314, -1.830953)",
+            "event": "embed",
+            "normal": "(0.026638, -0.110507, 0.993518)",
+            "part": "chest",
+            "protection": {
+              "damage": 48.9131473464804,
+              "factor": 1.0,
+              "penetrates": true,
+              "region": "skin",
+              "slot": "torso",
+              "tier": ""
+            },
+            "serial": 0,
+            "speed": 23.3126449584961,
+            "volume": {
+              "depth": 0.00284756333753467,
+              "face": 1728,
+              "reason": "connected_exit",
+              "requested": 0.0733697210197206,
+              "source": "240367180636:-9223371796068164767:0",
+              "thickness": 0.00484756333753467,
+              "world_blocked": false
+            },
+            "wood_exterior_m": 0.164636194705963
+          },
+          {
+            "charges": 1,
+            "event": "launch",
+            "serial": 1,
+            "speed": 23.0
+          },
+          {
+            "depth": 0.002847576841712,
+            "entry": "(0.00314, 0.994313, -1.830953)",
+            "event": "embed",
+            "normal": "(0.026638, -0.110507, 0.993518)",
+            "part": "chest",
+            "protection": {
+              "damage": 48.9131473464804,
+              "factor": 1.0,
+              "penetrates": true,
+              "region": "skin",
+              "slot": "torso",
+              "tier": ""
+            },
+            "serial": 1,
+            "speed": 23.3126449584961,
+            "volume": {
+              "depth": 0.002847576841712,
+              "face": 1728,
+              "reason": "connected_exit",
+              "requested": 0.0733697210197206,
+              "source": "240367180636:-9223371796068164767:0",
+              "thickness": 0.004847576841712,
+              "world_blocked": false
+            },
+            "wood_exterior_m": 0.164636194705963
+          },
+          {
+            "charges": 0,
+            "event": "launch",
+            "serial": 2,
+            "speed": 23.0
+          },
+          {
+            "depth": 0.00284756333753467,
+            "entry": "(0.00314, 0.994313, -1.830953)",
+            "event": "embed",
+            "normal": "(0.026638, -0.110507, 0.993518)",
+            "part": "chest",
+            "protection": {
+              "damage": 48.9131473464804,
+              "factor": 1.0,
+              "penetrates": true,
+              "region": "skin",
+              "slot": "torso",
+              "tier": ""
+            },
+            "serial": 2,
+            "speed": 23.3126449584961,
+            "volume": {
+              "depth": 0.00284756333753467,
+              "face": 1728,
+              "reason": "connected_exit",
+              "requested": 0.0733697210197206,
+              "source": "240367180636:-9223371796068164767:0",
+              "thickness": 0.00484756333753467,
+              "world_blocked": false
+            },
+            "wood_exterior_m": 0.164636179804802
+          }
+        ],
+        "last": {
+          "depth": 0.00284756333753467,
+          "entry": "(0.00314, 0.994313, -1.830953)",
+          "event": "embed",
+          "normal": "(0.026638, -0.110507, 0.993518)",
+          "part": "chest",
+          "protection": {
+            "damage": 48.9131473464804,
+            "factor": 1.0,
+            "penetrates": true,
+            "region": "skin",
+            "slot": "torso",
+            "tier": ""
+          },
+          "serial": 2,
+          "speed": 23.3126449584961,
+          "volume": {
+            "depth": 0.00284756333753467,
+            "face": 1728,
+            "reason": "connected_exit",
+            "requested": 0.0733697210197206,
+            "source": "240367180636:-9223371796068164767:0",
+            "thickness": 0.00484756333753467,
+            "world_blocked": false
+          },
+          "wood_exterior_m": 0.164636179804802
+        },
+        "launched": 3,
+        "picked": 0,
+        "states": [
+          {
+            "id": 229864643068,
+            "ray_max_usec": 11255,
+            "state": "ground"
+          },
+          {
+            "id": 237934484205,
+            "ray_max_usec": 10294,
+            "state": "ground"
+          },
+          {
+            "id": 238253251324,
+            "ray_max_usec": 10539,
+            "state": "ground"
+          }
+        ]
+      }
+    }
+  ],
+  "tier": "none"
+}

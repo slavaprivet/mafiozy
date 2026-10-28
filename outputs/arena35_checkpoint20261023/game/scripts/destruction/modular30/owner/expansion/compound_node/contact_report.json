@@ -1,0 +1,31 @@
+{
+  "checks": 47,
+  "evidence": {
+    "bounded_triangles": 32768,
+    "shield_case": {
+      "actual_target_distance_m": 0.600000011920929,
+      "angle_degrees": 45,
+      "blast_normal_coordinate": 0.7,
+      "old_ray_empty": true,
+      "old_ray_normal_interval": [
+        0.7,
+        0.74
+      ],
+      "shield_normal_interval": [
+        0.25,
+        0.45
+      ],
+      "true_ray_hits_shield": true,
+      "wall_normal_interval": [
+        -0.1,
+        0.1
+      ]
+    }
+  },
+  "failures": [],
+  "headless": true,
+  "loaded_scene_fps_verified": false,
+  "passed": true,
+  "production_enabled": false,
+  "schema": "mafiozi.compound-real-contact-qa/v1"
+}

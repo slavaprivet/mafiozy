@@ -1,0 +1,118 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--max-fps",
+    "60",
+    "--path",
+    "D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game",
+    "--script",
+    "D:/MafioziCombat31/c33_coordination/agents/contact_perf31/mixed_oracle31.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\shared_combined_oracle02",
+    "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\shared_combined_oracle02"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "ba214902e92745b789aeff3f9f65d71f",
+    "owner": {
+      "pid": 56128,
+      "creation_filetime": "134372383432625434"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena33_contact_performance\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 59032,
+        "creation_filetime": "134372383444300998",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game --script D:/MafioziCombat31/c33_coordination/agents/contact_perf31/mixed_oracle31.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\shared_combined_oracle02 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\shared_combined_oracle02",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--max-fps",
+          "60",
+          "--path",
+          "D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game",
+          "--script",
+          "D:/MafioziCombat31/c33_coordination/agents/contact_perf31/mixed_oracle31.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\shared_combined_oracle02",
+          "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\shared_combined_oracle02"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "d:\\mafiozicombat31\\c33_coordination\\arena33_contact_performance\\game",
+        "affinity_mask": 12,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 254628.0947341,
+    "queued_at": 254538.0947341,
+    "ticket": 6045,
+    "inventory_before": [
+      {
+        "pid": 54284,
+        "parent_pid": 45600,
+        "creation_filetime": "134371930274875675",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game\" res://scenes/arena27.tscn --windowed --resolution 1440x900 --max-fps 60 -- \"--lab-out=D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\interactive\\20261023T013707462Z\"",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози · Полигон 32 · ранения и метательные топоры (DEBUG)"
+      },
+      {
+        "pid": 58336,
+        "parent_pid": 28160,
+        "creation_filetime": "134372383315320871",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\agents\\weapon33\\spear_candidate\\game --script D:/MafioziCombat31/c33_coordination/agents/weapon33/spear_gui.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon33_spear_gui_final18 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon33_spear_gui_final18",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": ""
+      },
+      {
+        "pid": 52436,
+        "parent_pid": 51444,
+        "creation_filetime": "134372383323879188",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\agents\\weapon33\\spear_candidate\\game --script D:/MafioziCombat31/c33_coordination/agents/weapon33/spear_oblique_lock.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon33_spear_lock_final19 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon33_spear_lock_final19",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": ""
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.6094512999989092
+  },
+  "child": {
+    "pid": 59032,
+    "creation_filetime": "134372383444300998",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game --script D:/MafioziCombat31/c33_coordination/agents/contact_perf31/mixed_oracle31.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\shared_combined_oracle02 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\shared_combined_oracle02",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--max-fps",
+      "60",
+      "--path",
+      "D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game",
+      "--script",
+      "D:/MafioziCombat31/c33_coordination/agents/contact_perf31/mixed_oracle31.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\shared_combined_oracle02",
+      "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\shared_combined_oracle02"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena33_contact_performance\\game",
+    "affinity_mask": 12,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 9.17449200002011,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

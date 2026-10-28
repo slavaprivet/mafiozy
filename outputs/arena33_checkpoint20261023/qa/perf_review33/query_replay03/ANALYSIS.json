@@ -1,0 +1,47 @@
+{
+  "queries": 1051,
+  "snapshots": 7,
+  "mismatches": 0,
+  "groups": {
+    "baseline_warmFalse": {
+      "p50_us": 7241.5,
+      "p95_us": 7610,
+      "max_us": 7987
+    },
+    "baseline_warmTrue": {
+      "p50_us": 6700.0,
+      "p95_us": 6834,
+      "max_us": 6864
+    },
+    "stack_warmFalse": {
+      "p50_us": 6211.0,
+      "p95_us": 6436,
+      "max_us": 7130
+    },
+    "stack_warmTrue": {
+      "p50_us": 5628.5,
+      "p95_us": 5694,
+      "max_us": 6074
+    },
+    "inline_warmFalse": {
+      "p50_us": 4728.5,
+      "p95_us": 4909,
+      "max_us": 4945
+    },
+    "inline_warmTrue": {
+      "p50_us": 4128.0,
+      "p95_us": 4369,
+      "max_us": 4599
+    },
+    "combined_warmFalse": {
+      "p50_us": 3716.0,
+      "p95_us": 3878,
+      "max_us": 4739
+    },
+    "combined_warmTrue": {
+      "p50_us": 3206.0,
+      "p95_us": 3607,
+      "max_us": 4183
+    }
+  }
+}

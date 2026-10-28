@@ -1,0 +1,102 @@
+{
+  "mode": "graphical",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--windowed",
+    "--resolution",
+    "1280x720",
+    "--max-fps",
+    "60",
+    "--path",
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\paired_uncached\\game",
+    "--script",
+    "D:/MafioziCombat31/c33_coordination/agents/perf_review33/seeded_corpse_hold.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\hold_uncached01",
+    "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\hold_uncached01"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "eebb89c23e4a4ab4939d9972a7311975",
+    "owner": {
+      "pid": 44192,
+      "creation_filetime": "134372373668809082"
+    },
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\agents\\perf_review33\\paired_uncached\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 52436,
+        "creation_filetime": "134372374152861466",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\paired_uncached\\game --script D:/MafioziCombat31/c33_coordination/agents/perf_review33/seeded_corpse_hold.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\hold_uncached01 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\hold_uncached01",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--windowed",
+          "--resolution",
+          "1280x720",
+          "--max-fps",
+          "60",
+          "--path",
+          "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\paired_uncached\\game",
+          "--script",
+          "D:/MafioziCombat31/c33_coordination/agents/perf_review33/seeded_corpse_hold.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\hold_uncached01",
+          "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\hold_uncached01"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "graphical",
+        "project": "d:\\mafiozicombat31\\c33_coordination\\agents\\perf_review33\\paired_uncached\\game"
+      }
+    ],
+    "deadline": 254161.6798741,
+    "queued_at": 253561.6798741,
+    "ticket": 6019,
+    "inventory_before": [
+      {
+        "pid": 54284,
+        "parent_pid": 45600,
+        "creation_filetime": "134371930274875675",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game\" res://scenes/arena27.tscn --windowed --resolution 1440x900 --max-fps 60 -- \"--lab-out=D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\interactive\\20261023T013707462Z\"",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози · Полигон 32 · ранения и метательные топоры (DEBUG)"
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 47.869997800007695
+  },
+  "child": {
+    "pid": 52436,
+    "creation_filetime": "134372374152861466",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\paired_uncached\\game --script D:/MafioziCombat31/c33_coordination/agents/perf_review33/seeded_corpse_hold.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\hold_uncached01 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\hold_uncached01",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--windowed",
+      "--resolution",
+      "1280x720",
+      "--max-fps",
+      "60",
+      "--path",
+      "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\paired_uncached\\game",
+      "--script",
+      "D:/MafioziCombat31/c33_coordination/agents/perf_review33/seeded_corpse_hold.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\hold_uncached01",
+      "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\hold_uncached01"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\agents\\perf_review33\\paired_uncached\\game"
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 24.98968469997635,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

@@ -1,0 +1,442 @@
+{
+  "draft": true,
+  "evidence": [
+    {
+      "folder": "root35/moderate_before03",
+      "scope": "Historical baseline FAIL: same moderate real sharp-edge input does not sever under previous3.2 gate. Not final source.",
+      "required_pass": false,
+      "exact_files": [],
+      "images": [
+        "after_strong_side.png"
+      ]
+    },
+    {
+      "folder": "root35/moderate_after04",
+      "scope": "Soft-tissue component PASS6 on same moderate input; speed gate2.6 with unchanged travel40mm/edge.55. Historical other source.",
+      "required_pass": true,
+      "exact_files": [
+        "scripts/clay_target.gd",
+        "scripts/combat/blade_resistance28.gd"
+      ],
+      "images": [
+        "after_strong_side.png"
+      ]
+    },
+    {
+      "folder": "root35/profile_baseline05",
+      "scope": "Exclusive clean matched performance baseline: real upperarm_l cut, worker217.719ms,total234.099ms,main.935ms; drawp95 18.556ms. Historical topology.",
+      "required_pass": true,
+      "exact_files": [],
+      "images": [
+        "after_strong_side.png"
+      ]
+    },
+    {
+      "folder": "root35/profile_after07",
+      "scope": "Exclusive clean matched performance after topology interning: same upperarm_l cut, worker182.994ms,total200.070ms,main.887ms,drawp95 18.746ms. No overall FPS improvement claim.",
+      "required_pass": true,
+      "exact_files": [
+        "scripts/weapons/hatchet_volume32.gd"
+      ],
+      "images": [
+        "after_strong_side.png"
+      ]
+    },
+    {
+      "folder": "root35/topology_equivalence06",
+      "scope": "Topology10 assertions across27 matched builds before/after real cut: exact component labels/closed/main equivalence. Internal old implementation loaded as oracle. Component-only.",
+      "required_pass": true,
+      "exact_files": [
+        "scripts/weapons/hatchet_volume32.gd"
+      ],
+      "images": [
+        "after_strong_side.png"
+      ]
+    },
+    {
+      "folder": "root35/merged_weak09",
+      "scope": "Combined35 real weak sharp-edge contacts remain local wounds without sever;8PASS. Excludes pending embedded/hatchet flight acceptance.",
+      "required_pass": true,
+      "exact_files": [
+        "scripts/clay_target.gd",
+        "scripts/combat/blade_resistance28.gd",
+        "scripts/weapons/sword_prototype.gd",
+        "scripts/combat/armor_contact31.gd",
+        "scripts/combat/armor_damage31.gd",
+        "scripts/combat/armor_head_surface35.gd",
+        "scripts/combat/sword_puncture_resistance29.gd",
+        "scripts/combat/weapon_solid_contact29.gd"
+      ],
+      "images": [
+        "after_strong_side.png"
+      ]
+    },
+    {
+      "folder": "root35/merged_plate10",
+      "scope": "Combined35 actual continuous plate impacts resist penetration/sever;9PASS. Excludes pending embedded/hatchet flight acceptance.",
+      "required_pass": true,
+      "exact_files": [
+        "scripts/clay_target.gd",
+        "scripts/combat/blade_resistance28.gd",
+        "scripts/weapons/sword_prototype.gd",
+        "scripts/combat/armor_contact31.gd",
+        "scripts/combat/armor_damage31.gd",
+        "scripts/combat/armor_head_surface35.gd",
+        "scripts/combat/sword_puncture_resistance29.gd",
+        "scripts/combat/weapon_solid_contact29.gd"
+      ],
+      "images": [
+        "after_strong_side.png"
+      ]
+    },
+    {
+      "folder": "root35/hatchet_agent_lifecycle03",
+      "scope": "TIMING120 BEHAVIORAL BASELINE FAIL in raw samples: repeated render frame yielded zero/double speed. CHECK historically PASS8 because old gates omitted this condition. Preserve both facts; not a forged CHECK failure.",
+      "required_pass": true,
+      "exact_files": [],
+      "images": []
+    },
+    {
+      "folder": "root35/hatchet_agent_timingfixed06",
+      "scope": "Historical timing fix PASS11 adds repeated-physics-pose/no2x gates: max120fps4.957 vs60fps4.821. Pending final flight/orientation changes mean no final throwing_axe exact assertion.",
+      "required_pass": true,
+      "exact_files": [],
+      "images": []
+    },
+    {
+      "folder": "root35/hatchet_agent_angular_over09",
+      "scope": "Important raw FAIL: overhead spin release hits actual leg blunt, fails desired edge embedding. Finite COM/angular capture works but this trajectory is not edge-embed acceptance.",
+      "required_pass": false,
+      "exact_files": [],
+      "images": [
+        "impact.png"
+      ]
+    },
+    {
+      "folder": "root35/hatchet_agent_angular_under08",
+      "scope": "Historical angular underhand PASS10: bare chest8mm embedding,90frame attachment,F6/E. Pending grip/orientation source not final.",
+      "required_pass": true,
+      "exact_files": [],
+      "images": [
+        "impact.png"
+      ]
+    },
+    {
+      "folder": "root35/hatchet_agent_wall10",
+      "scope": "Historical rotating-hatchet world wall PASS5; whole-flight maximum23.64/10.52ms reported, not FPS acceptance. Pending orientation/final merged proof.",
+      "required_pass": true,
+      "exact_files": [],
+      "images": []
+    },
+    {
+      "folder": "root35/hatchet_agent_overearly11",
+      "scope": "Matched overhead4 raw FAIL before initial grip orientation trial: actual head blunt contact, no edge embedding. Required baseline for grip_over12; pending final source.",
+      "required_pass": false,
+      "exact_files": [],
+      "images": [
+        "impact.png"
+      ]
+    },
+    {
+      "folder": "root35/hatchet_agent_grip_over12",
+      "scope": "Grip trial component PASS10 on same overhead4: edge dot+.929,head embed8mm,release5.235m/s,exact pose/velocity,90frames,F6/E. Root flight perf helper still changing; no final helper SHA assertion.",
+      "required_pass": true,
+      "exact_files": [],
+      "images": [
+        "impact.png"
+      ]
+    },
+    {
+      "folder": "root35/hatchet_agent_open_profile13",
+      "scope": "Historical open-flight profiling PASS4 but whole-flight peak25.468ms,steady8-9ms before pending batching optimization. Evidence of remaining cost, not final FPS acceptance.",
+      "required_pass": true,
+      "exact_files": [],
+      "images": []
+    },
+    {
+      "folder": "optimization31/bow35_before02",
+      "scope": "Matched arrow visual baseline at28.8m, same physical pose/velocity as after03; shaft.371px, original ballistics. Historical visual source.",
+      "required_pass": true,
+      "exact_files": [],
+      "images": [
+        "flight_28.png",
+        "flight_40.png"
+      ]
+    },
+    {
+      "folder": "optimization31/bow35_after03",
+      "scope": "Bow component PASS7: projected shaft target.8px, transverse scaling capped3x; ballistic inputs and z length unchanged.",
+      "required_pass": true,
+      "exact_files": [
+        "scripts/weapons/bow_prototype.gd"
+      ],
+      "images": [
+        "flight_28.png",
+        "flight_40.png"
+      ]
+    },
+    {
+      "folder": "optimization31/bow35_visual_lifecycle05",
+      "scope": "Bow component PASS19: light background, baked identity children, every vertexZ/rear/root invariant, inactive switch/recycle/audio reset,1/44arrow loop. Bright sky still subtle; no full FPS.",
+      "required_pass": true,
+      "exact_files": [
+        "scripts/weapons/bow_prototype.gd"
+      ],
+      "images": [
+        "flight_28.png",
+        "flight_40.png"
+      ]
+    },
+    {
+      "folder": "optimization31/bow35_plate04",
+      "scope": "Bow component actual shot/plate regression PASS15.",
+      "required_pass": true,
+      "exact_files": [
+        "scripts/weapons/bow_prototype.gd"
+      ],
+      "images": []
+    },
+    {
+      "folder": "optimization31/bow35_embed_cut06",
+      "scope": "Bow component embed/cut transfer PASS15: real input shot then direct real cut API, not mouse-cut acceptance.",
+      "required_pass": true,
+      "exact_files": [
+        "scripts/weapons/bow_prototype.gd"
+      ],
+      "images": []
+    },
+    {
+      "folder": "swing35/horizontal_downview03",
+      "scope": "Matched34 baseline diagnostic PASS12; sword horizontal targetY drift-.123..+.218, sledge press falls from carry toward-.117 at camera-.55. PASS does not mean absence of reported drift.",
+      "required_pass": true,
+      "exact_files": [],
+      "images": [
+        "sword_air_right.png",
+        "sledge_air_settle.png"
+      ]
+    },
+    {
+      "folder": "swing35/horizontal_presentation_off02",
+      "scope": "Diagnostic presentation-off baseline: air trajectories match, excluding presentation layer as cause. Snapshot predates an unused --pitch option added while queued; default semantics unchanged.",
+      "required_pass": true,
+      "exact_files": [],
+      "images": []
+    },
+    {
+      "folder": "swing35/horizontal_fixed04",
+      "scope": "Rejected inverse-hand prototype raw FAIL: preserves sledge axis but raises IK origin12cm and same-input contact misses above target. Source never integrated.",
+      "required_pass": false,
+      "exact_files": [],
+      "images": [
+        "sledge_air_settle.png"
+      ]
+    },
+    {
+      "folder": "swing35/final08",
+      "scope": "Swing component PASS29: world-up sword yaw, sledge initial-direction bias independent of IK hand, re-press/held weapon switch, real horizontal contacts and up/down. Includes deliberate sledge lower input before contact.",
+      "required_pass": true,
+      "exact_files": [
+        "scripts/weapons/sword_prototype.gd"
+      ],
+      "images": [
+        "sword_contact_right.png",
+        "sledge_contact_right.png",
+        "sledge_air_up.png",
+        "sledge_air_down.png"
+      ]
+    },
+    {
+      "folder": "review35/combined_swing01",
+      "scope": "Combined source at3435pins PASS29: sword138contacts/cut1, sledge163contacts; actual horizontal contact/targetheight/vertical/press/switch. Pending embedded/hatchet changes explicitly outside exact-file assertion.",
+      "required_pass": true,
+      "exact_files": [
+        "scripts/weapons/sword_prototype.gd",
+        "scripts/combat/armor_contact31.gd",
+        "scripts/combat/armor_damage31.gd",
+        "scripts/combat/armor_head_surface35.gd",
+        "scripts/combat/sword_puncture_resistance29.gd",
+        "scripts/combat/weapon_solid_contact29.gd",
+        "scripts/clay_target.gd",
+        "scripts/combat/blade_resistance28.gd"
+      ],
+      "images": [
+        "sword_contact_right.png",
+        "sledge_contact_right.png"
+      ]
+    },
+    {
+      "folder": "penetration35/face_before01",
+      "scope": "Historical baseline graphical trace, no formal assertions: lower-face sword W1 depth6.259cm; shared head box falsely covers exposed cap face. Not a PASS acceptance claim.",
+      "required_pass": false,
+      "exact_files": [],
+      "images": []
+    },
+    {
+      "folder": "penetration35/face_after03",
+      "scope": "Earlier component graphical trace, no formal assertions: matched sword W1 depth31.620cm after guide/actual cover fixes; prior to final collar patch.",
+      "required_pass": false,
+      "exact_files": [],
+      "images": []
+    },
+    {
+      "folder": "penetration35/strong_final13",
+      "scope": "Final five-file component PASS6 actual sword/spear deep entry and release/hand placement; sword depth35.49cm, spear10.85cm. Full600hold not established here.",
+      "required_pass": true,
+      "exact_files": [
+        "scripts/combat/armor_contact31.gd",
+        "scripts/combat/armor_damage31.gd",
+        "scripts/combat/armor_head_surface35.gd",
+        "scripts/combat/sword_puncture_resistance29.gd",
+        "scripts/combat/weapon_solid_contact29.gd"
+      ],
+      "images": [
+        "sword.png",
+        "spear.png"
+      ]
+    },
+    {
+      "folder": "penetration35/collar_negative14",
+      "scope": "Component PASS12 real lip admission plus existing underlying skin rejection, mesh/bone/generation/uncommitted/width negative tests. Mandatory armor gate uses explicitly synthetic HardArmor injection.",
+      "required_pass": true,
+      "exact_files": [
+        "scripts/combat/armor_contact31.gd",
+        "scripts/combat/armor_damage31.gd",
+        "scripts/combat/armor_head_surface35.gd",
+        "scripts/combat/sword_puncture_resistance29.gd",
+        "scripts/combat/weapon_solid_contact29.gd"
+      ],
+      "images": []
+    },
+    {
+      "folder": "penetration35/held_trace22",
+      "scope": "Important raw FAIL of600hold before pending embedded fix: transient descending floor support loss caused release; preserves nativeY/floor-travel trace. NOT fixed by the five-file component.",
+      "required_pass": false,
+      "exact_files": [],
+      "images": [
+        "spear_released.png"
+      ]
+    },
+    {
+      "folder": "penetration35/held_final23",
+      "scope": "Pending sixth-file component PASS11 actual600frames+S/freeaim16.66cm alive; this run did not exercise newly added floor-support branch. Not final embedded/jump acceptance and no exact embedded assertion.",
+      "required_pass": true,
+      "exact_files": [],
+      "images": []
+    },
+    {
+      "folder": "review35/combined_armor02",
+      "scope": "Combined native PASS30 actual visible head geometry cover/openings for light/medium/heavy and hard cloth/mail/plate at high energy. Non-head normalized coverage unchanged.",
+      "required_pass": true,
+      "exact_files": [
+        "scripts/combat/armor_contact31.gd",
+        "scripts/combat/armor_damage31.gd",
+        "scripts/combat/armor_head_surface35.gd"
+      ],
+      "images": []
+    },
+    {
+      "folder": "review35/combined_collar03",
+      "scope": "Combined native PASS12 actual sprint/deep lip plus local collar negatives; synthetic mandatory armor gate injection distinct from actual geometry armor30.",
+      "required_pass": true,
+      "exact_files": [
+        "scripts/combat/armor_contact31.gd",
+        "scripts/combat/armor_damage31.gd",
+        "scripts/combat/armor_head_surface35.gd",
+        "scripts/combat/sword_puncture_resistance29.gd",
+        "scripts/combat/weapon_solid_contact29.gd"
+      ],
+      "images": []
+    }
+  ],
+  "reviews": [
+    "bow35/CHANGED.json",
+    "bow35/FLIGHT_BEFORE_AFTER_8X.png",
+    "bow35/HANDOFF.json",
+    "bow35/PHYSICS_SOURCE_INVARIANTS.json",
+    "hatchet35qa/DEEPSEEK_RELEASE35_PROMPT.txt",
+    "hatchet35qa/DEEPSEEK_RELEASE35_RESPONSE.txt",
+    "hatchet35qa/DEEPSEEK_TIMING35_PROMPT.txt",
+    "hatchet35qa/DEEPSEEK_TIMING35_RESPONSE.txt",
+    "hatchet35qa/DEEPSEEK_USAGE.json",
+    "hatchet35qa/grip_trial.diff",
+    "hatchet35qa/throwing_axe32_before_timing_fix.gd",
+    "hatchet35qa/throwing_axe32_timing_fixed.gd",
+    "penetration35/HANDOFF.json",
+    "review35/COMBINED_ACCEPTANCE35.json",
+    "review35/COMBINED_SOURCE_PINS_AFTER.json",
+    "review35/COMBINED_SOURCE_PINS_BEFORE.json",
+    "review35/DEEPSEEK35_PROMPT.txt",
+    "review35/DEEPSEEK35_RESPONSE.txt",
+    "review35/DEEPSEEK35_USAGE.txt",
+    "review35/PATCH_REVIEW35.json",
+    "review35/PENETRATION_EXACT_REVIEW.json",
+    "review35/PENETRATION_SIXTH_CODE_REVIEW.json",
+    "review35/REVIEW35.json",
+    "root35/BASELINE35.json",
+    "root35/INTEGRATED_COMPONENTS35.json",
+    "root35/PERFORMANCE35_INTERMEDIATE.json",
+    "swing35/DEEPSEEK_FINAL35_PROMPT.txt",
+    "swing35/DEEPSEEK_FINAL35_RESPONSE.txt",
+    "swing35/DEEPSEEK_FINAL35_USAGE.txt",
+    "swing35/DEEPSEEK_SWING35_PROMPT.txt",
+    "swing35/DEEPSEEK_SWING35_RESPONSE.txt",
+    "swing35/DEEPSEEK_SWING35_USAGE.txt",
+    "swing35/HANDOFF.json",
+    "swing35/MEASUREMENTS.json",
+    "swing35/SOURCE_COMPARISON.json",
+    "swing35/swing35.diff"
+  ],
+  "fixtures": [
+    "bow35/flight35.gd",
+    "bow35/visual_lifecycle35.gd",
+    "contact_perf31/bow_cut31.gd",
+    "contact_perf31/bow_input31.gd",
+    "hatchet35qa/lifecycle35.gd",
+    "hatchet35qa/throw35.gd",
+    "hatchet35qa/wall35.gd",
+    "penetration35/armor_surface.gd",
+    "penetration35/collar_negative.gd",
+    "penetration35/face_trace.gd",
+    "penetration35/held_trace.gd",
+    "penetration35/lifecycle_face.gd",
+    "root35/cut_clean_profile35.gd",
+    "root35/hatchet_volume_before35.gd",
+    "root35/moderate_cut35.gd",
+    "root35/topology_equivalence35.gd",
+    "root35/weak_edge35.gd",
+    "swing35/final35.gd",
+    "swing35/horizontal35.gd"
+  ],
+  "notes": [
+    {
+      "fixture_dependency": "root35/topology_equivalence35.gd -> root35/hatchet_volume_before35.gd",
+      "note": "Runtime relative oracle included in fixtures. Nested receipt FIXTURE.gd preserves historical bytes but is not standalone replayable at its receipt location without resolving the original load base."
+    }
+  ],
+  "root_must_complete": [
+    "Add final merged embedded600/support/jump/release and hatchet grip/flight runs once frozen; do not promote interim component PASS to full release",
+    "Fill expected_changed/new_files/base_commit/acceptance in actual capture35_config.json and exact final SHA list",
+    "Revalidate all exact_files against frozen source; this draft does not run capture or git",
+    "Immutable receipt FIXTURE.gd controls each historical run; current shared fixture may have evolved",
+    "DeepSeek swing initial response truncated at8192completion (8867total); final3319total complete. General review35 total8054. Hatchet RELEASE response empty after8192reasoning, not useful completed advice; TIMING4519total valid. Preserve usage records",
+    "Timing120 baseline CHECK PASS8 but raw behavioral FAIL; fixed PASS11 extends gates. No fabricated FAILED receipt",
+    "Clean perf: drawp95 18.556->18.746ms; only worker/topology/latency speedup established, not overallFPS"
+  ],
+  "omitted_scouts": [
+    "root35/hatchet_agent_scout01",
+    "root35/hatchet_agent_close02",
+    "root35/hatchet_agent_vectors04",
+    "root35/hatchet_agent_underhand05",
+    "penetration35/topology11",
+    "penetration35/sword_run09",
+    "penetration35/sword_run10",
+    "penetration35/sword_run12"
+  ],
+  "validation": {
+    "all_referenced_paths_exist": true,
+    "evidence_count": 33,
+    "fixture_count": 19,
+    "review_count": 36,
+    "receipt_json_bytes": 23702868
+  }
+}

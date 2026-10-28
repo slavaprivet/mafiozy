@@ -1,0 +1,58 @@
+--- frozen34/scripts/weapons/sword_prototype.gd
++++ swing35/scripts/weapons/sword_prototype.gd
+@@ -112,6 +112,7 @@
+ 		if is_instance_valid(node): node.visible = (other == id) or _ground_swords.has(node)
+ 	_sword = model
+ 	_sword_grounded = _ground_swords.has(model)
++	if id == "sledge" and _ready: _begin_sledge_swing35()
+ 	if is_instance_valid(_sword): _sword.visible = true
+ 	if id=="hatchet" and is_instance_valid(_hatchet32):_hatchet32.selected()
+ 	if is_instance_valid(_hint): _update_hint()
+@@ -273,6 +274,7 @@
+ var _hand := Vector2.ZERO          # commanded hand offset in camera plane (x right, y up)
+ ## Raw mouse command and the slewed value that actually drives the arm.
+ var _hand_cmd := Vector2.ZERO
++var _sledge_swing_bias35 := Vector2.ZERO
+ var _sword_origin := Vector3.ZERO
+ var _dir := Vector3.FORWARD
+ var _omega := Vector3.ZERO
+@@ -1752,6 +1754,7 @@
+ 				get_viewport().set_input_as_handled()
+ 				return
+ 			if button.pressed and not _hold_left and WEAPONS.has(_weapon_id):
++				if _weapon_id == "sledge": _begin_sledge_swing35()
+ 				var press_ms := Time.get_ticks_msec()
+ 				if press_ms - _last_left_press_ms31 <= 350:
+ 					_double_strike_until_ms31 = press_ms + 450
+@@ -1946,6 +1949,19 @@
+ 	var direction := target - _sword_origin
+ 	return direction.normalized() if direction.length_squared() > 0.01 else forward
+ 
++func _begin_sledge_swing35() -> void:
++	# Keep the accepted carried direction when a free swing starts. Store the
++	# angular origin separately: changing _hand here also lifts the two-hand IK.
++	var forward := Vector3(-_camera.global_basis.z.x, 0.0, -_camera.global_basis.z.z)
++	if forward.length_squared() < 0.000001 or not _dir.is_finite(): return
++	forward = forward.normalized()
++	var right := forward.cross(Vector3.UP).normalized()
++	var camera_pitch := asin(clampf(-_camera.global_basis.z.y, -1.0, 1.0))
++	var neutral_pitch := atan2(0.35, 0.55 + _thrust * 1.10)
++	_sledge_swing_bias35 = Vector2(atan2(_dir.dot(right), _dir.dot(forward)) - _hand.x * 2.05,
++		asin(clampf(_dir.y, -1.0, 1.0)) - camera_pitch - neutral_pitch - _hand.y * 1.35)
++	_steer_target = _dir
++
+ func _target_direction() -> Vector3:
+ 	if is_throwable() and (_aiming_throw or _spear_cast_pending31): return _spear_aim_direction52()
+ 	var basis := _camera.global_basis
+@@ -1954,7 +1970,10 @@
+ 	var yaw := clampf(_hand.x, -1.0, 1.0) * (2.05 if _weapon_id in ["axe", "sledge"] else 1.48)
+ 	var neutral_pitch := atan2(0.35, 0.55 + _thrust * 1.10)
+ 	var pitch := clampf(neutral_pitch + clampf(_hand.y, -1.0, 1.0) * 1.35, -1.10, 1.48)
+-	if _weapon_id in ["axe", "sledge"]:
++	if _weapon_id == "sledge":
++		yaw += _sledge_swing_bias35.x
++		pitch = neutral_pitch + clampf(_hand.y, -1.0, 1.0) * 1.35 + _sledge_swing_bias35.y
++	if _weapon_id in ["sword", "axe", "sledge"]:
+ 		# Rotate a lateral stroke around world up. Mixing a pitched camera forward
+ 		# vector with its right vector changed elevation as yaw crossed the front.
+ 		var forward := Vector3(-basis.z.x, 0.0, -basis.z.z)

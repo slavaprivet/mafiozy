@@ -1,0 +1,401 @@
+{
+  "ready": true,
+  "source": "D:\\MafioziCombat31\\c33_coordination\\agents\\penetration35\\game",
+  "base": "D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game",
+  "owned_files": {
+    "scripts/combat/armor_contact31.gd": "9239c699041a27e55eba64bdf4b1be1407c8f6a8877ada27ad44bec8175f10b2",
+    "scripts/combat/armor_damage31.gd": "21fd593bb460d3b302a38b8a439bbd55ad81cc241fc01990febbfacea9ddc37b",
+    "scripts/combat/armor_head_surface35.gd": "303f78053e0c8d2abd5fbc609beb5de439d7bfd5bddef65ba5d63b2b2479f84b",
+    "scripts/combat/embedded_weapon29.gd": "4bf32c3a8da49e4825b9462e73784c461b362cb0fac4165d36076621eedc0f07",
+    "scripts/combat/sword_puncture_resistance29.gd": "8a6067ac60c75578a1d622a71c17bfd976bfe4b70b41519b012cdb786a39543d",
+    "scripts/combat/weapon_solid_contact29.gd": "8402a1489d77daea487fd795c48b43751f072323bd9afedea860a38d96c771b8"
+  },
+  "fixes": [
+    "Finite sword hand accommodation 60 to 120 mm only with a steady blade in an actual channel, preserving actual bore profile, axis gate, final solid collision, IK/self/world validation.",
+    "Puncture-only sword elastic deflection 35 to 12 mm, inward walking resistance 20 to 8 percent. Exponential saturation, no idle insertion or internal lag release; transverse cutting constants untouched.",
+    "Actual head armor coverage against visible rigid head meshes using finite incoming coverage-ray ending at skin; cached mesh triangle arrays and AABB culling. Not BVH and not an original swept trajectory. Exposed cap faces are skin; actual cap/plate surfaces remain hard.",
+    "Covered equipped cloth/mail/plate cannot be penetrated at any damage. Shared covered_response35 recalculates material factor/residual after exact head coverage overrides old normalized head mask.",
+    "Head sword lip collar admits actual outer lip islands on same mesh/skin/generation/weapon/bone only within original 12 mm collar, with independent 30 mm outermost-surface test, exact face and triangle/normal validation, current armor gate and actual steel section. No broad collision bypass.",
+    "Embedded spear no longer releases on measured native descending false-floor jitter when native test_move finds a floor-normal support within 4 mm. No player velocity, gravity or transform changes. Positive jump and genuine gaps still release through original path. Original failure held_trace22 found actual floor only 0.759 mm away; guarded native jump25 found support 1.946 mm away and retained."
+  ],
+  "not_changed": [
+    "sword_prototype.gd",
+    "clay_target.gd",
+    "free melee controls",
+    "spear backwards .38",
+    "bore ellipse and axis .985",
+    "strong34 ledger/static sharp-edge promotion"
+  ],
+  "checks": {
+    "strong_final13": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "spear_actual_deep_entry": true,
+        "spear_embed_released": true,
+        "spear_hands_not_behind": true,
+        "sword_actual_deep_entry": true,
+        "sword_embed_released": true,
+        "sword_hands_not_behind": true
+      },
+      "failures": []
+    },
+    "collar_negative14": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_lip_collar": true,
+        "actual_sprint_deep_entry": true,
+        "actual_underlying_skin_exists": true,
+        "armor_gate_is_mandatory": true,
+        "collar_probe_ran": true,
+        "no_buried_layer": true,
+        "no_changed_mesh": true,
+        "no_extended_collar": true,
+        "no_other_bone": true,
+        "no_stale_generation": true,
+        "no_uncommitted_lip": true,
+        "no_widened_bore": true
+      },
+      "failures": []
+    },
+    "held_final23": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "spear_free_aim_after_withdrawal": true,
+        "spear_lateral_outside_remains_solid": true,
+        "spear_mouse_axis_locked": true,
+        "spear_mouse_does_not_extract": true,
+        "spear_native_backward_extracts": true,
+        "spear_other_part_solid": true,
+        "spear_real_shallow_entry": true,
+        "spear_retained600": true,
+        "spear_same_bore_accepts_steel": true,
+        "spear_shallow_survives": true,
+        "spear_wound_persists": true
+      },
+      "failures": []
+    },
+    "jump29": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "jump_reason": true,
+        "native_entry": true,
+        "native_jump_releases": true,
+        "native_jump_rose": true,
+        "native_jump_started": true,
+        "pre_jump_on_floor": true,
+        "probe_gap20mm_not_support": true,
+        "probe_low_floor_state_false": true,
+        "probe_real_floor_three_mm": true,
+        "rising_velocity_releases": true
+      },
+      "failures": []
+    },
+    "strong600_30": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "alive_after600": true,
+        "final_grip": true,
+        "native_backward_reason": true,
+        "spear_actual_deep_entry": true,
+        "spear_embed_released": true,
+        "spear_hands_not_behind": true,
+        "sprint_retained600": true,
+        "weapon_still_held": true
+      },
+      "failures": []
+    },
+    "armor_final17": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "cloth_slice_hard_even_at_high_energy": true,
+        "cloth_stab_hard_even_at_high_energy": true,
+        "heavy_crown_coverage": true,
+        "heavy_crown_penetration": true,
+        "heavy_eye_coverage": true,
+        "heavy_eye_penetration": true,
+        "heavy_face_coverage": true,
+        "heavy_face_penetration": true,
+        "heavy_mouth_coverage": true,
+        "heavy_mouth_penetration": true,
+        "light_crown_coverage": true,
+        "light_crown_penetration": true,
+        "light_eye_coverage": true,
+        "light_eye_penetration": true,
+        "light_face_coverage": true,
+        "light_face_penetration": true,
+        "light_mouth_coverage": true,
+        "light_mouth_penetration": true,
+        "mail_slice_hard_even_at_high_energy": true,
+        "mail_stab_hard_even_at_high_energy": true,
+        "medium_crown_coverage": true,
+        "medium_crown_penetration": true,
+        "medium_eye_coverage": true,
+        "medium_eye_penetration": true,
+        "medium_face_coverage": true,
+        "medium_face_penetration": true,
+        "medium_mouth_coverage": true,
+        "medium_mouth_penetration": true,
+        "plate_slice_hard_even_at_high_energy": true,
+        "plate_stab_hard_even_at_high_energy": true
+      },
+      "failures": []
+    },
+    "strong_bare18": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "strong_far_expected_cut": true,
+        "strong_near_expected_cut": true,
+        "weak_near_no_cut": true
+      },
+      "failures": []
+    }
+  },
+  "metrics": {
+    "face_before01": [
+      {
+        "label": "sword_light_-50",
+        "peak_depth_m": 0.0,
+        "solver_max_us": 15616,
+        "solver_p95_us": 11041,
+        "worst": {
+          "tick": 101,
+          "depth": 0,
+          "recovery": 0
+        }
+      },
+      {
+        "label": "sword_light_0",
+        "peak_depth_m": 0.0625898838043213,
+        "solver_max_us": 8777,
+        "solver_p95_us": 8037,
+        "worst": {
+          "tick": 80,
+          "depth": 0.0625898838043213,
+          "recovery": 0
+        }
+      },
+      {
+        "label": "sword_light_50",
+        "peak_depth_m": 0.313076615333557,
+        "solver_max_us": 6171,
+        "solver_p95_us": 5139,
+        "worst": {
+          "tick": 75,
+          "depth": 0.313076615333557,
+          "recovery": 0
+        }
+      },
+      {
+        "label": "spear_light_-50",
+        "peak_depth_m": 0.0,
+        "solver_max_us": 5893,
+        "solver_p95_us": 4098,
+        "worst": {
+          "tick": 40,
+          "depth": 0,
+          "recovery": 0
+        }
+      },
+      {
+        "label": "spear_light_0",
+        "peak_depth_m": 0.142693042755127,
+        "solver_max_us": 10103,
+        "solver_p95_us": 7424,
+        "worst": {
+          "tick": 54,
+          "depth": 0.142693042755127,
+          "recovery": 0
+        }
+      },
+      {
+        "label": "spear_light_50",
+        "peak_depth_m": 0.0648374557495117,
+        "solver_max_us": 9702,
+        "solver_p95_us": 7666,
+        "worst": {
+          "tick": 59,
+          "depth": 0.0648374557495117,
+          "recovery": 0
+        }
+      }
+    ],
+    "face_after03": [
+      {
+        "label": "sword_light_-50",
+        "peak_depth_m": 0.0,
+        "solver_max_us": 14944,
+        "solver_p95_us": 11358,
+        "worst": {
+          "tick": 89,
+          "depth": 0,
+          "recovery": 0
+        }
+      },
+      {
+        "label": "sword_light_0",
+        "peak_depth_m": 0.316203832626343,
+        "solver_max_us": 7362,
+        "solver_p95_us": 4963,
+        "worst": {
+          "tick": 87,
+          "depth": 0.151000022888184,
+          "recovery": 0
+        }
+      },
+      {
+        "label": "sword_light_50",
+        "peak_depth_m": 0.313101172447205,
+        "solver_max_us": 8560,
+        "solver_p95_us": 7427,
+        "worst": {
+          "tick": 97,
+          "depth": 0.313101172447205,
+          "recovery": 0
+        }
+      },
+      {
+        "label": "spear_light_-50",
+        "peak_depth_m": 0.0,
+        "solver_max_us": 8058,
+        "solver_p95_us": 5683,
+        "worst": {
+          "tick": 40,
+          "depth": 0,
+          "recovery": 0
+        }
+      },
+      {
+        "label": "spear_light_0",
+        "peak_depth_m": 0.0,
+        "solver_max_us": 13360,
+        "solver_p95_us": 10956,
+        "worst": {
+          "tick": 105,
+          "depth": 0,
+          "recovery": 0
+        }
+      },
+      {
+        "label": "spear_light_50",
+        "peak_depth_m": 0.0649464130401611,
+        "solver_max_us": 9991,
+        "solver_p95_us": 7708,
+        "worst": {
+          "tick": 70,
+          "depth": 0.0649464130401611,
+          "recovery": 0
+        }
+      }
+    ],
+    "sword_run10": [
+      {
+        "label": "sword_run",
+        "peak_depth_m": 0.0230498313903809,
+        "solver_max_us": 11153,
+        "solver_p95_us": 10771,
+        "worst": {
+          "tick": 66,
+          "depth": 0.0230498313903809,
+          "recovery": 0
+        }
+      }
+    ],
+    "sword_run12": [
+      {
+        "label": "sword_run",
+        "peak_depth_m": 0.353573083877563,
+        "solver_max_us": 35521,
+        "solver_p95_us": 6364,
+        "worst": {
+          "tick": 83,
+          "depth": 0.353573083877563,
+          "recovery": 60
+        }
+      }
+    ],
+    "strong_final13": [
+      {
+        "label": "sword",
+        "peak_depth_m": 0.354887723922729,
+        "solver_max_us": 28540,
+        "solver_p95_us": 3959,
+        "worst": {
+          "tick": 84,
+          "phase": "run_in",
+          "time_usec": 13526585,
+          "dead": true,
+          "grounded": false,
+          "depth": 0.354887723922729
+        }
+      },
+      {
+        "label": "spear",
+        "peak_depth_m": 0.108522415161133,
+        "solver_max_us": 17041,
+        "solver_p95_us": 10476,
+        "worst": {
+          "tick": 55,
+          "phase": "withdraw",
+          "time_usec": 25723517,
+          "dead": false,
+          "grounded": false,
+          "depth": 0.124791622161865
+        }
+      }
+    ]
+  },
+  "historical_extra": "bore_after06 19PASS before final collar addition; face_after03 and spear_face08 are graphical traces, not formal assertions; armor_final17 validates exact geometry gates on current source.",
+  "raw_failures": {
+    "face_after02": "Explicit int parser fix. Owned failed child stopped after fresh inventory; raw stderr and source_unchanged false preserved.",
+    "lifecycle_before04": "Baseline sprint face stalls; spear crown intended trajectory caused airborne release/drop; hands predicate on grounded/unarmed state not valid proof of held-spear bug.",
+    "lifecycle_after05": "Earlier candidate sword run still blocked by separate authored lip island; spear deep death/drop, same unarmed hands predicate limit.",
+    "held600_15": "Fixture parse error duplicate local held, fixed to held_samples; no game edit.",
+    "held600_16 / held600_21 / held_trace22": "Native entry early release while character false-floor, channel only11.9mm and requested embed86.9mm. held_trace22 proves real support0.759mm away; fix is descending4mm native support only.",
+    "support_before19": "Fixture used PhysicsTestMotionResult3D instead of KinematicCollision3D. Runtime stderr invalidates apparent empty-check PASS.",
+    "support_before20": "Diagnostic single held frame passed; despite inherited name not a600-frame acceptance.",
+    "jump24": "Fixture inferred Variant before variable; explicit float parser fix.",
+    "jump25": "Guard actually executed/retained, but jump action before native floor settle did not start. Controlled probe floor snap25cm invalidated near/far assumptions.",
+    "jump26": "Actual jump rose1.049m and airborne release passed. Controlled1mm body already in native floor recovery, so false-floor probe predicate failed.",
+    "jump27": "3mm/20mm controlled support probes passed. InputEventAction jump raced native floor update; use real Space InputEventKey to dispatch when currently on_floor.",
+    "jump28": "Actual native Space jump and rising1.625m/s released immediately, but nearby-body trajectory only rose3.02cm and old10cm jumpheight assertion failed. Final29 explicitly checks actual native jump state, rise>1cm, rising velocity and airborne release. No game change between these runs."
+  },
+  "limits": [
+    "User game33 was preserved by this agent; parent later closed it. No exclusive FPS/50v50 acceptance.",
+    "Rare180/406ms recovery stall was not reproduced and is not claimed fixed.",
+    "Native Godot InputEvents plus frames are not external desktop manual acceptance.",
+    "Head armor coverage is exact visible rigid mesh contact, body limb coverage retains prior deterministic normalized part mask.",
+    "Lip outermost proof is local30mm; admissions counter counts queries, not unique wounds.",
+    "Embedded guard is only a narrow measured false-floor fix. Actual600 held/S withdrawal/freeaim is verified; do not claim every extreme screenshot pose fixed.",
+    "held_final23 maximum internal brace grip request2.84cm; final free-aim grip below5mm. Internal brace diagnostic is not the final hand-grip render error."
+  ],
+  "review": "release34_review exact first5 SHA codeapproved (PENETRATION_EXACT_REVIEW.json); sixth embedded SHA4bf32c structurally approved, pending parent mergedheld/jump smoke. Nonblocking: last_airborne35.probe can be stale after positiveY or failed test_move; supported bool is authoritative and negative jump evidence does not infer support from probe.",
+  "integration": "Copy only owned_files to merged35; do not copy whole game/cache or overwrite parent clay_target/blade_resistance/bow changes. Run merged targeted smoke; root owns publication."
+}

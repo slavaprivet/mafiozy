@@ -1,0 +1,813 @@
+extends Node3D
+## SHIP61: the sea battle host.
+##
+## Owns the water basin, the ship, the four cannons, the cabin stores, the shared
+## F-prompt and the player stations. This is the only node `main.gd` knows about.
+##
+## Everything is procedural and local: no external assets, no scene scans in the
+## frame loop, no network. The ship itself is an AnimatableBody3D platform so the
+## player can walk her decks while she sails.
+
+const ShipWaterBasin = preload("res://scripts/ship/ship_water_basin.gd")
+const ShipBoat = preload("res://scripts/ship/ship_boat.gd")
+const ShipCannons = preload("res://scripts/ship/ship_cannons.gd")
+const ShipHud = preload("res://scripts/ship/ship_hud.gd")
+## The model is loaded lazily: a partially delivered file must not stop the rest
+## of the map from booting while the model is still being written.
+const SHIP_MODEL_PATH := "res://scripts/ship/ship_model.gd"
+
+const SHIP_SPAWN := Vector3(58.0, 0.0, 994.0)
+const SHIP_YAW_DEG := -90.0
+const START_BALLS := 6
+const START_BOARDS := 4
+const MAX_BALLS := 30
+const MAX_BOARDS := 12
+const CRATE_BALLS := 1
+const CRATE_BOARDS := 1
+const CRATE_COOLDOWN := 1.1
+const REACH := 3.6
+const REPAIR_REACH := 3.0
+const HELM_STAND := Vector3(0.0, 3.06, 11.15)
+
+var world: Node3D
+var castle: Node3D
+var player: CharacterBody3D
+
+var preview_basin: Node3D
+var preview_model: Node3D
+var preview_boat: AnimatableBody3D
+var preview_cannons: Node3D
+var preview_hud: CanvasLayer
+## Public aliases: QA and the HUD look for these names on the host.
+var basin: Node3D
+var model: Node3D
+var boat: AnimatableBody3D
+var cannons: Node3D
+var hud: CanvasLayer
+
+var balls := START_BALLS
+var boards := START_BOARDS
+var status := "disabled"
+var _installed := false
+
+var _station := ""
+var _cannon_index := -1
+var _seat_pending := 0
+var _hold_owned := false
+var _cannon_camera_on := false
+var _saved_spring := -1.0
+var _gun_camera: Camera3D
+var _hud_timer := 0.0
+var _wake_timer := 0.0
+var _crate_timer := 0.0
+var _sunk_announced := false
+var _water_time := 0.0
+var _model_data: Dictionary = {}
+var _last_action: Dictionary = {}
+var _cannon_messages := 0
+
+
+func install(world_in: Node3D, castle_in: Node3D) -> Dictionary:
+	if _installed:
+		return {"ok": false, "reason": "already_installed"}
+	if not is_instance_valid(world_in) or not is_instance_valid(castle_in):
+		return {"ok": false, "reason": "missing_world_or_castle"}
+	var candidate_player := world_in.get("_player") as CharacterBody3D
+	if not is_instance_valid(candidate_player):
+		return {"ok": false, "reason": "missing_player"}
+	world = world_in
+	castle = castle_in
+	player = candidate_player
+
+	# 1. The model is built first and outside the tree: if it is still being
+	# delivered, the castle map must keep its own ground instead of losing it.
+	var model_script: Script = load(SHIP_MODEL_PATH)
+	if model_script == null:
+		status = "model_missing"
+		return {"ok": false, "reason": status}
+	preview_model = model_script.new()
+	preview_model.name = "ShipModel"
+	add_child(preview_model)
+	_model_data = preview_model.build()
+	if not bool(_model_data.get("ok", true)):
+		status = "model_failed"
+		return {"ok": false, "reason": status}
+
+	# 2. The water and its shore replace the flat CastleGround slab.
+	preview_basin = ShipWaterBasin.new()
+	preview_basin.name = "ShipWaterBasin"
+	add_child(preview_basin)
+	var water_result: Dictionary = preview_basin.install(world, castle)
+	if not bool(water_result.get("ok", false)):
+		status = "water_failed:" + str(water_result.get("reason", "unknown"))
+		return {"ok": false, "reason": status, "water": water_result}
+
+	# 3. The hull: an AnimatableBody3D platform with buoyancy, sailing and flooding.
+	preview_boat = ShipBoat.new()
+	preview_boat.name = "ShipBoat"
+	add_child(preview_boat)
+	var boat_result: Dictionary = preview_boat.install(world, preview_basin, player, preview_model)
+	if not bool(boat_result.get("ok", false)):
+		status = "boat_failed:" + str(boat_result.get("reason", "unknown"))
+		return {"ok": false, "reason": status, "boat": boat_result}
+	preview_boat.moor(Vector3(SHIP_SPAWN.x, preview_basin.water_level(), SHIP_SPAWN.z),
+		deg_to_rad(SHIP_YAW_DEG))
+	# The boat owns its own motion loop; the host only sets sails and the rudder.
+	if preview_boat.has_method("set_autopilot"):
+		preview_boat.call("set_autopilot", true)
+	if preview_boat.has_method("set_sails"):
+		preview_boat.set_sails(false)
+
+	# 4. Four broadside guns.
+	preview_cannons = ShipCannons.new()
+	preview_cannons.name = "ShipCannons"
+	add_child(preview_cannons)
+	var cannon_result: Dictionary = preview_cannons.install(world, preview_boat,
+		preview_model, player, preview_basin)
+	if not bool(cannon_result.get("ok", false)):
+		status = "cannons_failed:" + str(cannon_result.get("reason", "unknown"))
+		return {"ok": false, "reason": status, "cannons": cannon_result}
+
+	# 5. The HUD (left panel + cannon sight + transient messages).
+	preview_hud = ShipHud.new()
+	preview_hud.name = "ShipHud"
+	add_child(preview_hud)
+	var hud_result: Dictionary = preview_hud.install(self)
+	if not bool(hud_result.get("ok", true)):
+		push_warning("SHIP61 hud install: " + str(hud_result))
+
+	# 6. Put the player on the quarterdeck after the platform has settled: placing
+	# him in the same frame as the mooring teleport made the platform velocity fling
+	# the character a kilometre downrange.
+	_sync_ball_stock()
+	_seat_pending = 3
+	basin = preview_basin
+	model = preview_model
+	boat = preview_boat
+	cannons = preview_cannons
+	hud = preview_hud
+	# The castle's own startup guard would pull him back to the gate.
+	world.set("_castle_spawn_frames", 0)
+	process_physics_priority = 100
+	_installed = true
+	status = "ready"
+	if preview_hud != null and preview_hud.has_method("message"):
+		preview_hud.call("message", "Корабль «Мафиози» готов к бою", 4.0)
+	var result := {
+		"ok": true,
+		"status": status,
+		"water": water_result,
+		"ship": boat_result,
+		"cannons": cannon_result,
+		"spawn": preview_boat.global_position,
+		"deck": player.global_position,
+	}
+	print("DSH_SHIP ", JSON.stringify(result))
+	return result
+
+
+func _seat_on_deck() -> void:
+	if not is_instance_valid(preview_boat) or not is_instance_valid(player):
+		return
+	var at: Vector3 = preview_boat.to_global(HELM_STAND)
+	_place_player(at, 0.80)
+
+
+func _place_player(world_position: Vector3, look_yaw: float) -> void:
+	if not is_instance_valid(player):
+		return
+	player.global_position = world_position
+	player.velocity = Vector3.ZERO
+	player.set("_camera_yaw", look_yaw)
+	player.set("_heading", look_yaw)
+	var visual := player.get("_visual") as Node3D
+	if is_instance_valid(visual):
+		visual.rotation.y = look_yaw + deg_to_rad(float(player.get("visual_yaw_degrees")))
+	if player.has_method("_update_camera_rotation"):
+		player.call("_update_camera_rotation")
+
+
+## ------------------------------------------------------------------ prompts
+## Called by main.gd from its central prompt dispatcher. Returns
+## {"owner":"ship","index":int,"label":String,"world":Vector3} or {}.
+func action() -> Dictionary:
+	if not _installed or not is_instance_valid(preview_boat) or not is_instance_valid(player):
+		return {}
+	_last_action = {}
+	if _station == "helm":
+		_last_action = {"owner": "ship", "kind": "ship_helm", "label": "Покинуть штурвал",
+			"world": _helm_world() + Vector3.UP * 0.8}
+		return _last_action
+	if _station == "cannon" and preview_cannons != null and preview_cannons.has_method("station_world"):
+		var cannon_at: Vector3 = preview_cannons.call("mount_world", _cannon_index)
+		_last_action = {"owner": "ship", "kind": "ship_cannon", "index": _cannon_index,
+			"label": "Покинуть пушку", "world": cannon_at + Vector3.UP * 1.5}
+		return _last_action
+
+	var feet: Vector3 = player.global_position
+	var best := {}
+	var best_distance := 1e20
+	# The helm.
+	var helm_at := _helm_world()
+	if feet.distance_to(helm_at) <= REACH:
+		best = {"owner": "ship", "kind": "ship_helm", "label": "Встать за штурвал",
+			"world": helm_at + Vector3.UP * 0.8}
+		best_distance = feet.distance_to(helm_at)
+	# The sail winch at the mast.
+	var lever_at := _lever_world()
+	if not lever_at.is_zero_approx() and feet.distance_to(lever_at) <= REACH:
+		var distance := feet.distance_to(lever_at)
+		if distance < best_distance:
+			var open := _sails_open()
+			best = {"owner": "ship", "kind": "ship_sail",
+				"label": "Свернуть паруса" if open else "Раскрыть паруса",
+				"world": lever_at + Vector3.UP * 0.7}
+			best_distance = distance
+	# The four guns.
+	if preview_cannons != null and preview_cannons.has_method("mount_world"):
+		for index in range(4):
+			var mount: Vector3 = preview_cannons.call("mount_world", index)
+			var distance := feet.distance_to(mount)
+			if distance <= REACH and distance < best_distance:
+				best = {"owner": "ship", "kind": "ship_cannon", "index": index,
+					"label": "Встать за пушку", "world": mount + Vector3.UP * 0.9}
+				best_distance = distance
+	# The two crates in the cabin.
+	var ammo_at := _crate_world("ammo")
+	if not ammo_at.is_zero_approx() and feet.distance_to(ammo_at) <= REACH:
+		var distance := feet.distance_to(ammo_at)
+		if distance < best_distance:
+			best = {"owner": "ship", "kind": "ship_ammo",
+				"label": "Взять ядра (%d)" % CRATE_BALLS,
+				"world": ammo_at + Vector3.UP * 0.5}
+			best_distance = distance
+	var boards_at := _crate_world("boards")
+	if not boards_at.is_zero_approx() and feet.distance_to(boards_at) <= REACH:
+		var distance := feet.distance_to(boards_at)
+		if distance < best_distance:
+			best = {"owner": "ship", "kind": "ship_boards",
+				"label": "Взять доски (%d)" % CRATE_BOARDS,
+				"world": boards_at + Vector3.UP * 0.5}
+			best_distance = distance
+	# A hole within arm's reach: patch it with a board.
+	if preview_boat != null and preview_boat.has_method("nearest_hole_world") and boards > 0:
+		var hole: Vector3 = preview_boat.call("nearest_hole_world", feet, REPAIR_REACH)
+		if not hole.is_zero_approx():
+			var distance := feet.distance_to(hole)
+			if distance < best_distance:
+				best = {"owner": "ship", "kind": "ship_repair",
+					"label": "Заделать пробоину (доски: %d)" % boards,
+					"world": hole + Vector3.UP * 0.4}
+				best_distance = distance
+	_last_action = best
+	return best
+
+
+## main.gd calls this with the dictionary returned by action().
+func interact(action_data: Variant) -> bool:
+	if not _installed:
+		return false
+	var kind := ""
+	var index := -1
+	if action_data is Dictionary:
+		kind = str(action_data.get("kind", ""))
+		index = int(action_data.get("index", -1))
+	else:
+		kind = str(action_data)
+	match kind:
+		"ship_helm":
+			_toggle_helm()
+			return true
+		"ship_sail":
+			_toggle_sails()
+			return true
+		"ship_cannon":
+			_toggle_cannon(index)
+			return true
+		"ship_ammo":
+			_take_from_crate("ammo")
+			return true
+		"ship_boards":
+			_take_from_crate("boards")
+			return true
+		"ship_repair":
+			return _repair_hull()
+	return false
+
+
+func _toggle_helm() -> void:
+	if _station == "helm":
+		_leave_station()
+		return
+	if preview_boat == null or not preview_boat.has_method("steer"):
+		return
+	if preview_cannons != null and preview_cannons.has_method("leave"):
+		preview_cannons.call("leave")
+	_station = "helm"
+	_cannon_index = -1
+	_hold_player(true)
+	# The player stands just behind the wheel, facing the bow.
+	var stand: Vector3 = preview_boat.to_global(HELM_STAND)
+	_place_player(stand, _ship_yaw())
+	_message("Вы за штурвалом. A/D — руль, F — покинуть", 3.0)
+	_update_hud(true)
+
+
+func _toggle_sails() -> void:
+	if preview_boat == null or not preview_boat.has_method("toggle_sails"):
+		return
+	var open: bool = bool(preview_boat.call("toggle_sails"))
+	_message("Паруса раскрыты — полный вперёд" if open else "Паруса свёрнуты — корабль останавливается", 2.8)
+	_update_hud(true)
+
+
+func _toggle_cannon(index: int) -> void:
+	if preview_cannons == null:
+		return
+	if index < 0:
+		index = _nearest_cannon_index()
+	if _station == "cannon" and _cannon_index == index:
+		_leave_station()
+		return
+	if preview_boat != null and preview_boat.has_method("steer"):
+		preview_boat.call("steer", 0.0)
+	_station = "cannon"
+	_cannon_index = maxi(0, index)
+	# The gun itself must be manned: loading and firing are refused otherwise.
+	if preview_cannons.has_method("man"):
+		preview_cannons.call("man", _cannon_index)
+	_hold_player(true)
+	var station: Vector3 = preview_cannons.call("station_world", _cannon_index)
+	var look := _cannon_look_yaw(_cannon_index)
+	_place_player(station, look)
+	# A gun is served from inside the ship: the long third-person boom ends up
+	# inside the hull, so the view moves to the gunner's eye while he is mounted.
+	_set_cannon_camera(true)
+	_message("Пушка %d. A/D — поворот, W/S — угол, R — зарядить, ЛКМ — выстрел" % (_cannon_index + 1), 3.4)
+	_update_hud(true)
+
+
+func _nearest_cannon_index() -> int:
+	if preview_cannons == null or not preview_cannons.has_method("mount_world") or not is_instance_valid(player):
+		return 0
+	var best := 0
+	var best_distance := INF
+	for index in range(4):
+		var mount: Vector3 = preview_cannons.call("mount_world", index)
+		var distance := player.global_position.distance_to(mount)
+		if distance < best_distance:
+			best_distance = distance
+			best = index
+	return best
+
+
+func _cannon_look_yaw(index: int) -> float:
+	if preview_cannons == null or not preview_cannons.has_method("mount_world") or not is_instance_valid(preview_boat):
+		return _ship_yaw()
+	var mount: Vector3 = preview_cannons.call("mount_world", index)
+	var outward := mount - preview_boat.global_position
+	outward.y = 0.0
+	if outward.length_squared() < 0.01:
+		return _ship_yaw()
+	outward = outward.normalized()
+	return atan2(-outward.x, -outward.z)
+
+
+func _leave_station() -> void:
+	if _station == "":
+		return
+	if _station == "cannon" and preview_cannons != null and preview_cannons.has_method("leave"):
+		preview_cannons.call("leave")
+	_set_cannon_camera(false)
+	if _station == "helm" and preview_boat != null and preview_boat.has_method("steer"):
+		preview_boat.call("steer", 0.0)
+	_station = ""
+	_cannon_index = -1
+	_hold_player(false)
+	_update_hud(true)
+
+
+func _set_cannon_camera(on: bool) -> void:
+	if on == _cannon_camera_on:
+		return
+	_cannon_camera_on = on
+	if not is_instance_valid(player):
+		return
+	var visual := player.get("_visual") as Node3D
+	var player_camera := player.get("_camera") as Camera3D
+	if on:
+		if is_instance_valid(visual):
+			visual.visible = false
+		if not is_instance_valid(_gun_camera):
+			_gun_camera = Camera3D.new()
+			_gun_camera.name = "ShipGunCamera"
+			_gun_camera.fov = 62.0
+			_gun_camera.near = 0.05
+			_gun_camera.far = 500.0
+			add_child(_gun_camera)
+		_gun_camera.current = true
+	else:
+		if is_instance_valid(visual):
+			visual.visible = true
+		if is_instance_valid(_gun_camera):
+			_gun_camera.current = false
+		if is_instance_valid(player_camera):
+			player_camera.current = true
+
+
+## A gunner looks straight down his own barrel: the camera follows the aimed
+## muzzle, so the HUD crosshair is where the ball will go.
+func _update_gun_camera() -> void:
+	if not _cannon_camera_on or not is_instance_valid(_gun_camera) or preview_cannons == null:
+		return
+	var mount: Vector3 = preview_cannons.call("mount_world", _cannon_index)
+	var muzzle: Vector3 = mount
+	if preview_cannons.has_method("_muzzle_world"):
+		var value: Variant = preview_cannons.call("_muzzle_world", _cannon_index)
+		if value is Vector3:
+			muzzle = value
+	var direction := muzzle - mount
+	if direction.length_squared() < 0.04 and is_instance_valid(preview_boat):
+		direction = mount - preview_boat.global_position
+	direction = direction.normalized()
+	var eye := mount - direction * 2.20 + Vector3.UP * 1.05
+	_gun_camera.global_position = eye
+	var look := muzzle + direction * 40.0 + Vector3.UP * 0.10
+	_gun_camera.look_at(look, Vector3.UP)
+
+
+func _hold_player(hold: bool) -> void:
+	if not is_instance_valid(player):
+		return
+	if _hold_owned == hold:
+		return
+	_hold_owned = hold
+	if player.has_method("set_vehicle_hold"):
+		player.call("set_vehicle_hold", hold)
+	if not hold:
+		player.velocity = Vector3.ZERO
+
+
+func _take_from_crate(kind: String) -> void:
+	if _crate_timer > 0.0:
+		_message("Ящик ещё открыт", 1.0)
+		return
+	_crate_timer = CRATE_COOLDOWN
+	if kind == "ammo":
+		var space := MAX_BALLS - balls
+		var taken := mini(CRATE_BALLS, space)
+		if taken <= 0:
+			_message("Ядер больше не унести", 1.6)
+			return
+		balls += taken
+		_sync_ball_stock()
+		_message("Взято ядер: %d (всего %d)" % [taken, balls], 2.2)
+	else:
+		var space := MAX_BOARDS - boards
+		var taken := mini(CRATE_BOARDS, space)
+		if taken <= 0:
+			_message("Досок больше не унести", 1.6)
+			return
+		boards += taken
+		_message("Взято досок: %d (всего %d)" % [taken, boards], 2.2)
+	_update_hud(true)
+
+
+func _repair_hull() -> bool:
+	if boards <= 0:
+		_message("Нет досок — возьмите в каюте", 2.0)
+		return false
+	if preview_boat == null or not preview_boat.has_method("nearest_hole_world"):
+		return false
+	var hole: Vector3 = preview_boat.call("nearest_hole_world", player.global_position, REPAIR_REACH)
+	if hole.is_zero_approx():
+		return false
+	if bool(preview_boat.call("repair_at", hole)):
+		boards -= 1
+		_message("Пробоина заделана. Осталось досок: %d" % boards, 2.2)
+		_update_hud(true)
+		return true
+	return false
+
+
+## ------------------------------------------------------------------ input
+func _unhandled_input(event: InputEvent) -> void:
+	if not _installed:
+		return
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if _station == "cannon" and preview_cannons != null and preview_cannons.has_method("manning") \
+				and bool(preview_cannons.call("manning")):
+			_fire_manning_cannon()
+			get_viewport().set_input_as_handled()
+			return
+	if not event is InputEventKey or not event.pressed or event.echo:
+		return
+	if _station == "cannon" and (event.keycode == KEY_R or event.physical_keycode == KEY_R):
+		_load_manning_cannon()
+		get_viewport().set_input_as_handled()
+		return
+	if _station == "helm" and (event.keycode == KEY_F or event.physical_keycode == KEY_F):
+		_leave_station()
+		get_viewport().set_input_as_handled()
+		return
+
+
+func _fire_manning_cannon() -> void:
+	if preview_cannons == null:
+		return
+	if not bool(preview_cannons.call("loaded")):
+		_message("Пушка не заряжена — нажмите R", 2.0)
+		return
+	var shot: Dictionary = preview_cannons.call("fire")
+	if bool(shot.get("ok", false)):
+		_message("Выстрел!", 1.4)
+	else:
+		_message("Осечка", 1.4)
+
+
+func _load_manning_cannon() -> void:
+	if preview_cannons == null:
+		return
+	if bool(preview_cannons.call("loaded")):
+		_message("Уже заряжено", 1.2)
+		return
+	if preview_cannons.has_method("state"):
+		var gun_state: Dictionary = preview_cannons.call("state")
+		if bool(gun_state.get("loading", false)):
+			_message("Идёт заряжание", 1.2)
+			return
+	if balls <= 0:
+		_message("Нет ядер — ящик в каюте", 2.2)
+		return
+	# The host owns the stores; the cannon consumes from its own stock, so the
+	# two numbers are kept in step before and after the loading animation.
+	_sync_ball_stock()
+	var started := true
+	if preview_cannons.has_method("load_ball"):
+		started = bool(preview_cannons.call("load_ball"))
+	if not started:
+		_message("Не удалось зарядить", 1.6)
+		return
+	balls -= 1
+	_sync_ball_stock()
+	_message("Ядро загружено. Осталось ядер: %d" % balls, 2.0)
+	_update_hud(true)
+
+
+func _sync_ball_stock() -> void:
+	if preview_cannons != null and preview_cannons.has_method("set_ball_stock"):
+		preview_cannons.call("set_ball_stock", balls)
+
+
+## ------------------------------------------------------------------ frame loop
+func _physics_process(delta: float) -> void:
+	if not _installed or not is_instance_valid(player):
+		return
+	if _seat_pending > 0:
+		_seat_pending -= 1
+		if _seat_pending == 0:
+			_seat_on_deck()
+	_crate_timer = maxf(0.0, _crate_timer - delta)
+	_wake_timer = maxf(0.0, _wake_timer - delta)
+	_water_time += delta
+	if _station == "helm" and is_instance_valid(preview_boat):
+		var stand: Vector3 = preview_boat.to_global(HELM_STAND)
+		player.global_position = stand
+		player.velocity = Vector3.ZERO
+		var axis := 0.0
+		if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT):
+			axis -= 1.0
+		if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
+			axis += 1.0
+		preview_boat.call("steer", axis)
+	elif _station == "cannon" and preview_cannons != null:
+		var station: Vector3 = preview_cannons.call("station_world", _cannon_index)
+		player.global_position = station
+		player.velocity = Vector3.ZERO
+		var turn := 0.0
+		var elevate := 0.0
+		if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT):
+			turn -= 1.0
+		if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
+			turn += 1.0
+		if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP):
+			elevate += 1.0
+		if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN):
+			elevate -= 1.0
+		if turn != 0.0 or elevate != 0.0:
+			preview_cannons.call("aim", turn * 0.9 * delta, elevate * 0.55 * delta)
+		_update_gun_camera()
+	elif is_instance_valid(preview_boat) and preview_boat.has_method("climb_assist"):
+		preview_boat.call("climb_assist", player, delta)
+
+	if is_instance_valid(preview_boat):
+		if preview_boat.has_method("is_sunk") and bool(preview_boat.call("is_sunk")):
+			_on_ship_sunk()
+		else:
+			_wake(delta)
+	# Falling overboard: the harbour is deep and the player is not a fish.
+	if player.global_position.y < _water_level() - 0.9 and _station == "":
+		if is_instance_valid(preview_boat) and player.global_position.distance_to(preview_boat.global_position) > 9.0:
+			_rescue_player()
+	_hud_timer -= delta
+	if _hud_timer <= 0.0:
+		_hud_timer = 0.12
+		_update_hud(false)
+
+
+func _process(_delta: float) -> void:
+	pass
+
+
+func _wake(_delta: float) -> void:
+	if _wake_timer > 0.0:
+		return
+	_wake_timer = 0.35
+	if preview_boat == null or preview_basin == null or not preview_basin.has_method("add_ripple"):
+		return
+	var speed := 0.0
+	if preview_boat.has_method("speed"):
+		speed = float(preview_boat.call("speed"))
+	if speed < 0.6:
+		return
+	var stern: Vector3 = preview_boat.to_global(Vector3(0.0, 0.0, 12.0))
+	var bow: Vector3 = preview_boat.to_global(Vector3(0.0, 0.0, -12.0))
+	preview_basin.call("add_ripple", stern, 1.0)
+	preview_basin.call("add_ripple", bow, 0.55)
+
+
+func _on_ship_sunk() -> void:
+	if _sunk_announced:
+		return
+	_sunk_announced = true
+	_leave_station()
+	_message("Корабль тонет! Команда покидает борт", 4.0)
+	_rescue_player()
+	_update_hud(true)
+
+
+func _rescue_player() -> void:
+	if preview_basin == null or not preview_basin.has_method("shore_respawn"):
+		return
+	var shore: Vector3 = preview_basin.call("shore_respawn", player.global_position)
+	player.global_position = shore
+	player.velocity = Vector3.ZERO
+	_message("Вас выбросило на берег", 2.4)
+
+
+## ------------------------------------------------------------------ helpers
+func _water_level() -> float:
+	if preview_basin != null and preview_basin.has_method("water_level"):
+		return float(preview_basin.call("water_level"))
+	return -0.55
+
+
+func _ship_yaw() -> float:
+	if preview_boat == null:
+		return 0.0
+	return preview_boat.global_rotation.y
+
+
+func _sails_open() -> bool:
+	if preview_boat != null and preview_boat.has_method("sails_open"):
+		return bool(preview_boat.call("sails_open"))
+	return false
+
+
+func _helm_world() -> Vector3:
+	if preview_model != null and preview_model.has_method("anchors"):
+		var anchors: Dictionary = preview_model.call("anchors")
+		var helm: Dictionary = anchors.get("helm", {})
+		var node: Node3D = helm.get("node")
+		if is_instance_valid(node):
+			return node.global_position
+	return preview_boat.global_position if is_instance_valid(preview_boat) else Vector3.ZERO
+
+
+func _lever_world() -> Vector3:
+	if preview_model != null and preview_model.has_method("anchors"):
+		var anchors: Dictionary = preview_model.call("anchors")
+		var lever: Dictionary = anchors.get("sail_lever", {})
+		var node: Node3D = lever.get("node")
+		if is_instance_valid(node):
+			return node.global_position
+	return Vector3.ZERO
+
+
+func _crate_world(kind: String) -> Vector3:
+	if preview_model == null or not preview_model.has_method("anchors"):
+		return Vector3.ZERO
+	var anchors: Dictionary = preview_model.call("anchors")
+	var crates: Dictionary = anchors.get("crates", {})
+	var crate: Dictionary = crates.get(kind, {})
+	var node: Node3D = crate.get("node")
+	if is_instance_valid(node):
+		return node.global_position
+	return Vector3.ZERO
+
+
+func _message(text: String, seconds: float = 2.6) -> void:
+	if preview_hud != null and preview_hud.has_method("message"):
+		preview_hud.call("message", text, seconds)
+
+
+func _update_hud(force: bool) -> void:
+	if preview_hud == null or not preview_hud.has_method("update_state"):
+		return
+	var state := snapshot()
+	preview_hud.call("update_state", state)
+	if _station == "cannon" and preview_hud.has_method("set_cannon") and preview_cannons != null:
+		preview_hud.call("set_cannon", preview_cannons.call("state"))
+	elif preview_hud.has_method("set_cannon"):
+		preview_hud.call("set_cannon", {})
+
+
+func snapshot() -> Dictionary:
+	var ship_state: Dictionary = {}
+	if preview_boat != null and preview_boat.has_method("snapshot"):
+		ship_state = preview_boat.call("snapshot")
+	var water_state: Dictionary = {}
+	if preview_basin != null and preview_basin.has_method("snapshot"):
+		water_state = preview_basin.call("snapshot")
+	var cannon_state: Dictionary = {}
+	if preview_cannons != null and preview_cannons.has_method("snapshot"):
+		cannon_state = preview_cannons.call("snapshot")
+	return {
+		"status": status,
+		"station": _station,
+		"cannon_index": _cannon_index,
+		"hud": {"balls": balls, "boards": boards},
+		"balls": balls,
+		"boards": boards,
+		"water": water_state,
+		"ship": ship_state,
+		"cannons": cannon_state,
+		"player": player.global_position if is_instance_valid(player) else Vector3.ZERO,
+	}
+
+
+## QA and the HUD both steer through the host.
+func steer(axis: float) -> void:
+	if preview_boat != null and preview_boat.has_method("steer"):
+		preview_boat.call("steer", axis)
+
+
+func set_sails(open: bool) -> void:
+	if preview_boat != null and preview_boat.has_method("set_sails"):
+		preview_boat.call("set_sails", open)
+
+
+func toggle_sails() -> bool:
+	if preview_boat != null and preview_boat.has_method("toggle_sails"):
+		return bool(preview_boat.call("toggle_sails"))
+	return false
+
+
+## ------------------------------------------------------------------ QA hooks
+func debug_fire_at(world_point: Vector3) -> Dictionary:
+	if preview_cannons == null:
+		return {"ok": false, "reason": "no_cannons"}
+	if preview_cannons.has_method("debug_fire_at"):
+		return preview_cannons.call("debug_fire_at", world_point)
+	return {"ok": false, "reason": "no_debug_fire"}
+
+
+## QA hook: put the hull back on the deep-water berth with the port battery
+## bearing on the south wall, so a damage scenario is repeatable.
+func debug_reset_ship() -> void:
+	if not is_instance_valid(preview_boat):
+		return
+	_leave_station()
+	preview_boat.call("moor", Vector3(115.0, _water_level(), 975.0), 0.0)
+	if preview_boat.has_method("set_sails"):
+		preview_boat.call("set_sails", false)
+	if preview_boat.has_method("steer"):
+		preview_boat.call("steer", 0.0)
+
+
+func debug_hit_ship(count: int = 1) -> Dictionary:
+	if preview_boat == null or not preview_boat.has_method("apply_hit"):
+		return {"ok": false, "reason": "no_boat"}
+	var at: Vector3 = preview_boat.to_global(Vector3(-4.2, 0.4, -2.0))
+	var axis: Vector3 = preview_boat.to_global(Vector3(-1.0, 0.0, 0.0)) - preview_boat.global_position
+	var result: Dictionary = {}
+	for index in maxi(1, count):
+		result = preview_boat.call("apply_hit", at + Vector3(0.0, float(index) * 0.6, 0.0),
+			120.0, -axis.normalized() * 8.0, "cannonball")
+	return result
+
+
+func debug_set_station(kind: String, index: int = 0) -> void:
+	if kind == "helm":
+		_toggle_helm()
+	elif kind == "cannon":
+		_toggle_cannon(index)
+	elif kind == "leave":
+		_leave_station()
+
+
+func dispose() -> void:
+	_leave_station()
+	if preview_hud != null and preview_hud.has_method("dispose"):
+		preview_hud.call("dispose")
+	_installed = false

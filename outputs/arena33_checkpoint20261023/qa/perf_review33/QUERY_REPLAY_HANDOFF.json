@@ -1,0 +1,75 @@
+{
+  "status": "merged_broad_oracle_and_actual_active_hold_pass",
+  "baseline_captured_game": "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\query_snapshot\\game",
+  "dataset": "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\query_snapshot03\\CAPTURE.bin",
+  "fixture": "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\query_replay33.gd",
+  "candidate": "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\mixed_combined33.gd",
+  "analysis": "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\query_replay03\\ANALYSIS.json",
+  "capture_source_actual": "seed33023 nativeInputEvent spear actual90percent death then8tickhold; captureoneframe_post_draw",
+  "queries": 1051,
+  "poses": 7,
+  "hits": 26,
+  "exact_mismatches": 0,
+  "changes": [
+    "actor-local preallocated PackedInt32Array DFS stack preserves right-push/left-pop",
+    "cached node bounds read directly; unchanged _bounds only called on miss"
+  ],
+  "unchanged": [
+    "triangle kernel",
+    "all_hits processing",
+    "tie rules",
+    "pose invalidation",
+    "geometry",
+    "contact permissions"
+  ],
+  "limitations": [
+    "Component CPU timing with user game54284 retained; not isolated FPS.",
+    "Captured replay is one actual mixed workload. Broad original oracle completed7PASS3038rays7972hits and graphical120/120 active corpsehold completed; neither claims exhaustive all gameplay.",
+    "Microtiming observer profile overhead excluded from candidate timing."
+  ],
+  "raw_failures": {
+    "query_snapshot01": "capturebetweenphysicscaughtzeroquery;fixedawaitactualdraw",
+    "query_replay01": "privateprofilemixedindentparse;ownPID58044verifiedandstopped;user54284preserved"
+  },
+  "DeepSeek_review02_total_tokens": 4134,
+  "merged_file": "D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game\\scripts\\combat\\contact_mixed_bvh31.gd",
+  "merged_sha256": "f3a0b5c1a957a67dd5d6983f4a6e126b3e5ddd4265d32ee7027b85fee5004e0f",
+  "original_oracle": {
+    "directory": "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\shared_combined_oracle02",
+    "checks": {
+      "actual_cut_committed": true,
+      "actual_cut_queued": true,
+      "actual_postcut_actual_surfaces": true,
+      "actual_uncut_actual_surfaces": true,
+      "exhaustive_all_hit_count_position_normal_face_order": true,
+      "nontrivial_ray_coverage": true,
+      "startup": true
+    },
+    "rays": 3038,
+    "hits": 7972,
+    "point_error": 0.0,
+    "normal_error": 0.0
+  },
+  "hold_comparison": {
+    "hold_uncached01": {
+      "physics_frames": 120,
+      "active_dead_physics": 120,
+      "draw_frames": 78,
+      "active_dead_draw": 78,
+      "max_unresolved": 0,
+      "recovery_attempts": 0,
+      "recovery_moves": 0
+    },
+    "hold_combined33_01": {
+      "physics_frames": 120,
+      "active_dead_physics": 120,
+      "draw_frames": 104,
+      "active_dead_draw": 104,
+      "max_unresolved": 0,
+      "recovery_attempts": 0,
+      "recovery_moves": 0
+    }
+  },
+  "hold_final_analysis": "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\hold_combined33_01\\ANALYSIS.json",
+  "limits": "Replay proves exact queryCPU gain. GUI component reduction is supportive; random render/physics trajectories and external user game prevent clean FPS or exactly paired workload claims."
+}

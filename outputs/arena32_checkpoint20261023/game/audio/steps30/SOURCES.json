@@ -1,0 +1,214 @@
+{
+  "author": "Kenney",
+  "license": "CC0-1.0",
+  "page": "https://kenney.nl/assets/impact-sounds",
+  "provenance": {
+    "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+    "license": "CC0-1.0",
+    "author": "Kenney",
+    "sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8"
+  },
+  "processing": "Mono44.1kHz PCM16, DC/rumble removal, conservative active RMS gain/fades. Dirt additionally layers boot sole into filtered grass granules. No new real-world recording claimed.",
+  "files": [
+    {
+      "file": "stone_1.wav",
+      "source": "footstep_concrete_000.ogg",
+      "source_sha256": "d7267e183067757c92c169de2a379abea592cfca6b39bb2e8feea15221ad79fe",
+      "sha256": "22d3e0b96aaeaea4831b477222559c4636f0edf4dfc6e9a57f3110b2370b71ad",
+      "seconds": 0.10301587301587302,
+      "peak": 0.17974291811277682,
+      "rms": 0.030846689223940064,
+      "derived": false
+    },
+    {
+      "file": "stone_2.wav",
+      "source": "footstep_concrete_001.ogg",
+      "source_sha256": "507a75eb19b897087855a3be3cf11a12d7fa37d143ad535eeebe0b8031c7325d",
+      "sha256": "ce2f585adb603a949714ff282896e333b0eb0048148a97f86666e41cf3137f01",
+      "seconds": 0.10473922902494331,
+      "peak": 0.17480891044419378,
+      "rms": 0.02722910342005411,
+      "derived": false
+    },
+    {
+      "file": "stone_3.wav",
+      "source": "footstep_concrete_002.ogg",
+      "source_sha256": "b21fa546d74941196b25da8a20b7010abd8c05c4fcf93545d1f344e66a664e13",
+      "sha256": "6daee52db14cb14a10cf4f624f31788b7799c0360683e850ca370b81a4830093",
+      "seconds": 0.10988662131519275,
+      "peak": 0.17239177954527515,
+      "rms": 0.025629828240036002,
+      "derived": false
+    },
+    {
+      "file": "stone_4.wav",
+      "source": "footstep_concrete_003.ogg",
+      "source_sha256": "8b513c2f0316324060b9174b8f28df6c2147418c506e6a53b77f18e149a5547b",
+      "sha256": "136997209f80a50cc7c7f4691ec7a6a3dcdc92ab4a86744c669b1ceb17488b5d",
+      "seconds": 0.10759637188208616,
+      "peak": 0.1828984129338105,
+      "rms": 0.02826569164108576,
+      "derived": false
+    },
+    {
+      "file": "stone_5.wav",
+      "source": "footstep_concrete_004.ogg",
+      "source_sha256": "24dd8db2413e5b81ad181e1205c12a1c7801da5f85715d471b92a4b2f632e45e",
+      "sha256": "c7d513db0ead429eed24db158ad8052b457e477d0250fed2014d7af210c22de1",
+      "seconds": 0.11145124716553288,
+      "peak": 0.1966937483057573,
+      "rms": 0.030784186104695646,
+      "derived": false
+    },
+    {
+      "file": "wood_1.wav",
+      "source": "footstep_wood_000.ogg",
+      "source_sha256": "5f1c252942a220d658121bd9417448cd19649ded9fff2ff15f6e50899373ce8e",
+      "sha256": "e1e50c3a21d5a1bece196db3a8816e5d92ebe79417cd1e315e5f08e275d9e801",
+      "seconds": 0.27138321995464854,
+      "peak": 0.41830153954518046,
+      "rms": 0.051077833534131346,
+      "derived": false
+    },
+    {
+      "file": "wood_2.wav",
+      "source": "footstep_wood_001.ogg",
+      "source_sha256": "e4f68e1c9fd55b4dc8ca89ed2bbab6f200171bc54bdc18aa96b80d8e7336f462",
+      "sha256": "b285c0935b1192f5aedc9435ba5678e5800759afd8093397fbe37b339dd81869",
+      "seconds": 0.24866213151927438,
+      "peak": 0.5101337696871,
+      "rms": 0.06240242381316769,
+      "derived": false
+    },
+    {
+      "file": "wood_3.wav",
+      "source": "footstep_wood_002.ogg",
+      "source_sha256": "9ff095b05cee5eec40b081defe3f0eef7232bb16d4865ce03b9f6dbab875cfdd",
+      "sha256": "95b6bd85f1522f3ec6cb6fd486a5b18c250aa3e7c6d2f0fb31ecae692233e8b1",
+      "seconds": 0.24848072562358275,
+      "peak": 0.5216213859589713,
+      "rms": 0.06618358223451946,
+      "derived": false
+    },
+    {
+      "file": "wood_4.wav",
+      "source": "footstep_wood_003.ogg",
+      "source_sha256": "2a68a083daa9eda08fed0ea5da5280dfbe0de226196c576be02f95259dd139d9",
+      "sha256": "5f3f1a173592cd1707e7b6d778e6dcb06db48aeff2e89b0b7a7aa91889c8a2b7",
+      "seconds": 0.24861678004535148,
+      "peak": 0.3615589387422935,
+      "rms": 0.04512249451587621,
+      "derived": false
+    },
+    {
+      "file": "wood_5.wav",
+      "source": "footstep_wood_004.ogg",
+      "source_sha256": "b33e0854e2b3f6b6492e25c25ef8f90447a332f7c6bb25dd02edced9581d3441",
+      "sha256": "d7b3528565cc1c7bc16f395ab25c3254f991d5c0eb4b2b1153ab3ee7f41479e6",
+      "seconds": 0.24501133786848073,
+      "peak": 0.4769358870611584,
+      "rms": 0.06512430196182643,
+      "derived": false
+    },
+    {
+      "file": "dirt_1.wav",
+      "source": "footstep_grass_000.ogg",
+      "source_sha256": "9d49497777405d78d7cf7f2888e28277f3a23192300cfd1d79d54876b20f479f",
+      "sha256": "1df3db868b55f92caa11f1ded76a944b33b3d2cb1c71adc2105b3da655a9e6ae",
+      "seconds": 0.7746712018140589,
+      "peak": 0.17029105123518257,
+      "rms": 0.011451683937346498,
+      "derived": true
+    },
+    {
+      "file": "dirt_2.wav",
+      "source": "footstep_grass_001.ogg",
+      "source_sha256": "fb28781bd22b2eefdc14077f1adf5c94d7fe9c3a130194633b55f3e0d39d9f04",
+      "sha256": "1c6d26e403fb425cc9f9aff46267338a8857309086be2d22d183c5ee05458e97",
+      "seconds": 0.670702947845805,
+      "peak": 0.2619553646315314,
+      "rms": 0.017783281089027367,
+      "derived": true
+    },
+    {
+      "file": "dirt_3.wav",
+      "source": "footstep_grass_002.ogg",
+      "source_sha256": "73a520139f5be716a403bfe9c80e0e94d1e61d8e9de04a354b336392164b53dc",
+      "sha256": "4d7076028d99dcea40e7ffa744e1d5158399460ae118ff10befc0a3f9b691896",
+      "seconds": 0.689546485260771,
+      "peak": 0.2212740844817297,
+      "rms": 0.014544109111456547,
+      "derived": true
+    },
+    {
+      "file": "dirt_4.wav",
+      "source": "footstep_grass_003.ogg",
+      "source_sha256": "0546e1d8ab2def714425701a18bd34c5ee2794b12e858e5b595aabcf38a34137",
+      "sha256": "01916ad1596c24ae0eaf77ce9b33c6f63763306d445932c138a6307a4b065133",
+      "seconds": 0.6664172335600907,
+      "peak": 0.17373943194194524,
+      "rms": 0.011573324961417624,
+      "derived": true
+    },
+    {
+      "file": "dirt_5.wav",
+      "source": "footstep_grass_004.ogg",
+      "source_sha256": "086fd4ab3546a507ea5f5c759a9a10e535c95ade13705c238bc0eeffd7d4e8ba",
+      "sha256": "b3c67bb2147d0c4895036d7fe90482fbc7f1bee54ec8677c4f9f8ca616327f49",
+      "seconds": 0.5873242630385488,
+      "peak": 0.1971334990947089,
+      "rms": 0.013158448859853254,
+      "derived": true
+    },
+    {
+      "file": "grass_1.wav",
+      "source": "footstep_grass_000.ogg",
+      "source_sha256": "9d49497777405d78d7cf7f2888e28277f3a23192300cfd1d79d54876b20f479f",
+      "sha256": "0d645bdc9cd11fa1eb24f2c96c47bbb4f738bbd11f0b0af9a903e3e6087a127a",
+      "seconds": 0.7746712018140589,
+      "peak": 0.19104221699164106,
+      "rms": 0.012402628426544405,
+      "derived": false
+    },
+    {
+      "file": "grass_2.wav",
+      "source": "footstep_grass_001.ogg",
+      "source_sha256": "fb28781bd22b2eefdc14077f1adf5c94d7fe9c3a130194633b55f3e0d39d9f04",
+      "sha256": "fef3985b9867aac2cd03c814f445a706990ac31ec7134be0a4584177497b7397",
+      "seconds": 0.670702947845805,
+      "peak": 0.28110277395504357,
+      "rms": 0.019420871107748282,
+      "derived": false
+    },
+    {
+      "file": "grass_3.wav",
+      "source": "footstep_grass_002.ogg",
+      "source_sha256": "73a520139f5be716a403bfe9c80e0e94d1e61d8e9de04a354b336392164b53dc",
+      "sha256": "11e6546e7ec889c27849edd31bee9941d1312fedd6ef5153f855f9decdf359df",
+      "seconds": 0.689546485260771,
+      "peak": 0.25319963393906325,
+      "rms": 0.016346990060163685,
+      "derived": false
+    },
+    {
+      "file": "grass_4.wav",
+      "source": "footstep_grass_003.ogg",
+      "source_sha256": "0546e1d8ab2def714425701a18bd34c5ee2794b12e858e5b595aabcf38a34137",
+      "sha256": "d3276a5b48d8391535394c08226453bd5b676e6e2da542fcc7cebdd3f055607d",
+      "seconds": 0.6664172335600907,
+      "peak": 0.17808774910763156,
+      "rms": 0.011667570625657772,
+      "derived": false
+    },
+    {
+      "file": "grass_5.wav",
+      "source": "footstep_grass_004.ogg",
+      "source_sha256": "086fd4ab3546a507ea5f5c759a9a10e535c95ade13705c238bc0eeffd7d4e8ba",
+      "sha256": "e27f67c34e4159f45a81e42ea1debb2c2e3c0e7980b65594456f3d127843de06",
+      "seconds": 0.5873242630385488,
+      "peak": 0.20345921333041653,
+      "rms": 0.013302143166325664,
+      "derived": false
+    }
+  ]
+}

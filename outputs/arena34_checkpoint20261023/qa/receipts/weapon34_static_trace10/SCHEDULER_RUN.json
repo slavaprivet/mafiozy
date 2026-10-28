@@ -1,0 +1,102 @@
+{
+  "mode": "graphical",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--windowed",
+    "--resolution",
+    "1280x720",
+    "--max-fps",
+    "60",
+    "--path",
+    "D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game",
+    "--script",
+    "D:/MafioziCombat31/c33_coordination/agents/weapon34/torso_static_trace.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_static_trace10",
+    "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_static_trace10"
+  ],
+  "passed": false,
+  "lease": {
+    "id": "edb2026f237f47f9b4dd38f539ae5d79",
+    "owner": {
+      "pid": 30440,
+      "creation_filetime": "134372466625111516"
+    },
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena34_strong_cuts\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 43664,
+        "creation_filetime": "134372466635788276",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game --script D:/MafioziCombat31/c33_coordination/agents/weapon34/torso_static_trace.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_static_trace10 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_static_trace10",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--windowed",
+          "--resolution",
+          "1280x720",
+          "--max-fps",
+          "60",
+          "--path",
+          "D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game",
+          "--script",
+          "D:/MafioziCombat31/c33_coordination/agents/weapon34/torso_static_trace.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_static_trace10",
+          "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_static_trace10"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "graphical",
+        "project": "d:\\mafiozicombat31\\c33_coordination\\arena34_strong_cuts\\game"
+      }
+    ],
+    "deadline": 263457.3780934,
+    "queued_at": 262857.3780934,
+    "ticket": 6079,
+    "inventory_before": [
+      {
+        "pid": 40212,
+        "parent_pid": 57684,
+        "creation_filetime": "134372393255837801",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game\" res://scenes/arena27.tscn --windowed --resolution 1440x900 --max-fps 60 -- \"--lab-out=D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\interactive\\20261023T142845558Z\"",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози · Полигон 33 · проколы и контакт (DEBUG)"
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5588573000277393
+  },
+  "child": {
+    "pid": 43664,
+    "creation_filetime": "134372466635788276",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game --script D:/MafioziCombat31/c33_coordination/agents/weapon34/torso_static_trace.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_static_trace10 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_static_trace10",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--windowed",
+      "--resolution",
+      "1280x720",
+      "--max-fps",
+      "60",
+      "--path",
+      "D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game",
+      "--script",
+      "D:/MafioziCombat31/c33_coordination/agents/weapon34/torso_static_trace.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_static_trace10",
+      "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon34_static_trace10"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena34_strong_cuts\\game"
+  },
+  "exit_code": 1,
+  "elapsed_seconds": 29.209140499995556,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

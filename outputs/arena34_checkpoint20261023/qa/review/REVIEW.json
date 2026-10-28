@@ -1,0 +1,48 @@
+{
+  "status": "CONDITIONAL_CHECKPOINT_APPROVAL",
+  "scope": "Independent read-only capture/config/receipt review plus authorized targeted actual weak-edge graphical regression; gameplay untouched",
+  "date": "2026-10-23",
+  "gameplay_sha": {
+    "clay_target": "b4182f7e2a8bd491cbbcebcb0160b9b07436dc3ffefb1e091ce36205245e9968",
+    "weapon_solid_contact29": "4268f06b3a37cbd134fec2d4440edfd3e06349477e3eb98032a80a8eab7f40fe"
+  },
+  "confirmed": [
+    "All 11 configured fixtures and their literal extends/load dependencies exist; res dependencies are gameplay files",
+    "All configured RESULT/CHECK/COMMAND/images/review files exist",
+    "All required configured receipts pass stable source/scheduler/stderr checks; final gameplay receipts match exact two SHA",
+    "final13 strong near/far each committed one cut; weak_near has zero actual contacts and is not weak-pressure proof",
+    "light07 final source GUI8PASS canonical chest _clay_torso actual geometry/debris commit",
+    "weak_edge01 GUI8PASS exact gameplay SHA source_unchanged scheduler_passed stderr0:41 solver contacts,33 unique accepted sharp edge contacts,6 local wound events,0 cuts,0 unresolved,0 grip error,peak effective2.31310749m/s",
+    "weak_edge01 fresh head first contact credit40mm plus accepted16.8677mm; following held contact credit0, freshfalse"
+  ],
+  "required_packaging_actions": [
+    "Finalize expected_changed after title-only34 update; add final13/light07/weak_edge01/heavy result to evidence",
+    "Rewrite runtime load references to script-base-dir path_join instead of resource-root relative strings; affected static_negative_run.gd and torso_static_trace.gd",
+    "Preserve receipt FIXTURE.gd snapshot: bare06 hash19ce9b differs from current strong_input hash8214d6; light07 matches current",
+    "Verify packaged static-negative fixture runs after rewrite with scheduler; gameplay SHA unchanged",
+    "Capture complete and verify resulting3434 source pins, scoped git diff, normal commit/push without force"
+  ],
+  "pending_root": "Targeted actual plate evidence and final packaging/publication review belong to root",
+  "limitations": [
+    "No full50v50 FPS or exclusive timings accepted",
+    "Rare contact stalls and synchronous baseNPC/player sever remain",
+    "Late side frames not orphan-hair/clothes acceptance; light07 commit_side framing poor",
+    "Prior lifecycle/wall proofs are pre-static-promotion, identified as such",
+    "No production pointer change; user33 replacement needs explicit agreement"
+  ],
+  "deepseek": {
+    "prompt": "DEEPSEEK_QA_PROMPT.txt",
+    "response": "DEEPSEEK_QA_RESPONSE.txt",
+    "usage": "DEEPSEEK_QA_USAGE.json",
+    "adopted": "Two targeted proof gaps plus packaged-load verification suffice for narrow checkpoint; broad rerun not inherently required",
+    "not_adopted": "Response incorrectly demands plate contact always be blunt/zero-motion and fallback inactive; existing armor gate can reject an actual moving edge. It also overstates all historical evidence must have final SHA; historical receipts remain distinctly scoped."
+  },
+  "outputs": [
+    "weak_edge01/CHECK.json",
+    "weak_edge01/RESULT.json",
+    "weak_edge01/COMMAND.json",
+    "weak_edge01/FIXTURE.gd",
+    "weak_edge34.gd",
+    "run_check.py"
+  ]
+}

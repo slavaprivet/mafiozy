@@ -1,0 +1,123 @@
+{
+  "mode": "graphical",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--windowed",
+    "--resolution",
+    "1280x720",
+    "--max-fps",
+    "60",
+    "--path",
+    "D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game",
+    "--script",
+    "D:/MafioziCombat31/c33_coordination/agents/release34_review30/weak_edge34.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\release34_review30\\weak_edge01",
+    "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\release34_review30\\weak_edge01",
+    "--tier=none",
+    "--weapon=0",
+    "--x=0",
+    "--z=-0.75",
+    "--pitch=-0.1",
+    "--amplitude=0.3",
+    "--weak-edge"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "a8c0672a6ef54fb69d6b5e4b408febc3",
+    "owner": {
+      "pid": 60764,
+      "creation_filetime": "134372515647505794"
+    },
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena34_strong_cuts\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 62000,
+        "creation_filetime": "134372515702999146",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game --script D:/MafioziCombat31/c33_coordination/agents/release34_review30/weak_edge34.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\release34_review30\\weak_edge01 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\release34_review30\\weak_edge01 --tier=none --weapon=0 --x=0 --z=-0.75 --pitch=-0.1 --amplitude=0.3 --weak-edge",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--windowed",
+          "--resolution",
+          "1280x720",
+          "--max-fps",
+          "60",
+          "--path",
+          "D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game",
+          "--script",
+          "D:/MafioziCombat31/c33_coordination/agents/release34_review30/weak_edge34.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\release34_review30\\weak_edge01",
+          "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\release34_review30\\weak_edge01",
+          "--tier=none",
+          "--weapon=0",
+          "--x=0",
+          "--z=-0.75",
+          "--pitch=-0.1",
+          "--amplitude=0.3",
+          "--weak-edge"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "graphical",
+        "project": "d:\\mafiozicombat31\\c33_coordination\\arena34_strong_cuts\\game"
+      }
+    ],
+    "deadline": 268359.7850637,
+    "queued_at": 267759.7850637,
+    "ticket": 6089,
+    "inventory_before": [
+      {
+        "pid": 40212,
+        "parent_pid": 57684,
+        "creation_filetime": "134372393255837801",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game\" res://scenes/arena27.tscn --windowed --resolution 1440x900 --max-fps 60 -- \"--lab-out=D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\interactive\\20261023T142845558Z\"",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози · Полигон 33 · проколы и контакт (DEBUG)"
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 4.918053000001237
+  },
+  "child": {
+    "pid": 62000,
+    "creation_filetime": "134372515702999146",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game --script D:/MafioziCombat31/c33_coordination/agents/release34_review30/weak_edge34.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\release34_review30\\weak_edge01 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\release34_review30\\weak_edge01 --tier=none --weapon=0 --x=0 --z=-0.75 --pitch=-0.1 --amplitude=0.3 --weak-edge",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--windowed",
+      "--resolution",
+      "1280x720",
+      "--max-fps",
+      "60",
+      "--path",
+      "D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game",
+      "--script",
+      "D:/MafioziCombat31/c33_coordination/agents/release34_review30/weak_edge34.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\release34_review30\\weak_edge01",
+      "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\release34_review30\\weak_edge01",
+      "--tier=none",
+      "--weapon=0",
+      "--x=0",
+      "--z=-0.75",
+      "--pitch=-0.1",
+      "--amplitude=0.3",
+      "--weak-edge"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena34_strong_cuts\\game"
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 18.847581000009086,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

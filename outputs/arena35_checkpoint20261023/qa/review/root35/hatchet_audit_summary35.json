@@ -1,0 +1,11 @@
+{
+  "reviewer": "hatchet_audit",
+  "mode": "read-only",
+  "key_finding": "Candidate omitted final edge-forward selected() grip patch; restored exact QA SHA BE8D60F7312B45960C6DF8F71F305F7475AA4960E87E70A18237A3E3F2063B4A. Exact candidate overhand and wall runs now pass.",
+  "remaining": [
+    "no distinct weak/medium/strong categorized force bands",
+    "RMB off-hand behavior not yet proved or changed",
+    "underhand/side final-grip acceptance remains incomplete",
+    "no external manual desktop acceptance"
+  ]
+}

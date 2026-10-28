@@ -1,0 +1,253 @@
+{
+  "status": "READY_FOR_ROOT_INTEGRATION",
+  "candidate": "D:\\MafioziCombat31\\c33_coordination\\agents\\swing35\\game",
+  "base": "D:\\MafioziCombat31\\c33_coordination\\arena34_strong_cuts\\game",
+  "changed": {
+    "scripts/weapons/sword_prototype.gd": {
+      "before": "85be31e416350975a1ae419d1be178713085f004d2ffe07fc5e22244882f8936",
+      "after": "49fcd5d1f0c9de216214e474699c73bedb7f58cce8a18be027596f397d46f14c"
+    }
+  },
+  "source_pin_count": 3434,
+  "tests": {
+    "acceptance07": {
+      "fixture_sha256": "789d5c091c0d26d0ac0527fecdb598db72d058e65680f537fcc1c6cf89d204d3",
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "sledge_air_finite": true,
+        "sledge_air_grip": true,
+        "sledge_air_horizontal_target_height": true,
+        "sledge_air_press_preserves_axis": true,
+        "sledge_air_scope": true,
+        "sledge_air_vertical_down": true,
+        "sledge_air_vertical_up": true,
+        "sledge_contact_actual_horizontal_contacts": true,
+        "sledge_contact_finite": true,
+        "sledge_contact_grip": true,
+        "sledge_contact_horizontal_target_height": true,
+        "sledge_contact_press_preserves_axis": true,
+        "sledge_contact_scope": true,
+        "sword_air_finite": true,
+        "sword_air_grip": true,
+        "sword_air_horizontal_target_height": true,
+        "sword_air_scope": true,
+        "sword_air_vertical_down": true,
+        "sword_air_vertical_up": true,
+        "sword_contact_actual_horizontal_contacts": true,
+        "sword_contact_finite": true,
+        "sword_contact_grip": true,
+        "sword_contact_horizontal_target_height": true,
+        "sword_contact_scope": true
+      }
+    },
+    "final08": {
+      "fixture_sha256": "12d06156508c689b9ceaa343aa6e9ab243e64ba535445f50be8e236f20699143",
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "sledge_air_finite": true,
+        "sledge_air_grip": true,
+        "sledge_air_horizontal_target_height": true,
+        "sledge_air_press_preserves_axis": true,
+        "sledge_air_scope": true,
+        "sledge_air_vertical_down": true,
+        "sledge_air_vertical_up": true,
+        "sledge_contact_actual_horizontal_contacts": true,
+        "sledge_contact_finite": true,
+        "sledge_contact_grip": true,
+        "sledge_contact_horizontal_target_height": true,
+        "sledge_contact_press_preserves_axis": true,
+        "sledge_contact_scope": true,
+        "sledge_repress_recaptures": true,
+        "sledge_switch_finite": true,
+        "sledge_switch_recaptures": true,
+        "switch_sledge_held": true,
+        "switch_sword_held": true,
+        "sword_air_finite": true,
+        "sword_air_grip": true,
+        "sword_air_horizontal_target_height": true,
+        "sword_air_scope": true,
+        "sword_air_vertical_down": true,
+        "sword_air_vertical_up": true,
+        "sword_contact_actual_horizontal_contacts": true,
+        "sword_contact_finite": true,
+        "sword_contact_grip": true,
+        "sword_contact_horizontal_target_height": true,
+        "sword_contact_scope": true
+      }
+    },
+    "horizontal_before01": {
+      "fixture_sha256": "631c6251bba7e189b19fdf73a5961d4634bc781e40bc3bf78cde2f1234591e64",
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "sledge_air_finite": true,
+        "sledge_air_grip": true,
+        "sledge_air_scope": true,
+        "sledge_contact_finite": true,
+        "sledge_contact_grip": true,
+        "sledge_contact_scope": true,
+        "sword_air_finite": true,
+        "sword_air_grip": true,
+        "sword_air_scope": true,
+        "sword_contact_finite": true,
+        "sword_contact_grip": true,
+        "sword_contact_scope": true
+      }
+    },
+    "horizontal_bias05": {
+      "fixture_sha256": "86d0cbad4d2bea30b6ce83f1b84e3734a5f2b2fd35f1b36299bc30220dcb6524",
+      "passed": false,
+      "source_unchanged": true,
+      "scheduler_passed": false,
+      "stderr_bytes": 0,
+      "checks": {
+        "sledge_air_finite": true,
+        "sledge_air_grip": true,
+        "sledge_air_scope": true,
+        "sledge_contact_finite": true,
+        "sledge_contact_grip": true,
+        "sledge_contact_scope": false,
+        "sword_air_finite": true,
+        "sword_air_grip": true,
+        "sword_air_scope": true,
+        "sword_contact_finite": true,
+        "sword_contact_grip": true,
+        "sword_contact_scope": true
+      }
+    },
+    "horizontal_downview03": {
+      "fixture_sha256": "86d0cbad4d2bea30b6ce83f1b84e3734a5f2b2fd35f1b36299bc30220dcb6524",
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "sledge_air_finite": true,
+        "sledge_air_grip": true,
+        "sledge_air_scope": true,
+        "sledge_contact_finite": true,
+        "sledge_contact_grip": true,
+        "sledge_contact_scope": true,
+        "sword_air_finite": true,
+        "sword_air_grip": true,
+        "sword_air_scope": true,
+        "sword_contact_finite": true,
+        "sword_contact_grip": true,
+        "sword_contact_scope": true
+      }
+    },
+    "horizontal_fixed04": {
+      "fixture_sha256": "86d0cbad4d2bea30b6ce83f1b84e3734a5f2b2fd35f1b36299bc30220dcb6524",
+      "passed": false,
+      "source_unchanged": true,
+      "scheduler_passed": false,
+      "stderr_bytes": 0,
+      "checks": {
+        "sledge_air_finite": true,
+        "sledge_air_grip": true,
+        "sledge_air_scope": true,
+        "sledge_contact_finite": true,
+        "sledge_contact_grip": true,
+        "sledge_contact_scope": false,
+        "sword_air_finite": true,
+        "sword_air_grip": true,
+        "sword_air_scope": true,
+        "sword_contact_finite": true,
+        "sword_contact_grip": true,
+        "sword_contact_scope": true
+      }
+    },
+    "horizontal_presentation_off02": {
+      "fixture_sha256": "631c6251bba7e189b19fdf73a5961d4634bc781e40bc3bf78cde2f1234591e64",
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "sledge_air_finite": true,
+        "sledge_air_grip": true,
+        "sledge_air_scope": true,
+        "sledge_contact_finite": true,
+        "sledge_contact_grip": true,
+        "sledge_contact_scope": true,
+        "sword_air_finite": true,
+        "sword_air_grip": true,
+        "sword_air_scope": true,
+        "sword_contact_finite": true,
+        "sword_contact_grip": true,
+        "sword_contact_scope": true
+      }
+    },
+    "vertical_bias06": {
+      "fixture_sha256": "11281c2c54d586ef41919b2c77860a46121cf35432831e88fc2c64c14a897644",
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "sledge_air_finite": true,
+        "sledge_air_grip": true,
+        "sledge_air_scope": true,
+        "sledge_contact_finite": true,
+        "sledge_contact_grip": true,
+        "sledge_contact_scope": true,
+        "sword_air_finite": true,
+        "sword_air_grip": true,
+        "sword_air_scope": true,
+        "sword_contact_finite": true,
+        "sword_contact_grip": true,
+        "sword_contact_scope": true
+      }
+    }
+  },
+  "reason": [
+    "Sword horizontal yaw no longer changes world elevation; same angular speed/acceleration/input gain",
+    "Sledge LMB begins at accepted carried direction through separate angular origin, no forced horizon or hand IK relocation",
+    "Sledge equip captures origin as well to avoid stale bias when switched during held LMB"
+  ],
+  "unchanged": [
+    "swing_presentation30.gd",
+    "solid/puncture/armor",
+    "hatchet mapping",
+    "sword speed/acceleration/damping/free controller",
+    "all other source files"
+  ],
+  "evidence": [
+    "MEASUREMENTS.json",
+    "swing35.diff",
+    "SOURCE_COMPARISON.json",
+    "focused_diff_54_34.txt",
+    "focused_diff_56_34.txt",
+    "focused_diff_29_34.txt"
+  ],
+  "deepseek": {
+    "initial": "DEEPSEEK_SWING35_RESPONSE.txt",
+    "initial_total_tokens": 8867,
+    "initial_limit": "Response truncated at8192 completion token budget; not complete review",
+    "final": "DEEPSEEK_FINAL35_RESPONSE.txt",
+    "final_total_tokens": 3319,
+    "final_conclusion": "No runtime blocker from description; lifecycle stale bias addressed with equip recapture and GUI. Pose-dependent neutral and end-range saturation remain disclosed."
+  },
+  "raw_failures": [
+    "horizontal_fixed04 direct inverse hand preserves direction but changes IK height; rejected implementation",
+    "horizontal_bias05 same horizontal-only contact path misses above target because preserved carry axis points upward; retained raw FAIL, actual horizontal contact tested after deliberate downward input in06/07/08"
+  ],
+  "limits": [
+    "Graphical Godot native InputEvents, not external Windows/manual acceptance",
+    "Sledge preserves current direction, so its neutral and finite hand range now depend on press pose. Extreme downward aim at same camera may need moving camera. No automatic horizon or diagonal clamp.",
+    "Actual world/self/target constraints can change weapon elevation; only unwanted horizontal target-map drift removed",
+    "No general FPS, subjective perfect feel, every extreme pose or full menu/focus lifecycle acceptance",
+    "Historical52 not rerun; static54/56/29 comparison and matched34 GUI support diagnosis. Presentation off air matches baseline.",
+    "presentation_off02 snapshot predates added unused --pitch option in live fixture; default input semantics identical; original snapshot retained",
+    "Root must test merged candidate with penetration and hatchet changes before release"
+  ],
+  "ownership": "Root integrates; user33 preserved. All Godot checks serialized by scheduler. No commits/push."
+}

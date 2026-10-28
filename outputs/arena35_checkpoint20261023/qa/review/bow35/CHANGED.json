@@ -1,0 +1,6 @@
+{
+  "scripts/weapons/bow_prototype.gd": {
+    "before": "267e9c08060ec4b3f2af70536a5b840ff61bb5790e922099f9c7d6ea6a3c8b1e",
+    "after": "da5ee913c54c6ea14e9fb4d87033f85a1f10f98524956e9936576925033d5777"
+  }
+}

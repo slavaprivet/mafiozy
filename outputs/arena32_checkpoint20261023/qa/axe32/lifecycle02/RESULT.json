@@ -1,0 +1,167 @@
+{
+  "checks": {
+    "all_three_recovered": true,
+    "e_with_other_weapon_adds_one": true,
+    "g0_consumes_one": true,
+    "g0_same_model_ground": true,
+    "g1_consumes_one": true,
+    "g1_same_model_ground": true,
+    "g2_consumes_one": true,
+    "g2_same_model_ground": true,
+    "hud_count_correct": true,
+    "no_duplicate_fourth": true,
+    "q0_no_remote_recall": true,
+    "q1_no_remote_recall": true,
+    "q2_no_remote_recall": true,
+    "reselected_held_actual": true,
+    "same_three_identities": true,
+    "startup": true,
+    "zero_empty_visible_token": true,
+    "zero_g_no_ghost": true,
+    "zero_no_throw": true
+  },
+  "passed": true,
+  "rows": [
+    {
+      "phase": "gq0",
+      "state": {
+        "aiming": false,
+        "capacity": 3,
+        "casting": false,
+        "charges": 2,
+        "events": [],
+        "last": {},
+        "launched": 0,
+        "picked": 0,
+        "states": [
+          {
+            "id": 229260663291,
+            "ray_max_usec": 0,
+            "state": "ground"
+          },
+          {
+            "id": 237313727211,
+            "ray_max_usec": 0,
+            "state": "held"
+          },
+          {
+            "id": 237632494330,
+            "ray_max_usec": 0,
+            "state": "reserve"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "gq1",
+      "state": {
+        "aiming": false,
+        "capacity": 3,
+        "casting": false,
+        "charges": 1,
+        "events": [],
+        "last": {},
+        "launched": 0,
+        "picked": 0,
+        "states": [
+          {
+            "id": 229260663291,
+            "ray_max_usec": 0,
+            "state": "ground"
+          },
+          {
+            "id": 237313727211,
+            "ray_max_usec": 0,
+            "state": "ground"
+          },
+          {
+            "id": 237632494330,
+            "ray_max_usec": 0,
+            "state": "held"
+          }
+        ]
+      }
+    },
+    {
+      "phase": "gq2",
+      "state": {
+        "aiming": false,
+        "capacity": 3,
+        "casting": false,
+        "charges": 0,
+        "events": [],
+        "last": {},
+        "launched": 0,
+        "picked": 0,
+        "states": [
+          {
+            "id": 229260663291,
+            "ray_max_usec": 0,
+            "state": "ground"
+          },
+          {
+            "id": 237313727211,
+            "ray_max_usec": 0,
+            "state": "ground"
+          },
+          {
+            "id": 237632494330,
+            "ray_max_usec": 0,
+            "state": "ground"
+          }
+        ]
+      }
+    },
+    {
+      "final": {
+        "aiming": false,
+        "capacity": 3,
+        "casting": false,
+        "charges": 3,
+        "events": [
+          {
+            "charges": 1,
+            "event": "pickup",
+            "serial": 0
+          },
+          {
+            "charges": 2,
+            "event": "pickup",
+            "serial": 2
+          },
+          {
+            "charges": 3,
+            "event": "pickup",
+            "serial": 1
+          }
+        ],
+        "last": {
+          "charges": 3,
+          "event": "pickup",
+          "serial": 1
+        },
+        "launched": 0,
+        "picked": 3,
+        "states": [
+          {
+            "id": 229260663291,
+            "ray_max_usec": 0,
+            "state": "held"
+          },
+          {
+            "id": 237313727211,
+            "ray_max_usec": 0,
+            "state": "reserve"
+          },
+          {
+            "id": 237632494330,
+            "ray_max_usec": 0,
+            "state": "reserve"
+          }
+        ]
+      },
+      "ground_count": 0,
+      "hud": "ТОПОРИКИ 3 / 3"
+    }
+  ]
+}

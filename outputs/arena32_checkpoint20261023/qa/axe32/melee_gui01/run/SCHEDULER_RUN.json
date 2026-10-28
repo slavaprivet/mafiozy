@@ -1,0 +1,111 @@
+{
+  "mode": "graphical",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--windowed",
+    "--resolution",
+    "1280x720",
+    "--max-fps",
+    "60",
+    "--path",
+    "D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game",
+    "--script",
+    "D:/MafioziCombat31/c33_coordination/agents/axe32/melee.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\melee_gui01",
+    "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\melee_gui01"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "f29ff7c345c6444ba25342e7b1bfcbed",
+    "owner": {
+      "pid": 57260,
+      "creation_filetime": "134371911921336300"
+    },
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena32_injuries_axes\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 58796,
+        "creation_filetime": "134371911931868423",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game --script D:/MafioziCombat31/c33_coordination/agents/axe32/melee.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\melee_gui01 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\melee_gui01",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--windowed",
+          "--resolution",
+          "1280x720",
+          "--max-fps",
+          "60",
+          "--path",
+          "D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game",
+          "--script",
+          "D:/MafioziCombat31/c33_coordination/agents/axe32/melee.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\melee_gui01",
+          "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\melee_gui01"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "graphical",
+        "project": "d:\\mafiozicombat31\\c33_coordination\\arena32_injuries_axes\\game"
+      }
+    ],
+    "deadline": 207986.0714599,
+    "queued_at": 207386.0714599,
+    "ticket": 5947,
+    "inventory_before": [
+      {
+        "pid": 42460,
+        "parent_pid": 53068,
+        "creation_filetime": "134371911831353627",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game --script D:/MafioziCombat31/c33_coordination/agents/axe32/lifecycle.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\lifecycle03 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\lifecycle03",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": ""
+      },
+      {
+        "pid": 52984,
+        "parent_pid": 14192,
+        "creation_filetime": "134371911841121040",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\agents\\injuries32\\stage\\game --script D:/MafioziCombat31/c33_coordination/agents/injuries32/settling.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\injuries32\\settling_phase15 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\injuries32\\settling_phase15",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": ""
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5329975000058766
+  },
+  "child": {
+    "pid": 58796,
+    "creation_filetime": "134371911931868423",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game --script D:/MafioziCombat31/c33_coordination/agents/axe32/melee.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\melee_gui01 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\melee_gui01",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--windowed",
+      "--resolution",
+      "1280x720",
+      "--max-fps",
+      "60",
+      "--path",
+      "D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game",
+      "--script",
+      "D:/MafioziCombat31/c33_coordination/agents/axe32/melee.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\melee_gui01",
+      "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\melee_gui01"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena32_injuries_axes\\game"
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 16.21498590000556,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

@@ -1,0 +1,172 @@
+{
+  "checks": {
+    "actual_posed_skin_hit": true,
+    "bone_anchor_follows": true,
+    "cancel_does_not_fire": true,
+    "detached_follow_stable": true,
+    "early_click_not_fired": true,
+    "finite_tissue_embed_or_armor_rejection": true,
+    "old_bone_follow_retired": true,
+    "q_actual_bow": true,
+    "ready_0": true,
+    "real_cut_api_queued": true,
+    "real_damage": true,
+    "real_geometry_committed": true,
+    "same_arrow_exact_piece": true,
+    "single_shot_0": true,
+    "startup": true
+  },
+  "passed": true,
+  "rows": [
+    {
+      "camera": "[X: (0.979088, 0.0, 0.203439), Y: (0.035614, 0.984558, -0.171398), Z: (-0.200298, 0.175059, 0.963968), O: (-1.82213, 2.445956, 6.747089)]",
+      "direction": "(-0.086146, -0.041016, -0.995438)",
+      "muzzle": "(0.191051, 1.088367, 1.930928)",
+      "phase": "before_shot",
+      "pitch": -0.175965941079605,
+      "sight": "(-0.032532, 0.881856, -1.865663)",
+      "yaw": -0.204869350202289
+    },
+    {
+      "arrow": {
+        "actual_skin": true,
+        "alive": true,
+        "armor_rejected": false,
+        "damage_result": {
+          "applied": true,
+          "damage": 26.0,
+          "dead": false,
+          "penetrates": true,
+          "region": "skin",
+          "residual_damage": 26.0
+        },
+        "embed_depth": 0.1,
+        "fired_ms": 13723,
+        "position": "(-0.109326, 0.924915, -1.54)",
+        "stuck": true,
+        "velocity": "(0.0, 0.0, 0.0)"
+      },
+      "audio": {
+        "bus": "Combat30",
+        "events": {},
+        "recent": [],
+        "rejected": {},
+        "seed": 300712,
+        "variant_sets": 11,
+        "voice_scope": "scene_shared",
+        "voices": 32
+      },
+      "dead": false,
+      "hp": 244.0,
+      "shot": 0
+    },
+    {
+      "tissue_impacts31": [
+        {
+          "actual_skin": true,
+          "alive": true,
+          "armor_rejected": false,
+          "damage_result": {
+            "applied": true,
+            "damage": 26.0,
+            "dead": false,
+            "penetrates": true,
+            "region": "skin",
+            "residual_damage": 26.0
+          },
+          "embed_depth": 0.1,
+          "fired_ms": 13723,
+          "position": "(-0.109326, 0.924915, -1.54)",
+          "stuck": true,
+          "velocity": "(0.0, 0.0, 0.0)"
+        }
+      ]
+    },
+    {
+      "arrows": 1,
+      "final_dead": false,
+      "max_anchor_error": 0.0,
+      "rejected": false
+    },
+    {
+      "bone": "chest",
+      "context": {},
+      "material_local": "(-0.364335, 0.139727, 0.36994)",
+      "phase": "cut_input"
+    },
+    {
+      "arrow_parent": "ClayConnectedCut:<RigidBody3D#385355882358>",
+      "cut": {
+        "actor_moved_during_job": false,
+        "anatomy": {
+          "async": true,
+          "body_cap_overlays": 0,
+          "bone_sections": 1,
+          "cap_vertices": 666,
+          "caps": 2,
+          "garment_rims": 0,
+          "ok": true,
+          "skull": false,
+          "tissue_caps": 2
+        },
+        "commit_build_usec": 388,
+        "commit_finish_usec": 837,
+        "commit_head_usec": 64,
+        "commit_insert_usec": 251,
+        "commit_usec": 1552,
+        "contact_worker_usec31": 63743,
+        "cut_usec": 52366,
+        "detached_pose_bones": 28,
+        "failure": "",
+        "finish_profile": {
+          "blood_usec": 211,
+          "flags_usec": 216,
+          "register_usec": 401
+        },
+        "generation": 0,
+        "inverse_usec": 12539,
+        "layer_profiles": [
+          {
+            "cut_usec": 31236,
+            "elapsed_usec": 31240,
+            "name": "player_male_DEMO_core_FABRIC"
+          },
+          {
+            "cut_usec": 5606,
+            "elapsed_usec": 5609,
+            "name": "player_male_DEMO_core_HAIR"
+          },
+          {
+            "cut_usec": 14172,
+            "elapsed_usec": 14174,
+            "name": "player_male_DEMO_core_SKIN"
+          },
+          {
+            "cut_usec": 1340,
+            "elapsed_usec": 1342,
+            "name": "player_male_DEMO_core_TRIM"
+          }
+        ],
+        "moving_pose": true,
+        "parallel_shards": 1,
+        "peak_poll_usec": 3038,
+        "peak_stage_usec": 1223,
+        "pose_changed_during_job": false,
+        "queue_wait_usec": 15814,
+        "queued": true,
+        "rigid_worker_usec": 3,
+        "skin_usec": 4,
+        "snapshot_cache_misses": 0,
+        "snapshot_usec": 745,
+        "staging_total_usec": 1223,
+        "state": "idle",
+        "success": true,
+        "total_latency_usec": 135526,
+        "worker_usec": 128750
+      },
+      "cut_piece": 385355882358,
+      "cut_scope": "Real native bow shot, then direct actual geometry API cut; not a mouse-cut acceptance test."
+    }
+  ],
+  "tier": "none"
+}

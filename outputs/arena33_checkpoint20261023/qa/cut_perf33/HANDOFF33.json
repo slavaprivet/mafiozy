@@ -1,0 +1,217 @@
+{
+  "status": "READY_SCOPED_FROZEN",
+  "candidate": "D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game",
+  "baseline": "D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game",
+  "owned_files": {
+    "scripts/combat/contact_build31.gd": "e81b44db5b39c563896502fbb646314fb839ec8f031736f43df1c320db7afdaa",
+    "scripts/combat/local_wound28.gd": "1456475f1367cbf8e3d23b2925cecdbf0b29209a4eec5020f58f44a5392e8c43",
+    "scripts/combat/wound_surface_query33.gd": "e54f88e6ef2347a9b102db38384882453afdf96d07854d0e7e1b67f2a01fdead"
+  },
+  "changes": {
+    "contact_build31.gd": "Pure-array original triangle-order metadata only. Shared topology/partition/hatchet component classification and existing face order unchanged. Legacy synthetic groups without source metadata trigger safe wound fallback.",
+    "local_wound28.gd": "Uses actor-local exact nearest-surface BVH query; retains exhaustive original algorithm as explicit cold/mismatched-bind fallback. clear_wounds clears pose instances. Wound shape/depth/health/blood unchanged.",
+    "wound_surface_query33.gd": "Uses existing immutable startup/worker BVHs, conservative node/triangle distance pruning, exact legacy weighted vertex/closest-point calculations and original authored triangle traversal ties. No topology build on injury."
+  },
+  "measurements": {
+    "scratch_before": {
+      "apply_ms": 36.005,
+      "surface_ms": 32.254,
+      "draw_ms": 43.191
+    },
+    "scratch_after": {
+      "apply_ms": 2.88,
+      "surface_ms": 1.207,
+      "draw_ms": 20.574
+    },
+    "final_async_cut": {
+      "snapshot_ms": 2.225,
+      "peak_poll_ms": 4.881,
+      "peak_stage_ms": 2.056,
+      "atomic_commit_ms": 3.127,
+      "worker_background_ms": 214.53,
+      "queue_window_maxdraw_ms": 22.405,
+      "post60_maxdraw_ms": 17.144
+    },
+    "shallow_puncture": "Existing local generation is already small: sword/spear create about1.1/.88ms; mesh upload maximum .213/.125ms. Left unchanged.",
+    "exact_oracles": "216 posed queries on intact and216 on actual postcut meshes. Point/normal max error0, fallback0. Both source stable stderr0."
+  },
+  "qa": {
+    "baseline32_cut01": {
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_geometry_cut": true,
+        "queue_accepted": true,
+        "startup": true
+      },
+      "result": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\baseline32_cut01\\RESULT.json",
+      "receipt": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\baseline32_cut01\\CHECK.json"
+    },
+    "candidate33_cut02": {
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_geometry_cut": true,
+        "queue_accepted": true,
+        "startup": true
+      },
+      "result": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\candidate33_cut02\\RESULT.json",
+      "receipt": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\candidate33_cut02\\CHECK.json"
+    },
+    "baseline32_scratch03": {
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_skin_target": true,
+        "real_visible_wound": true,
+        "startup": true
+      },
+      "result": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\baseline32_scratch03\\RESULT.json",
+      "receipt": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\baseline32_scratch03\\CHECK.json"
+    },
+    "candidate33_scratch04": {
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_skin_target": true,
+        "real_visible_wound": true,
+        "startup": true
+      },
+      "result": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\candidate33_scratch04\\RESULT.json",
+      "receipt": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\candidate33_scratch04\\CHECK.json"
+    },
+    "wound_parse05": {
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "res://scripts/combat/async_cut28.gd": true,
+        "res://scripts/combat/contact_build31.gd": true,
+        "res://scripts/combat/local_wound28.gd": true,
+        "res://scripts/combat/wound_surface_query33.gd": true
+      },
+      "result": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\wound_parse05\\RESULT.json",
+      "receipt": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\wound_parse05\\CHECK.json"
+    },
+    "surface_oracle06": {
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_hits": true,
+        "exhaustive_match": true,
+        "no_cold_fallback": true,
+        "ready": true
+      },
+      "result": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\surface_oracle06\\RESULT.json",
+      "receipt": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\surface_oracle06\\CHECK.json"
+    },
+    "optimized33_scratch07": {
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_skin_target": true,
+        "real_visible_wound": true,
+        "startup": true
+      },
+      "result": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\optimized33_scratch07\\RESULT.json",
+      "receipt": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\optimized33_scratch07\\CHECK.json"
+    },
+    "surface_aftercut08": {
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_hits": true,
+        "exhaustive_match": true,
+        "no_cold_fallback": true,
+        "queue_accepted": true,
+        "ready": true,
+        "real_cut": true
+      },
+      "result": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\surface_aftercut08\\RESULT.json",
+      "receipt": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\surface_aftercut08\\CHECK.json"
+    },
+    "baseline32_shallow09": {
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "spear_actual_entry": true,
+        "spear_shallow_alive": true,
+        "sword_actual_entry": true,
+        "sword_shallow_alive": true
+      },
+      "result": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\baseline32_shallow09\\RESULT.json",
+      "receipt": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\baseline32_shallow09\\CHECK.json"
+    },
+    "optimized33_shallow10": {
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "spear_actual_entry": true,
+        "spear_shallow_alive": true,
+        "sword_actual_entry": true,
+        "sword_shallow_alive": true
+      },
+      "result": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\optimized33_shallow10\\RESULT.json",
+      "receipt": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\optimized33_shallow10\\CHECK.json"
+    },
+    "optimized33_cut11": {
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_geometry_cut": true,
+        "queue_accepted": true,
+        "startup": true
+      },
+      "result": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\optimized33_cut11\\RESULT.json",
+      "receipt": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\optimized33_cut11\\CHECK.json"
+    },
+    "optimized33_close12": {
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_skin_target": true,
+        "real_visible_wound": true,
+        "startup": true
+      },
+      "result": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\optimized33_close12\\RESULT.json",
+      "receipt": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\optimized33_close12\\CHECK.json"
+    }
+  },
+  "gui": {
+    "wound_close": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\optimized33_close12\\scratch_close.png",
+    "cut": "D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\optimized33_cut11\\cut_postcommit.png",
+    "review": "Viewed actual visible slit and blood in close camera; no intended appearance change."
+  },
+  "limits": [
+    "User PID54284 remained running; timings are matched phase attribution, not clean global FPS.",
+    "No full combat/native input acceptance from direct cut/scratch API; shallow sword/spear cases use actual native inputs.",
+    "Existing base player and NPC synchronous npc_cut_body paths remain unchanged/outside scoped improvement.",
+    "Cold topology/mismatched binds explicitly fall back to legacy full scan, preserving correctness but possible cold cost.",
+    "Nearest helper currently shares private BVH cache fields; future BVH layout changes need oracle rerun.",
+    "All raw receipts retained; no gameplay/source modifications to baseline32 or solid/sword/clay/async."
+  ],
+  "next": "Root requested independent diagnosis of sword-level death callback ~390ms; separate follow-up, not part of this frozen wound package."
+}

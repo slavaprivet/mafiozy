@@ -1,0 +1,51 @@
+{
+  "schema": "mafiozi.modular_building_placements/v1",
+  "note": "Suggested placements ONLY. Nothing in the game reads this file yet: main.gd is owned by another workstream and was deliberately not touched. A future integrator instantiates the three *_site.gd scripts with these origins/yaws next to PALAZZO-SHOWCASE-001, whose authored frame lives in data/palazzo_binding.json (x 48.5, y 0, z 0, yaw -1.5707963267948966).",
+  "palazzo_frame": {"x": 48.5, "y": 0.0, "z": 0.0, "yaw_rad": -1.5707963267948966},
+  "spacing_rule": "footprints are at most 22.28 m x 19.58 m, so 40 m of separation along x cannot overlap; keep at least 25 m from the palazzo site frame",
+  "placements": [
+    {
+      "label": "restaurant_pizza",
+      "script": "res://scripts/destruction/restaurant/restaurant_site.gd",
+      "profile_id": "template:business:pizza",
+      "recipe": "res://data/restaurant_pizza_catalog2.json",
+      "origin": [0.0, 0.0, 0.0],
+      "yaw_deg": 0.0,
+      "footprint_m": [18.28, 15.28],
+      "authored_bounds_m": {"minimum": [-9.28, -0.31, -8.5], "maximum": [9.28, 7.35, 7.78]},
+      "main_door_local": [0.0, 1.35, -7.5],
+      "status_in_source": "COMPONENT-PASS, production_accepted:false"
+    },
+    {
+      "label": "hospital_structural01",
+      "script": "res://scripts/destruction/hospital_site/hospital_site.gd",
+      "profile_id": "modular:REBUILD-VISUAL-hospital-001",
+      "recipe": "res://data/hospital_catalog2.json",
+      "origin": [40.0, 0.0, 0.0],
+      "yaw_deg": 0.0,
+      "footprint_m": [22.28, 19.58],
+      "authored_bounds_m": {"minimum": [-11.28, -0.31, -10.65], "maximum": [11.28, 7.75, 9.93]},
+      "main_door_local": [0.0, 1.35, -9.65],
+      "status_in_source": "COMPONENT-PASS, production_accepted:false"
+    },
+    {
+      "label": "bank_small",
+      "script": "res://scripts/destruction/bank_site/bank_site.gd",
+      "profile_id": "modular:REBUILD-bank:small",
+      "recipe": "res://data/small_bank_catalog2.json",
+      "origin": [80.0, 0.0, 0.0],
+      "yaw_deg": 0.0,
+      "footprint_m": [19.28, 15.28],
+      "authored_bounds_m": {"minimum": [-9.78, -3.91, -8.5], "maximum": [9.78, 9.15, 7.78]},
+      "main_door_local": [0.0, 1.45, -7.5],
+      "soil_centre_y": -4.035,
+      "terrain_cutout": {"id": "basement_excavation", "rect": [-9.64, -7.64, 9.64, 7.64], "bottom": -3.41, "top": 0.04},
+      "status_in_source": "SOURCE-ONLY (CPU_SOURCE_GEOMETRY_PASS 560 checks); native doors/stairs/destruction NOT_RUN; city_placement BLOCKED_PENDING_FULL_REVALIDATION"
+    }
+  ],
+  "explicitly_not_wired": [
+    "no NPC admission: EntryRoute.ACCEPTED still points at the legacy hospital/bank ids, and the destructible hospital/bank use unplaced_profile ids that no route accepts",
+    "no C4, no damage owner, no gameplay activation: only geometry, collision, the site door and glazing are placed",
+    "no terrain removal: the bank's authored basement volume is proved empty by verify_terrain_clearance() only because its external soil slab sits below the cutout"
+  ]
+}

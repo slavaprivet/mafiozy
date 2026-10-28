@@ -1,0 +1,20 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1"]
+
+[ext_resource type="Script" path="res://scripts/quick_controls/scene_hook.gd" id="2"]
+
+[ext_resource type="Script" path="res://scripts/city/runtime/npc_city_bootstrap.gd" id="3"]
+
+[node name="MafioziWalkMigration" type="Node3D"]
+script = ExtResource("1")
+block_data_path = "res://data/city_block.json"
+city_block_mode = true
+preview_residents_enabled = false
+preview_final_dead_contact_enabled = false
+
+[node name="QuickControlsHook" type="Node" parent="."]
+script = ExtResource("2")
+
+[node name="CityBootstrap" type="Node" parent="."]
+script = ExtResource("3")

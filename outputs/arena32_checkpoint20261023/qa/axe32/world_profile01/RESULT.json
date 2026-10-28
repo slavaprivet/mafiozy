@@ -1,0 +1,32 @@
+{
+  "checks": {
+    "actual_native_normal": true,
+    "full_center_edge": true,
+    "initial_overlap_detected": true,
+    "initial_overlap_normal": true,
+    "no_flat_false_sharp": true,
+    "thin_world_between_corner_rays": true,
+    "wood_blunt": true
+  },
+  "passed": true,
+  "rows": [
+    {
+      "overlap": {
+        "fraction32": 0.0,
+        "normal": "(-1.0, 0.0, 0.0)",
+        "position": "(5.097, 5.003, 5.302)",
+        "unresolved_rest32": false,
+        "world_convex32": true
+      },
+      "profile_samples": 165,
+      "shapes": 7,
+      "sweep": {
+        "fraction32": 0.46875,
+        "normal": "(0.0, 0.0, -1.0)",
+        "position": "(5.097, 5.0, 5.298)",
+        "unresolved_rest32": false,
+        "world_convex32": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "consultations": [
+    {
+      "prompt": "DEEPSEEK_CONTINUE35_PROMPT.txt",
+      "response": "DEEPSEEK_CONTINUE35_RESPONSE.txt",
+      "model": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 675,
+        "completion_tokens": 8192,
+        "total_tokens": 8867,
+        "reasoning_tokens": 8192
+      },
+      "usable_response": false,
+      "note": "Client completed but wrote 0-byte response; token limit exhausted in reasoning. No key material recorded."
+    },
+    {
+      "prompt": "DEEPSEEK_CONTINUE35_SHORT_PROMPT.txt",
+      "response": "DEEPSEEK_CONTINUE35_SHORT_RESPONSE.txt",
+      "model": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 270,
+        "completion_tokens": 605,
+        "total_tokens": 875,
+        "reasoning_tokens": 425
+      },
+      "usable_response": true,
+      "note": "Short review: narrow floor-support gate technically safe; keep jump, 3mm/20mm distance, 600-frame, lateral/mouse/backward-extraction regressions; add side/ceiling and >4mm release assertion."
+    }
+  ],
+  "recorded_utc": "2026-10-23T19:19:28.585958+00:00"
+}

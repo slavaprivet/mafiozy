@@ -1,0 +1,7 @@
+Yes—this is a contact deadlock in the accumulator, not a physical necessity.
+
+Minimal remedy: make sever travel a per-contact-epoch swept integral of **actual resolved relative motion** from the last valid pose to the first-hit skin point, then along the constrained post-response contact tangent. Credit the 3 mm first-hit segment once, and only actual constrained slide afterward. Ignore outward GAP projection, held contact, and repeated desired displacement. Use the swept closest-point for exact skin collision. Preserve armor energy by booking impulse/armor work once per contact epoch and never converting stored/elastic or armor energy into travel.
+
+Anti-exploit tests:
+1. Hold a 3 mm gap and repeatedly command motion: accumulator must not grow after the first resolved segment.
+2. Oscillate/teleport GAP or reverse tiny desired motions: no re-credit; travel increases only with monotonic physical swept contact path and resets only on true separation.

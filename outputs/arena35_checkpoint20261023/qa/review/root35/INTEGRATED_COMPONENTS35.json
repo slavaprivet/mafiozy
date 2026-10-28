@@ -1,0 +1,8 @@
+{
+  "scripts/combat/armor_contact31.gd": "9239c699041a27e55eba64bdf4b1be1407c8f6a8877ada27ad44bec8175f10b2",
+  "scripts/combat/armor_damage31.gd": "21fd593bb460d3b302a38b8a439bbd55ad81cc241fc01990febbfacea9ddc37b",
+  "scripts/combat/armor_head_surface35.gd": "303f78053e0c8d2abd5fbc609beb5de439d7bfd5bddef65ba5d63b2b2479f84b",
+  "scripts/combat/sword_puncture_resistance29.gd": "8a6067ac60c75578a1d622a71c17bfd976bfe4b70b41519b012cdb786a39543d",
+  "scripts/combat/weapon_solid_contact29.gd": "8402a1489d77daea487fd795c48b43751f072323bd9afedea860a38d96c771b8",
+  "scripts/weapons/sword_prototype.gd": "49fcd5d1f0c9de216214e474699c73bedb7f58cce8a18be027596f397d46f14c"
+}

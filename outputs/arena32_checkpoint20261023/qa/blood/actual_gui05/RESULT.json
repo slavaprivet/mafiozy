@@ -1,0 +1,119 @@
+{
+  "checks": {
+    "actual_size_drives_flow": true,
+    "cosmetics_no_hp": true,
+    "global_bounded": true,
+    "hero_real_surface": true,
+    "large_accepted": true,
+    "moving_skin_attached": true,
+    "player_cap_registered": true,
+    "player_real_sever": true,
+    "player_reset_retires_all": true,
+    "player_retained_after_piece_ttl": true,
+    "queue_accepted": true,
+    "real_mesh_sever": true,
+    "reset_removes_sources": true,
+    "retained_after_three_seconds": true,
+    "small_accepted": true,
+    "startup": true
+  },
+  "passed": true,
+  "reports": {
+    "final": {
+      "active": 0,
+      "capacity": 256,
+      "emitted": 1185,
+      "last_update_usec": 150,
+      "max_frame_rays": 8,
+      "max_frame_spawns": 8,
+      "max_update_usec": 377,
+      "peak_active": 64,
+      "source_limit": 24,
+      "sources": 0,
+      "spawn_limit": 48
+    },
+    "large": {
+      "active": 18,
+      "capacity": 256,
+      "emitted": 51,
+      "last_update_usec": 88,
+      "max_frame_rays": 2,
+      "max_frame_spawns": 2,
+      "max_update_usec": 232,
+      "peak_active": 18,
+      "source_limit": 24,
+      "sources": 1,
+      "spawn_limit": 48
+    },
+    "large_anchor": {
+      "normal": "(0.153996, -0.085834, -0.984336)",
+      "point": "(-0.006622, 0.78874, 1.484898)",
+      "requested": "(-0.006622, 0.78874, 1.484898)"
+    },
+    "moving_anchor_errors": [
+      0.0
+    ],
+    "player_caps": {
+      "active": 20,
+      "capacity": 256,
+      "emitted": 1569,
+      "last_update_usec": 99,
+      "max_frame_rays": 8,
+      "max_frame_spawns": 8,
+      "max_update_usec": 377,
+      "peak_active": 64,
+      "source_limit": 24,
+      "sources": 1,
+      "spawn_limit": 48
+    },
+    "sever_after_ttl": {
+      "active": 56,
+      "capacity": 256,
+      "emitted": 1185,
+      "last_update_usec": 150,
+      "max_frame_rays": 8,
+      "max_frame_spawns": 8,
+      "max_update_usec": 377,
+      "peak_active": 64,
+      "source_limit": 24,
+      "sources": 4,
+      "spawn_limit": 48
+    },
+    "sever_initial": {
+      "active": 33,
+      "capacity": 256,
+      "emitted": 189,
+      "last_update_usec": 114,
+      "max_frame_rays": 8,
+      "max_frame_spawns": 4,
+      "max_update_usec": 357,
+      "peak_active": 45,
+      "source_limit": 24,
+      "sources": 4,
+      "spawn_limit": 48
+    },
+    "small": {
+      "active": 13,
+      "capacity": 256,
+      "emitted": 22,
+      "last_update_usec": 91,
+      "max_frame_rays": 2,
+      "max_frame_spawns": 2,
+      "max_update_usec": 124,
+      "peak_active": 13,
+      "source_limit": 24,
+      "sources": 1,
+      "spawn_limit": 48
+    },
+    "small_anchor": {
+      "normal": "(0.153996, -0.085834, -0.984336)",
+      "point": "(-0.006622, 0.78874, 1.484898)",
+      "requested": "(-0.006622, 0.78874, 1.484898)"
+    },
+    "strengths": [
+      0.2,
+      0.65
+    ]
+  },
+  "scope": "Rendered actual accepted skin wound API, native walk, real async MeshSever API, expiry and F6. Not natural melee-input hit acceptance."
+}

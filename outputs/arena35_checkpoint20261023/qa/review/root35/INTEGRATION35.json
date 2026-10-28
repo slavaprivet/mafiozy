@@ -1,0 +1,25 @@
+{
+  "utc": "2026-10-23T19:13:23.820173+00:00",
+  "base_commit": "04e52bdf82f9ead054aaf49c2fcf170ee69c4f63",
+  "changes": [
+    {
+      "file": "scripts/combat/embedded_weapon29.gd",
+      "sha256": "4bf32c3a8da49e4825b9462e73784c461b362cb0fac4165d36076621eedc0f07",
+      "source": "exact final owner QA source",
+      "reason": "retain spear on measured descending false-floor jitter within4mm native floor support, preserve jump/gap release"
+    },
+    {
+      "file": "scripts/weapons/throwing_axe32.gd",
+      "sha256": "be8d60f7312b45960c6df8f71f305f7475aa4960e87e70a18237a3e3f2063b4a",
+      "source": "exact final owner QA source",
+      "reason": "orient one-edged hatchet at first selection so edge-forward throw embeds reliably"
+    }
+  ],
+  "tests_to_rerun": [
+    "penetration35 held/final and jump on merged candidate",
+    "hatchet35qa batched open/wall/overhand/timing on merged candidate"
+  ],
+  "user33_preserved": true,
+  "production_pointer_changed": false,
+  "overall_50x50_fps_accepted": false
+}

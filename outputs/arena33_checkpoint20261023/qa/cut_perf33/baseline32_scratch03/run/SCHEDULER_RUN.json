@@ -1,0 +1,102 @@
+{
+  "mode": "graphical",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--windowed",
+    "--resolution",
+    "1280x720",
+    "--max-fps",
+    "60",
+    "--path",
+    "D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game",
+    "--script",
+    "D:/MafioziCombat31/c33_coordination/agents/cut_perf33/scratch_profile33.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\baseline32_scratch03",
+    "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\baseline32_scratch03"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "b222e19f5ac0402e8fc0f5db82a65a14",
+    "owner": {
+      "pid": 54572,
+      "creation_filetime": "134372113702574007"
+    },
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena32_injuries_axes\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 53748,
+        "creation_filetime": "134372113713075046",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game --script D:/MafioziCombat31/c33_coordination/agents/cut_perf33/scratch_profile33.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\baseline32_scratch03 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\baseline32_scratch03",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--windowed",
+          "--resolution",
+          "1280x720",
+          "--max-fps",
+          "60",
+          "--path",
+          "D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game",
+          "--script",
+          "D:/MafioziCombat31/c33_coordination/agents/cut_perf33/scratch_profile33.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\baseline32_scratch03",
+          "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\baseline32_scratch03"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "graphical",
+        "project": "d:\\mafiozicombat31\\c33_coordination\\arena32_injuries_axes\\game"
+      }
+    ],
+    "deadline": 228164.6573177,
+    "queued_at": 227564.6573177,
+    "ticket": 5998,
+    "inventory_before": [
+      {
+        "pid": 54284,
+        "parent_pid": 45600,
+        "creation_filetime": "134371930274875675",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game\" res://scenes/arena27.tscn --windowed --resolution 1440x900 --max-fps 60 -- \"--lab-out=D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\interactive\\20261023T013707462Z\"",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози · Полигон 32 · ранения и метательные топоры (DEBUG)"
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5337285999848973
+  },
+  "child": {
+    "pid": 53748,
+    "creation_filetime": "134372113713075046",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game --script D:/MafioziCombat31/c33_coordination/agents/cut_perf33/scratch_profile33.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\baseline32_scratch03 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\baseline32_scratch03",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--windowed",
+      "--resolution",
+      "1280x720",
+      "--max-fps",
+      "60",
+      "--path",
+      "D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game",
+      "--script",
+      "D:/MafioziCombat31/c33_coordination/agents/cut_perf33/scratch_profile33.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\baseline32_scratch03",
+      "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\baseline32_scratch03"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena32_injuries_axes\\game"
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 12.897687999997288,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

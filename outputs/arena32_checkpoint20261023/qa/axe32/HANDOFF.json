@@ -1,0 +1,430 @@
+{
+  "status": "FINAL FROZEN / functional QA complete; root integrates/publishes",
+  "candidate": "D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game",
+  "own_pins": {
+    "scripts/weapons/hatchet_model32.gd": "1db61e83c17dc286eae09ab6a132b92ff2c439cc2b0bbc938dfb9c723ea31361",
+    "scripts/weapons/hatchet_volume32.gd": "23ff986aba901bc0307d962cb4d8119909b2f49b7065a0c33651f932678a7674",
+    "scripts/weapons/throwing_axe32.gd": "f1ffbdba699f67b7fa66bdbbd1ae89fe46761219860c0ed0e1940c5f5a723a40",
+    "scripts/weapons/sword_prototype.gd": "85be31e416350975a1ae419d1be178713085f004d2ffe07fc5e22244882f8936",
+    "scripts/weapons/preview_weapons.gd": "b8b4966a9f5355766e035d6d51c96ac1d898edd66a66874f815086ad2fe82620",
+    "scripts/weapons/walk_weapon_ui.gd": "6b99340a7a1b07dfd28147fba43743d023ea1f046827b95db51f4bc95d1608e3",
+    "scripts/combat/weapon_contact_profile29.gd": "1e1b2c71e5df6f3495918e40aad72279a4a90efc6812d2d8cbc784266c9fc36c",
+    "scripts/combat/weapon_solid_contact29.gd": "57c7811e12a0819f7550ebc4a6093fd3d45510794f2563067ab3b42c778524d1",
+    "scripts/combat/contact_build31.gd": "9705c725145e07c448f7196dbf1862d12a4b4823afa81acc281059285582a107",
+    "assets/weapon_thumbnails/hatchet.svg": "359043e25b95ff847fbee67b82be7d499dc78cd44c6577ba53ebf14ddfc59540"
+  },
+  "proofs": {
+    "rigid_parse07": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "res://scripts/clay_target.gd": true,
+        "res://scripts/weapons/hatchet_model32.gd": true,
+        "res://scripts/weapons/preview_weapons.gd": true,
+        "res://scripts/weapons/sword_prototype.gd": true,
+        "res://scripts/weapons/throwing_axe32.gd": true,
+        "res://scripts/weapons/walk_weapon_ui.gd": true
+      },
+      "failures": []
+    },
+    "final_bare_gui09": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_skin_contact": true,
+        "appropriate_contact": true,
+        "bone_follow": true,
+        "consumed_charges": true,
+        "damage_law": true,
+        "launch_0": true,
+        "q_actual_hatchet": true,
+        "startup": true,
+        "three_unique_instances": true,
+        "wood_outside": true
+      },
+      "failures": []
+    },
+    "melee_gui02": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_free_swing": true,
+        "grip_attached": true,
+        "no_throw_from_lmb": true,
+        "real_melee_contact": true,
+        "self_clear": true,
+        "solid_resolved": true
+      },
+      "failures": []
+    },
+    "world_profile01": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_native_normal": true,
+        "full_center_edge": true,
+        "initial_overlap_detected": true,
+        "initial_overlap_normal": true,
+        "no_flat_false_sharp": true,
+        "thin_world_between_corner_rays": true,
+        "wood_blunt": true
+      },
+      "failures": []
+    },
+    "lifecycle_final04": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "all_three_recovered": true,
+        "e_retains_current_hatchet_and_one_visible": true,
+        "e_with_other_weapon_adds_one": true,
+        "g0_consumes_one": true,
+        "g0_same_model_ground": true,
+        "g1_consumes_one": true,
+        "g1_same_model_ground": true,
+        "g2_consumes_one": true,
+        "g2_same_model_ground": true,
+        "hud_count_correct": true,
+        "no_duplicate_fourth": true,
+        "q0_no_remote_recall": true,
+        "q1_no_remote_recall": true,
+        "q2_no_remote_recall": true,
+        "reselected_held_actual": true,
+        "same_three_identities": true,
+        "startup": true,
+        "zero_empty_visible_token": true,
+        "zero_g_no_ghost": true,
+        "zero_no_throw": true
+      },
+      "failures": []
+    },
+    "arms01": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "forearm_l_actual_mesh_sever": true,
+        "forearm_l_charge_rule": true,
+        "forearm_l_survives": true,
+        "forearm_l_throw_hand_rule": true,
+        "forearm_r_actual_mesh_sever": true,
+        "forearm_r_charge_rule": true,
+        "forearm_r_survives": true,
+        "forearm_r_throw_hand_rule": true
+      },
+      "failures": []
+    },
+    "throw_plate_gui06": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_bounce_pickup_charge": true,
+        "actual_bounce_pickup_same_item": true,
+        "actual_protected_plate_target": true,
+        "actual_skin_contact": true,
+        "appropriate_contact": true,
+        "bone_follow": true,
+        "consumed_charges": true,
+        "damage_law": true,
+        "launch_0": true,
+        "q_actual_hatchet": true,
+        "startup": true,
+        "three_unique_instances": true,
+        "wood_outside": true
+      },
+      "failures": []
+    },
+    "accessory_negative01": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "accessory_only": true,
+        "actual_clothing_contact": true,
+        "no_claimed_body_penetration": true,
+        "no_hp_from_unreached_body": true,
+        "no_reported_tissue_damage": true
+      },
+      "failures": []
+    },
+    "accessory_negative02": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "accessory_only": true,
+        "actual_clothing_contact": true,
+        "no_blood_wound_from_accessory": true,
+        "no_claimed_body_penetration": true,
+        "no_hp_from_unreached_body": true,
+        "no_reported_tissue_damage": true
+      },
+      "failures": []
+    },
+    "cut_material_plane01": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_clothing_contact": true,
+        "actual_material_detaches": true,
+        "body_differs_from_garment": true,
+        "outer_accessory_counterexample": true,
+        "reached_real_body": true,
+        "stored_actual_body_material": true
+      },
+      "failures": []
+    }
+  },
+  "implementation": {
+    "item": "hatchet;3 actual models/charges, native Qmenu/RMB aim+LMB throw/LMB free melee/G/E",
+    "free_sword": "Existing sword9rad/s40rad/s2 preserved; hatchet-only10.2/46. No shared collision thresholds lowered.",
+    "world": "7 separate authored mesh convex casts per flying axe, cached once; initial native overlap checked; nearest world vs 120 authored-boundary skin rays. Real world convex blocks insertion too.",
+    "body": "Closed component labels/volume prepared in startup/shared topology and async cut worker. Detailed hit adds source/face/unflipped normals; ordinary skin_hits output unchanged.",
+    "authored_exception": "ONLY exact node name player_male_DEMO_core_FABRIC: thin <=10mm closed tie/shirt components may lead into same source/family largest closed volume component within HEAD_DEPTH145mm. Nearest true mainbody entry/exit, no global farthest hit. All generic disconnected/open components remain conservative.",
+    "damage": "Energy=.5*.72*speed^2*.25 through existing ArmorDamage31. Protected plate ALWAYS zero injury/bounce. Penetrating edge commits HP/Wound only after final volume/world/wood depth reaches actual body entry. Total travel references first outer garment point; body_entry_gap32 explicitly separated. Actual Wound uses body entry and anchor bone.",
+    "identity": "3 same model identities; Q selects reserve but never remote recalls, zero empty token, E ground restores1charge. Cut adoption exact material context; detached weapon becomes nativeground before3s TTL; reset preserves axes.",
+    "cut_material": "skin_hit_local31 tracks actual reached body material entry for exact snapshot-plane cut ownership; accessory-only stays original garment material point."
+  },
+  "images": [
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\final_bare_gui09\\result_close.png",
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\final_bare_gui09\\aim_side_0.png",
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\final_bare_gui09\\release_0.png",
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\melee_gui02\\melee1.png",
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\axe32\\throw_plate_gui06\\result_close.png"
+  ],
+  "integration": {
+    "root": "arena27 eight item/key8/rack and async_cut28 adoption plus clay reset callback",
+    "root_authorized_owned_line": "arena27 rack label only uses short Топорик; menu full name unchanged",
+    "blood": "Exact player-cap BloodFlow32 callback in sword._spawn_cut_debris requested by root/Deep; independent blood16PASS"
+  },
+  "limitations": [
+    "120 sampled authored boundaries against posed skin are not continuous full convex skin volume; native solid world now uses permesh convex.",
+    "Unrecognized/open/severed-shell-with-separate-cap geometry conservatively cannot guarantee head insertion; no fallback to unrelated far shell.",
+    "Shared topology is warm at startup and cutworker precommit; an entirely new unknown mesh entering legacy cold partition may still build synchronously.",
+    "Tests are single laboratory NPC/at most3 flying axes; not acceptance of100 actor battle FPS.",
+    "Rigid detached native ground shape uses existing Finish helper; energy tests distinguish natural throws from direct API contract negatives."
+  ],
+  "raw_retained": [
+    "throw_native01 locomotion shell hit; throw_heavy01 actual armor gap mis-aim; throw_plate02 headless mouse guard; throw_plate03 clavicle mis-aim; lifecycle01 fixture type error",
+    "throw_gui03 functional pass but global source changed/player-occluded impact screenshot rejected as final visual proof",
+    "bare_close_gui07 and independent bare_full02 shallow2.8mm functional passes rejected as completion; volume_actual_diag01 proved tie/shirt/mainbody separation",
+    "independent light_final03/medium_final02 rigid hit.face runtime error retained; fix only detailed source-face mapping"
+  ],
+  "sword_changed_functions_from31": [
+    "set_weapon",
+    "install",
+    "_build_weapon_model",
+    "drop_sword_to_ground",
+    "try_pickup_sword",
+    "_input",
+    "_steer",
+    "_attach_sword_to_fist",
+    "_self_begin_step45",
+    "_spawn_cut_debris"
+  ],
+  "independent_proofs": {
+    "bare_full03": {
+      "result": "D:\\MafioziCombat31\\c33_coordination\\agents\\axe_review32\\bare_full03\\RESULT.json",
+      "check": "D:\\MafioziCombat31\\c33_coordination\\agents\\axe_review32\\bare_full03\\CHECK.json",
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_skin_contact": true,
+        "appropriate_contact": true,
+        "bone_follow": true,
+        "consumed_charges": true,
+        "damage_law": true,
+        "launch_0": true,
+        "q_actual_hatchet": true,
+        "startup": true,
+        "three_unique_instances": true,
+        "wood_outside": true
+      },
+      "failures": []
+    },
+    "bare_short02": {
+      "result": "D:\\MafioziCombat31\\c33_coordination\\agents\\axe_review32\\bare_short02\\RESULT.json",
+      "check": "D:\\MafioziCombat31\\c33_coordination\\agents\\axe_review32\\bare_short02\\CHECK.json",
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_skin_contact": true,
+        "appropriate_contact": true,
+        "bone_follow": true,
+        "consumed_charges": true,
+        "damage_law": true,
+        "launch_0": true,
+        "q_actual_hatchet": true,
+        "startup": true,
+        "three_unique_instances": true,
+        "wood_outside": true
+      },
+      "failures": []
+    },
+    "light_final04": {
+      "result": "D:\\MafioziCombat31\\c33_coordination\\agents\\axe_review32\\light_final04\\RESULT.json",
+      "check": "D:\\MafioziCombat31\\c33_coordination\\agents\\axe_review32\\light_final04\\CHECK.json",
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_protected_plate_target": true,
+        "actual_skin_contact": true,
+        "appropriate_contact": true,
+        "bone_follow": true,
+        "consumed_charges": true,
+        "damage_law": true,
+        "launch_0": true,
+        "q_actual_hatchet": true,
+        "startup": true,
+        "three_unique_instances": true,
+        "wood_outside": true
+      },
+      "failures": []
+    },
+    "medium_final03": {
+      "result": "D:\\MafioziCombat31\\c33_coordination\\agents\\axe_review32\\medium_final03\\RESULT.json",
+      "check": "D:\\MafioziCombat31\\c33_coordination\\agents\\axe_review32\\medium_final03\\CHECK.json",
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_protected_plate_target": true,
+        "actual_skin_contact": true,
+        "appropriate_contact": true,
+        "bone_follow": true,
+        "consumed_charges": true,
+        "damage_law": true,
+        "launch_0": true,
+        "q_actual_hatchet": true,
+        "startup": true,
+        "three_unique_instances": true,
+        "wood_outside": true
+      },
+      "failures": []
+    },
+    "cut_identity03": {
+      "result": "D:\\MafioziCombat31\\c33_coordination\\agents\\axe_review32\\cut_identity03\\RESULT.json",
+      "check": "D:\\MafioziCombat31\\c33_coordination\\agents\\axe_review32\\cut_identity03\\CHECK.json",
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_skin_contact": true,
+        "appropriate_contact": true,
+        "bone_follow": true,
+        "consumed_charges": true,
+        "damage_law": true,
+        "launch_0": true,
+        "lifecycle_actual_cut_queued": true,
+        "lifecycle_actual_mesh_cut": true,
+        "lifecycle_adopted_same_axe": true,
+        "lifecycle_detached_ttl_retains_axe": true,
+        "lifecycle_f6_preserves_axe": true,
+        "lifecycle_f6_three_unique": true,
+        "lifecycle_no_ammo_duplication": true,
+        "lifecycle_real_embedded": true,
+        "q_actual_hatchet": true,
+        "startup": true,
+        "three_unique_instances": true,
+        "wood_outside": true
+      },
+      "failures": []
+    },
+    "three_throws01": {
+      "result": "D:\\MafioziCombat31\\c33_coordination\\agents\\axe_review32\\three_throws01\\RESULT.json",
+      "check": "D:\\MafioziCombat31\\c33_coordination\\agents\\axe_review32\\three_throws01\\CHECK.json",
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_skin_contact": true,
+        "appropriate_contact": true,
+        "bone_follow": true,
+        "consumed_charges": true,
+        "damage_law": true,
+        "f6_all_three_same_ground": true,
+        "fourth_empty_attempt_no_launch": true,
+        "launch_0": true,
+        "launch_1": true,
+        "launch_2": true,
+        "no_negative_ammo": true,
+        "q_actual_hatchet": true,
+        "startup": true,
+        "three_original_instances": true,
+        "three_unique_instances": true,
+        "wood_outside": true
+      },
+      "failures": []
+    },
+    "volume_contract02": {
+      "result": "D:\\MafioziCombat31\\c33_coordination\\agents\\axe_review32\\volume_contract02\\RESULT.json",
+      "check": "D:\\MafioziCombat31\\c33_coordination\\agents\\axe_review32\\volume_contract02\\CHECK.json",
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "actual_world_caps_requested_depth": true,
+        "disconnected_exit_refused": true,
+        "nearest_coherent_exit_not_far_shell": true,
+        "open_connected_fold_not_proven_volume": true,
+        "open_plane_no_exit": true
+      },
+      "failures": []
+    }
+  },
+  "final_delta_validation": "Last game change only stored cut material point uses actual reached body entry, not outer garment. Targeted plane counterexample6PASS and full actual throw/cut/detach/TTL/F6 identity18PASS after exact final change. Earlier flight/energy/GUI/volume receipts retain their stable source snapshots; those unrelated behaviors unchanged.",
+  "final_visual_measurement": {
+    "total_depth_m": 0.073431262835767,
+    "garment_to_body_gap_m": 0.0362161062657833,
+    "actual_tissue_depth_m": 0.0372151565699837,
+    "wood_outside_m": 0.0983929485082626,
+    "damage": 48.9541752238447,
+    "bone_anchor_error": 0,
+    "frame_ray_max_usec": 9920,
+    "scope": "one GUI impact, not overall FPS acceptance"
+  }
+}

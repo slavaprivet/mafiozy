@@ -1,0 +1,46 @@
+Review only, do not invent test results. Godot 4 game. User wants throwing hatchet: hold LMB = normal free swing, release LMB = same visible accepted model launches with genuine hand inertia. No charged timer, scripted RMB+LMB throw, automatic aiming, velocity injection or arbitrary speed boost. Existing flight keeps orientation and advances ballistic position at physics60; embed requires blade sample y>.16 and normalized velocity dot model.global_basis.y>.50; incoming damage=.5*.72*speed^2*.25. Root added helper._process below to sample accepted final masspoint after parent weapon's _process final contact/IK solution (helper is child), then launch on LMB release. Parent weapon dynamics mainly _physics_process, final accepted visual model/IK _process. Audit frame delta vs physics/render frequency, post-solver order, stale/missed release/menu/reset, low natural launch speeds and edge alignment. Real native GUI8-frame reverse mouse swing(-20,0) produced4.56m/s and edge dot.652 at release; final sampled point equals final rendered masspoint exactly. A distant shot missed, gravity reduced edge alignment because orientation is fixed. Stationary release0.005m/s, no false charged velocity. Current actual higher-fps test pending. Give concrete small correct fixes only if necessary, not unphysical autoaim/boost. Explain assumptions and what must be measured. Existing native projectile/impact physics should stay unless evidence demands it. Code:
+func cancel()->void:
+	aiming=false;casting=false;aim_age=0.;host._aiming_throw=false
+	release_armed35=false;sample_valid35=false;release_velocity35=Vector3.ZERO
+func input(event:InputEvent)->bool:
+	if host==null or not host._ready or bool(host._world.get("preview_dead")):return false
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode==KEY_E:
+		if host._player._free_mouse_look and pickup_near():return true
+	if not host._player._free_mouse_look or host._weapon_id!="hatchet" or not host._selected or host._sword_grounded:return false
+	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			if not release_armed35:
+				release_armed35=count()>0 and not host._unarmed
+				sample_valid35=false;release_velocity35=Vector3.ZERO
+			# Ordinary input and solver own the complete free hand swing.
+			return false
+		if release_armed35:
+			var velocity:=release_velocity35 if sample_valid35 and Time.get_ticks_msec()-sample_msec35<=100 else Vector3.ZERO
+			launch(velocity)
+			return true
+	return false
+func _process(delta:float)->void:
+	if not release_armed35:return
+	if not is_instance_valid(host) or not host._active() or host._weapon_id!="hatchet" or host._unarmed or host._sword_grounded or host._hand_lost31(host._carry_side):
+		cancel();return
+	var model:Node3D=host._sword
+	var point:Vector3=model.global_transform*MASS_POINT35
+	if sample_valid35 and sampled_model35==model and delta>0.0001 and delta<=.1:
+		var movement:=point-previous_point35
+		# Equip, reset or teleport may replace the pose; they impart no momentum.
+		release_velocity35=movement/delta if movement.length()<=.45 else Vector3.ZERO
+	else:release_velocity35=Vector3.ZERO
+	previous_point35=point;sampled_model35=model;sample_valid35=true;sample_msec35=Time.get_ticks_msec()
+func launch(velocity:Vector3)->void:
+	if host._hand_lost31(host._carry_side):cancel();return
+	var current:Dictionary={}
+	for item in pool:
+		if item.node==host._sword and item.state in ["held","reserve"]:current=item;break
+	if current.is_empty():cancel();return
+	current.state="flying";current.velocity=velocity;current.damage_done=false
+	current.node.visible=true;current.start_position=current.node.global_position;current.age=0.
+	launched+=1;cancel()
+	host._hold_left=false;host._held_event=false;host._held=false;host._omega=Vector3.ZERO;host._prev_points=PackedVector3Array()
+	host._sword_coast_until_ms31=0
+	selected();host._update_hint();refresh_hud32()
+	last={"event":"launch","serial":current.node.get_meta("hatchet_serial32"),"speed":velocity.length(),"velocity35":velocity,"release_transform35":current.node.global_transform,"charges":count()};events.append(last)

@@ -1,0 +1,192 @@
+{
+  "async": {
+    "actor_moved_during_job": false,
+    "anatomy": {
+      "async": true,
+      "body_cap_overlays": 1,
+      "bone_sections": 2,
+      "cap_vertices": 1764,
+      "caps": 14,
+      "garment_rims": 12,
+      "ok": true,
+      "skull": false,
+      "tissue_caps": 2
+    },
+    "commit_build_usec": 953,
+    "commit_finish_usec": 2015,
+    "commit_head_usec": 81,
+    "commit_insert_usec": 441,
+    "commit_usec": 3499,
+    "contact_worker_usec31": 79661,
+    "cut_usec": 98836,
+    "detached_pose_bones": 28,
+    "failure": "",
+    "finish_profile": {
+      "blood_usec": 541,
+      "flags_usec": 296,
+      "register_usec": 1169
+    },
+    "generation": 0,
+    "inverse_usec": 22447,
+    "layer_profiles": [
+      {
+        "cut_usec": 49936,
+        "elapsed_usec": 49938,
+        "name": "player_male_DEMO_core_FABRIC"
+      },
+      {
+        "cut_usec": 5462,
+        "elapsed_usec": 5464,
+        "name": "player_male_DEMO_core_HAIR"
+      },
+      {
+        "cut_usec": 13623,
+        "elapsed_usec": 13626,
+        "name": "player_male_DEMO_core_SKIN"
+      },
+      {
+        "cut_usec": 1273,
+        "elapsed_usec": 1274,
+        "name": "player_male_DEMO_core_TRIM"
+      },
+      {
+        "cut_usec": 4411,
+        "elapsed_usec": 4412,
+        "name": "ArmorTailoredTorso"
+      },
+      {
+        "cut_usec": 4792,
+        "elapsed_usec": 4793,
+        "name": "ArmorTailoredSleeveLL"
+      },
+      {
+        "cut_usec": 4538,
+        "elapsed_usec": 4541,
+        "name": "ArmorTailoredSleeveRR"
+      },
+      {
+        "cut_usec": 4996,
+        "elapsed_usec": 4997,
+        "name": "ArmorOriginalLowerGarment"
+      },
+      {
+        "cut_usec": 1206,
+        "elapsed_usec": 1207,
+        "name": "ArmorTailoredGloveL"
+      },
+      {
+        "cut_usec": 1081,
+        "elapsed_usec": 1082,
+        "name": "ArmorTailoredGloveR"
+      },
+      {
+        "cut_usec": 3634,
+        "elapsed_usec": 3635,
+        "name": "ArmorTailoredLegL"
+      },
+      {
+        "cut_usec": 3402,
+        "elapsed_usec": 3403,
+        "name": "ArmorTailoredLegR"
+      },
+      {
+        "cut_usec": 275,
+        "elapsed_usec": 277,
+        "name": "ArmorTailoredBootL"
+      },
+      {
+        "cut_usec": 185,
+        "elapsed_usec": 186,
+        "name": "ArmorTailoredBootR"
+      }
+    ],
+    "moving_pose": true,
+    "parallel_shards": 1,
+    "peak_poll_usec": 4817,
+    "peak_stage_usec": 2041,
+    "pose_changed_during_job": false,
+    "queue_wait_usec": 4174,
+    "queued": true,
+    "rigid_armor31": {
+      "detached": 14,
+      "split": 2
+    },
+    "rigid_worker_usec": 9360,
+    "skin_usec": 15,
+    "snapshot_cache_misses": 0,
+    "snapshot_usec": 2181,
+    "staging_total_usec": 2843,
+    "state": "idle",
+    "success": true,
+    "total_latency_usec": 243300,
+    "worker_usec": 213926
+  },
+  "checks": {
+    "actual_geometry_cut": true,
+    "all_triangles_partitioned": true,
+    "contact_built_in_worker": true,
+    "nearest_matches_world_triangles": true,
+    "no_new_main_thread_BVH": true,
+    "queue_accepted": true,
+    "real_hits_compared": true,
+    "skin_hits_match_original": true
+  },
+  "hits": 338,
+  "max_error": 0.0,
+  "mismatches": [],
+  "new_usec": 53128,
+  "old_triangles": 2201,
+  "old_usec": 9199,
+  "passed": true,
+  "rays": 483,
+  "scope": "Actual geometry cut via queue API, exact nearest-hit oracle, and no new main-thread BVH builds. Not a weapon-input or frame-time acceptance.",
+  "skin_mismatches": [],
+  "status": {
+    "blade_contacts": 0,
+    "bvh_build_usec31": 100610,
+    "bvh_builds31": 24,
+    "contacts": 0,
+    "dynamic_egress": 0,
+    "early_safe_fallbacks": 0,
+    "exact_checks": 2328,
+    "geometry_builds": 2,
+    "geometry_usec": 128578,
+    "grid_visits": 30135,
+    "holder_rollbacks": 0,
+    "ik_usec": 0,
+    "last_contact": {},
+    "last_solver_usec": 3174,
+    "last_unresolved": {},
+    "max_grip_error": 0.0,
+    "max_solver_usec": 45397,
+    "max_support_error": 0.0,
+    "mixed_triangles31": 1031,
+    "pose_safe": true,
+    "prepare_usec": 198957,
+    "profile_samples": 242,
+    "recovery_attempts": 0,
+    "recovery_moves": 0,
+    "recovery_native_blocks": 0,
+    "rejected_fallbacks": 0,
+    "rigid_triangles31": 1170,
+    "safe_fallbacks": 0,
+    "segment_calls": 3387,
+    "self_clear": true,
+    "shaft_contacts": 0,
+    "skin_hits_usec31": 5699,
+    "solver_calls": 13,
+    "solver_usec": 62782,
+    "static_edges": 2414,
+    "static_usec": 9121,
+    "sweep_usec": 3522,
+    "trace": [],
+    "triangle_candidates": 12753,
+    "unresolved": 0,
+    "walk_blocks": 0,
+    "walk_calls": 28,
+    "walk_usec": 211,
+    "world_clear": true,
+    "world_usec": 0,
+    "wounds": 0
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "status": "VERIFIED_POLYGON34_CHECKPOINT",
+  "base_commit": "74e34d2e56bb766a782c3a2eace03e67f98399e6",
+  "source": "D:/MafioziCombat31/c33_coordination/arena34_strong_cuts/game",
+  "checkpoint": "outputs/arena34_checkpoint20261023",
+  "launch": "launch.ps1",
+  "behavior": [
+    "The first sword impact counts the actual accepted recent collision-free swing toward the existing40mm run-up gate. Credit is consumed by contact and cleared by world/self clashes and lifecycle changes.",
+    "An authored sharp ridge missed by discrete samples may recover the actual finite point sweep through the same skin face before solid response. Static/recovery/equipment overlaps remain blunt and motionless.",
+    "Speed3.2m/s, edgealignment.55, travel40mm and armor gates unchanged. Existing weapon input, angular dynamics and intact-body collision remain unchanged."
+  ],
+  "production_pointer_changed": false,
+  "full_50v50_fps_accepted": false,
+  "live_checks": "Graphical Godot InputEvents, actual contact, asynchronous mesh commit and saved rendered frames; not external manual desktop play.",
+  "measurement_scope": "Nonexclusive component measurements with user33 still open. Torso11 snapshot2.092ms, main-thread apply2.971ms, backgroundworker216.637ms; not full-frame or100actor acceptance.",
+  "remaining": [
+    "Rare deep-contact recovery stalls from33 remain unresolved; this34 fixes strong sword contacts, not all lag.",
+    "Synchronous baseNPC/player sever path has not been migrated to the polygon asynchronous path.",
+    "Armor positive coverage must distinguish joint/skin from plate; no claim that every aimed strong motion severs.",
+    "Late side screenshot is not an acceptance of every clothing/hair fragment after severing.",
+    "Heavy plate negative uses deterministic skin-hit armor coverage, not exact outer decorative plate mesh collision."
+  ],
+  "opening": "Awaiting replacement of preserved user33 after explicit permission;32 already closed under prior permission.",
+  "title_change": "Only two display strings changed after gameplay acceptance; gameplay SHA pins remain exact.",
+  "verification_summary": {
+    "strong_bare_chest": true,
+    "strong_light_joint_chest": true,
+    "weak_actual_edge_no_sever": true,
+    "heavy_plate_3_949mps_no_sever": true,
+    "packaged_negative17": true,
+    "external_manual_desktop_acceptance": false
+  },
+  "source_files": 3434,
+  "changed_game_files": {
+    "scripts/arena27.gd": "465287755012477805363a04a2c8c402f5c9daf0dd68f81aecc0b7b1a86d0a33",
+    "scripts/clay_target.gd": "b4182f7e2a8bd491cbbcebcb0160b9b07436dc3ffefb1e091ce36205245e9968",
+    "scripts/combat/weapon_solid_contact29.gd": "4268f06b3a37cbd134fec2d4440edfd3e06349477e3eb98032a80a8eab7f40fe"
+  },
+  "utc": "2026-10-23T17:57:02.313018+00:00",
+  "source_stable": true,
+  "checkpoint_exact_bytes": true
+}

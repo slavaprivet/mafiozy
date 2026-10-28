@@ -1,0 +1,16 @@
+{
+  "remote": "https://github.com/slavaprivet/mafiozy.git",
+  "branch": "main",
+  "checkpoint": "outputs/arena32_checkpoint20261023",
+  "commits": [
+    {"sha": "05bcaf24b2a08cd49f261a7cdef4b1d574cc6d7d", "stage": "injury locomotion and arm collision"},
+    {"sha": "f2af725d4c1eb98652c8389eb01c568d9cf8bfea", "stage": "bounded blood streams", "merged_checks": 60, "verified_git_source_blobs": 3323},
+    {"sha": "cc956f4187a33fcb9fae59bb9469ff777d7cc9de", "stage": "both-leg gravity settling and staged support preparation", "merged_checks": 74, "verified_git_source_blobs": 3323}
+  ],
+  "deepseek_d899538e_preserved_in_ancestry": true,
+  "previous_main_cc6f6edb_preserved_in_ancestry": true,
+  "foreign_staging_preserved": true,
+  "production_current_version_changed": false,
+  "pending_at_third_push": "throwing hatchet final contact and merged QA; subsequently completed, see final HANDOFF files",
+  "full_50v50_fps_accepted": false
+}

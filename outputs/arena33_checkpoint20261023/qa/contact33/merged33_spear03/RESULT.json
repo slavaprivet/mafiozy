@@ -1,0 +1,45 @@
+{
+  "checks": {
+    "spear_oblique_lateral_outside_remains_solid": true,
+    "spear_oblique_mouse_axis_locked": true,
+    "spear_oblique_mouse_does_not_extract": true,
+    "spear_oblique_native_backward_extracts": true,
+    "spear_oblique_other_part_solid": true,
+    "spear_oblique_real_shallow_entry": true,
+    "spear_oblique_same_bore_accepts_steel": true,
+    "spear_oblique_shallow_survives": true,
+    "spear_oblique_uncommitted_outside_tip_no_passage": true,
+    "spear_oblique_wound_persists": true
+  },
+  "outcomes": [
+    {
+      "channel_depth": 0.0205379724502563,
+      "embedded": {
+        "active": false,
+        "axis": "(0.137197, -0.090791, -0.986374)",
+        "begins": 1,
+        "corpse_brace": {},
+        "depth": -0.017198039032337,
+        "ends": 1,
+        "entry": "(0.305289, 0.76825, -1.941158)",
+        "holder_reaction_m": 0.0,
+        "last_reason": "withdrawn_backward",
+        "max_crouch_m": 0.0278032422065735,
+        "max_foot_error_m": 0.00000112901432203216,
+        "max_grip_error_m": 0.00000025023305738614,
+        "max_holder_reaction_step_m": 0.0,
+        "max_support_error_m": 0.000000208616256713867,
+        "rejected_lateral_m": 0.0723163464649891,
+        "self_clear": true,
+        "world_clear": true
+      },
+      "guide": {
+        "active": false,
+        "reason": "equipment"
+      },
+      "scenario": "spear_oblique",
+      "withdrawn": true
+    }
+  ],
+  "passed": true
+}

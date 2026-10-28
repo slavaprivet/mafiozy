@@ -1,0 +1,9 @@
+{
+  "status": "STRUCTURAL_APPROVE_PENDING_ROOT_MERGED_HOLD_AND_JUMP",
+  "file": "agents/penetration35/game/scripts/combat/embedded_weapon29.gd",
+  "sha256": "4bf32c3a8da49e4825b9462e73784c461b362cb0fac4165d36076621eedc0f07",
+  "scope": "Independent read-only diff review of the sixth pending file against frozen34; no gameplay edits or additional Godot run by reviewer",
+  "reason": "Only the preexisting airborne grip release condition is refined. A descending body may retain grip if native test_move finds walkable support within4mm. Positive jump velocity never uses this exception, and native gravity/jump values remain unchanged. Normal checks obey floor_max_angle.",
+  "agent_evidence": ["penetration35/held_trace22 native descending floor-release baseline FAIL", "penetration35/held_final23 actual600frame hold+S/freeaim11PASS, new guard branch not exercised", "penetration35/jump29 GUI10PASS including controlled3mm/20mm and real positive native jump release"],
+  "limits": ["Requires exact root merged600-frame hold and jump/release verification", "floor_probe35 may retain an earlier probe on nohit or positiveY; supported bool is current, but historical probe must not be interpreted as current jump support", "Four-millimetre support tolerance is intentionally narrow and is not general coyote time/step snapping", "Not a claim that all rare hands/embedded/recovery screenshots are fixed"]
+}

@@ -1,0 +1,18 @@
+{
+  "checks": {
+    "actual_posed_entry_triangle": true,
+    "bounded_collar_rejected": true,
+    "front_exterior_rejected": true,
+    "nearby_disconnected_triangle_rejected": true,
+    "non_surface_point_rejected": true,
+    "opposite_entry_face_rejected": true,
+    "replaced_mesh_rejected": true,
+    "stale_generation_rejected": true,
+    "sword_collar_limit_unchanged": true,
+    "unrelated_mesh_rejected": true,
+    "unverified_preview_rejected": true,
+    "verified_tip_preview_admits_actual_entry_triangle": true
+  },
+  "passed": true,
+  "scope": "Focused exact posed ArrayMesh collar geometry/property oracle. No native wound/input claim; strict600 real input is separate."
+}

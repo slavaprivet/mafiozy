@@ -1,0 +1,102 @@
+{
+  "mode": "graphical",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--windowed",
+    "--resolution",
+    "1280x720",
+    "--max-fps",
+    "60",
+    "--path",
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\penetration35\\game",
+    "--script",
+    "D:/MafioziCombat31/c33_coordination/agents/penetration35/face_trace.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\penetration35\\face_after03",
+    "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\penetration35\\face_after03"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "a37b9888a053489e9fcdddcb73d3e4fb",
+    "owner": {
+      "pid": 59680,
+      "creation_filetime": "134372540528210269"
+    },
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\agents\\penetration35\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 59324,
+        "creation_filetime": "134372541150626213",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\agents\\penetration35\\game --script D:/MafioziCombat31/c33_coordination/agents/penetration35/face_trace.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\penetration35\\face_after03 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\penetration35\\face_after03",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--windowed",
+          "--resolution",
+          "1280x720",
+          "--max-fps",
+          "60",
+          "--path",
+          "D:\\MafioziCombat31\\c33_coordination\\agents\\penetration35\\game",
+          "--script",
+          "D:/MafioziCombat31/c33_coordination/agents/penetration35/face_trace.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\penetration35\\face_after03",
+          "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\penetration35\\face_after03"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "graphical",
+        "project": "d:\\mafiozicombat31\\c33_coordination\\agents\\penetration35\\game"
+      }
+    ],
+    "deadline": 270847.808127,
+    "queued_at": 270247.808127,
+    "ticket": 6097,
+    "inventory_before": [
+      {
+        "pid": 40212,
+        "parent_pid": 57684,
+        "creation_filetime": "134372393255837801",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game\" res://scenes/arena27.tscn --windowed --resolution 1440x900 --max-fps 60 -- \"--lab-out=D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\interactive\\20261023T142845558Z\"",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози · Полигон 33 · проколы и контакт (DEBUG)"
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 61.6820475999848
+  },
+  "child": {
+    "pid": 59324,
+    "creation_filetime": "134372541150626213",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\agents\\penetration35\\game --script D:/MafioziCombat31/c33_coordination/agents/penetration35/face_trace.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\penetration35\\face_after03 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\penetration35\\face_after03",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--windowed",
+      "--resolution",
+      "1280x720",
+      "--max-fps",
+      "60",
+      "--path",
+      "D:\\MafioziCombat31\\c33_coordination\\agents\\penetration35\\game",
+      "--script",
+      "D:/MafioziCombat31/c33_coordination/agents/penetration35/face_trace.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\penetration35\\face_after03",
+      "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\penetration35\\face_after03"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "graphical",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\agents\\penetration35\\game"
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 44.67006540001603,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

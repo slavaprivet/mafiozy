@@ -1,0 +1,162 @@
+{
+  "scope": "Independent axe32 review and supplemental native QA; no reviewer game edits",
+  "candidate": "D:/MafioziCombat31/c33_coordination/arena32_injuries_axes/game",
+  "tests": {
+    "volume_contract02": {
+      "checks": 5,
+      "passed": true,
+      "source_stable": true,
+      "stderr_bytes": 0,
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\axe_review32\\volume_contract02"
+    },
+    "light_final04": {
+      "checks": 11,
+      "passed": true,
+      "source_stable": true,
+      "stderr_bytes": 0,
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\axe_review32\\light_final04"
+    },
+    "medium_final03": {
+      "checks": 11,
+      "passed": true,
+      "source_stable": true,
+      "stderr_bytes": 0,
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\axe_review32\\medium_final03"
+    },
+    "bare_full03": {
+      "checks": 10,
+      "passed": true,
+      "source_stable": true,
+      "stderr_bytes": 0,
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\axe_review32\\bare_full03"
+    },
+    "bare_short02": {
+      "checks": 10,
+      "passed": true,
+      "source_stable": true,
+      "stderr_bytes": 0,
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\axe_review32\\bare_short02"
+    },
+    "cut_identity02": {
+      "checks": 18,
+      "passed": true,
+      "source_stable": true,
+      "stderr_bytes": 0,
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\axe_review32\\cut_identity02"
+    },
+    "cut_identity03": {
+      "checks": 18,
+      "passed": true,
+      "source_stable": true,
+      "stderr_bytes": 0,
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\axe_review32\\cut_identity03"
+    }
+  },
+  "energy": {
+    "light_final04": {
+      "speed_mps": 23.114953994751,
+      "residual_damage": 37.3608613953416,
+      "hp_loss": 37.360861395342,
+      "total_depth_m": 0.0560412920930123,
+      "actual_body_gap_m": 0,
+      "actual_body_depth_m": 0.0560412920930123,
+      "actual_body_point": "(0.003605, 1.5244, -1.837105)",
+      "region": "cloth",
+      "wood_outside_m": 0.112412489950657
+    },
+    "medium_final03": {
+      "speed_mps": 23.114953994751,
+      "residual_damage": 22.9347317444963,
+      "hp_loss": 22.93473174449599,
+      "total_depth_m": 0.0344020976167445,
+      "actual_body_gap_m": 0,
+      "actual_body_depth_m": 0.0344020976167445,
+      "actual_body_point": "(0.003605, 1.5244, -1.837105)",
+      "region": "mail",
+      "wood_outside_m": 0.133019134402275
+    },
+    "bare_full03": {
+      "speed_mps": 23.3126449584961,
+      "residual_damage": 48.9131473464804,
+      "hp_loss": 48.91314734648,
+      "total_depth_m": 0.0733697210197206,
+      "actual_body_gap_m": 0.0361350402235985,
+      "actual_body_depth_m": 0.0372346807961221,
+      "actual_body_point": "(0.001284, 0.986177, -1.866112)",
+      "region": "skin",
+      "wood_outside_m": 0.0981234759092331
+    },
+    "bare_short02": {
+      "speed_mps": 20.865177154541,
+      "residual_damage": 39.1820055921342,
+      "hp_loss": 39.182005592134004,
+      "total_depth_m": 0.0587730083882013,
+      "actual_body_gap_m": 0.0362392142415047,
+      "actual_body_depth_m": 0.022533794146696602,
+      "actual_body_point": "(0.001279, 0.985362, -1.866201)",
+      "region": "skin",
+      "wood_outside_m": 0.111769050359726
+    }
+  },
+  "final_status": "Independent acceptance complete. Final cut_identity03 PASS18 after one-line actual-body cut-side anchor correction. CPU/GUI released; no game edits by reviewer.",
+  "deepseek": {
+    "total_tokens": 3601,
+    "receipt": "D:\\MafioziCombat31\\c33_coordination\\agents\\axe_review32\\DEEPSEEK_RECEIPT.json"
+  },
+  "limitations": [
+    "Projectile tissue collision uses120 authored boundary-point sweeps, not a continuous full-skin convex cast. Native world collision now uses authored convex casts and initial-overlap guards.",
+    "No100fighter or aggregateFPS acceptance; all here functional native checks.",
+    "Actual throw is native Q/RMB/LMB; sever identity test calls real async MeshSever API explicitly, not a naturally swung sever.",
+    "Authored FABRIC accessory-to-main-body rule is exact-model scoped; not a universal layered clothing/body-volume solver."
+  ],
+  "raw_failures_preserved": {
+    "bare_full02": "Existing checks PASS10, but rejected as depth acceptance: only2.8476mm into authored tie; diagnosed accessory entry vs mainbody.",
+    "light_final03": "runtime error660stderr: rigid BVH has order but no face; owner fixed detailed query fallback.",
+    "medium_final02": "same rigid-face runtime error660stderr; final rerun passed.",
+    "light_full01": "FunctionalPASS but joint contact unsuitable for covered-tier comparison; replaced with identical closed head contact."
+  },
+  "prior_identity": {
+    "three_throws01": "PASS16 stable0: actual3throws, fourth empty attempt no launch, original3instances surviveF6. Not repeated after volume/HP reorder because ammo code unchanged, parent approved."
+  },
+  "found_and_resolved": [
+    "Hatchet ridge incorrectly inherited ordinary axe Z edge; owner separated authored X blade face.",
+    "Farthest same-family hit selected disconnected shells; coherent precomputed closed-component exit + world bounds.",
+    "Raw winding required; old normals flip against ray.",
+    "Prevent new on-impact adjacency BFS: topology precomputed startup/shared/cutworker.",
+    "Authored tie/shirt intercepted before body; now actual body entry/gap and HP/wound only after reaching it.",
+    "Native world volume collision covers6mm obstacle between old sample rays (owner world_profile01).",
+    "Rigid BVH detailed face fallback preserves original order.",
+    "Cut ownership anchor now actual body wound point when tissue reached, outerpoint only for accessory-only; repeated actual cut identity PASS18."
+  ],
+  "comparison_checks": {
+    "matched_tier_speed_exact": true,
+    "light_more_damage": true,
+    "light_deeper": true,
+    "full_faster": true,
+    "full_more_damage": true,
+    "full_deeper_into_body": true
+  },
+  "source_change_between_energy_and_final_cut": "Exactly owner-reviewed cut-ownership anchor line; energy/armor/volume calculations unchanged. Final cut identity repeated on this source.",
+  "final_reviewed_pins": {
+    "scripts/weapons/throwing_axe32.gd": "f1ffbdba699f67b7fa66bdbbd1ae89fe46761219860c0ed0e1940c5f5a723a40",
+    "scripts/weapons/hatchet_volume32.gd": "23ff986aba901bc0307d962cb4d8119909b2f49b7065a0c33651f932678a7674",
+    "scripts/weapons/hatchet_model32.gd": "1db61e83c17dc286eae09ab6a132b92ff2c439cc2b0bbc938dfb9c723ea31361",
+    "scripts/combat/weapon_contact_profile29.gd": "1e1b2c71e5df6f3495918e40aad72279a4a90efc6812d2d8cbc784266c9fc36c",
+    "scripts/combat/weapon_solid_contact29.gd": "57c7811e12a0819f7550ebc4a6093fd3d45510794f2563067ab3b42c778524d1",
+    "scripts/combat/contact_build31.gd": "9705c725145e07c448f7196dbf1862d12a4b4823afa81acc281059285582a107",
+    "scripts/combat/arrow_contact31.gd": "acb250a270326bcd816dfefa08fa15a2a126c4a9fb4195135f07d69928e4ae9a",
+    "scripts/combat/async_cut28.gd": "f1fd43708e322b6c970a7d721525b4fa8226107bef2a0fc4d4d9bd8186bb7c09"
+  },
+  "blood_package_unchanged": {
+    "scripts/combat/blood_flow32.gd": "fd9b8233b681fd6dc1cd77a80aced45400fbd6659e2b74bf5c744eab1a03fe7d",
+    "scripts/combat/local_wound28.gd": "cda0d10c067beb8007a2aaa9f8d86e04d9df8cabec71639ccb7b6fb4ce6e2e96",
+    "scripts/character/hero_wound31.gd": "afab0f7f7c7c2524034ddbb284ff349baab2cb7dbb1d4366feb8fc9c938dde7f"
+  },
+  "owner_coverage": {
+    "heavyplate": "agents/axe32/throw_plate_gui06 PASS13 maximum legit charged native throw, plate damage0/bounce and actual walking pickup; not arbitrary injected high-speed proof",
+    "world_shape": "agents/axe32/world_profile01 PASS7 actual6mm obstacle between old sample rays, native convex+initialoverlap+normals; center edge vsflat/wood",
+    "body_wound": "agents/axe32/final_bare_gui09 PASS10 exact bodyentry and visible depth; owner receipt",
+    "accessory_only": "agents/axe32/accessory_negative02 PASS6 stable0: insufficient body-reaching energy noHP/noWound",
+    "cut_plane_between_accessory_and_body": "agents/axe32/cut_material_plane01 PASS6 stable0: stored point exact actualbody; plane between body and accessory follows body side; oldpoint counterexample wrong"
+  }
+}

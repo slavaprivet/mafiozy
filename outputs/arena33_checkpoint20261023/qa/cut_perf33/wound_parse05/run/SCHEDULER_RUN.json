@@ -1,0 +1,100 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--max-fps",
+    "60",
+    "--path",
+    "D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game",
+    "--script",
+    "D:/MafioziCombat31/c33_coordination/agents/cut_perf33/parse33.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\wound_parse05",
+    "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\wound_parse05"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "d795fcaf25b74f7b83d5c193e4527967",
+    "owner": {
+      "pid": 49384,
+      "creation_filetime": "134372117576214571"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena33_contact_performance\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 40264,
+        "creation_filetime": "134372117586943899",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game --script D:/MafioziCombat31/c33_coordination/agents/cut_perf33/parse33.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\wound_parse05 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\wound_parse05",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--max-fps",
+          "60",
+          "--path",
+          "D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game",
+          "--script",
+          "D:/MafioziCombat31/c33_coordination/agents/cut_perf33/parse33.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\wound_parse05",
+          "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\wound_parse05"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "d:\\mafiozicombat31\\c33_coordination\\arena33_contact_performance\\game",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 228552.0214489,
+    "queued_at": 227952.0214489,
+    "ticket": 6000,
+    "inventory_before": [
+      {
+        "pid": 54284,
+        "parent_pid": 45600,
+        "creation_filetime": "134371930274875675",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game\" res://scenes/arena27.tscn --windowed --resolution 1440x900 --max-fps 60 -- \"--lab-out=D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\interactive\\20261023T013707462Z\"",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози · Полигон 32 · ранения и метательные топоры (DEBUG)"
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5589940000209026
+  },
+  "child": {
+    "pid": 40264,
+    "creation_filetime": "134372117586943899",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game --script D:/MafioziCombat31/c33_coordination/agents/cut_perf33/parse33.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\wound_parse05 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\wound_parse05",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--max-fps",
+      "60",
+      "--path",
+      "D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game",
+      "--script",
+      "D:/MafioziCombat31/c33_coordination/agents/cut_perf33/parse33.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\wound_parse05",
+      "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\cut_perf33\\wound_parse05"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena33_contact_performance\\game",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 2.1192355999955907,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

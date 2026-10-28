@@ -1,0 +1,91 @@
+{
+  "status": "600_HELD_PASS_WITHDRAW_FAIL",
+  "source_stable": true,
+  "stderr_bytes": 0,
+  "hold_frames": 600,
+  "retained_all": true,
+  "collar_seeded": true,
+  "collar_admissions": 1256,
+  "first_sampled_withdraw_release": {
+    "tick": 35,
+    "depth": 0.320868278241639,
+    "player": "(0.224763, 0.000947, 0.731467)",
+    "embedded": {
+      "active": false,
+      "axis": "(0.031456, -0.1128, -0.99312)",
+      "begins": 1,
+      "corpse_brace": {},
+      "depth": 0.320868278241639,
+      "ends": 0,
+      "entry": "(-0.300038, 1.007125, -1.39048)",
+      "holder_reaction_m": 0.380000031553209,
+      "last_reason": "released_hands_airborne_grip_release",
+      "max_crouch_m": 0.06,
+      "max_foot_error_m": 0.0278005357831717,
+      "max_grip_error_m": 0.0306602101773024,
+      "max_holder_reaction_step_m": 0.0199999958276749,
+      "max_support_error_m": 0.000791601079981774,
+      "rejected_lateral_m": 2.17299574151458,
+      "self_clear": true,
+      "world_clear": true
+    },
+    "bore_reject": [
+      {
+        "frame": 1213,
+        "hit": "clavicle_r",
+        "reason": "part",
+        "wound": "chest"
+      },
+      {
+        "frame": 1213,
+        "hit": "clavicle_r",
+        "reason": "part",
+        "wound": "chest"
+      },
+      {
+        "frame": 1213,
+        "hit": "clavicle_r",
+        "reason": "part",
+        "wound": "chest"
+      },
+      {
+        "frame": 1213,
+        "hit": "clavicle_r",
+        "reason": "part",
+        "wound": "chest"
+      },
+      {
+        "frame": 1213,
+        "hit": "clavicle_r",
+        "reason": "part",
+        "wound": "chest"
+      },
+      {
+        "frame": 1213,
+        "hit": "clavicle_r",
+        "reason": "part",
+        "wound": "chest"
+      },
+      {
+        "frame": 1213,
+        "hit": "clavicle_r",
+        "reason": "part",
+        "wound": "chest"
+      },
+      {
+        "frame": 1213,
+        "hit": "clavicle_r",
+        "reason": "part",
+        "wound": "chest"
+      }
+    ]
+  },
+  "draw_diagnostics_only": {
+    "count": 600,
+    "mean_usec": 23115.083333333332,
+    "p95_usec": 26869,
+    "max_usec": 91613,
+    "performance_acceptance": false
+  },
+  "reason": "Withdrawal changes posed chest surface; point gate rejects front-surface material beyond fixed collar, followed by unrelated clavicle contact and airborne grip drop. No threshold relaxed."
+}

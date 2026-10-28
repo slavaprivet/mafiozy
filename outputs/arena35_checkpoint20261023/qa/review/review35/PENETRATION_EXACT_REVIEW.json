@@ -1,0 +1,36 @@
+{
+  "status": "APPROVE_EXACT_FIVE_WITH_COMBINED_ARMOR30_COLLAR12_PASS",
+  "reviewed_five": {
+    "scripts/combat/armor_contact31.gd": {
+      "expected": "9239c699041a27e55eba64bdf4b1be1407c8f6a8877ada27ad44bec8175f10b2",
+      "actual": "9239c699041a27e55eba64bdf4b1be1407c8f6a8877ada27ad44bec8175f10b2",
+      "equal": true
+    },
+    "scripts/combat/armor_damage31.gd": {
+      "expected": "21fd593bb460d3b302a38b8a439bbd55ad81cc241fc01990febbfacea9ddc37b",
+      "actual": "21fd593bb460d3b302a38b8a439bbd55ad81cc241fc01990febbfacea9ddc37b",
+      "equal": true
+    },
+    "scripts/combat/armor_head_surface35.gd": {
+      "expected": "303f78053e0c8d2abd5fbc609beb5de439d7bfd5bddef65ba5d63b2b2479f84b",
+      "actual": "303f78053e0c8d2abd5fbc609beb5de439d7bfd5bddef65ba5d63b2b2479f84b",
+      "equal": true
+    },
+    "scripts/combat/sword_puncture_resistance29.gd": {
+      "expected": "8a6067ac60c75578a1d622a71c17bfd976bfe4b70b41519b012cdb786a39543d",
+      "actual": "8a6067ac60c75578a1d622a71c17bfd976bfe4b70b41519b012cdb786a39543d",
+      "equal": true
+    },
+    "scripts/combat/weapon_solid_contact29.gd": {
+      "expected": "8402a1489d77daea487fd795c48b43751f072323bd9afedea860a38d96c771b8",
+      "actual": "8402a1489d77daea487fd795c48b43751f072323bd9afedea860a38d96c771b8",
+      "equal": true
+    }
+  },
+  "embedded_excluded": true,
+  "limitations": "Observed exact source same five reviewed; no ready claim for embedded600 hold/release pending. Existing local30mm outer ray and normalized non-head coverage limits remain.",
+  "combined_tests": [
+    "combined_armor02",
+    "combined_collar03"
+  ]
+}

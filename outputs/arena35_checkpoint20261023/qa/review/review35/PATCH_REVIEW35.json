@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-23",
+  "reviewer": "release34_review",
+  "mode": "Independent read-only code review; tests referenced are agent/root evidence, not rerun here",
+  "bow": {
+    "status": "APPROVE",
+    "candidate": "agents/bow35/game/scripts/weapons/bow_prototype.gd",
+    "sha256": "da5ee913c54c6ea14e9fb4d87033f85a1f10f98524956e9936576925033d5777",
+    "reason": "Existing merged identity-baked child meshes scale x/y only; vertex z/root/ballistics unchanged. Updates before inactive return; flight start/stop reset before audio returns. Agent final lifecycle19 and embed/cut15 PASS.",
+    "limits": "Depends on identity-baked ModelFinish31 mesh children; bright sky remains subtle. The .8px value is projected shaft target capped at3x, not guaranteed pixel visibility."
+  },
+  "penetration": {
+    "status": "NO_CODE_BLOCKER_SEEN_PENDING_AGENT_FINAL_NEGATIVES",
+    "candidate": "agents/penetration35/game",
+    "reason": "Finite segment ends at skin, actual head meshes override box region and shared covered_response35 makes damage factor consistent. GDScript AABB.intersects_segment is Variant, null check correct. Collar preserves mesh/skin/generation/weapon/headbone/normal/real triangle/12mm/outer local ray/armor guard and actual blade profile. Guide120mm is bounded hand guidance, not wound width.",
+    "limits": [
+      "Head query is bounded linear triangle scan, not BVH",
+      "Local outermost ray is30mm, not proof of global visibility",
+      "Admission counters count evaluations and can increment twice per endpoint, not unique wounds",
+      "Final heavy cap, negative buried layer, lifecycle and merged QA still needed"
+    ]
+  },
+  "root_soft_topology": {
+    "status": "APPROVE_SCOPE",
+    "candidate": "arena35_soft_tissue/game",
+    "files": [
+      "scripts/clay_target.gd",
+      "scripts/combat/blade_resistance28.gd",
+      "scripts/weapons/hatchet_volume32.gd"
+    ],
+    "reason": "2.6m/s gate applies to penetrable skin/joint;40mm travel/.55 edge/armor and source freshness preserved. Sword tissue load remains depth/bone dependent and fades smoothly. Topology interns complete exact point+positive influence signatures and canonical undirected integer edge pair, without epsilon or graph algorithm changes.",
+    "evidence": "Root27 exact topology builds pre/post realcut equivalent; matched worker217.719->182.994ms, total234.099->200.070ms; not independently rerun.",
+    "limits": "No overall FPS claim: drawp95 about18.6ms both; main snapshot .935->.887ms is nearly unchanged."
+  },
+  "root_hatchet_flight": {
+    "status": "NO_CODE_BLOCKER_SEEN_PENDING_RUNTIME_QA",
+    "file": "D:\\MafioziCombat31\\c33_coordination\\arena35_soft_tissue\\game\\scripts\\weapons\\throwing_axe32.gd",
+    "sha256": "a2284f2c37218922aee478432bd104d3578dab7e6cbf83e4c317b913d21acc8f",
+    "reason": "World angular delta shortest quaternion, rotation about declared COM, perpoint impact COM+omega cross lever, launch/reset freshness consistent. Per .04rad endpoint convex hull with.2mm margin conservatively covers world rotation for<.5m radius; stops at last clear beforepose. No autoaim or edge snap.",
+    "limits": [
+      "Skin uses discrete swept sample chords, not exact rotating surface CCD",
+      "Translation cast in addition to rotational hull can stop early conservatively",
+      "Hero locomotion exclusion is existing behavior; no new self-skin projectile collision",
+      "Near-world hull allocation and full play FPS require runtime evidence"
+    ]
+  }
+}

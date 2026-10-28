@@ -1,0 +1,109 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--max-fps",
+    "60",
+    "--path",
+    "D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game",
+    "--script",
+    "D:/MafioziCombat31/c33_coordination/agents/weapon33/bore_regression.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\merged33_bore04",
+    "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\merged33_bore04"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "4f3d6276d7564e779c3e8483cc652be7",
+    "owner": {
+      "pid": 58780,
+      "creation_filetime": "134372387536309997"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena33_contact_performance\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 58908,
+        "creation_filetime": "134372387548191798",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game --script D:/MafioziCombat31/c33_coordination/agents/weapon33/bore_regression.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\merged33_bore04 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\merged33_bore04",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--max-fps",
+          "60",
+          "--path",
+          "D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game",
+          "--script",
+          "D:/MafioziCombat31/c33_coordination/agents/weapon33/bore_regression.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\merged33_bore04",
+          "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\merged33_bore04"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "d:\\mafiozicombat31\\c33_coordination\\arena33_contact_performance\\game",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 255548.5083436,
+    "queued_at": 254948.5083436,
+    "ticket": 6055,
+    "inventory_before": [
+      {
+        "pid": 54284,
+        "parent_pid": 45600,
+        "creation_filetime": "134371930274875675",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game\" res://scenes/arena27.tscn --windowed --resolution 1440x900 --max-fps 60 -- \"--lab-out=D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\interactive\\20261023T013707462Z\"",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози · Полигон 32 · ранения и метательные топоры (DEBUG)"
+      },
+      {
+        "pid": 57432,
+        "parent_pid": 53304,
+        "creation_filetime": "134372387444902743",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --windowed --resolution 1280x720 --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game --script D:/MafioziCombat31/c33_coordination/agents/weapon33/spear_oblique_visual.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\merged33_spear03 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\merged33_spear03",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": ""
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.590840599994408
+  },
+  "child": {
+    "pid": 58908,
+    "creation_filetime": "134372387548191798",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game --script D:/MafioziCombat31/c33_coordination/agents/weapon33/bore_regression.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\merged33_bore04 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\merged33_bore04",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--max-fps",
+      "60",
+      "--path",
+      "D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game",
+      "--script",
+      "D:/MafioziCombat31/c33_coordination/agents/weapon33/bore_regression.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\merged33_bore04",
+      "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\merged33_bore04"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\arena33_contact_performance\\game",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 21.27810190001037,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

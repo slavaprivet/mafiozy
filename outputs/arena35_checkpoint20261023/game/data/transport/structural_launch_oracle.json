@@ -1,0 +1,307 @@
+{
+  "schema": "mafiozi.transport-structural-launch-oracle.v1",
+  "source": "vehicle_crash.mjs detach lines 127-135",
+  "source_sha256": "cceffb5b6e65a1d180e8860d471351bf04340439ad605a66d6143daf53b20e44",
+  "rows": [
+    {
+      "id": "hood",
+      "impact_count": 0,
+      "normal_native": [
+        0.6,
+        0.2,
+        -0.7
+      ],
+      "impact_speed_mps": 0,
+      "signed_speed_mps": -142.75,
+      "travel_yaw_native": -2.4,
+      "seed_u32": 4131997,
+      "seed_exceeds_safe_integer": false,
+      "linear_velocity_native": [
+        -71.2324067726398,
+        2.7254189041330545,
+        -74.01388407884124
+      ],
+      "angular_velocity_native": [
+        -3.458132990331595,
+        -2.9126388261388887,
+        -0.8334532333035247
+      ],
+      "mass_kg": 18
+    },
+    {
+      "id": "trunk",
+      "impact_count": 7,
+      "normal_native": [
+        -0.3,
+        0.8,
+        0.1
+      ],
+      "impact_speed_mps": 31.5,
+      "signed_speed_mps": 88.5,
+      "travel_yaw_native": 0.7,
+      "seed_u32": 339673772,
+      "seed_exceeds_safe_integer": false,
+      "linear_velocity_native": [
+        -41.462242081791615,
+        4.346771862037036,
+        -49.07602396902249
+      ],
+      "angular_velocity_native": [
+        -2.400395515625677,
+        -3.4908147623215515,
+        -2.7430957613043487
+      ],
+      "mass_kg": 18
+    },
+    {
+      "id": "door_front_left",
+      "impact_count": 2147483647,
+      "normal_native": [
+        0,
+        1,
+        0
+      ],
+      "impact_speed_mps": 12.25,
+      "signed_speed_mps": 0,
+      "travel_yaw_native": 3.141592653589793,
+      "seed_u32": 0,
+      "seed_exceeds_safe_integer": true,
+      "linear_velocity_native": [
+        -1.0143003546183467,
+        2.77183119282125,
+        -1.1877588617106412
+      ],
+      "angular_velocity_native": [
+        0.5963532599175971,
+        -1.892749120732141,
+        -3.3851975134086185
+      ],
+      "mass_kg": 18
+    },
+    {
+      "id": "door_front_right",
+      "impact_count": 0,
+      "normal_native": [
+        0.6,
+        0.2,
+        -0.7
+      ],
+      "impact_speed_mps": 0,
+      "signed_speed_mps": -142.75,
+      "travel_yaw_native": -2.4,
+      "seed_u32": 0,
+      "seed_exceeds_safe_integer": true,
+      "linear_velocity_native": [
+        -71.15840605166564,
+        2.2618311928212496,
+        -76.13708494503985
+      ],
+      "angular_velocity_native": [
+        0.5963532599175971,
+        -1.892749120732141,
+        -3.3851975134086185
+      ],
+      "mass_kg": 18
+    },
+    {
+      "id": "door_rear_left",
+      "impact_count": 7,
+      "normal_native": [
+        -0.3,
+        0.8,
+        0.1
+      ],
+      "impact_speed_mps": 31.5,
+      "signed_speed_mps": 88.5,
+      "travel_yaw_native": 0.7,
+      "seed_u32": 2500853760,
+      "seed_exceeds_safe_integer": true,
+      "linear_velocity_native": [
+        -41.46355541868614,
+        4.343312842166707,
+        -49.0900007815161
+      ],
+      "angular_velocity_native": [
+        -2.3765559868728037,
+        -3.4883020218686234,
+        -2.7632325468053107
+      ],
+      "mass_kg": 18
+    },
+    {
+      "id": "door_rear_right",
+      "impact_count": 2147483647,
+      "normal_native": [
+        0,
+        1,
+        0
+      ],
+      "impact_speed_mps": 12.25,
+      "signed_speed_mps": 0,
+      "travel_yaw_native": 3.141592653589793,
+      "seed_u32": 0,
+      "seed_exceeds_safe_integer": true,
+      "linear_velocity_native": [
+        -1.0143003546183467,
+        2.77183119282125,
+        -1.1877588617106412
+      ],
+      "angular_velocity_native": [
+        0.5963532599175971,
+        -1.892749120732141,
+        -3.3851975134086185
+      ],
+      "mass_kg": 18
+    },
+    {
+      "id": "bumper_front",
+      "impact_count": 0,
+      "normal_native": [
+        0.6,
+        0.2,
+        -0.7
+      ],
+      "impact_speed_mps": 0,
+      "signed_speed_mps": -142.75,
+      "travel_yaw_native": -2.4,
+      "seed_u32": 9181696,
+      "seed_exceeds_safe_integer": true,
+      "linear_velocity_native": [
+        -68.76309562601406,
+        2.967166346566178,
+        -75.4145972395955
+      ],
+      "angular_velocity_native": [
+        3.0497744738609276,
+        3.4080140941774344,
+        1.9717153865873882
+      ],
+      "mass_kg": 18
+    },
+    {
+      "id": "bumper_rear",
+      "impact_count": 7,
+      "normal_native": [
+        -0.3,
+        0.8,
+        0.1
+      ],
+      "impact_speed_mps": 31.5,
+      "signed_speed_mps": 88.5,
+      "travel_yaw_native": 0.7,
+      "seed_u32": 488577728,
+      "seed_exceeds_safe_integer": true,
+      "linear_velocity_native": [
+        -38.926495838845256,
+        5.179122057646149,
+        -47.9325264551366
+      ],
+      "angular_velocity_native": [
+        -0.5053076167689827,
+        1.9696363681361249,
+        3.407440261439835
+      ],
+      "mass_kg": 18
+    },
+    {
+      "id": "wheel_front_left",
+      "impact_count": 2147483647,
+      "normal_native": [
+        0,
+        1,
+        0
+      ],
+      "impact_speed_mps": 12.25,
+      "signed_speed_mps": 0,
+      "travel_yaw_native": 3.141592653589793,
+      "seed_u32": 0,
+      "seed_exceeds_safe_integer": true,
+      "linear_velocity_native": [
+        -1.0143003546183467,
+        2.77183119282125,
+        -1.1877588617106412
+      ],
+      "angular_velocity_native": [
+        0.5963532599175971,
+        -1.892749120732141,
+        -3.3851975134086185
+      ],
+      "mass_kg": 24
+    },
+    {
+      "id": "wheel_front_right",
+      "impact_count": 0,
+      "normal_native": [
+        0.6,
+        0.2,
+        -0.7
+      ],
+      "impact_speed_mps": 0,
+      "signed_speed_mps": -142.75,
+      "travel_yaw_native": -2.4,
+      "seed_u32": 0,
+      "seed_exceeds_safe_integer": true,
+      "linear_velocity_native": [
+        -71.15840605166564,
+        2.2618311928212496,
+        -76.13708494503985
+      ],
+      "angular_velocity_native": [
+        0.5963532599175971,
+        -1.892749120732141,
+        -3.3851975134086185
+      ],
+      "mass_kg": 24
+    },
+    {
+      "id": "wheel_rear_left",
+      "impact_count": 7,
+      "normal_native": [
+        -0.3,
+        0.8,
+        0.1
+      ],
+      "impact_speed_mps": 31.5,
+      "signed_speed_mps": 88.5,
+      "travel_yaw_native": 0.7,
+      "seed_u32": 33554432,
+      "seed_exceeds_safe_integer": true,
+      "linear_velocity_native": [
+        -40.83015775866653,
+        4.745575731594579,
+        -47.94527255242419
+      ],
+      "angular_velocity_native": [
+        -3.496310618965821,
+        -2.467155337429139,
+        -0.13888431363411202
+      ],
+      "mass_kg": 24
+    },
+    {
+      "id": "wheel_rear_right",
+      "impact_count": 2147483647,
+      "normal_native": [
+        0,
+        1,
+        0
+      ],
+      "impact_speed_mps": 12.25,
+      "signed_speed_mps": 0,
+      "travel_yaw_native": 3.141592653589793,
+      "seed_u32": 0,
+      "seed_exceeds_safe_integer": true,
+      "linear_velocity_native": [
+        -1.0143003546183467,
+        2.77183119282125,
+        -1.1877588617106412
+      ],
+      "angular_velocity_native": [
+        0.5963532599175971,
+        -1.892749120732141,
+        -3.3851975134086185
+      ],
+      "mass_kg": 24
+    }
+  ]
+}

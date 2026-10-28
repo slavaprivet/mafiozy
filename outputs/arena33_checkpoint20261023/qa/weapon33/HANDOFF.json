@@ -1,0 +1,113 @@
+{
+  "ready": true,
+  "scope": "Bounded actual sword hand accommodation in an existing verified puncture, preserving exact body/steel collision and damage thresholds. No claim of overall FPS or all spear approach angles fixed.",
+  "source": "D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game",
+  "owned_files": {
+    "scripts/combat/sword_puncture_resistance29.gd": "dac6b0b46383025fe8a282aab357a1878316de84408d58141ac431cd0354645f"
+  },
+  "baseline": "D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game",
+  "root_cause": "Ordinary walking slightly oblique to the blade exceeded 25 mm hand guide. At 30 mm offset, guide was disabled; unchanged narrow tissue bore then permanently blocked entry although player held a steady blade. This was hand/channel alignment, not excessive tissue strength.",
+  "fix": {
+    "guide_limit_m": 0.06,
+    "guide_rate_mps": 1.2,
+    "only_steady_direction_dot_min": 0.985,
+    "only_angular_speed_max": 2.0,
+    "intentional_steering_keeps_original_release": "yes",
+    "exact_bore_ellipse_unchanged": true,
+    "hand_ik_self_world_still_checked": true,
+    "unchanged_tissue_lag_max_m": 0.035,
+    "unchanged_low_speed_drag_fraction": 0.2
+  },
+  "matched_gui": {
+    "same_input": "LMB + mouse(40,100), native W1, 1280x720; setup before trial only",
+    "before_depth_m": 0.0943222045898438,
+    "after_depth_m": 0.208940386772156,
+    "before_through": false,
+    "after_through": true,
+    "checks_after": 4,
+    "scope": "Native graphical InputEvents, not external desktop manual acceptance. User32 game preserved, not uncontended FPS."
+  },
+  "checks": {
+    "weapon33_trace01": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {},
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon33_trace01"
+    },
+    "weapon33_trace02": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {},
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon33_trace02"
+    },
+    "weapon33_side_before03": {
+      "exit_code": 2,
+      "passed": false,
+      "source_unchanged": true,
+      "scheduler_passed": false,
+      "stderr_bytes": 0,
+      "checks": {
+        "sword_level50_entered_through_tissue": true,
+        "sword_level50_solid_safe": true,
+        "sword_side40_entered_through_tissue": false,
+        "sword_side40_solid_safe": true
+      },
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon33_side_before03"
+    },
+    "weapon33_side_after04": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "sword_level50_entered_through_tissue": true,
+        "sword_level50_solid_safe": true,
+        "sword_side40_entered_through_tissue": true,
+        "sword_side40_solid_safe": true
+      },
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon33_side_after04"
+    },
+    "weapon33_regression05": {
+      "exit_code": 0,
+      "passed": true,
+      "source_unchanged": true,
+      "scheduler_passed": true,
+      "stderr_bytes": 0,
+      "checks": {
+        "heavy_actual_protected_contact": true,
+        "heavy_low_speed_no_penetration": true,
+        "spear_lateral_outside_remains_solid": true,
+        "spear_mouse_axis_locked": true,
+        "spear_mouse_does_not_extract": true,
+        "spear_native_backward_extracts": true,
+        "spear_other_part_solid": true,
+        "spear_real_shallow_entry": true,
+        "spear_same_bore_accepts_steel": true,
+        "spear_shallow_survives": true,
+        "spear_wound_persists": true,
+        "sword_guard_stops": true,
+        "sword_lateral_outside_remains_solid": true,
+        "sword_native_backward_extracts": true,
+        "sword_other_part_solid": true,
+        "sword_real_shallow_entry": true,
+        "sword_same_bore_accepts_steel": true,
+        "sword_shallow_survives": true,
+        "sword_wound_persists": true
+      },
+      "path": "D:\\MafioziCombat31\\c33_coordination\\agents\\optimization31\\weapon33_regression05"
+    }
+  },
+  "rejected_trial": {
+    "file": "D:\\MafioziCombat31\\c33_coordination\\agents\\weapon33\\embedded_center_trial33.gd",
+    "reason": "Spear attempt to center first accepted offset produced earlier hand release in side30 trajectory; reverted exactly to32. Root must not publish this trial. Rawtrace02 preserved.",
+    "embedded_game_exact_baseline": true
+  },
+  "remaining": "Oblique spear side30 stalls at ~14.7mm in baseline32; not fixed by sword guide. Properly aligned spear entry/hold/mouse lock/backward extraction pass. Overall collision/cut performance belongs to root and cut agent."
+}

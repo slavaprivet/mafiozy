@@ -1,0 +1,308 @@
+{
+  "schema": "arena35.health-matrix-receipt/v1",
+  "candidate": "D:\\MafioziCombat31\\c33_coordination\\arena35_soft_tissue\\game",
+  "status": "PASS",
+  "recorded_utc": "2026-10-23T19:28:54.193458Z",
+  "fixture": "health_matrix35.gd",
+  "fixture_result": "RESULT.json",
+  "scheduler_run": "run07/SCHEDULER_RUN.json",
+  "scheduler": {
+    "mode": "graphical",
+    "project_access": "read",
+    "passed": true,
+    "exit_code": 0,
+    "stderr_bytes": 0,
+    "errors": [],
+    "queue_wait_seconds": 0.4954530000104569,
+    "performance_accepted": false
+  },
+  "assertions": {
+    "passed": 37,
+    "total": 37,
+    "failed": [],
+    "checks": [
+      {
+        "name": "armor_disabled",
+        "passed": true
+      },
+      {
+        "name": "graphical_scene_ready",
+        "passed": true
+      },
+      {
+        "name": "head_arrow_applies",
+        "passed": true
+      },
+      {
+        "name": "head_at_90_percent_dies",
+        "passed": true
+      },
+      {
+        "name": "head_below_90_percent_survives",
+        "passed": true
+      },
+      {
+        "name": "head_sever_marks_death",
+        "passed": true
+      },
+      {
+        "name": "head_skin_thickness_measured",
+        "passed": true
+      },
+      {
+        "name": "limb_arrow_applies",
+        "passed": true
+      },
+      {
+        "name": "limb_sever_does_not_kill",
+        "passed": true
+      },
+      {
+        "name": "limb_sever_fixture_notes_actual_policy",
+        "passed": true
+      },
+      {
+        "name": "limb_sever_records_named_part",
+        "passed": true
+      },
+      {
+        "name": "limb_skin_thickness_measured",
+        "passed": true
+      },
+      {
+        "name": "matched_head_hit_damages_more_than_limb",
+        "passed": true
+      },
+      {
+        "name": "reset_after_head_arrow",
+        "passed": true
+      },
+      {
+        "name": "reset_before_bleed",
+        "passed": true
+      },
+      {
+        "name": "reset_before_head_depth",
+        "passed": true
+      },
+      {
+        "name": "reset_before_head_sever",
+        "passed": true
+      },
+      {
+        "name": "reset_before_limb_sever",
+        "passed": true
+      },
+      {
+        "name": "reset_before_strong_swing",
+        "passed": true
+      },
+      {
+        "name": "reset_before_torso_depth",
+        "passed": true
+      },
+      {
+        "name": "reset_before_weak_swing",
+        "passed": true
+      },
+      {
+        "name": "reset_between_bleed_rates",
+        "passed": true
+      },
+      {
+        "name": "severe_bleed_record_accounted",
+        "passed": true
+      },
+      {
+        "name": "severe_limb_bleeds_faster_than_shallow",
+        "passed": true
+      },
+      {
+        "name": "shallow_bleed_record_accounted",
+        "passed": true
+      },
+      {
+        "name": "strong_async_drained",
+        "passed": true
+      },
+      {
+        "name": "strong_input_commits_cut",
+        "passed": true
+      },
+      {
+        "name": "strong_input_has_edge_contact",
+        "passed": true
+      },
+      {
+        "name": "strong_sever_creates_substantial_effect",
+        "passed": true
+      },
+      {
+        "name": "strong_weak_hp_scope_documented",
+        "passed": true
+      },
+      {
+        "name": "torso_at_90_percent_dies",
+        "passed": true
+      },
+      {
+        "name": "torso_below_90_percent_survives",
+        "passed": true
+      },
+      {
+        "name": "torso_skin_thickness_measured",
+        "passed": true
+      },
+      {
+        "name": "weak_async_drained",
+        "passed": true
+      },
+      {
+        "name": "weak_input_does_not_sever",
+        "passed": true
+      },
+      {
+        "name": "weak_input_has_edge_contact",
+        "passed": true
+      },
+      {
+        "name": "weak_input_negligible_numeric_hp_loss",
+        "passed": true
+      }
+    ]
+  },
+  "outcomes": {
+    "matched_head_vs_limb_hp_damage": "10 input damage: head lost 20 HP, upperarm lost 10 HP (2.0x)",
+    "shallow_vs_severe_bleed": "actual measured limb path 0.0244028m; synthetic accepted wound record accounting: 0.0375 vs 0.14375 HP over 100ms (0.375 vs 1.4375 HP/s)",
+    "vital_puncture_threshold": "actual posed-mesh thickness: head 0.3207316m and pelvis 0.1826954m; 89% remained alive, 90.5% set death while retaining HP",
+    "weak_vs_strong_mouse_input": "weak: 0 HP, 0 cuts, 6 local wounds; strong: 2 real severed parts and debris, 0 numeric HP loss, target alive",
+    "direct_sever_health": "head sever: dead=true, head part HP -1, global HP 69; upperarm_l sever: dead=false, part HP -1, global HP 167"
+  },
+  "limitations": [
+    "Bleeding records were synthetic accepted-wound records initialized from the source depth/rate formula; test exercised runtime bleed accounting, not physical spear/sword entry.",
+    "Vital threshold invoked the exact deep-collapse callback using posed-mesh measured skin thickness and valid rig/node weakrefs; not a complete physical weapon motion.",
+    "Strong actual input created severe structural severing but numeric clay-cut HP remained 0; if “substantial damage” means numeric HP loss, that portion is not met."
+  ],
+  "source_pins": {
+    "manifest": "SOURCE_PINS.json",
+    "manifest_sha256": "3d2a0306f56fd61a13530bf3e39392c20eb8b6160a6239c8a28b2cf5a9aee154",
+    "manifest_entry_count": 3435,
+    "relevant_files": [
+      {
+        "path": "scripts/weapons/sword_prototype.gd",
+        "sha256": "49fcd5d1f0c9de216214e474699c73bedb7f58cce8a18be027596f397d46f14c",
+        "matches_source_pins": true
+      },
+      {
+        "path": "scripts/combat/local_wound28.gd",
+        "sha256": "1456475f1367cbf8e3d23b2925cecdbf0b29209a4eec5020f58f44a5392e8c43",
+        "matches_source_pins": true
+      },
+      {
+        "path": "scripts/combat/puncture29.gd",
+        "sha256": "9ba6178e14818e6ee626fc2127496192373769b459ad23013b7e2db7277cb078",
+        "matches_source_pins": true
+      },
+      {
+        "path": "scripts/combat/deep_puncture29.gd",
+        "sha256": "bfc312d8e74744740303e4f4e053c155f65f92256b8c66e6e550fe6d8f49a475",
+        "matches_source_pins": true
+      },
+      {
+        "path": "scripts/clay_target.gd",
+        "sha256": "60c14f522e37c1d2bc1e437c1dd9a523be290f3289afc763f4f2b5ad594e0c8c",
+        "matches_source_pins": true
+      },
+      {
+        "path": "scripts/arena27_target.gd",
+        "sha256": "732fa6606daebd6a4ba65c001635d26e87d519f6bebb31a703b4a90925271f1d",
+        "matches_source_pins": true
+      }
+    ]
+  },
+  "raw_runs": [
+    {
+      "run": "run01",
+      "passed": false,
+      "exit_code": 1,
+      "elapsed_seconds": 17.62886489997618,
+      "errors": [
+        "SCRIPT ERROR: Invalid assignment of property or key 'wounds' with value of type 'Array' on a base object of type 'Node3D (local_wound28.gd)'.",
+        "SCRIPT ERROR: Invalid assignment of property or key 'wounds' with value of type 'Array' on a base object of type 'Node3D (local_wound28.gd)'.",
+        "SCRIPT ERROR: Invalid call. Nonexistent function 'busy' in base 'RefCounted (weapon_solid_contact29.gd)'.",
+        "SCRIPT ERROR: Invalid call. Nonexistent function 'busy' in base 'RefCounted (weapon_solid_contact29.gd)'."
+      ],
+      "stderr_bytes": 2394
+    },
+    {
+      "run": "run02",
+      "passed": false,
+      "exit_code": 1,
+      "elapsed_seconds": 1.5128917999682017,
+      "errors": [
+        "SCRIPT ERROR: Parse Error: Unexpected identifier \"controller\" in class body.",
+        "ERROR: Failed to load script \"D:/MafioziCombat31/c33_coordination/agents/root35/health_matrix_candidate01/health_matrix35.gd\" with error \"Parse error\"."
+      ],
+      "stderr_bytes": 421
+    },
+    {
+      "run": "run03",
+      "passed": false,
+      "exit_code": 1,
+      "elapsed_seconds": 18.638713699998334,
+      "errors": [],
+      "stderr_bytes": 0
+    },
+    {
+      "run": "run04",
+      "passed": false,
+      "exit_code": 1,
+      "elapsed_seconds": 0.8065045999828726,
+      "errors": [
+        "SCRIPT ERROR: Parse Error: Expected end of statement after variable declaration, found \"`\" instead.",
+        "ERROR: Failed to load script \"D:/MafioziCombat31/c33_coordination/agents/root35/health_matrix_candidate01/health_matrix35.gd\" with error \"Parse error\"."
+      ],
+      "stderr_bytes": 444
+    },
+    {
+      "run": "run05",
+      "passed": false,
+      "exit_code": 0,
+      "elapsed_seconds": 19.849707300018054,
+      "errors": [
+        "ERROR: Converting circular structure to JSON."
+      ],
+      "stderr_bytes": 375
+    },
+    {
+      "run": "run06",
+      "passed": false,
+      "exit_code": 0,
+      "elapsed_seconds": 19.439855900011025,
+      "errors": [
+        "ERROR: Converting circular structure to JSON."
+      ],
+      "stderr_bytes": 375
+    },
+    {
+      "run": "run07",
+      "passed": true,
+      "exit_code": 0,
+      "elapsed_seconds": 19.54944470000919,
+      "errors": [],
+      "stderr_bytes": 0
+    }
+  ],
+  "images": [
+    "weak_input.png",
+    "strong_input.png",
+    "final_limb_sever.png"
+  ],
+  "no_candidate_source_edits": true,
+  "integrity": {
+    "fixture_sha256": "5e9f778a6d30a9de69e215f03d47bb068ecf6a8ce81b9230e4f9c0fcdee90661",
+    "result_sha256": "32a20c66d5363a11139ccdee777e72a350a313dae8bdf4b041f41275ae46a207",
+    "scheduler_run_sha256": "ada384ce6bbf34f926ca9de03faf4646cd096c66b104877cfe7be63968eee320",
+    "pinned_combat_sources_all_match": true
+  }
+}

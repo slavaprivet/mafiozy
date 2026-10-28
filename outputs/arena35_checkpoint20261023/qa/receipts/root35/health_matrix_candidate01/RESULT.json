@@ -1,0 +1,368 @@
+{
+	"candidate": "D:/MafioziCombat31/c33_coordination/arena35_soft_tissue/game",
+	"checks": {
+		"armor_disabled": true,
+		"graphical_scene_ready": true,
+		"head_arrow_applies": true,
+		"head_at_90_percent_dies": true,
+		"head_below_90_percent_survives": true,
+		"head_sever_marks_death": true,
+		"head_skin_thickness_measured": true,
+		"limb_arrow_applies": true,
+		"limb_sever_does_not_kill": true,
+		"limb_sever_fixture_notes_actual_policy": true,
+		"limb_sever_records_named_part": true,
+		"limb_skin_thickness_measured": true,
+		"matched_head_hit_damages_more_than_limb": true,
+		"reset_after_head_arrow": true,
+		"reset_before_bleed": true,
+		"reset_before_head_depth": true,
+		"reset_before_head_sever": true,
+		"reset_before_limb_sever": true,
+		"reset_before_strong_swing": true,
+		"reset_before_torso_depth": true,
+		"reset_before_weak_swing": true,
+		"reset_between_bleed_rates": true,
+		"severe_bleed_record_accounted": true,
+		"severe_limb_bleeds_faster_than_shallow": true,
+		"shallow_bleed_record_accounted": true,
+		"strong_async_drained": true,
+		"strong_input_commits_cut": true,
+		"strong_input_has_edge_contact": true,
+		"strong_sever_creates_substantial_effect": true,
+		"strong_weak_hp_scope_documented": true,
+		"torso_at_90_percent_dies": true,
+		"torso_below_90_percent_survives": true,
+		"torso_skin_thickness_measured": true,
+		"weak_async_drained": true,
+		"weak_input_does_not_sever": true,
+		"weak_input_has_edge_contact": true,
+		"weak_input_negligible_numeric_hp_loss": true
+	},
+	"contacts_sampled": 20,
+	"errors": [],
+	"known_behavior": "Strong head sever can be lethal while clay cut's numeric HP loss remains zero; report cut/death separately from HP subtraction.",
+	"passed": true,
+	"rows": [
+		{
+			"force_damage_input": 10.0,
+			"hp_loss": 20.0,
+			"part": "head",
+			"part_hp": 180.0,
+			"result": {
+				"applied": true,
+				"damage": 20.0,
+				"dead": false,
+				"penetrates": true,
+				"region": "skin",
+				"residual_damage": 20.0
+			},
+			"stage": "head_hit"
+		},
+		{
+			"head_hp_loss": 20.0,
+			"head_result": {
+				"applied": true,
+				"damage": 20.0,
+				"dead": false,
+				"penetrates": true,
+				"region": "skin",
+				"residual_damage": 20.0
+			},
+			"head_to_limb_ratio": 2.0,
+			"limb_hp_loss": 10.0,
+			"limb_result": {
+				"applied": true,
+				"damage": 10.0,
+				"dead": false,
+				"penetrates": true,
+				"region": "skin",
+				"residual_damage": 10.0
+			},
+			"stage": "matched_force_comparison"
+		},
+		{
+			"measurement": {
+				"attempt_count": 1,
+				"axis": "(1.0, 0.0, 0.0)",
+				"bone": 9,
+				"bone_index": 9,
+				"bone_name": "forearm_l",
+				"entry": "(-0.731218, 1.180876, -2.021549)",
+				"exit": "(-0.706816, 1.180876, -2.021549)",
+				"intersections": 4,
+				"length": 0.0244027972221375,
+				"ok": true,
+				"queried_bone": "upperarm_l"
+			},
+			"stage": "limb_skin_measurement_for_bleeding"
+		},
+		{
+			"case": {
+				"depth_ratio": 0.1,
+				"duration_s": 9.2,
+				"expected_damage_100ms": 0.0375,
+				"hp_after": 269.9625,
+				"hp_before": 270.0,
+				"measured_skin_m": 0.0244027972221375,
+				"observed_damage_100ms": 0.0375000000000227,
+				"ok": true,
+				"rate_hp_s": 0.375,
+				"scope": "Runtime bleed accounting from a synthetic accepted-wound record, with ratio-derived rate; does not create a new wound by physical weapon crossing"
+			},
+			"stage": "shallow_limb_bleed"
+		},
+		{
+			"case": {
+				"depth_ratio": 0.95,
+				"duration_s": 19.4,
+				"expected_damage_100ms": 0.14375,
+				"hp_after": 269.85625,
+				"hp_before": 270.0,
+				"measured_skin_m": 0.0244027972221375,
+				"observed_damage_100ms": 0.143750000000011,
+				"ok": true,
+				"rate_hp_s": 1.4375,
+				"scope": "Runtime bleed accounting from a synthetic accepted-wound record, with ratio-derived rate; does not create a new wound by physical weapon crossing"
+			},
+			"stage": "severe_limb_bleed"
+		},
+		{
+			"case": {
+				"deep_collapse": {
+					"depth": 0.29026205316186,
+					"eyes": {
+						"closed": true,
+						"meshes": 2,
+						"usec": 62
+					},
+					"family": "head",
+					"frame": 72,
+					"generation": 4,
+					"hp_after": 270.0,
+					"hp_before": 270.0,
+					"part": "head",
+					"ratio": 0.905,
+					"thickness": 0.320731550455093
+				},
+				"family": "head",
+				"intersections": 4,
+				"lethal_dead": true,
+				"lethal_ratio": 0.905,
+				"measured_skin_m": 0.320731550455093,
+				"ok": true,
+				"part": "head",
+				"policy_invocation": "direct QA call with an actual mesh-derived skin thickness and weak references; not a physical weapon motion",
+				"shallow_dead": false,
+				"shallow_hp": 270.0,
+				"shallow_ratio": 0.89
+			},
+			"stage": "head_vital_puncture_depth"
+		},
+		{
+			"case": {
+				"deep_collapse": {
+					"depth": 0.165339353829622,
+					"eyes": {
+						"closed": true,
+						"meshes": 2,
+						"usec": 61
+					},
+					"family": "torso",
+					"frame": 83,
+					"generation": 5,
+					"hp_after": 270.0,
+					"hp_before": 270.0,
+					"part": "pelvis",
+					"ratio": 0.905,
+					"thickness": 0.182695418596268
+				},
+				"family": "torso",
+				"intersections": 2,
+				"lethal_dead": true,
+				"lethal_ratio": 0.905,
+				"measured_skin_m": 0.182695418596268,
+				"ok": true,
+				"part": "pelvis",
+				"policy_invocation": "direct QA call with an actual mesh-derived skin thickness and weak references; not a physical weapon motion",
+				"shallow_dead": false,
+				"shallow_hp": 270.0,
+				"shallow_ratio": 0.89
+			},
+			"stage": "torso_vital_puncture_depth"
+		},
+		{
+			"case": {
+				"amplitude": 0.3,
+				"async_drained": true,
+				"cuts": 0,
+				"edge_contact_seen": true,
+				"hp_after": 270.0,
+				"hp_before": 270.0,
+				"hp_loss": 0.0,
+				"last_contact": {
+					"armor": {
+						"factor": 1.0,
+						"incoming": 0.0,
+						"part": "forearm_l",
+						"penetrates": true,
+						"protected": false,
+						"region": "skin",
+						"residual": 0.0,
+						"speed_factor": 1.0,
+						"tier": ""
+					},
+					"cutting_speed": 0.790219068527222,
+					"edge_alignment": 0.76798015832901,
+					"effective_cutting_speed": 0.790219068527222,
+					"free_travel34": 0.0,
+					"local_wound": true,
+					"part": "forearm_l",
+					"speed": 0.886600375175476,
+					"strike_travel34": 0.121765306917951,
+					"strong": false,
+					"travel": 0.121765306917951,
+					"world_point": "(-0.545668, 1.279526, -1.996374)"
+				},
+				"last_hit": {
+					"armor": {
+						"factor": 1.0,
+						"incoming": 0.0,
+						"part": "forearm_l",
+						"penetrates": true,
+						"protected": false,
+						"region": "skin",
+						"residual": 0.0,
+						"speed_factor": 1.0,
+						"tier": ""
+					},
+					"cutting_speed": 0.790219068527222,
+					"edge_alignment": 0.76798015832901,
+					"effective_cutting_speed": 0.790219068527222,
+					"free_travel34": 0.0,
+					"local_wound": true,
+					"part": "forearm_l",
+					"speed": 0.886600375175476,
+					"strike_travel34": 0.121765306917951,
+					"strong": false,
+					"travel": 0.121765306917951,
+					"world_point": "(-0.545668, 1.279526, -1.996374)"
+				},
+				"local_wounds": 6,
+				"npc_dead": false,
+				"peak_effective_cutting_speed": 2.39218974113464,
+				"screenshot": "weak_input.png",
+				"strong_gate_seen": false,
+				"unresolved_delta": 0
+			},
+			"stage": "actual_weak_edge_input"
+		},
+		{
+			"case": {
+				"amplitude": 1.0,
+				"async_drained": true,
+				"cuts": 2,
+				"edge_contact_seen": true,
+				"hp_after": 270.0,
+				"hp_before": 270.0,
+				"hp_loss": 0.0,
+				"last_contact": {
+					"armor": {
+						"factor": 1.0,
+						"incoming": 0.0,
+						"part": "foot_l",
+						"penetrates": true,
+						"protected": false,
+						"region": "skin",
+						"residual": 0.0,
+						"speed_factor": 1.0,
+						"tier": ""
+					},
+					"cutting_speed": 0.280768662691116,
+					"edge_alignment": 0.77650398015976,
+					"effective_cutting_speed": 0.280768662691116,
+					"free_travel34": 0.0,
+					"part": "foot_l",
+					"speed": 0.296682685613632,
+					"strike_travel34": 0.0225680621806532,
+					"strong": false,
+					"travel": 0.0225680621806532,
+					"world_point": "(-0.220406, 0.100587, -1.940773)"
+				},
+				"last_hit": {
+					"clay": true,
+					"contact": "(-0.220707, 0.098431, -1.938158)",
+					"damage": 0.0,
+					"debris_added": 1,
+					"fixed_target": true,
+					"ok": true,
+					"part": "foot_l",
+					"plane_d": -1.1215455532074,
+					"plane_normal": "(0.082849, -0.846283, 0.526252)",
+					"scope": "thigh_l",
+					"sever": [
+						"head",
+						"foot_l"
+					],
+					"speed": 3.59048557281494,
+					"time_ms": 18304
+				},
+				"local_wounds": 0,
+				"npc_dead": true,
+				"peak_effective_cutting_speed": 3.58748841285706,
+				"screenshot": "strong_input.png",
+				"strong_gate_seen": true,
+				"unresolved_delta": 0
+			},
+			"stage": "actual_strong_edge_input"
+		},
+		{
+			"case": {
+				"cuts": 2,
+				"dead": true,
+				"health": 69.0,
+				"last_hit": {
+					"contact": "(-0.000142, 1.42447, -2.021549)",
+					"damage": 201.0,
+					"fixed_target": true,
+					"part": "head",
+					"sever": [
+						"head"
+					],
+					"speed": 12.0,
+					"time_ms": 18646
+				},
+				"part_hp": -1.0,
+				"severed": {
+					"head": true
+				}
+			},
+			"stage": "head_sever_health_api"
+		},
+		{
+			"case": {
+				"cuts": 2,
+				"dead": false,
+				"health": 167.0,
+				"last_hit": {
+					"contact": "(-0.213287, 1.180876, -2.021549)",
+					"damage": 103.0,
+					"fixed_target": true,
+					"part": "upperarm_l",
+					"sever": [
+						"upperarm_l"
+					],
+					"speed": 12.0,
+					"time_ms": 19351
+				},
+				"part_hp": -1.0,
+				"severed": {
+					"upperarm_l": true
+				}
+			},
+			"stage": "limb_sever_health_api"
+		}
+	],
+	"schema": "arena35.health-matrix-candidate01/v1",
+	"scope": "Graphical Godot SceneTree fixture. Actual mouse input for weak/strong swing. Actual posed-mesh intersection thickness for vital puncture threshold. Direct health APIs for matched projectile and head/limb sever contracts. Bleeding accounting uses synthetic accepted-wound records initialized with source depth-to-rate formula."
+}

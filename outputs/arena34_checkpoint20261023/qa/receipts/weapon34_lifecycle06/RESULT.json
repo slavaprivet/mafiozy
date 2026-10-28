@@ -1,0 +1,15 @@
+{
+	"checks": {
+		"actual_free_air_path": true,
+		"air_no_damage_or_cuts": true,
+		"clash_hook_consumes_existing_path": true,
+		"clash_hook_cooldown_still_blocks_epoch": true,
+		"native_equipment_drops_sword_credit": true,
+		"native_reset_drops_old_generation": true,
+		"real_reversal_observed": true,
+		"released_air_path_cleared": true,
+		"reversal_starts_new_epoch": true
+	},
+	"passed": true,
+	"scope": "Actual mouse air path/reversal/release, native F6 and equipment keys. Supplemental direct clash callback verifies cooldown invalidation only; no contact or damage acceptance claimed."
+}

@@ -1,0 +1,87 @@
+{
+  "status": "VERIFIED_POLYGON33_CHECKPOINT",
+  "base_commit": "127637e392ea61051ce9760c41ec5479405e4fad",
+  "source_files": 3434,
+  "changed_game_files": {
+    "scripts/combat/contact_build31.gd": "e81b44db5b39c563896502fbb646314fb839ec8f031736f43df1c320db7afdaa",
+    "scripts/combat/local_wound28.gd": "1456475f1367cbf8e3d23b2925cecdbf0b29209a4eec5020f58f44a5392e8c43",
+    "scripts/combat/wound_surface_query33.gd": "e54f88e6ef2347a9b102db38384882453afdf96d07854d0e7e1b67f2a01fdead",
+    "scripts/combat/sword_puncture_resistance29.gd": "455205e569c583471bb5d1f6b3fd2e45240194a44feba95d9a7c429a47b043ed",
+    "scripts/combat/contact_mixed_bvh31.gd": "f3a0b5c1a957a67dd5d6983f4a6e126b3e5ddd4265d32ee7027b85fee5004e0f",
+    "scripts/combat/weapon_solid_contact29.gd": "981c360382fbbc830018e9419ebc04631a3c12187efdf34ab3904e7cf54f4600",
+    "scripts/arena27.gd": "d3dd251856192799d44cbedb510a1e05fbdd78335c24ccd1bd0505e227d9f917"
+  },
+  "measurements": {
+    "scratch_before": {
+      "apply_ms": 36.005,
+      "surface_ms": 32.254,
+      "draw_ms": 43.191
+    },
+    "scratch_after": {
+      "apply_ms": 2.88,
+      "surface_ms": 1.207,
+      "draw_ms": 20.574
+    },
+    "final_async_cut": {
+      "snapshot_ms": 2.225,
+      "peak_poll_ms": 4.881,
+      "peak_stage_ms": 2.056,
+      "atomic_commit_ms": 3.127,
+      "worker_background_ms": 214.53,
+      "queue_window_maxdraw_ms": 22.405,
+      "post60_maxdraw_ms": 17.144
+    },
+    "shallow_puncture": "Existing local generation is already small: sword/spear create about1.1/.88ms; mesh upload maximum .213/.125ms. Left unchanged.",
+    "exact_oracles": "216 posed queries on intact and216 on actual postcut meshes. Point/normal max error0, fallback0. Both source stable stderr0."
+  },
+  "production_pointer_changed": false,
+  "full_50v50_fps_accepted": false,
+  "remaining": [
+    "Rare deep-contact recovery stalls remain under investigation; observed baseline recovery up to180ms and an earlier406ms outlier not causally resolved",
+    "Synchronous player/baseNPC sever path not migrated; default polygon async cuts only",
+    "Full100actor destructible castle FPS not accepted; user32 retained"
+  ],
+  "scope": "Verified polygon33 changes only. Frozen32 and production pointer preserved. No claim of zero stalls or 50v50 acceptance.",
+  "sword_guide": {
+    "before_oblique_depth_m": 0.09432,
+    "after_oblique_depth_m": 0.20894,
+    "gui_checks": 4,
+    "native_checks": 19,
+    "geometry_aperture_unchanged": true,
+    "scope": "Finite hand correction within existing actual wound; deliberate transverse steering releases guide."
+  },
+  "contact_query": {
+    "fixed_actual_queries": 1051,
+    "poses": 7,
+    "exact_result_mismatches": 0,
+    "warm_baseline_ms": 6.7,
+    "warm_optimized_ms": 3.206,
+    "broad_oracle_rays": 3038,
+    "broad_oracle_hits": 7972,
+    "actual_corpse_hold_active_frames": [
+      120,
+      120
+    ],
+    "hold_solver_p95_before_ms": 27.798,
+    "hold_solver_p95_after_ms": 18.124,
+    "scope": "Exact fixed-query replay; GUI hold is supporting component evidence with different draw counts and another game active, not isolated FPS."
+  },
+  "spear_entry": {
+    "before_oblique_depth_m": 0,
+    "after_oblique_depth_m": 0.1454003453,
+    "gui_checks": 12,
+    "geometry_checks": 12,
+    "weapon_regression_checks": 19,
+    "merged_gui_checks": 10,
+    "merged_weapon_checks": 19,
+    "scope": "Actual same connected entry surface; finite pre-entry hand alignment. Lateral extraction remains blocked and backward extraction tested."
+  },
+  "launch": "launch.ps1",
+  "source": "D:\\MafioziCombat31\\c33_coordination\\arena33_contact_performance\\game",
+  "private_not_shipped": [
+    "Exact per-segment memoization: low real hit ratio, no demonstrated benefit",
+    "Embedded hull prewarm: lifecycle comparison remains uncertain; keep old constructor",
+    "Recovery caching: measured benefit and invalidation not established"
+  ],
+  "live_checks": "Graphical native Godot InputEvents and saved rendered frames; not external desktop manual play or exclusive FPS measurement."
+}

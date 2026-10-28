@@ -1,0 +1,100 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--max-fps",
+    "60",
+    "--path",
+    "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\query_snapshot\\game",
+    "--script",
+    "D:/MafioziCombat31/c33_coordination/agents/perf_review33/query_replay33.gd",
+    "--",
+    "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\query_replay03",
+    "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\query_replay03"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "924007897aad4ae691a9de2f82763ca6",
+    "owner": {
+      "pid": 48616,
+      "creation_filetime": "134372382317262838"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\agents\\perf_review33\\query_snapshot\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 50088,
+        "creation_filetime": "134372382327882914",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\query_snapshot\\game --script D:/MafioziCombat31/c33_coordination/agents/perf_review33/query_replay33.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\query_replay03 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\query_replay03",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--max-fps",
+          "60",
+          "--path",
+          "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\query_snapshot\\game",
+          "--script",
+          "D:/MafioziCombat31/c33_coordination/agents/perf_review33/query_replay33.gd",
+          "--",
+          "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\query_replay03",
+          "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\query_replay03"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "d:\\mafiozicombat31\\c33_coordination\\agents\\perf_review33\\query_snapshot\\game",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 254516.5133729,
+    "queued_at": 254426.5133729,
+    "ticket": 6041,
+    "inventory_before": [
+      {
+        "pid": 54284,
+        "parent_pid": 45600,
+        "creation_filetime": "134371930274875675",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\game\" res://scenes/arena27.tscn --windowed --resolution 1440x900 --max-fps 60 -- \"--lab-out=D:\\MafioziCombat31\\c33_coordination\\arena32_injuries_axes\\interactive\\20261023T013707462Z\"",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози · Полигон 32 · ранения и метательные топоры (DEBUG)"
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5490195000020321
+  },
+  "child": {
+    "pid": 50088,
+    "creation_filetime": "134372382327882914",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --max-fps 60 --path D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\query_snapshot\\game --script D:/MafioziCombat31/c33_coordination/agents/perf_review33/query_replay33.gd -- --qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\query_replay03 --lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\query_replay03",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--max-fps",
+      "60",
+      "--path",
+      "D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\query_snapshot\\game",
+      "--script",
+      "D:/MafioziCombat31/c33_coordination/agents/perf_review33/query_replay33.gd",
+      "--",
+      "--qa-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\query_replay03",
+      "--lab-out=D:\\MafioziCombat31\\c33_coordination\\agents\\perf_review33\\query_replay03"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\c33_coordination\\agents\\perf_review33\\query_snapshot\\game",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 0.8071930000151042,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

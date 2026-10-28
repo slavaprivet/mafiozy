@@ -1,0 +1,86 @@
+{
+  "checks": {
+    "aim_clear": true,
+    "equipped": true,
+    "grip_attached": true,
+    "guard_steers": true,
+    "horizontal_turn": true,
+    "new_gambeson_visible": true,
+    "no_sword_attack": true,
+    "release_stops_steering": true,
+    "released_clear": true,
+    "rest_clear": true,
+    "vertical_aim": true
+  },
+  "max_grip_error_m": 0.000000119209289550781,
+  "min_gap_m": 0.00857350587844849,
+  "passed": true,
+  "rows": [
+    {
+      "stage": "rest",
+      "status": {
+        "attempt": 1,
+        "clearance_m": 0.0110986566543579,
+        "grip_error": 0.0,
+        "guarding": false,
+        "pitch": 0.0
+      }
+    },
+    {
+      "heading": 2.66159272193909,
+      "stage": 0,
+      "status": {
+        "attempt": 0,
+        "clearance_m": 0.0214955395460129,
+        "grip_error": 0.0,
+        "guarding": true,
+        "pitch": 0.0
+      }
+    },
+    {
+      "heading": -2.66159248352051,
+      "stage": 1,
+      "status": {
+        "attempt": 0,
+        "clearance_m": 0.0228928512334824,
+        "grip_error": 0.0,
+        "guarding": true,
+        "pitch": 0.0
+      }
+    },
+    {
+      "heading": -3.14159250259399,
+      "stage": 2,
+      "status": {
+        "attempt": 1,
+        "clearance_m": 0.00902528285980225,
+        "grip_error": 0.0,
+        "guarding": true,
+        "pitch": 0.72
+      }
+    },
+    {
+      "heading": -3.14159250259399,
+      "stage": 3,
+      "status": {
+        "attempt": 4,
+        "clearance_m": 0.0091499274969101,
+        "grip_error": 0.0,
+        "guarding": true,
+        "pitch": -0.245
+      }
+    },
+    {
+      "heading": -3.14159250259399,
+      "stage": 4,
+      "status": {
+        "attempt": 0,
+        "clearance_m": 0.0301938837766647,
+        "grip_error": 0.0,
+        "guarding": true,
+        "pitch": 0.02
+      }
+    }
+  ],
+  "scope": "Actual shield equip and RMB/mouse InputEvents, final displayed shield bounds vs head/chest/spine proxies, exact hand attachment, horizontal body turn and vertical guard steering. Graphical captures supplement proxies."
+}
