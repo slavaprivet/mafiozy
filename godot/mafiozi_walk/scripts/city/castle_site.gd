@@ -449,9 +449,19 @@ var _world_ref: Node3D
 ## lintel or arch. A single surviving edge is not enough for an ordinary brick course.
 const SUPPORT_VERTICAL_GAP := 0.08
 const SUPPORT_SEARCH_BELOW := 0.42
-const SUPPORT_COVERAGE_MIN := 0.56
+## A brick needs this much of its footprint resting on live masonry below it. It
+## used to be 0.56, which held a whole curtain up over a 5 m crater: the surviving
+## bond left and right counted as support and the breach never climbed. 0.42 lets
+## the masonry over a hole come down while a brick with a neighbour under most of
+## its face still stands.
+const SUPPORT_COVERAGE_MIN := 0.42
 const SUPPORT_BALANCED_MIN := 0.18
-const SUPPORT_AUDIT_XZ_MARGIN := 2.2
+## Bricks above a killed cell are re-checked, but only those that could actually
+## have been resting on it: a 2.2 m margin swept up forty neighbouring columns per
+## brick, which after one siege stone was a 2 657-entry queue that took half a
+## minute to drain. A narrow margin finds the bricks that lost their base, and the
+## cascade itself re-queues whatever those take down.
+const SUPPORT_AUDIT_XZ_MARGIN := 0.45
 const SUPPORT_CHECKS_PER_FRAME := 48
 const SUPPORT_TIME_BUDGET_US := 1800
 
@@ -3963,13 +3973,29 @@ func _apply_explosion_local(event: Dictionary) -> Dictionary:
 				clampf(local_hit.x, board_at.x - board_size.x * 0.5, board_at.x + board_size.x * 0.5),
 				clampf(local_hit.y, board_at.y - board_size.y * 0.5, board_at.y + board_size.y * 0.5),
 				clampf(local_hit.z, board_at.z - board_size.z * 0.5, board_at.z + board_size.z * 0.5))
-			var hole: float = clampf(0.5 + power * 0.004, 0.6, 2.0)
+			# How far this blast reaches across the leaf. Power alone topped out at
+			# 1.54 m, so a heavy charge in the middle of a 4.8 m gateway never
+			# touched either leaf. The blast radius is part of the reach now: a
+			# siege charge tears boards, a small ball still only splinters what it
+			# hits.
+			var hole: float = clampf(0.5 + power * 0.004 + radius * 0.60, 0.6, 4.6)
 			if local_hit.distance_to(nearest) > hole: continue
 			_break_gate_board(entry, board, direction, power)
 			killed += 1
 		var remaining := 0
 		for board: Dictionary in boards:
 			if not bool(board.get("broken", false)): remaining += 1
+		# A siege charge that takes three quarters of a leaf tears the rest off the
+		# hinge. Waiting for every one of the forty-eight boards meant a gate could
+		# never be blown in at all, only nibbled board by board.
+		if remaining > 0 and not bool(entry.get("detached", false)) \
+				and float(remaining) <= float(boards.size()) * 0.55 \
+				and power >= 180.0 and radius >= 3.0:
+			for board: Dictionary in boards:
+				if bool(board.get("broken", false)): continue
+				_break_gate_board(entry, board, direction, power)
+				killed += 1
+			remaining = 0
 		if remaining > 0 or bool(entry.get("detached", false)): continue
 		_detach_gate_leaf(entry)
 		killed += 1
@@ -4046,8 +4072,14 @@ func _queue_support_audit(killed_index: int) -> void:
 	var bounds: AABB = killed.get("bounds55", _cell_bounds55(killed))
 	var low := Vector3(bounds.position.x - SUPPORT_AUDIT_XZ_MARGIN,
 		bounds.end.y + SUPPORT_VERTICAL_GAP, bounds.position.z - SUPPORT_AUDIT_XZ_MARGIN)
+	# One course above, not the whole column: a wall does not lose every brick over
+	# a hole at once, it loses the course that rested on the hole, and that course
+	# then queues the next one. Sweeping to the ceiling put every brick of the
+	# curtain above the crater into one 2 400-entry queue that drained for half a
+	# minute; course by course it is a few dozen checks and the wall comes down
+	# from the top of the hole upwards, which is how masonry actually fails.
 	var high := Vector3(bounds.end.x + SUPPORT_AUDIT_XZ_MARGIN,
-		_support_ceiling55 + SUPPORT_VERTICAL_GAP, bounds.end.z + SUPPORT_AUDIT_XZ_MARGIN)
+		bounds.end.y + SUPPORT_VERTICAL_GAP + BRICK.y * 1.05, bounds.end.z + SUPPORT_AUDIT_XZ_MARGIN)
 	var due := Time.get_ticks_msec() + SUPPORT_DELAY_MS
 	for candidate: int in _indices_box(low, high):
 		if candidate == killed_index or not bool((_cells[candidate] as Dictionary).get("alive", false)):
@@ -4426,9 +4458,18 @@ func _physics_process(_delta: float) -> void:
 		var now := Time.get_ticks_msec()
 		var checks := 0
 		var started := Time.get_ticks_usec()
+		# A siege blast queues thousands of support audits at once. At the normal
+		# budget the queue drained at under one brick per frame, so a curtain with a
+		# 5 m hole in it hung for half a minute before it came down. While the queue
+		# is this long the audit gets a few extra milliseconds: the debris wave is
+		# already the frame's expensive moment, and a wall that settles in a quarter
+		# of a second reads as masonry, not as a bug.
+		var burst: bool = _pending_support.size() > 256
+		var check_cap: int = SUPPORT_CHECKS_PER_FRAME * (4 if burst else 1)
+		var budget_us: int = SUPPORT_TIME_BUDGET_US * (4 if burst else 1)
 		for key: Variant in _pending_support.keys():
-			if checks >= SUPPORT_CHECKS_PER_FRAME \
-				or Time.get_ticks_usec() - started >= SUPPORT_TIME_BUDGET_US:
+			if checks >= check_cap \
+				or Time.get_ticks_usec() - started >= budget_us:
 				break
 			var cell_index := int(key)
 			if now < int(_pending_support.get(cell_index, 0)):

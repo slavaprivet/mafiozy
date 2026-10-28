@@ -59,7 +59,12 @@ func _run() -> void:
 	await _settle(4)
 	var mid: Dictionary = _castle.call("get_stats")
 	print("CASTLE_AFTER_BLAST ", JSON.stringify(mid))
-	await _settle(70)
+	# The cascade is timed in physics frames, not in idle frames: headless idle
+	# frames run far faster than the 240 ms support delay, so the old 70-frame wait
+	# finished before a single audit was due and the test read a live breach as a
+	# dead one.
+	for frame: int in 300:
+		await physics_frame
 	var after: Dictionary = _castle.call("get_stats")
 	print("CASTLE_AFTER_CASCADE ", JSON.stringify(after))
 	var failed: Array[String] = []
