@@ -66,6 +66,9 @@ const MAX_DEBRIS := 40
 const DEBRIS_LIFE := 20.0
 
 const CLIMB_SPEED := 2.2
+## A climber who lets go of the rungs must not hang in the climb pose: after this
+## long without a climb input he steps onto the deck and normal walking resumes.
+const CLIMB_RELEASE_S := 0.35
 const REPAIR_REACH := 3.2
 
 ## ------------------------------------------------------------------ wake / spray
@@ -298,6 +301,7 @@ var _carry_compensation := true
 var _climb_input_bound := false
 var _climb_input := 0.0
 var _climbing_ladder := false
+var _climb_idle := 0.0
 var _climbing_companionway := false
 
 ## Wake / bow wave / spray (built once by `_install_wake`).
@@ -2426,6 +2430,7 @@ func _climb_assist_motion(player: CharacterBody3D, delta: float) -> void:
 		return
 	if not _in_ladder_zone(local):
 		_climbing_ladder = false
+		_climb_idle = 0.0
 		return
 	if not _climbing_ladder and not (just_forward or (just_back and local.y > 4.50)):
 		return
@@ -2433,10 +2438,19 @@ func _climb_assist_motion(player: CharacterBody3D, delta: float) -> void:
 		_climbing_ladder = false
 		return
 	_climbing_ladder = true
-	if is_zero_approx(axis):
-		return
 	var base: Vector3 = _anchors.get("ladder_base", Vector3(0.0, 1.75, 2.3))
 	var top: Vector3 = _anchors.get("ladder_top", Vector3(0.0, 5.2, 2.0))
+	if is_zero_approx(axis):
+		# Letting go of the rungs used to leave the body frozen in the climbing
+		# pose with the sword stowed: the ladder only released the player while
+		# W was held, so a climber who stopped at the top rung could not walk or
+		# fight again. A moment without input now steps him off the ladder.
+		_climb_idle += delta
+		if _climb_idle >= CLIMB_RELEASE_S:
+			_climb_idle = 0.0
+			_step_off_ladder(player, local, base, top)
+		return
+	_climb_idle = 0.0
 	var next_y := clampf(local.y + CLIMB_SPEED * axis * delta, base.y, top.y)
 	var span := maxf(0.01, top.y - base.y)
 	var t := clampf((next_y - base.y) / span, 0.0, 1.0)
@@ -2452,6 +2466,24 @@ func _climb_assist_motion(player: CharacterBody3D, delta: float) -> void:
 		_climbing_ladder = false
 	player.global_position = _world_from_local(next_local)
 	player.velocity = Vector3(0.0, CLIMB_SPEED * axis, 0.0)
+
+
+## Releases the ladder without an input, so a climber who simply stops is put
+## back on his feet: the fighting top when he was near the top, the deck when he
+## was low on the rungs. The player's own climb-pose gate clears on the next
+## frame because the body leaves the ladder zone, which also restores the weapon
+## he had stowed for the climb.
+func _step_off_ladder(player: CharacterBody3D, local: Vector3, base: Vector3, top: Vector3) -> void:
+	_climbing_ladder = false
+	var next_local := local
+	if local.y >= (base.y + top.y) * 0.5:
+		next_local.y = maxf(local.y, top.y)
+		next_local.z = 1.30
+		next_local.x = clampf(local.x, -0.60, 0.60)
+	else:
+		next_local.z = base.z + 0.35
+	player.global_position = _world_from_local(next_local)
+	player.velocity = Vector3.ZERO
 
 
 func _hull_motion_test(from: Transform3D, motion: Vector3, recovery: bool = false) -> PhysicsTestMotionResult3D:
