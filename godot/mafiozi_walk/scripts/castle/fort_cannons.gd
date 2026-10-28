@@ -65,26 +65,104 @@ func _materials() -> void:
 	_stone = StandardMaterial3D.new(); _stone.albedo_color = Color(0.42, 0.40, 0.36); _stone.roughness = 0.96
 	# Mortared brick courses in the shader: one draw call per panel, but the
 	# wall reads as castle masonry rather than a flat grey slab.
+	#
+	# This is the gun embrasure and nothing else, so it is allowed to look older
+	# than the curtain: hand-laid clay, a pale lime bed, and joints that are a
+	# physical recess rather than a printed line. The pattern is measured in
+	# metres of the panel's own space, so a 17 m span and a 4.8 m pier show the
+	# same brick size; the grime reads the world height, so the bottom course
+	# stays dirty wherever the panel sits.
 	var shader := Shader.new()
 	shader.code = """
 shader_type spatial;
-render_mode diffuse_lambert, specular_disabled;
-uniform vec3 brick_color = vec3(0.46, 0.28, 0.17);
-uniform vec3 mortar_color = vec3(0.23, 0.19, 0.16);
-varying vec3 local_pos;
-void vertex() { local_pos = VERTEX; }
+render_mode diffuse_burley, specular_schlick_ggx;
+
+uniform vec3 clay_warm = vec3(0.520, 0.285, 0.180);
+uniform vec3 clay_cool = vec3(0.330, 0.185, 0.135);
+uniform vec3 clay_burnt = vec3(0.140, 0.110, 0.098);
+uniform vec3 lime_bed = vec3(0.455, 0.430, 0.385);
+uniform float relief = 0.9;
+
+varying vec3 panel_pos;
+varying vec3 world_pos;
+
+float grain(vec2 p) {
+	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+	p3 += dot(p3, p3.yzx + 33.33);
+	return fract((p3.x + p3.y) * p3.z);
+}
+
+void vertex() {
+	panel_pos = VERTEX;
+	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+}
+
 void fragment() {
-	float row_h = 0.29;
-	float col_w = 0.62;
-	float row = floor(local_pos.y / row_h);
-	float shifted = local_pos.z + mod(row, 2.0) * col_w * 0.5;
+	// 11 cm course, 30 cm brick: a hand-moulded clay brick, not modern facing.
+	float row_h = 0.112;
+	float col_w = 0.300;
+	float row = floor(panel_pos.y / row_h);
+	// Every course wanders a little; a masonry wall is laid by eye, not by rule.
+	float course_shift = (grain(vec2(row, 3.0)) - 0.5) * 0.10;
+	float shifted = panel_pos.z + (mod(row, 2.0) * 0.5 + course_shift) * col_w;
+	float col = floor(shifted / col_w);
 	float bx = fract(shifted / col_w);
-	float by = fract(local_pos.y / row_h);
-	float mortar = step(bx, 0.055) + step(0.945, bx) + step(by, 0.09) + step(0.91, by);
-	vec3 c = mix(brick_color, mortar_color, clamp(mortar, 0.0, 1.0));
-	float shade = 0.88 + 0.12 * fract(sin(dot(floor(vec2(shifted / col_w, row)), vec2(12.9898, 78.233))) * 43758.5453);
-	ALBEDO = c * shade;
-	ROUGHNESS = 0.94;
+	float by = fract(panel_pos.y / row_h);
+
+	// One brick in five is a header laid across the bond: the joint between it
+	// and its neighbour is not there, so the courses stop matching like tiles.
+	bool left_open = step(0.78, grain(vec2(col - 1.0, row) + 9.1)) > 0.5;
+	bool right_open = step(0.78, grain(vec2(col, row) + 9.1)) > 0.5;
+	vec2 brick = vec2(left_open ? col - 1.0 : col, row);
+
+	// 8 mm bed, measured in brick units; the gap breathes with the block because
+	// no two bricks were struck to the same size.
+	float gap_x = 0.024 + (grain(brick + 7.13) - 0.5) * 0.010;
+	float gap_y = 0.026 + (grain(brick + 1.71) - 0.5) * 0.008;
+	float edge_x = 1.0;
+	float edge_y = min(by, 1.0 - by);
+	if (!left_open) edge_x = min(edge_x, bx);
+	if (!right_open) edge_x = min(edge_x, 1.0 - bx);
+
+	// One brick in four lost an arris to a cart, a pick or a winter.
+	float chip = step(0.75, grain(brick + 2.2));
+	float face = smoothstep(gap_x * (1.0 + chip), gap_x * (1.0 + chip) + 0.014, edge_x)
+		* smoothstep(gap_y * (1.0 + chip * 0.6), gap_y * (1.0 + chip * 0.6) + 0.014, edge_y);
+
+	float kiln = grain(brick);
+	vec3 clay = mix(clay_cool, clay_warm, kiln);
+	clay *= 0.78 + 0.42 * grain(brick + 3.7);          // one kiln, many batches
+	if (grain(brick + 11.3) > 0.90) clay = mix(clay, clay_burnt, 0.85);
+	if (grain(brick + 5.1) > 0.94) clay = mix(clay, lime_bed * 1.20, 0.45);
+
+	// Damp courses grow moss, and the foot of the wall keeps the soot of every
+	// cook fire in the fort. Both read the world height, not the panel.
+	float damp = smoothstep(1.4, 0.0, world_pos.y);
+	float moss = damp * smoothstep(0.60, 0.95, grain(brick * 1.7 + 4.4));
+	clay = mix(clay, vec3(0.215, 0.245, 0.150), moss * 0.60);
+
+	vec3 albedo = mix(lime_bed, clay, face);
+	float recess = 1.0 - face;
+	albedo *= 1.0 - 0.42 * recess * recess;            // the bed sits in its own shadow
+	// The bed itself is not one bag of lime: each course was pointed on its own day.
+	albedo = mix(albedo * (0.86 + 0.22 * grain(vec2(row, 8.0))), albedo, face);
+	float soot = smoothstep(3.6, 0.0, world_pos.y) * 0.30;
+	ALBEDO = albedo * (1.0 - soot);
+	AO = mix(0.50, 1.0, face);
+	ROUGHNESS = mix(1.0, 0.84, face);
+
+	// The brick face turns down into the bed over about a centimetre, so light
+	// rakes across the arris and the wall reads as relief, not as a decal.
+	float bevel = 0.055;
+	float slope_x = 0.0;
+	float slope_y = 0.0;
+	if (edge_y < bevel) slope_y = (by < 0.5 ? 1.0 : -1.0) * (1.0 - edge_y / bevel);
+	if (edge_x < bevel) slope_x = (bx < 0.5 ? 1.0 : -1.0) * (1.0 - edge_x / bevel);
+	// No brick sat perfectly flat either: a few degrees each way catches the sun
+	// brick by brick, which is what makes a real wall shimmer instead of print.
+	slope_x += (grain(brick + 13.7) - 0.5) * 0.16;
+	slope_y += (grain(brick + 17.1) - 0.5) * 0.16;
+	NORMAL = normalize(NORMAL - (TANGENT * slope_x + BINORMAL * slope_y) * relief * face);
 }
 """
 	_brick = ShaderMaterial.new()
