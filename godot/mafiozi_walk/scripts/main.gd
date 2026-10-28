@@ -735,8 +735,8 @@ func _install_fire() -> bool:
 			# fire is hidden behind the wall. The fire is kept in the lower third, the
 			# part a player standing at the gate actually sees.
 			marker.global_position.y = clampf(marker.global_position.y,
-				pivot_at.y + 1.0, pivot_at.y + 3.0)
-			host.call("register", marker, 2.2)
+				pivot_at.y + 0.05, pivot_at.y + 0.25)
+			host.call("register", marker, 0.9)
 	if is_instance_valid(preview_siege_tower):
 		host.call("register", preview_siege_tower, 3.4)
 	if is_instance_valid(preview_ship):

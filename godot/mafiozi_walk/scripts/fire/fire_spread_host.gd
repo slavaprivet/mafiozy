@@ -21,6 +21,7 @@ const BURN_TIME := 9.0
 const MAX_ALIVE := 6
 
 var _pool: Node3D = null
+var _world: Node3D = null
 var _fuel: Array[Dictionary] = []
 var _spread_t := 0.0
 var _ignitions := 0
@@ -30,18 +31,25 @@ var _char_material: StandardMaterial3D
 
 
 func configure(world: Node3D) -> bool:
-	if not is_instance_valid(world) or _pool != null:
+	if not is_instance_valid(world) or _world != null:
 		return false
-	_pool = FirePool.new()
-	if not bool(_pool.call("configure", world)):
-		_pool.queue_free()
-		_pool = null
-		return false
+	_world = world
 	_char_material = StandardMaterial3D.new()
 	_char_material.albedo_color = Color(0.055, 0.048, 0.045)
 	_char_material.roughness = 1.0
 	_char_material.metallic = 0.0
 	return true
+
+
+## The field pool is built on the first ignition, not at boot: eight fields and two
+## lights that are never used on a calm map still cost the renderer every frame.
+func _ensure_pool() -> void:
+	if _pool != null or not is_instance_valid(_world):
+		return
+	_pool = FirePool.new()
+	if not bool(_pool.call("configure", _world)):
+		_pool.queue_free()
+		_pool = null
 
 
 ## A thing that can burn: its node, the radius of its own body, and how much heat it
@@ -97,6 +105,7 @@ func _light(item: Dictionary) -> bool:
 		return false
 	item["burning"] = true
 	item["age"] = 0.0
+	_ensure_pool()
 	_ignitions += 1
 	if _pool != null:
 		# The field is as wide as the thing that burns: a gate leaf gets a 2.5 m fire,
