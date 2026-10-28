@@ -1560,15 +1560,19 @@ func _physics_process(delta: float) -> void:
 		# so the target was never set and the city's own spawn kept the player.
 		var cart: Variant = preview_catapult.get("_cart")
 		if is_instance_valid(cart) and is_instance_valid(_player):
-			var cart_pos: Vector3 = (cart as Node3D).global_position
-			# Behind the machine, whichever way it faces.
-			var machine_yaw: float = float(preview_catapult.get("_yaw"))
-			var behind := Vector3(sin(machine_yaw), 0.0, cos(machine_yaw))
-			_castle_spawn_target = cart_pos - behind * 4.5 + Vector3.UP * 0.2
+			# A session now starts AT THE GATE, not behind the siege machine in the
+			# courtyard: the gate is the face of the map and the first thing to show.
+			# Nine metres out, offset to clear the siege tower, looking at the doors.
+			var gate_wall := float(preview_castle.call("wall_half"))
+			_castle_spawn_target = preview_castle.to_global(Vector3(6.0, 0.25, gate_wall + 9.2))
 			_castle_spawn_frames = 400
 			_player.global_position = _castle_spawn_target
 			_player.velocity = Vector3.ZERO
-			print("DSH_CASTLE_SPAWN_AT_CATAPULT player=", _player.global_position)
+			_player._camera_yaw = atan2(6.0, 8.0)
+			_player._heading = _player._camera_yaw
+			_player._visual.rotation.y = _player._heading + deg_to_rad(_player.visual_yaw_degrees)
+			_player._update_camera_rotation()
+			print("DSH_CASTLE_SPAWN_AT_GATE player=", _player.global_position)
 			if OS.get_cmdline_user_args().has("--castle-start-outside=1"):
 				# The player and the enemy knight both start at the main gate, exactly
 				# ten metres apart. Offset the approach by six metres to clear the
