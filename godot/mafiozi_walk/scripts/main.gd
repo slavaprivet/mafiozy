@@ -37,6 +37,7 @@ const FootstepsScript = preload("res://scripts/audio/footsteps.gd")  # DSH_STEPS
 const HorseMountHost = preload("res://scripts/mount/horse_mount_host.gd")  # DSH_HORSE
 const BalloonHost = preload("res://scripts/balloon/balloon_host.gd")  # DSH_BALLOON
 const PowderBarrelHost = preload("res://scripts/siege/powder_barrel_host.gd")  # DSH_BARRELS
+const FireSpreadHost = preload("res://scripts/fire/fire_spread_host.gd")  # DSH_FIRE
 const ShipBattleHost = preload("res://scripts/ship/ship_battle_host.gd")  # DSH_SHIP61
 const FortCannons = preload("res://scripts/castle/fort_cannons.gd")  # SHIP104
 const SiegeRamTowerHost = preload("res://scripts/siege/siege_ram_tower_host.gd")  # DSH_TOWER
@@ -137,6 +138,8 @@ var _balloon_install_pending := false
 ## DSH_BARRELS: powder barrels for the balloon, carried with the stone hug.
 var preview_power_barrels: Node3D
 var power_barrel_status := "disabled"
+var preview_fire: Node3D  # DSH_FIRE
+var fire_status := "disabled"
 var _power_barrel_install_pending := false
 ## DSH_SHIP61: the sea battle on the castle map - water, the ship and her guns.
 var preview_ship: Node  # DSH_SHIP61
@@ -686,8 +689,79 @@ func _install_power_barrels() -> bool:
 	print("DSH_BARRELS_STATUS ", power_barrel_status)
 	return true
 
-## DSH_SHIP61: the sea battle. One host owns the water, the ship, the four guns,
-## the cabin stores and the player's stations. Installed after the castle map has
+## DSH_FIRE: one host owns everything that can burn. The gate leaves, the siege
+## tower and the ship register as fuel; a burning barrel lights whatever it lands
+## next to, and the fire then crawls from plank to plank on its own.
+func _install_fire() -> bool:
+	if is_instance_valid(preview_fire) or not is_instance_valid(preview_castle):
+		return false
+	var host: Node3D = FireSpreadHost.new()
+	host.name = "FireSpread"
+	add_child(host)
+	if not bool(host.call("configure", self)):
+		host.queue_free()
+		fire_status = "configure_failed"
+		return false
+	preview_fire = host
+	var leaves: Variant = preview_castle.get("_gate_leaves")
+	if leaves is Array:
+		for leaf: Variant in leaves:
+			if not (leaf is Dictionary):
+				continue
+			var entry: Dictionary = leaf
+			var pivot: Variant = entry.get("pivot")
+			if not is_instance_valid(pivot):
+				continue
+			# The leaf's own mesh AABB is the whole gatehouse MultiMesh, so the fire is
+			# anchored to the average of its boards instead: that is the middle of the
+			# leaf, where a fire on a door actually burns.
+			var centre := Vector3.ZERO
+			var count := 0
+			var boards: Variant = entry.get("boards")
+			if boards is Array:
+				for board: Variant in boards:
+					if board is Dictionary:
+						centre += (board as Dictionary).get("at", Vector3.ZERO)
+						count += 1
+			var marker := Node3D.new()
+			marker.name = "FireLeafAnchor"
+			add_child(marker)
+			var pivot_at: Vector3 = (pivot as Node3D).global_position
+			if count > 0:
+				marker.global_position = (pivot as Node3D).to_global(centre / float(count))
+			else:
+				marker.global_position = pivot_at + Vector3.UP * 1.2
+			# A gate leaf is twelve metres tall: its middle is above the arch, where a
+			# fire is hidden behind the wall. The fire is kept in the lower third, the
+			# part a player standing at the gate actually sees.
+			marker.global_position.y = clampf(marker.global_position.y,
+				pivot_at.y + 1.0, pivot_at.y + 3.0)
+			host.call("register", marker, 2.2)
+	if is_instance_valid(preview_siege_tower):
+		host.call("register", preview_siege_tower, 3.4)
+	if is_instance_valid(preview_ship):
+		var boat: Variant = preview_ship.get("boat")
+		if is_instance_valid(boat):
+			host.call("register", boat, 5.5)
+	fire_status = "ready"
+	print("DSH_FIRE_STATUS ", fire_status, " fuel=", host.call("registered"))
+	# Handy for a look or a shot list: --fire-demo=1 lights the gate two seconds in.
+	if OS.get_cmdline_user_args().has("--fire-demo=1"):
+		_demo_ignite_fire.call_deferred()
+	return true
+
+func _demo_ignite_fire() -> void:
+	await get_tree().create_timer(2.0).timeout
+	if not is_instance_valid(preview_fire) or not is_instance_valid(preview_castle):
+		return
+	var half: float = float(preview_castle.call("wall_half"))
+	var lit: int = int(preview_fire.call("ignite_at",
+		preview_castle.global_position + Vector3(0.0, 2.5, half), 4.5))
+	var camera := get_viewport().get_camera_3d() if is_inside_tree() else null
+	print("DSH_FIRE_DEMO lit=", lit, " camera=", is_instance_valid(camera),
+		" at=", camera.global_position if is_instance_valid(camera) else Vector3.INF)
+
+## DSH_SHIP61: the sea battle. One host owns the water, the ship, the four guns,## the cabin stores and the player's stations. Installed after the castle map has
 ## settled its own spawn so the player can begin on the quarterdeck.
 func _install_ship_battle() -> bool:
 	if is_instance_valid(preview_ship) or not is_instance_valid(preview_castle) \
@@ -1548,6 +1622,17 @@ func _physics_process(delta: float) -> void:
 		print("DSH_SCENE_LOADED path=", scene_path, " castle_map=", castle_map,
 			" preview_castle=", is_instance_valid(preview_castle),
 			" player=", _player.global_position if is_instance_valid(_player) else Vector3.ZERO)
+	if not is_instance_valid(preview_fire) and is_instance_valid(preview_castle):
+		_install_fire()
+	if is_instance_valid(preview_fire):
+		# The tower and the ship install on their own schedule; registering is
+		# idempotent, so they are adopted as soon as they exist.
+		if is_instance_valid(preview_siege_tower):
+			preview_fire.call("register", preview_siege_tower, 3.4)
+		if is_instance_valid(preview_ship):
+			var fire_boat: Variant = preview_ship.get("boat")
+			if is_instance_valid(fire_boat):
+				preview_fire.call("register", fire_boat, 5.5)
 	# DSH_CASTLE: the machine is installed by one boot step and the map built by another, in
 	# an order that is not guaranteed. Once both exist the machine is moved to the gate, and
 	# this cannot be missed the way a one-shot call can.

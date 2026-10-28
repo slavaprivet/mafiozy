@@ -1043,6 +1043,14 @@ func explode_at(at: Vector3, normal: Vector3 = Vector3.UP) -> Dictionary:
 		last_explosion["tower"] = tower_ok
 		if tower_ok:
 			last_explosion["ok"] = true
+	# DSH_FIRE: powder that goes off next to timber sets it alight, and the fire then
+	# spreads on its own from plank to plank.
+	var fire_host: Variant = world.get("preview_fire") if is_instance_valid(world) else null
+	if is_instance_valid(fire_host) and fire_host.has_method("ignite_at"):
+		var lit := int(fire_host.call("ignite_at", at, BLAST_RADIUS * 0.9))
+		if lit > 0:
+			last_explosion["fire_ignited"] = lit
+			last_explosion["ok"] = true
 	print("DSH_BARRELS_EXPLODE ", JSON.stringify(last_explosion))
 	return last_explosion
 
