@@ -157,7 +157,9 @@ foreach ($directory in @('scripts', 'scenes', 'data', 'assets')) {
             $selected = -not $selectedMode -or $selectedPaths -contains $relative -or
                 ($_.Extension -eq '.import' -and $selectedPaths -contains $relative.Substring(0, $relative.Length - 7))
             $included = @($includeFilters | Where-Object { $relative -like $_ }).Count -gt 0
-            $_.Name -notlike 'test_*' -and $_.Extension -ne '.uid' -and ($selected -or $included)
+            $_.Name -notlike 'test_*' -and
+                $relative -notmatch '(^|/)tests/' -and
+                $_.Extension -ne '.uid' -and ($selected -or $included)
         } |
         ForEach-Object { $_.FullName })
 }
