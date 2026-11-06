@@ -219,11 +219,11 @@ var _capture_done: bool = false
 var _capture_path: String = ""
 var _last_frame_usec: int = 0
 
-# DSH_WALKCHEAP: --city-physics-catchup and --city-walk-far-ttl, resolved once and printed so the
-# run's log names both levers and their rollback values. catchup<=0 (or >=8) leaves the engine's
-# own default of 8 steps per frame untouched.
+# --city-physics-catchup remains an explicit diagnostic override. Normal play keeps
+# Godot's eight-step default so a temporary expensive frame cannot turn lost physics
+# time into visible slow motion while the renderer continues at full speed.
 func _dsh_physics_catchup() -> void:  # DSH_WALKCHEAP
-	var dsh_catchup := 4
+	var dsh_catchup := 8
 	var dsh_far_ttl := 96
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with("--city-physics-catchup="):
@@ -232,7 +232,7 @@ func _dsh_physics_catchup() -> void:  # DSH_WALKCHEAP
 			dsh_far_ttl = maxi(0, int(argument.trim_prefix("--city-walk-far-ttl=")))
 	if dsh_catchup > 0 and dsh_catchup < 8:
 		Engine.max_physics_steps_per_frame = dsh_catchup
-	print("DSH_WALKCHEAP catchup=",Engine.max_physics_steps_per_frame," far_ttl=",dsh_far_ttl," default_catchup=4 default_far_ttl=96 restore_catchup=0or8 restore_far_ttl=0")
+	print("DSH_WALKCHEAP catchup=",Engine.max_physics_steps_per_frame," far_ttl=",dsh_far_ttl," default_catchup=8 default_far_ttl=96 explicit_override_below8=1 restore_far_ttl=0")
 
 func _ready() -> void:
 	GameCursor.install()
@@ -242,11 +242,9 @@ func _ready() -> void:
 	# The castle scene and --castle=1 are one isolated play mode. Resolve the flag
 	# before any city geometry, residents or services can be instantiated.
 	castle_map = castle_map or OS.get_cmdline_user_args().has("--castle=1")
-	# DSH_WALKCHEAP: --city-physics-catchup=N caps Engine.max_physics_steps_per_frame. The city
-	# steps inside _physics_process every third tick (main.gd:764-771), so an uncapped catch-up at
-	# 6+ ticks per rendered frame multiplies one 26 ms city step into ~52 ms of the frame; the cap
-	# bounds that work and lets the world run in slow motion instead of collapsing to 8 FPS.
-	# 0 and 8 both restore today's engine default (8).
+	# A below-8 catch-up cap is available only as an explicit diagnostic override.
+	# Normal play must preserve real-time physics; city work is already spread by its
+	# simulation stride and the separate load-only cap below.
 	_dsh_physics_catchup()
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(block_data_path))
 	if not parsed is Dictionary:

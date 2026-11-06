@@ -1,0 +1,15 @@
+We are diagnosing a Godot 4 knight/castle game where the user reports that walking feels like slow motion. The on-screen render HUD shows about 144 FPS and p95 about 10.3 ms.
+
+Relevant runtime code in scripts/main.gd:
+
+func _dsh_physics_catchup() -> void:
+    var dsh_catchup := 4
+    for argument in OS.get_cmdline_user_args():
+        if argument.begins_with("--city-physics-catchup="):
+            dsh_catchup = int(argument.trim_prefix("--city-physics-catchup="))
+    if dsh_catchup > 0 and dsh_catchup < 8:
+        Engine.max_physics_steps_per_frame = dsh_catchup
+
+The adjacent source comment explicitly says that this cap "lets the world run in slow motion instead of collapsing to 8 FPS". Godot default max_physics_steps_per_frame is 8. A separate load-only cap temporarily sets it to 1 while city_ready is false, then restores the saved value. The player is a CharacterBody3D updated in _physics_process; normal walk_speed is 3.2 m/s, run_speed 5.8 m/s, velocity is accelerated using delta and move_and_slide.
+
+Please review this diagnosis and recommend the smallest safe production fix. We want real-time player motion, not an artificial increase to walk_speed. Discuss whether changing the default catch-up from 4 to the engine default 8 is appropriate, any interaction with the temporary load cap, and a focused runtime regression check that distinguishes render FPS from physics-time progress. Do not propose broad architecture changes.

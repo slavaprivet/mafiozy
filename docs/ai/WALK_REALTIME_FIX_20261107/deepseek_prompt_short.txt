@@ -1,0 +1,3 @@
+Godot 4 game: render HUD is 144 FPS but walking feels slow motion. main.gd defaults Engine.max_physics_steps_per_frame to 4, and its own comment says the cap lets the world run in slow motion. Engine default is 8. A loading-only cap saves the current value, temporarily uses 1, then restores it. Player movement is normal CharacterBody3D physics with walk_speed 3.2 and delta.
+
+Answer in at most 8 concise lines, no hidden lengthy analysis: is the smallest safe fix to leave Engine.max_physics_steps_per_frame at 8 by default while retaining the explicit CLI override and load-only cap? Give one focused runtime regression check comparing wall-clock elapsed time with physics-frame progress.
