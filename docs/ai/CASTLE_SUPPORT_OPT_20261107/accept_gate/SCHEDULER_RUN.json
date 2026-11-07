@@ -1,0 +1,75 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--path",
+    "D:\\MafioziCombat31\\main_rebuild_20261107\\godot\\mafiozi_walk",
+    "--script",
+    "res://scripts/tests/dsh_castle_gate_breach.gd"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "cb7a1186b6e844ceae9db68a64886f77",
+    "owner": {
+      "pid": 63992,
+      "creation_filetime": "134385478756680054"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\main_rebuild_20261107\\godot\\mafiozi_walk",
+    "access": "read",
+    "children": [
+      {
+        "pid": 51580,
+        "creation_filetime": "134385478766698216",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\main_rebuild_20261107\\godot\\mafiozi_walk --script res://scripts/tests/dsh_castle_gate_breach.gd",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "D:\\MafioziCombat31\\main_rebuild_20261107\\godot\\mafiozi_walk",
+          "--script",
+          "res://scripts/tests/dsh_castle_gate_breach.gd"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "d:\\mafiozicombat31\\main_rebuild_20261107\\godot\\mafiozi_walk",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 1564168.8907848,
+    "queued_at": 1564078.8907848,
+    "ticket": 6194,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.4905468998476863
+  },
+  "child": {
+    "pid": 51580,
+    "creation_filetime": "134385478766698216",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\main_rebuild_20261107\\godot\\mafiozi_walk --script res://scripts/tests/dsh_castle_gate_breach.gd",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--path",
+      "D:\\MafioziCombat31\\main_rebuild_20261107\\godot\\mafiozi_walk",
+      "--script",
+      "res://scripts/tests/dsh_castle_gate_breach.gd"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\main_rebuild_20261107\\godot\\mafiozi_walk",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 14.741367900045589,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

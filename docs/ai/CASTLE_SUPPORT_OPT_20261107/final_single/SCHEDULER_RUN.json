@@ -1,0 +1,85 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--path",
+    "D:\\MafioziCombat31\\main_rebuild_20261107\\godot\\mafiozi_walk",
+    "--script",
+    "res://scripts/tests/test_castle_single_brick_support_regression.gd"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "7d3d06b54d1a40dea00ca1c45bde5907",
+    "owner": {
+      "pid": 68464,
+      "creation_filetime": "134385474002436831"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\main_rebuild_20261107\\godot\\mafiozi_walk",
+    "access": "read",
+    "children": [
+      {
+        "pid": 52832,
+        "creation_filetime": "134385474021100403",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\main_rebuild_20261107\\godot\\mafiozi_walk --script res://scripts/tests/test_castle_single_brick_support_regression.gd",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "D:\\MafioziCombat31\\main_rebuild_20261107\\godot\\mafiozi_walk",
+          "--script",
+          "res://scripts/tests/test_castle_single_brick_support_regression.gd"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "d:\\mafiozicombat31\\main_rebuild_20261107\\godot\\mafiozi_walk",
+        "affinity_mask": 12,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 1563723.5046183,
+    "queued_at": 1563603.5046183,
+    "ticket": 6186,
+    "inventory_before": [
+      {
+        "pid": 22492,
+        "parent_pid": 57932,
+        "creation_filetime": "134385474013208719",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\main_rebuild_20261107\\godot\\mafiozi_walk --script res://scripts/tests/dsh_castle_check.gd",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": ""
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 1.3160072001628578
+  },
+  "child": {
+    "pid": 52832,
+    "creation_filetime": "134385474021100403",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\main_rebuild_20261107\\godot\\mafiozi_walk --script res://scripts/tests/test_castle_single_brick_support_regression.gd",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--path",
+      "D:\\MafioziCombat31\\main_rebuild_20261107\\godot\\mafiozi_walk",
+      "--script",
+      "res://scripts/tests/test_castle_single_brick_support_regression.gd"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\main_rebuild_20261107\\godot\\mafiozi_walk",
+    "affinity_mask": 12,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 23.321785900043324,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

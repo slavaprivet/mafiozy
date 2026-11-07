@@ -1,0 +1,3 @@
+Prior release blocker is resolved: the 12 pending supports at frame 300 drained to 0 after 66 additional frames, and the bounded test asserts final zero.
+Safe to commit: all listed tests PASS and metrics stay within the stated bounds, including single-brick locality and gate breach.
+Caveat: this validates the bounded/test scenarios, not an exhaustive production-scale or long-duration soak.

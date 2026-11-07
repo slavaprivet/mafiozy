@@ -69,6 +69,7 @@ const DEBRIS_BACKLOG_PER_FRAME := 8
 const RUBBLE_BANK_CAPACITY := 128
 const RUBBLE_SPATIAL_CELL := 8.0
 const RUBBLE_SUPPORT_AUDITS_PER_FRAME := 16
+const FALLING_SUPPORT_PROBES_PER_FRAME := 24
 var _debris_mesh: BoxMesh
 var _debris_materials: Dictionary = {}
 ## DSH_OPT: dead stones come back here instead of being freed. A blast that reuses its stones
@@ -415,7 +416,16 @@ var _buckets: Dictionary = {}     # material_id -> {instance: MultiMeshInstance3
 ## explosion touches instead of walking all sixty thousand of them three times.
 const SPATIAL_STEP := 8.0
 var _spatial: Dictionary = {}
+## Support checks need a much finer lookup than blast-radius queries. Key cells by
+## their top surface and a 2 m X/Z tile, so one bearing test does not scan an entire
+## 8 m cube of unrelated floors and decoration.
+const SUPPORT_SPATIAL_XZ_STEP := 2.0
+const SUPPORT_SPATIAL_Y_STEP := 0.10
+var _support_spatial55: Dictionary = {}
 var _falling: Array[Dictionary] = []
+var _falling_audit_cursor := 0
+var _falling_probes_last := 0
+var _falling_probes_peak := 0
 var _gate_leaves: Array[Dictionary] = []
 var _detached := 0
 ## DSH_NET: сколько взрывов реально применено к кладке. Проверка «нет двойного
@@ -426,6 +436,25 @@ var _events: Array[Dictionary] = []
 ## Indexed by cell. The dictionary gives both O(1) de-duplication and a bounded scan per
 ## physics frame while a tall unsupported column is still settling.
 var _pending_support: Dictionary = {}
+## Support work is consumed in insertion order. The dictionary remains the authoritative
+## de-duplication/due map; queue generations make an older entry harmless if a candidate
+## is ever rescheduled. This avoids allocating `_pending_support.keys()` every frame.
+var _support_queue: Array[Dictionary] = []
+var _support_queue_head := 0
+var _support_generation := 0
+var _support_checks_last := 0
+var _support_checks_peak := 0
+var _support_work_us_last := 0
+var _support_work_us_peak := 0
+var _support_state_peak_us := 0
+var _support_state_peak_group := ""
+var _support_state_peak_index := -1
+const SPECIAL_SUPPORT_GROUPS := ["keep_roof", "bridge", "gate_voussoir"]
+var _support_group_cells: Dictionary = {}
+var _special_support_dirty: Dictionary = {}
+var _support_group_revision: Dictionary = {}
+var _plate_support_cache: Dictionary = {}
+var _special_support_graph: Dictionary = {}
 var _support_ceiling55 := 0.0
 var _stair_families: Dictionary = {}
 var _wall_collision: Array[Dictionary] = []
@@ -448,7 +477,6 @@ var _world_ref: Node3D
 ## the remaining support straddles opposite sides, which is the useful approximation for a
 ## lintel or arch. A single surviving edge is not enough for an ordinary brick course.
 const SUPPORT_VERTICAL_GAP := 0.08
-const SUPPORT_SEARCH_BELOW := 0.42
 ## A brick needs this much of its footprint resting on live masonry below it. It
 ## used to be 0.56, which held a whole curtain up over a 5 m crater: the surviving
 ## bond left and right counted as support and the breach never climbed. 0.42 lets
@@ -462,8 +490,8 @@ const SUPPORT_BALANCED_MIN := 0.18
 ## minute to drain. A narrow margin finds the bricks that lost their base, and the
 ## cascade itself re-queues whatever those take down.
 const SUPPORT_AUDIT_XZ_MARGIN := 0.45
-const SUPPORT_CHECKS_PER_FRAME := 48
-const SUPPORT_TIME_BUDGET_US := 1800
+const SUPPORT_CHECKS_PER_FRAME := 32
+const SUPPORT_TIME_BUDGET_US := 1000
 
 ## ------------------------------------------------------------------ build
 func install(world: Node3D, origin: Vector3) -> Dictionary:
@@ -1014,6 +1042,10 @@ func _add_brick(at: Vector3, size: Vector3, material_key: String, rotation: Vect
 		"group": group, "row": row, "column": column, "shape": shape_key,
 		"alive": true, "instance": -1,
 	})
+	if group in SPECIAL_SUPPORT_GROUPS:
+		if not _support_group_cells.has(group):
+			_support_group_cells[group] = []
+		(_support_group_cells[group] as Array).append(index)
 	if "merlon" in group:
 		var body := StaticBody3D.new()
 		body.collision_layer = 1
@@ -1196,6 +1228,7 @@ func _merge_pivot_decoration(pivot: Node3D) -> void:
 func _flush_buckets() -> void:
 	_buckets.clear()
 	_spatial.clear()
+	_support_spatial55.clear()
 	_stair_families.clear()
 	_support_ceiling55 = 0.0
 	for index: int in _cells.size():
@@ -1210,6 +1243,8 @@ func _flush_buckets() -> void:
 		var at: Vector3 = cell.get("at", Vector3.ZERO)
 		var bounds := _cell_bounds55(cell)
 		cell["bounds55"] = bounds
+		cell["vertical_span55"] = Vector2(bounds.position.y, bounds.end.y)
+		cell["footprint55"] = _cell_footprint55(cell)
 		_support_ceiling55 = maxf(_support_ceiling55, bounds.end.y)
 		for gx: int in range(int(floor(bounds.position.x / SPATIAL_STEP)), int(floor(bounds.end.x / SPATIAL_STEP)) + 1):
 			for gy: int in range(int(floor(bounds.position.y / SPATIAL_STEP)), int(floor(bounds.end.y / SPATIAL_STEP)) + 1):
@@ -1217,6 +1252,14 @@ func _flush_buckets() -> void:
 					var spatial_key := "%d|%d|%d" % [gx, gy, gz]
 					if not _spatial.has(spatial_key): _spatial[spatial_key] = []
 					(_spatial[spatial_key] as Array).append(index)
+		var support_y := int(floor(bounds.end.y / SUPPORT_SPATIAL_Y_STEP))
+		for support_x: int in range(int(floor(bounds.position.x / SUPPORT_SPATIAL_XZ_STEP)),
+				int(floor(bounds.end.x / SUPPORT_SPATIAL_XZ_STEP)) + 1):
+			for support_z: int in range(int(floor(bounds.position.z / SUPPORT_SPATIAL_XZ_STEP)),
+					int(floor(bounds.end.z / SUPPORT_SPATIAL_XZ_STEP)) + 1):
+				var support_key := "%d|%d|%d" % [support_x, support_y, support_z]
+				if not _support_spatial55.has(support_key): _support_spatial55[support_key] = []
+				(_support_spatial55[support_key] as Array).append(index)
 		var key := "%s|%s|%d|%d|%d" % [str(cell.get("material", "stone")),
 			str(cell.get("shape", "box")),
 			int(floor(at.x / CHUNK_X)), int(floor(at.y / CHUNK_Y)), int(floor(at.z / CHUNK_Z))]
@@ -1224,6 +1267,7 @@ func _flush_buckets() -> void:
 			_buckets[key] = {"indices": [], "material": str(cell.get("material", "stone")),
 				"shape": str(cell.get("shape", "box"))}
 		(_buckets[key]["indices"] as Array).append(index)
+	_build_special_support_graph55()
 	var chunk_count := 0
 	for key: String in _buckets.keys():
 		var bucket: Dictionary = _buckets[key]
@@ -1364,6 +1408,10 @@ func _kill_brick(index: int, impulse: Vector3, power: float) -> void:
 	var cell: Dictionary = _cells[index]
 	if not bool(cell.get("alive", false)): return
 	cell["alive"] = false
+	var support_group := str(cell.get("group", ""))
+	if support_group in SPECIAL_SUPPORT_GROUPS:
+		_support_group_revision[support_group] = int(_support_group_revision.get(support_group, 0)) + 1
+		_plate_support_cache.erase(support_group)
 	_masonry_changed55[index] = true
 	var masonry_shape: CollisionShape3D = _masonry_shapes55.get(index)
 	if is_instance_valid(masonry_shape): masonry_shape.set_deferred("disabled", true)
@@ -3771,6 +3819,15 @@ func get_stats() -> Dictionary:
 		"falling": _falling.size(), "events": _events.size(), "leaf_dbg": _leaf_debug(),
 		"gate_bricks": _count_gate_bricks(),
 		"support_pending": _pending_support.size(),
+		"support_checks_last": _support_checks_last,
+		"support_checks_peak": _support_checks_peak,
+		"support_work_us_last": _support_work_us_last,
+		"support_work_us_peak": _support_work_us_peak,
+		"support_state_peak_us": _support_state_peak_us,
+		"support_state_peak_group": _support_state_peak_group,
+		"support_state_peak_index": _support_state_peak_index,
+		"falling_support_probes_last": _falling_probes_last,
+		"falling_support_probes_peak": _falling_probes_peak,
 		"persistent_rubble": _persistent_rubble,
 	}
 
@@ -4071,6 +4128,31 @@ func _schedule_support_failure(at: Vector3, radius: float) -> void:
 		if bool((_cells[index] as Dictionary).get("alive", false)):
 			_queue_support_audit(index)
 
+func _queue_support_candidate(index: int, due: int) -> void:
+	if index < 0 or index >= _cells.size():
+		return
+	if _pending_support.has(index):
+		var current: Dictionary = _pending_support[index]
+		if due >= int(current.get("due", 0)):
+			return
+	_support_generation += 1
+	var entry := {"index": index, "due": due, "generation": _support_generation}
+	_pending_support[index] = entry
+	_support_queue.append(entry)
+
+func _queue_due_special_support(now: int) -> void:
+	# At most one indexed plate family is expanded per frame. Repeated kills before
+	# that frame coalesce into the same current-state audit instead of rescanning all cells.
+	for group: String in SPECIAL_SUPPORT_GROUPS:
+		if not _special_support_dirty.has(group) or now < int(_special_support_dirty[group]):
+			continue
+		_special_support_dirty.erase(group)
+		for value: Variant in _support_group_cells.get(group, []):
+			var candidate := int(value)
+			if bool((_cells[candidate] as Dictionary).get("alive", false)):
+				_queue_support_candidate(candidate, now)
+		break
+
 func _queue_support_audit(killed_index: int) -> void:
 	if killed_index < 0 or killed_index >= _cells.size():
 		return
@@ -4092,38 +4174,34 @@ func _queue_support_audit(killed_index: int) -> void:
 			continue
 		var candidate_cell: Dictionary = _cells[candidate]
 		var candidate_bounds: AABB = candidate_cell.get("bounds55", _cell_bounds55(candidate_cell))
+		# `_indices_box` returns coarse 8 m buckets. The exact X/Z test existed, but
+		# without this Y band a single brick queued every floor in the same bucket.
+		if candidate_bounds.position.y > high.y or candidate_bounds.end.y < low.y:
+			continue
 		if candidate_bounds.position.x > bounds.end.x + SUPPORT_AUDIT_XZ_MARGIN \
 			or candidate_bounds.end.x < bounds.position.x - SUPPORT_AUDIT_XZ_MARGIN \
 			or candidate_bounds.position.z > bounds.end.z + SUPPORT_AUDIT_XZ_MARGIN \
 			or candidate_bounds.end.z < bounds.position.z - SUPPORT_AUDIT_XZ_MARGIN:
 			continue
-		var previous := int(_pending_support.get(candidate, 0x7fffffff))
-		if due < previous:
-			_pending_support[candidate] = due
+		_queue_support_candidate(candidate, due)
 	# A removed plank or voussoir can sever a horizontal load path without leaving an
 	# empty vertical shadow. Recheck that connected plate only after it was damaged.
 	var killed_group := str(killed.get("group", ""))
-	if killed_group == "keep_roof" or killed_group == "bridge" \
-		or killed_group == "gate_voussoir":
-		for candidate: int in _cells.size():
-			var candidate_cell: Dictionary = _cells[candidate]
-			if not bool(candidate_cell.get("alive", false)) \
-				or str(candidate_cell.get("group", "")) != killed_group:
-				continue
-			var previous := int(_pending_support.get(candidate, 0x7fffffff))
-			if due < previous:
-				_pending_support[candidate] = due
+	if killed_group in SPECIAL_SUPPORT_GROUPS:
+		var previous_special := int(_special_support_dirty.get(killed_group, 0x7fffffff))
+		if due < previous_special:
+			_special_support_dirty[killed_group] = due
 	if killed_group.begins_with("stairs_"):
 		var suffix := killed_group.get_slice("_", killed_group.get_slice_count("_") - 1)
 		for candidate: int in _stair_families.get(suffix, []):
 			var candidate_cell: Dictionary = _cells[candidate]
 			if not bool(candidate_cell.get("alive", false)):
 				continue
-			var previous := int(_pending_support.get(candidate, 0x7fffffff))
-			if due < previous:
-				_pending_support[candidate] = due
+			_queue_support_candidate(candidate, due)
 
 func _cell_vertical_span55(cell: Dictionary) -> Vector2:
+	if cell.has("vertical_span55"):
+		return cell["vertical_span55"]
 	var basis := Basis.from_euler(cell.get("rotation", Vector3.ZERO))
 	var half: Vector3 = (cell.get("size", BRICK) as Vector3) * 0.5
 	var span := Vector2(INF, -INF)
@@ -4136,6 +4214,8 @@ func _cell_vertical_span55(cell: Dictionary) -> Vector2:
 	return span
 
 func _cell_footprint55(cell: Dictionary) -> PackedVector2Array:
+	if cell.has("footprint55"):
+		return cell["footprint55"]
 	var at: Vector3 = cell.get("at", Vector3.ZERO)
 	var size: Vector3 = cell.get("size", BRICK)
 	var basis := Basis.from_euler(cell.get("rotation", Vector3.ZERO))
@@ -4197,10 +4277,65 @@ func _polygon_area55(points: PackedVector2Array) -> float:
 func _footprint_overlap55(a: PackedVector2Array, b: PackedVector2Array) -> float:
 	return _polygon_area55(_clip_polygon_edges55(a, b))
 
+func _support_indices_below55(bounds: AABB, underside_y: float) -> Array[int]:
+	var out: Array[int] = []
+	var seen: Dictionary = {}
+	var gx0 := int(floor((bounds.position.x - 0.04) / SUPPORT_SPATIAL_XZ_STEP))
+	var gx1 := int(floor((bounds.end.x + 0.04) / SUPPORT_SPATIAL_XZ_STEP))
+	var gz0 := int(floor((bounds.position.z - 0.04) / SUPPORT_SPATIAL_XZ_STEP))
+	var gz1 := int(floor((bounds.end.z + 0.04) / SUPPORT_SPATIAL_XZ_STEP))
+	var gy0 := int(floor((underside_y - SUPPORT_VERTICAL_GAP) / SUPPORT_SPATIAL_Y_STEP))
+	var gy1 := int(floor((underside_y + SUPPORT_VERTICAL_GAP) / SUPPORT_SPATIAL_Y_STEP))
+	for gx: int in range(gx0, gx1 + 1):
+		for gy: int in range(gy0, gy1 + 1):
+			for gz: int in range(gz0, gz1 + 1):
+				var bucket: Variant = _support_spatial55.get("%d|%d|%d" % [gx, gy, gz])
+				if bucket == null:
+					continue
+				for value: Variant in bucket:
+					var index := int(value)
+					if seen.has(index):
+						continue
+					seen[index] = true
+					out.append(index)
+	return out
+
+func _build_special_support_graph55() -> void:
+	_special_support_graph.clear()
+	for group: String in SPECIAL_SUPPORT_GROUPS:
+		var members: Array = _support_group_cells.get(group, [])
+		var adjacency: Dictionary = {}
+		for value: Variant in members:
+			adjacency[int(value)] = []
+		for left_at: int in members.size():
+			var left_index := int(members[left_at])
+			var left: Dictionary = _cells[left_index]
+			var left_span := _cell_vertical_span55(left)
+			for right_at: int in range(left_at + 1, members.size()):
+				var right_index := int(members[right_at])
+				var right: Dictionary = _cells[right_index]
+				var right_span := _cell_vertical_span55(right)
+				if absf((right_span.x + right_span.y) - (left_span.x + left_span.y)) > 1.8:
+					continue
+				if _footprint_overlap55(_cell_footprint55(left), _cell_footprint55(right)) <= 0.00001 \
+						and (right.get("at", Vector3.ZERO) as Vector3).distance_to(
+							left.get("at", Vector3.ZERO)) > 1.9:
+					continue
+				(adjacency[left_index] as Array).append(right_index)
+				(adjacency[right_index] as Array).append(left_index)
+		_special_support_graph[group] = adjacency
+
 func _horizontal_network_supported55(index: int, cell: Dictionary) -> Dictionary:
 	var group := str(cell.get("group", ""))
 	if group not in ["keep_roof", "bridge", "gate_voussoir"]:
 		return {"supported": false, "reason": "not_plate"}
+	var revision := int(_support_group_revision.get(group, 0))
+	var cache: Dictionary = _plate_support_cache.get(group, {})
+	if int(cache.get("revision", -1)) != revision:
+		cache = {"revision": revision, "results": {}}
+	var cached_results: Dictionary = cache.get("results", {})
+	if cached_results.has(index):
+		return cached_results[index]
 	var anchor := func(candidate: Dictionary) -> bool:
 		if group == "keep_roof":
 			return int(candidate.get("row", -1)) in [0, 12] \
@@ -4210,33 +4345,34 @@ func _horizontal_network_supported55(index: int, cell: Dictionary) -> Dictionary
 		return int(candidate.get("row", -1)) in [0, 16]
 	var seen: Dictionary = {index: true}
 	var queue: Array[int] = [index]
-	while not queue.is_empty():
-		var current: int = queue.pop_front()
+	var queue_head := 0
+	var anchored := false
+	while queue_head < queue.size():
+		var current: int = queue[queue_head]
+		queue_head += 1
 		var current_cell: Dictionary = _cells[current]
 		if bool(anchor.call(current_cell)):
-			return {"supported": true, "reason": "anchored_plate", "sources": seen.size()}
-		var current_bounds: AABB = current_cell.get("bounds55", _cell_bounds55(current_cell))
-		var low := current_bounds.position - Vector3(1.7, 0.9, 1.7)
-		var high := current_bounds.end + Vector3(1.7, 0.9, 1.7)
-		for neighbour: int in _indices_box(low, high):
+			anchored = true
+		var adjacency: Dictionary = _special_support_graph.get(group, {})
+		for value: Variant in adjacency.get(current, []):
+			var neighbour := int(value)
 			if seen.has(neighbour):
 				continue
 			var next_cell: Dictionary = _cells[neighbour]
-			if not bool(next_cell.get("alive", false)) \
-				or str(next_cell.get("group", "")) != group:
-				continue
-			var next_span := _cell_vertical_span55(next_cell)
-			var current_span := _cell_vertical_span55(current_cell)
-			if absf((next_span.x + next_span.y) - (current_span.x + current_span.y)) > 1.8:
-				continue
-			if _footprint_overlap55(_cell_footprint55(current_cell),
-					_cell_footprint55(next_cell)) <= 0.00001 \
-				and (next_cell.get("at", Vector3.ZERO) as Vector3).distance_to(
-					current_cell.get("at", Vector3.ZERO)) > 1.9:
+			if not bool(next_cell.get("alive", false)):
 				continue
 			seen[neighbour] = true
 			queue.append(neighbour)
-	return {"supported": false, "reason": "detached_plate", "sources": seen.size()}
+	var result := {"supported": anchored,
+		"reason": "anchored_plate" if anchored else "detached_plate", "sources": seen.size()}
+	# All members reached by this traversal belong to the same current component.
+	# Cache that component for this structural revision so its BFS runs once, not once
+	# per queued plate cell.
+	for member: Variant in seen.keys():
+		cached_results[int(member)] = result
+	cache["results"] = cached_results
+	_plate_support_cache[group] = cache
+	return result
 
 func _tower_ring_support55(index: int, cell: Dictionary) -> Dictionary:
 	if str(cell.get("shape", "box")) not in ["tower_floor55", "tower_roof55"]:
@@ -4307,10 +4443,6 @@ func support_state(index: int) -> Dictionary:
 	var candidate_span := _cell_vertical_span55(cell)
 	if candidate_span.x <= 0.16:
 		return {"supported": true, "reason": "ground", "coverage": 1.0}
-	var low := Vector3(bounds.position.x - 0.04,
-		candidate_span.x - SUPPORT_SEARCH_BELOW, bounds.position.z - 0.04)
-	var high := Vector3(bounds.end.x + 0.04,
-		candidate_span.x + SUPPORT_VERTICAL_GAP, bounds.end.z + 0.04)
 	var centre := bounds.get_center()
 	var footprint := _cell_footprint55(cell)
 	var area := maxf(0.0001, _polygon_area55(footprint))
@@ -4320,7 +4452,7 @@ func support_state(index: int) -> Dictionary:
 	var front := false
 	var back := false
 	var sources := 0
-	for source: int in _indices_box(low, high):
+	for source: int in _support_indices_below55(bounds, candidate_span.x):
 		if source == index or not bool((_cells[source] as Dictionary).get("alive", false)):
 			continue
 		var support: Dictionary = _cells[source]
@@ -4460,40 +4592,77 @@ func _physics_process(_delta: float) -> void:
 		return
 	_advance_gate(_delta)
 	# The cascade.
+	_support_checks_last = 0
+	_support_work_us_last = 0
+	var now := Time.get_ticks_msec()
+	_queue_due_special_support(now)
 	if not _pending_support.is_empty():
-		var now := Time.get_ticks_msec()
 		var checks := 0
 		var started := Time.get_ticks_usec()
-		# A siege blast queues thousands of support audits at once. At the normal
-		# budget the queue drained at under one brick per frame, so a curtain with a
-		# 5 m hole in it hung for half a minute before it came down. While the queue
-		# is this long the audit gets a few extra milliseconds: the debris wave is
-		# already the frame's expensive moment, and a wall that settles in a quarter
-		# of a second reads as masonry, not as a bug.
-		var burst: bool = _pending_support.size() > 256
-		var check_cap: int = SUPPORT_CHECKS_PER_FRAME * (4 if burst else 1)
-		var budget_us: int = SUPPORT_TIME_BUDGET_US * (4 if burst else 1)
-		for key: Variant in _pending_support.keys():
-			if checks >= check_cap \
-				or Time.get_ticks_usec() - started >= budget_us:
-				break
-			var cell_index := int(key)
-			if now < int(_pending_support.get(cell_index, 0)):
+		while _support_queue_head < _support_queue.size() \
+				and checks < SUPPORT_CHECKS_PER_FRAME:
+			var queued: Dictionary = _support_queue[_support_queue_head]
+			var cell_index := int(queued.get("index", -1))
+			var current: Variant = _pending_support.get(cell_index)
+			if not (current is Dictionary) \
+					or int((current as Dictionary).get("generation", -1)) != int(queued.get("generation", -2)):
+				_support_queue_head += 1
 				continue
+			if now < int(queued.get("due", 0)):
+				break
+			_support_queue_head += 1
 			_pending_support.erase(cell_index)
 			checks += 1
 			if cell_index < 0 or cell_index >= _cells.size() \
 				or not bool((_cells[cell_index] as Dictionary).get("alive", false)):
 				continue
-			if not bool(support_state(cell_index).get("supported", false)):
+			var state_started := Time.get_ticks_usec()
+			var state := support_state(cell_index)
+			var state_us := Time.get_ticks_usec() - state_started
+			if state_us > _support_state_peak_us:
+				_support_state_peak_us = state_us
+				_support_state_peak_group = str((_cells[cell_index] as Dictionary).get("group", ""))
+				_support_state_peak_index = cell_index
+			if not bool(state.get("supported", false)):
 				_kill_brick(cell_index, Vector3.DOWN, 30.0)
 				_collapsed += 1
+			# Fixed work count is the deterministic budget; elapsed time is only a hard
+			# guard against one unusually expensive special component.
+			if Time.get_ticks_usec() - started >= SUPPORT_TIME_BUDGET_US:
+				break
+		_support_checks_last = checks
+		_support_checks_peak = maxi(_support_checks_peak, checks)
+		_support_work_us_last = Time.get_ticks_usec() - started
+		_support_work_us_peak = maxi(_support_work_us_peak, _support_work_us_last)
+		if _support_queue_head >= _support_queue.size():
+			_support_queue.clear()
+			_support_queue_head = 0
+		elif _support_queue_head >= 1024 and _support_queue_head * 2 >= _support_queue.size():
+			_support_queue = _support_queue.slice(_support_queue_head)
+			_support_queue_head = 0
 	_sync_masonry_collision55()
 	# Bodies enter physics in a bounded stream. A detachment larger than MAX_FALLING is
 	# deferred, never silently deleted or frozen in the air.
 	if _falling.is_empty():
+		_falling_probes_last = 0
 		_drain_debris_backlog()
 		return
+	# Settled-body proof uses raycasts, so auditing all 150 bodies in the same frame
+	# creates a second destruction spike. Choose at most 24 resting bodies in round-robin
+	# order; velocity integration still runs normally for every rigid body.
+	var settle_probe_ids: Dictionary = {}
+	var visited := 0
+	while visited < _falling.size() \
+			and settle_probe_ids.size() < FALLING_SUPPORT_PROBES_PER_FRAME:
+		var audit_index := (_falling_audit_cursor + visited) % _falling.size()
+		var audit_body: RigidBody3D = (_falling[audit_index] as Dictionary).get("body")
+		if is_instance_valid(audit_body) and audit_body.linear_velocity.length() < 0.7 \
+				and audit_body.angular_velocity.length() < 1.6:
+			settle_probe_ids[audit_body.get_instance_id()] = true
+		visited += 1
+	_falling_audit_cursor = (_falling_audit_cursor + maxi(1, visited)) % _falling.size()
+	_falling_probes_last = settle_probe_ids.size()
+	_falling_probes_peak = maxi(_falling_probes_peak, _falling_probes_last)
 	for index: int in range(_falling.size() - 1, -1, -1):
 		var entry: Dictionary = _falling[index]
 		var body: RigidBody3D = entry.get("body")
@@ -4510,8 +4679,11 @@ func _physics_process(_delta: float) -> void:
 		var resting: bool = body.linear_velocity.length() < 0.7 \
 			and body.angular_velocity.length() < 1.6
 		var shape := body.get_node_or_null("Shape") as CollisionShape3D
-		var contact := resting and _has_support_contact(body, shape)
-		entry["support_frames"] = int(entry.get("support_frames", 0)) + 1 if contact else 0
+		if not resting:
+			entry["support_frames"] = 0
+		elif settle_probe_ids.has(body.get_instance_id()):
+			var contact := _has_support_contact(body, shape)
+			entry["support_frames"] = int(entry.get("support_frames", 0)) + 1 if contact else 0
 		if age > BRICK_SETTLE_S and int(entry["support_frames"]) >= SUPPORT_PROOF_FRAMES:
 			body.linear_velocity = Vector3.ZERO
 			body.angular_velocity = Vector3.ZERO

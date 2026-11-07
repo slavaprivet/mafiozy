@@ -1,0 +1,4 @@
+Release-blocking correctness concern: large 5.5 m breach still reports 18 pending after 300 physics frames; no evidence shown that it drains to 0 with bounded worst-case latency.
+Performance otherwise looks non-blocking: hard caps, fine support index, caching, and max support phase 2.266 ms are acceptable absent a stricter frame budget.
+Tests PASS; ordinary one-brick queue and false-collapse metrics are good.
+Not safe to commit as fully resolved until the large-breach residual is measured to drain within an accepted bound; if 18 pending is an explicitly accepted transient, then safe to commit.

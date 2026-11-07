@@ -1,0 +1,19 @@
+Godot 4 castle destruction regression. User reports: destroying one block makes almost everything fall and produces a severe hitch. Required: only actually unsupported blocks should fall realistically, and support recalculation must be bounded without FPS loss.
+
+Current castle_site.gd facts:
+- ~60k cells in a spatial 8m grid; live stones are MultiMesh instances.
+- _kill_brick(index) marks one dead, spawns/queues its rigid debris, then _queue_support_audit(index).
+- _queue_support_audit queues only one course above the killed footprint, XZ margin 0.45; each newly collapsed cell recursively queues the next course.
+- normal support loop limits 48 checks / 1800us per physics frame, but when pending >256 it multiplies both by 4 (192 checks / 7200us), during the same frames that rigid debris is spawned.
+- the loop iterates `_pending_support.keys()` every physics frame, erases due entries, calls support_state, then _kill_brick on unsupported cells.
+- support_state computes footprint overlap with live cells directly below. Coverage >=0.42 survives; balanced opposite sides >=0.18 survives.
+- special keep_roof/bridge/gate_voussoir support uses a BFS to an anchor; every killed member currently queues every surviving member of that group, so repeated per-cell BFS can be quadratic.
+- falling rigid bodies capped at 150; backlog drains 8 per frame.
+
+Please propose the smallest safe production change. Focus on:
+1. eliminating the 4x burst and expensive full Dictionary.keys snapshots;
+2. deterministic FIFO/time-sliced audit with a hard per-frame budget;
+3. coalescing special connected-component validation so it is not repeated for every cell;
+4. preventing one ordinary brick from triggering global collapse while retaining local upward propagation when a true bearing path is lost.
+
+Answer concisely with concrete invariants and test cases. Do not propose ECS or a full rewrite.

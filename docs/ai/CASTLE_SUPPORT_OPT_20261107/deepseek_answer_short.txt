@@ -1,0 +1,8 @@
+Valid direction, but flag two correctness risks:
+1. The Y filter must test candidates against the **next-course query band** with inclusive/touching tolerance, not just overlap with the killed brick AABB, or adjacent supports can be missed.
+2. FIFO+dict dedupe/due needs per-entry generation/version and consume-only-if-current; otherwise a stale head can erase a newer requeue or audit at a stale due time.
+Also avoid wall-clock 1 ms as a determinism gate; use fixed ≤32 checks/frame, with 1 ms only as guard/telemetry.
+Essential tests: Y filter rejects same-XZ/different-Y and accepts only next-course overlap; one killed brick queues expected count, not 185.
+FIFO/dedupe: duplicate enqueue before consume, requeue after consume, stale head/version, head compaction/wrap, deterministic order.
+Budget/regression: ≤32 checks/frame, no 4× burst, queue>256 does not multiply work; falling-body cap 150 and spawn drain 8/frame unchanged.
+Collapse: only next course appended, no skipped/duplicate courses; multi-brick collapse stress/performance.
