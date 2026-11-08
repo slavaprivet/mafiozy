@@ -15,6 +15,9 @@ const RiderPose = preload("res://scripts/mount/horse_rider_pose.gd")
 const MOUNT_RANGE := 3.4
 const DISMOUNT_SIDES := [Vector3(-1.0, 0.0, 0.0), Vector3(1.0, 0.0, 0.0), Vector3(0.0, 0.0, 1.0), Vector3(0.0, 0.0, -1.0)]
 const DISMOUNT_DISTANCE := 2.15
+const DISMOUNT_FALLBACK_RADII := [3.2, 4.4, 5.6, 6.8]
+const DISMOUNT_FALLBACK_DIRECTIONS := 8
+const MAX_RUBBLE_RAY_SKIPS := 12
 const RIDING_CAMERA_DISTANCE := 7.2
 const HP_VISIBLE_AFTER_HIT_MS := 4200
 const HP_VISIBLE_RANGE := 8.0
@@ -49,6 +52,7 @@ var _dismounts := 0
 var _last_dismount: Dictionary = {}
 var _walking_camera_distance := 5.119570294468082
 var _camera_distance_owned := false
+var _safe_spawn_anchor := Vector3.ZERO
 
 var _barrel_slot: Node3D
 var _barrel_cradle: Node3D
@@ -80,14 +84,12 @@ func install(world: Node3D, existing_player: CharacterBody3D) -> Dictionary:
 	var rest: Array = locomotion.get("_rest_poses")
 	if not _pose.configure(rig, motion, rest, float(player.get("_model_scale"))):
 		return {"ok": false, "reason": "rider_pose_binding"}
-	# Keep the horse outside the camp's powder row (right offsets 2.2..3.8m).
-	# The old 2.8m offset exactly shared PowderBarrel1's later spawn, trapping
-	# the horse inside its collider. Leave clearance for both full body volumes.
 	var heading := float(player.get("_heading"))
-	var forward := Vector3(-sin(heading), 0.0, -cos(heading))
-	var right := Vector3(cos(heading), 0.0, -sin(heading))
-	var spot: Vector3 = player.global_position + forward * 4.6 + right * 5.2
-	spot.y = _ground_height(spot)
+	var spawn := _find_horse_spawn(heading)
+	if spawn.is_empty():
+		return {"ok": false, "reason": "horse_no_safe_spawn"}
+	var spot: Vector3 = spawn.position
+	_safe_spawn_anchor = spot
 	var body: CharacterBody3D = HorseScript.new()
 	body.name = "CastleHorse"
 	add_child(body)
@@ -106,9 +108,56 @@ func install(world: Node3D, existing_player: CharacterBody3D) -> Dictionary:
 		mesh_nodes += 1
 	var receipt := {"ok": true, "position": horse.global_position, "yaw": heading,
 		"rider_pose": _pose.status(), "ground_y": spot.y, "mesh_nodes": mesh_nodes,
-		"player": player.global_position, "layer": horse.collision_layer, "mask": horse.collision_mask}
+		"player": player.global_position, "layer": horse.collision_layer,
+		"mask": horse.collision_mask, "spawn_candidate": spawn.candidate}
 	print("DSH_HORSE_INSTALL ", JSON.stringify(receipt))
 	return receipt
+
+## The castle start looks toward the gate. The old forward offset therefore placed
+## the horse exactly in the gate plane. Search only the courtyard side and require a
+## conservative horse-sized volume to be genuinely empty before creating the body.
+func _find_horse_spawn(heading: float) -> Dictionary:
+	var forward := Vector3(-sin(heading), 0.0, -cos(heading))
+	var right := Vector3(cos(heading), 0.0, -sin(heading))
+	var offsets := [Vector2(-7.0, -5.0), Vector2(-7.0, 5.0),
+		Vector2(-10.0, -7.0), Vector2(-10.0, 7.0), Vector2(-12.0, 0.0)]
+	for candidate: int in offsets.size():
+		var offset: Vector2 = offsets[candidate]
+		var probe: Vector3 = player.global_position + forward * offset.x + right * offset.y
+		var ground := _spawn_ground(probe)
+		if ground.is_empty():
+			continue
+		var at: Vector3 = ground.position
+		if _horse_spawn_free(at, heading):
+			return {"position": at, "candidate": candidate, "ground": ground.hit}
+	return {}
+
+func _spawn_ground(at: Vector3) -> Dictionary:
+	var world := get_world_3d()
+	if world == null:
+		return {}
+	var ray := PhysicsRayQueryParameters3D.new()
+	ray.from = Vector3(at.x, at.y + 6.0, at.z)
+	ray.to = Vector3(at.x, at.y - 30.0, at.z)
+	ray.collision_mask = 1
+	ray.exclude = [player.get_rid()] if is_instance_valid(player) else []
+	var hit: Dictionary = world.direct_space_state.intersect_ray(ray)
+	if hit.is_empty() or float((hit.normal as Vector3).y) < 0.55 \
+			or _is_rubble_collider(hit.get("collider")):
+		return {}
+	return {"position": Vector3(at.x, float(hit.position.y) + 0.04, at.z),
+		"hit": hit.position}
+
+func _horse_spawn_free(at: Vector3, heading: float) -> bool:
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(1.15, 2.10, 2.35)
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = shape
+	query.transform = Transform3D(Basis(Vector3.UP, heading), at + Vector3.UP * 1.10)
+	query.collision_mask = 1
+	query.exclude = [player.get_rid()] if is_instance_valid(player) else []
+	query.margin = 0.001
+	return get_world_3d().direct_space_state.intersect_shape(query, 1).is_empty()
 
 func _ground_height(at: Vector3) -> float:
 	var world := get_world_3d()
@@ -333,7 +382,9 @@ func dismount_now() -> bool:
 	_dismounts += 1
 	_last_dismount = {"player": player.global_position, "horse": horse.global_position,
 		"horse_moved": horse.global_position.distance_to(was_at), "side": spot.side,
-		"ground": spot.ground, "serial": _dismounts, "horse_dead": bool(horse.get("dead"))}
+		"ground": spot.ground, "serial": _dismounts, "horse_dead": bool(horse.get("dead")),
+		"fallback": bool(spot.get("fallback", false)), "radius": float(spot.get("radius", 0.0)),
+		"checks": int(spot.get("checks", 0))}
 	status = "ready"
 	print("DSH_HORSE_DISMOUNT ", JSON.stringify(_last_dismount))
 	return true
@@ -371,7 +422,11 @@ func _find_dismount_spot() -> Dictionary:
 	var world := get_world_3d()
 	if world == null:
 		return {}
+	var checks := 0
+	# Preserve the ordinary four close exits exactly. Most dismounts stay short and
+	# do not pay for the expanded search.
 	for side: int in DISMOUNT_SIDES.size():
+		checks += 1
 		var local: Vector3 = DISMOUNT_SIDES[side] * DISMOUNT_DISTANCE
 		var world_spot: Vector3 = horse.to_global(local)
 		var ray := PhysicsRayQueryParameters3D.new()
@@ -385,8 +440,77 @@ func _find_dismount_spot() -> Dictionary:
 		var ground := Vector3(world_spot.x, float(hit.position.y) + 0.03, world_spot.z)
 		if not _capsule_free(ground):
 			continue
-		return {"position": ground, "side": side, "ground": hit.position}
+		return {"position": ground, "side": side, "ground": hit.position,
+			"fallback": false, "radius": DISMOUNT_DISTANCE, "checks": checks}
+	# Rubble can surround all four close exits. Search bounded rings only when the
+	# player explicitly asks to dismount. A candidate must have real floor, an empty
+	# final capsule and a path that crosses rubble only — never intact walls.
+	for radius_value: Variant in DISMOUNT_FALLBACK_RADII:
+		var radius := float(radius_value)
+		for direction: int in DISMOUNT_FALLBACK_DIRECTIONS:
+			checks += 1
+			var angle := TAU * float(direction) / float(DISMOUNT_FALLBACK_DIRECTIONS)
+			var local := Vector3(cos(angle), 0.0, sin(angle)) * radius
+			var world_spot: Vector3 = horse.to_global(local)
+			var ground_hit := _dismount_ground(world_spot)
+			if ground_hit.is_empty():
+				continue
+			var ground: Vector3 = ground_hit.position
+			if not _capsule_free(ground) or not _dismount_path_clear(ground):
+				continue
+			return {"position": ground, "side": direction, "ground": ground_hit.hit,
+				"fallback": true, "radius": radius, "checks": checks}
 	return {}
+
+func _is_rubble_collider(value: Variant) -> bool:
+	if not value is Node or not is_instance_valid(value):
+		return false
+	var node := value as Node
+	return bool(node.get_meta("castle_rubble", false)) \
+		or bool(node.get_meta("castle_debris", false)) or node.name == &"Brick"
+
+func _dismount_ground(at: Vector3) -> Dictionary:
+	var world := get_world_3d()
+	if world == null:
+		return {}
+	var excluded: Array[RID] = _excluded_rids()
+	for skip: int in MAX_RUBBLE_RAY_SKIPS + 1:
+		var ray := PhysicsRayQueryParameters3D.new()
+		ray.from = Vector3(at.x, at.y + 3.0, at.z)
+		ray.to = Vector3(at.x, at.y - 8.0, at.z)
+		ray.collision_mask = 1
+		ray.exclude = excluded
+		var hit: Dictionary = world.direct_space_state.intersect_ray(ray)
+		if hit.is_empty():
+			return {}
+		var collider: Variant = hit.get("collider")
+		if _is_rubble_collider(collider) and collider is CollisionObject3D:
+			excluded.append((collider as CollisionObject3D).get_rid())
+			continue
+		var normal: Vector3 = hit.get("normal", Vector3.UP)
+		if normal.y < 0.55:
+			return {}
+		return {"position": Vector3(at.x, float(hit.position.y) + 0.03, at.z),
+			"hit": hit.position, "skipped": skip}
+	return {}
+
+func _dismount_path_clear(at: Vector3) -> bool:
+	var world := get_world_3d()
+	if world == null:
+		return false
+	var excluded: Array[RID] = _excluded_rids()
+	for _skip: int in MAX_RUBBLE_RAY_SKIPS + 1:
+		var ray := PhysicsRayQueryParameters3D.create(
+			horse.global_position + Vector3.UP * 1.05, at + Vector3.UP * 1.05, 1)
+		ray.exclude = excluded
+		var hit: Dictionary = world.direct_space_state.intersect_ray(ray)
+		if hit.is_empty():
+			return true
+		var collider: Variant = hit.get("collider")
+		if not _is_rubble_collider(collider) or not collider is CollisionObject3D:
+			return false
+		excluded.append((collider as CollisionObject3D).get_rid())
+	return false
 
 func _capsule_free(at: Vector3) -> bool:
 	var shape := CapsuleShape3D.new()

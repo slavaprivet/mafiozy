@@ -1,0 +1,9 @@
+Проверь план исправления двух подтвержденных багов Godot 4.7.2.
+
+1) Игрок castle startup: local (5,0.25,WALL_HALF-4.5), heading=PI. horse_mount_host ставит horse = player + forward*4.6 + right*5.2, что дает local примерно (-0.2,WALL_HALF+0.1), то есть центр ворот. План: bounded spawn candidates на стороне двора (offset назад от forward на 7-10м, lateral ±5м), для каждого ray до настоящего ground, reject rubble ground, проверка свободного capsule объема лошади; выбрать первый свободный.
+
+2) `_find_dismount_spot()` проверяет только 4 точки радиуса2.15м. В rubble все заняты и `dismount_now()` навсегда возвращает false. План: сохранить 4 legacy candidates, затем только по нажатию F bounded search радиусы3.2/4.4/5.6/6.8м × 8 направлений. Для candidate: ground ray с нормалью вверх, свободная настоящая capsule игрока; chest-height path не может пересекать intact wall, но iterative ray может пропускать только colliders с meta castle_rubble/castle_debris или body name Brick. Max 12 skipped rubble bodies. Если нет точки, оставить mounted. Telemetry fallback/radius/checks.
+
+Новые tests live castle: старт horse вне gate corridor и свободен; normal mount/dismount; 4 legacy spots blocked, expanded fallback succeeds and restores collision/mount state; intact wall beyond rubble rejected. Поиск не per-frame.
+
+Есть ли ошибка/эксплойт в плане? Предложи только конкретные корректировки, без общих советов.
