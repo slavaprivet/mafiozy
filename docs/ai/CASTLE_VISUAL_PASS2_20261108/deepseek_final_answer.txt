@@ -1,0 +1,11 @@
+**Подтверждённого release blocker нет.** Данные не дают основания блокировать релиз: структура и draw calls идентичны, все перечисленные тесты PASS/stderr 0, support-cascade в проверенном сценарии baseline-matched, перф в пределах шума. Единичный ~104 FPS не воспроизвёлся и не коррелирует с draw calls — это не подтверждённый блокер.
+
+**Безопасные утверждения:**
+- Кандидат не добавляет `_add_brick`, materials, lights, physics, shaders или runtime loops; изменения только перечисленные build-time/визуальные.
+- Структура и счётчики без изменений: 61886 bricks, 361 MultiMesh, 211 MeshInstance, 46 shadow casters, 12 lights, 3969 StaticBody, 150 RigidBody; draw calls/objects ровно 1811/2242.
+- Все заявленные тесты PASS со stderr 0, включая material regression, pass2 profile, support cascade, architecture/single-brick/support budget, castle check, gate breach, screenshots.
+- Support cascade baseline-matched после 4 удалений: collapsed 204, pending 0, одинаковые after counts — **в этом проверенном сценарии**.
+- Перф: воспроизводимого регресса нет; последняя пара в пределах обычного разброса. Аномалия ~104 FPS не воспроизвелась и не считается блокером.
+- Сохранены заявленные ограничения: нижняя опорная грань у 7 machicolations; нижняя грань у 72 merlons и средняя площадь не выше базы; X/Z-профиль 72 entrance piers; tint — детерминированный build-time MultiMesh.
+
+**Небезопасно утверждать:** полное отсутствие любых регрессий вне покрытых тестов, общий прирост FPS, идентичность всех support-сценариев за пределами проверенного, объяснённость аномалии ~104 FPS, окончательную визуальную приёмку сверх screenshots.

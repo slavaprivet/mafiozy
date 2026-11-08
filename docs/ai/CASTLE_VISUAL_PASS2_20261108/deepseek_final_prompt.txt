@@ -1,0 +1,11 @@
+Финальное release-review второго визуального прохода замка Godot 4.7.2.
+
+База: commit 3921c692. Кандидат не добавляет `_add_brick`, materials, lights, physics, shaders или runtime loops. Изменено только: детерминированный build-time MultiMesh tint (крупные ремонтные пятна, тень под карнизом, старение ворот, разные экспозиции башен); X/Z-профиль уже существующих 72 entrance piers; размер 7 существующих machicolations с сохранением нижней опорной грани; высота/ширина 72 существующих tower crown merlons с сохранением нижней грани и средней площади не выше базы.
+
+Структура без изменений: 61886 bricks, 361 MultiMesh, 211 MeshInstance, 46 shadow casters, 12 lights, 3969 StaticBody, 150 RigidBody. Draw calls/objects точь-в-точь 1811/2242.
+
+Тесты PASS, stderr0: material regression, новый pass2 profile regression, новый baseline-matched support cascade (после 4 удалений baseline и candidate одинаково: collapsed204, pending0, те же after counts), architecture support, single-brick support, support budget, castle check, gate breach, screenshots.
+
+Perf exact baseline 3921c692, одинаковые imports, clean exclusive scheduler. Последняя близкая пара: baseline courtyard/gate/whole 184.58/155.60/151.82; candidate 184.36/156.15/151.94 FPS. Более ранние повторы имели обычный разброс; один candidate запуск аномально дал ~104 FPS при тех же draw calls, следующий сразу вернулся к 183/156/152 и аномалия не повторилась. После уменьшения средней теневой площади финальный candidate дал цифры выше.
+
+Есть ли подтверждённый release blocker? Какие утверждения безопасны? Ответь кратко и не предлагай новые эффекты.

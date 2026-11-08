@@ -1427,6 +1427,42 @@ func _brick_tint(cell: Dictionary) -> Color:
 		blue_shift *= 1.015
 	elif abs(hash) % 23 == 0:
 		multiplier *= 0.93
+	# Broad repair zones break the procedural speckle into readable patches of
+	# newer mortar. The coarse hash is stable and is evaluated only at build time.
+	if material != "paving":
+		var repair_hash: int = absi(int(floor(at.x / 10.0)) * 92821 \
+			^ int(floor(at.y / 6.0)) * 68917 ^ int(floor(at.z / 10.0)) * 31337)
+		if repair_hash % 17 == 0:
+			multiplier *= 1.018
+			red_shift *= 1.006
+			blue_shift *= 0.992
+	# Existing stone around the entrance carries smoke and handling, while the
+	# upper curtain course stays slightly cooler beneath its projecting cornice.
+	var gate_zone := absf(at.x) < 7.0 and at.z > WALL_HALF and at.y > 5.5 and at.y < 15.8
+	if gate_zone:
+		multiplier *= 0.968
+		red_shift *= 0.985
+		blue_shift *= 0.975
+	var facade_group := group.contains("wall") or group.contains("curtain") \
+		or group.contains("entrance") or group.contains("gate")
+	if facade_group and at.y > 16.7 and at.y < 18.25:
+		multiplier *= 0.978
+		blue_shift *= 1.008
+	if group == "entrance_arch31" and at.y > 15.65:
+		multiplier *= 1.035
+		red_shift *= 1.012
+		blue_shift *= 0.985
+	# Four old towers have weathered in different exposures. This tiny bias makes
+	# them individual landmarks without another material or shader variant.
+	if absf(at.x) > WALL_HALF - 9.0 and absf(at.z) > WALL_HALF - 9.0:
+		if at.x < 0.0:
+			red_shift *= 0.992
+		else:
+			red_shift *= 1.006
+		if at.z < 0.0:
+			blue_shift *= 1.010
+		else:
+			blue_shift *= 0.994
 	return Color(multiplier * red_shift, multiplier * green_shift,
 		multiplier * blue_shift)
 
@@ -1938,6 +1974,7 @@ func _build_exterior_crowns() -> void:
 	var around := maxi(12, int(round(TAU * TOWER_RADIUS / (BRICK.x * 0.98))))
 	for corner: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
 		var centre := Vector3(corner.x * WALL_HALF, 0.0, corner.y * WALL_HALF)
+		var corner_index: int = (1 if corner.x > 0.0 else 0) + (2 if corner.y > 0.0 else 0)
 		for tier: int in 2:
 			var radius := TOWER_RADIUS + 0.26 + float(tier) * 0.36
 			var height := TOWER_HEIGHT - 0.42 + float(tier) * 0.45
@@ -1950,9 +1987,15 @@ func _build_exterior_crowns() -> void:
 		for segment: int in around:
 			if segment % 2 != 0: continue
 			var angle := TAU * float(segment) / float(around)
-			_add_brick(centre + Vector3(cos(angle) * (TOWER_RADIUS + 0.47),
-				TOWER_HEIGHT + 0.98, sin(angle) * (TOWER_RADIUS + 0.47)),
-				Vector3(0.96, 1.96, 0.66), "stone", Vector3(0.0, -angle, 0.0),
+			# The four averages straddle the old 1.96 m height; the silhouette varies
+			# without increasing the total shadowed merlon area.
+			var base_height: float = [1.80, 1.90, 1.98, 2.08][corner_index]
+			var merlon_height: float = base_height + (0.06 if segment % 4 == 0 else -0.03)
+			var merlon_width: float = 0.92 + (0.06 if (segment / 2 + corner_index) % 3 == 0 else 0.0)
+			var merlon_radius: float = TOWER_RADIUS + 0.47
+			_add_brick(centre + Vector3(cos(angle) * merlon_radius,
+				TOWER_HEIGHT + merlon_height * 0.5, sin(angle) * merlon_radius),
+				Vector3(merlon_width, merlon_height, 0.66), "stone", Vector3(0.0, -angle, 0.0),
 				"tower_crown_merlon", 0, segment)
 	# A compact heraldic stone shield above the gate gives the entrance a focal
 	# point. Relief stays in front of the facade and never closes the passage.
@@ -3323,7 +3366,12 @@ func _build_entrance_layer31() -> void:
 			for row: int in 18:
 				var height := 0.56 + float(row) * 1.06
 				var face := front - 0.24 + (0.12 if row % 2 == 0 else 0.0)
-				_add_brick(Vector3(x, height, face), Vector3(0.82, 1.02, 0.66),
+				var pier_size := Vector3(0.73, 1.02, 0.60)
+				if row < 4:
+					pier_size = Vector3(0.96, 1.02, 0.76)
+				elif row >= 15:
+					pier_size = Vector3(0.94, 1.02, 0.76)
+				_add_brick(Vector3(x, height, face), pier_size,
 					"warm" if row % 5 == 0 else "cold", Vector3.ZERO,
 					"entrance_pier31", row, int(offset))
 			for band: float in [4.8, 10.9, 17.8]:
@@ -4751,7 +4799,14 @@ func _build_gate_art38() -> void:
 	# below and the continuous rail ties the two pre-existing bastions together.
 	for bracket: int in 7:
 		var x: float = (float(bracket) - 3.0) * 1.68
-		_add_brick(Vector3(x, 20.22, face + 0.22), Vector3(0.58, 1.13, 1.52),
+		var emphasized: bool = bracket in [0, 3, 6]
+		var bracket_height := 1.19 if emphasized else 1.09
+		var bracket_width := 0.68 if emphasized else 0.52
+		var bracket_depth := 1.64 if emphasized else 1.46
+		# Preserve the original 19.655 m lower support edge while closing the small
+		# visual gap to the gallery rail above it.
+		_add_brick(Vector3(x, 19.655 + bracket_height * 0.5, face + 0.22),
+			Vector3(bracket_width, bracket_height, bracket_depth),
 			"cold", Vector3.ZERO, "gate38_machicolation", 0, bracket)
 	_add_brick(Vector3(0.0, 21.12, face + 0.44), Vector3(13.4, 0.47, 1.45),
 		"warm", Vector3.ZERO, "gate38_gallery_rail")

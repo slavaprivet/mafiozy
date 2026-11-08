@@ -1,0 +1,83 @@
+Все изменения — только в существующем `_brick_tint` на этапе заполнения MultiMesh и/или transform/scale уже существующих блоков; новых `_add_brick`, материалов, light, physics, surface/draw call не создаём. Обозначим: `cell = floor((p - origin)/brick_size)`, `corner∈0..3`, `tier`, `segment`, `p` — центр кирпича.
+
+1. **Детерминированный integer-hash вместо sin-hash для tint**
+   Считать один раз при fill:
+   ```text
+   u = (uint(cell.x)*73856093u) ^ (uint(cell.y)*19349663u) ^
+       (uint(cell.z)*83492791u) ^ uint(seed + corner*101 + tier*17);
+   h1 = float(u & 0xFFFFFFu)/16777215.0;
+   h2 = float((u>>8) & 0xFFFFFFu)/16777215.0;
+   tint.rgb *= vec3(0.93+0.14*h1, 0.94+0.12*h2, 0.93+0.12*(1.0-h1));
+   ```
+   Это даёт стабильную «кирпичную» вариацию без platform drift.
+
+2. **Высотное региональное старение: низ — сырость, верх — выветривание**
+   ```text
+   yn = clamp((p.y - base_y)/tower_height, 0.0, 1.0);
+   damp = exp(-max(p.y - base_y, 0.0)/2.5);
+   tint.rgb *= mix(vec3(0.86,0.92,0.82), vec3(1.05,1.02,0.97), yn);
+   tint.rgb *= mix(vec3(1.0), vec3(0.90,0.94,0.88), 0.25*damp);
+   ```
+   Нижние tier получают зелёно-грязный сдвиг, верхние — светлее/суше.
+
+3. **Сажа и акцент у главного входа через tint**
+   ```text
+   gx = exp(-pow((p.x-gate_x)/5.0,2.0) - pow((p.y-gate_y)/3.5,2.0));
+   tint.rgb *= mix(vec3(1.0), vec3(0.70,0.66,0.60), 0.55*gx);
+
+   center = exp(-pow((segment-seg_gate)/1.2,2.0));
+   tint.rgb *= mix(vec3(1.0), vec3(1.10,1.04,0.94), 0.35*center);
+   ```
+   Тёмная зона вокруг входа + светлее центральная ось.
+
+4. **Выразительный вход без новых блоков: keystone и педимент**
+   У уже существующего центрального блока арки/keystone:
+   ```text
+   scale.y *= 1.08;
+   pos.z += 0.03;
+   ```
+   с ограничением: перекрытие с соседями ≥ `0.6*brick_depth`.
+   Для 2–3 существующих блоков педимента:
+   ```text
+   pos.y += 0.06*brick_h * (1.0 - abs(segment-seg_center)/seg_half);
+   ```
+   Только transform, без новых кирпичей; группы/соседство не менять.
+
+5. **Четыре башни: corner-bias в tint**
+   ```text
+   bias[4] = {
+     vec3(0.86,0.95,0.86),
+     vec3(1.07,1.01,0.92),
+     vec3(0.90,0.93,1.05),
+     vec3(1.02,0.96,0.90)
+   };
+   tint.rgb *= mix(bias[corner], vec3(1.0), 0.20 + 0.20*(tier/max_tier));
+   ```
+   Башни получают разные региональные оттенки, но остаются в общем material set.
+
+6. **Различие силуэта башен через существующие merlons/crowns**
+   Только для декоративных существующих блоков crown/merlon, не для несущего основания:
+   ```text
+   dy = 0.06*brick_h * (((corner*3 + segment) % 4) - 1.5);
+   dx = 0.02*brick_d * (corner - 1.5);
+   ```
+   Клампить `abs(dy) ≤ 0.12*brick_h`, `abs(dx) ≤ 0.04*brick_d`; перекрытие с соседями ≥ `0.5*brick_depth`.
+
+7. **Локальные «ремонтные» пятна и износ углов**
+   Крупная сетка, чтобы не было шума на каждом кирпиче:
+   ```text
+   pc = floor(cell / ivec3(4,3,4));
+   pach = step(0.84, h1(pc + corner*97));
+   tint.rgb = mix(tint.rgb, tint.rgb*vec3(1.08,1.04,0.94), 0.35*pach);
+   ```
+   Износ по краю башни:
+   ```text
+   edge_d = min(p.x-min_x, max_x-p.x, p.z-min_z, max_z-p.z);
+   edge = exp(-max(edge_d,0.0)/0.8);
+   tint.rgb *= mix(vec3(1.0), vec3(0.88,0.90,0.86), 0.25*edge);
+   ```
+
+**3 главных риска для живой проверки в Godot:**
+1. **Цветовое пространство/instance color**: `set_instance_color` умножается на albedo материала; проверить, не уходят ли tint в чёрный/пересвет и не появляется ли alpha. Смотреть в live-сцене при разных light/exposure.
+2. **Перекрытие, collision и support после transform/scale**: keystone/merlon/pediment двигать только с запасом перекрытия; проверить, что StaticBody/RigidBody и destruction-группы не разъезжаются с визуалом.
+3. **Render batches при смене материала**: если блок уже в MultiMesh — менять только tint; material swap делать только для уже отдельных MeshInstance и сверять `Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME`, иначе батчи могут вырасти без роста `_add_brick`.

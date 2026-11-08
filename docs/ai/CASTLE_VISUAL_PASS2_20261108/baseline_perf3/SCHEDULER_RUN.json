@@ -1,0 +1,68 @@
+{
+  "mode": "perf",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--path",
+    "D:\\MafioziCombat31\\castle_visual_pass2_baseline_3921c692\\godot\\mafiozi_walk",
+    "--script",
+    "res://scripts/tests/dsh_castle_perf.gd"
+  ],
+  "passed": true,
+  "lease": {
+    "id": "1d642282a6d6487ba54469f6e70062ff",
+    "owner": {
+      "pid": 55064,
+      "creation_filetime": "134386445223582823"
+    },
+    "mode": "perf",
+    "project": "d:\\mafiozicombat31\\castle_visual_pass2_baseline_3921c692\\godot\\mafiozi_walk",
+    "access": "read",
+    "children": [
+      {
+        "pid": 66028,
+        "creation_filetime": "134386445233647547",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --path D:\\MafioziCombat31\\castle_visual_pass2_baseline_3921c692\\godot\\mafiozi_walk --script res://scripts/tests/dsh_castle_perf.gd",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--path",
+          "D:\\MafioziCombat31\\castle_visual_pass2_baseline_3921c692\\godot\\mafiozi_walk",
+          "--script",
+          "res://scripts/tests/dsh_castle_perf.gd"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "perf",
+        "project": "d:\\mafiozicombat31\\castle_visual_pass2_baseline_3921c692\\godot\\mafiozi_walk"
+      }
+    ],
+    "deadline": 1661025.5951623,
+    "queued_at": 1660725.5951623,
+    "ticket": 6253,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.4953439000528306
+  },
+  "child": {
+    "pid": 66028,
+    "creation_filetime": "134386445233647547",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --path D:\\MafioziCombat31\\castle_visual_pass2_baseline_3921c692\\godot\\mafiozi_walk --script res://scripts/tests/dsh_castle_perf.gd",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--path",
+      "D:\\MafioziCombat31\\castle_visual_pass2_baseline_3921c692\\godot\\mafiozi_walk",
+      "--script",
+      "res://scripts/tests/dsh_castle_perf.gd"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "perf",
+    "project": "d:\\mafiozicombat31\\castle_visual_pass2_baseline_3921c692\\godot\\mafiozi_walk"
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 29.951862200163305,
+  "errors": [],
+  "stderr_bytes": 0,
+  "perf_environment_clean": true,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}
