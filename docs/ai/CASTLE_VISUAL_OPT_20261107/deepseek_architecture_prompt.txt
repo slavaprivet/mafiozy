@@ -1,0 +1,10 @@
+Answer in under 180 words. Review a count-neutral geometry detail pass for a Godot 4.7.2 procedural castle. All existing cells remain; no new _add_brick calls, materials, lights, shadows, physics bodies, draw calls, or triangles.
+
+Proposed transform-only changes:
+1. Existing 3-cell-high curtain merlons become profiled: bottom cell slightly wider/deeper, middle normal, top narrower/taller with tiny outward offset. Same 3 cells and groups.
+2. Existing two tower crown rings project progressively farther and become thinner; existing tower merlons become slightly narrower/taller and move outward a few cm.
+3. Existing four-tier gate shield tapers more strongly and projects in shallow relief; its existing cross is reshaped, not duplicated.
+4. Existing five-tier keep pinnacles taper more clearly with alternating 45-degree rotation; existing tip becomes taller.
+5. Existing gate watch-turret roof rings taper more strongly, finials become taller, existing gallery merlons get a base/mid/top rhythm by size/height based on index, and existing five-tier pediment has a sharper step.
+
+Main requirements: more detailed silhouette and focal entrance; no FPS loss; destruction/support remains correct. Identify visual/collision/support risks and essential tests. No generic advice.

@@ -1,0 +1,70 @@
+{
+  "mode": "perf",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--path",
+    "D:\\MafioziCombat31\\castle_visual_baseline_20261107\\godot\\mafiozi_walk",
+    "--script",
+    "res://scripts/tests/dsh_castle_perf.gd"
+  ],
+  "passed": false,
+  "lease": {
+    "id": "379469a7aa534bacbbc9d7575ed633f2",
+    "owner": {
+      "pid": 11920,
+      "creation_filetime": "134385519447059700"
+    },
+    "mode": "perf",
+    "project": "d:\\mafiozicombat31\\castle_visual_baseline_20261107\\godot\\mafiozi_walk",
+    "access": "read",
+    "children": [
+      {
+        "pid": 67444,
+        "creation_filetime": "134385519457644406",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --path D:\\MafioziCombat31\\castle_visual_baseline_20261107\\godot\\mafiozi_walk --script res://scripts/tests/dsh_castle_perf.gd",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--path",
+          "D:\\MafioziCombat31\\castle_visual_baseline_20261107\\godot\\mafiozi_walk",
+          "--script",
+          "res://scripts/tests/dsh_castle_perf.gd"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "perf",
+        "project": "d:\\mafiozicombat31\\castle_visual_baseline_20261107\\godot\\mafiozi_walk"
+      }
+    ],
+    "deadline": 1568447.946181,
+    "queued_at": 1568147.946181,
+    "ticket": 6202,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.5297008999623358
+  },
+  "child": {
+    "pid": 67444,
+    "creation_filetime": "134385519457644406",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --path D:\\MafioziCombat31\\castle_visual_baseline_20261107\\godot\\mafiozi_walk --script res://scripts/tests/dsh_castle_perf.gd",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--path",
+      "D:\\MafioziCombat31\\castle_visual_baseline_20261107\\godot\\mafiozi_walk",
+      "--script",
+      "res://scripts/tests/dsh_castle_perf.gd"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "perf",
+    "project": "d:\\mafiozicombat31\\castle_visual_baseline_20261107\\godot\\mafiozi_walk"
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 31.488345900084823,
+  "errors": [
+    "ERROR: No loader found for resource: res://assets/weapon_thumbnails/hatchet.svg (expected type: unknown)"
+  ],
+  "stderr_bytes": 388,
+  "perf_environment_clean": true,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

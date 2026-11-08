@@ -1,0 +1,5 @@
+Review this proposed zero-cost visual upgrade for a Godot 4.7.2 procedural medieval castle.
+
+The castle has about 61,886 destructible cells rendered through chunked MultiMesh instances. MultiMesh already has use_colors=true and writes a deterministic per-cell COLOR, but the StandardMaterial3D stone materials did not have vertex_color_use_as_albedo enabled, so the variation was invisible. The patch enables vertex_color_use_as_albedo only for existing stone/warm/cold/paving materials and the existing courtyard floor paving material. It adds deterministic build-time-only tint variation: subtle random stone tone, damp lower 3.2m, slight south/north exposure, sparse vertical rain streaks based on X/Z hash. It also slightly separates the existing three stone base colors and modestly retunes the one existing sun and ambient values. No cells, meshes, materials, lights, shadows, physics objects, texture samples, or draw calls are added.
+
+Audit for visual correctness, Godot material semantics, performance risk, and excessive tint contrast. State any release blocker and the essential matched tests. Be concise.

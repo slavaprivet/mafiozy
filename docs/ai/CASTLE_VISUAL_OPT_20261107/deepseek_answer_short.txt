@@ -1,0 +1,3 @@
+Not inherently a release blocker. Main risk: enabling `vertex_color_use_as_albedo` affects every mesh using those materials, including non-MultiMesh users and any mesh vertex colors; per-instance COLOR must be intentionally set (white where no tint). Verify linear/sRGB handling and that retuned palette/sun does not blow exposure.
+
+Required tests: golden/visual regression for stone/warm/cold/paving on desktop+mobile; confirm MultiMesh COLOR values and default white; non-MultiMesh material users unchanged; deterministic build hash/tint repeatability; draw calls/performance unchanged; import/export and shader compile; lighting/sun palette regression; rare streak/damp bounds. If these pass, ship.

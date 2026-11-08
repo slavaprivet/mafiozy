@@ -1,0 +1,30 @@
+{
+  "mode": "perf",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--path",
+    "D:\\MafioziCombat31\\main_rebuild_20261107\\godot\\mafiozi_walk",
+    "--script",
+    "res://scripts/tests/dsh_castle_perf.gd"
+  ],
+  "passed": false,
+  "lease": {
+    "id": "706f710fc55d4644999af209c9fc3d5a",
+    "owner": {
+      "pid": 62656,
+      "creation_filetime": "134386425739854330"
+    },
+    "mode": "perf",
+    "project": "d:\\mafiozicombat31\\main_rebuild_20261107\\godot\\mafiozi_walk",
+    "access": "read",
+    "children": [],
+    "deadline": 1659077.2321869,
+    "queued_at": 1658777.2321869,
+    "ticket": 6228,
+    "inventory_before": [],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.49954110011458397
+  },
+  "error": "argument should be a str or an os.PathLike object where __fspath__ returns a str, not 'NoneType'"
+}

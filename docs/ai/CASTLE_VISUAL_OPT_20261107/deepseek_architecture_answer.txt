@@ -1,0 +1,7 @@
+Feasible, but guard the following:
+
+- **Visual:** top-merlon outward offset and ring projection can create gaps, z-fighting, or detached silhouettes; thinner rings may expose seams. Shield relief/cross reshape may intersect or z-fight. Rotated pinnacles can show edge-contact gaps. Index-based gallery rhythm may break symmetry or overlap at ends.
+- **Collision:** wider/deeper bottom merlon cells and outward tower/gallery offsets alter AABBs, causing snags or visual/collision mismatch if only visuals move. 45° pinnacle rotation changes contact from face to edge; support queries may reject or allow floating.
+- **Support/destruction:** bottom-cell widening changes footprint/load path; top offsets/overhangs and taller tips/finials may fail face-adjacency support assumptions or collapse incorrectly.
+
+Essential tests: debug-AABB all modified groups for gaps/overlaps; verify collision follows visuals; destroy bottom/middle/top cells of merlons, shield, pinnacles, gallery, pediment and assert no floating/premature collapse; player/projectile collision at gate, rings, gallery; entrance/walkthrough render for z-fighting/seams; compare frame time in focal entrance view.

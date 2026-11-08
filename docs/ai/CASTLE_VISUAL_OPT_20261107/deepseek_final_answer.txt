@@ -1,0 +1,17 @@
+**Release blocker:** подтверждённого нет. По заданным критериям — идентичные castle counts, PASS по support/architecture/castle/gate breach, stderr 0, whole −1.47% при пороге 2% — релиз не блокируется. Но есть **условный риск**: стабильные **+4 draw calls / +4 objects** в candidate renderer stats при идентичных counts. Если для релиза требуется доказанный renderer parity, это надо закрыть/принять как environment-only до выпуска. Причина «import/UI state» **не доказана**.
+
+**Безопасно сказать пользователю:**
+- Структура замка не изменилась: 61886 bricks, 361 MultiMesh, 211 MeshInstance, 46 shadow casters, 12 lights, 3969 StaticBody, 150 RigidBody.
+- Все перечисленные проверки PASS, stderr 0.
+- Instance colors включены на существующих MultiMesh materials stone/warm/cold/paving; tint детерминированный, одноразовый при заполнении буфера; новые блоки/материалы/lights/physics не добавлялись.
+- Финальная пара: courtyard 184.68→184.73 FPS, gate 155.63→155.75 FPS; whole 154.43→152.16 FPS (−1.47%, в пределах 2%). С учётом разброса baseline ~152–154.4 и прошлых candidate 151.60/151.52 **регресс whole не доказан, но и улучшение не доказано**.
+- В candidate относительно отдельного baseline worktree стабильно видно +4 draw calls / +4 objects; castle budget/counts при этом совпадают.
+
+**Нельзя утверждать:**
+- «Draw calls/objects совпадают» или «нулевой renderer overhead» — нет, +4.
+- «+4 draw calls/objects — точно import/UI state» — причина не доказана.
+- «Оптимизация ускорила whole/castle» — whole не улучшился; дельты в пределах шума.
+- «Визуал не изменился» — менялись размеры/позиции элементов и включён tint; нужна визуальная приёмка.
+- «Нет никаких рисков» — остаётся незакрытый renderer-stat discrepancy и визуальные изменения.
+
+Итог: **не блокировать по перфу**, но перед релизом либо подтвердить, что +4 draw calls/+4 objects не воспроизводятся в clean/export build, либо явно принять это как environment-only; визуальную приёмку изменённых элементов считать обязательной.

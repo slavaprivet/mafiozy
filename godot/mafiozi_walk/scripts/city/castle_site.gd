@@ -605,14 +605,17 @@ func install(world: Node3D, origin: Vector3) -> Dictionary:
 
 func _build_materials() -> void:
 	var stone := StandardMaterial3D.new()
-	stone.albedo_color = Color(0.66, 0.63, 0.57)
+	stone.albedo_color = Color(0.69, 0.655, 0.585)
 	stone.roughness = 0.94
+	stone.vertex_color_use_as_albedo = true
 	var stone_warm := StandardMaterial3D.new()
-	stone_warm.albedo_color = Color(0.58, 0.54, 0.47)
+	stone_warm.albedo_color = Color(0.61, 0.555, 0.455)
 	stone_warm.roughness = 0.96
+	stone_warm.vertex_color_use_as_albedo = true
 	var stone_cold := StandardMaterial3D.new()
-	stone_cold.albedo_color = Color(0.52, 0.52, 0.51)
+	stone_cold.albedo_color = Color(0.50, 0.515, 0.525)
 	stone_cold.roughness = 0.93
+	stone_cold.vertex_color_use_as_albedo = true
 	# The gate leaves sat in the shadow of the arch and read as a black hole. Oak, not tar.
 	var wood := StandardMaterial3D.new()
 	# Oak. It read as pale plaster under a strong sun, so it is darker and rougher.
@@ -650,8 +653,9 @@ void fragment() {
 	grass.albedo_color = Color(0.33, 0.41, 0.24)
 	grass.roughness = 0.98
 	var paving := StandardMaterial3D.new()
-	paving.albedo_color = Color(0.39, 0.36, 0.31)
+	paving.albedo_color = Color(0.405, 0.375, 0.325)
 	paving.roughness = 0.98
+	paving.vertex_color_use_as_albedo = true
 	var dark := StandardMaterial3D.new()
 	dark.albedo_color = Color(0.03, 0.03, 0.04)
 	dark.roughness = 1.0
@@ -707,8 +711,8 @@ func _build_environment() -> void:
 	settings.background_mode = Environment.BG_SKY
 	settings.sky = sky
 	settings.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	settings.ambient_light_sky_contribution = 0.7
-	settings.ambient_light_energy = 0.95
+	settings.ambient_light_sky_contribution = 0.66
+	settings.ambient_light_energy = 0.91
 	settings.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	settings.tonemap_exposure = 0.82
 	settings.ssao_enabled = true
@@ -731,15 +735,15 @@ func _build_environment() -> void:
 		get_viewport().world_3d.environment = settings
 	var sun := DirectionalLight3D.new()
 	sun.name = "CastleSun"
-	sun.light_energy = 0.85
-	sun.light_color = Color(1.0, 0.95, 0.86)
+	sun.light_energy = 0.90
+	sun.light_color = Color(1.0, 0.945, 0.84)
 	sun.shadow_enabled = true
 	sun.shadow_bias = 0.06
 	sun.shadow_blur = 1.6
 	sun.directional_shadow_blend_splits = true
 	sun.directional_shadow_max_distance = 95.0
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
-	sun.rotation_degrees = Vector3(-38.0, 128.0, 0.0)
+	sun.rotation_degrees = Vector3(-34.0, 124.0, 0.0)
 	add_child(sun)
 
 ## A road in from the gate, and cobbles across the courtyard.
@@ -1392,16 +1396,39 @@ func _brick_tint(cell: Dictionary) -> Color:
 	var at: Vector3 = cell.get("at", Vector3.ZERO)
 	var hash := int(at.x * 11317.0) ^ int(at.y * 7111.0) ^ int(at.z * 5309.0)
 	var tone := float(abs(hash) % 1000) / 1000.0
-	if str(cell.get("group", "")) == "keep_floor_board":
+	var group := str(cell.get("group", ""))
+	if group == "keep_floor_board":
 		# Every board has its own oak shade; the grain is still one shared material.
 		var oak := 0.89 + tone * 0.18
 		return Color(oak * 1.035, oak, oak * 0.94)
-	# One stone in sixteen is weathered: a wall of stones all the same age is a wall of
-	# stones nobody has ever lived with.
-	var multiplier := 0.945 + tone * 0.11
-	if abs(hash) % 16 == 0:
-		multiplier *= 0.86
-	return Color(multiplier, multiplier * 0.99, multiplier * 0.95)
+	var material := str(cell.get("material", ""))
+	if material not in ["stone", "warm", "cold", "paving"]:
+		return Color.WHITE
+	# This colour is evaluated once while filling the MultiMesh buffer. It costs no
+	# per-frame shader work: the existing instance COLOR simply modulates the shared
+	# stone material. Low courses carry damp, south-facing stone is a touch warmer,
+	# and a hash based only on X/Z makes sparse rain marks continue down a course.
+	var multiplier := 0.965 + tone * 0.07
+	var red_shift := 1.0
+	var green_shift := 0.995
+	var blue_shift := 0.965
+	var damp := clampf((3.2 - at.y) / 3.2, 0.0, 1.0)
+	multiplier *= lerpf(1.0, 0.925, damp)
+	red_shift *= lerpf(1.0, 0.965, damp)
+	green_shift *= lerpf(1.0, 0.985, damp)
+	blue_shift *= lerpf(1.0, 0.955, damp)
+	var exposure := clampf(at.z / maxf(1.0, WALL_HALF), -1.0, 1.0)
+	red_shift *= 1.0 + exposure * 0.012
+	blue_shift *= 1.0 - exposure * 0.010
+	var column_hash: int = absi(int(at.x * 1709.0) ^ int(at.z * 3253.0))
+	if column_hash % 43 == 0 and at.y > 2.0:
+		multiplier *= 0.925
+		red_shift *= 0.975
+		blue_shift *= 1.015
+	elif abs(hash) % 23 == 0:
+		multiplier *= 0.93
+	return Color(multiplier * red_shift, multiplier * green_shift,
+		multiplier * blue_shift)
 
 func _kill_brick(index: int, impulse: Vector3, power: float) -> void:
 	if index < 0 or index >= _cells.size(): return
@@ -1798,14 +1825,23 @@ func _add_battlements(side: String) -> void:
 			var along := (float(column) - float(per_course - 1) * 0.5) * BRICK.x
 			var height := laid_top + (float(row) + 0.5) * BRICK.y
 			var at := Vector3.ZERO
-			var size := BRICK
+			# Three existing courses form a shallow base/shaft/cap profile. The overlap
+			# remains generous, so support and destruction still use one continuous
+			# merlon while its silhouette no longer reads as a plain rectangular post.
+			var along_scale: float = [1.10, 0.96, 0.78][row]
+			var height_scale: float = [0.92, 1.04, 1.18][row]
+			var depth_scale: float = [1.22, 1.04, 0.90][row]
+			var outward: float = [0.03, 0.06, 0.09][row]
+			var size := Vector3(BRICK.x * along_scale, BRICK.y * height_scale,
+				BRICK.z * depth_scale)
 			match side:
-				"north": at = Vector3(along, height, -WALL_HALF)
-				"south": at = Vector3(along, height, WALL_HALF)
-				"east": at = Vector3(WALL_HALF, height, along)
-				"west": at = Vector3(-WALL_HALF, height, along)
+				"north": at = Vector3(along, height, -WALL_HALF - outward)
+				"south": at = Vector3(along, height, WALL_HALF + outward)
+				"east": at = Vector3(WALL_HALF + outward, height, along)
+				"west": at = Vector3(-WALL_HALF - outward, height, along)
 			if side in ["east", "west"]:
-				size = Vector3(BRICK.z, BRICK.y, BRICK.x)
+				size = Vector3(BRICK.z * depth_scale, BRICK.y * height_scale,
+					BRICK.x * along_scale)
 			_add_brick(at, size, "warm" if row == 1 else "stone", Vector3.ZERO, side + "_merlon", row, column)
 
 func _add_plinth(side: String) -> void:
@@ -1903,31 +1939,33 @@ func _build_exterior_crowns() -> void:
 	for corner: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
 		var centre := Vector3(corner.x * WALL_HALF, 0.0, corner.y * WALL_HALF)
 		for tier: int in 2:
-			var radius := TOWER_RADIUS + 0.22 + float(tier) * 0.28
-			var height := TOWER_HEIGHT - 0.38 + float(tier) * 0.44
+			var radius := TOWER_RADIUS + 0.26 + float(tier) * 0.36
+			var height := TOWER_HEIGHT - 0.42 + float(tier) * 0.45
 			for segment: int in around:
 				var angle := TAU * (float(segment) + float(tier % 2) * 0.5) / float(around)
 				_add_brick(centre + Vector3(cos(angle) * radius, height, sin(angle) * radius),
-					Vector3(1.13, 0.38, 0.62), "cold" if tier == 0 else "warm",
+					Vector3(1.17 - float(tier) * 0.12, 0.31 - float(tier) * 0.03,
+						0.72 - float(tier) * 0.10), "cold" if tier == 0 else "warm",
 					Vector3(0.0, -angle, 0.0), "tower_crown", tier, segment)
 		for segment: int in around:
 			if segment % 2 != 0: continue
 			var angle := TAU * float(segment) / float(around)
-			_add_brick(centre + Vector3(cos(angle) * (TOWER_RADIUS + 0.34),
-				TOWER_HEIGHT + 0.85, sin(angle) * (TOWER_RADIUS + 0.34)),
-				Vector3(1.12, 1.70, 0.72), "stone", Vector3(0.0, -angle, 0.0),
+			_add_brick(centre + Vector3(cos(angle) * (TOWER_RADIUS + 0.47),
+				TOWER_HEIGHT + 0.98, sin(angle) * (TOWER_RADIUS + 0.47)),
+				Vector3(0.96, 1.96, 0.66), "stone", Vector3(0.0, -angle, 0.0),
 				"tower_crown_merlon", 0, segment)
 	# A compact heraldic stone shield above the gate gives the entrance a focal
 	# point. Relief stays in front of the facade and never closes the passage.
 	var face_z := WALL_HALF + WALL_THICK * 0.98
 	for row: int in 4:
-		var half_width := 1.7 if row < 2 else (1.25 if row == 2 else 0.75)
-		_add_brick(Vector3(0.0, 15.7 + float(row) * 0.68, face_z),
-			Vector3(half_width * 2.0, 0.62, 0.28), "cold", Vector3.ZERO,
+		var half_width: float = [1.85, 1.58, 1.14, 0.62][row]
+		_add_brick(Vector3(0.0, 15.7 + float(row) * 0.68, face_z + float(row) * 0.025),
+			Vector3(half_width * 2.0, 0.62, 0.30 + float(row) * 0.025),
+			"cold", Vector3.ZERO,
 			"gate_shield", row, 0)
-	_add_brick(Vector3(0.0, 16.92, face_z + 0.19), Vector3(0.35, 2.05, 0.12),
+	_add_brick(Vector3(0.0, 16.92, face_z + 0.23), Vector3(0.30, 2.30, 0.12),
 		"ochre", Vector3.ZERO, "gate_device")
-	_add_brick(Vector3(0.0, 17.31, face_z + 0.19), Vector3(1.85, 0.32, 0.12),
+	_add_brick(Vector3(0.0, 17.28, face_z + 0.23), Vector3(1.72, 0.27, 0.12),
 		"ochre", Vector3.ZERO, "gate_device")
 
 func _build_gatehouse() -> void:
@@ -3147,6 +3185,7 @@ func _build_brick_floor() -> void:
 	var paving := StandardMaterial3D.new()
 	paving.albedo_color = Color(0.44, 0.42, 0.40)
 	paving.roughness = 1.0
+	paving.vertex_color_use_as_albedo = true
 	var stone_mesh := BoxMesh.new()
 	# Small, even mortar joints reveal the running bond without the jagged gaps
 	# caused by rotating each large paving stone independently.
@@ -3343,11 +3382,11 @@ func _build_entrance_layer31() -> void:
 		for sz: float in [-1.0, 1.0]:
 			var corner := Vector3(sx * 11.55, 0.0, -8.0 + sz * 11.55)
 			for tier: int in 5:
-				var width := 2.55 - float(tier) * 0.33
-				_add_brick(corner + Vector3.UP * (39.55 + float(tier) * 0.78),
-					Vector3(width, 0.72, width), "warm" if tier % 2 == 0 else "cold",
+				var width := 2.70 - float(tier) * 0.40
+				_add_brick(corner + Vector3.UP * (39.53 + float(tier) * 0.76),
+					Vector3(width, 0.69, width), "warm" if tier % 2 == 0 else "cold",
 					Vector3.ZERO, "keep_pinnacle31", tier, int(sx * 2.0 + sz))
-			_add_brick(corner + Vector3.UP * 43.55, Vector3(0.48, 0.52, 0.48),
+			_add_brick(corner + Vector3.UP * 43.27, Vector3(0.38, 0.82, 0.38),
 				"ochre", Vector3.ZERO, "keep_pinnacle_tip31")
 	# Alternating cut-stone plinth and cornice along the four curtain walls.
 	# Their projecting shadows split the otherwise uninterrupted flat elevation.
@@ -4718,7 +4757,9 @@ func _build_gate_art38() -> void:
 		"warm", Vector3.ZERO, "gate38_gallery_rail")
 	for merlon: int in 7:
 		var x: float = (float(merlon) - 3.0) * 1.86
-		_add_brick(Vector3(x, 22.08, face + 0.60), Vector3(1.05, 1.50, 1.05),
+		var emphasized: bool = merlon in [0, 3, 6]
+		_add_brick(Vector3(x, 22.04 + (0.14 if emphasized else 0.0), face + 0.60),
+			Vector3(0.94 if emphasized else 1.08, 1.78 if emphasized else 1.42, 1.05),
 			"stone", Vector3.ZERO, "gate38_gallery_merlon", 0, merlon)
 	# The little watch turrets break the flat curtain silhouette. Eight stone
 	# faces per course form a real octagon; stepped slate roofs carry a gold finial.
@@ -4734,14 +4775,14 @@ func _build_gate_art38() -> void:
 					"warm" if course == 0 or course == 4 else "stone",
 					Vector3(0.0, angle, 0.0), "gate38_turret_wall", course, facet)
 		for ring: int in 4:
-			var radius: float = 1.93 - float(ring) * 0.43
+			var radius: float = 2.02 - float(ring) * 0.47
 			for facet: int in 8:
 				var angle: float = TAU * float(facet) / 8.0
 				var radial := Vector3(sin(angle), 0.0, cos(angle))
-				_add_brick(Vector3(cx, 27.55 + float(ring) * 0.56, cz) + radial * radius,
-					Vector3(1.56 - float(ring) * 0.22, 0.49, 0.48), "cold",
+				_add_brick(Vector3(cx, 27.52 + float(ring) * 0.62, cz) + radial * radius,
+					Vector3(1.62 - float(ring) * 0.25, 0.43, 0.48), "cold",
 					Vector3(0.0, angle, 0.0), "gate38_slate_roof", ring, facet)
-		_add_brick(Vector3(cx, 29.88, cz), Vector3(0.58, 0.72, 0.58),
+		_add_brick(Vector3(cx, 30.00, cz), Vector3(0.42, 1.02, 0.42),
 			"ochre", Vector3.ZERO, "gate38_finial")
 		# A black slit, cut-stone jambs and a sill face the attackers. The slit
 		# stays well above head height and does not alter the wall collision.
@@ -4760,8 +4801,8 @@ func _build_gate_art38() -> void:
 			"gold", Vector3.ZERO, "gate38_standard_device")
 	# A layered pointed pediment above the gallery reads from the siege camp.
 	for tier: int in 5:
-		_add_brick(Vector3(0.0, 23.30 + float(tier) * 0.52, face + 0.02),
-			Vector3(5.80 - float(tier) * 0.91, 0.47, 0.56),
+		_add_brick(Vector3(0.0, 23.28 + float(tier) * 0.57, face + 0.02),
+			Vector3(6.05 - float(tier) * 1.02, 0.42, 0.60),
 			"warm" if tier % 2 == 0 else "cold", Vector3.ZERO,
 			"gate38_pediment", tier, 0)
 	_add_brick(Vector3(0.0, 24.13, face + 0.36), Vector3(1.06, 1.36, 0.12),
