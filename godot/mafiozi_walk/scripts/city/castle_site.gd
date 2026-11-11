@@ -1033,9 +1033,9 @@ func _build_keep_details() -> void:
 		var along := -12.0 + float(i) * 2.0
 		for side: float in [-1.0, 1.0]:
 			_add_brick(base + Vector3(along, KEEP_SIZE.y + 0.85, side * half_z),
-				Vector3(1.75, 1.7, 0.95), "stone", Vector3.ZERO, "keep_merlon", 0, i)
+				Vector3(2.35, 1.7, 0.95), "stone", Vector3.ZERO, "keep_merlon", 0, i)
 			_add_brick(base + Vector3(side * half_x, KEEP_SIZE.y + 0.85, along),
-				Vector3(0.95, 1.7, 1.75), "stone", Vector3.ZERO, "keep_merlon", 0, i)
+				Vector3(0.95, 1.7, 2.35), "stone", Vector3.ZERO, "keep_merlon", 0, i)
 ## ------------------------------------------------------------------ bricks
 ## One brick at a place, drawn through its material's MultiMesh until it is knocked out.
 func _add_brick(at: Vector3, size: Vector3, material_key: String, rotation: Vector3,
@@ -1375,18 +1375,26 @@ func _brick_transform(cell: Dictionary) -> Transform3D:
 	var size: Vector3 = cell.get("size", BRICK)
 	var group: String = str(cell.get("group", ""))
 	var structural: bool = group == "keep" or group == "keep_floor_board" or group in ["north", "south", "east", "west", "tower", "gatehouse"]
-	if structural:
+	if group == "tower":
+		# The curved bond is calculated to meet at its outside face. Preserve its full
+		# height and a hair of overlap so distance filtering cannot reopen dark seams.
+		size = Vector3(size.x * 0.995, size.y * 1.005, size.z)
+	elif structural:
 		# A dark slit through a wall reads as a missing stone. Keep the joint tight;
 		# colour variation and relief still give each course its bond.
 		size = Vector3(size.x * 0.99, size.y * 0.98, size.z * 0.995)
 	var rotation: Vector3 = cell.get("rotation", Vector3.ZERO)
-	var jitter := 0.0 if structural or group.begins_with("stairs_") or group.begins_with("courtyard43_") or "merlon" in group or group in ["tower_floor55", "tower_roof55"] else 1.0
+	var jitter := 0.0 if structural or group.begins_with("tower_crown") or group.begins_with("stairs_") or group.begins_with("courtyard43_") or "merlon" in group or group in ["tower_floor55", "tower_roof55"] else 1.0
 	var basis := Basis.from_euler(Vector3(
 		rotation.x + jitter * float(int(at.x * 7.0 + at.y * 13.0) % 5) * 0.004,
 		rotation.y + jitter * float(int(at.z * 11.0 + at.y * 5.0) % 5) * 0.004,
 		rotation.z))
 	if str(cell.get("shape", "box")) == "box":
-		basis = basis.scaled(Vector3(size.x / BRICK.x, size.y / BRICK.y, size.z / BRICK.z))
+		var scale := Vector3(size.x / BRICK.x, size.y / BRICK.y, size.z / BRICK.z)
+		# Radial tower stones are rotated around Y. Their dimensions describe local
+		# radial/tangential axes, so world-axis scaling can halve the visible course
+		# width on the quarter turns and open large checkerboard gaps.
+		basis = basis.scaled_local(scale) if group.begins_with("tower") else basis.scaled(scale)
 	else:
 		basis = basis.scaled(size)
 	return Transform3D(basis, at)
@@ -1960,9 +1968,14 @@ func _build_corner_towers() -> void:
 		# The tower is laid as rings of bricks: it is round because the bricks are.
 		var courses := int(TOWER_HEIGHT / BRICK.y)
 		var around: int = maxi(12, int(round(TAU * TOWER_RADIUS / (BRICK.x * 0.98))))
-		var brick_length: float = TAU * TOWER_RADIUS / float(around) * 1.06
 		for row: int in courses:
 			var radius := TOWER_RADIUS - float(row) * 0.012
+			var radial_depth := BRICK.z * 1.58
+			# Size the tangential face at the outside of the ring. Using the centre-line
+			# circumference leaves a visible wedge between rectangular stones; the chord
+			# at the outer face closes that wedge without adding another instance.
+			var brick_length := 2.0 * (radius + radial_depth * 0.5) \
+				* tan(PI / float(around)) * 1.025
 			var angle_offset: float = (float(row % 2)) * (TAU / float(around)) * 0.5
 			for i: int in around:
 				var angle: float = TAU * float(i) / float(around) + angle_offset
@@ -1972,7 +1985,7 @@ func _build_corner_towers() -> void:
 				# reversed, leaving deep vertical slots between staggered stones and making
 				# the tower look like a checkerboard. Keep a stout radial depth while the
 				# calculated arc length closes the actual tangential course.
-				var size := Vector3(BRICK.z * 1.58, BRICK.y, brick_length)
+				var size := Vector3(radial_depth, BRICK.y, brick_length)
 				# One stone family keeps the staggered bond readable without the high-
 				# contrast checkerboard produced by alternating material buckets. A very
 				# soft belt remains in _brick_tint(), at zero additional render cost.
@@ -2014,12 +2027,16 @@ func _build_exterior_crowns() -> void:
 		var corner_index: int = (1 if corner.x > 0.0 else 0) + (2 if corner.y > 0.0 else 0)
 		for tier: int in 2:
 			var radius := TOWER_RADIUS + 0.26 + float(tier) * 0.36
-			var height := TOWER_HEIGHT - 0.42 + float(tier) * 0.45
+			var radial_depth := 0.72 - float(tier) * 0.10
+			var tier_height := 0.40 - float(tier) * 0.04
+			var height := TOWER_HEIGHT - 0.10 + float(tier) * 0.36
+			var tangential_length := 2.0 * (radius + radial_depth * 0.5) \
+				* tan(PI / float(around)) * 1.03
 			for segment: int in around:
 				var angle := TAU * (float(segment) + float(tier % 2) * 0.5) / float(around)
 				_add_brick(centre + Vector3(cos(angle) * radius, height, sin(angle) * radius),
-					Vector3(1.17 - float(tier) * 0.12, 0.31 - float(tier) * 0.03,
-						0.72 - float(tier) * 0.10), "cold" if tier == 0 else "warm",
+					Vector3(radial_depth, tier_height, tangential_length),
+					"cold" if tier == 0 else "warm",
 					Vector3(0.0, -angle, 0.0), "tower_crown", tier, segment)
 		for segment: int in around:
 			if segment % 2 != 0: continue
@@ -2032,7 +2049,10 @@ func _build_exterior_crowns() -> void:
 			var merlon_radius: float = TOWER_RADIUS + 0.47
 			_add_brick(centre + Vector3(cos(angle) * merlon_radius,
 				TOWER_HEIGHT + merlon_height * 0.5, sin(angle) * merlon_radius),
-				Vector3(merlon_width, merlon_height, 0.66), "stone", Vector3(0.0, -angle, 0.0),
+				# X is radial and Z tangential for this rotation. The old dimensions put
+				# the wide side into the wall and made the crenels look like broken teeth.
+				Vector3(0.76, merlon_height, merlon_width * 1.08), "stone",
+				Vector3(0.0, -angle, 0.0),
 				"tower_crown_merlon", 0, segment)
 	# A compact heraldic stone shield above the gate gives the entrance a focal
 	# point. Relief stays in front of the facade and never closes the passage.

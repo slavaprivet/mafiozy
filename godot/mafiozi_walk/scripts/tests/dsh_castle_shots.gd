@@ -52,6 +52,10 @@ func _run() -> void:
 			"look": base + Vector3(0.0, height * 0.5, 0.0)},
 		{"name": "corner_tower", "pos": base + Vector3(half + 14.0, 14.0, half + 14.0),
 			"look": base + Vector3(half, height * 0.6, half)},
+		{"name": "tower_top", "pos": base + Vector3(half + 11.0, 27.8, half + 11.0),
+			"look": base + Vector3(half, 26.7, half)},
+		{"name": "keep_top", "pos": base + Vector3(23.0, 43.0, -8.0 + 28.0),
+			"look": base + Vector3(0.0, 38.0, -8.0)},
 		{"name": "courtyard", "pos": base + Vector3(0.0, 16.0, half - 12.0),
 			"look": base + Vector3(0.0, 18.0, -30.0)},
 	]
