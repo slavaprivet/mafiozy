@@ -50,10 +50,12 @@ func _build_furniture_meshes() -> void:
 	tower_floor.radial_segments = 20
 	_furniture_meshes["tower_floor55"] = tower_floor
 	var tower_roof := CylinderMesh.new()
-	tower_roof.top_radius = 0.8 / ((TOWER_RADIUS + 0.4) * 2.0)
+	# A low twelve-sided slate cap leaves a usable walk behind the merlons. The old
+	# twelve-metre smooth cone filled the whole parapet and read as a plastic dome.
+	tower_roof.top_radius = 0.48 / 9.6
 	tower_roof.bottom_radius = 0.5
 	tower_roof.height = 1.0
-	tower_roof.radial_segments = 20
+	tower_roof.radial_segments = 12
 	_furniture_meshes["tower_roof55"] = tower_roof
 ## DSH_OPT: a blast must not spawn a thousand solvers. Active debris is capped; a
 ## substantial piece is baked into a static, collidable rubble batch only after a real
@@ -1468,6 +1470,12 @@ func _brick_tint(cell: Dictionary) -> Color:
 		if tower_course % 4 == 0:
 			multiplier *= 0.982
 			blue_shift *= 1.006
+	elif group == "tower_roof55":
+		# Slate separation is carried by the existing per-instance colour channel,
+		# avoiding a material bucket and draw-call just for four roofs.
+		multiplier *= 0.84
+		red_shift *= 0.93
+		blue_shift *= 1.07
 	# Broad colour bays make the keep a hierarchy of centre, wings and crown rather
 	# than one pale slab. Only the existing MultiMesh COLOR is changed at build time.
 	if group.begins_with("keep"):
@@ -3522,11 +3530,14 @@ func _build_entrance_layer31() -> void:
 		for sz: float in [-1.0, 1.0]:
 			var corner := Vector3(sx * 11.55, 0.0, -8.0 + sz * 11.55)
 			for tier: int in 5:
-				var width := 2.70 - float(tier) * 0.40
-				_add_brick(corner + Vector3.UP * (39.53 + float(tier) * 0.76),
-					Vector3(width, 0.69, width), "warm" if tier % 2 == 0 else "cold",
-					Vector3.ZERO, "keep_pinnacle31", tier, int(sx * 2.0 + sz))
-			_add_brick(corner + Vector3.UP * 43.27, Vector3(0.38, 0.82, 0.38),
+				var width: float = [2.30, 1.86, 1.42, 1.02, 0.66][tier]
+				# The same five cells now meet the roof and overlap by four centimetres.
+				# Alternating square/diamond tiers produce a cut-stone spire silhouette.
+				_add_brick(corner + Vector3.UP * (38.55 + float(tier) * 0.66),
+					Vector3(width, 0.70, width), "warm" if tier % 2 == 0 else "cold",
+					Vector3(0.0, PI * 0.25 if tier % 2 == 1 else 0.0, 0.0),
+					"keep_pinnacle31", tier, int(sx * 2.0 + sz))
+			_add_brick(corner + Vector3.UP * 41.95, Vector3(0.38, 0.82, 0.38),
 				"ochre", Vector3.ZERO, "keep_pinnacle_tip31")
 	# Alternating cut-stone plinth and cornice along the four curtain walls.
 	# Their projecting shadows split the otherwise uninterrupted flat elevation.
@@ -3783,8 +3794,8 @@ func _build_tower_platforms() -> void:
 		_add_brick(centre + Vector3.UP * (WALL_HEIGHT - 0.1),
 			Vector3((TOWER_RADIUS - 0.35) * 2.0, 0.24, (TOWER_RADIUS - 0.35) * 2.0),
 			"warm", Vector3.ZERO, "tower_floor55", 0, 0, "tower_floor55")
-		_add_brick(centre + Vector3.UP * (TOWER_HEIGHT + 1.2),
-			Vector3((TOWER_RADIUS + 0.4) * 2.0, 2.4, (TOWER_RADIUS + 0.4) * 2.0),
+		_add_brick(centre + Vector3.UP * (TOWER_HEIGHT + 0.87),
+			Vector3(9.6, 1.64, 9.6),
 			"cold", Vector3.ZERO, "tower_roof55", 0, 0, "tower_roof55")
 
 ## A HANGING BRIDGE between the two gate towers, at the height of the wall-walk: planks,

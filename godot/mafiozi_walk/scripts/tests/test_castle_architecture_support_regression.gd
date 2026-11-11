@@ -40,17 +40,21 @@ func _run() -> void:
 	for frame: int in 360:
 		await physics_frame
 	var after_by_group: Dictionary = {}
+	var removed_by_group: Dictionary = {}
 	for cell_value: Variant in castle.get("_cells"):
 		var cell: Dictionary = cell_value
 		var group := str(cell.get("group", ""))
+		if not bool(cell.get("alive", false)):
+			removed_by_group[group] = int(removed_by_group.get(group, 0)) + 1
 		if group in wanted and bool(cell.get("alive", false)):
 			after_by_group[group] = int(after_by_group.get(group, 0)) + 1
 	var stats: Dictionary = castle.call("get_stats")
-	# These are the exact outcomes of the d313f8ee baseline under the same seven
+	# These are the exact structural-family outcomes under the same seven
 	# direct removals. Small relief families are intentionally one local ornament
 	# stack, so removing their first supporting cell drops that whole tiny family.
-	# What matters here is that the transform-only detail pass does not change that
-	# topology or spread the cascade into adjacent masonry.
+	# What matters here is that the detail pass does not spread the cascade into
+	# adjacent masonry. Pass5 deliberately seats each pinnacle tip on its stack, so
+	# the selected corner stack now carries (and releases) its one finial as well.
 	var expected_before := {"south_merlon": 204, "tower_crown": 288,
 		"gate_shield": 4, "keep_pinnacle31": 20, "gate38_gallery_merlon": 7,
 		"gate38_slate_roof": 64, "gate38_pediment": 5}
@@ -62,10 +66,11 @@ func _run() -> void:
 		failures.append("baseline_cascade_changed")
 	if int(stats.get("support_pending", 0)) != 0:
 		failures.append("support_queue_not_drained")
-	if int(stats.get("collapsed", 0)) != 62:
+	if int(stats.get("collapsed", 0)) != 66:
 		failures.append("baseline_collapse_count_changed")
 	print("ARCH_SUPPORT ", JSON.stringify({"selected": selected,
 		"before": before_by_group, "after": after_by_group,
+		"removed_by_group": removed_by_group,
 		"collapsed": stats.get("collapsed", 0),
 		"pending": stats.get("support_pending", 0), "failures": failures}))
 	print("ARCH_SUPPORT_RESULT ", "PASS" if failures.is_empty() else "FAIL")
