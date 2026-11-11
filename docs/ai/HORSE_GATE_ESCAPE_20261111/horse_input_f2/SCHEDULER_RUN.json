@@ -1,0 +1,87 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--path",
+    "D:\\MafioziCombat31\\main_rebuild_20261107\\godot\\mafiozi_walk",
+    "--script",
+    "res://scripts/tests/test_horse_gate_escape_regression.gd"
+  ],
+  "passed": false,
+  "lease": {
+    "id": "a41e5d49cb8f4d0794ae8e263bf2afaf",
+    "owner": {
+      "pid": 66520,
+      "creation_filetime": "134388307041495125"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\main_rebuild_20261107\\godot\\mafiozi_walk",
+    "access": "read",
+    "children": [
+      {
+        "pid": 68848,
+        "creation_filetime": "134388307054420923",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\main_rebuild_20261107\\godot\\mafiozi_walk --script res://scripts/tests/test_horse_gate_escape_regression.gd",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "D:\\MafioziCombat31\\main_rebuild_20261107\\godot\\mafiozi_walk",
+          "--script",
+          "res://scripts/tests/test_horse_gate_escape_regression.gd"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "d:\\mafiozicombat31\\main_rebuild_20261107\\godot\\mafiozi_walk",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 1847208.6518842,
+    "queued_at": 1846908.6518842,
+    "ticket": 6265,
+    "inventory_before": [
+      {
+        "pid": 9860,
+        "parent_pid": 7808,
+        "creation_filetime": "134388305362451110",
+        "name": "MafioziPreview.exe",
+        "command_line": "\"D:\\mafiozicombat31\\main_rebuild_20261107\\godot\\mafiozi_walk\\exports\\win64\\main-f8b7560e-20261109-horsegatefix\\mafiozipreview.exe\" ",
+        "executable": "D:\\mafiozicombat31\\main_rebuild_20261107\\godot\\mafiozi_walk\\exports\\win64\\main-f8b7560e-20261109-horsegatefix\\mafiozipreview.exe",
+        "title": "Мафиози — перенос в Godot"
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 0.6833176000509411
+  },
+  "child": {
+    "pid": 68848,
+    "creation_filetime": "134388307054420923",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path D:\\MafioziCombat31\\main_rebuild_20261107\\godot\\mafiozi_walk --script res://scripts/tests/test_horse_gate_escape_regression.gd",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--path",
+      "D:\\MafioziCombat31\\main_rebuild_20261107\\godot\\mafiozi_walk",
+      "--script",
+      "res://scripts/tests/test_horse_gate_escape_regression.gd"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\main_rebuild_20261107\\godot\\mafiozi_walk",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 1,
+  "elapsed_seconds": 12.911542700137943,
+  "errors": [
+    "ERROR: Condition \"!is_inside_world()\" is true. Returning: Ref<World3D>()"
+  ],
+  "stderr_bytes": 439,
+  "perf_environment_clean": false,
+  "scope": "Child execution only; owner fixture assertions/source pins and performance comparison remain required"
+}

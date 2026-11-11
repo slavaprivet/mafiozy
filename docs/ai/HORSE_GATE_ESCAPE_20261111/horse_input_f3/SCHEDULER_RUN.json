@@ -1,0 +1,41 @@
+{
+  "mode": "headless",
+  "performance_accepted": false,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--path",
+    "D:\\MafioziCombat31\\main_rebuild_20261107\\godot\\mafiozi_walk",
+    "--script",
+    "res://scripts/tests/test_horse_gate_escape_regression.gd"
+  ],
+  "passed": false,
+  "lease": {
+    "id": "0b780ea765da48c0994e82ca95ae76f4",
+    "owner": {
+      "pid": 11780,
+      "creation_filetime": "134388308550743737"
+    },
+    "mode": "headless",
+    "project": "d:\\mafiozicombat31\\main_rebuild_20261107\\godot\\mafiozi_walk",
+    "access": "read",
+    "children": [],
+    "deadline": 1847360.6118979,
+    "queued_at": 1847060.6118979,
+    "ticket": 6266,
+    "inventory_before": [
+      {
+        "pid": 9860,
+        "parent_pid": 7808,
+        "creation_filetime": "134388305362451110",
+        "name": "MafioziPreview.exe",
+        "command_line": "\"D:\\mafiozicombat31\\main_rebuild_20261107\\godot\\mafiozi_walk\\exports\\win64\\main-f8b7560e-20261109-horsegatefix\\mafiozipreview.exe\" ",
+        "executable": "D:\\mafiozicombat31\\main_rebuild_20261107\\godot\\mafiozi_walk\\exports\\win64\\main-f8b7560e-20261109-horsegatefix\\mafiozipreview.exe",
+        "title": "Мафиози — перенос в Godot"
+      }
+    ],
+    "editor_identities": [],
+    "queue_wait_seconds": 1.0989035000093281
+  },
+  "error": "argument should be a str or an os.PathLike object where __fspath__ returns a str, not 'NoneType'"
+}

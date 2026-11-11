@@ -18,6 +18,8 @@ const DISMOUNT_DISTANCE := 2.15
 const DISMOUNT_FALLBACK_RADII := [3.2, 4.4, 5.6, 6.8]
 const DISMOUNT_FALLBACK_DIRECTIONS := 8
 const MAX_RUBBLE_RAY_SKIPS := 12
+const MAX_DISMOUNT_HEIGHT_DELTA := 1.35
+const STARTUP_RECOVERY_RADIUS := 15.0
 const RIDING_CAMERA_DISTANCE := 7.2
 const HP_VISIBLE_AFTER_HIT_MS := 4200
 const HP_VISIBLE_RANGE := 8.0
@@ -53,6 +55,7 @@ var _last_dismount: Dictionary = {}
 var _walking_camera_distance := 5.119570294468082
 var _camera_distance_owned := false
 var _safe_spawn_anchor := Vector3.ZERO
+var _safe_spawn_valid := false
 
 var _barrel_slot: Node3D
 var _barrel_cradle: Node3D
@@ -90,6 +93,7 @@ func install(world: Node3D, existing_player: CharacterBody3D) -> Dictionary:
 		return {"ok": false, "reason": "horse_no_safe_spawn"}
 	var spot: Vector3 = spawn.position
 	_safe_spawn_anchor = spot
+	_safe_spawn_valid = true
 	var body: CharacterBody3D = HorseScript.new()
 	body.name = "CastleHorse"
 	add_child(body)
@@ -346,11 +350,15 @@ func mount_now() -> bool:
 func dismount_now() -> bool:
 	if not _mounted or not is_instance_valid(horse) or not is_instance_valid(player):
 		return false
+	var was_at := horse.global_position
 	var spot := _find_dismount_spot()
+	var startup_recovery := false
+	if spot.is_empty() and _recover_startup_trap():
+		startup_recovery = true
+		spot = _find_dismount_spot()
 	if spot.is_empty():
 		error = "no_dismount_ground"
 		return false
-	var was_at := horse.global_position
 	var yaw := horse.rotation.y
 	horse.rider = null
 	_mounted = false
@@ -384,7 +392,7 @@ func dismount_now() -> bool:
 		"horse_moved": horse.global_position.distance_to(was_at), "side": spot.side,
 		"ground": spot.ground, "serial": _dismounts, "horse_dead": bool(horse.get("dead")),
 		"fallback": bool(spot.get("fallback", false)), "radius": float(spot.get("radius", 0.0)),
-		"checks": int(spot.get("checks", 0))}
+		"checks": int(spot.get("checks", 0)), "startup_recovery": startup_recovery}
 	status = "ready"
 	print("DSH_HORSE_DISMOUNT ", JSON.stringify(_last_dismount))
 	return true
@@ -423,24 +431,19 @@ func _find_dismount_spot() -> Dictionary:
 	if world == null:
 		return {}
 	var checks := 0
-	# Preserve the ordinary four close exits exactly. Most dismounts stay short and
-	# do not pay for the expanded search.
+	# Keep the ordinary four close exits first. They use the same floor and route
+	# validation as the expanded search so a thin intact wall cannot be crossed.
 	for side: int in DISMOUNT_SIDES.size():
 		checks += 1
 		var local: Vector3 = DISMOUNT_SIDES[side] * DISMOUNT_DISTANCE
 		var world_spot: Vector3 = horse.to_global(local)
-		var ray := PhysicsRayQueryParameters3D.new()
-		ray.from = world_spot + Vector3.UP * 2.0
-		ray.to = world_spot - Vector3.UP * 6.0
-		ray.collision_mask = 1
-		ray.exclude = _excluded_rids()
-		var hit: Dictionary = world.direct_space_state.intersect_ray(ray)
-		if hit.is_empty():
+		var ground_hit := _dismount_ground(world_spot)
+		if ground_hit.is_empty():
 			continue
-		var ground := Vector3(world_spot.x, float(hit.position.y) + 0.03, world_spot.z)
-		if not _capsule_free(ground):
+		var ground: Vector3 = ground_hit.position
+		if not _capsule_free(ground) or not _dismount_path_clear(ground):
 			continue
-		return {"position": ground, "side": side, "ground": hit.position,
+		return {"position": ground, "side": side, "ground": ground_hit.hit,
 			"fallback": false, "radius": DISMOUNT_DISTANCE, "checks": checks}
 	# Rubble can surround all four close exits. Search bounded rings only when the
 	# player explicitly asks to dismount. A candidate must have real floor, an empty
@@ -490,9 +493,30 @@ func _dismount_ground(at: Vector3) -> Dictionary:
 		var normal: Vector3 = hit.get("normal", Vector3.UP)
 		if normal.y < 0.55:
 			return {}
-		return {"position": Vector3(at.x, float(hit.position.y) + 0.03, at.z),
+		var ground := Vector3(at.x, float(hit.position.y) + 0.03, at.z)
+		if absf(ground.y - horse.global_position.y) > MAX_DISMOUNT_HEIGHT_DELTA:
+			return {}
+		return {"position": ground,
 			"hit": hit.position, "skipped": skip}
 	return {}
+
+## The photo failure happened next to the startup anchor. If a dense pile blocks
+## every bounded exit, recover only within that small startup area: revalidate the
+## saved horse volume at its original safe point, move horse+rider together, then
+## run the normal dismount search again. This never teleports a rider elsewhere.
+func _recover_startup_trap() -> bool:
+	if not _safe_spawn_valid \
+			or horse.global_position.distance_to(_safe_spawn_anchor) > STARTUP_RECOVERY_RADIUS:
+		return false
+	var ground := _dismount_ground(_safe_spawn_anchor)
+	if ground.is_empty():
+		return false
+	var at: Vector3 = ground.position
+	if not _horse_spawn_free(at, horse.rotation.y):
+		return false
+	horse.global_position = at
+	horse.velocity = Vector3.ZERO
+	return true
 
 func _dismount_path_clear(at: Vector3) -> bool:
 	var world := get_world_3d()

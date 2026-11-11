@@ -6,6 +6,15 @@ var _blockers: Array[StaticBody3D] = []
 func _initialize() -> void:
 	call_deferred("_run")
 
+func _press_f(host: Node) -> void:
+	var down := InputEventKey.new()
+	down.pressed = true
+	down.keycode = KEY_F
+	down.physical_keycode = KEY_F
+	host.call("_unhandled_input", down)
+	for _frame: int in 4:
+		await physics_frame
+
 func _make_blocker(at: Vector3, size: Vector3, rubble: bool) -> StaticBody3D:
 	var body := StaticBody3D.new()
 	body.name = "TestRubble" if rubble else "TestIntactWall"
@@ -22,6 +31,12 @@ func _make_blocker(at: Vector3, size: Vector3, rubble: bool) -> StaticBody3D:
 	body.global_position = at
 	_blockers.append(body)
 	return body
+
+func _clear_blockers() -> void:
+	for body: StaticBody3D in _blockers:
+		if is_instance_valid(body):
+			body.queue_free()
+	_blockers.clear()
 
 func _horse_volume_free(horse: CharacterBody3D) -> bool:
 	var shape := BoxShape3D.new()
@@ -72,9 +87,18 @@ func _run() -> void:
 	if not _horse_volume_free(horse):
 		failures.append("horse_spawn_overlaps_world")
 	player.set("_free_mouse_look", true)
-	if not bool(host.call("mount_now")):
+	_scene.set("_castle_spawn_frames", 0)
+	# The battlefield spawn guard owns the player's start position. Bring the horse
+	# into the real interaction radius so the F event exercises wants_e() as well.
+	horse.global_position = player.global_position + Vector3(2.0, 0.04, -2.0)
+	await physics_frame
+	await physics_frame
+	await _press_f(host)
+	if not bool(host.call("is_mounted")):
 		failures.append("normal_mount_failed")
-	elif not bool(host.call("dismount_now")):
+	else:
+		await _press_f(host)
+	if bool(host.call("is_mounted")):
 		failures.append("normal_dismount_failed")
 	if not failures.is_empty():
 		print("HORSE_GATE_ESCAPE ", JSON.stringify({"horse_local": local_horse,
@@ -82,7 +106,8 @@ func _run() -> void:
 		print("HORSE_GATE_ESCAPE_RESULT FAIL")
 		quit(1)
 		return
-	if not bool(host.call("mount_now")):
+	await _press_f(host)
+	if not bool(host.call("is_mounted")):
 		failures.append("fallback_mount_failed")
 	else:
 		for side: Vector3 in [Vector3.LEFT, Vector3.RIGHT, Vector3.FORWARD, Vector3.BACK]:
@@ -91,7 +116,8 @@ func _run() -> void:
 				Vector3(0.92, 2.0, 0.92), true)
 		await physics_frame
 		await physics_frame
-		if not bool(host.call("dismount_now")):
+		await _press_f(host)
+		if bool(host.call("is_mounted")):
 			failures.append("rubble_fallback_failed")
 		else:
 			var receipt: Dictionary = host.get("_last_dismount")
@@ -104,13 +130,61 @@ func _run() -> void:
 				failures.append("walking_state_not_restored")
 			if not bool(host.call("_capsule_free", player.global_position)):
 				failures.append("fallback_capsule_blocked")
-	# An intact wall may never be skipped by the emergency path query.
-	var path_target := horse.global_position + horse.global_transform.basis.x.normalized() * 5.0
-	var wall_at := horse.global_position.lerp(path_target, 0.5) + Vector3.UP * 1.05
-	_make_blocker(wall_at, Vector3(0.35, 3.0, 4.0), false)
+	_clear_blockers()
 	await physics_frame
-	if bool(host.call("_dismount_path_clear", path_target)):
-		failures.append("intact_wall_was_skipped")
+	await physics_frame
+	# A thin intact wall on the preferred close side must force another exit, not
+	# teleport the player through it.
+	await _press_f(host)
+	if not bool(host.call("is_mounted")):
+		failures.append("wall_mount_failed")
+	else:
+		var preferred: Vector3 = horse.to_global(Vector3.LEFT * 2.15)
+		var wall_at := horse.global_position.lerp(preferred, 0.5) + Vector3.UP * 1.05
+		_make_blocker(wall_at, Vector3(0.25, 3.0, 2.0), false)
+		await physics_frame
+		await _press_f(host)
+		if bool(host.call("is_mounted")):
+			failures.append("wall_dismount_failed")
+		elif int((host.get("_last_dismount") as Dictionary).get("side", -1)) == 0:
+			failures.append("close_wall_was_crossed")
+	_clear_blockers()
+	await physics_frame
+	await physics_frame
+	# Ground several metres below the horse is never a valid dismount floor.
+	var low_origin := horse.global_position
+	horse.global_position = low_origin + Vector3.UP * 5.0
+	var low_floor: Dictionary = host.call("_dismount_ground",
+		low_origin + Vector3(2.0, 5.0, 0.0))
+	if not low_floor.is_empty():
+		failures.append("deep_floor_was_accepted")
+	horse.global_position = low_origin
+	# Dense rubble around every bounded candidate triggers the startup-only anchor
+	# recovery, then the same normal dismount validation runs at the safe anchor.
+	await _press_f(host)
+	if not bool(host.call("is_mounted")):
+		failures.append("recovery_mount_failed")
+	else:
+		var anchor: Vector3 = host.get("_safe_spawn_anchor")
+		horse.global_position = anchor + Vector3(-12.0, 0.0, 0.0)
+		for side: Vector3 in [Vector3.LEFT, Vector3.RIGHT, Vector3.FORWARD, Vector3.BACK]:
+			var at: Vector3 = horse.to_global(side * 2.15)
+			_make_blocker(Vector3(at.x, horse.global_position.y + 1.0, at.z),
+				Vector3(0.92, 2.0, 0.92), true)
+		for radius: float in [3.2, 4.4, 5.6, 6.8]:
+			for direction: int in 8:
+				var angle := TAU * float(direction) / 8.0
+				var at: Vector3 = horse.to_global(Vector3(cos(angle), 0.0, sin(angle)) * radius)
+				_make_blocker(Vector3(at.x, horse.global_position.y + 1.0, at.z),
+					Vector3(0.92, 2.0, 0.92), true)
+		await physics_frame
+		await physics_frame
+		await _press_f(host)
+		if bool(host.call("is_mounted")):
+			failures.append("startup_recovery_failed")
+		elif not bool((host.get("_last_dismount") as Dictionary).get("startup_recovery", false)):
+			failures.append("startup_recovery_not_reported")
+	await physics_frame
 	print("HORSE_GATE_ESCAPE ", JSON.stringify({"horse_local": local_horse,
 		"spawn_anchor": host.get("_safe_spawn_anchor"),
 		"dismount": host.get("_last_dismount"), "failures": failures}))
