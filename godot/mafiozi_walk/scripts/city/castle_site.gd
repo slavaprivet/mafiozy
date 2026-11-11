@@ -1391,6 +1391,22 @@ func _brick_transform(cell: Dictionary) -> Transform3D:
 		basis = basis.scaled(size)
 	return Transform3D(basis, at)
 
+func _keep_hierarchy_modulation(at: Vector3) -> Vector3:
+	var local_z := at.z + 8.0
+	var along := absf(at.x) if absf(local_z) >= KEEP_SIZE.z * 0.5 - 1.1 \
+		else absf(local_z)
+	var modulation := Vector3.ONE
+	if along < 3.2:
+		modulation.x *= 1.030
+		modulation.y *= 1.008
+	elif along > 7.0 and along < 9.4:
+		modulation.x *= 0.974
+		modulation.z *= 1.010
+	if at.y > 29.0:
+		modulation.x *= 1.018
+		modulation.y *= 1.006
+	return modulation
+
 ## Slight colour variation per brick, so the wall reads as stone rather than as paint.
 func _brick_tint(cell: Dictionary) -> Color:
 	var at: Vector3 = cell.get("at", Vector3.ZERO)
@@ -1436,6 +1452,21 @@ func _brick_tint(cell: Dictionary) -> Color:
 			multiplier *= 1.018
 			red_shift *= 1.006
 			blue_shift *= 0.992
+	# The round towers keep a restrained four-course belt, but no longer switch to
+	# a contrasting material bucket. This reads as weathered masonry instead of a
+	# black-and-white checkerboard and adds no instance, material or draw call.
+	if group == "tower":
+		var tower_course := int(floor(at.y / BRICK.y))
+		if tower_course % 4 == 0:
+			multiplier *= 0.982
+			blue_shift *= 1.006
+	# Broad colour bays make the keep a hierarchy of centre, wings and crown rather
+	# than one pale slab. Only the existing MultiMesh COLOR is changed at build time.
+	if group.begins_with("keep"):
+		var keep_modulation := _keep_hierarchy_modulation(at)
+		multiplier *= keep_modulation.x
+		red_shift *= keep_modulation.y
+		blue_shift *= keep_modulation.z
 	# Existing stone around the entrance carries smoke and handling, while the
 	# upper curtain course stays slightly cooler beneath its projecting cornice.
 	var gate_zone := absf(at.x) < 7.0 and at.z > WALL_HALF and at.y > 5.5 and at.y < 15.8
@@ -1937,9 +1968,15 @@ func _build_corner_towers() -> void:
 				var angle: float = TAU * float(i) / float(around) + angle_offset
 				var at := centre + Vector3(cos(angle) * radius,
 					(float(row) + 0.5) * BRICK.y, sin(angle) * radius)
-				var size := Vector3(brick_length, BRICK.y, BRICK.z * 1.5)
-				var key := "stone" if row % 4 != 0 else "cold"
-				_add_brick(at, size, key, Vector3(0.0, -angle, 0.0), "tower")
+				# At angle zero X is radial and Z is tangential. The old dimensions were
+				# reversed, leaving deep vertical slots between staggered stones and making
+				# the tower look like a checkerboard. Keep a stout radial depth while the
+				# calculated arc length closes the actual tangential course.
+				var size := Vector3(BRICK.z * 1.58, BRICK.y, brick_length)
+				# One stone family keeps the staggered bond readable without the high-
+				# contrast checkerboard produced by alternating material buckets. A very
+				# soft belt remains in _brick_tint(), at zero additional render cost.
+				_add_brick(at, size, "stone", Vector3(0.0, -angle, 0.0), "tower")
 		# Sixteen curved collision panels per level keep the tower hollow. A stone
 		# removes only the panels behind its visible masonry breach; no hidden
 		# cylinder or corner block can continue to stop a player afterwards.
@@ -3176,6 +3213,26 @@ func _build_wall_banners() -> void:
 					anchor + facing * Vector3(offset_x, -1.7, 0.0) + outward * 0.02))
 			devices.append(Transform3D(facing.scaled(Vector3(0.95, 0.18, 0.05)),
 				anchor + Vector3.DOWN * 2.25 + outward * 0.02))
+	# Two tall standards make the keep the heraldic focus of the courtyard. They
+	# extend the three existing banner MultiMeshes, so the richer facade costs no
+	# new material, render class, shadow caster, collision or draw call.
+	var keep_outward := Vector3.FORWARD
+	var keep_facing := Basis.IDENTITY
+	for side: float in [-1.0, 1.0]:
+		var anchor := Vector3(side * 8.15, 32.30, 6.08)
+		bars.append(Transform3D(
+			Basis(Vector3.FORWARD, PI * 0.5).scaled(Vector3(1.0, 1.30, 1.0)), anchor))
+		var cloth_centre := anchor + Vector3.DOWN * 3.465 - keep_outward * 0.06
+		flags.append(Transform3D(keep_facing.scaled(Vector3(1.05, 1.65, 1.0)),
+			cloth_centre))
+		devices.append(Transform3D(keep_facing.scaled(Vector3(0.28, 2.35, 0.06)),
+			cloth_centre + keep_outward * 0.02))
+		devices.append(Transform3D(keep_facing.scaled(Vector3(1.42, 0.25, 0.06)),
+			cloth_centre + Vector3.UP * 0.35 + keep_outward * 0.02))
+		devices.append(Transform3D(keep_facing.scaled(Vector3(0.74, 0.18, 0.06)),
+			cloth_centre + Vector3.DOWN * 2.45 + keep_outward * 0.02))
+		devices.append(Transform3D(keep_facing.scaled(Vector3(0.18, 0.70, 0.06)),
+			cloth_centre + Vector3.DOWN * 2.15 + keep_outward * 0.02))
 	var bar_mesh := CylinderMesh.new()
 	bar_mesh.top_radius = 0.07
 	bar_mesh.bottom_radius = 0.07
@@ -3224,6 +3281,19 @@ func _make_hanging_banner_mesh() -> ArrayMesh:
 ## The courtyard is laid in BRICKS, a shade cooler and darker than the walls, so the
 ## ground does not read as one poured slab. Drawn as a MultiMesh (one draw call) with a
 ## little variation per stone; the collision is the flat slab that was already there.
+func _courtyard_brick_tint(x: float, z: float, base_tone: float) -> Color:
+	var tone := base_tone
+	var edge := minf(WALL_HALF - absf(x), WALL_HALF - absf(z))
+	if edge < 8.0:
+		tone *= lerpf(0.88, 1.0, clampf(edge / 8.0, 0.0, 1.0))
+	var axis := absf(x) < 5.7 and z > 5.0
+	if axis:
+		tone *= 1.055
+	var keep_apron := absf(x) < 14.0 and z > 2.0 and z < 12.0
+	var warmth := 0.93 if keep_apron else 0.97
+	return Color(minf(1.16, tone * (1.015 if keep_apron else 1.0)),
+		minf(1.14, tone * 0.99), minf(1.12, tone * warmth))
+
 func _build_brick_floor() -> void:
 	var paving := StandardMaterial3D.new()
 	paving.albedo_color = Color(0.44, 0.42, 0.40)
@@ -3250,7 +3320,9 @@ func _build_brick_floor() -> void:
 			var z: float = (float(row) - float(rows - 1) * 0.5) * 0.96
 			multi.set_instance_transform(slot, Transform3D(Basis.IDENTITY, Vector3(x, 0.02, z)))
 			var tone: float = 0.88 + float(abs(int(x * 131.0) ^ int(z * 977.0)) % 100) / 100.0 * 0.22
-			multi.set_instance_color(slot, Color(tone, tone * 0.99, tone * 0.97))
+			# Compose the courtyard with the same instances: a quiet darker perimeter,
+			# a readable gate-to-keep axis, and a warm landing at the keep entrance.
+			multi.set_instance_color(slot, _courtyard_brick_tint(x, z, tone))
 			slot += 1
 	for apron: int in 14:
 		var x := (float(apron) - 6.5) * 2.0
