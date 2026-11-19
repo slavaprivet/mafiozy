@@ -21,7 +21,7 @@ void fragment() {
  float meadow = smoothstep(5.0, 15.0, abs(ground_xz.x))
      * smoothstep(0.055, 0.17, soil_light);
  vec3 packed_soil = macro.rgb * vec3(1.28, 1.10, 0.72);
- vec3 green_shoulder = macro.rgb * vec3(0.82, 1.28, 0.68);
+ vec3 green_shoulder = macro.rgb * vec3(0.94, 1.10, 0.79);
  ALBEDO = mix(packed_soil, green_shoulder, meadow) * relief;
  vec2 fine_slope = detail.gb*2.0-1.0;
  vec2 broad_slope = broad.gb*2.0-1.0;
