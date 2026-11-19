@@ -2078,6 +2078,13 @@ func _build_exterior_crowns() -> void:
 	_add_brick(Vector3(0.0, 17.28, face_z + 0.23), Vector3(1.72, 0.27, 0.12),
 		"ochre", Vector3.ZERO, "gate_device")
 
+## Breaks up the old full-height oak stripes without adding a material bucket.
+## The same deterministic mapping is used for allocation and slot assignment so
+## the board order, individual destruction and per-board collision stay exact.
+func _gate_board_tone(row: int, column: int) -> String:
+	var stagger: int = (row * 3 + column + int(row / 2)) % 4
+	return "wood_alt" if stagger == 1 else "wood"
+
 func _build_gatehouse() -> void:
 	var at := Vector3(0.0, 0.0, WALL_HALF)
 	for side: float in [-1.0, 1.0]:
@@ -2146,15 +2153,16 @@ func _build_gatehouse() -> void:
 		# through the joints, which read as cracks in the door.
 		board_box.size = Vector3(board_w * 1.004, board_h * 1.004, 0.62)
 		var tone_counts: Dictionary = {}
-		for column: int in leaf_columns:
-			var tone: String = "wood_alt" if column % 3 == 1 else "wood"
-			tone_counts[tone] = int(tone_counts.get(tone, 0)) + 1
+		for row: int in leaf_rows:
+			for column: int in leaf_columns:
+				var tone: String = _gate_board_tone(row, column)
+				tone_counts[tone] = int(tone_counts.get(tone, 0)) + 1
 		var board_multis: Dictionary = {}
 		for tone: String in tone_counts:
 			var multi := MultiMesh.new()
 			multi.transform_format = MultiMesh.TRANSFORM_3D
 			multi.mesh = board_box
-			multi.instance_count = int(tone_counts[tone]) * leaf_rows
+			multi.instance_count = int(tone_counts[tone])
 			var boards_node := MultiMeshInstance3D.new()
 			boards_node.name = "GateBoards_" + tone
 			boards_node.multimesh = multi
@@ -2166,7 +2174,7 @@ func _build_gatehouse() -> void:
 		var boards: Array = []
 		for row: int in leaf_rows:
 			for column: int in leaf_columns:
-				var tone: String = "wood_alt" if column % 3 == 1 else "wood"
+				var tone: String = _gate_board_tone(row, column)
 				var slot: int = int(board_slots.get(tone, 0))
 				board_slots[tone] = slot + 1
 				var board_at := Vector3(
@@ -2267,7 +2275,7 @@ func _build_gatehouse() -> void:
 			board_entry["shape"] = board_shape
 		body.set_meta("castle_gate", true)
 		body.set_meta("surface", "wood")
-		_build_inner_gate40(pivot, boards, board_w, board_h)
+		_build_inner_gate40(pivot, boards, board_w, board_h, side)
 		_merge_pivot_decoration(pivot)
 		_gate_leaves.append({"pivot": pivot, "side": side, "body": body, "detached": false,
 			"boards": boards})
@@ -2641,7 +2649,11 @@ func _build_stair_flight(normal: Vector3, name: String) -> void:
 ## Bind every rail/pier collision to its visible stone, including cascade removal.
 ## Reverse face: three oak braces, narrow vertical joints and forged straps.
 ## Every instance follows its own breakable board; no floating brace spans a hole.
-func _build_inner_gate40(pivot: Node3D, boards: Array, board_w: float, board_h: float) -> void:
+func _inner_gate_seam_x(board_x: float, board_w: float, side: float) -> float:
+	return board_x + side * board_w * 0.48
+
+func _build_inner_gate40(pivot: Node3D, boards: Array, board_w: float, board_h: float,
+		side: float) -> void:
 	var pieces: Dictionary = {"wood_alt": [], "iron": []}
 	for index: int in boards.size():
 		var board: Dictionary = boards[index]
@@ -2650,7 +2662,8 @@ func _build_inner_gate40(pivot: Node3D, boards: Array, board_w: float, board_h: 
 		var column := index % 6
 		# Continuous vertical seams only: no crosshatched row grid.
 		if column > 0:
-			pieces.iron.append({"owner": index, "at": at + Vector3(board_w * 0.48, 0, -0.323),
+			pieces.iron.append({"owner": index,
+				"at": Vector3(_inner_gate_seam_x(at.x, board_w, side), at.y, at.z - 0.323),
 				"size": Vector3(0.024, board_h * 1.002, 0.018)})
 		if row in [1, 4, 6]:
 			pieces.wood_alt.append({"owner": index, "at": at + Vector3(0, 0, -0.40),
