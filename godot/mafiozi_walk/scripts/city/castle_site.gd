@@ -1386,7 +1386,9 @@ func _brick_transform(cell: Dictionary) -> Transform3D:
 		# colour variation and relief still give each course its bond.
 		size = Vector3(size.x * 0.99, size.y * 0.98, size.z * 0.995)
 	var rotation: Vector3 = cell.get("rotation", Vector3.ZERO)
-	var jitter := 0.0 if structural or group.begins_with("tower_crown") or group.begins_with("stairs_") or group.begins_with("courtyard43_") or "merlon" in group or group in ["tower_floor55", "tower_roof55"] else 1.0
+	var aligned_walk := group.ends_with("_walk") or group.ends_with("_parapet") \
+		or group in ["corner_walk", "corner_parapet", "gate_bypass", "gate_bypass_pier"]
+	var jitter := 0.0 if structural or aligned_walk or group.begins_with("tower_crown") or group.begins_with("stairs_") or group.begins_with("courtyard43_") or "merlon" in group or group in ["tower_floor55", "tower_roof55"] else 1.0
 	var basis := Basis.from_euler(Vector3(
 		rotation.x + jitter * float(int(at.x * 7.0 + at.y * 13.0) % 5) * 0.004,
 		rotation.y + jitter * float(int(at.z * 11.0 + at.y * 5.0) % 5) * 0.004,
@@ -3090,8 +3092,11 @@ func _build_wall_walks() -> void:
 			var along := -WALL_HALF + (float(span) + 0.5) * length
 			var centre := Vector3(along, WALL_HEIGHT - 0.1, sign * (WALL_HALF - 0.55)) if along_x \
 				else Vector3(sign * (WALL_HALF - 0.55), WALL_HEIGHT - 0.1, along)
-			var deck_size := Vector3(length, 0.24, WALK_WIDTH) if along_x \
-				else Vector3(WALK_WIDTH, 0.24, length)
+			# A tiny longitudinal overlap prevents light leaking between independent
+			# destructible spans without increasing their count or collision cost.
+			var deck_length := length * 1.01
+			var deck_size := Vector3(deck_length, 0.24, WALK_WIDTH) if along_x \
+				else Vector3(WALK_WIDTH, 0.24, deck_length)
 			_add_brick(centre, deck_size, "warm", Vector3.ZERO, side + "_walk", 0, span)
 			_add_breakable_collision(centre, deck_size)
 			var inner := centre + (Vector3(0.0, 0.0, -sign) if along_x \
@@ -3142,8 +3147,11 @@ func _build_corner_bypasses() -> void:
 		for sz: float in [-1.0, 1.0]:
 			var first := Vector3(sx * lane, WALL_HEIGHT - 0.1, sz * centre_along)
 			var second := Vector3(sx * centre_along, WALL_HEIGHT - 0.1, sz * lane)
-			var first_size := Vector3(WALK_WIDTH, 0.24, link + WALK_WIDTH)
-			var second_size := Vector3(link + WALK_WIDTH, 0.24, WALK_WIDTH)
+			# The old three-metre radial width stopped 1.25 m before the round tower
+			# floor. The same eight spans now overlap it by ten centimetres.
+			var tower_link_width := WALK_WIDTH + 2.7
+			var first_size := Vector3(tower_link_width, 0.24, link + WALK_WIDTH)
+			var second_size := Vector3(link + WALK_WIDTH, 0.24, tower_link_width)
 			for item: Dictionary in [
 				{"at": first, "size": first_size}, {"at": second, "size": second_size}]:
 				_add_brick(item["at"], item["size"], "warm", Vector3.ZERO, "corner_walk")
