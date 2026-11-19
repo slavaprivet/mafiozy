@@ -615,16 +615,16 @@ func _ground_color(x: float, z: float, sdf: float, distance: float, height: floa
 	var n1 := sin(x * 0.37 + sin(z * 0.19) * 1.7) * sin(z * 0.23 - x * 0.11)
 	var n2 := sin(x * 0.071 + z * 0.053 + 1.3)
 	var n3 := sin(x * 0.61 - z * 0.44 + sin(x * 0.13) * 2.0)
-	var grass := Color(0.29, 0.44, 0.20).srgb_to_linear()
-	var dry_grass := Color(0.46, 0.44, 0.22).srgb_to_linear()
-	var dirt := Color(0.42, 0.31, 0.18).srgb_to_linear()
-	var sand := Color(0.57, 0.48, 0.31).srgb_to_linear()
+	var grass := Color(0.315, 0.405, 0.235).srgb_to_linear()
+	var dry_grass := Color(0.44, 0.42, 0.26).srgb_to_linear()
+	var dirt := Color(0.365, 0.30, 0.215).srgb_to_linear()
+	var sand := Color(0.56, 0.485, 0.355).srgb_to_linear()
 	var gravel := Color(0.45, 0.425, 0.375).srgb_to_linear()
 	var wet_sand := Color(0.37, 0.325, 0.245).srgb_to_linear()
 	var silt := Color(0.205, 0.195, 0.16).srgb_to_linear()
 	var seabed := Color(0.135, 0.155, 0.145).srgb_to_linear()
-	var land := grass.lerp(dry_grass, clampf(0.5 + 0.5 * n1, 0.0, 1.0) * 0.75)
-	land = land.lerp(dirt, clampf(0.5 + 0.5 * n2, 0.0, 1.0) * 0.46)
+	var land := grass.lerp(dry_grass, clampf(0.5 + 0.5 * n1, 0.0, 1.0) * 0.62)
+	land = land.lerp(dirt, clampf(0.5 + 0.5 * n2, 0.0, 1.0) * 0.34)
 	var edge := sand.lerp(gravel, clampf(0.42 + 0.36 * n3, 0.0, 1.0))
 	var shore_weight := 1.0 - smoothstep(0.0, 6.5, absf(sdf))
 	var color := land.lerp(edge, shore_weight)
@@ -1610,7 +1610,7 @@ func _build_shore() -> void:
 							rng.randf_range(0.85, 1.25)))
 					plant_transforms.append(Transform3D(basis,
 						Vector3(x, _floor_y_at(x, z) - 0.02, z)))
-					var grass_color := Color(0.25, 0.42, 0.10).lerp(Color(0.56, 0.50, 0.19),
+					var grass_color := Color(0.26, 0.35, 0.10).lerp(Color(0.49, 0.43, 0.21),
 						rng.randf())
 					plant_colors.append(_tint(grass_color, rng.randf_range(0.85, 1.12)))
 	if not rock_transforms.is_empty():

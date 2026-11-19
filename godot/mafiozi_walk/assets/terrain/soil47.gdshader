@@ -14,11 +14,15 @@ void fragment() {
  float distance_fade = 1.0-smoothstep(24.0,85.0,length(VERTEX));
  float relief = mix(0.42,1.52,detail.r) * mix(0.86,1.12,broad.r);
  relief = mix(0.96,relief,distance_fade);
- // Clear daylight: a little more colour in the grass and warm soil, while
- // retaining the texture's road/rut contrast and the same texture fetches.
- float luminance = dot(macro.rgb, vec3(0.2126, 0.7152, 0.0722));
- vec3 daylight = mix(vec3(luminance), macro.rgb, 1.16);
- ALBEDO = daylight * relief * vec3(1.04, 1.04, 0.94);
+ // The baked map is almost grey. Keep its ruts and scars, but make the packed
+ // centre earthy and the brighter shoulders green in clear daylight. This
+ // uses the existing map sample, with no new texture or draw call.
+ float soil_light = dot(macro.rgb, vec3(0.2126, 0.7152, 0.0722));
+ float meadow = smoothstep(5.0, 15.0, abs(ground_xz.x))
+     * smoothstep(0.055, 0.17, soil_light);
+ vec3 packed_soil = macro.rgb * vec3(1.28, 1.10, 0.72);
+ vec3 green_shoulder = macro.rgb * vec3(0.82, 1.28, 0.68);
+ ALBEDO = mix(packed_soil, green_shoulder, meadow) * relief;
  vec2 fine_slope = detail.gb*2.0-1.0;
  vec2 broad_slope = broad.gb*2.0-1.0;
  broad_slope = vec2(-broad_slope.y,broad_slope.x);
