@@ -626,6 +626,14 @@ func _build_materials() -> void:
 	var wood_alt := StandardMaterial3D.new()
 	wood_alt.albedo_color = Color(0.33, 0.205, 0.11)
 	wood_alt.roughness = 0.97
+	# Gate-only contrast: the shared oak also dresses furniture and the keep. The
+	# leaves already own two draw buckets, so distinct material resources make the
+	# huge door readable without changing any other wood or adding a draw call.
+	var gate_wood := wood.duplicate() as StandardMaterial3D
+	gate_wood.albedo_color = Color(0.46, 0.285, 0.145)
+	gate_wood.roughness = 0.93
+	var gate_wood_alt := wood_alt.duplicate() as StandardMaterial3D
+	gate_wood_alt.albedo_color = Color(0.265, 0.135, 0.058)
 	var floor_wood := ShaderMaterial.new()
 	var floor_grain := Shader.new()
 	floor_grain.code = """
@@ -669,7 +677,8 @@ void fragment() {
 	gold.metallic = 0.55
 	gold.roughness = 0.4
 	_materials = {"stone": stone, "warm": stone_warm, "cold": stone_cold,
-		"wood": wood, "wood_alt": wood_alt, "floor_wood": floor_wood,
+		"wood": wood, "wood_alt": wood_alt, "gate_wood": gate_wood,
+		"gate_wood_alt": gate_wood_alt, "floor_wood": floor_wood,
 		"linen": linen, "ochre": ochre,
 		"iron": iron, "grass": grass, "paving": paving, "dark": dark,
 		"velvet": velvet, "gold": gold}
@@ -2085,6 +2094,20 @@ func _gate_board_tone(row: int, column: int) -> String:
 	var stagger: int = (row * 3 + column + int(row / 2)) % 4
 	return "wood_alt" if stagger == 1 else "wood"
 
+## A broad, centred saltire reads from the courtyard instead of disappearing into
+## plank seams. Both boxes and the boss are merged into the leaf's existing iron
+## fitting surface, so this changes silhouette/detail without another draw call.
+func _gate_cross_brace_specs(side: float, leaf_width: float) -> Array[Dictionary]:
+	var span_x := leaf_width - 0.90
+	var span_y := GATE_HEIGHT - 1.20
+	var length := sqrt(span_x * span_x + span_y * span_y)
+	var angle := atan2(span_x, span_y)
+	var centre := Vector3(-side * leaf_width * 0.5, GATE_HEIGHT * 0.5, 0.425)
+	return [
+		{"at": centre, "size": Vector3(0.24, length, 0.16), "angle": -angle},
+		{"at": centre, "size": Vector3(0.24, length, 0.16), "angle": angle},
+	]
+
 func _build_gatehouse() -> void:
 	var at := Vector3(0.0, 0.0, WALL_HALF)
 	for side: float in [-1.0, 1.0]:
@@ -2166,7 +2189,7 @@ func _build_gatehouse() -> void:
 			var boards_node := MultiMeshInstance3D.new()
 			boards_node.name = "GateBoards_" + tone
 			boards_node.multimesh = multi
-			boards_node.material_override = _materials[tone]
+			boards_node.material_override = _materials["gate_" + tone]
 			boards_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			pivot.add_child(boards_node)
 			board_multis[tone] = boards_node
@@ -2214,8 +2237,7 @@ func _build_gatehouse() -> void:
 				bolt.position = Vector3(-side * leaf_width * (0.1 + float(stud) * 0.2),
 					GATE_HEIGHT * (0.18 + float(band) * 0.3), 0.46)
 				pivot.add_child(bolt)
-		# A square forged frame has identical dimensions on both leaves. The old
-		# diagonals were offset and made the ironwork appear crooked.
+		# A square forged frame has identical dimensions on both leaves.
 		for edge: float in [0.18, leaf_width - 0.18]:
 			var stile := MeshInstance3D.new()
 			var stile_box := BoxMesh.new()
@@ -2241,6 +2263,32 @@ func _build_gatehouse() -> void:
 			hinge.position = Vector3(-side * 0.55,
 				GATE_HEIGHT * (0.18 + float(hinge_index) * 0.3), 0.43)
 			pivot.add_child(hinge)
+		# A mathematically centred saltire gives the huge leaves a strong medieval
+		# load-bearing pattern. The earlier diagonal attempt was offset; these two
+		# members share one centre and exact opposite angles on both leaves.
+		for spec: Dictionary in _gate_cross_brace_specs(side, leaf_width):
+			var brace := MeshInstance3D.new()
+			brace.name = "GateCrossBrace"
+			var brace_box := BoxMesh.new()
+			brace_box.size = spec["size"]
+			brace.mesh = brace_box
+			brace.material_override = _materials["iron"]
+			brace.position = spec["at"]
+			brace.rotation.z = float(spec["angle"])
+			pivot.add_child(brace)
+		var cross_boss := MeshInstance3D.new()
+		cross_boss.name = "GateCrossBoss"
+		var boss_mesh := CylinderMesh.new()
+		boss_mesh.top_radius = 0.34
+		boss_mesh.bottom_radius = 0.34
+		boss_mesh.height = 0.18
+		boss_mesh.radial_segments = 12
+		boss_mesh.rings = 1
+		cross_boss.mesh = boss_mesh
+		cross_boss.material_override = _materials["iron"]
+		cross_boss.position = Vector3(-side * leaf_width * 0.5, GATE_HEIGHT * 0.5, 0.54)
+		cross_boss.rotation.x = PI * 0.5
+		pivot.add_child(cross_boss)
 		var plate := MeshInstance3D.new()
 		var plate_box := BoxMesh.new()
 		plate_box.size = Vector3(0.56, 0.82, 0.12)
