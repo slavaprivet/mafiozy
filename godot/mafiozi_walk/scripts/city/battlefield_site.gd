@@ -62,17 +62,15 @@ func _make_grit_texture() -> Texture2D:
 	return load("res://assets/terrain/soil_macro49.png")
 
 func terrain_height(x: float, z: float) -> float:
-	# Near the original forecourt and at the outer edge, fade to CastleGround.
-	# The central x+-13 m at z<110 stays *below* the existing gate road.
-	# The stone forecourt narrows from pavers (x+-11.6, ending near z=90)
-	# to the older 11 m road box. Bury only the footprint actually paved;
-	# the former x+-16.5 mask exposed a green grass band alongside it.
-	var paved_half := lerpf(11.6, 5.5, smoothstep(89.5, 92.5, z))
-	var old_road := (1.0 - smoothstep(107.0, 113.0, z)) * (1.0 - smoothstep(paved_half - 0.6, paved_half + 0.4, absf(x)))
+	# Only the stone forecourt needs to bury this mesh. Its outer edge is at
+	# z ~= 91; the textured soil emerges from underneath the pavers there and
+	# continues into the battlefield road without a rectangular overlay.
+	var paved_half := 11.6
+	var forecourt := (1.0 - smoothstep(87.0, 92.0, z)) * (1.0 - smoothstep(paved_half - 0.6, paved_half + 0.4, absf(x)))
 	var edge_x := 1.0 - smoothstep(76.0, 90.0, absf(x))
 	var edge_z := 1.0 - smoothstep(240.0, 252.0, z)
 	# Meet the paved ring road at z=79 from underneath, then emerge as packed
-	# earth. The centre remains buried below the older stone gate approach.
+	# earth. The centre remains buried only below the stone forecourt.
 	var start_z := smoothstep(76.0, 83.0, z)
 	var noise := sin(x * 0.16 + z * 0.087) * sin(z * 0.13 - x * 0.061)
 	var undulation := 0.12 + 0.09 * noise
@@ -105,7 +103,7 @@ func terrain_height(x: float, z: float) -> float:
 	# Physically sink the outermost vertices under CastleGround; this removes
 	# the rectangular seam even where the two materials have different lighting.
 	var visible_height := h * edge_x * edge_z * start_z + 0.018 - 0.072 * (1.0 - coverage)
-	return lerpf(visible_height, -0.07, old_road)
+	return lerpf(visible_height, -0.07, forecourt)
 
 func _route_x(z: float, lane: int) -> float:
 	var t := clampf((z - 105.0) / 140.0, 0.0, 1.0)

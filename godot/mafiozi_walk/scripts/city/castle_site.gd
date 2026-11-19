@@ -710,8 +710,8 @@ func _build_environment() -> void:
 	var environment := WorldEnvironment.new()
 	environment.name = "CastleSky"
 	var sky_material := ProceduralSkyMaterial.new()
-	sky_material.sky_top_color = Color(0.32, 0.47, 0.72)
-	sky_material.sky_horizon_color = Color(0.78, 0.80, 0.80)
+	sky_material.sky_top_color = Color(0.25, 0.49, 0.83)
+	sky_material.sky_horizon_color = Color(0.67, 0.80, 0.93)
 	sky_material.ground_bottom_color = Color(0.25, 0.26, 0.24)
 	sky_material.ground_horizon_color = Color(0.62, 0.63, 0.60)
 	sky_material.sun_angle_max = 18.0
@@ -732,7 +732,7 @@ func _build_environment() -> void:
 	settings.glow_enabled = true
 	settings.glow_intensity = 0.35
 	settings.fog_enabled = true
-	settings.fog_light_color = Color(0.72, 0.75, 0.80)
+	settings.fog_light_color = Color(0.75, 0.83, 0.91)
 	settings.fog_density = 0.0016
 	settings.fog_aerial_perspective = 0.3
 	environment.environment = settings
@@ -747,7 +747,7 @@ func _build_environment() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.name = "CastleSun"
 	sun.light_energy = 0.90
-	sun.light_color = Color(1.0, 0.945, 0.84)
+	sun.light_color = Color(1.0, 0.975, 0.89)
 	sun.shadow_enabled = true
 	sun.shadow_bias = 0.06
 	sun.shadow_blur = 1.6
@@ -759,19 +759,12 @@ func _build_environment() -> void:
 
 ## A road in from the gate, and cobbles across the courtyard.
 func _build_path() -> void:
-	var road := StandardMaterial3D.new()
-	road.albedo_color = Color(0.34, 0.29, 0.22)
-	road.roughness = 1.0
 	var cobble := StandardMaterial3D.new()
 	cobble.albedo_color = Color(0.45, 0.43, 0.39)
 	cobble.roughness = 0.95
-	var road_mesh := MeshInstance3D.new()
-	var road_box := BoxMesh.new()
-	road_box.size = Vector3(11.0, 0.12, 42.0)
-	road_mesh.mesh = road_box
-	road_mesh.material_override = road
-	road_mesh.position = Vector3(0.0, -0.04, WALL_HALF + 21.0)
-	add_child(road_mesh)
+	# The battlefield's textured terrain now carries the approach all the way to
+	# the forecourt. A separate 11 x 42 m box used to hide it behind a hard brown
+	# rectangle and exposed bright green strips along both edges.
 	var courtyard := MeshInstance3D.new()
 	var courtyard_box := BoxMesh.new()
 	# Reach the inner edge of the outer ring road on every side. The previous

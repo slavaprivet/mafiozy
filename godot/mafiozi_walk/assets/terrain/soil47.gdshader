@@ -14,7 +14,11 @@ void fragment() {
  float distance_fade = 1.0-smoothstep(24.0,85.0,length(VERTEX));
  float relief = mix(0.42,1.52,detail.r) * mix(0.86,1.12,broad.r);
  relief = mix(0.96,relief,distance_fade);
- ALBEDO = macro.rgb * relief;
+ // Clear daylight: a little more colour in the grass and warm soil, while
+ // retaining the texture's road/rut contrast and the same texture fetches.
+ float luminance = dot(macro.rgb, vec3(0.2126, 0.7152, 0.0722));
+ vec3 daylight = mix(vec3(luminance), macro.rgb, 1.16);
+ ALBEDO = daylight * relief * vec3(1.04, 1.04, 0.94);
  vec2 fine_slope = detail.gb*2.0-1.0;
  vec2 broad_slope = broad.gb*2.0-1.0;
  broad_slope = vec2(-broad_slope.y,broad_slope.x);
