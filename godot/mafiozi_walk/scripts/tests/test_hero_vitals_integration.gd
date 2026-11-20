@@ -28,6 +28,12 @@ func _run() -> void:
 		var equipped: Dictionary = weapons.call("equip", "sword")
 		if bool(equipped.get("ok", false)):
 			if not weapon_label.text.contains("меч"): failures.append("held_weapon_label")
+			var held_blade: Node = scene.get("preview_sword_prototype")
+			if is_instance_valid(held_blade) and bool(held_blade.call("drop_sword_to_ground")):
+				hud.call("_process", 0.3)
+				if weapon_label.text != "Без оружия": failures.append("dropped_weapon_label")
+			else:
+				failures.append("weapon_drop_setup")
 			if bool((weapons.call("equip", "none") as Dictionary).get("ok", false)) \
 					and weapon_label.text != "Без оружия":
 				failures.append("stowed_weapon_label")
