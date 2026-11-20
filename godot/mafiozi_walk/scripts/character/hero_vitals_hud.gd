@@ -153,10 +153,97 @@ class BodyDiagram extends Control:
 			"shin_r": return Vector2(43, 84)
 			_: return Vector2(45, 95)
 
+class WeaponGlyph extends Control:
+	## Small HUD silhouettes are drawn at their final size. Scaling the detailed
+	## inventory thumbnails down made the weapons disappear on screen.
+	var weapon_id := "none"
+	const METAL := Color(0.80, 0.83, 0.82)
+	const BRIGHT := Color(0.92, 0.94, 0.91)
+	const SHAFT := Color(0.57, 0.62, 0.61)
+	const EDGE := Color(0.32, 0.37, 0.38)
+
+	func _init() -> void:
+		custom_minimum_size = Vector2(32, 32)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func set_weapon(id: String) -> void:
+		if weapon_id == id: return
+		weapon_id = id
+		queue_redraw()
+
+	func glyph_kind(id: String) -> String:
+		if id in ["none", "hatchet", "sword", "mace", "axe", "sledge", "spear", "shield", "bow"]:
+			return id
+		if id in ["nagan", "tt_pistol", "revolver", "deagle", "golden_colt"]:
+			return "pistol"
+		if id in ["sawn_off", "shotgun", "uzi", "golden_uzi", "ak74", "m16", "tommy_gun", "sniper"]:
+			return "longgun"
+		if id == "rpg": return "launcher"
+		return "none"
+
+	func _poly(points: Array[Vector2], colour: Color = METAL) -> void:
+		draw_colored_polygon(PackedVector2Array(points), colour)
+
+	func _shaft(a: Vector2, b: Vector2, width: float = 2.5) -> void:
+		draw_line(a, b, EDGE, width + 1.5, true)
+		draw_line(a, b, SHAFT, width, true)
+
+	func _draw() -> void:
+		draw_rect(Rect2(0.5, 0.5, 31, 31), Color(0.10, 0.13, 0.14, 0.72))
+		draw_rect(Rect2(0.5, 0.5, 31, 31), Color(0.37, 0.40, 0.38, 0.65), false, 1.0)
+		match glyph_kind(weapon_id):
+			"sword":
+				_poly([Vector2(14, 17), Vector2(18, 8), Vector2(25, 3), Vector2(22, 11), Vector2(17, 18)], BRIGHT)
+				_shaft(Vector2(8, 25), Vector2(15, 18), 2.5)
+				draw_line(Vector2(10, 16), Vector2(18, 23), METAL, 2.2, true)
+				draw_circle(Vector2(7, 26), 2.2, METAL)
+			"spear":
+				_shaft(Vector2(6, 27), Vector2(23, 7), 2.2)
+				_poly([Vector2(20, 10), Vector2(27, 2), Vector2(25, 13)], BRIGHT)
+			"axe", "hatchet":
+				_shaft(Vector2(9, 27), Vector2(20, 6) if weapon_id == "axe" else Vector2(19, 10), 3.0)
+				_poly([Vector2(17, 6), Vector2(24, 5), Vector2(28, 8), Vector2(25, 15), Vector2(18, 13), Vector2(20, 10)], METAL)
+				if weapon_id == "axe":
+					_poly([Vector2(15, 6), Vector2(11, 3), Vector2(9, 7), Vector2(14, 13), Vector2(18, 11)], SHAFT)
+			"sledge":
+				_shaft(Vector2(7, 27), Vector2(20, 10), 3.2)
+				_poly([Vector2(13, 4), Vector2(27, 4), Vector2(28, 11), Vector2(14, 11)], METAL)
+				draw_line(Vector2(15, 5), Vector2(25, 5), BRIGHT, 1.3, true)
+			"mace":
+				_shaft(Vector2(7, 27), Vector2(21, 10), 3.0)
+				draw_circle(Vector2(23, 8), 5.0, METAL)
+				for offset: Vector2 in [Vector2(0, -8), Vector2(7, -3), Vector2(6, 5), Vector2(-5, -6)]:
+					draw_line(Vector2(23, 8), Vector2(23, 8) + offset, BRIGHT, 2.2, true)
+			"bow":
+				draw_arc(Vector2(16, 16), 11.0, -PI * 0.5, PI * 0.5, 24, METAL, 3.0, true)
+				draw_line(Vector2(16, 5), Vector2(16, 27), SHAFT, 1.4, true)
+				draw_line(Vector2(7, 16), Vector2(27, 16), BRIGHT, 1.6, true)
+				_poly([Vector2(27, 16), Vector2(22, 13), Vector2(22, 19)], BRIGHT)
+			"shield":
+				_poly([Vector2(16, 3), Vector2(27, 7), Vector2(25, 22), Vector2(16, 29), Vector2(7, 22), Vector2(5, 7)], METAL)
+				draw_line(Vector2(16, 6), Vector2(16, 25), EDGE, 1.5, true)
+				draw_line(Vector2(10, 14), Vector2(22, 14), EDGE, 1.5, true)
+			"pistol":
+				_poly([Vector2(5, 12), Vector2(23, 12), Vector2(27, 15), Vector2(27, 18), Vector2(15, 18), Vector2(12, 27), Vector2(7, 27), Vector2(9, 18), Vector2(5, 17)], METAL)
+				_draw_trigger()
+			"longgun":
+				_poly([Vector2(3, 14), Vector2(24, 14), Vector2(29, 16), Vector2(29, 18), Vector2(12, 18), Vector2(7, 24), Vector2(3, 22)], METAL)
+				draw_line(Vector2(18, 18), Vector2(16, 25), SHAFT, 2.0, true)
+			"launcher":
+				_shaft(Vector2(3, 19), Vector2(27, 11), 5.0)
+				_poly([Vector2(24, 9), Vector2(30, 11), Vector2(25, 16)], BRIGHT)
+			"none":
+				_poly([Vector2(9, 17), Vector2(12, 12), Vector2(22, 12), Vector2(26, 17), Vector2(23, 25), Vector2(10, 25)], METAL)
+				for x: float in [12.0, 16.0, 20.0]:
+					draw_line(Vector2(x, 11), Vector2(x, 16), BRIGHT, 2.5, true)
+
+	func _draw_trigger() -> void:
+		draw_arc(Vector2(15, 19), 3.0, 0.0, PI, 8, EDGE, 1.2, true)
+
 var _panel: PanelContainer
 var _scene: Node
 var _weapon_label: Label
-var _weapon_icon: TextureRect
+var _weapon_icon: WeaponGlyph
 var _weapon_timer := 0.0
 var _armor_owner: Node
 var _armor_slots: Dictionary = {}
@@ -208,15 +295,11 @@ func configure(scene: Node) -> void:
 	weapon_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	weapon_row.add_theme_constant_override("separation", 4)
 	column.add_child(weapon_row)
-	_weapon_icon = TextureRect.new()
-	_weapon_icon.custom_minimum_size = Vector2(20, 20)
-	_weapon_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_weapon_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_weapon_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_weapon_icon = WeaponGlyph.new()
 	weapon_row.add_child(_weapon_icon)
 	_weapon_label = _label(weapon_row, "Без оружия", 12, Color("ead7ad"))
 	_weapon_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_weapon_label.custom_minimum_size.x = BAR_WIDTH - 24.0
+	_weapon_label.custom_minimum_size.x = BAR_WIDTH - 36.0
 	_hp_label = _label(column, "Здоровье 100 / 100", 12, Color("ead7ad"))
 	var track := Panel.new()
 	track.custom_minimum_size = Vector2(BAR_WIDTH, 9)
@@ -300,12 +383,7 @@ func sync_weapon() -> void:
 	if is_instance_valid(host): name = str(host.LABELS.get(id, "Без оружия"))
 	name = name.replace(" (прототип)", "")
 	if _weapon_label.text != name: _weapon_label.text = name
-	if is_instance_valid(host):
-		var ui: Control = host.get("_walk_ui")
-		if is_instance_valid(ui):
-			var icons: Dictionary = ui.get("textures")
-			var icon: Texture2D = icons.get(id)
-			if _weapon_icon.texture != icon: _weapon_icon.texture = icon
+	_weapon_icon.set_weapon(id)
 
 func _label(parent: Node, value: String, font_size: int, color: Color) -> Label:
 	var label := Label.new()

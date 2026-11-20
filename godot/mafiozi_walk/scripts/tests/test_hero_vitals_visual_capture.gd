@@ -41,6 +41,20 @@ func _run() -> void:
 	for frame: int in 30: await process_frame
 	var armor_path := output.path_join("hero_armor_hud.png")
 	var armor_result := scene.get_viewport().get_texture().get_image().save_png(armor_path)
+	var weapons: Node = scene.get("preview_weapons")
+	if not is_instance_valid(weapons) or not bool((weapons.call("equip", "sword") as Dictionary).get("ok", false)):
+		print("HERO_VISUAL_CAPTURE FAIL sword_equip")
+		quit(1)
+		return
+	var vitals_hud: CanvasLayer = scene.get("hero_vitals_hud")
+	vitals_hud.call("sync_weapon")
+	for frame: int in 12: await process_frame
+	if (vitals_hud.get("_weapon_icon") as Control).get("weapon_id") != "sword":
+		print("HERO_VISUAL_CAPTURE FAIL sword_glyph")
+		quit(1)
+		return
+	var sword_path := output.path_join("hero_sword_glyph.png")
+	var sword_result := scene.get_viewport().get_texture().get_image().save_png(sword_path)
 	sword.call("_kill_player", player.global_position + Vector3.UP, Vector3.RIGHT, 65.0)
 	var death_state: Dictionary = sword.call("snapshot").get("player_death_physics31", {})
 	print("HERO_VISUAL_DEATH_STATE ", death_state,
@@ -59,6 +73,6 @@ func _run() -> void:
 		fell = head.y - pelvis.y < 1.0
 	var death_path := output.path_join("hero_death_camera.png")
 	var death_result := scene.get_viewport().get_texture().get_image().save_png(death_path)
-	print("HERO_VISUAL_CAPTURE ", "PASS" if bare_result == OK and armor_result == OK and death_result == OK and fell else "FAIL",
-		" bare=", bare_path, " armor=", armor_path, " death=", death_path)
-	quit(0 if bare_result == OK and armor_result == OK and death_result == OK and fell else 1)
+	print("HERO_VISUAL_CAPTURE ", "PASS" if bare_result == OK and armor_result == OK and sword_result == OK and death_result == OK and fell else "FAIL",
+		" bare=", bare_path, " armor=", armor_path, " glyph=", sword_path, " death=", death_path)
+	quit(0 if bare_result == OK and armor_result == OK and sword_result == OK and death_result == OK and fell else 1)
