@@ -1,0 +1,44 @@
+extends SceneTree
+
+func _initialize() -> void:
+	call_deferred("_run")
+
+func _run() -> void:
+	var scene: Node = load("res://scenes/castle.tscn").instantiate()
+	root.add_child(scene)
+	current_scene = scene
+	var deadline := Time.get_ticks_msec() + 120000
+	while Time.get_ticks_msec() < deadline and (scene.get("preview_ready") != true \
+			or not is_instance_valid(scene.get("preview_horse_mount"))):
+		await physics_frame
+	var host: Node = scene.get("preview_horse_mount")
+	var player: CharacterBody3D = scene.get("_player")
+	if not is_instance_valid(host) or not is_instance_valid(player):
+		print("HORSE_HP_HUD FAIL scene_not_ready")
+		quit(1)
+		return
+	var horse: CharacterBody3D = host.get("horse")
+	if not is_instance_valid(horse):
+		print("HORSE_HP_HUD FAIL horse_missing")
+		quit(1)
+		return
+	player.set("_free_mouse_look", true)
+	scene.set("_castle_spawn_frames", 0)
+	horse.global_position = player.global_position + Vector3(2.0, 0.04, -2.0)
+	await physics_frame
+	await physics_frame
+	var failures: Array[String] = []
+	if not host.call("mount_now"):
+		failures.append("mount_failed")
+	else:
+		host.call("_update_hud", false)
+		var panel: PanelContainer = host.get("_hp_panel")
+		var viewport_size := root.get_viewport().get_visible_rect().size
+		if not panel.visible:
+			failures.append("hud_hidden")
+		if panel.position.x < viewport_size.x - panel.size.x - 30.0 or panel.position.y > 30.0:
+			failures.append("hud_not_in_corner")
+		if not host.call("dismount_now"):
+			failures.append("dismount_failed")
+	print("HORSE_HP_HUD ", "PASS" if failures.is_empty() else "FAIL " + str(failures))
+	quit(0 if failures.is_empty() else 1)

@@ -7,8 +7,8 @@ extends Node3D
 ## controller is suspended (pose authority stays "on_foot" so every weapon stays live),
 ## the capsule is switched off and the rider is glued to the saddle by the horse.
 ##
-## Horse HP is projected above the nearby horse; the interaction prompt keeps
-## its existing owner.
+## Horse HP stays in the HUD corner while mounted and follows the nearby horse
+## only while on foot.
 
 const HorseScript = preload("res://scripts/mount/horse.gd")
 const RiderPose = preload("res://scripts/mount/horse_rider_pose.gd")
@@ -66,8 +66,9 @@ var _banner_label: Label
 var _banner_state := -1
 var _hp_panel: PanelContainer
 var _hp_label: Label
-var _hp_fill: ColorRect
-var _hp_track_width := 188.0
+var _hp_fill: Panel
+var _hp_fill_style: StyleBoxFlat
+var _hp_track_width := 172.0
 var _hp_value := -1.0
 var _hp_show_until := 0
 var _viewport_size := Vector2(1280, 720)
@@ -184,34 +185,45 @@ func _build_hud() -> void:
 	_banner = _make_panel()
 	_banner_label = _make_label(_banner)
 	_banner.visible = false
-	# HP: name + current/max, then a thin red bar on a dark track.
+	# Compact saddle HUD with a warm metal edge and a recessed health track.
 	_hp_panel = PanelContainer.new()
 	_hp_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.04, 0.05, 0.06, 0.82)
-	style.content_margin_left = 8
-	style.content_margin_right = 8
-	style.content_margin_top = 4
-	style.content_margin_bottom = 5
+	style.bg_color = Color(0.055, 0.067, 0.073, 0.91)
+	style.border_color = Color(0.57, 0.43, 0.25, 0.9)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(7)
+	style.shadow_color = Color(0.0, 0.0, 0.0, 0.35)
+	style.shadow_size = 5
+	style.content_margin_left = 11
+	style.content_margin_right = 11
+	style.content_margin_top = 8
+	style.content_margin_bottom = 9
 	_hp_panel.add_theme_stylebox_override("panel", style)
 	_hud.add_child(_hp_panel)
 	var column := VBoxContainer.new()
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_theme_constant_override("separation", 3)
+	column.add_theme_constant_override("separation", 6)
 	_hp_panel.add_child(column)
 	_hp_label = Label.new()
 	_hp_label.text = "ЛОШАДЬ"
-	_hp_label.add_theme_font_size_override("font_size", 12)
-	_hp_label.add_theme_color_override("font_color", Color("d8c9a8"))
+	_hp_label.add_theme_font_size_override("font_size", 13)
+	_hp_label.add_theme_color_override("font_color", Color("ead7ad"))
 	column.add_child(_hp_label)
-	var track := ColorRect.new()
-	track.color = Color(0.12, 0.10, 0.09, 0.95)
-	track.custom_minimum_size = Vector2(_hp_track_width, 7)
+	var track := Panel.new()
+	var track_style := StyleBoxFlat.new()
+	track_style.bg_color = Color(0.11, 0.10, 0.09, 1.0)
+	track_style.set_corner_radius_all(4)
+	track.add_theme_stylebox_override("panel", track_style)
+	track.custom_minimum_size = Vector2(_hp_track_width, 8)
 	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(track)
-	_hp_fill = ColorRect.new()
-	_hp_fill.color = Color(0.62, 0.10, 0.11)
-	_hp_fill.size = Vector2(_hp_track_width, 7)
+	_hp_fill = Panel.new()
+	_hp_fill_style = StyleBoxFlat.new()
+	_hp_fill_style.bg_color = Color(0.68, 0.16, 0.13)
+	_hp_fill_style.set_corner_radius_all(4)
+	_hp_fill.add_theme_stylebox_override("panel", _hp_fill_style)
+	_hp_fill.size = Vector2(_hp_track_width, 8)
 	_hp_fill.position = Vector2.ZERO
 	_hp_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	track.add_child(_hp_fill)
@@ -870,10 +882,18 @@ func _update_hud(dead: bool) -> void:
 	if not is_equal_approx(hp, _hp_value):
 		_hp_value = hp
 		_hp_label.text = "ЛОШАДЬ  %d / %d" % [int(ceil(hp)), int(HORSE_MAX_HP)]
-		_hp_fill.size = Vector2(maxf(0.0, _hp_track_width * clampf(hp / HORSE_MAX_HP, 0.0, 1.0)), 7.0)
-		_hp_fill.color = Color(0.62, 0.10, 0.11) if hp > 35.0 else Color(0.78, 0.28, 0.08)
+		_hp_fill.size = Vector2(maxf(0.0, _hp_track_width * clampf(hp / HORSE_MAX_HP, 0.0, 1.0)), 8.0)
+		_hp_fill_style.bg_color = Color(0.68, 0.16, 0.13) if hp > 35.0 else Color(0.82, 0.32, 0.10)
 	_hp_panel.visible = false
-	if dead or horse_gap > HP_VISIBLE_RANGE:
+	if dead:
+		return
+	if _mounted:
+		_hp_panel.reset_size()
+		var viewport_size := get_viewport().get_visible_rect().size
+		_hp_panel.position = Vector2(maxf(12.0, viewport_size.x - _hp_panel.size.x - 18.0), 18.0)
+		_hp_panel.visible = true
+		return
+	if horse_gap > HP_VISIBLE_RANGE:
 		return
 	var camera := get_viewport().get_camera_3d()
 	var at := horse.to_global(Vector3(0.0, 2.65, 0.0))
