@@ -241,6 +241,7 @@ func _place_player(world_position: Vector3, look_yaw: float) -> void:
 	if not is_instance_valid(player):
 		return
 	player.global_position = world_position
+	player.reset_physics_interpolation()
 	player.velocity = Vector3.ZERO
 	player.set("_camera_yaw", look_yaw)
 	player.set("_heading", look_yaw)
@@ -410,6 +411,7 @@ func interact(action_data: Variant) -> bool:
 			var side := float(action_data.get("side", 1.0))
 			var z := float(action_data.get("z", 4.2))
 			player.global_position = preview_boat.to_global(Vector3(side * 3.15, 1.88, z))
+			player.reset_physics_interpolation()
 			player.velocity = Vector3.ZERO
 			if player.has_method("set_swimming"):
 				player.call("set_swimming", false)

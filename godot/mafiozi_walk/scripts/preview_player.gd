@@ -266,6 +266,7 @@ func completed_ground_slide_contact(slide_index: int, contact_index: int) -> Dic
 
 func _ready() -> void:
 	name = "PreviewPlayer"
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_ON
 	_ensure_input_actions()
 	_gravity = float(ProjectSettings.get_setting("physics/3d/default_gravity", 9.8))
 	floor_snap_length = 0.25

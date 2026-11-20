@@ -34,6 +34,10 @@ window/stretch/mode="canvas_items"
 
 enabled=PackedStringArray("res://addons/npc_source_receipts/plugin.cfg")
 
+[physics]
+
+common/physics_interpolation=true
+
 [rendering]
 
 renderer/rendering_method.mobile="gl_compatibility"

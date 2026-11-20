@@ -235,6 +235,9 @@ func _dsh_physics_catchup() -> void:  # DSH_WALKCHEAP
 	print("DSH_WALKCHEAP catchup=",Engine.max_physics_steps_per_frame," far_ttl=",dsh_far_ttl," default_catchup=8 default_far_ttl=96 explicit_override_below8=1 restore_far_ttl=0")
 
 func _ready() -> void:
+	# Keep global interpolation local to the player; castle debris, ships and
+	# other physics systems retain their established presentation behavior.
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	GameCursor.install()
 	# DSH_NET: тег сборки уходит хосту при подключении, чтобы гость и хост играли
 	# один и тот же мир; расхождение печатается предупреждением, а не молчит.
@@ -815,6 +818,7 @@ func _install_siege_tower() -> bool:
 		var tower_body: Variant = preview_siege_tower.get("body")
 		if is_instance_valid(tower_body):
 			_player.global_position = (tower_body as Node3D).to_global(Vector3(0.0, 0.15, 4.62))
+			_player.reset_physics_interpolation()
 			_player.velocity = Vector3.ZERO
 			_player._camera_yaw = 0.0
 			_player._heading = 0.0
@@ -904,6 +908,7 @@ func _build_castle_map() -> bool:
 			var cart_pos: Vector3 = (cart as Node3D).global_position
 			# BEHIND the machine, facing it and the wall beyond: the gate is at -Z from here.
 			_player.global_position = cart_pos + Vector3(0.0, 0.2, 4.5)
+			_player.reset_physics_interpolation()
 			_player.velocity = Vector3.ZERO
 			_player.set("_camera_yaw", PI)
 			_player._heading = PI
@@ -917,6 +922,7 @@ func _build_castle_map() -> bool:
 			print("DSH_CASTLE_SPAWN_AT_CATAPULT player=", _player.global_position, " cart=", cart_pos)
 	if is_instance_valid(_player):
 		_player.global_position = castle.call("spawn_point")
+		_player.reset_physics_interpolation()
 		_player.velocity = Vector3.ZERO
 	print("DSH_CASTLE ", JSON.stringify(built))
 	return true
@@ -1650,6 +1656,7 @@ func _physics_process(delta: float) -> void:
 			_castle_spawn_target = preview_castle.to_global(Vector3(5.0, 0.25, gate_wall - 4.5))
 			_castle_spawn_frames = 400
 			_player.global_position = _castle_spawn_target
+			_player.reset_physics_interpolation()
 			_player.velocity = Vector3.ZERO
 			_player._camera_yaw = PI
 			_player._heading = _player._camera_yaw
@@ -1664,6 +1671,7 @@ func _physics_process(delta: float) -> void:
 				_castle_enemy_spawn_target = preview_castle.to_global(Vector3(0.0, 0.08, wall + 1.2))
 				_castle_spawn_target = preview_castle.to_global(Vector3(6.0, 0.25, wall + 9.2))
 				_player.global_position = _castle_spawn_target
+				_player.reset_physics_interpolation()
 				_player.velocity = Vector3.ZERO
 				_player._camera_yaw = atan2(6.0,8.0)
 				_player._heading = _player._camera_yaw
@@ -1687,6 +1695,7 @@ func _physics_process(delta: float) -> void:
 			_castle_spawn_frames -= 1
 			if _player.global_position.distance_to(_castle_spawn_target) > 2.0:
 				_player.global_position = _castle_spawn_target
+				_player.reset_physics_interpolation()
 				_player.velocity = Vector3.ZERO
 	if not preview_ready:
 		return
