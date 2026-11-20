@@ -22,6 +22,13 @@ func _run() -> void:
 	var failures: Array[String] = []
 	if action.get("owner", "") != "castle" or action.get("key", "") != "E":
 		failures.append("prompt_not_e")
+	scene.call("_update_door_hint")
+	var key_labels: Array[String] = []
+	for child: Node in (scene.get("_door_hint_key") as Node).get_children():
+		if child is Label:
+			key_labels.append(child.text)
+	if not key_labels.has("E") or key_labels.has("F"):
+		failures.append("plaque_not_e")
 	if castle.call("gate_open"):
 		castle.call("set_gate", false)
 	var f := InputEventKey.new()
