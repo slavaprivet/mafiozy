@@ -104,12 +104,13 @@ class BodyDiagram extends Control:
 			_: return Vector2(45, 95)
 
 var _panel: PanelContainer
+var _scene: Node
+var _weapon_label: Label
+var _weapon_timer := 0.0
 var _hp_label: Label
 var _hp_fill: Panel
 var _hp_fill_style: StyleBoxFlat
-var _bleed_label: Label
-var _rate_label: Label
-var _sites_label: Label
+var _status_label: Label
 var _lost_label: Label
 var _burn_label: Label
 var _diagram: BodyDiagram
@@ -119,6 +120,7 @@ const BAR_WIDTH := 153.0
 func configure(scene: Node) -> void:
 	if is_instance_valid(_panel) or not is_instance_valid(scene):
 		return
+	_scene = scene
 	layer = 14
 	name = "HeroVitalsHud"
 	scene.add_child(self)
@@ -149,7 +151,10 @@ func configure(scene: Node) -> void:
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_theme_constant_override("separation", 4)
 	row.add_child(column)
-	_hp_label = _label(column, "ГЕРОЙ 100 / 100", 13, Color("ead7ad"))
+	_weapon_label = _label(column, "Без оружия", 12, Color("ead7ad"))
+	_weapon_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_weapon_label.custom_minimum_size.x = BAR_WIDTH
+	_hp_label = _label(column, "Здоровье 100 / 100", 12, Color("ead7ad"))
 	var track := Panel.new()
 	track.custom_minimum_size = Vector2(BAR_WIDTH, 9)
 	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -166,17 +171,46 @@ func configure(scene: Node) -> void:
 	_hp_fill_style.set_corner_radius_all(4)
 	_hp_fill.add_theme_stylebox_override("panel", _hp_fill_style)
 	track.add_child(_hp_fill)
-	_bleed_label = _label(column, "●  Кровотечение 0%", 12, Color("d9c7a9"))
-	_rate_label = _label(column, "0.0 HP/с", 11, Color("c4b8a4"))
-	_sites_label = _label(column, "Ран нет", 11, Color("c4b8a4"))
-	_sites_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_sites_label.custom_minimum_size.x = BAR_WIDTH
+	_status_label = _label(column, "Здоров", 12, Color("d9c7a9"))
 	_lost_label = _label(column, "", 11, Color("ec6850"))
 	_lost_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_burn_label = _label(column, "", 11, Color("f3aa55"))
 	render_state({"hp": 100.0, "max_hp": 100.0, "parts": {}, "bleed_percent": 0.0,
 		"segments": {}, "severed_labels": [], "body_split": false, "burning": false,
 		"bleed_hp_per_second": 0.0, "bleed_sites": []})
+
+func _process(delta: float) -> void:
+	_weapon_timer -= delta
+	if _weapon_timer > 0.0 or not is_instance_valid(_scene): return
+	_weapon_timer = 0.2
+	sync_weapon()
+
+func sync_weapon() -> void:
+	if not is_instance_valid(_scene) or not is_instance_valid(_weapon_label): return
+	var id := "none"
+	var host: Node = _scene.get("preview_weapons")
+	if is_instance_valid(host) and host.has_method("arsenal_display_id29"):
+		id = str(host.arsenal_display_id29())
+		var melee: Node = _scene.get("preview_sword_prototype")
+		if id in ["hatchet", "sword", "mace", "axe", "sledge", "spear"] and is_instance_valid(melee) \
+				and (bool(melee.get("_sword_grounded")) or bool(melee.get("_unarmed")) \
+				or bool(melee.get("_player_disarmed")) or not bool(melee.get("_selected")) \
+				or not is_instance_valid(melee.get("_sword"))):
+			id = "none"
+		if id == "hatchet" and is_instance_valid(melee):
+			var hatchets: Node = melee.get("_hatchet32")
+			if is_instance_valid(hatchets) and int(hatchets.call("count")) == 0: id = "none"
+		if id == "bow":
+			var bow: Node = _scene.get("preview_bow_prototype")
+			if is_instance_valid(bow) and bool(bow.get("_grounded")): id = "none"
+		if id == "none" and is_instance_valid(melee) and bool(melee.get("_shield_only31")) \
+				and bool(melee.get("_shield_worn")): id = "shield"
+		if id == "shield" and is_instance_valid(melee) and not bool(melee.get("_shield_worn")):
+			id = "none"
+	var name := "Без оружия"
+	if is_instance_valid(host): name = str(host.LABELS.get(id, "Без оружия"))
+	name = name.replace(" (прототип)", "")
+	if _weapon_label.text != name: _weapon_label.text = name
 
 func _label(parent: Node, value: String, font_size: int, color: Color) -> Label:
 	var label := Label.new()
@@ -194,35 +228,27 @@ func render_state(state: Dictionary) -> void:
 	var maximum := maxf(1.0, float(state.get("max_hp", 100.0)))
 	var hp := clampf(float(state.get("hp", maximum)), 0.0, maximum)
 	var percent := clampf(float(state.get("bleed_percent", 0.0)), 0.0, 100.0)
-	var rate := maxf(0.0, float(state.get("bleed_hp_per_second", 0.0)))
-	_hp_label.text = "ГЕРОЙ  %d / %d" % [int(ceil(hp)), int(ceil(maximum))]
+	_hp_label.text = "Здоровье %d / %d" % [int(ceil(hp)), int(ceil(maximum))]
 	_hp_fill.size.x = BAR_WIDTH * hp / maximum
 	_hp_fill_style.bg_color = Color(0.68, 0.16, 0.13) if hp > maximum * 0.3 else Color(0.82, 0.32, 0.10)
-	_bleed_label.text = "●  Кровотечение %d%%" % int(round(percent))
-	_bleed_label.add_theme_color_override("font_color", Color("ec6850") if percent > 0.0 else Color("d9c7a9"))
-	_rate_label.text = "−%.1f HP/с" % rate if rate > 0.0 else "0.0 HP/с"
-	var sites: Array = state.get("bleed_sites", [])
-	var names: Array[String] = []
-	for site: Variant in sites:
-		var title := str(site)
-		if not title.is_empty() and not names.has(title):
-			names.append(title)
 	var lost: Array = state.get("severed_labels", [])
 	var burning := bool(state.get("burning", false))
 	var split := bool(state.get("body_split", false))
-	var active_bleed := percent > 0.0 or rate > 0.0
 	var segments: Dictionary = state.get("segments", {})
 	var injured := false
 	for segment: Dictionary in segments.values():
 		if float(segment.get("health", 1.0)) < 0.98:
 			injured = true
 			break
-	if not names.is_empty():
-		_sites_label.text = ", ".join(names)
-	elif active_bleed:
-		_sites_label.text = "Место раны не указано"
+	if hp <= 0.0:
+		_status_label.text = "Погиб"
+	elif percent > 0.0:
+		_status_label.text = "●  Кровотечение %d%%" % int(round(percent))
+	elif injured or not lost.is_empty() or split:
+		_status_label.text = "Ранен"
 	else:
-		_sites_label.text = "Ран нет" if lost.is_empty() and not burning and not split and not injured else "Нет активного кровотечения"
+		_status_label.text = "Здоров"
+	_status_label.add_theme_color_override("font_color", Color("ec6850") if percent > 0.0 else Color("d9c7a9"))
 	var lost_text := ", ".join(lost)
 	if split:
 		lost_text = "разделён корпус" if lost_text.is_empty() else lost_text + ", разделён корпус"

@@ -800,6 +800,10 @@ func _build_ui() -> void:
 
 func _refresh_ui() -> void:
 	if is_instance_valid(_walk_ui): _walk_ui.refresh()
+	if is_instance_valid(scene):
+		var vitals_hud: CanvasLayer = scene.get("hero_vitals_hud")
+		if is_instance_valid(vitals_hud) and vitals_hud.has_method("sync_weapon"):
+			vitals_hud.call("sync_weapon")
 
 func set_cargo_reticle(requested: bool) -> void:
 	if cargo_reticle_requested == requested: return

@@ -4261,7 +4261,10 @@ func _apply_player_damage(amount: float, at: Vector3, direction: Vector3, kind: 
 		_play_melee_hit31(at, "metal", clampf(amount / DAMAGE_MAX, 0.1, 1.0))
 	var vitals: RefCounted = _world.get("hero_vitals") if is_instance_valid(_world) else null
 	if vitals != null:
-		vitals.apply_damage(amount, str(struck.sever), kind, visible_wound)
+		# A removed part bleeds from its stump; do not count this same blow as a
+		# second, independent skin wound on tissue that is no longer attached.
+		vitals.apply_damage(amount, str(struck.sever), kind,
+			visible_wound and not _player_severed.has(str(struck.sever)))
 		vitals.sync_body(_player_part_hp, _player_severed, PART_HP,
 			_player_disabled_parts50, _player_mesh_cut_parts50)
 		_sparring_hp = float(vitals.hp)
@@ -6004,9 +6007,12 @@ func _npc_limb_bind_ids(mesh_node: MeshInstance3D, part_key: String, target_rig:
 # Cut in the visible posed surface, then restore the kept vertices to bind space.
 # Detached pieces keep the posed coordinates and no longer follow a skeleton.
 func _cut_skin_transforms39(node: MeshInstance3D, target_rig: Skeleton3D = null) -> Array[Transform3D]:
-	var cut_rig: Skeleton3D = target_rig if is_instance_valid(target_rig) else _npc_rig
+	var cut_rig: Skeleton3D = target_rig
+	if not is_instance_valid(cut_rig):
+		cut_rig = node.get_node_or_null(node.skeleton) as Skeleton3D
+	if not is_instance_valid(cut_rig): cut_rig = _npc_rig
 	var out: Array[Transform3D] = []
-	if node.skin == null: return out
+	if node.skin == null or not is_instance_valid(cut_rig): return out
 	var to_mesh := node.global_transform.affine_inverse() * cut_rig.global_transform
 	for index in node.skin.get_bind_count():
 		var name := node.skin.get_bind_name(index)

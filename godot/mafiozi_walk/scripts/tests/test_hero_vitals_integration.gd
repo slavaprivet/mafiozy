@@ -20,6 +20,19 @@ func _run() -> void:
 	var initial: Dictionary = vitals.snapshot()
 	if initial.hp != 100.0 or initial.bleed_percent != 0:
 		failures.append("initial_state")
+	hud.call("_process", 0.3)
+	var weapon_label: Label = hud.get("_weapon_label")
+	var weapons: Node = scene.get("preview_weapons")
+	if weapon_label.text != "Без оружия": failures.append("initial_weapon_label")
+	if is_instance_valid(weapons):
+		var equipped: Dictionary = weapons.call("equip", "sword")
+		if bool(equipped.get("ok", false)):
+			if not weapon_label.text.contains("меч"): failures.append("held_weapon_label")
+			if bool((weapons.call("equip", "none") as Dictionary).get("ok", false)) \
+					and weapon_label.text != "Без оружия":
+				failures.append("stowed_weapon_label")
+		else:
+			failures.append("weapon_equip_failed")
 	vitals.apply_damage(18.0, "forearm_r", "slice", true)
 	var first: Dictionary = vitals.snapshot()
 	if first.hp != 82.0 or first.wound_count != 1 or first.bleed_percent <= 0 \
@@ -57,9 +70,8 @@ func _run() -> void:
 	var stopped: Dictionary = vitals.snapshot()
 	if stopped.bleed_percent != 0 or stopped.wound_count != 0 or stopped.burning:
 		failures.append("bleeding_did_not_stop")
-	var sites_label: Label = hud.get("_sites_label")
-	if sites_label.text == "Ран нет":
-		failures.append("old_injury_labeled_clean")
+	var status_label: Label = hud.get("_status_label")
+	if status_label.text != "Ранен": failures.append("old_injury_status")
 	var stable_hp := float(stopped.hp)
 	vitals.step(1.0)
 	if not is_equal_approx(float(vitals.snapshot().hp), stable_hp):
@@ -72,7 +84,7 @@ func _run() -> void:
 	if reborn.hp != 100.0 or reborn.wound_count != 0 or reborn.bleed_percent != 0 \
 			or bool(reborn.segments.hand_l.severed) or reborn.burning:
 		failures.append("respawn_reset")
-	if sites_label.text != "Ран нет" or not missing_label.text.is_empty():
+	if status_label.text != "Здоров" or not missing_label.text.is_empty():
 		failures.append("respawn_hud_not_clean")
 	vitals.sync_body({"head": 0.0}, {"head": true}, {"head": 50.0})
 	if not bool(vitals.snapshot().segments.head.severed) or not vitals.snapshot().severed_labels.has("голова"):
@@ -90,8 +102,26 @@ func _run() -> void:
 	var four: Dictionary = vitals.snapshot()
 	vitals.apply_damage(20.0, "thigh_l", "slice", true)
 	var five: Dictionary = vitals.snapshot()
-	if four.wound_count != 4 or five.wound_count != 4 or five.bleed_percent <= four.bleed_percent:
-		failures.append("bounded_fifth_cut")
+	if four.wound_count != 4 or five.wound_count != 5 or five.bleed_percent <= four.bleed_percent:
+		failures.append("fifth_cut_counted")
+	for tick: int in 40: vitals.step(0.1)
+	vitals.apply_damage(2.0, "hand_r", "slice", true)
+	if vitals.snapshot().wound_count != 6: failures.append("repeat_cut_counted")
+	for tick: int in 40: vitals.step(0.1)
+	if vitals.snapshot().wound_count != 1 or float(vitals.snapshot().bleed_hp_per_second) <= 0.0:
+		failures.append("staggered_wound_expiry")
+	for tick: int in 40: vitals.step(0.1)
+	if vitals.snapshot().wound_count != 0 or vitals.snapshot().bleed_percent != 0:
+		failures.append("last_wound_expiry")
+	vitals.reset()
+	for cut: int in 40: vitals.apply_damage(2.0, "forearm_r", "slice", true)
+	var many: Dictionary = vitals.snapshot()
+	vitals.apply_damage(2.0, "forearm_r", "slice", true)
+	var extra: Dictionary = vitals.snapshot()
+	if many.wound_count != 40 or extra.wound_count != 41 \
+			or float(extra.bleed_hp_per_second) <= float(many.bleed_hp_per_second) \
+			or float(extra.bleed_hp_per_second) >= 6.0:
+		failures.append("many_cuts_bounded_monotonic")
 	vitals.reset()
 	var sword: Node = scene.get("preview_sword_prototype")
 	var player: Node = scene.get("_player")
@@ -163,5 +193,50 @@ func _run() -> void:
 		var fresh: RefCounted = current_scene.get("hero_vitals") if current_scene != null else null
 		if fresh == null or fresh.snapshot().hp != 100.0 or fresh.snapshot().wound_count != 0:
 			failures.append("scene_respawn_not_clean")
+		else:
+			var live_sword: Node = current_scene.get("preview_sword_prototype")
+			var live_player: Node3D = current_scene.get("_player")
+			var live_hud: CanvasLayer = current_scene.get("hero_vitals_hud")
+			if not is_instance_valid(live_sword) or not is_instance_valid(live_player):
+				failures.append("real_sever_setup")
+			else:
+				var hit_at := live_player.global_position + Vector3.UP * 1.2
+				live_sword.call("_apply_player_damage", 60.0, hit_at, Vector3.RIGHT,
+					"slice", "hand_r", null, Vector3.ZERO, -1.0)
+				var actual: Dictionary = live_sword.call("snapshot")
+				var hero: Dictionary = fresh.snapshot()
+				if not (actual.get("player_severed", []) as Array).has("hand_r") \
+						or not bool(hero.segments.hand_l.severed) \
+						or not str(live_hud.get("_lost_label").text).contains("левая кисть"):
+					failures.append("real_hand_sever_not_in_hud")
+				if hero.wound_count != 1:
+					failures.append("sever_counted_twice")
+				live_sword.call("_apply_player_damage", 999.0, hit_at, Vector3.RIGHT,
+					"slice", "head", null, Vector3.ZERO, -1.0)
+				actual = live_sword.call("snapshot")
+				hero = fresh.snapshot()
+				if not (actual.get("player_severed", []) as Array).has("head") \
+						or not bool(hero.segments.head.severed) \
+						or not str(live_hud.get("_lost_label").text).contains("голова") \
+						or hero.body_split:
+					failures.append("real_head_sever_not_in_hud")
+				if reload_current_scene() != OK:
+					failures.append("torso_scene_reload_failed")
+				else:
+					var torso_deadline := Time.get_ticks_msec() + 120000
+					while Time.get_ticks_msec() < torso_deadline and (current_scene == null \
+							or current_scene.get("preview_ready") != true):
+						await physics_frame
+					var torso_sword: Node = current_scene.get("preview_sword_prototype") if current_scene != null else null
+					var torso_player: Node3D = current_scene.get("_player") if current_scene != null else null
+					var torso_vitals: RefCounted = current_scene.get("hero_vitals") if current_scene != null else null
+					if not is_instance_valid(torso_sword) or not is_instance_valid(torso_player) or torso_vitals == null:
+						failures.append("real_torso_setup")
+					else:
+						torso_sword.call("_apply_player_damage", 999.0,
+							torso_player.global_position + Vector3.UP * 1.2, Vector3.RIGHT,
+							"slice", "chest", null, Vector3.ZERO, -1.0)
+						if not bool(current_scene.get("preview_dead")) or torso_vitals.snapshot().body_split:
+							failures.append("false_real_torso_split")
 	print("HERO_VITALS ", "PASS" if failures.is_empty() else "FAIL " + str(failures))
 	quit(0 if failures.is_empty() else 1)

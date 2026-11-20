@@ -3,10 +3,9 @@ extends RefCounted
 ## the cosmetic blood pool never creates damage or wounds.
 
 const MAX_HP := 100.0
-## The cosmetic blood pool also keeps at most four active sources per host.
-const MAX_WOUNDS := 4
 const BLEED_TICK := 0.1
 const MAX_BLEED_HP_PER_SECOND := 6.0
+const BLEED_BUCKETS := 121 # The longest source lasts 120 ticks.
 const GROUPS := ["head", "chest", "pelvis", "arm_l", "arm_r", "leg_l", "leg_r"]
 const SEGMENTS := ["head", "chest", "pelvis", "upperarm_l", "upperarm_r",
 	"forearm_l", "forearm_r", "hand_l", "hand_r", "thigh_l", "thigh_r",
@@ -25,7 +24,14 @@ const SEGMENT_LABELS := {"head": "голова", "chest": "грудь", "pelvis"
 var hp := MAX_HP
 var _scene: Node
 var _hud: CanvasLayer
-var _wounds: Array[Dictionary] = []
+var _rate_buckets: Array[PackedFloat32Array] = []
+var _count_buckets: Array[PackedInt32Array] = []
+var _expiry_slots := PackedByteArray()
+var _active_rates := PackedFloat32Array()
+var _active_counts := PackedInt32Array()
+var _bleed_tick := 0
+var _wound_count := 0
+var _raw_bleed_rate := 0.0
 var _parts: Dictionary = {}
 var _segments: Dictionary = {}
 var _severed: Dictionary = {}
@@ -44,7 +50,26 @@ func configure(scene: Node, hud: CanvasLayer) -> void:
 
 func reset() -> void:
 	hp = MAX_HP
-	_wounds.clear()
+	_rate_buckets.clear()
+	_count_buckets.clear()
+	_expiry_slots.resize(BLEED_BUCKETS)
+	_expiry_slots.fill(0)
+	_active_rates.resize(SEGMENTS.size())
+	_active_rates.fill(0.0)
+	_active_counts.resize(SEGMENTS.size())
+	_active_counts.fill(0)
+	for slot: int in BLEED_BUCKETS:
+		var rates := PackedFloat32Array()
+		rates.resize(SEGMENTS.size())
+		rates.fill(0.0)
+		_rate_buckets.append(rates)
+		var counts := PackedInt32Array()
+		counts.resize(SEGMENTS.size())
+		counts.fill(0)
+		_count_buckets.append(counts)
+	_bleed_tick = 0
+	_wound_count = 0
+	_raw_bleed_rate = 0.0
 	_severed.clear()
 	_disabled.clear()
 	_parts.clear()
@@ -100,7 +125,7 @@ func apply_damage(amount: float, part: String, kind: String = "blunt", penetrate
 	var segment_row: Dictionary = _segments[segment]
 	segment_row.health = maxf(0.0, float(segment_row.health) - amount / MAX_HP)
 	_segments[segment] = segment_row
-	if kind in ["slice", "stab"] and penetrates and amount >= 2.0:
+	if kind in ["slice", "stab"] and penetrates:
 		_add_wound(group, segment, amount, kind)
 	else:
 		var row: Dictionary = _parts[group]
@@ -112,17 +137,26 @@ func apply_damage(amount: float, part: String, kind: String = "blunt", penetrate
 	return {"applied": true, "before": before, "hp": hp, "group": group}
 
 func _add_wound(group: String, segment: String, amount: float, kind: String) -> void:
-	# The skin drip lasts eight seconds; severe cuts bleed faster throughout it.
+	# All confirmed cuts affect health; only the cosmetic blood host limits particles.
 	var severity := clampf(amount / 30.0, 0.08, 1.0)
 	var rate := (0.12 + severity * 1.0) * (0.72 if kind == "stab" else 1.0)
-	if _wounds.size() >= MAX_WOUNDS:
-		var weakest := 0
-		for index: int in range(1, _wounds.size()):
-			if float(_wounds[index].severity) < float(_wounds[weakest].severity): weakest = index
-		if severity <= float(_wounds[weakest].severity) + 0.05: return
-		_wounds.remove_at(weakest)
-	_wounds.append({"group": group, "segment": segment, "rate": rate, "remaining": 8.0,
-		"severity": severity})
+	_schedule_wound(segment, rate, 80)
+
+func _schedule_wound(segment: String, rate: float, duration_ticks: int) -> void:
+	var index := SEGMENTS.find(segment)
+	if index < 0: return
+	var slot := (_bleed_tick + duration_ticks) % BLEED_BUCKETS
+	var rates: PackedFloat32Array = _rate_buckets[slot]
+	rates[index] += rate
+	_rate_buckets[slot] = rates
+	var counts: PackedInt32Array = _count_buckets[slot]
+	counts[index] += 1
+	_count_buckets[slot] = counts
+	_expiry_slots[slot] = 1
+	_active_rates[index] += rate
+	_active_counts[index] += 1
+	_raw_bleed_rate += rate
+	_wound_count += 1
 	_recompute_bleed()
 
 func sync_body(part_hp: Dictionary, severed: Dictionary, maxima: Dictionary,
@@ -168,14 +202,7 @@ func sync_body(part_hp: Dictionary, severed: Dictionary, maxima: Dictionary,
 		row.health = minf(float(row.health), 0.15)
 		_parts[group] = row
 		# A committed stump has its own finite blood source.
-		if group != "head":
-			if _wounds.size() >= MAX_WOUNDS:
-				var weakest := 0
-				for index: int in range(1, _wounds.size()):
-					if float(_wounds[index].severity) < float(_wounds[weakest].severity): weakest = index
-				_wounds.remove_at(weakest)
-			_wounds.append({"group": group, "segment": segment, "rate": 1.45, "remaining": 12.0,
-				"severity": 1.0})
+		if group != "head": _schedule_wound(segment, 1.45, 120)
 		changed = true
 	for key: Variant in disabled:
 		var part := str(key)
@@ -203,18 +230,32 @@ func step(delta: float) -> void:
 		_burn_until = 0.0
 		_revision += 1
 		_refresh()
-	if _wounds.is_empty(): return
+	if _wound_count == 0: return
 	_tick_accum += minf(delta, 0.25)
-	if _tick_accum < BLEED_TICK: return
-	var elapsed := _tick_accum
-	_tick_accum = 0.0
-	for index: int in range(_wounds.size() - 1, -1, -1):
-		_wounds[index].remaining = float(_wounds[index].remaining) - elapsed
-		if float(_wounds[index].remaining) <= 0.0:
-			_wounds.remove_at(index)
-	_recompute_bleed()
-	if _bleed_rate > 0.0:
-		hp = maxf(0.0, hp - _bleed_rate * elapsed)
+	if _tick_accum + 0.00001 < BLEED_TICK: return
+	var changed := false
+	while _tick_accum + 0.00001 >= BLEED_TICK and hp > 0.0 and _wound_count > 0:
+		_tick_accum -= BLEED_TICK
+		_bleed_tick += 1
+		hp = maxf(0.0, hp - _bleed_rate * BLEED_TICK)
+		changed = true
+		var slot := _bleed_tick % BLEED_BUCKETS
+		if _expiry_slots[slot] == 0: continue
+		var rates: PackedFloat32Array = _rate_buckets[slot]
+		var counts: PackedInt32Array = _count_buckets[slot]
+		for index: int in SEGMENTS.size():
+			if counts[index] == 0: continue
+			_active_rates[index] = maxf(0.0, _active_rates[index] - rates[index])
+			_active_counts[index] -= counts[index]
+			_raw_bleed_rate = maxf(0.0, _raw_bleed_rate - rates[index])
+			_wound_count -= counts[index]
+		rates.fill(0.0)
+		counts.fill(0)
+		_rate_buckets[slot] = rates
+		_count_buckets[slot] = counts
+		_expiry_slots[slot] = 0
+		_recompute_bleed()
+	if not changed: return
 	_sync_legacy_health()
 	_revision += 1
 	_refresh()
@@ -222,26 +263,26 @@ func step(delta: float) -> void:
 		_scene.call("hero_bleedout")
 
 func _recompute_bleed() -> void:
-	_bleed_rate = 0.0
-	for wound: Dictionary in _wounds:
-		_bleed_rate += float(wound.rate)
-	_bleed_rate = minf(MAX_BLEED_HP_PER_SECOND, _bleed_rate)
+	# Every accepted cut increases blood loss, even above the former hard cap;
+	# the curve stays below the safe per-actor maximum at any wound count.
+	_bleed_rate = MAX_BLEED_HP_PER_SECOND * (1.0 - exp(-_raw_bleed_rate / MAX_BLEED_HP_PER_SECOND))
 	for group: String in GROUPS:
 		var row: Dictionary = _parts[group]
 		row.bleeding = false
 		_parts[group] = row
 	for segment: String in SEGMENTS:
 		var segment_row: Dictionary = _segments[segment]
-		segment_row.bleeding = false
+		segment_row.bleeding = _active_counts[SEGMENTS.find(segment)] > 0
 		_segments[segment] = segment_row
-	for wound: Dictionary in _wounds:
-		var row: Dictionary = _parts[str(wound.group)]
-		row.bleeding = true
-		_parts[str(wound.group)] = row
-		var segment: String = str(wound.segment)
-		var segment_row: Dictionary = _segments[segment]
-		segment_row.bleeding = true
-		_segments[segment] = segment_row
+		if bool(segment_row.bleeding):
+			var group := segment
+			if segment.begins_with("upperarm") or segment.begins_with("forearm") or segment.begins_with("hand"):
+				group = "arm" + segment.substr(segment.length() - 2)
+			elif segment.begins_with("thigh") or segment.begins_with("shin") or segment.begins_with("foot"):
+				group = "leg" + segment.substr(segment.length() - 2)
+			var row: Dictionary = _parts[group]
+			row.bleeding = true
+			_parts[group] = row
 
 func note_burning(seconds: float) -> void:
 	if hp <= 0.0 or not is_finite(seconds) or seconds <= 0.0: return
@@ -276,7 +317,7 @@ func snapshot() -> Dictionary:
 		"body_split": _body_split, "burning": _burn_until > _clock,
 		"bleed_percent": roundi(_bleed_rate / MAX_BLEED_HP_PER_SECOND * 100.0),
 		"bleed_hp_per_second": _bleed_rate, "bleed_sites": sites,
-		"wound_count": _wounds.size(), "severed": _severed.keys(), "revision": _revision}
+		"wound_count": _wound_count, "severed": _severed.keys(), "revision": _revision}
 
 func _sync_legacy_health() -> void:
 	if not is_instance_valid(_scene): return
