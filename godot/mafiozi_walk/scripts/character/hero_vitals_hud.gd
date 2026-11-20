@@ -27,6 +27,13 @@ class BodyDiagram extends Control:
 		queue_redraw()
 
 	func _part_status(key: String) -> String:
+		# An intact distal segment cannot float after its parent was cut away.
+		var parent := ""
+		if key.begins_with("forearm"): parent = key.replace("forearm", "upperarm")
+		elif key.begins_with("hand"): parent = key.replace("hand", "forearm")
+		elif key.begins_with("shin"): parent = key.replace("shin", "thigh")
+		elif key.begins_with("foot"): parent = key.replace("foot", "shin")
+		if parent != "" and _part_status(parent) == "severed": return "severed"
 		var value: Variant = segments.get(key, "healthy")
 		if value is Dictionary:
 			if bool(value.get("severed", false)):
@@ -54,6 +61,9 @@ class BodyDiagram extends Control:
 		return str(armor.get(SLOT_FOR_SEGMENT.get(key, ""), ""))
 
 	func _shape(points: PackedVector2Array, key: String) -> void:
+		# A severed segment is physically absent. Its stump is drawn at the
+		# surviving parent below, rather than filling the missing shape gray.
+		if _part_status(key) == "severed": return
 		draw_colored_polygon(points, _color(key))
 		var outline := points.duplicate()
 		outline.append(points[0])
@@ -94,14 +104,35 @@ class BodyDiagram extends Control:
 	func _mark_severed(key: String, at: Vector2) -> void:
 		if _part_status(key) != "severed":
 			return
+		var parent := ""
+		if key.begins_with("forearm"): parent = key.replace("forearm", "upperarm")
+		elif key.begins_with("hand"): parent = key.replace("hand", "forearm")
+		elif key.begins_with("shin"): parent = key.replace("shin", "thigh")
+		elif key.begins_with("foot"): parent = key.replace("foot", "shin")
+		if parent != "" and _part_status(parent) == "severed": return
+		match key:
+			"head": at = Vector2(36, 26)
+			"upperarm_l": at = Vector2(21, 32)
+			"upperarm_r": at = Vector2(51, 32)
+			"forearm_l": at = Vector2(15, 45)
+			"forearm_r": at = Vector2(57, 45)
+			"hand_l": at = Vector2(13, 58)
+			"hand_r": at = Vector2(59, 58)
+			"thigh_l": at = Vector2(30, 64)
+			"thigh_r": at = Vector2(42, 64)
+			"shin_l": at = Vector2(29, 78)
+			"shin_r": at = Vector2(43, 78)
+			"foot_l": at = Vector2(28, 92)
+			"foot_r": at = Vector2(44, 92)
 		var red := Color(0.88, 0.28, 0.22)
-		draw_line(at + Vector2(-4.0, -4.0), at + Vector2(4.0, 4.0), red, 1.8, true)
-		draw_line(at + Vector2(4.0, -4.0), at + Vector2(-4.0, 4.0), red, 1.8, true)
+		draw_line(at + Vector2(-3.0, 0.0), at + Vector2(3.0, 0.0), red, 2.0, true)
+		draw_circle(at, 1.3, Color(0.98, 0.68, 0.52))
 
 	func _draw() -> void:
 		# Adjacent polygons overlap slightly. Their former one-pixel gaps were
 		# especially visible at the wrists, waist, knees and ankles at HUD scale.
-		draw_rect(Rect2(32, 25, 8, 5), _color("chest"))
+		if _part_status("chest") != "severed":
+			draw_rect(Rect2(32, 25, 8, 5), _color("chest"))
 		_shape(PackedVector2Array([Vector2(23, 29), Vector2(49, 29), Vector2(48, 53), Vector2(24, 53)]), "chest")
 		_shape(PackedVector2Array([Vector2(24, 52), Vector2(48, 52), Vector2(47, 64), Vector2(25, 64)]), "pelvis")
 		_shape(PackedVector2Array([Vector2(23, 29), Vector2(15, 34), Vector2(13, 45), Vector2(21, 47), Vector2(29, 38)]), "upperarm_l")
@@ -116,19 +147,21 @@ class BodyDiagram extends Control:
 		_shape(PackedVector2Array([Vector2(36, 63), Vector2(47, 63), Vector2(48, 78), Vector2(38, 78)]), "thigh_r")
 		_shape(PackedVector2Array([Vector2(38, 77), Vector2(48, 77), Vector2(49, 92), Vector2(39, 92)]), "shin_r")
 		_shape(PackedVector2Array([Vector2(39, 91), Vector2(49, 91), Vector2(52, 98), Vector2(38, 98)]), "foot_r")
-		draw_circle(Vector2(36, 17), 10.5, _color("head"))
+		if _part_status("head") != "severed":
+			draw_circle(Vector2(36, 17), 10.5, _color("head"))
 		var head_tier := armor_tier_for_segment("head")
 		if head_tier in ["light", "medium", "heavy"]:
 			var helmet := Color(0.46, 0.27, 0.13) if head_tier == "light" else \
 				Color(0.36, 0.46, 0.50) if head_tier == "medium" else Color(0.16, 0.22, 0.27)
 			draw_arc(Vector2(36, 17), 8.0, PI, TAU, 12, helmet, 4.0, true)
-		draw_arc(Vector2(36, 17), 10.5, 0.0, TAU, 20, Color(0.14, 0.16, 0.16), 1.5, true)
+		if _part_status("head") != "severed":
+			draw_arc(Vector2(36, 17), 10.5, 0.0, TAU, 20, Color(0.14, 0.16, 0.16), 1.5, true)
 		if body_split:
 			draw_line(Vector2(22, 52), Vector2(50, 52), Color(0.95, 0.24, 0.18), 2.0, true)
 		for key: String in KEYS:
 			_mark_severed(key, _position(key))
 			var part: Dictionary = segments.get(key, {})
-			if not bool(part.get("bleeding", false)):
+			if _part_status(key) == "severed" or not bool(part.get("bleeding", false)):
 				continue
 			var at := _position(key)
 			at.x += 5.0 if key in ["head", "chest", "pelvis", "thigh_l", "shin_l", "foot_l"] else -5.0
