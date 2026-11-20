@@ -404,6 +404,7 @@ var _impact_player: AudioStreamPlayer3D
 var _spark: MeshInstance3D
 var _spark_left := 0.0
 var _hint_layer: CanvasLayer
+var _hint_panel: PanelContainer
 var _hint: Label
 
 func install(world: Node3D, player: CharacterBody3D) -> Dictionary:
@@ -1212,7 +1213,9 @@ func _build_hint() -> void:
 	_hint_layer = CanvasLayer.new(); _hint_layer.layer = 30
 	_world.add_child(_hint_layer)
 	var panel := PanelContainer.new()
-	panel.position = Vector2(18, 150)
+	_hint_panel = panel
+	panel.position = Vector2(maxf(280.0, _world.get_viewport().get_visible_rect().size.x - 430.0), 150.0) if _castle_enemy_only else Vector2(18, 150)
+	panel.visible = false
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.05, 0.06, 0.08, 0.72)
 	style.content_margin_left = 10; style.content_margin_right = 10
@@ -1230,8 +1233,9 @@ func _update_hint() -> void:
 	if not is_instance_valid(_hint): return
 	var reachable := not _nearest_ground_sword().is_empty()
 	_hint_ground_reachable = reachable
-	if _sword_grounded or _unarmed:
+	if not _selected or _sword_grounded or _unarmed:
 		_hint.text = ""
+		if is_instance_valid(_hint_panel): _hint_panel.visible = false
 		return
 	var mode := "ПОЛУМЕЧ: рука на лезвии, укол в щели доспеха" if _half_sword else "ЛКМ + ПКМ — двуручный хват, удар сильнее"
 	var right_hint := "Удерживать ПКМ и двигать мышью — удар правой рукой" if _right_hand_weapon54() else "ПКМ — блок / щит"
@@ -1239,6 +1243,7 @@ func _update_hint() -> void:
 	if reachable and not is_instance_valid(_world.get("preview_castle")):
 		text += "\nE — поднять оружие"
 	_hint.text = text
+	if is_instance_valid(_hint_panel): _hint_panel.visible = true
 
 ## True while some sword lies within reach, so the hint can be refreshed cheaply.
 var _hint_ground_reachable := false

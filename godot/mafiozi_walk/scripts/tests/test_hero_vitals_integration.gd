@@ -39,9 +39,17 @@ func _run() -> void:
 	var weapons: Node = scene.get("preview_weapons")
 	if weapon_label.text != "Без оружия": failures.append("initial_weapon_label")
 	if is_instance_valid(weapons):
+		var weapon_ui: Control = weapons.get("_walk_ui")
+		var icons: Dictionary = weapon_ui.get("textures") if is_instance_valid(weapon_ui) else {}
+		for id: String in ["none", "hatchet", "sword", "mace", "axe", "sledge", "spear", "shield", "bow"]:
+			if not (icons.get(id) is Texture2D):
+				failures.append("missing_weapon_icon_" + id)
 		var equipped: Dictionary = weapons.call("equip", "sword")
 		if bool(equipped.get("ok", false)):
 			if not weapon_label.text.contains("меч"): failures.append("held_weapon_label")
+			var hint_panel: Control = scene.get("preview_sword_prototype").get("_hint_panel")
+			if not is_instance_valid(hint_panel) or hint_panel.position.x < 270.0:
+				failures.append("sword_hint_overlaps_vitals")
 			var weapon_icon: TextureRect = hud.get("_weapon_icon")
 			if not is_instance_valid(weapon_icon) or weapon_icon.texture == null:
 				failures.append("held_weapon_icon")

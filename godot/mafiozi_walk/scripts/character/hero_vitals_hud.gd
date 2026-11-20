@@ -69,7 +69,7 @@ class BodyDiagram extends Control:
 				high = high.max(point)
 			centre /= float(points.size())
 			var inset := PackedVector2Array()
-			for point: Vector2 in points: inset.append(centre + (point - centre) * 0.78)
+			for point: Vector2 in points: inset.append(centre + (point - centre) * 0.92)
 			var plate := Color(0.46, 0.27, 0.13) if tier == "light" else \
 				Color(0.36, 0.46, 0.50) if tier == "medium" else Color(0.16, 0.22, 0.27)
 			draw_colored_polygon(inset, plate)
@@ -86,8 +86,10 @@ class BodyDiagram extends Control:
 				draw_circle(centre, 1.4, edge)
 			if status in ["critical", "injured"]:
 				var wound := Color(0.95, 0.18, 0.12) if status == "critical" else Color(0.94, 0.47, 0.18)
+				draw_colored_polygon(inset.slice(0, points.size()), Color(wound.r, wound.g, wound.b, 0.32))
 				draw_line(centre + Vector2(-3, -2), centre + Vector2(3, 2), wound, 2.0, true)
-		draw_polyline(outline, Color(0.88, 0.20, 0.15) if status == "critical" else Color(0.14, 0.16, 0.16), 1.5, true)
+		# Fine seams keep neighbouring parts readable without black joint holes.
+		draw_polyline(outline, Color(0.88, 0.20, 0.15) if status == "critical" else Color(0.27, 0.30, 0.28, 0.38), 0.65, true)
 
 	func _mark_severed(key: String, at: Vector2) -> void:
 		if _part_status(key) != "severed":
@@ -97,20 +99,23 @@ class BodyDiagram extends Control:
 		draw_line(at + Vector2(4.0, -4.0), at + Vector2(-4.0, 4.0), red, 1.8, true)
 
 	func _draw() -> void:
-		_shape(PackedVector2Array([Vector2(23, 29), Vector2(49, 29), Vector2(48, 52), Vector2(24, 52)]), "chest")
-		_shape(PackedVector2Array([Vector2(24, 53), Vector2(48, 53), Vector2(47, 63), Vector2(25, 63)]), "pelvis")
-		_shape(PackedVector2Array([Vector2(22, 30), Vector2(15, 34), Vector2(13, 44), Vector2(20, 46), Vector2(29, 38)]), "upperarm_l")
-		_shape(PackedVector2Array([Vector2(13, 45), Vector2(20, 47), Vector2(17, 58), Vector2(10, 57)]), "forearm_l")
-		_shape(PackedVector2Array([Vector2(10, 58), Vector2(17, 59), Vector2(16, 66), Vector2(9, 65)]), "hand_l")
-		_shape(PackedVector2Array([Vector2(50, 30), Vector2(57, 34), Vector2(59, 44), Vector2(52, 46), Vector2(43, 38)]), "upperarm_r")
-		_shape(PackedVector2Array([Vector2(59, 45), Vector2(52, 47), Vector2(55, 58), Vector2(62, 57)]), "forearm_r")
-		_shape(PackedVector2Array([Vector2(62, 58), Vector2(55, 59), Vector2(56, 66), Vector2(63, 65)]), "hand_r")
-		_shape(PackedVector2Array([Vector2(25, 63), Vector2(36, 63), Vector2(34, 77), Vector2(24, 77)]), "thigh_l")
-		_shape(PackedVector2Array([Vector2(24, 78), Vector2(34, 78), Vector2(33, 91), Vector2(23, 91)]), "shin_l")
-		_shape(PackedVector2Array([Vector2(23, 92), Vector2(33, 92), Vector2(34, 98), Vector2(20, 98)]), "foot_l")
-		_shape(PackedVector2Array([Vector2(36, 63), Vector2(47, 63), Vector2(48, 77), Vector2(38, 77)]), "thigh_r")
-		_shape(PackedVector2Array([Vector2(38, 78), Vector2(48, 78), Vector2(49, 91), Vector2(39, 91)]), "shin_r")
-		_shape(PackedVector2Array([Vector2(39, 92), Vector2(49, 92), Vector2(52, 98), Vector2(38, 98)]), "foot_r")
+		# Adjacent polygons overlap slightly. Their former one-pixel gaps were
+		# especially visible at the wrists, waist, knees and ankles at HUD scale.
+		draw_rect(Rect2(32, 25, 8, 5), _color("chest"))
+		_shape(PackedVector2Array([Vector2(23, 29), Vector2(49, 29), Vector2(48, 53), Vector2(24, 53)]), "chest")
+		_shape(PackedVector2Array([Vector2(24, 52), Vector2(48, 52), Vector2(47, 64), Vector2(25, 64)]), "pelvis")
+		_shape(PackedVector2Array([Vector2(23, 29), Vector2(15, 34), Vector2(13, 45), Vector2(21, 47), Vector2(29, 38)]), "upperarm_l")
+		_shape(PackedVector2Array([Vector2(13, 44), Vector2(21, 46), Vector2(17, 59), Vector2(10, 58)]), "forearm_l")
+		_shape(PackedVector2Array([Vector2(10, 57), Vector2(17, 58), Vector2(16, 66), Vector2(9, 66)]), "hand_l")
+		_shape(PackedVector2Array([Vector2(49, 29), Vector2(57, 34), Vector2(59, 45), Vector2(51, 47), Vector2(43, 38)]), "upperarm_r")
+		_shape(PackedVector2Array([Vector2(59, 44), Vector2(51, 46), Vector2(55, 59), Vector2(62, 58)]), "forearm_r")
+		_shape(PackedVector2Array([Vector2(62, 57), Vector2(55, 58), Vector2(56, 66), Vector2(63, 66)]), "hand_r")
+		_shape(PackedVector2Array([Vector2(25, 63), Vector2(36, 63), Vector2(34, 78), Vector2(24, 78)]), "thigh_l")
+		_shape(PackedVector2Array([Vector2(24, 77), Vector2(34, 77), Vector2(33, 92), Vector2(23, 92)]), "shin_l")
+		_shape(PackedVector2Array([Vector2(23, 91), Vector2(33, 91), Vector2(34, 98), Vector2(20, 98)]), "foot_l")
+		_shape(PackedVector2Array([Vector2(36, 63), Vector2(47, 63), Vector2(48, 78), Vector2(38, 78)]), "thigh_r")
+		_shape(PackedVector2Array([Vector2(38, 77), Vector2(48, 77), Vector2(49, 92), Vector2(39, 92)]), "shin_r")
+		_shape(PackedVector2Array([Vector2(39, 91), Vector2(49, 91), Vector2(52, 98), Vector2(38, 98)]), "foot_r")
 		draw_circle(Vector2(36, 17), 10.5, _color("head"))
 		var head_tier := armor_tier_for_segment("head")
 		if head_tier in ["light", "medium", "heavy"]:

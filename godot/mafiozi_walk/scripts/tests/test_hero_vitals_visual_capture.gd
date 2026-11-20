@@ -21,6 +21,18 @@ func _run() -> void:
 		print("HERO_VISUAL_CAPTURE FAIL armor")
 		quit(1)
 		return
+	for frame: int in 30: await process_frame
+	var diagram: Control = scene.get("hero_vitals_hud").get("_diagram")
+	print("HERO_VISUAL_BARE_HAND ", diagram.call("_part_status", "hand_l"), " ", diagram.call("_part_status", "hand_r"))
+	var sword: Node = scene.get("preview_sword_prototype")
+	if not is_instance_valid(sword) or (sword.get("_hint_panel") as Control).visible:
+		print("HERO_VISUAL_CAPTURE FAIL empty_sword_hint_overlaps_diagram")
+		quit(1)
+		return
+	var bare_path := output.path_join("hero_bare_hud.png")
+	var bare_result := scene.get_viewport().get_texture().get_image().save_png(bare_path)
+	var player: CharacterBody3D = scene.get("_player")
+	player.set("_free_mouse_look", true)
 	for id: String in ["light_torso", "medium_hands", "heavy_legs", "light_feet"]:
 		if not bool((armor.call("equip_ground", id) as Dictionary).get("ok", false)):
 			print("HERO_VISUAL_CAPTURE FAIL equip ", id)
@@ -29,8 +41,6 @@ func _run() -> void:
 	for frame: int in 30: await process_frame
 	var armor_path := output.path_join("hero_armor_hud.png")
 	var armor_result := scene.get_viewport().get_texture().get_image().save_png(armor_path)
-	var sword: Node = scene.get("preview_sword_prototype")
-	var player: CharacterBody3D = scene.get("_player")
 	sword.call("_kill_player", player.global_position + Vector3.UP, Vector3.RIGHT, 65.0)
 	var death_state: Dictionary = sword.call("snapshot").get("player_death_physics31", {})
 	print("HERO_VISUAL_DEATH_STATE ", death_state,
@@ -49,6 +59,6 @@ func _run() -> void:
 		fell = head.y - pelvis.y < 1.0
 	var death_path := output.path_join("hero_death_camera.png")
 	var death_result := scene.get_viewport().get_texture().get_image().save_png(death_path)
-	print("HERO_VISUAL_CAPTURE ", "PASS" if armor_result == OK and death_result == OK and fell else "FAIL",
-		" armor=", armor_path, " death=", death_path)
-	quit(0 if armor_result == OK and death_result == OK and fell else 1)
+	print("HERO_VISUAL_CAPTURE ", "PASS" if bare_result == OK and armor_result == OK and death_result == OK and fell else "FAIL",
+		" bare=", bare_path, " armor=", armor_path, " death=", death_path)
+	quit(0 if bare_result == OK and armor_result == OK and death_result == OK and fell else 1)
