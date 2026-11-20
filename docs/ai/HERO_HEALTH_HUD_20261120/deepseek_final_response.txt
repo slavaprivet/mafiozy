@@ -1,0 +1,34 @@
+# Audit: HeroVitals Godot 4.7 integration
+
+## High-risk correctness
+
+**1. 0.1s tick vs 1.1s / 1.7s burn windows — off-by-one exposure.** With a 0.1s accumulator, a 1.1s burning flag can be seen as 11 or 12 ticks depending on phase, and Molotov contact "tick" cadence is decoupled from the fire 0.5s cadence. Molotov burning (1.1s) can expire between castle fire checks (0.5s), so a player standing in fire can briefly lose eligibility mid-stage at fire-check phase boundaries. **Fix:** store `burning_until: float` (monotonic) and test `now < burning_until` in the same 0.1s tick; do not decrement a counter.
+
+**2. Bleed-severity stacking silently clips at 4 wounds.** "Each accepted slice adds 8 sec at severity-based HP/sec" — once four wounds are active, a fifth accepted visible slice either drops silently or evicts the oldest, but the *mechanical* damage from the sword still applied. Player takes invisible mechanical HP loss with no HUD wound, and the 4-wound cap means bleed DPS is not proportional to visible blood. **Fix:** either (a) reject the *visible* wound AND the *mechanical* damage together (return false from acceptance, undo sword damage), or (b) fold additional slices into the newest wound's severity (increase its per-sec rate) so total bleed DPS stays consistent with cosmetic 4-source cap.
+
+**3. Burn as "without extra burn damage" vs fire applying 2 HP.** Molotov sets burning with no HP; castle fire sets burning with 2 HP per 0.5s check. A Molotov-refreshed burning flag during fire contact can *suppress* the fire's 2 HP if the code checks `if not burning: apply` — order-dependent. **Fix:** make damage and burning-status separate writes; fire check always applies 2 HP, then sets `burning_until = max(burning_until, now + 0.7)`. Never gate damage on burning.
+
+**4. Legacy mirror divergence.** Sword owns `_player_part_hp`/`_player_severed` AND calls `HeroVitals.apply_damage` + `sync_body`. If `apply_damage` rejects (4-wound cap, or after-death), the sword's legacy mirror has already mutated → HUD (vitals-driven) and gameplay (mirror-driven) disagree, and "only `_player_severed` marks physically absent" becomes stale. **Fix:** `apply_damage` returns `{accepted: bool, vitals_delta: dict}`; sword applies mechanical mutation *after* acceptance, or rolls legacy mirror back on rejection. Single-source `_player_severed` reads from `HeroVitals.severed_parts`.
+
+**5. Real torso split double-gate.** Requiring both `HeroVitals.severed_chest && severed_pelvis` **and** mesh cut receipt means a physical mesh cut can fire while vitals disagrees (or vice versa) → torso split desync between HUD, physics, and mesh. **Fix:** one authority (vitals) owns `torso_split`; mesh receipt is an *event* that calls `vitals.try_commit_torso_split()`, which validates both booleans. HUD just reads `vitals.torso_split`.
+
+**6. Scene reload reconstruct.** If `HeroVitals` is RefCounted created in `_ready` but caches are referenced by a HUD signal connection across reload, stale connections fire on freed HUD. Also `_player_part_hp` and legacy mirrors must be explicitly reset — a RefCounted recreated *does not* reset sword fields. **Fix:** on `tree_exiting`/`NOTIFICATION_PREDELETE`, disconnect all signals; call `sword.reset_legacy_state()` in scene `_ready`; assert `vitals.hp == legacy_hp` after reset in a test.
+
+**7. Fire "up to 6 flames every 0.5s" — 6 raycasts per check.** At high flame density and many players, 12 rays/sec/player × players is fine, but distance+physics ray ordering means a wall between player and flame at hit-phase can flip damage on/off every 0.5s. **Fix:** hysteresis — require two consecutive clears to stop damage, or a 0.15s grace. Also skip ray if distance² already > radius².
+
+## Performance
+
+**8. HUD 15 segments redrawn per 0.1s tick per frame.** Fine at 1 player, wasteful with multiple vitals. **Fix:** only `queue_redraw()` on integer segment change (`int(hp/max*15)` diff).
+
+**9. Per-tick wound iteration for bleed.** 4 wounds × 10 Hz = trivial, but `sync_body` called from sword on every acceptance may re-enter tick. **Fix:** debounce `sync_body` to tick boundary.
+
+**10. Ray each fire check uses physics space directly** — ensure `intersect_ray` uses a collision mask excluding the player, or Molotov-adjacent flame always hits the player's own capsule.
+
+## Test gaps implied
+
+- Off-by-one: assert exact HP after N seconds of burning across phase offsets (+0.05s, +0.09s).
+- 5th wound: assert both sword mirror and vitals agree post-rejection.
+- Reload: assert no signal leak (`vitals.is_connected` after reload).
+- Concurrent Molotov+fire: assert 2 HP + 0.7s extension, not suppressed.
+
+**Suggested minimal change set:** (i) monotonic `*_until` deadlines for all finite timers; (ii) `apply_damage` returns acceptance and gates legacy mirror; (iii) `torso_split` single-authority in vitals; (iv) separate damage writes from status-bit writes in fire path; (v) signal disconnect on predelete. These five fix items 1–6 without restructuring.

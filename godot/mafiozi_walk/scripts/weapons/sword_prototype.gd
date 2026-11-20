@@ -4249,8 +4249,9 @@ func _apply_player_damage(amount: float, at: Vector3, direction: Vector3, kind: 
 	amount = float(protection.damage) * (0.12 if speed50 >= 0.0 and kind == "flat" else 1.0)
 	var penetrates: bool = ArmorDamage31.tissue_penetrates(str(protection.region), kind, amount)
 	var hero_appearance31 := _world.get_node_or_null("CastleArmorEquipment") if is_instance_valid(_world) else null
+	var visible_wound := false
 	if penetrates and amount > 0.05 and hero_appearance31 != null and hero_appearance31.has_method("apply_wound31"):
-		hero_appearance31.apply_wound31(self, at, direction, kind, amount, str(struck.sever))
+		visible_wound = bool(hero_appearance31.apply_wound31(self, at, direction, kind, amount, str(struck.sever)))
 	# Plate still transfers trauma into the local part without making an
 	# open wound or severing a limb.
 	_player_take_blade(amount, at, direction, kind == "slice" and penetrates and (speed50 < 0.0 or (speed50 >= 3.2 and amount >= 8.0)), full_key50, maxf(speed50, 0.0))
@@ -4258,9 +4259,16 @@ func _apply_player_damage(amount: float, at: Vector3, direction: Vector3, kind: 
 		_play_melee_hit31(at, "flesh", clampf(amount / DAMAGE_MAX, 0.0, 1.0))
 	elif protection.tier != "":
 		_play_melee_hit31(at, "metal", clampf(amount / DAMAGE_MAX, 0.1, 1.0))
-	_sparring_hp = maxf(0.0, _sparring_hp - amount)
+	var vitals: RefCounted = _world.get("hero_vitals") if is_instance_valid(_world) else null
+	if vitals != null:
+		vitals.apply_damage(amount, str(struck.sever), kind, visible_wound)
+		vitals.sync_body(_player_part_hp, _player_severed, PART_HP,
+			_player_disabled_parts50, _player_mesh_cut_parts50)
+		_sparring_hp = float(vitals.hp)
+	else:
+		_sparring_hp = maxf(0.0, _sparring_hp - amount)
 	var owner := _session_health()
-	if owner != null:
+	if owner != null and vitals == null:
 		var hp: Variant = owner.get("_hp")
 		if hp is int:
 			var remaining := maxi(0, int(hp) - int(round(amount)))
@@ -4454,21 +4462,23 @@ func _kill_player(at: Vector3 = Vector3.ZERO, direction: Vector3 = Vector3.ZERO,
 	if driver != null and _player.get("_pose_authority") == &"on_foot":
 		var push: Vector3 = direction.normalized() if direction.is_finite() and direction.length_squared() > 0.0001 else _player._visual.global_basis.z.normalized()
 		var contact: Vector3 = at if at.is_finite() and at.length_squared() > 0.0001 else _player.global_position + Vector3.UP * 1.1
-		var impulse: Vector3 = push * clampf(amount * 0.45, 10.0, 45.0)
+		var impulse: Vector3 = push * clampf(amount * 0.45, 10.0, 45.0) if amount > 0.0 else Vector3.ZERO
 		# Shared outward velocity carries the mass along the blow. The point impulse
 		# adds the local turn of the struck head or torso under native joints.
-		var outward: Vector3 = push * clampf(amount * 0.018, 0.2, 1.5)
+		var outward: Vector3 = push * clampf(amount * 0.018, 0.2, 1.5) if amount > 0.0 else Vector3.ZERO
 		var started: Dictionary = driver.start_fall(_player.velocity, outward)
 		_player_death_physics31 = {"started": bool(started.get("ok", false)), "impulse_ok": false,
 			"reason": str(started.get("error", "")), "contact": contact, "impulse": impulse,
 			"outward_velocity": outward}
-		if bool(started.get("ok", false)):
+		if bool(started.get("ok", false)) and amount > 0.0:
 			var applied: Dictionary = driver.body.apply_impulse(contact, impulse,
 				"castle_player_death_%d" % Time.get_ticks_usec())
 			_player_death_physics31.impulse_ok = bool(applied.get("ok", false))
 			_player_death_physics31.reason = str(applied.get("error", ""))
 			_player_death_physics31.bone = str(applied.get("bone", ""))
 	_world.set("preview_dead", true)
+	var vitals: RefCounted = _world.get("hero_vitals")
+	if vitals != null: vitals.mark_dead()
 	if is_instance_valid(transport) and transport.has_method("mark_dead"): transport.mark_dead()
 	else: _player.set_preview_pose_authority(&"dead")
 	if _player_death_driver31 != null and bool(_player_death_physics31.get("started", false)):
@@ -7733,15 +7743,17 @@ func apply_catapult_stone_impact31(body: Node, damage: int, point: Vector3,
 	if body == _player:
 		if not is_instance_valid(_world) or bool(_world.get("preview_dead")):
 			return {"applied": false, "reason": "dead"}
-		var before: float = _sparring_hp
-		_sparring_hp = maxf(0.0, _sparring_hp - float(damage))
+		var vitals: RefCounted = _world.get("hero_vitals")
+		var before: float = float(vitals.hp) if vitals != null else _sparring_hp
+		_sparring_hp = maxf(0.0, _sparring_hp - float(damage)) if vitals == null else float(vitals.apply_damage(float(damage), "chest", "blunt", false).hp)
 		var owner: Object = _session_health()
-		if owner != null:
+		if owner != null and vitals == null:
 			before = float(owner.get("_hp"))
 			owner.set("_hp", maxi(0, int(owner.get("_hp")) - damage))
 			owner.set("_hit_age", 0.0)
 			owner.call("_refresh")
-		_sparring_hp = minf(_sparring_hp, maxf(0.0, before - float(damage)))
+		if vitals == null:
+			_sparring_hp = minf(_sparring_hp, maxf(0.0, before - float(damage)))
 		_play_melee_hit31(point, "flesh", clampf(float(damage) / 100.0, 0.35, 1.0))
 		if _sparring_hp <= 0.0 or (owner != null and int(owner.get("_hp")) <= 0):
 			_kill_player(point, direction, float(damage))

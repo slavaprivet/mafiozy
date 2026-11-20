@@ -29,6 +29,7 @@ func configure(scene: Node3D,player: CharacterBody3D,producer: Node) -> bool:
 	_flash.color=Color(.55,.015,.02,0);_layer.add_child(_flash)
 	_label=Label.new();_label.position=Vector2(18,92);_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	_label.add_theme_font_size_override("font_size",18);_layer.add_child(_label)
+	_label.visible=scene.get("hero_vitals")==null
 	_ready=true;_refresh()
 	return true
 
@@ -51,7 +52,9 @@ func apply_contact(contact: Dictionary,producer: Object) -> Dictionary:
 			armor_absorbed=clampi(int(vest.get("absorbed",0)),0,damage)
 	var taken:=maxi(0,damage-armor_absorbed)
 	var before:=_hp
-	_hp=maxi(0,_hp-taken);_revision+=1;_hit_age=0.0
+	var vitals: RefCounted=_scene.get("hero_vitals")
+	_hp=ceili(float(vitals.apply_damage(float(taken),"chest","blunt",false).hp)) if vitals!=null and taken>0 else maxi(0,_hp-taken)
+	_revision+=1;_hit_age=0.0
 	if _hp>0:_player.apply_contact_melee_impulse(contact.direction,3.0 if blocked else 30.0)
 	_receipts.append(id)
 	if _receipts.size()>MAX_RECEIPTS:_receipts.pop_front()
@@ -83,7 +86,11 @@ func apply_throwable_area(producer: Node,event_id: String,kind: String,center: V
 			var vest: Dictionary=(provider as Callable).call(amount)
 			absorbed=clampi(int(vest.get("absorbed",0)),0,amount)
 	var before:=_hp
-	_hp=maxi(0,_hp-amount+absorbed); _revision+=1; _hit_age=0.0
+	var taken:=amount-absorbed
+	var vitals: RefCounted=_scene.get("hero_vitals")
+	_hp=ceili(float(vitals.apply_damage(float(taken),"chest","blunt",false).hp)) if vitals!=null and taken>0 else maxi(0,_hp-taken)
+	if vitals!=null and kind=="molotov" and taken>0: vitals.note_burning(1.1)
+	_revision+=1; _hit_age=0.0
 	_receipts.append(event_id)
 	if _receipts.size()>MAX_RECEIPTS:_receipts.pop_front()
 	if _hp==0:

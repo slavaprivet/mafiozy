@@ -35,6 +35,8 @@ const SiegeWallDressing = preload("res://scripts/city/siege_wall_dressing.gd")
 const CastleWallDefense24 = preload("res://scripts/city/castle_wall_defense24.gd")
 const FootstepsScript = preload("res://scripts/audio/footsteps.gd")  # DSH_STEPS
 const HorseMountHost = preload("res://scripts/mount/horse_mount_host.gd")  # DSH_HORSE
+const HeroVitals = preload("res://scripts/character/hero_vitals.gd")
+const HeroVitalsHud = preload("res://scripts/character/hero_vitals_hud.gd")
 const BalloonHost = preload("res://scripts/balloon/balloon_host.gd")  # DSH_BALLOON
 const PowderBarrelHost = preload("res://scripts/siege/powder_barrel_host.gd")  # DSH_BARRELS
 const FireSpreadHost = preload("res://scripts/fire/fire_spread_host.gd")  # DSH_FIRE
@@ -100,6 +102,8 @@ var weapons_status := "disabled"
 ## one pole). OFF by default; enabled by --sword-proto=1 or this export.
 @export var preview_sword_prototype_enabled: bool = false
 var preview_sword_prototype: Node
+var hero_vitals: RefCounted
+var hero_vitals_hud: CanvasLayer
 var sword_prototype_status := "disabled"
 ## DSH_BOW_PROTO: the test bow, installed next to the test sword. OFF by default;
 ## enabled by --bow-proto=1 or this export.
@@ -401,6 +405,10 @@ func _ready() -> void:
 		_show_load_error()
 		return
 	_build_hud()
+	hero_vitals_hud = HeroVitalsHud.new()
+	hero_vitals_hud.configure(self)
+	hero_vitals = HeroVitals.new()
+	hero_vitals.configure(self, hero_vitals_hud)
 	# Negotiate before any transport/support snapshots, without changing masks.
 	# Actual resident/weapon setup retains its existing later startup order.
 	if not castle_map and (preview_residents_enabled or OS.get_cmdline_user_args().has("--preview-residents")):
@@ -1619,6 +1627,8 @@ func _install_net_sync() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if hero_vitals != null and not preview_dead:
+		hero_vitals.step(delta)
 	if Engine.get_physics_frames() == 30:
 		var scene_path := ""
 		if get_tree() != null and get_tree().current_scene != null:
@@ -2323,10 +2333,18 @@ func _save_preview_frame() -> void:
 	var result: Error = frame.save_png(_capture_path)
 	print("PREVIEW_CAPTURE ", result, " ", _capture_path)
 
+func hero_bleedout() -> void:
+	if preview_dead: return
+	if is_instance_valid(preview_sword_prototype):
+		preview_sword_prototype.call("_kill_player")
+	if not preview_dead:
+		_die_outside_world()
+
 func _die_outside_world() -> void:
 	# Explicit local-preview death; never teleport a still-occupied actor away
 	# from a falling vehicle or silently grant walking authority.
 	preview_dead = true
+	if hero_vitals != null: hero_vitals.mark_dead()
 	if is_instance_valid(preview_transport):
 		preview_transport.mark_dead()
 	else:

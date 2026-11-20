@@ -1,0 +1,122 @@
+# Design review + bounded event-driven health model
+
+## 1. Diagnosis of the current state
+
+You have (at least) two places that think they own HP:
+
+- `npc_melee_player_health.gd`: integer HP, validates melee contacts.
+- `sword_prototype.gd`: `_sparring_hp`, `_player_severed: Dictionary`, plus wound/death events.
+
+That is a duplicate-owner bug waiting to happen. Every symptom you describe — HUD shows wrong HP, bleeding double-counts, severing state disagrees, respawn resets "some things" — is downstream of that. Fix ownership first; the HUD and bleeding features then become mechanical.
+
+Two concrete failure modes to call out before the design:
+
+- **Repeated contact events.** A single sword swing that overlaps the player for several physics ticks, or two hitboxes on the same swing, will fire "contact" many times. If you increment HP on contact you get multi-hit damage; if you spawn a wound on contact you get N cuts per swing.
+- **Per-frame scanning.** Iterating over limbs / wounds / colliders every `_process` to compute bleeding rate, nearest wound, HUD string, etc. is O(cuts) per frame and unbounded as cuts accumulate.
+
+## 2. Single-owner data model
+
+Make **one** authority: `PlayerHealth` (autoload or a node referenced by both the HUD and the melee code). Everything else emits *requests*; only `PlayerHealth` mutates state.
+
+```
+PlayerHealth (Node, authority)
+  - hp: int
+  - hp_max: int
+  - armor: { part_id -> int }            # flat mitigation per part
+  - parts: Dictionary[part_id -> PartState]
+  - wounds: Array[Wound]                 # bounded, see §4
+  - bleeding_rate: float                 # HP/sec, derived
+  - alive: bool
+
+PartState { hp: int, hp_max: int, severed: bool, condition: int }
+Wound    { id:int, part_id, severity:float, source_id:int, cut:bool, pos:Vector3 }
+```
+
+`sword_prototype.gd` must **delete** `_sparring_hp` and `_player_severed`, and instead call:
+
+```
+PlayerHealth.request_hit(HitRequest)
+PlayerHealth.request_wound(WoundRequest)
+PlayerHealth.request_sever(part_id, cause)
+```
+
+If you need the sword prototype to know "did that land?", it reads a **result** returned from the request — not a second copy of the state. HUD reads `PlayerHealth` through signals only.
+
+## 3. Event pipeline (contact → wound → bleed → HP)
+
+Everything flows one direction:
+
+```
+Sword hitbox overlaps body part
+        │
+        ▼
+[ContactFilter]  ← dedupe + validate; emits at most 1 hit per (swing_id, part_id)
+        │  confirmed_hit
+        ▼
+[DamageResolver] ← applies armor, decides cut vs blunt
+        │  resolved_hit { hp_delta, cut?, severity?, part_id, pos }
+        ▼
+PlayerHealth.apply(resolved_hit)  ← ONLY writer of hp/parts/wounds
+        │  emits: hp_changed, part_changed, wound_added, severed, died, bleeding_changed
+        ▼
+BleedingTick (timer, not per-frame) → PlayerHealth.apply_bleed(dt)
+        │
+        ▼
+HUD (listens to signals; redraw only on change)
+```
+
+Rules that make this bounded:
+
+1. **Only `PlayerHealth` writes `hp`, `parts`, `wounds`.** Anything else that wants to change them calls a request method.
+2. **Only confirmed hits count.** The filter emits at most one hit per `(attack_id, part_id)`. A swing carries a monotonically increasing `attack_id`; the body part is a collider with a `part_id` from a fixed enum / small dictionary. Duplicate `(attack_id, part_id)` → dropped.
+3. **Bleeding is derived, not accumulated per wound.** Recompute `bleeding_rate` **only when the wound set changes** (add / remove / severity change), not every frame. Tick HP from the current rate on a fixed timer.
+4. **No scanning.** No `get_tree().get_nodes_in_group("wounds")`, no iterating children in `_process`. Wounds live in one array owned by `PlayerHealth`; the HUD reacts to signals.
+5. **HUD is signal-driven.** It caches a small formatted struct and re-renders only on `hp_changed` / `part_changed` / `wound_added` / `severed` / `bleeding_changed` / `respawned`.
+
+## 4. Bounding cuts and bleeding
+
+A player can, in principle, be cut many times, but you never want N independent bleed ticks. Design:
+
+- **Cap active wounds** per part and globally (e.g. 3 per part, ~8 total). When at cap, **merge** the new wound into the nearest existing one on the same part by raising its severity (cap severity). This is realistic (stacking cuts) and bounded.
+- **Bleeding rate is a pure function of current wounds**:
+  `rate = base_bleed * Σ severity_i * part_multiplier(part_i) * armor_factor(part_i)`
+  Sum over the capped set is cheap. Recompute only on wound set change. Severed parts contribute a fixed "gushing" rate until treated.
+- **Tick damage on a Timer** (e.g. 0.25 s), not `_process`. `hp -= rate * dt` with `dt` = timer period. This keeps it framerate-independent and cheap.
+- **Clamp and floor.** Rate should be clamped to `max_bleed_rate`, and HP floors at 0 with a "dead" event emitted once (guard with `alive` flag).
+- **Non-cut damage** (blunt, fall, fire) routes through `resolved_hit` with `cut=false`; it never adds a wound and never contributes to `bleeding_rate`. It still damages part and overall HP via the resolver.
+- **Armor** is applied in the resolver, before the request reaches `PlayerHealth`, so HP code never has to think about it. Armor can also attenuate bleed severity if you want (the resolver sets `severity *= armor_bleed_factor`).
+
+## 5. Integration strategy (concrete steps)
+
+1. **Introduce `PlayerHealth` as the sole owner.** Move `_sparring_hp` and `_player_severed` into it. Delete them from `sword_prototype.gd`. Leave a thin compatibility shim if other scripts read them (a signal or a getter), then remove it.
+2. **Add `attack_id` to the sword swing.** Increment once at swing start (`swing_id += 1`). Attach to each hitbox overlap event. This is the dedupe key.
+3. **Introduce `ContactFilter`.** It receives raw overlap events from hitboxes, normalizes them to `HitRequest { attack_id, part_id, attack_power, cut, position }`, drops duplicates, and forwards. Keep it small — a `Dictionary` of seen `(attack_id, part_id)` cleared when the swing ends (not on a timer).
+4. **Introduce `DamageResolver`.** Stateless: applies armor, decides cut vs blunt, produces `resolved_hit`. Easy to unit test without a scene tree.
+5. **`PlayerHealth.apply(resolved_hit)`** updates hp, part hp, possibly adds/merges a wound, possibly severs, recomputes `bleeding_rate`, emits signals.
+6. **Respawn** = one call `PlayerHealth.respawn()` that: resets hp, parts, wounds, bleeding_rate, `alive`, clears the ContactFilter's `(attack_id, part_id)` set (or bump a generation counter), and emits `respawned`. Everything downstream (HUD, sword prototype) listens, so no scattered reset logic.
+7. **HUD** subscribes once on ready, updates a cached dict, redraws. It never reads `sword_prototype` and never queries the scene.
+
+## 6. Pitfalls to watch (many cuts / repeated contacts)
+
+- **Duplicate overlap events.** Godot's area/body enter signals can fire more than once for the same swing if the hitbox is re-enabled or two hitboxes overlap. Dedupe by `(attack_id, part_id)` — do not rely on "enter fired once".
+- **Per-swing vs per-hit semantics.** One swing hitting the torso and an arm is two valid wounds — but one swing hitting the torso twice is one. Your dedupe key must include `part_id`, not just `attack_id`.
+- **Unbounded wound list.** Without a cap, bleeding sum is cheap but the HUD string and wound-position list grow without bound. Cap and merge.
+- **Bleeding double-count.** If you both apply `rate * dt` on a timer *and* add HP loss on wound creation, you double-bleed on the first tick. Pick one: wound creation changes the rate; the tick applies it.
+- **Timer drift.** If you ever replace the bleed timer with `_process(delta)`, rate math must use `delta`; keep the timer and use its period. Don't mix.
+- **Severed part still bleeding.** A severed limb should contribute a fixed bleed rate once, not per remaining HP. Model severing as a state transition on the part that adjusts `bleeding_rate` once via `wound_set_changed`.
+- **Respawn races.** Pending melee contacts from a previous life can arrive after respawn. Use a `life_id` (incremented on respawn) on every request; `PlayerHealth` drops requests whose `life_id` ≠ current. This is the cleanest reset guarantee.
+- **Armor and cut interaction.** If the resolver applies armor to HP but not to `severity`, a heavily armored part can still contribute huge bleed. Decide armor's effect on bleed explicitly and document it.
+- **Signal spam.** Emitting `part_changed` per part per hit is fine at low rates; if you ever get many cuts, batch wound changes into one `wounds_dirty` signal per apply, and let the HUD recompute derived display once.
+- **Integer HP + float bleed.** Accumulate bleed in a float and convert to integer HP loss carefully (accumulator with remainder, or use a float hp internally and round for display). Mixing int HP and fractional bleed without an accumulator loses or duplicates damage.
+
+## 7. Testability
+
+The model above is testable without a scene:
+
+- `ContactFilter` — feed synthetic overlap events (same `attack_id`, different `part_id`, duplicate, stale `attack_id`) and assert the emitted request count.
+- `DamageResolver` — pure function; test armor math, cut/blunt decision, severity scaling.
+- `PlayerHealth` — unit-test `apply`, wound capping/merging, bleeding rate recompute, `respawn` resets, `life_id` filtering, dead-emits-once.
+- **Bleed math** — feed a fake clock / call `apply_bleed(dt)` directly; assert linear drain and clamping.
+- **HUD** — assert it only re-renders on signal, and that formatted output matches `PlayerHealth` state.
+
+If you build it this way, the "duplicate HP owner" bug disappears by construction, contact counting is bounded and deduped, bleeding is O(1) per wound-set change and O(1) per tick, and the HUD is trivially consistent because it has nothing to sync — it only listens.

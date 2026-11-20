@@ -19,6 +19,8 @@ const SPREAD_CHANCE := 0.55
 const BURN_TIME := 9.0
 ## The pool has six fields; more burning points than this would share flames.
 const MAX_ALIVE := 6
+const ACTOR_FIRE_INTERVAL := 0.5
+const ACTOR_FIRE_DAMAGE := 2.0
 
 var _pool: Node3D = null
 var _world: Node3D = null
@@ -27,6 +29,7 @@ var _spread_t := 0.0
 var _ignitions := 0
 var _charred := 0
 var _time := 0.0
+var _actor_fire_t := 0.0
 var _char_material: StandardMaterial3D
 
 
@@ -105,6 +108,7 @@ func _light(item: Dictionary) -> bool:
 		return false
 	item["burning"] = true
 	item["age"] = 0.0
+	item["flame_center"] = _fuel_centre(node)
 	_ensure_pool()
 	_ignitions += 1
 	if _pool != null:
@@ -113,7 +117,7 @@ func _light(item: Dictionary) -> bool:
 		# meshes, not at its origin: a gate leaf's origin is its hinge, and fire there
 		# hides behind the door.
 		var width: float = clampf(float(item.get("radius", 1.0)) * 2.0, 1.4, 7.5)
-		item["slot"] = int(_pool.call("ignite", _fuel_centre(node), width))
+		item["slot"] = int(_pool.call("ignite", item["flame_center"], width))
 	print("DSH_FIRE_IGNITE at=", node.global_position, " burning=", burning_count())
 	return true
 
@@ -138,6 +142,38 @@ func _process(delta: float) -> void:
 	if _spread_t >= SPREAD_INTERVAL:
 		_spread_t = 0.0
 		_spread()
+
+func _physics_process(delta: float) -> void:
+	if _fuel.is_empty(): return
+	_actor_fire_t += delta
+	if _actor_fire_t >= ACTOR_FIRE_INTERVAL:
+		_actor_fire_t = 0.0
+		_tick_actor_fire()
+
+## At most six active flames and one ray every half second. The status follows
+## accepted HP damage, never merely the presence of a fire somewhere in the scene.
+func _tick_actor_fire() -> void:
+	if not is_instance_valid(_world) or bool(_world.get("preview_dead")): return
+	var player: CharacterBody3D = _world.get("_player")
+	var vitals: RefCounted = _world.get("hero_vitals")
+	if not is_instance_valid(player) or vitals == null or float(vitals.hp) <= 0.0: return
+	var target := player.global_position + Vector3.UP * 1.0
+	for item: Dictionary in _fuel:
+		if not bool(item.get("burning", false)): continue
+		var source: Node3D = item.get("node")
+		if not is_instance_valid(source): continue
+		var centre: Vector3 = item.get("flame_center", source.global_position)
+		var reach := minf(3.75, maxf(0.7, float(item.get("radius", 1.0)))) + 0.45
+		if centre.distance_squared_to(target) > reach * reach: continue
+		var query := PhysicsRayQueryParameters3D.create(target, centre, 1, [player.get_rid()])
+		var hit := get_world_3d().direct_space_state.intersect_ray(query)
+		if not hit.is_empty():
+			var collider: Node = hit.get("collider")
+			if not is_instance_valid(collider) or (collider != source and not source.is_ancestor_of(collider)):
+				continue
+		vitals.apply_damage(ACTOR_FIRE_DAMAGE, "chest", "burn", false)
+		vitals.note_burning(ACTOR_FIRE_INTERVAL + 0.2)
+		break
 
 
 ## Each burning point tries to light what is next to it, closest first, so a fire

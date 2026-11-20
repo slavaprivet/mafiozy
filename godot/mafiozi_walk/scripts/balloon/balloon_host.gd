@@ -25,7 +25,6 @@ var _spawn_spot := Vector3.ZERO
 var _spawn_yaw := 0.0
 var _pop_timer := 0.0
 var player_hp := 100
-var _hp_label: Label
 var _death_layer: CanvasLayer
 var _dead := false
 var _fall_active := false
@@ -373,15 +372,7 @@ func _build_hud() -> void:
 	_hint.add_theme_color_override("font_color", Color(0.66, 0.62, 0.54))
 	column.add_child(_hint)
 	_panel.visible = false
-	_hp_label = Label.new()
-	_hp_label.name = "PlayerHp"
-	_hp_label.position = Vector2(24.0, 72.0)
-	_hp_label.add_theme_font_size_override("font_size", 15)
-	_hp_label.add_theme_color_override("font_color", Color(0.94, 0.88, 0.76))
-	_hp_label.add_theme_color_override("font_outline_color", Color(0.03, 0.03, 0.03))
-	_hp_label.add_theme_constant_override("outline_size", 5)
-	_hp_label.text = "Здоровье 100"
-	_hud.add_child(_hp_label)
+	# The shared hero vitals panel owns health presentation, including fall damage.
 	_death_layer = CanvasLayer.new()
 	_death_layer.name = "BalloonDeath"
 	_death_layer.layer = 100
@@ -425,7 +416,6 @@ func banner_world() -> Vector3:
 	return balloon.global_position + Vector3.UP * 2.8 if is_instance_valid(balloon) else Vector3.ZERO
 
 func _update_hud() -> void:
-	_update_hp_label()
 	var altitude := float(balloon.call("altitude"))
 	var lift := bool(balloon.get("lift_on"))
 	var gust := bool(balloon.get("gust_active"))
@@ -705,20 +695,21 @@ func _update_fall(delta: float) -> void:
 		_fall_active = false
 		var damage := int(maxf(0.0, height - 2.0) * 7.0 + maxf(0.0, speed - 8.0) * 5.0)
 		if damage > 0:
-			player_hp = maxi(0, player_hp - damage)
-			_update_hp_label()
+			var vitals: RefCounted = world.get("hero_vitals") if is_instance_valid(world) else null
+			if vitals != null:
+				player_hp = ceili(float(vitals.apply_damage(float(damage), "chest", "blunt", false).hp))
+			else:
+				player_hp = maxi(0, player_hp - damage)
 			print("DSH_BALLOON_FALL height=", height, " speed=", speed, " damage=", damage, " hp=", player_hp)
 			if player_hp <= 0:
 				_die()
-
-func _update_hp_label() -> void:
-	if is_instance_valid(_hp_label):
-		_hp_label.text = "Здоровье %d" % player_hp
 
 func _die() -> void:
 	if _dead:
 		return
 	_dead = true
+	var vitals: RefCounted = world.get("hero_vitals") if is_instance_valid(world) else null
+	if vitals != null: vitals.mark_dead()
 	if is_instance_valid(world):
 		world.set("preview_dead", true)
 	if is_instance_valid(player):
