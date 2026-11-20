@@ -4221,6 +4221,21 @@ func _armor_point31(rig: Skeleton3D, bone_name: String, world_point: Vector3,
 var _last_player_hit_ms := -1000
 var _player_death_physics31: Dictionary = {}
 var _player_death_driver31: RefCounted
+
+func prewarm_player_death31() -> Dictionary:
+	# Capture the base skin before equipment adds extra skinned meshes. The
+	# articulated bodies remain asleep until the hero actually dies.
+	if _player_death_driver31 != null: return {"ok": true, "reused": true}
+	if not is_instance_valid(_player) or not is_instance_valid(_world):
+		return {"ok": false, "error": "binding"}
+	var driver: RefCounted = CharacterPhysicsDriver31.new()
+	var configured: Dictionary = driver.configure(_player, _world)
+	if bool(configured.get("ok", false)):
+		_player_death_driver31 = driver
+	else:
+		driver.dispose()
+	return configured
+
 func _apply_player_arrow_damage31(amount: float, at: Vector3, direction: Vector3) -> void:
 	var struck := _player_part_at(at)
 	_apply_player_damage(amount * (2.0 if str(struck.key) == "head" else 1.0), at, direction, "stab")
@@ -4444,7 +4459,8 @@ func _drop_player_sword(direction: Vector3) -> void:
 
 ## Mirrors the session death path so the ordinary R restart works after a
 ## sparring death.
-func _kill_player(at: Vector3 = Vector3.ZERO, direction: Vector3 = Vector3.ZERO, amount: float = 0.0) -> void:
+func _kill_player(at: Vector3 = Vector3.ZERO, direction: Vector3 = Vector3.ZERO, amount: float = 0.0,
+		cause: String = "combat") -> void:
 	if not is_instance_valid(_world) or not is_instance_valid(_player): return
 	if bool(_world.get("preview_dead")): return
 	var transport: Variant = _world.get("preview_transport")
@@ -4452,6 +4468,8 @@ func _kill_player(at: Vector3 = Vector3.ZERO, direction: Vector3 = Vector3.ZERO,
 	var driver: RefCounted
 	if is_instance_valid(transport) and transport.get("character_physics") != null:
 		driver = transport.get("character_physics")
+	elif _player_death_driver31 != null:
+		driver = _player_death_driver31
 	elif _player.get("_pose_authority") == &"on_foot":
 		# The castle has no vehicle transport. Reuse its existing articulated
 		# physics driver locally; the sword host becomes the sole dead-pose writer.
@@ -4469,7 +4487,11 @@ func _kill_player(at: Vector3 = Vector3.ZERO, direction: Vector3 = Vector3.ZERO,
 		# Shared outward velocity carries the mass along the blow. The point impulse
 		# adds the local turn of the struck head or torso under native joints.
 		var outward: Vector3 = push * clampf(amount * 0.018, 0.2, 1.5) if amount > 0.0 else Vector3.ZERO
-		var started: Dictionary = driver.start_fall(_player.velocity, outward)
+		var spin_axis := push.cross(Vector3.UP)
+		if spin_axis.length_squared() < 0.01: spin_axis = _player.global_basis.x
+		var spin := spin_axis.normalized() * (7.0 if amount > 0.0 else 3.2)
+		var started: Dictionary = driver.start_fall(_player.velocity, outward, spin,
+			_player.global_position + Vector3.UP)
 		_player_death_physics31 = {"started": bool(started.get("ok", false)), "impulse_ok": false,
 			"reason": str(started.get("error", "")), "contact": contact, "impulse": impulse,
 			"outward_velocity": outward}
@@ -4491,6 +4513,7 @@ func _kill_player(at: Vector3 = Vector3.ZERO, direction: Vector3 = Vector3.ZERO,
 	_hold_left = false
 	_hold_right = false
 	_player.set("_sword_lock", false)
+	if _world.has_method("show_hero_death"): _world.call("show_hero_death", cause)
 
 func _session_health() -> Object:
 	if not is_instance_valid(_player) or not _player.has_meta("local_contact_health_owner"): return null
@@ -7683,6 +7706,9 @@ func snapshot() -> Dictionary:	return {
 
 func _exit_tree() -> void:
 	_ready = false
+	if _player_death_driver31 != null:
+		_player_death_driver31.call_deferred("dispose")
+		_player_death_driver31 = null
 	if is_instance_valid(_player):
 		_player.set("_sword_lock", false)
 		if _player.get("_sword_host") == self: _player.set("_sword_host", null)

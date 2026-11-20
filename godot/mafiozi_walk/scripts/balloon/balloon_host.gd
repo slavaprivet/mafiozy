@@ -25,7 +25,6 @@ var _spawn_spot := Vector3.ZERO
 var _spawn_yaw := 0.0
 var _pop_timer := 0.0
 var player_hp := 100
-var _death_layer: CanvasLayer
 var _dead := false
 var _fall_active := false
 var _fall_start_y := 0.0
@@ -373,23 +372,6 @@ func _build_hud() -> void:
 	column.add_child(_hint)
 	_panel.visible = false
 	# The shared hero vitals panel owns health presentation, including fall damage.
-	_death_layer = CanvasLayer.new()
-	_death_layer.name = "BalloonDeath"
-	_death_layer.layer = 100
-	_death_layer.visible = false
-	add_child(_death_layer)
-	var shade := ColorRect.new()
-	shade.color = Color(0.02, 0.02, 0.025, 0.78)
-	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_death_layer.add_child(shade)
-	var death_label := Label.new()
-	death_label.text = "ВЫ ПОГИБЛИ\nРазбились при падении\n\nR — начать заново"
-	death_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	death_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	death_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	death_label.add_theme_font_size_override("font_size", 30)
-	death_label.add_theme_color_override("font_color", Color(0.94, 0.90, 0.82))
-	_death_layer.add_child(death_label)
 
 func _panel_style(colour: Color, radius: float) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
@@ -708,11 +690,10 @@ func _die() -> void:
 	if _dead:
 		return
 	_dead = true
-	var vitals: RefCounted = world.get("hero_vitals") if is_instance_valid(world) else null
-	if vitals != null: vitals.mark_dead()
-	if is_instance_valid(world):
-		world.set("preview_dead", true)
-	if is_instance_valid(player):
-		player.set_physics_process(false)
-	if is_instance_valid(_death_layer):
-		_death_layer.visible = true
+	if not is_instance_valid(world): return
+	var sword: Node = world.get("preview_sword_prototype")
+	if is_instance_valid(sword):
+		sword.call("_kill_player", player.global_position + Vector3.UP if is_instance_valid(player) else Vector3.ZERO,
+			Vector3.DOWN, 30.0, "fall")
+	if not bool(world.get("preview_dead")) and world.has_method("_die_outside_world"):
+		world.call("_die_outside_world", "fall")

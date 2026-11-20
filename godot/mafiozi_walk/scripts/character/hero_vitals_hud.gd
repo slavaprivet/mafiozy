@@ -4,7 +4,12 @@ extends CanvasLayer
 
 class BodyDiagram extends Control:
 	var segments: Dictionary = {}
+	var armor: Dictionary = {}
 	var body_split := false
+	const SLOT_FOR_SEGMENT := {"head":"head", "chest":"torso", "pelvis":"torso",
+		"upperarm_l":"torso", "upperarm_r":"torso", "forearm_l":"hands", "forearm_r":"hands",
+		"hand_l":"hands", "hand_r":"hands", "thigh_l":"legs", "thigh_r":"legs",
+		"shin_l":"legs", "shin_r":"legs", "foot_l":"feet", "foot_r":"feet"}
 	const KEYS := ["head", "chest", "pelvis", "upperarm_l", "forearm_l", "hand_l",
 		"upperarm_r", "forearm_r", "hand_r", "thigh_l", "shin_l", "foot_l",
 		"thigh_r", "shin_r", "foot_r"]
@@ -13,11 +18,12 @@ class BodyDiagram extends Control:
 		custom_minimum_size = Vector2(72.0, 104.0)
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	func set_state(next_segments: Dictionary, next_split: bool) -> void:
-		if segments == next_segments and body_split == next_split:
+	func set_state(next_segments: Dictionary, next_split: bool, next_armor: Dictionary = {}) -> void:
+		if segments == next_segments and body_split == next_split and armor == next_armor:
 			return
 		segments = next_segments.duplicate(true)
 		body_split = next_split
+		armor = next_armor.duplicate()
 		queue_redraw()
 
 	func _part_status(key: String) -> String:
@@ -25,13 +31,13 @@ class BodyDiagram extends Control:
 		if value is Dictionary:
 			if bool(value.get("severed", false)):
 				return "severed"
-			if bool(value.get("disabled", false)):
-				return "disabled"
 			var health := clampf(float(value.get("health", 1.0)), 0.0, 1.0)
 			if health <= 0.3:
 				return "critical"
 			if health < 0.85:
 				return "injured"
+			if bool(value.get("disabled", false)):
+				return "disabled"
 			return "healthy"
 		return str(value)
 
@@ -43,11 +49,45 @@ class BodyDiagram extends Control:
 			"injured": return Color(0.77, 0.47, 0.23)
 			_: return Color(0.68, 0.72, 0.62)
 
+	func armor_tier_for_segment(key: String) -> String:
+		if _part_status(key) == "severed": return ""
+		return str(armor.get(SLOT_FOR_SEGMENT.get(key, ""), ""))
+
 	func _shape(points: PackedVector2Array, key: String) -> void:
 		draw_colored_polygon(points, _color(key))
 		var outline := points.duplicate()
 		outline.append(points[0])
-		draw_polyline(outline, Color(0.14, 0.16, 0.16), 1.5, true)
+		var status := _part_status(key)
+		var tier := armor_tier_for_segment(key)
+		if tier in ["light", "medium", "heavy"]:
+			var centre := Vector2.ZERO
+			var low := Vector2(INF, INF)
+			var high := Vector2(-INF, -INF)
+			for point: Vector2 in points:
+				centre += point
+				low = low.min(point)
+				high = high.max(point)
+			centre /= float(points.size())
+			var inset := PackedVector2Array()
+			for point: Vector2 in points: inset.append(centre + (point - centre) * 0.78)
+			var plate := Color(0.46, 0.27, 0.13) if tier == "light" else \
+				Color(0.36, 0.46, 0.50) if tier == "medium" else Color(0.16, 0.22, 0.27)
+			draw_colored_polygon(inset, plate)
+			var edge := Color(0.70, 0.48, 0.25) if tier == "light" else \
+				Color(0.68, 0.73, 0.72) if tier == "medium" else Color(0.88, 0.69, 0.34)
+			if tier == "light":
+				draw_line(Vector2(low.x + 2, centre.y), Vector2(high.x - 2, centre.y), edge, 1.0, true)
+			elif tier == "medium":
+				for offset: float in [-2.0, 2.0]:
+					draw_line(Vector2(low.x + 2, centre.y + offset), Vector2(high.x - 2, centre.y + offset), edge, 1.0, true)
+			else:
+				inset.append(inset[0])
+				draw_polyline(inset, edge, 1.4, true)
+				draw_circle(centre, 1.4, edge)
+			if status in ["critical", "injured"]:
+				var wound := Color(0.95, 0.18, 0.12) if status == "critical" else Color(0.94, 0.47, 0.18)
+				draw_line(centre + Vector2(-3, -2), centre + Vector2(3, 2), wound, 2.0, true)
+		draw_polyline(outline, Color(0.88, 0.20, 0.15) if status == "critical" else Color(0.14, 0.16, 0.16), 1.5, true)
 
 	func _mark_severed(key: String, at: Vector2) -> void:
 		if _part_status(key) != "severed":
@@ -72,6 +112,11 @@ class BodyDiagram extends Control:
 		_shape(PackedVector2Array([Vector2(38, 78), Vector2(48, 78), Vector2(49, 91), Vector2(39, 91)]), "shin_r")
 		_shape(PackedVector2Array([Vector2(39, 92), Vector2(49, 92), Vector2(52, 98), Vector2(38, 98)]), "foot_r")
 		draw_circle(Vector2(36, 17), 10.5, _color("head"))
+		var head_tier := armor_tier_for_segment("head")
+		if head_tier in ["light", "medium", "heavy"]:
+			var helmet := Color(0.46, 0.27, 0.13) if head_tier == "light" else \
+				Color(0.36, 0.46, 0.50) if head_tier == "medium" else Color(0.16, 0.22, 0.27)
+			draw_arc(Vector2(36, 17), 8.0, PI, TAU, 12, helmet, 4.0, true)
 		draw_arc(Vector2(36, 17), 10.5, 0.0, TAU, 20, Color(0.14, 0.16, 0.16), 1.5, true)
 		if body_split:
 			draw_line(Vector2(22, 52), Vector2(50, 52), Color(0.95, 0.24, 0.18), 2.0, true)
@@ -106,7 +151,10 @@ class BodyDiagram extends Control:
 var _panel: PanelContainer
 var _scene: Node
 var _weapon_label: Label
+var _weapon_icon: TextureRect
 var _weapon_timer := 0.0
+var _armor_owner: Node
+var _armor_slots: Dictionary = {}
 var _hp_label: Label
 var _hp_fill: Panel
 var _hp_fill_style: StyleBoxFlat
@@ -151,9 +199,19 @@ func configure(scene: Node) -> void:
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_theme_constant_override("separation", 4)
 	row.add_child(column)
-	_weapon_label = _label(column, "Без оружия", 12, Color("ead7ad"))
+	var weapon_row := HBoxContainer.new()
+	weapon_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	weapon_row.add_theme_constant_override("separation", 4)
+	column.add_child(weapon_row)
+	_weapon_icon = TextureRect.new()
+	_weapon_icon.custom_minimum_size = Vector2(20, 20)
+	_weapon_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_weapon_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_weapon_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	weapon_row.add_child(_weapon_icon)
+	_weapon_label = _label(weapon_row, "Без оружия", 12, Color("ead7ad"))
 	_weapon_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_weapon_label.custom_minimum_size.x = BAR_WIDTH
+	_weapon_label.custom_minimum_size.x = BAR_WIDTH - 24.0
 	_hp_label = _label(column, "Здоровье 100 / 100", 12, Color("ead7ad"))
 	var track := Panel.new()
 	track.custom_minimum_size = Vector2(BAR_WIDTH, 9)
@@ -171,7 +229,8 @@ func configure(scene: Node) -> void:
 	_hp_fill_style.set_corner_radius_all(4)
 	_hp_fill.add_theme_stylebox_override("panel", _hp_fill_style)
 	track.add_child(_hp_fill)
-	_status_label = _label(column, "Здоров", 12, Color("d9c7a9"))
+	_status_label = _label(column, "", 12, Color("d9c7a9"))
+	_status_label.visible = false
 	_lost_label = _label(column, "", 11, Color("ec6850"))
 	_lost_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_burn_label = _label(column, "", 11, Color("f3aa55"))
@@ -184,6 +243,31 @@ func _process(delta: float) -> void:
 	if _weapon_timer > 0.0 or not is_instance_valid(_scene): return
 	_weapon_timer = 0.2
 	sync_weapon()
+
+func bind_armor(owner: Node) -> void:
+	if not is_instance_valid(owner) or not owner.has_method("equipped_snapshot"): return
+	if is_instance_valid(_armor_owner) and _armor_owner.equipped_changed.is_connected(_on_armor_changed):
+		_armor_owner.equipped_changed.disconnect(_on_armor_changed)
+	_armor_owner = owner
+	_armor_owner.equipped_changed.connect(_on_armor_changed)
+	_refresh_armor()
+
+func _on_armor_changed(_slot: String, _old_id: String, _new_id: String) -> void:
+	_refresh_armor()
+
+func _refresh_armor() -> void:
+	if not is_instance_valid(_armor_owner): return
+	var equipped: Dictionary = _armor_owner.equipped_snapshot()
+	var next: Dictionary = {}
+	for slot: String in ["head", "torso", "hands", "legs", "feet"]:
+		var id := str(equipped.get(slot, ""))
+		for tier: String in ["light", "medium", "heavy"]:
+			if id.begins_with(tier + "_"):
+				next[slot] = tier
+				break
+	if next == _armor_slots: return
+	_armor_slots = next
+	_diagram.set_state(_last_state.get("segments", {}), bool(_last_state.get("body_split", false)), _armor_slots)
 
 func sync_weapon() -> void:
 	if not is_instance_valid(_scene) or not is_instance_valid(_weapon_label): return
@@ -211,6 +295,12 @@ func sync_weapon() -> void:
 	if is_instance_valid(host): name = str(host.LABELS.get(id, "Без оружия"))
 	name = name.replace(" (прототип)", "")
 	if _weapon_label.text != name: _weapon_label.text = name
+	if is_instance_valid(host):
+		var ui: Control = host.get("_walk_ui")
+		if is_instance_valid(ui):
+			var icons: Dictionary = ui.get("textures")
+			var icon: Texture2D = icons.get(id)
+			if _weapon_icon.texture != icon: _weapon_icon.texture = icon
 
 func _label(parent: Node, value: String, font_size: int, color: Color) -> Label:
 	var label := Label.new()
@@ -247,14 +337,15 @@ func render_state(state: Dictionary) -> void:
 	elif injured or not lost.is_empty() or split:
 		_status_label.text = "Ранен"
 	else:
-		_status_label.text = "Здоров"
+		_status_label.text = ""
+	_status_label.visible = not _status_label.text.is_empty()
 	_status_label.add_theme_color_override("font_color", Color("ec6850") if percent > 0.0 else Color("d9c7a9"))
 	var lost_text := ", ".join(lost)
 	if split:
 		lost_text = "разделён корпус" if lost_text.is_empty() else lost_text + ", разделён корпус"
 	_lost_label.text = "Отсечено: " + lost_text if not lost_text.is_empty() else ""
 	_burn_label.text = "●  Ожог / горение" if burning else ""
-	_diagram.set_state(segments, split)
+	_diagram.set_state(segments, split, _armor_slots)
 
 func snapshot() -> Dictionary:
 	return _last_state.duplicate(true)

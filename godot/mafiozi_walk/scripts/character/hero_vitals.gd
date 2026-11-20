@@ -88,7 +88,7 @@ func reset() -> void:
 	_refresh()
 
 func mark_dead() -> void:
-	if hp <= 0.0: return
+	if hp <= 0.0 and _burn_until <= 0.0: return
 	hp = 0.0
 	_burn_until = 0.0
 	_revision += 1
@@ -162,6 +162,7 @@ func _schedule_wound(segment: String, rate: float, duration_ticks: int) -> void:
 func sync_body(part_hp: Dictionary, severed: Dictionary, maxima: Dictionary,
 		disabled: Dictionary = {}, mesh_cuts: Dictionary = {}) -> void:
 	var changed := false
+	var head_death := false
 	for key: Variant in part_hp:
 		var part := str(key)
 		var group := _group(part)
@@ -217,10 +218,20 @@ func sync_body(part_hp: Dictionary, severed: Dictionary, maxima: Dictionary,
 			or (severed.has("pelvis") and bool(mesh_cuts.get("pelvis", false)))):
 		_body_split = true
 		changed = true
+	if _severed.has("head") and hp > 0.0:
+		# Missing head is an invariant of the combat state, even when another
+		# damage source reports the sever before its regular HP transaction.
+		hp = 0.0
+		_burn_until = 0.0
+		_sync_legacy_health()
+		head_death = true
+		changed = true
 	if changed:
 		_recompute_bleed()
 		_revision += 1
 		_refresh()
+	if head_death and is_instance_valid(_scene) and _scene.has_method("hero_bleedout"):
+		_scene.call("hero_bleedout")
 
 func step(delta: float) -> void:
 	if hp <= 0.0 or not is_finite(delta) or delta <= 0.0:

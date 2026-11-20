@@ -20,6 +20,20 @@ func _run() -> void:
 	var initial: Dictionary = vitals.snapshot()
 	if initial.hp != 100.0 or initial.bleed_percent != 0:
 		failures.append("initial_state")
+	var diagram: Control = hud.get("_diagram")
+	var armor: Node = scene.get_node_or_null("CastleArmorEquipment")
+	if is_instance_valid(armor):
+		for slot: String in ["torso", "hands", "legs", "feet"]:
+			var tier: String = str({"torso":"light", "hands":"medium", "legs":"heavy", "feet":"light"}[slot])
+			var result: Dictionary = armor.call("equip_ground", tier + "_" + slot)
+			if not bool(result.get("ok", false)) or str(diagram.get("armor").get(slot, "")) != tier:
+				failures.append("armor_equipped_" + slot)
+		for slot: String in ["torso", "hands", "legs", "feet"]:
+			if not bool((armor.call("remove", slot) as Dictionary).get("ok", false)) \
+					or str(diagram.get("armor").get(slot, "")) != "":
+				failures.append("armor_removed_" + slot)
+	else:
+		failures.append("armor_owner_missing")
 	hud.call("_process", 0.3)
 	var weapon_label: Label = hud.get("_weapon_label")
 	var weapons: Node = scene.get("preview_weapons")
@@ -28,6 +42,9 @@ func _run() -> void:
 		var equipped: Dictionary = weapons.call("equip", "sword")
 		if bool(equipped.get("ok", false)):
 			if not weapon_label.text.contains("меч"): failures.append("held_weapon_label")
+			var weapon_icon: TextureRect = hud.get("_weapon_icon")
+			if not is_instance_valid(weapon_icon) or weapon_icon.texture == null:
+				failures.append("held_weapon_icon")
 			var held_blade: Node = scene.get("preview_sword_prototype")
 			if is_instance_valid(held_blade) and bool(held_blade.call("drop_sword_to_ground")):
 				hud.call("_process", 0.3)
@@ -60,6 +77,11 @@ func _run() -> void:
 			or bool(lost.segments.upperarm_l.severed) or not lost.severed_labels.has("левая кисть") \
 			or lost.body_split or lost.wound_count != 3:
 		failures.append("severed_part")
+	diagram.call("set_state", lost.segments, false, {"hands":"medium"})
+	if diagram.call("armor_tier_for_segment", "hand_l") != "" \
+			or diagram.call("armor_tier_for_segment", "forearm_l") != "medium":
+		failures.append("armor_hides_severed_part")
+	diagram.call("set_state", lost.segments, false, {})
 	var missing_label: Label = hud.get("_lost_label")
 	if not missing_label.text.contains("левая кисть"):
 		failures.append("missing_part_label")
@@ -90,12 +112,33 @@ func _run() -> void:
 	if reborn.hp != 100.0 or reborn.wound_count != 0 or reborn.bleed_percent != 0 \
 			or bool(reborn.segments.hand_l.severed) or reborn.burning:
 		failures.append("respawn_reset")
-	if status_label.text != "Здоров" or not missing_label.text.is_empty():
+	if status_label.visible or not missing_label.text.is_empty():
 		failures.append("respawn_hud_not_clean")
-	vitals.sync_body({"head": 0.0}, {"head": true}, {"head": 50.0})
-	if not bool(vitals.snapshot().segments.head.severed) or not vitals.snapshot().severed_labels.has("голова"):
-		failures.append("head_loss_not_shown")
+	vitals.apply_damage(75.0, "forearm_r", "blunt", false)
+	if diagram.call("_part_status", "forearm_l") != "critical":
+		failures.append("critical_arm_colour")
+	vitals.sync_body({}, {}, {}, {"forearm_r": true})
+	if diagram.call("_part_status", "forearm_l") != "critical":
+		failures.append("disabled_arm_looked_healed")
+	vitals.step(1.0)
+	if diagram.call("_part_status", "forearm_l") != "critical":
+		failures.append("old_injury_colour_regressed")
 	vitals.reset()
+	if diagram.call("_part_status", "forearm_l") != "healthy":
+		failures.append("respawn_injury_colour_not_reset")
+	var isolated: RefCounted = load("res://scripts/character/hero_vitals.gd").new()
+	isolated.configure(null, null)
+	isolated.sync_body({"head": 0.0}, {"head": true}, {"head": 50.0})
+	if not bool(isolated.snapshot().segments.head.severed) \
+			or not isolated.snapshot().severed_labels.has("голова") \
+			or float(isolated.snapshot().hp) != 0.0:
+		failures.append("head_loss_not_shown")
+	isolated.reset()
+	isolated.note_burning(1.0)
+	isolated.apply_damage(100.0, "chest", "blunt", false)
+	isolated.mark_dead()
+	if isolated.snapshot().burning or isolated.snapshot().hp != 0.0:
+		failures.append("dead_burning_status")
 	vitals.sync_body({}, {}, {}, {}, {"chest": true})
 	if vitals.snapshot().body_split:
 		failures.append("uncommitted_torso_split_shown")
@@ -224,7 +267,7 @@ func _run() -> void:
 				if not (actual.get("player_severed", []) as Array).has("head") \
 						or not bool(hero.segments.head.severed) \
 						or not str(live_hud.get("_lost_label").text).contains("голова") \
-						or hero.body_split:
+						or hero.body_split or float(hero.hp) != 0.0:
 					failures.append("real_head_sever_not_in_hud")
 				if reload_current_scene() != OK:
 					failures.append("torso_scene_reload_failed")

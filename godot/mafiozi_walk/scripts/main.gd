@@ -37,6 +37,7 @@ const FootstepsScript = preload("res://scripts/audio/footsteps.gd")  # DSH_STEPS
 const HorseMountHost = preload("res://scripts/mount/horse_mount_host.gd")  # DSH_HORSE
 const HeroVitals = preload("res://scripts/character/hero_vitals.gd")
 const HeroVitalsHud = preload("res://scripts/character/hero_vitals_hud.gd")
+const HeroDeathPresentation = preload("res://scripts/character/hero_death_presentation.gd")
 const BalloonHost = preload("res://scripts/balloon/balloon_host.gd")  # DSH_BALLOON
 const PowderBarrelHost = preload("res://scripts/siege/powder_barrel_host.gd")  # DSH_BARRELS
 const FireSpreadHost = preload("res://scripts/fire/fire_spread_host.gd")  # DSH_FIRE
@@ -104,6 +105,8 @@ var weapons_status := "disabled"
 var preview_sword_prototype: Node
 var hero_vitals: RefCounted
 var hero_vitals_hud: CanvasLayer
+var hero_death_presentation: Node
+var _controls_hint: Label
 var sword_prototype_status := "disabled"
 ## DSH_BOW_PROTO: the test bow, installed next to the test sword. OFF by default;
 ## enabled by --bow-proto=1 or this export.
@@ -488,6 +491,8 @@ func _ready() -> void:
 	if castle_map or OS.get_cmdline_user_args().has("--castle=1"):
 		_build_castle_map()
 		_boot_mark("castle")
+		if is_instance_valid(preview_sword_prototype):
+			preview_sword_prototype.call("prewarm_player_death31")
 		_install_castle_armor31()
 		_horse_install_pending = true
 		_balloon_install_pending = true
@@ -646,6 +651,7 @@ func _install_castle_armor31() -> void:
 	equipment.name = "CastleArmorEquipment"
 	add_child(equipment)
 	equipment.configure(preview_castle, preview_weapons, visual)
+	if is_instance_valid(hero_vitals_hud): hero_vitals_hud.bind_armor(equipment)
 
 ## DSH_HORSE: install the saddled horse next to the settled player spawn. The horse
 ## itself owns sweeping, gravity and the saddle socket; this host owns E and the pose.
@@ -2229,6 +2235,7 @@ func _build_hud() -> void:
 	_stats.add_theme_font_size_override("font_size", 12)
 	stack.add_child(_stats)
 	var controls: Label = Label.new()
+	_controls_hint = controls
 	controls.text = "Клик — управление · Esc — курсор\nWASD — идти · Shift — бег · Колесо — камера\nSpace — прыжок · 2×Space — бросок · C/Z — присесть/лечь"
 	controls.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	controls.offset_left = 470 if preview_weapons_enabled else 16
@@ -2338,11 +2345,26 @@ func hero_bleedout() -> void:
 	if is_instance_valid(preview_sword_prototype):
 		preview_sword_prototype.call("_kill_player")
 	if not preview_dead:
-		_die_outside_world()
+		_die_outside_world("combat")
 
-func _die_outside_world() -> void:
+func show_hero_death(cause: String = "combat") -> void:
+	if is_instance_valid(hero_death_presentation) or not is_instance_valid(_player): return
+	if is_instance_valid(_controls_hint): _controls_hint.visible = false
+	if is_instance_valid(preview_weapons) and is_instance_valid(preview_weapons.get("_layer")):
+		(preview_weapons.get("_layer") as CanvasLayer).visible = false
+	hero_death_presentation = HeroDeathPresentation.new()
+	hero_death_presentation.name = "HeroDeathPresentation"
+	add_child(hero_death_presentation)
+	hero_death_presentation.call("begin", self, _player, cause)
+
+func _die_outside_world(cause: String = "fall") -> void:
 	# Explicit local-preview death; never teleport a still-occupied actor away
 	# from a falling vehicle or silently grant walking authority.
+	if preview_dead: return
+	if is_instance_valid(preview_sword_prototype):
+		preview_sword_prototype.call("_kill_player", _player.global_position + Vector3.UP,
+			Vector3.DOWN, 30.0 if cause == "fall" else 0.0, cause)
+		if preview_dead: return
 	preview_dead = true
 	if hero_vitals != null: hero_vitals.mark_dead()
 	if is_instance_valid(preview_transport):
@@ -2350,20 +2372,7 @@ func _die_outside_world() -> void:
 	else:
 		_player.set_preview_pose_authority(&"dead")
 	_player.set_mouse_captured(false)
-	var layer := CanvasLayer.new()
-	layer.layer = 20
-	add_child(layer)
-	var shade := ColorRect.new()
-	shade.color = Color(0.03, 0.03, 0.04, .72)
-	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	layer.add_child(shade)
-	var label := Label.new()
-	label.text = "ВЫ ПОГИБЛИ\n\nR — начать заново"
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 28)
-	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shade.add_child(label)
+	show_hero_death(cause)
 
 func _show_physics_fault() -> void:
 	preview_physics_fault = true
