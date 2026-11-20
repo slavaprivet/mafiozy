@@ -54,6 +54,8 @@ var _dismounts := 0
 var _last_dismount: Dictionary = {}
 var _walking_camera_distance := 5.119570294468082
 var _camera_distance_owned := false
+var _taa_before_mount := false
+var _taa_owned := false
 var _safe_spawn_anchor := Vector3.ZERO
 var _safe_spawn_valid := false
 
@@ -351,6 +353,7 @@ func mount_now() -> bool:
 		if is_instance_valid(arm):
 			arm.spring_length = RIDING_CAMERA_DISTANCE
 	_mounted = true
+	_set_riding_taa(true)
 	_mounted_at_ms = Time.get_ticks_msec()
 	_mounts += 1
 	status = "mounted"
@@ -374,6 +377,7 @@ func dismount_now() -> bool:
 	var yaw := horse.rotation.y
 	horse.rider = null
 	_mounted = false
+	_set_riding_taa(false)
 	player.end_mounted()
 	_restore_player_collision()
 	_clear_weapon_inputs()
@@ -415,6 +419,19 @@ func _restore_player_collision() -> void:
 	player.collision_layer = _walking_layer
 	player.collision_mask = _walking_mask
 	_collision_owned = false
+
+func _set_riding_taa(riding: bool) -> void:
+	var viewport := get_viewport()
+	if viewport == null:
+		return
+	if riding:
+		if not _taa_owned:
+			_taa_before_mount = viewport.use_taa
+			_taa_owned = true
+		viewport.use_taa = false
+	elif _taa_owned:
+		viewport.use_taa = _taa_before_mount
+		_taa_owned = false
 
 ## A button held while mounting/dismounting must not stay latched in the weapon
 ## host: otherwise the sword thinks RMB/LMB is still down and the right hand or the
@@ -587,6 +604,7 @@ func _physics_process(_delta: float) -> void:
 		# The horse lost its rider (respawn/teleport); restore walking here.
 		horse.rider = null
 		_mounted = false
+		_set_riding_taa(false)
 		player.end_mounted()
 		_restore_player_collision()
 		player.set_preview_pose_authority(&"on_foot", true)
@@ -600,6 +618,7 @@ func _force_player_off_dead_horse() -> void:
 	at.y = _ground_height(at)
 	horse.rider = null
 	_mounted = false
+	_set_riding_taa(false)
 	player.end_mounted()
 	_restore_player_collision()
 	_clear_weapon_inputs()
@@ -956,6 +975,7 @@ func snapshot() -> Dictionary:
 func dispose() -> void:
 	if _mounted:
 		dismount_now()
+	_set_riding_taa(false)
 	if _pose != null:
 		_pose.dispose()
 		_pose = null

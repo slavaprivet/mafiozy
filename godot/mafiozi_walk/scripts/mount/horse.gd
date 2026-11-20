@@ -125,6 +125,9 @@ func setup(at: Vector3, yaw: float) -> bool:
 	if _built:
 		return false
 	name = "CastleHorse"
+	# The rider and camera already interpolate between physics ticks. Keep the
+	# horse in the same presentation timeline during a fast gallop.
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_ON
 	collision_layer = 1
 	collision_mask = 1
 	floor_snap_length = 0.45
@@ -136,6 +139,7 @@ func setup(at: Vector3, yaw: float) -> bool:
 	_yaw = yaw
 	global_position = at
 	rotation.y = _yaw
+	reset_physics_interpolation()
 	_build_collision()
 	_build_model()
 	_build_blood_splats()

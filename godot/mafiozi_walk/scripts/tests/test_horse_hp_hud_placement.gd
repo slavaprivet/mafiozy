@@ -28,9 +28,15 @@ func _run() -> void:
 	await physics_frame
 	await physics_frame
 	var failures: Array[String] = []
+	var viewport := root.get_viewport()
+	var taa_before := viewport.use_taa
+	if horse.physics_interpolation_mode != Node.PHYSICS_INTERPOLATION_MODE_ON:
+		failures.append("horse_not_interpolated")
 	if not host.call("mount_now"):
 		failures.append("mount_failed")
 	else:
+		if viewport.use_taa:
+			failures.append("taa_still_on_while_riding")
 		host.call("_update_hud", false)
 		var panel: PanelContainer = host.get("_hp_panel")
 		var viewport_size := root.get_viewport().get_visible_rect().size
@@ -40,5 +46,7 @@ func _run() -> void:
 			failures.append("hud_not_in_corner")
 		if not host.call("dismount_now"):
 			failures.append("dismount_failed")
+		if viewport.use_taa != taa_before:
+			failures.append("taa_not_restored")
 	print("HORSE_HP_HUD ", "PASS" if failures.is_empty() else "FAIL " + str(failures))
 	quit(0 if failures.is_empty() else 1)
