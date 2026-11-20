@@ -2546,25 +2546,18 @@ func wants_e() -> bool:
 	return _player.global_position.distance_to(lever_position()) <= 2.6 \
 		or _player.global_position.distance_to(outer_lever_position()) <= 2.6
 
-## E at the lever works the gate. The gate is the player's own business, so it answers the
-## key itself rather than going through the weapons.
+## The world handles E at the lever. E here is reserved for armory pickups only.
 func _unhandled_input(event: InputEvent) -> void:
 	if not _ready or not is_instance_valid(_player): return
 	if not (event is InputEventKey) or not event.pressed or event.echo: return
 	var code: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
-	if code not in [KEY_E, KEY_F]: return
+	if code != KEY_E: return
 	if not bool(_player.get("_free_mouse_look")): return
-	# Taking rack/floor items uses E; F still works the gate and opens the chest.
-	if code == KEY_E:
-		if is_instance_valid(_world_ref) and _world_ref.has_method("_current_door_action"):
-			var primary: Dictionary = _world_ref.call("_current_door_action")
-			if str(primary.get("key", "F")) == "E" and str(primary.get("owner", "")) != "castle_pickup": return
-		if is_instance_valid(armory_storage) and not armory_storage.chest_focused() and armory_storage.interact():
-			get_viewport().set_input_as_handled()
-		return
-	if not wants_e(): return
-	set_gate(not _gate_open_state)
-	get_viewport().set_input_as_handled()
+	if is_instance_valid(_world_ref) and _world_ref.has_method("_current_door_action"):
+		var primary: Dictionary = _world_ref.call("_current_door_action")
+		if str(primary.get("key", "F")) == "E" and str(primary.get("owner", "")) != "castle_pickup": return
+	if is_instance_valid(armory_storage) and not armory_storage.chest_focused() and armory_storage.interact():
+		get_viewport().set_input_as_handled()
 
 func _advance_gate(delta: float) -> void:
 	if not is_instance_valid(_gate_left) or not is_instance_valid(_gate_right): return

@@ -1350,7 +1350,7 @@ func _current_door_action() -> Dictionary:
 		var outer: Vector3 = preview_castle.outer_lever_position()
 		var nearest: Vector3 = inner if _player.global_position.distance_to(inner) <= _player.global_position.distance_to(outer) else outer
 		return {"owner": "castle", "label": "Открыть ворота" if not preview_castle.gate_open() else "Закрыть ворота",
-			"world": nearest + Vector3.UP * 0.9}
+			"key": "E", "world": nearest + Vector3.UP * 0.9}
 	var candidates: Array = []
 	if is_instance_valid(preview_power_barrels):
 		var barrel_text: String = str(preview_power_barrels.call("prompt_text"))
@@ -1378,7 +1378,7 @@ func _current_door_action() -> Dictionary:
 		var outer: Vector3 = preview_castle.outer_lever_position()
 		var nearest: Vector3 = inner if _player.global_position.distance_to(inner) <= _player.global_position.distance_to(outer) else outer
 		return {"owner": "castle", "label": "Открыть ворота" if not preview_castle.gate_open() else "Закрыть ворота",
-			"world": nearest + Vector3.UP * 0.9}
+			"key": "E", "world": nearest + Vector3.UP * 0.9}
 	if is_instance_valid(preview_palazzo):
 		var palazzo_action: Dictionary = preview_palazzo.door_action()
 		if not palazzo_action.is_empty(): return palazzo_action
