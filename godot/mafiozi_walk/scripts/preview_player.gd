@@ -6,8 +6,8 @@ extends CharacterBody3D
 @export var model_target_height: float = 1.9
 ## Imported glTF characters face +Z; the movement heading uses Godot's -Z.
 @export var visual_yaw_degrees: float = 180.0
-@export var walk_speed: float = 3.2
-@export var run_speed: float = 5.8
+@export var walk_speed: float = 4.0
+@export var run_speed: float = 6.8
 @export var acceleration: float = 18.0
 @export var jump_speed: float = 5.2
 @export var mouse_sensitivity: float = 0.003

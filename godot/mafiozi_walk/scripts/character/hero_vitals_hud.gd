@@ -233,9 +233,16 @@ class WeaponGlyph extends Control:
 				_shaft(Vector2(3, 19), Vector2(27, 11), 5.0)
 				_poly([Vector2(24, 9), Vector2(30, 11), Vector2(25, 16)], BRIGHT)
 			"none":
-				_poly([Vector2(9, 17), Vector2(12, 12), Vector2(22, 12), Vector2(26, 17), Vector2(23, 25), Vector2(10, 25)], METAL)
-				for x: float in [12.0, 16.0, 20.0]:
-					draw_line(Vector2(x, 11), Vector2(x, 16), BRIGHT, 2.5, true)
+				# Four knuckles, tucked thumb and wrist read as a fist at HUD scale.
+				_poly([Vector2(8, 14), Vector2(23, 13), Vector2(26, 17), Vector2(23, 24),
+					Vector2(19, 27), Vector2(11, 26), Vector2(7, 21)], METAL)
+				for x: float in [10.0, 14.0, 18.0, 22.0]:
+					draw_circle(Vector2(x, 12), 2.7, BRIGHT)
+				draw_line(Vector2(11, 15), Vector2(11, 18), EDGE, 1.0, true)
+				draw_line(Vector2(15, 14), Vector2(15, 18), EDGE, 1.0, true)
+				draw_line(Vector2(19, 14), Vector2(19, 18), EDGE, 1.0, true)
+				_poly([Vector2(7, 16), Vector2(5, 13), Vector2(7, 10), Vector2(11, 17)], SHAFT)
+				_poly([Vector2(11, 25), Vector2(20, 25), Vector2(20, 29), Vector2(12, 29)], SHAFT)
 
 	func _draw_trigger() -> void:
 		draw_arc(Vector2(15, 19), 3.0, 0.0, PI, 8, EDGE, 1.2, true)
