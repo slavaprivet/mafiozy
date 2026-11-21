@@ -52,6 +52,29 @@ func _run() -> void:
 		scene.call("_position_door_hint")
 		if str(scene.get("_door_hint_owner")) != "mounted_horse" or not mount_hint.visible or mount_hint.position != hint_at:
 			failures.append("mounted_hint_jitters")
+		# Render the shared hint through a real mounted gallop. It must stay at
+		# the same integer pixel instead of following the horse's bouncing pose.
+		var ride_start: Vector3 = horse.global_position
+		Input.action_press(&"preview_move_forward")
+		Input.action_press(&"preview_run")
+		for frame: int in 45:
+			await physics_frame
+			# The gameplay hint normally expires after 1.5 wall-clock seconds;
+			# keep it within that brief window while testing its screen position.
+			host.set("_mounted_at_ms", Time.get_ticks_msec())
+			scene.call("_update_door_hint")
+			scene.call("_position_door_hint")
+			if str(scene.get("_door_hint_owner")) != "mounted_horse" or not mount_hint.visible \
+					or mount_hint.position != hint_at or mount_hint.position != mount_hint.position.round():
+				print("HORSE_HINT_FRAME frame=", frame, " owner=", scene.get("_door_hint_owner"),
+					" visible=", mount_hint.visible, " pos=", mount_hint.position,
+					" expected=", hint_at, " text=", scene.get("_door_hint").text)
+				failures.append("mounted_gallop_hint_jitters")
+				break
+		Input.action_release(&"preview_run")
+		Input.action_release(&"preview_move_forward")
+		if horse.global_position.distance_to(ride_start) < 0.25:
+			failures.append("horse_did_not_gallop")
 		if not host.call("dismount_now"):
 			failures.append("dismount_failed")
 		if viewport.use_taa != taa_before:

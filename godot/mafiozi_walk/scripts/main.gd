@@ -1466,8 +1466,11 @@ func _position_door_hint() -> void:
 			_door_hint_panel.position = fixed_position
 		return
 	var screen: Vector2 = camera.unproject_position(_door_hint_world)
-	_door_hint_panel.position = Vector2(clampf(screen.x - size.x * 0.5, 12.0, maxf(12.0, viewport.x - size.x - 12.0)),
-		clampf(screen.y - size.y, 12.0, maxf(12.0, viewport.y - size.y - 12.0)))
+	_door_hint_panel.position = _pixel_aligned_hint_position(screen, size, viewport)
+
+static func _pixel_aligned_hint_position(screen: Vector2, size: Vector2, viewport: Vector2) -> Vector2:
+	return Vector2(clampf(screen.x - size.x * 0.5, 12.0, maxf(12.0, viewport.x - size.x - 12.0)),
+		clampf(screen.y - size.y, 12.0, maxf(12.0, viewport.y - size.y - 12.0))).round()
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and (event.physical_keycode == KEY_F5 or event.keycode == KEY_F5):

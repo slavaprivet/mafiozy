@@ -62,6 +62,10 @@ func _run() -> void:
 			"look": base + Vector3(0.0, 38.0, -8.0)},
 		{"name": "courtyard", "pos": base + Vector3(0.0, 16.0, half - 12.0),
 			"look": base + Vector3(0.0, 18.0, -30.0)},
+		{"name": "stair_top_south", "pos": base + Vector3(-half * 0.42, 21.2, half - 10.0),
+			"look": base + Vector3(-half * 0.42, 19.0, half + 1.0)},
+		{"name": "wall_walk_south", "pos": base + Vector3(-half * 0.42 - 9.0, 21.0, half - 1.3),
+			"look": base + Vector3(-half * 0.42 + 8.0, 19.1, half - 1.3)},
 	]
 	# What is actually on the line of sight to the gate? A door that renders black and a
 	# door that is not there look the same from a distance, and they are different bugs.

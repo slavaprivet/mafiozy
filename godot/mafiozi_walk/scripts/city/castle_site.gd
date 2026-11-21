@@ -2595,7 +2595,7 @@ func _build_stairs() -> void:
 func _build_stair_flight(normal: Vector3, name: String) -> void:
 	var rise := 0.26
 	var run := 0.36
-	var width := 2.8
+	var width := 3.6
 	var steps := int(ceil(WALL_HEIGHT / rise))
 	# End at the actual wall-walk height, not the next multiple of 26 cm.
 	rise = WALL_HEIGHT / float(steps)
@@ -2676,11 +2676,11 @@ func _build_stair_flight(normal: Vector3, name: String) -> void:
 			else Vector3(run * 1.04, 1.0, 0.32), "stone", "stairs_rail_" + name, i)
 	# The final step overlaps a broad landing and the wall walk. It does not end
 	# at a narrow seam in front of the inner parapet.
-	var landing_at := top_centre + normal * 1.7 + Vector3.UP * (WALL_HEIGHT - 0.12)
+	var landing_at := top_centre + normal * 1.6 + Vector3.UP * (WALL_HEIGHT - 0.12)
 	# Do not project the horizontal landing into the rising capsule's path.
 	# The wall-walk already reaches the last tread; overlap it from the top.
-	var landing_size := Vector3(width + 0.6, 0.24, 3.0) if absf(normal.z) > 0.5 \
-		else Vector3(3.0, 0.24, width + 0.6)
+	var landing_size := Vector3(width + 1.4, 0.24, 3.2) if absf(normal.z) > 0.5 \
+		else Vector3(3.2, 0.24, width + 1.4)
 	_add_brick(landing_at, landing_size, "warm", Vector3.ZERO, "stair_landing_" + name)
 	_add_breakable_collision(landing_at, landing_size)
 
@@ -3124,7 +3124,7 @@ func _build_keep_interior() -> void:
 
 ## ------------------------------------------------------------------ colour and banners
 ## Banners hanging on the walls, in the colour of the house, with a gold device: a
-const WALK_WIDTH := 3.0
+const WALK_WIDTH := 4.6
 const WALK_PARAPET := 0.9
 
 ## THE WALL-WALK: a continuous platform round all four walls at the wall head, wide enough
@@ -3141,22 +3141,28 @@ func _build_wall_walks() -> void:
 		var sign: float = 1.0 if side in ["south", "east"] else -1.0
 		for span: int in spans:
 			var along := -WALL_HALF + (float(span) + 0.5) * length
-			var centre := Vector3(along, WALL_HEIGHT - 0.1, sign * (WALL_HALF - 0.55)) if along_x \
-				else Vector3(sign * (WALL_HALF - 0.55), WALL_HEIGHT - 0.1, along)
+			var landing: float = WALL_HALF * 0.42 * (1.0 if side in ["north", "east"] else -1.0)
+			# The high deck must not cut across the final metres of the rising ramp.
+			# The five-metre landing fills these two short, notched wall spans instead.
+			var stair_span := absf(along - landing) < length * 0.5 + 2.5
+			var walk_width := 3.0 if stair_span else WALK_WIDTH
+			var walk_inset := 0.55 if stair_span else 1.35
+			# Elsewhere widen into the courtyard; the outside edge stays put.
+			var centre := Vector3(along, WALL_HEIGHT - 0.1, sign * (WALL_HALF - walk_inset)) if along_x \
+				else Vector3(sign * (WALL_HALF - walk_inset), WALL_HEIGHT - 0.1, along)
 			# A tiny longitudinal overlap prevents light leaking between independent
 			# destructible spans without increasing their count or collision cost.
 			var deck_length := length * 1.01
-			var deck_size := Vector3(deck_length, 0.24, WALK_WIDTH) if along_x \
-				else Vector3(WALK_WIDTH, 0.24, deck_length)
+			var deck_size := Vector3(deck_length, 0.24, walk_width) if along_x \
+				else Vector3(walk_width, 0.24, deck_length)
 			_add_brick(centre, deck_size, "warm", Vector3.ZERO, side + "_walk", 0, span)
 			_add_breakable_collision(centre, deck_size)
 			var inner := centre + (Vector3(0.0, 0.0, -sign) if along_x \
-				else Vector3(-sign, 0.0, 0.0)) * (WALK_WIDTH * 0.5 - 0.2)
+				else Vector3(-sign, 0.0, 0.0)) * (walk_width * 0.5 - 0.2)
 			var rail_at := inner + Vector3.UP * (WALK_PARAPET * 0.5 + 0.12)
 			var rail_size := Vector3(length, WALK_PARAPET, 0.35) if along_x \
 				else Vector3(0.35, WALK_PARAPET, length)
 			# Open the stair landing and both corner connectors through this inner rail.
-			var landing: float = WALL_HALF * 0.42 * (1.0 if side in ["north", "east"] else -1.0)
 			var segment_min: float = along - length * 0.5
 			var segment_max: float = along + length * 0.5
 			var intervals: Array[Vector2] = [Vector2(segment_min, segment_max)]
@@ -3165,8 +3171,10 @@ func _build_wall_walks() -> void:
 			if side == "south":
 				gap_centres.append_array([-14.0, 14.0])
 			for gap_centre: float in gap_centres:
-				var gap_min := gap_centre - 1.8
-				var gap_max := gap_centre + 1.8
+				# The five-metre landing needs a matching opening in the inner rail.
+				var half_gap := 2.6 if is_equal_approx(gap_centre, landing) else 1.8
+				var gap_min := gap_centre - half_gap
+				var gap_max := gap_centre + half_gap
 				var remaining: Array[Vector2] = []
 				for interval: Vector2 in intervals:
 					if interval.y <= gap_min or interval.x >= gap_max:

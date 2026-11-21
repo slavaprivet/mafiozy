@@ -793,7 +793,6 @@ func _build_ui() -> void:
 	for id: String in LABELS:
 		var path := "res://assets/weapon_thumbnails/"+id+".png"
 		if ResourceLoader.exists(path): textures[id]=load(path)
-	textures["hatchet"]=load("res://assets/weapon_thumbnails/hatchet.svg")
 	_walk_ui.configure(self,textures)
 	_menu=_walk_ui.menu; _crosshair=_walk_ui.crosshair; _hud=_walk_ui.title
 	for id: String in _walk_ui.choices: _buttons[id]=_walk_ui.choices[id].button

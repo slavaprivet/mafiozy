@@ -48,10 +48,11 @@ func _process(_delta: float) -> void:
 	if not is_instance_valid(label) or not label.is_inside_tree() or not label.visible or Engine.get_physics_frames() - _last_claim > 2:
 		visible = false; return
 	var camera: Camera3D = get_viewport().get_camera_3d()
-	if camera == null or camera.is_position_behind(label.global_position): visible = false; return
-	var point: Vector2 = camera.unproject_position(label.global_position)
+	var label_world: Vector3 = label.get_global_transform_interpolated().origin
+	if camera == null or camera.is_position_behind(label_world): visible = false; return
+	var point: Vector2 = camera.unproject_position(label_world)
 	var screen: Vector2 = get_viewport().get_visible_rect().size
-	position = Vector2(clampf(point.x - size.x * .5, 8, screen.x - size.x - 8), clampf(point.y - size.y * .5, 8, screen.y - size.y - 8))
+	position = Vector2(clampf(point.x - size.x * .5, 8, screen.x - size.x - 8), clampf(point.y - size.y * .5, 8, screen.y - size.y - 8)).round()
 	_title.add_theme_color_override("font_color", label.modulate)
 	_health.text = str(label.get_meta("card29_health_text", ""))
 	(_background.material as ShaderMaterial).set_shader_parameter("health", float(label.get_meta("card29_display_ratio", 1.0)))
