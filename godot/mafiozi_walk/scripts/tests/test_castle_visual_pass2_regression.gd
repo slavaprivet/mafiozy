@@ -28,12 +28,40 @@ func _run() -> void:
 	var pediment_tiers: Dictionary = {}
 	var tower_height_sum := [0.0, 0.0, 0.0, 0.0]
 	var tower_height_count := [0, 0, 0, 0]
+	var wall_outer := [-INF, -INF, -INF, -INF]
+	var wall_top := [-INF, -INF, -INF, -INF]
+	var crown_inner := [INF, INF, INF, INF]
+	var crown_bottom := [INF, INF, INF, INF]
+	var crown_top := [-INF, -INF, -INF, -INF]
+	var crown_outer := [-INF, -INF, -INF, -INF]
+	var upper_crown_inner := [INF, INF, INF, INF]
+	var upper_crown_bottom := [INF, INF, INF, INF]
+	var half: float = castle.call("wall_half")
 	for value: Variant in castle.get("_cells"):
 		var cell: Dictionary = value
 		var group := str(cell.get("group", ""))
 		counts[group] = int(counts.get(group, 0)) + 1
 		var at: Vector3 = cell.get("at", Vector3.ZERO)
 		var size: Vector3 = cell.get("size", Vector3.ZERO)
+		if group == "tower" or group == "tower_crown":
+			var corner := (1 if at.x > 0.0 else 0) + (2 if at.z > 0.0 else 0)
+			var centre := Vector2(half if at.x > 0.0 else -half, half if at.z > 0.0 else -half)
+			var radius := Vector2(at.x, at.z).distance_to(centre)
+			if group == "tower":
+				var top: float = at.y + size.y * 1.005 * 0.5
+				if top > wall_top[corner] + 0.001:
+					wall_top[corner] = top
+					wall_outer[corner] = radius + size.x * 0.995 * 0.5
+				elif absf(top - wall_top[corner]) < 0.001:
+					wall_outer[corner] = maxf(wall_outer[corner], radius + size.x * 0.995 * 0.5)
+			elif int(cell.get("row", -1)) == 0:
+				crown_inner[corner] = minf(crown_inner[corner], radius - size.x * 0.5)
+				crown_outer[corner] = maxf(crown_outer[corner], radius + size.x * 0.5)
+				crown_bottom[corner] = minf(crown_bottom[corner], at.y - size.y * 0.5)
+				crown_top[corner] = maxf(crown_top[corner], at.y + size.y * 0.5)
+			else:
+				upper_crown_inner[corner] = minf(upper_crown_inner[corner], radius - size.x * 0.5)
+				upper_crown_bottom[corner] = minf(upper_crown_bottom[corner], at.y - size.y * 0.5)
 		if group == "entrance_arch31" and at.y > 15.65:
 			arch_top_stones += 1
 		elif group == "entrance_pier31":
@@ -81,6 +109,10 @@ func _run() -> void:
 				failures.append("pediment_vertical_gap")
 	var tower_averages: Array[float] = []
 	for corner: int in 4:
+		if wall_outer[corner] - crown_inner[corner] < 0.08 or crown_outer[corner] - upper_crown_inner[corner] < 0.08:
+			failures.append("tower_crown_radial_gap")
+		if wall_top[corner] - crown_bottom[corner] < 0.005 or crown_top[corner] - upper_crown_bottom[corner] < 0.005:
+			failures.append("tower_crown_vertical_gap")
 		if int(tower_height_count[corner]) == 0:
 			failures.append("tower_corner_missing")
 			tower_averages.append(0.0)
@@ -104,6 +136,10 @@ func _run() -> void:
 		"tower_crown_merlon": counts.get("tower_crown_merlon", 0)},
 		"arch_top_stones": arch_top_stones, "pier_base": pier_base,
 		"pier_capital": pier_capital, "bracket_emphasis": bracket_emphasis,
+		"tower_ring_radii": {"wall_outer": wall_outer, "wall_top": wall_top,
+			"crown_bottom": crown_bottom, "crown_top": crown_top,
+			"upper_bottom": upper_crown_bottom, "crown_inner": crown_inner,
+			"crown_outer": crown_outer, "upper_inner": upper_crown_inner},
 		"tower_averages": tower_averages, "failures": failures}))
 	print("CASTLE_PASS2_RESULT ", "PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)

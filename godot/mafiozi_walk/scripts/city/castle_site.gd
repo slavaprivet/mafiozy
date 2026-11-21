@@ -2038,10 +2038,14 @@ func _build_exterior_crowns() -> void:
 		var centre := Vector3(corner.x * WALL_HALF, 0.0, corner.y * WALL_HALF)
 		var corner_index: int = (1 if corner.x > 0.0 else 0) + (2 if corner.y > 0.0 else 0)
 		for tier: int in 2:
-			var radius := TOWER_RADIUS + 0.26 + float(tier) * 0.36
+			# The lower ring bears on the last wall course. At radius +0.26 its
+			# inner face stopped 3 cm outside that course, exposing sky below the rim.
+			var radius := TOWER_RADIUS + (0.10 if tier == 0 else 0.62)
 			var radial_depth := 0.72 - float(tier) * 0.10
-			var tier_height := 0.40 - float(tier) * 0.04
-			var height := TOWER_HEIGHT - 0.10 + float(tier) * 0.36
+			# The final tower course ends at 26.46 m. A taller lower ring now
+			# bears on it while still meeting the unchanged upper ring.
+			var tier_height := 0.68 if tier == 0 else 0.36
+			var height := TOWER_HEIGHT + (-0.21 if tier == 0 else 0.26)
 			var tangential_length := 2.0 * (radius + radial_depth * 0.5) \
 				* tan(PI / float(around)) * 1.03
 			for segment: int in around:
