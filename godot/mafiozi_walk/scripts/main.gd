@@ -205,6 +205,7 @@ var _door_hint: Label
 var _door_hint_panel: PanelContainer
 var _door_hint_key: PanelContainer
 var _door_hint_world: Vector3 = Vector3.ZERO
+var _door_hint_owner := ""
 var _door_feedback_seconds: float = 0.0
 var preview_perf: Node = null
 var preview_ready: bool = false
@@ -1336,6 +1337,17 @@ func _current_door_action() -> Dictionary:
 	var focused: Control = get_viewport().gui_get_focus_owner()
 	if focused is LineEdit or focused is TextEdit:
 		return {}
+	# Carry actions stay readable while the player moves. Both objects already
+	# handle G in their own hosts; this is only the shared HUD description.
+	if is_instance_valid(preview_catapult) and bool(preview_catapult.get("_carrying_stone")):
+		return {"owner": "carry_stone", "key": "G", "label": "Бросить камень · E — поставить"}
+	if is_instance_valid(preview_power_barrels) and bool(preview_power_barrels.get("carrying")):
+		return {"owner": "barrel", "key": "E", "label": "Поставить бочку · G — бросить",
+			"world": preview_power_barrels.call("prompt_world")}
+	if is_instance_valid(preview_ship):
+		var carried_ball: Variant = preview_ship.get("_carried_ball_mesh")
+		if is_instance_valid(carried_ball) and (carried_ball as Node3D).visible:
+			return {"owner": "carry_ball", "key": "G", "label": "Бросить ядро"}
 	# DSH_SHIP61: while the player is on or near the ship, she owns the F prompt.
 	if is_instance_valid(preview_siege_tower):  # DSH_TOWER
 		var tower_action: Dictionary = preview_siege_tower.call("action")
@@ -1412,11 +1424,16 @@ func _update_door_hint() -> void:
 		_door_hint_world = _v3(_printshop_data.doors.public.anchor) + Vector3.UP * 2.2
 	var hint: String = str(action.label) if not action.is_empty() else ""
 	var owner := str(action.get("owner", ""))
+	_door_hint_owner = owner
+	if owner == "barrel" and is_instance_valid(preview_power_barrels) and bool(preview_power_barrels.get("carrying")):
+		_door_hint_owner = "carry_barrel"
+	elif owner == "horse" and is_instance_valid(preview_horse_mount) and preview_horse_mount.is_mounted():
+		_door_hint_owner = "mounted_horse"
 	var key_text := str(action.get("key", "F"))
 	if owner == "barrel" or owner == "tower" or (owner in ["horse", "balloon"] and hint.contains("Взять")):
 		key_text = "E"
 	for child: Node in _door_hint_key.get_children():
-		if child is Label:
+		if child is Label and (child as Label).text != key_text:
 			(child as Label).text = key_text
 	_door_hint_key.visible = not action.is_empty() and _door_feedback_seconds <= 0.0
 	if not action.is_empty() and _door_feedback_seconds > 0.0:
@@ -1437,12 +1454,18 @@ func _position_door_hint() -> void:
 	if _door_hint_panel == null:
 		return
 	var camera: Camera3D = get_viewport().get_camera_3d()
-	_door_hint_panel.visible = not _door_hint.text.is_empty() and camera != null and not camera.is_position_behind(_door_hint_world)
+	var fixed := str(_door_hint_owner) in ["carry_stone", "carry_barrel", "carry_ball", "mounted_horse"]
+	_door_hint_panel.visible = not _door_hint.text.is_empty() and camera != null and (fixed or not camera.is_position_behind(_door_hint_world))
 	if not _door_hint_panel.visible:
 		return
-	var screen: Vector2 = camera.unproject_position(_door_hint_world)
 	var viewport: Vector2 = get_viewport().get_visible_rect().size
 	var size: Vector2 = _door_hint_panel.size
+	if fixed:
+		var fixed_position := Vector2(roundf((viewport.x - size.x) * 0.5), roundf(viewport.y * 0.73))
+		if _door_hint_panel.position != fixed_position:
+			_door_hint_panel.position = fixed_position
+		return
+	var screen: Vector2 = camera.unproject_position(_door_hint_world)
 	_door_hint_panel.position = Vector2(clampf(screen.x - size.x * 0.5, 12.0, maxf(12.0, viewport.x - size.x - 12.0)),
 		clampf(screen.y - size.y, 12.0, maxf(12.0, viewport.y - size.y - 12.0)))
 
@@ -1479,6 +1502,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	var action: Dictionary = _current_door_action()
 	if action.is_empty():
 		return
+	if str(action.get("owner", "")) in ["carry_stone", "carry_ball"]: return
 	# The key printed on a pickup is its only activation key.
 	var action_key := KEY_E if str(action.get("key", "F")) == "E" else KEY_F
 	if palazzo_key != action_key: return

@@ -129,6 +129,8 @@ class BodyDiagram extends Control:
 		draw_circle(at, 1.3, Color(0.98, 0.68, 0.52))
 
 	func _draw() -> void:
+		# The frame stays transparent so an amputated part is truly absent.
+		draw_rect(Rect2(2, 2, 68, 100), Color(0.57, 0.46, 0.30, 0.42), false, 1.0)
 		# Adjacent polygons overlap slightly. Their former one-pixel gaps were
 		# especially visible at the wrists, waist, knees and ankles at HUD scale.
 		if _part_status("chest") != "severed":
@@ -185,6 +187,29 @@ class BodyDiagram extends Control:
 			"thigh_r": return Vector2(43, 70)
 			"shin_r": return Vector2(43, 84)
 			_: return Vector2(45, 95)
+
+class HealthTrack extends Control:
+	var ratio := 1.0
+	func _init() -> void:
+		custom_minimum_size = Vector2(153.0, 12.0)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+	func set_ratio(next: float) -> void:
+		next = clampf(next, 0.0, 1.0)
+		if is_equal_approx(ratio, next): return
+		ratio = next
+		queue_redraw()
+	func _draw() -> void:
+		var w := size.x
+		draw_rect(Rect2(0, 0, w, 12), Color(0.40, 0.30, 0.20))
+		draw_rect(Rect2(1, 1, w - 2, 10), Color(0.07, 0.07, 0.07))
+		var fill := (w - 4) * ratio
+		if fill > 0.0:
+			var main := Color(0.70, 0.16, 0.13) if ratio > 0.3 else Color(0.88, 0.37, 0.10)
+			draw_rect(Rect2(2, 2, fill, 8), main)
+			draw_rect(Rect2(2, 2, fill, 2), main.lightened(0.32))
+		for fraction: float in [0.25, 0.5, 0.75]:
+			var x := 2.0 + (w - 4.0) * fraction
+			draw_line(Vector2(x, 3), Vector2(x, 9), Color(0.08, 0.07, 0.07, 0.67), 1.0)
 
 class WeaponGlyph extends Control:
 	## Small HUD silhouettes are drawn at their final size. Scaling the detailed
@@ -288,8 +313,7 @@ var _weapon_timer := 0.0
 var _armor_owner: Node
 var _armor_slots: Dictionary = {}
 var _hp_label: Label
-var _hp_fill: Panel
-var _hp_fill_style: StyleBoxFlat
+var _hp_track: HealthTrack
 var _status_label: Label
 var _lost_label: Label
 var _burn_label: Label
@@ -341,22 +365,8 @@ func configure(scene: Node) -> void:
 	_weapon_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_weapon_label.custom_minimum_size.x = BAR_WIDTH - 36.0
 	_hp_label = _label(column, "Здоровье 100 / 100", 12, Color("ead7ad"))
-	var track := Panel.new()
-	track.custom_minimum_size = Vector2(BAR_WIDTH, 9)
-	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var track_style := StyleBoxFlat.new()
-	track_style.bg_color = Color(0.11, 0.10, 0.09)
-	track_style.set_corner_radius_all(4)
-	track.add_theme_stylebox_override("panel", track_style)
-	column.add_child(track)
-	_hp_fill = Panel.new()
-	_hp_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hp_fill.size = Vector2(BAR_WIDTH, 9)
-	_hp_fill_style = StyleBoxFlat.new()
-	_hp_fill_style.bg_color = Color(0.68, 0.16, 0.13)
-	_hp_fill_style.set_corner_radius_all(4)
-	_hp_fill.add_theme_stylebox_override("panel", _hp_fill_style)
-	track.add_child(_hp_fill)
+	_hp_track = HealthTrack.new()
+	column.add_child(_hp_track)
 	_status_label = _label(column, "", 12, Color("d9c7a9"))
 	_status_label.visible = false
 	_lost_label = _label(column, "", 11, Color("ec6850"))
@@ -442,8 +452,7 @@ func render_state(state: Dictionary) -> void:
 	var hp := clampf(float(state.get("hp", maximum)), 0.0, maximum)
 	var percent := clampf(float(state.get("bleed_percent", 0.0)), 0.0, 100.0)
 	_hp_label.text = "Здоровье %d / %d" % [int(ceil(hp)), int(ceil(maximum))]
-	_hp_fill.size.x = BAR_WIDTH * hp / maximum
-	_hp_fill_style.bg_color = Color(0.68, 0.16, 0.13) if hp > maximum * 0.3 else Color(0.82, 0.32, 0.10)
+	_hp_track.set_ratio(hp / maximum)
 	var lost: Array = state.get("severed_labels", [])
 	var burning := bool(state.get("burning", false))
 	var split := bool(state.get("body_split", false))

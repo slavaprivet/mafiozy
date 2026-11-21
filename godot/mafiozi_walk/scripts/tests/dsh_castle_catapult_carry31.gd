@@ -28,6 +28,14 @@ func _run() -> void:
 	for frame: int in 6: await physics_frame
 	catapult._try_interact()
 	if not catapult.snapshot().carrying: errors.append("stone_not_taken")
+	var carry_action: Dictionary = scene.call("_current_door_action")
+	if str(carry_action.get("key", "")) != "G" or not str(carry_action.get("label", "")).contains("Бросить камень"):
+		errors.append("stone_drop_hint_missing")
+	scene.call("_update_door_hint")
+	for frame: int in 2: await process_frame
+	var carry_panel: Control = scene.get("_door_hint_panel")
+	if not carry_panel.visible or str(scene.get("_door_hint_owner")) != "carry_stone":
+		errors.append("stone_drop_hint_not_visible")
 	if not bool(weapons.get("_catapult_stone_carry")): errors.append("two_hands_not_reserved")
 	if str(weapons.fire_state.weaponId) != "none": errors.append("weapon_still_active")
 	if bool(weapons.equip("mace").get("ok", false)): errors.append("equipped_second_weapon_during_carry")

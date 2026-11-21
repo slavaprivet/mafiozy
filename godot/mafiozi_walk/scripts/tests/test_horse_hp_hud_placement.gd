@@ -44,6 +44,14 @@ func _run() -> void:
 			failures.append("hud_hidden")
 		if panel.position.x < viewport_size.x - panel.size.x - 30.0 or panel.position.y > 30.0:
 			failures.append("hud_not_in_corner")
+		scene.call("_update_door_hint")
+		scene.call("_position_door_hint")
+		var mount_hint: Control = scene.get("_door_hint_panel")
+		var hint_at: Vector2 = mount_hint.position
+		horse.global_position += Vector3(0.5, 0.0, 0.0)
+		scene.call("_position_door_hint")
+		if str(scene.get("_door_hint_owner")) != "mounted_horse" or not mount_hint.visible or mount_hint.position != hint_at:
+			failures.append("mounted_hint_jitters")
 		if not host.call("dismount_now"):
 			failures.append("dismount_failed")
 		if viewport.use_taa != taa_before:
