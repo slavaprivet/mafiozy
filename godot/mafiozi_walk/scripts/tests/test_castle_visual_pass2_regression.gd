@@ -23,6 +23,9 @@ func _run() -> void:
 	var pier_base := 0
 	var pier_capital := 0
 	var bracket_emphasis := 0
+	var bracket_tops: Array[float] = []
+	var rail_bottom := INF
+	var pediment_tiers: Dictionary = {}
 	var tower_height_sum := [0.0, 0.0, 0.0, 0.0]
 	var tower_height_count := [0, 0, 0, 0]
 	for value: Variant in castle.get("_cells"):
@@ -41,8 +44,13 @@ func _run() -> void:
 		elif group == "gate38_machicolation":
 			if absf((at.y - size.y * 0.5) - 19.655) > 0.001:
 				failures.append("machicolation_support_edge_moved")
+			bracket_tops.append(at.y + size.y * 0.5)
 			if size.x > 0.60:
 				bracket_emphasis += 1
+		elif group == "gate38_gallery_rail":
+			rail_bottom = at.y - size.y * 0.5
+		elif group == "gate38_pediment":
+			pediment_tiers[int(cell.get("row", -1))] = Vector2(at.y - size.y * 0.5, at.y + size.y * 0.5)
 		elif group == "tower_crown_merlon":
 			if absf((at.y - size.y * 0.5) - 27.0) > 0.001:
 				failures.append("tower_support_edge_moved")
@@ -57,6 +65,20 @@ func _run() -> void:
 		failures.append("entrance_pier_profile_changed")
 	if int(counts.get("gate38_machicolation", 0)) != 7 or bracket_emphasis != 3:
 		failures.append("machicolation_rhythm_changed")
+	if bracket_tops.size() != 7 or not is_finite(rail_bottom):
+		failures.append("gallery_support_missing")
+	else:
+		for top: float in bracket_tops:
+			if absf(top - rail_bottom) > 0.001:
+				failures.append("gallery_support_gap")
+	if pediment_tiers.size() != 5:
+		failures.append("pediment_tiers_missing")
+	else:
+		for tier: int in 4:
+			var lower: Vector2 = pediment_tiers[tier]
+			var upper: Vector2 = pediment_tiers[tier + 1]
+			if absf(lower.y - upper.x) > 0.001:
+				failures.append("pediment_vertical_gap")
 	var tower_averages: Array[float] = []
 	for corner: int in 4:
 		if int(tower_height_count[corner]) == 0:

@@ -4958,11 +4958,12 @@ func _build_gate_art38() -> void:
 	for bracket: int in 7:
 		var x: float = (float(bracket) - 3.0) * 1.68
 		var emphasized: bool = bracket in [0, 3, 6]
-		var bracket_height := 1.19 if emphasized else 1.09
+		# All brackets meet the rail underside. Width and depth keep the rhythm;
+		# shorter stones used to leave visible air under the gallery.
+		var bracket_height := 1.23
 		var bracket_width := 0.68 if emphasized else 0.52
 		var bracket_depth := 1.64 if emphasized else 1.46
-		# Preserve the original 19.655 m lower support edge while closing the small
-		# visual gap to the gallery rail above it.
+		# Preserve the original 19.655 m lower support edge and the cell count.
 		_add_brick(Vector3(x, 19.655 + bracket_height * 0.5, face + 0.22),
 			Vector3(bracket_width, bracket_height, bracket_depth),
 			"cold", Vector3.ZERO, "gate38_machicolation", 0, bracket)
@@ -5015,7 +5016,7 @@ func _build_gate_art38() -> void:
 	# A layered pointed pediment above the gallery reads from the siege camp.
 	for tier: int in 5:
 		_add_brick(Vector3(0.0, 23.28 + float(tier) * 0.57, face + 0.02),
-			Vector3(6.05 - float(tier) * 1.02, 0.42, 0.60),
+			Vector3(6.05 - float(tier) * 1.02, 0.57, 0.60),
 			"warm" if tier % 2 == 0 else "cold", Vector3.ZERO,
 			"gate38_pediment", tier, 0)
 	_add_brick(Vector3(0.0, 24.13, face + 0.36), Vector3(1.06, 1.36, 0.12),
