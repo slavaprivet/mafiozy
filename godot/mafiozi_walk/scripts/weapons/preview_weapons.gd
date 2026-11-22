@@ -281,14 +281,16 @@ func _equip_melee(id: String) -> Dictionary:
 		return {"ok":false,"reason":"embedded_weapon_out_of_reach"}
 	if str(prototype.get("_weapon_id"))!=id and preload("res://scripts/combat/embedded_drop31.gd").candidate(prototype):
 		if not bool(prototype.call("drop_sword_to_ground")):return {"ok":false,"reason":"embedded_release_refused"}
-	if sandbox_reselect29 and id in ["axe","sledge","spear"]:
-		prototype.set_shield_worn(false)
-	if id in ["axe", "sledge", "spear"] and is_instance_valid(prototype) \
-			and bool(prototype.shield_status().get("worn", false)):
-		return {"ok":false,"reason":"shield_occupies_right_hand"}
+	# Two-handed weapons stow the shield when selected from Q, just as the castle
+	# armory does. Restore it if the physical host refuses the new weapon.
+	var stowed_shield: bool = id in ["axe", "sledge", "spear"] \
+		and bool(prototype.shield_status().get("worn", false))
+	if stowed_shield and not bool(prototype.set_shield_worn(false)):
+		return {"ok":false,"reason":"shield_stow_failed"}
 	# Selection can be refused (lost hands, shield, invalid id). Do not publish a
 	# different HUD/fire-state weapon while the physical host retains its old one.
 	if not bool(prototype.set_weapon(id)):
+		if stowed_shield: prototype.set_shield_worn(true)
 		return {"ok":false,"reason":"melee_selection_refused"}
 	if sandbox_reselect29 and id!="hatchet" and not SandboxArsenal29.reclaim_melee(prototype):
 		return {"ok":false,"reason":"sandbox_ground_item_missing"}
@@ -583,7 +585,8 @@ func _input(event: InputEvent) -> void:
 	if is_instance_valid(castle_storage_owner) and event is InputEventKey \
 			and event.pressed and not event.echo and not castle_storage_owner.window_open:
 		var castle_code: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
-		if castle_code == KEY_Q and castle_storage_owner.has_back_bow() and castle_storage_owner.toggle_bow_selection():
+		# Q always opens the arsenal. 7 keeps the former quick bow toggle.
+		if castle_code == KEY_7 and castle_storage_owner.has_back_bow() and castle_storage_owner.toggle_bow_selection():
 			get_viewport().set_input_as_handled()
 			return
 		if castle_code == KEY_G and bool(castle_storage_owner.drop_held(Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)).get("ok", false)):

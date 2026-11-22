@@ -134,7 +134,7 @@ void fragment() {
 		var name_label := label(CARD_NAMES.get(id, host.LABELS[id]),12,"34281d"); content.add_child(name_label)
 		var detail := label("",10,"67533c"); content.add_child(detail)
 		choices[id] = {"button":choice,"image":image,"detail":detail,"selected":false}
-	column.add_child(label("ЛКМ  выбрать или взять     Q  закрыть     G  выбросить",11,"66533c"))
+	column.add_child(label("ЛКМ  выбрать или взять     Q  закрыть     7  лук     G  выбросить",11,"66533c"))
 	crosshair = Crosshair.new(); add_child(crosshair)
 	refresh()
 
@@ -182,6 +182,10 @@ func refresh() -> void:
 	var hatchet_count:=0
 	if id=="hatchet" and is_instance_valid(host.scene.preview_sword_prototype):
 		hatchet_count=host.scene.preview_sword_prototype._hatchet32.count();hud_signature="hatchet:%d"%hatchet_count
+	elif is_instance_valid(host.scene):
+		var melee_host: Node = host.scene.get("preview_sword_prototype")
+		var hatchets: Node = melee_host.get("_hatchet32") if is_instance_valid(melee_host) else null
+		if is_instance_valid(hatchets): hatchet_count = hatchets.count()
 	if hud_signature != _hud_signature:
 		_hud_signature = hud_signature
 		if id != _previous_id:
@@ -224,7 +228,7 @@ func refresh() -> void:
 	var castle_bag: Dictionary = castle_storage.snapshot() if is_instance_valid(castle_storage) else {}
 	var carried: Dictionary = castle_bag.get("carried", {})
 	var rack: Dictionary = castle_bag.get("rack", {})
-	var menu_signature := "%s|%s|%d|%d" % [",".join(owned),hud_signature,_inventory_revision,int(castle_bag.get("revision", -1))]
+	var menu_signature := "%s|%s|%d|%d|%d" % [",".join(owned),hud_signature,_inventory_revision,int(castle_bag.get("revision", -1)),hatchet_count]
 	if menu_signature == _menu_signature: return
 	_menu_signature=menu_signature
 	var count_text := "ВЫБЕРИТЕ ОСНОВНОЕ ОРУЖИЕ" if is_instance_valid(castle_storage) else \
@@ -235,6 +239,9 @@ func refresh() -> void:
 		var medieval := MELEE_IDS.has(key) or key == BOW_ID
 		var on_rack: bool = is_instance_valid(castle_storage) and medieval and rack.has(key)
 		var available := key == "none" or ((carried.has(key) or on_rack) if is_instance_valid(castle_storage) and medieval else medieval or owned.has(key))
+		# The three throwing hatchets belong to the melee host, not to a castle rack.
+		# The card is selectable while at least one physical hatchet remains.
+		if key == "hatchet": available = hatchet_count > 0
 		var shield_blocked := is_instance_valid(castle_storage) and key == "shield" and id != "sword"
 		if shield_blocked: available = false
 		# Rack cards select that real weapon immediately, replacing the active one.
