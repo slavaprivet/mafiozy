@@ -3876,6 +3876,12 @@ func _build_gate_bridge() -> void:
 	var rope := StandardMaterial3D.new()
 	rope.albedo_color = Color(0.52, 0.44, 0.30)
 	rope.roughness = 0.95
+	var rope_cylinder := CylinderMesh.new()
+	rope_cylinder.top_radius = 0.05
+	rope_cylinder.bottom_radius = 0.05
+	rope_cylinder.height = span / 8.0 * 1.1
+	var rope_surface := SurfaceTool.new()
+	rope_surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for i: int in planks:
 		var x: float = -span * 0.5 + plank_w * (float(i) + 0.5)
 		# A shallow sag in the middle, the way a rope bridge hangs.
@@ -3887,16 +3893,14 @@ func _build_gate_bridge() -> void:
 			var t_norm: float = float(i) / 8.0
 			var x: float = -span * 0.5 + span * t_norm
 			var sag: float = -0.28 * sin(PI * t_norm)
-			var rope_mesh := MeshInstance3D.new()
-			var rope_cylinder := CylinderMesh.new()
-			rope_cylinder.top_radius = 0.05
-			rope_cylinder.bottom_radius = 0.05
-			rope_cylinder.height = span / 8.0 * 1.1
-			rope_mesh.mesh = rope_cylinder
-			rope_mesh.material_override = rope
-			rope_mesh.position = Vector3(x, y + sag + 0.95, WALL_HALF + side * 1.15)
-			rope_mesh.rotation = Vector3(0.0, 0.0, PI * 0.5)
-			add_child(rope_mesh)
+			var rope_at := Vector3(x, y + sag + 0.95, WALL_HALF + side * 1.15)
+			rope_surface.append_from(rope_cylinder, 0,
+				Transform3D(Basis(Vector3.BACK, PI * 0.5), rope_at))
+	var rope_mesh := MeshInstance3D.new()
+	rope_mesh.name = "GateBridgeRopes"
+	rope_mesh.mesh = rope_surface.commit()
+	rope_mesh.material_override = rope
+	add_child(rope_mesh)
 ## ------------------------------------------------------------------ destruction
 func owns_collider(body: Node) -> bool:
 	if not is_instance_valid(body): return false
