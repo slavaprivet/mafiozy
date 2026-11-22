@@ -1,5 +1,6 @@
 extends Node3D
 const Surface30 = preload("res://scripts/combat/armor_surface30.gd")
+const Ornament = preload("res://scripts/combat/armor_ornament20261122.gd")
 ## Presentation-only modular castle armor. The combat owner decides absorption.
 ## The five slots can be mixed freely. Each piece follows the existing 28-bone rig.
 
@@ -60,6 +61,7 @@ func set_armor(slot: String, item_id: String) -> Dictionary:
 	_roots[slot] = []
 	_equipped[slot] = item_id
 	_build_slot(slot, tier)
+	_build_ornament(slot, tier)
 	_rigid_cut31.warm(self)
 	if slot == "head": _hide_headwear()
 	if slot == "torso":
@@ -625,6 +627,32 @@ func _build_slot(slot: String, tier: String) -> void:
 				_shell(foot, Vector3(0, .04, -.12), Vector3(.25, .17, .20), -140, 140, -.10, p.main, tier)
 				if tier != "light":
 					for z: float in [.13, .31, .48]: _box(foot, Vector3(0, .065, z), Vector3(.35, .025, .035), p.edge, tier)
+
+func _build_ornament(slot: String, tier: String) -> void:
+	# Each ornament is a single cached, near-camera draw on its own bone. It has
+	# no Skin, collision, armor value or per-frame script work. The existing cut
+	# owner sees it as a rigid fitting, so severing still removes it with the limb.
+	var bones: Array[String] = []
+	match slot:
+		"head": bones = ["head"]
+		"torso": bones = ["chest"]
+		"hands": bones = ["hand_l", "hand_r"]
+		"legs": bones = ["shin_l", "shin_r"]
+		"feet": bones = ["foot_l", "foot_r"]
+	var shared_mesh: ArrayMesh = Ornament.mesh_for(tier, slot)
+	for bone: String in bones:
+		var anchor := _anchor(slot, bone)
+		var detail := MeshInstance3D.new()
+		detail.name = "ArmorNearOrnament"
+		detail.mesh = shared_mesh
+		detail.material_override = Ornament.material_for(tier)
+		detail.scale = Vector3.ONE * _unit
+		detail.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		detail.visibility_range_end = 20.0
+		detail.visibility_range_end_margin = 2.0
+		detail.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
+		detail.set_meta("armor_cosmetic", true)
+		anchor.add_child(detail)
 
 ## Copies only the selected triangles from the hero's own skinned clothing.
 ## Bones, weights, UVs and Skin are retained byte-for-byte; only bind-space

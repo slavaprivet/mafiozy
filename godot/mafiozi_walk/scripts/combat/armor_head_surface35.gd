@@ -19,7 +19,7 @@ func coverage(host:Node,point:Vector3,velocity:Vector3,normal:Vector3)->Dictiona
 	while not stack.is_empty():
 		var node:Node=stack.pop_back()
 		for child:Node in node.get_children():stack.append(child)
-		if not node is MeshInstance3D or node.mesh==null or not node.is_visible_in_tree():continue
+		if not node is MeshInstance3D or node.mesh==null or not node.is_visible_in_tree() or bool(node.get_meta("armor_cosmetic", false)):continue
 		var a:Vector3=node.to_local(from);var b:Vector3=node.to_local(to)
 		if node.mesh.get_aabb().grow(.00001).intersects_segment(a,b)==null:continue
 		var id:int=node.mesh.get_instance_id()
