@@ -25,7 +25,6 @@ const FREE_SLEW := 10.5
 const FREE_NOISE := 1.2
 var _free_command := {"left":Vector2.ZERO,"right":Vector2.ZERO}
 var _free_hand := {"left":Vector2.ZERO,"right":Vector2.ZERO}
-var _free_reach := {"left":0.0,"right":0.0}
 var _free_side := ""
 var _cooldown := false
 var _camera_kick := Vector2.ZERO
@@ -61,7 +60,7 @@ func steering() -> bool:
 func _allowed() -> bool:
 	# Ground practice first. Airborne attack root motion/contact is a separate
 	# integration; an existing Max Payne jump must keep its own sole authority.
-	return _live() and last_error.is_empty() and not _scene.preview_dead and not _scene.preview_physics_fault and _player._pose_authority == &"on_foot" and _player._free_mouse_look and not _player._text_control_focused() and _player._jump.is_empty() and _player.is_on_floor()
+	return _live() and last_error.is_empty() and not _scene.preview_dead and not _scene.preview_physics_fault and _player._pose_authority == &"on_foot" and _player._free_mouse_look and not _player._text_control_focused() and (free_mode() or (_player._jump.is_empty() and _player.is_on_floor()))
 
 func clock_ms() -> float: return Time.get_ticks_usec() / 1000.0
 func random_draw() -> float:
@@ -110,7 +109,6 @@ func cancel(reason: String = "cancel") -> void:
 	for side: String in ["left","right"]:
 		_free_command[side]=Vector2.ZERO
 		_free_hand[side]=Vector2.ZERO
-		_free_reach[side]=0.0
 	_state = _input.cancel()
 	_source.reset(reason)
 	_physical_pose.reset()
@@ -164,10 +162,9 @@ func _free_input_event(event: InputEvent) -> bool:
 	if side.is_empty(): return true
 	_free_side=side
 	_free_command[side]=(_free_command[side] + Vector2(motion.relative.x,-motion.relative.y)*FREE_MOUSE_SCALE).clamp(Vector2(-1,-1),Vector2(1,1))
-	_free_reach[side]=maxf(float(_free_reach[side]),clampf(motion.relative.length()/28.0,0.0,1.0))
-	# Match sword steering: the held fist owns mouse yaw; the camera stays put.
-	_player._heading-=motion.relative.x*_player.mouse_sensitivity
-	_player._visual.rotation.y=_player._heading+PI
+	# The camera stays put. Face the target with a bounded torso excursion
+	# during physics, as sword steering does; an instant full body turn would
+	# cancel most of the fist's visible lateral arc.
 	return true
 
 func advance(delta: float) -> void:
@@ -209,10 +206,18 @@ func _free_advance(delta: float) -> void:
 		if not held: _free_command[side]=(_free_command[side] as Vector2).lerp(Vector2.ZERO,clampf(4.5*delta,0,1))
 		var difference: Vector2=(_free_command[side] as Vector2)-(_free_hand[side] as Vector2)
 		_free_hand[side]=(_free_hand[side] as Vector2)+difference.limit_length(FREE_SLEW*delta)
-		_free_reach[side]=move_toward(float(_free_reach[side]),0.0,delta*5.0)
 	_state={"action":{"type":"free_fist","held_left":_left_held,"held_right":_right_held,
 		"active_side":_free_side,"command_left":_free_hand.left,"command_right":_free_hand.right,
-		"reach_left":_free_reach.left,"reach_right":_free_reach.right}}
+		"camera_basis":_player._camera.global_basis}}
+	if steering():
+		var view_forward: Vector3=-_player._camera.global_basis.z
+		if Vector2(view_forward.x,view_forward.z).length_squared()>.01:
+			var camera_yaw: float=atan2(view_forward.x,view_forward.z)
+			var active_command: Vector2=_free_hand.get(_free_side,Vector2.ZERO)
+			var wanted_yaw: float=camera_yaw+clampf(active_command.x*.55,-.55,.55)
+			var yaw_error: float=wrapf(wanted_yaw-_player._visual.global_rotation.y,-PI,PI)
+			_player._visual.rotation.y+=clampf(yaw_error,-8.0*delta,8.0*delta)
+			_player._heading=_player._visual.rotation.y-deg_to_rad(_player.visual_yaw_degrees)
 
 func _check(result: Dictionary) -> void:
 	if result.has("error"):

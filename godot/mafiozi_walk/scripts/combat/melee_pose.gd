@@ -174,7 +174,17 @@ func sample(base:Dictionary,action:Variant=null,posture:Dictionary={},phase:floa
 		_poses.append(pose)
 	_busy=true;_phase=phase;_gait=gait;_update_world()
 	if type=="free_fist":
-		# Visual left is rig *_r; the imported skeleton is mirrored.
+		# Like the sword, steer a reachable arc from the shoulder in the camera
+		# plane. The imported rig is mirrored: visual left uses bones *_r.
+		var camera_basis: Variant=action.get("camera_basis",Basis.IDENTITY)
+		var rig: Skeleton3D=_skin._rig.get_ref()
+		if not camera_basis is Basis or not is_instance_valid(rig):
+			_busy=false
+			return {"valid":false,"error":"free_camera"}
+		var camera_forward: Vector3=-camera_basis.z
+		camera_forward.y=0.0
+		if camera_forward.length_squared()<.01: camera_forward=Vector3.FORWARD
+		camera_forward=camera_forward.normalized()
 		for visual_side: String in ["left","right"]:
 			var held: bool=_truthy(action.get("held_"+visual_side))
 			if not held: continue
@@ -182,8 +192,19 @@ func sample(base:Dictionary,action:Variant=null,posture:Dictionary={},phase:floa
 			var sign_side: float=1.0 if rig_side=="r" else -1.0
 			var command: Variant=action.get("command_"+visual_side,Vector2.ZERO)
 			if not command is Vector2 or not command.is_finite(): command=Vector2.ZERO
-			var reach: float=clampf(float(action.get("reach_"+visual_side,0.0)),0,1)
-			var target:=Vector3(sign_side*.43+command.x*.70,3.46+command.y*.74,.72+reach*1.36)
+			var yaw: float=clampf(command.x,-1.0,1.0)*1.48+sign_side*.16
+			var pitch: float=clampf(-.30+clampf(command.y,-1.0,1.0)*1.42,-1.12,1.30)
+			var flat: Vector3=camera_forward.rotated(Vector3.UP,-yaw)
+			var direction_world: Vector3=(flat*cos(pitch)+Vector3.UP*sin(pitch)).normalized()
+			var direction: Vector3=(_actor.basis*rig.global_basis.inverse()*direction_world).normalized()
+			# Keep the fist in the forward hemisphere when the body follows a
+			# side swing. Otherwise the shoulder aim wraps behind the back.
+			direction.z=maxf(.25,direction.z)
+			direction=direction.normalized()
+			var shoulder: Vector3=_position("upperarm_"+rig_side)
+			var reach: float=(float(_records["upperarm_"+rig_side].length)+float(_records["forearm_"+rig_side].length))*.83
+			var wrist_offset: Vector3=_records["socket_hand_"+rig_side].p-_records["hand_"+rig_side].p
+			var target: Vector3=shoulder+direction*reach+wrist_offset
 			_arm(rig_side,target,0.0)
 		var result:=base.duplicate()
 		result.poses=_poses.duplicate();result.authority_epoch=epoch

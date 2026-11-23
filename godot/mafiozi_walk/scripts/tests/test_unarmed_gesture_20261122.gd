@@ -35,6 +35,7 @@ func run() -> void:
 	player.set_mouse_captured(true)
 	for i in 4: await physics_frame
 	check(host._allowed(),"unarmed control allowed")
+	check(not player._weapon_host.armed(),"spawn starts with empty hands")
 	check(host.contact_checks==0,"idle has no contact queries")
 	button(host,MOUSE_BUTTON_LEFT,true)
 	motion(host,-55,-25)
@@ -48,10 +49,19 @@ func run() -> void:
 	var right_bone:=rig.find_bone("socket_hand_l")
 	check(left_bone>=0 and right_bone>=0,"mirrored rig hand mapping")
 	var left_before: Vector3=rig.get_bone_global_pose(left_bone).origin
+	for i in 14: await physics_frame
+	var left_settled: Vector3=rig.get_bone_global_pose(left_bone).origin
+	for i in 30: await physics_frame
+	var left_held: Vector3=rig.get_bone_global_pose(left_bone).origin
+	check(left_held.distance_to(left_settled)<.06 and (host._free_hand.left as Vector2).distance_to(first)<.01,"held fist keeps its position without mouse events")
 	motion(host,80,50)
 	for i in 4: await physics_frame
 	var left_after: Vector3=rig.get_bone_global_pose(left_bone).origin
-	check(left_after.distance_to(left_before)>.01,"left hand follows continued mouse movement")
+	check(left_after.distance_to(left_held)>.08,"left hand follows broad reverse mouse movement")
+	motion(host,0,-120)
+	for i in 14: await physics_frame
+	var left_raised: Vector3=rig.get_bone_global_pose(left_bone).origin
+	check(left_raised.y>left_after.y+.10,"vertical mouse movement raises held hand")
 	check(not host._free_pose_stamp.is_empty(),"free pose reaches final skin writer")
 	button(host,MOUSE_BUTTON_RIGHT,true)
 	motion(host,55,-25)
@@ -96,6 +106,24 @@ func run() -> void:
 			await physics_frame
 		check(host.confirmed_hits>hits_after and float(sword.get("_npc_hp"))<right_hp_before,"moving right fist damages knight")
 		button(host,MOUSE_BUTTON_RIGHT,false)
+	sword.set_selected(false)
+	var routed_button:=InputEventMouseButton.new()
+	routed_button.button_index=MOUSE_BUTTON_LEFT; routed_button.pressed=true
+	sword._input(routed_button); player._unhandled_input(routed_button)
+	check(host._left_held and not bool(sword.get("_hold_left")),"window click reaches fist controller")
+	var command_before: Vector2=host._free_command.left
+	var routed_motion:=InputEventMouseMotion.new()
+	routed_motion.relative=Vector2(-55,25)
+	sword._input(routed_motion); player._unhandled_input(routed_motion)
+	check((host._free_command.left as Vector2).distance_to(command_before)>.1,"window mouse motion controls held fist")
+	for i in 20: await physics_frame
+	var held_heading: float=player._heading
+	Input.action_press(&"preview_move_left")
+	for i in 8: await physics_frame
+	Input.action_release(&"preview_move_left")
+	check(absf(angle_difference(held_heading,player._heading))<.01,"walking does not steal fist steering")
+	routed_button.pressed=false
+	sword._input(routed_button); player._unhandled_input(routed_button)
 	finish()
 
 func finish() -> void:

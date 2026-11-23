@@ -838,7 +838,7 @@ func _physics_process(delta: float) -> void:
 	velocity.x = move_toward(velocity.x, direction.x * speed, acceleration * delta)
 	velocity.z = move_toward(velocity.z, direction.z * speed, acceleration * delta)
 	var bow_facing: bool = is_instance_valid(_bow_host) and _bow_host.owns_player_facing()
-	if direction.length_squared() > 0.001 and not bow_facing and not _sword_steering() and not _embedded_active29():
+	if direction.length_squared() > 0.001 and not bow_facing and not _sword_steering() and not (is_instance_valid(_melee_practice) and _melee_practice.steering()) and not _embedded_active29():
 		var target_heading: float = atan2(-direction.x, -direction.z)
 		_heading = lerp_angle(_heading, target_heading, minf(1.0, delta * 12.0))
 		_visual.rotation.y = _heading + deg_to_rad(visual_yaw_degrees)
