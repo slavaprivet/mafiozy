@@ -124,6 +124,20 @@ func run() -> void:
 	check(absf(angle_difference(held_heading,player._heading))<.01,"walking does not steal fist steering")
 	routed_button.pressed=false
 	sword._input(routed_button); player._unhandled_input(routed_button)
+	for side in [MOUSE_BUTTON_LEFT,MOUSE_BUTTON_RIGHT]:
+		host.cancel("cross_body_test")
+		var across := 1 if side==MOUSE_BUTTON_LEFT else -1
+		button(host,side,true)
+		motion(host,across*500)
+		for i in 24: await physics_frame
+		var forward: Vector3=-player._camera.global_basis.z
+		var yaw_error:=angle_difference(atan2(forward.x,forward.z),float(player._visual.global_rotation.y))
+		check(yaw_error*across<-.3,"body turns toward horizontal sweep")
+		var hand_index:=left_bone if across==1 else right_bone
+		var socket: Vector3=host._pose._actor*rig.get_bone_global_pose(hand_index).origin
+		var chest: Vector3=host._pose._actor*rig.get_bone_global_pose(rig.find_bone("chest")).origin
+		check(socket.z-chest.z>.48,"crossing fist clears front of chest")
+		button(host,side,false)
 	finish()
 
 func finish() -> void:

@@ -214,7 +214,7 @@ func _free_advance(delta: float) -> void:
 		if Vector2(view_forward.x,view_forward.z).length_squared()>.01:
 			var camera_yaw: float=atan2(view_forward.x,view_forward.z)
 			var active_command: Vector2=_free_hand.get(_free_side,Vector2.ZERO)
-			var wanted_yaw: float=camera_yaw+clampf(active_command.x*.55,-.55,.55)
+			var wanted_yaw: float=camera_yaw-clampf(active_command.x*.55,-.55,.55)
 			var yaw_error: float=wrapf(wanted_yaw-_player._visual.global_rotation.y,-PI,PI)
 			_player._visual.rotation.y+=clampf(yaw_error,-8.0*delta,8.0*delta)
 			_player._heading=_player._visual.rotation.y-deg_to_rad(_player.visual_yaw_degrees)

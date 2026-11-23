@@ -199,7 +199,9 @@ func sample(base:Dictionary,action:Variant=null,posture:Dictionary={},phase:floa
 			var direction: Vector3=(_actor.basis*rig.global_basis.inverse()*direction_world).normalized()
 			# Keep the fist in the forward hemisphere when the body follows a
 			# side swing. Otherwise the shoulder aim wraps behind the back.
-			direction.z=maxf(.25,direction.z)
+			# Sweep around the ribcage when the wrist travels across the chest.
+			var inward: float=smoothstep(0.0,0.55,-sign_side*direction.x)
+			direction.z=maxf(lerpf(.25,.95,inward),direction.z)
 			direction=direction.normalized()
 			var shoulder: Vector3=_position("upperarm_"+rig_side)
 			var reach: float=(float(_records["upperarm_"+rig_side].length)+float(_records["forearm_"+rig_side].length))*.83
