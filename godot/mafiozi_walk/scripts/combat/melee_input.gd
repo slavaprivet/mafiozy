@@ -134,9 +134,11 @@ func _expire(time: float) -> void:
 		if _reserved_heavy: _call_port("setWalkMeleeCharge",false)
 		_reserved_heavy = false; _current = {}
 
-func _begin(time: float, heavy: bool = false) -> bool:
+func _begin(time: float, heavy: bool = false, hand: String = "") -> bool:
 	var yaw: float = float(_context.yaw) if _finite(_context.yaw) else 0.0
-	var result: Variant = _call_port("beginWalkMelee",{"angle":PI/2-yaw,"airborne":_context.airborne,"heavy":heavy})
+	var request := {"angle":PI/2-yaw,"airborne":_context.airborne,"heavy":heavy}
+	if hand in ["left", "right"]: request.hand=hand
+	var result: Variant = _call_port("beginWalkMelee",request)
 	if not _fault.is_empty(): return false
 	if not result is Dictionary or not result.get("accepted",false) or not _finite(result.get("duration")) or float(result.duration) <= 0: return false
 	# Native host boundary: a successful bridge reply must contain copied scalar
@@ -193,6 +195,17 @@ func _input(method: String, options: Dictionary) -> Dictionary:
 func press(options: Dictionary = {}) -> Dictionary: return _input("press",options)
 func release(options: Dictionary = {}) -> Dictionary: return _input("release",options)
 func step(options: Dictionary = {}) -> Dictionary: return _input("step",options)
+
+func strike(side: int, options: Dictionary = {}) -> Dictionary:
+	if not _enter(): return _entry_error()
+	if side != -1 and side != 1 or not _options_valid(options):
+		_busy=false
+		return _error("options")
+	var time := _time_of(options.get("time"))
+	if not _fault.is_empty(): return _finish(time)
+	_update(options); _expire(time)
+	if not _permitted() or _blocking or not _current.is_empty(): return _finish(time)
+	return _finish(time, _begin(time, false, "left" if side < 0 else "right"))
 
 func cancel() -> Dictionary:
 	if not _enter(): return _entry_error()

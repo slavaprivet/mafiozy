@@ -1744,6 +1744,8 @@ func _input(event: InputEvent) -> void:
 			_aiming_throw = false
 			get_viewport().set_input_as_handled()
 			return
+		if _unarmed and (button.button_index == MOUSE_BUTTON_LEFT or (button.button_index == MOUSE_BUTTON_RIGHT and not _shield_worn)):
+			return
 		if button.button_index == MOUSE_BUTTON_LEFT:
 			if _shield_guard_active29():
 				_hold_left = button.pressed
@@ -7140,6 +7142,19 @@ func _damage_npc(amount: float, position: Vector3, now: int) -> void:
 		_npc_timer = 0.0
 	combat_audio_event30("blunt",position,clampf(amount/DAMAGE_MAX,.1,1.0))
 	_show_spark(position)
+
+func apply_unarmed_impact31(collider: CollisionObject3D, point: Vector3, direction: Vector3, amount: float) -> Dictionary:
+	# The fist host supplies a current, visible-hand contact. Blunt blows may
+	# stagger or kill, but never open a blade wound or sever a limb.
+	if not _is_npc_collider(collider) or _npc_dead or not point.is_finite() or not direction.is_finite():
+		return {"applied":false}
+	var part: String=str(collider.get_meta("sword_npc_part","chest"))
+	var armor_point: Vector3=_armor_point31(_npc_rig,part,point,collider)
+	var protection: Dictionary=ArmorDamage31.resolve(_npc_armor_loadout31,part,"blunt",amount,armor_point)
+	var result: Dictionary=_npc_take_puncture_part31(part,point,4.0,direction,float(protection.damage),0.30,false)
+	if result.get("applied",false):
+		combat_audio_event30("blunt",point,.22)
+	return result
 
 ## True when the collider belongs to the resident we armed.
 func _is_npc_collider(collider: Variant) -> bool:

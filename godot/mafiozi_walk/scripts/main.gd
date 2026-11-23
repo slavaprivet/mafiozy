@@ -446,7 +446,7 @@ func _ready() -> void:
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--preview-capture="):
 			_capture_path = argument.trim_prefix("--preview-capture=")
-	if not castle_map and (preview_melee_enabled or OS.get_cmdline_user_args().has("--preview-melee")):
+	if preview_melee_enabled or OS.get_cmdline_user_args().has("--preview-melee"):
 		_install_preview_melee_practice()
 	if not castle_map and (preview_minimap_enabled or OS.get_cmdline_user_args().has("--preview-minimap")) and not OS.get_cmdline_user_args().has("--no-minimap"):
 		_install_preview_minimap()
@@ -1008,7 +1008,7 @@ func _install_preview_melee_practice() -> bool:
 	if not host.configure(self, _player, adapter):
 		host.queue_free(); melee_status = "host_binding"; return false
 	preview_melee = host; _player._melee_practice = host
-	melee_status = "ground_practice_no_combat_targets"
+	melee_status = "castle_fist_contact" if castle_map else "ground_practice_no_combat_targets"
 	return true
 
 func _install_preview_minimap() -> bool:

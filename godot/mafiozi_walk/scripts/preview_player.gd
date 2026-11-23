@@ -1436,6 +1436,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		if _free_mouse_look and not _text_control_focused():
 			# Held melee owns angular input; translation and camera follow remain live.
 			if _sword_steering(): return
+			if is_instance_valid(_melee_practice) and (not is_instance_valid(_weapon_host) or not _weapon_host.armed()):
+				_melee_practice.input_event(event)
 			_camera_yaw -= motion.relative.x * mouse_sensitivity
 			var pitch_limits: Vector2=_weapon_host.aim_camera.pitch_limits() if is_instance_valid(_weapon_host) and _weapon_host.aim_camera!=null else Vector2(-1.05,.45)
 			_camera_pitch = clampf(_camera_pitch - motion.relative.y * mouse_sensitivity, pitch_limits.x, pitch_limits.y)

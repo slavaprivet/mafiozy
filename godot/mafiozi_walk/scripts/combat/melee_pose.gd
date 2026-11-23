@@ -158,7 +158,8 @@ func sample(base:Dictionary,action:Variant=null,posture:Dictionary={},phase:floa
 	var opener:=active and type in ["punch","kick"]
 	var charge:=clampf(float(action.charge),0,1) if not opener and _finite(action.get("charge")) else 0.0
 	var blocking:=_truthy(action.get("blocking"));var charging:=charge>0
-	if not active and not blocking and not charging:return base
+	var ready_side:= 2.0 if _finite(action.get("ready_side")) and float(action.ready_side)>1.5 else -1.0 if _finite(action.get("ready_side")) and float(action.ready_side)<0 else 1.0 if _finite(action.get("ready_side")) and float(action.ready_side)>0 else 0.0
+	if not active and not blocking and not charging and ready_side==0.0:return base
 	if not _finite(posture.get("crouch",0.0)) or not _finite(posture.get("prone",0.0)):return {"valid":false,"error":"posture"}
 	var crouch:float=posture.get("crouch",0.0);_prone=posture.get("prone",0.0)
 	if crouch>.01 or _prone>.01:return base
@@ -192,12 +193,14 @@ func sample(base:Dictionary,action:Variant=null,posture:Dictionary={},phase:floa
 		_rotate_add("chest",.18*pulse,0,0)
 	for s:String in ["l","r"]:
 		var sign_side:= -1.0 if s=="l" else 1.0;var striking:=sign_side==side
-		var px:=sign_side*(.46 if blocking else .38);var py:=3.72 if blocking else 3.38;var pz:=.80 if blocking else .5
+		var raised:=blocking or ready_side==2.0 or sign_side==ready_side
+		var px:=sign_side*(.46 if raised else .38);var py:=3.72 if raised else 3.38;var pz:=.80 if raised else .5
 		if charging and sign_side==-side:px=sign_side*(.38-charge*.98);py=3.38+charge*.22;pz=.5+charge*.25
 		if active and not kick and not drop:
 			px=sign_side*(.38-pulse*.10+(wind*.43 if heavy and striking else 0));py=3.38-pulse*.1-(wind*.13 if heavy and striking else 0);pz=.5+(pulse*(1.35 if heavy else 1.1)-(wind*.55 if heavy else 0) if striking else 0)
 		if heavy and striking:px=sign_side*lerpf(-.60+1.80*sweep,.38,recover);py=lerpf(3.60,3.38,recover);pz=lerpf(.75+.80*sin(PI*sweep),.50,recover)
 		var arm_blend:=guard*.16 if active and attack=="punch" and not striking and not blocking and not charging else guard
+		if raised: arm_blend=maxf(arm_blend,1.0 if not active else blend)
 		var palm:=Vector3(lerpf(sign_side*1.1,px,arm_blend),lerpf(1.77,py,arm_blend)-crouch*.60,lerpf(sign_side*sin(phase)*gait*.43,pz,arm_blend))
 		if contact_aim.is_finite() and striking:palm=palm.lerp(contact_aim,pulse*blend)
 		palm=palm.lerp(Vector3(sign_side*.78,.30+maxf(0,sign_side*sin(phase))*gait*.08,2.12+sign_side*sin(phase)*gait*.23),_prone)

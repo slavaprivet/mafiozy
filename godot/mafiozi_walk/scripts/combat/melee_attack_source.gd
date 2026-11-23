@@ -161,8 +161,9 @@ func _punch(request:Dictionary,ctx:Dictionary)->bool:
 	var target_c:float=_state.player_c+cos(angle)*1.7*.78
 	_last_punch=_now;angle=atan2(target_r-float(_state.player_r),target_c-float(_state.player_c))
 	if not _effect({"kind":"heading","angle":angle}):return false
+	var explicit_hand: String=str(request.get("hand", ""))
 	var kick:=false
-	if not heavy:
+	if not heavy and explicit_hand.is_empty():
 		var roll:Variant=_call("rng")
 		if not _fault.is_empty():return false
 		if not _finite(roll) or float(roll)<0 or float(roll)>=1:
@@ -172,7 +173,10 @@ func _punch(request:Dictionary,ctx:Dictionary)->bool:
 	var damage:=18 if heavy else 21 if kick else 12
 	var leg:=""
 	if kick:_kick*=-1;leg="right" if _kick>0 else "left"
-	_hand*=-1;_attack_seq+=1
+	if explicit_hand == "left": _hand=-1
+	elif explicit_hand == "right": _hand=1
+	else: _hand*=-1
+	_attack_seq+=1
 	_animation={"seq":_attack_seq,"startAt":_now,"ang":angle,"type":"dropkick" if ctx.airborne else "heavy" if heavy else "kick" if kick else "punch","hand":leg if kick else "right" if _hand>0 else "left","leg":leg,"dmg":damage,"critical":kick,"heavy":heavy,"blockPiercing":heavy,"proneTarget":false,"hit":false,"impactAt":_now+(330 if heavy else 165 if kick else 175),"duration":650 if heavy else 470 if kick else 430}
 	if not _tag("meleeInputDecision","accepted:"+str(_animation.type)):return false
 	if not _tag("meleeAttack","%s:%s:%s:miss:%s"%[_attack_seq,_animation.type,_animation.hand,damage]):return false

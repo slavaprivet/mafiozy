@@ -14,6 +14,8 @@ var _npc_limbs: Dictionary={}
 var _player_skin: RefCounted
 var _health: RefCounted
 var _swing: Dictionary={}
+var _castle_fist_prev: Dictionary={}
+var _castle_proof: Dictionary={}
 var _sampled_attack_pose: Dictionary={}
 var _npc_samples: Dictionary={}
 var _npc_frame_samples: Dictionary={}
@@ -232,7 +234,9 @@ func _limb_bounds(sample: Dictionary) -> Dictionary:
 	return {"box":box,"center":box.get_center(),"radius":box.size.length()*.5+LimbSurface.CONTACT_M}
 
 func _physics_process(delta: float) -> void:
-	if not combat_ready:return
+	if not combat_ready:
+		_castle_fist_contact(delta)
+		return
 	if not _live():set_physics_process(false);return
 	# At most one current-pose sample per NPC/hand. Prior-frame sweep endpoints
 	# remain in _npc_samples until all current contact queries have completed.
@@ -325,6 +329,66 @@ func _player_contact() -> void:
 		confirmed_hits+=1
 		_controllers[victim._token.source_id].notify_confirmed_player_damage(contact.event_id,_player)
 
+func _castle_fist_contact(delta: float) -> void:
+	if not _live() or not bool(_scene.get("castle_map")) or not _allowed() or not is_finite(delta) or delta<=0 or delta>MAX_STEP_SECONDS:
+		_castle_fist_prev.clear()
+		return
+	var start: Variant=_state.get("start")
+	if not start is Dictionary or str(start.get("type"))!="punch" or int(start.seq)==_resolved_seq:
+		_castle_fist_prev.clear()
+		return
+	var committed: Dictionary=_committed_attack_pose(start)
+	if committed.is_empty():
+		_castle_fist_prev.clear()
+		return
+	var sword: Node=_scene.get("preview_sword_prototype")
+	if not is_instance_valid(sword) or not is_instance_valid(sword.get("_npc_body")) or bool(sword.get("_npc_dead")):
+		_castle_fist_prev.clear()
+		return
+	var npc: CharacterBody3D=sword.get("_npc_body")
+	if npc.global_position.distance_to(_player.global_position)>3.0:
+		_castle_fist_prev.clear()
+		return
+	var side: String="l" if int(start.side)<0 else "r"
+	var rig: Skeleton3D=_player._pose_skeleton
+	var bone: int=rig.find_bone("socket_hand_"+side)
+	if bone<0: return
+	var hand: Vector3=rig.global_transform*rig.get_bone_global_pose(bone).origin
+	var age: float=float(committed.age_ms)
+	var previous: Dictionary=_castle_fist_prev
+	_castle_fist_prev={"seq":start.seq,"frame":Engine.get_physics_frames(),"age":age,"hand":hand}
+	if previous.get("seq")!=start.seq or int(previous.get("frame",-2))!=Engine.get_physics_frames()-1 or hand.distance_to(previous.hand)>.65: return
+	var window: Array=start.contactWindow
+	if age<float(window[0]) or float(previous.age)>float(window[1]) or age<=float(previous.age): return
+	var lo: float=clampf((float(window[0])-float(previous.age))/(age-float(previous.age)),0,1)
+	var hi: float=clampf((float(window[1])-float(previous.age))/(age-float(previous.age)),0,1)
+	_sphere.radius=.13
+	_shape_query.shape=_sphere
+	_shape_query.collision_mask=1
+	_shape_query.exclude=[_player.get_rid()]
+	var from: Vector3=(previous.hand as Vector3).lerp(hand,lo)
+	var to: Vector3=(previous.hand as Vector3).lerp(hand,hi)
+	for step in 4:
+		var point: Vector3=from.lerp(to,float(step)/3.0)
+		_shape_query.transform=Transform3D(Basis.IDENTITY,point)
+		contact_checks+=1
+		for hit: Dictionary in _player.get_world_3d().direct_space_state.intersect_shape(_shape_query,16):
+			var collider: Variant=hit.get("collider")
+			if not collider is CollisionObject3D or not sword._is_npc_collider(collider): continue
+			var ray:=PhysicsRayQueryParameters3D.create(_player.global_position+Vector3.UP*1.2,point)
+			ray.collision_mask=1
+			ray.exclude=[_player.get_rid(),npc.get_rid(),collider.get_rid()]
+			if not _player.get_world_3d().direct_space_state.intersect_ray(ray).is_empty(): continue
+			var direction: Vector3=(to-from).normalized()
+			if direction.length_squared()<.25: direction=(point-_player.global_position).normalized()
+			_castle_proof={"seq":start.seq,"collider":collider,"point":point,"direction":direction}
+			var contact_age: float=lerpf(float(previous.age),age,lerpf(lo,hi,float(step)/3.0))
+			var outcome: Dictionary=_source.resolveWalkMelee({"seq":start.seq,"contact":_castle_proof.duplicate(),"contactAge":contact_age})
+			_castle_proof={}
+			_resolved_seq=int(start.seq)
+			if outcome.get("confirmed",false): confirmed_hits+=1
+			return
+
 func _record_player_contact_trace(start: Dictionary,owner: RefCounted,sample: Dictionary,bounds: Dictionary,previous_age: float,age: float,lo: float,hi: float,query_usec: int,result: Dictionary) -> void:
 	var key:=str(start.seq)
 	if not player_contact_sequences.has(key):
@@ -358,6 +422,13 @@ func _record_player_contact_trace(start: Dictionary,owner: RefCounted,sample: Di
 	record.last=trace
 
 func resolve_contact(_context: Dictionary,request: Dictionary) -> Dictionary:
+	if not combat_ready and not _castle_proof.is_empty() and request.get("contact")==_castle_proof:
+		var sword: Node=_scene.get("preview_sword_prototype") if _live() else null
+		if not is_instance_valid(sword): return {"accepted":false,"reason":"castle_target_missing"}
+		var proof: Dictionary=_castle_proof
+		_castle_proof={}
+		var outcome: Dictionary=sword.apply_unarmed_impact31(proof.collider,proof.point,proof.direction,12.0)
+		return {"accepted":true,"hit":true,"confirmed":true} if outcome.get("applied",false) else {"accepted":false,"reason":"castle_target_rejected"}
 	if _proof_spent or _proof_owner==null or request.get("contact")!=_proof:return {"accepted":false,"reason":"no_current_contact_proof"}
 	var result: Dictionary=_proof_owner.apply_melee_contact(_proof,self)
 	var receipt: Dictionary=_proof_owner.confirmed_player_damage(str(_proof.event_id))

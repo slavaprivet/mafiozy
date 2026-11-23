@@ -17,6 +17,9 @@ var _bound := false
 var _allowed_last := false
 var _left_held := false
 var _right_held := false
+var _gesture_x := 0.0
+var _gesture_last_side := 0
+const GESTURE_PIXELS := 22.0
 var _cooldown := false
 var _camera_kick := Vector2.ZERO
 var _camera_home := Vector2.ZERO
@@ -89,6 +92,7 @@ func _options() -> Dictionary:
 func cancel(reason: String = "cancel") -> void:
 	if not _live(): return
 	_left_held = false; _right_held = false; _allowed_last = false
+	_gesture_x=0.0; _gesture_last_side=0
 	_state = _input.cancel()
 	_source.reset(reason)
 	_physical_pose.reset()
@@ -96,18 +100,31 @@ func cancel(reason: String = "cancel") -> void:
 	_restore_camera()
 
 func input_event(event: InputEvent) -> bool:
-	if not _live() or not event is InputEventMouseButton: return false
+	if not _live(): return false
+	if event is InputEventMouseMotion:
+		if not _allowed() or not (_left_held or _right_held): return false
+		var motion := event as InputEventMouseMotion
+		if not is_finite(motion.relative.x): return false
+		_gesture_x=clampf(_gesture_x+motion.relative.x,-GESTURE_PIXELS*2.0,GESTURE_PIXELS*2.0)
+		var side := -1 if _gesture_x < -GESTURE_PIXELS else 1 if _gesture_x > GESTURE_PIXELS else 0
+		if side != 0 and (_gesture_last_side != side or not (_left_held and _right_held)):
+			var strike_side := side if _left_held and _right_held else -1 if _left_held else 1
+			_state=_input.strike(strike_side,_options()); _check(_state)
+			if _state.get("started",false):
+				_gesture_last_side=side
+		if side != 0: _gesture_x=0.0
+		return true
+	if not event is InputEventMouseButton: return false
 	if event.button_index not in [MOUSE_BUTTON_LEFT,MOUSE_BUTTON_RIGHT]: return false
 	if not _allowed():
 		if _left_held or _right_held: cancel("input_locked")
 		return false
 	if event.button_index == MOUSE_BUTTON_LEFT:
 		_left_held = event.pressed
-		_state = _input.press(_options()) if event.pressed else _input.release(_options())
 	else:
 		_right_held = event.pressed
-		_state = _input.block(event.pressed)
-	_check(_state)
+	_gesture_x=0.0
+	if not (_left_held and _right_held): _gesture_last_side=0
 	return true
 
 func advance(delta: float) -> void:
@@ -145,7 +162,13 @@ func decorate(selected: Dictionary, delta: float) -> Dictionary:
 	var sampled: Dictionary = selected
 	if not _state.is_empty() and _state.has("action"):
 		var status: Dictionary = _player._locomotion.get_status()
-		sampled = _pose.sample(selected,_state.action,{},float(status.phase),float(status.gait),_epoch)
+		var action: Dictionary=_state.action.duplicate()
+		action.blocking=_left_held and _right_held and action.get("type", "none")=="none"
+		action.ready_side=2 if _left_held and _right_held else -1 if _left_held else 1 if _right_held else 0
+		sampled = _pose.sample(selected,action,{},float(status.phase),float(status.gait),_epoch)
+	elif _left_held or _right_held:
+		var status: Dictionary=_player._locomotion.get_status()
+		sampled=_pose.sample(selected,{"type":"none","side":1,"blocking":_left_held and _right_held,"ready_side":2 if _left_held and _right_held else -1 if _left_held else 1,"charge":0.0},{},float(status.phase),float(status.gait),_epoch)
 	if not sampled.get("valid",false): _check(sampled); return selected
 	var physical: Dictionary = _physical_pose.sample(sampled,selected,_epoch,delta)
 	if not physical.get("valid",false): _check(physical); return selected
