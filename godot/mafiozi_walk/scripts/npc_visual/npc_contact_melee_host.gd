@@ -16,6 +16,10 @@ var _health: RefCounted
 var _swing: Dictionary={}
 var _castle_fist_prev: Dictionary={}
 var _castle_proof: Dictionary={}
+var _free_pose_stamp: Dictionary={}
+var _free_fist_previous: Dictionary={}
+var _free_fist_spent: Dictionary={"left":false,"right":false}
+var _free_fist_last_hit: Dictionary={"left":0,"right":0}
 var _sampled_attack_pose: Dictionary={}
 var _npc_samples: Dictionary={}
 var _npc_frame_samples: Dictionary={}
@@ -123,6 +127,9 @@ func _assisted_yaw(yaw: float) -> float:
 
 func advance(delta: float) -> void:
 	if not _live():return
+	if free_mode():
+		super.advance(delta)
+		return
 	if _epoch!=_player._pose_epoch:
 		cancel("pose_owner_changed");_epoch=_player._pose_epoch
 		_swing.clear();_npc_samples.clear();_target_poses.clear()
@@ -146,11 +153,18 @@ func advance(delta: float) -> void:
 
 func decorate(selected: Dictionary,delta: float) -> Dictionary:
 	_sampled_attack_pose.clear()
+	_free_pose_stamp.clear()
 	if _pose.has_method("set_contact_aim"):_pose.set_contact_aim(_nearby_punch_aim())
 	var result: Dictionary=super.decorate(selected,delta)
 	if _pose.has_method("set_contact_aim"):_pose.set_contact_aim(Vector3.INF)
 	var start: Variant=_state.get("start")
 	var melee: Variant=result.get("melee")
+	if free_mode() and result.get("valid",false) and melee is Dictionary and melee.get("type")=="free_fist":
+		_free_pose_stamp={"seq":0,"kind":"free_fist","frame":Engine.get_physics_frames(),
+			"epoch":_player._pose_epoch,"revision":_player._pose_revision+1,
+			"rig_id":_player._pose_skeleton.get_instance_id(),"rig_version":_player._pose_skeleton.get_version(),
+			"actor_id":_player.get_meta("actor_id",""),"life_generation":_player.get_meta("life_generation",0),"age_ms":0.0}
+		return result
 	if not result.get("valid",false) or not start is Dictionary or not melee is Dictionary or not melee.get("active",false) or melee.get("type")!=start.get("type"):return result
 	var pose_age: Variant=melee.get("age")
 	if not (pose_age is float or pose_age is int) or not is_finite(float(pose_age)) or pose_age<0:return result
@@ -235,7 +249,8 @@ func _limb_bounds(sample: Dictionary) -> Dictionary:
 
 func _physics_process(delta: float) -> void:
 	if not combat_ready:
-		_castle_fist_contact(delta)
+		if free_mode(): _castle_free_contact(delta)
+		else: _castle_fist_contact(delta)
 		return
 	if not _live():set_physics_process(false);return
 	# At most one current-pose sample per NPC/hand. Prior-frame sweep endpoints
@@ -388,6 +403,69 @@ func _castle_fist_contact(delta: float) -> void:
 			_resolved_seq=int(start.seq)
 			if outcome.get("confirmed",false): confirmed_hits+=1
 			return
+
+func _free_pose_committed() -> bool:
+	if _free_pose_stamp.is_empty() or not is_instance_valid(_player._pose_skeleton): return false
+	var receipt: Variant=_player.get_meta(&"melee_skin_pose",{})
+	if not receipt is Dictionary: return false
+	var current: Dictionary={"seq":0,"kind":"free_fist","frame":Engine.get_physics_frames(),
+		"epoch":_player._pose_epoch,"revision":_player._pose_revision,
+		"rig_id":_player._pose_skeleton.get_instance_id(),"rig_version":_player._pose_skeleton.get_version(),
+		"actor_id":_player.get_meta("actor_id",""),"life_generation":_player.get_meta("life_generation",0)}
+	return pose_stamp_matches(_free_pose_stamp,receipt,current)
+
+func _castle_free_contact(delta: float) -> void:
+	if not _live() or not _allowed() or not is_finite(delta) or delta<=0.0 or delta>MAX_STEP_SECONDS or not _free_pose_committed():
+		_free_fist_previous.clear()
+		_free_fist_spent.left=false; _free_fist_spent.right=false
+		return
+	var sword: Node=_scene.get("preview_sword_prototype")
+	if not is_instance_valid(sword) or not is_instance_valid(sword.get("_npc_body")) or bool(sword.get("_npc_dead")):
+		_free_fist_previous.clear()
+		return
+	var npc: CharacterBody3D=sword.get("_npc_body")
+	var near: bool=npc.global_position.distance_to(_player.global_position)<2.7
+	var rig: Skeleton3D=_player._pose_skeleton
+	for visual_side: String in ["left","right"]:
+		var held: bool=_left_held if visual_side=="left" else _right_held
+		if not held:
+			_free_fist_previous.erase(visual_side)
+			_free_fist_spent[visual_side]=false
+			continue
+		var bone: int=rig.find_bone("socket_hand_r" if visual_side=="left" else "socket_hand_l")
+		if bone<0: continue
+		var hand: Vector3=rig.global_transform*rig.get_bone_global_pose(bone).origin
+		var local_hand: Vector3=_player._visual.global_transform.affine_inverse()*hand
+		var previous: Dictionary=_free_fist_previous.get(visual_side,{})
+		_free_fist_previous[visual_side]={"frame":Engine.get_physics_frames(),"epoch":_player._pose_epoch,
+			"life":_player.get_meta("life_generation",0),"hand":hand,"local":local_hand}
+		if previous.is_empty() or int(previous.frame)!=Engine.get_physics_frames()-1 or int(previous.epoch)!=_player._pose_epoch or previous.life!=_player.get_meta("life_generation",0): continue
+		var travel: Vector3=local_hand-(previous.local as Vector3)
+		var speed: float=travel.length()/delta
+		if speed<0.55: _free_fist_spent[visual_side]=false
+		if not near or _free_side!=visual_side or bool(_free_fist_spent[visual_side]) or speed<1.20 or travel.length()<0.025 or hand.distance_to(previous.hand)>0.65: continue
+		if Time.get_ticks_msec()-int(_free_fist_last_hit[visual_side])<240: continue
+		var world_motion: Vector3=_player._visual.global_basis*travel
+		if world_motion.normalized().dot((npc.global_position+Vector3.UP*1.1-hand).normalized())<0.15: continue
+		_sphere.radius=0.13
+		_shape_query.shape=_sphere; _shape_query.collision_mask=1; _shape_query.exclude=[_player.get_rid()]
+		for step in 4:
+			var point: Vector3=(previous.hand as Vector3).lerp(hand,float(step)/3.0)
+			_shape_query.transform=Transform3D(Basis.IDENTITY,point)
+			contact_checks+=1
+			for hit: Dictionary in _player.get_world_3d().direct_space_state.intersect_shape(_shape_query,16):
+				var collider: Variant=hit.get("collider")
+				if not collider is CollisionObject3D or not sword._is_npc_collider(collider): continue
+				var ray:=PhysicsRayQueryParameters3D.create(_player.global_position+Vector3.UP*1.2,point)
+				ray.collision_mask=1
+				ray.exclude=[_player.get_rid(),npc.get_rid(),collider.get_rid()]
+				if not _player.get_world_3d().direct_space_state.intersect_ray(ray).is_empty(): continue
+				var outcome: Dictionary=sword.apply_unarmed_impact31(collider,point,world_motion.normalized(),12.0)
+				if outcome.get("applied",false):
+					_free_fist_spent[visual_side]=true
+					_free_fist_last_hit[visual_side]=Time.get_ticks_msec()
+					confirmed_hits+=1
+				return
 
 func _record_player_contact_trace(start: Dictionary,owner: RefCounted,sample: Dictionary,bounds: Dictionary,previous_age: float,age: float,lo: float,hi: float,query_usec: int,result: Dictionary) -> void:
 	var key:=str(start.seq)

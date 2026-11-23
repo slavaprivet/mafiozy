@@ -20,6 +20,13 @@ var _right_held := false
 var _gesture_x := 0.0
 var _gesture_last_side := 0
 const GESTURE_PIXELS := 22.0
+const FREE_MOUSE_SCALE := 0.0031
+const FREE_SLEW := 10.5
+const FREE_NOISE := 1.2
+var _free_command := {"left":Vector2.ZERO,"right":Vector2.ZERO}
+var _free_hand := {"left":Vector2.ZERO,"right":Vector2.ZERO}
+var _free_reach := {"left":0.0,"right":0.0}
+var _free_side := ""
 var _cooldown := false
 var _camera_kick := Vector2.ZERO
 var _camera_home := Vector2.ZERO
@@ -44,6 +51,12 @@ func configure(scene: Node3D, player: CharacterBody3D, physical_pose: RefCounted
 
 func _live() -> bool:
 	return _bound and is_instance_valid(_scene) and not _scene.is_queued_for_deletion() and is_instance_valid(_player) and not _player.is_queued_for_deletion()
+
+func free_mode() -> bool:
+	return _live() and bool(_scene.get("castle_map"))
+
+func steering() -> bool:
+	return free_mode() and _allowed() and (_left_held or _right_held)
 
 func _allowed() -> bool:
 	# Ground practice first. Airborne attack root motion/contact is a separate
@@ -93,6 +106,11 @@ func cancel(reason: String = "cancel") -> void:
 	if not _live(): return
 	_left_held = false; _right_held = false; _allowed_last = false
 	_gesture_x=0.0; _gesture_last_side=0
+	_free_side=""
+	for side: String in ["left","right"]:
+		_free_command[side]=Vector2.ZERO
+		_free_hand[side]=Vector2.ZERO
+		_free_reach[side]=0.0
 	_state = _input.cancel()
 	_source.reset(reason)
 	_physical_pose.reset()
@@ -101,6 +119,8 @@ func cancel(reason: String = "cancel") -> void:
 
 func input_event(event: InputEvent) -> bool:
 	if not _live(): return false
+	if free_mode():
+		return _free_input_event(event)
 	if event is InputEventMouseMotion:
 		if not _allowed() or not (_left_held or _right_held): return false
 		var motion := event as InputEventMouseMotion
@@ -127,8 +147,34 @@ func input_event(event: InputEvent) -> bool:
 	if not (_left_held and _right_held): _gesture_last_side=0
 	return true
 
+func _free_input_event(event: InputEvent) -> bool:
+	if event is InputEventMouseButton:
+		if event.button_index not in [MOUSE_BUTTON_LEFT,MOUSE_BUTTON_RIGHT]: return false
+		if not _allowed(): return false
+		if event.button_index==MOUSE_BUTTON_LEFT: _left_held=event.pressed
+		else: _right_held=event.pressed
+		if not _left_held and not _right_held: _free_side=""
+		elif _free_side=="left" and not _left_held: _free_side="right"
+		elif _free_side=="right" and not _right_held: _free_side="left"
+		return true
+	if not event is InputEventMouseMotion or not steering(): return false
+	var motion:=event as InputEventMouseMotion
+	if not motion.relative.is_finite() or absf(motion.relative.x)+absf(motion.relative.y)<FREE_NOISE: return true
+	var side: String="left" if _left_held and not _right_held else "right" if _right_held and not _left_held else "left" if motion.relative.x < -FREE_NOISE else "right" if motion.relative.x > FREE_NOISE else _free_side
+	if side.is_empty(): return true
+	_free_side=side
+	_free_command[side]=(_free_command[side] + Vector2(motion.relative.x,-motion.relative.y)*FREE_MOUSE_SCALE).clamp(Vector2(-1,-1),Vector2(1,1))
+	_free_reach[side]=maxf(float(_free_reach[side]),clampf(motion.relative.length()/28.0,0.0,1.0))
+	# Match sword steering: the held fist owns mouse yaw; the camera stays put.
+	_player._heading-=motion.relative.x*_player.mouse_sensitivity
+	_player._visual.rotation.y=_player._heading+PI
+	return true
+
 func advance(delta: float) -> void:
 	if not _live(): return
+	if free_mode():
+		_free_advance(delta)
+		return
 	if _epoch != _player._pose_epoch:
 		cancel("pose_owner_changed"); _epoch = _player._pose_epoch
 	var allowed := _allowed()
@@ -152,6 +198,22 @@ func advance(delta: float) -> void:
 		_player._camera.h_offset = _camera_home.x + _camera_kick.x*.008
 		_player._camera.v_offset = _camera_home.y + _camera_kick.y*.008
 
+func _free_advance(delta: float) -> void:
+	if _epoch != _player._pose_epoch:
+		cancel("pose_owner_changed"); _epoch=_player._pose_epoch
+	if not _allowed():
+		if _left_held or _right_held: cancel("control_locked")
+		return
+	for side: String in ["left","right"]:
+		var held: bool=_left_held if side=="left" else _right_held
+		if not held: _free_command[side]=(_free_command[side] as Vector2).lerp(Vector2.ZERO,clampf(4.5*delta,0,1))
+		var difference: Vector2=(_free_command[side] as Vector2)-(_free_hand[side] as Vector2)
+		_free_hand[side]=(_free_hand[side] as Vector2)+difference.limit_length(FREE_SLEW*delta)
+		_free_reach[side]=move_toward(float(_free_reach[side]),0.0,delta*5.0)
+	_state={"action":{"type":"free_fist","held_left":_left_held,"held_right":_right_held,
+		"active_side":_free_side,"command_left":_free_hand.left,"command_right":_free_hand.right,
+		"reach_left":_free_reach.left,"reach_right":_free_reach.right}}
+
 func _check(result: Dictionary) -> void:
 	if result.has("error"):
 		last_error = str(result.error)
@@ -160,6 +222,12 @@ func _check(result: Dictionary) -> void:
 func decorate(selected: Dictionary, delta: float) -> Dictionary:
 	if not _allowed(): return selected
 	var sampled: Dictionary = selected
+	if free_mode():
+		var status: Dictionary=_player._locomotion.get_status()
+		sampled=_pose.sample(selected,_state.get("action",{"type":"free_fist"}),{},float(status.phase),float(status.gait),_epoch)
+		if not sampled.get("valid",false): _check(sampled); return selected
+		var free_physical: Dictionary=_physical_pose.sample(sampled,selected,_epoch,delta)
+		return free_physical if free_physical.get("valid",false) else selected
 	if not _state.is_empty() and _state.has("action"):
 		var status: Dictionary = _player._locomotion.get_status()
 		var action: Dictionary=_state.action.duplicate()

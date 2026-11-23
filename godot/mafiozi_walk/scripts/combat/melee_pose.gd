@@ -152,7 +152,7 @@ func sample(base:Dictionary,action:Variant=null,posture:Dictionary={},phase:floa
 	if _truthy(action.get("armed")) or _truthy(action.get("weaponId")) and action.weaponId!="none":return base
 	var type:String=str(action.get("type","none")) if _truthy(action.get("type")) else "none"
 	if type=="backfist":type="heavy"
-	if type!="none" and not DURATIONS.has(type):return {"valid":false,"error":"unknown_action"}
+	if type!="none" and type!="free_fist" and not DURATIONS.has(type):return {"valid":false,"error":"unknown_action"}
 	var progress:=clampf(float(action.progress),0,1) if _finite(action.get("progress")) else 0.0
 	var active:=type!="none" and progress<1
 	var opener:=active and type in ["punch","kick"]
@@ -160,6 +160,7 @@ func sample(base:Dictionary,action:Variant=null,posture:Dictionary={},phase:floa
 	var blocking:=_truthy(action.get("blocking"));var charging:=charge>0
 	var ready_side:= 2.0 if _finite(action.get("ready_side")) and float(action.ready_side)>1.5 else -1.0 if _finite(action.get("ready_side")) and float(action.ready_side)<0 else 1.0 if _finite(action.get("ready_side")) and float(action.ready_side)>0 else 0.0
 	if not active and not blocking and not charging and ready_side==0.0:return base
+	if type=="free_fist" and not _truthy(action.get("held_left")) and not _truthy(action.get("held_right")):return base
 	if not _finite(posture.get("crouch",0.0)) or not _finite(posture.get("prone",0.0)):return {"valid":false,"error":"posture"}
 	var crouch:float=posture.get("crouch",0.0);_prone=posture.get("prone",0.0)
 	if crouch>.01 or _prone>.01:return base
@@ -172,6 +173,24 @@ func sample(base:Dictionary,action:Variant=null,posture:Dictionary={},phase:floa
 		if not pose is Transform3D or not pose.is_finite() or pose.basis.determinant()<=.0000001:return {"valid":false,"error":"bone"}
 		_poses.append(pose)
 	_busy=true;_phase=phase;_gait=gait;_update_world()
+	if type=="free_fist":
+		# Visual left is rig *_r; the imported skeleton is mirrored.
+		for visual_side: String in ["left","right"]:
+			var held: bool=_truthy(action.get("held_"+visual_side))
+			if not held: continue
+			var rig_side: String="r" if visual_side=="left" else "l"
+			var sign_side: float=1.0 if rig_side=="r" else -1.0
+			var command: Variant=action.get("command_"+visual_side,Vector2.ZERO)
+			if not command is Vector2 or not command.is_finite(): command=Vector2.ZERO
+			var reach: float=clampf(float(action.get("reach_"+visual_side,0.0)),0,1)
+			var target:=Vector3(sign_side*.43+command.x*.70,3.46+command.y*.74,.72+reach*1.36)
+			_arm(rig_side,target,0.0)
+		var result:=base.duplicate()
+		result.poses=_poses.duplicate();result.authority_epoch=epoch
+		result.melee={"type":"free_fist","active":false,"age":0.0,"duration":1.0,
+			"visual_side":str(action.get("active_side",""))}
+		_busy=false
+		return result
 	var attack:="heavy" if type=="dropkick" else type;var double_kick:=type=="dropkick";var side:= -1.0 if _finite(action.get("side")) and float(action.side)<0 else 1.0
 	var duration:float=DURATIONS.get(type,1.0);var time:=progress*duration;var age:=time;var p:=progress if active else 0.0
 	var peak:=.10 if attack=="heavy" else .09
