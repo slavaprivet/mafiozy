@@ -49,6 +49,8 @@ var _falling_trees: Array[Dictionary] = []
 var _tree_logs: Array[WeakRef] = []
 var _pending_tree_logs: Array[Dictionary] = []
 var _tree_hp_label: Label3D
+var _tree_hp_meter: Image
+var _tree_hp_texture: ImageTexture
 var _tree_damage_label: Label3D
 var _tree_damage_tween: Tween
 var _tree_mark_multi: MultiMesh
@@ -1036,13 +1038,25 @@ func _build_tree_hp_label() -> void:
 	_tree_hp_label = Label3D.new()
 	_tree_hp_label.name = "SharedTreeHealth"
 	_tree_hp_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	_tree_hp_label.font_size = 46
-	_tree_hp_label.pixel_size = 0.0040
-	_tree_hp_label.outline_size = 11
-	_tree_hp_label.modulate = Color("e8d69c")
+	_tree_hp_label.font_size = 40
+	_tree_hp_label.pixel_size = 0.0054
+	_tree_hp_label.outline_size = 10
+	_tree_hp_label.outline_modulate = Color("191811")
+	_tree_hp_label.modulate = Color("f0e6cd")
 	_tree_hp_label.no_depth_test = true
 	_tree_hp_label.visible = false
 	add_child(_tree_hp_label)
+	_tree_hp_meter = Image.create_empty(176, 14, false, Image.FORMAT_RGBA8)
+	_tree_hp_texture = ImageTexture.create_from_image(_tree_hp_meter)
+	var meter := Sprite3D.new()
+	meter.name = "TreeHealthMeter"
+	meter.texture = _tree_hp_texture
+	meter.pixel_size = _tree_hp_label.pixel_size
+	meter.offset.y = -33.0
+	meter.billboard = _tree_hp_label.billboard
+	meter.no_depth_test = true
+	meter.render_priority = 1
+	_tree_hp_label.add_child(meter)
 	_tree_damage_label = Label3D.new()
 	_tree_damage_label.name = "SharedTreeDamagePopup"
 	_tree_damage_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -1100,11 +1114,15 @@ func _show_tree_health(g: Dictionary,local_hit: Vector3,dealt: float,fell: bool)
 	var tall:=float(g.get("tree_tall",6.0)); var center:=Vector3(g.center)
 	_tree_hp_label.position=Vector3(center.x,center.y+minf(tall*0.64,4.25),center.z)
 	var health:=float(g.health); var maximum:=float(g.get("max_health",120.0))
-	var ratio:=health/maxf(maximum,1.0); var filled:=clampi(roundi(ratio*10.0),0,10)
-	var bar:=""
-	for segment in 10: bar += "█" if segment<filled else "░"
-	_tree_hp_label.text=("СРУБЛЕНО\n0 / %d"%roundi(maximum)) if fell else ("ДЕРЕВО   %d / %d\n%s"%[roundi(health),roundi(maximum),bar])
-	_tree_hp_label.modulate=Color("dce9ad") if ratio>0.55 else (Color("ffd06b") if ratio>0.25 else Color("ff7568"))
+	var ratio := clampf(health / maxf(maximum, 1.0), 0.0, 1.0)
+	_tree_hp_label.text = "%s  %d / %d" % ["Срублено" if fell else "Дерево", roundi(health), roundi(maximum)]
+	var fill := roundi(172.0 * ratio)
+	var tint := Color("acc47b") if ratio > 0.55 else (Color("ddb063") if ratio > 0.25 else Color("db7162"))
+	_tree_hp_meter.fill(Color("25251f"))
+	_tree_hp_meter.fill_rect(Rect2i(2, 2, 172, 10), Color("594c37"))
+	if fill > 0:
+		_tree_hp_meter.fill_rect(Rect2i(2, 2, fill, 10), tint)
+	_tree_hp_texture.update(_tree_hp_meter)
 	_tree_hp_label.visible = true
 	_tree_hp_label.set_meta("hide_at",Time.get_ticks_msec()+(1250 if fell else 2600))
 	if _tree_damage_tween!=null and _tree_damage_tween.is_valid(): _tree_damage_tween.kill()

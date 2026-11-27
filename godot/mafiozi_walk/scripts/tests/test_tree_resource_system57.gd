@@ -61,7 +61,7 @@ func run()->void:
 	check(occupied_marks==48,"global cut-mark pool evicts safely at forty-eight slots")
 	var final:Dictionary=props.apply_melee_hit(tree_id,props.to_global(Vector3(tree.center)),"axe",999.0)
 	check(final.get("fell",false) and bool(tree.destroyed),"zero HP starts one fall")
-	check(str((props.get("_tree_hp_label") as Label3D).text).contains("СРУБЛЕНО") and str((props.get("_tree_hp_label") as Label3D).text).contains("0 / 120"),"fatal hit keeps zero HP feedback")
+	check(str((props.get("_tree_hp_label") as Label3D).text)=="Срублено  0 / 120","fatal hit keeps zero HP feedback")
 	check((tree.get("tree_mark_slots",[]) as Array).is_empty(),"fall clears cut marks")
 	check((props.get("_falling_trees") as Array).size()==1,"one active falling tree")
 	var repeated:Dictionary=props.apply_melee_hit(tree_id,props.to_global(Vector3(tree.center)),"axe",999.0)
@@ -86,7 +86,9 @@ func run()->void:
 	check(prompt.get("key","")=="E" and prompt.get("owner","")=="tree_log","E pickup prompt")
 	check(props.pickup_tree_log(first_log.global_position),"E transaction picks one log")
 	check(inventory.count("wood")==1,"picked log increments wood once")
-	check((inventory.get("_toast_root") as Control).get_child_count()==1,"pickup creates one pleasant gain toast")
+	var toast := inventory.get("_toast_panel") as PanelContainer
+	var toast_label := inventory.get("_toast_label") as Label
+	check(toast.visible and toast_label.text == "+1 Древесина" and toast_label.get_theme_font_size("font_size") == 12,"pickup shows compact gain toast")
 	check(not is_instance_valid(first_log) or first_log.is_queued_for_deletion(),"picked physical log consumed")
 	check(bool(first_log.get_meta("pickup_claimed",false)),"picked log is atomically claimed")
 	check(inventory.open_window(),"B opens resource inventory")

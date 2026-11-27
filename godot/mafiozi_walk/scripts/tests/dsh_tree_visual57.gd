@@ -7,8 +7,8 @@ var output:="D:/MafioziCombat31/tree_inventory_visual_20261128"
 
 func _initialize()->void: call_deferred("run")
 
-func shot(name:String)->bool:
-	for i in 30: await process_frame
+func shot(name:String, settle_frames: int = 30)->bool:
+	for i in settle_frames: await process_frame
 	await RenderingServer.frame_post_draw
 	var path:=output.path_join("tree57_"+name+".png")
 	var error:=root.get_texture().get_image().save_png(path)
@@ -16,6 +16,8 @@ func shot(name:String)->bool:
 	return error==OK
 
 func run()->void:
+	var args := OS.get_cmdline_user_args()
+	if not args.is_empty(): output = args[0]
 	DirAccess.make_dir_recursive_absolute(output)
 	var packed:PackedScene=load("res://scenes/castle.tscn")
 	scene=packed.instantiate(); root.add_child(scene); current_scene=scene
@@ -45,6 +47,7 @@ func run()->void:
 		if not logs.is_empty():
 			var log:RigidBody3D=(logs[0] as WeakRef).get_ref() as RigidBody3D
 			if is_instance_valid(log): props.pickup_tree_log(log.global_position)
+		passed=(await shot("pickup_toast", 2)) and passed
 		inventory.open_window()
 		passed=(await shot("inventory_b")) and passed
 	print("TREE57_VISUAL_RESULT ",passed)

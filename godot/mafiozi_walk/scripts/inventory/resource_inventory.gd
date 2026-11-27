@@ -26,7 +26,10 @@ var _player: CharacterBody3D
 var _weapon_host: Node
 var _drop_handler: Callable
 var _drop_in_progress:=false
-var _toast_root: Control
+var _toast_panel: PanelContainer
+var _toast_label: Label
+var _toast_frame: StyleBoxFlat
+var _toast_tween: Tween
 var _ready_for_play := false
 
 func install(player: CharacterBody3D = null, weapon_host: Node = null) -> Dictionary:
@@ -38,7 +41,7 @@ func install(player: CharacterBody3D = null, weapon_host: Node = null) -> Dictio
 
 func add_resource(id: String,amount: int) -> bool:
 	if not _ready_for_play or not CATALOG.has(id) or amount<=0: return false
-	_counts[id]=int(_counts.get(id,0))+amount; _refresh(); _show_toast("+%d  ДРЕВЕСИНА"%amount,true); return true
+	_counts[id]=int(_counts.get(id,0))+amount; _refresh(); _show_toast("+%d %s" % [amount, CATALOG[id].title],true); return true
 
 func bind_drop_handler(handler: Callable) -> bool:
 	if not handler.is_valid(): return false
@@ -93,7 +96,7 @@ func _input(event: InputEvent) -> void:
 		close_window(true); get_viewport().set_input_as_handled()
 
 func _build_window() -> void:
-	_toast_root=Control.new(); _toast_root.name="ResourceToasts"; _toast_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); _toast_root.mouse_filter=Control.MOUSE_FILTER_IGNORE; add_child(_toast_root)
+	_build_toast()
 	_overlay=Control.new(); _overlay.name="ResourceInventoryOverlay"; _overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); _overlay.mouse_filter=Control.MOUSE_FILTER_STOP; _overlay.visible=false; add_child(_overlay)
 	var shade:=ColorRect.new(); shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); shade.color=Color(0.008,0.012,0.014,0.72); shade.mouse_filter=Control.MOUSE_FILTER_STOP; _overlay.add_child(shade)
 	_window=PanelContainer.new(); _window.name="ResourceInventoryWindow"; _window.set_anchors_preset(Control.PRESET_CENTER); _window.position=Vector2(-455,-270); _window.custom_minimum_size=Vector2(910,540); _window.add_theme_stylebox_override("panel",_style(Color("151b1c"),Color("bd934e"),14,2)); _overlay.add_child(_window)
@@ -157,16 +160,41 @@ func _drop_resource(id: String,drag_amount: int) -> void:
 		_counts[id]=count(id)-drag_amount; _refresh(); _show_toast("−%d  ВЫБРОШЕНО"%drag_amount,false)
 	_drop_in_progress=false
 
-func _show_toast(text: String,positive: bool) -> void:
-	if not is_instance_valid(_toast_root): return
-	while _toast_root.get_child_count()>=4:
-		var oldest:=_toast_root.get_child(0)
-		_toast_root.remove_child(oldest)
-		oldest.queue_free()
-	var panel:=PanelContainer.new(); panel.mouse_filter=Control.MOUSE_FILTER_IGNORE; panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM); panel.position=Vector2(-145,-138); panel.custom_minimum_size=Vector2(290,54)
-	var frame:=StyleBoxFlat.new(); frame.bg_color=Color(0.055,0.075,0.07,0.96); frame.border_color=Color("7dbb6a") if positive else Color("c18b58"); frame.set_border_width_all(2); frame.set_corner_radius_all(10); panel.add_theme_stylebox_override("panel",frame)
-	var label:=Label.new(); label.text=text; label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER; label.add_theme_font_size_override("font_size",19); label.modulate=Color("d8f0cb") if positive else Color("f0d1a6"); panel.add_child(label); _toast_root.add_child(panel)
-	var tween:=create_tween(); tween.set_parallel(true); tween.tween_property(panel,"position:y",panel.position.y-44.0,1.05).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT); tween.tween_property(panel,"modulate:a",0.0,1.05).set_delay(0.25); tween.chain().tween_callback(panel.queue_free)
+func _build_toast() -> void:
+	_toast_panel = PanelContainer.new()
+	_toast_panel.name = "ResourceToast"
+	_toast_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_toast_panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_toast_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_toast_panel.offset_left = -60
+	_toast_panel.offset_right = 60
+	_toast_panel.offset_top = -125
+	_toast_panel.offset_bottom = -103
+	_toast_frame = _style(Color("151b1ce8"), Color("70825e"), 5, 1)
+	_toast_frame.content_margin_left = 8
+	_toast_frame.content_margin_right = 8
+	_toast_frame.content_margin_top = 2
+	_toast_frame.content_margin_bottom = 2
+	_toast_panel.add_theme_stylebox_override("panel", _toast_frame)
+	_toast_label = Label.new()
+	_toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_toast_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_toast_label.add_theme_font_size_override("font_size", 12)
+	_toast_panel.add_child(_toast_label)
+	_toast_panel.hide()
+	add_child(_toast_panel)
+
+func _show_toast(text: String, positive: bool) -> void:
+	if not is_instance_valid(_toast_panel): return
+	if _toast_tween != null and _toast_tween.is_valid(): _toast_tween.kill()
+	_toast_frame.border_color = Color("70825e") if positive else Color("98744e")
+	_toast_label.text = text
+	_toast_label.modulate = Color("d8e9c5") if positive else Color("f0d1a6")
+	_toast_panel.modulate.a = 1.0
+	_toast_panel.show()
+	_toast_tween = create_tween()
+	_toast_tween.tween_property(_toast_panel, "modulate:a", 0.0, 0.40).set_delay(0.60)
+	_toast_tween.tween_callback(_toast_panel.hide)
 
 func _style(background: Color,border: Color,radius: int,width: int) -> StyleBoxFlat:
 	var style:=StyleBoxFlat.new(); style.bg_color=background; style.border_color=border; style.set_border_width_all(width); style.set_corner_radius_all(radius); style.content_margin_left=18; style.content_margin_right=18; style.content_margin_top=14; style.content_margin_bottom=14; return style
