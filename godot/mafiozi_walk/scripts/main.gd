@@ -31,6 +31,7 @@ const CatapultPrototype = preload("res://scripts/weapons/catapult_prototype.gd")
 const CastleSite = preload("res://scripts/city/castle_site.gd")  # DSH_CASTLE
 const BattlefieldSite = preload("res://scripts/city/battlefield_site.gd")
 const BattlefieldProps = preload("res://scripts/city/battlefield_props.gd")
+const ResourceInventory = preload("res://scripts/inventory/resource_inventory.gd")
 const SiegeWallDressing = preload("res://scripts/city/siege_wall_dressing.gd")
 const CastleWallDefense24 = preload("res://scripts/city/castle_wall_defense24.gd")
 const FootstepsScript = preload("res://scripts/audio/footsteps.gd")  # DSH_STEPS
@@ -121,6 +122,8 @@ var catapult_status := "disabled"
 @export var castle_map: bool = false
 var preview_castle: Node
 var preview_battlefield: Node3D
+var preview_battlefield_props: Node3D
+var preview_resource_inventory: CanvasLayer
 var _footsteps: Node  # DSH_STEPS
 ## DSH_CASTLE: a spawn point that is RE-ASSERTED for a few frames, because other boot steps
 ## were teleporting the player out of it afterwards.
@@ -869,6 +872,13 @@ func _build_castle_map() -> bool:
 		field_props.name = "BattlefieldProps"
 		battlefield.add_child(field_props)
 		field_props.install(castle)
+		preview_battlefield_props = field_props
+		var resources := ResourceInventory.new() as CanvasLayer
+		resources.name = "ResourceInventory"
+		add_child(resources)
+		resources.install()
+		preview_resource_inventory = resources
+		field_props.bind_resource_inventory(resources)
 		var wall_dressing := SiegeWallDressing.new() as Node3D
 		wall_dressing.name = "SiegeWallDressing"
 		battlefield.add_child(wall_dressing)
@@ -1348,6 +1358,9 @@ func _current_door_action() -> Dictionary:
 		var carried_ball: Variant = preview_ship.get("_carried_ball_mesh")
 		if is_instance_valid(carried_ball) and (carried_ball as Node3D).visible:
 			return {"owner": "carry_ball", "key": "G", "label": "Бросить ядро"}
+	if is_instance_valid(preview_battlefield_props):
+		var log_action: Dictionary=preview_battlefield_props.tree_log_action(_player.global_position)
+		if not log_action.is_empty(): return log_action
 	# DSH_SHIP61: while the player is on or near the ship, she owns the F prompt.
 	if is_instance_valid(preview_siege_tower):  # DSH_TOWER
 		var tower_action: Dictionary = preview_siege_tower.call("action")
@@ -1418,7 +1431,7 @@ func _update_door_hint() -> void:
 	if _door_hint == null:
 		return
 	var action: Dictionary = _current_door_action()
-	if action.get("owner", "") in ["palazzo", "clone", "castle", "castle_chest", "castle_pickup", "barrel", "horse", "balloon", "ship", "powder", "tower"]:
+	if action.get("owner", "") in ["palazzo", "clone", "castle", "castle_chest", "castle_pickup", "tree_log", "barrel", "horse", "balloon", "ship", "powder", "tower"]:
 		_door_hint_world = action.world
 	elif not _printshop_data.is_empty():
 		_door_hint_world = _v3(_printshop_data.doors.public.anchor) + Vector3.UP * 2.2
@@ -1510,6 +1523,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	var action_key := KEY_E if str(action.get("key", "F")) == "E" else KEY_F
 	if palazzo_key != action_key: return
 	if str(action.get("owner", "")) in ["barrel", "horse", "balloon"]: return # Their hosts own the transaction.
+	if str(action.get("owner", "")) == "tree_log":
+		if is_instance_valid(preview_battlefield_props) \
+				and preview_battlefield_props.pickup_tree_log(_player.global_position):
+			get_viewport().set_input_as_handled()
+		_update_door_hint()
+		return
 	if str(action.get("owner", "")) == "fort":
 		if preview_fort.call("interact", action):
 			get_viewport().set_input_as_handled()

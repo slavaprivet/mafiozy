@@ -3,6 +3,7 @@ const Interception31 = preload("res://scripts/combat/weapon_interception31.gd")
 const ModelFinish31 = preload("res://scripts/weapons/weapon_model_finish31.gd")
 const ArmorDamage31 = preload("res://scripts/combat/armor_damage31.gd")
 const CastleArmorVisual31 = preload("res://scripts/combat/castle_armor_visual.gd")
+const TreeDamage57 = preload("res://scripts/environment/tree_damage_rules57.gd")
 ## DSH_SWORD_PROTO (prototype only): mouse-driven heavy sword play inspired by
 ## Half Sword. Hold LMB and move the mouse to steer the blade (left/right/up/down
 ## and diagonals); the camera does NOT turn while the blade is steered. The blade
@@ -388,6 +389,9 @@ func _impact_damage31(contact_speed: float, prepared: float, kind: String) -> fl
 	var momentum := sqrt(maxf(0.4, _weapon_mass))
 	return clampf(2.5 * contact_speed * contact_speed * prepared * momentum * grip
 		* _kind_multiplier("flat" if _weapon_crush else kind), 0.0, 160.0)
+
+static func tree_damage57(weapon: String, contact_speed: float, prepared: float) -> float:
+	return TreeDamage57.damage(weapon,contact_speed,prepared)
 
 ## Kind of the last landed blow: slice, stab or flat.
 var _last_hit_kind := ""
@@ -4772,6 +4776,19 @@ func _resolve_contact(hit: Dictionary, points: PackedVector3Array, now: int, tou
 		return
 	var id_any: int = collider.get_instance_id() if is_instance_valid(collider) else -1
 	var fresh: bool = id_any < 0 or not _contact_prev.has(id_any)
+	# Battlefield trees are already exact batched damage groups.  Route only this
+	# admitted fresh blade contact to the owning group; no forest-wide scan runs.
+	if fresh and is_instance_valid(collider) and collider.has_meta("battlefield_group") \
+			and _weapon_id in ["sword","axe","hatchet"] and _swing_can_damage31() \
+			and speed>DAMAGE_SPEED_MIN and now-int(_hit_ms.get(id_any,-10000))>=CONTACT_COOLDOWN_MS:
+		var props: Node=collider.get_parent()
+		while is_instance_valid(props) and not props.has_method("apply_melee_hit"): props=props.get_parent()
+		if is_instance_valid(props):
+			var wood_damage:=tree_damage57(_weapon_id,speed,_strength_now())
+			var tree_result: Dictionary=props.call("apply_melee_hit",str(collider.get_meta("battlefield_group")),position,_weapon_id,wood_damage)
+			if bool(tree_result.get("accepted",false)):
+				_hit_ms[id_any]=now
+				combat_audio_event30("wood",position,1.0 if bool(tree_result.get("fell",false)) else clampf(wood_damage/38.0,0.22,1.0),"tree")
 	if not is_target and not is_duelist and is_instance_valid(collider) and not collider.has_meta("sword_npc_part"):
 		_contact_plane = Plane(normal.normalized(), position)
 		_contact_rid = hit.get("rid", RID())
