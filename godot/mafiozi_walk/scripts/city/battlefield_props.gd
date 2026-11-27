@@ -44,6 +44,7 @@ var _debris_backlog: Array[Dictionary] = []
 var _resource_inventory: Node
 var _falling_trees: Array[Dictionary] = []
 var _tree_logs: Array[WeakRef] = []
+var _pending_tree_logs: Array[Dictionary] = []
 var _tree_hp_label: Label3D
 
 func install(_castle: Node3D) -> Dictionary:
@@ -74,6 +75,8 @@ func get_stats() -> Dictionary:
 func _make_resources() -> void:
 	_material("oak", Color(0.35, 0.20, 0.11), 0.94)
 	_material("oak_edge", Color(0.22, 0.115, 0.065), 0.97)
+	_material("tree_bark", Color(0.29, 0.145, 0.065), 0.96)
+	_material("tree_bark_dark", Color(0.18, 0.075, 0.032), 0.98)
 	_material("char", Color(0.105, 0.095, 0.083), 1.0)
 	_material("iron", Color(0.16, 0.18, 0.19), 0.82)
 	_material("rust", Color(0.31, 0.175, 0.105), 0.95)
@@ -184,9 +187,11 @@ func _make_tree_crown() -> ArrayMesh:
 	var faces := [0,11,5, 0,5,1, 0,1,7, 0,7,10, 0,10,11, 1,5,9, 5,11,4,
 		11,10,2, 10,7,6, 7,1,8, 3,9,4, 3,4,2, 3,2,6, 3,6,8, 3,8,9,
 		4,9,5, 2,4,11, 6,2,10, 8,6,7, 9,8,1]
-	for cluster: Array in clusters:
+	for cluster_index: int in clusters.size():
+		var cluster: Array=clusters[cluster_index]
 		var center: Vector3 = cluster[0]
 		var scale: Vector3 = cluster[1]
+		var cluster_tint:=Color("789a57") if cluster_index==5 else (Color("526f3d") if center.y<0.0 else Color("678a49"))
 		for face_at in range(0,faces.size(),3):
 			var triangle: Array[Vector3] = []
 			for corner in 3:
@@ -194,7 +199,8 @@ func _make_tree_crown() -> ArrayMesh:
 				triangle.append(center+Vector3(unit.x*scale.x,unit.y*scale.y,unit.z*scale.z))
 			var normal := (triangle[1]-triangle[0]).cross(triangle[2]-triangle[0]).normalized()
 			for point: Vector3 in triangle:
-				st.set_normal(normal); st.add_vertex(point)
+				var height_tint:=cluster_tint.lightened(clampf((point.y+0.8)*0.035,0.0,0.09))
+				st.set_color(height_tint); st.set_normal(normal); st.add_vertex(point)
 	return st.commit()
 
 func _make_tent_roof() -> ArrayMesh:
@@ -284,16 +290,17 @@ func _piece(mesh: String, material: String, pos: Vector3, size: Vector3, rotatio
 	var xf := Transform3D(Basis.from_euler(rotation) * Basis().scaled(size), pos + Vector3.UP * lift)
 	var tint: Color = (_materials[material] as StandardMaterial3D).albedo_color
 	# Per-instance weathering preserves the shared material and draw batches.
-	if material in ["oak", "oak_edge", "char", "canvas", "canvas_dark"]:
+	if material in ["oak", "oak_edge", "tree_bark", "tree_bark_dark", "char", "canvas", "canvas_dark"]:
 		var grain := sin(pos.x * 17.17 + pos.y * 3.91 + pos.z * 9.73)
 		var wear := 0.88 + 0.12 * grain
 		if group.begins_with("palisade_") or group.begins_with("tree_"):
 			wear *= 0.80
 		tint = Color(tint.r * wear, tint.g * wear, tint.b * wear, tint.a)
-	var family := 0.0 if material in ["oak","oak_edge","char","rope"] else (0.333 if material in ["canvas","canvas_dark","red","red_edge"] else (0.667 if material in ["iron","rust"] else 1.0))
+	var family := 0.0 if material in ["oak","oak_edge","tree_bark","tree_bark_dark","char","rope"] else (0.333 if material in ["canvas","canvas_dark","red","red_edge"] else (0.667 if material in ["iron","rust"] else 1.0))
 	var grain_axis := 0.0 if size.x>size.y and size.x>size.z else (0.5 if size.y>size.z else 1.0)
 	var wind_phase := fposmod(sin(pos.x*12.9898+pos.z*78.233)*43758.5453,1.0) if material=="leaf" else 0.0
-	(_pending[key]["parts"] as Array).append({"xf": xf, "group": group, "color": tint,"custom":Color(family,grain_axis,wind_phase,1)})
+	var wind_amount:=0.72+fposmod(wind_phase*7.31,1.0)*0.33 if material=="leaf" else 1.0
+	(_pending[key]["parts"] as Array).append({"xf": xf, "group": group, "color": tint,"custom":Color(family,grain_axis,wind_phase,wind_amount)})
 	_stats["mesh_pieces"] += 1
 
 func _box(material: String, pos: Vector3, size: Vector3, rotation := Vector3.ZERO, group := "", no_shadow := false) -> void:
@@ -936,7 +943,7 @@ func _build_tree(p: Vector3, id: String) -> void:
 	_group(id, p, 120.0, "wood", Vector3(0.9, tall, 0.9))
 	var trunk_rotation := Vector3(0, _rng.randf_range(0, TAU), 0.08)
 	var trunk_basis := Basis.from_euler(trunk_rotation)
-	_piece("cone", "oak", p + Vector3.UP * tall * 0.5, Vector3(1.08, tall, 1.08), trunk_rotation, id)
+	_piece("cone", "tree_bark", p + Vector3.UP * tall * 0.5, Vector3(1.08, tall, 1.08), trunk_rotation, id)
 	for i in 4:
 		var a := float(i) * TAU / 4.0 + 0.3
 		var high := tall * (0.51 + float(i % 2) * 0.14)
@@ -945,7 +952,7 @@ func _build_tree(p: Vector3, id: String) -> void:
 		var tip := start + Vector3(cos(a) * tall * 0.23, tall * 0.24, sin(a) * tall * 0.23)
 		var direction := tip - start
 		var rotation := Basis(Quaternion(Vector3.UP, direction.normalized())).get_euler()
-		_piece("cone","oak_edge",(start+tip)*0.5,Vector3(0.48,direction.length(),0.48),rotation,id)
+		_piece("cone","tree_bark_dark",(start+tip)*0.5,Vector3(0.48,direction.length(),0.48),rotation,id)
 	# One combined six-cluster crown per tree: a readable natural silhouette at two
 	# draw calls per sector, with all swaying done by the shared GPU shader.
 	var crown_scale := Vector3(tall*0.245,tall*0.225,tall*0.245)
@@ -953,7 +960,11 @@ func _build_tree(p: Vector3, id: String) -> void:
 		Vector3(0,trunk_rotation.y,0),id,true)
 	for i in 3:
 		var a := float(i) * TAU / 3.0
-		_box("oak_edge", p + Vector3(cos(a) * 0.62, 0.15, sin(a) * 0.62), Vector3(1.4, 0.15, 0.19), Vector3(0, a, 0), id)
+		var root_start:=p+Vector3.UP*0.18
+		var root_tip:=p+Vector3(cos(a)*0.82,0.04,sin(a)*0.82)
+		var root_direction:=root_tip-root_start
+		var root_rotation:=Basis(Quaternion(Vector3.UP,root_direction.normalized())).get_euler()
+		_piece("cone","tree_bark_dark",(root_start+root_tip)*0.5,Vector3(0.23,root_direction.length(),0.23),root_rotation,id)
 	_groups[id]["max_health"] = 120.0
 	_groups[id]["tree_tall"] = tall
 	_groups[id]["tree_yield"] = clampi(roundi(tall*0.58),3,5)
@@ -1042,8 +1053,19 @@ func _begin_tree_fall(id: String, hit_point: Vector3) -> void:
 	add_child(root)
 	var tall := float(g.get("tree_tall",6.5))
 	var rotation: Vector3 = g.get("tree_rotation",Vector3.ZERO)
-	var trunk := MeshInstance3D.new(); trunk.mesh=_meshes["cone"]; trunk.material_override=_materials["oak"]
-	trunk.position.y=tall*0.5; trunk.rotation=rotation; trunk.scale=Vector3(1.08,tall,1.08); root.add_child(trunk)
+	var wood_mesh: Mesh=(_meshes["cone"] as Mesh).duplicate(); wood_mesh.surface_set_material(0,_batch_materials["solid"])
+	var wood_multi:=MultiMesh.new(); wood_multi.transform_format=MultiMesh.TRANSFORM_3D; wood_multi.use_colors=true; wood_multi.mesh=wood_mesh; wood_multi.instance_count=5
+	wood_multi.set_instance_transform(0,Transform3D(Basis.from_euler(rotation)*Basis().scaled(Vector3(1.08,tall,1.08)),Vector3.UP*tall*0.5)); wood_multi.set_instance_color(0,(_materials["tree_bark"] as StandardMaterial3D).albedo_color)
+	var trunk_basis:=Basis.from_euler(rotation)
+	for i in 4:
+		var a:=float(i)*TAU/4.0+0.3
+		var high:=tall*(0.51+float(i%2)*0.14)
+		var start:=Vector3.UP*tall*0.5+trunk_basis*Vector3(0,high-tall*0.5,0)
+		var tip:=start+Vector3(cos(a)*tall*0.23,tall*0.24,sin(a)*tall*0.23)
+		var direction:=tip-start
+		var branch_rotation:=Basis(Quaternion(Vector3.UP,direction.normalized()))
+		wood_multi.set_instance_transform(i+1,Transform3D(branch_rotation*Basis().scaled(Vector3(0.48,direction.length(),0.48)),(start+tip)*0.5)); wood_multi.set_instance_color(i+1,(_materials["tree_bark_dark"] as StandardMaterial3D).albedo_color)
+	var wood:=MultiMeshInstance3D.new(); wood.multimesh=wood_multi; wood.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; root.add_child(wood)
 	var crown := MeshInstance3D.new(); crown.mesh=_meshes["tree_crown"]; crown.material_override=_materials["leaf"]
 	crown.position.y=tall*0.80; crown.rotation.y=rotation.y; crown.scale=Vector3(tall*0.245,tall*0.225,tall*0.245); root.add_child(crown)
 	var away := Vector3(g.center)-hit_point; away.y=0.0
@@ -1063,33 +1085,31 @@ func _finish_tree_fall(entry: Dictionary) -> void:
 	_spawn_tree_logs(g,Vector3(entry.direction))
 
 func _spawn_tree_logs(g: Dictionary, direction: Vector3) -> void:
-	_cleanup_tree_logs()
 	var count:=int(g.get("tree_yield",3))
 	var tall:=float(g.get("tree_tall",6.0))
 	for i in count:
-		if _tree_logs.size()>=TREE_LOG_LIMIT:
-			# Preserve the full harvest without adding more physics bodies.  Under an
-			# extreme mass-fell, the last visible bundle represents the overflow.
-			var bundled:=_last_tree_log()
-			if is_instance_valid(bundled): bundled.set_meta("wood_units",int(bundled.get_meta("wood_units",1))+count-i)
-			break
-		var body:=RigidBody3D.new(); body.name="PickupLog"; body.mass=1.7; body.can_sleep=true
+		_pending_tree_logs.append({"position":Vector3(g.center)+Vector3.UP*(0.50+0.10*float(i))+direction*(1.0+float(i)*minf(0.75,tall/11.0)),"rotation":float(i)*1.37,"impulse":direction*(0.55+float(i)*0.10)+Vector3.UP*0.42})
+	_drain_pending_tree_logs()
+
+func _drain_pending_tree_logs() -> void:
+	_cleanup_tree_logs()
+	while _tree_logs.size()<TREE_LOG_LIMIT and not _pending_tree_logs.is_empty():
+		var spec: Dictionary=_pending_tree_logs.pop_front()
+		var body:=RigidBody3D.new(); body.name="PickupLog"; body.mass=1.7; body.can_sleep=true; body.linear_damp=2.4; body.angular_damp=3.2
 		body.set_meta("battlefield_log",true); body.set_meta("wood_units",1)
 		var visual:=MeshInstance3D.new(); var mesh:=CylinderMesh.new()
 		mesh.top_radius=0.18; mesh.bottom_radius=0.21; mesh.height=0.86; mesh.radial_segments=10
 		visual.mesh=mesh; visual.material_override=_materials["oak"]; visual.rotation.z=PI*0.5; body.add_child(visual)
 		var shape:=CollisionShape3D.new(); var cylinder:=CylinderShape3D.new(); cylinder.radius=0.21; cylinder.height=0.86
 		shape.shape=cylinder; shape.rotation.z=PI*0.5; body.add_child(shape)
-		body.position=Vector3(g.center)+Vector3.UP*(0.55+0.12*float(i))+direction*(1.1+float(i)*minf(0.85,tall/10.0))
-		body.rotation.y=float(i)*1.37; add_child(body)
-		body.apply_central_impulse(direction*(0.65+float(i)*0.12)+Vector3.UP*0.65)
+		body.position=spec.position; body.rotation.y=float(spec.rotation); add_child(body)
+		body.apply_central_impulse(spec.impulse)
 		_tree_logs.append(weakref(body))
 
 func tree_log_action(player_world: Vector3) -> Dictionary:
 	var log:=_nearest_tree_log(player_world)
 	if not is_instance_valid(log): return {}
-	var units:=maxi(1,int(log.get_meta("wood_units",1)))
-	return {"owner":"tree_log","key":"E","label":"Поднять брёвна ×%d"%units if units>1 else "Поднять бревно",
+	return {"owner":"tree_log","key":"E","label":"Поднять бревно",
 		"world":log.global_position+Vector3.UP*0.42}
 
 func pickup_tree_log(player_world: Vector3) -> bool:
@@ -1098,9 +1118,9 @@ func pickup_tree_log(player_world: Vector3) -> bool:
 	if not is_instance_valid(log): return false
 	if bool(log.get_meta("pickup_claimed",false)): return false
 	log.set_meta("pickup_claimed",true)
-	if not bool(_resource_inventory.call("add_resource","wood",maxi(1,int(log.get_meta("wood_units",1))))):
+	if not bool(_resource_inventory.call("add_resource","wood",1)):
 		log.set_meta("pickup_claimed",false); return false
-	log.queue_free(); _cleanup_tree_logs(); return true
+	log.queue_free(); _cleanup_tree_logs(); _drain_pending_tree_logs.call_deferred(); return true
 
 func _nearest_tree_log(player_world: Vector3) -> RigidBody3D:
 	var nearest: RigidBody3D
@@ -1112,12 +1132,6 @@ func _nearest_tree_log(player_world: Vector3) -> RigidBody3D:
 		var distance:=player_world.distance_squared_to(candidate.global_position)
 		if distance<best: best=distance; nearest=candidate
 	return nearest
-
-func _last_tree_log() -> RigidBody3D:
-	for i in range(_tree_logs.size()-1,-1,-1):
-		var candidate:=_tree_logs[i].get_ref() as RigidBody3D
-		if is_instance_valid(candidate) and not candidate.is_queued_for_deletion(): return candidate
-	return null
 
 func _cleanup_tree_logs() -> void:
 	var alive: Array[WeakRef]=[]
@@ -1655,8 +1669,8 @@ func _spawn_splinters(center: Vector3, hit_point: Vector3, kind: String,
 func _process(delta: float) -> void:
 	for i in range(_falling_trees.size()-1,-1,-1):
 		var entry: Dictionary=_falling_trees[i]
-		entry.time=minf(1.0,float(entry.time)+delta/1.42)
-		var eased:=1.0-pow(1.0-float(entry.time),2.4)
+		entry.time=minf(1.0,float(entry.time)+delta/0.98)
+		var eased:=pow(float(entry.time),1.42)
 		var root: Node3D=entry.root
 		if is_instance_valid(root): root.quaternion=Quaternion(Vector3(entry.axis),eased*deg_to_rad(87.0))
 		if float(entry.time)>=1.0:

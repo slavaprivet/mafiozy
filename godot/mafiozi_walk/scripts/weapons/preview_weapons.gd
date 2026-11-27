@@ -40,6 +40,7 @@ var fire_state: Dictionary = {}
 var menu_open := false
 var cargo_menu_owner: Node
 var castle_storage_owner: Node
+var resource_inventory_owner: Node
 var _ship_climb := false
 var _ship_saved_fire_state: Dictionary = {}
 var _ship_saved_shield := false
@@ -157,7 +158,14 @@ func cargo_menu_active() -> bool:
 	return is_instance_valid(cargo_menu_owner) and cargo_menu_owner.window_open
 
 func controls_blocked() -> bool:
-	return menu_open or cargo_menu_active() or (is_instance_valid(castle_storage_owner) and castle_storage_owner.window_open)
+	return menu_open or cargo_menu_active() \
+		or (is_instance_valid(castle_storage_owner) and castle_storage_owner.window_open) \
+		or (is_instance_valid(resource_inventory_owner) and resource_inventory_owner.is_open())
+
+func bind_resource_inventory(owner: Node) -> bool:
+	if not is_instance_valid(owner) or not owner.has_method("window_input"): return false
+	resource_inventory_owner=owner
+	return true
 
 ## Holding the one catapult stone borrows both hands. The castle inventory keeps
 ## ownership and slot positions; only the active models and attacks are suspended.
@@ -503,6 +511,8 @@ func release_controls() -> void:
 
 func input_event(event: InputEvent) -> bool:
 	if _catapult_stone_carry: return false
+	if is_instance_valid(resource_inventory_owner) and resource_inventory_owner.is_open():
+		return resource_inventory_owner.window_input(event)
 	if is_instance_valid(castle_storage_owner) and castle_storage_owner.window_open:
 		return castle_storage_owner.window_input(event)
 	if cargo_menu_active(): return cargo_menu_owner.window_input(event)

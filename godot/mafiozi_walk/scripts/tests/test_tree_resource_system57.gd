@@ -43,7 +43,7 @@ func run()->void:
 	check((props.get("_falling_trees") as Array).size()==1,"one active falling tree")
 	var repeated:Dictionary=props.apply_melee_hit(tree_id,props.to_global(Vector3(tree.center)),"axe",999.0)
 	check(not repeated.get("accepted",false),"fall cannot duplicate")
-	props.call("_process",1.5)
+	props.call("_process",1.05)
 	var logs:Array=props.get("_tree_logs")
 	check(logs.size()==int(tree.tree_yield) and logs.size()>=3 and logs.size()<=5,"size yield becomes 3-5 physical logs")
 	var first_log:RigidBody3D=(logs[0] as WeakRef).get_ref() as RigidBody3D
@@ -54,10 +54,10 @@ func run()->void:
 	check(inventory.count("wood")==1,"picked log increments wood once")
 	check(not is_instance_valid(first_log) or first_log.is_queued_for_deletion(),"picked physical log consumed")
 	check(bool(first_log.get_meta("pickup_claimed",false)),"picked log is atomically claimed")
-	var key:=InputEventKey.new(); key.pressed=true; key.physical_keycode=KEY_B
-	inventory._unhandled_input(key)
+	check(inventory.open_window(),"B opens resource inventory")
 	check(inventory.is_open(),"B opens resource inventory")
-	inventory._unhandled_input(key)
+	check(str(inventory.get("_detail_description").text).contains("каждое поднятое полено"),"selected card shows item description")
+	inventory.close_window(false)
 	check(not inventory.is_open() and inventory.count("wood")==1,"B closes without losing count")
 	var expected_remaining:=int(tree.tree_yield)-1
 	for id:Variant in groups.keys():
@@ -65,13 +65,18 @@ func run()->void:
 		if str(id).begins_with("tree_") and not bool(other.destroyed):
 			expected_remaining+=int(other.tree_yield)
 			props.apply_melee_hit(str(id),props.to_global(Vector3(other.center)),"axe",999.0)
-	props.call("_process",1.5)
+	props.call("_process",1.05)
 	var live_logs:Array=props.get("_tree_logs")
-	var represented:=0
-	for reference:WeakRef in live_logs:
-		var body:=reference.get_ref() as RigidBody3D
-		if is_instance_valid(body): represented+=int(body.get_meta("wood_units",1))
+	var pending_logs:Array=props.get("_pending_tree_logs")
+	var represented:=live_logs.size()+pending_logs.size()
 	check(live_logs.size()<=32,"mass felling keeps physical log cap")
 	check(represented==expected_remaining,"log cap preserves complete wood yield %d/%d"%[represented,expected_remaining])
+	var picked_before:=inventory.count("wood")
+	var one_reference:WeakRef=live_logs[0]
+	var one_body:=one_reference.get_ref() as RigidBody3D
+	check(props.pickup_tree_log(one_body.global_position),"mass pickup accepts one visible log")
+	check(inventory.count("wood")==picked_before+1,"every E adds exactly one wood")
+	props.call("_drain_pending_tree_logs")
+	check((props.get("_tree_logs") as Array).size()<=32,"overflow refill remains within physical cap")
 	print("TREE_RESOURCE57_RESULT ",JSON.stringify({"checks":checks,"failures":failures,"stats":stats}))
 	quit(0 if failures.is_empty() else 1)

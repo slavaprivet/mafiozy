@@ -876,8 +876,10 @@ func _build_castle_map() -> bool:
 		var resources := ResourceInventory.new() as CanvasLayer
 		resources.name = "ResourceInventory"
 		add_child(resources)
-		resources.install()
+		resources.install(_player,preview_weapons)
 		preview_resource_inventory = resources
+		if is_instance_valid(preview_weapons) and preview_weapons.has_method("bind_resource_inventory"):
+			preview_weapons.bind_resource_inventory(resources)
 		field_props.bind_resource_inventory(resources)
 		var wall_dressing := SiegeWallDressing.new() as Node3D
 		wall_dressing.name = "SiegeWallDressing"

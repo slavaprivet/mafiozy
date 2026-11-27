@@ -3,7 +3,7 @@ extends SceneTree
 var scene:Node
 var camera:Camera3D
 var props:Node3D
-var output:="D:/MafioziCombat31/tree_visual_20261127"
+var output:="D:/MafioziCombat31/tree_inventory_visual_20261128"
 
 func _initialize()->void: call_deferred("run")
 
@@ -45,7 +45,7 @@ func run()->void:
 		if not logs.is_empty():
 			var log:RigidBody3D=(logs[0] as WeakRef).get_ref() as RigidBody3D
 			if is_instance_valid(log): props.pickup_tree_log(log.global_position)
-		var key:=InputEventKey.new(); key.pressed=true; key.physical_keycode=KEY_B; inventory._unhandled_input(key)
+		inventory.open_window()
 		passed=(await shot("inventory_b")) and passed
 	print("TREE57_VISUAL_RESULT ",passed)
 	quit(0 if passed else 1)
