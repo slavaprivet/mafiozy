@@ -49,6 +49,8 @@ var _falling_trees: Array[Dictionary] = []
 var _tree_logs: Array[WeakRef] = []
 var _pending_tree_logs: Array[Dictionary] = []
 var _tree_hp_label: Label3D
+var _tree_damage_label: Label3D
+var _tree_damage_tween: Tween
 var _tree_mark_multi: MultiMesh
 var _tree_mark_owner: Array[String] = []
 var _tree_mark_cursor:=0
@@ -1034,13 +1036,23 @@ func _build_tree_hp_label() -> void:
 	_tree_hp_label = Label3D.new()
 	_tree_hp_label.name = "SharedTreeHealth"
 	_tree_hp_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	_tree_hp_label.font_size = 64
-	_tree_hp_label.pixel_size = 0.006
-	_tree_hp_label.outline_size = 12
-	_tree_hp_label.modulate = Color("f2d79a")
+	_tree_hp_label.font_size = 46
+	_tree_hp_label.pixel_size = 0.0040
+	_tree_hp_label.outline_size = 11
+	_tree_hp_label.modulate = Color("e8d69c")
 	_tree_hp_label.no_depth_test = true
 	_tree_hp_label.visible = false
 	add_child(_tree_hp_label)
+	_tree_damage_label = Label3D.new()
+	_tree_damage_label.name = "SharedTreeDamagePopup"
+	_tree_damage_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_tree_damage_label.font_size = 52
+	_tree_damage_label.pixel_size = 0.0042
+	_tree_damage_label.outline_size = 12
+	_tree_damage_label.modulate = Color("ff3d32")
+	_tree_damage_label.no_depth_test = true
+	_tree_damage_label.visible = false
+	add_child(_tree_damage_label)
 
 func _build_tree_mark_bank() -> void:
 	var mesh:=BoxMesh.new(); mesh.size=Vector3(0.42,0.055,0.025); mesh.material=_materials["tree_cut"]
@@ -1084,14 +1096,28 @@ func _clear_tree_cut_marks(g: Dictionary) -> void:
 	g["tree_mark_slots"]=[]
 
 func _show_tree_health(g: Dictionary,local_hit: Vector3,dealt: float,fell: bool) -> void:
-	if not is_instance_valid(_tree_hp_label): return
+	if not is_instance_valid(_tree_hp_label) or not is_instance_valid(_tree_damage_label): return
 	var tall:=float(g.get("tree_tall",6.0)); var center:=Vector3(g.center)
-	_tree_hp_label.position=Vector3(local_hit.x,clampf(local_hit.y+0.68,center.y+1.0,center.y+tall*0.70),local_hit.z)
-	var health:=float(g.health); var maximum:=float(g.get("max_health",120.0)); var hits:=ceili(health/maxf(dealt,0.001)) if health>0.0 else 0
-	_tree_hp_label.text="ДЕРЕВО  %d / %d\n−%d УРОНА · %s"%[roundi(health),roundi(maximum),roundi(dealt),("СРУБЛЕНО" if fell else "ЕЩЁ ~%d УДАРА"%hits)]
-	var ratio:=health/maxf(maximum,1.0); _tree_hp_label.modulate=Color("f2d79a") if ratio>0.55 else (Color("ef9c4a") if ratio>0.25 else Color("ef5c4d"))
+	_tree_hp_label.position=Vector3(center.x,center.y+minf(tall*0.64,4.25),center.z)
+	var health:=float(g.health); var maximum:=float(g.get("max_health",120.0))
+	var ratio:=health/maxf(maximum,1.0); var filled:=clampi(roundi(ratio*10.0),0,10)
+	var bar:=""
+	for segment in 10: bar += "█" if segment<filled else "░"
+	_tree_hp_label.text=("СРУБЛЕНО\n0 / %d"%roundi(maximum)) if fell else ("ДЕРЕВО   %d / %d\n%s"%[roundi(health),roundi(maximum),bar])
+	_tree_hp_label.modulate=Color("dce9ad") if ratio>0.55 else (Color("ffd06b") if ratio>0.25 else Color("ff7568"))
 	_tree_hp_label.visible = true
-	_tree_hp_label.set_meta("hide_at",Time.get_ticks_msec()+(1150 if fell else 4200))
+	_tree_hp_label.set_meta("hide_at",Time.get_ticks_msec()+(1250 if fell else 2600))
+	if _tree_damage_tween!=null and _tree_damage_tween.is_valid(): _tree_damage_tween.kill()
+	# Keep combat text on one stable tree-relative anchor. Consecutive contacts can
+	# land on different bark points; following them made the UI visibly jump.
+	_tree_damage_label.position=Vector3(center.x,center.y+minf(tall*0.50,3.35),center.z)
+	_tree_damage_label.text="−%d HP"%maxi(1,roundi(dealt))
+	_tree_damage_label.modulate=Color("ff3d32")
+	_tree_damage_label.visible=true
+	_tree_damage_tween=create_tween().set_parallel(true)
+	_tree_damage_tween.tween_property(_tree_damage_label,"position:y",_tree_damage_label.position.y+0.24,0.92).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_tree_damage_tween.tween_property(_tree_damage_label,"modulate:a",0.0,0.92).set_delay(0.08)
+	_tree_damage_tween.chain().tween_callback(func(): _tree_damage_label.visible=false)
 	set_process(true)
 
 func _begin_tree_fall(id: String, hit_point: Vector3) -> void:

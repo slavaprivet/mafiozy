@@ -41,8 +41,14 @@ func run()->void:
 	var first:Dictionary=props.apply_melee_hit(tree_id,props.to_global(Vector3(tree.center)),"sword",11.0)
 	check(first.get("accepted",false) and is_equal_approx(float(first.health),before-11.0),"sword contact removes persistent HP")
 	check((props.get("_tree_hp_label") as Label3D).visible,"one shared HP label shown")
-	check(str((props.get("_tree_hp_label") as Label3D).text).contains("−11 УРОНА") and str((props.get("_tree_hp_label") as Label3D).text).contains("УДАРА"),"HP label reports exact damage and hits remaining")
+	check(str((props.get("_tree_hp_label") as Label3D).text).contains("109 / 120") and not str((props.get("_tree_hp_label") as Label3D).text).contains("УДАРА"),"HP label shows only exact remaining health")
+	check((props.get("_tree_damage_label") as Label3D).visible and str((props.get("_tree_damage_label") as Label3D).text)=="−11 HP","red damage popup reports exact dealt HP")
 	check((tree.get("tree_mark_slots",[]) as Array).size()==1,"contact creates one bounded cut mark")
+	var stable_damage_anchor:Vector3=(props.get("_tree_damage_label") as Label3D).position
+	props.apply_melee_hit(tree_id,props.to_global(Vector3(tree.center)+Vector3(0.35,2.8,-0.25)),"sword",0.1)
+	check((props.get("_tree_damage_label") as Label3D).position.is_equal_approx(stable_damage_anchor) and is_equal_approx((props.get("_tree_damage_label") as Label3D).modulate.a,1.0),"rapid hits restart at one stable fully opaque anchor without jumping")
+	await create_timer(1.05).timeout
+	check(not (props.get("_tree_damage_label") as Label3D).visible,"damage popup fades completely in about one second")
 	for repeated_mark in 6: props.apply_melee_hit(tree_id,props.to_global(Vector3(tree.center)+Vector3.UP*(0.8+0.08*repeated_mark)),"sword",0.1)
 	check((tree.get("tree_mark_slots",[]) as Array).size()==4,"one tree retains only four newest cut marks")
 	for mark_id:Variant in groups.keys():

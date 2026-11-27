@@ -1442,6 +1442,9 @@ func _update_door_hint() -> void:
 	var hint: String = str(action.label) if not action.is_empty() else ""
 	var owner := str(action.get("owner", ""))
 	_door_hint_owner = owner
+	var compact_tree_prompt:=owner=="tree_log"
+	_door_hint.add_theme_font_size_override("font_size",12 if compact_tree_prompt else 14)
+	_door_hint_key.custom_minimum_size=Vector2(22,22) if compact_tree_prompt else Vector2(24,24)
 	if owner == "barrel" and is_instance_valid(preview_power_barrels) and bool(preview_power_barrels.get("carrying")):
 		_door_hint_owner = "carry_barrel"
 	elif owner == "horse" and is_instance_valid(preview_horse_mount) and preview_horse_mount.is_mounted():
@@ -1450,8 +1453,9 @@ func _update_door_hint() -> void:
 	if owner == "barrel" or owner == "tower" or (owner in ["horse", "balloon"] and hint.contains("Взять")):
 		key_text = "E"
 	for child: Node in _door_hint_key.get_children():
-		if child is Label and (child as Label).text != key_text:
-			(child as Label).text = key_text
+		if child is Label:
+			if (child as Label).text != key_text: (child as Label).text = key_text
+			(child as Label).add_theme_font_size_override("font_size",14 if compact_tree_prompt else 16)
 	_door_hint_key.visible = not action.is_empty() and _door_feedback_seconds <= 0.0
 	if not action.is_empty() and _door_feedback_seconds > 0.0:
 		hint = "Дверь заблокирована"
