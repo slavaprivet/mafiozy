@@ -17,6 +17,8 @@ const RUBBLE_MIN_EXTENT := 0.16
 const RUBBLE_SUPPORT_AUDITS_PER_FRAME := 12
 const TREE_LOG_LIMIT := 32
 const TREE_PICKUP_DISTANCE := 2.35
+const TREE_MARK_LIMIT := 48
+const TREE_MARKS_PER_TREE := 4
 
 var _rng := RandomNumberGenerator.new()
 var _materials: Dictionary = {}
@@ -42,10 +44,14 @@ var _rubble_audit_cursor := 0
 var _falling_debris: Array[Dictionary] = []
 var _debris_backlog: Array[Dictionary] = []
 var _resource_inventory: Node
+var _player_actor: CharacterBody3D
 var _falling_trees: Array[Dictionary] = []
 var _tree_logs: Array[WeakRef] = []
 var _pending_tree_logs: Array[Dictionary] = []
 var _tree_hp_label: Label3D
+var _tree_mark_multi: MultiMesh
+var _tree_mark_owner: Array[String] = []
+var _tree_mark_cursor:=0
 
 func install(_castle: Node3D) -> Dictionary:
 	if _installed:
@@ -59,6 +65,7 @@ func install(_castle: Node3D) -> Dictionary:
 	_build_active_siege()
 	_build_terrain_dressing()
 	_flush_batches()
+	_build_tree_mark_bank()
 	_build_tree_hp_label()
 	_stats["grass"] = 0
 	_stats["brush"] = 0
@@ -77,6 +84,7 @@ func _make_resources() -> void:
 	_material("oak_edge", Color(0.22, 0.115, 0.065), 0.97)
 	_material("tree_bark", Color(0.29, 0.145, 0.065), 0.96)
 	_material("tree_bark_dark", Color(0.18, 0.075, 0.032), 0.98)
+	_material("tree_cut",Color(0.12,0.045,0.018),1.0)
 	_material("char", Color(0.105, 0.095, 0.083), 1.0)
 	_material("iron", Color(0.16, 0.18, 0.19), 0.82)
 	_material("rust", Color(0.31, 0.175, 0.105), 0.95)
@@ -969,6 +977,7 @@ func _build_tree(p: Vector3, id: String) -> void:
 	_groups[id]["tree_tall"] = tall
 	_groups[id]["tree_yield"] = clampi(roundi(tall*0.58),3,5)
 	_groups[id]["tree_rotation"] = trunk_rotation
+	_groups[id]["tree_mark_slots"] = []
 	_stats["trees"] += 1
 
 ## Called by weapon/projectile integration. Nothing is simulated while undamaged.
@@ -997,6 +1006,10 @@ func bind_resource_inventory(inventory: Node) -> bool:
 	_resource_inventory = inventory
 	return true
 
+func bind_player(actor: CharacterBody3D) -> bool:
+	if not is_instance_valid(actor): return false
+	_player_actor=actor; return true
+
 ## Exact melee bridge: the collider already names the group, so no global scan is
 ## performed.  The weapon host supplies one admitted fresh contact and its damage.
 func apply_melee_hit(id: String, world_point: Vector3, weapon: String, damage: float) -> Dictionary:
@@ -1006,10 +1019,14 @@ func apply_melee_hit(id: String, world_point: Vector3, weapon: String, damage: f
 		return {"accepted":false}
 	var amount := maxf(0.0,damage)
 	if amount<=0.0: return {"accepted":false}
+	var old_health:=float(g.get("health",0.0))
 	g["health"] = maxf(0.0,float(g.get("health",0.0))-amount)
-	_show_tree_health(g)
+	var dealt:=old_health-float(g["health"])
+	var local_hit:=to_local(world_point)
+	_add_tree_cut_mark(id,g,local_hit)
 	var fell := float(g["health"])<=0.0
-	if fell: _begin_tree_fall(id,to_local(world_point))
+	_show_tree_health(g,local_hit,dealt,fell)
+	if fell: _begin_tree_fall(id,local_hit)
 	return {"accepted":true,"id":id,"health":float(g["health"]),
 		"max_health":float(g.get("max_health",120.0)),"fell":fell}
 
@@ -1025,18 +1042,63 @@ func _build_tree_hp_label() -> void:
 	_tree_hp_label.visible = false
 	add_child(_tree_hp_label)
 
-func _show_tree_health(g: Dictionary) -> void:
+func _build_tree_mark_bank() -> void:
+	var mesh:=BoxMesh.new(); mesh.size=Vector3(0.42,0.055,0.025); mesh.material=_materials["tree_cut"]
+	_tree_mark_multi=MultiMesh.new(); _tree_mark_multi.transform_format=MultiMesh.TRANSFORM_3D; _tree_mark_multi.mesh=mesh; _tree_mark_multi.instance_count=TREE_MARK_LIMIT
+	for slot in TREE_MARK_LIMIT: _tree_mark_multi.set_instance_transform(slot,Transform3D(Basis().scaled(Vector3.ZERO),Vector3.ZERO)); _tree_mark_owner.append("")
+	var node:=MultiMeshInstance3D.new(); node.name="TreeCutMarks"; node.multimesh=_tree_mark_multi; node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# The bank starts with hidden zero-scale slots, so give culling a stable field bound
+	# instead of letting its initial empty AABB hide later marks far from the origin.
+	node.custom_aabb=AABB(Vector3(-260.0,-4.0,-260.0),Vector3(520.0,34.0,520.0)); add_child(node)
+	_stats["mesh_instances"]+=1
+
+func _add_tree_cut_mark(id: String,g: Dictionary,local_hit: Vector3) -> void:
+	if _tree_mark_multi==null: return
+	var center:=Vector3(g.center); var tall:=float(g.get("tree_tall",6.0))
+	var height:=clampf(local_hit.y,center.y+0.42,center.y+tall*0.68)
+	var outward:=Vector3(local_hit.x-center.x,0.0,local_hit.z-center.z)
+	if outward.length_squared()<0.002: outward=Vector3.FORWARD.rotated(Vector3.UP,float(g.get("tree_rotation",Vector3.ZERO).y))
+	outward=outward.normalized()
+	var height_ratio:=clampf((height-center.y)/tall,0.0,0.72)
+	var radius:=lerpf(0.54,0.24,height_ratio)+0.018
+	var tangent:=Vector3.UP.cross(outward).normalized()
+	var angle:=deg_to_rad(-34.0+float((int(g.get("tree_mark_counter",0))*23)%68))
+	g["tree_mark_counter"]=int(g.get("tree_mark_counter",0))+1
+	var slash:=tangent*cos(angle)+Vector3.UP*sin(angle)
+	var narrow:=outward.cross(slash).normalized()
+	var pose:=Transform3D(Basis(slash,narrow,outward),Vector3(center.x,height,center.z)+outward*radius)
+	var slots:Array=g.get("tree_mark_slots",[])
+	var slot:int
+	if slots.size()>=TREE_MARKS_PER_TREE:
+		slot=int(slots.pop_front())
+	else:
+		slot=_tree_mark_cursor; _tree_mark_cursor=(_tree_mark_cursor+1)%TREE_MARK_LIMIT
+		var previous:=_tree_mark_owner[slot]
+		if not previous.is_empty() and _groups.has(previous): (_groups[previous].get("tree_mark_slots",[]) as Array).erase(slot)
+	_tree_mark_owner[slot]=id; slots.append(slot); g["tree_mark_slots"]=slots; _tree_mark_multi.set_instance_transform(slot,pose)
+
+func _clear_tree_cut_marks(g: Dictionary) -> void:
+	if _tree_mark_multi==null: return
+	for slot: int in g.get("tree_mark_slots",[]):
+		_tree_mark_multi.set_instance_transform(slot,Transform3D(Basis().scaled(Vector3.ZERO),Vector3.ZERO)); _tree_mark_owner[slot]=""
+	g["tree_mark_slots"]=[]
+
+func _show_tree_health(g: Dictionary,local_hit: Vector3,dealt: float,fell: bool) -> void:
 	if not is_instance_valid(_tree_hp_label): return
-	_tree_hp_label.position = Vector3(g.center)+Vector3.UP*(float(g.get("tree_tall",6.0))+0.7)
-	_tree_hp_label.text = "ДЕРЕВО  %d / %d"%[roundi(float(g.health)),roundi(float(g.get("max_health",120.0)))]
+	var tall:=float(g.get("tree_tall",6.0)); var center:=Vector3(g.center)
+	_tree_hp_label.position=Vector3(local_hit.x,clampf(local_hit.y+0.68,center.y+1.0,center.y+tall*0.70),local_hit.z)
+	var health:=float(g.health); var maximum:=float(g.get("max_health",120.0)); var hits:=ceili(health/maxf(dealt,0.001)) if health>0.0 else 0
+	_tree_hp_label.text="ДЕРЕВО  %d / %d\n−%d УРОНА · %s"%[roundi(health),roundi(maximum),roundi(dealt),("СРУБЛЕНО" if fell else "ЕЩЁ ~%d УДАРА"%hits)]
+	var ratio:=health/maxf(maximum,1.0); _tree_hp_label.modulate=Color("f2d79a") if ratio>0.55 else (Color("ef9c4a") if ratio>0.25 else Color("ef5c4d"))
 	_tree_hp_label.visible = true
-	_tree_hp_label.set_meta("hide_at",Time.get_ticks_msec()+4200)
+	_tree_hp_label.set_meta("hide_at",Time.get_ticks_msec()+(1150 if fell else 4200))
 	set_process(true)
 
 func _begin_tree_fall(id: String, hit_point: Vector3) -> void:
 	var g: Dictionary = _groups[id]
 	if bool(g.get("destroyed",false)): return
 	g["destroyed"] = true
+	_clear_tree_cut_marks(g)
 	for ref: Variant in g.get("indices",[]):
 		var pair: Array = ref
 		var batch: MultiMeshInstance3D = _batches.get(pair[0])
@@ -1073,43 +1135,59 @@ func _begin_tree_fall(id: String, hit_point: Vector3) -> void:
 	away=away.normalized()
 	_falling_trees.append({"root":root,"group":g,"time":0.0,"direction":away,
 		"axis":Vector3.UP.cross(away).normalized()})
-	if is_instance_valid(_tree_hp_label): _tree_hp_label.visible=false
 	set_process(true)
 
 func _finish_tree_fall(entry: Dictionary) -> void:
 	var g: Dictionary=entry.group
 	var root: Node3D=entry.root
 	if is_instance_valid(root): root.queue_free()
-	var stump := MeshInstance3D.new(); stump.name="TreeStump"; stump.mesh=_meshes["cone"]; stump.material_override=_materials["oak"]
-	stump.position=Vector3(g.center)+Vector3.UP*0.19; stump.scale=Vector3(0.76,0.38,0.76); add_child(stump)
 	_spawn_tree_logs(g,Vector3(entry.direction))
 
 func _spawn_tree_logs(g: Dictionary, direction: Vector3) -> void:
 	var count:=int(g.get("tree_yield",3))
 	var tall:=float(g.get("tree_tall",6.0))
 	for i in count:
-		_pending_tree_logs.append({"position":Vector3(g.center)+Vector3.UP*(0.50+0.10*float(i))+direction*(1.0+float(i)*minf(0.75,tall/11.0)),"rotation":float(i)*1.37,"impulse":direction*(0.55+float(i)*0.10)+Vector3.UP*0.42})
+		_pending_tree_logs.append({"position":Vector3(g.center)+Vector3.UP*(0.40+0.08*float(i))+direction*(1.0+float(i)*minf(0.75,tall/11.0)),"rotation":float(i)*1.37,"impulse":direction*(0.34+float(i)*0.06)+Vector3.UP*0.25,"units":1,"stack":false})
 	_drain_pending_tree_logs()
 
 func _drain_pending_tree_logs() -> void:
 	_cleanup_tree_logs()
 	while _tree_logs.size()<TREE_LOG_LIMIT and not _pending_tree_logs.is_empty():
-		var spec: Dictionary=_pending_tree_logs.pop_front()
-		var body:=RigidBody3D.new(); body.name="PickupLog"; body.mass=1.7; body.can_sleep=true; body.linear_damp=2.4; body.angular_damp=3.2
-		body.set_meta("battlefield_log",true); body.set_meta("wood_units",1)
-		var visual:=MeshInstance3D.new(); var mesh:=CylinderMesh.new()
-		mesh.top_radius=0.18; mesh.bottom_radius=0.21; mesh.height=0.86; mesh.radial_segments=10
-		visual.mesh=mesh; visual.material_override=_materials["oak"]; visual.rotation.z=PI*0.5; body.add_child(visual)
-		var shape:=CollisionShape3D.new(); var cylinder:=CylinderShape3D.new(); cylinder.radius=0.21; cylinder.height=0.86
-		shape.shape=cylinder; shape.rotation.z=PI*0.5; body.add_child(shape)
-		body.position=spec.position; body.rotation.y=float(spec.rotation); add_child(body)
-		body.apply_central_impulse(spec.impulse)
-		_tree_logs.append(weakref(body))
+		_spawn_log_body(_pending_tree_logs.pop_front())
+
+func _spawn_log_body(spec: Dictionary) -> RigidBody3D:
+	var units:=maxi(1,int(spec.get("units",1))); var stack:=bool(spec.get("stack",false))
+	var body:=RigidBody3D.new(); body.name="PickupLogStack" if stack else "PickupLog"; body.mass=0.72 if stack else 0.42; body.can_sleep=true; body.linear_damp=5.5; body.angular_damp=9.0; body.collision_layer=4; body.collision_mask=1
+	var physics:=PhysicsMaterial.new(); physics.friction=1.0; physics.bounce=0.0; body.physics_material_override=physics
+	body.set_meta("battlefield_log",true); body.set_meta("wood_units",units); body.set_meta("inventory_stack",stack)
+	var visible_count:=mini(6,units) if stack else 1
+	for index in visible_count:
+		var visual:=MeshInstance3D.new(); var mesh:=CylinderMesh.new(); mesh.top_radius=0.18; mesh.bottom_radius=0.21; mesh.height=0.86; mesh.radial_segments=10
+		visual.mesh=mesh; visual.material_override=_materials["oak"]; visual.rotation.z=PI*0.5
+		if stack: visual.position=Vector3(0.0,float(index/2)*0.22,(float(index%2)-0.5)*0.27)
+		body.add_child(visual)
+	var shape:=CollisionShape3D.new(); var box:=BoxShape3D.new(); var rows:=ceili(float(visible_count)/2.0) if stack else 1
+	box.size=Vector3(0.86,0.28+float(rows-1)*0.20,0.50 if stack else 0.32); shape.shape=box; body.add_child(shape)
+	body.position=spec.position; body.rotation.y=float(spec.get("rotation",0.0)); add_child(body)
+	var impulse:Vector3=spec.get("impulse",Vector3.ZERO)
+	if not impulse.is_zero_approx(): body.apply_central_impulse(impulse)
+	_tree_logs.append(weakref(body)); return body
+
+func drop_inventory_resource(id: String,amount: int,player_world: Vector3,forward: Vector3) -> Dictionary:
+	if id!="wood" or amount<=0: return {"ok":false,"accepted":0}
+	_cleanup_tree_logs()
+	if _tree_logs.size()>=TREE_LOG_LIMIT: return {"ok":false,"accepted":0,"reason":"physical_limit"}
+	var direction:=Vector3(forward.x,0.0,forward.z).normalized()
+	if direction.length_squared()<0.01: direction=Vector3.FORWARD
+	var local_drop:=to_local(player_world+direction*1.45+Vector3.UP*(0.34 if amount==1 else 0.48))
+	var body:=_spawn_log_body({"position":local_drop,"rotation":atan2(-direction.z,direction.x),"impulse":direction*0.12,"units":amount,"stack":amount>1})
+	return {"ok":is_instance_valid(body),"accepted":amount if is_instance_valid(body) else 0}
 
 func tree_log_action(player_world: Vector3) -> Dictionary:
 	var log:=_nearest_tree_log(player_world)
 	if not is_instance_valid(log): return {}
-	return {"owner":"tree_log","key":"E","label":"Поднять бревно",
+	var units:=maxi(1,int(log.get_meta("wood_units",1)))
+	return {"owner":"tree_log","key":"E","label":"Поднять древесину ×%d"%units if bool(log.get_meta("inventory_stack",false)) else "Поднять бревно",
 		"world":log.global_position+Vector3.UP*0.42}
 
 func pickup_tree_log(player_world: Vector3) -> bool:
@@ -1118,7 +1196,8 @@ func pickup_tree_log(player_world: Vector3) -> bool:
 	if not is_instance_valid(log): return false
 	if bool(log.get_meta("pickup_claimed",false)): return false
 	log.set_meta("pickup_claimed",true)
-	if not bool(_resource_inventory.call("add_resource","wood",1)):
+	var units:=maxi(1,int(log.get_meta("wood_units",1)))
+	if not bool(_resource_inventory.call("add_resource","wood",units)):
 		log.set_meta("pickup_claimed",false); return false
 	log.queue_free(); _cleanup_tree_logs(); _drain_pending_tree_logs.call_deferred(); return true
 
@@ -1136,9 +1215,43 @@ func _nearest_tree_log(player_world: Vector3) -> RigidBody3D:
 func _cleanup_tree_logs() -> void:
 	var alive: Array[WeakRef]=[]
 	for reference: WeakRef in _tree_logs:
-		var log: Object=reference.get_ref()
-		if is_instance_valid(log) and not log.is_queued_for_deletion(): alive.append(reference)
+		var log:=reference.get_ref() as RigidBody3D
+		if not is_instance_valid(log) or log.is_queued_for_deletion(): continue
+		if log.global_position.y < -25.0:
+			log.queue_free()
+			continue
+		alive.append(reference)
 	_tree_logs=alive
+
+func _advance_tree_logs() -> void:
+	_cleanup_tree_logs()
+	if _tree_logs.is_empty(): return
+	var player_speed:=Vector3.ZERO
+	if is_instance_valid(_player_actor): player_speed=Vector3(_player_actor.velocity.x,0.0,_player_actor.velocity.z)
+	for reference: WeakRef in _tree_logs:
+		var body:=reference.get_ref() as RigidBody3D
+		if not is_instance_valid(body): continue
+		var horizontal:=Vector3(body.linear_velocity.x,0.0,body.linear_velocity.z)
+		if horizontal.length()>2.7:
+			horizontal=horizontal.normalized()*2.7; body.linear_velocity.x=horizontal.x; body.linear_velocity.z=horizontal.z
+		if body.angular_velocity.length()>4.5: body.angular_velocity=body.angular_velocity.normalized()*4.5
+		if horizontal.length()<0.035 and body.angular_velocity.length()<0.18:
+			# Keep vertical velocity intact: zeroing it near an airborne apex can leave a
+			# pickup floating. High damping plus the engine's normal contact sleep handles Y.
+			body.linear_velocity=Vector3(0.0,body.linear_velocity.y,0.0)
+			body.angular_velocity=Vector3.ZERO
+		if not is_instance_valid(_player_actor) or player_speed.length()<0.25: continue
+		var offset:=body.global_position-_player_actor.global_position; offset.y=0.0
+		if offset.length()>1.05 or offset.length_squared()<0.001: continue
+		var move_direction:=player_speed.normalized()
+		if move_direction.dot(offset.normalized())<0.25: continue
+		body.sleeping=false
+		var target:=move_direction*minf(2.7,player_speed.length()*0.68)
+		# A horizontal velocity blend is deliberate: a capsule contact/central impulse
+		# can turn a round-looking pickup into a ramp and launch the player. The box
+		# collider never touches the player; this bounded foot nudge only changes X/Z.
+		var nudged:=horizontal.lerp(target,0.55)
+		body.linear_velocity=Vector3(nudged.x,body.linear_velocity.y,nudged.z)
 
 ## Decor support is a real graph. A watchtower deck remains on any two opposite legs;
 ## losing a third support removes the last load path and queues the supported structure.
@@ -1583,6 +1696,7 @@ func _drain_decor_backlog() -> void:
 		moved += 1
 
 func _physics_process(delta: float) -> void:
+	_advance_tree_logs()
 	_audit_persistent_decor_rubble()
 	if not _decor_pending_support.is_empty():
 		var now := Time.get_ticks_msec()

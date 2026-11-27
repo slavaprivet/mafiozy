@@ -2,6 +2,7 @@ extends CanvasLayer
 ## Mouse-driven castle resource inventory. Q remains exclusively weapon selection.
 
 const ResourceItemIcon = preload("res://scripts/inventory/resource_item_icon.gd")
+const ResourceItemCard = preload("res://scripts/inventory/resource_item_card.gd")
 const CATALOG := {
 	"wood": {
 		"title":"Древесина", "subtitle":"Брёвна", "category":"МАТЕРИАЛ",
@@ -23,6 +24,9 @@ var _item_buttons: Dictionary = {}
 var _selected := "wood"
 var _player: CharacterBody3D
 var _weapon_host: Node
+var _drop_handler: Callable
+var _drop_in_progress:=false
+var _toast_root: Control
 var _ready_for_play := false
 
 func install(player: CharacterBody3D = null, weapon_host: Node = null) -> Dictionary:
@@ -34,7 +38,11 @@ func install(player: CharacterBody3D = null, weapon_host: Node = null) -> Dictio
 
 func add_resource(id: String,amount: int) -> bool:
 	if not _ready_for_play or not CATALOG.has(id) or amount<=0: return false
-	_counts[id]=int(_counts.get(id,0))+amount; _refresh(); return true
+	_counts[id]=int(_counts.get(id,0))+amount; _refresh(); _show_toast("+%d  ДРЕВЕСИНА"%amount,true); return true
+
+func bind_drop_handler(handler: Callable) -> bool:
+	if not handler.is_valid(): return false
+	_drop_handler=handler; return true
 
 func count(id: String) -> int: return int(_counts.get(id,0))
 func is_open() -> bool: return is_instance_valid(_overlay) and _overlay.visible
@@ -85,6 +93,7 @@ func _input(event: InputEvent) -> void:
 		close_window(true); get_viewport().set_input_as_handled()
 
 func _build_window() -> void:
+	_toast_root=Control.new(); _toast_root.name="ResourceToasts"; _toast_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); _toast_root.mouse_filter=Control.MOUSE_FILTER_IGNORE; add_child(_toast_root)
 	_overlay=Control.new(); _overlay.name="ResourceInventoryOverlay"; _overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); _overlay.mouse_filter=Control.MOUSE_FILTER_STOP; _overlay.visible=false; add_child(_overlay)
 	var shade:=ColorRect.new(); shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); shade.color=Color(0.008,0.012,0.014,0.72); shade.mouse_filter=Control.MOUSE_FILTER_STOP; _overlay.add_child(shade)
 	_window=PanelContainer.new(); _window.name="ResourceInventoryWindow"; _window.set_anchors_preset(Control.PRESET_CENTER); _window.position=Vector2(-455,-270); _window.custom_minimum_size=Vector2(910,540); _window.add_theme_stylebox_override("panel",_style(Color("151b1c"),Color("bd934e"),14,2)); _overlay.add_child(_window)
@@ -114,7 +123,7 @@ func _build_window() -> void:
 
 func _add_item_card(id: String) -> void:
 	var item: Dictionary=CATALOG[id]
-	var card:=Button.new(); card.name="Item_%s"%id; card.toggle_mode=true; card.custom_minimum_size=Vector2(162,178); card.text="\n\n\n%s\n× %d"%[str(item.title),count(id)]; card.alignment=HORIZONTAL_ALIGNMENT_CENTER; card.add_theme_font_size_override("font_size",17); card.add_theme_stylebox_override("normal",_style(Color("202829"),Color("485552"),9,1)); card.add_theme_stylebox_override("hover",_style(Color("293333"),Color("d0a65b"),9,2)); card.add_theme_stylebox_override("pressed",_style(Color("2c3431"),Color("e4bd6b"),9,2)); card.add_theme_stylebox_override("focus",_style(Color("293333"),Color("e4bd6b"),9,2)); card.pressed.connect(_select_item.bind(id)); _grid.add_child(card)
+	var card:=ResourceItemCard.new(); card.configure(id,_window); card.name="Item_%s"%id; card.toggle_mode=true; card.custom_minimum_size=Vector2(162,178); card.text="\n\n\n%s\n× %d"%[str(item.title),count(id)]; card.alignment=HORIZONTAL_ALIGNMENT_CENTER; card.add_theme_font_size_override("font_size",17); card.add_theme_stylebox_override("normal",_style(Color("202829"),Color("485552"),9,1)); card.add_theme_stylebox_override("hover",_style(Color("293333"),Color("d0a65b"),9,2)); card.add_theme_stylebox_override("pressed",_style(Color("2c3431"),Color("e4bd6b"),9,2)); card.add_theme_stylebox_override("focus",_style(Color("293333"),Color("e4bd6b"),9,2)); card.pressed.connect(_select_item.bind(id)); card.drop_outside.connect(_drop_resource); _grid.add_child(card)
 	var icon:=ResourceItemIcon.new(); icon.position=Vector2(18,8); icon.size=Vector2(126,92); icon.set_kind(str(item.icon)); card.add_child(icon); _item_buttons[id]=card
 
 func _add_empty_slot() -> void:
@@ -130,8 +139,34 @@ func _select_item(id: String) -> void:
 
 func _refresh() -> void:
 	for id: String in _item_buttons:
-		var item: Dictionary=CATALOG[id]; var card: Button=_item_buttons[id]; card.text="\n\n\n%s\n× %d"%[str(item.title),count(id)]
+		var item: Dictionary=CATALOG[id]; var card: Button=_item_buttons[id]; card.text="\n\n\n%s\n× %d"%[str(item.title),count(id)]; card.call("set_available",count(id))
 	if CATALOG.has(_selected): _select_item(_selected)
+
+func _drop_resource(id: String,drag_amount: int) -> void:
+	if _drop_in_progress or not is_open() or drag_amount<=0 or count(id)!=drag_amount: return
+	if not _drop_handler.is_valid() or not is_instance_valid(_player): return
+	_drop_in_progress=true
+	var forward:=-_player.global_basis.z
+	var visual: Variant=_player.get("_visual")
+	if is_instance_valid(visual): forward=-(visual as Node3D).global_basis.z
+	forward.y=0.0
+	if forward.length_squared()<0.01: forward=Vector3.FORWARD
+	var result: Variant=_drop_handler.call(id,drag_amount,_player.global_position,forward.normalized())
+	var success:=result is Dictionary and bool(result.get("ok",false)) and int(result.get("accepted",0))==drag_amount
+	if success:
+		_counts[id]=count(id)-drag_amount; _refresh(); _show_toast("−%d  ВЫБРОШЕНО"%drag_amount,false)
+	_drop_in_progress=false
+
+func _show_toast(text: String,positive: bool) -> void:
+	if not is_instance_valid(_toast_root): return
+	while _toast_root.get_child_count()>=4:
+		var oldest:=_toast_root.get_child(0)
+		_toast_root.remove_child(oldest)
+		oldest.queue_free()
+	var panel:=PanelContainer.new(); panel.mouse_filter=Control.MOUSE_FILTER_IGNORE; panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM); panel.position=Vector2(-145,-138); panel.custom_minimum_size=Vector2(290,54)
+	var frame:=StyleBoxFlat.new(); frame.bg_color=Color(0.055,0.075,0.07,0.96); frame.border_color=Color("7dbb6a") if positive else Color("c18b58"); frame.set_border_width_all(2); frame.set_corner_radius_all(10); panel.add_theme_stylebox_override("panel",frame)
+	var label:=Label.new(); label.text=text; label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER; label.add_theme_font_size_override("font_size",19); label.modulate=Color("d8f0cb") if positive else Color("f0d1a6"); panel.add_child(label); _toast_root.add_child(panel)
+	var tween:=create_tween(); tween.set_parallel(true); tween.tween_property(panel,"position:y",panel.position.y-44.0,1.05).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT); tween.tween_property(panel,"modulate:a",0.0,1.05).set_delay(0.25); tween.chain().tween_callback(panel.queue_free)
 
 func _style(background: Color,border: Color,radius: int,width: int) -> StyleBoxFlat:
 	var style:=StyleBoxFlat.new(); style.bg_color=background; style.border_color=border; style.set_border_width_all(width); style.set_corner_radius_all(radius); style.content_margin_left=18; style.content_margin_right=18; style.content_margin_top=14; style.content_margin_bottom=14; return style

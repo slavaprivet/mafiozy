@@ -881,6 +881,8 @@ func _build_castle_map() -> bool:
 		if is_instance_valid(preview_weapons) and preview_weapons.has_method("bind_resource_inventory"):
 			preview_weapons.bind_resource_inventory(resources)
 		field_props.bind_resource_inventory(resources)
+		field_props.bind_player(_player)
+		resources.bind_drop_handler(Callable(field_props,"drop_inventory_resource"))
 		var wall_dressing := SiegeWallDressing.new() as Node3D
 		wall_dressing.name = "SiegeWallDressing"
 		battlefield.add_child(wall_dressing)
