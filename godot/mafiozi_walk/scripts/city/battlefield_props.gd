@@ -19,6 +19,7 @@ const TREE_LOG_LIMIT := 32
 const TREE_PICKUP_DISTANCE := 2.35
 const TREE_MARK_LIMIT := 48
 const TREE_MARKS_PER_TREE := 4
+const TREE_BRANCH_COUNT := 5
 
 var _rng := RandomNumberGenerator.new()
 var _materials: Dictionary = {}
@@ -107,7 +108,10 @@ func _make_resources() -> void:
 	_material("grass_dry", Color(0.45, 0.38, 0.20), 1.0)
 	_material("rope", Color(0.48, 0.36, 0.22), 1.0)
 	_material("ember", Color(0.87, 0.28, 0.07), 0.75)
+	# Authored crown vertex colours carry the actual leaf palette; this neutral
+	# tint keeps their dark/light layering instead of multiplying it nearly black.
 	_material("leaf", Color(0.27, 0.42, 0.19), 0.91)
+	(_materials["leaf"] as StandardMaterial3D).vertex_color_use_as_albedo = true
 	var ember: StandardMaterial3D = _materials["ember"]
 	ember.emission_enabled = true
 	ember.emission = Color(0.72, 0.16, 0.025)
@@ -183,21 +187,61 @@ func _make_resources() -> void:
 	rock.rings = 4
 	_meshes["rock"] = rock
 	_meshes["tent_roof"] = _make_tent_roof()
+	_meshes["tree_trunk"] = _make_tree_trunk()
 	_meshes["tree_crown"] = _make_tree_crown()
 	_meshes["pickup_log"] = _make_pickup_log()
+
+func _make_tree_trunk() -> ArrayMesh:
+	# One shared irregular trunk replaces the perfectly straight seven-sided cone.
+	# Height stays normalized, so trunks, branches and falling trees still share one
+	# MultiMesh draw.  Vertex colours only modulate the existing bark tint.
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var sides := 9
+	var heights := [-0.50, -0.41, -0.19, 0.06, 0.29, 0.50]
+	var radii := [0.59, 0.51, 0.43, 0.36, 0.29, 0.22]
+	var offsets := [Vector2(0.0, 0.0), Vector2(0.012, -0.008),
+		Vector2(-0.008, 0.012), Vector2(0.016, 0.006),
+		Vector2(-0.012, -0.010), Vector2(0.004, -0.014)]
+	for ring in heights.size() - 1:
+		for side in sides:
+			var next := (side + 1) % sides
+			var angle_a := float(side) * TAU / float(sides)
+			var angle_b := float(next) * TAU / float(sides)
+			var irregular_a := 1.0 + sin(float(side) * 2.37) * 0.055
+			var irregular_b := 1.0 + sin(float(next) * 2.37) * 0.055
+			var low_a := Vector3(cos(angle_a) * radii[ring] * irregular_a + offsets[ring].x,
+				heights[ring], sin(angle_a) * radii[ring] * irregular_a + offsets[ring].y)
+			var low_b := Vector3(cos(angle_b) * radii[ring] * irregular_b + offsets[ring].x,
+				heights[ring], sin(angle_b) * radii[ring] * irregular_b + offsets[ring].y)
+			var high_a := Vector3(cos(angle_a) * radii[ring + 1] * irregular_a + offsets[ring + 1].x,
+				heights[ring + 1], sin(angle_a) * radii[ring + 1] * irregular_a + offsets[ring + 1].y)
+			var high_b := Vector3(cos(angle_b) * radii[ring + 1] * irregular_b + offsets[ring + 1].x,
+				heights[ring + 1], sin(angle_b) * radii[ring + 1] * irregular_b + offsets[ring + 1].y)
+			for data: Array in [[low_a, angle_a], [low_b, angle_b], [high_b, angle_b],
+					[low_a, angle_a], [high_b, angle_b], [high_a, angle_a]]:
+				var stripe := 0.78 + 0.20 * (0.5 + 0.5 * sin(float(side) * 2.9 + float(ring) * 0.7))
+				var height_warmth := 0.97 + float(ring) * 0.006
+				st.set_color(Color(stripe * height_warmth, stripe * 0.91, stripe * 0.82, 1.0))
+				st.set_normal(Vector3(cos(float(data[1])), 0.11, sin(float(data[1]))).normalized())
+				st.add_vertex(data[0])
+	return st.commit()
 
 func _make_tree_crown() -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var clusters := [
-		[Vector3(0,0,0),Vector3(1.0,0.92,0.92)],
-		[Vector3(-0.68,-0.05,-0.08),Vector3(0.72,0.70,0.68)],
-		[Vector3(0.67,-0.02,0.12),Vector3(0.76,0.72,0.70)],
-		[Vector3(-0.18,0.16,0.62),Vector3(0.70,0.76,0.66)],
-		[Vector3(0.18,0.22,-0.59),Vector3(0.68,0.74,0.64)],
-		[Vector3(0,0.68,0),Vector3(0.62,0.74,0.60)],
-		[Vector3(-0.48,0.34,0.43),Vector3(0.60,0.62,0.58)],
-		[Vector3(0.50,0.31,-0.40),Vector3(0.62,0.60,0.58)]
+		[Vector3(0,-0.03,0),Vector3(1.02,0.92,0.94)],
+		[Vector3(-0.70,-0.08,-0.10),Vector3(0.73,0.68,0.69)],
+		[Vector3(0.69,-0.05,0.14),Vector3(0.77,0.70,0.71)],
+		[Vector3(-0.22,0.12,0.65),Vector3(0.72,0.74,0.68)],
+		[Vector3(0.20,0.18,-0.64),Vector3(0.70,0.72,0.66)],
+		[Vector3(-0.05,0.72,0.02),Vector3(0.64,0.72,0.61)],
+		[Vector3(-0.50,0.35,0.43),Vector3(0.61,0.61,0.59)],
+		[Vector3(0.52,0.32,-0.42),Vector3(0.63,0.60,0.59)],
+		[Vector3(0.48,0.24,0.48),Vector3(0.57,0.58,0.55)],
+		[Vector3(-0.46,0.22,-0.49),Vector3(0.58,0.57,0.56)],
+		[Vector3(0.03,-0.34,0.08),Vector3(0.78,0.48,0.72)]
 	]
 	var phi := 1.61803398875
 	var raw := [Vector3(-1,phi,0),Vector3(1,phi,0),Vector3(-1,-phi,0),Vector3(1,-phi,0),
@@ -210,15 +254,17 @@ func _make_tree_crown() -> ArrayMesh:
 		var cluster: Array=clusters[cluster_index]
 		var center: Vector3 = cluster[0]
 		var scale: Vector3 = cluster[1]
-		var cluster_tint:=Color("789a57") if cluster_index==5 else (Color("526f3d") if center.y<0.0 else Color("678a49"))
+		var cluster_tint:=Color("789d58") if cluster_index==5 else (Color("506b3a") if center.y<0.0 else Color("668b49"))
 		for face_at in range(0,faces.size(),3):
 			var triangle: Array[Vector3] = []
 			for corner in 3:
 				var unit: Vector3 = raw[faces[face_at+corner]].normalized()
 				triangle.append(center+Vector3(unit.x*scale.x,unit.y*scale.y,unit.z*scale.z))
 			var normal := (triangle[1]-triangle[0]).cross(triangle[2]-triangle[0]).normalized()
+			var sunward := clampf(normal.dot(Vector3(-0.38,0.82,-0.42).normalized()),-1.0,1.0)
 			for point: Vector3 in triangle:
-				var height_tint:=cluster_tint.lightened(clampf((point.y+0.8)*0.035,0.0,0.09))
+				var height_tint:=cluster_tint.lightened(clampf((point.y+0.8)*0.030+maxf(0.0,sunward)*0.055,0.0,0.13))
+				if sunward < -0.22: height_tint=height_tint.darkened(minf(0.10,-sunward*0.07))
 				st.set_color(height_tint); st.set_normal(normal); st.add_vertex(point)
 	return st.commit()
 
@@ -389,6 +435,9 @@ func _flush_batches() -> void:
 		var node := MultiMeshInstance3D.new()
 		node.name = "Batched_%s" % key.replace("|", "_")
 		node.multimesh = mm
+		if record["bucket"] == "foliage":
+			# The shared vertex shader bends crowns slightly outside their static AABB.
+			node.extra_cull_margin = 0.45
 		var casts_shadow: bool = record["mesh"] in ["tent_roof", "wheel"] and not record["no_shadow"]
 		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if casts_shadow else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		if record["bucket"] == "vegetation_grass":
@@ -1001,32 +1050,39 @@ func _build_tree(p: Vector3, id: String) -> void:
 	_group(id, p, 120.0, "wood", Vector3(0.9, tall, 0.9))
 	var trunk_rotation := Vector3(0, _rng.randf_range(0, TAU), 0.08)
 	var trunk_basis := Basis.from_euler(trunk_rotation)
-	_piece("cone", "tree_bark", p + Vector3.UP * tall * 0.5, Vector3(1.08, tall, 1.08), trunk_rotation, id)
-	for i in 4:
-		var a := float(i) * TAU / 4.0 + 0.3
-		var high := tall * (0.50 + float(i % 2) * 0.11)
+	_piece("tree_trunk", "tree_bark", p + Vector3.UP * tall * 0.5, Vector3(1.04, tall, 1.04), trunk_rotation, id)
+	for i in TREE_BRANCH_COUNT:
+		var a := float(i) * TAU / float(TREE_BRANCH_COUNT) + 0.3
+		var high := tall * (0.51 + float(i % 3) * 0.055)
 		# Start inside the actual tilted trunk, then grow outward and upward.
 		var start := p + Vector3.UP * tall * 0.5 + trunk_basis * Vector3(0, high - tall * 0.5, 0)
-		var tip := start + Vector3(cos(a) * tall * 0.17, tall * 0.19, sin(a) * tall * 0.17)
+		var reach := tall * (0.145 + float(i % 2) * 0.012)
+		var tip := start + Vector3(cos(a) * reach, tall * (0.175 + float(i % 2) * 0.012), sin(a) * reach)
 		var direction := tip - start
 		var rotation := Basis(Quaternion(Vector3.UP, direction.normalized())).get_euler()
-		_piece("cone","tree_bark_dark",(start+tip)*0.5,Vector3(0.42,direction.length(),0.42),rotation,id)
-	# One combined six-cluster crown per tree: a readable natural silhouette at two
+		_piece("tree_trunk","tree_bark_dark",(start+tip)*0.5,Vector3(0.36,direction.length(),0.36),rotation,id)
+	# One combined crown per tree: a readable natural silhouette at two
 	# draw calls per sector, with all swaying done by the shared GPU shader.
-	var crown_scale := Vector3(tall*0.255,tall*0.235,tall*0.255)
-	_piece("tree_crown","leaf",p+Vector3.UP*tall*0.78,crown_scale,
-		Vector3(0,trunk_rotation.y,0),id,true)
+	var crown_scale := Vector3(tall*_rng.randf_range(0.245,0.270), tall*_rng.randf_range(0.226,0.242),
+		tall*_rng.randf_range(0.245,0.270))
+	var crown_height := tall*_rng.randf_range(0.768,0.786)
+	var crown_yaw := trunk_rotation.y+_rng.randf_range(-0.24,0.24)
+	_piece("tree_crown","leaf",p+Vector3.UP*crown_height,crown_scale,
+		Vector3(0,crown_yaw,0),id,true)
 	for i in 3:
 		var a := float(i) * TAU / 3.0
 		var root_start:=p+Vector3.UP*0.18
 		var root_tip:=p+Vector3(cos(a)*0.82,0.04,sin(a)*0.82)
 		var root_direction:=root_tip-root_start
 		var root_rotation:=Basis(Quaternion(Vector3.UP,root_direction.normalized())).get_euler()
-		_piece("cone","tree_bark_dark",(root_start+root_tip)*0.5,Vector3(0.23,root_direction.length(),0.23),root_rotation,id)
+		_piece("tree_trunk","tree_bark_dark",(root_start+root_tip)*0.5,Vector3(0.20,root_direction.length(),0.20),root_rotation,id)
 	_groups[id]["max_health"] = 120.0
 	_groups[id]["tree_tall"] = tall
 	_groups[id]["tree_yield"] = clampi(roundi(tall*0.58),3,5)
 	_groups[id]["tree_rotation"] = trunk_rotation
+	_groups[id]["tree_crown_scale"] = crown_scale
+	_groups[id]["tree_crown_height"] = crown_height
+	_groups[id]["tree_crown_yaw"] = crown_yaw
 	_groups[id]["tree_mark_slots"] = []
 	_stats["trees"] += 1
 
@@ -1215,21 +1271,22 @@ func _begin_tree_fall(id: String, hit_point: Vector3) -> void:
 	add_child(root)
 	var tall := float(g.get("tree_tall",6.5))
 	var rotation: Vector3 = g.get("tree_rotation",Vector3.ZERO)
-	var wood_mesh: Mesh=(_meshes["cone"] as Mesh).duplicate(); wood_mesh.surface_set_material(0,_batch_materials["solid"])
-	var wood_multi:=MultiMesh.new(); wood_multi.transform_format=MultiMesh.TRANSFORM_3D; wood_multi.use_colors=true; wood_multi.mesh=wood_mesh; wood_multi.instance_count=5
-	wood_multi.set_instance_transform(0,Transform3D(Basis.from_euler(rotation)*Basis().scaled(Vector3(1.08,tall,1.08)),Vector3.UP*tall*0.5)); wood_multi.set_instance_color(0,(_materials["tree_bark"] as StandardMaterial3D).albedo_color)
+	var wood_mesh: Mesh=(_meshes["tree_trunk"] as Mesh).duplicate(); wood_mesh.surface_set_material(0,_batch_materials["solid"])
+	var wood_multi:=MultiMesh.new(); wood_multi.transform_format=MultiMesh.TRANSFORM_3D; wood_multi.use_colors=true; wood_multi.mesh=wood_mesh; wood_multi.instance_count=1+TREE_BRANCH_COUNT
+	wood_multi.set_instance_transform(0,Transform3D(Basis.from_euler(rotation)*Basis().scaled(Vector3(1.04,tall,1.04)),Vector3.UP*tall*0.5)); wood_multi.set_instance_color(0,(_materials["tree_bark"] as StandardMaterial3D).albedo_color)
 	var trunk_basis:=Basis.from_euler(rotation)
-	for i in 4:
-		var a:=float(i)*TAU/4.0+0.3
-		var high:=tall*(0.50+float(i%2)*0.11)
+	for i in TREE_BRANCH_COUNT:
+		var a:=float(i)*TAU/float(TREE_BRANCH_COUNT)+0.3
+		var high:=tall*(0.51+float(i%3)*0.055)
 		var start:=Vector3.UP*tall*0.5+trunk_basis*Vector3(0,high-tall*0.5,0)
-		var tip:=start+Vector3(cos(a)*tall*0.17,tall*0.19,sin(a)*tall*0.17)
+		var reach:=tall*(0.145+float(i%2)*0.012)
+		var tip:=start+Vector3(cos(a)*reach,tall*(0.175+float(i%2)*0.012),sin(a)*reach)
 		var direction:=tip-start
 		var branch_rotation:=Basis(Quaternion(Vector3.UP,direction.normalized()))
-		wood_multi.set_instance_transform(i+1,Transform3D(branch_rotation*Basis().scaled(Vector3(0.42,direction.length(),0.42)),(start+tip)*0.5)); wood_multi.set_instance_color(i+1,(_materials["tree_bark_dark"] as StandardMaterial3D).albedo_color)
+		wood_multi.set_instance_transform(i+1,Transform3D(branch_rotation*Basis().scaled(Vector3(0.36,direction.length(),0.36)),(start+tip)*0.5)); wood_multi.set_instance_color(i+1,(_materials["tree_bark_dark"] as StandardMaterial3D).albedo_color)
 	var wood:=MultiMeshInstance3D.new(); wood.multimesh=wood_multi; wood.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; root.add_child(wood)
 	var crown := MeshInstance3D.new(); crown.mesh=_meshes["tree_crown"]; crown.material_override=_materials["leaf"]
-	crown.position.y=tall*0.78; crown.rotation.y=rotation.y; crown.scale=Vector3(tall*0.255,tall*0.235,tall*0.255); root.add_child(crown)
+	crown.position.y=float(g.get("tree_crown_height",tall*0.78)); crown.rotation.y=float(g.get("tree_crown_yaw",rotation.y)); crown.scale=Vector3(g.get("tree_crown_scale",Vector3(tall*0.255,tall*0.235,tall*0.255))); root.add_child(crown)
 	var away := Vector3(g.center)-hit_point; away.y=0.0
 	if away.length_squared()<0.01: away=Vector3.FORWARD.rotated(Vector3.UP,rotation.y)
 	away=away.normalized()

@@ -21,6 +21,11 @@ func run()->void:
 	var stats:Dictionary=props.install(castle)
 	check(int(stats.get("trees",0))>=10,"batched forest built")
 	check(int(stats.get("mesh_instances",0))<80,"bounded battlefield draw batches")
+	var meshes:Dictionary=props.get("_meshes")
+	var trunk_vertices:PackedVector3Array=(meshes["tree_trunk"] as ArrayMesh).surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+	var crown_vertices:PackedVector3Array=(meshes["tree_crown"] as ArrayMesh).surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+	check(trunk_vertices.size()==270,"shared irregular six-ring trunk mesh stays bounded")
+	check(crown_vertices.size()==660,"shared eleven-cluster crown adds silhouette without per-tree nodes")
 	var player:=CharacterBody3D.new(); player.collision_layer=2; player.collision_mask=1; world.add_child(player)
 	var inventory:=Inventory.new(); world.add_child(inventory)
 	check(bool(inventory.install(player).get("ok",false)),"B resource inventory installed")
@@ -66,6 +71,11 @@ func run()->void:
 	check(str((props.get("_tree_hp_label") as Label3D).text)=="Срублено  0 / 120","fatal hit keeps zero HP feedback")
 	check((tree.get("tree_mark_slots",[]) as Array).is_empty(),"fall clears cut marks")
 	check((props.get("_falling_trees") as Array).size()==1,"one active falling tree")
+	var falling_root:=props.find_child("Falling_%s"%tree_id,true,false) as Node3D
+	var falling_wood:=falling_root.get_child(0) as MultiMeshInstance3D
+	var falling_crown:=falling_root.get_child(1) as MeshInstance3D
+	check(falling_wood.multimesh.instance_count==6 and falling_wood.multimesh.mesh.get_surface_count()==1,"fall reuses one detailed trunk-and-branch batch")
+	check(falling_crown.scale.is_equal_approx(Vector3(tree.tree_crown_scale)),"fall preserves the live crown silhouette")
 	var repeated:Dictionary=props.apply_melee_hit(tree_id,props.to_global(Vector3(tree.center)),"axe",999.0)
 	check(not repeated.get("accepted",false),"fall cannot duplicate")
 	props.call("_process",1.05)
