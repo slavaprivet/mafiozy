@@ -44,6 +44,8 @@ func run()->void:
 	check(str((props.get("_tree_hp_label") as Label3D).text).contains("109 / 120") and not str((props.get("_tree_hp_label") as Label3D).text).contains("УДАРА"),"HP label shows only exact remaining health")
 	check((props.get("_tree_damage_label") as Label3D).visible and str((props.get("_tree_damage_label") as Label3D).text)=="−11 HP","red damage popup reports exact dealt HP")
 	check((tree.get("tree_mark_slots",[]) as Array).size()==1,"contact creates one bounded cut mark")
+	var mark_aabb: AABB=(props.get("_tree_mark_multi") as MultiMesh).mesh.get_aabb()
+	check(mark_aabb.position.z+mark_aabb.size.z<=0.001,"cut scar is inset into bark instead of protruding as a black block")
 	var stable_damage_anchor:Vector3=(props.get("_tree_damage_label") as Label3D).position
 	props.apply_melee_hit(tree_id,props.to_global(Vector3(tree.center)+Vector3(0.35,2.8,-0.25)),"sword",0.1)
 	check((props.get("_tree_damage_label") as Label3D).position.is_equal_approx(stable_damage_anchor) and is_equal_approx((props.get("_tree_damage_label") as Label3D).modulate.a,1.0),"rapid hits restart at one stable fully opaque anchor without jumping")
@@ -72,6 +74,7 @@ func run()->void:
 	check(logs.size()==int(tree.tree_yield) and logs.size()>=3 and logs.size()<=5,"size yield becomes 3-5 physical logs")
 	var first_log:RigidBody3D=(logs[0] as WeakRef).get_ref() as RigidBody3D
 	check(is_instance_valid(first_log) and first_log is RigidBody3D,"log is a physical body")
+	check((first_log.get_child(0) as MeshInstance3D).mesh==props.get("_meshes").get("pickup_log"),"fallen log reuses detailed bark and end-grain mesh")
 	var log_shape:=first_log.get_child(first_log.get_child_count()-1) as CollisionShape3D
 	check(log_shape.shape is BoxShape3D and first_log.mass<0.5 and first_log.linear_damp>=5.0,"log uses light stable damped box physics")
 	check((player.collision_mask&first_log.collision_layer)==0,"log cannot become a slope under player capsule")
@@ -108,6 +111,7 @@ func run()->void:
 		var candidate:=reference.get_ref() as RigidBody3D
 		if is_instance_valid(candidate) and bool(candidate.get_meta("inventory_stack",false)): stack_log=candidate
 	check(is_instance_valid(stack_log) and int(stack_log.get_meta("wood_units",0))==7,"large drop is one physical stack with exact units")
+	check(stack_log.get_child(0) is MultiMeshInstance3D and (stack_log.get_child(0) as MultiMeshInstance3D).multimesh.instance_count==6,"dropped stack batches detailed visible logs in one draw")
 	var wood_before_stack:=inventory.count("wood")
 	check(props.pickup_tree_log(stack_log.global_position),"dropped stack can be recovered")
 	check(inventory.count("wood")==wood_before_stack+7,"stack restores exact resource count")

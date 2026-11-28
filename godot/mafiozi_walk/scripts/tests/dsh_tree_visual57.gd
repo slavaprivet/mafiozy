@@ -48,7 +48,11 @@ func run()->void:
 			var log:RigidBody3D=(logs[0] as WeakRef).get_ref() as RigidBody3D
 			if is_instance_valid(log): props.pickup_tree_log(log.global_position)
 		passed=(await shot("pickup_toast", 2)) and passed
+		for pickup in 3: inventory.add_resource("wood",1)
+		passed=(await shot("pickup_stack",2)) and passed
 		inventory.open_window()
 		passed=(await shot("inventory_b")) and passed
+		inventory.call("_show_discard_popup","wood",Vector2(470,310))
+		passed=(await shot("discard_slider",2)) and passed
 	print("TREE57_VISUAL_RESULT ",passed)
 	quit(0 if passed else 1)

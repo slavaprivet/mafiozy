@@ -3,6 +3,7 @@ extends Button
 
 const ResourceItemIcon=preload("res://scripts/inventory/resource_item_icon.gd")
 signal drop_outside(item_id: String, amount: int)
+signal context_requested(item_id: String, screen_position: Vector2)
 
 var item_id:=""
 var available_count:=0
@@ -14,6 +15,13 @@ func configure(id: String,boundary: Control) -> void:
 
 func set_available(value: int) -> void:
 	available_count=maxi(0,value)
+
+func _gui_input(event: InputEvent) -> void:
+	if not event is InputEventMouseButton: return
+	var mouse := event as InputEventMouseButton
+	if mouse.button_index != MOUSE_BUTTON_RIGHT or not mouse.pressed or available_count <= 0: return
+	context_requested.emit(item_id, get_viewport().get_mouse_position())
+	accept_event()
 
 func _get_drag_data(_at_position: Vector2) -> Variant:
 	if item_id.is_empty() or available_count<=0: return null
